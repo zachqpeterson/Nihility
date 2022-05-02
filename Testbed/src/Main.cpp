@@ -1,8 +1,10 @@
-#include <Test.hpp>
+#include <Engine.hpp>
 
 int main()
 {
-    print_int(27);
+    Engine::Initialize();
+
+    Engine::Shutdown();
 
     return 0;
 }

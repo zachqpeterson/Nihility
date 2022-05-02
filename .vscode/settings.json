@@ -1,5 +1,7 @@
 {
-    "todohighlight.isEnable": true,
+	"C_Cpp.vcFormat.space.pointerReferenceAlignment": "left",
+	"C_Cpp.formatting": "vcFormat",
+	"todohighlight.isEnable": true,
 	"todohighlight.keywords": [
 		{
 			"text": "TODO:",
@@ -18,8 +20,9 @@
 		"overviewRulerColor": "rgba(0,0,0,0)",
 		"isWholeLine": false,
 	},
-    "files.associations": {
-        "Defines.hpp": "cpp",
-        "Test.hpp": "cpp"
-    }
+	"files.associations": {
+		"Defines.hpp": "cpp",
+		"xmemory": "cpp",
+		"iterator": "cpp"
+	}
 }

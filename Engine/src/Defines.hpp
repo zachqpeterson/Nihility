@@ -1,5 +1,4 @@
 /** @file Defines.hpp */
-
 #pragma once
 
 /** Unsigned 8-bit integer */
