@@ -95,7 +95,7 @@ bool Platform::Initialize(
         style, platformState->windowX, platformState->windowY, platformState->windowWidth, platformState->windowHeight,
         0, 0, platformState->hInstance, 0);
 
-    if (handle == nullptr) 
+    if (handle == nullptr)
     {
         MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
 
@@ -103,7 +103,7 @@ bool Platform::Initialize(
         //KFATAL("Window creation failed!");
         return false;
     }
-    else 
+    else
     {
         platformState->hwnd = handle;
     }
@@ -120,13 +120,15 @@ bool Platform::Initialize(
     return true;
 }
 
-void Platform::Shutdown()
+void* Platform::Shutdown()
 {
-    if (platformState && platformState->hwnd)
+    if (platformState->hwnd)
     {
         DestroyWindow(platformState->hwnd);
         platformState->hwnd = nullptr;
     }
+
+    return platformState;
 }
 
 bool Platform::ProcessMessages()
@@ -172,28 +174,23 @@ void* Platform::SetMemory(void* dest, I32 value, U64 size)
     return memset(dest, value, size);
 }
 
-void Platform::ConsoleWrite(const char* message, U8 colour)
+void Platform::ConsoleWrite(const char* message, U8 color)
 {
     HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     static U8 levels[6] = { 64, 4, 6, 2, 1, 8 };
-    SetConsoleTextAttribute(console_handle, levels[colour]);
+    SetConsoleTextAttribute(console_handle, levels[color]);
     OutputDebugStringA(message);
     U64 length = strlen(message);
     LPDWORD number_written = 0;
-    WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), message, (DWORD)length, number_written, 0);
-}
-
-void Platform::ConsoleWriteError(const char* message, U8 colour)
-{
-    HANDLE console_handle = GetStdHandle(STD_ERROR_HANDLE);
-    // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
-    static U8 levels[6] = { 64, 4, 6, 2, 1, 8 };
-    SetConsoleTextAttribute(console_handle, levels[colour]);
-    OutputDebugStringA(message);
-    U64 length = strlen(message);
-    LPDWORD number_written = 0;
-    WriteConsoleA(GetStdHandle(STD_ERROR_HANDLE), message, (DWORD)length, number_written, 0);
+    if (color < 2)
+    {
+        WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), message, (DWORD)length, number_written, 0);
+    }
+    else
+    {
+        WriteConsoleA(GetStdHandle(STD_ERROR_HANDLE), message, (DWORD)length, number_written, 0);
+    }
 }
 
 const F64 Platform::AbsoluteTime()

@@ -95,7 +95,9 @@ typedef double F64;
 #endif
 
 #ifdef _DEBUG
-#define DEBUG
+#define NH_DEBUG
+#else
+#define NH_RELEASE
 #endif
 
 #ifdef NH_EXPORT

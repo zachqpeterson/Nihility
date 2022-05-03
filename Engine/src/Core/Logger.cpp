@@ -1,0 +1,66 @@
+#include "Logger.hpp"
+
+#include "Files.hpp"
+#include "Memory/Memory.hpp"
+#include "Containers/String.hpp"
+#include "Platform/Platform.hpp"
+
+// TODO: temporary
+#include <stdarg.h>
+
+struct LoggerState {
+    //TODO: file
+    //file_handle log_file_handle;
+};
+
+static LoggerState* loggerState;
+
+bool Logger::Initialize(void* state)
+{
+    loggerState = (LoggerState*)loggerState;
+
+    //TODO: Open console.log file
+
+    return true;
+}
+
+void* Logger::Shutdown()
+{
+    //TODO: Close console.log file
+    return loggerState;
+}
+
+void Logger::LogOutput(LogLevel level, const String& message, ...)
+{
+    // TODO: Threaded
+    const char* levelStrings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]:  ", "[INFO]:  ", "[DEBUG]: ", "[TRACE]: " };
+
+    // Technically imposes a 32k character limit on a single log entry, but...
+    // DON'T DO THAT!
+
+    String out_message(new char[32000]);
+    Memory::ZeroMemory(out_message, out_message.Length());
+
+    // Format original message.
+    // NOTE: Oddly enough, MS's headers override the GCC/Clang va_list type with a "typedef char* va_list" in some
+    // cases, and as a result throws a strange error here. The workaround for now is to just use __builtin_va_list,
+    // which is the type GCC/Clang's va_start expects.
+    __builtin_va_list arg_ptr;
+    va_start(arg_ptr, message);
+    out_message.FormatV(message, arg_ptr);
+    va_end(arg_ptr);
+
+    // Prepend log level to message.
+    out_message.Format("%s%s\n", levelStrings[level], out_message);
+
+    // Print accordingly
+    Platform::ConsoleWrite(out_message, level);
+
+    // Queue a copy to be written to the log file.
+    //TODO: Append to file through Files::
+}
+
+const U64 Logger::GetMemoryRequirements()
+{
+    return sizeof(LoggerState);
+}

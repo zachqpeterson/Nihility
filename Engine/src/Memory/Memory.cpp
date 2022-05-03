@@ -24,72 +24,51 @@
 //    "SCENE      ",
 //    "RESOURCE   " };
 
-struct MemoryState
-{
-    U64 totalAllocSize; //total space we can allocate
-    U64 totalAllocated; //how much space we've allocated
-    U64 allocCount; //how many allocations made
-    U64 taggedAllocations[MEMORY_TAG_MAX_TAGS]; //how much space we've allocated for each tag
-    void* allocatorBlock;
-};
-
-static MemoryState* memoryState;
+U64 Memory::totalAllocSize;
+U64 Memory::totalAllocated;
+U64 Memory::allocCount;
+U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
+void* Memory::allocatorBlock;
 
 bool Memory::Initialize(U64 memoryRequirement)
 {
-    // TODO: memory alignment
-    void* block = Platform::Allocate(sizeof(MemoryState) + memoryRequirement, false);
-    if (!block) {
-        //TODO: logger
-        //KFATAL("Memory system allocation failed and the system cannot continue.");
-        return false;
-    }
+    totalAllocSize = memoryRequirement;
+    totalAllocated = 0;
+    allocCount = 0;
 
-    memoryState = (MemoryState*)block;
-    memoryState->totalAllocSize = memoryRequirement;
-    memoryState->totalAllocated = 0;
-    memoryState->allocCount = 0;
-    memoryState->allocatorBlock = (void*)((MemoryState*)block + sizeof(MemoryState));
+    //TODO: Memory alignment
+    allocatorBlock = Platform::Allocate(memoryRequirement, false);
 
-    //TODO: logger
+    //TODO: Logger
     //KDEBUG("Memory system successfully allocated %llu bytes.", config.total_alloc_size);
     return true;
 }
 
 void Memory::Shutdown()
 {
-    Platform::Free(memoryState, memoryState->totalAllocSize + sizeof(MemoryState));
-    memoryState = nullptr;
+    Platform::Free(allocatorBlock, totalAllocSize);
+    allocatorBlock = nullptr;
 }
 
 void* Memory::Allocate(U64 size, MemoryTag tag)
 {
-    void* block = nullptr;
-    memoryState->totalAllocated += size;
-    memoryState->taggedAllocations[tag] += size;
-    ++memoryState->allocCount;
+    totalAllocated += size;
+    taggedAllocations[tag] += size;
+    ++allocCount;
 
-    block = memoryState->allocator.Allocate(size);
-
-    if (block) {
-        Platform::ZeroMemory(block, size);
-        return block;
-    }
-
-    //TODO: logger
-    //KFATAL("kallocate failed to allocate successfully.");
-    return nullptr;
+    //TODO: Custom allocator
+    //TODO: Memory alignment
+    void* block = Platform::Allocate(size, false);
+    Platform::ZeroMemory(block, size);
+    return block;
 }
 
 void Memory::Free(void* block, U64 size, MemoryTag tag)
 {
-    memoryState->totalAllocated -= size;
-    memoryState->taggedAllocations[tag] -= size;
-
-    if (!memoryState->allocator.Free(block, size)) {
-        // TODO: Memory alignment
-        Platform::Free(block, false);
-    }
+    totalAllocated -= size;
+    taggedAllocations[tag] -= size;
+    //TODO: Memory alignment
+    Platform::Free(block, false);
 }
 
 void* Memory::ZeroMemory(void* block, U64 size)

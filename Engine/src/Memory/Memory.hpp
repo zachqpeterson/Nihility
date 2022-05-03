@@ -10,13 +10,8 @@
 /** @brief Tags to indicate the usage of memory allocations made in this system. */
 enum MemoryTag {
     MEMORY_TAG_UNKNOWN,
-    MEMORY_TAG_ARRAY,
+    MEMORY_TAG_DATA_STRUCT,
     MEMORY_TAG_LINEAR_ALLOCATOR,
-    MEMORY_TAG_DARRAY,
-    MEMORY_TAG_DICT,
-    MEMORY_TAG_RING_QUEUE,
-    MEMORY_TAG_BST,
-    MEMORY_TAG_STRING,
     MEMORY_TAG_APPLICATION,
     MEMORY_TAG_JOB,
     MEMORY_TAG_TEXTURE,
@@ -46,4 +41,11 @@ public:
 
     //NOTE: Debug only
     static void GetMemoryStats();
+
+private:
+    static U64 totalAllocSize; //total space we can allocate
+    static U64 totalAllocated; //how much space we've allocated
+    static U64 allocCount; //how many allocations made
+    static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS]; //how much space we've allocated for each tag
+    static void* allocatorBlock;
 };
