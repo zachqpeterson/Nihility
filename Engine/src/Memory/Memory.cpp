@@ -39,8 +39,6 @@ bool Memory::Initialize(U64 memoryRequirement)
     //TODO: Memory alignment
     allocatorBlock = Platform::Allocate(memoryRequirement, false);
 
-    //TODO: Logger
-    //KDEBUG("Memory system successfully allocated %llu bytes.", config.total_alloc_size);
     return true;
 }
 
@@ -67,6 +65,7 @@ void Memory::Free(void* block, U64 size, MemoryTag tag)
 {
     totalAllocated -= size;
     taggedAllocations[tag] -= size;
+    //TODO: Custom allocator
     //TODO: Memory alignment
     Platform::Free(block, false);
 }
@@ -84,4 +83,12 @@ void* Memory::CopyMemory(void* dest, const void* source, U64 size)
 void* Memory::SetMemory(void* dest, I32 value, U64 size)
 {
     return Platform::SetMemory(dest, value, size);
+}
+
+void GetMemoryStats()
+{
+#ifdef NH_DEBUG
+    //TODO: Print memory stats
+    
+#endif
 }

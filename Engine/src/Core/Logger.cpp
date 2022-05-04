@@ -2,7 +2,6 @@
 
 #include "Files.hpp"
 #include "Memory/Memory.hpp"
-#include "Containers/String.hpp"
 #include "Platform/Platform.hpp"
 
 // TODO: temporary
@@ -30,7 +29,7 @@ void* Logger::Shutdown()
     return loggerState;
 }
 
-void Logger::LogOutput(LogLevel level, const String& message, ...)
+void Logger::LogOutput(LogLevel level, const char* message, ...)
 {
     // TODO: Threaded
     const char* levelStrings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]:  ", "[INFO]:  ", "[DEBUG]: ", "[TRACE]: " };
@@ -51,7 +50,7 @@ void Logger::LogOutput(LogLevel level, const String& message, ...)
     va_end(arg_ptr);
 
     // Prepend log level to message.
-    out_message.Format("%s%s\n", levelStrings[level], out_message);
+    out_message.Format("%s%s\n", levelStrings[level], (const char*)out_message);
 
     // Print accordingly
     Platform::ConsoleWrite(out_message, level);

@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include "Containers/String.hpp"
+
 enum LogLevel {
     LOG_LEVEL_FATAL = 0,
     LOG_LEVEL_ERROR = 1,
@@ -27,7 +29,7 @@ public:
     static bool Initialize(void* state);
     static void* Shutdown();
 
-    static NH_API void LogOutput(LogLevel level, const String& message, ...);
+    static NH_API void LogOutput(LogLevel level, const char* message, ...);
 #define FATAL(message, ...) LogOutput(LOG_LEVEL_FATAL, message, ##__VA_ARGS__);
 #define ERROR(message, ...) LogOutput(LOG_LEVEL_ERROR, message, ##__VA_ARGS__);
 #if LOG_WARN_ENABLED
