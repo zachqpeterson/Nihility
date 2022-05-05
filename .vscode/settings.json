@@ -23,6 +23,13 @@
 	"files.associations": {
 		"Defines.hpp": "cpp",
 		"xmemory": "cpp",
-		"iterator": "cpp"
+		"iterator": "cpp",
+		"exception": "cpp",
+		"memory": "cpp",
+		"type_traits": "cpp",
+		"typeinfo": "cpp",
+		"utility": "cpp",
+		"xutility": "cpp",
+		"initializer_list": "cpp"
 	}
 }

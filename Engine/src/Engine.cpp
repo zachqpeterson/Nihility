@@ -3,6 +3,7 @@
 #include "Memory/Memory.hpp"
 #include "Platform/Platform.hpp"
 #include "Core/Logger.hpp"
+#include "Containers/Vector.hpp"
 
 bool Engine::Initialize()
 {
