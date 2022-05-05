@@ -10,6 +10,24 @@
 #include <strings.h>
 #endif
 
+String::String(const String& other)
+{
+    U64 length = other.Length();
+    str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+    Memory::CopyMemory(str, other.str, length);
+    str[length] = 0;
+}
+
+String& String::operator=(const String& other)
+{
+    U64 length = other.Length();
+    str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+    Memory::CopyMemory(str, other.str, length);
+    str[length] = 0;
+
+    return *this;
+}
+
 U64 String::Length()
 {
     return strlen(str);
@@ -146,14 +164,14 @@ String String::SubString(U64 start, U64 length)
     return dest;
 }
 
-I32 String::IndexOf(char c)
+U64 String::IndexOf(char c)
 {
     if (!str) {
         return -1;
     }
-    U32 length = Length();
+    U64 length = Length();
     if (length > 0) {
-        for (U32 i = 0; i < length; ++i) {
+        for (U64 i = 0; i < length; ++i) {
             if (str[i] == c) {
                 return i;
             }
@@ -171,5 +189,13 @@ U32 String::Split(char delimiter, char*** str_darray)
 
 void String::Append(const String& append)
 {
-    sprintf(str, "%s%s", str, (const char*)append);
+    U64 length0 = Length();
+    U64 length1 = append.Length();
+    U64 newLength = length0 + length1 + 1;
+    char* newStr = (char*)Memory::Allocate(newLength, MEMORY_TAG_DATA_STRUCT);
+    Memory::CopyMemory(newStr, str, length0);
+    Memory::CopyMemory(newStr + length0, append.str, length1);
+    newStr[newLength] = 0;
+
+    str = newStr;
 }

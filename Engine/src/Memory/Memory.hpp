@@ -41,11 +41,4 @@ public:
 
     //NOTE: Debug only
     static void GetMemoryStats();
-
-private:
-    static U64 totalAllocSize; //total space we can allocate
-    static U64 totalAllocated; //how much space we've allocated
-    static U64 allocCount; //how many allocations made
-    static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS]; //how much space we've allocated for each tag
-    static void* allocatorBlock;
 };

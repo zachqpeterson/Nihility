@@ -18,11 +18,14 @@ static LoggerState* loggerState;
 bool Logger::Initialize(void* state)
 {
     loggerState = (LoggerState*)state;
-
-    if (!loggerState->log.Open("console.log", FILE_MODE_WRITE, false)) {
+    
+    if (!loggerState->log.Open("console.log", FILE_MODE_WRITE, false)) 
+    {
         Platform::ConsoleWrite("[ERROR]: Unable to open console.log for writing.", LOG_LEVEL_ERROR);
         return false;
     }
+
+    INFO("Logger initialized.");
 
     return true;
 }
@@ -66,4 +69,10 @@ void Logger::LogOutput(LogLevel level, const char* message, ...)
 const U64 Logger::GetMemoryRequirements()
 {
     return sizeof(LoggerState);
+}
+
+//NOTE: Defined in Defines.hpp
+void ReportAssertion(const char* expression, const char* message, const char* file, I32 line)
+{
+    FATAL("Expression '%s' failed with message '%s' in file '%s' on line %d", expression, message, file, line);
 }

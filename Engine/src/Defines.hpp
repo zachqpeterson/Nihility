@@ -55,7 +55,7 @@ typedef double F64;
 #define STATIC_ASSERT static_assert
 #endif
 
-// Platform detection
+/***************************PLATFORM DETECTION***************************/
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64)
 #define PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -116,7 +116,7 @@ typedef double F64;
 #endif
 #endif
 
-// Inlining
+/***************************INLINING***************************/
 #if defined(__clang__) || defined(__gcc__)
 #define NH_INLINE __attribute__((always_inline)) inline
 #define NH_NOINLINE __attribute__((noinline))
@@ -132,3 +132,78 @@ typedef double F64;
 #define Align4(value) ((value + 3) & ~3)
 #define Align8(value) ((value + 7) & ~7)
 #define Align16(value) ((value + 15) & ~15)
+
+/***************************ASSERTS***************************/
+#define ASSERTIONS_ENABLED
+
+#ifdef ASSERTIONS_ENABLED
+#if _MSC_VER
+#include <intrin.h>
+#define debugBreak() __debugbreak()
+#else
+#define debugBreak() __builtin_trap()
+#endif
+
+void ReportAssertion(const char* expression, const char* message, const char* file, I32 line);
+
+#define ASSERT(expr)                                        \
+    {                                                       \
+        if (expr) {                                         \
+        } else {                                            \
+            ReportAssertion(#expr, "", __FILE__, __LINE__); \
+            debugBreak();                                   \
+        }                                                   \
+    }
+
+#define ASSERT_MSG(expr, message)                                   \
+    {                                                               \
+        if (expr) {                                                 \
+        } else {                                                    \
+            ReportAssertion(#expr, message, __FILE__, __LINE__);    \
+            debugBreak();                                           \
+        }                                                           \
+    }
+
+#ifdef NH_DEBUG
+#define ASSERT_DEBUG(expr)                                  \
+    {                                                       \
+        if (expr) {                                         \
+        } else {                                            \
+            ReportAssertion(#expr, "", __FILE__, __LINE__); \
+            debugBreak();                                   \
+        }                                                   \
+    }
+
+#define ASSERT_DEBUG_MSG(expr, message)                             \
+    {                                                               \
+        if (expr) {                                                 \
+        } else {                                                    \
+            ReportAssertion(#expr, message, __FILE__, __LINE__);    \
+            debugBreak();                                           \
+        }                                                           \
+    }
+#else
+#define ASSERT_DEBUG(expr)
+#define ASSERT_DEBUG_MSG(expr, message)
+#endif
+
+#else
+#define ASSERT(expr)
+#define ASSERT_MSG(expr, message)
+#define ASSERT_DEBUG(expr)
+#define ASSERT_DEBUG_MSG(expr, message)
+#endif
+
+/***************************MOVE DEFINITION***************************/
+//Note: This is a simple replacement for std::move
+template<typename T>
+constexpr T&& move(T&& t) noexcept
+{
+    return static_cast<T&&>(t);
+}
+
+template<typename T>
+constexpr T&& move(T& t) noexcept
+{
+    return static_cast<T&&>(t);
+}

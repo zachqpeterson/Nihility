@@ -5,8 +5,6 @@
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
 
-#include <type_traits> //Note: Used for std::move, maybe there's a way to do it without std::move?
-
 template<typename T>
 struct Vector
 {
@@ -107,7 +105,12 @@ inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{
 }
 
 template<typename T>
-inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ std::move(other.size) }, capacity{ std::move(other.capacity) }, array{ std::move(other.array) } {}
+inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array } 
+{
+    other.size = 0;
+    other.capacity = 0;
+    other.array = nullptr;
+}
 
 template<typename T>
 inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
@@ -122,14 +125,21 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
     array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
     Memory::CopyMemory(array, other.array, size);
+
+    return *this;
 }
 
 template<typename T>
 inline Vector<T>& Vector<T>::operator=(Vector<T>&& other)
 {
-    size = std::move(other.size);
-    capacity = std::move(other.capacity);
-    array = std::move(other.array);
+    size = other.size;
+    capacity = other.capacity;
+    array = other.array;
+    other.size = 0;
+    other.capacity = 0;
+    other.array = nullptr;
+
+    return *this;
 }
 
 template<typename T>
@@ -152,27 +162,22 @@ inline void Vector<T>::Push(T&& value) noexcept
 		Reserve(++capacity * 2);
 	}
 
-	elements[size] = std::move(value);
+	elements[size] = move(value);
 	++size;
 }
 
 template<typename T>
 inline T&& Vector<T>::Pop() noexcept
 {
-    //TODO: Use assert instead
-    if(size)
-    {
-        return std::move(elements[--size]);
-    }
-
-    ERROR("Can't pop on a vector of size 0!");
-    return T{};
+    ASSERT_DEBUG_MSG(size, "Can't pop on a vector of size 0!");
+    return move(elements[--size]);
 }
 
 template<typename T>
 inline void Vector<T>::Insert(const T& value, U64 index)
 {
-    //TODO: assert index < size;
+    ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
+
     if (size == capacity)
 	{
 		Reserve(++capacity * 2);
@@ -187,7 +192,8 @@ inline void Vector<T>::Insert(const T& value, U64 index)
 template<typename T>
 inline void Vector<T>::Insert(T&& value, U64 index) noexcept
 {
-    //TODO: assert index < size;
+    ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
+
     if (size == capacity)
 	{
 		Reserve(++capacity * 2);
@@ -202,13 +208,13 @@ inline void Vector<T>::Insert(T&& value, U64 index) noexcept
 template<typename T>
 inline T&& Vector<T>::Remove(U64 index)
 {
-    //TODO: assert index < size;
+    ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
     T value = array[index];
 
     Memory::CopyMemory(array + index, array + index + 1, size - index - 1);
     --size;
 
-    return std::move(value);
+    return move(value);
 }
 
 
@@ -321,13 +327,13 @@ inline const U64& Vector<T>::Capacity() const
 template<typename T>
 inline T& Vector<T>::operator[](U64 i)
 {
-    //TODO: assert i < size
+    ASSERT_DEBUG_MSG(i < size, "Can't index past the size of a vector!");
     return array[i];
 }
 
 template<typename T>
 inline const T& Vector<T>::operator[](U64 i) const
 {
-    //TODO: assert i < size
+    ASSERT_DEBUG_MSG(i < size, "Can't index past the size of a vector!");
     return array[i];
 }

@@ -30,6 +30,7 @@
 		"typeinfo": "cpp",
 		"utility": "cpp",
 		"xutility": "cpp",
-		"initializer_list": "cpp"
+		"initializer_list": "cpp",
+		"xtr1common": "cpp"
 	}
 }

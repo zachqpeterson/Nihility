@@ -1,4 +1,5 @@
 #include "Platform.hpp"
+#include "Core/Logger.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
@@ -42,6 +43,8 @@ bool Platform::Initialize(
     I32 width,
     I32 height)
 {
+    INFO("Initializing Platform.");
+
     platformState = (PlatformState*)state;
     platformState->hInstance = GetModuleHandleA(0);
 
