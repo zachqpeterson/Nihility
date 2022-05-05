@@ -15,6 +15,11 @@ U64 String::Length()
     return strlen(str);
 }
 
+const U64 String::Length() const
+{
+    return strlen(str);
+}
+
 String String::Duplicate()
 {
     U64 length = Length();

@@ -13,6 +13,7 @@ struct String
 
     //TODO: Test these
     NH_API U64 Length();
+    NH_API const U64 Length() const;
     NH_API String Duplicate();
     NH_API String NDuplicate(U64 length);
     NH_API bool Equals(const String& str);

@@ -1,31 +1,35 @@
 #include "Logger.hpp"
 
-#include "Files.hpp"
+#include "File.hpp"
+
 #include "Memory/Memory.hpp"
 #include "Platform/Platform.hpp"
+#include "Containers/String.hpp"
 
 // TODO: temporary
 #include <stdarg.h>
 
 struct LoggerState {
-    //TODO: file
-    //file_handle log_file_handle;
+    File log;
 };
 
 static LoggerState* loggerState;
 
 bool Logger::Initialize(void* state)
 {
-    loggerState = (LoggerState*)loggerState;
+    loggerState = (LoggerState*)state;
 
-    //TODO: Open console.log file
+    if (!loggerState->log.Open("console.log", FILE_MODE_WRITE, false)) {
+        Platform::ConsoleWrite("[ERROR]: Unable to open console.log for writing.", LOG_LEVEL_ERROR);
+        return false;
+    }
 
     return true;
 }
 
 void* Logger::Shutdown()
 {
-    //TODO: Close console.log file
+    loggerState->log.Close();
     return loggerState;
 }
 
@@ -56,7 +60,7 @@ void Logger::LogOutput(LogLevel level, const char* message, ...)
     Platform::ConsoleWrite(out_message, level);
 
     // Queue a copy to be written to the log file.
-    //TODO: Append to file through Files::
+    loggerState->log.Write(out_message);
 }
 
 const U64 Logger::GetMemoryRequirements()

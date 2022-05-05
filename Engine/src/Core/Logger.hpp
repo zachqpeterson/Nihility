@@ -2,8 +2,6 @@
 
 #include "Defines.hpp"
 
-#include "Containers/String.hpp"
-
 enum LogLevel {
     LOG_LEVEL_FATAL = 0,
     LOG_LEVEL_ERROR = 1,
