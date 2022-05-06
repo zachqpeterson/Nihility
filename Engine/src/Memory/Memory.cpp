@@ -105,7 +105,7 @@ void Memory::GetMemoryStats()
     const U64 kib = 1024;
 
     String buffer("System memory use (tagged):\n");
-    for (U32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i) 
+    for (U32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i)
     {
         String unit;
         F32 amount = 1.0f;
@@ -114,17 +114,17 @@ void Memory::GetMemoryStats()
             unit = "GiB";
             amount = memoryState->taggedAllocations[i] / (F32)gib;
         }
-        else if (memoryState->taggedAllocations[i] >= mib) 
+        else if (memoryState->taggedAllocations[i] >= mib)
         {
             unit = "MiB";
             amount = memoryState->taggedAllocations[i] / (F32)mib;
         }
-        else if (memoryState->taggedAllocations[i] >= kib) 
+        else if (memoryState->taggedAllocations[i] >= kib)
         {
             unit = "KiB";
             amount = memoryState->taggedAllocations[i] / (F32)kib;
         }
-        else 
+        else
         {
             unit = "B";
             amount = (float)memoryState->taggedAllocations[i];
@@ -132,6 +132,7 @@ void Memory::GetMemoryStats()
 
         String add(new char[100]);
         add.Format("  %s: %.2f%s\n", (char*)memoryTagNames[i], amount, (char*)unit);
+        //TODO: The crash here has to do with the amount of times we call this
         buffer.Append(add);
     }
 
