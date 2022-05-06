@@ -1,5 +1,6 @@
 #include "Platform.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Input.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
@@ -7,6 +8,8 @@
 #include <memory>
 #undef ZeroMemory
 #undef CopyMemory
+
+#define WHEEL_MULTIPLIER 0.00833333333
 
 struct PlatformState
 {
@@ -102,8 +105,7 @@ bool Platform::Initialize(
     {
         MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
 
-        //TODO: logger
-        //KFATAL("Window creation failed!");
+        FATAL("Window creation failed!");
         return false;
     }
     else
@@ -138,7 +140,8 @@ bool Platform::ProcessMessages()
 {
     MSG message;
 
-    while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE))
+    //TODO: See if you should pass NULL here V
+    while (PeekMessageA(&message, platformState->hwnd, 0, 0, PM_REMOVE))
     {
         TranslateMessage(&message);
         DispatchMessageA(&message);
@@ -212,19 +215,23 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_p
 {
     switch (msg)
     {
-    case WM_SETFOCUS: /*TODO: Notify engine has focus*/ break;
-    case WM_KILLFOCUS: /*TODO: Notify engine doesn't has focus*/ break;
+    //case WM_SETFOCUS: /*TODO: Notify engine has focus*/ break;
+    //case WM_KILLFOCUS: /*TODO: Notify engine doesn't have focus*/ break;
     case WM_ERASEBKGND: return 1;
-    case WM_PAINT: return 0;
-    case WM_CLOSE: /*TODO: Notify engine to close*/ return 0;
+    //case WM_CLOSE: /*TODO: Notify engine to close*/ return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
-    case WM_SIZE: /*TODO: Notify engine to resize*/ break;
+    //case WM_SIZE: /*TODO: Notify engine to resize*/ break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYUP:
     {
-        //TODO: Handle input
+        bool pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+        U8 code = (U8)w_param;
+
+        //TODO: Handle left and right menu keys
+
+        Input::SetButtonState(code, pressed);
     } return 0;
     case WM_LBUTTONDOWN:
     case WM_MBUTTONDOWN:
@@ -233,11 +240,15 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_p
     case WM_MBUTTONUP:
     case WM_RBUTTONUP:
     {
-        //TODO: Handle input
+        Input::SetButtonState((U8)w_param, (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN));
     } break;
     case WM_MOUSEWHEEL:
     {
-        //TODO: Handle input
+        Input::SetMouseWheel(GET_WHEEL_DELTA_WPARAM(w_param) * WHEEL_MULTIPLIER);
+    } break;
+    case WM_MOUSEMOVE:
+    {
+        Input::SetMousePos(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
     } break;
     }
 

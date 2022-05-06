@@ -11,8 +11,10 @@ public:
      * 
      * @return true if the initialization was successful, false otherwise
      */
-    NH_API static bool Initialize();
-    NH_API static void Shutdown();
+    NH_API static void Initialize();
+    static void Shutdown();
+
+    static void MainLoop();
 
 private:
     Engine() = delete;

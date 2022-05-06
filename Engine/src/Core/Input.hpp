@@ -262,6 +262,11 @@ public:
     static NH_API bool ButtonDown(ButtonCode code);
     static NH_API bool OnButtonDown(ButtonCode code);
     static NH_API bool OnButtonUp(ButtonCode code);
-    //TODO: static NH_API Vector2Int MousePos();
+    static NH_API const struct Vector2Int& MousePos();
     static NH_API I8 MouseWheelDelta();
+
+    static void ResetInput();
+    static void SetButtonState(U8 code, bool down);
+    static void SetMouseWheel(I16 delta);
+    static void SetMousePos(I32 x, I32 y);
 };

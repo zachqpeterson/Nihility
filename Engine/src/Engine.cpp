@@ -6,7 +6,7 @@
 #include "Core/Input.hpp"
 #include "Containers/Vector.hpp"
 
-bool Engine::Initialize()
+void Engine::Initialize()
 {
     Memory::Initialize(Gigabytes(1));
 
@@ -17,9 +17,25 @@ bool Engine::Initialize()
     Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
 
     //TODO: Fix this
-    Memory::GetMemoryStats();
+    //Memory::GetMemoryStats();
 
-    return true;
+    MainLoop();
+}
+
+void Engine::MainLoop()
+{
+    bool running = true;
+
+    while(running)
+    {
+        Platform::ProcessMessages();
+        if(Input::OnButtonDown(ESCAPE))
+        {
+            running = false;
+        }
+    }
+
+    Shutdown();
 }
 
 void Engine::Shutdown()
