@@ -5,6 +5,7 @@
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
 #include "Containers/Vector.hpp"
+#include "Containers/String.hpp"
 
 void Engine::Initialize()
 {
@@ -16,8 +17,7 @@ void Engine::Initialize()
 
     Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
 
-    //TODO: Fix this
-    //Memory::GetMemoryStats();
+    Memory::GetMemoryStats();
 
     MainLoop();
 }

@@ -47,7 +47,7 @@
                 "_UNICODE",
                 "NH_EXPORT"
             ],
-            "windowsSdkVersion": "10.0.18362.0",
+            "windowsSdkVersion": "10.0.22000.1",
             "compilerPath": "${CLANG}/clang.exe",
             "cStandard": "c17",
             "cppStandard": "c++20",

@@ -182,21 +182,15 @@ void* Platform::SetMemory(void* dest, I32 value, U64 size)
 
 void Platform::ConsoleWrite(const char* message, U8 color)
 {
-    HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    HANDLE console_handle = GetStdHandle(color < 2 ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     static U8 levels[6] = { 64, 4, 6, 2, 1, 8 };
     SetConsoleTextAttribute(console_handle, levels[color]);
     OutputDebugStringA(message);
     U64 length = strlen(message);
     LPDWORD number_written = 0;
-    if (color < 2)
-    {
-        WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), message, (DWORD)length, number_written, 0);
-    }
-    else
-    {
-        WriteConsoleA(GetStdHandle(STD_ERROR_HANDLE), message, (DWORD)length, number_written, 0);
-    }
+    
+    WriteConsoleA(console_handle, message, (DWORD)length, number_written, 0);
 }
 
 const F64 Platform::AbsoluteTime()

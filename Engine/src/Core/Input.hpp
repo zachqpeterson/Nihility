@@ -269,4 +269,7 @@ public:
     static void SetButtonState(U8 code, bool down);
     static void SetMouseWheel(I16 delta);
     static void SetMousePos(I32 x, I32 y);
+
+private:
+    Input() = delete;
 };

@@ -6,14 +6,17 @@
 
 struct String
 {
-    String() : str{ nullptr } {}
-    String(char* str) : str{ str } { }
-    String(const char* str) : str{ (char*)str } { }
+    String();
+    String(char* str);
+    String(const char* str);
     String(const String& other);
+    String(String&& other);
+    ~String();
 
-    String& operator=(char* str) { this->str = str; return *this; }
-    String& operator=(const char* str) { this->str = (char*)str; return *this; }
+    String& operator=(char* str);
+    String& operator=(const char* str);
     String& operator=(const String& other);
+    String& operator=(String&& other);
 
     NH_API U64 Length();
     NH_API const U64 Length() const;
@@ -25,7 +28,7 @@ struct String
     NH_API bool NEqualsI(const String& str, U64 length);
     NH_API I32 Format(const char* format, ...);
     NH_API I32 FormatV(const char* format, va_list vaList);
-    NH_API bool Empty();
+    NH_API void Empty();
     NH_API void Trim();
     NH_API String SubString(U64 start, U64 length);
     NH_API U64 IndexOf(char c);

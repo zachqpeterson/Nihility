@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #ifdef NH_DEBUG
-static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
+static const char* memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
     "UNKNOWN    ",
     "DATA_STRUCT",
     "LINEAR_ALLC",
@@ -48,7 +48,7 @@ bool Memory::Initialize(U64 memoryRequirement)
     memoryState->totalAllocSize = memoryRequirement;
     memoryState->totalAllocated = sizeof(MemoryState);
     memoryState->allocCount = 1;
-    memoryState->allocatorBlock = (void*)((U8*)block + sizeof(MemoryState));
+    memoryState->allocatorBlock = (void*)block;
     memoryState->taggedAllocations[MEMORY_TAG_APPLICATION] = sizeof(MemoryState);
 
     return true;
@@ -57,7 +57,7 @@ bool Memory::Initialize(U64 memoryRequirement)
 void Memory::Shutdown()
 {
     Platform::Free(memoryState->allocatorBlock, memoryState->totalAllocSize);
-    memoryState->allocatorBlock = nullptr;
+    memoryState = nullptr;
 }
 
 void* Memory::Allocate(U64 size, MemoryTag tag)

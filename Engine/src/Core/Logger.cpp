@@ -44,7 +44,7 @@ void Logger::LogOutput(LogLevel level, const char* message, ...)
     // Technically imposes a 32k character limit on a single log entry, but...
     // DON'T DO THAT!
 
-    String out_message(new char[32000]);
+    String out_message;
     Memory::ZeroMemory(out_message, out_message.Length());
 
     // Format original message.
