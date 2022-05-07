@@ -10,55 +10,56 @@ struct Vector
 {
 public:
     struct Iterator
-	{
-		Iterator(T* ptr) : ptr{ ptr } {}
+    {
+        Iterator(T* ptr) : ptr{ ptr } {}
 
-		T& operator* () const { return *ptr; }
-		T* operator-> () { return ptr; }
+        T& operator* () const { return *ptr; }
+        T* operator-> () { return ptr; }
 
-		Iterator& operator++ () { ++ptr; return *this; }
-		Iterator operator++ (int)
-		{
-			iterator temp = *this;
-			++this->ptr;
-			return temp;
-		}
+        Iterator& operator++ () { ++ptr; return *this; }
+        Iterator operator++ (int)
+        {
+            iterator temp = *this;
+            ++this->ptr;
+            return temp;
+        }
 
         Iterator& operator-- () { --ptr; return *this; }
-		Iterator operator-- (int)
-		{
-			iterator temp = *this;
-			--this->ptr;
-			return temp;
-		}
+        Iterator operator-- (int)
+        {
+            iterator temp = *this;
+            --this->ptr;
+            return temp;
+        }
 
         //TODO: +=/-=
 
-		friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-		friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
+        friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
+        friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
         friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
-		friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
+        friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
         friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
-		friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
+        friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
 
-	private:
-		T* ptr;
-	};
+    private:
+        T* ptr;
+    };
 
 public:
     Vector(U64 size = 0, const T& value = {});
     Vector(const Vector& other);
     Vector(Vector&& other) noexcept;
+    ~Vector();
 
     Vector& operator=(const Vector& other);
-    Vector& operator=(Vector&& other);
+    Vector& operator=(Vector&& other)noexcept;
 
     void Push(const T& value);
     void Push(T&& value) noexcept;
     T&& Pop() noexcept;
     void Insert(const T& value, U64 index);
-	void Insert(T&& value, U64 index) noexcept;
-    T&& Remove(U64 index);
+    void Insert(T&& value, U64 index) noexcept;
+    T&& Remove(U64 index)noexcept;
     void Resize(U64 size);
     void Reserve(U64 capacity);
     const U64 Find(const T& value);
@@ -77,7 +78,7 @@ public:
     const T& operator[](U64 i) const;
 
     Iterator begin() { return Iterator{ array }; }
-	Iterator end() { return Iterator{ &array[size] }; }
+    Iterator end() { return Iterator{ &array[size] }; }
 
 private:
     U64 size;
@@ -90,7 +91,7 @@ inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ siz
 {
     array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    for(int i = 0; i < size; ++i)
+    for (int i = 0; i < size; ++i)
     {
         array[i] = value;
     }
@@ -105,7 +106,7 @@ inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{
 }
 
 template<typename T>
-inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array } 
+inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
 {
     other.size = 0;
     other.capacity = 0;
@@ -113,9 +114,20 @@ inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capac
 }
 
 template<typename T>
+inline Vector<T>::~Vector()
+{
+    if (array)
+    {
+        Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    }
+
+    array = nullptr;
+}
+
+template<typename T>
 inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 {
-    if(array)
+    if (array)
     {
         Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
     }
@@ -146,24 +158,24 @@ template<typename T>
 inline void Vector<T>::Push(const T& value)
 {
     if (size == capacity)
-	{
-		Reserve(++capacity * 2);
-	}
+    {
+        Reserve(++capacity * 2);
+    }
 
-	elements[size] = value;
-	++size;
+    elements[size] = value;
+    ++size;
 }
 
 template<typename T>
 inline void Vector<T>::Push(T&& value) noexcept
 {
     if (size == capacity)
-	{
-		Reserve(++capacity * 2);
-	}
+    {
+        Reserve(++capacity * 2);
+    }
 
-	elements[size] = move(value);
-	++size;
+    elements[size] = move(value);
+    ++size;
 }
 
 template<typename T>
@@ -179,9 +191,9 @@ inline void Vector<T>::Insert(const T& value, U64 index)
     ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
 
     if (size == capacity)
-	{
-		Reserve(++capacity * 2);
-	}
+    {
+        Reserve(++capacity * 2);
+    }
 
     ++size;
 
@@ -195,9 +207,9 @@ inline void Vector<T>::Insert(T&& value, U64 index) noexcept
     ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
 
     if (size == capacity)
-	{
-		Reserve(++capacity * 2);
-	}
+    {
+        Reserve(++capacity * 2);
+    }
 
     ++size;
 
@@ -221,7 +233,7 @@ inline T&& Vector<T>::Remove(U64 index)
 template<typename T>
 inline void Vector<T>::Resize(U64 size)
 {
-    if(size > capacity)
+    if (size > capacity)
     {
         Reserve(size);
     }
@@ -245,9 +257,9 @@ inline void Vector<T>::Reserve(U64 capacity)
 template<typename T>
 inline const U64 Vector<T>::Find(const T& value)
 {
-    for(int i = 0; i < size; ++i)
+    for (int i = 0; i < size; ++i)
     {
-        if(array[size] == value)
+        if (array[size] == value)
         {
             return i;
         }
@@ -259,9 +271,9 @@ inline const U64 Vector<T>::Find(const T& value)
 template<typename T>
 inline const U64 Vector<T>::Find(const T& value) const
 {
-    for(int i = 0; i < size; ++i)
+    for (int i = 0; i < size; ++i)
     {
-        if(array[size] == value)
+        if (array[size] == value)
         {
             return i;
         }

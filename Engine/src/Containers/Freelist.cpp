@@ -1,6 +1,7 @@
 #include "Freelist.hpp"
 
 #include "Memory/Memory.hpp"
+#include "Core/Logger.hpp"
 
 #define INVALID_ID 4294967295U
 
@@ -81,8 +82,8 @@ bool Freelist::AllocateBlock(U64 size, U64* out_offset)
         node = node->next;
     }
 
-    //U64 free_space = FreeSpace();
-    //KWARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, free_space);
+    U64 free_space = FreeSpace();
+    WARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, free_space);
     return false;
 }
 
@@ -168,7 +169,7 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
         }
     }
 
-    //KWARN("Unable to find block to be freed. Corruption possible?");
+    WARN("Unable to find block to be freed. Corruption possible?");
     return false;
 }
 
