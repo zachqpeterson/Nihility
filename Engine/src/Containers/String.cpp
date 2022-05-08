@@ -380,3 +380,45 @@ void String::Append(const String& append)
     Memory::Free(str, length0 + 1, MEMORY_TAG_DATA_STRUCT);
     str = newStr;
 }
+
+bool String::operator==(const String& other) const
+{
+    U64 l0 = Length();
+    U64 l1 = other.Length();
+
+    if(l0 == l1)
+    {
+        for(U64 i = 0; i < l0; ++i)
+        {
+            if(str[i] != other.str[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+bool String::operator!=(const String& other) const
+{
+    U64 l0 = Length();
+    U64 l1 = other.Length();
+
+    if (l0 != l1)
+    {
+        for (U64 i = 0; i < l0; ++i)
+        {
+            if (str[i] == other.str[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}

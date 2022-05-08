@@ -39,6 +39,7 @@ public:
     NH_API void Clear();
     NH_API void Insert(const TKey& key, const TValue& value);
     NH_API void InsertAssign(const TKey& key, const TValue& value);
+    NH_API TValue& InsertGet(const TKey& key);
     NH_API TValue&& Remove(const TKey& key);
 
     NH_API bool Contains(const TValue& value) const;
@@ -93,85 +94,61 @@ inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(Map<TKey, TValue>&& other
 template<typename TKey, typename TValue>
 inline TValue& Map<TKey, TValue>::At(const TKey& key)
 {
-    if (root)
+    ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
+
+    Node* node = root;
+
+    while (node && node->key != key)
     {
-        Node* node = root;
-
-        while (node && node->key != key)
-        {
-            node = (key < node->key) ? node->left : node->right;
-        }
-
-        if (node)
-        {
-            return node->value;
-        }
+        node = (key < node->key) ? node->left : node->right;
     }
 
-    return TValue();
+    return node->value;
 }
 
 template<typename TKey, typename TValue>
 inline const TValue& Map<TKey, TValue>::At(const TKey& key) const
 {
-    if (root)
+    ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
+
+    Node* node = root;
+
+    while (node && node->key != key)
     {
-        Node* node = root;
-
-        while (node && node->key != key)
-        {
-            node = (key < node->key) ? node->left : node->right;
-        }
-
-        if (node)
-        {
-            return node->value;
-        }
+        node = (key < node->key) ? node->left : node->right;
     }
 
-    return TValue();
+    return node->value;
 }
 
 template<typename TKey, typename TValue>
 inline TValue& Map<TKey, TValue>::operator[](const TKey& key)
 {
-    if (root)
+    ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
+
+    Node* node = root;
+
+    while (node && node->key != key)
     {
-        Node* node = root;
-
-        while (node && node->key != key)
-        {
-            node = (key < node->key) ? node->left : node->right;
-        }
-
-        if (node)
-        {
-            return node->value;
-        }
+        node = (key < node->key) ? node->left : node->right;
     }
 
-    return TValue();
+    return node->value;
 }
 
 template<typename TKey, typename TValue>
 inline const TValue& Map<TKey, TValue>::operator[](const TKey& key) const
 {
-    if (root)
+    ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
+
+    Node* node = root;
+
+    while (node && node->key != key)
     {
-        Node* node = root;
-
-        while (node && node->key != key)
-        {
-            node = (key < node->key) ? node->left : node->right;
-        }
-
-        if (node)
-        {
-            return node->value;
-        }
+        node = (key < node->key) ? node->left : node->right;
     }
 
-    return TValue();
+    return node->value;
 }
 
 template<typename TKey, typename TValue>
@@ -280,6 +257,63 @@ inline void Map<TKey, TValue>::InsertAssign(const TKey& key, const TValue& value
             node = node->right;
         }
     }
+}
+
+template<typename TKey, typename TValue>
+inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
+{
+    if (root == nullptr)
+    {
+        ++size;
+        Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+        newNode->key = key;
+        newNode->left = nullptr;
+        newNode->right = nullptr;
+        root = newNode;
+        return newNode->value;
+    }
+
+    Node* node = root;
+
+    while (node)
+    {
+        if (key == node->key)
+        {
+            return node->value;
+        }
+
+        if (key < node->key)
+        {
+            if (node->left == nullptr)
+            {
+                ++size;
+                Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+                newNode->key = key;
+                newNode->left = nullptr;
+                newNode->right = nullptr;
+                node->left = newNode;
+                return newNode->value;
+            }
+
+            node = node->left;
+        }
+        else
+        {
+            if (node->right == nullptr)
+            {
+                ++size;
+                Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+                newNode->key = key;
+                newNode->left = nullptr;
+                newNode->right = nullptr;
+                return newNode->value;
+            }
+
+            node = node->right;
+        }
+    }
+
+    return node->value;
 }
 
 template<typename TKey, typename TValue>

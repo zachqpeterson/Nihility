@@ -101,45 +101,45 @@ public:
     NH_API List(const List& other);
     NH_API List(List&& other) noexcept;
     NH_API ~List();
-    
+
     NH_API List& operator=(const List& other);
     NH_API List& operator=(List&& other) noexcept;
-    
+
     NH_API void Assign(const List& other);
     NH_API void Assign(List&& other) noexcept;
-    
+
     NH_API T& Front() { return head->value; }
     NH_API const T& Front() const { return head->value; }
     NH_API T& Back() { return tail->value; }
     NH_API const T& Back() const { return tail->value; }
-    
-    NH_API Iterator begin() { return Iterator(head); }
+
+    NH_API Iterator begin(){ return Iterator(head); }
     NH_API Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
-    
+
     NH_API const bool Empty() const { return !size; }
     NH_API const U64& Size() const { return size; }
-    
+
     NH_API void Clear();
-    
+
     //TODO: Insert with range
     NH_API T&& RemoveAt(U64 index);
     NH_API Iterator Erase(Iterator it);
-    
+
     NH_API void PushFront(const T& value);
     NH_API void PushFront(T&& value) noexcept;
     NH_API T&& PopFront() noexcept;
     NH_API void PushBack(const T& value);
     NH_API void PushBack(T&& value) noexcept;
     NH_API T&& PopBack() noexcept;
-    
+
     NH_API void Remove(const T& value);
     NH_API void Reverse();
     //TODO: Sorts
-    
+
     NH_API const bool Contains(const T& value) const;
     NH_API const U64 Search(const T& value);
     NH_API Iterator Find(const T& value);
-    
+
     NH_API T& Get(U64 index);
     NH_API const T& Get(U64 index) const;
     NH_API T& operator[](U64 i);
@@ -409,7 +409,7 @@ inline T&& List<T>::RemoveAt(U64 index)
 
     --size;
     Node* node = head;
-    for(U64 i = 0; i < index; ++i)
+    for (U64 i = 0; i < index; ++i)
     {
         node = node->next;
     }

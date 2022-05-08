@@ -8,6 +8,8 @@
 #include "Containers/Vector.hpp"
 #include "Containers/String.hpp"
 
+bool Engine::running;
+
 void Engine::Initialize()
 {
     Memory::Initialize(Gigabytes(1));
