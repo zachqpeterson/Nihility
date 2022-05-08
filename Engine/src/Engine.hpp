@@ -16,6 +16,10 @@ public:
 
     static void MainLoop();
 
+    static bool OnClose(void* data);
+
 private:
     Engine() = delete;
+
+    static bool running;
 };

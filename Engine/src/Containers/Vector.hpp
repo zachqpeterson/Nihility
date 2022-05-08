@@ -13,19 +13,19 @@ public:
     {
         Iterator(T* ptr) : ptr{ ptr } {}
 
-        T& operator* () const { return *ptr; }
-        T* operator-> () { return ptr; }
+        NH_API T& operator* () const { return *ptr; }
+        NH_API T* operator-> () { return ptr; }
 
-        Iterator& operator++ () { ++ptr; return *this; }
-        Iterator operator++ (int)
+        NH_API Iterator& operator++ () { ++ptr; return *this; }
+        NH_API Iterator operator++ (int)
         {
             iterator temp = *this;
             ++this->ptr;
             return temp;
         }
 
-        Iterator& operator-- () { --ptr; return *this; }
-        Iterator operator-- (int)
+        NH_API Iterator& operator-- () { --ptr; return *this; }
+        NH_API Iterator operator-- (int)
         {
             iterator temp = *this;
             --this->ptr;
@@ -34,51 +34,51 @@ public:
 
         //TODO: +=/-=
 
-        friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-        friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
-        friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
-        friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
-        friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
-        friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
+        NH_API friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
+        NH_API friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
+        NH_API friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
+        NH_API friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
+        NH_API friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
+        NH_API friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
 
     private:
         T* ptr;
     };
 
 public:
-    Vector(U64 size = 0, const T& value = {});
-    Vector(const Vector& other);
-    Vector(Vector&& other) noexcept;
-    ~Vector();
+    NH_API Vector(U64 size = 0, const T& value = {});
+    NH_API Vector(const Vector& other);
+    NH_API Vector(Vector&& other) noexcept;
+    NH_API ~Vector();
 
-    Vector& operator=(const Vector& other);
-    Vector& operator=(Vector&& other)noexcept;
+    NH_API Vector& operator=(const Vector& other);
+    NH_API Vector& operator=(Vector&& other)noexcept;
 
-    void Push(const T& value);
-    void Push(T&& value) noexcept;
-    T&& Pop() noexcept;
-    void Insert(const T& value, U64 index);
-    void Insert(T&& value, U64 index) noexcept;
-    T&& Remove(U64 index)noexcept;
-    void Resize(U64 size);
-    void Reserve(U64 capacity);
-    const U64 Find(const T& value);
-    const U64 Find(const T& value) const;
-    void Clear();
-    T* Data();
-    const T* Data() const;
-    T& Front();
-    const T& Front() const;
-    T& Back();
-    const T& Back() const;
-    const U64& Size() const;
-    const U64& Capacity() const;
+    NH_API void Push(const T& value);
+    NH_API void Push(T&& value) noexcept;
+    NH_API T&& Pop() noexcept;
+    NH_API void Insert(const T& value, U64 index);
+    NH_API void Insert(T&& value, U64 index) noexcept;
+    NH_API T&& Remove(U64 index)noexcept;
+    NH_API void Resize(U64 size);
+    NH_API void Reserve(U64 capacity);
+    NH_API const U64 Find(const T& value);
+    NH_API const U64 Find(const T& value) const;
+    NH_API void Clear();
+    NH_API T* Data();
+    NH_API const T* Data() const;
+    NH_API T& Front();
+    NH_API const T& Front() const;
+    NH_API T& Back();
+    NH_API const T& Back() const;
+    NH_API const U64& Size() const;
+    NH_API const U64& Capacity() const;
 
-    T& operator[](U64 i);
-    const T& operator[](U64 i) const;
+    NH_API T& operator[](U64 i);
+    NH_API const T& operator[](U64 i) const;
 
-    Iterator begin() { return Iterator{ array }; }
-    Iterator end() { return Iterator{ &array[size] }; }
+    NH_API Iterator begin() { return Iterator{ array }; }
+    NH_API Iterator end() { return Iterator{ &array[size] }; }
 
 private:
     U64 size;
@@ -142,7 +142,7 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 }
 
 template<typename T>
-inline Vector<T>& Vector<T>::operator=(Vector<T>&& other)
+inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
 {
     size = other.size;
     capacity = other.capacity;
@@ -218,7 +218,7 @@ inline void Vector<T>::Insert(T&& value, U64 index) noexcept
 }
 
 template<typename T>
-inline T&& Vector<T>::Remove(U64 index)
+inline T&& Vector<T>::Remove(U64 index) noexcept
 {
     ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
     T value = array[index];

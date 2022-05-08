@@ -1,6 +1,7 @@
 #include "Platform.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
+#include "Core/Events.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
@@ -212,7 +213,7 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_p
     //case WM_SETFOCUS: /*TODO: Notify engine has focus*/ break;
     //case WM_KILLFOCUS: /*TODO: Notify engine doesn't have focus*/ break;
     case WM_ERASEBKGND: return 1;
-    //case WM_CLOSE: /*TODO: Notify engine to close*/ return 0;
+    case WM_CLOSE: Events::Notify("CLOSE", nullptr); return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
     //case WM_SIZE: /*TODO: Notify engine to resize*/ break;
     case WM_KEYDOWN:

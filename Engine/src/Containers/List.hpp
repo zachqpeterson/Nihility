@@ -21,29 +21,29 @@ struct List
     struct Iterator
     {
         Iterator() : ptr{ head } {}
-        Iterator(node_t* node) : ptr{ node } {}
+        Iterator(Node* node) : ptr{ node } {}
 
-        T& operator* () const { return ptr->_value; }
-        T* operator-> () { return &(ptr->_value); }
+        NH_API T& operator* () const { return ptr->value; }
+        NH_API T* operator-> () { return &(ptr->value); }
 
-        Iterator& operator++ () { ptr = ptr->next; return *this; }
-        Iterator& operator-- () { ptr = ptr->prev; return *this; }
+        NH_API Iterator& operator++ () { ptr = ptr->next; return *this; }
+        NH_API Iterator& operator-- () { ptr = ptr->prev; return *this; }
 
-        Iterator operator++ (int)
+        NH_API Iterator operator++ (int)
         {
             Iterator temp = *this;
             ptr = ptr->next;
             return temp;
         }
 
-        Iterator operator-- (int)
+        NH_API Iterator operator-- (int)
         {
             Iterator temp = *this;
             ptr = ptr->prev;
             return temp;
         }
 
-        Iterator operator+= (int i)
+        NH_API Iterator operator+= (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -53,7 +53,7 @@ struct List
             return *this;
         }
 
-        Iterator operator-= (int i)
+        NH_API Iterator operator-= (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -63,7 +63,7 @@ struct List
             return *this;
         }
 
-        Iterator operator+ (int i)
+        NH_API Iterator operator+ (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -73,7 +73,7 @@ struct List
             return *this;
         }
 
-        Iterator operator- (int i)
+        NH_API Iterator operator- (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -83,53 +83,67 @@ struct List
             return *this;
         }
 
-        friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-        friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
-        friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
-        friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
-        friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
-        friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
+        NH_API friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
+        NH_API friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
+        NH_API friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
+        NH_API friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
+        NH_API friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
+        NH_API friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
 
-        operator bool() { return ptr; }
+        NH_API operator bool() { return ptr; }
 
     private:
         Node* ptr;
     };
 
 public:
-    List() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
-    List(const List& other);
-    List(List&& other) noexcept;
-    ~List();
-
-    List& operator=(List&& other) noexcept;
-    List& operator=(const List& other);
-
-    void PushFront(const T& value);
-    void PushFront(T&& value) noexcept;
-    T&& PopFront() noexcept;
-    void PushBack(const T& value);
-    void PushBack(T&& value) noexcept;
-    T&& PopBack() noexcept;
-
-    T& Front() { return head->value; }
-    const T& Front() const { return head->value; }
-    T& Back() { return tail->value; }
-    const T& Back() const { return tail->value; }
-
-    void Remove(const T& value);
-    void Reverse();
-    void Clear();
-
-    const bool Empty() const { return !size; }
-    const bool Contains(const T& value) const;
-
-    const U64& Size() const { return size; }
-
-    Iterator Erase(Iterator it);
-
-    Iterator begin() { return Iterator(head); }
-    Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
+    NH_API List() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
+    NH_API List(const List& other);
+    NH_API List(List&& other) noexcept;
+    NH_API ~List();
+    
+    NH_API List& operator=(const List& other);
+    NH_API List& operator=(List&& other) noexcept;
+    
+    NH_API void Assign(const List& other);
+    NH_API void Assign(List&& other) noexcept;
+    
+    NH_API T& Front() { return head->value; }
+    NH_API const T& Front() const { return head->value; }
+    NH_API T& Back() { return tail->value; }
+    NH_API const T& Back() const { return tail->value; }
+    
+    NH_API Iterator begin() { return Iterator(head); }
+    NH_API Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
+    
+    NH_API const bool Empty() const { return !size; }
+    NH_API const U64& Size() const { return size; }
+    
+    NH_API void Clear();
+    
+    //TODO: Insert with range
+    NH_API T&& RemoveAt(U64 index);
+    NH_API Iterator Erase(Iterator it);
+    
+    NH_API void PushFront(const T& value);
+    NH_API void PushFront(T&& value) noexcept;
+    NH_API T&& PopFront() noexcept;
+    NH_API void PushBack(const T& value);
+    NH_API void PushBack(T&& value) noexcept;
+    NH_API T&& PopBack() noexcept;
+    
+    NH_API void Remove(const T& value);
+    NH_API void Reverse();
+    //TODO: Sorts
+    
+    NH_API const bool Contains(const T& value) const;
+    NH_API const U64 Search(const T& value);
+    NH_API Iterator Find(const T& value);
+    
+    NH_API T& Get(U64 index);
+    NH_API const T& Get(U64 index) const;
+    NH_API T& operator[](U64 i);
+    NH_API const T& operator[](U64 i) const;
 
 private:
     U64 size;
@@ -164,20 +178,6 @@ inline List<T>::~List()
 }
 
 template<typename T>
-inline List<T>& List<T>::operator=(List<T>&& other) noexcept
-{
-    size = other.size;
-    head = other.head;
-    tail = other.tail;
-
-    other.size = 0;
-    other.head = nullptr;
-    other.tail = nullptr;
-
-    return *this;
-}
-
-template<typename T>
 inline List<T>& List<T>::operator=(const List<T>& other)
 {
     Node* node = other.head;
@@ -192,11 +192,55 @@ inline List<T>& List<T>::operator=(const List<T>& other)
 }
 
 template<typename T>
+inline List<T>& List<T>::operator=(List<T>&& other) noexcept
+{
+    size = other.size;
+    head = other.head;
+    tail = other.tail;
+
+    other.size = 0;
+    other.head = nullptr;
+    other.tail = nullptr;
+
+    return *this;
+}
+
+template<typename T>
+inline void List<T>::Assign(const List& other)
+{
+    Node* node = other.head;
+
+    while (node)
+    {
+        PushBack(node->_value);
+        node = node->_next;
+    }
+
+    return *this;
+}
+
+template<typename T>
+inline void List<T>::Assign(List&& other) noexcept
+{
+    size = other.size;
+    head = other.head;
+    tail = other.tail;
+
+    other.size = 0;
+    other.head = nullptr;
+    other.tail = nullptr;
+
+    return *this;
+}
+
+template<typename T>
 inline void List<T>::PushFront(const T& value)
 {
     ++size;
     Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
     newNode->value = value;
+    newNode->prev = nullptr;
+    newNode->next = nullptr;
     if (head)
     {
         head->prev = newNode;
@@ -213,6 +257,8 @@ inline void List<T>::PushFront(T&& value) noexcept
     ++size;
     Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
     newNode->value = Move(value);
+    newNode->prev = nullptr;
+    newNode->next = nullptr;
     if (head)
     {
         head->prev = newNode;
@@ -241,8 +287,10 @@ inline T&& List<T>::PopFront() noexcept
 template<typename T>
 inline void List<T>::PushBack(const T& value)
 {
-    Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+    Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
     newNode->value = value;
+    newNode->prev = nullptr;
+    newNode->next = nullptr;
     ++size;
     if (head)
     {
@@ -257,8 +305,10 @@ inline void List<T>::PushBack(const T& value)
 template<typename T>
 inline void List<T>::PushBack(T&& value) noexcept
 {
-    Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+    Node* newNode = (Node*)MemoryMemory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
     newNode->value = Move(value);
+    newNode->prev = nullptr;
+    newNode->next = nullptr;
     ++size;
     if (head)
     {
@@ -353,7 +403,29 @@ inline const bool List<T>::Contains(const T& value) const
 }
 
 template<typename T>
-inline List<T>::Iterator List<T>::Erase(List<T>::Iterator it)
+inline T&& List<T>::RemoveAt(U64 index)
+{
+    ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+    --size;
+    Node* node = head;
+    for(U64 i = 0; i < index; ++i)
+    {
+        node = node->next;
+    }
+
+    node->prev = node->next;
+    node->next = node->prev;
+
+    T value = node->value;
+
+    Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+
+    return move(value);
+}
+
+template<typename T>
+inline typename List<T>::Iterator List<T>::Erase(List<T>::Iterator it)
 {
     --size;
     Node* node = it.ptr;
@@ -371,4 +443,91 @@ inline List<T>::Iterator List<T>::Erase(List<T>::Iterator it)
     Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
 
     return newIt;
+}
+
+template<typename T>
+inline const U64 List<T>::Search(const T& value)
+{
+    Node* node = head;
+    U64 index = 0;
+    while (node)
+    {
+        if (node->value == value) { return index; }
+
+        node = node->next;
+        ++index;
+    }
+
+    return -1;
+}
+
+template<typename T>
+inline typename List<T>::Iterator List<T>::Find(const T& value)
+{
+    Node* node = head;
+    while (node)
+    {
+        if (node->value == value) { return Iterator(node); }
+
+        node = node->next;
+    }
+
+    return end();
+}
+
+template<typename T>
+inline T& List<T>::Get(U64 index)
+{
+    ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+    Node* node = head;
+    for (U64 i = 0; i < index; ++i)
+    {
+        node = node->next;
+    }
+
+    return node->value;
+}
+
+template<typename T>
+inline const T& List<T>::Get(U64 index) const
+{
+    ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+    Node* node = head;
+    for (U64 i = 0; i < index; ++i)
+    {
+        node = node->next;
+    }
+
+    return node->value;
+}
+
+
+template<typename T>
+inline T& List<T>::operator[](U64 i)
+{
+    ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+    Node* node = head;
+    for (U64 i = 0; i < index; ++i)
+    {
+        node = node->next;
+    }
+
+    return node->value;
+}
+
+template<typename T>
+inline const T& List<T>::operator[](U64 i) const
+{
+    ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+    Node* node = head;
+    for (U64 i = 0; i < index; ++i)
+    {
+        node = node->next;
+    }
+
+    return node->value;
 }

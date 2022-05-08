@@ -34,6 +34,15 @@
 		"xtr1common": "cpp",
 		"cstring": "cpp",
 		"functional": "cpp",
-		"list": "cpp"
+		"list": "cpp",
+		"map": "cpp",
+		"vector": "cpp",
+		"xhash": "cpp",
+		"xtree": "cpp",
+		"filesystem": "cpp",
+		"format": "cpp",
+		"forward_list": "cpp",
+		"unordered_map": "cpp",
+		"xstring": "cpp"
 	}
 }

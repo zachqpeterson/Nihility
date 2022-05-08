@@ -4,6 +4,7 @@
 #include "Platform/Platform.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
+#include "Core/Events.hpp"
 #include "Containers/Vector.hpp"
 #include "Containers/String.hpp"
 
@@ -17,6 +18,8 @@ void Engine::Initialize()
 
     Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
 
+    Events::Subscribe("CLOSE", OnClose);
+
     Memory::GetMemoryStats();
 
     MainLoop();
@@ -24,7 +27,7 @@ void Engine::Initialize()
 
 void Engine::MainLoop()
 {
-    bool running = true;
+    running = true;
 
     while(running)
     {
@@ -47,4 +50,10 @@ void Engine::Shutdown()
     Memory::Free(Logger::Shutdown(), Logger::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
 
     Memory::Shutdown();
+}
+
+bool Engine::OnClose(void* data)
+{
+    running = false;
+    return true;
 }

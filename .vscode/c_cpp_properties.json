@@ -15,7 +15,7 @@
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
-            "cppStandard": "c++20",
+            "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
         },
         {
@@ -32,7 +32,7 @@
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
-            "cppStandard": "c++20",
+            "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
         },
         {
@@ -50,7 +50,7 @@
             "windowsSdkVersion": "10.0.22000.1",
             "compilerPath": "${CLANG}/clang.exe",
             "cStandard": "c17",
-            "cppStandard": "c++20",
+            "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"
         }
     ],
