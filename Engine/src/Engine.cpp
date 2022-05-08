@@ -2,6 +2,7 @@
 
 #include "Memory/Memory.hpp"
 #include "Platform/Platform.hpp"
+#include "Core/Time.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
@@ -9,6 +10,7 @@
 #include "Containers/String.hpp"
 
 bool Engine::running;
+bool Engine::uncapped;
 
 void Engine::Initialize()
 {
@@ -20,6 +22,8 @@ void Engine::Initialize()
 
     Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
 
+    Time::Initialize(Memory::Allocate(Time::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
+
     Events::Subscribe("CLOSE", OnClose);
 
     Memory::GetMemoryStats();
@@ -30,13 +34,56 @@ void Engine::Initialize()
 void Engine::MainLoop()
 {
     running = true;
+    uncapped = false;
 
-    while(running)
+    if(uncapped)
     {
-        Platform::ProcessMessages();
-        if(Input::OnButtonDown(ESCAPE))
+        while (running)
         {
-            running = false;
+            Platform::ProcessMessages();
+
+            Time::Update();
+
+            INFO("Frame Rate: %d", Time::FrameRate());
+
+            if (Input::OnButtonDown(ESCAPE))
+            {
+                running = false;
+            }
+        }
+    }
+    else
+    {
+        F64 accumulatedTime = 0.0f;
+        F64 lastUpTime = Time::UpTime();
+        F64 upTime = lastUpTime;
+
+        while (running)
+        {
+            upTime = Time::UpTime();
+            accumulatedTime += upTime - lastUpTime;
+            lastUpTime = upTime;
+
+            //0.0			| UNCAPPED 
+            //0.00694444444	| 144
+            //0.00833333333	| 120
+            //0.01666666667	| 60
+            //0.03333333333	| 30
+            while (accumulatedTime >= 0.00833333333)
+            {
+                Platform::ProcessMessages();
+
+                Time::Update();
+
+                accumulatedTime -= 0.00833333333;
+            }
+
+            INFO("Frame Rate: %d", Time::FrameRate());
+
+            if (Input::OnButtonDown(ESCAPE))
+            {
+                running = false;
+            }
         }
     }
 
@@ -45,6 +92,8 @@ void Engine::MainLoop()
 
 void Engine::Shutdown()
 {
+    Memory::Free(Time::Shutdown(), Time::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
+
     Memory::Free(Input::Shutdown(), Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
 
     Memory::Free(Platform::Shutdown(), Platform::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);

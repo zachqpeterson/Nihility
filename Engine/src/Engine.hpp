@@ -22,4 +22,5 @@ private:
     Engine() = delete;
 
     static bool running;
+    static bool uncapped;
 };
