@@ -256,7 +256,7 @@ inline void List<T>::PushFront(T&& value) noexcept
 {
     ++size;
     Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->value = Move(value);
+    newNode->value = value;
     newNode->prev = nullptr;
     newNode->next = nullptr;
     if (head)
@@ -306,7 +306,7 @@ template<typename T>
 inline void List<T>::PushBack(T&& value) noexcept
 {
     Node* newNode = (Node*)MemoryMemory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->value = Move(value);
+    newNode->value = value;
     newNode->prev = nullptr;
     newNode->next = nullptr;
     ++size;

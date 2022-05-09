@@ -11,9 +11,6 @@ void Events::Notify(const String& name, void* data)
 {
     for (const EventFunc& fn : observers[name])
     {
-        if(fn(data))
-        {
-            return;
-        }
+        if(fn(data)) { return; }
     }
 }

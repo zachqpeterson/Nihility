@@ -174,7 +174,7 @@ inline void Vector<T>::Push(T&& value) noexcept
         Reserve(++capacity * 2);
     }
 
-    elements[size] = move(value);
+    elements[size] = value;
     ++size;
 }
 

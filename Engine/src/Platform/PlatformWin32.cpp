@@ -210,12 +210,12 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_p
 {
     switch (msg)
     {
-    //case WM_SETFOCUS: /*TODO: Notify engine has focus*/ break;
-    //case WM_KILLFOCUS: /*TODO: Notify engine doesn't have focus*/ break;
+    case WM_SETFOCUS: /*TODO: Notify engine has focus*/ return 0;
+    case WM_KILLFOCUS: /*TODO: Notify engine doesn't have focus*/ return 0;
     case WM_ERASEBKGND: return 1;
     case WM_CLOSE: Events::Notify("CLOSE", nullptr); return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
-    //case WM_SIZE: /*TODO: Notify engine to resize*/ break;
+    case WM_SIZE: /*TODO: Notify engine to resize*/ return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     case WM_KEYUP:

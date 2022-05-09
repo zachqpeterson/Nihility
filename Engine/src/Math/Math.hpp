@@ -174,7 +174,7 @@ struct Vector2
     NH_API bool operator!= (const Vector2& v) const { return x != v.x || y != v.y; }
     NH_API bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    NH_API friend Vector2 operator- (Vector2& v) { return { -v.x, -v.y }; }
+    friend NH_API Vector2 operator- (Vector2& v) { return { -v.x, -v.y }; }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -246,7 +246,7 @@ struct Vector3
     NH_API bool operator!= (const Vector3& v) const { return x != v.x || y != v.y || z != v.z; }
     NH_API bool operator<  (const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    NH_API friend Vector3 operator- (Vector3& v) { return { -v.x, -v.y, -v.z }; }
+    friend NH_API Vector3 operator- (Vector3& v) { return { -v.x, -v.y, -v.z }; }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -318,7 +318,7 @@ struct Vector4
     NH_API bool operator!= (const Vector4& v) const { return x != v.x || y != v.y || z != v.z || w != v.w; }
     NH_API bool operator<  (const Vector4& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector4& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    NH_API friend Vector4 operator- (Vector4& v) { return { -v.x, -v.y, -v.z, -v.w }; }
+    friend NH_API Vector4 operator- (Vector4& v) { return { -v.x, -v.y, -v.z, -v.w }; }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -390,7 +390,7 @@ struct Vector2Int
     NH_API bool operator!= (const Vector2Int& v) const { return x != v.x || y != v.y; }
     NH_API bool operator<  (const Vector2Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector2Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    NH_API friend Vector2Int operator- (Vector2Int& v) { return { -v.x, -v.y }; }
+    friend NH_API Vector2Int operator- (Vector2Int& v) { return { -v.x, -v.y }; }
 
     NH_API NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -442,7 +442,7 @@ struct Vector3Int
     NH_API bool operator!= (const Vector3Int& v) const { return x != v.x || y != v.y || z != v.z; }
     NH_API bool operator<  (const Vector3Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector3Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    NH_API friend Vector3Int operator- (Vector3Int& v) { return { -v.x, -v.y, -v.z }; }
+    friend NH_API Vector3Int operator- (Vector3Int& v) { return { -v.x, -v.y, -v.z }; }
 
     NH_API NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -497,7 +497,7 @@ struct Vector4Int
     NH_API bool operator!= (const Vector4Int& v) const { return x != v.x || y != v.y || z != v.z || w != v.w; }
     NH_API bool operator<  (const Vector4Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector4Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    NH_API friend Vector4Int operator- (Vector4Int& v) { return { -v.x, -v.y, -v.z, -v.w }; }
+    friend NH_API Vector4Int operator- (Vector4Int& v) { return { -v.x, -v.y, -v.z, -v.w }; }
 
     NH_API NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -529,6 +529,56 @@ struct Vector4Int
 struct Matrix2
 {
     Vector2 a, b;
+
+    NH_API Matrix2() : a{}, b{} {}
+    NH_API Matrix2(F32 n) : a{ n, 0.0f }, b{ 0.0f, n } {}
+    NH_API Matrix2(F32 ax, F32 ay, F32 bx, F32 by) : a{ ax, ay }, b{ bx, by } {}
+    NH_API Matrix2(const Vector2& v1, const Vector2& v2) : a{ v1 }, b{ v2 } {}
+    NH_API Matrix2(Vector2&& v1, Vector2&& v2) : a{ v1 }, b{ v2 } {}
+    NH_API Matrix2(const Matrix2& m) : a{ m.a }, b{ m.b } {}
+    NH_API Matrix2(Matrix2&& m) : a{ m.a }, b{ m.b } {}
+
+    NH_API Matrix2& operator= (const Matrix2& m) { a = m.a; b = m.b; return *this; }
+    NH_API Matrix2& operator= (Matrix2&& m) { a = m.a; b = m.b; return *this; }
+
+    NH_API Matrix2& operator+= (const Matrix2& m) { a += m.a; b += m.b; return *this; }
+    NH_API Matrix2& operator-= (const Matrix2& m) { a -= m.a; b -= m.b; return *this; }
+    NH_API Matrix2& operator*= (const Matrix2& m)
+    {
+        a[0] = a[0] * m[0][0] + b[0] * m[0][1];
+        b[0] = a[0] * m[1][0] + b[0] * m[1][1];
+
+        a[1] = a[1] * m[0][0] + b[1] * m[0][1];
+        b[1] = a[1] * m[1][0] + b[1] * m[1][1];
+
+        return *this;
+    }
+
+    NH_API Matrix2 operator+(const Matrix2& m) const { return { a + m.a, b + m.b }; }
+    NH_API Matrix2 operator-(const Matrix2& m) const { return { a - m.a, b - m.b }; }
+    NH_API Matrix2 operator*(const Matrix2& m) const
+    {
+        Matrix2 r;
+        r[0][0] = a[0] * m[0][0] + b[0] * m[0][1];
+        r[1][0] = a[0] * m[1][0] + b[0] * m[1][1];
+
+        r[0][1] = a[1] * m[0][0] + b[1] * m[0][1];
+        r[1][1] = a[1] * m[1][0] + b[1] * m[1][1];
+
+        return r;
+    }
+    NH_API Vector2 operator*(const Vector2& v) const
+    {
+        Vector2 r;
+        r[0] = a[0] * v[0] + b[0] * v[1];
+        r[1] = a[1] * v[0] + b[1] * v[1];
+
+        return r;
+    }
+
+    friend NH_API Matrix2 operator- (Matrix2& m) { return { -m.a, -m.b }; }
+    NH_API bool operator==(const Matrix2& m) const { return a == m.a && b == m.b; }
+    NH_API bool operator!=(const Matrix2& m) const { return a != m.a || b != m.b; }
 
     NH_API NH_INLINE const Vector2& operator[] (U8 i) const { return ((&a)[i]); }
     NH_API NH_INLINE Vector2& operator[] (U8 i) { return ((&a)[i]); }
