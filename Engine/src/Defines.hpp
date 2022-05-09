@@ -23,6 +23,8 @@ typedef signed long long I64;
 typedef float F32;
 /** 64-bit floating point number */
 typedef double F64;
+/** 128-bit floating point number */
+typedef long double F128;
 
 /** Maximum value of an unsigned 64-bit integer */
 #define U64_MAX 0xFFFFFFFFFFFFFFFFUI64

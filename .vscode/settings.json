@@ -43,6 +43,12 @@
 		"format": "cpp",
 		"forward_list": "cpp",
 		"unordered_map": "cpp",
-		"xstring": "cpp"
+		"xstring": "cpp",
+		"system_error": "cpp",
+		"cmath": "cpp",
+		"chrono": "cpp",
+		"cstdlib": "cpp",
+		"algorithm": "cpp",
+		"limits": "cpp"
 	}
 }
