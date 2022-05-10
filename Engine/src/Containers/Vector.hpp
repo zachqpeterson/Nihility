@@ -46,7 +46,8 @@ public:
     };
 
 public:
-    NH_API Vector(U64 size = 0, const T& value = {});
+    NH_API Vector(U64 capacity = 0);
+    NH_API Vector(U64 size, const T& value);
     NH_API Vector(const Vector& other);
     NH_API Vector(Vector&& other) noexcept;
     NH_API ~Vector();
@@ -85,6 +86,12 @@ private:
     U64 capacity;
     T* array;
 };
+
+template<typename T>
+inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity }
+{
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+}
 
 template<typename T>
 inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
@@ -162,7 +169,7 @@ inline void Vector<T>::Push(const T& value)
         Reserve(++capacity * 2);
     }
 
-    elements[size] = value;
+    array[size] = value;
     ++size;
 }
 
@@ -174,7 +181,7 @@ inline void Vector<T>::Push(T&& value) noexcept
         Reserve(++capacity * 2);
     }
 
-    elements[size] = value;
+    array[size] = value;
     ++size;
 }
 
@@ -246,7 +253,7 @@ inline void Vector<T>::Reserve(U64 capacity)
 {
     T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    //TODO: deallocate pointers if T is a pointer type
+    Memory::CopyMemory(newArray, array, sizeof(T) * (capacity > this->capacity ? capacity : this->capacity));
 
     Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
     array = newArray;

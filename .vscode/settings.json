@@ -49,6 +49,7 @@
 		"chrono": "cpp",
 		"cstdlib": "cpp",
 		"algorithm": "cpp",
-		"limits": "cpp"
+		"limits": "cpp",
+		"xlocale": "cpp"
 	}
 }

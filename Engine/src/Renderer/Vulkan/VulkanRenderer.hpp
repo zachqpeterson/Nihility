@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Defines.hpp"
+#include "VulkanDefines.hpp"
 
 #include "Renderer/Renderer.hpp"
+#include "Containers/Vector.hpp"
 
 class VulkanRenderer : public Renderer
 {
@@ -16,5 +17,7 @@ public:
 
 
 private: //VULKAN SPECIFIC FUNCTIONS
-
+    bool CreateInstance();
+    bool CreateDebugger();
+    void GetPlatformExtentions(Vector<struct String>* names);
 };
