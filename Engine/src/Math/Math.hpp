@@ -143,6 +143,9 @@ public:
     static NH_API NH_INLINE bool PowerOfTwo(U16 n) { return (n != 0) && ((n & (n - 1)) == 0); }
     static NH_API NH_INLINE bool PowerOfTwo(U32 n) { return (n != 0) && ((n & (n - 1)) == 0); }
     static NH_API NH_INLINE bool PowerOfTwo(U64 n) { return (n != 0) && ((n & (n - 1)) == 0); }
+
+private:
+    Math() = delete;
 };
 
 struct Vector2

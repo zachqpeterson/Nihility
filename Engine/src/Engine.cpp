@@ -8,6 +8,7 @@
 #include "Core/Events.hpp"
 #include "Containers/Vector.hpp"
 #include "Containers/String.hpp"
+#include "Renderer/RendererFrontend.hpp"
 
 bool Engine::running;
 bool Engine::uncapped;
@@ -23,6 +24,8 @@ void Engine::Initialize()
     Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
 
     Time::Initialize(Memory::Allocate(Time::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
+
+    RendererFrontend::Initialize(Memory::Allocate(RendererFrontend::GetMemoryRequirements(), MEMORY_TAG_RENDERER));
 
     Events::Subscribe("CLOSE", OnClose);
 
@@ -92,6 +95,8 @@ void Engine::MainLoop()
 
 void Engine::Shutdown()
 {
+    Memory::Free(RendererFrontend::Shutdown(), RendererFrontend::GetMemoryRequirements(), MEMORY_TAG_RENDERER);
+
     Memory::Free(Time::Shutdown(), Time::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
 
     Memory::Free(Input::Shutdown(), Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);

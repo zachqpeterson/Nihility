@@ -30,6 +30,9 @@ public:
     static NH_API void LogOutput(LogLevel level, const char* message, ...);
 
     static const U64 GetMemoryRequirements();
+
+private:
+    Logger() = delete;
 };
 
 #define FATAL(message, ...) Logger::LogOutput(LOG_LEVEL_FATAL, message, ##__VA_ARGS__)

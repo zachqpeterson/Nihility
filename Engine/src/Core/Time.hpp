@@ -17,6 +17,9 @@ public:
     static NH_API const U16& FrameRate();
 
     static const U64 GetMemoryRequirements();
+
+private:
+    Time() = delete;
 };
 
 struct Timer

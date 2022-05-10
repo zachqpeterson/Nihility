@@ -15,4 +15,6 @@ public:
 
 private:
     static Map<String, List<EventFunc>> observers;
+
+    Events() = delete;
 };

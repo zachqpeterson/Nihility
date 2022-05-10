@@ -41,4 +41,7 @@ public:
 
     //NOTE: Debug only
     static void GetMemoryStats();
+
+private:
+    Memory() = delete;
 };
