@@ -83,7 +83,7 @@ bool Freelist::AllocateBlock(U64 size, U64* out_offset)
     }
 
     U64 free_space = FreeSpace();
-    WARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, free_space);
+    LOG_WARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, free_space);
     return false;
 }
 
@@ -169,7 +169,7 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
         }
     }
 
-    WARN("Unable to find block to be freed. Corruption possible?");
+    LOG_WARN("Unable to find block to be freed. Corruption possible?");
     return false;
 }
 

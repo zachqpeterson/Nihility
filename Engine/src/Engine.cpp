@@ -47,7 +47,7 @@ void Engine::MainLoop()
 
             Time::Update();
 
-            INFO("Frame Rate: %d", Time::FrameRate());
+            //INFO("Frame Rate: %d", Time::FrameRate());
 
             if (Input::OnButtonDown(ESCAPE))
             {
@@ -81,7 +81,7 @@ void Engine::MainLoop()
                 accumulatedTime -= 0.00833333333;
             }
 
-            INFO("Frame Rate: %d", Time::FrameRate());
+            //INFO("Frame Rate: %d", Time::FrameRate());
 
             if (Input::OnButtonDown(ESCAPE))
             {

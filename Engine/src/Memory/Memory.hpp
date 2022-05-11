@@ -2,6 +2,8 @@
 #pragma once
 
 #include "Defines.hpp"
+#undef ZeroMemory
+#undef CopyMemory
 
 #define Gigabytes(amount) amount * 1024 * 1024 * 1024
 #define Megabytes(amount) amount * 1024 * 1024

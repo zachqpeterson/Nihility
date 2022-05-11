@@ -20,14 +20,14 @@ bool File::Open(const String& path, FileMode mode, bool binary)
         mode_str = binary ? "wb" : "w";
     }
     else {
-        ERROR("Invalid mode passed while trying to open file: '%s'", (const char*)path);
+        LOG_ERROR("Invalid mode passed while trying to open file: '%s'", (const char*)path);
         return false;
     }
 
     // Attempt to open the file.
     FILE* file = fopen(path, mode_str);
     if (!file) {
-        ERROR("Error opening file: '%s'", (const char*)path);
+        LOG_ERROR("Error opening file: '%s'", (const char*)path);
         return false;
     }
 

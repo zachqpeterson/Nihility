@@ -21,7 +21,7 @@ bool RendererFrontend::Initialize(void* state)
     if (frontendState->renderer->Initialize()) { return true; }
 
     delete frontendState->renderer;
-    ERROR("Vulkan isn't supported of this machine!");
+    LOG_ERROR("Vulkan isn't supported of this machine!");
 
     //If windows, try DirectX
 

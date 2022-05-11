@@ -136,7 +136,7 @@ void Memory::GetMemoryStats()
         buffer.Append(add);
     }
 
-    DEBUG(buffer);
+    LOG_DEBUG(buffer);
 
 #endif
 }

@@ -25,7 +25,7 @@ bool Logger::Initialize(void* state)
         return false;
     }
 
-    INFO("Logger initialized.");
+    LOG_INFO("Logger initialized.");
 
     return true;
 }
@@ -74,5 +74,5 @@ const U64 Logger::GetMemoryRequirements()
 //NOTE: Defined in Defines.hpp
 void ReportAssertion(const char* expression, const char* message, const char* file, I32 line)
 {
-    FATAL("Expression '%s' failed with message '%s' in file '%s' on line %d", expression, message, file, line);
+    LOG_FATAL("Expression '%s' failed with message '%s' in file '%s' on line %d", expression, message, file, line);
 }

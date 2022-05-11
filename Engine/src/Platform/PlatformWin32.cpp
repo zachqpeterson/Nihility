@@ -1,9 +1,10 @@
 #include "Platform.hpp"
+
+#ifdef PLATFORM_WINDOWS
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
 
-#ifdef PLATFORM_WINDOWS
 #include <windows.h>
 #include <windowsx.h>
 #include <memory>
@@ -47,7 +48,7 @@ bool Platform::Initialize(
     I32 width,
     I32 height)
 {
-    INFO("Initializing Platform.");
+    LOG_INFO("Initializing Platform.");
 
     platformState = (PlatformState*)state;
     platformState->hInstance = GetModuleHandleA(0);
@@ -106,7 +107,7 @@ bool Platform::Initialize(
     {
         MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
 
-        FATAL("Window creation failed!");
+        LOG_FATAL("Window creation failed!");
         return false;
     }
     else
@@ -204,6 +205,12 @@ const F64 Platform::AbsoluteTime()
 void Platform::SleepFor(U64 ms)
 {
     Sleep(ms);
+}
+
+void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
+{
+    ((HINSTANCE*)surfaceInfo)[0] = platformState->hInstance;
+    ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState->hwnd;
 }
 
 LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_param)

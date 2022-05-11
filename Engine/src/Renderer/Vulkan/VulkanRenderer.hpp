@@ -19,5 +19,6 @@ public:
 private: //VULKAN SPECIFIC FUNCTIONS
     bool CreateInstance();
     bool CreateDebugger();
-    void GetPlatformExtentions(Vector<struct String>* names);
+    bool CreateSurface();
+    void GetPlatformExtentions(Vector<const char*>* names);
 };

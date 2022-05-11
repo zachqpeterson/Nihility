@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Defines.hpp"
+#undef ZeroMemory
+#undef CopyMemory
 
 class Platform
 {
@@ -24,9 +26,10 @@ public:
     static void* SetMemory(void* dest, I32 value, U64 size);
 
     static void ConsoleWrite(const char* message, U8 color);
-
     static const F64 AbsoluteTime();
     static void SleepFor(U64 ms);
+
+    static void GetVulkanSurfaceInfo(void* surfaceInfo);
 
 private:
     Platform() = delete;

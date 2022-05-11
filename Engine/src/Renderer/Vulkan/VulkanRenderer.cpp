@@ -1,9 +1,13 @@
 #include "VulkanRenderer.hpp"
 
 #include "Memory/Memory.hpp"
+#include "Platform/Platform.hpp"
 #include "Containers/String.hpp"
 
 #include <vulkan/vulkan.hpp>
+
+//TODO: tempary
+#include <string>
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -14,13 +18,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     switch (messageSeverity) {
     default:
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        ERROR(callbackData->pMessage); break;
+        LOG_ERROR(callbackData->pMessage); break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        WARN(callbackData->pMessage); break;
+        LOG_WARN(callbackData->pMessage); break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        INFO(callbackData->pMessage); break;
+        LOG_INFO(callbackData->pMessage); break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        TRACE(callbackData->pMessage); break;
+        LOG_TRACE(callbackData->pMessage); break;
     }
 
     return VK_FALSE;
@@ -47,7 +51,8 @@ bool VulkanRenderer::Initialize()
 
     return 
         CreateInstance() &&
-        CreateDebugger();
+        CreateDebugger() &&
+        CreateSurface();
 }
 
 void VulkanRenderer::Shutdown()
@@ -69,7 +74,7 @@ void VulkanRenderer::operator delete(void* p)
 
 bool VulkanRenderer::CreateInstance()
 {
-    INFO("Creating Vulkan Instance...");
+    LOG_INFO("Creating Vulkan Instance...");
 
     VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.apiVersion = VK_VERSION_1_3;
@@ -82,14 +87,14 @@ bool VulkanRenderer::CreateInstance()
     VkInstanceCreateInfo instanceInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     instanceInfo.pApplicationInfo = &appInfo;
 
-    Vector<String> extentionNames;
+    Vector<const char*> extentionNames;
     extentionNames.Push(VK_KHR_SURFACE_EXTENSION_NAME);
     GetPlatformExtentions(&extentionNames);
 
 #ifdef NH_DEBUG
     extentionNames.Push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-    Vector<String> layerNames;
+    Vector<const char*> layerNames;
     layerNames.Push("VK_LAYER_KHRONOS_validation");
 
     U32 availableLayerCount;
@@ -101,7 +106,7 @@ bool VulkanRenderer::CreateInstance()
     {
         bool found = false;
         for (U32 j = 0; j < availableLayerCount; ++j) {
-            if (layerNames[i].Equals(availableLayers[j].layerName))
+            if (strcmp(layerNames[i], availableLayers[j].layerName) == 0)
             {
                 found = true;
                 break;
@@ -109,38 +114,31 @@ bool VulkanRenderer::CreateInstance()
         }
 
         if (!found) {
-            FATAL("Required validation layer is missing: %s", (char*)layerNames[i]);
+            LOG_FATAL("Required validation layer is missing: %s", (char*)layerNames[i]);
             return false;
         }
     }
 
     instanceInfo.enabledLayerCount = layerNames.Size();
-    instanceInfo.ppEnabledLayerNames = (const char**)layerNames.Data();
+    instanceInfo.ppEnabledLayerNames = layerNames.Data();
 #else
     instanceInfo.enabledLayerCount = 0;
     instanceInfo.ppEnabledLayerNames = nullptr;
 #endif
 
     instanceInfo.enabledExtensionCount = extentionNames.Size();
-    instanceInfo.ppEnabledExtensionNames = (const char**)extentionNames.Data();
+    instanceInfo.ppEnabledExtensionNames = extentionNames.Data();
 
     instanceInfo.flags = NULL;
     instanceInfo.pNext = nullptr;
 
-    for(String& s : extentionNames)
-    {
-        DEBUG((char*)s);
-    }
-
-    VkCheck(vkCreateInstance(&instanceInfo, rendererState->allocator, &rendererState->instance));
-
-    return true;
+    return vkCreateInstance(&instanceInfo, rendererState->allocator, &rendererState->instance) == VK_SUCCESS;
 }
 
 bool VulkanRenderer::CreateDebugger()
 {
 #ifdef NH_DEBUG
-    DEBUG("Creating Vulkan debugger...");
+    LOG_DEBUG("Creating Vulkan debugger...");
     U32 logSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
@@ -153,13 +151,31 @@ bool VulkanRenderer::CreateDebugger()
 
     PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(rendererState->instance, "vkCreateDebugUtilsMessengerEXT");
     ASSERT_MSG(func, "Failed to create debug messenger!");
-    VkCheck(func(rendererState->instance, &debugInfo, rendererState->allocator, &rendererState->debugMessenger));
-#endif
-
+    return func(rendererState->instance, &debugInfo, rendererState->allocator, &rendererState->debugMessenger) == VK_SUCCESS;
+#else
     return true;
+#endif
 }
 
-void VulkanRenderer::GetPlatformExtentions(Vector<String>* names)
+bool VulkanRenderer::CreateSurface()
+{
+    LOG_INFO("Creating Vulkan Surface...");
+
+#ifdef PLATFORM_WINDOWS
+    VkWin32SurfaceCreateInfoKHR surfaceInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+    surfaceInfo.pNext = nullptr;
+    surfaceInfo.flags = NULL;
+    Platform::GetVulkanSurfaceInfo(&surfaceInfo.flags + sizeof(VkWin32SurfaceCreateFlagsKHR));
+    return vkCreateWin32SurfaceKHR(rendererState->instance, &surfaceInfo, rendererState->allocator, &rendererState->surface) == VK_SUCCESS;
+#elif PLATFORM_LINUX
+    //TODO:
+#elif PLATFORM_APPLE
+    //TODO:
+#endif
+    return false;
+}
+
+void VulkanRenderer::GetPlatformExtentions(Vector<const char*>* names)
 {
 #ifdef PLATFORM_WINDOWS
     names->Push("VK_KHR_win32_surface");
