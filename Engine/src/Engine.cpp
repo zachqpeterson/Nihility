@@ -11,7 +11,7 @@
 #include "Renderer/RendererFrontend.hpp"
 
 bool Engine::running;
-bool Engine::uncapped;
+bool Engine::suspended;
 
 void Engine::Initialize()
 {
@@ -29,6 +29,7 @@ void Engine::Initialize()
 
     Events::Subscribe("CLOSE", OnClose);
 
+    //TODO: Remove later
     Memory::GetMemoryStats();
 
     MainLoop();
@@ -37,57 +38,42 @@ void Engine::Initialize()
 void Engine::MainLoop()
 {
     running = true;
-    uncapped = false;
+    suspended = false;
 
-    if(uncapped)
+    F64 accumulatedTime = 0.0f;
+    F64 lastUpTime = Time::UpTime();
+    F64 upTime = lastUpTime;
+
+    while (running)
     {
-        while (running)
+        upTime = Time::UpTime();
+        accumulatedTime += upTime - lastUpTime;
+        lastUpTime = upTime;
+
+        //0.00694444444	| 144
+        //0.00833333333	| 120
+        //0.01666666667	| 60
+        //0.03333333333	| 30
+        while (accumulatedTime >= 0.00833333333)
         {
             Platform::ProcessMessages();
 
-            Time::Update();
-
-            //INFO("Frame Rate: %d", Time::FrameRate());
-
             if (Input::OnButtonDown(ESCAPE))
             {
                 running = false;
             }
-        }
-    }
-    else
-    {
-        F64 accumulatedTime = 0.0f;
-        F64 lastUpTime = Time::UpTime();
-        F64 upTime = lastUpTime;
 
-        while (running)
-        {
-            upTime = Time::UpTime();
-            accumulatedTime += upTime - lastUpTime;
-            lastUpTime = upTime;
-
-            //0.0			| UNCAPPED 
-            //0.00694444444	| 144
-            //0.00833333333	| 120
-            //0.01666666667	| 60
-            //0.03333333333	| 30
-            while (accumulatedTime >= 0.00833333333)
+            if (!suspended)
             {
-                Platform::ProcessMessages();
-
                 Time::Update();
 
-                accumulatedTime -= 0.00833333333;
+                //UPDATES
             }
 
-            //INFO("Frame Rate: %d", Time::FrameRate());
-
-            if (Input::OnButtonDown(ESCAPE))
-            {
-                running = false;
-            }
+            accumulatedTime -= 0.00833333333;
         }
+
+        //LOG_DEBUG("Frame Rate: %d", Time::FrameRate());
     }
 
     Shutdown();

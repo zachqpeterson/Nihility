@@ -14,7 +14,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void* user_data)
 {
-    switch (messageSeverity) {
+    switch (messageSeverity)
+    {
     default:
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
         LOG_ERROR(callbackData->pMessage); break;
@@ -38,7 +39,7 @@ bool VulkanRenderer::Initialize()
 
     rendererState->allocator = nullptr;
 
-    return 
+    return
         CreateInstance() &&
         CreateDebugger() &&
         CreateSurface() &&
@@ -102,7 +103,8 @@ bool VulkanRenderer::CreateInstance()
     for (U32 i = 0; i < layerNames.Size(); ++i)
     {
         bool found = false;
-        for (U32 j = 0; j < availableLayerCount; ++j) {
+        for (U32 j = 0; j < availableLayerCount; ++j)
+        {
             if (strcmp(layerNames[i], availableLayers[j].layerName) == 0)
             {
                 found = true;
@@ -110,7 +112,8 @@ bool VulkanRenderer::CreateInstance()
             }
         }
 
-        if (!found) {
+        if (!found)
+        {
             LOG_FATAL("Required validation layer is missing: %s", (char*)layerNames[i]);
             return false;
         }
@@ -139,7 +142,7 @@ bool VulkanRenderer::CreateDebugger()
     U32 logSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
-                                                       //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+    //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 
     VkDebugUtilsMessengerCreateInfoEXT debugInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
     debugInfo.messageSeverity = logSeverity;
