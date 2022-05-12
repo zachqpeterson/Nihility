@@ -61,17 +61,14 @@ typedef long double F128;
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64)
 #define PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
-#define VK_USE_PLATFORM_WIN32_KHR
 #ifndef _WIN64
 #error "64-bit is required on Windows!"
 #endif
 #elif defined(__linux__) || defined(__gnu_linux__)
 // Linux OS
 #define PLATFORM_LINUX
-#define VK_USE_PLATFORM_XCB_KHR
 #if defined(__ANDROID__)
 #define PLATFORM_ANDROID
-#define VK_USE_PLATFORM_ANDROID_KHR
 #endif
 #elif defined(__unix__)
 // Catch anything not caught by the above.
@@ -83,12 +80,10 @@ typedef long double F128;
 // Apple platforms
 #define PLATFORM_APPLE
 #include <TargetConditionals.h>
-#define VK_USE_PLATFORM_METAL_EXT
 #if TARGET_IPHONE_SIMULATOR
 // iOS Simulator
 #define PLATFORM_IOS
 #define PLATFORM_IOS_SIMULATOR
-#define VK_USE_PLATFORM_IOS_MVK
 #elif TARGET_OS_IPHONE
 #define PLATFORM_IOS
 // iOS device

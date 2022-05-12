@@ -3,8 +3,7 @@
 #include "Memory/Memory.hpp"
 #include "Platform/Platform.hpp"
 #include "Containers/String.hpp"
-
-#include <vulkan/vulkan.hpp>
+#include "VulkanDevice.hpp"
 
 //TODO: tempary
 #include <string>
@@ -30,34 +29,32 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     return VK_FALSE;
 }
 
-struct RendererState
-{
-#ifdef NH_DEBUG
-    VkDebugUtilsMessengerEXT debugMessenger;
-#endif
-
-    VkInstance instance;
-    VkAllocationCallbacks* allocator;
-    VkSurfaceKHR surface;
-};
-
 static RendererState* rendererState;
 
 bool VulkanRenderer::Initialize()
 {
     rendererState = (RendererState*)Memory::Allocate(sizeof(RendererState), MEMORY_TAG_RENDERER);
+    rendererState->device = (VulkanDevice*)Memory::Allocate(sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
 
     rendererState->allocator = nullptr;
 
     return 
         CreateInstance() &&
         CreateDebugger() &&
-        CreateSurface();
+        CreateSurface() &&
+        rendererState->device->Create(rendererState);
 }
 
 void VulkanRenderer::Shutdown()
 {
-    //TODO: Clean up vulkan
+    rendererState->device->Destroy(rendererState);
+
+    vkDestroySurfaceKHR(rendererState->instance, rendererState->surface, rendererState->allocator);
+#ifdef NH_DEBUG
+    PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(rendererState->instance, "vkDestroyDebugUtilsMessengerEXT");
+    func(rendererState->instance, rendererState->debugMessenger, rendererState->allocator);
+#endif
+    vkDestroyInstance(rendererState->instance, rendererState->allocator);
 
     Memory::Free(rendererState, sizeof(RendererState), MEMORY_TAG_RENDERER);
 }
@@ -138,7 +135,7 @@ bool VulkanRenderer::CreateInstance()
 bool VulkanRenderer::CreateDebugger()
 {
 #ifdef NH_DEBUG
-    LOG_DEBUG("Creating Vulkan debugger...");
+    LOG_DEBUG("Creating Vulkan Debugger...");
     U32 logSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
@@ -174,6 +171,8 @@ bool VulkanRenderer::CreateSurface()
 #endif
     return false;
 }
+
+
 
 void VulkanRenderer::GetPlatformExtentions(Vector<const char*>* names)
 {

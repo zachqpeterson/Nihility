@@ -11,7 +11,6 @@ struct RendererFrontendState
 
 static RendererFrontendState* frontendState;
 
-
 bool RendererFrontend::Initialize(void* state)
 {
     frontendState = (RendererFrontendState*)state;

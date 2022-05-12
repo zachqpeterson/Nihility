@@ -209,6 +209,7 @@ void Platform::SleepFor(U64 ms)
 
 void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
 {
+    //TODO: Find a better way for this
     ((HINSTANCE*)surfaceInfo)[0] = platformState->hInstance;
     ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState->hwnd;
 }

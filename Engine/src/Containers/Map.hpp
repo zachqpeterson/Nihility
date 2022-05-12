@@ -22,11 +22,11 @@ struct Map
 public:
     NH_API Map();
     NH_API Map(const Map& other);
-    NH_API Map(Map&& other) noexcept;
+    NH_API Map(Map&& other);
     NH_API ~Map();
 
     NH_API Map& operator=(const Map& other);
-    NH_API Map& operator=(Map&& other) noexcept;
+    NH_API Map& operator=(Map&& other);
 
     NH_API TValue& At(const TKey& key);
     NH_API const TValue& At(const TKey& key) const;
@@ -47,23 +47,21 @@ public:
     NH_API const U64 Count(const TKey& key) const;
 
 private:
-    U64 size;
     Node* root;
 };
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map() : size{ 0 }, root{ nullptr } {}
+inline Map<TKey, TValue>::Map() : root{ nullptr } {}
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other) : size{ other.size }
+inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other)
 {
-    //TODO: Recursive
+    //TODO: Use queue
 }
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(Map<TKey, TValue>&& other) noexcept : size{ other.size }, root{ other.root }
+inline Map<TKey, TValue>::Map(Map<TKey, TValue>&& other) : root{ other.root }
 {
-    other.size = 0;
     other.root = nullptr;
 }
 
@@ -76,18 +74,14 @@ inline Map<TKey, TValue>::~Map()
 template<typename TKey, typename TValue>
 inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(const Map<TKey, TValue>& other)
 {
-    size = other.size;
-
-    //TODO: Recursive
+    //TODO: Use queue
 }
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(Map<TKey, TValue>&& other) noexcept
+inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(Map<TKey, TValue>&& other)
 {
-    size = other.size;
     root = other.root;
 
-    other.size = 0;
     other.root = nullptr;
 }
 
@@ -100,7 +94,7 @@ inline TValue& Map<TKey, TValue>::At(const TKey& key)
 
     while (node && node->key != key)
     {
-        node = (key < node->key) ? node->left : node->right;
+        node = (&node->left)[key > node->key];
     }
 
     return node->value;
@@ -115,7 +109,7 @@ inline const TValue& Map<TKey, TValue>::At(const TKey& key) const
 
     while (node && node->key != key)
     {
-        node = (key < node->key) ? node->left : node->right;
+        node = (&node->left)[key > node->key];
     }
 
     return node->value;
@@ -130,7 +124,7 @@ inline TValue& Map<TKey, TValue>::operator[](const TKey& key)
 
     while (node && node->key != key)
     {
-        node = (key < node->key) ? node->left : node->right;
+        node = (&node->left)[key > node->key];
     }
 
     return node->value;
@@ -145,7 +139,7 @@ inline const TValue& Map<TKey, TValue>::operator[](const TKey& key) const
 
     while (node && node->key != key)
     {
-        node = (key < node->key) ? node->left : node->right;
+        node = (&node->left)[key > node->key];
     }
 
     return node->value;
@@ -154,7 +148,7 @@ inline const TValue& Map<TKey, TValue>::operator[](const TKey& key) const
 template<typename TKey, typename TValue>
 inline void Map<TKey, TValue>::Clear()
 {
-    //TODO: Recursive
+    //TODO: Use queue
 }
 
 template<typename TKey, typename TValue>
@@ -166,7 +160,6 @@ inline void Map<TKey, TValue>::Insert(const TKey& key, const TValue& value)
     newNode->left = nullptr;
     newNode->right = nullptr;
 
-    ++size;
     if (root == nullptr)
     {
         root = newNode;
@@ -205,7 +198,6 @@ inline void Map<TKey, TValue>::InsertAssign(const TKey& key, const TValue& value
 {
     if (root == nullptr)
     {
-        ++size;
         Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
         newNode->key = key;
         newNode->value = value;
@@ -228,7 +220,6 @@ inline void Map<TKey, TValue>::InsertAssign(const TKey& key, const TValue& value
         {
             if (node->left == nullptr)
             {
-                ++size;
                 Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
                 newNode->key = key;
                 newNode->value = value;
@@ -244,7 +235,6 @@ inline void Map<TKey, TValue>::InsertAssign(const TKey& key, const TValue& value
         {
             if (node->right == nullptr)
             {
-                ++size;
                 Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
                 newNode->key = key;
                 newNode->value = value;
@@ -264,7 +254,6 @@ inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
 {
     if (root == nullptr)
     {
-        ++size;
         Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
         newNode->key = key;
         newNode->left = nullptr;
@@ -286,7 +275,6 @@ inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
         {
             if (node->left == nullptr)
             {
-                ++size;
                 Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
                 newNode->key = key;
                 newNode->left = nullptr;
@@ -301,7 +289,6 @@ inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
         {
             if (node->right == nullptr)
             {
-                ++size;
                 Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
                 newNode->key = key;
                 newNode->left = nullptr;
@@ -330,7 +317,6 @@ inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
 
         if (node)
         {
-            --size;
             TValue value = node->value;
             Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
             return move(value);
@@ -343,7 +329,7 @@ inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
 template<typename TKey, typename TValue>
 inline bool Map<TKey, TValue>::Contains(const TValue& value) const
 {
-    //TODO: Recursive
+    //TODO: Use queue
 }
 
 template<typename TKey, typename TValue>
@@ -355,10 +341,10 @@ inline bool Map<TKey, TValue>::Contains(const TKey& key) const
 
         while (node && node->key != key)
         {
-            node = (key < node->key) ? node->left : node->right;
+            node = (&node->left)[key > node->key];
         }
 
-        return true;
+        return node;
     }
 
     return false;
@@ -367,5 +353,5 @@ inline bool Map<TKey, TValue>::Contains(const TKey& key) const
 template<typename TKey, typename TValue>
 inline const U64 Map<TKey, TValue>::Count(const TKey& key) const
 {
-    //TODO: Recursive
+    //TODO: Use queue
 }

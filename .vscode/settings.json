@@ -1,5 +1,16 @@
 {
 	"C_Cpp.vcFormat.space.pointerReferenceAlignment": "left",
+	"C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "newLine",
+	"C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "newLine",
+	"C_Cpp.vcFormat.newLine.beforeOpenBrace.namespace": "newLine",
+	"C_Cpp.vcFormat.newLine.beforeOpenBrace.lambda": "newLine",
+	"C_Cpp.vcFormat.newLine.beforeOpenBrace.type": "newLine",
+	"C_Cpp.vcFormat.newLine.scopeBracesOnSeparateLines": false,
+	"C_Cpp.vcFormat.newLine.closeBraceSameLine.emptyType": false,
+	"C_Cpp.vcFormat.newLine.beforeWhileInDoWhile": false,
+	"C_Cpp.vcFormat.newLine.closeBraceSameLine.emptyFunction": false,
+	"C_Cpp.vcFormat.newLine.beforeCatch": true,
+	"C_Cpp.vcFormat.newLine.beforeElse": true,
 	"C_Cpp.formatting": "vcFormat",
 	"todohighlight.isEnable": true,
 	"todohighlight.keywords": [
