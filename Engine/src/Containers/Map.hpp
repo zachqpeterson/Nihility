@@ -15,6 +15,7 @@ struct Map
 
         TKey key;
         TValue value;
+        Node* parent;
         Node* left;
         Node* right;
     };
@@ -306,19 +307,32 @@ inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
 template<typename TKey, typename TValue>
 inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
 {
+    //TODO: connect nodes
     if (root)
     {
         Node* node = root;
 
         while (node && node->key != key)
         {
-            node = (key < node->key) ? node->left : node->right;
+            node = (&node->left)[key > node->key];
         }
 
         if (node)
         {
             TValue value = node->value;
-            Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+            Node* replace = node->left;
+
+            while (replace && replace->right)
+            {
+                replace = replace->right;
+            }
+
+            replace->parent = node->parent;
+            replace->right = node->right;
+            if (replace != node->left) { replace->left = node->left; }
+            *((&node->parent->left) + right) = replace;
+
+            Memory::Free(next, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
             return move(value);
         }
     }
