@@ -61,6 +61,13 @@
 		"cstdlib": "cpp",
 		"algorithm": "cpp",
 		"limits": "cpp",
-		"xlocale": "cpp"
+		"xlocale": "cpp",
+		"ios": "cpp",
+		"istream": "cpp",
+		"ostream": "cpp",
+		"sstream": "cpp",
+		"streambuf": "cpp",
+		"string": "cpp",
+		"xlocnum": "cpp"
 	}
 }

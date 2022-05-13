@@ -20,7 +20,6 @@ bool VulkanImage::Create(RendererState* rendererState,
     this->width = width;
     this->height = height;
 
-    // Creation info.
     VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.extent.width = width;
@@ -35,33 +34,32 @@ bool VulkanImage::Create(RendererState* rendererState,
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;          // TODO: Configurable sample count.
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // TODO: Configurable sharing mode.
 
-    VkCheck(vkCreateImage(rendererState->device->logicalDevice, &imageInfo, rendererState->allocator, &image));
+    VkCheck(vkCreateImage(rendererState->device->logicalDevice, &imageInfo, rendererState->allocator, &handle));
 
     // Query memory requirements.
     VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(rendererState->device->logicalDevice, image, &memoryRequirements);
+    vkGetImageMemoryRequirements(rendererState->device->logicalDevice, handle, &memoryRequirements);
 
-    U32 memoryType = rendererState->find_memory_index(memoryRequirements.memoryTypeBits, memoryFlags);
+    U32 memoryType = rendererState->FindMemoryIndex(memoryRequirements.memoryTypeBits, memoryFlags);
     if (memoryType == -1)
     {
         LOG_ERROR("Required memory type not found. Image not valid.");
     }
 
-    // Allocate memory
     VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
     memoryAllocateInfo.memoryTypeIndex = memoryType;
     VkCheck(vkAllocateMemory(rendererState->device->logicalDevice, &memoryAllocateInfo, rendererState->allocator, &memory));
 
-    // Bind the memory
-    VkCheck(vkBindImageMemory(rendererState->device->logicalDevice, image, memory, 0));  // TODO: configurable memory offset.
+    VkCheck(vkBindImageMemory(rendererState->device->logicalDevice, handle, memory, 0));  // TODO: configurable memory offset.
 
-    // Create view
     if (createView)
     {
         view = nullptr;
         CreateImageView(rendererState, format, viewAspectFlags);
     }
+
+    return true;
 }
 
 void VulkanImage::Destroy(RendererState* rendererState)
@@ -76,17 +74,17 @@ void VulkanImage::Destroy(RendererState* rendererState)
         vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
         memory = nullptr;
     }
-    if (image)
+    if (handle)
     {
-        vkDestroyImage(rendererState->device->logicalDevice, image, rendererState->allocator);
-        image = nullptr;
+        vkDestroyImage(rendererState->device->logicalDevice, handle, rendererState->allocator);
+        handle = nullptr;
     }
 }
 
 void VulkanImage::CreateImageView(RendererState* rendererState, VkFormat format, VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-    viewInfo.image = image;
+    viewInfo.image = handle;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;  // TODO: Make configurable.
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -111,7 +109,7 @@ void VulkanImage::TransitionLayout(RendererState* rendererState,
     barrier.newLayout = newLayout;
     barrier.srcQueueFamilyIndex = rendererState->device->graphicsQueueIndex;
     barrier.dstQueueFamilyIndex = rendererState->device->graphicsQueueIndex;
-    barrier.image = image;
+    barrier.image = handle;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
@@ -142,7 +140,7 @@ void VulkanImage::TransitionLayout(RendererState* rendererState,
     }
 
     vkCmdPipelineBarrier(
-        commandBuffer->buffer,
+        commandBuffer->handle,
         sourceStage, destStage,
         0,
         0, 0,
@@ -154,7 +152,6 @@ void VulkanImage::CopyFromBuffer(RendererState* rendererState,
     VkBuffer buffer,
     VulkanCommandBuffer* commandBuffer)
 {
-    // Region to copy
     VkBufferImageCopy region;
     Memory::ZeroMemory(&region, sizeof(VkBufferImageCopy));
     region.bufferOffset = 0;
@@ -171,11 +168,10 @@ void VulkanImage::CopyFromBuffer(RendererState* rendererState,
     region.imageExtent.depth = 1;
 
     vkCmdCopyBufferToImage(
-        commandBuffer->buffer,
+        commandBuffer->handle,
         buffer,
-        image,
+        handle,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         1,
         &region);
 }
-

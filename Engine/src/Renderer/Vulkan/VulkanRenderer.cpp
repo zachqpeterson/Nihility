@@ -36,6 +36,7 @@ static RendererState* rendererState;
 bool VulkanRenderer::Initialize()
 {
     rendererState = (RendererState*)Memory::Allocate(sizeof(RendererState), MEMORY_TAG_RENDERER);
+    rendererState->FindMemoryIndex = FindMemoryIndex;
     rendererState->device = (VulkanDevice*)Memory::Allocate(sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
     rendererState->swapchain = (VulkanSwapchain*)Memory::Allocate(sizeof(VulkanSwapchain), MEMORY_TAG_RENDERER);
 
@@ -191,4 +192,18 @@ void VulkanRenderer::GetPlatformExtentions(Vector<const char*>* names)
 #elif PLATFORM_APPLE
     names->Push("VK_EXT_metal_surface");
 #endif
+}
+
+I32 VulkanRenderer::FindMemoryIndex(U32 memoryTypeBits, VkMemoryPropertyFlags memoryFlags)
+{
+    VkPhysicalDeviceMemoryProperties properties;
+    vkGetPhysicalDeviceMemoryProperties(rendererState->device->physicalDevice, &properties);
+
+    for (U32 i = 0; i < properties.memoryTypeCount; ++i)
+    {
+        if (memoryTypeBits & (1 << i) && (properties.memoryTypes[i].propertyFlags & memoryFlags) == memoryFlags) { return i; }
+    }
+
+    LOG_ERROR("Unable to find suitable memory type!");
+    return -1;
 }

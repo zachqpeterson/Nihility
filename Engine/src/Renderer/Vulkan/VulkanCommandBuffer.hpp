@@ -17,7 +17,7 @@ class VulkanCommandBuffer
 public:
 
 public:
-    VkCommandBuffer buffer;
+    VkCommandBuffer handle;
 
     CommandBufferState state;
 };

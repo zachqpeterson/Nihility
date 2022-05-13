@@ -30,7 +30,7 @@ public:
         class VulkanCommandBuffer* commandBuffer);
 
 private:
-    VkImage image;
+    VkImage handle;
     VkDeviceMemory memory;
     VkImageView view;
     U32 width;

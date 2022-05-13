@@ -1,5 +1,6 @@
 #include "VulkanSwapchain.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanImage.hpp"
 
 #include "Math/Math.hpp"
 #include "Core/Logger.hpp"
@@ -51,7 +52,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
     swapchainExtent.width = Math::Clamp(swapchainExtent.width, min.width, max.width);
     swapchainExtent.height = Math::Clamp(swapchainExtent.height, min.height, max.height);
 
-    U32 imageCount = rendererState->device->swapchainSupport.capabilities.minImageCount + 1;
+    imageCount = rendererState->device->swapchainSupport.capabilities.minImageCount + 1;
     if (rendererState->device->swapchainSupport.capabilities.maxImageCount > 0 && imageCount > rendererState->device->swapchainSupport.capabilities.maxImageCount)
     {
         imageCount = rendererState->device->swapchainSupport.capabilities.maxImageCount;
@@ -121,7 +122,9 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
         LOG_FATAL("Failed to find a supported format!");
     }
 
-    depthAttachment.Create(rendererState,
+    depthAttachment = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
+
+    depthAttachment->Create(rendererState,
         VK_IMAGE_TYPE_2D,
         swapchainExtent.width,
         swapchainExtent.height,
@@ -140,7 +143,7 @@ void VulkanSwapchain::Destroy(RendererState* rendererState)
     LOG_INFO("Destroying swapchain...");
 
     vkDeviceWaitIdle(rendererState->device->logicalDevice);
-    depthAttachment.Destroy(rendererState);
+    depthAttachment->Destroy(rendererState);
 
     for (U32 i = 0; i < imageCount; ++i)
     {

@@ -24,6 +24,10 @@
 
 struct RendererState
 {
+    //Function Pointers
+    I32(*FindMemoryIndex)(U32, VkMemoryPropertyFlags);
+
+    //Variables
     VkAllocationCallbacks* allocator;
     VkInstance instance;
 #ifdef NH_DEBUG

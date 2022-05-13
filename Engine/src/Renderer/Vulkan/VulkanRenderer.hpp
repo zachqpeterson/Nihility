@@ -21,4 +21,5 @@ private: //VULKAN SPECIFIC FUNCTIONS
     bool CreateDebugger();
     bool CreateSurface();
     void GetPlatformExtentions(Vector<const char*>* names);
+    static I32 FindMemoryIndex(U32 memoryTypeBits, VkMemoryPropertyFlags memoryFlags);
 };
