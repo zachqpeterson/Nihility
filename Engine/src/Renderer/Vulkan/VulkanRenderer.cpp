@@ -4,6 +4,7 @@
 #include "Platform/Platform.hpp"
 #include "Containers/String.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanSwapchain.hpp"
 
 //TODO: tempary
 #include <string>
@@ -36,6 +37,7 @@ bool VulkanRenderer::Initialize()
 {
     rendererState = (RendererState*)Memory::Allocate(sizeof(RendererState), MEMORY_TAG_RENDERER);
     rendererState->device = (VulkanDevice*)Memory::Allocate(sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
+    rendererState->swapchain = (VulkanSwapchain*)Memory::Allocate(sizeof(VulkanSwapchain), MEMORY_TAG_RENDERER);
 
     rendererState->allocator = nullptr;
 
@@ -43,11 +45,14 @@ bool VulkanRenderer::Initialize()
         CreateInstance() &&
         CreateDebugger() &&
         CreateSurface() &&
-        rendererState->device->Create(rendererState);
+        rendererState->device->Create(rendererState) &&
+        rendererState->swapchain->Create(rendererState, 1280, 720); //TODO: Get width from platform
 }
 
 void VulkanRenderer::Shutdown()
 {
+    rendererState->swapchain->Destroy(rendererState);
+
     rendererState->device->Destroy(rendererState);
 
     vkDestroySurfaceKHR(rendererState->instance, rendererState->surface, rendererState->allocator);
@@ -72,7 +77,7 @@ void VulkanRenderer::operator delete(void* p)
 
 bool VulkanRenderer::CreateInstance()
 {
-    LOG_INFO("Creating Vulkan Instance...");
+    LOG_INFO("Creating vulkan instance...");
 
     VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.apiVersion = VK_VERSION_1_3;
@@ -138,7 +143,7 @@ bool VulkanRenderer::CreateInstance()
 bool VulkanRenderer::CreateDebugger()
 {
 #ifdef NH_DEBUG
-    LOG_DEBUG("Creating Vulkan Debugger...");
+    LOG_DEBUG("Creating vulkan debugger...");
     U32 logSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
@@ -159,7 +164,7 @@ bool VulkanRenderer::CreateDebugger()
 
 bool VulkanRenderer::CreateSurface()
 {
-    LOG_INFO("Creating Vulkan Surface...");
+    LOG_INFO("Creating vulkan surface...");
 
 #ifdef PLATFORM_WINDOWS
     VkWin32SurfaceCreateInfoKHR surfaceInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };

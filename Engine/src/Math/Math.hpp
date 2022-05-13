@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#undef INFINITY
+
 #define PI 3.14159265358979323846
 #define TWO_PI 2.0 * PI
 #define HALF_PI 0.5 * PI
@@ -70,6 +72,10 @@ public:
     static NH_API NH_INLINE I16 Abs(I16 n) { return n < 0 ? -n : n; }
     static NH_API NH_INLINE I32 Abs(I32 n) { return n < 0 ? -n : n; }
     static NH_API NH_INLINE I64 Abs(I64 n) { return n < 0 ? -n : n; }
+    static NH_API NH_INLINE U8  Abs(U8  n) { return n < 0 ? -n : n; }
+    static NH_API NH_INLINE U16 Abs(U16 n) { return n < 0 ? -n : n; }
+    static NH_API NH_INLINE U32 Abs(U32 n) { return n < 0 ? -n : n; }
+    static NH_API NH_INLINE U64 Abs(U64 n) { return n < 0 ? -n : n; }
 
     static NH_API NH_INLINE F32 Min(F32 a, F32 b) { return a < b ? a : b; }
     static NH_API NH_INLINE F64 Min(F64 a, F64 b) { return a < b ? a : b; }
@@ -77,6 +83,10 @@ public:
     static NH_API NH_INLINE I16 Min(I16 a, I16 b) { return a < b ? a : b; }
     static NH_API NH_INLINE I32 Min(I32 a, I32 b) { return a < b ? a : b; }
     static NH_API NH_INLINE I64 Min(I64 a, I64 b) { return a < b ? a : b; }
+    static NH_API NH_INLINE U8  Min(U8  a, U8  b) { return a < b ? a : b; }
+    static NH_API NH_INLINE U16 Min(U16 a, U16 b) { return a < b ? a : b; }
+    static NH_API NH_INLINE U32 Min(U32 a, U32 b) { return a < b ? a : b; }
+    static NH_API NH_INLINE U64 Min(U64 a, U64 b) { return a < b ? a : b; }
 
     static NH_API NH_INLINE F32 Max(F32 a, F32 b) { return a > b ? a : b; }
     static NH_API NH_INLINE F64 Max(F64 a, F64 b) { return a > b ? a : b; }
@@ -84,6 +94,10 @@ public:
     static NH_API NH_INLINE I16 Max(I16 a, I16 b) { return a > b ? a : b; }
     static NH_API NH_INLINE I32 Max(I32 a, I32 b) { return a > b ? a : b; }
     static NH_API NH_INLINE I64 Max(I64 a, I64 b) { return a > b ? a : b; }
+    static NH_API NH_INLINE U8  Max(U8  a, U8  b) { return a > b ? a : b; }
+    static NH_API NH_INLINE U16 Max(U16 a, U16 b) { return a > b ? a : b; }
+    static NH_API NH_INLINE U32 Max(U32 a, U32 b) { return a > b ? a : b; }
+    static NH_API NH_INLINE U64 Max(U64 a, U64 b) { return a > b ? a : b; }
 
     static NH_API NH_INLINE F32 Clamp(F32 n, F32 a, F32 b) { return n < a ? a : n > b ? b : n; }
     static NH_API NH_INLINE F64 Clamp(F64 n, F64 a, F64 b) { return n < a ? a : n > b ? b : n; }
@@ -91,6 +105,10 @@ public:
     static NH_API NH_INLINE I16 Clamp(I16 n, I16 a, I16 b) { return n < a ? a : n > b ? b : n; }
     static NH_API NH_INLINE I32 Clamp(I32 n, I32 a, I32 b) { return n < a ? a : n > b ? b : n; }
     static NH_API NH_INLINE I64 Clamp(I64 n, I64 a, I64 b) { return n < a ? a : n > b ? b : n; }
+    static NH_API NH_INLINE U8  Clamp(U8  n, U8  a, U8  b) { return n < a ? a : n > b ? b : n; }
+    static NH_API NH_INLINE U16 Clamp(U16 n, U16 a, U16 b) { return n < a ? a : n > b ? b : n; }
+    static NH_API NH_INLINE U32 Clamp(U32 n, U32 a, U32 b) { return n < a ? a : n > b ? b : n; }
+    static NH_API NH_INLINE U64 Clamp(U64 n, U64 a, U64 b) { return n < a ? a : n > b ? b : n; }
 
     static NH_API NH_INLINE I32 Floor(F32 n) { return n >= 0 ? (I32)n : (I32)n - 1; }
     static NH_API NH_INLINE I64 Floor(F64 n) { return n >= 0 ? (I64)n : (I64)n - 1; }

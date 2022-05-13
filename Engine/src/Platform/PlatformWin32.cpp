@@ -48,7 +48,7 @@ bool Platform::Initialize(
     I32 width,
     I32 height)
 {
-    LOG_INFO("Initializing Platform...");
+    LOG_INFO("Initializing platform...");
 
     platformState = (PlatformState*)state;
     platformState->hInstance = GetModuleHandleA(0);

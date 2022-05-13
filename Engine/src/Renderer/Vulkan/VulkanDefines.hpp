@@ -31,4 +31,7 @@ struct RendererState
 #endif
     VkSurfaceKHR surface;
     class VulkanDevice* device;
+    class VulkanSwapchain* swapchain;
+
+    U32 currentFrame;
 };

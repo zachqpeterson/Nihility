@@ -103,7 +103,7 @@ bool VulkanDevice::Create(RendererState* rendererState)
 
     VkCheck(vkCreateDevice(rendererState->device->physicalDevice, &deviceCreateInfo, rendererState->allocator, &rendererState->device->logicalDevice));
 
-    LOG_INFO("Obtaining Queues...");
+    LOG_INFO("Obtaining queues...");
     vkGetDeviceQueue(rendererState->device->logicalDevice, rendererState->device->graphicsQueueIndex, 0, &rendererState->device->graphicsQueue);
 
     vkGetDeviceQueue(rendererState->device->logicalDevice, rendererState->device->presentQueueIndex, 0, &rendererState->device->presentQueue);

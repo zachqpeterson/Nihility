@@ -17,6 +17,9 @@ public:
     bool Create(RendererState* rendererState);
     void Destroy(RendererState* rendererState);
 
+    void QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo);
+    bool DetectDepthFormat(RendererState* rendererState);
+
 private:
     bool SelectPhysicalDevice(RendererState* rendererState);
     bool physicalDeviceMeetsRequirements(
@@ -27,12 +30,8 @@ private:
         const struct PhysicalDeviceRequirements* requirements,
         struct PhysicalDeviceQueueFamilyInfo* outQueueInfo,
         SwapchainSupportInfo* outSwapchainSupport);
-    void QuerySwapchainSupport(
-        VkPhysicalDevice physicalDevice,
-        VkSurfaceKHR surface,
-        SwapchainSupportInfo* outSupportInfo);
-    bool DetectDepthFormat(RendererState* rendererState);
 
+public:
     VkPhysicalDevice physicalDevice;
     VkDevice logicalDevice;
     SwapchainSupportInfo swapchainSupport;
