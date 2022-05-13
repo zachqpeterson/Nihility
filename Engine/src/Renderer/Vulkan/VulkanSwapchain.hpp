@@ -20,7 +20,7 @@ private:
     VkImage* images;
     VkImageView* views;
 
-    //vulkanImage depthAttachment;
+    vulkanImage depthAttachment;
 
     VkFramebuffer framebuffers[3];
 };

@@ -96,14 +96,8 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 
     imageCount = 0;
     VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, swapchain, &imageCount, 0));
-    if (!images)
-    {
-        images = (VkImage*)Memory::Allocate(sizeof(VkImage) * imageCount, MEMORY_TAG_RENDERER);
-    }
-    if (!views)
-    {
-        views = (VkImageView*)Memory::Allocate(sizeof(VkImageView) * imageCount, MEMORY_TAG_RENDERER);
-    }
+    if (!images) { images = (VkImage*)Memory::Allocate(sizeof(VkImage) * imageCount, MEMORY_TAG_RENDERER); }
+    if (!views) { views = (VkImageView*)Memory::Allocate(sizeof(VkImageView) * imageCount, MEMORY_TAG_RENDERER); }
     VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, swapchain, &imageCount, images));
 
     for (U32 i = 0; i < imageCount; ++i)
@@ -127,18 +121,16 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
         LOG_FATAL("Failed to find a supported format!");
     }
 
-    //vulkan_image_create(
-    //    context,
-    //    VK_IMAGE_TYPE_2D,
-    //    swapchain_extent.width,
-    //    swapchain_extent.height,
-    //    context->device.depth_format,
-    //    VK_IMAGE_TILING_OPTIMAL,
-    //    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-    //    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-    //    true,
-    //    VK_IMAGE_ASPECT_DEPTH_BIT,
-    //    &swapchain->depth_attachment);
+    depthAttachment.Create(rendererState,
+        VK_IMAGE_TYPE_2D,
+        swapchainExtent.width,
+        swapchainExtent.height,
+        rendererState->device->depthFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        true,
+        VK_IMAGE_ASPECT_DEPTH_BIT);
 
     return true;
 }
@@ -148,7 +140,7 @@ void VulkanSwapchain::Destroy(RendererState* rendererState)
     LOG_INFO("Destroying swapchain...");
 
     vkDeviceWaitIdle(rendererState->device->logicalDevice);
-    //vulkan_image_destroy(context, &swapchain->depth_attachment);
+    depthAttachment.Destroy(rendererState);
 
     for (U32 i = 0; i < imageCount; ++i)
     {
