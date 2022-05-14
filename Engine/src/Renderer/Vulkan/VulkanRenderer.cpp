@@ -1,10 +1,15 @@
 #include "VulkanRenderer.hpp"
 
+#include "VulkanDevice.hpp"
+#include "VulkanSwapchain.hpp"
+#include "VulkanRenderpass.hpp"
+#include "VulkanImage.hpp"
+#include "VulkanCommandBuffer.hpp"
+
 #include "Memory/Memory.hpp"
 #include "Platform/Platform.hpp"
 #include "Containers/String.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanSwapchain.hpp"
+#include "Math/Math.hpp"
 
 //TODO: tempary
 #include <string>
@@ -39,19 +44,72 @@ bool VulkanRenderer::Initialize()
     rendererState->FindMemoryIndex = FindMemoryIndex;
     rendererState->device = (VulkanDevice*)Memory::Allocate(sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
     rendererState->swapchain = (VulkanSwapchain*)Memory::Allocate(sizeof(VulkanSwapchain), MEMORY_TAG_RENDERER);
+    rendererState->mainRenderpass = (VulkanRenderpass*)Memory::Allocate(sizeof(VulkanRenderpass), MEMORY_TAG_RENDERER);
+    rendererState->uiRenderpass = (VulkanRenderpass*)Memory::Allocate(sizeof(VulkanRenderpass), MEMORY_TAG_RENDERER);
+
+    rendererState->framebufferWidth = 1280; //TODO: Get width from platform
+    rendererState->framebufferHeight = 720;
 
     rendererState->allocator = nullptr;
 
-    return
-        CreateInstance() &&
-        CreateDebugger() &&
-        CreateSurface() &&
-        rendererState->device->Create(rendererState) &&
-        rendererState->swapchain->Create(rendererState, 1280, 720); //TODO: Get width from platform
+    if (!CreateInstance() || !CreateDebugger() || !CreateSurface()) { return false; }
+
+    rendererState->device->Create(rendererState);
+    rendererState->swapchain->Create(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
+
+    rendererState->mainRenderpass->Create(rendererState, { 0, 0, (F32)rendererState->framebufferWidth, (F32)rendererState->framebufferHeight }, { 0.0f, 0.0f, 0.2f, 1.0f },
+        1.0f, 0, RENDERPASS_CLEAR_COLOUR_BUFFER_FLAG | RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG | RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG, false, true);
+
+    rendererState->uiRenderpass->Create(rendererState, { 0, 0, (F32)rendererState->framebufferWidth, (F32)rendererState->framebufferHeight }, { 0.0f, 0.0f, 0.0f, 0.0f },
+        1.0f, 0, RENDERPASS_CLEAR_NONE_FLAG, true, false);
+
+    RecreateFramebuffers();
+
+    CreateCommandBuffers();
+
+    CreateSyncObjects();
+
+    return true;
 }
 
 void VulkanRenderer::Shutdown()
 {
+    LOG_INFO("Destroying vulkan sync objects...");
+
+    for (U8 i = 0; i < rendererState->swapchain->maxFramesInFlight; ++i)
+    {
+        if (rendererState->imageAvailableSemaphores[i])
+        {
+            vkDestroySemaphore(rendererState->device->logicalDevice, rendererState->imageAvailableSemaphores[i], rendererState->allocator);
+            rendererState->imageAvailableSemaphores[i] = nullptr;
+        }
+        if (rendererState->queueCompleteSemaphores[i])
+        {
+            vkDestroySemaphore(rendererState->device->logicalDevice, rendererState->queueCompleteSemaphores[i], rendererState->allocator);
+            rendererState->queueCompleteSemaphores[i] = nullptr;
+        }
+        vkDestroyFence(rendererState->device->logicalDevice, rendererState->inFlightFences[i], rendererState->allocator);
+    }
+
+    LOG_INFO("Destroying vulkan command buffers...");
+    for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+    {
+        if (rendererState->graphicsCommandBuffers[i].handle)
+        {
+            rendererState->graphicsCommandBuffers[i].Free(rendererState, rendererState->device->graphicsCommandPool);
+            rendererState->graphicsCommandBuffers[i].handle = nullptr;
+        }
+    }
+
+    for (I32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+    {
+        vkDestroyFramebuffer(rendererState->device->logicalDevice, rendererState->worldFramebuffers[i], rendererState->allocator);
+        vkDestroyFramebuffer(rendererState->device->logicalDevice, rendererState->swapchain->framebuffers[i], rendererState->allocator);
+    }
+
+    rendererState->uiRenderpass->Destroy(rendererState);
+    rendererState->mainRenderpass->Destroy(rendererState);
+
     rendererState->swapchain->Destroy(rendererState);
 
     rendererState->device->Destroy(rendererState);
@@ -181,7 +239,52 @@ bool VulkanRenderer::CreateSurface()
     return false;
 }
 
+void VulkanRenderer::CreateCommandBuffers()
+{
+    LOG_INFO("Creating vulkan command buffers...");
 
+    if (!rendererState->graphicsCommandBuffers.Size())
+    {
+        rendererState->graphicsCommandBuffers.Resize(rendererState->swapchain->imageCount);
+        for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+        {
+            Memory::ZeroMemory(&rendererState->graphicsCommandBuffers[i], sizeof(VulkanCommandBuffer));
+        }
+    }
+
+    for (I32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+    {
+        if (rendererState->graphicsCommandBuffers[i].handle)
+        {
+            rendererState->graphicsCommandBuffers[i].Free(rendererState, rendererState->device->graphicsCommandPool);
+        }
+
+        Memory::ZeroMemory(&rendererState->graphicsCommandBuffers[i], sizeof(VulkanCommandBuffer));
+        rendererState->graphicsCommandBuffers[i].Allocate(rendererState, rendererState->device->graphicsCommandPool, true);
+    }
+}
+
+void VulkanRenderer::CreateSyncObjects()
+{
+    rendererState->imageAvailableSemaphores.Resize(rendererState->swapchain->maxFramesInFlight);
+    rendererState->queueCompleteSemaphores.Resize(rendererState->swapchain->maxFramesInFlight);
+
+    for (U8 i = 0; i < rendererState->swapchain->maxFramesInFlight; ++i)
+    {
+        VkSemaphoreCreateInfo semaphoreInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+        vkCreateSemaphore(rendererState->device->logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->imageAvailableSemaphores[i]);
+        vkCreateSemaphore(rendererState->device->logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->queueCompleteSemaphores[i]);
+
+        VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VkCheck(vkCreateFence(rendererState->device->logicalDevice, &fenceInfo, rendererState->allocator, &rendererState->inFlightFences[i]));
+    }
+
+    for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+    {
+        rendererState->imagesInFlight[i] = 0;
+    }
+}
 
 void VulkanRenderer::GetPlatformExtentions(Vector<const char*>* names)
 {
@@ -206,4 +309,36 @@ I32 VulkanRenderer::FindMemoryIndex(U32 memoryTypeBits, VkMemoryPropertyFlags me
 
     LOG_ERROR("Unable to find suitable memory type!");
     return -1;
+}
+
+void VulkanRenderer::RecreateFramebuffers()
+{
+    LOG_INFO("Creating vulkan framebuffers...");
+
+    U32 imageCount = rendererState->swapchain->imageCount;
+    for (U32 i = 0; i < imageCount; ++i)
+    {
+        VkImageView worldAttachments[2] = { rendererState->swapchain->views[i], rendererState->swapchain->depthAttachment->view };
+        VkFramebufferCreateInfo worldFramebufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+        worldFramebufferInfo.renderPass = rendererState->mainRenderpass->handle;
+        worldFramebufferInfo.attachmentCount = 2;
+        worldFramebufferInfo.pAttachments = worldAttachments;
+        worldFramebufferInfo.width = rendererState->framebufferWidth;
+        worldFramebufferInfo.height = rendererState->framebufferHeight;
+        worldFramebufferInfo.layers = 1;
+
+        VkCheck(vkCreateFramebuffer(rendererState->device->logicalDevice, &worldFramebufferInfo, rendererState->allocator, &rendererState->worldFramebuffers[i]));
+
+        // Swapchain framebuffers (UI pass). Outputs to swapchain images
+        VkImageView uiAttachments[1] = { rendererState->swapchain->views[i] };
+        VkFramebufferCreateInfo uiFramebufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+        uiFramebufferInfo.renderPass = rendererState->uiRenderpass->handle;
+        uiFramebufferInfo.attachmentCount = 1;
+        uiFramebufferInfo.pAttachments = uiAttachments;
+        uiFramebufferInfo.width = rendererState->framebufferWidth;
+        uiFramebufferInfo.height = rendererState->framebufferHeight;
+        uiFramebufferInfo.layers = 1;
+
+        VkCheck(vkCreateFramebuffer(rendererState->device->logicalDevice, &uiFramebufferInfo, rendererState->allocator, &rendererState->swapchain->framebuffers[i]));
+    }
 }

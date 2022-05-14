@@ -7,6 +7,8 @@
 //TODO: temporary
 #include <string>
 
+#undef ZeroMemory
+
 struct PhysicalDeviceRequirements
 {
     bool graphics;

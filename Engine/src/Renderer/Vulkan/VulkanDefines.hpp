@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include "Containers/Vector.hpp"
+
 #if defined(PLATFORM_WINDOWS)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(PLATFORM_LINUX)
@@ -28,6 +30,11 @@ struct RendererState
     I32(*FindMemoryIndex)(U32, VkMemoryPropertyFlags);
 
     //Variables
+    U32 framebufferWidth;
+    U32 framebufferHeight;
+    U64 framebufferSizeGeneration;
+    U64 framebufferSizeLastGeneration;
+
     VkAllocationCallbacks* allocator;
     VkInstance instance;
 #ifdef NH_DEBUG
@@ -36,6 +43,18 @@ struct RendererState
     VkSurfaceKHR surface;
     class VulkanDevice* device;
     class VulkanSwapchain* swapchain;
+    class VulkanRenderpass* mainRenderpass;
+    class VulkanRenderpass* uiRenderpass;
+
+    Vector<class VulkanCommandBuffer> graphicsCommandBuffers;
+    Vector<VkSemaphore> imageAvailableSemaphores;
+    Vector<VkSemaphore> queueCompleteSemaphores;
+
+    U32 inFlightFenceCount;
+    VkFence inFlightFences[2];
+    VkFence imagesInFlight[3];
+
+    VkFramebuffer worldFramebuffers[3];
 
     U32 currentFrame;
 };

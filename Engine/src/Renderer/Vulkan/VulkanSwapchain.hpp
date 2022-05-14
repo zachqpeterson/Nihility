@@ -9,7 +9,7 @@ public:
     void Recreate(RendererState* rendererState, U32 width, U32 height);
     void Destroy(RendererState* rendererState);
 
-private:
+public:
     VkSwapchainKHR swapchain;
 
     VkSurfaceFormatKHR imageFormat;

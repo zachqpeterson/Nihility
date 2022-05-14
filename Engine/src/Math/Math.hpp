@@ -170,7 +170,7 @@ struct Vector2
 {
     F32 x, y;
 
-    NH_API Vector2() : x{ 0.0f }, y{ 0.0f } {}
+    NH_API Vector2() : x { 0.0f }, y{ 0.0f } {}
     NH_API Vector2(F32 f) : x{ f }, y{ f } {}
     NH_API Vector2(F32 x, F32 y) : x{ x }, y{ y } {}
     NH_API Vector2(const Vector2& v) : x{ v.x }, y{ v.y } {}
@@ -640,11 +640,14 @@ struct Quaternion
 
     static NH_API NH_INLINE Quaternion AxisAngle(Vector3 axis, F32 angle, bool normalize);
 
-    NH_API Quaternion operator* (const Quaternion& q) const { return {
-            x * q.w + y * q.z - z * q.y + w * q.x,
-            -x * q.z + y * q.w + z * q.x + w * q.y,
-            x * q.y - y * q.x + z * q.w + w * q.z,
-            -x * q.x - y * q.y - z * q.z + w * q.w }; }
+    NH_API Quaternion operator* (const Quaternion& q) const
+    {
+        return {
+                x * q.w + y * q.z - z * q.y + w * q.x,
+                -x * q.z + y * q.w + z * q.x + w * q.y,
+                x * q.y - y * q.x + z * q.w + w * q.z,
+                -x * q.x - y * q.y - z * q.z + w * q.w };
+    }
 
     NH_API NH_INLINE Matrix4 ToMatrix4() const;
     NH_API NH_INLINE Matrix4 ToRotationMat(Vector3 center) const;

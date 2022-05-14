@@ -253,7 +253,7 @@ inline void Vector<T>::Reserve(U64 capacity)
 {
     T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::CopyMemory(newArray, array, sizeof(T) * (capacity > this->capacity ? capacity : this->capacity));
+    Memory::CopyMemory(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
 
     Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
     array = newArray;

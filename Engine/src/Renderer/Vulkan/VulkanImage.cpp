@@ -6,6 +6,8 @@
 #include "Core/Logger.hpp"
 #include "Memory/Memory.hpp"
 
+#undef ZeroMemory
+
 bool VulkanImage::Create(RendererState* rendererState,
     VkImageType imageType,
     U32 width,

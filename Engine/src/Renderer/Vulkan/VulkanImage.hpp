@@ -29,10 +29,10 @@ public:
         VkBuffer buffer,
         class VulkanCommandBuffer* commandBuffer);
 
-private:
     VkImage handle;
-    VkDeviceMemory memory;
     VkImageView view;
+private:
+    VkDeviceMemory memory;
     U32 width;
     U32 height;
 };

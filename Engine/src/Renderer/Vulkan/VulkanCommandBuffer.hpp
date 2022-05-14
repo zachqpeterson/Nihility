@@ -15,7 +15,15 @@ enum CommandBufferState
 class VulkanCommandBuffer
 {
 public:
-
+    void Allocate(RendererState* rendererState, VkCommandPool pool, bool isPrimary);
+    void Free(RendererState* rendererState, VkCommandPool pool);
+    void Begin(bool singleUse, bool renderpassContinue, bool simultaneousUse);
+    void End();
+    void UpdateSubmitted();
+    void Reset();
+    void AllocateAndBeginSingleUse(RendererState* rendererState, VkCommandPool pool);
+    void EndSingleUse(RendererState* rendererState, VkCommandPool pool, VkQueue queue);
+    
 public:
     VkCommandBuffer handle;
 
