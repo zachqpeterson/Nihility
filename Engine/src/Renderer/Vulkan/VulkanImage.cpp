@@ -6,8 +6,6 @@
 #include "Core/Logger.hpp"
 #include "Memory/Memory.hpp"
 
-#undef ZeroMemory
-
 bool VulkanImage::Create(RendererState* rendererState,
     VkImageType imageType,
     U32 width,
@@ -155,7 +153,7 @@ void VulkanImage::CopyFromBuffer(RendererState* rendererState,
     VulkanCommandBuffer* commandBuffer)
 {
     VkBufferImageCopy region;
-    Memory::ZeroMemory(&region, sizeof(VkBufferImageCopy));
+    Memory::Zero(&region, sizeof(VkBufferImageCopy));
     region.bufferOffset = 0;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;

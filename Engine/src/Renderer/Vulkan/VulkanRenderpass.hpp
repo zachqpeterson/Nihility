@@ -37,10 +37,10 @@ public:
     void End(VulkanCommandBuffer* commandBuffer);
 
     VkRenderPass handle;
-private:
     Vector4 renderArea;
     Vector4 clearColor;
-
+    
+private:
     F32 depth;
     U32 stencil;
 

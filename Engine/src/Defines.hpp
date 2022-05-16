@@ -209,6 +209,3 @@ constexpr T&& move(T& t) noexcept
 {
     return static_cast<T&&>(t);
 }
-
-#undef ZeroMemory
-#undef CopyMemory

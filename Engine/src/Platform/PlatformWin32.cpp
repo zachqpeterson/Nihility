@@ -8,8 +8,6 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <memory>
-#undef ZeroMemory
-#undef CopyMemory
 
 #define WHEEL_MULTIPLIER 0.00833333333
 
@@ -167,17 +165,17 @@ void Platform::Free(void* block, bool aligned)
     free(block);
 }
 
-void* Platform::ZeroMemory(void* block, U64 size)
+void* Platform::Zero(void* block, U64 size)
 {
     return memset(block, 0, size);
 }
 
-void* Platform::CopyMemory(void* dest, const void* source, U64 size)
+void* Platform::Copy(void* dest, const void* source, U64 size)
 {
     return memcpy(dest, source, size);
 }
 
-void* Platform::SetMemory(void* dest, I32 value, U64 size)
+void* Platform::Set(void* dest, I32 value, U64 size)
 {
     return memset(dest, value, size);
 }

@@ -7,8 +7,6 @@
 //TODO: temporary
 #include <string>
 
-#undef ZeroMemory
-
 struct PhysicalDeviceRequirements
 {
     bool graphics;
@@ -127,10 +125,10 @@ void VulkanDevice::Destroy(RendererState* rendererState)
     rendererState->device->presentQueue = VK_NULL_HANDLE;
     rendererState->device->transferQueue = VK_NULL_HANDLE;
 
-    LOG_INFO("Destroying command pools...");
+    LOG_INFO("Destroying vulkan command pools...");
     vkDestroyCommandPool(rendererState->device->logicalDevice, rendererState->device->graphicsCommandPool, rendererState->allocator);
 
-    LOG_INFO("Destroying logical device...");
+    LOG_INFO("Destroying vulkan logical device...");
     if (rendererState->device->logicalDevice)
     {
         vkDestroyDevice(rendererState->device->logicalDevice, rendererState->allocator);
@@ -156,7 +154,7 @@ void VulkanDevice::Destroy(RendererState* rendererState)
         rendererState->device->swapchainSupport.presentModeCount = 0;
     }
 
-    Memory::ZeroMemory(&rendererState->device->swapchainSupport.capabilities, sizeof(rendererState->device->swapchainSupport.capabilities));
+    Memory::Zero(&rendererState->device->swapchainSupport.capabilities, sizeof(rendererState->device->swapchainSupport.capabilities));
 
     rendererState->device->graphicsQueueIndex = -1;
     rendererState->device->presentQueueIndex = -1;

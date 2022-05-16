@@ -3,76 +3,58 @@
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
 
-#define INVALID_ID 4294967295U
-
-struct Node {
-    U64 offset;
-    U64 size;
-    Node* next;
-};
-
-struct State {
-    U64 totalSize;
-    U64 maxEntries;
-    Node* head;
-    Node* nodes;
-};
-
-Freelist::Freelist(U64 size, void* block) : memory{block}
+Freelist::Freelist(U64 size)
 {
-    Memory::ZeroMemory(memory, GetMemoryRequirement(size));
+    totalSize = size;
+    maxEntries = (size / (sizeof(void*) * sizeof(Node)));
+    nodes = (Node*)Memory::Allocate(sizeof(Node) * size, MEMORY_TAG_DATA_STRUCT);
+    Memory::Zero(nodes, sizeof(Node) * size);
 
-    State* state = (State*)memory;
-    state->nodes = (Node*)memory + sizeof(State);
-    state->maxEntries = (size / (sizeof(void*) * sizeof(Node)));
-    state->totalSize = size;
+    head = &nodes[0];
+    head->offset = 0;
+    head->size = size;
+    head->next = nullptr;
 
-    state->head = &state->nodes[0];
-    state->head->offset = 0;
-    state->head->size = size;
-    state->head->next = nullptr;
-
-    for (U64 i = 1; i < state->maxEntries; ++i) {
-        state->nodes[i].offset = INVALID_ID;
-        state->nodes[i].size = INVALID_ID;
+    for (U64 i = 1; i < maxEntries; ++i)
+    {
+        nodes[i].offset = INVALID_ID;
+        nodes[i].size = INVALID_ID;
     }
 }
 
 void Freelist::Destroy()
 {
-    State* state = (State*)memory;
-    Memory::ZeroMemory(memory, sizeof(State) + sizeof(Node) * state->maxEntries);
-    memory = nullptr;
+    Memory::Free(nodes, sizeof(Node) * totalSize, MEMORY_TAG_DATA_STRUCT);
+    nodes = nullptr;
+    head = nullptr;
 }
 
-bool Freelist::AllocateBlock(U64 size, U64* out_offset)
+bool Freelist::AllocateBlock(U64 size, U64* outOffset)
 {
-    State* state = (State*)memory;
-    
-    Node* node = state->head;
+    Node* node = head;
     Node* previous = nullptr;
-    while (node) 
+    while (node)
     {
-        if (node->size == size) 
+        if (node->size == size)
         {
-            *out_offset = node->offset;
-            Node* node_to_return = 0;
-            if (previous) 
+            *outOffset = node->offset;
+            Node* nodeToReturn = nullptr;
+            if (previous)
             {
                 previous->next = node->next;
-                node_to_return = node;
+                nodeToReturn = node;
             }
-            else 
+            else
             {
-                node_to_return = state->head;
-                state->head = node->next;
+                nodeToReturn = head;
+                head = node->next;
             }
-            ReturnNode(node_to_return);
+            ReturnNode(nodeToReturn);
             return true;
         }
-        else if (node->size > size) 
+        else if (node->size > size)
         {
-            *out_offset = node->offset;
+            *outOffset = node->offset;
             node->size -= size;
             node->offset += size;
             return true;
@@ -82,39 +64,33 @@ bool Freelist::AllocateBlock(U64 size, U64* out_offset)
         node = node->next;
     }
 
-    U64 free_space = FreeSpace();
-    LOG_WARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, free_space);
+    U64 freeSpace = FreeSpace();
+    LOG_WARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, freeSpace);
     return false;
 }
 
 bool Freelist::FreeBlock(U64 size, U64 offset)
 {
-    State* state = (State*)memory;
-    Node* node = state->head;
+    Node* node = head;
     Node* previous = nullptr;
-    if (!node) 
+    if (!node)
     {
-        // Check for the case where the entire thing is allocated.
-        // In this case a new node is needed at the head.
-        Node* new_node = GetNode();
-        new_node->offset = offset;
-        new_node->size = size;
-        new_node->next = nullptr;
-        state->head = new_node;
+        Node* newNode = GetNode();
+        newNode->offset = offset;
+        newNode->size = size;
+        newNode->next = nullptr;
+        head = newNode;
         return true;
     }
-    else 
+    else
     {
-        while (node) 
+        while (node)
         {
-            if (node->offset == offset) 
+            if (node->offset == offset)
             {
-                // Can just be appended to this node.
                 node->size += size;
 
-                // Check if this then connects the range between this and the next
-                // node, and if so, combine them and return the second node..
-                if (node->next && node->next->offset == node->offset + node->size) 
+                if (node->next && node->next->offset == node->offset + node->size)
                 {
                     node->size += node->next->size;
                     Node* next = node->next;
@@ -123,40 +99,35 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
                 }
                 return true;
             }
-            else if (node->offset > offset) 
+            else if (node->offset > offset)
             {
-                // Iterated beyond the space to be freed. Need a new node.
-                Node* new_node = GetNode();
-                new_node->offset = offset;
-                new_node->size = size;
+                Node* newNode = GetNode();
+                newNode->offset = offset;
+                newNode->size = size;
 
-                // If there is a previous node, the new node should be inserted between this and it.
-                if (previous) 
+                if (previous)
                 {
-                    previous->next = new_node;
-                    new_node->next = node;
+                    previous->next = newNode;
+                    newNode->next = node;
                 }
-                else 
+                else
                 {
-                    // Otherwise, the new node becomes the head.
-                    new_node->next = node;
-                    state->head = new_node;
+                    newNode->next = node;
+                    head = newNode;
                 }
 
-                // Double-check next node to see if it can be joined.
-                if (new_node->next && new_node->offset + new_node->size == new_node->next->offset) 
+                if (newNode->next && newNode->offset + newNode->size == newNode->next->offset)
                 {
-                    new_node->size += new_node->next->size;
-                    Node* rubbish = new_node->next;
-                    new_node->next = rubbish->next;
+                    newNode->size += newNode->next->size;
+                    Node* rubbish = newNode->next;
+                    newNode->next = rubbish->next;
                     ReturnNode(rubbish);
                 }
 
-                // Double-check previous node to see if the new_node can be joined to it.
-                if (previous && previous->offset + previous->size == new_node->offset) 
+                if (previous && previous->offset + previous->size == newNode->offset)
                 {
-                    previous->size += new_node->size;
-                    Node* rubbish = new_node;
+                    previous->size += newNode->size;
+                    Node* rubbish = newNode;
                     previous->next = rubbish->next;
                     ReturnNode(rubbish);
                 }
@@ -173,108 +144,93 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
     return false;
 }
 
-bool Freelist::Resize(void* new_memory, U64 newSize, void** out_old_memory)
+bool Freelist::Resize(U64 newSize)
 {
-    // Assign the old memory pointer so it can be freed.
-    *out_old_memory = memory;
+    Node* temp = nodes;
+    U64 oldSize = totalSize;
+    U64 sizeDiff = newSize - totalSize;
 
-    // Copy over the old state to the new.
-    State* old_state = (State*)memory;
-    U64 size_diff = newSize - old_state->totalSize;
+    nodes = (Node*)Memory::Allocate(sizeof(Node) * newSize, MEMORY_TAG_DATA_STRUCT);
 
-    // Setup the new memory
-    memory = new_memory;
+    Memory::Zero(nodes, sizeof(Node) * newSize);
 
-    // The block's layout is head* first, then array of available nodes.
-    Memory::ZeroMemory(memory, GetMemoryRequirement(newSize));
+    maxEntries = (newSize / (sizeof(void*) * sizeof(Node)));
+    totalSize = newSize;
 
-    // Setup the new state.
-    State* state = (State*)memory;
-    state->nodes = (Node*)memory + sizeof(State);
-    state->maxEntries = (newSize / (sizeof(void*) * sizeof(Node)));
-    state->totalSize = newSize;
-
-    // Invalidate the offset and size for all but the first node. The invalid
-    // value will be checked for when seeking a new node from the list.
-    for (U64 i = 1; i < state->maxEntries; ++i) {
-        state->nodes[i].offset = INVALID_ID;
-        state->nodes[i].size = INVALID_ID;
+    for (U64 i = 1; i < maxEntries; ++i)
+    {
+        nodes[i].offset = INVALID_ID;
+        nodes[i].size = INVALID_ID;
     }
 
-    state->head = &state->nodes[0];
+    head = &nodes[0];
 
-    // Copy over the nodes.
-    Node* new_list_node = state->head;
-    Node* old_node = old_state->head;
-    if (!old_node) {
-        // If there is no head, then the entire list is allocated. In this case,
-        // the head should be set to the difference of the space now available, and
-        // at the end of the list.
-        state->head->offset = old_state->totalSize;
-        state->head->size = size_diff;
-        state->head->next = 0;
+    Node* newListNode = head;
+    Node* oldNode = &temp[0];
+    if (!oldNode)
+    {
+        head->offset = oldSize;
+        head->size = sizeDiff;
+        head->next = 0;
     }
-    else {
-        // Iterate the old nodes.
-        while (old_node) {
-            // Get a new node, copy the offset/size, and set next to it.
-            Node* new_node = GetNode();
-            new_node->offset = old_node->offset;
-            new_node->size = old_node->size;
-            new_node->next = 0;
-            new_list_node->next = new_node;
-            // Move to the next entry.
-            new_list_node = new_list_node->next;
+    else
+    {
+        while (oldNode)
+        {
+            Node* newNode = GetNode();
+            newNode->offset = oldNode->offset;
+            newNode->size = oldNode->size;
+            newNode->next = 0;
+            newListNode->next = newNode;
+            newListNode = newListNode->next;
 
-            if (old_node->next) {
-                // If there is another node, move on.
-                old_node = old_node->next;
+            if (oldNode->next)
+            {
+                oldNode = oldNode->next;
             }
-            else {
-                // Reached the end of the list.
-                // Check if it extends to the end of the block. If so,
-                // just append to the size. Otherwise, create a new node and
-                // attach to it.
-                if (old_node->offset + old_node->size == old_state->totalSize) {
-                    new_node->size += size_diff;
+            else
+            {
+                if (oldNode->offset + oldNode->size == oldSize)
+                {
+                    newNode->size += sizeDiff;
                 }
-                else {
-                    Node* new_node_end = GetNode();
-                    new_node_end->offset = old_state->totalSize;
-                    new_node_end->size = size_diff;
-                    new_node_end->next = 0;
-                    new_node->next = new_node_end;
+                else
+                {
+                    Node* newNodeEnd = GetNode();
+                    newNodeEnd->offset = oldSize;
+                    newNodeEnd->size = sizeDiff;
+                    newNodeEnd->next = 0;
+                    newNode->next = newNodeEnd;
                 }
                 break;
             }
         }
     }
 
+    Memory::Free(temp, oldSize, MEMORY_TAG_DATA_STRUCT);
+
     return true;
 }
 
-void Freelist::Clear()
+void Freelist::Cleanup()
 {
-    State* state = (State*)memory;
-    
-    for (U64 i = 1; i < state->maxEntries; ++i) 
+    for (U64 i = 1; i < maxEntries; ++i)
     {
-        state->nodes[i].offset = INVALID_ID;
-        state->nodes[i].size = INVALID_ID;
+        nodes[i].offset = INVALID_ID;
+        nodes[i].size = INVALID_ID;
     }
 
-    state->head->offset = 0;
-    state->head->size = state->totalSize;
-    state->head->next = nullptr;
+    head->offset = 0;
+    head->size = totalSize;
+    head->next = nullptr;
 }
 
 bool Freelist::FreeSpace()
 {
     U64 runningTotal = 0;
-    State* state = (State*)memory;
-    Node* node = state->head;
+    Node* node = head;
 
-    while (node) 
+    while (node)
     {
         runningTotal += node->size;
         node = node->next;
@@ -283,14 +239,13 @@ bool Freelist::FreeSpace()
     return runningTotal;
 }
 
-Node* Freelist::GetNode()
+Freelist::Node* Freelist::GetNode()
 {
-    State* state = (State*)memory;
-    for (U64 i = 1; i < state->maxEntries; ++i) 
+    for (U64 i = 1; i < maxEntries; ++i)
     {
-        if (state->nodes[i].offset == INVALID_ID) 
+        if (nodes[i].offset == INVALID_ID)
         {
-            return &state->nodes[i];
+            return &nodes[i];
         }
     }
 
@@ -302,10 +257,4 @@ void Freelist::ReturnNode(Node* node)
     node->offset = INVALID_ID;
     node->size = INVALID_ID;
     node->next = 0;
-}
-
-U64 Freelist::GetMemoryRequirement(U64 size)
-{
-    U64 maxEntries = (size / (sizeof(void*) * sizeof(Node)));
-    return sizeof(State) + (sizeof(Node) * maxEntries);
 }

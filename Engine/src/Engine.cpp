@@ -73,6 +73,8 @@ void Engine::MainLoop()
             accumulatedTime -= 0.00833333333;
         }
 
+        RendererFrontend::DrawFrame();
+
         //LOG_DEBUG("Frame Rate: %d", Time::FrameRate());
     }
 

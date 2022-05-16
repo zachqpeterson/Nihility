@@ -663,3 +663,32 @@ struct Quaternion
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
 };
+
+struct Vertex3
+{
+    Vector3 position;
+    Vector3 normal;
+    Vector2 uv;
+    Vector4 color;
+    Vector4 tangent;
+};
+
+struct Vertex2
+{
+    //TODO: add normal?
+    Vector2 position;
+    Vector2 uv;
+    Vector4 color;
+};
+
+struct transform
+{
+    Vector3 position;
+    Quaternion rotation;
+    Vector3 scale;
+    
+    bool dirty;
+    Matrix4 local;
+
+    struct transform* parent;
+};

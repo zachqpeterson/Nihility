@@ -91,15 +91,15 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
     swapchainInfo.clipped = VK_TRUE;
     swapchainInfo.oldSwapchain = nullptr; //TODO: Use this for recreation
 
-    VkCheck(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &swapchain));
+    VkCheck(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
 
     rendererState->currentFrame = 0;
 
     imageCount = 0;
-    VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, swapchain, &imageCount, 0));
+    VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, 0));
     if (!images) { images = (VkImage*)Memory::Allocate(sizeof(VkImage) * imageCount, MEMORY_TAG_RENDERER); }
     if (!views) { views = (VkImageView*)Memory::Allocate(sizeof(VkImageView) * imageCount, MEMORY_TAG_RENDERER); }
-    VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, swapchain, &imageCount, images));
+    VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, images));
 
     for (U32 i = 0; i < imageCount; ++i)
     {
@@ -140,7 +140,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 
 void VulkanSwapchain::Destroy(RendererState* rendererState)
 {
-    LOG_INFO("Destroying swapchain...");
+    LOG_INFO("Destroying vulkan swapchain...");
 
     vkDeviceWaitIdle(rendererState->device->logicalDevice);
     depthAttachment->Destroy(rendererState);
@@ -150,5 +150,70 @@ void VulkanSwapchain::Destroy(RendererState* rendererState)
         vkDestroyImageView(rendererState->device->logicalDevice, views[i], rendererState->allocator);
     }
 
-    vkDestroySwapchainKHR(rendererState->device->logicalDevice, swapchain, rendererState->allocator);
+    vkDestroySwapchainKHR(rendererState->device->logicalDevice, handle, rendererState->allocator);
+}
+
+void VulkanSwapchain::Recreate(RendererState* rendererState, U32 width, U32 height)
+{
+    Destroy(rendererState);
+    Create(rendererState, width, height);
+}
+
+bool VulkanSwapchain::AcquireNextImageIndex(
+    RendererState* rendererState,
+    U64 timeoutNs,
+    VkSemaphore imageAvailableSemaphore,
+    VkFence fence,
+    U32* outImageIndex)
+{
+    VkResult result = vkAcquireNextImageKHR(
+        rendererState->device->logicalDevice,
+        handle,
+        timeoutNs,
+        imageAvailableSemaphore,
+        fence,
+        outImageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        Recreate(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
+        return false;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        LOG_FATAL("Failed to acquire swapchain image!");
+        return false;
+    }
+
+    return true;
+}
+
+void VulkanSwapchain::Present(
+    RendererState* rendererState,
+    VkQueue graphicsQueue,
+    VkQueue presentQueue,
+    VkSemaphore renderCompleteSemaphore,
+    U32 presentImageIndex)
+{
+    // Return the image to the swapchain for presentation.
+    VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &renderCompleteSemaphore;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &handle;
+    presentInfo.pImageIndices = &presentImageIndex;
+    presentInfo.pResults = 0;
+
+    VkResult result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    {
+        Recreate(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
+        LOG_DEBUG("Swapchain recreated because swapchain returned out of date or suboptimal.");
+    }
+    else if (result != VK_SUCCESS)
+    {
+        LOG_FATAL("Failed to present swap chain image!");
+    }
+
+    ++rendererState->currentFrame %= maxFramesInFlight;
 }

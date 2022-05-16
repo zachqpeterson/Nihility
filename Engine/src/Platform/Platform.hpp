@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Defines.hpp"
-#undef ZeroMemory
-#undef CopyMemory
 
 class Platform
 {
@@ -21,9 +19,9 @@ public:
     static const U64 GetMemoryRequirements();
     static void* Allocate(U64 size, bool aligned);
     static void Free(void* block, bool aligned);
-    static void* ZeroMemory(void* block, U64 size);
-    static void* CopyMemory(void* dest, const void* source, U64 size);
-    static void* SetMemory(void* dest, I32 value, U64 size);
+    static void* Zero(void* block, U64 size);
+    static void* Copy(void* dest, const void* source, U64 size);
+    static void* Set(void* dest, I32 value, U64 size);
 
     static void ConsoleWrite(const char* message, U8 color);
     static const F64 AbsoluteTime();

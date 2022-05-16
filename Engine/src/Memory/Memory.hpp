@@ -2,8 +2,6 @@
 #pragma once
 
 #include "Defines.hpp"
-#undef ZeroMemory
-#undef CopyMemory
 
 #define Gigabytes(amount) amount * 1024 * 1024 * 1024
 #define Megabytes(amount) amount * 1024 * 1024
@@ -37,9 +35,9 @@ public:
 
     static NH_API void* Allocate(U64 size, MemoryTag tag);
     static NH_API void Free(void* block, U64 size, MemoryTag tag);
-    static NH_API void* ZeroMemory(void* block, U64 size);
-    static NH_API void* CopyMemory(void* dest, const void* source, U64 size);
-    static NH_API void* SetMemory(void* dest, I32 value, U64 size);
+    static NH_API void* Zero(void* block, U64 size);
+    static NH_API void* Copy(void* dest, const void* source, U64 size);
+    static NH_API void* Set(void* dest, I32 value, U64 size);
 
     //NOTE: Debug only
     static void GetMemoryStats();

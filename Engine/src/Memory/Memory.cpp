@@ -69,7 +69,7 @@ void* Memory::Allocate(U64 size, MemoryTag tag)
     //TODO: Custom allocator
     //TODO: Memory alignment
     void* block = Platform::Allocate(size, false);
-    Platform::ZeroMemory(block, size);
+    Platform::Zero(block, size);
     return block;
 }
 
@@ -82,19 +82,19 @@ void Memory::Free(void* block, U64 size, MemoryTag tag)
     Platform::Free(block, false);
 }
 
-void* Memory::ZeroMemory(void* block, U64 size)
+void* Memory::Zero(void* block, U64 size)
 {
-    return Platform::ZeroMemory(block, size);
+    return Platform::Zero(block, size);
 }
 
-void* Memory::CopyMemory(void* dest, const void* source, U64 size)
+void* Memory::Copy(void* dest, const void* source, U64 size)
 {
-    return Platform::CopyMemory(dest, source, size);
+    return Platform::Copy(dest, source, size);
 }
 
-void* Memory::SetMemory(void* dest, I32 value, U64 size)
+void* Memory::Set(void* dest, I32 value, U64 size)
 {
-    return Platform::SetMemory(dest, value, size);
+    return Platform::Set(dest, value, size);
 }
 
 void Memory::GetMemoryStats()

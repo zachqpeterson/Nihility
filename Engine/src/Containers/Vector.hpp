@@ -109,7 +109,7 @@ inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{
 {
     array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::CopyMemory(array, other.array, size);
+    Memory::Copy(array, other.array, size);
 }
 
 template<typename T>
@@ -143,7 +143,7 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
     capacity = other.capacity;
     array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::CopyMemory(array, other.array, size);
+    Memory::Copy(array, other.array, size);
 
     return *this;
 }
@@ -204,7 +204,7 @@ inline void Vector<T>::Insert(const T& value, U64 index)
 
     ++size;
 
-    Memory::CopyMemory(array + index + 1, array + index, size - index);
+    Memory::Copy(array + index + 1, array + index, size - index);
     array[index] = data;
 }
 
@@ -220,7 +220,7 @@ inline void Vector<T>::Insert(T&& value, U64 index) noexcept
 
     ++size;
 
-    Memory::CopyMemory(array + index + 1, array + index, size - index);
+    Memory::Copy(array + index + 1, array + index, size - index);
     array[index] = value;
 }
 
@@ -230,7 +230,7 @@ inline T&& Vector<T>::Remove(U64 index) noexcept
     ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
     T value = array[index];
 
-    Memory::CopyMemory(array + index, array + index + 1, size - index - 1);
+    Memory::Copy(array + index, array + index + 1, size - index - 1);
     --size;
 
     return move(value);
@@ -253,7 +253,7 @@ inline void Vector<T>::Reserve(U64 capacity)
 {
     T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::CopyMemory(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
+    Memory::Copy(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
 
     Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
     array = newArray;

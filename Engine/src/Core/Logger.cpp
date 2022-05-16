@@ -45,7 +45,7 @@ void Logger::LogOutput(LogLevel level, const char* message, ...)
     // DON'T DO THAT!
 
     String out_message;
-    Memory::ZeroMemory(out_message, out_message.Length());
+    Memory::Zero(out_message, out_message.Length());
 
     // Format original message.
     // NOTE: Oddly enough, MS's headers override the GCC/Clang va_list type with a "typedef char* va_list" in some

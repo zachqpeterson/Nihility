@@ -7,9 +7,6 @@
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
 
-#undef ZeroMemory
-#undef CopyMemory
-
 bool VulkanRenderpass::Create(RendererState* rendererState,
     Vector4 renderArea,
     Vector4 clearColor,
@@ -86,7 +83,7 @@ bool VulkanRenderpass::Create(RendererState* rendererState,
     }
     else
     {
-        Memory::ZeroMemory(&attachmentDescriptions[attachmentDescriptionCount], sizeof(VkAttachmentDescription));
+        Memory::Zero(&attachmentDescriptions[attachmentDescriptionCount], sizeof(VkAttachmentDescription));
         subpass.pDepthStencilAttachment = nullptr;
     }
 
@@ -151,18 +148,18 @@ void VulkanRenderpass::Begin(VulkanCommandBuffer* commandBuffer, VkFramebuffer f
     beginInfo.pClearValues = nullptr;
 
     VkClearValue clearValues[2];
-    Memory::ZeroMemory(clearValues, sizeof(VkClearValue) * 2);
+    Memory::Zero(clearValues, sizeof(VkClearValue) * 2);
     bool doClearColour = (clearFlags & RENDERPASS_CLEAR_COLOUR_BUFFER_FLAG) != 0;
     if (doClearColour)
     {
-        Memory::CopyMemory(clearValues[beginInfo.clearValueCount].color.float32, &clearColor, sizeof(F32) * 4);
+        Memory::Copy(clearValues[beginInfo.clearValueCount].color.float32, &clearColor, sizeof(F32) * 4);
         ++beginInfo.clearValueCount;
     }
 
     bool doClearDepth = (clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) != 0;
     if (doClearDepth)
     {
-        Memory::CopyMemory(clearValues[beginInfo.clearValueCount].color.float32, &clearColor, sizeof(F32) * 4);
+        Memory::Copy(clearValues[beginInfo.clearValueCount].color.float32, &clearColor, sizeof(F32) * 4);
         clearValues[beginInfo.clearValueCount].depthStencil.depth = depth;
 
         bool doClearStencil = (clearFlags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) != 0;

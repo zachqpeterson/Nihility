@@ -27,7 +27,7 @@ String::String(char* str)
     {
         U64 length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(this->str, str, length);
+        Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
 }
@@ -43,7 +43,7 @@ String::String(const char* str)
     {
         U64 length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(this->str, str, length);
+        Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
 }
@@ -59,7 +59,7 @@ String::String(const String& other)
     {
         U64 length = strlen(other.str);
         str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(str, other.str, length);
+        Memory::Copy(str, other.str, length);
         str[length] = '\0';
     }
 }
@@ -100,7 +100,7 @@ String& String::operator=(char* str)
     {
         U64 length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(this->str, str, length);
+        Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
 
@@ -128,7 +128,7 @@ String& String::operator=(const char* str)
     {
         U64 length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(this->str, str, length);
+        Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
 
@@ -156,7 +156,7 @@ String& String::operator=(const String& other)
     {
         U64 length = strlen(other.str);
         str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(str, other.str, length);
+        Memory::Copy(str, other.str, length);
         str[length] = '\0';
     }
 
@@ -207,7 +207,7 @@ String String::Duplicate()
     {
         U64 length = Length();
         char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(copy, str, length);
+        Memory::Copy(copy, str, length);
         copy[length] = 0;
         return copy;
     }
@@ -220,7 +220,7 @@ String String::NDuplicate(U64 length)
     if (str && length < Length())
     {
         char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(copy, str, length);
+        Memory::Copy(copy, str, length);
         copy[length] = 0;
         return copy;
     }
@@ -279,7 +279,7 @@ I32 String::FormatV(const char* format, va_list vaList)
         buffer[written] = 0;
 
         char* newStr = (char*)Memory::Allocate(written + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::CopyMemory(newStr, buffer, written + 1);
+        Memory::Copy(newStr, buffer, written + 1);
         Memory::Free(str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
         str = newStr;
         
@@ -373,8 +373,8 @@ void String::Append(const String& append)
 
     char* newStr = (char*)Memory::Allocate(newLength + 1, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::CopyMemory(newStr, str, length0);
-    Memory::CopyMemory(newStr + length0, append.str, length1);
+    Memory::Copy(newStr, str, length0);
+    Memory::Copy(newStr + length0, append.str, length1);
     newStr[newLength] = 0;
 
     Memory::Free(str, length0 + 1, MEMORY_TAG_DATA_STRUCT);

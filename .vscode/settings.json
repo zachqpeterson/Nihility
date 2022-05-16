@@ -68,6 +68,9 @@
 		"sstream": "cpp",
 		"streambuf": "cpp",
 		"string": "cpp",
-		"xlocnum": "cpp"
+		"xlocnum": "cpp",
+		"array": "cpp",
+		"span": "cpp",
+		"xiosbase": "cpp"
 	}
 }
