@@ -4,9 +4,6 @@
 #include "Containers/Vector.hpp"
 #include "Memory/Memory.hpp"
 
-//TODO: temporary
-#include <string>
-
 struct PhysicalDeviceRequirements
 {
     bool graphics;

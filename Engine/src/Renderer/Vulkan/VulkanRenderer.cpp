@@ -12,9 +12,6 @@
 #include "Containers/String.hpp"
 #include "Math/Math.hpp"
 
-//TODO: tempary
-#include <string>
-
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageTypes,
