@@ -5,8 +5,8 @@
 class Time
 {
 public:
-    static bool Initialize(void* state);
-    static void* Shutdown();
+    static void Initialize();
+    static void Shutdown();
 
     static void Update();
 
@@ -16,10 +16,15 @@ public:
     static NH_API const F64& FrameEndTime();
     static NH_API const U16& FrameRate();
 
-    static const U64 GetMemoryRequirements();
-
 private:
     Time() = delete;
+
+    static F64 programStart;
+    static F64 frameEndTime;
+    static F64 delta;
+    static F64 frameTimer;
+    static U16 frameRate;
+    static U16 frameCounter;
 };
 
 struct Timer

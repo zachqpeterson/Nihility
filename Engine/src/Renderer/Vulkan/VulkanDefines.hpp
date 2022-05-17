@@ -234,9 +234,6 @@ inline bool ResultSuccess(VkResult result)
 #define VULKAN_MAX_MATERIAL_COUNT 1024
 #define VULKAN_MAX_GEOMETRY_COUNT 4096
 
-#define INVALID_ID      U32_MAX
-#define INVALID_ID_U8   U8_MAX
-
 struct RendererState
 {
     //Function Pointers

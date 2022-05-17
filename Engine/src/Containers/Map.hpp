@@ -333,7 +333,7 @@ inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
             *((&node->parent->left) + right) = replace;
 
             Memory::Free(next, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-            return move(value);
+            return Move(value);
         }
     }
 

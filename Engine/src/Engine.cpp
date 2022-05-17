@@ -8,6 +8,7 @@
 #include "Core/Events.hpp"
 #include "Containers/Vector.hpp"
 #include "Containers/String.hpp"
+#include "Renderer/ShaderSystem.hpp"
 #include "Renderer/RendererFrontend.hpp"
 
 bool Engine::running;
@@ -23,9 +24,11 @@ void Engine::Initialize()
 
     Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
 
-    Time::Initialize(Memory::Allocate(Time::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
+    Time::Initialize();
 
-    RendererFrontend::Initialize(Memory::Allocate(RendererFrontend::GetMemoryRequirements(), MEMORY_TAG_RENDERER));
+    ShaderSystem::Initialize();
+
+    RendererFrontend::Initialize();
 
     Events::Subscribe("CLOSE", OnClose);
 
@@ -83,9 +86,11 @@ void Engine::MainLoop()
 
 void Engine::Shutdown()
 {
-    Memory::Free(RendererFrontend::Shutdown(), RendererFrontend::GetMemoryRequirements(), MEMORY_TAG_RENDERER);
+    RendererFrontend::Shutdown();
 
-    Memory::Free(Time::Shutdown(), Time::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
+    ShaderSystem::Shutdown();
+
+    Time::Shutdown();
 
     Memory::Free(Input::Shutdown(), Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
 

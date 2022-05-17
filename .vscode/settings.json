@@ -71,6 +71,10 @@
 		"xlocnum": "cpp",
 		"array": "cpp",
 		"span": "cpp",
-		"xiosbase": "cpp"
+		"xiosbase": "cpp",
+		"atomic": "cpp",
+		"hash_map": "cpp",
+		"tuple": "cpp",
+		"iosfwd": "c"
 	}
 }

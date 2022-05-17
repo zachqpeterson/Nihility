@@ -2,54 +2,112 @@
 
 #include "Core/Logger.hpp"
 #include "Memory/Memory.hpp"
+#include "Containers/String.hpp"
 #include "Vulkan/VulkanRenderer.hpp"
+#include "Resources/Shader.hpp"
 
-struct FrontendState
+Renderer* RendererFrontend::renderer;
+
+bool RendererFrontend::Initialize()
 {
-    Renderer* renderer;
-};
-
-static FrontendState* frontendState;
-
-bool RendererFrontend::Initialize(void* state)
-{
-    frontendState = (FrontendState*)state;
-
     //Try vulkan
-    frontendState->renderer = new VulkanRenderer();
-    if (frontendState->renderer->Initialize()) { return true; }
+    renderer = new VulkanRenderer();
+    if (renderer->Initialize()) { return true; }
 
-    delete frontendState->renderer;
-    LOG_ERROR("Vulkan isn't supported of this machine!");
+    delete renderer;
+    LOG_ERROR("Vulkan isn't supported on this machine!");
 
     //If windows, try DirectX
 
     //Try OpenGL
 
-
     return false;
 }
 
-void* RendererFrontend::Shutdown()
+void RendererFrontend::Shutdown()
 {
-    frontendState->renderer->Shutdown();
-    delete frontendState->renderer;
-
-    return frontendState;
+    renderer->Shutdown();
+    delete renderer;
 }
 
 bool RendererFrontend::DrawFrame()
 {
-    ++frontendState->renderer->frameNumber;
+    ++renderer->frameNumber;
 
     return
-        frontendState->renderer->BeginFrame() &&
-        frontendState->renderer->BeginRenderpass(0) &&
-        frontendState->renderer->EndRenderpass(0) &&
-        frontendState->renderer->EndFrame();
+        renderer->BeginFrame() &&
+        renderer->BeginRenderpass(0) &&
+        renderer->EndRenderpass(0) &&
+        renderer->EndFrame();
 }
 
-const U64 RendererFrontend::GetMemoryRequirements()
+U8 RendererFrontend::GetRenderpassId(const String& name)
 {
-    return sizeof(FrontendState);
+    // TODO: HACK: Need dynamic renderpasses instead of hardcoding them.
+    if (name.EqualsI("Renderpass.Builtin.World"))
+    {
+        return BUILTIN_RENDERPASS_WORLD;
+    }
+    else if (name.EqualsI("Renderpass.Builtin.UI"))
+    {
+        return BUILTIN_RENDERPASS_UI;
+    }
+
+    LOG_ERROR("GetRenderpassId: No renderpass named '%s'.", name);
+    return INVALID_ID_U8;
+}
+
+bool RendererFrontend::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStage>& stages)
+{
+    return renderer->CreateShader(shader, renderpassId, stageCount, stageFilenames, stages);
+}
+
+void RendererFrontend::DestroyShader(const Shader& shader)
+{
+    renderer->DestroyShader(shader);
+}
+
+bool RendererFrontend::InitializeShader(const Shader& shader)
+{
+    return renderer->InitializeShader(shader);
+}
+
+bool RendererFrontend::UseShader(const Shader& shader)
+{
+    return renderer->UseShader(shader);
+}
+
+bool RendererFrontend::BindGlobals(const Shader& shader)
+{
+    return renderer->BindGlobals(shader);
+}
+
+bool RendererFrontend::BindInstance(const Shader& shader, U32 instanceId)
+{
+    return renderer->BindInstance(shader, instanceId);
+}
+
+bool RendererFrontend::ApplyGlobals(const Shader& shader)
+{
+    return renderer->ApplyGlobals(shader);
+}
+
+bool RendererFrontend::ApplyInstance(const Shader& shader, bool needsUpdate)
+{
+    return renderer->ApplyInstance(shader, needsUpdate);
+}
+
+U32 RendererFrontend::AcquireInstanceResources(const Shader& shader)
+{
+    return renderer->AcquireInstanceResources(shader);
+}
+
+bool RendererFrontend::ReleaseInstanceResources(const Shader& shader, U32 instanceId)
+{
+    return renderer->ReleaseInstanceResources(shader, instanceId);
+}
+
+bool RendererFrontend::SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value)
+{
+    return renderer->SetUniform(shader, uniform, value);
 }

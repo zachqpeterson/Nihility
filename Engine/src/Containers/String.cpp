@@ -1,19 +1,20 @@
 #include "String.hpp"
 
 #include "Memory/Memory.hpp"
+#include "Vector.hpp"
 
 #include <string.h>
 #include <stdio.h>
-#include <ctype.h>  // isspace
+#include <stdarg.h>
 
 #ifndef _MSC_VER
 #include <strings.h>
 #endif
 
-String::String() : str{ nullptr }
+String::String(U64 length) : length{ length }
 {
-    str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
-    str[0] = '\0';
+    str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+    str[length] = '\0';
 }
 
 String::String(char* str)
@@ -22,10 +23,11 @@ String::String(char* str)
     {
         this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
         this->str[0] = '\0';
+        length = 0;
     }
     else
     {
-        U64 length = strlen(str);
+        length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
@@ -38,10 +40,11 @@ String::String(const char* str)
     {
         this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
         this->str[0] = '\0';
+        length = 0;
     }
     else
     {
-        U64 length = strlen(str);
+        length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
@@ -54,10 +57,11 @@ String::String(const String& other)
     {
         str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
         str[0] = '\0';
+        length = 0;
     }
     else
     {
-        U64 length = strlen(other.str);
+        length = strlen(other.str);
         str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(str, other.str, length);
         str[length] = '\0';
@@ -68,37 +72,52 @@ String::String(String&& other)
 {
     str = other.str;
     other.str = nullptr;
+    length = other.length;
+    other.length = 0;
 }
 
 String::~String()
 {
     if (str)
     {
-        Memory::Free(str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
         str = nullptr;
+        length = 0;
     }
+
+    str = nullptr;
+}
+
+void String::Destroy()
+{
+    if (str)
+    {
+        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        str = nullptr;
+        length = 0;
+    }
+
+    str = nullptr;
 }
 
 String& String::operator=(char* str)
 {
-    if(str == this->str)
-    {
-        return *this;
-    }
+    if (str == this->str) { return *this; }
 
-    if(this->str)
+    if (this->str)
     {
-        Memory::Free(this->str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
     }
 
     if (str == nullptr)
     {
         this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
         this->str[0] = '\0';
+        length = 0;
     }
     else
     {
-        U64 length = strlen(str);
+        length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
@@ -109,24 +128,22 @@ String& String::operator=(char* str)
 
 String& String::operator=(const char* str)
 {
-    if (str == this->str)
-    {
-        return *this;
-    }
+    if (str == this->str) { return *this; }
 
     if (this->str)
     {
-        Memory::Free(this->str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
     }
 
     if (str == nullptr)
     {
         this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
         this->str[0] = '\0';
+        length = 0;
     }
     else
     {
-        U64 length = strlen(str);
+        length = strlen(str);
         this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
@@ -137,24 +154,22 @@ String& String::operator=(const char* str)
 
 String& String::operator=(const String& other)
 {
-    if (str == other.str)
-    {
-        return *this;
-    }
+    if (str == other.str) { return *this; }
 
     if (this->str)
     {
-        Memory::Free(this->str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
     }
 
     if (other.str == nullptr)
     {
         str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
         str[0] = '\0';
+        length = 0;
     }
     else
     {
-        U64 length = strlen(other.str);
+        length = strlen(other.str);
         str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(str, other.str, length);
         str[length] = '\0';
@@ -165,75 +180,63 @@ String& String::operator=(const String& other)
 
 String& String::operator=(String&& other)
 {
-    if (str == other.str)
-    {
-        return *this;
-    }
+    if (str == other.str) { return *this; }
 
     if (this->str)
     {
-        Memory::Free(this->str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
     }
 
     str = other.str;
     other.str = nullptr;
+    length = other.length;
+    other.length = 0;
 
     return *this;
 }
 
-U64 String::Length()
+U64& String::Length()
 {
-    if(str)
-    {
-        return strlen(str);
-    }
-
-    return 0;
+    return length;
 }
 
-const U64 String::Length() const
+const U64& String::Length() const
 {
-    if(str)
-    {
-        return strlen(str);
-    }
-
-    return 0;
+    return length;
 }
 
-String String::Duplicate()
+String String::Duplicate() const
 {
     if (str)
     {
-        U64 length = Length();
         char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(copy, str, length);
-        copy[length] = 0;
+        copy[length] = '\0';
         return copy;
     }
 
     return {};
 }
 
-String String::NDuplicate(U64 length)
+String String::NDuplicate(U64 length) const
 {
-    if (str && length < Length())
+    if (str && length < this->length)
     {
         char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(copy, str, length);
-        copy[length] = 0;
+        copy[length] = '\0';
         return copy;
     }
 
     return {};
 }
 
-bool String::Equals(const String& str)
+bool String::Equals(const String& str) const
 {
     return strcmp(this->str, str) == 0;
 }
 
-bool String::EqualsI(const String& str)
+bool String::EqualsI(const String& str) const
 {
 #if defined(__GNUC__)
     return strcasecmp(this->str, str) == 0;
@@ -242,12 +245,12 @@ bool String::EqualsI(const String& str)
 #endif
 }
 
-bool String::NEquals(const String& str, U64 length)
+bool String::NEquals(const String& str, U64 length) const
 {
     return strncmp(this->str, str, length);
 }
 
-bool String::NEqualsI(const String& str, U64 length)
+bool String::NEqualsI(const String& str, U64 length) const
 {
 #if defined(__GNUC__)
     return strncasecmp(this->str, str, length) == 0;
@@ -258,10 +261,10 @@ bool String::NEqualsI(const String& str, U64 length)
 
 I32 String::Format(const char* format, ...)
 {
-    if (str) {
+    if (str)
+    {
         __builtin_va_list arg_ptr;
         va_start(arg_ptr, format);
-        //NOTE: Ignore this error
         I32 written = FormatV(format, arg_ptr);
         va_end(arg_ptr);
         return written;
@@ -270,19 +273,19 @@ I32 String::Format(const char* format, ...)
     return -1;
 }
 
-I32 String::FormatV(const char* format, va_list vaList)
+I32 String::FormatV(const char* format, void* vaList)
 {
-    if (str) {
-        // Big, but can fit on the stack.
+    if (str)
+    {
         char buffer[32000];
         I32 written = vsnprintf(buffer, 32000, format, vaList);
-        buffer[written] = 0;
+        buffer[written] = '\0';
 
         char* newStr = (char*)Memory::Allocate(written + 1, MEMORY_TAG_DATA_STRUCT);
         Memory::Copy(newStr, buffer, written + 1);
         Memory::Free(str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
         str = newStr;
-        
+
         return written;
     }
 
@@ -291,106 +294,75 @@ I32 String::FormatV(const char* format, va_list vaList)
 
 void String::Empty()
 {
-    if (str) {
-        str[0] = 0;
+    if (str)
+    {
+        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        str = nullptr;
+        length = 0;
     }
 }
 
 void String::Trim()
 {
-    //TODO: Write helper for this
-    while (isspace((unsigned char)*str)) { str++; }
-    if (*str) {
-        char* p = str;
-        while (*p) {
-            p++;
-        }
-        while (isspace((unsigned char)*(--p)));
-
-        p[1] = '\0';
-    }
+    //TODO: 
 }
 
-String String::SubString(U64 start, U64 length)
+String String::SubString(U64 start, U64 length) const
 {
-    if (length == 0) { return String(); }
+    String dest(length);
 
-    char* dest = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-
-    U64 srcLength = Length();
-    if (start >= srcLength) {
-        dest[0] = 0;
-        return dest;
-    }
-    if (length > 0) {
-        for (U64 i = start, j = 0; j < length && str[i]; ++i, ++j) {
-            dest[j] = str[i];
-        }
-        dest[start + length] = 0;
-    }
-    else {
-        // If a negative value is passed, proceed to the end of the string.
-        U64 j = 0;
-        for (U64 i = start; str[i]; ++i, ++j) {
-            dest[j] = str[i];
-        }
-        dest[start + j] = 0;
+    for (U64 i = start, j = 0; j < length && i < this->length; ++i, ++j)
+    {
+        dest[j] = str[i];
     }
 
     return dest;
 }
 
-U64 String::IndexOf(char c)
+U64 String::IndexOf(char c) const
 {
-    if (!str) {
-        return -1;
-    }
-    U64 length = Length();
-    if (length > 0) {
-        for (U64 i = 0; i < length; ++i) {
-            if (str[i] == c) {
-                return i;
-            }
+    if (!str)
+    {
+        for (U64 i = 0; i < length; ++i)
+        {
+            if (str[i] == c) { return i; }
         }
     }
 
     return -1;
 }
 
-U32 String::Split(char delimiter, char*** str_darray)
+Vector<String> String::Split(char delimiter) const
 {
     //TODO:
-    return -1;
+    return {};
 }
 
 void String::Append(const String& append)
 {
-    //TODO: Check for null strings
+    if (str && append.str)
+    {
+        U64 newLength = length + append.length;
 
-    U64 length0 = Length();
-    U64 length1 = append.Length();
-    U64 newLength = length0 + length1;
+        char* newStr = (char*)Memory::Allocate(newLength + 1, MEMORY_TAG_DATA_STRUCT);
 
-    char* newStr = (char*)Memory::Allocate(newLength + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Copy(newStr, str, length);
+        Memory::Copy(newStr + length, append.str, append.length);
+        newStr[newLength] = '\0';
 
-    Memory::Copy(newStr, str, length0);
-    Memory::Copy(newStr + length0, append.str, length1);
-    newStr[newLength] = 0;
-
-    Memory::Free(str, length0 + 1, MEMORY_TAG_DATA_STRUCT);
-    str = newStr;
+        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        str = newStr;
+        length = newLength;
+    }
 }
 
 bool String::operator==(const String& other) const
 {
-    U64 l0 = Length();
-    U64 l1 = other.Length();
-
-    if(l0 == l1)
+    if (length == other.length)
     {
-        for(U64 i = 0; i < l0; ++i)
+        for (U64 i = 0; i < length; ++i)
         {
-            if(str[i] != other.str[i])
+            if (str[i] != other.str[i])
             {
                 return false;
             }
@@ -404,12 +376,9 @@ bool String::operator==(const String& other) const
 
 bool String::operator!=(const String& other) const
 {
-    U64 l0 = Length();
-    U64 l1 = other.Length();
-
-    if (l0 != l1)
+    if (length != other.length)
     {
-        for (U64 i = 0; i < l0; ++i)
+        for (U64 i = 0; i < length; ++i)
         {
             if (str[i] == other.str[i])
             {

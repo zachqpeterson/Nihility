@@ -530,6 +530,62 @@ void VulkanRenderer::DrawMesh() //TODO: Pass info
     //}
 }
 
+bool VulkanRenderer::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStage>& stages)
+{
+    return true;
+}
+
+void VulkanRenderer::DestroyShader(const Shader& shader)
+{
+
+}
+
+bool VulkanRenderer::InitializeShader(const Shader& shader)
+{
+    return true;
+}
+
+bool VulkanRenderer::UseShader(const Shader& shader)
+{
+    return true;
+}
+
+bool VulkanRenderer::BindGlobals(const Shader& shader)
+{
+    return true;
+}
+
+bool VulkanRenderer::BindInstance(const Shader& shader, U32 instanceId)
+{
+    return true;
+}
+
+bool VulkanRenderer::ApplyGlobals(const Shader& shader)
+{
+    return true;
+}
+
+bool VulkanRenderer::ApplyInstance(const Shader& shader, bool needsUpdate)
+{
+    return true;
+}
+
+U32 VulkanRenderer::AcquireInstanceResources(const Shader& shader)
+{
+    return 0;
+}
+
+bool VulkanRenderer::ReleaseInstanceResources(const Shader& shader, U32 instanceId)
+{
+    return true;
+}
+
+bool VulkanRenderer::SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value)
+{
+    return true;
+}
+
+
 bool VulkanRenderer::RecreateSwapchain()
 {
     if (rendererState->recreatingSwapchain)

@@ -101,6 +101,7 @@ public:
     NH_API List(const List& other);
     NH_API List(List&& other) noexcept;
     NH_API ~List();
+    NH_API void Destroy();
 
     NH_API List& operator=(const List& other);
     NH_API List& operator=(List&& other) noexcept;
@@ -173,6 +174,12 @@ inline List<T>::List(List<T>&& other) noexcept : size{ size }, head{ other.head 
 
 template<typename T>
 inline List<T>::~List()
+{
+    Clear();
+}
+
+template<typename T>
+inline void List<T>::Destroy()
 {
     Clear();
 }
@@ -280,7 +287,7 @@ inline T&& List<T>::PopFront() noexcept
         head->prev = nullptr;
         T value = tempNode->value;
         Memory::Free(tempNode, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-        return move(value);
+        return Move(value);
     }
 }
 
@@ -331,7 +338,7 @@ inline T&& List<T>::PopBack() noexcept
         tail->next = nullptr;
         T value = tempNode->value;
         Memory::Free(tempNode, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-        return move(value);
+        return Move(value);
     }
 }
 
@@ -421,7 +428,7 @@ inline T&& List<T>::RemoveAt(U64 index)
 
     Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
 
-    return move(value);
+    return Move(value);
 }
 
 template<typename T>

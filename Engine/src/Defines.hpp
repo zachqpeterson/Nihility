@@ -51,6 +51,16 @@ typedef long double F128;
 #define F64_MAX 1.7976931348623158e+308
 #define F64_MIN 2.2250738585072014e-308
 
+#define INVALID_ID      U32_MAX
+#define INVALID_ID_U16  U16_MAX
+#define INVALID_ID_U8   U8_MAX
+
+struct Range
+{
+    U64 offset;
+    U64 size;
+};
+
 #if defined(__clang__) || defined(__gcc__)
 #define STATIC_ASSERT _Static_assert
 #else
@@ -130,10 +140,11 @@ typedef long double F128;
 #define NH_NOINLINE
 #endif
 
-#define AlignPow2(value, Alignment) ((value + (Alignment - 1)) & ~(Alignment - 1))
+#define AlignPow2(value, alignment) ((value + (alignment - 1)) & ~(alignment - 1))
 #define Align4(value) ((value + 3) & ~3)
 #define Align8(value) ((value + 7) & ~7)
 #define Align16(value) ((value + 15) & ~15)
+#define AlignRange(offset, size, alignment) (Range){AlignPow2(offset, alignment), AlignPow2(size, alignment)};
 
 /***************************ASSERTS***************************/
 #define ASSERTIONS_ENABLED
@@ -199,13 +210,13 @@ void ReportAssertion(const char* expression, const char* message, const char* fi
 /***************************MOVE DEFINITION***************************/
 //Note: This is a simple replacement for std::move
 template<typename T>
-constexpr T&& move(T&& t) noexcept
+constexpr T&& Move(T&& t) noexcept
 {
     return static_cast<T&&>(t);
 }
 
 template<typename T>
-constexpr T&& move(T& t) noexcept
+constexpr T&& Move(T& t) noexcept
 {
     return static_cast<T&&>(t);
 }

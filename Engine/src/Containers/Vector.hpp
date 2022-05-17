@@ -51,6 +51,7 @@ public:
     NH_API Vector(const Vector& other);
     NH_API Vector(Vector&& other) noexcept;
     NH_API ~Vector();
+    NH_API void Destroy();
 
     NH_API Vector& operator=(const Vector& other);
     NH_API Vector& operator=(Vector&& other)noexcept;
@@ -132,6 +133,17 @@ inline Vector<T>::~Vector()
 }
 
 template<typename T>
+inline void Vector<T>::Destroy()
+{
+    if (array)
+    {
+        Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    }
+
+    array = nullptr;
+}
+
+template<typename T>
 inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 {
     if (array)
@@ -189,7 +201,7 @@ template<typename T>
 inline T&& Vector<T>::Pop() noexcept
 {
     ASSERT_DEBUG_MSG(size, "Can't pop on a vector of size 0!");
-    return move(elements[--size]);
+    return Move(elements[--size]);
 }
 
 template<typename T>
@@ -233,7 +245,7 @@ inline T&& Vector<T>::Remove(U64 index) noexcept
     Memory::Copy(array + index, array + index + 1, size - index - 1);
     --size;
 
-    return move(value);
+    return Move(value);
 }
 
 
