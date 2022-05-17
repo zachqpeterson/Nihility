@@ -4,14 +4,6 @@
 
 #include "Resources/Shader.hpp"
 
-enum ShaderStageType
-{
-    SHADER_STAGE_VERTEX,
-    SHADER_STAGE_FRAGMENT,
-    SHADER_STAGE_GEOMETRY,
-    SHADER_STAGE_COMPUTE
-};
-
 class Renderer
 {
 public:
@@ -26,7 +18,7 @@ public:
     virtual bool EndRenderpass(U8 renderpassId) = 0;
     virtual void DrawMesh() = 0;
 
-    virtual bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStage>& stages) = 0;
+    virtual bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages) = 0;
     virtual void DestroyShader(const Shader& shader) = 0;
     virtual bool InitializeShader(const Shader& shader) = 0;
     virtual bool UseShader(const Shader& shader) = 0;

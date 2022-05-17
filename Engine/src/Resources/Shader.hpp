@@ -12,7 +12,7 @@
 #define MAX_GLOBAL_TEXTURES 31u
 #define MAX_INSTANCE_TEXTURES 31u
 
-enum ShaderStage
+enum ShaderStageType
 {
     SHADER_STAGE_VERTEX = 0x00000001,
     SHADER_STAGE_GEOMETRY = 0x00000002,

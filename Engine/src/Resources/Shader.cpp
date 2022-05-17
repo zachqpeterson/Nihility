@@ -1,10 +1,11 @@
 #include "Shader.hpp"
 
 #include "Core/Logger.hpp"
+#include "Renderer/RendererFrontend.hpp"
 
 void Shader::Destroy()
 {
-    //TODO: renderer destroy?
+    RendererFrontend::DestroyShader(*this);
 
     state = SHADER_STATE_NOT_CREATED;
 

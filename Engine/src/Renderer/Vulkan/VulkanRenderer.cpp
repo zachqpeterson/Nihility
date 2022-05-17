@@ -6,7 +6,9 @@
 #include "VulkanImage.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanBuffer.hpp"
+#include "VulkanShader.hpp"
 
+#include "Resources/Resources.hpp"
 #include "Memory/Memory.hpp"
 #include "Platform/Platform.hpp"
 #include "Containers/String.hpp"
@@ -168,7 +170,7 @@ bool VulkanRenderer::CreateInstance()
 
     Vector<const char*> extentionNames;
     extentionNames.Push(VK_KHR_SURFACE_EXTENSION_NAME);
-    GetPlatformExtentions(&extentionNames);
+    GetPlatformExtentions(extentionNames);
 
 #ifdef NH_DEBUG
     extentionNames.Push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -303,14 +305,14 @@ void VulkanRenderer::CreateSyncObjects()
     }
 }
 
-void VulkanRenderer::GetPlatformExtentions(Vector<const char*>* names)
+void VulkanRenderer::GetPlatformExtentions(Vector<const char*>& names)
 {
 #ifdef PLATFORM_WINDOWS
-    names->Push("VK_KHR_win32_surface");
+    names.Push("VK_KHR_win32_surface");
 #elif PLATFORM_LINUX
-    names->Push("VK_KHR_xcb_surface");
+    names.Push("VK_KHR_xcb_surface");
 #elif PLATFORM_APPLE
-    names->Push("VK_EXT_metal_surface");
+    names.Push("VK_EXT_metal_surface");
 #endif
 }
 
@@ -334,7 +336,6 @@ bool VulkanRenderer::CreateBuffers()
 
     VkMemoryPropertyFlagBits memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-    // Geometry vertex buffer
     const U64 vertexBufferSize = sizeof(Vertex3) * 1024 * 1024;
 
     if (!rendererState->objectVertexBuffer->Create(rendererState, vertexBufferSize,
@@ -345,7 +346,6 @@ bool VulkanRenderer::CreateBuffers()
         return false;
     }
 
-    // Geometry index buffer
     const U64 indexBufferSize = sizeof(U32) * 1024 * 1024;
     if (!rendererState->objectIndexBuffer->Create(rendererState, indexBufferSize,
         (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
@@ -354,6 +354,36 @@ bool VulkanRenderer::CreateBuffers()
         LOG_FATAL("Error creating vertex buffer.");
         return false;
     }
+
+    return true;
+}
+
+bool VulkanRenderer::CreateShaderModule(const String& name, const String& typeStr,
+    VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<ShaderStage> shaderStages)
+{
+    String fileName;
+    fileName.Format("shaders/%s.%s.spv", name, typeStr);
+
+    Resource binary = Resources::Load(fileName, RESOURCE_TYPE_BINARY);
+
+    Memory::Zero(&shaderStages[stageIndex].info, sizeof(VkShaderModuleCreateInfo));
+    shaderStages[stageIndex].info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderStages[stageIndex].info.codeSize = binary.size;
+    shaderStages[stageIndex].info.pCode = (U32*)binary.data;
+
+    VkCheck(vkCreateShaderModule(
+        rendererState->device->logicalDevice,
+        &shaderStages[stageIndex].info,
+        rendererState->allocator,
+        &shaderStages[stageIndex].handle));
+
+    Resources::Unload(binary);
+
+    Memory::Zero(&shaderStages[stageIndex].shaderStageInfo, sizeof(VkPipelineShaderStageCreateInfo));
+    shaderStages[stageIndex].shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[stageIndex].shaderStageInfo.stage = shaderStageFlag;
+    shaderStages[stageIndex].shaderStageInfo.module = shaderStages[stageIndex].handle;
+    shaderStages[stageIndex].shaderStageInfo.pName = "main";
 
     return true;
 }
@@ -530,14 +560,15 @@ void VulkanRenderer::DrawMesh() //TODO: Pass info
     //}
 }
 
-bool VulkanRenderer::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStage>& stages)
+bool VulkanRenderer::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {
-    return true;
+    return ((VulkanShader*)shader.internalData)->Create(rendererState, renderpassId, stageCount, stageFilenames, stages);
 }
 
 void VulkanRenderer::DestroyShader(const Shader& shader)
 {
-
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { outShader->Destroy(rendererState); }
 }
 
 bool VulkanRenderer::InitializeShader(const Shader& shader)

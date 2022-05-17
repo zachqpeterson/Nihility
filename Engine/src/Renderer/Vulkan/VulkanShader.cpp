@@ -6,6 +6,7 @@
 #include "VulkanCommandBuffer.hpp"
 
 #include "Memory/Memory.hpp"
+#include "Resources/Resources.hpp"
 
 bool VulkanShader::Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, Vector<String> stageFilenames, Vector<ShaderStageType> stages)
 {
@@ -129,7 +130,7 @@ void VulkanShader::Destroy(RendererState* rendererState)
     }
 
     uniformBuffer->UnlockMemory(rendererState);
-    mappedUniformBufferBlock = 0; //TODO: What?
+    mappedUniformBufferBlock = nullptr; //TODO: What?
     uniformBuffer->Destroy(rendererState);
 
     //pipeline->Destroy(rendererState);
@@ -256,7 +257,7 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, bool needsUpdate)
             for (U32 i = 0; i < totalSamplerCount; ++i)
             {
                 // TODO: only update in the list if actually needing an update.
-                //Texture* t = instanceStates[boundInstanceId].instanceTextures[i];
+                Texture* t = instanceStates[boundInstanceId].instanceTextures[i];
                 //vulkan_texture_data* internal_data = (vulkan_texture_data*)t->internal_data;
                 //imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 //imageInfos[i].imageView = internal_data->image.view;
@@ -317,11 +318,11 @@ bool VulkanShader::AcquireInstanceResources(RendererState* rendererState, U32* o
     U32 instanceTextureCount = config.descriptorSets[1].bindings[1].descriptorCount;
     
     instanceState->instanceTextures.Resize(instanceTextureCount);
-    //Texture* defaultTexture = texture_system_get_default_texture();
+    Texture* defaultTexture = Resources::DefaultTexture();
     
     for (U32 i = 0; i < instanceTextureCount; ++i)
     {
-        //instanceState->instanceTextures[i] = defaultTexture;
+        instanceState->instanceTextures[i] = defaultTexture;
     }
 
     U64 size = uboStride;
@@ -404,7 +405,7 @@ bool VulkanShader::SetUniform(RendererState* rendererState, ShaderUniform* unifo
         {
             U64 addr = (U64)mappedUniformBufferBlock;
             addr += boundUboOffset + uniform->offset;
-            kcopy_memory((void*)addr, value, uniform->size);
+            Memory::Copy((void*)addr, value, uniform->size);
             if (addr)
             {
                 //TODO:
@@ -412,9 +413,4 @@ bool VulkanShader::SetUniform(RendererState* rendererState, ShaderUniform* unifo
         }
     }
     return true;
-}
-
-bool VulkanShader::CreateModule(ShaderStageConfig config, ShaderStage* shaderStage)
-{
-
 }

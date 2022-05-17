@@ -2,6 +2,7 @@
 
 #include "VulkanDefines.hpp"
 #include "Renderer.hpp"
+#include "Resources/Shader.hpp"
 
 #include "Containers/String.hpp"
 #include "Containers/Vector.hpp"
@@ -17,11 +18,6 @@ struct ShaderStageConfig
 {
     VkShaderStageFlagBits stage;
     String fileName;
-};
-
-struct ShaderUniform
-{
-
 };
 
 struct DescriptorState
@@ -53,7 +49,7 @@ struct InstanceState
     Vector<struct Texture*> instanceTextures;
 };
 
-struct ShaderConfig
+struct VulkanShaderConfig
 {
     U8 stageCount;
     ShaderStageConfig stages[VULKAN_SHADER_MAX_STAGES];
@@ -83,11 +79,11 @@ public:
     bool SetUniform(RendererState* rendererState, ShaderUniform* uniform, const void* value);
     bool CreateModule(ShaderStageConfig config, ShaderStage* shaderStage);
 
-private:
+public:
     void* mappedUniformBufferBlock;
 
     U32 id;
-    ShaderConfig config;
+    VulkanShaderConfig config;
 
     class VulkanRenderpass* renderpass;
 

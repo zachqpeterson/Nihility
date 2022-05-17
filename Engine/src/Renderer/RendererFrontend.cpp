@@ -21,6 +21,8 @@ bool RendererFrontend::Initialize()
 
     //Try OpenGL
 
+    //TODO: Load resources
+
     return false;
 }
 
@@ -57,7 +59,7 @@ U8 RendererFrontend::GetRenderpassId(const String& name)
     return INVALID_ID_U8;
 }
 
-bool RendererFrontend::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStage>& stages)
+bool RendererFrontend::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {
     return renderer->CreateShader(shader, renderpassId, stageCount, stageFilenames, stages);
 }

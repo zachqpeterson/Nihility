@@ -17,7 +17,7 @@ public:
     bool EndRenderpass(U8 renderpassId) final;
     void DrawMesh() final;
 
-    bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStage>& stages) final;
+    bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages) final;
     void DestroyShader(const Shader& shader) final;
     bool InitializeShader(const Shader& shader) final;
     bool UseShader(const Shader& shader) final;
@@ -39,8 +39,10 @@ private: //VULKAN SPECIFIC FUNCTIONS
     void CreateCommandBuffers();
     void CreateSyncObjects();
     bool CreateBuffers();
+    bool CreateShaderModule(const String& name, const String& typeStr,
+        VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<ShaderStage> shaderStages);
 
-    void GetPlatformExtentions(Vector<const char*>* names);
+    void GetPlatformExtentions(Vector<const char*>& names);
     static I32 FindMemoryIndex(U32 memoryTypeBits, VkMemoryPropertyFlags memoryFlags);
 
     //Runtime
