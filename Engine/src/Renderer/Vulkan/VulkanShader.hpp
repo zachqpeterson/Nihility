@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VulkanDefines.hpp"
-#include "Renderer.hpp"
+#include "Renderer/Renderer.hpp"
 #include "Resources/Shader.hpp"
 
 #include "Containers/String.hpp"
@@ -65,19 +65,18 @@ struct VulkanShaderConfig
 class VulkanShader
 {
 public:
-    bool Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, Vector<String> stageFilenames, Vector<ShaderStageType> stages);
+    bool Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages);
     void Destroy(RendererState* rendererState);
-    bool Initialize();
+    bool Initialize(RendererState* rendererState);
 
     bool Use(RendererState* rendererState);
-    bool BindGlobals();
+    bool BindGlobals(RendererState* rendererState);
     bool ApplyGlobals(RendererState* rendererState);
-    bool BindInstance(U32 instanceId);
+    bool BindInstance(RendererState* rendererState, U32 instanceId);
     bool ApplyInstance(RendererState* rendererState, bool needsUpdate);
-    bool AcquireInstanceResources(RendererState* rendererState, U32* outInstanceId);
+    U32 AcquireInstanceResources(RendererState* rendererState);
     bool ReleaseInstanceResources(RendererState* rendererState, U32 instanceId);
-    bool SetUniform(RendererState* rendererState, ShaderUniform* uniform, const void* value);
-    bool CreateModule(ShaderStageConfig config, ShaderStage* shaderStage);
+    bool SetUniform(RendererState* rendererState, Shader& shader, const ShaderUniform& uniform, const void* value);
 
 public:
     void* mappedUniformBufferBlock;

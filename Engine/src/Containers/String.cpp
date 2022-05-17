@@ -273,7 +273,7 @@ I32 String::Format(const char* format, ...)
     return -1;
 }
 
-I32 String::FormatV(const char* format, void* vaList)
+I32 String::FormatV(const char* format, va_list vaList)
 {
     if (str)
     {

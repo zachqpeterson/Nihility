@@ -4,11 +4,14 @@
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanCommandBuffer.hpp"
+#include "VulkanTexture.hpp"
+#include "VulkanPipeline.hpp"
 
 #include "Memory/Memory.hpp"
 #include "Resources/Resources.hpp"
+#include "Resources/Texture.hpp"
 
-bool VulkanShader::Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, Vector<String> stageFilenames, Vector<ShaderStageType> stages)
+bool VulkanShader::Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {
     // TODO: Dynamic renderpasses
     renderpass = renderpassId == 1 ? rendererState->mainRenderpass : rendererState->uiRenderpass;
@@ -143,9 +146,9 @@ void VulkanShader::Destroy(RendererState* rendererState)
     Memory::Zero(&config, sizeof(ShaderConfig));
 }
 
-bool VulkanShader::Initialize()
+bool VulkanShader::Initialize(RendererState* rendererState)
 {
-    
+    return false;
 }
 
 bool VulkanShader::Use(RendererState* rendererState)
@@ -154,7 +157,7 @@ bool VulkanShader::Use(RendererState* rendererState)
     return true;
 }
 
-bool VulkanShader::BindGlobals()
+bool VulkanShader::BindGlobals(RendererState* rendererState)
 {
     boundUboOffset = globalUboOffset;
     return true;
@@ -194,11 +197,11 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState)
 
     vkUpdateDescriptorSets(rendererState->device->logicalDevice, globalSetBindingCount, descriptorWrites, 0, 0);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipelineLayout, 0, 1, &globalDescriptor, 0, 0);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &globalDescriptor, 0, 0);
     return true;
 }
 
-bool VulkanShader::BindInstance(U32 instanceId)
+bool VulkanShader::BindInstance(RendererState* rendererState, U32 instanceId)
 {
     boundInstanceId = instanceId;
     boundUboOffset = instanceStates[instanceId].offset;
@@ -258,10 +261,10 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, bool needsUpdate)
             {
                 // TODO: only update in the list if actually needing an update.
                 Texture* t = instanceStates[boundInstanceId].instanceTextures[i];
-                //vulkan_texture_data* internal_data = (vulkan_texture_data*)t->internal_data;
-                //imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                //imageInfos[i].imageView = internal_data->image.view;
-                //imageInfos[i].sampler = internal_data->sampler;
+                VulkanTexture* internalData = (VulkanTexture*)t->internalData;
+                imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfos[i].imageView = internalData->image.view;
+                imageInfos[i].sampler = internalData->sampler;
 
                 // TODO: change up descriptor state to handle this properly.
                 // Sync frame generation if not using a default texture.
@@ -290,31 +293,31 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, bool needsUpdate)
         }
     }
 
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipelineLayout, 1, 1, &objectDescriptorSet, 0, 0);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 1, 1, &objectDescriptorSet, 0, 0);
     return true;
 }
 
-bool VulkanShader::AcquireInstanceResources(RendererState* rendererState, U32* outInstanceId)
+U32 VulkanShader::AcquireInstanceResources(RendererState* rendererState)
 {
     // TODO: dynamic
-    *outInstanceId = INVALID_ID;
+    U32 outInstanceId = INVALID_ID;
     for (U32 i = 0; i < 1024; ++i)
     {
         if (instanceStates[i].id == INVALID_ID)
         {
             instanceStates[i].id = i;
-            *outInstanceId = i;
+            outInstanceId = i;
             break;
         }
     }
 
-    if (*outInstanceId == INVALID_ID)
+    if (outInstanceId == INVALID_ID)
     {
         LOG_ERROR("vulkan_shader_acquire_instance_resources failed to acquire new id");
-        return false;
+        return INVALID_ID;
     }
 
-    InstanceState* instanceState = &instanceStates[*outInstanceId];
+    InstanceState* instanceState = &instanceStates[outInstanceId];
     U32 instanceTextureCount = config.descriptorSets[1].bindings[1].descriptorCount;
     
     instanceState->instanceTextures.Resize(instanceTextureCount);
@@ -331,7 +334,7 @@ bool VulkanShader::AcquireInstanceResources(RendererState* rendererState, U32* o
     if (!uniformBuffer->Allocate(size, &instanceState->offset))
     {
         LOG_ERROR("vulkan_material_shader_acquire_resources failed to acquire ubo space");
-        return false;
+        return INVALID_ID;
     }
 
     DescriptorSetState* setState = &instanceState->descriptorSetState;
@@ -358,7 +361,7 @@ bool VulkanShader::AcquireInstanceResources(RendererState* rendererState, U32* o
     allocInfo.pSetLayouts = layouts;
     VkCheck_ERROR(vkAllocateDescriptorSets(rendererState->device->logicalDevice, &allocInfo, instanceState->descriptorSetState.descriptorSets));
 
-    return true;
+    return outInstanceId;
 }
 
 bool VulkanShader::ReleaseInstanceResources(RendererState* rendererState, U32 instanceId)
@@ -381,31 +384,31 @@ bool VulkanShader::ReleaseInstanceResources(RendererState* rendererState, U32 in
     return true;
 }
 
-bool VulkanShader::SetUniform(RendererState* rendererState, ShaderUniform* uniform, const void* value)
+bool VulkanShader::SetUniform(RendererState* rendererState, Shader& shader, const ShaderUniform& uniform, const void* value)
 {
-    if (uniform->type == SHADER_UNIFORM_TYPE_SAMPLER)
+    if (uniform.type == SHADER_UNIFORM_TYPE_SAMPLER)
     {
-        if (uniform->scope == SHADER_SCOPE_GLOBAL)
+        if (uniform.scope == SHADER_SCOPE_GLOBAL)
         {
-            globalTextures[uniform->location] = (Texture*)value;
+            shader.globalTextures[uniform.location] = (Texture*)value;
         }
         else
         {
-            instanceStates[boundInstanceId].instanceTextures[uniform->location] = (Texture*)value;
+            instanceStates[boundInstanceId].instanceTextures[uniform.location] = (Texture*)value;
         }
     }
     else
     {
-        if (uniform->scope == SHADER_SCOPE_LOCAL)
+        if (uniform.scope == SHADER_SCOPE_LOCAL)
         {
             VkCommandBuffer command_buffer = rendererState->graphicsCommandBuffers[rendererState->imageIndex].handle;
-            vkCmdPushConstants(command_buffer, pipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform->offset, uniform->size, value);
+            vkCmdPushConstants(command_buffer, pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, uniform.offset, uniform.size, value);
         }
         else
         {
             U64 addr = (U64)mappedUniformBufferBlock;
-            addr += boundUboOffset + uniform->offset;
-            Memory::Copy((void*)addr, value, uniform->size);
+            addr += boundUboOffset + uniform.offset;
+            Memory::Copy((void*)addr, value, uniform.size);
             if (addr)
             {
                 //TODO:

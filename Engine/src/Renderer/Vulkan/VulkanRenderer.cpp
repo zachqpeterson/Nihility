@@ -362,14 +362,14 @@ bool VulkanRenderer::CreateShaderModule(const String& name, const String& typeSt
     VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<ShaderStage> shaderStages)
 {
     String fileName;
-    fileName.Format("shaders/%s.%s.spv", name, typeStr);
+    fileName.Format("shaders/%s.%s.spv", (const char*)name, (const char*)typeStr);
 
-    Resource binary = Resources::Load(fileName, RESOURCE_TYPE_BINARY);
+    Resource* binary = Resources::Load(fileName, RESOURCE_TYPE_BINARY);
 
     Memory::Zero(&shaderStages[stageIndex].info, sizeof(VkShaderModuleCreateInfo));
     shaderStages[stageIndex].info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderStages[stageIndex].info.codeSize = binary.size;
-    shaderStages[stageIndex].info.pCode = (U32*)binary.data;
+    shaderStages[stageIndex].info.codeSize = binary->size;
+    shaderStages[stageIndex].info.pCode = (U32*)binary->data;
 
     VkCheck(vkCreateShaderModule(
         rendererState->device->logicalDevice,
@@ -562,7 +562,9 @@ void VulkanRenderer::DrawMesh() //TODO: Pass info
 
 bool VulkanRenderer::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {
-    return ((VulkanShader*)shader.internalData)->Create(rendererState, renderpassId, stageCount, stageFilenames, stages);
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if(outShader){ return outShader->Create(rendererState, renderpassId, stageCount, stageFilenames, stages); }
+    return false;
 }
 
 void VulkanRenderer::DestroyShader(const Shader& shader)
@@ -573,49 +575,66 @@ void VulkanRenderer::DestroyShader(const Shader& shader)
 
 bool VulkanRenderer::InitializeShader(const Shader& shader)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->Initialize(rendererState); }
+    return false;
 }
 
 bool VulkanRenderer::UseShader(const Shader& shader)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->Use(rendererState); }
+    return false;
 }
 
 bool VulkanRenderer::BindGlobals(const Shader& shader)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->BindGlobals(rendererState); }
+    return false;
 }
 
 bool VulkanRenderer::BindInstance(const Shader& shader, U32 instanceId)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->BindInstance(rendererState, instanceId); }
+    return false;
 }
 
 bool VulkanRenderer::ApplyGlobals(const Shader& shader)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->ApplyGlobals(rendererState); }
+    return false;
 }
 
 bool VulkanRenderer::ApplyInstance(const Shader& shader, bool needsUpdate)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->ApplyInstance(rendererState, needsUpdate); }
+    return false;
 }
 
 U32 VulkanRenderer::AcquireInstanceResources(const Shader& shader)
 {
-    return 0;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->AcquireInstanceResources(rendererState); }
+    return INVALID_ID;
 }
 
 bool VulkanRenderer::ReleaseInstanceResources(const Shader& shader, U32 instanceId)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->ReleaseInstanceResources(rendererState, instanceId); }
+    return false;
 }
 
-bool VulkanRenderer::SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value)
+bool VulkanRenderer::SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value)
 {
-    return true;
+    VulkanShader* outShader = (VulkanShader*)shader.internalData;
+    if (outShader) { return outShader->SetUniform(rendererState, shader, uniform, value); }
+    return false;
 }
-
 
 bool VulkanRenderer::RecreateSwapchain()
 {

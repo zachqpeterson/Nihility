@@ -9,10 +9,8 @@ enum ButtonCode
     RBUTTON = 0x02,
     CANCEL = 0x03,
     MBUTTON = 0x04,
-#if _WIN32_WINNT >= 0x0500
     XBUTTONONE = 0x05,
     XBUTTONTWO = 0x06,
-#endif
     //Keyboard Buttons
     BACK = 0x08,
     TAB = 0x09,
@@ -131,7 +129,6 @@ enum ButtonCode
     F22 = 0x85,
     F23 = 0x86,
     F24 = 0x87,
-#if _WIN32_WINNT >= 0x0604
     NAVIGATION_VIEW = 0x88,
     NAVIGATION_MENU = 0x89,
     NAVIGATION_UP = 0x8A,
@@ -140,7 +137,6 @@ enum ButtonCode
     NAVIGATION_RIGHT = 0x8D,
     NAVIGATION_ACCEPT = 0x8E,
     NAVIGATION_CANCEL = 0x8F,
-#endif
     NUMLOCK = 0x90,
     SCROLL = 0x91,
     OEM_NEC_EQUAL = 0x92,
@@ -155,7 +151,6 @@ enum ButtonCode
     RCONTROL = 0xA3,
     LMENU = 0xA4,
     RMENU = 0xA5,
-#if _WIN32_WINNT >= 0x0500
     BROWSER_BACK = 0xA6,
     BROWSER_FORWARD = 0xA7,
     BROWSER_REFRESH = 0xA8,
@@ -174,7 +169,6 @@ enum ButtonCode
     LAUNCH_MEDIA_SELECT = 0xB5,
     LAUNCH_APP1 = 0xB6,
     LAUNCH_APP2 = 0xB7,
-#endif
     OEM_SEMICOLON = 0xBA,
     OEM_PLUS = 0xBB,
     OEM_COMMA = 0xBC,
@@ -182,7 +176,6 @@ enum ButtonCode
     OEM_PERIOD = 0xBE,
     OEM_FORWARD_SLASH = 0xBF,
     OEM_TILDE = 0xC0,
-#if _WIN32_WINNT >= 0x0604
     GAMEPAD_A = 0xC3,
     GAMEPAD_B = 0xC4,
     GAMEPAD_X = 0xC5,
@@ -207,7 +200,6 @@ enum ButtonCode
     GAMEPAD_RIGHT_THUMBSTICK_DOWN = 0xD8,
     GAMEPAD_RIGHT_THUMBSTICK_RIGHT = 0xD9,
     GAMEPAD_RIGHT_THUMBSTICK_LEFT = 0xDA,
-#endif
     OEM_OBRACKET = 0xDB,
     OEM_BACK_SLASH = 0xDC,
     OEM_CBRACKET = 0xDD,
@@ -217,13 +209,9 @@ enum ButtonCode
     OEM_102 = 0xE2,  //  "<>" or "\|" on RT 102-key kbd.
     ICO_HELP = 0xE3,  //  Help key on ICO
     ICO_00 = 0xE4,  //  00 key on ICO
-#if WINVER >= 0x0400
     PROCESSKEY = 0xE5,
-#endif
     ICO_CLEAR = 0xE6,
-#if _WIN32_WINNT >= 0x0500
     PACKET = 0xE7,
-#endif			
     OEM_RESET = 0xE9,
     OEM_JUMP = 0xEA,
     OEM_PA1 = 0xEB,
@@ -253,10 +241,8 @@ enum ButtonCode
 class Input
 {
 public:
-    static bool Initialize(void* state);
-    static void* Shutdown();
-
-    static const U64 GetMemoryRequirements();
+    static bool Initialize();
+    static void Shutdown();
 
     static NH_API bool OnAnyButtonDown();
     static NH_API bool ButtonDown(ButtonCode code);
@@ -272,4 +258,9 @@ public:
 
 private:
     Input() = delete;
+
+    static struct ButtonState buttonStates[BUTTON_COUNT];
+    static bool anyButtonDown;
+    static I16 mouseWheelDelta;
+    static Vector2Int mousePos;
 };

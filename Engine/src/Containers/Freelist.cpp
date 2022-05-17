@@ -2,6 +2,7 @@
 
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
+#include "Containers/String.hpp"
 
 Freelist::Freelist(U64 size)
 {

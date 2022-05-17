@@ -55,7 +55,7 @@ U8 RendererFrontend::GetRenderpassId(const String& name)
         return BUILTIN_RENDERPASS_UI;
     }
 
-    LOG_ERROR("GetRenderpassId: No renderpass named '%s'.", name);
+    LOG_ERROR("GetRenderpassId: No renderpass named '%s'.", (const char*)name);
     return INVALID_ID_U8;
 }
 
@@ -109,7 +109,7 @@ bool RendererFrontend::ReleaseInstanceResources(const Shader& shader, U32 instan
     return renderer->ReleaseInstanceResources(shader, instanceId);
 }
 
-bool RendererFrontend::SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value)
+bool RendererFrontend::SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value)
 {
     return renderer->SetUniform(shader, uniform, value);
 }

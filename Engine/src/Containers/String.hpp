@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include "Containers/Vector.hpp"
+
 struct String
 {
     NH_API String(U64 length = 0);
@@ -26,12 +28,12 @@ struct String
     NH_API bool NEquals(const String& str, U64 length) const;
     NH_API bool NEqualsI(const String& str, U64 length) const;
     NH_API I32 Format(const char* format, ...);
-    NH_API I32 FormatV(const char* format, void* vaList);
+    NH_API I32 FormatV(const char* format, va_list vaList);
     NH_API void Empty();
     NH_API void Trim();
     NH_API String SubString(U64 start, U64 length) const;
     NH_API U64 IndexOf(char c) const;
-    NH_API Vector<String> String::Split(char delimiter) const;
+    NH_API Vector<String> Split(char delimiter) const;
     NH_API void Append(const String& append);
 
     NH_API operator const char* () const { return str; }

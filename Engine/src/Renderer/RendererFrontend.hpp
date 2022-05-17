@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Resources/Shader.hpp"
 
 enum BuiltinRenderpass
 {
@@ -27,7 +28,7 @@ public:
     static bool ApplyInstance(const Shader& shader, bool needsUpdate);
     static U32 AcquireInstanceResources(const Shader& shader);
     static bool ReleaseInstanceResources(const Shader& shader, U32 instanceId);
-    static bool SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value);
+    static bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value);
 
 private:
     RendererFrontend() = delete;

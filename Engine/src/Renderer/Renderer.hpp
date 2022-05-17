@@ -28,7 +28,7 @@ public:
     virtual bool ApplyInstance(const Shader& shader, bool needsUpdate) = 0;
     virtual U32 AcquireInstanceResources(const Shader& shader) = 0;
     virtual bool ReleaseInstanceResources(const Shader& shader, U32 instanceId) = 0;
-    virtual bool SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value) = 0;
+    virtual bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value) = 0;
 
     void operator delete(void* p);
 

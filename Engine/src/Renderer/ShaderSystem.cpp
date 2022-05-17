@@ -6,8 +6,8 @@
 #include "Resources/Texture.hpp"
 #include "Resources/Shader.hpp"
 
-Hashtable<struct String, U32> ShaderSystem::lookup;
-Vector<struct Shader> ShaderSystem::shaders;
+Hashtable<String, U32> ShaderSystem::lookup;
+Vector<Shader> ShaderSystem::shaders;
 U32 ShaderSystem::currentShaderId;
 
 void ShaderSystem::Initialize()
@@ -59,15 +59,15 @@ bool ShaderSystem::CreateShader(const ShaderConfig& config)
     outShader.pushConstantSize = 0;
 
     U8 renderpassId;
-    if (renderpassId = RendererFrontend::GetRenderpassId(config.renderpassName) == INVALID_ID_U8)
+    if ((renderpassId = RendererFrontend::GetRenderpassId(config.renderpassName)) == INVALID_ID_U8)
     {
-        LOG_ERROR("Unable to find renderpass '%s'", config.renderpassName);
+        LOG_ERROR("Unable to find renderpass '%s'", (const char*)config.renderpassName);
         return false;
     }
 
     if(!RendererFrontend::CreateShader(outShader, renderpassId, config.stageCount, config.stageFilenames, config.stages))
     {
-        LOG_ERROR("Unable to create shader: %", outShader.name);
+        LOG_ERROR("Unable to create shader: %", (const char*)outShader.name);
         return false;
     }
 
@@ -92,7 +92,7 @@ bool ShaderSystem::CreateShader(const ShaderConfig& config)
 
     if (!RendererFrontend::InitializeShader(outShader))
     {
-        LOG_ERROR("shader_system_create: initialization failed for shader '%s'.", config.name);
+        LOG_ERROR("shader_system_create: initialization failed for shader '%s'.", (const char*)config.name);
         return false;
     }
 
@@ -105,7 +105,7 @@ bool ShaderSystem::CreateShader(const ShaderConfig& config)
 void ShaderSystem::UseShader(const String& name)
 {
     U32 id = GetShaderId(name);
-    if (id == INVALID_ID) { LOG_ERROR("No shader of name: %s", name); return; }
+    if (id == INVALID_ID) { LOG_ERROR("No shader of name: %s", (const char*)name); return; }
 
     UseShader(id);
 }
@@ -118,13 +118,13 @@ void ShaderSystem::UseShader(U32 id)
         currentShaderId = id;
         if (!RendererFrontend::UseShader(nextShader))
         {
-            LOG_ERROR("Failed to use shader '%s'.", nextShader.name);
+            LOG_ERROR("Failed to use shader '%s'.", (const char*)nextShader.name);
             return;
         }
 
         if (!RendererFrontend::BindGlobals(nextShader))
         {
-            LOG_ERROR("Failed to bind globals for shader '%s'.", nextShader.name);
+            LOG_ERROR("Failed to bind globals for shader '%s'.", (const char*)nextShader.name);
             return;
         }
     }
@@ -141,9 +141,9 @@ U16 ShaderSystem::UniformIndex(const Shader& shader, const String& uniformName)
     }
 
     U16 index = INVALID_ID_U16;
-    if (index = shader.uniformLookup[uniformName] == INVALID_ID_U16)
+    if ((index = shader.uniformLookup[uniformName]) == INVALID_ID_U16)
     {
-        LOG_ERROR("Shader '%s' does not have a registered uniform named '%s'", shader.name, uniformName);
+        LOG_ERROR("Shader '%s' does not have a registered uniform named '%s'", (const char*)shader.name, (const char*)uniformName);
         return INVALID_ID_U16;
     }
 
@@ -155,7 +155,7 @@ bool ShaderSystem::SetUniform(const String& uniformName, const void* value)
     if (currentShaderId == INVALID_ID)
     {
         LOG_ERROR("UniformSet called without a shader in use.");
-        return;
+        return false;
     }
 
     Shader& s = shaders[currentShaderId];
@@ -224,7 +224,7 @@ Shader& ShaderSystem::GetShaderById(U32 id)
 
 Shader& ShaderSystem::GetShaderByName(const String& name)
 {
-    shaders[GetShaderId(name)];
+    return shaders[GetShaderId(name)];
 }
 
 U32 ShaderSystem::NewShaderId()

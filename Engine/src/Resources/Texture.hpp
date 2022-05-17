@@ -4,5 +4,5 @@
 
 struct Texture
 {
-    
+    void* internalData;
 };

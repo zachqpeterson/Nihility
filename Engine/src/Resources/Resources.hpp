@@ -30,11 +30,13 @@ public:
     static bool Initialize();
     static void Destroy();
 
-    static NH_API Resource Load(const String& path, ResourceType type);
-    static NH_API void Unload(Resource& resource);
+    static NH_API Resource* Load(const String& path, ResourceType type);
+    static NH_API void Unload(Resource* resource);
 
-    //TODO: Default texture
+    static NH_API struct Texture* DefaultTexture() { return defaultTexture; }
 
 private:
     Resources() = delete;
+
+    static Texture* defaultTexture;
 };

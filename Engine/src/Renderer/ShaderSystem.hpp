@@ -4,6 +4,8 @@
 
 #include "Containers/Vector.hpp"
 #include "Containers/Hashtable.hpp"
+#include "Resources/Shader.hpp"
+#include "Resources/Texture.hpp"
 
 class ShaderSystem
 {

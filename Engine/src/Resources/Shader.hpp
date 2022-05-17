@@ -98,7 +98,7 @@ struct ShaderConfig
     String renderpassName;
 
     U8 stageCount;
-    Vector<ShaderStage> stages;
+    Vector<ShaderStageType> stages;
     Vector<String> stageNames;
     Vector<String> stageFilenames;
 };
@@ -153,7 +153,7 @@ public:
     U64 pushConstantSize;
     U64 pushConstantStride;
 
-    Vector<struct Texture> globalTextures;
+    Vector<struct Texture*> globalTextures;
 
     U8 instanceTextureCount;
 

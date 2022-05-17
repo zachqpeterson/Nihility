@@ -9,17 +9,11 @@
 // TODO: temporary
 #include <stdarg.h>
 
-struct LoggerState {
-    File log;
-};
+File Logger::log;
 
-static LoggerState* loggerState;
-
-bool Logger::Initialize(void* state)
+bool Logger::Initialize()
 {
-    loggerState = (LoggerState*)state;
-    
-    if (!loggerState->log.Open("console.log", FILE_MODE_WRITE, false)) 
+    if (!log.Open("console.log", FILE_MODE_WRITE, false)) 
     {
         Platform::ConsoleWrite("[ERROR]: Unable to open console.log for writing.", LOG_LEVEL_ERROR);
         return false;
@@ -30,49 +24,36 @@ bool Logger::Initialize(void* state)
     return true;
 }
 
-void* Logger::Shutdown()
+void Logger::Shutdown()
 {
-    loggerState->log.Close();
-    return loggerState;
+    log.Close();
 }
 
 void Logger::LogOutput(LogLevel level, const char* message, ...)
 {
     // TODO: Threaded
-    const char* levelStrings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]:  ", "[INFO]:  ", "[DEBUG]: ", "[TRACE]: " };
+    String levelStrings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]:  ", "[INFO]:  ", "[DEBUG]: ", "[TRACE]: " };
 
-    // Technically imposes a 32k character limit on a single log entry, but...
-    // DON'T DO THAT!
+    String outMessage;
 
-    String out_message;
-    Memory::Zero(out_message, out_message.Length());
-
-    // Format original message.
     // NOTE: Oddly enough, MS's headers override the GCC/Clang va_list type with a "typedef char* va_list" in some
     // cases, and as a result throws a strange error here. The workaround for now is to just use __builtin_va_list,
     // which is the type GCC/Clang's va_start expects.
     __builtin_va_list arg_ptr;
     va_start(arg_ptr, message);
-    out_message.FormatV(message, arg_ptr);
+    outMessage.FormatV(message, arg_ptr);
     va_end(arg_ptr);
 
-    // Prepend log level to message.
-    out_message.Format("%s%s\n", levelStrings[level], (const char*)out_message);
+    outMessage.Format("%s%s\n", (const char*)levelStrings[level], (const char*)outMessage);
 
-    // Print accordingly
-    Platform::ConsoleWrite(out_message, level);
+    Platform::ConsoleWrite(outMessage, level);
 
-    // Queue a copy to be written to the log file.
-    loggerState->log.Write(out_message);
-}
-
-const U64 Logger::GetMemoryRequirements()
-{
-    return sizeof(LoggerState);
+    //TODO: Queue a copy to be written to the log file.
+    log.Write(outMessage);
 }
 
 //NOTE: Defined in Defines.hpp
 void ReportAssertion(const char* expression, const char* message, const char* file, I32 line)
 {
-    LOG_FATAL("Expression '%s' failed with message '%s' in file '%s' on line %d", expression, message, file, line);
+    LOG_FATAL("Expression '%s' failed with message '%s' in file '%s' on line %d", (const char*)expression, (const char*)message, (const char*)file, line);
 }

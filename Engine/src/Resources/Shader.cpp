@@ -2,6 +2,7 @@
 
 #include "Core/Logger.hpp"
 #include "Renderer/RendererFrontend.hpp"
+#include "Resources/Resources.hpp"
 
 void Shader::Destroy()
 {
@@ -107,7 +108,7 @@ bool Shader::AddSampler(const ShaderUniformConfig& config)
 
 bool Shader::AddUniform(const ShaderUniformConfig& config)
 {
-    if (!UniformAddStateValid() || !UniformNameValid(config.name)) { return; }
+    if (!UniformAddStateValid() || !UniformNameValid(config.name)) { return false; }
     return UniformAdd(config.name, config.size, config.type, config.scope, 0, false);
 }
 
@@ -183,7 +184,7 @@ bool Shader::UniformNameValid(const String& uniformName)
     
     if (uniformLookup.Get(uniformName) != INVALID_ID_U16)
     {
-        LOG_ERROR("A uniform by the name '%s' already exists on shader '%s'.", uniformName, name);
+        LOG_ERROR("A uniform by the name '%s' already exists on shader '%s'.", (const char*)uniformName, (const char*)name);
         return false;
     }
     return true;

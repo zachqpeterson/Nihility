@@ -24,15 +24,15 @@ enum LogLevel {
 class Logger
 {
 public:
-    static bool Initialize(void* state);
-    static void* Shutdown();
+    static bool Initialize();
+    static void Shutdown();
 
     static NH_API void LogOutput(LogLevel level, const char* message, ...);
 
-    static const U64 GetMemoryRequirements();
-
 private:
     Logger() = delete;
+
+    static struct File log;
 };
 
 #define LOG_FATAL(message, ...) Logger::LogOutput(LOG_LEVEL_FATAL, message, ##__VA_ARGS__)

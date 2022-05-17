@@ -27,7 +27,7 @@ public:
     bool ApplyInstance(const Shader& shader, bool needsUpdate) final;
     U32 AcquireInstanceResources(const Shader& shader) final;
     bool ReleaseInstanceResources(const Shader& shader, U32 instanceId) final;
-    bool SetUniform(const Shader& shader, const ShaderUniform& uniform, const void* value) final;
+    bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value) final;
 
     void* operator new(U64 size);
     void operator delete(void* p);
@@ -40,7 +40,7 @@ private: //VULKAN SPECIFIC FUNCTIONS
     void CreateSyncObjects();
     bool CreateBuffers();
     bool CreateShaderModule(const String& name, const String& typeStr,
-        VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<ShaderStage> shaderStages);
+        VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<struct ShaderStage> shaderStages);
 
     void GetPlatformExtentions(Vector<const char*>& names);
     static I32 FindMemoryIndex(U32 memoryTypeBits, VkMemoryPropertyFlags memoryFlags);

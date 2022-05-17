@@ -18,11 +18,11 @@ void Engine::Initialize()
 {
     Memory::Initialize(Gigabytes(1));
 
-    Logger::Initialize(Memory::Allocate(Logger::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
+    Logger::Initialize();
 
-    Platform::Initialize(Memory::Allocate(Platform::GetMemoryRequirements(), MEMORY_TAG_APPLICATION), "TEST", 100, 100, 1280, 720);
+    Platform::Initialize("TEST", 100, 100, 1280, 720);
 
-    Input::Initialize(Memory::Allocate(Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION));
+    Input::Initialize();
 
     Time::Initialize();
 
@@ -92,11 +92,11 @@ void Engine::Shutdown()
 
     Time::Shutdown();
 
-    Memory::Free(Input::Shutdown(), Input::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
+    Input::Shutdown();
 
-    Memory::Free(Platform::Shutdown(), Platform::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
+    Platform::Shutdown();
 
-    Memory::Free(Logger::Shutdown(), Logger::GetMemoryRequirements(), MEMORY_TAG_APPLICATION);
+    Logger::Shutdown();
 
     Memory::Shutdown();
 }

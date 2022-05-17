@@ -131,7 +131,7 @@ void Memory::GetMemoryStats()
         }
 
         String add(new char[100]);
-        add.Format("  %s: %.2f%s\n", (char*)memoryTagNames[i], amount, (char*)unit);
+        add.Format("  %s: %.2f%s\n", (char*)memoryTagNames[i], amount, (const char*)unit);
         //TODO: The crash here has to do with the amount of times we call this
         buffer.Append(add);
     }

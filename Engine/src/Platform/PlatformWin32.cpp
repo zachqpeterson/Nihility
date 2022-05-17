@@ -23,7 +23,7 @@ struct PlatformState
     U32 windowHeight;
 };
 
-static PlatformState* platformState;
+PlatformState Platform::platformState;
 
 static F64 clockFrequency;
 static LARGE_INTEGER startTime;
@@ -38,18 +38,12 @@ void ClockSetup()
     QueryPerformanceCounter(&startTime);
 }
 
-bool Platform::Initialize(
-    void* state,
-    const char* application_name,
-    I32 x,
-    I32 y,
-    I32 width,
-    I32 height)
+bool Platform::Initialize(const String& applicationName,
+    I32 x, I32 y, I32 width, I32 height)
 {
     LOG_INFO("Initializing platform...");
 
-    platformState = (PlatformState*)state;
-    platformState->hInstance = GetModuleHandleA(0);
+    platformState.hInstance = GetModuleHandleA(0);
 
     // Setup and register window class.
     WNDCLASSA wc;
@@ -58,8 +52,8 @@ bool Platform::Initialize(
     wc.lpfnWndProc = Win32MessageProc;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
-    wc.hInstance = platformState->hInstance;
-    wc.hIcon = LoadIcon(platformState->hInstance, IDI_APPLICATION);
+    wc.hInstance = platformState.hInstance;
+    wc.hIcon = LoadIcon(platformState.hInstance, IDI_APPLICATION);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = NULL;
     wc.lpszClassName = "Nihility Window Class";
@@ -71,10 +65,10 @@ bool Platform::Initialize(
     }
 
     // Create window
-    platformState->clientX = x;
-    platformState->clientY = y;
-    platformState->clientWidth = width;
-    platformState->clientHeight = height;
+    platformState.clientX = x;
+    platformState.clientY = y;
+    platformState.clientWidth = width;
+    platformState.clientHeight = height;
 
     //TODO: Change with config
     U32 style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
@@ -89,17 +83,17 @@ bool Platform::Initialize(
     AdjustWindowRectEx(&border_rect, style, 0, exStyle);
 
     // In this case, the border rectangle is negative.
-    platformState->windowX = platformState->clientX + border_rect.left;
-    platformState->windowY = platformState->clientY + border_rect.top;
+    platformState.windowX = platformState.clientX + border_rect.left;
+    platformState.windowY = platformState.clientY + border_rect.top;
 
     // Grow by the size of the OS border.
-    platformState->windowWidth = platformState->clientWidth + border_rect.right - border_rect.left;
-    platformState->windowHeight = platformState->clientHeight + border_rect.bottom - border_rect.top;
+    platformState.windowWidth = platformState.clientWidth + border_rect.right - border_rect.left;
+    platformState.windowHeight = platformState.clientHeight + border_rect.bottom - border_rect.top;
 
     HWND handle = CreateWindowExA(
-        exStyle, "Nihility Window Class", application_name,
-        style, platformState->windowX, platformState->windowY, platformState->windowWidth, platformState->windowHeight,
-        0, 0, platformState->hInstance, 0);
+        exStyle, "Nihility Window Class", applicationName,
+        style, platformState.windowX, platformState.windowY, platformState.windowWidth, platformState.windowHeight,
+        0, 0, platformState.hInstance, 0);
 
     if (handle == nullptr)
     {
@@ -110,7 +104,7 @@ bool Platform::Initialize(
     }
     else
     {
-        platformState->hwnd = handle;
+        platformState.hwnd = handle;
     }
 
     // Show the window
@@ -118,22 +112,20 @@ bool Platform::Initialize(
     I32 show_window_command_flags = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
     //TODO: If initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE;
     //TODO: If initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE;
-    ShowWindow(platformState->hwnd, show_window_command_flags);
+    ShowWindow(platformState.hwnd, show_window_command_flags);
 
     ClockSetup();
 
     return true;
 }
 
-void* Platform::Shutdown()
+void Platform::Shutdown()
 {
-    if (platformState->hwnd)
+    if (platformState.hwnd)
     {
-        DestroyWindow(platformState->hwnd);
-        platformState->hwnd = nullptr;
+        DestroyWindow(platformState.hwnd);
+        platformState.hwnd = nullptr;
     }
-
-    return platformState;
 }
 
 bool Platform::ProcessMessages()
@@ -141,18 +133,13 @@ bool Platform::ProcessMessages()
     MSG message;
 
     //TODO: See if you should pass NULL here V
-    while (PeekMessageA(&message, platformState->hwnd, 0, 0, PM_REMOVE))
+    while (PeekMessageA(&message, platformState.hwnd, 0, 0, PM_REMOVE))
     {
         TranslateMessage(&message);
         DispatchMessageA(&message);
     }
 
     return true;
-}
-
-const U64 Platform::GetMemoryRequirements()
-{
-    return sizeof(PlatformState);
 }
 
 void* Platform::Allocate(U64 size, bool aligned)
@@ -208,8 +195,8 @@ void Platform::SleepFor(U64 ms)
 void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
 {
     //TODO: Find a better way for this
-    ((HINSTANCE*)surfaceInfo)[0] = platformState->hInstance;
-    ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState->hwnd;
+    ((HINSTANCE*)surfaceInfo)[0] = platformState.hInstance;
+    ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState.hwnd;
 }
 
 LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_param)
