@@ -16,7 +16,7 @@ bool Engine::suspended;
 
 void Engine::Initialize()
 {
-    Memory::Initialize(Gigabytes(1));
+    Memory::Initialize(Gigabytes(2));
 
     Logger::Initialize();
 

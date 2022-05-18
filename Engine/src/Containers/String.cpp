@@ -261,7 +261,7 @@ bool String::NEqualsI(const String& str, U64 length) const
 
 I32 String::Format(const char* format, ...)
 {
-    if (str)
+    if (format)
     {
         __builtin_va_list arg_ptr;
         va_start(arg_ptr, format);
@@ -275,15 +275,16 @@ I32 String::Format(const char* format, ...)
 
 I32 String::FormatV(const char* format, va_list vaList)
 {
-    if (str)
+    if (format)
     {
         char buffer[32000];
         I32 written = vsnprintf(buffer, 32000, format, vaList);
         buffer[written] = '\0';
 
         char* newStr = (char*)Memory::Allocate(written + 1, MEMORY_TAG_DATA_STRUCT);
-        Memory::Copy(newStr, buffer, written + 1);
-        Memory::Free(str, Length() + 1, MEMORY_TAG_DATA_STRUCT);
+        length = written;
+        Memory::Copy(newStr, buffer, length + 1);
+        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
         str = newStr;
 
         return written;

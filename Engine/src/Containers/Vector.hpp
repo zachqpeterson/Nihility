@@ -46,15 +46,19 @@ public:
     };
 
 public:
-    NH_API Vector(U64 capacity = 0);
+    NH_API Vector() : size{ 0 }, capacity{ 0 }, array{ nullptr } {}
+    NH_API Vector(U64 capacity);
     NH_API Vector(U64 size, const T& value);
     NH_API Vector(const Vector& other);
     NH_API Vector(Vector&& other) noexcept;
+    NH_API Vector(T* array, U64 size);
     NH_API ~Vector();
     NH_API void Destroy();
 
     NH_API Vector& operator=(const Vector& other);
     NH_API Vector& operator=(Vector&& other)noexcept;
+
+    NH_API void SetArray(T* array, U64 size);
 
     NH_API void Push(const T& value);
     NH_API void Push(T&& value) noexcept;
@@ -122,6 +126,9 @@ inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capac
 }
 
 template<typename T>
+inline Vector<T>::Vector(T* array, U64 size) : array{ array }, size{ size }, capacity{ size } {}
+
+template<typename T>
 inline Vector<T>::~Vector()
 {
     if (array)
@@ -171,6 +178,19 @@ inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
     other.array = nullptr;
 
     return *this;
+}
+
+template<typename T>
+inline void Vector<T>::SetArray(T* array, U64 size)
+{
+    if(this->array)
+    {
+        Memory::Free(this->array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    }
+
+    this->array = array;
+    this->size = size;
+    capacity = size;
 }
 
 template<typename T>
@@ -263,14 +283,23 @@ inline void Vector<T>::Resize(U64 size)
 template<typename T>
 inline void Vector<T>::Reserve(U64 capacity)
 {
-    T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    if (array)
+    {
+        T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::Copy(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
+        Memory::Copy(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
 
-    Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
-    array = newArray;
-    this->capacity = capacity;
-    size = size > capacity ? capacity : size;
+        Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
+        array = newArray;
+        this->capacity = capacity;
+        size = size > capacity ? capacity : size;
+    }
+    else
+    {
+        array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+        this->capacity = capacity;
+        size = 0;
+    }
 }
 
 template<typename T>

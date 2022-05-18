@@ -3,9 +3,9 @@
 
 #include "Defines.hpp"
 
-#define Gigabytes(amount) amount * 1024 * 1024 * 1024
-#define Megabytes(amount) amount * 1024 * 1024
-#define Kilobytes(amount) amount * 1024
+#define Gigabytes(amount) amount * 1024ull * 1024ull * 1024ull
+#define Megabytes(amount) amount * 1024ull * 1024ull
+#define Kilobytes(amount) amount * 1024ull
 
 /** @brief Tags to indicate the usage of memory allocations made in this system. */
 enum MemoryTag {
@@ -34,7 +34,7 @@ public:
     static void Shutdown();
 
     static NH_API void* Allocate(U64 size, MemoryTag tag);
-    static NH_API void Free(void* block, U64 size, MemoryTag tag);
+    static NH_API void  Free(void* block, U64 size, MemoryTag tag);
     static NH_API void* Zero(void* block, U64 size);
     static NH_API void* Copy(void* dest, const void* source, U64 size);
     static NH_API void* Set(void* dest, I32 value, U64 size);
@@ -44,4 +44,10 @@ public:
 
 private:
     Memory() = delete;
+
+    static U64 totalAllocSize;
+    static U64 totalAllocated;
+    static U64 allocCount;
+    static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS];
+    static void* allocatorBlock;
 };

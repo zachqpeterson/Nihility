@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Containers/Vector.hpp"
 
 enum FileMode
 {
@@ -19,7 +20,7 @@ public:
     NH_API struct String ReadLine(U64 maxLength = U64_MAX);
     NH_API bool WriteLine(const struct String& str);
     NH_API struct String Read(U64 length);
-    //NH_API Vector<U8> ReadAllBytes();
+    NH_API Vector<U8> ReadAllBytes();
     NH_API struct String ReadAllText();
     NH_API void Write(const struct String& str);
 

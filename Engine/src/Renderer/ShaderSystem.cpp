@@ -3,8 +3,8 @@
 #include "Renderer/RendererFrontend.hpp"
 
 #include "Containers/String.hpp"
-#include "Resources/Texture.hpp"
 #include "Resources/Shader.hpp"
+#include "Resources/Resources.hpp"
 
 Hashtable<String, U32> ShaderSystem::lookup;
 Vector<Shader> ShaderSystem::shaders;

@@ -9,7 +9,6 @@
 
 #include "Memory/Memory.hpp"
 #include "Resources/Resources.hpp"
-#include "Resources/Texture.hpp"
 
 bool VulkanShader::Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {

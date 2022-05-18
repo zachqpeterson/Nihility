@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #ifdef NH_DEBUG
-static const char* memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
+static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
     "UNKNOWN    ",
     "DATA_STRUCT",
     "LINEAR_ALLC",
@@ -25,46 +25,38 @@ static const char* memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
     "RESOURCE   " };
 #endif
 
-struct MemoryState
-{
-    U64 totalAllocSize; //total space we can allocate
-    U64 totalAllocated; //how much space we've allocated
-    U64 allocCount; //how many allocations made
-    U64 taggedAllocations[MEMORY_TAG_MAX_TAGS]; //how much space we've allocated for each tag
-    void* allocatorBlock; //pointer to the block of memory we have access to
-};
-
-static MemoryState* memoryState;
+U64 Memory::totalAllocSize;
+U64 Memory::totalAllocated;
+U64 Memory::allocCount;
+U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
+void* Memory::allocatorBlock;
 
 bool Memory::Initialize(U64 memoryRequirement)
 {
     //TODO: Somehow queue message "Initializing the memory system with a size of %d bytes" to logger before initialization
 
     //TODO: Memory alignment
-    void* block = Platform::Allocate(memoryRequirement, false);
+    //NOTE: Don't allocate this block until we have an allocator
+    //allocatorBlock = Platform::Allocate(memoryRequirement, false);
 
-    memoryState = (MemoryState*)block;
-
-    memoryState->totalAllocSize = memoryRequirement;
-    memoryState->totalAllocated = sizeof(MemoryState);
-    memoryState->allocCount = 1;
-    memoryState->allocatorBlock = (void*)block;
-    memoryState->taggedAllocations[MEMORY_TAG_APPLICATION] = sizeof(MemoryState);
+    totalAllocSize = memoryRequirement;
+    totalAllocated = 0;
+    allocCount = 0;
 
     return true;
 }
 
 void Memory::Shutdown()
 {
-    Platform::Free(memoryState->allocatorBlock, memoryState->totalAllocSize);
-    memoryState = nullptr;
+    Platform::Free(allocatorBlock, totalAllocSize);
+    allocatorBlock = nullptr;
 }
 
 void* Memory::Allocate(U64 size, MemoryTag tag)
 {
-    memoryState->totalAllocated += size;
-    memoryState->taggedAllocations[tag] += size;
-    ++memoryState->allocCount;
+    totalAllocated += size;
+    taggedAllocations[tag] += size;
+    ++allocCount;
 
     //TODO: Custom allocator
     //TODO: Memory alignment
@@ -75,8 +67,8 @@ void* Memory::Allocate(U64 size, MemoryTag tag)
 
 void Memory::Free(void* block, U64 size, MemoryTag tag)
 {
-    memoryState->totalAllocated -= size;
-    memoryState->taggedAllocations[tag] -= size;
+    totalAllocated -= size;
+    taggedAllocations[tag] -= size;
     //TODO: Custom allocator
     //TODO: Memory alignment
     Platform::Free(block, false);
@@ -109,30 +101,29 @@ void Memory::GetMemoryStats()
     {
         String unit;
         F32 amount = 1.0f;
-        if (memoryState->taggedAllocations[i] >= gib)
+        if (taggedAllocations[i] >= gib)
         {
             unit = "GiB";
-            amount = memoryState->taggedAllocations[i] / (F32)gib;
+            amount = taggedAllocations[i] / (F32)gib;
         }
-        else if (memoryState->taggedAllocations[i] >= mib)
+        else if (taggedAllocations[i] >= mib)
         {
             unit = "MiB";
-            amount = memoryState->taggedAllocations[i] / (F32)mib;
+            amount = taggedAllocations[i] / (F32)mib;
         }
-        else if (memoryState->taggedAllocations[i] >= kib)
+        else if (taggedAllocations[i] >= kib)
         {
             unit = "KiB";
-            amount = memoryState->taggedAllocations[i] / (F32)kib;
+            amount = taggedAllocations[i] / (F32)kib;
         }
         else
         {
             unit = "B";
-            amount = (float)memoryState->taggedAllocations[i];
+            amount = (F32)taggedAllocations[i];
         }
 
-        String add(new char[100]);
-        add.Format("  %s: %.2f%s\n", (char*)memoryTagNames[i], amount, (const char*)unit);
-        //TODO: The crash here has to do with the amount of times we call this
+        String add;
+        add.Format("  %s: %.2f%s\n", (const char*)memoryTagNames[i], amount, (const char*)unit);
         buffer.Append(add);
     }
 

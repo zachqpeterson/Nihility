@@ -336,6 +336,7 @@ bool VulkanRenderer::CreateBuffers()
 
     VkMemoryPropertyFlagBits memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
+    //TODO: Make this dynamic
     const U64 vertexBufferSize = sizeof(Vertex3) * 1024 * 1024;
 
     if (!rendererState->objectVertexBuffer->Create(rendererState, vertexBufferSize,
@@ -364,12 +365,12 @@ bool VulkanRenderer::CreateShaderModule(const String& name, const String& typeSt
     String fileName;
     fileName.Format("shaders/%s.%s.spv", (const char*)name, (const char*)typeStr);
 
-    Resource* binary = Resources::Load(fileName, RESOURCE_TYPE_BINARY);
+    Binary* binary = Resources::LoadBinary(fileName);
 
     Memory::Zero(&shaderStages[stageIndex].info, sizeof(VkShaderModuleCreateInfo));
     shaderStages[stageIndex].info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderStages[stageIndex].info.codeSize = binary->size;
-    shaderStages[stageIndex].info.pCode = (U32*)binary->data;
+    shaderStages[stageIndex].info.codeSize = binary->data.Size();
+    shaderStages[stageIndex].info.pCode = (U32*)binary->data.Data();
 
     VkCheck(vkCreateShaderModule(
         rendererState->device->logicalDevice,
@@ -377,7 +378,7 @@ bool VulkanRenderer::CreateShaderModule(const String& name, const String& typeSt
         rendererState->allocator,
         &shaderStages[stageIndex].handle));
 
-    Resources::Unload(binary);
+    Resources::UnloadBinary(binary);
 
     Memory::Zero(&shaderStages[stageIndex].shaderStageInfo, sizeof(VkPipelineShaderStageCreateInfo));
     shaderStages[stageIndex].shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

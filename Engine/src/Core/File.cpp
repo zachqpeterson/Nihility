@@ -8,24 +8,23 @@
 bool File::Open(const String& path, FileMode mode, bool binary)
 {
     handle = nullptr;
-    const char* mode_str;
+    const char* modeStr;
 
     if ((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) != 0) {
-        mode_str = binary ? "w+b" : "w+";
+        modeStr = binary ? "w+b" : "w+";
     }
     else if ((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) == 0) {
-        mode_str = binary ? "rb" : "r";
+        modeStr = binary ? "rb" : "r";
     }
     else if ((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0) {
-        mode_str = binary ? "wb" : "w";
+        modeStr = binary ? "wb" : "w";
     }
     else {
         LOG_ERROR("Invalid mode passed while trying to open file: '%s'", (const char*)path);
         return false;
     }
 
-    // Attempt to open the file.
-    FILE* file = fopen(path, mode_str);
+    FILE* file = fopen(path, modeStr);
     if (!file) {
         LOG_ERROR("Error opening file: '%s'", (const char*)path);
         return false;
@@ -94,8 +93,26 @@ String File::Read(U64 length)
     return String();
 }
 
-//TODO: same as AllText but U8 instead of char
-//NH_API Vector<U8> ReadAllBytes()
+Vector<U8> File::ReadAllBytes()
+{
+    Vector<U8> data;
+
+    if (handle)
+    {
+        U64 size = 0;
+        if (!Size())
+        {
+            return data;
+        }
+
+        U8* buf = nullptr;
+        fread(buf, 1, size, (FILE*)handle);
+        data.SetArray(buf, size);
+        return data;
+    }
+
+    return data;
+}
 
 String File::ReadAllText()
 {

@@ -135,6 +135,9 @@ public:
     //INTERPOLATION
     static NH_API NH_INLINE F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
     static NH_API NH_INLINE F64 Lerp(F64 a, F64 b, F64 t) { return a + t * (b - a); }
+    static NH_API NH_INLINE Vector2 Lerp(Vector2 a, Vector2 b, F32 t) { return a + (b - a) * t; }
+    static NH_API NH_INLINE Vector3 Lerp(Vector3 a, Vector3 b, F32 t) { return a + (b - a) * t; }
+    static NH_API NH_INLINE Vector4 Lerp(Vector4 a, Vector4 b, F32 t) { return a + (b - a) * t; }
     static NH_API NH_INLINE F32 InvLerp(F32 a, F32 b, F32 t) { return (t - a) / (b - a); }
     static NH_API NH_INLINE F64 InvLerp(F64 a, F64 b, F64 t) { return (t - a) / (b - a); }
     static NH_API NH_INLINE F32 MoveTowards(F32 a, F32 b, F32 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
@@ -642,8 +645,7 @@ struct Quaternion
 
     NH_API Quaternion operator* (const Quaternion& q) const
     {
-        return {
-                x * q.w + y * q.z - z * q.y + w * q.x,
+        return { x * q.w + y * q.z - z * q.y + w * q.x,
                 -x * q.z + y * q.w + z * q.x + w * q.y,
                 x * q.y - y * q.x + z * q.w + w * q.z,
                 -x * q.x - y * q.y - z * q.z + w * q.w };
@@ -681,7 +683,7 @@ struct Vertex2
     Vector4 color;
 };
 
-struct transform
+struct Transform
 {
     Vector3 position;
     Quaternion rotation;
@@ -690,5 +692,5 @@ struct transform
     bool dirty;
     Matrix4 local;
 
-    struct transform* parent;
+    struct Transform* parent;
 };

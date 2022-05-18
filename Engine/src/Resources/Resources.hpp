@@ -3,25 +3,96 @@
 #include "Defines.hpp"
 
 #include "Containers/String.hpp"
+#include "Containers/Vector.hpp"
+#include "Math/Math.hpp"
 
-enum ResourceType
+enum TextureUse
 {
-    RESOURCE_TYPE_TEXT,
-    RESOURCE_TYPE_BINARY,
-    RESOURCE_TYPE_IMAGE,
-    RESOURCE_TYPE_MATERIAL,
-    RESOURCE_TYPE_SHADER,
-    RESOURCE_TYPE_MESH,
-    RESOURCE_TYPE_CUSTOM
+    TEXTURE_USE_UNKNOWN = 0x00,
+    TEXTURE_USE_MAP_DIFFUSE = 0x01,
+    TEXTURE_USE_MAP_SPECULAR = 0x02,
+    TEXTURE_USE_MAP_NORMAL = 0x03
 };
 
-struct Resource
+struct Binary
 {
-    U32 loaderId;
     String name;
     String path;
-    U64 size;
-    void* data;
+    Vector<U8> data;
+};
+
+struct Image
+{
+    String name;
+    String path;
+    U32 width;
+    U32 height;
+    U8 channelCount;
+    Vector<U8> pixels;
+};
+
+struct Texture
+{
+    String name;
+    String path;
+    U32 id;
+    U32 width;
+    U32 height;
+    U8 channelCount;
+    bool hasTransparency;
+    U32 generation;
+    void* internalData;
+};
+
+struct TextureMap
+{
+    Texture* texture;
+    TextureUse use;
+};
+
+struct MaterialConfig
+{
+    String name;
+    String path;
+    String shaderName;
+    bool autoRelease;
+    Vector4 diffuseColor; //TODO: Color struct
+    F32 shininess;
+    String diffuseMapName;
+    String specularMapName;
+    String normalMapName;
+};
+
+struct Material
+{
+    String name;
+    String path;
+    U32 id;
+    U32 generation;
+    U32 internalId;
+    Vector4 diffuseColor; //TODO: Color struct
+    TextureMap diffuseMap;
+    TextureMap specularMap;
+    TextureMap normalMap;
+    F32 shininess;
+    U32 shaderId;
+    U32 renderFrameNumber;
+};
+
+struct Mesh
+{
+    String name;
+    String path;
+    U32 id;
+    U32 internalId;
+    U32 generation;
+    Material* material;
+};
+
+struct Model
+{
+    Vector<Mesh*> meshes;
+    Transform transform;
 };
 
 class Resources
@@ -30,8 +101,10 @@ public:
     static bool Initialize();
     static void Destroy();
 
-    static NH_API Resource* Load(const String& path, ResourceType type);
-    static NH_API void Unload(Resource* resource);
+    static NH_API Binary* LoadBinary(const String& name);
+    static NH_API void UnloadBinary(Binary* resource);
+    static NH_API Image* LoadImage(const String& name, const String& ext);
+    static NH_API void UnloadImage(Image* resource);
 
     static NH_API struct Texture* DefaultTexture() { return defaultTexture; }
 

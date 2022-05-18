@@ -5,7 +5,6 @@
 #include "Containers/Vector.hpp"
 #include "Containers/Hashtable.hpp"
 #include "Resources/Shader.hpp"
-#include "Resources/Texture.hpp"
 
 class ShaderSystem
 {
@@ -23,7 +22,7 @@ public:
 
     static U16 UniformIndex(const Shader& shader, const String& uniformName);
     static bool SetUniform(const String& uniform_name, const void* value);
-    static void SetSampler(const String& samplerName, const Texture& t);
+    static void SetSampler(const String& samplerName, const struct Texture& t);
     static bool SetUniformByIndex(U16 index, const void* value);
     static bool SetSamplerByIndex(U16 index, const Texture& t);
 

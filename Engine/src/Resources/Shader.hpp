@@ -7,7 +7,7 @@
 #include "Containers/Hashtable.hpp"
 
 //TODO: Don't hard code
-#define MAX_SHADER_COUNT 1024u
+#define MAX_SHADER_COUNT 128u
 #define MAX_UNIFORM_COUNT 128u
 #define MAX_GLOBAL_TEXTURES 31u
 #define MAX_INSTANCE_TEXTURES 31u
@@ -138,6 +138,7 @@ public:
     U32 id;
 
     String name;
+    String path;
     bool useInstances;
     bool useLocals;
 
