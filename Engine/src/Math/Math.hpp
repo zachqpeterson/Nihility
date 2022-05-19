@@ -25,10 +25,10 @@
 #define LONG_DOUBLE_EPSILON 1.0842e-19
 
 struct Vector2;
-struct Vector4;
+struct Vector3;
 struct Vector4;
 struct Vector2Int;
-struct Vector4Int;
+struct Vector3Int;
 struct Vector4Int;
 struct Matrix2;
 struct Matrix3;
@@ -135,9 +135,9 @@ public:
     //INTERPOLATION
     static NH_API NH_INLINE F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
     static NH_API NH_INLINE F64 Lerp(F64 a, F64 b, F64 t) { return a + t * (b - a); }
-    static NH_API NH_INLINE Vector2 Lerp(Vector2 a, Vector2 b, F32 t) { return a + (b - a) * t; }
-    static NH_API NH_INLINE Vector3 Lerp(Vector3 a, Vector3 b, F32 t) { return a + (b - a) * t; }
-    static NH_API NH_INLINE Vector4 Lerp(Vector4 a, Vector4 b, F32 t) { return a + (b - a) * t; }
+    static NH_API NH_INLINE Vector2 Lerp(Vector2 a, Vector2 b, F32 t);
+    static NH_API NH_INLINE Vector3 Lerp(Vector3 a, Vector3 b, F32 t);
+    static NH_API NH_INLINE Vector4 Lerp(Vector4 a, Vector4 b, F32 t);
     static NH_API NH_INLINE F32 InvLerp(F32 a, F32 b, F32 t) { return (t - a) / (b - a); }
     static NH_API NH_INLINE F64 InvLerp(F64 a, F64 b, F64 t) { return (t - a) / (b - a); }
     static NH_API NH_INLINE F32 MoveTowards(F32 a, F32 b, F32 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
@@ -694,3 +694,7 @@ struct Transform
 
     struct Transform* parent;
 };
+
+NH_INLINE Vector2 Math::Lerp(Vector2 a, Vector2 b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector3 Math::Lerp(Vector3 a, Vector3 b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector4 Math::Lerp(Vector4 a, Vector4 b, F32 t) { return a + (b - a) * t; }

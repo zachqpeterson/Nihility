@@ -234,6 +234,18 @@ inline bool ResultSuccess(VkResult result)
 #define VULKAN_MAX_MATERIAL_COUNT 1024
 #define VULKAN_MAX_GEOMETRY_COUNT 4096
 
+struct VulkanMesh
+{
+    U32 id;
+    U32 generation;
+    U32 vertexCount;
+    U32 vertexElementSize;
+    U64 vertexBufferOffset;
+    U32 indexCount;
+    U32 indexElementSize;
+    U64 indexBufferOffset;
+};
+
 struct RendererState
 {
     //Function Pointers
@@ -268,6 +280,8 @@ struct RendererState
 
     class VulkanBuffer* objectVertexBuffer;
     class VulkanBuffer* objectIndexBuffer;
+
+    Vector<VulkanMesh> meshes;
 
     bool recreatingSwapchain;
 

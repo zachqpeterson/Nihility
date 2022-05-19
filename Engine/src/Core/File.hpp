@@ -20,9 +20,11 @@ public:
     NH_API struct String ReadLine(U64 maxLength = U64_MAX);
     NH_API bool WriteLine(const struct String& str);
     NH_API struct String Read(U64 length);
-    NH_API Vector<U8> ReadAllBytes();
+    NH_API U8* ReadBytes(U64 length);
+    NH_API U8* ReadAllBytes(U64& size);
     NH_API struct String ReadAllText();
     NH_API void Write(const struct String& str);
+    NH_API void Seek(U64 length);
 
 public:
     void* handle;

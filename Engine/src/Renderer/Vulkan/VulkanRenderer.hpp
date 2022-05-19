@@ -15,7 +15,10 @@ public:
     bool EndFrame() final;
     bool BeginRenderpass(U8 renderpassId) final;
     bool EndRenderpass(U8 renderpassId) final;
-    void DrawMesh() final;
+    void DrawMesh(Mesh* mesh, const Matrix4& modelMat) final;
+
+    bool CreateTexture(const Vector<U8>& pixels, struct Texture* texture) final;
+    bool DestroyTexture(Texture* texture) final;
 
     bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages) final;
     void DestroyShader(const Shader& shader) final;

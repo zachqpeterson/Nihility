@@ -10,6 +10,7 @@
 #include "Containers/String.hpp"
 #include "Renderer/ShaderSystem.hpp"
 #include "Renderer/RendererFrontend.hpp"
+#include "Resources/Resources.hpp"
 
 bool Engine::running;
 bool Engine::suspended;
@@ -24,11 +25,13 @@ void Engine::Initialize()
 
     Input::Initialize();
 
-    Time::Initialize();
+    Resources::Initialize();
 
     ShaderSystem::Initialize();
 
     RendererFrontend::Initialize();
+
+    Time::Initialize();
 
     Events::Subscribe("CLOSE", OnClose);
 
@@ -86,11 +89,13 @@ void Engine::MainLoop()
 
 void Engine::Shutdown()
 {
+    Time::Shutdown();
+
     RendererFrontend::Shutdown();
 
     ShaderSystem::Shutdown();
 
-    Time::Shutdown();
+    Resources::Shutdown();
 
     Input::Shutdown();
 

@@ -2,6 +2,7 @@
 
 #include "Containers/String.hpp"
 #include "Core/Logger.hpp"
+#include "Memory/Memory.hpp"
 
 #include <stdio.h>
 
@@ -58,9 +59,12 @@ U64 File::Size()
 String File::ReadLine(U64 maxLength)
 {
     if (handle && maxLength > 0) {
-        char* buf = nullptr;
+        char* buf = (char*)Memory::Allocate(sizeof(char) * maxLength, MEMORY_TAG_DATA_STRUCT);
         if (fgets(buf, maxLength, (FILE*)handle) != 0) {
-            return String(buf);
+            String s;
+            s.Append(buf);
+            Memory::Free(buf, maxLength, MEMORY_TAG_DATA_STRUCT);
+            return s;
         }
     }
 
@@ -85,7 +89,7 @@ bool File::WriteLine(const String& str)
 String File::Read(U64 length)
 {
     if (handle) {
-        char* buf = nullptr;
+        char* buf = (char*)Memory::Allocate(sizeof(char) * length, MEMORY_TAG_DATA_STRUCT);
         fread(buf, 1, length, (FILE*)handle);
         return String(buf);
     }
@@ -93,37 +97,39 @@ String File::Read(U64 length)
     return String();
 }
 
-Vector<U8> File::ReadAllBytes()
+U8* File::ReadBytes(U64 length)
 {
-    Vector<U8> data;
-
     if (handle)
     {
-        U64 size = 0;
-        if (!Size())
-        {
-            return data;
-        }
+        U8* buf = (U8*)Memory::Allocate(sizeof(U8) * length, MEMORY_TAG_DATA_STRUCT);
+        fread(buf, 1, length, (FILE*)handle);
+        return buf;
+    }
 
-        U8* buf = nullptr;
-        fread(buf, 1, size, (FILE*)handle);
-        data.SetArray(buf, size);
+    return nullptr;
+}
+
+U8* File::ReadAllBytes(U64& size)
+{
+    if (handle)
+    {
+        size = Size();
+        U8* data = (U8*)Memory::Allocate(sizeof(U8) * size, MEMORY_TAG_DATA_STRUCT);
+
+        fread(data, 1, size, (FILE*)handle);
         return data;
     }
 
-    return data;
+    return nullptr;
 }
 
 String File::ReadAllText()
 {
     if (handle) 
     {
-        U64 size = 0;
-        if (!Size()) {
-            return String();
-        }
+        U64 size = Size();
+        char* buf = (char*)Memory::Allocate(sizeof(char) * size, MEMORY_TAG_DATA_STRUCT);
 
-        char* buf = nullptr;
         fread(buf, 1, size, (FILE*)handle);
         return String(buf);
     }
@@ -136,5 +142,13 @@ void File::Write(const String& str)
     if (handle) {
         fwrite(str, 1, str.Length(), (FILE*)handle);
         fflush((FILE*)handle);
+    }
+}
+
+void File::Seek(U64 length)
+{
+    if(handle)
+    {
+        fseek((FILE*)handle, length, SEEK_SET);
     }
 }

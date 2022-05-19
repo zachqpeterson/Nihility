@@ -6,6 +6,16 @@
 #include "Containers/Vector.hpp"
 #include "Math/Math.hpp"
 
+#undef LoadImage
+
+enum ImageType
+{
+    IMAGE_TYPE_BMP,
+    IMAGE_TYPE_PNG,
+    IMAGE_TYPE_JPG,
+    IMAGE_TYPE_TGA,
+};
+
 enum TextureUse
 {
     TEXTURE_USE_UNKNOWN = 0x00,
@@ -35,10 +45,11 @@ struct Texture
 {
     String name;
     String path;
-    U32 id;
     U32 width;
     U32 height;
     U8 channelCount;
+
+    U32 id;
     bool hasTransparency;
     U32 generation;
     void* internalData;
@@ -99,17 +110,30 @@ class Resources
 {
 public:
     static bool Initialize();
-    static void Destroy();
+    static void Shutdown();
 
     static NH_API Binary* LoadBinary(const String& name);
     static NH_API void UnloadBinary(Binary* resource);
-    static NH_API Image* LoadImage(const String& name, const String& ext);
+    static NH_API Image* LoadImage(const String& name, ImageType type);
     static NH_API void UnloadImage(Image* resource);
+    static NH_API Texture* LoadTexture(const String& name, ImageType type);
+    static NH_API void UnloadTexture(Texture* resource);
 
     static NH_API struct Texture* DefaultTexture() { return defaultTexture; }
+    static NH_API struct Texture* DefaultDiffuse() { return defaultDiffuse; }
+    static NH_API struct Texture* DefaultSpecular() { return defaultSpecular; }
+    static NH_API struct Texture* DefaultNormal() { return defaultNormal; }
 
 private:
     Resources() = delete;
 
+    static void LoadBMP(Image* image, struct File* file);
+    static void LoadPNG(Image* image, File* file);
+    static void LoadJPG(Image* image, File* file);
+    static void LoadTGA(Image* image, File* file);
+
     static Texture* defaultTexture;
+    static Texture* defaultDiffuse;
+    static Texture* defaultSpecular;
+    static Texture* defaultNormal;
 };

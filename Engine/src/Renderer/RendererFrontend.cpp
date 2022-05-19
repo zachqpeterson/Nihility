@@ -43,6 +43,16 @@ bool RendererFrontend::DrawFrame()
         renderer->EndFrame();
 }
 
+bool RendererFrontend::CreateTexture(const Vector<U8>& pixels, struct Texture* texture)
+{
+    return renderer->CreateTexture(pixels, texture);
+}
+
+bool RendererFrontend::DestroyTexture(Texture* texture)
+{
+    return renderer->DestroyTexture(texture);
+}
+
 U8 RendererFrontend::GetRenderpassId(const String& name)
 {
     // TODO: HACK: Need dynamic renderpasses instead of hardcoding them.

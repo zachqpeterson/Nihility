@@ -16,7 +16,10 @@ public:
     virtual bool EndFrame() = 0;
     virtual bool BeginRenderpass(U8 renderpassId) = 0;
     virtual bool EndRenderpass(U8 renderpassId) = 0;
-    virtual void DrawMesh() = 0;
+    virtual void DrawMesh(struct Mesh* mesh, const struct Matrix4& modelMat) = 0;
+
+    virtual bool CreateTexture(const Vector<U8>& pixels, struct Texture* texture) = 0;
+    virtual bool DestroyTexture(Texture* texture) = 0;
 
     virtual bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages) = 0;
     virtual void DestroyShader(const Shader& shader) = 0;

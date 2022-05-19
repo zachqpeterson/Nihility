@@ -536,30 +536,40 @@ bool VulkanRenderer::EndRenderpass(U8 renderpassId)
     return true;
 }
 
-void VulkanRenderer::DrawMesh() //TODO: Pass info
+void VulkanRenderer::DrawMesh(Mesh* mesh, const Matrix4& modelMat)
 {
-    //if (data.geometry && data.geometry->internal_id == INVALID_ID)
-    //{
-    //    return;
-    //}
-    //
-    //vulkan_geometry_data* bufferData = &renderpass->geometries[data.geometry->internal_id];
-    //VulkanCommandBuffer* commandBuffer = &renderpass->graphicsCommandBuffers[renderpass->imageIndex];
-    //
-    //VkDeviceSize offsets[1] = { bufferData->vertex_buffer_offset };
-    //vkCmdBindVertexBuffers(commandBuffer->handle, 0, 1, &renderpass->object_vertex_buffer.handle, (VkDeviceSize*)offsets);
-    //
-    //if (bufferData->index_count > 0)
-    //{
-    //    vkCmdBindIndexBuffer(commandBuffer->handle, renderpass->object_index_buffer.handle, bufferData->index_buffer_offset, VK_INDEX_TYPE_UINT32);
-    //
-    //    vkCmdDrawIndexed(commandBuffer->handle, bufferData->index_count, 1, 0, 0, 0);
-    //}
-    //else
-    //{
-    //    vkCmdDraw(commandBuffer->handle, bufferData->vertex_count, 1, 0, 0);
-    //}
+    if (mesh && mesh->internalId == INVALID_ID) { return; }
+
+    VulkanMesh& bufferData = rendererState->meshes[mesh->internalId];
+    VulkanCommandBuffer& commandBuffer = rendererState->graphicsCommandBuffers[rendererState->imageIndex];
+
+    VkDeviceSize offsets[1] = { bufferData.vertexBufferOffset };
+    vkCmdBindVertexBuffers(commandBuffer.handle, 0, 1, &rendererState->objectVertexBuffer->handle, (VkDeviceSize*)offsets);
+
+    if (bufferData.indexCount > 0)
+    {
+        vkCmdBindIndexBuffer(commandBuffer.handle, rendererState->objectIndexBuffer->handle, bufferData.indexBufferOffset, VK_INDEX_TYPE_UINT32);
+    
+        vkCmdDrawIndexed(commandBuffer.handle, bufferData.indexCount, 1, 0, 0, 0);
+    }
+    else
+    {
+        vkCmdDraw(commandBuffer.handle, bufferData.vertexCount, 1, 0, 0);
+    }
 }
+
+bool VulkanRenderer::CreateTexture(const Vector<U8>& pixels, struct Texture* texture)
+{
+    //TODO:
+    return true;
+}
+
+bool VulkanRenderer::DestroyTexture(Texture* texture)
+{
+    //TODO:
+    return true;
+}
+
 
 bool VulkanRenderer::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {

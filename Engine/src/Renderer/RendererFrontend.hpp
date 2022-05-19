@@ -17,6 +17,9 @@ public:
 
     static bool DrawFrame();
 
+    static bool CreateTexture(const Vector<U8>& pixels, struct Texture* texture);
+    static bool DestroyTexture(Texture* texture);
+
     static U8 GetRenderpassId(const String& name);
     static bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stage_filenames, const Vector<ShaderStageType>& stages);
     static void DestroyShader(const Shader& shader);
