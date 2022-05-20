@@ -6,7 +6,7 @@
 
 struct String
 {
-    NH_API String(U64 length = 0);
+    NH_API String() : str{ nullptr }, length{ 0 } {}
     NH_API String(char* str);
     NH_API String(const char* str);
     NH_API String(const String& other);

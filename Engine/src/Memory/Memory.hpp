@@ -7,8 +7,8 @@
 #define Megabytes(amount) amount * 1024ull * 1024ull
 #define Kilobytes(amount) amount * 1024ull
 
-/** @brief Tags to indicate the usage of memory allocations made in this system. */
 enum MemoryTag {
+    MEMORY_TAG_TOTAL,
     MEMORY_TAG_UNKNOWN,
     MEMORY_TAG_DATA_STRUCT,
     MEMORY_TAG_LINEAR_ALLOCATOR,
@@ -51,7 +51,6 @@ private:
     Memory() = delete;
 
     static U64 totalAllocSize;
-    static U64 totalAllocated;
     static U64 allocCount;
     static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS];
     static void* allocatorBlock;

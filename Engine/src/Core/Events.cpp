@@ -9,8 +9,11 @@ void Events::Subscribe(const String& name, EventFunc fn)
 
 void Events::Notify(const String& name, void* data)
 {
-    for (const EventFunc& fn : observers[name])
+    if (!observers.Empty())
     {
-        if(fn(data)) { return; }
+        for (const EventFunc& fn : observers[name])
+        {
+            if (fn(data)) { return; }
+        }
     }
 }

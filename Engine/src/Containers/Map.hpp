@@ -11,11 +11,14 @@ struct Map
 {
     struct Node
     {
-        Node(const TKey& key, const TValue& value) : key{ key }, value{ value }, left{ nullptr }, right{ nullptr } {}
+        Node(const TKey& key, const TValue& value) : key{ key }, value{ value }, left{ nullptr }, right{ nullptr } { }
+        ~Node() { left = nullptr; right = nullptr; } //TODO: Deallocate key and value
+
+        void* operator new(U64 size) { return Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
+        void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
 
         TKey key;
         TValue value;
-        Node* parent;
         Node* left;
         Node* right;
     };
@@ -45,25 +48,27 @@ public:
 
     NH_API bool Contains(const TValue& value) const;
     NH_API bool Contains(const TKey& key) const;
-    NH_API const U64 Count(const TKey& key) const;
+    NH_API const U64& Count(const TKey& key) const { return size; }
 
 private:
     Node* root;
+    U64 size;
 };
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map() : root{ nullptr } {}
+inline Map<TKey, TValue>::Map() : root{ nullptr }, size{ 0 } {}
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other)
+inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other) : size{ 0 }
 {
     //TODO: Use queue
 }
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(Map<TKey, TValue>&& other) : root{ other.root }
+inline Map<TKey, TValue>::Map(Map<TKey, TValue>&& other) : root{ other.root }, size{ other.size }
 {
     other.root = nullptr;
+    other.size = 0;
 }
 
 template<typename TKey, typename TValue>
@@ -75,6 +80,7 @@ inline Map<TKey, TValue>::~Map()
 template<typename TKey, typename TValue>
 inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(const Map<TKey, TValue>& other)
 {
+    size = other.size;
     //TODO: Use queue
 }
 
@@ -82,8 +88,10 @@ template<typename TKey, typename TValue>
 inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(Map<TKey, TValue>&& other)
 {
     root = other.root;
+    size = other.size;
 
     other.root = nullptr;
+    other.size = 0;
 }
 
 template<typename TKey, typename TValue>
@@ -150,47 +158,33 @@ template<typename TKey, typename TValue>
 inline void Map<TKey, TValue>::Clear()
 {
     //TODO: Use queue
+    size = 0;
 }
 
 template<typename TKey, typename TValue>
 inline void Map<TKey, TValue>::Insert(const TKey& key, const TValue& value)
 {
-    Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->key = key;
-    newNode->value = value;
-    newNode->left = nullptr;
-    newNode->right = nullptr;
-
     if (root == nullptr)
     {
-        root = newNode;
+        ++size;
+        root = new Node(key, value);
         return;
     }
 
     Node* node = root;
 
-    while (node)
+    while (node && node->key != key)
     {
-        if (key < node->key)
-        {
-            if (node->left == nullptr)
-            {
-                node->left = newNode;
-                break;
-            }
+        Node** next = (&node->left) + (key > node->key);
 
-            node = node->left;
-        }
-        else
+        if (!*next)
         {
-            if (node->right == nullptr)
-            {
-                node->right = newNode;
-                break;
-            }
-
-            node = node->right;
+            ++size;
+            *next = new Node(key, value);
+            return;
         }
+
+        node = *next;
     }
 }
 
@@ -199,54 +193,30 @@ inline void Map<TKey, TValue>::InsertAssign(const TKey& key, const TValue& value
 {
     if (root == nullptr)
     {
-        Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-        newNode->key = key;
-        newNode->value = value;
-        newNode->left = nullptr;
-        newNode->right = nullptr;
-        root = newNode;
+        ++size;
+        root = new Node(key, value);
         return;
     }
 
     Node* node = root;
 
-    while (node)
+    while (node && node->key != key)
     {
-        if (key == node->key)
+        Node** next = (&node->left) + (key > node->key);
+
+        if (!*next)
         {
-            node->value = value;
+            ++size;
+            *next = new Node(key, value);
+            return;
         }
 
-        if (key < node->key)
-        {
-            if (node->left == nullptr)
-            {
-                Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-                newNode->key = key;
-                newNode->value = value;
-                newNode->left = nullptr;
-                newNode->right = nullptr;
-                node->left = newNode;
-                break;
-            }
+        node = *next;
+    }
 
-            node = node->left;
-        }
-        else
-        {
-            if (node->right == nullptr)
-            {
-                Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-                newNode->key = key;
-                newNode->value = value;
-                newNode->left = nullptr;
-                newNode->right = nullptr;
-                node->right = newNode;
-                break;
-            }
-
-            node = node->right;
-        }
+    if (node)
+    {
+        node->value = value;
     }
 }
 
@@ -255,50 +225,24 @@ inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
 {
     if (root == nullptr)
     {
-        Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-        newNode->key = key;
-        newNode->left = nullptr;
-        newNode->right = nullptr;
-        root = newNode;
-        return newNode->value;
+        ++size;
+        root = new Node(key, TValue{});
+        return root->value;
     }
 
     Node* node = root;
 
-    while (node)
+    while (node && node->key != key)
     {
-        if (key == node->key)
+        Node** next = (&node->left) + (key > node->key);
+
+        if (!*next)
         {
-            return node->value;
+            ++size;
+            *next = new Node(key, TValue{});
         }
 
-        if (key < node->key)
-        {
-            if (node->left == nullptr)
-            {
-                Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-                newNode->key = key;
-                newNode->left = nullptr;
-                newNode->right = nullptr;
-                node->left = newNode;
-                return newNode->value;
-            }
-
-            node = node->left;
-        }
-        else
-        {
-            if (node->right == nullptr)
-            {
-                Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-                newNode->key = key;
-                newNode->left = nullptr;
-                newNode->right = nullptr;
-                return newNode->value;
-            }
-
-            node = node->right;
-        }
+        node = *next;
     }
 
     return node->value;
@@ -307,33 +251,43 @@ inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
 template<typename TKey, typename TValue>
 inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
 {
-    //TODO: connect nodes
     if (root)
     {
+        Node* parent = root;
         Node* node = root;
 
-        while (node && node->key != key)
+        bool right = false;
+
+        while (node && node->value != value)
         {
-            node = (&node->left)[key > node->key];
+            parent = node;
+            node = (&node->left)[right = value > node->value];
         }
 
         if (node)
         {
-            TValue value = node->value;
+            Node* replaceParent = node;
             Node* replace = node->left;
 
             while (replace && replace->right)
             {
+                replaceParent = replace;
                 replace = replace->right;
             }
 
-            replace->parent = node->parent;
-            replace->right = node->right;
-            if (replace != node->left) { replace->left = node->left; }
-            *((&node->parent->left) + right) = replace;
+            if (replace)
+            {
+                if (replaceParent != node) { replaceParent->right = nullptr; }
+                replace->right = node->right;
+                if (replace != node->left) { replace->left = node->left; }
+            }
 
-            Memory::Free(next, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-            return Move(value);
+            if (node->value == root->value) { root = replace; }
+            else { *((&parent->left) + right) = replace; }
+            TValue t = node->value;
+            --size;
+            delete node;
+            return Move(t);
         }
     }
 
@@ -349,23 +303,12 @@ inline bool Map<TKey, TValue>::Contains(const TValue& value) const
 template<typename TKey, typename TValue>
 inline bool Map<TKey, TValue>::Contains(const TKey& key) const
 {
-    if (root)
+    Node* node = root;
+
+    while (node && node->key != key)
     {
-        Node* node = root;
-
-        while (node && node->key != key)
-        {
-            node = (&node->left)[key > node->key];
-        }
-
-        return node;
+        node = (&node->left)[key > node->key];
     }
 
-    return false;
-}
-
-template<typename TKey, typename TValue>
-inline const U64 Map<TKey, TValue>::Count(const TKey& key) const
-{
-    //TODO: Use queue
+    return node;
 }

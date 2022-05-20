@@ -4,6 +4,7 @@
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
+#include "Math/Math.hpp"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -16,8 +17,7 @@ struct PlatformState
     HINSTANCE hInstance;
     HWND hwnd;
     U32 clientX, clientY;
-    U32 clientWidth;
-    U32 clientHeight;
+    Vector2Int clientSize;
     U32 windowX, windowY;
     U32 windowWidth;
     U32 windowHeight;
@@ -67,8 +67,8 @@ bool Platform::Initialize(const String& applicationName,
     // Create window
     platformState.clientX = x;
     platformState.clientY = y;
-    platformState.clientWidth = width;
-    platformState.clientHeight = height;
+    platformState.clientSize.x = width;
+    platformState.clientSize.y = height;
 
     //TODO: Change with config
     U32 style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
@@ -87,8 +87,8 @@ bool Platform::Initialize(const String& applicationName,
     platformState.windowY = platformState.clientY + border_rect.top;
 
     // Grow by the size of the OS border.
-    platformState.windowWidth = platformState.clientWidth + border_rect.right - border_rect.left;
-    platformState.windowHeight = platformState.clientHeight + border_rect.bottom - border_rect.top;
+    platformState.windowWidth = platformState.clientSize.x + border_rect.right - border_rect.left;
+    platformState.windowHeight = platformState.clientSize.y + border_rect.bottom - border_rect.top;
 
     HWND handle = CreateWindowExA(
         exStyle, "Nihility Window Class", applicationName,
@@ -199,8 +199,10 @@ void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
     ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState.hwnd;
 }
 
-LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_param)
+LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM wParam, LPARAM lParam)
 {
+    static Vector2Int size;
+
     switch (msg)
     {
     case WM_SETFOCUS: /*TODO: Notify engine has focus*/ return 0;
@@ -208,14 +210,18 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_p
     case WM_ERASEBKGND: return 1;
     case WM_CLOSE: Events::Notify("CLOSE", nullptr); return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
-    case WM_SIZE: /*TODO: Notify engine to resize*/ return 0;
+    case WM_SIZE:
+    {
+        size = { LOWORD(lParam), HIWORD(lParam) };
+        Events::Notify("Resize", (void*)&size);
+    } return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYUP:
     {
         bool pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
-        U8 code = (U8)w_param;
+        U8 code = (U8)wParam;
 
         //TODO: Handle left and right menu keys
 
@@ -228,19 +234,19 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_p
     case WM_MBUTTONUP:
     case WM_RBUTTONUP:
     {
-        Input::SetButtonState((U8)w_param, (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN));
+        Input::SetButtonState((U8)wParam, (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN));
     } break;
     case WM_MOUSEWHEEL:
     {
-        Input::SetMouseWheel(GET_WHEEL_DELTA_WPARAM(w_param) * WHEEL_MULTIPLIER);
+        Input::SetMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER);
     } break;
     case WM_MOUSEMOVE:
     {
-        Input::SetMousePos(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+        Input::SetMousePos(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
     } break;
     }
 
-    return DefWindowProcA(hwnd, msg, w_param, l_param);
+    return DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
 #endif

@@ -33,6 +33,8 @@ public:
     static bool ReleaseInstanceResources(const Shader& shader, U32 instanceId);
     static bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value);
 
+    static bool OnResize(void* data);
+
 private:
     RendererFrontend() = delete;
 

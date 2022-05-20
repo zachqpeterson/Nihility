@@ -13,6 +13,7 @@
 #include "Platform/Platform.hpp"
 #include "Containers/String.hpp"
 #include "Math/Math.hpp"
+#include "Core/Events.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -533,6 +534,12 @@ void VulkanRenderer::DrawMesh(Mesh* mesh, const Matrix4& modelMat)
     }
 }
 
+bool VulkanRenderer::OnResize(Vector2Int newSize)
+{
+    LOG_DEBUG("width: %d, height: %d", newSize.x, newSize.y);
+    return true;
+}
+
 bool VulkanRenderer::CreateTexture(const Vector<U8>& pixels, struct Texture* texture)
 {
     texture->internalData = (VulkanTexture*)Memory::Allocate(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
@@ -623,10 +630,12 @@ bool VulkanRenderer::DestroyTexture(Texture* texture)
     {
         data->image->Destroy(rendererState);
         Memory::Free(data->image, sizeof(VulkanImage), MEMORY_TAG_TEXTURE);
+        data->image = nullptr;
         vkDestroySampler(rendererState->device->logicalDevice, data->sampler, rendererState->allocator);
         data->sampler = 0;
 
         Memory::Free(texture->internalData, sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+        texture->internalData = nullptr;
 
         return true;
     }

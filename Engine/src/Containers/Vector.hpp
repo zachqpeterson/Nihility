@@ -162,6 +162,8 @@ inline Vector<T>::~Vector()
     }
 
     array = nullptr;
+    size = 0;
+    capacity = 0;
 }
 
 template<typename T>
@@ -173,6 +175,8 @@ inline void Vector<T>::Destroy()
     }
 
     array = nullptr;
+    size = 0;
+    capacity = 0;
 }
 
 template<typename T>

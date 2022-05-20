@@ -11,24 +11,18 @@
 #include <strings.h>
 #endif
 
-String::String(U64 length) : length{ length }
-{
-    str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
-    str[length] = '\0';
-}
-
 String::String(char* str)
 {
     if (str == nullptr)
     {
-        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_ENTITY);
         this->str[0] = '\0';
         length = 0;
     }
     else
     {
         length = strlen(str);
-        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
@@ -38,14 +32,14 @@ String::String(const char* str)
 {
     if (str == nullptr)
     {
-        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_ENTITY);
         this->str[0] = '\0';
         length = 0;
     }
     else
     {
         length = strlen(str);
-        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
@@ -55,14 +49,14 @@ String::String(const String& other)
 {
     if (other.str == nullptr)
     {
-        str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
+        str = (char*)Memory::Allocate(1, MEMORY_TAG_ENTITY);
         str[0] = '\0';
         length = 0;
     }
     else
     {
         length = strlen(other.str);
-        str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(str, other.str, length);
         str[length] = '\0';
     }
@@ -80,7 +74,7 @@ String::~String()
 {
     if (str)
     {
-        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(str, length + 1, MEMORY_TAG_ENTITY);
         str = nullptr;
         length = 0;
     }
@@ -92,7 +86,7 @@ void String::Destroy()
 {
     if (str)
     {
-        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(str, length + 1, MEMORY_TAG_ENTITY);
         str = nullptr;
         length = 0;
     }
@@ -106,19 +100,19 @@ String& String::operator=(char* str)
 
     if (this->str)
     {
-        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_ENTITY);
     }
 
     if (str == nullptr)
     {
-        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_ENTITY);
         this->str[0] = '\0';
         length = 0;
     }
     else
     {
         length = strlen(str);
-        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
@@ -132,19 +126,19 @@ String& String::operator=(const char* str)
 
     if (this->str)
     {
-        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_ENTITY);
     }
 
     if (str == nullptr)
     {
-        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(1, MEMORY_TAG_ENTITY);
         this->str[0] = '\0';
         length = 0;
     }
     else
     {
         length = strlen(str);
-        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(this->str, str, length);
         this->str[length] = '\0';
     }
@@ -158,19 +152,19 @@ String& String::operator=(const String& other)
 
     if (this->str)
     {
-        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_ENTITY);
     }
 
     if (other.str == nullptr)
     {
-        str = (char*)Memory::Allocate(1, MEMORY_TAG_DATA_STRUCT);
+        str = (char*)Memory::Allocate(1, MEMORY_TAG_ENTITY);
         str[0] = '\0';
         length = 0;
     }
     else
     {
         length = strlen(other.str);
-        str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(str, other.str, length);
         str[length] = '\0';
     }
@@ -184,7 +178,7 @@ String& String::operator=(String&& other)
 
     if (this->str)
     {
-        Memory::Free(this->str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(this->str, length + 1, MEMORY_TAG_ENTITY);
     }
 
     str = other.str;
@@ -209,7 +203,7 @@ String String::Duplicate() const
 {
     if (str)
     {
-        char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(copy, str, length);
         copy[length] = '\0';
         return copy;
@@ -222,7 +216,7 @@ String String::NDuplicate(U64 length) const
 {
     if (str && length < this->length)
     {
-        char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_DATA_STRUCT);
+        char* copy = (char*)Memory::Allocate(length + 1, MEMORY_TAG_ENTITY);
         Memory::Copy(copy, str, length);
         copy[length] = '\0';
         return copy;
@@ -281,10 +275,10 @@ I32 String::FormatV(const char* format, va_list vaList)
         I32 written = vsnprintf(buffer, 32000, format, vaList);
         buffer[written] = '\0';
 
-        char* newStr = (char*)Memory::Allocate(written + 1, MEMORY_TAG_DATA_STRUCT);
+        char* newStr = (char*)Memory::Allocate(written + 1, MEMORY_TAG_ENTITY);
         length = written;
         Memory::Copy(newStr, buffer, length + 1);
-        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(str, length + 1, MEMORY_TAG_ENTITY);
         str = newStr;
 
         return written;
@@ -297,7 +291,7 @@ void String::Empty()
 {
     if (str)
     {
-        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(str, length + 1, MEMORY_TAG_ENTITY);
         str = nullptr;
         length = 0;
     }
@@ -310,14 +304,8 @@ void String::Trim()
 
 String String::SubString(U64 start, U64 length) const
 {
-    String dest(length);
-
-    for (U64 i = start, j = 0; j < length && i < this->length; ++i, ++j)
-    {
-        dest[j] = str[i];
-    }
-
-    return dest;
+    //TODO:
+    return {};
 }
 
 U64 String::IndexOf(char c) const
@@ -345,13 +333,13 @@ void String::Append(const String& append)
     {
         U64 newLength = length + append.length;
 
-        char* newStr = (char*)Memory::Allocate(newLength + 1, MEMORY_TAG_DATA_STRUCT);
+        char* newStr = (char*)Memory::Allocate(newLength + 1, MEMORY_TAG_ENTITY);
 
         Memory::Copy(newStr, str, length);
         Memory::Copy(newStr + length, append.str, append.length);
         newStr[newLength] = '\0';
 
-        Memory::Free(str, length + 1, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(str, length + 1, MEMORY_TAG_ENTITY);
         str = newStr;
         length = newLength;
     }

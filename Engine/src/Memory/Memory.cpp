@@ -9,6 +9,7 @@
 
 #ifdef NH_DEBUG
 static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
+    "TOTAL      ",
     "UNKNOWN    ",
     "DATA_STRUCT",
     "LINEAR_ALLC",
@@ -26,21 +27,17 @@ static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
 #endif
 
 U64 Memory::totalAllocSize;
-U64 Memory::totalAllocated;
 U64 Memory::allocCount;
 U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
 void* Memory::allocatorBlock;
 
 bool Memory::Initialize(U64 memoryRequirement)
 {
-    //TODO: Somehow queue message "Initializing the memory system with a size of %d bytes" to logger before initialization
-
     //TODO: Memory alignment
     //NOTE: Don't allocate this block until we have an allocator
     //allocatorBlock = Platform::Allocate(memoryRequirement, false);
 
     totalAllocSize = memoryRequirement;
-    totalAllocated = 0;
     allocCount = 0;
 
     return true;
@@ -54,8 +51,8 @@ void Memory::Shutdown()
 
 void* Memory::Allocate(U64 size, MemoryTag tag)
 {
-    totalAllocated += size;
     taggedAllocations[tag] += size;
+    taggedAllocations[MEMORY_TAG_TOTAL] += size;
     ++allocCount;
 
     //TODO: Custom allocator
@@ -67,8 +64,8 @@ void* Memory::Allocate(U64 size, MemoryTag tag)
 
 void Memory::Free(void* block, U64 size, MemoryTag tag)
 {
-    totalAllocated -= size;
     taggedAllocations[tag] -= size;
+    taggedAllocations[MEMORY_TAG_TOTAL] -= size;
     //TODO: Custom allocator
     //TODO: Memory alignment
     Platform::Free(block, false);
@@ -136,7 +133,6 @@ U64 Memory::BigEndianU64(U8* data)
 
     return result;
 }
-
 
 void Memory::GetMemoryStats()
 {

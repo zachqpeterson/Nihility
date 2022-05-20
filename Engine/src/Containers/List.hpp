@@ -159,8 +159,8 @@ inline List<T>::List(const List<T>& other)
 
     while (node)
     {
-        PushBack(node->_value);
-        node = node->_next;
+        PushBack(node->value);
+        node = node->next;
     }
 }
 
@@ -289,6 +289,8 @@ inline T&& List<T>::PopFront() noexcept
         Memory::Free(tempNode, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
         return Move(value);
     }
+
+    return Move(T{});
 }
 
 template<typename T>
@@ -340,6 +342,8 @@ inline T&& List<T>::PopBack() noexcept
         Memory::Free(tempNode, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
         return Move(value);
     }
+
+    return Move(T{});
 }
 
 template<typename T>

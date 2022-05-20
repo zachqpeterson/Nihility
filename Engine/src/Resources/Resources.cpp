@@ -143,6 +143,7 @@ void Resources::UnloadImage(Image* resource)
     resource->name.Destroy();
     resource->path.Destroy();
     resource->pixels.Destroy();
+    Memory::Free(resource, sizeof(Image), MEMORY_TAG_RESOURCE);
     resource = nullptr;
 }
 
@@ -163,6 +164,9 @@ void Resources::LoadBMP(Image* image, File* file)
 
     file->Seek(header->bfOffBits);
     image->pixels.SetArray(file->ReadBytes(info->biSizeImage), info->biSizeImage, MEMORY_TAG_RESOURCE);
+
+    Memory::Free(header, sizeof(BMPHeader), MEMORY_TAG_RESOURCE);
+    Memory::Free(info, sizeof(BMPInfo), MEMORY_TAG_RESOURCE);
 
     //TODO: Test speed of both methods
     U8 temp;
@@ -207,6 +211,8 @@ void Resources::LoadTGA(Image* image, File* file)
 
     image->width = header->width;
     image->height = header->height;
+
+    Memory::Free(header, sizeof(TGAHeader), MEMORY_TAG_RESOURCE);
 }
 
 Texture* Resources::LoadTexture(const String& name, ImageType type)

@@ -32,6 +32,8 @@ public:
     bool ReleaseInstanceResources(const Shader& shader, U32 instanceId) final;
     bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value) final;
 
+    bool OnResize(struct Vector2Int newSize) final;
+
     void* operator new(U64 size);
     void operator delete(void* p);
 

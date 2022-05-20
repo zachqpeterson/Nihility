@@ -1,15 +1,19 @@
 #include "RendererFrontend.hpp"
 
 #include "Core/Logger.hpp"
+#include "Core/Events.hpp"
 #include "Memory/Memory.hpp"
 #include "Containers/String.hpp"
 #include "Vulkan/VulkanRenderer.hpp"
 #include "Resources/Shader.hpp"
+#include "Math/Math.hpp"
 
 Renderer* RendererFrontend::renderer;
 
 bool RendererFrontend::Initialize()
 {
+    Events::Subscribe("Resize", OnResize);
+
     //Try vulkan
     renderer = new VulkanRenderer();
     if (renderer->Initialize()) { return true; }
@@ -36,11 +40,11 @@ bool RendererFrontend::DrawFrame()
 {
     ++renderer->frameNumber;
 
-    return
-        renderer->BeginFrame() &&
-        renderer->BeginRenderpass(0) &&
-        renderer->EndRenderpass(0) &&
-        renderer->EndFrame();
+    return true;
+        //renderer->BeginFrame() &&
+        //renderer->BeginRenderpass(0) &&
+        //renderer->EndRenderpass(0) &&
+        //renderer->EndFrame();
 }
 
 bool RendererFrontend::CreateTexture(const Vector<U8>& pixels, struct Texture* texture)
@@ -122,4 +126,9 @@ bool RendererFrontend::ReleaseInstanceResources(const Shader& shader, U32 instan
 bool RendererFrontend::SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value)
 {
     return renderer->SetUniform(shader, uniform, value);
+}
+
+bool RendererFrontend::OnResize(void* data)
+{
+    return renderer->OnResize(*(Vector2Int*)data);
 }
