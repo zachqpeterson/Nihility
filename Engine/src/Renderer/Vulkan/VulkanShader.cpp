@@ -4,8 +4,8 @@
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanCommandBuffer.hpp"
-#include "VulkanTexture.hpp"
 #include "VulkanPipeline.hpp"
+#include "VulkanImage.hpp"
 
 #include "Memory/Memory.hpp"
 #include "Resources/Resources.hpp"
@@ -103,7 +103,7 @@ bool VulkanShader::Create(RendererState* rendererState, U8 renderpassId, U8 stag
         ++instanceDescriptorSetConfig.bindingCount;
 
         config.descriptorSets[1] = instanceDescriptorSetConfig;
-        config.descriptorSetCount++;
+        ++config.descriptorSetCount;
     }
 
     // TODO: Dynamic
@@ -135,7 +135,8 @@ void VulkanShader::Destroy(RendererState* rendererState)
     mappedUniformBufferBlock = nullptr; //TODO: What?
     uniformBuffer->Destroy(rendererState);
 
-    //pipeline->Destroy(rendererState);
+    pipeline->Destroy(rendererState);
+    Memory::Free(pipeline, sizeof(VulkanPipeline), MEMORY_TAG_RENDERER);
 
     for (U32 i = 0; i < config.stageCount; ++i)
     {
@@ -145,14 +146,161 @@ void VulkanShader::Destroy(RendererState* rendererState)
     Memory::Zero(&config, sizeof(ShaderConfig));
 }
 
-bool VulkanShader::Initialize(RendererState* rendererState)
+bool VulkanShader::Initialize(RendererState* rendererState, Shader& shader)
 {
-    return false;
+    Memory::Zero(stages, sizeof(ShaderStage) * VULKAN_SHADER_MAX_STAGES);
+    for (U32 i = 0; i < config.stageCount; ++i)
+    {
+        if (!CreateShaderModule(rendererState, config.stages[i], &stages[i]))
+        {
+            LOG_ERROR("Unable to create %s shader module for '%s'. Shader will be destroyed.", (const char*)config.stages[i].fileName, (const char*)shader.name);
+            return false;
+        }
+    }
+
+    static VkFormat* types = 0;
+    static VkFormat t[11];
+    if (!types)
+    {
+        t[SHADER_ATTRIB_TYPE_FLOAT32] = VK_FORMAT_R32_SFLOAT;
+        t[SHADER_ATTRIB_TYPE_FLOAT32_2] = VK_FORMAT_R32G32_SFLOAT;
+        t[SHADER_ATTRIB_TYPE_FLOAT32_3] = VK_FORMAT_R32G32B32_SFLOAT;
+        t[SHADER_ATTRIB_TYPE_FLOAT32_4] = VK_FORMAT_R32G32B32A32_SFLOAT;
+        t[SHADER_ATTRIB_TYPE_INT8] = VK_FORMAT_R8_SINT;
+        t[SHADER_ATTRIB_TYPE_UINT8] = VK_FORMAT_R8_UINT;
+        t[SHADER_ATTRIB_TYPE_INT16] = VK_FORMAT_R16_SINT;
+        t[SHADER_ATTRIB_TYPE_UINT16] = VK_FORMAT_R16_UINT;
+        t[SHADER_ATTRIB_TYPE_INT32] = VK_FORMAT_R32_SINT;
+        t[SHADER_ATTRIB_TYPE_UINT32] = VK_FORMAT_R32_UINT;
+        types = t;
+    }
+
+    U32 offset = 0;
+    for (U32 i = 0; i < shader.attributes.Size(); ++i)
+    {
+        VkVertexInputAttributeDescription attribute;
+        attribute.location = i;
+        attribute.binding = 0;
+        attribute.offset = offset;
+        attribute.format = types[shader.attributes[i].type];
+
+        config.attributes[i] = attribute;
+
+        offset += shader.attributes[i].size;
+    }
+
+    for (U32 i = 0; i < shader.uniforms.Size(); ++i)
+    {
+        if (shader.uniforms[i].type == SHADER_UNIFORM_TYPE_SAMPLER)
+        {
+            const U32 setIndex = (shader.uniforms[i].scope == SHADER_SCOPE_GLOBAL ? 0 : 1);
+            DescriptorSetConfig* setConfig = &config.descriptorSets[setIndex];
+            if (setConfig->bindingCount < 2)
+            {
+                setConfig->bindings[1].binding = 1;
+                setConfig->bindings[1].descriptorCount = 1;
+                setConfig->bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                setConfig->bindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+                ++setConfig->bindingCount;
+            }
+            else
+            {
+                setConfig->bindings[1].descriptorCount++;
+            }
+        }
+    }
+
+    VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+    poolInfo.poolSizeCount = 2;
+    poolInfo.pPoolSizes = config.poolSizes;
+    poolInfo.maxSets = config.maxDescriptorSetCount;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
+    VkCheck_ERROR(vkCreateDescriptorPool(rendererState->device->logicalDevice, &poolInfo, rendererState->allocator, &descriptorPool));
+
+    Memory::Zero(descriptorSetLayouts, config.descriptorSetCount);
+    for (U32 i = 0; i < config.descriptorSetCount; ++i)
+    {
+        VkDescriptorSetLayoutCreateInfo layoutInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        layoutInfo.bindingCount = config.descriptorSets[i].bindingCount;
+        layoutInfo.pBindings = config.descriptorSets[i].bindings;
+        VkCheck_ERROR(vkCreateDescriptorSetLayout(rendererState->device->logicalDevice, &layoutInfo, rendererState->allocator, &descriptorSetLayouts[i]));
+    }
+
+    // TODO: This feels wrong to have these here, at least in this fashion. Should probably
+    // Be configured to pull from someplace instead.
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = (F32)rendererState->framebufferHeight;
+    viewport.width = (F32)rendererState->framebufferWidth;
+    viewport.height = -(F32)rendererState->framebufferHeight;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor;
+    scissor.offset.x = scissor.offset.y = 0;
+    scissor.extent.width = rendererState->framebufferWidth;
+    scissor.extent.height = rendererState->framebufferHeight;
+
+    VkPipelineShaderStageCreateInfo stageInfos[VULKAN_SHADER_MAX_STAGES];
+    Memory::Zero(stageInfos, sizeof(VkPipelineShaderStageCreateInfo) * VULKAN_SHADER_MAX_STAGES);
+    for (U32 i = 0; i < config.stageCount; ++i)
+    {
+        stageInfos[i] = stages[i].shaderStageInfo;
+    }
+
+    pipeline->Create(
+        rendererState,
+        renderpass,
+        shader.attributeStride,
+        shader.attributes.Size(),
+        config.attributes,
+        config.descriptorSetCount,
+        descriptorSetLayouts,
+        config.stageCount,
+        stageInfos,
+        viewport,
+        scissor,
+        false,
+        true,
+        shader.pushConstantRangeCount,
+        shader.pushConstantRanges);
+
+    shader.requiredUboAlignment = rendererState->device->properties.limits.minUniformBufferOffsetAlignment;
+
+    shader.globalUboStride = AlignPow2(shader.globalUboSize, shader.requiredUboAlignment);
+    shader.uboStride = AlignPow2(shader.uboSize, shader.requiredUboAlignment);
+
+    U32 deviceLocalBits = rendererState->device->supportsDeviceLocalHostVisible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
+    // TODO: max count should be configurable, or perhaps long term support of buffer resizing.
+    U64 totalBufferSize = shader.globalUboStride + (shader.uboStride * VULKAN_MAX_MATERIAL_COUNT);
+    uniformBuffer->Create(
+        rendererState, totalBufferSize,
+        (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
+        (VkMemoryPropertyFlagBits)(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | deviceLocalBits),
+        true, true);
+
+    uniformBuffer->Allocate(shader.globalUboStride, &shader.globalUboOffset);
+
+    mappedUniformBufferBlock = uniformBuffer->LockMemory(rendererState, 0, VK_WHOLE_SIZE, 0);
+
+    VkDescriptorSetLayout globalLayouts[3] = {
+        descriptorSetLayouts[0],
+        descriptorSetLayouts[0],
+        descriptorSetLayouts[0] };
+
+    VkDescriptorSetAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+    alloc_info.descriptorPool = descriptorPool;
+    alloc_info.descriptorSetCount = 3;
+    alloc_info.pSetLayouts = globalLayouts;
+    VkCheck_ERROR(vkAllocateDescriptorSets(rendererState->device->logicalDevice, &alloc_info, globalDescriptorSets));
+
+    return true;
 }
 
 bool VulkanShader::Use(RendererState* rendererState)
 {
-    //pipeline.Bind(&rendererState->graphicsCommandBuffers[rendererState->imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS);
+    pipeline->Bind(rendererState->graphicsCommandBuffers[rendererState->imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS);
     return true;
 }
 
@@ -173,7 +321,7 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState)
     bufferInfo.offset = globalUboOffset;
     bufferInfo.range = globalUboStride;
 
-    VkWriteDescriptorSet uboWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    VkWriteDescriptorSet uboWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
     uboWrite.dstSet = globalDescriptorSets[imageIndex];
     uboWrite.dstBinding = 0;
     uboWrite.dstArrayElement = 0;
@@ -185,7 +333,8 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState)
     descriptorWrites[0] = uboWrite;
 
     U32 globalSetBindingCount = config.descriptorSets[0].bindingCount;
-    if (globalSetBindingCount > 1) {
+    if (globalSetBindingCount > 1)
+    {
         // TODO: There are samplers to be written. Support this.
         globalSetBindingCount = 1;
         LOG_ERROR("Global image samplers are not yet supported.");
@@ -262,7 +411,7 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, bool needsUpdate)
                 Texture* t = instanceStates[boundInstanceId].instanceTextures[i];
                 VulkanTexture* internalData = (VulkanTexture*)t->internalData;
                 imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfos[i].imageView = internalData->image.view;
+                imageInfos[i].imageView = internalData->image->view;
                 imageInfos[i].sampler = internalData->sampler;
 
                 // TODO: change up descriptor state to handle this properly.
@@ -318,17 +467,16 @@ U32 VulkanShader::AcquireInstanceResources(RendererState* rendererState)
 
     InstanceState* instanceState = &instanceStates[outInstanceId];
     U32 instanceTextureCount = config.descriptorSets[1].bindings[1].descriptorCount;
-    
+
     instanceState->instanceTextures.Resize(instanceTextureCount);
     Texture* defaultTexture = Resources::DefaultTexture();
-    
+
     for (U32 i = 0; i < instanceTextureCount; ++i)
     {
         instanceState->instanceTextures[i] = defaultTexture;
     }
 
     U64 size = uboStride;
-    
 
     if (!uniformBuffer->Allocate(size, &instanceState->offset))
     {
@@ -414,5 +562,37 @@ bool VulkanShader::SetUniform(RendererState* rendererState, Shader& shader, cons
             }
         }
     }
+    return true;
+}
+
+bool VulkanShader::CreateShaderModule(RendererState* rendererState, ShaderStageConfig config, ShaderStage* shaderStage)
+{
+    Binary* binary = Resources::LoadBinary(config.fileName);
+
+    if (!binary)
+    {
+        LOG_ERROR("Unable to read shader module: %s.", (const char*)config.fileName);
+        return false;
+    }
+
+    Memory::Zero(&shaderStage->info, sizeof(VkShaderModuleCreateInfo));
+    shaderStage->info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderStage->info.codeSize = binary->data.Size();
+    shaderStage->info.pCode = (U32*)binary->data.Data();
+
+    VkCheck(vkCreateShaderModule(
+        rendererState->device->logicalDevice,
+        &shaderStage->info,
+        rendererState->allocator,
+        &shaderStage->handle));
+
+    Resources::UnloadBinary(binary);
+
+    Memory::Zero(&shaderStage->shaderStageInfo, sizeof(VkPipelineShaderStageCreateInfo));
+    shaderStage->shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStage->shaderStageInfo.stage = config.stage;
+    shaderStage->shaderStageInfo.module = shaderStage->handle;
+    shaderStage->shaderStageInfo.pName = "main";
+
     return true;
 }

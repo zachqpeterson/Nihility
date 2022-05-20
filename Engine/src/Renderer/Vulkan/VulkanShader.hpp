@@ -67,7 +67,7 @@ class VulkanShader
 public:
     bool Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages);
     void Destroy(RendererState* rendererState);
-    bool Initialize(RendererState* rendererState);
+    bool Initialize(RendererState* rendererState, Shader& shader);
 
     bool Use(RendererState* rendererState);
     bool BindGlobals(RendererState* rendererState);
@@ -77,6 +77,7 @@ public:
     U32 AcquireInstanceResources(RendererState* rendererState);
     bool ReleaseInstanceResources(RendererState* rendererState, U32 instanceId);
     bool SetUniform(RendererState* rendererState, Shader& shader, const ShaderUniform& uniform, const void* value);
+    bool CreateShaderModule(RendererState* rendererState, ShaderStageConfig config, ShaderStage* shaderStage);
 
 public:
     void* mappedUniformBufferBlock;

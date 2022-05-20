@@ -118,15 +118,15 @@ private:
 };
 
 template<typename T>
-inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity }
+inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity }, tag{ MEMORY_TAG_DATA_STRUCT }
 {
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
 }
 
 template<typename T>
-inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
+inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }, tag{ MEMORY_TAG_DATA_STRUCT }
 {
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
 
     for (int i = 0; i < size; ++i)
     {
@@ -135,9 +135,9 @@ inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ siz
 }
 
 template<typename T>
-inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.capacity }
+inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.capacity }, tag{ other.tag }
 {
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
 
     Memory::Copy(array, other.array, size);
 }
@@ -185,6 +185,7 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 
     size = other.size;
     capacity = other.capacity;
+    tag = other.tag;
     array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
 
     Memory::Copy(array, other.array, size);
@@ -198,9 +199,11 @@ inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
     size = other.size;
     capacity = other.capacity;
     array = other.array;
+    tag = other.tag;
     other.size = 0;
     other.capacity = 0;
     other.array = nullptr;
+    other.tag = MEMORY_TAG_DATA_STRUCT;
 
     return *this;
 }
@@ -311,18 +314,18 @@ inline void Vector<T>::Reserve(U64 capacity)
 {
     if (array)
     {
-        T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+        T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
 
         Memory::Copy(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
 
-        Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
+        Memory::Free(array, sizeof(T) * this->capacity, tag);
         array = newArray;
         this->capacity = capacity;
         size = size > capacity ? capacity : size;
     }
     else
     {
-        array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+        array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
         this->capacity = capacity;
         size = 0;
     }

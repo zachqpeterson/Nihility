@@ -9,7 +9,7 @@ struct Freelist
     {
         U64 offset;
         U64 size;
-        struct Node* next;
+        Node* next;
     };
 
 public:
@@ -26,8 +26,7 @@ private:
     U64 totalSize;
     U64 maxEntries;
     Node* head;
-    Node* nodes;
 
-    struct Node* GetNode();
-    void ReturnNode(struct Node* node);
+    Node* GetNode();
+    void ReturnNode(Node* node);
 };

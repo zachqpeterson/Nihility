@@ -79,7 +79,7 @@ void RendererFrontend::DestroyShader(const Shader& shader)
     renderer->DestroyShader(shader);
 }
 
-bool RendererFrontend::InitializeShader(const Shader& shader)
+bool RendererFrontend::InitializeShader(Shader& shader)
 {
     return renderer->InitializeShader(shader);
 }

@@ -89,6 +89,55 @@ void* Memory::Set(void* dest, I32 value, U64 size)
     return Platform::Set(dest, value, size);
 }
 
+U8 Memory::BigEndianU8(U8* data)
+{
+    U32 result = 0;
+    for (U8 i = 0; i < 1; ++i)
+    {
+        result <<= 8;
+        result |= *(data + i);
+    }
+
+    return result;
+}
+
+U16 Memory::BigEndianU16(U8* data)
+{
+    U32 result = 0;
+    for (U8 i = 0; i < 2; ++i)
+    {
+        result <<= 8;
+        result |= *(data + i);
+    }
+
+    return result;
+}
+
+U32 Memory::BigEndianU32(U8* data)
+{
+    U32 result = 0;
+    for (U8 i = 0; i < 4; ++i)
+    {
+        result <<= 8;
+        result |= *(data + i);
+    }
+
+    return result;
+}
+
+U64 Memory::BigEndianU64(U8* data)
+{
+    U32 result = 0;
+    for (U8 i = 0; i < 8; ++i)
+    {
+        result <<= 8;
+        result |= *(data + i);
+    }
+
+    return result;
+}
+
+
 void Memory::GetMemoryStats()
 {
 #ifdef NH_DEBUG

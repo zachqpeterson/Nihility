@@ -101,7 +101,7 @@ U8* File::ReadBytes(U64 length)
 {
     if (handle)
     {
-        U8* buf = (U8*)Memory::Allocate(sizeof(U8) * length, MEMORY_TAG_DATA_STRUCT);
+        U8* buf = (U8*)Memory::Allocate(sizeof(U8) * length, MEMORY_TAG_RESOURCE);
         fread(buf, 1, length, (FILE*)handle);
         return buf;
     }
@@ -114,7 +114,7 @@ U8* File::ReadAllBytes(U64& size)
     if (handle)
     {
         size = Size();
-        U8* data = (U8*)Memory::Allocate(sizeof(U8) * size, MEMORY_TAG_DATA_STRUCT);
+        U8* data = (U8*)Memory::Allocate(sizeof(U8) * size, MEMORY_TAG_RESOURCE);
 
         fread(data, 1, size, (FILE*)handle);
         return data;

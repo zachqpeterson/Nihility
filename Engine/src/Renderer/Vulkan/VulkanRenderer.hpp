@@ -22,7 +22,7 @@ public:
 
     bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages) final;
     void DestroyShader(const Shader& shader) final;
-    bool InitializeShader(const Shader& shader) final;
+    bool InitializeShader(Shader& shader) final;
     bool UseShader(const Shader& shader) final;
     bool BindGlobals(const Shader& shader) final;
     bool BindInstance(const Shader& shader, U32 instanceId) final;

@@ -39,6 +39,11 @@ public:
     static NH_API void* Copy(void* dest, const void* source, U64 size);
     static NH_API void* Set(void* dest, I32 value, U64 size);
 
+    static NH_API U8  BigEndianU8 (U8* data);
+    static NH_API U16 BigEndianU16(U8* data);
+    static NH_API U32 BigEndianU32(U8* data);
+    static NH_API U64 BigEndianU64(U8* data);
+
     //NOTE: Debug only
     static void GetMemoryStats();
 

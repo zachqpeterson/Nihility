@@ -25,11 +25,11 @@ void Engine::Initialize()
 
     Input::Initialize();
 
-    Resources::Initialize();
-
     ShaderSystem::Initialize();
 
     RendererFrontend::Initialize();
+
+    Resources::Initialize();
 
     Time::Initialize();
 
@@ -91,17 +91,20 @@ void Engine::Shutdown()
 {
     Time::Shutdown();
 
+    Resources::Shutdown();
+
     RendererFrontend::Shutdown();
 
     ShaderSystem::Shutdown();
-
-    Resources::Shutdown();
 
     Input::Shutdown();
 
     Platform::Shutdown();
 
     Logger::Shutdown();
+
+    //TODO: Remove later
+    Memory::GetMemoryStats();
 
     Memory::Shutdown();
 }

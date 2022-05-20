@@ -8,25 +8,23 @@ Freelist::Freelist(U64 size)
 {
     totalSize = size;
     maxEntries = (size / (sizeof(void*) * sizeof(Node)));
-    nodes = (Node*)Memory::Allocate(sizeof(Node) * size, MEMORY_TAG_DATA_STRUCT);
-    Memory::Zero(nodes, sizeof(Node) * size);
+    head = (Node*)Memory::Allocate(sizeof(Node) * size, MEMORY_TAG_DATA_STRUCT);
+    Memory::Zero(head, sizeof(Node) * size);
 
-    head = &nodes[0];
     head->offset = 0;
     head->size = size;
     head->next = nullptr;
 
     for (U64 i = 1; i < maxEntries; ++i)
     {
-        nodes[i].offset = INVALID_ID;
-        nodes[i].size = INVALID_ID;
+        head[i].offset = INVALID_ID;
+        head[i].size = INVALID_ID;
     }
 }
 
 void Freelist::Destroy()
 {
-    Memory::Free(nodes, sizeof(Node) * totalSize, MEMORY_TAG_DATA_STRUCT);
-    nodes = nullptr;
+    Memory::Free(head, sizeof(Node) * totalSize, MEMORY_TAG_DATA_STRUCT);
     head = nullptr;
 }
 
@@ -147,24 +145,22 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
 
 bool Freelist::Resize(U64 newSize)
 {
-    Node* temp = nodes;
+    Node* temp = head;
     U64 oldSize = totalSize;
     U64 sizeDiff = newSize - totalSize;
 
-    nodes = (Node*)Memory::Allocate(sizeof(Node) * newSize, MEMORY_TAG_DATA_STRUCT);
+    head = (Node*)Memory::Allocate(sizeof(Node) * newSize, MEMORY_TAG_DATA_STRUCT);
 
-    Memory::Zero(nodes, sizeof(Node) * newSize);
+    Memory::Zero(head, sizeof(Node) * newSize);
 
     maxEntries = (newSize / (sizeof(void*) * sizeof(Node)));
     totalSize = newSize;
 
     for (U64 i = 1; i < maxEntries; ++i)
     {
-        nodes[i].offset = INVALID_ID;
-        nodes[i].size = INVALID_ID;
+        head[i].offset = INVALID_ID;
+        head[i].size = INVALID_ID;
     }
-
-    head = &nodes[0];
 
     Node* newListNode = head;
     Node* oldNode = &temp[0];
@@ -217,8 +213,8 @@ void Freelist::Cleanup()
 {
     for (U64 i = 1; i < maxEntries; ++i)
     {
-        nodes[i].offset = INVALID_ID;
-        nodes[i].size = INVALID_ID;
+        head[i].offset = INVALID_ID;
+        head[i].size = INVALID_ID;
     }
 
     head->offset = 0;
@@ -244,9 +240,9 @@ Freelist::Node* Freelist::GetNode()
 {
     for (U64 i = 1; i < maxEntries; ++i)
     {
-        if (nodes[i].offset == INVALID_ID)
+        if (head[i].offset == INVALID_ID)
         {
-            return &nodes[i];
+            return &head[i];
         }
     }
 

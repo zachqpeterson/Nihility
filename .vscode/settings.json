@@ -75,6 +75,7 @@
 		"atomic": "cpp",
 		"hash_map": "cpp",
 		"tuple": "cpp",
-		"iosfwd": "c"
+		"iosfwd": "c",
+		"cstddef": "cpp"
 	}
 }

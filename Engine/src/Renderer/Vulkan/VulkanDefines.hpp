@@ -16,7 +16,7 @@
 #define VK_USE_PLATFORM_IOS_MVK
 #endif
 
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
 
 //#define USE_EXTENDED
 
@@ -244,6 +244,12 @@ struct VulkanMesh
     U32 indexCount;
     U32 indexElementSize;
     U64 indexBufferOffset;
+};
+
+struct VulkanTexture
+{
+    class VulkanImage* image;
+    VkSampler sampler;
 };
 
 struct RendererState

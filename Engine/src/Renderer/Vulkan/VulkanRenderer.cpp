@@ -140,6 +140,11 @@ void VulkanRenderer::Shutdown()
 #endif
     vkDestroyInstance(rendererState->instance, rendererState->allocator);
 
+    rendererState->graphicsCommandBuffers.Destroy();
+    rendererState->imageAvailableSemaphores.Destroy();
+    rendererState->queueCompleteSemaphores.Destroy();
+    rendererState->meshes.Destroy();
+
     Memory::Free(rendererState, sizeof(RendererState), MEMORY_TAG_RENDERER);
 }
 
@@ -359,36 +364,6 @@ bool VulkanRenderer::CreateBuffers()
     return true;
 }
 
-bool VulkanRenderer::CreateShaderModule(const String& name, const String& typeStr,
-    VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<ShaderStage> shaderStages)
-{
-    String fileName;
-    fileName.Format("shaders/%s.%s.spv", (const char*)name, (const char*)typeStr);
-
-    Binary* binary = Resources::LoadBinary(fileName);
-
-    Memory::Zero(&shaderStages[stageIndex].info, sizeof(VkShaderModuleCreateInfo));
-    shaderStages[stageIndex].info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderStages[stageIndex].info.codeSize = binary->data.Size();
-    shaderStages[stageIndex].info.pCode = (U32*)binary->data.Data();
-
-    VkCheck(vkCreateShaderModule(
-        rendererState->device->logicalDevice,
-        &shaderStages[stageIndex].info,
-        rendererState->allocator,
-        &shaderStages[stageIndex].handle));
-
-    Resources::UnloadBinary(binary);
-
-    Memory::Zero(&shaderStages[stageIndex].shaderStageInfo, sizeof(VkPipelineShaderStageCreateInfo));
-    shaderStages[stageIndex].shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStages[stageIndex].shaderStageInfo.stage = shaderStageFlag;
-    shaderStages[stageIndex].shaderStageInfo.module = shaderStages[stageIndex].handle;
-    shaderStages[stageIndex].shaderStageInfo.pName = "main";
-
-    return true;
-}
-
 bool VulkanRenderer::BeginFrame()
 {
     if (rendererState->recreatingSwapchain)
@@ -560,16 +535,105 @@ void VulkanRenderer::DrawMesh(Mesh* mesh, const Matrix4& modelMat)
 
 bool VulkanRenderer::CreateTexture(const Vector<U8>& pixels, struct Texture* texture)
 {
-    //TODO:
+    // TODO: Use an allocator for this.
+    texture->internalData = (VulkanTexture*)Memory::Allocate(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+    VulkanTexture* data = (VulkanTexture*)texture->internalData;
+    VkDeviceSize imageSize = texture->width * texture->height * texture->channelCount;
+
+    // NOTE: Assumes 8 bits per channel.
+    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
+    VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkMemoryPropertyFlags memoryPropFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VulkanBuffer staging;
+    staging.Create(rendererState, imageSize, usage, memoryPropFlags, true, false);
+
+    staging.LoadData(rendererState, 0, imageSize, 0, pixels.Data());
+
+    // NOTE: Lots of assumptions here, different texture types will require
+    // different options here.
+    data->image = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_TEXTURE);
+    data->image->Create(
+        rendererState,
+        VK_IMAGE_TYPE_2D,
+        texture->width,
+        texture->height,
+        imageFormat,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        true,
+        VK_IMAGE_ASPECT_COLOR_BIT);
+
+    VulkanCommandBuffer tempBuffer;
+    VkCommandPool pool = rendererState->device->graphicsCommandPool;
+    VkQueue queue = rendererState->device->graphicsQueue;
+    tempBuffer.AllocateAndBeginSingleUse(rendererState, pool);
+
+    data->image->TransitionLayout(
+        rendererState,
+        &tempBuffer,
+        imageFormat,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    data->image->CopyFromBuffer(rendererState, staging.handle, &tempBuffer);
+
+    data->image->TransitionLayout(
+        rendererState,
+        &tempBuffer,
+        imageFormat,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    tempBuffer.EndSingleUse(rendererState, pool, queue);
+
+    staging.Destroy(rendererState);
+
+    VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+    // TODO: These filters should be configurable.
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    VkCheck_ERROR(vkCreateSampler(rendererState->device->logicalDevice, &samplerInfo, rendererState->allocator, &data->sampler));
+
+    ++texture->generation;
+
     return true;
 }
 
 bool VulkanRenderer::DestroyTexture(Texture* texture)
 {
-    //TODO:
-    return true;
-}
+    vkDeviceWaitIdle(rendererState->device->logicalDevice);
 
+    VulkanTexture* data = (VulkanTexture*)texture->internalData;
+    if (data)
+    {
+        data->image->Destroy(rendererState);
+        Memory::Free(data->image, sizeof(VulkanImage), MEMORY_TAG_TEXTURE);
+        vkDestroySampler(rendererState->device->logicalDevice, data->sampler, rendererState->allocator);
+        data->sampler = 0;
+
+        Memory::Free(texture->internalData, sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+
+        return true;
+    }
+
+    return false;
+}
 
 bool VulkanRenderer::CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages)
 {
@@ -584,10 +648,10 @@ void VulkanRenderer::DestroyShader(const Shader& shader)
     if (outShader) { outShader->Destroy(rendererState); }
 }
 
-bool VulkanRenderer::InitializeShader(const Shader& shader)
+bool VulkanRenderer::InitializeShader(Shader& shader)
 {
     VulkanShader* outShader = (VulkanShader*)shader.internalData;
-    if (outShader) { return outShader->Initialize(rendererState); }
+    if (outShader) { return outShader->Initialize(rendererState, shader); }
     return false;
 }
 
