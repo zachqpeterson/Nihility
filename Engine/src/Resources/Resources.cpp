@@ -15,7 +15,7 @@ Texture* Resources::defaultNormal;
 
 #define BINARIES_PATH "../assets/binaries/";
 #define TEXTURES_PATH "../assets/textures/";
-#define MATERIALS_PATH "../assets/materials/";
+#define MATERIALS_PATH "../assets/materials/"; 
 #define MODELS_PATH "../assets/models/";
 #define SHADERS_PATH "../assets/shaders/";
 

@@ -535,7 +535,6 @@ void VulkanRenderer::DrawMesh(Mesh* mesh, const Matrix4& modelMat)
 
 bool VulkanRenderer::CreateTexture(const Vector<U8>& pixels, struct Texture* texture)
 {
-    // TODO: Use an allocator for this.
     texture->internalData = (VulkanTexture*)Memory::Allocate(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
     VulkanTexture* data = (VulkanTexture*)texture->internalData;
     VkDeviceSize imageSize = texture->width * texture->height * texture->channelCount;
