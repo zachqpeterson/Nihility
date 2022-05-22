@@ -13,6 +13,8 @@ Texture* Resources::defaultDiffuse;
 Texture* Resources::defaultSpecular;
 Texture* Resources::defaultNormal;
 
+Hashtable<String, Material*> Resources::materials;
+
 #define BINARIES_PATH "../assets/binaries/";
 #define TEXTURES_PATH "../assets/textures/";
 #define MATERIALS_PATH "../assets/materials/"; 
@@ -65,6 +67,8 @@ bool Resources::Initialize()
 {
     //TODO: Load defaults
     defaultTexture = LoadTexture("defaultTexture.bmp", IMAGE_TYPE_BMP);
+
+    materials.Fill(nullptr);
 
     return true;
 }
@@ -254,4 +258,43 @@ void Resources::UnloadTexture(Texture* resource)
     resource->path.Destroy();
     Memory::Free(resource, sizeof(Texture), MEMORY_TAG_TEXTURE);
     resource = nullptr;
+}
+
+Mesh* Resources::LoadMesh(const String& name)
+{
+
+}
+
+Mesh* Resources::CreateMesh(const Vector<Vertex3>& vertices, const Vector<U32>& indices, const String& material)
+{
+    Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
+}
+
+Mesh* Resources::CreateMesh(const Vector<Vertex3>& vertices, const Vector<U32>& indices, const Material& material)
+{
+    Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
+}
+
+Mesh* Resources::CreateMesh2D(const Vector<Vertex2>& vertices, const Vector<U32>& indices, const String& material)
+{
+    Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
+}
+
+Mesh* Resources::CreateMesh2D(const Vector<Vertex2>& vertices, const Vector<U32>& indices, const Material& material)
+{
+    Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
+}
+
+void Resources::UnloadMesh(Mesh* mesh)
+{
+
+}
+
+Material* Resources::LoadMaterial(const String& name)
+{
+    Material* material = materials.Get(name);
+
+    if(material) { return material; }
+
+    material = (Material*)Memory::Allocate(sizeof(Material), MEMORY_TAG_RESOURCE);
 }

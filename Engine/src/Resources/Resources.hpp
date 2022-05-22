@@ -118,6 +118,13 @@ public:
     static NH_API void UnloadImage(Image* resource);
     static NH_API Texture* LoadTexture(const String& name, ImageType type);
     static NH_API void UnloadTexture(Texture* resource);
+    static NH_API Mesh* LoadMesh(const String& name);
+    static NH_API Mesh* CreateMesh(const Vector<Vertex3>& vertices, const Vector<U32>& indices, const String& material);
+    static NH_API Mesh* CreateMesh(const Vector<Vertex3>& vertices, const Vector<U32>& indices, const Material& material);
+    static NH_API Mesh* CreateMesh2D(const Vector<Vertex2>& vertices, const Vector<U32>& indices, const String& material);
+    static NH_API Mesh* CreateMesh2D(const Vector<Vertex2>& vertices, const Vector<U32>& indices, const Material& material);
+    static NH_API void UnloadMesh(Mesh* mesh);
+    static NH_API Material* LoadMaterial(const String& name);
 
     static NH_API struct Texture* DefaultTexture() { return defaultTexture; }
     static NH_API struct Texture* DefaultDiffuse() { return defaultDiffuse; }
@@ -136,4 +143,6 @@ private:
     static Texture* defaultDiffuse;
     static Texture* defaultSpecular;
     static Texture* defaultNormal;
+
+    static Hashtable<String, Material*> materials;
 };
