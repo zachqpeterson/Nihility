@@ -97,6 +97,8 @@ const Vector4Int Vector4Int::BACK = { 0,  0, -1,  0 };
 const Vector4Int Vector4Int::OUTWARD = { 0,  0,  0,  1 };
 const Vector4Int Vector4Int::INWARD = { 0,  0,  0, -1 };
 
+const Matrix2 Matrix2::ONE = { { 1.f, 0.f }, { 0.f, 1.f } };
+const Matrix3 Matrix3::ONE = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
 const Matrix4 Matrix4::ONE = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f, 0.f }, { 0.f, 0.f, 0.f, 1.f } };
 
 //TRIGONOMETRY
@@ -176,7 +178,7 @@ F64 Math::InvSqrt(F64 f)
     return InvSqrt((F32)f);
 }
 
-Matrix4 Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
+Matrix4&& Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
 {
     Matrix4 result = Matrix4::ONE;
     result[0][0] = 2.0f / (right - left);
@@ -185,10 +187,10 @@ Matrix4 Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F
     result[3][0] = -(right + left) / (right - left);
     result[3][1] = -(top + bottom) / (top - bottom);
     result[3][2] = -(far + near) / (far - near);
-    return result;
+    return Move(result);
 }
 
-Matrix4 Math::Perspective(F32 fov, F32 aspect, F32 near, F32 far)
+Matrix4&& Math::Perspective(F32 fov, F32 aspect, F32 near, F32 far)
 {
     const F32 tanHalfFovy = Math::Tan(fov / 2.0f);
 
@@ -198,7 +200,7 @@ Matrix4 Math::Perspective(F32 fov, F32 aspect, F32 near, F32 far)
     result[2][2] = -(far + near) / (far - near);
     result[2][3] = -1.0f;
     result[3][2] = -(2.0f * far * near) / (far - near);
-    return result;
+    return Move(result);
 }
 
 //NOISE
@@ -402,7 +404,7 @@ F32 Math::RandomRangeF(F32 min, F32 max, U32 seed)
 }
 
 //QUATERNION
-Quaternion Quaternion::AxisAngle(Vector3 axis, F32 angle, bool normalize)
+Quaternion&& Quaternion::AxisAngle(const Vector3& axis, F32 angle, bool normalize)
 {
     const F32 halfAngle = 0.5f * angle;
     F32 s = Math::Sin(halfAngle);
@@ -410,10 +412,21 @@ Quaternion Quaternion::AxisAngle(Vector3 axis, F32 angle, bool normalize)
 
     Quaternion q = { s * axis.x, s * axis.y, s * axis.z, c };
     if (normalize) { return q.Normalized(); }
-    return q;
+    return Move(q);
 }
 
-Matrix4 Quaternion::ToMatrix4() const 
+Quaternion&& Quaternion::AxisAngle(const Vector2& axis, F32 angle, bool normalize)
+{
+    const F32 halfAngle = 0.5f * angle;
+    F32 s = Math::Sin(halfAngle);
+    F32 c = Math::Cos(halfAngle);
+
+    Quaternion q = { s * axis.x, s * axis.y, 0.0f, c };
+    if (normalize) { return q.Normalized(); }
+    return Move(q);
+}
+
+Matrix4&& Quaternion::ToMatrix4() const
 {
     Matrix4 matrix = Matrix4::ONE;
     Quaternion q = Normalized();
@@ -430,10 +443,30 @@ Matrix4 Quaternion::ToMatrix4() const
     matrix[1][2] = 2.0f * q.y * q.z + 2.0f * q.x * q.w;
     matrix[2][2] = 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y;
 
-    return matrix;
+    return Move(matrix);
 }
 
-Matrix4 Quaternion::ToRotationMat(Vector3 center) const 
+Matrix3&& Quaternion::ToMatrix3() const
+{
+    Matrix3 matrix = Matrix3::ONE;
+    Quaternion q = Normalized();
+
+    matrix[0][0] = 1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z;
+    matrix[1][0] = 2.0f * q.x * q.y - 2.0f * q.z * q.w;
+    matrix[2][0] = 2.0f * q.x * q.z + 2.0f * q.y * q.w;
+
+    matrix[0][1] = 2.0f * q.x * q.y + 2.0f * q.z * q.w;
+    matrix[1][1] = 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z;
+    matrix[2][1] = 2.0f * q.y * q.z - 2.0f * q.x * q.w;
+
+    matrix[0][2] = 2.0f * q.x * q.z - 2.0f * q.y * q.w;
+    matrix[1][2] = 2.0f * q.y * q.z + 2.0f * q.x * q.w;
+    matrix[2][2] = 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y;
+
+    return Move(matrix);
+}
+
+Matrix4&& Quaternion::RotationMatrix(Vector3 center) const 
 {
     Matrix4 matrix = Matrix4::ONE;
 
@@ -452,10 +485,10 @@ Matrix4 Quaternion::ToRotationMat(Vector3 center) const
     matrix[2][2] = -(x * x) - (y * y) + (z * z) + (w * w);
     matrix[3][2] = center.z - center.x * matrix[0][2] - center.y * matrix[1][2] - center.z * matrix[2][2];
 
-    return matrix;
+    return Move(matrix);
 }
 
-Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const 
+Quaternion&& Quaternion::Slerp(const Quaternion& q, F32 t) const
 {
     Quaternion out;
 
@@ -493,10 +526,10 @@ Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const
     F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
     F32 s1 = sinTheta / sinTheta0;
 
-    return {
+    return Move(Quaternion{
         (v0.x * s0) + (v1.x * s1),
         (v0.y * s0) + (v1.y * s1),
         (v0.z * s0) + (v1.z * s1),
         (v0.w * s0) + (v1.w * s1)
-    };
+    });
 }

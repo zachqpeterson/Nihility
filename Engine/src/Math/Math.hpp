@@ -129,15 +129,15 @@ public:
     static NH_API NH_INLINE F64 Sqrt(F64 f);
     static NH_API NH_INLINE F32 InvSqrt(F32 f);
     static NH_API NH_INLINE F64 InvSqrt(F64 f);
-    static NH_API NH_INLINE Matrix4 Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
-    static NH_API NH_INLINE Matrix4 Perspective(F32 fov, F32 aspect, F32 near, F32 far);
+    static NH_API NH_INLINE Matrix4&& Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
+    static NH_API NH_INLINE Matrix4&& Perspective(F32 fov, F32 aspect, F32 near, F32 far);
 
     //INTERPOLATION
     static NH_API NH_INLINE F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
     static NH_API NH_INLINE F64 Lerp(F64 a, F64 b, F64 t) { return a + t * (b - a); }
-    static NH_API NH_INLINE Vector2 Lerp(Vector2 a, Vector2 b, F32 t);
-    static NH_API NH_INLINE Vector3 Lerp(Vector3 a, Vector3 b, F32 t);
-    static NH_API NH_INLINE Vector4 Lerp(Vector4 a, Vector4 b, F32 t);
+    static NH_API NH_INLINE Vector2&& Lerp(const Vector2& a, const Vector2& b, F32 t);
+    static NH_API NH_INLINE Vector3&& Lerp(const Vector3& a, const Vector3& b, F32 t);
+    static NH_API NH_INLINE Vector4&& Lerp(const Vector4& a, const Vector4& b, F32 t);
     static NH_API NH_INLINE F32 InvLerp(F32 a, F32 b, F32 t) { return (t - a) / (b - a); }
     static NH_API NH_INLINE F64 InvLerp(F64 a, F64 b, F64 t) { return (t - a) / (b - a); }
     static NH_API NH_INLINE F32 MoveTowards(F32 a, F32 b, F32 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
@@ -173,7 +173,7 @@ struct Vector2
 {
     F32 x, y;
 
-    NH_API Vector2() : x { 0.0f }, y{ 0.0f } {}
+    NH_API Vector2() : x{ 0.0f }, y{ 0.0f } {}
     NH_API Vector2(F32 f) : x{ f }, y{ f } {}
     NH_API Vector2(F32 x, F32 y) : x{ x }, y{ y } {}
     NH_API Vector2(const Vector2& v) : x{ v.x }, y{ v.y } {}
@@ -188,17 +188,17 @@ struct Vector2
     NH_API Vector2& operator/= (F32 f) { x /= f; y /= f;					        return *this; }
     NH_API Vector2& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f);  return *this; }
 
-    NH_API Vector2 operator+ (const Vector2& v) const { return { x + v.x, y + v.y }; }
-    NH_API Vector2 operator- (const Vector2& v) const { return { x - v.x, y - v.y }; }
-    NH_API Vector2 operator* (F32 f) const { return { x * f, y * f }; }
-    NH_API Vector2 operator/ (F32 f) const { return { x / f, y / f }; }
-    NH_API Vector2 operator% (F32 f) const { return { Math::Mod(x, f), Math::Mod(y, f) }; }
+    NH_API Vector2&& operator+ (const Vector2& v) const { return Move(Vector2{ x + v.x, y + v.y }); }
+    NH_API Vector2&& operator- (const Vector2& v) const { return Move(Vector2{ x - v.x, y - v.y }); }
+    NH_API Vector2&& operator* (F32 f) const { return Move(Vector2{ x * f, y * f }); }
+    NH_API Vector2&& operator/ (F32 f) const { return Move(Vector2{ x / f, y / f }); }
+    NH_API Vector2&& operator% (F32 f) const { return Move(Vector2{ Math::Mod(x, f), Math::Mod(y, f) }); }
 
-    NH_API bool operator== (const Vector2& v) const { return x == v.x && y == v.y; }
-    NH_API bool operator!= (const Vector2& v) const { return x != v.x || y != v.y; }
+    NH_API bool operator== (const Vector2& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON; }
+    NH_API bool operator!= (const Vector2& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON; }
     NH_API bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    friend NH_API Vector2 operator- (Vector2& v) { return { -v.x, -v.y }; }
+    friend NH_API Vector2&& operator- (Vector2& v) { return Move(Vector2{ -v.x, -v.y }); }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -207,10 +207,10 @@ struct Vector2
     NH_API NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
     NH_API NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
     NH_API NH_INLINE void Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; }
-    NH_API NH_INLINE Vector2 Normalized() const { return (*this) / Magnitude(); }
+    NH_API NH_INLINE Vector2&& Normalized() const { return (*this) / Magnitude(); }
     NH_API NH_INLINE F32 AngleBetween(const Vector2& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
-    NH_API NH_INLINE Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
-    NH_API NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
+    NH_API NH_INLINE Vector2&& Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
+    NH_API NH_INLINE Vector2&& OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
     NH_API NH_INLINE void Rotate(const Vector2& center, F32 angle)
     {
         F32 cos = Math::Cos(angle);
@@ -219,14 +219,14 @@ struct Vector2
         y = sin * (x - center.x) + cos * (y - center.y) + center.y;
         x = temp;
     }
-    NH_API NH_INLINE Vector2 Rotated(const Vector2& center, F32 angle) const
+    NH_API NH_INLINE Vector2&& Rotated(const Vector2& center, F32 angle) const
     {
         F32 cos = Math::Cos(angle);
         F32 sin = Math::Sin(angle);
-        return { cos * (x - center.x) - sin * (y - center.y) + center.x,
-        sin * (x - center.x) + cos * (y - center.y) + center.y };
+        return Move(Vector2{ cos * (x - center.x) - sin * (y - center.y) + center.x,
+        sin * (x - center.x) + cos * (y - center.y) + center.y });
     }
-    NH_API NH_INLINE Vector2& Clamp(Vector2 xBound, Vector2 yBound)
+    NH_API NH_INLINE Vector2& Clamp(const Vector2& xBound, const Vector2& yBound)
     {
         x = Math::Clamp(x, xBound.x, xBound.y);
         y = Math::Clamp(y, yBound.x, yBound.y);
@@ -260,42 +260,31 @@ struct Vector3
     NH_API Vector3& operator/= (F32 f) { x /= f; y /= f; z /= f;					return *this; }
     NH_API Vector3& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f);  return *this; }
 
-    NH_API Vector3 operator+ (const Vector3& v) const { return { x + v.x, y + v.y, z + v.z }; }
-    NH_API Vector3 operator- (const Vector3& v) const { return { x - v.x, y - v.y, z - v.z }; }
-    NH_API Vector3 operator* (F32 f) const { return { x * f, y * f, z * f }; }
-    NH_API Vector3 operator/ (F32 f) const { return { x / f, y / f, z / f }; }
-    NH_API Vector3 operator% (F32 f) const { return { Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f) }; }
+    NH_API Vector3&& operator+ (const Vector3& v) const { return Move(Vector3{ x + v.x, y + v.y, z + v.z }); }
+    NH_API Vector3&& operator- (const Vector3& v) const { return Move(Vector3{ x - v.x, y - v.y, z - v.z }); }
+    NH_API Vector3&& operator* (F32 f) const { return Move(Vector3{ x * f, y * f, z * f }); }
+    NH_API Vector3&& operator/ (F32 f) const { return Move(Vector3{ x / f, y / f, z / f }); }
+    NH_API Vector3&& operator% (F32 f) const { return Move(Vector3{ Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f) }); }
 
-    NH_API bool operator== (const Vector3& v) const { return x == v.x && y == v.y && z == v.z; }
-    NH_API bool operator!= (const Vector3& v) const { return x != v.x || y != v.y || z != v.z; }
+    NH_API bool operator== (const Vector3& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON && Math::Abs(z - v.z) < FLOAT_EPSILON; }
+    NH_API bool operator!= (const Vector3& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON || Math::Abs(z - v.z) > FLOAT_EPSILON; }
     NH_API bool operator<  (const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    friend NH_API Vector3 operator- (Vector3& v) { return { -v.x, -v.y, -v.z }; }
+    friend NH_API Vector3&& operator- (Vector3& v) { return Move(Vector3{ -v.x, -v.y, -v.z }); }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
 
     NH_API NH_INLINE F32 Dot(const Vector3& v) const { return v.x * x + v.y * y + v.z * z; }
-    NH_API NH_INLINE Vector3 Cross(const Vector3& v) const { return { y * v.z - v.y * z, z * v.x - v.z * x, x * v.y - v.x * y }; }
+    NH_API NH_INLINE Vector3&& Cross(const Vector3& v) const { return Move(Vector3{ y * v.z - v.y * z, z * v.x - v.z * x, x * v.y - v.x * y }); }
     NH_API NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
     NH_API NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
     NH_API NH_INLINE void Normalize() { Vector3 v = Normalized(); x = v.x; y = v.y; z = v.z; }
-    NH_API NH_INLINE Vector3 Normalized() const { return *this / Magnitude(); }
+    NH_API NH_INLINE Vector3&& Normalized() const { return *this / Magnitude(); }
     NH_API NH_INLINE F32 AngleBetween(const Vector3& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
-    NH_API NH_INLINE Vector3 Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
-    NH_API NH_INLINE Vector3 OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
-    NH_API NH_INLINE void Rotate(const Vector3& center, F32 angle)
-    {
-        F32 cos = Math::Cos(angle);
-        Vector3 v = (*this * cos) + (center.Cross(*this) * Math::Sin(angle)) + (center * Dot(center)) * (1 - cos);
-        x = v.x; y = v.y; z = v.z;
-    }
-    NH_API NH_INLINE Vector3 Rotated(const Vector3& center, F32 angle) const
-    {
-        F32 cos = Math::Cos(angle);
-        return (*this * cos) + (center.Cross(*this) * Math::Sin(angle)) + (center * Dot(center)) * (1 - cos);
-    }
-    NH_API NH_INLINE Vector3& Clamp(Vector2 xBound, Vector2 yBound, Vector2 zBound)
+    NH_API NH_INLINE Vector3&& Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
+    NH_API NH_INLINE Vector3&& OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
+    NH_API NH_INLINE Vector3& Clamp(const Vector2& xBound, const Vector2& yBound, const Vector2& zBound)
     {
         x = Math::Clamp(x, xBound.x, xBound.y);
         y = Math::Clamp(y, yBound.x, yBound.y);
@@ -332,17 +321,17 @@ struct Vector4
     NH_API Vector4& operator/= (F32 f) { x /= f; y /= f; z /= f; w /= f;					return *this; }
     NH_API Vector4& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f); w = Math::Mod(w, f);  return *this; }
 
-    NH_API Vector4 operator+ (const Vector4& v) const { return { x + v.x, y + v.y, z + v.z, w + v.w }; }
-    NH_API Vector4 operator- (const Vector4& v) const { return { x - v.x, y - v.y, z - v.z, w - v.w }; }
-    NH_API Vector4 operator* (F32 f) const { return { x * f, y * f, z * f, w * f }; }
-    NH_API Vector4 operator/ (F32 f) const { return { x / f, y / f, z / f, w / f }; }
-    NH_API Vector4 operator% (F32 f) const { return { Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f), Math::Mod(w, f) }; }
+    NH_API Vector4&& operator+ (const Vector4& v) const { return Move(Vector4{ x + v.x, y + v.y, z + v.z, w + v.w }); }
+    NH_API Vector4&& operator- (const Vector4& v) const { return Move(Vector4{ x - v.x, y - v.y, z - v.z, w - v.w }); }
+    NH_API Vector4&& operator* (F32 f) const { return Move(Vector4{ x * f, y * f, z * f, w * f }); }
+    NH_API Vector4&& operator/ (F32 f) const { return Move(Vector4{ x / f, y / f, z / f, w / f }); }
+    NH_API Vector4&& operator% (F32 f) const { return Move(Vector4{ Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f), Math::Mod(w, f) }); }
 
-    NH_API bool operator== (const Vector4& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
-    NH_API bool operator!= (const Vector4& v) const { return x != v.x || y != v.y || z != v.z || w != v.w; }
+    NH_API bool operator== (const Vector4& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON && Math::Abs(z - v.z) < FLOAT_EPSILON && Math::Abs(w - v.w) < FLOAT_EPSILON; }
+    NH_API bool operator!= (const Vector4& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON || Math::Abs(z - v.z) > FLOAT_EPSILON || Math::Abs(w - v.w) > FLOAT_EPSILON; }
     NH_API bool operator<  (const Vector4& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector4& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    friend NH_API Vector4 operator- (Vector4& v) { return { -v.x, -v.y, -v.z, -v.w }; }
+    friend NH_API Vector4&& operator- (Vector4& v) { return Move(Vector4{ -v.x, -v.y, -v.z, -v.w }); }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -351,20 +340,11 @@ struct Vector4
     NH_API NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
     NH_API NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
     NH_API NH_INLINE void Normalize() { Vector4 v = Normalized(); x = v.x; y = v.y; z = v.z; w = v.w; }
-    NH_API NH_INLINE Vector4 Normalized() const { return *this / Magnitude(); }
+    NH_API NH_INLINE Vector4&& Normalized() const { return *this / Magnitude(); }
     NH_API NH_INLINE F32 AngleBetween(const Vector4& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
-    NH_API NH_INLINE Vector4 Projection(const Vector4& v) const { return v * (Dot(v) / v.Dot(v)); }
-    NH_API NH_INLINE Vector4 OrthoProjection(const Vector4& v) const { return *this - Projection(v); }
-    //TODO:
-    //NH_API void Rotate(const Vector4& center, F32 angle)
-    //{
-    //  
-    //}
-    //NH_API Vector4 Rotated(const Vector4& center, F32 angle) const
-    //{
-    //  
-    //}
-    NH_API NH_INLINE Vector4& Clamp(Vector2 xBound, Vector2 yBound, Vector2 zBound, Vector2 wBound)
+    NH_API NH_INLINE Vector4&& Projection(const Vector4& v) const { return v * (Dot(v) / v.Dot(v)); }
+    NH_API NH_INLINE Vector4&& OrthoProjection(const Vector4& v) const { return *this - Projection(v); }
+    NH_API NH_INLINE Vector4& Clamp(const Vector2& xBound, const Vector2& yBound, const Vector2& zBound, const Vector2& wBound)
     {
         x = Math::Clamp(x, xBound.x, xBound.y);
         y = Math::Clamp(y, yBound.x, yBound.y);
@@ -404,17 +384,17 @@ struct Vector2Int
     NH_API Vector2Int& operator/= (I32 i) { x /= i; y /= i;					return *this; }
     NH_API Vector2Int& operator%= (I32 i) { x %= i; y %= i;					return *this; }
 
-    NH_API Vector2Int operator+ (const Vector2Int& v) const { return { x + v.x, y + v.y }; }
-    NH_API Vector2Int operator- (const Vector2Int& v) const { return { x - v.x, y - v.y }; }
-    NH_API Vector2Int operator* (I32 i) const { return { x * i, y * i }; }
-    NH_API Vector2Int operator/ (I32 i) const { return { x / i, y / i }; }
-    NH_API Vector2Int operator% (I32 i) const { return { x % i, y % i }; }
+    NH_API Vector2Int&& operator+ (const Vector2Int& v) const { return Move(Vector2Int{ x + v.x, y + v.y }); }
+    NH_API Vector2Int&& operator- (const Vector2Int& v) const { return Move(Vector2Int{ x - v.x, y - v.y }); }
+    NH_API Vector2Int&& operator* (I32 i) const { return Move(Vector2Int{ x * i, y * i }); }
+    NH_API Vector2Int&& operator/ (I32 i) const { return Move(Vector2Int{ x / i, y / i }); }
+    NH_API Vector2Int&& operator% (I32 i) const { return Move(Vector2Int{ x % i, y % i }); }
 
     NH_API bool operator== (const Vector2Int& v) const { return x == v.x && y == v.y; }
     NH_API bool operator!= (const Vector2Int& v) const { return x != v.x || y != v.y; }
     NH_API bool operator<  (const Vector2Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector2Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    friend NH_API Vector2Int operator- (Vector2Int& v) { return { -v.x, -v.y }; }
+    friend NH_API Vector2Int&& operator- (Vector2Int& v) { return Move(Vector2Int{ -v.x, -v.y }); }
 
     NH_API NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -422,7 +402,7 @@ struct Vector2Int
     NH_API NH_INLINE I32 Dot(const Vector2Int& v) const { return v.x * x + v.y * y; }
     NH_API NH_INLINE F32 Magnitude() const { return Math::Sqrt((F32)Dot(*this)); }
     NH_API NH_INLINE F32 SqrMagnitude() const { return (F32)Dot(*this); }
-    NH_API NH_INLINE Vector2Int& Clamp(Vector2Int xBound, Vector2Int yBound)
+    NH_API NH_INLINE Vector2Int& Clamp(const Vector2Int& xBound, const Vector2Int& yBound)
     {
         x = Math::Clamp(x, xBound.x, xBound.y);
         y = Math::Clamp(y, yBound.x, yBound.y);
@@ -456,17 +436,17 @@ struct Vector3Int
     NH_API Vector3Int& operator/= (I32 i) { x /= i; y /= i; z /= i;					    return *this; }
     NH_API Vector3Int& operator%= (I32 i) { x %= i; y %= i;	z %= i;				        return *this; }
 
-    NH_API Vector3Int operator+ (const Vector3Int& v) const { return { x + v.x, y + v.y, z + v.z }; }
-    NH_API Vector3Int operator- (const Vector3Int& v) const { return { x - v.x, y - v.y, z - v.z }; }
-    NH_API Vector3Int operator* (I32 i) const { return { x * i, y * i, z * i }; }
-    NH_API Vector3Int operator/ (I32 i) const { return { x / i, y / i, z / i }; }
-    NH_API Vector3Int operator% (I32 i) const { return { x % i, y % i, z % i }; }
+    NH_API Vector3Int&& operator+ (const Vector3Int& v) const { return Move(Vector3Int{ x + v.x, y + v.y, z + v.z }); }
+    NH_API Vector3Int&& operator- (const Vector3Int& v) const { return Move(Vector3Int{ x - v.x, y - v.y, z - v.z }); }
+    NH_API Vector3Int&& operator* (I32 i) const { return Move(Vector3Int{ x * i, y * i, z * i }); }
+    NH_API Vector3Int&& operator/ (I32 i) const { return Move(Vector3Int{ x / i, y / i, z / i }); }
+    NH_API Vector3Int&& operator% (I32 i) const { return Move(Vector3Int{ x % i, y % i, z % i }); }
 
     NH_API bool operator== (const Vector3Int& v) const { return x == v.x && y == v.y && z == v.z; }
     NH_API bool operator!= (const Vector3Int& v) const { return x != v.x || y != v.y || z != v.z; }
     NH_API bool operator<  (const Vector3Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector3Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    friend NH_API Vector3Int operator- (Vector3Int& v) { return { -v.x, -v.y, -v.z }; }
+    friend NH_API Vector3Int&& operator- (Vector3Int& v) { return Move(Vector3Int{ -v.x, -v.y, -v.z }); }
 
     NH_API NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -474,7 +454,7 @@ struct Vector3Int
     NH_API NH_INLINE I32 Dot(const Vector3Int& v) const { return v.x * x + v.y * y + v.z * z; }
     NH_API NH_INLINE F32 Magnitude() const { return Math::Sqrt((F32)Dot(*this)); }
     NH_API NH_INLINE F32 SqrMagnitude() const { return (F32)Dot(*this); }
-    NH_API NH_INLINE Vector3Int& Clamp(Vector2Int xBound, Vector2Int yBound, Vector2Int zBound)
+    NH_API NH_INLINE Vector3Int& Clamp(const Vector2Int& xBound, const Vector2Int& yBound, const Vector2Int& zBound)
     {
         x = Math::Clamp(x, xBound.x, xBound.y);
         y = Math::Clamp(y, yBound.x, yBound.y);
@@ -511,17 +491,17 @@ struct Vector4Int
     NH_API Vector4Int& operator/= (I32 i) { x /= i; y /= i; z /= i;	w /= i;				    return *this; }
     NH_API Vector4Int& operator%= (I32 i) { x %= i; y %= i;	z %= i;	w %= i;			        return *this; }
 
-    NH_API Vector4Int operator+ (const Vector4Int& v) const { return { x + v.x, y + v.y, z + v.z, w + v.w }; }
-    NH_API Vector4Int operator- (const Vector4Int& v) const { return { x - v.x, y - v.y, z - v.z, w - v.w }; }
-    NH_API Vector4Int operator* (I32 i) const { return { x * i, y * i, z * i, w * i }; }
-    NH_API Vector4Int operator/ (I32 i) const { return { x / i, y / i, z / i, w / i }; }
-    NH_API Vector4Int operator% (I32 i) const { return { x % i, y % i, z % i, w % i }; }
+    NH_API Vector4Int&& operator+ (const Vector4Int& v) const { return Move(Vector4Int{ x + v.x, y + v.y, z + v.z, w + v.w }); }
+    NH_API Vector4Int&& operator- (const Vector4Int& v) const { return Move(Vector4Int{ x - v.x, y - v.y, z - v.z, w - v.w }); }
+    NH_API Vector4Int&& operator* (I32 i) const { return Move(Vector4Int{ x * i, y * i, z * i, w * i }); }
+    NH_API Vector4Int&& operator/ (I32 i) const { return Move(Vector4Int{ x / i, y / i, z / i, w / i }); }
+    NH_API Vector4Int&& operator% (I32 i) const { return Move(Vector4Int{ x % i, y % i, z % i, w % i }); }
 
     NH_API bool operator== (const Vector4Int& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
     NH_API bool operator!= (const Vector4Int& v) const { return x != v.x || y != v.y || z != v.z || w != v.w; }
     NH_API bool operator<  (const Vector4Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
     NH_API bool operator>  (const Vector4Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-    friend NH_API Vector4Int operator- (Vector4Int& v) { return { -v.x, -v.y, -v.z, -v.w }; }
+    friend NH_API Vector4Int&& operator- (Vector4Int& v) { return Move(Vector4Int{ -v.x, -v.y, -v.z, -v.w }); }
 
     NH_API NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -529,7 +509,7 @@ struct Vector4Int
     NH_API NH_INLINE I32 Dot(const Vector4Int& v) const { return v.x * x + v.y * y + v.z * z + v.w * w; }
     NH_API NH_INLINE F32 Magnitude() const { return Math::Sqrt((F32)Dot(*this)); }
     NH_API NH_INLINE F32 SqrMagnitude() const { return (F32)Dot(*this); }
-    NH_API NH_INLINE Vector4Int& Clamp(Vector2Int xBound, Vector2Int yBound, Vector2Int zBound, Vector2Int wBound)
+    NH_API NH_INLINE Vector4Int& Clamp(const Vector2Int& xBound, const Vector2Int& yBound, const Vector2Int& zBound, const Vector2Int& wBound)
     {
         x = Math::Clamp(x, xBound.x, xBound.y);
         y = Math::Clamp(y, yBound.x, yBound.y);
@@ -552,9 +532,9 @@ struct Vector4Int
 
 struct Matrix2
 {
-    Vector2 a, b;
+    Vector2 a, b; //Columns
 
-    NH_API Matrix2() : a{}, b{} {}
+    NH_API Matrix2() : a{ 1.0f, 0.0f }, b{ 0.0f, 1.0f } {}
     NH_API Matrix2(F32 n) : a{ n, 0.0f }, b{ 0.0f, n } {}
     NH_API Matrix2(F32 ax, F32 ay, F32 bx, F32 by) : a{ ax, ay }, b{ bx, by } {}
     NH_API Matrix2(const Vector2& v1, const Vector2& v2) : a{ v1 }, b{ v2 } {}
@@ -569,59 +549,213 @@ struct Matrix2
     NH_API Matrix2& operator-= (const Matrix2& m) { a -= m.a; b -= m.b; return *this; }
     NH_API Matrix2& operator*= (const Matrix2& m)
     {
-        a[0] = a[0] * m[0][0] + b[0] * m[0][1];
-        b[0] = a[0] * m[1][0] + b[0] * m[1][1];
-
-        a[1] = a[1] * m[0][0] + b[1] * m[0][1];
-        b[1] = a[1] * m[1][0] + b[1] * m[1][1];
+        a.x = a.x * m.a.x + b.x * m.a.y;
+        a.y = a.y * m.a.x + b.y * m.a.y;
+        b.x = a.x * m.b.x + b.x * m.b.y;
+        b.y = a.y * m.b.x + b.y * m.b.y;
 
         return *this;
     }
 
-    NH_API Matrix2 operator+(const Matrix2& m) const { return { a + m.a, b + m.b }; }
-    NH_API Matrix2 operator-(const Matrix2& m) const { return { a - m.a, b - m.b }; }
-    NH_API Matrix2 operator*(const Matrix2& m) const
+    NH_API Matrix2&& operator+(const Matrix2& m) const { return Move(Matrix2{ a + m.a, b + m.b }); }
+    NH_API Matrix2&& operator-(const Matrix2& m) const { return Move(Matrix2{ a - m.a, b - m.b }); }
+    NH_API Matrix2&& operator*(const Matrix2& m) const
     {
-        Matrix2 r;
-        r[0][0] = a[0] * m[0][0] + b[0] * m[0][1];
-        r[1][0] = a[0] * m[1][0] + b[0] * m[1][1];
-
-        r[0][1] = a[1] * m[0][0] + b[1] * m[0][1];
-        r[1][1] = a[1] * m[1][0] + b[1] * m[1][1];
-
-        return r;
+        return Move(Matrix2{
+            a.x * m.a.x + b.x * m.a.y,
+            a.y * m.a.x + b.y * m.a.y,
+            a.x * m.b.x + b.x * m.b.y,
+            a.y * m.b.x + b.y * m.b.y
+        });
     }
-    NH_API Vector2 operator*(const Vector2& v) const
+    NH_API Vector2&& operator*(const Vector2& v) const
     {
-        Vector2 r;
-        r[0] = a[0] * v[0] + b[0] * v[1];
-        r[1] = a[1] * v[0] + b[1] * v[1];
-
-        return r;
+        return Move(Vector2{
+            a.x* v.x + b.x * v.y,
+            a.y* v.x + b.y * v.y
+        });
     }
 
-    friend NH_API Matrix2 operator- (Matrix2& m) { return { -m.a, -m.b }; }
+    friend NH_API Matrix2&& operator- (Matrix2& m) { return Move(Matrix2{ -m.a, -m.b }); }
     NH_API bool operator==(const Matrix2& m) const { return a == m.a && b == m.b; }
     NH_API bool operator!=(const Matrix2& m) const { return a != m.a || b != m.b; }
 
     NH_API NH_INLINE const Vector2& operator[] (U8 i) const { return ((&a)[i]); }
     NH_API NH_INLINE Vector2& operator[] (U8 i) { return ((&a)[i]); }
+
+    static const Matrix2 ONE;
 };
 
 struct Matrix3
 {
-    Vector3 a, b, c;
+    Vector3 a, b, c; //Columns
+
+    NH_API Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
+    NH_API Matrix3(F32 n) : a{ n, 0.0f, 0.0f }, b{ 0.0f, n, 0.0f }, c{ 0.0f, 0.0f, n } {}
+    NH_API Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a{ ax, ay, az }, b{ bx, by, bz }, c{ cx, cy, cz } {}
+    NH_API Matrix3(const Vector3& a, const Vector3& b, const Vector3& c) : a{ a }, b{ b }, c{ c } {}
+    NH_API Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) : a{ v1 }, b{ v2 }, c{ v3 } {}
+    NH_API Matrix3(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
+    NH_API Matrix3(Matrix3&& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
+    NH_API Matrix3(const Vector2& position, const Quaternion& q, const Vector2& scale)
+    {
+        a.x = 0.0f; b.x = 0.0f;
+        a.y = 0.0f; b.y = 0.0f;
+
+        c.x = position.x;
+        c.y = position.y;
+
+        a.z = 1.0f;
+        b.z = 1.0f;
+        c.z = 1.0f;
+    }
+
+    NH_API Matrix3& operator= (const Matrix3& m) { a = m.a; b = m.b; c = m.c; return *this; }
+    NH_API Matrix3& operator= (Matrix3&& m) { a = m.a; b = m.b; c = m.c; return *this; }
+
+    NH_API Matrix3& operator+= (const Matrix3& m) { a += m.a; b += m.b; c += m.c; return *this; }
+    NH_API Matrix3& operator-= (const Matrix3& m) { a -= m.a; b -= m.b; c -= m.c; return *this; }
+    NH_API Matrix3& operator*= (const Matrix3& m)
+    {
+        a.x = a.x * m.a.x + b.x * m.a.y + c.x * m.a.z;
+        a.y = a.y * m.a.x + b.y * m.a.y + c.y * m.a.z;
+        a.z = a.z * m.a.x + b.z * m.a.y + c.z * m.a.z;
+        b.x = a.x * m.b.x + b.x * m.b.y + c.x * m.b.z;
+        b.y = a.y * m.b.x + b.y * m.b.y + c.y * m.b.z;
+        b.z = a.z * m.b.x + b.z * m.b.y + c.z * m.b.z;
+        c.x = a.x * m.c.x + b.x * m.c.y + c.x * m.c.z;
+        c.y = a.y * m.c.x + b.y * m.c.y + c.y * m.c.z;
+        c.z = a.z * m.c.x + b.z * m.c.y + c.z * m.c.z;
+
+        return *this;
+    }
+
+    NH_API Matrix3&& operator+(const Matrix3& m) const { return Move(Matrix3{ a + m.a, b + m.b, c + m.c }); }
+    NH_API Matrix3&& operator-(const Matrix3& m) const { return Move(Matrix3{ a - m.a, b - m.b, c - m.c }); }
+    NH_API Matrix3&& operator*(const Matrix3& m) const
+    {
+        return Move(Matrix3{
+            a.x * m.a.x + b.x * m.a.y + c.x * m.a.z,
+            a.y * m.a.x + b.y * m.a.y + c.y * m.a.z,
+            a.z * m.a.x + b.z * m.a.y + c.z * m.a.z,
+            a.x * m.b.x + b.x * m.b.y + c.x * m.b.z,
+            a.y * m.b.x + b.y * m.b.y + c.y * m.b.z,
+            a.z * m.b.x + b.z * m.b.y + c.z * m.b.z,
+            a.x * m.c.x + b.x * m.c.y + c.x * m.c.z,
+            a.y * m.c.x + b.y * m.c.y + c.y * m.c.z,
+            a.z * m.c.x + b.z * m.c.y + c.z * m.c.z
+        });
+    }
+    NH_API Vector3&& operator*(const Vector3& v) const
+    {
+        return Move(Vector3{
+            a.x * v.x + b.x * v.y + c.x * v.z,
+            a.y * v.x + b.y * v.y + c.y * v.z,
+            a.z * v.x + b.z * v.y + c.z * v.z
+        });
+    }
+
+    friend NH_API Matrix3&& operator- (Matrix3& m) { return Move(Matrix3{ -m.a, -m.b, -m.c }); }
+    NH_API bool operator==(const Matrix3& m) const { return a == m.a && b == m.b && c == m.c; }
+    NH_API bool operator!=(const Matrix3& m) const { return a != m.a || b != m.b || c != m.c; }
 
     NH_API NH_INLINE const Vector3& operator[] (U8 i) const { return ((&a)[i]); }
     NH_API NH_INLINE Vector3& operator[] (U8 i) { return ((&a)[i]); }
+
+    static const Matrix3 ONE;
 };
 
 struct Matrix4
 {
-    Vector4 a, b, c, d;
+    Vector4 a, b, c, d; //Columns
 
-    NH_API Matrix4() : a{ 0.f, 0.f, 0.f, 0.f }, b{ 0.f, 0.f, 0.f, 0.f }, c{ 0.f, 0.f, 0.f, 0.f }, d{ 0.f, 0.f, 0.f, 0.f } {}
-    NH_API Matrix4(Vector4 a, Vector4 b, Vector4 c, Vector4 d) : a{ a }, b{ b }, c{ c }, d{ d } {}
+    NH_API Matrix4() : a{ 1.0f, 0.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f, 0.0f }, d{ 0.0f, 0.0f, 0.0f, 1.0f } {}
+    NH_API Matrix4(F32 n) : a{ n, 0.0f, 0.0f, 0.0f }, b{ 0.0f, n, 0.0f, 0.0f }, c{ 0.0f, 0.0f, n, 0.0f }, d{ 0.0f, 0.0f, 0.0f, n } {}
+    NH_API Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw) :
+        a{ ax, ay, az, aw }, b{ bx, by, bz, bw }, c{ cx, cy, cz, cw }, d{ dx, dy, dz, dw } {}
+    NH_API Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
+    NH_API Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
+    NH_API Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
+    NH_API Matrix4(Matrix4&& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
+    NH_API Matrix4(const Vector3& position, const Quaternion& q, const Vector3& scale)
+    {
+        a.x = 0.0f; b.x = 0.0f; c.x = 0.0f;
+        a.y = 0.0f; b.y = 0.0f; c.y = 0.0f;
+        c.y = 0.0f; b.y = 0.0f; c.z = 0.0f;
+
+        d.x = position.x;
+        d.y = position.y;
+        d.z = position.z;
+
+        a.z = 1.0f;
+        b.z = 1.0f;
+        c.z = 1.0f;
+        d.z = 1.0f;
+    }
+
+    NH_API Matrix4& operator= (const Matrix4& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
+    NH_API Matrix4& operator= (Matrix4&& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
+
+    NH_API Matrix4& operator+= (const Matrix4& m) { a += m.a; b += m.b; c += m.c; d += m.d; return *this; }
+    NH_API Matrix4& operator-= (const Matrix4& m) { a -= m.a; b -= m.b; c -= m.c; d -= m.d; return *this; }
+    NH_API Matrix4& operator*= (const Matrix4& m)
+    {
+        a.x = a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + c.x * m.a.w;
+        a.y = a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + c.y * m.a.w;
+        a.z = a.z * m.a.x + b.z * m.a.y + c.z * m.a.z + c.z * m.a.w;
+        a.w = a.w * m.a.x + b.w * m.a.y + c.w * m.a.z + c.w * m.a.w;
+        b.x = a.x * m.b.x + b.x * m.b.y + c.x * m.b.z + c.x * m.b.w;
+        b.y = a.y * m.b.x + b.y * m.b.y + c.y * m.b.z + c.y * m.b.w;
+        b.z = a.z * m.b.x + b.z * m.b.y + c.z * m.b.z + c.z * m.b.w;
+        b.w = a.w * m.b.x + b.w * m.b.y + c.w * m.b.z + c.w * m.b.w;
+        c.x = a.x * m.c.x + b.x * m.c.y + c.x * m.c.z + c.x * m.c.w;
+        c.y = a.y * m.c.x + b.y * m.c.y + c.y * m.c.z + c.y * m.c.w;
+        c.z = a.z * m.c.x + b.z * m.c.y + c.z * m.c.z + c.z * m.c.w;
+        c.w = a.w * m.c.x + b.w * m.c.y + c.w * m.c.z + c.w * m.c.w;
+        d.x = a.x * m.d.x + b.x * m.d.y + c.x * m.d.z + c.x * m.d.w;
+        d.y = a.y * m.d.x + b.y * m.d.y + c.y * m.d.z + c.y * m.d.w;
+        d.z = a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + c.z * m.d.w;
+        d.w = a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w;
+
+        return *this;
+    }
+
+    NH_API Matrix4&& operator+(const Matrix4& m) const { return Move(Matrix4{ a + m.a, b + m.b, c + m.c, d + m.d }); }
+    NH_API Matrix4&& operator-(const Matrix4& m) const { return Move(Matrix4{ a - m.a, b - m.b, c - m.c, d + m.d }); }
+    NH_API Matrix4&& operator*(const Matrix4& m) const
+    {
+        return Move(Matrix4{
+            a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + c.x * m.a.w,
+            a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + c.y * m.a.w,
+            a.z * m.a.x + b.z * m.a.y + c.z * m.a.z + c.z * m.a.w,
+            a.w * m.a.x + b.w * m.a.y + c.w * m.a.z + c.w * m.a.w,
+            a.x * m.b.x + b.x * m.b.y + c.x * m.b.z + c.x * m.b.w,
+            a.y * m.b.x + b.y * m.b.y + c.y * m.b.z + c.y * m.b.w,
+            a.z * m.b.x + b.z * m.b.y + c.z * m.b.z + c.z * m.b.w,
+            a.w * m.b.x + b.w * m.b.y + c.w * m.b.z + c.w * m.b.w,
+            a.x * m.c.x + b.x * m.c.y + c.x * m.c.z + c.x * m.c.w,
+            a.y * m.c.x + b.y * m.c.y + c.y * m.c.z + c.y * m.c.w,
+            a.z * m.c.x + b.z * m.c.y + c.z * m.c.z + c.z * m.c.w,
+            a.w * m.c.x + b.w * m.c.y + c.w * m.c.z + c.w * m.c.w,
+            a.x * m.d.x + b.x * m.d.y + c.x * m.d.z + c.x * m.d.w,
+            a.y * m.d.x + b.y * m.d.y + c.y * m.d.z + c.y * m.d.w,
+            a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + c.z * m.d.w,
+            a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w
+        });
+    }
+    NH_API Vector4&& operator*(const Vector4& v) const
+    {
+        return Move(Vector4{
+            a.x * v.x + b.x * v.y + c.x * v.z + c.x * v.z,
+            a.y * v.x + b.y * v.y + c.y * v.z + c.y * v.z,
+            a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.z,
+            a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.z
+        });
+    }
+
+    friend NH_API Matrix4&& operator- (Matrix4& m) { return Move(Matrix4{ -m.a, -m.b, -m.c, -m.d }); }
+    NH_API bool operator==(const Matrix4& m) const { return a == m.a && b == m.b && c == m.c && d == m.d; }
+    NH_API bool operator!=(const Matrix4& m) const { return a != m.a || b != m.b || c != m.c || d != m.d; }
 
     NH_API NH_INLINE const Vector4& operator[] (U8 i) const { return ((&a)[i]); }
     NH_API NH_INLINE Vector4& operator[] (U8 i) { return ((&a)[i]); }
@@ -641,38 +775,32 @@ struct Quaternion
     NH_API Quaternion& operator=(const Quaternion& q) { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
     NH_API Quaternion& operator=(Quaternion&& q) { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
 
-    static NH_API NH_INLINE Quaternion AxisAngle(Vector3 axis, F32 angle, bool normalize);
+    static NH_API NH_INLINE Quaternion&& AxisAngle(const Vector3& axis, F32 angle, bool normalize);
+    static NH_API NH_INLINE Quaternion&& AxisAngle(const Vector2& axis, F32 angle, bool normalize);
 
-    NH_API Quaternion operator* (const Quaternion& q) const
+    NH_API Quaternion&& operator* (const Quaternion& q) const
     {
-        return { x * q.w + y * q.z - z * q.y + w * q.x,
+        return Move(Quaternion{ x * q.w + y * q.z - z * q.y + w * q.x,
                 -x * q.z + y * q.w + z * q.x + w * q.y,
                 x * q.y - y * q.x + z * q.w + w * q.z,
-                -x * q.x - y * q.y - z * q.z + w * q.w };
+                -x * q.x - y * q.y - z * q.z + w * q.w });
     }
 
-    NH_API NH_INLINE Matrix4 ToMatrix4() const;
-    NH_API NH_INLINE Matrix4 ToRotationMat(Vector3 center) const;
-    NH_API NH_INLINE Quaternion Slerp(const Quaternion& q, F32 t) const;
+    NH_API NH_INLINE Matrix4&& ToMatrix4() const;
+    NH_API NH_INLINE Matrix3&& ToMatrix3() const;
+    NH_API NH_INLINE Matrix4&& RotationMatrix(Vector3 center) const;
+    NH_API NH_INLINE Matrix3&& RotationMatrix(Vector2 center) const;
+    NH_API NH_INLINE Quaternion&& Slerp(const Quaternion& q, F32 t) const;
 
-    NH_API NH_INLINE F32 Dot(Quaternion q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
+    NH_API NH_INLINE F32 Dot(const Quaternion& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
     NH_API NH_INLINE F32 Normal() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
-    NH_API NH_INLINE Quaternion Normalized() const { F32 normal = 1.0f / Normal(); return { x * normal, y * normal, z * normal, w * normal }; }
+    NH_API NH_INLINE Quaternion&& Normalized() const { F32 normal = 1.0f / Normal(); return Move(Quaternion{ x * normal, y * normal, z * normal, w * normal }); }
     NH_API NH_INLINE void Normalize() { F32 normal = 1.0f / Normal(); x *= normal; y *= normal; z *= normal; w *= normal; }
-    NH_API NH_INLINE Quaternion Conjugate() const { return { -x, -y, -z, w }; }
-    NH_API NH_INLINE Quaternion Inverse() const { return Conjugate().Normalized(); }
+    NH_API NH_INLINE Quaternion&& Conjugate() const { return Move(Quaternion{ -x, -y, -z, w }); }
+    NH_API NH_INLINE Quaternion&& Inverse() const { return Conjugate().Normalized(); }
 
     NH_API NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
     NH_API NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
-};
-
-struct Vertex3
-{
-    Vector3 position;
-    Vector3 normal;
-    Vector2 uv;
-    Vector4 color;
-    Vector4 tangent;
 };
 
 struct Vertex2
@@ -680,21 +808,122 @@ struct Vertex2
     //TODO: add normal?
     Vector2 position;
     Vector2 uv;
-    Vector4 color;
+    Vector4 color; //TODO: Color struct
 };
 
-struct Transform
+struct Vertex3
 {
+    Vector3 position;
+    Vector3 normal;
+    Vector2 uv;
+    Vector4 color; //TODO: Color struct
+    Vector4 tangent;
+};
+
+struct Transform2
+{
+public:
+    Transform2* parent;
+
+private:
+    bool dirty;
+    Vector2 position;
+    Quaternion rotation;
+    Vector2 scale;
+    Matrix3 local;
+
+public:
+    NH_API Transform2() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
+    NH_API Transform2(const Vector2& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
+    NH_API Transform2(const Vector2& position, const Quaternion& rotation) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
+    NH_API Transform2(const Vector2& position, const Quaternion& rotation, const Vector2& scale) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
+    NH_API Transform2(const Transform2& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+    NH_API Transform2(Transform2&& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+
+    NH_API Transform2& operator=(const Transform2& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+    NH_API Transform2& operator=(Transform2&& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+
+    NH_API const Vector2& Position() const { return position; }
+    NH_API void SetPosition(const Vector2& v) { position = v; dirty = true; }
+    NH_API const Quaternion& Rotation() const { return rotation; }
+    NH_API void SetRotation(const Quaternion& q) { rotation = q; dirty = true; }
+    NH_API const Vector2& Scale() const { return scale; }
+    NH_API void SetScale(const Vector2& v) { scale = v; dirty = true; }
+
+    NH_API const Matrix3& Local()
+    {
+        if (dirty) { UpdateLocal(); }
+        return local;
+    }
+
+    //TODO: Reduce copying?
+    NH_API NH_INLINE Matrix3 World()
+    {
+        if (parent) { return Local() * parent->Local(); }
+        return Local();
+    }
+
+private:
+    void UpdateLocal()
+    {
+        local = Matrix3(position, rotation, scale);
+        dirty = false;
+    }
+};
+
+struct Transform3
+{
+public:
+    Transform3* parent;
+
+private:
+    bool dirty;
     Vector3 position;
     Quaternion rotation;
     Vector3 scale;
-    
-    bool dirty;
     Matrix4 local;
 
-    struct Transform* parent;
+public:
+    NH_API Transform3() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
+    NH_API Transform3(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
+    NH_API Transform3(const Vector3& position, const Quaternion& rotation) : 
+        parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
+    NH_API Transform3(const Vector3& position, const Quaternion& rotation, const Vector3& scale) : 
+        parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
+    NH_API Transform3(const Transform3& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+    NH_API Transform3(Transform3&& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+
+    NH_API Transform3& operator=(const Transform3& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+    NH_API Transform3& operator=(Transform3&& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+
+    NH_API const Vector3& Position() const { return position; }
+    NH_API void SetPosition(const Vector3& v) { position = v; dirty = true; }
+    NH_API const Quaternion& Rotation() const { return rotation; }
+    NH_API void SetRotation(const Quaternion& q) { rotation = q; dirty = true; }
+    NH_API const Vector3& Scale() const { return scale; }
+    NH_API void SetScale(const Vector3& v) { scale = v; dirty = true; }
+
+    NH_API const Matrix4& Local()
+    {
+        if (dirty) { UpdateLocal(); }
+        return local;
+    }
+
+    //TODO: Reduce copying?
+    NH_API NH_INLINE Matrix4 World()
+    {
+        if (parent) { return Local() * parent->Local(); }
+        return Local();
+    }
+
+private:
+    void UpdateLocal()
+    {
+        local = Move(Matrix4(position, rotation, scale));
+        dirty = false;
+    }
 };
 
-NH_INLINE Vector2 Math::Lerp(Vector2 a, Vector2 b, F32 t) { return a + (b - a) * t; }
-NH_INLINE Vector3 Math::Lerp(Vector3 a, Vector3 b, F32 t) { return a + (b - a) * t; }
-NH_INLINE Vector4 Math::Lerp(Vector4 a, Vector4 b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector2&& Math::Lerp(const Vector2& a, const Vector2& b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector3&& Math::Lerp(const Vector3& a, const Vector3& b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector4&& Math::Lerp(const Vector4& a, const Vector4& b, F32 t) { return a + (b - a) * t; }

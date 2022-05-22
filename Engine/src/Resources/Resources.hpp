@@ -103,7 +103,7 @@ struct Mesh
 struct Model
 {
     Vector<Mesh*> meshes;
-    Transform transform;
+    Transform3 transform;
 };
 
 class Resources

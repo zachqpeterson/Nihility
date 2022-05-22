@@ -35,7 +35,7 @@ public:
         NH_API Iterator operator+(int i)
         {
             Iterator temp = *this;
-            for(int j = 0; j < i; ++j) { ++temp; }
+            for (int j = 0; j < i; ++j) { ++temp; }
             return temp;
         }
 
@@ -74,22 +74,22 @@ public:
     NH_API Vector(U64 capacity);
     NH_API Vector(U64 size, const T& value);
     NH_API Vector(const Vector& other);
-    NH_API Vector(Vector&& other) noexcept;
+    NH_API Vector(Vector&& other);
     NH_API Vector(T* array, U64 size, MemoryTag tag = MEMORY_TAG_DATA_STRUCT);
     NH_API ~Vector();
     NH_API void Destroy();
 
     NH_API Vector& operator=(const Vector& other);
-    NH_API Vector& operator=(Vector&& other)noexcept;
+    NH_API Vector& operator=(Vector&& other);
 
     NH_API void SetArray(T* array, U64 size, MemoryTag tag = MEMORY_TAG_DATA_STRUCT);
 
     NH_API void Push(const T& value);
-    NH_API void Push(T&& value) noexcept;
-    NH_API T&& Pop() noexcept;
+    NH_API void Push(T&& value);
+    NH_API T&& Pop();
     NH_API void Insert(const T& value, U64 index);
-    NH_API void Insert(T&& value, U64 index) noexcept;
-    NH_API T&& Remove(U64 index)noexcept;
+    NH_API void Insert(T&& value, U64 index);
+    NH_API T&& Remove(U64 index);
     NH_API void Resize(U64 size);
     NH_API void Reserve(U64 capacity);
     NH_API const U64 Find(const T& value);
@@ -143,7 +143,7 @@ inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{
 }
 
 template<typename T>
-inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
+inline Vector<T>::Vector(Vector<T>&& other) : size{ other.size }, capacity{ other.capacity }, array{ other.array }
 {
     other.size = 0;
     other.capacity = 0;
@@ -198,7 +198,7 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 }
 
 template<typename T>
-inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
+inline Vector<T>& Vector<T>::operator=(Vector<T>&& other)
 {
     size = other.size;
     capacity = other.capacity;
@@ -239,7 +239,7 @@ inline void Vector<T>::Push(const T& value)
 }
 
 template<typename T>
-inline void Vector<T>::Push(T&& value) noexcept
+inline void Vector<T>::Push(T&& value)
 {
     if (size == capacity)
     {
@@ -251,7 +251,7 @@ inline void Vector<T>::Push(T&& value) noexcept
 }
 
 template<typename T>
-inline T&& Vector<T>::Pop() noexcept
+inline T&& Vector<T>::Pop()
 {
     ASSERT_DEBUG_MSG(size, "Can't pop on a vector of size 0!");
     return Move(elements[--size]);
@@ -274,7 +274,7 @@ inline void Vector<T>::Insert(const T& value, U64 index)
 }
 
 template<typename T>
-inline void Vector<T>::Insert(T&& value, U64 index) noexcept
+inline void Vector<T>::Insert(T&& value, U64 index)
 {
     ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
 
@@ -290,7 +290,7 @@ inline void Vector<T>::Insert(T&& value, U64 index) noexcept
 }
 
 template<typename T>
-inline T&& Vector<T>::Remove(U64 index) noexcept
+inline T&& Vector<T>::Remove(U64 index)
 {
     ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
     T value = array[index];

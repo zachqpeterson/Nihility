@@ -2,9 +2,10 @@
 
 #include "Defines.hpp"
 
+#include "Stack.hpp"
+
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
-#include <map>
 
 template<typename TKey, typename TValue>
 struct Map
@@ -59,9 +60,22 @@ template<typename TKey, typename TValue>
 inline Map<TKey, TValue>::Map() : root{ nullptr }, size{ 0 } {}
 
 template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other) : size{ 0 }
+inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other) : size{ other.size }
 {
-    //TODO: Use queue
+    Stack<Node*> s;
+    s.Push(root);
+
+    while (!s.Empty())
+    {
+        Node* node = s.Pop();
+
+        if (node->left) { s.Push(node->left); }
+        if (node->right) { s.Push(node->right); }
+
+        Insert(node->key, node->value);
+    }
+
+    size = 0;
 }
 
 template<typename TKey, typename TValue>
@@ -81,7 +95,21 @@ template<typename TKey, typename TValue>
 inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(const Map<TKey, TValue>& other)
 {
     size = other.size;
-    //TODO: Use queue
+
+    Stack<Node*> s;
+    s.Push(root);
+
+    while (!s.Empty())
+    {
+        Node* node = s.Pop();
+
+        if (node->left) { s.Push(node->left); }
+        if (node->right) { s.Push(node->right); }
+
+        Insert(node->key, node->value);
+    }
+
+    size = 0;
 }
 
 template<typename TKey, typename TValue>
@@ -157,7 +185,19 @@ inline const TValue& Map<TKey, TValue>::operator[](const TKey& key) const
 template<typename TKey, typename TValue>
 inline void Map<TKey, TValue>::Clear()
 {
-    //TODO: Use queue
+    Stack<Node*> s;
+    s.Push(root);
+
+    while (!s.Empty())
+    {
+        Node* node = s.Pop();
+
+        if (node->left) { s.Push(node->left); }
+        if (node->right) { s.Push(node->right); }
+
+        delete node;
+    }
+
     size = 0;
 }
 
@@ -297,7 +337,20 @@ inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
 template<typename TKey, typename TValue>
 inline bool Map<TKey, TValue>::Contains(const TValue& value) const
 {
-    //TODO: Use queue
+    Stack<Node*> s;
+    s.Push(root);
+
+    while (!s.Empty())
+    {
+        Node* node = s.Pop();
+
+        if (node->value == value) { return true; }
+
+        if (node->left) { s.Push(node->left); }
+        if (node->right) { s.Push(node->right); }
+    }
+
+    return false;
 }
 
 template<typename TKey, typename TValue>

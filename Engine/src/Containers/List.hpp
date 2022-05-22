@@ -10,10 +10,13 @@ struct List
 {
     struct Node
     {
-        Node(const T& value) : value{ value }, next{ nullptr }, prev{ nullptr } {}
+        Node(const T& value) : value{ value }, next{ nullptr }, prev{ nullptr } { }
+        ~Node() { next = nullptr; prev = nullptr; }
+
+        void* operator new(U64 size) { return Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
+        void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
 
         T value;
-
         Node* next;
         Node* prev;
     };
@@ -99,22 +102,22 @@ struct List
 public:
     NH_API List() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
     NH_API List(const List& other);
-    NH_API List(List&& other) noexcept;
+    NH_API List(List&& other);
     NH_API ~List();
     NH_API void Destroy();
 
     NH_API List& operator=(const List& other);
-    NH_API List& operator=(List&& other) noexcept;
+    NH_API List& operator=(List&& other);
 
     NH_API void Assign(const List& other);
-    NH_API void Assign(List&& other) noexcept;
+    NH_API void Assign(List&& other);
 
     NH_API T& Front() { return head->value; }
     NH_API const T& Front() const { return head->value; }
     NH_API T& Back() { return tail->value; }
     NH_API const T& Back() const { return tail->value; }
 
-    NH_API Iterator begin(){ return Iterator(head); }
+    NH_API Iterator begin() { return Iterator(head); }
     NH_API Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
 
     NH_API const bool Empty() const { return !size; }
@@ -127,11 +130,11 @@ public:
     NH_API Iterator Erase(Iterator it);
 
     NH_API void PushFront(const T& value);
-    NH_API void PushFront(T&& value) noexcept;
-    NH_API T&& PopFront() noexcept;
+    NH_API void PushFront(T&& value);
+    NH_API T&& PopFront();
     NH_API void PushBack(const T& value);
-    NH_API void PushBack(T&& value) noexcept;
-    NH_API T&& PopBack() noexcept;
+    NH_API void PushBack(T&& value);
+    NH_API T&& PopBack();
 
     NH_API void Remove(const T& value);
     NH_API void Reverse();
@@ -165,7 +168,7 @@ inline List<T>::List(const List<T>& other)
 }
 
 template<typename T>
-inline List<T>::List(List<T>&& other) noexcept : size{ size }, head{ other.head }, tail{ other.tail }
+inline List<T>::List(List<T>&& other) : size{ size }, head{ other.head }, tail{ other.tail }
 {
     other.size = 0;
     other.head = nullptr;
@@ -187,6 +190,8 @@ inline void List<T>::Destroy()
 template<typename T>
 inline List<T>& List<T>::operator=(const List<T>& other)
 {
+    if (head) { clear(); }
+
     Node* node = other.head;
 
     while (node)
@@ -199,8 +204,10 @@ inline List<T>& List<T>::operator=(const List<T>& other)
 }
 
 template<typename T>
-inline List<T>& List<T>::operator=(List<T>&& other) noexcept
+inline List<T>& List<T>::operator=(List<T>&& other)
 {
+    if (head) { clear(); }
+
     size = other.size;
     head = other.head;
     tail = other.tail;
@@ -215,6 +222,8 @@ inline List<T>& List<T>::operator=(List<T>&& other) noexcept
 template<typename T>
 inline void List<T>::Assign(const List& other)
 {
+    if (head) { clear(); }
+
     Node* node = other.head;
 
     while (node)
@@ -227,8 +236,10 @@ inline void List<T>::Assign(const List& other)
 }
 
 template<typename T>
-inline void List<T>::Assign(List&& other) noexcept
+inline void List<T>::Assign(List&& other)
 {
+    if (head) { clear(); }
+
     size = other.size;
     head = other.head;
     tail = other.tail;
@@ -244,10 +255,7 @@ template<typename T>
 inline void List<T>::PushFront(const T& value)
 {
     ++size;
-    Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->value = value;
-    newNode->prev = nullptr;
-    newNode->next = nullptr;
+    Node* newNode = new Node(value);
     if (head)
     {
         head->prev = newNode;
@@ -259,13 +267,10 @@ inline void List<T>::PushFront(const T& value)
 }
 
 template<typename T>
-inline void List<T>::PushFront(T&& value) noexcept
+inline void List<T>::PushFront(T&& value)
 {
     ++size;
-    Node* newNode = Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->value = value;
-    newNode->prev = nullptr;
-    newNode->next = nullptr;
+    Node* newNode = new Node(value);
     if (head)
     {
         head->prev = newNode;
@@ -277,7 +282,7 @@ inline void List<T>::PushFront(T&& value) noexcept
 }
 
 template<typename T>
-inline T&& List<T>::PopFront() noexcept
+inline T&& List<T>::PopFront()
 {
     if (head)
     {
@@ -286,7 +291,7 @@ inline T&& List<T>::PopFront() noexcept
         head = head->next;
         head->prev = nullptr;
         T value = tempNode->value;
-        Memory::Free(tempNode, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+        delete tempNode;
         return Move(value);
     }
 
@@ -296,10 +301,7 @@ inline T&& List<T>::PopFront() noexcept
 template<typename T>
 inline void List<T>::PushBack(const T& value)
 {
-    Node* newNode = (Node*)Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->value = value;
-    newNode->prev = nullptr;
-    newNode->next = nullptr;
+    Node* newNode = new Node(value);
     ++size;
     if (head)
     {
@@ -312,12 +314,9 @@ inline void List<T>::PushBack(const T& value)
 }
 
 template<typename T>
-inline void List<T>::PushBack(T&& value) noexcept
+inline void List<T>::PushBack(T&& value)
 {
-    Node* newNode = (Node*)MemoryMemory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT);
-    newNode->value = value;
-    newNode->prev = nullptr;
-    newNode->next = nullptr;
+    Node* newNode = new Node(value);
     ++size;
     if (head)
     {
@@ -330,7 +329,7 @@ inline void List<T>::PushBack(T&& value) noexcept
 }
 
 template<typename T>
-inline T&& List<T>::PopBack() noexcept
+inline T&& List<T>::PopBack()
 {
     if (tail)
     {
@@ -339,7 +338,7 @@ inline T&& List<T>::PopBack() noexcept
         tail = tail->prev;
         tail->next = nullptr;
         T value = tempNode->value;
-        Memory::Free(tempNode, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+        delete tempNode;
         return Move(value);
     }
 
@@ -364,7 +363,7 @@ inline void List<T>::Remove(const T& value)
             if (nextNode) { nextNode->prev = prevNode; }
             else { tail = prevNode; }
 
-            Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+            delete node;
             node = nextNode;
             continue;
         }
@@ -430,7 +429,7 @@ inline T&& List<T>::RemoveAt(U64 index)
 
     T value = node->value;
 
-    Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+    delete node;
 
     return Move(value);
 }
@@ -451,7 +450,7 @@ inline typename List<T>::Iterator List<T>::Erase(List<T>::Iterator it)
 
     List<T>::Iterator newIt = ++it;
 
-    Memory::Free(node, sizeof(Node), MEMORY_TAG_DATA_STRUCT);
+    delete node;
 
     return newIt;
 }
