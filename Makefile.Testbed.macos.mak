@@ -4,7 +4,7 @@ OBJ_DIR := obj
 
 ASSEMBLY := Testbed
 EXTENSION := 
-COMPILER_FLAGS := -g -MD -fdeclspec -fPIC -O3 -ffast-math
+COMPILER_FLAGS := -g -MD -fdeclspec -fPIC -O3 -ffast-math -Wc++17-extensions
 INCLUDE_FLAGS := -IEngine/src -ITestbed\src 
 LINKER_FLAGS := -L./$(BUILD_DIR)/ -lEngine -Wl,-rpath,.
 DEFINES := -D_DEBUG -DKIMPORT

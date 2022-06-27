@@ -5,7 +5,8 @@
 class VulkanPipeline
 {
 public:
-    bool Create(RendererState* rendererState,
+    bool Create(
+        RendererState* rendererState,
         class VulkanRenderpass* renderpass,
         U32 stride,
         U32 attributeCount,
@@ -14,8 +15,6 @@ public:
         VkDescriptorSetLayout* descriptorSetLayouts,
         U32 stageCount,
         VkPipelineShaderStageCreateInfo* stages,
-        VkViewport viewport,
-        VkRect2D scissor,
         bool isWireframe,
         bool depthTestEnabled,
         U32 pushConstantRangeCount,

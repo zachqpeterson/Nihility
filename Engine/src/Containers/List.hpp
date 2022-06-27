@@ -6,7 +6,7 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct List
+struct NH_API List
 {
     struct Node
     {
@@ -100,54 +100,55 @@ struct List
     };
 
 public:
-    NH_API List() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
-    NH_API List(const List& other);
-    NH_API List(List&& other);
-    NH_API ~List();
-    NH_API void Destroy();
+    List() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
+    List(const List& other);
+    List(List&& other);
+    ~List();
+    void Destroy();
 
-    NH_API List& operator=(const List& other);
-    NH_API List& operator=(List&& other);
+    List& operator=(const List& other);
+    List& operator=(List&& other);
 
-    NH_API void Assign(const List& other);
-    NH_API void Assign(List&& other);
+    void Assign(const List& other);
+    void Assign(List&& other);
 
-    NH_API T& Front() { return head->value; }
-    NH_API const T& Front() const { return head->value; }
-    NH_API T& Back() { return tail->value; }
-    NH_API const T& Back() const { return tail->value; }
+    T& Front() { return head->value; }
+    const T& Front() const { return head->value; }
+    T& Back() { return tail->value; }
+    const T& Back() const { return tail->value; }
 
-    NH_API Iterator begin() { return Iterator(head); }
-    NH_API Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
+    Iterator begin() { return Iterator(head); }
+    Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
 
-    NH_API const bool Empty() const { return !size; }
-    NH_API const U64& Size() const { return size; }
+    const bool Empty() const { return !size; }
+    const U64& Size() const { return size; }
 
-    NH_API void Clear();
+    void Clear();
 
     //TODO: Insert with range
-    NH_API T&& RemoveAt(U64 index);
-    NH_API Iterator Erase(Iterator it);
+    T&& RemoveAt(U64 index);
+    Iterator Erase(Iterator& it);
 
-    NH_API void PushFront(const T& value);
-    NH_API void PushFront(T&& value);
-    NH_API T&& PopFront();
-    NH_API void PushBack(const T& value);
-    NH_API void PushBack(T&& value);
-    NH_API T&& PopBack();
+    void PushFront(const T& value);
+    void PushFront(T&& value);
+    T&& PopFront();
+    void PushBack(const T& value);
+    void PushBack(T&& value);
+    T&& PopBack();
 
-    NH_API void Remove(const T& value);
-    NH_API void Reverse();
+    T&& Remove(const T& value);
+    T&& Remove(Iterator& it);
+    void Reverse();
     //TODO: Sorts
 
-    NH_API const bool Contains(const T& value) const;
-    NH_API const U64 Search(const T& value);
-    NH_API Iterator Find(const T& value);
+    const bool Contains(const T& value) const;
+    const U64 Search(const T& value);
+    Iterator Find(const T& value);
 
-    NH_API T& Get(U64 index);
-    NH_API const T& Get(U64 index) const;
-    NH_API T& operator[](U64 i);
-    NH_API const T& operator[](U64 i) const;
+    T& Get(U64 index);
+    const T& Get(U64 index) const;
+    T& operator[](U64 i);
+    const T& operator[](U64 i) const;
 
 private:
     U64 size;
@@ -190,14 +191,14 @@ inline void List<T>::Destroy()
 template<typename T>
 inline List<T>& List<T>::operator=(const List<T>& other)
 {
-    if (head) { clear(); }
+    if (head) { Clear(); }
 
     Node* node = other.head;
 
     while (node)
     {
-        PushBack(node->_value);
-        node = node->_next;
+        PushBack(node->value);
+        node = node->next;
     }
 
     return *this;
@@ -289,7 +290,7 @@ inline T&& List<T>::PopFront()
         --size;
         Node* tempNode = head;
         head = head->next;
-        head->prev = nullptr;
+        if(head) { head->prev = nullptr; }
         T value = tempNode->value;
         delete tempNode;
         return Move(value);
@@ -346,7 +347,7 @@ inline T&& List<T>::PopBack()
 }
 
 template<typename T>
-inline void List<T>::Remove(const T& value)
+inline T&& List<T>::Remove(const T& value)
 {
     Node* node = head;
     while (node)
@@ -363,13 +364,32 @@ inline void List<T>::Remove(const T& value)
             if (nextNode) { nextNode->prev = prevNode; }
             else { tail = prevNode; }
 
+            T value = node->value;
             delete node;
-            node = nextNode;
-            continue;
+            return Move(value);
         }
 
         node = node->next;
     }
+}
+
+template<typename T>
+inline T&& List<T>::Remove(List<T>::Iterator& it)
+{
+    --size;
+    Node* node = it.ptr;
+    Node* nextNode = node->next;
+    Node* prevNode = node->prev;
+
+    if (prevNode) { prevNode->next = nextNode; }
+    else { head = nextNode; }
+
+    if (nextNode) { nextNode->prev = prevNode; }
+    else { tail = prevNode; }
+
+    T value = node->value;
+    delete node;
+    return Move(value);
 }
 
 template<typename T>
@@ -435,7 +455,7 @@ inline T&& List<T>::RemoveAt(U64 index)
 }
 
 template<typename T>
-inline typename List<T>::Iterator List<T>::Erase(List<T>::Iterator it)
+inline typename List<T>::Iterator List<T>::Erase(List<T>::Iterator& it)
 {
     --size;
     Node* node = it.ptr;

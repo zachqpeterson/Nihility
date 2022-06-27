@@ -2,36 +2,57 @@
 
 #include "Defines.hpp"
 
-#include "Resources/Shader.hpp"
+#include "Resources/Resources.hpp"
+#include "RendererFrontend.hpp"
+
+template<typename> struct Vector;
 
 class Renderer
 {
 public:
     virtual ~Renderer() {};
 
-    virtual bool Initialize() = 0;
+    virtual bool Initialize(const struct String& applicationName, U8& renderTargetCount) = 0;
     virtual void Shutdown() = 0;
 
     virtual bool BeginFrame() = 0;
     virtual bool EndFrame() = 0;
-    virtual bool BeginRenderpass(U8 renderpassId) = 0;
-    virtual bool EndRenderpass(U8 renderpassId) = 0;
-    virtual void DrawMesh(struct Mesh* mesh, const struct Matrix4& modelMat) = 0;
+    virtual bool BeginRenderpass(Renderpass* renderpass) = 0;
+    virtual bool EndRenderpass(Renderpass* renderpass) = 0;
 
-    virtual bool CreateTexture(const Vector<U8>& pixels, struct Texture* texture) = 0;
-    virtual bool DestroyTexture(Texture* texture) = 0;
+    virtual bool CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32>& indices) = 0;
+    virtual void DestroyMesh(Mesh* mesh) = 0;
+    virtual void DrawMesh(const struct MeshRenderData& Meshdata) = 0;
 
-    virtual bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages) = 0;
-    virtual void DestroyShader(const Shader& shader) = 0;
-    virtual bool InitializeShader(Shader& shader) = 0;
-    virtual bool UseShader(const Shader& shader) = 0;
-    virtual bool BindGlobals(const Shader& shader) = 0;
-    virtual bool BindInstance(const Shader& shader, U32 instanceId) = 0;
-    virtual bool ApplyGlobals(const Shader& shader) = 0;
-    virtual bool ApplyInstance(const Shader& shader, bool needsUpdate) = 0;
-    virtual U32 AcquireInstanceResources(const Shader& shader) = 0;
-    virtual bool ReleaseInstanceResources(const Shader& shader, U32 instanceId) = 0;
-    virtual bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value) = 0;
+    virtual void CreateTexture(Texture* texture, const Vector<U8>& pixels) = 0;
+    virtual void DestroyTexture(Texture* texture) = 0;
+    virtual bool CreateWritableTexture(Texture* texture) = 0;
+    virtual void WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels) = 0;
+    virtual void ResizeTexture(Texture* texture, U32 width, U32 height) = 0;
+
+    virtual bool AcquireTextureMapResources(TextureMap& map) = 0;
+    virtual void ReleaseTextureMapResources(TextureMap& map) = 0;
+
+    virtual void CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext) = 0;
+    virtual void DestroyRenderpass(Renderpass* renderpass) = 0;
+
+    virtual bool CreateRenderTarget(Vector<Texture*>& attachments, struct Renderpass* renderpass, U32 width, U32 height, struct RenderTarget* target) = 0;
+    virtual bool DestroyRenderTarget(struct RenderTarget* target, bool freeInternalMemory) = 0;
+    virtual Texture* GetWindowAttachment(U8 index) = 0;
+    virtual Texture* GetDepthAttachment() = 0;
+    virtual U32 GetWindowAttachmentIndex() = 0;
+
+    virtual bool CreateShader(Shader* shader) = 0;
+    virtual void DestroyShader(Shader* shader) = 0;
+    virtual bool InitializeShader(Shader* shader) = 0;
+    virtual bool UseShader(Shader* shader) = 0;
+    virtual bool BindInstance(Shader* shader, U32 instanceId) = 0;
+    virtual bool ApplyGlobals(Shader* shader) = 0;
+    virtual bool ApplyInstance(Shader* shader, bool needsUpdate) = 0;
+    virtual U32 AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps) = 0;
+    virtual bool ReleaseInstanceResources(Shader* shader, U32 instanceId) = 0;
+    virtual bool SetUniform(Shader* shader, Uniform& uniform, const void* value) = 0;
+    virtual bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) = 0;
 
     virtual bool OnResize(struct Vector2Int newSize) = 0;
 

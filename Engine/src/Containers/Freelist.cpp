@@ -4,254 +4,139 @@
 #include "Core/Logger.hpp"
 #include "Containers/String.hpp"
 
-Freelist::Freelist(U64 size)
+Freelist::Freelist(U32 size) : totalSize{ size }, freeSpace{ totalSize }, head{ nullptr } {}
+
+Freelist::Freelist(Freelist&& other) : totalSize{ other.totalSize }, freeSpace{ other.freeSpace }, head{ other.head }
 {
-    totalSize = size;
-    maxEntries = (size / (sizeof(void*) * sizeof(Node)));
-    head = (Node*)Memory::Allocate(sizeof(Node) * size, MEMORY_TAG_DATA_STRUCT);
-    Memory::Zero(head, sizeof(Node) * size);
+    other.totalSize = 0;
+    other.freeSpace = 0;
+    other.head = nullptr;
+}
 
-    head->offset = 0;
-    head->size = size;
-    head->next = nullptr;
+Freelist::~Freelist()
+{
+    Destroy();
+}
 
-    for (U64 i = 1; i < maxEntries; ++i)
-    {
-        head[i].offset = INVALID_ID;
-        head[i].size = INVALID_ID;
-    }
+Freelist& Freelist::operator=(Freelist&& other)
+{
+    totalSize = other.totalSize;
+    freeSpace = other.freeSpace;
+    head = other.head;
+    other.totalSize = 0;
+    other.freeSpace = 0;
+    other.head = nullptr;
+
+    return *this;
 }
 
 void Freelist::Destroy()
 {
-    Memory::Free(head, sizeof(Node) * totalSize, MEMORY_TAG_DATA_STRUCT);
+    Node* node = head;
+    while(node)
+    {
+        Node* temp = node;
+        delete node;
+        node = temp;
+    }
+
     head = nullptr;
 }
 
-bool Freelist::AllocateBlock(U64 size, U64* outOffset)
+U32 Freelist::AllocateBlock(U32 size)
 {
-    Node* node = head;
-    Node* previous = nullptr;
-    while (node)
+    if (size > freeSpace)
     {
-        if (node->size == size)
-        {
-            *outOffset = node->offset;
-            Node* nodeToReturn = nullptr;
-            if (previous)
-            {
-                previous->next = node->next;
-                nodeToReturn = node;
-            }
-            else
-            {
-                nodeToReturn = head;
-                head = node->next;
-            }
-            ReturnNode(nodeToReturn);
-            return true;
-        }
-        else if (node->size > size)
-        {
-            *outOffset = node->offset;
-            node->size -= size;
-            node->offset += size;
-            return true;
-        }
-
-        previous = node;
-        node = node->next;
+        Logger::Error("Freelist::AllocateBlock: Not enough space to allocate {} bytes, space left: {}", size, freeSpace);
+        return U32_MAX;
     }
 
-    U64 freeSpace = FreeSpace();
-    LOG_WARN("freelist_find_block, no block with enough free space found (requested: %lluB, available: %lluB).", size, freeSpace);
-    return false;
+    if(head == nullptr)
+    {
+        head = new Node(size, 0);
+        freeSpace -= size;
+        return 0;
+    }
+
+    Node* node = head;
+    U32 offset = head->size;
+
+    while (offset < U32_MAX)
+    {
+        if(!node->next)
+        {
+            node->next = new Node(size, offset);
+            freeSpace -= size;
+
+            return offset;
+        }
+
+        if ((node->next->offset - node->size) >= size)
+        {
+            node->next = new Node(size, offset, node->next);
+            freeSpace -= size;
+
+            return offset;
+        }
+
+        offset += node->size;
+        node = node->next;
+        continue;
+    }
+
+    Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);
+    return U32_MAX;
 }
 
-bool Freelist::FreeBlock(U64 size, U64 offset)
+bool Freelist::FreeBlock(U32 size, U32 offset)
 {
-    Node* node = head;
-    Node* previous = nullptr;
-    if (!node)
+    if(offset == 0)
     {
-        Node* newNode = GetNode();
-        newNode->offset = offset;
-        newNode->size = size;
-        newNode->next = nullptr;
-        head = newNode;
+        Node* temp = head->next;
+        delete head;
+        head = temp;
+        freeSpace += size;
+        
         return true;
     }
-    else
+
+    Node* node = head->next;
+    Node* prev = head;
+
+    while(node)
     {
-        while (node)
+        if(node->offset == offset)
         {
-            if (node->offset == offset)
+            if(node->size != size)
             {
-                node->size += size;
-
-                if (node->next && node->next->offset == node->offset + node->size)
-                {
-                    node->size += node->next->size;
-                    Node* next = node->next;
-                    node->next = node->next->next;
-                    ReturnNode(next);
-                }
-                return true;
-            }
-            else if (node->offset > offset)
-            {
-                Node* newNode = GetNode();
-                newNode->offset = offset;
-                newNode->size = size;
-
-                if (previous)
-                {
-                    previous->next = newNode;
-                    newNode->next = node;
-                }
-                else
-                {
-                    newNode->next = node;
-                    head = newNode;
-                }
-
-                if (newNode->next && newNode->offset + newNode->size == newNode->next->offset)
-                {
-                    newNode->size += newNode->next->size;
-                    Node* rubbish = newNode->next;
-                    newNode->next = rubbish->next;
-                    ReturnNode(rubbish);
-                }
-
-                if (previous && previous->offset + previous->size == newNode->offset)
-                {
-                    previous->size += newNode->size;
-                    Node* rubbish = newNode;
-                    previous->next = rubbish->next;
-                    ReturnNode(rubbish);
-                }
-
-                return true;
+                Logger::Error("Freelist::FreeBlock: Memory block at offset {} is not of size {}!", offset, size);
+                return false;
             }
 
-            previous = node;
-            node = node->next;
+            Node* temp = node->next;
+            delete node;
+            prev->next = temp;
+            freeSpace += size;
+
+            return true;
         }
-    }
 
-    LOG_WARN("Unable to find block to be freed. Corruption possible?");
-    return false;
-}
-
-bool Freelist::Resize(U64 newSize)
-{
-    Node* temp = head;
-    U64 oldSize = totalSize;
-    U64 sizeDiff = newSize - totalSize;
-
-    head = (Node*)Memory::Allocate(sizeof(Node) * newSize, MEMORY_TAG_DATA_STRUCT);
-
-    Memory::Zero(head, sizeof(Node) * newSize);
-
-    maxEntries = (newSize / (sizeof(void*) * sizeof(Node)));
-    totalSize = newSize;
-
-    for (U64 i = 1; i < maxEntries; ++i)
-    {
-        head[i].offset = INVALID_ID;
-        head[i].size = INVALID_ID;
-    }
-
-    Node* newListNode = head;
-    Node* oldNode = &temp[0];
-    if (!oldNode)
-    {
-        head->offset = oldSize;
-        head->size = sizeDiff;
-        head->next = 0;
-    }
-    else
-    {
-        while (oldNode)
-        {
-            Node* newNode = GetNode();
-            newNode->offset = oldNode->offset;
-            newNode->size = oldNode->size;
-            newNode->next = 0;
-            newListNode->next = newNode;
-            newListNode = newListNode->next;
-
-            if (oldNode->next)
-            {
-                oldNode = oldNode->next;
-            }
-            else
-            {
-                if (oldNode->offset + oldNode->size == oldSize)
-                {
-                    newNode->size += sizeDiff;
-                }
-                else
-                {
-                    Node* newNodeEnd = GetNode();
-                    newNodeEnd->offset = oldSize;
-                    newNodeEnd->size = sizeDiff;
-                    newNodeEnd->next = 0;
-                    newNode->next = newNodeEnd;
-                }
-                break;
-            }
-        }
-    }
-
-    Memory::Free(temp, oldSize, MEMORY_TAG_DATA_STRUCT);
-
-    return true;
-}
-
-void Freelist::Cleanup()
-{
-    for (U64 i = 1; i < maxEntries; ++i)
-    {
-        head[i].offset = INVALID_ID;
-        head[i].size = INVALID_ID;
-    }
-
-    head->offset = 0;
-    head->size = totalSize;
-    head->next = nullptr;
-}
-
-bool Freelist::FreeSpace()
-{
-    U64 runningTotal = 0;
-    Node* node = head;
-
-    while (node)
-    {
-        runningTotal += node->size;
+        prev = node;
         node = node->next;
     }
 
-    return runningTotal;
+    Logger::Error("Freelist::FreeBlock: There is no memory block at offset {}", offset);
+    return false;
 }
 
-Freelist::Node* Freelist::GetNode()
+bool Freelist::Resize(U32 size)
 {
-    for (U64 i = 1; i < maxEntries; ++i)
+    if((totalSize - freeSpace) > size)
     {
-        if (head[i].offset == INVALID_ID)
-        {
-            return &head[i];
-        }
+        Logger::Error("Freelist::Resize: Can't resize to a size smaller than allocated size: {}", totalSize - freeSpace);
+        return false;
     }
 
-    return nullptr;
-}
-
-void Freelist::ReturnNode(Node* node)
-{
-    node->offset = INVALID_ID;
-    node->size = INVALID_ID;
-    node->next = 0;
+    totalSize = size;
+    return true;
 }

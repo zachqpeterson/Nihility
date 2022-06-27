@@ -1,0 +1,11 @@
+renderpass=Background.rnp
+stages=vertex,fragment
+stagefiles=shaders/Background.vert.spv,shaders/Background.frag.spv
+useInstance=0
+useLocal=0
+renderOrder=-100
+
+attribute=vec2,inPosition
+attribute=vec2,inTexcoord
+
+uniform=samp,0,0,diffuseTexture

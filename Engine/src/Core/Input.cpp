@@ -1,6 +1,7 @@
 #include "Input.hpp"
 
 #include "Math/Math.hpp"
+#include "Core/Logger.hpp"
 
 struct ButtonState
 {
@@ -14,9 +15,10 @@ Vector2Int Input::mousePos;
 
 bool Input::Initialize()
 {
+    Logger::Info("Initializing input...");
     anyButtonDown = false;
     mouseWheelDelta = 0;
-    mousePos = 0;
+    mousePos = Vector2Int::ZERO;
 
     return true;
 }

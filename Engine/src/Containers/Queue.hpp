@@ -6,7 +6,7 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct Queue
+struct NH_API Queue
 {
     struct Node
     {
@@ -22,23 +22,23 @@ struct Queue
     };
 
 public:
-    NH_API Queue() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
-    NH_API Queue(const Queue& other);
-    NH_API Queue(Queue&& other);
-    NH_API ~Queue();
-    NH_API void Destroy();
+    Queue() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
+    Queue(const Queue& other);
+    Queue(Queue&& other);
+    ~Queue();
+    void Destroy();
 
-    NH_API Queue& operator=(const Queue& other);
-    NH_API Queue& operator=(Queue&& other);
+    Queue& operator=(const Queue& other);
+    Queue& operator=(Queue&& other);
 
-    NH_API void Clear();
-    NH_API const bool Empty() const { return !size; }
-    NH_API const U64& Size() const { return size; }
+    void Clear();
+    const bool Empty() const { return !size; }
+    const U64& Size() const { return size; }
 
-    NH_API T& Peek() { return *head; }
-    NH_API T&& Pop();
-    NH_API void Push(const T& value);
-    NH_API void Push(T&& value);
+    T& Peek() { return *head; }
+    T&& Pop();
+    void Push(const T& value);
+    void Push(T&& value);
 
 private:
     U64 size;

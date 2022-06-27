@@ -31,8 +31,8 @@ public:
 
     VkImage handle;
     VkImageView view;
-private:
     VkDeviceMemory memory;
+
     U32 width;
     U32 height;
 };

@@ -2,7 +2,9 @@
 
 #include "Defines.hpp"
 
+#include "Containers/HashMap.hpp"
 #include "Containers/Vector.hpp"
+#include "Resources/Resources.hpp"
 
 #if defined(PLATFORM_WINDOWS)
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -204,24 +206,24 @@ inline bool ResultSuccess(VkResult result)
     ASSERT(result == VK_SUCCESS);       \
 }
 
-#define VkCheck_FATAL(expr)                                                             \
-{                                                                                       \
-    VkResult result = expr;                                                             \
-    if(!ResultSuccess(result))                                                          \
-    {                                                                                   \
-        LOG_FATAL("Expression %s failed with result %s", #expr, ResultString(result));  \
-        return false;                                                                   \
-    }                                                                                   \
+#define VkCheck_FATAL(expr)                                                                 \
+{                                                                                           \
+    VkResult result = expr;                                                                 \
+    if(!ResultSuccess(result))                                                              \
+    {                                                                                       \
+        Logger::Fatal("Expression {} failed with result {}", #expr, ResultString(result));  \
+        return false;                                                                       \
+    }                                                                                       \
 }           
 
-#define VkCheck_ERROR(expr)                                                             \
-{                                                                                       \
-    VkResult result = expr;                                                             \
-    if(!ResultSuccess(result))                                                          \
-    {                                                                                   \
-        LOG_ERROR("Expression %s failed with result %S", #expr, ResultString(result));  \
-        return false;                                                                   \
-    }                                                                                   \
+#define VkCheck_ERROR(expr)                                                                 \
+{                                                                                           \
+    VkResult result = expr;                                                                 \
+    if(!ResultSuccess(result))                                                              \
+    {                                                                                       \
+        Logger::Error("Expression {} failed with result {}", #expr, ResultString(result));  \
+        return false;                                                                       \
+    }                                                                                       \
 }
 
 #define VULKAN_SHADER_MAX_STAGES 8
@@ -231,8 +233,11 @@ inline bool ResultSuccess(VkResult result)
 #define VULKAN_SHADER_MAX_UNIFORMS 128
 #define VULKAN_SHADER_MAX_BINDINGS 2
 #define VULKAN_SHADER_MAX_PUSH_CONST_RANGES 32
+#define VULKAN_MAX_REGISTERED_RENDERPASSES 31
 #define VULKAN_MAX_MATERIAL_COUNT 1024
-#define VULKAN_MAX_GEOMETRY_COUNT 4096
+
+template<typename, typename> struct HashMap;
+template<typename> struct Vector;
 
 struct VulkanMesh
 {
@@ -240,16 +245,10 @@ struct VulkanMesh
     U32 generation;
     U32 vertexCount;
     U32 vertexElementSize;
-    U64 vertexBufferOffset;
+    U32 vertexBufferOffset;
     U32 indexCount;
     U32 indexElementSize;
-    U64 indexBufferOffset;
-};
-
-struct VulkanTexture
-{
-    class VulkanImage* image;
-    VkSampler sampler;
+    U32 indexBufferOffset;
 };
 
 struct RendererState
@@ -262,6 +261,7 @@ struct RendererState
     U32 framebufferHeight;
     U64 framebufferSizeGeneration;
     U64 framebufferSizeLastGeneration;
+    struct Vector4Int renderArea;
 
     VkAllocationCallbacks* allocator;
     VkInstance instance;
@@ -271,8 +271,6 @@ struct RendererState
     VkSurfaceKHR surface;
     class VulkanDevice* device;
     class VulkanSwapchain* swapchain;
-    class VulkanRenderpass* mainRenderpass;
-    class VulkanRenderpass* uiRenderpass;
 
     Vector<class VulkanCommandBuffer> graphicsCommandBuffers;
     Vector<VkSemaphore> imageAvailableSemaphores;
@@ -282,12 +280,8 @@ struct RendererState
     VkFence inFlightFences[2];
     VkFence imagesInFlight[3];
 
-    VkFramebuffer worldFramebuffers[3];
-
     class VulkanBuffer* objectVertexBuffer;
     class VulkanBuffer* objectIndexBuffer;
-
-    Vector<VulkanMesh> meshes;
 
     bool recreatingSwapchain;
 

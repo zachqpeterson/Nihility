@@ -2,13 +2,13 @@
 
 #include "VulkanDefines.hpp"
 
+template<typename> struct Vector;
+
 struct SwapchainSupportInfo
 {
     VkSurfaceCapabilitiesKHR capabilities;
-    U32 formatCount;
-    VkSurfaceFormatKHR* formats;
-    U32 presentModeCount;
-    VkPresentModeKHR* presentModes;
+    Vector<VkSurfaceFormatKHR> formats;
+    Vector<VkPresentModeKHR> presentModes;
 };
 
 class VulkanDevice
@@ -18,7 +18,7 @@ public:
     void Destroy(RendererState* rendererState);
 
     void QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo);
-    bool DetectDepthFormat(RendererState* rendererState);
+    bool DetectDepthFormat();
 
 private:
     bool SelectPhysicalDevice(RendererState* rendererState);
@@ -52,4 +52,5 @@ public:
     VkPhysicalDeviceMemoryProperties memory;
 
     VkFormat depthFormat;
+    U8 depthChannelCount;
 };

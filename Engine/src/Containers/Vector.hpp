@@ -5,56 +5,60 @@
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
 
+//TODO: Handle Pointer types
+//template<typename T>
+//struct Vector<T*>
+
 template<typename T>
-struct Vector
+struct NH_API Vector
 {
 public:
-    struct Iterator
+    struct NH_API Iterator
     {
         Iterator(T* ptr) : ptr{ ptr } {}
 
-        NH_API T& operator* () const { return *ptr; }
-        NH_API T* operator-> () { return ptr; }
+        T& operator* () const { return *ptr; }
+        T* operator-> () { return ptr; }
 
-        NH_API Iterator& operator++ () { ++ptr; return *this; }
-        NH_API Iterator operator++ (int)
-        {
-            iterator temp = *this;
-            ++this->ptr;
-            return temp;
-        }
-
-        NH_API Iterator& operator-- () { --ptr; return *this; }
-        NH_API Iterator operator-- (int)
-        {
-            iterator temp = *this;
-            --this->ptr;
-            return temp;
-        }
-
-        NH_API Iterator operator+(int i)
+        Iterator& operator++ () { ++ptr; return *this; }
+        Iterator operator++ (int)
         {
             Iterator temp = *this;
-            for (int j = 0; j < i; ++j) { ++temp; }
+            ++ptr;
             return temp;
         }
 
-        NH_API Iterator operator-(int i)
+        Iterator& operator-- () { --ptr; return *this; }
+        Iterator operator-- (int)
         {
             Iterator temp = *this;
-            for (int j = 0; j < i; ++j) { --temp; }
+            --ptr;
             return temp;
         }
 
-        NH_API Iterator& operator+=(int i)
+        Iterator operator+(int i)
         {
-            for (int j = 0; j < i; ++j) { ++this->ptr; }
+            Iterator temp = *this;
+            temp += i;
+            return temp;
+        }
+
+        Iterator operator-(int i)
+        {
+            Iterator temp = *this;
+            temp -= i;
+            return temp;
+        }
+
+        Iterator& operator+=(int i)
+        {
+            ptr += i;
             return *this;
         }
 
-        NH_API Iterator& operator-=(int i)
+        Iterator& operator-=(int i)
         {
-            for (int j = 0; j < i; ++j) { --this->ptr; }
+            ptr -= i;
             return *this;
         }
 
@@ -70,63 +74,67 @@ public:
     };
 
 public:
-    NH_API Vector() : size{ 0 }, capacity{ 0 }, array{ nullptr }, tag{ MEMORY_TAG_DATA_STRUCT } {}
-    NH_API Vector(U64 capacity);
-    NH_API Vector(U64 size, const T& value);
-    NH_API Vector(const Vector& other);
-    NH_API Vector(Vector&& other);
-    NH_API Vector(T* array, U64 size, MemoryTag tag = MEMORY_TAG_DATA_STRUCT);
-    NH_API ~Vector();
-    NH_API void Destroy();
+    Vector();
+    Vector(U64 capacity);
+    Vector(U64 size, const T& value);
+    Vector(const Vector& other);
+    Vector(Vector&& other);
+    Vector(T* array, U64 size);
+    ~Vector();
+    void Destroy();
 
-    NH_API Vector& operator=(const Vector& other);
-    NH_API Vector& operator=(Vector&& other);
+    Vector& operator=(const Vector& other);
+    Vector& operator=(Vector&& other);
 
-    NH_API void SetArray(T* array, U64 size, MemoryTag tag = MEMORY_TAG_DATA_STRUCT);
+    void SetArray(T* array, U64 size);
 
-    NH_API void Push(const T& value);
-    NH_API void Push(T&& value);
-    NH_API T&& Pop();
-    NH_API void Insert(const T& value, U64 index);
-    NH_API void Insert(T&& value, U64 index);
-    NH_API T&& Remove(U64 index);
-    NH_API void Resize(U64 size);
-    NH_API void Reserve(U64 capacity);
-    NH_API const U64 Find(const T& value);
-    NH_API const U64 Find(const T& value) const;
-    NH_API void Clear();
-    NH_API T* Data();
-    NH_API const T* Data() const;
-    NH_API T& Front();
-    NH_API const T& Front() const;
-    NH_API T& Back();
-    NH_API const T& Back() const;
-    NH_API const U64& Size() const;
-    NH_API const U64& Capacity() const;
+    void Push(const T& value);
+    void Push(T&& value);
+    T&& Pop();
+    void Insert(const T& value, U64 index);
+    void Insert(T&& value, U64 index);
+    T&& Remove(U64 index);
+    void Resize(U64 size);
+    void Reserve(U64 capacity);
+    const U64 Find(const T& value);
+    const U64 Find(const T& value) const;
+    void Clear() { size = 0; } //TODO: Could cause memory leak
+    T* Data() { return array; }
+    const T* Data() const { return array; }
+    T& Front() { return *array; }
+    const T& Front() const { return *array; }
+    T& Back() { return array[size - 1]; }
+    const T& Back() const { return array[size - 1]; }
+    const U64& Size() const { return size; }
+    const U64& Capacity() const { return capacity; }
 
-    NH_API T& operator[](U64 i);
-    NH_API const T& operator[](U64 i) const;
+    T& operator[](U64 i) { return array[i]; }
+    const T& operator[](U64 i) const { return array[i]; }
 
-    NH_API Iterator begin() { return Iterator{ array }; }
-    NH_API Iterator end() { return Iterator{ &array[size] }; }
+    Iterator begin() { return Iterator{ array }; }
+    Iterator end() { return Iterator{ &array[size] }; }
+    Iterator begin() const { return Iterator{ array }; }
+    Iterator end() const { return Iterator{ &array[size] }; }
 
 private:
     U64 size;
     U64 capacity;
     T* array;
-    MemoryTag tag;
 };
 
 template<typename T>
-inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity }, tag{ MEMORY_TAG_DATA_STRUCT }
+inline Vector<T>::Vector() : size{ 0 }, capacity{ 0 }, array{ nullptr } {}
+
+template<typename T>
+inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity }
 {
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 }
 
 template<typename T>
-inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }, tag{ MEMORY_TAG_DATA_STRUCT }
+inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
 {
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
     for (int i = 0; i < size; ++i)
     {
@@ -135,9 +143,9 @@ inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ siz
 }
 
 template<typename T>
-inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.capacity }, tag{ other.tag }
+inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.capacity }
 {
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
     Memory::Copy(array, other.array, size);
 }
@@ -151,14 +159,14 @@ inline Vector<T>::Vector(Vector<T>&& other) : size{ other.size }, capacity{ othe
 }
 
 template<typename T>
-inline Vector<T>::Vector(T* array, U64 size, MemoryTag tag) : array{ array }, size{ size }, capacity{ size }, tag{ tag } {}
+inline Vector<T>::Vector(T* array, U64 size) : array{ array }, size{ size }, capacity{ size } {}
 
 template<typename T>
 inline Vector<T>::~Vector()
 {
     if (array)
     {
-        Memory::Free(array, sizeof(T) * capacity, tag);
+        Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
     }
 
     array = nullptr;
@@ -171,7 +179,7 @@ inline void Vector<T>::Destroy()
 {
     if (array)
     {
-        Memory::Free(array, sizeof(T) * capacity, tag);
+        Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
     }
 
     array = nullptr;
@@ -184,13 +192,12 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 {
     if (array)
     {
-        Memory::Free(array, sizeof(T) * capacity, tag);
+        Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
     }
 
     size = other.size;
     capacity = other.capacity;
-    tag = other.tag;
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
+    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
     Memory::Copy(array, other.array, size);
 
@@ -200,27 +207,29 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 template<typename T>
 inline Vector<T>& Vector<T>::operator=(Vector<T>&& other)
 {
+    if (array)
+    {
+        Memory::Free(array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+    }
+
     size = other.size;
     capacity = other.capacity;
     array = other.array;
-    tag = other.tag;
     other.size = 0;
     other.capacity = 0;
     other.array = nullptr;
-    other.tag = MEMORY_TAG_DATA_STRUCT;
 
     return *this;
 }
 
 template<typename T>
-inline void Vector<T>::SetArray(T* array, U64 size, MemoryTag tag)
+inline void Vector<T>::SetArray(T* array, U64 size)
 {
     if (this->array)
     {
-        Memory::Free(this->array, sizeof(T) * capacity, tag);
+        Memory::Free(this->array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
     }
 
-    this->tag = tag;
     this->array = array;
     this->size = size;
     capacity = size;
@@ -231,7 +240,7 @@ inline void Vector<T>::Push(const T& value)
 {
     if (size == capacity)
     {
-        Reserve(++capacity * 2);
+        Reserve((capacity + 1) * 2);
     }
 
     array[size] = value;
@@ -243,7 +252,7 @@ inline void Vector<T>::Push(T&& value)
 {
     if (size == capacity)
     {
-        Reserve(++capacity * 2);
+        Reserve((capacity + 1) * 2);
     }
 
     array[size] = value;
@@ -264,13 +273,17 @@ inline void Vector<T>::Insert(const T& value, U64 index)
 
     if (size == capacity)
     {
-        Reserve(++capacity * 2);
+        Reserve((capacity + 1) * 2);
     }
 
     ++size;
 
-    Memory::Copy(array + index + 1, array + index, size - index);
-    array[index] = data;
+    if (index < size - 1)
+    {
+        Memory::Copy(array + index + 1, array + index, sizeof(T) * (size - index));
+    }
+
+    array[index] = value;
 }
 
 template<typename T>
@@ -280,12 +293,16 @@ inline void Vector<T>::Insert(T&& value, U64 index)
 
     if (size == capacity)
     {
-        Reserve(++capacity * 2);
+        Reserve((capacity + 1) * 2);
     }
 
     ++size;
 
-    Memory::Copy(array + index + 1, array + index, size - index);
+    if (index < size - 1)
+    {
+        Memory::Copy(array + index + 1, array + index, sizeof(T) * (size - index));
+    }
+
     array[index] = value;
 }
 
@@ -318,18 +335,18 @@ inline void Vector<T>::Reserve(U64 capacity)
 {
     if (array)
     {
-        T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
+        T* newArray = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
         Memory::Copy(newArray, array, sizeof(T) * (capacity < this->capacity ? capacity : this->capacity));
 
-        Memory::Free(array, sizeof(T) * this->capacity, tag);
+        Memory::Free(array, sizeof(T) * this->capacity, MEMORY_TAG_DATA_STRUCT);
         array = newArray;
         this->capacity = capacity;
         size = size > capacity ? capacity : size;
     }
     else
     {
-        array = (T*)Memory::Allocate(sizeof(T) * capacity, tag);
+        array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
         this->capacity = capacity;
         size = 0;
     }
@@ -361,72 +378,4 @@ inline const U64 Vector<T>::Find(const T& value) const
     }
 
     return -1;
-}
-
-template<typename T>
-inline void Vector<T>::Clear()
-{
-    size = 0;
-}
-
-template<typename T>
-inline T* Vector<T>::Data()
-{
-    return array;
-}
-
-template<typename T>
-inline const T* Vector<T>::Data() const
-{
-    return array;
-}
-
-template<typename T>
-inline T& Vector<T>::Front()
-{
-    return array[0];
-}
-
-template<typename T>
-inline const T& Vector<T>::Front() const
-{
-    return array[0];
-}
-
-template<typename T>
-inline T& Vector<T>::Back()
-{
-    return array[size - 1];
-}
-
-template<typename T>
-inline const T& Vector<T>::Back() const
-{
-    return array[size - 1];
-}
-
-template<typename T>
-inline const U64& Vector<T>::Size() const
-{
-    return size;
-}
-
-template<typename T>
-inline const U64& Vector<T>::Capacity() const
-{
-    return capacity;
-}
-
-template<typename T>
-inline T& Vector<T>::operator[](U64 i)
-{
-    ASSERT_DEBUG_MSG(i < size, "Can't index past the size of a vector!");
-    return array[i];
-}
-
-template<typename T>
-inline const T& Vector<T>::operator[](U64 i) const
-{
-    ASSERT_DEBUG_MSG(i < size, "Can't index past the size of a vector!");
-    return array[i];
 }

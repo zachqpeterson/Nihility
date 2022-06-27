@@ -27,17 +27,17 @@ bool VulkanDevice::Create(RendererState* rendererState)
 {
     if (!SelectPhysicalDevice(rendererState)) { return false; }
 
-    LOG_INFO("Creating logical device...");
+    Logger::Info("Creating logical device...");
 
-    bool presentSharesGraphicsQueue = rendererState->device->graphicsQueueIndex == rendererState->device->presentQueueIndex;
-    bool transferSharesGraphicsQueue = rendererState->device->graphicsQueueIndex == rendererState->device->transferQueueIndex;
+    bool presentSharesGraphicsQueue = graphicsQueueIndex == presentQueueIndex;
+    bool transferSharesGraphicsQueue = graphicsQueueIndex == transferQueueIndex;
     U32 indexCount = 1 + !presentSharesGraphicsQueue + !transferSharesGraphicsQueue;
 
     U32 indices[32];
     U8 index = 0;
-    indices[index] = rendererState->device->graphicsQueueIndex;
-    if (!presentSharesGraphicsQueue) { indices[++index] = rendererState->device->presentQueueIndex; }
-    if (!transferSharesGraphicsQueue) { indices[++index] = rendererState->device->transferQueueIndex; }
+    indices[index] = graphicsQueueIndex;
+    if (!presentSharesGraphicsQueue) { indices[++index] = presentQueueIndex; }
+    if (!transferSharesGraphicsQueue) { indices[++index] = transferQueueIndex; }
 
     VkDeviceQueueCreateInfo queueCreateInfos[32];
     for (U32 i = 0; i < indexCount; ++i)
@@ -47,7 +47,7 @@ bool VulkanDevice::Create(RendererState* rendererState)
         queueCreateInfos[i].queueCount = 1;
 
         // TODO: Enable this for a future enhancement.
-        //if (indices[i] == rendererState->device->graphicsQueueIndex) {
+        //if (indices[i] == graphicsQueueIndex) {
         //    queueCreateInfos[i].queueCount = 2;
         //}
         queueCreateInfos[i].flags = 0;
@@ -63,17 +63,17 @@ bool VulkanDevice::Create(RendererState* rendererState)
     bool portabilityRequired = false;
     U32 availableExtensionCount = 0;
     VkExtensionProperties* availableExtensions = 0;
-    VkCheck(vkEnumerateDeviceExtensionProperties(rendererState->device->physicalDevice, 0, &availableExtensionCount, 0));
+    VkCheck(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &availableExtensionCount, 0));
 
     if (availableExtensionCount != 0)
     {
         availableExtensions = (VkExtensionProperties*)Memory::Allocate(sizeof(VkExtensionProperties) * availableExtensionCount, MEMORY_TAG_RENDERER);
-        VkCheck(vkEnumerateDeviceExtensionProperties(rendererState->device->physicalDevice, 0, &availableExtensionCount, availableExtensions));
+        VkCheck(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &availableExtensionCount, availableExtensions));
         for (U32 i = 0; i < availableExtensionCount; ++i)
         {
             if (strcmp(availableExtensions[i].extensionName, "VK_KHR_portability_subset") == 0)
             {
-                LOG_TRACE("Adding required extension 'VK_KHR_portability_subset'.");
+                Logger::Trace("Adding required extension 'VK_KHR_portability_subset'.");
                 portabilityRequired = true;
                 break;
             }
@@ -98,75 +98,60 @@ bool VulkanDevice::Create(RendererState* rendererState)
     deviceCreateInfo.enabledLayerCount = 0;
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
-    VkCheck(vkCreateDevice(rendererState->device->physicalDevice, &deviceCreateInfo, rendererState->allocator, &rendererState->device->logicalDevice));
+    VkCheck(vkCreateDevice(physicalDevice, &deviceCreateInfo, rendererState->allocator, &logicalDevice));
 
-    LOG_INFO("Obtaining queues...");
-    vkGetDeviceQueue(rendererState->device->logicalDevice, rendererState->device->graphicsQueueIndex, 0, &rendererState->device->graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, graphicsQueueIndex, 0, &graphicsQueue);
 
-    vkGetDeviceQueue(rendererState->device->logicalDevice, rendererState->device->presentQueueIndex, 0, &rendererState->device->presentQueue);
+    vkGetDeviceQueue(logicalDevice, presentQueueIndex, 0, &presentQueue);
 
-    vkGetDeviceQueue(rendererState->device->logicalDevice, rendererState->device->transferQueueIndex, 0, &rendererState->device->transferQueue);
+    vkGetDeviceQueue(logicalDevice, transferQueueIndex, 0, &transferQueue);
 
-    LOG_INFO("Creating graphics command pool...");
     VkCommandPoolCreateInfo poolCreateInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-    poolCreateInfo.queueFamilyIndex = rendererState->device->graphicsQueueIndex;
+    poolCreateInfo.queueFamilyIndex = graphicsQueueIndex;
     poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    VkCheck(vkCreateCommandPool(rendererState->device->logicalDevice, &poolCreateInfo, rendererState->allocator, &rendererState->device->graphicsCommandPool));
+    VkCheck(vkCreateCommandPool(logicalDevice, &poolCreateInfo, rendererState->allocator, &graphicsCommandPool));
 
     return true;
 }
 
 void VulkanDevice::Destroy(RendererState* rendererState)
 {
-    rendererState->device->graphicsQueue = VK_NULL_HANDLE;
-    rendererState->device->presentQueue = VK_NULL_HANDLE;
-    rendererState->device->transferQueue = VK_NULL_HANDLE;
+    graphicsQueue = VK_NULL_HANDLE;
+    presentQueue = VK_NULL_HANDLE;
+    transferQueue = VK_NULL_HANDLE;
 
-    LOG_INFO("Destroying vulkan command pools...");
-    vkDestroyCommandPool(rendererState->device->logicalDevice, rendererState->device->graphicsCommandPool, rendererState->allocator);
+    Logger::Info("Destroying vulkan command pools...");
+    vkDestroyCommandPool(logicalDevice, graphicsCommandPool, rendererState->allocator);
 
-    LOG_INFO("Destroying vulkan logical device...");
-    if (rendererState->device->logicalDevice)
+    Logger::Info("Destroying vulkan logical device...");
+    if (logicalDevice)
     {
-        vkDestroyDevice(rendererState->device->logicalDevice, rendererState->allocator);
-        rendererState->device->logicalDevice = VK_NULL_HANDLE;
+        vkDestroyDevice(logicalDevice, rendererState->allocator);
+        logicalDevice = VK_NULL_HANDLE;
     }
 
-    LOG_INFO("Releasing physical device resources...");
-    rendererState->device->physicalDevice = VK_NULL_HANDLE;
+    Logger::Info("Releasing physical device resources...");
+    physicalDevice = VK_NULL_HANDLE;
 
-    if (rendererState->device->swapchainSupport.formats)
-    {
-        Memory::Free(rendererState->device->swapchainSupport.formats,
-            sizeof(VkSurfaceFormatKHR) * rendererState->device->swapchainSupport.formatCount, MEMORY_TAG_RENDERER);
-        rendererState->device->swapchainSupport.formats = VK_NULL_HANDLE;
-        rendererState->device->swapchainSupport.formatCount = 0;
-    }
+    swapchainSupport.formats.Clear();
+    swapchainSupport.presentModes.Clear();
 
-    if (rendererState->device->swapchainSupport.presentModes)
-    {
-        Memory::Free(rendererState->device->swapchainSupport.presentModes,
-            sizeof(VkPresentModeKHR) * rendererState->device->swapchainSupport.presentModeCount, MEMORY_TAG_RENDERER);
-        rendererState->device->swapchainSupport.presentModes = VK_NULL_HANDLE;
-        rendererState->device->swapchainSupport.presentModeCount = 0;
-    }
+    Memory::Zero(&swapchainSupport.capabilities, sizeof(swapchainSupport.capabilities));
 
-    Memory::Zero(&rendererState->device->swapchainSupport.capabilities, sizeof(rendererState->device->swapchainSupport.capabilities));
-
-    rendererState->device->graphicsQueueIndex = -1;
-    rendererState->device->presentQueueIndex = -1;
-    rendererState->device->transferQueueIndex = -1;
+    graphicsQueueIndex = -1;
+    presentQueueIndex = -1;
+    transferQueueIndex = -1;
 }
 
 bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 {
-    LOG_INFO("Selecting physical device...");
+    Logger::Info("Selecting physical device...");
 
     U32 physicalDeviceCount = 0;
     VkCheck(vkEnumeratePhysicalDevices(rendererState->instance, &physicalDeviceCount, 0));
     if (physicalDeviceCount == 0)
     {
-        LOG_FATAL("No devices which support Vulkan were found.");
+        Logger::Fatal("No devices which support Vulkan were found.");
         return false;
     }
 
@@ -183,7 +168,7 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
         VkPhysicalDeviceMemoryProperties memory;
         vkGetPhysicalDeviceMemoryProperties(physicalDevices[i], &memory);
 
-        LOG_TRACE("Evaluating device: '%s', index %u.", properties.deviceName, i);
+        Logger::Trace("Evaluating device: {}, index {}.", properties.deviceName, i);
 
         bool supportsDeviceLocalHostVisible = false;
         for (U32 i = 0; i < memory.memoryTypeCount; ++i)
@@ -214,7 +199,7 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 
         PhysicalDeviceQueueFamilyInfo queueInfo = {};
         bool result = physicalDeviceMeetsRequirements(physicalDevices[i], rendererState->surface, &properties,
-            &features, &requirements, &queueInfo, &rendererState->device->swapchainSupport);
+            &features, &requirements, &queueInfo, &swapchainSupport);
 
         if (result)
         {
@@ -264,23 +249,23 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
             }
 #endif
 
-            rendererState->device->physicalDevice = physicalDevices[i];
-            rendererState->device->graphicsQueueIndex = queueInfo.graphicsFamilyIndex;
-            rendererState->device->presentQueueIndex = queueInfo.presentFamilyIndex;
-            rendererState->device->transferQueueIndex = queueInfo.transferFamilyIndex;
+            physicalDevice = physicalDevices[i];
+            graphicsQueueIndex = queueInfo.graphicsFamilyIndex;
+            presentQueueIndex = queueInfo.presentFamilyIndex;
+            transferQueueIndex = queueInfo.transferFamilyIndex;
             // TODO: set compute index here if needed.
 
-            rendererState->device->properties = properties;
-            rendererState->device->features = features;
-            rendererState->device->memory = memory;
-            rendererState->device->supportsDeviceLocalHostVisible = supportsDeviceLocalHostVisible;
+            this->properties = properties;
+            this->features = features;
+            this->memory = memory;
+            this->supportsDeviceLocalHostVisible = supportsDeviceLocalHostVisible;
             break;
         }
     }
 
-    if (!rendererState->device->physicalDevice)
+    if (!physicalDevice)
     {
-        LOG_ERROR("No physical devices were found which meet the requirements.");
+        Logger::Error("No physical devices were found which meet the requirements.");
         return false;
     }
 
@@ -305,7 +290,7 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
     {
         if (properties->deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            LOG_TRACE("Device is not a discrete GPU, and one is required. Skipping.");
+            Logger::Trace("Device is not a discrete GPU, and one is required. Skipping.");
             return false;
         }
     }
@@ -362,15 +347,15 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
 
                 if (outQueueInfo->presentFamilyIndex != outQueueInfo->graphicsFamilyIndex)
                 {
-                    LOG_WARN("Warning: Different queue index used for present vs graphics: %u.", i);
+                    Logger::Warn("Different queue index used for present vs graphics: {}.", i);
                 }
                 break;
             }
         }
     }
 
-    LOG_TRACE("Graphics | Present | Compute | Transfer | Name");
-    LOG_TRACE("       %d |       %d |       %d |        %d | %s",
+    Logger::Trace("Graphics | Present | Compute | Transfer | Name");
+    Logger::Trace("       {} |       {} |       {} |        {} | {}",
         outQueueInfo->graphicsFamilyIndex != -1,
         outQueueInfo->presentFamilyIndex != -1,
         outQueueInfo->computeFamilyIndex != -1,
@@ -382,25 +367,19 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
         (!requirements->compute || (requirements->compute && outQueueInfo->computeFamilyIndex != -1)) &&
         (!requirements->transfer || (requirements->transfer && outQueueInfo->transferFamilyIndex != -1)))
     {
-        LOG_TRACE("Device meets queue requirements.");
-        LOG_TRACE("Graphics Family Index: %i", outQueueInfo->graphicsFamilyIndex);
-        LOG_TRACE("Present Family Index:  %i", outQueueInfo->presentFamilyIndex);
-        LOG_TRACE("Transfer Family Index: %i", outQueueInfo->transferFamilyIndex);
-        LOG_TRACE("Compute Family Index:  %i", outQueueInfo->computeFamilyIndex);
+        Logger::Trace("Device meets queue requirements.");
+        Logger::Trace("Graphics Family Index: {}", outQueueInfo->graphicsFamilyIndex);
+        Logger::Trace("Present Family Index:  {}", outQueueInfo->presentFamilyIndex);
+        Logger::Trace("Transfer Family Index: {}", outQueueInfo->transferFamilyIndex);
+        Logger::Trace("Compute Family Index:  {}", outQueueInfo->computeFamilyIndex);
 
         QuerySwapchainSupport(device, surface, outSwapchainSupport);
 
-        if (outSwapchainSupport->formatCount < 1 || outSwapchainSupport->presentModeCount < 1)
+        if (outSwapchainSupport->formats.Size() < 1 || outSwapchainSupport->presentModes.Size() < 1)
         {
-            if (outSwapchainSupport->formats)
-            {
-                Memory::Free(outSwapchainSupport->formats, sizeof(VkSurfaceFormatKHR) * outSwapchainSupport->formatCount, MEMORY_TAG_RENDERER);
-            }
-            if (outSwapchainSupport->presentModes)
-            {
-                Memory::Free(outSwapchainSupport->presentModes, sizeof(VkPresentModeKHR) * outSwapchainSupport->presentModeCount, MEMORY_TAG_RENDERER);
-            }
-            LOG_TRACE("Required swapchain support not present, skipping device->");
+            outSwapchainSupport->formats.Clear();
+            outSwapchainSupport->presentModes.Clear();
+            Logger::Trace("Required swapchain support not present, skipping device.");
             return false;
         }
 
@@ -430,7 +409,7 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
 
                     if (!found)
                     {
-                        LOG_TRACE("Required extension not found: '%s', skipping device->", requirements->deviceExtensionNames[i]);
+                        Logger::Trace("Required extension not found: {}, skipping device.", requirements->deviceExtensionNames[i]);
                         Memory::Free(availableExtensions, sizeof(VkExtensionProperties) * availableExtensionCount, MEMORY_TAG_RENDERER);
                         return false;
                     }
@@ -441,7 +420,7 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
 
         if (requirements->samplerAnisotropy && !features->samplerAnisotropy)
         {
-            LOG_TRACE("Device does not support samplerAnisotropy, skipping.");
+            Logger::Trace("Device does not support samplerAnisotropy, skipping.");
             return false;
         }
 
@@ -455,47 +434,47 @@ void VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurf
 {
     VkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &outSupportInfo->capabilities));
 
-    VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &outSupportInfo->formatCount, 0));
+    U32 size;
+    VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &size, nullptr));
 
-    if (outSupportInfo->formatCount != 0)
+    if (size)
     {
-        if (!outSupportInfo->formats)
-        {
-            outSupportInfo->formats = (VkSurfaceFormatKHR*)Memory::Allocate(sizeof(VkSurfaceFormatKHR) * outSupportInfo->formatCount, MEMORY_TAG_RENDERER);
-        }
-        VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &outSupportInfo->formatCount, outSupportInfo->formats));
+        outSupportInfo->formats.Resize(size);
+        VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &size, outSupportInfo->formats.Data()));
     }
 
-    VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &outSupportInfo->presentModeCount, 0));
-    if (outSupportInfo->presentModeCount != 0)
+    VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &size, nullptr));
+    if (size)
     {
-        if (!outSupportInfo->presentModes)
-        {
-            outSupportInfo->presentModes = (VkPresentModeKHR*)Memory::Allocate(sizeof(VkPresentModeKHR) * outSupportInfo->presentModeCount, MEMORY_TAG_RENDERER);
-        }
-        VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &outSupportInfo->presentModeCount, outSupportInfo->presentModes));
+        outSupportInfo->presentModes.Resize(size);
+        VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &size, outSupportInfo->presentModes.Data()));
     }
 }
 
-bool VulkanDevice::DetectDepthFormat(RendererState* rendererState)
+bool VulkanDevice::DetectDepthFormat()
 {
-    const U64 candidate_count = 3;
-    VkFormat candidates[3] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+    static const U64 candidateCount = 3;
+    static const VkFormat candidates[3] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+    static const U8 sizes[3] = { 4, 4, 3 };
+    static const U32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-    U32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    for (U64 i = 0; i < candidate_count; ++i)
+    for (U64 i = 0; i < candidateCount; ++i)
     {
         VkFormatProperties properties;
-        vkGetPhysicalDeviceFormatProperties(rendererState->device->physicalDevice, candidates[i], &properties);
+        vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &properties);
 
         if ((properties.linearTilingFeatures & flags) == flags)
         {
-            rendererState->device->depthFormat = candidates[i];
+            depthFormat = candidates[i];
+            depthChannelCount = sizes[i];
+
             return true;
         }
         else if ((properties.optimalTilingFeatures & flags) == flags)
         {
-            rendererState->device->depthFormat = candidates[i];
+            depthFormat = candidates[i];
+            depthChannelCount = sizes[i];
+
             return true;
         }
     }

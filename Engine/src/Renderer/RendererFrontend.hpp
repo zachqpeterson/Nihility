@@ -1,42 +1,76 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Resources/Shader.hpp"
 
-enum BuiltinRenderpass
+#include "Resources/Resources.hpp"
+
+template<typename> struct Vector;
+
+struct MeshRenderData
 {
-    BUILTIN_RENDERPASS_WORLD = 0x01,
-    BUILTIN_RENDERPASS_UI = 0x02
+    Matrix4 model;
+    Mesh* mesh;
 };
 
 class RendererFrontend
 {
 public:
-    static bool Initialize();
+    static bool Initialize(const String& applicationName, U32 width, U32 height);
     static void Shutdown();
 
     static bool DrawFrame();
+    static NH_API bool BeginRenderpass(Renderpass* renderpass);
+    static NH_API bool EndRenderpass(Renderpass* renderpass);
 
-    static bool CreateTexture(const Vector<U8>& pixels, struct Texture* texture);
-    static bool DestroyTexture(Texture* texture);
+    static bool CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32>& indices);
+    static void DestroyMesh(Mesh* mesh);
+    static void DrawMesh(const struct MeshRenderData& Meshdata);
 
-    static U8 GetRenderpassId(const String& name);
-    static bool CreateShader(const Shader& shader, U8 renderpassId, U8 stageCount, const Vector<String>& stage_filenames, const Vector<ShaderStageType>& stages);
-    static void DestroyShader(const Shader& shader);
-    static bool InitializeShader(Shader& shader);
-    static bool UseShader(const Shader& shader);
-    static bool BindGlobals(const Shader& shader);
-    static bool BindInstance(const Shader& shader, U32 instanceId);
-    static bool ApplyGlobals(const Shader& shader);
-    static bool ApplyInstance(const Shader& shader, bool needsUpdate);
-    static U32 AcquireInstanceResources(const Shader& shader);
-    static bool ReleaseInstanceResources(const Shader& shader, U32 instanceId);
-    static bool SetUniform(Shader& shader, const ShaderUniform& uniform, const void* value);
+    static void CreateTexture(Texture* texture, const Vector<U8>& pixels);
+    static void DestroyTexture(Texture* texture);
+    static bool CreateWritableTexture(Texture* texture);
+    static void WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels);
+    static void ResizeTexture(Texture* texture, U32 width, U32 height);
+
+    static bool AcquireTextureMapResources(TextureMap& map);
+    static void ReleaseTextureMapResources(TextureMap& map);
+
+    static void CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext);
+    static void DestroyRenderpass(Renderpass* renderpass);
+
+    static NH_API bool CreateRenderTarget(Vector<Texture*>& attachments, struct Renderpass* renderpass, U32 width, U32 height, struct RenderTarget* target);
+    static NH_API bool DestroyRenderTarget(struct RenderTarget* target, bool freeInternalMemory);
+    static NH_API Texture* GetWindowAttachment(U8 index);
+    static NH_API Texture* GetDepthAttachment();
+    static U32 GetWindowAttachmentIndex();
+    static U8 WindowRenderTargetCount();
+
+    static bool CreateShader(Shader* shader);
+    static void DestroyShader(Shader* shader);
+    static bool InitializeShader(Shader* shader);
+    static NH_API bool UseShader(Shader* shader);
+    static bool BindShaderInstance(Shader* shader, U32 instanceId);
+    static bool ApplyShaderGlobals(Shader* shader);
+    static bool ApplyShaderInstance(Shader* shader, bool needsUpdate);
+    static U32 AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps);
+    static bool ReleaseInstanceResources(Shader* shader, U32 instanceId);
+    static bool SetUniform(Shader* shader, Uniform& uniform, const void* value);
+    static bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value);
 
     static bool OnResize(void* data);
+    static NH_API Vector2Int WindowSize() { return { (I32)framebufferWidth, (I32)framebufferHeight }; }
 
 private:
     RendererFrontend() = delete;
 
     static class Renderer* renderer;
+
+    static bool resizing;
+    static U8 framesSinceResize;
+    static U8 windowRenderTargetCount;
+    static U32 framebufferWidth;
+    static U32 framebufferHeight;
+
+    //TODO: Multiple scenes
+    static class Scene* activeScene;
 };

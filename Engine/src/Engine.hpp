@@ -3,6 +3,10 @@
 
 #include "Defines.hpp"
 
+typedef bool(*InitializeFn)();
+typedef bool(*UpdateFn)();
+typedef void(*CleanupFn)();
+
 class Engine
 {
 public:
@@ -11,7 +15,7 @@ public:
      * 
      * @return true if the initialization was successful, false otherwise
      */
-    NH_API static void Initialize();
+    static NH_API void Initialize(const struct String& applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup);
     static void Shutdown();
 
     static void MainLoop();
@@ -20,6 +24,10 @@ public:
 
 private:
     Engine() = delete;
+
+    static InitializeFn GameInit;
+    static UpdateFn GameUpdate;
+    static CleanupFn GameCleanup;
 
     static bool running;
     static bool suspended;

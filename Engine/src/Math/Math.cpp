@@ -1,6 +1,12 @@
 #include "Math.hpp"
 
+#include "Containers/String.hpp"
+#include "Core/Logger.hpp"
+
 #include <math.h>
+
+//TODO: Temp
+#include <string>
 
 static U8 simplexPerm[512] = {
     151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,
@@ -97,29 +103,35 @@ const Vector4Int Vector4Int::BACK = { 0,  0, -1,  0 };
 const Vector4Int Vector4Int::OUTWARD = { 0,  0,  0,  1 };
 const Vector4Int Vector4Int::INWARD = { 0,  0,  0, -1 };
 
-const Matrix2 Matrix2::ONE = { { 1.f, 0.f }, { 0.f, 1.f } };
-const Matrix3 Matrix3::ONE = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
-const Matrix4 Matrix4::ONE = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f, 0.f }, { 0.f, 0.f, 0.f, 1.f } };
+const Matrix2 Matrix2::IDENTITY = { { 1.f, 0.f }, { 0.f, 1.f } };
+const Matrix3 Matrix3::IDENTITY = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
+const Matrix4 Matrix4::IDENTITY = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f, 0.f }, { 0.f, 0.f, 0.f, 1.f } };
+
+const Quaternion Quaternion::IDENTITY = { 0.0f,  0.0f,  0.0f,  1.0f };
 
 //TRIGONOMETRY
 F32 Math::Sin(F32 f)
 {
-    return 4.0f * (0.31830988618f * f * (1.0f - Abs(0.31830988618f * f)));
+    return sinf(f);
+    //return 4.0f * (0.31830988618f * f * (1.0f - Abs(0.31830988618f * f)));
 }
 
 F64 Math::Sin(F64 f)
 {
-    return 4.0 * (0.31830988618 * f * (1.0 - Abs(0.31830988618 * f)));
+    return sin(f);
+    //return 4.0 * (0.31830988618 * f * (1.0 - Abs(0.31830988618 * f)));
 }
 
 F32 Math::Cos(F32 f)
 {
-    return 4.0f * (0.5f - 0.31830988618f * f) * (1.0f - Abs(0.5f - 0.31830988618f * f));
+    return cosf(f);
+    //return 4.0f * (0.5f - 0.31830988618f * f) * (1.0f - Abs(0.5f - 0.31830988618f * f));
 }
 
 F64 Math::Cos(F64 f)
 {
-    return 4.0 * (0.5 - 0.31830988618 * f) * (1.0 - Abs(0.5 - 0.31830988618 * f));
+    return cos(f);
+    //return 4.0 * (0.5 - 0.31830988618 * f) * (1.0 - Abs(0.5 - 0.31830988618 * f));
 }
 
 F32 Math::Tan(F32 f) { return tanf(f); }
@@ -180,7 +192,7 @@ F64 Math::InvSqrt(F64 f)
 
 Matrix4&& Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
 {
-    Matrix4 result = Matrix4::ONE;
+    Matrix4 result = Matrix4::IDENTITY;
     result[0][0] = 2.0f / (right - left);
     result[1][1] = 2.0f / (top - bottom);
     result[2][2] = -2.0f / (far - near);
@@ -192,14 +204,15 @@ Matrix4&& Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near,
 
 Matrix4&& Math::Perspective(F32 fov, F32 aspect, F32 near, F32 far)
 {
-    const F32 tanHalfFovy = Math::Tan(fov / 2.0f);
+    F32 scale = 1.0f / Math::Tan(fov * 0.5f);
 
-    Matrix4 result = Matrix4::ONE;
-    result[0][0] = 1.0f / (aspect * tanHalfFovy);
-    result[1][1] = 1.0f / (tanHalfFovy);
-    result[2][2] = -(far + near) / (far - near);
+    Matrix4 result = Matrix4::IDENTITY;
+    result[0][0] = scale; //TODO: Aspect?
+    result[1][1] = scale;
+    result[2][2] = -far / (far - near);
+    result[3][2] = -far * near / (far - near);
     result[2][3] = -1.0f;
-    result[3][2] = -(2.0f * far * near) / (far - near);
+    result[3][3] = 0.0f;
     return Move(result);
 }
 
@@ -370,7 +383,8 @@ F64 Math::Dot(I8 g[2], F64 x, F64 y)
     return g[0] * x + g[1] * y;
 }
 
-F64 Math::Dot(I8 g[3], F64 x, F64 y, F64 z) {
+F64 Math::Dot(I8 g[3], F64 x, F64 y, F64 z)
+{
     return g[0] * x + g[1] * y + g[2] * z;
 }
 
@@ -403,8 +417,107 @@ F32 Math::RandomRangeF(F32 min, F32 max, U32 seed)
     return min + ((F32)Random(seed) / ((F32)RAND_MAX) / (max - min));
 }
 
+//HASHING
+U64 Math::Hash(const String& str, U64 max)
+{
+    const char* ptr = (const char*)str;
+    U64 hash = 0;
+    while (*ptr)
+    {
+        hash = hash * 101 + *ptr;
+        ++ptr;
+    }
+    return hash % max;
+}
+
+U64 Math::Hash(U64 value, U64 max)
+{
+    value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ull;
+    value = (value ^ (value >> 27)) * 0x94d049bb133111ebull;
+    value = value ^ (value >> 31);
+    return value % max;
+}
+
+//VECTOR2
+Vector2::Vector2(const String& str)
+{
+    sscanf(str, "%f,%f", &x, &y);
+}
+
+Vector2& Vector2::operator=(const String& str)
+{
+    sscanf(str, "%f,%f", &x, &y);
+
+    return *this;
+}
+
+//VECTOR3
+Vector3::Vector3(const String& str)
+{
+    sscanf(str, "%f,%f,%f", &x, &y, &z);
+}
+
+Vector3& Vector3::operator=(const String& str)
+{
+    sscanf(str, "%f,%f,%f", &x, &y, &z);
+
+    return *this;
+}
+
+//VECTOR4
+Vector4::Vector4(const String& str)
+{
+    sscanf(str, "%f,%f,%f,%f", &x, &y, &z, &w);
+}
+
+Vector4& Vector4::operator=(const String& str)
+{
+    sscanf(str, "%f,%f,%f,%f", &x, &y, &z, &w);
+
+    return *this;
+}
+
+//VECTOR2INT
+Vector2Int::Vector2Int(const String& str)
+{
+    sscanf(str, "%d,%d", &x, &y);
+}
+
+Vector2Int& Vector2Int::operator=(const String& str)
+{
+    sscanf(str, "%d,%d", &x, &y);
+
+    return *this;
+}
+
+//VECTOR3INT
+Vector3Int::Vector3Int(const String& str)
+{
+    sscanf(str, "%d,%d,%d", &x, &y, &z);
+}
+
+Vector3Int& Vector3Int::operator=(const String& str)
+{
+    sscanf(str, "%d,%d,%d", &x, &y, &z);
+
+    return *this;
+}
+
+//VECTOR4INT
+Vector4Int::Vector4Int(const String& str)
+{
+    sscanf(str, "%d,%d,%d,%d", &x, &y, &z, &w);
+}
+
+Vector4Int& Vector4Int::operator=(const String& str)
+{
+    sscanf(str, "%d,%d,%d,%d", &x, &y, &z, &w);
+
+    return *this;
+}
+
 //QUATERNION
-Quaternion&& Quaternion::AxisAngle(const Vector3& axis, F32 angle, bool normalize)
+Quaternion Quaternion::AxisAngle(const Vector3& axis, F32 angle, bool normalize)
 {
     const F32 halfAngle = 0.5f * angle;
     F32 s = Math::Sin(halfAngle);
@@ -412,10 +525,10 @@ Quaternion&& Quaternion::AxisAngle(const Vector3& axis, F32 angle, bool normaliz
 
     Quaternion q = { s * axis.x, s * axis.y, s * axis.z, c };
     if (normalize) { return q.Normalized(); }
-    return Move(q);
+    return q;
 }
 
-Quaternion&& Quaternion::AxisAngle(const Vector2& axis, F32 angle, bool normalize)
+Quaternion Quaternion::AxisAngle(const Vector2& axis, F32 angle, bool normalize)
 {
     const F32 halfAngle = 0.5f * angle;
     F32 s = Math::Sin(halfAngle);
@@ -423,12 +536,12 @@ Quaternion&& Quaternion::AxisAngle(const Vector2& axis, F32 angle, bool normaliz
 
     Quaternion q = { s * axis.x, s * axis.y, 0.0f, c };
     if (normalize) { return q.Normalized(); }
-    return Move(q);
+    return q;
 }
 
-Matrix4&& Quaternion::ToMatrix4() const
+Matrix4 Quaternion::ToMatrix4() const
 {
-    Matrix4 matrix = Matrix4::ONE;
+    Matrix4 matrix = Matrix4::IDENTITY;
     Quaternion q = Normalized();
 
     matrix[0][0] = 1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z;
@@ -443,12 +556,12 @@ Matrix4&& Quaternion::ToMatrix4() const
     matrix[1][2] = 2.0f * q.y * q.z + 2.0f * q.x * q.w;
     matrix[2][2] = 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y;
 
-    return Move(matrix);
+    return matrix;
 }
 
-Matrix3&& Quaternion::ToMatrix3() const
+Matrix3 Quaternion::ToMatrix3() const
 {
-    Matrix3 matrix = Matrix3::ONE;
+    Matrix3 matrix = Matrix3::IDENTITY;
     Quaternion q = Normalized();
 
     matrix[0][0] = 1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z;
@@ -463,12 +576,12 @@ Matrix3&& Quaternion::ToMatrix3() const
     matrix[1][2] = 2.0f * q.y * q.z + 2.0f * q.x * q.w;
     matrix[2][2] = 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y;
 
-    return Move(matrix);
+    return matrix;
 }
 
-Matrix4&& Quaternion::RotationMatrix(Vector3 center) const 
+Matrix4 Quaternion::RotationMatrix(Vector3 center) const
 {
-    Matrix4 matrix = Matrix4::ONE;
+    Matrix4 matrix = Matrix4::IDENTITY;
 
     matrix[0][0] = (x * x) - (y * y) - (z * z) + (w * w);
     matrix[1][0] = 2.0f * ((x * y) + (z * w));
@@ -485,10 +598,10 @@ Matrix4&& Quaternion::RotationMatrix(Vector3 center) const
     matrix[2][2] = -(x * x) - (y * y) + (z * z) + (w * w);
     matrix[3][2] = center.z - center.x * matrix[0][2] - center.y * matrix[1][2] - center.z * matrix[2][2];
 
-    return Move(matrix);
+    return matrix;
 }
 
-Quaternion&& Quaternion::Slerp(const Quaternion& q, F32 t) const
+Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const
 {
     Quaternion out;
 
@@ -526,10 +639,10 @@ Quaternion&& Quaternion::Slerp(const Quaternion& q, F32 t) const
     F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
     F32 s1 = sinTheta / sinTheta0;
 
-    return Move(Quaternion{
+    return Quaternion{
         (v0.x * s0) + (v1.x * s1),
         (v0.y * s0) + (v1.y * s1),
         (v0.z * s0) + (v1.z * s1),
         (v0.w * s0) + (v1.w * s1)
-    });
+        };
 }

@@ -34,24 +34,23 @@ bool VulkanImage::Create(RendererState* rendererState,
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;          // TODO: Configurable sample count.
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // TODO: Configurable sharing mode.
 
-    VkCheck(vkCreateImage(rendererState->device->logicalDevice, &imageInfo, rendererState->allocator, &handle));
+    VkCheck_ERROR(vkCreateImage(rendererState->device->logicalDevice, &imageInfo, rendererState->allocator, &handle));
 
-    // Query memory requirements.
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(rendererState->device->logicalDevice, handle, &memoryRequirements);
 
     U32 memoryType = rendererState->FindMemoryIndex(memoryRequirements.memoryTypeBits, memoryFlags);
     if (memoryType == -1)
     {
-        LOG_ERROR("Required memory type not found. Image not valid.");
+        Logger::Error("Required memory type not found. Image not valid.");
     }
 
     VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
     memoryAllocateInfo.memoryTypeIndex = memoryType;
-    VkCheck(vkAllocateMemory(rendererState->device->logicalDevice, &memoryAllocateInfo, rendererState->allocator, &memory));
+    VkCheck_ERROR(vkAllocateMemory(rendererState->device->logicalDevice, &memoryAllocateInfo, rendererState->allocator, &memory));
 
-    VkCheck(vkBindImageMemory(rendererState->device->logicalDevice, handle, memory, 0));  // TODO: configurable memory offset.
+    VkCheck_ERROR(vkBindImageMemory(rendererState->device->logicalDevice, handle, memory, 0));  // TODO: configurable memory offset.
 
     if (createView)
     {
@@ -135,7 +134,7 @@ void VulkanImage::TransitionLayout(RendererState* rendererState,
     }
     else
     {
-        LOG_FATAL("unsupported layout transition!");
+        Logger::Fatal("unsupported layout transition!");
         return;
     }
 

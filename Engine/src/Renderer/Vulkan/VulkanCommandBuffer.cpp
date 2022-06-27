@@ -25,7 +25,6 @@ void VulkanCommandBuffer::Free(RendererState* rendererState, VkCommandPool pool)
 
 void VulkanCommandBuffer::Begin(bool singleUse, bool renderpassContinue, bool simultaneousUse)
 {
-
     VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     beginInfo.flags = 0;
     if (singleUse)

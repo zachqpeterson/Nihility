@@ -2,6 +2,9 @@
 
 #include "Defines.hpp"
 
+#include "Memory/Memory.hpp"
+#include "Containers/String.hpp"
+
 enum LogLevel {
     LOG_LEVEL_FATAL = 0,
     LOG_LEVEL_ERROR = 1,
@@ -27,33 +30,60 @@ public:
     static bool Initialize();
     static void Shutdown();
 
-    static NH_API void LogOutput(LogLevel level, const char* message, ...);
+    template<typename... Types>
+    static NH_API void Fatal(const char* message, Types... args)
+    {
+        String str(message);
+        str.Format(args...);
+        LogOutput(LOG_LEVEL_FATAL, str);
+        str.Destroy();
+    }
+    template<typename... Types>
+    static NH_API void Error(const char* message, Types... args)
+    {
+        String str(message);
+        str.Format(args...);
+        LogOutput(LOG_LEVEL_ERROR, str);
+        str.Destroy();
+    }
+    template<typename... Types>
+    static NH_API void Warn(const char* message, Types... args)
+    {
+        String str(message);
+        str.Format(args...);
+        LogOutput(LOG_LEVEL_WARN, str);
+        str.Destroy();
+    }
+    template<typename... Types>
+    static NH_API void Info(const char* message, Types... args)
+    {
+        String str(message);
+        str.Format(args...);
+        LogOutput(LOG_LEVEL_INFO, str);
+        str.Destroy();
+    }
+    template<typename... Types>
+    static NH_API void Debug(const char* message, Types... args)
+    {
+        String str(message);
+        str.Format(args...);
+        LogOutput(LOG_LEVEL_DEBUG, str);
+        str.Destroy();
+    }
+    template<typename... Types>
+    static NH_API void Trace(const char* message, Types... args)
+    {
+        String str(message);
+        str.Format(args...);
+        LogOutput(LOG_LEVEL_TRACE, str);
+        str.Destroy();
+    }
 
 private:
-    Logger() = delete;
+    static NH_API void LogOutput(LogLevel level, String& message); //TODO: Don't copy
 
     static struct File log;
-};
+    static const String levelStrings[];
 
-#define LOG_FATAL(message, ...) Logger::LogOutput(LOG_LEVEL_FATAL, message, ##__VA_ARGS__)
-#define LOG_ERROR(message, ...) Logger::LogOutput(LOG_LEVEL_ERROR, message, ##__VA_ARGS__)
-#if LOG_WARN_ENABLED
-#define LOG_WARN(message, ...) Logger::LogOutput(LOG_LEVEL_WARN, message, ##__VA_ARGS__)
-#else
-#define LOG_WARN(message, ...)
-#endif
-#if LOG_INFO_ENABLED
-#define LOG_INFO(message, ...) Logger::LogOutput(LOG_LEVEL_INFO, message, ##__VA_ARGS__)
-#else
-#define LOG_INFO(message, ...)
-#endif
-#if LOG_DEBUG_ENABLED
-#define LOG_DEBUG(message, ...) Logger::LogOutput(LOG_LEVEL_DEBUG, message, ##__VA_ARGS__)
-#else
-#define LOG_DEBUG(message, ...)
-#endif
-#if LOG_TRACE_ENABLED
-#define LOG_TRACE(message, ...) Logger::LogOutput(LOG_LEVEL_TRACE, message, ##__VA_ARGS__)
-#else
-#define LOG_TRACE(message, ...)
-#endif
+    Logger() = delete;
+};

@@ -5,6 +5,7 @@
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
 #include "Math/Math.hpp"
+#include "Containers/String.hpp"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -41,7 +42,7 @@ void ClockSetup()
 bool Platform::Initialize(const String& applicationName,
     I32 x, I32 y, I32 width, I32 height)
 {
-    LOG_INFO("Initializing platform...");
+    Logger::Info("Initializing platform...");
 
     platformState.hInstance = GetModuleHandleA(0);
 
@@ -99,7 +100,7 @@ bool Platform::Initialize(const String& applicationName,
     {
         MessageBoxA(NULL, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
 
-        LOG_FATAL("Window creation failed!");
+        Logger::Fatal("Window creation failed!");
         return false;
     }
     else
@@ -167,17 +168,16 @@ void* Platform::Set(void* dest, I32 value, U64 size)
     return memset(dest, value, size);
 }
 
-void Platform::ConsoleWrite(const char* message, U8 color)
+void Platform::ConsoleWrite(const String& message, U8 color)
 {
-    HANDLE console_handle = GetStdHandle(color < 2 ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
+    HANDLE consoleHandle = GetStdHandle(color < 2 ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
-    static U8 levels[6] = { 64, 4, 6, 2, 1, 8 };
-    SetConsoleTextAttribute(console_handle, levels[color]);
-    OutputDebugStringA(message);
-    U64 length = strlen(message);
-    LPDWORD number_written = 0;
+    static const U8 levels[6] = { 64, 4, 6, 2, 1, 8 };
+    SetConsoleTextAttribute(consoleHandle, levels[color]);
+    OutputDebugStringA((const char*)message);
+    LPDWORD numberWritten = 0;
     
-    WriteConsoleA(console_handle, message, (DWORD)length, number_written, 0);
+    WriteConsoleA(consoleHandle, message, (DWORD)message.Length(), numberWritten, 0);
 }
 
 const F64 Platform::AbsoluteTime()

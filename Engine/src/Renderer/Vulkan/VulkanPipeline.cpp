@@ -4,9 +4,12 @@
 #include "VulkanDevice.hpp"
 #include "VulkanRenderpass.hpp"
 
+#include "Memory/Memory.hpp"
+#include "Core/Logger.hpp"
+
 bool VulkanPipeline::Create(
     RendererState* rendererState,
-    class VulkanRenderpass* renderpass,
+    VulkanRenderpass* renderpass,
     U32 stride,
     U32 attributeCount,
     VkVertexInputAttributeDescription* attributes,
@@ -14,13 +17,24 @@ bool VulkanPipeline::Create(
     VkDescriptorSetLayout* descriptorSetLayouts,
     U32 stageCount,
     VkPipelineShaderStageCreateInfo* stages,
-    VkViewport viewport,
-    VkRect2D scissor,
     bool isWireframe,
     bool depthTestEnabled,
     U32 pushConstantRangeCount,
     Range* pushConstantRanges)
 {
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (F32)rendererState->framebufferWidth;
+    viewport.height = (F32)rendererState->framebufferHeight;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor;
+    scissor.offset.x = scissor.offset.y = 0;
+    scissor.extent.width = rendererState->framebufferWidth;
+    scissor.extent.height = rendererState->framebufferHeight;
+
     VkPipelineViewportStateCreateInfo viewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
     viewportState.viewportCount = 1;
     viewportState.pViewports = &viewport;
@@ -33,7 +47,7 @@ bool VulkanPipeline::Create(
     rasterizerInfo.polygonMode = isWireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
     rasterizerInfo.lineWidth = 1.0f;
     rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizerInfo.depthBiasEnable = VK_FALSE;
     rasterizerInfo.depthBiasConstantFactor = 0.0f;
     rasterizerInfo.depthBiasClamp = 0.0f;
@@ -105,25 +119,26 @@ bool VulkanPipeline::Create(
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
+    Vector<VkPushConstantRange> ranges;
     if (pushConstantRangeCount > 0)
     {
         if (pushConstantRangeCount > 32)
         {
-            LOG_ERROR("VulkanGraphicsPipelineCreate: cannot have more than 32 push constant ranges. Passed count: %i", pushConstantRangeCount);
+            Logger::Error("VulkanGraphicsPipelineCreate: cannot have more than 32 push constant ranges. Passed count: {}", pushConstantRangeCount);
             return false;
         }
 
-        // NOTE: 32 is the max number of ranges we can ever have, since spec only guarantees 128 bytes with 4-byte alignment.
-        VkPushConstantRange ranges[32];
-        Memory::Zero(ranges, sizeof(VkPushConstantRange) * 32);
         for (U32 i = 0; i < pushConstantRangeCount; ++i)
         {
-            ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-            ranges[i].offset = pushConstantRanges[i].offset;
-            ranges[i].size = pushConstantRanges[i].size;
+            VkPushConstantRange range{};
+            range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            range.offset = pushConstantRanges[i].offset;
+            range.size = pushConstantRanges[i].size;
+            ranges.Push(range);
         }
+
         pipelineLayoutInfo.pushConstantRangeCount = pushConstantRangeCount;
-        pipelineLayoutInfo.pPushConstantRanges = ranges;
+        pipelineLayoutInfo.pPushConstantRanges = ranges.Data();
     }
     else
     {
@@ -133,6 +148,8 @@ bool VulkanPipeline::Create(
 
     pipelineLayoutInfo.setLayoutCount = descriptorSetLayoutCount;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
+    pipelineLayoutInfo.flags = 0;
+    pipelineLayoutInfo.pNext = nullptr;
 
     VkCheck_ERROR(vkCreatePipelineLayout(
         rendererState->device->logicalDevice,
@@ -145,7 +162,7 @@ bool VulkanPipeline::Create(
     pipelineInfo.pStages = stages;
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
-
+    
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizerInfo;
     pipelineInfo.pMultisampleState = &multisamplingInfo;
@@ -155,7 +172,6 @@ bool VulkanPipeline::Create(
     pipelineInfo.pTessellationState = nullptr;
 
     pipelineInfo.layout = layout;
-
     pipelineInfo.renderPass = renderpass->handle;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -174,6 +190,8 @@ bool VulkanPipeline::Create(
 
 void VulkanPipeline::Destroy(RendererState* rendererState)
 {
+    vkDeviceWaitIdle(rendererState->device->logicalDevice);
+
     if (handle)
     {
         vkDestroyPipeline(rendererState->device->logicalDevice, handle, rendererState->allocator);

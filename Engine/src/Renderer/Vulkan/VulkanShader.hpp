@@ -20,91 +20,66 @@ struct ShaderStageConfig
     String fileName;
 };
 
-struct DescriptorState
-{
-    U8 generations[3];
-    U32 ids[3];
-};
-
-struct DescriptorSetState
-{
-    VkDescriptorSet descriptorSets[3];
-
-    DescriptorState descriptorStates[VULKAN_SHADER_MAX_BINDINGS];
-};
-
 struct DescriptorSetConfig
 {
     U8 bindingCount;
-    VkDescriptorSetLayoutBinding bindings[VULKAN_SHADER_MAX_BINDINGS];
+    Vector<VkDescriptorSetLayoutBinding> bindings;
 };
 
 struct InstanceState
 {
     U32 id;
-    U64 offset;
+    U32 offset;
 
-    DescriptorSetState descriptorSetState;
+    Vector<VkDescriptorSet> descriptorSets;
 
-    Vector<struct Texture*> instanceTextures;
+    Vector<struct TextureMap> instanceTextureMaps;
 };
 
 struct VulkanShaderConfig
 {
-    U8 stageCount;
-    ShaderStageConfig stages[VULKAN_SHADER_MAX_STAGES];
-    VkDescriptorPoolSize poolSizes[2];
-    U16 maxDescriptorSetCount;
+    Vector<ShaderStageConfig> stages;
+    Vector<VkDescriptorPoolSize> poolSizes;
+    Array<DescriptorSetConfig, 2> descriptorSets;
 
-    U8 descriptorSetCount;
-    DescriptorSetConfig descriptorSets[2];
-
-    VkVertexInputAttributeDescription attributes[VULKAN_SHADER_MAX_ATTRIBUTES];
+    Vector<VkVertexInputAttributeDescription> attributes;
 };
 
 class VulkanShader
 {
 public:
-    bool Create(RendererState* rendererState, U8 renderpassId, U8 stageCount, const Vector<String>& stageFilenames, const Vector<ShaderStageType>& stages);
+    bool Create(RendererState* rendererState, Shader* shader);
     void Destroy(RendererState* rendererState);
-    bool Initialize(RendererState* rendererState, Shader& shader);
-
-    bool Use(RendererState* rendererState);
-    bool BindGlobals(RendererState* rendererState);
-    bool ApplyGlobals(RendererState* rendererState);
-    bool BindInstance(RendererState* rendererState, U32 instanceId);
-    bool ApplyInstance(RendererState* rendererState, bool needsUpdate);
-    U32 AcquireInstanceResources(RendererState* rendererState);
-    bool ReleaseInstanceResources(RendererState* rendererState, U32 instanceId);
-    bool SetUniform(RendererState* rendererState, Shader& shader, const ShaderUniform& uniform, const void* value);
+    bool Initialize(RendererState* rendererState, Shader* shader);
     bool CreateShaderModule(RendererState* rendererState, ShaderStageConfig config, ShaderStage* shaderStage);
 
+    bool Use(RendererState* rendererState);
+    void SetUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value);
+    void SetPushConstant(RendererState* rendererState, Shader* shader, PushConstant& pushConstant, const void* value);
+
+    bool ApplyGlobals(RendererState* rendererState, Shader* shader);
+
+    void BindInstance(Shader* shader, U32 instanceId);
+    bool ApplyInstance(RendererState* rendererState, Shader* shader, bool needsUpdate);
+    U32 AcquireInstanceResources(RendererState* rendererState, Shader* shader, Vector<TextureMap>& maps);
+    bool ReleaseInstanceResources(RendererState* rendererState, Shader* shader, U32 instanceId);
+    
 public:
     void* mappedUniformBufferBlock;
 
-    U32 id;
     VulkanShaderConfig config;
 
-    class VulkanRenderpass* renderpass;
-
-    ShaderStage stages[VULKAN_SHADER_MAX_STAGES];
+    Vector<ShaderStage> stages;
 
     VkDescriptorPool descriptorPool;
 
-    VkDescriptorSetLayout descriptorSetLayouts[2];
-    VkDescriptorSet globalDescriptorSets[3];
-    class VulkanBuffer* uniformBuffer;
+    U32 instanceDescriptorUboCount;
+    U32 globalDescriptorUboCount;
+    Vector<VkDescriptorSetLayout> descriptorSetLayouts;
+    Vector<VkDescriptorSet> globalDescriptorSets;
 
     class VulkanPipeline* pipeline;
+    class VulkanBuffer* uniformBuffer;
 
-    bool useInstances;
-    U32 instanceCount;
-    InstanceState instanceStates[VULKAN_MAX_MATERIAL_COUNT];
-
-    U64 boundUboOffset;
-    U64 globalUboOffset;
-    U64 globalUboStride;
-    U64 uboStride;
-
-    U32 boundInstanceId;
+    Array<InstanceState, VULKAN_MAX_MATERIAL_COUNT> instanceStates;
 };

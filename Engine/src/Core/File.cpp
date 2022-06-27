@@ -1,33 +1,43 @@
 #include "File.hpp"
 
 #include "Containers/String.hpp"
+#include "Containers/Vector.hpp"
 #include "Core/Logger.hpp"
 #include "Memory/Memory.hpp"
 
 #include <stdio.h>
+
+#ifdef PLATFORM_WINDOWS
+#include <windows.h>
+#endif
 
 bool File::Open(const String& path, FileMode mode, bool binary)
 {
     handle = nullptr;
     const char* modeStr;
 
-    if ((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) != 0) {
+    if ((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) != 0)
+    {
         modeStr = binary ? "w+b" : "w+";
     }
-    else if ((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) == 0) {
+    else if ((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) == 0)
+    {
         modeStr = binary ? "rb" : "r";
     }
-    else if ((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0) {
+    else if ((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0)
+    {
         modeStr = binary ? "wb" : "w";
     }
-    else {
-        LOG_ERROR("Invalid mode passed while trying to open file: '%s'", (const char*)path);
+    else
+    {
+        Logger::Error("Invalid mode passed while trying to open file: {}", path);
         return false;
     }
 
     FILE* file = fopen(path, modeStr);
-    if (!file) {
-        LOG_ERROR("Error opening file: '%s'", (const char*)path);
+    if (!file)
+    {
+        Logger::Error("Error opening file: {}", path);
         return false;
     }
 
@@ -38,7 +48,8 @@ bool File::Open(const String& path, FileMode mode, bool binary)
 
 void File::Close()
 {
-    if (handle) {
+    if (handle)
+    {
         fclose((FILE*)handle);
         handle = nullptr;
     }
@@ -46,7 +57,8 @@ void File::Close()
 
 U64 File::Size()
 {
-    if (handle) {
+    if (handle)
+    {
         fseek((FILE*)handle, 0, SEEK_END);
         U64 size = ftell((FILE*)handle);
         rewind((FILE*)handle);
@@ -56,26 +68,29 @@ U64 File::Size()
     return -1;
 }
 
-String File::ReadLine(U64 maxLength)
+bool File::ReadLine(struct String& line, U64 maxLength)
 {
-    if (handle && maxLength > 0) {
-        char* buf = (char*)Memory::Allocate(sizeof(char) * maxLength, MEMORY_TAG_DATA_STRUCT);
-        if (fgets(buf, maxLength, (FILE*)handle) != 0) {
-            String s;
-            s.Append(buf);
-            Memory::Free(buf, maxLength, MEMORY_TAG_DATA_STRUCT);
-            return s;
+    if (handle && maxLength > 0)
+    {
+        char buf[1024];
+
+        if (fgets(buf, maxLength, (FILE*)handle))
+        {
+            line = buf;
+            return true;
         }
     }
 
-    return String();
+    return false;
 }
 
 bool File::WriteLine(const String& str)
 {
-    if (handle) {
+    if (handle)
+    {
         I32 result = fputs(str, (FILE*)handle);
-        if (result != EOF) {
+        if (result != EOF)
+        {
             result = fputc('\n', (FILE*)handle);
         }
 
@@ -88,7 +103,8 @@ bool File::WriteLine(const String& str)
 
 String File::Read(U64 length)
 {
-    if (handle) {
+    if (handle)
+    {
         char* buf = (char*)Memory::Allocate(sizeof(char) * length, MEMORY_TAG_DATA_STRUCT);
         fread(buf, 1, length, (FILE*)handle);
         return String(buf);
@@ -125,7 +141,7 @@ U8* File::ReadAllBytes(U64& size)
 
 String File::ReadAllText()
 {
-    if (handle) 
+    if (handle)
     {
         U64 size = Size();
         char* buf = (char*)Memory::Allocate(sizeof(char) * size, MEMORY_TAG_DATA_STRUCT);
@@ -139,7 +155,8 @@ String File::ReadAllText()
 
 void File::Write(const String& str)
 {
-    if (handle) {
+    if (handle)
+    {
         fwrite(str, 1, str.Length(), (FILE*)handle);
         fflush((FILE*)handle);
     }
@@ -147,8 +164,16 @@ void File::Write(const String& str)
 
 void File::Seek(U64 length)
 {
-    if(handle)
+    if (handle)
     {
         fseek((FILE*)handle, length, SEEK_SET);
     }
+}
+
+Vector<String> File::GetAllFiles(const String& dir)
+{
+    //TODO:
+#ifdef PLATFORM_WINDOWS
+    return Vector<String>();
+#endif
 }

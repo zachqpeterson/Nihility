@@ -2,6 +2,8 @@
 
 #include "VulkanDefines.hpp"
 
+template<typename> struct Vector;
+
 class VulkanSwapchain
 {
 public:
@@ -28,10 +30,8 @@ public:
     U8 maxFramesInFlight;
 
     U32 imageCount;
-    VkImage* images;
-    VkImageView* views;
+    Vector<Texture*> renderTextures;
+    Texture* depthTexture;
 
-    class VulkanImage* depthAttachment;
-
-    VkFramebuffer framebuffers[3];
+    RenderTarget renderTargets[3];
 };

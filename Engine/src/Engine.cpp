@@ -8,15 +8,22 @@
 #include "Core/Events.hpp"
 #include "Containers/Vector.hpp"
 #include "Containers/String.hpp"
-#include "Renderer/ShaderSystem.hpp"
 #include "Renderer/RendererFrontend.hpp"
 #include "Resources/Resources.hpp"
+
+InitializeFn Engine::GameInit;
+UpdateFn Engine::GameUpdate;
+CleanupFn Engine::GameCleanup;
 
 bool Engine::running;
 bool Engine::suspended;
 
-void Engine::Initialize()
+void Engine::Initialize(const String& applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup)
 {
+    GameInit = init;
+    GameUpdate = update;
+    GameCleanup = cleanup;
+
     Memory::Initialize(Gigabytes(2));
 
     Logger::Initialize();
@@ -25,18 +32,20 @@ void Engine::Initialize()
 
     Input::Initialize();
 
-    ShaderSystem::Initialize();
+    RendererFrontend::Initialize(applicationName, 1280, 720);
 
-    RendererFrontend::Initialize();
+    Memory::GetMemoryStats();
 
     Resources::Initialize();
+
+    //TODO: Load all materials
+    Resources::CreateShaders();
+
+    GameInit();
 
     Time::Initialize();
 
     Events::Subscribe("CLOSE", OnClose);
-
-    //TODO: Remove later
-    Memory::GetMemoryStats();
 
     MainLoop();
 }
@@ -52,36 +61,38 @@ void Engine::MainLoop()
 
     while (running)
     {
-        upTime = Time::UpTime();
-        accumulatedTime += upTime - lastUpTime;
-        lastUpTime = upTime;
+        running = Platform::ProcessMessages();
 
-        //0.00694444444	| 144
-        //0.00833333333	| 120
-        //0.01666666667	| 60
-        //0.03333333333	| 30
-        while (accumulatedTime >= 0.00833333333)
+        if (Input::OnButtonDown(ESCAPE))
         {
-            Platform::ProcessMessages();
-
-            if (Input::OnButtonDown(ESCAPE))
-            {
-                running = false;
-            }
-
-            if (!suspended)
-            {
-                Time::Update();
-
-                //UPDATES
-            }
-
-            accumulatedTime -= 0.00833333333;
+            running = false;
+            break;
         }
 
-        RendererFrontend::DrawFrame();
+        if (!suspended && running)
+        {
+            Time::Update();
+            upTime = Time::UpTime();
+            accumulatedTime += upTime - lastUpTime;
+            lastUpTime = upTime;
 
-        //LOG_DEBUG("Frame Rate: %d", Time::FrameRate());
+            //0.00694444444	| 144
+            //0.00833333333	| 120
+            //0.01666666667	| 60
+            //0.03333333333	| 30
+            while (accumulatedTime >= 0.00833333333) //TODO: Config
+            {
+                //PHYSICS
+
+                running = GameUpdate();
+
+                //OTHER UPDATES
+
+                accumulatedTime -= 0.00833333333;
+            }
+
+            RendererFrontend::DrawFrame();
+        }
     }
 
     Shutdown();
@@ -89,22 +100,19 @@ void Engine::MainLoop()
 
 void Engine::Shutdown()
 {
+    GameCleanup();
+
     Time::Shutdown();
 
     Resources::Shutdown();
 
     RendererFrontend::Shutdown();
 
-    ShaderSystem::Shutdown();
-
     Input::Shutdown();
 
     Platform::Shutdown();
 
     Logger::Shutdown();
-
-    //TODO: Remove later
-    Memory::GetMemoryStats();
 
     Memory::Shutdown();
 }

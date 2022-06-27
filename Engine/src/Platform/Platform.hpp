@@ -19,7 +19,7 @@ public:
     static void* Copy(void* dest, const void* source, U64 size);
     static void* Set(void* dest, I32 value, U64 size);
 
-    static void ConsoleWrite(const char* message, U8 color);
+    static void ConsoleWrite(const struct String& message, U8 color);
     static const F64 AbsoluteTime();
     static void SleepFor(U64 ms);
 

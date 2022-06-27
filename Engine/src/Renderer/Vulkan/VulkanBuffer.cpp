@@ -4,8 +4,9 @@
 #include "VulkanCommandBuffer.hpp"
 
 #include "Memory/Memory.hpp"
+#include "Core/Logger.hpp"
 
-bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageFlagBits usage,
+bool VulkanBuffer::Create(RendererState* rendererState, U32 size, VkBufferUsageFlagBits usage,
     U32 memoryPropertyFlags, bool bindOnCreate, bool useFreelist)
 {
     hasFreelist = useFreelist;
@@ -15,7 +16,7 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 
     if (useFreelist)
     {
-        freelist.Resize(size);
+        freelist = Move(Freelist(size));
     }
 
     VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -23,16 +24,16 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
 
-    VkCheck(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &handle));
+    VkCheck_ERROR(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &handle));
 
     VkMemoryRequirements requirements;
     vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, handle, &requirements);
     memoryIndex = rendererState->FindMemoryIndex(requirements.memoryTypeBits, memoryPropertyFlags);
     if (memoryIndex == -1)
     {
-        LOG_ERROR("Unable to create vulkan buffer because the required memory type index was not found.");
+        Logger::Error("Unable to create vulkan buffer because the required memory type index was not found.");
 
-        freelist.Cleanup();
+        freelist.Destroy();
         return false;
     }
 
@@ -40,19 +41,11 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
     allocateInfo.allocationSize = requirements.size;
     allocateInfo.memoryTypeIndex = (U32)memoryIndex;
 
-    VkResult result = vkAllocateMemory(
+    VkCheck_ERROR(vkAllocateMemory(
         rendererState->device->logicalDevice,
         &allocateInfo,
         rendererState->allocator,
-        &memory);
-
-    if (result != VK_SUCCESS)
-    {
-        LOG_ERROR("Unable to create vulkan buffer because the required memory allocation failed. Error: %i", result);
-
-        freelist.Cleanup();
-        return false;
-    }
+        &memory));
 
     if (bindOnCreate)
     {
@@ -83,11 +76,11 @@ void VulkanBuffer::Destroy(RendererState* rendererState)
     locked = false;
 }
 
-bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue queue, VkCommandPool pool)
+bool VulkanBuffer::Resize(RendererState* rendererState, U32 newSize, VkQueue queue, VkCommandPool pool)
 {
     if (newSize < totalSize)
     {
-        LOG_ERROR("Resize requires that new size be larger than the old. Not doing this could lead to data loss.");
+        Logger::Error("Resize requires that new size be larger than the old. Not doing this could lead to data loss.");
         return false;
     }
 
@@ -95,8 +88,8 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue que
     {
         if (!freelist.Resize(newSize))
         {
-            LOG_ERROR("vulkan_buffer_resize failed to resize internal free list.");
-            freelist.Cleanup();
+            Logger::Error("Resize failed to resize internal free list.");
+            freelist.Destroy();
             return false;
         }
     }
@@ -119,12 +112,7 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue que
     allocateInfo.memoryTypeIndex = (U32)memoryIndex;
 
     VkDeviceMemory newMemory;
-    VkResult result = vkAllocateMemory(rendererState->device->logicalDevice, &allocateInfo, rendererState->allocator, &newMemory);
-    if (result != VK_SUCCESS)
-    {
-        LOG_ERROR("Unable to resize vulkan buffer because the required memory allocation failed. Error: %i", result);
-        return false;
-    }
+    VkCheck_ERROR(vkAllocateMemory(rendererState->device->logicalDevice, &allocateInfo, rendererState->allocator, &newMemory));
 
     VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, newBuffer, newMemory, 0));
 
@@ -150,15 +138,15 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue que
     return true;
 }
 
-void VulkanBuffer::Bind(RendererState* rendererState, U64 offset)
+void VulkanBuffer::Bind(RendererState* rendererState, U32 offset)
 {
     VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, handle, memory, offset));
 }
 
-void* VulkanBuffer::LockMemory(RendererState* rendererState, U64 offset, U64 size, U32 flags)
+void* VulkanBuffer::LockMemory(RendererState* rendererState, U32 offset, U32 size, U32 flags)
 {
     void* data;
-    VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size, flags, &data));
+    VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size == U32_MAX ? VK_WHOLE_SIZE : size, flags, &data));
     return data;
 }
 
@@ -167,42 +155,41 @@ void VulkanBuffer::UnlockMemory(RendererState* rendererState)
     vkUnmapMemory(rendererState->device->logicalDevice, memory);
 }
 
-bool VulkanBuffer::Allocate(U64 size, U64* outOffset)
-{
-    if (!size || !outOffset)
-    {
-        LOG_ERROR("vulkan_buffer_allocate requires valid buffer, a nonzero size and valid pointer to hold offset.");
-        return false;
-    }
-
-    if (!hasFreelist)
-    {
-        LOG_WARN("vulkan_buffer_allocate called on a buffer not using freelists. Offset will not be valid. Call vulkan_buffer_load_data instead.");
-        *outOffset = 0;
-        return true;
-    }
-    
-    return freelist.AllocateBlock(size, outOffset);
-}
-
-bool VulkanBuffer::Free(U64 size, U64 offset)
+U32 VulkanBuffer::Allocate(U32 size)
 {
     if (!size)
     {
-        LOG_ERROR("vulkan_buffer_free requires valid buffer and a nonzero size.");
+        Logger::Error("VulkanBuffer::Allocate requires a nonzero size!");
         return false;
     }
 
     if (!hasFreelist)
     {
-        LOG_WARN("vulkan_buffer_allocate called on a buffer not using freelists. Nothing was done.");
+        Logger::Error("VulkanBuffer::Allocate called on a buffer not using freelists. Offset will not be valid. Call LoadData instead.");
+        return U32_MAX;
+    }
+    
+    return freelist.AllocateBlock(size);
+}
+
+bool VulkanBuffer::Free(U32 size, U32 offset)
+{
+    if (!size)
+    {
+        Logger::Error("Free requires valid buffer and a nonzero size.");
+        return false;
+    }
+
+    if (!hasFreelist)
+    {
+        Logger::Error("Allocate called on a buffer not using freelists. Nothing was done.");
         return true;
     }
 
     return freelist.FreeBlock(size, offset);
 }
 
-void VulkanBuffer::LoadData(RendererState* rendererState, U64 offset, U64 size, U32 flags, const void* data)
+void VulkanBuffer::LoadData(RendererState* rendererState, U32 offset, U32 size, U32 flags, const void* data)
 {
     void* dataPtr;
     VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size, flags, &dataPtr));
@@ -211,7 +198,7 @@ void VulkanBuffer::LoadData(RendererState* rendererState, U64 offset, U64 size, 
 }
 
 void VulkanBuffer::CopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue,
-    VkBuffer source, U64 sourceOffset, VkBuffer dest, U64 destOffset, U64 size)
+    VkBuffer source, U32 sourceOffset, VkBuffer dest, U32 destOffset, U32 size)
 {
     vkQueueWaitIdle(queue);
     

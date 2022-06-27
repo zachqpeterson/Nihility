@@ -12,10 +12,10 @@ static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
     "TOTAL      ",
     "UNKNOWN    ",
     "DATA_STRUCT",
+    "STRING     ",
     "LINEAR_ALLC",
     "APPLICATION",
     "JOB        ",
-    "TEXTURE    ",
     "MAT_INST   ",
     "RENDERER   ",
     "GAME       ",
@@ -28,6 +28,7 @@ static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
 
 U64 Memory::totalAllocSize;
 U64 Memory::allocCount;
+U64 Memory::deallocCount;
 U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
 void* Memory::allocatorBlock;
 
@@ -39,6 +40,7 @@ bool Memory::Initialize(U64 memoryRequirement)
 
     totalAllocSize = memoryRequirement;
     allocCount = 0;
+    deallocCount = 0;
 
     return true;
 }
@@ -66,6 +68,8 @@ void Memory::Free(void* block, U64 size, MemoryTag tag)
 {
     taggedAllocations[tag] -= size;
     taggedAllocations[MEMORY_TAG_TOTAL] -= size;
+    ++deallocCount;
+
     //TODO: Custom allocator
     //TODO: Memory alignment
     Platform::Free(block, false);
@@ -141,38 +145,49 @@ void Memory::GetMemoryStats()
     const U64 mib = 1024 * 1024;
     const U64 kib = 1024;
 
+    U64 allocAmounts[MEMORY_TAG_MAX_TAGS];
+    Copy(allocAmounts, taggedAllocations, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
+
+    U64 currAlloc = allocCount;
+    U64 currDealloc = deallocCount;
+
     String buffer("System memory use (tagged):\n");
     for (U32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i)
     {
         String unit;
         F32 amount = 1.0f;
-        if (taggedAllocations[i] >= gib)
+        if (allocAmounts[i] >= gib)
         {
-            unit = "GiB";
-            amount = taggedAllocations[i] / (F32)gib;
+            unit = "GB";
+            amount = allocAmounts[i] / (F32)gib;
         }
-        else if (taggedAllocations[i] >= mib)
+        else if (allocAmounts[i] >= mib)
         {
-            unit = "MiB";
-            amount = taggedAllocations[i] / (F32)mib;
+            unit = "MB";
+            amount = allocAmounts[i] / (F32)mib;
         }
-        else if (taggedAllocations[i] >= kib)
+        else if (allocAmounts[i] >= kib)
         {
-            unit = "KiB";
-            amount = taggedAllocations[i] / (F32)kib;
+            unit = "KB";
+            amount = allocAmounts[i] / (F32)kib;
         }
         else
         {
             unit = "B";
-            amount = (F32)taggedAllocations[i];
+            amount = (F32)allocAmounts[i];
         }
 
-        String add;
-        add.Format("  %s: %.2f%s\n", (const char*)memoryTagNames[i], amount, (const char*)unit);
+        String add("{}: {}{}\n");
+        add.Format(memoryTagNames[i], amount, unit);
         buffer.Append(add);
     }
 
-    LOG_DEBUG(buffer);
+    buffer.Append("allocCount: ");
+    buffer.Append(String(currAlloc));
+    buffer.Append("\n");
+    buffer.Append("deallocCount: ");
+    buffer.Append(String(currDealloc));
 
+    Logger::Debug(buffer);
 #endif
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Containers/Vector.hpp"
 
 enum FileMode
 {
@@ -9,22 +8,26 @@ enum FileMode
     FILE_MODE_WRITE = 0x2,
 };
 
-struct File
+template<typename> struct Vector;
+
+struct NH_API File
 {
 public:
-    NH_API File() : handle{ nullptr } {}
+    File() : handle{ nullptr } {}
 
-    NH_API bool Open(const struct String& path, FileMode mode, bool binary);
-    NH_API void Close();
-    NH_API U64 Size();
-    NH_API struct String ReadLine(U64 maxLength = U64_MAX);
-    NH_API bool WriteLine(const struct String& str);
-    NH_API struct String Read(U64 length);
-    NH_API U8* ReadBytes(U64 length);
-    NH_API U8* ReadAllBytes(U64& size);
-    NH_API struct String ReadAllText();
-    NH_API void Write(const struct String& str);
-    NH_API void Seek(U64 length);
+    bool Open(const struct String& path, FileMode mode, bool binary);
+    void Close();
+    U64 Size();
+    bool ReadLine(struct String& line, U64 maxLength = 512);
+    bool WriteLine(const struct String& str);
+    struct String Read(U64 length);
+    U8* ReadBytes(U64 length);
+    U8* ReadAllBytes(U64& size);
+    struct String ReadAllText();
+    void Write(const struct String& str);
+    void Seek(U64 length);
+
+    static Vector<struct String> GetAllFiles(const struct String& dir);
 
 public:
     void* handle;

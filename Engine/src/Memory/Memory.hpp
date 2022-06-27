@@ -11,10 +11,10 @@ enum MemoryTag {
     MEMORY_TAG_TOTAL,
     MEMORY_TAG_UNKNOWN,
     MEMORY_TAG_DATA_STRUCT,
+    MEMORY_TAG_STRING,
     MEMORY_TAG_LINEAR_ALLOCATOR,
     MEMORY_TAG_APPLICATION,
     MEMORY_TAG_JOB,
-    MEMORY_TAG_TEXTURE,
     MEMORY_TAG_MATERIAL_INSTANCE,
     MEMORY_TAG_RENDERER,
     MEMORY_TAG_GAME,
@@ -52,6 +52,7 @@ private:
 
     static U64 totalAllocSize;
     static U64 allocCount;
+    static U64 deallocCount;
     static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS];
     static void* allocatorBlock;
 };

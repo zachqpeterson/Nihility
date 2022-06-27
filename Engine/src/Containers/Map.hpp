@@ -8,7 +8,7 @@
 #include "Core/Logger.hpp"
 
 template<typename TKey, typename TValue>
-struct Map
+struct NH_API Map
 {
     struct Node
     {
@@ -25,31 +25,32 @@ struct Map
     };
 
 public:
-    NH_API Map();
-    NH_API Map(const Map& other);
-    NH_API Map(Map&& other);
-    NH_API ~Map();
+    Map();
+    Map(const Map& other);
+    Map(Map&& other);
+    ~Map();
+    void Destroy();
 
-    NH_API Map& operator=(const Map& other);
-    NH_API Map& operator=(Map&& other);
+    Map& operator=(const Map& other);
+    Map& operator=(Map&& other);
 
-    NH_API TValue& At(const TKey& key);
-    NH_API const TValue& At(const TKey& key) const;
-    NH_API TValue& operator[](const TKey& key);
-    NH_API const TValue& operator[](const TKey& key) const;
+    TValue& At(const TKey& key);
+    const TValue& At(const TKey& key) const;
+    TValue& operator[](const TKey& key);
+    const TValue& operator[](const TKey& key) const;
 
-    NH_API const bool Empty() const { return !size; }
-    NH_API const U64& Size() const { return size; }
+    const bool Empty() const { return !size; }
+    const U64& Size() const { return size; }
 
-    NH_API void Clear();
-    NH_API void Insert(const TKey& key, const TValue& value);
-    NH_API void InsertAssign(const TKey& key, const TValue& value);
-    NH_API TValue& InsertGet(const TKey& key);
-    NH_API TValue&& Remove(const TKey& key);
+    void Clear();
+    void Insert(const TKey& key, const TValue& value);
+    void InsertAssign(const TKey& key, const TValue& value);
+    TValue& InsertGet(const TKey& key);
+    TValue&& Remove(const TKey& key);
 
-    NH_API bool Contains(const TValue& value) const;
-    NH_API bool Contains(const TKey& key) const;
-    NH_API const U64& Count(const TKey& key) const { return size; }
+    bool Contains(const TValue& value) const;
+    bool Contains(const TKey& key) const;
+    const U64& Count(const TKey& key) const { return size; }
 
 private:
     Node* root;
@@ -87,6 +88,12 @@ inline Map<TKey, TValue>::Map(Map<TKey, TValue>&& other) : root{ other.root }, s
 
 template<typename TKey, typename TValue>
 inline Map<TKey, TValue>::~Map()
+{
+    Clear();
+}
+
+template<typename TKey, typename TValue>
+inline void Map<TKey, TValue>::Destroy()
 {
     Clear();
 }

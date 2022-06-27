@@ -1,32 +1,45 @@
-/** @file Freelist.hpp */
 #pragma once
 
 #include "Defines.hpp"
 
-struct Freelist
+#include "Memory/Memory.hpp"
+
+struct NH_API Freelist
 {
     struct Node
     {
-        U64 offset;
-        U64 size;
+        Node(const U32& size, const U32& offset, Node* next = nullptr) : size{ size }, offset{ offset }, next{ next } {}
+        ~Node() { next = nullptr; }
+
+        void* operator new(U64 size) { return Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
+        void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
+
+        U32 size;
+        U32 offset;
+
         Node* next;
     };
 
 public:
-    NH_API Freelist(U64 size = 0);
-    NH_API void Destroy();
+    Freelist(U32 size = 0);
+    Freelist(const Freelist& other) = delete;
+    Freelist(Freelist&& other);
+    ~Freelist();
+    void Destroy();
 
-    NH_API bool AllocateBlock(U64 size, U64* outOffset);
-    NH_API bool FreeBlock(U64 size, U64 offset);
-    NH_API bool Resize(U64 newSize);
-    NH_API void Cleanup();
-    NH_API bool FreeSpace();
+    Freelist& operator=(const Freelist& other) = delete;
+    Freelist& operator=(Freelist&& other);
+
+    U32 AllocateBlock(U32 size);
+    bool FreeBlock(U32 size, U32 offset);
+    bool Resize(U32 size);
+    //TODO: Defragment
+
+    U32 FreeSpace() const { return freeSpace; }
 
 private:
-    U64 totalSize;
-    U64 maxEntries;
-    Node* head;
+    U32 totalSize;
+    U32 freeSpace;
 
-    Node* GetNode();
-    void ReturnNode(Node* node);
+    Node* head;
 };

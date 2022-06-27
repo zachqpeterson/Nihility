@@ -76,6 +76,26 @@
 		"hash_map": "cpp",
 		"tuple": "cpp",
 		"iosfwd": "c",
-		"cstddef": "cpp"
+		"cstddef": "cpp",
+		"bit": "cpp",
+		"cctype": "cpp",
+		"charconv": "cpp",
+		"clocale": "cpp",
+		"compare": "cpp",
+		"concepts": "cpp",
+		"cstdint": "cpp",
+		"cstdio": "cpp",
+		"ctime": "cpp",
+		"cwchar": "cpp",
+		"locale": "cpp",
+		"new": "cpp",
+		"stdexcept": "cpp",
+		"xfacet": "cpp",
+		"xlocbuf": "cpp",
+		"xlocinfo": "cpp",
+		"xlocmes": "cpp",
+		"xlocmon": "cpp",
+		"xloctime": "cpp",
+		"xstddef": "cpp"
 	}
 }
