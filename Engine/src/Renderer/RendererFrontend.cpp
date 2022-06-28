@@ -82,7 +82,7 @@ bool RendererFrontend::DrawFrame()
 
         Mesh* mesh = Resources::CreateMesh(config);
 
-        activeScene->DrawMesh(mesh, Matrix4::IDENTITY);
+        //activeScene->DrawMesh(mesh, Matrix4::IDENTITY);
         done = true;
     }
 

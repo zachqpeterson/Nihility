@@ -44,7 +44,7 @@ struct Uniform
 {
     String name;
     U64 offset;
-    U16 location; //NOTE: only for samplers
+    U16 location;
     U16 size;
     U8 setIndex;
     U8 bindingIndex;

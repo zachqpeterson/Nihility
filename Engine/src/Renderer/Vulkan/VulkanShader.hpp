@@ -20,12 +20,6 @@ struct ShaderStageConfig
     String fileName;
 };
 
-struct DescriptorSetConfig
-{
-    U8 bindingCount;
-    Vector<VkDescriptorSetLayoutBinding> bindings;
-};
-
 struct InstanceState
 {
     U32 id;
@@ -40,7 +34,7 @@ struct VulkanShaderConfig
 {
     Vector<ShaderStageConfig> stages;
     Vector<VkDescriptorPoolSize> poolSizes;
-    Array<DescriptorSetConfig, 2> descriptorSets;
+    Array<Vector<VkDescriptorSetLayoutBinding>, 2> descriptorSets;
 
     Vector<VkVertexInputAttributeDescription> attributes;
 };

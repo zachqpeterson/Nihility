@@ -256,14 +256,13 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
     // Attachments TODO: make this configurable.
-    U32 attachmentDescriptionCount = 0;
-    VkAttachmentDescription attachmentDescriptions[2];
+    Vector<VkAttachmentDescription> attachmentDescriptions;
 
-    bool doClearColor = (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) != 0;
-    VkAttachmentDescription colorAttachment;
+    VkAttachmentDescription colorAttachment{};
     colorAttachment.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = doClearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+        hasPrev ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -272,8 +271,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     colorAttachment.finalLayout = hasNext ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     colorAttachment.flags = 0;
 
-    attachmentDescriptions[attachmentDescriptionCount] = colorAttachment;
-    ++attachmentDescriptionCount;
+    attachmentDescriptions.Push(colorAttachment);
 
     VkAttachmentReference colorAttachmentReference;
     colorAttachmentReference.attachment = 0;
@@ -283,21 +281,19 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     subpass.pColorAttachments = &colorAttachmentReference;
 
     VkAttachmentReference depthAttachmentReference;
-    bool doClearDepth = (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) != 0;
-    if (doClearDepth)
+    VkAttachmentDescription depthAttachment{};
+    if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
     {
-        VkAttachmentDescription depthAttachment = {};
         depthAttachment.format = rendererState->device->depthFormat;
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = doClearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        attachmentDescriptions[attachmentDescriptionCount] = depthAttachment;
-        ++attachmentDescriptionCount;
+        attachmentDescriptions.Push(depthAttachment);
 
         depthAttachmentReference.attachment = 1;
         depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -308,7 +304,6 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     }
     else
     {
-        Memory::Zero(&attachmentDescriptions[attachmentDescriptionCount], sizeof(VkAttachmentDescription));
         subpass.pDepthStencilAttachment = nullptr;
     }
 
@@ -329,8 +324,8 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     dependency.dependencyFlags = 0;
 
     VkRenderPassCreateInfo renderpassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    renderpassInfo.attachmentCount = attachmentDescriptionCount;
-    renderpassInfo.pAttachments = attachmentDescriptions;
+    renderpassInfo.attachmentCount = attachmentDescriptions.Size();
+    renderpassInfo.pAttachments = attachmentDescriptions.Data();
     renderpassInfo.subpassCount = 1;
     renderpassInfo.pSubpasses = &subpass;
     renderpassInfo.dependencyCount = 1;
@@ -561,30 +556,25 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
     beginInfo.renderArea.extent.width = renderpass->renderArea.z * rendererState->renderArea.z;
     beginInfo.renderArea.extent.height = renderpass->renderArea.w * rendererState->renderArea.w;
 
-    beginInfo.clearValueCount = 0;
-    beginInfo.pClearValues = 0;
-
-    VkClearValue clearValues[2];
-    Memory::Zero(clearValues, sizeof(VkClearValue) * 2);
-    bool doClearColor = (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) != 0;
-    if (doClearColor)
+    Vector<VkClearValue> clearValues;
+    VkClearValue colorClear{};
+    if (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG)
     {
-        Memory::Copy(clearValues[beginInfo.clearValueCount].color.float32, &renderpass->clearColor, sizeof(F32) * 4);
-        ++beginInfo.clearValueCount;
+        Memory::Copy(colorClear.color.float32, &renderpass->clearColor, sizeof(Vector4));
     }
 
-    bool doClearDepth = (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) != 0;
-    if (doClearDepth)
-    {
-        Memory::Copy(clearValues[beginInfo.clearValueCount].color.float32, &renderpass->clearColor, sizeof(F32) * 4);
-        clearValues[beginInfo.clearValueCount].depthStencil.depth = renderpass->depth;
+    clearValues.Push(colorClear);
 
-        bool doClearStencil = (renderpass->clearFlags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) != 0;
-        clearValues[beginInfo.clearValueCount].depthStencil.stencil = doClearStencil ? renderpass->stencil : 0;
-        ++beginInfo.clearValueCount;
+    VkClearValue depthClear{};
+    if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
+    {
+        depthClear.depthStencil.depth = renderpass->depth;
+        depthClear.depthStencil.stencil = (renderpass->clearFlags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) ? renderpass->stencil : 0;
+        clearValues.Push(depthClear);
     }
 
-    beginInfo.pClearValues = beginInfo.clearValueCount > 0 ? clearValues : nullptr;
+    beginInfo.clearValueCount = clearValues.Size();
+    beginInfo.pClearValues = clearValues.Data();
 
     vkCmdBeginRenderPass(commandBuffer->handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
     commandBuffer->state = COMMAND_BUFFER_STATE_IN_RENDER_PASS;

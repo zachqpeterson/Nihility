@@ -1,5 +1,5 @@
-clearColor=0.2,0.0,0.2,1.0
-clearFlags=COLOR_BUFFER,DEPTH_BUFFER,STENCIL_BUFFER
+clearColor=0.0,0.0,0.0,1.0
+clearFlags=DEPTH_BUFFER,STENCIL_BUFFER
 renderArea=0.0,0.0,1.0,1.0
 depth=1.0
 stencil=0
