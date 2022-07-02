@@ -14,7 +14,8 @@ void Scene::Create()
         meshes.Push(list);
     }
 
-    camera = new Camera({ -40.0f, 40.0f, -22.5f, 22.5f }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
+    //TODO: Configure
+    camera = new Camera({ -1.66666666667f, 1.66666666667f, -0.9375f, 0.9375f }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
 }
 
 void Scene::Destroy()
@@ -24,16 +25,17 @@ void Scene::Destroy()
 
 void Scene::OnResize(U32 width, U32 height)
 {
+    //TODO: Configure
     if (width > (height * 1.77777777778f))
     {
-        F32 camHeight = 22.5f;
+        F32 camHeight = 0.9375f;
         F32 camWidth = camHeight * ((F32)width / (F32)height);
 
         camera->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);
     }
     else
     {
-        F32 camWidth = 40.0f;
+        F32 camWidth = 1.66666666667f;
         F32 camHeight = camWidth * ((F32)height / (F32)width);
 
         camera->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);

@@ -13,7 +13,7 @@ public:
         VkImageTiling tiling,
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags memoryFlags,
-        I32 createView,
+        bool createView,
         VkImageAspectFlags viewAspectFlags);
     void Destroy(RendererState* rendererState);
 
@@ -32,6 +32,7 @@ public:
     VkImage handle;
     VkImageView view;
     VkDeviceMemory memory;
+    VkFormat format;
 
     U32 width;
     U32 height;

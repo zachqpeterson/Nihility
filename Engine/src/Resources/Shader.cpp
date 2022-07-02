@@ -42,8 +42,8 @@ bool Shader::AddUniform(Uniform uniform)
             uniform.location = globalTextureCount;
 
             TextureMap defaultMap = {};
-            defaultMap.filterMagnify = TEXTURE_FILTER_MODE_LINEAR;
-            defaultMap.filterMinify = TEXTURE_FILTER_MODE_LINEAR;
+            defaultMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
+            defaultMap.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
             defaultMap.repeatU = defaultMap.repeatV = defaultMap.repeatW = TEXTURE_REPEAT_REPEAT;
             defaultMap.use = TEXTURE_USE_UNKNOWN;
 

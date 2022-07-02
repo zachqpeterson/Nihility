@@ -90,18 +90,6 @@ void* Memory::Set(void* dest, I32 value, U64 size)
     return Platform::Set(dest, value, size);
 }
 
-U8 Memory::BigEndianU8(U8* data)
-{
-    U32 result = 0;
-    for (U8 i = 0; i < 1; ++i)
-    {
-        result <<= 8;
-        result |= *(data + i);
-    }
-
-    return result;
-}
-
 U16 Memory::BigEndianU16(U8* data)
 {
     U32 result = 0;
@@ -136,6 +124,49 @@ U64 Memory::BigEndianU64(U8* data)
     }
 
     return result;
+}
+
+U32 Memory::HighBit(U32 z)
+{
+    U32 n = 0;
+    if (z == 0) { return 0; }
+    if (z >= 0x10000) { n += 16; z >>= 16; }
+    if (z >= 0x00100) { n += 8; z >>= 8; }
+    if (z >= 0x00010) { n += 4; z >>= 4; }
+    if (z >= 0x00004) { n += 2; z >>= 2; }
+    if (z >= 0x00002) { n += 1; }
+    return n;
+}
+
+U32 Memory::BitCount(U32 a)
+{
+    a = (a & 0x55555555) + ((a >> 1) & 0x55555555);
+    a = (a & 0x33333333) + ((a >> 2) & 0x33333333);
+    a = (a + (a >> 4)) & 0x0f0f0f0f;
+    a = (a + (a >> 8));
+    a = (a + (a >> 16));
+    return a & 0xff;
+}
+
+U32 Memory::ShiftSigned(U32 v, I32 shift, I32 bits)
+{
+    static U32 mulTable[9] = {
+       0,
+       0xff, 0x55, 0x49, 0x11,
+       0x21, 0x41, 0x81, 0x01,
+    };
+
+    static U32 shiftTable[9] = {
+       0, 0,0,1,0,2,4,6,0,
+    };
+
+    if (shift < 0) { v <<= -shift; }
+    else { v >>= shift; }
+    ASSERT_DEBUG(v < 256);
+    v >>= (8 - bits);
+    ASSERT_DEBUG(bits >= 0 && bits <= 8);
+
+    return (v * mulTable[bits]) >> shiftTable[bits];
 }
 
 void Memory::GetMemoryStats()

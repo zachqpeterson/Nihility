@@ -68,10 +68,10 @@ bool RendererFrontend::DrawFrame()
         config.name = "Mesh";
         config.MaterialName = "Tile.mat";
 
-        config.vertices.Push(Vertex{ {-12.0f, -12.0f, 0.0f}, {0.0f, 0.125f}, Vector3::BACK });
-        config.vertices.Push(Vertex{ { 12.0f, -12.0f, 0.0f}, {0.16666666666f, 0.125f}, Vector3::BACK });
-        config.vertices.Push(Vertex{ { 12.0f,  12.0f, 0.0f}, {0.16666666666f, 0.0f}, Vector3::BACK });
-        config.vertices.Push(Vertex{ {-12.0f,  12.0f, 0.0f}, {0.0f, 0.0f}, Vector3::BACK });
+        config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f }, });
+        config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f }, });
+        config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f }, });
+        config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f }, });
 
         config.indices.Push(0);
         config.indices.Push(1);
@@ -82,7 +82,7 @@ bool RendererFrontend::DrawFrame()
 
         Mesh* mesh = Resources::CreateMesh(config);
 
-        //activeScene->DrawMesh(mesh, Matrix4::IDENTITY);
+        activeScene->DrawMesh(mesh, Matrix4::IDENTITY);
         done = true;
     }
 

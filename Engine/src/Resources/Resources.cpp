@@ -53,33 +53,36 @@ HashMap<String, Model3*> Resources::models3D;
 #define DEFAULT_MESH_NAME "Default.msh"
 #define DEFAULT_MESH2D_NAME "Default2D.msh"
 
-#define RED_MASK    0b11100000
-#define GREEN_MASK  0b00011100
-#define BLUE_MASK   0b00000011
+#define BYTECAST(x) ((U8)((x) & 255))
 
 #pragma pack(push, 1)
-struct BMPInfo
-{
-    U32 biSize;
-    I32 biWidth;
-    I32 biHeight;
-    U16 biPlanes;
-    U16 biBitCount;
-    U32 biCompression;
-    U32 biSizeImage;
-    I32 biXPelsPerMeter;
-    I32 biYPelsPerMeter;
-    U32 biClrUsed;
-    U32 biClrImportant;
-};
-
 struct BMPHeader
 {
-    U16 bfType;
-    U32 bfSize;
-    U16 bfReserved1;
-    U16 bfReserved2;
-    U32 bfOffBits;
+    U16 signature;
+    U32 fileSize;
+    U16 reserved1;
+    U16 reserved2;
+    U32 imageOffset;
+};
+
+struct BMPInfo
+{
+    U32 infoSize;
+    I32 imageWidth;
+    I32 imageHeight;
+    U16 imagePlanes;
+    U16 imageBitCount;
+    U32 imageCompression;
+    U32 imageSize;
+    I32 biXPelsPerMeter;
+    I32 biYPelsPerMeter;
+    U32 colorsUsed;
+    U32 importantColor;
+    U32 extraRead;
+    U32 redMask;
+    U32 greenMask;
+    U32 blueMask;
+    U32 alphaMask;
 };
 
 struct TGAHeader
@@ -131,7 +134,6 @@ void Resources::Shutdown()
     for (Material* m : materials)
     {
         DestroyMaterial(m);
-        Memory::Free(m, sizeof(Material), MEMORY_TAG_RESOURCE);
     }
 
     materials.Destroy();
@@ -246,79 +248,438 @@ void Resources::UnloadImage(Image* resource)
 
 bool Resources::LoadBMP(Image* image, File* file)
 {
-    BMPHeader* header = (BMPHeader*)file->ReadBytes(sizeof(BMPHeader));
+    BMPHeader header;
+    BMPInfo info;
+    if (!ReadBMPHeader(header, info, file)) { file->Close(); return false; }
 
-    if (header->bfType != 0x4D42)
+    image->width = info.imageWidth;
+    image->height = info.imageHeight;
+    image->channelCount = 4;
+    image->layout = IMAGE_LAYOUT_RGBA32;
+
+    U32 pSize = 0;
+    U32 width;
+    I32 pad;
+
+    if (info.infoSize == 12) { if (info.imageBitCount < 24) { pSize = (header.imageOffset - info.extraRead - 24) / 3; } }
+    else { if (info.imageBitCount < 16) { pSize = (header.imageOffset - info.extraRead - info.infoSize) >> 2; } }
+
+    image->pixels.Reserve(info.imageWidth * info.imageHeight * 4);
+
+    if (info.imageBitCount < 16)
     {
-        Logger::Error("Image file: '{}' is not a BMP!", image->name);
-        Memory::Free(header, sizeof(BMPHeader), MEMORY_TAG_RESOURCE);
+        if (pSize == 0 || pSize > 256)
+        {
+            Logger::Error("Corrupted BMP!");
+            file->Close();
+            return false;
+        }
+
+        Vector<U8> palette(pSize);
+
+        if (info.infoSize != 12)
+        {
+            for (U32 i = 0; i < pSize; ++i)
+            {
+                palette.Push(file->ReadU8());
+                palette.Push(file->ReadU8());
+                palette.Push(file->ReadU8());
+                file->ReadU8();
+            }
+        }
+        else
+        {
+            for (U32 i = 0; i < pSize; ++i)
+            {
+                palette.Push(file->ReadU8());
+                palette.Push(file->ReadU8());
+                palette.Push(file->ReadU8());
+            }
+        }
+
+        file->Seek(header.imageOffset - info.extraRead - info.infoSize - pSize * (info.infoSize == 12 ? 3 : 4));
+
+        if (info.imageBitCount == 1) { width = (info.imageWidth + 7) >> 3; }
+        else if (info.imageBitCount == 4) { width = (info.imageWidth + 1) >> 1; }
+        else if (info.imageBitCount == 8) { width = info.imageWidth; }
+        else
+        {
+            Logger::Error("Corrupted BMP!");
+            file->Close();
+            return false;
+        }
+
+        pad = (-width) & 3;
+
+        switch (info.imageBitCount)
+        {
+        case 1:
+        {
+            for (U32 j = 0; j < info.imageHeight; ++j)
+            {
+                I8 bitOffset = 7;
+                U8 v = file->ReadU8();
+                for (U32 i = 0; i < info.imageWidth; ++i)
+                {
+                    U8 color = (v >> bitOffset) & 0x1;
+                    image->pixels.Push(palette[color * 3]);
+                    image->pixels.Push(palette[color * 3 + 1]);
+                    image->pixels.Push(palette[color * 3 + 2]);
+                    image->pixels.Push(255);
+                    if ((--bitOffset) < 0 && i + 1 != info.imageWidth)
+                    {
+                        bitOffset = 7;
+                        v = file->ReadU8();
+                    }
+                }
+                file->Seek(pad);
+            }
+        } break;
+        case 4:
+        {
+            for (U32 j = 0; j < info.imageHeight; ++j)
+            {
+                for (U32 i = 0; i < info.imageWidth; i += 2)
+                {
+                    U8 v = file->ReadU8();
+                    U8 v2 = v & 15;
+                    v >>= 4;
+                    image->pixels.Push(palette[v * 3]);
+                    image->pixels.Push(palette[v * 3 + 1]);
+                    image->pixels.Push(palette[v * 3 + 2]);
+                    image->pixels.Push(255);
+                    if (i + 1 >= info.imageWidth) { break; }
+                    image->pixels.Push(palette[v2 * 3]);
+                    image->pixels.Push(palette[v2 * 3 + 1]);
+                    image->pixels.Push(palette[v2 * 3 + 2]);
+                    image->pixels.Push(255);
+                }
+                file->Seek(pad);
+            }
+        } break;
+        case 8:
+        {
+            for (U32 j = 0; j < info.imageHeight; ++j)
+            {
+                for (U32 i = 0; i < info.imageWidth; ++i)
+                {
+                    U8 v = file->ReadU8();
+                    image->pixels.Push(palette[v * 3]);
+                    image->pixels.Push(palette[v * 3 + 1]);
+                    image->pixels.Push(palette[v * 3 + 2]);
+                    image->pixels.Push(255);
+                }
+                file->Seek(pad);
+            }
+        } break;
+        }
+    }
+    else
+    {
+        int rshift = 0, gshift = 0, bshift = 0, ashift = 0, rcount = 0, gcount = 0, bcount = 0, acount = 0;
+        U8 easy = 0;
+
+        file->Seek(header.imageOffset - info.extraRead - info.infoSize);
+
+        if (info.imageBitCount == 24) { width = 3 * info.imageWidth; }
+        else if (info.imageBitCount == 16) { width = 2 * info.imageWidth; }
+        else { width = 0; }
+        
+        pad = (-width) & 3;
+
+        if (info.imageBitCount == 24) { easy = 1; }
+        else if (info.imageBitCount == 32) { if (info.blueMask == 0xff && info.greenMask == 0xff00 && info.redMask == 0x00ff0000 && info.alphaMask == 0xff000000) { easy = 2; } }
+
+        if (!easy)
+        {
+            if (!info.redMask || !info.greenMask || !info.blueMask) 
+            { 
+                Logger::Error("Corrupted BMP!");
+                file->Close();
+                return false;
+            }
+            
+            rshift = Memory::HighBit(info.redMask) - 7;
+            gshift = Memory::HighBit(info.greenMask) - 7;
+            bshift = Memory::HighBit(info.blueMask) - 7;
+            ashift = Memory::HighBit(info.alphaMask) - 7;
+
+            rcount = Memory::BitCount(info.redMask);
+            gcount = Memory::BitCount(info.greenMask);
+            bcount = Memory::BitCount(info.blueMask);
+            acount = Memory::BitCount(info.alphaMask);
+
+            if (rcount > 8 || gcount > 8 || bcount > 8 || acount > 8) 
+            {
+                Logger::Error("Corrupted BMP!");
+                file->Close();
+                return false;
+            }
+        }
+
+        for (U32 j = 0; j < info.imageHeight; ++j)
+        {
+            if (easy)
+            {
+                for (U32 i = 0; i < info.imageWidth; ++i)
+                {
+                    U8 alpha;
+                    U8 blue = file->ReadU8();
+                    U8 green = file->ReadU8();
+                    image->pixels.Push(file->ReadU8());
+                    image->pixels.Push(green);
+                    image->pixels.Push(blue);
+                    alpha = (easy == 2 ? file->ReadU8() : 255);
+                    image->pixels.Push(alpha);
+                }
+            }
+            else
+            {
+                for (U32 i = 0; i < info.imageWidth; ++i)
+                {
+                    U32 v = (info.imageBitCount == 16 ? (U32)file->ReadU16() : file->ReadU32());
+                    U32 alpha;
+                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v& info.redMask, rshift, rcount)));
+                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v& info.greenMask, gshift, gcount)));
+                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v& info.blueMask, bshift, bcount)));
+                    alpha = (info.alphaMask ? Memory::ShiftSigned(v & info.alphaMask, ashift, acount) : 255);
+                    image->pixels.Push(BYTECAST(alpha));
+                }
+            }
+
+            file->Seek(pad);
+        }
+    }
+
+    return true;
+}
+
+bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
+{
+    header.signature = file->ReadU16();
+
+    if (header.signature != 0x4D42)
+    {
+        Logger::Error("Image file is not a BMP!");
         file->Close();
         return false;
     }
 
-    BMPInfo* info = (BMPInfo*)file->ReadBytes(sizeof(BMPInfo));
-    image->width = info->biWidth;
-    image->height = info->biHeight;
+    header.fileSize = file->ReadU32();
+    header.reserved1 = file->ReadU16();
+    header.reserved2 = file->ReadU16();
+    header.imageOffset = file->ReadU32();
 
-    file->Seek(header->bfOffBits);
-    image->pixels.SetArray(file->ReadBytes(info->biSizeImage), info->biSizeImage);
+    info.infoSize = file->ReadU32();
+    info.extraRead = 14;
+    info.redMask = info.greenMask = info.blueMask = info.alphaMask = 0;
 
-    Memory::Free(header, sizeof(BMPHeader), MEMORY_TAG_RESOURCE);
-    Memory::Free(info, sizeof(BMPInfo), MEMORY_TAG_RESOURCE);
-
-    if (info->biBitCount == 32)
+    switch (info.infoSize)
     {
-        image->channelCount = 4;
-        U8 temp;
-        for (auto it0 = image->pixels.begin(), it1 = it0 + 2; it0 != image->pixels.end(); it0 += 4, it1 += 4)
-        {
-            temp = *it0;
-            *it0 = *it1;
-            *it1 = temp;
-        }
-    }
-    else if (info->biBitCount == 24)
+    case 12:
     {
-        image->channelCount = 4;
-        Vector<U8> pixels(info->biWidth * info->biHeight * 4);
+        info.imageWidth = file->ReadI16();
+        info.imageHeight = file->ReadI16();
 
-        for (auto it = image->pixels.begin(); it != image->pixels.end(); ++it)
-        {
-            pixels.Push(*it);
-            pixels.Push(*(++it));
-            pixels.Push(*(++it));
-            pixels.Push(255);
-        }
+        info.imagePlanes = file->ReadU16();
+        if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
 
-        image->pixels = Move(pixels);
-    }
-    else if (info->biBitCount == 8)
+        info.imageBitCount = file->ReadU16();
+    } break;
+
+    case 40:
     {
-        image->channelCount = 4;
-        Vector<U8> pixels(info->biWidth * info->biHeight * 4);
+        info.imageWidth = file->ReadI32();
+        info.imageHeight = file->ReadI32();
 
-        for (U8 p : image->pixels)
+        info.imagePlanes = file->ReadU16();
+        if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
+
+        info.imageBitCount = file->ReadU16();
+        info.imageCompression = file->ReadU32();
+
+        if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
         {
-            pixels.Push((p & RED_MASK) * 36);
-            pixels.Push((p & GREEN_MASK) * 36);
-            pixels.Push((p & BLUE_MASK) * 85);
-            pixels.Push(255);
+            Logger::Error("RLE Compressed BMPs not supported!");
+            return false;
         }
 
-        image->pixels = Move(pixels);
-    }
-    else if (info->biBitCount == 4)
+        info.imageSize = file->ReadU32();
+        info.biXPelsPerMeter = file->ReadI32();
+        info.biYPelsPerMeter = file->ReadI32();
+        info.colorsUsed = file->ReadU32();
+        info.importantColor = file->ReadU32();
+
+        if (info.imageBitCount == 16 || info.imageBitCount == 32)
+        {
+            if (info.imageCompression == 0)
+            {
+                SetBmpColorMasks(info);
+            }
+            else if (info.imageCompression == 3)
+            {
+                info.redMask = file->ReadU32();
+                info.greenMask = file->ReadU32();
+                info.blueMask = file->ReadU32();
+                info.extraRead += 12;
+
+                if (info.redMask == info.greenMask && info.greenMask == info.blueMask) { Logger::Error("Corrupted BMP!"); return false; }
+            }
+            else { Logger::Error("Corrupted BMP!"); return false; }
+        }
+    } break;
+
+    case 56:
     {
-        image->channelCount = 4;
-        //TODO:
-    }
-    else
+        info.imageWidth = file->ReadI32();
+        info.imageHeight = file->ReadI32();
+
+        info.imagePlanes = file->ReadU16();
+        if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
+
+        info.imageBitCount = file->ReadU16();
+        info.imageCompression = file->ReadU32();
+        if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
+        {
+            Logger::Error("RLE Compressed BMPs not supported!");
+            return false;
+        }
+
+        info.imageSize = file->ReadU32();
+        info.biXPelsPerMeter = file->ReadI32();
+        info.biYPelsPerMeter = file->ReadI32();
+        info.colorsUsed = file->ReadU32();
+        info.importantColor = file->ReadU32();
+
+        file->ReadU32();
+        file->ReadU32();
+        file->ReadU32();
+        file->ReadU32();
+
+        if (info.imageBitCount == 16 || info.imageBitCount == 32)
+        {
+            if (info.imageCompression == 0)
+            {
+                SetBmpColorMasks(info);
+            }
+            else if (info.imageCompression == 3)
+            {
+                info.redMask = file->ReadU32();
+                info.greenMask = file->ReadU32();
+                info.blueMask = file->ReadU32();
+                info.extraRead += 12;
+
+                if (info.redMask == info.greenMask && info.greenMask == info.blueMask) { Logger::Error("Corrupted BMP!"); return false; }
+            }
+            else { Logger::Error("Corrupted BMP!"); return false; }
+        }
+    } break;
+
+    case 108:
     {
-        image->channelCount = 4;
-        //TODO:
+        info.imageWidth = file->ReadI32();
+        info.imageHeight = file->ReadI32();
+
+        info.imagePlanes = file->ReadU16();
+        if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
+
+        info.imageBitCount = file->ReadU16();
+        info.imageCompression = file->ReadU32();
+        if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
+        {
+            Logger::Error("RLE Compressed BMPs not supported!");
+            return false;
+        }
+
+        info.imageSize = file->ReadU32();
+        info.biXPelsPerMeter = file->ReadI32();
+        info.biYPelsPerMeter = file->ReadI32();
+        info.colorsUsed = file->ReadU32();
+        info.importantColor = file->ReadU32();
+
+        info.redMask = file->ReadU32();
+        info.greenMask = file->ReadU32();
+        info.blueMask = file->ReadU32();
+        info.alphaMask = file->ReadU32();
+
+        if (info.imageCompression != 3) { SetBmpColorMasks(info); }
+
+        file->ReadU32(); // discard color space
+        for (U32 i = 0; i < 12; ++i) { file->ReadU32(); } // discard color space parameters
+    } break;
+
+    case 124:
+    {
+        info.imageWidth = file->ReadI32();
+        info.imageHeight = file->ReadI32();
+
+        info.imagePlanes = file->ReadU16();
+        if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
+
+        info.imageBitCount = file->ReadU16();
+        info.imageCompression = file->ReadU32();
+        if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
+        {
+            Logger::Error("RLE Compressed BMPs not supported!");
+            return false;
+        }
+
+        info.imageSize = file->ReadU32();
+        info.biXPelsPerMeter = file->ReadI32();
+        info.biYPelsPerMeter = file->ReadI32();
+        info.colorsUsed = file->ReadU32();
+        info.importantColor = file->ReadU32();
+
+        info.redMask = file->ReadU32();
+        info.greenMask = file->ReadU32();
+        info.blueMask = file->ReadU32();
+        info.alphaMask = file->ReadU32();
+
+        if (info.imageCompression != 3) { SetBmpColorMasks(info); }
+
+        file->ReadU32(); // discard color space
+        for (U32 i = 0; i < 12; ++i) { file->ReadU32(); } // discard color space parameters
+
+        file->ReadU32(); // discard rendering intent
+        file->ReadU32(); // discard offset of profile data
+        file->ReadU32(); // discard size of profile data
+        file->ReadU32(); // discard reserved
+    } break;
+
+    default:
+    {
+        Logger::Error("Corrupted BMP!");
+        file->Close();
+    } return false;
     }
 
     return true;
+}
+
+void Resources::SetBmpColorMasks(BMPInfo& info)
+{
+    if (info.imageCompression == 3) { return; }
+
+    if (info.imageCompression == 0)
+    {
+        if (info.imageBitCount == 16)
+        {
+            info.redMask = 0x7C00U;
+            info.greenMask = 0x3E0U;
+            info.blueMask = 0x1FU;
+        }
+        else if (info.imageBitCount == 32)
+        {
+            info.redMask = 0xFF0000U;
+            info.greenMask = 0xFF00U;
+            info.blueMask = 0xFFU;
+            info.alphaMask = 0xFF000000U;
+        }
+        else
+        {
+            info.redMask = info.greenMask = info.blueMask = info.alphaMask = 0;
+        }
+    }
 }
 
 bool Resources::LoadPNG(Image* image, File* file)
@@ -379,6 +740,7 @@ Texture* Resources::LoadTexture(const String& name)
         texture->height = image->height;
         texture->generation = 0;
         texture->channelCount = image->channelCount;
+        texture->layout = image->layout;
         texture->flags = TEXTURE_FLAG_HAS_TRANSPARENCY;
 
         RendererFrontend::CreateTexture(texture, image->pixels);
@@ -914,7 +1276,7 @@ void Resources::CreateMaterial(MaterialConfig& config, Material* material)
     material->shininess = config.shininess;
 
     material->diffuseMap.use = TEXTURE_USE_MAP_DIFFUSE;
-    material->diffuseMap.texture = config.diffuseMapName.Length() > 0 ? LoadTexture(config.diffuseMapName) : defaultDiffuse;
+    material->diffuseMap.texture = config.diffuseMapName.Blank() ? defaultDiffuse : LoadTexture(config.diffuseMapName);
     material->diffuseMap.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
     material->diffuseMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
     material->diffuseMap.repeatU = TEXTURE_REPEAT_REPEAT;
@@ -927,7 +1289,7 @@ void Resources::CreateMaterial(MaterialConfig& config, Material* material)
     }
 
     material->specularMap.use = TEXTURE_USE_MAP_SPECULAR;
-    material->specularMap.texture = config.specularMapName.Length() > 0 ? LoadTexture(config.specularMapName) : defaultSpecular;
+    material->specularMap.texture = config.specularMapName.Blank() ? defaultSpecular : LoadTexture(config.specularMapName);
     material->specularMap.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
     material->specularMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
     material->specularMap.repeatU = TEXTURE_REPEAT_REPEAT;
@@ -940,7 +1302,7 @@ void Resources::CreateMaterial(MaterialConfig& config, Material* material)
     }
 
     material->normalMap.use = TEXTURE_USE_MAP_NORMAL;
-    material->normalMap.texture = config.normalMapName.Length() > 0 ? LoadTexture(config.normalMapName) : defaultNormal;
+    material->normalMap.texture = config.normalMapName.Blank() ? defaultNormal : LoadTexture(config.normalMapName);
     material->normalMap.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
     material->normalMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
     material->normalMap.repeatU = TEXTURE_REPEAT_REPEAT;

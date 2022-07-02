@@ -55,12 +55,19 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
     rendererState->framebufferHeight = 720;
     rendererState->framebufferSizeLastGeneration = U64_MAX;
 
+    rendererState->renderArea.x = 0;
+    rendererState->renderArea.y = 0;
+    rendererState->renderArea.z = 1280;
+    rendererState->renderArea.w = 720;
+
     rendererState->allocator = nullptr;
 
     if (!CreateInstance(applicationName) || !CreateDebugger() || !CreateSurface()) { return false; }
 
     rendererState->device->Create(rendererState);
     rendererState->swapchain->Create(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
+    rendererState->framebufferSizeLastGeneration = 0;
+    rendererState->framebufferSizeGeneration = 0;
 
     renderTargetCount = rendererState->swapchain->imageCount;
 
@@ -334,12 +341,30 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     renderpassInfo.flags = 0;
 
     VkCheck(vkCreateRenderPass(rendererState->device->logicalDevice, &renderpassInfo, rendererState->allocator, &vulkanRenderpass->handle));
+
+    for (U8 i = 0; i < renderpass->targets.Size(); ++i)
+    {
+        Texture* windowTargetTexture = RendererFrontend::GetWindowAttachment(i);
+
+        Vector<Texture*> attachments;
+        attachments.Push(windowTargetTexture);
+
+        if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
+        {
+            Texture* depthTargetTexture = RendererFrontend::GetDepthAttachment();
+            attachments.Push(depthTargetTexture);
+        }
+
+        if (!CreateRenderTarget(attachments, renderpass, rendererState->framebufferWidth, rendererState->framebufferHeight, &renderpass->targets[i])) { return; }
+    }
 }
 
 void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 {
     if (renderpass && renderpass->internalData)
     {
+        vkDeviceWaitIdle(rendererState->device->logicalDevice);
+
         VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
         vkDestroyRenderPass(rendererState->device->logicalDevice, vulkanRenderpass->handle, rendererState->allocator);
         vulkanRenderpass->handle = nullptr;
@@ -726,7 +751,13 @@ void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
     VulkanImage* image = (VulkanImage*)texture->internalData;
     U32 size = texture->width * texture->height * texture->channelCount;
 
-    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    switch (texture->layout)
+    {
+    case IMAGE_LAYOUT_RGBA32: image->format = VK_FORMAT_R8G8B8A8_UNORM; break;
+    case IMAGE_LAYOUT_BGRA32: image->format = VK_FORMAT_B8G8R8A8_UNORM; break;
+    case IMAGE_LAYOUT_RGB24: image->format = VK_FORMAT_R8G8B8_UNORM; break;
+    case IMAGE_LAYOUT_BGR24: image->format = VK_FORMAT_B8G8R8_UNORM; break;
+    }
 
     // NOTE: Lots of assumptions here, different texture types will require
     // different options here.
@@ -735,7 +766,7 @@ void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
         VK_IMAGE_TYPE_2D,
         texture->width,
         texture->height,
-        imageFormat,
+        image->format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -766,8 +797,6 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
     texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
     VulkanImage* image = (VulkanImage*)texture->internalData;
 
-    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-
     // NOTE: Lots of assumptions here, different texture types will require
     // different options here.
     if (image->Create(
@@ -775,7 +804,7 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
         VK_IMAGE_TYPE_2D,
         texture->width,
         texture->height,
-        imageFormat,
+        image->format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -795,15 +824,12 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 void VulkanRenderer::WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels)
 {
     VulkanImage* image = (VulkanImage*)texture->internalData;
-    VkDeviceSize imageSize = texture->width * texture->height * texture->channelCount;
-
-    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
     VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VulkanBuffer staging;
-    staging.Create(rendererState, imageSize, usage, memoryPropertyFlags, true, false);
-    staging.LoadData(rendererState, 0, imageSize, 0, pixels.Data());
+    staging.Create(rendererState, size, usage, memoryPropertyFlags, true, false);
+    staging.LoadData(rendererState, 0, size, 0, pixels.Data());
 
     VulkanCommandBuffer tempBuffer;
     VkCommandPool pool = rendererState->device->graphicsCommandPool;
@@ -813,7 +839,7 @@ void VulkanRenderer::WriteTextureData(Texture* texture, U32 offset, U32 size, co
     image->TransitionLayout(
         rendererState,
         &tempBuffer,
-        imageFormat,
+        image->format,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
@@ -822,7 +848,7 @@ void VulkanRenderer::WriteTextureData(Texture* texture, U32 offset, U32 size, co
     image->TransitionLayout(
         rendererState,
         &tempBuffer,
-        imageFormat,
+        image->format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -838,8 +864,6 @@ void VulkanRenderer::ResizeTexture(Texture* texture, U32 width, U32 height)
     texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
     VulkanImage* image = (VulkanImage*)texture->internalData;
 
-    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-
     // NOTE: Lots of assumptions here, different texture types will require
     // different options here.
     image->Create(
@@ -847,7 +871,7 @@ void VulkanRenderer::ResizeTexture(Texture* texture, U32 width, U32 height)
         VK_IMAGE_TYPE_2D,
         width,
         height,
-        imageFormat,
+        image->format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

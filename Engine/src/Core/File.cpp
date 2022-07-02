@@ -68,6 +68,11 @@ U64 File::Size()
     return -1;
 }
 
+void File::Restart()
+{
+    rewind((FILE*)handle);
+}
+
 bool File::ReadLine(struct String& line, U64 maxLength)
 {
     if (handle && maxLength > 0)
@@ -139,6 +144,102 @@ U8* File::ReadAllBytes(U64& size)
     return nullptr;
 }
 
+I8 File::ReadI8()
+{
+    if (handle)
+    {
+        I8 buf[1];
+        fread(buf, 1, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+I16 File::ReadI16()
+{
+    if (handle)
+    {
+        I16 buf[1];
+        fread(buf, 2, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+I32 File::ReadI32()
+{
+    if (handle)
+    {
+        I32 buf[1];
+        fread(buf, 4, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+I64 File::ReadI64()
+{
+    if (handle)
+    {
+        I64 buf[1];
+        fread(buf, 8, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+U8 File::ReadU8()
+{
+    if (handle)
+    {
+        U8 buf[1];
+        fread(buf, 1, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+U16 File::ReadU16()
+{
+    if (handle)
+    {
+        U16 buf[1];
+        fread(buf, 2, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+U32 File::ReadU32()
+{
+    if (handle)
+    {
+        U32 buf[1];
+        fread(buf, 4, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
+U64 File::ReadU64()
+{
+    if (handle)
+    {
+        U64 buf[1];
+        fread(buf, 8, 1, (FILE*)handle);
+        return buf[0];
+    }
+
+    return 0;
+}
+
 String File::ReadAllText()
 {
     if (handle)
@@ -162,11 +263,19 @@ void File::Write(const String& str)
     }
 }
 
-void File::Seek(U64 length)
+void File::SeekFromStart(U64 length)
 {
     if (handle)
     {
         fseek((FILE*)handle, length, SEEK_SET);
+    }
+}
+
+void File::Seek(U64 length)
+{
+    if (handle)
+    {
+        fseek((FILE*)handle, length, SEEK_CUR);
     }
 }
 

@@ -19,6 +19,14 @@ enum ImageType
     IMAGE_TYPE_TGA,
 };
 
+enum ImageLayout
+{
+    IMAGE_LAYOUT_RGBA32,
+    IMAGE_LAYOUT_BGRA32,
+    IMAGE_LAYOUT_RGB24,
+    IMAGE_LAYOUT_BGR24,
+};
+
 enum TextureUse
 {
     TEXTURE_USE_UNKNOWN = 0x00,
@@ -68,6 +76,7 @@ struct Image
     U32 width;
     U32 height;
     U8 channelCount;
+    ImageLayout layout;
     Vector<U8> pixels;
 };
 
@@ -77,8 +86,9 @@ struct Texture
     U32 generation;
     U32 width;
     U32 height;
-    U8 channelCount;
     U8 flags;
+    U8 channelCount;
+    ImageLayout layout;
     void* internalData;
 };
 
@@ -218,6 +228,8 @@ private:
     static Image* LoadImage(const String& name, ImageType type);
     static void UnloadImage(Image* image);
     static bool LoadBMP(Image* image, struct File* file);
+    static bool ReadBMPHeader(struct BMPHeader& header, struct BMPInfo& info, File* file);
+    static void SetBmpColorMasks(BMPInfo& info);
     static bool LoadPNG(Image* image, struct File* file);
     static bool LoadJPG(Image* image, struct File* file);
     static bool LoadTGA(Image* image, struct File* file);

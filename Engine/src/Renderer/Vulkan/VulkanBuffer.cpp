@@ -123,12 +123,12 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U32 newSize, VkQueue que
     if (memory)
     {
         vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
-        memory = 0;
+        memory = nullptr;
     }
     if (handle)
     {
         vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
-        handle = 0;
+        handle = nullptr;
     }
 
     totalSize = newSize;

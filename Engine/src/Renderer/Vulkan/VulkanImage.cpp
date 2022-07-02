@@ -14,7 +14,7 @@ bool VulkanImage::Create(RendererState* rendererState,
     VkImageTiling tiling,
     VkImageUsageFlags usage,
     VkMemoryPropertyFlags memoryFlags,
-    I32 createView,
+    bool createView,
     VkImageAspectFlags viewAspectFlags)
 {
     this->width = width;
