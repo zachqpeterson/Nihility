@@ -7,7 +7,6 @@
 #include "Containers/String.hpp"
 
 File Logger::log;
-const String Logger::levelStrings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]:  ", "[INFO]:  ", "[DEBUG]: ", "[TRACE]: " };
 
 bool Logger::Initialize()
 {
@@ -29,6 +28,8 @@ void Logger::Shutdown()
 
 void Logger::LogOutput(LogLevel level, String& message)
 {
+    static const char* levelStrings[6] = { "[FATAL]: ", "[ERROR]: ", "[WARN]:  ", "[INFO]:  ", "[DEBUG]: ", "[TRACE]: " };
+
     message.Surround(levelStrings[level], "\n");
 
     Platform::ConsoleWrite(message, level);

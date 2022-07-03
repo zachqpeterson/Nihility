@@ -31,6 +31,9 @@ public:
     ~Map();
     void Destroy();
 
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(Map), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Map), MEMORY_TAG_DATA_STRUCT); }
+
     Map& operator=(const Map& other);
     Map& operator=(Map&& other);
 

@@ -541,34 +541,6 @@ String String::NDuplicate(U64 length) const
     return {};
 }
 
-bool String::Equals(const String& str) const
-{
-    return strcmp(this->str, str) == 0;
-}
-
-bool String::EqualsI(const String& str) const
-{
-#if defined(__GNUC__)
-    return strcasecmp(this->str, str) == 0;
-#elif (defined _MSC_VER)
-    return _strcmpi(this->str, str) == 0;
-#endif
-}
-
-bool String::NEquals(const String& str, U64 length) const
-{
-    return strncmp(this->str, str, length);
-}
-
-bool String::NEqualsI(const String& str, U64 length) const
-{
-#if defined(__GNUC__)
-    return strncasecmp(this->str, str, length) == 0;
-#elif (defined _MSC_VER)
-    return _strnicmp(this->str, str, length) == 0;
-#endif
-}
-
 bool String::Blank() const
 {
     if(str && length > 0)
@@ -598,14 +570,22 @@ String& String::Trim()
     char* p = str;
 
     while (*p == ' ' || *p == '\n' || *p == '\t' || *p == '\r') { ++p; ++start; --length; }
+    if (length == 0) 
+    { 
+        Memory::Free(str, this->length + 1, MEMORY_TAG_STRING); 
+        str = nullptr;
+        this->length = 0;
+        return *this; 
+    }
+
     p += length - 1;
     while (*p == ' ' || *p == '\n' || *p == '\t' || *p == '\r') { --p; --length; }
 
-    String s(Move(SubString(start, length)));
-    Memory::Free(str, length + 1, MEMORY_TAG_STRING);
-    str = s.str;
-    s.str = nullptr;
-    this->length = s.length;
+    char* newStr = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+    Memory::Copy(newStr, str + start, length);
+    Memory::Free(str, this->length + 1, MEMORY_TAG_STRING);
+    str = newStr;
+    this->length = length;
 
     return *this;
 }

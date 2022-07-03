@@ -79,6 +79,8 @@ public:
         NH_API friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
         NH_API friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
 
+        operator bool() { return ptr; }
+
     private:
         List<Node>* ptr;
     };
@@ -90,6 +92,9 @@ public:
     HashMap(HashMap&& other);
     ~HashMap();
     void Destroy();
+
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(HashMap), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(HashMap), MEMORY_TAG_DATA_STRUCT); }
 
     HashMap& operator=(const HashMap& other);
     HashMap& operator=(HashMap&& other);
@@ -137,15 +142,21 @@ inline HashMap<TKey, TValue>::HashMap(HashMap&& other) : size{ other.size }, buc
 template<typename TKey, typename TValue>
 inline HashMap<TKey, TValue>::~HashMap()
 {
-    Empty();
-    Memory::Free(buckets, sizeof(List<Node>) * size, MEMORY_TAG_DATA_STRUCT);
+    if (buckets)
+    {
+        Empty();
+        Memory::Free(buckets, sizeof(List<Node>) * size, MEMORY_TAG_DATA_STRUCT);
+    }
 }
 
 template<typename TKey, typename TValue>
 inline void HashMap<TKey, TValue>::Destroy()
 {
-    Empty();
-    Memory::Free(buckets, sizeof(List<Node>) * size, MEMORY_TAG_DATA_STRUCT);
+    if (buckets)
+    {
+        Empty();
+        Memory::Free(buckets, sizeof(List<Node>) * size, MEMORY_TAG_DATA_STRUCT);
+    }
 }
 
 template<typename TKey, typename TValue>

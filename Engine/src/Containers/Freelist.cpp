@@ -1,10 +1,9 @@
 #include "Freelist.hpp"
 
-#include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
 #include "Containers/String.hpp"
 
-Freelist::Freelist(U32 size) : totalSize{ size }, freeSpace{ totalSize }, head{ nullptr } {}
+Freelist::Freelist(U64 size) : totalSize{ size }, freeSpace{ totalSize }, head{ nullptr } {}
 
 Freelist::Freelist(Freelist&& other) : totalSize{ other.totalSize }, freeSpace{ other.freeSpace }, head{ other.head }
 {
@@ -16,18 +15,6 @@ Freelist::Freelist(Freelist&& other) : totalSize{ other.totalSize }, freeSpace{ 
 Freelist::~Freelist()
 {
     Destroy();
-}
-
-Freelist& Freelist::operator=(Freelist&& other)
-{
-    totalSize = other.totalSize;
-    freeSpace = other.freeSpace;
-    head = other.head;
-    other.totalSize = 0;
-    other.freeSpace = 0;
-    other.head = nullptr;
-
-    return *this;
 }
 
 void Freelist::Destroy()
@@ -43,12 +30,24 @@ void Freelist::Destroy()
     head = nullptr;
 }
 
-U32 Freelist::AllocateBlock(U32 size)
+Freelist& Freelist::operator=(Freelist&& other)
+{
+    totalSize = other.totalSize;
+    freeSpace = other.freeSpace;
+    head = other.head;
+    other.totalSize = 0;
+    other.freeSpace = 0;
+    other.head = nullptr;
+
+    return *this;
+}
+
+U64 Freelist::AllocateBlock(U64 size)
 {
     if (size > freeSpace)
     {
         Logger::Error("Freelist::AllocateBlock: Not enough space to allocate {} bytes, space left: {}", size, freeSpace);
-        return U32_MAX;
+        return U64_MAX;
     }
 
     if(head == nullptr)
@@ -58,10 +57,17 @@ U32 Freelist::AllocateBlock(U32 size)
         return 0;
     }
 
-    Node* node = head;
-    U32 offset = head->size;
+    if(size <= head->offset)
+    {
+        head = new Node(size, 0, head);
+        freeSpace -= size;
+        return 0;
+    }
 
-    while (offset < U32_MAX)
+    Node* node = head;
+    U64 offset = head->size;
+
+    while (offset < U64_MAX)
     {
         if(!node->next)
         {
@@ -71,7 +77,7 @@ U32 Freelist::AllocateBlock(U32 size)
             return offset;
         }
 
-        if ((node->next->offset - node->size) >= size)
+        if ((node->next->offset - (node->size + node->offset)) >= size)
         {
             node->next = new Node(size, offset, node->next);
             freeSpace -= size;
@@ -79,18 +85,18 @@ U32 Freelist::AllocateBlock(U32 size)
             return offset;
         }
 
-        offset += node->size;
+        offset = node->next->size + node->next->offset;
         node = node->next;
         continue;
     }
 
     Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);
-    return U32_MAX;
+    return U64_MAX;
 }
 
-bool Freelist::FreeBlock(U32 size, U32 offset)
+bool Freelist::FreeBlock(U64 size, U64 offset)
 {
-    if(offset == 0)
+    if(offset == head->offset)
     {
         Node* temp = head->next;
         delete head;
@@ -129,14 +135,16 @@ bool Freelist::FreeBlock(U32 size, U32 offset)
     return false;
 }
 
-bool Freelist::Resize(U32 size)
+bool Freelist::Resize(U64 size)
 {
-    if((totalSize - freeSpace) > size)
+    U64 allocated = totalSize - freeSpace;
+    if (allocated > size)
     {
-        Logger::Error("Freelist::Resize: Can't resize to a size smaller than allocated size: {}", totalSize - freeSpace);
+        Logger::Error("Freelist::Resize: Can't resize to a size smaller than allocated size: {}", allocated);
         return false;
     }
 
     totalSize = size;
+    freeSpace = totalSize - allocated;
     return true;
 }

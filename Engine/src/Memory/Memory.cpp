@@ -3,40 +3,18 @@
 #include "Platform/Platform.hpp"
 #include "Core/Logger.hpp"
 #include "Containers/String.hpp"
-
-//TODO: Remove
-#include <stdio.h>
-
-#ifdef NH_DEBUG
-static String memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
-    "TOTAL      ",
-    "UNKNOWN    ",
-    "DATA_STRUCT",
-    "STRING     ",
-    "LINEAR_ALLC",
-    "APPLICATION",
-    "JOB        ",
-    "MAT_INST   ",
-    "RENDERER   ",
-    "GAME       ",
-    "TRANSFORM  ",
-    "ENTITY     ",
-    "ENTITY_NODE",
-    "SCENE      ",
-    "RESOURCE   " };
-#endif
+#include "DynamicAllocator.hpp"
 
 U64 Memory::totalAllocSize;
 U64 Memory::allocCount;
 U64 Memory::deallocCount;
 U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
-void* Memory::allocatorBlock;
+
+DynamicAllocator* Memory::allocator;
 
 bool Memory::Initialize(U64 memoryRequirement)
 {
-    //TODO: Memory alignment
-    //NOTE: Don't allocate this block until we have an allocator
-    //allocatorBlock = Platform::Allocate(memoryRequirement, false);
+    allocator = new DynamicAllocator(memoryRequirement);
 
     totalAllocSize = memoryRequirement;
     allocCount = 0;
@@ -47,8 +25,7 @@ bool Memory::Initialize(U64 memoryRequirement)
 
 void Memory::Shutdown()
 {
-    Platform::Free(allocatorBlock, totalAllocSize);
-    allocatorBlock = nullptr;
+    allocator->Destroy();
 }
 
 void* Memory::Allocate(U64 size, MemoryTag tag)
@@ -57,11 +34,9 @@ void* Memory::Allocate(U64 size, MemoryTag tag)
     taggedAllocations[MEMORY_TAG_TOTAL] += size;
     ++allocCount;
 
-    //TODO: Custom allocator
     //TODO: Memory alignment
-    void* block = Platform::Allocate(size, false);
-    Platform::Zero(block, size);
-    return block;
+    void* block = allocator->Allocate(size);
+    return Platform::Zero(block, size);
 }
 
 void Memory::Free(void* block, U64 size, MemoryTag tag)
@@ -70,9 +45,8 @@ void Memory::Free(void* block, U64 size, MemoryTag tag)
     taggedAllocations[MEMORY_TAG_TOTAL] -= size;
     ++deallocCount;
 
-    //TODO: Custom allocator
     //TODO: Memory alignment
-    Platform::Free(block, false);
+    allocator->Free(block, size);
 }
 
 void* Memory::Zero(void* block, U64 size)
@@ -90,6 +64,7 @@ void* Memory::Set(void* dest, I32 value, U64 size)
     return Platform::Set(dest, value, size);
 }
 
+//Byte stuff
 U16 Memory::BigEndianU16(U8* data)
 {
     U32 result = 0;
@@ -172,6 +147,20 @@ U32 Memory::ShiftSigned(U32 v, I32 shift, I32 bits)
 void Memory::GetMemoryStats()
 {
 #ifdef NH_DEBUG
+    static const char* memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
+        "TOTAL      ",
+        "UNKNOWN    ",
+        "DATA_STRUCT",
+        "STRING     ",
+        "APPLICATION",
+        "JOB        ",
+        "MAT_INST   ",
+        "RENDERER   ",
+        "GAME       ",
+        "TRANSFORM  ",
+        "ENTITY     ",
+        "RESOURCE   " };
+
     const U64 gib = 1024 * 1024 * 1024;
     const U64 mib = 1024 * 1024;
     const U64 kib = 1024;

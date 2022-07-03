@@ -15,7 +15,7 @@ public:
      * 
      * @return true if the initialization was successful, false otherwise
      */
-    static NH_API void Initialize(const struct String& applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup);
+    static NH_API void Initialize(const char* applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup);
     static void Shutdown();
 
     static void MainLoop();

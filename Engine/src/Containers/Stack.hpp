@@ -27,6 +27,9 @@ public:
     NH_API ~Stack();
     NH_API void Destroy();
 
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(Stack), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Stack), MEMORY_TAG_DATA_STRUCT); }
+
     NH_API Stack& operator=(const Stack& other);
     NH_API Stack& operator=(Stack&& other);
 

@@ -28,6 +28,9 @@ public:
     ~Queue();
     void Destroy();
 
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(Queue), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Queue), MEMORY_TAG_DATA_STRUCT); }
+
     Queue& operator=(const Queue& other);
     Queue& operator=(Queue&& other);
 

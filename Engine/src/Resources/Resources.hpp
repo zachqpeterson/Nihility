@@ -229,7 +229,7 @@ private:
     static void UnloadImage(Image* image);
     static bool LoadBMP(Image* image, struct File* file);
     static bool ReadBMPHeader(struct BMPHeader& header, struct BMPInfo& info, File* file);
-    static void SetBmpColorMasks(BMPInfo& info);
+    static void SetBmpColorMasks(struct BMPInfo& info);
     static bool LoadPNG(Image* image, struct File* file);
     static bool LoadJPG(Image* image, struct File* file);
     static bool LoadTGA(Image* image, struct File* file);

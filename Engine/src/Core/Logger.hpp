@@ -83,7 +83,6 @@ private:
     static NH_API void LogOutput(LogLevel level, String& message); //TODO: Don't copy
 
     static struct File log;
-    static const String levelStrings[];
 
     Logger() = delete;
 };

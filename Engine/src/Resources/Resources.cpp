@@ -784,7 +784,7 @@ Renderpass* Resources::LoadRenderpass(const String& name)
         {
             line.Trim();
 
-            if (line.Length() < 1 || line[0] == '#')
+            if (line.Blank() || line[0] == '#')
             {
                 ++lineNumber;
                 continue;
@@ -890,7 +890,7 @@ Shader* Resources::LoadShader(const String& name)
         {
             line.Trim();
 
-            if (line.Length() < 1 || line[0] == '#')
+            if (line.Blank() || line[0] == '#')
             {
                 ++lineNumber;
                 line.Destroy();
@@ -1192,7 +1192,7 @@ Material* Resources::LoadMaterial(const String& name)
         {
             line.Trim();
 
-            if (line.Length() < 1 || line[0] == '#')
+            if (line.Blank() || line[0] == '#')
             {
                 ++lineNumber;
                 continue;

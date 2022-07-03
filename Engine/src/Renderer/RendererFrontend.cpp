@@ -61,7 +61,7 @@ bool RendererFrontend::DrawFrame()
 
     if (!done)
     {
-        activeScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_SCENE);
+        activeScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
         activeScene->Create();
 
         MeshConfig config;

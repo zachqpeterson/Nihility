@@ -12,7 +12,6 @@ enum MemoryTag {
     MEMORY_TAG_UNKNOWN,
     MEMORY_TAG_DATA_STRUCT,
     MEMORY_TAG_STRING,
-    MEMORY_TAG_LINEAR_ALLOCATOR,
     MEMORY_TAG_APPLICATION,
     MEMORY_TAG_JOB,
     MEMORY_TAG_MATERIAL_INSTANCE,
@@ -20,8 +19,6 @@ enum MemoryTag {
     MEMORY_TAG_GAME,
     MEMORY_TAG_TRANSFORM,
     MEMORY_TAG_ENTITY,
-    MEMORY_TAG_ENTITY_NODE,
-    MEMORY_TAG_SCENE,
     MEMORY_TAG_RESOURCE,
 
     MEMORY_TAG_MAX_TAGS
@@ -39,6 +36,7 @@ public:
     static NH_API void* Copy(void* dest, const void* source, U64 size);
     static NH_API void* Set(void* dest, I32 value, U64 size);
 
+    //Byte stuff
     static NH_API U16 BigEndianU16(U8* data);
     static NH_API U32 BigEndianU32(U8* data);
     static NH_API U64 BigEndianU64(U8* data);
@@ -56,5 +54,6 @@ private:
     static U64 allocCount;
     static U64 deallocCount;
     static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS];
-    static void* allocatorBlock;
+
+    static class DynamicAllocator* allocator;
 };

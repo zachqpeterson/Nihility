@@ -21,32 +21,32 @@ struct NH_API List
         Node* prev;
     };
 
-    struct Iterator
+    struct NH_API Iterator
     {
         Iterator() : ptr{ head } {}
         Iterator(Node* node) : ptr{ node } {}
 
-        NH_API T& operator* () const { return ptr->value; }
-        NH_API T* operator-> () { return &(ptr->value); }
+        T& operator* () const { return ptr->value; }
+        T* operator-> () { return &(ptr->value); }
 
-        NH_API Iterator& operator++ () { ptr = ptr->next; return *this; }
-        NH_API Iterator& operator-- () { ptr = ptr->prev; return *this; }
+        Iterator& operator++ () { ptr = ptr->next; return *this; }
+        Iterator& operator-- () { ptr = ptr->prev; return *this; }
 
-        NH_API Iterator operator++ (int)
+        Iterator operator++ (int)
         {
             Iterator temp = *this;
             ptr = ptr->next;
             return temp;
         }
 
-        NH_API Iterator operator-- (int)
+        Iterator operator-- (int)
         {
             Iterator temp = *this;
             ptr = ptr->prev;
             return temp;
         }
 
-        NH_API Iterator operator+= (int i)
+        Iterator operator+= (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -56,7 +56,7 @@ struct NH_API List
             return *this;
         }
 
-        NH_API Iterator operator-= (int i)
+        Iterator operator-= (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -66,7 +66,7 @@ struct NH_API List
             return *this;
         }
 
-        NH_API Iterator operator+ (int i)
+        Iterator operator+ (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -76,7 +76,7 @@ struct NH_API List
             return *this;
         }
 
-        NH_API Iterator operator- (int i)
+        Iterator operator- (int i)
         {
             for (int j = 0; j < i; ++j)
             {
@@ -93,7 +93,7 @@ struct NH_API List
         NH_API friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
         NH_API friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
 
-        NH_API operator bool() { return ptr; }
+        operator bool() { return ptr; }
 
     private:
         Node* ptr;
@@ -105,6 +105,9 @@ public:
     List(List&& other);
     ~List();
     void Destroy();
+
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(List), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(List), MEMORY_TAG_DATA_STRUCT); }
 
     List& operator=(const List& other);
     List& operator=(List&& other);

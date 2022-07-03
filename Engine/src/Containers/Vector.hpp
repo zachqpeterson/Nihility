@@ -69,6 +69,8 @@ public:
         NH_API friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
         NH_API friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
 
+        operator bool() { return ptr; }
+
     private:
         T* ptr;
     };
@@ -82,6 +84,9 @@ public:
     Vector(T* array, U64 size);
     ~Vector();
     void Destroy();
+
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(Vector), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Vector), MEMORY_TAG_DATA_STRUCT); }
 
     Vector& operator=(const Vector& other);
     Vector& operator=(Vector&& other);

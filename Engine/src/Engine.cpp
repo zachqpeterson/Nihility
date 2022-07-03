@@ -18,7 +18,7 @@ CleanupFn Engine::GameCleanup;
 bool Engine::running;
 bool Engine::suspended;
 
-void Engine::Initialize(const String& applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup)
+void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup)
 {
     GameInit = init;
     GameUpdate = update;
@@ -34,8 +34,6 @@ void Engine::Initialize(const String& applicationName, InitializeFn init, Update
 
     RendererFrontend::Initialize(applicationName, 1280, 720);
 
-    Memory::GetMemoryStats();
-
     Resources::Initialize();
 
     //TODO: Load all materials
@@ -46,6 +44,8 @@ void Engine::Initialize(const String& applicationName, InitializeFn init, Update
     Time::Initialize();
 
     Events::Subscribe("CLOSE", OnClose);
+
+    Memory::GetMemoryStats();
 
     MainLoop();
 }
