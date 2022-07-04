@@ -15,7 +15,7 @@ struct MeshRenderData
 class RendererFrontend
 {
 public:
-    static bool Initialize(const String& applicationName, U32 width, U32 height);
+    static bool Initialize(const String& applicationName);
     static void Shutdown();
 
     static bool DrawFrame();

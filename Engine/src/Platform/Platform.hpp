@@ -7,8 +7,7 @@ struct PlatformState;
 class Platform
 {
 public:
-    static bool Initialize(const struct String& application_name,
-        I32 x, I32 y, I32 width, I32 height);
+    static bool Initialize(const struct String& applicationName);
     static void Shutdown();
 
     static bool ProcessMessages();

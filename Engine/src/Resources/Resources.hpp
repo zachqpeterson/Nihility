@@ -174,16 +174,11 @@ struct Mesh
     void* internalData;
 };
 
-struct Model2
+struct Model
 {
+    String name;
     Vector<Mesh*> meshes;
-    Transform2 transform;
-};
-
-struct Model3
-{
-    Vector<Mesh*> meshes;
-    Transform3 transform;
+    Transform transform;
 };
 
 class Resources
@@ -192,13 +187,14 @@ public:
     static bool Initialize();
     static void Shutdown();
 
+    static void LoadSettings();
+    static void WriteSettings();
     static NH_API Binary* LoadBinary(const String& name);
     static NH_API void UnloadBinary(Binary* binary);
     static NH_API Texture* LoadTexture(const String& name);
     static NH_API Material* LoadMaterial(const String& name);
     static NH_API Mesh* LoadMesh(const String& name);
-    static NH_API Model2* LoadModel2D(const String& name);
-    static NH_API Model3* LoadModel3D(const String& name);
+    static NH_API Model* LoadModel(const String& name);
 
     static NH_API Texture* CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency);
     static NH_API Texture* CreateTextureFromInternal(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency, bool isWriteable, bool registerTexture, void* internalData);
@@ -225,7 +221,7 @@ public:
 private:
     Resources() = delete;
 
-    static Image* LoadImage(const String& name, ImageType type);
+    static Image* LoadImage(const String& name);
     static void UnloadImage(Image* image);
     static bool LoadBMP(Image* image, struct File* file);
     static bool ReadBMPHeader(struct BMPHeader& header, struct BMPInfo& info, File* file);
@@ -241,10 +237,15 @@ private:
     static void CreateMaterial(MaterialConfig& config, Material* material);
     static void DestroyMaterial(Material* material);
 
+    static void LoadOBJ(Model* mesh, struct File* file);
+    static void LoadKSM(Model* mesh, struct File* file);
+
     static void GetConfigType(const String& field, FieldType& type, U16& size);
 
     static Renderpass* LoadRenderpass(const String& name);
     static Shader* LoadShader(const String& name);
+
+    static void DestroyMesh(Mesh* mesh);
 
     //Textures
     static HashMap<String, Texture*> textures;
@@ -272,6 +273,5 @@ private:
     static Mesh* quadMesh;
 
     //TODO: Model
-    static HashMap<String, Model2*> models2D;
-    static HashMap<String, Model3*> models3D;
+    static HashMap<String, Model*> models;
 };

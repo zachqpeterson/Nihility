@@ -133,7 +133,7 @@ void NH_API Scene::DrawMesh(Mesh* mesh, const struct Matrix4& model)
     meshes[mesh->material->id].renderData.PushBack(data);
 }
 
-void NH_API Scene::DrawModel(Model3* model)
+void NH_API Scene::DrawModel(Model* model)
 {
     Matrix4 matrix = model->transform.World();
 

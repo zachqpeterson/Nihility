@@ -4,6 +4,7 @@
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
+#include "Core/Settings.hpp"
 #include "Math/Math.hpp"
 #include "Containers/String.hpp"
 
@@ -12,11 +13,14 @@
 #include <memory>
 
 #define WHEEL_MULTIPLIER 0.00833333333
+#define WIDTH_BUFFER 16
+#define HEIGHT_BUFFER 39
 
 struct PlatformState
 {
     HINSTANCE hInstance;
     HWND hwnd;
+    DEVMODEA monitorInfo;
     U32 clientX, clientY;
     Vector2Int clientSize;
     U32 windowX, windowY;
@@ -39,8 +43,7 @@ void ClockSetup()
     QueryPerformanceCounter(&startTime);
 }
 
-bool Platform::Initialize(const String& applicationName,
-    I32 x, I32 y, I32 width, I32 height)
+bool Platform::Initialize(const String& applicationName)
 {
     Logger::Info("Initializing platform...");
 
@@ -65,11 +68,14 @@ bool Platform::Initialize(const String& applicationName,
         return false;
     }
 
+    //SM_CXSCREEN
+    //SM_CYSCREEN
+
     // Create window
-    platformState.clientX = x;
-    platformState.clientY = y;
-    platformState.clientSize.x = width;
-    platformState.clientSize.y = height;
+    platformState.clientX = Settings::WindowPositionX;
+    platformState.clientY = Settings::WindowPositionY;
+    platformState.clientSize.x = Settings::WindowWidth;
+    platformState.clientSize.y = Settings::WindowHeight;
 
     //TODO: Change with config
     U32 style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
@@ -80,16 +86,16 @@ bool Platform::Initialize(const String& applicationName,
     style |= WS_THICKFRAME;
 
     // Obtain the size of the border.
-    RECT border_rect = { 0, 0, 0, 0 };
-    AdjustWindowRectEx(&border_rect, style, 0, exStyle);
+    RECT borderRect = { 0, 0, 0, 0 };
+    AdjustWindowRectEx(&borderRect, style, 0, exStyle);
 
     // In this case, the border rectangle is negative.
-    platformState.windowX = platformState.clientX + border_rect.left;
-    platformState.windowY = platformState.clientY + border_rect.top;
+    platformState.windowX = platformState.clientX + borderRect.left;
+    platformState.windowY = platformState.clientY + borderRect.top;
 
     // Grow by the size of the OS border.
-    platformState.windowWidth = platformState.clientSize.x + border_rect.right - border_rect.left;
-    platformState.windowHeight = platformState.clientSize.y + border_rect.bottom - border_rect.top;
+    platformState.windowWidth = platformState.clientSize.x + borderRect.right - borderRect.left;
+    platformState.windowHeight = platformState.clientSize.y + borderRect.bottom - borderRect.top;
 
     HWND handle = CreateWindowExA(
         exStyle, "Nihility Window Class", applicationName,
@@ -108,12 +114,16 @@ bool Platform::Initialize(const String& applicationName,
         platformState.hwnd = handle;
     }
 
+    if(!EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &platformState.monitorInfo)) { Logger::Error("Couldn't get monitor info!"); }
+    if(Settings::TargetFrametime == 0.0) { Settings::TARGET_FRAMETIME = 1.0 / platformState.monitorInfo.dmDisplayFrequency; }
+    //TODO: Set default window resolution, position, and borderless state
+
     // Show the window
-    bool should_activate = true;  //TODO: If the window should not accept input, this should be false.
-    I32 show_window_command_flags = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
+    bool shouldActivate = true;  //TODO: If the window should not accept input, this should be false.
+    I32 showWindowCommandFlags = shouldActivate ? SW_SHOW : SW_SHOWNOACTIVATE;
     //TODO: If initially minimized, use SW_MINIMIZE : SW_SHOWMINNOACTIVE;
     //TODO: If initially maximized, use SW_SHOWMAXIMIZED : SW_MAXIMIZE;
-    ShowWindow(platformState.hwnd, show_window_command_flags);
+    ShowWindow(platformState.hwnd, showWindowCommandFlags);
 
     ClockSetup();
 

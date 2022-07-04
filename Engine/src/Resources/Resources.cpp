@@ -6,6 +6,7 @@
 #include "Core/File.hpp"
 #include "Renderer/RendererFrontend.hpp"
 #include "Containers/List.hpp"
+#include "Core/Settings.hpp"
 
 #undef LoadImage
 
@@ -29,14 +30,14 @@ Mesh* Resources::sphereMesh;
 Mesh* Resources::capsuleMesh;
 Mesh* Resources::quadMesh;
 
-HashMap<String, Model2*> Resources::models2D;
-HashMap<String, Model3*> Resources::models3D;
+HashMap<String, Model*> Resources::models;
 
 #define BINARIES_PATH "../assets/"
 #define TEXTURES_PATH "../assets/textures/"
 #define SHADERS_PATH "../assets/shaders/"
 #define MATERIALS_PATH "../assets/materials/"
 #define MODELS_PATH "../assets/models/"
+#define CONFIG_PATH "../assets/config/"
 
 #define DEFAULT_TEXTURE_NAME "Default.bmp"
 #define DEFAULT_DIFFUSE_TEXTURE_NAME "DefaultDiffuse.bmp"
@@ -112,6 +113,10 @@ bool Resources::Initialize()
     invalidMesh->name = "";
     meshes = Move(HashMap<String, Mesh*>(10, invalidMesh)); //TODO: Config
 
+    Model* invalidModel = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_RESOURCE);
+    invalidModel->name = "";
+    models = Move(HashMap<String, Model*>(10, invalidModel)); //TODO: Config
+
     defaultTexture = LoadTexture(DEFAULT_TEXTURE_NAME);
     defaultDiffuse = LoadTexture(DEFAULT_DIFFUSE_TEXTURE_NAME);
     defaultSpecular = LoadTexture(DEFAULT_SPECULAR_TEXTURE_NAME);
@@ -152,13 +157,123 @@ void Resources::Shutdown()
         {
             n.key.Destroy();
             DestroyTexture(n.value);
-            Memory::Free(n.value, sizeof(Texture), MEMORY_TAG_RESOURCE);
         }
 
         l.Clear();
     }
 
     textures.Destroy();
+
+    for (List<HashMap<String, Mesh*>::Node>& l : meshes)
+    {
+        for (HashMap<String, Mesh*>::Node& n : l)
+        {
+            n.key.Destroy();
+            DestroyMesh(n.value);
+        }
+
+        l.Clear();
+    }
+
+    meshes.Destroy();
+
+    for (List<HashMap<String, Model*>::Node>& l : models)
+    {
+        for (HashMap<String, Model*>::Node& n : l)
+        {
+            n.key.Destroy();
+            n.value->name.Destroy();
+            n.value->meshes.Clear();
+        }
+
+        l.Clear();
+    }
+
+    models.Destroy();
+}
+
+void Resources::LoadSettings()
+{
+    Logger::Info("Loading engine settings...");
+
+    String path = CONFIG_PATH;
+    path.Append("Settings.cfg");
+
+    File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
+    if (file->Open(path, FILE_MODE_READ, true))
+    {
+        String line;
+        U32 lineNumber = 1;
+        while (file->ReadLine(line))
+        {
+            line.Trim();
+
+            if (line.Blank() || line[0] == '#')
+            {
+                ++lineNumber;
+                continue;
+            }
+
+            I32 equalIndex = line.IndexOf('=');
+            if (equalIndex == -1)
+            {
+                Logger::Warn("Potential formatting issue found in file '{}': '=' token not found. Skipping line {}...", path, lineNumber);
+                ++lineNumber;
+                continue;
+            }
+
+            String varName(Move(line.SubString(0, equalIndex)));
+            varName.Trim();
+            String varValue(Move(line.SubString(equalIndex + 1)));
+            varValue.Trim();
+
+            if (varName == "borderless") { Settings::BORDERLESS = varValue.ToBool(); }
+            else if (varName == "channels") { Settings::CHANNEL_COUNT = varValue.ToU8(); }
+            else if (varName == "master") { Settings::MASTER_VOLUME = varValue.ToF32(); }
+            else if (varName == "music") { Settings::MUSIC_VOLUME = varValue.ToF32(); }
+            else if (varName == "sfx") { Settings::SFX_VOLUME = varValue.ToF32(); }
+            else if (varName == "framerate") 
+            { 
+                U16 rate = varValue.ToU16();
+                if(rate) { Settings::TARGET_FRAMETIME = 1.0 / rate; }
+                else { Settings::TARGET_FRAMETIME = 0.0; }
+            }
+            else if (varName == "resolution")
+            {
+                Vector<String> dimensions = Move(varValue.Split(',', true));
+                if (dimensions.Size() != 2) { Logger::Warn("Settings.cfg: resolution isn't in format width,height, setting to default..."); }
+                else
+                {
+                    Settings::WINDOW_WIDTH = dimensions[0].ToU16();
+                    Settings::WINDOW_HEIGHT = dimensions[1].ToU16();
+                }
+            }
+            else if (varName == "position")
+            {
+                Vector<String> position = Move(varValue.Split(',', true));
+                if (position.Size() != 2) { Logger::Warn("Settings.cfg: position isn't in format x,y, setting to default..."); }
+                else
+                {
+                    Settings::WINDOW_POSITION_X = position[0].ToU16();
+                    Settings::WINDOW_POSITION_Y = position[1].ToU16();
+                }
+            }
+            else
+            {
+                Logger::Warn("Unknown setting: {}, skipping...", varName);
+            }
+
+            ++lineNumber;
+        }
+
+        file->Close();
+        Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+    }
+}
+
+void Resources::WriteSettings()
+{
+
 }
 
 Binary* Resources::LoadBinary(const String& name)
@@ -197,7 +312,7 @@ void Resources::UnloadBinary(Binary* binary)
     binary = nullptr;
 }
 
-Image* Resources::LoadImage(const String& name, ImageType type)
+Image* Resources::LoadImage(const String& name)
 {
     String path(TEXTURES_PATH);
     path.Append(name);
@@ -208,14 +323,14 @@ Image* Resources::LoadImage(const String& name, ImageType type)
         Image* resource = (Image*)Memory::Allocate(sizeof(Image), MEMORY_TAG_RESOURCE);
         resource->name = name;
 
+        Vector<String> sections = name.Split('.', true);
+
         bool result;
-        switch (type)
-        {
-        case IMAGE_TYPE_BMP: { result = LoadBMP(resource, file); } break;
-        case IMAGE_TYPE_PNG: { result = LoadPNG(resource, file); } break;
-        case IMAGE_TYPE_JPG: { result = LoadJPG(resource, file); } break;
-        case IMAGE_TYPE_TGA: { result = LoadTGA(resource, file); } break;
-        }
+        if (sections.Back() == "bmp") { result = LoadBMP(resource, file); }
+        else if (sections.Back() == "png") { result = LoadPNG(resource, file); }
+        else if (sections.Back() == "jpg" || sections.Back() == "jpeg") { result = LoadJPG(resource, file); }
+        else if (sections.Back() == "tga") { result = LoadTGA(resource, file); }
+        else { Logger::Error("Unkown file extention '{}'", sections.Back()); result = false; }
 
         file->Close();
         Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
@@ -384,7 +499,7 @@ bool Resources::LoadBMP(Image* image, File* file)
         if (info.imageBitCount == 24) { width = 3 * info.imageWidth; }
         else if (info.imageBitCount == 16) { width = 2 * info.imageWidth; }
         else { width = 0; }
-        
+
         pad = (-width) & 3;
 
         if (info.imageBitCount == 24) { easy = 1; }
@@ -392,13 +507,13 @@ bool Resources::LoadBMP(Image* image, File* file)
 
         if (!easy)
         {
-            if (!info.redMask || !info.greenMask || !info.blueMask) 
-            { 
+            if (!info.redMask || !info.greenMask || !info.blueMask)
+            {
                 Logger::Error("Corrupted BMP!");
                 file->Close();
                 return false;
             }
-            
+
             rshift = Memory::HighBit(info.redMask) - 7;
             gshift = Memory::HighBit(info.greenMask) - 7;
             bshift = Memory::HighBit(info.blueMask) - 7;
@@ -409,7 +524,7 @@ bool Resources::LoadBMP(Image* image, File* file)
             bcount = Memory::BitCount(info.blueMask);
             acount = Memory::BitCount(info.alphaMask);
 
-            if (rcount > 8 || gcount > 8 || bcount > 8 || acount > 8) 
+            if (rcount > 8 || gcount > 8 || bcount > 8 || acount > 8)
             {
                 Logger::Error("Corrupted BMP!");
                 file->Close();
@@ -439,9 +554,9 @@ bool Resources::LoadBMP(Image* image, File* file)
                 {
                     U32 v = (info.imageBitCount == 16 ? (U32)file->ReadU16() : file->ReadU32());
                     U32 alpha;
-                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v& info.redMask, rshift, rcount)));
-                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v& info.greenMask, gshift, gcount)));
-                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v& info.blueMask, bshift, bcount)));
+                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v & info.redMask, rshift, rcount)));
+                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v & info.greenMask, gshift, gcount)));
+                    image->pixels.Push(BYTECAST(Memory::ShiftSigned(v & info.blueMask, bshift, bcount)));
                     alpha = (info.alphaMask ? Memory::ShiftSigned(v & info.alphaMask, ashift, acount) : 255);
                     image->pixels.Push(BYTECAST(alpha));
                 }
@@ -729,7 +844,7 @@ Texture* Resources::LoadTexture(const String& name)
 
     Logger::Info("Loading texture '{}'...", name);
 
-    Image* image = LoadImage(name, IMAGE_TYPE_BMP); //TODO: Don't hardcode this
+    Image* image = LoadImage(name);
 
     if (image)
     {
@@ -1242,7 +1357,7 @@ Material* Resources::LoadMaterial(const String& name)
         {
             if (shader->renderOrder <= materials[i]->shader->renderOrder)
             {
-                materials.Insert(material, i);
+                materials.Insert(material, i); //TODO: shader name breaks
                 found = true;
                 break;
             }
@@ -1350,10 +1465,14 @@ Mesh* Resources::LoadMesh(const String& name)
         mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
         mesh->name = name;
 
-
+        //Load Msh file
 
         file->Close();
         Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+
+        meshes.Insert(name, mesh);
+
+        return mesh;
     }
     else
     {
@@ -1408,30 +1527,74 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
     return mesh;
 }
 
-Model2* Resources::LoadModel2D(const String& name)
+void Resources::DestroyMesh(Mesh* mesh)
 {
-    Logger::Info("Loading model '{}'...", name);
+    RendererFrontend::DestroyMesh(mesh);
 
+    mesh->material = nullptr;
+    mesh->name.Destroy();
+}
+
+Model* Resources::LoadModel(const String& name)
+{
     if (name.Blank())
     {
         Logger::Error("Model name can not be blank or nullptr!");
         return nullptr;
+    }
+
+    Model* model = models[name];
+
+    if (!model->name.Blank()) { return model; }
+
+    Logger::Info("Loading model '{}'...", name);
+
+    String path(MODELS_PATH);
+    path.Append(name);
+
+    File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
+    if (file->Open(path, FILE_MODE_READ, true))
+    {
+        model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_RESOURCE);
+        model->name = name;
+
+        Vector<String> sections = name.Split('.', true);
+
+        if (sections.Back() == "obj") { LoadOBJ(model, file); }
+        else if (sections.Back() == "ksm") { LoadKSM(model, file); }
+        else
+        {
+            Logger::Error("Unkown file extention '{}'", sections.Back());
+            file->Close();
+            Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+            Memory::Free(model, sizeof(Model), MEMORY_TAG_RESOURCE);
+            return nullptr;
+        }
+
+        file->Close();
+        Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+
+        models.Insert(name, model);
+
+        return model;
+    }
+    else
+    {
+        file->Close();
+        Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
     }
 
     return nullptr;
 }
 
-Model3* Resources::LoadModel3D(const String& name)
+void Resources::LoadOBJ(Model* mesh, struct File* file)
 {
-    Logger::Info("Loading model '{}'...", name);
 
-    if (name.Blank())
-    {
-        Logger::Error("Model name can not be blank or nullptr!");
-        return nullptr;
-    }
+}
 
-    return nullptr;
+void Resources::LoadKSM(Model* mesh, struct File* file)
+{
+
 }
 
 Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency)

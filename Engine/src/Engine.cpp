@@ -28,11 +28,13 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 
     Logger::Initialize();
 
-    Platform::Initialize("TEST", 100, 100, 1280, 720);
+    Resources::LoadSettings();
+
+    Platform::Initialize("TEST");
 
     Input::Initialize();
 
-    RendererFrontend::Initialize(applicationName, 1280, 720);
+    RendererFrontend::Initialize(applicationName);
 
     Resources::Initialize();
 
@@ -61,7 +63,7 @@ void Engine::MainLoop()
 
     while (running)
     {
-        running = Platform::ProcessMessages();
+        running &= Platform::ProcessMessages();
 
         if (Input::OnButtonDown(ESCAPE))
         {

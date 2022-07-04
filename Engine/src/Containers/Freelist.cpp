@@ -19,15 +19,12 @@ Freelist::~Freelist()
 
 void Freelist::Destroy()
 {
-    Node* node = head;
-    while(node)
+    while(head)
     {
-        Node* temp = node;
-        delete node;
-        node = temp;
+        Node* temp = head;
+        head = head->next;
+        delete temp;
     }
-
-    head = nullptr;
 }
 
 Freelist& Freelist::operator=(Freelist&& other)

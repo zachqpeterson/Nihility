@@ -5,6 +5,7 @@
 
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
+#include "Core/Settings.hpp"
 #include "Memory/Memory.hpp"
 #include "Containers/String.hpp"
 #include "Containers/Vector.hpp"
@@ -22,11 +23,11 @@ U32 RendererFrontend::framebufferHeight;
 
 Scene* RendererFrontend::activeScene;
 
-bool RendererFrontend::Initialize(const String& applicationName, U32 width, U32 height)
+bool RendererFrontend::Initialize(const String& applicationName)
 {
     Events::Subscribe("Resize", OnResize);
-    framebufferWidth = width;
-    framebufferHeight = height;
+    framebufferWidth = Settings::WindowWidth;
+    framebufferHeight = Settings::WindowHeight;
 
     resizing = false;
     framesSinceResize = 0;

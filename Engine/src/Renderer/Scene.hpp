@@ -21,8 +21,7 @@ public:
     bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
     void NH_API DrawMesh(struct Mesh* mesh, const struct Matrix4& model);
-    //void NH_API DrawModel(struct Model2* model); TODO: Matrix3 to Matrix4
-    void NH_API DrawModel(struct Model3* model);
+    void NH_API DrawModel(struct Model* model);
 
 private:
     struct Camera* camera;

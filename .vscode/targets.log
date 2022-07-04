@@ -8,7 +8,7 @@ make.exe all --print-data-base --no-builtin-variables --no-builtin-rules --quest
 # This program built for i386-pc-mingw32
  
 
-# Make data base, printed on Sat Jul 02 13:42:58 2022
+# Make data base, printed on Mon Jul 04 14:22:54 2022
 
 # Variables
 
@@ -56,12 +56,11 @@ PROGRAMW6432 = C:\Program Files
 # environment
 PROGRAMDATA = C:\ProgramData
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-d153f559-bb7e-40b9-9334-fde67c8509ba-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-30da09a9-cade-4ddd-bb71-0f997f3008da-sock
 # environment
 VSCODE_CWD = M:\VSCODE
 # environment
-PATH = M:\VulkanSDK\Bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\ProgramData\Oracle\Java\javapath;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\WINDOWS\System32\OpenSSH\;C:\Gradle\gradle-5.1.1\bin;C:\Program Files\Java\jdk-12.0.1\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;G:\Git\cmd;M:\GnuWin32\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\Intel\WiFi\bin\;C: 
-\Program Files\Common Files\Intel\WirelessCommon\;C:\Users\Peterson Family\AppData\Local\Microsoft\WindowsApps;C:\Users\Peterson Family\.dotnet\tools;C:\Users\Peterson Family\AppData\Local\Microsoft\WindowsApps;G:\LLVM\bin;M:\VSCODE\bin;C:\Users\Peterson Family\spicetify-cli
+PATH = M:\VulkanSDK\Bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\ProgramData\Oracle\Java\javapath;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\WINDOWS\System32\OpenSSH\;C:\Gradle\gradle-5.1.1\bin;C:\Program Files\Java\jdk-12.0.1\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;G:\Git\cmd;M:\GnuWin32\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\Users\Peterson Family\AppData\Local\Microsoft\WindowsApps;C:\Users\Peterson Family\.dotnet\tools;C:\Users\Peterson Family\AppData\Local\Microsoft\WindowsApps;G:\LLVM\bin;M:\VSCODE\bin;C:\Users\Peterson Family\spicetify-cli
 # environment
 COMMONPROGRAMW6432 = C:\Program Files\Common Files
 # environment
@@ -84,7 +83,7 @@ VK_SDK_PATH = M:\VulkanSDK
 # automatic
 %F = $(notdir $%)
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_15424_PHBBXOIMXGMSVYUX
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_540_MANSXYQTJMWZZJEF
 # environment
 _JAVA_OPTIONS = -Xmx1024M
 # environment
@@ -94,8 +93,8 @@ COMPUTERNAME = VACUUMTUBE
 # environment
 GOOGLE_API_KEY = no
 # environment
-PROGRAMFILES = C 
-:\Program Files (x86)
+PROGRAMFILES = C:\ 
+Program Files (x86)
 # environment
 DRIVERDATA = C:\Windows\System32\Drivers\DriverData
 # environment
@@ -111,8 +110,8 @@ GOOGLE_DEFAULT_CLIENT_ID = no
 # environment
 VSCODE_CODE_CACHE_PATH = C:\Users\Peterson Family\AppData\Roaming\Code\CachedData\30d9c6cd9483b2cc586687151bcbcd635f373630
 # environment
-APPLICATION_INSIGHTS_NO_ 
-DIAGNOSTIC_CHANNEL = true
+APPLICATION_INSIGHTS_NO_DI 
+AGNOSTIC_CHANNEL = true
 # environment
 COMMONPROGRAMFILES = C:\Program Files (x86)\Common Files
 # environment
@@ -134,8 +133,8 @@ MAKE_VERSION := 3.81
 # environment
 GOOGLE_DEFAULT_CLIENT_SECRET = no
 # environment
-PROGRAMFILES(X86) = C:\Program F 
-iles (x86)
+PROGRAMFILES(X86) = C:\Program Fil 
+es (x86)
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # environment
@@ -151,8 +150,8 @@ PROCESSOR_ARCHITEW6432 = AMD64
 # automatic
 *F = $(notdir $*)
 # environment
-PROCESSOR_IDENTIFIER = Intel64 Family 6 Mod 
-el 94 Stepping 3, GenuineIntel
+PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 
+ 94 Stepping 3, GenuineIntel
 # environment
 OS = Windows_NT
 # environment
@@ -174,8 +173,8 @@ SYSTEMROOT = C:\WINDOWS
 # automatic
 +F = $(notdir $+)
 # environment
-APPDATA = 
- C:\Users\Peterson Family\AppData\Roaming
+APPDATA = C 
+:\Users\Peterson Family\AppData\Roaming
 # environment
 TEMP = C:\Users\PETERS~1\AppData\Local\Temp
 # environment
@@ -203,12 +202,12 @@ VULKAN_SDK = M:\VulkanSDK
 # environment
 CLANG = G:\LLVM\bin
 # environment
-PROC 
-ESSOR_LEVEL = 6
+PROCES 
+SOR_LEVEL = 6
 # environment
 FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
 # environment
-VSCODE_PID = 15424
+VSCODE_PID = 540
 # environment
 USERDOMAIN_ROAMINGPROFILE = VACUUMTUBE
 # environment
@@ -223,45 +222,45 @@ LANG = C
 # Directories
 
 # C:\Program Files\Intel\iCLS Client\ (key C:/Program Files/Intel/iCLS Client/, mtime 1483201369): 22 files, no impossibilities.
-# M:\VulkanSDK\Bin 
- (key M:/VulkanSDK/Bin, mtime 1651117232): 48 files, no impossibilities.
+# M:\VulkanSDK\Bin (ke 
+y M:/VulkanSDK/Bin, mtime 1651117232): 48 files, no impossibilities.
 # C:\Program Files\Microsoft SQL Server\150\Tools\Binn\: could not be stat'd.
 # C:\Windows\System32\WindowsPowerShell\v1.0\ (key C:/Windows/System32/WindowsPowerShell/v1.0/, mtime 1621220586): 32 files, no impossibilities.
 # C:\Windows\System32\Wbem (key C:/Windows/System32/Wbem, mtime 1655445710): 155 files, no impossibilities.
 # . (key m:/Nihility, mtime 1651424748): 26 files, no impossibilities.
-# C:\Program Files (x86)\NVIDIA Corpo 
-ration\PhysX\Common (key C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common, mtime 1591830174): 10 files, no impossibilities.
+# C:\Program Files (x86)\NVIDIA Corporati 
+on\PhysX\Common (key C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common, mtime 1591830174): 10 files, no impossibilities.
 # C:\Gradle\gradle-5.1.1\bin: could not be stat'd.
 # C:\Program Files\Java\jdk-12.0.1\bin: could not be stat'd.
 # M:\GnuWin32\bin (key M:/GnuWin32/bin, mtime 1651163178): 5 files, no impossibilities.
-# C:\Program Files\Intel\Intel(R) Management Engine Components\IPT (key C:/Program Files/Intel/Intel(R) Management Engine Components/IPT, mtime 1483201366): 5 files, no impossibiliti 
-es.
+# C:\Program Files\Intel\Intel(R) Management Engine Components\IPT (key C:/Program Files/Intel/Intel(R) Management Engine Components/IPT, mtime 1483201366): 5 files, no impossibilities.
+ 
 # C:\WINDOWS\System32\OpenSSH\: could not be stat'd.
 # C:\Program Files (x86)\Common Files\Oracle\Java\javapath (key C:/Program Files (x86)/Common Files/Oracle/Java/javapath, mtime 1589245179): 5 files, no impossibilities.
 # C:\Program Files\Intel\Intel(R) Management Engine Components\DAL (key C:/Program Files/Intel/Intel(R) Management Engine Components/DAL, mtime 1483201366): 4 files, no impossibilities.
 # C:\Windows (key C:/Windows, mtime 1655445708): 115 files, no impossibilities.
-# C:\ProgramData\Or 
-acle\Java\javapath (key C:/ProgramData/Oracle/Java/javapath, mtime 1531089184): 5 files, no impossibilities.
+# C:\ProgramData\Oracle 
+\Java\javapath (key C:/ProgramData/Oracle/Java/javapath, mtime 1531089184): 5 files, no impossibilities.
 # C:\Users\Peterson Family\spicetify-cli (key C:/Users/Peterson Family/spicetify-cli, mtime 1652929104): 9 files, no impossibilities.
 # M:\VSCODE\bin (key M:/VSCODE/bin, mtime 1655317504): 4 files, no impossibilities.
 # C:\Program Files (x86)\Microsoft SQL Server\150\Tools\Binn\ (key C:/Program Files (x86)/Microsoft SQL Server/150/Tools/Binn/, mtime 1584384519): 11 files, no impossibilities.
-# C:\Pro 
-gram Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\: could not be stat'd.
+# C:\Program 
+ Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\: could not be stat'd.
 # C:\Program Files\Intel\WiFi\bin\ (key C:/Program Files/Intel/WiFi/bin/, mtime 1490403394): 38 files, no impossibilities.
 # C:\Program Files\Common Files\Intel\WirelessCommon\ (key C:/Program Files/Common Files/Intel/WirelessCommon/, mtime 1490403394): 7 files, no impossibilities.
 # C:\Program Files\Microsoft SQL Server\150\DTS\Binn\: could not be stat'd.
 # C:\Users\Peterson Family\.dotnet\tools: could not be stat'd.
-# C: 
-\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\ (key C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/, mtime 1656372658): 406 files, no impossibilities.
+# C:\Pro 
+gram Files (x86)\Windows Kits\10\Windows Performance Toolkit\ (key C:/Program Files (x86)/Windows Kits/10/Windows Performance Toolkit/, mtime 1656372658): 406 files, no impossibilities.
 # C:\Program Files (x86)\Intel\iCLS Client\ (key C:/Program Files (x86)/Intel/iCLS Client/, mtime 1483201370): 20 files, no impossibilities.
 # C:\Windows\system32 (key C:/Windows/system32, mtime 1656630188): 3100 files, no impossibilities.
 # G:\LLVM\bin (key G:/LLVM/bin, mtime 1650936210): 109 files, no impossibilities.
- 
-# C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT (key C:/Program Files (x86)/Intel/Intel(R) Management Engine Components/IPT, mtime 1483201366): 6 files, no impossibilities.
+# C: 
+\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT (key C:/Program Files (x86)/Intel/Intel(R) Management Engine Components/IPT, mtime 1483201366): 6 files, no impossibilities.
 # C:\Users\Peterson Family\AppData\Local\Microsoft\WindowsApps (key C:/Users/Peterson Family/AppData/Local/Microsoft/WindowsApps, mtime 1655925117): 11 files, no impossibilities.
 # G:\Git\cmd (key G:/Git/cmd, mtime 1633021652): 8 files, no impossibilities.
-# C:\Program Files (x86)\Intel\Intel(R) Management Engine 
- Components\DAL (key C:/Program Files (x86)/Intel/Intel(R) Management Engine Components/DAL, mtime 1483201366): 10 files, no impossibilities.
+# C:\Program Files (x86)\Intel\Intel(R) Management Engine Com 
+ponents\DAL (key C:/Program Files (x86)/Intel/Intel(R) Management Engine Components/DAL, mtime 1483201366): 10 files, no impossibilities.
 
 # 4171 files, no impossibilities in 32 directories.
 
@@ -282,8 +281,8 @@ all:
 
 # Not a target:
 .DEFAULT:
-#  Implicit rule search h 
-as not been done.
+#  Implicit rule search has n 
+ot been done.
 #  Modification time never checked.
 #  File has not been updated.
 
@@ -304,8 +303,8 @@ makefile:
 #  File has not been updated.
 
 # Not a target:
- 
-GNUmakefile:
+GNUm 
+akefile:
 #  A default, MAKEFILES, or -include/sinclude makefile.
 #  Implicit rule search has been done.
 #  File does not exist.
@@ -324,12 +323,12 @@ GNUmakefile:
 
 # # of strings in strcache: 0
 # # of strcache buffers: 0
-# strcache size: total =  
-0 / max = 0 / min = 4096 / avg = 0
-# strcache free: total = 0 / max = 0 / min = 4096 / avg = 0
-
-# Finished Make data base on Sat Jul 02 13:42:58 2022
-
- 
+# strcache size: total = 0 /  
 make.exe: *** No rule to make target `all'.  Stop.
 
+max = 0 / min = 4096 / avg = 0
+# strcache free: total = 0 / max = 0 / min = 4096 / avg = 0
+
+# Finished Make data base on Mon Jul 04 14:22:54 2022
+
+ 

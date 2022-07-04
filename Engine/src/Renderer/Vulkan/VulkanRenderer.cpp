@@ -365,6 +365,11 @@ void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
     {
         vkDeviceWaitIdle(rendererState->device->logicalDevice);
 
+        for (U8 i = 0; i < renderpass->targets.Size(); ++i)
+        {
+            RendererFrontend::DestroyRenderTarget(&renderpass->targets[i], false);
+        }
+
         VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
         vkDestroyRenderPass(rendererState->device->logicalDevice, vulkanRenderpass->handle, rendererState->allocator);
         vulkanRenderpass->handle = nullptr;
@@ -915,6 +920,7 @@ bool VulkanRenderer::AcquireTextureMapResources(TextureMap& map)
 
 void VulkanRenderer::ReleaseTextureMapResources(TextureMap& map)
 {
+    vkDeviceWaitIdle(rendererState->device->logicalDevice);
     vkDestroySampler(rendererState->device->logicalDevice, (VkSampler)map.internalData, rendererState->allocator);
     map.internalData = nullptr;
 }
@@ -1077,7 +1083,7 @@ bool VulkanRenderer::RegenerateRenderTargets()
     {
         for (U8 i = 0; i < renderpass->targets.Size(); ++i)
         {
-            RendererFrontend::DestroyRenderTarget(&renderpass->targets[i], false);
+            if (!RendererFrontend::DestroyRenderTarget(&renderpass->targets[i], false)) { return false; }
 
             Texture* windowTargetTexture = RendererFrontend::GetWindowAttachment(i);
 

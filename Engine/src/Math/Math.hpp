@@ -1076,61 +1076,10 @@ struct NH_API Vertex
     Vector4 tangent;
 };
 
-struct NH_API Transform2
+struct NH_API Transform
 {
 public:
-    Transform2* parent;
-
-private:
-    bool dirty;
-    Vector2 position;
-    Quaternion rotation;
-    Vector2 scale;
-    Matrix3 local;
-
-public:
-    Transform2() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
-    Transform2(const Vector2& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
-    Transform2(const Vector2& position, const Quaternion& rotation) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
-    Transform2(const Vector2& position, const Quaternion& rotation, const Vector2& scale) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
-    Transform2(const Transform2& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
-    Transform2(Transform2&& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
-
-    Transform2& operator=(const Transform2& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
-    Transform2& operator=(Transform2&& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
-
-    const Vector2& Position() const { return position; }
-    void SetPosition(const Vector2& v) { position = v; dirty = true; }
-    const Quaternion& Rotation() const { return rotation; }
-    void SetRotation(const Quaternion& q) { rotation = q; dirty = true; }
-    const Vector2& Scale() const { return scale; }
-    void SetScale(const Vector2& v) { scale = v; dirty = true; }
-
-    const Matrix3& Local()
-    {
-        if (dirty) { UpdateLocal(); }
-        return local;
-    }
-
-    //TODO: Reduce copying?
-    NH_INLINE Matrix3 World()
-    {
-        if (parent) { return Local() * parent->Local(); }
-        return Local();
-    }
-
-private:
-    void UpdateLocal()
-    {
-        local = Matrix3(position, rotation, scale);
-        dirty = false;
-    }
-};
-
-struct NH_API Transform3
-{
-public:
-    Transform3* parent;
+    Transform* parent;
 
 private:
     bool dirty;
@@ -1140,23 +1089,23 @@ private:
     Matrix4 local;
 
 public:
-    Transform3() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
-    Transform3(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
-    Transform3(const Vector3& position, const Quaternion& rotation) :
+    Transform() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
+    Transform(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
+    Transform(const Vector3& position, const Quaternion& rotation) :
         parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{}
     {
         UpdateLocal();
     }
-    Transform3(const Vector3& position, const Quaternion& rotation, const Vector3& scale) :
+    Transform(const Vector3& position, const Quaternion& rotation, const Vector3& scale) :
         parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale }
     {
         UpdateLocal();
     }
-    Transform3(const Transform3& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
-    Transform3(Transform3&& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+    Transform(const Transform& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+    Transform(Transform&& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 
-    Transform3& operator=(const Transform3& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
-    Transform3& operator=(Transform3&& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+    Transform& operator=(const Transform& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+    Transform& operator=(Transform&& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
 
     const Vector3& Position() const { return position; }
     void SetPosition(const Vector3& v) { position = v; dirty = true; }
