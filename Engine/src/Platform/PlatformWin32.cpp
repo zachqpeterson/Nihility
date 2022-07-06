@@ -209,7 +209,7 @@ void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
     ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState.hwnd;
 }
 
-LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM wParam, LPARAM lParam)
+I64 __stdcall Platform::Win32MessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam)
 {
     static Vector2Int size;
 
@@ -222,8 +222,14 @@ LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM wParam, LPARAM lPar
     case WM_DESTROY: PostQuitMessage(0); return 0;
     case WM_SIZE:
     {
-        size = { LOWORD(lParam), HIWORD(lParam) };
-        Events::Notify("Resize", (void*)&size);
+        Settings::WINDOW_WIDTH = LOWORD(lParam);
+        Settings::WINDOW_HEIGHT = HIWORD(lParam);
+        Events::Notify("Resize", NULL);
+    } return 0;
+    case WM_MOVE:
+    {
+        Settings::WINDOW_POSITION_X = LOWORD(lParam);
+        Settings::WINDOW_POSITION_Y = HIWORD(lParam);
     } return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:

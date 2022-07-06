@@ -258,7 +258,7 @@ void File::Write(const String& str)
 {
     if (handle)
     {
-        fwrite(str, 1, str.Length(), (FILE*)handle);
+        fwrite((const char*)str, 1, str.Length(), (FILE*)handle);
         fflush((FILE*)handle);
     }
 }

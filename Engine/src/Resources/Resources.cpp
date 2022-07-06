@@ -235,7 +235,7 @@ void Resources::LoadSettings()
             else if (varName == "framerate") 
             { 
                 U16 rate = varValue.ToU16();
-                if(rate) { Settings::TARGET_FRAMETIME = 1.0 / rate; }
+                if(rate) { Settings::TARGET_FRAMETIME = rate; }
                 else { Settings::TARGET_FRAMETIME = 0.0; }
             }
             else if (varName == "resolution")
@@ -273,7 +273,23 @@ void Resources::LoadSettings()
 
 void Resources::WriteSettings()
 {
+    Logger::Info("Saving engine settings...");
 
+    String path = CONFIG_PATH;
+    path.Append("Settings.cfg");
+
+    File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
+    if (file->Open(path, FILE_MODE_WRITE, true))
+    {
+        String settings("#graphics\r\nresolution={},{}\r\nposition={},{}\r\nborderless={}\r\nframerate={}\r\n\r\n#audio\r\nchannels={}\r\nmaster={}\r\nmusic={}\r\nsfx={}",
+            Settings::WindowWidth, Settings::WindowHeight, Settings::WindowPositionX, Settings::WindowPositionY, Settings::Borderless,
+            Settings::TargetFrametime, Settings::ChannelCount, Settings::MasterVolume, Settings::MusicVolume, Settings::SfxVolume);
+
+        file->Write(settings);
+    }
+
+    file->Close();
+    Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 }
 
 Binary* Resources::LoadBinary(const String& name)

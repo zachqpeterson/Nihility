@@ -15,6 +15,7 @@
 #include "Containers/Vector.hpp"
 #include "Math/Math.hpp"
 #include "Core/Events.hpp"
+#include "Core/Settings.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -51,14 +52,7 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
     rendererState->objectIndexBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
     rendererState->objectVertexBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 
-    rendererState->framebufferWidth = 1280; //TODO: Get width from platform
-    rendererState->framebufferHeight = 720;
-    rendererState->framebufferSizeLastGeneration = U64_MAX;
-
-    rendererState->renderArea.x = 0;
-    rendererState->renderArea.y = 0;
-    rendererState->renderArea.z = 1280;
-    rendererState->renderArea.w = 720;
+    OnResize();
 
     rendererState->allocator = nullptr;
 
@@ -719,32 +713,32 @@ void VulkanRenderer::DrawMesh(const MeshRenderData& Meshdata)
     }
 }
 
-bool VulkanRenderer::OnResize(Vector2Int newSize)
+bool VulkanRenderer::OnResize()
 {
-    rendererState->framebufferWidth = newSize.x;
-    rendererState->framebufferHeight = newSize.y;
+    rendererState->framebufferWidth = Settings::WindowWidth;
+    rendererState->framebufferHeight = Settings::WindowHeight;
     ++rendererState->framebufferSizeGeneration;
 
-    F32 aspectHeight = newSize.y * 1.77777777778;
-    F32 aspectWidth = newSize.x * 0.5625f;
+    F32 aspectHeight = Settings::WindowHeight * 1.77777777778;
+    F32 aspectWidth = Settings::WindowWidth * 0.5625f;
 
-    if (newSize.x > aspectHeight)
+    if (Settings::WindowWidth > aspectHeight)
     {
-        F32 offset = (newSize.x - aspectHeight) * 0.5f;
+        F32 offset = (Settings::WindowWidth - aspectHeight) * 0.5f;
 
         rendererState->renderArea.x = (I32)offset;
         rendererState->renderArea.y = 0;
-        rendererState->renderArea.z = (newSize.x - (offset * 2.0f));
-        rendererState->renderArea.w = newSize.y;
+        rendererState->renderArea.z = (Settings::WindowWidth - (offset * 2.0f));
+        rendererState->renderArea.w = Settings::WindowHeight;
     }
     else
     {
-        F32 offset = (newSize.y - aspectWidth) * 0.5f;
+        F32 offset = (Settings::WindowHeight - aspectWidth) * 0.5f;
 
         rendererState->renderArea.x = 0;
         rendererState->renderArea.y = (I32)offset;
-        rendererState->renderArea.z = newSize.x;
-        rendererState->renderArea.w = (newSize.y - (offset * 2.0f));
+        rendererState->renderArea.z = Settings::WindowWidth;
+        rendererState->renderArea.w = (Settings::WindowHeight - (offset * 2.0f));
     }
 
     return true;

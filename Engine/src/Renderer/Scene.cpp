@@ -4,6 +4,7 @@
 #include "RendererFrontend.hpp"
 
 #include "Resources/Resources.hpp"
+#include "Core/Settings.hpp"
 
 void Scene::Create()
 {
@@ -15,7 +16,20 @@ void Scene::Create()
     }
 
     //TODO: Configure
-    camera = new Camera({ -1.66666666667f, 1.66666666667f, -0.9375f, 0.9375f }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
+    if (Settings::WindowWidth > (Settings::WindowHeight * 1.77777777778f))
+    {
+        F32 camHeight = 0.9375f;
+        F32 camWidth = camHeight * ((F32)Settings::WindowWidth / (F32)Settings::WindowHeight);
+
+        camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
+    }
+    else
+    {
+        F32 camWidth = 1.66666666667f;
+        F32 camHeight = camWidth * ((F32)Settings::WindowHeight / (F32)Settings::WindowWidth);
+
+        camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
+    }
 }
 
 void Scene::Destroy()
@@ -23,20 +37,20 @@ void Scene::Destroy()
 
 }
 
-void Scene::OnResize(U32 width, U32 height)
+void Scene::OnResize()
 {
     //TODO: Configure
-    if (width > (height * 1.77777777778f))
+    if (Settings::WindowWidth > (Settings::WindowHeight * 1.77777777778f))
     {
         F32 camHeight = 0.9375f;
-        F32 camWidth = camHeight * ((F32)width / (F32)height);
+        F32 camWidth = camHeight * ((F32)Settings::WindowWidth / (F32)Settings::WindowHeight);
 
         camera->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);
     }
     else
     {
         F32 camWidth = 1.66666666667f;
-        F32 camHeight = camWidth * ((F32)height / (F32)width);
+        F32 camHeight = camWidth * ((F32)Settings::WindowHeight / (F32)Settings::WindowWidth);
 
         camera->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);
     }

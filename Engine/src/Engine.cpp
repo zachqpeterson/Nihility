@@ -6,6 +6,7 @@
 #include "Core/Logger.hpp"
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
+#include "Core/Settings.hpp"
 #include "Containers/Vector.hpp"
 #include "Containers/String.hpp"
 #include "Renderer/RendererFrontend.hpp"
@@ -77,12 +78,8 @@ void Engine::MainLoop()
             upTime = Time::UpTime();
             accumulatedTime += upTime - lastUpTime;
             lastUpTime = upTime;
-
-            //0.00694444444	| 144
-            //0.00833333333	| 120
-            //0.01666666667	| 60
-            //0.03333333333	| 30
-            while (accumulatedTime >= 0.00833333333) //TODO: Config
+            
+            while (accumulatedTime >= Settings::TargetFrametime) //TODO: Config
             {
                 //PHYSICS
 
@@ -90,7 +87,7 @@ void Engine::MainLoop()
 
                 //OTHER UPDATES
 
-                accumulatedTime -= 0.00833333333;
+                accumulatedTime -= Settings::TargetFrametime;
             }
 
             RendererFrontend::DrawFrame();
@@ -115,6 +112,8 @@ void Engine::Shutdown()
     Platform::Shutdown();
 
     Logger::Shutdown();
+
+    Resources::WriteSettings();
 
     Memory::Shutdown();
 }

@@ -285,7 +285,7 @@ inline void Vector<T>::Insert(const T& value, U64 index)
 
     if (index < size - 1)
     {
-        Memory::Copy(array + index + 1, array + index, sizeof(T) * (size - index));
+        Memory::Copy(array + index + 1, array + index, sizeof(T) * (size - (index + 1)));
     }
 
     array[index] = value;

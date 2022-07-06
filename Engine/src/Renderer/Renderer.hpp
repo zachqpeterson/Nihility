@@ -54,7 +54,7 @@ public:
     virtual bool SetUniform(Shader* shader, Uniform& uniform, const void* value) = 0;
     virtual bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) = 0;
 
-    virtual bool OnResize(struct Vector2Int newSize) = 0;
+    virtual bool OnResize() = 0;
 
     void operator delete(void* p);
 

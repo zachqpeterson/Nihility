@@ -17,7 +17,7 @@ public:
     void NH_API Create();
     void NH_API Destroy();
 
-    void OnResize(U32 width, U32 height);
+    void OnResize();
     bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
     void NH_API DrawMesh(struct Mesh* mesh, const struct Matrix4& model);

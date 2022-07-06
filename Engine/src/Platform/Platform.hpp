@@ -25,6 +25,10 @@ public:
     static void GetVulkanSurfaceInfo(void* surfaceInfo);
 
 private:
+#ifdef PLATFORM_WINDOWS
+    static I64 __stdcall Win32MessageProc(struct HWND__* hwnd, U32 msg, U64 wParam, I64 lParam);
+#endif
+
     Platform() = delete;
 
     static PlatformState platformState;

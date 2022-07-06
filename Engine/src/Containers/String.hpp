@@ -2,6 +2,9 @@
 
 #include "Defines.hpp"
 
+//TODO: Temp
+#include <string.h>
+
 template<typename> struct Vector;
 
 struct NH_API String

@@ -93,8 +93,8 @@ bool RendererFrontend::DrawFrame()
     {
         if (++framesSinceResize >= 30)
         {
-            activeScene->OnResize(framebufferWidth, framebufferHeight);
-            renderer->OnResize({ (I32)framebufferWidth, (I32)framebufferHeight });
+            activeScene->OnResize();
+            renderer->OnResize();
 
             framesSinceResize = 0;
             resizing = false;
@@ -278,9 +278,8 @@ bool RendererFrontend::SetPushConstant(Shader* shader, PushConstant& pushConstan
 
 bool RendererFrontend::OnResize(void* data)
 {
-    Vector2Int size = *(Vector2Int*)data;
-    framebufferWidth = size.x;
-    framebufferHeight = size.y;
+    framebufferWidth = Settings::WindowWidth;
+    framebufferHeight = Settings::WindowHeight;
     framesSinceResize = 0;
     resizing = true;
 
