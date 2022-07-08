@@ -110,32 +110,13 @@ const Matrix4 Matrix4::IDENTITY = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f
 const Quaternion Quaternion::IDENTITY = { 0.0f,  0.0f,  0.0f,  1.0f };
 
 //TRIGONOMETRY
-F32 Math::Sin(F32 f)
-{
-    return sinf(f);
-    //return 4.0f * (0.31830988618f * f * (1.0f - Abs(0.31830988618f * f)));
-}
-
-F64 Math::Sin(F64 f)
-{
-    return sin(f);
-    //return 4.0 * (0.31830988618 * f * (1.0 - Abs(0.31830988618 * f)));
-}
-
-F32 Math::Cos(F32 f)
-{
-    return cosf(f);
-    //return 4.0f * (0.5f - 0.31830988618f * f) * (1.0f - Abs(0.5f - 0.31830988618f * f));
-}
-
-F64 Math::Cos(F64 f)
-{
-    return cos(f);
-    //return 4.0 * (0.5 - 0.31830988618 * f) * (1.0 - Abs(0.5 - 0.31830988618 * f));
-}
-
+F32 Math::Sin(F32 f) { return sinf(f); }
+F64 Math::Sin(F64 f) { return sin(f); }
+F32 Math::Cos(F32 f) { return cosf(f); }
+F64 Math::Cos(F64 f) { return cos(f); }
 F32 Math::Tan(F32 f) { return tanf(f); }
 F64 Math::Tan(F64 f) { return tan(f); }
+
 F32 Math::Asin(F32 f) { return asinf(f); }
 F64 Math::Asin(F64 f) { return asin(f); }
 F32 Math::Acos(F32 f) { return acosf(f); }
@@ -153,67 +134,22 @@ F64 Math::LogN(F64 f) { return log(f); }
 //LINEAR
 F32 Math::Sqrt(F32 f)
 {
-    constexpr U32 add = 127 << 23;
-
-    union
-    {
-        F32 f;
-        U32 i;
-    } conv = { .f = f };
-
-    conv.i += add;
-    conv.i >>= 1;
-
-    return conv.f;
+    return sqrtf(f);
 }
 
 F64 Math::Sqrt(F64 f)
 {
-    return Sqrt((F32)f);
+    return sqrt(f);
 }
 
 F32 Math::InvSqrt(F32 f)
 {
-    union
-    {
-        F32 f;
-        U32 i;
-    } conv = { .f = f };
-
-    conv.i = 0x5f3759df - (conv.i >> 1);
-    conv.f *= 1.5F - (f * 0.5F * conv.f * conv.f);
-    return conv.f;
+    return 1.0f / sqrtf(f);
 }
 
 F64 Math::InvSqrt(F64 f)
 {
-    return InvSqrt((F32)f);
-}
-
-Matrix4&& Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
-{
-    Matrix4 result = Matrix4::IDENTITY;
-    result[0][0] = 2.0f / (right - left);
-    result[1][1] = 2.0f / (top - bottom);
-    result[2][2] = -2.0f / (far - near);
-    result[3][0] = -(right + left) / (right - left);
-    result[3][1] = -(top + bottom) / (top - bottom);
-    result[3][2] = -(far + near) / (far - near);
-    return Move(result);
-}
-
-Matrix4&& Math::Perspective(F32 fov, F32 aspect, F32 near, F32 far)
-{
-    F32 scale = 1.0f / Math::Tan(fov * 0.5f);
-
-    Matrix4 result = Matrix4::IDENTITY;
-    result[0][0] = scale; //TODO: Aspect?
-    result[1][1] = scale;
-    result[2][2] = -far / (far - near);
-    result[3][2] = -far * near / (far - near);
-    result[2][3] = -1.0f;
-    result[3][3] = 0.0f;
-    return Move(result);
+    return 1.0 / sqrt(f);
 }
 
 //NOISE
@@ -441,12 +377,12 @@ U64 Math::Hash(U64 value, U64 max)
 //VECTOR2
 Vector2::Vector2(const String& str)
 {
-    sscanf(str, "%f,%f", &x, &y);
+    sscanf_s(str, "%f,%f", &x, &y);
 }
 
 Vector2& Vector2::operator=(const String& str)
 {
-    sscanf(str, "%f,%f", &x, &y);
+    sscanf_s(str, "%f,%f", &x, &y);
 
     return *this;
 }
@@ -454,12 +390,12 @@ Vector2& Vector2::operator=(const String& str)
 //VECTOR3
 Vector3::Vector3(const String& str)
 {
-    sscanf(str, "%f,%f,%f", &x, &y, &z);
+    sscanf_s(str, "%f,%f,%f", &x, &y, &z);
 }
 
 Vector3& Vector3::operator=(const String& str)
 {
-    sscanf(str, "%f,%f,%f", &x, &y, &z);
+    sscanf_s(str, "%f,%f,%f", &x, &y, &z);
 
     return *this;
 }
@@ -467,12 +403,12 @@ Vector3& Vector3::operator=(const String& str)
 //VECTOR4
 Vector4::Vector4(const String& str)
 {
-    sscanf(str, "%f,%f,%f,%f", &x, &y, &z, &w);
+    sscanf_s(str, "%f,%f,%f,%f", &x, &y, &z, &w);
 }
 
 Vector4& Vector4::operator=(const String& str)
 {
-    sscanf(str, "%f,%f,%f,%f", &x, &y, &z, &w);
+    sscanf_s(str, "%f,%f,%f,%f", &x, &y, &z, &w);
 
     return *this;
 }
@@ -480,12 +416,12 @@ Vector4& Vector4::operator=(const String& str)
 //VECTOR2INT
 Vector2Int::Vector2Int(const String& str)
 {
-    sscanf(str, "%d,%d", &x, &y);
+    sscanf_s(str, "%d,%d", &x, &y);
 }
 
 Vector2Int& Vector2Int::operator=(const String& str)
 {
-    sscanf(str, "%d,%d", &x, &y);
+    sscanf_s(str, "%d,%d", &x, &y);
 
     return *this;
 }
@@ -493,12 +429,12 @@ Vector2Int& Vector2Int::operator=(const String& str)
 //VECTOR3INT
 Vector3Int::Vector3Int(const String& str)
 {
-    sscanf(str, "%d,%d,%d", &x, &y, &z);
+    sscanf_s(str, "%d,%d,%d", &x, &y, &z);
 }
 
 Vector3Int& Vector3Int::operator=(const String& str)
 {
-    sscanf(str, "%d,%d,%d", &x, &y, &z);
+    sscanf_s(str, "%d,%d,%d", &x, &y, &z);
 
     return *this;
 }
@@ -506,12 +442,12 @@ Vector3Int& Vector3Int::operator=(const String& str)
 //VECTOR4INT
 Vector4Int::Vector4Int(const String& str)
 {
-    sscanf(str, "%d,%d,%d,%d", &x, &y, &z, &w);
+    sscanf_s(str, "%d,%d,%d,%d", &x, &y, &z, &w);
 }
 
 Vector4Int& Vector4Int::operator=(const String& str)
 {
-    sscanf(str, "%d,%d,%d,%d", &x, &y, &z, &w);
+    sscanf_s(str, "%d,%d,%d,%d", &x, &y, &z, &w);
 
     return *this;
 }
@@ -644,5 +580,5 @@ Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const
         (v0.y * s0) + (v1.y * s1),
         (v0.z * s0) + (v1.z * s1),
         (v0.w * s0) + (v1.w * s1)
-        };
+    };
 }

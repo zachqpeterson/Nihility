@@ -55,7 +55,7 @@ const Vector2Int& Input::MousePos()
     return mousePos;
 }
 
-I8 Input::MouseWheelDelta()
+I16 Input::MouseWheelDelta()
 {
     return mouseWheelDelta;
 }

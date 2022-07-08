@@ -64,7 +64,7 @@ void Engine::MainLoop()
 
     while (running)
     {
-        running &= Platform::ProcessMessages();
+        running = Platform::ProcessMessages();
 
         if (Input::OnButtonDown(ESCAPE))
         {
@@ -114,6 +114,8 @@ void Engine::Shutdown()
     Logger::Shutdown();
 
     Resources::WriteSettings();
+
+    Events::Shutdown();
 
     Memory::Shutdown();
 }

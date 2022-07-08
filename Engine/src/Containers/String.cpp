@@ -56,7 +56,7 @@ String::String(const String& other)
     }
 }
 
-String::String(String&& other)
+String::String(String&& other) noexcept
 {
     str = other.str;
     other.str = nullptr;
@@ -329,7 +329,7 @@ String& String::operator=(const String& other)
     return *this;
 }
 
-String& String::operator=(String&& other)
+String& String::operator=(String&& other) noexcept
 {
     if (str == other.str) { return *this; }
 
@@ -785,70 +785,70 @@ String& String::ReplaceFirst(const String& find, const String& replace, U64 star
 I8  String::ToI8()
 {
     I8 i = 0;
-    sscanf(str, "%hhd", &i);
+    sscanf_s(str, "%hhd", &i);
     return i;
 }
 
 I16 String::ToI16()
 {
     I16 i = 0;
-    sscanf(str, "%hd", &i);
+    sscanf_s(str, "%hd", &i);
     return i;
 }
 
 I32 String::ToI32()
 {
     I32 i = 0;
-    sscanf(str, "%d", &i);
+    sscanf_s(str, "%d", &i);
     return i;
 }
 
 I64 String::ToI64()
 {
     I64 i = 0;
-    sscanf(str, "%lld", &i);
+    sscanf_s(str, "%lld", &i);
     return i;
 }
 
 U8  String::ToU8()
 {
     U8 i = 0;
-    sscanf(str, "%hhu", &i);
+    sscanf_s(str, "%hhu", &i);
     return i;
 }
 
 U16 String::ToU16()
 {
     U16 i = 0;
-    sscanf(str, "%hu", &i);
+    sscanf_s(str, "%hu", &i);
     return i;
 }
 
 U32 String::ToU32()
 {
     U32 i = 0;
-    sscanf(str, "%u", &i);
+    sscanf_s(str, "%u", &i);
     return i;
 }
 
 U64 String::ToU64()
 {
     U64 i = 0;
-    sscanf(str, "%llu", &i);
+    sscanf_s(str, "%llu", &i);
     return i;
 }
 
 F32 String::ToF32()
 {
     F32 f = 0.0f;
-    sscanf(str, "%f", &f);
+    sscanf_s(str, "%f", &f);
     return f;
 }
 
 F64 String::ToF64()
 {
     F64 f = 0.0f;
-    sscanf(str, "%lf", &f);
+    sscanf_s(str, "%lf", &f);
     return f;
 }
 

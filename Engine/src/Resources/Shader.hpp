@@ -45,7 +45,7 @@ struct Uniform
     String name;
     U64 offset;
     U16 location;
-    U16 size;
+    U32 size;
     U8 setIndex;
     U8 bindingIndex;
     FieldType type;
@@ -55,15 +55,15 @@ struct Attribute
 {
     String name;
     FieldType type;
-    U16 size;
+    U32 size;
 };
 
 struct PushConstant
 {
     String name;
     FieldType type;
-    U16 size;
-    U64 offset;
+    U32 size;
+    U32 offset;
 };
 
 struct Shader
@@ -76,8 +76,8 @@ public:
     bool AddPushConstant(PushConstant pushConstant);
 
     bool ApplyGlobals(struct Camera* camera);
-    bool ApplyMaterialInstance(struct Material* material, bool needsUpdate);
-    bool ApplyMaterialLocal(struct Material* material, const Matrix4& model);
+    bool ApplyMaterialInstances(struct Material* material, bool needsUpdate);
+    bool ApplyMaterialLocals(struct Material* material, const Matrix4& model);
 
 public:
     String name;

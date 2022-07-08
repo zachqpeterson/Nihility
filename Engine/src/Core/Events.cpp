@@ -2,6 +2,11 @@
 
 Map<String, List<Events::EventFunc>> Events::observers;
 
+void Events::Shutdown()
+{
+    observers.Destroy();
+}
+
 void Events::Subscribe(const String& name, EventFunc fn)
 {
     observers.InsertGet(name).PushBack(fn);

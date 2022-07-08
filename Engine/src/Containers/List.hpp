@@ -210,7 +210,7 @@ inline List<T>& List<T>::operator=(const List<T>& other)
 template<typename T>
 inline List<T>& List<T>::operator=(List<T>&& other)
 {
-    if (head) { clear(); }
+    if (head) { Clear(); }
 
     size = other.size;
     head = other.head;
@@ -226,7 +226,7 @@ inline List<T>& List<T>::operator=(List<T>&& other)
 template<typename T>
 inline void List<T>::Assign(const List& other)
 {
-    if (head) { clear(); }
+    if (head) { Clear(); }
 
     Node* node = other.head;
 
@@ -242,7 +242,7 @@ inline void List<T>::Assign(const List& other)
 template<typename T>
 inline void List<T>::Assign(List&& other)
 {
-    if (head) { clear(); }
+    if (head) { Clear(); }
 
     size = other.size;
     head = other.head;
@@ -538,7 +538,7 @@ inline const T& List<T>::Get(U64 index) const
 
 
 template<typename T>
-inline T& List<T>::operator[](U64 i)
+inline T& List<T>::operator[](U64 index)
 {
     ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
 
@@ -552,7 +552,7 @@ inline T& List<T>::operator[](U64 i)
 }
 
 template<typename T>
-inline const T& List<T>::operator[](U64 i) const
+inline const T& List<T>::operator[](U64 index) const
 {
     ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
 

@@ -42,9 +42,7 @@ bool Shader::AddUniform(Uniform uniform)
     {
         if (uniform.type == FIELD_TYPE_SAMPLER)
         {
-            U32 globalTextureCount = globalTextureMaps.Size();
-
-            uniform.location = globalTextureCount;
+            uniform.location = (U16)globalTextureMaps.Size();
 
             TextureMap defaultMap = {};
             defaultMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
@@ -94,7 +92,7 @@ bool Shader::AddPushConstant(PushConstant pushConstant)
 
     Range r = AlignRange(pushConstantSize, pushConstant.size, 4ull);
     pushConstantRanges.Push(r);
-    pushConstant.offset = r.offset;
+    pushConstant.offset = (U32)r.offset;
     pushConstantSize += r.size;
 
     pushConstants.Push(pushConstant);
@@ -152,7 +150,7 @@ bool Shader::ApplyGlobals(Camera* camera)
     return RendererFrontend::ApplyShaderGlobals(this);
 }
 
-bool Shader::ApplyMaterialInstance(Material* material, bool needsUpdate)
+bool Shader::ApplyMaterialInstances(Material* material, bool needsUpdate)
 {
     if (!material->shader->useInstances) { return true; }
 
@@ -197,7 +195,7 @@ bool Shader::ApplyMaterialInstance(Material* material, bool needsUpdate)
     return RendererFrontend::ApplyShaderInstance(this, needsUpdate);
 }
 
-bool Shader::ApplyMaterialLocal(Material* material, const Matrix4& model)
+bool Shader::ApplyMaterialLocals(Material* material, const Matrix4& model)
 {
     if (!material->shader->useLocals) { return true; }
 

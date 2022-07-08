@@ -190,6 +190,8 @@ void Resources::Shutdown()
     }
 
     models.Destroy();
+
+    renderpasses.Destroy();
 }
 
 void Resources::LoadSettings()
@@ -214,7 +216,7 @@ void Resources::LoadSettings()
                 continue;
             }
 
-            I32 equalIndex = line.IndexOf('=');
+            I64 equalIndex = line.IndexOf('=');
             if (equalIndex == -1)
             {
                 Logger::Warn("Potential formatting issue found in file '{}': '=' token not found. Skipping line {}...", path, lineNumber);
@@ -228,16 +230,11 @@ void Resources::LoadSettings()
             varValue.Trim();
 
             if (varName == "borderless") { Settings::BORDERLESS = varValue.ToBool(); }
+            else if (varName == "framerate") { Settings::TARGET_FRAMETIME = varValue.ToF64(); }
             else if (varName == "channels") { Settings::CHANNEL_COUNT = varValue.ToU8(); }
             else if (varName == "master") { Settings::MASTER_VOLUME = varValue.ToF32(); }
             else if (varName == "music") { Settings::MUSIC_VOLUME = varValue.ToF32(); }
             else if (varName == "sfx") { Settings::SFX_VOLUME = varValue.ToF32(); }
-            else if (varName == "framerate") 
-            { 
-                U16 rate = varValue.ToU16();
-                if(rate) { Settings::TARGET_FRAMETIME = rate; }
-                else { Settings::TARGET_FRAMETIME = 0.0; }
-            }
             else if (varName == "resolution")
             {
                 Vector<String> dimensions = Move(varValue.Split(',', true));
@@ -389,11 +386,11 @@ bool Resources::LoadBMP(Image* image, File* file)
     image->layout = IMAGE_LAYOUT_RGBA32;
 
     U32 pSize = 0;
-    U32 width;
+    I32 width;
     I32 pad;
 
-    if (info.infoSize == 12) { if (info.imageBitCount < 24) { pSize = (header.imageOffset - info.extraRead - 24) / 3; } }
-    else { if (info.imageBitCount < 16) { pSize = (header.imageOffset - info.extraRead - info.infoSize) >> 2; } }
+    if (info.infoSize == 12 && info.imageBitCount < 24) { pSize = (header.imageOffset - info.extraRead - 24) / 3; }
+    else if (info.imageBitCount < 16) { pSize = (header.imageOffset - info.extraRead - info.infoSize) >> 2; }
 
     image->pixels.Reserve(info.imageWidth * info.imageHeight * 4);
 
@@ -446,16 +443,16 @@ bool Resources::LoadBMP(Image* image, File* file)
         {
         case 1:
         {
-            for (U32 j = 0; j < info.imageHeight; ++j)
+            for (I32 j = 0; j < info.imageHeight; ++j)
             {
                 I8 bitOffset = 7;
                 U8 v = file->ReadU8();
-                for (U32 i = 0; i < info.imageWidth; ++i)
+                for (I32 i = 0; i < info.imageWidth; ++i)
                 {
-                    U8 color = (v >> bitOffset) & 0x1;
-                    image->pixels.Push(palette[color * 3]);
-                    image->pixels.Push(palette[color * 3 + 1]);
-                    image->pixels.Push(palette[color * 3 + 2]);
+                    U8 index = (v >> bitOffset) & 0x1;
+                    image->pixels.Push(palette[index * 3]);
+                    image->pixels.Push(palette[index * 3 + 1]);
+                    image->pixels.Push(palette[index * 3 + 2]);
                     image->pixels.Push(255);
                     if ((--bitOffset) < 0 && i + 1 != info.imageWidth)
                     {
@@ -468,21 +465,21 @@ bool Resources::LoadBMP(Image* image, File* file)
         } break;
         case 4:
         {
-            for (U32 j = 0; j < info.imageHeight; ++j)
+            for (I32 j = 0; j < info.imageHeight; ++j)
             {
-                for (U32 i = 0; i < info.imageWidth; i += 2)
+                for (I32 i = 0; i < info.imageWidth; i += 2)
                 {
-                    U8 v = file->ReadU8();
-                    U8 v2 = v & 15;
-                    v >>= 4;
-                    image->pixels.Push(palette[v * 3]);
-                    image->pixels.Push(palette[v * 3 + 1]);
-                    image->pixels.Push(palette[v * 3 + 2]);
+                    U8 index0 = file->ReadU8();
+                    U8 index1 = index0 & 15;
+                    index0 >>= 4;
+                    image->pixels.Push(palette[index0 * 3]);
+                    image->pixels.Push(palette[index0 * 3 + 1]);
+                    image->pixels.Push(palette[index0 * 3 + 2]);
                     image->pixels.Push(255);
                     if (i + 1 >= info.imageWidth) { break; }
-                    image->pixels.Push(palette[v2 * 3]);
-                    image->pixels.Push(palette[v2 * 3 + 1]);
-                    image->pixels.Push(palette[v2 * 3 + 2]);
+                    image->pixels.Push(palette[index1 * 3]);
+                    image->pixels.Push(palette[index1 * 3 + 1]);
+                    image->pixels.Push(palette[index1 * 3 + 2]);
                     image->pixels.Push(255);
                 }
                 file->Seek(pad);
@@ -490,9 +487,9 @@ bool Resources::LoadBMP(Image* image, File* file)
         } break;
         case 8:
         {
-            for (U32 j = 0; j < info.imageHeight; ++j)
+            for (I32 j = 0; j < info.imageHeight; ++j)
             {
-                for (U32 i = 0; i < info.imageWidth; ++i)
+                for (I32 i = 0; i < info.imageWidth; ++i)
                 {
                     U8 v = file->ReadU8();
                     image->pixels.Push(palette[v * 3]);
@@ -519,7 +516,7 @@ bool Resources::LoadBMP(Image* image, File* file)
         pad = (-width) & 3;
 
         if (info.imageBitCount == 24) { easy = 1; }
-        else if (info.imageBitCount == 32) { if (info.blueMask == 0xff && info.greenMask == 0xff00 && info.redMask == 0x00ff0000 && info.alphaMask == 0xff000000) { easy = 2; } }
+        else if (info.imageBitCount == 32 && info.blueMask == 0xff && info.greenMask == 0xff00 && info.redMask == 0x00ff0000 && info.alphaMask == 0xff000000) { easy = 2; }
 
         if (!easy)
         {
@@ -548,11 +545,11 @@ bool Resources::LoadBMP(Image* image, File* file)
             }
         }
 
-        for (U32 j = 0; j < info.imageHeight; ++j)
+        for (I32 j = 0; j < info.imageHeight; ++j)
         {
             if (easy)
             {
-                for (U32 i = 0; i < info.imageWidth; ++i)
+                for (I32 i = 0; i < info.imageWidth; ++i)
                 {
                     U8 alpha;
                     U8 blue = file->ReadU8();
@@ -566,7 +563,7 @@ bool Resources::LoadBMP(Image* image, File* file)
             }
             else
             {
-                for (U32 i = 0; i < info.imageWidth; ++i)
+                for (I32 i = 0; i < info.imageWidth; ++i)
                 {
                     U32 v = (info.imageBitCount == 16 ? (U32)file->ReadU16() : file->ReadU32());
                     U32 alpha;
@@ -921,7 +918,7 @@ Renderpass* Resources::LoadRenderpass(const String& name)
                 continue;
             }
 
-            I32 equalIndex = line.IndexOf('=');
+            I64 equalIndex = line.IndexOf('=');
             if (equalIndex == -1)
             {
                 Logger::Warn("Potential formatting issue found in file '{}': '=' token not found. Skipping line {}...", path, lineNumber);
@@ -989,7 +986,7 @@ Shader* Resources::LoadShader(const String& name)
         return nullptr;
     }
 
-    Shader* shader;
+    Shader* shader = nullptr;
 
     for (Shader* s : shaders)
     {
@@ -1028,7 +1025,7 @@ Shader* Resources::LoadShader(const String& name)
                 continue;
             }
 
-            I32 equalIndex = line.IndexOf('=');
+            I64 equalIndex = line.IndexOf('=');
             if (equalIndex == -1)
             {
                 Logger::Warn("Potential formatting issue found in shader '{}': '=' token not found. Skipping line {}...", shader->name, lineNumber);
@@ -1164,7 +1161,7 @@ Shader* Resources::LoadShader(const String& name)
     return shader;
 }
 
-void Resources::GetConfigType(const String& field, FieldType& type, U16& size)
+void Resources::GetConfigType(const String& field, FieldType& type, U32& size)
 {
     //TODO: Use HashMap and switch
     if (field == "F32")
@@ -1290,7 +1287,7 @@ Material* Resources::LoadMaterial(const String& name)
         return nullptr;
     }
 
-    Material* material;
+    Material* material = nullptr;
 
     for (Material* m : materials)
     {
@@ -1329,7 +1326,7 @@ Material* Resources::LoadMaterial(const String& name)
                 continue;
             }
 
-            I32 equalIndex = line.IndexOf('=');
+            I64 equalIndex = line.IndexOf('=');
             if (equalIndex == -1)
             {
                 Logger::Warn("LoadMaterial('{}'): Potential formatting issue found in file '{}': '=' token not found. Skipping line {}.", name, path, lineNumber);

@@ -152,13 +152,7 @@ void Memory::GetMemoryStats()
         "UNKNOWN    ",
         "DATA_STRUCT",
         "STRING     ",
-        "APPLICATION",
-        "JOB        ",
-        "MAT_INST   ",
         "RENDERER   ",
-        "GAME       ",
-        "TRANSFORM  ",
-        "ENTITY     ",
         "RESOURCE   " };
 
     const U64 gib = 1024 * 1024 * 1024;

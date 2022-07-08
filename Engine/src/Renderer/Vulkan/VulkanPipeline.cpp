@@ -132,8 +132,8 @@ bool VulkanPipeline::Create(
         {
             VkPushConstantRange range{};
             range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-            range.offset = pushConstantRanges[i].offset;
-            range.size = pushConstantRanges[i].size;
+            range.offset = (U32)pushConstantRanges[i].offset;
+            range.size = (U32)pushConstantRanges[i].size;
             ranges.Push(range);
         }
 

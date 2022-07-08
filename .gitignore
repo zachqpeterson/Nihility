@@ -1,4 +1,3 @@
-bin/
-obj/
+x64/
+.vs/
 *.spv
-docs/

@@ -6,9 +6,9 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct Stack
+struct NH_API Stack
 {
-    struct Node
+    struct NH_API Node
     {
         Node(const T& value) : value{ value }, next{ nullptr } { }
         ~Node() { next = nullptr; }
@@ -21,26 +21,26 @@ struct Stack
     };
 
 public:
-    NH_API Stack() : size{ 0 }, head{ nullptr } {}
-    NH_API Stack(const Stack& other);
-    NH_API Stack(Stack&& other);
-    NH_API ~Stack();
-    NH_API void Destroy();
+    Stack() : size{ 0 }, head{ nullptr } {}
+    Stack(const Stack& other);
+    Stack(Stack&& other);
+    ~Stack();
+    void Destroy();
 
     void* operator new(U64 size) { return Memory::Allocate(sizeof(Stack), MEMORY_TAG_DATA_STRUCT); }
     void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Stack), MEMORY_TAG_DATA_STRUCT); }
 
-    NH_API Stack& operator=(const Stack& other);
-    NH_API Stack& operator=(Stack&& other);
+    Stack& operator=(const Stack& other);
+    Stack& operator=(Stack&& other);
 
-    NH_API void Clear();
-    NH_API const bool Empty() const { return !size; }
-    NH_API const U64& Size() const { return size; }
+    void Clear();
+    const bool Empty() const { return !size; }
+    const U64& Size() const { return size; }
 
-    NH_API T& Peek() { return *head; }
-    NH_API T&& Pop();
-    NH_API void Push(const T& value);
-    NH_API void Push(T&& value);
+    T& Peek() { return *head; }
+    T&& Pop();
+    void Push(const T& value);
+    void Push(T&& value);
 
 private:
     U64 size;
@@ -83,14 +83,14 @@ void Stack<T>::Destroy()
 template<typename T>
 Stack<T>& Stack<T>::operator=(const Stack<T>& other)
 {
-    if (head) { clear(); }
+    if (head) { Clear(); }
 
     Node* node = other.head;
 
     while (node)
     {
-        PushBack(node->_value);
-        node = node->_next;
+        PushBack(node->value);
+        node = node->next;
     }
 
     return *this;

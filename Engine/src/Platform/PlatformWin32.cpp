@@ -18,22 +18,23 @@
 
 struct PlatformState
 {
-    HINSTANCE hInstance;
-    HWND hwnd;
-    DEVMODEA monitorInfo;
-    U32 clientX, clientY;
-    Vector2Int clientSize;
-    U32 windowX, windowY;
-    U32 windowWidth;
-    U32 windowHeight;
+    HINSTANCE hInstance = nullptr;
+    HWND hwnd = nullptr;
+    DEVMODEA monitorInfo{};
+    U32 clientX = 0;
+    U32 clientY = 0;
+    Vector2Int clientSize = Vector2Int::ZERO;
+    U32 windowX = 0;
+    U32 windowY = 0;
+    U32 windowWidth = 0;
+    U32 windowHeight = 0;
+    bool running = true;
 };
 
 PlatformState Platform::platformState;
 
 static F64 clockFrequency;
 static LARGE_INTEGER startTime;
-
-LRESULT CALLBACK Win32MessageProc(HWND hwnd, U32 msg, WPARAM w_param, LPARAM l_param);
 
 void ClockSetup()
 {
@@ -68,26 +69,30 @@ bool Platform::Initialize(const String& applicationName)
         return false;
     }
 
-    //SM_CXSCREEN
-    //SM_CYSCREEN
-
     // Create window
-    platformState.clientX = Settings::WindowPositionX;
-    platformState.clientY = Settings::WindowPositionY;
-    platformState.clientSize.x = Settings::WindowWidth;
-    platformState.clientSize.y = Settings::WindowHeight;
+    if (Settings::WindowWidth && Settings::WindowHeight)
+    {
+        platformState.clientX = Settings::WindowPositionX;
+        platformState.clientY = Settings::WindowPositionX;
+        platformState.clientSize.x = Settings::WindowWidth;
+        platformState.clientSize.y = Settings::WindowHeight;
+    }
+    else
+    {
+        platformState.clientX = 0;
+        platformState.clientY = 0;
+        platformState.clientSize.x = GetSystemMetrics(SM_CXSCREEN);
+        platformState.clientSize.y = GetSystemMetrics(SM_CYSCREEN);
+    }
 
-    //TODO: Change with config
-    U32 style = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION;
-    U32 exStyle = WS_EX_APPWINDOW;
+    U32 style;
 
-    style |= WS_MAXIMIZEBOX;
-    style |= WS_MINIMIZEBOX;
-    style |= WS_THICKFRAME;
+    if (Settings::Borderless) { style = WS_VISIBLE | WS_POPUP; }
+    else { style = WS_OVERLAPPEDWINDOW | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX; }
 
     // Obtain the size of the border.
     RECT borderRect = { 0, 0, 0, 0 };
-    AdjustWindowRectEx(&borderRect, style, 0, exStyle);
+    AdjustWindowRectEx(&borderRect, style, 0, 0);
 
     // In this case, the border rectangle is negative.
     platformState.windowX = platformState.clientX + borderRect.left;
@@ -98,7 +103,7 @@ bool Platform::Initialize(const String& applicationName)
     platformState.windowHeight = platformState.clientSize.y + borderRect.bottom - borderRect.top;
 
     HWND handle = CreateWindowExA(
-        exStyle, "Nihility Window Class", applicationName,
+        0, "Nihility Window Class", applicationName,
         style, platformState.windowX, platformState.windowY, platformState.windowWidth, platformState.windowHeight,
         0, 0, platformState.hInstance, 0);
 
@@ -143,14 +148,13 @@ bool Platform::ProcessMessages()
 {
     MSG message;
 
-    //TODO: See if you should pass NULL here V
     while (PeekMessageA(&message, platformState.hwnd, 0, 0, PM_REMOVE))
     {
         TranslateMessage(&message);
         DispatchMessageA(&message);
     }
 
-    return true;
+    return platformState.running;
 }
 
 void* Platform::Allocate(U64 size, bool aligned)
@@ -181,7 +185,6 @@ void* Platform::Set(void* dest, I32 value, U64 size)
 void Platform::ConsoleWrite(const String& message, U8 color)
 {
     HANDLE consoleHandle = GetStdHandle(color < 2 ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
-    // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     static const U8 levels[6] = { 64, 4, 6, 2, 1, 8 };
     SetConsoleTextAttribute(consoleHandle, levels[color]);
     OutputDebugStringA((const char*)message);
@@ -197,11 +200,6 @@ const F64 Platform::AbsoluteTime()
     return (F64)nowTime.QuadPart * clockFrequency;
 }
 
-void Platform::SleepFor(U64 ms)
-{
-    Sleep(ms);
-}
-
 void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
 {
     //TODO: Find a better way for this
@@ -209,16 +207,14 @@ void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
     ((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState.hwnd;
 }
 
-I64 __stdcall Platform::Win32MessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam)
+I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 lParam)
 {
-    static Vector2Int size;
-
     switch (msg)
     {
     case WM_SETFOCUS: /*TODO: Notify engine has focus*/ return 0;
     case WM_KILLFOCUS: /*TODO: Notify engine doesn't have focus*/ return 0;
     case WM_ERASEBKGND: return 1;
-    case WM_CLOSE: Events::Notify("CLOSE", nullptr); return 0;
+    case WM_CLOSE: Events::Notify("CLOSE", nullptr); platformState.running = false; return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
     case WM_SIZE:
     {
@@ -254,7 +250,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lPa
     } break;
     case WM_MOUSEWHEEL:
     {
-        Input::SetMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER);
+        Input::SetMouseWheel(I16(GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER));
     } break;
     case WM_MOUSEMOVE:
     {

@@ -17,8 +17,8 @@ struct Camera
     NH_API Camera(const Vector4& bounds, F32 near = 0.1f, F32 far = 1000.0f, const Vector3& position = Vector3::ZERO,
         const Vector3& rotation = Vector3::ZERO, const Vector4& ambientColor = Vector4::ONE, ViewMatrixSource viewSource = VIEW_MATRIX_SOURCE_SCENE_CAMERA);
 
-    void* operator new(U64 size) { return Memory::Allocate(sizeof(Camera), MEMORY_TAG_ENTITY); }
-    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Camera), MEMORY_TAG_ENTITY); }
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(Camera), MEMORY_TAG_RENDERER); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Camera), MEMORY_TAG_RENDERER); }
 
     NH_API const Vector3& Position() const;
     NH_API void SetPosition(const Vector3& position);

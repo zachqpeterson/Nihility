@@ -7,7 +7,7 @@ typedef bool(*InitializeFn)();
 typedef bool(*UpdateFn)();
 typedef void(*CleanupFn)();
 
-class Engine
+class NH_API Engine
 {
 public:
     /**
@@ -15,15 +15,14 @@ public:
      * 
      * @return true if the initialization was successful, false otherwise
      */
-    static NH_API void Initialize(const char* applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup);
-    static void Shutdown();
-
-    static void MainLoop();
+    static void Initialize(const char* applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup);
 
     static bool OnClose(void* data);
 
 private:
-    Engine() = delete;
+    static void Shutdown();
+
+    static void MainLoop();
 
     static InitializeFn GameInit;
     static UpdateFn GameUpdate;
@@ -31,4 +30,6 @@ private:
 
     static bool running;
     static bool suspended;
+
+    Engine() = delete;
 };

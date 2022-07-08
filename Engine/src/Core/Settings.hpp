@@ -12,12 +12,12 @@ private:
     inline static F32 SFX_VOLUME = 1.0f;
 
     //GRAPHICS
-    inline static bool BORDERLESS = false;
-    inline static U16 WINDOW_WIDTH = 1280;
-    inline static U16 WINDOW_HEIGHT = 720;
-    inline static U16 WINDOW_POSITION_X = 320;
-    inline static U16 WINDOW_POSITION_Y = 180;
-    inline static F64 TARGET_FRAMETIME = 0.00833333333;
+    inline static bool BORDERLESS = true;
+    inline static U16 WINDOW_WIDTH = 0;
+    inline static U16 WINDOW_HEIGHT = 0;
+    inline static U16 WINDOW_POSITION_X = 0;
+    inline static U16 WINDOW_POSITION_Y = 0;
+    inline static F64 TARGET_FRAMETIME = 0.0;
 
     //TODO: multisampling, 
 

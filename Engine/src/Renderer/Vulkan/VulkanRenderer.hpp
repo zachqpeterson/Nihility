@@ -3,7 +3,6 @@
 #include "VulkanDefines.hpp"
 
 #include "Renderer/Renderer.hpp"
-#include "Resources/Resources.hpp"
 
 template<typename> struct Vector;
 
@@ -15,20 +14,20 @@ public:
 
     bool BeginFrame() final;
     bool EndFrame() final;
-    bool BeginRenderpass(Renderpass* renderpass) final;
+    bool BeginRenderpass(struct Renderpass* renderpass) final;
     bool EndRenderpass(Renderpass* renderpass) final;
 
-    bool CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32>& indices) final;
+    bool CreateMesh(struct Mesh* mesh, Vector<Vertex>& vertices, Vector<U32>& indices) final;
     void DestroyMesh(Mesh* mesh) final;
-    void DrawMesh(const MeshRenderData& Meshdata) final;
+    void DrawMesh(const struct MeshRenderData& Meshdata) final;
 
-    void CreateTexture(Texture* texture, const Vector<U8>& pixels) final;
+    void CreateTexture(struct Texture* texture, const Vector<U8>& pixels) final;
     void DestroyTexture(Texture* texture) final;
     bool CreateWritableTexture(Texture* texture) final;
     void WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels) final;
     void ResizeTexture(Texture* texture, U32 width, U32 height) final;
 
-    bool AcquireTextureMapResources(TextureMap& map) final;
+    bool AcquireTextureMapResources(struct TextureMap& map) final;
     void ReleaseTextureMapResources(TextureMap& map) final;
 
     void CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext) final;
@@ -40,7 +39,7 @@ public:
     Texture* GetDepthAttachment() final;
     U32 GetWindowAttachmentIndex() final;
 
-    bool CreateShader(Shader* shader) final;
+    bool CreateShader(struct Shader* shader) final;
     void DestroyShader(Shader* shader) final;
     bool InitializeShader(Shader* shader) final;
     bool UseShader(Shader* shader) final;
@@ -49,8 +48,8 @@ public:
     bool ApplyInstance(Shader* shader, bool needsUpdate) final;
     U32  AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps) final;
     bool ReleaseInstanceResources(Shader* shader, U32 instanceId) final;
-    bool SetUniform(Shader* shader, Uniform& uniform, const void* value) final;
-    bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) final;
+    bool SetUniform(Shader* shader, struct Uniform& uniform, const void* value) final;
+    bool SetPushConstant(Shader* shader, struct PushConstant& pushConstant, const void* value) final;
 
     bool OnResize() final;
 

@@ -76,12 +76,12 @@ public:
     };
 
 public:
-    Vector();
-    Vector(U64 capacity);
+    Vector() : size{ 0 }, capacity{ 0 }, array{ nullptr } {}
+    Vector(U64 capacity) : size{ 0 }, capacity{ capacity }, array{ (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT) } {}
     Vector(U64 size, const T& value);
     Vector(const Vector& other);
-    Vector(Vector&& other);
-    Vector(T* array, U64 size);
+    Vector(Vector&& other) noexcept;
+    Vector(T* array, U64 size) : array{ array }, size{ size }, capacity{ size } {}
     ~Vector();
     void Destroy();
 
@@ -89,7 +89,7 @@ public:
     void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Vector), MEMORY_TAG_DATA_STRUCT); }
 
     Vector& operator=(const Vector& other);
-    Vector& operator=(Vector&& other);
+    Vector& operator=(Vector&& other) noexcept;
 
     void SetArray(T* array, U64 size);
 
@@ -128,15 +128,6 @@ private:
 };
 
 template<typename T>
-inline Vector<T>::Vector() : size{ 0 }, capacity{ 0 }, array{ nullptr } {}
-
-template<typename T>
-inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity }
-{
-    array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
-}
-
-template<typename T>
 inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
 {
     array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
@@ -156,15 +147,12 @@ inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{
 }
 
 template<typename T>
-inline Vector<T>::Vector(Vector<T>&& other) : size{ other.size }, capacity{ other.capacity }, array{ other.array }
+inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
 {
     other.size = 0;
     other.capacity = 0;
     other.array = nullptr;
 }
-
-template<typename T>
-inline Vector<T>::Vector(T* array, U64 size) : array{ array }, size{ size }, capacity{ size } {}
 
 template<typename T>
 inline Vector<T>::~Vector()
@@ -210,7 +198,7 @@ inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 }
 
 template<typename T>
-inline Vector<T>& Vector<T>::operator=(Vector<T>&& other)
+inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
 {
     if (array)
     {
@@ -268,7 +256,7 @@ template<typename T>
 inline T&& Vector<T>::Pop()
 {
     ASSERT_DEBUG_MSG(size, "Can't pop on a vector of size 0!");
-    return Move(elements[--size]);
+    return Move(array[--size]);
 }
 
 template<typename T>

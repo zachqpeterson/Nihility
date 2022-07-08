@@ -1,6 +1,8 @@
 /** @file Defines.hpp */
 #pragma once
 
+#define NH_EXPORT
+
 /** Unsigned 8-bit integer */
 typedef unsigned char U8;
 /** Unsigned 16-bit integer */
@@ -144,7 +146,7 @@ struct Range
 #define Align4(value) ((value + 3) & ~3)
 #define Align8(value) ((value + 7) & ~7)
 #define Align16(value) ((value + 15) & ~15)
-#define AlignRange(offset, size, alignment) (Range){AlignPow2(offset, alignment), AlignPow2(size, alignment)};
+#define AlignRange(offset, size, alignment) {AlignPow2(offset, alignment), AlignPow2(size, alignment)};
 
 /***************************ASSERTS***************************/
 #define ASSERTIONS_ENABLED

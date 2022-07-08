@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include "Memory\Memory.hpp"
+
 //TODO: Temp
 #include <string.h>
 
@@ -9,12 +11,11 @@ template<typename> struct Vector;
 
 struct NH_API String
 {
-    //TODO: Constructor that formats
     String() : str{ nullptr }, length{ 0 } {}
     String(char* str);
     String(const char* str);
     String(const String& other);
-    String(String&& other);
+    String(String&& other) noexcept;
 
     ~String();
     void Destroy();
@@ -33,7 +34,7 @@ struct NH_API String
     String& operator=(char* str);
     String& operator=(const char* str);
     String& operator=(const String& other);
-    String& operator=(String&& other);
+    String& operator=(String&& other) noexcept;
 
     String& operator=(I32 value);
     String& operator=(I64 value);

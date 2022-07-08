@@ -185,19 +185,19 @@ bool VulkanRenderer::CreateInstance(const String& applicationName)
 
         if (!found)
         {
-            Logger::Fatal("Required validation layer is missing: {}", (char*)layerNames[i]);
+            Logger::Fatal("Required validation layer is missing: {}", layerNames[i]);
             return false;
         }
     }
 
-    instanceInfo.enabledLayerCount = layerNames.Size();
+    instanceInfo.enabledLayerCount = (U32)layerNames.Size();
     instanceInfo.ppEnabledLayerNames = layerNames.Data();
 #else
     instanceInfo.enabledLayerCount = 0;
     instanceInfo.ppEnabledLayerNames = nullptr;
 #endif
 
-    instanceInfo.enabledExtensionCount = extentionNames.Size();
+    instanceInfo.enabledExtensionCount = (U32)extentionNames.Size();
     instanceInfo.ppEnabledExtensionNames = extentionNames.Data();
 
     instanceInfo.flags = NULL;
@@ -236,7 +236,7 @@ bool VulkanRenderer::CreateSurface()
     VkWin32SurfaceCreateInfoKHR surfaceInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
     surfaceInfo.pNext = nullptr;
     surfaceInfo.flags = NULL;
-    Platform::GetVulkanSurfaceInfo(&surfaceInfo.flags + sizeof(VkWin32SurfaceCreateFlagsKHR));
+    Platform::GetVulkanSurfaceInfo(&surfaceInfo.flags + sizeof(VkWin32SurfaceCreateFlagsKHR)); //TODO: Please don't do this
     return vkCreateWin32SurfaceKHR(rendererState->instance, &surfaceInfo, rendererState->allocator, &rendererState->surface) == VK_SUCCESS;
 #elif PLATFORM_LINUX
     //TODO:
@@ -325,7 +325,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
     dependency.dependencyFlags = 0;
 
     VkRenderPassCreateInfo renderpassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    renderpassInfo.attachmentCount = attachmentDescriptions.Size();
+    renderpassInfo.attachmentCount = (U32)attachmentDescriptions.Size();
     renderpassInfo.pAttachments = attachmentDescriptions.Data();
     renderpassInfo.subpassCount = 1;
     renderpassInfo.pSubpasses = &subpass;
@@ -338,14 +338,14 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 
     for (U8 i = 0; i < renderpass->targets.Size(); ++i)
     {
-        Texture* windowTargetTexture = RendererFrontend::GetWindowAttachment(i);
+        Texture* windowTargetTexture = GetWindowAttachment(i);
 
         Vector<Texture*> attachments;
         attachments.Push(windowTargetTexture);
 
         if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
         {
-            Texture* depthTargetTexture = RendererFrontend::GetDepthAttachment();
+            Texture* depthTargetTexture = GetDepthAttachment();
             attachments.Push(depthTargetTexture);
         }
 
@@ -361,7 +361,7 @@ void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 
         for (U8 i = 0; i < renderpass->targets.Size(); ++i)
         {
-            RendererFrontend::DestroyRenderTarget(&renderpass->targets[i], false);
+            DestroyRenderTarget(&renderpass->targets[i], false);
         }
 
         VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
@@ -385,7 +385,7 @@ void VulkanRenderer::CreateCommandBuffers()
         }
     }
 
-    for (I32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+    for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
     {
         if (rendererState->graphicsCommandBuffers[i].handle)
         {
@@ -575,10 +575,10 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
     VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     beginInfo.renderPass = vulkanRenderpass->handle;
     beginInfo.framebuffer = (VkFramebuffer)target.internalFramebuffer;
-    beginInfo.renderArea.offset.x = rendererState->renderArea.x + renderpass->renderArea.x * rendererState->renderArea.z;
-    beginInfo.renderArea.offset.y = rendererState->renderArea.y + renderpass->renderArea.y * rendererState->renderArea.w;
-    beginInfo.renderArea.extent.width = renderpass->renderArea.z * rendererState->renderArea.z;
-    beginInfo.renderArea.extent.height = renderpass->renderArea.w * rendererState->renderArea.w;
+    beginInfo.renderArea.offset.x = (I32)(rendererState->renderArea.x + renderpass->renderArea.x * rendererState->renderArea.z);
+    beginInfo.renderArea.offset.y = (I32)(rendererState->renderArea.y + renderpass->renderArea.y * rendererState->renderArea.w);
+    beginInfo.renderArea.extent.width = (U32)(renderpass->renderArea.z * rendererState->renderArea.z);
+    beginInfo.renderArea.extent.height = (U32)(renderpass->renderArea.w * rendererState->renderArea.w);
 
     Vector<VkClearValue> clearValues;
     VkClearValue colorClear{};
@@ -597,7 +597,7 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
         clearValues.Push(depthClear);
     }
 
-    beginInfo.clearValueCount = clearValues.Size();
+    beginInfo.clearValueCount = (U32)clearValues.Size();
     beginInfo.pClearValues = clearValues.Data();
 
     vkCmdBeginRenderPass(commandBuffer->handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -644,9 +644,9 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32
     VkCommandPool pool = rendererState->device->graphicsCommandPool;
     VkQueue queue = rendererState->device->graphicsQueue;
 
-    internalData->vertexCount = vertices.Size();
+    internalData->vertexCount = (U32)vertices.Size();
     internalData->vertexElementSize = sizeof(Vertex);
-    U32 totalSize = vertices.Size() * sizeof(Vertex);
+    U32 totalSize = (U32)vertices.Size() * sizeof(Vertex);
 
     if (!UploadDataRange(pool, nullptr, queue, rendererState->objectVertexBuffer, internalData->vertexBufferOffset, totalSize, vertices.Data()))
     {
@@ -656,9 +656,9 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32
 
     if (indices.Size())
     {
-        internalData->indexCount = indices.Size();
+        internalData->indexCount = (U32)indices.Size();
         internalData->indexElementSize = sizeof(U32);
-        totalSize = indices.Size() * sizeof(U32);
+        totalSize = (U32)indices.Size() * sizeof(U32);
         if (!UploadDataRange(pool, nullptr, queue, rendererState->objectIndexBuffer, internalData->indexBufferOffset, totalSize, indices.Data()))
         {
             Logger::Error("CreateMesh: Failed to upload to the index buffer!");
@@ -719,7 +719,7 @@ bool VulkanRenderer::OnResize()
     rendererState->framebufferHeight = Settings::WindowHeight;
     ++rendererState->framebufferSizeGeneration;
 
-    F32 aspectHeight = Settings::WindowHeight * 1.77777777778;
+    F32 aspectHeight = Settings::WindowHeight * 1.77777777778f;
     F32 aspectWidth = Settings::WindowWidth * 0.5625f;
 
     if (Settings::WindowWidth > aspectHeight)
@@ -728,7 +728,7 @@ bool VulkanRenderer::OnResize()
 
         rendererState->renderArea.x = (I32)offset;
         rendererState->renderArea.y = 0;
-        rendererState->renderArea.z = (Settings::WindowWidth - (offset * 2.0f));
+        rendererState->renderArea.z = (I32)(Settings::WindowWidth - (offset * 2.0f));
         rendererState->renderArea.w = Settings::WindowHeight;
     }
     else
@@ -738,7 +738,7 @@ bool VulkanRenderer::OnResize()
         rendererState->renderArea.x = 0;
         rendererState->renderArea.y = (I32)offset;
         rendererState->renderArea.z = Settings::WindowWidth;
-        rendererState->renderArea.w = (Settings::WindowHeight - (offset * 2.0f));
+        rendererState->renderArea.w = (I32)(Settings::WindowHeight - (offset * 2.0f));
     }
 
     return true;
@@ -1077,16 +1077,16 @@ bool VulkanRenderer::RegenerateRenderTargets()
     {
         for (U8 i = 0; i < renderpass->targets.Size(); ++i)
         {
-            if (!RendererFrontend::DestroyRenderTarget(&renderpass->targets[i], false)) { return false; }
+            if (!DestroyRenderTarget(&renderpass->targets[i], false)) { return false; }
 
-            Texture* windowTargetTexture = RendererFrontend::GetWindowAttachment(i);
+            Texture* windowTargetTexture = GetWindowAttachment(i);
 
             Vector<Texture*> attachments;
             attachments.Push(windowTargetTexture);
 
             if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
             {
-                Texture* depthTargetTexture = RendererFrontend::GetDepthAttachment();
+                Texture* depthTargetTexture = GetDepthAttachment();
                 attachments.Push(depthTargetTexture);
             }
 
@@ -1109,7 +1109,7 @@ bool VulkanRenderer::CreateRenderTarget(Vector<Texture*>& attachments, Renderpas
 
     VkFramebufferCreateInfo framebufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
     framebufferInfo.renderPass = ((VulkanRenderpass*)renderpass->internalData)->handle;
-    framebufferInfo.attachmentCount = attachments.Size();
+    framebufferInfo.attachmentCount = (U32)attachments.Size();
     framebufferInfo.pAttachments = attachmentViews.Data();
     framebufferInfo.width = width;
     framebufferInfo.height = height;
@@ -1136,7 +1136,7 @@ bool VulkanRenderer::DestroyRenderTarget(RenderTarget* target, bool freeInternal
 
 bool VulkanRenderer::UploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, U32& outOffset, U32 size, const void* data)
 {
-    outOffset = buffer->Allocate(size);
+    outOffset = (U32)buffer->Allocate(size);
     if (outOffset == U32_MAX)
     {
         Logger::Error("UploadDataRange: Failed to allocate from the given buffer!");

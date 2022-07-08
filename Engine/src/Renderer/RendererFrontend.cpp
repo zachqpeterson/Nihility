@@ -1,5 +1,6 @@
 #include "RendererFrontend.hpp"
 
+#include "RendererDefines.hpp"
 #include "Camera.hpp"
 #include "Scene.hpp"
 
@@ -284,4 +285,9 @@ bool RendererFrontend::OnResize(void* data)
     resizing = true;
 
     return true;
+}
+
+Vector2Int RendererFrontend::WindowSize()
+{ 
+    return { (I32)framebufferWidth, (I32)framebufferHeight }; 
 }

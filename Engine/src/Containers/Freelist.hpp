@@ -23,7 +23,7 @@ struct NH_API Freelist
 public:
     Freelist(U64 size = 0);
     Freelist(const Freelist& other) = delete;
-    Freelist(Freelist&& other);
+    Freelist(Freelist&& other) noexcept;
     ~Freelist();
     void Destroy();
 

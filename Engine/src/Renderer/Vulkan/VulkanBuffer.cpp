@@ -6,7 +6,7 @@
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
 
-bool VulkanBuffer::Create(RendererState* rendererState, U32 size, VkBufferUsageFlagBits usage,
+bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageFlagBits usage,
     U32 memoryPropertyFlags, bool bindOnCreate, bool useFreelist)
 {
     hasFreelist = useFreelist;
@@ -76,7 +76,7 @@ void VulkanBuffer::Destroy(RendererState* rendererState)
     locked = false;
 }
 
-bool VulkanBuffer::Resize(RendererState* rendererState, U32 newSize, VkQueue queue, VkCommandPool pool)
+bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue queue, VkCommandPool pool)
 {
     if (newSize < totalSize)
     {
@@ -138,12 +138,12 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U32 newSize, VkQueue que
     return true;
 }
 
-void VulkanBuffer::Bind(RendererState* rendererState, U32 offset)
+void VulkanBuffer::Bind(RendererState* rendererState, U64 offset)
 {
     VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, handle, memory, offset));
 }
 
-void* VulkanBuffer::LockMemory(RendererState* rendererState, U32 offset, U32 size, U32 flags)
+void* VulkanBuffer::LockMemory(RendererState* rendererState, U64 offset, U64 size, U32 flags)
 {
     void* data;
     VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size == U32_MAX ? VK_WHOLE_SIZE : size, flags, &data));
@@ -155,7 +155,7 @@ void VulkanBuffer::UnlockMemory(RendererState* rendererState)
     vkUnmapMemory(rendererState->device->logicalDevice, memory);
 }
 
-U32 VulkanBuffer::Allocate(U32 size)
+U64 VulkanBuffer::Allocate(U64 size)
 {
     if (!size)
     {
@@ -172,7 +172,7 @@ U32 VulkanBuffer::Allocate(U32 size)
     return freelist.AllocateBlock(size);
 }
 
-bool VulkanBuffer::Free(U32 size, U32 offset)
+bool VulkanBuffer::Free(U64 size, U64 offset)
 {
     if (!size)
     {
@@ -189,7 +189,7 @@ bool VulkanBuffer::Free(U32 size, U32 offset)
     return freelist.FreeBlock(size, offset);
 }
 
-void VulkanBuffer::LoadData(RendererState* rendererState, U32 offset, U32 size, U32 flags, const void* data)
+void VulkanBuffer::LoadData(RendererState* rendererState, U64 offset, U64 size, U32 flags, const void* data)
 {
     void* dataPtr;
     VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size, flags, &dataPtr));
@@ -198,7 +198,7 @@ void VulkanBuffer::LoadData(RendererState* rendererState, U32 offset, U32 size, 
 }
 
 void VulkanBuffer::CopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue,
-    VkBuffer source, U32 sourceOffset, VkBuffer dest, U32 destOffset, U32 size)
+    VkBuffer source, U64 sourceOffset, VkBuffer dest, U64 destOffset, U64 size)
 {
     vkQueueWaitIdle(queue);
     

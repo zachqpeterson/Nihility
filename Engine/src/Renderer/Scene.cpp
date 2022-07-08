@@ -2,6 +2,7 @@
 
 #include "Camera.hpp"
 #include "RendererFrontend.hpp"
+#include "RendererDefines.hpp"
 
 #include "Resources/Resources.hpp"
 #include "Core/Settings.hpp"
@@ -111,7 +112,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
             bool needsUpdate = material->renderFrameNumber != frameNumber;
 
-            if (!material->shader->ApplyMaterialInstance(material, needsUpdate))
+            if (!material->shader->ApplyMaterialInstances(material, needsUpdate))
             {
                 Logger::Warn("Failed to apply material '{}'. Skipping draw.", material->name);
                 continue;
@@ -119,7 +120,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
             material->renderFrameNumber = frameNumber;
 
-            if (!material->shader->ApplyMaterialLocal(material, data.model))
+            if (!material->shader->ApplyMaterialLocals(material, data.model))
             {
                 Logger::Warn("Failed to apply material '{}'. Skipping draw.", material->name);
                 continue;

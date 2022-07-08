@@ -12,7 +12,7 @@ struct NH_API Map
 {
     struct Node
     {
-        Node(const TKey& key, const TValue& value) : key{ key }, value{ value }, left{ nullptr }, right{ nullptr } { }
+        Node(const TKey& key, const TValue& value) : key{ key }, value{ value }, left{ nullptr }, right{ nullptr } {}
         ~Node() { left = nullptr; right = nullptr; } //TODO: Deallocate key and value
 
         void* operator new(U64 size) { return Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
@@ -195,20 +195,24 @@ inline const TValue& Map<TKey, TValue>::operator[](const TKey& key) const
 template<typename TKey, typename TValue>
 inline void Map<TKey, TValue>::Clear()
 {
-    Stack<Node*> s;
-    s.Push(root);
-
-    while (!s.Empty())
+    if (root)
     {
-        Node* node = s.Pop();
+        Stack<Node*> s;
+        s.Push(root);
 
-        if (node->left) { s.Push(node->left); }
-        if (node->right) { s.Push(node->right); }
+        while (!s.Empty())
+        {
+            Node* node = s.Pop();
 
-        delete node;
+            if (node->left) { s.Push(node->left); }
+            if (node->right) { s.Push(node->right); }
+
+            delete node;
+        }
+
+        size = 0;
+        root = nullptr;
     }
-
-    size = 0;
 }
 
 template<typename TKey, typename TValue>
@@ -308,10 +312,10 @@ inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
 
         bool right = false;
 
-        while (node && node->value != value)
+        while (node && node->key != key)
         {
             parent = node;
-            node = (&node->left)[right = value > node->value];
+            node = (&node->left)[right = key > node->key];
         }
 
         if (node)
@@ -332,7 +336,7 @@ inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
                 if (replace != node->left) { replace->left = node->left; }
             }
 
-            if (node->value == root->value) { root = replace; }
+            if (node->key == root->key) { root = replace; }
             else { *((&parent->left) + right) = replace; }
             TValue t = node->value;
             --size;

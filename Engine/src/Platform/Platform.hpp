@@ -20,7 +20,6 @@ public:
 
     static void ConsoleWrite(const struct String& message, U8 color);
     static const F64 AbsoluteTime();
-    static void SleepFor(U64 ms);
 
     static void GetVulkanSurfaceInfo(void* surfaceInfo);
 

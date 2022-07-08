@@ -10,6 +10,8 @@ class Events
     typedef bool(*EventFunc)(void*);
 
 public:
+    static void Shutdown();
+
     static NH_API void Subscribe(const String& name, EventFunc fn);
     static NH_API void Notify(const String& name, void* data);
 

@@ -12,7 +12,7 @@ struct NH_API HashMap
 public:
     struct NH_API Node
     {
-        Node() {}
+        Node() : key{}, value{} {}
         Node(const TKey& key, const TValue& value) : key{ key }, value{ value } {}
         Node(TKey&& key, TValue&& value) : key{ key }, value{ value } {}
 
@@ -86,7 +86,7 @@ public:
     };
 
 public:
-    HashMap() : size{ 0 }, buckets{ nullptr } {}
+    HashMap() : size{ 0 }, buckets{ nullptr }, invalid{} {}
     HashMap(U64 size, TValue invalid);
     HashMap(const HashMap& other);
     HashMap(HashMap&& other);
@@ -146,6 +146,7 @@ inline HashMap<TKey, TValue>::~HashMap()
     {
         Empty();
         Memory::Free(buckets, sizeof(List<Node>) * size, MEMORY_TAG_DATA_STRUCT);
+        buckets = nullptr;
     }
 }
 
@@ -156,6 +157,7 @@ inline void HashMap<TKey, TValue>::Destroy()
     {
         Empty();
         Memory::Free(buckets, sizeof(List<Node>) * size, MEMORY_TAG_DATA_STRUCT);
+        buckets = nullptr;
     }
 }
 
@@ -266,9 +268,12 @@ inline TValue& HashMap<TKey, TValue>::operator[](const TKey& key)
 template<typename TKey, typename TValue>
 inline void HashMap<TKey, TValue>::Empty()
 {
-    List<Node>* ptr = buckets;
-    for (U64 i = 0; i < size; ++i, ++ptr)
+    if (buckets)
     {
-        ptr->Clear();
+        List<Node>* ptr = buckets;
+        for (U64 i = 0; i < size; ++i, ++ptr)
+        {
+            ptr->Clear();
+        }
     }
 }

@@ -16,7 +16,7 @@ struct ShaderStage
 
 struct ShaderStageConfig
 {
-    VkShaderStageFlagBits stage;
+    VkShaderStageFlagBits stage{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
     String fileName;
 };
 

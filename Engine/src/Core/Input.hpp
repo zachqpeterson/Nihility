@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#ifdef PLATFORM_WINDOWS
 enum ButtonCode
 {
     //Mouse Buttons
@@ -237,6 +238,7 @@ enum ButtonCode
 
     BUTTON_COUNT
 };
+#endif
 
 class Input
 {
@@ -249,7 +251,7 @@ public:
     static NH_API bool OnButtonDown(ButtonCode code);
     static NH_API bool OnButtonUp(ButtonCode code);
     static NH_API const struct Vector2Int& MousePos();
-    static NH_API I8 MouseWheelDelta();
+    static NH_API I16 MouseWheelDelta();
 
     static void ResetInput();
     static void SetButtonState(U8 code, bool down);

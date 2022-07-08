@@ -90,7 +90,7 @@ bool VulkanDevice::Create(RendererState* rendererState)
     deviceCreateInfo.queueCreateInfoCount = indexCount;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-    deviceCreateInfo.enabledExtensionCount = extensionNames.Size();
+    deviceCreateInfo.enabledExtensionCount = (U32)extensionNames.Size();
     deviceCreateInfo.ppEnabledExtensionNames = extensionNames.Data();
     deviceCreateInfo.flags = 0;
     deviceCreateInfo.pNext = nullptr;
@@ -394,7 +394,7 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
                 availableExtensions = (VkExtensionProperties*)Memory::Allocate(sizeof(VkExtensionProperties) * availableExtensionCount, MEMORY_TAG_RENDERER);
                 VkCheck(vkEnumerateDeviceExtensionProperties(device, 0, &availableExtensionCount, availableExtensions));
 
-                U32 requiredExtensionCount = requirements->deviceExtensionNames.Size();
+                U32 requiredExtensionCount = (U32)requirements->deviceExtensionNames.Size();
                 for (U32 i = 0; i < requiredExtensionCount; ++i)
                 {
                     bool found = false;

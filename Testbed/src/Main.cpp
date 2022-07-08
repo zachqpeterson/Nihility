@@ -1,6 +1,8 @@
 #include <Engine.hpp>
 
 #include <Containers/String.hpp>
+#include <Math/Math.hpp>
+#include <Core/Logger.hpp>
 
 bool init()
 {

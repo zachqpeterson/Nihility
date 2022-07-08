@@ -2,9 +2,10 @@
 
 #include "Defines.hpp"
 
+#include "Renderer/RendererDefines.hpp"
+#include "Resources/Resources.hpp"
 #include "Containers/HashMap.hpp"
 #include "Containers/Vector.hpp"
-#include "Resources/Resources.hpp"
 
 #if defined(PLATFORM_WINDOWS)
 #define VK_USE_PLATFORM_WIN32_KHR

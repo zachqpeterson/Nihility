@@ -5,7 +5,8 @@
 #include "Memory/Memory.hpp"
 #include "Containers/String.hpp"
 
-enum LogLevel {
+enum LogLevel
+{
     LOG_LEVEL_FATAL = 0,
     LOG_LEVEL_ERROR = 1,
     LOG_LEVEL_WARN = 2,
@@ -24,14 +25,11 @@ enum LogLevel {
 #define LOG_TRACE_ENABLED 0
 #endif
 
-class Logger
+class NH_API Logger
 {
 public:
-    static bool Initialize();
-    static void Shutdown();
-
     template<typename... Types>
-    static NH_API void Fatal(const char* message, Types... args)
+    static void Fatal(const char* message, const Types&... args)
     {
         String str(message);
         str.Format(args...);
@@ -39,7 +37,7 @@ public:
         str.Destroy();
     }
     template<typename... Types>
-    static NH_API void Error(const char* message, Types... args)
+    static void Error(const char* message, const Types&... args)
     {
         String str(message);
         str.Format(args...);
@@ -47,42 +45,54 @@ public:
         str.Destroy();
     }
     template<typename... Types>
-    static NH_API void Warn(const char* message, Types... args)
+    static void Warn(const char* message, const Types&... args)
     {
+#if LOG_WARN_ENABLED
         String str(message);
         str.Format(args...);
         LogOutput(LOG_LEVEL_WARN, str);
         str.Destroy();
+#endif
     }
     template<typename... Types>
-    static NH_API void Info(const char* message, Types... args)
+    static void Info(const char* message, const Types&... args)
     {
+#if LOG_INFO_ENABLED
         String str(message);
         str.Format(args...);
         LogOutput(LOG_LEVEL_INFO, str);
         str.Destroy();
+#endif
     }
     template<typename... Types>
-    static NH_API void Debug(const char* message, Types... args)
+    static void Debug(const char* message, const Types&... args)
     {
+#if LOG_DEBUG_ENABLED
         String str(message);
         str.Format(args...);
         LogOutput(LOG_LEVEL_DEBUG, str);
         str.Destroy();
+#endif
     }
     template<typename... Types>
-    static NH_API void Trace(const char* message, Types... args)
+    static void Trace(const char* message, const Types&... args)
     {
+#if LOG_TRACE_ENABLED
         String str(message);
         str.Format(args...);
         LogOutput(LOG_LEVEL_TRACE, str);
         str.Destroy();
+#endif
     }
 
 private:
-    static NH_API void LogOutput(LogLevel level, String& message); //TODO: Don't copy
+    static void LogOutput(LogLevel level, String& message);
+    static bool Initialize();
+    static void Shutdown();
 
-    static struct File log;
+    static struct NH_API File log;
 
     Logger() = delete;
+
+    friend class Engine;
 };

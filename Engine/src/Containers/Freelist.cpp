@@ -5,7 +5,7 @@
 
 Freelist::Freelist(U64 size) : totalSize{ size }, freeSpace{ totalSize }, head{ nullptr } {}
 
-Freelist::Freelist(Freelist&& other) : totalSize{ other.totalSize }, freeSpace{ other.freeSpace }, head{ other.head }
+Freelist::Freelist(Freelist&& other) noexcept : totalSize{ other.totalSize }, freeSpace{ other.freeSpace }, head{ other.head }
 {
     other.totalSize = 0;
     other.freeSpace = 0;

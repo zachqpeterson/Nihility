@@ -34,7 +34,8 @@ bool File::Open(const String& path, FileMode mode, bool binary)
         return false;
     }
 
-    FILE* file = fopen(path, modeStr);
+    FILE* file;
+    fopen_s(&file, path, modeStr);
     if (!file)
     {
         Logger::Error("Error opening file: {}", path);
@@ -79,7 +80,7 @@ bool File::ReadLine(struct String& line, U64 maxLength)
     {
         char buf[1024];
 
-        if (fgets(buf, maxLength, (FILE*)handle))
+        if (fgets(buf, (I32)maxLength, (FILE*)handle))
         {
             line = buf;
             return true;
@@ -267,7 +268,7 @@ void File::SeekFromStart(U64 length)
 {
     if (handle)
     {
-        fseek((FILE*)handle, length, SEEK_SET);
+        fseek((FILE*)handle, (I32)length, SEEK_SET);
     }
 }
 
@@ -275,7 +276,7 @@ void File::Seek(U64 length)
 {
     if (handle)
     {
-        fseek((FILE*)handle, length, SEEK_CUR);
+        fseek((FILE*)handle, (I32)length, SEEK_CUR);
     }
 }
 

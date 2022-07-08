@@ -1,0 +1,138 @@
+#pragma once
+
+#include "Defines.hpp"
+
+#include "Math/Math.hpp"
+#include "Memory/Memory.hpp"
+
+template <typename TKey, typename TValue> //TODO: Only use key
+struct HashTable //TODO: Rename to HashSet
+{
+public:
+    NH_API HashTable();
+    NH_API HashTable(U64 size);
+    NH_API HashTable(const HashTable& other);
+    NH_API HashTable(HashTable&& other);
+    NH_API ~HashTable();
+    NH_API void Destroy();
+    NH_API HashTable& operator=(const HashTable& other);
+    NH_API HashTable& operator=(HashTable&& other);
+
+    NH_API void Set(const TKey& key, const TValue& value);
+    NH_API TValue& Get(const TKey& key);
+    NH_API const TValue& Get(const TKey& key) const;
+
+    NH_API void Fill(const TValue& value);
+
+    NH_API TValue& operator[](const TKey& key);
+    NH_API const TValue& operator[](const TKey& key) const;
+
+private:
+    U64 size;
+    TValue* memory; //TODO: Use buckets
+};
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>::HashTable() : size{ 0 }, memory{ nullptr } { }
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>::HashTable(U64 size) : size{ size }
+{
+    memory = (TValue*)Memory::Allocate(sizeof(TValue) * size, MEMORY_TAG_DATA_STRUCT);
+    Memory::Zero(memory, sizeof(TValue) * size);
+}
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>::HashTable(const HashTable& other) : size{ other.size }
+{
+    memory = (TValue*)Memory::Allocate(sizeof(TValue) * size, MEMORY_TAG_DATA_STRUCT);
+    Memory::Copy(memory, other.memory, size);
+}
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>::HashTable(HashTable&& other) : size{ other.size }, memory{ other.memory }
+{
+    other.memory = nullptr;
+    other.size = 0;
+}
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>& HashTable<TKey, TValue>::operator=(const HashTable& other)
+{
+    size = other.size;
+    memory = (TValue*)Memory::Allocate(sizeof(TValue) * size, MEMORY_TAG_DATA_STRUCT);
+    Memory::Copy(memory, other.memory, size);
+
+    return *this;
+}
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>& HashTable<TKey, TValue>::operator=(HashTable&& other)
+{
+    size = other.size;
+    memory = other.memory;
+    other.memory = nullptr;
+    other.size = 0;
+
+    return *this;
+}
+
+template<typename TKey, typename TValue>
+NH_API inline HashTable<TKey, TValue>::~HashTable()
+{
+    if (memory)
+    {
+        Memory::Free(memory, sizeof(TValue) * size, MEMORY_TAG_DATA_STRUCT);
+        memory = nullptr;
+    }
+
+    memory = nullptr;
+}
+
+template<typename TKey, typename TValue>
+NH_API inline void HashTable<TKey, TValue>::Destroy()
+{
+    if (memory)
+    {
+        Memory::Free(memory, sizeof(TValue) * size, MEMORY_TAG_DATA_STRUCT);
+        memory = nullptr;
+    }
+
+    memory = nullptr;
+}
+
+template<typename TKey, typename TValue>
+NH_API inline void HashTable<TKey, TValue>::Set(const TKey& key, const TValue& value)
+{
+    memory[Math::Hash(key, size)] = value;
+}
+
+template<typename TKey, typename TValue>
+NH_API inline TValue& HashTable<TKey, TValue>::Get(const TKey& key)
+{
+    return memory[Math::Hash(key, size)];
+}
+
+template<typename TKey, typename TValue>
+NH_API inline const TValue& HashTable<TKey, TValue>::Get(const TKey& key) const
+{
+    return memory[Math::Hash(key, size)];
+}
+
+template<typename TKey, typename TValue>
+NH_API inline TValue& HashTable<TKey, TValue>::operator[](const TKey& key)
+{
+    return memory[Math::Hash(key, size)];
+}
+
+template<typename TKey, typename TValue>
+NH_API inline const TValue& HashTable<TKey, TValue>::operator[](const TKey& key) const
+{
+    return memory[Math::Hash(key, size)];
+}
+
+template<typename TKey, typename TValue>
+NH_API inline void HashTable<TKey, TValue>::Fill(const TValue& value)
+{
+    for (U64 i = 0; i < size; ++i) { memory[i] = value; }
+}
