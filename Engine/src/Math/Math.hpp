@@ -42,21 +42,21 @@ public:
 	static F64 Cos(F64 f);
 	static F32 Tan(F32 f);
 	static F64 Tan(F64 f);
-		
+
 	static F32 Asin(F32 f);
 	static F64 Asin(F64 f);
 	static F32 Acos(F32 f);
 	static F64 Acos(F64 f);
 	static F32 Atan(F32 f);
 	static F64 Atan(F64 f);
-		
+
 	static F32 Log2(F32 f);
 	static F64 Log2(F64 f);
 	static F32 Log10(F32 f);
 	static F64 Log10(F64 f);
 	static F32 LogN(F32 f);
 	static F64 LogN(F64 f);
-		
+
 	static F32 DegToRad(F32 d) { return (F32)(d * DEG2RAD_MULTIPLIER); }
 	static F64 DegToRad(F64 d) { return d * DEG2RAD_MULTIPLIER; }
 	static F32 RadToDeg(F32 r) { return (F32)(r * RAD2DEG_MULTIPLIER); }

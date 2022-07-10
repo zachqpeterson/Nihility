@@ -1,8 +1,6 @@
 /** @file Defines.hpp */
 #pragma once
 
-#define NH_EXPORT
-
 /** Unsigned 8-bit integer */
 typedef unsigned char U8;
 /** Unsigned 16-bit integer */

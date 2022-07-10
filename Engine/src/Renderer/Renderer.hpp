@@ -54,5 +54,5 @@ public:
     virtual bool OnResize() = 0;
 
 public:
-    U64 frameNumber;
+    U64 frameNumber{ 0 };
 };

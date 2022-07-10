@@ -53,12 +53,12 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -79,11 +79,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -95,16 +96,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\src\Containers\Array.hpp" />
     <ClInclude Include="Engine\src\Containers\Freelist.hpp" />
-    <ClInclude Include="Engine\src\Containers\HashMap.hpp" />
-    <ClInclude Include="Engine\src\Containers\HashTable.hpp" />
-    <ClInclude Include="Engine\src\Containers\List.hpp" />
-    <ClInclude Include="Engine\src\Containers\Map.hpp" />
-    <ClInclude Include="Engine\src\Containers\Queue.hpp" />
-    <ClInclude Include="Engine\src\Containers\Stack.hpp" />
     <ClInclude Include="Engine\src\Containers\String.hpp" />
-    <ClInclude Include="Engine\src\Containers\Vector.hpp" />
     <ClInclude Include="Engine\src\Core\Events.hpp" />
     <ClInclude Include="Engine\src\Core\File.hpp" />
     <ClInclude Include="Engine\src\Core\Input.hpp" />
@@ -161,6 +154,11 @@
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
     <ClCompile Include="Engine\src\Resources\Resources.cpp" />
     <ClCompile Include="Engine\src\Resources\Shader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Containers\Containers.vcxproj">
+      <Project>{56a07b6a-b13e-49eb-9580-f12a3144e6f2}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,6 +9,7 @@ class Platform
 public:
     static bool Initialize(const struct String& applicationName);
     static void Shutdown();
+    static void ClockSetup();
 
     static bool ProcessMessages();
 
@@ -22,6 +23,9 @@ public:
     static const F64 AbsoluteTime();
 
     static void GetVulkanSurfaceInfo(void* surfaceInfo);
+
+    static void SetFullscreen(bool fullscreen);
+    static void LockMouse(bool lock);
 
 private:
 #ifdef PLATFORM_WINDOWS

@@ -5,8 +5,8 @@
 #include "Shader.hpp"
 
 #include "Containers/String.hpp"
-#include "Containers/Vector.hpp"
-#include "Containers/HashMap.hpp"
+#include <Containers/Vector.hpp>
+#include <Containers/HashMap.hpp>
 #include "Math/Math.hpp"
 
 #undef LoadImage
@@ -133,7 +133,7 @@ struct MaterialConfig
 	String shaderName;
 	bool autoRelease{ false };
 	Vector4 diffuseColor; //TODO: Color struct
-	F32 shininess;
+	F32 shininess = 0.0f;
 	String diffuseMapName;
 	String specularMapName;
 	String normalMapName;

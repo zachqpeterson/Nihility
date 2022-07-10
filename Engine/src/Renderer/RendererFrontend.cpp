@@ -9,7 +9,7 @@
 #include "Core/Settings.hpp"
 #include "Memory/Memory.hpp"
 #include "Containers/String.hpp"
-#include "Containers/Vector.hpp"
+#include <Containers/Vector.hpp>
 #include "Vulkan/VulkanRenderer.hpp"
 #include "Resources/Resources.hpp"
 #include "Math/Math.hpp"
@@ -58,36 +58,6 @@ void RendererFrontend::Shutdown()
 
 bool RendererFrontend::DrawFrame()
 {
-    //TODO: Temporary
-    static bool done = false;
-
-    if (!done)
-    {
-        activeScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
-        activeScene->Create();
-
-        MeshConfig config;
-        config.name = "Mesh";
-        config.MaterialName = "Tile.mat";
-
-        config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f }, });
-        config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f }, });
-        config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f }, });
-        config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f }, });
-
-        config.indices.Push(0);
-        config.indices.Push(1);
-        config.indices.Push(2);
-        config.indices.Push(2);
-        config.indices.Push(3);
-        config.indices.Push(0);
-
-        Mesh* mesh = Resources::CreateMesh(config);
-
-        activeScene->DrawMesh(mesh, Matrix4::IDENTITY);
-        done = true;
-    }
-
     ++renderer->frameNumber;
 
     if (resizing)

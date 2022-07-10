@@ -5,7 +5,7 @@
 #include "Resources/Shader.hpp"
 
 #include "Containers/String.hpp"
-#include "Containers/Vector.hpp"
+#include <Containers/Vector.hpp>
 
 struct ShaderStage
 {

@@ -5,7 +5,7 @@
 #include "Memory/Memory.hpp"
 #include "Core/File.hpp"
 #include "Renderer/RendererFrontend.hpp"
-#include "Containers/List.hpp"
+#include <Containers/List.hpp>
 #include "Core/Settings.hpp"
 
 #undef LoadImage
@@ -151,6 +151,13 @@ void Resources::Shutdown()
 
     shaders.Destroy();
 
+    for (Renderpass* r : renderpasses)
+    {
+        Memory::Free(r, sizeof(Renderpass), MEMORY_TAG_RESOURCE);
+    }
+
+    renderpasses.Destroy();
+
     for (List<HashMap<String, Texture*>::Node>& l : textures)
     {
         for (HashMap<String, Texture*>::Node& n : l)
@@ -190,8 +197,6 @@ void Resources::Shutdown()
     }
 
     models.Destroy();
-
-    renderpasses.Destroy();
 }
 
 void Resources::LoadSettings()
@@ -229,7 +234,8 @@ void Resources::LoadSettings()
             String varValue(Move(line.SubString(equalIndex + 1)));
             varValue.Trim();
 
-            if (varName == "borderless") { Settings::BORDERLESS = varValue.ToBool(); }
+            if (varName == "fullscreen") { Settings::FULLSCREEN = varValue.ToBool(); }
+            else if (varName == "lockCursor") { Settings::LOCK_CURSOR = varValue.ToBool(); }
             else if (varName == "framerate") { Settings::TARGET_FRAMETIME = varValue.ToF64(); }
             else if (varName == "channels") { Settings::CHANNEL_COUNT = varValue.ToU8(); }
             else if (varName == "master") { Settings::MASTER_VOLUME = varValue.ToF32(); }
@@ -245,14 +251,24 @@ void Resources::LoadSettings()
                     Settings::WINDOW_HEIGHT = dimensions[1].ToU16();
                 }
             }
+            else if (varName == "resolutionSmall")
+            {
+                Vector<String> dimensions = Move(varValue.Split(',', true));
+                if (dimensions.Size() != 2) { Logger::Warn("Settings.cfg: resolution isn't in format width,height, setting to default..."); }
+                else
+                {
+                    Settings::WINDOW_WIDTH_SMALL = dimensions[0].ToU16();
+                    Settings::WINDOW_HEIGHT_SMALL = dimensions[1].ToU16();
+                }
+            }
             else if (varName == "position")
             {
                 Vector<String> position = Move(varValue.Split(',', true));
                 if (position.Size() != 2) { Logger::Warn("Settings.cfg: position isn't in format x,y, setting to default..."); }
                 else
                 {
-                    Settings::WINDOW_POSITION_X = position[0].ToU16();
-                    Settings::WINDOW_POSITION_Y = position[1].ToU16();
+                    Settings::WINDOW_POSITION_X = position[0].ToI16();
+                    Settings::WINDOW_POSITION_Y = position[1].ToI16();
                 }
             }
             else
@@ -278,9 +294,9 @@ void Resources::WriteSettings()
     File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
     if (file->Open(path, FILE_MODE_WRITE, true))
     {
-        String settings("#graphics\r\nresolution={},{}\r\nposition={},{}\r\nborderless={}\r\nframerate={}\r\n\r\n#audio\r\nchannels={}\r\nmaster={}\r\nmusic={}\r\nsfx={}",
-            Settings::WindowWidth, Settings::WindowHeight, Settings::WindowPositionX, Settings::WindowPositionY, Settings::Borderless,
-            Settings::TargetFrametime, Settings::ChannelCount, Settings::MasterVolume, Settings::MusicVolume, Settings::SfxVolume);
+        String settings("#graphics\r\nresolution={},{}\r\nresolutionSmall={},{}\r\nposition={},{}\r\nfullscreen={}\r\nlockCursor={}\r\nframerate={}\r\n\r\n#audio\r\nchannels={}\r\nmaster={}\r\nmusic={}\r\nsfx={}",
+            Settings::WindowWidth, Settings::WindowHeight, Settings::WindowWidthSmall, Settings::WindowHeightSmall, Settings::WindowPositionX, Settings::WindowPositionY, 
+            Settings::Fullscreen, Settings::LockCursor, Settings::TargetFrametime, Settings::ChannelCount, Settings::MasterVolume, Settings::MusicVolume, Settings::SfxVolume);
 
         file->Write(settings);
     }

@@ -52,20 +52,8 @@
     <ClInclude Include="Engine\src\Containers\Freelist.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Containers\HashMap.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Containers\HashTable.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Containers\List.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Core\Logger.hpp">
       <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Containers\Map.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Math\Math.hpp">
       <Filter>Source Files\Math</Filter>
@@ -75,9 +63,6 @@
     </ClInclude>
     <ClInclude Include="Engine\src\Platform\Platform.hpp">
       <Filter>Source Files\Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Containers\Queue.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\RendererFrontend.hpp">
       <Filter>Source Files\Renderer</Filter>
@@ -91,17 +76,11 @@
     <ClInclude Include="Engine\src\Resources\Shader.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Containers\Stack.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Containers\String.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Core\Time.hpp">
       <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Containers\Vector.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanBuffer.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
@@ -144,9 +123,6 @@
     </ClInclude>
     <ClInclude Include="Engine\src\Core\Settings.hpp">
       <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Containers\Array.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Renderer\RendererDefines.hpp">
       <Filter>Source Files\Renderer</Filter>

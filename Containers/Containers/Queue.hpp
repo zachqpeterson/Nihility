@@ -6,32 +6,33 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct NH_API Stack
+struct Queue
 {
-    struct NH_API Node
+    struct Node
     {
-        Node(const T& value) : value{ value }, next{ nullptr } { }
-        ~Node() { next = nullptr; }
+        Node(const T& value) : value{ value }, next{ nullptr }, prev{ nullptr } { }
+        ~Node() { next = nullptr; prev = nullptr; }
 
         void* operator new(U64 size) { return Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
         void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
 
         T value;
         Node* next;
+        Node* prev;
     };
 
 public:
-    Stack() : size{ 0 }, head{ nullptr } {}
-    Stack(const Stack& other);
-    Stack(Stack&& other);
-    ~Stack();
+    Queue() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
+    Queue(const Queue& other);
+    Queue(Queue&& other);
+    ~Queue();
     void Destroy();
 
-    void* operator new(U64 size) { return Memory::Allocate(sizeof(Stack), MEMORY_TAG_DATA_STRUCT); }
-    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Stack), MEMORY_TAG_DATA_STRUCT); }
+    void* operator new(U64 size) { return Memory::Allocate(sizeof(Queue), MEMORY_TAG_DATA_STRUCT); }
+    void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Queue), MEMORY_TAG_DATA_STRUCT); }
 
-    Stack& operator=(const Stack& other);
-    Stack& operator=(Stack&& other);
+    Queue& operator=(const Queue& other);
+    Queue& operator=(Queue&& other);
 
     void Clear();
     const bool Empty() const { return !size; }
@@ -45,10 +46,11 @@ public:
 private:
     U64 size;
     Node* head;
+    Node* tail;
 };
 
 template<typename T>
-Stack<T>::Stack(const Stack& other)
+Queue<T>::Queue(const Queue& other)
 {
     Node* node = other.head;
 
@@ -62,54 +64,57 @@ Stack<T>::Stack(const Stack& other)
 }
 
 template<typename T>
-Stack<T>::Stack(Stack&& other) : size{ other.size }, head{ other.head }
+Queue<T>::Queue(Queue&& other) : size{ other.size }, head{ other.head }, tail{ other.tail }
 {
     other.size = 0;
     other.head = nullptr;
+    other.tail = nullptr;
 }
 
 template<typename T>
-Stack<T>::~Stack()
+Queue<T>::~Queue()
 {
     Clear();
 }
 
 template<typename T>
-void Stack<T>::Destroy()
+void Queue<T>::Destroy()
 {
     Clear();
 }
 
 template<typename T>
-Stack<T>& Stack<T>::operator=(const Stack<T>& other)
+Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 {
-    if (head) { Clear(); }
+    if (head) { clear(); }
 
     Node* node = other.head;
 
     while (node)
     {
-        PushBack(node->value);
-        node = node->next;
+        PushBack(node->_value);
+        node = node->_next;
     }
 
     return *this;
 }
 
 template<typename T>
-Stack<T>& Stack<T>::operator=(Stack<T>&& other)
+Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 {
     size = other.size;
     head = other.head;
+    tail = other.tail;
 
     other.size = 0;
     other.head = nullptr;
+    other.tail = nullptr;
 }
 
 template<typename T>
-void Stack<T>::Clear()
+void Queue<T>::Clear()
 {
-    while (head)
+    while(head)
     {
         Pop();
     }
@@ -117,13 +122,14 @@ void Stack<T>::Clear()
 
 
 template<typename T>
-inline T&& Stack<T>::Pop()
+inline T&& Queue<T>::Pop()
 {
     if (head)
     {
         --size;
         Node* tempNode = head;
         head = head->next;
+        head->prev = nullptr;
         T value = tempNode->value;
         delete tempNode;
         return Move(value);
@@ -133,19 +139,31 @@ inline T&& Stack<T>::Pop()
 }
 
 template<typename T>
-inline void Stack<T>::Push(const T& value)
+inline void Queue<T>::Push(const T& value)
 {
-    ++size;
     Node* newNode = new Node(value);
-    newNode->next = head;
-    head = newNode;
+    ++size;
+    if (head)
+    {
+        tail->next = newNode;
+        newNode->prev = tail;
+    }
+    else { head = newNode; }
+
+    tail = newNode;
 }
 
 template<typename T>
-inline void Stack<T>::Push(T&& value)
+inline void Queue<T>::Push(T&& value)
 {
-    ++size;
     Node* newNode = new Node(value);
-    newNode->next = head;
-    head = newNode;
+    ++size;
+    if (head)
+    {
+        tail->next = newNode;
+        newNode->prev = tail;
+    }
+    else { head = newNode; }
+
+    tail = newNode;
 }

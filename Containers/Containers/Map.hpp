@@ -8,7 +8,7 @@
 #include "Core/Logger.hpp"
 
 template<typename TKey, typename TValue>
-struct NH_API Map
+struct Map
 {
     struct Node
     {

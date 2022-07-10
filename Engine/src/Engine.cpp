@@ -7,7 +7,7 @@
 #include "Core/Input.hpp"
 #include "Core/Events.hpp"
 #include "Core/Settings.hpp"
-#include "Containers/Vector.hpp"
+#include <Containers/Vector.hpp>
 #include "Containers/String.hpp"
 #include "Renderer/RendererFrontend.hpp"
 #include "Resources/Resources.hpp"
@@ -25,7 +25,7 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
     GameUpdate = update;
     GameCleanup = cleanup;
 
-    Memory::Initialize(Gigabytes(2));
+    Memory::Initialize(Gigabytes(1));
 
     Logger::Initialize();
 
@@ -116,6 +116,8 @@ void Engine::Shutdown()
     Resources::WriteSettings();
 
     Events::Shutdown();
+
+    Memory::GetMemoryStats();
 
     Memory::Shutdown();
 }
