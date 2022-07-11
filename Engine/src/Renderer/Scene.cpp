@@ -7,7 +7,7 @@
 #include "Resources/Resources.hpp"
 #include "Core/Settings.hpp"
 
-void Scene::Create()
+void Scene::Create(CameraType cameraType)
 {
     for (Material* material : Resources::GetMaterials())
     {
@@ -16,20 +16,27 @@ void Scene::Create()
         meshes.Push(list);
     }
 
-    //TODO: Configure
-    if (Settings::WindowWidth > (Settings::WindowHeight * 1.77777777778f))
+    if (cameraType == CAMERA_TYPE_PERSPECTIVE)
     {
-        F32 camHeight = 0.9375f;
-        F32 camWidth = camHeight * ((F32)Settings::WindowWidth / (F32)Settings::WindowHeight);
-
-        camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
+        camera = new Camera(45.0f, 0.1f, 1000.0f, { 0.0f, 0.0f, 10.0f });
     }
     else
     {
-        F32 camWidth = 1.66666666667f;
-        F32 camHeight = camWidth * ((F32)Settings::WindowHeight / (F32)Settings::WindowWidth);
+        if (Settings::WindowWidth > (Settings::WindowHeight * 1.77777777778f))
+        {
+            F32 camHeight = 0.9375f;
+            F32 camWidth = camHeight * ((F32)Settings::WindowWidth / (F32)Settings::WindowHeight);
 
-        camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, -10.0f });
+
+            camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, 10.0f });
+        }
+        else
+        {
+            F32 camWidth = 1.66666666667f;
+            F32 camHeight = camWidth * ((F32)Settings::WindowHeight / (F32)Settings::WindowWidth);
+
+            camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, 10.0f });
+        }
     }
 }
 

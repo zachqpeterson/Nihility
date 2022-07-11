@@ -134,6 +134,7 @@ struct MaterialConfig
 	bool autoRelease{ false };
 	Vector4 diffuseColor; //TODO: Color struct
 	F32 shininess = 0.0f;
+	//TODO: Texture map Vector
 	String diffuseMapName;
 	String specularMapName;
 	String normalMapName;
@@ -143,15 +144,17 @@ struct Material
 {
 	U32 id;
 	String name;
-	Shader* shader;
 	U32 generation;
 	U32 internalId;
+	F32 shininess;
+	U64 renderFrameNumber;
+
+	Shader* shader;
 	Vector4 diffuseColor; //TODO: Color struct
+	//TODO: Texture map Vector
 	TextureMap diffuseMap;
 	TextureMap specularMap;
 	TextureMap normalMap;
-	F32 shininess;
-	U64 renderFrameNumber;
 };
 
 struct MeshConfig

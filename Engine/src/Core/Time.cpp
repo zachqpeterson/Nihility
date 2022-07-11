@@ -48,7 +48,7 @@ void Time::Update()
 
 const F64& Time::DeltaTime()
 {
-    return delta;
+     return delta;
 }
 
 const F64 Time::UpTime()

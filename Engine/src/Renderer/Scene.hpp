@@ -5,6 +5,12 @@
 #include <Containers/List.hpp>
 #include <Containers/Vector.hpp>
 
+enum CameraType
+{
+    CAMERA_TYPE_ORTHOGRAPHIC,
+    CAMERA_TYPE_PERSPECTIVE
+};
+
 struct MaterialList
 {
     struct Material* material;
@@ -14,7 +20,7 @@ struct MaterialList
 class Scene
 {
 public:
-    void NH_API Create();
+    void NH_API Create(CameraType cameraType);
     void NH_API Destroy();
 
     void OnResize();
@@ -22,6 +28,8 @@ public:
 
     void NH_API DrawMesh(struct Mesh* mesh, const struct Matrix4& model);
     void NH_API DrawModel(struct Model* model);
+
+    struct Camera* GetCamera() { return camera; }
 
 private:
     struct Camera* camera;

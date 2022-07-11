@@ -79,7 +79,7 @@ void Engine::MainLoop()
             accumulatedTime += upTime - lastUpTime;
             lastUpTime = upTime;
             
-            while (accumulatedTime >= Settings::TargetFrametime) //TODO: Config
+            while (accumulatedTime >= Settings::TargetFrametime)
             {
                 //PHYSICS
 

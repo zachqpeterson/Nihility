@@ -136,13 +136,6 @@ bool Resources::Initialize()
 
 void Resources::Shutdown()
 {
-    for (Material* m : materials)
-    {
-        DestroyMaterial(m);
-    }
-
-    materials.Destroy();
-
     for (Shader* s : shaders)
     {
         s->Destroy();
@@ -157,6 +150,13 @@ void Resources::Shutdown()
     }
 
     renderpasses.Destroy();
+
+    for (Material* m : materials)
+    {
+        DestroyMaterial(m);
+    }
+
+    materials.Destroy();
 
     for (List<HashMap<String, Texture*>::Node>& l : textures)
     {

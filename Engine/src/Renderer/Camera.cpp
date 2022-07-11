@@ -76,7 +76,7 @@ const Matrix4& Camera::View()
     if (dirty)
     {
         dirty = false;
-        viewMatrix = Matrix4(position, rotation);
+        viewMatrix = Matrix4(position, rotation).Inverse();
     }
 
     return viewMatrix;
