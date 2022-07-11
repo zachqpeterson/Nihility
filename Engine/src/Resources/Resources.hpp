@@ -27,14 +27,6 @@ enum ImageLayout
 	IMAGE_LAYOUT_BGR24,
 };
 
-enum TextureUse
-{
-	TEXTURE_USE_UNKNOWN = 0x00,
-	TEXTURE_USE_MAP_DIFFUSE = 0x01,
-	TEXTURE_USE_MAP_SPECULAR = 0x02,
-	TEXTURE_USE_MAP_NORMAL = 0x03
-};
-
 enum TextureFlag
 {
 	TEXTURE_FLAG_HAS_TRANSPARENCY = 0x1,
@@ -95,7 +87,6 @@ struct Texture
 struct TextureMap
 {
 	Texture* texture;
-	TextureUse use;
 	TextureFilter filterMinify;
 	TextureFilter filterMagnify;
 	TextureRepeat repeatU;
@@ -129,15 +120,11 @@ struct Renderpass
 
 struct MaterialConfig
 {
-	String name;
 	String shaderName;
 	bool autoRelease{ false };
-	Vector4 diffuseColor; //TODO: Color struct
 	F32 shininess = 0.0f;
-	//TODO: Texture map Vector
-	String diffuseMapName;
-	String specularMapName;
-	String normalMapName;
+	Vector4 diffuseColor; //TODO: Color struct
+	Vector<String> textureMapNames;
 };
 
 struct Material
@@ -151,10 +138,7 @@ struct Material
 
 	Shader* shader;
 	Vector4 diffuseColor; //TODO: Color struct
-	//TODO: Texture map Vector
-	TextureMap diffuseMap;
-	TextureMap specularMap;
-	TextureMap normalMap;
+	Vector<TextureMap> textureMaps;
 };
 
 struct MeshConfig
