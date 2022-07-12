@@ -10,6 +10,7 @@
 #include <Renderer/Camera.hpp>
 #include <Renderer/RendererFrontend.hpp>
 #include <Resources/Resources.hpp>
+#include <Resources/UI.hpp>
 
 Scene* scene;
 
@@ -22,7 +23,6 @@ bool init()
 	backgroundConfig.name = "Background";
 	backgroundConfig.MaterialName = "Background.mat";
 
-	//FRONT TILE
 	backgroundConfig.vertices.Push(Vertex{ {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } });
 	backgroundConfig.vertices.Push(Vertex{ { 1.0f, -1.0f, 0.0f}, { 1.0f, 0.0f } });
 	backgroundConfig.vertices.Push(Vertex{ { 1.0f,  1.0f, 0.0f}, { 1.0f, 1.0f } });
@@ -39,7 +39,6 @@ bool init()
 	config0.name = "Mesh0";
 	config0.MaterialName = "Tile.mat";
 
-	//FRONT TILE
 	config0.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.33333333333f, 0.625f } });
 	config0.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.5f, 0.625f } });
 	config0.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.5f, 0.5f } });
@@ -55,7 +54,7 @@ bool init()
 	MeshConfig config1;
 	config1.name = "Mesh1";
 	config1.MaterialName = "Tile.mat";
-	//BACK TILE
+
 	config1.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.375f } });
 	config1.vertices.Push(Vertex{ { 1.5f, -0.5f, 0.0f}, { 0.33333333333f, 0.375f } });
 	config1.vertices.Push(Vertex{ { 1.5f,  0.5f, 0.0f}, { 0.33333333333f, 0.25f } });
@@ -71,9 +70,11 @@ bool init()
 	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Mesh* mesh1 = Resources::CreateMesh(config1);
+	Panel* panel = UI::GeneratePanel({ 0.0f, 1.0f, 1.0f, 0.0f });
 	scene->DrawMesh(backgroundMesh, Matrix4::IDENTITY);
 	scene->DrawMesh(mesh0, Matrix4::IDENTITY);
 	scene->DrawMesh(mesh1, Matrix4::IDENTITY);
+	scene->DrawMesh(panel->mesh, Matrix4::IDENTITY);
 
 	RendererFrontend::UseScene(scene);
 

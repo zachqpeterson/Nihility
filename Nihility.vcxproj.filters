@@ -127,6 +127,9 @@
     <ClInclude Include="Renderer\RendererDefines.hpp">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\src\Resources\UI.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">
@@ -203,6 +206,9 @@
     </ClCompile>
     <ClCompile Include="Engine\src\Memory\DynamicAllocator.cpp">
       <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Resources\UI.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

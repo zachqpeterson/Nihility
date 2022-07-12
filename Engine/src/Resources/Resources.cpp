@@ -130,6 +130,7 @@ bool Resources::Initialize()
 	//TODO: Temporary
 	LoadMaterial("Background.mat");
 	LoadMaterial("Tile.mat");
+	LoadMaterial("UI.mat");
 
 	return true;
 }

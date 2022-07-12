@@ -126,6 +126,7 @@
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.hpp" />
     <ClInclude Include="Engine\src\Resources\Resources.hpp" />
     <ClInclude Include="Engine\src\Resources\Shader.hpp" />
+    <ClInclude Include="Engine\src\Resources\UI.hpp" />
     <ClInclude Include="Renderer\RendererDefines.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -154,6 +155,7 @@
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
     <ClCompile Include="Engine\src\Resources\Resources.cpp" />
     <ClCompile Include="Engine\src\Resources\Shader.cpp" />
+    <ClCompile Include="Engine\src\Resources\UI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Containers\Containers.vcxproj">
