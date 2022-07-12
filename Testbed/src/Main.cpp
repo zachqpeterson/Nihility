@@ -70,11 +70,13 @@ bool init()
 	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Mesh* mesh1 = Resources::CreateMesh(config1);
-	Panel* panel = UI::GeneratePanel({ 0.0f, 1.0f, 1.0f, 0.0f });
+	Panel* panel0 = UI::GeneratePanel({ 0.25f, 0.25f, 0.75f, 0.75f }, {1.0f, 0.0f, 0.0f, 1.0f});
+	Panel* panel1 = UI::GenerateBorderedPanel({ 0.25f, 0.25f, 0.75f, 0.75f }, { 0.0f, 1.0f, 0.0f, 1.0f }, panel0);
 	scene->DrawMesh(backgroundMesh, Matrix4::IDENTITY);
 	scene->DrawMesh(mesh0, Matrix4::IDENTITY);
 	scene->DrawMesh(mesh1, Matrix4::IDENTITY);
-	scene->DrawMesh(panel->mesh, Matrix4::IDENTITY);
+	scene->DrawMesh(panel1->mesh, Matrix4::IDENTITY);
+	scene->DrawMesh(panel0->mesh, Matrix4::IDENTITY);
 
 	RendererFrontend::UseScene(scene);
 

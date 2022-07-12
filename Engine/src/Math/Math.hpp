@@ -337,6 +337,8 @@ struct NH_API Vector4
 
 	Vector4 operator+ (const Vector4& v) const { return Vector4{ x + v.x, y + v.y, z + v.z, w + v.w }; }
 	Vector4 operator- (const Vector4& v) const { return Vector4{ x - v.x, y - v.y, z - v.z, w - v.w }; }
+	Vector4 operator* (const Vector4& v) const { return Vector4{ x * v.x, y * v.y, z * v.z, w * v.w }; }
+	Vector4 operator/ (const Vector4& v) const { return Vector4{ x / v.x, y / v.y, z / v.z, w / v.w }; }
 	Vector4 operator+ (F32 f) const { return Vector4{ x + f, y + f, z + f, w + f }; }
 	Vector4 operator- (F32 f) const { return Vector4{ x - f, y - f, z - f, w - f }; }
 	Vector4 operator* (F32 f) const { return Vector4{ x * f, y * f, z * f, w * f }; }

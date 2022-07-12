@@ -7,9 +7,11 @@ layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec4 inTangent;
 
 layout(location = 0) out vec2 outTexcoord;
+layout(location = 1) out vec4 outColor;
 
 void main()
 {
     outTexcoord = inTexcoord;
+    outColor = inColor;
     gl_Position = vec4(inPosition, 1.0);
 }
