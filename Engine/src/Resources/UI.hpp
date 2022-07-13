@@ -29,6 +29,9 @@ struct UIImage : UIElement
 class UI
 {
 public:
+	static bool Initialize();
+	static void Shutdown();
+
 	static NH_API UIPanel* GenerateBorderedPanel(const Vector4& area, const Vector4& color = Vector4::ONE, UIElement* parent = nullptr);
 	static NH_API UIPanel* GeneratePanel(const Vector4& area, const Vector4& color = Vector4::ONE, UIElement* parent = nullptr);
 	static NH_API UIImage* GenerateImage(const Vector4& area, struct Texture* texture, UIElement* parent = nullptr);
@@ -36,4 +39,5 @@ public:
 
 private:
 	static U16 elementIndex;
+	static struct Texture* uiTexture;
 };

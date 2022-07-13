@@ -32,6 +32,9 @@
     <Filter Include="Source Files\Audio">
       <UniqueIdentifier>{1e0f758a-6325-4606-8cf0-9333d5bbe016}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Physics">
+      <UniqueIdentifier>{a152ec1b-1989-40ab-b268-088babb16d9f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\src\Defines.hpp">

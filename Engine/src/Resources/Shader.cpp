@@ -101,9 +101,8 @@ bool Shader::AddPushConstant(PushConstant pushConstant)
 	return true;
 }
 
-bool Shader::ApplyGlobals(Camera* camera, Material* material)
+bool Shader::ApplyGlobals(Material& material, Camera* camera)
 {
-	//TODO: ADD SAMPLER
 	for (Uniform& uniform : uniforms[SHADER_SCOPE_GLOBAL])
 	{
 		U32 mode = 0;
@@ -133,7 +132,7 @@ bool Shader::ApplyGlobals(Camera* camera, Material* material)
 		}
 		else if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
-			if (!RendererFrontend::SetUniform(this, uniform, &material->textureMaps[uniform.location]))
+			if (!RendererFrontend::SetUniform(this, uniform, &material.textureMaps[uniform.location]))
 			{
 				Logger::Error("Failed to set uniform");
 				return false;
@@ -160,9 +159,9 @@ bool Shader::ApplyGlobals(Camera* camera, Material* material)
 	return RendererFrontend::ApplyShaderGlobals(this);
 }
 
-bool Shader::ApplyMaterialInstances(Material* material, bool needsUpdate)
+bool Shader::ApplyMaterialInstances(Material& material, bool needsUpdate)
 {
-	if (!material->shader->useInstances) { return true; }
+	if (!useInstances) { return true; }
 
 	if (!RendererFrontend::BindShaderInstance(this, boundInstanceId))
 	{
@@ -176,7 +175,7 @@ bool Shader::ApplyMaterialInstances(Material* material, bool needsUpdate)
 		{
 			if (uniform.name == "diffuseColor")
 			{
-				if (!RendererFrontend::SetUniform(this, uniform, material->diffuseColor.Data()))
+				if (!RendererFrontend::SetUniform(this, uniform, material.diffuseColor.Data()))
 				{
 					Logger::Error("Failed to set uniform");
 					return false;
@@ -184,7 +183,7 @@ bool Shader::ApplyMaterialInstances(Material* material, bool needsUpdate)
 			}
 			else if (uniform.type == FIELD_TYPE_SAMPLER)
 			{
-				if (!RendererFrontend::SetUniform(this, uniform, &material->textureMaps[uniform.location]))
+				if (!RendererFrontend::SetUniform(this, uniform, &material.textureMaps[uniform.location]))
 				{
 					Logger::Error("Failed to set uniform");
 					return false;
@@ -192,7 +191,7 @@ bool Shader::ApplyMaterialInstances(Material* material, bool needsUpdate)
 			}
 			else if (uniform.name == "shininess")
 			{
-				if (!RendererFrontend::SetUniform(this, uniform, &material->shininess))
+				if (!RendererFrontend::SetUniform(this, uniform, &material.shininess))
 				{
 					Logger::Error("Failed to set uniform");
 					return false;
@@ -204,9 +203,9 @@ bool Shader::ApplyMaterialInstances(Material* material, bool needsUpdate)
 	return RendererFrontend::ApplyShaderInstance(this, needsUpdate);
 }
 
-bool Shader::ApplyMaterialLocals(Material* material, const Matrix4& model)
+bool Shader::ApplyMaterialLocals(const Matrix4& model)
 {
-	if (!material->shader->useLocals) { return true; }
+	if (!useLocals) { return true; }
 
 	for (PushConstant& pushConstant : pushConstants)
 	{

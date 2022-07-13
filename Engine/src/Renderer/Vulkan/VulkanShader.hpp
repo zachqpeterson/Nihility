@@ -9,71 +9,71 @@
 
 struct ShaderStage
 {
-    VkShaderModuleCreateInfo info;
-    VkShaderModule handle;
-    VkPipelineShaderStageCreateInfo shaderStageInfo;
+	VkShaderModuleCreateInfo info;
+	VkShaderModule handle;
+	VkPipelineShaderStageCreateInfo shaderStageInfo;
 };
 
 struct ShaderStageConfig
 {
-    VkShaderStageFlagBits stage{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
-    String fileName;
+	VkShaderStageFlagBits stage{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
+	String fileName;
 };
 
 struct InstanceState
 {
-    U32 id;
-    U32 offset;
+	U32 id;
+	U32 offset;
 
-    Vector<VkDescriptorSet> descriptorSets;
+	Vector<VkDescriptorSet> descriptorSets;
 
-    Vector<struct TextureMap> instanceTextureMaps;
+	Vector<struct TextureMap> instanceTextureMaps;
 };
 
 struct VulkanShaderConfig
 {
-    Vector<ShaderStageConfig> stages;
-    Vector<VkDescriptorPoolSize> poolSizes;
-    Array<Vector<VkDescriptorSetLayoutBinding>, 2> descriptorSets;
+	Vector<ShaderStageConfig> stages;
+	Vector<VkDescriptorPoolSize> poolSizes;
+	Array<Vector<VkDescriptorSetLayoutBinding>, 2> descriptorSets;
 
-    Vector<VkVertexInputAttributeDescription> attributes;
+	Vector<VkVertexInputAttributeDescription> attributes;
 };
 
 class VulkanShader
 {
 public:
-    bool Create(RendererState* rendererState, Shader* shader);
-    void Destroy(RendererState* rendererState);
-    bool Initialize(RendererState* rendererState, Shader* shader);
-    bool CreateShaderModule(RendererState* rendererState, ShaderStageConfig config, ShaderStage* shaderStage);
+	bool Create(RendererState* rendererState, Shader* shader);
+	void Destroy(RendererState* rendererState);
+	bool Initialize(RendererState* rendererState, Shader* shader);
+	bool CreateShaderModule(RendererState* rendererState, ShaderStageConfig config, ShaderStage* shaderStage);
 
-    bool Use(RendererState* rendererState);
-    void SetUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value);
-    void SetPushConstant(RendererState* rendererState, Shader* shader, PushConstant& pushConstant, const void* value);
+	bool Use(RendererState* rendererState);
+	void SetUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value);
+	void SetPushConstant(RendererState* rendererState, Shader* shader, PushConstant& pushConstant, const void* value);
 
-    bool ApplyGlobals(RendererState* rendererState, Shader* shader);
+	bool ApplyGlobals(RendererState* rendererState, Shader* shader);
 
-    void BindInstance(Shader* shader, U32 instanceId);
-    bool ApplyInstance(RendererState* rendererState, Shader* shader, bool needsUpdate);
-    U32 AcquireInstanceResources(RendererState* rendererState, Shader* shader, Vector<TextureMap>& maps);
-    bool ReleaseInstanceResources(RendererState* rendererState, Shader* shader, U32 instanceId);
-    
+	void BindInstance(Shader* shader, U32 instanceId);
+	bool ApplyInstance(RendererState* rendererState, Shader* shader, bool needsUpdate);
+	U32 AcquireInstanceResources(RendererState* rendererState, Shader* shader, Vector<TextureMap>& maps);
+	bool ReleaseInstanceResources(RendererState* rendererState, Shader* shader, U32 instanceId);
+
 public:
-    void* mappedUniformBufferBlock;
+	void* mappedUniformBufferBlock;
 
-    VulkanShaderConfig config;
+	VulkanShaderConfig config;
 
-    Vector<ShaderStage> stages;
+	Vector<ShaderStage> stages;
 
-    VkDescriptorPool descriptorPool;
+	VkDescriptorPool descriptorPool;
 
-    U32 instanceDescriptorUboCount;
-    U32 globalDescriptorUboCount;
-    Vector<VkDescriptorSetLayout> descriptorSetLayouts;
-    Vector<VkDescriptorSet> globalDescriptorSets;
+	U32 instanceDescriptorUboCount;
+	U32 globalDescriptorUboCount;
+	Vector<VkDescriptorSetLayout> descriptorSetLayouts;
+	Vector<VkDescriptorSet> globalDescriptorSets;
 
-    class VulkanPipeline* pipeline;
-    class VulkanBuffer* uniformBuffer;
+	class VulkanPipeline* pipeline;
+	class VulkanBuffer* uniformBuffer;
 
-    Array<InstanceState, VULKAN_MAX_MATERIAL_COUNT> instanceStates;
+	Array<InstanceState, VULKAN_MAX_MATERIAL_COUNT> instanceStates;
 };

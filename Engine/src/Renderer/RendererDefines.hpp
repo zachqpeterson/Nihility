@@ -5,6 +5,6 @@
 
 struct MeshRenderData
 {
-    Matrix4 model = Matrix4::IDENTITY;
-    Mesh* mesh = nullptr;
+	Matrix4 model{ Matrix4::IDENTITY };
+	Mesh* mesh{ nullptr };
 };

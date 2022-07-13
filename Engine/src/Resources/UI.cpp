@@ -3,6 +3,19 @@
 #include "Resources.hpp"
 
 U16 UI::elementIndex{ 0 };
+Texture* UI::uiTexture;
+
+bool UI::Initialize()
+{
+	uiTexture = Resources::LoadTexture("UI.bmp");
+
+	return uiTexture;
+}
+
+void UI::Shutdown()
+{
+	uiTexture = nullptr;
+}
 
 UIPanel* UI::GenerateBorderedPanel(const Vector4& area, const Vector4& color, UIElement* parent)
 {

@@ -125,7 +125,7 @@ bool Resources::Initialize()
 	defaultMaterialShader = LoadShader(DEFAULT_MATERIAL_SHADER_NAME);
 	//defaultUiShader = LoadShader(DEFAULT_UI_SHADER_NAME);
 
-	defaultMaterial = LoadMaterial(DEFAULT_MATERIAL_NAME);
+	defaultMaterial = &LoadMaterial(DEFAULT_MATERIAL_NAME);
 
 	//TODO: Temporary
 	LoadMaterial("Background.mat");
@@ -1291,12 +1291,12 @@ void Resources::CreateShaders()
 	}
 }
 
-Material* Resources::LoadMaterial(const String& name)
+Material Resources::LoadMaterial(const String& name)
 {
 	if (name.Blank())
 	{
 		Logger::Error("Material name can not be blank or nullptr!");
-		return nullptr;
+		return *DefaultMaterial();
 	}
 
 	Material* material = nullptr;
@@ -1310,7 +1310,11 @@ Material* Resources::LoadMaterial(const String& name)
 		}
 	}
 
-	if (material) { return material; }
+	if (material) 
+	{ 
+		++material->instance;
+		return *material;
+	}
 
 	Logger::Info("Loading material '{}'...", name);
 
@@ -1396,12 +1400,12 @@ Material* Resources::LoadMaterial(const String& name)
 	else
 	{
 		path.Destroy();
-		return nullptr;
+		return *DefaultMaterial();
 	}
 
 	Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 
-	return material;
+	return *material;
 }
 
 void Resources::CreateMaterial(MaterialConfig& config, Material* material)
@@ -1514,7 +1518,7 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 	if (config.MaterialName.Blank())
 	{
-		mesh->material = DefaultMaterial();
+		mesh->material = *DefaultMaterial();
 	}
 	else
 	{
@@ -1526,12 +1530,12 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 	return mesh;
 }
 
-void Resources::DestroyMesh(Mesh* mesh)
+void DestroyMesh(Mesh* mesh)
 {
 	RendererFrontend::DestroyMesh(mesh);
-
-	mesh->material = nullptr;
 	mesh->name.Destroy();
+
+	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }
 
 Model* Resources::LoadModel(const String& name)

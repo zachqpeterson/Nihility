@@ -75,9 +75,9 @@ public:
 	bool AddUniform(Uniform uniform);
 	bool AddPushConstant(PushConstant pushConstant);
 
-	bool ApplyGlobals(struct Camera* camera, struct Material* material);
-	bool ApplyMaterialInstances(struct Material* material, bool needsUpdate);
-	bool ApplyMaterialLocals(struct Material* material, const Matrix4& model);
+	bool ApplyGlobals(struct Material& material, struct Camera* camera);
+	bool ApplyMaterialInstances(struct Material& material, bool needsUpdate);
+	bool ApplyMaterialLocals(const Matrix4& model);
 
 public:
 	String name;

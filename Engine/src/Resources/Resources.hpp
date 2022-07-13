@@ -133,6 +133,7 @@ struct Material
 	String name;
 	U32 generation;
 	U32 internalId;
+	U32 instance{ 0 };
 	F32 shininess;
 	U64 renderFrameNumber;
 
@@ -157,7 +158,7 @@ struct MeshConfig
 struct Mesh
 {
 	String name;
-	Material* material;
+	Material material;
 	void* internalData;
 };
 
@@ -177,7 +178,7 @@ public:
 	static Binary* LoadBinary(const String& name);
 	static void UnloadBinary(Binary* binary);
 	static Texture* LoadTexture(const String& name);
-	static Material* LoadMaterial(const String& name);
+	static Material LoadMaterial(const String& name);
 	static Mesh* LoadMesh(const String& name);
 	static Model* LoadModel(const String& name);
 
@@ -190,6 +191,7 @@ public:
 	static Vector<Material*>& GetMaterials() { return materials; }
 
 	static Mesh* CreateMesh(MeshConfig& config);
+	static void DestroyMesh(Mesh* mesh);
 
 	static Texture* DefaultTexture() { return defaultTexture; }
 	static Texture* DefaultDiffuse() { return defaultDiffuse; }

@@ -11,6 +11,7 @@
 #include "Containers/String.hpp"
 #include "Renderer/RendererFrontend.hpp"
 #include "Resources/Resources.hpp"
+#include "Resources/UI.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -21,109 +22,113 @@ bool Engine::suspended;
 
 void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup)
 {
-    GameInit = init;
-    GameUpdate = update;
-    GameCleanup = cleanup;
+	GameInit = init;
+	GameUpdate = update;
+	GameCleanup = cleanup;
 
-    Memory::Initialize(Gigabytes(1));
+	Memory::Initialize(Gigabytes(1));
 
-    Logger::Initialize();
+	Logger::Initialize();
 
-    Resources::LoadSettings();
+	Resources::LoadSettings();
 
-    Platform::Initialize("TEST");
+	Platform::Initialize("TEST");
 
-    Input::Initialize();
+	Input::Initialize();
 
-    RendererFrontend::Initialize(applicationName);
+	RendererFrontend::Initialize(applicationName);
 
-    Resources::Initialize();
+	Resources::Initialize();
 
-    //TODO: Load all materials
-    Resources::CreateShaders();
+	//TODO: Load all materials
+	Resources::CreateShaders();
 
-    GameInit();
+	UI::Initialize();
 
-    Time::Initialize();
+	GameInit();
 
-    Events::Subscribe("CLOSE", OnClose);
+	Time::Initialize();
 
-    Memory::GetMemoryStats();
+	Events::Subscribe("CLOSE", OnClose);
 
-    MainLoop();
+	Memory::GetMemoryStats();
+
+	MainLoop();
 }
 
 void Engine::MainLoop()
 {
-    running = true;
-    suspended = false;
+	running = true;
+	suspended = false;
 
-    F64 accumulatedTime = 0.0f;
-    F64 lastUpTime = Time::UpTime();
-    F64 upTime = lastUpTime;
+	F64 accumulatedTime = 0.0f;
+	F64 lastUpTime = Time::UpTime();
+	F64 upTime = lastUpTime;
 
-    while (running)
-    {
-        running = Platform::ProcessMessages();
+	while (running)
+	{
+		running = Platform::ProcessMessages();
 
-        if (Input::OnButtonDown(ESCAPE))
-        {
-            running = false;
-            break;
-        }
+		if (Input::OnButtonDown(ESCAPE))
+		{
+			running = false;
+			break;
+		}
 
-        if (!suspended && running)
-        {
-            Time::Update();
-            upTime = Time::UpTime();
-            accumulatedTime += upTime - lastUpTime;
-            lastUpTime = upTime;
-            
-            while (accumulatedTime >= Settings::TargetFrametime)
-            {
-                //PHYSICS
+		if (!suspended && running)
+		{
+			Time::Update();
+			upTime = Time::UpTime();
+			accumulatedTime += upTime - lastUpTime;
+			lastUpTime = upTime;
 
-                running = GameUpdate();
+			while (accumulatedTime >= Settings::TargetFrametime)
+			{
+				//PHYSICS
 
-                //OTHER UPDATES
+				running = GameUpdate();
 
-                accumulatedTime -= Settings::TargetFrametime;
-            }
+				//OTHER UPDATES
 
-            RendererFrontend::DrawFrame();
-        }
-    }
+				accumulatedTime -= Settings::TargetFrametime;
+			}
 
-    Shutdown();
+			RendererFrontend::DrawFrame();
+		}
+	}
+
+	Shutdown();
 }
 
 void Engine::Shutdown()
 {
-    GameCleanup();
+	GameCleanup();
 
-    Time::Shutdown();
+	Time::Shutdown();
 
-    Resources::Shutdown();
+	UI::Shutdown();
 
-    RendererFrontend::Shutdown();
+	Resources::Shutdown();
 
-    Input::Shutdown();
+	RendererFrontend::Shutdown();
 
-    Platform::Shutdown();
+	Input::Shutdown();
 
-    Logger::Shutdown();
+	Platform::Shutdown();
 
-    Resources::WriteSettings();
+	Logger::Shutdown();
 
-    Events::Shutdown();
+	Resources::WriteSettings();
 
-    Memory::GetMemoryStats();
+	Events::Shutdown();
 
-    Memory::Shutdown();
+	Memory::GetMemoryStats();
+
+	Memory::Shutdown();
 }
 
 bool Engine::OnClose(void* data)
 {
-    running = false;
-    return true;
+	running = false;
+	return true;
 }

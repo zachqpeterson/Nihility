@@ -53,12 +53,12 @@ bool init()
 
 	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
-	Panel* panel0 = UI::GeneratePanel({ 0.25f, 0.25f, 0.75f, 0.75f }, {1.0f, 0.0f, 0.0f, 1.0f});
-	Panel* panel1 = UI::GenerateBorderedPanel({ 0.25f, 0.25f, 0.75f, 0.75f }, { 0.0f, 1.0f, 0.0f, 1.0f }, panel0);
-	scene->DrawMesh(backgroundMesh, Matrix4::IDENTITY);
-	scene->DrawMesh(mesh0, Matrix4::IDENTITY);
-	scene->DrawMesh(panel1->mesh, Matrix4::IDENTITY);
-	scene->DrawMesh(panel0->mesh, Matrix4::IDENTITY);
+	UIPanel* panel0 = UI::GeneratePanel({ 0.25f, 0.25f, 0.75f, 0.75f }, {1.0f, 0.0f, 0.0f, 1.0f});
+	UIPanel* panel1 = UI::GenerateBorderedPanel({ 0.25f, 0.25f, 0.75f, 0.75f }, { 0.0f, 1.0f, 0.0f, 1.0f }, panel0);
+	scene->DrawMesh(backgroundMesh);
+	scene->DrawMesh(mesh0);
+	scene->DrawMesh(panel1->mesh); //TODO: Render seperately to ensure order
+	scene->DrawMesh(panel0->mesh);
 
 	RendererFrontend::UseScene(scene);
 
