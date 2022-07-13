@@ -39,10 +39,10 @@ bool init()
 	config0.name = "Mesh0";
 	config0.MaterialName = "Tile.mat";
 
-	config0.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.33333333333f, 0.625f } });
-	config0.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.5f, 0.625f } });
-	config0.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.5f, 0.5f } });
-	config0.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.33333333333f, 0.5f } });
+	config0.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
+	config0.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
+	config0.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
+	config0.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
 
 	config0.indices.Push(0);
 	config0.indices.Push(1);
@@ -51,30 +51,12 @@ bool init()
 	config0.indices.Push(3);
 	config0.indices.Push(0);
 
-	MeshConfig config1;
-	config1.name = "Mesh1";
-	config1.MaterialName = "Tile.mat";
-
-	config1.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.375f } });
-	config1.vertices.Push(Vertex{ { 1.5f, -0.5f, 0.0f}, { 0.33333333333f, 0.375f } });
-	config1.vertices.Push(Vertex{ { 1.5f,  0.5f, 0.0f}, { 0.33333333333f, 0.25f } });
-	config1.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.25f } });
-
-	config1.indices.Push(0);
-	config1.indices.Push(1);
-	config1.indices.Push(2);
-	config1.indices.Push(2);
-	config1.indices.Push(3);
-	config1.indices.Push(0);
-
 	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
-	Mesh* mesh1 = Resources::CreateMesh(config1);
 	Panel* panel0 = UI::GeneratePanel({ 0.25f, 0.25f, 0.75f, 0.75f }, {1.0f, 0.0f, 0.0f, 1.0f});
 	Panel* panel1 = UI::GenerateBorderedPanel({ 0.25f, 0.25f, 0.75f, 0.75f }, { 0.0f, 1.0f, 0.0f, 1.0f }, panel0);
 	scene->DrawMesh(backgroundMesh, Matrix4::IDENTITY);
 	scene->DrawMesh(mesh0, Matrix4::IDENTITY);
-	scene->DrawMesh(mesh1, Matrix4::IDENTITY);
 	scene->DrawMesh(panel1->mesh, Matrix4::IDENTITY);
 	scene->DrawMesh(panel0->mesh, Matrix4::IDENTITY);
 

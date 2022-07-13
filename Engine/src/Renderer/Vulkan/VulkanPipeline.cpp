@@ -79,8 +79,6 @@ bool VulkanPipeline::Create(
     colorBlendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachmentState.colorWriteMask = 0;
-
     colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
@@ -89,6 +87,10 @@ bool VulkanPipeline::Create(
     colorBlendStateInfo.logicOp = VK_LOGIC_OP_COPY;
     colorBlendStateInfo.attachmentCount = 1;
     colorBlendStateInfo.pAttachments = &colorBlendAttachmentState;
+    colorBlendStateInfo.blendConstants[0] = 0.0f;
+    colorBlendStateInfo.blendConstants[1] = 0.0f;
+    colorBlendStateInfo.blendConstants[2] = 0.0f;
+    colorBlendStateInfo.blendConstants[3] = 0.0f;
 
     const U32 dynamicStateCount = 3;
     VkDynamicState dynamicStates[3] =
