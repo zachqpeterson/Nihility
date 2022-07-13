@@ -12,21 +12,27 @@ struct UIElement
 	Vector4 area{};
 };
 
-struct Panel : UIElement
+struct UIPanel : UIElement
 {
 };
 
-struct Text : UIElement
+struct UIText : UIElement
 {
 	String text{};
+};
+
+struct UIImage : UIElement
+{
+	struct Texture* texture{ nullptr };
 };
 
 class UI
 {
 public:
-	static NH_API Panel* GenerateBorderedPanel(const Vector4& area, const Vector4& color = Vector4::ONE, UIElement* parent = nullptr);
-	static NH_API Panel* GeneratePanel(const Vector4& area, const Vector4& color = Vector4::ONE, UIElement* parent = nullptr);
-	static NH_API Text* GenerateText(const Vector4& area, const String& text, UIElement* parent = nullptr); //TODO: Fonts
+	static NH_API UIPanel* GenerateBorderedPanel(const Vector4& area, const Vector4& color = Vector4::ONE, UIElement* parent = nullptr);
+	static NH_API UIPanel* GeneratePanel(const Vector4& area, const Vector4& color = Vector4::ONE, UIElement* parent = nullptr);
+	static NH_API UIImage* GenerateImage(const Vector4& area, struct Texture* texture, UIElement* parent = nullptr);
+	static NH_API UIText* GenerateText(const Vector4& area, const String& text, UIElement* parent = nullptr); //TODO: Fonts
 
 private:
 	static U16 elementIndex;

@@ -4,6 +4,7 @@
 
 #include <Containers/List.hpp>
 #include <Containers/Vector.hpp>
+#include "Math/Math.hpp"
 
 enum CameraType
 {
@@ -26,7 +27,7 @@ public:
     void OnResize();
     bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
-    void NH_API DrawMesh(struct Mesh* mesh, const struct Matrix4& model);
+    void NH_API DrawMesh(struct Mesh* mesh, const Matrix4& model = Matrix4::IDENTITY);
     void NH_API DrawModel(struct Model* model);
 
     struct Camera* GetCamera() { return camera; }
