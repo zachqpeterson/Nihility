@@ -11,4 +11,4 @@ attribute=vec2,inTexcoord
 attribute=vec4,inColor
 attribute=vec4,inTangent
 
-uniform=samp,0,0,diffuseTexture
+uniform=samp,1,0,diffuseTexture
