@@ -52,8 +52,8 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 		config.stages.Push(stageConfig);
 	}
 
-	config.poolSizes.Push({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 });         // HACK: max number of ubo descriptor sets.
-	config.poolSizes.Push({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 }); // HACK: max number of image sampler descriptor sets.
+	config.poolSizes.Push({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 });         // HACK: max number of ubo descriptor sets.
+	config.poolSizes.Push({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 }); // HACK: max number of image sampler descriptor sets.
 
 	for (Uniform& u : shader->uniforms[SHADER_SCOPE_GLOBAL])
 	{
@@ -73,6 +73,10 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 			}
 			binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; //TODO: dynamic
 			config.descriptorSets[SHADER_SCOPE_GLOBAL].Push(binding);
+		}
+		else if (u.type == FIELD_TYPE_SAMPLER)
+		{
+			++config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex].descriptorCount;
 		}
 	}
 

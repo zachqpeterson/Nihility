@@ -1316,10 +1316,17 @@ Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& in
 		if (!RendererFrontend::AcquireTextureMapResources(map))
 		{
 			Logger::Error("LoadMaterial: Error loading TextureMap resources");
-			return instance;
+			return {};
 		}
+
 		instance.instanceTextureMaps.Push(Move(map));
 	}
+
+	instance.instance = RendererFrontend::AcquireInstanceResources(instance.shader, instance.instanceTextureMaps);
+
+	if (instance.instance == INVALID_ID) { return {}; }
+
+	return instance;
 }
 
 Material* Resources::LoadMaterial(const String& name)

@@ -42,7 +42,7 @@ bool Shader::AddUniform(Uniform uniform)
 	{
 		if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
-			uniform.location = globalTextureMaps.Size();
+			uniform.location = (U16)globalTextureMaps.Size();
 
 			TextureMap defaultMap = {};
 			defaultMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
