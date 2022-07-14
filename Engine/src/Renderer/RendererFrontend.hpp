@@ -41,7 +41,6 @@ public:
 	static void DestroyShader(Shader* shader);
 	static bool InitializeShader(Shader* shader);
 	static bool UseShader(Shader* shader);
-	static bool BindShaderInstance(Shader* shader, U32 instanceId);
 	static bool ApplyShaderGlobals(Shader* shader);
 	static bool ApplyShaderInstance(Shader* shader, bool needsUpdate);
 	static U32 AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps);

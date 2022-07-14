@@ -121,7 +121,6 @@ struct Renderpass
 struct MaterialConfig
 {
 	String shaderName;
-	bool autoRelease{ false };
 	F32 shininess = 0.0f;
 	Vector4 diffuseColor; //TODO: Color struct
 	Vector<String> textureMapNames;
@@ -129,17 +128,16 @@ struct MaterialConfig
 
 struct Material
 {
-	U32 id;
 	String name;
 	U32 generation;
-	U32 internalId;
-	U32 instance{ 0 };
+	U32 instance;
 	F32 shininess;
 	U64 renderFrameNumber;
 
 	Shader* shader;
 	Vector4 diffuseColor; //TODO: Color struct
-	Vector<TextureMap> textureMaps;
+	Vector<TextureMap> globalTextureMaps;
+	Vector<TextureMap> instanceTextureMaps;
 };
 
 struct MeshConfig
@@ -147,6 +145,7 @@ struct MeshConfig
 	String name;
 	String MaterialName;
 
+	Vector<Texture*> instanceTextures;
 	Vector<Vertex> vertices;
 	Vector<U32> indices;
 
@@ -178,7 +177,7 @@ public:
 	static Binary* LoadBinary(const String& name);
 	static void UnloadBinary(Binary* binary);
 	static Texture* LoadTexture(const String& name);
-	static Material LoadMaterial(const String& name);
+	static Material GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures);
 	static Mesh* LoadMesh(const String& name);
 	static Model* LoadModel(const String& name);
 
@@ -191,7 +190,6 @@ public:
 	static Vector<Material*>& GetMaterials() { return materials; }
 
 	static Mesh* CreateMesh(MeshConfig& config);
-	static void DestroyMesh(Mesh* mesh);
 
 	static Texture* DefaultTexture() { return defaultTexture; }
 	static Texture* DefaultDiffuse() { return defaultDiffuse; }
@@ -199,8 +197,6 @@ public:
 	static Texture* DefaultNormal() { return defaultNormal; }
 
 	static Shader* DefaultMaterialShader() { return defaultMaterialShader; }
-
-	static Material* DefaultMaterial() { return defaultMaterial; }
 
 	//TODO: Get copies of default meshes
 
@@ -222,6 +218,7 @@ private:
 
 	static void DestroyRenderpass(Renderpass* renderpass);
 
+	static Material* LoadMaterial(const String& name);
 	static void CreateMaterial(MaterialConfig& config, Material* material);
 	static void DestroyMaterial(Material* material);
 

@@ -125,7 +125,7 @@ bool Resources::Initialize()
 	defaultMaterialShader = LoadShader(DEFAULT_MATERIAL_SHADER_NAME);
 	//defaultUiShader = LoadShader(DEFAULT_UI_SHADER_NAME);
 
-	defaultMaterial = &LoadMaterial(DEFAULT_MATERIAL_NAME);
+	defaultMaterial = LoadMaterial(DEFAULT_MATERIAL_NAME);
 
 	//TODO: Temporary
 	LoadMaterial("Background.mat");
@@ -1279,26 +1279,10 @@ void Resources::CreateShaders()
 
 		first = false;
 	}
-
-	for (U32 i = 0; i < materials.Size(); ++i)
-	{
-		materials[i]->id = i;
-
-		if (materials[i]->shader->useInstances)
-		{
-			materials[i]->internalId = RendererFrontend::AcquireInstanceResources(materials[i]->shader, materials[i]->textureMaps);
-		}
-	}
 }
 
-Material Resources::LoadMaterial(const String& name)
+Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures)
 {
-	if (name.Blank())
-	{
-		Logger::Error("Material name can not be blank or nullptr!");
-		return *DefaultMaterial();
-	}
-
 	Material* material = nullptr;
 
 	for (Material* m : materials)
@@ -1310,11 +1294,38 @@ Material Resources::LoadMaterial(const String& name)
 		}
 	}
 
-	if (material) 
-	{ 
-		++material->instance;
-		return *material;
+	if (!material)
+	{
+		Logger::Error("Material '{}' doesn't exist or is in wrong directory", name);
+		return{};
 	}
+
+	Material instance = *material;
+
+	for (Texture* t : instanceTextures)
+	{
+		//TODO: Config
+		TextureMap map{};
+		map.texture = t;
+		map.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
+		map.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
+		map.repeatU = TEXTURE_REPEAT_REPEAT;
+		map.repeatV = TEXTURE_REPEAT_REPEAT;
+		map.repeatW = TEXTURE_REPEAT_REPEAT;
+
+		if (!RendererFrontend::AcquireTextureMapResources(map))
+		{
+			Logger::Error("LoadMaterial: Error loading TextureMap resources");
+			return instance;
+		}
+		instance.instanceTextureMaps.Push(Move(map));
+	}
+}
+
+Material* Resources::LoadMaterial(const String& name)
+{
+	if (name.Blank()) { return nullptr; }
+	for (Material* m : materials) { if (m->name == name) { return nullptr; } }
 
 	Logger::Info("Loading material '{}'...", name);
 
@@ -1324,11 +1335,10 @@ Material Resources::LoadMaterial(const String& name)
 	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
 	if (file->Open(path, FILE_MODE_READ, true))
 	{
-		material = (Material*)Memory::Allocate(sizeof(Material), MEMORY_TAG_RESOURCE);
+		Material* material = (Material*)Memory::Allocate(sizeof(Material), MEMORY_TAG_RESOURCE);
 		material->name = name;
 
 		MaterialConfig materialConfig;
-		materialConfig.autoRelease = true;
 
 		String line;
 		U32 lineNumber = 1;
@@ -1358,22 +1368,17 @@ Material Resources::LoadMaterial(const String& name)
 			if (varName == "color") { materialConfig.diffuseColor = Vector4(varValue); }
 			else if (varName == "shader") { materialConfig.shaderName = Move(varValue); }
 			else if (varName == "shininess") { materialConfig.shininess = varValue.ToF32(); }
-			else if (varName == "textureMaps") { materialConfig.textureMapNames = Move(varValue.Split(',', true)); }
+			else if (varName == "globalTextureMaps") { materialConfig.textureMapNames = Move(varValue.Split(',', true)); }
 
 			++lineNumber;
 		}
 
 		file->Close();
+		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 
 		if (materialConfig.shaderName.Blank()) { materialConfig.shaderName = DEFAULT_MATERIAL_SHADER_NAME; }
 
 		Shader* shader = LoadShader(materialConfig.shaderName);
-
-		if (!shader)
-		{
-			Logger::Warn("Couldn't find shader '{}', using default instead", materialConfig.shaderName);
-			shader = DefaultMaterialShader();
-		}
 
 		CreateMaterial(materialConfig, material);
 
@@ -1384,35 +1389,29 @@ Material Resources::LoadMaterial(const String& name)
 		{
 			if (shader->renderOrder <= materials[i]->shader->renderOrder)
 			{
-				materials.Insert(material, i); //TODO: shader name breaks
+				materials.Insert(material, i);
 				found = true;
 				break;
 			}
 		}
 
-		if (!found)
-		{
-			materials.Push(material);
-		}
+		if (!found) { materials.Push(material); }
 
 		for (String& s : materialConfig.textureMapNames) { s.Destroy(); }
-	}
-	else
-	{
-		path.Destroy();
-		return *DefaultMaterial();
+
+		return material;
 	}
 
 	Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 
-	return *material;
+	return nullptr;
 }
 
 void Resources::CreateMaterial(MaterialConfig& config, Material* material)
 {
 	material->diffuseColor = config.diffuseColor;
 	material->shininess = config.shininess;
-	material->textureMaps.Reserve(config.textureMapNames.Size());
+	material->globalTextureMaps.Reserve(config.textureMapNames.Size());
 
 	for (String& s : config.textureMapNames)
 	{
@@ -1430,13 +1429,19 @@ void Resources::CreateMaterial(MaterialConfig& config, Material* material)
 			Logger::Error("LoadMaterial: Error loading TextureMap resources");
 			return;
 		}
-		material->textureMaps.Push(Move(map));
+		material->globalTextureMaps.Push(Move(map));
 	}
 }
 
 void Resources::DestroyMaterial(Material* material)
 {
-	for (TextureMap& map : material->textureMaps)
+	for (TextureMap& map : material->globalTextureMaps)
+	{
+		RendererFrontend::ReleaseTextureMapResources(map);
+		map.texture = nullptr;
+	}
+
+	for (TextureMap& map : material->instanceTextureMaps)
 	{
 		RendererFrontend::ReleaseTextureMapResources(map);
 		map.texture = nullptr;
@@ -1516,25 +1521,17 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 		return nullptr;
 	}
 
-	if (config.MaterialName.Blank())
-	{
-		mesh->material = *DefaultMaterial();
-	}
-	else
-	{
-		mesh->material = LoadMaterial(config.MaterialName);
-	}
+	if (config.MaterialName.Blank()) { mesh->material = GetMaterialInstance(DEFAULT_MATERIAL_NAME, config.instanceTextures); }
+	else { mesh->material = GetMaterialInstance(config.MaterialName, config.instanceTextures); }
 
 	meshes.Insert(config.name, mesh);
 
 	return mesh;
 }
 
-void DestroyMesh(Mesh* mesh)
+void Resources::DestroyMesh(Mesh* mesh)
 {
 	RendererFrontend::DestroyMesh(mesh);
-	mesh->name.Destroy();
-
 	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }
 

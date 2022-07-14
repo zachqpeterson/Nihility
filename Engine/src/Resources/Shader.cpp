@@ -42,8 +42,7 @@ bool Shader::AddUniform(Uniform uniform)
 	{
 		if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
-			uniform.location = samplerIndex;
-			++samplerIndex;
+			uniform.location = globalTextureMaps.Size();
 
 			TextureMap defaultMap = {};
 			defaultMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
@@ -69,8 +68,7 @@ bool Shader::AddUniform(Uniform uniform)
 	{
 		if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
-			uniform.location = samplerIndex;
-			++samplerIndex;
+			uniform.location = instanceTextureCount;
 			++instanceTextureCount;
 		}
 
@@ -101,7 +99,7 @@ bool Shader::AddPushConstant(PushConstant pushConstant)
 	return true;
 }
 
-bool Shader::ApplyGlobals(Material& material, Camera* camera)
+bool Shader::ApplyGlobals(Material* material, Camera* camera)
 {
 	for (Uniform& uniform : uniforms[SHADER_SCOPE_GLOBAL])
 	{
@@ -132,7 +130,7 @@ bool Shader::ApplyGlobals(Material& material, Camera* camera)
 		}
 		else if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
-			if (!RendererFrontend::SetUniform(this, uniform, &material.textureMaps[uniform.location]))
+			if (!RendererFrontend::SetUniform(this, uniform, &material->globalTextureMaps[uniform.location]))
 			{
 				Logger::Error("Failed to set uniform");
 				return false;
@@ -163,11 +161,7 @@ bool Shader::ApplyMaterialInstances(Material& material, bool needsUpdate)
 {
 	if (!useInstances) { return true; }
 
-	if (!RendererFrontend::BindShaderInstance(this, boundInstanceId))
-	{
-		Logger::Error("Failed to bind shader instance");
-		return false;
-	}
+	boundInstanceId = material.instance;
 
 	if (needsUpdate)
 	{
@@ -183,7 +177,7 @@ bool Shader::ApplyMaterialInstances(Material& material, bool needsUpdate)
 			}
 			else if (uniform.type == FIELD_TYPE_SAMPLER)
 			{
-				if (!RendererFrontend::SetUniform(this, uniform, &material.textureMaps[uniform.location]))
+				if (!RendererFrontend::SetUniform(this, uniform, &material.instanceTextureMaps[uniform.location]))
 				{
 					Logger::Error("Failed to set uniform");
 					return false;

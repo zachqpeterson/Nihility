@@ -212,11 +212,6 @@ bool RendererFrontend::UseShader(Shader* shader)
 	return renderer->UseShader(shader);
 }
 
-bool RendererFrontend::BindShaderInstance(Shader* shader, U32 instanceId)
-{
-	return renderer->BindInstance(shader, instanceId);
-}
-
 bool RendererFrontend::ApplyShaderGlobals(Shader* shader)
 {
 	return renderer->ApplyGlobals(shader);

@@ -343,11 +343,6 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
 	return true;
 }
 
-void VulkanShader::BindInstance(Shader* shader, U32 instanceId)
-{
-	shader->boundInstanceId = instanceId;
-}
-
 bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, bool needsUpdate)
 {
 	if (!shader->useInstances)

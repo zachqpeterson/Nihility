@@ -22,6 +22,7 @@ bool init()
 	MeshConfig backgroundConfig;
 	backgroundConfig.name = "Background";
 	backgroundConfig.MaterialName = "Background.mat";
+	backgroundConfig.instanceTextures.Push(Resources::LoadTexture("sky.bmp"));
 
 	backgroundConfig.vertices.Push(Vertex{ {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } });
 	backgroundConfig.vertices.Push(Vertex{ { 1.0f, -1.0f, 0.0f}, { 1.0f, 0.0f } });
@@ -38,6 +39,7 @@ bool init()
 	MeshConfig config0;
 	config0.name = "Mesh0";
 	config0.MaterialName = "Tile.mat";
+	config0.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
 
 	config0.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
 	config0.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });

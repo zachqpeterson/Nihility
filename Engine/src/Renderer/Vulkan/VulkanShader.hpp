@@ -53,7 +53,6 @@ public:
 
 	bool ApplyGlobals(RendererState* rendererState, Shader* shader);
 
-	void BindInstance(Shader* shader, U32 instanceId);
 	bool ApplyInstance(RendererState* rendererState, Shader* shader, bool needsUpdate);
 	U32 AcquireInstanceResources(RendererState* rendererState, Shader* shader, Vector<TextureMap>& maps);
 	bool ReleaseInstanceResources(RendererState* rendererState, Shader* shader, U32 instanceId);

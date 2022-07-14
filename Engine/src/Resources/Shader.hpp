@@ -75,7 +75,7 @@ public:
 	bool AddUniform(Uniform uniform);
 	bool AddPushConstant(PushConstant pushConstant);
 
-	bool ApplyGlobals(struct Material& material, struct Camera* camera);
+	bool ApplyGlobals(struct Material* material, struct Camera* camera);
 	bool ApplyMaterialInstances(struct Material& material, bool needsUpdate);
 	bool ApplyMaterialLocals(const Matrix4& model);
 
@@ -98,8 +98,6 @@ private:
 	Vector<Attribute> attributes;
 
 	Array<Vector<Uniform>, 2> uniforms;
-
-	U16 samplerIndex{ 0 };
 
 	U64 globalUboSize;
 	U64 globalUboStride;

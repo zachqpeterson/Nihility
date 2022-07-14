@@ -27,6 +27,7 @@ UIPanel* UI::GenerateBorderedPanel(const Vector4& area, const Vector4& color, UI
 	F32 z = elementIndex / 100.0f;
 	++elementIndex;
 	config.MaterialName = "UI.mat";
+	config.instanceTextures.Push(Resources::LoadTexture("UI.bmp"));
 
 	Vector4 uiArea;
 
@@ -189,6 +190,7 @@ UIPanel* UI::GeneratePanel(const Vector4& area, const Vector4& color, UIElement*
 	F32 z = elementIndex / 100.0f;
 	++elementIndex;
 	config.MaterialName = "UI.mat";
+	config.instanceTextures.Push(Resources::LoadTexture("UI.bmp"));
 
 	Vector4 uiArea;
 
@@ -246,7 +248,7 @@ UIImage* UI::GenerateImage(const Vector4& area, Texture* texture, UIElement* par
 	F32 z = elementIndex / 100.0f;
 	++elementIndex;
 	config.MaterialName = "UI.mat";
-	//Use put texture in mesh as an intance
+	config.instanceTextures.Push(texture);
 
 	Vector4 uiArea;
 

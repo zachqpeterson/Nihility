@@ -51,7 +51,7 @@ pointLight pLight1 = {
 const int SAMP_DIFFUSE = 0;
 const int SAMP_SPECULAR = 1;
 const int SAMP_NORMAL = 2;
-layout(set = 1, binding = 1) uniform sampler2D samplers[3];
+layout(set = 0, binding = 1) uniform sampler2D samplers[3];
 
 layout(location = 0) flat in int inMode;
 

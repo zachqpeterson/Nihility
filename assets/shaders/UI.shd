@@ -1,7 +1,7 @@
 renderpass=UI.rnp
 stages=vertex,fragment
 stagefiles=shaders/UI.vert.spv,shaders/UI.frag.spv
-useInstance=0
+useInstance=1
 useLocal=0
 renderOrder=100
 

@@ -97,7 +97,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 					return false;
 				}
 
-				if (!list.material->shader->ApplyGlobals(camera, list.material))
+				if (!list.material->shader->ApplyGlobals(list.material, camera))
 				{
 					Logger::Error("Failed to use apply globals for material shader. Render frame failed.");
 					return false;
@@ -107,29 +107,21 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 		for (const MeshRenderData& data : list.renderData)
 		{
-			Material* material;
-			if (data.mesh->material)
-			{
-				material = data.mesh->material;
-			}
-			else
-			{
-				material = Resources::DefaultMaterial();
-			}
+			Material& material = data.mesh->material;
 
-			bool needsUpdate = material->renderFrameNumber != frameNumber;
+			bool needsUpdate = material.renderFrameNumber != frameNumber;
 
-			if (!material->shader->ApplyMaterialInstances(material, needsUpdate))
+			if (!material.shader->ApplyMaterialInstances(material, needsUpdate))
 			{
-				Logger::Warn("Failed to apply material '{}'. Skipping draw.", material->name);
+				Logger::Warn("Failed to apply material '{}'. Skipping draw.", material.name);
 				continue;
 			}
 
-			material->renderFrameNumber = frameNumber;
+			material.renderFrameNumber = frameNumber;
 
-			if (!material->shader->ApplyMaterialLocals(material, data.model))
+			if (!material.shader->ApplyMaterialLocals(data.model))
 			{
-				Logger::Warn("Failed to apply material '{}'. Skipping draw.", material->name);
+				Logger::Warn("Failed to apply material '{}'. Skipping draw.", material.name);
 				continue;
 			}
 
@@ -152,7 +144,7 @@ void NH_API Scene::DrawMesh(Mesh* mesh, const struct Matrix4& model)
 	data.mesh = mesh;
 	data.model = model;
 
-	meshes[mesh->material->id].renderData.PushBack(data);
+	meshes[mesh->material.instance].renderData.PushBack(data);
 }
 
 void NH_API Scene::DrawModel(Model* model)
@@ -165,6 +157,6 @@ void NH_API Scene::DrawModel(Model* model)
 		data.mesh = m;
 		data.model = matrix;
 
-		meshes[m->material->id].renderData.PushBack(data);
+		meshes[m->material.instance].renderData.PushBack(data);
 	}
 }

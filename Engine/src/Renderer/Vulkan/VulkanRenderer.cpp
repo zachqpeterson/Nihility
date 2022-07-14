@@ -978,13 +978,6 @@ bool VulkanRenderer::UseShader(Shader* shader)
 	return false;
 }
 
-bool VulkanRenderer::BindInstance(Shader* shader, U32 instanceId)
-{
-	VulkanShader* outShader = (VulkanShader*)shader->internalData;
-	if (outShader) { outShader->BindInstance(shader, instanceId); return true; }
-	return false;
-}
-
 bool VulkanRenderer::ApplyGlobals(Shader* shader)
 {
 	VulkanShader* outShader = (VulkanShader*)shader->internalData;

@@ -43,7 +43,6 @@ public:
     virtual void DestroyShader(Shader* shader) = 0;
     virtual bool InitializeShader(Shader* shader) = 0;
     virtual bool UseShader(Shader* shader) = 0;
-    virtual bool BindInstance(Shader* shader, U32 instanceId) = 0;
     virtual bool ApplyGlobals(Shader* shader) = 0;
     virtual bool ApplyInstance(Shader* shader, bool needsUpdate) = 0;
     virtual U32 AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps) = 0;

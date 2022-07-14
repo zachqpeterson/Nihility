@@ -622,6 +622,8 @@ I64 String::IndexOf(char c, U64 start) const
 Vector<String> String::Split(char delimiter, bool trimEntries) const
 {
     Vector<String> strings;
+    if (Blank()) { return strings; }
+
     U64 start = 0;
     I64 end = IndexOf(delimiter, start);
 
