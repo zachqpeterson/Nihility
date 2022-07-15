@@ -128,6 +128,7 @@ struct MaterialConfig
 
 struct Material
 {
+	U32 id;
 	String name;
 	U32 generation;
 	U32 instance;
@@ -221,6 +222,7 @@ private:
 	static Material* LoadMaterial(const String& name);
 	static void CreateMaterial(MaterialConfig& config, Material* material);
 	static void DestroyMaterial(Material* material);
+	static void DestroyMaterialInstance(Material& material);
 
 	static void LoadOBJ(Model* mesh, struct File* file);
 	static void LoadKSM(Model* mesh, struct File* file);

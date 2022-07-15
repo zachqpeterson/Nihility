@@ -29,22 +29,22 @@ UIPanel* UI::GenerateBorderedPanel(const Vector4& area, const Vector4& color, UI
 	config.MaterialName = "UI.mat";
 	config.instanceTextures.Push(Resources::LoadTexture("UI.bmp"));
 
-	Vector4 uiArea;
+	Vector4 uiArea = area;
 
-	if (parent)
-	{
-		uiArea.x = parent->area.x + ((parent->area.z - parent->area.x) * area.x);
-		uiArea.y = parent->area.y + ((parent->area.w - parent->area.y) * area.y);
-		uiArea.z = parent->area.x + ((parent->area.z - parent->area.x) * area.z);
-		uiArea.w = parent->area.y + ((parent->area.w - parent->area.y) * area.w);
+	UIElement* p = parent;
 
-		uiArea *= 2;
-		uiArea -= 1;
-	}
-	else
+	while (p)
 	{
-		uiArea = (area * 2.0f) - 1.0f;
+		uiArea.x = p->area.x + ((p->area.z - p->area.x) * uiArea.x);
+		uiArea.y = p->area.y + ((p->area.w - p->area.y) * uiArea.y);
+		uiArea.z = p->area.x + ((p->area.z - p->area.x) * uiArea.z);
+		uiArea.w = p->area.y + ((p->area.w - p->area.y) * uiArea.w);
+
+		p = p->parent;
 	}
+
+	uiArea *= 2;
+	uiArea -= 1;
 
 	config.vertices.Resize(36);
 
@@ -192,22 +192,22 @@ UIPanel* UI::GeneratePanel(const Vector4& area, const Vector4& color, UIElement*
 	config.MaterialName = "UI.mat";
 	config.instanceTextures.Push(Resources::LoadTexture("UI.bmp"));
 
-	Vector4 uiArea;
+	Vector4 uiArea = area;
 
-	if (parent)
-	{
-		uiArea.x = parent->area.x + ((parent->area.z - parent->area.x) * area.x);
-		uiArea.y = parent->area.y + ((parent->area.w - parent->area.y) * area.y);
-		uiArea.z = parent->area.x + ((parent->area.z - parent->area.x) * area.z);
-		uiArea.w = parent->area.y + ((parent->area.w - parent->area.y) * area.w);
+	UIElement* p = parent;
 
-		uiArea *= 2;
-		uiArea -= 1;
-	}
-	else
+	while (p)
 	{
-		uiArea = (area * 2.0f) - 1.0f;
+		uiArea.x = p->area.x + ((p->area.z - p->area.x) * uiArea.x);
+		uiArea.y = p->area.y + ((p->area.w - p->area.y) * uiArea.y);
+		uiArea.z = p->area.x + ((p->area.z - p->area.x) * uiArea.z);
+		uiArea.w = p->area.y + ((p->area.w - p->area.y) * uiArea.w);
+
+		p = p->parent;
 	}
+
+	uiArea *= 2;
+	uiArea -= 1;
 
 	config.vertices.Resize(4);
 
@@ -250,22 +250,22 @@ UIImage* UI::GenerateImage(const Vector4& area, Texture* texture, UIElement* par
 	config.MaterialName = "UI.mat";
 	config.instanceTextures.Push(texture);
 
-	Vector4 uiArea;
+	Vector4 uiArea = area;
 
-	if (parent)
-	{
-		uiArea.x = parent->area.x + ((parent->area.z - parent->area.x) * area.x);
-		uiArea.y = parent->area.y + ((parent->area.w - parent->area.y) * area.y);
-		uiArea.z = parent->area.x + ((parent->area.z - parent->area.x) * area.z);
-		uiArea.w = parent->area.y + ((parent->area.w - parent->area.y) * area.w);
+	UIElement* p = parent;
 
-		uiArea *= 2;
-		uiArea -= 1;
-	}
-	else
+	while (p)
 	{
-		uiArea = (area * 2.0f) - 1.0f;
+		uiArea.x = p->area.x + ((p->area.z - p->area.x) * uiArea.x);
+		uiArea.y = p->area.y + ((p->area.w - p->area.y) * uiArea.y);
+		uiArea.z = p->area.x + ((p->area.z - p->area.x) * uiArea.z);
+		uiArea.w = p->area.y + ((p->area.w - p->area.y) * uiArea.w);
+
+		p = p->parent;
 	}
+
+	uiArea *= 2;
+	uiArea -= 1;
 
 	config.vertices.Resize(4);
 

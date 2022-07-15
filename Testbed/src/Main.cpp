@@ -22,7 +22,6 @@ bool init()
 	MeshConfig backgroundConfig;
 	backgroundConfig.name = "Background";
 	backgroundConfig.MaterialName = "Background.mat";
-	backgroundConfig.instanceTextures.Push(Resources::LoadTexture("sky.bmp"));
 
 	backgroundConfig.vertices.Push(Vertex{ {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } });
 	backgroundConfig.vertices.Push(Vertex{ { 1.0f, -1.0f, 0.0f}, { 1.0f, 0.0f } });
@@ -57,10 +56,12 @@ bool init()
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	UIPanel* panel0 = UI::GeneratePanel({ 0.25f, 0.25f, 0.75f, 0.75f }, {1.0f, 0.0f, 0.0f, 1.0f});
 	UIPanel* panel1 = UI::GenerateBorderedPanel({ 0.25f, 0.25f, 0.75f, 0.75f }, { 0.0f, 1.0f, 0.0f, 1.0f }, panel0);
+	UIImage* image0 = UI::GenerateImage({ 0.25f, 0.25f, 0.75f, 0.75f }, Resources::DefaultTexture(), panel1);
 	scene->DrawMesh(backgroundMesh);
 	scene->DrawMesh(mesh0);
-	scene->DrawMesh(panel1->mesh); //TODO: Render seperately to ensure order
-	scene->DrawMesh(panel0->mesh);
+	scene->DrawMesh(image0->mesh);
+	scene->DrawMesh(panel1->mesh);
+	scene->DrawMesh(panel0->mesh); //TODO: Render seperately to ensure order
 
 	RendererFrontend::UseScene(scene);
 

@@ -152,13 +152,6 @@ void Resources::Shutdown()
 
 	renderpasses.Destroy();
 
-	for (Material* m : materials)
-	{
-		DestroyMaterial(m);
-	}
-
-	materials.Destroy();
-
 	for (List<HashMap<String, Texture*>::Node>& l : textures)
 	{
 		for (HashMap<String, Texture*>::Node& n : l)
@@ -198,6 +191,13 @@ void Resources::Shutdown()
 	}
 
 	models.Destroy();
+
+	for (Material* m : materials)
+	{
+		DestroyMaterial(m);
+	}
+
+	materials.Destroy();
 }
 
 void Resources::LoadSettings()
@@ -900,7 +900,6 @@ Texture* Resources::LoadTexture(const String& name)
 void Resources::DestroyTexture(Texture* texture)
 {
 	RendererFrontend::DestroyTexture(texture);
-	texture->name.Destroy();
 	Memory::Free(texture, sizeof(Texture), MEMORY_TAG_RESOURCE);
 }
 
@@ -1275,58 +1274,12 @@ void Resources::CreateShaders()
 			Memory::Free(shader, sizeof(Shader), MEMORY_TAG_RESOURCE);
 		}
 
+		for (U32 i = 0; i < materials.Size(); ++i) { materials[i]->id = i; }
+
 		for (String& s : shader->stageFilenames) { s.Destroy(); }
 
 		first = false;
 	}
-}
-
-Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures)
-{
-	Material* material = nullptr;
-
-	for (Material* m : materials)
-	{
-		if (m->name == name)
-		{
-			material = m;
-			break;
-		}
-	}
-
-	if (!material)
-	{
-		Logger::Error("Material '{}' doesn't exist or is in wrong directory", name);
-		return{};
-	}
-
-	Material instance = *material;
-
-	for (Texture* t : instanceTextures)
-	{
-		//TODO: Config
-		TextureMap map{};
-		map.texture = t;
-		map.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
-		map.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
-		map.repeatU = TEXTURE_REPEAT_REPEAT;
-		map.repeatV = TEXTURE_REPEAT_REPEAT;
-		map.repeatW = TEXTURE_REPEAT_REPEAT;
-
-		if (!RendererFrontend::AcquireTextureMapResources(map))
-		{
-			Logger::Error("LoadMaterial: Error loading TextureMap resources");
-			return {};
-		}
-
-		instance.instanceTextureMaps.Push(Move(map));
-	}
-
-	instance.instance = RendererFrontend::AcquireInstanceResources(instance.shader, instance.instanceTextureMaps);
-
-	if (instance.instance == INVALID_ID) { return {}; }
-
-	return instance;
 }
 
 Material* Resources::LoadMaterial(const String& name)
@@ -1436,6 +1389,7 @@ void Resources::CreateMaterial(MaterialConfig& config, Material* material)
 			Logger::Error("LoadMaterial: Error loading TextureMap resources");
 			return;
 		}
+
 		material->globalTextureMaps.Push(Move(map));
 	}
 }
@@ -1448,13 +1402,67 @@ void Resources::DestroyMaterial(Material* material)
 		map.texture = nullptr;
 	}
 
-	for (TextureMap& map : material->instanceTextureMaps)
+	Memory::Free(material, sizeof(Material), MEMORY_TAG_RESOURCE);
+}
+
+Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures)
+{
+	Material* material = nullptr;
+
+	for (Material* m : materials)
+	{
+		if (m->name == name)
+		{
+			material = m;
+			break;
+		}
+	}
+
+	if (!material)
+	{
+		Logger::Error("Material '{}' doesn't exist or is in wrong directory", name);
+		return{};
+	}
+
+	Material instance = *material;
+
+	if (instance.shader->useInstances && instanceTextures.Size())
+	{
+		for (Texture* t : instanceTextures)
+		{
+			//TODO: Config
+			TextureMap map{};
+			map.texture = t;
+			map.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
+			map.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
+			map.repeatU = TEXTURE_REPEAT_REPEAT;
+			map.repeatV = TEXTURE_REPEAT_REPEAT;
+			map.repeatW = TEXTURE_REPEAT_REPEAT;
+
+			if (!RendererFrontend::AcquireTextureMapResources(map))
+			{
+				Logger::Error("LoadMaterial: Error loading TextureMap resources");
+				return {};
+			}
+
+			instance.instanceTextureMaps.Push(Move(map));
+		}
+
+		instance.instance = RendererFrontend::AcquireInstanceResources(instance.shader, instance.instanceTextureMaps);
+
+		if (instance.instance == INVALID_ID) { return {}; }
+	}
+
+	return instance;
+}
+
+void Resources::DestroyMaterialInstance(Material& material)
+{
+	for (TextureMap& map : material.instanceTextureMaps)
 	{
 		RendererFrontend::ReleaseTextureMapResources(map);
 		map.texture = nullptr;
 	}
-
-	Memory::Free(material, sizeof(Material), MEMORY_TAG_RESOURCE);
 }
 
 Mesh* Resources::LoadMesh(const String& name)
@@ -1538,6 +1546,7 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 void Resources::DestroyMesh(Mesh* mesh)
 {
+	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
 	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }

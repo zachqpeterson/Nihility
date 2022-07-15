@@ -144,7 +144,7 @@ void NH_API Scene::DrawMesh(Mesh* mesh, const struct Matrix4& model)
 	data.mesh = mesh;
 	data.model = model;
 
-	meshes[mesh->material.instance].renderData.PushBack(data);
+	meshes[mesh->material.id].renderData.PushBack(data);
 }
 
 void NH_API Scene::DrawModel(Model* model)
@@ -157,6 +157,6 @@ void NH_API Scene::DrawModel(Model* model)
 		data.mesh = m;
 		data.model = matrix;
 
-		meshes[m->material.instance].renderData.PushBack(data);
+		meshes[m->material.id].renderData.PushBack(data);
 	}
 }

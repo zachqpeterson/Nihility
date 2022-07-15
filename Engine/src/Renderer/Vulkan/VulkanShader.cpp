@@ -191,7 +191,7 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 	VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	poolInfo.poolSizeCount = (U32)config.poolSizes.Size();
 	poolInfo.pPoolSizes = config.poolSizes.Data();
-	poolInfo.maxSets = (U32)config.descriptorSets.Size() * rendererState->swapchain->imageCount;
+	poolInfo.maxSets = (U32)config.descriptorSets.Size() * rendererState->swapchain->imageCount * VULKAN_MAX_MATERIAL_COUNT;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 	VkCheck_ERROR(vkCreateDescriptorPool(rendererState->device->logicalDevice, &poolInfo, rendererState->allocator, &descriptorPool));
