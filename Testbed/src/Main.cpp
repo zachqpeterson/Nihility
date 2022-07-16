@@ -54,14 +54,28 @@ bool init()
 
 	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
-	UIPanel* panel0 = UI::GeneratePanel({ 0.25f, 0.25f, 0.75f, 0.75f }, {1.0f, 0.0f, 0.0f, 1.0f});
-	UIPanel* panel1 = UI::GenerateBorderedPanel({ 0.25f, 0.25f, 0.75f, 0.75f }, { 0.0f, 1.0f, 0.0f, 1.0f }, panel0);
-	UIImage* image0 = UI::GenerateImage({ 0.25f, 0.25f, 0.75f, 0.75f }, Resources::DefaultTexture(), panel1);
+
+	UIElementConfig config{};
+	config.area = { 0.25f, 0.25f, 0.75f, 0.75f };
+	config.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+	config.enabled = true;
+	config.name = "Panel0";
+	config.scene = scene;
+
+	UI::GeneratePanel(config);
+
+	config.name = "Panel1";
+	config.parentName = "Panel0";
+	config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+	UI::GenerateBorderedPanel(config);
+
+	config.name = "Image0";
+	config.parentName = "Panel1";
+	config.color = Vector4::ONE;
+	UI::GenerateImage(config, Resources::DefaultTexture());
+
 	scene->DrawMesh(backgroundMesh);
 	scene->DrawMesh(mesh0);
-	scene->DrawMesh(image0->mesh);
-	scene->DrawMesh(panel1->mesh);
-	scene->DrawMesh(panel0->mesh); //TODO: Render seperately to ensure order
 
 	RendererFrontend::UseScene(scene);
 

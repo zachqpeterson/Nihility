@@ -575,10 +575,10 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
 	VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	beginInfo.renderPass = vulkanRenderpass->handle;
 	beginInfo.framebuffer = (VkFramebuffer)target.internalFramebuffer;
-	beginInfo.renderArea.offset.x = (I32)(rendererState->renderArea.x + renderpass->renderArea.x * rendererState->renderArea.z);
-	beginInfo.renderArea.offset.y = (I32)(rendererState->renderArea.y + renderpass->renderArea.y * rendererState->renderArea.w);
-	beginInfo.renderArea.extent.width = (U32)(renderpass->renderArea.z * rendererState->renderArea.z);
-	beginInfo.renderArea.extent.height = (U32)(renderpass->renderArea.w * rendererState->renderArea.w);
+	beginInfo.renderArea.offset.x = (I32)(rendererState->renderArea.x);
+	beginInfo.renderArea.offset.y = (I32)(rendererState->renderArea.y);
+	beginInfo.renderArea.extent.width = (U32)(rendererState->renderArea.z);
+	beginInfo.renderArea.extent.height = (U32)(rendererState->renderArea.w);
 
 	Vector<VkClearValue> clearValues;
 	VkClearValue colorClear{};
@@ -740,6 +740,7 @@ bool VulkanRenderer::OnResize()
 		rendererState->renderArea.z = Settings::WindowWidth;
 		rendererState->renderArea.w = (I32)(Settings::WindowHeight - (offset * 2.0f));
 	}
+
 
 	return true;
 }
