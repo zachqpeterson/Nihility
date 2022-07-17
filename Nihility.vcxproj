@@ -97,6 +97,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Engine\src\Containers\Freelist.hpp" />
+    <ClInclude Include="Engine\src\Containers\Heap.hpp" />
     <ClInclude Include="Engine\src\Containers\String.hpp" />
     <ClInclude Include="Engine\src\Core\Events.hpp" />
     <ClInclude Include="Engine\src\Core\File.hpp" />

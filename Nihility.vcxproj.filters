@@ -133,6 +133,9 @@
     <ClInclude Include="Engine\src\Resources\UI.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\src\Containers\Heap.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">

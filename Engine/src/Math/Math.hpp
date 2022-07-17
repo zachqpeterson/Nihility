@@ -108,8 +108,10 @@ public:
 	static F32 FloorF(F32 n) { return (F32)(n >= 0 ? (I32)n : (I32)n - 1); }
 	static F64 FloorF(F64 n) { return (F64)(n >= 0 ? (I64)n : (I64)n - 1); }
 
-	static F32 Ceiling(F32 n) { return (F32)(n > 0 ? (I32)n + 1 : (I32)n); }
-	static F64 Ceiling(F64 n) { return (F64)(n > 0 ? (I64)n + 1 : (I64)n); }
+	static I32 Ceiling(F32 n) { return n > 0 ? (I32)n + 1 : (I32)n; }
+	static I64 Ceiling(F64 n) { return n > 0 ? (I64)n + 1 : (I64)n; }
+	static F32 CeilingF(F32 n) { return (F32)(n > 0 ? (I32)n + 1 : (I32)n); }
+	static F64 CeilingF(F64 n) { return (F64)(n > 0 ? (I64)n + 1 : (I64)n); }
 
 	//FLOATING-POINT
 	static F32 Round(F32 f) { return (F32)(I32)(f + 0.5f); }

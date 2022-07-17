@@ -2,6 +2,7 @@
 
 #include "Resources.hpp"
 #include "Renderer/Scene.hpp"
+#include "Core/Settings.hpp"
 
 #include <Containers/List.hpp>
 
@@ -12,6 +13,7 @@ Texture* UI::uiTexture;
 bool UI::Initialize()
 {
 	uiTexture = Resources::LoadTexture("UI.bmp");
+	Resources::LoadFont("OpenSans.ttf");
 
 	return uiTexture;
 }
@@ -386,7 +388,6 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 	F32 z = elementIndex / 100.0f;
 	++elementIndex;
 	meshConfig.MaterialName = "UI.mat";
-	meshConfig.instanceTextures.Push(Resources::LoadTexture("UI.bmp"));
 
 	Vector4 uiArea = config.area;
 
@@ -402,6 +403,55 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 	}
 
 	UIElement* p = parent;
+
+	while (p)
+	{
+		uiArea.x = p->area.x + ((p->area.z - p->area.x) * uiArea.x);
+		uiArea.y = p->area.y + ((p->area.w - p->area.y) * uiArea.y);
+		uiArea.z = p->area.x + ((p->area.z - p->area.x) * uiArea.z);
+		uiArea.w = p->area.y + ((p->area.w - p->area.y) * uiArea.w);
+
+		p = p->parent;
+	}
+
+	uiArea *= 2;
+	uiArea -= 1;
+
+	meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", 0, (uiArea.w - uiArea.y) * Settings::WindowHeight));
+
+	meshConfig.vertices.Resize(4);
+
+	meshConfig.vertices[0] = Vertex{ { uiArea.x, uiArea.y, z}, { 0.0f, 0.0f }, Vector3::ZERO, config.color };
+	meshConfig.vertices[1] = Vertex{ { uiArea.z, uiArea.y, z}, { 1.0f, 0.0f }, Vector3::ZERO, config.color };
+	meshConfig.vertices[2] = Vertex{ { uiArea.z, uiArea.w, z}, { 1.0f, 1.0f }, Vector3::ZERO, config.color };
+	meshConfig.vertices[3] = Vertex{ { uiArea.x, uiArea.w, z}, { 0.0f, 1.0f }, Vector3::ZERO, config.color };
+
+	meshConfig.indices.Resize(6);
+
+	meshConfig.indices[0] = 0;
+	meshConfig.indices[1] = 1;
+	meshConfig.indices[2] = 2;
+	meshConfig.indices[3] = 2;
+	meshConfig.indices[4] = 3;
+	meshConfig.indices[5] = 0;
+
+	Mesh* mesh = Resources::CreateMesh(meshConfig);
+
+	if (!mesh)
+	{
+		Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
+		return;
+	}
+
+	UIElement* uiText = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_RESOURCE);
+	uiText->area = config.area;
+	uiText->mesh = mesh;
+	uiText->parent = parent;
+	uiText->name = config.name;
+
+	elements.PushFront(uiText);
+
+	if (config.enabled) { config.scene->DrawMesh(uiText->mesh); }
 }
 
 void UI::UpdateBorderedPanel(const Vector4& area, const String& name, const Vector4& color)

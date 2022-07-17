@@ -158,6 +158,18 @@ public:
 		return *this;
 	}
 
+	void CopyArray(T* array, U64 size)
+	{
+		if (this->array)
+		{
+			Memory::Free(this->array, sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
+		}
+
+		this->array = (T*)Memory::Allocate(sizeof(T) * size, MEMORY_TAG_DATA_STRUCT);
+		Memory::Copy(this->array, array, sizeof(T) * size);
+		this->size = size;
+		capacity = size;
+	}
 	void SetArray(T* array, U64 size)
 	{
 		if (this->array)

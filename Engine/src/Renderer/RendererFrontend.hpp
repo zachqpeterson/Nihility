@@ -21,7 +21,7 @@ public:
 	static void CreateTexture(struct Texture* texture, const Vector<U8>& pixels);
 	static void DestroyTexture(Texture* texture);
 	static bool CreateWritableTexture(Texture* texture);
-	static void WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels);
+	static void WriteTextureData(Texture* texture, const Vector<U8>& pixels);
 	static void ResizeTexture(Texture* texture, U32 width, U32 height);
 
 	static bool AcquireTextureMapResources(struct TextureMap& map);

@@ -749,7 +749,6 @@ void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
 {
 	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
 	VulkanImage* image = (VulkanImage*)texture->internalData;
-	U32 size = texture->width * texture->height * texture->channelCount;
 
 	switch (texture->layout)
 	{
@@ -773,7 +772,7 @@ void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
 		true,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 
-	WriteTextureData(texture, 0, size, pixels);
+	WriteTextureData(texture, pixels);
 
 	++texture->generation;
 }
@@ -797,9 +796,17 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
 	VulkanImage* image = (VulkanImage*)texture->internalData;
 
+	switch (texture->layout)
+	{
+	case IMAGE_LAYOUT_RGBA32: image->format = VK_FORMAT_R8G8B8A8_UNORM; break;
+	case IMAGE_LAYOUT_BGRA32: image->format = VK_FORMAT_B8G8R8A8_UNORM; break;
+	case IMAGE_LAYOUT_RGB24: image->format = VK_FORMAT_R8G8B8_UNORM; break;
+	case IMAGE_LAYOUT_BGR24: image->format = VK_FORMAT_B8G8R8_UNORM; break;
+	}
+
 	// NOTE: Lots of assumptions here, different texture types will require
 	// different options here.
-	if (image->Create(
+	if (!image->Create(
 		rendererState,
 		VK_IMAGE_TYPE_2D,
 		texture->width,
@@ -821,15 +828,15 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 	return true;
 }
 
-void VulkanRenderer::WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels)
+void VulkanRenderer::WriteTextureData(Texture* texture, const Vector<U8>& pixels)
 {
 	VulkanImage* image = (VulkanImage*)texture->internalData;
 
 	VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	VulkanBuffer staging;
-	staging.Create(rendererState, size, usage, memoryPropertyFlags, true, false);
-	staging.LoadData(rendererState, 0, size, 0, pixels.Data());
+	staging.Create(rendererState, pixels.Size(), usage, memoryPropertyFlags, true, false);
+	staging.LoadData(rendererState, 0, pixels.Size(), 0, pixels.Data());
 
 	VulkanCommandBuffer tempBuffer;
 	VkCommandPool pool = rendererState->device->graphicsCommandPool;

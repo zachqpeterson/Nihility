@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-class Settings
+class NH_API Settings
 {
 private:
     //AUDIO

@@ -32,7 +32,7 @@ public:
 	static void GenerateBorderedPanel(UIElementConfig& config);
 	static void GeneratePanel(UIElementConfig& config);
 	static void GenerateImage(UIElementConfig& config, struct Texture* texture);
-	static void GenerateText(UIElementConfig& config, const String& text); //TODO: Fonts
+	static void GenerateText(UIElementConfig& config, const String& text);
 
 	static void UpdateBorderedPanel(const Vector4& area, const String& name, const Vector4& color);
 	static void UpdatePanel(const Vector4& area, const String& name, const Vector4& color);

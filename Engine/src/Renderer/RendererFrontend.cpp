@@ -132,9 +132,9 @@ bool RendererFrontend::CreateWritableTexture(Texture* texture)
 	return renderer->CreateWritableTexture(texture);
 }
 
-void RendererFrontend::WriteTextureData(Texture* texture, U32 offset, U32 size, const Vector<U8>& pixels)
+void RendererFrontend::WriteTextureData(Texture* texture, const Vector<U8>& pixels)
 {
-	renderer->WriteTextureData(texture, offset, size, pixels);
+	renderer->WriteTextureData(texture, pixels);
 }
 
 void RendererFrontend::ResizeTexture(Texture* texture, U32 width, U32 height)

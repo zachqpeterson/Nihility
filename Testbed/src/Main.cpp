@@ -57,22 +57,31 @@ bool init()
 
 	UIElementConfig config{};
 	config.area = { 0.25f, 0.25f, 0.75f, 0.75f };
-	config.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	config.enabled = true;
-	config.name = "Panel0";
+	config.name = "Text0";
 	config.scene = scene;
+	
+	UI::GenerateText(config, "Hello, World!");
 
-	UI::GeneratePanel(config);
-
-	config.name = "Panel1";
-	config.parentName = "Panel0";
-	config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
-	UI::GenerateBorderedPanel(config);
-
-	config.name = "Image0";
-	config.parentName = "Panel1";
-	config.color = Vector4::ONE;
-	UI::GenerateImage(config, Resources::DefaultTexture());
+	//UIElementConfig config{};
+	//config.area = { 0.25f, 0.25f, 0.75f, 0.75f };
+	//config.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+	//config.enabled = true;
+	//config.name = "Panel0";
+	//config.scene = scene;
+	//
+	//UI::GeneratePanel(config);
+	//
+	//config.name = "Panel1";
+	//config.parentName = "Panel0";
+	//config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+	//UI::GenerateBorderedPanel(config);
+	//
+	//config.name = "Image0";
+	//config.parentName = "Panel1";
+	//config.color = Vector4::ONE;
+	//UI::GenerateImage(config, Resources::DefaultTexture());
 
 	scene->DrawMesh(backgroundMesh);
 	scene->DrawMesh(mesh0);
