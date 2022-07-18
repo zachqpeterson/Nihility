@@ -2077,6 +2077,12 @@ void Resources::DestroyTTF(TTFInfo* info)
 
 Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels) //TODO: Color
 {
+	if (c == 32) { return nullptr; }
+
+	Texture* texture = textures[c];
+
+	if (!texture->name.Blank()) { return texture; }
+
 	TTFInfo* font = fonts[fontName];
 
 	if (font->name.Blank()) { Logger::Error("Font '{}' isn't loaded!", font->name); return nullptr; }
@@ -2084,7 +2090,13 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 	I32 width, height, xOffset, yOffset;
 	Vector<U8> alphas = GetCodepointBitmap(font, 0.0f, ScaleForPixelHeight(font, heightPixels), c, width, height, xOffset, yOffset);
 
-	Texture* texture = CreateWritableTexture(c, width, height, 4, true);
+	if (!alphas.Size())
+	{
+		Logger::Error("Failed to generate font bitmap!");
+		return nullptr;
+	}
+
+	texture = CreateWritableTexture(c, width, height, 4, true);
 
 	if (!texture)
 	{

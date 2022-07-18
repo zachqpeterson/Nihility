@@ -383,12 +383,6 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 		return;
 	}
 
-	MeshConfig meshConfig;
-	meshConfig.name = config.name;
-	F32 z = elementIndex / 100.0f;
-	++elementIndex;
-	meshConfig.MaterialName = "UI.mat";
-
 	Vector4 uiArea = config.area;
 
 	UIElement* parent = nullptr;
@@ -417,41 +411,68 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 	uiArea *= 2;
 	uiArea -= 1;
 
-	meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", 0, (uiArea.w - uiArea.y) * Settings::WindowHeight));
+	F32 areaX = uiArea.x;
+	F32 areaZ = 0;
+	F32 areaY;
 
-	meshConfig.vertices.Resize(4);
-
-	meshConfig.vertices[0] = Vertex{ { uiArea.x, uiArea.y, z}, { 0.0f, 0.0f }, Vector3::ZERO, config.color };
-	meshConfig.vertices[1] = Vertex{ { uiArea.z, uiArea.y, z}, { 1.0f, 0.0f }, Vector3::ZERO, config.color };
-	meshConfig.vertices[2] = Vertex{ { uiArea.z, uiArea.w, z}, { 1.0f, 1.0f }, Vector3::ZERO, config.color };
-	meshConfig.vertices[3] = Vertex{ { uiArea.x, uiArea.w, z}, { 0.0f, 1.0f }, Vector3::ZERO, config.color };
-
-	meshConfig.indices.Resize(6);
-
-	meshConfig.indices[0] = 0;
-	meshConfig.indices[1] = 1;
-	meshConfig.indices[2] = 2;
-	meshConfig.indices[3] = 2;
-	meshConfig.indices[4] = 3;
-	meshConfig.indices[5] = 0;
-
-	Mesh* mesh = Resources::CreateMesh(meshConfig);
-
-	if (!mesh)
+	for (char c : text)
 	{
-		Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
-		return;
+		MeshConfig meshConfig;
+		meshConfig.name = config.name + String(elementIndex);
+		F32 z = elementIndex / 100.0f;
+		++elementIndex;
+		meshConfig.MaterialName = "UI.mat";
+
+		meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, (uiArea.w - uiArea.y) * Settings::WindowHeight));
+
+		if (!meshConfig.instanceTextures.Back())
+		{
+			F32 dist = areaZ - areaX;
+			areaX += dist;
+			areaZ += dist;
+
+			continue;
+		}
+
+		areaZ = (((areaX + 1) * 0.5f) + (F32)meshConfig.instanceTextures.Back()->width / Settings::WindowWidth) * 2 - 1;
+		areaY = (((uiArea.w + 1) * 0.5f) - (F32)meshConfig.instanceTextures.Back()->height / Settings::WindowHeight) * 2 - 1;
+
+		meshConfig.vertices.Resize(4);
+
+		meshConfig.vertices[0] = Vertex{ { areaX, areaY, z}, { 0.0f, 0.0f }, Vector3::ZERO, config.color };
+		meshConfig.vertices[1] = Vertex{ { areaZ, areaY, z}, { 1.0f, 0.0f }, Vector3::ZERO, config.color };
+		meshConfig.vertices[2] = Vertex{ { areaZ, uiArea.w, z}, { 1.0f, 1.0f }, Vector3::ZERO, config.color };
+		meshConfig.vertices[3] = Vertex{ { areaX, uiArea.w, z}, { 0.0f, 1.0f }, Vector3::ZERO, config.color };
+
+		meshConfig.indices.Resize(6);
+
+		meshConfig.indices[0] = 0;
+		meshConfig.indices[1] = 1;
+		meshConfig.indices[2] = 2;
+		meshConfig.indices[3] = 2;
+		meshConfig.indices[4] = 3;
+		meshConfig.indices[5] = 0;
+
+		Mesh* mesh = Resources::CreateMesh(meshConfig);
+
+		if (!mesh)
+		{
+			Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
+			return;
+		}
+
+		UIElement* uiText = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_RESOURCE);
+		uiText->area = config.area;
+		uiText->mesh = mesh;
+		uiText->parent = parent;
+		uiText->name = config.name;
+
+		elements.PushFront(uiText);
+
+		if (config.enabled) { config.scene->DrawMesh(uiText->mesh); }
+
+		areaX = areaZ;
 	}
-
-	UIElement* uiText = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_RESOURCE);
-	uiText->area = config.area;
-	uiText->mesh = mesh;
-	uiText->parent = parent;
-	uiText->name = config.name;
-
-	elements.PushFront(uiText);
-
-	if (config.enabled) { config.scene->DrawMesh(uiText->mesh); }
 }
 
 void UI::UpdateBorderedPanel(const Vector4& area, const String& name, const Vector4& color)

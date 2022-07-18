@@ -56,7 +56,7 @@ bool init()
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 
 	UIElementConfig config{};
-	config.area = { 0.25f, 0.25f, 0.75f, 0.75f };
+	config.area = { 0.25f, 0.25f, 0.35f, 0.35f };
 	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	config.enabled = true;
 	config.name = "Text0";
