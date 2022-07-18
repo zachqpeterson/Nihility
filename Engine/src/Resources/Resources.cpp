@@ -1856,7 +1856,7 @@ enum MacLanguageID
 	STBTT_MAC_LANG_CHINESE_TRAD = 19
 };
 
-enum 
+enum
 {
 	STBTT_vmove = 1,
 	STBTT_vline,
@@ -2116,6 +2116,11 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 	return texture;
 }
 
+F32 Resources::GetFontWidth(const String& fontName, F32 heightPixels)
+{
+
+}
+
 // @OPTIMIZE: binary search
 U32 Resources::FindTTFTable(Vector<U8>& data, U32 fontstart, const char* tag)
 {
@@ -2370,7 +2375,7 @@ I32 Resources::GetGlyfOffset(TTFInfo* info, I32 glyphIndex)
 
 	return g1 == g2 ? -1 : g1;
 }
-    
+
 I32 Resources::GetGlyphShape(TTFInfo* info, I32 glyphIndex, Vector<FontVertex>& vertices)
 {
 	if (!info->cff.size) { return GetGlyphShapeTT(info, glyphIndex, vertices); }

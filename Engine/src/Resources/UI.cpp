@@ -423,7 +423,7 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 		++elementIndex;
 		meshConfig.MaterialName = "UI.mat";
 
-		meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, (uiArea.w - uiArea.y) * Settings::WindowHeight));
+		meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, (uiArea.w - uiArea.y) * 0.5f * Settings::WindowHeight));
 
 		if (!meshConfig.instanceTextures.Back())
 		{

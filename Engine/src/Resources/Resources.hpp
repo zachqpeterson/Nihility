@@ -379,6 +379,7 @@ public:
 	static bool ResizeTexture(Texture* texture, U32 width, U32 height, bool regenerateInternalData);
 
 	static Texture* CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels);
+	static F32 GetFontWidth(const String& fontName, F32 heightPixels);
 
 	static Vector<Renderpass*>& GetRenderpasses() { return renderpasses; }
 	static Vector<Material*>& GetMaterials() { return materials; }
