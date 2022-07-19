@@ -2116,11 +2116,6 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 	return texture;
 }
 
-F32 Resources::GetFontWidth(const String& fontName, F32 heightPixels)
-{
-
-}
-
 // @OPTIMIZE: binary search
 U32 Resources::FindTTFTable(Vector<U8>& data, U32 fontstart, const char* tag)
 {
