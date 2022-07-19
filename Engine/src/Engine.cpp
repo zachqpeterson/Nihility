@@ -12,6 +12,8 @@
 #include "Renderer/RendererFrontend.hpp"
 #include "Resources/Resources.hpp"
 #include "Resources/UI.hpp"
+#include "Physics/Physics.hpp"
+#include "Audio/Audio.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -26,28 +28,31 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	GameUpdate = update;
 	GameCleanup = cleanup;
 
-	Memory::Initialize(Gigabytes(1));
-
-	Logger::Initialize();
+	ASSERT(Memory::Initialize(Gigabytes(1)));
+	ASSERT(Logger::Initialize());
 
 	Resources::LoadSettings();
 
-	Platform::Initialize("TEST");
+	ASSERT_MSG(Platform::Initialize(applicationName), "Platform layer failed to initialize!");
 
-	Input::Initialize();
+	ASSERT_MSG(Input::Initialize(), "Input system failed to initialize!");
 
-	RendererFrontend::Initialize(applicationName);
+	ASSERT_MSG(RendererFrontend::Initialize(applicationName), "Renderer system failed to initialize!");
 
-	Resources::Initialize();
+	ASSERT_MSG(Resources::Initialize(), "Resource system failed to initialize!");
 
 	//TODO: Load all materials
 	Resources::CreateShaders();
 
-	UI::Initialize();
+	ASSERT_MSG(UI::Initialize(), "UI system failed to initialize!");
 
-	GameInit();
+	ASSERT_MSG(Physics::Initialize(), "Physics system failed to initialize!");
 
-	Time::Initialize();
+	ASSERT_MSG(Audio::Initialize(), "Audio system failed to initialize!");
+
+	ASSERT_MSG(GameInit(), "Game failed to initialize!");
+
+	ASSERT_MSG(Time::Initialize(), "Time system failed to initialize!");
 
 	Events::Subscribe("CLOSE", OnClose);
 
@@ -84,11 +89,12 @@ void Engine::MainLoop()
 
 			while (accumulatedTime >= Settings::TargetFrametime)
 			{
-				//PHYSICS
+				Physics::Update();
 
 				running = GameUpdate();
 
 				//OTHER UPDATES
+				Audio::Update();
 
 				accumulatedTime -= Settings::TargetFrametime;
 			}
@@ -105,6 +111,10 @@ void Engine::Shutdown()
 	GameCleanup();
 
 	Time::Shutdown();
+
+	Audio::Shutdown();
+
+	Physics::Shutdown();
 
 	UI::Shutdown();
 
