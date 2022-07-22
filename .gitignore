@@ -1,3 +1,5 @@
 x64/
 .vs/
 *.spv
+*.log
+bin/
