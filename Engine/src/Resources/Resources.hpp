@@ -290,6 +290,8 @@ struct TTFInfo
 	FontBuffer subrs;									// private charstring subroutines index
 	FontBuffer fontdicts;								// array of font dicts
 	FontBuffer fdselect;								// map from glyph to fontdict
+
+	HashMap<U64, Texture*> letterTextures;
 };
 
 struct Renderpass
@@ -439,7 +441,7 @@ private:
 	static void CsctxRccurveTo(FontCsctx& ctx, F32 dx1, F32 dy1, F32 dx2, F32 dy2, F32 dx3, F32 dy3);
 	static void CsctxCloseShape(FontCsctx& ctx);
 	static void CsctxVertex(FontCsctx& ctx, U8 type, I32 x, I32 y, I32 cx, I32 cy, I32 cx1, I32 cy1);
-	static void TrackVertex(FontCsctx& ctx, I32 x, I32 y); 
+	static void TrackVertex(FontCsctx& ctx, I32 x, I32 y);
 	static void SetVertex(FontVertex& v, U8 type, I32 x, I32 y, I32 cx, I32 cy);
 
 	static I32 CloseShape(FontVertex* vertices, I32 numVertices, I32 wasOff, I32 startOff, I32 sx, I32 sy, I32 scx, I32 scy, I32 cx, I32 cy);

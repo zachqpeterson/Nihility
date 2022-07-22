@@ -136,6 +136,12 @@
     <ClInclude Include="Engine\src\Containers\Heap.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\src\Physics\Physics.hpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Audio\Audio.hpp">
+      <Filter>Source Files\Audio</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">
@@ -215,6 +221,12 @@
     </ClCompile>
     <ClCompile Include="Engine\src\Resources\UI.cpp">
       <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Physics\Physics.cpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Audio\Audio.cpp">
+      <Filter>Source Files\Audio</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

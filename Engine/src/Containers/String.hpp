@@ -135,9 +135,9 @@ struct NH_API String
 	F64 ToF64();
 	bool ToBool();
 
-	String& operator+(char* other) { return Append(other); }
-	String& operator+(const char* other) { return Append(other); }
-	String& operator+(String& other) { return Append(other); }
+	String operator+(char* other) { String s = *this; s.Append(other); return s; }
+	String operator+(const char* other) { String s = *this; s.Append(other); return s; }
+	String operator+(String& other) { String s = *this; s.Append(other); return s; }
 	friend String operator+(char* other0, String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
 	friend String operator+(const char* other0, String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
 

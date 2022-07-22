@@ -25,8 +25,12 @@ void UI::Shutdown()
 	for (UIElement* e : elements)
 	{
 		e->name.Destroy();
+		e->mesh = nullptr;
 		Memory::Free(e, sizeof(UIElement), MEMORY_TAG_RESOURCE);
+		e = nullptr;
 	}
+
+	elements.Clear();
 }
 
 void UI::GenerateBorderedPanel(UIElementConfig& config)
@@ -415,6 +419,8 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 	F32 areaZ = 0;
 	F32 areaY;
 
+	//TODO: Store all meshes in one UIElement
+
 	for (char c : text)
 	{
 		MeshConfig meshConfig;
@@ -465,7 +471,7 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 		uiText->area = config.area;
 		uiText->mesh = mesh;
 		uiText->parent = parent;
-		uiText->name = config.name;
+		uiText->name = meshConfig.name;
 
 		elements.PushFront(uiText);
 

@@ -280,6 +280,8 @@ public:
 			return Move(value);
 		}
 
+		if (!size) { head = nullptr; }
+
 		return Move(T{});
 	}
 	void PushBack(const T& value)
@@ -320,6 +322,8 @@ public:
 			delete tempNode;
 			return Move(value);
 		}
+
+		if (!size) { head = nullptr; }
 
 		return Move(T{});
 	}

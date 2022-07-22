@@ -159,11 +159,11 @@ public:
 	static bool PowerOfTwo(U64 n) { return (n != 0) && ((n & (n - 1)) == 0); }
 
 	static U32 Length(I32 i) { return ((bool)i * (U32)Log10((F32)Abs(i)) + 1); }
-	static U32 Length(U32 i) { return ((bool)i * (U32)Log10((F32)Abs((I64)i)) + 1); }
+	static U32 Length(U32 i) { return ((bool)i * (U32)Log10((F32)i) + 1); }
 	static U32 Length(I64 i) { return ((bool)i * (U32)Log10((F32)Abs(i)) + 1); }
-	static U32 Length(U64 i) { return ((bool)i * (U32)Log10((F32)Abs((I64)i)) + 1); }
-	static U32 Length(F32 f) { return ((bool)f * (U32)Log10(Abs(f)) + 1); }
-	static U32 Length(F64 f) { return ((bool)f * (U32)Log10(Abs(f)) + 1); }
+	static U32 Length(U64 i) { return ((bool)i * (U32)Log10((F32)i) + 1); }
+	static U32 Length(F32 f) { return ((bool)(I64)f * (U32)Log10(Abs(f)) + 1); }
+	static U32 Length(F64 f) { return ((bool)(I64)f * (U32)Log10(Abs(f)) + 1); }
 
 	//HASHING
 	static U64 Hash(const struct String& str, U64 max);

@@ -2059,6 +2059,12 @@ bool Resources::LoadTTF(TTFInfo* info)
 	if (info->index_map == 0) { return false; }
 
 	info->indexToLocFormat = ttUSHORT(info->data.Data() + info->head + 50);
+
+	HashMap<U64, Texture*> letterTextures;
+	Texture* invalidTexture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
+	invalidTexture->name = "";
+	info->letterTextures = Move(HashMap<U64, Texture*>(20, invalidTexture));
+
 	return true;
 }
 
@@ -2073,22 +2079,37 @@ void Resources::DestroyTTF(TTFInfo* info)
 	info->subrs.Destroy();
 	info->fontdicts.Destroy();
 	info->fdselect.Destroy();
+
+	for (List<HashMap<U64, Texture*>::Node>& l : info->letterTextures)
+	{
+		for (HashMap<U64, Texture*>::Node& n : l)
+		{
+			DestroyTexture(n.value);
+		}
+
+		l.Clear();
+	}
+
+	info->letterTextures.Destroy();
 }
 
 Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels) //TODO: Color
 {
 	if (c == 32) { return nullptr; }
 
-	Texture* texture = textures[c];
-
-	if (!texture->name.Blank()) { return texture; }
-
 	TTFInfo* font = fonts[fontName];
 
 	if (font->name.Blank()) { Logger::Error("Font '{}' isn't loaded!", font->name); return nullptr; }
 
-	I32 width, height, xOffset, yOffset;
-	Vector<U8> alphas = GetCodepointBitmap(font, 0.0f, ScaleForPixelHeight(font, heightPixels), c, width, height, xOffset, yOffset);
+	F32 height = ScaleForPixelHeight(font, heightPixels);
+	U64 id = (U64)(c * (height * 10000.0f));
+
+	Texture* texture = font->letterTextures[id];
+
+	if (!texture->name.Blank()) { return texture; }
+
+	Vector4Int dimensions;
+	Vector<U8> alphas = GetCodepointBitmap(font, 0.0f, height, c, dimensions.x, dimensions.y, dimensions.z, dimensions.w);
 
 	if (!alphas.Size())
 	{
@@ -2096,7 +2117,20 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 		return nullptr;
 	}
 
-	texture = CreateWritableTexture(c, width, height, 4, true);
+	texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
+	texture->name = font->name + c;
+	texture->width = dimensions.x;
+	texture->height = dimensions.y;
+	texture->generation = 0;
+	texture->channelCount = 4;
+	texture->flags = TEXTURE_FLAG_HAS_TRANSPARENCY | TEXTURE_FLAG_IS_WRITEABLE;
+
+	if (!RendererFrontend::CreateWritableTexture(texture))
+	{
+		Logger::Error("Failed to create writable texture '{}'!", texture->name);
+		Memory::Free(texture, sizeof(texture), MEMORY_TAG_RESOURCE);
+		return nullptr;
+	}
 
 	if (!texture)
 	{
@@ -2104,7 +2138,7 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 		return nullptr;
 	}
 
-	Vector<U8> pixels(width * height * 4, 0);
+	Vector<U8> pixels(dimensions.x * dimensions.y * 4, 0);
 
 	for (U64 i = 0, j = 3; i < alphas.Size(); ++i, j += 4)
 	{
@@ -2112,6 +2146,8 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 	}
 
 	RendererFrontend::WriteTextureData(texture, pixels);
+
+	font->letterTextures.Insert(id, texture);
 
 	return texture;
 }
