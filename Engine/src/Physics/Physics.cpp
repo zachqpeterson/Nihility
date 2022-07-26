@@ -2,6 +2,7 @@
 
 #include "BAH.hpp"
 #include "Containers/Vector.hpp"
+#include "Core/Time.hpp"
 
 HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
@@ -70,43 +71,80 @@ void Physics::Update()
 	List<Manifold2D> contacts;
 	BroadPhase(tree, objects, contacts);
 	NarrowPhase(contacts);
+
+	for (PhysicsObject2D* po : objects)
+	{
+		if (po->kinematic) { continue; }
+
+		po->velocity += po->force * po->massInv * Time::DeltaTime();
+		po->transform->SetPosition(po->transform->Position() + (Vector3)(po->velocity * Time::DeltaTime()));
+
+		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * po->dragCoefficient * po->area * 0.5f * airPressure * Time::DeltaTime();
+
+		po->force = Vector2::ZERO;
+	}
 }
 
-PhysicsObject2D* Physics::Create2DPhysicsObject(ColliderType2D colliderType, F32 mass, F32 restitution)
+PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 {
 	static U64 id = 0;
+
 	PhysicsObject2D* po = (PhysicsObject2D*)Memory::Allocate(sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
 	po->id = id;
 	++id;
 
-	//TODO: inertia
-	po->mass = mass;
-	if (mass == 0.0f) { po->massInv = 0.0f; }
-	else { po->massInv = 1.0f / mass; }
-
-	po->restitution = restitution;
-
-	switch (colliderType)
+	switch (config.type)
 	{
-	case COLLIDER_TYPE_RECTANGLE:
+	case COLLIDER_TYPE_RECTANGLE: {
 		RectangleCollider* collider = (RectangleCollider*)Memory::Allocate(sizeof(RectangleCollider), MEMORY_TAG_DATA_STRUCT);
+		collider->trigger = config.trigger;
+		collider->xBounds = config.xBounds;
+		collider->yBounds = config.yBounds;
 		po->collider = collider;
-		break;
-	case COLLIDER_TYPE_CIRCLE:
+
+		po->area = (config.xBounds.y - config.xBounds.x) * (config.yBounds.y - config.yBounds.x);
+	} break;
+	case COLLIDER_TYPE_CIRCLE: {
 		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_DATA_STRUCT);
+		collider->trigger = config.trigger;
+		collider->radius = config.radius;
 		po->collider = collider;
-		break;
-	case COLLIDER_TYPE_CAPSULE:
+
+		po->area = PI * config.radius * config.radius;
+	} break;
+	case COLLIDER_TYPE_CAPSULE: {
 		CapsuleCollider* collider = (CapsuleCollider*)Memory::Allocate(sizeof(CapsuleCollider), MEMORY_TAG_DATA_STRUCT);
+		collider->trigger = config.trigger;
 		po->collider = collider;
-		break;
-	case COLLIDER_TYPE_POLYGON:
+	} break;
+	case COLLIDER_TYPE_POLYGON: {
 		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_DATA_STRUCT);
+		collider->trigger = config.trigger;
 		po->collider = collider;
-		break;
+	} break;
+	case COLLIDER_TYPE_NONE:
+	default: {
+		po->area = 0.0f;
+	} break;
 	}
 
-	po->collider->type = colliderType;
+	po->collider->type = config.type;
+	po->collider->trigger = config.trigger;
+	po->transform = config.transform;
+
+	po->dragCoefficient = config.dragCoefficient;
+	po->restitution = config.restitution;
+	po->gravityScale = config.gravityScale;
+	po->kinematic = config.kinematic;
+
+	po->mass = po->area * config.density;
+	if (po->mass == 0.0f) { po->massInv = 0.0f; }
+	else { po->massInv = 1.0f / po->mass; }
+
+	//TODO: inertia
+	po->inertia = 0.0f;
+	if (po->inertia == 0.0f) { po->inertiaInv = 0.0f; }
+	else { po->inertiaInv = 1.0f / po->inertia; }
 
 	physicsObjects2D.Insert(po->id, po);
 

@@ -387,6 +387,8 @@ Vector2& Vector2::operator=(const String& str)
 	return *this;
 }
 
+Vector2 operator- (const Vector2& v) { return Vector2{ -v.x, -v.y }; }
+
 //VECTOR3
 Vector3::Vector3(const String& str)
 {

@@ -44,6 +44,8 @@ enum ColliderType2D
 	COLLIDER_TYPE_CIRCLE,
 	COLLIDER_TYPE_CAPSULE,
 	COLLIDER_TYPE_POLYGON,
+
+	COLLIDER_TYPE_NONE,
 };
 
 struct Collider2D
@@ -85,16 +87,34 @@ struct PolygonCollider : public Collider2D
 	Vector2 YBounds() final { return { 0.0f, 0.0f }; }
 };
 
+struct PhysicsObject2DConfig
+{
+	ColliderType2D type;
+	//Rectangle
+	Vector2 xBounds;
+	Vector2 yBounds;
+	//Circle
+	F32 radius;
+	//TODO: other
+
+	bool trigger;
+	bool kinematic;
+
+	F32 restitution;
+	F32 gravityScale;
+	F32 density;
+	F32 dragCoefficient;
+	Transform* transform;
+};
+
 struct PhysicsObject2D
 {
 	U64 id;
 	Collider2D* collider;
+	Transform* transform;
 
 	//primary
-	Vector2 position; //TODO: Transform
 	Vector2 momentum;
-
-	F32 rotation; //TODO: Transform
 	F32 angularMomentum;
 
 	// secondary
@@ -113,6 +133,7 @@ struct PhysicsObject2D
 	F32 gravityScale;
 	F32 dragCoefficient;
 	F32 area;
+	bool kinematic;
 };
 
 struct Manifold2D
@@ -133,7 +154,7 @@ public:
 	///	Events
 	/// </summary>
 
-	static PhysicsObject2D* Create2DPhysicsObject(ColliderType2D colliderType, F32 mass, F32 restitution);
+	static PhysicsObject2D* Create2DPhysicsObject(PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
 
 

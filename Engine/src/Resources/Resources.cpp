@@ -135,10 +135,12 @@ bool Resources::Initialize()
 
 	defaultMaterial = LoadMaterial(DEFAULT_MATERIAL_NAME);
 
-	//TODO: Temporary
+	//TODO: Temporary, Load all materials, create shaders
 	LoadMaterial("Background.mat");
 	LoadMaterial("Tile.mat");
 	LoadMaterial("UI.mat");
+
+	CreateShaders();
 
 	return true;
 }

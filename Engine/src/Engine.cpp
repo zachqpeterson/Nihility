@@ -29,6 +29,7 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	GameCleanup = cleanup;
 
 	ASSERT(Memory::Initialize(Gigabytes(1)));
+
 	ASSERT(Logger::Initialize());
 
 	Resources::LoadSettings();
@@ -40,9 +41,6 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	ASSERT_MSG(RendererFrontend::Initialize(applicationName), "Renderer system failed to initialize!");
 
 	ASSERT_MSG(Resources::Initialize(), "Resource system failed to initialize!");
-
-	//TODO: Load all materials
-	Resources::CreateShaders();
 
 	ASSERT_MSG(UI::Initialize(), "UI system failed to initialize!");
 

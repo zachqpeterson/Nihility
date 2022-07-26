@@ -206,7 +206,7 @@ struct NH_API Vector2
 	bool operator!= (const Vector2& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON; }
 	bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-	friend Vector2 operator- (Vector2& v) { return Vector2{ -v.x, -v.y }; }
+	friend Vector2 operator- (const Vector2& v);
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -644,16 +644,18 @@ struct NH_API Matrix3
 	Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) : a{ v1 }, b{ v2 }, c{ v3 } {}
 	Matrix3(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
 	Matrix3(Matrix3&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c } {}
-	Matrix3(const Vector2& position, const Quaternion& q, const Vector2& scale)
+	Matrix3(const Vector2& position, const F32& rotation, const Vector2& scale)
 	{
+		F32 cos = Math::Cos(rotation * DEG2RAD_MULTIPLIER);
+		F32 sin = Math::Sin(rotation * DEG2RAD_MULTIPLIER);
 		a.x = 0.0f; b.x = 0.0f;
 		a.y = 0.0f; b.y = 0.0f;
 
-		c.x = position.x;
-		c.y = position.y;
-
 		a.z = 1.0f;
 		b.z = 1.0f;
+
+		c.x = position.x;
+		c.y = position.y;
 		c.z = 1.0f;
 	}
 
@@ -1077,10 +1079,10 @@ struct NH_API Vertex
 	Vector4 tangent;
 };
 
-struct NH_API Transform
+struct NH_API Transform3D
 {
 public:
-	Transform* parent;
+	Transform3D* parent;
 
 private:
 	bool dirty;
@@ -1090,17 +1092,17 @@ private:
 	Matrix4 local;
 
 public:
-	Transform() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
-	Transform(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
-	Transform(const Vector3& position, const Quaternion& rotation) :
+	Transform3D() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
+	Transform3D(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
+	Transform3D(const Vector3& position, const Quaternion& rotation) :
 		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
-	Transform(const Vector3& position, const Quaternion& rotation, const Vector3& scale) :
+	Transform3D(const Vector3& position, const Quaternion& rotation, const Vector3& scale) :
 		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
-	Transform(const Transform& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
-	Transform(Transform&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+	Transform3D(const Transform3D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+	Transform3D(Transform3D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 
-	Transform& operator=(const Transform& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
-	Transform& operator=(Transform&& other) noexcept { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+	Transform3D& operator=(const Transform3D& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+	Transform3D& operator=(Transform3D&& other) noexcept { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
 
 	const Vector3& Position() const { return position; }
 	void SetPosition(const Vector3& v) { position = v; dirty = true; }
@@ -1126,6 +1128,61 @@ private:
 	void UpdateLocal()
 	{
 		local = Move(Matrix4(position, rotation, scale));
+		dirty = false;
+	}
+};
+
+struct NH_API Transform2D
+{
+public:
+	Transform2D* parent;
+
+private:
+	bool dirty;
+	Vector2 position;
+	F32 rotation;
+	Vector2 scale;
+	Matrix3 local;
+
+public:
+	Transform2D() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
+	Transform2D(const Vector2& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
+	Transform2D(const Vector2& position, const F32& rotation) :
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
+	Transform2D(const Vector2& position, const F32& rotation, const Vector2& scale) :
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
+	Transform2D(const Transform2D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+	Transform2D(Transform2D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
+
+	Transform2D& operator=(const Transform2D& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+	Transform2D& operator=(Transform2D&& other) noexcept { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
+
+	const Vector2& Position() const { return position; }
+	void SetPosition(const Vector2& v) { position = v; dirty = true; }
+	void Translate(const Vector2& v) { position += v; dirty = true; }
+	const F32& Rotation() const { return rotation; }
+	void SetRotation(const F32& angle) { rotation = angle; Math::Mod(rotation, 360.0f); dirty = true; }
+	void Rotate(const F32& angle) { rotation += angle; Math::Mod(rotation, 360.0f); dirty = true; }
+	const Vector2& Scale() const { return scale; }
+	void SetScale(const Vector2& v) { scale = v; dirty = true; }
+
+	const Matrix3& Local()
+	{
+		if (dirty) { UpdateLocal(); }
+		return local;
+	}
+
+	//TODO: Reduce copying?
+	NH_INLINE Matrix3 World()
+	{
+		if (parent) { return Local() * parent->Local(); }
+		return Local();
+	}
+
+private:
+	void UpdateLocal()
+	{
+		local = Move(Matrix3(position, rotation, scale));
 		dirty = false;
 	}
 };
