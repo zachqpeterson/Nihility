@@ -101,7 +101,7 @@ struct List
 
 public:
 	List() : size{ 0 }, head{ nullptr }, tail{ nullptr } {}
-	List(const List& other)
+	List(const List& other) : size{ 0 }, head{ nullptr }, tail{ nullptr }
 	{
 		Node* node = other.head;
 
@@ -117,6 +117,9 @@ public:
 		other.head = nullptr;
 		other.tail = nullptr;
 	}
+private:
+	List(Node* head, Node* tail, U64 size) : head{ head }, tail{ tail }, size{ size } {}
+public:
 	~List() { Clear(); }
 	void Destroy() { Clear(); }
 
@@ -180,14 +183,32 @@ public:
 
 		return *this;
 	}
+	List&& Split(U64 index)
+	{
+		ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+		Node* node = head;
+		for (U64 i = 0; i < index; ++i) { node = node->next; }
+
+		Node* newTail = node->prev;
+		newTail->next = nullptr;
+		node->prev = nullptr;
+
+		List<T> list(node, tail, size - index - 1);
+
+		tail = newTail;
+		size = index + 1;
+
+		return Move(list);
+	}
 
 	T& Front() { return head->value; }
 	const T& Front() const { return head->value; }
 	T& Back() { return tail->value; }
 	const T& Back() const { return tail->value; }
 
-	Iterator begin() { return Iterator(head); }
-	Iterator end() { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
+	Iterator begin() const { return Iterator(head); }
+	Iterator end() const { if (tail) { return Iterator(tail->next); } return Iterator(tail); }
 
 	const bool Empty() const { return !size; }
 	const U64& Size() const { return size; }
@@ -200,7 +221,21 @@ public:
 		}
 	}
 
-	//TODO: Insert with range
+	void AddRange(const List<T>& list)
+	{
+		for (T& t : list)
+		{
+			PushBack(t);
+		}
+	}
+	void InsertRange(const List<T>& list, U64 index)
+	{
+		for (T& t : list)
+		{
+			//insert
+		}
+	}
+
 	T&& RemoveAt(U64 index)
 	{
 		ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
@@ -241,6 +276,7 @@ public:
 		return newIt;
 	}
 
+	//TODO: insert
 	void PushFront(const T& value)
 	{
 		++size;

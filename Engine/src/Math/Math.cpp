@@ -452,6 +452,14 @@ Vector4Int& Vector4Int::operator=(const String& str)
 	return *this;
 }
 
+//MATRIX4
+Matrix4::Matrix4(const Vector3& position, const Quaternion& rotation, const Vector3& scale)
+{
+	Matrix4 m = rotation.ToMatrix4();
+	m.SetTranslation(position);
+	//TODO: scale
+}
+
 //QUATERNION
 Quaternion Quaternion::AxisAngle(const Vector3& axis, F32 angle, bool normalize)
 {

@@ -198,6 +198,8 @@ struct NH_API Vector2
 	Vector2 operator- (const Vector2& v) const { return Vector2{ x - v.x, y - v.y }; }
 	Vector2 operator* (F32 f) const { return Vector2{ x * f, y * f }; }
 	Vector2 operator/ (F32 f) const { return Vector2{ x / f, y / f }; }
+	Vector2 operator+ (F32 f) const { return Vector2{ x + f, y + f }; }
+	Vector2 operator- (F32 f) const { return Vector2{ x - f, y - f }; }
 	Vector2 operator% (F32 f) const { return Vector2{ Math::Mod(x, f), Math::Mod(y, f) }; }
 
 	bool operator== (const Vector2& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON; }
@@ -261,15 +263,18 @@ struct NH_API Vector3
 	Vector3(Vector3&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z } {}
 	Vector3(const struct String& str);
 
-	Vector3& operator=(const Vector3& v) { x = v.x; y = v.y; z = v.z; return *this; }
-	Vector3& operator=(Vector3&& v) noexcept { x = v.x; y = v.y; z = v.z; return *this; }
+	Vector3& operator=(const Vector3& v) { x = v.x; y = v.y; z = v.z;											return *this; }
+	Vector3& operator=(Vector3&& v) noexcept { x = v.x; y = v.y; z = v.z;										return *this; }
 	Vector3& operator=(const struct String& str);
 
-	Vector3& operator+= (const Vector3& v) { x += v.x; y += v.y; z += v.z;   return *this; }
-	Vector3& operator-= (const Vector3& v) { x -= v.x; y -= v.y; z -= v.z;   return *this; }
-	Vector3& operator*= (F32 f) { x *= f; y *= f; z *= f;					return *this; }
-	Vector3& operator/= (F32 f) { x /= f; y /= f; z /= f;					return *this; }
-	Vector3& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f);  return *this; }
+	Vector3& operator+= (const Vector3& v) { x += v.x; y += v.y; z += v.z;										return *this; }
+	Vector3& operator-= (const Vector3& v) { x -= v.x; y -= v.y; z -= v.z;										return *this; }
+	Vector3& operator*= (F32 f) { x *= f; y *= f; z *= f;														return *this; }
+	Vector3& operator/= (F32 f) { x /= f; y /= f; z /= f;														return *this; }
+	Vector3& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f);				return *this; }
+	Vector3& operator*= (F64 f) { x *= (F32)f; y *= (F32)f; z *= (F32)f;										return *this; }
+	Vector3& operator/= (F64 f) { x /= (F32)f; y /= (F32)f; z /= (F32)f;										return *this; }
+	Vector3& operator%= (F64 f) { x = Math::Mod(x, (F32)f); y = Math::Mod(y, (F32)f); z = Math::Mod(z, (F32)f);	return *this; }
 
 	Vector3 operator+ (const Vector3& v) const { return Vector3{ x + v.x, y + v.y, z + v.z }; }
 	Vector3 operator- (const Vector3& v) const { return Vector3{ x - v.x, y - v.y, z - v.z }; }
@@ -732,14 +737,7 @@ struct NH_API Matrix4
 		a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = position.z;
 		a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
 	}
-	Matrix4(const Vector3& position, const Quaternion& rotation, const Vector3& scale = Vector3::ONE)
-	{
-		//TODO:
-		a.x = 1.0f; b.x = 0.0f; c.x = 0.0f; d.x = position.x;
-		a.y = 0.0f; b.y = 1.0f; c.y = 0.0f; d.y = position.y;
-		a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = position.z;
-		a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
-	}
+	Matrix4(const Vector3& position, const Quaternion& rotation, const Vector3& scale = Vector3::ONE);
 
 	Matrix4& operator= (const Matrix4& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
 	Matrix4& operator= (Matrix4&& m) noexcept { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
@@ -813,7 +811,14 @@ struct NH_API Matrix4
 		d.y += v.y;
 		d.z += v.z;
 	}
-	//TODO: Scale
+	void SetScale(const Vector3& v)
+	{
+
+	}
+	void Scale(const Vector3& v)
+	{
+
+	}
 	//TODO: Rotate
 
 	Matrix4 Inverse() const
@@ -871,6 +876,7 @@ struct NH_API Matrix4
 
 		return m;
 	}
+
 	void Invert()
 	{
 		F32 t0 = c.z * d.w;

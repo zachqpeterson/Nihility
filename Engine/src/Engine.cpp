@@ -70,6 +70,7 @@ void Engine::MainLoop()
 
 	while (running)
 	{
+		Time::Update();
 		running = Platform::ProcessMessages();
 
 		if (Input::OnButtonDown(ESCAPE))
@@ -80,21 +81,20 @@ void Engine::MainLoop()
 
 		if (!suspended && running)
 		{
-			accumulatedTime += Settings::TargetFrametime;
+			accumulatedTime += Time::TimeSinceLastFrame();
+			if (accumulatedTime > 0.2f) { accumulatedTime = 0.2f; }
 
-			while (accumulatedTime >= 0)
+			while (accumulatedTime > Settings::TargetFrametime)
 			{
-				Time::Update();
-
 				Physics::Update();
 
-				running = GameUpdate();
-
-				//OTHER UPDATES
-				Audio::Update();
-
-				accumulatedTime -= Time::TimeSinceLastFrame();
+				accumulatedTime -= Settings::TargetFrametime;
 			}
+
+			running = GameUpdate();
+
+			//OTHER UPDATES
+			Audio::Update();
 
 			RendererFrontend::DrawFrame();
 		}

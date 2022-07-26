@@ -40,14 +40,14 @@ bool Input::ButtonDown(ButtonCode code)
 
 bool Input::OnButtonDown(ButtonCode code)
 {
-    ButtonState& btn = buttonStates[code];
-    return btn.pressed && btn.changed;
+    ButtonState& state = buttonStates[code];
+    return state.pressed && state.changed;
 }
 
 bool Input::OnButtonUp(ButtonCode code)
 {
-    ButtonState& btn = buttonStates[code];
-    return !btn.pressed && btn.changed;
+    ButtonState& state = buttonStates[code];
+    return !state.pressed && state.changed;
 }
 
 const Vector2Int& Input::MousePos()
@@ -62,7 +62,9 @@ I16 Input::MouseWheelDelta()
 
 void Input::ResetInput()
 {
-    for (ButtonState state : buttonStates)
+    anyButtonDown = false;
+
+    for (ButtonState& state : buttonStates)
     {
         state.changed = false;
     }
@@ -70,8 +72,10 @@ void Input::ResetInput()
 
 void Input::SetButtonState(U8 code, bool down)
 {
-    buttonStates[code].changed = true;
-    buttonStates[code].pressed = down;
+    anyButtonDown |= down;
+    ButtonState& state = buttonStates[code];
+    state.changed = true;
+    state.pressed = down;
 }
 
 void Input::SetMouseWheel(I16 delta)

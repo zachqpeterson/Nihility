@@ -217,6 +217,8 @@ void Platform::Shutdown()
 
 bool Platform::ProcessMessages()
 {
+	Input::ResetInput();
+
 	MSG message;
 
 	while (PeekMessageA(&message, platformState.hwnd, 0, 0, PM_REMOVE))

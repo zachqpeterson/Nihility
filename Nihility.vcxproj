@@ -111,6 +111,7 @@
     <ClInclude Include="Engine\src\Math\Math.hpp" />
     <ClInclude Include="Engine\src\Memory\DynamicAllocator.hpp" />
     <ClInclude Include="Engine\src\Memory\Memory.hpp" />
+    <ClInclude Include="Engine\src\Physics\BAH.hpp" />
     <ClInclude Include="Engine\src\Physics\Physics.hpp" />
     <ClInclude Include="Engine\src\Platform\Platform.hpp" />
     <ClInclude Include="Engine\src\Renderer\Camera.hpp" />
@@ -145,6 +146,7 @@
     <ClCompile Include="Engine\src\Math\Math.cpp" />
     <ClCompile Include="Engine\src\Memory\DynamicAllocator.cpp" />
     <ClCompile Include="Engine\src\Memory\Memory.cpp" />
+    <ClCompile Include="Engine\src\Physics\BAH.cpp" />
     <ClCompile Include="Engine\src\Physics\Physics.cpp" />
     <ClCompile Include="Engine\src\Platform\PlatformWin32.cpp" />
     <ClCompile Include="Engine\src\Renderer\Camera.cpp" />

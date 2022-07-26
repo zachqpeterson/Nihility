@@ -3,3 +3,4 @@ x64/
 *.spv
 *.log
 bin/
+settings.cfg

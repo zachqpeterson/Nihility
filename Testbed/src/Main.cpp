@@ -94,7 +94,7 @@ bool init()
 bool update()
 {
 	Vector3 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), (F32)(Input::ButtonDown(S) - Input::ButtonDown(W)), (F32)(Input::ButtonDown(E) - Input::ButtonDown(Q)) };
-	move *= Time::DeltaTime() * 10.0f;
+	move *= Time::DeltaTime() * 10.0;
 	scene->GetCamera()->Translate(move);
 
 	return true;
