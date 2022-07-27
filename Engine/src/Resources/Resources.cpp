@@ -8,6 +8,7 @@
 #include <Containers/List.hpp>
 #include "Containers/Heap.hpp"
 #include "Core/Settings.hpp"
+#include "Physics/Physics.hpp"
 
 #undef LoadImage
 
@@ -34,6 +35,10 @@ Mesh* Resources::capsuleMesh;
 Mesh* Resources::quadMesh;
 
 HashMap<String, Model*> Resources::models;
+
+HashMap<U64, GameObject2D*> Resources::gameObjects2D;
+HashMap<U64, GameObject3D*> Resources::gameObjects3D;
+U64 Resources::gameObjectId;
 
 #define BINARIES_PATH "../assets/"
 #define TEXTURES_PATH "../assets/textures/"
@@ -1626,6 +1631,39 @@ Model* Resources::LoadModel(const String& name)
 	return nullptr;
 }
 
+Model* Resources::CreateModel(const String& name, Vector<Mesh*> meshes)
+{
+	if (name.Blank())
+	{
+		Logger::Error("Model name can not be blank or nullptr!");
+		return nullptr;
+	}
+
+	if (!meshes.Size())
+	{
+		Logger::Error("Model must have at least one mesh!");
+		return nullptr;
+	}
+
+	Model* model = models[name];
+
+	if (!model->name.Blank()) 
+	{ 
+		Logger::Error("Model with name '{}' has already been created!", name);
+		return nullptr;
+	}
+
+	Logger::Info("Creating model '{}'...", name);
+
+	model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_RESOURCE);
+	model->name = name;
+	model->meshes = meshes;
+
+	models.Insert(name, model);
+
+	return model;
+}
+
 void Resources::LoadOBJ(Model* mesh, struct File* file)
 {
 
@@ -1634,6 +1672,29 @@ void Resources::LoadOBJ(Model* mesh, struct File* file)
 void Resources::LoadKSM(Model* mesh, struct File* file)
 {
 
+}
+
+GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
+{
+	if (config.name.Blank())
+	{
+		Logger::Error("GameObject name can not be blank or nullptr!");
+		return nullptr;
+	}
+
+	Logger::Info("Creating GameObject '{}'...", config.name);
+
+	GameObject2D* go = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_RESOURCE);
+	go->id = gameObjectId;
+	++gameObjectId;
+	go->model = config.model;
+	go->name = config.name;
+	go->physics = config.physics;
+	go->transform = config.transform;
+
+	gameObjects2D.Insert(go->id, go);
+
+	return go;
 }
 
 Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency)

@@ -155,8 +155,8 @@ public:
 	///	Events
 	/// </summary>
 
-	static void Create2DPhysicsObject(PhysicsObject2DConfig& config);
-	static void Create3DPhysicsObject();
+	static PhysicsObject2D* Create2DPhysicsObject(PhysicsObject2DConfig& config);
+	static PhysicsObject3D* Create3DPhysicsObject();
 
 
 private:

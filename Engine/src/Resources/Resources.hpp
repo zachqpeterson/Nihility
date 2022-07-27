@@ -360,6 +360,40 @@ struct Model
 	Vector<Mesh*> meshes;
 };
 
+struct GameObject2DConfig
+{
+	String name;
+	Transform2D* transform;
+	struct PhysicsObject2D* physics;
+	Model* model;
+};
+
+struct GameObject2D
+{
+	U64 id;
+	String name;
+	Transform2D* transform;
+	struct PhysicsObject2D* physics;
+	Model* model;
+};
+
+struct GameObject3DConfig
+{
+	String name;
+	Transform3D* transform;
+	struct PhysicsObject3D* physics;
+	Model* model;
+};
+
+struct GameObject3D
+{
+	U64 id;
+	String name;
+	Transform3D* transform;
+	struct PhysicsObject3D* physics;
+	Model* model;
+};
+
 class NH_API Resources
 {
 public:
@@ -385,6 +419,8 @@ public:
 	static Vector<Material*>& GetMaterials() { return materials; }
 
 	static Mesh* CreateMesh(MeshConfig& config);
+	static Model* CreateModel(const String& name, Vector<Mesh*> meshes);
+	static GameObject2D* CreateGameObject2D(const GameObject2DConfig& config);
 
 	static Texture* DefaultTexture() { return defaultTexture; }
 	static Texture* DefaultDiffuse() { return defaultDiffuse; }
@@ -507,6 +543,11 @@ private:
 
 	//TODO: Model
 	static HashMap<String, Model*> models;
+
+	//GameObjects
+	static HashMap<U64, GameObject2D*> gameObjects2D;
+	static HashMap<U64, GameObject3D*> gameObjects3D;
+	static U64 gameObjectId;
 
 	Resources() = delete;
 

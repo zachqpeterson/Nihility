@@ -11,6 +11,7 @@
 #include <Renderer/RendererFrontend.hpp>
 #include <Resources/Resources.hpp>
 #include <Resources/UI.hpp>
+#include <Physics/Physics.hpp>
 
 Scene* scene;
 
@@ -35,6 +36,8 @@ bool init()
 	backgroundConfig.indices.Push(3);
 	backgroundConfig.indices.Push(0);
 
+	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
+
 	MeshConfig config0;
 	config0.name = "Mesh0";
 	config0.MaterialName = "Tile.mat";
@@ -52,9 +55,26 @@ bool init()
 	config0.indices.Push(3);
 	config0.indices.Push(0);
 
-	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
-	//TODO: GameObject
+	Transform2D* transform = new Transform2D();
+	PhysicsObject2DConfig poConfig{};
+	poConfig.density = 1.0f;
+	poConfig.dragCoefficient = 2.0f;
+	poConfig.gravityScale = 1.0f;
+	poConfig.kinematic = false;
+	poConfig.restitution = 0.5f;
+	poConfig.transform = transform;
+	poConfig.trigger = false;
+	poConfig.type = COLLIDER_TYPE_RECTANGLE;
+	poConfig.xBounds = { -0.5f, 0.5f };
+	poConfig.yBounds = { -0.5f, 0.5f };
+	Vector<Mesh*> meshes(1, mesh0);
+	GameObject2DConfig goConfig{};
+	goConfig.name = "Mesh0";
+	goConfig.transform = transform;
+	goConfig.model = Resources::CreateModel("Mesh0", meshes);
+	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+	GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
 
 	UIElementConfig config{};
 	config.area = { 0.0f, 0.9f, 0.1f, 1.0f };

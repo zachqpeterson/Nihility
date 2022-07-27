@@ -21,14 +21,15 @@ struct MaterialList
 class Scene
 {
 public:
-    void NH_API Create(CameraType cameraType);
-    void NH_API Destroy();
+    NH_API void Create(CameraType cameraType);
+    NH_API void Destroy();
 
     void OnResize();
     bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
-    void NH_API DrawMesh(struct Mesh* mesh, const Matrix4& matrix = Matrix4::IDENTITY);
-    void NH_API DrawModel(struct Model* model, const Matrix4& matrix = Matrix4::IDENTITY);
+    NH_API void DrawMesh(struct Mesh* mesh, const Matrix4& matrix = Matrix4::IDENTITY);
+    NH_API void DrawModel(struct Model* model, const Matrix4& matrix = Matrix4::IDENTITY);
+    NH_API void DrawGameObject(struct GameObject2D* gameObject);
 
     struct Camera* GetCamera() { return camera; }
 

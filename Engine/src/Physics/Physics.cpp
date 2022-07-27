@@ -85,7 +85,7 @@ void Physics::Update()
 	}
 }
 
-void Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
+PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 {
 	static U64 id = 0;
 
@@ -151,7 +151,7 @@ void Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	physicsObjects2D.Insert(po->id, po);
 }
 
-void Physics::Create3DPhysicsObject()
+PhysicsObject3D* Physics::Create3DPhysicsObject()
 {
 	static U64 id = 0;
 	PhysicsObject3D* po = (PhysicsObject3D*)Memory::Allocate(sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
