@@ -27,8 +27,8 @@ public:
     void OnResize();
     bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
-    void NH_API DrawMesh(struct Mesh* mesh, const Matrix4& model = Matrix4::IDENTITY);
-    void NH_API DrawModel(struct Model* model);
+    void NH_API DrawMesh(struct Mesh* mesh, const Matrix4& matrix = Matrix4::IDENTITY);
+    void NH_API DrawModel(struct Model* model, const Matrix4& matrix = Matrix4::IDENTITY);
 
     struct Camera* GetCamera() { return camera; }
 

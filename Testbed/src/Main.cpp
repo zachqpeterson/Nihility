@@ -54,6 +54,7 @@ bool init()
 
 	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
 	Mesh* mesh0 = Resources::CreateMesh(config0);
+	//TODO: GameObject
 
 	UIElementConfig config{};
 	config.area = { 0.0f, 0.9f, 0.1f, 1.0f };

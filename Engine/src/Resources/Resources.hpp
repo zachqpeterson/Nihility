@@ -358,7 +358,6 @@ struct Model
 {
 	String name;
 	Vector<Mesh*> meshes;
-	Transform transform;
 };
 
 class NH_API Resources

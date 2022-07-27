@@ -104,14 +104,14 @@ struct PhysicsObject2DConfig
 	F32 gravityScale;
 	F32 density;
 	F32 dragCoefficient;
-	Transform* transform;
+	Transform2D* transform;
 };
 
 struct PhysicsObject2D
 {
 	U64 id;
 	Collider2D* collider;
-	Transform* transform;
+	Transform2D* transform;
 
 	//primary
 	Vector2 momentum;
@@ -133,6 +133,7 @@ struct PhysicsObject2D
 	F32 gravityScale;
 	F32 dragCoefficient;
 	F32 area;
+	U64 layerMask;
 	bool kinematic;
 };
 
@@ -154,8 +155,8 @@ public:
 	///	Events
 	/// </summary>
 
-	static PhysicsObject2D* Create2DPhysicsObject(PhysicsObject2DConfig& config);
-	static PhysicsObject3D* Create3DPhysicsObject();
+	static void Create2DPhysicsObject(PhysicsObject2DConfig& config);
+	static void Create3DPhysicsObject();
 
 
 private:

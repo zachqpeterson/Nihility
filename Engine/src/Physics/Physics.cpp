@@ -76,16 +76,16 @@ void Physics::Update()
 	{
 		if (po->kinematic) { continue; }
 
-		po->velocity += po->force * po->massInv * Time::DeltaTime();
-		po->transform->SetPosition(po->transform->Position() + (Vector3)(po->velocity * Time::DeltaTime()));
+		po->velocity += po->force * po->massInv * (F32)Time::DeltaTime();
+		po->transform->Translate(po->velocity * (F32)Time::DeltaTime());
 
-		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * po->dragCoefficient * po->area * 0.5f * airPressure * Time::DeltaTime();
+		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * po->dragCoefficient * po->area * 0.5f * airPressure * (F32)Time::DeltaTime();
 
 		po->force = Vector2::ZERO;
 	}
 }
 
-PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
+void Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 {
 	static U64 id = 0;
 
@@ -110,7 +110,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		collider->radius = config.radius;
 		po->collider = collider;
 
-		po->area = PI * config.radius * config.radius;
+		po->area = (F32)(PI * config.radius * config.radius);
 	} break;
 	case COLLIDER_TYPE_CAPSULE: {
 		CapsuleCollider* collider = (CapsuleCollider*)Memory::Allocate(sizeof(CapsuleCollider), MEMORY_TAG_DATA_STRUCT);
@@ -146,12 +146,12 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	if (po->inertia == 0.0f) { po->inertiaInv = 0.0f; }
 	else { po->inertiaInv = 1.0f / po->inertia; }
 
-	physicsObjects2D.Insert(po->id, po);
+	//TODO: layerMask
 
-	return po;
+	physicsObjects2D.Insert(po->id, po);
 }
 
-PhysicsObject3D* Physics::Create3DPhysicsObject()
+void Physics::Create3DPhysicsObject()
 {
 	static U64 id = 0;
 	PhysicsObject3D* po = (PhysicsObject3D*)Memory::Allocate(sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
@@ -159,8 +159,6 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 	++id;
 
 	physicsObjects3D.Insert(po->id, po);
-
-	return po;
 }
 
 void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifold2D>& contacts)
@@ -179,7 +177,7 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 			U64 id1 = po1->id;
 			bool& free = freeContacts[id0][id1];
 
-			if (id0 != id1 && free)
+			if (po0->layerMask & po1->layerMask && id0 != id1 && free)
 			{
 				free = false;
 				Manifold2D manifold{ po0, po1 };
@@ -254,7 +252,7 @@ bool Physics::CirclevsCircle(Manifold2D& m)
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
 	CircleCollider* bCollider = (CircleCollider*)b->collider;
 
-	Vector2 direction = (b->position - a->position);
+	Vector2 direction = (b->transform->Position() - a->transform->Position());
 
 	F32 distance = direction.SqrMagnitude();
 
@@ -286,7 +284,7 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 	RectangleCollider* aCollider = (RectangleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
 
-	Vector2 n = b->position - a->position;
+	Vector2 n = b->transform->Position() - a->transform->Position();
 
 	F32 aExtent = (aCollider->xBounds.y - aCollider->xBounds.x) * 0.5f;
 	F32 bExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
@@ -337,7 +335,7 @@ bool Physics::AABBvsCircle(Manifold2D& m)
 	RectangleCollider* aCollider = (RectangleCollider*)a->collider;
 	CircleCollider* bCollider = (CircleCollider*)b->collider;
 
-	Vector2 direction = b->position - a->position;
+	Vector2 direction = b->transform->Position() - a->transform->Position();
 	Vector2 closest = direction;
 
 	F32 xExtent = (aCollider->xBounds.y - aCollider->xBounds.x) * 0.5f;
@@ -393,7 +391,7 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
 
-	Vector2 direction = b->position - a->position;
+	Vector2 direction = b->transform->Position() - a->transform->Position();
 	Vector2 closest = direction;
 
 	F32 xExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;

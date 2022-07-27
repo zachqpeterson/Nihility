@@ -138,19 +138,17 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 	return true;
 }
 
-void NH_API Scene::DrawMesh(Mesh* mesh, const struct Matrix4& model)
+void NH_API Scene::DrawMesh(Mesh* mesh, const struct Matrix4& matrix)
 {
 	MeshRenderData data;
 	data.mesh = mesh;
-	data.model = model;
+	data.model = matrix;
 
 	meshes[mesh->material.id].renderData.PushBack(data);
 }
 
-void NH_API Scene::DrawModel(Model* model)
+void NH_API Scene::DrawModel(Model* model, const struct Matrix4& matrix)
 {
-	Matrix4 matrix = model->transform.World();
-
 	for (Mesh* m : model->meshes)
 	{
 		MeshRenderData data;

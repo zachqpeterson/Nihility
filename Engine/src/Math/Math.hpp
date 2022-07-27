@@ -646,17 +646,11 @@ struct NH_API Matrix3
 	Matrix3(Matrix3&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c } {}
 	Matrix3(const Vector2& position, const F32& rotation, const Vector2& scale)
 	{
-		F32 cos = Math::Cos(rotation * DEG2RAD_MULTIPLIER);
-		F32 sin = Math::Sin(rotation * DEG2RAD_MULTIPLIER);
-		a.x = 0.0f; b.x = 0.0f;
-		a.y = 0.0f; b.y = 0.0f;
-
-		a.z = 1.0f;
-		b.z = 1.0f;
-
-		c.x = position.x;
-		c.y = position.y;
-		c.z = 1.0f;
+		F32 cos = (F32)Math::Cos(rotation * DEG2RAD_MULTIPLIER);
+		F32 sin = (F32)Math::Sin(rotation * DEG2RAD_MULTIPLIER);
+		a.x = cos * scale.x;	b.x = -sin;				c.x = position.x;
+		a.y = sin;				b.y = cos * scale.y;	c.y = position.y;
+		a.z = 1.0f;				b.z = 1.0f;				c.z = 1.0f;
 	}
 
 	Matrix3& operator= (const Matrix3& m) { a = m.a; b = m.b; c = m.c; return *this; }
