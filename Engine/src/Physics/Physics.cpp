@@ -8,7 +8,7 @@ HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
 
 F32 Physics::airPressure;
-F32 Physics::gravity;
+F32 Physics::gravity = 9.8f;
 
 bool Physics::Initialize()
 {
@@ -108,6 +108,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_DATA_STRUCT);
 		collider->trigger = config.trigger;
 		collider->radius = config.radius;
+		collider->xBounds = { -config.radius, config.radius };
+		collider->yBounds = { -config.radius, config.radius };
 		po->collider = collider;
 
 		po->area = (F32)(PI * config.radius * config.radius);

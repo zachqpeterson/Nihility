@@ -27,7 +27,6 @@ void Scene::Create(CameraType cameraType)
 			F32 camHeight = 0.9375f;
 			F32 camWidth = camHeight * ((F32)Settings::WindowWidth / (F32)Settings::WindowHeight);
 
-
 			camera = new Camera({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f, { 0.0f, 0.0f, 10.0f });
 		}
 		else

@@ -54,37 +54,27 @@ struct Collider2D
 
 	ColliderType2D type;
 
-	virtual Vector2 XBounds() = 0;
-	virtual Vector2 YBounds() = 0;
+	Vector2 xBounds;
+	Vector2 yBounds;
 };
 
 struct RectangleCollider : public Collider2D
 {
-	Vector2 xBounds;
-	Vector2 yBounds;
-
-	Vector2 XBounds() final { return xBounds; }
-	Vector2 YBounds() final { return yBounds; }
 };
 
 struct CircleCollider : public Collider2D
 {
 	F32 radius;
-
-	Vector2 XBounds() final { return { -radius, radius }; }
-	Vector2 YBounds() final { return { -radius, radius }; }
 };
 
 struct CapsuleCollider : public Collider2D
 {
-	Vector2 XBounds() final { return { 0.0f, 0.0f }; }
-	Vector2 YBounds() final { return { 0.0f, 0.0f }; }
+
 };
 
 struct PolygonCollider : public Collider2D
 {
-	Vector2 XBounds() final { return { 0.0f, 0.0f }; }
-	Vector2 YBounds() final { return { 0.0f, 0.0f }; }
+
 };
 
 struct PhysicsObject2DConfig

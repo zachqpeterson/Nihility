@@ -7,8 +7,8 @@ void BAH::Node::ComputeBoundary()
 	if (objects.Size())
 	{
 		PhysicsObject2D* first = objects[0];
-		xBounds = first->collider->XBounds() + first->transform->Position().x;
-		yBounds = first->collider->YBounds() + first->transform->Position().y;
+		xBounds = first->collider->xBounds + first->transform->Position().x;
+		yBounds = first->collider->yBounds + first->transform->Position().y;
 
 		auto end = objects.end();
 
@@ -16,8 +16,8 @@ void BAH::Node::ComputeBoundary()
 		{
 			PhysicsObject2D* po = *it;
 
-			Vector2 boundsX = po->collider->XBounds() + po->transform->Position().x;
-			Vector2 boundsY = po->collider->YBounds() + po->transform->Position().y;
+			Vector2 boundsX = po->collider->xBounds + po->transform->Position().x;
+			Vector2 boundsY = po->collider->yBounds + po->transform->Position().y;
 
 			xBounds.x = Math::Min(xBounds.x, boundsX.x);
 			xBounds.y = Math::Max(xBounds.y, boundsX.y);
@@ -64,5 +64,5 @@ void BAH::Query(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObje
 
 void BAH::Query(struct PhysicsObject2D* object, List<struct PhysicsObject2D*>& results)
 {
-	Query(object->collider->XBounds(), object->collider->YBounds(), results);
+	Query(object->collider->xBounds, object->collider->yBounds, results);
 }
