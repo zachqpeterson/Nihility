@@ -329,6 +329,7 @@ struct NH_API Vector4
 	Vector4(F32 f) : x{ f }, y{ f }, z{ f }, w{ f } {}
 	Vector4(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
 	Vector4(const Vector4& v) : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
+	Vector4(const Vector3& v) : x{ v.x }, y{ v.y }, z{ v.z }, w{ 0.0f } {}
 	Vector4(Vector4&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
 	Vector4(const struct String& str);
 
@@ -724,6 +725,7 @@ struct NH_API Matrix4
 	Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
 	Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
 	Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
+	Matrix4(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ Vector4::OUTWARD } {}
 	Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
 	Matrix4(const Vector3& position, const Vector3& rotation = Vector3::ZERO, const Vector3& scale = Vector3::ONE)
 	{
@@ -1095,8 +1097,8 @@ public:
 	Transform3D(const Transform3D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 	Transform3D(Transform3D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 
-	void* operator new(U64 size) { return Memory::Allocate(sizeof(Transform3D), MEMORY_TAG_RESOURCE); }
-	void operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform3D), MEMORY_TAG_RESOURCE); }
+	void* operator new(U64 size);
+	void operator delete(void* ptr);
 
 	Transform3D& operator=(const Transform3D& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
 	Transform3D& operator=(Transform3D&& other) noexcept { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
@@ -1151,8 +1153,8 @@ public:
 	Transform2D(const Transform2D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale }, local{ other.local } {}
 	Transform2D(Transform2D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale }, local{ other.local } {}
 
-	void* operator new(U64 size) { return Memory::Allocate(sizeof(Transform2D), MEMORY_TAG_RESOURCE); }
-	void operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform2D), MEMORY_TAG_RESOURCE); }
+	void* operator new(U64 size);
+	void operator delete(void* ptr);
 
 	Transform2D& operator=(const Transform2D& other) { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }
 	Transform2D& operator=(Transform2D&& other) noexcept { parent = other.parent; dirty = other.dirty; position = other.position; rotation = other.rotation; scale = other.scale; return *this; }

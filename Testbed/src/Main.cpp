@@ -104,8 +104,8 @@ bool init()
 	//config.color = Vector4::ONE;
 	//UI::GenerateImage(config, Resources::DefaultTexture());
 
-	scene->DrawMesh(backgroundMesh);
-	scene->DrawMesh(mesh0);
+	//scene->DrawMesh(backgroundMesh);
+	scene->DrawGameObject(gameObject);
 
 	RendererFrontend::UseScene(scene);
 

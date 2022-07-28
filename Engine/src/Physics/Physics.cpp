@@ -149,6 +149,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	//TODO: layerMask
 
 	physicsObjects2D.Insert(po->id, po);
+
+	return po;
 }
 
 PhysicsObject3D* Physics::Create3DPhysicsObject()
@@ -159,6 +161,8 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 	++id;
 
 	physicsObjects3D.Insert(po->id, po);
+
+	return po;
 }
 
 void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifold2D>& contacts)

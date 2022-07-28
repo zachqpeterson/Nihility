@@ -56,13 +56,13 @@ enum RenderpassClearFlag
 	RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG = 0x4
 };
 
-struct Binary
+struct NH_API Binary
 {
 	String name;
 	Vector<U8> data;
 };
 
-struct Image
+struct NH_API Image
 {
 	String name;
 	U32 width;
@@ -72,7 +72,7 @@ struct Image
 	Vector<U8> pixels;
 };
 
-struct Texture
+struct NH_API Texture
 {
 	String name;
 	U32 generation;
@@ -84,7 +84,7 @@ struct Texture
 	void* internalData;
 };
 
-struct TextureMap
+struct NH_API TextureMap
 {
 	Texture* texture;
 	TextureFilter filterMinify;
@@ -318,7 +318,7 @@ struct MaterialConfig
 	Vector<String> textureMapNames;
 };
 
-struct Material
+struct NH_API Material
 {
 	U32 id;
 	String name;
@@ -347,20 +347,20 @@ struct MeshConfig
 	Vector3 maxExtents;
 };
 
-struct Mesh
+struct NH_API Mesh
 {
 	String name;
 	Material material;
 	void* internalData;
 };
 
-struct Model
+struct NH_API Model
 {
 	String name;
 	Vector<Mesh*> meshes;
 };
 
-struct GameObject2DConfig
+struct NH_API GameObject2DConfig
 {
 	String name;
 	Transform2D* transform;
@@ -368,7 +368,7 @@ struct GameObject2DConfig
 	Model* model;
 };
 
-struct GameObject2D
+struct NH_API GameObject2D
 {
 	U64 id;
 	String name;
@@ -377,7 +377,7 @@ struct GameObject2D
 	Model* model;
 };
 
-struct GameObject3DConfig
+struct NH_API GameObject3DConfig
 {
 	String name;
 	Transform3D* transform;
@@ -385,7 +385,7 @@ struct GameObject3DConfig
 	Model* model;
 };
 
-struct GameObject3D
+struct NH_API GameObject3D
 {
 	U64 id;
 	String name;
@@ -419,7 +419,7 @@ public:
 	static Vector<Material*>& GetMaterials() { return materials; }
 
 	static Mesh* CreateMesh(MeshConfig& config);
-	static Model* CreateModel(const String& name, Vector<Mesh*> meshes);
+	static Model* CreateModel(const String& name, const Vector<Mesh*>& meshes);
 	static GameObject2D* CreateGameObject2D(const GameObject2DConfig& config);
 
 	static Texture* DefaultTexture() { return defaultTexture; }

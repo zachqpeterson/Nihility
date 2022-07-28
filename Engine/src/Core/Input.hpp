@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 
 #ifdef PLATFORM_WINDOWS
-enum ButtonCode
+enum NH_API ButtonCode
 {
 	//Mouse Buttons//
 	LBUTTON = 0x01,

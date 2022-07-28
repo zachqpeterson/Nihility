@@ -215,9 +215,16 @@ void UI::GenerateBorderedPanel(UIElementConfig& config)
 	panel->parent = parent;
 	panel->name = config.name;
 
+	Vector<Mesh*> meshes(1, mesh);
+	GameObject2DConfig goConfig{};
+	goConfig.name = config.name;
+	goConfig.model = Resources::CreateModel(config.name, meshes);
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+
 	elements.PushFront(panel);
 
-	if (config.enabled) { config.scene->DrawMesh(panel->mesh); }
+	if (config.enabled) { config.scene->DrawGameObject(go); }
 }
 
 void UI::GeneratePanel(UIElementConfig& config)
@@ -294,9 +301,16 @@ void UI::GeneratePanel(UIElementConfig& config)
 	panel->parent = parent;
 	panel->name = config.name;
 
+	Vector<Mesh*> meshes(1, mesh);
+	GameObject2DConfig goConfig{};
+	goConfig.name = config.name;
+	goConfig.model = Resources::CreateModel(config.name, meshes);
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+
 	elements.PushFront(panel);
 
-	if (config.enabled) { config.scene->DrawMesh(panel->mesh); }
+	if (config.enabled) { config.scene->DrawGameObject(go); }
 }
 
 void UI::GenerateImage(UIElementConfig& config, Texture* texture)
@@ -373,9 +387,16 @@ void UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	image->parent = parent;
 	image->name = config.name;
 
+	Vector<Mesh*> meshes(1, mesh);
+	GameObject2DConfig goConfig{};
+	goConfig.name = config.name;
+	goConfig.model = Resources::CreateModel(config.name, meshes);
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+
 	elements.PushFront(image);
 
-	if (config.enabled) { config.scene->DrawMesh(image->mesh); }
+	if (config.enabled) { config.scene->DrawGameObject(go); }
 }
 
 void UI::GenerateText(UIElementConfig& config, const String& text)
@@ -419,7 +440,7 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 	F32 areaZ = 0;
 	F32 areaY;
 
-	//TODO: Store all meshes in one UIElement
+	Vector<Mesh*> meshes;
 
 	for (char c : text)
 	{
@@ -473,12 +494,20 @@ void UI::GenerateText(UIElementConfig& config, const String& text)
 		uiText->parent = parent;
 		uiText->name = meshConfig.name;
 
-		elements.PushFront(uiText);
+		meshes.Push(mesh);
 
-		if (config.enabled) { config.scene->DrawMesh(uiText->mesh); }
+		elements.PushFront(uiText);
 
 		areaX = areaZ;
 	}
+
+	GameObject2DConfig goConfig{};
+	goConfig.name = config.name;
+	goConfig.model = Resources::CreateModel(config.name, meshes);
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+
+	if (config.enabled) { config.scene->DrawGameObject(go); }
 }
 
 void UI::UpdateBorderedPanel(const Vector4& area, const String& name, const Vector4& color)

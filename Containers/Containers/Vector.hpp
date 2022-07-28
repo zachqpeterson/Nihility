@@ -91,7 +91,7 @@ public:
 	{
 		array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-		Memory::Copy(array, other.array, size);
+		Memory::Copy(array, other.array, sizeof(T) * size);
 	}
 	Vector(Vector&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
 	{
@@ -137,7 +137,7 @@ public:
 		capacity = other.capacity;
 		array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-		Memory::Copy(array, other.array, size);
+		Memory::Copy(array, other.array, sizeof(T) * size);
 
 		return *this;
 	}
@@ -248,7 +248,7 @@ public:
 		ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
 		T value = array[index];
 
-		Memory::Copy(array + index, array + index + 1, size - index - 1);
+		Memory::Copy(array + index, array + index + 1, sizeof(T) * (size - index - 1));
 		--size;
 
 		return Move(value);

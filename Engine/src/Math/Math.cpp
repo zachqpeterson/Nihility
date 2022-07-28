@@ -2,6 +2,7 @@
 
 #include "Containers/String.hpp"
 #include "Core/Logger.hpp"
+#include "Memory/Memory.hpp"
 
 #include <math.h>
 
@@ -592,3 +593,8 @@ Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const
 		(v0.w * s0) + (v1.w * s1)
 	};
 }
+
+void* Transform2D::operator new(U64 size) { return Memory::Allocate(sizeof(Transform2D), MEMORY_TAG_RESOURCE); }
+void Transform2D::operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform2D), MEMORY_TAG_RESOURCE); }
+void* Transform3D::operator new(U64 size) { return Memory::Allocate(sizeof(Transform3D), MEMORY_TAG_RESOURCE); }
+void Transform3D::operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform3D), MEMORY_TAG_RESOURCE); }

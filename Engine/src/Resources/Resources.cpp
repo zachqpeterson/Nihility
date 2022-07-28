@@ -130,6 +130,14 @@ bool Resources::Initialize()
 	invalidModel->name = "";
 	models = Move(HashMap<String, Model*>(10, invalidModel)); //TODO: Config
 
+	GameObject2D* invalidGameObject2D = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_RESOURCE);
+	invalidGameObject2D->name = "";
+	gameObjects2D = Move(HashMap<U64, GameObject2D*>(10, invalidGameObject2D)); //TODO: Config
+
+	GameObject3D* invalidGameObject3D = (GameObject3D*)Memory::Allocate(sizeof(GameObject3D), MEMORY_TAG_RESOURCE);
+	invalidGameObject3D->name = "";
+	gameObjects3D = Move(HashMap<U64, GameObject3D*>(10, invalidGameObject3D)); //TODO: Config
+
 	defaultTexture = LoadTexture(DEFAULT_TEXTURE_NAME);
 	defaultDiffuse = LoadTexture(DEFAULT_DIFFUSE_TEXTURE_NAME);
 	defaultSpecular = LoadTexture(DEFAULT_SPECULAR_TEXTURE_NAME);
@@ -1631,7 +1639,7 @@ Model* Resources::LoadModel(const String& name)
 	return nullptr;
 }
 
-Model* Resources::CreateModel(const String& name, Vector<Mesh*> meshes)
+Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 {
 	if (name.Blank())
 	{

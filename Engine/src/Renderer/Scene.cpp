@@ -66,6 +66,20 @@ void Scene::OnResize()
 
 bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 {
+	for (GameObject2D* go : gameObjects)
+	{
+		const Matrix4& model = go->transform ? go->transform->World() : Matrix4::IDENTITY;
+
+		for (Mesh* m : go->model->meshes)
+		{
+			MeshRenderData data;
+			data.mesh = m;
+			data.model = model;
+
+			meshes[m->material.id].renderData.PushBack(data);
+		}
+	}
+
 	String lastShaderName;
 
 	for (MaterialList& list : meshes)
@@ -105,8 +119,11 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 			}
 		}
 
-		for (const MeshRenderData& data : list.renderData)
+		U64 size = list.renderData.Size();
+
+		for (U64 i = 0; i < size; ++i)
 		{
+			MeshRenderData data = list.renderData.PopFront();
 			Material& material = data.mesh->material;
 
 			bool needsUpdate = material.renderFrameNumber != frameNumber;
@@ -138,35 +155,10 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 	return true;
 }
 
-void Scene::DrawMesh(Mesh* mesh, const struct Matrix4& matrix)
-{
-	MeshRenderData data;
-	data.mesh = mesh;
-	data.model = matrix;
-
-	meshes[mesh->material.id].renderData.PushBack(data);
-}
-
-void Scene::DrawModel(Model* model, const struct Matrix4& matrix)
-{
-	for (Mesh* m : model->meshes)
-	{
-		MeshRenderData data;
-		data.mesh = m;
-		data.model = matrix;
-
-		meshes[m->material.id].renderData.PushBack(data);
-	}
-}
-
 void Scene::DrawGameObject(GameObject2D* gameObject)
 {
-	for (Mesh* m : gameObject->model->meshes)
+	if (gameObject->model)
 	{
-		MeshRenderData data;
-		data.mesh = m;
-		data.model = gameObject->transform->World();
-
-		meshes[m->material.id].renderData.PushBack(data);
+		gameObjects.PushBack(gameObject);
 	}
 }
