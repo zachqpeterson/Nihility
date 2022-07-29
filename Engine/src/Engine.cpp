@@ -79,7 +79,7 @@ void Engine::MainLoop()
 
 		if (!suspended && running)
 		{
-			accumulatedTime += Time::TimeSinceLastFrame();
+			accumulatedTime += Time::DeltaTime();
 			if (accumulatedTime > 0.2f) { accumulatedTime = 0.2f; }
 
 			while (accumulatedTime > Settings::TargetFrametime)

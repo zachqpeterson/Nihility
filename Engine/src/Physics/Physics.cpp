@@ -7,7 +7,7 @@
 HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
 
-F32 Physics::airPressure;
+F32 Physics::airPressure = 1.0f;
 F32 Physics::gravity = 9.8f;
 
 bool Physics::Initialize()
@@ -58,7 +58,7 @@ void Physics::Update()
 	{
 		for (HashMap<U64, PhysicsObject2D*>::Node& n : l)
 		{
-			n.value->force += Vector2::DOWN * gravity * n.value->gravityScale * n.value->mass;
+			if (!n.value->kinematic) { n.value->force += Vector2::UP * gravity * n.value->gravityScale * n.value->mass; }
 			objects.PushBack(n.value);
 		}
 	}
@@ -77,7 +77,7 @@ void Physics::Update()
 		if (po->kinematic) { continue; }
 
 		po->velocity += po->force * po->massInv * (F32)Time::DeltaTime();
-		po->transform->Translate(po->velocity * (F32)Time::DeltaTime());
+		po->transform->Translate(po->velocity);
 
 		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * po->dragCoefficient * po->area * 0.5f * airPressure * (F32)Time::DeltaTime();
 
@@ -149,6 +149,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	else { po->inertiaInv = 1.0f / po->inertia; }
 
 	//TODO: layerMask
+	po->layerMask = 1;
 
 	physicsObjects2D.Insert(po->id, po);
 
@@ -181,11 +182,13 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 		{
 			U64 id0 = po0->id;
 			U64 id1 = po1->id;
-			bool& free = freeContacts[id0][id1];
+			bool& free0 = freeContacts[id0][id1];
+			bool& free1 = freeContacts[id1][id0];
 
-			if (po0->layerMask & po1->layerMask && id0 != id1 && free)
+			if (po0->layerMask & po1->layerMask && id0 != id1 && free0 && free1)
 			{
-				free = false;
+				free0 = false;
+				free1 = false;
 				Manifold2D manifold{ po0, po1 };
 				contacts.PushBack(manifold);
 			}
@@ -308,11 +311,11 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 		{
 			if (xOverlap > yOverlap)
 			{
-				if (n.x < 0.0f) { m.normal = Vector2::LEFT; }
+				if (n.x < 0.0f) { m.normal = Vector2::RIGHT; }
 				else
 				{
-					m.normal = Vector2::ZERO;
-					m.penetration = xOverlap;
+					m.normal = n.Normalized();
+					m.penetration = yOverlap;
 				}
 
 				return true;
@@ -322,8 +325,8 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 				if (n.y < 0.0f) { m.normal = Vector2::DOWN; }
 				else
 				{
-					m.normal = Vector2::UP;
-					m.penetration = yOverlap;
+					m.normal = n.Normalized();
+					m.penetration = xOverlap;
 				}
 
 				return true;
@@ -455,21 +458,17 @@ void Physics::ResolveCollision(Manifold2D& m)
 
 	F32 velAlongNormal = relVelocity.Dot(m.normal);
 
-	if (velAlongNormal > 0) { return; }
+	if (velAlongNormal > 0 || a->massInv + b->massInv <= 0.0000001f) { return; }
 
-	F32 e = Math::Min(a->restitution, b->restitution);
-
-	F32 j = -(1.0f + e) * velAlongNormal;
-	j /= a->massInv + b->massInv;
+	F32 restitution = Math::Min(a->restitution, b->restitution);
+	F32 j = (-(1.0f + restitution) * velAlongNormal) / (a->massInv + b->massInv);
 
 	Vector2 impulse = m.normal * j;
 
 	a->velocity -= impulse * a->massInv;
 	b->velocity += impulse * b->massInv;
 
-	const F32 percent = 0.2f;	// usually 20% to 80%
-	const F32 slop = 0.01f;		// usually 0.01 to 0.1
-	Vector2 correction = m.normal * ((Math::Max(m.penetration - slop, 0.0f) / (a->massInv + b->massInv)) * percent);
-	a->velocity -= correction * a->massInv;
-	b->velocity += correction * b->massInv;
+	Vector2 correction = m.normal * (Math::Max(m.penetration, 0.0f) / (a->massInv + b->massInv));
+	a->transform->Translate(-correction * a->massInv);
+	b->transform->Translate(correction * b->massInv);
 }

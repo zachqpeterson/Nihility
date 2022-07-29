@@ -140,7 +140,7 @@ public:
 
 		return *this;
 	}
-	List& operator=(List&& other)
+	List& operator=(List&& other) noexcept
 	{
 		if (head) { Clear(); }
 
@@ -183,7 +183,7 @@ public:
 
 		return *this;
 	}
-	List&& Split(U64 index)
+	List Split(U64 index)
 	{
 		ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
 
@@ -194,12 +194,12 @@ public:
 		newTail->next = nullptr;
 		node->prev = nullptr;
 
-		List<T> list(node, tail, size - index - 1);
+		List<T> list(node, tail, size - index);
 
 		tail = newTail;
-		size = index + 1;
+		size = index;
 
-		return Move(list);
+		return list;
 	}
 
 	T& Front() { return head->value; }

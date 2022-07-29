@@ -725,7 +725,13 @@ struct NH_API Matrix4
 	Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
 	Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
 	Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
-	Matrix4(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ Vector4::OUTWARD } {}
+	Matrix4(const Matrix3& m)
+	{
+		a.x = m.a.x; b.x = m.b.x; c.x = 0.0f; d.x = m.c.x;
+		a.y = m.a.y; b.y = m.b.y; c.y = 0.0f; d.y = m.c.y;
+		a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = 0.0f;
+		a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
+	}
 	Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
 	Matrix4(const Vector3& position, const Vector3& rotation = Vector3::ZERO, const Vector3& scale = Vector3::ONE)
 	{

@@ -29,13 +29,10 @@ void BAH::Node::ComputeBoundary()
 
 void BAH::Node::Split()
 {
-	U64 half = (U64)(objects.Size() * 0.5f);
-	if (half > 0)
+	if (objects.Size() > 4)
 	{
-		List<PhysicsObject2D*>&& list = objects.Split(half);
-
-		right = new Node(Move(list));
-		left = new Node(Move(objects));
+		right = new Node(objects.Split(objects.Size() >> 1));
+		left = new Node(objects);
 	}
 }
 
@@ -45,8 +42,8 @@ void BAH::Node::Query(const Vector2& boundsX, const Vector2& boundsY, List<Physi
 	{
 		results.AddRange(objects);
 
-		if (left) { Query(boundsX, boundsY, results); }
-		if (right) { Query(boundsX, boundsY, results); }
+		if (left) { left->Query(boundsX, boundsY, results); }
+		if (right) { right->Query(boundsX, boundsY, results); }
 	}
 }
 
