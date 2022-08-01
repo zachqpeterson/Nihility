@@ -460,7 +460,7 @@ void Physics::ResolveCollision(Manifold2D& m)
 
 	F32 velAlongNormal = relVelocity.Dot(m.normal);
 
-	if (velAlongNormal > 0 || a->massInv + b->massInv <= 0.0000001f) { return; }
+	if (velAlongNormal > 0 || a->massInv + b->massInv <= FLOAT_EPSILON) { return; }
 
 	F32 restitution = Math::Min(a->restitution, b->restitution);
 	F32 j = (-(1.0f + restitution) * velAlongNormal) / (a->massInv + b->massInv);
@@ -470,7 +470,7 @@ void Physics::ResolveCollision(Manifold2D& m)
 	a->velocity -= impulse * a->massInv;
 	b->velocity += impulse * b->massInv;
 
-	Vector2 correction = m.normal * (Math::Max(m.penetration, 0.0f) / (a->massInv + b->massInv));
+	Vector2 correction = m.normal * (m.penetration / (a->massInv + b->massInv));
 	a->transform->Translate(-correction * a->massInv);
 	b->transform->Translate(correction * b->massInv);
 }
