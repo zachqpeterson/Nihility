@@ -30,7 +30,8 @@ struct Vector4Int;
 struct Matrix2;
 struct Matrix3;
 struct Matrix4;
-struct Quaternion;
+struct Quaternion3D;
+struct Quaternion2D;
 
 class NH_API Math
 {
@@ -80,6 +81,12 @@ public:
 	static U16 Min(U16 a, U16 b) { return a < b ? a : b; }
 	static U32 Min(U32 a, U32 b) { return a < b ? a : b; }
 	static U64 Min(U64 a, U64 b) { return a < b ? a : b; }
+	static Vector2 Min(const Vector2& a, const Vector2& b);
+	static Vector3 Min(const Vector3& a, const Vector3& b);
+	static Vector4 Min(const Vector4& a, const Vector4& b);
+	static Vector2Int Min(const Vector2Int& a, const Vector2Int& b);
+	static Vector3Int Min(const Vector3Int& a, const Vector3Int& b);
+	static Vector4Int Min(const Vector4Int& a, const Vector4Int& b);
 
 	static F32 Max(F32 a, F32 b) { return a > b ? a : b; }
 	static F64 Max(F64 a, F64 b) { return a > b ? a : b; }
@@ -91,6 +98,12 @@ public:
 	static U16 Max(U16 a, U16 b) { return a > b ? a : b; }
 	static U32 Max(U32 a, U32 b) { return a > b ? a : b; }
 	static U64 Max(U64 a, U64 b) { return a > b ? a : b; }
+	static Vector2 Max(const Vector2& a, const Vector2& b);
+	static Vector3 Max(const Vector3& a, const Vector3& b);
+	static Vector4 Max(const Vector4& a, const Vector4& b);
+	static Vector2Int Max(const Vector2Int& a, const Vector2Int& b);
+	static Vector3Int Max(const Vector3Int& a, const Vector3Int& b);
+	static Vector4Int Max(const Vector4Int& a, const Vector4Int& b);
 
 	static F32 Clamp(F32 n, F32 a, F32 b) { return n < a ? a : n > b ? b : n; }
 	static F64 Clamp(F64 n, F64 a, F64 b) { return n < a ? a : n > b ? b : n; }
@@ -124,6 +137,7 @@ public:
 	static F64 Sqrt(F64 f);
 	static F32 InvSqrt(F32 f);
 	static F64 InvSqrt(F64 f);
+	static Vector2 Rotate(const Vector2& vector, const Quaternion2D& quat);
 
 	//INTERPOLATION
 	static F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
@@ -645,6 +659,7 @@ struct NH_API Matrix3
 	Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) : a{ v1 }, b{ v2 }, c{ v3 } {}
 	Matrix3(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
 	Matrix3(Matrix3&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c } {}
+	Matrix3(const Vector2& position, const Quaternion2D& rotation, const Vector2& scale);
 	Matrix3(const Vector2& position, const F32& rotation, const Vector2& scale)
 	{
 		F32 cos = (F32)Math::Cos(rotation * DEG2RAD_MULTIPLIER);
@@ -653,6 +668,7 @@ struct NH_API Matrix3
 		a.y = sin;				b.y = cos * scale.y;	c.y = position.y;
 		a.z = 1.0f;				b.z = 1.0f;				c.z = 1.0f;
 	}
+
 
 	Matrix3& operator= (const Matrix3& m) { a = m.a; b = m.b; c = m.c; return *this; }
 	Matrix3& operator= (Matrix3&& m) noexcept { a = m.a; b = m.b; c = m.c; return *this; }
@@ -741,7 +757,7 @@ struct NH_API Matrix4
 		a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = position.z;
 		a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
 	}
-	Matrix4(const Vector3& position, const Quaternion& rotation, const Vector3& scale = Vector3::ONE);
+	Matrix4(const Vector3& position, const Quaternion3D& rotation, const Vector3& scale = Vector3::ONE);
 
 	Matrix4& operator= (const Matrix4& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
 	Matrix4& operator= (Matrix4&& m) noexcept { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
@@ -1026,24 +1042,24 @@ struct NH_API Matrix4
 	static const Matrix4 IDENTITY;
 };
 
-struct NH_API Quaternion
+struct NH_API Quaternion3D
 {
 	F32 x, y, z, w;
 
-	Quaternion() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
-	Quaternion(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
-	Quaternion(const Quaternion& q) : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
-	Quaternion(Quaternion&& q) noexcept : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
+	Quaternion3D() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
+	Quaternion3D(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
+	Quaternion3D(const Quaternion3D& q) : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
+	Quaternion3D(Quaternion3D&& q) noexcept : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
 
-	Quaternion& operator=(const Quaternion& q) { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
-	Quaternion& operator=(Quaternion&& q) noexcept { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
+	Quaternion3D& operator=(const Quaternion3D& q) { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
+	Quaternion3D& operator=(Quaternion3D&& q) noexcept { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
 
-	static NH_INLINE Quaternion AxisAngle(const Vector3& axis, F32 angle, bool normalize);
-	static NH_INLINE Quaternion AxisAngle(const Vector2& axis, F32 angle, bool normalize);
+	static NH_INLINE Quaternion3D AxisAngle(const Vector3& axis, F32 angle, bool normalize);
+	static NH_INLINE Quaternion3D AxisAngle(const Vector2& axis, F32 angle, bool normalize);
 
-	Quaternion operator* (const Quaternion& q) const
+	Quaternion3D operator* (const Quaternion3D& q) const
 	{
-		return Quaternion{ x * q.w + y * q.z - z * q.y + w * q.x,
+		return Quaternion3D{ x * q.w + y * q.z - z * q.y + w * q.x,
 				-x * q.z + y * q.w + z * q.x + w * q.y,
 				x * q.y - y * q.x + z * q.w + w * q.z,
 				-x * q.x - y * q.y - z * q.z + w * q.w };
@@ -1052,19 +1068,47 @@ struct NH_API Quaternion
 	NH_INLINE Matrix4 ToMatrix4() const;
 	NH_INLINE Matrix3 ToMatrix3() const;
 	NH_INLINE Matrix4 RotationMatrix(Vector3 center) const;
-	NH_INLINE Quaternion Slerp(const Quaternion& q, F32 t) const;
+	NH_INLINE Quaternion3D Slerp(const Quaternion3D& q, F32 t) const;
 
-	NH_INLINE F32 Dot(const Quaternion& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
+	NH_INLINE F32 Dot(const Quaternion3D& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
 	NH_INLINE F32 Normal() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
-	NH_INLINE Quaternion Normalized() const { F32 normal = 1.0f / Normal(); return Quaternion{ x * normal, y * normal, z * normal, w * normal }; }
+	NH_INLINE Quaternion3D Normalized() const { F32 normal = 1.0f / Normal(); return Quaternion3D{ x * normal, y * normal, z * normal, w * normal }; }
 	NH_INLINE void Normalize() { F32 normal = 1.0f / Normal(); x *= normal; y *= normal; z *= normal; w *= normal; }
-	NH_INLINE Quaternion Conjugate() const { return Quaternion{ -x, -y, -z, w }; }
-	NH_INLINE Quaternion Inverse() const { return Conjugate().Normalized(); }
+	NH_INLINE Quaternion3D Conjugate() const { return Quaternion3D{ -x, -y, -z, w }; }
+	NH_INLINE Quaternion3D Inverse() const { return Conjugate().Normalized(); }
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
 
-	static const Quaternion IDENTITY;
+	static const Quaternion3D IDENTITY;
+};
+
+struct NH_API Quaternion2D
+{
+	F32 angle;
+	F32 sin, cos;
+
+	Quaternion2D() : angle{ 0.0f }, sin{ 0.0f }, cos{ 1.0f } {}
+	Quaternion2D(F32 sin, F32 cos) : angle{ Math::Acos(cos) }, sin{ sin }, cos{ cos } {}
+	Quaternion2D(const Quaternion2D& q) : angle{ q.angle }, sin{ q.sin }, cos{ q.cos } {}
+	Quaternion2D(Quaternion2D&& q) noexcept : angle{ q.angle }, sin{ q.sin }, cos{ q.cos } {}
+	explicit Quaternion2D(F32 angle) : angle{ angle }, sin{ Math::Sin(angle) }, cos{ Math::Cos(angle) } {}
+
+	Quaternion2D& operator=(F32 angle) { sin = Math::Sin(angle); cos = Math::Cos(angle); angle = angle; return *this; }
+	Quaternion2D& operator=(const Quaternion2D& q) { sin = q.sin; cos = q.cos; angle = q.angle; return *this; }
+	Quaternion2D& operator=(Quaternion2D&& q) noexcept { sin = q.sin; cos = q.cos; angle = q.angle; return *this; }
+
+	void Set(F32 angle)
+	{
+		sin = Math::Sin(angle);
+		cos = Math::Cos(angle);
+		this->angle = angle;
+	}
+
+	NH_INLINE const F32& operator[] (U8 i) const { return ((&sin)[i]); }
+	NH_INLINE F32& operator[] (U8 i) { return ((&sin)[i]); }
+
+	static const Quaternion2D IDENTITY;
 };
 
 struct NH_API Vertex
@@ -1089,16 +1133,16 @@ public:
 private:
 	bool dirty;
 	Vector3 position;
-	Quaternion rotation;
+	Quaternion3D rotation;
 	Vector3 scale;
 	Matrix4 local;
 
 public:
 	Transform3D() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
 	Transform3D(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
-	Transform3D(const Vector3& position, const Quaternion& rotation) :
+	Transform3D(const Vector3& position, const Quaternion3D& rotation) :
 		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
-	Transform3D(const Vector3& position, const Quaternion& rotation, const Vector3& scale) :
+	Transform3D(const Vector3& position, const Quaternion3D& rotation, const Vector3& scale) :
 		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
 	Transform3D(const Transform3D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 	Transform3D(Transform3D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
@@ -1111,8 +1155,8 @@ public:
 
 	const Vector3& Position() const { return position; }
 	void SetPosition(const Vector3& v) { position = v; dirty = true; }
-	const Quaternion& Rotation() const { return rotation; }
-	void SetRotation(const Quaternion& q) { rotation = q; dirty = true; }
+	const Quaternion3D& Rotation() const { return rotation; }
+	void SetRotation(const Quaternion3D& q) { rotation = q; dirty = true; }
 	const Vector3& Scale() const { return scale; }
 	void SetScale(const Vector3& v) { scale = v; dirty = true; }
 
@@ -1145,7 +1189,7 @@ public:
 private:
 	bool dirty;
 	Vector2 position;
-	F32 rotation;
+	Quaternion2D rotation;
 	Vector2 scale;
 	Matrix3 local;
 
@@ -1168,9 +1212,9 @@ public:
 	const Vector2& Position() const { return position; }
 	void SetPosition(const Vector2& v) { position = v; dirty = true; }
 	void Translate(const Vector2& v) { position += v; dirty = true; }
-	const F32& Rotation() const { return rotation; }
-	void SetRotation(const F32& angle) { rotation = angle; Math::Mod(rotation, 360.0f); dirty = true; }
-	void Rotate(const F32& angle) { rotation += angle; Math::Mod(rotation, 360.0f); dirty = true; }
+	const Quaternion2D& Rotation() const { return rotation; }
+	void SetRotation(const F32& angle) { rotation = angle; dirty = true; }
+	void Rotate(const F32& angle) { rotation = rotation.angle + angle; dirty = true; }
 	const Vector2& Scale() const { return scale; }
 	void SetScale(const Vector2& v) { scale = v; dirty = true; }
 

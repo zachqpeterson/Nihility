@@ -6,6 +6,7 @@
 #include "Memory/Memory.hpp"
 
 #include <Containers/HashMap.hpp>
+#include <Containers/Vector.hpp>
 
 /// <summary>
 /// TODO: 
@@ -60,21 +61,27 @@ struct Collider2D
 
 struct RectangleCollider : public Collider2D
 {
+
 };
 
 struct CircleCollider : public Collider2D
 {
+	Vector2 center;
 	F32 radius;
 };
 
-struct CapsuleCollider : public Collider2D
+struct CapsuleCollider2D : public Collider2D
 {
-
+	F32 radius;
+	F32 height;
+	bool yAxis;
 };
 
 struct PolygonCollider : public Collider2D
 {
-
+	Vector2 center;
+	Vector<Vector2> vertices;
+	Vector<Vector2> normals;
 };
 
 struct PhysicsObject2DConfig
@@ -103,36 +110,35 @@ struct PhysicsObject2D
 	Collider2D* collider;
 	Transform2D* transform;
 
-	//primary
-	Vector2 momentum;
-	F32 angularMomentum;
+	//secondary
+	Vector2 velocity;
+	F32 angularVelocity;
 
 	// secondary
-	Vector2 velocity;
 	Vector2 force;
-
-	F32 spin;
-	F32 angularVelocity;
+	F32 torque;
 
 	// constants
 	F32 mass;
 	F32 massInv;
 	F32 inertia;
 	F32 inertiaInv;
+	F32 friction;
 	F32 restitution;
 	F32 gravityScale;
 	F32 dragCoefficient;
 	F32 area;
 	U64 layerMask;
 	bool kinematic;
+	bool freezeRotation;
 };
 
 struct Manifold2D
 {
 	PhysicsObject2D* a;
 	PhysicsObject2D* b;
-	F32 penetration;
 	Vector2 normal;
+	F32 penetration;
 };
 
 class NH_API Physics
@@ -167,6 +173,7 @@ private:
 
 	static F32 airPressure;
 	static F32 gravity;
+	static F32 deltaInv;
 
 	friend class Engine;
 };

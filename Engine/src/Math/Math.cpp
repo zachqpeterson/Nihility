@@ -108,7 +108,8 @@ const Matrix2 Matrix2::IDENTITY = { { 1.f, 0.f }, { 0.f, 1.f } };
 const Matrix3 Matrix3::IDENTITY = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
 const Matrix4 Matrix4::IDENTITY = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f, 0.f }, { 0.f, 0.f, 0.f, 1.f } };
 
-const Quaternion Quaternion::IDENTITY = { 0.0f,  0.0f,  0.0f,  1.0f };
+const Quaternion3D Quaternion3D::IDENTITY = { 0.0f,  0.0f,  0.0f,  1.0f };
+const Quaternion2D Quaternion2D::IDENTITY = { 0.0f,  1.0f };
 
 //TRIGONOMETRY
 F32 Math::Sin(F32 f) { return sinf(f); }
@@ -132,6 +133,21 @@ F64 Math::Log10(F64 f) { return log10(f); }
 F32 Math::LogN(F32 f) { return logf(f); }
 F64 Math::LogN(F64 f) { return log(f); }
 
+//COMPARISON
+Vector2 Math::Min(const Vector2& a, const Vector2& b) { return { Min(a.x, b.x), Min(a.y, b.y) }; }
+Vector3 Math::Min(const Vector3& a, const Vector3& b) { return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) }; }
+Vector4 Math::Min(const Vector4& a, const Vector4& b) { return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z), Min(a.w, b.w) }; }
+Vector2Int Math::Min(const Vector2Int& a, const Vector2Int& b) { return { Min(a.x, b.x), Min(a.y, b.y) }; }
+Vector3Int Math::Min(const Vector3Int& a, const Vector3Int& b) { return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) }; }
+Vector4Int Math::Min(const Vector4Int& a, const Vector4Int& b) { return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z), Min(a.w, b.w) }; }
+
+Vector2 Math::Max(const Vector2& a, const Vector2& b) { return { Max(a.x, b.x), Max(a.y, b.y) }; }
+Vector3 Math::Max(const Vector3& a, const Vector3& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) }; }
+Vector4 Math::Max(const Vector4& a, const Vector4& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z), Max(a.w, b.w) }; }
+Vector2Int Math::Max(const Vector2Int& a, const Vector2Int& b) { return { Max(a.x, b.x), Max(a.y, b.y) }; }
+Vector3Int Math::Max(const Vector3Int& a, const Vector3Int& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) }; }
+Vector4Int Math::Max(const Vector4Int& a, const Vector4Int& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z), Max(a.w, b.w) }; }
+
 //LINEAR
 F32 Math::Sqrt(F32 f)
 {
@@ -151,6 +167,11 @@ F32 Math::InvSqrt(F32 f)
 F64 Math::InvSqrt(F64 f)
 {
 	return 1.0 / sqrt(f);
+}
+
+Vector2 Math::Rotate(const Vector2& vector, const Quaternion2D& quat)
+{
+	return { quat.cos * vector.x - quat.sin * vector.y, quat.sin * vector.x + quat.cos * vector.y };
 }
 
 //NOISE
@@ -455,8 +476,16 @@ Vector4Int& Vector4Int::operator=(const String& str)
 	return *this;
 }
 
+//MATRIX3
+Matrix3::Matrix3(const Vector2& position, const Quaternion2D& rotation, const Vector2& scale)
+{
+	a.x = rotation.cos * scale.x;	b.x = -rotation.sin;			c.x = position.x;
+	a.y = rotation.sin;				b.y = rotation.cos * scale.y;	c.y = position.y;
+	a.z = 1.0f;						b.z = 1.0f;						c.z = 1.0f;
+}
+
 //MATRIX4
-Matrix4::Matrix4(const Vector3& position, const Quaternion& rotation, const Vector3& scale)
+Matrix4::Matrix4(const Vector3& position, const Quaternion3D& rotation, const Vector3& scale)
 {
 	Matrix4 m = rotation.ToMatrix4();
 	m.SetTranslation(position);
@@ -464,32 +493,32 @@ Matrix4::Matrix4(const Vector3& position, const Quaternion& rotation, const Vect
 }
 
 //QUATERNION
-Quaternion Quaternion::AxisAngle(const Vector3& axis, F32 angle, bool normalize)
+Quaternion3D Quaternion3D::AxisAngle(const Vector3& axis, F32 angle, bool normalize)
 {
 	const F32 halfAngle = 0.5f * angle;
 	F32 s = Math::Sin(halfAngle);
 	F32 c = Math::Cos(halfAngle);
 
-	Quaternion q = { s * axis.x, s * axis.y, s * axis.z, c };
+	Quaternion3D q = { s * axis.x, s * axis.y, s * axis.z, c };
 	if (normalize) { return q.Normalized(); }
 	return q;
 }
 
-Quaternion Quaternion::AxisAngle(const Vector2& axis, F32 angle, bool normalize)
+Quaternion3D Quaternion3D::AxisAngle(const Vector2& axis, F32 angle, bool normalize)
 {
 	const F32 halfAngle = 0.5f * angle;
 	F32 s = Math::Sin(halfAngle);
 	F32 c = Math::Cos(halfAngle);
 
-	Quaternion q = { s * axis.x, s * axis.y, 0.0f, c };
+	Quaternion3D q = { s * axis.x, s * axis.y, 0.0f, c };
 	if (normalize) { return q.Normalized(); }
 	return q;
 }
 
-Matrix4 Quaternion::ToMatrix4() const
+Matrix4 Quaternion3D::ToMatrix4() const
 {
 	Matrix4 matrix = Matrix4::IDENTITY;
-	Quaternion q = Normalized();
+	Quaternion3D q = Normalized();
 
 	matrix[0][0] = 1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z;
 	matrix[1][0] = 2.0f * q.x * q.y - 2.0f * q.z * q.w;
@@ -506,10 +535,10 @@ Matrix4 Quaternion::ToMatrix4() const
 	return matrix;
 }
 
-Matrix3 Quaternion::ToMatrix3() const
+Matrix3 Quaternion3D::ToMatrix3() const
 {
 	Matrix3 matrix = Matrix3::IDENTITY;
-	Quaternion q = Normalized();
+	Quaternion3D q = Normalized();
 
 	matrix[0][0] = 1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z;
 	matrix[1][0] = 2.0f * q.x * q.y - 2.0f * q.z * q.w;
@@ -526,7 +555,7 @@ Matrix3 Quaternion::ToMatrix3() const
 	return matrix;
 }
 
-Matrix4 Quaternion::RotationMatrix(Vector3 center) const
+Matrix4 Quaternion3D::RotationMatrix(Vector3 center) const
 {
 	Matrix4 matrix = Matrix4::IDENTITY;
 
@@ -548,12 +577,12 @@ Matrix4 Quaternion::RotationMatrix(Vector3 center) const
 	return matrix;
 }
 
-Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const
+Quaternion3D Quaternion3D::Slerp(const Quaternion3D& q, F32 t) const
 {
-	Quaternion out;
+	Quaternion3D out;
 
-	Quaternion v0 = Normalized();
-	Quaternion v1 = q.Normalized();
+	Quaternion3D v0 = Normalized();
+	Quaternion3D v1 = q.Normalized();
 
 	F32 dot = v0.Dot(v1);
 
@@ -586,7 +615,7 @@ Quaternion Quaternion::Slerp(const Quaternion& q, F32 t) const
 	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
 	F32 s1 = sinTheta / sinTheta0;
 
-	return Quaternion{
+	return Quaternion3D{
 		(v0.x * s0) + (v1.x * s1),
 		(v0.y * s0) + (v1.y * s1),
 		(v0.z * s0) + (v1.z * s1),

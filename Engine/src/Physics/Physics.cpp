@@ -52,6 +52,8 @@ void Physics::Shutdown()
 
 void Physics::Update()
 {
+	F64 invDelta = 1.0 / Time::DeltaTime();
+
 	List<PhysicsObject2D*> objects;
 
 	for (List<HashMap<U64, PhysicsObject2D*>::Node>& l : physicsObjects2D)
@@ -115,7 +117,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		po->area = (F32)(PI * config.radius * config.radius);
 	} break;
 	case COLLIDER_TYPE_CAPSULE: {
-		CapsuleCollider* collider = (CapsuleCollider*)Memory::Allocate(sizeof(CapsuleCollider), MEMORY_TAG_DATA_STRUCT);
+		CapsuleCollider2D* collider = (CapsuleCollider2D*)Memory::Allocate(sizeof(CapsuleCollider2D), MEMORY_TAG_DATA_STRUCT);
 		collider->trigger = config.trigger;
 		po->collider = collider;
 	} break;
@@ -185,7 +187,7 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 			bool& free0 = freeContacts[id0][id1];
 			bool& free1 = freeContacts[id1][id0];
 
-			if (po0->layerMask & po1->layerMask && id0 != id1 && free0 && free1)
+			if (po0->layerMask & po1->layerMask && id0 != id1 && free0 && free1 && (po0->mass > 0.0f || po1->mass > 0.0f))
 			{
 				free0 = false;
 				free1 = false;
