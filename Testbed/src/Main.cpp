@@ -57,7 +57,7 @@ bool init()
 
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 0.0f, -100.0f });
+	transform->Translate({ 0.0f, -10.0f });
 	transform->SetScale({ 1.0f, 1.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0f;
@@ -105,7 +105,7 @@ bool init()
 	poConfig1.dragCoefficient = 0.0f;
 	poConfig1.gravityScale = 1.0f;
 	poConfig1.kinematic = true;
-	poConfig1.restitution = 0.0f;
+	poConfig1.restitution = 0.5f;
 	poConfig1.transform = transform1;
 	poConfig1.trigger = false;
 	poConfig1.type = COLLIDER_TYPE_RECTANGLE;

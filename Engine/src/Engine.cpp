@@ -80,7 +80,7 @@ void Engine::MainLoop()
 		if (!suspended && running)
 		{
 			accumulatedTime += Time::DeltaTime();
-			if (accumulatedTime > 0.2f) { accumulatedTime = 0.2f; }
+			if (accumulatedTime > 0.25f) { accumulatedTime = 0.25f; }
 
 			while (accumulatedTime > Settings::TargetFrametime)
 			{

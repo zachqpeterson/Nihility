@@ -79,9 +79,9 @@ void Physics::Update()
 		if (po->kinematic) { continue; }
 
 		po->velocity += po->force * po->massInv * (F32)Time::DeltaTime();
-		po->transform->Translate(po->velocity);
-
 		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * po->dragCoefficient * po->area * 0.5f * airPressure * (F32)Time::DeltaTime();
+
+		po->transform->Translate(po->velocity);
 
 		po->force = Vector2::ZERO;
 	}
@@ -460,7 +460,7 @@ void Physics::ResolveCollision(Manifold2D& m)
 
 	F32 velAlongNormal = relVelocity.Dot(m.normal);
 
-	if (velAlongNormal > 0 || a->massInv + b->massInv <= FLOAT_EPSILON) { return; }
+	if (velAlongNormal > 0.0f || a->massInv + b->massInv <= FLOAT_EPSILON) { return; }
 
 	F32 restitution = Math::Min(a->restitution, b->restitution);
 	F32 j = (-(1.0f + restitution) * velAlongNormal) / (a->massInv + b->massInv);
