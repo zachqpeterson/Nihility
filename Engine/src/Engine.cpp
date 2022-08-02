@@ -69,6 +69,7 @@ void Engine::MainLoop()
 	while (running)
 	{
 		Time::Update();
+		accumulatedTime += Time::DeltaTime();
 		running = Platform::ProcessMessages();
 
 		if (Input::OnButtonDown(ESCAPE))
@@ -79,7 +80,6 @@ void Engine::MainLoop()
 
 		if (!suspended && running)
 		{
-			accumulatedTime += Time::DeltaTime();
 			if (accumulatedTime > 0.25f) { accumulatedTime = 0.25f; }
 
 			while (accumulatedTime > Settings::TargetFrametime)
