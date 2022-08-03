@@ -3,7 +3,7 @@
 #include "Math/Math.hpp"
 #include "Core/Logger.hpp"
 
-struct ButtonState
+struct NH_API ButtonState
 {
     bool pressed, changed;
 };

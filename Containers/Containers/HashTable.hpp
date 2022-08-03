@@ -6,7 +6,7 @@
 #include "Memory/Memory.hpp"
 
 template <typename TKey, typename TValue> //TODO: Only use key
-struct HashTable //TODO: Rename to HashSet
+struct  HashTable //TODO: Rename to HashSet
 {
 public:
     HashTable();

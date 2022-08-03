@@ -2,13 +2,12 @@
 
 #include "BAH.hpp"
 #include "Containers/Vector.hpp"
-#include "Core/Time.hpp"
 
 HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
 
-F32 Physics::airPressure = 1.0f;
-F32 Physics::gravity = 9.8f;
+F64 Physics::airPressure = 1.0;
+F64 Physics::gravity = 9.807;
 
 bool Physics::Initialize()
 {
@@ -50,17 +49,15 @@ void Physics::Shutdown()
 	physicsObjects3D.Destroy();
 }
 
-void Physics::Update()
+void Physics::Update(F64 step)
 {
-	F64 invDelta = 1.0 / Time::DeltaTime();
-
 	List<PhysicsObject2D*> objects;
 
 	for (List<HashMap<U64, PhysicsObject2D*>::Node>& l : physicsObjects2D)
 	{
 		for (HashMap<U64, PhysicsObject2D*>::Node& n : l)
 		{
-			if (!n.value->kinematic) { n.value->force += Vector2::UP * gravity * n.value->gravityScale * n.value->mass; }
+			if (!n.value->kinematic) { n.value->velocity += Vector2::UP * (F32)(gravity * n.value->gravityScale * n.value->mass * step); }
 			objects.PushBack(n.value);
 		}
 	}
@@ -78,8 +75,8 @@ void Physics::Update()
 	{
 		if (po->kinematic) { continue; }
 
-		po->velocity += po->force * po->massInv * (F32)Time::DeltaTime();
-		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * po->dragCoefficient * po->area * 0.5f * airPressure * (F32)Time::DeltaTime();
+		po->velocity += po->force * (F32)(po->massInv * step);
+		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * (F32)(po->dragCoefficient * po->area * 0.5 * airPressure * step);
 
 		po->transform->Translate(po->velocity);
 
@@ -110,8 +107,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_DATA_STRUCT);
 		collider->trigger = config.trigger;
 		collider->radius = config.radius;
-		collider->xBounds = { -config.radius, config.radius };
-		collider->yBounds = { -config.radius, config.radius };
+		collider->xBounds = { (F32)-config.radius, (F32)config.radius};
+		collider->yBounds = { (F32)-config.radius, (F32)config.radius };
 		po->collider = collider;
 
 		po->area = (F32)(PI * config.radius * config.radius);
@@ -267,7 +264,7 @@ bool Physics::CirclevsCircle(Manifold2D& m)
 
 	F32 distance = direction.SqrMagnitude();
 
-	F32 radius = aCollider->radius + aCollider->radius;
+	F64 radius = aCollider->radius + aCollider->radius;
 	radius *= radius;
 
 	if (distance > radius) { return false; }
@@ -375,7 +372,7 @@ bool Physics::AABBvsCircle(Manifold2D& m)
 
 	Vector2 normal = direction - closest;
 	F32 d = normal.SqrMagnitude();
-	F32 r = bCollider->radius;
+	F64 r = bCollider->radius;
 
 	if (d > r * r && !inside) { return false; }
 
@@ -431,7 +428,7 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 
 	Vector2 normal = direction - closest;
 	F32 d = normal.SqrMagnitude();
-	F32 r = aCollider->radius;
+	F64 r = aCollider->radius;
 
 	if (d > r * r && !inside) { return false; }
 
@@ -462,15 +459,16 @@ void Physics::ResolveCollision(Manifold2D& m)
 
 	if (velAlongNormal > 0.0f || a->massInv + b->massInv <= FLOAT_EPSILON) { return; }
 
-	F32 restitution = Math::Min(a->restitution, b->restitution);
-	F32 j = (-(1.0f + restitution) * velAlongNormal) / (a->massInv + b->massInv);
+	F64 restitution = Math::Min(a->restitution, b->restitution);
+	F64 j = (-(1.0 + restitution) * velAlongNormal) / (a->massInv + b->massInv);
 
-	Vector2 impulse = m.normal * j;
+	Vector2 impulse = m.normal * (F32)j;
 
-	a->velocity -= impulse * a->massInv;
-	b->velocity += impulse * b->massInv;
+	a->velocity -= impulse * (F32)a->massInv;
+	b->velocity += impulse * (F32)b->massInv;
 
-	Vector2 correction = m.normal * (m.penetration / (a->massInv + b->massInv));
-	a->transform->Translate(-correction * a->massInv);
-	b->transform->Translate(correction * b->massInv);
+	F64 slop = 0.001;
+	Vector2 correction = m.normal * (F32)(Math::Max(m.penetration - slop, 0.0) / (a->massInv + b->massInv));
+	a->transform->Translate(-correction * (F32)a->massInv);
+	b->transform->Translate(correction * (F32)b->massInv);
 }

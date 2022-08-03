@@ -36,13 +36,24 @@ public:
 		LogOutput(LOG_LEVEL_FATAL, str);
 		str.Destroy();
 	}
+	template<typename Type>
+	static void Fatal(const Type& arg)
+	{
+		String str(arg);
+		LogOutput(LOG_LEVEL_FATAL, str);
+	}
 	template<typename... Types>
 	static void Error(const char* message, const Types&... args)
 	{
 		String str(message);
 		str.Format(args...);
 		LogOutput(LOG_LEVEL_ERROR, str);
-		str.Destroy();
+	}
+	template<typename Type>
+	static void Error(const Type& arg)
+	{
+		String str(arg);
+		LogOutput(LOG_LEVEL_ERROR, str);
 	}
 	template<typename... Types>
 	static void Warn(const char* message, const Types&... args)
@@ -51,7 +62,14 @@ public:
 		String str(message);
 		str.Format(args...);
 		LogOutput(LOG_LEVEL_WARN, str);
-		str.Destroy();
+#endif
+	}
+	template<typename Type>
+	static void Warn(const Type& arg)
+	{
+#if LOG_WARN_ENABLED
+		String str(arg);
+		LogOutput(LOG_LEVEL_WARN, str);
 #endif
 	}
 	template<typename... Types>
@@ -61,7 +79,14 @@ public:
 		String str(message);
 		str.Format(args...);
 		LogOutput(LOG_LEVEL_INFO, str);
-		str.Destroy();
+#endif
+	}
+	template<typename Type>
+	static void Info(const Type& arg)
+	{
+#if LOG_INFO_ENABLED
+		String str(arg);
+		LogOutput(LOG_LEVEL_INFO, str);
 #endif
 	}
 	template<typename... Types>
@@ -71,7 +96,14 @@ public:
 		String str(message);
 		str.Format(args...);
 		LogOutput(LOG_LEVEL_DEBUG, str);
-		str.Destroy();
+#endif
+	}
+	template<typename Type>
+	static void Debug(const Type& arg)
+	{
+#if LOG_DEBUG_ENABLED
+		String str(arg);
+		LogOutput(LOG_LEVEL_DEBUG, str);
 #endif
 	}
 	template<typename... Types>
@@ -81,7 +113,14 @@ public:
 		String str(message);
 		str.Format(args...);
 		LogOutput(LOG_LEVEL_TRACE, str);
-		str.Destroy();
+#endif
+	}
+	template<typename Type>
+	static void Trace(const Type& arg)
+	{
+#if LOG_TRACE_ENABLED
+		String str(arg);
+		LogOutput(LOG_LEVEL_TRACE, str);
 #endif
 	}
 
@@ -90,7 +129,7 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static struct NH_API File log;
+	static struct File log;
 
 	Logger() = delete;
 

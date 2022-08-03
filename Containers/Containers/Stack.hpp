@@ -6,9 +6,9 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct Stack
+struct NH_API Stack
 {
-    struct Node
+    struct NH_API Node
     {
         Node(const T& value) : value{ value }, next{ nullptr } { }
         ~Node() { next = nullptr; }

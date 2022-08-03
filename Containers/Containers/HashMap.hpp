@@ -7,10 +7,10 @@
 #include <Containers/List.hpp>
 
 template <typename TKey, typename TValue>
-struct HashMap
+struct NH_API HashMap
 {
 public:
-	struct Node
+	struct NH_API Node
 	{
 		Node() : key{}, value{} {}
 		Node(const TKey& key, const TValue& value) : key{ key }, value{ value } {}
@@ -23,7 +23,7 @@ public:
 		TValue value;
 	};
 
-	struct Iterator
+	struct NH_API Iterator
 	{
 		Iterator(List<Node>* ptr) : ptr{ ptr } {}
 

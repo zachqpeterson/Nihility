@@ -67,13 +67,13 @@ struct RectangleCollider : public Collider2D
 struct CircleCollider : public Collider2D
 {
 	Vector2 center;
-	F32 radius;
+	F64 radius;
 };
 
 struct CapsuleCollider2D : public Collider2D
 {
-	F32 radius;
-	F32 height;
+	F64 radius;
+	F64 height;
 	bool yAxis;
 };
 
@@ -91,16 +91,16 @@ struct PhysicsObject2DConfig
 	Vector2 xBounds;
 	Vector2 yBounds;
 	//Circle
-	F32 radius;
+	F64 radius;
 	//TODO: other
 
 	bool trigger;
 	bool kinematic;
 
-	F32 restitution;
-	F32 gravityScale;
-	F32 density;
-	F32 dragCoefficient;
+	F64 restitution;
+	F64 gravityScale;
+	F64 density;
+	F64 dragCoefficient;
 	Transform2D* transform;
 };
 
@@ -112,22 +112,22 @@ struct PhysicsObject2D
 
 	//secondary
 	Vector2 velocity;
-	F32 angularVelocity;
+	F64 angularVelocity;
 
 	// secondary
 	Vector2 force;
-	F32 torque;
+	F64 torque;
 
 	// constants
-	F32 mass;
-	F32 massInv;
-	F32 inertia;
-	F32 inertiaInv;
-	F32 friction;
-	F32 restitution;
-	F32 gravityScale;
-	F32 dragCoefficient;
-	F32 area;
+	F64 mass;
+	F64 massInv;
+	F64 inertia;
+	F64 inertiaInv;
+	F64 friction;
+	F64 restitution;
+	F64 gravityScale;
+	F64 dragCoefficient;
+	F64 area;
 	U64 layerMask;
 	bool kinematic;
 	bool freezeRotation;
@@ -138,7 +138,7 @@ struct Manifold2D
 	PhysicsObject2D* a;
 	PhysicsObject2D* b;
 	Vector2 normal;
-	F32 penetration;
+	F64 penetration;
 };
 
 class NH_API Physics
@@ -158,7 +158,7 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
-	static void Update();
+	static void Update(F64 step);
 
 	static void BroadPhase(struct BAH& tree, List<struct PhysicsObject2D*>& objects, List<Manifold2D>& contacts);
 	static void NarrowPhase(List<Manifold2D>& contacts);
@@ -171,9 +171,8 @@ private:
 	static HashMap<U64, PhysicsObject2D*> physicsObjects2D;
 	static HashMap<U64, PhysicsObject3D*> physicsObjects3D;
 
-	static F32 airPressure;
-	static F32 gravity;
-	static F32 deltaInv;
+	static F64 airPressure;
+	static F64 gravity;
 
 	friend class Engine;
 };

@@ -65,6 +65,8 @@ void Engine::MainLoop()
 	suspended = false;
 
 	F64 accumulatedTime = 0.0f;
+	F64 step = Time::UpTime();
+	F64 lastStep = step;
 
 	while (running)
 	{
@@ -84,7 +86,10 @@ void Engine::MainLoop()
 
 			while (accumulatedTime > Settings::TargetFrametime)
 			{
-				Physics::Update();
+				lastStep = step;
+				step = Time::UpTime();
+
+				Physics::Update(step - lastStep);
 
 				accumulatedTime -= Settings::TargetFrametime;
 			}

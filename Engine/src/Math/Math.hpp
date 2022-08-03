@@ -229,7 +229,7 @@ struct NH_API Vector2
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
 	NH_INLINE void Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; }
-	NH_INLINE Vector2 Normalized() const { return (*this) / Magnitude(); }
+	NH_INLINE Vector2 Normalized() const { return x < FLOAT_EPSILON && y < FLOAT_EPSILON ? Vector2::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector2& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
@@ -310,7 +310,7 @@ struct NH_API Vector3
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
 	NH_INLINE void Normalize() { Vector3 v = Normalized(); x = v.x; y = v.y; z = v.z; }
-	NH_INLINE Vector3 Normalized() const { return *this / Magnitude(); }
+	NH_INLINE Vector3 Normalized() const { return x < FLOAT_EPSILON && y < FLOAT_EPSILON && z < FLOAT_EPSILON ? Vector3::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector3& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector3 Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector3 OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
@@ -380,7 +380,7 @@ struct NH_API Vector4
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
 	NH_INLINE void Normalize() { Vector4 v = Normalized(); x = v.x; y = v.y; z = v.z; w = v.w; }
-	NH_INLINE Vector4 Normalized() const { return *this / Magnitude(); }
+	NH_INLINE Vector4 Normalized() const { return x < FLOAT_EPSILON && y < FLOAT_EPSILON && z < FLOAT_EPSILON && w < FLOAT_EPSILON ? Vector4::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector4& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector4 Projection(const Vector4& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector4 OrthoProjection(const Vector4& v) const { return *this - Projection(v); }
