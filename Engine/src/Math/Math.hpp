@@ -116,6 +116,18 @@ public:
 	static U32 Clamp(U32 n, U32 a, U32 b) { return n < a ? a : n > b ? b : n; }
 	static U64 Clamp(U64 n, U64 a, U64 b) { return n < a ? a : n > b ? b : n; }
 
+	//NEGATIVE BITSHIFTING ROUNDS TOWARDS -INFINITY
+	static F32 Closest(F32 n, F32 a, F32 b) { return n < (b + a) * 0.5f ? a : b; }
+	static F64 Closest(F64 n, F64 a, F64 b) { return n < (b + a) * 0.5 ? a : b; }
+	static I8  Closest(I8  n, I8  a, I8  b) { return n < (b + a) >> 1 ? a : b; }
+	static I16 Closest(I16 n, I16 a, I16 b) { return n < (b + a) >> 1 ? a : b; }
+	static I32 Closest(I32 n, I32 a, I32 b) { return n < (b + a) >> 1 ? a : b; }
+	static I64 Closest(I64 n, I64 a, I64 b) { return n < (b + a) >> 1 ? a : b; }
+	static U8  Closest(U8  n, U8  a, U8  b) { return n < (b + a) >> 1 ? a : b; }
+	static U16 Closest(U16 n, U16 a, U16 b) { return n < (b + a) >> 1 ? a : b; }
+	static U32 Closest(U32 n, U32 a, U32 b) { return n < (b + a) >> 1 ? a : b; }
+	static U64 Closest(U64 n, U64 a, U64 b) { return n < (b + a) >> 1 ? a : b; }
+
 	static I32 Floor(F32 n) { return n >= 0 ? (I32)n : (I32)n - 1; }
 	static I64 Floor(F64 n) { return n >= 0 ? (I64)n : (I64)n - 1; }
 	static F32 FloorF(F32 n) { return (F32)(n >= 0 ? (I32)n : (I32)n - 1); }
@@ -125,6 +137,9 @@ public:
 	static I64 Ceiling(F64 n) { return n > 0 ? (I64)n + 1 : (I64)n; }
 	static F32 CeilingF(F32 n) { return (F32)(n > 0 ? (I32)n + 1 : (I32)n); }
 	static F64 CeilingF(F64 n) { return (F64)(n > 0 ? (I64)n + 1 : (I64)n); }
+
+	static bool Zero(F32 f) { return f < FLOAT_EPSILON && f > -FLOAT_EPSILON; }
+	static bool Zero(F64 f) { return f < FLOAT_EPSILON && f > -FLOAT_EPSILON; }
 
 	//FLOATING-POINT
 	static F32 Round(F32 f) { return (F32)(I32)(f + 0.5f); }
@@ -216,8 +231,8 @@ struct NH_API Vector2
 	Vector2 operator- (F32 f) const { return Vector2{ x - f, y - f }; }
 	Vector2 operator% (F32 f) const { return Vector2{ Math::Mod(x, f), Math::Mod(y, f) }; }
 
-	bool operator== (const Vector2& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON; }
-	bool operator!= (const Vector2& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON; }
+	bool operator== (const Vector2& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y); }
+	bool operator!= (const Vector2& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y); }
 	bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	friend Vector2 operator- (const Vector2& v);
@@ -228,8 +243,8 @@ struct NH_API Vector2
 	NH_INLINE F32 Dot(const Vector2& v) const { return v.x * x + v.y * y; }
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
-	NH_INLINE void Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; }
-	NH_INLINE Vector2 Normalized() const { return x < FLOAT_EPSILON && y < FLOAT_EPSILON ? Vector2::ZERO : (*this) / Magnitude(); }
+	NH_INLINE Vector2& Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; return *this; }
+	NH_INLINE Vector2 Normalized() const { return Math::Zero(x) && Math::Zero(y) ? Vector2::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector2& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
@@ -253,6 +268,26 @@ struct NH_API Vector2
 		x = Math::Clamp(x, xBound.x, xBound.y);
 		y = Math::Clamp(y, yBound.x, yBound.y);
 		return *this;
+	}
+	NH_INLINE Vector2 Clamped(const Vector2& xBound, const Vector2& yBound) const
+	{
+		return {
+			Math::Clamp(x, xBound.x, xBound.y),
+			Math::Clamp(y, yBound.x, yBound.y)
+		};
+	}
+	NH_INLINE Vector2& SetClosest(const Vector2& xBound, const Vector2& yBound)
+	{
+		x = Math::Closest(x, xBound.x, xBound.y);
+		y = Math::Closest(y, yBound.x, yBound.y);
+		return *this;
+	}
+	NH_INLINE Vector2 Closest(const Vector2& xBound, const Vector2& yBound) const
+	{
+		return {
+			Math::Closest(x, xBound.x, xBound.y),
+			Math::Closest(y, yBound.x, yBound.y)
+		};
 	}
 
 	NH_INLINE F32* Data() { return &x; }
@@ -296,8 +331,8 @@ struct NH_API Vector3
 	Vector3 operator/ (F32 f) const { return Vector3{ x / f, y / f, z / f }; }
 	Vector3 operator% (F32 f) const { return Vector3{ Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f) }; }
 
-	bool operator== (const Vector3& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON && Math::Abs(z - v.z) < FLOAT_EPSILON; }
-	bool operator!= (const Vector3& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON || Math::Abs(z - v.z) > FLOAT_EPSILON; }
+	bool operator== (const Vector3& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y) && Math::Zero(z - v.z); }
+	bool operator!= (const Vector3& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y) || Math::Zero(z - v.z); }
 	bool operator<  (const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	friend Vector3 operator- (Vector3& v) { return Vector3{ -v.x, -v.y, -v.z }; }
@@ -310,7 +345,7 @@ struct NH_API Vector3
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
 	NH_INLINE void Normalize() { Vector3 v = Normalized(); x = v.x; y = v.y; z = v.z; }
-	NH_INLINE Vector3 Normalized() const { return x < FLOAT_EPSILON && y < FLOAT_EPSILON && z < FLOAT_EPSILON ? Vector3::ZERO : (*this) / Magnitude(); }
+	NH_INLINE Vector3 Normalized() const { return Math::Zero(x) && Math::Zero(y) && Math::Zero(z) ? Vector3::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector3& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector3 Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector3 OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
@@ -367,8 +402,8 @@ struct NH_API Vector4
 	Vector4 operator/ (F32 f) const { return Vector4{ x / f, y / f, z / f, w / f }; }
 	Vector4 operator% (F32 f) const { return Vector4{ Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f), Math::Mod(w, f) }; }
 
-	bool operator== (const Vector4& v) const { return Math::Abs(x - v.x) < FLOAT_EPSILON && Math::Abs(y - v.y) < FLOAT_EPSILON && Math::Abs(z - v.z) < FLOAT_EPSILON && Math::Abs(w - v.w) < FLOAT_EPSILON; }
-	bool operator!= (const Vector4& v) const { return Math::Abs(x - v.x) > FLOAT_EPSILON || Math::Abs(y - v.y) > FLOAT_EPSILON || Math::Abs(z - v.z) > FLOAT_EPSILON || Math::Abs(w - v.w) > FLOAT_EPSILON; }
+	bool operator== (const Vector4& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y) && Math::Zero(z - v.z) && Math::Zero(w - v.w); }
+	bool operator!= (const Vector4& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y) || Math::Zero(z - v.z) || Math::Zero(w - v.w); }
 	bool operator<  (const Vector4& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector4& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	friend Vector4 operator- (Vector4& v) { return Vector4{ -v.x, -v.y, -v.z, -v.w }; }
@@ -380,7 +415,7 @@ struct NH_API Vector4
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
 	NH_INLINE void Normalize() { Vector4 v = Normalized(); x = v.x; y = v.y; z = v.z; w = v.w; }
-	NH_INLINE Vector4 Normalized() const { return x < FLOAT_EPSILON && y < FLOAT_EPSILON && z < FLOAT_EPSILON && w < FLOAT_EPSILON ? Vector4::ZERO : (*this) / Magnitude(); }
+	NH_INLINE Vector4 Normalized() const { return Math::Zero(x) && Math::Zero(y) && Math::Zero(z) && Math::Zero(w) ? Vector4::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector4& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector4 Projection(const Vector4& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector4 OrthoProjection(const Vector4& v) const { return *this - Projection(v); }

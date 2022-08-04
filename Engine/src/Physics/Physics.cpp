@@ -267,10 +267,10 @@ bool Physics::CirclevsCircle(Manifold2D& m)
 
 	F32 distance = direction.SqrMagnitude();
 
-	F64 radius = aCollider->radius + aCollider->radius;
-	radius *= radius;
+	F64 radius = aCollider->radius + bCollider->radius;
+	F64 radiusSqr = radius * radius;
 
-	if (distance > radius) { return false; }
+	if (distance > radiusSqr) { return false; }
 
 	distance = Math::Sqrt(distance);
 
@@ -402,53 +402,39 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
 
-	Vector2 direction = b->transform->Position() - a->transform->Position();
-	Vector2 closest = direction;
+	Vector2 distance = a->transform->Position() - b->transform->Position();
+	Vector2 distClamped = distance.Clamped(bCollider->xBounds, bCollider->yBounds);
+	Vector2 closestPoint = b->transform->Position() + distClamped;
 
-	F32 xExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
-	F32 yExtent = (bCollider->yBounds.y - bCollider->yBounds.x) * 0.5f;
-
-	closest.x = Math::Clamp(-xExtent, xExtent, closest.x);
-	closest.y = Math::Clamp(-yExtent, yExtent, closest.y);
-
-	bool inside = false;
-
-	if (direction == closest)
+	if ((closestPoint.x < bCollider->xBounds.y && closestPoint.x > bCollider->xBounds.x) &&
+		(closestPoint.y < bCollider->yBounds.y && closestPoint.y > bCollider->yBounds.x))
 	{
-		inside = true;
+		Vector2 closestBound = closestPoint.Closest(bCollider->xBounds + b->transform->Position().x, bCollider->yBounds + b->transform->Position().y);
 
-		if (Math::Abs(direction.x) > Math::Abs(direction.y))
+		if (Math::Abs(closestBound.x - closestPoint.x) < Math::Abs(closestBound.y - closestPoint.y))
 		{
-			if (closest.x > 0.0f) { closest.x = xExtent; }
-			else { closest.x = -xExtent; }
+			closestPoint.x = closestBound.x;
 		}
 		else
 		{
-			if (closest.y > 0.0f) { closest.y = yExtent; }
-			else { closest.y = -yExtent; }
+			closestPoint.y = closestBound.y;
 		}
 	}
 
-	Vector2 normal = direction - closest;
-	F32 d = normal.SqrMagnitude();
-	F64 r = aCollider->radius;
+	Vector2 normal = (closestPoint - a->transform->Position());
+	F32 dist = normal.SqrMagnitude();
 
-	if (d > r * r && !inside) { return false; }
-
-	d = Math::Sqrt(d);
-
-	if (inside)
+	if (dist < aCollider->radius * aCollider->radius)
 	{
-		m.normal = -normal;
-		m.penetration = r - d;
-	}
-	else
-	{
-		m.normal = normal;
-		m.penetration = r - d;
+		dist = Math::Sqrt(dist);
+
+		m.normal = normal.Normalize();
+		m.penetration = dist;
+
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void Physics::ResolveCollision(Manifold2D& m)

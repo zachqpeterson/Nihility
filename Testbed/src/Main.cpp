@@ -41,7 +41,7 @@ bool init()
 
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 0.0f, -20.0f });
+	transform->Translate({ 2.0f, -20.0f });
 	transform->SetScale({ 1.0f, 1.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
@@ -82,7 +82,7 @@ bool init()
 
 	Mesh* mesh1 = Resources::CreateMesh(config1);
 	Transform2D* transform1 = new Transform2D();
-	transform1->Translate({ 0.0f, 10.0f });
+	transform1->Translate({ 0.0f, 5.0f });
 	transform1->SetScale({ 10.0f, 10.0f });
 	PhysicsObject2DConfig poConfig1{};
 	poConfig1.density = 0.0;
@@ -91,7 +91,7 @@ bool init()
 	poConfig1.restitution = 0.0;
 	poConfig1.transform = transform1;
 	poConfig1.trigger = false;
-	poConfig1.type = COLLIDER_TYPE_CIRCLE;
+	poConfig1.type = COLLIDER_TYPE_RECTANGLE;
 	poConfig1.radius = 5.0;
 	poConfig1.xBounds = { -5.0f, 5.0f };
 	poConfig1.yBounds = { -5.0f, 5.0f };
