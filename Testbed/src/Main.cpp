@@ -21,6 +21,7 @@ bool init()
 	scene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
 	scene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 
+	//Player
 	MeshConfig config0;
 	config0.name = "Mesh0";
 	config0.MaterialName = "Tile.mat";
@@ -44,13 +45,13 @@ bool init()
 	transform->SetScale({ 1.0f, 1.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
-	poConfig.dragCoefficient = 2.0;
 	poConfig.gravityScale = 1.0;
 	poConfig.kinematic = false;
 	poConfig.restitution = 0.0;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
-	poConfig.type = COLLIDER_TYPE_RECTANGLE;
+	poConfig.type = COLLIDER_TYPE_CIRCLE;
+	poConfig.radius = 0.5;
 	poConfig.xBounds = { -0.5f, 0.5f };
 	poConfig.yBounds = { -0.5f, 0.5f };
 	Vector<Mesh*> meshes(1, mesh0);
@@ -85,13 +86,13 @@ bool init()
 	transform1->SetScale({ 10.0f, 10.0f });
 	PhysicsObject2DConfig poConfig1{};
 	poConfig1.density = 0.0;
-	poConfig1.dragCoefficient = 0.0;
 	poConfig1.gravityScale = 1.0;
 	poConfig1.kinematic = true;
 	poConfig1.restitution = 0.0;
 	poConfig1.transform = transform1;
 	poConfig1.trigger = false;
-	poConfig1.type = COLLIDER_TYPE_RECTANGLE;
+	poConfig1.type = COLLIDER_TYPE_CIRCLE;
+	poConfig1.radius = 5.0;
 	poConfig1.xBounds = { -5.0f, 5.0f };
 	poConfig1.yBounds = { -5.0f, 5.0f };
 	Vector<Mesh*> meshes1(1, mesh1);

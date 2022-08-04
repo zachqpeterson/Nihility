@@ -6,7 +6,7 @@
 HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
 
-F64 Physics::airPressure = 1.0;
+F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
 
 bool Physics::Initialize()
@@ -62,7 +62,7 @@ void Physics::Update(F64 step)
 				PhysicsObject2D& po = *n.value;
 				po.velocity += Vector2::UP * (F32)(gravity * po.gravityScale * po.mass * step);
 				po.velocity += po.force * (F32)po.massInv;
-				po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airPressure * step);
+				po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airDensity * step);
 				
 				po.transform->Translate(po.velocity);
 
@@ -99,6 +99,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		collider->xBounds = config.xBounds;
 		collider->yBounds = config.yBounds;
 		po->collider = collider;
+		po->dragCoefficient = 2.05;
 
 		po->area = (config.xBounds.y - config.xBounds.x) * (config.yBounds.y - config.yBounds.x);
 	} break;
@@ -109,6 +110,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		collider->xBounds = { (F32)-config.radius, (F32)config.radius};
 		collider->yBounds = { (F32)-config.radius, (F32)config.radius };
 		po->collider = collider;
+		po->dragCoefficient = 1.17;
 
 		po->area = (F32)(PI * config.radius * config.radius);
 	} break;
@@ -116,11 +118,14 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		CapsuleCollider2D* collider = (CapsuleCollider2D*)Memory::Allocate(sizeof(CapsuleCollider2D), MEMORY_TAG_DATA_STRUCT);
 		collider->trigger = config.trigger;
 		po->collider = collider;
+		po->dragCoefficient = 1.6;
+
 	} break;
 	case COLLIDER_TYPE_POLYGON: {
 		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_DATA_STRUCT);
 		collider->trigger = config.trigger;
 		po->collider = collider;
+		po->dragCoefficient = 1.0;
 	} break;
 	case COLLIDER_TYPE_NONE:
 	default: {
@@ -132,7 +137,6 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	po->collider->trigger = config.trigger;
 	po->transform = config.transform;
 
-	po->dragCoefficient = config.dragCoefficient;
 	po->restitution = config.restitution;
 	po->gravityScale = config.gravityScale;
 	po->kinematic = config.kinematic;

@@ -100,7 +100,6 @@ struct PhysicsObject2DConfig
 	F64 restitution;
 	F64 gravityScale;
 	F64 density;
-	F64 dragCoefficient;
 	Transform2D* transform;
 };
 
@@ -196,7 +195,7 @@ private:
 	static HashMap<U64, PhysicsObject2D*> physicsObjects2D;
 	static HashMap<U64, PhysicsObject3D*> physicsObjects3D;
 
-	static F64 airPressure;
+	static F64 airDensity;
 	static F64 gravity;
 
 	friend class Engine;
