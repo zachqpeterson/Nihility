@@ -106,6 +106,13 @@ struct PhysicsObject2DConfig
 
 struct PhysicsObject2D
 {
+	void ApplyForce(const Vector2& f) { force += f; }
+	void ApplyTorque(F64 t) { torque += t; }
+	void SetVelocity(const Vector2& v) { velocity = v; }
+	void SetAngularVelocity(F64 v) { angularVelocity = v; }
+	void SetGravityScale(F64 s) { gravityScale = s; }
+
+private:
 	U64 id;
 	Collider2D* collider;
 	Transform2D* transform;
@@ -127,10 +134,29 @@ struct PhysicsObject2D
 	F64 restitution;
 	F64 gravityScale;
 	F64 dragCoefficient;
+	F64 angularDragCoefficient;
 	F64 area;
 	U64 layerMask;
 	bool kinematic;
 	bool freezeRotation;
+
+public:
+	// Read-only access
+	const Vector2& Velocity = velocity;
+	const F64& AngularVelocity = angularVelocity;
+
+	const F64& Mass = mass;
+	const F64& Inertia = inertia;
+	const F64& Friction = friction;
+	const F64& Restitution = restitution;
+	const F64& GravityScale = gravityScale;
+	const F64& Drag = dragCoefficient;
+	const F64& AngularDrag = angularDragCoefficient;
+	const F64& Area = area;
+	const U64& LayerMask = layerMask;
+
+	friend class Physics;
+	friend struct BAH;
 };
 
 struct Manifold2D
@@ -147,7 +173,6 @@ public:
 	/// <summary>
 	/// TODO: 
 	///	Raycasting
-	///	Broad-phase culling (bounding volume heirarchy)
 	///	Events
 	/// </summary>
 

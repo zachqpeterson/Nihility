@@ -14,6 +14,7 @@
 #include <Physics/Physics.hpp>
 
 Scene* scene;
+GameObject2D* player;
 
 bool init()
 {
@@ -76,7 +77,7 @@ bool init()
 	goConfig.transform = transform;
 	goConfig.model = Resources::CreateModel("Mesh0", meshes);
 	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-	GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
+	player = Resources::CreateGameObject2D(goConfig);
 
 	//FLOOR
 	MeshConfig config1;
@@ -130,7 +131,7 @@ bool init()
 	UI::GenerateText(config, "Hello, World!");
 
 	//scene->DrawMesh(backgroundMesh);
-	scene->DrawGameObject(gameObject);
+	scene->DrawGameObject(player);
 	scene->DrawGameObject(gameObject1);
 
 	RendererFrontend::UseScene(scene);
@@ -143,6 +144,11 @@ bool update()
 	Vector3 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), (F32)(Input::ButtonDown(S) - Input::ButtonDown(W)), (F32)(Input::ButtonDown(E) - Input::ButtonDown(Q)) };
 	move *= Time::DeltaTime() * 10.0;
 	scene->GetCamera()->Translate(move);
+
+	if (Input::OnButtonDown(SPACE))
+	{
+		player->physics->ApplyForce(Vector2::DOWN);
+	}
 
 	return true;
 }

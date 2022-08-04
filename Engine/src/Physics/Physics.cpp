@@ -57,7 +57,18 @@ void Physics::Update(F64 step)
 	{
 		for (HashMap<U64, PhysicsObject2D*>::Node& n : l)
 		{
-			if (!n.value->kinematic) { n.value->velocity += Vector2::UP * (F32)(gravity * n.value->gravityScale * n.value->mass * step); }
+			if (!n.value->kinematic)
+			{
+				PhysicsObject2D& po = *n.value;
+				po.velocity += Vector2::UP * (F32)(gravity * po.gravityScale * po.mass * step);
+				po.velocity += po.force * (F32)po.massInv;
+				//po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airPressure * step);
+				
+				po.transform->Translate(po.velocity);
+
+				po.force = Vector2::ZERO;
+			}
+
 			objects.PushBack(n.value);
 		}
 	}
@@ -70,18 +81,6 @@ void Physics::Update(F64 step)
 	List<Manifold2D> contacts;
 	BroadPhase(tree, objects, contacts);
 	NarrowPhase(contacts);
-
-	for (PhysicsObject2D* po : objects)
-	{
-		if (po->kinematic) { continue; }
-
-		po->velocity += po->force * (F32)(po->massInv * step);
-		po->velocity += -po->velocity.Normalized() * po->velocity.SqrMagnitude() * (F32)(po->dragCoefficient * po->area * 0.5 * airPressure * step);
-
-		po->transform->Translate(po->velocity);
-
-		po->force = Vector2::ZERO;
-	}
 }
 
 PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)

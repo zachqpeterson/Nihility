@@ -65,28 +65,28 @@ struct NH_API Binary
 struct NH_API Image
 {
 	String name;
-	U32 width;
-	U32 height;
-	U8 channelCount;
-	ImageLayout layout;
+	U32 width{ 0 };
+	U32 height{ 0 };
+	U8 channelCount{ 4 };
+	ImageLayout layout{ IMAGE_LAYOUT_RGBA32 };
 	Vector<U8> pixels;
 };
 
 struct NH_API Texture
 {
 	String name;
-	U32 generation;
-	U32 width;
-	U32 height;
-	U8 flags;
-	U8 channelCount;
-	ImageLayout layout;
-	void* internalData;
+	U32 generation{ 0 };
+	U32 width{ 0 };
+	U32 height{ 0 };
+	U8 flags{ 0 };
+	U8 channelCount{ 4 };
+	ImageLayout layout{ IMAGE_LAYOUT_RGBA32 };
+	void* internalData{ nullptr };
 };
 
 struct NH_API TextureMap
 {
-	Texture* texture;
+	Texture* texture{nullptr};
 	TextureFilter filterMinify;
 	TextureFilter filterMagnify;
 	TextureRepeat repeatU;
@@ -320,14 +320,14 @@ struct MaterialConfig
 
 struct NH_API Material
 {
-	U32 id;
+	U32 id{ U32_MAX };
 	String name;
-	U32 generation;
-	U32 instance;
-	F32 shininess;
-	U64 renderFrameNumber;
+	U32 generation{ 0 };
+	U32 instance{ 0 };
+	F32 shininess{ 0.0f };
+	U64 renderFrameNumber{ 0 };
 
-	Shader* shader;
+	Shader* shader{ nullptr };
 	Vector4 diffuseColor; //TODO: Color struct
 	Vector<TextureMap> globalTextureMaps;
 	Vector<TextureMap> instanceTextureMaps;
@@ -351,7 +351,7 @@ struct NH_API Mesh
 {
 	String name;
 	Material material;
-	void* internalData;
+	void* internalData{ nullptr };
 };
 
 struct NH_API Model
@@ -363,35 +363,35 @@ struct NH_API Model
 struct NH_API GameObject2DConfig
 {
 	String name;
-	Transform2D* transform;
-	struct PhysicsObject2D* physics;
-	Model* model;
+	Transform2D* transform{ nullptr };
+	struct PhysicsObject2D* physics{ nullptr };
+	Model* model{ nullptr };
 };
 
 struct NH_API GameObject2D
 {
-	U64 id;
+	U64 id{ U64_MAX };
 	String name;
-	Transform2D* transform;
-	struct PhysicsObject2D* physics;
-	Model* model;
+	Transform2D* transform{ nullptr };
+	struct PhysicsObject2D* physics{ nullptr };
+	Model* model{ nullptr };
 };
 
 struct NH_API GameObject3DConfig
 {
 	String name;
-	Transform3D* transform;
-	struct PhysicsObject3D* physics;
-	Model* model;
+	Transform3D* transform{ nullptr };
+	struct PhysicsObject3D* physics{ nullptr };
+	Model* model{ nullptr };
 };
 
 struct NH_API GameObject3D
 {
-	U64 id;
+	U64 id{ U64_MAX };
 	String name;
-	Transform3D* transform;
-	struct PhysicsObject3D* physics;
-	Model* model;
+	Transform3D* transform{ nullptr };
+	struct PhysicsObject3D* physics{ nullptr };
+	Model* model{ nullptr };
 };
 
 class NH_API Resources
