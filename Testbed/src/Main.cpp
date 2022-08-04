@@ -21,24 +21,6 @@ bool init()
 	scene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
 	scene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 
-	MeshConfig backgroundConfig;
-	backgroundConfig.name = "Background";
-	backgroundConfig.MaterialName = "Background.mat";
-
-	backgroundConfig.vertices.Push(Vertex{ {-1.0f, -1.0f, 0.0f}, { 0.0f, 0.0f } });
-	backgroundConfig.vertices.Push(Vertex{ { 1.0f, -1.0f, 0.0f}, { 1.0f, 0.0f } });
-	backgroundConfig.vertices.Push(Vertex{ { 1.0f,  1.0f, 0.0f}, { 1.0f, 1.0f } });
-	backgroundConfig.vertices.Push(Vertex{ {-1.0f,  1.0f, 0.0f}, { 0.0f, 1.0f } });
-
-	backgroundConfig.indices.Push(0);
-	backgroundConfig.indices.Push(1);
-	backgroundConfig.indices.Push(2);
-	backgroundConfig.indices.Push(2);
-	backgroundConfig.indices.Push(3);
-	backgroundConfig.indices.Push(0);
-
-	Mesh* backgroundMesh = Resources::CreateMesh(backgroundConfig);
-
 	MeshConfig config0;
 	config0.name = "Mesh0";
 	config0.MaterialName = "Tile.mat";
@@ -130,7 +112,6 @@ bool init()
 	
 	UI::GenerateText(config, "Hello, World!");
 
-	//scene->DrawMesh(backgroundMesh);
 	scene->DrawGameObject(player);
 	scene->DrawGameObject(gameObject1);
 

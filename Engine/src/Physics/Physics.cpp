@@ -62,7 +62,7 @@ void Physics::Update(F64 step)
 				PhysicsObject2D& po = *n.value;
 				po.velocity += Vector2::UP * (F32)(gravity * po.gravityScale * po.mass * step);
 				po.velocity += po.force * (F32)po.massInv;
-				//po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airPressure * step);
+				po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airPressure * step);
 				
 				po.transform->Translate(po.velocity);
 

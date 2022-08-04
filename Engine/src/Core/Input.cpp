@@ -74,7 +74,7 @@ void Input::SetButtonState(U8 code, bool down)
 {
     anyButtonDown |= down;
     ButtonState& state = buttonStates[code];
-    state.changed = true;
+    state.changed = down != state.pressed;
     state.pressed = down;
 }
 

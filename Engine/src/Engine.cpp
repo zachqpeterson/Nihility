@@ -82,14 +82,15 @@ void Engine::MainLoop()
 
 		if (!suspended && running)
 		{
-			if (accumulatedTime > 0.25f) { accumulatedTime = 0.25f; }
+			Math::Min(accumulatedTime, 0.1);
 
 			while (accumulatedTime > Settings::TargetFrametime)
 			{
 				lastStep = step;
 				step = Time::UpTime();
+				F64 delta = Math::Min(step - lastStep, 0.1);
 
-				Physics::Update(step - lastStep);
+				Physics::Update(delta);
 
 				accumulatedTime -= Settings::TargetFrametime;
 			}
