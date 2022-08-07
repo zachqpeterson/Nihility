@@ -311,28 +311,18 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 
 		if (yOverlap > 0.0f)
 		{
-			if (xOverlap > yOverlap)
+			if (yOverlap > xOverlap)
 			{
-				if (n.x < 0.0f) { m.normal = Vector2::RIGHT; }
-				else
-				{
-					m.normal = n.Normalized();
-					m.penetration = yOverlap;
-				}
-
-				return true;
+				m.penetration = xOverlap;
+				m.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
 			}
 			else
 			{
-				if (n.y < 0.0f) { m.normal = Vector2::DOWN; }
-				else
-				{
-					m.normal = n.Normalized();
-					m.penetration = xOverlap;
-				}
-
-				return true;
+				m.penetration = yOverlap;
+				m.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
 			}
+
+			return true;
 		}
 	}
 
@@ -401,15 +391,17 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 	PhysicsObject2D* b = m.b;
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
+	Vector2 aPos = a->transform->Position();
+	Vector2 bPos = b->transform->Position();
 
-	Vector2 distance = a->transform->Position() - b->transform->Position();
-	Vector2 distClamped = distance.Clamped(bCollider->xBounds, bCollider->yBounds);
-	Vector2 closestPoint = b->transform->Position() + distClamped;
+	Vector2 closestPoint = bPos + (aPos - bPos).Clamped(bCollider->xBounds, bCollider->yBounds);
+	Vector2 checkX = bCollider->xBounds + bPos.x;
+	Vector2 checkY = bCollider->yBounds + bPos.y;
 
-	if ((closestPoint.x < bCollider->xBounds.y && closestPoint.x > bCollider->xBounds.x) &&
-		(closestPoint.y < bCollider->yBounds.y && closestPoint.y > bCollider->yBounds.x))
+	if ((closestPoint.x < checkX.y && closestPoint.x > checkX.x) &&
+		(closestPoint.y < checkY.y && closestPoint.y > checkY.x))
 	{
-		Vector2 closestBound = closestPoint.Closest(bCollider->xBounds + b->transform->Position().x, bCollider->yBounds + b->transform->Position().y);
+		Vector2 closestBound = closestPoint.Closest(checkX, checkY);
 
 		if (Math::Abs(closestBound.x - closestPoint.x) < Math::Abs(closestBound.y - closestPoint.y))
 		{
@@ -421,15 +413,15 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 		}
 	}
 
-	Vector2 normal = (closestPoint - a->transform->Position());
-	F32 dist = normal.SqrMagnitude();
+	Vector2 normal = (closestPoint - aPos);
+	F32 distance = normal.SqrMagnitude();
 
-	if (dist < aCollider->radius * aCollider->radius)
+	if (distance < aCollider->radius * aCollider->radius)
 	{
-		dist = Math::Sqrt(dist);
+		distance = Math::Sqrt(distance);
 
 		m.normal = normal.Normalize();
-		m.penetration = dist;
+		m.penetration = aCollider->radius - distance;
 
 		return true;
 	}

@@ -1262,7 +1262,7 @@ public:
 	//TODO: Reduce copying?
 	NH_INLINE Matrix3 World()
 	{
-		if (parent) { return Local() * parent->Local(); }
+		if (parent) { return parent->Local() * Local(); }
 		return Local();
 	}
 

@@ -41,7 +41,7 @@ bool init()
 
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 2.0f, -20.0f });
+	transform->Translate({ 0.0f, -10.0f });
 	transform->SetScale({ 1.0f, 1.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
@@ -103,6 +103,36 @@ bool init()
 	goConfig1.physics = Physics::Create2DPhysicsObject(poConfig1);
 	GameObject2D* gameObject1 = Resources::CreateGameObject2D(goConfig1);
 
+	//Child
+	MeshConfig config2;
+	config2.name = "Mesh2";
+	config2.MaterialName = "Tile.mat";
+	config2.instanceTextures.Push(Resources::LoadTexture("12stone_block.bmp"));
+
+	config2.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
+	config2.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
+	config2.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
+	config2.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
+
+	config2.indices.Push(0);
+	config2.indices.Push(1);
+	config2.indices.Push(2);
+	config2.indices.Push(2);
+	config2.indices.Push(3);
+	config2.indices.Push(0);
+
+	Mesh* mesh2 = Resources::CreateMesh(config2);
+	Transform2D* transform2 = new Transform2D();
+	transform2->Translate({ 1.0f, -1.0f });
+	transform2->SetScale({ 1.0f, 1.0f });
+	transform2->parent = transform;
+	Vector<Mesh*> meshes2(1, mesh2);
+	GameObject2DConfig goConfig2{};
+	goConfig2.name = "Mesh2";
+	goConfig2.transform = transform2;
+	goConfig2.model = Resources::CreateModel("Mesh2", meshes2);
+	GameObject2D* child = Resources::CreateGameObject2D(goConfig2);
+
 	//TEXT
 	UIElementConfig config{};
 	config.area = { 0.0f, 0.9f, 0.1f, 1.0f };
@@ -114,6 +144,7 @@ bool init()
 	UI::GenerateText(config, "Hello, World!");
 
 	scene->DrawGameObject(player);
+	//scene->DrawGameObject(child);
 	scene->DrawGameObject(gameObject1);
 
 	RendererFrontend::UseScene(scene);
