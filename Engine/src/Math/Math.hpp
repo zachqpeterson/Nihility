@@ -701,7 +701,7 @@ struct NH_API Matrix3
 		F32 sin = (F32)Math::Sin(rotation * DEG2RAD_MULTIPLIER);
 		a.x = cos * scale.x;	b.x = -sin;				c.x = position.x;
 		a.y = sin;				b.y = cos * scale.y;	c.y = position.y;
-		a.z = 1.0f;				b.z = 1.0f;				c.z = 1.0f;
+		a.z = 0.0f;				b.z = 0.0f;				c.z = 1.0f;
 	}
 
 
@@ -780,8 +780,8 @@ struct NH_API Matrix4
 	{
 		a.x = m.a.x; b.x = m.b.x; c.x = 0.0f; d.x = m.c.x;
 		a.y = m.a.y; b.y = m.b.y; c.y = 0.0f; d.y = m.c.y;
-		a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = 0.0f;
-		a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
+		a.z = 0.0f;  b.z = 0.0f;  c.z = 1.0f; d.z = 0.0f;
+		a.w = 0.0f;  b.w = 0.0f;  c.w = 0.0f; d.w = 1.0f;
 	}
 	Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
 	Matrix4(const Vector3& position, const Vector3& rotation = Vector3::ZERO, const Vector3& scale = Vector3::ONE)
@@ -1127,17 +1127,23 @@ struct NH_API Quaternion2D
 	Quaternion2D(F32 sin, F32 cos) : angle{ Math::Acos(cos) }, sin{ sin }, cos{ cos } {}
 	Quaternion2D(const Quaternion2D& q) : angle{ q.angle }, sin{ q.sin }, cos{ q.cos } {}
 	Quaternion2D(Quaternion2D&& q) noexcept : angle{ q.angle }, sin{ q.sin }, cos{ q.cos } {}
-	explicit Quaternion2D(F32 angle) : angle{ angle }, sin{ Math::Sin(angle) }, cos{ Math::Cos(angle) } {}
+	explicit Quaternion2D(F32 angle) : angle{ (F32)(DEG2RAD_MULTIPLIER * angle) }, sin{ Math::Sin(this->angle) }, cos{ Math::Cos(this->angle) } {}
 
-	Quaternion2D& operator=(F32 angle) { sin = Math::Sin(angle); cos = Math::Cos(angle); angle = angle; return *this; }
+	Quaternion2D& operator=(F32 angle) { this->angle = (F32)(DEG2RAD_MULTIPLIER * angle); sin = Math::Sin(this->angle); cos = Math::Cos(this->angle); return *this; }
 	Quaternion2D& operator=(const Quaternion2D& q) { sin = q.sin; cos = q.cos; angle = q.angle; return *this; }
 	Quaternion2D& operator=(Quaternion2D&& q) noexcept { sin = q.sin; cos = q.cos; angle = q.angle; return *this; }
 
 	void Set(F32 angle)
 	{
-		sin = Math::Sin(angle);
-		cos = Math::Cos(angle);
-		this->angle = angle;
+		this->angle = (F32)(DEG2RAD_MULTIPLIER * angle);
+		sin = Math::Sin(this->angle);
+		cos = Math::Cos(this->angle);
+	}
+	void Rotate(F32 angle)
+	{
+		this->angle += (F32)(DEG2RAD_MULTIPLIER * angle);
+		sin = Math::Sin(this->angle);
+		cos = Math::Cos(this->angle);
 	}
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&sin)[i]); }

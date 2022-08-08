@@ -50,7 +50,7 @@ bool init()
 	poConfig.restitution = 0.0;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
-	poConfig.type = COLLIDER_TYPE_CIRCLE;
+	poConfig.type = COLLIDER_TYPE_RECTANGLE;
 	poConfig.radius = 0.5;
 	poConfig.xBounds = { -0.5f, 0.5f };
 	poConfig.yBounds = { -0.5f, 0.5f };
@@ -125,6 +125,7 @@ bool init()
 	Transform2D* transform2 = new Transform2D();
 	transform2->Translate({ 1.0f, -1.0f });
 	transform2->SetScale({ 1.0f, 1.0f });
+	transform2->SetRotation(0.0f);
 	transform2->parent = transform;
 	Vector<Mesh*> meshes2(1, mesh2);
 	GameObject2DConfig goConfig2{};
@@ -144,7 +145,7 @@ bool init()
 	UI::GenerateText(config, "Hello, World!");
 
 	scene->DrawGameObject(player);
-	//scene->DrawGameObject(child);
+	scene->DrawGameObject(child);
 	scene->DrawGameObject(gameObject1);
 
 	RendererFrontend::UseScene(scene);
