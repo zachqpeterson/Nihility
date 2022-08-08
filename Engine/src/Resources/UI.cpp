@@ -58,11 +58,17 @@ void UI::GenerateBorderedPanel(UIElementConfig& config)
 
 	for (UIElement* e : elements)
 	{
-		if (e->name == config.name)
+		if (e->name == config.parentName)
 		{
 			parent = e;
 			break;
 		}
+	}
+
+	if (!config.parentName.Blank() && !parent)
+	{
+		Logger::Error("Couldn't find parent element with name '{}', make sure to generate a parent before the child!", config.parentName);
+		return;
 	}
 
 	UIElement* p = parent;
@@ -249,11 +255,17 @@ void UI::GeneratePanel(UIElementConfig& config)
 
 	for (UIElement* e : elements)
 	{
-		if (e->name == config.name)
+		if (e->name == config.parentName)
 		{
 			parent = e;
 			break;
 		}
+	}
+
+	if (!config.parentName.Blank() && !parent)
+	{
+		Logger::Error("Couldn't find parent element with name '{}', make sure to generate a parent before the child!", config.parentName);
+		return;
 	}
 
 	UIElement* p = parent;
