@@ -624,6 +624,10 @@ struct Vector4Int
 	static const Vector4Int INWARD;
 };
 
+NH_INLINE Vector2 Math::Lerp(const Vector2& a, const Vector2& b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector3 Math::Lerp(const Vector3& a, const Vector3& b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector4 Math::Lerp(const Vector4& a, const Vector4& b, F32 t) { return a + (b - a) * t; }
+
 struct NH_API Matrix2
 {
 	Vector2 a, b; //Columns
@@ -1274,6 +1278,46 @@ private:
 	}
 };
 
-NH_INLINE Vector2 Math::Lerp(const Vector2& a, const Vector2& b, F32 t) { return a + (b - a) * t; }
-NH_INLINE Vector3 Math::Lerp(const Vector3& a, const Vector3& b, F32 t) { return a + (b - a) * t; }
-NH_INLINE Vector4 Math::Lerp(const Vector4& a, const Vector4& b, F32 t) { return a + (b - a) * t; }
+enum ColorType
+{
+	COLOR_TYPE_RGB,
+	COLOR_TYPE_HSV
+};
+
+struct Color
+{
+	ColorType currentType;
+
+	union { F32 r, h; };
+	union { F32 g, s; };
+	union { F32 b, v; };
+	F32 a;
+
+	void ToHSV()
+	{
+		switch (currentType)
+		{
+		case COLOR_TYPE_RGB: {
+
+
+
+		} break;
+		case COLOR_TYPE_HSV:
+		default: break;
+		}
+	}
+
+	void ToRGB()
+	{
+		switch (currentType)
+		{
+		case COLOR_TYPE_HSV: {
+
+
+
+		} break;
+		case COLOR_TYPE_RGB:
+		default: break;
+		}
+	}
+};
