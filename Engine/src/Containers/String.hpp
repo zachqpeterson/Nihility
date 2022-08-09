@@ -141,6 +141,17 @@ struct NH_API String
 	friend String operator+(char* other0, String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
 	friend String operator+(const char* other0, String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
 
+	String operator+(I8  i) { String s = *this; s.Append(i); return s; }
+	String operator+(I16 i) { String s = *this; s.Append(i); return s; }
+	String operator+(I32 i) { String s = *this; s.Append(i); return s; }
+	String operator+(I64 i) { String s = *this; s.Append(i); return s; }
+	String operator+(U8  i) { String s = *this; s.Append(i); return s; }
+	String operator+(U16 i) { String s = *this; s.Append(i); return s; }
+	String operator+(U32 i) { String s = *this; s.Append(i); return s; }
+	String operator+(U64 i) { String s = *this; s.Append(i); return s; }
+	String operator+(F32 i) { String s = *this; s.Append(i); return s; }
+	String operator+(F64 i) { String s = *this; s.Append(i); return s; }
+
 	Iterator begin() { return Iterator{ str }; }
 	Iterator end() { return Iterator{ &str[length] }; }
 	Iterator begin() const { return Iterator{ str }; }

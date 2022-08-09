@@ -103,36 +103,41 @@ bool init()
 	goConfig1.physics = Physics::Create2DPhysicsObject(poConfig1);
 	GameObject2D* gameObject1 = Resources::CreateGameObject2D(goConfig1);
 
-	//Child
-	MeshConfig config2;
-	config2.name = "Mesh2";
-	config2.MaterialName = "Tile.mat";
-	config2.instanceTextures.Push(Resources::LoadTexture("12stone_block.bmp"));
+	//PANEL
+	UIElementConfig panelCfg{};
+	panelCfg.area = { 0.01f, 0.02f, 0.41f, 0.28f };
+	panelCfg.color = { 0.0f, 0.0f, 1.0f, 1.0f };
+	panelCfg.enabled = true;
+	panelCfg.name = "Panel1";
+	panelCfg.scene = scene;
+	UI::GenerateBorderedPanel(panelCfg);
 
-	config2.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
-	config2.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
-	config2.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
-	config2.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
+	//SLOTS
+	String slotName("Slot");
+	U32 xAmt = 9;
+	F32 xGap = 0.025f;
+	F32 width = (1.0f - xGap * (xAmt + 1)) / xAmt;
+	U32 yAmt = 3;
+	F32 yGap = 0.07f;
+	F32 height = (1.0f - yGap * (yAmt + 1)) / yAmt;
 
-	config2.indices.Push(0);
-	config2.indices.Push(1);
-	config2.indices.Push(2);
-	config2.indices.Push(2);
-	config2.indices.Push(3);
-	config2.indices.Push(0);
+	for (U32 i = 0; i < xAmt; ++i)
+	{
+		for (U32 j = 0; j < yAmt; ++j)
+		{
+			UIElementConfig slotCfg{};
+			F32 x = xGap + ((width + xGap) * i);
+			F32 y = yGap + ((height + yGap) * j);
+			slotCfg.area = { x, y, x + width, y + height };
+			slotCfg.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+			slotCfg.enabled = true;
+			slotCfg.name = slotName + (i + j * xAmt);
+			slotCfg.parentName = "Panel1";
+			slotCfg.scene = scene;
 
-	Mesh* mesh2 = Resources::CreateMesh(config2);
-	Transform2D* transform2 = new Transform2D();
-	transform2->Translate({ 1.0f, -1.0f });
-	transform2->SetScale({ 1.0f, 1.0f });
-	transform2->SetRotation(0.0f);
-	transform2->parent = transform;
-	Vector<Mesh*> meshes2(1, mesh2);
-	GameObject2DConfig goConfig2{};
-	goConfig2.name = "Mesh2";
-	goConfig2.transform = transform2;
-	goConfig2.model = Resources::CreateModel("Mesh2", meshes2);
-	GameObject2D* child = Resources::CreateGameObject2D(goConfig2);
+			UI::GeneratePanel(slotCfg);
+		}
+	}
 
 	//TEXT
 	UIElementConfig config{};
@@ -141,11 +146,10 @@ bool init()
 	config.enabled = true;
 	config.name = "Text0";
 	config.scene = scene;
-	
+
 	UI::GenerateText(config, "Hello, World!");
 
 	scene->DrawGameObject(player);
-	scene->DrawGameObject(child);
 	scene->DrawGameObject(gameObject1);
 
 	RendererFrontend::UseScene(scene);
@@ -163,6 +167,8 @@ bool update()
 	{
 		player->physics->ApplyForce(Vector2::DOWN);
 	}
+
+	//Move player
 
 	return true;
 }
