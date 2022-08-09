@@ -1,7 +1,7 @@
 x64/
 Debug/
 .vs/
+bin/
 *.spv
 *.log
-bin/
-settings.cfg
+*.cfg

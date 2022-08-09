@@ -75,7 +75,6 @@ void Physics::Update(F64 step)
 
 	List<PhysicsObject2D*> copy = objects;
 
-	BAH tree;
 	tree.Build(Move(copy));
 
 	List<Manifold2D> contacts;
@@ -295,36 +294,38 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 	RectangleCollider* aCollider = (RectangleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
 
-	Vector2 n = b->transform->Position() - a->transform->Position();
-
+	Vector2 normal = b->transform->Position() - a->transform->Position();
+	
 	F32 aExtent = (aCollider->xBounds.y - aCollider->xBounds.x) * 0.5f;
 	F32 bExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
-
-	F32 xOverlap = aExtent + bExtent - Math::Abs(n.x);
-
+	
+	F32 xOverlap = aExtent + bExtent - Math::Abs(normal.x);
+	
 	if (xOverlap > 0.0f)
 	{
 		F32 aExtent = (aCollider->yBounds.y - aCollider->yBounds.x) * 0.5f;
 		F32 bExtent = (bCollider->yBounds.y - bCollider->yBounds.x) * 0.5f;
-
-		F32 yOverlap = aExtent + bExtent - Math::Abs(n.y);
-
+	
+		F32 yOverlap = aExtent + bExtent - Math::Abs(normal.y);
+	
 		if (yOverlap > 0.0f)
 		{
 			if (yOverlap > xOverlap)
 			{
 				m.penetration = xOverlap;
-				m.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
+				m.normal = normal.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
 			}
 			else
 			{
 				m.penetration = yOverlap;
-				m.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
+				m.normal = normal.y < 0.0f ? Vector2::DOWN : Vector2::UP;
 			}
-
+	
 			return true;
 		}
 	}
+	
+	return false;
 
 	return false;
 }
@@ -357,7 +358,7 @@ bool Physics::AABBvsCircle(Manifold2D& m)
 		}
 	}
 
-	Vector2 normal = (closestPoint - bPos);
+	Vector2 normal = (closestPoint - aPos);
 	F32 distance = normal.SqrMagnitude();
 
 	if (distance < bCollider->radius * bCollider->radius)
@@ -379,39 +380,34 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 	PhysicsObject2D* b = m.b;
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
-	Vector2 aPos = a->transform->Position();
-	Vector2 bPos = b->transform->Position();
 
-	Vector2 closestPoint = bPos + (aPos - bPos).Clamped(bCollider->xBounds, bCollider->yBounds);
-	Vector2 checkX = bCollider->xBounds + bPos.x;
-	Vector2 checkY = bCollider->yBounds + bPos.y;
+	Vector2 n = b->transform->Position() - a->transform->Position();
 
-	if ((closestPoint.x < checkX.y && closestPoint.x > checkX.x) &&
-		(closestPoint.y < checkY.y && closestPoint.y > checkY.x))
+	F32 xExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
+
+	F32 xOverlap = aCollider->radius + xExtent - Math::Abs(n.x);
+
+	if (xOverlap > 0.0f)
 	{
-		Vector2 closestBound = closestPoint.Closest(checkX, checkY);
+		F32 yExtent = (bCollider->yBounds.y - bCollider->yBounds.x) * 0.5f;
 
-		if (Math::Abs(closestBound.x - closestPoint.x) < Math::Abs(closestBound.y - closestPoint.y))
+		F32 yOverlap = aCollider->radius + yExtent - Math::Abs(n.y);
+
+		if (yOverlap > 0.0f)
 		{
-			closestPoint.x = closestBound.x;
+			if (yOverlap > xOverlap)
+			{
+				m.penetration = xOverlap;
+				m.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
+			}
+			else
+			{
+				m.penetration = yOverlap;
+				m.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
+			}
+
+			return true;
 		}
-		else
-		{
-			closestPoint.y = closestBound.y;
-		}
-	}
-
-	Vector2 normal = (closestPoint - aPos);
-	F32 distance = normal.SqrMagnitude();
-
-	if (distance < aCollider->radius * aCollider->radius)
-	{
-		distance = Math::Sqrt(distance);
-
-		m.normal = normal.Normalize();
-		m.penetration = aCollider->radius - distance;
-
-		return true;
 	}
 
 	return false;
@@ -440,4 +436,16 @@ void Physics::ResolveCollision(Manifold2D& m)
 	Vector2 correction = m.normal * (F32)(Math::Max(m.penetration - slop, 0.0) / (a->massInv + b->massInv));
 	a->transform->Translate(-correction * (F32)a->massInv);
 	b->transform->Translate(correction * (F32)b->massInv);
+}
+
+bool Physics::OverlapRect(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results)
+{
+	if (tree.root)
+	{
+		tree.Query(boundsX, boundsY, results);
+
+		return results.Size();
+	}
+
+	return false;
 }

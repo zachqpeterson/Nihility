@@ -1,6 +1,7 @@
 #include "BAH.hpp"
 
 #include "Physics.hpp"
+#include <Containers/Stack.hpp>
 
 void BAH::Node::ComputeBoundary()
 {
@@ -49,9 +50,32 @@ void BAH::Node::Query(const Vector2& boundsX, const Vector2& boundsY, List<Physi
 
 void BAH::Build(List<PhysicsObject2D*>&& bodies)
 {
+	Destroy();
+
 	//TODO: Sort bodies by xPos
 
 	root = new Node(Move(bodies));
+}
+
+void BAH::Destroy()
+{
+	if (root)
+	{
+		Stack<Node*> s;
+		s.Push(root);
+
+		while (!s.Empty())
+		{
+			Node* node = s.Pop();
+
+			if (node->left) { s.Push(node->left); }
+			if (node->right) { s.Push(node->right); }
+
+			delete node;
+		}
+
+		root = nullptr;
+	}
 }
 
 void BAH::Query(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results)

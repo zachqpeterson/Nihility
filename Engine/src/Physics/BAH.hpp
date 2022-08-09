@@ -53,6 +53,7 @@ public:
 	Node* root;
 
 	void Build(List<struct PhysicsObject2D*>&& bodies);
+	void Destroy();
 	void Query(const Vector2& boundsX, const Vector2& boundsY, List<struct PhysicsObject2D*>& results);
 	void Query(struct PhysicsObject2D* object, List<struct PhysicsObject2D*>& results);
 };

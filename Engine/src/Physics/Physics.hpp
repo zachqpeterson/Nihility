@@ -191,9 +191,12 @@ private:
 	static bool AABBvsCircle(Manifold2D& m);
 	static bool CirclevsAABB(Manifold2D& m);
 	static void ResolveCollision(Manifold2D& m);
+	static bool OverlapRect(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results);
 
 	static HashMap<U64, PhysicsObject2D*> physicsObjects2D;
 	static HashMap<U64, PhysicsObject3D*> physicsObjects3D;
+
+	static BAH tree;
 
 	static F64 airDensity;
 	static F64 gravity;
