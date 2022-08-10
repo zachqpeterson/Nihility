@@ -86,13 +86,13 @@ struct NH_API Texture
 
 struct NH_API TextureMap
 {
-	Texture* texture{nullptr};
-	TextureFilter filterMinify;
-	TextureFilter filterMagnify;
-	TextureRepeat repeatU;
-	TextureRepeat repeatV;
-	TextureRepeat repeatW;
-	void* internalData;
+	Texture* texture{ nullptr };
+	TextureFilter filterMinify{ TEXTURE_FILTER_MODE_NEAREST };
+	TextureFilter filterMagnify{ TEXTURE_FILTER_MODE_NEAREST };
+	TextureRepeat repeatU{ TEXTURE_REPEAT_REPEAT };
+	TextureRepeat repeatV{ TEXTURE_REPEAT_REPEAT };
+	TextureRepeat repeatW{ TEXTURE_REPEAT_REPEAT };
+	void* internalData{ nullptr };
 };
 
 struct RenderTarget

@@ -27,7 +27,7 @@ void Freelist::Destroy()
     }
 }
 
-Freelist& Freelist::operator=(Freelist&& other)
+Freelist& Freelist::operator=(Freelist&& other) noexcept
 {
     totalSize = other.totalSize;
     freeSpace = other.freeSpace;
@@ -57,18 +57,19 @@ U64 Freelist::AllocateBlock(U64 size)
     Node* node = head;
     U64 offset = head->size;
 
-    while (offset < U64_MAX && node->next && (node->next->offset - node->size + node->offset) < size)
+    while (offset < U64_MAX)
     {
+        if (!node->next || (node->next->offset - (node->size + node->offset)) >= size)
+        {
+            node->next = new Node(size, offset, node->next);
+            freeSpace -= size;
+
+            return offset;
+        }
+
         offset = node->next->size + node->next->offset;
         node = node->next;
-    }
-
-    if (!node->next || (node->next->offset - node->size + node->offset) >= size)
-    {
-        node->next = new Node(size, offset, node->next);
-        freeSpace -= size;
-
-        return offset;
+        continue;
     }
 
     Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);

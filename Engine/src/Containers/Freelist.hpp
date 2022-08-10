@@ -31,7 +31,7 @@ public:
     void operator delete(void* ptr) { Platform::Free(ptr, false); }
 
     Freelist& operator=(const Freelist& other) = delete;
-    Freelist& operator=(Freelist&& other);
+    Freelist& operator=(Freelist&& other) noexcept;
 
     U64 AllocateBlock(U64 size);
     bool FreeBlock(U64 size, U64 offset);

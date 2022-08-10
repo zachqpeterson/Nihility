@@ -71,7 +71,7 @@ void Engine::MainLoop()
 	while (running)
 	{
 		Time::Update();
-		//Logger::Debug(Time::FrameRate());
+		Logger::Debug(Time::FrameRate());
 		//Logger::Debug(Time::DeltaTime());
 		accumulatedTime += Math::Min(Time::DeltaTime(), 0.1);
 
