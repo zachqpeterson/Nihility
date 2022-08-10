@@ -36,7 +36,7 @@ void DynamicAllocator::operator delete(void* ptr)
     Platform::Free(ptr, false);
 }
 
-DynamicAllocator& DynamicAllocator::operator=(DynamicAllocator&& other)
+DynamicAllocator& DynamicAllocator::operator=(DynamicAllocator&& other) noexcept
 {
     memory = other.memory;
     allocations = Move(other.allocations);
@@ -47,12 +47,7 @@ DynamicAllocator& DynamicAllocator::operator=(DynamicAllocator&& other)
 
 void* DynamicAllocator::Allocate(U64 size)
 {
-    if (!size) { return nullptr; } 
-
-    U64 offset = allocations.AllocateBlock(size);
-    if (offset == U64_MAX) { return nullptr; }
-
-    return (U8*)memory + offset;
+    return (U8*)memory + allocations.AllocateBlock(size);
 }
 
 bool DynamicAllocator::Free(void* block, U64 size)

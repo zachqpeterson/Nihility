@@ -56,6 +56,7 @@ struct BAH
 
 public:
 	Node* root;
+	static const U32 maxNodeSize;
 
 	void Build(List<struct PhysicsObject2D*>&& bodies);
 	void Destroy();

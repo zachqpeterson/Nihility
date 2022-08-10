@@ -3,6 +3,8 @@
 #include "Physics.hpp"
 #include <Containers/Stack.hpp>
 
+const U32 BAH::maxNodeSize = 3;
+
 void BAH::Node::ComputeBoundary()
 {
 	if (objects.Size())
@@ -30,10 +32,12 @@ void BAH::Node::ComputeBoundary()
 
 void BAH::Node::Split()
 {
-	if (objects.Size() > 4)
+	if (objects.Size() > maxNodeSize)
 	{
-		right = new Node(objects.Split(objects.Size() >> 1));
-		left = new Node(objects);
+		List<PhysicsObject2D*> split;
+		objects.Split(objects.Size() / 2, split);
+		right = new Node(Move(split));
+		left = new Node(Move(objects));
 	}
 }
 

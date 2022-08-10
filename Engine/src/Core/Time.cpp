@@ -78,6 +78,7 @@ Timer::Timer() : start{ Platform::AbsoluteTime() }, elapsedTime{ 0.0 }, running{
 void Timer::Start()
 {
 	start += !running * (Platform::AbsoluteTime() - start);
+	running = true;
 }
 
 void Timer::Stop()

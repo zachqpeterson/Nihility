@@ -183,7 +183,7 @@ public:
 
 		return *this;
 	}
-	List Split(U64 index)
+	void Split(U64 index, List& list)
 	{
 		ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
 
@@ -194,12 +194,10 @@ public:
 		newTail->next = nullptr;
 		node->prev = nullptr;
 
-		List<T> list(node, tail, size - index);
+		list = Move(List<T>(node, tail, size - index));
 
 		tail = newTail;
 		size = index;
-
-		return list;
 	}
 
 	T& Front() { return head->value; }
@@ -215,7 +213,7 @@ public:
 
 	void Clear()
 	{
-		for (U64 i = 0; i < Size(); ++i)
+		for (U64 i = 0; i < size; ++i)
 		{
 			PopFront();
 		}

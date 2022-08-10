@@ -15,12 +15,13 @@ public:
     void operator delete(void* ptr);
 
     DynamicAllocator& operator=(const DynamicAllocator&) = delete;
-    DynamicAllocator& operator=(DynamicAllocator&& other);
+    DynamicAllocator& operator=(DynamicAllocator&& other) noexcept;
 
     void* Allocate(U64 size);
     bool Free(void* block, U64 size);
 
 private:
     Freelist allocations;
+    Freelist smallAllocations;
     void* memory;
 };

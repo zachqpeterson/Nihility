@@ -47,14 +47,7 @@ U64 Freelist::AllocateBlock(U64 size)
         return U64_MAX;
     }
 
-    if(head == nullptr)
-    {
-        head = new Node(size, 0);
-        freeSpace -= size;
-        return 0;
-    }
-
-    if(size <= head->offset)
+    if(head == nullptr || size <= head->offset)
     {
         head = new Node(size, 0, head);
         freeSpace -= size;
@@ -64,27 +57,18 @@ U64 Freelist::AllocateBlock(U64 size)
     Node* node = head;
     U64 offset = head->size;
 
-    while (offset < U64_MAX)
+    while (offset < U64_MAX && node->next && (node->next->offset - node->size + node->offset) < size)
     {
-        if(!node->next)
-        {
-            node->next = new Node(size, offset);
-            freeSpace -= size;
-
-            return offset;
-        }
-
-        if ((node->next->offset - (node->size + node->offset)) >= size)
-        {
-            node->next = new Node(size, offset, node->next);
-            freeSpace -= size;
-
-            return offset;
-        }
-
         offset = node->next->size + node->next->offset;
         node = node->next;
-        continue;
+    }
+
+    if (!node->next || (node->next->offset - node->size + node->offset) >= size)
+    {
+        node->next = new Node(size, offset, node->next);
+        freeSpace -= size;
+
+        return offset;
     }
 
     Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);
@@ -106,26 +90,26 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
     Node* node = head->next;
     Node* prev = head;
 
-    while(node)
+    while(node && node->offset < offset)
     {
-        if(node->offset == offset)
-        {
-            if(node->size != size)
-            {
-                Logger::Error("Freelist::FreeBlock: Memory block at offset {} is not of size {}!", offset, size);
-                return false;
-            }
-
-            Node* temp = node->next;
-            delete node;
-            prev->next = temp;
-            freeSpace += size;
-
-            return true;
-        }
-
         prev = node;
         node = node->next;
+    }
+
+    if (node && node->offset == offset)
+    {
+        if (node->size != size)
+        {
+            Logger::Error("Freelist::FreeBlock: Memory block at offset {} is not of size {}!", offset, size);
+            return false;
+        }
+
+        Node* temp = node->next;
+        delete node;
+        prev->next = temp;
+        freeSpace += size;
+
+        return true;
     }
 
     Logger::Error("Freelist::FreeBlock: There is no memory block at offset {}", offset);
