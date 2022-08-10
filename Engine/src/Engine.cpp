@@ -71,27 +71,17 @@ void Engine::MainLoop()
 	while (running)
 	{
 		Time::Update();
-		accumulatedTime += Time::DeltaTime();
-		running = Platform::ProcessMessages();
+		//Logger::Debug(Time::FrameRate());
+		//Logger::Debug(Time::DeltaTime());
+		accumulatedTime += Math::Min(Time::DeltaTime(), 0.1);
 
-		if (Input::OnButtonDown(ESCAPE))
-		{
-			running = false;
-			break;
-		}
+		running = Platform::ProcessMessages() && !Input::OnButtonDown(ESCAPE);
 
 		if (!suspended && running)
 		{
-			Math::Min(accumulatedTime, 0.1);
-
-			while (accumulatedTime > Settings::TargetFrametime)
+			while (accumulatedTime >= Settings::TargetFrametime)
 			{
-				lastStep = step;
-				step = Time::UpTime();
-				F64 delta = Math::Min(step - lastStep, 0.1);
-
-				Physics::Update(delta);
-
+				Physics::Update(Settings::TargetFrametime);
 				accumulatedTime -= Settings::TargetFrametime;
 			}
 

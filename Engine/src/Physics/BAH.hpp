@@ -31,6 +31,11 @@ struct BAH
 			Split();
 		}
 
+		void Destroy()
+		{
+			objects.Destroy();
+		}
+
 		void* operator new(U64 size) { return Memory::Allocate(sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
 		void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Node), MEMORY_TAG_DATA_STRUCT); }
 

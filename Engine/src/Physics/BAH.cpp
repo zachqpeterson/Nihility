@@ -71,6 +71,7 @@ void BAH::Destroy()
 			if (node->left) { s.Push(node->left); }
 			if (node->right) { s.Push(node->right); }
 
+			node->Destroy();
 			delete node;
 		}
 
