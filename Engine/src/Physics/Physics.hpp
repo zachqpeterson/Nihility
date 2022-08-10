@@ -107,14 +107,17 @@ struct PhysicsObject2D
 {
 	void ApplyForce(const Vector2& f) { force += f; }
 	void ApplyTorque(F64 t) { torque += t; }
-	void SetVelocity(const Vector2& v) { velocity = v; }
-	void SetAngularVelocity(F64 v) { angularVelocity = v; }
+	void AddVelocity(const Vector2& v) { velocity += v; }
+	void AddAngularVelocity(F64 v) { angularVelocity += v; }
 	void SetGravityScale(F64 s) { gravityScale = s; }
 
 private:
 	U64 id;
 	Collider2D* collider;
 	Transform2D* transform;
+
+	Vector2 prevPosition;
+	F64 prevRotation;
 
 	//secondary
 	Vector2 velocity;
@@ -123,6 +126,8 @@ private:
 	// secondary
 	Vector2 force;
 	F64 torque;
+
+	bool grounded;
 
 	// constants
 	F64 mass;
@@ -143,6 +148,8 @@ public:
 	// Read-only access
 	const Vector2& Velocity = velocity;
 	const F64& AngularVelocity = angularVelocity;
+
+	const bool& Grounded = grounded;
 
 	const F64& Mass = mass;
 	const F64& Inertia = inertia;
@@ -177,7 +184,8 @@ public:
 
 	static PhysicsObject2D* Create2DPhysicsObject(PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
-
+	static bool OverlapRect(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results);
+	static bool Raycast2D(const Vector2& origin, const Vector2& direction, F32 length, List<PhysicsObject2D*>& results);
 
 private:
 	static bool Initialize();
@@ -191,7 +199,6 @@ private:
 	static bool AABBvsCircle(Manifold2D& m);
 	static bool CirclevsAABB(Manifold2D& m);
 	static void ResolveCollision(Manifold2D& m);
-	static bool OverlapRect(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results);
 
 	static HashMap<U64, PhysicsObject2D*> physicsObjects2D;
 	static HashMap<U64, PhysicsObject3D*> physicsObjects3D;

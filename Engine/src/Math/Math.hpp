@@ -128,6 +128,9 @@ public:
 	static U32 Closest(U32 n, U32 a, U32 b) { return n < (b + a) >> 1 ? a : b; }
 	static U64 Closest(U64 n, U64 a, U64 b) { return n < (b + a) >> 1 ? a : b; }
 
+	template <typename T>
+	static void Swap(T& a, T& b) { T t = a; a = b; b = t; }
+
 	static I32 Floor(F32 n) { return n >= 0 ? (I32)n : (I32)n - 1; }
 	static I64 Floor(F64 n) { return n >= 0 ? (I64)n : (I64)n - 1; }
 	static F32 FloorF(F32 n) { return (F32)(n >= 0 ? (I32)n : (I32)n - 1); }
@@ -225,6 +228,8 @@ struct NH_API Vector2
 
 	Vector2 operator+ (const Vector2& v) const { return Vector2{ x + v.x, y + v.y }; }
 	Vector2 operator- (const Vector2& v) const { return Vector2{ x - v.x, y - v.y }; }
+	Vector2 operator* (const Vector2& v) const { return Vector2{ x * v.x, y * v.y }; }
+	Vector2 operator/ (const Vector2& v) const { return Vector2{ x / v.x, y / v.y }; }
 	Vector2 operator* (F32 f) const { return Vector2{ x * f, y * f }; }
 	Vector2 operator/ (F32 f) const { return Vector2{ x / f, y / f }; }
 	Vector2 operator+ (F32 f) const { return Vector2{ x + f, y + f }; }

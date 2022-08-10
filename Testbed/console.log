@@ -153,9 +153,9 @@
 [INFO]:  Creating model 'Text0'...
 [INFO]:  Creating GameObject 'Text0'...
 [DEBUG]: System memory use (tagged):
-TOTAL      : 486.24316KB
+TOTAL      : 486.33692KB
 UNKNOWN    : 0.00000B
-DATA_STRUCT: 235.42188KB
+DATA_STRUCT: 235.51562KB
 STRING     : 3.12011KB
 RENDERER   : 2.71875KB
 RESOURCE   : 244.98242KB

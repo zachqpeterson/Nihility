@@ -41,7 +41,7 @@ bool init()
 
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 5.4f, -10.0f });
+	transform->Translate({ 0.0f, -10.0f });
 	transform->SetScale({ 1.0f, 1.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
@@ -159,16 +159,15 @@ bool init()
 
 bool update()
 {
-	Vector3 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), (F32)(Input::ButtonDown(S) - Input::ButtonDown(W)), (F32)(Input::ButtonDown(E) - Input::ButtonDown(Q)) };
-	move *= Time::DeltaTime() * 10.0;
-	scene->GetCamera()->Translate(move);
+	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
+	move *= Time::DeltaTime() * 0.5f;
+	
+	player->physics->AddVelocity(move);
 
 	if (Input::OnButtonDown(SPACE))
 	{
 		player->physics->ApplyForce(Vector2::DOWN);
 	}
-
-	//Move player
 
 	return true;
 }

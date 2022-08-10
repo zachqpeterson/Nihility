@@ -6,6 +6,8 @@
 HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
 
+BAH Physics::tree;
+
 F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
 
@@ -64,6 +66,7 @@ void Physics::Update(F64 step)
 				po.velocity += po.force * (F32)po.massInv;
 				po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airDensity * step);
 				
+				po.prevPosition = po.transform->Position();
 				po.transform->Translate(po.velocity);
 
 				po.force = Vector2::ZERO;
@@ -135,6 +138,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	po->collider->type = config.type;
 	po->collider->trigger = config.trigger;
 	po->transform = config.transform;
+	po->prevPosition = po->transform->Position();
+	po->prevRotation = po->transform->Rotation().angle;
 
 	po->restitution = config.restitution;
 	po->gravityScale = config.gravityScale;
@@ -294,40 +299,29 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 	RectangleCollider* aCollider = (RectangleCollider*)a->collider;
 	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
 
-	Vector2 normal = b->transform->Position() - a->transform->Position();
-	
-	F32 aExtent = (aCollider->xBounds.y - aCollider->xBounds.x) * 0.5f;
-	F32 bExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
-	
-	F32 xOverlap = aExtent + bExtent - Math::Abs(normal.x);
-	
-	if (xOverlap > 0.0f)
-	{
-		F32 aExtent = (aCollider->yBounds.y - aCollider->yBounds.x) * 0.5f;
-		F32 bExtent = (bCollider->yBounds.y - bCollider->yBounds.x) * 0.5f;
-	
-		F32 yOverlap = aExtent + bExtent - Math::Abs(normal.y);
-	
-		if (yOverlap > 0.0f)
-		{
-			if (yOverlap > xOverlap)
-			{
-				m.penetration = xOverlap;
-				m.normal = normal.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
-			}
-			else
-			{
-				m.penetration = yOverlap;
-				m.normal = normal.y < 0.0f ? Vector2::DOWN : Vector2::UP;
-			}
-	
-			return true;
-		}
-	}
-	
-	return false;
+	Vector2 direction = a->velocity + b->velocity;
+	Vector2 aSize = Vector2(aCollider->xBounds.y - aCollider->xBounds.x, aCollider->yBounds.y - aCollider->yBounds.x);
+	Vector2 bExpandedNear = b->prevPosition + Vector2(bCollider->xBounds.x, bCollider->yBounds.x) - aSize / 2.0f;
+	Vector2 bExpandedFar = Vector2(bCollider->xBounds.y - bCollider->xBounds.x, bCollider->yBounds.y - bCollider->yBounds.x) + aSize;
 
-	return false;
+	Vector2 tNear = (bExpandedNear - a->prevPosition) / direction;
+	Vector2 tFar = (bExpandedNear + bExpandedFar - a->prevPosition) / direction;
+
+	if (tNear.x > tFar.x) { Math::Swap(tNear.x, tFar.x); }
+	if (tNear.y > tFar.y) { Math::Swap(tNear.y, tFar.y); }
+
+	F32 tHitNear = Math::Max(tNear.x, tNear.y);
+
+	if (tNear.x > tFar.y || tNear.y > tFar.x || tHitNear < (-0.01f / a->velocity.SqrMagnitude()) || tHitNear > 1.0f || tFar.x < 0 || tFar.y < 0) { return false; }
+
+	bool xColl = tNear.x > tNear.y;
+	bool left = direction.x < 0;
+	bool top = direction.y < 0;
+	m.normal = ((Vector2::LEFT * left + Vector2::RIGHT * !left) * xColl) + ((Vector2::DOWN * top + Vector2::UP * !top) * !xColl);
+
+	m.penetration = m.normal.Dot(direction) * (1.0f - tHitNear);
+
+	return true;
 }
 
 bool Physics::AABBvsCircle(Manifold2D& m)
@@ -385,13 +379,13 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 
 	F32 xExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
 
-	F32 xOverlap = aCollider->radius + xExtent - Math::Abs(n.x);
+	F32 xOverlap = (F32)aCollider->radius + xExtent - Math::Abs(n.x);
 
 	if (xOverlap > 0.0f)
 	{
 		F32 yExtent = (bCollider->yBounds.y - bCollider->yBounds.x) * 0.5f;
 
-		F32 yOverlap = aCollider->radius + yExtent - Math::Abs(n.y);
+		F32 yOverlap = (F32)aCollider->radius + yExtent - Math::Abs(n.y);
 
 		if (yOverlap > 0.0f)
 		{
