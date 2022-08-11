@@ -3,12 +3,15 @@
 #include "Platform/Platform.hpp"
 #include "Core/Logger.hpp"
 
-DynamicAllocator::DynamicAllocator(U64 size) : memory{ nullptr }
+DynamicAllocator::DynamicAllocator(U64 size) : memory{ nullptr }, smallOffset{ 0 }
 {
 	if (size)
 	{
 		memory = Platform::Allocate(size, false);
-		allocations.Resize(size);
+		U64 largeSize = size * 0.9f;
+		smallOffset = largeSize;
+		allocations.Resize(largeSize);
+		smallAllocations.Resize(size - largeSize);
 	}
 }
 
@@ -22,6 +25,8 @@ void DynamicAllocator::Destroy()
 	if (memory)
 	{
 		allocations.Destroy();
+		smallAllocations.Destroy();
+		smallOffset = 0;
 		Platform::Free(memory, false);
 	}
 }
@@ -40,6 +45,8 @@ DynamicAllocator& DynamicAllocator::operator=(DynamicAllocator&& other) noexcept
 {
 	memory = other.memory;
 	allocations = Move(other.allocations);
+	smallAllocations = Move(other.smallAllocations);
+	smallOffset = other.smallOffset;
 	other.memory = nullptr;
 
 	return *this;
@@ -47,13 +54,21 @@ DynamicAllocator& DynamicAllocator::operator=(DynamicAllocator&& other) noexcept
 
 bool DynamicAllocator::Allocate(void** ptr, U64 size)
 {
+	if (size <= 32)
+	{
+		*ptr = (U8*)memory + smallAllocations.AllocateBlock(size) + smallOffset;
+		return size > 0;
+	}
+
 	*ptr = (U8*)memory + allocations.AllocateBlock(size);
-	return size > 0;
+	return true;
 }
 
 bool DynamicAllocator::Free(void* block, U64 size)
 {
 	U64 offset = (U8*)block - (U8*)memory;
 	block = nullptr;
+
+	if (size <= 32) { return smallAllocations.FreeBlock(size, offset - smallOffset); }
 	return allocations.FreeBlock(size, offset);
 }

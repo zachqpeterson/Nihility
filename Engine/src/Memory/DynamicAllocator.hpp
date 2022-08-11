@@ -21,6 +21,7 @@ public:
 	bool Free(void* block, U64 size);
 
 private:
+	U64 smallOffset;
 	Freelist allocations;
 	Freelist smallAllocations;
 	void* memory;

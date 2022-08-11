@@ -8,9 +8,9 @@
 #include "Engine.hpp" //TODO: temp
 
 U64 Memory::totalAllocSize;
-U64 Memory::allocCount;
-U64 Memory::deallocCount;
 U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
+U64 Memory::taggedAllocCounts[MEMORY_TAG_MAX_TAGS];
+U64 Memory::taggedDeallocCounts[MEMORY_TAG_MAX_TAGS];
 
 DynamicAllocator* Memory::allocator;
 
@@ -19,8 +19,6 @@ bool Memory::Initialize(U64 memoryRequirement)
 	allocator = new DynamicAllocator(memoryRequirement);
 
 	totalAllocSize = memoryRequirement;
-	allocCount = 0;
-	deallocCount = 0;
 
 	return true;
 }
@@ -34,7 +32,8 @@ void* Memory::Allocate(U64 size, MemoryTag tag)
 {
 	taggedAllocations[tag] += size;
 	taggedAllocations[MEMORY_TAG_TOTAL] += size;
-	++allocCount;
+	++taggedAllocCounts[tag];
+	++taggedAllocCounts[MEMORY_TAG_TOTAL];
 
 	//TODO: Memory alignment
 	void* block;
@@ -45,8 +44,9 @@ void* Memory::Allocate(U64 size, MemoryTag tag)
 void Memory::Free(void* block, U64 size, MemoryTag tag)
 {
 	taggedAllocations[tag] -= size;
-		taggedAllocations[MEMORY_TAG_TOTAL] -= size;
-		++deallocCount;
+	taggedAllocations[MEMORY_TAG_TOTAL] -= size;
+	++taggedDeallocCounts[tag];
+	++taggedDeallocCounts[MEMORY_TAG_TOTAL];
 
 	//TODO: Memory alignment
 	allocator->Free(block, size);
@@ -163,10 +163,11 @@ void Memory::GetMemoryStats()
 	const U64 kib = 1024;
 
 	U64 allocAmounts[MEMORY_TAG_MAX_TAGS];
+	U64 taggedAllocAmounts[MEMORY_TAG_MAX_TAGS];
+	U64 taggedDeallocAmounts[MEMORY_TAG_MAX_TAGS];
 	Copy(allocAmounts, taggedAllocations, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
-
-	U64 currAlloc = allocCount;
-	U64 currDealloc = deallocCount;
+	Copy(taggedAllocAmounts, taggedAllocCounts, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
+	Copy(taggedDeallocAmounts, taggedDeallocCounts, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
 
 	String buffer("System memory use (tagged):\n");
 	for (U32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i)
@@ -194,16 +195,10 @@ void Memory::GetMemoryStats()
 			amount = (F32)allocAmounts[i];
 		}
 
-		String add("{}: {}{}\n");
-		add.Format(memoryTagNames[i], amount, unit);
+		String add("{}: {}{} | allocs: {} | deallocs: {}\n");
+		add.Format(memoryTagNames[i], amount, unit, taggedAllocAmounts[i], taggedDeallocAmounts[i]);
 		buffer.Append(add);
 	}
-
-	buffer.Append("allocCount: ");
-	buffer.Append(String(currAlloc));
-	buffer.Append("\n");
-	buffer.Append("deallocCount: ");
-	buffer.Append(String(currDealloc));
 
 	Logger::Debug(buffer);
 #endif

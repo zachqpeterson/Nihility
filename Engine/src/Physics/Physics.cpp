@@ -177,7 +177,8 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifold2D>& contacts)
 {
 	List<PhysicsObject2D*> results;
-	Vector<Vector<bool>> freeContacts(objects.Size(), Move(Vector<bool>(objects.Size(), true)));
+	U64 size = objects.Size() * objects.Size();
+	bool* freeContacts = (bool*)Memory::Allocate(size, MEMORY_TAG_DATA_STRUCT);
 
 	for (PhysicsObject2D* po0 : objects)
 	{
@@ -188,18 +189,20 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 		{
 			U64 id0 = po0->id;
 			U64 id1 = po1->id;
-			bool& free0 = freeContacts[id0][id1];
-			bool& free1 = freeContacts[id1][id0];
+			bool& free0 = freeContacts[id0 + id1 * objects.Size()];
+			bool& free1 = freeContacts[id1 + id0 * objects.Size()];
 
-			if (po0->layerMask & po1->layerMask && id0 != id1 && free0 && free1 && (po0->mass > 0.0f || po1->mass > 0.0f))
+			if (po0->layerMask & po1->layerMask && id0 != id1 && !free0 && !free1 && (po0->mass > 0.0f || po1->mass > 0.0f))
 			{
-				free0 = false;
-				free1 = false;
+				free0 = true;
+				free1 = true;
 				Manifold2D manifold{ po0, po1 };
 				contacts.PushBack(manifold);
 			}
 		}
 	}
+
+	Memory::Free(freeContacts, size, MEMORY_TAG_DATA_STRUCT);
 }
 
 void Physics::NarrowPhase(List<Manifold2D>& contacts)
