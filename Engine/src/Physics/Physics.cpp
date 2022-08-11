@@ -312,6 +312,7 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 
 	F32 tHitNear = Math::Max(tNear.x, tNear.y);
 
+	//TODO: Collide if it's inside
 	if (tNear.x > tFar.y || tNear.y > tFar.x || tHitNear < (-0.01f / a->velocity.SqrMagnitude()) || tHitNear > 1.0f || tFar.x < 0 || tFar.y < 0) { return false; }
 
 	bool xColl = tNear.x > tNear.y;
