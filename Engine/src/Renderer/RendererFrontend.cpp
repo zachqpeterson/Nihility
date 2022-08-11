@@ -64,8 +64,8 @@ bool RendererFrontend::DrawFrame()
 	{
 		if (++framesSinceResize >= 30)
 		{
-			activeScene->OnResize();
 			renderer->OnResize();
+			activeScene->OnResize();
 
 			framesSinceResize = 0;
 			resizing = false;

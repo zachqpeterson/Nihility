@@ -8,7 +8,7 @@ DynamicAllocator::DynamicAllocator(U64 size) : memory{ nullptr }, smallOffset{ 0
 	if (size)
 	{
 		memory = Platform::Allocate(size, false);
-		U64 largeSize = size * 0.9f;
+		U64 largeSize = size * 0.9;
 		smallOffset = largeSize;
 		allocations.Resize(largeSize);
 		smallAllocations.Resize(size - largeSize);

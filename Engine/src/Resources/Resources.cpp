@@ -188,6 +188,32 @@ void Resources::Shutdown()
 
 	fonts.Destroy();
 
+	for (List<HashMap<U64, GameObject2D*>::Node>& l : gameObjects2D)
+	{
+		for (HashMap<U64, GameObject2D*>::Node& n : l)
+		{
+			n.value->name.Destroy();
+			Memory::Free(n.value, sizeof(GameObject2D), MEMORY_TAG_RESOURCE);
+		}
+
+		l.Clear();
+	}
+
+	gameObjects2D.Destroy();
+
+	for (List<HashMap<U64, GameObject3D*>::Node>& l : gameObjects3D)
+	{
+		for (HashMap<U64, GameObject3D*>::Node& n : l)
+		{
+			n.value->name.Destroy();
+			Memory::Free(n.value, sizeof(GameObject3D), MEMORY_TAG_RESOURCE);
+		}
+
+		l.Clear();
+	}
+
+	gameObjects3D.Destroy();
+
 	for (List<HashMap<String, Texture*>::Node>& l : textures)
 	{
 		for (HashMap<String, Texture*>::Node& n : l)

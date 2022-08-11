@@ -213,7 +213,8 @@ public:
 
 	void Clear()
 	{
-		for (U64 i = 0; i < size; ++i)
+		U64 s = size;
+		for (U64 i = 0; i < s; ++i)
 		{
 			PopFront();
 		}

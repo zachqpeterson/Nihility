@@ -158,10 +158,6 @@ void Memory::GetMemoryStats()
 		"RENDERER   ",
 		"RESOURCE   " };
 
-	const U64 gib = 1024 * 1024 * 1024;
-	const U64 mib = 1024 * 1024;
-	const U64 kib = 1024;
-
 	U64 allocAmounts[MEMORY_TAG_MAX_TAGS];
 	U64 taggedAllocAmounts[MEMORY_TAG_MAX_TAGS];
 	U64 taggedDeallocAmounts[MEMORY_TAG_MAX_TAGS];
@@ -173,21 +169,21 @@ void Memory::GetMemoryStats()
 	for (U32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i)
 	{
 		String unit;
-		F32 amount = 1.0f;
-		if (allocAmounts[i] >= gib)
+		F64 amount = 1.0;
+		if (allocAmounts[i] >= Gigabyte)
 		{
 			unit = "GB";
-			amount = allocAmounts[i] / (F32)gib;
+			amount = allocAmounts[i] / (F64)Gigabyte;
 		}
-		else if (allocAmounts[i] >= mib)
+		else if (allocAmounts[i] >= Megabyte)
 		{
 			unit = "MB";
-			amount = allocAmounts[i] / (F32)mib;
+			amount = allocAmounts[i] / (F64)Megabyte;
 		}
-		else if (allocAmounts[i] >= kib)
+		else if (allocAmounts[i] >= Kilobyte)
 		{
 			unit = "KB";
-			amount = allocAmounts[i] / (F32)kib;
+			amount = allocAmounts[i] / (F64)Kilobyte;
 		}
 		else
 		{

@@ -50,7 +50,7 @@ public:
     bool SetUniform(Shader* shader, struct Uniform& uniform, const void* value) final;
     bool SetPushConstant(Shader* shader, struct PushConstant& pushConstant, const void* value) final;
 
-    bool OnResize() final;
+    void OnResize() final;
 
     void* operator new(U64 size);
     void operator delete(void* p);

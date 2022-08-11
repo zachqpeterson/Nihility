@@ -41,7 +41,7 @@ bool init()
 
 	Mesh* mesh0 = Resources::CreateMesh(config0);
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 0.0f, -10.0f });
+	transform->Translate({ 0.0f, 0.0f });
 	transform->SetScale({ 1.0f, 1.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;

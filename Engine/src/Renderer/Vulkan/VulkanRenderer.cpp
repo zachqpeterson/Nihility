@@ -507,17 +507,18 @@ bool VulkanRenderer::BeginFrame()
 	commandBuffer->Begin(false, false, false);
 
 	VkViewport viewport;
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = (F32)rendererState->framebufferWidth;
-	viewport.height = (F32)rendererState->framebufferHeight;
+	viewport.x = (F32)rendererState->renderArea.x;
+	viewport.y = (F32)rendererState->renderArea.y;
+	viewport.width = (F32)rendererState->renderArea.z;
+	viewport.height = (F32)rendererState->renderArea.w;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor;
-	scissor.offset.x = scissor.offset.y = 0;
-	scissor.extent.width = rendererState->framebufferWidth;
-	scissor.extent.height = rendererState->framebufferHeight;
+	scissor.offset.x = rendererState->renderArea.x;
+	scissor.offset.y = rendererState->renderArea.y;
+	scissor.extent.width = rendererState->renderArea.z;
+	scissor.extent.height = rendererState->renderArea.w;
 
 	vkCmdSetViewport(commandBuffer->handle, 0, 1, &viewport);
 	vkCmdSetScissor(commandBuffer->handle, 0, 1, &scissor);
@@ -713,7 +714,7 @@ void VulkanRenderer::DrawMesh(const MeshRenderData& meshdata)
 	}
 }
 
-bool VulkanRenderer::OnResize()
+void VulkanRenderer::OnResize()
 {
 	rendererState->framebufferWidth = Settings::WindowWidth;
 	rendererState->framebufferHeight = Settings::WindowHeight;
@@ -740,9 +741,6 @@ bool VulkanRenderer::OnResize()
 		rendererState->renderArea.z = Settings::WindowWidth;
 		rendererState->renderArea.w = (I32)(Settings::WindowHeight - (offset * 2.0f));
 	}
-
-
-	return true;
 }
 
 void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)

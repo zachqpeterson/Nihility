@@ -2,9 +2,13 @@
 
 #include "Defines.hpp"
 
-#define Gigabytes(amount) amount * 1024ull * 1024ull * 1024ull
-#define Megabytes(amount) amount * 1024ull * 1024ull
-#define Kilobytes(amount) amount * 1024ull
+#define Gigabyte 1073741824ull
+#define Megabyte 1048576ull
+#define Kilobyte 1024ull
+
+#define Gigabytes(amount) amount * Gigabyte
+#define Megabytes(amount) amount * Megabyte
+#define Kilobytes(amount) amount * Kilobyte
 
 enum MemoryTag {
     MEMORY_TAG_TOTAL,

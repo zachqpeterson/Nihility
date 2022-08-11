@@ -31,7 +31,7 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	ASSERT(Memory::Initialize(Gigabytes(1)));
 
 	ASSERT(Logger::Initialize());
-
+	
 	Resources::LoadSettings();
 
 	ASSERT_MSG(Platform::Initialize(applicationName), "Platform layer failed to initialize!");
@@ -122,8 +122,6 @@ void Engine::Shutdown()
 	Resources::WriteSettings();
 
 	Events::Shutdown();
-
-	Memory::GetMemoryStats();
 
 	Memory::Shutdown();
 }

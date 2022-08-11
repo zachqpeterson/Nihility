@@ -50,7 +50,7 @@ public:
     virtual bool SetUniform(Shader* shader, struct Uniform& uniform, const void* value) = 0;
     virtual bool SetPushConstant(Shader* shader, struct PushConstant& pushConstant, const void* value) = 0;
 
-    virtual bool OnResize() = 0;
+    virtual void OnResize() = 0;
 
 public:
     U64 frameNumber{ 0 };
