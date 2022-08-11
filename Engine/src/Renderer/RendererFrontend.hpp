@@ -49,7 +49,8 @@ public:
 	static bool SetPushConstant(Shader* shader, struct PushConstant& pushConstant, const void* value);
 
 	static bool OnResize(void* data);
-	static struct Vector2Int WindowSize();
+	static NH_API struct Vector2Int WindowSize();
+	static NH_API struct Vector2 ScreenToWorld(const struct Vector2Int& v);
 
 	static NH_API void UseScene(class Scene* scene) { activeScene = scene; }
 

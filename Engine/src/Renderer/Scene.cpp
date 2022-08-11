@@ -132,7 +132,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 void Scene::DrawGameObject(GameObject2D* gameObject)
 {
-	if (gameObject->model)
+	if (gameObject && gameObject->model)
 	{
 		gameObjects.PushBack(gameObject);
 	}

@@ -14,35 +14,16 @@
 #include <Physics/Physics.hpp>
 
 Scene* scene;
-GameObject2D* player;
+//GameObject2D* player;
+Model* model;
 
-bool init()
+void spawnObj(const Vector2& position)
 {
-	scene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
-	scene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
+	static U32 id = 0;
 
-	//Player
-	MeshConfig config0;
-	config0.name = "Mesh0";
-	config0.MaterialName = "Tile.mat";
-	config0.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-
-	config0.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
-	config0.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
-	config0.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
-	config0.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
-
-	config0.indices.Push(0);
-	config0.indices.Push(1);
-	config0.indices.Push(2);
-	config0.indices.Push(2);
-	config0.indices.Push(3);
-	config0.indices.Push(0);
-
-	Mesh* mesh0 = Resources::CreateMesh(config0);
+	String name("go{}", id);
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 0.0f, 0.0f });
-	transform->SetScale({ 1.0f, 1.0f });
+	transform->SetPosition(position);
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
 	poConfig.gravityScale = 1.0;
@@ -54,13 +35,44 @@ bool init()
 	poConfig.radius = 0.5;
 	poConfig.xBounds = { -0.5f, 0.5f };
 	poConfig.yBounds = { -0.5f, 0.5f };
-	Vector<Mesh*> meshes(1, mesh0);
+	
 	GameObject2DConfig goConfig{};
-	goConfig.name = "Mesh0";
+	goConfig.name = name;
 	goConfig.transform = transform;
-	goConfig.model = Resources::CreateModel("Mesh0", meshes);
+	goConfig.model = model;
 	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-	player = Resources::CreateGameObject2D(goConfig);
+	scene->DrawGameObject(Resources::CreateGameObject2D(goConfig));
+
+	++id;
+}
+
+bool init()
+{
+	scene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
+	scene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
+
+	{
+		MeshConfig config;
+		config.name = "Mesh";
+		config.MaterialName = "Tile.mat";
+		config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
+
+		config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
+		config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
+		config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
+		config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
+
+		config.indices.Push(0);
+		config.indices.Push(1);
+		config.indices.Push(2);
+		config.indices.Push(2);
+		config.indices.Push(3);
+		config.indices.Push(0);
+
+		Mesh* mesh = Resources::CreateMesh(config);
+		Vector<Mesh*> meshes(1, mesh);
+		model = Resources::CreateModel("Model", meshes);
+	}
 
 	//FLOOR
 	{
@@ -236,8 +248,6 @@ bool init()
 
 	UI::GenerateText(config, "Hello, World!");
 
-	scene->DrawGameObject(player);
-
 	RendererFrontend::UseScene(scene);
 
 	return true;
@@ -246,13 +256,11 @@ bool init()
 bool update()
 {
 	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
-	move *= Time::DeltaTime() * 0.5f;
+	move *= (F32)(Time::DeltaTime() * 0.5);
 	
-	player->physics->AddVelocity(move);
-
-	if (Input::OnButtonDown(SPACE))
+	if (Input::OnButtonDown(LBUTTON))
 	{
-		player->physics->ApplyForce(Vector2::DOWN);
+		spawnObj(RendererFrontend::ScreenToWorld(Input::MousePos()));
 	}
 
 	return true;

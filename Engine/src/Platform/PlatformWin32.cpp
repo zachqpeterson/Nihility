@@ -289,8 +289,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 	case WM_ERASEBKGND: return 1;
 	case WM_CLOSE: Events::Notify("CLOSE", nullptr); platformState.running = false; return 0;
 	case WM_DESTROY: PostQuitMessage(0); return 0;
-	case WM_SIZE:
-	{
+	case WM_SIZE: {
 		if (!Settings::Fullscreen)
 		{
 			Settings::WINDOW_WIDTH_SMALL = LOWORD(lParam);
@@ -300,8 +299,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		Settings::WINDOW_HEIGHT = HIWORD(lParam);
 		Events::Notify("Resize", NULL);
 	} return 0;
-	case WM_MOVE:
-	{
+	case WM_MOVE: {
 		if (!Settings::Fullscreen)
 		{
 			Settings::WINDOW_POSITION_X = LOWORD(lParam);
@@ -311,8 +309,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
 	case WM_KEYUP:
-	case WM_SYSKEYUP:
-	{
+	case WM_SYSKEYUP: {
 		bool pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
 		U8 code = (U8)wParam;
 
@@ -320,21 +317,28 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 
 		Input::SetButtonState(code, pressed);
 	} return 0;
-	case WM_LBUTTONDOWN:
-	case WM_MBUTTONDOWN:
-	case WM_RBUTTONDOWN:
-	case WM_LBUTTONUP:
-	case WM_MBUTTONUP:
-	case WM_RBUTTONUP:
-	{
-		Input::SetButtonState((U8)wParam, (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN));
+	case WM_LBUTTONDOWN: {
+		Input::SetButtonState(1, true);
 	} break;
-	case WM_MOUSEWHEEL:
-	{
+	case WM_MBUTTONDOWN: {
+		Input::SetButtonState(4, true);
+	} break;
+	case WM_RBUTTONDOWN: {
+		Input::SetButtonState(2, true);
+	} break;
+	case WM_LBUTTONUP: {
+		Input::SetButtonState(1, false);
+	} break;
+	case WM_MBUTTONUP: {
+		Input::SetButtonState(4, false);
+	} break;
+	case WM_RBUTTONUP: {
+		Input::SetButtonState(2, false);
+	} break;
+	case WM_MOUSEWHEEL: {
 		Input::SetMouseWheel(I16(GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER));
 	} break;
-	case WM_MOUSEMOVE:
-	{
+	case WM_MOUSEMOVE: {
 		Input::SetMousePos(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 	} break;
 	}

@@ -256,3 +256,10 @@ Vector2Int RendererFrontend::WindowSize()
 {
 	return { (I32)framebufferWidth, (I32)framebufferHeight };
 }
+
+Vector2 RendererFrontend::ScreenToWorld(const Vector2Int& v)
+{
+	Vector3 camPos = activeScene->GetCamera()->Position();
+
+	return { camPos.x + (F32)(v.x - (I32)framebufferWidth / 2) * 0.02857142857f, camPos.y + (F32)(v.y - (I32)framebufferHeight / 2) * 0.02857142857f };
+}
