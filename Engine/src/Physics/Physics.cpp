@@ -3,6 +3,8 @@
 #include "BAH.hpp"
 #include "Containers/Vector.hpp"
 
+#include "Core/Time.hpp"
+
 HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
 HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
 
@@ -180,9 +182,12 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 	U64 size = objects.Size() * objects.Size();
 	bool* freeContacts = (bool*)Memory::Allocate(size, MEMORY_TAG_DATA_STRUCT);
 
+	//Timer t;
+	//t.Start();
 	for (PhysicsObject2D* po0 : objects)
 	{
 		results.Clear();
+
 		tree.Query(po0, results);
 
 		for (PhysicsObject2D* po1 : results)
@@ -191,7 +196,7 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 			U64 id1 = po1->id;
 			bool& free0 = freeContacts[id0 + id1 * objects.Size()];
 			bool& free1 = freeContacts[id1 + id0 * objects.Size()];
-
+		
 			if (po0->layerMask & po1->layerMask && id0 != id1 && !free0 && !free1 && (po0->mass > 0.0f || po1->mass > 0.0f))
 			{
 				free0 = true;
@@ -201,6 +206,7 @@ void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifo
 			}
 		}
 	}
+	//Logger::Debug(t.CurrentTime());
 
 	Memory::Free(freeContacts, size, MEMORY_TAG_DATA_STRUCT);
 }

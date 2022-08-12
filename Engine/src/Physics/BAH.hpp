@@ -45,7 +45,7 @@ struct BAH
 
 		bool Contains(const Vector2& boundsX, const Vector2& boundsY)
 		{
-			return (boundsX.x <= xBounds.y || boundsX.y >= xBounds.x) && (boundsY.x <= yBounds.y || boundsY.y >= yBounds.x);
+			return boundsX.x <= xBounds.y && boundsX.y >= xBounds.x && boundsY.x <= yBounds.y && boundsY.y >= yBounds.x;
 		}
 
 		bool Contains(const Vector2& point)
