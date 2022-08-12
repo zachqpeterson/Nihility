@@ -320,9 +320,10 @@ bool Physics::AABBvsAABB(Manifold2D& m)
 	if (tNear.y > tFar.y) { Math::Swap(tNear.y, tFar.y); }
 
 	F32 tHitNear = Math::Max(tNear.x, tNear.y);
+	F32 tHitFar = Math::Max(tFar.x, tFar.y);
 
 	//TODO: Collide if it's inside
-	if (tNear.x > tFar.y || tNear.y > tFar.x || tHitNear < (-0.01f / a->velocity.SqrMagnitude()) || tHitNear > 1.0f || tFar.x < 0 || tFar.y < 0) { return false; }
+	if ((tNear.x > tFar.y || tNear.y > tFar.x || tHitNear > 1.0f || tFar.x < 0 || tFar.y < 0)) { return false; }
 
 	bool xColl = tNear.x > tNear.y;
 	bool left = direction.x < 0;

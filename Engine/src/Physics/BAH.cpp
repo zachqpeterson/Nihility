@@ -90,5 +90,5 @@ void BAH::Query(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObje
 
 void BAH::Query(struct PhysicsObject2D* object, List<struct PhysicsObject2D*>& results)
 {
-	Query(object->collider->xBounds, object->collider->yBounds, results);
+	Query(object->collider->xBounds + object->transform->Position().x, object->collider->yBounds + object->transform->Position().y, results);
 }
