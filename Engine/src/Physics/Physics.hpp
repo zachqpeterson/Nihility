@@ -199,6 +199,8 @@ private:
 	static bool AABBvsCircle(Manifold2D& m);
 	static bool CirclevsAABB(Manifold2D& m);
 	static void ResolveCollision(Manifold2D& m);
+	static I32 WhichSide(const Vector<Vector2>& vertices, const Vector2& p, const Vector2& d);
+	static bool TestIntersection(const Vector<Vector2>& vertices0, const Vector<Vector2>& vertices1, const Vector2& velocity, F32& tFirst, F32& tLast);
 
 	static HashMap<U64, PhysicsObject2D*> physicsObjects2D;
 	static HashMap<U64, PhysicsObject3D*> physicsObjects3D;

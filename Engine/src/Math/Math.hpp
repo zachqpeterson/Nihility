@@ -251,6 +251,7 @@ struct NH_API Vector2
 	NH_INLINE Vector2& Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; return *this; }
 	NH_INLINE Vector2 Normalized() const { return Math::Zero(x) && Math::Zero(y) ? Vector2::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector2& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
+	NH_INLINE Vector2 Perpendicular() { return { x, -y }; }
 	NH_INLINE Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
 	NH_INLINE void Rotate(const Vector2& center, F32 angle)
