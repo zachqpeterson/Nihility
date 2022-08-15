@@ -70,6 +70,9 @@ public:
 	static I16 Abs(I16 n) { return n < 0 ? -n : n; }
 	static I32 Abs(I32 n) { return n < 0 ? -n : n; }
 	static I64 Abs(I64 n) { return n < 0 ? -n : n; }
+	static Vector2 Abs(const Vector2& v);
+	static Vector3 Abs(const Vector3& v);
+	static Vector4 Abs(const Vector4& v);
 
 	static F32 Min(F32 a, F32 b) { return a < b ? a : b; }
 	static F64 Min(F64 a, F64 b) { return a < b ? a : b; }
@@ -141,8 +144,8 @@ public:
 	static F32 CeilingF(F32 n) { return (F32)(n > 0 ? (I32)n + 1 : (I32)n); }
 	static F64 CeilingF(F64 n) { return (F64)(n > 0 ? (I64)n + 1 : (I64)n); }
 
-	static bool Zero(F32 f) { return f < FLOAT_EPSILON && f > -FLOAT_EPSILON; }
-	static bool Zero(F64 f) { return f < FLOAT_EPSILON && f > -FLOAT_EPSILON; }
+	static bool Zero(F32 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
+	static bool Zero(F64 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
 
 	//FLOATING-POINT
 	static F32 Round(F32 f) { return (F32)(I32)(f + 0.5f); }
@@ -156,6 +159,7 @@ public:
 	static F32 InvSqrt(F32 f);
 	static F64 InvSqrt(F64 f);
 	static Vector2 Rotate(const Vector2& vector, const Quaternion2D& quat);
+	static Vector2 Cross(const F32 f, const Vector2& v);
 
 	//INTERPOLATION
 	static F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
@@ -240,6 +244,7 @@ struct NH_API Vector2
 	bool operator!= (const Vector2& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y); }
 	bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
+	bool IsZero() const { return Math::Zero(x) && Math::Zero(y); }
 	friend Vector2 operator- (const Vector2& v);
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
@@ -249,11 +254,13 @@ struct NH_API Vector2
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt(Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return Dot(*this); }
 	NH_INLINE Vector2& Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; return *this; }
-	NH_INLINE Vector2 Normalized() const { return Math::Zero(x) && Math::Zero(y) ? Vector2::ZERO : (*this) / Magnitude(); }
+	NH_INLINE Vector2 Normalized() const { return IsZero() ? Vector2::ZERO : (*this) / Magnitude(); }
 	NH_INLINE F32 AngleBetween(const Vector2& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	NH_INLINE Vector2 Perpendicular() { return { x, -y }; }
 	NH_INLINE Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
+	NH_INLINE F32 Cross(const Vector2& v) const { return v.x * x - v.y * y; }
+	NH_INLINE Vector2 Cross(const F32 f) const { return { y * f, x * -f }; }
 	NH_INLINE void Rotate(const Vector2& center, F32 angle)
 	{
 		F32 cos = Math::Cos(angle);
@@ -633,6 +640,10 @@ struct Vector4Int
 NH_INLINE Vector2 Math::Lerp(const Vector2& a, const Vector2& b, F32 t) { return a + (b - a) * t; }
 NH_INLINE Vector3 Math::Lerp(const Vector3& a, const Vector3& b, F32 t) { return a + (b - a) * t; }
 NH_INLINE Vector4 Math::Lerp(const Vector4& a, const Vector4& b, F32 t) { return a + (b - a) * t; }
+NH_INLINE Vector2 Math::Abs(const Vector2& v) { return { Abs(v.x), Abs(v.y) }; }
+NH_INLINE Vector3 Math::Abs(const Vector3& v) { return { Abs(v.x), Abs(v.y), Abs(v.z) }; }
+NH_INLINE Vector4 Math::Abs(const Vector4& v) { return { Abs(v.x), Abs(v.y), Abs(v.z), Abs(v.w) }; }
+NH_INLINE Vector2 Math::Cross(const F32 f, const Vector2& v) { return { v.y * -f, v.x * f }; }
 
 struct NH_API Matrix2
 {
@@ -1192,9 +1203,15 @@ public:
 	Transform3D() : parent{ nullptr }, dirty{ false }, position{}, rotation{}, scale{}, local{} {}
 	Transform3D(const Vector3& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{} { UpdateLocal(); }
 	Transform3D(const Vector3& position, const Quaternion3D& rotation) :
-		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{} { UpdateLocal(); }
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{}
+	{
+		UpdateLocal();
+	}
 	Transform3D(const Vector3& position, const Quaternion3D& rotation, const Vector3& scale) :
-		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale } { UpdateLocal(); }
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale }
+	{
+		UpdateLocal();
+	}
 	Transform3D(const Transform3D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 	Transform3D(Transform3D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale } {}
 
@@ -1248,9 +1265,13 @@ public:
 	Transform2D() : parent{ nullptr }, dirty{ false }, position{ Vector2::ZERO }, rotation{ 0.0f }, scale{ Vector2::ONE }, local{ position, rotation, scale } {}
 	Transform2D(const Vector2& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{}, local{ position, rotation, scale } {}
 	Transform2D(const Vector2& position, const F32& rotation) :
-		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{}, local{ position, rotation, scale } {}
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{}, local{ position, rotation, scale }
+	{
+	}
 	Transform2D(const Vector2& position, const F32& rotation, const Vector2& scale) :
-		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale }, local{ position, rotation, scale } {}
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ scale }, local{ position, rotation, scale }
+	{
+	}
 	Transform2D(const Transform2D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale }, local{ other.local } {}
 	Transform2D(Transform2D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale }, local{ other.local } {}
 

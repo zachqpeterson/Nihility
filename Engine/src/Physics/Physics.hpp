@@ -7,6 +7,7 @@
 
 #include <Containers/HashMap.hpp>
 #include <Containers/Vector.hpp>
+#include <Containers/Array.hpp>
 
 /// <summary>
 /// TODO: 
@@ -39,60 +40,44 @@ struct PhysicsObject3D
 
 // ------2D------
 
-enum ColliderType2D
-{
-	COLLIDER_TYPE_RECTANGLE,
-	COLLIDER_TYPE_CIRCLE,
-	COLLIDER_TYPE_CAPSULE,
-	COLLIDER_TYPE_POLYGON,
+typedef bool(*Collision2DFn)(struct Contact2D& c);
 
-	COLLIDER_TYPE_NONE,
+enum Collider2DType
+{
+	POLYGON_COLLIDER,
+	CIRCLE_COLLIDER,
+
+	COLLIDER_2D_MAX
 };
 
 struct Collider2D
 {
-	bool trigger;
+	Collider2DType type;
 
-	ColliderType2D type;
+	bool trigger;
 
 	Vector2 xBounds;
 	Vector2 yBounds;
-};
-
-struct RectangleCollider : public Collider2D
-{
-
-};
-
-struct CircleCollider : public Collider2D
-{
-	Vector2 center;
-	F64 radius;
-};
-
-struct CapsuleCollider2D : public Collider2D
-{
-	F64 radius;
-	F64 height;
-	bool yAxis;
 };
 
 struct PolygonCollider : public Collider2D
 {
-	Vector2 center;
-	Vector<Vector2> vertices;
-	Vector<Vector2> normals;
+	Vector<Vector2> shape;
+};
+
+struct CircleCollider : public Collider2D
+{
+	Vector2 offset;
+	F64 radius;
 };
 
 struct PhysicsObject2DConfig
 {
-	ColliderType2D type;
-	//Rectangle
-	Vector2 xBounds;
-	Vector2 yBounds;
-	//Circle
+	Collider2DType type;
 	F64 radius;
-	//TODO: other
+	Vector2 offset;
+
+	Vector<Vector2> shape;
 
 	bool trigger;
 	bool kinematic;
@@ -101,6 +86,78 @@ struct PhysicsObject2DConfig
 	F64 gravityScale;
 	F64 density;
 	Transform2D* transform;
+};
+
+struct Pair
+{
+	I32 proxyIDA;
+	I32 proxyIDB;
+};
+
+struct Box
+{
+	Vector2 xBounds;
+	Vector2 yBounds;
+
+	Vector2 Center() const
+	{
+		return Vector2(xBounds.y + xBounds.x, yBounds.y + yBounds.x) * 0.5f;
+	}
+
+	Vector2 Extents() const
+	{
+		return Vector2(xBounds.y - xBounds.x, yBounds.y - yBounds.x) * 0.5f;
+	}
+
+	bool Contains(const Box& b) const
+	{
+		return b.xBounds.x <= xBounds.y && b.xBounds.y >= xBounds.x && b.yBounds.x <= yBounds.y && b.yBounds.y >= yBounds.x;
+	}
+
+	F32 GetPerimeter() const
+	{
+		F32 wx = xBounds.y - xBounds.x;
+		F32 wy = yBounds.y - yBounds.x;
+		return 2.0f * (wx + wy);
+	}
+
+	void Combine(const Box& box)
+	{
+		xBounds.x = Math::Min(xBounds.x, box.xBounds.x);
+		xBounds.y = Math::Max(xBounds.y, box.xBounds.y);
+		yBounds.x = Math::Min(yBounds.x, box.xBounds.x);
+		yBounds.y = Math::Max(yBounds.y, box.xBounds.y);
+	}
+
+	void Combine(const Box& box0, const Box& box1)
+	{
+		xBounds.x = Math::Min(box0.xBounds.x, box1.xBounds.x);
+		xBounds.y = Math::Max(box0.xBounds.y, box1.xBounds.y);
+		yBounds.x = Math::Min(box0.yBounds.x, box1.xBounds.x);
+		yBounds.y = Math::Max(box0.yBounds.y, box1.xBounds.y);
+	}
+};
+
+struct RayCastInput
+{
+	Vector2 p1, p2;
+	F32 maxFraction;
+};
+
+struct Simplex
+{
+	Vector2 a;
+	Vector2 b;
+	Vector2 c;
+};
+
+struct Edge
+{
+	Vector2 vertex0;
+	Vector2 vertex1;
+	Vector2 normal;
+	F32 distance;
+	U32 index;
 };
 
 struct PhysicsObject2D
@@ -113,6 +170,7 @@ struct PhysicsObject2D
 
 private:
 	U64 id;
+	I32 proxyID;
 	Collider2D* collider;
 	Transform2D* transform;
 
@@ -121,6 +179,7 @@ private:
 
 	//secondary
 	Vector2 velocity;
+	Vector2 oneTimeVelocity;
 	F64 angularVelocity;
 
 	// secondary
@@ -146,6 +205,8 @@ private:
 
 public:
 	// Read-only access
+	const U64& ID = id;
+
 	const Vector2& Velocity = velocity;
 	const F64& AngularVelocity = angularVelocity;
 
@@ -160,17 +221,12 @@ public:
 	const F64& AngularDrag = angularDragCoefficient;
 	const F64& Area = area;
 	const U64& LayerMask = layerMask;
+	const bool& Kinematic = kinematic;
 
 	friend class Physics;
-	friend struct BAH;
-};
-
-struct Manifold2D
-{
-	PhysicsObject2D* a;
-	PhysicsObject2D* b;
-	Vector2 normal;
-	F64 penetration;
+	friend class ContactManager;
+	friend class Broadphase;
+	friend struct Tree;
 };
 
 class NH_API Physics
@@ -184,31 +240,39 @@ public:
 
 	static PhysicsObject2D* Create2DPhysicsObject(PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
-	static bool OverlapRect(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results);
 	static bool Raycast2D(const Vector2& origin, const Vector2& direction, F32 length, List<PhysicsObject2D*>& results);
+	static bool TestOverlap(const Box& a, const Box& b) { return a.xBounds.x <= b.xBounds.y && a.xBounds.y >= b.xBounds.x && a.yBounds.x <= b.yBounds.y && a.yBounds.y >= b.yBounds.x; }
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 	static void Update(F64 step);
 
-	static void BroadPhase(struct BAH& tree, List<struct PhysicsObject2D*>& objects, List<Manifold2D>& contacts);
-	static void NarrowPhase(List<Manifold2D>& contacts);
-	static bool CirclevsCircle(Manifold2D& m);
-	static bool AABBvsAABB(Manifold2D& m);
-	static bool AABBvsCircle(Manifold2D& m);
-	static bool CirclevsAABB(Manifold2D& m);
-	static void ResolveCollision(Manifold2D& m);
-	static I32 WhichSide(const Vector<Vector2>& vertices, const Vector2& p, const Vector2& d);
-	static bool TestIntersection(const Vector<Vector2>& vertices0, const Vector<Vector2>& vertices1, const Vector2& velocity, F32& tFirst, F32& tLast);
+	static void BroadPhase();
+	static void NarrowPhase();
+	static bool CircleVsCircle(Contact2D& c);
+	static bool PolygonVsPolygon(Contact2D& c);
+	static bool PolygonVsCircle(Contact2D& c);
+	static bool CircleVsPolygon(Contact2D& c);
+	static void ResolveCollision(Contact2D& c);
 
-	static HashMap<U64, PhysicsObject2D*> physicsObjects2D;
-	static HashMap<U64, PhysicsObject3D*> physicsObjects3D;
+	static bool GJK(Contact2D& c);
+	static bool ContainsOrigin(List<Vector2>& simplex, Vector2& direction);
+	static Vector2 FarthestPoint(const Vector<Vector2>& shape, const Vector2& direction);
+	static Edge ClosestEdge(const List<Vector2>& simplex);
+	static Vector2 Support(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction);
+	static Vector2 TripleProduct(const Vector2& a, const Vector2& b, const Vector2& c);
 
-	static BAH tree;
+	static List<PhysicsObject2D*> physicsObjects2D;
+	static List<PhysicsObject3D*> physicsObjects3D;
+	
+	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
+
+	static class ContactManager* contactManager;
 
 	static F64 airDensity;
 	static F64 gravity;
+	static bool newContacts;
 
 	friend class Engine;
 };

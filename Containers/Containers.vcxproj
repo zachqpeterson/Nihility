@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Containers\Array.hpp" />
+    <ClInclude Include="Containers\Array2D.hpp" />
     <ClInclude Include="Containers\HashMap.hpp" />
     <ClInclude Include="Containers\HashTable.hpp" />
     <ClInclude Include="Containers\List.hpp" />
@@ -27,6 +28,7 @@
     <ClInclude Include="Containers\Queue.hpp" />
     <ClInclude Include="Containers\Stack.hpp" />
     <ClInclude Include="Containers\Vector.hpp" />
+    <ClInclude Include="Containers\Vector2D.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

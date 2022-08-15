@@ -31,11 +31,13 @@ void spawnObj(const Vector2& position)
 	poConfig.restitution = 0.0;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
-	poConfig.type = COLLIDER_TYPE_RECTANGLE;
-	poConfig.radius = 0.5;
-	poConfig.xBounds = { -0.5f, 0.5f };
-	poConfig.yBounds = { -0.5f, 0.5f };
-	
+	poConfig.type = POLYGON_COLLIDER;
+	poConfig.shape.Reserve(4);
+	poConfig.shape.Push({ -0.5f, -0.5f });
+	poConfig.shape.Push({ -0.5f,  0.5f });
+	poConfig.shape.Push({ 0.5f,  0.5f });
+	poConfig.shape.Push({ 0.5f, -0.5f });
+
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.transform = transform;
@@ -93,28 +95,31 @@ bool init()
 		config.indices.Push(3);
 		config.indices.Push(0);
 
-		Mesh* mesh1 = Resources::CreateMesh(config);
-		Transform2D* transform1 = new Transform2D();
-		transform1->Translate({ 0.0f, 10.0f });
-		transform1->SetScale({ 10.0f, 10.0f });
-		PhysicsObject2DConfig poConfig1{};
-		poConfig1.density = 0.0;
-		poConfig1.gravityScale = 1.0;
-		poConfig1.kinematic = true;
-		poConfig1.restitution = 0.0;
-		poConfig1.transform = transform1;
-		poConfig1.trigger = false;
-		poConfig1.type = COLLIDER_TYPE_RECTANGLE;
-		poConfig1.radius = 5.0;
-		poConfig1.xBounds = { -5.0f, 5.0f };
-		poConfig1.yBounds = { -5.0f, 5.0f };
-		Vector<Mesh*> meshes1(1, mesh1);
-		GameObject2DConfig goConfig1{};
-		goConfig1.name = "Floor0";
-		goConfig1.transform = transform1;
-		goConfig1.model = Resources::CreateModel("Floor0", meshes1);
-		goConfig1.physics = Physics::Create2DPhysicsObject(poConfig1);
-		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig1);
+		Mesh* mesh = Resources::CreateMesh(config);
+		Transform2D* transform = new Transform2D();
+		transform->Translate({ 0.0f, 10.0f });
+		transform->SetScale({ 10.0f, 10.0f });
+		PhysicsObject2DConfig poConfig{};
+		poConfig.density = 0.0;
+		poConfig.gravityScale = 1.0;
+		poConfig.kinematic = true;
+		poConfig.restitution = 0.0;
+		poConfig.transform = transform;
+		poConfig.trigger = false;
+		poConfig.type = POLYGON_COLLIDER;
+		poConfig.shape.Reserve(4);
+		poConfig.shape.Push({ -5.0f, -5.0f });
+		poConfig.shape.Push({ -5.0f,  5.0f });
+		poConfig.shape.Push({ 5.0f,  5.0f });
+		poConfig.shape.Push({ 5.0f, -5.0f });
+
+		Vector<Mesh*> meshes(1, mesh);
+		GameObject2DConfig goConfig{};
+		goConfig.name = "Floor0";
+		goConfig.transform = transform;
+		goConfig.model = Resources::CreateModel("Floor0", meshes);
+		goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
 		scene->DrawGameObject(gameObject);
 	}
 	{
@@ -135,28 +140,31 @@ bool init()
 		config.indices.Push(3);
 		config.indices.Push(0);
 
-		Mesh* mesh1 = Resources::CreateMesh(config);
-		Transform2D* transform1 = new Transform2D();
-		transform1->Translate({ 10.0f, 0.0f });
-		transform1->SetScale({ 10.0f, 10.0f });
-		PhysicsObject2DConfig poConfig1{};
-		poConfig1.density = 0.0;
-		poConfig1.gravityScale = 1.0;
-		poConfig1.kinematic = true;
-		poConfig1.restitution = 0.0;
-		poConfig1.transform = transform1;
-		poConfig1.trigger = false;
-		poConfig1.type = COLLIDER_TYPE_RECTANGLE;
-		poConfig1.radius = 5.0;
-		poConfig1.xBounds = { -5.0f, 5.0f };
-		poConfig1.yBounds = { -5.0f, 5.0f };
-		Vector<Mesh*> meshes1(1, mesh1);
-		GameObject2DConfig goConfig1{};
-		goConfig1.name = "Floor1";
-		goConfig1.transform = transform1;
-		goConfig1.model = Resources::CreateModel("Floor1", meshes1);
-		goConfig1.physics = Physics::Create2DPhysicsObject(poConfig1);
-		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig1);
+		Mesh* mesh = Resources::CreateMesh(config);
+		Transform2D* transform = new Transform2D();
+		transform->Translate({ 10.0f, 0.0f });
+		transform->SetScale({ 10.0f, 10.0f });
+		PhysicsObject2DConfig poConfig{};
+		poConfig.density = 0.0;
+		poConfig.gravityScale = 1.0;
+		poConfig.kinematic = true;
+		poConfig.restitution = 0.0;
+		poConfig.transform = transform;
+		poConfig.trigger = false;
+		poConfig.type = POLYGON_COLLIDER;
+		poConfig.shape.Reserve(4);
+		poConfig.shape.Push({ -5.0f, -5.0f });
+		poConfig.shape.Push({ -5.0f,  5.0f });
+		poConfig.shape.Push({ 5.0f,  5.0f });
+		poConfig.shape.Push({ 5.0f, -5.0f });
+
+		Vector<Mesh*> meshes(1, mesh);
+		GameObject2DConfig goConfig{};
+		goConfig.name = "Floor1";
+		goConfig.transform = transform;
+		goConfig.model = Resources::CreateModel("Floor1", meshes);
+		goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
 		scene->DrawGameObject(gameObject);
 	}
 	{
@@ -177,28 +185,31 @@ bool init()
 		config.indices.Push(3);
 		config.indices.Push(0);
 
-		Mesh* mesh1 = Resources::CreateMesh(config);
-		Transform2D* transform1 = new Transform2D();
-		transform1->Translate({ -10.0f, 0.0f });
-		transform1->SetScale({ 10.0f, 10.0f });
-		PhysicsObject2DConfig poConfig1{};
-		poConfig1.density = 0.0;
-		poConfig1.gravityScale = 1.0;
-		poConfig1.kinematic = true;
-		poConfig1.restitution = 0.0;
-		poConfig1.transform = transform1;
-		poConfig1.trigger = false;
-		poConfig1.type = COLLIDER_TYPE_RECTANGLE;
-		poConfig1.radius = 5.0;
-		poConfig1.xBounds = { -5.0f, 5.0f };
-		poConfig1.yBounds = { -5.0f, 5.0f };
-		Vector<Mesh*> meshes1(1, mesh1);
-		GameObject2DConfig goConfig1{};
-		goConfig1.name = "Floor2";
-		goConfig1.transform = transform1;
-		goConfig1.model = Resources::CreateModel("Floor2", meshes1);
-		goConfig1.physics = Physics::Create2DPhysicsObject(poConfig1);
-		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig1);
+		Mesh* mesh = Resources::CreateMesh(config);
+		Transform2D* transform = new Transform2D();
+		transform->Translate({ -10.0f, 0.0f });
+		transform->SetScale({ 10.0f, 10.0f });
+		PhysicsObject2DConfig poConfig{};
+		poConfig.density = 0.0;
+		poConfig.gravityScale = 1.0;
+		poConfig.kinematic = true;
+		poConfig.restitution = 0.0;
+		poConfig.transform = transform;
+		poConfig.trigger = false;
+		poConfig.type = POLYGON_COLLIDER;
+		poConfig.shape.Reserve(4);
+		poConfig.shape.Push({ -5.0f, -5.0f });
+		poConfig.shape.Push({ -5.0f,  5.0f });
+		poConfig.shape.Push({ 5.0f,  5.0f });
+		poConfig.shape.Push({ 5.0f, -5.0f });
+
+		Vector<Mesh*> meshes(1, mesh);
+		GameObject2DConfig goConfig{};
+		goConfig.name = "Floor2";
+		goConfig.transform = transform;
+		goConfig.model = Resources::CreateModel("Floor2", meshes);
+		goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
 		scene->DrawGameObject(gameObject);
 	}
 
@@ -257,7 +268,7 @@ bool update()
 {
 	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
 	move *= (F32)(Time::DeltaTime() * 0.5);
-	
+
 	if (Input::OnButtonDown(LBUTTON))
 	{
 		spawnObj(RendererFrontend::ScreenToWorld(Input::MousePos()));

@@ -275,7 +275,44 @@ public:
 		return newIt;
 	}
 
-	//TODO: insert
+	void Insert(const T& value, U64 index)
+	{
+		ASSERT_DEBUG_MSG(index < size, "Index must be less than the size of the list!");
+
+		++size;
+		Node* newNode = new Node(value);
+
+		Node* node = head;
+		for (U64 i = 0; i < index; ++i) { node = node->next; }
+
+		Node* prev = node->prev;
+		if (prev)
+		{
+			prev->next = newNode;
+			newNode->prev = prev;
+		}
+		else 
+		{
+			newNode->next = head;
+			head->prev = newNode;
+			head = newNode;
+
+			return;
+		}
+
+		Node* next = node->next;
+		if (next)
+		{
+			next->prev = newNode;
+			newNode->next = next;
+		}
+		else
+		{
+			newNode->prev = tail;
+			tail->next = newNode;
+			tail = newNode;
+		}
+	}
 	void PushFront(const T& value)
 	{
 		++size;

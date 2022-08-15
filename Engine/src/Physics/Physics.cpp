@@ -1,95 +1,97 @@
 #include "Physics.hpp"
 
-#include "BAH.hpp"
-#include "Containers/Vector.hpp"
+#include "ContactManager.hpp"
+
+#include <Containers/Vector.hpp>
 
 #include "Core/Time.hpp"
 
-HashMap<U64, PhysicsObject2D*> Physics::physicsObjects2D;
-HashMap<U64, PhysicsObject3D*> Physics::physicsObjects3D;
+List<PhysicsObject2D*> Physics::physicsObjects2D;
+List<PhysicsObject3D*> Physics::physicsObjects3D;
+Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
-BAH Physics::tree;
+ContactManager* Physics::contactManager;
 
 F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
+bool Physics::newContacts;
 
 bool Physics::Initialize()
 {
-	PhysicsObject2D* invalidPO2D = (PhysicsObject2D*)Memory::Allocate(sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
-	invalidPO2D->id = U64_MAX;
-	physicsObjects2D = Move(HashMap<U64, PhysicsObject2D*>(25, invalidPO2D));
+	contactManager = new ContactManager();
 
-	PhysicsObject3D* invalidPO3D = (PhysicsObject3D*)Memory::Allocate(sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
-	invalidPO3D->id = U64_MAX;
-	physicsObjects3D = Move(HashMap<U64, PhysicsObject3D*>(25, invalidPO3D));
+	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] = PolygonVsPolygon;
+	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] = PolygonVsCircle;
+	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] = CircleVsPolygon;
+	collision2DTable[CIRCLE_COLLIDER][CIRCLE_COLLIDER] = CircleVsCircle;
 
 	return true;
 }
 
 void Physics::Shutdown()
 {
-	for (List<HashMap<U64, PhysicsObject2D*>::Node>& l : physicsObjects2D)
+	for (PhysicsObject2D* po : physicsObjects2D)
 	{
-		for (HashMap<U64, PhysicsObject2D*>::Node& n : l)
-		{
-			Memory::Free(n.value, sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
-		}
-
-		l.Clear();
+		Memory::Free(po, sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
 	}
 
 	physicsObjects2D.Destroy();
 
-	for (List<HashMap<U64, PhysicsObject3D*>::Node>& l : physicsObjects3D)
+	for (PhysicsObject3D* po : physicsObjects3D)
 	{
-		for (HashMap<U64, PhysicsObject3D*>::Node& n : l)
-		{
-			Memory::Free(n.value, sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
-		}
-
-		l.Clear();
+		Memory::Free(po, sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
 	}
 
 	physicsObjects3D.Destroy();
+
+	delete contactManager;
 }
 
 void Physics::Update(F64 step)
 {
-	List<PhysicsObject2D*> objects;
-
-	for (List<HashMap<U64, PhysicsObject2D*>::Node>& l : physicsObjects2D)
+	for (PhysicsObject2D* po : physicsObjects2D)
 	{
-		for (HashMap<U64, PhysicsObject2D*>::Node& n : l)
+		PhysicsObject2D& obj = *po;
+
+		if (!obj.kinematic)
 		{
-			if (!n.value->kinematic)
+			obj.velocity += Vector2::UP * (F32)(gravity * obj.gravityScale * obj.mass * step);
+			obj.velocity += obj.force * (F32)obj.massInv;
+			obj.velocity += -obj.velocity.Normalized() * obj.velocity.SqrMagnitude() * (F32)(obj.dragCoefficient * obj.area * 0.5 * airDensity * step);
+
+			obj.prevPosition = obj.transform->Position();
+			Vector2 move = obj.velocity + obj.oneTimeVelocity;
+			obj.transform->Translate(move);
+
+			if (obj.collider->type == POLYGON_COLLIDER && !move.IsZero())
 			{
-				PhysicsObject2D& po = *n.value;
-				po.velocity += Vector2::UP * (F32)(gravity * po.gravityScale * po.mass * step);
-				po.velocity += po.force * (F32)po.massInv;
-				po.velocity += -po.velocity.Normalized() * po.velocity.SqrMagnitude() * (F32)(po.dragCoefficient * po.area * 0.5 * airDensity * step);
-
-				po.prevPosition = po.transform->Position();
-				po.transform->Translate(po.velocity);
-
-				po.force = Vector2::ZERO;
+				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape) { point += move; }
 			}
 
-			objects.PushBack(n.value);
+			if (!move.IsZero())
+			{
+				newContacts = true;
+				contactManager->MoveObject(obj.proxyID, move);
+			}
+
+			obj.oneTimeVelocity = Vector2::ZERO;
+			obj.force = Vector2::ZERO;
 		}
 	}
 
-	List<PhysicsObject2D*> copy = objects;
-
-	tree.Build(Move(copy));
-
-	List<Manifold2D> contacts;
-	BroadPhase(tree, objects, contacts);
-	NarrowPhase(contacts);
+	BroadPhase();
+	NarrowPhase();
 }
 
 PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 {
 	static U64 id = 0;
+
+	if (!config.transform)
+	{
+		Logger::Error("PhysicsObject must have a transform!");
+		return nullptr;
+	}
 
 	PhysicsObject2D* po = (PhysicsObject2D*)Memory::Allocate(sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
 	po->id = id;
@@ -97,49 +99,54 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 
 	switch (config.type)
 	{
-	case COLLIDER_TYPE_RECTANGLE: {
-		RectangleCollider* collider = (RectangleCollider*)Memory::Allocate(sizeof(RectangleCollider), MEMORY_TAG_DATA_STRUCT);
-		collider->trigger = config.trigger;
-		collider->xBounds = config.xBounds;
-		collider->yBounds = config.yBounds;
-		po->collider = collider;
-		po->dragCoefficient = 2.05;
+	case POLYGON_COLLIDER: {
+		if (config.shape.Size() < 3)
+		{
+			Logger::Error("PolygonCollider must have at least 3 sides!");
+			Memory::Free(po, sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
+			return nullptr;
+		}
 
-		po->area = (config.xBounds.y - config.xBounds.x) * (config.yBounds.y - config.yBounds.x);
+		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_DATA_STRUCT);
+		collider->type = POLYGON_COLLIDER;
+
+		collider->shape = config.shape;
+		for (Vector2& point : collider->shape) { point += config.transform->Position(); }
+
+		collider->xBounds = { F32_MAX, -F32_MAX };
+		collider->yBounds = { F32_MAX, -F32_MAX };
+
+		Vector2& lastPoint = config.shape.Back();
+		for (Vector2& point : config.shape)
+		{
+			collider->xBounds.x = Math::Min(collider->xBounds.x, point.x);
+			collider->xBounds.y = Math::Max(collider->xBounds.y, point.x);
+			collider->yBounds.x = Math::Min(collider->yBounds.x, point.y);
+			collider->yBounds.y = Math::Max(collider->yBounds.y, point.y);
+
+			po->area += (lastPoint.x + point.x) * (lastPoint.y + point.y);
+			lastPoint = point;
+		}
+
+		po->collider = collider;
+
+		po->area = Math::Abs(po->area * 0.5f);
+		po->dragCoefficient = 1.0;
 	} break;
-	case COLLIDER_TYPE_CIRCLE: {
+	case CIRCLE_COLLIDER: {
 		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_DATA_STRUCT);
-		collider->trigger = config.trigger;
+		collider->type = CIRCLE_COLLIDER;
 		collider->radius = config.radius;
-		collider->xBounds = { (F32)-config.radius, (F32)config.radius };
-		collider->yBounds = { (F32)-config.radius, (F32)config.radius };
+		collider->xBounds = { config.offset.x - (F32)config.radius, config.offset.x + (F32)config.radius };
+		collider->yBounds = { config.offset.y - (F32)config.radius, config.offset.y + (F32)config.radius };
 		po->collider = collider;
 		po->dragCoefficient = 1.17;
 
 		po->area = (F32)(PI * config.radius * config.radius);
 	} break;
-	case COLLIDER_TYPE_CAPSULE: {
-		CapsuleCollider2D* collider = (CapsuleCollider2D*)Memory::Allocate(sizeof(CapsuleCollider2D), MEMORY_TAG_DATA_STRUCT);
-		collider->trigger = config.trigger;
-		po->collider = collider;
-		po->dragCoefficient = 1.6;
-
-	} break;
-	case COLLIDER_TYPE_POLYGON: {
-		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_DATA_STRUCT);
-		collider->trigger = config.trigger;
-		po->collider = collider;
-		po->dragCoefficient = 1.0;
-
-		//TODO: A set is convex if given any two points P and Q in the set, the line segment (1 - t)P + tQ for t elm. [0, 1] is also in the set
-	} break;
-	case COLLIDER_TYPE_NONE:
-	default: {
-		po->area = 0.0f;
-	} break;
+	default: break;
 	}
 
-	po->collider->type = config.type;
 	po->collider->trigger = config.trigger;
 	po->transform = config.transform;
 	po->prevPosition = po->transform->Position();
@@ -161,7 +168,9 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	//TODO: layerMask
 	po->layerMask = 1;
 
-	physicsObjects2D.Insert(po->id, po);
+	physicsObjects2D.PushBack(po);
+
+	contactManager->AddObject(po);
 
 	return po;
 }
@@ -173,108 +182,36 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 	po->id = id;
 	++id;
 
-	physicsObjects3D.Insert(po->id, po);
+	physicsObjects3D.PushBack(po);
 
 	return po;
 }
 
-void Physics::BroadPhase(BAH& tree, List<PhysicsObject2D*>& objects, List<Manifold2D>& contacts)
+void Physics::BroadPhase()
 {
-	List<PhysicsObject2D*> results;
-	U64 size = objects.Size() * objects.Size();
-	bool* freeContacts = (bool*)Memory::Allocate(size, MEMORY_TAG_DATA_STRUCT);
-
-	//Timer t;
-	//t.Start();
-	for (PhysicsObject2D* po0 : objects)
+	if (newContacts)
 	{
-		results.Clear();
-
-		tree.Query(po0, results);
-
-		for (PhysicsObject2D* po1 : results)
-		{
-			U64 id0 = po0->id;
-			U64 id1 = po1->id;
-			bool& free0 = freeContacts[id0 + id1 * objects.Size()];
-			bool& free1 = freeContacts[id1 + id0 * objects.Size()];
-
-			if (po0->layerMask & po1->layerMask && id0 != id1 && !free0 && !free1 && (po0->mass > 0.0f || po1->mass > 0.0f))
-			{
-				free0 = true;
-				free1 = true;
-				Manifold2D manifold{ po0, po1 };
-				contacts.PushBack(manifold);
-			}
-		}
-	}
-	//Logger::Debug(t.CurrentTime());
-
-	Memory::Free(freeContacts, size, MEMORY_TAG_DATA_STRUCT);
-}
-
-void Physics::NarrowPhase(List<Manifold2D>& contacts)
-{
-	for (Manifold2D& m : contacts)
-	{
-		switch (m.a->collider->type)
-		{
-		case COLLIDER_TYPE_RECTANGLE:
-			switch (m.b->collider->type)
-			{
-			case COLLIDER_TYPE_RECTANGLE: if (AABBvsAABB(m)) { ResolveCollision(m); }
-										break;
-			case COLLIDER_TYPE_CIRCLE: if (AABBvsCircle(m)) { ResolveCollision(m); }
-									 break;
-			case COLLIDER_TYPE_CAPSULE:
-				break;
-			case COLLIDER_TYPE_POLYGON:
-				break;
-			} break;
-		case COLLIDER_TYPE_CIRCLE:
-			switch (m.b->collider->type)
-			{
-			case COLLIDER_TYPE_RECTANGLE: if (CirclevsAABB(m)) { ResolveCollision(m); }
-										break;
-			case COLLIDER_TYPE_CIRCLE: if (CirclevsCircle(m)) { ResolveCollision(m); }
-									 break;
-			case COLLIDER_TYPE_CAPSULE:
-				break;
-			case COLLIDER_TYPE_POLYGON:
-				break;
-			} break;
-		case COLLIDER_TYPE_CAPSULE:
-			switch (m.b->collider->type)
-			{
-			case COLLIDER_TYPE_RECTANGLE:
-				break;
-			case COLLIDER_TYPE_CIRCLE:
-				break;
-			case COLLIDER_TYPE_CAPSULE:
-				break;
-			case COLLIDER_TYPE_POLYGON:
-				break;
-			} break;
-		case COLLIDER_TYPE_POLYGON:
-			switch (m.b->collider->type)
-			{
-			case COLLIDER_TYPE_RECTANGLE:
-				break;
-			case COLLIDER_TYPE_CIRCLE:
-				break;
-			case COLLIDER_TYPE_CAPSULE:
-				break;
-			case COLLIDER_TYPE_POLYGON:
-				break;
-			} break;
-		}
+		contactManager->FindNewContacts();
+		newContacts = false;
 	}
 }
 
-bool Physics::CirclevsCircle(Manifold2D& m)
+void Physics::NarrowPhase()
 {
-	PhysicsObject2D* a = m.a;
-	PhysicsObject2D* b = m.b;
+	for (Contact2D& c : contactManager->Contacts())
+	{
+		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+		{
+			ResolveCollision(c);
+		}
+	}
+
+}
+
+bool Physics::CircleVsCircle(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
 	CircleCollider* bCollider = (CircleCollider*)b->collider;
 
@@ -291,81 +228,28 @@ bool Physics::CirclevsCircle(Manifold2D& m)
 
 	if (distance != 0.0f)
 	{
-		m.penetration = radius - distance;
-		m.normal = direction / distance;
+		c.penetration = radius - distance;
+		c.normal = direction / distance;
 	}
 	else
 	{
-		m.penetration = aCollider->radius;
-		m.normal = Vector2::RIGHT;
+		c.penetration = aCollider->radius;
+		c.normal = Vector2::RIGHT;
 	}
 
 	return true;
 }
 
-bool Physics::AABBvsAABB(Manifold2D& m)
+bool Physics::PolygonVsPolygon(Contact2D& c)
 {
-	PhysicsObject2D* a = m.a;
-	PhysicsObject2D* b = m.b;
-	RectangleCollider* aCollider = (RectangleCollider*)a->collider;
-	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
-
-	Vector<Vector2> v0;
-	v0.Push(a->transform->Position() + Vector2{ aCollider->xBounds.x, aCollider->yBounds.x });
-	v0.Push(a->transform->Position() + Vector2{ aCollider->xBounds.x, aCollider->yBounds.y });
-	v0.Push(a->transform->Position() + Vector2{ aCollider->xBounds.y, aCollider->yBounds.y });
-	v0.Push(a->transform->Position() + Vector2{ aCollider->xBounds.y, aCollider->yBounds.x });
-
-	Vector<Vector2> v1;
-	v1.Push(b->transform->Position() + Vector2{ bCollider->xBounds.x, bCollider->yBounds.x });
-	v1.Push(b->transform->Position() + Vector2{ bCollider->xBounds.x, bCollider->yBounds.y });
-	v1.Push(b->transform->Position() + Vector2{ bCollider->xBounds.y, bCollider->yBounds.y });
-	v1.Push(b->transform->Position() + Vector2{ bCollider->xBounds.y, bCollider->yBounds.x });
-
-	if (TestIntersection(v0, v1))
-	{
-		return true;
-	}
-
-	return false;
-
-	//PhysicsObject2D* a = m.a;
-	//PhysicsObject2D* b = m.b;
-	//RectangleCollider* aCollider = (RectangleCollider*)a->collider;
-	//RectangleCollider* bCollider = (RectangleCollider*)b->collider;
-	//
-	//Vector2 direction = a->velocity + b->velocity;
-	//Vector2 aSize = Vector2(aCollider->xBounds.y - aCollider->xBounds.x, aCollider->yBounds.y - aCollider->yBounds.x);
-	//Vector2 bExpandedNear = b->prevPosition + Vector2(bCollider->xBounds.x, bCollider->yBounds.x) - aSize / 2.0f;
-	//Vector2 bExpandedFar = Vector2(bCollider->xBounds.y - bCollider->xBounds.x, bCollider->yBounds.y - bCollider->yBounds.x) + aSize;
-	//
-	//Vector2 tNear = (bExpandedNear - a->prevPosition) / direction;
-	//Vector2 tFar = (bExpandedNear + bExpandedFar - a->prevPosition) / direction;
-	//
-	//if (tNear.x > tFar.x) { Math::Swap(tNear.x, tFar.x); }
-	//if (tNear.y > tFar.y) { Math::Swap(tNear.y, tFar.y); }
-	//
-	//F32 tHitNear = Math::Max(tNear.x, tNear.y);
-	//F32 tHitFar = Math::Max(tFar.x, tFar.y);
-	//
-	////TODO: Collide if it's inside
-	//if ((tNear.x > tFar.y || tNear.y > tFar.x || tHitNear > 1.0f || tFar.x < 0 || tFar.y < 0)) { return false; }
-	//
-	//bool xColl = tNear.x > tNear.y;
-	//bool left = direction.x < 0;
-	//bool top = direction.y < 0;
-	//m.normal = ((Vector2::LEFT * left + Vector2::RIGHT * !left) * xColl) + ((Vector2::DOWN * top + Vector2::UP * !top) * !xColl);
-	//
-	//m.penetration = m.normal.Dot(direction) * (1.0f - tHitNear);
-	//
-	//return true;
+	return GJK(c);
 }
 
-bool Physics::AABBvsCircle(Manifold2D& m)
+bool Physics::PolygonVsCircle(Contact2D& c)
 {
-	PhysicsObject2D* a = m.a;
-	PhysicsObject2D* b = m.b;
-	RectangleCollider* aCollider = (RectangleCollider*)a->collider;
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	PolygonCollider* aCollider = (PolygonCollider*)a->collider;
 	CircleCollider* bCollider = (CircleCollider*)b->collider;
 	Vector2 aPos = a->transform->Position();
 	Vector2 bPos = b->transform->Position();
@@ -396,8 +280,8 @@ bool Physics::AABBvsCircle(Manifold2D& m)
 	{
 		distance = Math::Sqrt(distance);
 
-		m.normal = normal.Normalize();
-		m.penetration = bCollider->radius - distance;
+		c.normal = normal.Normalize();
+		c.penetration = bCollider->radius - distance;
 
 		return true;
 	}
@@ -405,12 +289,12 @@ bool Physics::AABBvsCircle(Manifold2D& m)
 	return false;
 }
 
-bool Physics::CirclevsAABB(Manifold2D& m)
+bool Physics::CircleVsPolygon(Contact2D& c)
 {
-	PhysicsObject2D* a = m.a;
-	PhysicsObject2D* b = m.b;
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
 	CircleCollider* aCollider = (CircleCollider*)a->collider;
-	RectangleCollider* bCollider = (RectangleCollider*)b->collider;
+	PolygonCollider* bCollider = (PolygonCollider*)b->collider;
 
 	Vector2 n = b->transform->Position() - a->transform->Position();
 
@@ -428,13 +312,13 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 		{
 			if (yOverlap > xOverlap)
 			{
-				m.penetration = xOverlap;
-				m.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
+				c.penetration = xOverlap;
+				c.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
 			}
 			else
 			{
-				m.penetration = yOverlap;
-				m.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
+				c.penetration = yOverlap;
+				c.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
 			}
 
 			return true;
@@ -444,70 +328,164 @@ bool Physics::CirclevsAABB(Manifold2D& m)
 	return false;
 }
 
-void Physics::ResolveCollision(Manifold2D& m)
+void Physics::ResolveCollision(Contact2D& c)
 {
-	PhysicsObject2D* a = m.a;
-	PhysicsObject2D* b = m.b;
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
 
 	Vector2 relVelocity = b->velocity - a->velocity;
 
-	F32 velAlongNormal = relVelocity.Dot(m.normal);
+	F32 velAlongNormal = relVelocity.Dot(c.normal);
 
 	if (velAlongNormal > 0.0f || a->massInv + b->massInv <= FLOAT_EPSILON) { return; }
 
 	F64 restitution = Math::Min(a->restitution, b->restitution);
 	F64 j = (-(1.0 + restitution) * velAlongNormal) / (a->massInv + b->massInv);
 
-	Vector2 impulse = m.normal * (F32)j;
+	Vector2 impulse = c.normal * (F32)j;
 
 	a->velocity -= impulse * (F32)a->massInv;
 	b->velocity += impulse * (F32)b->massInv;
 
 	F64 slop = 0.001;
-	Vector2 correction = m.normal * (F32)(Math::Max(m.penetration - slop, 0.0) / (a->massInv + b->massInv));
-	a->transform->Translate(-correction * (F32)a->massInv);
-	b->transform->Translate(correction * (F32)b->massInv);
+	Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
+	a->oneTimeVelocity -= correction * (F32)a->massInv;
+	b->oneTimeVelocity += correction * (F32)b->massInv;
 }
 
-bool Physics::OverlapRect(const Vector2& boundsX, const Vector2& boundsY, List<PhysicsObject2D*>& results)
+bool Physics::GJK(Contact2D& c)
 {
-	if (tree.root)
-	{
-		tree.Query(boundsX, boundsY, results);
+	Timer t;
+	t.Start();
+	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
+	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
 
-		return results.Size();
+	List<Vector2> simplex;
+
+	Vector2 direction = c.b->transform->Position() - c.a->transform->Position();
+
+	simplex.PushBack(Support(aShape, bShape, direction));
+
+	direction = -direction;
+
+	while (true)
+	{
+		simplex.PushBack(Support(aShape, bShape, direction));
+
+		if (simplex.Back().Dot(direction) <= 0.0f) { return false; }
+		if (ContainsOrigin(simplex, direction)) { break; }
+	}
+
+	while (true)
+	{
+		Edge e = ClosestEdge(simplex);
+		Vector2 p = Support(aShape, bShape, e.normal);
+		F32 dist = Math::Abs(e.normal.Dot(p));
+
+		if (dist - e.distance < 0.01f)
+		{
+			c.normal = e.normal;
+			c.penetration = e.distance;
+			return true;
+		}
+		else if(simplex.Size() < aShape.Size() + bShape.Size())
+		{
+			simplex.Insert(p, e.index);
+		}
+		else { return false; }
+	}
+}
+
+bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)
+{
+	Vector2 a = simplex.Back();
+	Vector2 ao = -a;
+
+	if (simplex.Size() == 3)
+	{
+		Vector2 b = simplex.Front();
+		Vector2 c = simplex[1];
+
+		Vector2 ab = b - a;
+		Vector2 ac = c - a;
+
+		Vector2 abPerp = TripleProduct(ac, ab, ab);
+		Vector2 acPerp = TripleProduct(ab, ac, ac);
+
+		if (abPerp.Dot(ao) > 0.0f)
+		{
+			simplex.RemoveAt(1);
+			direction = abPerp;
+		}
+		else if (acPerp.Dot(ao) > 0.0f)
+		{
+			simplex.PopFront();
+			direction = acPerp;
+		}
+		else { return true; }
+	}
+	else
+	{
+		Vector2 ab = simplex.Front() - a;
+		direction = TripleProduct(ab, ao, ab);
 	}
 
 	return false;
 }
 
-I32 Physics::WhichSide(const Vector<Vector2>& vertices, const Vector2& p, const Vector2& d)
+Vector2 Physics::FarthestPoint(const Vector<Vector2>& shape, const Vector2& direction)
 {
-	U32 pos = 0;
-	U32 neg = 0;
-	for (Vector2& v : vertices)
+	F32 maxDot = -F32_MAX;
+	Vector2 farthest;
+
+	for (Vector2& point : shape)
 	{
-		F32 t = d.Dot(v - p);
-		pos += t > 0.0f;
-		neg += t < 0.0f;
-		if (pos && neg) { return 0; }
+		F32 dot = point.Dot(direction);
+		if (dot > maxDot)
+		{
+			maxDot = dot;
+			farthest = point;
+		}
 	}
 
-	return pos ? 1 : -1;
+	return farthest;
 }
 
-bool Physics::TestIntersection(const Vector<Vector2>& vertices0, const Vector<Vector2>& vertices1, const Vector2& velocity, F32& tFirst, F32& tLast)
+Edge Physics::ClosestEdge(const List<Vector2>& simplex)
 {
-	tFirst = -F32_MAX;
-	tLast = F32_MAX;
+	U32 index = 0;
+	Edge closest;
+	closest.distance = F32_MAX;
 
-	for (auto it0 = vertices0.begin(), it1 = vertices1.begin(); it0 != vertices0.end() && it1 != vertices1.end(); ++it0, ++it1)
+	for (U32 i = 0, j = 1; i < simplex.Size(); ++i, ++j %= simplex.Size())
 	{
-		const Vector2& v0 = *it0;
-		const Vector2& v1 = *it1;
+		const Vector2& a = simplex[i];
+		const Vector2& b = simplex[j];
 
-		Vector2 direction = v1 - v0;
+		Vector2 e = b - a;
+		Vector2 n = TripleProduct(e, a, e).Normalized();
+		F32 d = n.Dot(a);
 
-		F32 min0 = Math::Min(direction.Dot(v0));
+		if (d < closest.distance)
+		{
+			closest.distance = d;
+			closest.normal = n;
+			closest.index = index;
+			closest.vertex0 = a;
+			closest.vertex1 = b;
+		}
 	}
+
+	return closest;
+}
+
+Vector2 Physics::Support(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction)
+{
+	return FarthestPoint(shape0, direction) - FarthestPoint(shape1, -direction);
+}
+
+Vector2 Physics::TripleProduct(const Vector2& a, const Vector2& b, const Vector2& c)
+{
+	F32 z = a.x * b.y - a.y * b.x;
+	return { -c.y * z, c.x * z };
 }

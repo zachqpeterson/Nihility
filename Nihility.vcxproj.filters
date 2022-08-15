@@ -127,9 +127,6 @@
     <ClInclude Include="Engine\src\Core\Settings.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Renderer\RendererDefines.hpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Resources\UI.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
@@ -143,6 +140,18 @@
       <Filter>Source Files\Audio</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Physics\BAH.hpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Physics\Tree.hpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Physics\Broadphase.hpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\RendererDefines.hpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Physics\ContactManager.hpp">
       <Filter>Source Files\Physics</Filter>
     </ClInclude>
   </ItemGroup>
@@ -232,6 +241,15 @@
       <Filter>Source Files\Audio</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Physics\BAH.cpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Physics\Tree.cpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Physics\Broadphase.cpp">
+      <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Physics\ContactManager.cpp">
       <Filter>Source Files\Physics</Filter>
     </ClCompile>
   </ItemGroup>

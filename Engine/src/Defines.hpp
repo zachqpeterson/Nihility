@@ -205,6 +205,7 @@ void ReportAssertion(const char* expression, const char* message, const char* fi
 #define ASSERT_MSG(expr, message)
 #define ASSERT_DEBUG(expr)
 #define ASSERT_DEBUG_MSG(expr, message)
+
 #endif
 
 /***************************MOVE DEFINITION***************************/
