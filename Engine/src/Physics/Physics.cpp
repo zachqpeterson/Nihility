@@ -198,14 +198,14 @@ void Physics::BroadPhase()
 
 void Physics::NarrowPhase()
 {
-	for (Contact2D& c : contactManager->Contacts())
+	List<Contact2D> contacts = contactManager->Contacts();
+	for (Contact2D& c : contacts)
 	{
 		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
 		{
 			ResolveCollision(c);
 		}
 	}
-
 }
 
 bool Physics::CircleVsCircle(Contact2D& c)
@@ -355,8 +355,6 @@ void Physics::ResolveCollision(Contact2D& c)
 
 bool Physics::GJK(Contact2D& c)
 {
-	Timer t;
-	t.Start();
 	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
 	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
 
@@ -381,7 +379,7 @@ bool Physics::GJK(Contact2D& c)
 		Edge e = ClosestEdge(simplex);
 		Vector2 p = Support(aShape, bShape, e.normal);
 		F32 dist = Math::Abs(e.normal.Dot(p));
-
+	
 		if (dist - e.distance < 0.01f)
 		{
 			c.normal = e.normal;

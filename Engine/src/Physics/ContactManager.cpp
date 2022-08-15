@@ -21,7 +21,6 @@ void ContactManager::MoveObject(I32 proxyID, const Vector2& displacement)
 
 void ContactManager::FindNewContacts()
 {
-	contactLookup.Reset();
 	broadphase.UpdatePairs(this);
 }
 
