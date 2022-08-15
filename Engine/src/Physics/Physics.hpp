@@ -256,7 +256,6 @@ private:
 	static bool CircleVsPolygon(Contact2D& c);
 	static void ResolveCollision(Contact2D& c);
 
-	static bool GJK(Contact2D& c);
 	static bool ContainsOrigin(List<Vector2>& simplex, Vector2& direction);
 	static Vector2 FarthestPoint(const Vector<Vector2>& shape, const Vector2& direction);
 	static Edge ClosestEdge(const List<Vector2>& simplex);

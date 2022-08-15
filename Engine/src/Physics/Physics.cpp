@@ -242,7 +242,43 @@ bool Physics::CircleVsCircle(Contact2D& c)
 
 bool Physics::PolygonVsPolygon(Contact2D& c)
 {
-	return GJK(c);
+	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
+	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
+
+	List<Vector2> simplex;
+
+	Vector2 direction = c.b->transform->Position() - c.a->transform->Position();
+
+	simplex.PushBack(Support(aShape, bShape, direction));
+
+	direction = -direction;
+
+	while (true)
+	{
+		simplex.PushBack(Support(aShape, bShape, direction));
+
+		if (simplex.Back().Dot(direction) <= 0.0f) { return false; }
+		if (ContainsOrigin(simplex, direction)) { break; }
+	}
+
+	while (true)
+	{
+		Edge e = ClosestEdge(simplex);
+		Vector2 p = Support(aShape, bShape, e.normal);
+		F32 dist = Math::Abs(e.normal.Dot(p));
+
+		if (dist - e.distance < 0.01f)
+		{
+			c.normal = e.normal;
+			c.penetration = e.distance;
+			return true;
+		}
+		else if (simplex.Size() < aShape.Size() + bShape.Size())
+		{
+			simplex.Insert(p, e.index);
+		}
+		else { return false; }
+	}
 }
 
 bool Physics::PolygonVsCircle(Contact2D& c)
@@ -351,47 +387,6 @@ void Physics::ResolveCollision(Contact2D& c)
 	Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
 	a->oneTimeVelocity -= correction * (F32)a->massInv;
 	b->oneTimeVelocity += correction * (F32)b->massInv;
-}
-
-bool Physics::GJK(Contact2D& c)
-{
-	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
-	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
-
-	List<Vector2> simplex;
-
-	Vector2 direction = c.b->transform->Position() - c.a->transform->Position();
-
-	simplex.PushBack(Support(aShape, bShape, direction));
-
-	direction = -direction;
-
-	while (true)
-	{
-		simplex.PushBack(Support(aShape, bShape, direction));
-
-		if (simplex.Back().Dot(direction) <= 0.0f) { return false; }
-		if (ContainsOrigin(simplex, direction)) { break; }
-	}
-
-	while (true)
-	{
-		Edge e = ClosestEdge(simplex);
-		Vector2 p = Support(aShape, bShape, e.normal);
-		F32 dist = Math::Abs(e.normal.Dot(p));
-	
-		if (dist - e.distance < 0.01f)
-		{
-			c.normal = e.normal;
-			c.penetration = e.distance;
-			return true;
-		}
-		else if(simplex.Size() < aShape.Size() + bShape.Size())
-		{
-			simplex.Insert(p, e.index);
-		}
-		else { return false; }
-	}
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)

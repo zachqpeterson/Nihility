@@ -32,6 +32,7 @@ void spawnObj(const Vector2& position)
 	poConfig.transform = transform;
 	poConfig.trigger = false;
 	poConfig.type = POLYGON_COLLIDER;
+	poConfig.radius = 0.5;
 	poConfig.shape.Reserve(4);
 	poConfig.shape.Push({ -0.5f, -0.5f });
 	poConfig.shape.Push({ -0.5f,  0.5f });
@@ -107,6 +108,7 @@ bool init()
 		poConfig.transform = transform;
 		poConfig.trigger = false;
 		poConfig.type = POLYGON_COLLIDER;
+		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
 		poConfig.shape.Push({ -5.0f,  5.0f });
@@ -152,6 +154,7 @@ bool init()
 		poConfig.transform = transform;
 		poConfig.trigger = false;
 		poConfig.type = POLYGON_COLLIDER;
+		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
 		poConfig.shape.Push({ -5.0f,  5.0f });
@@ -197,6 +200,7 @@ bool init()
 		poConfig.transform = transform;
 		poConfig.trigger = false;
 		poConfig.type = POLYGON_COLLIDER;
+		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
 		poConfig.shape.Push({ -5.0f,  5.0f });
