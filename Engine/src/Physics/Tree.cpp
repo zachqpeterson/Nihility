@@ -78,8 +78,8 @@ I32 Tree::CreateProxy(PhysicsObject2D* object)
 	Node& node = nodes[proxyID];
 
 	Vector2 r(-boxExtension, boxExtension);
-	node.box.xBounds = object->collider->xBounds + r;
-	node.box.yBounds = object->collider->yBounds + r;
+	node.box.xBounds = object->collider->box.xBounds + r + object->transform->Position().x;
+	node.box.yBounds = object->collider->box.yBounds + r + object->transform->Position().y;
 	node.height = 0;
 	node.moved = true;
 	node.object = object;
@@ -97,14 +97,13 @@ void Tree::DestroyProxy(I32 proxyID)
 	FreeNode(proxyID);
 }
 
-bool Tree::MoveProxy(I32 proxyID, const Vector2& displacement)
+bool Tree::MoveProxy(I32 proxyID, const Box& box, const Vector2& displacement)
 {
 	ASSERT(0 <= proxyID && proxyID < (I32)nodeCapacity && nodes[proxyID].IsLeaf());
 
-	Box& box = nodes[proxyID].box;
 	Box fatBox;
 	Vector2 r(-boxExtension, boxExtension);
-	fatBox.xBounds = box.xBounds - r;
+	fatBox.xBounds = box.xBounds + r;
 	fatBox.yBounds = box.yBounds + r;
 
 	Vector2 d = displacement * boxMultiplier;
@@ -112,17 +111,18 @@ bool Tree::MoveProxy(I32 proxyID, const Vector2& displacement)
 	fatBox.xBounds += Vector2(-(F32)(d.x < 0.0f), d.x > 0.0f) * d.x;
 	fatBox.yBounds += Vector2(-(F32)(d.y < 0.0f), d.y > 0.0f) * d.y;
 
-	if (box.Contains(box))
+	Box& treeBox = nodes[proxyID].box;
+	if (treeBox.Contains(box))
 	{
 		Box hugeBox;
-		hugeBox.xBounds = box.xBounds - r * 4.0f;
-		hugeBox.yBounds = box.yBounds + r * 4.0f;
+		hugeBox.xBounds = fatBox.xBounds - r * 4.0f;
+		hugeBox.yBounds = fatBox.yBounds + r * 4.0f;
 
-		if (hugeBox.Contains(box)) { return false; }
+		if (hugeBox.Contains(treeBox)) { return false; }
 	}
 
 	RemoveLeaf(proxyID);
-	box = fatBox;
+	treeBox = fatBox;
 
 	InsertLeaf(proxyID);
 	nodes[proxyID].moved = true;

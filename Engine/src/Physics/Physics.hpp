@@ -50,50 +50,6 @@ enum Collider2DType
 	COLLIDER_2D_MAX
 };
 
-struct Collider2D
-{
-	Collider2DType type;
-
-	bool trigger;
-
-	Vector2 xBounds;
-	Vector2 yBounds;
-};
-
-struct PolygonCollider : public Collider2D
-{
-	Vector<Vector2> shape;
-};
-
-struct CircleCollider : public Collider2D
-{
-	Vector2 offset;
-	F64 radius;
-};
-
-struct PhysicsObject2DConfig
-{
-	Collider2DType type;
-	F64 radius;
-	Vector2 offset;
-
-	Vector<Vector2> shape;
-
-	bool trigger;
-	bool kinematic;
-
-	F64 restitution;
-	F64 gravityScale;
-	F64 density;
-	Transform2D* transform;
-};
-
-struct Pair
-{
-	I32 proxyIDA;
-	I32 proxyIDB;
-};
-
 struct Box
 {
 	Vector2 xBounds;
@@ -136,6 +92,51 @@ struct Box
 		yBounds.x = Math::Min(box0.yBounds.x, box1.xBounds.x);
 		yBounds.y = Math::Max(box0.yBounds.y, box1.xBounds.y);
 	}
+
+	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
+};
+
+struct Collider2D
+{
+	Collider2DType type;
+
+	bool trigger;
+
+	Box box;
+};
+
+struct PolygonCollider : public Collider2D
+{
+	Vector<Vector2> shape;
+};
+
+struct CircleCollider : public Collider2D
+{
+	Vector2 offset;
+	F64 radius;
+};
+
+struct PhysicsObject2DConfig
+{
+	Collider2DType type;
+	F64 radius;
+	Vector2 offset;
+
+	Vector<Vector2> shape;
+
+	bool trigger;
+	bool kinematic;
+
+	F64 restitution;
+	F64 gravityScale;
+	F64 density;
+	Transform2D* transform;
+};
+
+struct Pair
+{
+	I32 proxyIDA;
+	I32 proxyIDB;
 };
 
 struct RayCastInput

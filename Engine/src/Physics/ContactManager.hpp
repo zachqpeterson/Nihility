@@ -42,9 +42,11 @@ struct Lookup
 	Lookup() : table{ nullptr }, size{ 0 } {}
 	~Lookup()
 	{
-		for (U64 i = 0; i < size; ++i)
+		Column* c = table;
+		while (c)
 		{
-			table[i].Destroy();
+			c->Destroy();
+			c = c->next;
 		}
 	}
 
@@ -113,7 +115,7 @@ public:
 	void operator delete(void* ptr) { Memory::Free(ptr, sizeof(ContactManager), MEMORY_TAG_DATA_STRUCT); }
 
 	void AddObject(struct PhysicsObject2D* object);
-	void MoveObject(I32 proxyID, const Vector2& displacement);
+	void MoveObject(I32 proxyID, const Box& box, const Vector2& displacement);
 	void FindNewContacts();
 
 	List<struct Contact2D>& Contacts() { return contacts; }

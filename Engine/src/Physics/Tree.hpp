@@ -34,7 +34,7 @@ public:
 
 	I32 CreateProxy(PhysicsObject2D* object);
 	void DestroyProxy(I32 proxyID);
-	bool MoveProxy(I32 proxyID, const Vector2& displacement);
+	bool MoveProxy(I32 proxyID, const Box& box, const Vector2& displacement);
 
 	const Box& GetFatBox(I32 proxyID) const;
 

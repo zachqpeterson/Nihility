@@ -5,7 +5,10 @@
 
 ContactManager::ContactManager() {}
 
-ContactManager::~ContactManager() {}
+ContactManager::~ContactManager()
+{
+	contacts.Destroy();
+}
 
 void ContactManager::AddObject(PhysicsObject2D* object)
 {
@@ -14,9 +17,9 @@ void ContactManager::AddObject(PhysicsObject2D* object)
 	object->proxyID = broadphase.CreateProxy(object);
 }
 
-void ContactManager::MoveObject(I32 proxyID, const Vector2& displacement)
+void ContactManager::MoveObject(I32 proxyID, const Box& box, const Vector2& displacement)
 {
-	broadphase.MoveProxy(proxyID, displacement);
+	broadphase.MoveProxy(proxyID, box, displacement);
 }
 
 void ContactManager::FindNewContacts()
@@ -31,7 +34,9 @@ void ContactManager::PairCallback(struct PhysicsObject2D* objectA, struct Physic
 
 	if (indexA > indexB) { Math::Swap(indexA, indexB); }
 
-	if (objectA == objectB || (objectA->kinematic && objectB->kinematic) || !(objectA->layerMask & objectB->layerMask) || contactLookup.GetSet(indexA, indexB)) { return; }
+	bool b = contactLookup.GetSet(indexA, indexB);
+
+	if (objectA == objectB || (objectA->kinematic && objectB->kinematic) || !(objectA->layerMask & objectB->layerMask) || b) { return; }
 
 	Contact2D contact{ objectA, objectB };
 	contacts.PushBack(contact);

@@ -71,7 +71,7 @@ void Physics::Update(F64 step)
 			if (!move.IsZero())
 			{
 				newContacts = true;
-				contactManager->MoveObject(obj.proxyID, move);
+				contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, move);
 			}
 
 			obj.oneTimeVelocity = Vector2::ZERO;
@@ -113,21 +113,24 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		collider->shape = config.shape;
 		for (Vector2& point : collider->shape) { point += config.transform->Position(); }
 
-		collider->xBounds = { F32_MAX, -F32_MAX };
-		collider->yBounds = { F32_MAX, -F32_MAX };
+		Box box;
+
+		box.xBounds = { F32_MAX, -F32_MAX };
+		box.yBounds = { F32_MAX, -F32_MAX };
 
 		Vector2& lastPoint = config.shape.Back();
 		for (Vector2& point : config.shape)
 		{
-			collider->xBounds.x = Math::Min(collider->xBounds.x, point.x);
-			collider->xBounds.y = Math::Max(collider->xBounds.y, point.x);
-			collider->yBounds.x = Math::Min(collider->yBounds.x, point.y);
-			collider->yBounds.y = Math::Max(collider->yBounds.y, point.y);
+			box.xBounds.x = Math::Min(box.xBounds.x, point.x);
+			box.xBounds.y = Math::Max(box.xBounds.y, point.x);
+			box.yBounds.x = Math::Min(box.yBounds.x, point.y);
+			box.yBounds.y = Math::Max(box.yBounds.y, point.y);
 
 			po->area += (lastPoint.x + point.x) * (lastPoint.y + point.y);
 			lastPoint = point;
 		}
 
+		collider->box = box;
 		po->collider = collider;
 
 		po->area = Math::Abs(po->area * 0.5f);
@@ -137,8 +140,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_DATA_STRUCT);
 		collider->type = CIRCLE_COLLIDER;
 		collider->radius = config.radius;
-		collider->xBounds = { config.offset.x - (F32)config.radius, config.offset.x + (F32)config.radius };
-		collider->yBounds = { config.offset.y - (F32)config.radius, config.offset.y + (F32)config.radius };
+		collider->box.xBounds = { config.offset.x - (F32)config.radius, config.offset.x + (F32)config.radius };
+		collider->box.yBounds = { config.offset.y - (F32)config.radius, config.offset.y + (F32)config.radius };
 		po->collider = collider;
 		po->dragCoefficient = 1.17;
 
@@ -290,9 +293,9 @@ bool Physics::PolygonVsCircle(Contact2D& c)
 	Vector2 aPos = a->transform->Position();
 	Vector2 bPos = b->transform->Position();
 
-	Vector2 closestPoint = bPos + (aPos - bPos).Clamped(aCollider->xBounds, aCollider->yBounds);
-	Vector2 checkX = aCollider->xBounds + aPos.x;
-	Vector2 checkY = aCollider->yBounds + aPos.y;
+	Vector2 closestPoint = bPos + (aPos - bPos).Clamped(aCollider->box.xBounds, aCollider->box.yBounds);
+	Vector2 checkX = aCollider->box.xBounds + aPos.x;
+	Vector2 checkY = aCollider->box.yBounds + aPos.y;
 
 	if ((closestPoint.x < checkX.y && closestPoint.x > checkX.x) &&
 		(closestPoint.y < checkY.y && closestPoint.y > checkY.x))
@@ -334,13 +337,13 @@ bool Physics::CircleVsPolygon(Contact2D& c)
 
 	Vector2 n = b->transform->Position() - a->transform->Position();
 
-	F32 xExtent = (bCollider->xBounds.y - bCollider->xBounds.x) * 0.5f;
+	F32 xExtent = (bCollider->box.xBounds.y - bCollider->box.xBounds.x) * 0.5f;
 
 	F32 xOverlap = (F32)aCollider->radius + xExtent - Math::Abs(n.x);
 
 	if (xOverlap > 0.0f)
 	{
-		F32 yExtent = (bCollider->yBounds.y - bCollider->yBounds.x) * 0.5f;
+		F32 yExtent = (bCollider->box.yBounds.y - bCollider->box.yBounds.x) * 0.5f;
 
 		F32 yOverlap = (F32)aCollider->radius + yExtent - Math::Abs(n.y);
 

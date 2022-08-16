@@ -19,9 +19,9 @@ void Broadphase::DestroyProxy(I32 proxyID)
 	tree.DestroyProxy(proxyID);
 }
 
-void Broadphase::MoveProxy(I32 proxyID, const Vector2& displacement)
+void Broadphase::MoveProxy(I32 proxyID, const Box& box, const Vector2& displacement)
 {
-	if (tree.MoveProxy(proxyID, displacement))
+	if (tree.MoveProxy(proxyID, box, displacement))
 	{
 		BufferMove(proxyID);
 	}
