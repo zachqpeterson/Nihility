@@ -115,7 +115,7 @@ bool Tree::MoveProxy(I32 proxyID, const Box& box, const Vector2& displacement)
 	if (treeBox.Contains(box))
 	{
 		Box hugeBox;
-		hugeBox.xBounds = fatBox.xBounds - r * 4.0f;
+		hugeBox.xBounds = fatBox.xBounds + r * 4.0f;
 		hugeBox.yBounds = fatBox.yBounds + r * 4.0f;
 
 		if (hugeBox.Contains(treeBox)) { return false; }

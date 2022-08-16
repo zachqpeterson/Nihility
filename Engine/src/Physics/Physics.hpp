@@ -166,6 +166,7 @@ struct PhysicsObject2D
 	void ApplyForce(const Vector2& f) { force += f; }
 	void ApplyTorque(F64 t) { torque += t; }
 	void AddVelocity(const Vector2& v) { velocity += v; }
+	void Translate(const Vector2& v) { oneTimeVelocity += v; transform->Translate(v); }
 	void AddAngularVelocity(F64 v) { angularVelocity += v; }
 	void SetGravityScale(F64 s) { gravityScale = s; }
 

@@ -60,8 +60,8 @@ void Physics::Update(F64 step)
 			obj.velocity += -obj.velocity.Normalized() * obj.velocity.SqrMagnitude() * (F32)(obj.dragCoefficient * obj.area * 0.5 * airDensity * step);
 
 			obj.prevPosition = obj.transform->Position();
+			obj.transform->Translate(obj.velocity);
 			Vector2 move = obj.velocity + obj.oneTimeVelocity;
-			obj.transform->Translate(move);
 
 			if (obj.collider->type == POLYGON_COLLIDER && !move.IsZero())
 			{
@@ -270,7 +270,7 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 		Vector2 p = Support(aShape, bShape, e.normal);
 		F32 dist = Math::Abs(e.normal.Dot(p));
 
-		if (dist - e.distance < 0.01f)
+		if (dist - e.distance < 0.001f)
 		{
 			c.normal = e.normal;
 			c.penetration = e.distance;
@@ -389,7 +389,9 @@ void Physics::ResolveCollision(Contact2D& c)
 	F64 slop = 0.001;
 	Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
 	a->oneTimeVelocity -= correction * (F32)a->massInv;
+	a->transform->Translate(-correction * (F32)a->massInv);
 	b->oneTimeVelocity += correction * (F32)b->massInv;
+	b->transform->Translate(correction * (F32)b->massInv);
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)
@@ -462,7 +464,7 @@ Edge Physics::ClosestEdge(const List<Vector2>& simplex)
 		Vector2 n = TripleProduct(e, a, e).Normalized();
 		F32 d = n.Dot(a);
 
-		if (d < closest.distance)
+		if (d < closest.distance && a != b)
 		{
 			closest.distance = d;
 			closest.normal = n;

@@ -14,7 +14,7 @@
 #include <Physics/Physics.hpp>
 
 Scene* scene;
-//GameObject2D* player;
+GameObject2D* player;
 Model* model;
 
 void spawnObj(const Vector2& position)
@@ -217,6 +217,31 @@ bool init()
 		scene->DrawGameObject(gameObject);
 	}
 
+	String name("player");
+	Transform2D* transform = new Transform2D();
+	PhysicsObject2DConfig poConfig{};
+	poConfig.density = 1.0;
+	poConfig.gravityScale = 1.0;
+	poConfig.kinematic = false;
+	poConfig.restitution = 0.0;
+	poConfig.transform = transform;
+	poConfig.trigger = false;
+	poConfig.type = POLYGON_COLLIDER;
+	poConfig.radius = 0.5;
+	poConfig.shape.Reserve(4);
+	poConfig.shape.Push({ -0.5f, -0.5f });
+	poConfig.shape.Push({ -0.5f,  0.5f });
+	poConfig.shape.Push({ 0.5f,  0.5f });
+	poConfig.shape.Push({ 0.5f, -0.5f });
+
+	GameObject2DConfig goConfig{};
+	goConfig.name = name;
+	goConfig.transform = transform;
+	goConfig.model = model;
+	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+	player = Resources::CreateGameObject2D(goConfig);
+	scene->DrawGameObject(player);
+
 	//PANEL
 	UIElementConfig panelCfg{};
 	panelCfg.area = { 0.01f, 0.02f, 0.41f, 0.28f };
@@ -271,7 +296,9 @@ bool init()
 bool update()
 {
 	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
-	move *= (F32)(Time::DeltaTime() * 0.5);
+	move *= (F32)(Time::DeltaTime());
+
+	player->physics->Translate(move);
 
 	if (Input::OnButtonDown(LBUTTON))
 	{
