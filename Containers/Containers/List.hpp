@@ -246,8 +246,8 @@ public:
 			node = node->next;
 		}
 
-		node->prev = node->next;
-		node->next = node->prev;
+		if (node->prev) { node->prev->next = node->next; }
+		if (node->next) { node->next->prev = node->prev; }
 
 		T value = node->value;
 

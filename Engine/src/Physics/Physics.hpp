@@ -70,14 +70,26 @@ struct Box
 		return b.xBounds.x <= xBounds.y && b.xBounds.y >= xBounds.x && b.yBounds.x <= yBounds.y && b.yBounds.y >= yBounds.x;
 	}
 
-	F32 GetPerimeter() const
+	bool Contains(const Vector2& point)
+	{
+		return point.x >= xBounds.x && point.x <= xBounds.y && point.y >= yBounds.x && point.y <= yBounds.y;
+	}
+
+	F32 Perimeter() const
 	{
 		F32 wx = xBounds.y - xBounds.x;
 		F32 wy = yBounds.y - yBounds.x;
 		return 2.0f * (wx + wy);
 	}
 
-	void Combine(const Box& box)
+	F32 Area() const
+	{
+		F32 wx = xBounds.y - xBounds.x;
+		F32 wy = yBounds.y - yBounds.x;
+		return wx * wy;
+	}
+
+	void Merge(const Box& box)
 	{
 		xBounds.x = Math::Min(xBounds.x, box.xBounds.x);
 		xBounds.y = Math::Max(xBounds.y, box.xBounds.y);
@@ -85,12 +97,24 @@ struct Box
 		yBounds.y = Math::Max(yBounds.y, box.xBounds.y);
 	}
 
-	void Combine(const Box& box0, const Box& box1)
+	Box Merged(const Box& box) const
+	{
+		return { {Math::Min(xBounds.x, box.xBounds.x), Math::Max(xBounds.y, box.xBounds.y)},
+			{Math::Min(yBounds.x, box.xBounds.x), Math::Max(yBounds.y, box.xBounds.y)} };
+	}
+
+	void Merge(const Box& box0, const Box& box1)
 	{
 		xBounds.x = Math::Min(box0.xBounds.x, box1.xBounds.x);
 		xBounds.y = Math::Max(box0.xBounds.y, box1.xBounds.y);
 		yBounds.x = Math::Min(box0.yBounds.x, box1.xBounds.x);
 		yBounds.y = Math::Max(box0.yBounds.y, box1.xBounds.y);
+	}
+
+	Box Merged(const Box& box0, const Box& box1) const
+	{
+		return { {Math::Min(box0.xBounds.x, box1.xBounds.x), Math::Max(box0.xBounds.y, box1.xBounds.y)},
+			{Math::Min(box0.yBounds.x, box1.xBounds.x), Math::Max(box0.yBounds.y, box1.xBounds.y)} };
 	}
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
@@ -229,6 +253,7 @@ public:
 	friend class ContactManager;
 	friend class Broadphase;
 	friend struct Tree;
+	friend struct BAH;
 };
 
 class NH_API Physics

@@ -27,8 +27,9 @@ struct Lookup
 		bool GetSet(U64 i) const
 		{
 			U8 mask = 1 << (i % 8);
-			bool b = data[i >> 3];
-			data[i >> 3] |= mask;
+			U8& bit = data[i >> 3];
+			bool b = bit & mask;
+			bit |= mask;
 			return b;
 		}
 

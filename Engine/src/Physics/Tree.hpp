@@ -93,10 +93,7 @@ NH_INLINE void Tree::Query(T* callback, const Box& box) const
 		{
 			if (node->IsLeaf())
 			{
-				if (!callback->QueryCallback(nodeID))
-				{
-					return;
-				}
+				if (!callback->QueryCallback(nodeID)) { return; }
 			}
 			else
 			{

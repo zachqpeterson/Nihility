@@ -148,11 +148,11 @@ void Tree::InsertLeaf(I32 leaf)
 		I32 left = nodes[index].left;
 		I32 right = nodes[index].right;
 
-		F32 area = nodes[index].box.GetPerimeter();
+		F32 area = nodes[index].box.Perimeter();
 
 		Box combinedAABB;
-		combinedAABB.Combine(nodes[index].box, leafBox);
-		F32 combinedArea = combinedAABB.GetPerimeter();
+		combinedAABB.Merge(nodes[index].box, leafBox);
+		F32 combinedArea = combinedAABB.Perimeter();
 
 		F32 cost = 2.0f * combinedArea;
 
@@ -162,15 +162,15 @@ void Tree::InsertLeaf(I32 leaf)
 		if (nodes[left].IsLeaf())
 		{
 			Box box;
-			box.Combine(leafBox, nodes[left].box);
-			leftCost = box.GetPerimeter() + inheritanceCost;
+			box.Merge(leafBox, nodes[left].box);
+			leftCost = box.Perimeter() + inheritanceCost;
 		}
 		else
 		{
 			Box box;
-			box.Combine(leafBox, nodes[left].box);
-			F32 oldArea = nodes[left].box.GetPerimeter();
-			F32 newArea = box.GetPerimeter();
+			box.Merge(leafBox, nodes[left].box);
+			F32 oldArea = nodes[left].box.Perimeter();
+			F32 newArea = box.Perimeter();
 			leftCost = (newArea - oldArea) + inheritanceCost;
 		}
 
@@ -178,15 +178,15 @@ void Tree::InsertLeaf(I32 leaf)
 		if (nodes[right].IsLeaf())
 		{
 			Box box;
-			box.Combine(leafBox, nodes[right].box);
-			rightCost = box.GetPerimeter() + inheritanceCost;
+			box.Merge(leafBox, nodes[right].box);
+			rightCost = box.Perimeter() + inheritanceCost;
 		}
 		else
 		{
 			Box box;
-			box.Combine(leafBox, nodes[right].box);
-			F32 oldArea = nodes[right].box.GetPerimeter();
-			F32 newArea = box.GetPerimeter();
+			box.Merge(leafBox, nodes[right].box);
+			F32 oldArea = nodes[right].box.Perimeter();
+			F32 newArea = box.Perimeter();
 			rightCost = newArea - oldArea + inheritanceCost;
 		}
 
@@ -200,7 +200,7 @@ void Tree::InsertLeaf(I32 leaf)
 	I32 oldParent = nodes[sibling].parent;
 	I32 newParent = AllocateNode();
 	nodes[newParent].parent = oldParent;
-	nodes[newParent].box.Combine(leafBox, nodes[sibling].box);
+	nodes[newParent].box.Merge(leafBox, nodes[sibling].box);
 	nodes[newParent].height = nodes[sibling].height + 1;
 
 	if (oldParent != NULL_NODE)
@@ -233,7 +233,7 @@ void Tree::InsertLeaf(I32 leaf)
 		ASSERT(left != NULL_NODE && right != NULL_NODE);
 
 		nodes[index].height = 1 + Math::Max(nodes[left].height, nodes[right].height);
-		nodes[index].box.Combine(nodes[left].box, nodes[right].box);
+		nodes[index].box.Merge(nodes[left].box, nodes[right].box);
 
 		index = nodes[index].parent;
 	}
@@ -268,7 +268,7 @@ void Tree::RemoveLeaf(I32 leaf)
 			I32 left = nodes[index].left;
 			I32 right = nodes[index].right;
 
-			nodes[index].box.Combine(nodes[left].box, nodes[right].box);
+			nodes[index].box.Merge(nodes[left].box, nodes[right].box);
 			nodes[index].height = 1 + Math::Max(nodes[left].height, nodes[right].height);
 
 			index = nodes[index].parent;
@@ -319,15 +319,18 @@ I32 Tree::Balance(I32 iA)
 				nodes[C->parent].right = iC;
 			}
 		}
-		else { root = iC; }
+		else 
+		{ 
+			root = iC; 
+		}
 
 		if (F->height > G->height)
 		{
 			C->right = iF;
 			A->right = iG;
 			G->parent = iA;
-			A->box.Combine(B->box, G->box);
-			C->box.Combine(A->box, F->box);
+			A->box.Merge(B->box, G->box);
+			C->box.Merge(A->box, F->box);
 
 			A->height = 1 + Math::Max(B->height, G->height);
 			C->height = 1 + Math::Max(A->height, F->height);
@@ -337,8 +340,8 @@ I32 Tree::Balance(I32 iA)
 			C->right = iG;
 			A->right = iF;
 			F->parent = iA;
-			A->box.Combine(B->box, F->box);
-			C->box.Combine(A->box, G->box);
+			A->box.Merge(B->box, F->box);
+			C->box.Merge(A->box, G->box);
 
 			A->height = 1 + Math::Max(B->height, F->height);
 			C->height = 1 + Math::Max(A->height, G->height);
@@ -368,15 +371,18 @@ I32 Tree::Balance(I32 iA)
 				nodes[B->parent].right = iB;
 			}
 		}
-		else { root = iB; }
+		else 
+		{ 
+			root = iB; 
+		}
 
 		if (D->height > E->height)
 		{
 			B->right = iD;
 			A->left = iE;
 			E->parent = iA;
-			A->box.Combine(C->box, E->box);
-			B->box.Combine(A->box, D->box);
+			A->box.Merge(C->box, E->box);
+			B->box.Merge(A->box, D->box);
 
 			A->height = 1 + Math::Max(C->height, E->height);
 			B->height = 1 + Math::Max(A->height, D->height);
@@ -386,8 +392,8 @@ I32 Tree::Balance(I32 iA)
 			B->right = iE;
 			A->left = iD;
 			D->parent = iA;
-			A->box.Combine(C->box, D->box);
-			B->box.Combine(A->box, E->box);
+			A->box.Merge(C->box, D->box);
+			B->box.Merge(A->box, E->box);
 
 			A->height = 1 + Math::Max(C->height, D->height);
 			B->height = 1 + Math::Max(A->height, E->height);
@@ -441,14 +447,14 @@ F32 Tree::GetAreaRatio() const
 	if (root == NULL_NODE) { return 0.0f; }
 
 	const Node* r = nodes + root;
-	F32 rootArea = r->box.GetPerimeter();
+	F32 rootArea = r->box.Perimeter();
 
 	F32 totalArea = 0.0f;
 	for (U32 i = 0; i < nodeCapacity; ++i)
 	{
 		const Node* node = nodes + i;
 		if (node->height < 0) { continue; }
-		totalArea += node->box.GetPerimeter();
+		totalArea += node->box.Perimeter();
 	}
 
 	return totalArea / rootArea;
