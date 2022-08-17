@@ -219,6 +219,7 @@ bool init()
 
 	String name("player");
 	Transform2D* transform = new Transform2D();
+	transform->Translate({6.1f, -8.3f});
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
 	poConfig.gravityScale = 1.0;
@@ -296,7 +297,7 @@ bool init()
 bool update()
 {
 	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
-	move *= (F32)(Time::DeltaTime());
+	move *= (F32)(Time::DeltaTime() * 3.0);
 
 	player->physics->Translate(move);
 
