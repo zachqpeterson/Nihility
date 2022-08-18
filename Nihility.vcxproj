@@ -97,6 +97,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Engine\src\Audio\Audio.hpp" />
+    <ClInclude Include="Engine\src\Containers\BoolTable.hpp" />
     <ClInclude Include="Engine\src\Containers\Freelist.hpp" />
     <ClInclude Include="Engine\src\Containers\Heap.hpp" />
     <ClInclude Include="Engine\src\Containers\String.hpp" />

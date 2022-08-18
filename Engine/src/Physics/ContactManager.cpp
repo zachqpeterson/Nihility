@@ -13,6 +13,7 @@ ContactManager::~ContactManager()
 void ContactManager::AddObject(PhysicsObject2D* object)
 {
 	contactLookup.Expand();
+	contactLookup.Reset();
 
 	object->proxyID = broadphase.CreateProxy(object);
 }

@@ -4,7 +4,7 @@
 
 #include <Containers/Vector.hpp>
 
-#include "Core/Time.hpp"
+//#include "Core/Time.hpp"
 
 List<PhysicsObject2D*> Physics::physicsObjects2D;
 List<PhysicsObject3D*> Physics::physicsObjects3D;
@@ -65,7 +65,7 @@ void Physics::Update(F64 step)
 
 			if (obj.collider->type == POLYGON_COLLIDER && !move.IsZero())
 			{
-				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape) { point += move; }
+				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape.vertices) { point += move; }
 			}
 
 			if (!move.IsZero())
@@ -110,8 +110,9 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_DATA_STRUCT);
 		collider->type = POLYGON_COLLIDER;
 
-		collider->shape = config.shape;
-		for (Vector2& point : collider->shape) { point += config.transform->Position(); }
+		collider->shape.vertices = config.shape;
+		//TODO: generate normals
+		for (Vector2& point : collider->shape.vertices) { point += config.transform->Position(); }
 
 		Box box;
 
@@ -245,20 +246,35 @@ bool Physics::CircleVsCircle(Contact2D& c)
 
 bool Physics::PolygonVsPolygon(Contact2D& c)
 {
-	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
-	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
+	Shape& aShape = ((PolygonCollider*)c.a->collider)->shape;
+	Shape& bShape = ((PolygonCollider*)c.b->collider)->shape;
 
-	List<Vector2> simplex;
+	if (GJK(c))
+	{
+		c.count = 0;
+
+		F32 separation = -FLOAT_EPSILON;
+		U32 index = U32_MAX;
+
+		for (U32 i = 0; i < aShape.vertices.Size(); ++i)
+		{
+
+		}
+	}
+
+	//----------------OLD----------------
+
+	/*List<Vector2> simplex;
 
 	Vector2 direction = c.b->transform->Position() - c.a->transform->Position();
 
-	simplex.PushBack(Support(aShape, bShape, direction));
+	simplex.PushBack(FindSupport(aShape, bShape, direction));
 
 	direction = -direction;
 
 	while (true)
 	{
-		simplex.PushBack(Support(aShape, bShape, direction));
+		simplex.PushBack(FindSupport(aShape, bShape, direction));
 
 		if (simplex.Back().Dot(direction) <= 0.0f) { return false; }
 		if (ContainsOrigin(simplex, direction)) { break; }
@@ -267,7 +283,7 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 	while (true)
 	{
 		Edge e = ClosestEdge(simplex);
-		Vector2 p = Support(aShape, bShape, e.normal);
+		Vector2 p = FindSupport(aShape, bShape, e.normal);
 		F32 dist = Math::Abs(e.normal.Dot(p));
 
 		if (dist - e.distance < 0.001f)
@@ -281,7 +297,121 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 			simplex.Insert(p, e.index);
 		}
 		else { return false; }
+	}*/
+}
+
+F32 Physics::GJK(Contact2D& c)
+{
+	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
+	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
+
+	Simplex s;
+	Support* verts = &s.a;
+	//TODO: Don't do this with cached info
+	s.a.iA = 0;
+	s.a.iB = 0;
+	s.a.sA = aShape.Front();
+	s.a.sB = bShape.Front();
+	s.a.p = s.a.sB - s.a.sA;
+	s.a.u = 1.0f;
+	s.div = 1.0f;
+	s.count = 1;
+
+	I32 saveA[3], saveB[3];
+	I32 save_count = 0;
+	F32 d0 = F32_MAX;
+	F32 d1 = F32_MAX;
+	I32 iter = 0;
+	I32 hit = 0;
+
+	bool dup = false;
+	while (iter < 20 && !dup)
+	{
+		save_count = s.count;
+		for (I32 i = 0; i < save_count; ++i)
+		{
+			saveA[i] = verts[i].iA;
+			saveB[i] = verts[i].iB;
+		}
+
+		switch (save_count)
+		{
+		case 3: break;	//Triangle case
+		case 2: break;	//Line case
+		case 1:			//Point case
+		default: break;
+		}
+
+		if (s.count == 3)
+		{
+			hit = 1;
+			break;
+		}
+
+		Vector2 p = GetDistance(s);
+		d1 = p.SqrMagnitude();
+
+		if (d1 > d0) { break; }
+		d0 = d1;
+
+		Vector2 d = GetDirection(s);
+		if (d.SqrMagnitude() < FLOAT_EPSILON * FLOAT_EPSILON) { break; }
+
+		//TODO: Apply rotation to direction
+		I32 iA = GetSupport(aShape, -d);
+		Vector2 sA = aShape[iA];
+		I32 iB = GetSupport(bShape, d);
+		Vector2 sB = bShape[iB];
+
+		++iter;
+
+		for (int i = 0; i < save_count && !dup; ++i)
+		{
+			dup = iA == saveA[i] && iB == saveB[i];
+		}
+
+		Support* v = verts + s.count;
+		v->iA = iA;
+		v->sA = sA;
+		v->iB = iB;
+		v->sB = sB;
+		v->p = v->sB - v->sA;
+		++s.count;
 	}
+
+	Vector2 a, b;
+	Witness(s, a, b);
+	F32 dist = (a - b).Magnitude();
+
+	if (hit)
+	{
+		a = b;
+		dist = 0;
+	}
+
+	// Use Radius
+	F32 rA = 0.0f;
+	F32 rB = 0.0f;
+
+	if (dist > rA + rB && dist > FLOAT_EPSILON)
+	{
+		dist -= rA + rB;
+		Vector2 n = (b - a).Normalized();
+		a += n * rA;
+		b -= n * rB;
+	}
+	else
+	{
+		Vector2 p = (a + b) * 0.5f;
+		a = p;
+		b = p;
+		dist = 0;
+	}
+	// End Use Radius
+
+	//TODO: cache stuff
+
+	return dist;
 }
 
 bool Physics::PolygonVsCircle(Contact2D& c)
@@ -477,7 +607,7 @@ Edge Physics::ClosestEdge(const List<Vector2>& simplex)
 	return closest;
 }
 
-Vector2 Physics::Support(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction)
+Vector2 Physics::FindSupport(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction)
 {
 	return FarthestPoint(shape0, direction) - FarthestPoint(shape1, -direction);
 }
@@ -486,4 +616,66 @@ Vector2 Physics::TripleProduct(const Vector2& a, const Vector2& b, const Vector2
 {
 	F32 z = a.x * b.y - a.y * b.x;
 	return { -c.y * z, c.x * z };
+}
+
+#define BARY(n, x)	s.n.x * (den * s.n.u)
+#define BARY2(x)	BARY(a, x) + BARY(b, x)
+#define BARY3(x)	BARY(a, x) + BARY(b, x) + BARY(c, x)
+
+Vector2 GetDistance(const Simplex& s)
+{
+	F32 den = 1.0f / s.div;
+	switch (s.count)
+	{
+	case 1: return s.a.p;
+	case 2: return BARY2(p);
+	case 3: return BARY3(p);
+	default: return Vector2::ZERO;
+	}
+}
+
+Vector2 GetDirection(const Simplex& s)
+{
+	switch (s.count)
+	{
+	case 1: return -s.a.p;
+	case 2:
+	{
+		Vector2 ab = s.b.p - s.a.p;
+		if (ab.Determinant(-s.a.p) > 0.0f) { return ab.Skewed(); }
+		return ab.Skewed90();
+	}
+	case 3:
+	default: return Vector2::ZERO;
+	}
+}
+
+void Witness(const Simplex& s, Vector2& a, Vector2& b)
+{
+	F32 den = 1.0f / s.div;
+	switch (s.count)
+	{
+	case 1:		a = s.a.sA;			b = s.a.sB;			break;
+	case 2:		a = BARY2(sA);		b = BARY2(sB);		break;
+	case 3:		a = BARY3(sA);		b = BARY3(sB);		break;
+	default:	a = Vector2::ZERO;	b = Vector2::ZERO;	break;
+	}
+}
+
+U32 GetSupport(const Vector<Vector2>& verts, const Vector2& d)
+{
+	U32 imax = 0;
+	F32 dmax = verts[0].Dot(d);
+
+	for (U32 i = 1; i < verts.Size(); ++i)
+	{
+		F32 dot = verts[i].Dot(d);
+		if (dot > dmax)
+		{
+			imax = i;
+			dmax = dot;
+		}
+	}
+
+	return imax;
 }

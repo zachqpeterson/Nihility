@@ -46,6 +46,7 @@ enum Collider2DType
 {
 	POLYGON_COLLIDER,
 	CIRCLE_COLLIDER,
+	CAPSULE_COLLIDER,
 
 	COLLIDER_2D_MAX
 };
@@ -120,6 +121,12 @@ struct Box
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
 };
 
+struct Shape
+{
+	Vector<Vector2> vertices;
+	Vector<Vector2> normals;
+};
+
 struct Collider2D
 {
 	Collider2DType type;
@@ -131,7 +138,7 @@ struct Collider2D
 
 struct PolygonCollider : public Collider2D
 {
-	Vector<Vector2> shape;
+	Shape shape;
 };
 
 struct CircleCollider : public Collider2D
@@ -169,11 +176,30 @@ struct RayCastInput
 	F32 maxFraction;
 };
 
+struct Support
+{
+	Vector2 sA;
+	Vector2 sB;
+	Vector2 p;
+	I32 iA;
+	I32 iB;
+	F32 u;
+};
+
 struct Simplex
 {
-	Vector2 a;
-	Vector2 b;
-	Vector2 c;
+	Support a;
+	Support b;
+	Support c;
+	Support d;
+	I32 count;
+	F32 div;
+};
+
+struct HalfSpace
+{
+	Vector2 normal;
+	F32 distance;
 };
 
 struct Edge
@@ -283,10 +309,11 @@ private:
 	static bool CircleVsPolygon(Contact2D& c);
 	static void ResolveCollision(Contact2D& c);
 
+	static F32 GJK(Contact2D& c);
 	static bool ContainsOrigin(List<Vector2>& simplex, Vector2& direction);
 	static Vector2 FarthestPoint(const Vector<Vector2>& shape, const Vector2& direction);
 	static Edge ClosestEdge(const List<Vector2>& simplex);
-	static Vector2 Support(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction);
+	static Vector2 FindSupport(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction);
 	static Vector2 TripleProduct(const Vector2& a, const Vector2& b, const Vector2& c);
 
 	static List<PhysicsObject2D*> physicsObjects2D;

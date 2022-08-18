@@ -18,7 +18,9 @@
 #define SEC_TO_MS_MULTIPLIER 1000.0
 #define MS_TO_SEC_MULTIPLIER 0.001
 #define FLOAT_EPSILON 1.192092896e-07F
+#define FLOAT_EPSILON_SQR FLOAT_EPSILON * FLOAT_EPSILON
 #define DOUBLE_EPSILON 2.22045e-16
+#define DOUBLE_EPSILON_SQR DOUBLE_EPSILON * DOUBLE_EPSILON
 #define LONG_DOUBLE_EPSILON 1.0842e-19
 
 struct Vector2;
@@ -261,6 +263,11 @@ struct NH_API Vector2
 	NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
 	NH_INLINE F32 Cross(const Vector2& v) const { return v.x * x - v.y * y; }
 	NH_INLINE Vector2 Cross(const F32 f) const { return { y * f, x * -f }; }
+	NH_INLINE F32 Determinant(const Vector2& v) const { return { x * v.y - y * v.x }; }
+	NH_INLINE Vector2& Skew() { F32 t = x; x = -y; y = t; return *this; }
+	NH_INLINE Vector2 Skewed() const { return { -y, x }; }
+	NH_INLINE Vector2& Skew90() { F32 t = x; x = y; y = -t; return *this; }
+	NH_INLINE Vector2 Skewed90() const { return { y, -x }; }
 	NH_INLINE void Rotate(const Vector2& center, F32 angle)
 	{
 		F32 cos = Math::Cos(angle);
