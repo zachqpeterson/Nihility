@@ -183,7 +183,7 @@ struct Support
 	Vector2 p;
 	I32 iA;
 	I32 iB;
-	F32 u;
+	F32 u{ 0.0f };
 };
 
 struct Simplex
@@ -200,6 +200,8 @@ struct HalfSpace
 {
 	Vector2 normal;
 	F32 distance;
+
+	F32 Distance(const Vector2& v) const { return normal.Dot(v) - distance; }
 };
 
 struct Edge
@@ -315,10 +317,22 @@ private:
 	static Edge ClosestEdge(const List<Vector2>& simplex);
 	static Vector2 FindSupport(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction);
 	static Vector2 TripleProduct(const Vector2& a, const Vector2& b, const Vector2& c);
+	static void LineCase(Simplex& s);
+	static void TriangleCase(Simplex& s);
+	static Vector2 GetDistance(const Simplex& s);
+	static Vector2 GetDirection(const Simplex& s);
+	static void Witness(const Simplex& s, Vector2& a, Vector2& b);
+	static U32 GetSupport(const Vector<Vector2>& verts, const Vector2& d);
+	static F32 CheckFaces(const Shape& a, const Shape& b, I32& faceIndex);
+	static HalfSpace PlaneAt(const Shape& s, I32 i);
+	static void Incident(Vector2* incident, const Shape* ip, const Shape* rp, I32 re);
+	static I32 SidePlanes(Vector2* seg, const Shape* p, I32 e, HalfSpace& h);
+	static I32 Clip(Vector2* seg, const HalfSpace& h);
+	static void KeepDeep(Vector2* seg, HalfSpace h, Contact2D& c);
 
 	static List<PhysicsObject2D*> physicsObjects2D;
 	static List<PhysicsObject3D*> physicsObjects3D;
-	
+
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
 	static class ContactManager* contactManager;

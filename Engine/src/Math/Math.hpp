@@ -268,6 +268,7 @@ struct NH_API Vector2
 	NH_INLINE Vector2 Skewed() const { return { -y, x }; }
 	NH_INLINE Vector2& Skew90() { F32 t = x; x = y; y = -t; return *this; }
 	NH_INLINE Vector2 Skewed90() const { return { y, -x }; }
+	NH_INLINE Vector2 Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x - x).Normalized(); }
 	NH_INLINE void Rotate(const Vector2& center, F32 angle)
 	{
 		F32 cos = Math::Cos(angle);

@@ -119,22 +119,25 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		box.xBounds = { F32_MAX, -F32_MAX };
 		box.yBounds = { F32_MAX, -F32_MAX };
 
-		Vector2& lastPoint = config.shape.Back();
+		auto next = config.shape.begin() + 1;
 		for (Vector2& point : config.shape)
 		{
+			Vector2 nextPoint = *next;
+
 			box.xBounds.x = Math::Min(box.xBounds.x, point.x);
 			box.xBounds.y = Math::Max(box.xBounds.y, point.x);
 			box.yBounds.x = Math::Min(box.yBounds.x, point.y);
 			box.yBounds.y = Math::Max(box.yBounds.y, point.y);
 
-			po->area += (lastPoint.x + point.x) * (lastPoint.y + point.y);
-			lastPoint = point;
+			//TODO: Compute area
+			collider->shape.normals.Push(point.Normal(nextPoint));
+			if (++next == config.shape.end()) { next = config.shape.begin(); }
 		}
 
 		collider->box = box;
 		po->collider = collider;
 
-		po->area = Math::Abs(po->area * 0.5f);
+		po->area = 1.0;
 		po->dragCoefficient = 1.0;
 	} break;
 	case CIRCLE_COLLIDER: {
@@ -232,12 +235,12 @@ bool Physics::CircleVsCircle(Contact2D& c)
 
 	if (distance != 0.0f)
 	{
-		c.penetration = radius - distance;
+		//c.penetration = radius - distance;
 		c.normal = direction / distance;
 	}
 	else
 	{
-		c.penetration = aCollider->radius;
+		//c.penetration = aCollider->radius;
 		c.normal = Vector2::RIGHT;
 	}
 
@@ -249,18 +252,44 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 	Shape& aShape = ((PolygonCollider*)c.a->collider)->shape;
 	Shape& bShape = ((PolygonCollider*)c.b->collider)->shape;
 
-	if (GJK(c))
+	if (GJK(c) < FLOAT_EPSILON)
 	{
 		c.count = 0;
+		I32 ea, eb;
+		F32 sa, sb;
+		if ((sa = CheckFaces(aShape, bShape, ea)) >= 0) { return false; }
+		if ((sb = CheckFaces(bShape, aShape, eb)) >= 0) { return false; }
 
-		F32 separation = -FLOAT_EPSILON;
-		U32 index = U32_MAX;
-
-		for (U32 i = 0; i < aShape.vertices.Size(); ++i)
+		const Shape* rp, * ip;
+		I32 re;
+		F32 kRelTol = 0.95f, kAbsTol = 0.01f;
+		bool flip;
+		if (sa * kRelTol > sb + kAbsTol)
 		{
-
+			rp = &aShape;
+			ip = &bShape;
+			re = ea;
+			flip = false;
 		}
+		else
+		{
+			rp = &bShape;
+			ip = &aShape;
+			re = eb;
+			flip = true;
+		}
+
+		Vector2 incident[2];
+		Incident(incident, ip, rp, re);
+		HalfSpace rh;
+		if (!SidePlanes(incident, rp, re, rh)) { return false; }
+		KeepDeep(incident, rh, c);
+		if (flip) { c.normal = -c.normal; }
+
+		return true;
 	}
+
+	return false;
 
 	//----------------OLD----------------
 
@@ -302,16 +331,16 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 
 F32 Physics::GJK(Contact2D& c)
 {
-	Vector<Vector2>& aShape = ((PolygonCollider*)c.a->collider)->shape;
-	Vector<Vector2>& bShape = ((PolygonCollider*)c.b->collider)->shape;
+	Shape& aShape = ((PolygonCollider*)c.a->collider)->shape;
+	Shape& bShape = ((PolygonCollider*)c.b->collider)->shape;
 
 	Simplex s;
 	Support* verts = &s.a;
 	//TODO: Don't do this with cached info
 	s.a.iA = 0;
 	s.a.iB = 0;
-	s.a.sA = aShape.Front();
-	s.a.sB = bShape.Front();
+	s.a.sA = aShape.vertices.Front();
+	s.a.sB = bShape.vertices.Front();
 	s.a.p = s.a.sB - s.a.sA;
 	s.a.u = 1.0f;
 	s.div = 1.0f;
@@ -336,9 +365,9 @@ F32 Physics::GJK(Contact2D& c)
 
 		switch (save_count)
 		{
-		case 3: break;	//Triangle case
-		case 2: break;	//Line case
-		case 1:			//Point case
+		case 3: TriangleCase(s); break;
+		case 2: LineCase(s); break;
+		case 1:	
 		default: break;
 		}
 
@@ -358,10 +387,10 @@ F32 Physics::GJK(Contact2D& c)
 		if (d.SqrMagnitude() < FLOAT_EPSILON * FLOAT_EPSILON) { break; }
 
 		//TODO: Apply rotation to direction
-		I32 iA = GetSupport(aShape, -d);
-		Vector2 sA = aShape[iA];
-		I32 iB = GetSupport(bShape, d);
-		Vector2 sB = bShape[iB];
+		I32 iA = GetSupport(aShape.vertices, -d);
+		Vector2 sA = aShape.vertices[iA];
+		I32 iB = GetSupport(bShape.vertices, d);
+		Vector2 sB = bShape.vertices[iB];
 
 		++iter;
 
@@ -389,25 +418,13 @@ F32 Physics::GJK(Contact2D& c)
 		dist = 0;
 	}
 
-	// Use Radius
-	F32 rA = 0.0f;
-	F32 rB = 0.0f;
-
-	if (dist > rA + rB && dist > FLOAT_EPSILON)
-	{
-		dist -= rA + rB;
-		Vector2 n = (b - a).Normalized();
-		a += n * rA;
-		b -= n * rB;
-	}
-	else
+	if(dist <= FLOAT_EPSILON)
 	{
 		Vector2 p = (a + b) * 0.5f;
 		a = p;
 		b = p;
 		dist = 0;
 	}
-	// End Use Radius
 
 	//TODO: cache stuff
 
@@ -450,7 +467,7 @@ bool Physics::PolygonVsCircle(Contact2D& c)
 		distance = Math::Sqrt(distance);
 
 		c.normal = normal.Normalize();
-		c.penetration = bCollider->radius - distance;
+		//c.penetration = bCollider->radius - distance;
 
 		return true;
 	}
@@ -481,12 +498,12 @@ bool Physics::CircleVsPolygon(Contact2D& c)
 		{
 			if (yOverlap > xOverlap)
 			{
-				c.penetration = xOverlap;
+				//c.penetration = xOverlap;
 				c.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
 			}
 			else
 			{
-				c.penetration = yOverlap;
+				//c.penetration = yOverlap;
 				c.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
 			}
 
@@ -517,11 +534,12 @@ void Physics::ResolveCollision(Contact2D& c)
 	b->velocity += impulse * (F32)b->massInv;
 
 	F64 slop = 0.001;
-	Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
-	a->oneTimeVelocity -= correction * (F32)a->massInv;
-	a->transform->Translate(-correction * (F32)a->massInv);
-	b->oneTimeVelocity += correction * (F32)b->massInv;
-	b->transform->Translate(correction * (F32)b->massInv);
+	c.depths;
+	//Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
+	//a->oneTimeVelocity -= correction * (F32)a->massInv;
+	//a->transform->Translate(-correction * (F32)a->massInv);
+	//b->oneTimeVelocity += correction * (F32)b->massInv;
+	//b->transform->Translate(correction * (F32)b->massInv);
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)
@@ -618,23 +636,120 @@ Vector2 Physics::TripleProduct(const Vector2& a, const Vector2& b, const Vector2
 	return { -c.y * z, c.x * z };
 }
 
-#define BARY(n, x)	s.n.x * (den * s.n.u)
-#define BARY2(x)	BARY(a, x) + BARY(b, x)
-#define BARY3(x)	BARY(a, x) + BARY(b, x) + BARY(c, x)
+void Physics::LineCase(Simplex& s)
+{
+	Vector2 a = s.a.p;
+	Vector2 b = s.b.p;
+	F32 u = b.Dot((b - a).Normalized());
+	F32 v = a.Dot((a - b).Normalized());
 
-Vector2 GetDistance(const Simplex& s)
+	if (v <= 0)
+	{
+		s.a.u = 1.0f;
+		s.div = 1.0f;
+		s.count = 1;
+	}
+	else if (u <= 0)
+	{
+		s.a = s.b;
+		s.a.u = 1.0f;
+		s.div = 1.0f;
+		s.count = 1;
+	}
+	else
+	{
+		s.a.u = u;
+		s.b.u = v;
+		s.div = u + v;
+		s.count = 2;
+	}
+}
+
+void Physics::TriangleCase(Simplex& s)
+{
+	Vector2 a = s.a.p;
+	Vector2 b = s.b.p;
+	Vector2 c = s.c.p;
+
+	F32 uAB = b.Dot((b - a).Normalized());
+	F32 vAB = a.Dot((a - b).Normalized());
+	F32 uBC = c.Dot((c - b).Normalized());
+	F32 vBC = b.Dot((b - c).Normalized());
+	F32 uCA = a.Dot((a - c).Normalized());
+	F32 vCA = c.Dot((c - a).Normalized());
+	F32 area = (b - a).Normalized().Determinant((c - a).Normalized());
+	F32 uABC = b.Determinant(c) * area;
+	F32 vABC = c.Determinant(a) * area;
+	F32 wABC = a.Determinant(b) * area;
+
+	if (vAB <= 0 && uCA <= 0)
+	{
+		s.a.u = 1.0f;
+		s.div = 1.0f;
+		s.count = 1;
+	}
+	else if (uAB <= 0 && vBC <= 0)
+	{
+		s.a = s.b;
+		s.a.u = 1.0f;
+		s.div = 1.0f;
+		s.count = 1;
+	}
+	else if (uBC <= 0 && vCA <= 0)
+	{
+		s.a = s.c;
+		s.a.u = 1.0f;
+		s.div = 1.0f;
+		s.count = 1;
+	}
+	else if (uAB > 0 && vAB > 0 && wABC <= 0)
+	{
+		s.a.u = uAB;
+		s.b.u = vAB;
+		s.div = uAB + vAB;
+		s.count = 2;
+	}
+	else if (uBC > 0 && vBC > 0 && uABC <= 0)
+	{
+		s.a = s.b;
+		s.b = s.c;
+		s.a.u = uBC;
+		s.b.u = vBC;
+		s.div = uBC + vBC;
+		s.count = 2;
+	}
+	else if (uCA > 0 && vCA > 0 && vABC <= 0)
+	{
+		s.b = s.a;
+		s.a = s.c;
+		s.a.u = uCA;
+		s.b.u = vCA;
+		s.div = uCA + vCA;
+		s.count = 2;
+	}
+	else
+	{
+		s.a.u = uABC;
+		s.b.u = vABC;
+		s.c.u = wABC;
+		s.div = uABC + vABC + wABC;
+		s.count = 3;
+	}
+}
+
+Vector2 Physics::GetDistance(const Simplex& s)
 {
 	F32 den = 1.0f / s.div;
 	switch (s.count)
 	{
 	case 1: return s.a.p;
-	case 2: return BARY2(p);
-	case 3: return BARY3(p);
+	case 2: return (s.a.p * (den * s.a.u)) + (s.b.p * (den * s.b.u));
+	case 3:	return (s.a.p * (den * s.a.u)) + (s.b.p * (den * s.b.u)) + (s.c.p * (den * s.c.u));
 	default: return Vector2::ZERO;
 	}
 }
 
-Vector2 GetDirection(const Simplex& s)
+Vector2 Physics::GetDirection(const Simplex& s)
 {
 	switch (s.count)
 	{
@@ -650,19 +765,24 @@ Vector2 GetDirection(const Simplex& s)
 	}
 }
 
-void Witness(const Simplex& s, Vector2& a, Vector2& b)
+void Physics::Witness(const Simplex& s, Vector2& a, Vector2& b)
 {
 	F32 den = 1.0f / s.div;
+
 	switch (s.count)
 	{
-	case 1:		a = s.a.sA;			b = s.a.sB;			break;
-	case 2:		a = BARY2(sA);		b = BARY2(sB);		break;
-	case 3:		a = BARY3(sA);		b = BARY3(sB);		break;
-	default:	a = Vector2::ZERO;	b = Vector2::ZERO;	break;
+	case 1:	a = s.a.sA;
+			b = s.a.sB; break;
+	case 2:	a = (s.a.sA * (den * s.a.u)) + (s.b.sA * (den * s.b.u)); 
+			b = (s.a.sB * (den * s.a.u)) + (s.b.sB * (den * s.b.u)); break;
+	case 3:	a = (s.a.sA * (den * s.a.u)) + (s.b.sA * (den * s.b.u)) + (s.c.sA * (den * s.c.u));	
+			b = (s.a.sB * (den * s.a.u)) + (s.b.sB * (den * s.b.u)) + (s.c.sB * (den * s.c.u)); break;
+	default:a = Vector2::ZERO;
+			b = Vector2::ZERO; break;
 	}
 }
 
-U32 GetSupport(const Vector<Vector2>& verts, const Vector2& d)
+U32 Physics::GetSupport(const Vector<Vector2>& verts, const Vector2& d)
 {
 	U32 imax = 0;
 	F32 dmax = verts[0].Dot(d);
@@ -678,4 +798,97 @@ U32 GetSupport(const Vector<Vector2>& verts, const Vector2& d)
 	}
 
 	return imax;
+}
+
+F32 Physics::CheckFaces(const Shape& a, const Shape& b, I32& faceIndex)
+{
+	F32 separation = -F32_MAX;
+	I32 index = ~0;
+
+	for (I32 i = 0; i < a.vertices.Size(); ++i)
+	{
+		HalfSpace h = PlaneAt(a, i);
+		I32 idx = GetSupport(b.vertices, -h.normal);
+		Vector2 p = b.vertices[idx];
+		F32 d = h.Distance(p);
+		if (d > separation)
+		{
+			separation = d;
+			index = i;
+		}
+	}
+
+	faceIndex = index;
+	return separation;
+}
+
+HalfSpace Physics::PlaneAt(const Shape& s, I32 i)
+{
+	HalfSpace h;
+	h.normal = s.normals[i];
+	h.distance = s.normals[i].Dot(s.vertices[i]);
+	return h;
+}
+
+void Physics::Incident(Vector2* incident, const Shape* ip, const Shape* rp, I32 re)
+{
+	I32 index = ~0;
+	F32 minDot = F32_MAX;
+	for (int i = 0; i < ip->vertices.Size(); ++i)
+	{
+		F32 dot = rp->normals[re].Dot(ip->normals[i]);
+		if (dot < minDot)
+		{
+			minDot = dot;
+			index = i;
+		}
+	}
+
+	incident[0] = ip->vertices[index];
+	incident[1] = ip->vertices[index + 1 == ip->vertices.Size() ? 0 : index + 1];
+}
+
+I32 Physics::SidePlanes(Vector2* seg, const Shape* p, I32 e, HalfSpace& h)
+{
+	Vector2 ra = p->vertices[e];
+	Vector2 rb = p->vertices[e + 1 == p->vertices.Size() ? 0 : e + 1];
+	Vector2 in = (rb - ra).Normalized();
+	HalfSpace left = { -in, ra.Dot(-in) };
+	HalfSpace right = { in, in.Dot(rb) };
+
+	if (Clip(seg, left) < 2 || Clip(seg, right) < 2) { return 0; }
+
+	h.normal = in.Skew90();
+	h.distance = in.Dot(ra);
+	return 1;
+}
+
+I32 Physics::Clip(Vector2* seg, const HalfSpace& h)
+{
+	Vector2 out[2];
+	I32 sp = 0;
+	F32 d0, d1;
+	if ((d0 = h.Distance(seg[0])) < 0) { out[sp++] = seg[0]; }
+	if ((d1 = h.Distance(seg[1])) < 0) { out[sp++] = seg[1]; }
+	if (d0 * d1 <= 0) { out[sp++] = seg[0] + (seg[1] - seg[0]) * (d0 / (d0 - d1)); } //Intersect
+	seg[0] = out[0]; seg[1] = out[1];
+	return sp;
+}
+
+void Physics::KeepDeep(Vector2* seg, HalfSpace h, Contact2D& c)
+{
+	I32 cp = 0;
+	for (I32 i = 0; i < 2; ++i)
+	{
+		Vector2 p = seg[i];
+		F32 d = h.Distance(p);
+		if (d < 0)
+		{
+			c.contactPoints[cp] = p;
+			c.depths[cp] = -d;
+			++cp;
+		}
+	}
+	c.count = cp;
+	c.normal = -h.normal;
 }
