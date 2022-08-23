@@ -20,6 +20,7 @@ bool Physics::Initialize()
 {
 	contactManager = new ContactManager();
 
+	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
 	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] = PolygonVsPolygon;
 	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] = PolygonVsCircle;
 	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] = CircleVsPolygon;
@@ -49,34 +50,35 @@ void Physics::Shutdown()
 
 void Physics::Update(F64 step)
 {
+	//Integration
 	for (PhysicsObject2D* po : physicsObjects2D)
 	{
 		PhysicsObject2D& obj = *po;
 
-		if (!obj.kinematic)
+		if (!obj.kinematic) //TODO: Check for sleeping
 		{
 			obj.velocity += Vector2::UP * (F32)(gravity * obj.gravityScale * obj.mass * step);
-			obj.velocity += obj.force * (F32)obj.massInv;
 			obj.velocity += -obj.velocity.Normalized() * obj.velocity.SqrMagnitude() * (F32)(obj.dragCoefficient * obj.area * 0.5 * airDensity * step);
-
-			obj.prevPosition = obj.transform->Position();
-			obj.transform->Translate(obj.velocity);
-			Vector2 move = obj.velocity + obj.oneTimeVelocity;
-
-			if (obj.collider->type == POLYGON_COLLIDER && !move.IsZero())
-			{
-				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape.vertices) { point += move; }
-			}
-
-			if (!move.IsZero())
-			{
-				newContacts = true;
-				contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, move);
-			}
-
-			obj.oneTimeVelocity = Vector2::ZERO;
-			obj.force = Vector2::ZERO;
 		}
+
+		obj.velocity += obj.force * (F32)obj.massInv;
+		obj.velocity += obj.oneTimeVelocity;
+		obj.prevPosition = obj.transform->Position();
+
+		if (!obj.velocity.IsZero())
+		{
+			if (obj.collider->type == POLYGON_COLLIDER)
+			{
+				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape.vertices) { point += obj.velocity; }
+			}
+
+			obj.transform->Translate(obj.velocity);
+			newContacts = true;
+			contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, obj.velocity);
+		}
+
+		obj.oneTimeVelocity = Vector2::ZERO;
+		obj.force = Vector2::ZERO;
 	}
 
 	BroadPhase();
@@ -215,6 +217,38 @@ void Physics::NarrowPhase()
 	}
 }
 
+bool Physics::BoxVsBox(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	Box& aBox = a->collider->box;
+	Box& bBox = b->collider->box;
+
+	Box mink = (bBox + b->prevPosition).Minkowski(aBox + a->prevPosition);
+
+	if (mink.xBounds.x <= 0.0f && mink.xBounds.y >= 0.0f && mink.yBounds.x <= 0.0f && mink.yBounds.y >= 0.0f)
+	{
+
+		return true;
+	}
+	else
+	{
+		//Sweep to find TOI
+		Vector2 relVel = a->velocity - b->velocity;
+
+		F32 t; //get TOI
+
+		if (t < F32_MAX)
+		{
+
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool Physics::CircleVsCircle(Contact2D& c)
 {
 	PhysicsObject2D* a = c.a;
@@ -252,58 +286,17 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 	Shape& aShape = ((PolygonCollider*)c.a->collider)->shape;
 	Shape& bShape = ((PolygonCollider*)c.b->collider)->shape;
 
-	if (GJK(c) < FLOAT_EPSILON)
-	{
-		c.count = 0;
-		I32 ea, eb;
-		F32 sa, sb;
-		if ((sa = CheckFaces(aShape, bShape, ea)) >= 0) { return false; }
-		if ((sb = CheckFaces(bShape, aShape, eb)) >= 0) { return false; }
-
-		const Shape* rp, * ip;
-		I32 re;
-		F32 kRelTol = 0.95f, kAbsTol = 0.01f;
-		bool flip;
-		if (sa * kRelTol > sb + kAbsTol)
-		{
-			rp = &aShape;
-			ip = &bShape;
-			re = ea;
-			flip = false;
-		}
-		else
-		{
-			rp = &bShape;
-			ip = &aShape;
-			re = eb;
-			flip = true;
-		}
-
-		Vector2 incident[2];
-		Incident(incident, ip, rp, re);
-		HalfSpace rh;
-		if (!SidePlanes(incident, rp, re, rh)) { return false; }
-		KeepDeep(incident, rh, c);
-		if (flip) { c.normal = -c.normal; }
-
-		return true;
-	}
-
-	return false;
-
-	//----------------OLD----------------
-
-	/*List<Vector2> simplex;
+	List<Vector2> simplex;
 
 	Vector2 direction = c.b->transform->Position() - c.a->transform->Position();
 
-	simplex.PushBack(FindSupport(aShape, bShape, direction));
+	simplex.PushBack(FindSupport(aShape.vertices, bShape.vertices, direction));
 
 	direction = -direction;
 
 	while (true)
 	{
-		simplex.PushBack(FindSupport(aShape, bShape, direction));
+		simplex.PushBack(FindSupport(aShape.vertices, bShape.vertices, direction));
 
 		if (simplex.Back().Dot(direction) <= 0.0f) { return false; }
 		if (ContainsOrigin(simplex, direction)) { break; }
@@ -312,7 +305,7 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 	while (true)
 	{
 		Edge e = ClosestEdge(simplex);
-		Vector2 p = FindSupport(aShape, bShape, e.normal);
+		Vector2 p = FindSupport(aShape.vertices, bShape.vertices, e.normal);
 		F32 dist = Math::Abs(e.normal.Dot(p));
 
 		if (dist - e.distance < 0.001f)
@@ -321,114 +314,12 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 			c.penetration = e.distance;
 			return true;
 		}
-		else if (simplex.Size() < aShape.Size() + bShape.Size())
+		else if (simplex.Size() < aShape.vertices.Size() + bShape.vertices.Size())
 		{
 			simplex.Insert(p, e.index);
 		}
 		else { return false; }
-	}*/
-}
-
-F32 Physics::GJK(Contact2D& c)
-{
-	Shape& aShape = ((PolygonCollider*)c.a->collider)->shape;
-	Shape& bShape = ((PolygonCollider*)c.b->collider)->shape;
-
-	Simplex s;
-	Support* verts = &s.a;
-	//TODO: Don't do this with cached info
-	s.a.iA = 0;
-	s.a.iB = 0;
-	s.a.sA = aShape.vertices.Front();
-	s.a.sB = bShape.vertices.Front();
-	s.a.p = s.a.sB - s.a.sA;
-	s.a.u = 1.0f;
-	s.div = 1.0f;
-	s.count = 1;
-
-	I32 saveA[3], saveB[3];
-	I32 save_count = 0;
-	F32 d0 = F32_MAX;
-	F32 d1 = F32_MAX;
-	I32 iter = 0;
-	I32 hit = 0;
-
-	bool dup = false;
-	while (iter < 20 && !dup)
-	{
-		save_count = s.count;
-		for (I32 i = 0; i < save_count; ++i)
-		{
-			saveA[i] = verts[i].iA;
-			saveB[i] = verts[i].iB;
-		}
-
-		switch (save_count)
-		{
-		case 3: TriangleCase(s); break;
-		case 2: LineCase(s); break;
-		case 1:	
-		default: break;
-		}
-
-		if (s.count == 3)
-		{
-			hit = 1;
-			break;
-		}
-
-		Vector2 p = GetDistance(s);
-		d1 = p.SqrMagnitude();
-
-		if (d1 > d0) { break; }
-		d0 = d1;
-
-		Vector2 d = GetDirection(s);
-		if (d.SqrMagnitude() < FLOAT_EPSILON * FLOAT_EPSILON) { break; }
-
-		//TODO: Apply rotation to direction
-		I32 iA = GetSupport(aShape.vertices, -d);
-		Vector2 sA = aShape.vertices[iA];
-		I32 iB = GetSupport(bShape.vertices, d);
-		Vector2 sB = bShape.vertices[iB];
-
-		++iter;
-
-		for (int i = 0; i < save_count && !dup; ++i)
-		{
-			dup = iA == saveA[i] && iB == saveB[i];
-		}
-
-		Support* v = verts + s.count;
-		v->iA = iA;
-		v->sA = sA;
-		v->iB = iB;
-		v->sB = sB;
-		v->p = v->sB - v->sA;
-		++s.count;
 	}
-
-	Vector2 a, b;
-	Witness(s, a, b);
-	F32 dist = (a - b).Magnitude();
-
-	if (hit)
-	{
-		a = b;
-		dist = 0;
-	}
-
-	if(dist <= FLOAT_EPSILON)
-	{
-		Vector2 p = (a + b) * 0.5f;
-		a = p;
-		b = p;
-		dist = 0;
-	}
-
-	//TODO: cache stuff
-
-	return dist;
 }
 
 bool Physics::PolygonVsCircle(Contact2D& c)
@@ -534,12 +425,11 @@ void Physics::ResolveCollision(Contact2D& c)
 	b->velocity += impulse * (F32)b->massInv;
 
 	F64 slop = 0.001;
-	c.depths;
-	//Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
-	//a->oneTimeVelocity -= correction * (F32)a->massInv;
-	//a->transform->Translate(-correction * (F32)a->massInv);
-	//b->oneTimeVelocity += correction * (F32)b->massInv;
-	//b->transform->Translate(correction * (F32)b->massInv);
+	Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
+	a->oneTimeVelocity -= correction * (F32)a->massInv;
+	a->transform->Translate(-correction * (F32)a->massInv);
+	b->oneTimeVelocity += correction * (F32)b->massInv;
+	b->transform->Translate(correction * (F32)b->massInv);
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)
@@ -634,261 +524,4 @@ Vector2 Physics::TripleProduct(const Vector2& a, const Vector2& b, const Vector2
 {
 	F32 z = a.x * b.y - a.y * b.x;
 	return { -c.y * z, c.x * z };
-}
-
-void Physics::LineCase(Simplex& s)
-{
-	Vector2 a = s.a.p;
-	Vector2 b = s.b.p;
-	F32 u = b.Dot((b - a).Normalized());
-	F32 v = a.Dot((a - b).Normalized());
-
-	if (v <= 0)
-	{
-		s.a.u = 1.0f;
-		s.div = 1.0f;
-		s.count = 1;
-	}
-	else if (u <= 0)
-	{
-		s.a = s.b;
-		s.a.u = 1.0f;
-		s.div = 1.0f;
-		s.count = 1;
-	}
-	else
-	{
-		s.a.u = u;
-		s.b.u = v;
-		s.div = u + v;
-		s.count = 2;
-	}
-}
-
-void Physics::TriangleCase(Simplex& s)
-{
-	Vector2 a = s.a.p;
-	Vector2 b = s.b.p;
-	Vector2 c = s.c.p;
-
-	F32 uAB = b.Dot((b - a).Normalized());
-	F32 vAB = a.Dot((a - b).Normalized());
-	F32 uBC = c.Dot((c - b).Normalized());
-	F32 vBC = b.Dot((b - c).Normalized());
-	F32 uCA = a.Dot((a - c).Normalized());
-	F32 vCA = c.Dot((c - a).Normalized());
-	F32 area = (b - a).Normalized().Determinant((c - a).Normalized());
-	F32 uABC = b.Determinant(c) * area;
-	F32 vABC = c.Determinant(a) * area;
-	F32 wABC = a.Determinant(b) * area;
-
-	if (vAB <= 0 && uCA <= 0)
-	{
-		s.a.u = 1.0f;
-		s.div = 1.0f;
-		s.count = 1;
-	}
-	else if (uAB <= 0 && vBC <= 0)
-	{
-		s.a = s.b;
-		s.a.u = 1.0f;
-		s.div = 1.0f;
-		s.count = 1;
-	}
-	else if (uBC <= 0 && vCA <= 0)
-	{
-		s.a = s.c;
-		s.a.u = 1.0f;
-		s.div = 1.0f;
-		s.count = 1;
-	}
-	else if (uAB > 0 && vAB > 0 && wABC <= 0)
-	{
-		s.a.u = uAB;
-		s.b.u = vAB;
-		s.div = uAB + vAB;
-		s.count = 2;
-	}
-	else if (uBC > 0 && vBC > 0 && uABC <= 0)
-	{
-		s.a = s.b;
-		s.b = s.c;
-		s.a.u = uBC;
-		s.b.u = vBC;
-		s.div = uBC + vBC;
-		s.count = 2;
-	}
-	else if (uCA > 0 && vCA > 0 && vABC <= 0)
-	{
-		s.b = s.a;
-		s.a = s.c;
-		s.a.u = uCA;
-		s.b.u = vCA;
-		s.div = uCA + vCA;
-		s.count = 2;
-	}
-	else
-	{
-		s.a.u = uABC;
-		s.b.u = vABC;
-		s.c.u = wABC;
-		s.div = uABC + vABC + wABC;
-		s.count = 3;
-	}
-}
-
-Vector2 Physics::GetDistance(const Simplex& s)
-{
-	F32 den = 1.0f / s.div;
-	switch (s.count)
-	{
-	case 1: return s.a.p;
-	case 2: return (s.a.p * (den * s.a.u)) + (s.b.p * (den * s.b.u));
-	case 3:	return (s.a.p * (den * s.a.u)) + (s.b.p * (den * s.b.u)) + (s.c.p * (den * s.c.u));
-	default: return Vector2::ZERO;
-	}
-}
-
-Vector2 Physics::GetDirection(const Simplex& s)
-{
-	switch (s.count)
-	{
-	case 1: return -s.a.p;
-	case 2:
-	{
-		Vector2 ab = s.b.p - s.a.p;
-		if (ab.Determinant(-s.a.p) > 0.0f) { return ab.Skewed(); }
-		return ab.Skewed90();
-	}
-	case 3:
-	default: return Vector2::ZERO;
-	}
-}
-
-void Physics::Witness(const Simplex& s, Vector2& a, Vector2& b)
-{
-	F32 den = 1.0f / s.div;
-
-	switch (s.count)
-	{
-	case 1:	a = s.a.sA;
-			b = s.a.sB; break;
-	case 2:	a = (s.a.sA * (den * s.a.u)) + (s.b.sA * (den * s.b.u)); 
-			b = (s.a.sB * (den * s.a.u)) + (s.b.sB * (den * s.b.u)); break;
-	case 3:	a = (s.a.sA * (den * s.a.u)) + (s.b.sA * (den * s.b.u)) + (s.c.sA * (den * s.c.u));	
-			b = (s.a.sB * (den * s.a.u)) + (s.b.sB * (den * s.b.u)) + (s.c.sB * (den * s.c.u)); break;
-	default:a = Vector2::ZERO;
-			b = Vector2::ZERO; break;
-	}
-}
-
-U32 Physics::GetSupport(const Vector<Vector2>& verts, const Vector2& d)
-{
-	U32 imax = 0;
-	F32 dmax = verts[0].Dot(d);
-
-	for (U32 i = 1; i < verts.Size(); ++i)
-	{
-		F32 dot = verts[i].Dot(d);
-		if (dot > dmax)
-		{
-			imax = i;
-			dmax = dot;
-		}
-	}
-
-	return imax;
-}
-
-F32 Physics::CheckFaces(const Shape& a, const Shape& b, I32& faceIndex)
-{
-	F32 separation = -F32_MAX;
-	I32 index = ~0;
-
-	for (I32 i = 0; i < a.vertices.Size(); ++i)
-	{
-		HalfSpace h = PlaneAt(a, i);
-		I32 idx = GetSupport(b.vertices, -h.normal);
-		Vector2 p = b.vertices[idx];
-		F32 d = h.Distance(p);
-		if (d > separation)
-		{
-			separation = d;
-			index = i;
-		}
-	}
-
-	faceIndex = index;
-	return separation;
-}
-
-HalfSpace Physics::PlaneAt(const Shape& s, I32 i)
-{
-	HalfSpace h;
-	h.normal = s.normals[i];
-	h.distance = s.normals[i].Dot(s.vertices[i]);
-	return h;
-}
-
-void Physics::Incident(Vector2* incident, const Shape* ip, const Shape* rp, I32 re)
-{
-	I32 index = ~0;
-	F32 minDot = F32_MAX;
-	for (int i = 0; i < ip->vertices.Size(); ++i)
-	{
-		F32 dot = rp->normals[re].Dot(ip->normals[i]);
-		if (dot < minDot)
-		{
-			minDot = dot;
-			index = i;
-		}
-	}
-
-	incident[0] = ip->vertices[index];
-	incident[1] = ip->vertices[index + 1 == ip->vertices.Size() ? 0 : index + 1];
-}
-
-I32 Physics::SidePlanes(Vector2* seg, const Shape* p, I32 e, HalfSpace& h)
-{
-	Vector2 ra = p->vertices[e];
-	Vector2 rb = p->vertices[e + 1 == p->vertices.Size() ? 0 : e + 1];
-	Vector2 in = (rb - ra).Normalized();
-	HalfSpace left = { -in, ra.Dot(-in) };
-	HalfSpace right = { in, in.Dot(rb) };
-
-	if (Clip(seg, left) < 2 || Clip(seg, right) < 2) { return 0; }
-
-	h.normal = in.Skew90();
-	h.distance = in.Dot(ra);
-	return 1;
-}
-
-I32 Physics::Clip(Vector2* seg, const HalfSpace& h)
-{
-	Vector2 out[2];
-	I32 sp = 0;
-	F32 d0, d1;
-	if ((d0 = h.Distance(seg[0])) < 0) { out[sp++] = seg[0]; }
-	if ((d1 = h.Distance(seg[1])) < 0) { out[sp++] = seg[1]; }
-	if (d0 * d1 <= 0) { out[sp++] = seg[0] + (seg[1] - seg[0]) * (d0 / (d0 - d1)); } //Intersect
-	seg[0] = out[0]; seg[1] = out[1];
-	return sp;
-}
-
-void Physics::KeepDeep(Vector2* seg, HalfSpace h, Contact2D& c)
-{
-	I32 cp = 0;
-	for (I32 i = 0; i < 2; ++i)
-	{
-		Vector2 p = seg[i];
-		F32 d = h.Distance(p);
-		if (d < 0)
-		{
-			c.contactPoints[cp] = p;
-			c.depths[cp] = -d;
-			++cp;
-		}
-	}
-	c.count = cp;
-	c.normal = -h.normal;
 }

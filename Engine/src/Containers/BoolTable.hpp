@@ -55,6 +55,16 @@ struct BoolTable
 		column->next = table;
 		table = column;
 		++size;
+
+		//Column* prev = table;
+		//Column* c = table->next;
+		//while (c)
+		//{
+		//	for (U32 i = 0; i < c->size; ++i) { prev->data[i] = c->data[i]; }
+		//
+		//	prev = c;
+		//	c = c->next;
+		//}
 	}
 
 	void Reset()

@@ -14,9 +14,7 @@ struct Contact2D
 	struct PhysicsObject2D* b;
 
 	Vector2 normal;
-	Vector2 contactPoints[2];
-	F32 depths[2];
-	U32 count;
+	F32 penetration;
 };
 
 class ContactManager

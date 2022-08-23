@@ -44,9 +44,9 @@ typedef bool(*Collision2DFn)(struct Contact2D& c);
 
 enum Collider2DType
 {
+	BOX_COLLIDER,
 	POLYGON_COLLIDER,
 	CIRCLE_COLLIDER,
-	CAPSULE_COLLIDER,
 
 	COLLIDER_2D_MAX
 };
@@ -64,6 +64,11 @@ struct Box
 	Vector2 Extents() const
 	{
 		return Vector2(xBounds.y - xBounds.x, yBounds.y - yBounds.x) * 0.5f;
+	}
+
+	Vector2 Size() const
+	{
+		return Vector2(xBounds.y - xBounds.x, yBounds.y - yBounds.x);
 	}
 
 	bool Contains(const Box& b) const
@@ -116,6 +121,27 @@ struct Box
 	{
 		return { {Math::Min(box0.xBounds.x, box1.xBounds.x), Math::Max(box0.xBounds.y, box1.xBounds.y)},
 			{Math::Min(box0.yBounds.x, box1.xBounds.x), Math::Max(box0.yBounds.y, box1.xBounds.y)} };
+	}
+
+	Box Minkowski(const Box& b)
+	{
+		Vector2 min{ xBounds.x - b.xBounds.y, yBounds.x - b.yBounds.y };
+		Vector2 max{ min.x + xBounds.y - xBounds.x + b.xBounds.y - b.xBounds.x, min.y + yBounds.y - yBounds.x + b.yBounds.y - b.yBounds.x };
+
+		return { {min.x, max.x}, {min.y, max.y} };
+	}
+
+	Vector2 DirectionToClosestBound(const Vector2& point)
+	{
+		F32 minDist = Math::Abs(point.x - xBounds.x);
+		Vector2 closest{ xBounds.x, point.y };
+
+		if (Math::Abs(xBounds.y - point.x) < minDist)
+		{
+			minDist;
+		}
+
+		return closest;
 	}
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
@@ -204,6 +230,15 @@ struct HalfSpace
 	F32 Distance(const Vector2& v) const { return normal.Dot(v) - distance; }
 };
 
+struct GJKCache
+{
+	F32 metric;
+	I32 count;
+	I32 iA[3];
+	I32 iB[3];
+	F32 div;
+};
+
 struct Edge
 {
 	Vector2 vertex0;
@@ -218,7 +253,7 @@ struct PhysicsObject2D
 	void ApplyForce(const Vector2& f) { force += f; }
 	void ApplyTorque(F64 t) { torque += t; }
 	void AddVelocity(const Vector2& v) { velocity += v; }
-	void Translate(const Vector2& v) { oneTimeVelocity += v; transform->Translate(v); }
+	void Translate(const Vector2& v) { oneTimeVelocity += v; }
 	void AddAngularVelocity(F64 v) { angularVelocity += v; }
 	void SetGravityScale(F64 s) { gravityScale = s; }
 
@@ -305,30 +340,18 @@ private:
 
 	static void BroadPhase();
 	static void NarrowPhase();
+	static bool BoxVsBox(Contact2D& c);
 	static bool CircleVsCircle(Contact2D& c);
 	static bool PolygonVsPolygon(Contact2D& c);
 	static bool PolygonVsCircle(Contact2D& c);
 	static bool CircleVsPolygon(Contact2D& c);
 	static void ResolveCollision(Contact2D& c);
 
-	static F32 GJK(Contact2D& c);
 	static bool ContainsOrigin(List<Vector2>& simplex, Vector2& direction);
 	static Vector2 FarthestPoint(const Vector<Vector2>& shape, const Vector2& direction);
 	static Edge ClosestEdge(const List<Vector2>& simplex);
 	static Vector2 FindSupport(const Vector<Vector2>& shape0, const Vector<Vector2>& shape1, const Vector2& direction);
 	static Vector2 TripleProduct(const Vector2& a, const Vector2& b, const Vector2& c);
-	static void LineCase(Simplex& s);
-	static void TriangleCase(Simplex& s);
-	static Vector2 GetDistance(const Simplex& s);
-	static Vector2 GetDirection(const Simplex& s);
-	static void Witness(const Simplex& s, Vector2& a, Vector2& b);
-	static U32 GetSupport(const Vector<Vector2>& verts, const Vector2& d);
-	static F32 CheckFaces(const Shape& a, const Shape& b, I32& faceIndex);
-	static HalfSpace PlaneAt(const Shape& s, I32 i);
-	static void Incident(Vector2* incident, const Shape* ip, const Shape* rp, I32 re);
-	static I32 SidePlanes(Vector2* seg, const Shape* p, I32 e, HalfSpace& h);
-	static I32 Clip(Vector2* seg, const HalfSpace& h);
-	static void KeepDeep(Vector2* seg, HalfSpace h, Contact2D& c);
 
 	static List<PhysicsObject2D*> physicsObjects2D;
 	static List<PhysicsObject3D*> physicsObjects3D;
