@@ -148,6 +148,9 @@ Vector2Int Math::Max(const Vector2Int& a, const Vector2Int& b) { return { Max(a.
 Vector3Int Math::Max(const Vector3Int& a, const Vector3Int& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) }; }
 Vector4Int Math::Max(const Vector4Int& a, const Vector4Int& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z), Max(a.w, b.w) }; }
 
+bool Math::NaN(F32 f) { return isnan(f); }
+bool Math::NaN(F64 f) { return isnan(f); }
+
 //LINEAR
 F32 Math::Sqrt(F32 f)
 {

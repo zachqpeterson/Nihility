@@ -138,10 +138,53 @@ struct Box
 
 		if (Math::Abs(xBounds.y - point.x) < minDist)
 		{
-			minDist;
+			minDist = Math::Abs(xBounds.y - point.x);
+			closest = { xBounds.y, point.x };
+		}
+		if (Math::Abs(yBounds.y - point.y) < minDist)
+		{
+			minDist = Math::Abs(yBounds.y - point.y);
+			closest = { point.x, yBounds.y };
+		}
+		if (Math::Abs(yBounds.x - point.y) < minDist)
+		{
+			minDist = Math::Abs(yBounds.x - point.y);
+			closest = { point.x, yBounds.x };
 		}
 
 		return closest;
+	}
+
+	F32 getRayIntersectionFractionOfFirstRay(const Vector2& originA, const Vector2& endA, const Vector2& originB, const Vector2& endB)
+	{
+		Vector2 r = endA - originA;
+		Vector2 s = endB - originB;
+
+		F32 numerator = (originB - originA).Cross(r);
+		F32 denominator = r.Cross(s);
+
+		if ((numerator == 0 && denominator == 0) || denominator == 0) { return F32_MAX; }
+
+		F32 u = numerator / denominator;
+		F32 t = ((originB - originA).Cross(s)) / denominator;
+		if ((t >= 0) && (t <= 1) && (u >= 0) && (u <= 1)) { return t; }
+
+		return F32_MAX;
+	}
+
+	F32 getRayIntersectionFraction(const Vector2& origin, const Vector2& direction)
+	{
+		Vector2 end = origin + direction;
+
+		F32 minT = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.x, yBounds.x }, { xBounds.x, yBounds.y });
+		F32 x = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.x, yBounds.y }, { xBounds.y, yBounds.y });
+
+		minT = Math::Min(x, minT);
+		x = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.y, yBounds.y }, { xBounds.y, yBounds.x });
+		minT = Math::Min(x, minT);
+		x = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.y, yBounds.x }, { xBounds.x, yBounds.x });
+
+		return Math::Min(x, minT);
 	}
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
@@ -162,6 +205,11 @@ struct Collider2D
 	Box box;
 };
 
+struct BoxCollider : public Collider2D
+{
+
+};
+
 struct PolygonCollider : public Collider2D
 {
 	Shape shape;
@@ -176,10 +224,16 @@ struct CircleCollider : public Collider2D
 struct PhysicsObject2DConfig
 {
 	Collider2DType type;
+
+	//Circle
 	F64 radius;
 	Vector2 offset;
 
+	//Polygon
 	Vector<Vector2> shape;
+
+	//Box
+	Box box;
 
 	bool trigger;
 	bool kinematic;
@@ -269,6 +323,7 @@ private:
 	//secondary
 	Vector2 velocity;
 	Vector2 oneTimeVelocity;
+	Vector2 move;
 	F64 angularVelocity;
 
 	// secondary
@@ -359,6 +414,7 @@ private:
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
 	static class ContactManager* contactManager;
+	static struct BoolTable table; //TODO: temp
 
 	static F64 airDensity;
 	static F64 gravity;

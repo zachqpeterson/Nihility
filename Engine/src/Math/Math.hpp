@@ -148,6 +148,8 @@ public:
 
 	static bool Zero(F32 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
 	static bool Zero(F64 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
+	static bool NaN(F32 f);
+	static bool NaN(F64 f);
 
 	//FLOATING-POINT
 	static F32 Round(F32 f) { return (F32)(I32)(f + 0.5f); }
@@ -243,7 +245,7 @@ struct NH_API Vector2
 	Vector2 operator% (F32 f) const { return Vector2{ Math::Mod(x, f), Math::Mod(y, f) }; }
 
 	bool operator== (const Vector2& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y); }
-	bool operator!= (const Vector2& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y); }
+	bool operator!= (const Vector2& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y); }
 	bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	bool IsZero() const { return Math::Zero(x) && Math::Zero(y); }
@@ -264,10 +266,8 @@ struct NH_API Vector2
 	NH_INLINE F32 Cross(const Vector2& v) const { return v.x * x - v.y * y; }
 	NH_INLINE Vector2 Cross(const F32 f) const { return { y * f, x * -f }; }
 	NH_INLINE F32 Determinant(const Vector2& v) const { return { x * v.y - y * v.x }; }
-	NH_INLINE Vector2& Skew() { F32 t = x; x = -y; y = t; return *this; }
-	NH_INLINE Vector2 Skewed() const { return { -y, x }; }
-	NH_INLINE Vector2& Skew90() { F32 t = x; x = y; y = -t; return *this; }
-	NH_INLINE Vector2 Skewed90() const { return { y, -x }; }
+	NH_INLINE Vector2& Tangent() { F32 t = x; x = -y; y = t; return *this; }
+	NH_INLINE Vector2& TangentPerp() { F32 t = x; x = y; y = -t; return *this; }
 	NH_INLINE Vector2 Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x - x).Normalized(); }
 	NH_INLINE void Rotate(const Vector2& center, F32 angle)
 	{
@@ -353,7 +353,7 @@ struct NH_API Vector3
 	Vector3 operator% (F32 f) const { return Vector3{ Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f) }; }
 
 	bool operator== (const Vector3& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y) && Math::Zero(z - v.z); }
-	bool operator!= (const Vector3& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y) || Math::Zero(z - v.z); }
+	bool operator!= (const Vector3& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y) || !Math::Zero(z - v.z); }
 	bool operator<  (const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	friend Vector3 operator- (Vector3& v) { return Vector3{ -v.x, -v.y, -v.z }; }
@@ -424,7 +424,7 @@ struct NH_API Vector4
 	Vector4 operator% (F32 f) const { return Vector4{ Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f), Math::Mod(w, f) }; }
 
 	bool operator== (const Vector4& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y) && Math::Zero(z - v.z) && Math::Zero(w - v.w); }
-	bool operator!= (const Vector4& v) const { return Math::Zero(x - v.x) || Math::Zero(y - v.y) || Math::Zero(z - v.z) || Math::Zero(w - v.w); }
+	bool operator!= (const Vector4& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y) || !Math::Zero(z - v.z) || !Math::Zero(w - v.w); }
 	bool operator<  (const Vector4& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector4& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	friend Vector4 operator- (Vector4& v) { return Vector4{ -v.x, -v.y, -v.z, -v.w }; }

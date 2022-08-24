@@ -13,8 +13,9 @@ struct Contact2D
 	struct PhysicsObject2D* a;
 	struct PhysicsObject2D* b;
 
-	Vector2 normal;
 	F32 penetration;
+	Vector2 relativeVelocity;
+	Vector2 normal;
 };
 
 class ContactManager

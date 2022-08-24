@@ -11,6 +11,7 @@ List<PhysicsObject3D*> Physics::physicsObjects3D;
 Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
 ContactManager* Physics::contactManager;
+BoolTable Physics::table;
 
 F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
@@ -46,11 +47,12 @@ void Physics::Shutdown()
 	physicsObjects3D.Destroy();
 
 	delete contactManager;
+
+	table.~BoolTable(); //TODO: temp
 }
 
 void Physics::Update(F64 step)
 {
-	//Integration
 	for (PhysicsObject2D* po : physicsObjects2D)
 	{
 		PhysicsObject2D& obj = *po;
@@ -58,31 +60,48 @@ void Physics::Update(F64 step)
 		if (!obj.kinematic) //TODO: Check for sleeping
 		{
 			obj.velocity += Vector2::UP * (F32)(gravity * obj.gravityScale * obj.mass * step);
+			obj.velocity += obj.force * (F32)obj.massInv;
 			obj.velocity += -obj.velocity.Normalized() * obj.velocity.SqrMagnitude() * (F32)(obj.dragCoefficient * obj.area * 0.5 * airDensity * step);
 		}
+		else
+		{
+			obj.velocity += obj.force * (F32)obj.massInv;
+		}
 
-		obj.velocity += obj.force * (F32)obj.massInv;
-		obj.velocity += obj.oneTimeVelocity;
+		obj.move = obj.velocity + obj.oneTimeVelocity;
+
+		obj.force = Vector2::ZERO;
+		obj.oneTimeVelocity = Vector2::ZERO;
+	}
+
+	//BroadPhase();
+	NarrowPhase();
+
+	for (PhysicsObject2D* po : physicsObjects2D)
+	{
+		PhysicsObject2D& obj = *po;
+
 		obj.prevPosition = obj.transform->Position();
+		obj.move += obj.force + obj.oneTimeVelocity;
 
-		if (!obj.velocity.IsZero())
+		if (!obj.move.IsZero())
 		{
 			if (obj.collider->type == POLYGON_COLLIDER)
 			{
-				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape.vertices) { point += obj.velocity; }
+				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape.vertices) { point += obj.move; }
 			}
 
-			obj.transform->Translate(obj.velocity);
+			obj.transform->Translate(obj.move);
 			newContacts = true;
-			contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, obj.velocity);
+			//contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, obj.move); //TODO: temp
 		}
+
+		obj.velocity += obj.force;
 
 		obj.oneTimeVelocity = Vector2::ZERO;
 		obj.force = Vector2::ZERO;
+		obj.move = Vector2::ZERO;
 	}
-
-	BroadPhase();
-	NarrowPhase();
 }
 
 PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
@@ -101,6 +120,16 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 
 	switch (config.type)
 	{
+	case BOX_COLLIDER: {
+		BoxCollider* collider = (BoxCollider*)Memory::Allocate(sizeof(BoxCollider), MEMORY_TAG_DATA_STRUCT);
+		collider->type = BOX_COLLIDER;
+		collider->box = config.box;
+
+		po->collider = collider;
+
+		po->area = config.box.Area();
+		po->dragCoefficient = 1.0;
+	} break;
 	case POLYGON_COLLIDER: {
 		if (config.shape.Size() < 3)
 		{
@@ -179,7 +208,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 
 	physicsObjects2D.PushBack(po);
 
-	contactManager->AddObject(po);
+	table.Expand(); //TODO: temp
+	//contactManager->AddObject(po);
 
 	return po;
 }
@@ -207,14 +237,37 @@ void Physics::BroadPhase()
 
 void Physics::NarrowPhase()
 {
-	List<Contact2D> contacts = contactManager->Contacts();
-	for (Contact2D& c : contacts)
+	table.Reset();
+
+	for (auto it0 = physicsObjects2D.begin(); it0 != physicsObjects2D.end(); ++it0)
 	{
-		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
 		{
-			ResolveCollision(c);
+			U64 id0 = (*it0)->id;
+			U64 id1 = (*it1)->id;
+			if (id0 > id1) { Math::Swap(id0, id1); }
+
+			if (!table.GetSet(id0, id1))
+			{
+				Contact2D c = { *it0, *it1 };
+
+				if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+				{
+					ResolveCollision(c);
+				}
+			}
 		}
 	}
+
+	//List<Contact2D> contacts = contactManager->Contacts();
+
+	//for (Contact2D& c : contacts)
+	//{
+	//	if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+	//	{
+	//		ResolveCollision(c);
+	//	}
+	//}
 }
 
 bool Physics::BoxVsBox(Contact2D& c)
@@ -224,23 +277,41 @@ bool Physics::BoxVsBox(Contact2D& c)
 	Box& aBox = a->collider->box;
 	Box& bBox = b->collider->box;
 
-	Box mink = (bBox + b->prevPosition).Minkowski(aBox + a->prevPosition);
+	c.relativeVelocity = a->move - b->move;
+	Box mink = (bBox + b->transform->Position()).Minkowski(aBox + a->transform->Position());
+
+	if (a->massInv + b->massInv <= FLOAT_EPSILON) { return false; }
 
 	if (mink.xBounds.x <= 0.0f && mink.xBounds.y >= 0.0f && mink.yBounds.x <= 0.0f && mink.yBounds.y >= 0.0f)
 	{
+		if (c.relativeVelocity.IsZero())
+		{
+			Vector2 direction = mink.DirectionToClosestBound(Vector2::ZERO);
+			c.penetration = direction.Magnitude();
+			c.normal = direction / c.penetration;
+		}
+		else
+		{
+			c.normal = -c.relativeVelocity.Normalized();
+
+			F32 x = (mink.xBounds.x * c.normal.x * (c.normal.x < 0.0f)) + (mink.xBounds.y * c.normal.x * (c.normal.x > 0.0f));
+			F32 y = (mink.yBounds.x * c.normal.y * (c.normal.y < 0.0f)) + (mink.yBounds.y * c.normal.y * (c.normal.y > 0.0f));
+
+			c.penetration = Math::Sqrt(x * x + y * y);
+		}
 
 		return true;
 	}
 	else
 	{
 		//Sweep to find TOI
-		Vector2 relVel = a->velocity - b->velocity;
+		F32 t = mink.getRayIntersectionFraction(Vector2::ZERO, c.relativeVelocity);
 
-		F32 t; //get TOI
-
-		if (t < F32_MAX)
+		if (t < F32_MAX && t > 0.0f)
 		{
-
+			Vector2 direction = c.relativeVelocity * t;
+			c.penetration = direction.Magnitude();
+			c.normal = direction / c.penetration;
 
 			return true;
 		}
@@ -270,12 +341,12 @@ bool Physics::CircleVsCircle(Contact2D& c)
 	if (distance != 0.0f)
 	{
 		//c.penetration = radius - distance;
-		c.normal = direction / distance;
+		//c.normal = direction / distance;
 	}
 	else
 	{
 		//c.penetration = aCollider->radius;
-		c.normal = Vector2::RIGHT;
+		//c.normal = Vector2::RIGHT;
 	}
 
 	return true;
@@ -310,8 +381,8 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 
 		if (dist - e.distance < 0.001f)
 		{
-			c.normal = e.normal;
-			c.penetration = e.distance;
+			//c.normal = e.normal;
+			//c.penetration = e.distance;
 			return true;
 		}
 		else if (simplex.Size() < aShape.vertices.Size() + bShape.vertices.Size())
@@ -357,7 +428,7 @@ bool Physics::PolygonVsCircle(Contact2D& c)
 	{
 		distance = Math::Sqrt(distance);
 
-		c.normal = normal.Normalize();
+		//c.normal = normal.Normalize();
 		//c.penetration = bCollider->radius - distance;
 
 		return true;
@@ -390,12 +461,12 @@ bool Physics::CircleVsPolygon(Contact2D& c)
 			if (yOverlap > xOverlap)
 			{
 				//c.penetration = xOverlap;
-				c.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
+				//c.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
 			}
 			else
 			{
 				//c.penetration = yOverlap;
-				c.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
+				//c.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
 			}
 
 			return true;
@@ -410,26 +481,20 @@ void Physics::ResolveCollision(Contact2D& c)
 	PhysicsObject2D* a = c.a;
 	PhysicsObject2D* b = c.b;
 
-	Vector2 relVelocity = b->velocity - a->velocity;
-
-	F32 velAlongNormal = relVelocity.Dot(c.normal);
-
-	if (velAlongNormal > 0.0f || a->massInv + b->massInv <= FLOAT_EPSILON) { return; }
+	F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
 
 	F64 restitution = Math::Min(a->restitution, b->restitution);
-	F64 j = (-(1.0 + restitution) * velAlongNormal) / (a->massInv + b->massInv);
+	F32 j = (-(1.0 + restitution) * relVelNorm) / (a->massInv + b->massInv);
 
-	Vector2 impulse = c.normal * (F32)j;
+	Vector2 impulse = c.normal * j;
 
-	a->velocity -= impulse * (F32)a->massInv;
-	b->velocity += impulse * (F32)b->massInv;
+	a->force += impulse * (F32)a->massInv;
+	b->force -= impulse * (F32)b->massInv;
 
-	F64 slop = 0.001;
-	Vector2 correction = c.normal * (F32)(Math::Max(c.penetration - slop, 0.0) / (a->massInv + b->massInv));
-	a->oneTimeVelocity -= correction * (F32)a->massInv;
-	a->transform->Translate(-correction * (F32)a->massInv);
-	b->oneTimeVelocity += correction * (F32)b->massInv;
-	b->transform->Translate(correction * (F32)b->massInv);
+	F32 percent = 0.9999f;
+	Vector2 correction = c.normal * (c.penetration * percent) / (a->massInv + b->massInv);
+	a->oneTimeVelocity += correction * (F32)a->massInv;
+	b->oneTimeVelocity -= correction * (F32)b->massInv;
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)

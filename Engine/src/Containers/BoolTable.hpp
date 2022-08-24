@@ -9,7 +9,10 @@ struct BoolTable
 	{
 		void Destroy()
 		{
-			Memory::Free(data, size * sizeof(U8), MEMORY_TAG_DATA_STRUCT);
+			if (data)
+			{
+				Memory::Free(data, size * sizeof(U8), MEMORY_TAG_DATA_STRUCT);
+			}
 		}
 
 		void Reset()

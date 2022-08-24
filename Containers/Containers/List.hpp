@@ -27,7 +27,7 @@ struct NH_API List
 		Iterator(Node* node) : ptr{ node } {}
 
 		T& operator* () const { return ptr->value; }
-		T* operator-> () { return &(ptr->value); }
+		T* operator-> () { return ptr->value; } //TODO: doesn't work
 
 		Iterator& operator++ () { ptr = ptr->next; return *this; }
 		Iterator& operator-- () { ptr = ptr->prev; return *this; }
@@ -46,7 +46,7 @@ struct NH_API List
 			return temp;
 		}
 
-		Iterator operator+= (int i)
+		Iterator& operator+= (int i)
 		{
 			for (int j = 0; j < i; ++j)
 			{
@@ -56,7 +56,7 @@ struct NH_API List
 			return *this;
 		}
 
-		Iterator operator-= (int i)
+		Iterator& operator-= (int i)
 		{
 			for (int j = 0; j < i; ++j)
 			{
@@ -68,22 +68,26 @@ struct NH_API List
 
 		Iterator operator+ (int i)
 		{
+			Node* p = ptr;
+
 			for (int j = 0; j < i; ++j)
 			{
-				if (ptr) { ptr = ptr->next; }
+				if (p) { p = p->next; }
 			}
 
-			return *this;
+			return p;
 		}
 
 		Iterator operator- (int i)
 		{
+			Node* p = ptr;
+
 			for (int j = 0; j < i; ++j)
 			{
-				if (ptr) { ptr = ptr->prev; }
+				if (p) { p = p->prev; }
 			}
 
-			return *this;
+			return p;
 		}
 
 		friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }

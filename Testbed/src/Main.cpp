@@ -31,7 +31,8 @@ void spawnObj(const Vector2& position)
 	poConfig.restitution = 0.0;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
-	poConfig.type = POLYGON_COLLIDER;
+	poConfig.type = BOX_COLLIDER;
+	poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 	poConfig.radius = 0.5;
 	poConfig.shape.Reserve(4);
 	poConfig.shape.Push({ -0.5f, -0.5f });
@@ -99,7 +100,7 @@ bool init()
 		Mesh* mesh = Resources::CreateMesh(config);
 		Transform2D* transform = new Transform2D();
 		transform->Translate({ 0.0f, 10.0f });
-		transform->SetScale({ 10.0f, 10.0f });
+		transform->SetScale({ 1.0f, 1.0f });
 		PhysicsObject2DConfig poConfig{};
 		poConfig.density = 0.0;
 		poConfig.gravityScale = 1.0;
@@ -107,7 +108,8 @@ bool init()
 		poConfig.restitution = 0.0;
 		poConfig.transform = transform;
 		poConfig.trigger = false;
-		poConfig.type = POLYGON_COLLIDER;
+		poConfig.type = BOX_COLLIDER;
+		poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
@@ -153,7 +155,8 @@ bool init()
 		poConfig.restitution = 0.0;
 		poConfig.transform = transform;
 		poConfig.trigger = false;
-		poConfig.type = POLYGON_COLLIDER;
+		poConfig.type = BOX_COLLIDER;
+		poConfig.box = { {-5.0f, 5.0f}, {-5.0f, 5.0f} };
 		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
@@ -199,7 +202,8 @@ bool init()
 		poConfig.restitution = 0.0;
 		poConfig.transform = transform;
 		poConfig.trigger = false;
-		poConfig.type = POLYGON_COLLIDER;
+		poConfig.type = BOX_COLLIDER;
+		poConfig.box = { {-5.0f, 5.0f}, {-5.0f, 5.0f} };
 		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
@@ -219,7 +223,7 @@ bool init()
 
 	String name("player");
 	Transform2D* transform = new Transform2D();
-	transform->Translate({6.1f, -8.3f});
+	transform->Translate({0.6f, 0.0f});
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
 	poConfig.gravityScale = 1.0;
@@ -227,7 +231,8 @@ bool init()
 	poConfig.restitution = 0.0;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
-	poConfig.type = POLYGON_COLLIDER;
+	poConfig.type = BOX_COLLIDER;
+	poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 	poConfig.radius = 0.5;
 	poConfig.shape.Reserve(4);
 	poConfig.shape.Push({ -0.5f, -0.5f });
@@ -239,8 +244,8 @@ bool init()
 	goConfig.name = name;
 	goConfig.transform = transform;
 	goConfig.model = model;
-	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-	player = Resources::CreateGameObject2D(goConfig);
+	//goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+	//player = Resources::CreateGameObject2D(goConfig);
 	scene->DrawGameObject(player);
 
 	//PANEL
@@ -299,7 +304,7 @@ bool update()
 	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
 	move *= (F32)(Time::DeltaTime() * 3.0);
 
-	player->physics->Translate(move);
+	//player->physics->Translate(move);
 
 	if (Input::OnButtonDown(LBUTTON))
 	{
