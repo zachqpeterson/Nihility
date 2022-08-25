@@ -150,6 +150,8 @@ Vector4Int Math::Max(const Vector4Int& a, const Vector4Int& b) { return { Max(a.
 
 bool Math::NaN(F32 f) { return isnan(f); }
 bool Math::NaN(F64 f) { return isnan(f); }
+bool Math::Inf(F32 f) { return isinf(f); }
+bool Math::Inf(F64 f) { return isinf(f); }
 
 //LINEAR
 F32 Math::Sqrt(F32 f)

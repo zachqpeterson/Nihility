@@ -125,10 +125,7 @@ struct Box
 
 	Box Minkowski(const Box& b)
 	{
-		Vector2 min{ xBounds.x - b.xBounds.y, yBounds.x - b.yBounds.y };
-		Vector2 max{ min.x + xBounds.y - xBounds.x + b.xBounds.y - b.xBounds.x, min.y + yBounds.y - yBounds.x + b.yBounds.y - b.yBounds.x };
-
-		return { {min.x, max.x}, {min.y, max.y} };
+		return { {xBounds.x - b.xBounds.y, xBounds.y - b.xBounds.x}, {yBounds.x - b.yBounds.y, yBounds.y - b.yBounds.x} };
 	}
 
 	Vector2 DirectionToClosestBound(const Vector2& point)
@@ -155,37 +152,7 @@ struct Box
 		return closest;
 	}
 
-	F32 getRayIntersectionFractionOfFirstRay(const Vector2& originA, const Vector2& endA, const Vector2& originB, const Vector2& endB)
-	{
-		Vector2 r = endA - originA;
-		Vector2 s = endB - originB;
-
-		F32 numerator = (originB - originA).Cross(r);
-		F32 denominator = r.Cross(s);
-
-		if ((numerator == 0 && denominator == 0) || denominator == 0) { return F32_MAX; }
-
-		F32 u = numerator / denominator;
-		F32 t = ((originB - originA).Cross(s)) / denominator;
-		if ((t >= 0) && (t <= 1) && (u >= 0) && (u <= 1)) { return t; }
-
-		return F32_MAX;
-	}
-
-	F32 getRayIntersectionFraction(const Vector2& origin, const Vector2& direction)
-	{
-		Vector2 end = origin + direction;
-
-		F32 minT = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.x, yBounds.x }, { xBounds.x, yBounds.y });
-		F32 x = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.x, yBounds.y }, { xBounds.y, yBounds.y });
-
-		minT = Math::Min(x, minT);
-		x = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.y, yBounds.y }, { xBounds.y, yBounds.x });
-		minT = Math::Min(x, minT);
-		x = getRayIntersectionFractionOfFirstRay(origin, end, { xBounds.y, yBounds.x }, { xBounds.x, yBounds.x });
-
-		return Math::Min(x, minT);
-	}
+	F32 TOI(const Vector2& origin, const Vector2& direction) const;
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
 };
@@ -387,6 +354,7 @@ public:
 	static PhysicsObject3D* Create3DPhysicsObject();
 	static bool Raycast2D(const Vector2& origin, const Vector2& direction, F32 length, List<PhysicsObject2D*>& results);
 	static bool TestOverlap(const Box& a, const Box& b) { return a.xBounds.x <= b.xBounds.y && a.xBounds.y >= b.xBounds.x && a.yBounds.x <= b.yBounds.y && a.yBounds.y >= b.yBounds.x; }
+	static F32 TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ);
 
 private:
 	static bool Initialize();

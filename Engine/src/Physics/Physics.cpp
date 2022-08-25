@@ -282,7 +282,7 @@ bool Physics::BoxVsBox(Contact2D& c)
 
 	if (a->massInv + b->massInv <= FLOAT_EPSILON) { return false; }
 
-	if (mink.xBounds.x <= 0.0f && mink.xBounds.y >= 0.0f && mink.yBounds.x <= 0.0f && mink.yBounds.y >= 0.0f)
+	if (mink.Contains(Vector2::ZERO))
 	{
 		if (c.relativeVelocity.IsZero())
 		{
@@ -304,8 +304,7 @@ bool Physics::BoxVsBox(Contact2D& c)
 	}
 	else
 	{
-		//Sweep to find TOI
-		F32 t = mink.getRayIntersectionFraction(Vector2::ZERO, c.relativeVelocity);
+		F32 t = mink.TOI(Vector2::ZERO, c.relativeVelocity);
 
 		if (t < F32_MAX && t > 0.0f)
 		{
@@ -318,6 +317,38 @@ bool Physics::BoxVsBox(Contact2D& c)
 	}
 
 	return false;
+}
+
+F32 Physics::TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ)
+{
+	Vector2 r = endP - p;
+	Vector2 s = endQ - q;
+
+	F32 det = 1.0f / (-s.x * r.y + r.x * s.y);
+
+	if (Math::Inf(det)) { return F32_MAX; }
+
+	F32 u = (-r.y * (p.x - q.x) + r.x * (p.y - q.y)) * det;
+	F32 t = (s.x * (p.y - q.y) - s.y * (p.x - q.x)) * det;
+
+	if ((t >= 0) && (t <= 1) && (u >= 0) && (u <= 1)) { return t; }
+
+	return F32_MAX;
+}
+
+F32 Box::TOI(const Vector2& origin, const Vector2& direction) const
+{
+	Vector2 end = origin + direction;
+
+	F32 minT = Physics::TOI(origin, end, { xBounds.x, yBounds.x }, { xBounds.x, yBounds.y });
+	F32 x = Physics::TOI(origin, end, { xBounds.x, yBounds.y }, { xBounds.y, yBounds.y });
+
+	minT = Math::Min(x, minT);
+	x = Physics::TOI(origin, end, { xBounds.y, yBounds.y }, { xBounds.y, yBounds.x });
+	minT = Math::Min(x, minT);
+	x = Physics::TOI(origin, end, { xBounds.y, yBounds.x }, { xBounds.x, yBounds.x });
+
+	return Math::Min(x, minT);
 }
 
 bool Physics::CircleVsCircle(Contact2D& c)

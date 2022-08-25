@@ -150,6 +150,8 @@ public:
 	static bool Zero(F64 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
 	static bool NaN(F32 f);
 	static bool NaN(F64 f);
+	static bool Inf(F32 f);
+	static bool Inf(F64 f);
 
 	//FLOATING-POINT
 	static F32 Round(F32 f) { return (F32)(I32)(f + 0.5f); }
