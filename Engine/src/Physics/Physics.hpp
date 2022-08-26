@@ -155,6 +155,7 @@ struct Box
 	F32 TOI(const Vector2& origin, const Vector2& direction) const;
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
+	Box Fattened(F32 f) const { return { {xBounds.x - xBounds.x * f, xBounds.y - xBounds.y * f}, {yBounds.x - yBounds.x * f, yBounds.y - yBounds.y * f} }; }
 };
 
 struct Shape
@@ -280,7 +281,7 @@ struct PhysicsObject2D
 
 private:
 	U64 id;
-	I32 proxyID;
+	U64 proxyID;
 	Collider2D* collider;
 	Transform2D* transform;
 
@@ -338,7 +339,7 @@ public:
 	friend class ContactManager;
 	friend class Broadphase;
 	friend struct Tree;
-	friend struct BAH;
+	friend struct BoxTree;
 };
 
 class NH_API Physics

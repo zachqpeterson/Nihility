@@ -21,7 +21,7 @@ public:
 		T* operator-> () { return ptr; }
 
 		Iterator& operator++ () { ++ptr; return *this; }
-		Iterator operator++ (int)
+		Iterator operator++ (I32)
 		{
 			Iterator temp = *this;
 			++ptr;
@@ -29,34 +29,48 @@ public:
 		}
 
 		Iterator& operator-- () { --ptr; return *this; }
-		Iterator operator-- (int)
+		Iterator operator-- (I32)
 		{
 			Iterator temp = *this;
 			--ptr;
 			return temp;
 		}
 
-		Iterator operator+(int i)
+		Iterator operator+(I32 i)
 		{
 			Iterator temp = *this;
 			temp += i;
 			return temp;
 		}
 
-		Iterator operator-(int i)
+		Iterator operator+(U32 i)
+		{
+			Iterator temp = *this;
+			temp += i;
+			return temp;
+		}
+
+		Iterator operator-(I32 i)
 		{
 			Iterator temp = *this;
 			temp -= i;
 			return temp;
 		}
 
-		Iterator& operator+=(int i)
+		Iterator operator-(U32 i)
+		{
+			Iterator temp = *this;
+			temp -= i;
+			return temp;
+		}
+
+		Iterator& operator+=(I32 i)
 		{
 			ptr += i;
 			return *this;
 		}
 
-		Iterator& operator-=(int i)
+		Iterator& operator-=(I32 i)
 		{
 			ptr -= i;
 			return *this;

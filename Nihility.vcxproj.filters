@@ -139,7 +139,7 @@
     <ClInclude Include="Engine\src\Audio\Audio.hpp">
       <Filter>Source Files\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Physics\BAH.hpp">
+    <ClInclude Include="Engine\src\Physics\BoxTree.hpp">
       <Filter>Source Files\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Physics\Tree.hpp">
@@ -243,7 +243,7 @@
     <ClCompile Include="Engine\src\Audio\Audio.cpp">
       <Filter>Source Files\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\src\Physics\BAH.cpp">
+    <ClCompile Include="Engine\src\Physics\BoxTree.cpp">
       <Filter>Source Files\Physics</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Physics\Tree.cpp">

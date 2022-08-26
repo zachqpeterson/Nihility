@@ -260,7 +260,7 @@ void Physics::NarrowPhase()
 	}
 
 	//List<Contact2D> contacts = contactManager->Contacts();
-
+	//
 	//for (Contact2D& c : contacts)
 	//{
 	//	if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
@@ -317,38 +317,6 @@ bool Physics::BoxVsBox(Contact2D& c)
 	}
 
 	return false;
-}
-
-F32 Physics::TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ)
-{
-	Vector2 r = endP - p;
-	Vector2 s = endQ - q;
-
-	F32 det = 1.0f / (-s.x * r.y + r.x * s.y);
-
-	if (Math::Inf(det)) { return F32_MAX; }
-
-	F32 u = (-r.y * (p.x - q.x) + r.x * (p.y - q.y)) * det;
-	F32 t = (s.x * (p.y - q.y) - s.y * (p.x - q.x)) * det;
-
-	if ((t >= 0) && (t <= 1) && (u >= 0) && (u <= 1)) { return t; }
-
-	return F32_MAX;
-}
-
-F32 Box::TOI(const Vector2& origin, const Vector2& direction) const
-{
-	Vector2 end = origin + direction;
-
-	F32 minT = Physics::TOI(origin, end, { xBounds.x, yBounds.x }, { xBounds.x, yBounds.y });
-	F32 x = Physics::TOI(origin, end, { xBounds.x, yBounds.y }, { xBounds.y, yBounds.y });
-
-	minT = Math::Min(x, minT);
-	x = Physics::TOI(origin, end, { xBounds.y, yBounds.y }, { xBounds.y, yBounds.x });
-	minT = Math::Min(x, minT);
-	x = Physics::TOI(origin, end, { xBounds.y, yBounds.x }, { xBounds.x, yBounds.x });
-
-	return Math::Min(x, minT);
 }
 
 bool Physics::CircleVsCircle(Contact2D& c)
@@ -620,4 +588,36 @@ Vector2 Physics::TripleProduct(const Vector2& a, const Vector2& b, const Vector2
 {
 	F32 z = a.x * b.y - a.y * b.x;
 	return { -c.y * z, c.x * z };
+}
+
+F32 Physics::TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ)
+{
+	Vector2 r = endP - p;
+	Vector2 s = endQ - q;
+
+	F32 det = 1.0f / (-s.x * r.y + r.x * s.y);
+
+	if (Math::Inf(det)) { return F32_MAX; }
+
+	F32 u = (-r.y * (p.x - q.x) + r.x * (p.y - q.y)) * det;
+	F32 t = (s.x * (p.y - q.y) - s.y * (p.x - q.x)) * det;
+
+	if ((t >= 0) && (t <= 1) && (u >= 0) && (u <= 1)) { return t; }
+
+	return F32_MAX;
+}
+
+F32 Box::TOI(const Vector2& origin, const Vector2& direction) const
+{
+	Vector2 end = origin + direction;
+
+	F32 minT = Physics::TOI(origin, end, { xBounds.x, yBounds.x }, { xBounds.x, yBounds.y });
+	F32 x = Physics::TOI(origin, end, { xBounds.x, yBounds.y }, { xBounds.y, yBounds.y });
+
+	minT = Math::Min(x, minT);
+	x = Physics::TOI(origin, end, { xBounds.y, yBounds.y }, { xBounds.y, yBounds.x });
+	minT = Math::Min(x, minT);
+	x = Physics::TOI(origin, end, { xBounds.y, yBounds.x }, { xBounds.x, yBounds.x });
+
+	return Math::Min(x, minT);
 }

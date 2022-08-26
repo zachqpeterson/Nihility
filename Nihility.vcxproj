@@ -112,7 +112,7 @@
     <ClInclude Include="Engine\src\Math\Math.hpp" />
     <ClInclude Include="Engine\src\Memory\DynamicAllocator.hpp" />
     <ClInclude Include="Engine\src\Memory\Memory.hpp" />
-    <ClInclude Include="Engine\src\Physics\BAH.hpp" />
+    <ClInclude Include="Engine\src\Physics\BoxTree.hpp" />
     <ClInclude Include="Engine\src\Physics\Broadphase.hpp" />
     <ClInclude Include="Engine\src\Physics\ContactManager.hpp" />
     <ClInclude Include="Engine\src\Physics\Physics.hpp" />
@@ -150,7 +150,7 @@
     <ClCompile Include="Engine\src\Math\Math.cpp" />
     <ClCompile Include="Engine\src\Memory\DynamicAllocator.cpp" />
     <ClCompile Include="Engine\src\Memory\Memory.cpp" />
-    <ClCompile Include="Engine\src\Physics\BAH.cpp" />
+    <ClCompile Include="Engine\src\Physics\BoxTree.cpp" />
     <ClCompile Include="Engine\src\Physics\Broadphase.cpp" />
     <ClCompile Include="Engine\src\Physics\ContactManager.cpp" />
     <ClCompile Include="Engine\src\Physics\Physics.cpp" />
