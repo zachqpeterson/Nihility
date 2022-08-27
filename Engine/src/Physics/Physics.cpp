@@ -1,6 +1,7 @@
 #include "Physics.hpp"
 
 #include "ContactManager.hpp"
+#include "BoxTree.hpp"
 
 #include <Containers/Vector.hpp>
 
@@ -10,6 +11,7 @@ List<PhysicsObject2D*> Physics::physicsObjects2D;
 List<PhysicsObject3D*> Physics::physicsObjects3D;
 Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
+BoxTree* Physics::tree;
 ContactManager* Physics::contactManager;
 BoolTable Physics::table;
 
@@ -19,6 +21,7 @@ bool Physics::newContacts;
 
 bool Physics::Initialize()
 {
+	tree = new BoxTree();
 	contactManager = new ContactManager();
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
@@ -47,6 +50,7 @@ void Physics::Shutdown()
 	physicsObjects3D.Destroy();
 
 	delete contactManager;
+	delete tree;
 
 	table.~BoolTable(); //TODO: temp
 }
@@ -93,6 +97,7 @@ void Physics::Update(F64 step)
 
 			obj.transform->Translate(obj.move);
 			newContacts = true;
+			tree->UpdateObj(po);
 			//contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, obj.move); //TODO: temp
 		}
 
@@ -209,6 +214,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	physicsObjects2D.PushBack(po);
 
 	table.Expand(); //TODO: temp
+	tree->InsertObj(po);
 	//contactManager->AddObject(po);
 
 	return po;
@@ -239,17 +245,21 @@ void Physics::NarrowPhase()
 {
 	table.Reset();
 
-	for (auto it0 = physicsObjects2D.begin(); it0 != physicsObjects2D.end(); ++it0)
+	for (PhysicsObject2D* obj0 : physicsObjects2D)
 	{
-		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
+		Vector<PhysicsObject2D*> result;
+		tree->Query(obj0, result);
+
+		for (PhysicsObject2D* obj1 : result)
 		{
-			U64 id0 = (*it0)->id;
-			U64 id1 = (*it1)->id;
+			U32 id0 = obj0->id;
+			U32 id1 = obj1->id;
+
 			if (id0 > id1) { Math::Swap(id0, id1); }
 
 			if (!table.GetSet(id0, id1))
 			{
-				Contact2D c = { *it0, *it1 };
+				Contact2D c = { obj0, obj1 };
 
 				if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
 				{
@@ -257,6 +267,23 @@ void Physics::NarrowPhase()
 				}
 			}
 		}
+
+		//for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
+		//{
+		//	U64 id0 = (*it0)->id;
+		//	U64 id1 = (*it1)->id;
+		//	if (id0 > id1) { Math::Swap(id0, id1); }
+		//
+		//	if (!table.GetSet(id0, id1))
+		//	{
+		//		Contact2D c = { *it0, *it1 };
+		//
+		//		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+		//		{
+		//			ResolveCollision(c);
+		//		}
+		//	}
+		//}
 	}
 
 	//List<Contact2D> contacts = contactManager->Contacts();

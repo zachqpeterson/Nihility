@@ -155,7 +155,20 @@ struct Box
 	F32 TOI(const Vector2& origin, const Vector2& direction) const;
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
-	Box Fattened(F32 f) const { return { {xBounds.x - xBounds.x * f, xBounds.y - xBounds.y * f}, {yBounds.x - yBounds.x * f, yBounds.y - yBounds.y * f} }; }
+	Box Fattened(F32 f) const 
+	{ 
+		F32 x = (xBounds.y - xBounds.x) * f; 
+		F32 y = (yBounds.y - yBounds.x) * f; 
+		return { {xBounds.x - x, xBounds.y + x}, {yBounds.x - y, yBounds.y + y} }; 
+	}
+	Box& Fatten(F32 f)
+	{
+		F32 x = (xBounds.y - xBounds.x) * f;
+		F32 y = (yBounds.y - yBounds.x) * f;
+		xBounds = { xBounds.x - x, xBounds.y + x };
+		yBounds = { yBounds.x - y, yBounds.y + y };
+		return *this;
+	}
 };
 
 struct Shape
@@ -382,6 +395,7 @@ private:
 
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
+	static struct BoxTree* tree;
 	static class ContactManager* contactManager;
 	static struct BoolTable table; //TODO: temp
 
