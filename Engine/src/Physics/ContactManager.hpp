@@ -8,16 +8,6 @@
 #include <Containers/Vector2D.hpp>
 #include <Containers/List.hpp>
 
-struct Contact2D
-{
-	struct PhysicsObject2D* a;
-	struct PhysicsObject2D* b;
-
-	F32 penetration;
-	Vector2 relativeVelocity;
-	Vector2 normal;
-};
-
 class ContactManager
 {
 public:

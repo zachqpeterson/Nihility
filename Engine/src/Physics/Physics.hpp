@@ -155,12 +155,14 @@ struct Box
 	F32 TOI(const Vector2& origin, const Vector2& direction) const;
 
 	Box operator+(const Vector2& v) const { return{ xBounds + v.x, yBounds + v.y }; }
+
 	Box Fattened(F32 f) const 
 	{ 
 		F32 x = (xBounds.y - xBounds.x) * f; 
 		F32 y = (yBounds.y - yBounds.x) * f; 
 		return { {xBounds.x - x, xBounds.y + x}, {yBounds.x - y, yBounds.y + y} }; 
 	}
+
 	Box& Fatten(F32 f)
 	{
 		F32 x = (xBounds.y - xBounds.x) * f;
@@ -283,6 +285,17 @@ struct Edge
 	U32 index;
 };
 
+struct Contact2D
+{
+	struct PhysicsObject2D* a;
+	struct PhysicsObject2D* b;
+
+	F32 restitution;
+	F32 penetration;
+	Vector2 relativeVelocity;
+	Vector2 normal;
+};
+
 struct PhysicsObject2D
 {
 	void ApplyForce(const Vector2& f) { force += f; }
@@ -294,36 +307,38 @@ struct PhysicsObject2D
 
 private:
 	U64 id;
-	U64 proxyID;
+	U32 proxyID;
 	Collider2D* collider;
 	Transform2D* transform;
 
 	Vector2 prevPosition;
-	F64 prevRotation;
+	F32 prevRotation;
 
 	//secondary
 	Vector2 velocity;
 	Vector2 oneTimeVelocity;
 	Vector2 move;
-	F64 angularVelocity;
+	F32 angularVelocity;
 
 	// secondary
 	Vector2 force;
-	F64 torque;
+	F32 torque;
 
 	bool grounded;
-
+	bool stopped;
+	Vector2 axisLock;
+		
 	// constants
-	F64 mass;
-	F64 massInv;
-	F64 inertia;
-	F64 inertiaInv;
-	F64 friction;
-	F64 restitution;
-	F64 gravityScale;
-	F64 dragCoefficient;
-	F64 angularDragCoefficient;
-	F64 area;
+	F32 mass;
+	F32 massInv;
+	F32 inertia;
+	F32 inertiaInv;
+	F32 friction;
+	F32 restitution;
+	F32 gravityScale;
+	F32 dragCoefficient;
+	F32 angularDragCoefficient;
+	F32 area;
 	U64 layerMask;
 	bool kinematic;
 	bool freezeRotation;

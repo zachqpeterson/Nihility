@@ -416,6 +416,8 @@ Vector2& Vector2::operator=(const String& str)
 
 Vector2 operator- (const Vector2& v) { return Vector2{ -v.x, -v.y }; }
 
+Vector2 operator! (const Vector2& v) { return Vector2{ (F32)!v.x, (F32)!v.y}; }
+
 //VECTOR3
 Vector3::Vector3(const String& str)
 {

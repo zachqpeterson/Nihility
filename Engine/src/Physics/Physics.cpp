@@ -87,6 +87,8 @@ void Physics::Update(F64 step)
 
 		obj.prevPosition = obj.transform->Position();
 		obj.move += obj.force + obj.oneTimeVelocity;
+		obj.stopped = false;
+		obj.axisLock = Vector2::ONE * obj.kinematic;
 
 		if (!obj.move.IsZero())
 		{
@@ -244,6 +246,7 @@ void Physics::BroadPhase()
 void Physics::NarrowPhase()
 {
 	table.Reset();
+	List<Contact2D> dynamics;
 
 	//for (PhysicsObject2D* obj0 : physicsObjects2D)
 	for (auto it0 = physicsObjects2D.begin(); it0 != physicsObjects2D.end(); ++it0)
@@ -269,21 +272,27 @@ void Physics::NarrowPhase()
 		//	}
 		//}
 
-		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1) //Cache dynamic vs dynamic collisions and runn them again
+		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1) //Cache dynamic vs dynamic collisions and run them again
 		{
 			U64 id0 = (*it0)->id;
 			U64 id1 = (*it1)->id;
 			if (id0 > id1) { Math::Swap(id0, id1); }
-		
+
 			if (!table.GetSet(id0, id1))
 			{
 				Contact2D c = { *it0, *it1 };
-		
-				if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
-				{
-					ResolveCollision(c);
-				}
+
+				if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
+				else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
 			}
+		}
+	}
+
+	for (Contact2D& c : dynamics)
+	{
+		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+		{
+			ResolveCollision(c);
 		}
 	}
 
@@ -307,6 +316,7 @@ bool Physics::BoxVsBox(Contact2D& c)
 
 	c.relativeVelocity = a->move - b->move;
 	Box mink = (bBox + b->transform->Position()).Minkowski(aBox + a->transform->Position());
+	F32 t;
 
 	if (a->massInv + b->massInv <= FLOAT_EPSILON) { return false; }
 
@@ -317,6 +327,7 @@ bool Physics::BoxVsBox(Contact2D& c)
 			Vector2 direction = mink.DirectionToClosestBound(Vector2::ZERO);
 			c.penetration = direction.Magnitude();
 			c.normal = direction / c.penetration;
+			c.restitution = Math::Min(a->restitution, b->restitution);
 		}
 		else
 		{
@@ -326,22 +337,19 @@ bool Physics::BoxVsBox(Contact2D& c)
 			F32 y = (mink.yBounds.x * c.normal.y * (c.normal.y < 0.0f)) + (mink.yBounds.y * c.normal.y * (c.normal.y > 0.0f));
 
 			c.penetration = Math::Sqrt(x * x + y * y);
+			c.restitution = Math::Min(a->restitution, b->restitution);
 		}
 
 		return true;
 	}
-	else
+	else if ((t = mink.TOI(Vector2::ZERO, c.relativeVelocity)) < F32_MAX && t > 0.0f)
 	{
-		F32 t = mink.TOI(Vector2::ZERO, c.relativeVelocity);
-
-		if (t < F32_MAX && t > 0.0f)
-		{
-			Vector2 direction = c.relativeVelocity * t;
-			c.penetration = direction.Magnitude();
-			c.normal = direction / c.penetration;
-
-			return true;
-		}
+		Vector2 direction = c.relativeVelocity * t;
+		c.penetration = direction.Magnitude();
+		c.normal = direction / c.penetration;
+		c.restitution = Math::Min(a->restitution, b->restitution);
+		
+		return true;
 	}
 
 	return false;
@@ -508,20 +516,40 @@ void Physics::ResolveCollision(Contact2D& c)
 	PhysicsObject2D* a = c.a;
 	PhysicsObject2D* b = c.b;
 
-	F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
+	if (Math::Inf(c.normal.x) || Math::NaN(c.normal.x))
+	{
+		a->force -= a->velocity * !a->stopped;
+		b->force -= b->velocity * !b->stopped;
+	}
+	else
+	{
+		F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
 
-	F64 restitution = Math::Min(a->restitution, b->restitution);
-	F32 j = (-(1.0 + restitution) * relVelNorm) / (a->massInv + b->massInv);
+		//F32 j = (-(1.0 + c.restitution) * relVelNorm) / (a->massInv * !a->stopped + b->massInv * !b->stopped);
 
-	Vector2 impulse = c.normal * j;
+		Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
 
-	a->force += impulse * (F32)a->massInv;
-	b->force -= impulse * (F32)b->massInv;
+		Vector2 impulse = c.normal * (-(1.0 + c.restitution) * relVelNorm) / massRatio;
 
-	F32 percent = 0.9999f;
-	Vector2 correction = c.normal * (c.penetration * percent) / (a->massInv + b->massInv);
-	a->oneTimeVelocity += correction * (F32)a->massInv;
-	b->oneTimeVelocity -= correction * (F32)b->massInv;
+		Vector2 oppositeA = a->force * a->axisLock;
+		Vector2 oppositeB = b->force * b->axisLock;
+
+		a->force += impulse * (!a->axisLock * a->massInv) - oppositeB;
+		b->force -= impulse * (!b->axisLock * b->massInv) - oppositeA;
+
+		F32 percent = 0.9999f;
+		Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
+		a->oneTimeVelocity += correction * (!a->axisLock * a->massInv);
+		b->oneTimeVelocity -= correction * (!b->axisLock * b->massInv);
+
+		bool lock = c.restitution < FLOAT_EPSILON;
+
+		c.a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock, b->axisLock.y* (c.normal.y > 0.0f)* lock };
+		c.b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock, a->axisLock.y* (c.normal.y < 0.0f)* lock };
+	}
+
+	//a->stopped = (a->move + a->force).IsZero();
+	//b->stopped = (b->move + b->force).IsZero();
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)

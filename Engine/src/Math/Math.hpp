@@ -252,6 +252,7 @@ struct NH_API Vector2
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	bool IsZero() const { return Math::Zero(x) && Math::Zero(y); }
 	friend Vector2 operator- (const Vector2& v);
+	friend Vector2 operator! (const Vector2& v);
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
