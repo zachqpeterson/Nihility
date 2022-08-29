@@ -97,7 +97,7 @@ void Physics::Update(F64 step)
 
 			obj.transform->Translate(obj.move);
 			newContacts = true;
-			tree->UpdateObj(po);
+			//tree->UpdateObj(po);
 			//contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, obj.move); //TODO: temp
 		}
 
@@ -214,7 +214,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 	physicsObjects2D.PushBack(po);
 
 	table.Expand(); //TODO: temp
-	tree->InsertObj(po);
+	//tree->InsertObj(po);
 	//contactManager->AddObject(po);
 
 	return po;
@@ -245,38 +245,22 @@ void Physics::NarrowPhase()
 {
 	table.Reset();
 
-	for (PhysicsObject2D* obj0 : physicsObjects2D)
+	//for (PhysicsObject2D* obj0 : physicsObjects2D)
+	for (auto it0 = physicsObjects2D.begin(); it0 != physicsObjects2D.end(); ++it0)
 	{
-		Vector<PhysicsObject2D*> result;
-		tree->Query(obj0, result);
-
-		for (PhysicsObject2D* obj1 : result)
-		{
-			U32 id0 = obj0->id;
-			U32 id1 = obj1->id;
-
-			if (id0 > id1) { Math::Swap(id0, id1); }
-
-			if (!table.GetSet(id0, id1))
-			{
-				Contact2D c = { obj0, obj1 };
-
-				if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
-				{
-					ResolveCollision(c);
-				}
-			}
-		}
-
-		//for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
+		//Vector<PhysicsObject2D*> result;
+		//tree->Query(obj0, result);
+		//
+		//for (PhysicsObject2D* obj1 : result)
 		//{
-		//	U64 id0 = (*it0)->id;
-		//	U64 id1 = (*it1)->id;
+		//	U32 id0 = obj0->id;
+		//	U32 id1 = obj1->id;
+		//
 		//	if (id0 > id1) { Math::Swap(id0, id1); }
 		//
 		//	if (!table.GetSet(id0, id1))
 		//	{
-		//		Contact2D c = { *it0, *it1 };
+		//		Contact2D c = { obj0, obj1 };
 		//
 		//		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
 		//		{
@@ -284,6 +268,23 @@ void Physics::NarrowPhase()
 		//		}
 		//	}
 		//}
+
+		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1) //Cache dynamic vs dynamic collisions and runn them again
+		{
+			U64 id0 = (*it0)->id;
+			U64 id1 = (*it1)->id;
+			if (id0 > id1) { Math::Swap(id0, id1); }
+		
+			if (!table.GetSet(id0, id1))
+			{
+				Contact2D c = { *it0, *it1 };
+		
+				if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+				{
+					ResolveCollision(c);
+				}
+			}
+		}
 	}
 
 	//List<Contact2D> contacts = contactManager->Contacts();
