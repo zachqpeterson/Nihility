@@ -209,7 +209,7 @@ struct PhysicsObject2DConfig
 	Collider2DType type;
 
 	//Circle
-	F64 radius;
+	F32 radius;
 	Vector2 offset;
 
 	//Polygon
@@ -221,9 +221,9 @@ struct PhysicsObject2DConfig
 	bool trigger;
 	bool kinematic;
 
-	F64 restitution;
-	F64 gravityScale;
-	F64 density;
+	F32 restitution;
+	F32 gravityScale;
+	F32 density;
 	Transform2D* transform;
 };
 
@@ -299,11 +299,11 @@ struct Contact2D
 struct PhysicsObject2D
 {
 	void ApplyForce(const Vector2& f) { force += f; }
-	void ApplyTorque(F64 t) { torque += t; }
+	void ApplyTorque(F32 t) { torque += t; }
 	void AddVelocity(const Vector2& v) { velocity += v; }
 	void Translate(const Vector2& v) { oneTimeVelocity += v; }
-	void AddAngularVelocity(F64 v) { angularVelocity += v; }
-	void SetGravityScale(F64 s) { gravityScale = s; }
+	void AddAngularVelocity(F32 v) { angularVelocity += v; }
+	void SetGravityScale(F32 s) { gravityScale = s; }
 
 private:
 	U64 id;

@@ -306,7 +306,7 @@ void BoxTree::InsertLeaf(U32 leaf)
 
 		F32 cost = 2.0f * combinedSurfaceArea;
 
-		F32 inheritanceCost = 2.0 * (combinedSurfaceArea - surfaceArea);
+		F32 inheritanceCost = 2.0f * (combinedSurfaceArea - surfaceArea);
 
 		F32 costLeft;
 		if (leftNode.Leaf())

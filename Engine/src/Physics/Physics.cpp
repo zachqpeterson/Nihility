@@ -134,7 +134,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		po->collider = collider;
 
 		po->area = config.box.Area();
-		po->dragCoefficient = 1.0;
+		po->dragCoefficient = 1.2f;
 	} break;
 	case POLYGON_COLLIDER: {
 		if (config.shape.Size() < 3)
@@ -184,7 +184,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 		collider->box.xBounds = { config.offset.x - (F32)config.radius, config.offset.x + (F32)config.radius };
 		collider->box.yBounds = { config.offset.y - (F32)config.radius, config.offset.y + (F32)config.radius };
 		po->collider = collider;
-		po->dragCoefficient = 1.17;
+		po->dragCoefficient = 1.17f;
 
 		po->area = (F32)(PI * config.radius * config.radius);
 	} break;
@@ -514,7 +514,7 @@ void Physics::ResolveCollision(Contact2D& c)
 		Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
 		massRatio.x += Math::Zero(massRatio.x);
 		massRatio.y += Math::Zero(massRatio.y);
-		Vector2 impulse = c.normal * (-(1.0 + c.restitution) * relVelNorm) / massRatio;
+		Vector2 impulse = c.normal * (-(1.0f + c.restitution) * relVelNorm) / massRatio;
 
 		a->force += impulse * (!a->axisLock * a->massInv);
 		b->force -= impulse * (!b->axisLock * b->massInv);
