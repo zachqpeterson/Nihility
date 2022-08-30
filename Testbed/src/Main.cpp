@@ -146,8 +146,8 @@ bool init()
 
 		Mesh* mesh = Resources::CreateMesh(config);
 		Transform2D* transform = new Transform2D();
-		transform->Translate({ 10.0f, 0.0f });
-		transform->SetScale({ 10.0f, 10.0f });
+		transform->Translate({ 1.0f, 10.0f });
+		transform->SetScale({ 1.0f, 1.0f });
 		PhysicsObject2DConfig poConfig{};
 		poConfig.density = 0.0;
 		poConfig.gravityScale = 1.0;
@@ -156,7 +156,7 @@ bool init()
 		poConfig.transform = transform;
 		poConfig.trigger = false;
 		poConfig.type = BOX_COLLIDER;
-		poConfig.box = { {-5.0f, 5.0f}, {-5.0f, 5.0f} };
+		poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });
@@ -193,8 +193,8 @@ bool init()
 
 		Mesh* mesh = Resources::CreateMesh(config);
 		Transform2D* transform = new Transform2D();
-		transform->Translate({ -10.0f, 0.0f });
-		transform->SetScale({ 10.0f, 10.0f });
+		transform->Translate({ -1.0f, 10.0f });
+		transform->SetScale({ 1.0f, 1.0f });
 		PhysicsObject2DConfig poConfig{};
 		poConfig.density = 0.0;
 		poConfig.gravityScale = 1.0;
@@ -203,7 +203,7 @@ bool init()
 		poConfig.transform = transform;
 		poConfig.trigger = false;
 		poConfig.type = BOX_COLLIDER;
-		poConfig.box = { {-5.0f, 5.0f}, {-5.0f, 5.0f} };
+		poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 		poConfig.radius = 5.0;
 		poConfig.shape.Reserve(4);
 		poConfig.shape.Push({ -5.0f, -5.0f });

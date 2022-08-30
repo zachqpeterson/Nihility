@@ -316,6 +316,7 @@ bool Physics::BoxVsBox(Contact2D& c)
 		}
 		else
 		{
+			//TODO: This assumption may cause problems
 			c.normal = c.relativeVelocity.Normalized();
 
 			F32 x = (mink.xBounds.x * c.normal.x * (c.normal.x > 0.0f)) + (mink.xBounds.y * c.normal.x * (c.normal.x < 0.0f));
@@ -501,10 +502,10 @@ void Physics::ResolveCollision(Contact2D& c)
 	PhysicsObject2D* a = c.a;
 	PhysicsObject2D* b = c.b;
 
-	if (Math::Inf(c.normal.x) || Math::NaN(c.normal.x))
+	if (Math::NaN(c.normal.x))
 	{
-		a->force -= a->velocity * !a->stopped;
-		b->force -= b->velocity * !b->stopped;
+		a->force -= a->velocity * !a->axisLock;
+		b->force -= b->velocity * !b->axisLock;
 	}
 	else
 	{
