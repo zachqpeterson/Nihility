@@ -314,7 +314,7 @@ bool Physics::BoxVsBox(Contact2D& c)
 	Box& aBox = a->collider->box;
 	Box& bBox = b->collider->box;
 
-	c.relativeVelocity = a->move - b->move;
+	c.relativeVelocity = a->move * !a->axisLock - b->move * !b->axisLock;
 	Box mink = (bBox + b->transform->Position()).Minkowski(aBox + a->transform->Position());
 	F32 t;
 
@@ -325,18 +325,18 @@ bool Physics::BoxVsBox(Contact2D& c)
 		if (c.relativeVelocity.IsZero())
 		{
 			Vector2 direction = mink.DirectionToClosestBound(Vector2::ZERO);
-			c.penetration = direction.Magnitude();
+			c.penetration = -direction.Magnitude();
 			c.normal = direction / c.penetration;
 			c.restitution = Math::Min(a->restitution, b->restitution);
 		}
 		else
 		{
-			c.normal = -c.relativeVelocity.Normalized();
+			c.normal = c.relativeVelocity.Normalized();
 
-			F32 x = (mink.xBounds.x * c.normal.x * (c.normal.x < 0.0f)) + (mink.xBounds.y * c.normal.x * (c.normal.x > 0.0f));
-			F32 y = (mink.yBounds.x * c.normal.y * (c.normal.y < 0.0f)) + (mink.yBounds.y * c.normal.y * (c.normal.y > 0.0f));
+			F32 x = (mink.xBounds.x * c.normal.x * (c.normal.x > 0.0f)) + (mink.xBounds.y * c.normal.x * (c.normal.x < 0.0f));
+			F32 y = (mink.yBounds.x * c.normal.y * (c.normal.y > 0.0f)) + (mink.yBounds.y * c.normal.y * (c.normal.y < 0.0f));
 
-			c.penetration = Math::Sqrt(x * x + y * y);
+			c.penetration = -Math::Sqrt(x * x + y * y);
 			c.restitution = Math::Min(a->restitution, b->restitution);
 		}
 
@@ -525,17 +525,13 @@ void Physics::ResolveCollision(Contact2D& c)
 	{
 		F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
 
-		//F32 j = (-(1.0 + c.restitution) * relVelNorm) / (a->massInv * !a->stopped + b->massInv * !b->stopped);
-
 		Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
-
+		massRatio.x += Math::Zero(massRatio.x);
+		massRatio.y += Math::Zero(massRatio.y);
 		Vector2 impulse = c.normal * (-(1.0 + c.restitution) * relVelNorm) / massRatio;
 
-		Vector2 oppositeA = a->force * a->axisLock;
-		Vector2 oppositeB = b->force * b->axisLock;
-
-		a->force += impulse * (!a->axisLock * a->massInv) - oppositeB;
-		b->force -= impulse * (!b->axisLock * b->massInv) - oppositeA;
+		a->force += impulse * (!a->axisLock * a->massInv);
+		b->force -= impulse * (!b->axisLock * b->massInv);
 
 		F32 percent = 0.9999f;
 		Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
@@ -547,9 +543,6 @@ void Physics::ResolveCollision(Contact2D& c)
 		c.a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock, b->axisLock.y* (c.normal.y > 0.0f)* lock };
 		c.b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock, a->axisLock.y* (c.normal.y < 0.0f)* lock };
 	}
-
-	//a->stopped = (a->move + a->force).IsZero();
-	//b->stopped = (b->move + b->force).IsZero();
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)
