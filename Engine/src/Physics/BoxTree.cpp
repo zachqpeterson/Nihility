@@ -38,7 +38,7 @@ void BoxTree::InsertObj(PhysicsObject2D* obj)
 {
 	U32 index = AllocateNode();
 	Node& node = nodes[index];
-	node.box = obj->collider->box.Fattened(fat);
+	node.box = (obj->collider->box + obj->transform->Position()).Fattened(fat);
 	node.height = 0;
 	node.obj = obj;
 	obj->proxyID = index;

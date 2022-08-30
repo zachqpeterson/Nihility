@@ -85,7 +85,6 @@ void Physics::Update(F64 step)
 	{
 		PhysicsObject2D& obj = *po;
 
-		obj.prevPosition = obj.transform->Position();
 		obj.move += obj.force + obj.oneTimeVelocity;
 		obj.stopped = false;
 		obj.axisLock = Vector2::ONE * obj.kinematic;
@@ -194,8 +193,6 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 
 	po->collider->trigger = config.trigger;
 	po->transform = config.transform;
-	po->prevPosition = po->transform->Position();
-	po->prevRotation = po->transform->Rotation().angle;
 
 	po->restitution = config.restitution;
 	po->gravityScale = config.gravityScale;
@@ -265,10 +262,8 @@ void Physics::NarrowPhase()
 		//	{
 		//		Contact2D c = { obj0, obj1 };
 		//
-		//		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
-		//		{
-		//			ResolveCollision(c);
-		//		}
+		//		if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
+		//		else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
 		//	}
 		//}
 
@@ -277,11 +272,11 @@ void Physics::NarrowPhase()
 			U64 id0 = (*it0)->id;
 			U64 id1 = (*it1)->id;
 			if (id0 > id1) { Math::Swap(id0, id1); }
-
+		
 			if (!table.GetSet(id0, id1))
 			{
 				Contact2D c = { *it0, *it1 };
-
+		
 				if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
 				else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
 			}
@@ -295,16 +290,6 @@ void Physics::NarrowPhase()
 			ResolveCollision(c);
 		}
 	}
-
-	//List<Contact2D> contacts = contactManager->Contacts();
-	//
-	//for (Contact2D& c : contacts)
-	//{
-	//	if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
-	//	{
-	//		ResolveCollision(c);
-	//	}
-	//}
 }
 
 bool Physics::BoxVsBox(Contact2D& c)

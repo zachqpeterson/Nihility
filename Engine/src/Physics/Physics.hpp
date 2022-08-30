@@ -311,9 +311,6 @@ private:
 	Collider2D* collider;
 	Transform2D* transform;
 
-	Vector2 prevPosition;
-	F32 prevRotation;
-
 	//secondary
 	Vector2 velocity;
 	Vector2 oneTimeVelocity;
