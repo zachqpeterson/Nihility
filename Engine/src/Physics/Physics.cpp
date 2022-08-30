@@ -12,7 +12,7 @@ List<PhysicsObject3D*> Physics::physicsObjects3D;
 Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
 BoxTree* Physics::tree;
-ContactManager* Physics::contactManager;
+//ContactManager* Physics::contactManager;
 BoolTable Physics::table;
 
 F64 Physics::airDensity = 1.29;
@@ -22,7 +22,7 @@ bool Physics::newContacts;
 bool Physics::Initialize()
 {
 	tree = new BoxTree();
-	contactManager = new ContactManager();
+	//contactManager = new ContactManager();
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
 	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] = PolygonVsPolygon;
@@ -49,7 +49,7 @@ void Physics::Shutdown()
 
 	physicsObjects3D.Destroy();
 
-	delete contactManager;
+	//delete contactManager;
 	delete tree;
 
 	table.~BoolTable(); //TODO: temp
@@ -238,7 +238,7 @@ void Physics::BroadPhase()
 {
 	if (newContacts)
 	{
-		contactManager->FindNewContacts();
+		//contactManager->FindNewContacts();
 		newContacts = false;
 	}
 }
@@ -540,8 +540,8 @@ void Physics::ResolveCollision(Contact2D& c)
 
 		bool lock = c.restitution < FLOAT_EPSILON;
 
-		c.a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock, b->axisLock.y* (c.normal.y > 0.0f)* lock };
-		c.b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock, a->axisLock.y* (c.normal.y < 0.0f)* lock };
+		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock, b->axisLock.y* (c.normal.y > 0.0f)* lock };
+		b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock, a->axisLock.y* (c.normal.y < 0.0f)* lock };
 	}
 }
 

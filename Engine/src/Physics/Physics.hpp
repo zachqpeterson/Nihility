@@ -411,7 +411,7 @@ private:
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
 	static struct BoxTree* tree;
-	static class ContactManager* contactManager;
+	//static class ContactManager* contactManager;
 	static struct BoolTable table; //TODO: temp
 
 	static F64 airDensity;
