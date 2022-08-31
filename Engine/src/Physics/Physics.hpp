@@ -47,6 +47,7 @@ enum Collider2DType
 	BOX_COLLIDER,
 	POLYGON_COLLIDER,
 	CIRCLE_COLLIDER,
+	PLATFORM_COLLIDER,
 
 	COLLIDER_2D_MAX
 };
@@ -204,6 +205,11 @@ struct CircleCollider : public Collider2D
 	F64 radius;
 };
 
+struct PlatformCollider : public Collider2D
+{
+	
+};
+
 struct PhysicsObject2DConfig
 {
 	Collider2DType type;
@@ -304,6 +310,7 @@ struct PhysicsObject2D
 	void Translate(const Vector2& v) { oneTimeVelocity += v; }
 	void AddAngularVelocity(F32 v) { angularVelocity += v; }
 	void SetGravityScale(F32 s) { gravityScale = s; }
+	void SetPlatformPassthrough(bool b) { passThrough = b; }
 
 private:
 	U64 id;
@@ -311,21 +318,21 @@ private:
 	Collider2D* collider;
 	Transform2D* transform;
 
-	//secondary
+	//primary
 	Vector2 velocity;
 	Vector2 oneTimeVelocity;
 	Vector2 move;
 	F32 angularVelocity;
 
-	// secondary
+	//secondary
 	Vector2 force;
 	F32 torque;
 
 	bool grounded;
-	bool stopped;
+	bool passThrough;
 	Vector2 axisLock;
 		
-	// constants
+	//constants
 	F32 mass;
 	F32 massInv;
 	F32 inertia;
@@ -337,28 +344,28 @@ private:
 	F32 angularDragCoefficient;
 	F32 area;
 	U64 layerMask;
+	U64 groundMask;
 	bool kinematic;
 	bool freezeRotation;
 
 public:
-	// Read-only access
-	const U64& ID = id;
+	const U64& ID() { return id; }
 
-	const Vector2& Velocity = velocity;
-	const F64& AngularVelocity = angularVelocity;
+	const Vector2& Velocity() { return velocity; }
+	const F64& AngularVelocity() { return angularVelocity; }
 
-	const bool& Grounded = grounded;
+	const bool& Grounded() { return grounded; }
 
-	const F64& Mass = mass;
-	const F64& Inertia = inertia;
-	const F64& Friction = friction;
-	const F64& Restitution = restitution;
-	const F64& GravityScale = gravityScale;
-	const F64& Drag = dragCoefficient;
-	const F64& AngularDrag = angularDragCoefficient;
-	const F64& Area = area;
-	const U64& LayerMask = layerMask;
-	const bool& Kinematic = kinematic;
+	const F64& Mass () { return mass; }
+	const F64& Inertia() { return inertia; }
+	const F64& Friction() { return friction; }
+	const F64& Restitution() { return restitution; }
+	const F64& GravityScale() { return gravityScale; }
+	const F64& Drag() { return dragCoefficient; }
+	const F64& AngularDrag() { return angularDragCoefficient; }
+	const F64& Area() { return area; }
+	const U64& LayerMask() { return layerMask; }
+	const bool& Kinematic() { return kinematic; }
 
 	friend class Physics;
 	friend class ContactManager;
@@ -379,7 +386,6 @@ public:
 	static PhysicsObject2D* Create2DPhysicsObject(const PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
 	static bool Raycast2D(const Vector2& origin, const Vector2& direction, F32 length, List<PhysicsObject2D*>& results);
-	static bool TestOverlap(const Box& a, const Box& b) { return a.xBounds.x <= b.xBounds.y && a.xBounds.y >= b.xBounds.x && a.yBounds.x <= b.yBounds.y && a.yBounds.y >= b.yBounds.x; }
 	static F32 TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ);
 
 private:
@@ -390,10 +396,21 @@ private:
 	static void BroadPhase();
 	static void NarrowPhase();
 	static bool BoxVsBox(Contact2D& c);
+	static bool BoxVsCircle(Contact2D& c);
+	static bool BoxVsPolygon(Contact2D& c);
+	static bool BoxVsPlatform(Contact2D& c);
 	static bool CircleVsCircle(Contact2D& c);
-	static bool PolygonVsPolygon(Contact2D& c);
-	static bool PolygonVsCircle(Contact2D& c);
+	static bool CircleVsBox(Contact2D& c);
 	static bool CircleVsPolygon(Contact2D& c);
+	static bool CircleVsPlatform(Contact2D& c);
+	static bool PolygonVsPolygon(Contact2D& c);
+	static bool PolygonVsBox(Contact2D& c);
+	static bool PolygonVsCircle(Contact2D& c);
+	static bool PolygonVsPlatform(Contact2D& c);
+	static bool PlatformVsBox(Contact2D& c);
+	static bool PlatformVsCircle(Contact2D& c);
+	static bool PlatformVsPlatform(Contact2D& c);
+
 	static void ResolveCollision(Contact2D& c);
 
 	static bool ContainsOrigin(List<Vector2>& simplex, Vector2& direction);
@@ -408,8 +425,7 @@ private:
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
 	static struct BoxTree* tree;
-	//static class ContactManager* contactManager;
-	static struct BoolTable* table; //TODO: temp
+	static struct BoolTable* table;
 
 	static F64 airDensity;
 	static F64 gravity;

@@ -36,7 +36,7 @@ bool Broadphase::TestOverlap(I32 proxyIDA, I32 proxyIDB) const
 {
 	const Box& boxA = tree.GetFatBox(proxyIDA);
 	const Box& boxB = tree.GetFatBox(proxyIDB);
-	return Physics::TestOverlap(boxA, boxB);
+	return boxA.Contains(boxB);
 }
 
 void Broadphase::BufferMove(I32 proxyID)

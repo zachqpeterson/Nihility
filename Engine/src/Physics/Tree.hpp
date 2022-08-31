@@ -89,7 +89,7 @@ NH_INLINE void Tree::Query(T* callback, const Box& box) const
 
 		const Node* node = nodes + nodeID;
 
-		if (Physics::TestOverlap(node->box, box))
+		if (node->box.Contains(box))
 		{
 			if (node->IsLeaf())
 			{
@@ -136,7 +136,7 @@ NH_INLINE void Tree::RayCast(T* callback, const RayCastInput& input) const
 
 		const Node* node = nodes + nodeID;
 
-		if (nodeID == NULL_NODE || !Physics::TestOverlap(node->box, segmentBox)) { continue; }
+		if (nodeID == NULL_NODE || !node->box.Contains(segmentBox)) { continue; }
 
 		Vector2 c = node->box.Center();
 		Vector2 h = node->box.Extents();

@@ -5,14 +5,11 @@
 
 #include <Containers/Vector.hpp>
 
-//#include "Core/Time.hpp"
-
 List<PhysicsObject2D*> Physics::physicsObjects2D;
 List<PhysicsObject3D*> Physics::physicsObjects3D;
 Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
 BoxTree* Physics::tree;
-//ContactManager* Physics::contactManager;
 BoolTable* Physics::table;
 
 F64 Physics::airDensity = 1.29;
@@ -23,13 +20,14 @@ bool Physics::Initialize()
 {
 	tree = new BoxTree();
 	table = new BoolTable();
-	//contactManager = new ContactManager();
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
 	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] = PolygonVsPolygon;
 	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] = PolygonVsCircle;
 	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] = CircleVsPolygon;
 	collision2DTable[CIRCLE_COLLIDER][CIRCLE_COLLIDER] = CircleVsCircle;
+	collision2DTable[PLATFORM_COLLIDER][BOX_COLLIDER] = PlatformVsBox;
+	collision2DTable[BOX_COLLIDER][PLATFORM_COLLIDER] = BoxVsPlatform;
 
 	return true;
 }
@@ -50,7 +48,6 @@ void Physics::Shutdown()
 
 	physicsObjects3D.Destroy();
 
-	//delete contactManager;
 	delete tree;
 	delete table;
 }
@@ -86,7 +83,8 @@ void Physics::Update(F64 step)
 		PhysicsObject2D& obj = *po;
 
 		obj.move += obj.force + obj.oneTimeVelocity;
-		obj.stopped = false;
+		//TODO: if we want to have different gravity directions, this will need to change
+		obj.grounded = obj.axisLock.y;
 		obj.axisLock = Vector2::ONE * obj.kinematic;
 
 		if (!obj.move.IsZero())
@@ -99,7 +97,6 @@ void Physics::Update(F64 step)
 			obj.transform->Translate(obj.move);
 			newContacts = true;
 			//tree->UpdateObj(po);
-			//contactManager->MoveObject(obj.proxyID, obj.collider->box + obj.prevPosition, obj.move); //TODO: temp
 		}
 
 		obj.velocity += obj.force;
@@ -212,9 +209,8 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 
 	physicsObjects2D.PushBack(po);
 
-	table->Expand(); //TODO: temp
+	table->Expand();
 	//tree->InsertObj(po);
-	//contactManager->AddObject(po);
 
 	return po;
 }
@@ -272,11 +268,10 @@ void Physics::NarrowPhase()
 			U64 id0 = (*it0)->id;
 			U64 id1 = (*it1)->id;
 			if (id0 > id1) { Math::Swap(id0, id1); }
+			Contact2D c = { *it0, *it1 };
 		
-			if (!table->GetSet(id0, id1))
+			if (c.a->layerMask & c.b->layerMask && (!c.a->kinematic || !c.b->kinematic) && !table->GetSet(id0, id1))
 			{
-				Contact2D c = { *it0, *it1 };
-		
 				if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
 				else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
 			}
@@ -318,6 +313,9 @@ bool Physics::BoxVsBox(Contact2D& c)
 		else
 		{
 			//TODO: This assumption may cause problems
+			//TODO: It did, if it's not going to hit on one axis, that axis should be zero on the normal
+			//TODO: In other words, be able to slide instead on bound back perfectly on the normal
+			//TODO: This will need to be implemented on other cases as well
 			c.normal = c.relativeVelocity.Normalized();
 
 			F32 x = (mink.xBounds.x * c.normal.x * (c.normal.x > 0.0f)) + (mink.xBounds.y * c.normal.x * (c.normal.x < 0.0f));
@@ -498,6 +496,28 @@ bool Physics::CircleVsPolygon(Contact2D& c)
 	return false;
 }
 
+bool Physics::PlatformVsBox(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	PlatformCollider* aPlatform = (PlatformCollider*)a->collider;
+	Box& bBox = b->collider->box;
+
+	if (b->passThrough) { return false; }
+
+	//basically box vs box but only collide on the top
+}
+
+bool Physics::BoxVsPlatform(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	Box& aBox = a->collider->box;
+	PlatformCollider* bPlatform = (PlatformCollider*)b->collider;
+
+	if (a->passThrough) { return false; }
+}
+
 void Physics::ResolveCollision(Contact2D& c)
 {
 	PhysicsObject2D* a = c.a;
@@ -526,9 +546,12 @@ void Physics::ResolveCollision(Contact2D& c)
 		b->oneTimeVelocity -= correction * (!b->axisLock * b->massInv);
 
 		bool lock = c.restitution < FLOAT_EPSILON;
+		Vector2 relVel = (a->velocity + a->force) - (b->velocity + b->force);
 
-		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock, b->axisLock.y* (c.normal.y > 0.0f)* lock };
-		b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock, a->axisLock.y* (c.normal.y < 0.0f)* lock };
+		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock* Math::Zero(relVel.x),
+			b->axisLock.y* (c.normal.y > 0.0f)* lock * Math::Zero(relVel.y) };
+		b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock* Math::Zero(relVel.x),
+			a->axisLock.y* (c.normal.y < 0.0f)* lock* Math::Zero(relVel.y)};
 	}
 }
 

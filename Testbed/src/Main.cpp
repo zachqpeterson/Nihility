@@ -193,7 +193,7 @@ bool update()
 		player->physics->Translate({ 10.0f * (F32)Time::DeltaTime(), 0.0f });
 	}
 
-	if (Input::OnButtonDown(SPACE))
+	if (Input::ButtonDown(SPACE) && player->physics->Grounded())
 	{
 		player->physics->ApplyForce({ 0.0f, -1.0f });
 	}
