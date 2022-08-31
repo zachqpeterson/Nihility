@@ -376,7 +376,7 @@ public:
 	///	Events
 	/// </summary>
 
-	static PhysicsObject2D* Create2DPhysicsObject(PhysicsObject2DConfig& config);
+	static PhysicsObject2D* Create2DPhysicsObject(const PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
 	static bool Raycast2D(const Vector2& origin, const Vector2& direction, F32 length, List<PhysicsObject2D*>& results);
 	static bool TestOverlap(const Box& a, const Box& b) { return a.xBounds.x <= b.xBounds.y && a.xBounds.y >= b.xBounds.x && a.yBounds.x <= b.yBounds.y && a.yBounds.y >= b.yBounds.x; }
@@ -409,7 +409,7 @@ private:
 
 	static struct BoxTree* tree;
 	//static class ContactManager* contactManager;
-	static struct BoolTable table; //TODO: temp
+	static struct BoolTable* table; //TODO: temp
 
 	static F64 airDensity;
 	static F64 gravity;

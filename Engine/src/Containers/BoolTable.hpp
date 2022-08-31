@@ -7,6 +7,9 @@ struct BoolTable
 {
 	struct Column
 	{
+		Column(Column* next, U32 size) : next{ next }, data{ (U8*)Memory::Allocate(size, MEMORY_TAG_DATA_STRUCT) }, size{ size } {}
+		~Column() { Destroy(); }
+
 		void Destroy()
 		{
 			if (data)
@@ -14,6 +17,9 @@ struct BoolTable
 				Memory::Free(data, size * sizeof(U8), MEMORY_TAG_DATA_STRUCT);
 			}
 		}
+
+		void* operator new(U64 size) { return Memory::Allocate(sizeof(Column), MEMORY_TAG_DATA_STRUCT); }
+		void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Column), MEMORY_TAG_DATA_STRUCT); }
 
 		void Reset()
 		{
@@ -50,13 +56,12 @@ struct BoolTable
 		}
 	}
 
+	void* operator new(U64 size) { return Memory::Allocate(sizeof(BoolTable), MEMORY_TAG_DATA_STRUCT); }
+	void operator delete(void* ptr) { Memory::Free(ptr, sizeof(BoolTable), MEMORY_TAG_DATA_STRUCT); }
+
 	void Expand()
 	{
-		Column* column = (Column*)Memory::Allocate(sizeof(Column), MEMORY_TAG_DATA_STRUCT);
-		column->size = (U32)((size / 8) + 1) * (size > 0);
-		column->data = (U8*)Memory::Allocate(sizeof(U8) * column->size, MEMORY_TAG_DATA_STRUCT);
-		column->next = table;
-		table = column;
+		table = new Column(table, (U32)((size / 8) + 1) * (size > 0));;
 		++size;
 
 		//Column* prev = table;

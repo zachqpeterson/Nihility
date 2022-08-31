@@ -13,7 +13,7 @@ Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision
 
 BoxTree* Physics::tree;
 //ContactManager* Physics::contactManager;
-BoolTable Physics::table;
+BoolTable* Physics::table;
 
 F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
@@ -22,6 +22,7 @@ bool Physics::newContacts;
 bool Physics::Initialize()
 {
 	tree = new BoxTree();
+	table = new BoolTable();
 	//contactManager = new ContactManager();
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
@@ -51,8 +52,7 @@ void Physics::Shutdown()
 
 	//delete contactManager;
 	delete tree;
-
-	table.~BoolTable(); //TODO: temp
+	delete table;
 }
 
 void Physics::Update(F64 step)
@@ -110,7 +110,7 @@ void Physics::Update(F64 step)
 	}
 }
 
-PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
+PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& config)
 {
 	static U64 id = 0;
 
@@ -212,7 +212,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(PhysicsObject2DConfig& config)
 
 	physicsObjects2D.PushBack(po);
 
-	table.Expand(); //TODO: temp
+	table->Expand(); //TODO: temp
 	//tree->InsertObj(po);
 	//contactManager->AddObject(po);
 
@@ -242,7 +242,7 @@ void Physics::BroadPhase()
 
 void Physics::NarrowPhase()
 {
-	table.Reset();
+	table->Reset();
 	List<Contact2D> dynamics;
 
 	//for (PhysicsObject2D* obj0 : physicsObjects2D)
@@ -273,7 +273,7 @@ void Physics::NarrowPhase()
 			U64 id1 = (*it1)->id;
 			if (id0 > id1) { Math::Swap(id0, id1); }
 		
-			if (!table.GetSet(id0, id1))
+			if (!table->GetSet(id0, id1))
 			{
 				Contact2D c = { *it0, *it1 };
 		
@@ -300,10 +300,11 @@ bool Physics::BoxVsBox(Contact2D& c)
 	Box& bBox = b->collider->box;
 
 	c.relativeVelocity = a->move * !a->axisLock - b->move * !b->axisLock;
+	Vector2 direction = a->transform->Position() - b->transform->Position();
+	if (a->massInv + b->massInv < FLOAT_EPSILON || c.relativeVelocity.Dot(direction) > FLOAT_EPSILON) { return false; }
+
 	Box mink = (bBox + b->transform->Position()).Minkowski(aBox + a->transform->Position());
 	F32 t;
-
-	if (a->massInv + b->massInv <= FLOAT_EPSILON) { return false; }
 
 	if (mink.Contains(Vector2::ZERO))
 	{

@@ -15,7 +15,7 @@
 
 Scene* scene;
 GameObject2D* player;
-Model* model;
+Model* dirtModel;
 
 void spawnObj(const Vector2& position)
 {
@@ -43,7 +43,7 @@ void spawnObj(const Vector2& position)
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.transform = transform;
-	goConfig.model = model;
+	goConfig.model = dirtModel;
 	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
 	scene->DrawGameObject(Resources::CreateGameObject2D(goConfig));
 
@@ -55,175 +55,59 @@ bool init()
 	scene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
 	scene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 
+	MeshConfig dirtConfig;
+	dirtConfig.name = "Dirt";
+	dirtConfig.MaterialName = "Tile.mat";
+	dirtConfig.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
+
+	dirtConfig.vertices.Reserve(4);
+	dirtConfig.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
+	dirtConfig.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
+	dirtConfig.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
+	dirtConfig.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
+
+	dirtConfig.indices.Reserve(6);
+	dirtConfig.indices.Push(0);
+	dirtConfig.indices.Push(1);
+	dirtConfig.indices.Push(2);
+	dirtConfig.indices.Push(2);
+	dirtConfig.indices.Push(3);
+	dirtConfig.indices.Push(0);
+
+	Mesh* dirtMesh = Resources::CreateMesh(dirtConfig);
+	Vector<Mesh*> meshes(1, dirtMesh);
+	dirtModel = Resources::CreateModel("Dirt", meshes);
+
+	PhysicsObject2DConfig floorConfig{};
+	floorConfig.density = 0.0;
+	floorConfig.gravityScale = 1.0;
+	floorConfig.kinematic = true;
+	floorConfig.restitution = 0.0;
+	floorConfig.trigger = false;
+	floorConfig.type = BOX_COLLIDER;
+	floorConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
+
+	String name{ "Floor" };
+
+	for (I32 i = -5; i < 6; ++i)
 	{
-		MeshConfig config;
-		config.name = "Mesh";
-		config.MaterialName = "Tile.mat";
-		config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-
-		config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
-		config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
-
-		config.indices.Push(0);
-		config.indices.Push(1);
-		config.indices.Push(2);
-		config.indices.Push(2);
-		config.indices.Push(3);
-		config.indices.Push(0);
-
-		Mesh* mesh = Resources::CreateMesh(config);
-		Vector<Mesh*> meshes(1, mesh);
-		model = Resources::CreateModel("Model", meshes);
-	}
-
-	//FLOOR
-	{
-		MeshConfig config;
-		config.name = "Floor0";
-		config.MaterialName = "Tile.mat";
-		config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-
-		config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
-		config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
-
-		config.indices.Push(0);
-		config.indices.Push(1);
-		config.indices.Push(2);
-		config.indices.Push(2);
-		config.indices.Push(3);
-		config.indices.Push(0);
-
-		Mesh* mesh = Resources::CreateMesh(config);
 		Transform2D* transform = new Transform2D();
-		transform->Translate({ 0.0f, 10.0f });
+		transform->Translate({ (F32)i, 10.0f });
 		transform->SetScale({ 1.0f, 1.0f });
-		PhysicsObject2DConfig poConfig{};
-		poConfig.density = 0.0;
-		poConfig.gravityScale = 1.0;
-		poConfig.kinematic = true;
-		poConfig.restitution = 0.0;
-		poConfig.transform = transform;
-		poConfig.trigger = false;
-		poConfig.type = BOX_COLLIDER;
-		poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
-		poConfig.radius = 5.0;
-		poConfig.shape.Reserve(4);
-		poConfig.shape.Push({ -5.0f, -5.0f });
-		poConfig.shape.Push({ -5.0f,  5.0f });
-		poConfig.shape.Push({ 5.0f,  5.0f });
-		poConfig.shape.Push({ 5.0f, -5.0f });
 
-		Vector<Mesh*> meshes(1, mesh);
+		floorConfig.transform = transform;
+
 		GameObject2DConfig goConfig{};
-		goConfig.name = "Floor0";
+		goConfig.name = name + (i + 5);
 		goConfig.transform = transform;
-		goConfig.model = Resources::CreateModel("Floor0", meshes);
-		goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
-		scene->DrawGameObject(gameObject);
-	}
-	{
-		MeshConfig config;
-		config.name = "Floor1";
-		config.MaterialName = "Tile.mat";
-		config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-
-		config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
-		config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
-
-		config.indices.Push(0);
-		config.indices.Push(1);
-		config.indices.Push(2);
-		config.indices.Push(2);
-		config.indices.Push(3);
-		config.indices.Push(0);
-
-		Mesh* mesh = Resources::CreateMesh(config);
-		Transform2D* transform = new Transform2D();
-		transform->Translate({ 1.0f, 10.0f });
-		transform->SetScale({ 1.0f, 1.0f });
-		PhysicsObject2DConfig poConfig{};
-		poConfig.density = 0.0;
-		poConfig.gravityScale = 1.0;
-		poConfig.kinematic = true;
-		poConfig.restitution = 0.0;
-		poConfig.transform = transform;
-		poConfig.trigger = false;
-		poConfig.type = BOX_COLLIDER;
-		poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
-		poConfig.radius = 5.0;
-		poConfig.shape.Reserve(4);
-		poConfig.shape.Push({ -5.0f, -5.0f });
-		poConfig.shape.Push({ -5.0f,  5.0f });
-		poConfig.shape.Push({ 5.0f,  5.0f });
-		poConfig.shape.Push({ 5.0f, -5.0f });
-
-		Vector<Mesh*> meshes(1, mesh);
-		GameObject2DConfig goConfig{};
-		goConfig.name = "Floor1";
-		goConfig.transform = transform;
-		goConfig.model = Resources::CreateModel("Floor1", meshes);
-		goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
-		scene->DrawGameObject(gameObject);
-	}
-	{
-		MeshConfig config;
-		config.name = "Floor2";
-		config.MaterialName = "Tile.mat";
-		config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-
-		config.vertices.Push(Vertex{ {-0.5f, -0.5f, 0.0f}, { 0.0f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f, -0.5f, 0.0f}, { 0.16666666666f, 0.125f } });
-		config.vertices.Push(Vertex{ { 0.5f,  0.5f, 0.0f}, { 0.16666666666f, 0.0f } });
-		config.vertices.Push(Vertex{ {-0.5f,  0.5f, 0.0f}, { 0.0f, 0.0f } });
-
-		config.indices.Push(0);
-		config.indices.Push(1);
-		config.indices.Push(2);
-		config.indices.Push(2);
-		config.indices.Push(3);
-		config.indices.Push(0);
-
-		Mesh* mesh = Resources::CreateMesh(config);
-		Transform2D* transform = new Transform2D();
-		transform->Translate({ -1.0f, 10.0f });
-		transform->SetScale({ 1.0f, 1.0f });
-		PhysicsObject2DConfig poConfig{};
-		poConfig.density = 0.0;
-		poConfig.gravityScale = 1.0;
-		poConfig.kinematic = true;
-		poConfig.restitution = 0.0;
-		poConfig.transform = transform;
-		poConfig.trigger = false;
-		poConfig.type = BOX_COLLIDER;
-		poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
-		poConfig.radius = 5.0;
-		poConfig.shape.Reserve(4);
-		poConfig.shape.Push({ -5.0f, -5.0f });
-		poConfig.shape.Push({ -5.0f,  5.0f });
-		poConfig.shape.Push({ 5.0f,  5.0f });
-		poConfig.shape.Push({ 5.0f, -5.0f });
-
-		Vector<Mesh*> meshes(1, mesh);
-		GameObject2DConfig goConfig{};
-		goConfig.name = "Floor2";
-		goConfig.transform = transform;
-		goConfig.model = Resources::CreateModel("Floor2", meshes);
-		goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+		goConfig.model = dirtModel;
+		goConfig.physics = Physics::Create2DPhysicsObject(floorConfig);
 		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
 		scene->DrawGameObject(gameObject);
 	}
 
-	String name("player");
 	Transform2D* transform = new Transform2D();
-	transform->Translate({0.6f, 0.0f});
+	transform->Translate({ 0.6f, 0.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
 	poConfig.gravityScale = 1.0;
@@ -241,11 +125,11 @@ bool init()
 	poConfig.shape.Push({ 0.5f, -0.5f });
 
 	GameObject2DConfig goConfig{};
-	goConfig.name = name;
+	goConfig.name = "Player";
 	goConfig.transform = transform;
-	goConfig.model = model;
-	//goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-	//player = Resources::CreateGameObject2D(goConfig);
+	goConfig.model = dirtModel;
+	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+	player = Resources::CreateGameObject2D(goConfig);
 	scene->DrawGameObject(player);
 
 	//PANEL
@@ -301,10 +185,18 @@ bool init()
 
 bool update()
 {
-	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
-	move *= (F32)(Time::DeltaTime() * 3.0);
+	//Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
+	//move *= (F32)(Time::DeltaTime());
 
-	//player->physics->Translate(move);
+	if (Input::ButtonDown(D))
+	{
+		player->physics->Translate({ 10.0f * (F32)Time::DeltaTime(), 0.0f });
+	}
+
+	if (Input::OnButtonDown(SPACE))
+	{
+		player->physics->ApplyForce({ 0.0f, -1.0f });
+	}
 
 	if (Input::OnButtonDown(LBUTTON))
 	{
