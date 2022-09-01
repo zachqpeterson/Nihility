@@ -14,20 +14,27 @@ BoolTable* Physics::table;
 
 F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
-bool Physics::newContacts;
 
 bool Physics::Initialize()
 {
 	tree = new BoxTree();
 	table = new BoolTable();
 
-	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
-	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] = PolygonVsPolygon;
-	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] = PolygonVsCircle;
-	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] = CircleVsPolygon;
-	collision2DTable[CIRCLE_COLLIDER][CIRCLE_COLLIDER] = CircleVsCircle;
-	collision2DTable[PLATFORM_COLLIDER][BOX_COLLIDER] = PlatformVsBox;
-	collision2DTable[BOX_COLLIDER][PLATFORM_COLLIDER] = BoxVsPlatform;
+	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] =  BoxVsBox;
+	collision2DTable[BOX_COLLIDER][CIRCLE_COLLIDER] =  BoxVsCircle;
+	collision2DTable[BOX_COLLIDER][POLYGON_COLLIDER] =  BoxVsPolygon;
+	collision2DTable[BOX_COLLIDER][PLATFORM_COLLIDER] =  BoxVsPlatform;
+	collision2DTable[CIRCLE_COLLIDER][CIRCLE_COLLIDER] =  CircleVsCircle;
+	collision2DTable[CIRCLE_COLLIDER][BOX_COLLIDER] =  CircleVsBox;
+	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] =  CircleVsPolygon;
+	collision2DTable[CIRCLE_COLLIDER][PLATFORM_COLLIDER] =  CircleVsPlatform;
+	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] =  PolygonVsPolygon;
+	collision2DTable[POLYGON_COLLIDER][BOX_COLLIDER] =  PolygonVsBox;
+	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] =  PolygonVsCircle;
+	collision2DTable[POLYGON_COLLIDER][PLATFORM_COLLIDER] =  PolygonVsPlatform;
+	collision2DTable[PLATFORM_COLLIDER][BOX_COLLIDER] =  PlatformVsBox;
+	collision2DTable[PLATFORM_COLLIDER][CIRCLE_COLLIDER] =  PlatformVsCircle;
+	collision2DTable[PLATFORM_COLLIDER][POLYGON_COLLIDER] =  PlatformVsPolygon;
 
 	return true;
 }
@@ -95,7 +102,6 @@ void Physics::Update(F64 step)
 			}
 
 			obj.transform->Translate(obj.move);
-			newContacts = true;
 			//tree->UpdateObj(po);
 		}
 
@@ -229,11 +235,7 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 
 void Physics::BroadPhase()
 {
-	if (newContacts)
-	{
-		//contactManager->FindNewContacts();
-		newContacts = false;
-	}
+	
 }
 
 void Physics::NarrowPhase()
@@ -287,6 +289,43 @@ void Physics::NarrowPhase()
 	}
 }
 
+void Physics::ResolveCollision(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+
+	if (Math::NaN(c.normal.x))
+	{
+		a->force -= a->velocity * !a->axisLock;
+		b->force -= b->velocity * !b->axisLock;
+	}
+	else
+	{
+		F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
+
+		Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
+		massRatio.x += Math::Zero(massRatio.x);
+		massRatio.y += Math::Zero(massRatio.y);
+		Vector2 impulse = c.normal * (-(1.0f + c.restitution) * relVelNorm) / massRatio;
+
+		a->force += impulse * (!a->axisLock * a->massInv);
+		b->force -= impulse * (!b->axisLock * b->massInv);
+
+		F32 percent = 0.9999f;
+		Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
+		a->oneTimeVelocity += correction * (!a->axisLock * a->massInv);
+		b->oneTimeVelocity -= correction * (!b->axisLock * b->massInv);
+
+		bool lock = c.restitution < FLOAT_EPSILON;
+		Vector2 relVel = (a->velocity + a->force) - (b->velocity + b->force);
+
+		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock* Math::Zero(relVel.x),
+			b->axisLock.y* (c.normal.y > 0.0f)* lock* Math::Zero(relVel.y) };
+		b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock* Math::Zero(relVel.x),
+			a->axisLock.y* (c.normal.y < 0.0f)* lock* Math::Zero(relVel.y)};
+	}
+}
+
 bool Physics::BoxVsBox(Contact2D& c)
 {
 	PhysicsObject2D* a = c.a;
@@ -333,9 +372,36 @@ bool Physics::BoxVsBox(Contact2D& c)
 		c.penetration = direction.Magnitude();
 		c.normal = direction / c.penetration;
 		c.restitution = Math::Min(a->restitution, b->restitution);
-		
+
 		return true;
 	}
+
+	return false;
+}
+
+bool Physics::BoxVsCircle(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	Box& aBox = a->collider->box;
+	CircleCollider* bCircle = (CircleCollider*)b->collider;
+
+	return false;
+}
+
+bool Physics::BoxVsPolygon(Contact2D& c)
+{
+	return false;
+}
+
+bool Physics::BoxVsPlatform(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	Box& aBox = a->collider->box;
+	PlatformCollider* bPlatform = (PlatformCollider*)b->collider;
+
+	if (a->passThrough) { return false; }
 
 	return false;
 }
@@ -370,6 +436,55 @@ bool Physics::CircleVsCircle(Contact2D& c)
 	}
 
 	return true;
+}
+
+bool Physics::CircleVsBox(Contact2D& c)
+{
+	return false;
+}
+
+bool Physics::CircleVsPolygon(Contact2D& c)
+{
+	PhysicsObject2D* a = c.a;
+	PhysicsObject2D* b = c.b;
+	CircleCollider* aCollider = (CircleCollider*)a->collider;
+	PolygonCollider* bCollider = (PolygonCollider*)b->collider;
+
+	Vector2 n = b->transform->Position() - a->transform->Position();
+
+	F32 xExtent = (bCollider->box.xBounds.y - bCollider->box.xBounds.x) * 0.5f;
+
+	F32 xOverlap = (F32)aCollider->radius + xExtent - Math::Abs(n.x);
+
+	if (xOverlap > 0.0f)
+	{
+		F32 yExtent = (bCollider->box.yBounds.y - bCollider->box.yBounds.x) * 0.5f;
+
+		F32 yOverlap = (F32)aCollider->radius + yExtent - Math::Abs(n.y);
+
+		if (yOverlap > 0.0f)
+		{
+			if (yOverlap > xOverlap)
+			{
+				//c.penetration = xOverlap;
+				//c.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
+			}
+			else
+			{
+				//c.penetration = yOverlap;
+				//c.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Physics::CircleVsPlatform(Contact2D& c)
+{
+	return false;
 }
 
 bool Physics::PolygonVsPolygon(Contact2D& c)
@@ -411,6 +526,11 @@ bool Physics::PolygonVsPolygon(Contact2D& c)
 		}
 		else { return false; }
 	}
+}
+
+bool Physics::PolygonVsBox(Contact2D& c)
+{
+	return false;
 }
 
 bool Physics::PolygonVsCircle(Contact2D& c)
@@ -457,42 +577,8 @@ bool Physics::PolygonVsCircle(Contact2D& c)
 	return false;
 }
 
-bool Physics::CircleVsPolygon(Contact2D& c)
+bool Physics::PolygonVsPlatform(Contact2D& c)
 {
-	PhysicsObject2D* a = c.a;
-	PhysicsObject2D* b = c.b;
-	CircleCollider* aCollider = (CircleCollider*)a->collider;
-	PolygonCollider* bCollider = (PolygonCollider*)b->collider;
-
-	Vector2 n = b->transform->Position() - a->transform->Position();
-
-	F32 xExtent = (bCollider->box.xBounds.y - bCollider->box.xBounds.x) * 0.5f;
-
-	F32 xOverlap = (F32)aCollider->radius + xExtent - Math::Abs(n.x);
-
-	if (xOverlap > 0.0f)
-	{
-		F32 yExtent = (bCollider->box.yBounds.y - bCollider->box.yBounds.x) * 0.5f;
-
-		F32 yOverlap = (F32)aCollider->radius + yExtent - Math::Abs(n.y);
-
-		if (yOverlap > 0.0f)
-		{
-			if (yOverlap > xOverlap)
-			{
-				//c.penetration = xOverlap;
-				//c.normal = n.x < 0.0f ? Vector2::RIGHT : Vector2::LEFT;
-			}
-			else
-			{
-				//c.penetration = yOverlap;
-				//c.normal = n.y < 0.0f ? Vector2::DOWN : Vector2::UP;
-			}
-
-			return true;
-		}
-	}
-
 	return false;
 }
 
@@ -506,53 +592,17 @@ bool Physics::PlatformVsBox(Contact2D& c)
 	if (b->passThrough) { return false; }
 
 	//basically box vs box but only collide on the top
+	return false;
 }
 
-bool Physics::BoxVsPlatform(Contact2D& c)
+bool Physics::PlatformVsCircle(Contact2D& c)
 {
-	PhysicsObject2D* a = c.a;
-	PhysicsObject2D* b = c.b;
-	Box& aBox = a->collider->box;
-	PlatformCollider* bPlatform = (PlatformCollider*)b->collider;
-
-	if (a->passThrough) { return false; }
+	return false;
 }
 
-void Physics::ResolveCollision(Contact2D& c)
+bool Physics::PlatformVsPolygon(Contact2D& c)
 {
-	PhysicsObject2D* a = c.a;
-	PhysicsObject2D* b = c.b;
-
-	if (Math::NaN(c.normal.x))
-	{
-		a->force -= a->velocity * !a->axisLock;
-		b->force -= b->velocity * !b->axisLock;
-	}
-	else
-	{
-		F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
-
-		Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
-		massRatio.x += Math::Zero(massRatio.x);
-		massRatio.y += Math::Zero(massRatio.y);
-		Vector2 impulse = c.normal * (-(1.0f + c.restitution) * relVelNorm) / massRatio;
-
-		a->force += impulse * (!a->axisLock * a->massInv);
-		b->force -= impulse * (!b->axisLock * b->massInv);
-
-		F32 percent = 0.9999f;
-		Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
-		a->oneTimeVelocity += correction * (!a->axisLock * a->massInv);
-		b->oneTimeVelocity -= correction * (!b->axisLock * b->massInv);
-
-		bool lock = c.restitution < FLOAT_EPSILON;
-		Vector2 relVel = (a->velocity + a->force) - (b->velocity + b->force);
-
-		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock* Math::Zero(relVel.x),
-			b->axisLock.y* (c.normal.y > 0.0f)* lock * Math::Zero(relVel.y) };
-		b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock* Math::Zero(relVel.x),
-			a->axisLock.y* (c.normal.y < 0.0f)* lock* Math::Zero(relVel.y)};
-	}
+	return false;
 }
 
 bool Physics::ContainsOrigin(List<Vector2>& simplex, Vector2& direction)

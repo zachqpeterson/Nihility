@@ -395,6 +395,8 @@ private:
 
 	static void BroadPhase();
 	static void NarrowPhase();
+	static void ResolveCollision(Contact2D& c);
+
 	static bool BoxVsBox(Contact2D& c);
 	static bool BoxVsCircle(Contact2D& c);
 	static bool BoxVsPolygon(Contact2D& c);
@@ -409,9 +411,7 @@ private:
 	static bool PolygonVsPlatform(Contact2D& c);
 	static bool PlatformVsBox(Contact2D& c);
 	static bool PlatformVsCircle(Contact2D& c);
-	static bool PlatformVsPlatform(Contact2D& c);
-
-	static void ResolveCollision(Contact2D& c);
+	static bool PlatformVsPolygon(Contact2D& c);
 
 	static bool ContainsOrigin(List<Vector2>& simplex, Vector2& direction);
 	static Vector2 FarthestPoint(const Vector<Vector2>& shape, const Vector2& direction);
@@ -429,7 +429,6 @@ private:
 
 	static F64 airDensity;
 	static F64 gravity;
-	static bool newContacts;
 
 	friend class Engine;
 };

@@ -129,8 +129,8 @@ bool init()
 	goConfig.transform = transform;
 	goConfig.model = dirtModel;
 	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-	player = Resources::CreateGameObject2D(goConfig);
-	scene->DrawGameObject(player);
+	//player = Resources::CreateGameObject2D(goConfig);
+	//scene->DrawGameObject(player);
 
 	//PANEL
 	UIElementConfig panelCfg{};
@@ -213,5 +213,5 @@ void cleanup()
 
 int main()
 {
-	Engine::Initialize("TestBed", init, update, cleanup);
+	Engine::Initialize("Nihility Demo", init, update, cleanup);
 }
