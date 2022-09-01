@@ -16,11 +16,13 @@ enum LogLevel
 };
 
 #define LOG_WARN_ENABLED 1
+#define LOG_TRACE_ENABLED 0
 #define LOG_INFO_ENABLED 1
 #define LOG_DEBUG_ENABLED 1
-#define LOG_TRACE_ENABLED 0
 
 #ifdef NH_RELEASE
+#undef LOG_DEBUG_ENABLED
+#undef LOG_TRACE_ENABLED
 #define LOG_DEBUG_ENABLED 0
 #define LOG_TRACE_ENABLED 0
 #endif

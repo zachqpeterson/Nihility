@@ -128,7 +128,7 @@ bool init()
 	goConfig.name = "Player";
 	goConfig.transform = transform;
 	goConfig.model = dirtModel;
-	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+	//goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
 	//player = Resources::CreateGameObject2D(goConfig);
 	//scene->DrawGameObject(player);
 
