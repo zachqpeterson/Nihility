@@ -114,9 +114,7 @@
     <ClInclude Include="Engine\src\Memory\Memory.hpp" />
     <ClInclude Include="Engine\src\Physics\BoxTree.hpp" />
     <ClInclude Include="Engine\src\Physics\Broadphase.hpp" />
-    <ClInclude Include="Engine\src\Physics\ContactManager.hpp" />
     <ClInclude Include="Engine\src\Physics\Physics.hpp" />
-    <ClInclude Include="Engine\src\Physics\Tree.hpp" />
     <ClInclude Include="Engine\src\Platform\Platform.hpp" />
     <ClInclude Include="Engine\src\Renderer\Camera.hpp" />
     <ClInclude Include="Engine\src\Renderer\Renderer.hpp" />
@@ -151,10 +149,7 @@
     <ClCompile Include="Engine\src\Memory\DynamicAllocator.cpp" />
     <ClCompile Include="Engine\src\Memory\Memory.cpp" />
     <ClCompile Include="Engine\src\Physics\BoxTree.cpp" />
-    <ClCompile Include="Engine\src\Physics\Broadphase.cpp" />
-    <ClCompile Include="Engine\src\Physics\ContactManager.cpp" />
     <ClCompile Include="Engine\src\Physics\Physics.cpp" />
-    <ClCompile Include="Engine\src\Physics\Tree.cpp" />
     <ClCompile Include="Engine\src\Platform\PlatformWin32.cpp" />
     <ClCompile Include="Engine\src\Renderer\Camera.cpp" />
     <ClCompile Include="Engine\src\Renderer\RendererFrontend.cpp" />

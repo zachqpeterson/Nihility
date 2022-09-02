@@ -13,6 +13,7 @@
 #include "Resources/Resources.hpp"
 #include "Resources/UI.hpp"
 #include "Physics/Physics.hpp"
+#include "Physics/BoxTree.hpp"
 #include "Audio/Audio.hpp"
 
 InitializeFn Engine::GameInit;
@@ -44,7 +45,7 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 
 	ASSERT_MSG(UI::Initialize(), "UI system failed to initialize!");
 
-	ASSERT_MSG(Physics::Initialize(), "Physics system failed to initialize!");
+	ASSERT_MSG(Physics::Initialize(new BoxTree()), "Physics system failed to initialize!");
 
 	ASSERT_MSG(Audio::Initialize(), "Audio system failed to initialize!");
 

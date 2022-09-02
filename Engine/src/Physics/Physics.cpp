@@ -1,7 +1,7 @@
 #include "Physics.hpp"
 
 #include "ContactManager.hpp"
-#include "BoxTree.hpp"
+#include "Broadphase.hpp"
 
 #include <Containers/Vector.hpp>
 
@@ -9,15 +9,15 @@ List<PhysicsObject2D*> Physics::physicsObjects2D;
 List<PhysicsObject3D*> Physics::physicsObjects3D;
 Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
-BoxTree* Physics::tree;
+Broadphase* Physics::broadphase;
 BoolTable* Physics::table;
 
 F64 Physics::airDensity = 1.29;
 F64 Physics::gravity = 9.807;
 
-bool Physics::Initialize()
+bool Physics::Initialize(Broadphase* bp)
 {
-	tree = new BoxTree();
+	broadphase = bp;
 	table = new BoolTable();
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] =  BoxVsBox;
@@ -55,7 +55,7 @@ void Physics::Shutdown()
 
 	physicsObjects3D.Destroy();
 
-	delete tree;
+	delete broadphase;
 	delete table;
 }
 

@@ -142,17 +142,11 @@
     <ClInclude Include="Engine\src\Physics\BoxTree.hpp">
       <Filter>Source Files\Physics</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Physics\Tree.hpp">
-      <Filter>Source Files\Physics</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Physics\Broadphase.hpp">
       <Filter>Source Files\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\RendererDefines.hpp">
       <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Physics\ContactManager.hpp">
-      <Filter>Source Files\Physics</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Containers\BoolTable.hpp">
       <Filter>Source Files\Containers</Filter>
@@ -244,15 +238,6 @@
       <Filter>Source Files\Audio</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Physics\BoxTree.cpp">
-      <Filter>Source Files\Physics</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\src\Physics\Tree.cpp">
-      <Filter>Source Files\Physics</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\src\Physics\Broadphase.cpp">
-      <Filter>Source Files\Physics</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\src\Physics\ContactManager.cpp">
       <Filter>Source Files\Physics</Filter>
     </ClCompile>
   </ItemGroup>

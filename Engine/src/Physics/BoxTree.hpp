@@ -2,10 +2,11 @@
 
 #include "Defines.hpp"
 #include "Physics.hpp"
+#include "Broadphase.hpp"
 
 struct PhysicsObject2D;
 
-struct BoxTree
+struct BoxTree : public Broadphase
 {
 	struct Node
 	{
@@ -30,12 +31,24 @@ public:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
-	void InsertObj(PhysicsObject2D* obj);
-	void RemoveObj(PhysicsObject2D* obj);
-	void UpdateObj(PhysicsObject2D* obj);
+	void InsertObj(PhysicsObject2D* obj) final;
+	void RemoveObj(PhysicsObject2D* obj) final;
+	void UpdateObj(PhysicsObject2D* obj) final;
 
-	void Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result);
-	void Query(const Box& box, Vector<PhysicsObject2D*>& result);
+	void Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result) final;
+	void Query(const Box& box, Vector<PhysicsObject2D*>& result) final;
+	void Raycast(PhysicsObject2D* result) final;
+	void RaycastAll(Vector<PhysicsObject2D*>& result) final;
+
+private:
+	U32 AllocateNode();
+	void FreeNode(U32 index);
+	void InsertLeaf(U32 leaf);
+	void RemoveLeaf(U32 leaf);
+
+	U32 Balance(U32 index);
+	U32 ComputeHeight() const;
+	U32 ComputeHeight(U32 index) const;
 
 	U32 Height() const;
 	U32 Size() const;
@@ -43,16 +56,6 @@ public:
 	F32 SurfaceAreaRatio() const;
 
 	void Rebuild();
-
-private:
-	U32 AllocateNode();
-    void FreeNode(U32 index);
-    void InsertLeaf(U32 leaf);
-    void RemoveLeaf(U32 leaf);
-
-    U32 Balance(U32 index);
-    U32 ComputeHeight() const;
-    U32 ComputeHeight(U32 index) const;
 
 	U32 root;
 	U32 freeList;

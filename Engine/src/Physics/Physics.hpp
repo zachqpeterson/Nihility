@@ -9,22 +9,6 @@
 #include <Containers/Vector.hpp>
 #include <Containers/Array.hpp>
 
-/// <summary>
-/// TODO: 
-/// 
-/// ---3D---
-/// Box
-/// Sphere
-/// Capsule
-/// Cylinder
-///	Polyhedron
-/// 
-/// ---2D---
-/// Capsule
-/// Polygon
-/// 
-/// </summary>
-
 // ------3D------
 
 struct Collider3D
@@ -210,6 +194,26 @@ struct PlatformCollider : public Collider2D
 	
 };
 
+struct Edge
+{
+	Vector2 vertex0;
+	Vector2 vertex1;
+	Vector2 normal;
+	F32 distance;
+	U32 index;
+};
+
+struct Contact2D
+{
+	struct PhysicsObject2D* a;
+	struct PhysicsObject2D* b;
+
+	F32 restitution;
+	F32 penetration;
+	Vector2 relativeVelocity;
+	Vector2 normal;
+};
+
 struct PhysicsObject2DConfig
 {
 	Collider2DType type;
@@ -231,75 +235,6 @@ struct PhysicsObject2DConfig
 	F32 gravityScale;
 	F32 density;
 	Transform2D* transform;
-};
-
-struct Pair
-{
-	I32 proxyIDA;
-	I32 proxyIDB;
-};
-
-struct RayCastInput
-{
-	Vector2 p1, p2;
-	F32 maxFraction;
-};
-
-struct Support
-{
-	Vector2 sA;
-	Vector2 sB;
-	Vector2 p;
-	I32 iA;
-	I32 iB;
-	F32 u{ 0.0f };
-};
-
-struct Simplex
-{
-	Support a;
-	Support b;
-	Support c;
-	Support d;
-	I32 count;
-	F32 div;
-};
-
-struct HalfSpace
-{
-	Vector2 normal;
-	F32 distance;
-
-	F32 Distance(const Vector2& v) const { return normal.Dot(v) - distance; }
-};
-
-struct GJKCache
-{
-	F32 metric;
-	I32 count;
-	I32 iA[3];
-	I32 iB[3];
-	F32 div;
-};
-
-struct Edge
-{
-	Vector2 vertex0;
-	Vector2 vertex1;
-	Vector2 normal;
-	F32 distance;
-	U32 index;
-};
-
-struct Contact2D
-{
-	struct PhysicsObject2D* a;
-	struct PhysicsObject2D* b;
-
-	F32 restitution;
-	F32 penetration;
-	Vector2 relativeVelocity;
-	Vector2 normal;
 };
 
 struct PhysicsObject2D
@@ -374,6 +309,8 @@ public:
 	friend struct BoxTree;
 };
 
+class Broadphase;
+
 class NH_API Physics
 {
 public:
@@ -389,7 +326,7 @@ public:
 	static F32 TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ);
 
 private:
-	static bool Initialize();
+	static bool Initialize(Broadphase* broadphase);
 	static void Shutdown();
 	static void Update(F64 step);
 
@@ -424,7 +361,7 @@ private:
 
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
-	static struct BoxTree* tree;
+	static struct Broadphase* broadphase;
 	static struct BoolTable* table;
 
 	static F64 airDensity;
