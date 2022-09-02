@@ -6,7 +6,7 @@
 
 struct PhysicsObject2D;
 
-struct BoxTree : public Broadphase
+class BoxTree : public Broadphase
 {
 	struct Node
 	{
@@ -37,8 +37,8 @@ public:
 
 	void Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result) final;
 	void Query(const Box& box, Vector<PhysicsObject2D*>& result) final;
-	void Raycast(PhysicsObject2D* result) final;
-	void RaycastAll(Vector<PhysicsObject2D*>& result) final;
+	void RaycastQuery(Raycast& ray, PhysicsObject2D* result) final;
+	void RaycastQueryAll(Raycast& ray, Vector<PhysicsObject2D*>& result) final;
 
 private:
 	U32 AllocateNode();

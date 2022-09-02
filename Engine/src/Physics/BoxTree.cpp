@@ -123,6 +123,16 @@ void BoxTree::Query(const Box& box, Vector<PhysicsObject2D*>& result)
 	}
 }
 
+void BoxTree::RaycastQuery(Raycast& ray, PhysicsObject2D* result)
+{
+
+}
+
+void BoxTree::RaycastQueryAll(Raycast& ray, Vector<PhysicsObject2D*>& result)
+{
+
+}
+
 U32 BoxTree::Height() const
 {
 	return nodes[root * (root == U32_MAX)].height * (root == U32_MAX);

@@ -1,7 +1,7 @@
 #include "Physics.hpp"
 
-#include "ContactManager.hpp"
 #include "Broadphase.hpp"
+#include "Containers/BoolTable.hpp"
 
 #include <Containers/Vector.hpp>
 
@@ -82,7 +82,6 @@ void Physics::Update(F64 step)
 		obj.oneTimeVelocity = Vector2::ZERO;
 	}
 
-	//BroadPhase();
 	NarrowPhase();
 
 	for (PhysicsObject2D* po : physicsObjects2D)

@@ -203,6 +203,12 @@ struct Edge
 	U32 index;
 };
 
+struct Raycast
+{
+	Vector2 direction;
+	F32 length;
+};
+
 struct Contact2D
 {
 	struct PhysicsObject2D* a;
@@ -303,13 +309,12 @@ public:
 	const bool& Kinematic() { return kinematic; }
 
 	friend class Physics;
-	friend class ContactManager;
 	friend class Broadphase;
-	friend struct Tree;
-	friend struct BoxTree;
+	friend class BoxTree;
 };
 
 class Broadphase;
+struct BoolTable;
 
 class NH_API Physics
 {
@@ -361,8 +366,8 @@ private:
 
 	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
 
-	static struct Broadphase* broadphase;
-	static struct BoolTable* table;
+	static Broadphase* broadphase;
+	static BoolTable* table;
 
 	static F64 airDensity;
 	static F64 gravity;
