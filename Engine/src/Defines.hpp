@@ -1,54 +1,66 @@
-/** @file Defines.hpp */
 #pragma once
 
-/** Unsigned 8-bit integer */
+//Unsigned 8-bit integer
 typedef unsigned char U8;
-/** Unsigned 16-bit integer */
+//Unsigned 16-bit integer
 typedef unsigned short U16;
-/** Unsigned 32-bit integer */
+//Unsigned 32-bit integer
 typedef unsigned int U32;
-/** Unsigned 64-bit integer */
+//Unsigned 64-bit integer
 typedef unsigned long long U64;
 
-/** Signed 8-bit integer */
+//Signed 8-bit integer
 typedef signed char I8;
-/** Signed 16-bit integer */
+//Signed 16-bit integer
 typedef signed short I16;
-/** Signed 32-bit integer */
+//Signed 32-bit integer
 typedef signed int I32;
-/** Signed 64-bit integer */
+//Signed 64-bit integer
 typedef signed long long I64;
 
-/** 32-bit floating point number */
+//32-bit floating point number
 typedef float F32;
-/** 64-bit floating point number */
+//64-bit floating point number
 typedef double F64;
-/** 128-bit floating point number */
+//128-bit floating point number
 typedef long double F128;
 
-/** Maximum value of an unsigned 64-bit integer */
+//Maximum value of an unsigned 64-bit integer
 #define U64_MAX 0xFFFFFFFFFFFFFFFFUI64
-/** Maximum value of a signed 64-bit integer */
+//Maximum value of a signed 64-bit integer
 #define I64_MAX 0x7FFFFFFFFFFFFFFFI64
-/** Minimum value of a signed 64-bit integer */
+//Minimum value of a signed 64-bit integer
 #define I64_MIN 0x8000000000000000I64
 
+//Maximum value of an unsigned 32-bit integer
 #define U32_MAX 0xFFFFFFFFUI32
+//Maximum value of a signed 32-bit integer
 #define I32_MAX 0x7FFFFFFFI32
+//Minimum value of a signed 32-bit integer
 #define I32_MIN 0x80000000I32
 
+//Maximum value of an unsigned 16-bit integer
 #define U16_MAX 0xFFFFUI16
+//Maximum value of a signed 16-bit integer
 #define I16_MAX 0x7FFFI16
+//Minimum value of a signed 16-bit integer
 #define I16_MIN 0x8000I16
 
+//Maximum value of an unsigned 8-bit integer
 #define U8_MAX  0xFFUI8
+//Maximum value of a signed 8-bit integer
 #define I8_MAX  0x7FI8
+//Minimum value of a signed 8-bit integer
 #define I8_MIN  0x80I8
 
+//Maximum value of a 32-bit float
 #define F32_MAX 3.402823466e+38F
+//Minimum value of a 32-bit float
 #define F32_MIN 1.175494351e-38F
 
+//Maximum value of a 64-bit float
 #define F64_MAX 1.7976931348623158e+308
+//Minimum value of a 64-bit float
 #define F64_MIN 2.2250738585072014e-308
 
 #define INVALID_ID      U32_MAX

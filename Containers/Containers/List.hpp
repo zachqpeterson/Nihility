@@ -101,6 +101,8 @@ struct NH_API List
 
 	private:
 		Node* ptr;
+
+		friend struct List;
 	};
 
 public:
@@ -259,10 +261,11 @@ public:
 
 		return Move(value);
 	}
-	Iterator Erase(Iterator& it)
+	void Erase(Iterator& it)
 	{
 		--size;
 		Node* node = it.ptr;
+		--it;
 		Node* nextNode = node->next;
 		Node* prevNode = node->prev;
 
@@ -272,11 +275,7 @@ public:
 		if (nextNode) { nextNode->prev = prevNode; }
 		else { tail = prevNode; }
 
-		List<T>::Iterator newIt = ++it;
-
 		delete node;
-
-		return newIt;
 	}
 
 	void Insert(const T& value, U64 index)

@@ -11,6 +11,11 @@
 
 #undef LoadImage
 
+#define AUDIO_CHUNK_LENGTH 96000
+
+struct PhysicsObject2D;
+struct PhysicsObject3D;
+
 enum ImageType
 {
 	IMAGE_TYPE_BMP,
@@ -100,6 +105,26 @@ struct RenderTarget
 	bool syncToWindowSize;
 	Vector<Texture*> attachments;
 	void* internalFramebuffer;
+};
+
+struct AudioChunk
+{
+	bool last;
+	U32 firstSampleIndex;
+	U32 sampleCount;
+	I16** samples;
+	AudioChunk* next{ nullptr };
+};
+
+struct AudioFull
+{
+	String name;
+	U32 channelCount{ 0 };
+	U32 sampleDataSize{ 0 };
+	I16* sampleData{ nullptr };
+	U8* data{nullptr};
+	U64 dataSize{ 0 };
+	AudioChunk* chunks{ nullptr };
 };
 
 struct FontBuffer
@@ -364,7 +389,7 @@ struct NH_API GameObject2DConfig
 {
 	String name;
 	Transform2D* transform{ nullptr };
-	struct PhysicsObject2D* physics{ nullptr };
+	PhysicsObject2D* physics{ nullptr };
 	Model* model{ nullptr };
 };
 
@@ -373,7 +398,7 @@ struct NH_API GameObject2D
 	U64 id{ U64_MAX };
 	String name;
 	Transform2D* transform{ nullptr };
-	struct PhysicsObject2D* physics{ nullptr };
+	PhysicsObject2D* physics{ nullptr };
 	Model* model{ nullptr };
 };
 
@@ -381,7 +406,7 @@ struct NH_API GameObject3DConfig
 {
 	String name;
 	Transform3D* transform{ nullptr };
-	struct PhysicsObject3D* physics{ nullptr };
+	PhysicsObject3D* physics{ nullptr };
 	Model* model{ nullptr };
 };
 
@@ -390,9 +415,12 @@ struct NH_API GameObject3D
 	U64 id{ U64_MAX };
 	String name;
 	Transform3D* transform{ nullptr };
-	struct PhysicsObject3D* physics{ nullptr };
+	PhysicsObject3D* physics{ nullptr };
 	Model* model{ nullptr };
 };
+
+struct File;
+struct RiffIterator;
 
 class NH_API Resources
 {
@@ -403,6 +431,8 @@ public:
 	static Binary* LoadBinary(const String& name);
 	static void UnloadBinary(Binary* binary);
 	static Texture* LoadTexture(const String& name);
+	static AudioFull* LoadAudio(const String& name);
+	static void LoadAudioChunk(AudioFull* full, AudioChunk* chunk);
 	static void LoadFont(const String& name);
 	static Material GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures);
 	static Mesh* LoadMesh(const String& name);
@@ -438,12 +468,21 @@ private:
 
 	static Image* LoadImage(const String& name);
 	static void UnloadImage(Image* image);
-	static bool LoadBMP(Image* image, struct File* file);
+	static bool LoadBMP(Image* image, File* file);
 	static bool ReadBMPHeader(struct BMPHeader& header, struct BMPInfo& info, File* file);
 	static void SetBmpColorMasks(struct BMPInfo& info);
-	static bool LoadPNG(Image* image, struct File* file);
-	static bool LoadJPG(Image* image, struct File* file);
-	static bool LoadTGA(Image* image, struct File* file);
+	static bool LoadPNG(Image* image, File* file);
+	static bool LoadJPG(Image* image, File* file);
+	static bool LoadTGA(Image* image, File* file);
+
+	static void LoadWAV(AudioFull* full, AudioChunk* chunk);
+	static void DestroyAudio(AudioFull* full);
+	static RiffIterator ParseChunkAt(void* at, void* stop);
+	static RiffIterator NextChunk(RiffIterator& it);
+	static void* GetChunkData(const RiffIterator& it);
+	static bool IsValid(const RiffIterator& it);
+	static U32 GetType(const RiffIterator& it);
+	static U32 GetChunkSize(const RiffIterator& it);
 
 #pragma region Fonts
 	static bool LoadTTF(TTFInfo* info);
@@ -503,8 +542,8 @@ private:
 	static void DestroyMaterial(Material* material);
 	static void DestroyMaterialInstance(Material& material);
 
-	static void LoadOBJ(Model* mesh, struct File* file);
-	static void LoadKSM(Model* mesh, struct File* file);
+	static void LoadOBJ(Model* mesh, File* file);
+	static void LoadKSM(Model* mesh, File* file);
 
 	static void GetConfigType(const String& field, FieldType& type, U32& size);
 
@@ -519,6 +558,9 @@ private:
 	static Texture* defaultDiffuse;
 	static Texture* defaultSpecular;
 	static Texture* defaultNormal;
+
+	//Audio
+	static HashMap<String, AudioFull*> audio;
 
 	//Fonts
 	static HashMap<String, TTFInfo*> fonts;

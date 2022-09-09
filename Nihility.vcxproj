@@ -134,6 +134,7 @@
     <ClInclude Include="Engine\src\Resources\Resources.hpp" />
     <ClInclude Include="Engine\src\Resources\Shader.hpp" />
     <ClInclude Include="Engine\src\Resources\UI.hpp" />
+    <ClInclude Include="Engine\src\SIMD.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Audio\Audio.cpp" />

@@ -151,6 +151,9 @@
     <ClInclude Include="Engine\src\Containers\BoolTable.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\src\SIMD.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">

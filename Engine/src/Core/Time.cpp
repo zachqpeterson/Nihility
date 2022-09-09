@@ -98,3 +98,10 @@ void Timer::Reset()
 	elapsedTime = 0.0;
 	running = false;
 }
+
+void Timer::Restart()
+{
+	start = Platform::AbsoluteTime();
+	elapsedTime = 0.0;
+	running = true;
+}

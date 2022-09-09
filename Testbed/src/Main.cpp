@@ -12,6 +12,7 @@
 #include <Resources/Resources.hpp>
 #include <Resources/UI.hpp>
 #include <Physics/Physics.hpp>
+#include <Audio/Audio.hpp>
 
 Scene* scene;
 GameObject2D* player;
@@ -107,7 +108,7 @@ bool init()
 	}
 
 	Transform2D* transform = new Transform2D();
-	transform->Translate({ 0.6f, 0.0f });
+	transform->Translate({ 0.0f, 0.0f });
 	PhysicsObject2DConfig poConfig{};
 	poConfig.density = 1.0;
 	poConfig.gravityScale = 1.0;
@@ -128,9 +129,10 @@ bool init()
 	goConfig.name = "Player";
 	goConfig.transform = transform;
 	goConfig.model = dirtModel;
-	//goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
-	//player = Resources::CreateGameObject2D(goConfig);
-	//scene->DrawGameObject(player);
+	goConfig.physics = Physics::Create2DPhysicsObject(poConfig);
+	player = Resources::CreateGameObject2D(goConfig);
+	scene->DrawGameObject(player);
+	Audio::SetListener(player->transform);
 
 	//PANEL
 	UIElementConfig panelCfg{};
@@ -185,13 +187,12 @@ bool init()
 
 bool update()
 {
-	//Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
-	//move *= (F32)(Time::DeltaTime());
+	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)) };
+	move *= (F32)(Time::DeltaTime());
 
-	if (Input::ButtonDown(D))
-	{
-		player->physics->Translate({ 10.0f * (F32)Time::DeltaTime(), 0.0f });
-	}
+	player->physics->Translate(move * 10.0f);
+
+	player->physics->SetGravityScale(0.5f + 0.5f * !Input::ButtonDown(SPACE));
 
 	if (Input::ButtonDown(SPACE) && player->physics->Grounded())
 	{

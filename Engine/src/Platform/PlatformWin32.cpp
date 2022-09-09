@@ -39,10 +39,10 @@ static LARGE_INTEGER startTime;
 
 void Platform::ClockSetup()
 {
+	QueryPerformanceCounter(&startTime);
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
 	clockFrequency = 1.0 / (F64)frequency.QuadPart;
-	QueryPerformanceCounter(&startTime);
 }
 
 bool Platform::Initialize(const String& applicationName)
@@ -204,6 +204,11 @@ void Platform::LockMouse(bool lock)
 		Settings::LOCK_CURSOR = false;
 		ClipCursor(nullptr);
 	}
+}
+
+const void* Platform::Handle()
+{
+	return platformState.hwnd;
 }
 
 void Platform::Shutdown()

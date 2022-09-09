@@ -27,6 +27,8 @@ public:
     static void SetFullscreen(bool fullscreen);
     static void LockMouse(bool lock);
 
+    static const void* Handle();
+
 private:
 #ifdef PLATFORM_WINDOWS
     static I64 __stdcall Win32MessageProc(struct HWND__* hwnd, U32 msg, U64 wParam, I64 lParam);

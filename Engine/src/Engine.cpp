@@ -32,7 +32,7 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	ASSERT(Memory::Initialize(Gigabytes(1)));
 
 	ASSERT(Logger::Initialize());
-	
+
 	Resources::LoadSettings();
 
 	ASSERT_MSG(Platform::Initialize(applicationName), "Platform layer failed to initialize!");
@@ -65,33 +65,60 @@ void Engine::MainLoop()
 	running = true;
 	suspended = false;
 
-	F64 accumulatedTime = 0.0f;
+	F64 accumulatedTime = 0.0;
 	F64 step = Time::UpTime();
 	F64 lastStep = step;
+
+	Audio::ClearBuffer();
+	Audio::Start();
+	Audio::PlayAudio("TPOM.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
 
 	while (running)
 	{
 		Time::Update();
 		//Logger::Debug(Time::FrameRate());
 		//Logger::Debug(Time::DeltaTime());
-		accumulatedTime += Math::Min(Time::DeltaTime(), 0.1);
+		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);
 
 		running = Platform::ProcessMessages() && !Input::OnButtonDown(ESCAPE);
 
+		if (Input::OnButtonDown(G))
+		{
+			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { -2.0f, 11.0f });
+		}
+		if (Input::OnButtonDown(H))
+		{
+			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { -1.1f, 9.0f });
+		}
+		if (Input::OnButtonDown(J))
+		{
+			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 0.0f, 9.0f });
+		}
+		if (Input::OnButtonDown(K))
+		{
+			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 1.1f, 9.0f });
+		}
+		if (Input::OnButtonDown(L))
+		{
+			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 2.0f, 11.0f });
+		}
+		if (Input::OnButtonDown(N))
+		{
+			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 0.0f, 15.0f });
+		}
+
 		if (!suspended && running)
 		{
-			while (accumulatedTime >= Settings::TargetFrametime)
-			{
-				Physics::Update(Settings::TargetFrametime);
-				accumulatedTime -= Settings::TargetFrametime;
-			}
-
-			running = GameUpdate();
-
-			//OTHER UPDATES
 			Audio::Update();
-
+			Physics::Update(Settings::TargetFrametime);
+			running = GameUpdate();
 			RendererFrontend::DrawFrame();
+
+			F64 remaining = Settings::TargetFrametime - Time::TimeSinceLastFrame();
+
+			Timer timer;
+			timer.Start();
+			while (remaining - timer.CurrentTime() > 0.0001);
 		}
 	}
 

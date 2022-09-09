@@ -8,9 +8,9 @@
 #include "Engine.hpp" //TODO: temp
 
 U64 Memory::totalAllocSize;
-U64 Memory::taggedAllocations[MEMORY_TAG_MAX_TAGS];
-U64 Memory::taggedAllocCounts[MEMORY_TAG_MAX_TAGS];
-U64 Memory::taggedDeallocCounts[MEMORY_TAG_MAX_TAGS];
+U64 Memory::taggedAllocations[MEMORY_TAG_MAX];
+U64 Memory::taggedAllocCounts[MEMORY_TAG_MAX];
+U64 Memory::taggedDeallocCounts[MEMORY_TAG_MAX];
 
 DynamicAllocator* Memory::allocator;
 
@@ -150,23 +150,25 @@ U32 Memory::ShiftSigned(U32 v, I32 shift, I32 bits)
 void Memory::GetMemoryStats()
 {
 #ifdef NH_DEBUG
-	static const char* memoryTagNames[MEMORY_TAG_MAX_TAGS] = {
-		"TOTAL      ",
-		"UNKNOWN    ",
+	static const char* memoryTagNames[MEMORY_TAG_MAX] = {
+		"TOTAL		",
+		"UNKNOWN	",
 		"DATA_STRUCT",
-		"STRING     ",
-		"RENDERER   ",
-		"RESOURCE   " };
+		"STRING		",
+		"RENDERER	",
+		"RESOURCE	",
+		"AUDIO		" 
+	};
 
-	U64 allocAmounts[MEMORY_TAG_MAX_TAGS];
-	U64 taggedAllocAmounts[MEMORY_TAG_MAX_TAGS];
-	U64 taggedDeallocAmounts[MEMORY_TAG_MAX_TAGS];
-	Copy(allocAmounts, taggedAllocations, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
-	Copy(taggedAllocAmounts, taggedAllocCounts, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
-	Copy(taggedDeallocAmounts, taggedDeallocCounts, sizeof(U64) * MEMORY_TAG_MAX_TAGS);
+	U64 allocAmounts[MEMORY_TAG_MAX];
+	U64 taggedAllocAmounts[MEMORY_TAG_MAX];
+	U64 taggedDeallocAmounts[MEMORY_TAG_MAX];
+	Copy(allocAmounts, taggedAllocations, sizeof(U64) * MEMORY_TAG_MAX);
+	Copy(taggedAllocAmounts, taggedAllocCounts, sizeof(U64) * MEMORY_TAG_MAX);
+	Copy(taggedDeallocAmounts, taggedDeallocCounts, sizeof(U64) * MEMORY_TAG_MAX);
 
 	String buffer("System memory use (tagged):\n");
-	for (U32 i = 0; i < MEMORY_TAG_MAX_TAGS; ++i)
+	for (U32 i = 0; i < MEMORY_TAG_MAX; ++i)
 	{
 		String unit;
 		F64 amount = 1.0;

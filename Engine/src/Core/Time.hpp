@@ -37,6 +37,7 @@ struct Timer
 	void Stop();
 	const F64 CurrentTime() const;
 	void Reset();
+	void Restart();
 
 private:
 	F64 start;

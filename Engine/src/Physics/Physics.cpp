@@ -20,21 +20,21 @@ bool Physics::Initialize(Broadphase* bp)
 	broadphase = bp;
 	table = new BoolTable();
 
-	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] =  BoxVsBox;
-	collision2DTable[BOX_COLLIDER][CIRCLE_COLLIDER] =  BoxVsCircle;
-	collision2DTable[BOX_COLLIDER][POLYGON_COLLIDER] =  BoxVsPolygon;
-	collision2DTable[BOX_COLLIDER][PLATFORM_COLLIDER] =  BoxVsPlatform;
-	collision2DTable[CIRCLE_COLLIDER][CIRCLE_COLLIDER] =  CircleVsCircle;
-	collision2DTable[CIRCLE_COLLIDER][BOX_COLLIDER] =  CircleVsBox;
-	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] =  CircleVsPolygon;
-	collision2DTable[CIRCLE_COLLIDER][PLATFORM_COLLIDER] =  CircleVsPlatform;
-	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] =  PolygonVsPolygon;
-	collision2DTable[POLYGON_COLLIDER][BOX_COLLIDER] =  PolygonVsBox;
-	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] =  PolygonVsCircle;
-	collision2DTable[POLYGON_COLLIDER][PLATFORM_COLLIDER] =  PolygonVsPlatform;
-	collision2DTable[PLATFORM_COLLIDER][BOX_COLLIDER] =  PlatformVsBox;
-	collision2DTable[PLATFORM_COLLIDER][CIRCLE_COLLIDER] =  PlatformVsCircle;
-	collision2DTable[PLATFORM_COLLIDER][POLYGON_COLLIDER] =  PlatformVsPolygon;
+	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
+	collision2DTable[BOX_COLLIDER][CIRCLE_COLLIDER] = BoxVsCircle;
+	collision2DTable[BOX_COLLIDER][POLYGON_COLLIDER] = BoxVsPolygon;
+	collision2DTable[BOX_COLLIDER][PLATFORM_COLLIDER] = BoxVsPlatform;
+	collision2DTable[CIRCLE_COLLIDER][CIRCLE_COLLIDER] = CircleVsCircle;
+	collision2DTable[CIRCLE_COLLIDER][BOX_COLLIDER] = CircleVsBox;
+	collision2DTable[CIRCLE_COLLIDER][POLYGON_COLLIDER] = CircleVsPolygon;
+	collision2DTable[CIRCLE_COLLIDER][PLATFORM_COLLIDER] = CircleVsPlatform;
+	collision2DTable[POLYGON_COLLIDER][POLYGON_COLLIDER] = PolygonVsPolygon;
+	collision2DTable[POLYGON_COLLIDER][BOX_COLLIDER] = PolygonVsBox;
+	collision2DTable[POLYGON_COLLIDER][CIRCLE_COLLIDER] = PolygonVsCircle;
+	collision2DTable[POLYGON_COLLIDER][PLATFORM_COLLIDER] = PolygonVsPlatform;
+	collision2DTable[PLATFORM_COLLIDER][BOX_COLLIDER] = PlatformVsBox;
+	collision2DTable[PLATFORM_COLLIDER][CIRCLE_COLLIDER] = PlatformVsCircle;
+	collision2DTable[PLATFORM_COLLIDER][POLYGON_COLLIDER] = PlatformVsPolygon;
 
 	return true;
 }
@@ -234,7 +234,7 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 
 void Physics::BroadPhase()
 {
-	
+
 }
 
 void Physics::NarrowPhase()
@@ -270,7 +270,7 @@ void Physics::NarrowPhase()
 			U64 id1 = (*it1)->id;
 			if (id0 > id1) { Math::Swap(id0, id1); }
 			Contact2D c = { *it0, *it1 };
-		
+
 			if (c.a->layerMask & c.b->layerMask && (!c.a->kinematic || !c.b->kinematic) && !table->GetSet(id0, id1))
 			{
 				if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
@@ -310,13 +310,13 @@ void Physics::ResolveCollision(Contact2D& c)
 		a->force += impulse * (!a->axisLock * a->massInv);
 		b->force -= impulse * (!b->axisLock * b->massInv);
 
+		bool lock = c.restitution < FLOAT_EPSILON;
+		Vector2 relVel = (a->move + a->force) - (b->move + b->force);
+
 		F32 percent = 0.9999f;
 		Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
-		a->oneTimeVelocity += correction * (!a->axisLock * a->massInv);
-		b->oneTimeVelocity -= correction * (!b->axisLock * b->massInv);
-
-		bool lock = c.restitution < FLOAT_EPSILON;
-		Vector2 relVel = (a->velocity + a->force) - (b->velocity + b->force);
+		a->oneTimeVelocity += correction * Vector2{ (F32)(!a->axisLock.x * Math::Zero(relVel.x)), (F32)(!a->axisLock.y * Math::Zero(relVel.y)) } *a->massInv;
+		b->oneTimeVelocity -= correction * Vector2{ (F32)(!b->axisLock.x * Math::Zero(relVel.x)), (F32)(!b->axisLock.y * Math::Zero(relVel.y)) } *b->massInv;
 
 		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock* Math::Zero(relVel.x),
 			b->axisLock.y* (c.normal.y > 0.0f)* lock* Math::Zero(relVel.y) };

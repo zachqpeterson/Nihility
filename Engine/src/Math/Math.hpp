@@ -17,7 +17,7 @@
 #define RAD2DEG_MULTIPLIER 180.0 / PI
 #define SEC_TO_MS_MULTIPLIER 1000.0
 #define MS_TO_SEC_MULTIPLIER 0.001
-#define FLOAT_EPSILON 1.192092896e-07F
+#define FLOAT_EPSILON 1.192092896e-06F
 #define FLOAT_EPSILON_SQR FLOAT_EPSILON * FLOAT_EPSILON
 #define DOUBLE_EPSILON 2.22045e-16
 #define DOUBLE_EPSILON_SQR DOUBLE_EPSILON * DOUBLE_EPSILON
@@ -141,10 +141,10 @@ public:
 	static F32 FloorF(F32 n) { return (F32)(n >= 0 ? (I32)n : (I32)n - 1); }
 	static F64 FloorF(F64 n) { return (F64)(n >= 0 ? (I64)n : (I64)n - 1); }
 
-	static I32 Ceiling(F32 n) { return n > 0 ? (I32)n + 1 : (I32)n; }
-	static I64 Ceiling(F64 n) { return n > 0 ? (I64)n + 1 : (I64)n; }
-	static F32 CeilingF(F32 n) { return (F32)(n > 0 ? (I32)n + 1 : (I32)n); }
-	static F64 CeilingF(F64 n) { return (F64)(n > 0 ? (I64)n + 1 : (I64)n); }
+	static I32 Ceiling(F32 n) { return (n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n; }
+	static I64 Ceiling(F64 n) { return (n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n; }
+	static F32 CeilingF(F32 n) { return (F32)((n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n); }
+	static F64 CeilingF(F64 n) { return (F64)((n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n); }
 
 	static bool Zero(F32 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
 	static bool Zero(F64 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }

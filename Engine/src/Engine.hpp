@@ -12,17 +12,14 @@ class NH_API Engine
 public:
     /**
      * @brief Initializes the engine, MUST be called before using ANY part of the engine
-     * 
-     * @return true if the initialization was successful, false otherwise
      */
     static void Initialize(const char* applicationName, InitializeFn init, UpdateFn update, CleanupFn cleanup);
-
-    static bool OnClose(void* data);
 
 private:
     static void Shutdown();
 
     static void MainLoop();
+    static bool OnClose(void* data);
 
     static InitializeFn GameInit;
     static UpdateFn GameUpdate;
@@ -32,4 +29,5 @@ private:
     static bool suspended;
 
     Engine() = delete;
+    friend class Platform;
 };

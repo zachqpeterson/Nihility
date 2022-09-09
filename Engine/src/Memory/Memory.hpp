@@ -17,8 +17,9 @@ enum MemoryTag {
     MEMORY_TAG_STRING,
     MEMORY_TAG_RENDERER,
     MEMORY_TAG_RESOURCE,
+    MEMORY_TAG_AUDIO,
 
-    MEMORY_TAG_MAX_TAGS
+    MEMORY_TAG_MAX
 };
 
 class NH_API Memory
@@ -47,9 +48,9 @@ private:
     static void Shutdown();
 
     static U64 totalAllocSize;
-    static U64 taggedAllocations[MEMORY_TAG_MAX_TAGS];
-    static U64 taggedAllocCounts[MEMORY_TAG_MAX_TAGS];
-    static U64 taggedDeallocCounts[MEMORY_TAG_MAX_TAGS];
+    static U64 taggedAllocations[];
+    static U64 taggedAllocCounts[];
+    static U64 taggedDeallocCounts[];
 
     static class DynamicAllocator* allocator;
 
