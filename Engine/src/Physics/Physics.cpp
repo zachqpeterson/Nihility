@@ -12,8 +12,8 @@ Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision
 Broadphase* Physics::broadphase;
 BoolTable* Physics::table;
 
-F64 Physics::airDensity = 1.29;
-F64 Physics::gravity = 9.807;
+F32 Physics::airDensity = 1.29f;
+F32 Physics::gravity = 9.807f;
 
 bool Physics::Initialize(Broadphase* bp)
 {
@@ -59,7 +59,7 @@ void Physics::Shutdown()
 	delete table;
 }
 
-void Physics::Update(F64 step)
+void Physics::Update(F32 step)
 {
 	for (PhysicsObject2D* po : physicsObjects2D)
 	{
@@ -67,13 +67,19 @@ void Physics::Update(F64 step)
 
 		if (!obj.kinematic) //TODO: Check for sleeping
 		{
-			obj.velocity += Vector2::UP * (F32)(gravity * obj.gravityScale * obj.mass * step);
-			obj.velocity += obj.force * (F32)obj.massInv;
-			obj.velocity += -obj.velocity.Normalized() * obj.velocity.SqrMagnitude() * (F32)(obj.dragCoefficient * obj.area * 0.5 * airDensity * step);
+			obj.velocity += Vector2::UP * (gravity * obj.gravityScale * obj.mass * step);
+			obj.velocity += obj.force * obj.massInv;
+			obj.velocity -= obj.velocity.Normalized() * obj.velocity.SqrMagnitude() * (obj.dragCoefficient * obj.area * 0.5f * airDensity * step);
+			if (!obj.freezeRotation)
+			{
+				obj.angularVelocity += obj.torque * obj.inertiaInv * step;
+				obj.angularVelocity -= obj.angularVelocity * obj.angularVelocity * obj.angularDragCoefficient * obj.area * 0.5f * airDensity * step;
+			}
 		}
 		else
 		{
 			obj.velocity += obj.force * (F32)obj.massInv;
+			if (!obj.freezeRotation) { obj.angularVelocity += obj.torque * obj.inertiaInv * step; }
 		}
 
 		obj.move = obj.velocity + obj.oneTimeVelocity;
@@ -137,6 +143,21 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 
 		po->area = config.box.Area();
 		po->dragCoefficient = 1.2f;
+
+		po->mass = po->area * config.density;
+		if (po->mass == 0.0f)
+		{
+			po->massInv = 0.0f;
+			po->inertia = 0.0f;
+			po->inertiaInv = 0.0f;
+		}
+		else
+		{
+			po->massInv = 1.0f / po->mass;
+			po->inertia = po->mass * collider->box.Extents().Dot(collider->box.Extents()) / 12.0f;
+			po->inertiaInv = 1.0f / po->inertia;
+		}
+
 	} break;
 	case POLYGON_COLLIDER: {
 		if (config.shape.Size() < 3)
@@ -197,17 +218,10 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 	po->transform = config.transform;
 
 	po->restitution = config.restitution;
+	po->friction = config.restitution;
 	po->gravityScale = config.gravityScale;
 	po->kinematic = config.kinematic;
-
-	po->mass = po->area * config.density;
-	if (po->mass == 0.0f) { po->massInv = 0.0f; }
-	else { po->massInv = 1.0f / po->mass; }
-
-	//TODO: inertia
-	po->inertia = 0.0f;
-	if (po->inertia == 0.0f) { po->inertiaInv = 0.0f; }
-	else { po->inertiaInv = 1.0f / po->inertia; }
+	po->freezeRotation = config.freezeRotation;
 
 	//TODO: layerMask
 	po->layerMask = 1;
@@ -264,7 +278,7 @@ void Physics::NarrowPhase()
 		//	}
 		//}
 
-		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1) //Cache dynamic vs dynamic collisions and run them again
+		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
 		{
 			U64 id0 = (*it0)->id;
 			U64 id1 = (*it1)->id;

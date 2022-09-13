@@ -236,8 +236,10 @@ struct PhysicsObject2DConfig
 
 	bool trigger;
 	bool kinematic;
+	bool freezeRotation;
 
 	F32 restitution;
+	F32 friction;
 	F32 gravityScale;
 	F32 density;
 	Transform2D* transform;
@@ -333,7 +335,7 @@ public:
 private:
 	static bool Initialize(Broadphase* broadphase);
 	static void Shutdown();
-	static void Update(F64 step);
+	static void Update(F32 step);
 
 	static void BroadPhase();
 	static void NarrowPhase();
@@ -369,8 +371,8 @@ private:
 	static Broadphase* broadphase;
 	static BoolTable* table;
 
-	static F64 airDensity;
-	static F64 gravity;
+	static F32 airDensity;
+	static F32 gravity;
 
 	friend class Engine;
 };

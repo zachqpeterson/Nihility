@@ -96,7 +96,7 @@ public:
 	{
 		array = (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT);
 
-		for (U64 i = 0; i < size; ++i)
+		for (U64 i = 0; i < size; ++i) //TODO: simd
 		{
 			array[i] = value;
 		}

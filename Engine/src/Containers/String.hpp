@@ -8,6 +8,12 @@
 #include <string.h>
 
 template<typename> struct Vector;
+struct Vector2;
+struct Vector3;
+struct Vector4;
+struct Vector2Int;
+struct Vector3Int;
+struct Vector4Int;
 
 struct NH_API String
 {
@@ -92,6 +98,12 @@ struct NH_API String
 	String(F32 value);
 	String(F64 value);
 	String(bool value);
+	String(const Vector2& v);
+	String(const Vector3& v);
+	String(const Vector4& v);
+	String(const Vector2Int& v);
+	String(const Vector3Int& v);
+	String(const Vector4Int& v);
 
 	String& operator=(char* str);
 	String& operator=(const char* str);
@@ -105,6 +117,12 @@ struct NH_API String
 	String& operator=(F32 value);
 	String& operator=(F64 value);
 	String& operator=(bool value);
+	String& operator=(const Vector2& v);
+	String& operator=(const Vector3& v);
+	String& operator=(const Vector4& v);
+	String& operator=(const Vector2Int& v);
+	String& operator=(const Vector3Int& v);
+	String& operator=(const Vector4Int& v);
 
 	U64& Length();
 	const U64& Length() const;
@@ -134,6 +152,12 @@ struct NH_API String
 	F32 ToF32();
 	F64 ToF64();
 	bool ToBool();
+	Vector2 ToVector2();
+	Vector3 ToVector3();
+	Vector4 ToVector4();
+	Vector2Int ToVector2Int();
+	Vector3Int ToVector3Int();
+	Vector4Int ToVector4Int();
 
 	String operator+(char* other) { String s = *this; s.Append(other); return s; }
 	String operator+(const char* other) { String s = *this; s.Append(other); return s; }
@@ -151,6 +175,12 @@ struct NH_API String
 	String operator+(U64 i) { String s = *this; s.Append(i); return s; }
 	String operator+(F32 i) { String s = *this; s.Append(i); return s; }
 	String operator+(F64 i) { String s = *this; s.Append(i); return s; }
+	String operator+(const Vector2& v);
+	String operator+(const Vector3& v);
+	String operator+(const Vector4& v);
+	String operator+(const Vector2Int& v);
+	String operator+(const Vector3Int& v);
+	String operator+(const Vector4Int& v);
 
 	Iterator begin() { return Iterator{ str }; }
 	Iterator end() { return Iterator{ &str[length] }; }

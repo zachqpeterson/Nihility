@@ -107,6 +107,7 @@ const Vector4Int Vector4Int::INWARD = { 0,  0,  0, -1 };
 const Matrix2 Matrix2::IDENTITY = { { 1.f, 0.f }, { 0.f, 1.f } };
 const Matrix3 Matrix3::IDENTITY = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
 const Matrix4 Matrix4::IDENTITY = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f, 0.f }, { 0.f, 0.f, 0.f, 1.f } };
+Matrix2::Matrix2(const Quaternion2D& q) : a{ q.cos, q.sin }, b{ -q.sin, q.cos } {}
 
 const Quaternion3D Quaternion3D::IDENTITY = { 0.0f,  0.0f,  0.0f,  1.0f };
 const Quaternion2D Quaternion2D::IDENTITY = { 0.0f,  1.0f };

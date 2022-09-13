@@ -25,177 +25,8 @@ struct NH_API Map
 	};
 
 public:
-	Map();
-	Map(const Map& other);
-	Map(Map&& other);
-	~Map();
-	void Destroy();
-
-	void* operator new(U64 size) { return Memory::Allocate(sizeof(Map), MEMORY_TAG_DATA_STRUCT); }
-	void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Map), MEMORY_TAG_DATA_STRUCT); }
-
-	Map& operator=(const Map& other);
-	Map& operator=(Map&& other);
-
-	TValue& At(const TKey& key);
-	const TValue& At(const TKey& key) const;
-	TValue& operator[](const TKey& key);
-	const TValue& operator[](const TKey& key) const;
-
-	const bool Empty() const { return !size; }
-	const U64& Size() const { return size; }
-
-	void Clear();
-	void Insert(const TKey& key, const TValue& value);
-	void InsertAssign(const TKey& key, const TValue& value);
-	TValue& InsertGet(const TKey& key);
-	TValue&& Remove(const TKey& key);
-
-	bool Contains(const TValue& value) const;
-	bool Contains(const TKey& key) const;
-	const U64& Count(const TKey& key) const { return size; }
-
-private:
-	Node* root;
-	U64 size;
-};
-
-template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map() : root{ nullptr }, size{ 0 } {}
-
-template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(const Map<TKey, TValue>& other) : size{ other.size }
-{
-	Stack<Node*> s;
-	s.Push(root);
-
-	while (!s.Empty())
-	{
-		Node* node = s.Pop();
-
-		if (node->left) { s.Push(node->left); }
-		if (node->right) { s.Push(node->right); }
-
-		Insert(node->key, node->value);
-	}
-
-	size = 0;
-}
-
-template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::Map(Map<TKey, TValue>&& other) : root{ other.root }, size{ other.size }
-{
-	other.root = nullptr;
-	other.size = 0;
-}
-
-template<typename TKey, typename TValue>
-inline Map<TKey, TValue>::~Map()
-{
-	Clear();
-}
-
-template<typename TKey, typename TValue>
-inline void Map<TKey, TValue>::Destroy()
-{
-	Clear();
-}
-
-template<typename TKey, typename TValue>
-inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(const Map<TKey, TValue>& other)
-{
-	size = other.size;
-
-	Stack<Node*> s;
-	s.Push(root);
-
-	while (!s.Empty())
-	{
-		Node* node = s.Pop();
-
-		if (node->left) { s.Push(node->left); }
-		if (node->right) { s.Push(node->right); }
-
-		Insert(node->key, node->value);
-	}
-
-	size = 0;
-}
-
-template<typename TKey, typename TValue>
-inline Map<TKey, TValue>& Map<TKey, TValue>::operator=(Map<TKey, TValue>&& other)
-{
-	root = other.root;
-	size = other.size;
-
-	other.root = nullptr;
-	other.size = 0;
-}
-
-template<typename TKey, typename TValue>
-inline TValue& Map<TKey, TValue>::At(const TKey& key)
-{
-	ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
-
-	Node* node = root;
-
-	while (node && node->key != key)
-	{
-		node = (&node->left)[key > node->key];
-	}
-
-	return node->value;
-}
-
-template<typename TKey, typename TValue>
-inline const TValue& Map<TKey, TValue>::At(const TKey& key) const
-{
-	ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
-
-	Node* node = root;
-
-	while (node && node->key != key)
-	{
-		node = (&node->left)[key > node->key];
-	}
-
-	return node->value;
-}
-
-template<typename TKey, typename TValue>
-inline TValue& Map<TKey, TValue>::operator[](const TKey& key)
-{
-	ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
-
-	Node* node = root;
-
-	while (node && node->key != key)
-	{
-		node = (&node->left)[key > node->key];
-	}
-
-	return node->value;
-}
-
-template<typename TKey, typename TValue>
-inline const TValue& Map<TKey, TValue>::operator[](const TKey& key) const
-{
-	ASSERT_DEBUG_MSG(root, "Cannot search an empty map!");
-
-	Node* node = root;
-
-	while (node && node->key != key)
-	{
-		node = (&node->left)[key > node->key];
-	}
-
-	return node->value;
-}
-
-template<typename TKey, typename TValue>
-inline void Map<TKey, TValue>::Clear()
-{
-	if (root)
+	Map() : root{ nullptr }, size{ 0 } {}
+	Map(const Map& other)
 	{
 		Stack<Node*> s;
 		s.Push(root);
@@ -207,175 +38,281 @@ inline void Map<TKey, TValue>::Clear()
 			if (node->left) { s.Push(node->left); }
 			if (node->right) { s.Push(node->right); }
 
-			delete node;
+			Insert(node->key, node->value);
 		}
 
 		size = 0;
-		root = nullptr;
 	}
-}
-
-template<typename TKey, typename TValue>
-inline void Map<TKey, TValue>::Insert(const TKey& key, const TValue& value)
-{
-	if (root == nullptr)
+	Map(Map&& other)
 	{
-		++size;
-		root = new Node(key, value);
-		return;
+		other.root = nullptr;
+		other.size = 0;
 	}
+	~Map() { Clear(); }
+	void Destroy() { Clear(); }
 
-	Node* node = root;
+	void* operator new(U64 size) { return Memory::Allocate(sizeof(Map), MEMORY_TAG_DATA_STRUCT); }
+	void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Map), MEMORY_TAG_DATA_STRUCT); }
 
-	while (node && node->key != key)
+	Map& operator=(const Map& other)
 	{
-		Node** next = (&node->left) + (key > node->key);
+		size = other.size;
 
-		if (!*next)
+		Stack<Node*> s;
+		s.Push(root);
+
+		while (!s.Empty())
 		{
-			++size;
-			*next = new Node(key, value);
-			return;
+			Node* node = s.Pop();
+
+			if (node->left) { s.Push(node->left); }
+			if (node->right) { s.Push(node->right); }
+
+			Insert(node->key, node->value);
 		}
 
-		node = *next;
+		size = 0;
 	}
-}
-
-template<typename TKey, typename TValue>
-inline void Map<TKey, TValue>::InsertAssign(const TKey& key, const TValue& value)
-{
-	if (root == nullptr)
+	Map& operator=(Map&& other)
 	{
-		++size;
-		root = new Node(key, value);
-		return;
+		root = other.root;
+		size = other.size;
+
+		other.root = nullptr;
+		other.size = 0;
 	}
 
-	Node* node = root;
-
-	while (node && node->key != key)
+	TValue& At(const TKey& key)
 	{
-		Node** next = (&node->left) + (key > node->key);
-
-		if (!*next)
-		{
-			++size;
-			*next = new Node(key, value);
-			return;
-		}
-
-		node = *next;
-	}
-
-	if (node)
-	{
-		node->value = value;
-	}
-}
-
-template<typename TKey, typename TValue>
-inline TValue& Map<TKey, TValue>::InsertGet(const TKey& key)
-{
-	if (root == nullptr)
-	{
-		++size;
-		root = new Node(key, TValue{});
-		return root->value;
-	}
-
-	Node* node = root;
-
-	while (node && node->key != key)
-	{
-		Node** next = (&node->left) + (key > node->key);
-
-		if (!*next)
-		{
-			++size;
-			*next = new Node(key, TValue{});
-		}
-
-		node = *next;
-	}
-
-	return node->value;
-}
-
-template<typename TKey, typename TValue>
-inline TValue&& Map<TKey, TValue>::Remove(const TKey& key)
-{
-	if (root)
-	{
-		Node* parent = root;
 		Node* node = root;
-
-		bool right = false;
 
 		while (node && node->key != key)
 		{
-			parent = node;
-			node = (&node->left)[right = key > node->key];
+			node = (&node->left)[key > node->key];
+		}
+
+		if (node) { return node->value; }
+		return invalid;
+	}
+	const TValue& At(const TKey& key) const
+	{
+		Node* node = root;
+
+		while (node && node->key != key)
+		{
+			node = (&node->left)[key > node->key];
+		}
+
+		if (node) { return node->value; }
+		return invalid;
+	}
+	TValue& operator[](const TKey& key)
+	{
+		Node* node = root;
+
+		while (node && node->key != key)
+		{
+			node = (&node->left)[key > node->key];
+		}
+
+		if (node) { return node->value; }
+		return invalid;
+	}
+	const TValue& operator[](const TKey& key) const
+	{
+		Node* node = root;
+
+		while (node && node->key != key)
+		{
+			node = (&node->left)[key > node->key];
+		}
+
+		if (node) { return node->value; }
+		return invalid;
+	}
+
+	const bool Empty() const { return !size; }
+	const U64& Size() const { return size; }
+
+	void Clear()
+	{
+		if (root)
+		{
+			Stack<Node*> s;
+			s.Push(root);
+
+			while (!s.Empty())
+			{
+				Node* node = s.Pop();
+
+				if (node->left) { s.Push(node->left); }
+				if (node->right) { s.Push(node->right); }
+
+				delete node;
+			}
+
+			size = 0;
+			root = nullptr;
+		}
+	}
+	void Insert(const TKey& key, const TValue& value)
+	{
+		if (root == nullptr)
+		{
+			++size;
+			root = new Node(key, value);
+			return;
+		}
+
+		Node* node = root;
+
+		while (node && node->key != key)
+		{
+			Node** next = (&node->left) + (key > node->key);
+
+			if (!*next)
+			{
+				++size;
+				*next = new Node(key, value);
+				return;
+			}
+
+			node = *next;
+		}
+	}
+	void InsertAssign(const TKey& key, const TValue& value)
+	{
+		if (root == nullptr)
+		{
+			++size;
+			root = new Node(key, value);
+			return;
+		}
+
+		Node* node = root;
+
+		while (node && node->key != key)
+		{
+			Node** next = (&node->left) + (key > node->key);
+
+			if (!*next)
+			{
+				++size;
+				*next = new Node(key, value);
+				return;
+			}
+
+			node = *next;
 		}
 
 		if (node)
 		{
-			Node* replaceParent = node;
-			Node* replace = node->left;
-
-			while (replace && replace->right)
-			{
-				replaceParent = replace;
-				replace = replace->right;
-			}
-
-			if (replace)
-			{
-				if (replaceParent != node) { replaceParent->right = nullptr; }
-				replace->right = node->right;
-				if (replace != node->left) { replace->left = node->left; }
-			}
-
-			if (node->key == root->key) { root = replace; }
-			else { *((&parent->left) + right) = replace; }
-			TValue t = node->value;
-			--size;
-			delete node;
-			return Move(t);
+			node->value = value;
 		}
 	}
-
-	return {};
-}
-
-template<typename TKey, typename TValue>
-inline bool Map<TKey, TValue>::Contains(const TValue& value) const
-{
-	Stack<Node*> s;
-	s.Push(root);
-
-	while (!s.Empty())
+	TValue& InsertGet(const TKey& key)
 	{
-		Node* node = s.Pop();
+		if (root == nullptr)
+		{
+			++size;
+			root = new Node(key, TValue{});
+			return root->value;
+		}
 
-		if (node->value == value) { return true; }
+		Node* node = root;
 
-		if (node->left) { s.Push(node->left); }
-		if (node->right) { s.Push(node->right); }
+		while (node && node->key != key)
+		{
+			Node** next = (&node->left) + (key > node->key);
+
+			if (!*next)
+			{
+				++size;
+				*next = new Node(key, TValue{});
+			}
+
+			node = *next;
+		}
+
+		return node->value;
+	}
+	TValue&& Remove(const TKey& key)
+	{
+		if (root)
+		{
+			Node* parent = root;
+			Node* node = root;
+
+			bool right = false;
+
+			while (node && node->key != key)
+			{
+				parent = node;
+				node = (&node->left)[right = key > node->key];
+			}
+
+			if (node)
+			{
+				Node* replaceParent = node;
+				Node* replace = node->left;
+
+				while (replace && replace->right)
+				{
+					replaceParent = replace;
+					replace = replace->right;
+				}
+
+				if (replace)
+				{
+					if (replaceParent != node) { replaceParent->right = nullptr; }
+					replace->right = node->right;
+					if (replace != node->left) { replace->left = node->left; }
+				}
+
+				if (node->key == root->key) { root = replace; }
+				else { *((&parent->left) + right) = replace; }
+				TValue t = node->value;
+				--size;
+				delete node;
+				return Move(t);
+			}
+		}
+
+		return Move(TValue{});
 	}
 
-	return false;
-}
-
-template<typename TKey, typename TValue>
-inline bool Map<TKey, TValue>::Contains(const TKey& key) const
-{
-	Node* node = root;
-
-	while (node && node->key != key)
+	bool Contains(const TValue& value) const
 	{
-		node = (&node->left)[key > node->key];
-	}
+		Stack<Node*> s;
+		s.Push(root);
 
-	return node;
-}
+		while (!s.Empty())
+		{
+			Node* node = s.Pop();
+
+			if (node->value == value) { return true; }
+
+			if (node->left) { s.Push(node->left); }
+			if (node->right) { s.Push(node->right); }
+		}
+
+		return false;
+	}
+	bool Contains(const TKey& key) const
+	{
+		Node* node = root;
+
+		while (node && node->key != key)
+		{
+			node = (&node->left)[key > node->key];
+		}
+
+		return node;
+	}
+	const U64& Count(const TKey& key) const { return size; }
+
+private:
+	Node* root;
+	U64 size;
+	TValue invalid{};
+};

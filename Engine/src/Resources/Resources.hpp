@@ -317,6 +317,10 @@ struct TTFInfo
 	FontBuffer fdselect;								// map from glyph to fontdict
 
 	HashMap<U64, Texture*> letterTextures;
+
+	I32 ascent;
+	I32 descent;
+	I32 lineGap;
 };
 
 struct Renderpass
@@ -376,6 +380,8 @@ struct NH_API Mesh
 {
 	String name;
 	Material material;
+	Vector<Vertex> vertices;
+	Vector<U32> indices;
 	void* internalData{ nullptr };
 };
 
@@ -434,8 +440,10 @@ public:
 	static AudioFull* LoadAudio(const String& name);
 	static void LoadAudioChunk(AudioFull* full, AudioChunk* chunk);
 	static void LoadFont(const String& name);
+	static F32 FontRatio(const String& name);
 	static Material GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures);
 	static Mesh* LoadMesh(const String& name);
+	static void DestroyMesh(Mesh* mesh);
 	static Model* LoadModel(const String& name);
 
 	static Texture* CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency);
@@ -443,7 +451,7 @@ public:
 	static bool SetTextureInternal(Texture* texture, void* internalData);
 	static bool ResizeTexture(Texture* texture, U32 width, U32 height, bool regenerateInternalData);
 
-	static Texture* CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels);
+	static Texture* CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels, const Vector3& color, I32& xOff, I32& yOff);
 
 	static Vector<Renderpass*>& GetRenderpasses() { return renderpasses; }
 	static Vector<Material*>& GetMaterials() { return materials; }
@@ -549,8 +557,6 @@ private:
 
 	static Renderpass* LoadRenderpass(const String& name);
 	static Shader* LoadShader(const String& name);
-
-	static void DestroyMesh(Mesh* mesh);
 
 	//Textures
 	static HashMap<String, Texture*> textures;

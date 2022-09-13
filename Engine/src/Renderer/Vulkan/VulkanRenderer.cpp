@@ -213,7 +213,7 @@ bool VulkanRenderer::CreateDebugger()
 	U32 logSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;  //|
-	    //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+	//    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 	debugInfo.messageSeverity = logSeverity;
@@ -616,11 +616,11 @@ bool VulkanRenderer::EndRenderpass(Renderpass* renderpass)
 	return true;
 }
 
-bool VulkanRenderer::CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32>& indices)
+bool VulkanRenderer::CreateMesh(Mesh* mesh)
 {
-	if (vertices.Size() < 3)
+	if (mesh->vertices.Size() < 3)
 	{
-		Logger::Error("CreateMesh requires at least three vertices, vertex count provided: {}", vertices.Size());
+		Logger::Error("CreateMesh requires at least three vertices, vertex count provided: {}", mesh->vertices.Size());
 		return false;
 	}
 
@@ -645,22 +645,22 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32
 	VkCommandPool pool = rendererState->device->graphicsCommandPool;
 	VkQueue queue = rendererState->device->graphicsQueue;
 
-	internalData->vertexCount = (U32)vertices.Size();
+	internalData->vertexCount = (U32)mesh->vertices.Size();
 	internalData->vertexElementSize = sizeof(Vertex);
-	U32 totalSize = (U32)vertices.Size() * sizeof(Vertex);
+	U32 totalSize = (U32)mesh->vertices.Size() * sizeof(Vertex);
 
-	if (!UploadDataRange(pool, nullptr, queue, rendererState->objectVertexBuffer, internalData->vertexBufferOffset, totalSize, vertices.Data()))
+	if (!UploadDataRange(pool, nullptr, queue, rendererState->objectVertexBuffer, internalData->vertexBufferOffset, totalSize, mesh->vertices.Data()))
 	{
 		Logger::Error("CreateMesh: Failed to upload to the vertex buffer!");
 		return false;
 	}
 
-	if (indices.Size())
+	if (mesh->indices.Size())
 	{
-		internalData->indexCount = (U32)indices.Size();
+		internalData->indexCount = (U32)mesh->indices.Size();
 		internalData->indexElementSize = sizeof(U32);
-		totalSize = (U32)indices.Size() * sizeof(U32);
-		if (!UploadDataRange(pool, nullptr, queue, rendererState->objectIndexBuffer, internalData->indexBufferOffset, totalSize, indices.Data()))
+		totalSize = (U32)mesh->indices.Size() * sizeof(U32);
+		if (!UploadDataRange(pool, nullptr, queue, rendererState->objectIndexBuffer, internalData->indexBufferOffset, totalSize, mesh->indices.Data()))
 		{
 			Logger::Error("CreateMesh: Failed to upload to the index buffer!");
 			return false;
@@ -741,6 +741,11 @@ void VulkanRenderer::OnResize()
 		rendererState->renderArea.z = Settings::WindowWidth;
 		rendererState->renderArea.w = (I32)(Settings::WindowHeight - (offset * 2.0f));
 	}
+}
+
+Vector2Int VulkanRenderer::WindowSize()
+{
+	return { rendererState->renderArea.z, rendererState->renderArea.w };
 }
 
 void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)

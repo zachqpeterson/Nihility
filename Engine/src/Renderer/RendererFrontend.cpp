@@ -102,9 +102,9 @@ bool RendererFrontend::EndRenderpass(Renderpass* renderpass)
 	return renderer->EndRenderpass(renderpass);
 }
 
-bool RendererFrontend::CreateMesh(Mesh* mesh, Vector<Vertex>& vertices, Vector<U32>& indices)
+bool RendererFrontend::CreateMesh(Mesh* mesh)
 {
-	return renderer->CreateMesh(mesh, vertices, indices);
+	return renderer->CreateMesh(mesh);
 }
 
 void RendererFrontend::DestroyMesh(Mesh* mesh)
@@ -254,12 +254,12 @@ bool RendererFrontend::OnResize(void* data)
 
 Vector2Int RendererFrontend::WindowSize()
 {
-	return { (I32)framebufferWidth, (I32)framebufferHeight };
+	return renderer->WindowSize();
 }
 
-Vector2 RendererFrontend::ScreenToWorld(const Vector2Int& v)
+Vector2 RendererFrontend::ScreenToWorld(const Vector2& v)
 {
 	Vector3 camPos = activeScene->GetCamera()->Position();
-
+	
 	return { camPos.x + (F32)(v.x - (I32)framebufferWidth / 2) * 0.02857142857f, camPos.y + (F32)(v.y - (I32)framebufferHeight / 2) * 0.02857142857f };
 }

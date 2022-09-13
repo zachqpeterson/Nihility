@@ -6,46 +6,64 @@
 #include "Containers/String.hpp"
 
 template<typename> struct List;
+struct Mesh;
+struct Model;
+struct Texture;
+class Scene;
+
+struct UIElement
+{
+	U64 id;
+	bool enabled{ true };
+	bool hovered{ false };
+	bool clicked{ false };
+	Vector4 area{};
+	UIElement* parent{ nullptr };
+	Mesh* mesh;
+	//TODO: OnClick
+	//TODO: OnHover
+	//TODO: OnExit
+	//TODO: OnScroll
+	bool isText{ false };
+};
 
 struct UIElementConfig
 {
 	bool enabled{ true };
-	String name;
-	String parentName;
+	UIElement* parent;
 	Vector4 area{};
-	Vector4 color{};
-	class Scene* scene;
+	Vector4 color{}; //TODO: color struct
+	Scene* scene;
 };
 
-struct UIElement
+struct UIText : public UIElement
 {
-	bool enabled{ true };
-	String name;
-	Vector4 area{};
-	UIElement* parent{ nullptr };
-	struct Mesh* mesh;
+	Model* model;
+	String text;
+	F32 size;
 };
 
 class NH_API UI
 {
 public:
-	static void GenerateBorderedPanel(UIElementConfig& config);
-	static void GeneratePanel(UIElementConfig& config);
-	static void GenerateImage(UIElementConfig& config, struct Texture* texture);
-	static void GenerateText(UIElementConfig& config, const String& text);
+	static UIElement* GeneratePanel(UIElementConfig& config, bool bordered = true);
+	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture);
+	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
 
-	static void UpdateBorderedPanel(const Vector4& area, const String& name, const Vector4& color);
-	static void UpdatePanel(const Vector4& area, const String& name, const Vector4& color);
-	static void UpdateImage(const Vector4& area, Texture* texture, const String& name);
-	static void UpdateText(const Vector4& area, const String& text, const String& name);
+	static void ChangeSize(UIElement* element, const Vector4& newArea);
+	static void ChangeSize(UIText* element, F32 newSize);
+	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static U16 elementIndex;
+	static bool Punctuation(char c);
+
+	static U64 elementID;
 	static List<UIElement*> elements;
-	static struct Texture* uiTexture;
+	static Texture* panelTexture;
+	//TODO: UIElement for hover descriptions
 
 	friend class Engine;
 };

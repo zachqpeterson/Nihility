@@ -257,6 +257,54 @@ String::String(bool value)
 	}
 }
 
+String::String(const Vector2& v)
+{
+	length = 5;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{}", length);
+	Format(v.x, v.y);
+}
+
+String::String(const Vector3& v)
+{
+	length = 8;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{}", length);
+	Format(v.x, v.y, v.z);
+}
+
+String::String(const Vector4& v)
+{
+	length = 11;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{},{}", length);
+	Format(v.x, v.y, v.z, v.w);
+}
+
+String::String(const Vector2Int& v)
+{
+	length = 5;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{}", length);
+	Format(v.x, v.y);
+}
+
+String::String(const Vector3Int& v)
+{
+	length = 8;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{}", length);
+	Format(v.x, v.y, v.z);
+}
+
+String::String(const Vector4Int& v)
+{
+	length = 11;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{},{}", length);
+	Format(v.x, v.y, v.z, v.w);
+}
+
 String& String::operator=(char* str)
 {
 	if (str == this->str) { return *this; }
@@ -348,6 +396,11 @@ String& String::operator=(String&& other) noexcept
 
 String& String::operator=(I32 value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	bool neg = value < 0;
 	length = Math::Length(value) + neg;
 	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
@@ -368,6 +421,11 @@ String& String::operator=(I32 value)
 
 String& String::operator=(I64 value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	bool neg = value < 0;
 	length = Math::Length(value) + neg;
 	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
@@ -388,6 +446,11 @@ String& String::operator=(I64 value)
 
 String& String::operator=(U32 value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	length = Math::Length(value);
 	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
 
@@ -405,6 +468,11 @@ String& String::operator=(U32 value)
 
 String& String::operator=(U64 value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	length = Math::Length(value);
 	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
 
@@ -422,6 +490,11 @@ String& String::operator=(U64 value)
 
 String& String::operator=(F32 value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	//TODO: NaN and infinity
 
 	bool neg = value < 0;
@@ -455,6 +528,11 @@ String& String::operator=(F32 value)
 
 String& String::operator=(F64 value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	//TODO: NaN and infinity
 
 	bool neg = value < 0;
@@ -488,6 +566,11 @@ String& String::operator=(F64 value)
 
 String& String::operator=(bool value)
 {
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
 	static const char* trueStr = "true";
 	static const char* falseStr = "false";
 
@@ -503,6 +586,96 @@ String& String::operator=(bool value)
 		this->str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
 		Memory::Copy(this->str, falseStr, length);
 	}
+
+	return *this;
+}
+
+String& String::operator=(const Vector2& v)
+{
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
+	length = 5;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{}", length);
+	Format(v.x, v.y);
+
+	return *this;
+}
+
+String& String::operator=(const Vector3& v)
+{
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
+	length = 8;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{}", length);
+	Format(v.x, v.y, v.z);
+
+	return *this;
+}
+
+String& String::operator=(const Vector4& v)
+{
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
+	length = 11;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{},{}", length);
+	Format(v.x, v.y, v.z, v.w);
+
+	return *this;
+}
+
+String& String::operator=(const Vector2Int& v)
+{
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
+	length = 5;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{}", length);
+	Format(v.x, v.y);
+
+	return *this;
+}
+
+String& String::operator=(const Vector3Int& v)
+{
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
+	length = 8;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{}", length);
+	Format(v.x, v.y, v.z);
+
+	return *this;
+}
+
+String& String::operator=(const Vector4Int& v)
+{
+	if (this->str)
+	{
+		Memory::Free(this->str, length + 1, MEMORY_TAG_STRING);
+	}
+
+	length = 11;
+	str = (char*)Memory::Allocate(length + 1, MEMORY_TAG_STRING);
+	Memory::Copy(str, "{},{},{},{}", length);
+	Format(v.x, v.y, v.z, v.w);
 
 	return *this;
 }
@@ -857,6 +1030,48 @@ F64 String::ToF64()
 bool String::ToBool()
 {
 	return !strcmp(str, "true") || !strcmp(str, "1");
+}
+
+Vector2 String::ToVector2()
+{
+	Vector2 v;
+	sscanf_s(str, "%f,%f", &v.x, &v.y);
+	return v;
+}
+
+Vector3 String::ToVector3()
+{
+	Vector3 v;
+	sscanf_s(str, "%f,%f,%f", &v.x, &v.y, &v.z);
+	return v;
+}
+
+Vector4 String::ToVector4()
+{
+	Vector4 v;
+	sscanf_s(str, "%f,%f,%f,%f", &v.x, &v.y, &v.z, &v.w);
+	return v;
+}
+
+Vector2Int String::ToVector2Int()
+{
+	Vector2Int v;
+	sscanf_s(str, "%d,%d", &v.x, &v.y);
+	return v;
+}
+
+Vector3Int String::ToVector3Int()
+{
+	Vector3Int v;
+	sscanf_s(str, "%d,%d,%d", &v.x, &v.y, &v.z);
+	return v;
+}
+
+Vector4Int String::ToVector4Int()
+{
+	Vector4Int v;
+	sscanf_s(str, "%d,%d,%d,%d", &v.x, &v.y, &v.z, &v.w);
+	return v;
 }
 
 bool String::operator==(const String& other) const

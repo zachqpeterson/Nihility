@@ -25,7 +25,7 @@ bool VulkanImage::Create(RendererState* rendererState,
     imageInfo.extent.width = width;
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;  // TODO: Support configurable depth.
-    imageInfo.mipLevels = 4;     // TODO: Support mip mapping
+    imageInfo.mipLevels = Math::Ceiling(Math::Log2((F32)Math::Max(width, height))); // TODO: Support mip mapping
     imageInfo.arrayLayers = 1;   // TODO: Support number of layers in the image.
     imageInfo.format = format;
     imageInfo.tiling = tiling;

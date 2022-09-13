@@ -71,7 +71,7 @@ void Engine::MainLoop()
 
 	Audio::ClearBuffer();
 	Audio::Start();
-	Audio::PlayAudio("TPOM.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
+	//Audio::PlayAudio("TPOM.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
 
 	while (running)
 	{
@@ -110,7 +110,7 @@ void Engine::MainLoop()
 		if (!suspended && running)
 		{
 			Audio::Update();
-			Physics::Update(Settings::TargetFrametime);
+			Physics::Update((F32)Time::DeltaTime());
 			running = GameUpdate();
 			RendererFrontend::DrawFrame();
 

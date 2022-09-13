@@ -122,8 +122,8 @@ void Audio::Start()
 
 void Audio::Update()
 {
-	F32 beginAudioTime = Time::TimeSinceLastFrame();
-	F32 deltaTime = Time::DeltaTime();
+	F32 beginAudioTime = (F32)Time::TimeSinceLastFrame();
+	F32 deltaTime = (F32)Time::DeltaTime();
 
 	DWORD playCursor;
 	DWORD writeCursor;

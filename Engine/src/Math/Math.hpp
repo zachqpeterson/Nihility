@@ -75,6 +75,9 @@ public:
 	static Vector2 Abs(const Vector2& v);
 	static Vector3 Abs(const Vector3& v);
 	static Vector4 Abs(const Vector4& v);
+	static Matrix2 Abs(const Matrix2& m);
+	static Matrix3 Abs(const Matrix3& m);
+	static Matrix4 Abs(const Matrix4& m);
 
 	static F32 Min(F32 a, F32 b) { return a < b ? a : b; }
 	static F64 Min(F64 a, F64 b) { return a < b ? a : b; }
@@ -266,9 +269,8 @@ struct NH_API Vector2
 	NH_INLINE Vector2 Perpendicular() { return { x, -y }; }
 	NH_INLINE Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
 	NH_INLINE Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
-	NH_INLINE F32 Cross(const Vector2& v) const { return v.x * x - v.y * y; }
+	NH_INLINE F32 Cross(const Vector2& v) const { return x * v.y - y * v.x; }
 	NH_INLINE Vector2 Cross(const F32 f) const { return { y * f, x * -f }; }
-	NH_INLINE F32 Determinant(const Vector2& v) const { return { x * v.y - y * v.x }; }
 	NH_INLINE Vector2& Tangent() { F32 t = x; x = -y; y = t; return *this; }
 	NH_INLINE Vector2& TangentPerp() { F32 t = x; x = y; y = -t; return *this; }
 	NH_INLINE Vector2 Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x - x).Normalized(); }
@@ -517,6 +519,8 @@ struct NH_API Vector2Int
 	NH_INLINE I32* Data() { return &x; }
 	NH_INLINE const I32* Data() const { return &x; }
 
+	explicit operator Vector2() const { return { (F32)x, (F32)y }; }
+
 	static const Vector2Int ONE;
 	static const Vector2Int ZERO;
 	static const Vector2Int RIGHT;
@@ -574,6 +578,8 @@ struct NH_API Vector3Int
 
 	NH_INLINE I32* Data() { return &x; }
 	NH_INLINE const I32* Data() const { return &x; }
+
+	explicit operator Vector3() const { return { (F32)x, (F32)y, (F32)z }; }
 
 	static const Vector3Int ONE;
 	static const Vector3Int ZERO;
@@ -636,6 +642,8 @@ struct Vector4Int
 	NH_INLINE I32* Data() { return &x; }
 	NH_INLINE const I32* Data() const { return &x; }
 
+	explicit operator Vector4() const { return { (F32)x, (F32)y, (F32)z, (F32)w }; }
+
 	static const Vector4Int ONE;
 	static const Vector4Int ZERO;
 	static const Vector4Int RIGHT;
@@ -667,6 +675,7 @@ struct NH_API Matrix2
 	Matrix2(Vector2&& v1, Vector2&& v2) : a{ v1 }, b{ v2 } {}
 	Matrix2(const Matrix2& m) : a{ m.a }, b{ m.b } {}
 	Matrix2(Matrix2&& m) noexcept : a{ m.a }, b{ m.b } {}
+	Matrix2(const struct Quaternion2D& q);
 
 	Matrix2& operator= (const Matrix2& m) { a = m.a; b = m.b; return *this; }
 	Matrix2& operator= (Matrix2&& m) noexcept { a = m.a; b = m.b; return *this; }
@@ -700,6 +709,19 @@ struct NH_API Matrix2
 			a.x * v.x + b.x * v.y,
 			a.y * v.x + b.y * v.y
 		};
+	}
+
+	Matrix2& Transpose()
+	{
+		F32 ay = a.y;
+		a.y = b.x;
+		b.x = ay;
+
+		return *this;
+	}
+	Matrix2 Transposed() const
+	{
+		return { a.x, b.x, a.y, b.y };
 	}
 
 	friend Matrix2 operator- (Matrix2& m) { return Matrix2{ -m.a, -m.b }; }
@@ -876,13 +898,28 @@ struct NH_API Matrix4
 			a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w
 		};
 	}
+	Vector2 operator*(const Vector2& v) const
+	{
+		return Vector2{
+			a.x * v.x + b.x * v.y,
+			a.y * v.x + b.y * v.y
+		};
+	}
+	Vector3 operator*(const Vector3& v) const
+	{
+		return Vector3{
+			a.x * v.x + b.x * v.y + c.x * v.z,
+			a.y * v.x + b.y * v.y + c.y * v.z,
+			a.z * v.x + b.z * v.y + c.z * v.z
+		};
+	}
 	Vector4 operator*(const Vector4& v) const
 	{
 		return Vector4{
-			a.x * v.x + b.x * v.y + c.x * v.z + c.x * v.z,
-			a.y * v.x + b.y * v.y + c.y * v.z + c.y * v.z,
-			a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.z,
-			a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.z
+			a.x * v.x + b.x * v.y + c.x * v.z + c.x * v.w,
+			a.y * v.x + b.y * v.y + c.y * v.z + c.y * v.w,
+			a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.w,
+			a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.w
 		};
 	}
 
@@ -942,7 +979,9 @@ struct NH_API Matrix4
 		m.a.z = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
 		m.a.w = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
 
-		F32 f = 1.0f / (a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w);
+		F32 determinant = (a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w);
+		if (Math::Zero(determinant)) { return IDENTITY; }
+		F32 f = 1.0f / determinant;
 
 		m.a.x = f * m.a.x;
 		m.a.y = f * m.a.y;
@@ -1365,3 +1404,7 @@ struct Color
 		}
 	}
 };
+
+NH_INLINE Matrix2 Math::Abs(const Matrix2& m) { return { Abs(m.a), Abs(m.b) }; }
+NH_INLINE Matrix3 Math::Abs(const Matrix3& m) { return { Abs(m.a), Abs(m.b), Abs(m.c) }; }
+NH_INLINE Matrix4 Math::Abs(const Matrix4& m) { return { Abs(m.a), Abs(m.b), Abs(m.c), Abs(m.d) }; }

@@ -1653,7 +1653,10 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 		mesh->name = config.name;
 	}
 
-	if (!RendererFrontend::CreateMesh(mesh, config.vertices, config.indices))
+	mesh->vertices = config.vertices;
+	mesh->indices = config.indices;
+
+	if (!RendererFrontend::CreateMesh(mesh))
 	{
 		Logger::Error("Failed to create mesh '{}'", config.name);
 		Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
@@ -2211,8 +2214,8 @@ enum
 
 struct FontBitmap
 {
-	I32 w, h, stride;
 	Vector<U8> pixels;
+	I32 w, h, stride;
 };
 
 struct FontVertex
@@ -2335,7 +2338,7 @@ bool Resources::LoadTTF(TTFInfo* info)
 		if (!cff) { return false; }
 
 		// @TODO this should use size from table (not 512MB)
-		info->cff = FontBuffer(info->data.Data() + cff, Megabytes(512));
+		info->cff = FontBuffer(info->data.Data() + cff, Megabytes(8));
 		b = info->cff;
 
 		b.Skip(2);
@@ -2404,6 +2407,9 @@ bool Resources::LoadTTF(TTFInfo* info)
 	if (info->index_map == 0) { return false; }
 
 	info->indexToLocFormat = ttUSHORT(info->data.Data() + info->head + 50);
+	info->ascent = ttSHORT(info->data.Data() + info->hhea + 4);
+	info->descent = ttSHORT(info->data.Data() + info->hhea + 6);
+	info->lineGap = ttSHORT(info->data.Data() + info->hhea + 8);
 
 	HashMap<U64, Texture*> letterTextures;
 	Texture* invalidTexture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
@@ -2411,6 +2417,11 @@ bool Resources::LoadTTF(TTFInfo* info)
 	info->letterTextures = Move(HashMap<U64, Texture*>(20, invalidTexture));
 
 	return true;
+}
+
+F32 Resources::FontRatio(const String& name)
+{
+	return 0.0f;
 }
 
 void Resources::DestroyTTF(TTFInfo* info)
@@ -2438,7 +2449,7 @@ void Resources::DestroyTTF(TTFInfo* info)
 	info->letterTextures.Destroy();
 }
 
-Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels) //TODO: Color
+Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels, const Vector3& color, I32& xOff, I32& yOff) //TODO: Color
 {
 	if (c == 32) { return nullptr; }
 
@@ -2453,8 +2464,8 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 
 	if (!texture->name.Blank()) { return texture; }
 
-	Vector4Int dimensions;
-	Vector<U8> alphas = GetCodepointBitmap(font, 0.0f, height, c, dimensions.x, dimensions.y, dimensions.z, dimensions.w);
+	Vector2Int dimensions;
+	Vector<U8> alphas = GetCodepointBitmap(font, 0.0f, height, c, dimensions.x, dimensions.y, xOff, yOff);
 
 	if (!alphas.Size())
 	{
@@ -2485,9 +2496,12 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 
 	Vector<U8> pixels(dimensions.x * dimensions.y * 4, 0);
 
-	for (U64 i = 0, j = 3; i < alphas.Size(); ++i, j += 4)
+	for (U64 i = 0, j = 0; i < pixels.Size(); ++i, ++j)
 	{
-		pixels[j] = alphas[i];
+		pixels[i] = (U8)color.x;
+		pixels[++i] = (U8)color.y;
+		pixels[++i] = (U8)color.z;
+		pixels[++i] = alphas[j];
 	}
 
 	RendererFrontend::WriteTextureData(texture, pixels);
@@ -2541,8 +2555,7 @@ bool Resources::IsFont(Vector<U8>& data)
 
 F32 Resources::ScaleForPixelHeight(TTFInfo* info, F32 height)
 {
-	I32 fheight = ttSHORT(info->data.Data() + info->hhea + 4) - ttSHORT(info->data.Data() + info->hhea + 6);
-	return (F32)height / fheight;
+	return (F32)height / (info->ascent - info->descent);
 }
 
 //TODO: Move Vector

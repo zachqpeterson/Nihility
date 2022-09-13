@@ -29,9 +29,11 @@ void spawnObj(const Vector2& position)
 	poConfig.density = 1.0;
 	poConfig.gravityScale = 1.0;
 	poConfig.kinematic = false;
+	poConfig.friction = 0.2f;
 	poConfig.restitution = 0.0;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
+	poConfig.freezeRotation = false;
 	poConfig.type = BOX_COLLIDER;
 	poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 	poConfig.radius = 0.5;
@@ -83,8 +85,10 @@ bool init()
 	floorConfig.density = 0.0;
 	floorConfig.gravityScale = 1.0;
 	floorConfig.kinematic = true;
+	floorConfig.friction = 0.2f;
 	floorConfig.restitution = 0.0;
 	floorConfig.trigger = false;
+	floorConfig.freezeRotation = true;
 	floorConfig.type = BOX_COLLIDER;
 	floorConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 
@@ -114,8 +118,10 @@ bool init()
 	poConfig.gravityScale = 1.0;
 	poConfig.kinematic = false;
 	poConfig.restitution = 0.0;
+	poConfig.friction = 0.2f;
 	poConfig.transform = transform;
 	poConfig.trigger = false;
+	poConfig.freezeRotation = true;
 	poConfig.type = BOX_COLLIDER;
 	poConfig.box = { {-0.5f, 0.5f}, {-0.5f, 0.5f} };
 	poConfig.radius = 0.5;
@@ -139,9 +145,8 @@ bool init()
 	panelCfg.area = { 0.01f, 0.02f, 0.41f, 0.28f };
 	panelCfg.color = { 0.0f, 0.0f, 1.0f, 1.0f };
 	panelCfg.enabled = true;
-	panelCfg.name = "Panel1";
 	panelCfg.scene = scene;
-	UI::GenerateBorderedPanel(panelCfg);
+	UIElement* panel = UI::GeneratePanel(panelCfg, true);
 
 	//SLOTS
 	String slotName("Slot");
@@ -162,11 +167,10 @@ bool init()
 			slotCfg.area = { x, y, x + width, y + height };
 			slotCfg.color = { 1.0f, 0.0f, 0.0f, 1.0f };
 			slotCfg.enabled = true;
-			slotCfg.name = slotName + (i + j * xAmt);
-			slotCfg.parentName = "Panel1";
+			slotCfg.parent = panel;
 			slotCfg.scene = scene;
 
-			UI::GeneratePanel(slotCfg);
+			UI::GeneratePanel(slotCfg, false);
 		}
 	}
 
@@ -175,10 +179,9 @@ bool init()
 	config.area = { 0.0f, 0.9f, 0.1f, 1.0f };
 	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	config.enabled = true;
-	config.name = "Text0";
 	config.scene = scene;
 
-	UI::GenerateText(config, "Hello, World!");
+	UI::GenerateText(config, "Hello, World!", 72.0f);
 
 	RendererFrontend::UseScene(scene);
 
@@ -201,7 +204,7 @@ bool update()
 
 	if (Input::OnButtonDown(LBUTTON))
 	{
-		spawnObj(RendererFrontend::ScreenToWorld(Input::MousePos()));
+		spawnObj(RendererFrontend::ScreenToWorld((Vector2)Input::MousePos()));
 	}
 
 	return true;
