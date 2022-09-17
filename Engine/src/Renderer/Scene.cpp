@@ -43,15 +43,18 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 {
 	for (GameObject2D* go : gameObjects)
 	{
-		const Matrix4& model = go->transform ? go->transform->World() : Matrix4::IDENTITY;
-
-		for (Mesh* m : go->model->meshes)
+		if (go->enabled)
 		{
-			MeshRenderData data;
-			data.mesh = m;
-			data.model = model;
+			const Matrix4& model = go->transform ? go->transform->World() : Matrix4::IDENTITY;
 
-			meshes[m->material.id].renderData.PushBack(data);
+			for (Mesh* m : go->model->meshes)
+			{
+				MeshRenderData data;
+				data.mesh = m;
+				data.model = model;
+
+				meshes[m->material.id].renderData.PushBack(data);
+			}
 		}
 	}
 

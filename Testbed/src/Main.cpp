@@ -18,6 +18,43 @@ Scene* scene;
 GameObject2D* player;
 Model* dirtModel;
 
+void OnClick(UIElement* e, const Vector2Int& pos)
+{
+
+}
+
+void OnDrag(UIElement* e, const Vector2Int& delta)
+{
+	UI::MoveElement(e, delta);
+}
+
+void OnRelease(UIElement* e, const Vector2Int& pos)
+{
+
+}
+
+void OnHover(UIElement* e, const Vector2Int& pos)
+{
+	UI::ChangeColor(e, { 0.8f, 0.0f, 0.0f, 1.0f });
+	UI::ShowDescription(pos);
+}
+
+void OnMove(UIElement* e, const Vector2Int& pos)
+{
+	UI::MoveDescription(pos);
+}
+
+void OnExit(UIElement* e)
+{
+	UI::ChangeColor(e, { 1.0f, 0.0f, 0.0f, 1.0f });
+	UI::HideDescription();
+}
+
+void OnScrll(UIElement* e, const Vector2Int& pos, I16 delta)
+{
+	Logger::Debug("Scroll: {}", delta);
+}
+
 void spawnObj(const Vector2& position)
 {
 	static U32 id = 0;
@@ -142,11 +179,13 @@ bool init()
 
 	//PANEL
 	UIElementConfig panelCfg{};
-	panelCfg.area = { 0.01f, 0.02f, 0.41f, 0.28f };
+	panelCfg.area = { 0.01f, 0.05f, 0.41f, 0.31f };
 	panelCfg.color = { 0.0f, 0.0f, 1.0f, 1.0f };
 	panelCfg.enabled = true;
 	panelCfg.scene = scene;
 	UIElement* panel = UI::GeneratePanel(panelCfg, true);
+
+	panel->OnDrag = OnDrag;
 
 	//SLOTS
 	String slotName("Slot");
@@ -170,7 +209,13 @@ bool init()
 			slotCfg.parent = panel;
 			slotCfg.scene = scene;
 
-			UI::GeneratePanel(slotCfg, false);
+			UIElement* slot = UI::GeneratePanel(slotCfg, false);
+			slot->OnClick = OnClick;
+			slot->OnRelease = OnRelease;
+			slot->OnHover = OnHover;
+			slot->OnMove = OnMove;
+			slot->OnExit = OnExit;
+			slot->OnScroll = OnScrll;
 		}
 	}
 
@@ -202,10 +247,10 @@ bool update()
 		player->physics->ApplyForce({ 0.0f, -1.0f });
 	}
 
-	if (Input::OnButtonDown(LBUTTON))
-	{
-		spawnObj(RendererFrontend::ScreenToWorld((Vector2)Input::MousePos()));
-	}
+	//if (Input::OnButtonDown(LBUTTON))
+	//{
+	//	spawnObj(RendererFrontend::ScreenToWorld((Vector2)Input::MousePos()));
+	//}
 
 	return true;
 }

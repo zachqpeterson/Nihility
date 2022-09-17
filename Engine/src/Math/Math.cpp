@@ -104,6 +104,8 @@ const Vector4Int Vector4Int::BACK = { 0,  0, -1,  0 };
 const Vector4Int Vector4Int::OUTWARD = { 0,  0,  0,  1 };
 const Vector4Int Vector4Int::INWARD = { 0,  0,  0, -1 };
 
+Vector2::operator Vector3() { return { x, y, 0.0f }; }
+
 const Matrix2 Matrix2::IDENTITY = { { 1.f, 0.f }, { 0.f, 1.f } };
 const Matrix3 Matrix3::IDENTITY = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
 const Matrix4 Matrix4::IDENTITY = { { 1.f, 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f, 0.f }, { 0.f, 0.f, 1.f, 0.f }, { 0.f, 0.f, 0.f, 1.f } };
@@ -631,7 +633,7 @@ Quaternion3D Quaternion3D::Slerp(const Quaternion3D& q, F32 t) const
 	};
 }
 
-void* Transform2D::operator new(U64 size) { return Memory::Allocate(sizeof(Transform2D), MEMORY_TAG_RESOURCE); }
-void Transform2D::operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform2D), MEMORY_TAG_RESOURCE); }
-void* Transform3D::operator new(U64 size) { return Memory::Allocate(sizeof(Transform3D), MEMORY_TAG_RESOURCE); }
-void Transform3D::operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform3D), MEMORY_TAG_RESOURCE); }
+void* Transform2D::operator new(U64 size) { return Memory::Allocate(sizeof(Transform2D), MEMORY_TAG_PHYSICS); }
+void Transform2D::operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform2D), MEMORY_TAG_PHYSICS); }
+void* Transform3D::operator new(U64 size) { return Memory::Allocate(sizeof(Transform3D), MEMORY_TAG_PHYSICS); }
+void Transform3D::operator delete(void* ptr) { return Memory::Free(ptr, sizeof(Transform3D), MEMORY_TAG_PHYSICS); }

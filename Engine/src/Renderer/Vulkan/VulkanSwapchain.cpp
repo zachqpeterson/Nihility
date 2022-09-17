@@ -106,7 +106,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
         
         for (U32 i = 0; i < imageCount; ++i)
         {
-            VulkanImage* internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+            VulkanImage* internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 
             String texName("vulkanSwapchainImage");
 
@@ -166,7 +166,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
         Logger::Fatal("Failed to find a supported format!");
     }
 
-    VulkanImage* image = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+    VulkanImage* image = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
     image->Create(
         rendererState,
         VK_IMAGE_TYPE_2D,
@@ -204,7 +204,7 @@ void VulkanSwapchain::Destroy(RendererState* rendererState)
 
     vkDeviceWaitIdle(rendererState->device->logicalDevice);
     ((VulkanImage*)depthTexture->internalData)->Destroy(rendererState);
-    Memory::Free(depthTexture->internalData, sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+    Memory::Free(depthTexture->internalData, sizeof(VulkanImage), MEMORY_TAG_RENDERER);
     depthTexture->internalData = nullptr;
 
     for (U32 i = 0; i < imageCount; ++i)

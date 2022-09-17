@@ -13,14 +13,14 @@
 
 bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 {
-	pipeline = (VulkanPipeline*)Memory::Allocate(sizeof(VulkanPipeline), MEMORY_TAG_RESOURCE);
-	uniformBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RESOURCE);
+	pipeline = (VulkanPipeline*)Memory::Allocate(sizeof(VulkanPipeline), MEMORY_TAG_RENDERER);
+	uniformBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 
 	if (shader->stages.Size() >= VULKAN_SHADER_MAX_STAGES)
 	{
 		Logger::Error("VulkanShader::Create: Shaders may have a maximum of {} stages", VULKAN_SHADER_MAX_STAGES);
-		Memory::Free(pipeline, sizeof(VulkanPipeline), MEMORY_TAG_RESOURCE);
-		Memory::Free(uniformBuffer, sizeof(VulkanBuffer), MEMORY_TAG_RESOURCE);
+		Memory::Free(pipeline, sizeof(VulkanPipeline), MEMORY_TAG_RENDERER);
+		Memory::Free(uniformBuffer, sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 		return false;
 	}
 
@@ -502,7 +502,7 @@ bool VulkanShader::ReleaseInstanceResources(RendererState* rendererState, Shader
 
 	instanceState.instanceTextureMaps.Clear();
 
-	uniformBuffer->Free(shader->instanceUboStride, instanceState.offset);
+	if (shader->instanceUboStride) { uniformBuffer->Free(shader->instanceUboStride, instanceState.offset); }
 	instanceState.offset = INVALID_ID;
 	instanceState.id = INVALID_ID;
 

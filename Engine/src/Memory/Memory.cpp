@@ -157,7 +157,9 @@ void Memory::GetMemoryStats()
 		"STRING		",
 		"RENDERER	",
 		"RESOURCE	",
-		"AUDIO		" 
+		"AUDIO		",
+		"PHYSICS	",
+		"UI			",
 	};
 
 	U64 allocAmounts[MEMORY_TAG_MAX];

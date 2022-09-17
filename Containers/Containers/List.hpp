@@ -27,7 +27,7 @@ struct NH_API List
 		Iterator(Node* node) : ptr{ node } {}
 
 		T& operator* () const { return ptr->value; }
-		T* operator-> () { return ptr->value; } //TODO: doesn't work
+		T* operator-> () { return &ptr->value; } //TODO: doesn't work
 
 		Iterator& operator++ () { ptr = ptr->next; return *this; }
 		Iterator& operator-- () { ptr = ptr->prev; return *this; }

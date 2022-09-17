@@ -406,6 +406,7 @@ struct NH_API GameObject2D
 	Transform2D* transform{ nullptr };
 	PhysicsObject2D* physics{ nullptr };
 	Model* model{ nullptr };
+	bool enabled{ true };
 };
 
 struct NH_API GameObject3DConfig
@@ -445,6 +446,7 @@ public:
 	static Mesh* LoadMesh(const String& name);
 	static void DestroyMesh(Mesh* mesh);
 	static Model* LoadModel(const String& name);
+	static void DestroyModel(Model* model);
 
 	static Texture* CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency);
 	static Texture* CreateTextureFromInternal(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency, bool isWriteable, bool registerTexture, void* internalData);
@@ -459,6 +461,7 @@ public:
 	static Mesh* CreateMesh(MeshConfig& config);
 	static Model* CreateModel(const String& name, const Vector<Mesh*>& meshes);
 	static GameObject2D* CreateGameObject2D(const GameObject2DConfig& config);
+	static void DestroyGameObject2D(GameObject2D* gameObject);
 
 	static Texture* DefaultTexture() { return defaultTexture; }
 	static Texture* DefaultDiffuse() { return defaultDiffuse; }

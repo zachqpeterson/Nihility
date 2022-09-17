@@ -102,7 +102,7 @@ bool Audio::Initialize()
 		return false;
 	}
 
-	samples = (I16*)Memory::Allocate(bufferSize + MAX_POSSIBLE_OVERRUN, MEMORY_TAG_DATA_STRUCT);
+	samples = (I16*)Memory::Allocate(bufferSize + MAX_POSSIBLE_OVERRUN, MEMORY_TAG_AUDIO);
 
 	return true;
 }
@@ -110,6 +110,7 @@ bool Audio::Initialize()
 void Audio::Shutdown()
 {
 	playingAudio.Destroy();
+	Memory::Free(samples, bufferSize + MAX_POSSIBLE_OVERRUN, MEMORY_TAG_AUDIO);
 }
 
 void Audio::Start()

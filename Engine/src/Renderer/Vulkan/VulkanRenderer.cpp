@@ -638,7 +638,7 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh)
 	}
 	else
 	{
-		internalData = (VulkanMesh*)Memory::Allocate(sizeof(VulkanMesh), MEMORY_TAG_RESOURCE);
+		internalData = (VulkanMesh*)Memory::Allocate(sizeof(VulkanMesh), MEMORY_TAG_RENDERER);
 		mesh->internalData = internalData;
 	}
 
@@ -686,7 +686,7 @@ void VulkanRenderer::DestroyMesh(Mesh* mesh)
 			FreeDataRange(rendererState->objectIndexBuffer, internalData->indexBufferOffset, internalData->indexElementSize * internalData->indexCount);
 		}
 
-		Memory::Free(internalData, sizeof(VulkanMesh), MEMORY_TAG_RESOURCE);
+		Memory::Free(internalData, sizeof(VulkanMesh), MEMORY_TAG_RENDERER);
 		internalData->id = INVALID_ID;
 		internalData->generation = INVALID_ID;
 	}
@@ -750,7 +750,7 @@ Vector2Int VulkanRenderer::WindowSize()
 
 void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
 {
-	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 	VulkanImage* image = (VulkanImage*)texture->internalData;
 
 	switch (texture->layout)
@@ -789,14 +789,14 @@ void VulkanRenderer::DestroyTexture(Texture* texture)
 	{
 		image->Destroy(rendererState);
 
-		Memory::Free(texture->internalData, sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+		Memory::Free(texture->internalData, sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 		texture->internalData = nullptr;
 	}
 }
 
 bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 {
-	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 	VulkanImage* image = (VulkanImage*)texture->internalData;
 
 	switch (texture->layout)
@@ -821,7 +821,7 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 		true,
 		VK_IMAGE_ASPECT_COLOR_BIT))
 	{
-		Memory::Free(texture->internalData, sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+		Memory::Free(texture->internalData, sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 		texture->internalData = nullptr;
 		return false;
 	}
@@ -871,7 +871,7 @@ void VulkanRenderer::WriteTextureData(Texture* texture, const Vector<U8>& pixels
 
 void VulkanRenderer::ResizeTexture(Texture* texture, U32 width, U32 height)
 {
-	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RESOURCE);
+	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 	VulkanImage* image = (VulkanImage*)texture->internalData;
 
 	// NOTE: Lots of assumptions here, different texture types will require
@@ -960,7 +960,7 @@ bool VulkanRenderer::CreateShader(Shader* shader)
 {
 	if (!shader->internalData)
 	{
-		shader->internalData = Memory::Allocate(sizeof(VulkanShader), MEMORY_TAG_RESOURCE);
+		shader->internalData = Memory::Allocate(sizeof(VulkanShader), MEMORY_TAG_RENDERER);
 		VulkanShader* outShader = (VulkanShader*)shader->internalData;
 		if (outShader) { return outShader->Create(rendererState, shader); }
 	}
@@ -972,7 +972,7 @@ void VulkanRenderer::DestroyShader(Shader* shader)
 {
 	VulkanShader* outShader = (VulkanShader*)shader->internalData;
 	if (outShader) { outShader->Destroy(rendererState); }
-	Memory::Free(shader->internalData, sizeof(VulkanShader), MEMORY_TAG_RESOURCE);
+	Memory::Free(shader->internalData, sizeof(VulkanShader), MEMORY_TAG_RENDERER);
 }
 
 bool VulkanRenderer::InitializeShader(Shader* shader)

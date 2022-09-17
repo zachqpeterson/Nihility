@@ -209,14 +209,6 @@ bool Resources::Initialize()
 
 void Resources::Shutdown()
 {
-	for (Shader* s : shaders)
-	{
-		s->Destroy();
-		Memory::Free(s, sizeof(Shader), MEMORY_TAG_RESOURCE);
-	}
-
-	shaders.Destroy();
-
 	for (Renderpass* r : renderpasses)
 	{
 		Memory::Free(r, sizeof(Renderpass), MEMORY_TAG_RESOURCE);
@@ -254,8 +246,7 @@ void Resources::Shutdown()
 	{
 		for (HashMap<U64, GameObject2D*>::Node& n : l)
 		{
-			n.value->name.Destroy();
-			Memory::Free(n.value, sizeof(GameObject2D), MEMORY_TAG_RESOURCE);
+			DestroyGameObject2D(n.value);
 		}
 
 		l.Clear();
@@ -322,6 +313,14 @@ void Resources::Shutdown()
 	}
 
 	materials.Destroy();
+
+	for (Shader* s : shaders)
+	{
+		s->Destroy();
+		Memory::Free(s, sizeof(Shader), MEMORY_TAG_RESOURCE);
+	}
+
+	shaders.Destroy();
 }
 
 void Resources::LoadSettings()
@@ -1584,6 +1583,7 @@ void Resources::DestroyMaterialInstance(Material& material)
 {
 	for (TextureMap& map : material.instanceTextureMaps)
 	{
+		RendererFrontend::ReleaseInstanceResources(material.shader, material.instance);
 		RendererFrontend::ReleaseTextureMapResources(map);
 		map.texture = nullptr;
 	}
@@ -1600,8 +1600,6 @@ Mesh* Resources::LoadMesh(const String& name)
 	Mesh* mesh = meshes[name];
 
 	if (!mesh->name.Blank()) { return mesh; }
-
-	Logger::Info("Loading mesh '{}'...", name);
 
 	String path(MODELS_PATH);
 	path.Append(name);
@@ -1648,7 +1646,6 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 	if (mesh->name.Blank())
 	{
-		Logger::Info("Creating mesh '{}'...", config.name);
 		mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 		mesh->name = config.name;
 	}
@@ -1673,8 +1670,11 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 void Resources::DestroyMesh(Mesh* mesh)
 {
+	meshes.Remove(mesh->name);
+
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
+	mesh->name.Destroy();
 	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }
 
@@ -1730,6 +1730,16 @@ Model* Resources::LoadModel(const String& name)
 	return nullptr;
 }
 
+void Resources::DestroyModel(Model* model)
+{
+	models.Remove(model->name);
+
+	for (Mesh* mesh : model->meshes) { DestroyMesh(mesh); }
+
+	model->name.Destroy();
+	Memory::Free(model, sizeof(Model), MEMORY_TAG_RESOURCE);
+}
+
 Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 {
 	if (name.Blank())
@@ -1751,8 +1761,6 @@ Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 		Logger::Error("Model with name '{}' has already been created!", name);
 		return nullptr;
 	}
-
-	Logger::Info("Creating model '{}'...", name);
 
 	model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_RESOURCE);
 	model->name = name;
@@ -1790,10 +1798,20 @@ GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
 	go->name = config.name;
 	go->physics = config.physics;
 	go->transform = config.transform;
+	go->enabled = true;
 
 	gameObjects2D.Insert(go->id, go);
 
 	return go;
+}
+
+void Resources::DestroyGameObject2D(GameObject2D* gameObject)
+{
+	gameObjects2D.Remove(gameObject->id);
+
+	gameObject->name.Destroy();
+	if (gameObject->transform) { delete gameObject->transform; }
+	if (gameObject->physics) { Physics::DestroyPhysicsObjects2D(gameObject->physics); }
 }
 
 Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency)

@@ -4,26 +4,38 @@
 
 #include "Math/Math.hpp"
 #include "Containers/String.hpp"
+#include <Containers/List.hpp>
 
-template<typename> struct List;
+struct UIElement;
+
+typedef void(*OnEvent)(UIElement*);
+typedef void(*OnMouse)(UIElement*, const Vector2Int&);
+typedef void(*OnScroll)(UIElement*, const Vector2Int&, I16);
+
 struct Mesh;
 struct Model;
 struct Texture;
+struct GameObject2D;
 class Scene;
 
 struct UIElement
 {
 	U64 id;
-	bool enabled{ true };
 	bool hovered{ false };
 	bool clicked{ false };
 	Vector4 area{};
-	UIElement* parent{ nullptr };
+	Vector4 color{};
+	List<UIElement*> children;
 	Mesh* mesh;
-	//TODO: OnClick
-	//TODO: OnHover
-	//TODO: OnExit
-	//TODO: OnScroll
+	Scene* scene;
+	GameObject2D* gameObject{ nullptr };
+	OnMouse OnClick{ nullptr };
+	OnMouse OnDrag{ nullptr };
+	OnMouse OnRelease{ nullptr };
+	OnMouse OnHover{ nullptr };
+	OnMouse OnMove{ nullptr };
+	OnEvent OnExit{ nullptr };
+	OnScroll OnScroll{ nullptr };
 	bool isText{ false };
 };
 
@@ -38,7 +50,6 @@ struct UIElementConfig
 
 struct UIText : public UIElement
 {
-	Model* model;
 	String text;
 	F32 size;
 };
@@ -51,19 +62,31 @@ public:
 	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
 
 	static void ChangeSize(UIElement* element, const Vector4& newArea);
+	static void MoveElement(UIElement* element, const Vector2Int& delta);
+	static void ChangeColor(UIElement* element, const Vector4& newColor);
 	static void ChangeSize(UIText* element, F32 newSize);
 	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
+
+	static void ShowDescription(const Vector2Int& position);
+	static void MoveDescription(const Vector2Int& position);
+	static void HideDescription();
 
 private:
 	static bool Initialize();
 	static void Shutdown();
+	static void Update();
 
-	static bool Punctuation(char c);
+	static void CreateDescription();
+
+	static NH_INLINE bool Punctuation(char c) { return c == 44 || c == 46 || c == 63 || c == 33; }
 
 	static U64 elementID;
 	static List<UIElement*> elements;
 	static Texture* panelTexture;
-	//TODO: UIElement for hover descriptions
+	static UIElement* description;
+	static Vector2 descPos;
+	static UIElement* draggedElement;
+	static Vector2Int lastMousesPos;
 
 	friend class Engine;
 };

@@ -43,20 +43,29 @@ void Physics::Shutdown()
 {
 	for (PhysicsObject2D* po : physicsObjects2D)
 	{
-		Memory::Free(po, sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
+		Memory::Free(po->collider, sizeof(Collider2D), MEMORY_TAG_PHYSICS);
+		Memory::Free(po, sizeof(PhysicsObject2D), MEMORY_TAG_PHYSICS);
 	}
 
 	physicsObjects2D.Destroy();
 
 	for (PhysicsObject3D* po : physicsObjects3D)
 	{
-		Memory::Free(po, sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
+		Memory::Free(po, sizeof(PhysicsObject3D), MEMORY_TAG_PHYSICS);
 	}
 
 	physicsObjects3D.Destroy();
 
 	delete broadphase;
 	delete table;
+}
+
+void Physics::DestroyPhysicsObjects2D(PhysicsObject2D* obj)
+{
+	physicsObjects2D.Remove(obj);
+
+	Memory::Free(obj->collider, sizeof(Collider2D), MEMORY_TAG_PHYSICS);
+	Memory::Free(obj, sizeof(PhysicsObject2D), MEMORY_TAG_PHYSICS);
 }
 
 void Physics::Update(F32 step)
@@ -128,14 +137,14 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 		return nullptr;
 	}
 
-	PhysicsObject2D* po = (PhysicsObject2D*)Memory::Allocate(sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
+	PhysicsObject2D* po = (PhysicsObject2D*)Memory::Allocate(sizeof(PhysicsObject2D), MEMORY_TAG_PHYSICS);
 	po->id = id;
 	++id;
 
 	switch (config.type)
 	{
 	case BOX_COLLIDER: {
-		BoxCollider* collider = (BoxCollider*)Memory::Allocate(sizeof(BoxCollider), MEMORY_TAG_DATA_STRUCT);
+		BoxCollider* collider = (BoxCollider*)Memory::Allocate(sizeof(BoxCollider), MEMORY_TAG_PHYSICS);
 		collider->type = BOX_COLLIDER;
 		collider->box = config.box;
 
@@ -163,11 +172,11 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 		if (config.shape.Size() < 3)
 		{
 			Logger::Error("PolygonCollider must have at least 3 sides!");
-			Memory::Free(po, sizeof(PhysicsObject2D), MEMORY_TAG_DATA_STRUCT);
+			Memory::Free(po, sizeof(PhysicsObject2D), MEMORY_TAG_PHYSICS);
 			return nullptr;
 		}
 
-		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_DATA_STRUCT);
+		PolygonCollider* collider = (PolygonCollider*)Memory::Allocate(sizeof(PolygonCollider), MEMORY_TAG_PHYSICS);
 		collider->type = POLYGON_COLLIDER;
 
 		collider->shape.vertices = config.shape;
@@ -201,7 +210,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 		po->dragCoefficient = 1.0;
 	} break;
 	case CIRCLE_COLLIDER: {
-		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_DATA_STRUCT);
+		CircleCollider* collider = (CircleCollider*)Memory::Allocate(sizeof(CircleCollider), MEMORY_TAG_PHYSICS);
 		collider->type = CIRCLE_COLLIDER;
 		collider->radius = config.radius;
 		collider->box.xBounds = { config.offset.x - (F32)config.radius, config.offset.x + (F32)config.radius };
@@ -237,7 +246,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 PhysicsObject3D* Physics::Create3DPhysicsObject()
 {
 	static U64 id = 0;
-	PhysicsObject3D* po = (PhysicsObject3D*)Memory::Allocate(sizeof(PhysicsObject3D), MEMORY_TAG_DATA_STRUCT);
+	PhysicsObject3D* po = (PhysicsObject3D*)Memory::Allocate(sizeof(PhysicsObject3D), MEMORY_TAG_PHYSICS);
 	po->id = id;
 	++id;
 

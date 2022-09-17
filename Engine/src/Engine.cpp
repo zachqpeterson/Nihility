@@ -73,11 +73,21 @@ void Engine::MainLoop()
 	Audio::Start();
 	//Audio::PlayAudio("TPOM.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
 
+#ifdef NH_DEBUG
+	UIElementConfig config{};
+	config.area = { 0.98f , 0.0f, 1.0f, 0.02f };
+	config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+	config.enabled = true;
+	config.scene = (Scene*)RendererFrontend::CurrentScene();
+	UIText* fpsCounter = UI::GenerateText(config, "60", 12);
+#endif
+
 	while (running)
 	{
 		Time::Update();
-		//Logger::Debug(Time::FrameRate());
-		//Logger::Debug(Time::DeltaTime());
+#ifdef NH_DEBUG
+		UI::ChangeText(fpsCounter, Time::FrameRate());
+#endif
 		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);
 
 		running = Platform::ProcessMessages() && !Input::OnButtonDown(ESCAPE);
@@ -86,30 +96,16 @@ void Engine::MainLoop()
 		{
 			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { -2.0f, 11.0f });
 		}
-		if (Input::OnButtonDown(H))
+
+		if (Input::OnButtonDown(S))
 		{
-			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { -1.1f, 9.0f });
-		}
-		if (Input::OnButtonDown(J))
-		{
-			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 0.0f, 9.0f });
-		}
-		if (Input::OnButtonDown(K))
-		{
-			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 1.1f, 9.0f });
-		}
-		if (Input::OnButtonDown(L))
-		{
-			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 2.0f, 11.0f });
-		}
-		if (Input::OnButtonDown(N))
-		{
-			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { 0.0f, 15.0f });
+			Memory::GetMemoryStats();
 		}
 
 		if (!suspended && running)
 		{
 			Audio::Update();
+			UI::Update();
 			Physics::Update((F32)Time::DeltaTime());
 			running = GameUpdate();
 			RendererFrontend::DrawFrame();
@@ -144,6 +140,8 @@ void Engine::Shutdown()
 	Input::Shutdown();
 
 	Platform::Shutdown();
+
+	Memory::GetMemoryStats();
 
 	Logger::Shutdown();
 

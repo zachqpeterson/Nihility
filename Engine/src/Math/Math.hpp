@@ -319,6 +319,8 @@ struct NH_API Vector2
 	NH_INLINE F32* Data() { return &x; }
 	NH_INLINE const F32* Data() const { return &x; }
 
+	operator Vector3();
+
 	static const Vector2 ONE;
 	static const Vector2 ZERO;
 	static const Vector2 RIGHT;
@@ -501,6 +503,7 @@ struct NH_API Vector2Int
 	bool operator!= (const Vector2Int& v) const { return x != v.x || y != v.y; }
 	bool operator<  (const Vector2Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
+	bool Zero() const { return x == 0 && y == 0; }
 	friend Vector2Int operator- (Vector2Int& v) { return Vector2Int{ -v.x, -v.y }; }
 
 	NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
