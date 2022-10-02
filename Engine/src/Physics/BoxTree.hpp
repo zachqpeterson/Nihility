@@ -35,10 +35,11 @@ public:
 	void RemoveObj(PhysicsObject2D* obj) final;
 	void UpdateObj(PhysicsObject2D* obj) final;
 
-	void Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result) final;
-	void Query(const Box& box, Vector<PhysicsObject2D*>& result) final;
-	void RaycastQuery(Raycast& ray, PhysicsObject2D* result) final;
-	void RaycastQueryAll(Raycast& ray, Vector<PhysicsObject2D*>& result) final;
+	bool Query(PhysicsObject2D* obj, List<Contact2D>& contacts) final;
+	bool Query(const Box& box, Vector<PhysicsObject2D*>& result) final;
+
+	bool RaycastQuery(PhysicsObject2D* obj, PhysicsObject2D* result) final;
+	bool RaycastQueryAll(Raycast& ray, Vector<PhysicsObject2D*>& results) final;
 
 private:
 	U32 AllocateNode();

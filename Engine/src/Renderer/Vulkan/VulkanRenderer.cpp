@@ -359,10 +359,12 @@ void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 	{
 		vkDeviceWaitIdle(rendererState->device->logicalDevice);
 
-		for (U8 i = 0; i < renderpass->targets.Size(); ++i)
+		for (RenderTarget& rt : renderpass->targets)
 		{
-			DestroyRenderTarget(&renderpass->targets[i], false);
+			DestroyRenderTarget(&rt, false);
 		}
+
+		renderpass->targets.Destroy();
 
 		VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
 		vkDestroyRenderPass(rendererState->device->logicalDevice, vulkanRenderpass->handle, rendererState->allocator);
@@ -581,7 +583,7 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
 	beginInfo.renderArea.extent.width = (U32)(rendererState->renderArea.z);
 	beginInfo.renderArea.extent.height = (U32)(rendererState->renderArea.w);
 
-	Vector<VkClearValue> clearValues;
+	Vector<VkClearValue> clearValues(2);
 	VkClearValue colorClear{};
 	if (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG)
 	{

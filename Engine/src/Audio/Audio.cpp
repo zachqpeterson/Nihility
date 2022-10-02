@@ -377,6 +377,11 @@ void Audio::OutputSound()
 
 		*SampleOut++ = s01;
 	}
+
+	for (Vector<M128>& v : realChannel)
+	{
+		v.Destroy();
+	}
 }
 
 void Audio::PlayAudio(const String& name, AudioType type, F32 volume, F32 pitch, bool loop)

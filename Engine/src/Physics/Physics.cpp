@@ -1,7 +1,6 @@
 #include "Physics.hpp"
 
 #include "Broadphase.hpp"
-#include "Containers/BoolTable.hpp"
 
 #include <Containers/Vector.hpp>
 
@@ -10,15 +9,13 @@ List<PhysicsObject3D*> Physics::physicsObjects3D;
 Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> Physics::collision2DTable;
 
 Broadphase* Physics::broadphase;
-BoolTable* Physics::table;
 
 F32 Physics::airDensity = 1.29f;
 F32 Physics::gravity = 9.807f;
 
-bool Physics::Initialize(Broadphase* bp)
+bool Physics::Initialize()
 {
-	broadphase = bp;
-	table = new BoolTable();
+	//TODO: Set default broadphase
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
 	collision2DTable[BOX_COLLIDER][CIRCLE_COLLIDER] = BoxVsCircle;
@@ -39,6 +36,11 @@ bool Physics::Initialize(Broadphase* bp)
 	return true;
 }
 
+void Physics::SetBroadphase(Broadphase* newBroadphase)
+{
+	broadphase = newBroadphase;
+}
+
 void Physics::Shutdown()
 {
 	for (PhysicsObject2D* po : physicsObjects2D)
@@ -57,7 +59,6 @@ void Physics::Shutdown()
 	physicsObjects3D.Destroy();
 
 	delete broadphase;
-	delete table;
 }
 
 void Physics::DestroyPhysicsObjects2D(PhysicsObject2D* obj)
@@ -97,7 +98,9 @@ void Physics::Update(F32 step)
 		obj.oneTimeVelocity = Vector2::ZERO;
 	}
 
-	NarrowPhase();
+	List<List<Contact2D>> contacts;
+	broadphase->Update(contacts);
+	NarrowPhase(contacts);
 
 	for (PhysicsObject2D* po : physicsObjects2D)
 	{
@@ -115,8 +118,8 @@ void Physics::Update(F32 step)
 				for (Vector2& point : ((PolygonCollider*)obj.collider)->shape.vertices) { point += obj.move; }
 			}
 
+			broadphase->UpdateObj(po);
 			obj.transform->Translate(obj.move);
-			//tree->UpdateObj(po);
 		}
 
 		obj.velocity += obj.force;
@@ -232,13 +235,10 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 	po->kinematic = config.kinematic;
 	po->freezeRotation = config.freezeRotation;
 
-	//TODO: layerMask
-	po->layerMask = 1;
+	po->layerMask = config.layerMask;
 
 	physicsObjects2D.PushBack(po);
-
-	table->Expand();
-	//tree->InsertObj(po);
+	broadphase->InsertObj(po);
 
 	return po;
 }
@@ -255,96 +255,111 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 	return po;
 }
 
-void Physics::BroadPhase()
+void Physics::NarrowPhase(List<List<Contact2D>>& contacts)
 {
-
-}
-
-void Physics::NarrowPhase()
-{
-	table->Reset();
-	List<Contact2D> dynamics;
+	for (List<Contact2D>& contact : contacts)
+	{
+		ResolveCollisions(contact);
+	}
 
 	//for (PhysicsObject2D* obj0 : physicsObjects2D)
-	for (auto it0 = physicsObjects2D.begin(); it0 != physicsObjects2D.end(); ++it0)
-	{
-		//Vector<PhysicsObject2D*> result;
-		//tree->Query(obj0, result);
-		//
-		//for (PhysicsObject2D* obj1 : result)
-		//{
-		//	U32 id0 = obj0->id;
-		//	U32 id1 = obj1->id;
-		//
-		//	if (id0 > id1) { Math::Swap(id0, id1); }
-		//
-		//	if (!table.GetSet(id0, id1))
-		//	{
-		//		Contact2D c = { obj0, obj1 };
-		//
-		//		if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
-		//		else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
-		//	}
-		//}
-
-		for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
-		{
-			U64 id0 = (*it0)->id;
-			U64 id1 = (*it1)->id;
-			if (id0 > id1) { Math::Swap(id0, id1); }
-			Contact2D c = { *it0, *it1 };
-
-			if (c.a->layerMask & c.b->layerMask && (!c.a->kinematic || !c.b->kinematic) && !table->GetSet(id0, id1))
-			{
-				if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
-				else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
-			}
-		}
-	}
-
-	for (Contact2D& c : dynamics)
-	{
-		if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
-		{
-			ResolveCollision(c);
-		}
-	}
+	//for (auto it0 = physicsObjects2D.begin(); it0 != physicsObjects2D.end(); ++it0)
+	//{
+	//	//Vector<PhysicsObject2D*> result;
+	//	//tree->Query(obj0, result);
+	//	//
+	//	//for (PhysicsObject2D* obj1 : result)
+	//	//{
+	//	//	U32 id0 = obj0->id;
+	//	//	U32 id1 = obj1->id;
+	//	//
+	//	//	if (id0 > id1) { Math::Swap(id0, id1); }
+	//	//
+	//	//	if (!table.GetSet(id0, id1))
+	//	//	{
+	//	//		Contact2D c = { obj0, obj1 };
+	//	//
+	//	//		if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
+	//	//		else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
+	//	//	}
+	//	//}
+	//
+	//	for (auto it1 = it0 + 1; it1 != physicsObjects2D.end(); ++it1)
+	//	{
+	//		U64 id0 = (*it0)->id;
+	//		U64 id1 = (*it1)->id;
+	//		if (id0 > id1) { Math::Swap(id0, id1); }
+	//		Contact2D c = { *it0, *it1 };
+	//
+	//		if (c.a->layerMask & c.b->layerMask && (!c.a->kinematic || !c.b->kinematic))
+	//		{
+	//			if (!c.a->kinematic && !c.b->kinematic) { dynamics.PushBack(c); }
+	//			else if (collision2DTable[c.a->collider->type][c.b->collider->type](c)) { ResolveCollision(c); }
+	//		}
+	//	}
+	//}
+	//
+	//for (Contact2D& c : dynamics)
+	//{
+	//	if (collision2DTable[c.a->collider->type][c.b->collider->type](c))
+	//	{d
+	//		ResolveCollision(c);
+	//	}
+	//}
 }
 
-void Physics::ResolveCollision(Contact2D& c)
+void Physics::ResolveCollisions(List<Contact2D>& contacts)
 {
-	PhysicsObject2D* a = c.a;
-	PhysicsObject2D* b = c.b;
-
-	if (Math::NaN(c.normal.x))
+	for (Contact2D& c : contacts)
 	{
-		a->force -= a->velocity * !a->axisLock;
-		b->force -= b->velocity * !b->axisLock;
-	}
-	else
-	{
-		F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
+		PhysicsObject2D* a = c.a;
+		PhysicsObject2D* b = c.b;
 
-		Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
-		massRatio.x += Math::Zero(massRatio.x);
-		massRatio.y += Math::Zero(massRatio.y);
-		Vector2 impulse = c.normal * (-(1.0f + c.restitution) * relVelNorm) / massRatio;
+		if (!b)
+		{
+			Vector2 onlyMove = c.a->move - c.a->velocity;
 
-		a->force += impulse * (!a->axisLock * a->massInv);
-		b->force -= impulse * (!b->axisLock * b->massInv);
+			F32 relVelNorm = c.normal.Dot(c.relativeVelocity - onlyMove);
+			F32 relVelNormMove = c.normal.Dot(onlyMove);
+			Vector2 impulse = c.normal * (-(1.0f + c.restitution) * relVelNorm);
+			Vector2 impulseMove = c.normal * (-(1.0f + c.restitution) * relVelNormMove);
+			a->force += impulse * !a->axisLock;
+			a->oneTimeVelocity += impulseMove * !a->axisLock;
 
-		bool lock = c.restitution < FLOAT_EPSILON;
-		Vector2 relVel = (a->move + a->force) - (b->move + b->force);
+			F32 percent = 0.9999f;
+			Vector2 correction = c.normal * (c.distance * percent);
+			a->oneTimeVelocity += correction * !a->axisLock;
 
-		F32 percent = 0.9999f;
-		Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
-		a->oneTimeVelocity += correction * Vector2{ (F32)(!a->axisLock.x * Math::Zero(relVel.x)), (F32)(!a->axisLock.y * Math::Zero(relVel.y)) } *a->massInv;
-		b->oneTimeVelocity -= correction * Vector2{ (F32)(!b->axisLock.x * Math::Zero(relVel.x)), (F32)(!b->axisLock.y * Math::Zero(relVel.y)) } *b->massInv;
+			bool lock = c.restitution < FLOAT_EPSILON;
+			Vector2 relVel = (a->move + a->force);
 
-		a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock* Math::Zero(relVel.x),
-			b->axisLock.y* (c.normal.y > 0.0f)* lock* Math::Zero(relVel.y) };
-		b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock* Math::Zero(relVel.x),
-			a->axisLock.y* (c.normal.y < 0.0f)* lock* Math::Zero(relVel.y)};
+			a->axisLock += { (F32)((c.normal.x > 0.0f)* lock* Math::Zero(relVel.x)), (F32)((c.normal.y > 0.0f)* lock* Math::Zero(relVel.y)) };
+		}
+		else
+		{
+			F32 relVelNorm = c.normal.Dot(c.relativeVelocity);
+
+			Vector2 massRatio = !a->axisLock * a->massInv + !b->axisLock * b->massInv;
+			massRatio.x += Math::Zero(massRatio.x);
+			massRatio.y += Math::Zero(massRatio.y);
+			Vector2 impulse = c.normal * (-(1.0f + c.restitution) * relVelNorm) / massRatio;
+
+			a->force += impulse * (!a->axisLock * a->massInv);
+			b->force -= impulse * (!b->axisLock * b->massInv);
+
+			bool lock = c.restitution < FLOAT_EPSILON;
+			Vector2 relVel = (a->move + a->force) - (b->move + b->force);
+
+			F32 percent = 0.9999f;
+			Vector2 correction = c.normal * (c.penetration * percent) / massRatio;
+			a->oneTimeVelocity += correction * Vector2{ (F32)(!a->axisLock.x * Math::Zero(relVel.x)), (F32)(!a->axisLock.y * Math::Zero(relVel.y)) } *a->massInv;
+			b->oneTimeVelocity -= correction * Vector2{ (F32)(!b->axisLock.x * Math::Zero(relVel.x)), (F32)(!b->axisLock.y * Math::Zero(relVel.y)) } *b->massInv;
+
+			a->axisLock += { b->axisLock.x* (c.normal.x > 0.0f)* lock* Math::Zero(relVel.x),
+				b->axisLock.y* (c.normal.y > 0.0f)* lock* Math::Zero(relVel.y) };
+			b->axisLock += { a->axisLock.x* (c.normal.x < 0.0f)* lock* Math::Zero(relVel.x),
+				a->axisLock.y* (c.normal.y < 0.0f)* lock* Math::Zero(relVel.y)};
+		}
 	}
 }
 

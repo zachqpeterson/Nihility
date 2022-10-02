@@ -43,7 +43,8 @@ struct UIElementConfig
 {
 	bool enabled{ true };
 	UIElement* parent;
-	Vector4 area{};
+	Vector2 position;
+	Vector2 scale;
 	Vector4 color{}; //TODO: color struct
 	Scene* scene;
 };

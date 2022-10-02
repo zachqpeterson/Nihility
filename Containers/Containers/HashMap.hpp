@@ -7,10 +7,10 @@
 #include <Containers/List.hpp>
 
 template <typename TKey, typename TValue>
-struct NH_API HashMap
+struct HashMap
 {
 public:
-	struct NH_API Node
+	struct Node
 	{
 		Node() : key{}, value{} {}
 		Node(const TKey& key, const TValue& value) : key{ key }, value{ value } {}
@@ -23,7 +23,7 @@ public:
 		TValue value;
 	};
 
-	struct NH_API Iterator
+	struct Iterator
 	{
 		Iterator(List<Node>* ptr) : ptr{ ptr } {}
 
@@ -144,11 +144,11 @@ public:
 		return *this;
 	}
 
-	void Insert(const TKey& key, const TValue& value) { buckets[Math::Hash(key, size)].PushFront(Node(key, value)); }
-	void Insert(TKey&& key, TValue&& value) noexcept { buckets[Math::Hash(key, size)].PushFront(Node(key, value)); }
+	void Insert(const TKey& key, const TValue& value) { buckets[Math::Hash(key) % size].PushFront(Node(key, value)); }
+	void Insert(TKey&& key, TValue&& value) noexcept { buckets[Math::Hash(key) % size].PushFront(Node(key, value)); }
 	TValue&& Remove(const TKey& key)
 	{
-		List<Node>& list = buckets[Math::Hash(key, size)];
+		List<Node>& list = buckets[Math::Hash(key) % size];
 
 		for (auto it = list.begin(); it != list.end(); ++it)
 		{
@@ -160,7 +160,7 @@ public:
 
 	const TValue& Get(const TKey& key) const
 	{
-		List<Node>& list = buckets[Math::Hash(key, size)];
+		List<Node>& list = buckets[Math::Hash(key) % size];
 
 		for (Node& n : list)
 		{
@@ -171,7 +171,7 @@ public:
 	}
 	TValue& Get(const TKey& key)
 	{
-		List<Node>& list = buckets[Math::Hash(key, size)];
+		List<Node>& list = buckets[Math::Hash(key) % size];
 
 		for (Node& n : list)
 		{
@@ -182,7 +182,7 @@ public:
 	}
 	const TValue& operator[](const TKey& key) const
 	{
-		List<Node>& list = buckets[Math::Hash(key, size)];
+		List<Node>& list = buckets[Math::Hash(key) % size];
 
 		for (Node& n : list)
 		{
@@ -193,7 +193,7 @@ public:
 	}
 	TValue& operator[](const TKey& key)
 	{
-		List<Node>& list = buckets[Math::Hash(key, size)];
+		List<Node>& list = buckets[Math::Hash(key) % size];
 
 		for (Node& n : list)
 		{
@@ -214,7 +214,6 @@ public:
 			}
 		}
 	}
-
 
 	Iterator begin() { return Iterator{ buckets }; }
 	Iterator end() { return Iterator{ &buckets[size] }; }

@@ -6,9 +6,9 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct NH_API List
+struct List
 {
-	struct NH_API Node
+	struct Node
 	{
 		Node(const T& value) : value{ value }, next{ nullptr }, prev{ nullptr } { }
 		~Node() { next = nullptr; prev = nullptr; }
@@ -21,7 +21,7 @@ struct NH_API List
 		Node* prev;
 	};
 
-	struct NH_API Iterator
+	struct Iterator
 	{
 		Iterator() : ptr{ head } {}
 		Iterator(Node* node) : ptr{ node } {}
@@ -427,6 +427,8 @@ public:
 
 			node = node->next;
 		}
+
+		return {};
 	}
 	T&& Remove(Iterator& it)
 	{

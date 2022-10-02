@@ -22,8 +22,8 @@ public:
     bool ReadLine(struct String& line, U64 maxLength = 512);
     bool WriteLine(const struct String& str);
     struct String Read(U64 length);
-    U8* ReadBytes(U64 length);
-    U8* ReadAllBytes(U64& size);
+    U8* ReadBytes(U64 length, I64 tag = 5);
+    U8* ReadAllBytes(U64& size, I64 tag = 5);
     I8 ReadI8();
     I16 ReadI16();
     I32 ReadI32();

@@ -117,25 +117,40 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 
 void VulkanShader::Destroy(RendererState* rendererState)
 {
-	for (U32 i = 0; i < config.descriptorSets.Size(); ++i)
-	{
-		if (descriptorSetLayouts[i])
-		{
-			vkDestroyDescriptorSetLayout(rendererState->device->logicalDevice, descriptorSetLayouts[i], rendererState->allocator);
-			descriptorSetLayouts[i] = VK_NULL_HANDLE;
-		}
-	}
-
-	if (descriptorPool)
-	{
-		vkDestroyDescriptorPool(rendererState->device->logicalDevice, descriptorPool, rendererState->allocator);
-	}
-
 	if (mappedUniformBufferBlock)
 	{
 		uniformBuffer->UnlockMemory(rendererState);
 		mappedUniformBufferBlock = nullptr;
 		uniformBuffer->Destroy(rendererState);
+	}
+
+	for (ShaderStageConfig& c : config.stages)
+	{
+		c.fileName.Destroy();
+	}
+
+	config.stages.Destroy();
+	config.poolSizes.Destroy();
+
+	for (Vector<VkDescriptorSetLayoutBinding>& v : config.descriptorSets)
+	{
+		v.Destroy();
+	}
+
+	config.descriptorSets.Destroy();
+	config.attributes.Destroy();
+
+	for (VkDescriptorSetLayout& l : descriptorSetLayouts)
+	{
+		vkDestroyDescriptorSetLayout(rendererState->device->logicalDevice, l, rendererState->allocator);
+	}
+
+	descriptorSetLayouts.Destroy();
+	globalDescriptorSets.Destroy();
+
+	if (descriptorPool)
+	{
+		vkDestroyDescriptorPool(rendererState->device->logicalDevice, descriptorPool, rendererState->allocator);
 	}
 
 	pipeline->Destroy(rendererState);
@@ -146,7 +161,16 @@ void VulkanShader::Destroy(RendererState* rendererState)
 		vkDestroyShaderModule(rendererState->device->logicalDevice, s.handle, rendererState->allocator);
 	}
 
-	Memory::Zero(&config, sizeof(VulkanShaderConfig));
+	stages.Destroy();
+
+	for (InstanceState& s : instanceStates)
+	{
+		s.descriptorSets.Destroy();
+		s.instanceTextureMaps.Destroy();
+		//TODO: We may have to destroy the texture maps inside instanceTextureMaps
+	}
+
+	instanceStates.Destroy();
 }
 
 bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
@@ -177,7 +201,7 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 	U32 offset = 0;
 	for (U32 i = 0; i < shader->attributes.Size(); ++i)
 	{
-		VkVertexInputAttributeDescription attribute;
+		VkVertexInputAttributeDescription attribute{};
 		attribute.location = i;
 		attribute.binding = 0;
 		attribute.offset = offset;
@@ -274,7 +298,7 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
 	VkCommandBuffer commandBuffer = rendererState->graphicsCommandBuffers[imageIndex].handle;
 	VkDescriptorSet globalDescriptor = globalDescriptorSets[imageIndex];
 
-	Vector<VkWriteDescriptorSet> descriptorWrites;
+	Vector<VkWriteDescriptorSet> descriptorWrites(2);
 
 	U32 binding = 0;
 
@@ -365,7 +389,7 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, b
 
 	if (needsUpdate)
 	{
-		Vector<VkWriteDescriptorSet> descriptorWrites;
+		Vector<VkWriteDescriptorSet> descriptorWrites(2);
 
 		VkWriteDescriptorSet uboDescriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		VkDescriptorBufferInfo bufferInfo;
@@ -387,7 +411,7 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, b
 		}
 
 		VkWriteDescriptorSet samplerDescriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		Vector<VkDescriptorImageInfo> imageInfos;
+		Vector<VkDescriptorImageInfo> imageInfos(10);
 		if (config.descriptorSets[SHADER_SCOPE_INSTANCE].Size() - instanceDescriptorUboCount)
 		{
 			for (const VkDescriptorSetLayoutBinding& b : config.descriptorSets[SHADER_SCOPE_INSTANCE])

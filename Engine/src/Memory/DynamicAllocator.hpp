@@ -20,8 +20,13 @@ public:
 	bool Allocate(void** ptr, U64 size);
 	bool Free(void* block, U64 size);
 
+	bool LinearAllocate(void** ptr, U64 size);
+
 private:
+	U64 totalSize;
 	U64 smallOffset;
+	U64 linearOffset;
+
 	Freelist allocations;
 	Freelist smallAllocations;
 	void* memory;

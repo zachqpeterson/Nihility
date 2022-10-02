@@ -6,7 +6,7 @@
 
 #include "Containers/String.hpp"
 #include <Containers/Vector.hpp>
-#include <Containers/HashMap.hpp>
+#include <Containers/HashTable.hpp>
 #include "Math/Math.hpp"
 
 #undef LoadImage
@@ -131,8 +131,6 @@ struct FontBuffer
 {
 	FontBuffer() : data{ nullptr }, cursor{ 0 }, size{ 0 } {}
 	FontBuffer(const void* p, U32 size) : data{ (U8*)p }, cursor{ 0 }, size{ size } {}
-
-	void Destroy() { data = nullptr; cursor = 0; size = 0; }
 
 	void Seek(I32 o) { cursor = o; }
 	void Skip(I32 o) { cursor += o; }
@@ -316,7 +314,7 @@ struct TTFInfo
 	FontBuffer fontdicts;								// array of font dicts
 	FontBuffer fdselect;								// map from glyph to fontdict
 
-	HashMap<U64, Texture*> letterTextures;
+	HashTable<U64, Texture*> letterTextures;
 
 	I32 ascent;
 	I32 descent;
@@ -347,7 +345,7 @@ struct MaterialConfig
 	Vector<String> textureMapNames;
 };
 
-struct NH_API Material
+struct NH_API Material //TODO: seperate material and material instance structs
 {
 	U32 id{ U32_MAX };
 	String name;
@@ -442,7 +440,7 @@ public:
 	static void LoadAudioChunk(AudioFull* full, AudioChunk* chunk);
 	static void LoadFont(const String& name);
 	static F32 FontRatio(const String& name);
-	static Material GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures);
+	static void GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures, Material& instance);
 	static Mesh* LoadMesh(const String& name);
 	static void DestroyMesh(Mesh* mesh);
 	static Model* LoadModel(const String& name);
@@ -562,17 +560,17 @@ private:
 	static Shader* LoadShader(const String& name);
 
 	//Textures
-	static HashMap<String, Texture*> textures;
+	static HashTable<String, Texture*> textures;
 	static Texture* defaultTexture;
 	static Texture* defaultDiffuse;
 	static Texture* defaultSpecular;
 	static Texture* defaultNormal;
 
 	//Audio
-	static HashMap<String, AudioFull*> audio;
+	static HashTable<String, AudioFull*> audio;
 
 	//Fonts
-	static HashMap<String, TTFInfo*> fonts;
+	static HashTable<String, TTFInfo*> fonts;
 
 	//Renderpasses
 	static Vector<Renderpass*> renderpasses;
@@ -586,18 +584,18 @@ private:
 	static Material* defaultMaterial;
 
 	//Mesh
-	static HashMap<String, Mesh*> meshes;
+	static HashTable<String, Mesh*> meshes;
 	static Mesh* cubeMesh;
 	static Mesh* sphereMesh;
 	static Mesh* capsuleMesh;
 	static Mesh* quadMesh;
 
 	//TODO: Model
-	static HashMap<String, Model*> models;
+	static HashTable<String, Model*> models;
 
 	//GameObjects
-	static HashMap<U64, GameObject2D*> gameObjects2D;
-	static HashMap<U64, GameObject3D*> gameObjects3D;
+	static HashTable<U64, GameObject2D*> gameObjects2D;
+	static HashTable<U64, GameObject3D*> gameObjects3D;
 	static U64 gameObjectId;
 
 	Resources() = delete;

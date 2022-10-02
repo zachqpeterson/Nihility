@@ -3,10 +3,10 @@
 #include "Defines.hpp"
 
 template<typename T, U64 size>
-struct NH_API Array
+struct Array
 {
 public:
-	struct NH_API Iterator
+	struct Iterator
 	{
 		Iterator(T* ptr) : ptr{ ptr } {}
 

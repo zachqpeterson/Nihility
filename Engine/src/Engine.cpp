@@ -45,7 +45,7 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 
 	ASSERT_MSG(UI::Initialize(), "UI system failed to initialize!");
 
-	ASSERT_MSG(Physics::Initialize(new BoxTree()), "Physics system failed to initialize!");
+	ASSERT_MSG(Physics::Initialize(), "Physics system failed to initialize!");
 
 	ASSERT_MSG(Audio::Initialize(), "Audio system failed to initialize!");
 
@@ -75,7 +75,8 @@ void Engine::MainLoop()
 
 #ifdef NH_DEBUG
 	UIElementConfig config{};
-	config.area = { 0.98f , 0.0f, 1.0f, 0.02f };
+	config.position = { 0.98f , 0.0f };
+	config.scale = { 0.02f, 0.02f };
 	config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
 	config.enabled = true;
 	config.scene = (Scene*)RendererFrontend::CurrentScene();
@@ -106,7 +107,7 @@ void Engine::MainLoop()
 		{
 			Audio::Update();
 			UI::Update();
-			Physics::Update((F32)Time::DeltaTime());
+			Physics::Update(Math::Min((F32)Time::DeltaTime(), 0.1f));
 			running = GameUpdate();
 			RendererFrontend::DrawFrame();
 

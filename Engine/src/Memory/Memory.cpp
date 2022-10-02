@@ -52,6 +52,13 @@ void Memory::Free(void* block, U64 size, MemoryTag tag)
 	allocator->Free(block, size);
 }
 
+void* Memory::LinearAllocate(U64 size)
+{
+	void* block;
+	if (allocator->LinearAllocate(&block, size)) { return Platform::Zero(block, size); }
+	return nullptr;
+}
+
 void* Memory::Zero(void* block, U64 size)
 {
 	return Platform::Zero(block, size);
@@ -151,15 +158,17 @@ void Memory::GetMemoryStats()
 {
 #ifdef NH_DEBUG
 	static const char* memoryTagNames[MEMORY_TAG_MAX] = {
-		"TOTAL		",
-		"UNKNOWN	",
+		"TOTAL      ",
+		"UNKNOWN    ",
 		"DATA_STRUCT",
-		"STRING		",
-		"RENDERER	",
-		"RESOURCE	",
-		"AUDIO		",
-		"PHYSICS	",
-		"UI			",
+		"STRING     ",
+		"RENDERER   ",
+		"RESOURCE   ",
+		"TEXTURE    ",
+		"AUDIO      ",
+		"PHYSICS    ",
+		"GAMEOBJECT ",
+		"UI         ",
 	};
 
 	U64 allocAmounts[MEMORY_TAG_MAX];

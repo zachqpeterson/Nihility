@@ -111,19 +111,20 @@ String File::Read(U64 length)
 {
     if (handle)
     {
-        char* buf = (char*)Memory::Allocate(sizeof(char) * length, MEMORY_TAG_DATA_STRUCT);
+        char* buf = (char*)Memory::Allocate(sizeof(char) * length, MEMORY_TAG_RESOURCE);
         fread(buf, 1, length, (FILE*)handle);
         return String(buf);
+        Memory::Free(buf, sizeof(char) * length, MEMORY_TAG_RESOURCE);
     }
 
     return String();
 }
 
-U8* File::ReadBytes(U64 length)
+U8* File::ReadBytes(U64 length, I64 tag)
 {
     if (handle)
     {
-        U8* buf = (U8*)Memory::Allocate(sizeof(U8) * length, MEMORY_TAG_DATA_STRUCT);
+        U8* buf = (U8*)Memory::Allocate(sizeof(U8) * length, (MemoryTag)tag);
         fread(buf, 1, length, (FILE*)handle);
         return buf;
     }
@@ -131,12 +132,12 @@ U8* File::ReadBytes(U64 length)
     return nullptr;
 }
 
-U8* File::ReadAllBytes(U64& size)
+U8* File::ReadAllBytes(U64& size, I64 tag)
 {
     if (handle)
     {
         size = Size();
-        U8* data = (U8*)Memory::Allocate(sizeof(U8) * size, MEMORY_TAG_DATA_STRUCT);
+        U8* data = (U8*)Memory::Allocate(sizeof(U8) * size, (MemoryTag)tag);
 
         fread(data, 1, size, (FILE*)handle);
         return data;
@@ -246,10 +247,11 @@ String File::ReadAllText()
     if (handle)
     {
         U64 size = Size();
-        char* buf = (char*)Memory::Allocate(sizeof(char) * size, MEMORY_TAG_DATA_STRUCT);
+        char* buf = (char*)Memory::Allocate(sizeof(char) * size, MEMORY_TAG_RESOURCE);
 
         fread(buf, 1, size, (FILE*)handle);
         return String(buf);
+        Memory::Free(buf, sizeof(char) * size, MEMORY_TAG_RESOURCE);
     }
 
     return String();

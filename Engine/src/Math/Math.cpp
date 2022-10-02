@@ -105,6 +105,7 @@ const Vector4Int Vector4Int::OUTWARD = { 0,  0,  0,  1 };
 const Vector4Int Vector4Int::INWARD = { 0,  0,  0, -1 };
 
 Vector2::operator Vector3() { return { x, y, 0.0f }; }
+Vector2::operator Vector2Int() { return { (I32)x, (I32)y, }; }
 
 const Matrix2 Matrix2::IDENTITY = { { 1.f, 0.f }, { 0.f, 1.f } };
 const Matrix3 Matrix3::IDENTITY = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };
@@ -150,6 +151,27 @@ Vector4 Math::Max(const Vector4& a, const Vector4& b) { return { Max(a.x, b.x), 
 Vector2Int Math::Max(const Vector2Int& a, const Vector2Int& b) { return { Max(a.x, b.x), Max(a.y, b.y) }; }
 Vector3Int Math::Max(const Vector3Int& a, const Vector3Int& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) }; }
 Vector4Int Math::Max(const Vector4Int& a, const Vector4Int& b) { return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z), Max(a.w, b.w) }; }
+
+Vector2Int Math::Floor(const Vector2& v) { return { Floor(v.x), Floor(v.y) }; }
+Vector3Int Math::Floor(const Vector3& v) { return { Floor(v.x), Floor(v.y), Floor(v.z) }; }
+Vector4Int Math::Floor(const Vector4& v) { return { Floor(v.x), Floor(v.y), Floor(v.z), Floor(v.w) }; }
+Vector2 Math::FloorF(const Vector2& v) { return { FloorF(v.x), FloorF(v.y) }; }
+Vector3 Math::FloorF(const Vector3& v) { return { FloorF(v.x), FloorF(v.y), FloorF(v.z) }; }
+Vector4 Math::FloorF(const Vector4& v) { return { FloorF(v.x), FloorF(v.y), FloorF(v.z), FloorF(v.w) }; }
+
+Vector2Int Math::Ceiling(const Vector2& v) { return { Ceiling(v.x), Ceiling(v.y) }; }
+Vector3Int Math::Ceiling(const Vector3& v) { return { Ceiling(v.x), Ceiling(v.y), Ceiling(v.z) }; }
+Vector4Int Math::Ceiling(const Vector4& v) { return { Ceiling(v.x), Ceiling(v.y), Ceiling(v.z), Ceiling(v.w) }; }
+Vector2 Math::CeilingF(const Vector2& v) { return { CeilingF(v.x), CeilingF(v.y) }; }
+Vector3 Math::CeilingF(const Vector3& v) { return { CeilingF(v.x), CeilingF(v.y), CeilingF(v.z) }; }
+Vector4 Math::CeilingF(const Vector4& v) { return { CeilingF(v.x), CeilingF(v.y), CeilingF(v.z), CeilingF(v.w) }; }
+
+Vector2 Math::Round(const Vector2& v) { return { Round(v.x), Round(v.y) }; }
+Vector3 Math::Round(const Vector3& v) { return { Round(v.x), Round(v.y), Round(v.z) }; }
+Vector4 Math::Round(const Vector4& v) { return { Round(v.x), Round(v.y), Round(v.z), Round(v.w) }; }
+Vector2Int Math::RoundToInt(const Vector2& v) { return { (I32)RoundToInt(v.x), (I32)RoundToInt(v.y) }; }
+Vector3Int Math::RoundToInt(const Vector3& v) { return { (I32)RoundToInt(v.x), (I32)RoundToInt(v.y), (I32)RoundToInt(v.z) }; }
+Vector4Int Math::RoundToInt(const Vector4& v) { return { (I32)RoundToInt(v.x), (I32)RoundToInt(v.y), (I32)RoundToInt(v.z), (I32)RoundToInt(v.w) }; }
 
 bool Math::NaN(F32 f) { return isnan(f); }
 bool Math::NaN(F64 f) { return isnan(f); }
@@ -384,7 +406,7 @@ F32 Math::RandomRangeF(F32 min, F32 max, U32 seed)
 }
 
 //HASHING
-U64 Math::Hash(const String& str, U64 max)
+U64 Math::Hash(const String& str)
 {
 	const char* ptr = (const char*)str;
 	U64 hash = 0;
@@ -393,15 +415,15 @@ U64 Math::Hash(const String& str, U64 max)
 		hash = hash * 101 + *ptr;
 		++ptr;
 	}
-	return hash % max;
+	return hash;
 }
 
-U64 Math::Hash(U64 value, U64 max)
+U64 Math::Hash(U64 value)
 {
 	value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ull;
 	value = (value ^ (value >> 27)) * 0x94d049bb133111ebull;
 	value = value ^ (value >> 31);
-	return value % max;
+	return value;
 }
 
 //VECTOR2
@@ -419,7 +441,7 @@ Vector2& Vector2::operator=(const String& str)
 
 Vector2 operator- (const Vector2& v) { return Vector2{ -v.x, -v.y }; }
 
-Vector2 operator! (const Vector2& v) { return Vector2{ (F32)!v.x, (F32)!v.y}; }
+Vector2 operator! (const Vector2& v) { return Vector2{ (F32)!v.x, (F32)!v.y }; }
 
 //VECTOR3
 Vector3::Vector3(const String& str)

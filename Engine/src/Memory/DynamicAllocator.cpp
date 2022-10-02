@@ -3,15 +3,18 @@
 #include "Platform/Platform.hpp"
 #include "Core/Logger.hpp"
 
-DynamicAllocator::DynamicAllocator(U64 size) : memory{ nullptr }, smallOffset{ 0 }
+DynamicAllocator::DynamicAllocator(U64 size) : memory{ nullptr }, totalSize{ 0 }, smallOffset{ 0 }, linearOffset{ 0 }
 {
 	if (size)
 	{
+		totalSize = size;
 		memory = Platform::Allocate(size, false);
-		U64 largeSize = (U64)(size * 0.9);
+		U64 largeSize = (U64)(size * 0.5);
+		U64 linearSize = (U64)(size * 0.4);
 		smallOffset = largeSize;
+		linearOffset = size - linearSize;
 		allocations.Resize(largeSize);
-		smallAllocations.Resize(size - largeSize);
+		smallAllocations.Resize(size - largeSize - linearSize);
 	}
 }
 
@@ -71,4 +74,12 @@ bool DynamicAllocator::Free(void* block, U64 size)
 
 	if (size <= 32) { return smallAllocations.FreeBlock(size, offset - smallOffset); }
 	return allocations.FreeBlock(size, offset);
+}
+
+bool DynamicAllocator::LinearAllocate(void** ptr, U64 size)
+{
+	*ptr = (U8*)memory + linearOffset;
+	linearOffset += size;
+
+	return linearOffset <= totalSize;
 }

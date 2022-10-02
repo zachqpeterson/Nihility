@@ -17,8 +17,10 @@ enum MemoryTag {
     MEMORY_TAG_STRING,
     MEMORY_TAG_RENDERER,
     MEMORY_TAG_RESOURCE,
+    MEMORY_TAG_TEXTURE,
     MEMORY_TAG_AUDIO,
     MEMORY_TAG_PHYSICS,
+    MEMORY_TAG_GAMEOBJECT,
     MEMORY_TAG_UI,
 
     MEMORY_TAG_MAX
@@ -30,6 +32,7 @@ public:
 
     static void* Allocate(U64 size, MemoryTag tag);
     static void  Free(void* block, U64 size, MemoryTag tag);
+    static void* LinearAllocate(U64 size);
     static void* Zero(void* block, U64 size);
     static void* Copy(void* dest, const void* source, U64 size);
     static void* Set(void* dest, I32 value, U64 size);

@@ -12,15 +12,15 @@
 
 #undef LoadImage
 
-HashMap<String, Texture*> Resources::textures;
+HashTable<String, Texture*> Resources::textures;
 Texture* Resources::defaultTexture;
 Texture* Resources::defaultDiffuse;
 Texture* Resources::defaultSpecular;
 Texture* Resources::defaultNormal;
 
-HashMap<String, AudioFull*> Resources::audio;
+HashTable<String, AudioFull*> Resources::audio;
 
-HashMap<String, TTFInfo*> Resources::fonts;
+HashTable<String, TTFInfo*> Resources::fonts;
 
 Vector<Renderpass*> Resources::renderpasses;
 
@@ -30,16 +30,16 @@ Shader* Resources::defaultMaterialShader;
 Vector<Material*> Resources::materials;
 Material* Resources::defaultMaterial;
 
-HashMap<String, Mesh*> Resources::meshes;
+HashTable<String, Mesh*> Resources::meshes;
 Mesh* Resources::cubeMesh;
 Mesh* Resources::sphereMesh;
 Mesh* Resources::capsuleMesh;
 Mesh* Resources::quadMesh;
 
-HashMap<String, Model*> Resources::models;
+HashTable<String, Model*> Resources::models;
 
-HashMap<U64, GameObject2D*> Resources::gameObjects2D;
-HashMap<U64, GameObject3D*> Resources::gameObjects3D;
+HashTable<U64, GameObject2D*> Resources::gameObjects2D;
+HashTable<U64, GameObject3D*> Resources::gameObjects3D;
 U64 Resources::gameObjectId;
 
 #define BINARIES_PATH "../assets/"
@@ -159,33 +159,13 @@ enum WavChunkId
 
 bool Resources::Initialize()
 {
-	Texture* invalidTexture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
-	invalidTexture->name = "";
-	textures = Move(HashMap<String, Texture*>(10, invalidTexture)); //TODO: Config
-
-	AudioFull* invalidAudio = (AudioFull*)Memory::Allocate(sizeof(AudioFull), MEMORY_TAG_RESOURCE);
-	invalidAudio->name = "";
-	audio = Move(HashMap<String, AudioFull*>(10, invalidAudio)); //TODO: Config
-
-	TTFInfo* invalidFont = (TTFInfo*)Memory::Allocate(sizeof(TTFInfo), MEMORY_TAG_RESOURCE);
-	invalidFont->name = "";
-	fonts = Move(HashMap<String, TTFInfo*>(10, invalidFont)); //TODO: Config
-
-	Mesh* invalidMesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
-	invalidMesh->name = "";
-	meshes = Move(HashMap<String, Mesh*>(10, invalidMesh)); //TODO: Config
-
-	Model* invalidModel = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_RESOURCE);
-	invalidModel->name = "";
-	models = Move(HashMap<String, Model*>(10, invalidModel)); //TODO: Config
-
-	GameObject2D* invalidGameObject2D = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_RESOURCE);
-	invalidGameObject2D->name = "";
-	gameObjects2D = Move(HashMap<U64, GameObject2D*>(10, invalidGameObject2D)); //TODO: Config
-
-	GameObject3D* invalidGameObject3D = (GameObject3D*)Memory::Allocate(sizeof(GameObject3D), MEMORY_TAG_RESOURCE);
-	invalidGameObject3D->name = "";
-	gameObjects3D = Move(HashMap<U64, GameObject3D*>(10, invalidGameObject3D)); //TODO: Config
+	textures(1009);
+	audio(1009);
+	fonts(29);
+	meshes(101);
+	models(101);
+	gameObjects2D(1009);
+	gameObjects3D(1009);
 
 	defaultTexture = LoadTexture(DEFAULT_TEXTURE_NAME);
 	defaultDiffuse = LoadTexture(DEFAULT_DIFFUSE_TEXTURE_NAME);
@@ -211,98 +191,65 @@ void Resources::Shutdown()
 {
 	for (Renderpass* r : renderpasses)
 	{
+		RendererFrontend::DestroyRenderpass(r);
+		r->name.Destroy();
 		Memory::Free(r, sizeof(Renderpass), MEMORY_TAG_RESOURCE);
 	}
 
 	renderpasses.Destroy();
 
-	for (List<HashMap<String, AudioFull*>::Node>& l : audio)
+	for (HashTable<String, AudioFull*>::Node& n : audio)
 	{
-		for (HashMap<String, AudioFull*>::Node& n : l)
-		{
-			n.key.Destroy();
-			DestroyAudio(n.value);
-		}
-
-		l.Clear();
+		n.key.Destroy();
+		DestroyAudio(n.value);
 	}
 
 	audio.Destroy();
 
-	for (List<HashMap<String, TTFInfo*>::Node>& l : fonts)
+	for (HashTable<String, TTFInfo*>::Node& n : fonts)
 	{
-		for (HashMap<String, TTFInfo*>::Node& n : l)
-		{
-			n.key.Destroy();
-			DestroyTTF(n.value);
-		}
-
-		l.Clear();
+		n.key.Destroy();
+		DestroyTTF(n.value);
 	}
 
 	fonts.Destroy();
 
-	for (List<HashMap<U64, GameObject2D*>::Node>& l : gameObjects2D)
+	for (HashTable<U64, GameObject2D*>::Node& n : gameObjects2D)
 	{
-		for (HashMap<U64, GameObject2D*>::Node& n : l)
-		{
-			DestroyGameObject2D(n.value);
-		}
-
-		l.Clear();
+		DestroyGameObject2D(n.value);
 	}
 
 	gameObjects2D.Destroy();
 
-	for (List<HashMap<U64, GameObject3D*>::Node>& l : gameObjects3D)
+	for (HashTable<U64, GameObject3D*>::Node& n : gameObjects3D)
 	{
-		for (HashMap<U64, GameObject3D*>::Node& n : l)
-		{
-			n.value->name.Destroy();
-			Memory::Free(n.value, sizeof(GameObject3D), MEMORY_TAG_RESOURCE);
-		}
-
-		l.Clear();
+		n.value->name.Destroy();
+		Memory::Free(n.value, sizeof(GameObject3D), MEMORY_TAG_RESOURCE);
 	}
 
 	gameObjects3D.Destroy();
 
-	for (List<HashMap<String, Texture*>::Node>& l : textures)
+	for (HashTable<String, Texture*>::Node& n : textures)
 	{
-		for (HashMap<String, Texture*>::Node& n : l)
-		{
-			n.key.Destroy();
-			DestroyTexture(n.value);
-		}
-
-		l.Clear();
+		n.key.Destroy();
+		DestroyTexture(n.value);
 	}
 
 	textures.Destroy();
 
-	for (List<HashMap<String, Mesh*>::Node>& l : meshes)
+	for (HashTable<String, Mesh*>::Node& n : meshes)
 	{
-		for (HashMap<String, Mesh*>::Node& n : l)
-		{
-			n.key.Destroy();
-			DestroyMesh(n.value);
-		}
-
-		l.Clear();
+		n.key.Destroy();
+		DestroyMesh(n.value);
 	}
 
 	meshes.Destroy();
 
-	for (List<HashMap<String, Model*>::Node>& l : models)
+	for (HashTable<String, Model*>::Node& n : models)
 	{
-		for (HashMap<String, Model*>::Node& n : l)
-		{
-			n.key.Destroy();
-			n.value->name.Destroy();
-			n.value->meshes.Clear();
-		}
-
-		l.Clear();
+		n.key.Destroy();
+		n.value->name.Destroy();
+		n.value->meshes.Clear();
 	}
 
 	models.Destroy();
@@ -443,7 +390,7 @@ Binary* Resources::LoadBinary(const String& name)
 		binary->name = name;
 
 		U64 size = file->Size();
-		binary->data.SetArray(file->ReadAllBytes(size), size);
+		binary->data.SetArray(file->ReadAllBytes(size, MEMORY_TAG_DATA_STRUCT), size);
 		file->Close();
 		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 
@@ -462,7 +409,6 @@ void Resources::UnloadBinary(Binary* binary)
 {
 	binary->name.Destroy();
 	binary->data.Destroy();
-	binary = nullptr;
 }
 
 Image* Resources::LoadImage(const String& name)
@@ -473,16 +419,16 @@ Image* Resources::LoadImage(const String& name)
 	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
 	if (file->Open(path, FILE_MODE_READ, true))
 	{
-		Image* resource = (Image*)Memory::Allocate(sizeof(Image), MEMORY_TAG_RESOURCE);
-		resource->name = name;
+		Image* image = (Image*)Memory::Allocate(sizeof(Image), MEMORY_TAG_RESOURCE);
+		image->name = name;
 
 		Vector<String> sections = name.Split('.', true);
 
 		bool result;
-		if (sections.Back() == "bmp") { result = LoadBMP(resource, file); }
-		else if (sections.Back() == "png") { result = LoadPNG(resource, file); }
-		else if (sections.Back() == "jpg" || sections.Back() == "jpeg") { result = LoadJPG(resource, file); }
-		else if (sections.Back() == "tga") { result = LoadTGA(resource, file); }
+		if (sections.Back() == "bmp") { result = LoadBMP(image, file); }
+		else if (sections.Back() == "png") { result = LoadPNG(image, file); }
+		else if (sections.Back() == "jpg" || sections.Back() == "jpeg") { result = LoadJPG(image, file); }
+		else if (sections.Back() == "tga") { result = LoadTGA(image, file); }
 		else { Logger::Error("Unkown file extention '{}'", sections.Back()); result = false; }
 
 		file->Close();
@@ -490,12 +436,12 @@ Image* Resources::LoadImage(const String& name)
 
 		if (!result)
 		{
-			resource->name.Destroy();
-			Memory::Free(resource, sizeof(Image), MEMORY_TAG_RESOURCE);
+			image->name.Destroy();
+			Memory::Free(image, sizeof(Image), MEMORY_TAG_RESOURCE);
 			return nullptr;
 		}
 
-		return resource;
+		return image;
 	}
 	else
 	{
@@ -964,7 +910,7 @@ bool Resources::LoadJPG(Image* image, File* file)
 
 bool Resources::LoadTGA(Image* image, File* file)
 {
-	TGAHeader* header = (TGAHeader*)file->ReadBytes(sizeof(TGAHeader));
+	TGAHeader* header = (TGAHeader*)file->ReadBytes(sizeof(TGAHeader), MEMORY_TAG_RESOURCE);
 
 	if (!header)
 	{
@@ -993,7 +939,7 @@ Texture* Resources::LoadTexture(const String& name)
 
 	Texture* texture = textures[name];
 
-	if (!texture->name.Blank()) { return texture; }
+	if (texture) { return texture; }
 
 	Logger::Info("Loading texture '{}'...", name);
 
@@ -1001,7 +947,7 @@ Texture* Resources::LoadTexture(const String& name)
 
 	if (image)
 	{
-		texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
+		texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
 
 		texture->name = image->name;
 		texture->width = image->width;
@@ -1023,7 +969,8 @@ Texture* Resources::LoadTexture(const String& name)
 void Resources::DestroyTexture(Texture* texture)
 {
 	RendererFrontend::DestroyTexture(texture);
-	Memory::Free(texture, sizeof(Texture), MEMORY_TAG_RESOURCE);
+	texture->name.Destroy();
+	Memory::Free(texture, sizeof(Texture), MEMORY_TAG_TEXTURE);
 }
 
 Renderpass* Resources::LoadRenderpass(const String& name)
@@ -1525,10 +1472,13 @@ void Resources::DestroyMaterial(Material* material)
 		map.texture = nullptr;
 	}
 
+	material->name.Destroy();
+	material->globalTextureMaps.Destroy();
+	material->instanceTextureMaps.Destroy();
 	Memory::Free(material, sizeof(Material), MEMORY_TAG_RESOURCE);
 }
 
-Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures)
+void Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures, Material& instance)
 {
 	Material* material = nullptr;
 
@@ -1544,10 +1494,10 @@ Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& in
 	if (!material)
 	{
 		Logger::Error("Material '{}' doesn't exist or is in wrong directory", name);
-		return{};
+		return;
 	}
 
-	Material instance = *material;
+	instance = *material;
 
 	if (instance.shader->useInstances && instanceTextures.Size())
 	{
@@ -1565,7 +1515,6 @@ Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& in
 			if (!RendererFrontend::AcquireTextureMapResources(map))
 			{
 				Logger::Error("LoadMaterial: Error loading TextureMap resources");
-				return {};
 			}
 
 			instance.instanceTextureMaps.Push(Move(map));
@@ -1573,10 +1522,8 @@ Material Resources::GetMaterialInstance(const String& name, Vector<Texture*>& in
 
 		instance.instance = RendererFrontend::AcquireInstanceResources(instance.shader, instance.instanceTextureMaps);
 
-		if (instance.instance == INVALID_ID) { return {}; }
+		if (instance.instance == INVALID_ID) { return; }
 	}
-
-	return instance;
 }
 
 void Resources::DestroyMaterialInstance(Material& material)
@@ -1587,6 +1534,10 @@ void Resources::DestroyMaterialInstance(Material& material)
 		RendererFrontend::ReleaseTextureMapResources(map);
 		map.texture = nullptr;
 	}
+
+	material.name.Destroy();
+	material.globalTextureMaps.Destroy();
+	material.instanceTextureMaps.Destroy();
 }
 
 Mesh* Resources::LoadMesh(const String& name)
@@ -1644,7 +1595,7 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 	Mesh* mesh = meshes[config.name];
 
-	if (mesh->name.Blank())
+	if (!mesh)
 	{
 		mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 		mesh->name = config.name;
@@ -1660,8 +1611,8 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 		return nullptr;
 	}
 
-	if (config.MaterialName.Blank()) { mesh->material = GetMaterialInstance(DEFAULT_MATERIAL_NAME, config.instanceTextures); }
-	else { mesh->material = GetMaterialInstance(config.MaterialName, config.instanceTextures); }
+	if (config.MaterialName.Blank()) { GetMaterialInstance(DEFAULT_MATERIAL_NAME, config.instanceTextures, mesh->material); }
+	else { GetMaterialInstance(config.MaterialName, config.instanceTextures, mesh->material); }
 
 	meshes.Insert(config.name, mesh);
 
@@ -1670,11 +1621,13 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 void Resources::DestroyMesh(Mesh* mesh)
 {
-	meshes.Remove(mesh->name);
+	meshes.Remove(mesh->name, nullptr);
 
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
 	mesh->name.Destroy();
+	mesh->vertices.Destroy();
+	mesh->indices.Destroy();
 	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }
 
@@ -1732,10 +1685,10 @@ Model* Resources::LoadModel(const String& name)
 
 void Resources::DestroyModel(Model* model)
 {
-	models.Remove(model->name);
+	models.Remove(model->name, nullptr);
 
 	for (Mesh* mesh : model->meshes) { DestroyMesh(mesh); }
-
+	model->meshes.Destroy();
 	model->name.Destroy();
 	Memory::Free(model, sizeof(Model), MEMORY_TAG_RESOURCE);
 }
@@ -1756,7 +1709,7 @@ Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 
 	Model* model = models[name];
 
-	if (!model->name.Blank())
+	if (model)
 	{
 		Logger::Error("Model with name '{}' has already been created!", name);
 		return nullptr;
@@ -1791,7 +1744,7 @@ GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
 
 	Logger::Info("Creating GameObject '{}'...", config.name);
 
-	GameObject2D* go = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_RESOURCE);
+	GameObject2D* go = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_GAMEOBJECT);
 	go->id = gameObjectId;
 	++gameObjectId;
 	go->model = config.model;
@@ -1807,11 +1760,12 @@ GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
 
 void Resources::DestroyGameObject2D(GameObject2D* gameObject)
 {
-	gameObjects2D.Remove(gameObject->id);
+	gameObjects2D.Remove(gameObject->id, nullptr);
 
 	gameObject->name.Destroy();
 	if (gameObject->transform) { delete gameObject->transform; }
-	if (gameObject->physics) { Physics::DestroyPhysicsObjects2D(gameObject->physics); }
+
+	Memory::Free(gameObject, sizeof(GameObject2D), MEMORY_TAG_GAMEOBJECT);
 }
 
 Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency)
@@ -1832,7 +1786,7 @@ Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 hei
 		return nullptr;
 	}
 
-	texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
+	texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
 
 	texture->name = name;
 	texture->width = width;
@@ -1845,7 +1799,7 @@ Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 hei
 	if (!RendererFrontend::CreateWritableTexture(texture))
 	{
 		Logger::Error("Failed to create writable texture '{}'!", name);
-		Memory::Free(texture, sizeof(texture), MEMORY_TAG_RESOURCE);
+		Memory::Free(texture, sizeof(texture), MEMORY_TAG_TEXTURE);
 		return nullptr;
 	}
 
@@ -1881,7 +1835,7 @@ Texture* Resources::CreateTextureFromInternal(const String& name, U32 width, U32
 		return nullptr;
 	}
 
-	Texture* texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
+	Texture* texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
 
 	texture->name = name;
 	texture->width = width;
@@ -1959,7 +1913,7 @@ AudioFull* Resources::LoadAudio(const String& name)
 
 	AudioFull* audioFull = audio[name];
 
-	if (!audioFull->name.Blank()) { return audioFull; }
+	if (audioFull) { return audioFull; }
 
 	String path(AUDIO_PATH);
 	path.Append(name);
@@ -1967,17 +1921,17 @@ AudioFull* Resources::LoadAudio(const String& name)
 	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
 	if (file->Open(path, FILE_MODE_READ, true))
 	{
-		audioFull = (AudioFull*)Memory::Allocate(sizeof(AudioFull), MEMORY_TAG_RESOURCE);
+		audioFull = (AudioFull*)Memory::Allocate(sizeof(AudioFull), MEMORY_TAG_AUDIO);
 		audioFull->name = name;
-		audioFull->data = file->ReadAllBytes(audioFull->dataSize);
+		audioFull->data = file->ReadAllBytes(audioFull->dataSize, MEMORY_TAG_AUDIO);
 
 		WAVHeader* header = (WAVHeader*)audioFull->data;
 		if (header->riffId != WAV_CHUNK_ID_RIFF)
 		{
 			Logger::Error("File is not a WAV!");
 			Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-			Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_RESOURCE);
-			Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_RESOURCE);
+			Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_AUDIO);
+			Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
 			return nullptr;
 		}
 
@@ -1992,8 +1946,8 @@ AudioFull* Resources::LoadAudio(const String& name)
 				{
 					Logger::Error("WAV file {} is invalid!", audioFull->name);
 					Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-					Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_RESOURCE);
-					Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_RESOURCE);
+					Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_AUDIO);
+					Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
 					return nullptr;
 				}
 				audioFull->channelCount = fmt->channels;
@@ -2006,8 +1960,8 @@ AudioFull* Resources::LoadAudio(const String& name)
 				{
 					Logger::Error("WAV file {} is invalid!", audioFull->name);
 					Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-					Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_RESOURCE);
-					Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_RESOURCE);
+					Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_AUDIO);
+					Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
 					return nullptr;
 				}
 			} break;
@@ -2023,14 +1977,14 @@ AudioFull* Resources::LoadAudio(const String& name)
 	{
 		Logger::Error("Couldn't open file: {}", name);
 		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-		Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_RESOURCE);
+		Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
 		return nullptr;
 	}
 
-	AudioChunk* chunk = (AudioChunk*)Memory::Allocate(sizeof(AudioChunk), MEMORY_TAG_RESOURCE);
+	AudioChunk* chunk = (AudioChunk*)Memory::Allocate(sizeof(AudioChunk), MEMORY_TAG_AUDIO);
 	chunk->sampleCount = 0;
 	chunk->firstSampleIndex = 0;
-	chunk->samples = (I16**)Memory::Allocate(sizeof(I16*) * audioFull->channelCount, MEMORY_TAG_RESOURCE);
+	chunk->samples = (I16**)Memory::Allocate(sizeof(I16*) * audioFull->channelCount, MEMORY_TAG_AUDIO);
 
 	LoadWAV(audioFull, chunk);
 	audioFull->chunks = chunk;
@@ -2040,9 +1994,9 @@ AudioFull* Resources::LoadAudio(const String& name)
 
 void Resources::LoadAudioChunk(AudioFull* full, AudioChunk* chunk)
 {
-	AudioChunk* next = (AudioChunk*)Memory::Allocate(sizeof(AudioChunk), MEMORY_TAG_RESOURCE);
+	AudioChunk* next = (AudioChunk*)Memory::Allocate(sizeof(AudioChunk), MEMORY_TAG_AUDIO);
 	next->firstSampleIndex = chunk->firstSampleIndex + (AUDIO_CHUNK_LENGTH * full->channelCount);
-	next->samples = (I16**)Memory::Allocate(sizeof(I16*) * full->channelCount, MEMORY_TAG_RESOURCE);
+	next->samples = (I16**)Memory::Allocate(sizeof(I16*) * full->channelCount, MEMORY_TAG_AUDIO);
 
 	LoadWAV(full, next);
 
@@ -2065,7 +2019,7 @@ void Resources::LoadWAV(AudioFull* full, AudioChunk* chunk)
 
 	for (U32 channelIndex = 0; channelIndex < full->channelCount; ++channelIndex)
 	{
-		chunk->samples[channelIndex] = (I16*)Memory::Allocate(sizeof(I16*) * sectionSampleCount, MEMORY_TAG_RESOURCE);
+		chunk->samples[channelIndex] = (I16*)Memory::Allocate(sizeof(I16) * sectionSampleCount, MEMORY_TAG_AUDIO);
 
 		for (U32 sampleIndex = 0, dataIndex = chunk->firstSampleIndex + channelIndex; sampleIndex < sectionSampleCount; ++sampleIndex, dataIndex += full->channelCount)
 		{
@@ -2079,19 +2033,24 @@ void Resources::LoadWAV(AudioFull* full, AudioChunk* chunk)
 
 void Resources::DestroyAudio(AudioFull* full)
 {
-	Memory::Free(full->data, full->dataSize, MEMORY_TAG_RESOURCE);
+	Memory::Free(full->data, full->dataSize, MEMORY_TAG_AUDIO);
+	full->name.Destroy();
 
 	AudioChunk* chunk = full->chunks;
 	while (chunk)
 	{
 		for (U32 i = 0; i < full->channelCount; ++i)
 		{
-			Memory::Free(chunk->samples[i], sizeof(I16*) * chunk->sampleCount, MEMORY_TAG_RESOURCE);
+			Memory::Free(chunk->samples[i], sizeof(I16) * chunk->sampleCount, MEMORY_TAG_AUDIO);
 		}
 
-		Memory::Free(chunk->samples, sizeof(I16*) * full->channelCount, MEMORY_TAG_RESOURCE);
+		Memory::Free(chunk->samples, sizeof(I16*) * full->channelCount, MEMORY_TAG_AUDIO);
+		AudioChunk* temp = chunk;
 		chunk = chunk->next;
+		Memory::Free(temp, sizeof(AudioChunk), MEMORY_TAG_AUDIO);
 	}
+
+	Memory::Free(full, sizeof(AudioFull), MEMORY_TAG_AUDIO);
 }
 
 RiffIterator Resources::ParseChunkAt(void* at, void* stop)
@@ -2285,7 +2244,7 @@ void Resources::LoadFont(const String& name)
 
 	TTFInfo* font = fonts[name];
 
-	if (!font->name.Blank()) { Logger::Error("Font '{}' has already been loaded!", font->name); return; }
+	if (font) { Logger::Error("Font '{}' has already been loaded!", font->name); return; }
 
 	Logger::Info("Loading font '{}'...", name);
 
@@ -2299,7 +2258,7 @@ void Resources::LoadFont(const String& name)
 		font->name = name;
 
 		U64 size = file->Size();
-		font->data.SetArray(file->ReadAllBytes(size), size);
+		font->data.SetArray(file->ReadAllBytes(size, MEMORY_TAG_DATA_STRUCT), size);
 
 		Vector<String> sections = name.Split('.', true);
 
@@ -2429,10 +2388,7 @@ bool Resources::LoadTTF(TTFInfo* info)
 	info->descent = ttSHORT(info->data.Data() + info->hhea + 6);
 	info->lineGap = ttSHORT(info->data.Data() + info->hhea + 8);
 
-	HashMap<U64, Texture*> letterTextures;
-	Texture* invalidTexture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
-	invalidTexture->name = "";
-	info->letterTextures = Move(HashMap<U64, Texture*>(20, invalidTexture));
+	info->letterTextures(199);
 
 	return true;
 }
@@ -2447,21 +2403,9 @@ void Resources::DestroyTTF(TTFInfo* info)
 	info->name.Destroy();
 	info->data.Destroy();
 
-	info->cff.Destroy();
-	info->charstrings.Destroy();
-	info->gsubrs.Destroy();
-	info->subrs.Destroy();
-	info->fontdicts.Destroy();
-	info->fdselect.Destroy();
-
-	for (List<HashMap<U64, Texture*>::Node>& l : info->letterTextures)
+	for (HashTable<U64, Texture*>::Node& n : info->letterTextures)
 	{
-		for (HashMap<U64, Texture*>::Node& n : l)
-		{
-			DestroyTexture(n.value);
-		}
-
-		l.Clear();
+		DestroyTexture(n.value);
 	}
 
 	info->letterTextures.Destroy();
@@ -2473,14 +2417,14 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 
 	TTFInfo* font = fonts[fontName];
 
-	if (font->name.Blank()) { Logger::Error("Font '{}' isn't loaded!", font->name); return nullptr; }
+	if (!font) { Logger::Error("Font '{}' isn't loaded!", fontName); return nullptr; }
 
 	F32 height = ScaleForPixelHeight(font, heightPixels);
 	U64 id = (U64)(c * (height * 10000.0f));
 
 	Texture* texture = font->letterTextures[id];
 
-	if (!texture->name.Blank()) { return texture; }
+	if (texture) { return texture; }
 
 	Vector2Int dimensions;
 	Vector<U8> alphas = GetCodepointBitmap(font, 0.0f, height, c, dimensions.x, dimensions.y, xOff, yOff);
@@ -2491,7 +2435,7 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 		return nullptr;
 	}
 
-	texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_RESOURCE);
+	texture = (Texture*)Memory::Allocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
 	texture->name = font->name + c;
 	texture->width = dimensions.x;
 	texture->height = dimensions.y;

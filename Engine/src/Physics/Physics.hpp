@@ -205,8 +205,8 @@ struct Edge
 
 struct Raycast
 {
-	Vector2 direction;
-	F32 length;
+	Vector2 start;
+	Vector2 end;
 };
 
 struct Contact2D
@@ -215,6 +215,7 @@ struct Contact2D
 	struct PhysicsObject2D* b;
 
 	F32 restitution;
+	F32 distance;
 	F32 penetration;
 	Vector2 relativeVelocity;
 	Vector2 normal;
@@ -237,6 +238,7 @@ struct PhysicsObject2DConfig
 	bool trigger;
 	bool kinematic;
 	bool freezeRotation;
+	U64 layerMask;
 
 	F32 restitution;
 	F32 friction;
@@ -292,31 +294,32 @@ private:
 	bool freezeRotation;
 
 public:
-	const U64& ID() { return id; }
+	const U64& ID() const { return id; }
 
-	const Vector2& Velocity() { return velocity; }
-	const F64& AngularVelocity() { return angularVelocity; }
+	const Transform2D* Transform() const { return transform; }
+	const Collider2D* Collider() const { return collider; }
+	const Vector2& Velocity() const { return velocity; }
+	const Vector2& Move() const { return move; }
+	const F64& AngularVelocity() const { return angularVelocity; }
 
-	const bool& Grounded() { return grounded; }
+	const bool& Grounded() const { return grounded; }
 
-	const F64& Mass () { return mass; }
-	const F64& Inertia() { return inertia; }
-	const F64& Friction() { return friction; }
-	const F64& Restitution() { return restitution; }
-	const F64& GravityScale() { return gravityScale; }
-	const F64& Drag() { return dragCoefficient; }
-	const F64& AngularDrag() { return angularDragCoefficient; }
-	const F64& Area() { return area; }
-	const U64& LayerMask() { return layerMask; }
-	const bool& Kinematic() { return kinematic; }
+	const F64& Mass() const { return mass; }
+	const F64& Inertia() const { return inertia; }
+	const F64& Friction() const { return friction; }
+	const F64& Restitution() const { return restitution; }
+	const F64& GravityScale() const { return gravityScale; }
+	const F64& Drag() const { return dragCoefficient; }
+	const F64& AngularDrag() const { return angularDragCoefficient; }
+	const F64& Area() const { return area; }
+	const U64& LayerMask() const { return layerMask; }
+	const bool& Kinematic() const { return kinematic; }
 
 	friend class Physics;
-	friend class Broadphase;
 	friend class BoxTree;
 };
 
 class Broadphase;
-struct BoolTable;
 
 class NH_API Physics
 {
@@ -326,6 +329,8 @@ public:
 	///	Raycasting
 	///	Events
 	/// </summary>
+	
+	static void SetBroadphase(Broadphase* newBroadphase);
 
 	static PhysicsObject2D* Create2DPhysicsObject(const PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
@@ -333,14 +338,15 @@ public:
 	static F32 TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ);
 	static void DestroyPhysicsObjects2D(PhysicsObject2D* obj);
 
+	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
+
 private:
-	static bool Initialize(Broadphase* broadphase);
+	static bool Initialize();
 	static void Shutdown();
 	static void Update(F32 step);
 
-	static void BroadPhase();
-	static void NarrowPhase();
-	static void ResolveCollision(Contact2D& c);
+	static void NarrowPhase(List<List<Contact2D>>& contacts);
+	static void ResolveCollisions(List<Contact2D>& c);
 
 	static bool BoxVsBox(Contact2D& c);
 	static bool BoxVsCircle(Contact2D& c);
@@ -367,10 +373,7 @@ private:
 	static List<PhysicsObject2D*> physicsObjects2D;
 	static List<PhysicsObject3D*> physicsObjects3D;
 
-	static Array<Array<Collision2DFn, COLLIDER_2D_MAX>, COLLIDER_2D_MAX> collision2DTable;
-
 	static Broadphase* broadphase;
-	static BoolTable* table;
 
 	static F32 airDensity;
 	static F32 gravity;

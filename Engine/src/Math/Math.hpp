@@ -60,18 +60,18 @@ public:
 	static F32 LogN(F32 f);
 	static F64 LogN(F64 f);
 
-	static F32 DegToRad(F32 d) { return (F32)(d * DEG2RAD_MULTIPLIER); }
-	static F64 DegToRad(F64 d) { return d * DEG2RAD_MULTIPLIER; }
-	static F32 RadToDeg(F32 r) { return (F32)(r * RAD2DEG_MULTIPLIER); }
-	static F64 RadToDeg(F64 r) { return r * RAD2DEG_MULTIPLIER; }
+	static NH_INLINE F32 DegToRad(F32 d) { return (F32)(d * DEG2RAD_MULTIPLIER); }
+	static NH_INLINE F64 DegToRad(F64 d) { return d * DEG2RAD_MULTIPLIER; }
+	static NH_INLINE F32 RadToDeg(F32 r) { return (F32)(r * RAD2DEG_MULTIPLIER); }
+	static NH_INLINE F64 RadToDeg(F64 r) { return r * RAD2DEG_MULTIPLIER; }
 
 	//COMPARISON
-	static F32 Abs(F32 n) { return n < 0.f ? -n : n; }
-	static F64 Abs(F64 n) { return n < 0. ? -n : n; }
-	static I8  Abs(I8  n) { return n < 0 ? -n : n; }
-	static I16 Abs(I16 n) { return n < 0 ? -n : n; }
-	static I32 Abs(I32 n) { return n < 0 ? -n : n; }
-	static I64 Abs(I64 n) { return n < 0 ? -n : n; }
+	static NH_INLINE F32 Abs(F32 n) { return n < 0.f ? -n : n; }
+	static NH_INLINE F64 Abs(F64 n) { return n < 0. ? -n : n; }
+	static NH_INLINE I8  Abs(I8  n) { return n < 0 ? -n : n; }
+	static NH_INLINE I16 Abs(I16 n) { return n < 0 ? -n : n; }
+	static NH_INLINE I32 Abs(I32 n) { return n < 0 ? -n : n; }
+	static NH_INLINE I64 Abs(I64 n) { return n < 0 ? -n : n; }
 	static Vector2 Abs(const Vector2& v);
 	static Vector3 Abs(const Vector3& v);
 	static Vector4 Abs(const Vector4& v);
@@ -79,16 +79,16 @@ public:
 	static Matrix3 Abs(const Matrix3& m);
 	static Matrix4 Abs(const Matrix4& m);
 
-	static F32 Min(F32 a, F32 b) { return a < b ? a : b; }
-	static F64 Min(F64 a, F64 b) { return a < b ? a : b; }
-	static I8  Min(I8  a, I8  b) { return a < b ? a : b; }
-	static I16 Min(I16 a, I16 b) { return a < b ? a : b; }
-	static I32 Min(I32 a, I32 b) { return a < b ? a : b; }
-	static I64 Min(I64 a, I64 b) { return a < b ? a : b; }
-	static U8  Min(U8  a, U8  b) { return a < b ? a : b; }
-	static U16 Min(U16 a, U16 b) { return a < b ? a : b; }
-	static U32 Min(U32 a, U32 b) { return a < b ? a : b; }
-	static U64 Min(U64 a, U64 b) { return a < b ? a : b; }
+	static NH_INLINE F32 Min(F32 a, F32 b) { return a < b ? a : b; }
+	static NH_INLINE F64 Min(F64 a, F64 b) { return a < b ? a : b; }
+	static NH_INLINE I8  Min(I8  a, I8  b) { return a < b ? a : b; }
+	static NH_INLINE I16 Min(I16 a, I16 b) { return a < b ? a : b; }
+	static NH_INLINE I32 Min(I32 a, I32 b) { return a < b ? a : b; }
+	static NH_INLINE I64 Min(I64 a, I64 b) { return a < b ? a : b; }
+	static NH_INLINE U8  Min(U8  a, U8  b) { return a < b ? a : b; }
+	static NH_INLINE U16 Min(U16 a, U16 b) { return a < b ? a : b; }
+	static NH_INLINE U32 Min(U32 a, U32 b) { return a < b ? a : b; }
+	static NH_INLINE U64 Min(U64 a, U64 b) { return a < b ? a : b; }
 	static Vector2 Min(const Vector2& a, const Vector2& b);
 	static Vector3 Min(const Vector3& a, const Vector3& b);
 	static Vector4 Min(const Vector4& a, const Vector4& b);
@@ -96,16 +96,16 @@ public:
 	static Vector3Int Min(const Vector3Int& a, const Vector3Int& b);
 	static Vector4Int Min(const Vector4Int& a, const Vector4Int& b);
 
-	static F32 Max(F32 a, F32 b) { return a > b ? a : b; }
-	static F64 Max(F64 a, F64 b) { return a > b ? a : b; }
-	static I8  Max(I8  a, I8  b) { return a > b ? a : b; }
-	static I16 Max(I16 a, I16 b) { return a > b ? a : b; }
-	static I32 Max(I32 a, I32 b) { return a > b ? a : b; }
-	static I64 Max(I64 a, I64 b) { return a > b ? a : b; }
-	static U8  Max(U8  a, U8  b) { return a > b ? a : b; }
-	static U16 Max(U16 a, U16 b) { return a > b ? a : b; }
-	static U32 Max(U32 a, U32 b) { return a > b ? a : b; }
-	static U64 Max(U64 a, U64 b) { return a > b ? a : b; }
+	static NH_INLINE F32 Max(F32 a, F32 b) { return a > b ? a : b; }
+	static NH_INLINE F64 Max(F64 a, F64 b) { return a > b ? a : b; }
+	static NH_INLINE I8  Max(I8  a, I8  b) { return a > b ? a : b; }
+	static NH_INLINE I16 Max(I16 a, I16 b) { return a > b ? a : b; }
+	static NH_INLINE I32 Max(I32 a, I32 b) { return a > b ? a : b; }
+	static NH_INLINE I64 Max(I64 a, I64 b) { return a > b ? a : b; }
+	static NH_INLINE U8  Max(U8  a, U8  b) { return a > b ? a : b; }
+	static NH_INLINE U16 Max(U16 a, U16 b) { return a > b ? a : b; }
+	static NH_INLINE U32 Max(U32 a, U32 b) { return a > b ? a : b; }
+	static NH_INLINE U64 Max(U64 a, U64 b) { return a > b ? a : b; }
 	static Vector2 Max(const Vector2& a, const Vector2& b);
 	static Vector3 Max(const Vector3& a, const Vector3& b);
 	static Vector4 Max(const Vector4& a, const Vector4& b);
@@ -113,54 +113,81 @@ public:
 	static Vector3Int Max(const Vector3Int& a, const Vector3Int& b);
 	static Vector4Int Max(const Vector4Int& a, const Vector4Int& b);
 
-	static F32 Clamp(F32 n, F32 a, F32 b) { return n < a ? a : n > b ? b : n; }
-	static F64 Clamp(F64 n, F64 a, F64 b) { return n < a ? a : n > b ? b : n; }
-	static I8  Clamp(I8  n, I8  a, I8  b) { return n < a ? a : n > b ? b : n; }
-	static I16 Clamp(I16 n, I16 a, I16 b) { return n < a ? a : n > b ? b : n; }
-	static I32 Clamp(I32 n, I32 a, I32 b) { return n < a ? a : n > b ? b : n; }
-	static I64 Clamp(I64 n, I64 a, I64 b) { return n < a ? a : n > b ? b : n; }
-	static U8  Clamp(U8  n, U8  a, U8  b) { return n < a ? a : n > b ? b : n; }
-	static U16 Clamp(U16 n, U16 a, U16 b) { return n < a ? a : n > b ? b : n; }
-	static U32 Clamp(U32 n, U32 a, U32 b) { return n < a ? a : n > b ? b : n; }
-	static U64 Clamp(U64 n, U64 a, U64 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE F32 Clamp(F32 n, F32 a, F32 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE F64 Clamp(F64 n, F64 a, F64 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE I8  Clamp(I8  n, I8  a, I8  b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE I16 Clamp(I16 n, I16 a, I16 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE I32 Clamp(I32 n, I32 a, I32 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE I64 Clamp(I64 n, I64 a, I64 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE U8  Clamp(U8  n, U8  a, U8  b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE U16 Clamp(U16 n, U16 a, U16 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE U32 Clamp(U32 n, U32 a, U32 b) { return n < a ? a : n > b ? b : n; }
+	static NH_INLINE U64 Clamp(U64 n, U64 a, U64 b) { return n < a ? a : n > b ? b : n; }
 
 	//NEGATIVE BITSHIFTING ROUNDS TOWARDS -INFINITY
-	static F32 Closest(F32 n, F32 a, F32 b) { return n < (b + a) * 0.5f ? a : b; }
-	static F64 Closest(F64 n, F64 a, F64 b) { return n < (b + a) * 0.5 ? a : b; }
-	static I8  Closest(I8  n, I8  a, I8  b) { return n < (b + a) >> 1 ? a : b; }
-	static I16 Closest(I16 n, I16 a, I16 b) { return n < (b + a) >> 1 ? a : b; }
-	static I32 Closest(I32 n, I32 a, I32 b) { return n < (b + a) >> 1 ? a : b; }
-	static I64 Closest(I64 n, I64 a, I64 b) { return n < (b + a) >> 1 ? a : b; }
-	static U8  Closest(U8  n, U8  a, U8  b) { return n < (b + a) >> 1 ? a : b; }
-	static U16 Closest(U16 n, U16 a, U16 b) { return n < (b + a) >> 1 ? a : b; }
-	static U32 Closest(U32 n, U32 a, U32 b) { return n < (b + a) >> 1 ? a : b; }
-	static U64 Closest(U64 n, U64 a, U64 b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE F32 Closest(F32 n, F32 a, F32 b) { return n < (b + a) * 0.5f ? a : b; }
+	static NH_INLINE F64 Closest(F64 n, F64 a, F64 b) { return n < (b + a) * 0.5 ? a : b; }
+	static NH_INLINE I8  Closest(I8  n, I8  a, I8  b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE I16 Closest(I16 n, I16 a, I16 b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE I32 Closest(I32 n, I32 a, I32 b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE I64 Closest(I64 n, I64 a, I64 b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE U8  Closest(U8  n, U8  a, U8  b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE U16 Closest(U16 n, U16 a, U16 b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE U32 Closest(U32 n, U32 a, U32 b) { return n < (b + a) >> 1 ? a : b; }
+	static NH_INLINE U64 Closest(U64 n, U64 a, U64 b) { return n < (b + a) >> 1 ? a : b; }
 
 	template <typename T>
-	static void Swap(T& a, T& b) { T t = a; a = b; b = t; }
+	static NH_INLINE void Swap(T& a, T& b) { T t = a; a = b; b = t; }
 
-	static I32 Floor(F32 n) { return n >= 0 ? (I32)n : (I32)n - 1; }
-	static I64 Floor(F64 n) { return n >= 0 ? (I64)n : (I64)n - 1; }
-	static F32 FloorF(F32 n) { return (F32)(n >= 0 ? (I32)n : (I32)n - 1); }
-	static F64 FloorF(F64 n) { return (F64)(n >= 0 ? (I64)n : (I64)n - 1); }
+	static NH_INLINE I32 Floor(F32 n) { return n >= 0.0f ? (I32)n : (I32)n - 1; }
+	static NH_INLINE I64 Floor(F64 n) { return n >= 0.0f ? (I64)n : (I64)n - 1; }
+	static NH_INLINE Vector2Int Floor(const Vector2& v);
+	static NH_INLINE Vector3Int Floor(const Vector3& v);
+	static NH_INLINE Vector4Int Floor(const Vector4& v);
+	static NH_INLINE F32 FloorF(F32 n) { return (F32)(n >= 0.0f ? (I32)n : (I32)n - 1); }
+	static NH_INLINE F64 FloorF(F64 n) { return (F64)(n >= 0.0f ? (I64)n : (I64)n - 1); }
+	static NH_INLINE Vector2 FloorF(const Vector2& v);
+	static NH_INLINE Vector3 FloorF(const Vector3& v);
+	static NH_INLINE Vector4 FloorF(const Vector4& v);
 
-	static I32 Ceiling(F32 n) { return (n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n; }
-	static I64 Ceiling(F64 n) { return (n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n; }
-	static F32 CeilingF(F32 n) { return (F32)((n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n); }
-	static F64 CeilingF(F64 n) { return (F64)((n - (I64)n) > 0.0f ? (I64)n + 1 : (I64)n); }
+	static NH_INLINE I32 Ceiling(F32 n) { return (n - (I64)n) < 0.0f ? (I64)n : (I64)n + 1; }
+	static NH_INLINE I64 Ceiling(F64 n) { return (n - (I64)n) < 0.0f ? (I64)n : (I64)n + 1; }
+	static NH_INLINE Vector2Int Ceiling(const Vector2& v);
+	static NH_INLINE Vector3Int Ceiling(const Vector3& v);
+	static NH_INLINE Vector4Int Ceiling(const Vector4& v);
+	static NH_INLINE F32 CeilingF(F32 n) { return (F32)((n - (I64)n) < 0.0f ? (I64)n : (I64)n + 1); }
+	static NH_INLINE F64 CeilingF(F64 n) { return (F64)((n - (I64)n) < 0.0f ? (I64)n : (I64)n + 1); }
+	static NH_INLINE Vector2 CeilingF(const Vector2& v);
+	static NH_INLINE Vector3 CeilingF(const Vector3& v);
+	static NH_INLINE Vector4 CeilingF(const Vector4& v);
 
-	static bool Zero(F32 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
-	static bool Zero(F64 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
+	static NH_INLINE I8  Sign(I8 n) { return (n > 0) - (n < 0); }
+	static NH_INLINE I16 Sign(I16 n) { return (n > 0) - (n < 0); }
+	static NH_INLINE I32 Sign(I32 n) { return (n > 0) - (n < 0); }
+	static NH_INLINE I64 Sign(I64 n) { return (n > 0) - (n < 0); }
+	static NH_INLINE F32 Sign(F32 n) { return (F32)(n > 0.0f) - (F32)(n < 0.0f); }
+	static NH_INLINE F64 Sign(F64 n) { return (F64)(n > 0.0) - (F64)(n < 0.0); }
+
+	static NH_INLINE bool Zero(F32 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
+	static NH_INLINE bool Zero(F64 f) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
 	static bool NaN(F32 f);
 	static bool NaN(F64 f);
 	static bool Inf(F32 f);
 	static bool Inf(F64 f);
 
 	//FLOATING-POINT
-	static F32 Round(F32 f) { return (F32)(I32)(f + 0.5f); }
-	static F64 Round(F64 f) { return (F64)(I64)(f + 0.5); }
-	static F32 Mod(F32 f, F32 d) { return f - d * Floor(f / d); }
-	static F64 Mod(F64 f, F64 d) { return f - d * Floor(f / d); }
+	static NH_INLINE F32 Round(F32 f) { return (F32)(I64)(f + 0.5f); }
+	static NH_INLINE F64 Round(F64 f) { return (F64)(I64)(f + 0.5); }
+	static NH_INLINE Vector2 Round(const Vector2& v);
+	static NH_INLINE Vector3 Round(const Vector3& v);
+	static NH_INLINE Vector4 Round(const Vector4& v);
+	static NH_INLINE I64 RoundToInt(F32 f) { return (I64)(f + 0.5f); }
+	static NH_INLINE I64 RoundToInt(F64 f) { return (I64)(f + 0.5); }
+	static NH_INLINE Vector2Int RoundToInt(const Vector2& v);
+	static NH_INLINE Vector3Int RoundToInt(const Vector3& v);
+	static NH_INLINE Vector4Int RoundToInt(const Vector4& v);
+	static NH_INLINE F32 Mod(F32 f, F32 d) { return f - d * Floor(f / d); }
+	static NH_INLINE F64 Mod(F64 f, F64 d) { return f - d * Floor(f / d); }
 
 	//LINEAR
 	static F32 Sqrt(F32 f);
@@ -171,15 +198,15 @@ public:
 	static Vector2 Cross(const F32 f, const Vector2& v);
 
 	//INTERPOLATION
-	static F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
-	static F64 Lerp(F64 a, F64 b, F64 t) { return a + t * (b - a); }
+	static NH_INLINE F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
+	static NH_INLINE F64 Lerp(F64 a, F64 b, F64 t) { return a + t * (b - a); }
 	static Vector2 Lerp(const Vector2& a, const Vector2& b, F32 t);
 	static Vector3 Lerp(const Vector3& a, const Vector3& b, F32 t);
 	static Vector4 Lerp(const Vector4& a, const Vector4& b, F32 t);
-	static F32 InvLerp(F32 a, F32 b, F32 t) { return (t - a) / (b - a); }
-	static F64 InvLerp(F64 a, F64 b, F64 t) { return (t - a) / (b - a); }
-	static F32 MoveTowards(F32 a, F32 b, F32 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
-	static F64 MoveTowards(F64 a, F64 b, F64 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
+	static NH_INLINE F32 InvLerp(F32 a, F32 b, F32 t) { return (t - a) / (b - a); }
+	static NH_INLINE F64 InvLerp(F64 a, F64 b, F64 t) { return (t - a) / (b - a); }
+	static NH_INLINE F32 MoveTowards(F32 a, F32 b, F32 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
+	static NH_INLINE F64 MoveTowards(F64 a, F64 b, F64 t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
 
 	//NOISE
 	static F64 Simplex1(F64 x);
@@ -198,21 +225,21 @@ public:
 	static F32 RandomRangeF(F32 min, F32 max, U32 seed = 0);
 
 	//OTHER
-	static bool PowerOfTwo(U8  n) { return (n != 0) && ((n & (n - 1)) == 0); }
-	static bool PowerOfTwo(U16 n) { return (n != 0) && ((n & (n - 1)) == 0); }
-	static bool PowerOfTwo(U32 n) { return (n != 0) && ((n & (n - 1)) == 0); }
-	static bool PowerOfTwo(U64 n) { return (n != 0) && ((n & (n - 1)) == 0); }
+	static NH_INLINE bool PowerOfTwo(U8  n) { return (n != 0) && ((n & (n - 1)) == 0); }
+	static NH_INLINE bool PowerOfTwo(U16 n) { return (n != 0) && ((n & (n - 1)) == 0); }
+	static NH_INLINE bool PowerOfTwo(U32 n) { return (n != 0) && ((n & (n - 1)) == 0); }
+	static NH_INLINE bool PowerOfTwo(U64 n) { return (n != 0) && ((n & (n - 1)) == 0); }
 
-	static U32 Length(I32 i) { return ((bool)i * (U32)Log10((F32)Abs(i)) + 1); }
-	static U32 Length(U32 i) { return ((bool)i * (U32)Log10((F32)i) + 1); }
-	static U32 Length(I64 i) { return ((bool)i * (U32)Log10((F32)Abs(i)) + 1); }
-	static U32 Length(U64 i) { return ((bool)i * (U32)Log10((F32)i) + 1); }
-	static U32 Length(F32 f) { return ((bool)(I64)f * (U32)Log10(Abs(f)) + 1); }
-	static U32 Length(F64 f) { return ((bool)(I64)f * (U32)Log10(Abs(f)) + 1); }
+	static NH_INLINE U32 Length(I32 i) { return ((bool)i * (U32)Log10((F32)Abs(i)) + 1); }
+	static NH_INLINE U32 Length(U32 i) { return ((bool)i * (U32)Log10((F32)i) + 1); }
+	static NH_INLINE U32 Length(I64 i) { return ((bool)i * (U32)Log10((F32)Abs(i)) + 1); }
+	static NH_INLINE U32 Length(U64 i) { return ((bool)i * (U32)Log10((F32)i) + 1); }
+	static NH_INLINE U32 Length(F32 f) { return ((bool)(I64)f * (U32)Log10(Abs(f)) + 1); }
+	static NH_INLINE U32 Length(F64 f) { return ((bool)(I64)f * (U32)Log10(Abs(f)) + 1); }
 
 	//HASHING
-	static U64 Hash(const struct String& str, U64 max);
-	static U64 Hash(U64 value, U64 max);
+	static U64 Hash(const struct String& str);
+	static U64 Hash(U64 value);
 private:
 
 	Math() = delete;
@@ -319,7 +346,8 @@ struct NH_API Vector2
 	NH_INLINE F32* Data() { return &x; }
 	NH_INLINE const F32* Data() const { return &x; }
 
-	operator Vector3();
+	explicit operator Vector3();
+	explicit operator Vector2Int();
 
 	static const Vector2 ONE;
 	static const Vector2 ZERO;

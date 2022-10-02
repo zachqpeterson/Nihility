@@ -67,7 +67,7 @@ void BoxTree::UpdateObj(PhysicsObject2D* obj)
 	InsertLeaf(index);
 }
 
-void BoxTree::Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result)
+bool BoxTree::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 {
 	Stack<U32> stack;
 	stack.Push(root);
@@ -85,7 +85,7 @@ void BoxTree::Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result)
 		{
 			if (node.Leaf() && node.obj->id != obj->id)
 			{
-				result.Push(node.obj);
+				//result.Push(node.obj);
 			}
 			else
 			{
@@ -94,9 +94,11 @@ void BoxTree::Query(PhysicsObject2D* obj, Vector<PhysicsObject2D*>& result)
 			}
 		}
 	}
+
+	return false;
 }
 
-void BoxTree::Query(const Box& box, Vector<PhysicsObject2D*>& result)
+bool BoxTree::Query(const Box& box, Vector<PhysicsObject2D*>& result)
 {
 	Stack<U32> stack;
 	stack.Push(root);
@@ -121,16 +123,18 @@ void BoxTree::Query(const Box& box, Vector<PhysicsObject2D*>& result)
 			}
 		}
 	}
+
+	return false;
 }
 
-void BoxTree::RaycastQuery(Raycast& ray, PhysicsObject2D* result)
+bool BoxTree::RaycastQuery(PhysicsObject2D* obj, PhysicsObject2D* result)
 {
-
+	return false;
 }
 
-void BoxTree::RaycastQueryAll(Raycast& ray, Vector<PhysicsObject2D*>& result)
+bool BoxTree::RaycastQueryAll(Raycast& ray, Vector<PhysicsObject2D*>& result)
 {
-
+	return false;
 }
 
 U32 BoxTree::Height() const

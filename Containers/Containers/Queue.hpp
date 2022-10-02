@@ -6,9 +6,9 @@
 #include "Core/Logger.hpp"
 
 template<typename T>
-struct NH_API Queue
+struct Queue
 {
-    struct NH_API Node
+    struct Node
     {
         Node(const T& value) : value{ value }, next{ nullptr }, prev{ nullptr } { }
         ~Node() { next = nullptr; prev = nullptr; }

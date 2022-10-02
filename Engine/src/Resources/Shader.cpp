@@ -7,7 +7,6 @@
 
 void Shader::Destroy()
 {
-	RendererFrontend::DestroyRenderpass(renderpass);
 	RendererFrontend::DestroyShader(this);
 
 	for (TextureMap* map : globalTextureMaps)
@@ -15,6 +14,13 @@ void Shader::Destroy()
 		RendererFrontend::ReleaseTextureMapResources(*map);
 	}
 
+	for (String& s : stageFilenames)
+	{
+		s.Destroy();
+	}
+
+	stageFilenames.Destroy();
+	stages.Destroy();
 	name.Destroy();
 }
 

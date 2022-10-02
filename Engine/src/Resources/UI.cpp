@@ -35,10 +35,14 @@ void UI::Shutdown()
 	{
 		if (e->isText)
 		{
-			((UIText*)e)->text.Destroy();
+			UIText* t = (UIText*)e;
+			t->text.Destroy();
 			Memory::Free(e, sizeof(UIText), MEMORY_TAG_UI);
 		}
-		else { Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI); }
+		else
+		{
+			Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI); 
+		}
 	}
 
 	elements.Clear();
@@ -160,6 +164,7 @@ void UI::CreateDescription()
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
+	goConfig.transform = new Transform2D();
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = false;
@@ -171,7 +176,7 @@ void UI::CreateDescription()
 
 UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 {
-	if (config.area.z <= config.area.x || config.area.w <= config.area.y)
+	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
 		Logger::Error("UI::GeneratePanel: Area can't be negative!");
 		return nullptr;
@@ -195,7 +200,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
 
-	Vector4 uiArea = config.area;
+	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
 
 	if (config.parent)
 	{
@@ -361,6 +366,8 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
+	goConfig.transform = new Transform2D();
+	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled;
@@ -374,7 +381,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 
 UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 {
-	if (config.area.z <= config.area.x || config.area.w <= config.area.y)
+	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
 		Logger::Error("UI::GenerateImage: Area can't be negative!");
 		return nullptr;
@@ -398,7 +405,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(texture);
 
-	Vector4 uiArea = config.area;
+	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
 
 	if (config.parent)
 	{
@@ -447,6 +454,8 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
+	goConfig.transform = new Transform2D();
+	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled;
@@ -463,7 +472,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	constexpr F32 heightScale = (1.0f / 1080.0f);
 	constexpr F32 widthScale = (1.0f / 1920.0f);
 
-	if (config.area.z <= config.area.x || config.area.w <= config.area.y)
+	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
 		Logger::Error("UI::GenerateText: Area can't be negative!");
 		return nullptr;
@@ -487,7 +496,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 
 	String name("UI_Element_{}", uiText->id);
 
-	Vector4 uiArea = config.area;
+	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
 
 	if (config.parent)
 	{
@@ -574,8 +583,8 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
-
-	uiText->mesh = meshes.Front();
+	goConfig.transform = new Transform2D();
+	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled;
@@ -589,39 +598,34 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 
 void UI::ChangeSize(UIElement* element, const Vector4& newArea)
 {
+	//TODO: 
+	if (element->isText)
+	{
+		//TODO: resize with alignment/Wrapping in mind
+	}
+	else
+	{
 
+	}
 }
 
 void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 {
-	Vector2 areaMove = ((Vector2)delta / (Vector2)RendererFrontend::WindowSize());
-	Vector3 move = areaMove * 2.0f;
+	Vector2 move = ((Vector2)delta / (Vector2)RendererFrontend::WindowSize());
+	Vector2 translate = move * 2.0f;
 
-	element->area.x += areaMove.x;
-	element->area.y += areaMove.y;
-	element->area.z += areaMove.x;
-	element->area.w += areaMove.y;
-
-	for (Vertex& v : element->mesh->vertices)
-	{
-		v.position += move;
-	}
-
-	RendererFrontend::CreateMesh(element->mesh);
+	element->gameObject->transform->Translate(translate);
+	element->area.x += move.x;
+	element->area.y += move.y;
+	element->area.z += move.x;
+	element->area.w += move.y;
 
 	for (UIElement* e : element->children)
 	{
-		e->area.x += areaMove.x;
-		e->area.y += areaMove.y;
-		e->area.z += areaMove.x;
-		e->area.w += areaMove.y;
-
-		for (Vertex& v : e->mesh->vertices)
-		{
-			v.position += move;
-		}
-
-		RendererFrontend::CreateMesh(e->mesh);
+		e->area.x += move.x;
+		e->area.y += move.y;
+		e->area.z += move.x;
+		e->area.w += move.y;
 	}
 }
 
@@ -645,10 +649,11 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	constexpr F32 heightScale = (1.0f / 1080.0f);
 	constexpr F32 widthScale = (1.0f / 1920.0f);
 
+	if (text == element->text && (Math::Zero(newSize) || Math::Zero(newSize - element->size))) { return; }
 	if (Math::Zero(newSize)) { newSize = element->size; }
 	element->size = newSize;
 
-	Resources::DestroyModel(element->gameObject->model);
+	if (element->gameObject->model) { Resources::DestroyModel(element->gameObject->model); }
 	element->text.Destroy();
 	element->text = text;
 
@@ -663,7 +668,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	F32 areaZ = 0.0f;
 	F32 areaY;
 
-	Vector<Mesh*> meshes;
+	Vector<Mesh*> meshes(text.Length());
 
 	F32 pixelHeight = (dimentions.y / 1080.0f) * (newSize * 2.666666666f);
 	F32 spacing = newSize / (F32)(dimentions.x * 2.2f);
@@ -694,8 +699,8 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 
 		meshConfig.vertices.Resize(4);
 
-		meshConfig.vertices[0] = Vertex{ { areaX, areaY,		id},	{ 0.0f, 0.0f },	Vector3::ZERO, element->color };
-		meshConfig.vertices[1] = Vertex{ { areaZ, areaY,		id},	{ 1.0f, 0.0f },	Vector3::ZERO, element->color };
+		meshConfig.vertices[0] = Vertex{ { areaX, areaY,	id},	{ 0.0f, 0.0f },	Vector3::ZERO, element->color };
+		meshConfig.vertices[1] = Vertex{ { areaZ, areaY,	id},	{ 1.0f, 0.0f },	Vector3::ZERO, element->color };
 		meshConfig.vertices[2] = Vertex{ { areaZ, uiArea.w,	id},	{ 1.0f, 1.0f }, Vector3::ZERO, element->color };
 		meshConfig.vertices[3] = Vertex{ { areaX, uiArea.w,	id},	{ 0.0f, 1.0f }, Vector3::ZERO, element->color };
 
@@ -727,7 +732,6 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	}
 
 	element->gameObject->model = Resources::CreateModel(name, meshes);
-	element->mesh = meshes.Front();
 }
 
 void UI::ShowDescription(const Vector2Int& position)
@@ -735,33 +739,20 @@ void UI::ShowDescription(const Vector2Int& position)
 	if (!description) { CreateDescription(); }
 
 	Vector2 pos = ((Vector2)position / (Vector2)RendererFrontend::WindowSize()) * 2.0f - 1.0f;
-	Vector3 move = (Vector3)(pos - descPos);
+	Vector2 move = pos - descPos;
 	descPos = pos;
+
 	description->gameObject->enabled = true;
-
-	//Move description
-
-	for (Vertex& v : description->mesh->vertices)
-	{
-		v.position += move;
-	}
-
-	RendererFrontend::CreateMesh(description->mesh);
+	description->gameObject->transform->Translate(move);
 }
 
 void UI::MoveDescription(const Vector2Int& position)
 {
 	Vector2 pos = ((Vector2)position / (Vector2)RendererFrontend::WindowSize()) * 2.0f - 1.0f;
-	Vector3 move = (Vector3)(pos - descPos);
+	Vector2 move = pos - descPos;
 	descPos = pos;
 	description->gameObject->enabled = true;
-
-	for (Vertex& v : description->mesh->vertices)
-	{
-		v.position += move;
-	}
-
-	RendererFrontend::CreateMesh(description->mesh);
+	description->gameObject->transform->Translate(move);
 }
 
 void UI::HideDescription()
