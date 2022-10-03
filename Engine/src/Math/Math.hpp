@@ -219,10 +219,11 @@ private:
 public:
 
 	//RANDOM
-	static I64 Random(U32 seed = 0);
-	static I64 RandomRange(I64 min, I64 max, U32 seed = 0);
-	static F32 RandomF(U32 seed = 0);
-	static F32 RandomRangeF(F32 min, F32 max, U32 seed = 0);
+	static void SeedRandom(U32 seed);
+	static I64 Random();
+	static I64 RandomRange(I64 min, I64 max);
+	static F32 RandomF();
+	static F32 RandomRangeF(F32 min, F32 max);
 
 	//OTHER
 	static NH_INLINE bool PowerOfTwo(U8  n) { return (n != 0) && ((n & (n - 1)) == 0); }

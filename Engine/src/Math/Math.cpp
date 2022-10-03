@@ -383,26 +383,29 @@ F64 Math::Grad(I64 hash, F64 x)
 }
 
 //RANDOM
-I64 Math::Random(U32 seed)
+void Math::SeedRandom(U32 seed)
 {
 	srand(seed);
+}
+
+I64 Math::Random()
+{
 	return rand();
 }
 
-I64 Math::RandomRange(I64 min, I64 max, U32 seed)
+I64 Math::RandomRange(I64 min, I64 max)
 {
-	srand(seed);
 	return (rand() % (max - min + 1)) + min;
 }
 
-F32 Math::RandomF(U32 seed)
+F32 Math::RandomF()
 {
-	return (F32)Random(seed) / (F32)RAND_MAX;
+	return (F32)Random() / (F32)RAND_MAX;
 }
 
-F32 Math::RandomRangeF(F32 min, F32 max, U32 seed)
+F32 Math::RandomRangeF(F32 min, F32 max)
 {
-	return min + ((F32)Random(seed) / ((F32)RAND_MAX) / (max - min));
+	return min + ((F32)Random() / ((F32)RAND_MAX) / (max - min));
 }
 
 //HASHING

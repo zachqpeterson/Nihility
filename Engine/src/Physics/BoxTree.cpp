@@ -34,6 +34,11 @@ void BoxTree::Destroy()
 void* BoxTree::operator new(U64 size) { return Memory::Allocate(sizeof(BoxTree), MEMORY_TAG_DATA_STRUCT); }
 void BoxTree::operator delete(void* ptr) { Memory::Free(ptr, sizeof(BoxTree), MEMORY_TAG_DATA_STRUCT); }
 
+void BoxTree::Update(List<List<Contact2D>>& contacts)
+{
+
+}
+
 void BoxTree::InsertObj(PhysicsObject2D* obj)
 {
 	U32 index = AllocateNode();

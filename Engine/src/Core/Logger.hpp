@@ -27,6 +27,8 @@ enum LogLevel
 #define LOG_TRACE_ENABLED 0
 #endif
 
+struct File;
+
 class NH_API Logger
 {
 public:
@@ -131,7 +133,7 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static struct File log;
+	static File log;
 
 	Logger() = delete;
 

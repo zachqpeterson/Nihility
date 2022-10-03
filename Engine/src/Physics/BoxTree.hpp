@@ -31,6 +31,8 @@ public:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
+	void Update(List<List<Contact2D>>& contacts) final;
+
 	void InsertObj(PhysicsObject2D* obj) final;
 	void RemoveObj(PhysicsObject2D* obj) final;
 	void UpdateObj(PhysicsObject2D* obj) final;

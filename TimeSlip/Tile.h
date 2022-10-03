@@ -12,7 +12,6 @@ public:
 	U8& operator[] (U8 i) { return (&wallID)[i]; }
 	const U8& operator[] (U8 i) const { return (&wallID)[i]; }
 
-private:
 	U8 wallID;
 	U8 blockID;
 	U8 decID;

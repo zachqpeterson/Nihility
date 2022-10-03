@@ -1,6 +1,7 @@
 #include "Physics.hpp"
 
 #include "Broadphase.hpp"
+#include "BoxTree.hpp"
 
 #include <Containers/Vector.hpp>
 
@@ -15,7 +16,7 @@ F32 Physics::gravity = 9.807f;
 
 bool Physics::Initialize()
 {
-	//TODO: Set default broadphase
+	broadphase = new BoxTree();
 
 	collision2DTable[BOX_COLLIDER][BOX_COLLIDER] = BoxVsBox;
 	collision2DTable[BOX_COLLIDER][CIRCLE_COLLIDER] = BoxVsCircle;
@@ -38,6 +39,7 @@ bool Physics::Initialize()
 
 void Physics::SetBroadphase(Broadphase* newBroadphase)
 {
+	delete broadphase;
 	broadphase = newBroadphase;
 }
 

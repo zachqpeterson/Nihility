@@ -169,6 +169,7 @@ void Memory::GetMemoryStats()
 		"PHYSICS    ",
 		"GAMEOBJECT ",
 		"UI         ",
+		"GAME       ",
 	};
 
 	U64 allocAmounts[MEMORY_TAG_MAX];

@@ -263,3 +263,8 @@ Vector2 RendererFrontend::ScreenToWorld(const Vector2& v)
 	
 	return { camPos.x + (F32)(v.x - (I32)framebufferWidth / 2) * 0.02857142857f, camPos.y + (F32)(v.y - (I32)framebufferHeight / 2) * 0.02857142857f };
 }
+
+void RendererFrontend::DrawGameObject(GameObject2D* go)
+{
+	activeScene->DrawGameObject(go);
+}

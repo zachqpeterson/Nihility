@@ -14,7 +14,7 @@
 #include <Physics/Physics.hpp>
 #include <Audio/Audio.hpp>
 
-#include "GridBroadphase.hpp"
+//#include "GridBroadphase.hpp"
 
 Scene* scene;
 GameObject2D* player;
@@ -99,8 +99,8 @@ bool init()
 	scene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 	scene->GetCamera()->SetPosition({ 55.0f, 90.0f, 10.0f });
 
-	GridBroadphase* bp = new GridBroadphase(5600, 1600);
-	Physics::SetBroadphase(bp);
+	//GridBroadphase* bp = new GridBroadphase(5600, 1600);
+	//Physics::SetBroadphase(bp);
 
 	MeshConfig dirtConfig;
 	dirtConfig.name = "Dirt";
@@ -138,7 +138,7 @@ bool init()
 		goConfig.transform = transform;
 		goConfig.model = dirtModel;
 
-		bp->ChangeTile(i, 100, 1);
+		//bp->ChangeTile(i, 100, 1);
 
 		GameObject2D* gameObject = Resources::CreateGameObject2D(goConfig);
 		scene->DrawGameObject(gameObject);
@@ -153,7 +153,7 @@ bool init()
 	wallConfig0.transform = wallTransform0;
 	wallConfig0.model = dirtModel;
 
-	bp->ChangeTile(50, 99, 1);
+	//bp->ChangeTile(50, 99, 1);
 
 	GameObject2D* wall0 = Resources::CreateGameObject2D(wallConfig0);
 	scene->DrawGameObject(wall0);
@@ -167,7 +167,7 @@ bool init()
 	wallConfig1.transform = wallTransform1;
 	wallConfig1.model = dirtModel;
 
-	bp->ChangeTile(59, 99, 1);
+	//bp->ChangeTile(59, 99, 1);
 
 	GameObject2D* wall1 = Resources::CreateGameObject2D(wallConfig1);
 	scene->DrawGameObject(wall1);
@@ -181,7 +181,7 @@ bool init()
 	wallConfig2.transform = wallTransform2;
 	wallConfig2.model = dirtModel;
 
-	bp->ChangeTile(55, 98, 1);
+	//bp->ChangeTile(55, 98, 1);
 
 	GameObject2D* wall2 = Resources::CreateGameObject2D(wallConfig2);
 	scene->DrawGameObject(wall2);

@@ -65,6 +65,7 @@ public:
 	static NH_API Vector2Int WindowSize();
 	static NH_API Vector2 ScreenToWorld(const Vector2& v);
 
+	static NH_API void DrawGameObject(GameObject2D* go);
 	static NH_API void UseScene(Scene* scene) { activeScene = scene; } //TODO: scene change event
 	static const Scene* CurrentScene() { return activeScene; }
 

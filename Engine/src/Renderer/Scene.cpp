@@ -101,7 +101,8 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 		for (U64 i = 0; i < size; ++i)
 		{
-			MeshRenderData&& data = Move(list.renderData.PopFront());
+			MeshRenderData&& dataTemp = Move(list.renderData.PopFront());
+			MeshRenderData data = dataTemp;
 			Material& material = data.mesh->material;
 
 			bool needsUpdate = material.renderFrameNumber != frameNumber;
