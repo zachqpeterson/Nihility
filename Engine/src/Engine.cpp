@@ -98,7 +98,7 @@ void Engine::MainLoop()
 			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { -2.0f, 11.0f });
 		}
 
-		if (Input::OnButtonDown(S))
+		if (Input::OnButtonDown(Y))
 		{
 			Memory::GetMemoryStats();
 		}

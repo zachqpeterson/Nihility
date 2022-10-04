@@ -11,7 +11,7 @@ enum WorldSize
 };
 
 struct Tile;
-class Class;
+class Chunk;
 
 class World
 {

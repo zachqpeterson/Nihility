@@ -2,8 +2,11 @@
 
 #include <Engine.hpp>
 #include <Renderer/RendererFrontend.hpp>
+#include <Renderer/Camera.hpp>
 #include <Renderer/Scene.hpp>
 #include <Physics/Physics.hpp>
+#include <Core/Input.hpp>
+#include <Core/Time.hpp>
 
 Scene* TimeSlip::mainMenuScene;
 Scene* TimeSlip::worldScene;
@@ -32,6 +35,11 @@ void TimeSlip::Shutdown()
 
 bool TimeSlip::Update()
 {
+	Vector3 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), (F32)(Input::ButtonDown(S) - Input::ButtonDown(W)), 0.0f };
+	move *= (F32)(Time::DeltaTime() * 10.0f);
+
+	worldScene->GetCamera()->Translate(move);
+
 	return true;
 }
 

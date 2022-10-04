@@ -12,6 +12,11 @@ Camera::Camera(const Vector4& bounds, F32 near, F32 far, const Vector3& position
     projection.SetOrthographic(bounds.x, bounds.y, bounds.z, bounds.w, near, far);
 }
 
+void Camera::Update()
+{
+    //Lerp position to target
+}
+
 const Vector3& Camera::Position() const
 {
     return position;
@@ -80,6 +85,11 @@ const Matrix4& Camera::View()
     }
 
     return viewMatrix;
+}
+
+void Camera::SetTarget(Transform2D* target)
+{
+    this->target = target;
 }
 
 Vector3 Camera::Forward()

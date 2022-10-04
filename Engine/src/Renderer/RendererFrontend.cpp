@@ -268,3 +268,8 @@ void RendererFrontend::DrawGameObject(GameObject2D* go)
 {
 	activeScene->DrawGameObject(go);
 }
+
+void RendererFrontend::UndrawGameObject(GameObject2D* go)
+{
+	activeScene->UndrawGameObject(go);
+}

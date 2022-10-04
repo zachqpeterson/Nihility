@@ -18,6 +18,8 @@ struct MaterialList
 	List<struct MeshRenderData> renderData;
 };
 
+struct GameObject2D;
+
 class Scene
 {
 public:
@@ -27,7 +29,8 @@ public:
 	void OnResize();
 	bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
-	NH_API void DrawGameObject(struct GameObject2D* gameObject);
+	NH_API void DrawGameObject(GameObject2D* gameObject);
+	NH_API void UndrawGameObject(GameObject2D* gameObject);
 
 	struct Camera* GetCamera() { return camera; }
 

@@ -19,6 +19,8 @@ struct Camera
 
     void* operator new(U64 size) { return Memory::Allocate(sizeof(Camera), MEMORY_TAG_RENDERER); }
     void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Camera), MEMORY_TAG_RENDERER); }
+    
+    void Update();
 
     NH_API const Vector3& Position() const;
     NH_API void SetPosition(const Vector3& position);
@@ -32,6 +34,7 @@ struct Camera
     NH_API void ChangeProjection(F32 fov, F32 aspect, F32 near, F32 far);
     NH_API void ChangeProjection(const Vector4& bounds, F32 near, F32 far);
     NH_API const Matrix4& View();
+    NH_API void SetTarget(Transform2D* target);
 
     NH_API Vector3 Forward();
     NH_API Vector3 Back();
@@ -49,4 +52,5 @@ private:
     bool dirty;
     Matrix4 projection;
     Matrix4 viewMatrix;
+    Transform2D* target;
 };

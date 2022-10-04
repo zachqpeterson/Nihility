@@ -141,3 +141,8 @@ void Scene::DrawGameObject(GameObject2D* gameObject)
 		gameObjects.PushBack(gameObject);
 	}
 }
+
+void Scene::UndrawGameObject(GameObject2D* gameObject)
+{
+	gameObjects.Remove(gameObject);
+}

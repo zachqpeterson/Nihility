@@ -15,6 +15,7 @@ struct Uniform;
 struct PushConstant;
 struct Vector2;
 struct Vector2Int;
+struct GameObject2D;
 class Scene;
 
 class RendererFrontend
@@ -27,8 +28,8 @@ public:
 	static bool BeginRenderpass(Renderpass* renderpass);
 	static bool EndRenderpass(Renderpass* renderpass);
 
-	static bool CreateMesh(Mesh* mesh);
-	static void DestroyMesh(Mesh* mesh);
+	static NH_API bool CreateMesh(Mesh* mesh);
+	static NH_API void DestroyMesh(Mesh* mesh);
 	static void DrawMesh(const MeshRenderData& Meshdata);
 
 	static void CreateTexture(Texture* texture, const Vector<U8>& pixels);
@@ -66,8 +67,9 @@ public:
 	static NH_API Vector2 ScreenToWorld(const Vector2& v);
 
 	static NH_API void DrawGameObject(GameObject2D* go);
+	static NH_API void UndrawGameObject(GameObject2D* go);
 	static NH_API void UseScene(Scene* scene) { activeScene = scene; } //TODO: scene change event
-	static const Scene* CurrentScene() { return activeScene; }
+	static NH_API Scene* CurrentScene() { return activeScene; }
 
 private:
 	RendererFrontend() = delete;
