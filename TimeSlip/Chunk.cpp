@@ -14,6 +14,8 @@ Chunk::~Chunk()
 
 }
 
+void* Chunk::operator new(U64 size) { return Memory::LinearAllocate(sizeof(Chunk)); }
+
 void Chunk::Load(const Vector2& pos)
 {
 	static U32 i = 0;
@@ -32,7 +34,7 @@ void Chunk::Load(const Vector2& pos)
 
 		Mesh* mesh = Resources::CreateMesh(config);
 		Vector<Mesh*> meshes(1, mesh);
-		Model* model = Resources::CreateModel("Dirt", meshes);
+		Model* model = Resources::CreateModel(name, meshes);
 
 		GameObject2DConfig goConfig{};
 		goConfig.name = name;
@@ -41,6 +43,8 @@ void Chunk::Load(const Vector2& pos)
 		gameObject = Resources::CreateGameObject2D(goConfig);
 		RendererFrontend::DrawGameObject(gameObject);
 	}
+
+
 }
 
 void Chunk::Unload()

@@ -24,9 +24,7 @@ World::World(I64 seed, WorldSize size) : SEED{ seed }, TILES_X{ (U16)size }, TIL
 
 	for (U16 i = 0; i < CHUNKS_X; ++i)
 	{
-		chunks[i] = (Chunk*)Memory::LinearAllocate(sizeof(Chunk));
-
-		chunks[i];
+		chunks[i] = new Chunk();
 	}
 
 	GridBroadphase* bp = new GridBroadphase(TILES_X, TILES_Y);
