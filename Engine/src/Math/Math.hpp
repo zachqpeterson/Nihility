@@ -417,6 +417,8 @@ struct NH_API Vector3
 	NH_INLINE F32* Data() { return &x; }
 	NH_INLINE const F32* Data() const { return &x; }
 
+	explicit operator Vector3Int();
+
 	static const Vector3 ONE;
 	static const Vector3 ZERO;
 	static const Vector3 RIGHT;

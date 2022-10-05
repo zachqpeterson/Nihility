@@ -689,8 +689,8 @@ void VulkanRenderer::DestroyMesh(Mesh* mesh)
 		}
 
 		Memory::Free(internalData, sizeof(VulkanMesh), MEMORY_TAG_RENDERER);
-		internalData->id = INVALID_ID;
-		internalData->generation = INVALID_ID;
+
+		mesh->internalData = nullptr;
 	}
 }
 

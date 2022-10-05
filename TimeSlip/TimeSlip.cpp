@@ -40,6 +40,8 @@ bool TimeSlip::Update()
 
 	worldScene->GetCamera()->Translate(move);
 
+	world->Update();
+
 	return true;
 }
 
@@ -50,5 +52,5 @@ void TimeSlip::LoadWorld()
 
 void TimeSlip::CreateWorld(WorldSize size)
 {
-	world = new World(0, size);
+	world = new World(10000000, size);
 }

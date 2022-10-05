@@ -162,8 +162,8 @@ bool Resources::Initialize()
 	textures(1009);
 	audio(1009);
 	fonts(29);
-	meshes(101);
-	models(101);
+	meshes(1009);
+	models(1009);
 	gameObjects2D(1009);
 	gameObjects3D(1009);
 

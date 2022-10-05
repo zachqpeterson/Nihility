@@ -22,6 +22,8 @@ public:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
+	void Update();
+
 	void GenerateWorld();
 
 private:

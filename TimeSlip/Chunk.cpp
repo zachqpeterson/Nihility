@@ -43,68 +43,78 @@ void Chunk::Load(const Vector2& pos)
 {
 	static U32 i = 0;
 
-	if (!gameObject)
+	if (!loaded)
 	{
-		String name("Chunk{}", i++);
-
-		Transform2D* transform = new Transform2D();
-		transform->Translate({ pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE });
-
-		MeshConfig config;
-		config.name = name;
-		config.MaterialName = "Tile.mat";
-		config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-		config.vertices.Resize(CHUNK_SIZE * CHUNK_SIZE * 4);
-		config.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
-
-		//Mesh data
-		U16 index = 0;
-
-		for (U16 x = 0; x < CHUNK_SIZE; ++x)
+		if (!gameObject)
 		{
-			for (U16 y = 0; y < CHUNK_SIZE; ++y)
+			String name("Chunk{}", i++);
+
+			Transform2D* transform = new Transform2D();
+			transform->Translate({ pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE });
+
+			MeshConfig config;
+			config.name = name;
+			config.MaterialName = "Tile.mat";
+			config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
+			config.vertices.Resize(CHUNK_SIZE * CHUNK_SIZE * 4);
+			config.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+
+			//Mesh data
+			U16 index = 0;
+
+			for (U16 x = 0; x < CHUNK_SIZE; ++x)
 			{
-				Vector3 worldPos{ (F32)(pos.x + x), (F32)(pos.y + y), 0.0f };
-
-				//for (U16 i = 0; i < 4; ++i)
+				for (U16 y = 0; y < CHUNK_SIZE; ++y)
 				{
-					for (U16 j = 0; j < 4; ++j)
+					Vector3 worldPos{ (F32)(x), (F32)(y), 0.0f };
+
+					//for (U16 i = 0; i < 4; ++i)
 					{
-						config.vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID };
+						for (U16 j = 0; j < 4; ++j)
+						{
+							config.vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID };
+						}
+
+						for (U16 j = 0; j < 6; ++j)
+						{
+							config.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+						}
+
+						//++index;
 					}
 
-					for (U16 j = 0; j < 6; ++j)
-					{
-						config.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
-					}
-
-					//++index;
+					++index;
 				}
-
-				++index;
 			}
+
+			Mesh* mesh = Resources::CreateMesh(config);
+			Vector<Mesh*> meshes(1, mesh);
+			Model* model = Resources::CreateModel(name, meshes);
+
+			GameObject2DConfig goConfig{};
+			goConfig.name = name;
+			goConfig.transform = transform;
+			goConfig.model = model;
+			gameObject = Resources::CreateGameObject2D(goConfig);
+			RendererFrontend::DrawGameObject(gameObject);
+			loaded = true;
 		}
-
-		Mesh* mesh = Resources::CreateMesh(config);
-		Vector<Mesh*> meshes(1, mesh);
-		Model* model = Resources::CreateModel(name, meshes);
-
-		GameObject2DConfig goConfig{};
-		goConfig.name = name;
-		goConfig.transform = transform;
-		goConfig.model = model;
-		gameObject = Resources::CreateGameObject2D(goConfig);
-		RendererFrontend::DrawGameObject(gameObject);
-	}
-	else
-	{
-		RendererFrontend::CreateMesh(gameObject->model->meshes.Front());
-		gameObject->enabled = true;
+		else
+		{
+			RendererFrontend::CreateMesh(gameObject->model->meshes.Front());
+			gameObject->enabled = true;
+			loaded = true;
+		}
 	}
 }
 
 void Chunk::Unload()
 {
-	gameObject->enabled = false;
-	RendererFrontend::DestroyMesh(gameObject->model->meshes.Front());
+	if (gameObject)
+	{
+		gameObject->enabled = false;
+		RendererFrontend::DestroyMesh(gameObject->model->meshes.Front());
+	}
+
+	loaded = false;
 }
