@@ -62,12 +62,14 @@ void Chunk::Load(const Vector2& pos)
 	{
 		if (!model) { model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_GAME); }
 
-
 		MeshConfig config;
 		config.MaterialName = "Tile.mat"; //Pre-Load materials
-		config.instanceTextures.Push(Resources::LoadTexture("DirtBlock.bmp"));
-		config.vertices.Resize(CHUNK_SIZE * CHUNK_SIZE * 4);
+		config.vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
+		config.vertexSize = sizeof(Vertex);
+		config.vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
 		config.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+
+		Vertex* vertices = (Vertex*)config.vertices;
 
 		//Mesh data
 		U16 index = 0;
@@ -84,7 +86,7 @@ void Chunk::Load(const Vector2& pos)
 				{
 					for (U16 j = 0; j < 4; ++j)
 					{
-						config.vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID };
+						vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID, 0 };
 					}
 
 					for (U16 j = 0; j < 6; ++j)

@@ -25,15 +25,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 {
 	switch (messageSeverity)
 	{
-	default:
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
 		Logger::Error(callbackData->pMessage); break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
 		Logger::Warn(callbackData->pMessage); break;
+#if LOG_TRACE_ENABLED
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
 		Logger::Info(callbackData->pMessage); break;
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
 		Logger::Trace(callbackData->pMessage); break;
+#endif
 	}
 
 	return VK_FALSE;
@@ -146,7 +147,7 @@ bool VulkanRenderer::CreateInstance(const String& applicationName)
 	Logger::Info("Creating vulkan instance...");
 
 	VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-	appInfo.apiVersion = VK_VERSION_1_3;
+	appInfo.apiVersion = VK_API_VERSION_1_3;
 	appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 2, 0);
 	appInfo.pApplicationName = (const char*)applicationName;
@@ -158,6 +159,7 @@ bool VulkanRenderer::CreateInstance(const String& applicationName)
 
 	Vector<const char*> extentionNames;
 	extentionNames.Push(VK_KHR_SURFACE_EXTENSION_NAME);
+	extentionNames.Push(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	GetPlatformExtentions(extentionNames);
 
 #ifdef NH_DEBUG
@@ -203,7 +205,9 @@ bool VulkanRenderer::CreateInstance(const String& applicationName)
 	instanceInfo.flags = NULL;
 	instanceInfo.pNext = nullptr;
 
-	return vkCreateInstance(&instanceInfo, rendererState->allocator, &rendererState->instance) == VK_SUCCESS;
+	VkResult r = vkCreateInstance(&instanceInfo, rendererState->allocator, &rendererState->instance);
+
+	return r == VK_SUCCESS;
 }
 
 bool VulkanRenderer::CreateDebugger()
@@ -453,7 +457,7 @@ bool VulkanRenderer::CreateBuffers()
 	VkMemoryPropertyFlagBits memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 	//TODO: Make this dynamic
-	const U64 vertexBufferSize = sizeof(Vertex) * 1024 * 1024;
+	const U64 vertexBufferSize = 64 * 1024 * 1024;
 
 	if (!rendererState->objectVertexBuffer->Create(rendererState, vertexBufferSize,
 		(VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
@@ -620,12 +624,6 @@ bool VulkanRenderer::EndRenderpass(Renderpass* renderpass)
 
 bool VulkanRenderer::CreateMesh(Mesh* mesh)
 {
-	if (mesh->vertices.Size() < 3)
-	{
-		Logger::Error("CreateMesh requires at least three vertices, vertex count provided: {}", mesh->vertices.Size());
-		return false;
-	}
-
 	VulkanMesh* internalData = (VulkanMesh*)mesh->internalData;
 
 	if (internalData)
@@ -647,11 +645,11 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh)
 	VkCommandPool pool = rendererState->device->graphicsCommandPool;
 	VkQueue queue = rendererState->device->graphicsQueue;
 
-	internalData->vertexCount = (U32)mesh->vertices.Size();
-	internalData->vertexElementSize = sizeof(Vertex);
-	U32 totalSize = (U32)mesh->vertices.Size() * sizeof(Vertex);
+	internalData->vertexCount = mesh->vertexCount;
+	internalData->vertexElementSize = mesh->vertexSize;
+	U32 totalSize = mesh->vertexCount * mesh->vertexSize;
 
-	if (!UploadDataRange(pool, nullptr, queue, rendererState->objectVertexBuffer, internalData->vertexBufferOffset, totalSize, mesh->vertices.Data()))
+	if (!UploadDataRange(pool, nullptr, queue, rendererState->objectVertexBuffer, internalData->vertexBufferOffset, totalSize, mesh->vertices))
 	{
 		Logger::Error("CreateMesh: Failed to upload to the vertex buffer!");
 		return false;

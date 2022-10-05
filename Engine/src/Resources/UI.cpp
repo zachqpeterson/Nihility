@@ -134,12 +134,15 @@ void UI::CreateDescription()
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
 
-	meshConfig.vertices.Resize(4);
+	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+	meshConfig.vertexSize = sizeof(UIVertex);
+	meshConfig.vertexCount = 4;
+	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-	meshConfig.vertices[0] = Vertex{ { description->area.x, description->area.y, 0.0f}, { 0.0f, 0.66666666666f },	Vector3::ZERO, color };
-	meshConfig.vertices[1] = Vertex{ { description->area.z, description->area.y, 0.0f}, { 1.0f, 0.66666666666f },	Vector3::ZERO, color };
-	meshConfig.vertices[2] = Vertex{ { description->area.z, description->area.w, 0.0f}, { 1.0f, 1.0f },				Vector3::ZERO, color };
-	meshConfig.vertices[3] = Vertex{ { description->area.x, description->area.w, 0.0f}, { 0.0f, 1.0f },				Vector3::ZERO, color };
+	vertices[0] = UIVertex{ { description->area.x, description->area.y, 0.0f}, { 0.0f, 0.66666666666f }, color };
+	vertices[1] = UIVertex{ { description->area.z, description->area.y, 0.0f}, { 1.0f, 0.66666666666f }, color };
+	vertices[2] = UIVertex{ { description->area.z, description->area.w, 0.0f}, { 1.0f, 1.0f }				, color };
+	vertices[3] = UIVertex{ { description->area.x, description->area.w, 0.0f}, { 0.0f, 1.0f }				, color };
 
 	meshConfig.indices.Resize(6);
 
@@ -221,52 +224,56 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 
 	if (bordered)
 	{
-		meshConfig.vertices.Resize(36);
+		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 36, MEMORY_TAG_RESOURCE);
+		meshConfig.vertexSize = sizeof(UIVertex);
+		meshConfig.vertexCount = 36;
+		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
+
 		//BOTTOM LEFT CORNER  
-		meshConfig.vertices[0] = Vertex{ { uiArea.x,				uiArea.y,					id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[1] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[2] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[3] = Vertex{ { uiArea.x,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	Vector3::ZERO, config.color };
+		vertices[0] = UIVertex{ { uiArea.x,				uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[1] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[2] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[3] = UIVertex{ { uiArea.x,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
 		//TOP LEFT CORNER		
-		meshConfig.vertices[4] = Vertex{ { uiArea.x,				uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[5] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[6] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[7] = Vertex{ { uiArea.x,				uiArea.w,					id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
+		vertices[4] = UIVertex{ { uiArea.x,				uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[5] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[6] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[7] = UIVertex{ { uiArea.x,				uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
 		//BOTTOM RIGHT CORNER
-		meshConfig.vertices[8] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[9] = Vertex{ { uiArea.z,				uiArea.y,					id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[10] = Vertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[11] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	Vector3::ZERO, config.color };
+		vertices[8] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[9] = UIVertex{ { uiArea.z,				uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[10] = UIVertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[11] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
 		//TOP RIGHT CORNER
-		meshConfig.vertices[12] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[13] = Vertex{ { uiArea.z,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[14] = Vertex{ { uiArea.z,				uiArea.w,					id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[15] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w,					id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
+		vertices[12] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[13] = UIVertex{ { uiArea.z,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[14] = UIVertex{ { uiArea.z,				uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[15] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w,					id}, { 1.0f, 0.33333333333f },	 config.color };
 		//LEFT SIDE 
-		meshConfig.vertices[16] = Vertex{ { uiArea.x,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[17] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[18] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[19] = Vertex{ { uiArea.x,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		//RIGHT SIDE 																														
-		meshConfig.vertices[20] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[21] = Vertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[22] = Vertex{ { uiArea.z,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[23] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			Vector3::ZERO, config.color };
-		//TOP SIDE																															
-		meshConfig.vertices[24] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[25] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[26] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[27] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.0f },			Vector3::ZERO, config.color };
-		//BOTTOM SIDE																														  
-		meshConfig.vertices[28] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[29] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[30] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[31] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	Vector3::ZERO, config.color };
-		//FILL																														
-		meshConfig.vertices[32] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[33] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[34] = Vertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 1.0f },			Vector3::ZERO, config.color };
-		meshConfig.vertices[35] = Vertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 1.0f },			Vector3::ZERO, config.color };
+		vertices[16] = UIVertex{ { uiArea.x,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.0f },			 config.color };
+		vertices[17] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
+		vertices[18] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[19] = UIVertex{ { uiArea.x,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.33333333333f },	 config.color };
+		//RIGHT SIDE 																									
+		vertices[20] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[21] = UIVertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[22] = UIVertex{ { uiArea.z,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.0f },			 config.color };
+		vertices[23] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
+		//TOP SIDE																										
+		vertices[24] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
+		vertices[25] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[26] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[27] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.0f },			 config.color };
+		//BOTTOM SIDE																									 
+		vertices[28] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[29] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.0f },			 config.color };
+		vertices[30] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
+		vertices[31] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		//FILL																											
+		vertices[32] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[33] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[34] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 1.0f },			 config.color };
+		vertices[35] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 1.0f },			 config.color };
 
 		meshConfig.indices.Resize(54);
 
@@ -335,12 +342,15 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	}
 	else
 	{
-		meshConfig.vertices.Resize(4);
+		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+		meshConfig.vertexSize = sizeof(UIVertex);
+		meshConfig.vertexCount = 4;
+		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		meshConfig.vertices[0] = Vertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[1] = Vertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[2] = Vertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f },				Vector3::ZERO, config.color };
-		meshConfig.vertices[3] = Vertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f },				Vector3::ZERO, config.color };
+		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f }, config.color };
+		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f }, config.color };
+		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }				, config.color };
+		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }				, config.color };
 
 		meshConfig.indices.Resize(6);
 
@@ -424,12 +434,15 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 
 	F32 id = (F32)image->id * 0.001f;
 
-	meshConfig.vertices.Resize(4);
+	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+	meshConfig.vertexSize = sizeof(UIVertex);
+	meshConfig.vertexCount = 4;
+	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-	meshConfig.vertices[0] = Vertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.0f }, Vector3::ZERO, config.color };
-	meshConfig.vertices[1] = Vertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.0f }, Vector3::ZERO, config.color };
-	meshConfig.vertices[2] = Vertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }, Vector3::ZERO, config.color };
-	meshConfig.vertices[3] = Vertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }, Vector3::ZERO, config.color };
+	vertices[0] = UIVertex{ { uiArea.x, uiArea.y, 0.0f}, { 0.0f, 0.66666666666f }, config.color };
+	vertices[1] = UIVertex{ { uiArea.z, uiArea.y, 0.0f}, { 1.0f, 0.66666666666f }, config.color };
+	vertices[2] = UIVertex{ { uiArea.z, uiArea.w, 0.0f}, { 1.0f, 1.0f }				, config.color };
+	vertices[3] = UIVertex{ { uiArea.x, uiArea.w, 0.0f}, { 0.0f, 1.0f }				, config.color };
 
 	meshConfig.indices.Resize(6);
 
@@ -546,12 +559,15 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 		areaZ = (((areaX + 1) * 0.5f) + (F32)meshConfig.instanceTextures.Back()->width / dimentions.x) * 2 - 1;
 		areaY = (((uiArea.w + 1) * 0.5f) - (F32)meshConfig.instanceTextures.Back()->height / dimentions.y) * 2 - 1;
 
-		meshConfig.vertices.Resize(4);
+		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+		meshConfig.vertexSize = sizeof(UIVertex);
+		meshConfig.vertexCount = 4;
+		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		meshConfig.vertices[0] = Vertex{ { areaX, areaY,	id},	{ 0.0f, 0.0f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[1] = Vertex{ { areaZ, areaY,	id},	{ 1.0f, 0.0f },	Vector3::ZERO, config.color };
-		meshConfig.vertices[2] = Vertex{ { areaZ, uiArea.w,	id},	{ 1.0f, 1.0f }, Vector3::ZERO, config.color };
-		meshConfig.vertices[3] = Vertex{ { areaX, uiArea.w,	id},	{ 0.0f, 1.0f }, Vector3::ZERO, config.color };
+		vertices[0] = UIVertex{ { areaX, areaY, id}, { 0.0f, 0.0f }, config.color };
+		vertices[1] = UIVertex{ { areaZ, areaY, id}, { 1.0f, 0.0f }, config.color };
+		vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }				, config.color };
+		vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }				, config.color };
 
 		meshConfig.indices.Resize(6);
 
@@ -631,9 +647,11 @@ void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 
 void UI::ChangeColor(UIElement* element, const Vector4& newColor)
 {
-	for (Vertex& v : element->mesh->vertices)
+	UIVertex* vertices = (UIVertex*)element->mesh->vertices;
+
+	for (U32 i = 0; i < element->mesh->vertexCount; i++)
 	{
-		v.color = newColor;
+		vertices[i].color = newColor;
 	}
 
 	RendererFrontend::CreateMesh(element->mesh);
@@ -697,12 +715,15 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		areaZ = (((areaX + 1) * 0.5f) + (F32)meshConfig.instanceTextures.Back()->width / dimentions.x) * 2 - 1;
 		areaY = (((uiArea.w + 1) * 0.5f) - (F32)meshConfig.instanceTextures.Back()->height / dimentions.y) * 2 - 1;
 
-		meshConfig.vertices.Resize(4);
+		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+		meshConfig.vertexSize = sizeof(UIVertex);
+		meshConfig.vertexCount = 4;
+		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		meshConfig.vertices[0] = Vertex{ { areaX, areaY,	id},	{ 0.0f, 0.0f },	Vector3::ZERO, element->color };
-		meshConfig.vertices[1] = Vertex{ { areaZ, areaY,	id},	{ 1.0f, 0.0f },	Vector3::ZERO, element->color };
-		meshConfig.vertices[2] = Vertex{ { areaZ, uiArea.w,	id},	{ 1.0f, 1.0f }, Vector3::ZERO, element->color };
-		meshConfig.vertices[3] = Vertex{ { areaX, uiArea.w,	id},	{ 0.0f, 1.0f }, Vector3::ZERO, element->color };
+		vertices[0] = UIVertex{ { areaX, areaY, id}, { 0.0f, 0.0f }, element->color };
+		vertices[1] = UIVertex{ { areaZ, areaY, id}, { 1.0f, 0.0f }, element->color };
+		vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }				, element->color };
+		vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }				, element->color };
 
 		meshConfig.indices.Resize(6);
 

@@ -568,6 +568,7 @@ void VulkanShader::SetUniform(RendererState* rendererState, Shader* shader, Unif
 {
 	if (uniform.type == FIELD_TYPE_SAMPLER)
 	{
+		//TODO: don't use setIndex
 		if (uniform.setIndex == SHADER_SCOPE_GLOBAL) { shader->globalTextureMaps[uniform.location] = (TextureMap*)value; }
 		else { instanceStates[shader->boundInstanceId].instanceTextureMaps[uniform.location] = *(TextureMap*)value; }
 	}

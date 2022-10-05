@@ -366,7 +366,10 @@ struct MeshConfig
 	String MaterialName;
 
 	Vector<Texture*> instanceTextures;
-	Vector<Vertex> vertices;
+
+	void* vertices;
+	U32 vertexCount;
+	U32 vertexSize;
 	Vector<U32> indices;
 
 	Vector3 center;
@@ -378,7 +381,9 @@ struct NH_API Mesh
 {
 	String name;
 	Material material;
-	Vector<Vertex> vertices;
+	void* vertices;
+	U32 vertexCount;
+	U32 vertexSize;
 	Vector<U32> indices;
 	void* internalData{ nullptr };
 };

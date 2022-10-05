@@ -16,7 +16,16 @@ struct Mesh;
 struct Model;
 struct Texture;
 struct GameObject2D;
+struct Vector3;
+struct Vector2;
 class Scene;
+
+struct UIVertex
+{
+	Vector3 position;
+	Vector2 uv;
+	Vector4 color;
+};
 
 struct UIElement
 {

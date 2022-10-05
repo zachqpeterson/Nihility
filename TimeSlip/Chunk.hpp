@@ -2,16 +2,22 @@
 
 #include <Defines.hpp>
 #include <Containers/Array.hpp>
+#include <Math/Math.hpp>
 
 #define CHUNK_SIZE 8
 
 struct Model;
-struct Vector2;
-struct Vector3;
 struct Tile;
 
 class Chunk
 {
+	struct Vertex
+	{
+		Vector3 position;
+		Vector2 uv;
+		U32 texId;
+	};
+
 public:
 	Chunk();
 	~Chunk();

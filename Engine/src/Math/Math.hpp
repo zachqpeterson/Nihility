@@ -1257,20 +1257,6 @@ struct NH_API Quaternion2D
 	static const Quaternion2D IDENTITY;
 };
 
-struct NH_API Vertex
-{
-	Vertex(Vector3 position, Vector2 uv, Vector3 normal = Vector3::ZERO, Vector4 color = Vector4::ONE, Vector4 tangent = Vector4::ZERO) :
-		position{ position }, normal{ normal }, uv{ uv }, color{ color }, tangent{ tangent }
-	{
-	}
-
-	Vector3 position;
-	Vector3 normal;
-	Vector2 uv;
-	Vector4 color; //TODO: Color struct
-	Vector4 tangent;
-};
-
 struct NH_API Transform3D
 {
 public:

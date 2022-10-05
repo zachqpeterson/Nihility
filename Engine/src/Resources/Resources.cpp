@@ -1499,7 +1499,7 @@ void Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instan
 
 	instance = *material;
 
-	if (instance.shader->useInstances && instanceTextures.Size())
+	if (instance.shader->useInstances)
 	{
 		for (Texture* t : instanceTextures)
 		{
@@ -1581,12 +1581,6 @@ Mesh* Resources::LoadMesh(const String& name)
 
 Mesh* Resources::CreateMesh(MeshConfig& config)
 {
-	if (config.vertices.Size() < 3)
-	{
-		Logger::Error("Create mesh requires at least three vertices, vertex count provided: {}", config.vertices.Size());
-		return nullptr;
-	}
-
 	if (config.name.Blank())
 	{
 		Logger::Error("Mesh name can not be blank or nullptr!");
@@ -1602,6 +1596,8 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 	}
 
 	mesh->vertices = config.vertices;
+	mesh->vertexCount = config.vertexCount;
+	mesh->vertexSize = config.vertexSize;
 	mesh->indices = config.indices;
 
 	if (!RendererFrontend::CreateMesh(mesh))
@@ -1624,6 +1620,8 @@ Mesh* Resources::CreateFreeMesh(MeshConfig& config)
 	Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 	mesh->name = config.name;
 	mesh->vertices = config.vertices;
+	mesh->vertexCount = config.vertexCount;
+	mesh->vertexSize = config.vertexSize;
 	mesh->indices = config.indices;
 
 	if (!RendererFrontend::CreateMesh(mesh))
@@ -1646,7 +1644,7 @@ void Resources::DestroyMesh(Mesh* mesh)
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
 	mesh->name.Destroy();
-	mesh->vertices.Destroy();
+	Memory::Free(mesh->vertices, mesh->vertexCount * mesh->vertexSize, MEMORY_TAG_RESOURCE);
 	mesh->indices.Destroy();
 	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }
@@ -1656,7 +1654,7 @@ void Resources::DestroyFreeMesh(Mesh* mesh)
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
 	mesh->name.Destroy();
-	mesh->vertices.Destroy();
+	Memory::Free(mesh->vertices, mesh->vertexCount * mesh->vertexSize, MEMORY_TAG_RESOURCE);
 	mesh->indices.Destroy();
 	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
 }
