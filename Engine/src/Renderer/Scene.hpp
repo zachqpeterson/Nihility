@@ -12,13 +12,18 @@ enum CameraType
 	CAMERA_TYPE_PERSPECTIVE
 };
 
+struct Material;
+struct MeshRenderData;
+
 struct MaterialList
 {
-	struct Material* material;
-	List<struct MeshRenderData> renderData;
+	Material* material;
+	List<MeshRenderData> renderData;
 };
 
 struct GameObject2D;
+struct Model;
+struct Camera;
 
 class Scene
 {
@@ -31,11 +36,14 @@ public:
 
 	NH_API void DrawGameObject(GameObject2D* gameObject);
 	NH_API void UndrawGameObject(GameObject2D* gameObject);
+	NH_API void DrawModel(Model* model);
+	NH_API void UndrawModel(Model* model);
 
-	struct Camera* GetCamera() { return camera; }
+	Camera* GetCamera() { return camera; }
 
 private:
-	struct Camera* camera;
+	Camera* camera;
 	Vector<MaterialList> meshes;
 	List<GameObject2D*> gameObjects;
+	List<Model*> models;
 };

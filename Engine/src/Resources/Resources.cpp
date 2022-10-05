@@ -1619,10 +1619,40 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 	return mesh;
 }
 
+Mesh* Resources::CreateFreeMesh(MeshConfig& config)
+{
+	Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
+	mesh->name = config.name;
+	mesh->vertices = config.vertices;
+	mesh->indices = config.indices;
+
+	if (!RendererFrontend::CreateMesh(mesh))
+	{
+		Logger::Error("Failed to create mesh '{}'", config.name);
+		Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
+		return nullptr;
+	}
+
+	if (config.MaterialName.Blank()) { GetMaterialInstance(DEFAULT_MATERIAL_NAME, config.instanceTextures, mesh->material); }
+	else { GetMaterialInstance(config.MaterialName, config.instanceTextures, mesh->material); }
+
+	return mesh;
+}
+
 void Resources::DestroyMesh(Mesh* mesh)
 {
 	meshes.Remove(mesh->name, nullptr);
 
+	DestroyMaterialInstance(mesh->material);
+	RendererFrontend::DestroyMesh(mesh);
+	mesh->name.Destroy();
+	mesh->vertices.Destroy();
+	mesh->indices.Destroy();
+	Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
+}
+
+void Resources::DestroyFreeMesh(Mesh* mesh)
+{
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
 	mesh->name.Destroy();
@@ -3703,14 +3733,14 @@ void Resources::RasterizeFont(FontBitmap& result, F32 flatnessInPixels, Vector<F
 				e[n].y1 = (p[b].y * y_scale_inv + shiftY) * vsubsample;
 				++n;
 			}
-		}
+	}
 
 		SortEdges(e, n);
 
 		RasterizeSortedEdges(result, e, n, vsubsample, xOff, yOff);
 
 		Memory::Free(e, sizeof(FontEdge) * (size + 1), MEMORY_TAG_RESOURCE);
-	}
+}
 }
 
 void Resources::RasterizeSortedEdges(FontBitmap& result, FontEdge* edge, I32 n, I32 vSubSample, I32 xOff, I32 yOff)

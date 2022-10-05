@@ -16,6 +16,7 @@ struct PushConstant;
 struct Vector2;
 struct Vector2Int;
 struct GameObject2D;
+struct Model;
 class Scene;
 
 class RendererFrontend
@@ -68,6 +69,8 @@ public:
 
 	static NH_API void DrawGameObject(GameObject2D* go);
 	static NH_API void UndrawGameObject(GameObject2D* go);
+	static NH_API void DrawModel(Model* model);
+	static NH_API void UndrawModel(Model* model);
 	static NH_API void UseScene(Scene* scene) { activeScene = scene; } //TODO: scene change event
 	static NH_API Scene* CurrentScene() { return activeScene; }
 

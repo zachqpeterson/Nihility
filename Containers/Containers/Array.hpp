@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Memory/Memory.hpp"
 
 template<typename T, U64 size>
 struct Array

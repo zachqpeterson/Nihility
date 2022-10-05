@@ -24,19 +24,34 @@ const U8 Chunk::INDEX_SEQUENCE[6]{
 	0, 1, 2, 2, 3, 0
 };
 
-Chunk::Chunk() : loaded{ false }, gameObject{ nullptr }, tiles{ nullptr }
+Chunk::Chunk() : loaded{ false }, model{ nullptr }, tiles{ nullptr }
 {
 
 }
 
 Chunk::~Chunk()
 {
-
+	
 }
 
-void Chunk::SetTiles(Tile** tiles)
+void Chunk::Destroy()
 {
-	this->tiles = tiles;
+	if (model)
+	{
+		for (Mesh* m : model->meshes)
+		{
+			Resources::DestroyFreeMesh(m);
+		}
+
+		model->meshes.Destroy();
+
+		Memory::Free(model, sizeof(Model), MEMORY_TAG_GAME);
+	}
+}
+
+Array<Tile*, CHUNK_SIZE>& Chunk::SetTiles()
+{
+	return tiles;
 }
 
 void Chunk::Load(const Vector2& pos)
@@ -45,75 +60,66 @@ void Chunk::Load(const Vector2& pos)
 
 	if (!loaded)
 	{
-		if (!gameObject)
+		if (!model) { model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_GAME); }
+
+
+		MeshConfig config;
+		config.MaterialName = "Tile.mat"; //Pre-Load materials
+		config.instanceTextures.Push(Resources::LoadTexture("DirtBlock.bmp"));
+		config.vertices.Resize(CHUNK_SIZE * CHUNK_SIZE * 4);
+		config.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+
+		//Mesh data
+		U16 index = 0;
+
+		Vector2 cPos = pos * CHUNK_SIZE;
+
+		for (U16 x = 0; x < CHUNK_SIZE; ++x)
 		{
-			String name("Chunk{}", i++);
-
-			Transform2D* transform = new Transform2D();
-			transform->Translate({ pos.x * CHUNK_SIZE, pos.y * CHUNK_SIZE });
-
-			MeshConfig config;
-			config.name = name;
-			config.MaterialName = "Tile.mat";
-			config.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));
-			config.vertices.Resize(CHUNK_SIZE * CHUNK_SIZE * 4);
-			config.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
-
-			//Mesh data
-			U16 index = 0;
-
-			for (U16 x = 0; x < CHUNK_SIZE; ++x)
+			for (U16 y = 0; y < CHUNK_SIZE; ++y)
 			{
-				for (U16 y = 0; y < CHUNK_SIZE; ++y)
+				Vector3 worldPos{ (F32)(cPos.x + x), (F32)(cPos.y + y), 0.0f };
+
+				//for (U16 i = 0; i < 4; ++i)
 				{
-					Vector3 worldPos{ (F32)(x), (F32)(y), 0.0f };
-
-					//for (U16 i = 0; i < 4; ++i)
+					for (U16 j = 0; j < 4; ++j)
 					{
-						for (U16 j = 0; j < 4; ++j)
-						{
-							config.vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID };
-						}
-
-						for (U16 j = 0; j < 6; ++j)
-						{
-							config.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
-						}
-
-						//++index;
+						config.vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID };
 					}
 
-					++index;
+					for (U16 j = 0; j < 6; ++j)
+					{
+						config.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+					}
+
+					//++index;
 				}
+
+				++index;
 			}
-
-			Mesh* mesh = Resources::CreateMesh(config);
-			Vector<Mesh*> meshes(1, mesh);
-			Model* model = Resources::CreateModel(name, meshes);
-
-			GameObject2DConfig goConfig{};
-			goConfig.name = name;
-			goConfig.transform = transform;
-			goConfig.model = model;
-			gameObject = Resources::CreateGameObject2D(goConfig);
-			RendererFrontend::DrawGameObject(gameObject);
-			loaded = true;
 		}
-		else
-		{
-			RendererFrontend::CreateMesh(gameObject->model->meshes.Front());
-			gameObject->enabled = true;
-			loaded = true;
-		}
+
+		Mesh* mesh = Resources::CreateFreeMesh(config);
+		model->meshes.Push(mesh);
+
+		RendererFrontend::DrawModel(model);
+
+		loaded = true;
 	}
 }
 
 void Chunk::Unload()
 {
-	if (gameObject)
+	if (model)
 	{
-		gameObject->enabled = false;
-		RendererFrontend::DestroyMesh(gameObject->model->meshes.Front());
+		RendererFrontend::UndrawModel(model);
+
+		for (Mesh* m : model->meshes)
+		{
+			Resources::DestroyFreeMesh(m);
+		}
+
+		model->meshes.Clear();
 	}
 
 	loaded = false;

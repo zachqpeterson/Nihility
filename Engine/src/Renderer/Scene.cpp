@@ -58,6 +58,18 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 		}
 	}
 
+	for (Model* model : models)
+	{
+		for (Mesh* m : model->meshes)
+		{
+			MeshRenderData data;
+			data.mesh = m;
+			data.model = Matrix4::IDENTITY;
+
+			meshes[m->material.id].renderData.PushBack(data);
+		}
+	}
+
 	String lastShaderName;
 
 	for (MaterialList& list : meshes)
@@ -145,4 +157,17 @@ void Scene::DrawGameObject(GameObject2D* gameObject)
 void Scene::UndrawGameObject(GameObject2D* gameObject)
 {
 	gameObjects.Remove(gameObject);
+}
+
+void Scene::DrawModel(Model* model)
+{
+	if (model)
+	{
+		models.PushBack(model);
+	}
+}
+
+void Scene::UndrawModel(Model* model)
+{
+	models.Remove(model);
 }

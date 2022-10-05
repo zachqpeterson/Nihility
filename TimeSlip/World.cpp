@@ -9,6 +9,7 @@
 #include <Renderer/RendererFrontend.hpp>
 #include <Renderer/Scene.hpp>
 #include <Renderer/Camera.hpp>
+#include <Containers/Array.hpp>
 
 #define VIEW_DISTANCE_X 3
 #define VIEW_DISTANCE_Y 2
@@ -38,14 +39,12 @@ World::World(I64 seed, WorldSize size) : SEED{ seed }, TILES_X{ (U16)size }, TIL
 		{
 			U16 tileY = y * CHUNK_SIZE;
 
-			Tile** chunkTiles = &tiles[tileX];
+			Array<Tile*, CHUNK_SIZE>& chunkTiles = chunks[x][y].SetTiles();
 
 			for (U16 i = 0; i < CHUNK_SIZE; ++i)
 			{
-				chunkTiles[i] = &chunkTiles[i][tileY];
+				chunkTiles[i] = tiles[tileX + i] + tileY;
 			}
-
-			chunks[x][y].SetTiles(chunkTiles);
 		}
 	}
 
@@ -60,12 +59,18 @@ World::World(I64 seed, WorldSize size) : SEED{ seed }, TILES_X{ (U16)size }, TIL
 
 World::~World()
 {
-
+	Destroy();
 }
 
 void World::Destroy()
 {
-
+	for (U16 x = 0; x < CHUNKS_X; ++x)
+	{
+		for (U16 y = 0; y < CHUNKS_Y; ++y)
+		{
+			chunks[x][y].Destroy();
+		}
+	}
 }
 
 void* World::operator new(U64 size) { return Memory::Allocate(sizeof(World), MEMORY_TAG_GAME); }
@@ -107,9 +112,11 @@ void World::GenerateWorld()
 		U16 height = (U16)((Math::Simplex1(x * 0.005 + SEED) * 25.0) +
 			(Math::Simplex1(x * 0.05 + SEED) * 5.0) + (TILES_Y / 2.0));
 
-		for (U16 y = 0; y < TILES_Y; ++y)
+		tiles[x][height].decID = 1;
+
+		for (U16 y = height; y < TILES_Y; ++y)
 		{
-			tiles[x][y].blockID = y > height;
+			tiles[x][y].blockID = 1;
 		}
 	}
 }

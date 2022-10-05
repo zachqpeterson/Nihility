@@ -1,10 +1,11 @@
 #pragma once
 
 #include <Defines.hpp>
+#include <Containers/Array.hpp>
 
 #define CHUNK_SIZE 8
 
-struct GameObject2D;
+struct Model;
 struct Vector2;
 struct Vector3;
 struct Tile;
@@ -15,16 +16,18 @@ public:
 	Chunk();
 	~Chunk();
 
+	void Destroy();
+
 	void Load(const Vector2& pos);
 	void Unload();
 
 private:
-	void SetTiles(Tile** tiles);
+	Array<Tile*, CHUNK_SIZE>& SetTiles();
 
 	bool loaded;
 
-	GameObject2D* gameObject; 
-	Tile** tiles;
+	Model* model;
+	Array<Tile*, CHUNK_SIZE> tiles;
 
 	static const Vector3 VERTEX_POSITIONS[4];
 	static const Vector2 UV_POSITIONS[4];

@@ -30,7 +30,7 @@ bool TimeSlip::Initialize()
 
 void TimeSlip::Shutdown()
 {
-
+	world->Destroy();
 }
 
 bool TimeSlip::Update()
