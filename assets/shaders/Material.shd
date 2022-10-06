@@ -12,15 +12,15 @@ attribute=vec4,inColor
 attribute=vec4,inTangent
 
 # NOTE: For scope: 0=global, 1=instance, 2=local
-uniform=mat4,0,0,projection
-uniform=mat4,0,0,view
-uniform=vec4,0,0,ambientColor
-uniform=vec3,0,0,viewPosition
-uniform=U32,0,0,mode
-uniform=samp,0,1,diffuseTexture
-uniform=samp,0,1,specularTexture
-uniform=samp,0,1,normalTexture
-uniform=vec4,1,0,diffuseColor
-uniform=F32,1,0,shininess
+uniform=mat4,0,0,0,projection
+uniform=mat4,0,0,0,view
+uniform=vec4,0,0,0,ambientColor
+uniform=vec3,0,0,0,viewPosition
+uniform=U32,0,0,0,mode
+uniform=samp,0,1,0,diffuseTexture
+uniform=samp,0,1,0,specularTexture
+uniform=samp,0,1,0,normalTexture
+uniform=vec4,1,0,1,diffuseColor
+uniform=F32,1,0,1,shininess
 
 push=mat4,model

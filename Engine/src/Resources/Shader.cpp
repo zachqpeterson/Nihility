@@ -38,13 +38,13 @@ bool Shader::AddUniform(Uniform uniform)
 		return false;
 	}
 
-	if (uniform.setIndex == SHADER_SCOPE_INSTANCE && !useInstances)
+	if (uniform.scope == SHADER_SCOPE_INSTANCE && !useInstances)
 	{
 		Logger::Error("Shader cannot add an instance uniform when useInstances is false.");
 		return false;
 	}
 
-	if (uniform.setIndex == SHADER_SCOPE_GLOBAL)
+	if (uniform.scope == SHADER_SCOPE_GLOBAL)
 	{
 		if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
@@ -70,7 +70,7 @@ bool Shader::AddUniform(Uniform uniform)
 		uniform.offset = globalUboSize;
 		globalUboSize += uniform.size;
 	}
-	else if (uniform.setIndex == SHADER_SCOPE_INSTANCE)
+	else if (uniform.scope == SHADER_SCOPE_INSTANCE)
 	{
 		if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
@@ -82,7 +82,7 @@ bool Shader::AddUniform(Uniform uniform)
 		instanceUboSize += uniform.size;
 	}
 
-	uniforms[uniform.setIndex].Push(uniform);
+	uniforms[uniform.scope].Push(uniform);
 
 	return true;
 }

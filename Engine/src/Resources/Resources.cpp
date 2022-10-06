@@ -1165,15 +1165,16 @@ Shader* Resources::LoadShader(const String& name)
 			{
 				Vector<String> fields(Move(varValue.Split(',', true)));
 
-				if (fields.Size() != 4) { Logger::Error("LoadShader: Invalid file layout. Uniform fields must be 'type,set,binding,name'. Skipping..."); }
+				if (fields.Size() != 5) { Logger::Error("LoadShader: Invalid file layout. Uniform fields must be 'type,set,binding,scope,name'. Skipping..."); }
 				else
 				{
 					Uniform uniform;
 					GetConfigType(fields.Front(), uniform.type, uniform.size);
 
-					uniform.name = fields[3];
+					uniform.name = fields[4];
 					uniform.setIndex = fields[1].ToU8();
 					uniform.bindingIndex = fields[2].ToU8();
+					uniform.scope = fields[3].ToU8();
 
 					shader->AddUniform(uniform);
 				}

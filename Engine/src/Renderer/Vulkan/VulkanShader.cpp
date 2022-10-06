@@ -568,13 +568,12 @@ void VulkanShader::SetUniform(RendererState* rendererState, Shader* shader, Unif
 {
 	if (uniform.type == FIELD_TYPE_SAMPLER)
 	{
-		//TODO: don't use setIndex
-		if (uniform.setIndex == SHADER_SCOPE_GLOBAL) { shader->globalTextureMaps[uniform.location] = (TextureMap*)value; }
+		if (uniform.scope == SHADER_SCOPE_GLOBAL) { shader->globalTextureMaps[uniform.location] = (TextureMap*)value; }
 		else { instanceStates[shader->boundInstanceId].instanceTextureMaps[uniform.location] = *(TextureMap*)value; }
 	}
 	else
 	{
-		U64 offset = uniform.setIndex == SHADER_SCOPE_GLOBAL ? shader->globalUboOffset : instanceStates[shader->boundInstanceId].offset;
+		U64 offset = uniform.scope == SHADER_SCOPE_GLOBAL ? shader->globalUboOffset : instanceStates[shader->boundInstanceId].offset;
 		Memory::Copy((U8*)mappedUniformBufferBlock + offset + uniform.offset, value, uniform.size);
 	}
 }
