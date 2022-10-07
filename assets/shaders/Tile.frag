@@ -16,5 +16,8 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    outColor = texture(texSamples[inTexId], inTexcoord) * objectUbo.diffuseColor;
+    vec2 texSize = vec2(24.0, 24.0) / textureSize(texSamples[inTexId], 0);
+    vec2 texCoord = inTexcoord.xy * texSize.xy;
+
+    outColor = texture(texSamples[inTexId], texCoord) * objectUbo.diffuseColor;
 }

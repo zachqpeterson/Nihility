@@ -1,0 +1,4 @@
+color=1.000000,1.000000,1.000000,1.000000
+shininess=0.000000
+globalTextureMaps=GrasslandGrass.bmp,DesertGrass.bmp,CopperOre.bmp,TinOre.bmp,CoalOre.bmp,IronOre.bmp
+shader=Decoration.shd

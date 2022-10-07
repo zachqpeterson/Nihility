@@ -107,6 +107,7 @@ const Vector4Int Vector4Int::INWARD = { 0,  0,  0, -1 };
 Vector2::operator Vector3() { return { x, y, 0.0f }; }
 Vector2::operator Vector2Int() { return { (I32)x, (I32)y, }; }
 Vector3::operator Vector3Int() { return { (I32)x, (I32)y, (I32)z }; }
+Vector3::operator Vector2Int() { return { (I32)x, (I32)y }; }
 
 const Matrix2 Matrix2::IDENTITY = { { 1.f, 0.f }, { 0.f, 1.f } };
 const Matrix3 Matrix3::IDENTITY = { { 1.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { 0.f, 0.f, 1.f } };

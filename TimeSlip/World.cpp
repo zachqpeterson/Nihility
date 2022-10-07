@@ -17,6 +17,7 @@
 World::World(I64 seed, WorldSize size) : SEED{ seed }, TILES_X{ (U16)size }, TILES_Y{ (U16)(TILES_X / 3.5f) }, CHUNKS_X{ (U16)(TILES_X / CHUNK_SIZE) }, CHUNKS_Y{ (U16)(TILES_Y / CHUNK_SIZE) }
 {
 	Math::SeedRandom((U32)seed);
+	Chunk::world = this;
 
 	tiles = (Tile**)Memory::LinearAllocate(sizeof(Tile*) * TILES_X);
 
@@ -105,6 +106,33 @@ void World::Update()
 	lastPos = posI;
 }
 
+Vector2 World::BlockUV(const Vector2Int& pos)
+{
+	return { 3.0f * (pos.y + 1 == TILES_Y || tiles[pos.x][pos.y + 1].blockID) + ((I16)pos.x ^ 2 * (I16)pos.y + SEED) % 3,
+		(pos.y - 1 < 0 || tiles[pos.x][pos.y - 1].blockID) +
+		((pos.x - 1 < 0 || tiles[pos.x - 1][pos.y].blockID) * 2.0f) +
+		((pos.x + 1 == TILES_X || tiles[pos.x + 1][pos.y].blockID) * 4.0f) };
+}
+
+Vector2 World::WallUV(const Vector2Int& pos)
+{
+	return { 3.0f * (pos.y + 1 == TILES_Y || tiles[pos.x][pos.y + 1].wallID) + ((I16)pos.x ^ 2 * (I16)pos.y + SEED) % 3,
+		(pos.y - 1 < 0 || tiles[pos.x][pos.y - 1].wallID) +
+		((pos.x - 1 < 0 || tiles[pos.x - 1][pos.y].wallID) * 2.0f) +
+		((pos.x + 1 == TILES_X || tiles[pos.x + 1][pos.y].wallID) * 4.0f) };
+}
+
+Vector2 World::DecorationUV(const Vector2Int& pos)
+{
+	return Vector2::ZERO;
+}
+
+Vector2 World::LiquidUV(const Vector2Int& pos)
+{
+	return Vector2::ZERO;
+}
+
+
 void World::GenerateWorld()
 {
 	for (U16 x = 0; x < TILES_X; ++x)
@@ -116,7 +144,8 @@ void World::GenerateWorld()
 
 		for (U16 y = height; y < TILES_Y; ++y)
 		{
-			tiles[x][y].blockID = 1;
+			tiles[x][y].blockID = 1 + (y > height + 10);
+			tiles[x][y].wallID = 1 + (y > height + 10);
 		}
 	}
 }

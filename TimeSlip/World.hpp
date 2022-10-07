@@ -11,6 +11,8 @@ enum WorldSize
 };
 
 struct Tile;
+struct Vector2;
+struct Vector2Int;
 class Chunk;
 
 class World
@@ -23,6 +25,11 @@ public:
 	void operator delete(void* ptr);
 
 	void Update();
+
+	Vector2 BlockUV(const Vector2Int& pos);
+	Vector2 WallUV(const Vector2Int& pos);
+	Vector2 DecorationUV(const Vector2Int& pos);
+	Vector2 LiquidUV(const Vector2Int& pos);
 
 	void GenerateWorld();
 

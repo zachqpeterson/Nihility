@@ -9,6 +9,8 @@
 struct Model;
 struct Tile;
 
+class World;
+
 class Chunk
 {
 	struct Vertex
@@ -38,6 +40,8 @@ private:
 	static const Vector3 VERTEX_POSITIONS[4];
 	static const Vector2 UV_POSITIONS[4];
 	static const U8 INDEX_SEQUENCE[6];
+
+	static World* world;
 
 	friend class World;
 };

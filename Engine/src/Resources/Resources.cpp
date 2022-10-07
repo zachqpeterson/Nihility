@@ -173,13 +173,15 @@ bool Resources::Initialize()
 	defaultNormal = LoadTexture(DEFAULT_NORMAL_TEXTURE_NAME);
 
 	defaultMaterialShader = LoadShader(DEFAULT_MATERIAL_SHADER_NAME);
-	//defaultUiShader = LoadShader(DEFAULT_UI_SHADER_NAME);
 
 	defaultMaterial = LoadMaterial(DEFAULT_MATERIAL_NAME);
 
 	//TODO: Temporary, Load all materials, create shaders
 	LoadMaterial("Background.mat");
-	LoadMaterial("Tile.mat");
+	LoadMaterial("Wall.mat");
+	LoadMaterial("Block.mat");
+	LoadMaterial("Decoration.mat");
+	LoadMaterial("Liquid.mat");
 	LoadMaterial("UI.mat");
 
 	CreateShaders();

@@ -11,7 +11,7 @@ void Shader::Destroy()
 
 	for (TextureMap* map : globalTextureMaps)
 	{
-		RendererFrontend::ReleaseTextureMapResources(*map);
+		if (map) { RendererFrontend::ReleaseTextureMapResources(*map); }
 	}
 
 	for (String& s : stageFilenames)
@@ -49,22 +49,7 @@ bool Shader::AddUniform(Uniform uniform)
 		if (uniform.type == FIELD_TYPE_SAMPLER)
 		{
 			uniform.location = (U16)globalTextureMaps.Size();
-
-			TextureMap defaultMap = {};
-			defaultMap.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
-			defaultMap.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
-			defaultMap.repeatU = defaultMap.repeatV = defaultMap.repeatW = TEXTURE_REPEAT_REPEAT;
-
-			if (!RendererFrontend::AcquireTextureMapResources(defaultMap))
-			{
-				Logger::Error("Failed to acquire resources for global texture map during shader creation.");
-				return false;
-			}
-
-			TextureMap* map = (TextureMap*)Memory::Allocate(sizeof(TextureMap), MEMORY_TAG_RENDERER);
-			*map = defaultMap;
-			map->texture = Resources::DefaultTexture();
-			globalTextureMaps.Push(map);
+			globalTextureMaps.Push({});
 		}
 
 		uniform.offset = globalUboSize;

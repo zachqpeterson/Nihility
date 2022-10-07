@@ -39,6 +39,9 @@ bool TimeSlip::Update()
 	move *= (F32)(Time::DeltaTime() * 10.0f);
 
 	worldScene->GetCamera()->Translate(move);
+	F32 camWidth = 0.6f;
+	F32 camHeight = 0.3375f;
+	worldScene->GetCamera()->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);
 
 	world->Update();
 
