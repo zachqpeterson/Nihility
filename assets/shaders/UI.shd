@@ -9,6 +9,6 @@ attribute=vec3,inPosition
 attribute=vec2,inTexcoord
 attribute=vec4,inColor
 
-uniform=samp,1,0,1,diffuseTexture
+uniform=samp,1,0,diffuseTexture
 
 push=mat4,model

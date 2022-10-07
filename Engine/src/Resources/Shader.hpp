@@ -48,7 +48,6 @@ struct Uniform
 	U32 size{ 0 };
 	U8 setIndex{ 0 };
 	U8 bindingIndex{ 0 };
-	U8 scope{ 0 };
 	FieldType type{ FIELD_TYPE_CUSTOM };
 };
 

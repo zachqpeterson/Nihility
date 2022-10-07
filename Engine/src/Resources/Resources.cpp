@@ -1154,8 +1154,8 @@ Shader* Resources::LoadShader(const String& name)
 				else
 				{
 					Attribute attribute;
-					GetConfigType(fields.Front(), attribute.type, attribute.size);
-					attribute.name = fields.Back();
+					GetConfigType(fields[0], attribute.type, attribute.size);
+					attribute.name = fields[1];
 					shader->AddAttribute(attribute);
 				}
 
@@ -1165,16 +1165,15 @@ Shader* Resources::LoadShader(const String& name)
 			{
 				Vector<String> fields(Move(varValue.Split(',', true)));
 
-				if (fields.Size() != 5) { Logger::Error("LoadShader: Invalid file layout. Uniform fields must be 'type,set,binding,scope,name'. Skipping..."); }
+				if (fields.Size() != 4) { Logger::Error("LoadShader: Invalid file layout. Uniform fields must be 'type,set,binding,name'. Skipping..."); }
 				else
 				{
 					Uniform uniform;
-					GetConfigType(fields.Front(), uniform.type, uniform.size);
+					GetConfigType(fields[0], uniform.type, uniform.size);
 
-					uniform.name = fields[4];
+					uniform.name = fields[3];
 					uniform.setIndex = fields[1].ToU8();
 					uniform.bindingIndex = fields[2].ToU8();
-					uniform.scope = fields[3].ToU8();
 
 					shader->AddUniform(uniform);
 				}
@@ -1189,8 +1188,8 @@ Shader* Resources::LoadShader(const String& name)
 				else
 				{
 					PushConstant pushConstant;
-					GetConfigType(fields.Front(), pushConstant.type, pushConstant.size);
-					pushConstant.name = fields.Back();
+					GetConfigType(fields[0], pushConstant.type, pushConstant.size);
+					pushConstant.name = fields[1];
 					shader->AddPushConstant(pushConstant);
 				}
 

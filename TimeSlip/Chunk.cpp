@@ -31,7 +31,7 @@ Chunk::Chunk() : loaded{ false }, model{ nullptr }, tiles{ nullptr }
 
 Chunk::~Chunk()
 {
-	
+
 }
 
 void Chunk::Destroy()
@@ -80,21 +80,19 @@ void Chunk::Load(const Vector2& pos)
 		{
 			for (U16 y = 0; y < CHUNK_SIZE; ++y)
 			{
-				Vector3 worldPos{ (F32)(cPos.x + x), (F32)(cPos.y + y), 0.0f };
-
-				//for (U16 i = 0; i < 4; ++i)
+				if (tiles[x][y].blockID)
 				{
+					Vector3 worldPos{ (F32)(cPos.x + x), (F32)(cPos.y + y), 0.0f };
+
 					for (U16 j = 0; j < 4; ++j)
 					{
-						vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j] * tiles[x][y].blockID, 0 };
+						vertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], UV_POSITIONS[j], 0 };
 					}
 
 					for (U16 j = 0; j < 6; ++j)
 					{
 						config.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
 					}
-
-					//++index;
 				}
 
 				++index;

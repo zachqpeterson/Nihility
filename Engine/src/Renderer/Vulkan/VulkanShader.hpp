@@ -66,8 +66,6 @@ public:
 
 	VkDescriptorPool descriptorPool;
 
-	U32 instanceDescriptorUboCount;
-	U32 globalDescriptorUboCount;
 	Vector<VkDescriptorSetLayout> descriptorSetLayouts;
 	Vector<VkDescriptorSet> globalDescriptorSets;
 

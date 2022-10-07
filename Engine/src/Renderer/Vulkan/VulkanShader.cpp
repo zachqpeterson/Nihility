@@ -59,24 +59,21 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 	{
 		if (u.bindingIndex >= config.descriptorSets[SHADER_SCOPE_GLOBAL].Size())
 		{
+			config.descriptorSets[SHADER_SCOPE_GLOBAL].Resize(u.bindingIndex + 1);
+		}
+
+		if (!config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex].descriptorCount)
+		{
 			VkDescriptorSetLayoutBinding binding{};
 			binding.binding = u.bindingIndex;
 			binding.descriptorCount = 1;
-			if (u.type == FIELD_TYPE_SAMPLER)
-			{
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			}
-			else
-			{
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				++globalDescriptorUboCount;
-			}
+			binding.descriptorType = u.type == FIELD_TYPE_SAMPLER ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; //TODO: dynamic
-			config.descriptorSets[SHADER_SCOPE_GLOBAL].Push(binding);
+			config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex] = binding;
 		}
-		else if (u.type == FIELD_TYPE_SAMPLER)
+		else
 		{
-			++config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex].descriptorCount;
+			config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex].descriptorCount += u.type == FIELD_TYPE_SAMPLER;
 		}
 	}
 
@@ -84,24 +81,21 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 	{
 		if (u.bindingIndex >= config.descriptorSets[SHADER_SCOPE_INSTANCE].Size())
 		{
+			config.descriptorSets[SHADER_SCOPE_INSTANCE].Resize(u.bindingIndex + 1);
+		}
+
+		if (!config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex].descriptorCount)
+		{
 			VkDescriptorSetLayoutBinding binding{};
 			binding.binding = u.bindingIndex;
 			binding.descriptorCount = 1;
-			if (u.type == FIELD_TYPE_SAMPLER)
-			{
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			}
-			else
-			{
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				++instanceDescriptorUboCount;
-			}
+			binding.descriptorType = u.type == FIELD_TYPE_SAMPLER ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; //TODO: dynamic
-			config.descriptorSets[SHADER_SCOPE_INSTANCE].Push(binding);
+			config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex] = binding;
 		}
-		else if (u.type == FIELD_TYPE_SAMPLER)
+		else
 		{
-			++config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex].descriptorCount;
+			config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex].descriptorCount += u.type == FIELD_TYPE_SAMPLER;
 		}
 	}
 
@@ -132,9 +126,9 @@ void VulkanShader::Destroy(RendererState* rendererState)
 	config.stages.Destroy();
 	config.poolSizes.Destroy();
 
-	for (Vector<VkDescriptorSetLayoutBinding>& v : config.descriptorSets)
+	for (Vector<VkDescriptorSetLayoutBinding>& s : config.descriptorSets)
 	{
-		v.Destroy();
+		s.Destroy();
 	}
 
 	config.descriptorSets.Destroy();
@@ -167,7 +161,6 @@ void VulkanShader::Destroy(RendererState* rendererState)
 	{
 		s.descriptorSets.Destroy();
 		s.instanceTextureMaps.Destroy();
-		//TODO: We may have to destroy the texture maps inside instanceTextureMaps
 	}
 
 	instanceStates.Destroy();
@@ -186,16 +179,16 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 	}
 
 	static const VkFormat types[11]{
-	    VK_FORMAT_R32_SFLOAT,
-	    VK_FORMAT_R32G32_SFLOAT,
-	    VK_FORMAT_R32G32B32_SFLOAT,
-	    VK_FORMAT_R32G32B32A32_SFLOAT,
-	    VK_FORMAT_R8_SINT,
-	    VK_FORMAT_R8_UINT,
-	    VK_FORMAT_R16_SINT,
-	    VK_FORMAT_R16_UINT,
-	    VK_FORMAT_R32_SINT,
-	    VK_FORMAT_R32_UINT
+		VK_FORMAT_R32_SFLOAT,
+		VK_FORMAT_R32G32_SFLOAT,
+		VK_FORMAT_R32G32B32_SFLOAT,
+		VK_FORMAT_R32G32B32A32_SFLOAT,
+		VK_FORMAT_R8_SINT,
+		VK_FORMAT_R8_UINT,
+		VK_FORMAT_R16_SINT,
+		VK_FORMAT_R16_UINT,
+		VK_FORMAT_R32_SINT,
+		VK_FORMAT_R32_UINT
 	};
 
 	U32 offset = 0;
@@ -296,70 +289,70 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
 {
 	U32 imageIndex = rendererState->imageIndex;
 	VkCommandBuffer commandBuffer = rendererState->graphicsCommandBuffers[imageIndex].handle;
-	VkDescriptorSet globalDescriptor = globalDescriptorSets[imageIndex];
 
-	Vector<VkWriteDescriptorSet> descriptorWrites(2);
+	VkDescriptorSet set = globalDescriptorSets[imageIndex];
 
-	U32 binding = 0;
+	Vector<VkWriteDescriptorSet> descriptorWrites(config.descriptorSets.Size());
 
-	VkWriteDescriptorSet uboWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-	VkDescriptorBufferInfo bufferInfo;
-
-	if (globalDescriptorUboCount)
-	{
-		bufferInfo.buffer = uniformBuffer->handle;
-		bufferInfo.offset = shader->globalUboOffset;
-		bufferInfo.range = shader->globalUboStride;
-
-		uboWrite.dstSet = globalDescriptorSets[imageIndex];
-		uboWrite.dstBinding = binding;
-		uboWrite.dstArrayElement = 0;
-		uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboWrite.descriptorCount = 1;
-		uboWrite.pBufferInfo = &bufferInfo;
-
-		descriptorWrites.Push(uboWrite);
-
-		++binding;
-	}
-
-	VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-
+	Vector<VkDescriptorBufferInfo> bufferInfos;
 	Vector<VkDescriptorImageInfo> imageInfos;
-	if (config.descriptorSets[SHADER_SCOPE_GLOBAL].Size() - globalDescriptorUboCount)
+
+	U32 textureIndex = 0;
+	U32 i = 0;
+
+	// TODO: determine if update is required.
+	for (const VkDescriptorSetLayoutBinding& b : config.descriptorSets[SHADER_SCOPE_GLOBAL])
 	{
-		U32 index = 0;
-		for (const VkDescriptorSetLayoutBinding& b : config.descriptorSets[SHADER_SCOPE_GLOBAL])
+		if (b.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			if (b.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			//TODO: This assumes there is only one UBO to write
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = uniformBuffer->handle;
+			bufferInfo.offset = shader->globalUboOffset;
+			bufferInfo.range = shader->globalUboStride;
+
+			bufferInfos.Push(bufferInfo);
+
+			VkWriteDescriptorSet uboWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			uboWrite.dstSet = set;
+			uboWrite.dstBinding = i;
+			uboWrite.dstArrayElement = 0;
+			uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboWrite.descriptorCount = 1;
+			uboWrite.pBufferInfo = &bufferInfos.Back();
+
+			descriptorWrites.Push(uboWrite);
+		}
+		else //NOTE: Assume it's a sampler
+		{
+			U32 first = (U32)imageInfos.Size();
+
+			U32 count = 0;
+			for (; count < b.descriptorCount; ++count)
 			{
-				for (U32 i = 0; i < b.descriptorCount; ++i)
-				{
-					TextureMap* map = shader->globalTextureMaps[index];
-					++index;
-					Texture* texture = map->texture;
-					VulkanImage* image = (VulkanImage*)texture->internalData;
+				TextureMap* map = shader->globalTextureMaps[textureIndex++];
+				VulkanImage* image = (VulkanImage*)map->texture->internalData;
 
-					VkDescriptorImageInfo imageInfo{};
-					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					imageInfo.imageView = image->view;
-					imageInfo.sampler = (VkSampler)map->internalData;
+				VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfo.imageView = image->view;
+				imageInfo.sampler = (VkSampler)map->internalData;
 
-					imageInfos.Push(imageInfo);
-				}
+				imageInfos.Push(imageInfo);
 			}
+
+			VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			samplerWrite.dstSet = set;
+			samplerWrite.dstBinding = i;
+			samplerWrite.dstArrayElement = 0;
+			samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			samplerWrite.descriptorCount = count;
+			samplerWrite.pImageInfo = &imageInfos[first];
+
+			descriptorWrites.Push(samplerWrite);
 		}
 
-		samplerWrite.dstSet = globalDescriptor;
-		samplerWrite.dstBinding = binding;
-		samplerWrite.dstArrayElement = 0;
-		samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerWrite.descriptorCount = (U32)imageInfos.Size();
-		samplerWrite.pImageInfo = imageInfos.Data();
-
-		descriptorWrites.Push(samplerWrite);
-
-		++binding;
+		++i;
 	}
 
 	if (descriptorWrites.Size())
@@ -367,7 +360,8 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
 		vkUpdateDescriptorSets(rendererState->device->logicalDevice, (U32)descriptorWrites.Size(), descriptorWrites.Data(), 0, nullptr);
 	}
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &globalDescriptor, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &set, 0, nullptr);
+
 	return true;
 }
 
@@ -381,76 +375,78 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, b
 
 	U32 imageIndex = rendererState->imageIndex;
 	VkCommandBuffer commandBuffer = rendererState->graphicsCommandBuffers[imageIndex].handle;
-
 	InstanceState* objectState = &instanceStates[shader->boundInstanceId];
-	VkDescriptorSet objectDescriptorSet = objectState->descriptorSets[imageIndex];
-
-	U32 binding = 0;
+	VkDescriptorSet set = objectState->descriptorSets[imageIndex];
 
 	if (needsUpdate)
 	{
-		Vector<VkWriteDescriptorSet> descriptorWrites(2);
+		Vector<VkWriteDescriptorSet> descriptorWrites(config.descriptorSets.Size());
 
-		VkWriteDescriptorSet uboDescriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		VkDescriptorBufferInfo bufferInfo;
-		if (instanceDescriptorUboCount)
+		Vector<VkDescriptorBufferInfo> bufferInfos;
+		Vector<VkDescriptorImageInfo> imageInfos;
+
+		U32 textureIndex = 0;
+		U32 i = 0;
+		// TODO: determine if update is required.
+		for (const VkDescriptorSetLayoutBinding& b : config.descriptorSets[SHADER_SCOPE_INSTANCE])
 		{
-			// TODO: determine if update is required.
-			bufferInfo.buffer = uniformBuffer->handle;
-			bufferInfo.offset = objectState->offset;
-			bufferInfo.range = shader->instanceUboStride;
-
-			uboDescriptor.dstSet = objectDescriptorSet;
-			uboDescriptor.dstBinding = binding;
-			uboDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uboDescriptor.descriptorCount = 1;
-			uboDescriptor.pBufferInfo = &bufferInfo;
-
-			descriptorWrites.Push(uboDescriptor);
-			++binding;
-		}
-
-		VkWriteDescriptorSet samplerDescriptor = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		Vector<VkDescriptorImageInfo> imageInfos(10);
-		if (config.descriptorSets[SHADER_SCOPE_INSTANCE].Size() - instanceDescriptorUboCount)
-		{
-			for (const VkDescriptorSetLayoutBinding& b : config.descriptorSets[SHADER_SCOPE_INSTANCE])
+			if (b.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 			{
-				if (b.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-				{
-					for (U32 i = 0; i < b.descriptorCount; ++i)
-					{
-						// TODO: only update in the list if actually needing an update
-						TextureMap& map = instanceStates[shader->boundInstanceId].instanceTextureMaps[i];
-						Texture* texture = map.texture;
-						VulkanImage* image = (VulkanImage*)texture->internalData;
+				//TODO: This assumes there is only one UBO to write
+				VkDescriptorBufferInfo bufferInfo{};
+				bufferInfo.buffer = uniformBuffer->handle;
+				bufferInfo.offset = objectState->offset;
+				bufferInfo.range = shader->instanceUboStride;
 
-						VkDescriptorImageInfo imageInfo{};
-						imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-						imageInfo.imageView = image->view;
-						imageInfo.sampler = (VkSampler)map.internalData;
+				bufferInfos.Push(bufferInfo);
 
-						imageInfos.Push(imageInfo);
+				VkWriteDescriptorSet uboWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				uboWrite.dstSet = set;
+				uboWrite.dstBinding = i;
+				uboWrite.dstArrayElement = 0;
+				uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				uboWrite.descriptorCount = 1;
+				uboWrite.pBufferInfo = &bufferInfos.Back();
 
-						// TODO: change up descriptor state to handle this properly.
-						// Sync frame generation if not using a default texture.
-						// if (t->generation != INVALID_ID) {
-						//     *descriptor_generation = t->generation;
-						//     *descriptor_id = t->id;
-						// }
-					}
-				}
+				descriptorWrites.Push(uboWrite);
 			}
+			else //NOTE: Assume it's a sampler
+			{
+				U32 first = (U32)imageInfos.Size();
 
-			samplerDescriptor.dstSet = objectDescriptorSet;
-			samplerDescriptor.dstBinding = binding;
-			samplerDescriptor.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			samplerDescriptor.descriptorCount = (U32)config.descriptorSets[SHADER_SCOPE_INSTANCE].Size() - instanceDescriptorUboCount;
-			samplerDescriptor.pImageInfo = imageInfos.Data();
+				U32 count = 0;
+				for (; count < b.descriptorCount; ++count)
+				{
+					// TODO: only update in the list if actually needing an update
+					TextureMap& map = instanceStates[shader->boundInstanceId].instanceTextureMaps[textureIndex++];
+					Texture* texture = map.texture;
+					VulkanImage* image = (VulkanImage*)texture->internalData;
 
-			descriptorWrites.Push(samplerDescriptor);
+					VkDescriptorImageInfo imageInfo{};
+					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					imageInfo.imageView = image->view;
+					imageInfo.sampler = (VkSampler)map.internalData;
 
-			++binding;
+					imageInfos.Push(imageInfo);
+
+					// TODO: change up descriptor state to handle this properly.
+					// Sync frame generation if not using a default texture.
+					// if (t->generation != INVALID_ID) {
+					//     *descriptor_generation = t->generation;
+					//     *descriptor_id = t->id;
+					// }
+				}
+
+				VkWriteDescriptorSet samplerWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				samplerWrite.dstSet = set;
+				samplerWrite.dstBinding = i;
+				samplerWrite.dstArrayElement = 0;
+				samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				samplerWrite.descriptorCount = count;
+				samplerWrite.pImageInfo = &imageInfos[first];
+
+				descriptorWrites.Push(samplerWrite);
+			}
 		}
 
 		if (descriptorWrites.Size())
@@ -459,7 +455,8 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, b
 		}
 	}
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 1, 1, &objectDescriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 1, 1, &set, 0, nullptr);
+
 	return true;
 }
 
@@ -503,6 +500,8 @@ U32 VulkanShader::AcquireInstanceResources(RendererState* rendererState, Shader*
 		instanceState.offset = 0;
 	}
 
+	instanceState.descriptorSets.Resize(descriptorSetLayouts.Size());
+
 	Vector<VkDescriptorSetLayout> layouts(rendererState->swapchain->imageCount, descriptorSetLayouts[SHADER_SCOPE_INSTANCE]);
 
 	VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -521,8 +520,7 @@ bool VulkanShader::ReleaseInstanceResources(RendererState* rendererState, Shader
 
 	vkDeviceWaitIdle(rendererState->device->logicalDevice);
 
-	VkCheck_ERROR(vkFreeDescriptorSets(rendererState->device->logicalDevice, descriptorPool,
-		(U32)instanceState.descriptorSets.Size(), instanceState.descriptorSets.Data()));
+	VkCheck_ERROR(vkFreeDescriptorSets(rendererState->device->logicalDevice, descriptorPool, (U32)instanceState.descriptorSets.Size(), instanceState.descriptorSets.Data()));
 
 	instanceState.instanceTextureMaps.Clear();
 
@@ -568,12 +566,12 @@ void VulkanShader::SetUniform(RendererState* rendererState, Shader* shader, Unif
 {
 	if (uniform.type == FIELD_TYPE_SAMPLER)
 	{
-		if (uniform.scope == SHADER_SCOPE_GLOBAL) { shader->globalTextureMaps[uniform.location] = (TextureMap*)value; }
+		if (uniform.setIndex == SHADER_SCOPE_GLOBAL) { shader->globalTextureMaps[uniform.location] = (TextureMap*)value; }
 		else { instanceStates[shader->boundInstanceId].instanceTextureMaps[uniform.location] = *(TextureMap*)value; }
 	}
 	else
 	{
-		U64 offset = uniform.scope == SHADER_SCOPE_GLOBAL ? shader->globalUboOffset : instanceStates[shader->boundInstanceId].offset;
+		U64 offset = uniform.setIndex == SHADER_SCOPE_GLOBAL ? shader->globalUboOffset : instanceStates[shader->boundInstanceId].offset;
 		Memory::Copy((U8*)mappedUniformBufferBlock + offset + uniform.offset, value, uniform.size);
 	}
 }

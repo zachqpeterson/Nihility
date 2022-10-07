@@ -10,7 +10,7 @@ layout(set = 1, binding = 0) uniform localUniformObject
     vec4 diffuseColor;
 } objectUbo;
 
-layout(set = 1, binding = 1) uniform sampler2D texSamples[];
+layout(set = 0, binding = 1) uniform sampler2D texSamples[];
 
 layout(location = 0) out vec4 outColor;
 
