@@ -15,6 +15,7 @@
 #include <Containers/Vector.hpp>
 #include "Math/Math.hpp"
 #include "Core/Events.hpp"
+#include "Core/Time.hpp"
 #include "Core/Settings.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
@@ -649,6 +650,7 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh)
 	internalData->vertexElementSize = mesh->vertexSize;
 	U32 totalSize = mesh->vertexCount * mesh->vertexSize;
 
+	//TODO: Upload vertex and index buffer with one Queue Submit
 	if (!UploadDataRange(pool, nullptr, queue, rendererState->objectVertexBuffer, internalData->vertexBufferOffset, totalSize, mesh->vertices))
 	{
 		Logger::Error("CreateMesh: Failed to upload to the vertex buffer!");

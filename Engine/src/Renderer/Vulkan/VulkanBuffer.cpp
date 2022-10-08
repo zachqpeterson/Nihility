@@ -5,6 +5,7 @@
 
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Time.hpp"
 
 bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageFlagBits usage,
     U32 memoryPropertyFlags, bool bindOnCreate, bool useFreelist)

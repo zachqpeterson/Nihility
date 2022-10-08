@@ -28,10 +28,10 @@ public:
 
 	Vector2 BlockUV(const Vector2Int& pos);
 	Vector2 WallUV(const Vector2Int& pos);
-	Vector2 DecorationUV(const Vector2Int& pos);
+	Vector2 DecorationUV(const Vector2Int& pos, U8 id);
 	Vector2 LiquidUV(const Vector2Int& pos);
 
-	void GenerateWorld();
+	F32 GenerateWorld();
 
 private:
 	const I64 SEED;

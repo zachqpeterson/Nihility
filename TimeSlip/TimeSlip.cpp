@@ -23,7 +23,7 @@ bool TimeSlip::Initialize()
 	worldScene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 	RendererFrontend::UseScene(worldScene);
 
-	CreateWorld(WS_TEST);
+	CreateWorld(WS_SMALL);
 
 	return true;
 }
@@ -39,8 +39,8 @@ bool TimeSlip::Update()
 	move *= (F32)(Time::DeltaTime() * 10.0f);
 
 	worldScene->GetCamera()->Translate(move);
-	F32 camWidth = 0.6f;
-	F32 camHeight = 0.3375f;
+	F32 camWidth = 2.1f;
+	F32 camHeight = 1.18125f;
 	worldScene->GetCamera()->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);
 
 	world->Update();

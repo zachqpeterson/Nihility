@@ -1,11 +1,12 @@
 #include "Chunk.hpp"
 
-#include "Tile.h"
+#include "Tile.hpp"
 #include "World.hpp"
 
 #include <Resources/Resources.hpp>
 #include <Renderer/RendererFrontend.hpp>
 #include <Math/Math.hpp>
+#include <Core/Time.hpp>
 
 World* Chunk::world;
 
@@ -63,7 +64,7 @@ void Chunk::Load(const Vector2& pos)
 
 	if (!loaded)
 	{
-		if (!model) { model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_GAME); }
+		if (!model) { model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_GAME); model->meshes.Reserve(4); }
 
 		MeshConfig blockConfig;
 		blockConfig.MaterialName = "Block.mat"; //TODO: Pre-Load materials
@@ -140,7 +141,7 @@ void Chunk::Load(const Vector2& pos)
 
 				if (tiles[x][y].decID)
 				{
-					Vector2 uv = world->DecorationUV((Vector2Int)worldPos);
+					Vector2 uv = world->DecorationUV((Vector2Int)worldPos, tiles[x][y].decID);
 
 					for (U16 j = 0; j < 4; ++j)
 					{

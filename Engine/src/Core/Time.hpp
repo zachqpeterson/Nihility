@@ -2,14 +2,14 @@
 
 #include "Defines.hpp"
 
-class Time
+class NH_API Time
 {
 public:
-	static NH_API const F64& DeltaTime();
-	static NH_API const F64 UpTime();
-	static NH_API const F64 TimeSinceLastFrame();
-	static NH_API const F64& FrameEndTime();
-	static NH_API const U16& FrameRate();
+	static const F64& DeltaTime();
+	static const F64 UpTime();
+	static const F64 TimeSinceLastFrame();
+	static const F64& FrameEndTime();
+	static const U16& FrameRate();
 
 private:
 	static bool Initialize();
@@ -29,7 +29,7 @@ private:
 	friend class Engine;
 };
 
-struct Timer
+struct NH_API Timer
 {
 	Timer();
 

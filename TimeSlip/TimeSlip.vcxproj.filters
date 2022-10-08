@@ -38,7 +38,7 @@
     <ClInclude Include="World.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tile.h">
+    <ClInclude Include="Tile.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Chunk.hpp">

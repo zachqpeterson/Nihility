@@ -4,11 +4,13 @@
 
 #include "Memory/Memory.hpp"
 #include "Core/File.hpp"
+#include "Core/Time.hpp"
 #include "Renderer/RendererFrontend.hpp"
-#include <Containers/List.hpp>
 #include "Containers/Heap.hpp"
 #include "Core/Settings.hpp"
 #include "Physics/Physics.hpp"
+
+#include <Containers/List.hpp>
 
 #undef LoadImage
 
@@ -1619,6 +1621,7 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 Mesh* Resources::CreateFreeMesh(MeshConfig& config)
 {
+	//TODO: Create a batch of meshes at once
 	Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 	mesh->name = config.name;
 	mesh->vertices = config.vertices;
@@ -1626,6 +1629,7 @@ Mesh* Resources::CreateFreeMesh(MeshConfig& config)
 	mesh->vertexSize = config.vertexSize;
 	mesh->indices = config.indices;
 
+	//TODO: Upload a batch of meshes at once 
 	if (!RendererFrontend::CreateMesh(mesh))
 	{
 		Logger::Error("Failed to create mesh '{}'", config.name);

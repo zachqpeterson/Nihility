@@ -1,6 +1,7 @@
 #include "VulkanCommandBuffer.hpp"
 
 #include "VulkanDevice.hpp"
+#include "Core/Time.hpp"
 
 void VulkanCommandBuffer::Allocate(RendererState* rendererState, VkCommandPool pool, bool isPrimary)
 {

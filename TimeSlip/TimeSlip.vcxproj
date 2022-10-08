@@ -144,7 +144,7 @@
   <ItemGroup>
     <ClInclude Include="Chunk.hpp" />
     <ClInclude Include="GridBroadphase.hpp" />
-    <ClInclude Include="Tile.h" />
+    <ClInclude Include="Tile.hpp" />
     <ClInclude Include="TimeSlip.hpp" />
     <ClInclude Include="World.hpp" />
   </ItemGroup>
