@@ -8,210 +8,222 @@
 #include "Core/Time.hpp"
 
 bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageFlagBits usage,
-    U32 memoryPropertyFlags, bool bindOnCreate, bool useFreelist)
+	U32 memoryPropertyFlags, bool bindOnCreate, bool useFreelist)
 {
-    hasFreelist = useFreelist;
-    totalSize = size;
-    this->usage = usage;
-    this->memoryPropertyFlags = memoryPropertyFlags;
+	hasFreelist = useFreelist;
+	totalSize = size;
+	this->usage = usage;
+	this->memoryPropertyFlags = memoryPropertyFlags;
 
-    if (useFreelist)
-    {
-        freelist = Move(Freelist(size));
-    }
+	if (useFreelist)
+	{
+		freelist = Move(Freelist(size));
+	}
 
-    VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
+	VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
 
-    VkCheck_ERROR(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &handle));
+	VkCheck_ERROR(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &handle));
 
-    VkMemoryRequirements requirements;
-    vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, handle, &requirements);
-    memoryIndex = rendererState->FindMemoryIndex(requirements.memoryTypeBits, memoryPropertyFlags);
-    if (memoryIndex == -1)
-    {
-        Logger::Error("Unable to create vulkan buffer because the required memory type index was not found.");
+	VkMemoryRequirements requirements;
+	vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, handle, &requirements);
+	memoryIndex = rendererState->FindMemoryIndex(requirements.memoryTypeBits, memoryPropertyFlags);
+	if (memoryIndex == -1)
+	{
+		Logger::Error("Unable to create vulkan buffer because the required memory type index was not found.");
 
-        freelist.Destroy();
-        return false;
-    }
+		freelist.Destroy();
+		return false;
+	}
 
-    VkMemoryAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-    allocateInfo.allocationSize = requirements.size;
-    allocateInfo.memoryTypeIndex = (U32)memoryIndex;
+	VkMemoryAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	allocateInfo.allocationSize = requirements.size;
+	allocateInfo.memoryTypeIndex = (U32)memoryIndex;
 
-    VkCheck_ERROR(vkAllocateMemory(
-        rendererState->device->logicalDevice,
-        &allocateInfo,
-        rendererState->allocator,
-        &memory));
+	VkCheck_ERROR(vkAllocateMemory(
+		rendererState->device->logicalDevice,
+		&allocateInfo,
+		rendererState->allocator,
+		&memory));
 
-    if (bindOnCreate)
-    {
-        Bind(rendererState, 0);
-    }
+	if (bindOnCreate)
+	{
+		Bind(rendererState, 0);
+	}
 
-    return true;
+	return true;
 }
 
 void VulkanBuffer::Destroy(RendererState* rendererState)
 {
-    if (hasFreelist) { freelist.Destroy(); }
+	if (hasFreelist) { freelist.Destroy(); }
 
-    if (memory)
-    {
-        vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
-        memory = nullptr;
-    }
+	if (memory)
+	{
+		vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
+		memory = nullptr;
+	}
 
-    if (handle)
-    {
-        vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
-        handle = nullptr;
-    }
+	if (handle)
+	{
+		vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
+		handle = nullptr;
+	}
 
-    totalSize = 0;
-    usage = (VkBufferUsageFlagBits)0;
-    locked = false;
+	totalSize = 0;
+	usage = (VkBufferUsageFlagBits)0;
+	locked = false;
 }
 
 bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue queue, VkCommandPool pool)
 {
-    if (newSize < totalSize)
-    {
-        Logger::Error("Resize requires that new size be larger than the old. Not doing this could lead to data loss.");
-        return false;
-    }
+	if (newSize < totalSize)
+	{
+		Logger::Error("Resize requires that new size be larger than the old. Not doing this could lead to data loss.");
+		return false;
+	}
 
-    if (hasFreelist)
-    {
-        if (!freelist.Resize(newSize))
-        {
-            Logger::Error("Resize failed to resize internal free list.");
-            freelist.Destroy();
-            return false;
-        }
-    }
+	if (hasFreelist)
+	{
+		if (!freelist.Resize(newSize))
+		{
+			Logger::Error("Resize failed to resize internal free list.");
+			freelist.Destroy();
+			return false;
+		}
+	}
 
-    totalSize = newSize;
+	totalSize = newSize;
 
-    VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    bufferInfo.size = newSize;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
+	VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	bufferInfo.size = newSize;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
 
-    VkBuffer newBuffer;
-    VkCheck(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &newBuffer));
+	VkBuffer newBuffer;
+	VkCheck(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &newBuffer));
 
-    VkMemoryRequirements requirements;
-    vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, newBuffer, &requirements);
+	VkMemoryRequirements requirements;
+	vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, newBuffer, &requirements);
 
-    VkMemoryAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-    allocateInfo.allocationSize = requirements.size;
-    allocateInfo.memoryTypeIndex = (U32)memoryIndex;
+	VkMemoryAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	allocateInfo.allocationSize = requirements.size;
+	allocateInfo.memoryTypeIndex = (U32)memoryIndex;
 
-    VkDeviceMemory newMemory;
-    VkCheck_ERROR(vkAllocateMemory(rendererState->device->logicalDevice, &allocateInfo, rendererState->allocator, &newMemory));
+	VkDeviceMemory newMemory;
+	VkCheck_ERROR(vkAllocateMemory(rendererState->device->logicalDevice, &allocateInfo, rendererState->allocator, &newMemory));
 
-    VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, newBuffer, newMemory, 0));
+	VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, newBuffer, newMemory, 0));
 
-    CopyTo(rendererState, pool, 0, queue, handle, 0, newBuffer, 0, totalSize);
+	CopyTo(rendererState, pool, 0, queue, handle, 0, newBuffer, 0, totalSize);
 
-    vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(rendererState->device->logicalDevice);
 
-    if (memory)
-    {
-        vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
-        memory = nullptr;
-    }
-    if (handle)
-    {
-        vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
-        handle = nullptr;
-    }
+	if (memory)
+	{
+		vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
+		memory = nullptr;
+	}
+	if (handle)
+	{
+		vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
+		handle = nullptr;
+	}
 
-    totalSize = newSize;
-    memory = newMemory;
-    handle = newBuffer;
+	totalSize = newSize;
+	memory = newMemory;
+	handle = newBuffer;
 
-    return true;
+	return true;
 }
 
 void VulkanBuffer::Bind(RendererState* rendererState, U64 offset)
 {
-    VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, handle, memory, offset));
+	VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, handle, memory, offset));
 }
 
 void* VulkanBuffer::LockMemory(RendererState* rendererState, U64 offset, U64 size, U32 flags)
 {
-    void* data;
-    VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size == U32_MAX ? VK_WHOLE_SIZE : size, flags, &data));
-    return data;
+	void* data;
+	VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size == U32_MAX ? VK_WHOLE_SIZE : size, flags, &data));
+	return data;
 }
 
 void VulkanBuffer::UnlockMemory(RendererState* rendererState)
 {
-    vkUnmapMemory(rendererState->device->logicalDevice, memory);
+	vkUnmapMemory(rendererState->device->logicalDevice, memory);
 }
 
 U64 VulkanBuffer::Allocate(U64 size)
 {
-    if (!size)
-    {
-        Logger::Error("VulkanBuffer::Allocate requires a nonzero size!");
-        return false;
-    }
+	if (!size)
+	{
+		Logger::Error("VulkanBuffer::Allocate requires a nonzero size!");
+		return false;
+	}
 
-    if (!hasFreelist)
-    {
-        Logger::Error("VulkanBuffer::Allocate called on a buffer not using freelists. Offset will not be valid. Call LoadData instead.");
-        return U32_MAX;
-    }
-    
-    return freelist.AllocateBlock(size);
+	if (!hasFreelist)
+	{
+		Logger::Error("VulkanBuffer::Allocate called on a buffer not using freelists. Offset will not be valid. Call LoadData instead.");
+		return U32_MAX;
+	}
+
+	return freelist.AllocateBlock(size);
 }
 
 bool VulkanBuffer::Free(U64 size, U64 offset)
 {
-    if (!size)
-    {
-        Logger::Error("Free requires valid buffer and a nonzero size.");
-        return false;
-    }
+	if (!size)
+	{
+		Logger::Error("Free requires valid buffer and a nonzero size.");
+		return false;
+	}
 
-    if (!hasFreelist)
-    {
-        Logger::Error("Allocate called on a buffer not using freelists. Nothing was done.");
-        return true;
-    }
+	if (!hasFreelist)
+	{
+		Logger::Error("Allocate called on a buffer not using freelists. Nothing was done.");
+		return true;
+	}
 
-    return freelist.FreeBlock(size, offset);
+	return freelist.FreeBlock(size, offset);
 }
 
 void VulkanBuffer::LoadData(RendererState* rendererState, U64 offset, U64 size, U32 flags, const void* data)
 {
-    void* dataPtr;
-    VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size, flags, &dataPtr));
-    Memory::Copy(dataPtr, data, size);
-    vkUnmapMemory(rendererState->device->logicalDevice, memory);
+	void* dataPtr;
+	VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size, flags, &dataPtr));
+	Memory::Copy(dataPtr, data, size);
+	vkUnmapMemory(rendererState->device->logicalDevice, memory);
 }
 
 void VulkanBuffer::CopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue,
-    VkBuffer source, U64 sourceOffset, VkBuffer dest, U64 destOffset, U64 size)
+	VkBuffer source, U64 sourceOffset, VkBuffer dest, U64 destOffset, U64 size)
 {
-    vkQueueWaitIdle(queue);
-    
-    VulkanCommandBuffer tempCommandBuffer;
-    tempCommandBuffer.AllocateAndBeginSingleUse(rendererState, pool);
+	vkQueueWaitIdle(queue);
 
-    VkBufferCopy copyRegion;
-    copyRegion.srcOffset = sourceOffset;
-    copyRegion.dstOffset = destOffset;
-    copyRegion.size = size;
+	VulkanCommandBuffer tempCommandBuffer;
+	tempCommandBuffer.AllocateAndBeginSingleUse(rendererState, pool);
 
-    vkCmdCopyBuffer(tempCommandBuffer.handle, source, dest, 1, &copyRegion);
+	VkBufferCopy copyRegion;
+	copyRegion.srcOffset = sourceOffset;
+	copyRegion.dstOffset = destOffset;
+	copyRegion.size = size;
 
-    tempCommandBuffer.EndSingleUse(rendererState, pool, queue);
+	vkCmdCopyBuffer(tempCommandBuffer.handle, source, dest, 1, &copyRegion);
+
+	tempCommandBuffer.EndSingleUse(rendererState, pool, queue);
+}
+
+void VulkanBuffer::BatchCopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue, VkBuffer source, VkBuffer dest, Vector<VkBufferCopy>& copies)
+{
+	vkQueueWaitIdle(queue);
+
+	VulkanCommandBuffer tempCommandBuffer;
+	tempCommandBuffer.AllocateAndBeginSingleUse(rendererState, pool);
+	
+	vkCmdCopyBuffer(tempCommandBuffer.handle, source, dest, (U32)copies.Size(), copies.Data());
+
+	tempCommandBuffer.EndSingleUse(rendererState, pool, queue);
 }

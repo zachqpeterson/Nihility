@@ -1621,7 +1621,6 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 Mesh* Resources::CreateFreeMesh(MeshConfig& config)
 {
-	//TODO: Create a batch of meshes at once
 	Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 	mesh->name = config.name;
 	mesh->vertices = config.vertices;
@@ -1629,7 +1628,6 @@ Mesh* Resources::CreateFreeMesh(MeshConfig& config)
 	mesh->vertexSize = config.vertexSize;
 	mesh->indices = config.indices;
 
-	//TODO: Upload a batch of meshes at once 
 	if (!RendererFrontend::CreateMesh(mesh))
 	{
 		Logger::Error("Failed to create mesh '{}'", config.name);
@@ -1641,6 +1639,36 @@ Mesh* Resources::CreateFreeMesh(MeshConfig& config)
 	else { GetMaterialInstance(config.MaterialName, config.instanceTextures, mesh->material); }
 
 	return mesh;
+}
+
+void Resources::BatchCreateFreeMeshes(Vector<MeshConfig>& configs, Vector<Mesh*>& meshes)
+{
+	meshes.Reserve(configs.Size());
+
+	for (MeshConfig& config : configs)
+	{
+		Mesh* mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
+		mesh->name = config.name;
+		mesh->vertices = config.vertices;
+		mesh->vertexCount = config.vertexCount;
+		mesh->vertexSize = config.vertexSize;
+		mesh->indices = config.indices;
+
+		if (config.MaterialName.Blank()) { GetMaterialInstance(DEFAULT_MATERIAL_NAME, config.instanceTextures, mesh->material); }
+		else { GetMaterialInstance(config.MaterialName, config.instanceTextures, mesh->material); }
+
+		meshes.Push(mesh);
+	}
+
+	if (!RendererFrontend::BatchCreateMeshes(meshes))
+	{
+		Logger::Error("Failed to batch create meshes!");
+
+		for (Mesh* mesh : meshes)
+		{
+			Memory::Free(mesh, sizeof(Mesh), MEMORY_TAG_RESOURCE);
+		}
+	}
 }
 
 void Resources::DestroyMesh(Mesh* mesh)

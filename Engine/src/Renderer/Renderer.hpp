@@ -28,6 +28,7 @@ public:
     virtual bool EndRenderpass(Renderpass* renderpass) = 0;
 
     virtual bool CreateMesh(Mesh* mesh) = 0;
+    virtual bool BatchCreateMeshes(Vector<Mesh*>& meshes) = 0;
     virtual void DestroyMesh(Mesh* mesh) = 0;
     virtual void DrawMesh(const MeshRenderData& Meshdata) = 0;
 

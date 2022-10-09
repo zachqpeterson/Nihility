@@ -107,6 +107,11 @@ bool RendererFrontend::CreateMesh(Mesh* mesh)
 	return renderer->CreateMesh(mesh);
 }
 
+bool RendererFrontend::BatchCreateMeshes(Vector<Mesh*>& meshes)
+{
+	return renderer->BatchCreateMeshes(meshes);
+}
+
 void RendererFrontend::DestroyMesh(Mesh* mesh)
 {
 	renderer->DestroyMesh(mesh);

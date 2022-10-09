@@ -18,6 +18,13 @@
 #include "Core/Time.hpp"
 #include "Core/Settings.hpp"
 
+struct DataUpload
+{
+	U32* outOffset;
+	U32 size;
+	const void* data;
+};
+
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -674,6 +681,75 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh)
 	return true;
 }
 
+bool VulkanRenderer::BatchCreateMeshes(Vector<Mesh*>& meshes)
+{
+	VkCommandPool pool = rendererState->device->graphicsCommandPool;
+	VkQueue queue = rendererState->device->graphicsQueue;
+
+	Vector<DataUpload> vertexUploads{ meshes.Size() };
+	Vector<DataUpload> indexUploads{ meshes.Size() };
+
+	for (Mesh* mesh : meshes)
+	{
+		VulkanMesh* internalData = (VulkanMesh*)mesh->internalData;
+
+		if (internalData)
+		{
+			FreeDataRange(rendererState->objectVertexBuffer, internalData->vertexBufferOffset, internalData->vertexElementSize * internalData->vertexCount);
+
+			if (internalData->indexElementSize > 0)
+			{
+				FreeDataRange(rendererState->objectIndexBuffer, internalData->indexBufferOffset, internalData->indexElementSize * internalData->indexCount);
+				internalData->indexCount = 0;
+			}
+		}
+		else
+		{
+			internalData = (VulkanMesh*)Memory::Allocate(sizeof(VulkanMesh), MEMORY_TAG_RENDERER);
+			mesh->internalData = internalData;
+		}
+
+		internalData->vertexCount = mesh->vertexCount;
+		internalData->vertexElementSize = mesh->vertexSize;
+		U32 totalSize = mesh->vertexCount * mesh->vertexSize;
+
+		DataUpload vertexUpload{};
+		vertexUpload.data = mesh->vertices;
+		vertexUpload.size = totalSize;
+		vertexUpload.outOffset = &internalData->vertexBufferOffset;
+		vertexUploads.Push(vertexUpload);
+
+		if (mesh->indices.Size())
+		{
+			internalData->indexCount = (U32)mesh->indices.Size();
+			internalData->indexElementSize = sizeof(U32);
+			totalSize = (U32)mesh->indices.Size() * sizeof(U32);
+
+			DataUpload indexUpload{};
+			indexUpload.data = mesh->indices.Data();
+			indexUpload.size = totalSize;
+			indexUpload.outOffset = &internalData->indexBufferOffset;
+			indexUploads.Push(indexUpload);
+		}
+
+		++internalData->generation;
+	}
+
+	if (!vertexUploads.Size() || !UploadDataRanges(pool, nullptr, queue, rendererState->objectVertexBuffer, vertexUploads))
+	{
+		Logger::Error("BatchCreateMeshes: Failed to upload mesh vertex data!");
+		return false;
+	}
+
+	if (!indexUploads.Size() || !UploadDataRanges(pool, nullptr, queue, rendererState->objectIndexBuffer, indexUploads))
+	{
+		Logger::Error("BatchCreateMeshes: Failed to upload mesh index data!");
+		return false;
+	}
+
+	return true;
+}
+
 void VulkanRenderer::DestroyMesh(Mesh* mesh)
 {
 	if (mesh && mesh->internalData)
@@ -1156,6 +1232,47 @@ bool VulkanRenderer::UploadDataRange(VkCommandPool pool, VkFence fence, VkQueue 
 	staging.LoadData(rendererState, 0, size, 0, data);
 
 	staging.CopyTo(rendererState, pool, fence, queue, staging.handle, 0, buffer->handle, outOffset, size);
+
+	staging.Destroy(rendererState);
+
+	return true;
+}
+
+bool VulkanRenderer::UploadDataRanges(VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, Vector<DataUpload>& uploads)
+{
+	U32 size = 0;
+
+	for (DataUpload& data : uploads)
+	{
+		size += data.size;
+		*data.outOffset = (U32)buffer->Allocate(data.size);
+		if (*data.outOffset == U32_MAX)
+		{
+			Logger::Error("UploadDataRange: Failed to allocate from the given buffer!");
+			return false;
+		}
+	}
+
+	VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	VulkanBuffer staging;
+	staging.Create(rendererState, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, false);
+
+	Vector<VkBufferCopy> copies{ uploads.Size() };
+	U32 offset = 0;
+	for (DataUpload& data : uploads)
+	{
+		VkBufferCopy copy{};
+		copy.srcOffset = offset;
+		copy.dstOffset = *data.outOffset;
+		copy.size = data.size;
+
+		copies.Push(copy);
+
+		staging.LoadData(rendererState, offset, data.size, 0, data.data);
+		offset += data.size;
+	}
+
+	staging.BatchCopyTo(rendererState, pool, fence, queue, staging.handle, buffer->handle, copies);
 
 	staging.Destroy(rendererState);
 

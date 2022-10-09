@@ -20,6 +20,7 @@ public:
     bool EndRenderpass(Renderpass* renderpass) final;
 
     bool CreateMesh(Mesh* mesh) final;
+    bool BatchCreateMeshes(Vector<Mesh*>& meshes) final;
     void DestroyMesh(Mesh* mesh) final;
     void DrawMesh(const MeshRenderData& Meshdata) final;
 
@@ -65,8 +66,6 @@ private: //VULKAN SPECIFIC FUNCTIONS
     void CreateCommandBuffers();
     void CreateSyncObjects();
     bool CreateBuffers();
-    bool CreateShaderModule(const String& name, const String& typeStr,
-        VkShaderStageFlagBits shaderStageFlag, U32 stageIndex, Vector<ShaderStage> shaderStages);
 
     void GetPlatformExtentions(Vector<const char*>& names);
     bool RegenerateRenderTargets();
@@ -75,6 +74,7 @@ private: //VULKAN SPECIFIC FUNCTIONS
     static VkFilter ConvertFilterType(TextureFilter filter);
     static VkSamplerAddressMode ConvertRepeatType(TextureRepeat repeat);
     static bool UploadDataRange(VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, U32& outOffset, U32 size, const void* data);
+    static bool UploadDataRanges(VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, Vector<struct DataUpload>& uploads);
     static void FreeDataRange(VulkanBuffer* buffer, U32 offset, U32 size);
 
     //Runtime

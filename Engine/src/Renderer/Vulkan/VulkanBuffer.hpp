@@ -19,6 +19,7 @@ public:
 	void LoadData(RendererState* rendererState, U64 offset, U64 size, U32 flags, const void* data);
 	void CopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue,
 		VkBuffer source, U64 sourceOffset, VkBuffer dest, U64 destOffset, U64 size);
+	void BatchCopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue, VkBuffer source, VkBuffer dest, Vector<VkBufferCopy>& copies);
 
 	VkBuffer handle{ nullptr };
 

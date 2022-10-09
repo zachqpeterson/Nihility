@@ -464,6 +464,7 @@ public:
 
 	static Mesh* CreateMesh(MeshConfig& config);
 	static Mesh* CreateFreeMesh(MeshConfig& config);
+	static void BatchCreateFreeMeshes(Vector<MeshConfig>& configs, Vector<Mesh*>& meshes);
 	static Model* CreateModel(const String& name, const Vector<Mesh*>& meshes);
 	static GameObject2D* CreateGameObject2D(const GameObject2DConfig& config);
 	static void DestroyGameObject2D(GameObject2D* gameObject);

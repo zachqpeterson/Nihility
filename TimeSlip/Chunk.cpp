@@ -66,38 +66,35 @@ void Chunk::Load(const Vector2& pos)
 	{
 		if (!model) { model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_GAME); model->meshes.Reserve(4); }
 
-		MeshConfig blockConfig;
-		blockConfig.MaterialName = "Block.mat"; //TODO: Pre-Load materials
-		blockConfig.vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
-		blockConfig.vertexSize = sizeof(Vertex);
-		blockConfig.vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
-		blockConfig.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+		Vector<MeshConfig> configs{ 4, {} };
+		configs[0].MaterialName = "Block.mat";
+		configs[0].vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
+		configs[0].vertexSize = sizeof(Vertex);
+		configs[0].vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
+		configs[0].indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
 
-		MeshConfig wallConfig;
-		wallConfig.MaterialName = "Wall.mat";
-		wallConfig.vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
-		wallConfig.vertexSize = sizeof(Vertex);
-		wallConfig.vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
-		wallConfig.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+		configs[1].MaterialName = "Wall.mat";
+		configs[1].vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
+		configs[1].vertexSize = sizeof(Vertex);
+		configs[1].vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
+		configs[1].indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
 
-		MeshConfig decConfig;
-		decConfig.MaterialName = "Decoration.mat";
-		decConfig.vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
-		decConfig.vertexSize = sizeof(Vertex);
-		decConfig.vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
-		decConfig.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+		configs[2].MaterialName = "Decoration.mat";
+		configs[2].vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
+		configs[2].vertexSize = sizeof(Vertex);
+		configs[2].vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
+		configs[2].indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
 
-		MeshConfig liquidConfig;
-		liquidConfig.MaterialName = "Liquid.mat";
-		liquidConfig.vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
-		liquidConfig.vertexSize = sizeof(Vertex);
-		liquidConfig.vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
-		liquidConfig.indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
+		configs[3].MaterialName = "Liquid.mat";
+		configs[3].vertices = Memory::Allocate(sizeof(Vertex) * CHUNK_SIZE * CHUNK_SIZE * 4, MEMORY_TAG_RESOURCE);
+		configs[3].vertexSize = sizeof(Vertex);
+		configs[3].vertexCount = CHUNK_SIZE * CHUNK_SIZE * 4;
+		configs[3].indices.Resize(CHUNK_SIZE * CHUNK_SIZE * 6);
 
-		Vertex* blockVertices = (Vertex*)blockConfig.vertices;
-		Vertex* wallVertices = (Vertex*)wallConfig.vertices;
-		Vertex* decVertices = (Vertex*)decConfig.vertices;
-		Vertex* liquidVertices = (Vertex*)liquidConfig.vertices;
+		Vertex* blockVertices = (Vertex*)configs[0].vertices;
+		Vertex* wallVertices = (Vertex*)configs[1].vertices;
+		Vertex* decVertices = (Vertex*)configs[2].vertices;
+		Vertex* liquidVertices = (Vertex*)configs[3].vertices;
 
 		U16 index = 0;
 
@@ -120,7 +117,7 @@ void Chunk::Load(const Vector2& pos)
 
 					for (U16 j = 0; j < 6; ++j)
 					{
-						blockConfig.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+						configs[0].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
 					}
 				}
 
@@ -135,7 +132,7 @@ void Chunk::Load(const Vector2& pos)
 
 					for (U16 j = 0; j < 6; ++j)
 					{
-						wallConfig.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+						configs[1].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
 					}
 				}
 
@@ -150,7 +147,7 @@ void Chunk::Load(const Vector2& pos)
 
 					for (U16 j = 0; j < 6; ++j)
 					{
-						decConfig.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+						configs[2].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
 					}
 				}
 
@@ -165,7 +162,7 @@ void Chunk::Load(const Vector2& pos)
 
 					for (U16 j = 0; j < 6; ++j)
 					{
-						liquidConfig.indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+						configs[3].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
 					}
 				}
 
@@ -173,11 +170,10 @@ void Chunk::Load(const Vector2& pos)
 			}
 		}
 
-		model->meshes.Push(Resources::CreateFreeMesh(blockConfig));
-		model->meshes.Push(Resources::CreateFreeMesh(wallConfig));
-		model->meshes.Push(Resources::CreateFreeMesh(decConfig));
-		model->meshes.Push(Resources::CreateFreeMesh(liquidConfig));
-
+		/*Timer timer;
+		timer.Start();
+		Logger::Debug(timer.CurrentTime());*/
+		Resources::BatchCreateFreeMeshes(configs, model->meshes);
 		RendererFrontend::DrawModel(model);
 
 		loaded = true;

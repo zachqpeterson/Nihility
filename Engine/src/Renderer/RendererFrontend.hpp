@@ -30,6 +30,7 @@ public:
 	static bool EndRenderpass(Renderpass* renderpass);
 
 	static NH_API bool CreateMesh(Mesh* mesh);
+	static NH_API bool BatchCreateMeshes(Vector<Mesh*>& meshes);
 	static NH_API void DestroyMesh(Mesh* mesh);
 	static void DrawMesh(const MeshRenderData& Meshdata);
 
