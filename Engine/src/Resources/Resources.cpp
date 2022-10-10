@@ -960,6 +960,7 @@ Texture* Resources::LoadTexture(const String& name)
 		texture->channelCount = image->channelCount;
 		texture->layout = image->layout;
 		texture->flags = TEXTURE_FLAG_HAS_TRANSPARENCY;
+		texture->sampleCount = 1;//Settings::MSAACount; //TODO:
 
 		RendererFrontend::CreateTexture(texture, image->pixels);
 
@@ -1857,6 +1858,7 @@ Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 hei
 	texture->channelCount = channelCount;
 	texture->flags |= hasTransparency ? TEXTURE_FLAG_HAS_TRANSPARENCY : 0;
 	texture->flags |= TEXTURE_FLAG_IS_WRITEABLE;
+	texture->sampleCount = 1;
 
 	if (!RendererFrontend::CreateWritableTexture(texture))
 	{
@@ -1907,6 +1909,7 @@ Texture* Resources::CreateTextureFromInternal(const String& name, U32 width, U32
 	texture->flags |= hasTransparency ? TEXTURE_FLAG_HAS_TRANSPARENCY : 0;
 	texture->flags |= isWriteable ? TEXTURE_FLAG_IS_WRITEABLE : 0;
 	texture->flags |= TEXTURE_FLAG_IS_WRAPPED;
+	texture->sampleCount = 1; //TODO: 
 	texture->internalData = internalData;
 
 	if (registerTexture) { textures.Insert(name, texture); }
@@ -2504,6 +2507,7 @@ Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heigh
 	texture->generation = 0;
 	texture->channelCount = 4;
 	texture->flags = TEXTURE_FLAG_HAS_TRANSPARENCY | TEXTURE_FLAG_IS_WRITEABLE;
+	texture->sampleCount = 1;
 
 	if (!RendererFrontend::CreateWritableTexture(texture))
 	{

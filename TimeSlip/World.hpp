@@ -18,7 +18,7 @@ class Chunk;
 class World
 {
 public:
-	World(I64 seed, WorldSize size);
+	World(I64 seed, WorldSize size, Vector2& spawnPoint);
 	~World();
 	void Destroy();
 	void* operator new(U64 size);

@@ -14,6 +14,7 @@ bool VulkanImage::Create(RendererState* rendererState,
     VkImageTiling tiling,
     VkImageUsageFlags usage,
     VkMemoryPropertyFlags memoryFlags,
+    VkSampleCountFlagBits samples,
     bool createView,
     VkImageAspectFlags viewAspectFlags)
 {
@@ -25,13 +26,13 @@ bool VulkanImage::Create(RendererState* rendererState,
     imageInfo.extent.width = width;
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;  // TODO: Support configurable depth.
-    imageInfo.mipLevels = Math::Ceiling(Math::Log2((F32)Math::Max(width, height))); // TODO: Support mip mapping
+    imageInfo.mipLevels = (I32)samples == 1 ? Math::Ceiling(Math::Log2((F32)Math::Max(width, height))) : 1; // TODO: Support mip mapping
     imageInfo.arrayLayers = 1;   // TODO: Support number of layers in the image.
     imageInfo.format = format;
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;          // TODO: Configurable sample count.
+    imageInfo.samples = samples;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // TODO: Configurable sharing mode.
 
     VkCheck_ERROR(vkCreateImage(rendererState->device->logicalDevice, &imageInfo, rendererState->allocator, &handle));

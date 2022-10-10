@@ -13,6 +13,7 @@ public:
         VkImageTiling tiling,
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags memoryFlags,
+        VkSampleCountFlagBits samples,
         bool createView,
         VkImageAspectFlags viewAspectFlags);
     void Destroy(RendererState* rendererState);

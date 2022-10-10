@@ -138,12 +138,14 @@
     <ClCompile Include="Chunk.cpp" />
     <ClCompile Include="GridBroadphase.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="TimeSlip.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chunk.hpp" />
     <ClInclude Include="GridBroadphase.hpp" />
+    <ClInclude Include="Player.hpp" />
     <ClInclude Include="Tile.hpp" />
     <ClInclude Include="TimeSlip.hpp" />
     <ClInclude Include="World.hpp" />

@@ -14,7 +14,14 @@ Camera::Camera(const Vector4& bounds, F32 near, F32 far, const Vector3& position
 
 void Camera::Update()
 {
-    //Lerp position to target
+    if (target)
+    {
+        //TODO: Hard move if the camera is too far away
+        position.x = Math::Lerp(position.x, target->Position().x, 0.5f);
+        position.y = Math::Lerp(position.y, target->Position().y, 0.5f);
+
+        dirty = true;
+    }
 }
 
 const Vector3& Camera::Position() const

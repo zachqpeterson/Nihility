@@ -15,7 +15,7 @@
 #define VIEW_DISTANCE_X 3
 #define VIEW_DISTANCE_Y 2
 
-World::World(I64 seed, WorldSize size) : SEED{ seed }, TILES_X{ (U16)size }, TILES_Y{ (U16)(TILES_X / 3.5f) }, CHUNKS_X{ (U16)(TILES_X / CHUNK_SIZE) }, CHUNKS_Y{ (U16)(TILES_Y / CHUNK_SIZE) }
+World::World(I64 seed, WorldSize size, Vector2& spawnPoint) : SEED{ seed }, TILES_X{ (U16)size }, TILES_Y{ (U16)(TILES_X / 3.5f) }, CHUNKS_X{ (U16)(TILES_X / CHUNK_SIZE) }, CHUNKS_Y{ (U16)(TILES_Y / CHUNK_SIZE) }
 {
 	Math::SeedRandom((U32)seed);
 	Chunk::world = this;
@@ -49,10 +49,10 @@ World::World(I64 seed, WorldSize size) : SEED{ seed }, TILES_X{ (U16)size }, TIL
 			}
 		}
 	}
+	
+	spawnPoint = { TILES_X * 0.5f, spawnHeight };
 
-	RendererFrontend::CurrentScene()->GetCamera()->SetPosition(Vector3{ TILES_X / 2.0f, spawnHeight, 10.0f }); //TODO: set player position and set player as camera target
-
-	GridBroadphase* bp = new GridBroadphase(TILES_X, TILES_Y);
+	GridBroadphase* bp = new GridBroadphase(tiles, TILES_X, TILES_Y);
 	Physics::SetBroadphase(bp);
 }
 
@@ -205,5 +205,5 @@ F32 World::GenerateWorld()
 	Logger::Debug("World Generation Time: {}", timer.CurrentTime());
 
 	return (F32)(U16)((Math::Simplex1(TILES_X * 0.0025 + SEED) * 25.0) +
-		(Math::Simplex1(TILES_X * 0.025 + SEED) * 5.0) + (TILES_Y * 0.5)) - 1.0f;
+		(Math::Simplex1(TILES_X * 0.025 + SEED) * 5.0) + (TILES_Y * 0.5)) - 1.5f;
 }

@@ -21,6 +21,7 @@ private:
     inline static I16 WINDOW_POSITION_X = 320;
     inline static I16 WINDOW_POSITION_Y = 180;
     inline static F64 TARGET_FRAMETIME = 0.0;
+    inline static U8  MSAA_COUNT = 1;
 
     //TODO: multisampling, 
 
@@ -39,7 +40,9 @@ public:
     inline static const I16& WindowPositionX = WINDOW_POSITION_X;
     inline static const I16& WindowPositionY = WINDOW_POSITION_Y;
     inline static const F64& TargetFrametime = TARGET_FRAMETIME;
+    inline static const U8&  MSAACount = MSAA_COUNT;
 
     friend class Resources;
+    friend class VulkanRenderer;
     friend class Platform;
 };

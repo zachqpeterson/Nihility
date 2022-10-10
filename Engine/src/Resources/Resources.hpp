@@ -85,6 +85,7 @@ struct NH_API Texture
 	U32 height{ 0 };
 	U8 flags{ 0 };
 	U8 channelCount{ 4 };
+	U8 sampleCount{ 1 };
 	ImageLayout layout{ IMAGE_LAYOUT_RGBA32 };
 	void* internalData{ nullptr };
 };

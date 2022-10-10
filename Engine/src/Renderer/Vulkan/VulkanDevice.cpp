@@ -1,6 +1,7 @@
 #include "VulkanDevice.hpp"
 
 #include "Core/Logger.hpp"
+#include "Core/Settings.hpp"
 #include <Containers/Vector.hpp>
 #include "Memory/Memory.hpp"
 
@@ -110,9 +111,7 @@ bool VulkanDevice::Create(RendererState* rendererState)
 	VkCheck(vkCreateDevice(physicalDevice, &deviceCreateInfo, rendererState->allocator, &logicalDevice));
 
 	vkGetDeviceQueue(logicalDevice, graphicsQueueIndex, 0, &graphicsQueue);
-
 	vkGetDeviceQueue(logicalDevice, presentQueueIndex, 0, &presentQueue);
-
 	vkGetDeviceQueue(logicalDevice, transferQueueIndex, 0, &transferQueue);
 
 	VkCommandPoolCreateInfo poolCreateInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
@@ -198,8 +197,8 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 		requirements.transfer = true;
 		// NOTE: Enable this if compute will be required.
 		// requirements.compute = true;
-		requirements.samplerAnisotropy = true;
-#if KPLATFORM_APPLE
+		requirements.samplerAnisotropy = true; //TODO: Settings
+#if PLATFORM_APPLE
 		requirements.discreteGpu = false;
 #else
 		requirements.discreteGpu = true;
@@ -212,7 +211,7 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 
 		if (result)
 		{
-#if LOG_TRACE_ENABLED == 1
+#if LOG_TRACE_ENABLED
 			Logger::Trace("Selected device: '{}'.", properties.deviceName);
 			switch (properties.deviceType)
 			{
@@ -263,6 +262,15 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 			presentQueueIndex = queueInfo.presentFamilyIndex;
 			transferQueueIndex = queueInfo.transferFamilyIndex;
 			// TODO: set compute index here if needed.
+
+			VkSampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
+			if (counts & VK_SAMPLE_COUNT_64_BIT) { maxSamples = VK_SAMPLE_COUNT_64_BIT; }
+			else if (counts & VK_SAMPLE_COUNT_32_BIT) { maxSamples = VK_SAMPLE_COUNT_32_BIT; }
+			else if (counts & VK_SAMPLE_COUNT_16_BIT) { maxSamples = VK_SAMPLE_COUNT_16_BIT; }
+			else if (counts & VK_SAMPLE_COUNT_8_BIT) { maxSamples = VK_SAMPLE_COUNT_8_BIT; }
+			else if (counts & VK_SAMPLE_COUNT_4_BIT) { maxSamples = VK_SAMPLE_COUNT_4_BIT; }
+			else if (counts & VK_SAMPLE_COUNT_2_BIT) { maxSamples = VK_SAMPLE_COUNT_2_BIT; }
+			else { maxSamples = VK_SAMPLE_COUNT_1_BIT; }
 
 			this->properties = properties;
 			this->features = features;
@@ -465,27 +473,29 @@ bool VulkanDevice::DetectDepthFormat()
 	static const U64 candidateCount = 3;
 	static const VkFormat candidates[3] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
 	static const U8 sizes[3] = { 4, 4, 3 };
-	static const U32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	static const U32 depthFlags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
 	for (U64 i = 0; i < candidateCount; ++i)
 	{
 		VkFormatProperties properties;
 		vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &properties);
 
-		if ((properties.linearTilingFeatures & flags) == flags)
+		if ((properties.linearTilingFeatures & depthFlags) == depthFlags)
 		{
 			depthFormat = candidates[i];
 			depthChannelCount = sizes[i];
 
 			return true;
 		}
-		else if ((properties.optimalTilingFeatures & flags) == flags)
+		else if ((properties.optimalTilingFeatures & depthFlags) == depthFlags)
 		{
 			depthFormat = candidates[i];
 			depthChannelCount = sizes[i];
 
 			return true;
 		}
+
+
 	}
 
 	return false;

@@ -3,6 +3,8 @@
 #include "World.hpp"
 
 class Scene;
+class Player;
+struct Vector2;
 
 class TimeSlip
 {
@@ -13,9 +15,10 @@ public:
 
 private:
 	static void LoadWorld();
-	static void CreateWorld(WorldSize size);
+	static void CreateWorld(WorldSize size, Vector2& spawnPoint);
 
 	static Scene* mainMenuScene;
 	static Scene* worldScene;
 	static World* world;
+	static Player* player;
 };

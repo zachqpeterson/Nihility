@@ -4,6 +4,7 @@
 
 #include "Math/Math.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Settings.hpp"
 #include "Memory/Memory.hpp"
 #include <Containers/Vector.hpp>
 #include "Resources/Resources.hpp"
@@ -92,7 +93,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swapchainInfo.presentMode = presentMode;
 	swapchainInfo.clipped = VK_TRUE;
-	swapchainInfo.oldSwapchain = 0;
+	swapchainInfo.oldSwapchain = 0; //TODO:
 
 	VkCheck(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
 
@@ -141,11 +142,6 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 		image->handle = swapchainImages[i];
 		image->width = swapchainExtent.width;
 		image->height = swapchainExtent.height;
-	}
-
-	for (U32 i = 0; i < imageCount; ++i)
-	{
-		VulkanImage* image = (VulkanImage*)renderTextures[i]->internalData;
 
 		VkImageViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		viewInfo.image = image->handle;
@@ -166,8 +162,38 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 		Logger::Fatal("Failed to find a supported format!");
 	}
 
-	VulkanImage* image = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
-	image->Create(
+	VulkanImage* colorImage = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
+	colorImage->Create(
+		rendererState,
+		VK_IMAGE_TYPE_2D,
+		swapchainExtent.width,
+		swapchainExtent.height,
+		imageFormat.format,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		(VkSampleCountFlagBits)Settings::MSAACount,
+		true,
+		VK_IMAGE_ASPECT_COLOR_BIT);
+
+	colorTexture = Resources::CreateTextureFromInternal(
+		"SwapchainColorTexture",
+		swapchainExtent.width,
+		swapchainExtent.height,
+		4,
+		false,
+		true,
+		false,
+		colorImage);
+
+	if (!colorTexture)
+	{
+		Logger::Fatal("Failed to generate new swapchain color texture!");
+		return false;
+	}
+
+	VulkanImage* depthImage = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
+	depthImage->Create(
 		rendererState,
 		VK_IMAGE_TYPE_2D,
 		swapchainExtent.width,
@@ -176,18 +202,19 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		(VkSampleCountFlagBits)Settings::MSAACount,
 		true,
 		VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	depthTexture = Resources::CreateTextureFromInternal(
-		"defaultDepthTexture",
+		"SwapchainDepthTexture",
 		swapchainExtent.width,
 		swapchainExtent.height,
 		rendererState->device->depthChannelCount,
 		false,
 		true,
 		false,
-		image);
+		depthImage);
 
 	if (!depthTexture)
 	{
@@ -203,6 +230,10 @@ void VulkanSwapchain::Destroy(RendererState* rendererState)
 	Logger::Info("Destroying vulkan swapchain...");
 
 	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	((VulkanImage*)colorTexture->internalData)->Destroy(rendererState);
+	Memory::Free(colorTexture->internalData, sizeof(VulkanImage), MEMORY_TAG_RENDERER);
+	colorTexture->internalData = nullptr;
+	Memory::Free(colorTexture, sizeof(Texture), MEMORY_TAG_TEXTURE);
 	((VulkanImage*)depthTexture->internalData)->Destroy(rendererState);
 	Memory::Free(depthTexture->internalData, sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 	depthTexture->internalData = nullptr;

@@ -51,6 +51,7 @@ public:
     VkPhysicalDeviceFeatures features;
     VkPhysicalDeviceMemoryProperties memory;
 
+    VkSampleCountFlagBits maxSamples;
     VkFormat depthFormat;
     U8 depthChannelCount;
 };

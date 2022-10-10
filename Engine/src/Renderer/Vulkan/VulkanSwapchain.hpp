@@ -31,6 +31,7 @@ public:
 
     U32 imageCount;
     Vector<Texture*> renderTextures;
+    Texture* colorTexture;
     Texture* depthTexture;
 
     RenderTarget renderTargets[3];

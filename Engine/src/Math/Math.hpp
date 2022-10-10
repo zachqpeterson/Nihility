@@ -198,8 +198,8 @@ public:
 	static Vector2 Cross(const F32 f, const Vector2& v);
 
 	//INTERPOLATION
-	static NH_INLINE F32 Lerp(F32 a, F32 b, F32 t) { return a + t * (b - a); }
-	static NH_INLINE F64 Lerp(F64 a, F64 b, F64 t) { return a + t * (b - a); }
+	static NH_INLINE F32 Lerp(F32 a, F32 b, F32 t) { return a + (b - a) * t; }
+	static NH_INLINE F64 Lerp(F64 a, F64 b, F64 t) { return a + (b - a) * t; }
 	static Vector2 Lerp(const Vector2& a, const Vector2& b, F32 t);
 	static Vector3 Lerp(const Vector3& a, const Vector3& b, F32 t);
 	static Vector4 Lerp(const Vector4& a, const Vector4& b, F32 t);
@@ -1334,9 +1334,9 @@ private:
 
 public:
 	Transform2D() : parent{ nullptr }, dirty{ false }, position{ Vector2::ZERO }, rotation{ 0.0f }, scale{ Vector2::ONE }, local{ position, rotation, scale } {}
-	Transform2D(const Vector2& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{}, scale{}, local{ position, rotation, scale } {}
+	Transform2D(const Vector2& position) : parent{ nullptr }, dirty{ false }, position{ position }, rotation{ 0.0f }, scale{ Vector2::ONE }, local{ position, rotation, scale } {}
 	Transform2D(const Vector2& position, const F32& rotation) :
-		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{}, local{ position, rotation, scale }
+		parent{ nullptr }, dirty{ false }, position{ position }, rotation{ rotation }, scale{ Vector2::ONE }, local{ position, rotation, scale }
 	{
 	}
 	Transform2D(const Vector2& position, const F32& rotation, const Vector2& scale) :

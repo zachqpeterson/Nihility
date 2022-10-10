@@ -1,15 +1,12 @@
 #include "GridBroadphase.hpp"
 
-#include "Physics/Physics.hpp"
+#include "Tile.hpp"
 
-GridBroadphase::GridBroadphase(U16 width, U16 height) : width{ width }, height{ height }, grid{ nullptr }
+#include <Physics/Physics.hpp>
+
+GridBroadphase::GridBroadphase(Tile** grid, U16 width, U16 height) : width{ width }, height{ height }, grid{ grid }
 {
-	grid = (Cell**)Memory::LinearAllocate(sizeof(Cell*) * width);
-
-	for (U64 i = 0; i < width; ++i)
-	{
-		grid[i] = (Cell*)Memory::LinearAllocate(sizeof(Cell) * height);
-	}
+	
 }
 
 GridBroadphase::~GridBroadphase()
@@ -36,13 +33,7 @@ void GridBroadphase::InsertObj(PhysicsObject2D* obj)
 	Vector2Int min = (Vector2Int)(pos - ext);
 	Vector2Int max = (Vector2Int)(pos + ext);
 
-	for (U64 x = min.x; x <= max.x; ++x)
-	{
-		for (U64 y = min.y; y <= max.y; ++y)
-		{
-			grid[x][y].objs.PushBack(obj);
-		}
-	}
+	//TODO: Insert
 }
 
 void GridBroadphase::RemoveObj(PhysicsObject2D* obj)
@@ -58,30 +49,13 @@ void GridBroadphase::UpdateObj(PhysicsObject2D* obj)
 	Vector2Int min = (Vector2Int)(pos - ext);
 	Vector2Int max = (Vector2Int)(pos + ext);
 
-	for (U64 x = min.x; x <= max.x; ++x)
-	{
-		for (U64 y = min.y; y <= max.y; ++y)
-		{
-			grid[x][y].objs.Remove(obj);
-		}
-	}
+	//TODO: Remove
 
 	pos += obj->Move();
 	min = (Vector2Int)(pos - ext);
 	max = (Vector2Int)(pos + ext);
 
-	for (U64 x = min.x; x <= max.x; ++x)
-	{
-		for (U64 y = min.y; y <= max.y; ++y)
-		{
-			grid[x][y].objs.PushBack(obj);
-		}
-	}
-}
-
-void GridBroadphase::ChangeTile(U16 x, U16 y, U8 id)
-{
-	grid[x][y].block = id;
+	//TODO: Reinsert
 }
 
 void GridBroadphase::Update(List<List<Contact2D>>& contacts)
@@ -217,7 +191,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 
 			for (U64 y = min.y; y <= max.y; ++y)
 			{
-				if (x >= 0 && x < x < width && y >= 0 && y < height && grid[x][y].block)
+				if (x >= 0 && x < x < width && y >= 0 && y < height && grid[x][y].blockID)
 				{
 					collidedX = true;
 
@@ -242,7 +216,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 
 			for (U64 x = min.x; x <= max.x; ++x)
 			{
-				if (x >= 0 && x < x < width && y >= 0 && y < height && grid[x][y].block)
+				if (x >= 0 && x < x < width && y >= 0 && y < height && grid[x][y].blockID)
 				{
 					collidedY = true;
 

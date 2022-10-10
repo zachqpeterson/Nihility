@@ -6,6 +6,7 @@
 
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Settings.hpp"
 
 bool VulkanPipeline::Create(
 	RendererState* rendererState,
@@ -54,8 +55,8 @@ bool VulkanPipeline::Create(
 	rasterizerInfo.depthBiasSlopeFactor = 0.0f;
 
 	VkPipelineMultisampleStateCreateInfo multisamplingInfo = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-	multisamplingInfo.sampleShadingEnable = VK_FALSE;
-	multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisamplingInfo.sampleShadingEnable = VK_FALSE; //TODO: Settings
+	multisamplingInfo.rasterizationSamples = (VkSampleCountFlagBits)Settings::MSAACount;
 	multisamplingInfo.minSampleShading = 1.0f;
 	multisamplingInfo.pSampleMask = nullptr;
 	multisamplingInfo.alphaToCoverageEnable = VK_FALSE;

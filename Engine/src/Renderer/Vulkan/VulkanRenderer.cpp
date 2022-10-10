@@ -68,6 +68,7 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
 	if (!CreateInstance(applicationName) || !CreateDebugger() || !CreateSurface()) { return false; }
 
 	rendererState->device->Create(rendererState);
+	Settings::MSAA_COUNT = rendererState->device->maxSamples; //TODO: settings
 	rendererState->swapchain->Create(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
 	rendererState->framebufferSizeLastGeneration = 0;
 	rendererState->framebufferSizeGeneration = 0;
@@ -273,7 +274,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
 	colorAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
 		hasPrev ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -281,7 +282,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colorAttachment.initialLayout = hasPrev ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 
-	colorAttachment.finalLayout = hasNext ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.flags = 0;
 
 	attachmentDescriptions.Push(colorAttachment);
@@ -298,7 +299,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
 	{
 		depthAttachment.format = rendererState->device->depthFormat;
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -320,9 +321,27 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 		subpass.pDepthStencilAttachment = nullptr;
 	}
 
+	VkAttachmentDescription colorAttachmentResolve{};
+	colorAttachmentResolve.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
+	colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachmentResolve.initialLayout = hasPrev ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+
+	colorAttachmentResolve.finalLayout = hasNext ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachmentResolve.flags = 0;
+
+	attachmentDescriptions.Push(colorAttachmentResolve);
+
+	VkAttachmentReference colorAttachmentResolveReference;
+	colorAttachmentResolveReference.attachment = 1 + ((renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) > 0);
+	colorAttachmentResolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	subpass.pResolveAttachments = &colorAttachmentResolveReference;
 	subpass.inputAttachmentCount = 0;
 	subpass.pInputAttachments = nullptr;
-	subpass.pResolveAttachments = nullptr;
 	subpass.preserveAttachmentCount = 0;
 	subpass.pPreserveAttachments = nullptr;
 
@@ -353,13 +372,15 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 		Texture* windowTargetTexture = GetWindowAttachment(i);
 
 		Vector<Texture*> attachments;
-		attachments.Push(windowTargetTexture);
+		attachments.Push(rendererState->swapchain->colorTexture);
 
 		if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
 		{
-			Texture* depthTargetTexture = GetDepthAttachment();
+			Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
 			attachments.Push(depthTargetTexture);
 		}
+
+		attachments.Push(windowTargetTexture);
 
 		if (!CreateRenderTarget(attachments, renderpass, rendererState->framebufferWidth, rendererState->framebufferHeight, &renderpass->targets[i])) { return; }
 	}
@@ -595,22 +616,19 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
 	beginInfo.renderArea.extent.width = (U32)(rendererState->renderArea.z);
 	beginInfo.renderArea.extent.height = (U32)(rendererState->renderArea.w);
 
-	Vector<VkClearValue> clearValues(2);
+	Vector<VkClearValue> clearValues(3);
 	VkClearValue colorClear{};
-	if (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG)
-	{
-		Memory::Copy(colorClear.color.float32, &renderpass->clearColor, sizeof(Vector4));
-	}
-
+	Memory::Copy(colorClear.color.float32, &renderpass->clearColor, sizeof(Vector4));
 	clearValues.Push(colorClear);
 
 	VkClearValue depthClear{};
-	if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
-	{
-		depthClear.depthStencil.depth = renderpass->depth;
-		depthClear.depthStencil.stencil = (renderpass->clearFlags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) ? renderpass->stencil : 0;
-		clearValues.Push(depthClear);
-	}
+	depthClear.depthStencil.depth = renderpass->depth;
+	depthClear.depthStencil.stencil = (renderpass->clearFlags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) ? renderpass->stencil : 0;
+	clearValues.Push(depthClear);
+
+	VkClearValue colorResolveClear{};
+	Memory::Copy(colorResolveClear.color.float32, &renderpass->clearColor, sizeof(Vector4));
+	clearValues.Push(colorResolveClear);
 
 	beginInfo.clearValueCount = (U32)clearValues.Size();
 	beginInfo.pClearValues = clearValues.Data();
@@ -850,6 +868,7 @@ void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		VK_SAMPLE_COUNT_1_BIT,
 		true,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -885,6 +904,11 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 	case IMAGE_LAYOUT_BGR24: image->format = VK_FORMAT_B8G8R8_UNORM; break;
 	}
 
+	if (texture->sampleCount == 0)
+	{
+		debugBreak();
+	}
+
 	// NOTE: Lots of assumptions here, different texture types will require
 	// different options here.
 	if (!image->Create(
@@ -896,6 +920,7 @@ bool VulkanRenderer::CreateWritableTexture(Texture* texture)
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		(VkSampleCountFlagBits)texture->sampleCount,
 		true,
 		VK_IMAGE_ASPECT_COLOR_BIT))
 	{
@@ -963,6 +988,7 @@ void VulkanRenderer::ResizeTexture(Texture* texture, U32 width, U32 height)
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		(VkSampleCountFlagBits)texture->sampleCount,
 		true,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -1165,10 +1191,11 @@ bool VulkanRenderer::RegenerateRenderTargets()
 
 			Vector<Texture*> attachments;
 			attachments.Push(windowTargetTexture);
+			attachments.Push(rendererState->swapchain->colorTexture);
 
 			if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
 			{
-				Texture* depthTargetTexture = GetDepthAttachment();
+				Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
 				attachments.Push(depthTargetTexture);
 			}
 
