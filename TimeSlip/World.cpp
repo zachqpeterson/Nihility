@@ -12,7 +12,7 @@
 #include <Containers/Array.hpp>
 #include <Core/Time.hpp>
 
-#define VIEW_DISTANCE_X 3
+#define VIEW_DISTANCE_X 4
 #define VIEW_DISTANCE_Y 2
 
 World::World(I64 seed, WorldSize size, Vector2& spawnPoint) : SEED{ seed }, TILES_X{ (U16)size }, TILES_Y{ (U16)(TILES_X / 3.5f) }, CHUNKS_X{ (U16)(TILES_X / CHUNK_SIZE) }, CHUNKS_Y{ (U16)(TILES_Y / CHUNK_SIZE) }

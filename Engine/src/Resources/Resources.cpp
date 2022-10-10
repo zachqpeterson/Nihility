@@ -960,7 +960,7 @@ Texture* Resources::LoadTexture(const String& name)
 		texture->channelCount = image->channelCount;
 		texture->layout = image->layout;
 		texture->flags = TEXTURE_FLAG_HAS_TRANSPARENCY;
-		texture->sampleCount = 1;//Settings::MSAACount; //TODO:
+		texture->sampleCount = 1;
 
 		RendererFrontend::CreateTexture(texture, image->pixels);
 
@@ -1909,7 +1909,7 @@ Texture* Resources::CreateTextureFromInternal(const String& name, U32 width, U32
 	texture->flags |= hasTransparency ? TEXTURE_FLAG_HAS_TRANSPARENCY : 0;
 	texture->flags |= isWriteable ? TEXTURE_FLAG_IS_WRITEABLE : 0;
 	texture->flags |= TEXTURE_FLAG_IS_WRAPPED;
-	texture->sampleCount = 1; //TODO: 
+	texture->sampleCount = Settings::MSAACount;
 	texture->internalData = internalData;
 
 	if (registerTexture) { textures.Insert(name, texture); }

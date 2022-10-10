@@ -8,7 +8,7 @@ class VulkanSwapchain
 {
 public:
     bool Create(RendererState* rendererState, U32 width, U32 height);
-    void Destroy(RendererState* rendererState);
+    void Destroy(RendererState* rendererState, bool end);
     void Recreate(RendererState* rendererState, U32 width, U32 height);
     bool AcquireNextImageIndex(
         RendererState* rendererState,
@@ -25,6 +25,7 @@ public:
 
 public:
     VkSwapchainKHR handle;
+    VkSwapchainKHR oldHandle;
 
     VkSurfaceFormatKHR imageFormat;
     U8 maxFramesInFlight;

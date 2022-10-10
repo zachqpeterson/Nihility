@@ -93,7 +93,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swapchainInfo.presentMode = presentMode;
 	swapchainInfo.clipped = VK_TRUE;
-	swapchainInfo.oldSwapchain = 0; //TODO:
+	swapchainInfo.oldSwapchain = oldHandle;
 
 	VkCheck(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
 
@@ -129,7 +129,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	{
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			Resources::ResizeTexture(renderTextures[i], swapchainExtent.width, swapchainExtent.height, false); //TODO: writable textures
+			Resources::ResizeTexture(renderTextures[i], swapchainExtent.width, swapchainExtent.height, false);
 		}
 	}
 
@@ -225,7 +225,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	return true;
 }
 
-void VulkanSwapchain::Destroy(RendererState* rendererState)
+void VulkanSwapchain::Destroy(RendererState* rendererState, bool end)
 {
 	Logger::Info("Destroying vulkan swapchain...");
 
@@ -246,12 +246,15 @@ void VulkanSwapchain::Destroy(RendererState* rendererState)
 		Memory::Free(renderTextures[i], sizeof(Texture), MEMORY_TAG_TEXTURE);
 	}
 
-	vkDestroySwapchainKHR(rendererState->device->logicalDevice, handle, rendererState->allocator);
+	renderTextures.Clear();
+
+	if (end) { vkDestroySwapchainKHR(rendererState->device->logicalDevice, handle, rendererState->allocator); }
+	else { oldHandle = handle; }
 }
 
 void VulkanSwapchain::Recreate(RendererState* rendererState, U32 width, U32 height)
 {
-	Destroy(rendererState);
+	Destroy(rendererState, false);
 	Create(rendererState, width, height);
 }
 
