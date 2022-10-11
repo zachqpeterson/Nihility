@@ -52,7 +52,7 @@ void UI::Update()
 {
 	Vector2Int mousePos = Input::MousePos();
 
-	if (draggedElement && Input::ButtonDown(LBUTTON))
+	if (draggedElement && Input::ButtonDown(LEFT_CLICK))
 	{
 		Vector2Int posDelta = mousePos - lastMousesPos;
 
@@ -78,13 +78,13 @@ void UI::Update()
 					e->OnMove(e, mousePos);
 				}
 
-				if (Input::OnButtonDown(LBUTTON))
+				if (Input::OnButtonDown(LEFT_CLICK))
 				{
 					if (e->OnDrag) { draggedElement = e; }
 					if (e->OnClick) { e->OnClick(e, mousePos); }
 					e->clicked = true;
 				}
-				else if (Input::OnButtonUp(LBUTTON))
+				else if (Input::OnButtonUp(LEFT_CLICK))
 				{
 					if (e->OnRelease) { e->OnRelease(e, mousePos); }
 					e->clicked = false;

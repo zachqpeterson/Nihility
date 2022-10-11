@@ -29,9 +29,13 @@ public:
 	void Load(const Vector2& pos);
 	void Unload();
 
+	void EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
+
 private:
 	Array<Tile*, CHUNK_SIZE>& SetTiles();
-	void CreateMeshData(const Vector2& pos);
 
 	bool loaded;
 

@@ -527,6 +527,8 @@ struct NH_API Vector2Int
 
 	Vector2Int operator+ (const Vector2Int& v) const { return Vector2Int{ x + v.x, y + v.y }; }
 	Vector2Int operator- (const Vector2Int& v) const { return Vector2Int{ x - v.x, y - v.y }; }
+	Vector2Int operator* (const Vector2Int& v) const { return Vector2Int{ x * v.x, y * v.y }; }
+	Vector2Int operator/ (const Vector2Int& v) const { return Vector2Int{ x / v.x, y / v.y }; }
 	Vector2Int operator* (I32 i) const { return Vector2Int{ x * i, y * i }; }
 	Vector2Int operator/ (I32 i) const { return Vector2Int{ x / i, y / i }; }
 	Vector2Int operator% (I32 i) const { return Vector2Int{ x % i, y % i }; }
@@ -555,6 +557,7 @@ struct NH_API Vector2Int
 	NH_INLINE const I32* Data() const { return &x; }
 
 	explicit operator Vector2() const { return { (F32)x, (F32)y }; }
+	explicit operator Vector3() const { return { (F32)x, (F32)y, 0.0f }; }
 
 	static const Vector2Int ONE;
 	static const Vector2Int ZERO;

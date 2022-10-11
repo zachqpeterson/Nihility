@@ -197,3 +197,42 @@ void Chunk::Unload()
 
 	loaded = false;
 }
+
+void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+{
+	Mesh* mesh = model->meshes[0];
+
+	Vector2 uv = world->BlockUV(worldPos);
+	Vector3 pos = (Vector3)worldPos;
+
+	Vertex* vertices = (Vertex*)mesh->vertices;
+
+	U32 index = tilePos.x * CHUNK_SIZE + tilePos.y;
+
+	for (U16 j = 0; j < 4; ++j)
+	{
+		vertices[index * 4 + j] = Vertex{ pos + VERTEX_POSITIONS[j], uv + UV_POSITIONS[j], (U32)(tiles[tilePos.x][tilePos.y].blockID - 1) };
+	}
+
+	for (U16 j = 0; j < 6; ++j)
+	{
+		mesh->indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+	}
+
+	RendererFrontend::CreateMesh(mesh);
+}
+
+void Chunk::EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+{
+
+}
+
+void Chunk::EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+{
+
+}
+
+void Chunk::EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+{
+
+}

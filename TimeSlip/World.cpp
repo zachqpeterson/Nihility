@@ -11,6 +11,7 @@
 #include <Renderer/Camera.hpp>
 #include <Containers/Array.hpp>
 #include <Core/Time.hpp>
+#include <Core/Input.hpp>
 
 #define VIEW_DISTANCE_X 4
 #define VIEW_DISTANCE_Y 2
@@ -49,7 +50,7 @@ World::World(I64 seed, WorldSize size, Vector2& spawnPoint) : SEED{ seed }, TILE
 			}
 		}
 	}
-	
+
 	spawnPoint = { TILES_X * 0.5f, spawnHeight };
 
 	GridBroadphase* bp = new GridBroadphase(tiles, TILES_X, TILES_Y);
@@ -134,6 +135,17 @@ void World::Update()
 		}
 	}
 
+	if (Input::OnButtonDown(LEFT_CLICK))
+	{
+		Vector2 mousePos = (Vector2)Input::MousePos();
+		Vector2 scaledPos = mousePos / ((Vector2)RendererFrontend::WindowSize() / Vector2{ 80.0f, 45.0f });
+		Vector2Int worldPos = (Vector2Int)(scaledPos + (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position());
+		Vector2Int chunkPos = worldPos / 8;
+
+		tiles[worldPos.x][worldPos.y].blockID = 0;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(0, worldPos, worldPos - chunkPos * 8);
+	}
+
 	lastPos = posI;
 }
 
@@ -165,9 +177,9 @@ Vector2 World::DecorationUV(const Vector2Int& pos, U8 id)
 		((tiles[pos.x - 1][pos.y + 1].decID == id) << 2) +
 		((tiles[pos.x + 1][pos.y + 1].decID == id) << 3)),
 		(F32)((tiles[pos.x][pos.y - 1].decID == id) +
-		((tiles[pos.x - 1][pos.y].decID == id) << 1) +
-		((tiles[pos.x + 1][pos.y].decID == id) << 2) +
-		((tiles[pos.x][pos.y + 1].decID == id) << 3)));
+			((tiles[pos.x - 1][pos.y].decID == id) << 1) +
+			((tiles[pos.x + 1][pos.y].decID == id) << 2) +
+			((tiles[pos.x][pos.y + 1].decID == id) << 3)));
 }
 
 Vector2 World::LiquidUV(const Vector2Int& pos)
@@ -189,7 +201,7 @@ F32 World::GenerateWorld()
 
 		for (U16 y = height; y < TILES_Y; ++y)
 		{
-			bool cave = Math::Abs(Math::Simplex2(x * 0.02 + SEED, y * 0.02 + SEED) + 
+			bool cave = Math::Abs(Math::Simplex2(x * 0.02 + SEED, y * 0.02 + SEED) +
 				Math::Simplex2(x * 0.01333333333 + SEED * 2.0, y * 0.01333333333 + SEED * 2.0)) > (0.04 * (height + y) / (F64)height + 0.01);
 
 			F64 oreNoise0 = Math::Simplex2(x * 0.07 + SEED * 2.0, y * 0.07 + SEED * 2.0) * 0.13;

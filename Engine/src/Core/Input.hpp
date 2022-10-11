@@ -6,10 +6,10 @@
 enum NH_API ButtonCode
 {
 	//Mouse Buttons//
-	LBUTTON = 0x01,
-	RBUTTON = 0x02,
+	LEFT_CLICK = 0x01,
+	RIGHT_CLICK = 0x02,
 	CANCEL = 0x03,
-	MBUTTON = 0x04,
+	MIDDLE_CLICK = 0x04,
 	XBUTTONONE = 0x05,
 	XBUTTONTWO = 0x06,
 
