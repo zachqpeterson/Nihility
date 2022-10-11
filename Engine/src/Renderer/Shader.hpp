@@ -32,6 +32,19 @@ enum FieldType
 	FIELD_TYPE_CUSTOM = 255U
 };
 
+enum UniformType
+{
+	UNIFORM_TYPE_CAMERA_PROJECTION,
+	UNIFORM_TYPE_CAMERA_VIEW,
+	UNIFORM_TYPE_CAMERA_POSITION,
+	UNIFORM_TYPE_CAMERA_COLOR,
+	UNIFORM_TYPE_TEXTURE,
+	UNIFORM_TYPE_DIFFUSE_COLOR,
+	UNIFORM_TYPE_SHININESS,
+
+	UNIFORM_TYPE_CUSTOM
+};
+
 enum ShaderScope
 {
 	SHADER_SCOPE_GLOBAL,
@@ -48,7 +61,8 @@ struct Uniform
 	U32 size{ 0 };
 	U8 setIndex{ 0 };
 	U8 bindingIndex{ 0 };
-	FieldType type{ FIELD_TYPE_CUSTOM };
+	FieldType fieldType{ FIELD_TYPE_CUSTOM };
+	UniformType uniformType{ UNIFORM_TYPE_CUSTOM };
 };
 
 struct Attribute
@@ -75,9 +89,7 @@ public:
 	bool AddUniform(Uniform uniform);
 	bool AddPushConstant(PushConstant pushConstant);
 
-	bool ApplyGlobals(struct Material* material, struct Camera* camera);
-	bool ApplyMaterialInstances(struct Material& material, bool needsUpdate);
-	bool ApplyMaterialLocals(const Matrix4& model);
+	void ApplyMaterialLocals(const Matrix4& model);
 
 public:
 	String name;
@@ -117,4 +129,5 @@ private:
 	Vector<Range> pushConstantRanges;
 
 	friend class VulkanShader;
+	friend struct Material;
 };

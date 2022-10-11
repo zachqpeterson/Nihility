@@ -67,13 +67,13 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 			VkDescriptorSetLayoutBinding binding{};
 			binding.binding = u.bindingIndex;
 			binding.descriptorCount = 1;
-			binding.descriptorType = u.type == FIELD_TYPE_SAMPLER ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			binding.descriptorType = u.fieldType == FIELD_TYPE_SAMPLER ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; //TODO: dynamic
 			config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex] = binding;
 		}
 		else
 		{
-			config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex].descriptorCount += u.type == FIELD_TYPE_SAMPLER;
+			config.descriptorSets[SHADER_SCOPE_GLOBAL][u.bindingIndex].descriptorCount += u.fieldType == FIELD_TYPE_SAMPLER;
 		}
 	}
 
@@ -89,13 +89,13 @@ bool VulkanShader::Create(RendererState* rendererState, Shader* shader)
 			VkDescriptorSetLayoutBinding binding{};
 			binding.binding = u.bindingIndex;
 			binding.descriptorCount = 1;
-			binding.descriptorType = u.type == FIELD_TYPE_SAMPLER ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			binding.descriptorType = u.fieldType == FIELD_TYPE_SAMPLER ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; //TODO: dynamic
 			config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex] = binding;
 		}
 		else
 		{
-			config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex].descriptorCount += u.type == FIELD_TYPE_SAMPLER;
+			config.descriptorSets[SHADER_SCOPE_INSTANCE][u.bindingIndex].descriptorCount += u.fieldType == FIELD_TYPE_SAMPLER;
 		}
 	}
 
@@ -279,10 +279,9 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 	return true;
 }
 
-bool VulkanShader::Use(RendererState* rendererState)
+void VulkanShader::Use(RendererState* rendererState)
 {
 	pipeline->Bind(rendererState->graphicsCommandBuffers[rendererState->imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS);
-	return true;
 }
 
 bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
@@ -367,12 +366,6 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
 
 bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, bool needsUpdate)
 {
-	if (!shader->useInstances)
-	{
-		Logger::Error("VulkanShader::ApplyInstance: This shader does not use instances.");
-		return false;
-	}
-
 	U32 imageIndex = rendererState->imageIndex;
 	VkCommandBuffer commandBuffer = rendererState->graphicsCommandBuffers[imageIndex].handle;
 	InstanceState* objectState = &instanceStates[shader->boundInstanceId];
@@ -562,17 +555,27 @@ bool VulkanShader::CreateShaderModule(RendererState* rendererState, ShaderStageC
 	return true;
 }
 
-void VulkanShader::SetUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value)
+void VulkanShader::SetGlobalUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value)
 {
-	if (uniform.type == FIELD_TYPE_SAMPLER)
+	if (uniform.fieldType == FIELD_TYPE_SAMPLER)
 	{
-		if (uniform.setIndex == SHADER_SCOPE_GLOBAL) { shader->globalTextureMaps[uniform.location] = (TextureMap*)value; }
-		else { instanceStates[shader->boundInstanceId].instanceTextureMaps[uniform.location] = *(TextureMap*)value; }
+		shader->globalTextureMaps[uniform.location] = (TextureMap*)value;
 	}
 	else
 	{
-		U64 offset = uniform.setIndex == SHADER_SCOPE_GLOBAL ? shader->globalUboOffset : instanceStates[shader->boundInstanceId].offset;
-		Memory::Copy((U8*)mappedUniformBufferBlock + offset + uniform.offset, value, uniform.size);
+		Memory::Copy((U8*)mappedUniformBufferBlock + shader->globalUboOffset + uniform.offset, value, uniform.size);
+	}
+}
+
+void VulkanShader::SetInstanceUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value)
+{
+	if (uniform.fieldType == FIELD_TYPE_SAMPLER)
+	{
+		instanceStates[shader->boundInstanceId].instanceTextureMaps[uniform.location] = *(TextureMap*)value;
+	}
+	else
+	{
+		Memory::Copy((U8*)mappedUniformBufferBlock + instanceStates[shader->boundInstanceId].offset + uniform.offset, value, uniform.size);
 	}
 }
 

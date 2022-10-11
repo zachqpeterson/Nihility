@@ -2,7 +2,8 @@
 
 #include "Defines.hpp"
 
-#include "Shader.hpp"
+#include "Renderer/Shader.hpp"
+#include "Renderer/Material.hpp"
 
 #include "Containers/String.hpp"
 #include <Containers/Vector.hpp>
@@ -344,21 +345,6 @@ struct MaterialConfig
 	F32 shininess = 0.0f;
 	Vector4 diffuseColor; //TODO: Color struct
 	Vector<String> textureMapNames;
-};
-
-struct NH_API Material //TODO: seperate material and material instance structs
-{
-	U32 id{ U32_MAX };
-	String name;
-	U32 generation{ 0 };
-	U32 instance{ 0 };
-	F32 shininess{ 0.0f };
-	U64 renderFrameNumber{ 0 };
-
-	Shader* shader{ nullptr };
-	Vector4 diffuseColor; //TODO: Color struct
-	Vector<TextureMap> globalTextureMaps;
-	Vector<TextureMap> instanceTextureMaps;
 };
 
 struct MeshConfig

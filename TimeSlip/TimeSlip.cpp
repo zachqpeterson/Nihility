@@ -19,8 +19,8 @@ Player* TimeSlip::player;
 
 bool TimeSlip::Initialize()
 {
-	static const F32 camWidth = 2.4f;
-	static const F32 camHeight = 1.35f;
+	static const F32 camWidth = 3.63636363636f;
+	static const F32 camHeight = camWidth * 0.5625f;
 
 	mainMenuScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
 	mainMenuScene->Create(CAMERA_TYPE_ORTHOGRAPHIC);

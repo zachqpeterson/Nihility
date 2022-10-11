@@ -2,7 +2,7 @@
 
 #include "VulkanDefines.hpp"
 #include "Renderer/Renderer.hpp"
-#include "Resources/Shader.hpp"
+#include "Renderer/Shader.hpp"
 
 #include "Containers/String.hpp"
 #include <Containers/Vector.hpp>
@@ -47,8 +47,9 @@ public:
 	bool Initialize(RendererState* rendererState, Shader* shader);
 	bool CreateShaderModule(RendererState* rendererState, ShaderStageConfig config, ShaderStage* shaderStage);
 
-	bool Use(RendererState* rendererState);
-	void SetUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value);
+	void Use(RendererState* rendererState);
+	void SetGlobalUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value);
+	void SetInstanceUniform(RendererState* rendererState, Shader* shader, Uniform& uniform, const void* value);
 	void SetPushConstant(RendererState* rendererState, Shader* shader, PushConstant& pushConstant, const void* value);
 
 	bool ApplyGlobals(RendererState* rendererState, Shader* shader);

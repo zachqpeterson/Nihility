@@ -3,8 +3,9 @@
 #include "Defines.hpp"
 
 struct PlatformState;
+struct Vector2Int;
 
-class Platform
+class NH_API Platform
 {
 public:
     static bool Initialize(const struct String& applicationName);
@@ -26,6 +27,8 @@ public:
 
     static void SetFullscreen(bool fullscreen);
     static void LockMouse(bool lock);
+
+    static const Vector2Int& ScreenSize();
 
     static const void* Handle();
 

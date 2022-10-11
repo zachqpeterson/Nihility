@@ -3,9 +3,11 @@
 #include "Camera.hpp"
 #include "RendererFrontend.hpp"
 #include "RendererDefines.hpp"
+#include "Material.hpp"
 
 #include "Resources/Resources.hpp"
 #include "Core/Settings.hpp"
+#include "Core/Time.hpp"
 
 void Scene::Create(CameraType cameraType)
 {
@@ -62,11 +64,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 	{
 		for (Mesh* m : model->meshes)
 		{
-			MeshRenderData data;
-			data.mesh = m;
-			data.model = Matrix4::IDENTITY;
-
-			meshes[m->material.id].renderData.PushBack(data);
+			meshes[m->material.id].renderData.PushBack({ Matrix4::IDENTITY, m });
 		}
 	}
 
@@ -95,17 +93,8 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 			if (list.renderData.Size())
 			{
-				if (!RendererFrontend::UseShader(list.material->shader))
-				{
-					Logger::Error("Failed to use material shader. Render frame failed.");
-					return false;
-				}
-
-				if (!list.material->shader->ApplyGlobals(list.material, camera))
-				{
-					Logger::Error("Failed to use apply globals for material shader. Render frame failed.");
-					return false;
-				}
+				RendererFrontend::UseShader(list.material->shader);
+				list.material->ApplyGlobals(camera);
 			}
 		}
 
@@ -117,21 +106,11 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 			MeshRenderData data = dataTemp;
 			Material& material = data.mesh->material;
 
-			bool needsUpdate = material.renderFrameNumber != frameNumber;
-
-			if (!material.shader->ApplyMaterialInstances(material, needsUpdate))
-			{
-				Logger::Warn("Failed to apply material '{}'. Skipping draw.", material.name);
-				continue;
-			}
+			material.ApplyInstances(material.renderFrameNumber != frameNumber);
 
 			material.renderFrameNumber = frameNumber;
 
-			if (!material.shader->ApplyMaterialLocals(data.model))
-			{
-				Logger::Warn("Failed to apply material '{}'. Skipping draw.", material.name);
-				continue;
-			}
+			material.shader->ApplyMaterialLocals(data.model);
 
 			RendererFrontend::DrawMesh(data);
 		}

@@ -76,9 +76,6 @@
     <ClInclude Include="Engine\src\Resources\Resources.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Resources\Shader.hpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Containers\String.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -154,6 +151,12 @@
     <ClInclude Include="Engine\src\SIMD.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\Material.hpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\Shader.hpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">
@@ -187,9 +190,6 @@
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Resources\Resources.cpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\src\Resources\Shader.cpp">
       <Filter>Source Files\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Containers\String.cpp">
@@ -242,6 +242,12 @@
     </ClCompile>
     <ClCompile Include="Engine\src\Physics\BoxTree.cpp">
       <Filter>Source Files\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Renderer\Material.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Renderer\Shader.cpp">
+      <Filter>Source Files\Renderer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

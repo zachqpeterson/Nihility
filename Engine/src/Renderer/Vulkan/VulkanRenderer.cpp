@@ -853,6 +853,11 @@ Vector2Int VulkanRenderer::WindowSize()
 	return { rendererState->renderArea.z, rendererState->renderArea.w };
 }
 
+Vector2Int VulkanRenderer::WindowOffset()
+{
+	return { rendererState->renderArea.x, rendererState->renderArea.y };
+}
+
 void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
 {
 	texture->internalData = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
@@ -1095,11 +1100,10 @@ bool VulkanRenderer::InitializeShader(Shader* shader)
 	return false;
 }
 
-bool VulkanRenderer::UseShader(Shader* shader)
+void VulkanRenderer::UseShader(Shader* shader)
 {
 	VulkanShader* outShader = (VulkanShader*)shader->internalData;
-	if (outShader) { return outShader->Use(rendererState); }
-	return false;
+	if (outShader) { outShader->Use(rendererState); }
 }
 
 bool VulkanRenderer::ApplyGlobals(Shader* shader)
@@ -1130,18 +1134,22 @@ bool VulkanRenderer::ReleaseInstanceResources(Shader* shader, U32 instanceId)
 	return false;
 }
 
-bool VulkanRenderer::SetUniform(Shader* shader, Uniform& uniform, const void* value)
+void VulkanRenderer::SetGlobalUniform(Shader* shader, Uniform& uniform, const void* value)
 {
 	VulkanShader* outShader = (VulkanShader*)shader->internalData;
-	if (outShader) { outShader->SetUniform(rendererState, shader, uniform, value); return true; }
-	return false;
+	if (outShader) { outShader->SetGlobalUniform(rendererState, shader, uniform, value); }
 }
 
-bool VulkanRenderer::SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value)
+void VulkanRenderer::SetInstanceUniform(Shader* shader, Uniform& uniform, const void* value)
 {
 	VulkanShader* outShader = (VulkanShader*)shader->internalData;
-	if (outShader) { outShader->SetPushConstant(rendererState, shader, pushConstant, value); return true; }
-	return false;
+	if (outShader) { outShader->SetInstanceUniform(rendererState, shader, uniform, value); }
+}
+
+void VulkanRenderer::SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value)
+{
+	VulkanShader* outShader = (VulkanShader*)shader->internalData;
+	if (outShader) { outShader->SetPushConstant(rendererState, shader, pushConstant, value); }
 }
 
 bool VulkanRenderer::RecreateSwapchain()

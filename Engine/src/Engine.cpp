@@ -113,9 +113,9 @@ void Engine::MainLoop()
 
 			F64 remaining = Settings::TargetFrametime - Time::TimeSinceLastFrame();
 
-			Timer timer;
-			timer.Start();
-			while (remaining - timer.CurrentTime() > 0.0001);
+			Timer frameTimer;
+			frameTimer.Start();
+			while (remaining - frameTimer.CurrentTime() > 0.0001);
 		}
 	}
 

@@ -117,10 +117,12 @@
     <ClInclude Include="Engine\src\Physics\Physics.hpp" />
     <ClInclude Include="Engine\src\Platform\Platform.hpp" />
     <ClInclude Include="Engine\src\Renderer\Camera.hpp" />
+    <ClInclude Include="Engine\src\Renderer\Material.hpp" />
     <ClInclude Include="Engine\src\Renderer\Renderer.hpp" />
     <ClInclude Include="Engine\src\Renderer\RendererDefines.hpp" />
     <ClInclude Include="Engine\src\Renderer\RendererFrontend.hpp" />
     <ClInclude Include="Engine\src\Renderer\Scene.hpp" />
+    <ClInclude Include="Engine\src\Renderer\Shader.hpp" />
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanBuffer.hpp" />
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanCommandBuffer.hpp" />
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanDefines.hpp" />
@@ -132,7 +134,6 @@
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanShader.hpp" />
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.hpp" />
     <ClInclude Include="Engine\src\Resources\Resources.hpp" />
-    <ClInclude Include="Engine\src\Resources\Shader.hpp" />
     <ClInclude Include="Engine\src\Resources\UI.hpp" />
     <ClInclude Include="Engine\src\SIMD.h" />
   </ItemGroup>
@@ -153,8 +154,10 @@
     <ClCompile Include="Engine\src\Physics\Physics.cpp" />
     <ClCompile Include="Engine\src\Platform\PlatformWin32.cpp" />
     <ClCompile Include="Engine\src\Renderer\Camera.cpp" />
+    <ClCompile Include="Engine\src\Renderer\Material.cpp" />
     <ClCompile Include="Engine\src\Renderer\RendererFrontend.cpp" />
     <ClCompile Include="Engine\src\Renderer\Scene.cpp" />
+    <ClCompile Include="Engine\src\Renderer\Shader.cpp" />
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanBuffer.cpp" />
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanCommandBuffer.cpp" />
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanDevice.cpp" />
@@ -164,7 +167,6 @@
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanShader.cpp" />
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
     <ClCompile Include="Engine\src\Resources\Resources.cpp" />
-    <ClCompile Include="Engine\src\Resources\Shader.cpp" />
     <ClCompile Include="Engine\src\Resources\UI.cpp" />
   </ItemGroup>
   <ItemGroup>

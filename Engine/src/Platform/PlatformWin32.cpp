@@ -24,6 +24,7 @@ struct PlatformState
 	U32 clientX{ 0 };
 	U32 clientY{ 0 };
 	Vector2Int clientSize{ Vector2Int::ZERO };
+	Vector2Int screenSize{ Vector2Int::ZERO };
 	U32 windowX{ 0 };
 	U32 windowY{ 0 };
 	U32 windowWidth{ 0 };
@@ -70,12 +71,13 @@ bool Platform::Initialize(const String& applicationName)
 		return false;
 	}
 
+	platformState.screenSize = { GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+
 	if (Settings::Fullscreen)
 	{
 		platformState.clientX = 0;
 		platformState.clientY = 0;
-		platformState.clientSize.x = GetSystemMetrics(SM_CXSCREEN);
-		platformState.clientSize.y = GetSystemMetrics(SM_CYSCREEN);
+		platformState.clientSize = platformState.screenSize;
 
 		platformState.style = WS_VISIBLE | WS_POPUP;
 	}
@@ -283,6 +285,11 @@ void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
 	//TODO: Find a better way for this
 	((HINSTANCE*)surfaceInfo)[0] = platformState.hInstance;
 	((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState.hwnd;
+}
+
+const Vector2Int& Platform::ScreenSize()
+{
+	return platformState.screenSize;
 }
 
 I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 lParam)

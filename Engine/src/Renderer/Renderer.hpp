@@ -53,16 +53,18 @@ public:
     virtual bool CreateShader(Shader* shader) = 0;
     virtual void DestroyShader(Shader* shader) = 0;
     virtual bool InitializeShader(Shader* shader) = 0;
-    virtual bool UseShader(Shader* shader) = 0;
+    virtual void UseShader(Shader* shader) = 0;
     virtual bool ApplyGlobals(Shader* shader) = 0;
     virtual bool ApplyInstance(Shader* shader, bool needsUpdate) = 0;
     virtual U32 AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps) = 0;
     virtual bool ReleaseInstanceResources(Shader* shader, U32 instanceId) = 0;
-    virtual bool SetUniform(Shader* shader, Uniform& uniform, const void* value) = 0;
-    virtual bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) = 0;
+    virtual void SetGlobalUniform(Shader* shader, Uniform& uniform, const void* value) = 0;
+    virtual void SetInstanceUniform(Shader* shader, Uniform& uniform, const void* value) = 0;
+    virtual void SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) = 0;
 
     virtual void OnResize() = 0;
     virtual Vector2Int WindowSize() = 0;
+    virtual Vector2Int WindowOffset() = 0;
 
 public:
     U64 frameNumber{ 0 };

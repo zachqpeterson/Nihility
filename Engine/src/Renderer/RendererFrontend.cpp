@@ -4,6 +4,7 @@
 #include "Camera.hpp"
 #include "Scene.hpp"
 
+#include "Core/Time.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
 #include "Core/Settings.hpp"
@@ -212,9 +213,9 @@ bool RendererFrontend::InitializeShader(Shader* shader)
 	return renderer->InitializeShader(shader);
 }
 
-bool RendererFrontend::UseShader(Shader* shader)
+void RendererFrontend::UseShader(Shader* shader)
 {
-	return renderer->UseShader(shader);
+	renderer->UseShader(shader);
 }
 
 bool RendererFrontend::ApplyShaderGlobals(Shader* shader)
@@ -237,12 +238,17 @@ bool RendererFrontend::ReleaseInstanceResources(Shader* shader, U32 instanceId)
 	return renderer->ReleaseInstanceResources(shader, instanceId);
 }
 
-bool RendererFrontend::SetUniform(Shader* shader, Uniform& uniform, const void* value)
+void RendererFrontend::SetGlobalUniform(Shader* shader, Uniform& uniform, const void* value)
 {
-	return renderer->SetUniform(shader, uniform, value);
+	return renderer->SetGlobalUniform(shader, uniform, value);
 }
 
-bool RendererFrontend::SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value)
+void RendererFrontend::SetInstanceUniform(Shader* shader, Uniform& uniform, const void* value)
+{
+	return renderer->SetInstanceUniform(shader, uniform, value);
+}
+
+void RendererFrontend::SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value)
 {
 	return renderer->SetPushConstant(shader, pushConstant, value);
 }
@@ -260,6 +266,11 @@ bool RendererFrontend::OnResize(void* data)
 Vector2Int RendererFrontend::WindowSize()
 {
 	return renderer->WindowSize();
+}
+
+Vector2Int RendererFrontend::WindowOffset()
+{
+	return renderer->WindowOffset();
 }
 
 Vector2 RendererFrontend::ScreenToWorld(const Vector2& v)

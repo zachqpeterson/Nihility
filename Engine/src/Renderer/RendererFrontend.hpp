@@ -56,16 +56,18 @@ public:
 	static bool CreateShader(Shader* shader);
 	static void DestroyShader(Shader* shader);
 	static bool InitializeShader(Shader* shader);
-	static bool UseShader(Shader* shader);
+	static void UseShader(Shader* shader);
 	static bool ApplyShaderGlobals(Shader* shader);
 	static bool ApplyShaderInstance(Shader* shader, bool needsUpdate);
 	static U32 AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps);
 	static bool ReleaseInstanceResources(Shader* shader, U32 instanceId);
-	static bool SetUniform(Shader* shader, Uniform& uniform, const void* value);
-	static bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value);
+	static void SetGlobalUniform(Shader* shader, Uniform& uniform, const void* value);
+	static void SetInstanceUniform(Shader* shader, Uniform& uniform, const void* value);
+	static void SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value);
 
 	static bool OnResize(void* data);
 	static NH_API Vector2Int WindowSize();
+	static NH_API Vector2Int WindowOffset();
 	static NH_API Vector2 ScreenToWorld(const Vector2& v);
 
 	static NH_API void DrawGameObject(GameObject2D* go);

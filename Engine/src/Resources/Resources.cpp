@@ -1,7 +1,5 @@
 #include "Resources.hpp"
 
-#include "Shader.hpp"
-
 #include "Memory/Memory.hpp"
 #include "Core/File.hpp"
 #include "Core/Time.hpp"
@@ -1174,11 +1172,21 @@ Shader* Resources::LoadShader(const String& name)
 				else
 				{
 					Uniform uniform;
-					GetConfigType(fields[0], uniform.type, uniform.size);
+					GetConfigType(fields[0], uniform.fieldType, uniform.size);
 
 					uniform.name = fields[3];
 					uniform.setIndex = fields[1].ToU8();
 					uniform.bindingIndex = fields[2].ToU8();
+
+					if (uniform.name == "projection") { uniform.uniformType = UNIFORM_TYPE_CAMERA_PROJECTION; }
+					else if (uniform.name == "view") { uniform.uniformType = UNIFORM_TYPE_CAMERA_VIEW; }
+					else if (uniform.name == "viewPosition") { uniform.uniformType = UNIFORM_TYPE_CAMERA_POSITION; }
+					else if (uniform.name == "ambientColor") { uniform.uniformType = UNIFORM_TYPE_CAMERA_COLOR; }
+					else if (uniform.name == "diffuseColor") { uniform.uniformType = UNIFORM_TYPE_DIFFUSE_COLOR; }
+					else if (uniform.name == "shininess") { uniform.uniformType = UNIFORM_TYPE_SHININESS; }
+					else if (uniform.fieldType == FIELD_TYPE_SAMPLER) { uniform.uniformType = UNIFORM_TYPE_TEXTURE; }
+
+					uniform.uniformType;
 
 					shader->AddUniform(uniform);
 				}

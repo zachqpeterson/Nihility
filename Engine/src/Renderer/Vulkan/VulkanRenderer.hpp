@@ -45,16 +45,18 @@ public:
     bool CreateShader(Shader* shader) final;
     void DestroyShader(Shader* shader) final;
     bool InitializeShader(Shader* shader) final;
-    bool UseShader(Shader* shader) final;
+    void UseShader(Shader* shader) final;
     bool ApplyGlobals(Shader* shader) final;
     bool ApplyInstance(Shader* shader, bool needsUpdate) final;
     U32  AcquireInstanceResources(Shader* shader, Vector<TextureMap>& maps) final;
     bool ReleaseInstanceResources(Shader* shader, U32 instanceId) final;
-    bool SetUniform(Shader* shader, Uniform& uniform, const void* value) final;
-    bool SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) final;
+    void SetGlobalUniform(Shader* shader, Uniform& uniform, const void* value) final;
+    void SetInstanceUniform(Shader* shader, Uniform& uniform, const void* value) final;
+    void SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value) final;
 
     void OnResize() final;
     Vector2Int WindowSize() final;
+    Vector2Int WindowOffset() final;
 
     void* operator new(U64 size);
     void operator delete(void* p);

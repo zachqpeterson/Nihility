@@ -12,9 +12,10 @@
 #include <Containers/Array.hpp>
 #include <Core/Time.hpp>
 #include <Core/Input.hpp>
+#include <Platform/Platform.hpp>
 
-#define VIEW_DISTANCE_X 4
-#define VIEW_DISTANCE_Y 2
+#define VIEW_DISTANCE_X 6
+#define VIEW_DISTANCE_Y 3
 
 World::World(I64 seed, WorldSize size, Vector2& spawnPoint) : SEED{ seed }, TILES_X{ (U16)size }, TILES_Y{ (U16)(TILES_X / 3.5f) }, CHUNKS_X{ (U16)(TILES_X / CHUNK_SIZE) }, CHUNKS_Y{ (U16)(TILES_Y / CHUNK_SIZE) }
 {
@@ -51,7 +52,7 @@ World::World(I64 seed, WorldSize size, Vector2& spawnPoint) : SEED{ seed }, TILE
 		}
 	}
 
-	spawnPoint = { TILES_X * 0.5f, spawnHeight };
+	spawnPoint = { TILES_X * 0.5f + 0.5f, spawnHeight };
 
 	GridBroadphase* bp = new GridBroadphase(tiles, TILES_X, TILES_Y);
 	Physics::SetBroadphase(bp);
@@ -137,9 +138,14 @@ void World::Update()
 
 	if (Input::OnButtonDown(LEFT_CLICK))
 	{
+		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
 		Vector2 mousePos = (Vector2)Input::MousePos();
-		Vector2 scaledPos = mousePos / ((Vector2)RendererFrontend::WindowSize() / Vector2{ 80.0f, 45.0f });
-		Vector2Int worldPos = (Vector2Int)(scaledPos + (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position());
+		Vector2 screenSize = (Vector2)Platform::ScreenSize();
+		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+
+		Vector2Int worldPos = Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
+
 		Vector2Int chunkPos = worldPos / 8;
 
 		tiles[worldPos.x][worldPos.y].blockID = 0;
