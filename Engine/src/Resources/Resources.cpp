@@ -1909,7 +1909,7 @@ Texture* Resources::CreateTextureFromInternal(const String& name, U32 width, U32
 	texture->flags |= hasTransparency ? TEXTURE_FLAG_HAS_TRANSPARENCY : 0;
 	texture->flags |= isWriteable ? TEXTURE_FLAG_IS_WRITEABLE : 0;
 	texture->flags |= TEXTURE_FLAG_IS_WRAPPED;
-	texture->sampleCount = Settings::MSAACount;
+	texture->sampleCount = 1;
 	texture->internalData = internalData;
 
 	if (registerTexture) { textures.Insert(name, texture); }

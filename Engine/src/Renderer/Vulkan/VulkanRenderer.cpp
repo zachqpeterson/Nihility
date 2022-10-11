@@ -1190,7 +1190,6 @@ bool VulkanRenderer::RegenerateRenderTargets()
 			Texture* windowTargetTexture = GetWindowAttachment(i);
 
 			Vector<Texture*> attachments;
-			attachments.Push(windowTargetTexture);
 			attachments.Push(rendererState->swapchain->colorTexture);
 
 			if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
@@ -1198,6 +1197,8 @@ bool VulkanRenderer::RegenerateRenderTargets()
 				Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
 				attachments.Push(depthTargetTexture);
 			}
+
+			attachments.Push(windowTargetTexture);
 
 			if (!CreateRenderTarget(attachments, renderpass, rendererState->framebufferWidth, rendererState->framebufferHeight, &renderpass->targets[i])) { return false; }
 		}
