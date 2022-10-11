@@ -31,6 +31,7 @@ public:
 
 private:
 	Array<Tile*, CHUNK_SIZE>& SetTiles();
+	void CreateMeshData(const Vector2& pos);
 
 	bool loaded;
 

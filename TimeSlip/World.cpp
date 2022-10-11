@@ -86,11 +86,11 @@ void World::Update()
 	{
 		I32 leftMin = Math::Max(lastPos.x - VIEW_DISTANCE_X, 0);
 		I32 leftMax = Math::Max(posI.x - VIEW_DISTANCE_X, 0);
-		I32 rightMin = Math::Min(posI.x + VIEW_DISTANCE_X, (I32)CHUNKS_X);
+		I32 rightMin = Math::Min(posI.x + VIEW_DISTANCE_X, (I32)CHUNKS_X - 1);
 		I32 rightMax = Math::Min(lastPos.x + VIEW_DISTANCE_X, (I32)CHUNKS_X - 1);
 		I32 bottomMin = Math::Max(lastPos.y - VIEW_DISTANCE_Y, 0);
 		I32 bottomMax = Math::Max(posI.y - VIEW_DISTANCE_Y, 0);
-		I32 topMin = Math::Min(posI.y + VIEW_DISTANCE_Y, (I32)CHUNKS_Y);
+		I32 topMin = Math::Min(posI.y + VIEW_DISTANCE_Y, (I32)CHUNKS_Y - 1);
 		I32 topMax = Math::Min(lastPos.y + VIEW_DISTANCE_Y, (I32)CHUNKS_Y - 1);
 
 		for (I32 y = bottomMin; y < bottomMax; ++y)
@@ -125,9 +125,9 @@ void World::Update()
 			}
 		}
 
-		for (U16 x = Math::Max(posI.x - VIEW_DISTANCE_X, 0); x <= Math::Min(posI.x + VIEW_DISTANCE_X, (I32)CHUNKS_X - 1); ++x)
+		for (U16 x = leftMax; x <= rightMin; ++x)
 		{
-			for (U16 y = Math::Max(posI.y - VIEW_DISTANCE_Y, 0); y <= Math::Min(posI.y + VIEW_DISTANCE_Y, (I32)CHUNKS_Y - 1); ++y)
+			for (U16 y = bottomMax; y <= topMin; ++y)
 			{
 				chunks[x][y].Load(Vector2{ (F32)x, (F32)y });
 			}

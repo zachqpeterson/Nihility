@@ -55,7 +55,7 @@ bool VulkanPipeline::Create(
 	rasterizerInfo.depthBiasSlopeFactor = 0.0f;
 
 	VkPipelineMultisampleStateCreateInfo multisamplingInfo = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-	multisamplingInfo.sampleShadingEnable = VK_FALSE; //TODO: Settings
+	multisamplingInfo.sampleShadingEnable = VK_TRUE; //TODO: Settings
 	multisamplingInfo.rasterizationSamples = (VkSampleCountFlagBits)Settings::MSAACount;
 	multisamplingInfo.minSampleShading = 1.0f;
 	multisamplingInfo.pSampleMask = nullptr;

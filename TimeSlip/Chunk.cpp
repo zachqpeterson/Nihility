@@ -104,6 +104,7 @@ void Chunk::Load(const Vector2& pos)
 		{
 			for (U16 y = 0; y < CHUNK_SIZE; ++y)
 			{
+				Tile& tile = tiles[x][y];
 				Vector3 worldPos{ (F32)(cPos.x + x), (F32)(cPos.y + y), 0.0f };
 
 				if (tiles[x][y].blockID)

@@ -60,6 +60,7 @@ bool VulkanDevice::Create(RendererState* rendererState)
 	// TODO: should be config driven
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.sampleRateShading = VK_TRUE;
 
 	bool portabilityRequired = false;
 	U32 availableExtensionCount = 0;
