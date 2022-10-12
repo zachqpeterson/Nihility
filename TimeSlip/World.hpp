@@ -33,6 +33,8 @@ public:
 
 	void BreakBlock(const Vector2Int& pos);
 	void PlaceBlock(const Vector2Int& pos, U8 id);
+	void BreakWall(const Vector2Int& pos);
+	void PlaceWall(const Vector2Int& pos, U8 id);
 
 	F32 GenerateWorld();
 

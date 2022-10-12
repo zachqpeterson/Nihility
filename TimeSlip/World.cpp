@@ -52,7 +52,7 @@ World::World(I64 seed, WorldSize size, Vector2& spawnPoint) : SEED{ seed }, TILE
 		}
 	}
 
-	spawnPoint = { TILES_X * 0.5f + 0.5f, spawnHeight };
+	spawnPoint = { TILES_X * 0.5f, spawnHeight };
 
 	GridBroadphase* bp = new GridBroadphase(tiles, TILES_X, TILES_Y);
 	Physics::SetBroadphase(bp);
@@ -136,7 +136,7 @@ void World::Update()
 		}
 	}
 
-	if (Input::OnButtonDown(LEFT_CLICK))
+	if (Input::ButtonDown(LEFT_CLICK))
 	{
 		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
 		Vector2 mousePos = (Vector2)Input::MousePos();
@@ -144,10 +144,17 @@ void World::Update()
 		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 
-		BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+		if (Input::ButtonDown(CONTROL))
+		{
+			BreakWall(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+		}
+		else
+		{
+			BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+		}
 	}
 	
-	if (Input::OnButtonDown(RIGHT_CLICK))
+	if (Input::ButtonDown(RIGHT_CLICK))
 	{
 		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
 		Vector2 mousePos = (Vector2)Input::MousePos();
@@ -155,7 +162,14 @@ void World::Update()
 		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 
-		PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
+		if (Input::ButtonDown(CONTROL))
+		{
+			PlaceWall(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
+		}
+		else
+		{
+			PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
+		}
 	}
 
 	lastPos = posI;
@@ -207,7 +221,6 @@ void World::BreakBlock(const Vector2Int& pos)
 	chunks[chunkPos.x][chunkPos.y].EditBlock(0, pos, pos - chunkPos * 8);
 	chunks[chunkPos.x][chunkPos.y].EditDecoration(0, pos, pos - chunkPos * 8);
 
-	//TODO: Edit adjecent blocks and decorations with their id to re-get the uv coords
 	if (pos.x > 0)
 	{
 		Vector2Int left = pos - Vector2Int::LEFT;
@@ -275,7 +288,6 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 	tiles[pos.x][pos.y].blockID = id;
 	chunks[chunkPos.x][chunkPos.y].EditBlock(id, pos, pos - chunkPos * 8);
 
-	//TODO: Edit adjecent blocks and decorations with their id to re-get the uv coords
 	if (pos.x > 0)
 	{
 		Vector2Int left = pos - Vector2Int::LEFT;
@@ -307,6 +319,76 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 		Vector2Int up = pos - Vector2Int::UP;
 		chunkPos = up / 8;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
+	}
+}
+
+void World::BreakWall(const Vector2Int& pos)
+{
+	Vector2Int chunkPos = pos / 8;
+	tiles[pos.x][pos.y].wallID = 0;
+	chunks[chunkPos.x][chunkPos.y].EditWall(0, pos, pos - chunkPos * 8);
+
+	if (pos.x > 0)
+	{
+		Vector2Int left = pos - Vector2Int::LEFT;
+		chunkPos = left / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[left.x][left.y].wallID, left, left - chunkPos * 8);
+	}
+
+	if (pos.x < TILES_X - 1)
+	{
+		Vector2Int right = pos - Vector2Int::RIGHT;
+		chunkPos = right / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[right.x][right.y].wallID, right, right - chunkPos * 8);
+	}
+
+	if (pos.y > 0)
+	{
+		Vector2Int down = pos - Vector2Int::DOWN;
+		chunkPos = down / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[down.x][down.y].wallID, down, down - chunkPos * 8);
+	}
+
+	if (pos.y < TILES_Y - 1)
+	{
+		Vector2Int up = pos - Vector2Int::UP;
+		chunkPos = up / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[up.x][up.y].wallID, up, up - chunkPos * 8);
+	}
+}
+
+void World::PlaceWall(const Vector2Int& pos, U8 id)
+{
+	Vector2Int chunkPos = pos / 8;
+	tiles[pos.x][pos.y].wallID = id;
+	chunks[chunkPos.x][chunkPos.y].EditWall(id, pos, pos - chunkPos * 8);
+
+	if (pos.x > 0)
+	{
+		Vector2Int left = pos - Vector2Int::LEFT;
+		chunkPos = left / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[left.x][left.y].wallID, left, left - chunkPos * 8);
+	}
+
+	if (pos.x < TILES_X - 1)
+	{
+		Vector2Int right = pos - Vector2Int::RIGHT;
+		chunkPos = right / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[right.x][right.y].wallID, right, right - chunkPos * 8);
+	}
+
+	if (pos.y > 0)
+	{
+		Vector2Int down = pos - Vector2Int::DOWN;
+		chunkPos = down / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[down.x][down.y].wallID, down, down - chunkPos * 8);
+	}
+
+	if (pos.y < TILES_Y - 1)
+	{
+		Vector2Int up = pos - Vector2Int::UP;
+		chunkPos = up / 8;
+		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[up.x][up.y].wallID, up, up - chunkPos * 8);
 	}
 }
 
