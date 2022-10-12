@@ -22,7 +22,7 @@ public:
     bool CreateMesh(Mesh* mesh) final;
     bool BatchCreateMeshes(Vector<Mesh*>& meshes) final;
     void DestroyMesh(Mesh* mesh) final;
-    void DrawMesh(const MeshRenderData& Meshdata) final;
+    void DrawMesh(const MeshRenderData& meshData) final;
 
     void CreateTexture(Texture* texture, const Vector<U8>& pixels) final;
     void DestroyTexture(Texture* texture) final;

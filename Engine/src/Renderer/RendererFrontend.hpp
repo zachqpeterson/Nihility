@@ -32,7 +32,7 @@ public:
 	static NH_API bool CreateMesh(Mesh* mesh);
 	static NH_API bool BatchCreateMeshes(Vector<Mesh*>& meshes);
 	static NH_API void DestroyMesh(Mesh* mesh);
-	static void DrawMesh(const MeshRenderData& Meshdata);
+	static void DrawMesh(const MeshRenderData& meshData);
 
 	static void CreateTexture(Texture* texture, const Vector<U8>& pixels);
 	static void DestroyTexture(Texture* texture);

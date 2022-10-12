@@ -15,6 +15,7 @@ void Scene::Create(CameraType cameraType)
 	{
 		MaterialList list{};
 		list.material = material;
+		list.meshCount = 0;
 		meshes.Push(list);
 	}
 
@@ -43,6 +44,12 @@ void Scene::OnResize()
 
 bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 {
+	Timer timer{};
+	for (MaterialList& ml : meshes)
+	{
+		if (ml.renderData.Capacity() < ml.meshCount) { ml.renderData.Reserve(ml.meshCount); }
+	}
+
 	for (GameObject2D* go : gameObjects)
 	{
 		if (go->enabled)
@@ -55,7 +62,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 				data.mesh = m;
 				data.model = model;
 
-				meshes[m->material.id].renderData.PushBack(data);
+				meshes[m->material.id].renderData.Push(data);
 			}
 		}
 	}
@@ -64,7 +71,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 	{
 		for (Mesh* m : model->meshes)
 		{
-			meshes[m->material.id].renderData.PushBack({ Matrix4::IDENTITY, m });
+			meshes[m->material.id].renderData.Push({ Matrix4::IDENTITY, m });
 		}
 	}
 
@@ -100,22 +107,35 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 		U64 size = list.renderData.Size();
 
-		for (U64 i = 0; i < size; ++i)
+		if (list.renderData.Size() && !list.material->shader->useInstances && !list.material->shader->useLocals)
 		{
-			MeshRenderData&& dataTemp = Move(list.renderData.PopFront());
-			MeshRenderData data = dataTemp;
-			Material& material = data.mesh->material;
+			for (MeshRenderData& data : list.renderData)
+			{
+				RendererFrontend::DrawMesh(data);
+			}
 
-			material.ApplyInstances(material.renderFrameNumber != frameNumber);
+			list.renderData.Clear();
+		}
+		else
+		{
+			for (U64 i = 0; i < size; ++i)
+			{
+				MeshRenderData&& dataTemp = Move(list.renderData.Pop());
+				MeshRenderData data = dataTemp;
+				Material& material = data.mesh->material;
 
-			material.renderFrameNumber = frameNumber;
+				material.ApplyInstances(material.renderFrameNumber != frameNumber);
 
-			material.shader->ApplyMaterialLocals(data.model);
+				material.renderFrameNumber = frameNumber;
 
-			RendererFrontend::DrawMesh(data);
+				material.shader->ApplyMaterialLocals(data.model);
+
+				RendererFrontend::DrawMesh(data);
+			}
 		}
 	}
 
+	//Logger::Debug(timer.CurrentTime());
 	if (!RendererFrontend::EndRenderpass(meshes.Back().material->shader->renderpass))
 	{
 		Logger::Error("renderpass '{}' failed to end.", meshes.Back().material->shader->renderpass->name);
@@ -127,26 +147,37 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 void Scene::DrawGameObject(GameObject2D* gameObject)
 {
-	if (gameObject && gameObject->model)
+	gameObjects.PushBack(gameObject);
+
+	for (Mesh* mesh : gameObject->model->meshes)
 	{
-		gameObjects.PushBack(gameObject);
+		++meshes[mesh->material.id].meshCount;
 	}
 }
 
 void Scene::UndrawGameObject(GameObject2D* gameObject)
 {
 	gameObjects.Remove(gameObject);
+	for (Mesh* mesh : gameObject->model->meshes)
+	{
+		--meshes[mesh->material.id].meshCount;
+	}
 }
 
 void Scene::DrawModel(Model* model)
 {
-	if (model)
+	models.PushBack(model);
+	for (Mesh* mesh : model->meshes)
 	{
-		models.PushBack(model);
+		++meshes[mesh->material.id].meshCount;
 	}
 }
 
 void Scene::UndrawModel(Model* model)
 {
 	models.Remove(model);
+	for (Mesh* mesh : model->meshes)
+	{
+		--meshes[mesh->material.id].meshCount;
+	}
 }

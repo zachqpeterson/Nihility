@@ -30,7 +30,7 @@ public:
     virtual bool CreateMesh(Mesh* mesh) = 0;
     virtual bool BatchCreateMeshes(Vector<Mesh*>& meshes) = 0;
     virtual void DestroyMesh(Mesh* mesh) = 0;
-    virtual void DrawMesh(const MeshRenderData& Meshdata) = 0;
+    virtual void DrawMesh(const MeshRenderData& meshData) = 0;
 
     virtual void CreateTexture(Texture* texture, const Vector<U8>& pixels) = 0;
     virtual void DestroyTexture(Texture* texture) = 0;

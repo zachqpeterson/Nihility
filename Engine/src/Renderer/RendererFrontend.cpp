@@ -118,9 +118,9 @@ void RendererFrontend::DestroyMesh(Mesh* mesh)
 	renderer->DestroyMesh(mesh);
 }
 
-void RendererFrontend::DrawMesh(const struct MeshRenderData& Meshdata)
+void RendererFrontend::DrawMesh(const struct MeshRenderData& meshData)
 {
-	renderer->DrawMesh(Meshdata);
+	renderer->DrawMesh(meshData);
 }
 
 void RendererFrontend::CreateTexture(Texture* texture, const Vector<U8>& pixels)

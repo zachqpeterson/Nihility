@@ -797,11 +797,11 @@ void VulkanRenderer::DestroyMesh(Mesh* mesh)
 	}
 }
 
-void VulkanRenderer::DrawMesh(const MeshRenderData& meshdata)
+void VulkanRenderer::DrawMesh(const MeshRenderData& meshData)
 {
-	if (meshdata.mesh && !meshdata.mesh->internalData) { return; }
+	if (meshData.mesh && !meshData.mesh->internalData) { return; }
 
-	VulkanMesh* bufferData = (VulkanMesh*)meshdata.mesh->internalData;
+	VulkanMesh* bufferData = (VulkanMesh*)meshData.mesh->internalData;
 	VulkanCommandBuffer& commandBuffer = rendererState->graphicsCommandBuffers[rendererState->imageIndex];
 
 	VkDeviceSize offsets[1] = { bufferData->vertexBufferOffset };

@@ -18,7 +18,8 @@ struct MeshRenderData;
 struct MaterialList
 {
 	Material* material;
-	List<MeshRenderData> renderData;
+	Vector<MeshRenderData> renderData;
+	U64 meshCount;
 };
 
 struct GameObject2D;

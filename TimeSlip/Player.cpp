@@ -12,13 +12,12 @@ struct Vertex
 {
 	Vector3 position;
 	Vector2 uv;
-	U32 texId;
 };
 
 Player::Player(const Vector2& position) : gameObject{ nullptr }
 {
 	MeshConfig meshConfig{};
-	meshConfig.MaterialName = "Block.mat";
+	meshConfig.MaterialName = "Player.mat";
 	meshConfig.vertices = Memory::Allocate(sizeof(Vertex) * 4, MEMORY_TAG_RESOURCE);
 	meshConfig.vertexSize = sizeof(Vertex);
 	meshConfig.vertexCount = 4;
@@ -27,10 +26,10 @@ Player::Player(const Vector2& position) : gameObject{ nullptr }
 
 	Vertex* vertices = (Vertex*)meshConfig.vertices;
 
-	vertices[0] = Vertex{ {-0.5f, -1.0f, 1.0f}, {0.0f, 1.0f}, 2 };
-	vertices[1] = Vertex{ { 0.5f, -1.0f, 1.0f}, {1.0f, 1.0f}, 2 };
-	vertices[2] = Vertex{ { 0.5f,  1.0f, 1.0f}, {1.0f, 0.0f}, 2 };
-	vertices[3] = Vertex{ {-0.5f,  1.0f, 1.0f}, {0.0f, 0.0f}, 2 };
+	vertices[0] = Vertex{ {-0.5f, -1.0f, 1.0f}, {0.0f, 0.125f} };
+	vertices[1] = Vertex{ { 0.5f, -1.0f, 1.0f}, {0.166666f, 0.125f} };
+	vertices[2] = Vertex{ { 0.5f,  1.0f, 1.0f}, {0.166666f, 0.0f} };
+	vertices[3] = Vertex{ {-0.5f,  1.0f, 1.0f}, {0.0f, 0.0f} };
 
 	meshConfig.indices[0] = 0;
 	meshConfig.indices[1] = 1;

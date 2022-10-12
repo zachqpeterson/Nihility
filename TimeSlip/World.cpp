@@ -144,74 +144,18 @@ void World::Update()
 		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 
-		Vector2Int worldPos = Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
+		BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+	}
+	
+	if (Input::OnButtonDown(RIGHT_CLICK))
+	{
+		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+		Vector2 mousePos = (Vector2)Input::MousePos();
+		Vector2 screenSize = (Vector2)Platform::ScreenSize();
+		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 
-		Vector2Int chunkPos = worldPos / 8;
-		tiles[worldPos.x][worldPos.y].blockID = 0;
-		tiles[worldPos.x][worldPos.y].decID = 0;
-		chunks[chunkPos.x][chunkPos.y].EditBlock(0, worldPos, worldPos - chunkPos * 8);
-		chunks[chunkPos.x][chunkPos.y].EditDecoration(0, worldPos, worldPos - chunkPos * 8);
-
-		//TODO: Edit adjecent blocks and decorations with their id to re-get the uv coords
-		if (worldPos.x > 0)
-		{
-			Vector2Int left = worldPos - Vector2Int::LEFT;
-			chunkPos = left / 8;
-			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[left.x][left.y].blockID, left, left - chunkPos * 8);
-			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[left.x][left.y].decID, left, left - chunkPos * 8);
-
-			if (worldPos.y > 0)
-			{
-				Vector2Int leftDown = left - Vector2Int::DOWN;
-				chunkPos = leftDown / 8;
-				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[leftDown.x][leftDown.y].decID, leftDown, leftDown - chunkPos * 8);
-			}
-
-			if (worldPos.y < TILES_Y - 1)
-			{
-				Vector2Int leftUp = left - Vector2Int::UP;
-				chunkPos = leftUp / 8;
-				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[leftUp.x][leftUp.y].decID, leftUp, leftUp - chunkPos * 8);
-			}
-		}
-
-		if (worldPos.x < TILES_X - 1)
-		{
-			Vector2Int right = worldPos - Vector2Int::RIGHT;
-			chunkPos = right / 8;
-			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[right.x][right.y].blockID, right, right - chunkPos * 8);
-			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[right.x][right.y].decID, right, right - chunkPos * 8);
-
-			if (worldPos.y > 0)
-			{
-				Vector2Int rightDown = right - Vector2Int::DOWN;
-				chunkPos = rightDown / 8;
-				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[rightDown.x][rightDown.y].decID, rightDown, rightDown - chunkPos * 8);
-			}
-
-			if (worldPos.y < TILES_Y - 1)
-			{
-				Vector2Int rightUp = right - Vector2Int::UP;
-				chunkPos = rightUp / 8;
-				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[rightUp.x][rightUp.y].decID, rightUp, rightUp - chunkPos * 8);
-			}
-		}
-
-		if (worldPos.y > 0)
-		{
-			Vector2Int down = worldPos - Vector2Int::DOWN;
-			chunkPos = down / 8;
-			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
-			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[down.x][down.y].decID, down, down - chunkPos * 8);
-		}
-
-		if (worldPos.y < TILES_Y - 1)
-		{
-			Vector2Int up = worldPos - Vector2Int::UP;
-			chunkPos = up / 8;
-			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
-			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[up.x][up.y].decID, up, up - chunkPos * 8);
-		}
+		PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
 	}
 
 	lastPos = posI;
@@ -253,6 +197,117 @@ Vector2 World::DecorationUV(const Vector2Int& pos, U8 id)
 Vector2 World::LiquidUV(const Vector2Int& pos)
 {
 	return Vector2::ZERO;
+}
+
+void World::BreakBlock(const Vector2Int& pos)
+{
+	Vector2Int chunkPos = pos / 8;
+	tiles[pos.x][pos.y].blockID = 0;
+	tiles[pos.x][pos.y].decID = 0;
+	chunks[chunkPos.x][chunkPos.y].EditBlock(0, pos, pos - chunkPos * 8);
+	chunks[chunkPos.x][chunkPos.y].EditDecoration(0, pos, pos - chunkPos * 8);
+
+	//TODO: Edit adjecent blocks and decorations with their id to re-get the uv coords
+	if (pos.x > 0)
+	{
+		Vector2Int left = pos - Vector2Int::LEFT;
+		chunkPos = left / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[left.x][left.y].blockID, left, left - chunkPos * 8);
+		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[left.x][left.y].decID, left, left - chunkPos * 8);
+
+		if (pos.y > 0)
+		{
+			Vector2Int leftDown = left - Vector2Int::DOWN;
+			chunkPos = leftDown / 8;
+			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[leftDown.x][leftDown.y].decID, leftDown, leftDown - chunkPos * 8);
+		}
+
+		if (pos.y < TILES_Y - 1)
+		{
+			Vector2Int leftUp = left - Vector2Int::UP;
+			chunkPos = leftUp / 8;
+			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[leftUp.x][leftUp.y].decID, leftUp, leftUp - chunkPos * 8);
+		}
+	}
+
+	if (pos.x < TILES_X - 1)
+	{
+		Vector2Int right = pos - Vector2Int::RIGHT;
+		chunkPos = right / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[right.x][right.y].blockID, right, right - chunkPos * 8);
+		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[right.x][right.y].decID, right, right - chunkPos * 8);
+
+		if (pos.y > 0)
+		{
+			Vector2Int rightDown = right - Vector2Int::DOWN;
+			chunkPos = rightDown / 8;
+			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[rightDown.x][rightDown.y].decID, rightDown, rightDown - chunkPos * 8);
+		}
+
+		if (pos.y < TILES_Y - 1)
+		{
+			Vector2Int rightUp = right - Vector2Int::UP;
+			chunkPos = rightUp / 8;
+			chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[rightUp.x][rightUp.y].decID, rightUp, rightUp - chunkPos * 8);
+		}
+	}
+
+	if (pos.y > 0)
+	{
+		Vector2Int down = pos - Vector2Int::DOWN;
+		chunkPos = down / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
+		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[down.x][down.y].decID, down, down - chunkPos * 8);
+	}
+
+	if (pos.y < TILES_Y - 1)
+	{
+		Vector2Int up = pos - Vector2Int::UP;
+		chunkPos = up / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
+		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[up.x][up.y].decID, up, up - chunkPos * 8);
+	}
+}
+
+void World::PlaceBlock(const Vector2Int& pos, U8 id)
+{
+	Vector2Int chunkPos = pos / 8;
+	tiles[pos.x][pos.y].blockID = id;
+	chunks[chunkPos.x][chunkPos.y].EditBlock(id, pos, pos - chunkPos * 8);
+
+	//TODO: Edit adjecent blocks and decorations with their id to re-get the uv coords
+	if (pos.x > 0)
+	{
+		Vector2Int left = pos - Vector2Int::LEFT;
+		chunkPos = left / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[left.x][left.y].blockID, left, left - chunkPos * 8);
+	}
+
+	if (pos.x < TILES_X - 1)
+	{
+		Vector2Int right = pos - Vector2Int::RIGHT;
+		chunkPos = right / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[right.x][right.y].blockID, right, right - chunkPos * 8);
+	}
+
+	if (pos.y > 0)
+	{
+		Vector2Int down = pos - Vector2Int::DOWN;
+		chunkPos = down / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
+		if (tiles[down.x][down.y].decID < 3) //TODO: This will change was we add different decorations
+		{
+			tiles[down.x][down.y].decID = 0;
+			chunks[chunkPos.x][chunkPos.y].EditDecoration(0, down, down - chunkPos * 8);
+		}
+	}
+
+	if (pos.y < TILES_Y - 1)
+	{
+		Vector2Int up = pos - Vector2Int::UP;
+		chunkPos = up / 8;
+		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
+	}
 }
 
 F32 World::GenerateWorld()

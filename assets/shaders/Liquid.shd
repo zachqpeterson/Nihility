@@ -2,8 +2,8 @@ renderpass=Tile.rnp
 stages=vertex,fragment
 stagefiles=shaders/Tile.vert.spv,shaders/Tile.frag.spv
 useInstance=0
-useLocal=1
-renderOrder=0
+useLocal=0
+renderOrder=3
 
 attribute=vec3,inPosition
 attribute=vec2,inTexcoord
@@ -13,5 +13,3 @@ uniform=mat4,0,0,projection
 uniform=mat4,0,0,view
 uniform=vec4,0,0,ambientColor
 uniform=samp,0,1,diffuseTexture
-
-push=mat4,model

@@ -31,6 +31,9 @@ public:
 	Vector2 DecorationUV(const Vector2Int& pos, U8 id);
 	Vector2 LiquidUV(const Vector2Int& pos);
 
+	void BreakBlock(const Vector2Int& pos);
+	void PlaceBlock(const Vector2Int& pos, U8 id);
+
 	F32 GenerateWorld();
 
 private:
