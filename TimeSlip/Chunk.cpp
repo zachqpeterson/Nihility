@@ -104,67 +104,28 @@ void Chunk::Load(const Vector2& pos)
 		{
 			for (U16 y = 0; y < CHUNK_SIZE; ++y)
 			{
-				Tile& tile = tiles[x][y];
 				Vector3 worldPos{ (F32)(cPos.x + x), (F32)(cPos.y + y), 0.0f };
+				Tile& tile = tiles[x][y];
 
-				if (tiles[x][y].blockID)
+				Vector2 blockUV = world->BlockUV((Vector2Int)worldPos);
+				Vector2 wallUV = world->WallUV((Vector2Int)worldPos);
+				Vector2 decUV = world->DecorationUV((Vector2Int)worldPos, tile.decID);
+				Vector2 liquidUV = world->LiquidUV((Vector2Int)worldPos);
+
+				for (U16 j = 0; j < 4; ++j)
 				{
-					Vector2 uv = world->BlockUV((Vector2Int)worldPos);
-
-					for (U16 j = 0; j < 4; ++j)
-					{
-						blockVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], uv + UV_POSITIONS[j], (U32)(tiles[x][y].blockID - 1) };
-					}
-
-					for (U16 j = 0; j < 6; ++j)
-					{
-						configs[0].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
-					}
+					blockVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], blockUV + UV_POSITIONS[j], (U32)(tile.blockID - 1) };
+					wallVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], wallUV + UV_POSITIONS[j], (U32)(tile.wallID - 1) };
+					decVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], decUV + UV_POSITIONS[j], (U32)(tile.decID - 1) };
+					liquidVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], liquidUV + UV_POSITIONS[j], (U32)(tile.liquidID - 1) };
 				}
 
-				if (tiles[x][y].wallID)
+				for (U16 j = 0; j < 6; ++j)
 				{
-					Vector2 uv = world->WallUV((Vector2Int)worldPos);
-
-					for (U16 j = 0; j < 4; ++j)
-					{
-						wallVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], uv + UV_POSITIONS[j], (U32)(tiles[x][y].wallID - 1) };
-					}
-
-					for (U16 j = 0; j < 6; ++j)
-					{
-						configs[1].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
-					}
-				}
-
-				if (tiles[x][y].decID)
-				{
-					Vector2 uv = world->DecorationUV((Vector2Int)worldPos, tiles[x][y].decID);
-
-					for (U16 j = 0; j < 4; ++j)
-					{
-						decVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], uv + UV_POSITIONS[j], (U32)(tiles[x][y].decID - 1) };
-					}
-
-					for (U16 j = 0; j < 6; ++j)
-					{
-						configs[2].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
-					}
-				}
-
-				if (tiles[x][y].liquidID)
-				{
-					Vector2 uv = world->LiquidUV((Vector2Int)worldPos);
-
-					for (U16 j = 0; j < 4; ++j)
-					{
-						liquidVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], uv + UV_POSITIONS[j], (U32)(tiles[x][y].liquidID - 1) };
-					}
-
-					for (U16 j = 0; j < 6; ++j)
-					{
-						configs[3].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
-					}
+					configs[0].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+					configs[1].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+					configs[2].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+					configs[3].indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
 				}
 
 				++index;
@@ -211,12 +172,9 @@ void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tileP
 
 	for (U16 j = 0; j < 4; ++j)
 	{
-		vertices[index * 4 + j] = Vertex{ pos + VERTEX_POSITIONS[j], uv + UV_POSITIONS[j], (U32)(tiles[tilePos.x][tilePos.y].blockID - 1) };
-	}
-
-	for (U16 j = 0; j < 6; ++j)
-	{
-		mesh->indices[index * 6 + j] = index * 4 + INDEX_SEQUENCE[j];
+		//TODO: Probably shouldn't set texID to -1
+		vertices[index * 4 + j].texId = tiles[tilePos.x][tilePos.y].blockID - 1;
+		vertices[index * 4 + j].uv = uv + UV_POSITIONS[j];
 	}
 
 	RendererFrontend::CreateMesh(mesh);
@@ -224,15 +182,60 @@ void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tileP
 
 void Chunk::EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
+	Mesh* mesh = model->meshes[1];
 
+	Vector2 uv = world->WallUV(worldPos);
+	Vector3 pos = (Vector3)worldPos;
+
+	Vertex* vertices = (Vertex*)mesh->vertices;
+
+	U32 index = tilePos.x * CHUNK_SIZE + tilePos.y;
+
+	for (U16 j = 0; j < 4; ++j)
+	{
+		vertices[index * 4 + j].texId = tiles[tilePos.x][tilePos.y].wallID - 1;
+		vertices[index * 4 + j].uv = uv + UV_POSITIONS[j];
+	}
+
+	RendererFrontend::CreateMesh(mesh);
 }
 
 void Chunk::EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
+	Mesh* mesh = model->meshes[2];
 
+	Vector2 uv = world->DecorationUV(worldPos, id);
+	Vector3 pos = (Vector3)worldPos;
+
+	Vertex* vertices = (Vertex*)mesh->vertices;
+
+	U32 index = tilePos.x * CHUNK_SIZE + tilePos.y;
+
+	for (U16 j = 0; j < 4; ++j)
+	{
+		vertices[index * 4 + j].texId = tiles[tilePos.x][tilePos.y].decID - 1;
+		vertices[index * 4 + j].uv = uv + UV_POSITIONS[j];
+	}
+
+	RendererFrontend::CreateMesh(mesh);
 }
 
 void Chunk::EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
+	Mesh* mesh = model->meshes[3];
 
+	Vector2 uv = world->LiquidUV(worldPos);
+	Vector3 pos = (Vector3)worldPos;
+
+	Vertex* vertices = (Vertex*)mesh->vertices;
+
+	U32 index = tilePos.x * CHUNK_SIZE + tilePos.y;
+
+	for (U16 j = 0; j < 4; ++j)
+	{
+		vertices[index * 4 + j].texId = tiles[tilePos.x][tilePos.y].liquidID - 1;
+		vertices[index * 4 + j].uv = uv + UV_POSITIONS[j];
+	}
+
+	RendererFrontend::CreateMesh(mesh);
 }

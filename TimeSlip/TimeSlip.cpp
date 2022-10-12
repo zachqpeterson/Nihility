@@ -32,7 +32,7 @@ bool TimeSlip::Initialize()
 	RendererFrontend::UseScene(worldScene);
 
 	Vector2 spawnPoint;
-	CreateWorld(WS_SMALL, spawnPoint);
+	CreateWorld(WS_TEST, spawnPoint);
 
 	player = new Player(spawnPoint);
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
