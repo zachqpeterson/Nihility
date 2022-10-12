@@ -56,7 +56,7 @@ void UI::Update()
 	{
 		Vector2Int posDelta = mousePos - lastMousesPos;
 
-		if (!posDelta.Zero()) { draggedElement->OnDrag(draggedElement, posDelta); }
+		if (!posDelta.Zero()) { draggedElement->OnDrag.callback(draggedElement, posDelta, draggedElement->OnDrag.value); }
 	}
 	else
 	{
@@ -66,33 +66,33 @@ void UI::Update()
 
 		for (UIElement* e : elements)
 		{
-			if (e->gameObject->enabled && e->scene == RendererFrontend::CurrentScene() && !blocked && (pos.x > e->area.x && pos.x < e->area.z && pos.y > e->area.y && pos.y < e->area.w))
+			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked && (pos.x > e->area.x && pos.x < e->area.z && pos.y > e->area.y && pos.y < e->area.w))
 			{
 				if (!e->hovered)
 				{
-					if (e->OnHover) { e->OnHover(e, mousePos); }
+					if (e->OnHover.callback) { e->OnHover.callback(e, mousePos, e->OnHover.value); }
 					e->hovered = true;
 				}
-				else if (e->OnMove)
+				else if (e->OnMove.callback)
 				{
-					e->OnMove(e, mousePos);
+					e->OnMove.callback(e, mousePos, e->OnMove.value);
 				}
 
 				if (Input::OnButtonDown(LEFT_CLICK))
 				{
-					if (e->OnDrag) { draggedElement = e; }
-					if (e->OnClick) { e->OnClick(e, mousePos); }
+					if (e->OnDrag.callback) { draggedElement = e; }
+					if (e->OnClick.callback) { e->OnClick.callback(e, mousePos, e->OnClick.value); }
 					e->clicked = true;
 				}
 				else if (Input::OnButtonUp(LEFT_CLICK))
 				{
-					if (e->OnRelease) { e->OnRelease(e, mousePos); }
+					if (e->OnRelease.callback) { e->OnRelease.callback(e, mousePos, e->OnRelease.value); }
 					e->clicked = false;
 				}
 
-				if (I16 scroll = Input::MouseWheelDelta() != 0 && e->OnScroll)
+				if (I16 scroll = Input::MouseWheelDelta() != 0 && e->OnScroll.callback)
 				{
-					e->OnScroll(e, mousePos, scroll);
+					e->OnScroll.callback(e, mousePos, scroll, e->OnScroll.value);
 				}
 
 				blocked = true;
@@ -101,13 +101,13 @@ void UI::Update()
 			{
 				if (e->hovered)
 				{
-					if (e->OnExit) { e->OnExit(e); }
+					if (e->OnExit.callback) { e->OnExit.callback(e, e->OnExit.value); }
 					e->hovered = false;
 				}
 
 				if (e->clicked)
 				{
-					if (e->OnRelease) { e->OnRelease(e, mousePos); }
+					if (e->OnRelease.callback) { e->OnRelease.callback(e, mousePos, e->OnRelease.value); }
 					e->clicked = false;
 				}
 			}
@@ -124,6 +124,7 @@ void UI::CreateDescription()
 	description->scene = (Scene*)RendererFrontend::CurrentScene();
 	description->area = { 0.0f, 0.0f, 0.1f, 0.05f };
 	description->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	description->ignore = true;
 
 	Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -195,6 +196,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	panel->id = elementID++;
 	panel->scene = config.scene;
 	panel->color = config.color;
+	panel->ignore = config.ignore;
 
 	String name("UI_Element_{}", panel->id);
 
@@ -407,6 +409,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	image->id = elementID++;
 	image->scene = config.scene;
 	image->color = config.color;
+	image->ignore = config.ignore;
 
 	String name("UI_Element_{}", image->id);
 
@@ -505,6 +508,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	uiText->size = size;
 	uiText->text = text;
 	uiText->color = config.color;
+	uiText->ignore = config.ignore;
 	uiText->isText = true;
 
 	String name("UI_Element_{}", uiText->id);

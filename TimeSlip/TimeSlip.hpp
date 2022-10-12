@@ -5,6 +5,16 @@
 class Scene;
 class Player;
 struct Vector2;
+struct UIElement;
+
+enum GameState
+{
+	GAME_STATE_MENU,
+	GAME_STATE_GAME,
+	GAME_STATE_PAUSE,
+
+	GAME_STATE_COUNT
+};
 
 class TimeSlip
 {
@@ -15,10 +25,16 @@ public:
 
 private:
 	static void LoadWorld();
-	static void CreateWorld(WorldSize size, Vector2& spawnPoint);
+	static void CreateWorld(UIElement* element, ...);
 
 	static Scene* mainMenuScene;
 	static Scene* worldScene;
 	static World* world;
 	static Player* player;
+
+	static GameState gameState;
+
+	static WorldSize smallWorldSize;
+	static WorldSize mediumWorldSize;
+	static WorldSize largeWorldSize;
 };

@@ -8,9 +8,30 @@
 
 struct UIElement;
 
-typedef void(*OnEvent)(UIElement*);
-typedef void(*OnMouse)(UIElement*, const Vector2Int&);
-typedef void(*OnScroll)(UIElement*, const Vector2Int&, I16);
+//TODO: Find out how to use this
+typedef void(*Callback)(UIElement*, ...);
+
+struct UIEvent
+{
+	void* value;
+	Callback callback;
+};
+
+struct OnMouse
+{
+	void* value;
+	Callback callback;
+};
+
+struct OnScroll
+{
+	void* value;
+	Callback callback;
+};
+
+//typedef void(*UIEvent)(UIElement*);
+//typedef void(*OnMouse)(UIElement*, const Vector2Int&);
+//typedef void(*OnScroll)(UIElement*, const Vector2Int&, I16);
 
 struct Mesh;
 struct Model;
@@ -30,6 +51,7 @@ struct UIVertex
 struct UIElement
 {
 	U64 id;
+	bool ignore{ false };
 	bool hovered{ false };
 	bool clicked{ false };
 	Vector4 area{};
@@ -38,19 +60,20 @@ struct UIElement
 	Mesh* mesh;
 	Scene* scene;
 	GameObject2D* gameObject{ nullptr };
-	OnMouse OnClick{ nullptr };
-	OnMouse OnDrag{ nullptr };
-	OnMouse OnRelease{ nullptr };
-	OnMouse OnHover{ nullptr };
-	OnMouse OnMove{ nullptr };
-	OnEvent OnExit{ nullptr };
-	OnScroll OnScroll{ nullptr };
+	OnMouse OnClick;
+	OnMouse OnDrag;
+	OnMouse OnRelease;
+	OnMouse OnHover;
+	OnMouse OnMove;
+	UIEvent OnExit;
+	OnScroll OnScroll;
 	bool isText{ false };
 };
 
 struct UIElementConfig
 {
 	bool enabled{ true };
+	bool ignore{ false };
 	UIElement* parent;
 	Vector2 position;
 	Vector2 scale;

@@ -5,18 +5,20 @@
 #include <Containers/List.hpp>
 #include "Containers/String.hpp"
 
-class Events
+class NH_API Events
 {
     typedef bool(*EventFunc)(void*);
 
 public:
-    static void Shutdown();
-
-    static NH_API void Subscribe(const String& name, EventFunc fn);
-    static NH_API void Notify(const String& name, void* data);
+    static void Subscribe(const String& name, EventFunc fn);
+    static void Notify(const String& name, void* data);
 
 private:
+    static void Shutdown();
+
     static Map<String, List<EventFunc>> observers;
 
     Events() = delete;
+
+    friend class Engine;
 };

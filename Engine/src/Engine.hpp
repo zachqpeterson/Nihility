@@ -3,9 +3,9 @@
 
 #include "Defines.hpp"
 
-using InitializeFn = bool (*)();
-using UpdateFn = bool (*)();
-using CleanupFn = void (*)();
+typedef bool(*InitializeFn)();
+typedef bool(*UpdateFn)();
+typedef void(*CleanupFn)();
 
 class NH_API Engine
 {
