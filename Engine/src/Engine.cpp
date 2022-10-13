@@ -88,6 +88,7 @@ void Engine::MainLoop()
 		Time::Update();
 #ifdef NH_DEBUG
 		UI::ChangeText(fpsCounter, Time::FrameRate());
+		UI::ChangeScene(fpsCounter); //TODO: This can make it draw twice?
 #endif
 		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);
 

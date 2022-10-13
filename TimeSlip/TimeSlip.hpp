@@ -4,6 +4,7 @@
 
 class Scene;
 class Player;
+class Inventory;
 struct Vector2;
 struct UIElement;
 
@@ -25,12 +26,14 @@ public:
 
 private:
 	static void LoadWorld();
-	static void CreateWorld(UIElement* element, ...);
+	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);
 
 	static Scene* mainMenuScene;
 	static Scene* worldScene;
 	static World* world;
-	static Player* player;
+
+	static Player* player; //TODO: We will need to keep track of multiple players in multiplayer for rendering
+	static Inventory* inventory; //But We only need to keep track of the inventory of your character
 
 	static GameState gameState;
 

@@ -15,7 +15,7 @@ U64 UI::elementID{ 1 };
 List<UIElement*> UI::elements;
 Texture* UI::panelTexture;
 UIElement* UI::description;
-Vector2 UI::descPos;
+Vector2Int UI::descPos;
 UIElement* UI::draggedElement;
 Vector2Int UI::lastMousesPos;
 
@@ -23,6 +23,7 @@ bool UI::Initialize()
 {
 	panelTexture = Resources::LoadTexture("UI.bmp");
 	Resources::LoadFont("OpenSans.ttf");
+	descPos = RendererFrontend::WindowSize() / 2;
 
 	return true;
 }
@@ -41,7 +42,7 @@ void UI::Shutdown()
 		}
 		else
 		{
-			Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI); 
+			Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI);
 		}
 	}
 
@@ -50,7 +51,7 @@ void UI::Shutdown()
 
 void UI::Update()
 {
-	Vector2Int mousePos = Input::MousePos();
+	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
 
 	if (draggedElement && Input::ButtonDown(LEFT_CLICK))
 	{
@@ -122,9 +123,10 @@ void UI::CreateDescription()
 	description = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_UI);
 	description->id = 0;
 	description->scene = (Scene*)RendererFrontend::CurrentScene();
-	description->area = { 0.0f, 0.0f, 0.1f, 0.05f };
+	description->area = { 0.0f, 0.0f, 0.2f, 0.1f };
 	description->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	description->ignore = true;
+	description->selfEnabled = false;
 
 	Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -197,6 +199,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	panel->scene = config.scene;
 	panel->color = config.color;
 	panel->ignore = config.ignore;
+	panel->selfEnabled = config.enabled;
 
 	String name("UI_Element_{}", panel->id);
 
@@ -382,7 +385,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled;
+	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
 	panel->gameObject = go;
 
 	elements.PushFront(panel);
@@ -410,6 +413,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	image->scene = config.scene;
 	image->color = config.color;
 	image->ignore = config.ignore;
+	image->selfEnabled = config.enabled;
 
 	String name("UI_Element_{}", image->id);
 
@@ -474,7 +478,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled;
+	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
 	image->gameObject = go;
 
 	elements.PushFront(image);
@@ -510,6 +514,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	uiText->color = config.color;
 	uiText->ignore = config.ignore;
 	uiText->isText = true;
+	uiText->selfEnabled = config.enabled;
 
 	String name("UI_Element_{}", uiText->id);
 
@@ -607,13 +612,42 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled;
+	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
 	uiText->gameObject = go;
 
 	elements.PushFront(uiText);
 	config.scene->DrawGameObject(go);
 
 	return uiText;
+}
+
+void UI::SetEnable(UIElement* element, bool enable)
+{
+	for (UIElement* child : element->children)
+	{
+		SetEnableChild(child, enable);
+	}
+
+	element->gameObject->enabled = enable;
+	element->selfEnabled = enable;
+}
+
+void UI::SetEnableChild(UIElement* element, bool enable)
+{
+	for (UIElement* child : element->children)
+	{
+		SetEnableChild(child, enable);
+	}
+
+	element->gameObject->enabled = enable && element->selfEnabled;
+}
+
+void UI::ChangeScene(UIElement* element, Scene* scene)
+{
+	element->scene->UndrawGameObject(element->gameObject);
+
+	if (scene) { scene->DrawGameObject(element->gameObject); }
+	else { RendererFrontend::CurrentScene()->DrawGameObject(element->gameObject); }
 }
 
 void UI::ChangeSize(UIElement* element, const Vector4& newArea)
@@ -625,7 +659,7 @@ void UI::ChangeSize(UIElement* element, const Vector4& newArea)
 	}
 	else
 	{
-
+		//TODO: We need to know if it's a bordered panel
 	}
 }
 
@@ -759,28 +793,47 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	element->gameObject->model = Resources::CreateModel(name, meshes);
 }
 
-void UI::ShowDescription(const Vector2Int& position)
+void UI::ShowDescription(const Vector2Int& position, const String& desc)
 {
 	if (!description) { CreateDescription(); }
 
-	Vector2 pos = ((Vector2)position / (Vector2)RendererFrontend::WindowSize()) * 2.0f - 1.0f;
-	Vector2 move = pos - descPos;
-	descPos = pos;
+	if (description->scene != RendererFrontend::CurrentScene()) { ChangeScene(description); }
 
-	description->gameObject->enabled = true;
-	description->gameObject->transform->Translate(move);
+	Vector2Int move = position - descPos;
+	MoveElement(description, move);
+	descPos = position;
+
+	if (description->children.Size())
+	{
+		ChangeText((UIText*)description->children.Front(), desc);
+	}
+	else
+	{
+		UIElementConfig config{};
+		config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		config.enabled = true;
+		config.ignore = true;
+		config.parent = description;
+		config.position = { 0.0f, 0.0f };
+		config.scale = { 1.0f, 1.0f };
+		config.scene = description->scene;
+		GenerateText(config, desc, 10);
+	}
+
+	SetEnable(description, true);
 }
 
 void UI::MoveDescription(const Vector2Int& position)
 {
-	Vector2 pos = ((Vector2)position / (Vector2)RendererFrontend::WindowSize()) * 2.0f - 1.0f;
-	Vector2 move = pos - descPos;
-	descPos = pos;
-	description->gameObject->enabled = true;
-	description->gameObject->transform->Translate(move);
+	if (description)
+	{
+		Vector2Int move = position - descPos;
+		MoveElement(description, move);
+		descPos = position;
+	}
 }
 
 void UI::HideDescription()
 {
-	description->gameObject->enabled = false;
+	if (description) { SetEnable(description, false); }
 }

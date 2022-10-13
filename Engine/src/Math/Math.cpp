@@ -444,10 +444,6 @@ Vector2& Vector2::operator=(const String& str)
 	return *this;
 }
 
-Vector2 operator- (const Vector2& v) { return Vector2{ -v.x, -v.y }; }
-
-Vector2 operator! (const Vector2& v) { return Vector2{ (F32)!v.x, (F32)!v.y }; }
-
 //VECTOR3
 Vector3::Vector3(const String& str)
 {
@@ -515,6 +511,13 @@ Vector4Int& Vector4Int::operator=(const String& str)
 
 //MATRIX3
 Matrix3::Matrix3(const Vector2& position, const Quaternion2D& rotation, const Vector2& scale)
+{
+	a.x = rotation.cos * scale.x;	b.x = -rotation.sin;			c.x = position.x;
+	a.y = rotation.sin;				b.y = rotation.cos * scale.y;	c.y = position.y;
+	a.z = 0.0f;						b.z = 0.0f;						c.z = 1.0f;
+}
+
+void Matrix3::Set(const Vector2& position, const Quaternion2D& rotation, const Vector2& scale)
 {
 	a.x = rotation.cos * scale.x;	b.x = -rotation.sin;			c.x = position.x;
 	a.y = rotation.sin;				b.y = rotation.cos * scale.y;	c.y = position.y;

@@ -8,30 +8,27 @@
 
 struct UIElement;
 
-//TODO: Find out how to use this
-typedef void(*Callback)(UIElement*, ...);
+typedef void(*EventCallback)(UIElement*, void*);
+typedef void(*MouseCallback)(UIElement*, const Vector2Int&, void*);
+typedef void(*ScrollCallback)(UIElement*, const Vector2Int&, I16, void*);
 
 struct UIEvent
 {
+	EventCallback callback;
 	void* value;
-	Callback callback;
 };
 
 struct OnMouse
 {
+	MouseCallback callback;
 	void* value;
-	Callback callback;
 };
 
 struct OnScroll
 {
+	ScrollCallback callback;
 	void* value;
-	Callback callback;
 };
-
-//typedef void(*UIEvent)(UIElement*);
-//typedef void(*OnMouse)(UIElement*, const Vector2Int&);
-//typedef void(*OnScroll)(UIElement*, const Vector2Int&, I16);
 
 struct Mesh;
 struct Model;
@@ -54,6 +51,7 @@ struct UIElement
 	bool ignore{ false };
 	bool hovered{ false };
 	bool clicked{ false };
+	bool selfEnabled{ true };
 	Vector4 area{};
 	Vector4 color{};
 	List<UIElement*> children;
@@ -94,13 +92,15 @@ public:
 	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture);
 	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
 
+	static void SetEnable(UIElement* element, bool enable);
+	static void ChangeScene(UIElement* element, Scene* scene = nullptr);
 	static void ChangeSize(UIElement* element, const Vector4& newArea);
 	static void MoveElement(UIElement* element, const Vector2Int& delta);
 	static void ChangeColor(UIElement* element, const Vector4& newColor);
 	static void ChangeSize(UIText* element, F32 newSize);
 	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
 
-	static void ShowDescription(const Vector2Int& position);
+	static void ShowDescription(const Vector2Int& position, const String& desc);
 	static void MoveDescription(const Vector2Int& position);
 	static void HideDescription();
 
@@ -110,6 +110,7 @@ private:
 	static void Update();
 
 	static void CreateDescription();
+	static void SetEnableChild(UIElement* element, bool enable);
 
 	static NH_INLINE bool Punctuation(char c) { return c == 44 || c == 46 || c == 63 || c == 33; }
 
@@ -117,7 +118,7 @@ private:
 	static List<UIElement*> elements;
 	static Texture* panelTexture;
 	static UIElement* description;
-	static Vector2 descPos;
+	static Vector2Int descPos;
 	static UIElement* draggedElement;
 	static Vector2Int lastMousesPos;
 

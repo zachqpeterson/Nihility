@@ -282,8 +282,8 @@ struct NH_API Vector2
 	bool operator<  (const Vector2& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	bool IsZero() const { return Math::Zero(x) && Math::Zero(y); }
-	friend Vector2 operator- (const Vector2& v);
-	friend Vector2 operator! (const Vector2& v);
+	Vector2 operator- () const { return { -x, -y }; }
+	Vector2 operator! () const { return { (F32)!x, (F32)!y}; }
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -392,7 +392,8 @@ struct NH_API Vector3
 	bool operator!= (const Vector3& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y) || !Math::Zero(z - v.z); }
 	bool operator<  (const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-	friend Vector3 operator- (Vector3& v) { return Vector3{ -v.x, -v.y, -v.z }; }
+	Vector3 operator- () const { return { -x, -y, -z }; }
+	Vector3 operator! () const { return { (F32)!x, (F32)!y, (F32)!z}; }
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -466,7 +467,8 @@ struct NH_API Vector4
 	bool operator!= (const Vector4& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y) || !Math::Zero(z - v.z) || !Math::Zero(w - v.w); }
 	bool operator<  (const Vector4& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector4& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-	friend Vector4 operator- (Vector4& v) { return Vector4{ -v.x, -v.y, -v.z, -v.w }; }
+	Vector4 operator- () const { return { -x, -y, -z, -w }; }
+	Vector4 operator! () const { return { (F32)!x, (F32)!y, (F32)!z, (F32)!w }; }
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -538,7 +540,8 @@ struct NH_API Vector2Int
 	bool operator<  (const Vector2Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector2Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	bool Zero() const { return x == 0 && y == 0; }
-	friend Vector2Int operator- (Vector2Int& v) { return Vector2Int{ -v.x, -v.y }; }
+	Vector2Int operator- () const { return { -x, -y }; }
+	Vector2Int operator! () const { return { (I32)!x, (I32)!y }; }
 
 	NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -598,7 +601,8 @@ struct NH_API Vector3Int
 	bool operator!= (const Vector3Int& v) const { return x != v.x || y != v.y || z != v.z; }
 	bool operator<  (const Vector3Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector3Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-	friend Vector3Int operator- (Vector3Int& v) { return Vector3Int{ -v.x, -v.y, -v.z }; }
+	Vector3Int operator- () const { return { -x, -y, -z, }; }
+	Vector3Int operator! () const { return { (I32)!x, (I32)!y, (I32)!z, }; }
 
 	NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -660,7 +664,8 @@ struct Vector4Int
 	bool operator!= (const Vector4Int& v) const { return x != v.x || y != v.y || z != v.z || w != v.w; }
 	bool operator<  (const Vector4Int& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector4Int& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
-	friend Vector4Int operator- (Vector4Int& v) { return Vector4Int{ -v.x, -v.y, -v.z, -v.w }; }
+	Vector4Int operator- () const { return { -x, -y, -z, -w }; }
+	Vector4Int operator! () const { return { (I32)!x, (I32)!y, (I32)!z, (I32)!w }; }
 
 	NH_INLINE const I32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE I32& operator[] (U8 i) { return ((&x)[i]); }
@@ -796,6 +801,16 @@ struct NH_API Matrix3
 		a.z = 0.0f;				b.z = 0.0f;				c.z = 1.0f;
 	}
 
+	void Set(const Vector2& position, const Quaternion2D& rotation, const Vector2& scale);
+
+	void Set(const Vector2& position, const F32& rotation, const Vector2& scale)
+	{
+		F32 cos = (F32)Math::Cos(rotation * DEG2RAD_MULTIPLIER);
+		F32 sin = (F32)Math::Sin(rotation * DEG2RAD_MULTIPLIER);
+		a.x = cos * scale.x;	b.x = -sin;				c.x = position.x;
+		a.y = sin;				b.y = cos * scale.y;	c.y = position.y;
+		a.z = 0.0f;				b.z = 0.0f;				c.z = 1.0f;
+	}
 
 	Matrix3& operator= (const Matrix3& m) { a = m.a; b = m.b; c = m.c; return *this; }
 	Matrix3& operator= (Matrix3&& m) noexcept { a = m.a; b = m.b; c = m.c; return *this; }
@@ -1366,7 +1381,12 @@ public:
 
 	const Matrix3& Local()
 	{
-		if (dirty) { UpdateLocal(); }
+		if (dirty)
+		{
+			local.Set(position, rotation, scale);
+			dirty = false;
+		}
+
 		return local;
 	}
 
@@ -1375,13 +1395,6 @@ public:
 	{
 		if (parent) { return parent->Local() * Local(); }
 		return Local();
-	}
-
-private:
-	void UpdateLocal()
-	{
-		local = Move(Matrix3(position, rotation, scale));
-		dirty = false;
 	}
 };
 
