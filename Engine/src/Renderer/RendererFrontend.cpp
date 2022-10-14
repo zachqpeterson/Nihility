@@ -298,5 +298,4 @@ void RendererFrontend::DrawModel(Model* model)
 void RendererFrontend::UndrawModel(Model* model)
 {
 	activeScene->UndrawModel(model);
-
 }

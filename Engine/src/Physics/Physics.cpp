@@ -329,7 +329,7 @@ void Physics::ResolveCollisions(List<Contact2D>& contacts)
 			a->oneTimeVelocity += impulseMove * !a->axisLock;
 
 			F32 percent = 0.9999f;
-			Vector2 correction = c.normal * (c.distance * percent);
+			Vector2 correction = c.normal * (c.distance * percent) * (onlyMove == 0.0f);
 			a->oneTimeVelocity += correction * !a->axisLock;
 
 			bool lock = c.restitution < FLOAT_EPSILON;

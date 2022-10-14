@@ -6,7 +6,7 @@
 
 GridBroadphase::GridBroadphase(Tile** grid, U16 width, U16 height) : width{ width }, height{ height }, grid{ grid }
 {
-	
+
 }
 
 GridBroadphase::~GridBroadphase()
@@ -107,76 +107,23 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 		length1D.y = (mapCheck.y + 1.0f - start.y) * unitStepSize.y;
 	}
 
-	//if (mapCheckHigh.y >= 0 && mapCheckLow.y < height && !Math::Zero(dir.x))
-	//{
-	//	bool foundX = false;
-	//	F32 distanceX = 0.0f;
-	//	F32 lengthX = move.x * Math::Sign(move.x) + unitStepSize.x;
-	//	I32 checkX = mapCheckLow.x;
-	//	while (!foundX && length1DX < lengthX && checkX >= 0) //TODO: check in a wider area
-	//	{
-	//		checkX += step.x;
-	//		distanceX = length1DX;
-	//		length1DX += axisStepSize.x;
-
-	//		foundX = checkX < width && ((mapCheckLow.y >= 0 && grid[checkX][mapCheckLow.y].block) || (mapCheckHigh.y < height&& grid[checkX][mapCheckHigh.y].block));
-	//	}
-
-	//	if (foundX)
-	//	{
-	//		Contact2D contact{};
-	//		contact.normal = Vector2::RIGHT * step.x;
-	//		contact.a = obj;
-	//		contact.distance = distanceX - unitStepSize.x;
-	//		contact.relativeVelocity = obj->Move();
-	//		contact.restitution = obj->Restitution();//TODO: get tile restitution;
-
-	//		contacts.PushBack(contact);
-	//	}
-	//}
-
-	//if (mapCheckHigh.x >= 0 && mapCheckLow.x < width && !Math::Zero(dir.y))
-	//{
-	//	bool foundY = false;
-	//	F32 distanceY = 0.0f;
-	//	F32 lengthY = move.y * Math::Sign(move.y) + unitStepSize.y;
-	//	I32 checkY = mapCheckLow.y;
-	//	while (!foundY && length1DY < lengthY && checkY >= 0)
-	//	{
-	//		checkY += step.y;
-	//		distanceY = length1DY;
-	//		length1DY += axisStepSize.y;
-
-	//		foundY = checkY < height && ((mapCheckLow.x >= 0 && grid[mapCheckLow.x][checkY].block) || (mapCheckHigh.x < height&& grid[mapCheckHigh.x][checkY].block));
-	//	}
-
-	//	if (foundY)
-	//	{
-	//		Contact2D contact{};
-	//		contact.normal = Vector2::UP * step.y;
-	//		contact.a = obj;
-	//		contact.distance = distanceY - unitStepSize.y;
-	//		contact.relativeVelocity = obj->Move();
-	//		contact.restitution = obj->Restitution();//TODO: get tile restitution;
-
-	//		contacts.PushBack(contact);
-	//	}
-	//}
-
 	Vector2 extents = obj->Collider()->box.Extents();
 
 	bool collidedX = Math::NaN(length1D.x);
 	bool collidedY = Math::NaN(length1D.y);
 
-	/*if (dir.x < 0.0f)
+	if (dir.x > 0.0f)
 	{
 		debugBreak();
-	}*/
+	}
 
-	Vector2Int min = (Vector2Int)(start - extents);
-	Vector2Int max = (Vector2Int)(start + extents);
-	I32& x = step.x > 0 ? max.x : min.x;
-	I32& y = step.y > 0 ? max.y : min.y;
+	U32 minX = (U32)(start.x - extents.x);
+	U32 maxX = (U32)(start.x + extents.x);
+	U32 minY = (U32)(start.y - extents.y);
+	U32 maxY = (U32)(start.y + extents.y);
+
+	U32& x = step.x > 0 ? maxX : minX;
+	U32& y = step.y > 0 ? maxY : minY;
 
 	F32 distance = 0.0f;
 	while ((length1D.x < length + extents.x && !collidedX) || (length1D.y < length + extents.y && !collidedY))
@@ -186,49 +133,49 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			mapCheck.x += step.x;
 			distance = length1D.x;
 			length1D.x += unitStepSize.x;
-			min.x += step.x;
-			max.x += step.x;
-
-			for (U64 y = min.y; y <= max.y; ++y)
-			{
-				if (x >= 0 && x < x < width && y >= 0 && y < height && grid[x][y].blockID)
-				{
-					collidedX = true;
-
-					Contact2D c{};
-					c.a = obj;
-					c.distance = distance - unitStepSize.x * excess.x;
-					c.normal = Vector2::RIGHT * step.x;
-					c.relativeVelocity = obj->Move();
-					c.restitution = obj->Restitution(); //TODO: get tile restitution;
-
-					contacts.PushBack(c);
-				}
-			}
+			minX += step.x;
+			maxX += step.x;
 		}
 		else if (!collidedY)
 		{
 			mapCheck.y += step.y;
 			distance = length1D.y;
 			length1D.y += unitStepSize.y;
-			min.y += step.y;
-			max.y += step.y;
+			minY += step.y;
+			maxY += step.y;
+		}
 
-			for (U64 x = min.x; x <= max.x; ++x)
+		for (U32 y = minY; y <= maxY && !collidedX; ++y)
+		{
+			if (x < width && y < height && grid[x][y].blockID)
 			{
-				if (x >= 0 && x < x < width && y >= 0 && y < height && grid[x][y].blockID)
-				{
-					collidedY = true;
+				collidedX = true;
 
-					Contact2D c{};
-					c.a = obj;
-					c.distance = distance - unitStepSize.y * excess.y;
-					c.normal = Vector2::UP * step.y;
-					c.relativeVelocity = obj->Move();
-					c.restitution = obj->Restitution(); //TODO: get tile restitution;
+				Contact2D c{};
+				c.a = obj;
+				c.distance = distance - unitStepSize.x * excess.x;
+				c.normal = Vector2::RIGHT * step.x;
+				c.relativeVelocity = obj->Move();
+				c.restitution = obj->Restitution(); //TODO: get tile restitution;
 
-					contacts.PushBack(c);
-				}
+				contacts.PushBack(c);
+			}
+		}
+
+		for (U32 x = minX; x <= maxX && !collidedY; ++x)
+		{
+			if (x < width && y < height && grid[x][y].blockID)
+			{
+				collidedY = true;
+
+				Contact2D c{};
+				c.a = obj;
+				c.distance = distance - unitStepSize.y * excess.y;
+				c.normal = Vector2::UP * step.y;
+				c.relativeVelocity = obj->Move();
+				c.restitution = obj->Restitution(); //TODO: get tile restitution;
+
+				contacts.PushBack(c);
 			}
 		}
 	}
