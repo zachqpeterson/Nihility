@@ -112,15 +112,18 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	bool collidedX = Math::NaN(length1D.x);
 	bool collidedY = Math::NaN(length1D.y);
 
-	if (dir.x > 0.0f)
+	/*if (dir.x > 0.0f)
 	{
 		debugBreak();
-	}
+	}*/
 
-	U32 minX = (U32)(start.x - extents.x);
+	U32 minX = (U32)(start.x - extents.x + 0.5f);
 	U32 maxX = (U32)(start.x + extents.x);
-	U32 minY = (U32)(start.y - extents.y);
+	U32 minY = (U32)(start.y - extents.y + 0.5f);
 	U32 maxY = (U32)(start.y + extents.y);
+
+	I32 undoX = 0;
+	I32 undoY = 0;
 
 	U32& x = step.x > 0 ? maxX : minX;
 	U32& y = step.y > 0 ? maxY : minY;
@@ -135,6 +138,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			length1D.x += unitStepSize.x;
 			minX += step.x;
 			maxX += step.x;
+			undoX = -step.x;
 		}
 		else if (!collidedY)
 		{
@@ -143,11 +147,12 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			length1D.y += unitStepSize.y;
 			minY += step.y;
 			maxY += step.y;
+			undoY = -step.y;
 		}
 
 		for (U32 y = minY; y <= maxY && !collidedX; ++y)
 		{
-			if (x < width && y < height && grid[x][y].blockID)
+			if (x < width && y < height && grid[x][y + undoY].blockID)
 			{
 				collidedX = true;
 
@@ -164,7 +169,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 
 		for (U32 x = minX; x <= maxX && !collidedY; ++x)
 		{
-			if (x < width && y < height && grid[x][y].blockID)
+			if (x < width && y < height && grid[x + undoX][y].blockID)
 			{
 				collidedY = true;
 
@@ -178,6 +183,9 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 				contacts.PushBack(c);
 			}
 		}
+
+		undoX = 0;
+		undoY = 0;
 	}
 
 	return contacts.Size();
