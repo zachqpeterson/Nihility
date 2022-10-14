@@ -149,35 +149,48 @@ void Scene::DrawGameObject(GameObject2D* gameObject)
 {
 	gameObjects.PushBack(gameObject);
 
-	for (Mesh* mesh : gameObject->model->meshes)
+	if (gameObject->model)
 	{
-		++meshes[mesh->material.id].meshCount;
+		for (Mesh* mesh : gameObject->model->meshes)
+		{
+			++meshes[mesh->material.id].meshCount;
+		}
 	}
 }
 
 void Scene::UndrawGameObject(GameObject2D* gameObject)
 {
 	gameObjects.Remove(gameObject);
-	for (Mesh* mesh : gameObject->model->meshes)
+
+	if (gameObject->model)
 	{
-		--meshes[mesh->material.id].meshCount;
+		for (Mesh* mesh : gameObject->model->meshes)
+		{
+			--meshes[mesh->material.id].meshCount;
+		}
 	}
 }
 
 void Scene::DrawModel(Model* model)
 {
-	models.PushBack(model);
-	for (Mesh* mesh : model->meshes)
+	if (model)
 	{
-		++meshes[mesh->material.id].meshCount;
+		models.PushBack(model);
+		for (Mesh* mesh : model->meshes)
+		{
+			++meshes[mesh->material.id].meshCount;
+		}
 	}
 }
 
 void Scene::UndrawModel(Model* model)
 {
-	models.Remove(model);
-	for (Mesh* mesh : model->meshes)
+	if (model)
 	{
-		--meshes[mesh->material.id].meshCount;
+		models.Remove(model);
+		for (Mesh* mesh : model->meshes)
+		{
+			--meshes[mesh->material.id].meshCount;
+		}
 	}
 }

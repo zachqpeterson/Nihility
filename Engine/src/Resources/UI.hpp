@@ -118,6 +118,7 @@ private:
 	static List<UIElement*> elements;
 	static Texture* panelTexture;
 	static UIElement* description;
+	static UIText* descriptionText;
 	static Vector2Int descPos;
 	static UIElement* draggedElement;
 	static Vector2Int lastMousesPos;
