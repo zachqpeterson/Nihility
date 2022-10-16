@@ -272,10 +272,12 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	// Attachments TODO: make this configurable.
 	Vector<VkAttachmentDescription> attachmentDescriptions;
 
+	U32 attachment = 0;
+
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
 	colorAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
-	colorAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+	colorAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_COLOR) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
 		hasPrev ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -287,39 +289,31 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 
 	attachmentDescriptions.Push(colorAttachment);
 
-	VkAttachmentReference colorAttachmentReference;
-	colorAttachmentReference.attachment = 0;
+	VkAttachmentReference colorAttachmentReference{};
+	colorAttachmentReference.attachment = attachment++;
 	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentReference;
 
-	VkAttachmentReference depthAttachmentReference;
 	VkAttachmentDescription depthAttachment{};
-	if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
-	{
-		depthAttachment.format = rendererState->device->depthFormat;
-		depthAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachment.format = rendererState->device->depthFormat;
+	depthAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
+	depthAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_DEPTH) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
+		hasPrev ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = hasPrev ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		attachmentDescriptions.Push(depthAttachment);
+	attachmentDescriptions.Push(depthAttachment);
 
-		depthAttachmentReference.attachment = 1;
-		depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	VkAttachmentReference depthAttachmentReference{};
+	depthAttachmentReference.attachment = attachment++;
+	depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		// TODO: other attachment types (input, resolve, preserve)
-
-		subpass.pDepthStencilAttachment = &depthAttachmentReference;
-	}
-	else
-	{
-		subpass.pDepthStencilAttachment = nullptr;
-	}
+	subpass.pDepthStencilAttachment = &depthAttachmentReference;
 
 	VkAttachmentDescription colorAttachmentResolve{};
 	colorAttachmentResolve.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
@@ -335,11 +329,12 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 
 	attachmentDescriptions.Push(colorAttachmentResolve);
 
-	VkAttachmentReference colorAttachmentResolveReference;
-	colorAttachmentResolveReference.attachment = 1 + ((renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) > 0);
+	VkAttachmentReference colorAttachmentResolveReference{};
+	colorAttachmentResolveReference.attachment = attachment;
 	colorAttachmentResolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	subpass.pResolveAttachments = &colorAttachmentResolveReference;
+
 	subpass.inputAttachmentCount = 0;
 	subpass.pInputAttachments = nullptr;
 	subpass.preserveAttachmentCount = 0;
@@ -381,13 +376,11 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 		Texture* windowTargetTexture = GetWindowAttachment(i);
 
 		Vector<Texture*> attachments;
+
 		attachments.Push(rendererState->swapchain->colorTexture);
 
-		if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
-		{
-			Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
-			attachments.Push(depthTargetTexture);
-		}
+		Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
+		attachments.Push(depthTargetTexture);
 
 		attachments.Push(windowTargetTexture);
 
@@ -632,7 +625,7 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
 
 	VkClearValue depthClear{};
 	depthClear.depthStencil.depth = renderpass->depth;
-	depthClear.depthStencil.stencil = (renderpass->clearFlags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) ? renderpass->stencil : 0;
+	depthClear.depthStencil.stencil = renderpass->stencil;
 	clearValues.Push(depthClear);
 
 	VkClearValue colorResolveClear{};
@@ -1209,11 +1202,8 @@ bool VulkanRenderer::RegenerateRenderTargets()
 			Vector<Texture*> attachments;
 			attachments.Push(rendererState->swapchain->colorTexture);
 
-			if (renderpass->clearFlags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG)
-			{
-				Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
-				attachments.Push(depthTargetTexture);
-			}
+			Texture* depthTargetTexture = rendererState->swapchain->depthTexture;
+			attachments.Push(depthTargetTexture);
 
 			attachments.Push(windowTargetTexture);
 

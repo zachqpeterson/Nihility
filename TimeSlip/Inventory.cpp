@@ -56,6 +56,12 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 
 	if (config.draggable) { backPanel->OnDrag = { OnDrag }; }
 
+	Vector<Vector2> uvs{ 4 };
+	uvs.Push({ 0.0f, 0.0f });
+	uvs.Push({ 0.16666666666f, 0.0f });
+	uvs.Push({ 0.16666666666f, 0.125f });
+	uvs.Push({ 0.0f, 0.125f });
+
 	U16 i = 0;
 	if (config.startHorizontal)
 	{
@@ -70,6 +76,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 					config.yPadding + ((config.ySlotSize + config.ySpacing) * y) };
 				slotCfg.scale = { config.xSlotSize, config.ySlotSize };
 				slotCfg.color = config.slotColor;
+				slotCfg.ignore = false;
 				slotCfg.enabled = true;
 				slotCfg.parent = backPanel;
 				slotCfg.scene = config.scene;
@@ -80,6 +87,17 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				slot.button->OnHover = { OnHover, (void*)&slot };
 				slot.button->OnMove = { OnMove, (void*)&slot };
 				slot.button->OnExit = { OnExit, (void*)&slot };
+
+				UIElementConfig imageCfg{};
+				imageCfg.position = { 0.0f, 0.0f };
+				imageCfg.scale = { 1.0f, 1.0f };
+				imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+				imageCfg.ignore = true;
+				imageCfg.enabled = true;
+				imageCfg.parent = slot.button;
+				imageCfg.scene = config.scene;
+
+				UI::GenerateImage(imageCfg, nullptr, uvs);
 			}
 		}
 	}
@@ -106,6 +124,17 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				slot.button->OnHover = { OnHover, (void*)&slot };
 				slot.button->OnMove = { OnMove, (void*)&slot };
 				slot.button->OnExit = { OnExit, (void*)&slot };
+
+				UIElementConfig imageCfg{};
+				imageCfg.position = { 0.0f, 0.0f };
+				imageCfg.scale = { 1.0f, 1.0f };
+				imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+				imageCfg.ignore = true;
+				imageCfg.enabled = true;
+				imageCfg.parent = slot.button;
+				imageCfg.scene = config.scene;
+
+				UI::GenerateImage(imageCfg, nullptr, uvs);
 			}
 		}
 	}
@@ -158,9 +187,10 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 	{
 		firstOpen->itemID = itemID;
 		firstOpen->amount = amount;
+		UI::ChangeTexture(firstOpen->button->children.Front(), Resources::LoadTexture("DirtBlock.bmp"), {});
 
 		return true;
 	}
-	
+
 	return false;
 }

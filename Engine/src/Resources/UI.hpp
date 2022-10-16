@@ -5,6 +5,7 @@
 #include "Math/Math.hpp"
 #include "Containers/String.hpp"
 #include <Containers/List.hpp>
+#include <Containers/Vector.hpp>
 
 struct UIElement;
 
@@ -89,7 +90,7 @@ class NH_API UI
 {
 public:
 	static UIElement* GeneratePanel(UIElementConfig& config, bool bordered = true);
-	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture);
+	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture, const Vector<Vector2>& uvs);
 	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
 
 	static void SetEnable(UIElement* element, bool enable);
@@ -97,6 +98,7 @@ public:
 	static void ChangeSize(UIElement* element, const Vector4& newArea);
 	static void MoveElement(UIElement* element, const Vector2Int& delta);
 	static void ChangeColor(UIElement* element, const Vector4& newColor);
+	static void ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
 	static void ChangeSize(UIText* element, F32 newSize);
 	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
 
@@ -111,6 +113,7 @@ private:
 
 	static void CreateDescription();
 	static void SetEnableChild(UIElement* element, bool enable);
+	static void MoveChild(UIElement* element, const Vector2& move);
 
 	static NH_INLINE bool Punctuation(char c) { return c == 44 || c == 46 || c == 63 || c == 33; }
 

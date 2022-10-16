@@ -1,4 +1,4 @@
-renderpass=Tile.rnp
+renderpass=Player.rnp
 stages=vertex,fragment
 stagefiles=shaders/Player.vert.spv,shaders/Player.frag.spv
 useInstance=0

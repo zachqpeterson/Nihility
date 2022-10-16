@@ -113,11 +113,11 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
 
 	InventoryConfig config{};
-	config.slotColor = Vector4{ 0.8f, 0.8f, 0.8f, 1.0f };
+	config.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
+	config.slotColor = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 	config.xMax = 9;
 	config.yMax = 3;
 	config.slotCount = 27;
-	config.color = Vector4{ 0.2f, 0.2f, 0.2f, 0.9f };
 	config.draggable = true;
 	config.enable = true;
 	config.startHorizontal = true;

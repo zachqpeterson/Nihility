@@ -1032,10 +1032,10 @@ Renderpass* Resources::LoadRenderpass(const String& name)
 
 				for (String& flag : flags)
 				{
-					if (flag == "COLOR_BUFFER") { renderpass->clearFlags |= RENDERPASS_CLEAR_COLOR_BUFFER_FLAG; }
-					else if (flag == "DEPTH_BUFFER") { renderpass->clearFlags |= RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG; }
-					else if (flag == "STENCIL_BUFFER") { renderpass->clearFlags |= RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG; }
-					else if (flag == "NONE") { renderpass->clearFlags = 0; break; }
+					if (flag == "COLOR") { renderpass->clearFlags |= RENDERPASS_BUFFER_FLAG_COLOR; }
+					else if (flag == "DEPTH") { renderpass->clearFlags |= RENDERPASS_BUFFER_FLAG_DEPTH; }
+					else if (flag == "STENCIL") { renderpass->clearFlags |= RENDERPASS_BUFFER_FLAG_STENCIL; }
+					else if (flag == "NONE") { renderpass->clearFlags = RENDERPASS_BUFFER_FLAG_NONE; break; }
 					else { Logger::Error("LoadRenderpass: Unrecognized clear flag '{}'. Skipping...", flag); }
 				}
 			}
@@ -1531,7 +1531,7 @@ void Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instan
 				Logger::Error("LoadMaterial: Error loading TextureMap resources");
 			}
 
-			instance.instanceTextureMaps.Push(Move(map));
+			instance.instanceTextureMaps.Push(map);
 		}
 
 		instance.instance = RendererFrontend::AcquireInstanceResources(instance.shader, instance.instanceTextureMaps);
@@ -1552,6 +1552,40 @@ void Resources::DestroyMaterialInstance(Material& material)
 	material.name.Destroy();
 	material.globalTextureMaps.Destroy();
 	material.instanceTextureMaps.Destroy();
+}
+
+void Resources::ChangeInstanceTextures(Material& material, const Vector<Texture*>& instanceTextures)
+{
+	for (TextureMap& map : material.instanceTextureMaps)
+	{
+		RendererFrontend::ReleaseInstanceResources(material.shader, material.instance);
+		RendererFrontend::ReleaseTextureMapResources(map);
+		map.texture = nullptr;
+	}
+
+	material.instanceTextureMaps.Clear();
+	material.instanceTextureMaps.Reserve(instanceTextures.Size());
+
+	for (Texture* t : instanceTextures)
+	{
+		//TODO: Config
+		TextureMap map{};
+		map.texture = t;
+		map.filterMinify = TEXTURE_FILTER_MODE_NEAREST;
+		map.filterMagnify = TEXTURE_FILTER_MODE_NEAREST;
+		map.repeatU = TEXTURE_REPEAT_REPEAT;
+		map.repeatV = TEXTURE_REPEAT_REPEAT;
+		map.repeatW = TEXTURE_REPEAT_REPEAT;
+
+		if (!RendererFrontend::AcquireTextureMapResources(map))
+		{
+			Logger::Error("LoadMaterial: Error loading TextureMap resources");
+		}
+
+		material.instanceTextureMaps.Push(map);
+	}
+
+	material.instance = RendererFrontend::AcquireInstanceResources(material.shader, material.instanceTextureMaps);
 }
 
 Mesh* Resources::LoadMesh(const String& name)

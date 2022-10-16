@@ -125,11 +125,9 @@ void UI::CreateDescription()
 	description->id = 0;
 	description->scene = (Scene*)RendererFrontend::CurrentScene();
 	description->area = { 0.0f, 0.0f, 0.2f, 0.1f };
-	description->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	description->color = { 0.0f, 1.0f, 1.0f, 0.5f };
 	description->ignore = true;
 	description->selfEnabled = false;
-
-	Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	String name("Description");
 
@@ -143,10 +141,10 @@ void UI::CreateDescription()
 	meshConfig.vertexCount = 4;
 	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-	vertices[0] = UIVertex{ { description->area.x, description->area.y, 0.0f}, { 0.0f, 0.66666666666f }, color };
-	vertices[1] = UIVertex{ { description->area.z, description->area.y, 0.0f}, { 1.0f, 0.66666666666f }, color };
-	vertices[2] = UIVertex{ { description->area.z, description->area.w, 0.0f}, { 1.0f, 1.0f }				, color };
-	vertices[3] = UIVertex{ { description->area.x, description->area.w, 0.0f}, { 0.0f, 1.0f }				, color };
+	vertices[0] = UIVertex{ { description->area.x, description->area.y, 0.0f}, { 0.0f, 0.66666666666f },	description->color };
+	vertices[1] = UIVertex{ { description->area.z, description->area.y, 0.0f}, { 1.0f, 0.66666666666f },	description->color };
+	vertices[2] = UIVertex{ { description->area.z, description->area.w, 0.0f}, { 1.0f, 1.0f },				description->color };
+	vertices[3] = UIVertex{ { description->area.x, description->area.w, 0.0f}, { 0.0f, 1.0f },				description->color };
 
 	meshConfig.indices.Resize(6);
 
@@ -236,7 +234,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	uiArea *= 2;
 	uiArea -= 1;
 
-	F32 id = (F32)panel->id * 0.001f;
+	F32 id = 1.0f - (F32)panel->id * 0.001f;
 
 	if (bordered)
 	{
@@ -405,7 +403,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	return panel;
 }
 
-UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
+UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Vector<Vector2>& uvs)
 {
 	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
@@ -450,17 +448,27 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	uiArea *= 2;
 	uiArea -= 1;
 
-	F32 id = (F32)image->id * 0.001f;
+	F32 id = 1.0f - (F32)image->id * 0.001f;
 
 	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
 	meshConfig.vertexSize = sizeof(UIVertex);
 	meshConfig.vertexCount = 4;
 	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-	vertices[0] = UIVertex{ { uiArea.x, uiArea.y, 0.0f}, { 0.0f, 0.66666666666f }, config.color };
-	vertices[1] = UIVertex{ { uiArea.z, uiArea.y, 0.0f}, { 1.0f, 0.66666666666f }, config.color };
-	vertices[2] = UIVertex{ { uiArea.z, uiArea.w, 0.0f}, { 1.0f, 1.0f }				, config.color };
-	vertices[3] = UIVertex{ { uiArea.x, uiArea.w, 0.0f}, { 0.0f, 1.0f }				, config.color };
+	if (uvs.Size())
+	{
+		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, uvs[0], config.color };
+		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, uvs[1], config.color };
+		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, uvs[2], config.color };
+		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, uvs[3], config.color };
+	}
+	else
+	{
+		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.0f }, config.color };
+		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.0f }, config.color };
+		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }, config.color };
+		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }, config.color };
+	}
 
 	meshConfig.indices.Resize(6);
 
@@ -493,7 +501,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture)
 	image->gameObject = go;
 
 	elements.PushFront(image);
-	config.scene->DrawGameObject(go);
+	if (texture) { config.scene->DrawGameObject(go); }
 
 	return image;
 }
@@ -558,7 +566,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 		F32 pixelHeight = (dimentions.y / 1080.0f) * (size * 2.666666666f);
 		F32 spacing = size / (F32)(dimentions.x * 2.2f);
 
-		F32 id = (F32)uiText->id * 0.001f;
+		F32 id = 1.0f - (F32)uiText->id * 0.001f;
 		U64 i = 0;
 
 		for (char c : text)
@@ -705,6 +713,21 @@ void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 		e->area.y += move.y;
 		e->area.z += move.x;
 		e->area.w += move.y;
+
+		MoveChild(e, move);
+	}
+}
+
+void UI::MoveChild(UIElement* element, const Vector2& move)
+{
+	for (UIElement* e : element->children)
+	{
+		e->area.x += move.x;
+		e->area.y += move.y;
+		e->area.z += move.x;
+		e->area.w += move.y;
+
+		MoveChild(e, move);
 	}
 }
 
@@ -718,6 +741,34 @@ void UI::ChangeColor(UIElement* element, const Vector4& newColor)
 	}
 
 	RendererFrontend::CreateMesh(element->mesh);
+}
+
+void UI::ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs)
+{
+	bool nullp = element->gameObject->model->meshes[0]->material.instanceTextureMaps[0].texture == nullptr;
+
+	Resources::ChangeInstanceTextures(element->gameObject->model->meshes[0]->material, { 1, texture });
+
+	if (uvs.Size())
+	{
+		UIVertex* vertices = (UIVertex*)element->mesh->vertices;
+
+		for (U32 i = 0; i < element->mesh->vertexCount; i++)
+		{
+			vertices[i].uv = uvs[i];
+		}
+
+		RendererFrontend::CreateMesh(element->mesh);
+	}
+
+	if (nullp && texture)
+	{
+		element->scene->DrawGameObject(element->gameObject);
+	}
+	else if (!nullp && !texture)
+	{
+		element->scene->UndrawGameObject(element->gameObject);
+	}
 }
 
 void UI::ChangeSize(UIText* element, F32 newSize)

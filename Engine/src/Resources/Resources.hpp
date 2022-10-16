@@ -54,12 +54,12 @@ enum TextureRepeat
 	TEXTURE_REPEAT_CLAMP_TO_BORDER = 0x4
 };
 
-enum RenderpassClearFlag
+enum RenderpassBufferFlag
 {
-	RENDERPASS_CLEAR_NONE_FLAG = 0x0,
-	RENDERPASS_CLEAR_COLOR_BUFFER_FLAG = 0x1,
-	RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG = 0x2,
-	RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG = 0x4
+	RENDERPASS_BUFFER_FLAG_NONE = 0x0,
+	RENDERPASS_BUFFER_FLAG_COLOR = 0x1,
+	RENDERPASS_BUFFER_FLAG_DEPTH = 0x2,
+	RENDERPASS_BUFFER_FLAG_STENCIL = 0x4
 };
 
 struct NH_API Binary
@@ -433,6 +433,7 @@ public:
 	static void LoadFont(const String& name);
 	static F32 FontRatio(const String& name);
 	static void GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures, Material& instance);
+	static void ChangeInstanceTextures(Material& material, const Vector<Texture*>& instanceTextures);
 	static Mesh* LoadMesh(const String& name);
 	static void DestroyMesh(Mesh* mesh);
 	static void DestroyFreeMesh(Mesh* mesh);
