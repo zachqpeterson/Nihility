@@ -117,6 +117,8 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
 
+	Inventory::Init(worldScene);
+
 	InventoryConfig config{};
 	config.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
 	config.slotColor = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };

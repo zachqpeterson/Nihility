@@ -44,7 +44,7 @@ U64 Freelist::AllocateBlock(U64 size)
     if (size > freeSpace)
     {
         Logger::Error("Freelist::AllocateBlock: Not enough space to allocate {} bytes, space left: {}", size, freeSpace);
-        return U64_MAX;
+        return 0;
     }
 
     if(head == nullptr || size <= head->offset)
@@ -73,7 +73,7 @@ U64 Freelist::AllocateBlock(U64 size)
     }
 
     Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);
-    return U64_MAX;
+    return 0;
 }
 
 bool Freelist::FreeBlock(U64 size, U64 offset)

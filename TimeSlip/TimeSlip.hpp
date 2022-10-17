@@ -5,6 +5,7 @@
 class Scene;
 class Player;
 class Inventory;
+struct Slot;
 struct Vector2;
 struct UIElement;
 

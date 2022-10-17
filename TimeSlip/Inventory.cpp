@@ -5,6 +5,8 @@
 #include <Renderer/Scene.hpp>
 #include <Resources/Resources.hpp>
 
+Slot Inventory::mouseSlot;
+
 void Inventory::OnDrag(UIElement* e, const Vector2Int& delta, void* data)
 {
 	UI::MoveElement(e, delta);
@@ -14,7 +16,63 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	Logger::Debug("Item ID: {}", slot.itemID);
+	//TODO: Check for menu keys being pressed
+
+	if (slot.itemID)
+	{
+		if (mouseSlot.itemID)
+		{
+			U16 tempAmt = slot.amount;
+			U16 tempID = slot.itemID;
+			slot.amount = mouseSlot.amount;
+			slot.itemID = mouseSlot.itemID;
+			mouseSlot.amount = tempAmt;
+			mouseSlot.itemID = tempID;
+
+			UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+			UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+			UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
+			UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
+		}
+		else
+		{
+			//TODO: Take one
+			//TODO: Take half
+
+			mouseSlot.amount = slot.amount;
+			mouseSlot.itemID = slot.itemID;
+			UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+			if (mouseSlot.amount > 1)
+			{
+				UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
+				UI::ChangeText((UIText*)slot.button->children.Back(), "");
+			}
+
+			slot.amount = 0;
+			slot.itemID = 0;
+			UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+
+			UI::HideDescription();
+		}
+	}
+	else if(mouseSlot.itemID)
+	{
+		//TODO: Place one
+		//TODO: Place half
+
+		slot.amount = mouseSlot.amount;
+		slot.itemID = mouseSlot.itemID;
+		UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+		if (slot.amount > 1)
+		{
+			UI::ChangeText((UIText*)mouseSlot.button->children.Back(), "");
+			UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
+		}
+
+		mouseSlot.amount = 0;
+		mouseSlot.itemID = 0;
+		UI::ChangeTexture(mouseSlot.button, nullptr, {});
+	}
 }
 
 void Inventory::OnRelease(UIElement* e, const Vector2Int& pos, void* data)
@@ -26,8 +84,8 @@ void Inventory::OnHover(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	String desc{ "Item ID: {}, Item Amount: {}", slot.itemID, slot.amount };
-	if (slot.itemID) { UI::ShowDescription(pos, desc); }
+	//String desc{ "Item ID: {}, Item Amount: {}", slot.itemID, slot.amount };
+	if (slot.itemID) { UI::ShowDescription(pos, ""); }
 }
 
 void Inventory::OnMove(UIElement* e, const Vector2Int& delta, void* data)
@@ -150,7 +208,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				UIElementConfig amtCfg{};
 				amtCfg.position = { 0.0f, 0.0f };
 				amtCfg.scale = { 1.0f, 1.0f };
-				amtCfg.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+				amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 				amtCfg.ignore = true;
 				amtCfg.enabled = true;
 				amtCfg.parent = slot.button;
@@ -178,6 +236,40 @@ void* Inventory::operator new(U64 size)
 void Inventory::operator delete(void* ptr)
 {
 	Memory::Free(ptr, sizeof(Inventory), MEMORY_TAG_GAME);
+}
+
+void Inventory::Init(Scene* scene)
+{
+	mouseSlot.itemID = 0;
+	mouseSlot.amount = 0;
+
+	Vector<Vector2> uvs{ 4 };
+	uvs.Push({ 0.0f, 0.0f });
+	uvs.Push({ 0.16666666666f, 0.0f });
+	uvs.Push({ 0.16666666666f, 0.125f });
+	uvs.Push({ 0.0f, 0.125f });
+
+	UIElementConfig imageCfg{};
+	imageCfg.position = { 0.5f, 0.5f };
+	imageCfg.scale = { 0.025f, 0.04444444444f };
+	imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	imageCfg.ignore = true;
+	imageCfg.enabled = true;
+	imageCfg.parent = nullptr;
+	imageCfg.scene = scene;
+
+	mouseSlot.button = UI::GenerateImage(imageCfg, nullptr, uvs);
+
+	UIElementConfig amtCfg{};
+	amtCfg.position = { 0.0f, 0.0f };
+	amtCfg.scale = { 1.0f, 1.0f };
+	amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	amtCfg.ignore = true;
+	amtCfg.enabled = true;
+	amtCfg.parent = mouseSlot.button;
+	amtCfg.scene = scene;
+
+	UI::GenerateText(amtCfg, "", 10);
 }
 
 void Inventory::ToggleShow()
@@ -211,20 +303,21 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 		firstOpen->itemID = itemID;
 		firstOpen->amount = amount;
 
-		Texture* texture = nullptr;
-
-		switch (itemID)
-		{
-		case 1: { texture = Resources::LoadTexture("DirtBlock.bmp"); } break;
-		case 2: { texture = Resources::LoadTexture("StoneBlock.bmp"); } break;
-		default: { texture = Resources::DefaultTexture(); } break;
-		}
-
-		UI::ChangeTexture(firstOpen->button->children.Front(), texture, {});
+		UI::ChangeTexture(firstOpen->button->children.Front(), GetItemTexture(itemID), {});
 		if (amount > 1) { UI::ChangeText((UIText*)firstOpen->button->children.Back(), amount); }
 
 		return true;
 	}
 
 	return false;
+}
+
+Texture* Inventory::GetItemTexture(U16 itemID)
+{
+	switch (itemID)
+	{
+	case 1: return Resources::LoadTexture("DirtBlock.bmp");
+	case 2: return Resources::LoadTexture("StoneBlock.bmp");
+	default: return Resources::DefaultTexture();
+	}
 }

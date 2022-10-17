@@ -5,8 +5,8 @@
 #include <Math/Math.hpp>
 
 struct Scene;
+struct Texture;
 struct UIElement;
-struct Scene;
 
 struct InventoryConfig
 {
@@ -45,6 +45,8 @@ public:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
+	static void Init(Scene* scene);
+
 	void ToggleShow();
 	bool AddItem(U16 itemID, U16 amount);
 
@@ -56,7 +58,11 @@ public:
 	static void OnExit(UIElement* e, void* data);
 
 private:
+	static Texture* GetItemTexture(U16 itemID);
+
 	Vector<Vector<Slot>> slots;
 	UIElement* backPanel;
 	U16 slotCount;
+
+	static Slot mouseSlot;
 };

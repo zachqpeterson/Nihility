@@ -577,7 +577,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 			MeshConfig meshConfig;
 			meshConfig.name = name + "_" + i++;
 			meshConfig.MaterialName = "UI.mat";
-			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, (Vector3)config.color, xOff, yOff));
+			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, { 1.0f, 1.0f, 1.0f }, xOff, yOff));
 
 			if (!meshConfig.instanceTextures.Back())
 			{
@@ -595,10 +595,10 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 			meshConfig.vertexCount = 4;
 			UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-			vertices[0] = UIVertex{ { areaX, areaY, id}, { 0.0f, 0.0f }, config.color };
-			vertices[1] = UIVertex{ { areaZ, areaY, id}, { 1.0f, 0.0f }, config.color };
-			vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }				, config.color };
-			vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }				, config.color };
+			vertices[0] = UIVertex{ { areaX, areaY, id},	{ 0.0f, 0.0f },	config.color };
+			vertices[1] = UIVertex{ { areaZ, areaY, id},	{ 1.0f, 0.0f },	config.color };
+			vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }, config.color };
+			vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }, config.color };
 
 			meshConfig.indices.Resize(6);
 
@@ -614,9 +614,6 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 			if (!mesh)
 			{
 				Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
-
-				for (Mesh* m : meshes) { Resources::DestroyMesh(m); }
-
 				Memory::Free(uiText, sizeof(UIText), MEMORY_TAG_UI);
 
 				return nullptr;
@@ -671,13 +668,13 @@ void UI::ChangeScene(UIElement* element, Scene* scene)
 {
 	element->scene->UndrawGameObject(element->gameObject);
 
-	if (scene) 
-	{ 
+	if (scene)
+	{
 		element->scene = scene;
-		scene->DrawGameObject(element->gameObject); 
+		scene->DrawGameObject(element->gameObject);
 	}
-	else 
-	{ 
+	else
+	{
 		element->scene = RendererFrontend::CurrentScene();
 		element->scene->DrawGameObject(element->gameObject);
 	}
@@ -784,19 +781,17 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	if (text == element->text && (Math::Zero(newSize) || Math::Zero(newSize - element->size))) { return; }
 	if (Math::Zero(newSize)) { newSize = element->size; }
 	element->size = newSize;
-
-	element->scene->UndrawGameObject(element->gameObject);
 	element->text.Destroy();
 	element->text = text;
 
 	if (element->gameObject->model)
 	{
+		element->scene->UndrawGameObject(element->gameObject);
+
 		for (Mesh* mesh : element->gameObject->model->meshes)
 		{
 			Resources::DestroyMesh(mesh);
 		}
-
-		element->gameObject->model->meshes.Destroy();
 	}
 
 	if (text)
@@ -828,7 +823,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			MeshConfig meshConfig;
 			meshConfig.name = name + "_" + i++;
 			meshConfig.MaterialName = "UI.mat";
-			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, (Vector3)element->color, xOff, yOff));
+			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, { 1.0f, 1.0f, 1.0f }, xOff, yOff));
 
 			if (!meshConfig.instanceTextures.Back())
 			{
@@ -846,10 +841,10 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			meshConfig.vertexCount = 4;
 			UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-			vertices[0] = UIVertex{ { areaX, areaY, id}, { 0.0f, 0.0f }, element->color };
-			vertices[1] = UIVertex{ { areaZ, areaY, id}, { 1.0f, 0.0f }, element->color };
-			vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }				, element->color };
-			vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }				, element->color };
+			vertices[0] = UIVertex{ { areaX, areaY, id}, { 0.0f, 0.0f },	element->color };
+			vertices[1] = UIVertex{ { areaZ, areaY, id}, { 1.0f, 0.0f },	element->color };
+			vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }, element->color };
+			vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }, element->color };
 
 			meshConfig.indices.Resize(6);
 
@@ -865,9 +860,6 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			if (!mesh)
 			{
 				Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
-
-				for (Mesh* m : meshes) { Resources::DestroyMesh(m); }
-
 				Memory::Free(element, sizeof(UIText), MEMORY_TAG_UI);
 
 				return;
@@ -878,20 +870,11 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			areaX = areaZ + spacing;
 		}
 
-		if (!element->gameObject->model)
-		{
-			element->gameObject->model = Resources::CreateModel(name, meshes);
-			element->scene->DrawGameObject(element->gameObject);
-		}
-		else
-		{
-			element->scene->UndrawGameObject(element->gameObject);
-			element->gameObject->model->meshes = meshes;
-			element->scene->DrawGameObject(element->gameObject);
-		}
-	}
+		if (element->gameObject->model) { element->gameObject->model->meshes = meshes; }
+		else { element->gameObject->model = Resources::CreateModel(name, meshes); }
 
-	
+		element->scene->DrawGameObject(element->gameObject);
+	}
 }
 
 void UI::ShowDescription(const Vector2Int& position, const String& desc)
