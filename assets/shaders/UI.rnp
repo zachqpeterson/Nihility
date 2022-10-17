@@ -1,5 +1,5 @@
 clearColor=0.0,0.0,0.0,1.0
-clearFlags=DEPTH
+clearFlags=
 renderArea=0.25,0.25,0.75,0.75
 depth=1.0
 stencil=0

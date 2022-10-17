@@ -147,7 +147,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 void Scene::DrawGameObject(GameObject2D* gameObject)
 {
-	gameObjects.PushBack(gameObject);
+	gameObjects.PushFront(gameObject);
 
 	if (gameObject->model)
 	{
@@ -175,7 +175,7 @@ void Scene::DrawModel(Model* model)
 {
 	if (model)
 	{
-		models.PushBack(model);
+		models.PushFront(model);
 		for (Mesh* mesh : model->meshes)
 		{
 			++meshes[mesh->material.id].meshCount;
