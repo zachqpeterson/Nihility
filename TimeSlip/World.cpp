@@ -146,11 +146,11 @@ void World::Update()
 
 		if (Input::ButtonDown(CONTROL))
 		{
-			BreakWall(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+			BreakWall(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
 		}
 		else
 		{
-			BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+			BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
 		}
 	}
 	
@@ -164,11 +164,11 @@ void World::Update()
 
 		if (Input::ButtonDown(CONTROL))
 		{
-			PlaceWall(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
+			PlaceWall(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
 		}
 		else
 		{
-			PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
+			PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
 		}
 	}
 
