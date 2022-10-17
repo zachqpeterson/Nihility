@@ -24,6 +24,8 @@ public:
 	static void Shutdown();
 	static bool Update();
 
+	static void PickupItem(U16 itemID, U16 amount);
+
 private:
 	static void LoadWorld();
 	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);

@@ -125,7 +125,7 @@ void UI::CreateDescription()
 	description->id = 0;
 	description->scene = (Scene*)RendererFrontend::CurrentScene();
 	description->area = { 0.0f, 0.0f, 0.2f, 0.1f };
-	description->color = { 0.0f, 1.0f, 1.0f, 0.5f };
+	description->color = { 1.0f, 1.0f, 1.0f, 0.75f };
 	description->ignore = true;
 	description->selfEnabled = false;
 
@@ -641,7 +641,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	uiText->gameObject = go;
 
 	elements.PushFront(uiText);
-	config.scene->DrawGameObject(go);
+	if (model) { config.scene->DrawGameObject(go); }
 
 	return uiText;
 }
@@ -881,14 +881,17 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		if (!element->gameObject->model)
 		{
 			element->gameObject->model = Resources::CreateModel(name, meshes);
+			element->scene->DrawGameObject(element->gameObject);
 		}
 		else
 		{
+			element->scene->UndrawGameObject(element->gameObject);
 			element->gameObject->model->meshes = meshes;
+			element->scene->DrawGameObject(element->gameObject);
 		}
 	}
 
-	element->scene->DrawGameObject(element->gameObject);
+	
 }
 
 void UI::ShowDescription(const Vector2Int& position, const String& desc)

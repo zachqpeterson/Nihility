@@ -14,7 +14,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	Logger::Debug("Item ID: {}, Item Amount: {}", slot.itemID, slot.amount);
+	Logger::Debug("Item ID: {}", slot.itemID);
 }
 
 void Inventory::OnRelease(UIElement* e, const Vector2Int& pos, void* data)
@@ -30,11 +30,11 @@ void Inventory::OnHover(UIElement* e, const Vector2Int& pos, void* data)
 	if (slot.itemID) { UI::ShowDescription(pos, desc); }
 }
 
-void Inventory::OnMove(UIElement* e, const Vector2Int& pos, void* data)
+void Inventory::OnMove(UIElement* e, const Vector2Int& delta, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	if (slot.itemID) { UI::MoveDescription(pos); }
+	if (slot.itemID) { UI::MoveDescription(delta); }
 }
 
 void Inventory::OnExit(UIElement* e, void* data)
@@ -98,6 +98,17 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				imageCfg.scene = config.scene;
 
 				UI::GenerateImage(imageCfg, nullptr, uvs);
+
+				UIElementConfig amtCfg{};
+				amtCfg.position = { 0.0f, 0.0f };
+				amtCfg.scale = { 1.0f, 1.0f };
+				amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+				amtCfg.ignore = true;
+				amtCfg.enabled = true;
+				amtCfg.parent = slot.button;
+				amtCfg.scene = config.scene;
+
+				UI::GenerateText(amtCfg, "", 10);
 			}
 		}
 	}
@@ -135,6 +146,17 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				imageCfg.scene = config.scene;
 
 				UI::GenerateImage(imageCfg, nullptr, uvs);
+
+				UIElementConfig amtCfg{};
+				amtCfg.position = { 0.0f, 0.0f };
+				amtCfg.scale = { 1.0f, 1.0f };
+				amtCfg.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+				amtCfg.ignore = true;
+				amtCfg.enabled = true;
+				amtCfg.parent = slot.button;
+				amtCfg.scene = config.scene;
+
+				UI::GenerateText(amtCfg, "", 10);
 			}
 		}
 	}
@@ -167,9 +189,9 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 {
 	Slot* firstOpen = nullptr;
 
-	for (U8 x = 0; x < slots.Size(); ++x)
+	for (U8 y = 0; y < slots[0].Size(); ++y)
 	{
-		for (U8 y = 0; y < slots[0].Size(); ++y)
+		for (U8 x = 0; x < slots.Size(); ++x)
 		{
 			Slot& slot = slots[x][y];
 
@@ -177,6 +199,7 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 			{
 				//TODO: non-stackable items and stack limits
 				slot.amount += amount;
+				UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
 				return true;
 			}
 			else if (!slot.itemID && !firstOpen) { firstOpen = &slot; }
@@ -187,7 +210,18 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 	{
 		firstOpen->itemID = itemID;
 		firstOpen->amount = amount;
-		UI::ChangeTexture(firstOpen->button->children.Front(), Resources::LoadTexture("DirtBlock.bmp"), {});
+
+		Texture* texture = nullptr;
+
+		switch (itemID)
+		{
+		case 1: { texture = Resources::LoadTexture("DirtBlock.bmp"); } break;
+		case 2: { texture = Resources::LoadTexture("StoneBlock.bmp"); } break;
+		default: { texture = Resources::DefaultTexture(); } break;
+		}
+
+		UI::ChangeTexture(firstOpen->button->children.Front(), texture, {});
+		if (amount > 1) { UI::ChangeText((UIText*)firstOpen->button->children.Back(), amount); }
 
 		return true;
 	}

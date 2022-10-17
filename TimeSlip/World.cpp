@@ -3,6 +3,7 @@
 #include "GridBroadphase.hpp"
 #include "Tile.hpp"
 #include "Chunk.hpp"
+#include "TimeSlip.hpp"
 
 #include <Physics/Physics.hpp>
 #include <Memory/Memory.hpp>
@@ -216,6 +217,10 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 void World::BreakBlock(const Vector2Int& pos)
 {
 	Vector2Int chunkPos = pos / 8;
+
+	if (tiles[pos.x][pos.y].blockID) { TimeSlip::PickupItem(tiles[pos.x][pos.y].blockID, 1); }
+	if (tiles[pos.x][pos.y].decID > 2) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID, 1); }
+
 	tiles[pos.x][pos.y].blockID = 0;
 	tiles[pos.x][pos.y].decID = 0;
 	chunks[chunkPos.x][chunkPos.y].EditBlock(0, pos, pos - chunkPos * 8);
@@ -325,6 +330,9 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 void World::BreakWall(const Vector2Int& pos)
 {
 	Vector2Int chunkPos = pos / 8;
+
+	if (tiles[pos.x][pos.y].wallID) { TimeSlip::PickupItem(tiles[pos.x][pos.y].wallID, 1); }
+
 	tiles[pos.x][pos.y].wallID = 0;
 	chunks[chunkPos.x][chunkPos.y].EditWall(0, pos, pos - chunkPos * 8);
 

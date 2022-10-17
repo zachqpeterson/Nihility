@@ -2519,7 +2519,7 @@ void Resources::DestroyTTF(TTFInfo* info)
 	info->letterTextures.Destroy();
 }
 
-Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels, const Vector3& color, I32& xOff, I32& yOff) //TODO: Color
+Texture* Resources::CreateFontCharacter(const String& fontName, I32 c, F32 heightPixels, const Vector3& color, I32& xOff, I32& yOff)
 {
 	if (c == 32) { return nullptr; }
 

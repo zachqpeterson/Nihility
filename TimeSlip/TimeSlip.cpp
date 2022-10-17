@@ -44,16 +44,16 @@ bool TimeSlip::Initialize()
 	UIElementConfig createWorldConfig{};
 	createWorldConfig.position = { 0.375f, 0.375f };
 	createWorldConfig.scale = { 0.25f, 0.1f };
-	createWorldConfig.color = { 0.0f, 0.0f, 1.0f, 1.0f };
+	createWorldConfig.color = { 0.0f, 0.7f, 1.0f, 1.0f };
 	createWorldConfig.enabled = true;
 	createWorldConfig.ignore = false;
 	createWorldConfig.scene = mainMenuScene;
 	UIElement* createWorldButton = UI::GeneratePanel(createWorldConfig, true);
 
 	UIElementConfig generateWorldText{};
-	generateWorldText.position = { 0.1f, -0.2f };
+	generateWorldText.position = { 0.1f, -0.25f };
 	generateWorldText.scale = { 0.9f, 0.9f };
-	generateWorldText.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	generateWorldText.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	generateWorldText.enabled = true;
 	generateWorldText.ignore = true;
 	generateWorldText.scene = mainMenuScene;
@@ -87,9 +87,9 @@ bool TimeSlip::Update()
 		world->Update();
 
 		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
-		if (Input::OnButtonDown(O)) { inventory->AddItem(1, 1); }
 		break;
 	case GAME_STATE_PAUSE: break;
+		//TODO: Pause Physics
 	default: break;
 	}
 
@@ -99,6 +99,11 @@ bool TimeSlip::Update()
 void TimeSlip::LoadWorld()
 {
 
+}
+
+void TimeSlip::PickupItem(U16 itemID, U16 amount)
+{
+	inventory->AddItem(itemID, amount);
 }
 
 void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data)
