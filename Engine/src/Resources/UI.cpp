@@ -53,11 +53,12 @@ void UI::Shutdown()
 void UI::Update()
 {
 	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
+	Vector2Int posDelta = mousePos - lastMousesPos;
+
+	if (posDelta.Zero() && !Input::OnButtonChange(LEFT_CLICK)) { return; }
 
 	if (draggedElement && Input::ButtonDown(LEFT_CLICK))
 	{
-		Vector2Int posDelta = mousePos - lastMousesPos;
-
 		if (!posDelta.Zero()) { draggedElement->OnDrag.callback(draggedElement, posDelta, draggedElement->OnDrag.value); }
 	}
 	else

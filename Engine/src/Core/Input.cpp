@@ -50,6 +50,11 @@ bool Input::OnButtonUp(ButtonCode code)
     return !state.pressed && state.changed;
 }
 
+bool Input::OnButtonChange(ButtonCode code)
+{
+    return buttonStates[code].changed;
+}
+
 const Vector2Int& Input::MousePos()
 {
     return mousePos;

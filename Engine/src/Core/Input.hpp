@@ -248,6 +248,7 @@ public:
 	static bool ButtonDown(ButtonCode code);
 	static bool OnButtonDown(ButtonCode code);
 	static bool OnButtonUp(ButtonCode code);
+	static bool OnButtonChange(ButtonCode code);
 	static const struct Vector2Int& MousePos();
 	static I16 MouseWheelDelta();
 
