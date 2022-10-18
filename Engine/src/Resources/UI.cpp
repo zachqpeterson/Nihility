@@ -68,7 +68,10 @@ void UI::Update()
 
 		for (UIElement* e : elements)
 		{
-			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked && (pos.x > e->area.x && pos.x < e->area.z && pos.y > e->area.y && pos.y < e->area.w))
+			Vector4 area = e->area + e->gameObject->transform->WorldPosition() * 0.5f;
+
+			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked &&
+				(pos.x > area.x && pos.x < area.z && pos.y > area.y && pos.y < area.w))
 			{
 				if (!e->hovered)
 				{
@@ -186,7 +189,6 @@ void UI::CreateDescription()
 	GenerateText(config, "", 10);
 
 	elements.PushFront(description);
-	description->scene->DrawGameObject(go);
 }
 
 UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
@@ -209,6 +211,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	panel->color = config.color;
 	panel->ignore = config.ignore;
 	panel->selfEnabled = config.enabled;
+	panel->parent = config.parent;
 
 	String name("UI_Element_{}", panel->id);
 
@@ -423,6 +426,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	image->color = config.color;
 	image->ignore = config.ignore;
 	image->selfEnabled = config.enabled;
+	image->parent = config.parent;
 
 	String name("UI_Element_{}", image->id);
 
@@ -534,6 +538,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	uiText->ignore = config.ignore;
 	uiText->isText = true;
 	uiText->selfEnabled = config.enabled;
+	uiText->parent = config.parent;
 
 	String name("UI_Element_{}", uiText->id);
 
@@ -554,8 +559,8 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 
 	if (text.Length())
 	{
-		uiArea *= 2;
-		uiArea -= 1;
+		uiArea *= 2.0f;
+		uiArea -= 1.0f;
 
 		F32 areaX = uiArea.x;
 		F32 areaZ = 0.0f;
@@ -614,6 +619,12 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 			if (!mesh)
 			{
 				Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
+
+				for (Mesh* mesh : meshes)
+				{
+					Resources::DestroyMesh(mesh);
+				}
+
 				Memory::Free(uiText, sizeof(UIText), MEMORY_TAG_UI);
 
 				return nullptr;
@@ -695,24 +706,19 @@ void UI::ChangeSize(UIElement* element, const Vector4& newArea)
 
 void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 {
-	Vector2 move = ((Vector2)delta / (Vector2)RendererFrontend::WindowSize());
+	Vector2 move = (Vector2)delta / (Vector2)RendererFrontend::WindowSize();
 	Vector2 translate = move * 2.0f;
 
 	element->gameObject->transform->Translate(translate);
-	element->area.x += move.x;
-	element->area.y += move.y;
-	element->area.z += move.x;
-	element->area.w += move.y;
+}
 
-	for (UIElement* e : element->children)
-	{
-		e->area.x += move.x;
-		e->area.y += move.y;
-		e->area.z += move.x;
-		e->area.w += move.y;
+void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
+{
+	Vector2 scaledPos = (Vector2)position / (Vector2)RendererFrontend::WindowSize();
 
-		MoveChild(e, move);
-	}
+	Vector2 pos = scaledPos * 2.0f - 1.0f;
+
+	element->gameObject->transform->SetPosition(pos);
 }
 
 void UI::MoveChild(UIElement* element, const Vector2& move)
@@ -800,8 +806,8 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		Vector4 uiArea = element->area;
 		Vector2Int dimentions = RendererFrontend::WindowSize();
 
-		uiArea *= 2;
-		uiArea -= 1;
+		uiArea *= 2.0f;
+		uiArea -= 1.0f;
 
 		F32 areaX = uiArea.x;
 		F32 areaZ = 0.0f;
@@ -860,6 +866,12 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			if (!mesh)
 			{
 				Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
+
+				for (Mesh* mesh : meshes)
+				{
+					Resources::DestroyMesh(mesh);
+				}
+
 				Memory::Free(element, sizeof(UIText), MEMORY_TAG_UI);
 
 				return;
@@ -883,26 +895,53 @@ void UI::ShowDescription(const Vector2Int& position, const String& desc)
 
 	if (description->scene != RendererFrontend::CurrentScene()) { ChangeScene(description); }
 
-	Vector2Int move = position - descPos;
-	MoveElement(description, move);
+	SetElementPosition(description, position);
 	descPos = position;
 
-	ChangeText((UIText*)description->children.Front(), desc);
-
 	SetEnable(description, true);
+	description->scene->DrawGameObject(description->gameObject);
+
+	ChangeText((UIText*)description->children.Front(), desc);
 }
 
 void UI::MoveDescription(const Vector2Int& position)
 {
 	if (description)
 	{
-		Vector2Int move = position - descPos;
-		MoveElement(description, move);
+		SetElementPosition(description, position);
 		descPos = position;
 	}
 }
 
 void UI::HideDescription()
 {
-	if (description) { SetEnable(description, false); }
+	if (description)
+	{
+		SetEnable(description, false);
+		description->scene->UndrawGameObject(description->gameObject);
+	}
+}
+
+void UI::DestroyElement(UIElement* element)
+{
+	if (element)
+	{
+		elements.Remove(element);
+
+		if (element->parent) { element->parent->children.Remove(element); }
+
+		Resources::DestroyModel(element->gameObject->model);
+		Resources::DestroyGameObject2D(element->gameObject);
+
+		if (element->isText)
+		{
+			UIText* t = (UIText*)element;
+			t->text.Destroy();
+			Memory::Free(element, sizeof(UIText), MEMORY_TAG_UI);
+		}
+		else
+		{
+			Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
+		}
+	}
 }

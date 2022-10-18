@@ -46,6 +46,7 @@ public:
 	void operator delete(void* ptr);
 
 	static void Init(Scene* scene);
+	static void Update();
 
 	void ToggleShow();
 	bool AddItem(U16 itemID, U16 amount);

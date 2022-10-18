@@ -82,6 +82,7 @@ bool TimeSlip::Update()
 	{
 	case GAME_STATE_MENU: break;
 	case GAME_STATE_GAME:
+		Inventory::Update();
 		player->Update();
 		worldScene->GetCamera()->Update();
 		world->Update();

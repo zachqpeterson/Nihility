@@ -137,6 +137,7 @@ void World::Update()
 		}
 	}
 
+	//TODO: Block mouse click with the ui
 	if (Input::ButtonDown(LEFT_CLICK))
 	{
 		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();

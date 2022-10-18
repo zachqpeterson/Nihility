@@ -55,6 +55,7 @@ struct UIElement
 	bool selfEnabled{ true };
 	Vector4 area{};
 	Vector4 color{};
+	UIElement* parent;
 	List<UIElement*> children;
 	Mesh* mesh;
 	Scene* scene;
@@ -97,10 +98,12 @@ public:
 	static void ChangeScene(UIElement* element, Scene* scene = nullptr);
 	static void ChangeSize(UIElement* element, const Vector4& newArea);
 	static void MoveElement(UIElement* element, const Vector2Int& delta);
+	static void SetElementPosition(UIElement* element, const Vector2Int& position);
 	static void ChangeColor(UIElement* element, const Vector4& newColor);
 	static void ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
 	static void ChangeSize(UIText* element, F32 newSize);
 	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
+	static void DestroyElement(UIElement* element);
 
 	static void ShowDescription(const Vector2Int& position, const String& desc);
 	static void MoveDescription(const Vector2Int& position);

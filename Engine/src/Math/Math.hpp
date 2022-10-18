@@ -283,7 +283,7 @@ struct NH_API Vector2
 	bool operator>  (const Vector2& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	bool IsZero() const { return Math::Zero(x) && Math::Zero(y); }
 	Vector2 operator- () const { return { -x, -y }; }
-	Vector2 operator! () const { return { (F32)!x, (F32)!y}; }
+	Vector2 operator! () const { return { (F32)!x, (F32)!y }; }
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -393,7 +393,7 @@ struct NH_API Vector3
 	bool operator<  (const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
 	bool operator>  (const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
 	Vector3 operator- () const { return { -x, -y, -z }; }
-	Vector3 operator! () const { return { (F32)!x, (F32)!y, (F32)!z}; }
+	Vector3 operator! () const { return { (F32)!x, (F32)!y, (F32)!z }; }
 
 	NH_INLINE const F32& operator[] (U8 i) const { return ((&x)[i]); }
 	NH_INLINE F32& operator[] (U8 i) { return ((&x)[i]); }
@@ -454,6 +454,7 @@ struct NH_API Vector4
 	Vector4& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f); w = Math::Mod(w, f);  return *this; }
 
 	Vector4 operator+ (const Vector4& v) const { return Vector4{ x + v.x, y + v.y, z + v.z, w + v.w }; }
+	Vector4 operator+ (const Vector2& v) const { return Vector4{ x + v.x, y + v.y, z + v.x, w + v.y }; }
 	Vector4 operator- (const Vector4& v) const { return Vector4{ x - v.x, y - v.y, z - v.z, w - v.w }; }
 	Vector4 operator* (const Vector4& v) const { return Vector4{ x * v.x, y * v.y, z * v.z, w * v.w }; }
 	Vector4 operator/ (const Vector4& v) const { return Vector4{ x / v.x, y / v.y, z / v.z, w / v.w }; }
@@ -530,6 +531,7 @@ struct NH_API Vector2Int
 	Vector2Int operator+ (const Vector2Int& v) const { return Vector2Int{ x + v.x, y + v.y }; }
 	Vector2Int operator- (const Vector2Int& v) const { return Vector2Int{ x - v.x, y - v.y }; }
 	Vector2Int operator* (const Vector2Int& v) const { return Vector2Int{ x * v.x, y * v.y }; }
+	Vector2Int operator* (const Vector2& v) const { return Vector2Int{ (I32)(x * v.x), (I32)(y * v.y) }; }
 	Vector2Int operator/ (const Vector2Int& v) const { return Vector2Int{ x / v.x, y / v.y }; }
 	Vector2Int operator* (I32 i) const { return Vector2Int{ x * i, y * i }; }
 	Vector2Int operator/ (I32 i) const { return Vector2Int{ x / i, y / i }; }
@@ -1390,11 +1392,16 @@ public:
 		return local;
 	}
 
-	//TODO: Reduce copying?
-	NH_INLINE Matrix3 World()
+	Matrix3 World()
 	{
 		if (parent) { return parent->World() * Local(); }
 		return Local();
+	}
+
+	Vector2 WorldPosition() const
+	{
+		if (parent) { return parent->WorldPosition() + position; }
+		return position;
 	}
 };
 

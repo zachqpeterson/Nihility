@@ -3,7 +3,9 @@
 #include <Memory/Memory.hpp>
 #include <Resources/UI.hpp>
 #include <Renderer/Scene.hpp>
+#include <Renderer/RendererFrontend.hpp>
 #include <Resources/Resources.hpp>
+#include <Core/Input.hpp>
 
 Slot Inventory::mouseSlot;
 
@@ -84,8 +86,10 @@ void Inventory::OnHover(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	//String desc{ "Item ID: {}, Item Amount: {}", slot.itemID, slot.amount };
-	if (slot.itemID) { UI::ShowDescription(pos, ""); }
+	if (slot.itemID) 
+	{ 
+		UI::ShowDescription(pos, ""/*{ "Item ID: {}", slot.itemID }*/);
+	}
 }
 
 void Inventory::OnMove(UIElement* e, const Vector2Int& delta, void* data)
@@ -270,6 +274,14 @@ void Inventory::Init(Scene* scene)
 	amtCfg.scene = scene;
 
 	UI::GenerateText(amtCfg, "", 10);
+}
+
+void Inventory::Update()
+{
+	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
+	Vector2Int offset = RendererFrontend::WindowSize() * Vector2{ 0.025f, 0.04444444444f };
+
+	UI::SetElementPosition(mouseSlot.button, mousePos - offset);
 }
 
 void Inventory::ToggleShow()
