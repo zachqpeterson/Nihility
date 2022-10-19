@@ -40,7 +40,7 @@ Player::Player(const Vector2& position) : gameObject{ nullptr }
 
 	PhysicsObject2DConfig physicsConfig{};
 	physicsConfig.density = 0.5;
-	physicsConfig.gravityScale = 1.0;
+	physicsConfig.gravityScale = 0.5;
 	physicsConfig.kinematic = false;
 	physicsConfig.restitution = 0.0;
 	physicsConfig.friction = 0.2f;

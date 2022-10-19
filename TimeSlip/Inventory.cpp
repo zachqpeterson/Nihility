@@ -254,6 +254,10 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 						UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount); 
 						UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
 					}
+					else
+					{
+						UI::ChangeText((UIText*)slot.button->children.Back(), "");
+					}
 
 					if (++mouseSlot.amount > 1)
 					{
