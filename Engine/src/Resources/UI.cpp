@@ -55,7 +55,7 @@ void UI::Update()
 	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
 	Vector2Int posDelta = mousePos - lastMousesPos;
 
-	if (posDelta.Zero() && !Input::OnButtonChange(LEFT_CLICK)) { return; }
+	if (posDelta.Zero() && !Input::OnButtonChange(LEFT_CLICK) && !Input::OnButtonChange(RIGHT_CLICK)) { return; }
 
 	if (draggedElement && Input::ButtonDown(LEFT_CLICK))
 	{
@@ -84,13 +84,13 @@ void UI::Update()
 					e->OnMove.callback(e, mousePos, e->OnMove.value);
 				}
 
-				if (Input::OnButtonDown(LEFT_CLICK))
+				if (Input::OnButtonDown(LEFT_CLICK) || Input::OnButtonDown(RIGHT_CLICK))
 				{
 					if (e->OnDrag.callback) { draggedElement = e; }
 					if (e->OnClick.callback) { e->OnClick.callback(e, mousePos, e->OnClick.value); }
 					e->clicked = true;
 				}
-				else if (Input::OnButtonUp(LEFT_CLICK))
+				else if (Input::OnButtonUp(LEFT_CLICK) || Input::OnButtonUp(RIGHT_CLICK))
 				{
 					if (e->OnRelease.callback) { e->OnRelease.callback(e, mousePos, e->OnRelease.value); }
 					e->clicked = false;
@@ -799,6 +799,8 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		{
 			Resources::DestroyMesh(mesh);
 		}
+
+		element->gameObject->model->meshes.Clear();
 	}
 
 	if (text)

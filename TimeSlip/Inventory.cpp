@@ -18,62 +18,281 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	//TODO: Check for menu keys being pressed
+	//TODO: We could take each if statement and create a bit mask for each, combine them and use a switch statement instead
 
-	if (slot.itemID)
+	if (Input::OnButtonDown(LEFT_CLICK))
+	{
+		if (slot.itemID)
+		{
+			if (mouseSlot.itemID)
+			{
+				if (slot.itemID == mouseSlot.itemID) //TODO: Check if the item is stackable
+				{
+					if (Input::ButtonDown(CONTROL))		//Insert One
+					{
+						--mouseSlot.amount;
+						++slot.amount;
+
+						if (slot.amount > 1) { UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount); }
+
+						if (mouseSlot.amount == 0)
+						{
+							mouseSlot.itemID = 0;
+							UI::ChangeTexture(mouseSlot.button, nullptr, {});
+						}
+						else if (mouseSlot.amount > 1)
+						{
+							UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
+						}
+					}
+					else if (Input::ButtonDown(SHIFT))	//Insert Half
+					{
+						U16 take = mouseSlot.amount >> 1;
+						take += take == 0;
+						slot.itemID = slot.itemID;
+						slot.amount += take;
+						mouseSlot.amount -= take;
+
+						UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
+
+						if (mouseSlot.amount == 0)
+						{
+							mouseSlot.itemID = 0;
+							UI::ChangeTexture(mouseSlot.button, nullptr, {});
+							UI::ChangeText((UIText*)mouseSlot.button->children.Back(), "");
+						}
+
+						UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
+					}
+					else								//Insert All
+					{
+						slot.amount += mouseSlot.amount;
+						UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
+
+						mouseSlot.amount = 0;
+						mouseSlot.itemID = 0;
+						UI::ChangeTexture(mouseSlot.button, nullptr, {});
+						UI::ChangeText((UIText*)mouseSlot.button->children.Back(), "");
+					}
+				}
+				else									//Swap Stacks
+				{
+					U16 tempAmt = slot.amount;
+					U16 tempID = slot.itemID;
+					slot.amount = mouseSlot.amount;
+					slot.itemID = mouseSlot.itemID;
+					mouseSlot.amount = tempAmt;
+					mouseSlot.itemID = tempID;
+
+					UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+					UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
+					UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
+
+					UI::ShowDescription(pos, ""); //TODO: Description
+				}
+			}
+			else
+			{
+				if (Input::ButtonDown(SHIFT))			//Take Half
+				{
+					U16 take = slot.amount >> 1;
+					take += take == 0;
+					mouseSlot.itemID = slot.itemID;
+					mouseSlot.amount = take;
+					slot.amount -= take;
+
+					UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
+
+					if (slot.amount == 0)
+					{
+						slot.itemID = 0;
+						UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+						UI::HideDescription();
+					}
+
+					UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					if (take > 1) { UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount); }
+				}
+				else									//Take All
+				{
+					mouseSlot.amount = slot.amount;
+					mouseSlot.itemID = slot.itemID;
+					slot.amount = 0;
+					slot.itemID = 0;
+
+					UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+					if (mouseSlot.amount > 1) { UI::ChangeText((UIText*)slot.button->children.Back(), ""); }
+					UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					if (mouseSlot.amount > 1) { UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount); }
+
+					UI::HideDescription();
+				}
+			}
+		}
+		else if(mouseSlot.itemID)
+		{
+			if (Input::ButtonDown(CONTROL))				//Insert One
+			{
+				slot.amount = 1;
+				slot.itemID = mouseSlot.itemID;
+				UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+
+				--mouseSlot.amount;
+
+				if (mouseSlot.amount == 0)
+				{
+					mouseSlot.itemID = 0;
+					UI::ChangeTexture(mouseSlot.button, nullptr, {});
+				}
+				else if (mouseSlot.amount > 1)
+				{
+					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
+				}
+
+				UI::ShowDescription(pos, ""); //TODO: Description
+			}
+			else if (Input::ButtonDown(SHIFT))			//Insert Half
+			{
+				U16 take = mouseSlot.amount >> 1;
+				take += take == 0;
+				slot.itemID = mouseSlot.itemID;
+				slot.amount = take;
+				mouseSlot.amount -= take;
+
+				UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+				UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
+
+				if (mouseSlot.amount == 0)
+				{
+					mouseSlot.itemID = 0;
+					UI::ChangeTexture(mouseSlot.button, nullptr, {});
+					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), "");
+				}
+				else
+				{
+					UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
+				}
+
+				UI::ShowDescription(pos, ""); //TODO: Description
+			}
+			else										//Insert All
+			{
+				slot.amount = mouseSlot.amount;
+				slot.itemID = mouseSlot.itemID;
+				mouseSlot.amount = 0;
+				mouseSlot.itemID = 0;
+
+				UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+				if (slot.amount > 1) { UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount); }
+				UI::ChangeTexture(mouseSlot.button, nullptr, {});
+				if (slot.amount > 1) { UI::ChangeText((UIText*)mouseSlot.button->children.Back(), ""); }
+
+				UI::ShowDescription(pos, ""); //TODO: Description
+			}
+		}
+	}
+	else if (slot.itemID)
 	{
 		if (mouseSlot.itemID)
 		{
-			U16 tempAmt = slot.amount;
-			U16 tempID = slot.itemID;
-			slot.amount = mouseSlot.amount;
-			slot.itemID = mouseSlot.itemID;
-			mouseSlot.amount = tempAmt;
-			mouseSlot.itemID = tempID;
-
-			UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
-			UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
-			UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
-			UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
-		}
-		else
-		{
-			//TODO: Take one
-			//TODO: Take half
-
-			mouseSlot.amount = slot.amount;
-			mouseSlot.itemID = slot.itemID;
-			UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
-			if (mouseSlot.amount > 1)
+			if (mouseSlot.itemID == slot.itemID) //TODO: Check if the item is stackable
 			{
-				UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
-				UI::ChangeText((UIText*)slot.button->children.Back(), "");
+				if (Input::ButtonDown(CONTROL))			//Take All
+				{
+					mouseSlot.amount += slot.amount;
+					UI::ChangeText((UIText*)slot.button->children.Back(), "");
+					UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+
+					slot.amount = 0;
+					slot.itemID = 0;
+					UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					UI::ChangeText((UIText*)mouseSlot.button->children.Back(), mouseSlot.amount);
+
+					UI::HideDescription();
+				}
+				else if (Input::ButtonDown(SHIFT))		//Take Half
+				{
+					U16 take = slot.amount >> 1;
+					take += take == 0;
+					mouseSlot.itemID = slot.itemID;
+					mouseSlot.amount += take;
+					slot.amount -= take;
+
+					UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
+
+					if (slot.amount == 0)
+					{
+						slot.itemID = 0;
+						UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+						UI::ChangeText((UIText*)slot.button->children.Back(), "");
+						UI::HideDescription();
+					}
+					else if(slot.amount > 1)
+					{
+						UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
+						UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					}
+					else
+					{
+						UI::ChangeText((UIText*)slot.button->children.Back(), "");
+					}
+
+					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
+				}
+				else									//Take One
+				{
+					if (--slot.amount == 0)
+					{
+						slot.itemID = 0;
+						UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+						UI::HideDescription();
+					}
+					else if (slot.amount > 1) 
+					{ 
+						UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount); 
+						UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+					}
+
+					if (++mouseSlot.amount > 1)
+					{
+						UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
+					}
+				}
 			}
+			else										//Swap Stacks
+			{
+				U16 tempAmt = slot.amount;
+				U16 tempID = slot.itemID;
+				slot.amount = mouseSlot.amount;
+				slot.itemID = mouseSlot.itemID;
+				mouseSlot.amount = tempAmt;
+				mouseSlot.itemID = tempID;
 
-			slot.amount = 0;
-			slot.itemID = 0;
-			UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+				UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
+				UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+				UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
+				UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
 
-			UI::HideDescription();
+				UI::ShowDescription(pos, ""); //TODO: Description
+			}
 		}
-	}
-	else if(mouseSlot.itemID)
-	{
-		//TODO: Place one
-		//TODO: Place half
-
-		slot.amount = mouseSlot.amount;
-		slot.itemID = mouseSlot.itemID;
-		UI::ChangeTexture(slot.button->children.Front(), GetItemTexture(slot.itemID), {});
-		if (slot.amount > 1)
+		else											//Take One
 		{
-			UI::ChangeText((UIText*)mouseSlot.button->children.Back(), "");
-			UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
-		}
+			mouseSlot.amount = 1;
+			mouseSlot.itemID = slot.itemID;
 
-		mouseSlot.amount = 0;
-		mouseSlot.itemID = 0;
-		UI::ChangeTexture(mouseSlot.button, nullptr, {});
+			if (--slot.amount == 0)
+			{
+				slot.itemID = 0;
+				UI::ChangeTexture(slot.button->children.Front(), nullptr, {});
+				UI::HideDescription();
+			}
+			else if (slot.amount > 1) { UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount); }
+
+			UI::ChangeTexture(mouseSlot.button, GetItemTexture(mouseSlot.itemID), {});
+		}
 	}
 }
 
@@ -86,8 +305,8 @@ void Inventory::OnHover(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	if (slot.itemID) 
-	{ 
+	if (slot.itemID)
+	{
 		UI::ShowDescription(pos, ""/*{ "Item ID: {}", slot.itemID }*/);
 	}
 }
@@ -279,7 +498,7 @@ void Inventory::Init(Scene* scene)
 void Inventory::Update()
 {
 	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
-	Vector2Int offset = RendererFrontend::WindowSize() * Vector2{ 0.025f, 0.04444444444f };
+	Vector2Int offset = RendererFrontend::WindowSize() * Vector2 { 0.025f, 0.04444444444f };
 
 	UI::SetElementPosition(mouseSlot.button, mousePos - offset);
 }
@@ -326,6 +545,8 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 
 Texture* Inventory::GetItemTexture(U16 itemID)
 {
+	//TODO: Use one texture and only change the uvs, it would be much faster
+
 	switch (itemID)
 	{
 	case 1: return Resources::LoadTexture("DirtBlock.bmp");
