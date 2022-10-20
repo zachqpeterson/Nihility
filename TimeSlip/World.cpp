@@ -215,6 +215,11 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 	return Vector2::ZERO;
 }
 
+Vector3 World::TileLight(const Vector2Int& pos)
+{
+	return Vector3::ZERO;
+}
+
 void World::BreakBlock(const Vector2Int& pos)
 {
 	Vector2Int chunkPos = pos / 8;

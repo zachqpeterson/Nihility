@@ -33,6 +33,7 @@ static const U8 biomeTileMods[BIOME_COUNT] =
 
 struct Tile;
 struct Vector2;
+struct Vector3;
 struct Vector2Int;
 class Chunk;
 
@@ -51,6 +52,7 @@ public:
 	Vector2 WallUV(const Vector2Int& pos);
 	Vector2 DecorationUV(const Vector2Int& pos, U8 id);
 	Vector2 LiquidUV(const Vector2Int& pos);
+	Vector3 TileLight(const Vector2Int& pos);
 
 	void BreakBlock(const Vector2Int& pos);
 	void PlaceBlock(const Vector2Int& pos, U8 id);

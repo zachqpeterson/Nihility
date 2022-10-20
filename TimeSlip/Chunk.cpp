@@ -28,10 +28,7 @@ const U8 Chunk::INDEX_SEQUENCE[6]{
 	0, 1, 2, 2, 3, 0
 };
 
-Chunk::Chunk() : loaded{ false }, model{ nullptr }, tiles{ nullptr }
-{
-
-}
+Chunk::Chunk() : loaded{ false }, model{ nullptr }, tiles{ nullptr } {}
 
 Chunk::~Chunk()
 {
@@ -111,13 +108,14 @@ void Chunk::Load(const Vector2& pos)
 				Vector2 wallUV = world->WallUV((Vector2Int)worldPos);
 				Vector2 decUV = world->DecorationUV((Vector2Int)worldPos, tile.decID);
 				Vector2 liquidUV = world->LiquidUV((Vector2Int)worldPos);
+				Vector3 color = world->TileLight((Vector2Int)worldPos);
 
 				for (U16 j = 0; j < 4; ++j)
 				{
-					blockVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], blockUV + UV_POSITIONS[j], (U32)(tile.blockID - 1) };
-					wallVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], wallUV + UV_POSITIONS[j], (U32)(tile.wallID - 1) };
-					decVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], decUV + UV_POSITIONS[j], (U32)(tile.decID - 1) };
-					liquidVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], liquidUV + UV_POSITIONS[j], (U32)(tile.liquidID - 1) };
+					blockVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], blockUV + UV_POSITIONS[j], color, (U32)(tile.blockID - 1) };
+					wallVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], wallUV + UV_POSITIONS[j], color, (U32)(tile.wallID - 1) };
+					decVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], decUV + UV_POSITIONS[j], color, (U32)(tile.decID - 1) };
+					liquidVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], liquidUV + UV_POSITIONS[j], color, (U32)(tile.liquidID - 1) };
 				}
 
 				for (U16 j = 0; j < 6; ++j)

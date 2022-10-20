@@ -17,6 +17,7 @@ class Chunk
 	{
 		Vector3 position;
 		Vector2 uv;
+		Vector3 color;
 		U32 texId;
 	};
 
