@@ -937,7 +937,7 @@ Texture* Resources::LoadTexture(const String& name)
 	if (name.Blank())
 	{
 		Logger::Error("Texture name can not be blank or nullptr!");
-		return nullptr;
+		return defaultTexture;
 	}
 
 	Texture* texture = textures[name];
@@ -1169,8 +1169,26 @@ Shader* Resources::LoadShader(const String& name)
 			{
 				Vector<String> fields(Move(varValue.Split(',', true)));
 
-				if (fields.Size() != 4) { Logger::Error("LoadShader: Invalid file layout. Uniform fields must be 'type,set,binding,name'. Skipping..."); }
-				else
+				if (fields.Size() == 4) 
+				{ 
+					Uniform uniform;
+					GetConfigType(fields[0], uniform.fieldType, uniform.size);
+
+					uniform.name = fields[3];
+					uniform.setIndex = fields[1].ToU8();
+					uniform.bindingIndex = fields[2].ToU8();
+
+					if (uniform.name == "projection") { uniform.uniformType = UNIFORM_TYPE_CAMERA_PROJECTION; }
+					else if (uniform.name == "view") { uniform.uniformType = UNIFORM_TYPE_CAMERA_VIEW; }
+					else if (uniform.name == "viewPosition") { uniform.uniformType = UNIFORM_TYPE_CAMERA_POSITION; }
+					else if (uniform.name == "ambientColor") { uniform.uniformType = UNIFORM_TYPE_CAMERA_COLOR; }
+					else if (uniform.name == "diffuseColor") { uniform.uniformType = UNIFORM_TYPE_DIFFUSE_COLOR; }
+					else if (uniform.name == "shininess") { uniform.uniformType = UNIFORM_TYPE_SHININESS; }
+					else if (uniform.fieldType == FIELD_TYPE_SAMPLER) { uniform.uniformType = UNIFORM_TYPE_TEXTURE; }
+
+					shader->AddUniform(uniform);
+				}
+				else if(fields.Size() == 5)
 				{
 					Uniform uniform;
 					GetConfigType(fields[0], uniform.fieldType, uniform.size);
@@ -1187,10 +1205,13 @@ Shader* Resources::LoadShader(const String& name)
 					else if (uniform.name == "shininess") { uniform.uniformType = UNIFORM_TYPE_SHININESS; }
 					else if (uniform.fieldType == FIELD_TYPE_SAMPLER) { uniform.uniformType = UNIFORM_TYPE_TEXTURE; }
 
-					uniform.uniformType;
-
-					shader->AddUniform(uniform);
+					U8 count = fields[4].ToU8();
+					for (U8 i = 0; i < count; ++i)
+					{
+						shader->AddUniform(uniform);
+					}
 				}
+				else { Logger::Error("LoadShader: Invalid file layout. Uniform fields must be 'type,set,binding,name,(Opt)count'. Skipping..."); }
 
 				for (String& s : fields) { s.Destroy(); }
 			}

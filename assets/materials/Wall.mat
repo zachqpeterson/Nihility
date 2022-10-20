@@ -1,4 +1,4 @@
 color=1.000000,1.000000,1.000000,1.000000
 shininess=0.000000
-globalTextureMaps=DirtWall.bmp,StoneWall.bmp,SandWall.bmp,SandstoneWall.bmp
+globalTextureMaps=GrasslandDirtWall.bmp,GrasslandStoneWall.bmp,MesaDirtWall.bmp,MesaStoneWall.bmp,DesertDirtWall.bmp,DesertStoneWall.bmp
 shader=Wall.shd

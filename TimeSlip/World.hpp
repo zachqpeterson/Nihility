@@ -2,12 +2,33 @@
 
 #include <Defines.hpp>
 
+
+const enum Biomes
+{
+	Grasslands,	//Copper
+	Mesa,		//Tin
+	Desert,		//Iron
+	Jungle,		//Coal
+	Marsh,		//?
+
+	BIOME_COUNT
+};
+
 enum WorldSize
 {
 	WS_TEST = 280,
 	WS_SMALL = 2800,
 	WS_MEDIUM = 4200,
 	WS_LARGE = 5600
+};
+
+static const U8 biomeTileMods[BIOME_COUNT] =
+{
+	0,	//Grasslands
+	2,	//Mesa
+	4,	//Desert
+	2,	//Jungle
+	4,	//Marsh
 };
 
 struct Tile;

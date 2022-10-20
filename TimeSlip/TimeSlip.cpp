@@ -112,7 +112,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	RendererFrontend::UseScene(worldScene);
 
 	Vector2 spawnPoint;
-	world = new World(10000000, *(WorldSize*)data, spawnPoint);
+	world = new World(10000000, WS_TEST, spawnPoint);
 
 	player = new Player(spawnPoint);
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });

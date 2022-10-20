@@ -155,7 +155,7 @@ void World::Update()
 			BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
 		}
 	}
-	
+
 	if (Input::ButtonDown(RIGHT_CLICK))
 	{
 		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
@@ -195,19 +195,19 @@ Vector2 World::WallUV(const Vector2Int& pos)
 
 Vector2 World::DecorationUV(const Vector2Int& pos, U8 id)
 {
-	if (id < 3)
+	if (id == 1)
 	{
-		return { (F32)(((I16)pos.x ^ 2 * (I16)pos.y + SEED) % 3), 0.0f };
+		return { (F32)(((I16)pos.x ^ 2 * (I16)pos.y + SEED) % 3), (F32)tiles[pos.x][pos.y].biome };
 	}
 
-	return Vector2((F32)((tiles[pos.x - 1][pos.y - 1].decID == id) +
-		((tiles[pos.x + 1][pos.y - 1].decID == id) << 1) +
-		((tiles[pos.x - 1][pos.y + 1].decID == id) << 2) +
-		((tiles[pos.x + 1][pos.y + 1].decID == id) << 3)),
-		(F32)((tiles[pos.x][pos.y - 1].decID == id) +
-			((tiles[pos.x - 1][pos.y].decID == id) << 1) +
-			((tiles[pos.x + 1][pos.y].decID == id) << 2) +
-			((tiles[pos.x][pos.y + 1].decID == id) << 3)));
+	return Vector2((F32)((pos.x > 0 && pos.y > 0 && tiles[pos.x - 1][pos.y - 1].decID == id) +
+		((pos.x + 1 < TILES_X && pos.y > 0 && tiles[pos.x + 1][pos.y - 1].decID == id) << 1) +
+		((pos.x > 0 && pos.y + 1 < TILES_Y && tiles[pos.x - 1][pos.y + 1].decID == id) << 2) +
+		((pos.x + 1 < TILES_X && pos.y + 1 < TILES_Y && tiles[pos.x + 1][pos.y + 1].decID == id) << 3)),
+		(F32)((pos.y > 0 && tiles[pos.x][pos.y - 1].decID == id) +
+			((pos.x > 0 && tiles[pos.x - 1][pos.y].decID == id) << 1) +
+			((pos.x + 1 < TILES_X && tiles[pos.x + 1][pos.y].decID == id) << 2) +
+			((pos.y + 1 < TILES_Y && tiles[pos.x][pos.y + 1].decID == id) << 3)));
 }
 
 Vector2 World::LiquidUV(const Vector2Int& pos)
@@ -313,7 +313,7 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 		Vector2Int down = pos - Vector2Int::DOWN;
 		chunkPos = down / 8;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
-		if (tiles[down.x][down.y].decID < 3) //TODO: This will change was we add different decorations
+		if (tiles[down.x][down.y].decID < 2) //It's grass
 		{
 			tiles[down.x][down.y].decID = 0;
 			chunks[chunkPos.x][chunkPos.y].EditDecoration(0, down, down - chunkPos * 8);
@@ -403,33 +403,84 @@ void World::PlaceWall(const Vector2Int& pos, U8 id)
 
 F32 World::GenerateWorld()
 {
+	static const F64 terrainLowFreq = 0.005;
+	static const F64 terrainHighFreq = 0.05;
+	static const F64 terrainLowAmplitude = 5.0;
+	static const F64 terrainHighAmplitude = 25.0;
+	static const F64 caveLowFreq = 0.01333333333;
+	static const F64 caveHighFreq = 0.02;
+	static const F64 caveThresholdMin = 0.01;
+	static const F64 caveThresholdMax = 0.04;
+	static const F64 oreFreq = 0.07;
+	static const F64 oreAmplitude = 0.13;
+	static const F64 oreThreshold = 0.1;
+
 	Timer timer;
 	timer.Start();
 
 	F32 spawnHeight = 0.0f;
 
+	U16 biomeLengths[BIOME_COUNT] = {};
+
+	U16 lastLength = 0;
+
+	for (U8 i = 0; i < BIOME_COUNT - 1; ++i)
+	{
+		F64 mod = TILES_X * 0.98 / (F64)BIOME_COUNT - TILES_X * 0.97 / (F64)BIOME_COUNT;
+		biomeLengths[i] = (U16)(Math::Mod((F64)Math::RandomF(), mod) + TILES_X * 0.97 / (F64)BIOME_COUNT) + lastLength;
+		lastLength = biomeLengths[i];
+	}
+
+	biomeLengths[BIOME_COUNT - 1] = TILES_X;
+
+	for (U16 y = 0; y < TILES_Y; ++y)
+	{
+		U16 length = 0;
+		F64 variation = (Math::Simplex1(y * 0.1 + SEED + length) * 5.0);
+
+		for (U8 i = 0; i < BIOME_COUNT - 1; ++i)
+		{
+			U16 prevLength = length;
+			length = biomeLengths[i] + variation;
+
+			for (U16 x = prevLength; x < length; ++x)
+			{
+				tiles[x][y].biome = i;
+			}
+		}
+
+		U16 prevLength = length;
+
+		for (U16 x = prevLength; x < TILES_X; ++x)
+		{
+			tiles[x][y].biome = BIOME_COUNT - 1;
+		}
+	}
+
 	for (U16 x = 0; x < TILES_X; ++x)
 	{
-		U16 height = (U16)((Math::Simplex1(x * 0.005 + SEED) * 25.0) +
-			(Math::Simplex1(x * 0.05 + SEED) * 5.0) + (TILES_Y * 0.5));
+		U16 height = (U16)((Math::Simplex1(x * terrainLowFreq + SEED) * terrainHighAmplitude) +
+			(Math::Simplex1(x * terrainHighFreq + SEED) * terrainLowAmplitude) + (TILES_Y * 0.5));
 
 		for (U16 y = height; y < TILES_Y; ++y)
 		{
-			bool cave = Math::Abs(Math::Simplex2(x * 0.02 + SEED, y * 0.02 + SEED) +
-				Math::Simplex2(x * 0.01333333333 + SEED * 2.0, y * 0.01333333333 + SEED * 2.0)) > (0.04 * (height + y) / (F64)height + 0.01);
+			Tile& tile = tiles[x][y];
 
-			F64 oreNoise0 = Math::Simplex2(x * 0.07 + SEED * 2.0, y * 0.07 + SEED * 2.0) * 0.13;
-			F64 oreNoise1 = Math::Simplex2(x * 0.07 + SEED * 3.0, y * 0.07 + SEED * 3.0) * 0.13;
-			U8 ore = Math::Max((oreNoise0 > 0.1) * 3 + (oreNoise0 < -0.1) * 4, (oreNoise1 > 0.1) * 5 + (oreNoise1 < -0.1) * 6);
+			bool cave = Math::Abs(Math::Simplex2(x * caveHighFreq + SEED, y * caveHighFreq + SEED) +
+				Math::Simplex2(x * caveLowFreq + SEED * 2.0, y * caveLowFreq + SEED * 2.0)) >
+				(caveThresholdMax * (height + y) / (F64)height + caveThresholdMin);
 
-			tiles[x][y].decID = ((y == height) + (y > height) * ore) * cave;
-			tiles[x][y].blockID = (1 + (y > height + 10)) * cave;
-			tiles[x][y].wallID = 1 + (y > height + 10);
+			F64 oreNoise = Math::Simplex2(x * oreFreq + SEED * 2.0, y * oreFreq + SEED * 2.0) * oreAmplitude;
+			U8 ore = (oreNoise > oreThreshold) * (2 + tile.biome);
+
+			tile.decID = ((y == height) + (y > height) * ore) * cave;
+			tile.blockID = ((1 + (y > height + 10)) + biomeTileMods[tile.biome]) * cave;
+			tile.wallID = 1 + (y > height + 10) + biomeTileMods[tile.biome];
 		}
 	}
 
 	Logger::Debug("World Generation Time: {}", timer.CurrentTime());
 
-	return (F32)(U16)((Math::Simplex1(TILES_X * 0.0025 + SEED) * 25.0) +
-		(Math::Simplex1(TILES_X * 0.025 + SEED) * 5.0) + (TILES_Y * 0.5)) - 1.5f;
+	return (F32)(U16)((Math::Simplex1((TILES_X >> 1) * terrainLowFreq + SEED) * terrainHighAmplitude) +
+		(Math::Simplex1((TILES_X >> 1) * terrainHighFreq + SEED) * terrainLowAmplitude) + (TILES_Y * 0.5)) - 1.5f;
 }

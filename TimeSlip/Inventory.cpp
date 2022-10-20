@@ -553,8 +553,12 @@ Texture* Inventory::GetItemTexture(U16 itemID)
 
 	switch (itemID)
 	{
-	case 1: return Resources::LoadTexture("DirtBlock.bmp");
-	case 2: return Resources::LoadTexture("StoneBlock.bmp");
+	case 1: return Resources::LoadTexture("GrasslandDirt.bmp");
+	case 2: return Resources::LoadTexture("GrasslandStone.bmp");
+	case 3: return Resources::LoadTexture("MesaDirt.bmp");
+	case 4: return Resources::LoadTexture("MesaStone.bmp");
+	case 5: return Resources::LoadTexture("DesertDirt.bmp");
+	case 6: return Resources::LoadTexture("DesertStone.bmp");
 	default: return Resources::DefaultTexture();
 	}
 }
