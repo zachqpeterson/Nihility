@@ -29,6 +29,8 @@ WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 
 bool TimeSlip::Initialize()
 {
+	
+
 	static const F32 camWidth = 3.63636363636f;
 	static const F32 camHeight = 2.04545454545f;
 	gameState = GAME_STATE_MENU;

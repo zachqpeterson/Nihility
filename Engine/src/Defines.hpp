@@ -79,10 +79,13 @@ struct Range
 #define STATIC_ASSERT static_assert
 #endif
 
+#define PLATFORM_PTR_SIZE 8
+
 /***************************PLATFORM DETECTION***************************/
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64)
 #define PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
+#define MIN_ALLOCATION_ALIGNMENT 16
 #ifndef _WIN64
 #error "64-bit is required on Windows!"
 #endif
@@ -101,6 +104,7 @@ struct Range
 #elif defined(__APPLE__) || defined(__MACH__)
 // Apple platforms
 #define PLATFORM_APPLE
+#define MIN_ALLOCATION_ALIGNMENT 16
 #include <TargetConditionals.h>
 #if TARGET_IPHONE_SIMULATOR
 // iOS Simulator

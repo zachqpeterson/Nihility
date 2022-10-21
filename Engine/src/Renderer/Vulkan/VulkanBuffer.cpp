@@ -17,7 +17,7 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 
 	if (useFreelist)
 	{
-		freelist = Move(Freelist(size));
+		freelist.Create(size);
 	}
 
 	VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -33,8 +33,6 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 	if (memoryIndex == -1)
 	{
 		Logger::Error("Unable to create vulkan buffer because the required memory type index was not found.");
-
-		freelist.Destroy();
 		return false;
 	}
 
@@ -58,8 +56,6 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 
 void VulkanBuffer::Destroy(RendererState* rendererState)
 {
-	if (hasFreelist) { freelist.Destroy(); }
-
 	if (memory)
 	{
 		vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
@@ -90,7 +86,6 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue que
 		if (!freelist.Resize(newSize))
 		{
 			Logger::Error("Resize failed to resize internal free list.");
-			freelist.Destroy();
 			return false;
 		}
 	}

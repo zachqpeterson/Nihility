@@ -14,9 +14,6 @@ public:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
-	DynamicAllocator& operator=(const DynamicAllocator&) = delete;
-	DynamicAllocator& operator=(DynamicAllocator&& other) noexcept;
-
 	bool Allocate(void** ptr, U64 size);
 	bool Free(void* block, U64 size);
 
@@ -24,10 +21,9 @@ public:
 
 private:
 	U64 totalSize;
-	U64 smallOffset;
+	U64 memoryOffset;
 	U64 linearOffset;
 
 	Freelist allocations;
-	Freelist smallAllocations;
 	void* memory;
 };

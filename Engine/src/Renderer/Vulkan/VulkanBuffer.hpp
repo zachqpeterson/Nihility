@@ -29,7 +29,7 @@ private:
 	U32 memoryPropertyFlags{ 0 };
 	VkBufferUsageFlagBits usage{ VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM };
 	VkDeviceMemory memory{ nullptr };
-	Freelist freelist{};
+	Freelist freelist;
 	bool locked{ false };
 	bool hasFreelist{ false };
 };
