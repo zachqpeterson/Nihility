@@ -9,6 +9,7 @@ DynamicAllocator::DynamicAllocator(U64 size) : memory{ nullptr }, totalSize{ 0 }
 	{
 		totalSize = size;
 		memory = Platform::Allocate(size, false);
+		Platform::Zero(memory, size);
 		U64 largeSize = size >> 1;
 		U64 linearSize = totalSize - largeSize;
 		memoryOffset = allocations.Create(largeSize, memory);
@@ -54,10 +55,10 @@ bool DynamicAllocator::Free(void* block, U64 size)
 	return allocations.FreeBlock(size, offset);
 }
 
-bool DynamicAllocator::LinearAllocate(void** ptr, U64 size)
+void* DynamicAllocator::LinearAllocate(U64 size)
 {
-	*ptr = (U8*)memory + linearOffset;
+	void* ptr = (U8*)memory + linearOffset;
 	linearOffset += size;
 
-	return linearOffset <= totalSize;
+	return ptr;
 }

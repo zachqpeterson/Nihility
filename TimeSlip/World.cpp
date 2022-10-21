@@ -217,7 +217,76 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 
 Vector3 World::TileLight(const Vector2Int& pos)
 {
-	return Vector3::ZERO;
+	if (tiles[pos.x][pos.y].lightSource) { Vector3::ONE; }
+
+	U16 maxLightDistance = 8;
+
+	U16 xStart = Math::Max(pos.x - maxLightDistance, 0);
+	U16 xEnd = pos.x + maxLightDistance;
+	U16 yStart = Math::Max(pos.y - maxLightDistance, 0);
+	U16 yEnd = pos.y + maxLightDistance;
+
+	Vector3 color = Vector3::ZERO;
+
+	F32 stacking = 1;
+
+	for (U16 x = xStart; x < xEnd && x < TILES_X; ++x)
+	{
+		for (U16 y = yStart; y < yEnd && y < TILES_Y; ++y)
+		{
+			if ((x == pos.x && y == pos.y) || !tiles[x][y].lightSource || (pos - Vector2Int{x, y}).SqrMagnitude() > 64) { continue; }
+
+			I16 x1 = pos.x;
+			I16 y1 = pos.y;
+
+			I16 dx = x1 - x;
+			dx *= Math::Sign(dx);
+			I16 dy = y1 - y;
+			dy *= Math::Sign(dy);
+			I16 x2 = x;
+			I16 y2 = y;
+			I16 n = 1 + dx + dy;
+			I16 x_inc = (x1 > x) ? 1 : -1;
+			I16 y_inc = (y1 > y) ? 1 : -1;
+			I16 error = dx - dy;
+			dx <<= 1;
+			dy <<= 1;
+
+			F32 decrDiag = SQRT_TWO_H / 16;
+			F32 decrStrait = 1.0f / 16;
+
+			F32 distance = 1.0f;// +(error ? decrStrait : decrDiag);
+
+			for (; n > 0 && distance > 0.0f; --n)
+			{
+				if (error > 0)
+				{
+					x2 += x_inc;
+					error -= dy;
+					distance -= (decrStrait + (error * 0.004f)) * (1 + (tiles[x2][y2].blockID > 0) * 2);
+				}
+				else if (error < 0)
+				{
+					y2 += y_inc;
+					error += dx;
+					distance -= (decrStrait - (error * 0.004f)) * (1 + (tiles[x2][y2].blockID > 0) * 2);
+				}
+				else
+				{
+					x2 += x_inc;
+					y2 += y_inc;
+					error -= dy;
+					error += dx;
+					--n;
+					distance -= decrDiag * (1 + (tiles[x2][y2].blockID > 0) * 2);
+				}
+			}
+
+			color += Vector3::ONE * Math::Max(distance, 0.0f);
+		}
+	}
+
+	return Math::Min(color, Vector3::ONE);
 }
 
 void World::BreakBlock(const Vector2Int& pos)
@@ -466,6 +535,12 @@ F32 World::GenerateWorld()
 	{
 		U16 height = (U16)((Math::Simplex1(x * terrainLowFreq + SEED) * terrainHighAmplitude) +
 			(Math::Simplex1(x * terrainHighFreq + SEED) * terrainLowAmplitude) + (TILES_Y * 0.5));
+
+		//tiles[x][height].lightSource = true;
+		for (U16 y = 0; y < height; ++y)
+		{
+			tiles[x][y].lightSource = true;
+		}
 
 		for (U16 y = height; y < TILES_Y; ++y)
 		{

@@ -53,9 +53,7 @@ void Memory::Free(void* block, U64 size, MemoryTag tag)
 
 void* Memory::LinearAllocate(U64 size)
 {
-	void* block;
-	if (allocator->LinearAllocate(&block, size)) { return Platform::Zero(block, size); }
-	return nullptr;
+	return allocator->LinearAllocate(size);
 }
 
 void* Memory::Zero(void* block, U64 size)
