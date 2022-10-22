@@ -1,12 +1,12 @@
 #include "Camera.hpp"
 
-Camera::Camera(F32 fov, F32 near, F32 far, const Vector3& position, const Vector3& rotation, const Vector4& ambientColor, ViewMatrixSource viewSource) :
+Camera::Camera(F32 fov, F32 near, F32 far, const Vector3& position, const Vector3& rotation, const Vector3& ambientColor, ViewMatrixSource viewSource) :
     position{ position }, rotation{ rotation }, ambientColor{ ambientColor }, viewSource{ viewSource }, dirty{ true }
 {
     projection.SetPerspective(Math::DegToRad(fov), 1.7777777777f, near, far);
 }
 
-Camera::Camera(const Vector4& bounds, F32 near, F32 far, const Vector3& position, const Vector3& rotation, const Vector4& ambientColor, ViewMatrixSource viewSource) :
+Camera::Camera(const Vector4& bounds, F32 near, F32 far, const Vector3& position, const Vector3& rotation, const Vector3& ambientColor, ViewMatrixSource viewSource) :
     position{ position }, rotation{ rotation }, ambientColor{ ambientColor }, viewSource{ viewSource }, dirty{ true }
 {
     projection.SetOrthographic(bounds.x, bounds.y, bounds.z, bounds.w, near, far);
@@ -63,7 +63,7 @@ const Vector4& Camera::AmbientColor() const
     return ambientColor;
 }
 
-void Camera::SetAmbientColor(const Vector4& color)
+void Camera::SetAmbientColor(const Vector3& color)
 {
     ambientColor = color;
 }

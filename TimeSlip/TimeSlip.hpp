@@ -24,6 +24,7 @@ public:
 	static bool Initialize();
 	static void Shutdown();
 	static bool Update();
+	static void UpdateDayCycle();
 
 	static void PickupItem(U16 itemID, U16 amount);
 
@@ -34,6 +35,10 @@ private:
 	static Scene* mainMenuScene;
 	static Scene* worldScene;
 	static World* world;
+
+	static F32 timeScale;
+	static F32 currentTime;
+	static bool night;
 
 	static Player* player; //TODO: We will need to keep track of multiple players in multiplayer for rendering
 	static Inventory* inventory; //But We only need to keep track of the inventory of your character

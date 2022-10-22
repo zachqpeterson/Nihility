@@ -18,6 +18,10 @@ Scene* TimeSlip::mainMenuScene;
 Scene* TimeSlip::worldScene;
 World* TimeSlip::world;
 
+F32 TimeSlip::timeScale;
+F32 TimeSlip::currentTime;
+bool TimeSlip::night;
+
 Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 
@@ -29,8 +33,6 @@ WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 
 bool TimeSlip::Initialize()
 {
-	
-
 	static const F32 camWidth = 3.63636363636f;
 	static const F32 camHeight = 2.04545454545f;
 	gameState = GAME_STATE_MENU;
@@ -88,6 +90,7 @@ bool TimeSlip::Update()
 		player->Update();
 		worldScene->GetCamera()->Update();
 		world->Update();
+		UpdateDayCycle();
 
 		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
 		break;
@@ -97,6 +100,17 @@ bool TimeSlip::Update()
 	}
 
 	return true;
+}
+
+void TimeSlip::UpdateDayCycle()
+{
+	currentTime += Time::DeltaTime() * timeScale;
+
+	F32 alpha = Math::Clamp(Math::Cos(currentTime * 0.1f) + 0.55f, 0.1f, 1.0f);
+
+	bool night = alpha < 0.15f;
+
+	worldScene->GetCamera()->SetAmbientColor(Vector3::ONE * alpha);
 }
 
 void TimeSlip::LoadWorld()
@@ -115,6 +129,10 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 	Vector2 spawnPoint;
 	world = new World(10000000, WS_TEST, spawnPoint);
+
+	timeScale = 1.0f;
+	currentTime = 1000.0f;
+	night = false;
 
 	player = new Player(spawnPoint);
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });

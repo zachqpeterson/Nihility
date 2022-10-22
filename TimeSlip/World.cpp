@@ -536,11 +536,7 @@ F32 World::GenerateWorld()
 		U16 height = (U16)((Math::Simplex1(x * terrainLowFreq + SEED) * terrainHighAmplitude) +
 			(Math::Simplex1(x * terrainHighFreq + SEED) * terrainLowAmplitude) + (TILES_Y * 0.5));
 
-		//tiles[x][height].lightSource = true;
-		for (U16 y = 0; y < height; ++y)
-		{
-			tiles[x][y].lightSource = true;
-		}
+		tiles[x][height].lightSource = true;
 
 		for (U16 y = height; y < TILES_Y; ++y)
 		{
