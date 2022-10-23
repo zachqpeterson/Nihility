@@ -11,6 +11,7 @@ struct UIElement;
 
 enum GameState
 {
+	GAME_STATE_NONE,
 	GAME_STATE_MENU,
 	GAME_STATE_GAME,
 	GAME_STATE_PAUSE,
@@ -44,6 +45,7 @@ private:
 	static Inventory* inventory; //But We only need to keep track of the inventory of your character
 
 	static GameState gameState;
+	static GameState nextState;
 
 	static WorldSize smallWorldSize;
 	static WorldSize mediumWorldSize;

@@ -26,6 +26,7 @@ Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 
 GameState TimeSlip::gameState;
+GameState TimeSlip::nextState;
 
 WorldSize TimeSlip::smallWorldSize{ WS_SMALL };
 WorldSize TimeSlip::mediumWorldSize{ WS_MEDIUM };
@@ -36,6 +37,7 @@ bool TimeSlip::Initialize()
 	static const F32 camWidth = 3.63636363636f;
 	static const F32 camHeight = 2.04545454545f;
 	gameState = GAME_STATE_MENU;
+	nextState = GAME_STATE_NONE;
 	mainMenuScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
 	mainMenuScene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 	RendererFrontend::UseScene(mainMenuScene);
@@ -99,6 +101,8 @@ bool TimeSlip::Update()
 	default: break;
 	}
 
+	if (nextState) { gameState = nextState; nextState = GAME_STATE_NONE; }
+
 	return true;
 }
 
@@ -161,5 +165,5 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 	inventory = new Inventory(config);
 
-	gameState = GAME_STATE_GAME;
+	nextState = GAME_STATE_GAME;
 }

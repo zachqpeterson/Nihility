@@ -132,7 +132,7 @@ void World::Update()
 		{
 			for (U16 y = bottomMax; y <= topMin; ++y)
 			{
-				chunks[x][y].Load(Vector2{ (F32)x, (F32)y });
+				chunks[x][y].Load({ x, y });
 			}
 		}
 	}
@@ -149,6 +149,10 @@ void World::Update()
 		if (Input::ButtonDown(CONTROL))
 		{
 			BreakWall(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+		}
+		else if (Input::ButtonDown(MENU))
+		{
+			RemoveLight(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
 		}
 		else
 		{
@@ -167,6 +171,10 @@ void World::Update()
 		if (Input::ButtonDown(CONTROL))
 		{
 			PlaceWall(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
+		}
+		else if (Input::ButtonDown(MENU))
+		{
+			PlaceLight(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
 		}
 		else
 		{
@@ -217,7 +225,7 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 
 Vector3 World::TileLight(const Vector2Int& pos)
 {
-	if (tiles[pos.x][pos.y].lightSource) { Vector3::ONE; }
+	if (tiles[pos.x][pos.y].lightSource) { return Vector3::ONE; }
 
 	U16 maxLightDistance = 8;
 
@@ -293,6 +301,8 @@ void World::BreakBlock(const Vector2Int& pos)
 {
 	Vector2Int chunkPos = pos / 8;
 
+	bool globalLight = !tiles[pos.x][pos.y].wallID;
+
 	if (tiles[pos.x][pos.y].blockID) { TimeSlip::PickupItem(tiles[pos.x][pos.y].blockID, 1); }
 	if (tiles[pos.x][pos.y].decID > 2) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID, 1); }
 
@@ -305,6 +315,7 @@ void World::BreakBlock(const Vector2Int& pos)
 	{
 		Vector2Int left = pos - Vector2Int::LEFT;
 		chunkPos = left / 8;
+		tiles[left.x][left.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[left.x][left.y].blockID, left, left - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[left.x][left.y].decID, left, left - chunkPos * 8);
 
@@ -327,6 +338,7 @@ void World::BreakBlock(const Vector2Int& pos)
 	{
 		Vector2Int right = pos - Vector2Int::RIGHT;
 		chunkPos = right / 8;
+		tiles[right.x][right.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[right.x][right.y].blockID, right, right - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[right.x][right.y].decID, right, right - chunkPos * 8);
 
@@ -349,6 +361,7 @@ void World::BreakBlock(const Vector2Int& pos)
 	{
 		Vector2Int down = pos - Vector2Int::DOWN;
 		chunkPos = down / 8;
+		tiles[down.x][down.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[down.x][down.y].decID, down, down - chunkPos * 8);
 	}
@@ -357,8 +370,62 @@ void World::BreakBlock(const Vector2Int& pos)
 	{
 		Vector2Int up = pos - Vector2Int::UP;
 		chunkPos = up / 8;
+		tiles[up.x][up.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[up.x][up.y].decID, up, up - chunkPos * 8);
+	}
+
+	chunkPos = pos / 8;
+
+	chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
+	chunks[chunkPos.x][chunkPos.y].UpdateMeshes();
+
+	if (chunkPos.x < CHUNKS_X - 1)
+	{
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::RIGHT);
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::RIGHT + Vector2Int::UP);
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN + Vector2Int::RIGHT);
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.x > 1)
+	{
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::LEFT);
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::LEFT + Vector2Int::DOWN);
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP + Vector2Int::LEFT);
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.y < CHUNKS_Y - 1)
+	{
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP);
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateMeshes();
+	}
+
+	if (chunkPos.y > 1)
+	{
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN);
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateMeshes();
 	}
 }
 
@@ -366,7 +433,10 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 {
 	Vector2Int chunkPos = pos / 8;
 	tiles[pos.x][pos.y].blockID = id;
+	if (!tiles[pos.x][pos.y].lightSource) { tiles[pos.x][pos.y].lightSource = 0; } //TODO: Global Light
 	chunks[chunkPos.x][chunkPos.y].EditBlock(id, pos, pos - chunkPos * 8);
+
+	//TODO: Check if a chunk is loaded
 
 	if (pos.x > 0)
 	{
@@ -400,11 +470,66 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 		chunkPos = up / 8;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
 	}
+
+	chunkPos = pos / 8;
+
+	chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
+	chunks[chunkPos.x][chunkPos.y].UpdateMeshes();
+
+	if (chunkPos.x < CHUNKS_X - 1)
+	{
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::RIGHT);
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::RIGHT + Vector2Int::UP);
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN + Vector2Int::RIGHT);
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.x > 1)
+	{
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::LEFT);
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::LEFT + Vector2Int::DOWN);
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP + Vector2Int::LEFT);
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.y < CHUNKS_Y - 1)
+	{
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP);
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateMeshes();
+	}
+
+	if (chunkPos.y > 1)
+	{
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN);
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateMeshes();
+	}
 }
 
 void World::BreakWall(const Vector2Int& pos)
 {
 	Vector2Int chunkPos = pos / 8;
+
+	bool globalLight = !tiles[pos.x][pos.y].blockID;
 
 	if (tiles[pos.x][pos.y].wallID) { TimeSlip::PickupItem(tiles[pos.x][pos.y].wallID, 1); }
 
@@ -415,6 +540,7 @@ void World::BreakWall(const Vector2Int& pos)
 	{
 		Vector2Int left = pos - Vector2Int::LEFT;
 		chunkPos = left / 8;
+		tiles[left.x][left.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[left.x][left.y].wallID, left, left - chunkPos * 8);
 	}
 
@@ -422,6 +548,7 @@ void World::BreakWall(const Vector2Int& pos)
 	{
 		Vector2Int right = pos - Vector2Int::RIGHT;
 		chunkPos = right / 8;
+		tiles[right.x][right.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[right.x][right.y].wallID, right, right - chunkPos * 8);
 	}
 
@@ -429,6 +556,7 @@ void World::BreakWall(const Vector2Int& pos)
 	{
 		Vector2Int down = pos - Vector2Int::DOWN;
 		chunkPos = down / 8;
+		tiles[down.x][down.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[down.x][down.y].wallID, down, down - chunkPos * 8);
 	}
 
@@ -436,7 +564,61 @@ void World::BreakWall(const Vector2Int& pos)
 	{
 		Vector2Int up = pos - Vector2Int::UP;
 		chunkPos = up / 8;
+		tiles[up.x][up.y].lightSource |= globalLight;
 		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[up.x][up.y].wallID, up, up - chunkPos * 8);
+	}
+
+	chunkPos = pos / 8;
+
+	chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
+	chunks[chunkPos.x][chunkPos.y].UpdateMeshes();
+
+	if (chunkPos.x < CHUNKS_X - 1)
+	{
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::RIGHT);
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::RIGHT + Vector2Int::UP);
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN + Vector2Int::RIGHT);
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.x > 1)
+	{
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::LEFT);
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::LEFT + Vector2Int::DOWN);
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP + Vector2Int::LEFT);
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.y < CHUNKS_Y - 1)
+	{
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP);
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateMeshes();
+	}
+
+	if (chunkPos.y > 1)
+	{
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN);
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateMeshes();
 	}
 }
 
@@ -444,6 +626,7 @@ void World::PlaceWall(const Vector2Int& pos, U8 id)
 {
 	Vector2Int chunkPos = pos / 8;
 	tiles[pos.x][pos.y].wallID = id;
+	if (!tiles[pos.x][pos.y].lightSource) { tiles[pos.x][pos.y].lightSource = 0; } //TODO: Global Light
 	chunks[chunkPos.x][chunkPos.y].EditWall(id, pos, pos - chunkPos * 8);
 
 	if (pos.x > 0)
@@ -472,6 +655,173 @@ void World::PlaceWall(const Vector2Int& pos, U8 id)
 		Vector2Int up = pos - Vector2Int::UP;
 		chunkPos = up / 8;
 		chunks[chunkPos.x][chunkPos.y].EditWall(tiles[up.x][up.y].wallID, up, up - chunkPos * 8);
+	}
+
+	chunkPos = pos / 8;
+
+	chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
+	chunks[chunkPos.x][chunkPos.y].UpdateMeshes();
+
+	if (chunkPos.x < CHUNKS_X - 1)
+	{
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::RIGHT);
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::RIGHT + Vector2Int::UP);
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN + Vector2Int::RIGHT);
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.x > 1)
+	{
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::LEFT);
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::LEFT + Vector2Int::DOWN);
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP + Vector2Int::LEFT);
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.y < CHUNKS_Y - 1)
+	{
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP);
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateMeshes();
+	}
+
+	if (chunkPos.y > 1)
+	{
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN);
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateMeshes();
+	}
+}
+
+void World::PlaceLight(const Vector2Int& pos)
+{
+	Vector2Int chunkPos = pos / 8;
+	tiles[pos.x][pos.y].lightSource = 1;
+
+	chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
+	chunks[chunkPos.x][chunkPos.y].UpdateMeshes();
+
+	if (chunkPos.x < CHUNKS_X - 1)
+	{
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::RIGHT);
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::RIGHT + Vector2Int::UP);
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN + Vector2Int::RIGHT);
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.x > 1)
+	{
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::LEFT);
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::LEFT + Vector2Int::DOWN);
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP + Vector2Int::LEFT);
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.y < CHUNKS_Y - 1)
+	{
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP);
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateMeshes();
+	}
+
+	if (chunkPos.y > 1)
+	{
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN);
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateMeshes();
+	}
+}
+
+void World::RemoveLight(const Vector2Int& pos)
+{
+	Vector2Int chunkPos = pos / 8;
+	tiles[pos.x][pos.y].lightSource = 0;
+
+	chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
+	chunks[chunkPos.x][chunkPos.y].UpdateMeshes();
+
+	if (chunkPos.x < CHUNKS_X - 1)
+	{
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::RIGHT);
+		chunks[chunkPos.x + 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::RIGHT + Vector2Int::UP);
+			chunks[chunkPos.x + 1][chunkPos.y + 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN + Vector2Int::RIGHT);
+			chunks[chunkPos.x + 1][chunkPos.y - 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.x > 1)
+	{
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateLighting(chunkPos + Vector2Int::LEFT);
+		chunks[chunkPos.x - 1][chunkPos.y].UpdateMeshes();
+
+		if (chunkPos.y > 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::LEFT + Vector2Int::DOWN);
+			chunks[chunkPos.x - 1][chunkPos.y - 1].UpdateMeshes();
+		}
+
+		if (chunkPos.y < CHUNKS_Y - 1)
+		{
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP + Vector2Int::LEFT);
+			chunks[chunkPos.x - 1][chunkPos.y + 1].UpdateMeshes();
+		}
+	}
+
+	if (chunkPos.y < CHUNKS_Y - 1)
+	{
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateLighting(chunkPos + Vector2Int::UP);
+		chunks[chunkPos.x][chunkPos.y + 1].UpdateMeshes();
+	}
+
+	if (chunkPos.y > 1)
+	{
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateLighting(chunkPos + Vector2Int::DOWN);
+		chunks[chunkPos.x][chunkPos.y - 1].UpdateMeshes();
 	}
 }
 

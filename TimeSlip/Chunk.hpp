@@ -27,13 +27,17 @@ public:
 
 	void Destroy();
 
-	void Load(const Vector2& pos);
+	void Load(const Vector2Int& pos);
 	void Unload();
 
 	void EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
+
+	void UpdateLighting(const Vector2Int& pos);
+
+	void UpdateMeshes();
 
 private:
 	Array<Tile*, CHUNK_SIZE>& SetTiles();
