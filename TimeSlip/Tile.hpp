@@ -20,5 +20,6 @@ public:
 	U8 liquidID : 2;
 	U8 settled : 1;
 	U8 lightSource : 1;
+	U8 globalLightSource : 1;
 	U8 : 0;
 };

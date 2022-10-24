@@ -108,14 +108,16 @@ void Chunk::Load(const Vector2Int& pos)
 				Vector2 wallUV = world->WallUV((Vector2Int)worldPos);
 				Vector2 decUV = world->DecorationUV((Vector2Int)worldPos, tile.decID);
 				Vector2 liquidUV = world->LiquidUV((Vector2Int)worldPos);
-				Vector3 color = world->TileLight((Vector2Int)worldPos);
+				Vector3 color;
+				Vector3 globalColor;
+				world->TileLight((Vector2Int)worldPos, color, globalColor);
 
 				for (U16 j = 0; j < 4; ++j)
 				{
-					blockVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], blockUV + UV_POSITIONS[j], color, (U32)(tile.blockID - 1) };
-					wallVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], wallUV + UV_POSITIONS[j], color, (U32)(tile.wallID - 1) };
-					decVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], decUV + UV_POSITIONS[j], color, (U32)(tile.decID - 1) };
-					liquidVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], liquidUV + UV_POSITIONS[j], color, (U32)(tile.liquidID - 1) };
+					blockVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], blockUV + UV_POSITIONS[j], color, globalColor, (U32)(tile.blockID - 1) };
+					wallVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], wallUV + UV_POSITIONS[j], color, globalColor, (U32)(tile.wallID - 1) };
+					decVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], decUV + UV_POSITIONS[j], color, globalColor, (U32)(tile.decID - 1) };
+					liquidVertices[index * 4 + j] = Vertex{ worldPos + VERTEX_POSITIONS[j], liquidUV + UV_POSITIONS[j], color, globalColor, (U32)(tile.liquidID - 1) };
 				}
 
 				for (U16 j = 0; j < 6; ++j)
@@ -231,42 +233,51 @@ void Chunk::EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tile
 
 void Chunk::UpdateLighting(const Vector2Int& pos)
 {
-	Mesh* blockMesh = model->meshes[0];
-	Vertex* blockVertices = (Vertex*)blockMesh->vertices;
-	Mesh* wallMesh = model->meshes[1];
-	Vertex* wallVertices = (Vertex*)wallMesh->vertices;
-	Mesh* decMesh = model->meshes[2];
-	Vertex* decVertices = (Vertex*)decMesh->vertices;
-	Mesh* liquidMesh = model->meshes[3];
-	Vertex* liquidVertices = (Vertex*)liquidMesh->vertices;
-
-	U16 index = 0;
-
-	for (U16 x = 0; x < CHUNK_SIZE; ++x)
+	if (model)
 	{
-		for (U16 y = 0; y < CHUNK_SIZE; ++y)
+		Mesh* blockMesh = model->meshes[0];
+		Vertex* blockVertices = (Vertex*)blockMesh->vertices;
+		Mesh* wallMesh = model->meshes[1];
+		Vertex* wallVertices = (Vertex*)wallMesh->vertices;
+		Mesh* decMesh = model->meshes[2];
+		Vertex* decVertices = (Vertex*)decMesh->vertices;
+		Mesh* liquidMesh = model->meshes[3];
+		Vertex* liquidVertices = (Vertex*)liquidMesh->vertices;
+
+		U16 index = 0;
+
+		for (U16 x = 0; x < CHUNK_SIZE; ++x)
 		{
-			Tile& tile = tiles[x][y];
-			if (tile.blockID || tile.wallID)
+			for (U16 y = 0; y < CHUNK_SIZE; ++y)
 			{
-				Vector3 worldPos{ (F32)(pos.x * CHUNK_SIZE + x), (F32)(pos.y * CHUNK_SIZE + y), 0.0f };
-				Vector3 color = world->TileLight((Vector2Int)worldPos);
-
-				for (U16 j = 0; j < 4; ++j)
+				Tile& tile = tiles[x][y];
+				if (tile.blockID || tile.wallID)
 				{
-					blockVertices[index * 4 + j].color = color;
-					wallVertices[index * 4 + j].color = color;
-					decVertices[index * 4 + j].color = color;
-					liquidVertices[index * 4 + j].color = color;
-				}
-			}
+					Vector3 worldPos{ (F32)(pos.x * CHUNK_SIZE + x), (F32)(pos.y * CHUNK_SIZE + y), 0.0f };
+					Vector3 color;
+					Vector3 globalColor;
+					world->TileLight((Vector2Int)worldPos, color, globalColor);
 
-			++index;
+					for (U16 j = 0; j < 4; ++j)
+					{
+						blockVertices[index * 4 + j].color = color;
+						blockVertices[index * 4 + j].globalColor = globalColor;
+						wallVertices[index * 4 + j].color = color;
+						wallVertices[index * 4 + j].globalColor = globalColor;
+						decVertices[index * 4 + j].color = color;
+						decVertices[index * 4 + j].globalColor = globalColor;
+						liquidVertices[index * 4 + j].color = color;
+						liquidVertices[index * 4 + j].globalColor = globalColor;
+					}
+				}
+
+				++index;
+			}
 		}
 	}
 }
 
 void Chunk::UpdateMeshes()
 {
-	RendererFrontend::BatchCreateMeshes(model->meshes);
+	if (model) { RendererFrontend::BatchCreateMeshes(model->meshes); }
 }

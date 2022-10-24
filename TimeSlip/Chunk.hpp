@@ -18,6 +18,7 @@ class Chunk
 		Vector3 position;
 		Vector2 uv;
 		Vector3 color;
+		Vector3 globalColor;
 		U32 texId;
 	};
 

@@ -3,7 +3,8 @@
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexcoord;
 layout(location = 2) in vec3 inColor;
-layout(location = 3) in uint inTexId;
+layout(location = 3) in vec3 inGlobalColor;
+layout(location = 4) in uint inTexId;
 
 layout(set = 0, binding = 0) uniform globalUniformObject 
 {
@@ -20,6 +21,6 @@ void main()
 {
     outTexcoord = inTexcoord;
     outTexId = inTexId;
-    outColor = globalUbo.ambientColor * inColor;
+    outColor = clamp(globalUbo.ambientColor * inGlobalColor + inColor, 0.0, 1.0);
     gl_Position = globalUbo.projection * globalUbo.view * vec4(inPosition, 1.0);
 }

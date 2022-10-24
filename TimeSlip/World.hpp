@@ -52,7 +52,7 @@ public:
 	Vector2 WallUV(const Vector2Int& pos);
 	Vector2 DecorationUV(const Vector2Int& pos, U8 id);
 	Vector2 LiquidUV(const Vector2Int& pos);
-	Vector3 TileLight(const Vector2Int& pos);
+	void TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColor);
 
 	void BreakBlock(const Vector2Int& pos);
 	void PlaceBlock(const Vector2Int& pos, U8 id);
