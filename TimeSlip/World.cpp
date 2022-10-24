@@ -178,6 +178,7 @@ void World::Update()
 		}
 		else
 		{
+			Logger::Debug(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
 			PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
 		}
 	}
@@ -265,7 +266,10 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 			F32 distance = 1.0f;// +(error ? decrStrait : decrDiag);
 
-			for (; n > 0 && distance > 0.0f; --n)
+			bool xGood = (U16)(x2 + x_inc) < TILES_X;
+			bool yGood = (U16)(y2 + y_inc) < TILES_Y;
+
+			for (; n > 0 && distance > 0.0f && ((error > 0 && xGood) || (error < 0 && yGood) || (xGood && yGood)); --n)
 			{
 				if (error > 0)
 				{
@@ -288,6 +292,9 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 					--n;
 					distance -= decrDiag * (1 + (tiles[x2][y2].blockID > 0) * 2);
 				}
+
+				xGood = (U16)(x2 + x_inc) < TILES_X;
+				yGood = (U16)(y2 + y_inc) < TILES_Y;
 			}
 
 			distance = Math::Max(distance, 0.0f);
@@ -319,7 +326,7 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		if (pos.x > 0)
 		{
-			Vector2Int left = pos - Vector2Int::LEFT;
+			Vector2Int left = pos + Vector2Int::LEFT;
 			chunkPos = left / 8;
 			tiles[left.x][left.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[left.x][left.y].blockID, left, left - chunkPos * 8);
@@ -327,14 +334,14 @@ void World::BreakBlock(const Vector2Int& pos)
 
 			if (pos.y > 0)
 			{
-				Vector2Int leftDown = left - Vector2Int::DOWN;
+				Vector2Int leftDown = left + Vector2Int::DOWN;
 				chunkPos = leftDown / 8;
 				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[leftDown.x][leftDown.y].decID, leftDown, leftDown - chunkPos * 8);
 			}
 
 			if (pos.y < TILES_Y - 1)
 			{
-				Vector2Int leftUp = left - Vector2Int::UP;
+				Vector2Int leftUp = left + Vector2Int::UP;
 				chunkPos = leftUp / 8;
 				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[leftUp.x][leftUp.y].decID, leftUp, leftUp - chunkPos * 8);
 			}
@@ -342,7 +349,7 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		if (pos.x < TILES_X - 1)
 		{
-			Vector2Int right = pos - Vector2Int::RIGHT;
+			Vector2Int right = pos + Vector2Int::RIGHT;
 			chunkPos = right / 8;
 			tiles[right.x][right.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[right.x][right.y].blockID, right, right - chunkPos * 8);
@@ -350,14 +357,14 @@ void World::BreakBlock(const Vector2Int& pos)
 
 			if (pos.y > 0)
 			{
-				Vector2Int rightDown = right - Vector2Int::DOWN;
+				Vector2Int rightDown = right + Vector2Int::DOWN;
 				chunkPos = rightDown / 8;
 				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[rightDown.x][rightDown.y].decID, rightDown, rightDown - chunkPos * 8);
 			}
 
 			if (pos.y < TILES_Y - 1)
 			{
-				Vector2Int rightUp = right - Vector2Int::UP;
+				Vector2Int rightUp = right + Vector2Int::UP;
 				chunkPos = rightUp / 8;
 				chunks[chunkPos.x][chunkPos.y].EditDecoration(tiles[rightUp.x][rightUp.y].decID, rightUp, rightUp - chunkPos * 8);
 			}
@@ -365,7 +372,7 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		if (pos.y > 0)
 		{
-			Vector2Int down = pos - Vector2Int::DOWN;
+			Vector2Int down = pos + Vector2Int::DOWN;
 			chunkPos = down / 8;
 			tiles[down.x][down.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
@@ -374,7 +381,7 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		if (pos.y < TILES_Y - 1)
 		{
-			Vector2Int up = pos - Vector2Int::UP;
+			Vector2Int up = pos + Vector2Int::UP;
 			chunkPos = up / 8;
 			tiles[up.x][up.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
@@ -449,21 +456,21 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 
 		if (pos.x > 0)
 		{
-			Vector2Int left = pos - Vector2Int::LEFT;
+			Vector2Int left = pos + Vector2Int::LEFT;
 			chunkPos = left / 8;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[left.x][left.y].blockID, left, left - chunkPos * 8);
 		}
 
 		if (pos.x < TILES_X - 1)
 		{
-			Vector2Int right = pos - Vector2Int::RIGHT;
+			Vector2Int right = pos + Vector2Int::RIGHT;
 			chunkPos = right / 8;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[right.x][right.y].blockID, right, right - chunkPos * 8);
 		}
 
 		if (pos.y > 0)
 		{
-			Vector2Int down = pos - Vector2Int::DOWN;
+			Vector2Int down = pos + Vector2Int::DOWN;
 			chunkPos = down / 8;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[down.x][down.y].blockID, down, down - chunkPos * 8);
 			if (tiles[down.x][down.y].decID < 2) //It's grass
@@ -475,7 +482,7 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 
 		if (pos.y < TILES_Y - 1)
 		{
-			Vector2Int up = pos - Vector2Int::UP;
+			Vector2Int up = pos + Vector2Int::UP;
 			chunkPos = up / 8;
 			chunks[chunkPos.x][chunkPos.y].EditBlock(tiles[up.x][up.y].blockID, up, up - chunkPos * 8);
 		}
@@ -550,7 +557,7 @@ void World::BreakWall(const Vector2Int& pos)
 
 		if (pos.x > 0)
 		{
-			Vector2Int left = pos - Vector2Int::LEFT;
+			Vector2Int left = pos + Vector2Int::LEFT;
 			chunkPos = left / 8;
 			tiles[left.x][left.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[left.x][left.y].wallID, left, left - chunkPos * 8);
@@ -558,7 +565,7 @@ void World::BreakWall(const Vector2Int& pos)
 
 		if (pos.x < TILES_X - 1)
 		{
-			Vector2Int right = pos - Vector2Int::RIGHT;
+			Vector2Int right = pos + Vector2Int::RIGHT;
 			chunkPos = right / 8;
 			tiles[right.x][right.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[right.x][right.y].wallID, right, right - chunkPos * 8);
@@ -566,7 +573,7 @@ void World::BreakWall(const Vector2Int& pos)
 
 		if (pos.y > 0)
 		{
-			Vector2Int down = pos - Vector2Int::DOWN;
+			Vector2Int down = pos + Vector2Int::DOWN;
 			chunkPos = down / 8;
 			tiles[down.x][down.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[down.x][down.y].wallID, down, down - chunkPos * 8);
@@ -574,7 +581,7 @@ void World::BreakWall(const Vector2Int& pos)
 
 		if (pos.y < TILES_Y - 1)
 		{
-			Vector2Int up = pos - Vector2Int::UP;
+			Vector2Int up = pos + Vector2Int::UP;
 			chunkPos = up / 8;
 			tiles[up.x][up.y].globalLightSource |= globalLight;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[up.x][up.y].wallID, up, up - chunkPos * 8);
@@ -646,28 +653,28 @@ void World::PlaceWall(const Vector2Int& pos, U8 id)
 
 		if (pos.x > 0)
 		{
-			Vector2Int left = pos - Vector2Int::LEFT;
+			Vector2Int left = pos + Vector2Int::LEFT;
 			chunkPos = left / 8;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[left.x][left.y].wallID, left, left - chunkPos * 8);
 		}
 
 		if (pos.x < TILES_X - 1)
 		{
-			Vector2Int right = pos - Vector2Int::RIGHT;
+			Vector2Int right = pos + Vector2Int::RIGHT;
 			chunkPos = right / 8;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[right.x][right.y].wallID, right, right - chunkPos * 8);
 		}
 
 		if (pos.y > 0)
 		{
-			Vector2Int down = pos - Vector2Int::DOWN;
+			Vector2Int down = pos + Vector2Int::DOWN;
 			chunkPos = down / 8;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[down.x][down.y].wallID, down, down - chunkPos * 8);
 		}
 
 		if (pos.y < TILES_Y - 1)
 		{
-			Vector2Int up = pos - Vector2Int::UP;
+			Vector2Int up = pos + Vector2Int::UP;
 			chunkPos = up / 8;
 			chunks[chunkPos.x][chunkPos.y].EditWall(tiles[up.x][up.y].wallID, up, up - chunkPos * 8);
 		}

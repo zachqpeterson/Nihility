@@ -47,6 +47,7 @@ private:
 	static GameState gameState;
 	static GameState nextState;
 
+	static WorldSize testWorldSize;
 	static WorldSize smallWorldSize;
 	static WorldSize mediumWorldSize;
 	static WorldSize largeWorldSize;

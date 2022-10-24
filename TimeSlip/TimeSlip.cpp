@@ -28,6 +28,7 @@ Inventory* TimeSlip::inventory;
 GameState TimeSlip::gameState;
 GameState TimeSlip::nextState;
 
+WorldSize TimeSlip::testWorldSize{ WS_TEST };
 WorldSize TimeSlip::smallWorldSize{ WS_SMALL };
 WorldSize TimeSlip::mediumWorldSize{ WS_MEDIUM };
 WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
@@ -68,7 +69,7 @@ bool TimeSlip::Initialize()
 	UI::GenerateText(generateWorldText, "Generate World", 20.0f);
 
 	OnMouse createWorldEvent{};
-	createWorldEvent.value = (void*)&smallWorldSize;
+	createWorldEvent.value = (void*)&testWorldSize;
 	createWorldEvent.callback = CreateWorld;
 
 	createWorldButton->OnClick = createWorldEvent;
@@ -132,7 +133,8 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	RendererFrontend::UseScene(worldScene);
 
 	Vector2 spawnPoint;
-	world = new World(10000000, WS_TEST, spawnPoint);
+	WorldSize size = *(WorldSize*)data;
+	world = new World(10000000, size, spawnPoint);
 
 	timeScale = 1.0f;
 	currentTime = 1000.0f;
@@ -141,6 +143,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	player = new Player(spawnPoint);
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
+	worldScene->GetCamera()->SetBounds({39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f});
 
 	Inventory::Init(worldScene);
 
