@@ -21,6 +21,7 @@ World* TimeSlip::world;
 F32 TimeSlip::timeScale;
 F32 TimeSlip::currentTime;
 bool TimeSlip::night;
+Vector3 TimeSlip::globalColor;
 
 Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
@@ -115,7 +116,9 @@ void TimeSlip::UpdateDayCycle()
 
 	bool night = alpha < 0.15f;
 
-	worldScene->GetCamera()->SetAmbientColor(Vector3::ONE * alpha);
+	globalColor = Vector3::ONE;
+
+	worldScene->GetCamera()->SetAmbientColor(globalColor * alpha);
 }
 
 void TimeSlip::LoadWorld()

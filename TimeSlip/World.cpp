@@ -225,7 +225,9 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 
 void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColor)
 {
-	color = Vector3::ONE * tiles[pos.x][pos.y].lightSource;
+	Vector3 c{0.0f, 1.0f, 0.0f};
+
+	color = c * tiles[pos.x][pos.y].lightSource;
 	globalColor = Vector3::ONE * tiles[pos.x][pos.y].globalLightSource;
 
 	U16 maxLightDistance = 8;
@@ -298,12 +300,12 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 			distance = Math::Max(distance, 0.0f);
 
-			color += Vector3::ONE * distance * tiles[x][y].lightSource;
+			color += c * distance * tiles[x][y].lightSource;
 			globalColor += Vector3::ONE * distance * tiles[x][y].globalLightSource;
 		}
 	}
 
-	color = Math::Min(color, Vector3::ONE);
+	color = Math::Min(color, c);
 	globalColor = Math::Min(globalColor, Vector3::ONE);
 }
 

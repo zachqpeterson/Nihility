@@ -40,6 +40,7 @@ private:
 	static F32 timeScale;
 	static F32 currentTime;
 	static bool night;
+	static Vector3 globalColor;
 
 	static Player* player; //TODO: We will need to keep track of multiple players in multiplayer for rendering
 	static Inventory* inventory; //But We only need to keep track of the inventory of your character
