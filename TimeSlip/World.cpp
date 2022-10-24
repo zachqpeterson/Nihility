@@ -225,7 +225,7 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 
 void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColor)
 {
-	Vector3 c{0.0f, 1.0f, 0.0f};
+	Vector3 c{1.0f, 1.0f, 1.0f};
 
 	color = c * tiles[pos.x][pos.y].lightSource;
 	globalColor = Vector3::ONE * tiles[pos.x][pos.y].globalLightSource;
@@ -244,7 +244,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 		for (U16 y = yStart; y < yEnd && y < TILES_Y; ++y)
 		{
 			if ((x == pos.x && y == pos.y) || (!tiles[x][y].lightSource && !tiles[x][y].globalLightSource) ||
-				(pos - Vector2Int{x, y}).SqrMagnitude() > 64) { continue; }
+				(pos - Vector2Int{x, y}).SqrMagnitude() > 128) { continue; }
 
 			I16 x1 = pos.x;
 			I16 y1 = pos.y;
@@ -256,46 +256,45 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			I16 x2 = x;
 			I16 y2 = y;
 			I16 n = 1 + dx + dy;
-			I16 x_inc = (x1 > x) ? 1 : -1;
-			I16 y_inc = (y1 > y) ? 1 : -1;
+			I16 xInc = Math::Sign(x1 - x);
+			I16 yInc = Math::Sign(y1 - y);
 			I16 error = dx - dy;
 			dx <<= 1;
 			dy <<= 1;
 
 			F32 decrDiag = SQRT_TWO_H / 16;
 			F32 decrStrait = 1.0f / 16;
+			F32 distance = 1.0f;
 
-			F32 distance = 1.0f;// +(error ? decrStrait : decrDiag);
-
-			bool xGood = (U16)(x2 + x_inc) < TILES_X;
-			bool yGood = (U16)(y2 + y_inc) < TILES_Y;
+			bool xGood = true;
+			bool yGood = true;
 
 			for (; n > 0 && distance > 0.0f && ((error > 0 && xGood) || (error < 0 && yGood) || (xGood && yGood)); --n)
 			{
 				if (error > 0)
 				{
-					x2 += x_inc;
+					x2 += xInc;
 					error -= dy;
 					distance -= (decrStrait + (error * 0.004f)) * (1 + (tiles[x2][y2].blockID > 0) * 2);
 				}
 				else if (error < 0)
 				{
-					y2 += y_inc;
+					y2 += yInc;
 					error += dx;
 					distance -= (decrStrait - (error * 0.004f)) * (1 + (tiles[x2][y2].blockID > 0) * 2);
 				}
 				else
 				{
-					x2 += x_inc;
-					y2 += y_inc;
+					x2 += xInc;
+					y2 += yInc;
 					error -= dy;
 					error += dx;
 					--n;
 					distance -= decrDiag * (1 + (tiles[x2][y2].blockID > 0) * 2);
 				}
 
-				xGood = (U16)(x2 + x_inc) < TILES_X;
-				yGood = (U16)(y2 + y_inc) < TILES_Y;
+				xGood = (U16)(x2 + xInc) < TILES_X;
+				yGood = (U16)(y2 + yInc) < TILES_Y;
 			}
 
 			distance = Math::Max(distance, 0.0f);
