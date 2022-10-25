@@ -262,7 +262,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			dx <<= 1;
 			dy <<= 1;
 
-			F32 decrDiag = SQRT_TWO_H / 16;
+			F32 decrDiag = (dx == dy ? SQRT_THREE : 2) / 16;
 			F32 decrStrait = 1.0f / 16;
 			F32 distance = 1.0f;
 
