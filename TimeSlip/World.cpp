@@ -935,6 +935,8 @@ F32 World::GenerateWorld()
 		tiles[x][height].globalLightSource = 1 + (height > prevHeight);
 		if (x > 0) { tiles[x - 1][prevHeight].globalLightSource += prevHeight > height; }
 
+		prevHeight = height;
+
 		for (U16 y = height; y < TILES_Y; ++y)
 		{
 			Tile& tile = tiles[x][y];

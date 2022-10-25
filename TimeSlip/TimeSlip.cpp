@@ -70,7 +70,7 @@ bool TimeSlip::Initialize()
 	UI::GenerateText(generateWorldText, "Generate World", 20.0f);
 
 	OnMouse createWorldEvent{};
-	createWorldEvent.value = (void*)&testWorldSize;
+	createWorldEvent.value = (void*)&smallWorldSize;
 	createWorldEvent.callback = CreateWorld;
 
 	createWorldButton->OnClick = createWorldEvent;

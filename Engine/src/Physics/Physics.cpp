@@ -95,6 +95,7 @@ void Physics::Update(F32 step)
 		}
 
 		obj.move = obj.velocity + obj.oneTimeVelocity;
+		obj.grounded = false;
 
 		obj.force = Vector2::ZERO;
 		obj.oneTimeVelocity = Vector2::ZERO;
@@ -109,8 +110,6 @@ void Physics::Update(F32 step)
 		PhysicsObject2D& obj = *po;
 
 		obj.move += obj.force + obj.oneTimeVelocity;
-		//TODO: if we want to have different gravity directions, this will need to change
-		obj.grounded = obj.axisLock.y;
 		obj.axisLock = Vector2::ONE * obj.kinematic;
 
 		if (!obj.move.IsZero())
@@ -335,7 +334,10 @@ void Physics::ResolveCollisions(List<Contact2D>& contacts)
 			bool lock = c.restitution < FLOAT_EPSILON;
 			Vector2 relVel = (a->move + a->force);
 
-			a->axisLock += { (F32)((c.normal.x > 0.0f)* lock* Math::Zero(relVel.x)), (F32)((c.normal.y > 0.0f)* lock* Math::Zero(relVel.y)) };
+			a->axisLock += { (F32)(!Math::Zero(c.normal.x) * lock * Math::Zero(relVel.x)), (F32)(!Math::Zero(c.normal.y) * lock * Math::Zero(relVel.y)) };
+
+			//TODO: if we want to have different gravity directions, this will need to change
+			a->grounded |= a->axisLock.y && c.normal.y > 0.0f;
 		}
 		else
 		{

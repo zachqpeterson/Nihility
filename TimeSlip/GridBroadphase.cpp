@@ -77,6 +77,9 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	F32 length = move.Magnitude();
 	Vector2 dir = move / length;
 
+	Vector2 size = obj->Collider()->box.Size();
+	Vector2 extents = obj->Collider()->box.Extents();
+
 	Vector2 unitStepSize = { 1.0f / dir.x * Math::Sign(dir.x), 1.0f / dir.y * Math::Sign(dir.y) };
 	Vector2 excess = Vector2::ONE / obj->Collider()->box.Size();
 
@@ -85,42 +88,49 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 
 	Vector2Int step;
 
+	Vector2 startDist;
+
 	if (dir.x < 0.0f)
 	{
+		F32 side = start.x - extents.x;
+		side = (U32)(side + 1.0f) - side;
+		startDist.x = 0.5f - side + (side > 0.5f);
 		step.x = -1;
 		length1D.x = (start.x + 1.0f - mapCheck.x) * unitStepSize.x;
 	}
 	else
 	{
+		F32 side = start.x + extents.x;
+		side -= (U32)side;
+		startDist.x = 0.5f - side + (side > 0.5f);
 		step.x = 1;
 		length1D.x = (mapCheck.x + 1.0f - start.x) * unitStepSize.x;
 	}
 
 	if (dir.y < 0.0f)
 	{
+		F32 side = start.y - extents.y;
+		side = (U32)(side + 1.0f) - side;
+		startDist.y = 0.5f - side + (side > 0.5f);
 		step.y = -1;
 		length1D.y = (start.y + 1.0f - mapCheck.y) * unitStepSize.y;
 	}
 	else
 	{
+		F32 side = start.y + extents.y;
+		side -= (U32)side;
+		startDist.y = 0.5f - side + (side > 0.5f);
 		step.y = 1;
 		length1D.y = (mapCheck.y + 1.0f - start.y) * unitStepSize.y;
 	}
 
-	Vector2 extents = obj->Collider()->box.Extents();
+	bool collidedX = Math::NaN(length1D.x) || startDist.x > Math::Abs(move.x);
+	bool collidedY = Math::NaN(length1D.y) || startDist.y > Math::Abs(move.y);
 
-	bool collidedX = Math::NaN(length1D.x);
-	bool collidedY = Math::NaN(length1D.y);
-
-	/*if (dir.x > 0.0f)
-	{
-		debugBreak();
-	}*/
-
-	U32 minX = (U32)(start.x - extents.x + 0.5f);
-	U32 maxX = (U32)(start.x + extents.x);
-	U32 minY = (U32)(start.y - extents.y + 0.5f);
-	U32 maxY = (U32)(start.y + extents.y);
+	U32 minX = (U32)(start.x - extents.x + 0.5);
+	U32 maxX = (U32)(start.x + extents.x + 0.49999999999);
+	U32 minY = (U32)(start.y - extents.y + 0.5);
+	U32 maxY = (U32)(start.y + extents.y + 0.49999999999);
 
 	I32 undoX = 0;
 	I32 undoY = 0;
@@ -128,10 +138,12 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	U32& x = step.x > 0 ? maxX : minX;
 	U32& y = step.y > 0 ? maxY : minY;
 
-	F32 distance = 0.0f;
+	F32 distanceX = startDist.x;
+	F32 distanceY = startDist.y;
+
 	while ((length1D.x < length + extents.x && !collidedX) || (length1D.y < length + extents.y && !collidedY))
 	{
-		if ((collidedY || length1D.x < length1D.y) && !collidedX)
+		/*if ((collidedY || length1D.x < length1D.y) && !collidedX)
 		{
 			mapCheck.x += step.x;
 			distance = length1D.x;
@@ -148,17 +160,17 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			minY += step.y;
 			maxY += step.y;
 			undoY = -step.y;
-		}
+		}*/
 
 		for (U32 y = minY; y <= maxY && !collidedX; ++y)
 		{
-			if (x < width && y < height && grid[x][y + undoY].blockID)
+			if ((U32)(x + step.x) < width && y < height && grid[x + step.x][y].blockID)
 			{
 				collidedX = true;
 
 				Contact2D c{};
 				c.a = obj;
-				c.distance = distance - unitStepSize.x * excess.x;
+				c.distance = distanceX;
 				c.normal = Vector2::RIGHT * step.x;
 				c.relativeVelocity = obj->Move();
 				c.restitution = obj->Restitution(); //TODO: get tile restitution;
@@ -169,19 +181,36 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 
 		for (U32 x = minX; x <= maxX && !collidedY; ++x)
 		{
-			if (x < width && y < height && grid[x + undoX][y].blockID)
+			if (x < width && (U32)(y + step.y) < height && grid[x][y + step.y].blockID)
 			{
 				collidedY = true;
 
 				Contact2D c{};
 				c.a = obj;
-				c.distance = distance - unitStepSize.y * excess.y;
+				c.distance = distanceY;
 				c.normal = Vector2::UP * step.y;
 				c.relativeVelocity = obj->Move();
 				c.restitution = obj->Restitution(); //TODO: get tile restitution;
 
 				contacts.PushBack(c);
 			}
+		}
+
+		if ((collidedY || length1D.x > length1D.y) && !collidedX)
+		{
+			mapCheck.x += step.x;
+			distanceX += 1;
+			length1D.x += 1;
+			minX += step.x;
+			maxX += step.x;
+		}
+		else if (!collidedY)
+		{
+			mapCheck.y += step.y;
+			distanceY += 1;
+			length1D.y += 1;
+			minY += step.y;
+			maxY += step.y;
 		}
 
 		undoX = 0;
