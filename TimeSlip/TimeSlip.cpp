@@ -116,7 +116,7 @@ void TimeSlip::UpdateDayCycle()
 {
 	currentTime += Time::DeltaTime() * timeScale;
 
-	F32 alpha = Math::Clamp(Math::Cos(currentTime * 0.1f) + 0.55f, 0.1f, 1.0f);
+	F32 alpha = Math::Clamp(Math::Cos(currentTime * 0.1f) + 0.55f, 0.15f, 1.0f);
 
 	bool night = alpha < 0.15f;
 

@@ -127,9 +127,9 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	bool collidedX = Math::NaN(length1D.x) || startDist.x > Math::Abs(move.x);
 	bool collidedY = Math::NaN(length1D.y) || startDist.y > Math::Abs(move.y);
 
-	U32 minX = (U32)(start.x - extents.x + 0.5);
+	U32 minX = (U32)(start.x - extents.x + 0.49999999999);
 	U32 maxX = (U32)(start.x + extents.x + 0.49999999999);
-	U32 minY = (U32)(start.y - extents.y + 0.5);
+	U32 minY = (U32)(start.y - extents.y + 0.49999999999);
 	U32 maxY = (U32)(start.y + extents.y + 0.49999999999);
 
 	U32& x = step.x > 0 ? maxX : minX;
@@ -138,7 +138,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	F32 distanceX = startDist.x;
 	F32 distanceY = startDist.y;
 
-	//TODO: You can pass through walls of the left
+	//TODO: You can pass through walls on the left
 
 	while ((length1D.x < length + extents.x && !collidedX) || (length1D.y < length + extents.y && !collidedY))
 	{

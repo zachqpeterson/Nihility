@@ -251,7 +251,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			Vector2 length1D{ 0.5f, 0.5f };
 			Vector2Int step{ (I32)Math::Sign(dir.x), (I32)Math::Sign(dir.y) };
 
-			F32 decr = 1.0f / 16; // TODO: Intensity
+			F32 decr = 1.5f / 16; // TODO: Intensity
 			F32 distance = 0.0f;
 			F32 brightness = 1.0f;
 
@@ -266,7 +266,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 					distance = length1D.x;
 					length1D.x += unitStepSize.x;
 
-					brightness -= (unitStepSize.x * decr) * (1 + (tiles[start.x][start.y].blockID > 0) + !checkY);
+					brightness -= (unitStepSize.x * decr) * (1 + (tiles[start.x][start.y].blockID > 0) * 2 + !checkY) * (distance < length);
 				}
 				else if (checkY)
 				{
@@ -274,14 +274,12 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 					distance = length1D.y;
 					length1D.y += unitStepSize.y;
 
-					brightness -= (unitStepSize.y * decr) * (1 + (tiles[start.x][start.y].blockID > 0) + !checkX);
+					brightness -= (unitStepSize.y * decr) * (1 + (tiles[start.x][start.y].blockID > 0) * 2 + !checkX) * (distance < length);
 				}
 			}
 
-			brightness = Math::Max(brightness, 0.0f);
-
-			color += c * brightness * tiles[x][y].lightSource;
-			globalColor += Vector3::ONE * brightness * tiles[x][y].globalLightSource;
+			color += c * Math::Max(brightness, 0.0f) * tiles[x][y].lightSource;
+			globalColor += Vector3::ONE * Math::Max(brightness * 0.9f, 0.0f) * tiles[x][y].globalLightSource;
 
 			/*I16 x1 = pos.x;
 			I16 y1 = pos.y;
