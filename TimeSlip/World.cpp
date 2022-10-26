@@ -280,67 +280,8 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 			color += c * Math::Max(brightness, 0.0f) * tiles[x][y].lightSource;
 			globalColor += Vector3::ONE * Math::Max(brightness * 0.9f, 0.0f) * tiles[x][y].globalLightSource;
-
-			/*I16 x1 = pos.x;
-			I16 y1 = pos.y;
-
-			I16 dx = x1 - x;
-			dx *= Math::Sign(dx);
-			I16 dy = y1 - y;
-			dy *= Math::Sign(dy);
-			I16 x2 = x;
-			I16 y2 = y;
-			I16 n = 1 + dx + dy;
-			I16 xInc = Math::Sign(x1 - x);
-			I16 yInc = Math::Sign(y1 - y);
-			I16 error = dx - dy;
-			dx <<= 1;
-			dy <<= 1;
-
-			F32 decrDiag = (dx == dy ? SQRT_THREE : 2) / 16;
-			F32 decrStrait = 1.0f / 16;
-			F32 distance = 1.0f;
-
-			bool xGood = true;
-			bool yGood = true;
-
-			for (; n > 0 && distance > 0.0f && ((error > 0 && xGood) || (error < 0 && yGood) || (xGood && yGood)); --n)
-			{
-				if (error > 0)
-				{
-					x2 += xInc;
-					error -= dy;
-					distance -= (decrStrait + (error * 0.004f)) * (1 + (tiles[x2][y2].blockID > 0) * 2);
-				}
-				else if (error < 0)
-				{
-					y2 += yInc;
-					error += dx;
-					distance -= (decrStrait - (error * 0.004f)) * (1 + (tiles[x2][y2].blockID > 0) * 2);
-				}
-				else
-				{
-					x2 += xInc;
-					y2 += yInc;
-					error -= dy;
-					error += dx;
-					--n;
-					distance -= decrDiag * (1 + (tiles[x2][y2].blockID > 0) * 2);
-				}
-
-				xGood = (U16)(x2 + xInc) < TILES_X;
-				yGood = (U16)(y2 + yInc) < TILES_Y;
-			}*/
-
-			//distance = Math::Max(distance, 0.0f);
-			//
-			//color += c * distance * tiles[x][y].lightSource;
-			//globalColor += Vector3::ONE * distance * tiles[x][y].globalLightSource;
 		}
 	}
-
-	color = Math::Min(color, c);
-	globalColor = Math::Min(globalColor, Vector3::ONE);
 }
 
 void World::BreakBlock(const Vector2Int& pos)
