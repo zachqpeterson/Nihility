@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Defines.hpp>
+#include "Entity.hpp"
 
 struct GameObject2D;
 struct Vector2;
 
-class Player
+class Player : public Entity
 {
 private:
 	Player(const Vector2& position);
@@ -15,11 +15,8 @@ private:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
-	void Update();
+	void Update() override;
 	void SetPosition(const Vector2& position);
-
-private:
-	GameObject2D* gameObject;
 
 	friend class TimeSlip;
 };

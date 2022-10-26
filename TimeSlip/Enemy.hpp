@@ -1,7 +1,8 @@
 #pragma once
 
-#include <Defines.hpp>
 #include <Math/Math.hpp>
+
+#include "Entity.hpp"
 
 struct GameObject2D;
 struct Transform2D;
@@ -15,7 +16,7 @@ enum EnemyAI
 	ENEMY_AI_COUNT
 };
 
-class Enemy
+class Enemy : public Entity
 {
 private:
 	Enemy(const Vector2& position, EnemyAI aiType, bool aggressive = true);
@@ -25,23 +26,18 @@ private:
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
 
-	void Update();
+	void Update() override;
 	void BasicAI();
 	void FlyingAI();
 	void RangedAI();
 
-	bool TakeDamage(F32 amt); //TODO: More advanced damage types
-
 private:
 	EnemyAI aiType;
 
-	GameObject2D* gameObject;
 	Transform2D* target;
 	Vector2 lastPos;
 	bool startChase;
 	bool aggressive;
-
-	F32 health;
 
 	friend class TimeSlip;
 };
