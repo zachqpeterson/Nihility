@@ -169,7 +169,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
 	worldScene->GetCamera()->SetBounds({39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f});
 
-	enemy = new Enemy(spawnPoint + (Vector2::RIGHT * 3), ENEMY_AI_BASIC);
+	enemy = new Enemy(spawnPoint + Vector2::RIGHT * 5.0f + Vector2::DOWN * 0.3f, ENEMY_AI_BASIC);
 
 	Inventory::Init(worldScene);
 
