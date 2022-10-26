@@ -552,6 +552,7 @@ struct NH_API Vector2Int
 	NH_INLINE I32 Dot(const Vector2Int& v) const { return v.x * x + v.y * y; }
 	NH_INLINE F32 Magnitude() const { return Math::Sqrt((F32)Dot(*this)); }
 	NH_INLINE F32 SqrMagnitude() const { return (F32)Dot(*this); }
+	NH_INLINE Vector2 Normalized() const { return (x || y) ? (Vector2)(*this) / Magnitude() : Vector2::ZERO; }
 	NH_INLINE Vector2Int& Clamp(const Vector2Int& xBound, const Vector2Int& yBound)
 	{
 		x = Math::Clamp(x, xBound.x, xBound.y);

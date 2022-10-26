@@ -83,7 +83,7 @@ void Player::Update()
 
 	gameObject->physics->SetGravityScale(0.5f + 0.5f * !Input::ButtonDown(SPACE));
 
-	if (Input::ButtonDown(SPACE) && gameObject->physics->Grounded())
+	if (Input::OnButtonDown(SPACE) && gameObject->physics->Grounded())
 	{
 		gameObject->physics->ApplyForce({ 0.0f, -1.0f });
 	}

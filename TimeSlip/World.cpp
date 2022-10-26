@@ -237,8 +237,6 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 	U16 yStart = Math::Max(pos.y - maxLightDistance, 0);
 	U16 yEnd = pos.y + maxLightDistance;
 
-	F32 stacking = 1;
-
 	for (U16 x = xStart; x < xEnd && x < TILES_X; ++x)
 	{
 		for (U16 y = yStart; y < yEnd && y < TILES_Y; ++y)
@@ -246,7 +244,47 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			if ((x == pos.x && y == pos.y) || (!tiles[x][y].lightSource && !tiles[x][y].globalLightSource) ||
 				(pos - Vector2Int{x, y}).SqrMagnitude() > 128) { continue; }
 
-			I16 x1 = pos.x;
+			Vector2Int start{ x, y };
+			F32 length = (pos - start).Magnitude();
+			Vector2 dir = (Vector2)(pos - start) / length;
+			Vector2 unitStepSize = { 1.0f / dir.x * Math::Sign(dir.x), 1.0f / dir.y * Math::Sign(dir.y) };
+
+			Vector2 length1D{ 0.5f, 0.5f };
+			Vector2Int step{ (I32)Math::Sign(dir.x), (I32)Math::Sign(dir.y) };
+
+			F32 decr = 1.0f / 16; // TODO: Intensity
+			F32 distance = 0.0f;
+			F32 brightness = 1.0f;
+
+			bool checkX = !Math::NaN(unitStepSize.x);
+			bool checkY = !Math::NaN(unitStepSize.y);
+
+			while (distance < length && brightness > 0.0f)
+			{
+				if ((length1D.x < length1D.y && checkX) || !checkY)
+				{
+					start.x += step.x;
+					distance = length1D.x;
+					length1D.x += unitStepSize.x;
+
+					brightness -= (unitStepSize.x * decr) * (1 + (tiles[start.x][start.y].blockID > 0) + !checkY);
+				}
+				else if(checkY)
+				{
+					start.y += step.y;
+					distance = length1D.y;
+					length1D.y += unitStepSize.y;
+
+					brightness -= (unitStepSize.y * decr) * (1 + (tiles[start.x][start.y].blockID > 0) + !checkX);
+				}
+			}
+			
+			brightness = Math::Max(brightness, 0.0f);
+
+			color += c * brightness * tiles[x][y].lightSource;
+			globalColor += Vector3::ONE * brightness * tiles[x][y].globalLightSource;
+
+			/*I16 x1 = pos.x;
 			I16 y1 = pos.y;
 
 			I16 dx = x1 - x;
@@ -295,12 +333,12 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 				xGood = (U16)(x2 + xInc) < TILES_X;
 				yGood = (U16)(y2 + yInc) < TILES_Y;
-			}
+			}*/
 
-			distance = Math::Max(distance, 0.0f);
-
-			color += c * distance * tiles[x][y].lightSource;
-			globalColor += Vector3::ONE * distance * tiles[x][y].globalLightSource;
+			//distance = Math::Max(distance, 0.0f);
+			//
+			//color += c * distance * tiles[x][y].lightSource;
+			//globalColor += Vector3::ONE * distance * tiles[x][y].globalLightSource;
 		}
 	}
 
