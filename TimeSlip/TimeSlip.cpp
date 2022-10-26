@@ -2,6 +2,7 @@
 
 #include "Player.hpp"
 #include "Inventory.hpp"
+#include "Enemy.hpp"
 
 #include <Engine.hpp>
 #include <Renderer/RendererFrontend.hpp>
@@ -25,6 +26,8 @@ Vector3 TimeSlip::globalColor;
 
 Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
+
+Enemy* TimeSlip::enemy;
 
 GameState TimeSlip::gameState;
 GameState TimeSlip::nextState;
@@ -92,6 +95,7 @@ bool TimeSlip::Update()
 	case GAME_STATE_GAME:
 		Inventory::Update();
 		player->Update();
+		enemy->Update();
 		worldScene->GetCamera()->Update();
 		world->Update();
 		UpdateDayCycle();
@@ -131,6 +135,23 @@ void TimeSlip::PickupItem(U16 itemID, U16 amount)
 	inventory->AddItem(itemID, amount);
 }
 
+Transform2D* TimeSlip::GetTarget(Transform2D* position)
+{
+	Vector2 pos = position->Position();
+
+	Transform2D* bestTarget = nullptr;
+
+	F32 maxDistance = 10.0f;
+
+	//TODO: loop through all players
+	if ((player->gameObject->transform->Position() - pos).Magnitude() < maxDistance)
+	{
+		bestTarget = player->gameObject->transform;
+	}
+
+	return bestTarget;
+}
+
 void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data)
 {
 	RendererFrontend::UseScene(worldScene);
@@ -147,6 +168,8 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
 	worldScene->GetCamera()->SetBounds({39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f});
+
+	enemy = new Enemy(spawnPoint + (Vector2::RIGHT * 3), ENEMY_AI_BASIC);
 
 	Inventory::Init(worldScene);
 

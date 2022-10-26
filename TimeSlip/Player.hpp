@@ -7,7 +7,7 @@ struct Vector2;
 
 class Player
 {
-public:
+private:
 	Player(const Vector2& position);
 	~Player();
 	void Destroy();
@@ -16,7 +16,6 @@ public:
 	void operator delete(void* ptr);
 
 	void Update();
-
 	void SetPosition(const Vector2& position);
 
 private:

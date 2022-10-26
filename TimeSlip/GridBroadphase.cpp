@@ -132,36 +132,16 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	U32 minY = (U32)(start.y - extents.y + 0.5);
 	U32 maxY = (U32)(start.y + extents.y + 0.49999999999);
 
-	I32 undoX = 0;
-	I32 undoY = 0;
-
 	U32& x = step.x > 0 ? maxX : minX;
 	U32& y = step.y > 0 ? maxY : minY;
 
 	F32 distanceX = startDist.x;
 	F32 distanceY = startDist.y;
 
+	//TODO: You can pass through walls of the left
+
 	while ((length1D.x < length + extents.x && !collidedX) || (length1D.y < length + extents.y && !collidedY))
 	{
-		/*if ((collidedY || length1D.x < length1D.y) && !collidedX)
-		{
-			mapCheck.x += step.x;
-			distance = length1D.x;
-			length1D.x += unitStepSize.x;
-			minX += step.x;
-			maxX += step.x;
-			undoX = -step.x;
-		}
-		else if (!collidedY)
-		{
-			mapCheck.y += step.y;
-			distance = length1D.y;
-			length1D.y += unitStepSize.y;
-			minY += step.y;
-			maxY += step.y;
-			undoY = -step.y;
-		}*/
-
 		for (U32 y = minY; y <= maxY && !collidedX; ++y)
 		{
 			if ((U32)(x + step.x) < width && y < height && grid[x + step.x][y].blockID)
@@ -212,9 +192,6 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			minY += step.y;
 			maxY += step.y;
 		}
-
-		undoX = 0;
-		undoY = 0;
 	}
 
 	return contacts.Size();

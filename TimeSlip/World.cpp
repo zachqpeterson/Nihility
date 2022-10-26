@@ -225,12 +225,12 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 
 void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColor)
 {
-	Vector3 c{1.0f, 1.0f, 1.0f};
+	Vector3 c{ 1.0f, 1.0f, 1.0f };
 
 	color = c * tiles[pos.x][pos.y].lightSource;
 	globalColor = Vector3::ONE * tiles[pos.x][pos.y].globalLightSource;
 
-	U16 maxLightDistance = 8;
+	U16 maxLightDistance = 16;
 
 	U16 xStart = Math::Max(pos.x - maxLightDistance, 0);
 	U16 xEnd = pos.x + maxLightDistance;
@@ -241,8 +241,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 	{
 		for (U16 y = yStart; y < yEnd && y < TILES_Y; ++y)
 		{
-			if ((x == pos.x && y == pos.y) || (!tiles[x][y].lightSource && !tiles[x][y].globalLightSource) ||
-				(pos - Vector2Int{x, y}).SqrMagnitude() > 128) { continue; }
+			if ((x == pos.x && y == pos.y) || (!tiles[x][y].lightSource && !tiles[x][y].globalLightSource)) { continue; }
 
 			Vector2Int start{ x, y };
 			F32 length = (pos - start).Magnitude();
@@ -269,7 +268,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 					brightness -= (unitStepSize.x * decr) * (1 + (tiles[start.x][start.y].blockID > 0) + !checkY);
 				}
-				else if(checkY)
+				else if (checkY)
 				{
 					start.y += step.y;
 					distance = length1D.y;
@@ -278,7 +277,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 					brightness -= (unitStepSize.y * decr) * (1 + (tiles[start.x][start.y].blockID > 0) + !checkX);
 				}
 			}
-			
+
 			brightness = Math::Max(brightness, 0.0f);
 
 			color += c * brightness * tiles[x][y].lightSource;

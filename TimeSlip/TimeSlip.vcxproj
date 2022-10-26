@@ -136,6 +136,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Chunk.cpp" />
+    <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="GridBroadphase.cpp" />
     <ClCompile Include="Inventory.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -145,6 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chunk.hpp" />
+    <ClInclude Include="Enemy.hpp" />
     <ClInclude Include="GridBroadphase.hpp" />
     <ClInclude Include="Inventory.hpp" />
     <ClInclude Include="Player.hpp" />

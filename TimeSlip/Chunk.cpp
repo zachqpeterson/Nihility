@@ -161,7 +161,7 @@ void Chunk::Unload()
 
 void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
-	if (model)
+	if (loaded)
 	{
 		Mesh* mesh = model->meshes[0];
 
@@ -182,7 +182,7 @@ void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tileP
 
 void Chunk::EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
-	if (model)
+	if (loaded)
 	{
 		Mesh* mesh = model->meshes[1];
 
@@ -203,7 +203,7 @@ void Chunk::EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePo
 
 void Chunk::EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
-	if (model)
+	if (loaded)
 	{
 		Mesh* mesh = model->meshes[2];
 
@@ -224,7 +224,7 @@ void Chunk::EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& 
 
 void Chunk::EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
-	if (model)
+	if (loaded)
 	{
 		Mesh* mesh = model->meshes[3];
 
@@ -245,7 +245,7 @@ void Chunk::EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tile
 
 void Chunk::UpdateLighting(const Vector2Int& pos)
 {
-	if (model)
+	if (loaded)
 	{
 		Mesh* blockMesh = model->meshes[0];
 		Vertex* blockVertices = (Vertex*)blockMesh->vertices;

@@ -4,10 +4,12 @@
 
 class Scene;
 class Player;
+class Enemy;
 class Inventory;
 struct Slot;
 struct Vector2;
 struct UIElement;
+struct Transform2D;
 
 enum GameState
 {
@@ -29,6 +31,8 @@ public:
 
 	static void PickupItem(U16 itemID, U16 amount);
 
+	static Transform2D* GetTarget(Transform2D* position);
+
 private:
 	static void LoadWorld();
 	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);
@@ -44,6 +48,8 @@ private:
 
 	static Player* player; //TODO: We will need to keep track of multiple players in multiplayer for rendering
 	static Inventory* inventory; //But We only need to keep track of the inventory of your character
+
+	static Enemy* enemy;
 
 	static GameState gameState;
 	static GameState nextState;
