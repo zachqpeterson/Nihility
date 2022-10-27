@@ -45,3 +45,8 @@ void Player::SetPosition(const Vector2& position)
 {
 	gameObject->physics->Translate(gameObject->transform->Position() - position);
 }
+
+void Player::DamageResponse()
+{
+	//TODO: Healhbar
+}

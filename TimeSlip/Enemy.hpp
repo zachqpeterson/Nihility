@@ -31,6 +31,8 @@ private:
 	void FlyingAI();
 	void RangedAI();
 
+	void DamageResponse() override;
+
 private:
 	EnemyAI aiType;
 

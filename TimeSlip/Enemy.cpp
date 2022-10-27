@@ -88,3 +88,8 @@ void Enemy::RangedAI()
 {
 
 }
+
+void Enemy::DamageResponse()
+{
+
+}

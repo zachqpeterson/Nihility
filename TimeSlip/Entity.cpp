@@ -81,5 +81,7 @@ bool Entity::TakeDamage(const Damage& damage)
 {
 	health -= (damage.damage - Math::Max(armor - damage.armorPierce, 0.0f)) * (1.0f + damage.critMulti * (Math::RandomF() < damage.critChance));
 
+	//TODO: Apply knockback
+
 	return health <= 0.0f;
 }

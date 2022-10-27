@@ -18,5 +18,7 @@ private:
 	void Update() override;
 	void SetPosition(const Vector2& position);
 
+	void DamageResponse() override;
+
 	friend class TimeSlip;
 };

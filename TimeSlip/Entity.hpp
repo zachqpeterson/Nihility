@@ -8,6 +8,7 @@ struct Damage
 	F32 armorPierce;
 	F32 critChance;
 	F32 critMulti;
+	F32 knockback;
 
 	//TODO: Debuf applying
 };
@@ -24,6 +25,7 @@ protected:
 
 	virtual void Update() {}
 	bool TakeDamage(const Damage& damage);
+	virtual void DamageResponse() {}
 
 protected:
 	GameObject2D* gameObject;
@@ -32,6 +34,7 @@ protected:
 	F32 health;
 	F32 armor;
 	F32 damageReduction;
+	F32 knockbackReduction;
 
 	friend class TimeSlip;
 };
