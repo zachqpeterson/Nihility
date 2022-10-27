@@ -79,6 +79,7 @@ void Engine::MainLoop()
 	config.scale = { 0.02f, 0.02f };
 	config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
 	config.enabled = true;
+	config.ignore = true;
 	config.scene = (Scene*)RendererFrontend::CurrentScene();
 	UIText* fpsCounter = UI::GenerateText(config, "60", 12);
 #endif

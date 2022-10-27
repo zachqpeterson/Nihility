@@ -3,6 +3,7 @@
 #include "Entity.hpp"
 
 struct Vector2;
+struct UIBar;
 
 class Player : public Entity
 {
@@ -24,6 +25,7 @@ private:
 	bool alive;
 	F32 deathTimer;
 	Vector2 spawnPoint;
+	UIBar* healthBar;
 
 	F32 attackCooldown;
 

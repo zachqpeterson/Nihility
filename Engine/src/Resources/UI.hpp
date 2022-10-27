@@ -46,6 +46,18 @@ struct UIVertex
 	Vector4 color;
 };
 
+enum UIType
+{
+	UI_TYPE_NONE,
+	UI_TYPE_PANEL,
+	UI_TYPE_PANEL_BORDERED,
+	UI_TYPE_IMAGE,
+	UI_TYPE_TEXT,
+	UI_TYPE_BAR,
+
+	UI_TYPE_COUNT
+};
+
 struct UIElement
 {
 	U64 id;
@@ -67,7 +79,7 @@ struct UIElement
 	OnMouse OnMove;
 	UIEvent OnExit;
 	OnScroll OnScroll;
-	bool isText{ false };
+	UIType type;
 };
 
 struct UIElementConfig
@@ -87,12 +99,19 @@ struct UIText : public UIElement
 	F32 size;
 };
 
+struct UIBar : public UIElement
+{
+	F32 precent;
+	Vector4 fillColor;
+};
+
 class NH_API UI
 {
 public:
 	static UIElement* GeneratePanel(UIElementConfig& config, bool bordered = true);
 	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture, const Vector<Vector2>& uvs);
 	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
+	static UIBar* GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 percent);
 
 	static void SetEnable(UIElement* element, bool enable);
 	static void ChangeScene(UIElement* element, Scene* scene = nullptr);
@@ -103,6 +122,8 @@ public:
 	static void ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
 	static void ChangeSize(UIText* element, F32 newSize);
 	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
+	static void ChangePercent(UIBar* element, F32 percent);
+	static void ChangeFillColor(UIBar* element, const Vector4& fillColor);
 	static void DestroyElement(UIElement* element);
 
 	static void ShowDescription(const Vector2Int& position, const String& desc);

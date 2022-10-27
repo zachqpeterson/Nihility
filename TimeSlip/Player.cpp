@@ -5,6 +5,7 @@
 #include <Math/Math.hpp>
 #include <Memory/Memory.hpp>
 #include <Resources/Resources.hpp>
+#include <Resources/UI.hpp>
 #include <Core/Input.hpp>
 #include <Core/Time.hpp>
 #include <Renderer/RendererFrontend.hpp>
@@ -13,7 +14,16 @@
 Player::Player(const EntityConfig& config) : Entity(config, true),
 alive{ true }, deathTimer{ 0.0f }, spawnPoint{ config.position }, attackCooldown{ 0.0f }
 {
+	UIElementConfig barConfig{};
+	barConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	barConfig.enabled = true;
+	barConfig.ignore = true;
+	barConfig.parent = nullptr;
+	barConfig.position = { 0.5f, 0.05f };
+	barConfig.scale = { 0.33f, 0.05f };
+	barConfig.scene = RendererFrontend::CurrentScene();
 
+	healthBar = UI::GenerateBar(barConfig, { 1.0f, 0.0f, 0.0f, 1.0f }, 1.0f);
 }
 
 Player::~Player()
@@ -118,5 +128,5 @@ void Player::SetPosition(const Vector2& position)
 
 void Player::DamageResponse()
 {
-	//TODO: Healhbar
+	UI::ChangePercent(healthBar, health / maxHealth);
 }

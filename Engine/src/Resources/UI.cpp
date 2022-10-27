@@ -35,15 +35,26 @@ void UI::Shutdown()
 
 	for (UIElement* e : elements)
 	{
-		if (e->isText)
+		switch (e->type)
+		{
+		default:
+		case UI_TYPE_NONE:
+		case UI_TYPE_PANEL:
+		case UI_TYPE_PANEL_BORDERED:
+		case UI_TYPE_IMAGE:
+		{
+			Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI);
+		} break;
+		case UI_TYPE_TEXT:
 		{
 			UIText* t = (UIText*)e;
 			t->text.Destroy();
 			Memory::Free(e, sizeof(UIText), MEMORY_TAG_UI);
-		}
-		else
+		} break;
+		case UI_TYPE_BAR:
 		{
-			Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI);
+			Memory::Free(e, sizeof(UIBar), MEMORY_TAG_UI);
+		} break;
 		}
 	}
 
@@ -242,6 +253,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 
 	if (bordered)
 	{
+		panel->type = UI_TYPE_PANEL_BORDERED;
 		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 36, MEMORY_TAG_RESOURCE);
 		meshConfig.vertexSize = sizeof(UIVertex);
 		meshConfig.vertexCount = 36;
@@ -360,6 +372,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	}
 	else
 	{
+		panel->type = UI_TYPE_PANEL;
 		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
 		meshConfig.vertexSize = sizeof(UIVertex);
 		meshConfig.vertexCount = 4;
@@ -428,6 +441,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	image->ignore = config.ignore;
 	image->selfEnabled = config.enabled;
 	image->parent = config.parent;
+	image->type = UI_TYPE_IMAGE;
 
 	String name("UI_Element_{}", image->id);
 
@@ -537,7 +551,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	uiText->text = text;
 	uiText->color = config.color;
 	uiText->ignore = config.ignore;
-	uiText->isText = true;
+	uiText->type = UI_TYPE_TEXT;
 	uiText->selfEnabled = config.enabled;
 	uiText->parent = config.parent;
 
@@ -655,6 +669,125 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	return uiText;
 }
 
+UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 percent)
+{
+	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
+	{
+		Logger::Error("UI::GeneratePanel: Area can't be negative!");
+		return nullptr;
+	}
+
+	if (!config.scene)
+	{
+		Logger::Error("UI::GeneratePanel: Scene can't be nullptr!");
+		return nullptr;
+	}
+
+	UIBar* bar = (UIBar*)Memory::Allocate(sizeof(UIBar), MEMORY_TAG_UI);
+	bar->id = elementID++;
+	bar->scene = config.scene;
+	bar->color = config.color;
+	bar->ignore = config.ignore;
+	bar->selfEnabled = config.enabled;
+	bar->parent = config.parent;
+	bar->type = UI_TYPE_BAR;
+
+	String name("UI_Element_{}", bar->id);
+
+	Vector<Mesh*> meshes{ 2 };
+	MeshConfig meshConfig;
+	meshConfig.name = name;
+	meshConfig.MaterialName = "UI.mat";
+	meshConfig.instanceTextures.Push(panelTexture);
+
+	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
+
+	if (config.parent)
+	{
+		config.parent->children.PushBack(bar);
+
+		uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
+		uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
+		uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
+		uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+	}
+
+	bar->area = uiArea;
+
+	uiArea *= 2;
+	uiArea -= 1;
+
+	F32 id = 1.0f - (F32)bar->id * 0.001f;
+
+	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+	meshConfig.vertexSize = sizeof(UIVertex);
+	meshConfig.vertexCount = 4;
+	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
+
+	vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f }, config.color };
+	vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f }, config.color };
+	vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }				, config.color };
+	vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }				, config.color };
+
+	meshConfig.indices.Resize(6);
+
+	meshConfig.indices[0] = 0;
+	meshConfig.indices[1] = 1;
+	meshConfig.indices[2] = 2;
+	meshConfig.indices[3] = 2;
+	meshConfig.indices[4] = 3;
+	meshConfig.indices[5] = 0;
+
+	Mesh* mesh0 = Resources::CreateMesh(meshConfig);
+
+	if (!mesh0)
+	{
+		Logger::Error("UI::GenerateBar: Failed to Generate UI mesh!");
+		Memory::Free(bar, sizeof(UIElement), MEMORY_TAG_UI);
+		return nullptr;
+	}
+
+	meshes.Push(mesh0);
+
+	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+	vertices = (UIVertex*)meshConfig.vertices;
+
+	//Generate fill
+	F32 z = uiArea.z - (uiArea.z - uiArea.x) * (1.0f - percent);
+
+	vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f }, fillColor };
+	vertices[1] = UIVertex{ { z, uiArea.y, id}, { 1.0f, 0.66666666666f }, fillColor };
+	vertices[2] = UIVertex{ { z, uiArea.w, id}, { 1.0f, 1.0f }, fillColor };
+	vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }, fillColor };
+
+	Mesh* mesh1 = Resources::CreateMesh(meshConfig);
+
+	if (!mesh1)
+	{
+		Logger::Error("UI::GenerateBar: Failed to Generate UI mesh!");
+		Resources::DestroyMesh(mesh0);
+		Memory::Free(bar, sizeof(UIElement), MEMORY_TAG_UI);
+		return nullptr;
+	}
+
+	meshes.Push(mesh1);
+
+	GameObject2DConfig goConfig{};
+	goConfig.name = name;
+	goConfig.model = Resources::CreateModel(name, meshes);
+	goConfig.transform = new Transform2D();
+	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
+	bar->gameObject = go;
+
+	elements.PushFront(bar);
+	config.scene->DrawGameObject(go);
+
+	return bar;
+}
+
 void UI::SetEnable(UIElement* element, bool enable)
 {
 	for (UIElement* child : element->children)
@@ -694,14 +827,24 @@ void UI::ChangeScene(UIElement* element, Scene* scene)
 
 void UI::ChangeSize(UIElement* element, const Vector4& newArea)
 {
-	//TODO: 
-	if (element->isText)
+	switch (element->type)
 	{
-		//TODO: resize with alignment/Wrapping in mind
+	default:
+	case UI_TYPE_NONE:
+	case UI_TYPE_PANEL:
+	case UI_TYPE_IMAGE:
+	case UI_TYPE_PANEL_BORDERED:
+	{
+
 	}
-	else
+	case UI_TYPE_TEXT:
 	{
-		//TODO: We need to know if it's a bordered panel
+
+	}
+	case UI_TYPE_BAR:
+	{
+
+	}
 	}
 }
 
@@ -892,6 +1035,32 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	}
 }
 
+void UI::ChangePercent(UIBar* element, F32 percent)
+{
+	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[1]->vertices;
+
+	Vector4 scaledArea = element->area * 2.0f - 1.0f;
+
+	F32 newX = scaledArea.z - (scaledArea.z - scaledArea.x) * (1.0f - percent);
+
+	vertices[1].position.x = newX;
+	vertices[2].position.x = newX;
+
+	RendererFrontend::CreateMesh(element->gameObject->model->meshes[1]);
+}
+
+void UI::ChangeFillColor(UIBar* element, const Vector4& fillColor)
+{
+	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[1]->vertices;
+
+	for (U32 i = 0; i < element->mesh->vertexCount; i++)
+	{
+		vertices[i].color = fillColor;
+	}
+
+	RendererFrontend::CreateMesh(element->mesh);
+}
+
 void UI::ShowDescription(const Vector2Int& position, const String& desc)
 {
 	if (!description) { CreateDescription(); }
@@ -936,15 +1105,26 @@ void UI::DestroyElement(UIElement* element)
 		Resources::DestroyModel(element->gameObject->model);
 		Resources::DestroyGameObject2D(element->gameObject);
 
-		if (element->isText)
+		switch (element->type)
+		{
+		default:
+		case UI_TYPE_NONE:
+		case UI_TYPE_PANEL:
+		case UI_TYPE_PANEL_BORDERED:
+		case UI_TYPE_IMAGE:
+		{
+			Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
+		} break;
+		case UI_TYPE_TEXT:
 		{
 			UIText* t = (UIText*)element;
 			t->text.Destroy();
 			Memory::Free(element, sizeof(UIText), MEMORY_TAG_UI);
-		}
-		else
+		} break;
+		case UI_TYPE_BAR:
 		{
-			Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
+			Memory::Free(element, sizeof(UIBar), MEMORY_TAG_UI);
+		} break;
 		}
 	}
 }

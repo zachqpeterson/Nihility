@@ -89,6 +89,8 @@ bool Entity::TakeDamage(const Damage& damage)
 
 		//TODO: Apply knockback
 
+		DamageResponse();
+
 		return health <= 0.0f;
 	}
 
