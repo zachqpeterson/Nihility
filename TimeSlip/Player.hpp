@@ -2,15 +2,15 @@
 
 #include "Entity.hpp"
 
-struct GameObject2D;
 struct Vector2;
 
 class Player : public Entity
 {
 private:
-	Player(const Vector2& position);
+	Player(const EntityConfig& config);
 	~Player();
-	void Destroy();
+	void Destroy() override;
+	bool Death() override;
 
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
@@ -19,6 +19,13 @@ private:
 	void SetPosition(const Vector2& position);
 
 	void DamageResponse() override;
+
+private:
+	bool alive;
+	F32 deathTimer;
+	Vector2 spawnPoint;
+
+	F32 attackCooldown;
 
 	friend class TimeSlip;
 };

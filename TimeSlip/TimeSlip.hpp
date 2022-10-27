@@ -2,12 +2,16 @@
 
 #include "World.hpp"
 
+#include <Containers/HashTable.hpp>
+
 class Scene;
 class Player;
-class Enemy;
+class Entity;
 class Inventory;
 struct Slot;
+struct Damage;
 struct Vector2;
+struct Vector4;
 struct UIElement;
 struct Transform2D;
 
@@ -32,6 +36,7 @@ public:
 	static void PickupItem(U16 itemID, U16 amount);
 
 	static Transform2D* GetTarget(Transform2D* position);
+	static void Attack(const Damage& damage, const Vector4& area);
 
 private:
 	static void LoadWorld();
@@ -46,10 +51,9 @@ private:
 	static bool night;
 	static Vector3 globalColor;
 
-	static Player* player; //TODO: We will need to keep track of multiple players in multiplayer for rendering
 	static Inventory* inventory; //But We only need to keep track of the inventory of your character
 
-	static Enemy* enemy;
+	static HashTable<U64, Entity*> entities;
 
 	static GameState gameState;
 	static GameState nextState;

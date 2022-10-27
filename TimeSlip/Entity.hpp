@@ -1,6 +1,17 @@
 #pragma once
 
 #include <Defines.hpp>
+#include <Math/Math.hpp>
+
+struct EntityConfig
+{
+	F32 maxHealth;
+	F32 armor;
+	F32 damageReduction;
+	F32 knockbackReduction;
+	Vector2 position;
+	bool ignore;
+};
 
 struct Damage
 {
@@ -19,9 +30,10 @@ struct Vector2;
 class Entity
 {
 protected:
-	Entity(const Vector2& position);
+	Entity(const EntityConfig& config, bool player = false);
 	~Entity();
-	void Destroy();
+	virtual void Destroy();
+	virtual bool Death() { Destroy(); return true; }
 
 	virtual void Update() {}
 	bool TakeDamage(const Damage& damage);
@@ -35,6 +47,9 @@ protected:
 	F32 armor;
 	F32 damageReduction;
 	F32 knockbackReduction;
+	bool facing; //NOTE: false - left, true is right
+	bool ignore;
+	bool player;
 
 	friend class TimeSlip;
 };

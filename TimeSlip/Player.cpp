@@ -1,5 +1,7 @@
 #include "Player.hpp"
 
+#include "TimeSlip.hpp"
+
 #include <Math/Math.hpp>
 #include <Memory/Memory.hpp>
 #include <Resources/Resources.hpp>
@@ -8,9 +10,10 @@
 #include <Renderer/RendererFrontend.hpp>
 #include <Physics/Physics.hpp>
 
-Player::Player(const Vector2& position) : Entity(position)
+Player::Player(const EntityConfig& config) : Entity(config, true),
+alive{ true }, deathTimer{ 0.0f }, spawnPoint{ config.position }, attackCooldown{ 0.0f }
 {
-	
+
 }
 
 Player::~Player()
@@ -20,7 +23,18 @@ Player::~Player()
 
 void Player::Destroy()
 {
+	Entity::Destroy();
+}
 
+bool Player::Death()
+{
+	alive = false;
+	deathTimer = 3.0f;
+
+	RendererFrontend::UndrawGameObject(gameObject);
+	ignore = true;
+
+	return false;
 }
 
 void* Player::operator new(U64 size) { return Memory::Allocate(sizeof(Player), MEMORY_TAG_GAME); }
@@ -28,22 +42,78 @@ void Player::operator delete(void* ptr) { Memory::Free(ptr, sizeof(Player), MEMO
 
 void Player::Update()
 {
-	Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), 0.0f };
-	move *= (F32)(Time::DeltaTime() * 10.0f);
+	attackCooldown -= Time::DeltaTime();
 
-	gameObject->physics->SetGravityScale(0.5f + 0.5f * !Input::ButtonDown(SPACE));
-
-	if (Input::OnButtonDown(SPACE) && gameObject->physics->Grounded())
+	if (alive)
 	{
-		gameObject->physics->ApplyForce({ 0.0f, -1.0f });
-	}
+		Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), 0.0f };
+		move *= (F32)(Time::DeltaTime() * 10.0f);
 
-	gameObject->physics->Translate(move);
+		if (!Math::Zero(move.x))
+		{
+			facing = move.x > 0.0f;
+		}
+
+		gameObject->physics->SetGravityScale(0.5f + 0.5f * !Input::ButtonDown(SPACE));
+
+		if (Input::OnButtonDown(SPACE) && gameObject->physics->Grounded())
+		{
+			gameObject->physics->ApplyForce({ 0.0f, -1.0f });
+		}
+
+		if (Input::OnButtonDown(F) && attackCooldown <= 0.0f)
+		{
+			attackCooldown = 0.25f;
+			Damage damage{};
+			damage.damage = 10;
+			damage.armorPierce = 0;
+			damage.critChance = 0.1f;
+			damage.critMulti = 1.0f;
+			damage.knockback = 0.0f;
+
+			Vector4 area{};
+
+			Vector2 position = gameObject->transform->Position();
+			Vector2 extents = gameObject->physics->Collider()->box.Extents();
+
+			if (facing)
+			{
+				area.x = position.x + extents.x + 0.01f;
+				area.z = area.x + 1.0f;
+				area.y = position.y - extents.y;
+				area.w = area.y + 2.0f;
+			}
+			else
+			{
+				area.z = position.x - extents.x - 0.01f;
+				area.x = area.x - 1.0f;
+				area.y = position.y - extents.y;
+				area.w = area.y + 2.0f;
+			}
+
+			TimeSlip::Attack(damage, area);
+		}
+
+		gameObject->physics->Translate(move);
+	}
+	else
+	{
+		deathTimer -= Time::DeltaTime();
+
+		if (deathTimer <= 0.0f)
+		{
+			alive = true;
+			ignore = false;
+			RendererFrontend::DrawGameObject(gameObject);
+			SetPosition(spawnPoint);
+			health = maxHealth;
+		}
+	}
 }
 
 void Player::SetPosition(const Vector2& position)
 {
-	gameObject->physics->Translate(gameObject->transform->Position() - position);
+	gameObject->transform->SetPosition(position);
 }
 
 void Player::DamageResponse()

@@ -14,7 +14,8 @@ struct Vertex
 	Vector2 uv;
 };
 
-Entity::Entity(const Vector2& position)
+Entity::Entity(const EntityConfig& config, bool player) : maxHealth{ config.maxHealth }, health{ config.maxHealth }, armor{ config.armor },
+damageReduction{ config.damageReduction }, knockbackReduction{ config.knockbackReduction }, facing{ true }, ignore{ config.ignore }, player{ player }
 {
 	static U64 id = 0;
 
@@ -48,20 +49,20 @@ Entity::Entity(const Vector2& position)
 	physicsConfig.kinematic = false;
 	physicsConfig.restitution = 0.0;
 	physicsConfig.friction = 0.2f;
-	physicsConfig.transform = new Transform2D(position);
+	physicsConfig.transform = new Transform2D(config.position);
 	physicsConfig.trigger = false;
 	physicsConfig.freezeRotation = true;
 	physicsConfig.layerMask = 1;
 	physicsConfig.type = BOX_COLLIDER;
 	physicsConfig.box = { {-0.5f, 0.5f}, {-1.0f, 1.0f} };
 
-	GameObject2DConfig config{};
-	config.model = Resources::CreateModel(name, Vector<Mesh*>{1, Resources::CreateMesh(meshConfig)});
-	config.name = name;
-	config.physics = Physics::Create2DPhysicsObject(physicsConfig);
-	config.transform = physicsConfig.transform;
+	GameObject2DConfig goConfig{};
+	goConfig.model = Resources::CreateModel(name, Vector<Mesh*>{1, Resources::CreateMesh(meshConfig)});
+	goConfig.name = name;
+	goConfig.physics = Physics::Create2DPhysicsObject(physicsConfig);
+	goConfig.transform = physicsConfig.transform;
 
-	gameObject = Resources::CreateGameObject2D(config);
+	gameObject = Resources::CreateGameObject2D(goConfig);
 
 	RendererFrontend::DrawGameObject(gameObject);
 }
@@ -73,15 +74,23 @@ Entity::~Entity()
 
 void Entity::Destroy()
 {
+	RendererFrontend::UndrawGameObject(gameObject);
+	Resources::DestroyModel(gameObject->model);
+	Physics::DestroyPhysicsObjects2D(gameObject->physics);
 	Resources::DestroyGameObject2D(gameObject);
 	gameObject = nullptr;
 }
 
 bool Entity::TakeDamage(const Damage& damage)
 {
-	health -= (damage.damage - Math::Max(armor - damage.armorPierce, 0.0f)) * (1.0f + damage.critMulti * (Math::RandomF() < damage.critChance));
+	if (!ignore)
+	{
+		health -= (damage.damage - Math::Max(armor - damage.armorPierce, 0.0f)) * (1.0f + damage.critMulti * (Math::RandomF() < damage.critChance));
 
-	//TODO: Apply knockback
+		//TODO: Apply knockback
 
-	return health <= 0.0f;
+		return health <= 0.0f;
+	}
+
+	return false;
 }

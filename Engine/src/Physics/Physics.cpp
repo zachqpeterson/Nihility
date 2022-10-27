@@ -65,6 +65,7 @@ void Physics::Shutdown()
 
 void Physics::DestroyPhysicsObjects2D(PhysicsObject2D* obj)
 {
+	broadphase->RemoveObj(obj);
 	physicsObjects2D.Remove(obj);
 
 	Memory::Free(obj->collider, sizeof(Collider2D), MEMORY_TAG_PHYSICS);
@@ -254,6 +255,11 @@ PhysicsObject3D* Physics::Create3DPhysicsObject()
 	physicsObjects3D.PushBack(po);
 
 	return po;
+}
+
+bool Physics::Query(const Box& box, Vector<PhysicsObject2D*>& result)
+{
+	return broadphase->Query(box, result);
 }
 
 void Physics::NarrowPhase(List<List<Contact2D>>& contacts)

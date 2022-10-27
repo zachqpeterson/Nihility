@@ -19,9 +19,10 @@ enum EnemyAI
 class Enemy : public Entity
 {
 private:
-	Enemy(const Vector2& position, EnemyAI aiType, bool aggressive = true);
+	Enemy(const EntityConfig& config, EnemyAI aiType, bool aggressive = true);
 	~Enemy();
-	void Destroy();
+	void Destroy() override;
+	bool Death() override;
 
 	void* operator new(U64 size);
 	void operator delete(void* ptr);
@@ -40,6 +41,8 @@ private:
 	Vector2 lastPos;
 	bool startChase;
 	bool aggressive;
+
+	F32 attackCooldown;
 
 	friend class TimeSlip;
 };

@@ -199,7 +199,18 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 
 bool GridBroadphase::Query(const Box& box, Vector<PhysicsObject2D*>& result)
 {
-	return false;
+	bool found = false;
+
+	for (PhysicsObject2D* po : objs)
+	{
+		if ((po->Collider()->box + po->Transform()->Position()).Contains(box))
+		{
+			found = true;
+			result.Push(po);
+		}
+	}
+
+	return found;
 }
 
 bool GridBroadphase::RaycastQuery(PhysicsObject2D* obj, PhysicsObject2D* result)

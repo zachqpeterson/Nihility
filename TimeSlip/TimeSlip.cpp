@@ -2,6 +2,7 @@
 
 #include "Player.hpp"
 #include "Inventory.hpp"
+#include "Entity.hpp"
 #include "Enemy.hpp"
 
 #include <Engine.hpp>
@@ -24,10 +25,9 @@ F32 TimeSlip::currentTime;
 bool TimeSlip::night;
 Vector3 TimeSlip::globalColor;
 
-Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 
-Enemy* TimeSlip::enemy;
+HashTable<U64, Entity*> TimeSlip::entities;
 
 GameState TimeSlip::gameState;
 GameState TimeSlip::nextState;
@@ -73,18 +73,26 @@ bool TimeSlip::Initialize()
 	UI::GenerateText(generateWorldText, "Generate World", 20.0f);
 
 	OnMouse createWorldEvent{};
-	createWorldEvent.value = (void*)&testWorldSize;
+	createWorldEvent.value = (void*)&smallWorldSize;
 	createWorldEvent.callback = CreateWorld;
 
 	createWorldButton->OnClick = createWorldEvent;
+
+	entities(1009);
 
 	return true;
 }
 
 void TimeSlip::Shutdown()
 {
-	if (player) { player->Destroy(); }
 	if (world) { world->Destroy(); }
+
+	for (HashTable<U64, Entity*>::Node& e : entities)
+	{
+		e.value->Destroy();
+	}
+
+	entities.Destroy();
 }
 
 bool TimeSlip::Update()
@@ -94,11 +102,11 @@ bool TimeSlip::Update()
 	case GAME_STATE_MENU: break;
 	case GAME_STATE_GAME:
 		Inventory::Update();
-		player->Update();
-		enemy->Update();
 		worldScene->GetCamera()->Update();
 		world->Update();
 		UpdateDayCycle();
+
+		for (HashTable<U64, Entity*>::Node& e : entities) { e.value->Update(); }
 
 		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
 		break;
@@ -143,13 +151,37 @@ Transform2D* TimeSlip::GetTarget(Transform2D* position)
 
 	F32 maxDistance = 10.0f;
 
-	//TODO: loop through all players
-	if ((player->gameObject->transform->Position() - pos).Magnitude() < maxDistance)
+	for (HashTable<U64, Entity*>::Node& e : entities)
 	{
-		bestTarget = player->gameObject->transform;
+		if (e.value->player && (e.value->gameObject->transform->Position() - pos).Magnitude() < maxDistance)
+		{
+			bestTarget = e.value->gameObject->transform;
+		}
 	}
 
 	return bestTarget;
+}
+
+void TimeSlip::Attack(const Damage& damage, const Vector4& area)
+{
+	Box box{};
+	box.xBounds = { area.x, area.z };
+	box.yBounds = { area.y, area.w };
+
+	Vector<PhysicsObject2D*> results;
+
+	if (Physics::Query(box, results))
+	{
+		for (PhysicsObject2D* po : results)
+		{
+			Entity* e = entities[po->ID()];
+
+			if (e && e->TakeDamage(damage) && e->Death())
+			{
+				entities.Remove(po->ID(), nullptr);
+			}
+		}
+	}
 }
 
 void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data)
@@ -164,12 +196,23 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	currentTime = 1000.0f;
 	night = false;
 
-	player = new Player(spawnPoint);
+	EntityConfig eConfig{};
+	eConfig.armor = 0.0f;
+	eConfig.damageReduction = 0.0f;
+	eConfig.knockbackReduction = 0.0f;
+	eConfig.maxHealth = 100.0f;
+	eConfig.position = spawnPoint;
+	eConfig.ignore = false;
+	Player* player = new Player(eConfig);
+	entities.Insert(player->gameObject->physics->ID(), player);
+
+	eConfig.position += Vector2::RIGHT * 5.0f + Vector2::DOWN * 0.3f;
+	Enemy* enemy = new Enemy(eConfig, ENEMY_AI_BASIC);
+	entities.Insert(enemy->gameObject->physics->ID(), enemy);
+
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
 	worldScene->GetCamera()->SetBounds({39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f});
-
-	enemy = new Enemy(spawnPoint + Vector2::RIGHT * 5.0f + Vector2::DOWN * 0.3f, ENEMY_AI_BASIC);
 
 	Inventory::Init(worldScene);
 

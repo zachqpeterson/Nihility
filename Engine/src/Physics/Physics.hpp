@@ -221,6 +221,8 @@ struct Contact2D
 	Vector2 normal;
 };
 
+struct GameObject2D;
+
 struct PhysicsObject2DConfig
 {
 	Collider2DType type;
@@ -335,6 +337,7 @@ public:
 	static PhysicsObject2D* Create2DPhysicsObject(const PhysicsObject2DConfig& config);
 	static PhysicsObject3D* Create3DPhysicsObject();
 	static bool Raycast2D(const Vector2& origin, const Vector2& direction, F32 length, List<PhysicsObject2D*>& results);
+	static bool Query(const Box& box, Vector<PhysicsObject2D*>& result);
 	static F32 TOI(const Vector2& p, const Vector2& endP, const Vector2& q, const Vector2& endQ);
 	static void DestroyPhysicsObjects2D(PhysicsObject2D* obj);
 
