@@ -747,8 +747,7 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 		return nullptr;
 	}
 
-	meshes.Push(mesh0);
-
+	meshConfig.name = name + "_";
 	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
 	vertices = (UIVertex*)meshConfig.vertices;
 
@@ -771,6 +770,7 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	}
 
 	meshes.Push(mesh1);
+	meshes.Push(mesh0);
 
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
@@ -1037,7 +1037,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 
 void UI::ChangePercent(UIBar* element, F32 percent)
 {
-	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[1]->vertices;
+	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[0]->vertices;
 
 	Vector4 scaledArea = element->area * 2.0f - 1.0f;
 
@@ -1046,7 +1046,7 @@ void UI::ChangePercent(UIBar* element, F32 percent)
 	vertices[1].position.x = newX;
 	vertices[2].position.x = newX;
 
-	RendererFrontend::CreateMesh(element->gameObject->model->meshes[1]);
+	RendererFrontend::CreateMesh(element->gameObject->model->meshes[0]);
 }
 
 void UI::ChangeFillColor(UIBar* element, const Vector4& fillColor)

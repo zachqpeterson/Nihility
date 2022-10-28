@@ -4,6 +4,7 @@
 
 #include <Memory/Memory.hpp>
 #include <Resources/Resources.hpp>
+#include <Resources/UI.hpp>
 #include <Core/Input.hpp>
 #include <Core/Time.hpp>
 #include <Renderer/RendererFrontend.hpp>
@@ -22,6 +23,7 @@ Enemy::~Enemy()
 
 void Enemy::Destroy()
 {
+	UI::DestroyElement(healthBar);
 	Entity::Destroy();
 	target = nullptr;
 }

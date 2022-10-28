@@ -6,6 +6,7 @@
 
 struct GameObject2D;
 struct Transform2D;
+struct UIBar;
 
 enum EnemyAI
 {
