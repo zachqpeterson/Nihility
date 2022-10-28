@@ -238,10 +238,17 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	{
 		config.parent->children.PushBack(panel);
 
-		uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-		uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-		uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-		uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		if (!config.scaled)
+		{
+			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
+			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
+			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
+			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		}
+		else
+		{
+			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+		}
 	}
 
 	panel->area = uiArea;
@@ -456,10 +463,17 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	{
 		config.parent->children.PushBack(image);
 
-		uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-		uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-		uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-		uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		if (!config.scaled)
+		{
+			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
+			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
+			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
+			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		}
+		else
+		{
+			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+		}
 	}
 
 	image->area = uiArea;
@@ -563,10 +577,17 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	{
 		config.parent->children.PushBack(uiText);
 
-		uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-		uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-		uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-		uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		if (!config.scaled)
+		{
+			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
+			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
+			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
+			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		}
+		else
+		{
+			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+		}
 	}
 
 	uiText->area = uiArea;
@@ -706,10 +727,17 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	{
 		config.parent->children.PushBack(bar);
 
-		uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-		uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-		uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-		uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		if (!config.scaled)
+		{
+			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
+			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
+			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
+			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		}
+		else
+		{
+			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+		}
 	}
 
 	bar->area = uiArea;

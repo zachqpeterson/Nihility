@@ -86,11 +86,12 @@ struct UIElementConfig
 {
 	bool enabled{ true };
 	bool ignore{ false };
-	UIElement* parent;
-	Vector2 position;
-	Vector2 scale;
-	Vector4 color{}; //TODO: color struct
-	Scene* scene;
+	bool scaled{ false };
+	UIElement* parent{ nullptr };
+	Vector2 position{ Vector2::ZERO };
+	Vector2 scale{ Vector2::ONE };
+	Vector4 color{ Vector4::ONE }; //TODO: color struct
+	Scene* scene{ nullptr };
 };
 
 struct UIText : public UIElement

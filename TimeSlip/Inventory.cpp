@@ -331,9 +331,12 @@ void Inventory::OnExit(UIElement* e, void* data)
 
 Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMax, { } } }, slotCount{ config.slotCount }
 {
+	F32 width = config.xSlotSize * config.xMax + config.xPadding * 2.0f + config.xSpacing * (config.xMax - 1);
+	F32 height = config.ySlotSize * config.yMax + config.yPadding * 2.0f + config.ySpacing * (config.yMax - 1);
+
 	UIElementConfig panelCfg{};
-	panelCfg.position = { 0.01f, 0.05f };
-	panelCfg.scale = { config.width, config.height };
+	panelCfg.position = { config.xPosition, config.yPosition };
+	panelCfg.scale = { width, height };
 	panelCfg.color = config.color;
 	panelCfg.enabled = config.enable;
 	panelCfg.scene = config.scene;
@@ -365,6 +368,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				slotCfg.enabled = true;
 				slotCfg.parent = backPanel;
 				slotCfg.scene = config.scene;
+				slotCfg.scaled = true;
 
 				slot.button = UI::GeneratePanel(slotCfg, false);
 				slot.button->OnClick = { OnClick, (void*)&slot };
@@ -413,6 +417,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				slotCfg.enabled = config.enable;
 				slotCfg.parent = backPanel;
 				slotCfg.scene = config.scene;
+				slotCfg.scaled = true;
 
 				slot.button = UI::GeneratePanel(slotCfg, false);
 				slot.button->OnClick = { OnClick, (void*)&slot };

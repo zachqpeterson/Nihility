@@ -52,8 +52,9 @@ private:
 	static bool night;
 	static Vector3 globalColor;
 
-	static Player* player;
+	static Player* player; //Keep track of your character
 	static Inventory* inventory; //We only need to keep track of the inventory of your character
+	static Inventory* hotBar;
 
 	static HashTable<U64, Entity*> entities;
 

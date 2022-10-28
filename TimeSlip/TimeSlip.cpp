@@ -29,6 +29,7 @@ Vector3 TimeSlip::globalColor;
 
 Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
+Inventory* TimeSlip::hotBar;
 
 HashTable<U64, Entity*> TimeSlip::entities;
 
@@ -257,17 +258,24 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	config.draggable = true;
 	config.enable = true;
 	config.startHorizontal = true;
-	config.height = 0.26f;
-	config.width = 0.4f;
 	config.scene = worldScene;
-	config.xSlotSize = 0.08333333333;
-	config.ySlotSize = 0.24f;
-	config.xPadding = 0.025f;
-	config.xSpacing = 0.025f;
-	config.yPadding = 0.07f;
-	config.ySpacing = 0.07f;
+	config.xPosition = 0.01f;
+	config.yPosition = 0.025f;
+	config.xSlotSize = 0.03333333333;
+	config.ySlotSize = 0.0624f;
+	config.xPadding = 0.01f;
+	config.xSpacing = 0.01f;
+	config.yPadding = 0.0182f;
+	config.ySpacing = 0.0182f;
 
 	inventory = new Inventory(config);
+	
+	config.yMax = 1;
+	config.slotCount = 9;
+	config.xPosition = 0.3f;
+	config.yPosition = 0.9f;
+
+	hotBar = new Inventory(config);
 
 	nextState = GAME_STATE_GAME;
 }

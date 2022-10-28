@@ -449,6 +449,7 @@ struct NH_API Vector4
 	Vector4& operator=(const struct String& str);
 
 	Vector4& operator+= (const Vector4& v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
+	Vector4& operator+= (const Vector2& v) { x += v.x; y += v.y; z += v.x; w += v.y; return *this; }
 	Vector4& operator-= (const Vector4& v) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
 	Vector4& operator*= (F32 f) { x *= f; y *= f; z *= f; w *= f;					return *this; }
 	Vector4& operator/= (F32 f) { x /= f; y /= f; z /= f; w /= f;					return *this; }

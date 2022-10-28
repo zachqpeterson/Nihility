@@ -13,8 +13,8 @@ struct InventoryConfig
 	Scene* scene;
 	U8 xMax;
 	U8 yMax;
-	F32 width;
-	F32 height;
+	F32 xPosition;
+	F32 yPosition;
 	F32 xPadding;
 	F32 yPadding;
 	F32 xSpacing;
