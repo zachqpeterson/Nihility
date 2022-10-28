@@ -117,6 +117,7 @@ void Player::Update()
 			RendererFrontend::DrawGameObject(gameObject);
 			SetPosition(spawnPoint);
 			health = maxHealth;
+			UI::ChangePercent(healthBar, health / maxHealth);
 		}
 	}
 }
