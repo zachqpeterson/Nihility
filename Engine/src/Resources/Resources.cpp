@@ -39,7 +39,6 @@ Mesh* Resources::quadMesh;
 HashTable<String, Model*> Resources::models;
 
 HashTable<U64, GameObject2D*> Resources::gameObjects2D;
-HashTable<U64, GameObject3D*> Resources::gameObjects3D;
 U64 Resources::gameObjectId;
 
 #define BINARIES_PATH "../assets/"
@@ -165,7 +164,6 @@ bool Resources::Initialize()
 	meshes(1009);
 	models(1009);
 	gameObjects2D(1009);
-	gameObjects3D(1009);
 
 	defaultTexture = LoadTexture(DEFAULT_TEXTURE_NAME);
 	defaultDiffuse = LoadTexture(DEFAULT_DIFFUSE_TEXTURE_NAME);
@@ -201,58 +199,45 @@ void Resources::Shutdown()
 
 	renderpasses.Destroy();
 
-	for (HashTable<String, AudioFull*>::Node& n : audio)
+	for (AudioFull* a : audio)
 	{
-		n.key.Destroy();
-		DestroyAudio(n.value);
+		DestroyAudio(a);
 	}
 
 	audio.Destroy();
 
-	for (HashTable<String, TTFInfo*>::Node& n : fonts)
+	for (TTFInfo* font : fonts)
 	{
-		n.key.Destroy();
-		DestroyTTF(n.value);
+		DestroyTTF(font);
 	}
 
 	fonts.Destroy();
 
-	for (HashTable<U64, GameObject2D*>::Node& n : gameObjects2D)
+	for (GameObject2D* go : gameObjects2D)
 	{
-		DestroyGameObject2D(n.value);
+		DestroyGameObject2D(go);
 	}
 
 	gameObjects2D.Destroy();
 
-	for (HashTable<U64, GameObject3D*>::Node& n : gameObjects3D)
+	for (Texture* tex : textures)
 	{
-		n.value->name.Destroy();
-		Memory::Free(n.value, sizeof(GameObject3D), MEMORY_TAG_RESOURCE);
-	}
-
-	gameObjects3D.Destroy();
-
-	for (HashTable<String, Texture*>::Node& n : textures)
-	{
-		n.key.Destroy();
-		DestroyTexture(n.value);
+		DestroyTexture(tex);
 	}
 
 	textures.Destroy();
 
-	for (HashTable<String, Mesh*>::Node& n : meshes)
+	for (Mesh* mesh : meshes)
 	{
-		n.key.Destroy();
-		DestroyMesh(n.value);
+		DestroyMesh(mesh);
 	}
 
 	meshes.Destroy();
 
-	for (HashTable<String, Model*>::Node& n : models)
+	for (Model* model : models)
 	{
-		n.key.Destroy();
-		n.value->name.Destroy();
-		n.value->meshes.Clear();
+		model->name.Destroy();
+		model->meshes.Clear();
 	}
 
 	models.Destroy();
@@ -2532,9 +2517,9 @@ void Resources::DestroyTTF(TTFInfo* info)
 	info->name.Destroy();
 	info->data.Destroy();
 
-	for (HashTable<U64, Texture*>::Node& n : info->letterTextures)
+	for (Texture* tex : info->letterTextures)
 	{
-		DestroyTexture(n.value);
+		DestroyTexture(tex);
 	}
 
 	info->letterTextures.Destroy();

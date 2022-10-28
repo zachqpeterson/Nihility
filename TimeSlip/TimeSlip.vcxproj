@@ -114,7 +114,8 @@
       <AdditionalDependencies>$(SolutionDir)$(Platform)\$(Configuration)\Nihility.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>"$(DevEnvDir)devenv" "$(SolutionDir)Nihility.sln" /Build $(configuration) /project "$(SolutionDir)Nihility.vcxproj"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -137,7 +138,8 @@
       <AdditionalDependencies>$(SolutionDir)$(Platform)\$(Configuration)\Nihility.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>"$(DevEnvDir)devenv" "$(SolutionDir)Nihility.sln" /Build $(configuration) /project "$(SolutionDir)Nihility.vcxproj"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -4,8 +4,10 @@
 
 #include "Math/Math.hpp"
 #include "Memory/Memory.hpp"
+#include "Containers/String.hpp"
 
-//TODO: Use quadratic probing
+#include <type_traits>
+
 template <typename TKey, typename TValue>
 struct HashTable
 {
@@ -25,8 +27,8 @@ public:
 			while (!this->ptr->filled && (this->ptr != end)) { ++this->ptr; }
 		}
 
-		Node& operator* () const { return *ptr; }
-		Node* operator-> () { return ptr; }
+		TValue& operator* () const { return ptr->value; }
+		TValue* operator-> () { return &ptr->value; }
 
 		Iterator& operator++ ()
 		{
@@ -109,6 +111,8 @@ public:
 		Node* ptr;
 		Node* memory;
 		U64 capacity;
+
+		friend struct HashTable;
 	};
 
 public:
@@ -132,6 +136,14 @@ public:
 
 	void Destroy()
 	{
+		if constexpr (std::is_same_v<TKey, String>)
+		{
+			for (U64 i = 0; i < capacity; ++i)
+			{
+				memory[i].key.Destroy();
+			}
+		}
+
 		size = 0;
 		if (memory) { Memory::Free(memory, sizeof(Node) * capacity, MEMORY_TAG_DATA_STRUCT); memory = nullptr; }
 		capacity = 0;
@@ -182,6 +194,19 @@ public:
 		while (node->key != key && node->filled) { ++i; node = &memory[(hash + i * i) % capacity]; }
 
 		--size;
+		if constexpr (std::is_same_v<TKey, String>) { node->key.Destroy(); }
+		node->filled = false;
+		value = Move(node->value);
+		Memory::Zero(node, sizeof(Node));
+	}
+
+	void Remove(Iterator& it, TValue&& value)
+	{
+		Node* node = it.ptr;
+		++it;
+
+		--size;
+		if constexpr (std::is_same_v<TKey, String>) { node->key.Destroy(); }
 		node->filled = false;
 		value = Move(node->value);
 		Memory::Zero(node, sizeof(Node));
@@ -280,6 +305,9 @@ public:
 			size = 0;
 		}
 	}
+
+	const U64& Size() const { return size; }
+	const U64& Capacity() const { return capacity; }
 
 	Iterator begin() { return Iterator(memory, memory, capacity); }
 	Iterator end() { return Iterator(&memory[capacity], memory, capacity); }

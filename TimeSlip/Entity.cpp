@@ -15,7 +15,8 @@ struct Vertex
 };
 
 Entity::Entity(const EntityConfig& config, bool player) : maxHealth{ config.maxHealth }, health{ config.maxHealth }, armor{ config.armor },
-damageReduction{ config.damageReduction }, knockbackReduction{ config.knockbackReduction }, facing{ true }, ignore{ config.ignore }, player{ player }
+damageReduction{ config.damageReduction }, knockbackReduction{ config.knockbackReduction }, facing{ true }, ignore{ config.ignore }, 
+player{ player }, despawnRange{ config.despawnRange }
 {
 	static U64 id = 0;
 

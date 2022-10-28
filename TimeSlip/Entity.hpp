@@ -11,6 +11,7 @@ struct EntityConfig
 	F32 knockbackReduction;
 	Vector2 position;
 	bool ignore;
+	F32 despawnRange;
 };
 
 struct Damage
@@ -50,6 +51,8 @@ protected:
 	bool facing; //NOTE: false - left, true is right
 	bool ignore;
 	bool player;
+
+	F32 despawnRange;
 
 	friend class TimeSlip;
 };

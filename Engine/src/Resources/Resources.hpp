@@ -579,19 +579,18 @@ private:
 	static Vector<Material*> materials;
 	static Material* defaultMaterial;
 
-	//Mesh
+	//Meshes
 	static HashTable<String, Mesh*> meshes;
 	static Mesh* cubeMesh;
 	static Mesh* sphereMesh;
 	static Mesh* capsuleMesh;
 	static Mesh* quadMesh;
 
-	//TODO: Model
+	//Models
 	static HashTable<String, Model*> models;
 
 	//GameObjects
 	static HashTable<U64, GameObject2D*> gameObjects2D;
-	static HashTable<U64, GameObject3D*> gameObjects3D;
 	static U64 gameObjectId;
 
 	Resources() = delete;

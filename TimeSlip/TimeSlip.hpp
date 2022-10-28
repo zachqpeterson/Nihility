@@ -31,6 +31,7 @@ public:
 	static bool Initialize();
 	static void Shutdown();
 	static bool Update();
+	static void HandleEntities();
 	static void UpdateDayCycle();
 
 	static void PickupItem(U16 itemID, U16 amount);
@@ -51,9 +52,12 @@ private:
 	static bool night;
 	static Vector3 globalColor;
 
-	static Inventory* inventory; //But We only need to keep track of the inventory of your character
+	static Player* player;
+	static Inventory* inventory; //We only need to keep track of the inventory of your character
 
 	static HashTable<U64, Entity*> entities;
+
+	static U8 playerCount;
 
 	static GameState gameState;
 	static GameState nextState;
@@ -62,4 +66,6 @@ private:
 	static WorldSize smallWorldSize;
 	static WorldSize mediumWorldSize;
 	static WorldSize largeWorldSize;
+
+	TimeSlip() = delete;
 };

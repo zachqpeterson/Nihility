@@ -16,6 +16,8 @@
 #include <Core/Time.hpp>
 #include <Math/Math.hpp>
 
+#define MAX_ENTITIES 10
+
 Scene* TimeSlip::mainMenuScene;
 Scene* TimeSlip::worldScene;
 World* TimeSlip::world;
@@ -25,9 +27,12 @@ F32 TimeSlip::currentTime;
 bool TimeSlip::night;
 Vector3 TimeSlip::globalColor;
 
+Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 
 HashTable<U64, Entity*> TimeSlip::entities;
+
+U8 TimeSlip::playerCount;
 
 GameState TimeSlip::gameState;
 GameState TimeSlip::nextState;
@@ -78,7 +83,7 @@ bool TimeSlip::Initialize()
 
 	createWorldButton->OnClick = createWorldEvent;
 
-	entities(1009);
+	entities(19);
 
 	return true;
 }
@@ -87,9 +92,9 @@ void TimeSlip::Shutdown()
 {
 	if (world) { world->Destroy(); }
 
-	for (HashTable<U64, Entity*>::Node& e : entities)
+	for (Entity* entity : entities)
 	{
-		e.value->Destroy();
+		entity->Destroy();
 	}
 
 	entities.Destroy();
@@ -100,16 +105,14 @@ bool TimeSlip::Update()
 	switch (gameState)
 	{
 	case GAME_STATE_MENU: break;
-	case GAME_STATE_GAME:
-		Inventory::Update();
-		worldScene->GetCamera()->Update();
-		world->Update();
-		UpdateDayCycle();
-
-		for (HashTable<U64, Entity*>::Node& e : entities) { e.value->Update(); }
-
+	case GAME_STATE_GAME: {
 		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
-		break;
+		Inventory::Update();
+		world->Update();
+		HandleEntities();
+		UpdateDayCycle();
+		worldScene->GetCamera()->Update();
+	}	break;
 	case GAME_STATE_PAUSE: break;
 		//TODO: Pause Physics
 	default: break;
@@ -118,6 +121,34 @@ bool TimeSlip::Update()
 	if (nextState) { gameState = nextState; nextState = GAME_STATE_NONE; }
 
 	return true;
+}
+
+void TimeSlip::HandleEntities()
+{
+	U16 maxEntities = MAX_ENTITIES + ((MAX_ENTITIES >> 1) * (playerCount - 1));
+
+	if (entities.Size() - playerCount < maxEntities)
+	{
+		//TODO: Spawn Entities
+	}
+	
+	auto end = entities.end();
+	for (auto it = entities.begin(); it != end;) 
+	{
+		Entity* entity = *it;
+		Vector2 pos = entity->gameObject->transform->Position();
+
+		if ((pos - player->gameObject->transform->Position()).SqrMagnitude() > entity->despawnRange * entity->despawnRange && !entity->player)
+		{
+			entities.Remove(it, nullptr);
+			entity->Destroy();
+		}
+		else
+		{
+			entity->Update();
+			++it;
+		}
+	}
 }
 
 void TimeSlip::UpdateDayCycle()
@@ -151,11 +182,11 @@ Transform2D* TimeSlip::GetTarget(Transform2D* position)
 
 	F32 maxDistance = 10.0f;
 
-	for (HashTable<U64, Entity*>::Node& e : entities)
+	for (Entity* entity : entities)
 	{
-		if (e.value->player && (e.value->gameObject->transform->Position() - pos).Magnitude() < maxDistance)
+		if (entity->player && (entity->gameObject->transform->Position() - pos).Magnitude() < maxDistance)
 		{
-			bestTarget = e.value->gameObject->transform;
+			bestTarget = entity->gameObject->transform;
 		}
 	}
 
@@ -203,7 +234,8 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	eConfig.maxHealth = 100.0f;
 	eConfig.position = spawnPoint;
 	eConfig.ignore = false;
-	Player* player = new Player(eConfig);
+	eConfig.despawnRange = 40.0f;
+	player = new Player(eConfig);
 	entities.Insert(player->gameObject->physics->ID(), player);
 
 	eConfig.position += Vector2::RIGHT * 5.0f + Vector2::DOWN * 0.3f;

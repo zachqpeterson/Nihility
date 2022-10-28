@@ -23,7 +23,6 @@ Enemy::~Enemy()
 
 void Enemy::Destroy()
 {
-	UI::DestroyElement(healthBar);
 	Entity::Destroy();
 	target = nullptr;
 }
