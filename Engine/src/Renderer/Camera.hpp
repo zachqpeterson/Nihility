@@ -28,7 +28,7 @@ struct NH_API Camera
 	const Vector3& Rotation() const;
 	void SetRotation(const Vector3& rotation);
 	void Rotate(const Vector3& rotation);
-	const Vector4& AmbientColor() const;
+	const Vector3& AmbientColor() const;
 	void SetAmbientColor(const Vector3& color);
 	const Matrix4& Projection() const;
 	void ChangeProjection(F32 fov, F32 aspect, F32 near, F32 far);

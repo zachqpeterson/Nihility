@@ -124,7 +124,7 @@ struct AudioFull
 	U32 channelCount{ 0 };
 	U32 sampleDataSize{ 0 };
 	I16* sampleData{ nullptr };
-	U8* data{nullptr};
+	U8* data{ nullptr };
 	U64 dataSize{ 0 };
 	AudioChunk* chunks{ nullptr };
 };
@@ -368,9 +368,9 @@ struct NH_API Mesh
 {
 	String name;
 	Material material;
-	void* vertices;
-	U32 vertexCount;
-	U32 vertexSize;
+	void* vertices{ nullptr };
+	U32 vertexCount{ 0 };
+	U32 vertexSize{ 0 };
 	Vector<U32> indices;
 	void* internalData{ nullptr };
 };

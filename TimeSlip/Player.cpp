@@ -52,7 +52,7 @@ void Player::operator delete(void* ptr) { Memory::Free(ptr, sizeof(Player), MEMO
 
 void Player::Update()
 {
-	attackCooldown -= Time::DeltaTime();
+	attackCooldown -= (F32)Time::DeltaTime();
 
 	if (alive)
 	{
@@ -108,7 +108,7 @@ void Player::Update()
 	}
 	else
 	{
-		deathTimer -= Time::DeltaTime();
+		deathTimer -= (F32)Time::DeltaTime();
 
 		if (deathTimer <= 0.0f)
 		{

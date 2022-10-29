@@ -4,7 +4,7 @@
 #include <Containers/Vector.hpp>
 #include <Math/Math.hpp>
 
-struct Scene;
+class Scene;
 struct Texture;
 struct UIElement;
 

@@ -107,6 +107,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\src;$(SolutionDir)Containers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <DisableSpecificWarnings>4251;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

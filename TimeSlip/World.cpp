@@ -884,7 +884,7 @@ F32 World::GenerateWorld()
 		for (U8 i = 0; i < BIOME_COUNT - 1; ++i)
 		{
 			U16 prevLength = length;
-			length = biomeLengths[i] + variation;
+			length = (U16)(biomeLengths[i] + variation);
 
 			for (U16 x = prevLength; x < length; ++x)
 			{
@@ -900,7 +900,7 @@ F32 World::GenerateWorld()
 		}
 	}
 
-	F64 tempSimplex = Math::Simplex1(SEED);
+	F64 tempSimplex = Math::Simplex1((F64)SEED);
 	U16 prevHeight = (U16)((tempSimplex * terrainHighAmplitude) + (tempSimplex * terrainLowAmplitude) + (TILES_Y * 0.5));
 
 	for (U16 x = 0; x < TILES_X; ++x)

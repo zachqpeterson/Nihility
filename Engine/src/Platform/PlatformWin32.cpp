@@ -282,9 +282,9 @@ const F64 Platform::AbsoluteTime()
 
 void Platform::GetVulkanSurfaceInfo(void* surfaceInfo)
 {
-	//TODO: Find a better way for this
-	((HINSTANCE*)surfaceInfo)[0] = platformState.hInstance;
-	((HINSTANCE*)surfaceInfo)[0] = *(HINSTANCE*)&platformState.hwnd;
+	HINSTANCE* arr = (HINSTANCE*)surfaceInfo;
+	arr[0] = platformState.hInstance;
+	arr[1] = *(HINSTANCE*)&platformState.hwnd;
 }
 
 const Vector2Int& Platform::ScreenSize()

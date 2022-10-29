@@ -154,7 +154,7 @@ void TimeSlip::HandleEntities()
 
 void TimeSlip::UpdateDayCycle()
 {
-	currentTime += Time::DeltaTime() * timeScale;
+	currentTime += (F32)Time::DeltaTime() * timeScale;
 
 	F32 alpha = Math::Clamp(Math::Cos(currentTime * 0.1f) + 0.55f, 0.15f, 1.0f);
 
@@ -261,7 +261,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	config.scene = worldScene;
 	config.xPosition = 0.01f;
 	config.yPosition = 0.025f;
-	config.xSlotSize = 0.03333333333;
+	config.xSlotSize = 0.03333333333f;
 	config.ySlotSize = 0.0624f;
 	config.xPadding = 0.01f;
 	config.xSpacing = 0.01f;

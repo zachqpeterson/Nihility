@@ -291,5 +291,5 @@ void Chunk::UpdateLighting(const Vector2Int& pos)
 
 void Chunk::UpdateMeshes()
 {
-	if (model) { RendererFrontend::BatchCreateMeshes(model->meshes); }
+	if (loaded) { RendererFrontend::BatchCreateMeshes(model->meshes); }
 }

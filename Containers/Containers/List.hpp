@@ -403,7 +403,7 @@ public:
 		return Move(T{});
 	}
 
-	T&& Remove(const T& value)
+	void Remove(const T& value)
 	{
 		Node* node = head;
 		while (node)
@@ -420,17 +420,13 @@ public:
 				if (nextNode) { nextNode->prev = prevNode; }
 				else { tail = prevNode; }
 
-				T value = node->value;
 				delete node;
-				return Move(value);
 			}
 
 			node = node->next;
 		}
-
-		return {};
 	}
-	T&& Remove(Iterator& it)
+	void Remove(Iterator& it)
 	{
 		--size;
 		Node* node = it.ptr;
@@ -443,9 +439,7 @@ public:
 		if (nextNode) { nextNode->prev = prevNode; }
 		else { tail = prevNode; }
 
-		T value = node->value;
 		delete node;
-		return Move(value);
 	}
 	void Reverse()
 	{

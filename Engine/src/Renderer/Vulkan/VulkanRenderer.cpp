@@ -249,7 +249,7 @@ bool VulkanRenderer::CreateSurface()
 	VkWin32SurfaceCreateInfoKHR surfaceInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 	surfaceInfo.pNext = nullptr;
 	surfaceInfo.flags = NULL;
-	Platform::GetVulkanSurfaceInfo(&surfaceInfo.flags + sizeof(VkWin32SurfaceCreateFlagsKHR)); //TODO: Please don't do this
+	Platform::GetVulkanSurfaceInfo(&surfaceInfo.hinstance);
 	return vkCreateWin32SurfaceKHR(rendererState->instance, &surfaceInfo, rendererState->allocator, &rendererState->surface) == VK_SUCCESS;
 #elif PLATFORM_LINUX
 	//TODO:
@@ -789,23 +789,24 @@ void VulkanRenderer::DestroyMesh(Mesh* mesh)
 
 void VulkanRenderer::DrawMesh(const MeshRenderData& meshData)
 {
-	if (meshData.mesh && !meshData.mesh->internalData) { return; }
-
-	VulkanMesh* bufferData = (VulkanMesh*)meshData.mesh->internalData;
-	VulkanCommandBuffer& commandBuffer = rendererState->graphicsCommandBuffers[rendererState->imageIndex];
-
-	VkDeviceSize offsets[1] = { bufferData->vertexBufferOffset };
-	vkCmdBindVertexBuffers(commandBuffer.handle, 0, 1, &rendererState->objectVertexBuffer->handle, (VkDeviceSize*)offsets);
-
-	if (bufferData->indexCount > 0)
+	if (meshData.mesh && meshData.mesh->internalData)
 	{
-		vkCmdBindIndexBuffer(commandBuffer.handle, rendererState->objectIndexBuffer->handle, bufferData->indexBufferOffset, VK_INDEX_TYPE_UINT32);
+		VulkanMesh* bufferData = (VulkanMesh*)meshData.mesh->internalData;
+		VulkanCommandBuffer& commandBuffer = rendererState->graphicsCommandBuffers[rendererState->imageIndex];
 
-		vkCmdDrawIndexed(commandBuffer.handle, bufferData->indexCount, 1, 0, 0, 0);
-	}
-	else
-	{
-		vkCmdDraw(commandBuffer.handle, bufferData->vertexCount, 1, 0, 0);
+		VkDeviceSize offsets[1] = { bufferData->vertexBufferOffset };
+		vkCmdBindVertexBuffers(commandBuffer.handle, 0, 1, &rendererState->objectVertexBuffer->handle, (VkDeviceSize*)offsets);
+
+		if (bufferData->indexCount > 0)
+		{
+			vkCmdBindIndexBuffer(commandBuffer.handle, rendererState->objectIndexBuffer->handle, bufferData->indexBufferOffset, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(commandBuffer.handle, bufferData->indexCount, 1, 0, 0, 0);
+		}
+		else
+		{
+			vkCmdDraw(commandBuffer.handle, bufferData->vertexCount, 1, 0, 0);
+		}
 	}
 }
 

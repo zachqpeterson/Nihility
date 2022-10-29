@@ -151,7 +151,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 				Contact2D c{};
 				c.a = obj;
 				c.distance = distanceX;
-				c.normal = Vector2::RIGHT * step.x;
+				c.normal = Vector2::RIGHT * (F32)step.x;
 				c.relativeVelocity = obj->Move();
 				c.restitution = obj->Restitution(); //TODO: get tile restitution;
 
@@ -168,7 +168,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 				Contact2D c{};
 				c.a = obj;
 				c.distance = distanceY;
-				c.normal = Vector2::UP * step.y;
+				c.normal = Vector2::UP * (F32)step.y;
 				c.relativeVelocity = obj->Move();
 				c.restitution = obj->Restitution(); //TODO: get tile restitution;
 

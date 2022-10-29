@@ -59,7 +59,7 @@ void Enemy::Update()
 
 void Enemy::BasicAI()
 {
-	attackCooldown -= Time::DeltaTime();
+	attackCooldown -= (F32)Time::DeltaTime();
 
 	if (target)
 	{

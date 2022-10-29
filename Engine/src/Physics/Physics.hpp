@@ -302,18 +302,18 @@ public:
 	const Collider2D* Collider() const { return collider; }
 	const Vector2& Velocity() const { return velocity; }
 	const Vector2& Move() const { return move; }
-	const F64& AngularVelocity() const { return angularVelocity; }
+	const F32& AngularVelocity() const { return angularVelocity; }
 
 	const bool& Grounded() const { return grounded; }
 
-	const F64& Mass() const { return mass; }
-	const F64& Inertia() const { return inertia; }
-	const F64& Friction() const { return friction; }
-	const F64& Restitution() const { return restitution; }
-	const F64& GravityScale() const { return gravityScale; }
-	const F64& Drag() const { return dragCoefficient; }
-	const F64& AngularDrag() const { return angularDragCoefficient; }
-	const F64& Area() const { return area; }
+	const F32& Mass() const { return mass; }
+	const F32& Inertia() const { return inertia; }
+	const F32& Friction() const { return friction; }
+	const F32& Restitution() const { return restitution; }
+	const F32& GravityScale() const { return gravityScale; }
+	const F32& Drag() const { return dragCoefficient; }
+	const F32& AngularDrag() const { return angularDragCoefficient; }
+	const F32& Area() const { return area; }
 	const U64& LayerMask() const { return layerMask; }
 	const bool& Kinematic() const { return kinematic; }
 

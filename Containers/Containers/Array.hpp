@@ -70,7 +70,7 @@ public:
 	};
 
 public:
-	Array() {}
+	Array() = default;
 	Array(const T& value)
 	{
 		for (U64 i = 0; i < size; ++i)

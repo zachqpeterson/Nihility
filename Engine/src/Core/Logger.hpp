@@ -27,7 +27,7 @@ enum LogLevel
 #define LOG_TRACE_ENABLED 0
 #endif
 
-struct File;
+struct NH_API File;
 
 class NH_API Logger
 {

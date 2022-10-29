@@ -162,10 +162,10 @@ public:
 	static NH_INLINE Vector3 CeilingF(const Vector3& v);
 	static NH_INLINE Vector4 CeilingF(const Vector4& v);
 
-	static NH_INLINE I8  Sign(I8 n) { return (n > 0) - (n < 0); }
-	static NH_INLINE I16 Sign(I16 n) { return (n > 0) - (n < 0); }
-	static NH_INLINE I32 Sign(I32 n) { return (n > 0) - (n < 0); }
-	static NH_INLINE I64 Sign(I64 n) { return (n > 0) - (n < 0); }
+	static NH_INLINE I8  Sign(I8 n)  { return (I8 )(n > 0) - (I8 )(n < 0); }
+	static NH_INLINE I16 Sign(I16 n) { return (I16)(n > 0) - (I16)(n < 0); }
+	static NH_INLINE I32 Sign(I32 n) { return (I32)(n > 0) - (I32)(n < 0); }
+	static NH_INLINE I64 Sign(I64 n) { return (I64)(n > 0) - (I64)(n < 0); }
 	static NH_INLINE F32 Sign(F32 n) { return (F32)(n > 0.0f) - (F32)(n < 0.0f); }
 	static NH_INLINE F64 Sign(F64 n) { return (F64)(n > 0.0) - (F64)(n < 0.0); }
 

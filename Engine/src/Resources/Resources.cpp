@@ -1854,7 +1854,7 @@ GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
 		return nullptr;
 	}
 
-	Logger::Info("Creating GameObject '{}'...", config.name);
+	//Logger::Info("Creating GameObject '{}'...", config.name);
 
 	GameObject2D* go = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_GAMEOBJECT);
 	go->id = gameObjectId;
