@@ -12,6 +12,7 @@ struct EntityConfig
 	Vector2 position;
 	bool ignore;
 	F32 despawnRange;
+	F32 regeneration;
 };
 
 struct Damage
@@ -48,6 +49,7 @@ protected:
 	F32 armor;
 	F32 damageReduction;
 	F32 knockbackReduction;
+	F32 regeneration;
 	bool facing; //NOTE: false - left, true is right
 	bool ignore;
 	bool player;

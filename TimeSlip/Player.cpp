@@ -105,6 +105,8 @@ void Player::Update()
 		}
 
 		gameObject->physics->Translate(move);
+		health += regeneration * (F32)Time::DeltaTime();
+		UI::ChangePercent(healthBar, health / maxHealth);
 	}
 	else
 	{

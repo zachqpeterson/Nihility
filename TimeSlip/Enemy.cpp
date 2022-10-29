@@ -41,6 +41,8 @@ void Enemy::operator delete(void* ptr) { Memory::Free(ptr, sizeof(Enemy), MEMORY
 
 void Enemy::Update()
 {
+	health += regeneration * (F32)Time::DeltaTime();
+
 	if (aggressive && !target)
 	{
 		target = TimeSlip::GetTarget(gameObject->transform);

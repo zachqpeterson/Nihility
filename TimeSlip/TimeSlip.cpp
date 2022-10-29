@@ -236,6 +236,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	eConfig.position = spawnPoint;
 	eConfig.ignore = false;
 	eConfig.despawnRange = 40.0f;
+	eConfig.regeneration = 1.0f;
 	player = new Player(eConfig);
 	entities.Insert(player->gameObject->physics->ID(), player);
 
