@@ -79,7 +79,7 @@ bool TimeSlip::Initialize()
 	UI::GenerateText(generateWorldText, "Generate World", 20.0f);
 
 	OnMouse createWorldEvent{};
-	createWorldEvent.value = (void*)&smallWorldSize;
+	createWorldEvent.value = (void*)&testWorldSize;
 	createWorldEvent.callback = CreateWorld;
 
 	createWorldButton->OnClick = createWorldEvent;
@@ -239,10 +239,6 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	eConfig.regeneration = 1.0f;
 	player = new Player(eConfig);
 	entities.Insert(player->gameObject->physics->ID(), player);
-
-	eConfig.position += Vector2::RIGHT * 5.0f + Vector2::DOWN * 0.3f;
-	Enemy* enemy = new Enemy(eConfig, ENEMY_AI_BASIC);
-	entities.Insert(enemy->gameObject->physics->ID(), enemy);
 
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);

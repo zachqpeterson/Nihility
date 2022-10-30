@@ -1,4 +1,4 @@
 color=1.000000,1.000000,1.000000,1.000000
 shininess=0.000000
-globalTextureMaps=GrasslandDirt.bmp,GrasslandStone.bmp,MesaDirt.bmp,MesaStone.bmp,DesertDirt.bmp,DesertStone.bmp
+globalTextureMaps=GrasslandDirt.bmp,GrasslandStone.bmp,MesaDirt.bmp,MesaStone.bmp,DesertDirt.bmp,DesertStone.bmp,JungleDirt.bmp,JungleStone.bmp,MarshDirt.bmp,MarshStone.bmp
 shader=Block.shd
