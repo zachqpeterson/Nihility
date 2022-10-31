@@ -46,6 +46,7 @@ public:
 	void operator delete(void* ptr);
 
 	static void Init(Scene* scene);
+	static void Shutdown();
 	static void Update();
 
 	void ToggleShow();
@@ -59,7 +60,9 @@ public:
 	static void OnExit(UIElement* e, void* data);
 
 private:
-	static Texture* GetItemTexture(U16 itemID);
+	static Vector<Vector2>& GetUV(U16 itemID);
+
+	static Vector<Vector2> blankUVs;
 
 	Vector<Vector<Slot>> slots;
 	UIElement* backPanel;

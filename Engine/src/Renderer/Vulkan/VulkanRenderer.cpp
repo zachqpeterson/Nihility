@@ -589,8 +589,7 @@ bool VulkanRenderer::EndFrame()
 	VkPipelineStageFlags flags[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.pWaitDstStageMask = flags;
 
-	VkCheck_ERROR(vkQueueSubmit(rendererState->device->graphicsQueue, 1,
-		&submitInfo, rendererState->inFlightFences[rendererState->currentFrame]));
+	VkCheck_ERROR(vkQueueSubmit(rendererState->device->graphicsQueue, 1, &submitInfo, rendererState->inFlightFences[rendererState->currentFrame]));
 
 	commandBuffer->UpdateSubmitted();
 

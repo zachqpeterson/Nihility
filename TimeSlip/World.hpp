@@ -27,8 +27,8 @@ static const U8 biomeTileMods[BIOME_COUNT] =
 	0,	//Grasslands
 	2,	//Mesa
 	4,	//Desert
-	6,	//Jungle
-	8,	//Marsh
+	2,	//Jungle
+	4,	//Marsh
 };
 
 struct Tile;

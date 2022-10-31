@@ -251,16 +251,16 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			Vector2 length1D{ 0.5f, 0.5f };
 			Vector2Int step{ (I32)Math::Sign(dir.x), (I32)Math::Sign(dir.y) };
 
-			F32 decr = 1.5f / 16; // TODO: Intensity
+			F32 decr = 1.5f / 20; // TODO: Intensity
 			F32 distance = 0.0f;
 			F32 brightness = 1.0f;
 
 			bool checkX = !Math::NaN(unitStepSize.x);
 			bool checkY = !Math::NaN(unitStepSize.y);
 
-			while (distance < length && brightness > 0.0f)
+			while (brightness > 0.0f)
 			{
-				if ((length1D.x < length1D.y && checkX) || !checkY)
+				if (((length1D.x < length1D.y && checkX) || !checkY) && length1D.x < length)
 				{
 					start.x += step.x;
 					distance = length1D.x;
@@ -268,7 +268,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 					brightness -= (unitStepSize.x * decr) * (1 + (tiles[start.x][start.y].blockID > 0) * 2 + !checkY) * (distance < length);
 				}
-				else if (checkY)
+				else if (checkY && length1D.y < length)
 				{
 					start.y += step.y;
 					distance = length1D.y;
@@ -276,6 +276,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 					brightness -= (unitStepSize.y * decr) * (1 + (tiles[start.x][start.y].blockID > 0) * 2 + !checkX) * (distance < length);
 				}
+				else { break; }
 			}
 
 			color += c * Math::Max(brightness, 0.0f) * tiles[x][y].lightSource;
@@ -293,7 +294,7 @@ void World::BreakBlock(const Vector2Int& pos)
 		bool globalLight = !tiles[pos.x][pos.y].wallID;
 
 		TimeSlip::PickupItem(tiles[pos.x][pos.y].blockID, 1);
-		if (tiles[pos.x][pos.y].decID > 2) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID, 1); }
+		if (tiles[pos.x][pos.y].decID > 1) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID + 9, 1); }
 
 		tiles[pos.x][pos.y].blockID = 0;
 		tiles[pos.x][pos.y].decID = 0;

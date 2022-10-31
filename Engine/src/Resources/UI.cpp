@@ -922,8 +922,6 @@ void UI::ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector
 {
 	bool nullp = element->gameObject->model->meshes[0]->material.instanceTextureMaps[0].texture == nullptr;
 
-	Resources::ChangeInstanceTextures(element->gameObject->model->meshes[0]->material, { 1, texture });
-
 	if (uvs.Size())
 	{
 		UIVertex* vertices = (UIVertex*)element->mesh->vertices;
@@ -936,11 +934,16 @@ void UI::ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector
 		RendererFrontend::CreateMesh(element->mesh);
 	}
 
-	if (nullp && texture)
+	if (texture)
 	{
-		element->scene->DrawGameObject(element->gameObject);
+		Resources::ChangeInstanceTextures(element->gameObject->model->meshes[0]->material, { 1, texture });
+
+		if (nullp)
+		{
+			element->scene->DrawGameObject(element->gameObject);
+		}
 	}
-	else if (!nullp && !texture)
+	else if (!nullp && !uvs.Size())
 	{
 		element->scene->UndrawGameObject(element->gameObject);
 	}

@@ -99,6 +99,8 @@ void TimeSlip::Shutdown()
 	}
 
 	entities.Destroy();
+
+	Inventory::Shutdown();
 }
 
 bool TimeSlip::Update()
