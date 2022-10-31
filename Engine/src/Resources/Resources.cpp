@@ -1643,7 +1643,7 @@ Mesh* Resources::CreateMesh(MeshConfig& config)
 
 	Mesh* mesh = meshes[config.name];
 
-	if (!mesh)
+	if (!mesh || !mesh->internalData)
 	{
 		mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 		mesh->name = config.name;

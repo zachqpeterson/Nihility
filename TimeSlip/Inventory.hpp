@@ -59,6 +59,8 @@ public:
 	static void OnMove(UIElement* e, const Vector2Int& pos, void* data);
 	static void OnExit(UIElement* e, void* data);
 
+	const Vector<Slot>& operator[](U16 i) const { return slots[i]; }
+
 private:
 	static Vector<Vector2>& GetUV(U16 itemID);
 

@@ -137,51 +137,6 @@ void World::Update()
 		}
 	}
 
-	//TODO: Block mouse click with the ui
-	if (Input::ButtonDown(LEFT_CLICK))
-	{
-		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
-		Vector2 mousePos = (Vector2)Input::MousePos();
-		Vector2 screenSize = (Vector2)Platform::ScreenSize();
-		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
-		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
-
-		if (Input::ButtonDown(CONTROL))
-		{
-			BreakWall(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
-		}
-		else if (Input::ButtonDown(MENU))
-		{
-			RemoveLight(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
-		}
-		else
-		{
-			BreakBlock(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
-		}
-	}
-
-	if (Input::ButtonDown(RIGHT_CLICK))
-	{
-		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
-		Vector2 mousePos = (Vector2)Input::MousePos();
-		Vector2 screenSize = (Vector2)Platform::ScreenSize();
-		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
-		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
-
-		if (Input::ButtonDown(CONTROL))
-		{
-			PlaceWall(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
-		}
-		else if (Input::ButtonDown(MENU))
-		{
-			PlaceLight(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
-		}
-		else
-		{
-			PlaceBlock(Vector2Int{ ((mousePos - windowSize * 0.5f - windowOffset) / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, 1);
-		}
-	}
-
 	lastPos = posI;
 }
 

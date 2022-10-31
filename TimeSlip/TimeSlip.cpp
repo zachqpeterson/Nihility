@@ -16,6 +16,7 @@
 #include <Core/Input.hpp>
 #include <Core/Time.hpp>
 #include <Math/Math.hpp>
+#include <Platform/Platform.hpp>
 
 #define MAX_ENTITIES 10
 
@@ -114,6 +115,7 @@ bool TimeSlip::Update()
 	case GAME_STATE_GAME: {
 		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
 		Inventory::Update();
+		HandleInput();
 		world->Update();
 		HandleEntities();
 		UpdateDayCycle();
@@ -141,6 +143,54 @@ void TimeSlip::HandleInput()
 	else if (Input::OnButtonDown(EIGHT)) { equippedSlot = 7; }
 	else if (Input::OnButtonDown(NINE)) { equippedSlot = 8; }
 	else if (Input::OnButtonDown(ZERO)) { equippedSlot = 9; }
+
+	if (Input::ButtonDown(LEFT_CLICK))
+	{
+		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+		Vector2 mousePos = (Vector2)Input::MousePos();
+		Vector2 screenSize = (Vector2)Platform::ScreenSize();
+		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+		Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
+
+		if (distance.SqrMagnitude() < 20736.0f)
+		{
+			U16 itemID = (*hotBar)[equippedSlot][0].itemID;
+
+			if (itemID < 11)
+			{
+				world->PlaceBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
+			}
+			else if (itemID == 21)
+			{
+				world->BreakBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+			}
+		}
+	}
+
+	if (Input::ButtonDown(RIGHT_CLICK))
+	{
+		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+		Vector2 mousePos = (Vector2)Input::MousePos();
+		Vector2 screenSize = (Vector2)Platform::ScreenSize();
+		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+		Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
+
+		if (distance.SqrMagnitude() < 20736.0f)
+		{
+			U16 itemID = (*hotBar)[equippedSlot][0].itemID;
+
+			if (itemID < 11)
+			{
+				world->PlaceWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
+			}
+			else if (itemID == 21)
+			{
+				world->BreakWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+			}
+		}
+	}
 }
 
 void TimeSlip::HandleEntities()
@@ -174,9 +224,9 @@ void TimeSlip::HandleEntities()
 		Enemy* enemy = new Enemy(eConfig, ENEMY_AI_BASIC);
 		entities.Insert(enemy->gameObject->physics->ID(), enemy);
 	}
-	
+
 	auto end = entities.end();
-	for (auto it = entities.begin(); it != end;) 
+	for (auto it = entities.begin(); it != end;)
 	{
 		Entity* entity = *it;
 		Vector2 pos = entity->gameObject->transform->Position();
@@ -282,7 +332,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 	worldScene->GetCamera()->SetPosition({ spawnPoint.x, spawnPoint.y, 10.0f });
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
-	worldScene->GetCamera()->SetBounds({39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f});
+	worldScene->GetCamera()->SetBounds({ 39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f });
 
 	Inventory::Init(worldScene);
 
@@ -306,7 +356,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	config.ySpacing = 0.0182f;
 
 	inventory = new Inventory(config);
-	
+
 	config.yMax = 1;
 	config.slotCount = 9;
 	config.xPosition = 0.3f;
