@@ -294,7 +294,7 @@ void World::BreakBlock(const Vector2Int& pos)
 		bool globalLight = !tiles[pos.x][pos.y].wallID;
 
 		TimeSlip::PickupItem(tiles[pos.x][pos.y].blockID, 1);
-		if (tiles[pos.x][pos.y].decID > 1) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID + 9, 1); }
+		if (tiles[pos.x][pos.y].decID > 1) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID + 11, 1); } //TODO: stone and flint
 
 		tiles[pos.x][pos.y].blockID = 0;
 		tiles[pos.x][pos.y].decID = 0;

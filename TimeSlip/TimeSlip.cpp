@@ -32,6 +32,8 @@ Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 Inventory* TimeSlip::hotBar;
 
+U8 TimeSlip::equippedSlot;
+
 HashTable<U64, Entity*> TimeSlip::entities;
 
 U8 TimeSlip::playerCount;
@@ -125,6 +127,20 @@ bool TimeSlip::Update()
 	if (nextState) { gameState = nextState; nextState = GAME_STATE_NONE; }
 
 	return true;
+}
+
+void TimeSlip::HandleInput()
+{
+	if (Input::OnButtonDown(ONE)) { equippedSlot = 0; }
+	else if (Input::OnButtonDown(TWO)) { equippedSlot = 1; }
+	else if (Input::OnButtonDown(THREE)) { equippedSlot = 2; }
+	else if (Input::OnButtonDown(FOUR)) { equippedSlot = 3; }
+	else if (Input::OnButtonDown(FIVE)) { equippedSlot = 4; }
+	else if (Input::OnButtonDown(SIX)) { equippedSlot = 5; }
+	else if (Input::OnButtonDown(SEVEN)) { equippedSlot = 6; }
+	else if (Input::OnButtonDown(EIGHT)) { equippedSlot = 7; }
+	else if (Input::OnButtonDown(NINE)) { equippedSlot = 8; }
+	else if (Input::OnButtonDown(ZERO)) { equippedSlot = 9; }
 }
 
 void TimeSlip::HandleEntities()
@@ -297,6 +313,9 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	config.yPosition = 0.9f;
 
 	hotBar = new Inventory(config);
+
+	hotBar->AddItem(22, 1);
+	hotBar->AddItem(21, 1);
 
 	nextState = GAME_STATE_GAME;
 }

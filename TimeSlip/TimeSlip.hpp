@@ -31,6 +31,7 @@ public:
 	static bool Initialize();
 	static void Shutdown();
 	static bool Update();
+	static void HandleInput();
 	static void HandleEntities();
 	static void UpdateDayCycle();
 
@@ -55,6 +56,8 @@ private:
 	static Player* player; //Keep track of your character
 	static Inventory* inventory; //We only need to keep track of the inventory of your character
 	static Inventory* hotBar;
+
+	static U8 equippedSlot;
 
 	static HashTable<U64, Entity*> entities;
 

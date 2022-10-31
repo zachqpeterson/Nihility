@@ -252,6 +252,8 @@ public:
 	static const struct Vector2Int& MousePos();
 	static I16 MouseWheelDelta();
 
+	static void ConsumeInput(ButtonCode code);
+
 private:
 	static bool Initialize();
 	static void Shutdown();

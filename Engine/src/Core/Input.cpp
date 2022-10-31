@@ -5,7 +5,7 @@
 
 struct NH_API ButtonState
 {
-    bool pressed, changed;
+	bool pressed, changed, consumed;
 };
 
 struct ButtonState Input::buttonStates[BUTTON_COUNT];
@@ -15,82 +15,90 @@ Vector2Int Input::mousePos;
 
 bool Input::Initialize()
 {
-    Logger::Info("Initializing input...");
-    anyButtonDown = false;
-    mouseWheelDelta = 0;
-    mousePos = Vector2Int::ZERO;
+	Logger::Info("Initializing input...");
+	anyButtonDown = false;
+	mouseWheelDelta = 0;
+	mousePos = Vector2Int::ZERO;
 
-    return true;
+	return true;
 }
 
 void Input::Shutdown()
 {
-    
+
 }
 
 bool Input::OnAnyButtonDown()
 {
-    return anyButtonDown;
+	return anyButtonDown;
 }
 
 bool Input::ButtonDown(ButtonCode code)
 {
-    return buttonStates[code].pressed;
+	ButtonState& state = buttonStates[code];
+	return state.pressed && !state.consumed;
 }
 
 bool Input::OnButtonDown(ButtonCode code)
 {
-    ButtonState& state = buttonStates[code];
-    return state.pressed && state.changed;
+	ButtonState& state = buttonStates[code];
+	return state.pressed && state.changed && !state.consumed;
 }
 
 bool Input::OnButtonUp(ButtonCode code)
 {
-    ButtonState& state = buttonStates[code];
-    return !state.pressed && state.changed;
+	ButtonState& state = buttonStates[code];
+	return !state.pressed && state.changed && !state.consumed;
 }
 
 bool Input::OnButtonChange(ButtonCode code)
 {
-    return buttonStates[code].changed;
+	ButtonState& state = buttonStates[code];
+	return state.changed && !state.consumed;
 }
 
 const Vector2Int& Input::MousePos()
 {
-    return mousePos;
+	return mousePos;
 }
 
 I16 Input::MouseWheelDelta()
 {
-    return mouseWheelDelta;
+	return mouseWheelDelta;
+}
+
+void Input::ConsumeInput(ButtonCode code)
+{
+	buttonStates[code].consumed = true;
 }
 
 void Input::ResetInput()
 {
-    anyButtonDown = false;
+	anyButtonDown = false;
 
-    for (ButtonState& state : buttonStates)
-    {
-        state.changed = false;
-    }
+	for (ButtonState& state : buttonStates)
+	{
+		state.changed = false;
+		state.consumed = false;
+	}
 }
 
 void Input::SetButtonState(U8 code, bool down)
 {
-    anyButtonDown |= down;
-    ButtonState& state = buttonStates[code];
-    state.changed = down != state.pressed;
-    state.pressed = down;
+	anyButtonDown |= down;
+	ButtonState& state = buttonStates[code];
+	state.changed = down != state.pressed;
+	state.pressed = down;
 }
 
 void Input::SetMouseWheel(I16 delta)
 {
-    mouseWheelDelta = delta;
+	mouseWheelDelta = delta;
 }
 
 void Input::SetMousePos(I32 x, I32 y)
 {
-    Vector2Int& v = mousePos;
-    v.x = x;
-    v.y = y;
+	Vector2Int& v = mousePos;
+	v.x = x;
+	v.y = y;
 }
