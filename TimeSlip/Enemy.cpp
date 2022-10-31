@@ -45,7 +45,7 @@ void Enemy::Update()
 
 	if (aggressive && !target)
 	{
-		target = TimeSlip::GetTarget(gameObject->transform);
+		target = TimeSlip::GetTarget(gameObject->transform, 40.0f); //TODO: Chase range
 	}
 
 	switch (aiType)
@@ -68,12 +68,12 @@ void Enemy::BasicAI()
 		Vector2 dir = target->Position() - gameObject->transform->Position();
 		F32 dist = dir.Magnitude();
 
-		if (dist > 10.0f)
+		if (dist > 40.0f) //TODO: Chase range
 		{
 			startChase = false;
 			target = nullptr;
 		}
-		else if (dist < 1.0f)
+		else if (dist < 1.0f) //TODO: Attack range
 		{
 			startChase = false;
 

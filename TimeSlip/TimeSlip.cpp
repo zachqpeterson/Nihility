@@ -4,6 +4,7 @@
 #include "Inventory.hpp"
 #include "Entity.hpp"
 #include "Enemy.hpp"
+#include "Tile.hpp"
 
 #include <Engine.hpp>
 #include <Renderer/RendererFrontend.hpp>
@@ -130,9 +131,32 @@ void TimeSlip::HandleEntities()
 {
 	U16 maxEntities = MAX_ENTITIES + ((MAX_ENTITIES >> 1) * (playerCount - 1));
 
-	if (entities.Size() - playerCount < maxEntities)
+	if (entities.Size() - playerCount < maxEntities && Math::RandomF() < ((F32)Time::DeltaTime() * 0.5f))
 	{
-		//TODO: Spawn Entities
+		Vector2 spawn;
+		Vector2 playerPos = player->gameObject->transform->Position();
+		spawn.x = (U16)playerPos.x + 45.0f;
+
+		for (U16 y = (U16)playerPos.y; y > 0; --y)
+		{
+			if (world->tiles[(U16)spawn.x][y].blockID == 0 && world->tiles[(U16)spawn.x][y - 1].blockID == 0)
+			{
+				spawn.y = y - 0.5f;
+				break;
+			}
+		}
+
+		EntityConfig eConfig{};
+		eConfig.armor = 0.0f;
+		eConfig.damageReduction = 0.0f;
+		eConfig.knockbackReduction = 0.0f;
+		eConfig.maxHealth = 100.0f;
+		eConfig.position = spawn;
+		eConfig.ignore = false;
+		eConfig.despawnRange = 60.0f;
+		eConfig.regeneration = 0.0f;
+		Enemy* enemy = new Enemy(eConfig, ENEMY_AI_BASIC);
+		entities.Insert(enemy->gameObject->physics->ID(), enemy);
 	}
 	
 	auto end = entities.end();
@@ -177,17 +201,15 @@ void TimeSlip::PickupItem(U16 itemID, U16 amount)
 	inventory->AddItem(itemID, amount);
 }
 
-Transform2D* TimeSlip::GetTarget(Transform2D* position)
+Transform2D* TimeSlip::GetTarget(Transform2D* position, F32 range)
 {
 	Vector2 pos = position->Position();
 
 	Transform2D* bestTarget = nullptr;
 
-	F32 maxDistance = 10.0f;
-
 	for (Entity* entity : entities)
 	{
-		if (entity->player && (entity->gameObject->transform->Position() - pos).Magnitude() < maxDistance)
+		if (entity->player && (entity->gameObject->transform->Position() - pos).Magnitude() < range)
 		{
 			bestTarget = entity->gameObject->transform;
 		}

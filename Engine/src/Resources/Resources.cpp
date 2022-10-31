@@ -179,7 +179,7 @@ bool Resources::Initialize()
 	LoadMaterial("Wall.mat");
 	LoadMaterial("Block.mat");
 	LoadMaterial("Decoration.mat");
-	LoadMaterial("Player.mat");
+	LoadMaterial("Entity.mat");
 	LoadMaterial("Liquid.mat");
 	LoadMaterial("UI.mat");
 

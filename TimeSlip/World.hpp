@@ -72,4 +72,6 @@ private:
 
 	Tile** tiles;
 	Chunk** chunks;
+
+	friend class TimeSlip;
 };

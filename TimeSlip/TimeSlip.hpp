@@ -36,7 +36,7 @@ public:
 
 	static void PickupItem(U16 itemID, U16 amount);
 
-	static Transform2D* GetTarget(Transform2D* position);
+	static Transform2D* GetTarget(Transform2D* position, F32 range);
 	static void Attack(const Damage& damage, const Vector4& area);
 
 private:

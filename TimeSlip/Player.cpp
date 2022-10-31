@@ -75,7 +75,7 @@ void Player::Update()
 		{
 			attackCooldown = 0.25f;
 			Damage damage{};
-			damage.damage = 10;
+			damage.damage = 25;
 			damage.armorPierce = 0;
 			damage.critChance = 0.1f;
 			damage.critMulti = 1.0f;

@@ -1,4 +1,4 @@
 color=1.000000,1.000000,1.000000,1.000000
 shininess=0.000000
 globalTextureMaps=DesertDirt.bmp
-shader=Player.shd
+shader=Entity.shd

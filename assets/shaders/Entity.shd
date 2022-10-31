@@ -1,6 +1,6 @@
-renderpass=Player.rnp
+renderpass=Entity.rnp
 stages=vertex,fragment
-stagefiles=shaders/Player.vert.spv,shaders/Player.frag.spv
+stagefiles=shaders/Entity.vert.spv,shaders/Entity.frag.spv
 useInstance=0
 useLocal=1
 renderOrder=2

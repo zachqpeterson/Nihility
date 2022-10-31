@@ -23,7 +23,7 @@ ignore{ config.ignore }, player{ player }, despawnRange{ config.despawnRange }
 	String name{ "Entity{}", ++id };
 
 	MeshConfig meshConfig{};
-	meshConfig.MaterialName = "Player.mat";
+	meshConfig.MaterialName = "Entity.mat";
 	meshConfig.vertices = Memory::Allocate(sizeof(Vertex) * 4, MEMORY_TAG_RESOURCE);
 	meshConfig.vertexSize = sizeof(Vertex);
 	meshConfig.vertexCount = 4;
@@ -32,10 +32,10 @@ ignore{ config.ignore }, player{ player }, despawnRange{ config.despawnRange }
 
 	Vertex* vertices = (Vertex*)meshConfig.vertices;
 
-	vertices[0] = Vertex{ {-0.5f, -1.0f, 1.0f}, {0.0f, 0.125f} };
-	vertices[1] = Vertex{ { 0.5f, -1.0f, 1.0f}, {0.166666f, 0.125f} };
-	vertices[2] = Vertex{ { 0.5f,  1.0f, 1.0f}, {0.166666f, 0.0f} };
-	vertices[3] = Vertex{ {-0.5f,  1.0f, 1.0f}, {0.0f, 0.0f} };
+	vertices[0] = Vertex{ {-0.5f, -1.0f, 0.0f}, {0.0f, 0.125f} };
+	vertices[1] = Vertex{ { 0.5f, -1.0f, 0.0f}, {0.166666f, 0.125f} };
+	vertices[2] = Vertex{ { 0.5f,  1.0f, 0.0f}, {0.166666f, 0.0f} };
+	vertices[3] = Vertex{ {-0.5f,  1.0f, 0.0f}, {0.0f, 0.0f} };
 
 	meshConfig.indices[0] = 0;
 	meshConfig.indices[1] = 1;
