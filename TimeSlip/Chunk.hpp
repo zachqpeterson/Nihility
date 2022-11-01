@@ -2,11 +2,13 @@
 
 #include <Defines.hpp>
 #include <Containers/Array.hpp>
+#include <Containers/Vector.hpp>
 #include <Math/Math.hpp>
 
 #define CHUNK_SIZE 8
 
 struct Model;
+struct Mesh;
 struct Tile;
 
 class World;
@@ -38,7 +40,7 @@ public:
 
 	void UpdateLighting(const Vector2Int& pos);
 
-	void UpdateMeshes();
+	void UpdateMeshes(Vector<Mesh*>& meshes);
 
 private:
 	Array<Tile*, CHUNK_SIZE>& SetTiles();

@@ -255,7 +255,7 @@ public:
 		if (node->prev) { node->prev->next = node->next; }
 		if (node->next) { node->next->prev = node->prev; }
 
-		T value = node->value;
+		T&& value = Move(node->value);
 
 		delete node;
 
@@ -350,7 +350,7 @@ public:
 			Node* tempNode = head;
 			head = head->next;
 			if (head) { head->prev = nullptr; }
-			T value = tempNode->value;
+			T&& value = Move(tempNode->value);
 			delete tempNode;
 			return Move(value);
 		}

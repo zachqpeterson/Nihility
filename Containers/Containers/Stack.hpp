@@ -86,7 +86,7 @@ public:
             --size;
             Node* tempNode = head;
             head = head->next;
-            T value = tempNode->value;
+            T&& value = Move(tempNode->value);
             delete tempNode;
             return Move(value);
         }

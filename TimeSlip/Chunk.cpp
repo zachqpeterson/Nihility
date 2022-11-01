@@ -289,7 +289,10 @@ void Chunk::UpdateLighting(const Vector2Int& pos)
 	}
 }
 
-void Chunk::UpdateMeshes()
+void Chunk::UpdateMeshes(Vector<Mesh*>& meshes)
 {
-	if (loaded) { RendererFrontend::BatchCreateMeshes(model->meshes); }
+	for (Mesh* mesh : model->meshes)
+	{
+		meshes.Push(mesh);
+	}
 }
