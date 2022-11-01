@@ -18,9 +18,11 @@ struct NH_API Freelist
 	};
 
 public:
-	Freelist() : totalSize{ 0 }, freeSpace{ 0 }, nodes{ nullptr }, head{ nullptr }, good{ false } {}
+	Freelist() : totalSize{ 0 }, freeSpace{ 0 }, nodes{ nullptr }, head{ nullptr }, good{ false }, allocated{ false } {}
 	Freelist(U64 size);
 	void Create(U64 size);
+	~Freelist();
+	void Destroy();
 
 	U64 AllocateBlock(U64 size);
 	bool FreeBlock(U64 size, U64 offset);
@@ -42,6 +44,7 @@ private:
 	Node* head;
 
 	bool good;
+	bool allocated;
 
 	Freelist(const Freelist& other) = delete;
 	Freelist& operator=(const Freelist& other) = delete;

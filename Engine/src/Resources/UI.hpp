@@ -118,6 +118,7 @@ public:
 	static void ChangeScene(UIElement* element, Scene* scene = nullptr);
 	static void ChangeSize(UIElement* element, const Vector4& newArea);
 	static void MoveElement(UIElement* element, const Vector2Int& delta);
+	static void MoveElement(UIElement* element, const Vector2& delta);
 	static void SetElementPosition(UIElement* element, const Vector2Int& position);
 	static void ChangeColor(UIElement* element, const Vector4& newColor);
 	static void ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);

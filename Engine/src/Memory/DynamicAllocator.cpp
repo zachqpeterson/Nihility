@@ -24,6 +24,8 @@ DynamicAllocator::~DynamicAllocator()
 
 void DynamicAllocator::Destroy()
 {
+	allocations.Destroy();
+
 	if (memory)
 	{
 		linearOffset = 0;

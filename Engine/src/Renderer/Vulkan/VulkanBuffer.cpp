@@ -56,6 +56,11 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 
 void VulkanBuffer::Destroy(RendererState* rendererState)
 {
+	if (hasFreelist)
+	{
+		freelist.Destroy();
+	}
+
 	if (memory)
 	{
 		vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);

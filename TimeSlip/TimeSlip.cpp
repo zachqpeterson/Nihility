@@ -134,16 +134,16 @@ bool TimeSlip::Update()
 
 void TimeSlip::HandleInput()
 {
-	if (Input::OnButtonDown(ONE)) { equippedSlot = 0; }
-	else if (Input::OnButtonDown(TWO)) { equippedSlot = 1; }
-	else if (Input::OnButtonDown(THREE)) { equippedSlot = 2; }
-	else if (Input::OnButtonDown(FOUR)) { equippedSlot = 3; }
-	else if (Input::OnButtonDown(FIVE)) { equippedSlot = 4; }
-	else if (Input::OnButtonDown(SIX)) { equippedSlot = 5; }
-	else if (Input::OnButtonDown(SEVEN)) { equippedSlot = 6; }
-	else if (Input::OnButtonDown(EIGHT)) { equippedSlot = 7; }
-	else if (Input::OnButtonDown(NINE)) { equippedSlot = 8; }
-	else if (Input::OnButtonDown(ZERO)) { equippedSlot = 9; }
+	if (Input::OnButtonDown(ONE)) { UI::MoveElement(hotbarHighlight, Vector2{ -equippedSlot * 0.04333333333f, 0.0f }); equippedSlot = 0; }
+	else if (Input::OnButtonDown(TWO)) { UI::MoveElement(hotbarHighlight, Vector2{ (1.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 1; }
+	else if (Input::OnButtonDown(THREE)) { UI::MoveElement(hotbarHighlight, Vector2{ (2.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 2; }
+	else if (Input::OnButtonDown(FOUR)) { UI::MoveElement(hotbarHighlight, Vector2{ (3.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 3; }
+	else if (Input::OnButtonDown(FIVE)) { UI::MoveElement(hotbarHighlight, Vector2{ (4.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 4; }
+	else if (Input::OnButtonDown(SIX)) { UI::MoveElement(hotbarHighlight, Vector2{ (5.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 5; }
+	else if (Input::OnButtonDown(SEVEN)) { UI::MoveElement(hotbarHighlight, Vector2{ (6.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 6; }
+	else if (Input::OnButtonDown(EIGHT)) { UI::MoveElement(hotbarHighlight, Vector2{ (7.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 7; }
+	else if (Input::OnButtonDown(NINE)) { UI::MoveElement(hotbarHighlight, Vector2{ (8.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 8; }
+	else if (Input::OnButtonDown(ZERO)) { UI::MoveElement(hotbarHighlight, Vector2{ (9.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 9; }
 	//TODO: Scrolling
 
 	if (Input::ButtonDown(LEFT_CLICK))

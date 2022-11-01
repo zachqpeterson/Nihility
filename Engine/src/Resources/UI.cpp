@@ -888,6 +888,11 @@ void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 	element->gameObject->transform->Translate(translate);
 }
 
+void UI::MoveElement(UIElement* element, const Vector2& delta)
+{
+	element->gameObject->transform->Translate(delta * 2.0f);
+}
+
 void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
 {
 	Vector2 scaledPos = (Vector2)position / (Vector2)RendererFrontend::WindowSize();

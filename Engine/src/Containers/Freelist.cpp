@@ -3,12 +3,19 @@
 #include "Core/Logger.hpp"
 #include "Containers/String.hpp"
 
-Freelist::Freelist(U64 size) : totalSize{ size }, freeSpace{ size }, head{ nodes }, good{ false }
+Freelist::Freelist(U64 size) : totalSize{ size }, freeSpace{ size },
+nodes{ (Node*)Memory::Allocate(sizeof(Node) * MAX_ALLOCATIONS, MEMORY_TAG_DATA_STRUCT) }, head{ nodes }, good{ true }, allocated{ true }
 {
-	head = nodes;
 	head->size = totalSize;
 	head->offset = 0;
 	head->next = nullptr;
+
+	for (U64 i = 1; i < MAX_ALLOCATIONS; ++i)
+	{
+		nodes[i].offset = U64_MAX;
+		nodes[i].size = U64_MAX;
+		nodes[i].next = nullptr;
+	}
 }
 
 void Freelist::Create(U64 size)
@@ -22,6 +29,7 @@ void Freelist::Create(U64 size)
 	head->offset = 0;
 	head->next = nullptr;
 	good = true;
+	allocated = true;
 
 	for (U64 i = 1; i < MAX_ALLOCATIONS; ++i)
 	{
@@ -44,6 +52,7 @@ U64 Freelist::Create(U64 size, void* memory)
 	head->offset = 0;
 	head->next = nullptr;
 	good = true;
+	allocated = false;
 
 	for (U64 i = 1; i < MAX_ALLOCATIONS; ++i)
 	{
@@ -53,6 +62,25 @@ U64 Freelist::Create(U64 size, void* memory)
 	}
 
 	return offset;
+}
+
+Freelist::~Freelist()
+{
+	Destroy();
+}
+
+void Freelist::Destroy()
+{
+	if (allocated)
+	{
+		Memory::Free(nodes, sizeof(Node) * MAX_ALLOCATIONS, MEMORY_TAG_DATA_STRUCT);
+	}
+
+	head = nullptr;
+	totalSize = 0;
+	freeSpace = 0;
+	good = false;
+	allocated = false;
 }
 
 U64 Freelist::AllocateBlock(U64 size)
@@ -103,33 +131,6 @@ U64 Freelist::AllocateBlock(U64 size)
 
 	Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);
 	return U64_MAX;
-
-	/*if (head == nullptr || size <= head->offset)
-	{
-		head = new Node(size, 0, head);
-		freeSpace -= size;
-		return 0;
-	}
-
-	Node* node = head;
-	U64 offset = head->size;
-
-	while (offset < U64_MAX)
-	{
-		if (!node->next || (node->next->offset - (node->size + node->offset)) >= size)
-		{
-			node->next = new Node(size, offset, node->next);
-			freeSpace -= size;
-
-			return offset;
-		}
-
-		offset = node->next->size + node->next->offset;
-		node = node->next;
-	}
-
-	Logger::Error("Freelist::AllocateBlock: No section large enough to take {} bytes, must defragment", size);
-	return 0;*/
 }
 
 bool Freelist::FreeBlock(U64 size, U64 offset)
@@ -214,45 +215,6 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
 
 	Logger::Error("Freelist::FreeBlock: There is no memory block at offset {}", offset);
 	return false;
-
-
-	/*if (offset == head->offset)
-	{
-		Node* temp = head->next;
-		delete head;
-		head = temp;
-		freeSpace += size;
-
-		return true;
-	}
-
-	Node* node = head->next;
-	Node* prev = head;
-
-	while (node && node->offset < offset)
-	{
-		prev = node;
-		node = node->next;
-	}
-
-	if (node && node->offset == offset)
-	{
-		if (node->size != size)
-		{
-			Logger::Error("Freelist::FreeBlock: Memory block at offset {} is not of size {}!", offset, size);
-			return false;
-		}
-
-		Node* temp = node->next;
-		delete node;
-		prev->next = temp;
-		freeSpace += size;
-
-		return true;
-	}
-
-	Logger::Error("Freelist::FreeBlock: There is no memory block at offset {}", offset);
-	return false;*/
 }
 
 bool Freelist::Resize(U64 size)
