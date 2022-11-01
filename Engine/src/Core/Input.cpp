@@ -5,7 +5,7 @@
 
 struct NH_API ButtonState
 {
-	bool pressed, changed, consumed;
+	bool pressed, changed, consumed, dblClicked;
 };
 
 struct ButtonState Input::buttonStates[BUTTON_COUNT];
@@ -57,6 +57,12 @@ bool Input::OnButtonChange(ButtonCode code)
 	return state.changed && !state.consumed;
 }
 
+bool Input::OnButtonDoubleClick(ButtonCode code)
+{
+	ButtonState& state = buttonStates[code];
+	return state.dblClicked && !state.consumed;
+}
+
 const Vector2Int& Input::MousePos()
 {
 	return mousePos;
@@ -75,20 +81,23 @@ void Input::ConsumeInput(ButtonCode code)
 void Input::ResetInput()
 {
 	anyButtonDown = false;
+	mouseWheelDelta = 0;
 
 	for (ButtonState& state : buttonStates)
 	{
 		state.changed = false;
 		state.consumed = false;
+		state.dblClicked = false;
 	}
 }
 
-void Input::SetButtonState(U8 code, bool down)
+void Input::SetButtonState(U8 code, bool down, bool dbl)
 {
 	anyButtonDown |= down;
 	ButtonState& state = buttonStates[code];
 	state.changed = down != state.pressed;
 	state.pressed = down;
+	state.dblClicked |= dbl;
 }
 
 void Input::SetMouseWheel(I16 delta)

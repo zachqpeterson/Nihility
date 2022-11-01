@@ -31,7 +31,8 @@ Vector3 TimeSlip::globalColor;
 
 Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
-Inventory* TimeSlip::hotBar;
+Inventory* TimeSlip::hotbar;
+UIElement* TimeSlip::hotbarHighlight;
 
 U8 TimeSlip::equippedSlot;
 
@@ -143,10 +144,11 @@ void TimeSlip::HandleInput()
 	else if (Input::OnButtonDown(EIGHT)) { equippedSlot = 7; }
 	else if (Input::OnButtonDown(NINE)) { equippedSlot = 8; }
 	else if (Input::OnButtonDown(ZERO)) { equippedSlot = 9; }
+	//TODO: Scrolling
 
 	if (Input::ButtonDown(LEFT_CLICK))
 	{
-		U16 itemID = (*hotBar)[equippedSlot][0].itemID;
+		U16 itemID = (*hotbar)[equippedSlot][0].itemID;
 
 		if (itemID == 22)
 		{
@@ -177,7 +179,7 @@ void TimeSlip::HandleInput()
 
 	if (Input::ButtonDown(RIGHT_CLICK))
 	{
-		U16 itemID = (*hotBar)[equippedSlot][0].itemID;
+		U16 itemID = (*hotbar)[equippedSlot][0].itemID;
 
 		if (itemID == 22)
 		{
@@ -376,10 +378,20 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	config.xPosition = 0.3f;
 	config.yPosition = 0.9f;
 
-	hotBar = new Inventory(config);
+	hotbar = new Inventory(config);
 
-	hotBar->AddItem(22, 1);
-	hotBar->AddItem(21, 1);
+	UIElementConfig highlightConfig{};
+	highlightConfig.color = { 1.0f, 1.0f, 0.0f, 0.25f };
+	highlightConfig.enabled = true;
+	highlightConfig.ignore = true;
+	highlightConfig.position = { 0.31f, 0.9182f };
+	highlightConfig.scale = { 0.033333333333f, 0.0624f };
+	highlightConfig.scene = worldScene;
+
+	hotbarHighlight = UI::GeneratePanel(highlightConfig, false);
+
+	hotbar->AddItem(22, 1);
+	hotbar->AddItem(21, 1);
 
 	nextState = GAME_STATE_GAME;
 }

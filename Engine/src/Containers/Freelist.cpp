@@ -3,7 +3,7 @@
 #include "Core/Logger.hpp"
 #include "Containers/String.hpp"
 
-Freelist::Freelist(U64 size) : totalSize{ size }, freeSpace{ size }, head{ nodes }
+Freelist::Freelist(U64 size) : totalSize{ size }, freeSpace{ size }, head{ nodes }, good{ false }
 {
 	head = nodes;
 	head->size = totalSize;
@@ -21,6 +21,7 @@ void Freelist::Create(U64 size)
 	head->size = totalSize;
 	head->offset = 0;
 	head->next = nullptr;
+	good = true;
 
 	for (U64 i = 1; i < MAX_ALLOCATIONS; ++i)
 	{
@@ -37,11 +38,12 @@ U64 Freelist::Create(U64 size, void* memory)
 	totalSize = size - offset;
 	freeSpace = totalSize;
 	nodes = (Node*)memory;
-	
+
 	head = nodes;
 	head->size = totalSize;
 	head->offset = 0;
 	head->next = nullptr;
+	good = true;
 
 	for (U64 i = 1; i < MAX_ALLOCATIONS; ++i)
 	{
@@ -55,7 +57,7 @@ U64 Freelist::Create(U64 size, void* memory)
 
 U64 Freelist::AllocateBlock(U64 size)
 {
-	if (size > freeSpace)
+	if (size > freeSpace || !good)
 	{
 		Logger::Error("Freelist::AllocateBlock: Not enough space to allocate {} bytes, space left: {}", size, freeSpace);
 		return 0;
@@ -87,8 +89,8 @@ U64 Freelist::AllocateBlock(U64 size)
 
 			return offset;
 		}
-		else if(node->size > size)
-		{ 
+		else if (node->size > size)
+		{
 			U64 offset = node->offset;
 			node->size -= size;
 			node->offset += size;
@@ -132,6 +134,8 @@ U64 Freelist::AllocateBlock(U64 size)
 
 bool Freelist::FreeBlock(U64 size, U64 offset)
 {
+	if (!good) { return false; }
+
 	Node* node = head;
 	Node* previous = nullptr;
 
@@ -145,9 +149,9 @@ bool Freelist::FreeBlock(U64 size, U64 offset)
 	}
 	else
 	{
-		while(node)
+		while (node)
 		{
-			if(node->offset == offset)
+			if (node->offset == offset)
 			{
 				node->size += size;
 

@@ -327,32 +327,42 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 
 		//TODO: Handle left and right menu keys
 
-		Input::SetButtonState(code, pressed);
+		Input::SetButtonState(code, pressed, false);
 	} return 0;
 	case WM_LBUTTONDOWN: {
-		Input::SetButtonState(1, true);
-	} break;
+		Input::SetButtonState(1, true, false);
+	} return 0;
 	case WM_MBUTTONDOWN: {
-		Input::SetButtonState(4, true);
-	} break;
+		Input::SetButtonState(4, true, false);
+	} return 0;
 	case WM_RBUTTONDOWN: {
-		Input::SetButtonState(2, true);
-	} break;
+		Input::SetButtonState(2, true, false);
+	} return 0;
 	case WM_LBUTTONUP: {
-		Input::SetButtonState(1, false);
-	} break;
+		Input::SetButtonState(1, false, false);
+	} return 0;
 	case WM_MBUTTONUP: {
-		Input::SetButtonState(4, false);
-	} break;
+		Input::SetButtonState(4, false, false);
+	} return 0;
 	case WM_RBUTTONUP: {
-		Input::SetButtonState(2, false);
-	} break;
+		Input::SetButtonState(2, false, false);
+	} return 0;
+	case WM_LBUTTONDBLCLK: {
+		Input::SetButtonState(1, false, true);
+	} return 0;
+	case WM_MBUTTONDBLCLK: {
+		Input::SetButtonState(4, false, true);
+	} return 0;
+	case WM_RBUTTONDBLCLK: {
+		Input::SetButtonState(2, false, true);
+	} return 0;
+	//TODO: Hanlde "X" buttons and "Cancel"
 	case WM_MOUSEWHEEL: {
 		Input::SetMouseWheel(I16(GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER));
-	} break;
+	} return 0;
 	case WM_MOUSEMOVE: {
 		Input::SetMousePos(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-	} break;
+	} return 0;
 	}
 
 	return DefWindowProcA(hwnd, msg, wParam, lParam);

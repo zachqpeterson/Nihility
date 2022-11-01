@@ -249,6 +249,7 @@ public:
 	static bool OnButtonDown(ButtonCode code);
 	static bool OnButtonUp(ButtonCode code);
 	static bool OnButtonChange(ButtonCode code);
+	static bool OnButtonDoubleClick(ButtonCode code);
 	static const struct Vector2Int& MousePos();
 	static I16 MouseWheelDelta();
 
@@ -259,7 +260,7 @@ private:
 	static void Shutdown();
 
 	static void ResetInput();
-	static void SetButtonState(U8 code, bool down);
+	static void SetButtonState(U8 code, bool down, bool dbl);
 	static void SetMouseWheel(I16 delta);
 	static void SetMousePos(I32 x, I32 y);
 

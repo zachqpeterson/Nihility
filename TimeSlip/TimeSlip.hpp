@@ -55,7 +55,8 @@ private:
 
 	static Player* player; //Keep track of your character
 	static Inventory* inventory; //We only need to keep track of the inventory of your character
-	static Inventory* hotBar;
+	static Inventory* hotbar;
+	static UIElement* hotbarHighlight;
 
 	static U8 equippedSlot;
 

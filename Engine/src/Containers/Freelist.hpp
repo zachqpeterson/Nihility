@@ -18,7 +18,7 @@ struct NH_API Freelist
 	};
 
 public:
-	Freelist() : totalSize{ 0 }, freeSpace{ 0 }, nodes{ nullptr }, head{ nullptr } {}
+	Freelist() : totalSize{ 0 }, freeSpace{ 0 }, nodes{ nullptr }, head{ nullptr }, good{ false } {}
 	Freelist(U64 size);
 	void Create(U64 size);
 
@@ -40,6 +40,8 @@ private:
 
 	Node* nodes;
 	Node* head;
+
+	bool good;
 
 	Freelist(const Freelist& other) = delete;
 	Freelist& operator=(const Freelist& other) = delete;
