@@ -33,10 +33,10 @@ public:
 	void Load(const Vector2Int& pos);
 	void Unload();
 
-	void EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
-	void EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
-	void EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
-	void EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditBlock(const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditWall(const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditDecoration(const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void EditLiquid(const Vector2Int& worldPos, const Vector2Int& tilePos);
 
 	void UpdateLighting(const Vector2Int& pos);
 

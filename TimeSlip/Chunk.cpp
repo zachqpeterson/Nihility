@@ -159,7 +159,7 @@ void Chunk::Unload()
 	loaded = false;
 }
 
-void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+void Chunk::EditBlock(const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
 	if (loaded)
 	{
@@ -180,7 +180,7 @@ void Chunk::EditBlock(U8 id, const Vector2Int& worldPos, const Vector2Int& tileP
 	}
 }
 
-void Chunk::EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+void Chunk::EditWall(const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
 	if (loaded)
 	{
@@ -201,13 +201,13 @@ void Chunk::EditWall(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePo
 	}
 }
 
-void Chunk::EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+void Chunk::EditDecoration(const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
 	if (loaded)
 	{
 		Mesh* mesh = model->meshes[2];
 
-		Vector2 uv = world->DecorationUV(worldPos, id);
+		Vector2 uv = world->DecorationUV(worldPos, tiles[tilePos.x][tilePos.y].decID);
 		Vector3 pos = (Vector3)worldPos;
 
 		Vertex* vertices = (Vertex*)mesh->vertices;
@@ -222,7 +222,7 @@ void Chunk::EditDecoration(U8 id, const Vector2Int& worldPos, const Vector2Int& 
 	}
 }
 
-void Chunk::EditLiquid(U8 id, const Vector2Int& worldPos, const Vector2Int& tilePos)
+void Chunk::EditLiquid(const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
 	if (loaded)
 	{

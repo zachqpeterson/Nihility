@@ -14,4 +14,4 @@ attribute=U32,inTexId
 uniform=mat4,0,0,projection
 uniform=mat4,0,0,view
 uniform=vec3,0,0,ambientColor
-uniform=samp,0,1,diffuseTexture,5
+uniform=samp,0,1,diffuseTexture,8
