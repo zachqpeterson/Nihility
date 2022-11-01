@@ -99,7 +99,7 @@ bool Platform::Initialize(const String& applicationName)
 	platformState.windowWidth = platformState.clientSize.x + borderRect.right - borderRect.left;
 	platformState.windowHeight = platformState.clientSize.y + borderRect.bottom - borderRect.top;
 
-	HWND handle = CreateWindowExA(0, "Nihility Window Class", applicationName, platformState.style, 
+	HWND handle = CreateWindowExA(0, "Nihility Window Class", applicationName, platformState.style,
 		platformState.windowX, platformState.windowY, platformState.windowWidth, platformState.windowHeight, 0, 0, platformState.hInstance, 0);
 
 	if (handle == nullptr)
@@ -185,7 +185,7 @@ void Platform::LockMouse(bool lock)
 
 		F32 aspectHeight = clipRect.bottom * 1.77777777778f;
 		F32 aspectWidth = clipRect.right * 0.5625f;
-		
+
 		if (clipRect.right > aspectHeight)
 		{
 			I32 offset = (I32)((clipRect.right - aspectHeight) * 0.5f);
@@ -302,13 +302,30 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 	case WM_CLOSE: Events::Notify("CLOSE", nullptr); platformState.running = false; return 0;
 	case WM_DESTROY: PostQuitMessage(0); return 0;
 	case WM_SIZE: {
-		if (!Settings::Fullscreen)
+		switch (wParam)
 		{
+		case SIZE_MINIMIZED: {
+			Settings::WINDOW_WIDTH = LOWORD(lParam);
+			Settings::WINDOW_HEIGHT = HIWORD(lParam);
+		} break;
+		case SIZE_MAXIMIZED: {
+			Settings::FULLSCREEN = true;
+			Settings::WINDOW_WIDTH = LOWORD(lParam);
+			Settings::WINDOW_HEIGHT = HIWORD(lParam);
+		} break;
+		case SIZE_RESTORED: {
+			Settings::FULLSCREEN = false;
+			Settings::WINDOW_WIDTH = LOWORD(lParam);
+			Settings::WINDOW_HEIGHT = HIWORD(lParam);
+		} break;
+		default: {
+			Settings::WINDOW_WIDTH = LOWORD(lParam);
+			Settings::WINDOW_HEIGHT = HIWORD(lParam);
 			Settings::WINDOW_WIDTH_SMALL = LOWORD(lParam);
 			Settings::WINDOW_HEIGHT_SMALL = HIWORD(lParam);
+		} break;
 		}
-		Settings::WINDOW_WIDTH = LOWORD(lParam);
-		Settings::WINDOW_HEIGHT = HIWORD(lParam);
+
 		Events::Notify("Resize", NULL);
 	} return 0;
 	case WM_MOVE: {
@@ -356,7 +373,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 	case WM_RBUTTONDBLCLK: {
 		Input::SetButtonState(2, false, true);
 	} return 0;
-	//TODO: Hanlde "X" buttons and "Cancel"
+		//TODO: Handle "X" buttons and "Cancel"
 	case WM_MOUSEWHEEL: {
 		Input::SetMouseWheel((I16)((F32)GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER));
 	} return 0;

@@ -986,11 +986,12 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		element->gameObject->model->meshes.Clear();
 	}
 
-	if (text)
+	Vector2Int dimentions = RendererFrontend::WindowSize();
+
+	if (text && !dimentions.Zero())
 	{
 		String name("UI_Element_{}", element->id);
 		Vector4 uiArea = element->area;
-		Vector2Int dimentions = RendererFrontend::WindowSize();
 
 		uiArea *= 2.0f;
 		uiArea -= 1.0f;
