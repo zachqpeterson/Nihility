@@ -146,48 +146,62 @@ void TimeSlip::HandleInput()
 
 	if (Input::ButtonDown(LEFT_CLICK))
 	{
-		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
-		Vector2 mousePos = (Vector2)Input::MousePos();
-		Vector2 screenSize = (Vector2)Platform::ScreenSize();
-		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
-		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
-		Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
+		U16 itemID = (*hotBar)[equippedSlot][0].itemID;
 
-		if (distance.SqrMagnitude() < 20736.0f)
+		if (itemID == 22)
 		{
-			U16 itemID = (*hotBar)[equippedSlot][0].itemID;
+			player->Attack();
+		}
+		else
+		{
+			Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+			Vector2 mousePos = (Vector2)Input::MousePos();
+			Vector2 screenSize = (Vector2)Platform::ScreenSize();
+			Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+			Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+			Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
 
-			if (itemID < 11)
+			if (distance.SqrMagnitude() < 20736.0f)
 			{
-				world->PlaceBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
-			}
-			else if (itemID == 21)
-			{
-				world->BreakBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+				if (itemID < 11)
+				{
+					world->PlaceBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
+				}
+				else if (itemID == 21)
+				{
+					world->BreakBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+				}
 			}
 		}
 	}
 
 	if (Input::ButtonDown(RIGHT_CLICK))
 	{
-		Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
-		Vector2 mousePos = (Vector2)Input::MousePos();
-		Vector2 screenSize = (Vector2)Platform::ScreenSize();
-		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
-		Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
-		Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
+		U16 itemID = (*hotBar)[equippedSlot][0].itemID;
 
-		if (distance.SqrMagnitude() < 20736.0f)
+		if (itemID == 22)
 		{
-			U16 itemID = (*hotBar)[equippedSlot][0].itemID;
+			player->Attack();
+		}
+		else
+		{
+			Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+			Vector2 mousePos = (Vector2)Input::MousePos();
+			Vector2 screenSize = (Vector2)Platform::ScreenSize();
+			Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+			Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+			Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
 
-			if (itemID < 11)
+			if (distance.SqrMagnitude() < 20736.0f)
 			{
-				world->PlaceWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
-			}
-			else if (itemID == 21)
-			{
-				world->BreakWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+				if (itemID < 11)
+				{
+					world->PlaceWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
+				}
+				else if (itemID == 21)
+				{
+					world->BreakWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+				}
 			}
 		}
 	}

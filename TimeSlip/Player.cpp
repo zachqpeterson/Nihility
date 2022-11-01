@@ -71,39 +71,6 @@ void Player::Update()
 			gameObject->physics->ApplyForce({ 0.0f, -1.0f });
 		}
 
-		if (Input::OnButtonDown(F) && attackCooldown <= 0.0f)
-		{
-			attackCooldown = 0.25f;
-			Damage damage{};
-			damage.damage = 25;
-			damage.armorPierce = 0;
-			damage.critChance = 0.1f;
-			damage.critMulti = 1.0f;
-			damage.knockback = 0.0f;
-
-			Vector4 area{};
-
-			Vector2 position = gameObject->transform->Position();
-			Vector2 extents = gameObject->physics->Collider()->box.Extents();
-
-			if (facing)
-			{
-				area.x = position.x + extents.x + 0.01f;
-				area.z = area.x + 1.0f;
-				area.y = position.y - extents.y;
-				area.w = area.y + 2.0f;
-			}
-			else
-			{
-				area.z = position.x - extents.x - 0.01f;
-				area.x = area.x - 1.0f;
-				area.y = position.y - extents.y;
-				area.w = area.y + 2.0f;
-			}
-
-			TimeSlip::Attack(damage, area);
-		}
-
 		gameObject->physics->Translate(move);
 		health = Math::Min(health + regeneration * (F32)Time::DeltaTime(), maxHealth);
 		UI::ChangePercent(healthBar, health / maxHealth);
@@ -132,4 +99,40 @@ void Player::SetPosition(const Vector2& position)
 void Player::DamageResponse()
 {
 	UI::ChangePercent(healthBar, health / maxHealth);
+}
+
+void Player::Attack()
+{
+	if (alive && attackCooldown <= 0.0f)
+	{
+		attackCooldown = 0.25f;
+		Damage damage{};
+		damage.damage = 25;
+		damage.armorPierce = 0;
+		damage.critChance = 0.1f;
+		damage.critMulti = 1.0f;
+		damage.knockback = 0.0f;
+
+		Vector4 area{};
+
+		Vector2 position = gameObject->transform->Position();
+		Vector2 extents = gameObject->physics->Collider()->box.Extents();
+
+		if (facing)
+		{
+			area.x = position.x + extents.x + 0.01f;
+			area.z = area.x + 1.0f;
+			area.y = position.y - extents.y;
+			area.w = area.y + 2.0f;
+		}
+		else
+		{
+			area.z = position.x - extents.x - 0.01f;
+			area.x = area.x - 1.0f;
+			area.y = position.y - extents.y;
+			area.w = area.y + 2.0f;
+		}
+
+		TimeSlip::Attack(damage, area);
+	}
 }

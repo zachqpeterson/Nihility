@@ -22,6 +22,8 @@ private:
 	void DamageResponse() override;
 
 private:
+	void Attack();
+
 	bool alive;
 	F32 deathTimer;
 	Vector2 spawnPoint;
