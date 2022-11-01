@@ -144,7 +144,14 @@ void TimeSlip::HandleInput()
 	else if (Input::OnButtonDown(EIGHT)) { UI::MoveElement(hotbarHighlight, Vector2{ (7.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 7; }
 	else if (Input::OnButtonDown(NINE)) { UI::MoveElement(hotbarHighlight, Vector2{ (8.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 8; }
 	else if (Input::OnButtonDown(ZERO)) { UI::MoveElement(hotbarHighlight, Vector2{ (9.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 9; }
-	//TODO: Scrolling
+	else if (Input::MouseWheelDelta() != 0) 
+	{
+		I16 delta = (I16)equippedSlot + Input::MouseWheelDelta();
+		delta += 9.0f * (delta < 0) - 9.0f * (delta > 8);
+
+		UI::MoveElement(hotbarHighlight, Vector2{ (delta - equippedSlot) * 0.04333333333f, 0.0f }); 
+		equippedSlot = delta;
+	}
 
 	if (Input::ButtonDown(LEFT_CLICK))
 	{

@@ -12,7 +12,7 @@
 #include <windowsx.h>
 #include <memory>
 
-#define WHEEL_MULTIPLIER 0.00833333333
+#define WHEEL_MULTIPLIER 0.00833333333f
 #define WIDTH_BUFFER 16
 #define HEIGHT_BUFFER 39
 
@@ -358,7 +358,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 	} return 0;
 	//TODO: Hanlde "X" buttons and "Cancel"
 	case WM_MOUSEWHEEL: {
-		Input::SetMouseWheel(I16(GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER));
+		Input::SetMouseWheel((I16)((F32)GET_WHEEL_DELTA_WPARAM(wParam) * WHEEL_MULTIPLIER));
 	} return 0;
 	case WM_MOUSEMOVE: {
 		Input::SetMousePos(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
