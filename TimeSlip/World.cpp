@@ -183,10 +183,16 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 {
 	Vector3 c{ 1.0f, 1.0f, 1.0f };
 
-	color = c * tiles[pos.x][pos.y].lightSource;
-	globalColor = Vector3::ONE * tiles[pos.x][pos.y].globalLightSource;
+	if (tiles[pos.x][pos.y].lightSource || tiles[pos.x][pos.y].globalLightSource)
+	{
+		color = c * tiles[pos.x][pos.y].lightSource;
+		globalColor = Vector3::ONE * tiles[pos.x][pos.y].globalLightSource;
+		return;
+	}
 
 	U16 maxLightDistance = 16;
+	F32 totalGlobalBrightness = 0.0f;
+	F32 globalBrightness = 0.0f;
 
 	U16 xStart = Math::Max(pos.x - maxLightDistance, 0);
 	U16 xEnd = pos.x + maxLightDistance;
@@ -207,7 +213,7 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			Vector2 length1D{ 0.5f, 0.5f };
 			Vector2Int step{ (I32)Math::Sign(dir.x), (I32)Math::Sign(dir.y) };
 
-			F32 decr = 1.0f / 16; // TODO: Intensity
+			F32 decr = 1.0f / 20.0f; // TODO: Intensity
 			F32 distance = 0.0f;
 			F32 brightness = 1.0f;
 
@@ -236,9 +242,13 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 			}
 
 			color += c * Math::Max(brightness, 0.0f) * tiles[x][y].lightSource;
-			globalColor += Vector3::ONE * Math::Max(brightness * 0.9f, 0.0f) * tiles[x][y].globalLightSource;
+			globalBrightness += Math::Max(brightness, 0.0f) * tiles[x][y].globalLightSource;
 		}
+
+		totalGlobalBrightness = Math::Max(totalGlobalBrightness, globalBrightness);
 	}
+
+	globalColor = Vector3::ONE * globalBrightness;
 }
 
 void World::BreakBlock(const Vector2Int& pos)
@@ -253,7 +263,7 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		tile.blockID = 0;
 		tile.decID = 0;
-		tile.globaLightSource = tile.wallID == 0;
+		tile.globalLightSource = tile.wallID == 0;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(pos, pos - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(pos, pos - chunkPos * 8);
 
@@ -403,7 +413,7 @@ bool World::PlaceBlock(const Vector2Int& pos, U8 id)
 	{
 		Vector2Int chunkPos = pos / 8;
 		tile.blockID = id;
-		tile.globaLightSource = false;
+		tile.globalLightSource = false;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(pos, pos - chunkPos * 8);
 
 		if (pos.x > 0)
@@ -513,7 +523,7 @@ void World::BreakWall(const Vector2Int& pos)
 		TimeSlip::PickupItem(Items::WallToItemID(tile.wallID), 1);
 
 		tile.wallID = 0;
-		tile.globaLightSource = tile.blockID == 0;
+		tile.globalLightSource = tile.blockID == 0;
 		chunks[chunkPos.x][chunkPos.y].EditWall(pos, pos - chunkPos * 8);
 
 		if (pos.x > 0)
@@ -611,7 +621,7 @@ bool World::PlaceWall(const Vector2Int& pos, U8 id)
 	{
 		Vector2Int chunkPos = pos / 8;
 		tile.wallID = id;
-		tile.globaLightSource = false;
+		tile.globalLightSource = false;
 		chunks[chunkPos.x][chunkPos.y].EditWall(pos, pos - chunkPos * 8);
 
 		if (pos.x > 0)
@@ -864,7 +874,7 @@ F32 World::GenerateWorld()
 	}
 
 	biomeLengths[BIOME_COUNT - 1] = TILES_X;
-	U8 biomeSeq[BIOME_COUNT] { 2, 1, 0, 3, 4 };
+	U8 biomeSeq[BIOME_COUNT]{ 2, 1, 0, 3, 4 };
 
 	for (U16 y = 0; y < TILES_Y; ++y)
 	{
