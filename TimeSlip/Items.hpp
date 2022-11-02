@@ -98,6 +98,7 @@ inline Item* Items::items[]
 
 	//Basic
 	new Block{"Flint", "Used to make weapons and tools", 0, 0, false},
+	new Block{"Stick", "Used to make weapons and tools", 0, 0, false},
 	new Block{"Wood", "Used to make many things", 0, 0, false},
 	new Block{"Copper Ore", "Used to create copper ingots", 1, 1, false},
 	new Block{"Tin Ore", "Combined with copper to make bronze", 2, 2, false},
@@ -108,11 +109,10 @@ inline Item* Items::items[]
 	new Item{"", "", 0},
 	new Item{"", "", 0},
 	new Item{"", "", 0},
-	new Item{"", "", 0},
 
 	//Tools
 	new Tool{"Flint Pickaxe", "A primitive tool that'll get the job done", 0, 1, 1},
 
 	//Weapons
-	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{2, 0, 0.05f, 0.5f, 0.0f}},
+	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f}},
 };
