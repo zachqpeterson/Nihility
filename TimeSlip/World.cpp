@@ -4,6 +4,7 @@
 #include "Tile.hpp"
 #include "Chunk.hpp"
 #include "TimeSlip.hpp"
+#include "Items.hpp"
 
 #include <Physics/Physics.hpp>
 #include <Memory/Memory.hpp>
@@ -242,17 +243,19 @@ void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColo
 
 void World::BreakBlock(const Vector2Int& pos)
 {
-	if (tiles[pos.x][pos.y].blockID)
+	Tile& tile = tiles[pos.x][pos.y];
+
+	if (tile.blockID)
 	{
 		Vector2Int chunkPos = pos / 8;
 
-		bool globalLight = !tiles[pos.x][pos.y].wallID;
+		bool globalLight = !tile.wallID;
 
-		TimeSlip::PickupItem(tiles[pos.x][pos.y].blockID, 1);
-		if (tiles[pos.x][pos.y].decID > 1) { TimeSlip::PickupItem(tiles[pos.x][pos.y].decID + 8, 1); }
+		TimeSlip::PickupItem(Items::BlockToItemID(tile.blockID), 1);
+		TimeSlip::PickupItem(Items::DecorationToItemID(tile.decID), 1);
 
-		tiles[pos.x][pos.y].blockID = 0;
-		tiles[pos.x][pos.y].decID = 0;
+		tile.blockID = 0;
+		tile.decID = 0;
 		chunks[chunkPos.x][chunkPos.y].EditBlock(pos, pos - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(pos, pos - chunkPos * 8);
 
@@ -383,18 +386,18 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		RendererFrontend::BatchCreateMeshes(meshes);
 	}
-	else if (tiles[pos.x][pos.y].decID)
+	else if (tile.decID)
 	{
 		Vector2Int chunkPos = pos / 8;
 		Vector<Mesh*> meshes{ 36 };
-		U8 id = tiles[pos.x][pos.y].decID;
-		tiles[pos.x][pos.y].decID = 0;
+		U8 id = tile.decID;
+		tile.decID = 0;
 		chunks[chunkPos.x][chunkPos.y].EditDecoration(pos, pos - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].UpdateMeshes(meshes);
 
 		RendererFrontend::BatchCreateMeshes(meshes);
 
-		if (id > 2) { TimeSlip::PickupItem(id + 8, 1); }
+		TimeSlip::PickupItem(Items::DecorationToItemID(tile.decID), 1);
 	}
 }
 
@@ -509,15 +512,17 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 
 void World::BreakWall(const Vector2Int& pos)
 {
-	if (tiles[pos.x][pos.y].wallID)
+	Tile& tile = tiles[pos.x][pos.y];
+
+	if (tile.wallID)
 	{
 		Vector2Int chunkPos = pos / 8;
 
-		bool globalLight = !tiles[pos.x][pos.y].blockID;
+		bool globalLight = !tile.blockID;
 
-		TimeSlip::PickupItem(tiles[pos.x][pos.y].wallID, 1);
+		TimeSlip::PickupItem(Items::WallToItemID(tile.wallID), 1);
 
-		tiles[pos.x][pos.y].wallID = 0;
+		tile.wallID = 0;
 		chunks[chunkPos.x][chunkPos.y].EditWall(pos, pos - chunkPos * 8);
 
 		if (pos.x > 0)

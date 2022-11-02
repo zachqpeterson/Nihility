@@ -101,17 +101,11 @@ void Player::DamageResponse()
 	UI::ChangePercent(healthBar, health / maxHealth);
 }
 
-void Player::Attack()
+void Player::Attack(const Damage& damage)
 {
 	if (alive && attackCooldown <= 0.0f)
 	{
 		attackCooldown = 0.25f;
-		Damage damage{};
-		damage.damage = 25;
-		damage.armorPierce = 0;
-		damage.critChance = 0.1f;
-		damage.critMulti = 1.0f;
-		damage.knockback = 0.0f;
 
 		Vector4 area{};
 

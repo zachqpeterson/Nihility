@@ -22,7 +22,7 @@ private:
 	void DamageResponse() override;
 
 private:
-	void Attack();
+	void Attack(const Damage& damage);
 
 	bool alive;
 	F32 deathTimer;

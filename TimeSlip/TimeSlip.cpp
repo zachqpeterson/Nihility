@@ -5,6 +5,7 @@
 #include "Entity.hpp"
 #include "Enemy.hpp"
 #include "Tile.hpp"
+#include "Items.hpp"
 
 #include <Engine.hpp>
 #include <Renderer/RendererFrontend.hpp>
@@ -144,22 +145,23 @@ void TimeSlip::HandleInput()
 	else if (Input::OnButtonDown(EIGHT)) { UI::MoveElement(hotbarHighlight, Vector2{ (7.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 7; }
 	else if (Input::OnButtonDown(NINE)) { UI::MoveElement(hotbarHighlight, Vector2{ (8.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 8; }
 	else if (Input::OnButtonDown(ZERO)) { UI::MoveElement(hotbarHighlight, Vector2{ (9.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 9; }
-	else if (Input::MouseWheelDelta() != 0) 
+	else if (Input::MouseWheelDelta() != 0)
 	{
 		I16 delta = (I16)equippedSlot + Input::MouseWheelDelta();
 		delta += 9.0f * (delta < 0) - 9.0f * (delta > 8);
 
-		UI::MoveElement(hotbarHighlight, Vector2{ (delta - equippedSlot) * 0.04333333333f, 0.0f }); 
+		UI::MoveElement(hotbarHighlight, Vector2{ (delta - equippedSlot) * 0.04333333333f, 0.0f });
 		equippedSlot = delta;
 	}
 
 	if (Input::ButtonDown(LEFT_CLICK))
 	{
-		U16 itemID = (*hotbar)[equippedSlot][0].itemID;
+		U16 id = (*hotbar)[equippedSlot][0].itemID;
+		const Item* item = Items::GetItem(id);
 
-		if (itemID == 22)
+		if (item->type == ITEM_TYPE_WEAPON)
 		{
-			player->Attack();
+			player->Attack(((const Weapon&)item).damage);
 		}
 		else
 		{
@@ -172,13 +174,17 @@ void TimeSlip::HandleInput()
 
 			if (distance.SqrMagnitude() < 20736.0f)
 			{
-				if (itemID < 11)
+				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
+
+				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable)
 				{
-					world->PlaceBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
+					world->PlaceBlock(pos, id);
 				}
-				else if (itemID == 21)
+				else if (item->type == ITEM_TYPE_TOOL && 
+					Items::BlockToItem(world->tiles[pos.x][pos.y].blockID)->hardness <= ((const Tool*)item)->power &&
+					Items::DecorationToItem(world->tiles[pos.x][pos.y].decID)->hardness <= ((const Tool*)item)->power)
 				{
-					world->BreakBlock(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+					world->BreakBlock(pos);
 				}
 			}
 		}
@@ -186,11 +192,12 @@ void TimeSlip::HandleInput()
 
 	if (Input::ButtonDown(RIGHT_CLICK))
 	{
-		U16 itemID = (*hotbar)[equippedSlot][0].itemID;
+		U16 id = (*hotbar)[equippedSlot][0].itemID;
+		const Item* item = Items::GetItem(id);
 
-		if (itemID == 22)
+		if (item->type == ITEM_TYPE_WEAPON)
 		{
-			player->Attack();
+			player->Attack(((const Weapon&)item).damage);
 		}
 		else
 		{
@@ -203,13 +210,15 @@ void TimeSlip::HandleInput()
 
 			if (distance.SqrMagnitude() < 20736.0f)
 			{
-				if (itemID < 11)
+				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
+
+				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable)
 				{
-					world->PlaceWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f }, itemID);
+					world->PlaceWall(pos, id);
 				}
-				else if (itemID == 21)
+				else if (item->type == ITEM_TYPE_TOOL && Items::WallToItem(world->tiles[pos.x][pos.y].wallID)->hardness <= ((const Tool*)item)->power)
 				{
-					world->BreakWall(Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f });
+					world->BreakWall(pos);
 				}
 			}
 		}
@@ -287,7 +296,7 @@ void TimeSlip::LoadWorld()
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
 {
-	inventory->AddItem(itemID, amount);
+	if (itemID > 0) { inventory->AddItem(itemID, amount); }
 }
 
 Transform2D* TimeSlip::GetTarget(Transform2D* position, F32 range)

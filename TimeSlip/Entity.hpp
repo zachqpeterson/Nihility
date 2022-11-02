@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Items.hpp"
+
 #include <Defines.hpp>
 #include <Math/Math.hpp>
 
@@ -13,17 +15,6 @@ struct EntityConfig
 	bool ignore;
 	F32 despawnRange;
 	F32 regeneration;
-};
-
-struct Damage
-{
-	F32 damage;
-	F32 armorPierce;
-	F32 critChance;
-	F32 critMulti;
-	F32 knockback;
-
-	//TODO: Debuf applying
 };
 
 struct GameObject2D;

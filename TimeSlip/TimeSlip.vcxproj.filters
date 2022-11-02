@@ -71,5 +71,8 @@
     <ClInclude Include="Entity.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Items.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
