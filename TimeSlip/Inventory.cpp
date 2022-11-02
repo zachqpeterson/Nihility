@@ -548,6 +548,40 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 	return false;
 }
 
+bool Inventory::RemoveItem(U16 x, U16 y, U16 amount)
+{
+	Slot& slot = slots[x][y];
+
+	if (slot.itemID && slot.amount >= amount)
+	{
+		slot.amount -= amount;
+
+		if (slot.amount == 0)
+		{
+			slot.itemID = 0;
+			UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
+		}
+		else if (slot.amount > 1)
+		{
+			UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
+		}
+		else
+		{
+			UI::ChangeText((UIText*)slot.button->children.Back(), "");
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool Inventory::DropItem(U16 x, U16 y, U16 amount)
+{
+	//TODO:
+	return false;
+}
+
 Vector<Vector2>& Inventory::GetUV(U16 itemID)
 {
 	static Vector<Vector2> uvs{ 4, Vector2::ZERO };

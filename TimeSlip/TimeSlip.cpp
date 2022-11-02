@@ -85,7 +85,7 @@ bool TimeSlip::Initialize()
 	UI::GenerateText(generateWorldText, "Generate World", 20.0f);
 
 	OnMouse createWorldEvent{};
-	createWorldEvent.value = (void*)&testWorldSize;
+	createWorldEvent.value = (void*)&smallWorldSize;
 	createWorldEvent.callback = CreateWorld;
 
 	createWorldButton->OnClick = createWorldEvent;
@@ -148,10 +148,10 @@ void TimeSlip::HandleInput()
 	else if (Input::MouseWheelDelta() != 0)
 	{
 		I16 delta = (I16)equippedSlot + Input::MouseWheelDelta();
-		delta += 9.0f * (delta < 0) - 9.0f * (delta > 8);
+		delta += 9 * (delta < 0) - 9 * (delta > 8);
 
 		UI::MoveElement(hotbarHighlight, Vector2{ (delta - equippedSlot) * 0.04333333333f, 0.0f });
-		equippedSlot = delta;
+		equippedSlot = (U8)delta;
 	}
 
 	if (Input::ButtonDown(LEFT_CLICK))
@@ -176,9 +176,9 @@ void TimeSlip::HandleInput()
 			{
 				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
 
-				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable)
+				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable && world->PlaceBlock(pos, (U8)id))
 				{
-					world->PlaceBlock(pos, id);
+					hotbar->RemoveItem(equippedSlot, 0, 1);
 				}
 				else if (item->type == ITEM_TYPE_TOOL && 
 					Items::BlockToItem(world->tiles[pos.x][pos.y].blockID)->hardness <= ((const Tool*)item)->power &&
@@ -212,9 +212,9 @@ void TimeSlip::HandleInput()
 			{
 				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
 
-				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable)
+				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable && world->PlaceWall(pos, (U8)id))
 				{
-					world->PlaceWall(pos, id);
+					hotbar->RemoveItem(equippedSlot, 0, 1);
 				}
 				else if (item->type == ITEM_TYPE_TOOL && Items::WallToItem(world->tiles[pos.x][pos.y].wallID)->hardness <= ((const Tool*)item)->power)
 				{

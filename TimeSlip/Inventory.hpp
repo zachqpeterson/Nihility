@@ -51,6 +51,8 @@ public:
 
 	void ToggleShow();
 	bool AddItem(U16 itemID, U16 amount);
+	bool RemoveItem(U16 x, U16 y, U16 amount);
+	bool DropItem(U16 x, U16 y, U16 amount);
 
 	static void OnDrag(UIElement* e, const Vector2Int& delta, void* data);
 	static void OnClick(UIElement* e, const Vector2Int& pos, void* data);

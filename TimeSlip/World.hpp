@@ -55,9 +55,9 @@ public:
 	void TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColor);
 
 	void BreakBlock(const Vector2Int& pos);
-	void PlaceBlock(const Vector2Int& pos, U8 id);
+	bool PlaceBlock(const Vector2Int& pos, U8 id);
 	void BreakWall(const Vector2Int& pos);
-	void PlaceWall(const Vector2Int& pos, U8 id);
+	bool PlaceWall(const Vector2Int& pos, U8 id);
 	void PlaceLight(const Vector2Int& pos);
 	void RemoveLight(const Vector2Int& pos);
 

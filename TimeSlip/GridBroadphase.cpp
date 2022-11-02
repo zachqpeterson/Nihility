@@ -176,7 +176,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			}
 		}
 
-		if ((collidedY || length1D.x > length1D.y) && !collidedX)
+		if ((collidedY || length1D.x < length1D.y) && !collidedX)
 		{
 			mapCheck.x += step.x;
 			distanceX += 1;

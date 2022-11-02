@@ -397,11 +397,11 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		RendererFrontend::BatchCreateMeshes(meshes);
 
-		TimeSlip::PickupItem(Items::DecorationToItemID(tile.decID), 1);
+		TimeSlip::PickupItem(Items::DecorationToItemID(id), 1);
 	}
 }
 
-void World::PlaceBlock(const Vector2Int& pos, U8 id)
+bool World::PlaceBlock(const Vector2Int& pos, U8 id)
 {
 	if (!tiles[pos.x][pos.y].blockID && !tiles[pos.x][pos.y].decID)
 	{
@@ -435,11 +435,6 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 			tiles[pos.x][pos.y].globalLightSource += globalLight * (!tiles[down.x][down.y].blockID && !tiles[down.x][down.y].wallID);
 			tiles[down.x][down.y].globalLightSource -= globalLight * (tiles[down.x][down.y].globalLightSource > 0);
 			chunks[chunkPos.x][chunkPos.y].EditBlock(down, down - chunkPos * 8);
-			if (tiles[down.x][down.y].decID == 1) //It's grass
-			{
-				tiles[down.x][down.y].decID = 0;
-				chunks[chunkPos.x][chunkPos.y].EditDecoration(down, down - chunkPos * 8);
-			}
 		}
 
 		if (pos.y < TILES_Y - 1)
@@ -449,6 +444,11 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 			tiles[pos.x][pos.y].globalLightSource += globalLight * (!tiles[up.x][up.y].blockID && !tiles[up.x][up.y].wallID);
 			tiles[up.x][up.y].globalLightSource -= globalLight * (tiles[up.x][up.y].globalLightSource > 0);
 			chunks[chunkPos.x][chunkPos.y].EditBlock(up, up - chunkPos * 8);
+			if (tiles[up.x][up.y].decID == 1) //It's grass
+			{
+				tiles[up.x][up.y].decID = 0;
+				chunks[chunkPos.x][chunkPos.y].EditDecoration(up, up - chunkPos * 8);
+			}
 		}
 
 		chunkPos = pos / 8;
@@ -507,7 +507,11 @@ void World::PlaceBlock(const Vector2Int& pos, U8 id)
 		}
 
 		RendererFrontend::BatchCreateMeshes(meshes);
+
+		return true;
 	}
+
+	return false;
 }
 
 void World::BreakWall(const Vector2Int& pos)
@@ -616,7 +620,7 @@ void World::BreakWall(const Vector2Int& pos)
 	}
 }
 
-void World::PlaceWall(const Vector2Int& pos, U8 id)
+bool World::PlaceWall(const Vector2Int& pos, U8 id)
 {
 	if (!tiles[pos.x][pos.y].wallID)
 	{
@@ -717,7 +721,11 @@ void World::PlaceWall(const Vector2Int& pos, U8 id)
 		}
 
 		RendererFrontend::BatchCreateMeshes(meshes);
+
+		return true;
 	}
+
+	return false;
 }
 
 void World::PlaceLight(const Vector2Int& pos)
@@ -879,6 +887,7 @@ F32 World::GenerateWorld()
 	}
 
 	biomeLengths[BIOME_COUNT - 1] = TILES_X;
+	U8 biomeSeq[BIOME_COUNT] { 2, 1, 0, 3, 4 };
 
 	for (U16 y = 0; y < TILES_Y; ++y)
 	{
@@ -887,12 +896,13 @@ F32 World::GenerateWorld()
 
 		for (U8 i = 0; i < BIOME_COUNT - 1; ++i)
 		{
+			U8 biome = biomeSeq[i];
 			U16 prevLength = length;
 			length = (U16)(biomeLengths[i] + variation);
 
 			for (U16 x = prevLength; x < length; ++x)
 			{
-				tiles[x][y].biome = i;
+				tiles[x][y].biome = biome;
 			}
 		}
 
@@ -900,7 +910,7 @@ F32 World::GenerateWorld()
 
 		for (U16 x = prevLength; x < TILES_X; ++x)
 		{
-			tiles[x][y].biome = BIOME_COUNT - 1;
+			tiles[x][y].biome = biomeSeq[BIOME_COUNT - 1];
 		}
 	}
 
