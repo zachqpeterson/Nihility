@@ -26,7 +26,7 @@ struct Damage
 
 struct Item
 {
-	Item(const char* name, const char* desc, U8 rarity, ItemType type = ITEM_TYPE_BASIC) :
+	constexpr Item(const char* name, const char* desc, U8 rarity, ItemType type = ITEM_TYPE_BASIC) :
 		name{ name }, description{ desc }, rarity{ rarity }, type{ type } {}
 
 	const char* name;
@@ -38,7 +38,7 @@ struct Item
 
 struct Block : public Item
 {
-	Block(const char* name, const char* desc, U8 rarity, U8 hardness, bool placeable) :
+	constexpr Block(const char* name, const char* desc, U8 rarity, U8 hardness, bool placeable) :
 		Item{ name, desc, rarity, ITEM_TYPE_TILE }, hardness{ hardness }, placeable{ placeable } {}
 
 	const U8 hardness;
@@ -47,7 +47,7 @@ struct Block : public Item
 
 struct Tool : public Item
 {
-	Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed) :
+	constexpr Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed) :
 		Item{ name, desc, rarity, ITEM_TYPE_TOOL }, power{ power }, speed{ speed } {}
 
 	const U8 power;
@@ -56,10 +56,32 @@ struct Tool : public Item
 
 struct Weapon : public Item
 {
-	Weapon(const char* name, const char* desc, U8 rarity, const Damage& damage) :
+	constexpr Weapon(const char* name, const char* desc, U8 rarity, const Damage& damage) :
 		Item{ name, desc, rarity, ITEM_TYPE_WEAPON }, damage{ damage } {}
 
 	const Damage damage;
+};
+
+struct Ingredient
+{
+	U16 id;
+	U16 amount;
+};
+
+struct RecipeArr {};
+
+template<U16 count>
+struct Recipe : RecipeArr
+{
+	constexpr Recipe(U16 result, U16 amount, const Ingredient (&ingredientList)[count]) : result{ result }, amount{ amount } 
+	{
+		Platform::Copy(ingredients, ingredientList, sizeof(Ingredient) * count);
+	}
+
+	U16 result;
+	U16 amount;
+
+	Ingredient ingredients[count];
 };
 
 class Items
@@ -76,6 +98,7 @@ public:
 
 private:
 	static Item* items[];
+	static RecipeArr* recipes[];
 
 	Items() = delete;
 };
@@ -84,7 +107,7 @@ inline Item* Items::items[]
 {
 	new Tool{"", "", 0, 0, 0}, //NOTE: Using your hand for picking up grass, flint, and shrubs
 
-	//Tiles
+	//Tiles 1
 	new Block{"Dirt", "Dirt from the Grassland", 0, 1, true},
 	new Block{"Stone", "Stone from the Grassland", 0, 1, true},
 	new Block{"Dry Dirt", "Dirt from the Mesa", 0, 1, true},
@@ -96,7 +119,7 @@ inline Item* Items::items[]
 	new Block{"Mud", "Mud from the Marsh", 0, 1, true},
 	new Block{"Wet Stone", "Stone from the Marsh", 0, 1, true},
 
-	//Basic
+	//Basic 11
 	new Block{"Flint", "Used to make weapons and tools", 0, 0, false},
 	new Block{"Stick", "Used to make weapons and tools", 0, 0, false},
 	new Block{"Wood", "Used to make many things", 0, 0, false},
@@ -110,9 +133,15 @@ inline Item* Items::items[]
 	new Item{"", "", 0},
 	new Item{"", "", 0},
 
-	//Tools
+	//Tools 21
 	new Tool{"Flint Pickaxe", "A primitive tool that'll get the job done", 0, 1, 1},
 
-	//Weapons
+	//Weapons 22
 	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f}},
+};
+
+inline RecipeArr* Items::recipes[]
+{
+	new Recipe<2>(21, 1, {{11, 1}, {12, 1}}), //Flint Pickaxe
+	new Recipe<2>(22, 1, {{11, 1}, {12, 1}}), //Flint Knife
 };
