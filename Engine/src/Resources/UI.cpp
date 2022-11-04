@@ -20,6 +20,9 @@ Vector2Int UI::descPos;
 UIElement* UI::draggedElement;
 Vector2Int UI::lastMousesPos;
 
+OnMouse UI::OnDragDefault{ DefaultOnDrag };
+void UI::DefaultOnDrag(UIElement* e, const Vector2Int& delta, void* data) { UI::MoveElement(e, delta); }
+
 bool UI::Initialize()
 {
 	panelTexture = Resources::LoadTexture("UI.bmp");

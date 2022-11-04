@@ -34,6 +34,7 @@ Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 Inventory* TimeSlip::hotbar;
 UIElement* TimeSlip::hotbarHighlight;
+UIElement* TimeSlip::craftingMenu;
 
 U8 TimeSlip::equippedSlot;
 
@@ -116,6 +117,7 @@ bool TimeSlip::Update()
 	case GAME_STATE_MENU: break;
 	case GAME_STATE_GAME: {
 		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
+		if (Input::OnButtonDown(C)) { UI::SetEnable(craftingMenu, !craftingMenu->selfEnabled); }
 		Inventory::Update();
 		HandleInput();
 		world->Update();
@@ -289,14 +291,31 @@ void TimeSlip::UpdateDayCycle()
 	worldScene->GetCamera()->SetAmbientColor(globalColor * alpha);
 }
 
-void TimeSlip::LoadWorld()
+void TimeSlip::FillCraftingMenu()
 {
+	const Recipe** recipes = Items::GetRecipes();
 
+	const Recipe* recipe = recipes[0];
+
+	U16 i = 0;
+	while (recipe)
+	{
+		for (U16 j = 0; j < recipe->ingredientCount; ++j)
+		{
+			
+		}
+
+		recipe = recipes[++i];
+	}
 }
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
 {
-	if (itemID > 0) { inventory->AddItem(itemID, amount); }
+	if (itemID > 0) 
+	{ 
+		inventory->AddItem(itemID, amount); 
+		FillCraftingMenu();
+	}
 }
 
 Transform2D* TimeSlip::GetTarget(Transform2D* position, F32 range)
@@ -409,5 +428,22 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	hotbar->AddItem(22, 1);
 	hotbar->AddItem(21, 1);
 
+	//TODO: Crafting menu
+	UIElementConfig craftPanel{};
+	craftPanel.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
+	craftPanel.enabled = false;
+	craftPanel.ignore = false;
+	craftPanel.position = { 0.55f, 0.25f };
+	craftPanel.scale = { 0.35f, 0.5f };
+	craftPanel.scene = worldScene;
+
+	craftingMenu = UI::GeneratePanel(craftPanel, true);
+	craftingMenu->OnDrag = UI::OnDragDefault;
+
 	nextState = GAME_STATE_GAME;
+}
+
+void TimeSlip::LoadWorld()
+{
+
 }

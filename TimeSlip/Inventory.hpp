@@ -54,7 +54,8 @@ public:
 	bool RemoveItem(U16 x, U16 y, U16 amount);
 	bool DropItem(U16 x, U16 y, U16 amount);
 
-	static void OnDrag(UIElement* e, const Vector2Int& delta, void* data);
+	bool ContainsItem(U16 id, U16 amount = 1);
+
 	static void OnClick(UIElement* e, const Vector2Int& pos, void* data);
 	static void OnRelease(UIElement* e, const Vector2Int& pos, void* data);
 	static void OnHover(UIElement* e, const Vector2Int& pos, void* data);

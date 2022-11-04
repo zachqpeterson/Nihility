@@ -31,9 +31,6 @@ public:
 	static bool Initialize();
 	static void Shutdown();
 	static bool Update();
-	static void HandleInput();
-	static void HandleEntities();
-	static void UpdateDayCycle();
 
 	static void PickupItem(U16 itemID, U16 amount);
 
@@ -41,8 +38,14 @@ public:
 	static void Attack(const Damage& damage, const Vector4& area);
 
 private:
-	static void LoadWorld();
 	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);
+	static void LoadWorld();
+
+	static void HandleInput();
+	static void HandleEntities();
+	static void UpdateDayCycle();
+
+	static void FillCraftingMenu();
 
 	static Scene* mainMenuScene;
 	static Scene* worldScene;
@@ -57,6 +60,7 @@ private:
 	static Inventory* inventory; //We only need to keep track of the inventory of your character
 	static Inventory* hotbar;
 	static UIElement* hotbarHighlight;
+	static UIElement* craftingMenu;
 
 	static U8 equippedSlot;
 

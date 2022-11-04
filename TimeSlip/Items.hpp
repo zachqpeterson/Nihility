@@ -2,6 +2,7 @@
 
 #include <Defines.hpp>
 #include <Containers/String.hpp>
+#include <Platform/Platform.hpp>
 
 enum ItemType
 {
@@ -64,24 +65,25 @@ struct Weapon : public Item
 
 struct Ingredient
 {
+	constexpr Ingredient(U16 id, U16 amount = 1, bool consumed = true) : id{ id }, amount{ amount }, consumed{ consumed } {}
+
 	U16 id;
 	U16 amount;
+	bool consumed;
 };
 
-struct RecipeArr {};
-
-template<U16 count>
-struct Recipe : RecipeArr
+struct Recipe
 {
-	constexpr Recipe(U16 result, U16 amount, const Ingredient (&ingredientList)[count]) : result{ result }, amount{ amount } 
-	{
-		Platform::Copy(ingredients, ingredientList, sizeof(Ingredient) * count);
-	}
+	template<typename... Args>
+	constexpr Recipe(U16 result, U16 amount, U8 benchLevel, const Args&... args) :
+		result{ result }, amount{ amount }, benchLevel{ benchLevel }, ingredientCount{ sizeof...(args) }, ingredients{ args... } {}
 
 	U16 result;
 	U16 amount;
+	U8 benchLevel;
 
-	Ingredient ingredients[count];
+	U16 ingredientCount;
+	Ingredient ingredients[];
 };
 
 class Items
@@ -95,10 +97,11 @@ public:
 	static U16 DecorationToItemID(U8 id) { return (id + 8) * (id > 2); }
 
 	static const Item* GetItem(U16 id) { return items[id]; }
+	static const Recipe** GetRecipes() { return recipes; }
 
 private:
 	static Item* items[];
-	static RecipeArr* recipes[];
+	static Recipe* recipes[];
 
 	Items() = delete;
 };
@@ -138,10 +141,14 @@ inline Item* Items::items[]
 
 	//Weapons 22
 	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f}},
+
+	nullptr
 };
 
-inline RecipeArr* Items::recipes[]
+inline Recipe* Items::recipes[]
 {
-	new Recipe<2>(21, 1, {{11, 1}, {12, 1}}), //Flint Pickaxe
-	new Recipe<2>(22, 1, {{11, 1}, {12, 1}}), //Flint Knife
+	new Recipe(21, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Pickaxe
+	new Recipe(22, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Knife
+
+	nullptr
 };

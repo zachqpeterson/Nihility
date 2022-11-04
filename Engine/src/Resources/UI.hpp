@@ -132,6 +132,8 @@ public:
 	static void MoveDescription(const Vector2Int& position);
 	static void HideDescription();
 
+	static OnMouse OnDragDefault;
+
 private:
 	static bool Initialize();
 	static void Shutdown();
@@ -142,6 +144,8 @@ private:
 	static void MoveChild(UIElement* element, const Vector2& move);
 
 	static NH_INLINE bool Punctuation(char c) { return c == 44 || c == 46 || c == 63 || c == 33; }
+
+	static void DefaultOnDrag(UIElement* e, const Vector2Int& delta, void* data);
 
 	static U64 elementID;
 	static List<UIElement*> elements;

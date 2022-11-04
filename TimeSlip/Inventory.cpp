@@ -10,11 +10,6 @@
 Vector<Vector2> Inventory::blankUVs;
 Slot Inventory::mouseSlot;
 
-void Inventory::OnDrag(UIElement* e, const Vector2Int& delta, void* data)
-{
-	UI::MoveElement(e, delta);
-}
-
 void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
@@ -343,7 +338,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 	panelCfg.scene = config.scene;
 	backPanel = UI::GeneratePanel(panelCfg, true);
 
-	if (config.draggable) { backPanel->OnDrag = { OnDrag }; }
+	if (config.draggable) { backPanel->OnDrag = UI::OnDragDefault; }
 
 	U16 i = 0;
 	if (config.startHorizontal)
@@ -579,6 +574,25 @@ bool Inventory::RemoveItem(U16 x, U16 y, U16 amount)
 bool Inventory::DropItem(U16 x, U16 y, U16 amount)
 {
 	//TODO:
+	return false;
+}
+
+bool Inventory::ContainsItem(U16 id, U16 amount)
+{
+	U16 count = 0;
+
+	for (U8 y = 0; y < slots[0].Size(); ++y)
+	{
+		for (U8 x = 0; x < slots.Size(); ++x)
+		{
+			Slot& slot = slots[x][y];
+
+			count += slot.amount * (slot.itemID == id);
+
+			if (count >= amount) { return true; }
+		}
+	}
+
 	return false;
 }
 
