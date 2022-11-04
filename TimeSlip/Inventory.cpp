@@ -571,6 +571,48 @@ bool Inventory::RemoveItem(U16 x, U16 y, U16 amount)
 	return false;
 }
 
+void Inventory::RemoveItem(U16 itemID, U16 amount)
+{
+	for (U8 y = 0; y < slots[0].Size(); ++y)
+	{
+		for (U8 x = 0; x < slots.Size(); ++x)
+		{
+			Slot& slot = slots[x][y];
+
+			if (slot.itemID == itemID)
+			{
+				if (slot.amount < amount)
+				{
+					slot.itemID = 0;
+					UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
+					UI::ChangeText((UIText*)slot.button->children.Back(), "");
+					amount -= slot.amount;
+				}
+				else
+				{
+					slot.amount -= amount;
+
+					if (slot.amount == 0)
+					{
+						slot.itemID = 0;
+						UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
+					}
+					else if (slot.amount > 1)
+					{
+						UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
+					}
+					else
+					{
+						UI::ChangeText((UIText*)slot.button->children.Back(), "");
+					}
+
+					return;
+				}
+			}
+		}
+	}
+}
+
 bool Inventory::DropItem(U16 x, U16 y, U16 amount)
 {
 	//TODO:

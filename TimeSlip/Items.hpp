@@ -86,7 +86,7 @@ struct Recipe
 {
 	template<typename... Args>
 	constexpr Recipe(U16 result, U16 amount, U8 benchLevel, const Args&... args) :
-		result{ result }, amount{ amount }, benchLevel{ benchLevel }, ingredientCount{ sizeof...(args) }, ingredients{ (Ingredient*)Platform::Allocate(sizeof(Ingredient) * ingredientCount, false) }
+		result{ result }, amount{ amount }, benchLevel{ benchLevel }, ingredientCount{ sizeof...(args) }, ingredients{ (Ingredient*)malloc(sizeof(Ingredient) * ingredientCount) }
 	{
 		U16 i = 0;
 		(void(ingredients[i++] = args), ...);

@@ -37,6 +37,8 @@ public:
 	static Transform2D* GetTarget(Transform2D* position, F32 range);
 	static void Attack(const Damage& damage, const Vector4& area);
 
+	static void OnClick(UIElement* e, const Vector2Int& pos, void* data);
+
 private:
 	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);
 	static void LoadWorld();

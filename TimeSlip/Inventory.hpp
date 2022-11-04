@@ -52,6 +52,7 @@ public:
 	void ToggleShow();
 	bool AddItem(U16 itemID, U16 amount);
 	bool RemoveItem(U16 x, U16 y, U16 amount);
+	void RemoveItem(U16 itemID, U16 amount);
 	bool DropItem(U16 x, U16 y, U16 amount);
 
 	bool ContainsItem(U16 id, U16 amount = 1);

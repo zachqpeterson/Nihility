@@ -50,6 +50,19 @@ WorldSize TimeSlip::smallWorldSize{ WS_SMALL };
 WorldSize TimeSlip::mediumWorldSize{ WS_MEDIUM };
 WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 
+void TimeSlip::OnClick(UIElement* e, const Vector2Int& pos, void* data)
+{
+	const Recipe* recipe = (const Recipe*)data;
+
+	for (U16 i = 0; i < recipe->ingredientCount; ++i)
+	{
+		if (recipe->ingredients[i].consumed) { inventory->RemoveItem(recipe->ingredients[i].id, recipe->ingredients[i].amount); }
+	}
+
+	inventory->AddItem(recipe->result, recipe->amount);
+	FillCraftingMenu();
+}
+
 bool TimeSlip::Initialize()
 {
 	static const F32 camWidth = 3.63636363636f;
@@ -182,7 +195,7 @@ void TimeSlip::HandleInput()
 				{
 					hotbar->RemoveItem(equippedSlot, 0, 1);
 				}
-				else if (item->type == ITEM_TYPE_TOOL && 
+				else if (item->type == ITEM_TYPE_TOOL &&
 					Items::BlockToItem(world->tiles[pos.x][pos.y].blockID)->hardness <= ((const Tool*)item)->power &&
 					Items::DecorationToItem(world->tiles[pos.x][pos.y].decID)->hardness <= ((const Tool*)item)->power)
 				{
@@ -297,6 +310,15 @@ void TimeSlip::FillCraftingMenu()
 
 	const Recipe* recipe = recipes[0];
 
+	UIElementConfig recipeConfig{};
+	recipeConfig.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
+	recipeConfig.enabled = true;
+	recipeConfig.ignore = false;
+	recipeConfig.position = { 0.1f, 0.1f };
+	recipeConfig.scale = { 0.2f, 0.2f };
+	recipeConfig.scene = worldScene;
+	recipeConfig.parent = craftingMenu;
+
 	U16 i = 0;
 	while (recipe)
 	{
@@ -309,8 +331,10 @@ void TimeSlip::FillCraftingMenu()
 
 		if (found)
 		{
-			//TODO: put up recipe
-			Logger::Debug("Recipe found: {}", recipe->result);
+			UIElement* e = UI::GeneratePanel(recipeConfig, true);
+			e->OnClick = { OnClick, (void*)recipe };
+
+			recipeConfig.position.y += 0.3f;
 		}
 
 		recipe = recipes[++i];
@@ -319,9 +343,9 @@ void TimeSlip::FillCraftingMenu()
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
 {
-	if (itemID > 0) 
-	{ 
-		inventory->AddItem(itemID, amount); 
+	if (itemID > 0)
+	{
+		inventory->AddItem(itemID, amount);
 		FillCraftingMenu();
 	}
 }
@@ -436,7 +460,6 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	//hotbar->AddItem(22, 1);
 	//hotbar->AddItem(21, 1);
 
-	//TODO: Crafting menu
 	UIElementConfig craftPanel{};
 	craftPanel.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
 	craftPanel.enabled = false;
