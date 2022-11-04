@@ -300,9 +300,17 @@ void TimeSlip::FillCraftingMenu()
 	U16 i = 0;
 	while (recipe)
 	{
+		bool found = true;
+
 		for (U16 j = 0; j < recipe->ingredientCount; ++j)
 		{
-			
+			found &= inventory->ContainsItem(recipe->ingredients[j].id, recipe->ingredients[j].amount);
+		}
+
+		if (found)
+		{
+			//TODO: put up recipe
+			Logger::Debug("Recipe found: {}", recipe->result);
 		}
 
 		recipe = recipes[++i];
@@ -425,8 +433,8 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 	hotbarHighlight = UI::GeneratePanel(highlightConfig, false);
 
-	hotbar->AddItem(22, 1);
-	hotbar->AddItem(21, 1);
+	//hotbar->AddItem(22, 1);
+	//hotbar->AddItem(21, 1);
 
 	//TODO: Crafting menu
 	UIElementConfig craftPanel{};

@@ -4,6 +4,8 @@
 #include <Containers/String.hpp>
 #include <Platform/Platform.hpp>
 
+#include <vector>
+
 enum ItemType
 {
 	ITEM_TYPE_BASIC,
@@ -28,7 +30,9 @@ struct Damage
 struct Item
 {
 	constexpr Item(const char* name, const char* desc, U8 rarity, ItemType type = ITEM_TYPE_BASIC) :
-		name{ name }, description{ desc }, rarity{ rarity }, type{ type } {}
+		name{ name }, description{ desc }, rarity{ rarity }, type{ type }
+	{
+	}
 
 	const char* name;
 	const char* description;
@@ -40,7 +44,9 @@ struct Item
 struct Block : public Item
 {
 	constexpr Block(const char* name, const char* desc, U8 rarity, U8 hardness, bool placeable) :
-		Item{ name, desc, rarity, ITEM_TYPE_TILE }, hardness{ hardness }, placeable{ placeable } {}
+		Item{ name, desc, rarity, ITEM_TYPE_TILE }, hardness{ hardness }, placeable{ placeable }
+	{
+	}
 
 	const U8 hardness;
 	const bool placeable;
@@ -49,7 +55,9 @@ struct Block : public Item
 struct Tool : public Item
 {
 	constexpr Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed) :
-		Item{ name, desc, rarity, ITEM_TYPE_TOOL }, power{ power }, speed{ speed } {}
+		Item{ name, desc, rarity, ITEM_TYPE_TOOL }, power{ power }, speed{ speed }
+	{
+	}
 
 	const U8 power;
 	const U8 speed;
@@ -58,7 +66,9 @@ struct Tool : public Item
 struct Weapon : public Item
 {
 	constexpr Weapon(const char* name, const char* desc, U8 rarity, const Damage& damage) :
-		Item{ name, desc, rarity, ITEM_TYPE_WEAPON }, damage{ damage } {}
+		Item{ name, desc, rarity, ITEM_TYPE_WEAPON }, damage{ damage }
+	{
+	}
 
 	const Damage damage;
 };
@@ -76,14 +86,18 @@ struct Recipe
 {
 	template<typename... Args>
 	constexpr Recipe(U16 result, U16 amount, U8 benchLevel, const Args&... args) :
-		result{ result }, amount{ amount }, benchLevel{ benchLevel }, ingredientCount{ sizeof...(args) }, ingredients{ args... } {}
+		result{ result }, amount{ amount }, benchLevel{ benchLevel }, ingredientCount{ sizeof...(args) }, ingredients{ (Ingredient*)Platform::Allocate(sizeof(Ingredient) * ingredientCount, false) }
+	{
+		U16 i = 0;
+		(void(ingredients[i++] = args), ...);
+	}
 
 	U16 result;
 	U16 amount;
 	U8 benchLevel;
 
 	U16 ingredientCount;
-	Ingredient ingredients[];
+	Ingredient* ingredients;
 };
 
 class Items
@@ -100,13 +114,13 @@ public:
 	static const Recipe** GetRecipes() { return recipes; }
 
 private:
-	static Item* items[];
-	static Recipe* recipes[];
+	static const Item* items[];
+	static const Recipe* recipes[];
 
 	Items() = delete;
 };
 
-inline Item* Items::items[]
+inline const Item* Items::items[]
 {
 	new Tool{"", "", 0, 0, 0}, //NOTE: Using your hand for picking up grass, flint, and shrubs
 
@@ -145,7 +159,7 @@ inline Item* Items::items[]
 	nullptr
 };
 
-inline Recipe* Items::recipes[]
+inline const Recipe* Items::recipes[]
 {
 	new Recipe(21, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Pickaxe
 	new Recipe(22, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Knife
