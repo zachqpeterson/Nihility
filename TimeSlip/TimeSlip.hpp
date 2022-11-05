@@ -3,6 +3,7 @@
 #include "World.hpp"
 
 #include <Containers/HashTable.hpp>
+#include <Containers/List.hpp>
 
 class Scene;
 class Player;
@@ -14,6 +15,7 @@ struct Vector2;
 struct Vector4;
 struct UIElement;
 struct Transform2D;
+struct Recipe;
 
 enum GameState
 {

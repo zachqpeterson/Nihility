@@ -13,6 +13,7 @@
 
 U64 UI::elementID{ 1 };
 List<UIElement*> UI::elements;
+List<UIElement*> UI::elementsToDestroy;
 Texture* UI::panelTexture;
 UIElement* UI::description;
 UIText* UI::descriptionText;
@@ -66,6 +67,13 @@ void UI::Shutdown()
 
 void UI::Update()
 {
+	for (UIElement* e : elementsToDestroy)
+	{
+		DestroyElementInternal(e);
+	}
+
+	elementsToDestroy.Clear();
+
 	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
 	Vector2Int posDelta = mousePos - lastMousesPos;
 
@@ -905,19 +913,6 @@ void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
 	element->gameObject->transform->SetPosition(pos);
 }
 
-void UI::MoveChild(UIElement* element, const Vector2& move)
-{
-	for (UIElement* e : element->children)
-	{
-		e->area.x += move.x;
-		e->area.y += move.y;
-		e->area.z += move.x;
-		e->area.w += move.y;
-
-		MoveChild(e, move);
-	}
-}
-
 void UI::ChangeColor(UIElement* element, const Vector4& newColor)
 {
 	UIVertex* vertices = (UIVertex*)element->mesh->vertices;
@@ -1140,12 +1135,26 @@ void UI::HideDescription()
 
 void UI::DestroyElement(UIElement* element)
 {
+	elementsToDestroy.PushBack(element);
+}
+
+void UI::DestroyAllChildren(UIElement* element)
+{
+	for (UIElement* e : element->children)
+	{
+		DestroyElement(e);
+	}
+}
+
+void UI::DestroyElementInternal(UIElement* element)
+{
 	if (element)
 	{
 		elements.Remove(element);
 
 		if (element->parent) { element->parent->children.Remove(element); }
 
+		if (element->selfEnabled) { element->scene->UndrawGameObject(element->gameObject); }
 		Resources::DestroyModel(element->gameObject->model);
 		Resources::DestroyGameObject2D(element->gameObject);
 

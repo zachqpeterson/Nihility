@@ -1368,6 +1368,7 @@ public:
 	}
 	Transform2D(const Transform2D& other) : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale }, local{ other.local } {}
 	Transform2D(Transform2D&& other) noexcept : parent{ other.parent }, dirty{ other.dirty }, position{ other.position }, rotation{ other.rotation }, scale{ other.scale }, local{ other.local } {}
+	~Transform2D() { parent = nullptr; }
 
 	void* operator new(U64 size);
 	void operator delete(void* ptr);

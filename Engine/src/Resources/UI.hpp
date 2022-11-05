@@ -127,6 +127,7 @@ public:
 	static void ChangePercent(UIBar* element, F32 percent);
 	static void ChangeFillColor(UIBar* element, const Vector4& fillColor);
 	static void DestroyElement(UIElement* element);
+	static void DestroyAllChildren(UIElement* element);
 
 	static void ShowDescription(const Vector2Int& position, const String& desc);
 	static void MoveDescription(const Vector2Int& position);
@@ -141,7 +142,7 @@ private:
 
 	static void CreateDescription();
 	static void SetEnableChild(UIElement* element, bool enable);
-	static void MoveChild(UIElement* element, const Vector2& move);
+	static void DestroyElementInternal(UIElement* element);
 
 	static NH_INLINE bool Punctuation(char c) { return c == 44 || c == 46 || c == 63 || c == 33; }
 
@@ -149,6 +150,7 @@ private:
 
 	static U64 elementID;
 	static List<UIElement*> elements;
+	static List<UIElement*> elementsToDestroy;
 	static Texture* panelTexture;
 	static UIElement* description;
 	static UIText* descriptionText;

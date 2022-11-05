@@ -222,7 +222,7 @@ public:
 		U64 s = size;
 		for (U64 i = 0; i < s; ++i)
 		{
-			PopFront();
+			PopBack();
 		}
 	}
 
@@ -350,12 +350,11 @@ public:
 			Node* tempNode = head;
 			head = head->next;
 			if (head) { head->prev = nullptr; }
+			else { tail = nullptr; }
 			T&& value = Move(tempNode->value);
 			delete tempNode;
 			return Move(value);
 		}
-
-		if (!size) { head = nullptr; }
 
 		return Move(T{});
 	}
@@ -392,13 +391,12 @@ public:
 			--size;
 			Node* tempNode = tail;
 			tail = tail->prev;
-			tail->next = nullptr;
+			if (tail) { tail->next = nullptr; }
+			else { head = nullptr; }
 			T value = tempNode->value;
 			delete tempNode;
 			return Move(value);
 		}
-
-		if (!size) { head = nullptr; }
 
 		return Move(T{});
 	}

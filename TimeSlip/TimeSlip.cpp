@@ -306,9 +306,9 @@ void TimeSlip::UpdateDayCycle()
 
 void TimeSlip::FillCraftingMenu()
 {
-	const Recipe** recipes = Items::GetRecipes();
+	const Recipe** allRecipes = Items::GetRecipes();
 
-	const Recipe* recipe = recipes[0];
+	const Recipe* recipe = allRecipes[0];
 
 	UIElementConfig recipeConfig{};
 	recipeConfig.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
@@ -318,6 +318,8 @@ void TimeSlip::FillCraftingMenu()
 	recipeConfig.scale = { 0.2f, 0.2f };
 	recipeConfig.scene = worldScene;
 	recipeConfig.parent = craftingMenu;
+
+	UI::DestroyAllChildren(craftingMenu);
 
 	U16 i = 0;
 	while (recipe)
@@ -337,7 +339,7 @@ void TimeSlip::FillCraftingMenu()
 			recipeConfig.position.y += 0.3f;
 		}
 
-		recipe = recipes[++i];
+		recipe = allRecipes[++i];
 	}
 }
 
