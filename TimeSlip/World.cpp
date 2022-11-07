@@ -920,7 +920,7 @@ F32 World::GenerateWorld()
 				(caveThresholdMax * (height + y) / (F64)height + caveThresholdMin);
 
 			F64 oreNoise = Math::Simplex2(x * oreFreq + SEED * 2.0, y * oreFreq + SEED * 2.0) * oreAmplitude;
-			U8 ore = (oreNoise > oreThreshold) * (5 + tile.biome);
+			U8 ore = (oreNoise > oreThreshold) * (6 + tile.biome);
 
 			tile.decID = ((y == height) + (y > height) * ore) * cave;
 			tile.blockID = ((1 + (y > height + 10)) + biomeTileMods[tile.biome]) * cave;
