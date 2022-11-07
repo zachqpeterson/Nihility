@@ -4,8 +4,6 @@
 #include <Containers/String.hpp>
 #include <Platform/Platform.hpp>
 
-#include <vector>
-
 enum ItemType
 {
 	ITEM_TYPE_BASIC,
@@ -29,8 +27,8 @@ struct Damage
 
 struct Item
 {
-	constexpr Item(const char* name, const char* desc, U8 rarity, ItemType type = ITEM_TYPE_BASIC) :
-		name{ name }, description{ desc }, rarity{ rarity }, type{ type }
+	constexpr Item(const char* name, const char* desc, U8 rarity, ItemType type = ITEM_TYPE_BASIC, U16 maxAmount = 999) :
+		name{ name }, description{ desc }, rarity{ rarity }, type{ type }, maxAmount{ maxAmount }
 	{
 	}
 
@@ -39,12 +37,13 @@ struct Item
 
 	const U8 rarity;
 	const ItemType type;
+	const U16 maxAmount;
 };
 
 struct Block : public Item
 {
-	constexpr Block(const char* name, const char* desc, U8 rarity, U8 hardness, bool placeable) :
-		Item{ name, desc, rarity, ITEM_TYPE_TILE }, hardness{ hardness }, placeable{ placeable }
+	constexpr Block(const char* name, const char* desc, U8 rarity, U8 hardness, bool placeable, U16 maxAmount = 999) :
+		Item{ name, desc, rarity, ITEM_TYPE_TILE, maxAmount }, hardness{ hardness }, placeable{ placeable }
 	{
 	}
 
@@ -54,8 +53,8 @@ struct Block : public Item
 
 struct Tool : public Item
 {
-	constexpr Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed) :
-		Item{ name, desc, rarity, ITEM_TYPE_TOOL }, power{ power }, speed{ speed }
+	constexpr Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed, U16 maxAmount = 1) :
+		Item{ name, desc, rarity, ITEM_TYPE_TOOL, maxAmount }, power{ power }, speed{ speed }
 	{
 	}
 
@@ -65,8 +64,8 @@ struct Tool : public Item
 
 struct Weapon : public Item
 {
-	constexpr Weapon(const char* name, const char* desc, U8 rarity, const Damage& damage) :
-		Item{ name, desc, rarity, ITEM_TYPE_WEAPON }, damage{ damage }
+	constexpr Weapon(const char* name, const char* desc, U8 rarity, const Damage& damage, U16 maxAmount = 1) :
+		Item{ name, desc, rarity, ITEM_TYPE_WEAPON, maxAmount }, damage{ damage }
 	{
 	}
 
@@ -122,7 +121,7 @@ private:
 
 inline const Item* Items::items[]
 {
-	new Tool{"", "", 0, 0, 0}, //NOTE: Using your hand for picking up grass, flint, and shrubs
+	new Tool{"", "", 0, 0, 0, false}, //NOTE: Using your hand for picking up grass, flint, and shrubs
 
 	//Tiles 1
 	new Block{"Dirt", "Dirt from the Grassland", 0, 1, true},

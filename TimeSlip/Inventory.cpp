@@ -1,5 +1,7 @@
 #include "Inventory.hpp"
 
+#include "Items.hpp"
+
 #include <Memory/Memory.hpp>
 #include <Resources/UI.hpp>
 #include <Renderer/Scene.hpp>
@@ -517,13 +519,17 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 		for (U8 x = 0; x < slots.Size(); ++x)
 		{
 			Slot& slot = slots[x][y];
+			const Item* item = Items::GetItem(slot.itemID);
 
-			if (slot.itemID == itemID)
+			if (slot.itemID == itemID && slot.amount < item->maxAmount)
 			{
-				//TODO: non-stackable items and stack limits
-				slot.amount += amount;
+				U16 amt = Math::Min((U16)(item->maxAmount - slot.amount), amount);
+
+				slot.amount += amt;
+				amount -= amt;
+
 				UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
-				return true;
+				if (amount == 0) { return true; }
 			}
 			else if (!slot.itemID && !firstOpen) { firstOpen = &slot; }
 		}
