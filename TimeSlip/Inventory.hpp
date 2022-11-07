@@ -65,8 +65,8 @@ public:
 
 	const Vector<Slot>& operator[](U16 i) const { return slots[i]; }
 
-private:
 	static Vector<Vector2>& GetUV(U16 itemID);
+private:
 
 	static Vector<Vector2> blankUVs;
 

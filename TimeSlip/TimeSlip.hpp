@@ -39,7 +39,8 @@ public:
 	static Transform2D* GetTarget(Transform2D* position, F32 range);
 	static void Attack(const Damage& damage, const Vector4& area);
 
-	static void OnClick(UIElement* e, const Vector2Int& pos, void* data);
+	static void OnClickSelect(UIElement* e, const Vector2Int& pos, void* data);
+	static void OnClickCraft(UIElement* e, const Vector2Int& pos, void* data);
 
 private:
 	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);
@@ -65,6 +66,10 @@ private:
 	static Inventory* hotbar;
 	static UIElement* hotbarHighlight;
 	static UIElement* craftingMenu;
+	static UIElement* craftResult;
+	static UIElement* craftButton;
+
+	static Vector<Vector2> blankUVs;
 
 	static U8 equippedSlot;
 

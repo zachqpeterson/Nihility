@@ -35,6 +35,10 @@ Inventory* TimeSlip::inventory;
 Inventory* TimeSlip::hotbar;
 UIElement* TimeSlip::hotbarHighlight;
 UIElement* TimeSlip::craftingMenu;
+UIElement* TimeSlip::craftResult;
+UIElement* TimeSlip::craftButton;
+
+Vector<Vector2> TimeSlip::blankUVs;
 
 U8 TimeSlip::equippedSlot;
 
@@ -50,7 +54,26 @@ WorldSize TimeSlip::smallWorldSize{ WS_SMALL };
 WorldSize TimeSlip::mediumWorldSize{ WS_MEDIUM };
 WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 
-void TimeSlip::OnClick(UIElement* e, const Vector2Int& pos, void* data)
+void TimeSlip::OnClickSelect(UIElement* e, const Vector2Int& pos, void* data)
+{
+	const Recipe* recipe = (const Recipe*)data;
+
+	UI::ChangeTexture(craftResult, nullptr, Inventory::GetUV(recipe->result));
+	UI::SetEnable(craftResult, true);
+
+	bool found = true;
+
+	for (U16 j = 0; j < recipe->ingredientCount; ++j)
+	{
+		found &= inventory->ContainsItem(recipe->ingredients[j].id, recipe->ingredients[j].amount);
+	}
+
+	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
+	if (found) { craftButton->OnClick = { OnClickCraft, (void*)recipe }; }
+	UI::SetEnable(craftButton, true);
+}
+
+void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)
 {
 	const Recipe* recipe = (const Recipe*)data;
 
@@ -60,13 +83,23 @@ void TimeSlip::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 	}
 
 	inventory->AddItem(recipe->result, recipe->amount);
-	FillCraftingMenu();
+
+	for (U16 j = 0; j < recipe->ingredientCount; ++j)
+	{
+		if (!inventory->ContainsItem(recipe->ingredients[j].id, recipe->ingredients[j].amount))
+		{
+			UI::ChangeColor(craftButton, { 0.7f, 0.7f, 0.7f, 1.0f });
+			craftButton->OnClick = { nullptr, nullptr };
+		}
+	}
 }
 
 bool TimeSlip::Initialize()
 {
 	static const F32 camWidth = 3.63636363636f;
 	static const F32 camHeight = 2.04545454545f;
+	blankUVs = { 4, Vector2::ZERO };
+
 	gameState = GAME_STATE_MENU;
 	nextState = GAME_STATE_NONE;
 	mainMenuScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
@@ -306,41 +339,7 @@ void TimeSlip::UpdateDayCycle()
 
 void TimeSlip::FillCraftingMenu()
 {
-	const Recipe** allRecipes = Items::GetRecipes();
-
-	const Recipe* recipe = allRecipes[0];
-
-	UIElementConfig recipeConfig{};
-	recipeConfig.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
-	recipeConfig.enabled = true;
-	recipeConfig.ignore = false;
-	recipeConfig.position = { 0.1f, 0.1f };
-	recipeConfig.scale = { 0.2f, 0.2f };
-	recipeConfig.scene = worldScene;
-	recipeConfig.parent = craftingMenu;
-
-	UI::DestroyAllChildren(craftingMenu);
-
-	U16 i = 0;
-	while (recipe)
-	{
-		bool found = true;
-
-		for (U16 j = 0; j < recipe->ingredientCount; ++j)
-		{
-			found &= inventory->ContainsItem(recipe->ingredients[j].id, recipe->ingredients[j].amount);
-		}
-
-		if (found)
-		{
-			UIElement* e = UI::GeneratePanel(recipeConfig, true);
-			e->OnClick = { OnClick, (void*)recipe };
-
-			recipeConfig.position.y += 0.3f;
-		}
-
-		recipe = allRecipes[++i];
-	}
+	//TODO: check if open recipe if craftable
 }
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
@@ -459,19 +458,71 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 	hotbarHighlight = UI::GeneratePanel(highlightConfig, false);
 
-	//hotbar->AddItem(22, 1);
-	//hotbar->AddItem(21, 1);
+
 
 	UIElementConfig craftPanel{};
-	craftPanel.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
+	craftPanel.color = { 1.0f, 1.0f, 1.0f, 0.5f };
 	craftPanel.enabled = false;
 	craftPanel.ignore = false;
-	craftPanel.position = { 0.55f, 0.25f };
-	craftPanel.scale = { 0.35f, 0.5f };
+	craftPanel.position = { 0.55f, 0.15f };
+	craftPanel.scale = { 0.35f, 0.7f };
 	craftPanel.scene = worldScene;
 
 	craftingMenu = UI::GeneratePanel(craftPanel, true);
 	craftingMenu->OnDrag = UI::OnDragDefault;
+
+	UIElementConfig craftingImage{};
+	craftingImage.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	craftingImage.enabled = false;
+	craftingImage.ignore = true;
+	craftingImage.position = { 0.55f, 0.1f };
+	craftingImage.scale = { 0.35f, 0.31111111111f };
+	craftingImage.scene = worldScene;
+	craftingImage.parent = craftingMenu;
+
+	craftResult = UI::GenerateImage(craftingImage, Resources::LoadTexture("Items.bmp"), blankUVs);
+
+	UIElementConfig craftingButton{};
+	craftingButton.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	craftingButton.enabled = false;
+	craftingButton.ignore = false;
+	craftingButton.position = { 0.55f, 0.6f };
+	craftingButton.scale = { 0.3f, 0.09572649572f };
+	craftingButton.scene = worldScene;
+	craftingButton.parent = craftingMenu;
+
+	Vector<Vector2> uvs{ 4 };
+	uvs.Push({ 0.0f, 0.2f });
+	uvs.Push({ 0.2f, 0.2f });
+	uvs.Push({ 0.2f, 0.0f });
+	uvs.Push({ 0.0f, 0.0f });
+
+	craftButton = UI::GenerateImage(craftingButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
+
+	const Recipe** allRecipes = Items::GetRecipes();
+	const Recipe* recipe = allRecipes[0];
+
+	UIElementConfig recipeConfig{};
+	recipeConfig.color = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
+	recipeConfig.enabled = true;
+	recipeConfig.ignore = false;
+	recipeConfig.position = { 0.1f, 0.1f };
+	recipeConfig.scale = { 0.2f, 0.1777777777f };
+	recipeConfig.scene = worldScene;
+	recipeConfig.parent = craftingMenu;
+
+	U16 i = 0;
+	while (recipe)
+	{
+		UIElement* e = UI::GenerateImage(recipeConfig, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(recipe->result));
+		e->OnClick = { OnClickSelect, (void*)recipe };
+
+		recipeConfig.position.y += 0.3f;
+
+		recipe = allRecipes[++i];
+	}
+
+
 
 	nextState = GAME_STATE_GAME;
 }

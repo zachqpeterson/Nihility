@@ -1136,6 +1136,8 @@ void UI::HideDescription()
 void UI::DestroyElement(UIElement* element)
 {
 	elementsToDestroy.PushBack(element);
+
+	DestroyAllChildren(element);
 }
 
 void UI::DestroyAllChildren(UIElement* element)
