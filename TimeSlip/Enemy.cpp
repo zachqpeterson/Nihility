@@ -41,7 +41,7 @@ void Enemy::operator delete(void* ptr) { Memory::Free(ptr, sizeof(Enemy), MEMORY
 
 void Enemy::Update()
 {
-	health += regeneration * (F32)Time::DeltaTime();
+	health += healthRegen * (F32)Time::DeltaTime();
 
 	if (aggressive && !target)
 	{
@@ -81,12 +81,7 @@ void Enemy::BasicAI()
 			{
 				attackCooldown = 0.25f;
 
-				Damage damage{};
-				damage.damage = 10;
-				damage.armorPierce = 0;
-				damage.critChance = 0.1f;
-				damage.critMulti = 1.0f;
-				damage.knockback = 0.0f;
+				Damage damage{10.0f, 0.0f, 0.1f, 1.0f, 0.0f, 0.0f, 0.0f, 0.25f};
 
 				Vector4 area{};
 

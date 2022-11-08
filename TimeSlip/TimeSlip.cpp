@@ -300,7 +300,7 @@ void TimeSlip::HandleEntities()
 		eConfig.position = spawn;
 		eConfig.ignore = false;
 		eConfig.despawnRange = 60.0f;
-		eConfig.regeneration = 0.0f;
+		eConfig.healthRegen = 0.0f;
 		Enemy* enemy = new Enemy(eConfig, ENEMY_AI_BASIC);
 		entities.Insert(enemy->gameObject->physics->ID(), enemy);
 	}
@@ -410,7 +410,7 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	eConfig.position = spawnPoint;
 	eConfig.ignore = false;
 	eConfig.despawnRange = 40.0f;
-	eConfig.regeneration = 1.0f;
+	eConfig.healthRegen = 1.0f;
 	player = new Player(eConfig);
 	entities.Insert(player->gameObject->physics->ID(), player);
 

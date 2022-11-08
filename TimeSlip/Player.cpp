@@ -12,18 +12,27 @@
 #include <Physics/Physics.hpp>
 
 Player::Player(const EntityConfig& config) : Entity(config, true),
-alive{ true }, deathTimer{ 0.0f }, spawnPoint{ config.position }, attackCooldown{ 0.0f }
+alive{ true }, deathTimer{ 0.0f }, spawnPoint{ config.position }, attackTimer{ 0.0f },
+maxStamina{ 100.0f, }, stamina{ maxStamina }, staminaRegen{ 10.0f }, maxMana{ 100.0f }, mana{ maxMana }, manaRegen{ 0.0f }
 {
 	UIElementConfig barConfig{};
 	barConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	barConfig.enabled = true;
 	barConfig.ignore = true;
 	barConfig.parent = nullptr;
-	barConfig.position = { 0.5f, 0.05f };
-	barConfig.scale = { 0.33f, 0.05f };
+	barConfig.position = { 0.5f, 0.025f };
+	barConfig.scale = { 0.33f, 0.025f };
 	barConfig.scene = RendererFrontend::CurrentScene();
 
-	healthBar = UI::GenerateBar(barConfig, { 1.0f, 0.0f, 0.0f, 1.0f }, 1.0f);
+	healthBar = UI::GenerateBar(barConfig, { 1.0f, 0.1f, 0.1f, 1.0f }, 1.0f);
+
+	barConfig.position = { 0.5f, 0.07f };
+
+	staminaBar = UI::GenerateBar(barConfig, { 0.1f, 1.0f, 0.1f, 1.0f }, 1.0f);
+
+	barConfig.position = { 0.5f, 0.115f };
+
+	manaBar = UI::GenerateBar(barConfig, { 0.1f, 0.1f, 1.0f, 1.0f }, 1.0f);
 }
 
 Player::~Player()
@@ -52,7 +61,7 @@ void Player::operator delete(void* ptr) { Memory::Free(ptr, sizeof(Player), MEMO
 
 void Player::Update()
 {
-	attackCooldown -= (F32)Time::DeltaTime();
+	attackTimer -= (F32)Time::DeltaTime();
 
 	if (alive)
 	{
@@ -72,8 +81,12 @@ void Player::Update()
 		}
 
 		gameObject->physics->Translate(move);
-		health = Math::Min(health + regeneration * (F32)Time::DeltaTime(), maxHealth);
+		health = Math::Min(health + healthRegen * (F32)Time::DeltaTime(), maxHealth);
+		stamina = Math::Min(stamina + staminaRegen * (F32)Time::DeltaTime(), maxStamina);
+		mana = Math::Min(mana + manaRegen * (F32)Time::DeltaTime(), maxMana);
 		UI::ChangePercent(healthBar, health / maxHealth);
+		UI::ChangePercent(staminaBar, stamina / maxStamina);
+		UI::ChangePercent(manaBar, mana / maxMana);
 	}
 	else
 	{
@@ -86,7 +99,11 @@ void Player::Update()
 			RendererFrontend::DrawGameObject(gameObject);
 			SetPosition(spawnPoint);
 			health = maxHealth;
-			UI::ChangePercent(healthBar, health / maxHealth);
+			stamina = maxStamina;
+			mana = maxMana;
+			UI::ChangePercent(healthBar, 1.0f);
+			UI::ChangePercent(staminaBar, 1.0f);
+			UI::ChangePercent(manaBar, 1.0f);
 		}
 	}
 }
@@ -103,9 +120,14 @@ void Player::DamageResponse()
 
 void Player::Attack(const Damage& damage)
 {
-	if (alive && attackCooldown <= 0.0f)
+	if (alive && attackTimer <= 0.0f && damage.manaUse <= mana && damage.staminaUse <= stamina)
 	{
-		attackCooldown = 0.25f;
+		attackTimer = damage.cooldown;
+
+		stamina -= damage.staminaUse;
+		mana -= damage.manaUse;
+		UI::ChangePercent(staminaBar, stamina / maxStamina);
+		UI::ChangePercent(manaBar, mana / maxMana);
 
 		Vector4 area{};
 

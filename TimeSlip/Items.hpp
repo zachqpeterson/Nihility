@@ -16,11 +16,18 @@ enum ItemType
 
 struct Damage
 {
+	constexpr Damage(F32 damage, F32 armorPierce, F32 critChance, F32 critMulti, F32 knockback, F32 staminaUse, F32 manaUse, F32 cooldown) :
+		damage{ damage }, armorPierce{ armorPierce }, critChance{ critChance }, critMulti{ critMulti },
+		knockback{ knockback }, staminaUse{ staminaUse }, manaUse{ manaUse }, cooldown{ cooldown } {}
+
 	F32 damage;
 	F32 armorPierce;
 	F32 critChance;
 	F32 critMulti;
 	F32 knockback;
+	F32 staminaUse;
+	F32 manaUse;
+	F32 cooldown;
 
 	//TODO: Debuf applying
 };
@@ -153,7 +160,7 @@ inline const Item* Items::items[]
 	new Tool{"Flint Pickaxe", "A primitive tool that'll get the job done", 0, 1, 1},
 
 	//Weapons 22
-	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f}},
+	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f, 10.0f, 0.0f, 0.2f}},
 
 	nullptr
 };
