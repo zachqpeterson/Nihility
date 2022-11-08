@@ -13,7 +13,7 @@ U64 Memory::taggedDeallocCounts[MEMORY_TAG_MAX];
 
 DynamicAllocator* Memory::allocator;
 
-bool Memory::Initialize(U64 memoryRequirement)
+bool Memory::Initialize(U64 memoryRequirement) //TODO: Make compile-time
 {
 	allocator = new DynamicAllocator(memoryRequirement);
 
