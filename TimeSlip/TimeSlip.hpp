@@ -50,6 +50,7 @@ private:
 	static void HandleEntities();
 	static void UpdateDayCycle();
 
+	static void CreateInventory();
 	static void CreateCraftingMenu();
 	static void UpdateCraftingMenu();
 

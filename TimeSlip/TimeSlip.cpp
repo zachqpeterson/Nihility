@@ -186,6 +186,8 @@ bool TimeSlip::Update()
 
 void TimeSlip::HandleInput()
 {
+	constexpr U32 rangeSqr = (5 * 24) * (5 * 24);
+
 	if (Input::OnButtonDown(ONE)) { UI::MoveElement(hotbarHighlight, Vector2{ -equippedSlot * 0.04333333333f, 0.0f }); equippedSlot = 0; }
 	else if (Input::OnButtonDown(TWO)) { UI::MoveElement(hotbarHighlight, Vector2{ (1.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 1; }
 	else if (Input::OnButtonDown(THREE)) { UI::MoveElement(hotbarHighlight, Vector2{ (2.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 2; }
@@ -223,7 +225,7 @@ void TimeSlip::HandleInput()
 			Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 			Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
 
-			if (distance.SqrMagnitude() < 20736.0f)
+			if (distance.SqrMagnitude() < rangeSqr)
 			{
 				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
 
@@ -259,7 +261,7 @@ void TimeSlip::HandleInput()
 			Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 			Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
 
-			if (distance.SqrMagnitude() < 20736.0f)
+			if (distance.SqrMagnitude() < rangeSqr)
 			{
 				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
 
@@ -429,6 +431,19 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	worldScene->GetCamera()->SetTarget(player->gameObject->transform);
 	worldScene->GetCamera()->SetBounds({ 39.5f, size - 40.5f, 22.0f, size / 3.5f - 23.0f });
 
+	CreateInventory();
+	CreateCraftingMenu();
+
+	nextState = GAME_STATE_GAME;
+}
+
+void TimeSlip::LoadWorld()
+{
+
+}
+
+void TimeSlip::CreateInventory()
+{
 	Inventory::Init(worldScene);
 
 	InventoryConfig config{};
@@ -468,15 +483,6 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 	highlightConfig.scene = worldScene;
 
 	hotbarHighlight = UI::GeneratePanel(highlightConfig, false);
-
-	CreateCraftingMenu();
-
-	nextState = GAME_STATE_GAME;
-}
-
-void TimeSlip::LoadWorld()
-{
-
 }
 
 void TimeSlip::CreateCraftingMenu()

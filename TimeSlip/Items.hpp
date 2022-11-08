@@ -60,13 +60,14 @@ struct Block : public Item
 
 struct Tool : public Item
 {
-	constexpr Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed, U16 maxAmount = 1) :
-		Item{ name, desc, rarity, ITEM_TYPE_TOOL, maxAmount }, power{ power }, speed{ speed }
+	constexpr Tool(const char* name, const char* desc, U8 rarity, U8 power, U8 speed, U8 range = 5, U16 maxAmount = 1) :
+		Item{ name, desc, rarity, ITEM_TYPE_TOOL, maxAmount }, power{ power }, speed{ speed }, range{ range }
 	{
 	}
 
 	const U8 power;
 	const U8 speed;
+	const U8 range;
 };
 
 struct Weapon : public Item
@@ -83,9 +84,9 @@ struct Ingredient
 {
 	constexpr Ingredient(U16 id, U16 amount = 1, bool consumed = true) : id{ id }, amount{ amount }, consumed{ consumed } {}
 
-	U16 id;
-	U16 amount;
-	bool consumed;
+	const U16 id;
+	const U16 amount;
+	const bool consumed;
 };
 
 struct Recipe
@@ -98,12 +99,12 @@ struct Recipe
 		(void(ingredients[i++] = args), ...);
 	}
 
-	U16 result;
-	U16 amount;
-	U8 benchLevel;
+	const U16 result;
+	const U16 amount;
+	const U8 benchLevel;
 
-	U16 ingredientCount;
-	Ingredient* ingredients;
+	const U16 ingredientCount;
+	const Ingredient* ingredients;
 };
 
 class Items
