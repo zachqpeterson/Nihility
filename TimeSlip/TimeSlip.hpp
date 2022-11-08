@@ -50,7 +50,8 @@ private:
 	static void HandleEntities();
 	static void UpdateDayCycle();
 
-	static void FillCraftingMenu();
+	static void CreateCraftingMenu();
+	static void UpdateCraftingMenu();
 
 	static Scene* mainMenuScene;
 	static Scene* worldScene;
@@ -68,6 +69,7 @@ private:
 	static UIElement* craftingMenu;
 	static UIElement* craftResult;
 	static UIElement* craftButton;
+	static const Recipe* selectedRecipe;
 
 	static Vector<Vector2> blankUVs;
 

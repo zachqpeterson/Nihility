@@ -34,9 +34,11 @@ Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 Inventory* TimeSlip::hotbar;
 UIElement* TimeSlip::hotbarHighlight;
+
 UIElement* TimeSlip::craftingMenu;
 UIElement* TimeSlip::craftResult;
 UIElement* TimeSlip::craftButton;
+const Recipe* TimeSlip::selectedRecipe;
 
 Vector<Vector2> TimeSlip::blankUVs;
 
@@ -57,6 +59,7 @@ WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 void TimeSlip::OnClickSelect(UIElement* e, const Vector2Int& pos, void* data)
 {
 	const Recipe* recipe = (const Recipe*)data;
+	selectedRecipe = recipe;
 
 	UI::ChangeTexture(craftResult, nullptr, Inventory::GetUV(recipe->result));
 	UI::SetEnable(craftResult, true);
@@ -337,9 +340,17 @@ void TimeSlip::UpdateDayCycle()
 	worldScene->GetCamera()->SetAmbientColor(globalColor * alpha);
 }
 
-void TimeSlip::FillCraftingMenu()
+void TimeSlip::UpdateCraftingMenu()
 {
-	//TODO: check if open recipe if craftable
+	bool found = true;
+
+	for (U16 j = 0; j < selectedRecipe->ingredientCount; ++j)
+	{
+		found &= inventory->ContainsItem(selectedRecipe->ingredients[j].id, selectedRecipe->ingredients[j].amount);
+	}
+
+	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
+	if (found) { craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe }; }
 }
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
@@ -347,7 +358,7 @@ void TimeSlip::PickupItem(U16 itemID, U16 amount)
 	if (itemID > 0)
 	{
 		inventory->AddItem(itemID, amount);
-		FillCraftingMenu();
+		if (selectedRecipe) { UpdateCraftingMenu(); }
 	}
 }
 
@@ -458,8 +469,18 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 	hotbarHighlight = UI::GeneratePanel(highlightConfig, false);
 
+	CreateCraftingMenu();
 
+	nextState = GAME_STATE_GAME;
+}
 
+void TimeSlip::LoadWorld()
+{
+
+}
+
+void TimeSlip::CreateCraftingMenu()
+{
 	UIElementConfig craftPanel{};
 	craftPanel.color = { 1.0f, 1.0f, 1.0f, 0.5f };
 	craftPanel.enabled = false;
@@ -521,13 +542,4 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 
 		recipe = allRecipes[++i];
 	}
-
-
-
-	nextState = GAME_STATE_GAME;
-}
-
-void TimeSlip::LoadWorld()
-{
-
 }
