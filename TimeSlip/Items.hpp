@@ -3,13 +3,15 @@
 #include <Defines.hpp>
 #include <Containers/String.hpp>
 #include <Platform/Platform.hpp>
+#include <Math/Math.hpp>
 
 enum ItemType
 {
-	ITEM_TYPE_BASIC,
 	ITEM_TYPE_TILE,
 	ITEM_TYPE_TOOL,
 	ITEM_TYPE_WEAPON,
+	ITEM_TYPE_CONSUMABLE,
+	ITEM_TYPE_LIGHT,
 
 	ITEM_TYPE_COUNT
 };
@@ -34,7 +36,7 @@ struct Damage
 
 struct Item
 {
-	constexpr Item(const char* name, const char* desc, U8 rarity, ItemType type = ITEM_TYPE_BASIC, U16 maxAmount = 999) :
+	constexpr Item(const char* name, const char* desc, U8 rarity, ItemType type, U16 maxAmount = 999) :
 		name{ name }, description{ desc }, rarity{ rarity }, type{ type }, maxAmount{ maxAmount }
 	{
 	}
@@ -80,13 +82,34 @@ struct Weapon : public Item
 	const Damage damage;
 };
 
+struct Consumable : public Item
+{
+	constexpr Consumable(const char* name, const char* desc, U8 rarity, U16 maxAmount = 99) :
+		Item{ name, desc, rarity, ITEM_TYPE_CONSUMABLE, maxAmount }
+	{
+	}
+
+	//TODO: buffs
+};
+
+struct Light : public Item
+{
+	constexpr Light(const char* name, const char* desc, U8 rarity, U8 radius, const Vector3& color, U16 maxAmount = 999) :
+		Item{ name, desc, rarity, ITEM_TYPE_LIGHT, maxAmount }, radius{ radius }, color{ color }
+	{
+	}
+
+	U8 radius;
+	Vector3 color;
+};
+
 struct Ingredient
 {
 	constexpr Ingredient(U16 id, U16 amount = 1, bool consumed = true) : id{ id }, amount{ amount }, consumed{ consumed } {}
 
-	const U16 id;
-	const U16 amount;
-	const bool consumed;
+	U16 id;
+	U16 amount;
+	bool consumed;
 };
 
 struct Recipe
@@ -104,7 +127,7 @@ struct Recipe
 	const U8 benchLevel;
 
 	const U16 ingredientCount;
-	const Ingredient* ingredients;
+	Ingredient* ingredients;
 };
 
 class Items
@@ -153,15 +176,17 @@ inline const Item* Items::items[]
 	new Block{"Coal", "Combined with iron to make steel", 4, 4, false},
 
 	//Reserved
-	new Item{"", "", 0},
-	new Item{"", "", 0},
-	new Item{"", "", 0},
+	new Item{"", "", 0, ITEM_TYPE_TOOL},
+	new Item{"", "", 0, ITEM_TYPE_TOOL},
+	new Item{"", "", 0, ITEM_TYPE_TOOL},
 
 	//Tools 21
 	new Tool{"Flint Pickaxe", "A primitive tool that'll get the job done", 0, 1, 1},
 
 	//Weapons 22
 	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f, 10.0f, 0.0f, 0.2f}},
+
+	new Light{"Torch", "Light up the way in dark tunnels", 0, 8, Vector3::ONE},
 
 	nullptr
 };
@@ -170,6 +195,7 @@ inline const Recipe* Items::recipes[]
 {
 	new Recipe(21, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Pickaxe
 	new Recipe(22, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Knife
+	new Recipe(23, 1, 0, Ingredient{12}),
 
 	nullptr
 };

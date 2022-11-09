@@ -19,6 +19,7 @@ struct EntityConfig
 
 struct GameObject2D;
 struct Vector2;
+struct Animation;
 
 class Entity
 {
@@ -34,6 +35,7 @@ protected:
 
 protected:
 	GameObject2D* gameObject;
+	Animation* animation;
 
 	F32 maxHealth;
 	F32 health;

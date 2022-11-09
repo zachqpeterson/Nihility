@@ -207,75 +207,105 @@ void TimeSlip::HandleInput()
 		equippedSlot = (U8)delta;
 	}
 
-	if (Input::ButtonDown(LEFT_CLICK))
-	{
-		U16 id = (*hotbar)[equippedSlot][0].itemID;
-		const Item* item = Items::GetItem(id);
+	U16 id = (*hotbar)[equippedSlot][0].itemID;
+	const Item* item = Items::GetItem(id);
+	Vector2Int pos;
 
-		if (item->type == ITEM_TYPE_WEAPON)
+	switch (item->type)
+	{
+	case ITEM_TYPE_TILE: {
+		const Block* block = (const Block*)item;
+
+		if (Input::ButtonDown(LEFT_CLICK))
+		{
+			if (block->placeable && MouseToWorldInRange(pos, 5) && world->PlaceBlock(pos, (U8)id))
+			{
+				hotbar->RemoveItem(equippedSlot, 0, 1);
+			}
+		}
+		else if(Input::ButtonDown(RIGHT_CLICK))
+		{
+			if (block->placeable && MouseToWorldInRange(pos, 5) && world->PlaceWall(pos, (U8)id))
+			{
+				hotbar->RemoveItem(equippedSlot, 0, 1);
+			}
+		}
+	} break;
+	case ITEM_TYPE_TOOL: {
+		const Tool* tool = (const Tool*)item;
+
+		if (Input::ButtonDown(LEFT_CLICK))
+		{
+			if (MouseToWorldInRange(pos, 5) &&
+				Items::BlockToItem(world->tiles[pos.x][pos.y].blockID)->hardness <= tool->power &&
+				Items::DecorationToItem(world->tiles[pos.x][pos.y].decID)->hardness <= tool->power)
+			{
+				world->BreakBlock(pos);
+			}
+		}
+		else if (Input::ButtonDown(RIGHT_CLICK))
+		{
+			if (MouseToWorldInRange(pos, 5) &&
+				Items::WallToItem(world->tiles[pos.x][pos.y].wallID)->hardness <= tool->power)
+			{
+				world->BreakWall(pos);
+			}
+		}
+	} break;
+	case ITEM_TYPE_WEAPON: {
+		if (Input::ButtonDown(LEFT_CLICK) || Input::ButtonDown(RIGHT_CLICK))
 		{
 			player->Attack(((const Weapon*)item)->damage);
 		}
-		else
+	} break;
+	case ITEM_TYPE_CONSUMABLE: {
+		//TODO: Consume
+	} break;
+	case ITEM_TYPE_LIGHT: {
+		const Light* light = (const Light*)item;
+
+		if (Input::ButtonDown(LEFT_CLICK))
 		{
-			Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
-			Vector2 mousePos = (Vector2)Input::MousePos();
-			Vector2 screenSize = (Vector2)Platform::ScreenSize();
-			Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
-			Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
-			Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
-
-			if (distance.SqrMagnitude() < rangeSqr)
+			if (MouseToWorldInRange(pos, 5) && world->PlaceLight(pos, light))
 			{
-				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
-
-				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable && world->PlaceBlock(pos, (U8)id))
-				{
-					hotbar->RemoveItem(equippedSlot, 0, 1);
-				}
-				else if (item->type == ITEM_TYPE_TOOL &&
-					Items::BlockToItem(world->tiles[pos.x][pos.y].blockID)->hardness <= ((const Tool*)item)->power &&
-					Items::DecorationToItem(world->tiles[pos.x][pos.y].decID)->hardness <= ((const Tool*)item)->power)
-				{
-					world->BreakBlock(pos);
-				}
+				hotbar->RemoveItem(equippedSlot, 0, 1);
 			}
 		}
-	}
-
-	if (Input::ButtonDown(RIGHT_CLICK))
-	{
-		U16 id = (*hotbar)[equippedSlot][0].itemID;
-		const Item* item = Items::GetItem(id);
-
-		if (item->type == ITEM_TYPE_WEAPON)
+		else if (Input::ButtonDown(RIGHT_CLICK))
 		{
-			player->Attack(((const Weapon*)item)->damage);
-		}
-		else
-		{
-			Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
-			Vector2 mousePos = (Vector2)Input::MousePos();
-			Vector2 screenSize = (Vector2)Platform::ScreenSize();
-			Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
-			Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
-			Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
-
-			if (distance.SqrMagnitude() < rangeSqr)
+			if (MouseToWorldInRange(pos, 5))
 			{
-				Vector2Int pos{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
-
-				if (item->type == ITEM_TYPE_TILE && ((const Block*)item)->placeable && world->PlaceWall(pos, (U8)id))
-				{
-					hotbar->RemoveItem(equippedSlot, 0, 1);
-				}
-				else if (item->type == ITEM_TYPE_TOOL && Items::WallToItem(world->tiles[pos.x][pos.y].wallID)->hardness <= ((const Tool*)item)->power)
-				{
-					world->BreakWall(pos);
-				}
+				world->RemoveLight(pos);
 			}
 		}
+	} break;
 	}
+}
+
+Vector2Int TimeSlip::MouseToWorld()
+{
+	Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+	Vector2 mousePos = (Vector2)Input::MousePos();
+	Vector2 screenSize = (Vector2)Platform::ScreenSize();
+	Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+	Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+	Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
+
+	return Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
+}
+
+bool TimeSlip::MouseToWorldInRange(Vector2Int& pos, U8 range)
+{
+	Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
+	Vector2 mousePos = (Vector2)Input::MousePos();
+	Vector2 screenSize = (Vector2)Platform::ScreenSize();
+	Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+	Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
+	Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
+
+	pos = Vector2Int{ (distance / (windowSize.x * 0.0125f)) + cameraPos + 0.5f };
+
+	return distance.SqrMagnitude() < (range * range * 576);
 }
 
 void TimeSlip::HandleEntities()
@@ -359,6 +389,8 @@ void TimeSlip::PickupItem(U16 itemID, U16 amount)
 {
 	if (itemID > 0)
 	{
+		//TODO: Look for item in hotbar first
+
 		inventory->AddItem(itemID, amount);
 		if (selectedRecipe) { UpdateCraftingMenu(); }
 	}

@@ -7,6 +7,7 @@
 #include <Core/Time.hpp>
 #include <Renderer/RendererFrontend.hpp>
 #include <Physics/Physics.hpp>
+#include <Resources/Animations.hpp>
 
 struct Vertex
 {
@@ -32,9 +33,9 @@ facing{ true }, ignore{ config.ignore }, player{ player }, despawnRange{ config.
 
 	Vertex* vertices = (Vertex*)meshConfig.vertices;
 
-	vertices[0] = Vertex{ {-0.5f, -1.0f, 0.0f}, {0.0f, 0.125f} };
-	vertices[1] = Vertex{ { 0.5f, -1.0f, 0.0f}, {0.166666f, 0.125f} };
-	vertices[2] = Vertex{ { 0.5f,  1.0f, 0.0f}, {0.166666f, 0.0f} };
+	vertices[0] = Vertex{ {-0.5f, -1.0f, 0.0f}, {0.0f, 0.333f} };
+	vertices[1] = Vertex{ { 0.5f, -1.0f, 0.0f}, {0.1f, 0.333f} };
+	vertices[2] = Vertex{ { 0.5f,  1.0f, 0.0f}, {0.1f, 0.0f} };
 	vertices[3] = Vertex{ {-0.5f,  1.0f, 0.0f}, {0.0f, 0.0f} };
 
 	meshConfig.indices[0] = 0;
@@ -64,6 +65,7 @@ facing{ true }, ignore{ config.ignore }, player{ player }, despawnRange{ config.
 	goConfig.transform = physicsConfig.transform;
 
 	gameObject = Resources::CreateGameObject2D(goConfig);
+	animation = Animations::AddAnimation(gameObject->model->meshes[0], 10, 3, 10);
 
 	RendererFrontend::DrawGameObject(gameObject);
 }
@@ -75,6 +77,7 @@ Entity::~Entity()
 
 void Entity::Destroy()
 {
+	Animations::RemoveAnimation(animation);
 	RendererFrontend::UndrawGameObject(gameObject);
 	Resources::DestroyModel(gameObject->model);
 	Physics::DestroyPhysicsObjects2D(gameObject->physics);

@@ -15,6 +15,7 @@
 #include "Physics/Physics.hpp"
 #include "Physics/BoxTree.hpp"
 #include "Audio/Audio.hpp"
+#include "Resources/Animations.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -30,27 +31,18 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	GameCleanup = cleanup;
 
 	ASSERT(Memory::Initialize(Gigabytes(1)));
-
 	ASSERT(Logger::Initialize());
 
 	Resources::LoadSettings();
 
 	ASSERT_MSG(Platform::Initialize(applicationName), "Platform layer failed to initialize!");
-
 	ASSERT_MSG(Input::Initialize(), "Input system failed to initialize!");
-
 	ASSERT_MSG(RendererFrontend::Initialize(applicationName), "Renderer system failed to initialize!");
-
 	ASSERT_MSG(Resources::Initialize(), "Resource system failed to initialize!");
-
 	ASSERT_MSG(UI::Initialize(), "UI system failed to initialize!");
-
 	ASSERT_MSG(Physics::Initialize(), "Physics system failed to initialize!");
-
 	ASSERT_MSG(Audio::Initialize(), "Audio system failed to initialize!");
-
 	ASSERT_MSG(GameInit(), "Game failed to initialize!");
-
 	ASSERT_MSG(Time::Initialize(), "Time system failed to initialize!");
 
 	Events::Subscribe("CLOSE", OnClose);
@@ -111,6 +103,7 @@ void Engine::MainLoop()
 			UI::Update();
 			Physics::Update(Math::Min((F32)Time::DeltaTime(), 0.1f));
 			running = GameUpdate();
+			Animations::Update();
 			RendererFrontend::DrawFrame();
 
 			F64 remaining = Settings::TargetFrametime - Time::TimeSinceLastFrame();
@@ -129,29 +122,20 @@ void Engine::Shutdown()
 	GameCleanup();
 
 	Time::Shutdown();
-
 	Audio::Shutdown();
-
 	Physics::Shutdown();
-
 	UI::Shutdown();
-
+	Animations::Shutdown();
 	Resources::Shutdown();
-
 	RendererFrontend::Shutdown();
-
 	Input::Shutdown();
-
 	Platform::Shutdown();
 
 	Memory::GetMemoryStats();
 
 	Logger::Shutdown();
-
 	Resources::WriteSettings();
-
 	Events::Shutdown();
-
 	Memory::Shutdown();
 }
 

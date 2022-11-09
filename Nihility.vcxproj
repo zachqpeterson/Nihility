@@ -133,6 +133,7 @@
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanRenderpass.hpp" />
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanShader.hpp" />
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.hpp" />
+    <ClInclude Include="Engine\src\Resources\Animations.hpp" />
     <ClInclude Include="Engine\src\Resources\Resources.hpp" />
     <ClInclude Include="Engine\src\Resources\UI.hpp" />
     <ClInclude Include="Engine\src\SIMD.h" />
@@ -166,6 +167,7 @@
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanRenderer.cpp" />
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanShader.cpp" />
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.cpp" />
+    <ClCompile Include="Engine\src\Resources\Animations.cpp" />
     <ClCompile Include="Engine\src\Resources\Resources.cpp" />
     <ClCompile Include="Engine\src\Resources\UI.cpp" />
   </ItemGroup>

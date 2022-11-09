@@ -5,6 +5,7 @@
 #include <Math/Math.hpp>
 #include <Memory/Memory.hpp>
 #include <Resources/Resources.hpp>
+#include <Resources/Animations.hpp>
 #include <Resources/UI.hpp>
 #include <Core/Input.hpp>
 #include <Core/Time.hpp>
@@ -71,6 +72,13 @@ void Player::Update()
 		if (!Math::Zero(move.x))
 		{
 			facing = move.x > 0.0f;
+			if (animation->y < 2) { Animations::SetAnimation(animation, 1, true); }
+			else { animation->nextAnimation = 1; }
+		}
+		else
+		{
+			if (animation->y < 2) { Animations::SetAnimation(animation, 0, true); }
+			else { animation->nextAnimation = 0; }
 		}
 
 		gameObject->physics->SetGravityScale(0.5f + 0.5f * !Input::ButtonDown(SPACE));
@@ -122,6 +130,7 @@ void Player::Attack(const Damage& damage)
 {
 	if (alive && attackTimer <= 0.0f && damage.manaUse <= mana && damage.staminaUse <= stamina)
 	{
+		Animations::SetAnimation(animation, 2);
 		attackTimer = damage.cooldown;
 
 		stamina -= damage.staminaUse;

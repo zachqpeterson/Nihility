@@ -715,12 +715,17 @@ bool World::PlaceWall(const Vector2Int& pos, U8 id)
 	return false;
 }
 
-void World::PlaceLight(const Vector2Int& pos)
+void World::RemoveLight(const Vector2Int& pos)
 {
-	if (!tiles[pos.x][pos.y].lightSource)
+	Tile& tile = tiles[pos.x][pos.y];
+
+	if (tile.decID == 10)
 	{
 		Vector2Int chunkPos = pos / 8;
-		tiles[pos.x][pos.y].lightSource = 1;
+		tile.lightSource = 0;
+		tile.decID = 0;
+
+		TimeSlip::PickupItem(19, 1); //TODO: Don't hardcode
 
 		Vector<Mesh*> meshes{ 36 };
 
@@ -779,12 +784,15 @@ void World::PlaceLight(const Vector2Int& pos)
 	}
 }
 
-void World::RemoveLight(const Vector2Int& pos)
+bool World::PlaceLight(const Vector2Int& pos, const Light* light)
 {
-	if (tiles[pos.x][pos.y].lightSource)
+	Tile& tile = tiles[pos.x][pos.y];
+
+	if (!tile.decID)
 	{
 		Vector2Int chunkPos = pos / 8;
-		tiles[pos.x][pos.y].lightSource = 0;
+		tile.decID = 10;
+		tile.lightSource = 1;
 
 		Vector<Mesh*> meshes{ 36 };
 
@@ -840,7 +848,11 @@ void World::RemoveLight(const Vector2Int& pos)
 		}
 
 		RendererFrontend::BatchCreateMeshes(meshes);
+
+		return true;
 	}
+
+	return false;
 }
 
 F32 World::GenerateWorld()

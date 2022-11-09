@@ -157,6 +157,9 @@
     <ClInclude Include="Engine\src\Renderer\Shader.hpp">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\src\Resources\Animations.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">
@@ -248,6 +251,9 @@
     </ClCompile>
     <ClCompile Include="Engine\src\Renderer\Shader.cpp">
       <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Resources\Animations.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

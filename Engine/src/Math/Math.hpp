@@ -366,7 +366,7 @@ struct NH_API Vector3
 	Vector3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f } {}
 	Vector3(F32 f) : x{ f }, y{ f }, z{ f } {}
 	Vector3(F32 x, F32 y, F32 z) : x{ x }, y{ y }, z{ z } {}
-	Vector3(const Vector3& v) : x{ v.x }, y{ v.y }, z{ v.z } {}
+	constexpr Vector3(const Vector3& v) : x{ v.x }, y{ v.y }, z{ v.z } {}
 	Vector3(Vector3&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z } {}
 	Vector3(const struct String& str);
 

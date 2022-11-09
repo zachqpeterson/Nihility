@@ -35,6 +35,7 @@ struct Tile;
 struct Vector2;
 struct Vector3;
 struct Vector2Int;
+struct Light;
 class Chunk;
 
 class World
@@ -58,8 +59,8 @@ public:
 	bool PlaceBlock(const Vector2Int& pos, U8 id);
 	void BreakWall(const Vector2Int& pos);
 	bool PlaceWall(const Vector2Int& pos, U8 id);
-	void PlaceLight(const Vector2Int& pos);
 	void RemoveLight(const Vector2Int& pos);
+	bool PlaceLight(const Vector2Int& pos, const Light* light);
 
 	F32 GenerateWorld();
 
