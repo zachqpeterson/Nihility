@@ -73,6 +73,7 @@ private:
 	static UIElement* craftingMenu;
 	static UIElement* craftResult;
 	static UIElement* craftButton;
+	static UIElement* ingredientList;
 	static const Recipe* selectedRecipe;
 
 	static Vector<Vector2> blankUVs;

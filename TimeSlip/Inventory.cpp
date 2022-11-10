@@ -340,6 +340,31 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 	panelCfg.scene = config.scene;
 	backPanel = UI::GeneratePanel(panelCfg, true);
 
+	UIElementConfig slotCfg{};
+	slotCfg.scale = { config.xSlotSize, config.ySlotSize };
+	slotCfg.color = config.slotColor;
+	slotCfg.ignore = false;
+	slotCfg.enabled = true;
+	slotCfg.parent = backPanel;
+	slotCfg.scene = config.scene;
+	slotCfg.scaled = true;
+
+	UIElementConfig imageCfg{};
+	imageCfg.position = { 0.0f, 0.0f };
+	imageCfg.scale = { 1.0f, 1.0f };
+	imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	imageCfg.ignore = true;
+	imageCfg.enabled = true;
+	imageCfg.scene = config.scene;
+
+	UIElementConfig amtCfg{};
+	amtCfg.position = { 0.0f, 0.0f };
+	amtCfg.scale = { 1.0f, 1.0f };
+	amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	amtCfg.ignore = true;
+	amtCfg.enabled = true;
+	amtCfg.scene = config.scene;
+
 	if (config.draggable) { backPanel->OnDrag = UI::OnDragDefault; }
 
 	U16 i = 0;
@@ -349,19 +374,10 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 		{
 			for (U8 x = 0; x < config.xMax && i < config.slotCount; ++x, ++i)
 			{
-				Slot& slot = slots[x][y];
-
-				UIElementConfig slotCfg{};
 				slotCfg.position = { config.xPadding + ((config.xSlotSize + config.xSpacing) * x),
 					config.yPadding + ((config.ySlotSize + config.ySpacing) * y) };
-				slotCfg.scale = { config.xSlotSize, config.ySlotSize };
-				slotCfg.color = config.slotColor;
-				slotCfg.ignore = false;
-				slotCfg.enabled = true;
-				slotCfg.parent = backPanel;
-				slotCfg.scene = config.scene;
-				slotCfg.scaled = true;
 
+				Slot& slot = slots[x][y];
 				slot.button = UI::GeneratePanel(slotCfg, false);
 				slot.button->OnClick = { OnClick, (void*)&slot };
 				slot.button->OnRelease = { OnRelease };
@@ -369,26 +385,10 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				slot.button->OnMove = { OnMove, (void*)&slot };
 				slot.button->OnExit = { OnExit, (void*)&slot };
 
-				UIElementConfig imageCfg{};
-				imageCfg.position = { 0.0f, 0.0f };
-				imageCfg.scale = { 1.0f, 1.0f };
-				imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-				imageCfg.ignore = true;
-				imageCfg.enabled = true;
 				imageCfg.parent = slot.button;
-				imageCfg.scene = config.scene;
+				amtCfg.parent = slot.button;
 
 				UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), blankUVs);
-
-				UIElementConfig amtCfg{};
-				amtCfg.position = { 0.0f, 0.0f };
-				amtCfg.scale = { 1.0f, 1.0f };
-				amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-				amtCfg.ignore = true;
-				amtCfg.enabled = true;
-				amtCfg.parent = slot.button;
-				amtCfg.scene = config.scene;
-
 				UI::GenerateText(amtCfg, "", 10);
 			}
 		}
@@ -399,18 +399,10 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 		{
 			for (U8 y = 0; y < config.yMax && i < config.slotCount; ++y, ++i)
 			{
-				Slot& slot = slots[x][y];
-
-				UIElementConfig slotCfg{};
 				slotCfg.position = { config.xPadding + ((config.xSlotSize + config.xSpacing) * x),
 					config.yPadding + ((config.ySlotSize + config.ySpacing) * y) };
-				slotCfg.scale = { config.xSlotSize, config.ySlotSize };
-				slotCfg.color = config.slotColor;
-				slotCfg.enabled = config.enable;
-				slotCfg.parent = backPanel;
-				slotCfg.scene = config.scene;
-				slotCfg.scaled = true;
 
+				Slot& slot = slots[x][y];
 				slot.button = UI::GeneratePanel(slotCfg, false);
 				slot.button->OnClick = { OnClick, (void*)&slot };
 				slot.button->OnRelease = { OnRelease };
@@ -418,26 +410,10 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				slot.button->OnMove = { OnMove, (void*)&slot };
 				slot.button->OnExit = { OnExit, (void*)&slot };
 
-				UIElementConfig imageCfg{};
-				imageCfg.position = { 0.0f, 0.0f };
-				imageCfg.scale = { 1.0f, 1.0f };
-				imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-				imageCfg.ignore = true;
-				imageCfg.enabled = true;
 				imageCfg.parent = slot.button;
-				imageCfg.scene = config.scene;
+				amtCfg.parent = slot.button;
 
 				UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), blankUVs);
-
-				UIElementConfig amtCfg{};
-				amtCfg.position = { 0.0f, 0.0f };
-				amtCfg.scale = { 1.0f, 1.0f };
-				amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-				amtCfg.ignore = true;
-				amtCfg.enabled = true;
-				amtCfg.parent = slot.button;
-				amtCfg.scene = config.scene;
-
 				UI::GenerateText(amtCfg, "", 10);
 			}
 		}

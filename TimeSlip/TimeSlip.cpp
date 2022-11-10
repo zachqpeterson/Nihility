@@ -38,6 +38,7 @@ UIElement* TimeSlip::hotbarHighlight;
 UIElement* TimeSlip::craftingMenu;
 UIElement* TimeSlip::craftResult;
 UIElement* TimeSlip::craftButton;
+UIElement* TimeSlip::ingredientList;
 const Recipe* TimeSlip::selectedRecipe;
 
 Vector<Vector2> TimeSlip::blankUVs;
@@ -58,22 +59,14 @@ WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 
 void TimeSlip::OnClickSelect(UIElement* e, const Vector2Int& pos, void* data)
 {
+	//TODO: visually select the recipe
+
 	const Recipe* recipe = (const Recipe*)data;
 	selectedRecipe = recipe;
 
 	UI::ChangeTexture(craftResult, nullptr, Inventory::GetUV(recipe->result));
-	UI::SetEnable(craftResult, true);
 
-	bool found = true;
-
-	for (U16 j = 0; j < recipe->ingredientCount; ++j)
-	{
-		found &= inventory->ContainsItem(recipe->ingredients[j].id, recipe->ingredients[j].amount);
-	}
-
-	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
-	if (found) { craftButton->OnClick = { OnClickCraft, (void*)recipe }; }
-	UI::SetEnable(craftButton, true);
+	UpdateCraftingMenu();
 }
 
 void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)
@@ -367,15 +360,49 @@ void TimeSlip::UpdateDayCycle()
 
 void TimeSlip::UpdateCraftingMenu()
 {
+	UI::DestroyAllChildren(ingredientList);
+
+	UIElementConfig imageCfg{};
+	imageCfg.position = { 0.0f, 0.0f };
+	imageCfg.scale = { 0.23809523809f, 0.29714285714f };
+	imageCfg.ignore = true;
+	imageCfg.enabled = true;
+	imageCfg.scene = worldScene;
+	imageCfg.parent = ingredientList;
+
+	UIElementConfig amtCfg{};
+	amtCfg.position = { 0.0f, 0.0f };
+	amtCfg.scale = { 1.0f, 1.0f };
+	amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	amtCfg.ignore = true;
+	amtCfg.enabled = true;
+	amtCfg.scene = worldScene;
+
 	bool found = true;
 
 	for (U16 j = 0; j < selectedRecipe->ingredientCount; ++j)
 	{
-		found &= inventory->ContainsItem(selectedRecipe->ingredients[j].id, selectedRecipe->ingredients[j].amount);
+		if (inventory->ContainsItem(selectedRecipe->ingredients[j].id, selectedRecipe->ingredients[j].amount))
+		{
+			imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+			amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		}
+		else
+		{
+			imageCfg.color = { 1.0f, 0.5f, 0.5f, 1.0f };
+			amtCfg.color = { 1.0f, 0.5f, 0.5f, 1.0f };
+			found = false;
+		}
+
+		amtCfg.parent = UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(selectedRecipe->ingredients[j].id));
+		UI::GenerateText(amtCfg, selectedRecipe->ingredients[j].amount, 10);
+
+		imageCfg.position.x += 0.25f;
 	}
 
 	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
 	if (found) { craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe }; }
+	UI::SetEnable(craftButton, true);
 }
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
@@ -522,7 +549,7 @@ void TimeSlip::CreateCraftingMenu()
 
 	UIElementConfig craftingImage{};
 	craftingImage.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	craftingImage.enabled = false;
+	craftingImage.enabled = true;
 	craftingImage.ignore = true;
 	craftingImage.position = { 0.55f, 0.1f };
 	craftingImage.scale = { 0.35f, 0.31111111111f };
@@ -535,10 +562,21 @@ void TimeSlip::CreateCraftingMenu()
 	craftingButton.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	craftingButton.enabled = false;
 	craftingButton.ignore = false;
-	craftingButton.position = { 0.55f, 0.6f };
+	craftingButton.position = { 0.55f, 0.8f };
 	craftingButton.scale = { 0.3f, 0.09572649572f };
 	craftingButton.scene = worldScene;
 	craftingButton.parent = craftingMenu;
+
+	UIElementConfig ingrListCfg{};
+	ingrListCfg.color = Vector4::ZERO;
+	ingrListCfg.position = { 0.55f, 0.5f };
+	ingrListCfg.scale = { 0.4f, 0.3f };
+	ingrListCfg.ignore = true;
+	ingrListCfg.enabled = true;
+	ingrListCfg.scene = worldScene;
+	ingrListCfg.parent = craftingMenu;
+
+	ingredientList = UI::GeneratePanel(ingrListCfg, false);
 
 	Vector<Vector2> uvs{ 4 };
 	uvs.Push({ 0.0f, 0.2f });
