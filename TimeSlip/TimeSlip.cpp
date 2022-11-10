@@ -318,6 +318,8 @@ void TimeSlip::HandleEntities()
 		Vector2 playerPos = player->gameObject->transform->Position();
 		spawn.x = (U16)playerPos.x + 45.0f;
 
+		if (spawn.x > world->TILES_X - 1) { spawn.x = (U16)playerPos.x - 45.0f; }
+
 		for (U16 y = (U16)playerPos.y; y > 0; --y)
 		{
 			if (world->tiles[(U16)spawn.x][y].blockID == 0 && world->tiles[(U16)spawn.x][y - 1].blockID == 0)
