@@ -3,6 +3,7 @@
 #include <Defines.hpp>
 #include <Containers/Array.hpp>
 #include <Containers/Vector.hpp>
+#include <Containers/List.hpp>
 #include <Math/Math.hpp>
 
 #define CHUNK_SIZE 8
@@ -10,6 +11,7 @@
 struct Model;
 struct Mesh;
 struct Tile;
+struct Animation;
 
 class World;
 
@@ -37,6 +39,7 @@ public:
 	void EditWall(const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void EditDecoration(const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void EditLiquid(const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void AddAnimation(const Vector2Int& worldPos, const Vector2Int& tilePos);
 
 	void UpdateLighting(const Vector2Int& pos);
 
@@ -49,6 +52,7 @@ private:
 
 	Model* model;
 	Array<Tile*, CHUNK_SIZE> tiles;
+	List<Animation*> animations;
 
 	static const Vector3 VERTEX_POSITIONS[4];
 	static const Vector2 UV_POSITIONS[4];

@@ -35,10 +35,10 @@ void Animations::Update()
 			{
 				Vertex* vertices = (Vertex*)anim->mesh->vertices;
 
-				vertices[0].uv.x = anim->x * anim->uvWidth;
-				vertices[1].uv.x = anim->x * anim->uvWidth + anim->uvWidth;
-				vertices[2].uv.x = anim->x * anim->uvWidth + anim->uvWidth;
-				vertices[3].uv.x = anim->x * anim->uvWidth;
+				vertices[anim->firstVertex].uv.x = anim->x * anim->uvWidth;
+				vertices[anim->firstVertex + 1].uv.x = anim->x * anim->uvWidth + anim->uvWidth;
+				vertices[anim->firstVertex + 2].uv.x = anim->x * anim->uvWidth + anim->uvWidth;
+				vertices[anim->firstVertex + 3].uv.x = anim->x * anim->uvWidth;
 
 				RendererFrontend::CreateMesh(anim->mesh);
 			}
@@ -46,10 +46,11 @@ void Animations::Update()
 	}
 }
 
-Animation* Animations::AddAnimation(Mesh* mesh, U8 length, U8 count, F32 fps)
+Animation* Animations::AddAnimation(Mesh* mesh, U16 firstVertex, U8 length, U8 count, F32 fps)
 {
 	Animation* animation = (Animation*)Memory::Allocate(sizeof(Animation), MEMORY_TAG_RESOURCE);
 	animation->mesh = mesh;
+	animation->firstVertex = firstVertex;
 	animation->uvWidth = 1.0f / length;
 	animation->uvHeight = 1.0f / count;
 	animation->fps = 1.0f / fps;
@@ -70,9 +71,9 @@ void Animations::RemoveAnimation(Animation* animation)
 	animations.Remove(animation);
 }
 
-void Animations::SetAnimation(Animation* animation, U8 anim, bool loop)
+void Animations::SetAnimation(Animation* animation, U8 anim, bool loop, bool force)
 {
-	if (animation->y != anim)
+	if (animation->y != anim || force)
 	{
 		animation->x = 0;
 		animation->y = anim;
@@ -81,10 +82,10 @@ void Animations::SetAnimation(Animation* animation, U8 anim, bool loop)
 
 		Vertex* vertices = (Vertex*)animation->mesh->vertices;
 
-		vertices[0].uv = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
-		vertices[1].uv = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
-		vertices[2].uv = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
-		vertices[3].uv = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+		vertices[animation->firstVertex].uv = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertices[animation->firstVertex + 1].uv = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertices[animation->firstVertex + 2].uv = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
+		vertices[animation->firstVertex + 3].uv = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
 
 		RendererFrontend::CreateMesh(animation->mesh);
 	}

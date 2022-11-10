@@ -65,7 +65,7 @@ facing{ true }, ignore{ config.ignore }, player{ player }, despawnRange{ config.
 	goConfig.transform = physicsConfig.transform;
 
 	gameObject = Resources::CreateGameObject2D(goConfig);
-	animation = Animations::AddAnimation(gameObject->model->meshes[0], 10, 3, 10);
+	animation = Animations::AddAnimation(gameObject->model->meshes[0], 0, 10, 3, 10);
 
 	RendererFrontend::DrawGameObject(gameObject);
 }

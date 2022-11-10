@@ -4,6 +4,7 @@
 #include "World.hpp"
 
 #include <Resources/Resources.hpp>
+#include <Resources/Animations.hpp>
 #include <Renderer/RendererFrontend.hpp>
 #include <Math/Math.hpp>
 #include <Core/Time.hpp>
@@ -241,6 +242,14 @@ void Chunk::EditLiquid(const Vector2Int& worldPos, const Vector2Int& tilePos)
 			vertices[index * 4 + j].uv = uv + UV_POSITIONS[j];
 		}
 	}
+}
+
+void Chunk::AddAnimation(const Vector2Int& worldPos, const Vector2Int& tilePos)
+{
+	U32 index = tilePos.x * CHUNK_SIZE + tilePos.y;
+	Animation* anim = Animations::AddAnimation(model->meshes[2], index * 4, 5, 4, 5);
+	Animations::SetAnimation(anim, 0, true, true);
+	animations.PushBack(anim);
 }
 
 void Chunk::UpdateLighting(const Vector2Int& pos)

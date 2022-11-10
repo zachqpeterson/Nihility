@@ -796,6 +796,8 @@ bool World::PlaceLight(const Vector2Int& pos, const Light* light)
 
 		Vector<Mesh*> meshes{ 36 };
 
+		chunks[chunkPos.x][chunkPos.y].EditDecoration(pos, pos - chunkPos * 8);
+		chunks[chunkPos.x][chunkPos.y].AddAnimation(pos, pos - chunkPos * 8);
 		chunks[chunkPos.x][chunkPos.y].UpdateLighting(chunkPos);
 		chunks[chunkPos.x][chunkPos.y].UpdateMeshes(meshes);
 
