@@ -1797,12 +1797,15 @@ Model* Resources::LoadModel(const String& name)
 
 void Resources::DestroyModel(Model* model)
 {
-	models.Remove(model->name, nullptr);
+	if (model->name) //TODO: Fix the underlying problem
+	{
+		models.Remove(model->name, nullptr);
 
-	for (Mesh* mesh : model->meshes) { DestroyMesh(mesh); }
-	model->meshes.Destroy();
-	model->name.Destroy();
-	Memory::Free(model, sizeof(Model), MEMORY_TAG_RESOURCE);
+		for (Mesh* mesh : model->meshes) { DestroyMesh(mesh); }
+		model->meshes.Destroy();
+		model->name.Destroy();
+		Memory::Free(model, sizeof(Model), MEMORY_TAG_RESOURCE);
+	}
 }
 
 Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)

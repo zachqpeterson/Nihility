@@ -433,7 +433,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
+	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
 	panel->gameObject = go;
 
 	elements.PushFront(panel);
@@ -545,7 +545,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
+	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
 	image->gameObject = go;
 
 	elements.PushFront(image);
@@ -696,7 +696,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
+	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
 	uiText->gameObject = go;
 
 	elements.PushFront(uiText);
@@ -822,7 +822,7 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->selfEnabled);
+	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
 	bar->gameObject = go;
 
 	elements.PushFront(bar);
@@ -838,7 +838,7 @@ void UI::SetEnable(UIElement* element, bool enable)
 		SetEnableChild(child, enable);
 	}
 
-	element->gameObject->enabled = enable;
+	element->gameObject->enabled = (!element->parent || element->parent->gameObject->enabled) && enable;
 	element->selfEnabled = enable;
 }
 
