@@ -510,7 +510,7 @@ void Inventory::ToggleShow()
 	UI::SetEnable(backPanel, !backPanel->gameObject->enabled);
 }
 
-bool Inventory::AddItem(U16 itemID, U16 amount)
+bool Inventory::AddItem(U16 itemID, U16& amount)
 {
 	Slot* firstOpen = nullptr;
 
@@ -544,6 +544,31 @@ bool Inventory::AddItem(U16 itemID, U16 amount)
 		if (amount > 1) { UI::ChangeText((UIText*)firstOpen->button->children.Back(), amount); }
 
 		return true;
+	}
+
+	return false;
+}
+
+bool Inventory::TryAddItem(U16 itemID, U16& amount)
+{
+	for (U8 y = 0; y < slots[0].Size(); ++y)
+	{
+		for (U8 x = 0; x < slots.Size(); ++x)
+		{
+			Slot& slot = slots[x][y];
+			const Item* item = Items::GetItem(slot.itemID);
+
+			if (slot.itemID == itemID && slot.amount < item->maxAmount)
+			{
+				U16 amt = Math::Min((U16)(item->maxAmount - slot.amount), amount);
+
+				slot.amount += amt;
+				amount -= amt;
+
+				UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount);
+				if (amount == 0) { return true; }
+			}
+		}
 	}
 
 	return false;

@@ -85,16 +85,7 @@ void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)
 		if (recipe->ingredients[i].consumed) { inventory->RemoveItem(recipe->ingredients[i].id, recipe->ingredients[i].amount); }
 	}
 
-	inventory->AddItem(recipe->result, recipe->amount);
-
-	for (U16 j = 0; j < recipe->ingredientCount; ++j)
-	{
-		if (!inventory->ContainsItem(recipe->ingredients[j].id, recipe->ingredients[j].amount))
-		{
-			UI::ChangeColor(craftButton, { 0.7f, 0.7f, 0.7f, 1.0f });
-			craftButton->OnClick = { nullptr, nullptr };
-		}
-	}
+	PickupItem(recipe->result, recipe->amount);
 }
 
 bool TimeSlip::Initialize()
@@ -389,12 +380,9 @@ void TimeSlip::UpdateCraftingMenu()
 
 void TimeSlip::PickupItem(U16 itemID, U16 amount)
 {
-	if (itemID > 0)
+	if (itemID > 0 && (hotbar->TryAddItem(itemID, amount) || inventory->AddItem(itemID, amount)) && selectedRecipe)
 	{
-		//TODO: Look for item in hotbar first
-
-		inventory->AddItem(itemID, amount);
-		if (selectedRecipe) { UpdateCraftingMenu(); }
+		UpdateCraftingMenu();
 	}
 }
 
