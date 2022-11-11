@@ -7,12 +7,6 @@
 
 List<Animation*> Animations::animations;
 
-struct Vertex
-{
-	Vector3 position;
-	Vector2 uv;
-};
-
 void Animations::Shutdown()
 {
 	animations.Destroy();
@@ -33,12 +27,16 @@ void Animations::Update()
 			}
 			else
 			{
-				Vertex* vertices = (Vertex*)anim->mesh->vertices;
+				U8* vertexData = (U8*)anim->mesh->vertices;
 
-				vertices[anim->firstVertex].uv.x = anim->x * anim->uvWidth;
-				vertices[anim->firstVertex + 1].uv.x = anim->x * anim->uvWidth + anim->uvWidth;
-				vertices[anim->firstVertex + 2].uv.x = anim->x * anim->uvWidth + anim->uvWidth;
-				vertices[anim->firstVertex + 3].uv.x = anim->x * anim->uvWidth;
+				vertexData += anim->firstVertex * anim->mesh->vertexSize;
+				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
+				vertexData += anim->mesh->vertexSize;
+				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
+				vertexData += anim->mesh->vertexSize;
+				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
+				vertexData += anim->mesh->vertexSize;
+				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
 
 				RendererFrontend::CreateMesh(anim->mesh);
 			}
@@ -46,13 +44,12 @@ void Animations::Update()
 	}
 }
 
-Animation* Animations::AddAnimation(Mesh* mesh, U16 firstVertex, U8 length, U8 count, F32 fps)
+Animation* Animations::AddAnimation(Mesh* mesh, U16 firstVertex, U16 uvIndex, U8 length, U8 count, F32 fps, bool calcUVs)
 {
 	Animation* animation = (Animation*)Memory::Allocate(sizeof(Animation), MEMORY_TAG_RESOURCE);
 	animation->mesh = mesh;
 	animation->firstVertex = firstVertex;
-	animation->uvWidth = 1.0f / length;
-	animation->uvHeight = 1.0f / count;
+	animation->uvIndex = uvIndex;
 	animation->fps = 1.0f / fps;
 	animation->timer = animation->fps;
 	animation->x = 0;
@@ -60,6 +57,17 @@ Animation* Animations::AddAnimation(Mesh* mesh, U16 firstVertex, U8 length, U8 c
 	animation->length = length;
 	animation->count = count;
 	animation->nextAnimation = 0;
+
+	if (calcUVs)
+	{
+		animation->uvWidth = 1.0f / length;
+		animation->uvHeight = 1.0f / count;
+	}
+	else
+	{
+		animation->uvWidth = 1.0f;
+		animation->uvHeight = 1.0f;
+	}
 
 	animations.PushBack(animation);
 
@@ -80,12 +88,16 @@ void Animations::SetAnimation(Animation* animation, U8 anim, bool loop, bool for
 		animation->timer = animation->fps;
 		if (loop) { animation->nextAnimation = anim; }
 
-		Vertex* vertices = (Vertex*)animation->mesh->vertices;
+		U8* vertexData = (U8*)animation->mesh->vertices;
 
-		vertices[animation->firstVertex].uv = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
-		vertices[animation->firstVertex + 1].uv = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
-		vertices[animation->firstVertex + 2].uv = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
-		vertices[animation->firstVertex + 3].uv = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+		vertexData += animation->firstVertex * animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
 
 		RendererFrontend::CreateMesh(animation->mesh);
 	}

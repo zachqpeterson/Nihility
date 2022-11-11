@@ -246,9 +246,18 @@ void Chunk::EditLiquid(const Vector2Int& worldPos, const Vector2Int& tilePos)
 
 void Chunk::AddAnimation(const Vector2Int& worldPos, const Vector2Int& tilePos)
 {
+	Mesh* mesh = model->meshes[2];
+	Vector2 uv = world->DecorationUV(worldPos, tiles[tilePos.x][tilePos.y].decID);
+	Vertex* vertices = (Vertex*)mesh->vertices;
 	U32 index = tilePos.x * CHUNK_SIZE + tilePos.y;
-	Animation* anim = Animations::AddAnimation(model->meshes[2], index * 4, 5, 4, 5);
-	Animations::SetAnimation(anim, 0, true, true);
+
+	for (U16 j = 0; j < 4; ++j)
+	{
+		vertices[index * 4 + j].texId = tiles[tilePos.x][tilePos.y].decID - 1;
+	}
+
+	Animation* anim = Animations::AddAnimation(mesh, index * 4, 12, 5, 4, 5.0f, false);
+	Animations::SetAnimation(anim, uv.y, true, true);
 	animations.PushBack(anim);
 }
 

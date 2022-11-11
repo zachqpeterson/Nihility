@@ -40,6 +40,7 @@ public:
 	void EditDecoration(const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void EditLiquid(const Vector2Int& worldPos, const Vector2Int& tilePos);
 	void AddAnimation(const Vector2Int& worldPos, const Vector2Int& tilePos);
+	void RemoveAnimation(const Vector2Int& worldPos, const Vector2Int& tilePos);
 
 	void UpdateLighting(const Vector2Int& pos);
 

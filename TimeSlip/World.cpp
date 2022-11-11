@@ -163,6 +163,25 @@ Vector2 World::DecorationUV(const Vector2Int& pos, U8 id)
 	{
 		return { (F32)(((I16)pos.x ^ 2 * (I16)pos.y + SEED) % 3), (F32)tiles[pos.x][pos.y].biome };
 	}
+	else if (id == 10)
+	{
+		if (pos.x > 0 && tiles[pos.x - 1][pos.y].blockID)
+		{
+			return { 0, 3 };
+		}
+		else if (pos.x + 1 < TILES_X && tiles[pos.x + 1][pos.y].blockID)
+		{
+			return { 0, 2 };
+		}
+		else if (pos.y + 1 < TILES_Y && tiles[pos.x][pos.y + 1].blockID)
+		{
+			return { 0, 1 };
+		}
+		else
+		{
+			return { 0, 0 };
+		}
+	}
 
 	return Vector2((F32)((pos.x > 0 && pos.y > 0 && tiles[pos.x - 1][pos.y - 1].decID == id) +
 		((pos.x + 1 < TILES_X && pos.y > 0 && tiles[pos.x + 1][pos.y - 1].decID == id) << 1) +
@@ -181,12 +200,12 @@ Vector2 World::LiquidUV(const Vector2Int& pos)
 
 void World::TileLight(const Vector2Int& pos, Vector3& color, Vector3& globalColor)
 {
-	Vector3 c{ 1.0f, 1.0f, 1.0f };
+	Vector3 c{ 1.0f, 1.0f, 1.0f }; //TODO: light color
 
 	if (tiles[pos.x][pos.y].lightSource || tiles[pos.x][pos.y].globalLightSource)
 	{
-		color = c * tiles[pos.x][pos.y].lightSource;
-		globalColor = Vector3::ONE * tiles[pos.x][pos.y].globalLightSource;
+		color = c;
+		globalColor = Vector3::ONE;
 		return;
 	}
 
@@ -788,7 +807,8 @@ bool World::PlaceLight(const Vector2Int& pos, const Light* light)
 {
 	Tile& tile = tiles[pos.x][pos.y];
 
-	if (!tile.decID)
+	if (!tile.decID && (tile.wallID || (pos.x > 0 && tiles[pos.x - 1][pos.y].blockID) ||
+		(pos.x + 1 < TILES_X && tiles[pos.x + 1][pos.y].blockID) || (pos.y + 1 < TILES_Y && tiles[pos.x][pos.y + 1].blockID)))
 	{
 		Vector2Int chunkPos = pos / 8;
 		tile.decID = 10;
