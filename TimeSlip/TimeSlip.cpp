@@ -39,6 +39,7 @@ UIElement* TimeSlip::craftingMenu;
 UIElement* TimeSlip::craftResult;
 UIElement* TimeSlip::craftButton;
 UIElement* TimeSlip::ingredientList;
+UIElement* TimeSlip::recipeSelection;
 const Recipe* TimeSlip::selectedRecipe;
 
 Vector<Vector2> TimeSlip::blankUVs;
@@ -59,11 +60,11 @@ WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
 
 void TimeSlip::OnClickSelect(UIElement* e, const Vector2Int& pos, void* data)
 {
-	//TODO: visually select the recipe
-
 	const Recipe* recipe = (const Recipe*)data;
 	selectedRecipe = recipe;
 
+	UI::SetElementPosition(recipeSelection, Vector2{ -0.1f, e->area.y * 1.5f + 0.22f }); //TODO: Fix this
+	UI::SetEnable(recipeSelection, true);
 	UI::ChangeTexture(craftResult, nullptr, Inventory::GetUV(recipe->result));
 
 	UpdateCraftingMenu();
@@ -567,6 +568,14 @@ void TimeSlip::CreateCraftingMenu()
 	craftingButton.scene = worldScene;
 	craftingButton.parent = craftingMenu;
 
+	Vector<Vector2> uvs{ 4 };
+	uvs.Push({ 0.0f, 0.2f });
+	uvs.Push({ 0.2f, 0.2f });
+	uvs.Push({ 0.2f, 0.0f });
+	uvs.Push({ 0.0f, 0.0f });
+
+	craftButton = UI::GenerateImage(craftingButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
+
 	UIElementConfig ingrListCfg{};
 	ingrListCfg.color = Vector4::ZERO;
 	ingrListCfg.position = { 0.55f, 0.5f };
@@ -578,13 +587,22 @@ void TimeSlip::CreateCraftingMenu()
 
 	ingredientList = UI::GeneratePanel(ingrListCfg, false);
 
-	Vector<Vector2> uvs{ 4 };
-	uvs.Push({ 0.0f, 0.2f });
-	uvs.Push({ 0.2f, 0.2f });
-	uvs.Push({ 0.2f, 0.0f });
-	uvs.Push({ 0.0f, 0.0f });
+	UIElementConfig recipeSelectCfg{};
+	recipeSelectCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	recipeSelectCfg.enabled = false;
+	recipeSelectCfg.ignore = true;
+	recipeSelectCfg.position = { 0.0f, 0.0f };
+	recipeSelectCfg.scale = { 0.3f, 0.26666666655f };
+	recipeSelectCfg.scene = worldScene;
+	recipeSelectCfg.parent = craftingMenu;
 
-	craftButton = UI::GenerateImage(craftingButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
+	Vector<Vector2> selectUvs{ 4 };
+	selectUvs.Push({ 0.2f, 0.2f });
+	selectUvs.Push({ 0.27179487179f, 0.2f });
+	selectUvs.Push({ 0.27179487179f, 0.0f });
+	selectUvs.Push({ 0.2f, 0.0f });
+
+	recipeSelection = UI::GenerateImage(recipeSelectCfg, Resources::LoadTexture("TS_UI.bmp"), selectUvs);
 
 	const Recipe** allRecipes = Items::GetRecipes();
 	const Recipe* recipe = allRecipes[0];

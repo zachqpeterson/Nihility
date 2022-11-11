@@ -74,6 +74,7 @@ private:
 	static UIElement* craftResult;
 	static UIElement* craftButton;
 	static UIElement* ingredientList;
+	static UIElement* recipeSelection;
 	static const Recipe* selectedRecipe;
 
 	static Vector<Vector2> blankUVs;

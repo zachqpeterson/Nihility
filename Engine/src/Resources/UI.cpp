@@ -913,6 +913,22 @@ void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
 	element->gameObject->transform->SetPosition(pos);
 }
 
+void UI::SetElementPosition(UIElement* element, const Vector2& position)
+{
+	Vector2 pos{ position };
+
+	if (element->parent)
+	{
+		pos.x = element->parent->area.x + ((element->parent->area.z - element->parent->area.x) * pos.x);
+		pos.y = element->parent->area.y + ((element->parent->area.w - element->parent->area.y) * pos.y);
+	}
+
+	pos *= 2.0f;
+	pos	-= 1.0f;
+
+	element->gameObject->transform->SetPosition(pos);
+}
+
 void UI::ChangeColor(UIElement* element, const Vector4& newColor)
 {
 	UIVertex* vertices = (UIVertex*)element->mesh->vertices;

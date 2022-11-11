@@ -120,6 +120,7 @@ public:
 	static void MoveElement(UIElement* element, const Vector2Int& delta);
 	static void MoveElement(UIElement* element, const Vector2& delta);
 	static void SetElementPosition(UIElement* element, const Vector2Int& position);
+	static void SetElementPosition(UIElement* element, const Vector2& position);
 	static void ChangeColor(UIElement* element, const Vector4& newColor);
 	static void ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
 	static void ChangeSize(UIText* element, F32 newSize);
