@@ -18,6 +18,7 @@
 #include <Core/Time.hpp>
 #include <Math/Math.hpp>
 #include <Platform/Platform.hpp>
+#include <Audio/Audio.hpp>
 
 #define MAX_ENTITIES 10
 
@@ -126,6 +127,8 @@ bool TimeSlip::Initialize()
 	createWorldButton->OnClick = createWorldEvent;
 
 	entities(19);
+
+	Audio::PlayAudio("song.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
 
 	return true;
 }
@@ -397,12 +400,14 @@ void TimeSlip::UpdateCraftingMenu()
 
 		amtCfg.parent = UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(selectedRecipe->ingredients[j].id));
 		UI::GenerateText(amtCfg, selectedRecipe->ingredients[j].amount, 10);
+		amtCfg.parent = nullptr;
 
 		imageCfg.position.x += 0.25f;
 	}
 
-	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
+	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } * !found);
 	if (found) { craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe }; }
+	else { craftButton->OnClick = { nullptr, nullptr }; }
 	UI::SetEnable(craftButton, true);
 }
 

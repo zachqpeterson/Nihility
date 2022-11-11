@@ -195,7 +195,6 @@ public:
 
 		--size;
 		if constexpr (std::is_same_v<TKey, String>) { node->key.Destroy(); }
-		node->filled = false;
 		value = Move(node->value);
 		Memory::Zero(node, sizeof(Node));
 	}
@@ -207,7 +206,6 @@ public:
 
 		--size;
 		if constexpr (std::is_same_v<TKey, String>) { node->key.Destroy(); }
-		node->filled = false;
 		value = Move(node->value);
 		Memory::Zero(node, sizeof(Node));
 	}

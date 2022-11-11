@@ -203,184 +203,187 @@ void Audio::OutputSound()
 	static const M128 zero = _mm_set1_ps(0.0f);
 	static const M128 one = _mm_set1_ps(1.0f);
 
-	U32 chunkCount = sampleCount >> 2;
-
-	Vector<Vector<M128>> realChannel{ Settings::ChannelCount, Vector<M128>{chunkCount, zero} };
-	M128** destination = (M128**)Memory::Allocate(sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO);
-
-	auto it = playingAudio.begin();
-
-	for (auto it = playingAudio.begin(); it != playingAudio.end(); ++it)
+	if (playingAudio.Size())
 	{
-		AudioInfo& info = *it;
-		bool finished = false;
-		U32 totalChunksToMix = chunkCount;
+		U32 chunkCount = sampleCount >> 2;
 
-		if (info.chunk && !info.chunk->last && !info.chunk->next)
-		{
-			Resources::LoadAudioChunk(info.audio, info.chunk);
-		}
+		Vector<Vector<M128>> realChannel{ Settings::ChannelCount, Vector<M128>{chunkCount, zero} };
+		M128** destination = (M128**)Memory::Allocate(sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO);
 
-		for (U32 channelIndex = 0; channelIndex < Settings::ChannelCount; ++channelIndex)
-		{
-			destination[channelIndex] = realChannel[channelIndex].Data();
-		}
+		auto it = playingAudio.begin();
 
-		while (totalChunksToMix && !finished)
+		for (auto it = playingAudio.begin(); it != playingAudio.end(); ++it)
 		{
-			if (info.chunk)
+			AudioInfo& info = *it;
+			bool finished = false;
+			U32 totalChunksToMix = chunkCount;
+
+			if (info.chunk && !info.chunk->last && !info.chunk->next)
 			{
-				F32 volume = 1.0f;
-				M128 mixedVolume;
-				switch (info.type)
+				Resources::LoadAudioChunk(info.audio, info.chunk);
+			}
+
+			for (U32 channelIndex = 0; channelIndex < Settings::ChannelCount; ++channelIndex)
+			{
+				destination[channelIndex] = realChannel[channelIndex].Data();
+			}
+
+			while (totalChunksToMix && !finished)
+			{
+				if (info.chunk)
 				{
-				case AUDIO_TYPE_MUSIC: {volume = Settings::MusicVolume; } break;
-				case AUDIO_TYPE_SFX: {volume = Settings::SfxVolume; } break;
-				}
-
-				Vector<F32> balance;
-				if (info.global || !listener)
-				{
-					balance = { Settings::ChannelCount, info.volume };
-					mixedVolume = _mm_set1_ps(Settings::MasterVolume * volume);
-				}
-				else
-				{
-					Vector2 v = info.position - listener->Position();
-					balance.Resize(2);
-					balance[0] = 1.0f - (v.x >  1.0f) * 0.5f;
-					balance[1] = 1.0f - (v.x < -1.0f) * 0.5f;
-
-					mixedVolume = _mm_set1_ps(Settings::MasterVolume * volume / Math::Max(v.SqrMagnitude() * FALLOFF_SCALE, 1.0f));
-				}
-
-				F32 deltaSampleChunk = info.pitch * 4.0f;
-
-				U32 chunksToMix = totalChunksToMix;
-				F32 fChunksRemaining = (info.chunk->sampleCount - (U32)Math::Round(info.samplesPlayed)) / deltaSampleChunk;
-				U32 ChunksRemaining = (U32)Math::Round(fChunksRemaining);
-
-				if (chunksToMix > ChunksRemaining) { chunksToMix = ChunksRemaining; }
-
-				F32 beginSamplePosition = info.samplesPlayed;
-				F32 endSamplePosition = beginSamplePosition + chunksToMix * deltaSampleChunk;
-
-				for (U32 channelIndex = 0; channelIndex < Settings::ChannelCount; ++channelIndex)
-				{
-					M128 balanceChannel = _mm_setr_ps(
-						balance[channelIndex],
-						balance[channelIndex],
-						balance[channelIndex],
-						balance[channelIndex]);
-
-					for (U32 i = 0; i < chunksToMix; ++i)
+					F32 volume = 1.0f;
+					M128 mixedVolume;
+					switch (info.type)
 					{
-						F32 samplePosition = beginSamplePosition + deltaSampleChunk * (F32)i;
-#if 1 //Bilinear
-						M128 samplePos = _mm_setr_ps(
-							samplePosition + 0.0f * info.pitch,
-							samplePosition + 1.0f * info.pitch,
-							samplePosition + 2.0f * info.pitch,
-							samplePosition + 3.0f * info.pitch);
-						I128 sampleIndex = _mm_cvttps_epi32(samplePos);
-						M128 frac = _mm_sub_ps(samplePos, _mm_cvtepi32_ps(sampleIndex));
-
-						M128 sampleValueF = _mm_setr_ps(
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[0]],
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[1]],
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[2]],
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[3]]);
-						M128 sampleValueC = _mm_setr_ps(
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[0] + 1],
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[1] + 1],
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[2] + 1],
-							info.chunk->samples[channelIndex][((I32*)&sampleIndex)[3] + 1]);
-
-						M128 sampleValue = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(one, frac), sampleValueF), _mm_mul_ps(frac, sampleValueC));
-#else
-						M128 sampleValue = _mm_setr_ps(
-							info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 0.0f * info.pitch)],
-							info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 1.0f * info.pitch)],
-							info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 2.0f * info.pitch)],
-							info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 3.0f * info.pitch)]);
-#endif
-						M128 d = _mm_load_ps((F32*)&destination[channelIndex][0]);
-
-						d = _mm_add_ps(d, _mm_mul_ps(_mm_mul_ps(mixedVolume, balanceChannel), sampleValue));
-
-						_mm_store_ps((F32*)&destination[channelIndex][0], d);
-
-						++(destination[channelIndex]);
+					case AUDIO_TYPE_MUSIC: {volume = Settings::MusicVolume; } break;
+					case AUDIO_TYPE_SFX: {volume = Settings::SfxVolume; } break;
 					}
-				}
 
-				info.samplesPlayed = endSamplePosition;
-				totalChunksToMix -= chunksToMix;
-
-				if (chunksToMix == ChunksRemaining)
-				{
-					if (info.chunk->next)
+					Vector<F32> balance;
+					if (info.global || !listener)
 					{
-						info.samplesPlayed -= info.chunk->sampleCount;
-						info.chunk = info.chunk->next;
-						if (info.samplesPlayed < 0.0f) { info.samplesPlayed = 0.0f; }
+						balance = { Settings::ChannelCount, info.volume };
+						mixedVolume = _mm_set1_ps(Settings::MasterVolume * volume);
 					}
 					else
 					{
-						finished = true;
+						Vector2 v = info.position - listener->Position();
+						balance.Resize(2);
+						balance[0] = 1.0f - (v.x > 1.0f) * 0.5f;
+						balance[1] = 1.0f - (v.x < -1.0f) * 0.5f;
+
+						mixedVolume = _mm_set1_ps(Settings::MasterVolume * volume / Math::Max(v.SqrMagnitude() * FALLOFF_SCALE, 1.0f));
+					}
+
+					F32 deltaSampleChunk = info.pitch * 4.0f;
+
+					U32 chunksToMix = totalChunksToMix;
+					F32 fChunksRemaining = (info.chunk->sampleCount - (U32)Math::Round(info.samplesPlayed)) / deltaSampleChunk;
+					U32 ChunksRemaining = (U32)Math::Round(fChunksRemaining);
+
+					if (chunksToMix > ChunksRemaining) { chunksToMix = ChunksRemaining; }
+
+					F32 beginSamplePosition = info.samplesPlayed;
+					F32 endSamplePosition = beginSamplePosition + chunksToMix * deltaSampleChunk;
+
+					for (U32 channelIndex = 0; channelIndex < Settings::ChannelCount; ++channelIndex)
+					{
+						M128 balanceChannel = _mm_setr_ps(
+							balance[channelIndex],
+							balance[channelIndex],
+							balance[channelIndex],
+							balance[channelIndex]);
+
+						for (U32 i = 0; i < chunksToMix; ++i)
+						{
+							F32 samplePosition = beginSamplePosition + deltaSampleChunk * (F32)i;
+#if 0 //Bilinear
+							M128 samplePos = _mm_setr_ps(
+								samplePosition + 0.0f * info.pitch,
+								samplePosition + 1.0f * info.pitch,
+								samplePosition + 2.0f * info.pitch,
+								samplePosition + 3.0f * info.pitch);
+							I128 sampleIndex = _mm_cvttps_epi32(samplePos);
+							M128 frac = _mm_sub_ps(samplePos, _mm_cvtepi32_ps(sampleIndex));
+
+							M128 sampleValueF = _mm_setr_ps(
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[0]],
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[1]],
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[2]],
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[3]]);
+							M128 sampleValueC = _mm_setr_ps(
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[0] + 1],
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[1] + 1],
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[2] + 1],
+								info.chunk->samples[channelIndex][((I32*)&sampleIndex)[3] + 1]);
+
+							M128 sampleValue = _mm_add_ps(_mm_mul_ps(_mm_sub_ps(one, frac), sampleValueF), _mm_mul_ps(frac, sampleValueC));
+#else
+							M128 sampleValue = _mm_setr_ps(
+								info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 0.0f * info.pitch)],
+								info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 1.0f * info.pitch)],
+								info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 2.0f * info.pitch)],
+								info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 3.0f * info.pitch)]);
+#endif
+							M128 d = _mm_load_ps((F32*)destination[channelIndex]);
+
+							d = _mm_add_ps(d, _mm_mul_ps(_mm_mul_ps(mixedVolume, balanceChannel), sampleValue));
+
+							_mm_store_ps((F32*)destination[channelIndex], d);
+
+							++(destination[channelIndex]);
+						}
+					}
+
+					info.samplesPlayed = endSamplePosition;
+					totalChunksToMix -= chunksToMix;
+
+					if (chunksToMix == ChunksRemaining)
+					{
+						if (info.chunk->next)
+						{
+							info.samplesPlayed -= info.chunk->sampleCount;
+							info.chunk = info.chunk->next;
+							if (info.samplesPlayed < 0.0f) { info.samplesPlayed = 0.0f; }
+						}
+						else
+						{
+							finished = true;
+						}
 					}
 				}
+				else
+				{
+					break;
+					//TODO: handle not loaded sound
+				}
 			}
-			else
+
+			if (finished)
 			{
-				break;
-				//TODO: handle not loaded sound
+				if (info.loop)
+				{
+					info.chunk = info.audio->chunks;
+					info.samplesPlayed = 0;
+				}
+				else
+				{
+					playingAudio.Erase(it);
+					if (playingAudio.Size() == 0) { break; }
+				}
 			}
 		}
 
-		if (finished)
+		Memory::Free(destination, sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO);
+
+		//TODO: do this dynamically with channel count
+		M128* source0 = realChannel[0].Data();
+		M128* source1 = realChannel[1].Data();
+
+		Memory::Zero(samples, bufferSize + MAX_POSSIBLE_OVERRUN);
+		I128* SampleOut = (I128*)samples;
+
+		for (U32 sampleIndex = 0; sampleIndex < chunkCount; ++sampleIndex)
 		{
-			if (info.loop)
-			{
-				info.chunk = info.audio->chunks;
-				info.samplesPlayed = 0;
-			}
-			else
-			{
-				playingAudio.Erase(it);
-				if (playingAudio.Size() == 0) { break; }
-			}
+			M128 s0 = _mm_load_ps((F32*)source0++);
+			M128 s1 = _mm_load_ps((F32*)source1++);
+
+			I128 l = _mm_cvtps_epi32(s0);
+			I128 r = _mm_cvtps_epi32(s1);
+
+			I128 lr0 = _mm_unpacklo_epi32(l, r);
+			I128 lr1 = _mm_unpackhi_epi32(l, r);
+
+			I128 s01 = _mm_packs_epi32(lr0, lr1);
+
+			*SampleOut++ = s01;
 		}
-	}
 
-	Memory::Free(destination, sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO);
-
-	//TODO: do this dynamically with channel count
-	M128* source0 = realChannel[0].Data();
-	M128* source1 = realChannel[1].Data();
-
-	Memory::Zero(samples, bufferSize + MAX_POSSIBLE_OVERRUN);
-	I128* SampleOut = (I128*)samples;
-
-	for (U32 sampleIndex = 0; sampleIndex < chunkCount; ++sampleIndex)
-	{
-		M128 s0 = _mm_load_ps((F32*)source0++);
-		M128 s1 = _mm_load_ps((F32*)source1++);
-
-		I128 l = _mm_cvtps_epi32(s0);
-		I128 r = _mm_cvtps_epi32(s1);
-
-		I128 lr0 = _mm_unpacklo_epi32(l, r);
-		I128 lr1 = _mm_unpackhi_epi32(l, r);
-
-		I128 s01 = _mm_packs_epi32(lr0, lr1);
-
-		*SampleOut++ = s01;
-	}
-
-	for (Vector<M128>& v : realChannel)
-	{
-		v.Destroy();
+		for (Vector<M128>& v : realChannel)
+		{
+			v.Destroy();
+		}
 	}
 }
 

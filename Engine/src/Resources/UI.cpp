@@ -161,7 +161,7 @@ void UI::CreateDescription()
 
 	String name("Description");
 
-	MeshConfig meshConfig;
+	MeshConfig meshConfig{};
 	meshConfig.name = name;
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
@@ -242,7 +242,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 
 	String name("UI_Element_{}", panel->id);
 
-	MeshConfig meshConfig;
+	MeshConfig meshConfig{};
 	meshConfig.name = name;
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
@@ -467,7 +467,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 
 	String name("UI_Element_{}", image->id);
 
-	MeshConfig meshConfig;
+	MeshConfig meshConfig{};
 	meshConfig.name = name;
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(texture);
@@ -607,6 +607,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 
 	uiText->area = uiArea;
 	Model* model = nullptr;
+	Vector<Mesh*> meshes;
 
 	if (text.Length())
 	{
@@ -616,8 +617,6 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 		F32 areaX = uiArea.x;
 		F32 areaZ = 0.0f;
 		F32 areaY;
-
-		Vector<Mesh*> meshes;
 
 		F32 pixelHeight = (dimentions.y / 1080.0f) * (size * 2.666666666f);
 		F32 spacing = size / (F32)(dimentions.x * 2.2f);
@@ -630,7 +629,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 			areaX -= (spacing * 0.75f) * Punctuation(c);
 
 			I32 xOff, yOff;
-			MeshConfig meshConfig;
+			MeshConfig meshConfig{};
 			meshConfig.name = name + "_" + i++;
 			meshConfig.MaterialName = "UI.mat";
 			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, { 1.0f, 1.0f, 1.0f }, xOff, yOff));
@@ -731,7 +730,7 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	String name("UI_Element_{}", bar->id);
 
 	Vector<Mesh*> meshes{ 2 };
-	MeshConfig meshConfig;
+	MeshConfig meshConfig{};
 	meshConfig.name = name;
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
@@ -1001,6 +1000,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	}
 
 	Vector2Int dimentions = RendererFrontend::WindowSize();
+	Vector<Mesh*> meshes{ text.Length() };
 
 	if (text && !dimentions.Zero())
 	{
@@ -1014,8 +1014,6 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		F32 areaZ = 0.0f;
 		F32 areaY;
 
-		Vector<Mesh*> meshes(text.Length());
-
 		F32 pixelHeight = (dimentions.y / 1080.0f) * (newSize * 2.666666666f);
 		F32 spacing = newSize / (F32)(dimentions.x * 2.2f);
 
@@ -1027,7 +1025,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			areaX -= (spacing * 0.75f) * Punctuation(c);
 
 			I32 xOff, yOff;
-			MeshConfig meshConfig;
+			MeshConfig meshConfig{};
 			meshConfig.name = name + "_" + i++;
 			meshConfig.MaterialName = "UI.mat";
 			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, { 1.0f, 1.0f, 1.0f }, xOff, yOff));
@@ -1083,7 +1081,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			areaX = areaZ + spacing;
 		}
 
-		if (element->gameObject->model) { element->gameObject->model->meshes = meshes; }
+		if (element->gameObject->model) { element->gameObject->model->meshes = Move(meshes); }
 		else { element->gameObject->model = Resources::CreateModel(name, meshes); }
 
 		element->scene->DrawGameObject(element->gameObject);
@@ -1162,6 +1160,8 @@ void UI::DestroyAllChildren(UIElement* element)
 	{
 		DestroyElement(e);
 	}
+
+	element->children.Destroy();
 }
 
 void UI::DestroyElementInternal(UIElement* element)
@@ -1170,7 +1170,11 @@ void UI::DestroyElementInternal(UIElement* element)
 	{
 		elements.Remove(element);
 
-		if (element->parent) { element->parent->children.Remove(element); }
+		if (element->parent)
+		{
+			element->parent->children.Remove(element);
+			element->gameObject->transform->parent = nullptr;
+		}
 
 		if (element->selfEnabled) { element->scene->UndrawGameObject(element->gameObject); }
 		Resources::DestroyModel(element->gameObject->model);

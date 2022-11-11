@@ -1517,7 +1517,9 @@ void Resources::GetMaterialInstance(const String& name, Vector<Texture*>& instan
 		return;
 	}
 
-	instance = *material;
+	Material& mat = *material;
+	instance = mat;
+	instance.instanceTextureMaps.Destroy();
 
 	if (instance.shader->useInstances)
 	{

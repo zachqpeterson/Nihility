@@ -17,7 +17,7 @@ struct Material
 	void ApplyInstances(bool update);
 
 	U32 id{ U32_MAX };
-	String name;
+	String name{};
 	U32 generation{ 0 };
 	U32 instance{ 0 };
 	F32 shininess{ 0.0f };
@@ -25,6 +25,6 @@ struct Material
 
 	Shader* shader{ nullptr };
 	Vector4 diffuseColor; //TODO: Color struct
-	Vector<TextureMap> globalTextureMaps;
-	Vector<TextureMap> instanceTextureMaps;
+	Vector<TextureMap> globalTextureMaps{};
+	Vector<TextureMap> instanceTextureMaps{};
 };

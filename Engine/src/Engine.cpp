@@ -63,7 +63,6 @@ void Engine::MainLoop()
 
 	Audio::ClearBuffer();
 	Audio::Start();
-	//Audio::PlayAudio("TPOM.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
 
 #ifdef NH_DEBUG
 	UIElementConfig config{};

@@ -102,7 +102,7 @@ bool init()
 	//GridBroadphase* bp = new GridBroadphase(5600, 1600);
 	//Physics::SetBroadphase(bp);
 
-	MeshConfig dirtConfig;
+	MeshConfig dirtConfig{};
 	dirtConfig.name = "Dirt";
 	dirtConfig.MaterialName = "Tile.mat";
 	dirtConfig.instanceTextures.Push(Resources::LoadTexture("11dirt_block.bmp"));

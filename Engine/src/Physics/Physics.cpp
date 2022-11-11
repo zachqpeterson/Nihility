@@ -322,6 +322,8 @@ void Physics::ResolveCollisions(List<Contact2D>& contacts)
 		PhysicsObject2D* a = c.a;
 		PhysicsObject2D* b = c.b;
 
+		if (!a && !b) { continue; } //TODO: Fix this
+
 		if (!b)
 		{
 			Vector2 onlyMove = c.a->move - c.a->velocity;
