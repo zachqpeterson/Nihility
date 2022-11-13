@@ -20,6 +20,7 @@ struct Animation
 	U8 length;
 	U8 count;
 	U8 nextAnimation;
+	bool direction;
 };
 
 //TODO: Different animation lengths

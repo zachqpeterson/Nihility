@@ -28,15 +28,28 @@ void Animations::Update()
 			else
 			{
 				U8* vertexData = (U8*)anim->mesh->vertices;
-
 				vertexData += anim->firstVertex * anim->mesh->vertexSize;
-				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
-				vertexData += anim->mesh->vertexSize;
-				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
-				vertexData += anim->mesh->vertexSize;
-				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
-				vertexData += anim->mesh->vertexSize;
-				((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
+
+				if (anim->direction)
+				{
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
+					vertexData += anim->mesh->vertexSize;
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
+					vertexData += anim->mesh->vertexSize;
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
+					vertexData += anim->mesh->vertexSize;
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
+				}
+				else
+				{
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
+					vertexData += anim->mesh->vertexSize;
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
+					vertexData += anim->mesh->vertexSize;
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth;
+					vertexData += anim->mesh->vertexSize;
+					((Vector2&)vertexData[anim->uvIndex]).x = anim->x * anim->uvWidth + anim->uvWidth;
+				}
 
 				RendererFrontend::CreateMesh(anim->mesh);
 			}
@@ -89,15 +102,28 @@ void Animations::SetAnimation(Animation* animation, U8 anim, bool loop, bool for
 		if (loop) { animation->nextAnimation = anim; }
 
 		U8* vertexData = (U8*)animation->mesh->vertices;
-
 		vertexData += animation->firstVertex * animation->mesh->vertexSize;
-		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
-		vertexData += animation->mesh->vertexSize;
-		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
-		vertexData += animation->mesh->vertexSize;
-		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
-		vertexData += animation->mesh->vertexSize;
-		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+
+		if (animation->direction)
+		{
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+			vertexData += animation->mesh->vertexSize;
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+			vertexData += animation->mesh->vertexSize;
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
+			vertexData += animation->mesh->vertexSize;
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+		}
+		else
+		{
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+			vertexData += animation->mesh->vertexSize;
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+			vertexData += animation->mesh->vertexSize;
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+			vertexData += animation->mesh->vertexSize;
+			((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
+		}
 
 		RendererFrontend::CreateMesh(animation->mesh);
 	}

@@ -72,6 +72,7 @@ void Player::Update()
 		if (!Math::Zero(move.x))
 		{
 			facing = move.x > 0.0f;
+			animation->direction = facing;
 			if (animation->y < 2) { Animations::SetAnimation(animation, 1, true); }
 			else { animation->nextAnimation = 1; }
 		}
