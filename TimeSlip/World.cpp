@@ -15,6 +15,7 @@
 #include <Core/Time.hpp>
 #include <Core/Input.hpp>
 #include <Platform/Platform.hpp>
+#include <Audio/Audio.hpp>
 
 #define VIEW_DISTANCE_X 6
 #define VIEW_DISTANCE_Y 3
@@ -276,6 +277,8 @@ void World::BreakBlock(const Vector2Int& pos)
 
 	if (tile.blockID)
 	{
+		String mine{ "Mine{}.wav", Math::RandomRange(0,3) };
+		Audio::PlayAudio(mine, AUDIO_TYPE_SFX);
 		Vector2Int chunkPos = pos / 8;
 		TimeSlip::PickupItem(Items::BlockToItemID(tile.blockID), 1);
 		TimeSlip::PickupItem(Items::DecorationToItemID(tile.decID), 1);
@@ -537,6 +540,8 @@ void World::BreakWall(const Vector2Int& pos)
 
 	if (tile.wallID)
 	{
+		String mine{ "Mine{}.wav", Math::RandomRange(0,3) };
+		Audio::PlayAudio(mine, AUDIO_TYPE_SFX);
 		Vector2Int chunkPos = pos / 8;
 
 		TimeSlip::PickupItem(Items::WallToItemID(tile.wallID), 1);

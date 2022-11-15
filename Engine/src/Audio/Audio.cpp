@@ -156,6 +156,7 @@ void Audio::Update()
 		bytesToWrite = sampleCount * bytesPerSample;
 
 		OutputSound();
+		ClearBuffer();
 		FillBuffer(byteToLock, bytesToWrite);
 	}
 	else { soundIsValid = false; }
@@ -278,7 +279,7 @@ void Audio::OutputSound()
 						for (U32 i = 0; i < chunksToMix; ++i)
 						{
 							F32 samplePosition = beginSamplePosition + deltaSampleChunk * (F32)i;
-#if 0 //Bilinear
+#if 1 //Bilinear
 							M128 samplePos = _mm_setr_ps(
 								samplePosition + 0.0f * info.pitch,
 								samplePosition + 1.0f * info.pitch,

@@ -265,7 +265,7 @@ public:
 	{
 		--size;
 		Node* node = it.ptr;
-		--it;
+		++it;
 		Node* nextNode = node->next;
 		Node* prevNode = node->prev;
 

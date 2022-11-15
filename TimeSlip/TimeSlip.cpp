@@ -128,8 +128,6 @@ bool TimeSlip::Initialize()
 
 	entities(19);
 
-	Audio::PlayAudio("song.wav", AUDIO_TYPE_MUSIC, 1.0f, 1.0f, true);
-
 	return true;
 }
 
