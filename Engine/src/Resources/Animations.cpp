@@ -128,3 +128,36 @@ void Animations::SetAnimation(Animation* animation, U8 anim, bool loop, bool for
 		RendererFrontend::CreateMesh(animation->mesh);
 	}
 }
+
+void Animations::EndAnimation(Animation* animation)
+{
+	animation->x = 0;
+	animation->y = animation->nextAnimation;
+	animation->timer = animation->fps;
+
+	U8* vertexData = (U8*)animation->mesh->vertices;
+	vertexData += animation->firstVertex * animation->mesh->vertexSize;
+
+	if (animation->direction)
+	{
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+	}
+	else
+	{
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight + animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth, animation->y * animation->uvHeight };
+		vertexData += animation->mesh->vertexSize;
+		((Vector2&)vertexData[animation->uvIndex]) = { animation->x * animation->uvWidth + animation->uvWidth, animation->y * animation->uvHeight };
+	}
+
+	RendererFrontend::CreateMesh(animation->mesh);
+}

@@ -64,6 +64,11 @@ void Player::Update()
 {
 	attackTimer -= (F32)Time::DeltaTime();
 
+	if (attackTimer <= 0.0f && !Input::ButtonDown(LEFT_CLICK) && !Input::ButtonDown(RIGHT_CLICK) && animation->y == 2)
+	{
+		Animations::EndAnimation(animation);
+	}
+
 	if (alive)
 	{
 		Vector2 move{ (F32)(Input::ButtonDown(D) - Input::ButtonDown(A)), 0.0f };
