@@ -208,8 +208,8 @@ void Audio::OutputSound()
 	{
 		U32 chunkCount = sampleCount >> 2;
 
-		Vector<Vector<M128>> realChannel{ Settings::ChannelCount, Vector<M128>{chunkCount, zero} };
-		M128** destination = (M128**)Memory::Allocate(sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO);
+		Vector<M128*> realChannel{ Settings::ChannelCount, (M128*)Memory::Allocate(sizeof(M128) * chunkCount, MEMORY_TAG_AUDIO) };
+		M128** destination = static_cast<M128**>(Memory::Allocate(sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO));
 
 		auto it = playingAudio.begin();
 
@@ -226,7 +226,7 @@ void Audio::OutputSound()
 
 			for (U32 channelIndex = 0; channelIndex < Settings::ChannelCount; ++channelIndex)
 			{
-				destination[channelIndex] = realChannel[channelIndex].Data();
+				destination[channelIndex] = realChannel[channelIndex];
 			}
 
 			while (totalChunksToMix && !finished)
@@ -244,13 +244,15 @@ void Audio::OutputSound()
 					Vector<F32> balance;
 					if (info.global || !listener)
 					{
-						balance = { Settings::ChannelCount, info.volume };
+						balance.Resize(Settings::ChannelCount);
+						balance[0] = info.volume;
+						balance[1] = info.volume;
 						mixedVolume = _mm_set1_ps(Settings::MasterVolume * volume);
 					}
 					else
 					{
 						Vector2 v = info.position - listener->Position();
-						balance.Resize(2);
+						balance.Resize(Settings::ChannelCount);
 						balance[0] = 1.0f - (v.x > 1.0f) * 0.5f;
 						balance[1] = 1.0f - (v.x < -1.0f) * 0.5f;
 
@@ -307,11 +309,11 @@ void Audio::OutputSound()
 								info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 2.0f * info.pitch)],
 								info.chunk->samples[channelIndex][(I32)Math::Round(samplePosition + 3.0f * info.pitch)]);
 #endif
-							M128 d = _mm_load_ps((F32*)destination[channelIndex]);
+							M128 d = _mm_load_ps((F32*)(destination[channelIndex]));
 
 							d = _mm_add_ps(d, _mm_mul_ps(_mm_mul_ps(mixedVolume, balanceChannel), sampleValue));
 
-							_mm_store_ps((F32*)destination[channelIndex], d);
+							_mm_store_ps((F32*)(destination[channelIndex]), d);
 
 							++(destination[channelIndex]);
 						}
@@ -359,8 +361,8 @@ void Audio::OutputSound()
 		Memory::Free(destination, sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO);
 
 		//TODO: do this dynamically with channel count
-		M128* source0 = realChannel[0].Data();
-		M128* source1 = realChannel[1].Data();
+		M128* source0 = realChannel[0];
+		M128* source1 = realChannel[1];
 
 		Memory::Zero(samples, bufferSize + MAX_POSSIBLE_OVERRUN);
 		I128* SampleOut = (I128*)samples;
@@ -381,9 +383,9 @@ void Audio::OutputSound()
 			*SampleOut++ = s01;
 		}
 
-		for (Vector<M128>& v : realChannel)
+		for (M128* v : realChannel)
 		{
-			v.Destroy();
+			Memory::Free(v, sizeof(M128) * chunkCount, MEMORY_TAG_AUDIO);
 		}
 	}
 }
