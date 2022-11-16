@@ -213,7 +213,7 @@ void Audio::OutputSound()
 
 		auto it = playingAudio.begin();
 
-		for (auto it = playingAudio.begin(); it != playingAudio.end(); ++it)
+		for (auto it = playingAudio.begin(); it != playingAudio.end();)
 		{
 			AudioInfo& info = *it;
 			bool finished = false;
@@ -349,12 +349,16 @@ void Audio::OutputSound()
 				{
 					info.chunk = info.audio->chunks;
 					info.samplesPlayed = 0;
+					++it;
 				}
 				else
 				{
 					playingAudio.Erase(it);
-					if (playingAudio.Size() == 0) { break; }
 				}
+			}
+			else
+			{
+				++it;
 			}
 		}
 

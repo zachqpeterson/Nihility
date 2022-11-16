@@ -93,6 +93,7 @@ void UI::Update()
 
 		for (UIElement* e : elements)
 		{
+			if (!e) { continue; } //TODO: fix
 			Vector4 area = e->area + e->gameObject->transform->WorldPosition() * 0.5f;
 
 			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked &&
@@ -1176,7 +1177,7 @@ void UI::DestroyElementInternal(UIElement* element)
 			element->gameObject->transform->parent = nullptr;
 		}
 
-		if (element->selfEnabled) { element->scene->UndrawGameObject(element->gameObject); }
+		element->scene->UndrawGameObject(element->gameObject);
 		Resources::DestroyModel(element->gameObject->model);
 		Resources::DestroyGameObject2D(element->gameObject);
 

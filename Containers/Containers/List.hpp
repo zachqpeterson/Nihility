@@ -419,6 +419,7 @@ public:
 				else { tail = prevNode; }
 
 				delete node;
+				return;
 			}
 
 			node = node->next;
