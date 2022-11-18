@@ -7,6 +7,7 @@ renderOrder=2
 
 attribute=vec3,inPosition
 attribute=vec2,inTexcoord
+attribute=vec3,inColor
 
 uniform=mat4,0,0,projection
 uniform=mat4,0,0,view

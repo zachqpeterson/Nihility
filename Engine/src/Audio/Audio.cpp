@@ -208,8 +208,13 @@ void Audio::OutputSound()
 	{
 		U32 chunkCount = sampleCount >> 2;
 
-		Vector<M128*> realChannel{ Settings::ChannelCount, (M128*)Memory::Allocate(sizeof(M128) * chunkCount, MEMORY_TAG_AUDIO) };
+		M128** realChannel = static_cast<M128**>(Memory::Allocate(sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO));
 		M128** destination = static_cast<M128**>(Memory::Allocate(sizeof(M128*) * Settings::ChannelCount, MEMORY_TAG_AUDIO));
+
+		for (U8 i = 0; i < Settings::ChannelCount; ++i)
+		{
+			realChannel[i] = (M128*)Memory::Allocate(sizeof(M128) * chunkCount, MEMORY_TAG_AUDIO);
+		}
 
 		auto it = playingAudio.begin();
 
@@ -387,9 +392,9 @@ void Audio::OutputSound()
 			*SampleOut++ = s01;
 		}
 
-		for (M128* v : realChannel)
+		for (U8 i = 0; i < Settings::ChannelCount; ++i)
 		{
-			Memory::Free(v, sizeof(M128) * chunkCount, MEMORY_TAG_AUDIO);
+			Memory::Free(realChannel[i], sizeof(M128)* chunkCount, MEMORY_TAG_AUDIO);
 		}
 	}
 }

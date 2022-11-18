@@ -122,9 +122,11 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 			{
 				MeshRenderData&& dataTemp = Move(list.renderData.Pop());
 				MeshRenderData data = dataTemp;
-				Material& material = data.mesh->material;
-				if (data.mesh) //TODO: Fix
+
+				if (data.mesh)
 				{
+					Material& material = data.mesh->material;
+
 					material.ApplyInstances(material.renderFrameNumber != frameNumber);
 
 					material.renderFrameNumber = frameNumber;
@@ -134,8 +136,6 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 					RendererFrontend::DrawMesh(data);
 				}
 			}
-
-			list.renderData.Clear();
 		}
 	}
 

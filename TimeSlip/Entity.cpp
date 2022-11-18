@@ -13,6 +13,7 @@ struct Vertex
 {
 	Vector3 position;
 	Vector2 uv;
+	Vector3 color;
 };
 
 Entity::Entity(const EntityConfig& config, bool player) : maxHealth{ config.maxHealth }, health{ config.maxHealth }, armor{ config.armor },
@@ -33,10 +34,10 @@ facing{ true }, ignore{ config.ignore }, player{ player }, despawnRange{ config.
 
 	Vertex* vertices = (Vertex*)meshConfig.vertices;
 
-	vertices[0] = Vertex{ {-0.5f, -1.0f, 0.0f}, {0.0f, 0.333f} };
-	vertices[1] = Vertex{ { 0.5f, -1.0f, 0.0f}, {0.1f, 0.333f} };
-	vertices[2] = Vertex{ { 0.5f,  1.0f, 0.0f}, {0.1f, 0.0f} };
-	vertices[3] = Vertex{ {-0.5f,  1.0f, 0.0f}, {0.0f, 0.0f} };
+	vertices[0] = Vertex{ {-0.5f, -1.0f, 0.0f}, {0.0f, 0.333f}, config.color };
+	vertices[1] = Vertex{ { 0.5f, -1.0f, 0.0f}, {0.1f, 0.333f}, config.color };
+	vertices[2] = Vertex{ { 0.5f,  1.0f, 0.0f}, {0.1f, 0.0f}, config.color };
+	vertices[3] = Vertex{ {-0.5f,  1.0f, 0.0f}, {0.0f, 0.0f}, config.color };
 
 	meshConfig.indices[0] = 0;
 	meshConfig.indices[1] = 1;
