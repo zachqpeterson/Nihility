@@ -146,8 +146,6 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 		return false;
 	}
 
-
-
 	return true;
 }
 
