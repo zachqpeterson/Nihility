@@ -493,8 +493,6 @@ U32 VulkanShader::AcquireInstanceResources(RendererState* rendererState, Shader*
 		instanceState.offset = 0;
 	}
 
-	instanceState.descriptorSets.Resize(descriptorSetLayouts.Size());
-
 	Vector<VkDescriptorSetLayout> layouts(rendererState->swapchain->imageCount, descriptorSetLayouts[SHADER_SCOPE_INSTANCE]);
 
 	VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -516,6 +514,7 @@ bool VulkanShader::ReleaseInstanceResources(RendererState* rendererState, Shader
 	VkCheck_ERROR(vkFreeDescriptorSets(rendererState->device->logicalDevice, descriptorPool, (U32)instanceState.descriptorSets.Size(), instanceState.descriptorSets.Data()));
 
 	instanceState.instanceTextureMaps.Clear();
+	instanceState.descriptorSets.Clear();
 
 	if (shader->instanceUboStride) { uniformBuffer->Free(shader->instanceUboStride, instanceState.offset); }
 	instanceState.offset = INVALID_ID;

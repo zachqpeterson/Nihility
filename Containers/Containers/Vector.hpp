@@ -13,83 +13,6 @@ template<typename T>
 struct Vector
 {
 public:
-	struct Iterator
-	{
-		Iterator(T* ptr) : ptr{ ptr } {}
-
-		T& operator* () const { return *ptr; }
-		T* operator-> () { return ptr; }
-
-		Iterator& operator++ () { ++ptr; return *this; }
-		Iterator operator++ (I32)
-		{
-			Iterator temp = *this;
-			++ptr;
-			return temp;
-		}
-
-		Iterator& operator-- () { --ptr; return *this; }
-		Iterator operator-- (I32)
-		{
-			Iterator temp = *this;
-			--ptr;
-			return temp;
-		}
-
-		Iterator operator+(I32 i)
-		{
-			Iterator temp = *this;
-			temp += i;
-			return temp;
-		}
-
-		Iterator operator+(U32 i)
-		{
-			Iterator temp = *this;
-			temp += i;
-			return temp;
-		}
-
-		Iterator operator-(I32 i)
-		{
-			Iterator temp = *this;
-			temp -= i;
-			return temp;
-		}
-
-		Iterator operator-(U32 i)
-		{
-			Iterator temp = *this;
-			temp -= i;
-			return temp;
-		}
-
-		Iterator& operator+=(I32 i)
-		{
-			ptr += i;
-			return *this;
-		}
-
-		Iterator& operator-=(I32 i)
-		{
-			ptr -= i;
-			return *this;
-		}
-
-		friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-		friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
-		friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
-		friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
-		friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
-		friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
-
-		operator bool() { return ptr; }
-
-	private:
-		T* ptr;
-	};
-
-public:
 	Vector() : size{ 0 }, capacity{ 0 }, array{ nullptr } {}
 	Vector(U64 capacity) : size{ 0 }, capacity{ capacity }, array{ (T*)Memory::Allocate(sizeof(T) * capacity, MEMORY_TAG_DATA_STRUCT) } {}
 	Vector(U64 size, const T& value) : size{ size }, capacity{ size }
@@ -333,10 +256,10 @@ public:
 	T& operator[](U64 i) { return array[i]; }
 	const T& operator[](U64 i) const { return array[i]; }
 
-	Iterator begin() { return Iterator{ array }; }
-	Iterator end() { return Iterator{ &array[size] }; }
-	Iterator begin() const { return Iterator{ array }; }
-	Iterator end() const { return Iterator{ &array[size] }; }
+	T* begin() { return array; }
+	T* end() { return array + size; }
+	T* begin() const { return array; }
+	T* end() const { return array + size; }
 
 private:
 	U64 size;

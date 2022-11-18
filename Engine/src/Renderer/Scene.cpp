@@ -52,7 +52,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 	for (GameObject2D* go : gameObjects)
 	{
-		if (go->enabled)
+		if (go->enabled && go->model)
 		{
 			const Matrix4& model = go->transform ? go->transform->World() : Matrix4::IDENTITY;
 
@@ -123,15 +123,19 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 				MeshRenderData&& dataTemp = Move(list.renderData.Pop());
 				MeshRenderData data = dataTemp;
 				Material& material = data.mesh->material;
+				if (data.mesh) //TODO: Fix
+				{
+					material.ApplyInstances(material.renderFrameNumber != frameNumber);
 
-				material.ApplyInstances(material.renderFrameNumber != frameNumber);
+					material.renderFrameNumber = frameNumber;
 
-				material.renderFrameNumber = frameNumber;
+					material.shader->ApplyMaterialLocals(data.model);
 
-				material.shader->ApplyMaterialLocals(data.model);
-
-				RendererFrontend::DrawMesh(data);
+					RendererFrontend::DrawMesh(data);
+				}
 			}
+
+			list.renderData.Clear();
 		}
 	}
 
@@ -141,6 +145,8 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 		Logger::Error("renderpass '{}' failed to end.", meshes.Back().material->shader->renderpass->name);
 		return false;
 	}
+
+
 
 	return true;
 }

@@ -403,9 +403,11 @@ public:
 
 	void Remove(const T& value)
 	{
-		Node* node = head;
-		while (node)
+		auto e = end();
+		for (auto it = begin(); it != e; ++it)
 		{
+			Node* node = it.ptr;
+
 			if (node->value == value)
 			{
 				--size;
@@ -419,10 +421,9 @@ public:
 				else { tail = prevNode; }
 
 				delete node;
+				node = nullptr;
 				return;
 			}
-
-			node = node->next;
 		}
 	}
 	void Remove(Iterator& it)
@@ -439,6 +440,7 @@ public:
 		else { tail = prevNode; }
 
 		delete node;
+		node = nullptr;
 	}
 	void Reverse()
 	{

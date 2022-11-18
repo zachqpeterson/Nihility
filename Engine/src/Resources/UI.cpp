@@ -991,13 +991,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	if (element->gameObject->model)
 	{
 		element->scene->UndrawGameObject(element->gameObject);
-
-		for (Mesh* mesh : element->gameObject->model->meshes)
-		{
-			Resources::DestroyMesh(mesh);
-		}
-
-		element->gameObject->model->meshes.Clear();
+		Resources::DestroyModel(element->gameObject->model);
 	}
 
 	Vector2Int dimentions = RendererFrontend::WindowSize();
@@ -1082,9 +1076,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			areaX = areaZ + spacing;
 		}
 
-		if (element->gameObject->model) { element->gameObject->model->meshes = Move(meshes); }
-		else { element->gameObject->model = Resources::CreateModel(name, meshes); }
-
+		element->gameObject->model = Resources::CreateModel(name, meshes);
 		element->scene->DrawGameObject(element->gameObject);
 	}
 }
