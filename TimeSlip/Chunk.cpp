@@ -257,7 +257,7 @@ void Chunk::AddAnimation(const Vector2Int& worldPos, const Vector2Int& tilePos)
 	}
 
 	Animation* anim = Animations::AddAnimation(mesh, index * 4, 12, 5, 4, 5.0f, false);
-	Animations::SetAnimation(anim, uv.y, true, true);
+	Animations::SetAnimation(anim, (U8)uv.y, true, true);
 	animations.PushBack(anim);
 }
 
