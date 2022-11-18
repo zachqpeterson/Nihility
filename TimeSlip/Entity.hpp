@@ -5,6 +5,9 @@
 #include <Defines.hpp>
 #include <Math/Math.hpp>
 
+struct Vector2;
+struct Vector3;
+
 struct EntityConfig
 {
 	F32 maxHealth;
@@ -15,10 +18,10 @@ struct EntityConfig
 	bool ignore;
 	F32 despawnRange;
 	F32 healthRegen;
+	Vector3 color;
 };
 
 struct GameObject2D;
-struct Vector2;
 struct Animation;
 
 class Entity
