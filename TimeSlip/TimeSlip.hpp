@@ -47,12 +47,17 @@ public:
 
 private:
 	static void CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data);
+	static void MainMenu(UIElement* element, const Vector2Int& mousePos, void* data);
+	static void PlayMenu(UIElement* element, const Vector2Int& mousePos, void* data);
+	static void SettingsMenu(UIElement* element, const Vector2Int& mousePos, void* data);
+	static void Exit(UIElement* element, const Vector2Int& mousePos, void* data);
 	static void LoadWorld();
 
 	static void HandleInput();
 	static void HandleEntities();
 	static void UpdateDayCycle();
 
+	static void CreateMainMenu();
 	static void CreateInventory();
 	static void CreateCraftingMenu();
 	static void UpdateCraftingMenu();
@@ -65,6 +70,15 @@ private:
 	static F32 currentTime;
 	static bool night;
 	static Vector3 globalColor;
+
+	static UIElement* titleImage;
+	static UIElement* playButton;
+	static UIElement* settingsButton;
+	static UIElement* exitButton;
+	static UIElement* smallWorldButton;
+	static UIElement* mediumWorldButton;
+	static UIElement* largeWorldButton;
+	static UIElement* backButton;
 
 	static Player* player; //Keep track of your character
 	static Inventory* inventory; //We only need to keep track of the inventory of your character
@@ -92,6 +106,8 @@ private:
 	static WorldSize smallWorldSize;
 	static WorldSize mediumWorldSize;
 	static WorldSize largeWorldSize;
+
+	static bool running;
 
 	TimeSlip() = delete;
 };

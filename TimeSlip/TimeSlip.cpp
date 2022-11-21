@@ -31,11 +31,19 @@ F32 TimeSlip::currentTime;
 bool TimeSlip::night;
 Vector3 TimeSlip::globalColor;
 
+UIElement* TimeSlip::titleImage;
+UIElement* TimeSlip::playButton;
+UIElement* TimeSlip::settingsButton;
+UIElement* TimeSlip::exitButton;
+UIElement* TimeSlip::smallWorldButton;
+UIElement* TimeSlip::mediumWorldButton;
+UIElement* TimeSlip::largeWorldButton;
+UIElement* TimeSlip::backButton;
+
 Player* TimeSlip::player;
 Inventory* TimeSlip::inventory;
 Inventory* TimeSlip::hotbar;
 UIElement* TimeSlip::hotbarHighlight;
-
 UIElement* TimeSlip::craftingMenu;
 UIElement* TimeSlip::craftResult;
 UIElement* TimeSlip::craftButton;
@@ -58,6 +66,8 @@ WorldSize TimeSlip::testWorldSize{ WS_TEST };
 WorldSize TimeSlip::smallWorldSize{ WS_SMALL };
 WorldSize TimeSlip::mediumWorldSize{ WS_MEDIUM };
 WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
+
+bool TimeSlip::running;
 
 void TimeSlip::OnClickSelect(UIElement* e, const Vector2Int& pos, void* data)
 {
@@ -83,12 +93,51 @@ void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)
 	PickupItem(recipe->result, recipe->amount);
 }
 
+void TimeSlip::MainMenu(UIElement* element, const Vector2Int& mousePos, void* data)
+{
+	UI::SetEnable(titleImage, true);
+	UI::SetEnable(playButton, true);
+	UI::SetEnable(settingsButton, true);
+	UI::SetEnable(exitButton, true);
+	UI::SetEnable(smallWorldButton, false);
+	UI::SetEnable(mediumWorldButton, false);
+	UI::SetEnable(largeWorldButton, false);
+	UI::SetEnable(backButton, false);
+}
+
+void TimeSlip::PlayMenu(UIElement* element, const Vector2Int& mousePos, void* data)
+{
+	UI::SetEnable(titleImage, false);
+	UI::SetEnable(playButton, false);
+	UI::SetEnable(settingsButton, false);
+	UI::SetEnable(exitButton, false);
+	UI::SetEnable(smallWorldButton, true);
+	UI::SetEnable(mediumWorldButton, true);
+	UI::SetEnable(largeWorldButton, true);
+	UI::SetEnable(backButton, true);
+}
+
+void TimeSlip::SettingsMenu(UIElement* element, const Vector2Int& mousePos, void* data)
+{
+	UI::SetEnable(titleImage, false);
+	UI::SetEnable(playButton, false);
+	UI::SetEnable(settingsButton, false);
+	UI::SetEnable(exitButton, false);
+	UI::SetEnable(backButton, true);
+}
+
+void TimeSlip::Exit(UIElement* element, const Vector2Int& mousePos, void* data)
+{
+	running = false;
+}
+
 bool TimeSlip::Initialize()
 {
 	static const F32 camWidth = 3.63636363636f;
 	static const F32 camHeight = 2.04545454545f;
 	blankUVs = { 4, Vector2::ZERO };
 
+	running = true;
 	gameState = GAME_STATE_MENU;
 	nextState = GAME_STATE_NONE;
 	mainMenuScene = (Scene*)Memory::Allocate(sizeof(Scene), MEMORY_TAG_RENDERER);
@@ -99,32 +148,7 @@ bool TimeSlip::Initialize()
 	worldScene->Create(CAMERA_TYPE_ORTHOGRAPHIC);
 	worldScene->GetCamera()->ChangeProjection({ -camWidth, camWidth, -camHeight, camHeight }, 0.1f, 1000.0f);
 
-	//UI
-	UIElementConfig createWorldConfig{};
-	createWorldConfig.position = { 0.375f, 0.375f };
-	createWorldConfig.scale = { 0.25f, 0.1f };
-	createWorldConfig.color = { 0.0f, 0.7f, 1.0f, 1.0f };
-	createWorldConfig.enabled = true;
-	createWorldConfig.ignore = false;
-	createWorldConfig.scene = mainMenuScene;
-	UIElement* createWorldButton = UI::GeneratePanel(createWorldConfig, true);
-
-	UIElementConfig generateWorldText{};
-	generateWorldText.position = { 0.1f, -0.25f };
-	generateWorldText.scale = { 0.9f, 0.9f };
-	generateWorldText.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	generateWorldText.enabled = true;
-	generateWorldText.ignore = true;
-	generateWorldText.scene = mainMenuScene;
-	generateWorldText.parent = createWorldButton;
-
-	UI::GenerateText(generateWorldText, "Generate World", 20.0f);
-
-	OnMouse createWorldEvent{};
-	createWorldEvent.value = (void*)&smallWorldSize;
-	createWorldEvent.callback = CreateWorld;
-
-	createWorldButton->OnClick = createWorldEvent;
+	CreateMainMenu();
 
 	entities(19);
 	Resources::LoadAudio("Mine.wav");
@@ -168,7 +192,7 @@ bool TimeSlip::Update()
 
 	if (nextState) { gameState = nextState; nextState = GAME_STATE_NONE; }
 
-	return true;
+	return running;
 }
 
 void TimeSlip::HandleInput()
@@ -496,6 +520,88 @@ void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void*
 void TimeSlip::LoadWorld()
 {
 
+}
+
+void TimeSlip::CreateMainMenu()
+{
+	UIElementConfig titleConfig{};
+	titleConfig.position = { 0.25f, 0.05f };
+	titleConfig.scale = { 0.5f, 0.2f };
+	titleConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	titleConfig.enabled = true;
+	titleConfig.ignore = true;
+	titleConfig.scene = mainMenuScene;
+	titleImage = UI::GeneratePanel(titleConfig, false);
+
+	UIElementConfig playConfig{};
+	playConfig.position = { 0.375f, 0.375f };
+	playConfig.scale = { 0.25f, 0.1f };
+	playConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	playConfig.enabled = true;
+	playConfig.ignore = false;
+	playConfig.scene = mainMenuScene;
+	playButton = UI::GeneratePanel(playConfig, false);
+	playButton->OnClick = { PlayMenu, nullptr };
+
+	UIElementConfig settingsConfig{};
+	settingsConfig.position = { 0.375f, 0.525f };
+	settingsConfig.scale = { 0.25f, 0.1f };
+	settingsConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	settingsConfig.enabled = true;
+	settingsConfig.ignore = false;
+	settingsConfig.scene = mainMenuScene;
+	settingsButton = UI::GeneratePanel(settingsConfig, false);
+	settingsButton->OnClick = { SettingsMenu, nullptr };
+
+	UIElementConfig exitConfig{};
+	exitConfig.position = { 0.375f, 0.675f };
+	exitConfig.scale = { 0.25f, 0.1f };
+	exitConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	exitConfig.enabled = true;
+	exitConfig.ignore = false;
+	exitConfig.scene = mainMenuScene;
+	exitButton = UI::GeneratePanel(exitConfig, false);
+	exitButton->OnClick = { Exit, nullptr };
+
+	UIElementConfig smallWorldConfig{};
+	smallWorldConfig.position = { 0.375f, 0.375f };
+	smallWorldConfig.scale = { 0.25f, 0.1f };
+	smallWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	smallWorldConfig.enabled = false;
+	smallWorldConfig.ignore = false;
+	smallWorldConfig.scene = mainMenuScene;
+	smallWorldButton = UI::GeneratePanel(smallWorldConfig, false);
+	smallWorldButton->OnClick = { CreateWorld, (void*)&smallWorldSize };
+
+	UIElementConfig mediumWorldConfig{};
+	mediumWorldConfig.position = { 0.375f, 0.525f };
+	mediumWorldConfig.scale = { 0.25f, 0.1f };
+	mediumWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	mediumWorldConfig.enabled = false;
+	mediumWorldConfig.ignore = false;
+	mediumWorldConfig.scene = mainMenuScene;
+	mediumWorldButton = UI::GeneratePanel(mediumWorldConfig, false);
+	mediumWorldButton->OnClick = { CreateWorld, (void*)&mediumWorldSize };
+
+	UIElementConfig largeWorldConfig{};
+	largeWorldConfig.position = { 0.375f, 0.675f };
+	largeWorldConfig.scale = { 0.25f, 0.1f };
+	largeWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	largeWorldConfig.enabled = false;
+	largeWorldConfig.ignore = false;
+	largeWorldConfig.scene = mainMenuScene;
+	largeWorldButton = UI::GeneratePanel(largeWorldConfig, false);
+	largeWorldButton->OnClick = { CreateWorld, (void*)&largeWorldSize };
+
+	UIElementConfig backConfig{};
+	backConfig.position = { 0.375f, 0.825f };
+	backConfig.scale = { 0.25f, 0.1f };
+	backConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	backConfig.enabled = false;
+	backConfig.ignore = false;
+	backConfig.scene = mainMenuScene;
+	backButton = UI::GeneratePanel(backConfig, false);
+	backButton->OnClick = { MainMenu, nullptr };
 }
 
 void TimeSlip::CreateInventory()
