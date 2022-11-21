@@ -37,7 +37,7 @@ public:
 	static void PickupItem(U16 itemID, U16 amount);
 
 	static Transform2D* GetTarget(Transform2D* position, F32 range);
-	static void Attack(const Damage& damage, const Vector4& area);
+	static void Attack(const Damage& damage, const Vector4& area); //TODO: damage mask
 
 	static Vector2Int MouseToWorld();
 	static bool MouseToWorldInRange(Vector2Int& pos, U8 range);

@@ -11,6 +11,7 @@
 #include <Core/Time.hpp>
 #include <Renderer/RendererFrontend.hpp>
 #include <Physics/Physics.hpp>
+#include <Audio/Audio.hpp>
 
 Player::Player(const EntityConfig& config) : Entity(config, true),
 alive{ true }, deathTimer{ 0.0f }, spawnPoint{ config.position }, attackTimer{ 0.0f },
@@ -48,6 +49,7 @@ void Player::Destroy()
 
 bool Player::Death()
 {
+	Audio::PlaySFX("Death.wav");
 	alive = false;
 	deathTimer = 3.0f;
 
@@ -130,6 +132,7 @@ void Player::SetPosition(const Vector2& position)
 void Player::DamageResponse()
 {
 	UI::ChangePercent(healthBar, health / maxHealth);
+	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25 + 1.0f); }
 }
 
 void Player::Attack(const Damage& damage)

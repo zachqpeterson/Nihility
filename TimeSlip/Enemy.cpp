@@ -5,10 +5,12 @@
 #include <Memory/Memory.hpp>
 #include <Resources/Resources.hpp>
 #include <Resources/UI.hpp>
+#include <Resources/Animations.hpp>
 #include <Core/Input.hpp>
 #include <Core/Time.hpp>
 #include <Renderer/RendererFrontend.hpp>
 #include <Physics/Physics.hpp>
+#include <Audio/Audio.hpp>
 
 Enemy::Enemy(const EntityConfig& config, EnemyAI aiType, bool aggressive) : Entity(config, false),
 aiType{ aiType }, target{ nullptr }, aggressive{ aggressive }, startChase{ false }, attackCooldown{ 0.0f }
@@ -30,6 +32,7 @@ void Enemy::Destroy()
 bool Enemy::Death()
 {
 	//TODO: Drop Items
+	Audio::PlaySFX("Death.wav", 1.0f, 0.75f);
 
 	Destroy();
 
@@ -65,17 +68,23 @@ void Enemy::BasicAI()
 
 	if (target)
 	{
-		Vector2 dir = target->Position() - gameObject->transform->Position();
-		F32 dist = dir.Magnitude();
+		const Vector2& playerPos = target->Position();
+		const Vector2& pos = gameObject->transform->Position();
+
+		F32 dist = Math::Abs(playerPos.x - pos.x);
 
 		if (dist > 40.0f) //TODO: Chase range
 		{
 			startChase = false;
 			target = nullptr;
+			if (animation->y < 2) { Animations::SetAnimation(animation, 0, true); }
+			else { animation->nextAnimation = 0; }
 		}
 		else if (dist < 1.0f) //TODO: Attack range
 		{
 			startChase = false;
+			if (animation->y < 2) { Animations::SetAnimation(animation, 0, true); }
+			else { animation->nextAnimation = 0; }
 
 			if (attackCooldown <= 0.0f)
 			{
@@ -103,18 +112,21 @@ void Enemy::BasicAI()
 					area.w = area.y + 2.0f;
 				}
 
-				TimeSlip::Attack(damage, area);
+				TimeSlip::Attack(damage, area); //TODO: damage mask
+				Animations::SetAnimation(animation, 2);
 			}
 		}
 		else
 		{
-			Vector2 move{ (F32)Math::Sign(dir.x), 0.0f };
+			Vector2 move{ (F32)Math::Sign(playerPos.x - pos.x), 0.0f };
 			move *= (F32)(Time::DeltaTime() * 5.0f);
 
 			facing = move.x > 0.0f;
+			animation->direction = facing;
+			if (animation->y < 2) { Animations::SetAnimation(animation, 1, true); }
+			else { animation->nextAnimation = 1; }
 
-			if (((gameObject->transform->Position() - lastPos).IsZero() && startChase &&
-				gameObject->transform->Position().y > target->Position().y) && gameObject->physics->Grounded())
+			if (((pos - lastPos).IsZero() && startChase && pos.y > playerPos.y) && gameObject->physics->Grounded())
 			{
 				gameObject->physics->ApplyForce({ 0.0f, -1.0f });
 			}
@@ -138,5 +150,5 @@ void Enemy::RangedAI()
 
 void Enemy::DamageResponse()
 {
-
+	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25 + 0.5f); }
 }
