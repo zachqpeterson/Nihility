@@ -997,7 +997,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	Vector2Int dimentions = RendererFrontend::WindowSize();
 	Vector<Mesh*> meshes{ text.Length() };
 
-	if (text && !dimentions.Zero())
+	if (text && text.Length() && !dimentions.Zero())
 	{
 		String name("UI_Element_{}", element->id);
 		Vector4 uiArea = element->area;

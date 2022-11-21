@@ -251,14 +251,14 @@ void TimeSlip::HandleInput()
 	case ITEM_TYPE_LIGHT: {
 		const Light* light = (const Light*)item;
 
-		if (Input::ButtonDown(LEFT_CLICK))
+		if (Input::OnButtonDown(LEFT_CLICK))
 		{
 			if (MouseToWorldInRange(pos, 5) && world->PlaceLight(pos, light))
 			{
 				hotbar->RemoveItem(equippedSlot, 0, 1);
 			}
 		}
-		else if (Input::ButtonDown(RIGHT_CLICK))
+		else if (Input::OnButtonDown(RIGHT_CLICK))
 		{
 			if (MouseToWorldInRange(pos, 5))
 			{
