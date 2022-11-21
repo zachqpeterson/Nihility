@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include <stdio.h>
+
 enum FileMode
 {
     FILE_MODE_READ = 0x1,
@@ -38,6 +40,18 @@ public:
     void Seek(U64 length);
 
     static Vector<struct String> GetAllFiles(const struct String& dir);
+
+    template<typename T> T ReadT()
+    {
+        if (handle)
+        {
+            T buf[1];
+            fread(buf, sizeof(T), 1, (FILE*)handle);
+            return buf[0];
+        }
+
+        return {};
+    }
 
 public:
     void* handle;

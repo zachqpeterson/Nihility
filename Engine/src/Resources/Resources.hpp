@@ -10,6 +10,8 @@
 #include <Containers/HashTable.hpp>
 #include "Math/Math.hpp"
 
+#include <xaudio2.h>
+
 #undef LoadImage
 
 #define AUDIO_CHUNK_LENGTH 96000
@@ -109,24 +111,12 @@ struct RenderTarget
 	void* internalFramebuffer;
 };
 
-struct AudioChunk
-{
-	bool last;
-	U32 firstSampleIndex;
-	U32 sampleCount;
-	I16** samples;
-	AudioChunk* next{ nullptr };
-};
-
-struct AudioFull
+struct AudioData
 {
 	String name;
-	U32 channelCount{ 0 };
-	U32 sampleDataSize{ 0 };
-	I16* sampleData{ nullptr };
-	U8* data{ nullptr };
-	U64 dataSize{ 0 };
-	AudioChunk* chunks{ nullptr };
+	U8* data;
+	U32 size;
+	WAVEFORMATEX format;
 };
 
 struct FontBuffer
@@ -428,8 +418,7 @@ public:
 	static Binary* LoadBinary(const String& name);
 	static void UnloadBinary(Binary* binary);
 	static Texture* LoadTexture(const String& name);
-	static AudioFull* LoadAudio(const String& name);
-	static void LoadAudioChunk(AudioFull* full, AudioChunk* chunk);
+	static AudioData* LoadAudio(const String& name);
 	static void LoadFont(const String& name);
 	static F32 FontRatio(const String& name);
 	static void GetMaterialInstance(const String& name, Vector<Texture*>& instanceTextures, Material& instance);
@@ -480,8 +469,8 @@ private:
 	static bool LoadJPG(Image* image, File* file);
 	static bool LoadTGA(Image* image, File* file);
 
-	static void LoadWAV(AudioFull* full, AudioChunk* chunk);
-	static void DestroyAudio(AudioFull* full);
+	static void LoadWAV(AudioData& audio);
+	static void DestroyAudio(AudioData& audio);
 	static RiffIterator ParseChunkAt(void* at, void* stop);
 	static RiffIterator NextChunk(RiffIterator& it);
 	static void* GetChunkData(const RiffIterator& it);
@@ -563,7 +552,7 @@ private:
 	static Texture* defaultNormal;
 
 	//Audio
-	static HashTable<String, AudioFull*> audio;
+	static HashTable<String, AudioData> audio;
 
 	//Fonts
 	static HashTable<String, TTFInfo*> fonts;

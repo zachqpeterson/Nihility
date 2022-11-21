@@ -18,7 +18,7 @@ Texture* Resources::defaultDiffuse;
 Texture* Resources::defaultSpecular;
 Texture* Resources::defaultNormal;
 
-HashTable<String, AudioFull*> Resources::audio;
+HashTable<String, AudioData> Resources::audio;
 
 HashTable<String, TTFInfo*> Resources::fonts;
 
@@ -199,7 +199,7 @@ void Resources::Shutdown()
 
 	renderpasses.Destroy();
 
-	for (AudioFull* a : audio)
+	for (AudioData& a : audio)
 	{
 		DestroyAudio(a);
 	}
@@ -2022,154 +2022,106 @@ bool Resources::ResizeTexture(Texture* texture, U32 width, U32 height, bool rege
 	return true;
 }
 
-AudioFull* Resources::LoadAudio(const String& name)
+AudioData* Resources::LoadAudio(const String& name)
 {
 	if (name.Blank())
 	{
-		Logger::Error("Model name can not be blank or nullptr!");
+		Logger::Error("Audio name can not be blank or nullptr!");
 		return nullptr;
 	}
 
-	AudioFull* audioFull = audio[name];
+	AudioData& a = audio[name];
 
-	if (audioFull) { return audioFull; }
+	if (a.data) { return &a; }
 
 	String path(AUDIO_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file;
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
-		audioFull = (AudioFull*)Memory::Allocate(sizeof(AudioFull), MEMORY_TAG_AUDIO);
-		audioFull->name = name;
-		audioFull->data = file->ReadAllBytes(audioFull->dataSize, MEMORY_TAG_AUDIO);
+		a.name = name;
 
-		WAVHeader* header = (WAVHeader*)audioFull->data;
-		if (header->riffId != WAV_CHUNK_ID_RIFF)
+		U32 chunkType;
+		U32 chunkDataSize;
+		U32 fileFormat;
+
+		chunkType = file.ReadU32(); // RIFF chunk
+
+		if (chunkType != 'FFIR')
 		{
-			Logger::Error("File is not a WAV!");
-			Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-			Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_AUDIO);
-			Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
+			file.Close();
+			Logger::Error("Invalid WAV file: {}", name);
 			return nullptr;
 		}
 
-		for (RiffIterator it = ParseChunkAt(header + 1, (U8*)(header + 1) + header->size - 4); IsValid(it); it = NextChunk(it))
+		chunkDataSize = file.ReadU32(); // Data size (for all subchunks)
+		fileFormat = file.ReadU32(); // WAVE format
+
+		if (fileFormat != 'EVAW')
 		{
-			switch (GetType(it))
-			{
-			case WAV_CHUNK_ID_FMT:
-			{
-				WAVFormat* fmt = (WAVFormat*)GetChunkData(it);
-				if (fmt->formatTag != 1 || fmt->samplesPerSec != 48000 || fmt->bitsPerSample != 16 || fmt->blockAlign != (fmt->channels * sizeof(I16)) || !fmt->channels)
-				{
-					Logger::Error("WAV file {} is invalid!", audioFull->name);
-					Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-					Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_AUDIO);
-					Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
-					return nullptr;
-				}
-				audioFull->channelCount = fmt->channels;
-			} break;
-			case WAV_CHUNK_ID_DATA:
-			{
-				audioFull->sampleData = (I16*)GetChunkData(it);
-				audioFull->sampleDataSize = GetChunkSize(it);
-				if (!audioFull->sampleData)
-				{
-					Logger::Error("WAV file {} is invalid!", audioFull->name);
-					Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-					Memory::Free(audioFull->data, audioFull->dataSize, MEMORY_TAG_AUDIO);
-					Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
-					return nullptr;
-				}
-			} break;
-			default: break;
-			}
+			file.Close();
+			Logger::Error("Invalid WAV file: {}", name);
+			return nullptr;
 		}
 
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		chunkType = file.ReadU32(); // First subchunk (should be 'fmt')
 
-		audio.Insert(audioFull->name, audioFull);
+		if (chunkType != ' tmf')
+		{
+			file.Close();
+			Logger::Error("Invalid WAV file: {}", name);
+			return nullptr;
+		}
+
+		chunkDataSize = file.ReadU32(); // Data size for format
+
+		a.format = file.ReadT<WAVEFORMATEX>(); // Wave format struct
+		file.Seek(chunkDataSize - sizeof(WAVEFORMATEX));
+
+		chunkType = file.ReadU32(); // Next subchunk (should be 'data')
+
+		if (chunkType != 'atad')
+		{
+			file.Close();
+			Logger::Error("Invalid WAV file: {}", name);
+			return nullptr;
+		}
+
+		chunkDataSize = file.ReadU32(); // Data size for data
+
+		U8* audioData = (U8*)malloc(chunkDataSize);
+
+		if (!audioData)
+		{
+			file.Close();
+			Logger::Error("Invalid WAV file: {}", name);
+			return nullptr;
+		}
+
+		audioData = file.ReadBytes(chunkDataSize, MEMORY_TAG_AUDIO); // wav data
+
+		a.size = chunkDataSize;
+		a.data = audioData;
+
+		file.Close();
+
+		audio.Insert(a.name, a);
 	}
 	else
 	{
 		Logger::Error("Couldn't open file: {}", name);
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-		Memory::Free(audioFull, sizeof(AudioFull), MEMORY_TAG_AUDIO);
 		return nullptr;
 	}
 
-	AudioChunk* chunk = (AudioChunk*)Memory::Allocate(sizeof(AudioChunk), MEMORY_TAG_AUDIO);
-	chunk->sampleCount = 0;
-	chunk->firstSampleIndex = 0;
-	chunk->samples = (I16**)Memory::Allocate(sizeof(I16*) * audioFull->channelCount, MEMORY_TAG_AUDIO);
-
-	LoadWAV(audioFull, chunk);
-	audioFull->chunks = chunk;
-
-	return audioFull;
+	return &a;
 }
 
-void Resources::LoadAudioChunk(AudioFull* full, AudioChunk* chunk)
+void Resources::DestroyAudio(AudioData& audio)
 {
-	AudioChunk* next = (AudioChunk*)Memory::Allocate(sizeof(AudioChunk), MEMORY_TAG_AUDIO);
-	next->firstSampleIndex = chunk->firstSampleIndex + (AUDIO_CHUNK_LENGTH * full->channelCount);
-	next->samples = (I16**)Memory::Allocate(sizeof(I16*) * full->channelCount, MEMORY_TAG_AUDIO);
+	audio.name.Destroy();
 
-	LoadWAV(full, next);
-
-	chunk->next = next;
-}
-
-void Resources::LoadWAV(AudioFull* full, AudioChunk* chunk)
-{
-	U32 sampleCount = full->sampleDataSize / (full->channelCount * sizeof(I16));
-	U32 sectionSampleCount = AUDIO_CHUNK_LENGTH;
-	I32 samplesLeft = (I32)sampleCount - (I32)(chunk->firstSampleIndex / full->channelCount);
-
-	if (sectionSampleCount >= (U32)samplesLeft)
-	{
-		sectionSampleCount = (U32)Math::Max(samplesLeft, 0);
-		chunk->last = true;
-	}
-
-	sampleCount = sectionSampleCount;
-
-	for (U32 channelIndex = 0; channelIndex < full->channelCount; ++channelIndex)
-	{
-		chunk->samples[channelIndex] = (I16*)Memory::Allocate(sizeof(I16) * sectionSampleCount, MEMORY_TAG_AUDIO);
-
-		for (U32 sampleIndex = 0, dataIndex = chunk->firstSampleIndex + channelIndex; sampleIndex < sectionSampleCount; ++sampleIndex, dataIndex += full->channelCount)
-		{
-			chunk->samples[channelIndex][sampleIndex] = full->sampleData[dataIndex];
-			//chunk->samples[channelIndex][sampleIndex] = (I16)(Math::Sin((F32)dataIndex / 50.0f) * 1000.0f);
-		}
-	}
-
-	chunk->sampleCount = sampleCount;
-}
-
-void Resources::DestroyAudio(AudioFull* full)
-{
-	Memory::Free(full->data, full->dataSize, MEMORY_TAG_AUDIO);
-	full->name.Destroy();
-
-	AudioChunk* chunk = full->chunks;
-	while (chunk)
-	{
-		for (U32 i = 0; i < full->channelCount; ++i)
-		{
-			Memory::Free(chunk->samples[i], sizeof(I16) * chunk->sampleCount, MEMORY_TAG_AUDIO);
-		}
-
-		Memory::Free(chunk->samples, sizeof(I16*) * full->channelCount, MEMORY_TAG_AUDIO);
-		AudioChunk* temp = chunk;
-		chunk = chunk->next;
-		Memory::Free(temp, sizeof(AudioChunk), MEMORY_TAG_AUDIO);
-	}
-
-	Memory::Free(full, sizeof(AudioFull), MEMORY_TAG_AUDIO);
+	Memory::Free(audio.data, audio.size, MEMORY_TAG_AUDIO);
 }
 
 RiffIterator Resources::ParseChunkAt(void* at, void* stop)

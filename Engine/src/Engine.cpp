@@ -61,9 +61,6 @@ void Engine::MainLoop()
 	F64 step = Time::UpTime();
 	F64 lastStep = step;
 
-	Audio::ClearBuffer();
-	Audio::Start();
-
 #ifdef NH_DEBUG
 	UIElementConfig config{};
 	config.position = { 0.98f , 0.0f };
@@ -85,11 +82,6 @@ void Engine::MainLoop()
 		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);
 
 		running = Platform::ProcessMessages() && !Input::OnButtonDown(ESCAPE);
-
-		if (Input::OnButtonDown(G))
-		{
-			Audio::PlayAudioSpacial("Squeal.wav", AUDIO_TYPE_SFX, { -2.0f, 11.0f });
-		}
 
 		if (Input::OnButtonDown(Y))
 		{

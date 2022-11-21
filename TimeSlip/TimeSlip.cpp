@@ -127,10 +127,7 @@ bool TimeSlip::Initialize()
 	createWorldButton->OnClick = createWorldEvent;
 
 	entities(19);
-	Resources::LoadAudio("Mine0.wav");
-	Resources::LoadAudio("Mine1.wav");
-	Resources::LoadAudio("Mine2.wav");
-	Resources::LoadAudio("Mine3.wav");
+	Resources::LoadAudio("Mine.wav");
 
 	return true;
 }

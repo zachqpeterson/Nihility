@@ -277,8 +277,8 @@ void World::BreakBlock(const Vector2Int& pos)
 
 	if (tile.blockID)
 	{
-		String mine{ "Mine{}.wav", Math::RandomRange(0,3) };
-		Audio::PlayAudio(mine, AUDIO_TYPE_SFX);
+		F32 pitch = Math::RandomF() * 0.5f + 1.0f;
+		Audio::PlaySFX("Mine.wav", 1.0f, pitch);
 		Vector2Int chunkPos = pos / 8;
 		TimeSlip::PickupItem(Items::BlockToItemID(tile.blockID), 1);
 		TimeSlip::PickupItem(Items::DecorationToItemID(tile.decID), 1);
@@ -540,8 +540,9 @@ void World::BreakWall(const Vector2Int& pos)
 
 	if (tile.wallID)
 	{
-		String mine{ "Mine{}.wav", Math::RandomRange(0,3) };
-		Audio::PlayAudio(mine, AUDIO_TYPE_SFX);
+		F32 pitch = Math::RandomF() * 0.5f + 1.0f;
+		Audio::PlaySFX("Mine.wav", 1.0f, pitch);
+		Audio::PlaySFX("Mine.wav", 1.0f, pitch, REVERB_TYPE_CAVE);
 		Vector2Int chunkPos = pos / 8;
 
 		TimeSlip::PickupItem(Items::WallToItemID(tile.wallID), 1);
