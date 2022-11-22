@@ -885,22 +885,20 @@ bool World::PlaceLight(const Vector2Int& pos, const Light* light)
 
 F32 World::GenerateWorld()
 {
-	static const F64 terrainLowFreq = 0.005;
-	static const F64 terrainHighFreq = 0.05;
-	static const F64 terrainLowAmplitude = 5.0;
-	static const F64 terrainHighAmplitude = 25.0;
-	static const F64 caveLowFreq = 0.01333333333;
-	static const F64 caveHighFreq = 0.02;
-	static const F64 caveThresholdMin = 0.01;
-	static const F64 caveThresholdMax = 0.04;
-	static const F64 oreFreq = 0.07;
-	static const F64 oreAmplitude = 0.13;
-	static const F64 oreThreshold = 0.1;
+	constexpr F64 terrainLowFreq = 0.005;
+	constexpr F64 terrainHighFreq = 0.05;
+	constexpr F64 terrainLowAmplitude = 5.0;
+	constexpr F64 terrainHighAmplitude = 25.0;
+	constexpr F64 caveLowFreq = 0.01333333333;
+	constexpr F64 caveHighFreq = 0.02;
+	constexpr F64 caveThresholdMin = 0.01;
+	constexpr F64 caveThresholdMax = 0.04;
+	constexpr F64 oreFreq = 0.07;
+	constexpr F64 oreAmplitude = 0.13;
+	constexpr F64 oreThreshold = 0.1;
 
 	Timer timer;
 	timer.Start();
-
-	F32 spawnHeight = 0.0f;
 
 	U16 biomeLengths[BIOME_COUNT] = {};
 
@@ -927,18 +925,12 @@ F32 World::GenerateWorld()
 			U16 prevLength = length;
 			length = (U16)(biomeLengths[i] + variation);
 
-			for (U16 x = prevLength; x < length; ++x)
-			{
-				tiles[x][y].biome = biome;
-			}
+			for (U16 x = prevLength; x < length; ++x) { tiles[x][y].biome = biome; }
 		}
 
 		U16 prevLength = length;
 
-		for (U16 x = prevLength; x < TILES_X; ++x)
-		{
-			tiles[x][y].biome = biomeSeq[BIOME_COUNT - 1];
-		}
+		for (U16 x = prevLength; x < TILES_X; ++x) { tiles[x][y].biome = biomeSeq[BIOME_COUNT - 1]; }
 	}
 
 	for (U16 x = 0; x < TILES_X; ++x)
@@ -946,15 +938,13 @@ F32 World::GenerateWorld()
 		U16 height = (U16)((Math::Simplex1(x * terrainLowFreq + SEED) * terrainHighAmplitude) +
 			(Math::Simplex1(x * terrainHighFreq + SEED) * terrainLowAmplitude) + (TILES_Y * 0.5));
 
-		for (U16 y = 0; y < height; ++y)
-		{
-			tiles[x][y].globalLightSource = true;
-		}
+		for (U16 y = 0; y < height; ++y) { tiles[x][y].globalLightSource = true; }
 
 		for (U16 y = height; y < TILES_Y; ++y)
 		{
 			Tile& tile = tiles[x][y];
 
+			//TODO: Scale slower based of TILES_Y
 			bool cave = Math::Abs(Math::Simplex2(x * caveHighFreq + SEED, y * caveHighFreq + SEED) +
 				Math::Simplex2(x * caveLowFreq + SEED * 2.0, y * caveLowFreq + SEED * 2.0)) >
 				(caveThresholdMax * (height + y) / (F64)height + caveThresholdMin);
@@ -970,12 +960,11 @@ F32 World::GenerateWorld()
 		if (tiles[x][height].blockID)
 		{
 			F32 rand = Math::RandomF();
-
 			tiles[x][height - 1].decID = (rand < 0.3f) * 2 + (rand > 0.5 && rand < 0.6f) * 3 + (rand > 0.9) * 4;
 		}
 	}
 
-	Logger::Debug("World Generation Time: {}", timer.CurrentTime());
+	Logger::Info("World Generation Time: {}", timer.CurrentTime());
 
 	return (F32)(U16)((Math::Simplex1((TILES_X >> 1) * terrainLowFreq + SEED) * terrainHighAmplitude) +
 		(Math::Simplex1((TILES_X >> 1) * terrainHighFreq + SEED) * terrainLowAmplitude) + (TILES_Y * 0.5)) - 1.5f;
