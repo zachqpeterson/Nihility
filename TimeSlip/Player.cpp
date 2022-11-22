@@ -132,7 +132,7 @@ void Player::SetPosition(const Vector2& position)
 void Player::DamageResponse()
 {
 	UI::ChangePercent(healthBar, health / maxHealth);
-	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25 + 1.0f); }
+	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25f + 1.0f); }
 }
 
 void Player::Attack(const Damage& damage)

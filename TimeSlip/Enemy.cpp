@@ -150,5 +150,5 @@ void Enemy::RangedAI()
 
 void Enemy::DamageResponse()
 {
-	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25 + 0.5f); }
+	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25f + 0.5f); }
 }
