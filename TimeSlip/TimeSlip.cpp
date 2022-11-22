@@ -234,7 +234,7 @@ void TimeSlip::HandleInput()
 				hotbar->RemoveItem(equippedSlot, 0, 1);
 			}
 		}
-		else if(Input::ButtonDown(RIGHT_CLICK))
+		else if (Input::ButtonDown(RIGHT_CLICK))
 		{
 			if (block->placeable && MouseToWorldInRange(pos, 5) && world->PlaceWall(pos, (U8)id))
 			{
@@ -429,7 +429,7 @@ void TimeSlip::UpdateCraftingMenu()
 		imageCfg.position.x += 0.25f;
 	}
 
-	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } * !found);
+	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
 	if (found) { craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe }; }
 	else { craftButton->OnClick = { nullptr, nullptr }; }
 	UI::SetEnable(craftButton, true);
@@ -524,6 +524,9 @@ void TimeSlip::LoadWorld()
 
 void TimeSlip::CreateMainMenu()
 {
+	Vector<Vector2> uvs{ 4, Vector2::ZERO };
+	Texture* uiTex = Resources::LoadTexture("TS_UI.bmp");
+
 	UIElementConfig titleConfig{};
 	titleConfig.position = { 0.25f, 0.05f };
 	titleConfig.scale = { 0.5f, 0.2f };
@@ -533,6 +536,11 @@ void TimeSlip::CreateMainMenu()
 	titleConfig.scene = mainMenuScene;
 	titleImage = UI::GeneratePanel(titleConfig, false);
 
+	uvs[0] = { 0.0f, 0.25f };
+	uvs[1] = { 0.33333f, 0.25f };
+	uvs[2] = { 0.33333f, 0.0f };
+	uvs[3] = { 0.0f, 0.0f };
+
 	UIElementConfig playConfig{};
 	playConfig.position = { 0.375f, 0.375f };
 	playConfig.scale = { 0.25f, 0.1f };
@@ -540,8 +548,15 @@ void TimeSlip::CreateMainMenu()
 	playConfig.enabled = true;
 	playConfig.ignore = false;
 	playConfig.scene = mainMenuScene;
-	playButton = UI::GeneratePanel(playConfig, false);
+	playButton = UI::GenerateImage(playConfig, uiTex, uvs);
 	playButton->OnClick = { PlayMenu, nullptr };
+	playButton->OnHover = UI::OnHoverDefault;
+	playButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.33333f, 0.25f };
+	uvs[1] = { 0.66666f, 0.25f };
+	uvs[2] = { 0.66666f, 0.0f };
+	uvs[3] = { 0.33333f, 0.0f };
 
 	UIElementConfig settingsConfig{};
 	settingsConfig.position = { 0.375f, 0.525f };
@@ -550,8 +565,15 @@ void TimeSlip::CreateMainMenu()
 	settingsConfig.enabled = true;
 	settingsConfig.ignore = false;
 	settingsConfig.scene = mainMenuScene;
-	settingsButton = UI::GeneratePanel(settingsConfig, false);
+	settingsButton = UI::GenerateImage(settingsConfig, uiTex, uvs);
 	settingsButton->OnClick = { SettingsMenu, nullptr };
+	settingsButton->OnHover = UI::OnHoverDefault;
+	settingsButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.66666f, 0.25f };
+	uvs[1] = { 1.0f, 0.25f };
+	uvs[2] = { 1.0f, 0.0f };
+	uvs[3] = { 0.66666f, 0.0f };
 
 	UIElementConfig exitConfig{};
 	exitConfig.position = { 0.375f, 0.675f };
@@ -560,8 +582,15 @@ void TimeSlip::CreateMainMenu()
 	exitConfig.enabled = true;
 	exitConfig.ignore = false;
 	exitConfig.scene = mainMenuScene;
-	exitButton = UI::GeneratePanel(exitConfig, false);
+	exitButton = UI::GenerateImage(exitConfig, uiTex, uvs);
 	exitButton->OnClick = { Exit, nullptr };
+	exitButton->OnHover = UI::OnHoverDefault;
+	exitButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.0f, 0.5f };
+	uvs[1] = { 0.33333f, 0.5f };
+	uvs[2] = { 0.33333f, 0.25f };
+	uvs[3] = { 0.0f, 0.25f };
 
 	UIElementConfig smallWorldConfig{};
 	smallWorldConfig.position = { 0.375f, 0.375f };
@@ -570,8 +599,15 @@ void TimeSlip::CreateMainMenu()
 	smallWorldConfig.enabled = false;
 	smallWorldConfig.ignore = false;
 	smallWorldConfig.scene = mainMenuScene;
-	smallWorldButton = UI::GeneratePanel(smallWorldConfig, false);
+	smallWorldButton = UI::GenerateImage(smallWorldConfig, uiTex, uvs);
 	smallWorldButton->OnClick = { CreateWorld, (void*)&smallWorldSize };
+	smallWorldButton->OnHover = UI::OnHoverDefault;
+	smallWorldButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.33333f, 0.5f };
+	uvs[1] = { 0.66666f, 0.5f };
+	uvs[2] = { 0.66666f, 0.25f };
+	uvs[3] = { 0.33333f, 0.25f };
 
 	UIElementConfig mediumWorldConfig{};
 	mediumWorldConfig.position = { 0.375f, 0.525f };
@@ -580,8 +616,15 @@ void TimeSlip::CreateMainMenu()
 	mediumWorldConfig.enabled = false;
 	mediumWorldConfig.ignore = false;
 	mediumWorldConfig.scene = mainMenuScene;
-	mediumWorldButton = UI::GeneratePanel(mediumWorldConfig, false);
+	mediumWorldButton = UI::GenerateImage(mediumWorldConfig, uiTex, uvs);
 	mediumWorldButton->OnClick = { CreateWorld, (void*)&mediumWorldSize };
+	mediumWorldButton->OnHover = UI::OnHoverDefault;
+	mediumWorldButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.66666f, 0.5f };
+	uvs[1] = { 1.0f, 0.5f };
+	uvs[2] = { 1.0f, 0.25f };
+	uvs[3] = { 0.66666f, 0.25f };
 
 	UIElementConfig largeWorldConfig{};
 	largeWorldConfig.position = { 0.375f, 0.675f };
@@ -590,8 +633,15 @@ void TimeSlip::CreateMainMenu()
 	largeWorldConfig.enabled = false;
 	largeWorldConfig.ignore = false;
 	largeWorldConfig.scene = mainMenuScene;
-	largeWorldButton = UI::GeneratePanel(largeWorldConfig, false);
+	largeWorldButton = UI::GenerateImage(largeWorldConfig, uiTex, uvs);
 	largeWorldButton->OnClick = { CreateWorld, (void*)&largeWorldSize };
+	largeWorldButton->OnHover = UI::OnHoverDefault;
+	largeWorldButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.0f, 0.75f };
+	uvs[1] = { 0.33333f, 0.75f };
+	uvs[2] = { 0.33333f, 0.5f };
+	uvs[3] = { 0.0f, 0.5f };
 
 	UIElementConfig backConfig{};
 	backConfig.position = { 0.375f, 0.825f };
@@ -600,8 +650,10 @@ void TimeSlip::CreateMainMenu()
 	backConfig.enabled = false;
 	backConfig.ignore = false;
 	backConfig.scene = mainMenuScene;
-	backButton = UI::GeneratePanel(backConfig, false);
+	backButton = UI::GenerateImage(backConfig, uiTex, uvs);
 	backButton->OnClick = { MainMenu, nullptr };
+	backButton->OnHover = UI::OnHoverDefault;
+	backButton->OnExit = UI::OnExitDefault;
 }
 
 void TimeSlip::CreateInventory()
@@ -681,10 +733,10 @@ void TimeSlip::CreateCraftingMenu()
 	craftingButton.parent = craftingMenu;
 
 	Vector<Vector2> uvs{ 4 };
-	uvs.Push({ 0.0f, 0.2f });
-	uvs.Push({ 0.2f, 0.2f });
-	uvs.Push({ 0.2f, 0.0f });
-	uvs.Push({ 0.0f, 0.0f });
+	uvs.Push({ 0.0f, 1.0f });
+	uvs.Push({ 0.33333f, 1.0f });
+	uvs.Push({ 0.33333f, 0.75f });
+	uvs.Push({ 0.0f, 0.75f });
 
 	craftButton = UI::GenerateImage(craftingButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
 

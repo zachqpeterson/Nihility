@@ -135,6 +135,8 @@ public:
 	static void HideDescription();
 
 	static OnMouse OnDragDefault;
+	static OnMouse OnHoverDefault;
+	static UIEvent OnExitDefault;
 
 private:
 	static bool Initialize();
@@ -148,6 +150,8 @@ private:
 	static NH_INLINE bool Punctuation(char c) { return c == 44 || c == 46 || c == 63 || c == 33; }
 
 	static void DefaultOnDrag(UIElement* e, const Vector2Int& delta, void* data);
+	static void DefaultOnHover(UIElement* e, const Vector2Int& delta, void* data);
+	static void DefaultOnExit(UIElement* e, void* data);
 
 	static U64 elementID;
 	static List<UIElement*> elements;

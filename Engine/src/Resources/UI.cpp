@@ -22,7 +22,11 @@ UIElement* UI::draggedElement;
 Vector2Int UI::lastMousesPos;
 
 OnMouse UI::OnDragDefault{ DefaultOnDrag };
+OnMouse UI::OnHoverDefault{ DefaultOnHover };
+UIEvent UI::OnExitDefault{ DefaultOnExit };
 void UI::DefaultOnDrag(UIElement* e, const Vector2Int& delta, void* data) { UI::MoveElement(e, delta); }
+void UI::DefaultOnHover(UIElement* e, const Vector2Int& delta, void* data) { UI::ChangeColor(e, { 0.8f, 0.8f, 0.8f, 1.0f }); }
+void UI::DefaultOnExit(UIElement* e, void* data) { UI::ChangeColor(e, { 1.0f, 1.0f, 1.0f, 1.0f }); }
 
 bool UI::Initialize()
 {
@@ -924,7 +928,7 @@ void UI::SetElementPosition(UIElement* element, const Vector2& position)
 	}
 
 	pos *= 2.0f;
-	pos	-= 1.0f;
+	pos -= 1.0f;
 
 	element->gameObject->transform->SetPosition(pos);
 }
