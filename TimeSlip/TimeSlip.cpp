@@ -429,9 +429,22 @@ void TimeSlip::UpdateCraftingMenu()
 		imageCfg.position.x += 0.25f;
 	}
 
-	UI::ChangeColor(craftButton, Vector4::ONE - Vector4{ 0.3f, 0.3f, 0.3f, 0.0f } *!found);
-	if (found) { craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe }; }
-	else { craftButton->OnClick = { nullptr, nullptr }; }
+	if (found) 
+	{ 
+		craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe };
+		craftButton->OnHover = UI::OnHoverDefault;
+		craftButton->OnExit = UI::OnExitDefault;
+		UI::ChangeColor(craftButton, { 1.0f, 1.0f, 1.0f, 1.0f });
+		craftButton->ignore = false;
+	}
+	else 
+	{ 
+		craftButton->OnClick = { nullptr, nullptr };
+		craftButton->OnHover = {};
+		craftButton->OnExit = {};
+		UI::ChangeColor(craftButton, { 0.7f, 0.7f, 0.7f, 1.0f });
+		craftButton->ignore = true;
+	}
 	UI::SetEnable(craftButton, true);
 }
 
@@ -724,11 +737,11 @@ void TimeSlip::CreateCraftingMenu()
 	craftResult = UI::GenerateImage(craftingImage, Resources::LoadTexture("Items.bmp"), blankUVs);
 
 	UIElementConfig craftingButton{};
-	craftingButton.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	craftingButton.color = { 0.8f, 0.8f, 0.8f, 1.0f };
 	craftingButton.enabled = false;
-	craftingButton.ignore = false;
-	craftingButton.position = { 0.55f, 0.8f };
-	craftingButton.scale = { 0.3f, 0.09572649572f };
+	craftingButton.ignore = true;
+	craftingButton.position = { 0.4f, 0.75f };
+	craftingButton.scale = { 0.6f, 0.16875f };
 	craftingButton.scene = worldScene;
 	craftingButton.parent = craftingMenu;
 
@@ -739,6 +752,8 @@ void TimeSlip::CreateCraftingMenu()
 	uvs.Push({ 0.0f, 0.75f });
 
 	craftButton = UI::GenerateImage(craftingButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
+	craftButton->OnHover = UI::OnHoverDefault;
+	craftButton->OnExit = UI::OnExitDefault;
 
 	UIElementConfig ingrListCfg{};
 	ingrListCfg.color = Vector4::ZERO;
@@ -761,10 +776,10 @@ void TimeSlip::CreateCraftingMenu()
 	recipeSelectCfg.parent = craftingMenu;
 
 	Vector<Vector2> selectUvs{ 4 };
-	selectUvs.Push({ 0.2f, 0.2f });
-	selectUvs.Push({ 0.27179487179f, 0.2f });
-	selectUvs.Push({ 0.27179487179f, 0.0f });
-	selectUvs.Push({ 0.2f, 0.0f });
+	selectUvs.Push({ 0.0f, 0.0f });
+	selectUvs.Push({ 0.0f, 0.0f });
+	selectUvs.Push({ 0.0f, 0.0f });
+	selectUvs.Push({ 0.0f, 0.0f });
 
 	recipeSelection = UI::GenerateImage(recipeSelectCfg, Resources::LoadTexture("TS_UI.bmp"), selectUvs);
 
