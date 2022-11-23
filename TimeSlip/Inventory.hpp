@@ -56,7 +56,8 @@ public:
 	void RemoveItem(U16 itemID, U16 amount);
 	bool DropItem(U16 x, U16 y, U16 amount);
 
-	bool ContainsItem(U16 id, U16 amount = 1);
+	bool ContainsItem(U16 id, U16 amount = 1) const;
+	const bool& IsOpen() const { return open; }
 
 	static void OnClick(UIElement* e, const Vector2Int& pos, void* data);
 	static void OnRelease(UIElement* e, const Vector2Int& pos, void* data);
@@ -67,13 +68,14 @@ public:
 	const Vector<Slot>& operator[](U16 i) const { return slots[i]; }
 
 	static Vector<Vector2>& GetUV(U16 itemID);
-private:
 
+private:
 	static Vector<Vector2> blankUVs;
 
 	Vector<Vector<Slot>> slots;
 	UIElement* backPanel;
 	U16 slotCount;
+	bool open;
 
 	static Slot mouseSlot;
 };

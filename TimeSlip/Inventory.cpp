@@ -327,7 +327,7 @@ void Inventory::OnExit(UIElement* e, void* data)
 	if (slot.itemID) { UI::HideDescription(); }
 }
 
-Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMax, { } } }, slotCount{ config.slotCount }
+Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMax, { } } }, slotCount{ config.slotCount }, open{ config.enable }
 {
 	F32 width = config.xSlotSize * config.xMax + config.xPadding * 2.0f + config.xSpacing * (config.xMax - 1);
 	F32 height = config.ySlotSize * config.yMax + config.yPadding * 2.0f + config.ySpacing * (config.yMax - 1);
@@ -484,6 +484,7 @@ void Inventory::Update()
 void Inventory::ToggleShow()
 {
 	UI::SetEnable(backPanel, !backPanel->gameObject->enabled);
+	open = !open;
 }
 
 bool Inventory::AddItem(U16 itemID, U16& amount)
@@ -626,7 +627,7 @@ bool Inventory::DropItem(U16 x, U16 y, U16 amount)
 	return false;
 }
 
-bool Inventory::ContainsItem(U16 id, U16 amount)
+bool Inventory::ContainsItem(U16 id, U16 amount) const
 {
 	U16 count = 0;
 
@@ -634,7 +635,7 @@ bool Inventory::ContainsItem(U16 id, U16 amount)
 	{
 		for (U8 x = 0; x < slots.Size(); ++x)
 		{
-			Slot& slot = slots[x][y];
+			const Slot& slot = slots[x][y];
 
 			count += slot.amount * (slot.itemID == id);
 

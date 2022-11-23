@@ -95,6 +95,7 @@ void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)
 
 void TimeSlip::MainMenu(UIElement* element, const Vector2Int& mousePos, void* data)
 {
+	Audio::PlaySFX("Back.wav");
 	UI::SetEnable(titleImage, true);
 	UI::SetEnable(playButton, true);
 	UI::SetEnable(settingsButton, true);
@@ -107,6 +108,7 @@ void TimeSlip::MainMenu(UIElement* element, const Vector2Int& mousePos, void* da
 
 void TimeSlip::PlayMenu(UIElement* element, const Vector2Int& mousePos, void* data)
 {
+	Audio::PlaySFX("Click.wav");
 	UI::SetEnable(titleImage, false);
 	UI::SetEnable(playButton, false);
 	UI::SetEnable(settingsButton, false);
@@ -119,6 +121,7 @@ void TimeSlip::PlayMenu(UIElement* element, const Vector2Int& mousePos, void* da
 
 void TimeSlip::SettingsMenu(UIElement* element, const Vector2Int& mousePos, void* data)
 {
+	Audio::PlaySFX("Click.wav");
 	UI::SetEnable(titleImage, false);
 	UI::SetEnable(playButton, false);
 	UI::SetEnable(settingsButton, false);
@@ -176,8 +179,18 @@ bool TimeSlip::Update()
 	{
 	case GAME_STATE_MENU: break;
 	case GAME_STATE_GAME: {
-		if (Input::OnButtonDown(I)) { inventory->ToggleShow(); }
-		if (Input::OnButtonDown(C)) { UI::SetEnable(craftingMenu, !craftingMenu->selfEnabled); }
+		if (Input::OnButtonDown(I))
+		{ 
+			inventory->ToggleShow();
+			if (inventory->IsOpen()) { Audio::PlaySFX("OpenInventory.wav"); }
+			else { Audio::PlaySFX("CloseInventory.wav"); }
+		}
+		if (Input::OnButtonDown(C)) 
+		{ 
+			UI::SetEnable(craftingMenu, !craftingMenu->selfEnabled); 
+			if (craftingMenu->selfEnabled) { Audio::PlaySFX("OpenInventory.wav"); }
+			else { Audio::PlaySFX("CloseInventory.wav"); }
+		}
 		Inventory::Update();
 		HandleInput();
 		world->Update();
@@ -698,6 +711,7 @@ void TimeSlip::CreateInventory()
 	config.slotCount = 9;
 	config.xPosition = 0.3f;
 	config.yPosition = 0.9f;
+	config.draggable = false;
 
 	hotbar = new Inventory(config);
 

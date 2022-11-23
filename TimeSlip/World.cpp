@@ -414,6 +414,10 @@ void World::BreakBlock(const Vector2Int& pos)
 	}
 	else if (tile.decID)
 	{
+		F32 pitch = Math::RandomF() * 0.2f + 1.0f;
+		if (tile.decID == 2) { Audio::PlaySFX("Grass.wav", 1.0f, pitch); }
+		else if(tile.decID == 3) { Audio::PlaySFX("Flint.wav", 1.0f, pitch); }
+		else if(tile.decID == 4) { Audio::PlaySFX("Bush.wav", 1.0f, pitch); }
 		Vector2Int chunkPos = pos / 8;
 		Vector<Mesh*> meshes{ 36 };
 		U8 id = tile.decID;
