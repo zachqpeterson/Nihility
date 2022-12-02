@@ -87,6 +87,13 @@ Animation* Animations::AddAnimation(Mesh* mesh, U16 firstVertex, U16 uvIndex, U8
 	return animation;
 }
 
+void Animations::AddAnimation(Animation* animation)
+{
+	animation->x = 0;
+	animation->timer = animation->fps;
+	animations.PushBack(animation);
+}
+
 void Animations::RemoveAnimation(Animation* animation)
 {
 	animations.Remove(animation);

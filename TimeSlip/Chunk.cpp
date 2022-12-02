@@ -139,6 +139,12 @@ void Chunk::Load(const Vector2Int& pos)
 		Resources::BatchCreateFreeMeshes(configs, model->meshes);
 		RendererFrontend::DrawModel(model);
 
+		for (Animation* anim : animations)
+		{
+			anim->mesh = model->meshes[2];
+			Animations::AddAnimation(anim);
+		}
+
 		loaded = true;
 	}
 }
@@ -152,6 +158,11 @@ void Chunk::Unload()
 		for (Mesh* m : model->meshes)
 		{
 			Resources::DestroyFreeMesh(m);
+		}
+
+		for (Animation* anim : animations)
+		{
+			Animations::RemoveAnimation(anim);
 		}
 
 		model->meshes.Clear();

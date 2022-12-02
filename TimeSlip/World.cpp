@@ -817,7 +817,7 @@ bool World::PlaceLight(const Vector2Int& pos, const Light* light)
 {
 	Tile& tile = tiles[pos.x][pos.y];
 
-	if (!tile.decID && (tile.wallID || (pos.x > 0 && tiles[pos.x - 1][pos.y].blockID) ||
+	if (!tile.decID && !tile.blockID && (tile.wallID || (pos.x > 0 && tiles[pos.x - 1][pos.y].blockID) ||
 		(pos.x + 1 < TILES_X && tiles[pos.x + 1][pos.y].blockID) || (pos.y + 1 < TILES_Y && tiles[pos.x][pos.y + 1].blockID)))
 	{
 		Vector2Int chunkPos = pos / 8;

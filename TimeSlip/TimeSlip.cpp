@@ -31,10 +31,12 @@ F32 TimeSlip::currentTime;
 bool TimeSlip::night;
 Vector3 TimeSlip::globalColor;
 
-UIElement* TimeSlip::titleImage;
+UIElement* TimeSlip::titleImage0;
+UIElement* TimeSlip::titleImage1;
 UIElement* TimeSlip::playButton;
 UIElement* TimeSlip::settingsButton;
 UIElement* TimeSlip::exitButton;
+UIElement* TimeSlip::selectWorldImage;
 UIElement* TimeSlip::smallWorldButton;
 UIElement* TimeSlip::mediumWorldButton;
 UIElement* TimeSlip::largeWorldButton;
@@ -96,10 +98,12 @@ void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)
 void TimeSlip::MainMenu(UIElement* element, const Vector2Int& mousePos, void* data)
 {
 	Audio::PlaySFX("Back.wav");
-	UI::SetEnable(titleImage, true);
+	UI::SetEnable(titleImage0, true);
+	UI::SetEnable(titleImage1, true);
 	UI::SetEnable(playButton, true);
 	UI::SetEnable(settingsButton, true);
 	UI::SetEnable(exitButton, true);
+	UI::SetEnable(selectWorldImage, false);
 	UI::SetEnable(smallWorldButton, false);
 	UI::SetEnable(mediumWorldButton, false);
 	UI::SetEnable(largeWorldButton, false);
@@ -109,10 +113,12 @@ void TimeSlip::MainMenu(UIElement* element, const Vector2Int& mousePos, void* da
 void TimeSlip::PlayMenu(UIElement* element, const Vector2Int& mousePos, void* data)
 {
 	Audio::PlaySFX("Click.wav");
-	UI::SetEnable(titleImage, false);
+	UI::SetEnable(titleImage0, false);
+	UI::SetEnable(titleImage1, false);
 	UI::SetEnable(playButton, false);
 	UI::SetEnable(settingsButton, false);
 	UI::SetEnable(exitButton, false);
+	UI::SetEnable(selectWorldImage, true);
 	UI::SetEnable(smallWorldButton, true);
 	UI::SetEnable(mediumWorldButton, true);
 	UI::SetEnable(largeWorldButton, true);
@@ -122,7 +128,8 @@ void TimeSlip::PlayMenu(UIElement* element, const Vector2Int& mousePos, void* da
 void TimeSlip::SettingsMenu(UIElement* element, const Vector2Int& mousePos, void* data)
 {
 	Audio::PlaySFX("Click.wav");
-	UI::SetEnable(titleImage, false);
+	UI::SetEnable(titleImage0, false);
+	UI::SetEnable(titleImage1, false);
 	UI::SetEnable(playButton, false);
 	UI::SetEnable(settingsButton, false);
 	UI::SetEnable(exitButton, false);
@@ -553,14 +560,33 @@ void TimeSlip::CreateMainMenu()
 	Vector<Vector2> uvs{ 4, Vector2::ZERO };
 	Texture* uiTex = Resources::LoadTexture("TS_UI.bmp");
 
-	UIElementConfig titleConfig{};
-	titleConfig.position = { 0.25f, 0.05f };
-	titleConfig.scale = { 0.5f, 0.2f };
-	titleConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	titleConfig.enabled = true;
-	titleConfig.ignore = true;
-	titleConfig.scene = mainMenuScene;
-	titleImage = UI::GeneratePanel(titleConfig, false);
+	uvs[0] = { 0.33333f, 1.0f };
+	uvs[1] = { 0.66666f, 1.0f };
+	uvs[2] = { 0.66666f, 0.75f };
+	uvs[3] = { 0.33333f, 0.75f };
+
+	UIElementConfig titleConfig0{};
+	titleConfig0.position = { 0.375f, 0.05f };
+	titleConfig0.scale = { 0.25f, 0.1f };
+	titleConfig0.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	titleConfig0.enabled = true;
+	titleConfig0.ignore = true;
+	titleConfig0.scene = mainMenuScene;
+	titleImage0 = UI::GenerateImage(titleConfig0, uiTex, uvs);
+
+	uvs[0] = { 0.66666f, 1.0f };
+	uvs[1] = { 1.0f, 1.0f };
+	uvs[2] = { 1.0f, 0.75f };
+	uvs[3] = { 0.66666f, 0.75f };
+
+	UIElementConfig titleConfig1{};
+	titleConfig1.position = { 0.375f, 0.15f };
+	titleConfig1.scale = { 0.25f, 0.1f };
+	titleConfig1.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	titleConfig1.enabled = true;
+	titleConfig1.ignore = true;
+	titleConfig1.scene = mainMenuScene;
+	titleImage1 = UI::GenerateImage(titleConfig1, uiTex, uvs);
 
 	uvs[0] = { 0.0f, 0.25f };
 	uvs[1] = { 0.33333f, 0.25f };
@@ -612,6 +638,20 @@ void TimeSlip::CreateMainMenu()
 	exitButton->OnClick = { Exit, nullptr };
 	exitButton->OnHover = UI::OnHoverDefault;
 	exitButton->OnExit = UI::OnExitDefault;
+
+	uvs[0] = { 0.33333f, 0.75f };
+	uvs[1] = { 1.0f, 0.75f };
+	uvs[2] = { 1.0f, 0.5f };
+	uvs[3] = { 0.33333f, 0.5f };
+
+	UIElementConfig selectWorldConfig{};
+	selectWorldConfig.position = { 0.25f, 0.2f };
+	selectWorldConfig.scale = { 0.5f, 0.1f };
+	selectWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	selectWorldConfig.enabled = false;
+	selectWorldConfig.ignore = true;
+	selectWorldConfig.scene = mainMenuScene;
+	selectWorldImage = UI::GenerateImage(selectWorldConfig, uiTex, uvs);
 
 	uvs[0] = { 0.0f, 0.5f };
 	uvs[1] = { 0.33333f, 0.5f };

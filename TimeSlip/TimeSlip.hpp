@@ -71,10 +71,12 @@ private:
 	static bool night;
 	static Vector3 globalColor;
 
-	static UIElement* titleImage;
+	static UIElement* titleImage0;
+	static UIElement* titleImage1;
 	static UIElement* playButton;
 	static UIElement* settingsButton;
 	static UIElement* exitButton;
+	static UIElement* selectWorldImage;
 	static UIElement* smallWorldButton;
 	static UIElement* mediumWorldButton;
 	static UIElement* largeWorldButton;

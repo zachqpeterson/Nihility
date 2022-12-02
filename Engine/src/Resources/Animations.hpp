@@ -30,6 +30,7 @@ class NH_API Animations
 {
 public:
 	static Animation* AddAnimation(Mesh* mesh, U16 firstVertex, U16 uvIndex, U8 length, U8 count, F32 fps, bool calcUVs = true);
+	static void AddAnimation(Animation* animation);
 	static void RemoveAnimation(Animation* animation);
 	static void SetAnimation(Animation* animation, U8 anim, bool loop = false, bool force = false);
 	static void EndAnimation(Animation* animation);
