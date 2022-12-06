@@ -219,6 +219,12 @@ void TimeSlip::HandleInput()
 {
 	constexpr U32 rangeSqr = (5 * 24) * (5 * 24);
 
+	if (Input::OnButtonDown(P))
+	{
+		PickupItem(11, 10);
+		PickupItem(12, 10);
+	}
+
 	if (Input::OnButtonDown(ONE)) { UI::MoveElement(hotbarHighlight, Vector2{ -equippedSlot * 0.04333333333f, 0.0f }); equippedSlot = 0; }
 	else if (Input::OnButtonDown(TWO)) { UI::MoveElement(hotbarHighlight, Vector2{ (1.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 1; }
 	else if (Input::OnButtonDown(THREE)) { UI::MoveElement(hotbarHighlight, Vector2{ (2.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 2; }
