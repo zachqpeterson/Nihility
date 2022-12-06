@@ -16,6 +16,8 @@ enum ItemType
 	ITEM_TYPE_COUNT
 };
 
+//TODO: Item id enum
+
 struct Damage
 {
 	constexpr Damage(F32 damage, F32 armorPierce, F32 critChance, F32 critMulti, F32 knockback, F32 staminaUse, F32 manaUse, F32 cooldown) :

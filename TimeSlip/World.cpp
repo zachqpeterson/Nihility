@@ -412,7 +412,7 @@ void World::BreakBlock(const Vector2Int& pos)
 
 		RendererFrontend::BatchCreateMeshes(meshes);
 	}
-	else if (tile.decID)
+	else if (tile.decID != 0 && tile.decID < 5)
 	{
 		F32 pitch = Math::RandomF() * 0.2f + 1.0f;
 		if (tile.decID == 2) { Audio::PlaySFX("Grass.wav", 1.0f, pitch); }
@@ -754,7 +754,7 @@ void World::RemoveLight(const Vector2Int& pos)
 		tile.lightSource = 0;
 		tile.decID = 0;
 
-		TimeSlip::PickupItem(19, 1); //TODO: Don't hardcode
+		TimeSlip::PickupItem(23, 1); //TODO: Don't hardcode
 
 		Vector<Mesh*> meshes{ 36 };
 
