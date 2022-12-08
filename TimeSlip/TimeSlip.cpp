@@ -161,7 +161,6 @@ bool TimeSlip::Initialize()
 	CreateMainMenu();
 
 	entities(19);
-	Resources::LoadAudio("Mine.wav");
 
 	return true;
 }
@@ -323,7 +322,6 @@ Vector2Int TimeSlip::MouseToWorld()
 {
 	Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
 	Vector2 mousePos = (Vector2)Input::MousePos();
-	Vector2 screenSize = (Vector2)Platform::ScreenSize();
 	Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 	Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 	Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
@@ -335,7 +333,6 @@ bool TimeSlip::MouseToWorldInRange(Vector2Int& pos, U8 range)
 {
 	Vector2 cameraPos = (Vector2)RendererFrontend::CurrentScene()->GetCamera()->Position();
 	Vector2 mousePos = (Vector2)Input::MousePos();
-	Vector2 screenSize = (Vector2)Platform::ScreenSize();
 	Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 	Vector2 windowOffset = (Vector2)RendererFrontend::WindowOffset();
 	Vector2 distance = mousePos - windowSize * 0.5f - windowOffset;
@@ -523,6 +520,7 @@ void TimeSlip::Attack(const Damage& damage, const Vector4& area)
 
 void TimeSlip::CreateWorld(UIElement* element, const Vector2Int& mousePos, void* data)
 {
+	Audio::PlaySFX("Click.wav");
 	RendererFrontend::UseScene(worldScene);
 
 	Vector2 spawnPoint;

@@ -5,16 +5,6 @@
 #include "Memory/Memory.hpp"
 #include "Containers/String.hpp"
 
-enum LogLevel
-{
-	LOG_LEVEL_FATAL = 0,
-	LOG_LEVEL_ERROR = 1,
-	LOG_LEVEL_WARN = 2,
-	LOG_LEVEL_INFO = 3,
-	LOG_LEVEL_DEBUG = 4,
-	LOG_LEVEL_TRACE = 5
-};
-
 #define LOG_WARN_ENABLED 1
 #define LOG_TRACE_ENABLED 0
 #define LOG_INFO_ENABLED 1
@@ -27,6 +17,16 @@ enum LogLevel
 #define LOG_TRACE_ENABLED 0
 #endif
 
+enum LogLevel
+{
+	LOG_LEVEL_FATAL = 0,
+	LOG_LEVEL_ERROR = 1,
+	LOG_LEVEL_WARN = 0,
+	LOG_LEVEL_INFO = 1,
+	LOG_LEVEL_DEBUG = 2,
+	LOG_LEVEL_TRACE = 3
+};
+
 struct NH_API File;
 
 class NH_API Logger
@@ -37,27 +37,26 @@ public:
 	{
 		String str(message);
 		str.Format(args...);
-		LogOutput(LOG_LEVEL_FATAL, str);
-		str.Destroy();
+		PrintError(str, LOG_LEVEL_FATAL);
 	}
 	template<typename Type>
 	static void Fatal(const Type& arg)
 	{
 		String str(arg);
-		LogOutput(LOG_LEVEL_FATAL, str);
+		PrintError(str, LOG_LEVEL_FATAL);
 	}
 	template<typename... Types>
 	static void Error(const char* message, const Types&... args)
 	{
 		String str(message);
 		str.Format(args...);
-		LogOutput(LOG_LEVEL_ERROR, str);
+		PrintError(str, LOG_LEVEL_ERROR);
 	}
 	template<typename Type>
 	static void Error(const Type& arg)
 	{
 		String str(arg);
-		LogOutput(LOG_LEVEL_ERROR, str);
+		PrintError(str, LOG_LEVEL_ERROR);
 	}
 	template<typename... Types>
 	static void Warn(const char* message, const Types&... args)
@@ -65,7 +64,7 @@ public:
 #if LOG_WARN_ENABLED
 		String str(message);
 		str.Format(args...);
-		LogOutput(LOG_LEVEL_WARN, str);
+		Print(str, LOG_LEVEL_WARN);
 #endif
 	}
 	template<typename Type>
@@ -73,7 +72,7 @@ public:
 	{
 #if LOG_WARN_ENABLED
 		String str(arg);
-		LogOutput(LOG_LEVEL_WARN, str);
+		Print(str, LOG_LEVEL_WARN);
 #endif
 	}
 	template<typename... Types>
@@ -82,7 +81,7 @@ public:
 #if LOG_INFO_ENABLED
 		String str(message);
 		str.Format(args...);
-		LogOutput(LOG_LEVEL_INFO, str);
+		Print(str, LOG_LEVEL_INFO);
 #endif
 	}
 	template<typename Type>
@@ -90,7 +89,7 @@ public:
 	{
 #if LOG_INFO_ENABLED
 		String str(arg);
-		LogOutput(LOG_LEVEL_INFO, str);
+		Print(str, LOG_LEVEL_INFO);
 #endif
 	}
 	template<typename... Types>
@@ -99,7 +98,7 @@ public:
 #if LOG_DEBUG_ENABLED
 		String str(message);
 		str.Format(args...);
-		LogOutput(LOG_LEVEL_DEBUG, str);
+		Print(str, LOG_LEVEL_DEBUG);
 #endif
 	}
 	template<typename Type>
@@ -107,7 +106,7 @@ public:
 	{
 #if LOG_DEBUG_ENABLED
 		String str(arg);
-		LogOutput(LOG_LEVEL_DEBUG, str);
+		Print(str, LOG_LEVEL_DEBUG);
 #endif
 	}
 	template<typename... Types>
@@ -116,7 +115,7 @@ public:
 #if LOG_TRACE_ENABLED
 		String str(message);
 		str.Format(args...);
-		LogOutput(LOG_LEVEL_TRACE, str);
+		Print(str, LOG_LEVEL_TRACE);
 #endif
 	}
 	template<typename Type>
@@ -124,16 +123,21 @@ public:
 	{
 #if LOG_TRACE_ENABLED
 		String str(arg);
-		LogOutput(LOG_LEVEL_TRACE, str);
+		Print(str, LOG_LEVEL_TRACE);
 #endif
 	}
 
 private:
-	static void LogOutput(LogLevel level, String& message);
 	static bool Initialize();
 	static void Shutdown();
+	static void Print(String& message, LogLevel level);
+	static void PrintError(String& message, LogLevel level);
 
 	static File log;
+#if defined PLATFORM_WINDOWS
+	static void* consoleHandle;
+	static void* errorHandle;
+#endif
 
 	Logger() = delete;
 

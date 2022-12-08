@@ -137,6 +137,7 @@
     <ClInclude Include="Engine\src\Resources\Resources.hpp" />
     <ClInclude Include="Engine\src\Resources\UI.hpp" />
     <ClInclude Include="Engine\src\SIMD.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Audio\Audio.cpp" />
@@ -175,6 +176,15 @@
     <ProjectReference Include="Containers\Containers.vcxproj">
       <Project>{56a07b6a-b13e-49eb-9580-f12a3144e6f2}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Icons.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cursor.cur" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

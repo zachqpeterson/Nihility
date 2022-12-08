@@ -3,29 +3,22 @@
 #include "Math/Math.hpp"
 #include "Core/Logger.hpp"
 
-struct NH_API ButtonState
-{
-	bool pressed, changed, consumed, dblClicked;
-};
-
-struct ButtonState Input::buttonStates[BUTTON_COUNT];
-bool Input::anyButtonDown;
+Input::ButtonState Input::buttonStates[BUTTON_COUNT];
+F32 Input::axisStates[GAMEPAD_AXIS_COUNT];
 I16 Input::mouseWheelDelta;
 Vector2Int Input::mousePos;
+bool Input::anyButtonDown;
 
-bool Input::Initialize()
+void Input::Update()
 {
-	Logger::Info("Initializing input...");
-	anyButtonDown = false;
-	mouseWheelDelta = 0;
-	mousePos = Vector2Int::ZERO;
-
-	return true;
-}
-
-void Input::Shutdown()
-{
-
+	for (U32 i = 0; i < BUTTON_COUNT; ++i)
+	{
+		anyButtonDown = false;
+		buttonStates[i].changed = false;
+		buttonStates[i].consumed = false;
+		buttonStates[i].doubleClicked = false;
+		buttonStates[i].heldChanged = false;
+	}
 }
 
 bool Input::OnAnyButtonDown()
@@ -33,34 +26,54 @@ bool Input::OnAnyButtonDown()
 	return anyButtonDown;
 }
 
-bool Input::ButtonDown(ButtonCode code)
+bool Input::ButtonUp(ButtonCode code)
 {
-	ButtonState& state = buttonStates[code];
-	return state.pressed && !state.consumed;
+	return !buttonStates[code].pressed && !buttonStates[code].consumed;
 }
 
-bool Input::OnButtonDown(ButtonCode code)
+bool Input::ButtonDown(ButtonCode code)
 {
-	ButtonState& state = buttonStates[code];
-	return state.pressed && state.changed && !state.consumed;
+	return buttonStates[code].pressed && !buttonStates[code].consumed;
+}
+
+bool Input::ButtonHeld(ButtonCode code)
+{
+	return buttonStates[code].held && !buttonStates[code].consumed;
 }
 
 bool Input::OnButtonUp(ButtonCode code)
 {
-	ButtonState& state = buttonStates[code];
-	return !state.pressed && state.changed && !state.consumed;
+	return !buttonStates[code].pressed && buttonStates[code].changed && !buttonStates[code].consumed;
+}
+
+bool Input::OnButtonDown(ButtonCode code)
+{
+	return buttonStates[code].pressed && buttonStates[code].changed && !buttonStates[code].consumed;
 }
 
 bool Input::OnButtonChange(ButtonCode code)
 {
-	ButtonState& state = buttonStates[code];
-	return state.changed && !state.consumed;
+	return buttonStates[code].changed && !buttonStates[code].consumed;
 }
 
 bool Input::OnButtonDoubleClick(ButtonCode code)
 {
-	ButtonState& state = buttonStates[code];
-	return state.dblClicked && !state.consumed;
+	return buttonStates[code].doubleClicked && !buttonStates[code].consumed;
+}
+
+bool Input::OnButtonHold(ButtonCode code)
+{
+	return buttonStates[code].held && buttonStates[code].heldChanged && !buttonStates[code].consumed;
+}
+
+bool Input::OnButtonRelease(ButtonCode code)
+{
+	return !buttonStates[code].held && buttonStates[code].heldChanged && !buttonStates[code].consumed;
+}
+
+void Input::ConsumeInput(ButtonCode code)
+{
+	buttonStates[code].consumed = true;
 }
 
 const Vector2Int& Input::MousePos()
@@ -73,41 +86,7 @@ I16 Input::MouseWheelDelta()
 	return mouseWheelDelta;
 }
 
-void Input::ConsumeInput(ButtonCode code)
+F32 Input::GetAxis(GamepadAxis axis)
 {
-	buttonStates[code].consumed = true;
-}
-
-void Input::ResetInput()
-{
-	anyButtonDown = false;
-	mouseWheelDelta = 0;
-
-	for (ButtonState& state : buttonStates)
-	{
-		state.changed = false;
-		state.consumed = false;
-		state.dblClicked = false;
-	}
-}
-
-void Input::SetButtonState(U8 code, bool down, bool dbl)
-{
-	anyButtonDown |= down;
-	ButtonState& state = buttonStates[code];
-	state.changed = down != state.pressed;
-	state.pressed = down;
-	state.dblClicked |= dbl;
-}
-
-void Input::SetMouseWheel(I16 delta)
-{
-	mouseWheelDelta = delta;
-}
-
-void Input::SetMousePos(I32 x, I32 y)
-{
-	Vector2Int& v = mousePos;
-	v.x = x;
-	v.y = y;
+	return axisStates[axis];
 }

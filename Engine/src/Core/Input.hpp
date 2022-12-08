@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 
-#ifdef PLATFORM_WINDOWS
 enum NH_API ButtonCode
 {
 	//Mouse Buttons//
@@ -239,38 +238,60 @@ enum NH_API ButtonCode
 
 	BUTTON_COUNT
 };
-#endif
+
+enum GamepadAxis
+{
+	LEFT_JOYSTICK_X,
+	LEFT_JOYSTICK_Y,
+	RIGHT_JOYSTICK_X,
+	RIGHT_JOYSTICK_Y,
+	LEFT_TRIGGER,
+	RIGHT_TRIGGER,
+
+	GAMEPAD_AXIS_COUNT
+};
+
+struct Vector2Int;
 
 class NH_API Input
 {
+	struct ButtonState
+	{
+		bool pressed;
+		bool changed;
+		bool consumed;
+		bool doubleClicked;
+		bool held;
+		bool heldChanged;
+	};
+
 public:
 	static bool OnAnyButtonDown();
+	static bool ButtonUp(ButtonCode code);
 	static bool ButtonDown(ButtonCode code);
-	static bool OnButtonDown(ButtonCode code);
+	static bool ButtonHeld(ButtonCode code);
 	static bool OnButtonUp(ButtonCode code);
+	static bool OnButtonDown(ButtonCode code);
 	static bool OnButtonChange(ButtonCode code);
 	static bool OnButtonDoubleClick(ButtonCode code);
-	static const struct Vector2Int& MousePos();
+	static bool OnButtonHold(ButtonCode code);
+	static bool OnButtonRelease(ButtonCode code);
+	static void ConsumeInput(ButtonCode code);
+	static const Vector2Int& MousePos();
 	static I16 MouseWheelDelta();
 
-	static void ConsumeInput(ButtonCode code);
+	static F32 GetAxis(GamepadAxis axis);
 
 private:
-	static bool Initialize();
-	static void Shutdown();
+	static void Update();
 
-	static void ResetInput();
-	static void SetButtonState(U8 code, bool down, bool dbl);
-	static void SetMouseWheel(I16 delta);
-	static void SetMousePos(I32 x, I32 y);
-
-	static struct ButtonState buttonStates[BUTTON_COUNT];
-	static bool anyButtonDown;
+	static ButtonState buttonStates[BUTTON_COUNT];
+	static F32 axisStates[GAMEPAD_AXIS_COUNT];
 	static I16 mouseWheelDelta;
 	static Vector2Int mousePos;
+	static bool anyButtonDown;
 
 	Input() = delete;
 
-	friend class Engine;
 	friend class Platform;
 };

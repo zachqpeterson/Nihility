@@ -5,44 +5,54 @@
 class NH_API Settings
 {
 private:
-    //AUDIO
-    inline static U8 CHANNEL_COUNT = 2;
-    inline static F32 MASTER_VOLUME = 1.0f;
-    inline static F32 MUSIC_VOLUME = 1.0f;
-    inline static F32 SFX_VOLUME = 1.0f;
+	//AUDIO
+	inline static U8 CHANNEL_COUNT = 2;
+	inline static F32 MASTER_VOLUME = 1.0f;
+	inline static F32 MUSIC_VOLUME = 1.0f;
+	inline static F32 SFX_VOLUME = 1.0f;
 
-    //GRAPHICS
-    inline static bool FULLSCREEN = true;
-    inline static bool LOCK_CURSOR = false;
-    inline static U16 WINDOW_WIDTH = 0;
-    inline static U16 WINDOW_HEIGHT = 0;
-    inline static U16 WINDOW_WIDTH_SMALL = 1280;
-    inline static U16 WINDOW_HEIGHT_SMALL = 720;
-    inline static I16 WINDOW_POSITION_X = 320;
-    inline static I16 WINDOW_POSITION_Y = 180;
-    inline static F64 TARGET_FRAMETIME = 0.0;
-    inline static U8  MSAA_COUNT = 1;
+	//GRAPHICS
+	static inline bool FOCUSED = true;
+	static inline bool FULLSCREEN = false;
+	static inline bool LOCK_CURSOR = false;
+	static inline bool HIDE_CURSOR = false;
+	static inline bool CONSTRAIN_CURSOR = false;
+	static inline U32 WINDOW_WIDTH = 0;
+	static inline U32 WINDOW_HEIGHT = 0;
+	static inline U32 WINDOW_WIDTH_SMALL = 1280;
+	static inline U32 WINDOW_HEIGHT_SMALL = 720;
+	static inline I32 WINDOW_POSITION_X = 0;
+	static inline I32 WINDOW_POSITION_Y = 0;
+	static inline I32 WINDOW_POSITION_X_SMALL = 320;
+	static inline I32 WINDOW_POSITION_Y_SMALL = 180;
+	static inline F64 TARGET_FRAMETIME = 0.0;
+	static inline U8  MSAA_COUNT = 1;
 
-    //TODO: multisampling, 
+	//TODO: multisampling, 
 
 public:
-    inline static const U8& ChannelCount = CHANNEL_COUNT;
-    inline static const F32& MasterVolume = MASTER_VOLUME;
-    inline static const F32& MusicVolume = MUSIC_VOLUME;
-    inline static const F32& SfxVolume = SFX_VOLUME;
+	inline static const U8& ChannelCount = CHANNEL_COUNT;
+	inline static const F32& MasterVolume = MASTER_VOLUME;
+	inline static const F32& MusicVolume = MUSIC_VOLUME;
+	inline static const F32& SfxVolume = SFX_VOLUME;
 
-    inline static const bool& Fullscreen = FULLSCREEN;
-    inline static const bool& LockCursor = LOCK_CURSOR;
-    inline static const U16& WindowWidth = WINDOW_WIDTH;
-    inline static const U16& WindowHeight = WINDOW_HEIGHT;
-    inline static const U16& WindowWidthSmall = WINDOW_WIDTH_SMALL;
-    inline static const U16& WindowHeightSmall = WINDOW_HEIGHT_SMALL;
-    inline static const I16& WindowPositionX = WINDOW_POSITION_X;
-    inline static const I16& WindowPositionY = WINDOW_POSITION_Y;
-    inline static const F64& TargetFrametime = TARGET_FRAMETIME;
-    inline static const U8&  MSAACount = MSAA_COUNT;
+	static inline const bool& Focused = FOCUSED;
+	static inline const bool& Fullscreen = FULLSCREEN;
+	static inline const bool& LockCursor = LOCK_CURSOR;
+	static inline const bool& HideCursor = HIDE_CURSOR;
+	static inline const bool& ConstrainCursor = CONSTRAIN_CURSOR;
+	static inline const U32& WindowWidth = WINDOW_WIDTH;
+	static inline const U32& WindowHeight = WINDOW_HEIGHT;
+	static inline const U32& WindowWidthSmall = WINDOW_WIDTH_SMALL;
+	static inline const U32& WindowHeightSmall = WINDOW_HEIGHT_SMALL;
+	static inline const I32& WindowPositionX = WINDOW_POSITION_X;
+	static inline const I32& WindowPositionY = WINDOW_POSITION_Y;
+	static inline const I32& WindowPositionXSmall = WINDOW_POSITION_X_SMALL;
+	static inline const I32& WindowPositionYSmall = WINDOW_POSITION_Y_SMALL;
+	static inline const F64& TargetFrametime = TARGET_FRAMETIME;
+	static inline const U8& MSAACount = MSAA_COUNT;
 
-    friend class Resources;
-    friend class VulkanRenderer;
-    friend class Platform;
+	friend class Resources;
+	friend class VulkanRenderer;
+	friend class Platform;
 };

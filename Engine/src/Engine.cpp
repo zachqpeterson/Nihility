@@ -36,7 +36,6 @@ void Engine::Initialize(const char* applicationName, InitializeFn init, UpdateFn
 	Resources::LoadSettings();
 
 	ASSERT_MSG(Platform::Initialize(applicationName), "Platform layer failed to initialize!");
-	ASSERT_MSG(Input::Initialize(), "Input system failed to initialize!");
 	ASSERT_MSG(RendererFrontend::Initialize(applicationName), "Renderer system failed to initialize!");
 	ASSERT_MSG(Resources::Initialize(), "Resource system failed to initialize!");
 	ASSERT_MSG(UI::Initialize(), "UI system failed to initialize!");
@@ -81,7 +80,7 @@ void Engine::MainLoop()
 #endif
 		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);
 
-		running = Platform::ProcessMessages() && !Input::OnButtonDown(ESCAPE);
+		running = Platform::Update() && !Input::OnButtonDown(ESCAPE);
 
 		if (Input::OnButtonDown(Y))
 		{
@@ -112,14 +111,12 @@ void Engine::Shutdown()
 {
 	GameCleanup();
 
-	Time::Shutdown();
 	Audio::Shutdown();
 	Physics::Shutdown();
 	UI::Shutdown();
 	Animations::Shutdown();
 	Resources::Shutdown();
 	RendererFrontend::Shutdown();
-	Input::Shutdown();
 	Platform::Shutdown();
 
 	Memory::GetMemoryStats();

@@ -35,6 +35,9 @@
     <Filter Include="Source Files\Physics">
       <UniqueIdentifier>{a152ec1b-1989-40ab-b268-088babb16d9f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{bed2f2d1-0695-488a-a49f-e8f77ab209f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\src\Defines.hpp">
@@ -160,6 +163,9 @@
     <ClInclude Include="Engine\src\Resources\Animations.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\src\Engine.cpp">
@@ -255,5 +261,20 @@
     <ClCompile Include="Engine\src\Resources\Animations.cpp">
       <Filter>Source Files\Resources</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cursor.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Icons.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
