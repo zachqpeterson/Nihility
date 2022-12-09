@@ -9,8 +9,8 @@ enum NH_API ButtonCode
 	RIGHT_CLICK = 0x02,
 	CANCEL = 0x03,
 	MIDDLE_CLICK = 0x04,
-	XBUTTONONE = 0x05,
-	XBUTTONTWO = 0x06,
+	XBUTTON_ONE = 0x05,
+	XBUTTON_TWO = 0x06,
 
 	//Keyboard Buttons//
 	BACK = 0x08,

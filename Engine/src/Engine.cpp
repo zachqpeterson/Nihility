@@ -87,6 +87,8 @@ void Engine::MainLoop()
 			Memory::GetMemoryStats();
 		}
 
+		Logger::Debug(Input::ButtonDown(LEFT_CLICK));
+
 		if (!suspended && running)
 		{
 			Audio::Update();
