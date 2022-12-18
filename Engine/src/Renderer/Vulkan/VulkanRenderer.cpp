@@ -57,7 +57,6 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
 	rendererState = (RendererState*)Memory::Allocate(sizeof(RendererState), MEMORY_TAG_RENDERER);
 	rendererState->FindMemoryIndex = FindMemoryIndex;
 	rendererState->device = (VulkanDevice*)Memory::Allocate(sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
-	rendererState->swapchain = (VulkanSwapchain*)Memory::Allocate(sizeof(VulkanSwapchain), MEMORY_TAG_RENDERER);
 	rendererState->objectIndexBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 	rendererState->objectVertexBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 
@@ -69,11 +68,11 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
 
 	rendererState->device->Create(rendererState);
 	Settings::MSAA_COUNT = rendererState->device->maxSamples; //TODO: settings
-	rendererState->swapchain->Create(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
+	Swapchain::Initialize(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
 	rendererState->framebufferSizeLastGeneration = 0;
 	rendererState->framebufferSizeGeneration = 0;
 
-	renderTargetCount = rendererState->swapchain->imageCount;
+	renderTargetCount = Swapchain::imageCount;
 
 	CreateCommandBuffers();
 
@@ -96,7 +95,7 @@ void VulkanRenderer::Shutdown()
 
 	Logger::Info("Destroying vulkan sync objects...");
 
-	for (U8 i = 0; i < rendererState->swapchain->maxFramesInFlight; ++i)
+	for (U8 i = 0; i < Swapchain::maxFramesInFlight; ++i)
 	{
 		if (rendererState->imageAvailableSemaphores[i])
 		{
@@ -112,7 +111,7 @@ void VulkanRenderer::Shutdown()
 	}
 
 	Logger::Info("Destroying vulkan commandbuffers...");
-	for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
 		if (rendererState->graphicsCommandBuffers[i].handle)
 		{
@@ -121,8 +120,7 @@ void VulkanRenderer::Shutdown()
 		}
 	}
 
-	rendererState->swapchain->Destroy(rendererState, true);
-	Memory::Free(rendererState->swapchain, sizeof(VulkanSwapchain), MEMORY_TAG_RENDERER);
+	Swapchain::Shutdown(rendererState, true);
 
 	rendererState->device->Destroy(rendererState);
 	Memory::Free(rendererState->device, sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
@@ -275,7 +273,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	U32 attachment = 0;
 
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
+	colorAttachment.format = Swapchain::imageFormat.format;  // TODO: configurable
 	colorAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
 	colorAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_COLOR) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
 		hasPrev ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -318,7 +316,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	}
 
 	VkAttachmentDescription colorAttachmentResolve{};
-	colorAttachmentResolve.format = rendererState->swapchain->imageFormat.format;  // TODO: configurable
+	colorAttachmentResolve.format = Swapchain::imageFormat.format;  // TODO: configurable
 	colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -377,8 +375,8 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	{
 		Vector<Texture*> attachments;
 
-		attachments.Push(rendererState->swapchain->colorTexture);
-		if (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_DEPTH) { attachments.Push(rendererState->swapchain->depthTexture); }
+		attachments.Push(Swapchain::colorTexture);
+		if (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_DEPTH) { attachments.Push(Swapchain::depthTexture); }
 		attachments.Push(GetWindowAttachment(i));
 
 		if (!CreateRenderTarget(attachments, renderpass, rendererState->framebufferWidth, rendererState->framebufferHeight, &renderpass->targets[i])) { return; }
@@ -412,14 +410,14 @@ void VulkanRenderer::CreateCommandBuffers()
 
 	if (!rendererState->graphicsCommandBuffers.Size())
 	{
-		rendererState->graphicsCommandBuffers.Resize(rendererState->swapchain->imageCount);
-		for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+		rendererState->graphicsCommandBuffers.Resize(Swapchain::imageCount);
+		for (U32 i = 0; i < Swapchain::imageCount; ++i)
 		{
 			Memory::Zero(&rendererState->graphicsCommandBuffers[i], sizeof(VulkanCommandBuffer));
 		}
 	}
 
-	for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
 		if (rendererState->graphicsCommandBuffers[i].handle)
 		{
@@ -433,10 +431,10 @@ void VulkanRenderer::CreateCommandBuffers()
 
 void VulkanRenderer::CreateSyncObjects()
 {
-	rendererState->imageAvailableSemaphores.Resize(rendererState->swapchain->maxFramesInFlight);
-	rendererState->queueCompleteSemaphores.Resize(rendererState->swapchain->maxFramesInFlight);
+	rendererState->imageAvailableSemaphores.Resize(Swapchain::maxFramesInFlight);
+	rendererState->queueCompleteSemaphores.Resize(Swapchain::maxFramesInFlight);
 
-	for (U8 i = 0; i < rendererState->swapchain->maxFramesInFlight; ++i)
+	for (U8 i = 0; i < Swapchain::maxFramesInFlight; ++i)
 	{
 		VkSemaphoreCreateInfo semaphoreInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 		vkCreateSemaphore(rendererState->device->logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->imageAvailableSemaphores[i]);
@@ -447,7 +445,7 @@ void VulkanRenderer::CreateSyncObjects()
 		VkCheck(vkCreateFence(rendererState->device->logicalDevice, &fenceInfo, rendererState->allocator, &rendererState->inFlightFences[i]));
 	}
 
-	for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
 		rendererState->imagesInFlight[i] = 0;
 	}
@@ -529,7 +527,7 @@ bool VulkanRenderer::BeginFrame()
 
 	VkCheck_FATAL(vkWaitForFences(rendererState->device->logicalDevice, 1, &rendererState->inFlightFences[rendererState->currentFrame], true, UINT64_MAX));
 
-	if (!rendererState->swapchain->AcquireNextImageIndex(rendererState, UINT64_MAX,
+	if (!Swapchain::AcquireNextImageIndex(rendererState, UINT64_MAX,
 		rendererState->imageAvailableSemaphores[rendererState->currentFrame], 0, &rendererState->imageIndex))
 	{
 		Logger::Error("Failed to acquire next image index, booting.");
@@ -593,7 +591,7 @@ bool VulkanRenderer::EndFrame()
 
 	commandBuffer->UpdateSubmitted();
 
-	rendererState->swapchain->Present(rendererState, rendererState->device->graphicsQueue, rendererState->device->presentQueue,
+	Swapchain::Present(rendererState, rendererState->device->graphicsQueue, rendererState->device->presentQueue,
 		rendererState->queueCompleteSemaphores[rendererState->currentFrame], rendererState->imageIndex);
 
 	return true;
@@ -1160,7 +1158,7 @@ bool VulkanRenderer::RecreateSwapchain()
 
 	vkDeviceWaitIdle(rendererState->device->logicalDevice);
 
-	for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
 		rendererState->imagesInFlight[i] = 0;
 	}
@@ -1168,11 +1166,11 @@ bool VulkanRenderer::RecreateSwapchain()
 	rendererState->device->QuerySwapchainSupport(rendererState->device->physicalDevice, rendererState->surface, &rendererState->device->swapchainSupport);
 	rendererState->device->DetectDepthFormat();
 
-	rendererState->swapchain->Recreate(rendererState, cachedFramebufferWidth, cachedFramebufferHeight);
+	Swapchain::Recreate(rendererState, cachedFramebufferWidth, cachedFramebufferHeight);
 
 	rendererState->framebufferSizeLastGeneration = rendererState->framebufferSizeGeneration;
 
-	for (U32 i = 0; i < rendererState->swapchain->imageCount; ++i)
+	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
 		rendererState->graphicsCommandBuffers[i].Free(rendererState, rendererState->device->graphicsCommandPool);
 	}
@@ -1195,8 +1193,8 @@ bool VulkanRenderer::RegenerateRenderTargets()
 			if (!DestroyRenderTarget(&renderpass->targets[i], false)) { return false; }
 
 			Vector<Texture*> attachments;
-			attachments.Push(rendererState->swapchain->colorTexture);
-			if (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_DEPTH) { attachments.Push(rendererState->swapchain->depthTexture); }
+			attachments.Push(Swapchain::colorTexture);
+			if (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_DEPTH) { attachments.Push(Swapchain::depthTexture); }
 			attachments.Push(GetWindowAttachment(i));
 
 			if (!CreateRenderTarget(attachments, renderpass, rendererState->framebufferWidth, rendererState->framebufferHeight, &renderpass->targets[i])) { return false; }
@@ -1316,18 +1314,18 @@ void VulkanRenderer::FreeDataRange(VulkanBuffer* buffer, U32 offset, U32 size)
 
 Texture* VulkanRenderer::GetWindowAttachment(U8 index)
 {
-	if (index >= rendererState->swapchain->imageCount)
+	if (index >= Swapchain::imageCount)
 	{
-		Logger::Fatal("Attempting to get attachment index out of range: {}. Attachment count: {}", index, rendererState->swapchain->imageCount);
+		Logger::Fatal("Attempting to get attachment index out of range: {}. Attachment count: {}", index, Swapchain::imageCount);
 		return nullptr;
 	}
 
-	return rendererState->swapchain->renderTextures[index];
+	return Swapchain::renderTextures[index];
 }
 
 Texture* VulkanRenderer::GetDepthAttachment()
 {
-	return rendererState->swapchain->depthTexture;
+	return Swapchain::depthTexture;
 }
 
 U32 VulkanRenderer::GetWindowAttachmentIndex()

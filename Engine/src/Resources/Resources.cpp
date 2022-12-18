@@ -1725,7 +1725,7 @@ void Resources::BatchCreateFreeMeshes(Vector<MeshConfig>& configs, Vector<Mesh*>
 
 void Resources::DestroyMesh(Mesh* mesh)
 {
-	meshes.Remove(mesh->name, nullptr);
+	meshes.Remove(mesh->name);
 
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);
@@ -1801,7 +1801,7 @@ void Resources::DestroyModel(Model* model)
 {
 	if (model->name) //TODO: Fix the underlying problem
 	{
-		models.Remove(model->name, nullptr);
+		models.Remove(model->name);
 
 		for (Mesh* mesh : model->meshes) { DestroyMesh(mesh); }
 		model->meshes.Destroy();
@@ -1877,7 +1877,7 @@ GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
 
 void Resources::DestroyGameObject2D(GameObject2D* gameObject)
 {
-	gameObjects2D.Remove(gameObject->id, nullptr);
+	gameObjects2D.Remove(gameObject->id);
 
 	gameObject->name.Destroy();
 	if (gameObject->transform) { delete gameObject->transform; }
@@ -2076,7 +2076,7 @@ AudioData* Resources::LoadAudio(const String& name)
 
 		chunkDataSize = file.ReadU32(); // Data size for format
 
-		a.format = file.ReadT<WAVEFORMATEX>(); // Wave format struct
+		file.ReadT(a.format); // Wave format struct
 		file.Seek(chunkDataSize - sizeof(WAVEFORMATEX));
 
 		chunkType = file.ReadU32(); // Next subchunk (should be 'data')

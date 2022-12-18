@@ -385,7 +385,7 @@ void TimeSlip::HandleEntities()
 
 		if ((pos - player->gameObject->transform->Position()).SqrMagnitude() > entity->despawnRange * entity->despawnRange && !entity->player)
 		{
-			entities.Remove(it, nullptr);
+			entities.Remove(it);
 			entity->Destroy();
 		}
 		else
@@ -512,7 +512,7 @@ void TimeSlip::Attack(const Damage& damage, const Vector4& area)
 
 			if (e && e->TakeDamage(damage) && e->Death())
 			{
-				entities.Remove(po->ID(), nullptr);
+				entities.Remove(po->ID());
 			}
 		}
 	}

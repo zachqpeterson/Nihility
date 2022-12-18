@@ -7,69 +7,6 @@ template<typename T, U64 size>
 struct Array
 {
 public:
-	struct Iterator
-	{
-		Iterator(T* ptr) : ptr{ ptr } {}
-
-		T& operator* () const { return *ptr; }
-		T* operator-> () { return ptr; }
-
-		Iterator& operator++ () { ++ptr; return *this; }
-		Iterator operator++ (int)
-		{
-			Iterator temp = *this;
-			++ptr;
-			return temp;
-		}
-
-		Iterator& operator-- () { --ptr; return *this; }
-		Iterator operator-- (int)
-		{
-			Iterator temp = *this;
-			--ptr;
-			return temp;
-		}
-
-		Iterator operator+(int i)
-		{
-			Iterator temp = *this;
-			temp += i;
-			return temp;
-		}
-
-		Iterator operator-(int i)
-		{
-			Iterator temp = *this;
-			temp -= i;
-			return temp;
-		}
-
-		Iterator& operator+=(int i)
-		{
-			ptr += i;
-			return *this;
-		}
-
-		Iterator& operator-=(int i)
-		{
-			ptr -= i;
-			return *this;
-		}
-
-		friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-		friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
-		friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
-		friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
-		friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
-		friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
-
-		operator bool() { return ptr; }
-
-	private:
-		T* ptr;
-	};
-
-public:
 	Array() = default;
 	Array(const T& value)
 	{
@@ -91,8 +28,12 @@ public:
 	void* operator new(U64 sz) { return Memory::Allocate(sizeof(Array), MEMORY_TAG_DATA_STRUCT); }
 	void operator delete(void* ptr) { Memory::Free(ptr, sizeof(Array), MEMORY_TAG_DATA_STRUCT); }
 
-	Array(const Array&) = delete;
-	Array(Array&&) = delete;
+	Array(const Array& other) = delete;
+	Array(Array&& other)
+	{
+		array = other.array;
+		other.array = nullptr;
+	}
 
 	T* Data() { return array; }
 	const T* Data() const { return array; }
@@ -105,10 +46,10 @@ public:
 	T& operator[](U64 i) { return array[i]; }
 	const T& operator[](U64 i) const { return array[i]; }
 
-	Iterator begin() { return Iterator{ array }; }
-	Iterator end() { return Iterator{ &array[size] }; }
-	Iterator begin() const { return Iterator{ array }; }
-	Iterator end() const { return Iterator{ &array[size] }; }
+	T* begin() { return array; }
+	T* end() { return array + size; }
+	T* begin() const { return array; }
+	T* end() const { return array + size; }
 
 private:
 	T array[size];

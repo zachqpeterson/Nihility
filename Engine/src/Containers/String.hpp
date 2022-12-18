@@ -17,68 +17,6 @@ struct Vector4Int;
 
 struct NH_API String
 {
-	struct Iterator
-	{
-		Iterator(char* ptr) : ptr{ ptr } {}
-
-		char& operator* () const { return *ptr; }
-		char* operator-> () { return ptr; }
-
-		Iterator& operator++ () { ++ptr; return *this; }
-		Iterator operator++ (int)
-		{
-			Iterator temp = *this;
-			++ptr;
-			return temp;
-		}
-
-		Iterator& operator-- () { --ptr; return *this; }
-		Iterator operator-- (int)
-		{
-			Iterator temp = *this;
-			--ptr;
-			return temp;
-		}
-
-		Iterator operator+(int i)
-		{
-			Iterator temp = *this;
-			temp += i;
-			return temp;
-		}
-
-		Iterator operator-(int i)
-		{
-			Iterator temp = *this;
-			temp -= i;
-			return temp;
-		}
-
-		Iterator& operator+=(int i)
-		{
-			ptr += i;
-			return *this;
-		}
-
-		Iterator& operator-=(int i)
-		{
-			ptr -= i;
-			return *this;
-		}
-
-		friend bool operator== (const Iterator& a, const Iterator& b) { return a.ptr == b.ptr; }
-		friend bool operator!= (const Iterator& a, const Iterator& b) { return a.ptr != b.ptr; }
-		friend bool operator< (const Iterator& a, const Iterator& b) { return a.ptr > b.ptr; }
-		friend bool operator> (const Iterator& a, const Iterator& b) { return a.ptr < b.ptr; }
-		friend bool operator<= (const Iterator& a, const Iterator& b) { return a.ptr >= b.ptr; }
-		friend bool operator>= (const Iterator& a, const Iterator& b) { return a.ptr <= b.ptr; }
-
-		operator bool() { return ptr; }
-
-	private:
-		char* ptr;
-	};
-
 	String() : str{ nullptr }, length{ 0 } {}
 	String(char* str);
 	String(const char* str);
@@ -182,10 +120,10 @@ struct NH_API String
 	String operator+(const Vector3Int& v);
 	String operator+(const Vector4Int& v);
 
-	Iterator begin() { return Iterator{ str }; }
-	Iterator end() { return Iterator{ &str[length] }; }
-	Iterator begin() const { return Iterator{ str }; }
-	Iterator end() const { return Iterator{ &str[length] }; }
+	char* begin() { return str; }
+	char* end() { return str + length; }
+	const char* begin() const { return str; }
+	const char* end() const { return str + length; }
 
 	operator const char* () const { return str; }
 	operator char* () { return str; }

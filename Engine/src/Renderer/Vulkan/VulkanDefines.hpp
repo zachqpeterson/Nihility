@@ -271,7 +271,6 @@ struct RendererState
 #endif
     VkSurfaceKHR surface;
     class VulkanDevice* device;
-    class VulkanSwapchain* swapchain;
 
     Vector<class VulkanCommandBuffer> graphicsCommandBuffers;
     Vector<VkSemaphore> imageAvailableSemaphores;

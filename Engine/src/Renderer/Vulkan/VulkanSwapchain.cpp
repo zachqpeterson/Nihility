@@ -9,9 +9,22 @@
 #include <Containers/Vector.hpp>
 #include "Resources/Resources.hpp"
 
-bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height)
+VkSwapchainKHR Swapchain::handle;
+VkSwapchainKHR Swapchain::oldHandle;
+
+VkSurfaceFormatKHR Swapchain::imageFormat;
+U8 Swapchain::maxFramesInFlight;
+
+U32 Swapchain::imageCount;
+Vector<Texture*> Swapchain::renderTextures;
+Texture* Swapchain::colorTexture;
+Texture* Swapchain::depthTexture;
+
+RenderTarget Swapchain::renderTargets[3];
+
+bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 {
-	Logger::Info("Creating vulkan swapchain...");
+	Logger::Trace("Creating vulkan swapchain...");
 
 	VkExtent2D swapchainExtent = { width, height };
 
@@ -95,12 +108,12 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	swapchainInfo.clipped = VK_TRUE;
 	swapchainInfo.oldSwapchain = oldHandle;
 
-	VkCheck(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
+	VkCheck_FATAL(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
 
 	rendererState->currentFrame = 0;
 
 	imageCount = 0;
-	VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, nullptr));
+	VkCheck_FATAL(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, nullptr));
 	if (!renderTextures.Size())
 	{
 		renderTextures.Resize(imageCount);
@@ -134,7 +147,7 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	}
 
 	VkImage swapchainImages[32];
-	VkCheck(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, swapchainImages));
+	VkCheck_FATAL(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, swapchainImages));
 
 	for (U32 i = 0; i < imageCount; ++i)
 	{
@@ -153,13 +166,14 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		VkCheck(vkCreateImageView(rendererState->device->logicalDevice, &viewInfo, rendererState->allocator, &image->view));
+		VkCheck_FATAL(vkCreateImageView(rendererState->device->logicalDevice, &viewInfo, rendererState->allocator, &image->view));
 	}
 
 	if (!rendererState->device->DetectDepthFormat())
 	{
 		rendererState->device->depthFormat = VK_FORMAT_UNDEFINED;
 		Logger::Fatal("Failed to find a supported format!");
+		return false;
 	}
 
 	VulkanImage* colorImage = (VulkanImage*)Memory::Allocate(sizeof(VulkanImage), MEMORY_TAG_RENDERER);
@@ -225,9 +239,9 @@ bool VulkanSwapchain::Create(RendererState* rendererState, U32 width, U32 height
 	return true;
 }
 
-void VulkanSwapchain::Destroy(RendererState* rendererState, bool end)
+void Swapchain::Shutdown(RendererState* rendererState, bool end)
 {
-	Logger::Info("Destroying vulkan swapchain...");
+	Logger::Trace("Destroying vulkan swapchain...");
 
 	vkDeviceWaitIdle(rendererState->device->logicalDevice);
 	((VulkanImage*)colorTexture->internalData)->Destroy(rendererState);
@@ -252,13 +266,13 @@ void VulkanSwapchain::Destroy(RendererState* rendererState, bool end)
 	else { oldHandle = handle; }
 }
 
-void VulkanSwapchain::Recreate(RendererState* rendererState, U32 width, U32 height)
+void Swapchain::Recreate(RendererState* rendererState, U32 width, U32 height)
 {
-	Destroy(rendererState, false);
-	Create(rendererState, width, height);
+	Shutdown(rendererState, false);
+	Initialize(rendererState, width, height);
 }
 
-bool VulkanSwapchain::AcquireNextImageIndex(
+bool Swapchain::AcquireNextImageIndex(
 	RendererState* rendererState,
 	U64 timeoutNs,
 	VkSemaphore imageAvailableSemaphore,
@@ -287,7 +301,7 @@ bool VulkanSwapchain::AcquireNextImageIndex(
 	return true;
 }
 
-void VulkanSwapchain::Present(
+void Swapchain::Present(
 	RendererState* rendererState,
 	VkQueue graphicsQueue,
 	VkQueue presentQueue,
@@ -306,7 +320,7 @@ void VulkanSwapchain::Present(
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
 		Recreate(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
-		Logger::Debug("VulkanSwapchain::Present: Swapchain recreated because swapchain returned out of date or suboptimal.");
+		Logger::Info("VulkanSwapchain::Present: Swapchain recreated because swapchain returned out of date or suboptimal.");
 	}
 	else if (result != VK_SUCCESS)
 	{

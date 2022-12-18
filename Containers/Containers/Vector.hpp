@@ -148,47 +148,26 @@ public:
 	{
 		ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
 
-		if (size == capacity)
-		{
-			Reserve((capacity + 1) * 2);
-		}
+		if (size == capacity) { Reserve((capacity + 1) * 2); }
 
-		++size;
-
-		if (index < size - 1)
-		{
-			Memory::Copy(array + index + 1, array + index, sizeof(T) * (size - (index + 1)));
-		}
-
+		Memory::Copy(&array[index + 1], &array[index], sizeof(T) * (size - index));
 		array[index] = value;
+		++size;
 	}
 	void Insert(T&& value, U64 index)
 	{
 		ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
 
-		if (size == capacity)
-		{
-			Reserve((capacity + 1) * 2);
-		}
+		if (size == capacity) { Reserve((capacity + 1) * 2); }
 
+		Memory::Copy(&array[index + 1], &array[index], sizeof(T) * (size - index));
+		array[index] = Move(value);
 		++size;
-
-		if (index < size - 1)
-		{
-			Memory::Copy(array + index + 1, array + index, sizeof(T) * (size - index));
-		}
-
-		array[index] = value;
 	}
-	T&& Remove(U64 index)
+	void Remove(U64 index)
 	{
-		ASSERT_DEBUG_MSG(index < size, "Can't index past the size of a vector!");
-		T value = array[index];
-
-		Memory::Copy(array + index, array + index + 1, sizeof(T) * (size - index - 1));
+		Memory::Copy(&array[index], &array[index + 1], sizeof(T) * (size - index));
 		--size;
-
-		return Move(value);
 	}
 	void Resize(U64 size)
 	{

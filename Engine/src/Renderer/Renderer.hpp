@@ -13,6 +13,7 @@ struct RenderTarget;
 struct Shader;
 struct Uniform;
 struct PushConstant;
+struct Vector2Int;
 
 class Renderer
 {

@@ -158,6 +158,8 @@ public:
 		capacity = other.capacity;
 		memory = (Node*)Memory::Allocate(sizeof(Node) * capacity, MEMORY_TAG_DATA_STRUCT);
 		Memory::Copy(other.memory, memory, sizeof(Node) * capacity);
+
+		return *this;
 	}
 
 	HashTable& operator=(HashTable&& other)
@@ -185,7 +187,7 @@ public:
 		node->key = key;
 	}
 
-	void Remove(const TKey& key, TValue&& value)
+	void Remove(const TKey& key)
 	{
 		U64 hash = Math::Hash(key);
 
@@ -195,18 +197,16 @@ public:
 
 		--size;
 		if constexpr (std::is_same_v<TKey, String>) { node->key.Destroy(); }
-		value = Move(node->value);
 		Memory::Zero(node, sizeof(Node));
 	}
 
-	void Remove(Iterator& it, TValue&& value)
+	void Remove(Iterator& it)
 	{
 		Node* node = it.ptr;
 		++it;
 
 		--size;
 		if constexpr (std::is_same_v<TKey, String>) { node->key.Destroy(); }
-		value = Move(node->value);
 		Memory::Zero(node, sizeof(Node));
 	}
 

@@ -4,36 +4,36 @@
 
 template<typename> struct Vector;
 
-class VulkanSwapchain
+class Swapchain
 {
 public:
-    bool Create(RendererState* rendererState, U32 width, U32 height);
-    void Destroy(RendererState* rendererState, bool end);
-    void Recreate(RendererState* rendererState, U32 width, U32 height);
-    bool AcquireNextImageIndex(
-        RendererState* rendererState,
-        U64 timeoutNs,
-        VkSemaphore imageAvailableSemaphore,
-        VkFence fence,
-        U32* outImageIndex);
-    void Present(
-        RendererState* rendererState,
-        VkQueue graphicsQueue,
-        VkQueue presentQueue,
-        VkSemaphore renderCompleteSemaphore,
-        U32 presentImageIndex);
+	static bool Initialize(RendererState* rendererState, U32 width, U32 height);
+	static void Shutdown(RendererState* rendererState, bool end);
+	static void Recreate(RendererState* rendererState, U32 width, U32 height);
+	static bool AcquireNextImageIndex(
+		RendererState* rendererState,
+		U64 timeoutNs,
+		VkSemaphore imageAvailableSemaphore,
+		VkFence fence,
+		U32* outImageIndex);
+	static void Present(
+		RendererState* rendererState,
+		VkQueue graphicsQueue,
+		VkQueue presentQueue,
+		VkSemaphore renderCompleteSemaphore,
+		U32 presentImageIndex);
 
 public:
-    VkSwapchainKHR handle;
-    VkSwapchainKHR oldHandle;
+	static VkSwapchainKHR handle;
+	static VkSwapchainKHR oldHandle;
 
-    VkSurfaceFormatKHR imageFormat;
-    U8 maxFramesInFlight;
+	static VkSurfaceFormatKHR imageFormat;
+	static U8 maxFramesInFlight;
 
-    U32 imageCount;
-    Vector<Texture*> renderTextures;
-    Texture* colorTexture;
-    Texture* depthTexture;
+	static U32 imageCount;
+	static Vector<Texture*> renderTextures;
+	static Texture* colorTexture;
+	static Texture* depthTexture;
 
-    RenderTarget renderTargets[3];
+	static RenderTarget renderTargets[3];
 };

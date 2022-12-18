@@ -70,9 +70,6 @@
     <ClInclude Include="Engine\src\Platform\Platform.hpp">
       <Filter>Source Files\Platform</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\RendererFrontend.hpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Renderer.hpp">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
@@ -103,13 +100,7 @@
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanPipeline.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanRenderer.hpp">
-      <Filter>Source Files\Renderer\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanRenderpass.hpp">
-      <Filter>Source Files\Renderer\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanShader.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.hpp">
@@ -145,17 +136,11 @@
     <ClInclude Include="Engine\src\Physics\Broadphase.hpp">
       <Filter>Source Files\Physics</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\RendererDefines.hpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\src\Containers\BoolTable.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\SIMD.h">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\Material.hpp">
-      <Filter>Source Files\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Shader.hpp">
       <Filter>Source Files\Renderer</Filter>
@@ -165,6 +150,21 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\RendererDefines.hpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\RendererFrontend.hpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanRenderer.hpp">
+      <Filter>Source Files\Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\Material.hpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanShader.hpp">
+      <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -195,9 +195,6 @@
     <ClCompile Include="Engine\src\Platform\PlatformWin32.cpp">
       <Filter>Source Files\Platform</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\src\Renderer\RendererFrontend.cpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\src\Resources\Resources.cpp">
       <Filter>Source Files\Resources</Filter>
     </ClCompile>
@@ -220,12 +217,6 @@
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
-      <Filter>Source Files\Renderer\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanRenderer.cpp">
-      <Filter>Source Files\Renderer\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanShader.cpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
@@ -252,14 +243,23 @@
     <ClCompile Include="Engine\src\Physics\BoxTree.cpp">
       <Filter>Source Files\Physics</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\src\Renderer\Material.cpp">
-      <Filter>Source Files\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\src\Renderer\Shader.cpp">
       <Filter>Source Files\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Resources\Animations.cpp">
       <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Renderer\RendererFrontend.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanRenderer.cpp">
+      <Filter>Source Files\Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Renderer\Material.cpp">
+      <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanShader.cpp">
+      <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

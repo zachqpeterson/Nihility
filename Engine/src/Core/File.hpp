@@ -41,16 +41,15 @@ public:
 
 	static Vector<struct String> GetAllFiles(const struct String& dir);
 
-	template<typename T> T ReadT()
+	template<typename T> bool ReadT(T& t)
 	{
 		if (handle)
 		{
-			T buf[1];
-			fread(buf, sizeof(T), 1, (FILE*)handle);
-			return buf[0];
+			fread(&t, sizeof(T), 1, (FILE*)handle);
+			return true;
 		}
 
-		return {};
+		return false;
 	}
 
 public:
