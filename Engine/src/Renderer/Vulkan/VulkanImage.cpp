@@ -35,10 +35,10 @@ bool VulkanImage::Create(RendererState* rendererState,
     imageInfo.samples = samples;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // TODO: Configurable sharing mode.
 
-    VkCheck_ERROR(vkCreateImage(rendererState->device->logicalDevice, &imageInfo, rendererState->allocator, &handle));
+    VkCheck_ERROR(vkCreateImage(Device::logicalDevice, &imageInfo, rendererState->allocator, &handle));
 
     VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(rendererState->device->logicalDevice, handle, &memoryRequirements);
+    vkGetImageMemoryRequirements(Device::logicalDevice, handle, &memoryRequirements);
 
     U32 memoryType = rendererState->FindMemoryIndex(memoryRequirements.memoryTypeBits, memoryFlags);
     if (memoryType == -1)
@@ -49,9 +49,9 @@ bool VulkanImage::Create(RendererState* rendererState,
     VkMemoryAllocateInfo memoryAllocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
     memoryAllocateInfo.memoryTypeIndex = memoryType;
-    VkCheck_ERROR(vkAllocateMemory(rendererState->device->logicalDevice, &memoryAllocateInfo, rendererState->allocator, &memory));
+    VkCheck_ERROR(vkAllocateMemory(Device::logicalDevice, &memoryAllocateInfo, rendererState->allocator, &memory));
 
-    VkCheck_ERROR(vkBindImageMemory(rendererState->device->logicalDevice, handle, memory, 0));  // TODO: configurable memory offset.
+    VkCheck_ERROR(vkBindImageMemory(Device::logicalDevice, handle, memory, 0));  // TODO: configurable memory offset.
 
     if (createView)
     {
@@ -66,17 +66,17 @@ void VulkanImage::Destroy(RendererState* rendererState)
 {
     if (view)
     {
-        vkDestroyImageView(rendererState->device->logicalDevice, view, rendererState->allocator);
+        vkDestroyImageView(Device::logicalDevice, view, rendererState->allocator);
         view = nullptr;
     }
     if (memory)
     {
-        vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
+        vkFreeMemory(Device::logicalDevice, memory, rendererState->allocator);
         memory = nullptr;
     }
     if (handle)
     {
-        vkDestroyImage(rendererState->device->logicalDevice, handle, rendererState->allocator);
+        vkDestroyImage(Device::logicalDevice, handle, rendererState->allocator);
         handle = nullptr;
     }
 }
@@ -95,7 +95,7 @@ void VulkanImage::CreateImageView(RendererState* rendererState, VkFormat format,
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    VkCheck(vkCreateImageView(rendererState->device->logicalDevice, &viewInfo, rendererState->allocator, &view));
+    VkCheck(vkCreateImageView(Device::logicalDevice, &viewInfo, rendererState->allocator, &view));
 }
 
 void VulkanImage::TransitionLayout(RendererState* rendererState,
@@ -107,8 +107,8 @@ void VulkanImage::TransitionLayout(RendererState* rendererState,
     VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.oldLayout = oldLayout;
     barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = rendererState->device->graphicsQueueIndex;
-    barrier.dstQueueFamilyIndex = rendererState->device->graphicsQueueIndex;
+    barrier.srcQueueFamilyIndex = Device::graphicsQueueIndex;
+    barrier.dstQueueFamilyIndex = Device::graphicsQueueIndex;
     barrier.image = handle;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;

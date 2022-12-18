@@ -6,52 +6,52 @@ template<typename> struct Vector;
 
 struct SwapchainSupportInfo
 {
-    VkSurfaceCapabilitiesKHR capabilities;
-    Vector<VkSurfaceFormatKHR> formats;
-    Vector<VkPresentModeKHR> presentModes;
+	VkSurfaceCapabilitiesKHR capabilities{};
+	Vector<VkSurfaceFormatKHR> formats;
+	Vector<VkPresentModeKHR> presentModes;
 };
 
-class VulkanDevice
+class Device
 {
 public:
-    bool Create(RendererState* rendererState);
-    void Destroy(RendererState* rendererState);
+	static bool Initialize(RendererState* rendererState);
+	static void Shutdown(RendererState* rendererState);
 
-    void QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo);
-    bool DetectDepthFormat();
+	static void QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo);
+	static bool DetectDepthFormat();
 
 private:
-    bool SelectPhysicalDevice(RendererState* rendererState);
-    bool physicalDeviceMeetsRequirements(
-        VkPhysicalDevice device,
-        VkSurfaceKHR surface,
-        const VkPhysicalDeviceProperties* properties,
-        const VkPhysicalDeviceFeatures* features,
-        const struct PhysicalDeviceRequirements* requirements,
-        struct PhysicalDeviceQueueFamilyInfo* outQueueInfo,
-        SwapchainSupportInfo* outSwapchainSupport);
+	static bool SelectPhysicalDevice(RendererState* rendererState);
+	static bool physicalDeviceMeetsRequirements(
+		VkPhysicalDevice device,
+		VkSurfaceKHR surface,
+		const VkPhysicalDeviceProperties* properties,
+		const VkPhysicalDeviceFeatures* features,
+		const struct PhysicalDeviceRequirements* requirements,
+		struct PhysicalDeviceQueueFamilyInfo* outQueueInfo,
+		SwapchainSupportInfo* outSwapchainSupport);
 
 public:
-    VkPhysicalDevice physicalDevice;
-    VkDevice logicalDevice;
-    SwapchainSupportInfo swapchainSupport;
+	static VkPhysicalDevice physicalDevice;
+	static VkDevice logicalDevice;
+	static SwapchainSupportInfo swapchainSupport;
 
-    I32 graphicsQueueIndex;
-    I32 presentQueueIndex;
-    I32 transferQueueIndex;
-    bool supportsDeviceLocalHostVisible;
+	static I32 graphicsQueueIndex;
+	static I32 presentQueueIndex;
+	static I32 transferQueueIndex;
+	static bool supportsDeviceLocalHostVisible;
 
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-    VkQueue transferQueue;
+	static VkQueue graphicsQueue;
+	static VkQueue presentQueue;
+	static VkQueue transferQueue;
 
-    VkCommandPool graphicsCommandPool;
+	static VkCommandPool graphicsCommandPool;
 
-    VkPhysicalDeviceProperties properties;
-    VkPhysicalDeviceFeatures features;
-    VkPhysicalDeviceMemoryProperties memory;
+	static VkPhysicalDeviceProperties properties;
+	static VkPhysicalDeviceFeatures features;
+	static VkPhysicalDeviceMemoryProperties memory;
 
-    VkSampleCountFlagBits maxSamples;
-    VkFormat depthFormat;
-    U8 depthChannelCount;
+	static VkSampleCountFlagBits maxSamples;
+	static VkFormat depthFormat;
+	static U8 depthChannelCount;
 };

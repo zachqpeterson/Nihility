@@ -29,9 +29,9 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 	VkExtent2D swapchainExtent = { width, height };
 
 	bool found = false;
-	for (U32 i = 0; i < rendererState->device->swapchainSupport.formats.Size(); ++i)
+	for (U32 i = 0; i < Device::swapchainSupport.formats.Size(); ++i)
 	{
-		VkSurfaceFormatKHR format = rendererState->device->swapchainSupport.formats[i];
+		VkSurfaceFormatKHR format = Device::swapchainSupport.formats[i];
 
 		if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 		{
@@ -43,13 +43,13 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 
 	if (!found)
 	{
-		imageFormat = rendererState->device->swapchainSupport.formats[0];
+		imageFormat = Device::swapchainSupport.formats[0];
 	}
 
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	for (U32 i = 0; i < rendererState->device->swapchainSupport.presentModes.Size(); ++i)
+	for (U32 i = 0; i < Device::swapchainSupport.presentModes.Size(); ++i)
 	{
-		VkPresentModeKHR mode = rendererState->device->swapchainSupport.presentModes[i];
+		VkPresentModeKHR mode = Device::swapchainSupport.presentModes[i];
 		if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
 			presentMode = mode;
@@ -57,22 +57,22 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 		}
 	}
 
-	rendererState->device->QuerySwapchainSupport(rendererState->device->physicalDevice, rendererState->surface, &rendererState->device->swapchainSupport);
+	Device::QuerySwapchainSupport(Device::physicalDevice, rendererState->surface, &Device::swapchainSupport);
 
-	if (rendererState->device->swapchainSupport.capabilities.currentExtent.width != UINT32_MAX)
+	if (Device::swapchainSupport.capabilities.currentExtent.width != UINT32_MAX)
 	{
-		swapchainExtent = rendererState->device->swapchainSupport.capabilities.currentExtent;
+		swapchainExtent = Device::swapchainSupport.capabilities.currentExtent;
 	}
 
-	VkExtent2D min = rendererState->device->swapchainSupport.capabilities.minImageExtent;
-	VkExtent2D max = rendererState->device->swapchainSupport.capabilities.maxImageExtent;
+	VkExtent2D min = Device::swapchainSupport.capabilities.minImageExtent;
+	VkExtent2D max = Device::swapchainSupport.capabilities.maxImageExtent;
 	swapchainExtent.width = Math::Clamp(swapchainExtent.width, min.width, max.width);
 	swapchainExtent.height = Math::Clamp(swapchainExtent.height, min.height, max.height);
 
-	imageCount = rendererState->device->swapchainSupport.capabilities.minImageCount + 1;
-	if (rendererState->device->swapchainSupport.capabilities.maxImageCount > 0 && imageCount > rendererState->device->swapchainSupport.capabilities.maxImageCount)
+	imageCount = Device::swapchainSupport.capabilities.minImageCount + 1;
+	if (Device::swapchainSupport.capabilities.maxImageCount > 0 && imageCount > Device::swapchainSupport.capabilities.maxImageCount)
 	{
-		imageCount = rendererState->device->swapchainSupport.capabilities.maxImageCount;
+		imageCount = Device::swapchainSupport.capabilities.maxImageCount;
 	}
 
 	maxFramesInFlight = imageCount - 1;
@@ -86,11 +86,11 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 	swapchainInfo.imageArrayLayers = 1;
 	swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	if (rendererState->device->graphicsQueueIndex != rendererState->device->presentQueueIndex)
+	if (Device::graphicsQueueIndex != Device::presentQueueIndex)
 	{
 		U32 queueFamilyIndices[2] = {
-			(U32)rendererState->device->graphicsQueueIndex,
-			(U32)rendererState->device->presentQueueIndex };
+			(U32)Device::graphicsQueueIndex,
+			(U32)Device::presentQueueIndex };
 		swapchainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		swapchainInfo.queueFamilyIndexCount = 2;
 		swapchainInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -102,18 +102,18 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 		swapchainInfo.pQueueFamilyIndices = 0;
 	}
 
-	swapchainInfo.preTransform = rendererState->device->swapchainSupport.capabilities.currentTransform;
+	swapchainInfo.preTransform = Device::swapchainSupport.capabilities.currentTransform;
 	swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swapchainInfo.presentMode = presentMode;
 	swapchainInfo.clipped = VK_TRUE;
 	swapchainInfo.oldSwapchain = oldHandle;
 
-	VkCheck_FATAL(vkCreateSwapchainKHR(rendererState->device->logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
+	VkCheck_FATAL(vkCreateSwapchainKHR(Device::logicalDevice, &swapchainInfo, rendererState->allocator, &handle));
 
 	rendererState->currentFrame = 0;
 
 	imageCount = 0;
-	VkCheck_FATAL(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, nullptr));
+	VkCheck_FATAL(vkGetSwapchainImagesKHR(Device::logicalDevice, handle, &imageCount, nullptr));
 	if (!renderTextures.Size())
 	{
 		renderTextures.Resize(imageCount);
@@ -147,7 +147,7 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 	}
 
 	VkImage swapchainImages[32];
-	VkCheck_FATAL(vkGetSwapchainImagesKHR(rendererState->device->logicalDevice, handle, &imageCount, swapchainImages));
+	VkCheck_FATAL(vkGetSwapchainImagesKHR(Device::logicalDevice, handle, &imageCount, swapchainImages));
 
 	for (U32 i = 0; i < imageCount; ++i)
 	{
@@ -166,12 +166,12 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		VkCheck_FATAL(vkCreateImageView(rendererState->device->logicalDevice, &viewInfo, rendererState->allocator, &image->view));
+		VkCheck_FATAL(vkCreateImageView(Device::logicalDevice, &viewInfo, rendererState->allocator, &image->view));
 	}
 
-	if (!rendererState->device->DetectDepthFormat())
+	if (!Device::DetectDepthFormat())
 	{
-		rendererState->device->depthFormat = VK_FORMAT_UNDEFINED;
+		Device::depthFormat = VK_FORMAT_UNDEFINED;
 		Logger::Fatal("Failed to find a supported format!");
 		return false;
 	}
@@ -212,7 +212,7 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 		VK_IMAGE_TYPE_2D,
 		swapchainExtent.width,
 		swapchainExtent.height,
-		rendererState->device->depthFormat,
+		Device::depthFormat,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -224,7 +224,7 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 		"SwapchainDepthTexture",
 		swapchainExtent.width,
 		swapchainExtent.height,
-		rendererState->device->depthChannelCount,
+		Device::depthChannelCount,
 		false,
 		true,
 		false,
@@ -243,7 +243,7 @@ void Swapchain::Shutdown(RendererState* rendererState, bool end)
 {
 	Logger::Trace("Destroying vulkan swapchain...");
 
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 	((VulkanImage*)colorTexture->internalData)->Destroy(rendererState);
 	Memory::Free(colorTexture->internalData, sizeof(VulkanImage), MEMORY_TAG_RENDERER);
 	colorTexture->internalData = nullptr;
@@ -256,13 +256,13 @@ void Swapchain::Shutdown(RendererState* rendererState, bool end)
 	for (U32 i = 0; i < imageCount; ++i)
 	{
 		VulkanImage* image = (VulkanImage*)renderTextures[i]->internalData;
-		vkDestroyImageView(rendererState->device->logicalDevice, image->view, rendererState->allocator);
+		vkDestroyImageView(Device::logicalDevice, image->view, rendererState->allocator);
 		Memory::Free(renderTextures[i], sizeof(Texture), MEMORY_TAG_TEXTURE);
 	}
 
 	renderTextures.Clear();
 
-	if (end) { vkDestroySwapchainKHR(rendererState->device->logicalDevice, handle, rendererState->allocator); }
+	if (end) { vkDestroySwapchainKHR(Device::logicalDevice, handle, rendererState->allocator); }
 	else { oldHandle = handle; }
 }
 
@@ -280,7 +280,7 @@ bool Swapchain::AcquireNextImageIndex(
 	U32* outImageIndex)
 {
 	VkResult result = vkAcquireNextImageKHR(
-		rendererState->device->logicalDevice,
+		Device::logicalDevice,
 		handle,
 		timeoutNs,
 		imageAvailableSemaphore,

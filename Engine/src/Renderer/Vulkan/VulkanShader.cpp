@@ -136,7 +136,7 @@ void VulkanShader::Destroy(RendererState* rendererState)
 
 	for (VkDescriptorSetLayout& l : descriptorSetLayouts)
 	{
-		vkDestroyDescriptorSetLayout(rendererState->device->logicalDevice, l, rendererState->allocator);
+		vkDestroyDescriptorSetLayout(Device::logicalDevice, l, rendererState->allocator);
 	}
 
 	descriptorSetLayouts.Destroy();
@@ -144,7 +144,7 @@ void VulkanShader::Destroy(RendererState* rendererState)
 
 	if (descriptorPool)
 	{
-		vkDestroyDescriptorPool(rendererState->device->logicalDevice, descriptorPool, rendererState->allocator);
+		vkDestroyDescriptorPool(Device::logicalDevice, descriptorPool, rendererState->allocator);
 	}
 
 	pipeline->Destroy(rendererState);
@@ -152,7 +152,7 @@ void VulkanShader::Destroy(RendererState* rendererState)
 
 	for (ShaderStage& s : stages)
 	{
-		vkDestroyShaderModule(rendererState->device->logicalDevice, s.handle, rendererState->allocator);
+		vkDestroyShaderModule(Device::logicalDevice, s.handle, rendererState->allocator);
 	}
 
 	stages.Destroy();
@@ -211,7 +211,7 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 	poolInfo.maxSets = (U32)config.descriptorSets.Size() * Swapchain::imageCount * VULKAN_MAX_MATERIAL_COUNT;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-	VkCheck_ERROR(vkCreateDescriptorPool(rendererState->device->logicalDevice, &poolInfo, rendererState->allocator, &descriptorPool));
+	VkCheck_ERROR(vkCreateDescriptorPool(Device::logicalDevice, &poolInfo, rendererState->allocator, &descriptorPool));
 
 	for (U32 i = 0; i < config.descriptorSets.Size(); ++i)
 	{
@@ -219,7 +219,7 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 		VkDescriptorSetLayoutCreateInfo layoutInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		layoutInfo.bindingCount = (U32)config.descriptorSets[i].Size();
 		layoutInfo.pBindings = config.descriptorSets[i].Data();
-		VkCheck_ERROR(vkCreateDescriptorSetLayout(rendererState->device->logicalDevice, &layoutInfo, rendererState->allocator, &descriptorSetLayouts[i]));
+		VkCheck_ERROR(vkCreateDescriptorSetLayout(Device::logicalDevice, &layoutInfo, rendererState->allocator, &descriptorSetLayouts[i]));
 	}
 
 	Vector<VkPipelineShaderStageCreateInfo> stageInfos;
@@ -242,12 +242,12 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 		(U32)shader->pushConstantRanges.Size(),
 		shader->pushConstantRanges.Data());
 
-	shader->requiredUboAlignment = rendererState->device->properties.limits.minUniformBufferOffsetAlignment;
+	shader->requiredUboAlignment = Device::properties.limits.minUniformBufferOffsetAlignment;
 
 	shader->globalUboStride = AlignPow2(shader->globalUboSize, shader->requiredUboAlignment);
 	shader->instanceUboStride = AlignPow2(shader->instanceUboSize, shader->requiredUboAlignment);
 
-	U32 deviceLocalBits = rendererState->device->supportsDeviceLocalHostVisible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
+	U32 deviceLocalBits = Device::supportsDeviceLocalHostVisible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
 	// TODO: max count should be configurable, or perhaps long term support of buffer resizing.
 	U64 totalBufferSize = shader->globalUboStride + (shader->instanceUboStride * VULKAN_MAX_MATERIAL_COUNT);
 
@@ -274,7 +274,7 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 	allocInfo.descriptorSetCount = (U32)layouts.Size();
 	allocInfo.pSetLayouts = layouts.Data();
 	globalDescriptorSets.Resize(layouts.Size());
-	VkCheck_ERROR(vkAllocateDescriptorSets(rendererState->device->logicalDevice, &allocInfo, globalDescriptorSets.Data()));
+	VkCheck_ERROR(vkAllocateDescriptorSets(Device::logicalDevice, &allocInfo, globalDescriptorSets.Data()));
 
 	return true;
 }
@@ -356,7 +356,7 @@ bool VulkanShader::ApplyGlobals(RendererState* rendererState, Shader* shader)
 
 	if (descriptorWrites.Size())
 	{
-		vkUpdateDescriptorSets(rendererState->device->logicalDevice, (U32)descriptorWrites.Size(), descriptorWrites.Data(), 0, nullptr);
+		vkUpdateDescriptorSets(Device::logicalDevice, (U32)descriptorWrites.Size(), descriptorWrites.Data(), 0, nullptr);
 	}
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &set, 0, nullptr);
@@ -444,7 +444,7 @@ bool VulkanShader::ApplyInstance(RendererState* rendererState, Shader* shader, b
 
 		if (descriptorWrites.Size())
 		{
-			vkUpdateDescriptorSets(rendererState->device->logicalDevice, (U32)descriptorWrites.Size(), descriptorWrites.Data(), 0, nullptr);
+			vkUpdateDescriptorSets(Device::logicalDevice, (U32)descriptorWrites.Size(), descriptorWrites.Data(), 0, nullptr);
 		}
 	}
 
@@ -500,7 +500,7 @@ U32 VulkanShader::AcquireInstanceResources(RendererState* rendererState, Shader*
 	allocInfo.descriptorSetCount = (U32)layouts.Size();
 	allocInfo.pSetLayouts = layouts.Data();
 	instanceState.descriptorSets.Resize(layouts.Size());
-	VkCheck_ERROR(vkAllocateDescriptorSets(rendererState->device->logicalDevice, &allocInfo, instanceState.descriptorSets.Data()));
+	VkCheck_ERROR(vkAllocateDescriptorSets(Device::logicalDevice, &allocInfo, instanceState.descriptorSets.Data()));
 
 	return outInstanceId;
 }
@@ -509,9 +509,9 @@ bool VulkanShader::ReleaseInstanceResources(RendererState* rendererState, Shader
 {
 	InstanceState& instanceState = instanceStates[instanceId];
 
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 
-	VkCheck_ERROR(vkFreeDescriptorSets(rendererState->device->logicalDevice, descriptorPool, (U32)instanceState.descriptorSets.Size(), instanceState.descriptorSets.Data()));
+	VkCheck_ERROR(vkFreeDescriptorSets(Device::logicalDevice, descriptorPool, (U32)instanceState.descriptorSets.Size(), instanceState.descriptorSets.Data()));
 
 	instanceState.instanceTextureMaps.Clear();
 	instanceState.descriptorSets.Clear();
@@ -539,7 +539,7 @@ bool VulkanShader::CreateShaderModule(RendererState* rendererState, ShaderStageC
 	shaderStage->info.pNext = nullptr;
 	shaderStage->info.flags = 0;
 
-	VkCheck_ERROR(vkCreateShaderModule(rendererState->device->logicalDevice, &shaderStage->info, rendererState->allocator, &shaderStage->handle));
+	VkCheck_ERROR(vkCreateShaderModule(Device::logicalDevice, &shaderStage->info, rendererState->allocator, &shaderStage->handle));
 
 	Resources::UnloadBinary(binary);
 

@@ -12,13 +12,13 @@ void VulkanCommandBuffer::Allocate(RendererState* rendererState, VkCommandPool p
     allocateInfo.pNext = nullptr;
 
     state = COMMAND_BUFFER_STATE_NOT_ALLOCATED;
-    VkCheck(vkAllocateCommandBuffers(rendererState->device->logicalDevice, &allocateInfo, &handle));
+    VkCheck(vkAllocateCommandBuffers(Device::logicalDevice, &allocateInfo, &handle));
     state = COMMAND_BUFFER_STATE_READY;
 }
 
 void VulkanCommandBuffer::Free(RendererState* rendererState, VkCommandPool pool)
 {
-    vkFreeCommandBuffers(rendererState->device->logicalDevice, pool, 1, &handle);
+    vkFreeCommandBuffers(Device::logicalDevice, pool, 1, &handle);
 
     handle = nullptr;
     state = COMMAND_BUFFER_STATE_NOT_ALLOCATED;

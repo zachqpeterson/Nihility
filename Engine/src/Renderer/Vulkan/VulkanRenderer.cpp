@@ -56,7 +56,6 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
 {
 	rendererState = (RendererState*)Memory::Allocate(sizeof(RendererState), MEMORY_TAG_RENDERER);
 	rendererState->FindMemoryIndex = FindMemoryIndex;
-	rendererState->device = (VulkanDevice*)Memory::Allocate(sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
 	rendererState->objectIndexBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 	rendererState->objectVertexBuffer = (VulkanBuffer*)Memory::Allocate(sizeof(VulkanBuffer), MEMORY_TAG_RENDERER);
 
@@ -66,8 +65,8 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
 
 	if (!CreateInstance(applicationName) || !CreateDebugger() || !CreateSurface()) { return false; }
 
-	rendererState->device->Create(rendererState);
-	Settings::MSAA_COUNT = rendererState->device->maxSamples; //TODO: settings
+	Device::Initialize(rendererState);
+	Settings::MSAA_COUNT = Device::maxSamples; //TODO: settings
 	Swapchain::Initialize(rendererState, rendererState->framebufferWidth, rendererState->framebufferHeight);
 	rendererState->framebufferSizeLastGeneration = 0;
 	rendererState->framebufferSizeGeneration = 0;
@@ -85,7 +84,7 @@ bool VulkanRenderer::Initialize(const String& applicationName, U8& renderTargetC
 
 void VulkanRenderer::Shutdown()
 {
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 
 	Logger::Info("Destroying vulkan buffers...");
 	rendererState->objectIndexBuffer->Destroy(rendererState);
@@ -99,15 +98,15 @@ void VulkanRenderer::Shutdown()
 	{
 		if (rendererState->imageAvailableSemaphores[i])
 		{
-			vkDestroySemaphore(rendererState->device->logicalDevice, rendererState->imageAvailableSemaphores[i], rendererState->allocator);
+			vkDestroySemaphore(Device::logicalDevice, rendererState->imageAvailableSemaphores[i], rendererState->allocator);
 			rendererState->imageAvailableSemaphores[i] = nullptr;
 		}
 		if (rendererState->queueCompleteSemaphores[i])
 		{
-			vkDestroySemaphore(rendererState->device->logicalDevice, rendererState->queueCompleteSemaphores[i], rendererState->allocator);
+			vkDestroySemaphore(Device::logicalDevice, rendererState->queueCompleteSemaphores[i], rendererState->allocator);
 			rendererState->queueCompleteSemaphores[i] = nullptr;
 		}
-		vkDestroyFence(rendererState->device->logicalDevice, rendererState->inFlightFences[i], rendererState->allocator);
+		vkDestroyFence(Device::logicalDevice, rendererState->inFlightFences[i], rendererState->allocator);
 	}
 
 	Logger::Info("Destroying vulkan commandbuffers...");
@@ -115,15 +114,14 @@ void VulkanRenderer::Shutdown()
 	{
 		if (rendererState->graphicsCommandBuffers[i].handle)
 		{
-			rendererState->graphicsCommandBuffers[i].Free(rendererState, rendererState->device->graphicsCommandPool);
+			rendererState->graphicsCommandBuffers[i].Free(rendererState, Device::graphicsCommandPool);
 			rendererState->graphicsCommandBuffers[i].handle = nullptr;
 		}
 	}
 
 	Swapchain::Shutdown(rendererState, true);
 
-	rendererState->device->Destroy(rendererState);
-	Memory::Free(rendererState->device, sizeof(VulkanDevice), MEMORY_TAG_RENDERER);
+	Device::Shutdown(rendererState);
 
 	vkDestroySurfaceKHR(rendererState->instance, rendererState->surface, rendererState->allocator);
 #ifdef NH_DEBUG
@@ -297,7 +295,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	if (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_DEPTH)
 	{
 		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = rendererState->device->depthFormat;
+		depthAttachment.format = Device::depthFormat;
 		depthAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -369,7 +367,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	renderpassInfo.pNext = nullptr;
 	renderpassInfo.flags = 0;
 
-	VkCheck(vkCreateRenderPass(rendererState->device->logicalDevice, &renderpassInfo, rendererState->allocator, &vulkanRenderpass->handle));
+	VkCheck(vkCreateRenderPass(Device::logicalDevice, &renderpassInfo, rendererState->allocator, &vulkanRenderpass->handle));
 
 	for (U8 i = 0; i < renderpass->targets.Size(); ++i)
 	{
@@ -387,7 +385,7 @@ void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 {
 	if (renderpass && renderpass->internalData)
 	{
-		vkDeviceWaitIdle(rendererState->device->logicalDevice);
+		vkDeviceWaitIdle(Device::logicalDevice);
 
 		for (RenderTarget& rt : renderpass->targets)
 		{
@@ -397,7 +395,7 @@ void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 		renderpass->targets.Destroy();
 
 		VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
-		vkDestroyRenderPass(rendererState->device->logicalDevice, vulkanRenderpass->handle, rendererState->allocator);
+		vkDestroyRenderPass(Device::logicalDevice, vulkanRenderpass->handle, rendererState->allocator);
 		vulkanRenderpass->handle = nullptr;
 		Memory::Free(vulkanRenderpass, sizeof(VulkanRenderpass), MEMORY_TAG_RENDERER);
 		renderpass->internalData = nullptr;
@@ -421,11 +419,11 @@ void VulkanRenderer::CreateCommandBuffers()
 	{
 		if (rendererState->graphicsCommandBuffers[i].handle)
 		{
-			rendererState->graphicsCommandBuffers[i].Free(rendererState, rendererState->device->graphicsCommandPool);
+			rendererState->graphicsCommandBuffers[i].Free(rendererState, Device::graphicsCommandPool);
 		}
 
 		Memory::Zero(&rendererState->graphicsCommandBuffers[i], sizeof(VulkanCommandBuffer));
-		rendererState->graphicsCommandBuffers[i].Allocate(rendererState, rendererState->device->graphicsCommandPool, true);
+		rendererState->graphicsCommandBuffers[i].Allocate(rendererState, Device::graphicsCommandPool, true);
 	}
 }
 
@@ -437,12 +435,12 @@ void VulkanRenderer::CreateSyncObjects()
 	for (U8 i = 0; i < Swapchain::maxFramesInFlight; ++i)
 	{
 		VkSemaphoreCreateInfo semaphoreInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-		vkCreateSemaphore(rendererState->device->logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->imageAvailableSemaphores[i]);
-		vkCreateSemaphore(rendererState->device->logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->queueCompleteSemaphores[i]);
+		vkCreateSemaphore(Device::logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->imageAvailableSemaphores[i]);
+		vkCreateSemaphore(Device::logicalDevice, &semaphoreInfo, rendererState->allocator, &rendererState->queueCompleteSemaphores[i]);
 
 		VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		VkCheck(vkCreateFence(rendererState->device->logicalDevice, &fenceInfo, rendererState->allocator, &rendererState->inFlightFences[i]));
+		VkCheck(vkCreateFence(Device::logicalDevice, &fenceInfo, rendererState->allocator, &rendererState->inFlightFences[i]));
 	}
 
 	for (U32 i = 0; i < Swapchain::imageCount; ++i)
@@ -465,7 +463,7 @@ void VulkanRenderer::GetPlatformExtentions(Vector<const char*>& names)
 I32 VulkanRenderer::FindMemoryIndex(U32 memoryTypeBits, VkMemoryPropertyFlags memoryFlags)
 {
 	VkPhysicalDeviceMemoryProperties properties;
-	vkGetPhysicalDeviceMemoryProperties(rendererState->device->physicalDevice, &properties);
+	vkGetPhysicalDeviceMemoryProperties(Device::physicalDevice, &properties);
 
 	for (U32 i = 0; i < properties.memoryTypeCount; ++i)
 	{
@@ -509,7 +507,7 @@ bool VulkanRenderer::BeginFrame()
 {
 	if (rendererState->recreatingSwapchain)
 	{
-		VkCheck_ERROR(vkDeviceWaitIdle(rendererState->device->logicalDevice));
+		VkCheck_ERROR(vkDeviceWaitIdle(Device::logicalDevice));
 
 		Logger::Info("Recreating swapchain, booting.");
 		return false;
@@ -517,7 +515,7 @@ bool VulkanRenderer::BeginFrame()
 
 	if (rendererState->framebufferSizeGeneration != rendererState->framebufferSizeLastGeneration)
 	{
-		VkCheck_ERROR(vkDeviceWaitIdle(rendererState->device->logicalDevice));
+		VkCheck_ERROR(vkDeviceWaitIdle(Device::logicalDevice));
 
 		if (!RecreateSwapchain()) { return false; }
 
@@ -525,7 +523,7 @@ bool VulkanRenderer::BeginFrame()
 		return false;
 	}
 
-	VkCheck_FATAL(vkWaitForFences(rendererState->device->logicalDevice, 1, &rendererState->inFlightFences[rendererState->currentFrame], true, UINT64_MAX));
+	VkCheck_FATAL(vkWaitForFences(Device::logicalDevice, 1, &rendererState->inFlightFences[rendererState->currentFrame], true, UINT64_MAX));
 
 	if (!Swapchain::AcquireNextImageIndex(rendererState, UINT64_MAX,
 		rendererState->imageAvailableSemaphores[rendererState->currentFrame], 0, &rendererState->imageIndex))
@@ -566,12 +564,12 @@ bool VulkanRenderer::EndFrame()
 
 	if (rendererState->imagesInFlight[rendererState->imageIndex] != VK_NULL_HANDLE)
 	{
-		VkCheck_FATAL(vkWaitForFences(rendererState->device->logicalDevice, 1, &rendererState->imagesInFlight[rendererState->imageIndex], true, UINT64_MAX));
+		VkCheck_FATAL(vkWaitForFences(Device::logicalDevice, 1, &rendererState->imagesInFlight[rendererState->imageIndex], true, UINT64_MAX));
 	}
 
 	rendererState->imagesInFlight[rendererState->imageIndex] = rendererState->inFlightFences[rendererState->currentFrame];
 
-	VkCheck(vkResetFences(rendererState->device->logicalDevice, 1, &rendererState->inFlightFences[rendererState->currentFrame]));
+	VkCheck(vkResetFences(Device::logicalDevice, 1, &rendererState->inFlightFences[rendererState->currentFrame]));
 
 	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
@@ -587,11 +585,11 @@ bool VulkanRenderer::EndFrame()
 	VkPipelineStageFlags flags[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.pWaitDstStageMask = flags;
 
-	VkCheck_ERROR(vkQueueSubmit(rendererState->device->graphicsQueue, 1, &submitInfo, rendererState->inFlightFences[rendererState->currentFrame]));
+	VkCheck_ERROR(vkQueueSubmit(Device::graphicsQueue, 1, &submitInfo, rendererState->inFlightFences[rendererState->currentFrame]));
 
 	commandBuffer->UpdateSubmitted();
 
-	Swapchain::Present(rendererState, rendererState->device->graphicsQueue, rendererState->device->presentQueue,
+	Swapchain::Present(rendererState, Device::graphicsQueue, Device::presentQueue,
 		rendererState->queueCompleteSemaphores[rendererState->currentFrame], rendererState->imageIndex);
 
 	return true;
@@ -664,8 +662,8 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh)
 		mesh->internalData = internalData;
 	}
 
-	VkCommandPool pool = rendererState->device->graphicsCommandPool;
-	VkQueue queue = rendererState->device->graphicsQueue;
+	VkCommandPool pool = Device::graphicsCommandPool;
+	VkQueue queue = Device::graphicsQueue;
 
 	internalData->vertexCount = mesh->vertexCount;
 	internalData->vertexElementSize = mesh->vertexSize;
@@ -697,8 +695,8 @@ bool VulkanRenderer::CreateMesh(Mesh* mesh)
 
 bool VulkanRenderer::BatchCreateMeshes(Vector<Mesh*>& meshes)
 {
-	VkCommandPool pool = rendererState->device->graphicsCommandPool;
-	VkQueue queue = rendererState->device->graphicsQueue;
+	VkCommandPool pool = Device::graphicsCommandPool;
+	VkQueue queue = Device::graphicsQueue;
 
 	Vector<DataUpload> vertexUploads{ meshes.Size() };
 	Vector<DataUpload> indexUploads{ meshes.Size() };
@@ -768,7 +766,7 @@ void VulkanRenderer::DestroyMesh(Mesh* mesh)
 {
 	if (mesh && mesh->internalData)
 	{
-		vkDeviceWaitIdle(rendererState->device->logicalDevice);
+		vkDeviceWaitIdle(Device::logicalDevice);
 		VulkanMesh* internalData = (VulkanMesh*)mesh->internalData;
 
 		FreeDataRange(rendererState->objectVertexBuffer, internalData->vertexBufferOffset, internalData->vertexElementSize * internalData->vertexCount);
@@ -881,7 +879,7 @@ void VulkanRenderer::CreateTexture(Texture* texture, const Vector<U8>& pixels)
 
 void VulkanRenderer::DestroyTexture(Texture* texture)
 {
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 
 	VulkanImage* image = (VulkanImage*)texture->internalData;
 	if (image)
@@ -947,8 +945,8 @@ void VulkanRenderer::WriteTextureData(Texture* texture, const Vector<U8>& pixels
 	staging.LoadData(rendererState, 0, pixels.Size(), 0, pixels.Data());
 
 	VulkanCommandBuffer tempBuffer;
-	VkCommandPool pool = rendererState->device->graphicsCommandPool;
-	VkQueue queue = rendererState->device->graphicsQueue;
+	VkCommandPool pool = Device::graphicsCommandPool;
+	VkQueue queue = Device::graphicsQueue;
 	tempBuffer.AllocateAndBeginSingleUse(rendererState, pool);
 
 	image->TransitionLayout(
@@ -1022,7 +1020,7 @@ bool VulkanRenderer::AcquireTextureMapResources(TextureMap& map)
 
 	VkSampler sampler = (VkSampler)map.internalData;
 
-	VkCheck_ERROR(vkCreateSampler(rendererState->device->logicalDevice, &samplerInfo, rendererState->allocator, &sampler));
+	VkCheck_ERROR(vkCreateSampler(Device::logicalDevice, &samplerInfo, rendererState->allocator, &sampler));
 
 	map.internalData = sampler;
 
@@ -1031,8 +1029,8 @@ bool VulkanRenderer::AcquireTextureMapResources(TextureMap& map)
 
 void VulkanRenderer::ReleaseTextureMapResources(TextureMap& map)
 {
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
-	vkDestroySampler(rendererState->device->logicalDevice, (VkSampler)map.internalData, rendererState->allocator);
+	vkDeviceWaitIdle(Device::logicalDevice);
+	vkDestroySampler(Device::logicalDevice, (VkSampler)map.internalData, rendererState->allocator);
 	map.internalData = nullptr;
 }
 
@@ -1156,15 +1154,15 @@ bool VulkanRenderer::RecreateSwapchain()
 
 	rendererState->recreatingSwapchain = true;
 
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 
 	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
 		rendererState->imagesInFlight[i] = 0;
 	}
 
-	rendererState->device->QuerySwapchainSupport(rendererState->device->physicalDevice, rendererState->surface, &rendererState->device->swapchainSupport);
-	rendererState->device->DetectDepthFormat();
+	Device::QuerySwapchainSupport(Device::physicalDevice, rendererState->surface, &Device::swapchainSupport);
+	Device::DetectDepthFormat();
 
 	Swapchain::Recreate(rendererState, cachedFramebufferWidth, cachedFramebufferHeight);
 
@@ -1172,7 +1170,7 @@ bool VulkanRenderer::RecreateSwapchain()
 
 	for (U32 i = 0; i < Swapchain::imageCount; ++i)
 	{
-		rendererState->graphicsCommandBuffers[i].Free(rendererState, rendererState->device->graphicsCommandPool);
+		rendererState->graphicsCommandBuffers[i].Free(rendererState, Device::graphicsCommandPool);
 	}
 
 	RegenerateRenderTargets();
@@ -1222,7 +1220,7 @@ bool VulkanRenderer::CreateRenderTarget(Vector<Texture*>& attachments, Renderpas
 	framebufferInfo.height = height;
 	framebufferInfo.layers = 1;
 
-	VkCheck_FATAL(vkCreateFramebuffer(rendererState->device->logicalDevice, &framebufferInfo, rendererState->allocator, (VkFramebuffer*)&target->internalFramebuffer));
+	VkCheck_FATAL(vkCreateFramebuffer(Device::logicalDevice, &framebufferInfo, rendererState->allocator, (VkFramebuffer*)&target->internalFramebuffer));
 
 	return true;
 }
@@ -1231,7 +1229,7 @@ bool VulkanRenderer::DestroyRenderTarget(RenderTarget* target, bool freeInternal
 {
 	if (target && target->internalFramebuffer)
 	{
-		vkDestroyFramebuffer(rendererState->device->logicalDevice, (VkFramebuffer)target->internalFramebuffer, rendererState->allocator);
+		vkDestroyFramebuffer(Device::logicalDevice, (VkFramebuffer)target->internalFramebuffer, rendererState->allocator);
 		target->internalFramebuffer = nullptr;
 		if (freeInternalMemory) { target->attachments.Clear(); }
 

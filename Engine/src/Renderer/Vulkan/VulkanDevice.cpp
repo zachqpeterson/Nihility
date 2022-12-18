@@ -5,6 +5,29 @@
 #include <Containers/Vector.hpp>
 #include "Memory/Memory.hpp"
 
+VkPhysicalDevice Device::physicalDevice;
+VkDevice Device::logicalDevice;
+SwapchainSupportInfo Device::swapchainSupport;
+
+I32 Device::graphicsQueueIndex;
+I32 Device::presentQueueIndex;
+I32 Device::transferQueueIndex;
+bool Device::supportsDeviceLocalHostVisible;
+
+VkQueue Device::graphicsQueue;
+VkQueue Device::presentQueue;
+VkQueue Device::transferQueue;
+
+VkCommandPool Device::graphicsCommandPool;
+
+VkPhysicalDeviceProperties Device::properties;
+VkPhysicalDeviceFeatures Device::features;
+VkPhysicalDeviceMemoryProperties Device::memory;
+
+VkSampleCountFlagBits Device::maxSamples;
+VkFormat Device::depthFormat;
+U8 Device::depthChannelCount;
+
 struct PhysicalDeviceRequirements
 {
 	bool graphics;
@@ -24,7 +47,7 @@ struct PhysicalDeviceQueueFamilyInfo
 	U32 transferFamilyIndex;
 };
 
-bool VulkanDevice::Create(RendererState* rendererState)
+bool Device::Initialize(RendererState* rendererState)
 {
 	if (!SelectPhysicalDevice(rendererState)) { return false; }
 
@@ -123,7 +146,7 @@ bool VulkanDevice::Create(RendererState* rendererState)
 	return true;
 }
 
-void VulkanDevice::Destroy(RendererState* rendererState)
+void Device::Shutdown(RendererState* rendererState)
 {
 	graphicsQueue = VK_NULL_HANDLE;
 	presentQueue = VK_NULL_HANDLE;
@@ -152,7 +175,7 @@ void VulkanDevice::Destroy(RendererState* rendererState)
 	transferQueueIndex = -1;
 }
 
-bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
+bool Device::SelectPhysicalDevice(RendererState* rendererState)
 {
 	Logger::Info("Selecting physical device...");
 
@@ -168,18 +191,15 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 	VkCheck(vkEnumeratePhysicalDevices(rendererState->instance, &physicalDeviceCount, physicalDevices));
 	for (U32 i = 0; i < physicalDeviceCount; ++i)
 	{
-		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
 
-		VkPhysicalDeviceFeatures features;
 		vkGetPhysicalDeviceFeatures(physicalDevices[i], &features);
 
-		VkPhysicalDeviceMemoryProperties memory;
 		vkGetPhysicalDeviceMemoryProperties(physicalDevices[i], &memory);
 
 		Logger::Trace("Evaluating device: {}, index {}.", properties.deviceName, i);
 
-		bool supportsDeviceLocalHostVisible = false;
+		supportsDeviceLocalHostVisible = false;
 		for (U32 i = 0; i < memory.memoryTypeCount; ++i)
 		{
 			if (((memory.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) &&
@@ -272,11 +292,7 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 			else if (counts & VK_SAMPLE_COUNT_4_BIT) { maxSamples = VK_SAMPLE_COUNT_4_BIT; }
 			else if (counts & VK_SAMPLE_COUNT_2_BIT) { maxSamples = VK_SAMPLE_COUNT_2_BIT; }
 			else { maxSamples = VK_SAMPLE_COUNT_1_BIT; }
-
-			this->properties = properties;
-			this->features = features;
-			this->memory = memory;
-			this->supportsDeviceLocalHostVisible = supportsDeviceLocalHostVisible;
+			
 			break;
 		}
 	}
@@ -290,7 +306,7 @@ bool VulkanDevice::SelectPhysicalDevice(RendererState* rendererState)
 	return true;
 }
 
-bool VulkanDevice::physicalDeviceMeetsRequirements(
+bool Device::physicalDeviceMeetsRequirements(
 	VkPhysicalDevice device,
 	VkSurfaceKHR surface,
 	const VkPhysicalDeviceProperties* properties,
@@ -448,7 +464,7 @@ bool VulkanDevice::physicalDeviceMeetsRequirements(
 	return false;
 }
 
-void VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo)
+void Device::QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo)
 {
 	VkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &outSupportInfo->capabilities));
 
@@ -469,7 +485,7 @@ void VulkanDevice::QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurf
 	}
 }
 
-bool VulkanDevice::DetectDepthFormat()
+bool Device::DetectDepthFormat()
 {
 	static const U64 candidateCount = 3;
 	static const VkFormat candidates[3] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
@@ -495,8 +511,6 @@ bool VulkanDevice::DetectDepthFormat()
 
 			return true;
 		}
-
-
 	}
 
 	return false;

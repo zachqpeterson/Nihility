@@ -25,10 +25,10 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
 
-	VkCheck_ERROR(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &handle));
+	VkCheck_ERROR(vkCreateBuffer(Device::logicalDevice, &bufferInfo, rendererState->allocator, &handle));
 
 	VkMemoryRequirements requirements;
-	vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, handle, &requirements);
+	vkGetBufferMemoryRequirements(Device::logicalDevice, handle, &requirements);
 	memoryIndex = rendererState->FindMemoryIndex(requirements.memoryTypeBits, memoryPropertyFlags);
 	if (memoryIndex == -1)
 	{
@@ -41,7 +41,7 @@ bool VulkanBuffer::Create(RendererState* rendererState, U64 size, VkBufferUsageF
 	allocateInfo.memoryTypeIndex = (U32)memoryIndex;
 
 	VkCheck_ERROR(vkAllocateMemory(
-		rendererState->device->logicalDevice,
+		Device::logicalDevice,
 		&allocateInfo,
 		rendererState->allocator,
 		&memory));
@@ -63,13 +63,13 @@ void VulkanBuffer::Destroy(RendererState* rendererState)
 
 	if (memory)
 	{
-		vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
+		vkFreeMemory(Device::logicalDevice, memory, rendererState->allocator);
 		memory = nullptr;
 	}
 
 	if (handle)
 	{
-		vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
+		vkDestroyBuffer(Device::logicalDevice, handle, rendererState->allocator);
 		handle = nullptr;
 	}
 
@@ -103,32 +103,32 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue que
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // NOTE: Only used in one queue.
 
 	VkBuffer newBuffer;
-	VkCheck(vkCreateBuffer(rendererState->device->logicalDevice, &bufferInfo, rendererState->allocator, &newBuffer));
+	VkCheck(vkCreateBuffer(Device::logicalDevice, &bufferInfo, rendererState->allocator, &newBuffer));
 
 	VkMemoryRequirements requirements;
-	vkGetBufferMemoryRequirements(rendererState->device->logicalDevice, newBuffer, &requirements);
+	vkGetBufferMemoryRequirements(Device::logicalDevice, newBuffer, &requirements);
 
 	VkMemoryAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	allocateInfo.allocationSize = requirements.size;
 	allocateInfo.memoryTypeIndex = (U32)memoryIndex;
 
 	VkDeviceMemory newMemory;
-	VkCheck_ERROR(vkAllocateMemory(rendererState->device->logicalDevice, &allocateInfo, rendererState->allocator, &newMemory));
+	VkCheck_ERROR(vkAllocateMemory(Device::logicalDevice, &allocateInfo, rendererState->allocator, &newMemory));
 
-	VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, newBuffer, newMemory, 0));
+	VkCheck(vkBindBufferMemory(Device::logicalDevice, newBuffer, newMemory, 0));
 
 	CopyTo(rendererState, pool, 0, queue, handle, 0, newBuffer, 0, totalSize);
 
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 
 	if (memory)
 	{
-		vkFreeMemory(rendererState->device->logicalDevice, memory, rendererState->allocator);
+		vkFreeMemory(Device::logicalDevice, memory, rendererState->allocator);
 		memory = nullptr;
 	}
 	if (handle)
 	{
-		vkDestroyBuffer(rendererState->device->logicalDevice, handle, rendererState->allocator);
+		vkDestroyBuffer(Device::logicalDevice, handle, rendererState->allocator);
 		handle = nullptr;
 	}
 
@@ -141,19 +141,19 @@ bool VulkanBuffer::Resize(RendererState* rendererState, U64 newSize, VkQueue que
 
 void VulkanBuffer::Bind(RendererState* rendererState, U64 offset)
 {
-	VkCheck(vkBindBufferMemory(rendererState->device->logicalDevice, handle, memory, offset));
+	VkCheck(vkBindBufferMemory(Device::logicalDevice, handle, memory, offset));
 }
 
 void* VulkanBuffer::LockMemory(RendererState* rendererState, U64 offset, U64 size, U32 flags)
 {
 	void* data;
-	VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size == U32_MAX ? VK_WHOLE_SIZE : size, flags, &data));
+	VkCheck(vkMapMemory(Device::logicalDevice, memory, offset, size == U32_MAX ? VK_WHOLE_SIZE : size, flags, &data));
 	return data;
 }
 
 void VulkanBuffer::UnlockMemory(RendererState* rendererState)
 {
-	vkUnmapMemory(rendererState->device->logicalDevice, memory);
+	vkUnmapMemory(Device::logicalDevice, memory);
 }
 
 U64 VulkanBuffer::Allocate(U64 size)
@@ -193,9 +193,9 @@ bool VulkanBuffer::Free(U64 size, U64 offset)
 void VulkanBuffer::LoadData(RendererState* rendererState, U64 offset, U64 size, U32 flags, const void* data)
 {
 	void* dataPtr;
-	VkCheck(vkMapMemory(rendererState->device->logicalDevice, memory, offset, size, flags, &dataPtr));
+	VkCheck(vkMapMemory(Device::logicalDevice, memory, offset, size, flags, &dataPtr));
 	Memory::Copy(dataPtr, data, size);
-	vkUnmapMemory(rendererState->device->logicalDevice, memory);
+	vkUnmapMemory(Device::logicalDevice, memory);
 }
 
 void VulkanBuffer::CopyTo(RendererState* rendererState, VkCommandPool pool, VkFence fence, VkQueue queue,

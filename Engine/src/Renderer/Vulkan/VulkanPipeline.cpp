@@ -155,7 +155,7 @@ bool VulkanPipeline::Create(
 	pipelineLayoutInfo.pNext = nullptr;
 
 	VkCheck_ERROR(vkCreatePipelineLayout(
-		rendererState->device->logicalDevice,
+		Device::logicalDevice,
 		&pipelineLayoutInfo,
 		rendererState->allocator,
 		&layout));
@@ -181,7 +181,7 @@ bool VulkanPipeline::Create(
 	pipelineInfo.basePipelineIndex = -1;
 
 	VkCheck_ERROR(vkCreateGraphicsPipelines(
-		rendererState->device->logicalDevice,
+		Device::logicalDevice,
 		VK_NULL_HANDLE,
 		1,
 		&pipelineInfo,
@@ -193,17 +193,17 @@ bool VulkanPipeline::Create(
 
 void VulkanPipeline::Destroy(RendererState* rendererState)
 {
-	vkDeviceWaitIdle(rendererState->device->logicalDevice);
+	vkDeviceWaitIdle(Device::logicalDevice);
 
 	if (handle)
 	{
-		vkDestroyPipeline(rendererState->device->logicalDevice, handle, rendererState->allocator);
+		vkDestroyPipeline(Device::logicalDevice, handle, rendererState->allocator);
 		handle = nullptr;
 	}
 
 	if (layout)
 	{
-		vkDestroyPipelineLayout(rendererState->device->logicalDevice, layout, rendererState->allocator);
+		vkDestroyPipelineLayout(Device::logicalDevice, layout, rendererState->allocator);
 		layout = nullptr;
 	}
 }
