@@ -31,7 +31,7 @@ void UI::DefaultOnExit(UIElement* e, void* data) { UI::ChangeColor(e, { 1.0f, 1.
 bool UI::Initialize()
 {
 	panelTexture = Resources::LoadTexture("UI.bmp");
-	Resources::LoadFont("OpenSans.ttf");
+	Resources::LoadFont("Arial");
 	descPos = RendererFrontend::WindowSize() / 2;
 
 	return true;
@@ -561,9 +561,6 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 
 UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) //TODO: offsets
 {
-	constexpr F32 heightScale = (1.0f / 1080.0f);
-	constexpr F32 widthScale = (1.0f / 1920.0f);
-
 	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
 		Logger::Error("UI::GenerateText: Area can't be negative!");
@@ -611,91 +608,73 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	}
 
 	uiText->area = uiArea;
-	Model* model = nullptr;
-	Vector<Mesh*> meshes;
+	Mesh* mesh = nullptr;
 
 	if (text.Length())
 	{
 		uiArea *= 2.0f;
 		uiArea -= 1.0f;
 
+		MeshConfig meshConfig{};
+		meshConfig.name = name;
+		meshConfig.MaterialName = "Text.mat";
+		meshConfig.instanceTextures.Push(Resources::LoadTexture("Arial.bmp"));
+		meshConfig.indices.Resize(6 * text.Length());
+		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4 * text.Length(), MEMORY_TAG_RESOURCE);
+		meshConfig.vertexSize = sizeof(UIVertex);
+		meshConfig.vertexCount = 4 * (U32)text.Length();
+		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
+
 		F32 areaX = uiArea.x;
 		F32 areaZ = 0.0f;
 		F32 areaY;
 
-		F32 pixelHeight = (dimentions.y / 1080.0f) * (size * 2.666666666f);
-		F32 spacing = size / (F32)(dimentions.x * 2.2f);
+		F32 pixelWidth = (dimentions.x * size * 2.666666666f) / (1920.0f * 1920.0f);
+		F32 pixelHeight = (dimentions.y * size * 2.666666666f) / (1080.0f * 1080.0f);
 
 		F32 id = 1.0f - (F32)uiText->id * 0.001f;
-		U64 i = 0;
+		U32 i = 0;
+
+		Font* font = Resources::LoadFont("Arial");
 
 		for (char c : text)
 		{
-			areaX -= (spacing * 0.75f) * Punctuation(c);
+			Character& character = font->characters[c];
 
-			I32 xOff, yOff;
-			MeshConfig meshConfig{};
-			meshConfig.name = name + "_" + i++;
-			meshConfig.MaterialName = "UI.mat";
-			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, { 1.0f, 1.0f, 1.0f }, xOff, yOff));
+			areaZ = (((areaX + 1) * 0.5f) + pixelWidth * character.width) * 2 - 1;
+			areaY = (((uiArea.w + 1) * 0.5f) - pixelHeight * character.height) * 2 - 1;
 
-			if (!meshConfig.instanceTextures.Back())
-			{
-				areaX += spacing;
-				areaZ += spacing;
+			vertices[i * 4]		= UIVertex{ { areaX, areaY, id},	{ character.x, character.y + character.height }, config.color };
+			vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id},	{ character.x + character.width, character.y + character.height }, config.color };
+			vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y }, config.color };
+			vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y }, config.color };
 
-				continue;
-			}
+			meshConfig.indices[i * 6] = i * 6;
+			meshConfig.indices[i * 6 + 1] = i * 6 + 1;
+			meshConfig.indices[i * 6 + 2] = i * 6 + 2;
+			meshConfig.indices[i * 6 + 3] = i * 6 + 2;
+			meshConfig.indices[i * 6 + 4] = i * 6 + 3;
+			meshConfig.indices[i * 6 + 5] = i * 6 + 0;
 
-			areaZ = (((areaX + 1) * 0.5f) + (F32)meshConfig.instanceTextures.Back()->width / dimentions.x) * 2 - 1;
-			areaY = (((uiArea.w + 1) * 0.5f) - (F32)meshConfig.instanceTextures.Back()->height / dimentions.y) * 2 - 1;
-
-			meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
-			meshConfig.vertexSize = sizeof(UIVertex);
-			meshConfig.vertexCount = 4;
-			UIVertex* vertices = (UIVertex*)meshConfig.vertices;
-
-			vertices[0] = UIVertex{ { areaX, areaY, id},	{ 0.0f, 0.0f },	config.color };
-			vertices[1] = UIVertex{ { areaZ, areaY, id},	{ 1.0f, 0.0f },	config.color };
-			vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }, config.color };
-			vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }, config.color };
-
-			meshConfig.indices.Resize(6);
-
-			meshConfig.indices[0] = 0;
-			meshConfig.indices[1] = 1;
-			meshConfig.indices[2] = 2;
-			meshConfig.indices[3] = 2;
-			meshConfig.indices[4] = 3;
-			meshConfig.indices[5] = 0;
-
-			Mesh* mesh = Resources::CreateMesh(meshConfig);
-
-			if (!mesh)
-			{
-				Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
-
-				for (Mesh* mesh : meshes)
-				{
-					Resources::DestroyMesh(mesh);
-				}
-
-				Memory::Free(uiText, sizeof(UIText), MEMORY_TAG_UI);
-
-				return nullptr;
-			}
-
-			meshes.Push(mesh);
-
-			areaX = areaZ + spacing;
+			areaX = areaZ;
+			++i;
 		}
 
-		model = Resources::CreateModel(name, meshes);
+		Mesh* mesh = Resources::CreateMesh(meshConfig);
+
+		if (!mesh)
+		{
+			Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
+			Memory::Free(uiText, sizeof(UIText), MEMORY_TAG_UI);
+
+			return nullptr;
+		}
 	}
 
+	uiText->mesh = mesh;
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
-	goConfig.model = model;
+	if (mesh) { goConfig.model = Resources::CreateModel(name, { 1, mesh }); }
 	goConfig.transform = new Transform2D();
 	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
@@ -704,7 +683,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 	uiText->gameObject = go;
 
 	elements.PushFront(uiText);
-	if (model) { config.scene->DrawGameObject(go); }
+	if (mesh) { config.scene->DrawGameObject(go); }
 
 	return uiText;
 }
@@ -983,27 +962,16 @@ void UI::ChangeSize(UIText* element, F32 newSize)
 
 void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 {
-	constexpr F32 heightScale = (1.0f / 1080.0f);
-	constexpr F32 widthScale = (1.0f / 1920.0f);
-
 	if (text == element->text && (Math::Zero(newSize) || Math::Zero(newSize - element->size))) { return; }
 	if (Math::Zero(newSize)) { newSize = element->size; }
 	element->size = newSize;
 	element->text.Destroy();
 	element->text = text;
 
-	if (element->gameObject->model)
-	{
-		element->scene->UndrawGameObject(element->gameObject);
-		Resources::DestroyModel(element->gameObject->model);
-	}
-
 	Vector2Int dimentions = RendererFrontend::WindowSize();
-	Vector<Mesh*> meshes{ text.Length() };
 
 	if (text && text.Length() && !dimentions.Zero())
 	{
-		String name("UI_Element_{}", element->id);
 		Vector4 uiArea = element->area;
 
 		uiArea *= 2.0f;
@@ -1013,75 +981,98 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		F32 areaZ = 0.0f;
 		F32 areaY;
 
-		F32 pixelHeight = (dimentions.y / 1080.0f) * (newSize * 2.666666666f);
-		F32 spacing = newSize / (F32)(dimentions.x * 2.2f);
+		F32 pixelWidth = (dimentions.x * newSize * 2.666666666f) / (1920.0f * 1920.0f);
+		F32 pixelHeight = (dimentions.y * newSize * 2.666666666f) / (1080.0f * 1080.0f);
 
 		F32 id = (F32)element->id * 0.001f;
-		U64 i = 0;
+		U32 i = 0;
 
-		for (char c : text)
+		Font* font = Resources::LoadFont("Arial");
+
+		if (element->gameObject->model)
 		{
-			areaX -= (spacing * 0.75f) * Punctuation(c);
+			Mesh* mesh = element->gameObject->model->meshes[0];
 
-			I32 xOff, yOff;
-			MeshConfig meshConfig{};
-			meshConfig.name = name + "_" + i++;
-			meshConfig.MaterialName = "UI.mat";
-			meshConfig.instanceTextures.Push(Resources::CreateFontCharacter("OpenSans.ttf", c, pixelHeight, { 1.0f, 1.0f, 1.0f }, xOff, yOff));
+			mesh->indices.Resize(6 * text.Length());
+			Memory::Free(mesh->vertices, sizeof(UIVertex) * mesh->vertexCount, MEMORY_TAG_RESOURCE);
+			mesh->vertices = Memory::Allocate(sizeof(UIVertex) * 4 * text.Length(), MEMORY_TAG_RESOURCE);
+			mesh->vertexCount = 4 * (U32)text.Length();
+			UIVertex* vertices = (UIVertex*)mesh->vertices;
 
-			if (!meshConfig.instanceTextures.Back())
+			for (char c : text)
 			{
-				areaX += spacing;
-				areaZ += spacing;
+				Character& character = font->characters[c];
 
-				continue;
+				areaZ = (((areaX + 1) * 0.5f) + pixelWidth * character.width) * 2 - 1;
+				areaY = (((uiArea.w + 1) * 0.5f) - pixelHeight * character.height) * 2 - 1;
+
+				vertices[i * 4] = UIVertex{ { areaX, areaY, id},	{ character.x, character.y + character.height }, element->color };
+				vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id},	{ character.x + character.width, character.y + character.height }, element->color };
+				vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y }, element->color };
+				vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y }, element->color };
+
+				mesh->indices[i * 6] = i * 6;
+				mesh->indices[i * 6 + 1] = i * 6 + 1;
+				mesh->indices[i * 6 + 2] = i * 6 + 2;
+				mesh->indices[i * 6 + 3] = i * 6 + 2;
+				mesh->indices[i * 6 + 4] = i * 6 + 3;
+				mesh->indices[i * 6 + 5] = i * 6 + 0;
+
+				areaX = areaZ;
+				++i;
 			}
 
-			areaZ = (((areaX + 1) * 0.5f) + (F32)meshConfig.instanceTextures.Back()->width / dimentions.x) * 2 - 1;
-			areaY = (((uiArea.w + 1) * 0.5f) - (F32)meshConfig.instanceTextures.Back()->height / dimentions.y) * 2 - 1;
-
-			meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
+			RendererFrontend::CreateMesh(mesh);
+		}
+		else
+		{
+			MeshConfig meshConfig{};
+			meshConfig.name = element->gameObject->name;
+			meshConfig.MaterialName = "Text.mat";
+			meshConfig.instanceTextures.Push(Resources::LoadTexture("Arial.bmp"));
+			meshConfig.indices.Resize(6 * text.Length());
+			meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4 * text.Length(), MEMORY_TAG_RESOURCE);
 			meshConfig.vertexSize = sizeof(UIVertex);
-			meshConfig.vertexCount = 4;
+			meshConfig.vertexCount = 4 * (U32)text.Length();
 			UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-			vertices[0] = UIVertex{ { areaX, areaY, id}, { 0.0f, 0.0f },	element->color };
-			vertices[1] = UIVertex{ { areaZ, areaY, id}, { 1.0f, 0.0f },	element->color };
-			vertices[2] = UIVertex{ { areaZ, uiArea.w, id}, { 1.0f, 1.0f }, element->color };
-			vertices[3] = UIVertex{ { areaX, uiArea.w, id}, { 0.0f, 1.0f }, element->color };
+			for (char c : text)
+			{
+				const Character& character = font->characters[c];
 
-			meshConfig.indices.Resize(6);
+				areaZ = (((areaX + 1) * 0.5f) + pixelWidth * character.width) * 2 - 1;
+				areaY = (((uiArea.w + 1) * 0.5f) - pixelHeight * character.height) * 2 - 1;
 
-			meshConfig.indices[0] = 0;
-			meshConfig.indices[1] = 1;
-			meshConfig.indices[2] = 2;
-			meshConfig.indices[3] = 2;
-			meshConfig.indices[4] = 3;
-			meshConfig.indices[5] = 0;
+				vertices[i * 4] = UIVertex{ { areaX, areaY, id},	{ character.x, character.y }, element->color };
+				vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id},	{ character.x + character.width, character.y }, element->color };
+				vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y + character.height }, element->color };
+				vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y + character.height }, element->color };
+
+				meshConfig.indices[i * 6] = i * 6;
+				meshConfig.indices[i * 6 + 1] = i * 6 + 1;
+				meshConfig.indices[i * 6 + 2] = i * 6 + 2;
+				meshConfig.indices[i * 6 + 3] = i * 6 + 2;
+				meshConfig.indices[i * 6 + 4] = i * 6 + 3;
+				meshConfig.indices[i * 6 + 5] = i * 6 + 0;
+
+				areaX = areaZ;
+				++i;
+			}
 
 			Mesh* mesh = Resources::CreateMesh(meshConfig);
 
-			if (!mesh)
-			{
-				Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
-
-				for (Mesh* mesh : meshes)
-				{
-					Resources::DestroyMesh(mesh);
-				}
-
-				Memory::Free(element, sizeof(UIText), MEMORY_TAG_UI);
-
-				return;
-			}
-
-			meshes.Push(mesh);
-
-			areaX = areaZ + spacing;
+			element->mesh = mesh;
+			element->gameObject->model = Resources::CreateModel(element->gameObject->name, { 1, mesh });
+			element->scene->DrawGameObject(element->gameObject);
 		}
+	}
+	else if (element->gameObject->model)
+	{
+		element->scene->UndrawGameObject(element->gameObject);
 
-		element->gameObject->model = Resources::CreateModel(name, meshes);
-		element->scene->DrawGameObject(element->gameObject);
+		Resources::DestroyModel(element->gameObject->model);
+		element->gameObject->model = nullptr;
+		element->mesh = nullptr;
 	}
 }
 
@@ -1174,7 +1165,7 @@ void UI::DestroyElementInternal(UIElement* element)
 		}
 
 		element->scene->UndrawGameObject(element->gameObject);
-		Resources::DestroyModel(element->gameObject->model);
+		if (element->gameObject->model) { Resources::DestroyModel(element->gameObject->model); }
 		Resources::DestroyGameObject2D(element->gameObject);
 
 		switch (element->type)

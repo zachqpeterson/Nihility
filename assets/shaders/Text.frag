@@ -9,10 +9,10 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    float thickness = 0.5;
+    float thickness = 0.6;
     float softness = 0.0;
 
-    float a = texture(texSample, inTexcoord).r;
+    float a = texture(texSample, inTexcoord).a;
     a = smoothstep(1.0 - thickness - softness, 1.0 - thickness + softness, a);
-    outColor = vec4(inColor, 1.0);
+    outColor = vec4(inColor, a);
 }

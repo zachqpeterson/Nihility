@@ -99,9 +99,9 @@ struct NH_API String
 
 	String operator+(char* other) { String s = *this; s.Append(other); return s; }
 	String operator+(const char* other) { String s = *this; s.Append(other); return s; }
-	String operator+(String& other) { String s = *this; s.Append(other); return s; }
-	friend String operator+(char* other0, String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
-	friend String operator+(const char* other0, String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
+	String operator+(const String& other) { String s = *this; s.Append(other); return s; }
+	friend String operator+(char* other0, const String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
+	friend String operator+(const char* other0, const String& other1) { String newStr = other1; newStr.Prepend(other0); return newStr; }
 
 	String operator+(I8  i) { String s = *this; s.Append(i); return s; }
 	String operator+(I16 i) { String s = *this; s.Append(i); return s; }
