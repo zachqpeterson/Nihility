@@ -62,13 +62,22 @@ void Engine::MainLoop()
 
 #ifdef NH_DEBUG
 	UIElementConfig config{};
-	config.position = { 0.98f , 0.0f };
+	config.position = { 0.98f , 0.001f };
 	config.scale = { 0.02f, 0.02f };
-	config.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	config.enabled = true;
 	config.ignore = true;
 	config.scene = (Scene*)RendererFrontend::CurrentScene();
-	UIText* fpsCounter = UI::GenerateText(config, "60", 12);
+	UIText* fpsCounter = UI::GenerateText(config, "60", 50);
+
+	UIElementConfig textConfig{};
+	textConfig.position = { 0.5f , 0.5f };
+	textConfig.scale = { 0.02f, 0.02f };
+	textConfig.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	textConfig.enabled = true;
+	textConfig.ignore = true;
+	textConfig.scene = (Scene*)RendererFrontend::CurrentScene();
+	UI::GenerateText(textConfig, "abcdefghijklmnopqrstuvwxyz", 100);
 #endif
 
 	while (running)

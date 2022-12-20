@@ -625,42 +625,46 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 		meshConfig.vertexCount = 4 * (U32)text.Length();
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
+		F32 pixelWidth = (dimentions.x * size * 50.0f) / (1920.0f * 1920.0f);
+		F32 pixelHeight = (dimentions.y * size * 50.0f) / (1080.0f * 1080.0f);
+
+		Font* font = Resources::LoadFont("Arial");
+
 		F32 areaX = uiArea.x;
 		F32 areaZ = 0.0f;
+		F32 areaW = uiArea.w;
 		F32 areaY;
-
-		F32 pixelWidth = (dimentions.x * size * 2.666666666f) / (1920.0f * 1920.0f);
-		F32 pixelHeight = (dimentions.y * size * 2.666666666f) / (1080.0f * 1080.0f);
 
 		F32 id = 1.0f - (F32)uiText->id * 0.001f;
 		U32 i = 0;
 
-		Font* font = Resources::LoadFont("Arial");
-
 		for (char c : text)
 		{
 			Character& character = font->characters[c];
+			F32 xOff = character.xOffset * pixelWidth;
+			F32 yOff = character.yOffset * pixelHeight;
+			F32 xAdv = character.xAdvance * pixelWidth;
 
 			areaZ = (((areaX + 1) * 0.5f) + pixelWidth * character.width) * 2 - 1;
 			areaY = (((uiArea.w + 1) * 0.5f) - pixelHeight * character.height) * 2 - 1;
 
-			vertices[i * 4]		= UIVertex{ { areaX, areaY, id},	{ character.x, character.y + character.height }, config.color };
-			vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id},	{ character.x + character.width, character.y + character.height }, config.color };
-			vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y }, config.color };
-			vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y }, config.color };
+			vertices[i * 4]		= UIVertex{ { areaX, areaY, id}, { character.x, character.y + character.height }, config.color };
+			vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id}, { character.x + character.width, character.y + character.height }, config.color };
+			vertices[i * 4 + 2] = UIVertex{ { areaZ, areaW, id}, { character.x + character.width, character.y }, config.color };
+			vertices[i * 4 + 3] = UIVertex{ { areaX, areaW, id}, { character.x, character.y }, config.color };
 
-			meshConfig.indices[i * 6] = i * 6;
-			meshConfig.indices[i * 6 + 1] = i * 6 + 1;
-			meshConfig.indices[i * 6 + 2] = i * 6 + 2;
-			meshConfig.indices[i * 6 + 3] = i * 6 + 2;
-			meshConfig.indices[i * 6 + 4] = i * 6 + 3;
-			meshConfig.indices[i * 6 + 5] = i * 6 + 0;
+			meshConfig.indices[i * 6] = i * 4;
+			meshConfig.indices[i * 6 + 1] = i * 4 + 1;
+			meshConfig.indices[i * 6 + 2] = i * 4 + 2;
+			meshConfig.indices[i * 6 + 3] = i * 4 + 2;
+			meshConfig.indices[i * 6 + 4] = i * 4 + 3;
+			meshConfig.indices[i * 6 + 5] = i * 4;
 
-			areaX = areaZ;
+			areaX = areaZ; //xAdv
 			++i;
 		}
 
-		Mesh* mesh = Resources::CreateMesh(meshConfig);
+		mesh = Resources::CreateMesh(meshConfig);
 
 		if (!mesh)
 		{
@@ -981,8 +985,8 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		F32 areaZ = 0.0f;
 		F32 areaY;
 
-		F32 pixelWidth = (dimentions.x * newSize * 2.666666666f) / (1920.0f * 1920.0f);
-		F32 pixelHeight = (dimentions.y * newSize * 2.666666666f) / (1080.0f * 1080.0f);
+		F32 pixelWidth = (dimentions.x * newSize * 50.0f) / (1920.0f * 1920.0f);
+		F32 pixelHeight = (dimentions.y * newSize * 50.0f) / (1080.0f * 1080.0f);
 
 		F32 id = (F32)element->id * 0.001f;
 		U32 i = 0;
@@ -1011,12 +1015,12 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y }, element->color };
 				vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y }, element->color };
 
-				mesh->indices[i * 6] = i * 6;
-				mesh->indices[i * 6 + 1] = i * 6 + 1;
-				mesh->indices[i * 6 + 2] = i * 6 + 2;
-				mesh->indices[i * 6 + 3] = i * 6 + 2;
-				mesh->indices[i * 6 + 4] = i * 6 + 3;
-				mesh->indices[i * 6 + 5] = i * 6 + 0;
+				mesh->indices[i * 6] = i * 4;
+				mesh->indices[i * 6 + 1] = i * 4 + 1;
+				mesh->indices[i * 6 + 2] = i * 4 + 2;
+				mesh->indices[i * 6 + 3] = i * 4 + 2;
+				mesh->indices[i * 6 + 4] = i * 4 + 3;
+				mesh->indices[i * 6 + 5] = i * 4 + 0;
 
 				areaX = areaZ;
 				++i;
@@ -1043,17 +1047,17 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				areaZ = (((areaX + 1) * 0.5f) + pixelWidth * character.width) * 2 - 1;
 				areaY = (((uiArea.w + 1) * 0.5f) - pixelHeight * character.height) * 2 - 1;
 
-				vertices[i * 4] = UIVertex{ { areaX, areaY, id},	{ character.x, character.y }, element->color };
-				vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id},	{ character.x + character.width, character.y }, element->color };
-				vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y + character.height }, element->color };
-				vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y + character.height }, element->color };
+				vertices[i * 4] = UIVertex{ { areaX, areaY, id},	{ character.x, character.y + character.height }, element->color };
+				vertices[i * 4 + 1] = UIVertex{ { areaZ, areaY, id},	{ character.x + character.width, character.y + character.height }, element->color };
+				vertices[i * 4 + 2] = UIVertex{ { areaZ, uiArea.w, id}, { character.x + character.width, character.y }, element->color };
+				vertices[i * 4 + 3] = UIVertex{ { areaX, uiArea.w, id}, { character.x, character.y }, element->color };
 
-				meshConfig.indices[i * 6] = i * 6;
-				meshConfig.indices[i * 6 + 1] = i * 6 + 1;
-				meshConfig.indices[i * 6 + 2] = i * 6 + 2;
-				meshConfig.indices[i * 6 + 3] = i * 6 + 2;
-				meshConfig.indices[i * 6 + 4] = i * 6 + 3;
-				meshConfig.indices[i * 6 + 5] = i * 6 + 0;
+				meshConfig.indices[i * 6] = i * 4;
+				meshConfig.indices[i * 6 + 1] = i * 4 + 1;
+				meshConfig.indices[i * 6 + 2] = i * 4 + 2;
+				meshConfig.indices[i * 6 + 3] = i * 4 + 2;
+				meshConfig.indices[i * 6 + 4] = i * 4 + 3;
+				meshConfig.indices[i * 6 + 5] = i * 4 + 0;
 
 				areaX = areaZ;
 				++i;

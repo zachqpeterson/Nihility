@@ -2205,14 +2205,14 @@ Font* Resources::LoadFont(const String& name)
 			character.x = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
 
 			index = line.IndexOf('=', index) + 1; //y position - height
-			character.y = (F32)line.SubString(index, 3).ToI32();
+			character.y = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->height;
 
 			index = line.IndexOf('=', index) + 1; //width
 			character.width = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
 
 			index = line.IndexOf('=', index) + 1; //height
 			character.height = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->height;
-			character.y = (font->texture->height - character.y - character.height) / (F32)font->texture->height;
+			character.y = 1.0f - character.y - character.height;
 
 			index = line.IndexOf('=', index) + 1; //xOffset
 			character.xOffset = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
