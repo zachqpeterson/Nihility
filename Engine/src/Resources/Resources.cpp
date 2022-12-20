@@ -2194,6 +2194,9 @@ Font* Resources::LoadFont(const String& name)
 		file.ReadLine(line); //
 		file.ReadLine(line); //
 
+		F32 maxWidth = 0;
+		F32 maxHeight = 0;
+
 		while (file.ReadLine(line) && line[0] == 'c')
 		{
 			I64 index;
@@ -2202,26 +2205,39 @@ Font* Resources::LoadFont(const String& name)
 			Character& character = font->characters[id];
 
 			index = line.IndexOf('=', index) + 1; //x
-			character.x = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
+			character.x = (F32)line.SubString(index, 5).ToI32() / (F32)font->texture->width;
 
 			index = line.IndexOf('=', index) + 1; //y position - height
-			character.y = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->height;
+			character.y = (F32)line.SubString(index, 5).ToI32() / (F32)font->texture->height;
 
 			index = line.IndexOf('=', index) + 1; //width
-			character.width = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
+			character.width = (F32)line.SubString(index, 5).ToI32();
+			character.uvWidth = character.width / (F32)font->texture->width;
+			maxWidth = Math::Max(character.width, maxWidth);
 
 			index = line.IndexOf('=', index) + 1; //height
-			character.height = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->height;
-			character.y = 1.0f - character.y - character.height;
+			character.height = (F32)line.SubString(index, 5).ToI32();
+			character.uvHeight = character.height / (F32)font->texture->height;
+			character.y = 1.0f - character.uvHeight - character.y;
+			maxHeight = Math::Max(character.height, maxHeight);
 
 			index = line.IndexOf('=', index) + 1; //xOffset
-			character.xOffset = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
+			character.xOffset = (F32)line.SubString(index, 5).ToI32();
 
 			index = line.IndexOf('=', index) + 1; //yOffset
-			character.yOffset = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->height;
+			character.yOffset = (F32)line.SubString(index, 5).ToI32();
 
 			index = line.IndexOf('=', index) + 1; //xAdvance
-			character.xAdvance = (F32)line.SubString(index, 3).ToI32() / (F32)font->texture->width;
+			character.xAdvance = (F32)line.SubString(index, 5).ToI32();
+		}
+
+		for (Character& character : font->characters)
+		{
+			character.width /= maxWidth;
+			character.height /= maxHeight;
+			character.xOffset /= maxWidth;
+			character.yOffset /= maxHeight;
+			character.xAdvance /= maxWidth;
 		}
 
 		fonts.Insert(font->name, font);

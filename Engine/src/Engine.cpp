@@ -68,7 +68,7 @@ void Engine::MainLoop()
 	config.enabled = true;
 	config.ignore = true;
 	config.scene = (Scene*)RendererFrontend::CurrentScene();
-	UIText* fpsCounter = UI::GenerateText(config, "60", 50);
+	UIText* fpsCounter = UI::GenerateText(config, "60", 12);
 
 	UIElementConfig textConfig{};
 	textConfig.position = { 0.5f , 0.5f };
@@ -77,7 +77,7 @@ void Engine::MainLoop()
 	textConfig.enabled = true;
 	textConfig.ignore = true;
 	textConfig.scene = (Scene*)RendererFrontend::CurrentScene();
-	UI::GenerateText(textConfig, "abcdefghijklmnopqrstuvwxyz", 100);
+	UI::GenerateText(textConfig, "abcdefghijklmnopqrstuvwxyz", 20);
 #endif
 
 	while (running)

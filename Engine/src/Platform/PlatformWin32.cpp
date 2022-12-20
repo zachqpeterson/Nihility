@@ -667,6 +667,9 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		RECT borderRect{};
 		AdjustWindowRectEx(&borderRect, style, 0, 0);
 
+		screenWidth = windowWidth - borderRect.right + borderRect.left;
+		screenHeight = windowHeight - borderRect.bottom + borderRect.top;
+
 		if (!Settings::Fullscreen)
 		{
 			Settings::WINDOW_POSITION_X_SMALL = windowX - borderRect.left;
@@ -674,6 +677,11 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 			Settings::WINDOW_WIDTH_SMALL = windowWidth - borderRect.right + borderRect.left;
 			Settings::WINDOW_HEIGHT_SMALL = windowHeight - borderRect.bottom + borderRect.top;
 		}
+
+		Settings::WINDOW_POSITION_X = windowX - borderRect.left;
+		Settings::WINDOW_POSITION_Y = windowY - borderRect.top;
+		Settings::WINDOW_WIDTH = windowWidth - borderRect.right + borderRect.left;
+		Settings::WINDOW_HEIGHT = windowHeight - borderRect.bottom + borderRect.top;
 
 		Events::Notify("Resize", NULL);
 	} return 0;
@@ -683,6 +691,9 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 			Settings::WINDOW_POSITION_X_SMALL = LOWORD(lParam);
 			Settings::WINDOW_POSITION_Y_SMALL = HIWORD(lParam);
 		}
+
+		Settings::WINDOW_POSITION_X = LOWORD(lParam);
+		Settings::WINDOW_POSITION_Y = HIWORD(lParam);
 
 		RECT borderRect{};
 		AdjustWindowRectEx(&borderRect, style, 0, 0);

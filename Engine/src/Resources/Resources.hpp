@@ -114,6 +114,7 @@ struct RenderTarget
 struct Character
 {
 	F32 x, y;
+	F32 uvWidth, uvHeight;
 	F32 width, height;
 	F32 xOffset, yOffset;
 	F32 xAdvance;

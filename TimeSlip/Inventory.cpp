@@ -389,7 +389,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				amtCfg.parent = slot.button;
 
 				UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), blankUVs);
-				UI::GenerateText(amtCfg, "", 10);
+				UI::GenerateText(amtCfg, "", 12);
 			}
 		}
 	}
@@ -414,7 +414,7 @@ Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMa
 				amtCfg.parent = slot.button;
 
 				UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), blankUVs);
-				UI::GenerateText(amtCfg, "", 10);
+				UI::GenerateText(amtCfg, "", 12);
 			}
 		}
 	}

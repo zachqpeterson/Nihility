@@ -1164,7 +1164,7 @@ bool VulkanRenderer::RecreateSwapchain()
 	Device::QuerySwapchainSupport(Device::physicalDevice, rendererState->surface, &Device::swapchainSupport);
 	Device::DetectDepthFormat();
 
-	Swapchain::Recreate(rendererState, cachedFramebufferWidth, cachedFramebufferHeight);
+	Swapchain::Recreate(rendererState, Settings::WindowWidth, Settings::WindowHeight);
 
 	rendererState->framebufferSizeLastGeneration = rendererState->framebufferSizeGeneration;
 
