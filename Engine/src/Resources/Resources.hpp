@@ -283,12 +283,12 @@ private:
 
 	static Image* LoadImage(const String& name);
 	static void UnloadImage(Image* image);
-	static bool LoadBMP(Image* image, File* file);
-	static bool ReadBMPHeader(struct BMPHeader& header, struct BMPInfo& info, File* file);
+	static bool LoadBMP(Image* image, File& file);
+	static bool ReadBMPHeader(struct BMPHeader& header, struct BMPInfo& info, File& file);
 	static void SetBmpColorMasks(struct BMPInfo& info);
-	static bool LoadPNG(Image* image, File* file);
-	static bool LoadJPG(Image* image, File* file);
-	static bool LoadTGA(Image* image, File* file);
+	static bool LoadPNG(Image* image, File& file);
+	static bool LoadJPG(Image* image, File& file);
+	static bool LoadTGA(Image* image, File& file);
 
 	static void LoadWAV(AudioData& audio);
 	static void DestroyAudio(AudioData& audio);
@@ -308,8 +308,8 @@ private:
 	static void DestroyMaterial(Material* material);
 	static void DestroyMaterialInstance(Material& material);
 
-	static void LoadOBJ(Model* mesh, File* file);
-	static void LoadKSM(Model* mesh, File* file);
+	static void LoadOBJ(Model* mesh, File& file);
+	static void LoadKSM(Model* mesh, File& file);
 
 	static void GetConfigType(const String& field, FieldType& type, U32& size);
 

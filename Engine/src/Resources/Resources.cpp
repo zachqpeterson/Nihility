@@ -266,12 +266,12 @@ void Resources::LoadSettings()
 	String path = CONFIG_PATH;
 	path.Append("Settings.cfg");
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		String line;
 		U32 lineNumber = 1;
-		while (file->ReadLine(line))
+		while (file.ReadLine(line))
 		{
 			line.Trim();
 
@@ -339,8 +339,7 @@ void Resources::LoadSettings()
 			++lineNumber;
 		}
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 	}
 }
 
@@ -351,18 +350,17 @@ void Resources::WriteSettings()
 	String path = CONFIG_PATH;
 	path.Append("Settings.cfg");
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_WRITE, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_WRITE, true))
 	{
 		String settings("#graphics\r\nresolution={},{}\r\nresolutionSmall={},{}\r\nposition={},{}\r\nfullscreen={}\r\nlockCursor={}\r\nframerate={}\r\n\r\n#audio\r\nchannels={}\r\nmaster={}\r\nmusic={}\r\nsfx={}",
 			Settings::WindowWidth, Settings::WindowHeight, Settings::WindowWidthSmall, Settings::WindowHeightSmall, Settings::WindowPositionX, Settings::WindowPositionY,
 			Settings::Fullscreen, Settings::LockCursor, Settings::TargetFrametime, Settings::ChannelCount, Settings::MasterVolume, Settings::MusicVolume, Settings::SfxVolume);
 
-		file->Write(settings);
+		file.Write(settings);
 	}
 
-	file->Close();
-	Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+	file.Close();
 }
 
 Binary* Resources::LoadBinary(const String& name)
@@ -372,23 +370,17 @@ Binary* Resources::LoadBinary(const String& name)
 	String path(BINARIES_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		Binary* binary = (Binary*)Memory::Allocate(sizeof(Binary), MEMORY_TAG_RESOURCE);
 		binary->name = name;
 
-		U64 size = file->Size();
-		binary->data.SetArray(file->ReadAllBytes(size, MEMORY_TAG_DATA_STRUCT), size);
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		U64 size = file.Size();
+		binary->data.SetArray(file.ReadAllBytes(size, MEMORY_TAG_DATA_STRUCT), size);
+		file.Close();
 
 		return binary;
-	}
-	else
-	{
-		Logger::Error("Couldn't open file: {}", name);
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 	}
 
 	return nullptr;
@@ -405,8 +397,8 @@ Image* Resources::LoadImage(const String& name)
 	String path(TEXTURES_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		Image* image = (Image*)Memory::Allocate(sizeof(Image), MEMORY_TAG_RESOURCE);
 		image->name = name;
@@ -420,8 +412,7 @@ Image* Resources::LoadImage(const String& name)
 		else if (sections.Back() == "tga") { result = LoadTGA(image, file); }
 		else { Logger::Error("Unkown file extention '{}'", sections.Back()); result = false; }
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 
 		if (!result)
 		{
@@ -431,11 +422,6 @@ Image* Resources::LoadImage(const String& name)
 		}
 
 		return image;
-	}
-	else
-	{
-		Logger::Error("Couldn't open file: {}", name);
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 	}
 
 	return nullptr;
@@ -449,11 +435,11 @@ void Resources::UnloadImage(Image* resource)
 	resource = nullptr;
 }
 
-bool Resources::LoadBMP(Image* image, File* file)
+bool Resources::LoadBMP(Image* image, File& file)
 {
 	BMPHeader header;
 	BMPInfo info;
-	if (!ReadBMPHeader(header, info, file)) { file->Close(); return false; }
+	if (!ReadBMPHeader(header, info, file)) { file.Close(); return false; }
 
 	image->width = info.imageWidth;
 	image->height = info.imageHeight;
@@ -474,7 +460,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 		if (pSize == 0 || pSize > 256)
 		{
 			Logger::Error("Corrupted BMP!");
-			file->Close();
+			file.Close();
 			return false;
 		}
 
@@ -484,23 +470,23 @@ bool Resources::LoadBMP(Image* image, File* file)
 		{
 			for (U32 i = 0; i < pSize; ++i)
 			{
-				palette.Push(file->ReadU8());
-				palette.Push(file->ReadU8());
-				palette.Push(file->ReadU8());
-				file->ReadU8();
+				palette.Push(file.ReadU8());
+				palette.Push(file.ReadU8());
+				palette.Push(file.ReadU8());
+				file.ReadU8();
 			}
 		}
 		else
 		{
 			for (U32 i = 0; i < pSize; ++i)
 			{
-				palette.Push(file->ReadU8());
-				palette.Push(file->ReadU8());
-				palette.Push(file->ReadU8());
+				palette.Push(file.ReadU8());
+				palette.Push(file.ReadU8());
+				palette.Push(file.ReadU8());
 			}
 		}
 
-		file->Seek(header.imageOffset - info.extraRead - info.infoSize - pSize * (info.infoSize == 12 ? 3 : 4));
+		file.Seek(header.imageOffset - info.extraRead - info.infoSize - pSize * (info.infoSize == 12 ? 3 : 4));
 
 		if (info.imageBitCount == 1) { width = (info.imageWidth + 7) >> 3; }
 		else if (info.imageBitCount == 4) { width = (info.imageWidth + 1) >> 1; }
@@ -508,7 +494,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 		else
 		{
 			Logger::Error("Corrupted BMP!");
-			file->Close();
+			file.Close();
 			return false;
 		}
 
@@ -521,7 +507,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 			for (I32 j = 0; j < info.imageHeight; ++j)
 			{
 				I8 bitOffset = 7;
-				U8 v = file->ReadU8();
+				U8 v = file.ReadU8();
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
 					U8 index = (v >> bitOffset) & 0x1;
@@ -532,10 +518,10 @@ bool Resources::LoadBMP(Image* image, File* file)
 					if ((--bitOffset) < 0 && i + 1 != info.imageWidth)
 					{
 						bitOffset = 7;
-						v = file->ReadU8();
+						v = file.ReadU8();
 					}
 				}
-				file->Seek(pad);
+				file.Seek(pad);
 			}
 		} break;
 		case 4:
@@ -544,7 +530,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 			{
 				for (I32 i = 0; i < info.imageWidth; i += 2)
 				{
-					U8 index0 = file->ReadU8();
+					U8 index0 = file.ReadU8();
 					U8 index1 = index0 & 15;
 					index0 >>= 4;
 					image->pixels.Push(palette[index0 * 3]);
@@ -557,7 +543,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 					image->pixels.Push(palette[index1 * 3 + 2]);
 					image->pixels.Push(255);
 				}
-				file->Seek(pad);
+				file.Seek(pad);
 			}
 		} break;
 		case 8:
@@ -566,13 +552,13 @@ bool Resources::LoadBMP(Image* image, File* file)
 			{
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
-					U8 v = file->ReadU8();
+					U8 v = file.ReadU8();
 					image->pixels.Push(palette[v * 3]);
 					image->pixels.Push(palette[v * 3 + 1]);
 					image->pixels.Push(palette[v * 3 + 2]);
 					image->pixels.Push(255);
 				}
-				file->Seek(pad);
+				file.Seek(pad);
 			}
 		} break;
 		}
@@ -582,7 +568,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 		int rshift = 0, gshift = 0, bshift = 0, ashift = 0, rcount = 0, gcount = 0, bcount = 0, acount = 0;
 		U8 easy = 0;
 
-		file->Seek(header.imageOffset - info.extraRead - info.infoSize);
+		file.Seek(header.imageOffset - info.extraRead - info.infoSize);
 
 		if (info.imageBitCount == 24) { width = 3 * info.imageWidth; }
 		else if (info.imageBitCount == 16) { width = 2 * info.imageWidth; }
@@ -598,7 +584,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 			if (!info.redMask || !info.greenMask || !info.blueMask)
 			{
 				Logger::Error("Corrupted BMP!");
-				file->Close();
+				file.Close();
 				return false;
 			}
 
@@ -615,7 +601,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 			if (rcount > 8 || gcount > 8 || bcount > 8 || acount > 8)
 			{
 				Logger::Error("Corrupted BMP!");
-				file->Close();
+				file.Close();
 				return false;
 			}
 		}
@@ -627,12 +613,12 @@ bool Resources::LoadBMP(Image* image, File* file)
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
 					U8 alpha;
-					U8 blue = file->ReadU8();
-					U8 green = file->ReadU8();
-					image->pixels.Push(file->ReadU8());
+					U8 blue = file.ReadU8();
+					U8 green = file.ReadU8();
+					image->pixels.Push(file.ReadU8());
 					image->pixels.Push(green);
 					image->pixels.Push(blue);
-					alpha = (easy == 2 ? file->ReadU8() : 255);
+					alpha = (easy == 2 ? file.ReadU8() : 255);
 					image->pixels.Push(alpha);
 				}
 			}
@@ -640,7 +626,7 @@ bool Resources::LoadBMP(Image* image, File* file)
 			{
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
-					U32 v = (info.imageBitCount == 16 ? (U32)file->ReadU16() : file->ReadU32());
+					U32 v = (info.imageBitCount == 16 ? (U32)file.ReadU16() : file.ReadU32());
 					U32 alpha;
 					image->pixels.Push(BYTECAST(Memory::ShiftSigned(v & info.redMask, rshift, rcount)));
 					image->pixels.Push(BYTECAST(Memory::ShiftSigned(v & info.greenMask, gshift, gcount)));
@@ -650,30 +636,30 @@ bool Resources::LoadBMP(Image* image, File* file)
 				}
 			}
 
-			file->Seek(pad);
+			file.Seek(pad);
 		}
 	}
 
 	return true;
 }
 
-bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
+bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File& file)
 {
-	header.signature = file->ReadU16();
+	header.signature = file.ReadU16();
 
 	if (header.signature != 0x4D42)
 	{
 		Logger::Error("File is not a BMP!");
-		file->Close();
+		file.Close();
 		return false;
 	}
 
-	header.fileSize = file->ReadU32();
-	header.reserved1 = file->ReadU16();
-	header.reserved2 = file->ReadU16();
-	header.imageOffset = file->ReadU32();
+	header.fileSize = file.ReadU32();
+	header.reserved1 = file.ReadU16();
+	header.reserved2 = file.ReadU16();
+	header.imageOffset = file.ReadU32();
 
-	info.infoSize = file->ReadU32();
+	info.infoSize = file.ReadU32();
 	info.extraRead = 14;
 	info.redMask = info.greenMask = info.blueMask = info.alphaMask = 0;
 
@@ -681,25 +667,25 @@ bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
 	{
 	case 12:
 	{
-		info.imageWidth = file->ReadI16();
-		info.imageHeight = file->ReadI16();
+		info.imageWidth = file.ReadI16();
+		info.imageHeight = file.ReadI16();
 
-		info.imagePlanes = file->ReadU16();
+		info.imagePlanes = file.ReadU16();
 		if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
 
-		info.imageBitCount = file->ReadU16();
+		info.imageBitCount = file.ReadU16();
 	} break;
 
 	case 40:
 	{
-		info.imageWidth = file->ReadI32();
-		info.imageHeight = file->ReadI32();
+		info.imageWidth = file.ReadI32();
+		info.imageHeight = file.ReadI32();
 
-		info.imagePlanes = file->ReadU16();
+		info.imagePlanes = file.ReadU16();
 		if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
 
-		info.imageBitCount = file->ReadU16();
-		info.imageCompression = file->ReadU32();
+		info.imageBitCount = file.ReadU16();
+		info.imageCompression = file.ReadU32();
 
 		if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
 		{
@@ -707,11 +693,11 @@ bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
 			return false;
 		}
 
-		info.imageSize = file->ReadU32();
-		info.biXPelsPerMeter = file->ReadI32();
-		info.biYPelsPerMeter = file->ReadI32();
-		info.colorsUsed = file->ReadU32();
-		info.importantColor = file->ReadU32();
+		info.imageSize = file.ReadU32();
+		info.biXPelsPerMeter = file.ReadI32();
+		info.biYPelsPerMeter = file.ReadI32();
+		info.colorsUsed = file.ReadU32();
+		info.importantColor = file.ReadU32();
 
 		if (info.imageBitCount == 16 || info.imageBitCount == 32)
 		{
@@ -721,9 +707,9 @@ bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
 			}
 			else if (info.imageCompression == 3)
 			{
-				info.redMask = file->ReadU32();
-				info.greenMask = file->ReadU32();
-				info.blueMask = file->ReadU32();
+				info.redMask = file.ReadU32();
+				info.greenMask = file.ReadU32();
+				info.blueMask = file.ReadU32();
 				info.extraRead += 12;
 
 				if (info.redMask == info.greenMask && info.greenMask == info.blueMask) { Logger::Error("Corrupted BMP!"); return false; }
@@ -734,30 +720,30 @@ bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
 
 	case 56:
 	{
-		info.imageWidth = file->ReadI32();
-		info.imageHeight = file->ReadI32();
+		info.imageWidth = file.ReadI32();
+		info.imageHeight = file.ReadI32();
 
-		info.imagePlanes = file->ReadU16();
+		info.imagePlanes = file.ReadU16();
 		if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
 
-		info.imageBitCount = file->ReadU16();
-		info.imageCompression = file->ReadU32();
+		info.imageBitCount = file.ReadU16();
+		info.imageCompression = file.ReadU32();
 		if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
 		{
 			Logger::Error("RLE Compressed BMPs not supported!");
 			return false;
 		}
 
-		info.imageSize = file->ReadU32();
-		info.biXPelsPerMeter = file->ReadI32();
-		info.biYPelsPerMeter = file->ReadI32();
-		info.colorsUsed = file->ReadU32();
-		info.importantColor = file->ReadU32();
+		info.imageSize = file.ReadU32();
+		info.biXPelsPerMeter = file.ReadI32();
+		info.biYPelsPerMeter = file.ReadI32();
+		info.colorsUsed = file.ReadU32();
+		info.importantColor = file.ReadU32();
 
-		file->ReadU32();
-		file->ReadU32();
-		file->ReadU32();
-		file->ReadU32();
+		file.ReadU32();
+		file.ReadU32();
+		file.ReadU32();
+		file.ReadU32();
 
 		if (info.imageBitCount == 16 || info.imageBitCount == 32)
 		{
@@ -767,9 +753,9 @@ bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
 			}
 			else if (info.imageCompression == 3)
 			{
-				info.redMask = file->ReadU32();
-				info.greenMask = file->ReadU32();
-				info.blueMask = file->ReadU32();
+				info.redMask = file.ReadU32();
+				info.greenMask = file.ReadU32();
+				info.blueMask = file.ReadU32();
 				info.extraRead += 12;
 
 				if (info.redMask == info.greenMask && info.greenMask == info.blueMask) { Logger::Error("Corrupted BMP!"); return false; }
@@ -780,79 +766,79 @@ bool Resources::ReadBMPHeader(BMPHeader& header, BMPInfo& info, File* file)
 
 	case 108:
 	{
-		info.imageWidth = file->ReadI32();
-		info.imageHeight = file->ReadI32();
+		info.imageWidth = file.ReadI32();
+		info.imageHeight = file.ReadI32();
 
-		info.imagePlanes = file->ReadU16();
+		info.imagePlanes = file.ReadU16();
 		if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
 
-		info.imageBitCount = file->ReadU16();
-		info.imageCompression = file->ReadU32();
+		info.imageBitCount = file.ReadU16();
+		info.imageCompression = file.ReadU32();
 		if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
 		{
 			Logger::Error("RLE Compressed BMPs not supported!");
 			return false;
 		}
 
-		info.imageSize = file->ReadU32();
-		info.biXPelsPerMeter = file->ReadI32();
-		info.biYPelsPerMeter = file->ReadI32();
-		info.colorsUsed = file->ReadU32();
-		info.importantColor = file->ReadU32();
+		info.imageSize = file.ReadU32();
+		info.biXPelsPerMeter = file.ReadI32();
+		info.biYPelsPerMeter = file.ReadI32();
+		info.colorsUsed = file.ReadU32();
+		info.importantColor = file.ReadU32();
 
-		info.redMask = file->ReadU32();
-		info.greenMask = file->ReadU32();
-		info.blueMask = file->ReadU32();
-		info.alphaMask = file->ReadU32();
+		info.redMask = file.ReadU32();
+		info.greenMask = file.ReadU32();
+		info.blueMask = file.ReadU32();
+		info.alphaMask = file.ReadU32();
 
 		if (info.imageCompression != 3) { SetBmpColorMasks(info); }
 
-		file->ReadU32(); // discard color space
-		for (U32 i = 0; i < 12; ++i) { file->ReadU32(); } // discard color space parameters
+		file.ReadU32(); // discard color space
+		for (U32 i = 0; i < 12; ++i) { file.ReadU32(); } // discard color space parameters
 	} break;
 
 	case 124:
 	{
-		info.imageWidth = file->ReadI32();
-		info.imageHeight = file->ReadI32();
+		info.imageWidth = file.ReadI32();
+		info.imageHeight = file.ReadI32();
 
-		info.imagePlanes = file->ReadU16();
+		info.imagePlanes = file.ReadU16();
 		if (info.imagePlanes != 1) { Logger::Error("Corrupted BMP!"); return false; }
 
-		info.imageBitCount = file->ReadU16();
-		info.imageCompression = file->ReadU32();
+		info.imageBitCount = file.ReadU16();
+		info.imageCompression = file.ReadU32();
 		if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
 		{
 			Logger::Error("RLE Compressed BMPs not supported!");
 			return false;
 		}
 
-		info.imageSize = file->ReadU32();
-		info.biXPelsPerMeter = file->ReadI32();
-		info.biYPelsPerMeter = file->ReadI32();
-		info.colorsUsed = file->ReadU32();
-		info.importantColor = file->ReadU32();
+		info.imageSize = file.ReadU32();
+		info.biXPelsPerMeter = file.ReadI32();
+		info.biYPelsPerMeter = file.ReadI32();
+		info.colorsUsed = file.ReadU32();
+		info.importantColor = file.ReadU32();
 
-		info.redMask = file->ReadU32();
-		info.greenMask = file->ReadU32();
-		info.blueMask = file->ReadU32();
-		info.alphaMask = file->ReadU32();
+		info.redMask = file.ReadU32();
+		info.greenMask = file.ReadU32();
+		info.blueMask = file.ReadU32();
+		info.alphaMask = file.ReadU32();
 
 		if (info.imageCompression != 3) { SetBmpColorMasks(info); }
 
-		file->ReadU32(); // discard color space
-		for (U32 i = 0; i < 12; ++i) { file->ReadU32(); } // discard color space parameters
+		file.ReadU32(); // discard color space
+		for (U32 i = 0; i < 12; ++i) { file.ReadU32(); } // discard color space parameters
 
-		file->ReadU32(); // discard rendering intent
-		file->ReadU32(); // discard offset of profile data
-		file->ReadU32(); // discard size of profile data
-		file->ReadU32(); // discard reserved
+		file.ReadU32(); // discard rendering intent
+		file.ReadU32(); // discard offset of profile data
+		file.ReadU32(); // discard size of profile data
+		file.ReadU32(); // discard reserved
 	} break;
 
 	default:
 	{
 		Logger::Error("Corrupted BMP!");
-		file->Close();
+		file.Close();
 	} return false;
 	}
 
@@ -885,26 +871,26 @@ void Resources::SetBmpColorMasks(BMPInfo& info)
 	}
 }
 
-bool Resources::LoadPNG(Image* image, File* file)
+bool Resources::LoadPNG(Image* image, File& file)
 {
 	Logger::Warn("The PNG file format is not supported.");
 	return false;
 }
 
-bool Resources::LoadJPG(Image* image, File* file)
+bool Resources::LoadJPG(Image* image, File& file)
 {
 	Logger::Warn("The JPG file format is not supported.");
 	return false;
 }
 
-bool Resources::LoadTGA(Image* image, File* file)
+bool Resources::LoadTGA(Image* image, File& file)
 {
-	TGAHeader* header = (TGAHeader*)file->ReadBytes(sizeof(TGAHeader), MEMORY_TAG_RESOURCE);
+	TGAHeader* header = (TGAHeader*)file.ReadBytes(sizeof(TGAHeader), MEMORY_TAG_RESOURCE);
 
 	if (!header)
 	{
 		Logger::Error("Image file: '{}' is not a TGA!", image->name);
-		file->Close();
+		file.Close();
 		return false;
 	}
 
@@ -976,15 +962,15 @@ Renderpass* Resources::LoadRenderpass(const String& name)
 	String path(SHADERS_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		Renderpass* renderpass = (Renderpass*)Memory::Allocate(sizeof(Renderpass), MEMORY_TAG_RESOURCE);
 		renderpass->name = name;
 
 		String line;
 		U32 lineNumber = 1;
-		while (file->ReadLine(line))
+		while (file.ReadLine(line))
 		{
 			line.Trim();
 
@@ -1029,19 +1015,13 @@ Renderpass* Resources::LoadRenderpass(const String& name)
 			++lineNumber;
 		}
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 
 		renderpass->targets.Resize(RendererFrontend::WindowRenderTargetCount());
 
 		renderpasses.Push(renderpass);
 
 		return renderpass;
-	}
-	else
-	{
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
-		path.Destroy();
 	}
 
 	return nullptr;
@@ -1080,8 +1060,8 @@ Shader* Resources::LoadShader(const String& name)
 	String path(SHADERS_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		shader = (Shader*)Memory::Allocate(sizeof(Shader), MEMORY_TAG_RESOURCE);
 		shader->name = name;
@@ -1090,14 +1070,13 @@ Shader* Resources::LoadShader(const String& name)
 
 		String line;
 		U32 lineNumber = 1;
-		while (file->ReadLine(line, 511))
+		while (file.ReadLine(line, 511))
 		{
 			line.Trim();
 
 			if (line.Blank() || line[0] == '#')
 			{
 				++lineNumber;
-				line.Destroy();
 				continue;
 			}
 
@@ -1218,11 +1197,9 @@ Shader* Resources::LoadShader(const String& name)
 			}
 
 			++lineNumber;
-			line.Destroy();
 		}
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 
 		if (renderpassName.Blank())
 		{
@@ -1259,10 +1236,6 @@ Shader* Resources::LoadShader(const String& name)
 		{
 			shaders.Push(shader);
 		}
-	}
-	else
-	{
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 	}
 
 	return shader;
@@ -1383,8 +1356,8 @@ Material* Resources::LoadMaterial(const String& name)
 	String path(MATERIALS_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		Material* material = (Material*)Memory::Allocate(sizeof(Material), MEMORY_TAG_RESOURCE);
 		material->name = name;
@@ -1393,7 +1366,7 @@ Material* Resources::LoadMaterial(const String& name)
 
 		String line;
 		U32 lineNumber = 1;
-		while (file->ReadLine(line, 511))
+		while (file.ReadLine(line, 511))
 		{
 			line.Trim();
 
@@ -1424,8 +1397,7 @@ Material* Resources::LoadMaterial(const String& name)
 			++lineNumber;
 		}
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 
 		if (materialConfig.shaderName.Blank()) { materialConfig.shaderName = DEFAULT_MATERIAL_SHADER_NAME; }
 
@@ -1452,8 +1424,6 @@ Material* Resources::LoadMaterial(const String& name)
 
 		return material;
 	}
-
-	Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 
 	return nullptr;
 }
@@ -1612,25 +1582,19 @@ Mesh* Resources::LoadMesh(const String& name)
 	String path(MODELS_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		mesh = (Mesh*)Memory::Allocate(sizeof(Mesh), MEMORY_TAG_RESOURCE);
 		mesh->name = name;
 
 		//Load Msh file
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 
 		meshes.Insert(name, mesh);
 
 		return mesh;
-	}
-	else
-	{
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 	}
 
 	return nullptr;
@@ -1763,8 +1727,8 @@ Model* Resources::LoadModel(const String& name)
 	String path(MODELS_PATH);
 	path.Append(name);
 
-	File* file = (File*)Memory::Allocate(sizeof(File), MEMORY_TAG_RESOURCE);
-	if (file->Open(path, FILE_MODE_READ, true))
+	File file{};
+	if (file.Open(path, FILE_MODE_READ, true))
 	{
 		model = (Model*)Memory::Allocate(sizeof(Model), MEMORY_TAG_RESOURCE);
 		model->name = name;
@@ -1776,23 +1740,16 @@ Model* Resources::LoadModel(const String& name)
 		else
 		{
 			Logger::Error("Unkown file extention '{}'", sections.Back());
-			file->Close();
-			Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+			file.Close();
 			Memory::Free(model, sizeof(Model), MEMORY_TAG_RESOURCE);
 			return nullptr;
 		}
 
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
+		file.Close();
 
 		models.Insert(name, model);
 
 		return model;
-	}
-	else
-	{
-		file->Close();
-		Memory::Free(file, sizeof(File), MEMORY_TAG_RESOURCE);
 	}
 
 	return nullptr;
@@ -1842,12 +1799,12 @@ Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 	return model;
 }
 
-void Resources::LoadOBJ(Model* mesh, struct File* file)
+void Resources::LoadOBJ(Model* mesh, File& file)
 {
 
 }
 
-void Resources::LoadKSM(Model* mesh, struct File* file)
+void Resources::LoadKSM(Model* mesh, File& file)
 {
 
 }
