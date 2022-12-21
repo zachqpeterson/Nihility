@@ -105,11 +105,10 @@ void Engine::MainLoop()
 			Animations::Update();
 			RendererFrontend::DrawFrame();
 
-			F64 remaining = Settings::TargetFrametime - Time::TimeSinceLastFrame();
+			F64 remainingFrameTime = Settings::TargetFrametime - Time::TimeSinceLastFrame();
+			U64 remainingNS = static_cast<U64>(remainingFrameTime * 10000000.0);
 
-			Timer frameTimer;
-			frameTimer.Start();
-			while (remaining - frameTimer.CurrentTime() > 0.0001);
+			if (remainingNS > 0) { Platform::SleepFor(remainingNS - 5750); }
 		}
 	}
 
