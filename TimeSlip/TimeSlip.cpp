@@ -198,7 +198,7 @@ bool TimeSlip::Update()
 			else { Audio::PlaySFX("CloseInventory.wav"); }
 		}
 		Inventory::Update();
-		HandleInput();
+		if (player->alive) { HandleInput(); }
 		world->Update();
 		HandleEntities();
 		UpdateDayCycle();
