@@ -62,7 +62,7 @@ void Engine::MainLoop()
 
 #ifdef NH_DEBUG
 	UIElementConfig config{};
-	config.position = { 0.98f , 0.001f };
+	config.position = { 0.98f , 0.01f };
 	config.scale = { 0.02f, 0.02f };
 	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	config.enabled = true;

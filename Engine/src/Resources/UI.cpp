@@ -622,13 +622,13 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) 
 		meshConfig.vertexCount = 4 * (U32)text.Length();
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		F32 pixelWidth = (dimentions.x * size * 2.66666666666f) / (1920.0f * 1920.0f);
-		F32 pixelHeight = (dimentions.y * size * 2.66666666666f) / (1080.0f * 1080.0f);
+		F32 pixelWidth = size / 800.0f;
+		F32 pixelHeight = size / 450.0f;
 
 		Font* font = Resources::LoadFont("Arial");
 
 		F32 areaX = uiArea.x;
-		F32 areaW = uiArea.w;
+		F32 areaW = uiArea.w - pixelHeight;
 
 		F32 id = 1.0f - (F32)uiText->id * 0.001f;
 		U32 i = 0;
@@ -974,14 +974,11 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 	{
 		Vector4 uiArea = element->area;
 
-		uiArea *= 2.0f;
-		uiArea -= 1.0f;
+		F32 pixelWidth = newSize / 800.0f;
+		F32 pixelHeight = newSize / 450.0f;
 
 		F32 areaX = uiArea.x;
-		F32 areaW = uiArea.w;
-
-		F32 pixelWidth = (dimentions.x * newSize * 2.66666666666f) / (1920.0f * 1920.0f);
-		F32 pixelHeight = (dimentions.y * newSize * 2.66666666666f) / (1080.0f * 1080.0f);
+		F32 areaW = uiArea.w - pixelHeight;
 
 		F32 id = (F32)element->id * 0.001f;
 		U32 i = 0;
