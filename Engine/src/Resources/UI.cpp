@@ -559,7 +559,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	return image;
 }
 
-UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size) //TODO: offsets
+UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 {
 	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
