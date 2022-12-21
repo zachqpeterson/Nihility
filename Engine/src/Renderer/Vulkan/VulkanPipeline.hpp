@@ -7,7 +7,7 @@ class VulkanPipeline
 public:
     bool Create(
         RendererState* rendererState,
-        class VulkanRenderpass* renderpass,
+        struct Renderpass* renderpass,
         U32 stride,
         U32 attributeCount,
         VkVertexInputAttributeDescription* attributes,

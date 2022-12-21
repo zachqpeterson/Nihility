@@ -64,6 +64,16 @@ enum RenderpassBufferFlag
 	RENDERPASS_BUFFER_FLAG_STENCIL = 0x4
 };
 
+enum RenderPassState
+{
+	RENDERPASS_STATE_READY,
+	RENDERPASS_STATE_RECORDING,
+	RENDERPASS_STATE_IN_RENDER_PASS,
+	RENDERPASS_STATE_RECORDING_ENDED,
+	RENDERPASS_STATE_SUBMITTED,
+	RENDERPASS_STATE_NOT_ALLOCATED
+};
+
 struct NH_API Binary
 {
 	String name;
@@ -135,6 +145,8 @@ struct AudioData
 	WAVEFORMATEX format;
 };
 
+struct VkRenderPass_T;
+
 struct Renderpass
 {
 	String name;
@@ -148,7 +160,12 @@ struct Renderpass
 	F32 depth;
 	U32 stencil;
 
-	void* internalData;
+	RenderPassState state;
+
+	bool hasPrevPass;
+	bool hasNextPass;
+
+	VkRenderPass_T* handle;
 };
 
 struct MaterialConfig

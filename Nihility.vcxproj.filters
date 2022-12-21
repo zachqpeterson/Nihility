@@ -91,7 +91,7 @@
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanDefines.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanDevice.hpp">
+    <ClInclude Include="Engine\src\Renderer\Vulkan\Device.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanImage.hpp">
@@ -100,10 +100,7 @@
     <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanPipeline.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanRenderpass.hpp">
-      <Filter>Source Files\Renderer\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.hpp">
+    <ClInclude Include="Engine\src\Renderer\Vulkan\Swapchain.hpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClInclude>
     <ClInclude Include="Engine\src\Renderer\Scene.hpp">
@@ -210,7 +207,7 @@
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanCommandBuffer.cpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanDevice.cpp">
+    <ClCompile Include="Engine\src\Renderer\Vulkan\Device.cpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanImage.cpp">
@@ -219,7 +216,7 @@
     <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanPipeline.cpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanSwapchain.cpp">
+    <ClCompile Include="Engine\src\Renderer\Vulkan\Swapchain.cpp">
       <Filter>Source Files\Renderer\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Engine\src\Renderer\Scene.cpp">

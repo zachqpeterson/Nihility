@@ -1,4 +1,4 @@
-#include "VulkanDevice.hpp"
+#include "Device.hpp"
 
 #include "Core/Logger.hpp"
 #include "Core/Settings.hpp"

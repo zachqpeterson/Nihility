@@ -158,9 +158,9 @@ void RendererFrontend::ReleaseTextureMapResources(TextureMap& map)
 	renderer->ReleaseTextureMapResources(map);
 }
 
-void RendererFrontend::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext)
+void RendererFrontend::CreateRenderpass(Renderpass* renderpass)
 {
-	renderer->CreateRenderpass(renderpass, hasPrev, hasNext);
+	renderer->CreateRenderpass(renderpass);
 }
 
 void RendererFrontend::DestroyRenderpass(Renderpass* renderpass)

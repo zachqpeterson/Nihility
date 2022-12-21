@@ -1,8 +1,7 @@
 #include "VulkanRenderer.hpp"
 
-#include "VulkanDevice.hpp"
-#include "VulkanSwapchain.hpp"
-#include "VulkanRenderpass.hpp"
+#include "Device.hpp"
+#include "Swapchain.hpp"
 #include "VulkanImage.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanBuffer.hpp"
@@ -255,13 +254,8 @@ bool VulkanRenderer::CreateSurface()
 	return false;
 }
 
-void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext)
+void VulkanRenderer::CreateRenderpass(Renderpass* renderpass)
 {
-	renderpass->internalData = Memory::Allocate(sizeof(VulkanRenderpass), MEMORY_TAG_RENDERER);
-	VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
-	vulkanRenderpass->hasPrevPass = hasPrev;
-	vulkanRenderpass->hasNextPass = hasNext;
-
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -274,11 +268,11 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	colorAttachment.format = Swapchain::imageFormat.format;  // TODO: configurable
 	colorAttachment.samples = (VkSampleCountFlagBits)Settings::MSAACount;
 	colorAttachment.loadOp = (renderpass->clearFlags & RENDERPASS_BUFFER_FLAG_COLOR) ? VK_ATTACHMENT_LOAD_OP_CLEAR :
-		hasPrev ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		renderpass->hasPrevPass ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = hasPrev ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.initialLayout = renderpass->hasPrevPass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.flags = 0;
@@ -320,9 +314,9 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachmentResolve.initialLayout = hasPrev ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachmentResolve.initialLayout = renderpass->hasPrevPass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 
-	colorAttachmentResolve.finalLayout = hasNext ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachmentResolve.finalLayout = renderpass->hasNextPass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	colorAttachmentResolve.flags = 0;
 
 	attachmentDescriptions.Push(colorAttachmentResolve);
@@ -367,7 +361,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 	renderpassInfo.pNext = nullptr;
 	renderpassInfo.flags = 0;
 
-	VkCheck(vkCreateRenderPass(Device::logicalDevice, &renderpassInfo, rendererState->allocator, &vulkanRenderpass->handle));
+	VkCheck(vkCreateRenderPass(Device::logicalDevice, &renderpassInfo, rendererState->allocator, &renderpass->handle));
 
 	for (U8 i = 0; i < renderpass->targets.Size(); ++i)
 	{
@@ -383,7 +377,7 @@ void VulkanRenderer::CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool
 
 void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 {
-	if (renderpass && renderpass->internalData)
+	if (renderpass)
 	{
 		vkDeviceWaitIdle(Device::logicalDevice);
 
@@ -394,11 +388,8 @@ void VulkanRenderer::DestroyRenderpass(Renderpass* renderpass)
 
 		renderpass->targets.Destroy();
 
-		VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
-		vkDestroyRenderPass(Device::logicalDevice, vulkanRenderpass->handle, rendererState->allocator);
-		vulkanRenderpass->handle = nullptr;
-		Memory::Free(vulkanRenderpass, sizeof(VulkanRenderpass), MEMORY_TAG_RENDERER);
-		renderpass->internalData = nullptr;
+		vkDestroyRenderPass(Device::logicalDevice, renderpass->handle, rendererState->allocator);
+		renderpass->handle = nullptr;
 	}
 }
 
@@ -599,11 +590,10 @@ bool VulkanRenderer::BeginRenderpass(Renderpass* renderpass)
 {
 	VulkanCommandBuffer* commandBuffer = &rendererState->graphicsCommandBuffers[rendererState->imageIndex];
 
-	VulkanRenderpass* vulkanRenderpass = (VulkanRenderpass*)renderpass->internalData;
 	RenderTarget& target = renderpass->targets[rendererState->imageIndex];
 
 	VkRenderPassBeginInfo beginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	beginInfo.renderPass = vulkanRenderpass->handle;
+	beginInfo.renderPass = renderpass->handle;
 	beginInfo.framebuffer = (VkFramebuffer)target.internalFramebuffer;
 	beginInfo.renderArea.offset.x = (I32)(rendererState->renderArea.x);
 	beginInfo.renderArea.offset.y = (I32)(rendererState->renderArea.y);
@@ -1213,7 +1203,7 @@ bool VulkanRenderer::CreateRenderTarget(Vector<Texture*>& attachments, Renderpas
 	target->attachments = attachments;
 
 	VkFramebufferCreateInfo framebufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-	framebufferInfo.renderPass = ((VulkanRenderpass*)renderpass->internalData)->handle;
+	framebufferInfo.renderPass = renderpass->handle;
 	framebufferInfo.attachmentCount = (U32)attachments.Size();
 	framebufferInfo.pAttachments = attachmentViews.Data();
 	framebufferInfo.width = width;

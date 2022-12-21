@@ -1,12 +1,11 @@
 #include "VulkanShader.hpp"
 
-#include "VulkanRenderpass.hpp"
-#include "VulkanDevice.hpp"
+#include "Device.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanImage.hpp"
-#include "VulkanSwapchain.hpp"
+#include "Swapchain.hpp"
 
 #include "Memory/Memory.hpp"
 #include "Resources/Resources.hpp"
@@ -230,7 +229,7 @@ bool VulkanShader::Initialize(RendererState* rendererState, Shader* shader)
 
 	pipeline->Create(
 		rendererState,
-		(VulkanRenderpass*)shader->renderpass->internalData,
+		shader->renderpass,
 		shader->attributeStride,
 		(U32)config.attributes.Size(),
 		config.attributes.Data(),

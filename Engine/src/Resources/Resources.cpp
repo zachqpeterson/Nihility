@@ -1322,7 +1322,9 @@ void Resources::CreateShaders()
 		Shader* shader = *it;
 
 		last = (it + 1) == shaders.end();
-		RendererFrontend::CreateRenderpass(shader->renderpass, !first, !last);
+		shader->renderpass->hasPrevPass = !first;
+		shader->renderpass->hasNextPass = !last;
+		RendererFrontend::CreateRenderpass(shader->renderpass);
 
 		if (!RendererFrontend::CreateShader(shader))
 		{

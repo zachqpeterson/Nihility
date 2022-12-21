@@ -1,5 +1,5 @@
-#include "VulkanSwapchain.hpp"
-#include "VulkanDevice.hpp"
+#include "Swapchain.hpp"
+#include "Device.hpp"
 #include "VulkanImage.hpp"
 
 #include "Math/Math.hpp"

@@ -43,7 +43,7 @@ public:
 	static bool AcquireTextureMapResources(TextureMap& map);
 	static void ReleaseTextureMapResources(TextureMap& map);
 
-	static void CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext);
+	static void CreateRenderpass(Renderpass* renderpass);
 	static void DestroyRenderpass(Renderpass* renderpass);
 
 	static bool CreateRenderTarget(Vector<Texture*>& attachments, Renderpass* renderpass, U32 width, U32 height, RenderTarget* target);

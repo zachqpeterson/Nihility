@@ -42,7 +42,7 @@ public:
     virtual bool AcquireTextureMapResources(TextureMap& map) = 0;
     virtual void ReleaseTextureMapResources(TextureMap& map) = 0;
 
-    virtual void CreateRenderpass(Renderpass* renderpass, bool hasPrev, bool hasNext) = 0;
+    virtual void CreateRenderpass(Renderpass* renderpass) = 0;
     virtual void DestroyRenderpass(Renderpass* renderpass) = 0;
 
     virtual bool CreateRenderTarget(Vector<Texture*>& attachments, Renderpass* renderpass, U32 width, U32 height, RenderTarget* target) = 0;

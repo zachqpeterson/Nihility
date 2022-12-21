@@ -1,6 +1,6 @@
 #include "VulkanImage.hpp"
 
-#include "VulkanDevice.hpp"
+#include "Device.hpp"
 #include "VulkanCommandBuffer.hpp"
 
 #include "Core/Logger.hpp"

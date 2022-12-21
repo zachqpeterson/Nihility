@@ -1,8 +1,7 @@
 #include "VulkanPipeline.hpp"
 
 #include "VulkanCommandBuffer.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanRenderpass.hpp"
+#include "Device.hpp"
 
 #include "Memory/Memory.hpp"
 #include "Core/Logger.hpp"
@@ -10,7 +9,7 @@
 
 bool VulkanPipeline::Create(
 	RendererState* rendererState,
-	VulkanRenderpass* renderpass,
+	Renderpass* renderpass,
 	U32 stride,
 	U32 attributeCount,
 	VkVertexInputAttributeDescription* attributes,
