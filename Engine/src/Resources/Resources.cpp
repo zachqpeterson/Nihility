@@ -261,7 +261,7 @@ void Resources::Shutdown()
 
 void Resources::LoadSettings()
 {
-	Logger::Info("Loading engine settings...");
+	Logger::Trace("Loading engine settings...");
 
 	String path = CONFIG_PATH;
 	path.Append("Settings.cfg");
@@ -345,7 +345,7 @@ void Resources::LoadSettings()
 
 void Resources::WriteSettings()
 {
-	Logger::Info("Saving engine settings...");
+	Logger::Trace("Saving engine settings...");
 
 	String path = CONFIG_PATH;
 	path.Append("Settings.cfg");
@@ -365,7 +365,7 @@ void Resources::WriteSettings()
 
 Binary* Resources::LoadBinary(const String& name)
 {
-	Logger::Info("Loading binary '{}'...", name);
+	Logger::Trace("Loading binary '{}'...", name);
 
 	String path(BINARIES_PATH);
 	path.Append(name);
@@ -916,7 +916,7 @@ Texture* Resources::LoadTexture(const String& name)
 
 	if (texture) { return texture; }
 
-	Logger::Info("Loading texture '{}'...", name);
+	Logger::Trace("Loading texture '{}'...", name);
 
 	Image* image = LoadImage(name);
 
@@ -957,7 +957,7 @@ Renderpass* Resources::LoadRenderpass(const String& name)
 		return nullptr;
 	}
 
-	Logger::Info("Loading renderpass '{}'...", name);
+	Logger::Trace("Loading renderpass '{}'...", name);
 
 	String path(SHADERS_PATH);
 	path.Append(name);
@@ -1055,7 +1055,7 @@ Shader* Resources::LoadShader(const String& name)
 
 	if (shader) { return shader; }
 
-	Logger::Info("Loading shader '{}'...", name);
+	Logger::Trace("Loading shader '{}'...", name);
 
 	String path(SHADERS_PATH);
 	path.Append(name);
@@ -1353,7 +1353,7 @@ Material* Resources::LoadMaterial(const String& name)
 	if (name.Blank()) { return nullptr; }
 	for (Material* m : materials) { if (m->name == name) { return nullptr; } }
 
-	Logger::Info("Loading material '{}'...", name);
+	Logger::Trace("Loading material '{}'...", name);
 
 	String path(MATERIALS_PATH);
 	path.Append(name);
@@ -1724,7 +1724,7 @@ Model* Resources::LoadModel(const String& name)
 
 	if (!model->name.Blank()) { return model; }
 
-	Logger::Info("Loading model '{}'...", name);
+	Logger::Trace("Loading model '{}'...", name);
 
 	String path(MODELS_PATH);
 	path.Append(name);
@@ -1819,7 +1819,7 @@ GameObject2D* Resources::CreateGameObject2D(const GameObject2DConfig& config)
 		return nullptr;
 	}
 
-	//Logger::Info("Creating GameObject '{}'...", config.name);
+	Logger::Trace("Creating GameObject '{}'...", config.name);
 
 	GameObject2D* go = (GameObject2D*)Memory::Allocate(sizeof(GameObject2D), MEMORY_TAG_GAMEOBJECT);
 	go->id = gameObjectId;
@@ -1847,7 +1847,7 @@ void Resources::DestroyGameObject2D(GameObject2D* gameObject)
 
 Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency)
 {
-	Logger::Info("Creating texture '{}'...", name);
+	Logger::Trace("Creating texture '{}'...", name);
 
 	if (name.Blank())
 	{
@@ -1888,7 +1888,7 @@ Texture* Resources::CreateWritableTexture(const String& name, U32 width, U32 hei
 
 Texture* Resources::CreateTextureFromInternal(const String& name, U32 width, U32 height, U8 channelCount, bool hasTransparency, bool isWriteable, bool registerTexture, void* internalData)
 {
-	Logger::Info("Creating texture '{}' from internal data...", name);
+	Logger::Trace("Creating texture '{}' from internal data...", name);
 
 	if (registerTexture)
 	{
@@ -2133,7 +2133,7 @@ Font* Resources::LoadFont(const String& name)
 
 	if (font) { return font; }
 
-	Logger::Info("Loading font '{}'...", name);
+	Logger::Trace("Loading font '{}'...", name);
 
 	String path(FONTS_PATH);
 	path.Append(name);

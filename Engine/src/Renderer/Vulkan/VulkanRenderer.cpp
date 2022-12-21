@@ -17,6 +17,8 @@
 #include "Core/Time.hpp"
 #include "Core/Settings.hpp"
 
+#include "VulkanDefines.hpp"
+
 struct DataUpload
 {
 	U32* outOffset;
@@ -1151,7 +1153,7 @@ bool VulkanRenderer::RecreateSwapchain()
 		rendererState->imagesInFlight[i] = 0;
 	}
 
-	Device::QuerySwapchainSupport(Device::physicalDevice, rendererState->surface, &Device::swapchainSupport);
+	Device::QuerySwapchainSupport(rendererState->surface);
 	Device::DetectDepthFormat();
 
 	Swapchain::Recreate(rendererState, Settings::WindowWidth, Settings::WindowHeight);

@@ -12,11 +12,13 @@ SwapchainSupportInfo Device::swapchainSupport;
 I32 Device::graphicsQueueIndex;
 I32 Device::presentQueueIndex;
 I32 Device::transferQueueIndex;
+I32 Device::computeQueueIndex;
 bool Device::supportsDeviceLocalHostVisible;
 
 VkQueue Device::graphicsQueue;
 VkQueue Device::presentQueue;
 VkQueue Device::transferQueue;
+VkQueue Device::computeQueue;
 
 VkCommandPool Device::graphicsCommandPool;
 
@@ -24,28 +26,9 @@ VkPhysicalDeviceProperties Device::properties;
 VkPhysicalDeviceFeatures Device::features;
 VkPhysicalDeviceMemoryProperties Device::memory;
 
-VkSampleCountFlagBits Device::maxSamples;
+I32 Device::maxSamples;
 VkFormat Device::depthFormat;
 U8 Device::depthChannelCount;
-
-struct PhysicalDeviceRequirements
-{
-	bool graphics;
-	bool present;
-	bool compute;
-	bool transfer;
-	bool samplerAnisotropy;
-	bool discreteGpu;
-	Vector<const char*> deviceExtensionNames;
-};
-
-struct PhysicalDeviceQueueFamilyInfo
-{
-	U32 graphicsFamilyIndex;
-	U32 presentFamilyIndex;
-	U32 computeFamilyIndex;
-	U32 transferFamilyIndex;
-};
 
 bool Device::Initialize(RendererState* rendererState)
 {
@@ -137,6 +120,7 @@ bool Device::Initialize(RendererState* rendererState)
 	vkGetDeviceQueue(logicalDevice, graphicsQueueIndex, 0, &graphicsQueue);
 	vkGetDeviceQueue(logicalDevice, presentQueueIndex, 0, &presentQueue);
 	vkGetDeviceQueue(logicalDevice, transferQueueIndex, 0, &transferQueue);
+	vkGetDeviceQueue(logicalDevice, computeQueueIndex, 0, &computeQueue);
 
 	VkCommandPoolCreateInfo poolCreateInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	poolCreateInfo.queueFamilyIndex = graphicsQueueIndex;
@@ -151,6 +135,7 @@ void Device::Shutdown(RendererState* rendererState)
 	graphicsQueue = VK_NULL_HANDLE;
 	presentQueue = VK_NULL_HANDLE;
 	transferQueue = VK_NULL_HANDLE;
+	computeQueue = VK_NULL_HANDLE;
 
 	Logger::Info("Destroying vulkan command pools...");
 	vkDestroyCommandPool(logicalDevice, graphicsCommandPool, rendererState->allocator);
@@ -173,6 +158,7 @@ void Device::Shutdown(RendererState* rendererState)
 	graphicsQueueIndex = -1;
 	presentQueueIndex = -1;
 	transferQueueIndex = -1;
+	computeQueueIndex = -1;
 }
 
 bool Device::SelectPhysicalDevice(RendererState* rendererState)
@@ -216,8 +202,7 @@ bool Device::SelectPhysicalDevice(RendererState* rendererState)
 		requirements.graphics = true;
 		requirements.present = true;
 		requirements.transfer = true;
-		// NOTE: Enable this if compute will be required.
-		// requirements.compute = true;
+		requirements.compute = true;
 		requirements.samplerAnisotropy = true; //TODO: Settings
 #if PLATFORM_APPLE
 		requirements.discreteGpu = false;
@@ -227,8 +212,8 @@ bool Device::SelectPhysicalDevice(RendererState* rendererState)
 		requirements.deviceExtensionNames.Push(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 		PhysicalDeviceQueueFamilyInfo queueInfo = {};
-		bool result = physicalDeviceMeetsRequirements(physicalDevices[i], rendererState->surface, &properties,
-			&features, &requirements, &queueInfo, &swapchainSupport);
+		physicalDevice = physicalDevices[i];
+		bool result = PhysicalDeviceMeetsRequirements(rendererState->surface, requirements, queueInfo, swapchainSupport);
 
 		if (result)
 		{
@@ -277,12 +262,10 @@ bool Device::SelectPhysicalDevice(RendererState* rendererState)
 				}
 			}
 #endif
-
-			physicalDevice = physicalDevices[i];
 			graphicsQueueIndex = queueInfo.graphicsFamilyIndex;
 			presentQueueIndex = queueInfo.presentFamilyIndex;
 			transferQueueIndex = queueInfo.transferFamilyIndex;
-			// TODO: set compute index here if needed.
+			computeQueueIndex = queueInfo.computeFamilyIndex;
 
 			VkSampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
 			if (counts & VK_SAMPLE_COUNT_64_BIT) { maxSamples = VK_SAMPLE_COUNT_64_BIT; }
@@ -306,23 +289,17 @@ bool Device::SelectPhysicalDevice(RendererState* rendererState)
 	return true;
 }
 
-bool Device::physicalDeviceMeetsRequirements(
-	VkPhysicalDevice device,
-	VkSurfaceKHR surface,
-	const VkPhysicalDeviceProperties* properties,
-	const VkPhysicalDeviceFeatures* features,
-	const PhysicalDeviceRequirements* requirements,
-	PhysicalDeviceQueueFamilyInfo* outQueueInfo,
-	SwapchainSupportInfo* outSwapchainSupport)
+bool Device::PhysicalDeviceMeetsRequirements(VkSurfaceKHR surface, const PhysicalDeviceRequirements& requirements, 
+	PhysicalDeviceQueueFamilyInfo& outQueueInfo, SwapchainSupportInfo& outSwapchainSupport)
 {
-	outQueueInfo->graphicsFamilyIndex = -1;
-	outQueueInfo->presentFamilyIndex = -1;
-	outQueueInfo->computeFamilyIndex = -1;
-	outQueueInfo->transferFamilyIndex = -1;
+	outQueueInfo.graphicsFamilyIndex = -1;
+	outQueueInfo.presentFamilyIndex = -1;
+	outQueueInfo.computeFamilyIndex = -1;
+	outQueueInfo.transferFamilyIndex = -1;
 
-	if (requirements->discreteGpu)
+	if (requirements.discreteGpu)
 	{
-		if (properties->deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		if (properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
 			Logger::Trace("Device is not a discrete GPU, and one is required. Skipping.");
 			return false;
@@ -330,32 +307,32 @@ bool Device::physicalDeviceMeetsRequirements(
 	}
 
 	U32 queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, 0);
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, 0);
 	VkQueueFamilyProperties queueFamilies[32];
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies);
 
 	U8 minTransferScore = 255;
 	for (U32 i = 0; i < queueFamilyCount; ++i)
 	{
 		U8 currentTransferScore = 0;
 
-		if (outQueueInfo->graphicsFamilyIndex == -1 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if (outQueueInfo.graphicsFamilyIndex == -1 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			outQueueInfo->graphicsFamilyIndex = i;
+			outQueueInfo.graphicsFamilyIndex = i;
 			++currentTransferScore;
 
 			VkBool32 supportsPresent = VK_FALSE;
-			VkCheck(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supportsPresent));
+			VkCheck(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresent));
 			if (supportsPresent)
 			{
-				outQueueInfo->presentFamilyIndex = i;
+				outQueueInfo.presentFamilyIndex = i;
 				++currentTransferScore;
 			}
 		}
 
-		if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+		if (outQueueInfo.computeFamilyIndex == -1 && queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
 		{
-			outQueueInfo->computeFamilyIndex = i;
+			outQueueInfo.computeFamilyIndex = i;
 			++currentTransferScore;
 		}
 
@@ -364,22 +341,22 @@ bool Device::physicalDeviceMeetsRequirements(
 			if (currentTransferScore <= minTransferScore)
 			{
 				minTransferScore = currentTransferScore;
-				outQueueInfo->transferFamilyIndex = i;
+				outQueueInfo.transferFamilyIndex = i;
 			}
 		}
 	}
 
-	if (outQueueInfo->presentFamilyIndex == -1)
+	if (outQueueInfo.presentFamilyIndex == -1)
 	{
 		for (U32 i = 0; i < queueFamilyCount; ++i)
 		{
 			VkBool32 supportsPresent = VK_FALSE;
-			VkCheck(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supportsPresent));
+			VkCheck(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresent));
 			if (supportsPresent)
 			{
-				outQueueInfo->presentFamilyIndex = i;
+				outQueueInfo.presentFamilyIndex = i;
 
-				if (outQueueInfo->presentFamilyIndex != outQueueInfo->graphicsFamilyIndex)
+				if (outQueueInfo.presentFamilyIndex != outQueueInfo.graphicsFamilyIndex)
 				{
 					Logger::Warn("Different queue index used for present vs graphics: {}.", i);
 				}
@@ -390,51 +367,51 @@ bool Device::physicalDeviceMeetsRequirements(
 
 	Logger::Trace("Graphics | Present | Compute | Transfer | Name");
 	Logger::Trace("       {} |       {} |       {} |        {} | {}",
-		outQueueInfo->graphicsFamilyIndex != -1,
-		outQueueInfo->presentFamilyIndex != -1,
-		outQueueInfo->computeFamilyIndex != -1,
-		outQueueInfo->transferFamilyIndex != -1,
-		properties->deviceName);
+		outQueueInfo.graphicsFamilyIndex != -1,
+		outQueueInfo.presentFamilyIndex != -1,
+		outQueueInfo.computeFamilyIndex != -1,
+		outQueueInfo.transferFamilyIndex != -1,
+		properties.deviceName);
 
-	if ((!requirements->graphics || (requirements->graphics && outQueueInfo->graphicsFamilyIndex != -1)) &&
-		(!requirements->present || (requirements->present && outQueueInfo->presentFamilyIndex != -1)) &&
-		(!requirements->compute || (requirements->compute && outQueueInfo->computeFamilyIndex != -1)) &&
-		(!requirements->transfer || (requirements->transfer && outQueueInfo->transferFamilyIndex != -1)))
+	if ((!requirements.graphics || (requirements.graphics && outQueueInfo.graphicsFamilyIndex != -1)) &&
+		(!requirements.present || (requirements.present && outQueueInfo.presentFamilyIndex != -1)) &&
+		(!requirements.compute || (requirements.compute && outQueueInfo.computeFamilyIndex != -1)) &&
+		(!requirements.transfer || (requirements.transfer && outQueueInfo.transferFamilyIndex != -1)))
 	{
 		Logger::Trace("Device meets queue requirements.");
-		Logger::Trace("Graphics Family Index: {}", outQueueInfo->graphicsFamilyIndex);
-		Logger::Trace("Present Family Index:  {}", outQueueInfo->presentFamilyIndex);
-		Logger::Trace("Transfer Family Index: {}", outQueueInfo->transferFamilyIndex);
-		Logger::Trace("Compute Family Index:  {}", outQueueInfo->computeFamilyIndex);
+		Logger::Trace("Graphics Family Index: {}", outQueueInfo.graphicsFamilyIndex);
+		Logger::Trace("Present Family Index:  {}", outQueueInfo.presentFamilyIndex);
+		Logger::Trace("Transfer Family Index: {}", outQueueInfo.transferFamilyIndex);
+		Logger::Trace("Compute Family Index:  {}", outQueueInfo.computeFamilyIndex);
 
-		QuerySwapchainSupport(device, surface, outSwapchainSupport);
+		QuerySwapchainSupport(surface);
 
-		if (outSwapchainSupport->formats.Size() < 1 || outSwapchainSupport->presentModes.Size() < 1)
+		if (outSwapchainSupport.formats.Size() < 1 || outSwapchainSupport.presentModes.Size() < 1)
 		{
-			outSwapchainSupport->formats.Clear();
-			outSwapchainSupport->presentModes.Clear();
+			outSwapchainSupport.formats.Clear();
+			outSwapchainSupport.presentModes.Clear();
 			Logger::Trace("Required swapchain support not present, skipping device.");
 			return false;
 		}
 
-		if (requirements->deviceExtensionNames.Size())
+		if (requirements.deviceExtensionNames.Size())
 		{
 			U32 availableExtensionCount = 0;
 			VkExtensionProperties* availableExtensions = 0;
-			VkCheck(vkEnumerateDeviceExtensionProperties(device, 0, &availableExtensionCount, 0));
+			VkCheck(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &availableExtensionCount, 0));
 
 			if (availableExtensionCount != 0)
 			{
 				availableExtensions = (VkExtensionProperties*)Memory::Allocate(sizeof(VkExtensionProperties) * availableExtensionCount, MEMORY_TAG_RENDERER);
-				VkCheck(vkEnumerateDeviceExtensionProperties(device, 0, &availableExtensionCount, availableExtensions));
+				VkCheck(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &availableExtensionCount, availableExtensions));
 
-				U32 requiredExtensionCount = (U32)requirements->deviceExtensionNames.Size();
+				U32 requiredExtensionCount = (U32)requirements.deviceExtensionNames.Size();
 				for (U32 i = 0; i < requiredExtensionCount; ++i)
 				{
 					bool found = false;
 					for (U32 j = 0; j < availableExtensionCount; ++j)
 					{
-						if (strcmp(requirements->deviceExtensionNames[i], availableExtensions[j].extensionName) == 0)
+						if (strcmp(requirements.deviceExtensionNames[i], availableExtensions[j].extensionName) == 0)
 						{
 							found = true;
 							break;
@@ -443,7 +420,7 @@ bool Device::physicalDeviceMeetsRequirements(
 
 					if (!found)
 					{
-						Logger::Trace("Required extension not found: {}, skipping device.", requirements->deviceExtensionNames[i]);
+						Logger::Trace("Required extension not found: {}, skipping device.", requirements.deviceExtensionNames[i]);
 						Memory::Free(availableExtensions, sizeof(VkExtensionProperties) * availableExtensionCount, MEMORY_TAG_RENDERER);
 						return false;
 					}
@@ -452,7 +429,7 @@ bool Device::physicalDeviceMeetsRequirements(
 			Memory::Free(availableExtensions, sizeof(VkExtensionProperties) * availableExtensionCount, MEMORY_TAG_RENDERER);
 		}
 
-		if (requirements->samplerAnisotropy && !features->samplerAnisotropy)
+		if (requirements.samplerAnisotropy && !features.samplerAnisotropy)
 		{
 			Logger::Trace("Device does not support samplerAnisotropy, skipping.");
 			return false;
@@ -464,24 +441,24 @@ bool Device::physicalDeviceMeetsRequirements(
 	return false;
 }
 
-void Device::QuerySwapchainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapchainSupportInfo* outSupportInfo)
+void Device::QuerySwapchainSupport(VkSurfaceKHR surface)
 {
-	VkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &outSupportInfo->capabilities));
+	VkCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &swapchainSupport.capabilities));
 
 	U32 size;
 	VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &size, nullptr));
 
 	if (size)
 	{
-		outSupportInfo->formats.Resize(size);
-		VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &size, outSupportInfo->formats.Data()));
+		swapchainSupport.formats.Resize(size);
+		VkCheck(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &size, swapchainSupport.formats.Data()));
 	}
 
 	VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &size, nullptr));
 	if (size)
 	{
-		outSupportInfo->presentModes.Resize(size);
-		VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &size, outSupportInfo->presentModes.Data()));
+		swapchainSupport.presentModes.Resize(size);
+		VkCheck(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &size, (VkPresentModeKHR*)swapchainSupport.presentModes.Data()));
 	}
 }
 

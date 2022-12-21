@@ -1,10 +1,21 @@
 #pragma once
 
-#include "VulkanDefines.hpp"
-
 #include "Renderer/Renderer.hpp"
 
+#include "VulkanDefines.hpp"
+
 template<typename> struct Vector;
+struct Mesh;
+struct Renderpass;
+struct String;
+struct MeshRenderData;
+struct Texture;
+struct TextureMap;
+struct RenderTarget;
+struct Shader;
+struct Uniform;
+struct PushConstant;
+struct Vector2Int;
 struct ShaderStage;
 class VulkanBuffer;
 

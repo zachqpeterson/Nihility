@@ -24,7 +24,7 @@ RenderTarget Swapchain::renderTargets[3];
 
 bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 {
-	Logger::Trace("Creating vulkan swapchain...");
+	Logger::Info("Creating vulkan swapchain...");
 
 	VkExtent2D swapchainExtent = { width, height };
 
@@ -57,7 +57,7 @@ bool Swapchain::Initialize(RendererState* rendererState, U32 width, U32 height)
 		}
 	}
 
-	Device::QuerySwapchainSupport(Device::physicalDevice, rendererState->surface, &Device::swapchainSupport);
+	Device::QuerySwapchainSupport(rendererState->surface);
 
 	if (Device::swapchainSupport.capabilities.currentExtent.width != UINT32_MAX)
 	{

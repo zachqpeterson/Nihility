@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Defines.hpp"
-
 #include "Renderer/RendererDefines.hpp"
 #include "Resources/Resources.hpp"
 #include <Containers/HashMap.hpp>
