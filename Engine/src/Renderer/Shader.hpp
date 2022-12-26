@@ -74,7 +74,6 @@ struct Attribute
 
 struct PushConstant
 {
-	String name;
 	FieldType type{ FIELD_TYPE_CUSTOM };
 	U32 size{ 0 };
 	U32 offset{ 0 };
@@ -89,7 +88,7 @@ public:
 	bool AddUniform(Uniform uniform);
 	bool AddPushConstant(PushConstant pushConstant);
 
-	void ApplyMaterialLocals(const Matrix4& model);
+	void ApplyMaterialLocals(void* pushConstants);
 
 public:
 	String name;

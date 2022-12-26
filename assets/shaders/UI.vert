@@ -6,15 +6,18 @@ layout(location = 2) in vec4 inColor;
 
 layout(push_constant) uniform pushConstants
 {
-	mat4 model;
+	vec4 area;
+	vec2 position;
 } push;
 
 layout(location = 0) out vec2 outTexcoord;
 layout(location = 1) out vec4 outColor;
+layout(location = 2) out vec4 outArea;
 
 void main()
 {
-    outTexcoord = inTexcoord;
-    outColor = inColor;
-    gl_Position = push.model * vec4(inPosition, 1.0);
+	outTexcoord = inTexcoord;
+	outColor = inColor;
+	outArea = push.area;
+	gl_Position = vec4((inPosition + vec3(push.position, 0.0)) * 2.0 - 1.0, 1.0);
 }

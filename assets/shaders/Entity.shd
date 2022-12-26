@@ -14,4 +14,4 @@ uniform=mat4,0,0,view
 uniform=vec4,0,0,ambientColor
 uniform=samp,0,1,diffuseTexture
 
-push=mat4,model
+push=mat4

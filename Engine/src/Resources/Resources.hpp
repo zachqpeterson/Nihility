@@ -201,6 +201,7 @@ struct NH_API Mesh
 	U32 vertexCount{ 0 };
 	U32 vertexSize{ 0 };
 	Vector<U32> indices;
+	void* pushConstant{ nullptr };
 	void* internalData{ nullptr };
 };
 

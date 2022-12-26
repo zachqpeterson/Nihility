@@ -1184,12 +1184,24 @@ Shader* Resources::LoadShader(const String& name)
 			{
 				Vector<String> fields(Move(varValue.Split(',', true)));
 
-				if (fields.Size() != 2) { Logger::Error("LoadShader: Push constant fields must be 'type,name'. Skipping..."); }
+				if (fields.Size() > 1)
+				{ 
+					PushConstant pushConstant;
+					pushConstant.type = FIELD_TYPE_CUSTOM;
+					FieldType type;
+					U32 size;
+					for (String& string : fields)
+					{
+						GetConfigType(string, type, size);
+						pushConstant.size += size;
+					}
+
+					shader->AddPushConstant(pushConstant);
+				}
 				else
 				{
 					PushConstant pushConstant;
 					GetConfigType(fields[0], pushConstant.type, pushConstant.size);
-					pushConstant.name = fields[1];
 					shader->AddPushConstant(pushConstant);
 				}
 

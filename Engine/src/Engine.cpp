@@ -69,6 +69,10 @@ void Engine::MainLoop()
 	config.ignore = true;
 	config.scene = (Scene*)RendererFrontend::CurrentScene();
 	UIText* fpsCounter = UI::GenerateText(config, "60", 12);
+	config.position = { 0.5f, 0.5f };
+	U32 i = 0;
+	UIText* test = UI::GenerateText(config, i, 12);
+
 #endif
 
 	while (running)
@@ -76,6 +80,7 @@ void Engine::MainLoop()
 		Time::Update();
 #ifdef NH_DEBUG
 		UI::ChangeText(fpsCounter, Time::FrameRate());
+		UI::ChangeText(test, ++i);
 		UI::ChangeScene(fpsCounter);
 #endif
 		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);

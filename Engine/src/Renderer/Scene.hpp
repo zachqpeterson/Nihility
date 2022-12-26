@@ -32,7 +32,6 @@ public:
 	NH_API void Create(CameraType cameraType);
 	NH_API void Destroy();
 
-	void OnResize();
 	bool OnRender(U64 frameNumber, U64 renderTargetIndex);
 
 	NH_API void DrawGameObject(GameObject2D* gameObject);

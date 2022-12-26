@@ -60,6 +60,8 @@ void Enemy::Update()
 	}
 
 	lastPos = gameObject->transform->Position();
+
+	InternalUpdate();
 }
 
 void Enemy::BasicAI()

@@ -11,4 +11,4 @@ attribute=vec4,inColor
 
 uniform=samp,1,0,diffuseTexture
 
-push=mat4,model
+push=vec4,vec2

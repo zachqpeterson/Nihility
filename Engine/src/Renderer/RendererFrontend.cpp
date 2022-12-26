@@ -18,7 +18,6 @@
 Renderer* RendererFrontend::renderer;
 
 bool RendererFrontend::resizing;
-U8 RendererFrontend::framesSinceResize;
 U8 RendererFrontend::windowRenderTargetCount;
 U32 RendererFrontend::framebufferWidth;
 U32 RendererFrontend::framebufferHeight;
@@ -27,12 +26,10 @@ Scene* RendererFrontend::activeScene;
 
 bool RendererFrontend::Initialize(const String& applicationName)
 {
-	Events::Subscribe("Resize", OnResize);
 	framebufferWidth = Settings::WindowWidth;
 	framebufferHeight = Settings::WindowHeight;
 
 	resizing = false;
-	framesSinceResize = 0;
 
 	//Try vulkan
 	renderer = new VulkanRenderer();
@@ -63,18 +60,9 @@ bool RendererFrontend::DrawFrame()
 
 	if (resizing)
 	{
-		if (++framesSinceResize >= 30)
-		{
-			renderer->OnResize();
-			activeScene->OnResize();
-
-			framesSinceResize = 0;
-			resizing = false;
-		}
-		else
-		{
-			return true;
-		}
+		renderer->OnResize();
+		resizing = false;
+		Events::Notify("Resize", NULL);
 	}
 
 	if (renderer->BeginFrame())
@@ -253,14 +241,11 @@ void RendererFrontend::SetPushConstant(Shader* shader, PushConstant& pushConstan
 	return renderer->SetPushConstant(shader, pushConstant, value);
 }
 
-bool RendererFrontend::OnResize(void* data)
+void RendererFrontend::OnResize()
 {
 	framebufferWidth = Settings::WindowWidth;
 	framebufferHeight = Settings::WindowHeight;
-	framesSinceResize = 0;
 	resizing = true;
-
-	return true;
 }
 
 Vector2Int RendererFrontend::WindowSize()

@@ -122,6 +122,8 @@ void Player::Update()
 			UI::ChangePercent(manaBar, 1.0f);
 		}
 	}
+
+	InternalUpdate();
 }
 
 void Player::SetPosition(const Vector2& position)

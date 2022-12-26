@@ -5,34 +5,43 @@
 #include "Renderer/RendererFrontend.hpp"
 #include "Core/Settings.hpp"
 #include "Core/Input.hpp"
+#include "Core/Events.hpp"
 
 #include <Containers/List.hpp>
 
-#define WIDTH_RATIO 0.01822916666F
-#define HEIGHT_RATIO 0.0324074074F
+#define WIDTH_RATIO 0.00911458333F
+#define HEIGHT_RATIO 0.0162037037F
 
 U64 UI::elementID{ 1 };
 List<UIElement*> UI::elements;
 List<UIElement*> UI::elementsToDestroy;
 Texture* UI::panelTexture;
-UIElement* UI::description;
-UIText* UI::descriptionText;
-Vector2Int UI::descPos;
 UIElement* UI::draggedElement;
 Vector2Int UI::lastMousesPos;
+Vector4 UI::renderArea;
 
 OnMouse UI::OnDragDefault{ DefaultOnDrag };
 OnMouse UI::OnHoverDefault{ DefaultOnHover };
 UIEvent UI::OnExitDefault{ DefaultOnExit };
+OnScroll UI::OnScrollWindowDefault{ DefaultOnScrollWindow };
 void UI::DefaultOnDrag(UIElement* e, const Vector2Int& delta, void* data) { UI::MoveElement(e, delta); }
 void UI::DefaultOnHover(UIElement* e, const Vector2Int& delta, void* data) { UI::ChangeColor(e, { 0.8f, 0.8f, 0.8f, 1.0f }); }
 void UI::DefaultOnExit(UIElement* e, void* data) { UI::ChangeColor(e, { 1.0f, 1.0f, 1.0f, 1.0f }); }
+void UI::DefaultOnScrollWindow(UIElement* e, const Vector2Int& position, I16 delta, void* data)
+{
+
+}
 
 bool UI::Initialize()
 {
 	panelTexture = Resources::LoadTexture("UI.bmp");
 	Resources::LoadFont("Arial");
-	descPos = RendererFrontend::WindowSize() / 2;
+
+	Events::Subscribe("Resize", OnResize);
+	Vector2Int size = RendererFrontend::WindowSize();
+	Vector2Int offset = RendererFrontend::WindowOffset();
+
+	renderArea = { (F32)offset.x, (F32)offset.y, (F32)offset.x + (F32)size.x, (F32)size.y + (F32)offset.y };
 
 	return true;
 }
@@ -97,8 +106,7 @@ void UI::Update()
 
 		for (UIElement* e : elements)
 		{
-			if (!e) { continue; } //TODO: fix
-			Vector4 area = e->area + e->gameObject->transform->WorldPosition() * 0.5f;
+			Vector4 area = e->area + e->push.position;
 
 			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked &&
 				(pos.x > area.x && pos.x < area.z && pos.y > area.y && pos.y < area.w))
@@ -154,73 +162,13 @@ void UI::Update()
 	lastMousesPos = mousePos;
 }
 
-void UI::CreateDescription()
+bool UI::OnResize(void* data)
 {
-	description = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_UI);
-	description->id = 0;
-	description->scene = (Scene*)RendererFrontend::CurrentScene();
-	description->area = { 0.0f, 0.0f, 0.2f, 0.1f };
-	description->color = { 1.0f, 1.0f, 1.0f, 0.75f };
-	description->ignore = true;
-	description->selfEnabled = false;
+	Vector2Int size = RendererFrontend::WindowSize();
+	Vector2Int offset = RendererFrontend::WindowOffset();
+	renderArea = { (F32)offset.x, (F32)offset.y, (F32)offset.x + (F32)size.x, (F32)size.y + (F32)offset.y };
 
-	String name("Description");
-
-	MeshConfig meshConfig{};
-	meshConfig.name = name;
-	meshConfig.MaterialName = "UI.mat";
-	meshConfig.instanceTextures.Push(panelTexture);
-
-	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
-	meshConfig.vertexSize = sizeof(UIVertex);
-	meshConfig.vertexCount = 4;
-	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
-
-	vertices[0] = UIVertex{ { description->area.x, description->area.y, 0.0f}, { 0.0f, 0.66666666666f },	description->color };
-	vertices[1] = UIVertex{ { description->area.z, description->area.y, 0.0f}, { 1.0f, 0.66666666666f },	description->color };
-	vertices[2] = UIVertex{ { description->area.z, description->area.w, 0.0f}, { 1.0f, 1.0f },				description->color };
-	vertices[3] = UIVertex{ { description->area.x, description->area.w, 0.0f}, { 0.0f, 1.0f },				description->color };
-
-	meshConfig.indices.Resize(6);
-
-	meshConfig.indices[0] = 0;
-	meshConfig.indices[1] = 1;
-	meshConfig.indices[2] = 2;
-	meshConfig.indices[3] = 2;
-	meshConfig.indices[4] = 3;
-	meshConfig.indices[5] = 0;
-
-	Mesh* mesh = Resources::CreateMesh(meshConfig);
-
-	if (!mesh)
-	{
-		Logger::Error("UI::GenerateBorderedPanel: Failed to Generate UI mesh!");
-		Memory::Free(description, sizeof(UIElement), MEMORY_TAG_UI);
-		return;
-	}
-
-	description->mesh = mesh;
-	Vector<Mesh*> meshes(1, mesh);
-	GameObject2DConfig goConfig{};
-	goConfig.name = name;
-	goConfig.model = Resources::CreateModel(name, meshes);
-	goConfig.transform = new Transform2D();
-
-	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = false;
-	description->gameObject = go;
-
-	UIElementConfig config{};
-	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
-	config.enabled = true;
-	config.ignore = true;
-	config.parent = description;
-	config.position = { 0.0f, 0.0f };
-	config.scale = { 1.0f, 1.0f };
-	config.scene = description->scene;
-	GenerateText(config, "", 10);
-
-	elements.PushFront(description);
+	return false;
 }
 
 UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
@@ -267,14 +215,13 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		}
 		else
 		{
-			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+			uiArea += { config.parent->area.x, config.parent->area.y };
 		}
 	}
 
 	panel->area = uiArea;
-
-	uiArea *= 2;
-	uiArea -= 1;
+	panel->push.position = Vector2::ZERO;
+	panel->push.renderArea = renderArea;
 
 	F32 id = 1.0f - (F32)panel->id * 0.001f;
 
@@ -287,18 +234,18 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
 		//BOTTOM LEFT CORNER  
-		vertices[0] = UIVertex{ { uiArea.x,				uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[0] = UIVertex{ { uiArea.x,					uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
 		vertices[1] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 1.0f, 0.33333333333f },	 config.color };
 		vertices[2] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[3] = UIVertex{ { uiArea.x,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[3] = UIVertex{ { uiArea.x,					uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
 		//TOP LEFT CORNER		
-		vertices[4] = UIVertex{ { uiArea.x,				uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[4] = UIVertex{ { uiArea.x,					uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
 		vertices[5] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
 		vertices[6] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[7] = UIVertex{ { uiArea.x,				uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[7] = UIVertex{ { uiArea.x,					uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
 		//BOTTOM RIGHT CORNER
 		vertices[8] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[9] = UIVertex{ { uiArea.z,				uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[9] = UIVertex{ { uiArea.z,					uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
 		vertices[10] = UIVertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
 		vertices[11] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
 		//TOP RIGHT CORNER
@@ -405,10 +352,10 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		meshConfig.vertexCount = 4;
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f }, config.color };
-		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f }, config.color };
-		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }				, config.color };
-		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }				, config.color };
+		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f },	config.color };
+		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f },	config.color };
+		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f },				config.color };
+		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f },				config.color };
 
 		meshConfig.indices.Resize(6);
 
@@ -429,13 +376,12 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		return nullptr;
 	}
 
+	mesh->pushConstant = &panel->push;
 	panel->mesh = mesh;
 	Vector<Mesh*> meshes(1, mesh);
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
-	goConfig.transform = new Transform2D();
-	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
@@ -492,14 +438,13 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 		}
 		else
 		{
-			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+			uiArea += { config.parent->area.x, config.parent->area.y };
 		}
 	}
 
 	image->area = uiArea;
-
-	uiArea *= 2;
-	uiArea -= 1;
+	image->push.position = Vector2::ZERO;
+	image->push.renderArea = renderArea;
 
 	F32 id = 1.0f - (F32)image->id * 0.001f;
 
@@ -541,13 +486,12 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 		return nullptr;
 	}
 
+	mesh->pushConstant = &image->push;
 	image->mesh = mesh;
 	Vector<Mesh*> meshes(1, mesh);
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
-	goConfig.transform = new Transform2D();
-	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
@@ -603,11 +547,14 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 		}
 		else
 		{
-			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+			uiArea += { config.parent->area.x, config.parent->area.y };
 		}
 	}
 
 	uiText->area = uiArea;
+	uiText->push.position = Vector2::ZERO;
+	uiText->push.renderArea = renderArea;
+
 	Mesh* mesh = nullptr;
 
 	if (text.Length())
@@ -625,26 +572,24 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 		F32 pixelWidth = size / 800.0f;
 		F32 pixelHeight = size / 450.0f;
 
-		Font* font = Resources::LoadFont("Arial");
-
 		F32 areaX = uiArea.x;
 		F32 areaW = uiArea.w - pixelHeight;
 
 		F32 id = 1.0f - (F32)uiText->id * 0.001f;
 		U32 i = 0;
 
+		Font* font = Resources::LoadFont("Arial");
+
 		for (char c : text)
 		{
 			Character& character = font->characters[c];
 
 			F32 x = areaX + pixelWidth * character.xOffset;
-			F32 z = (x + pixelWidth * character.width) * 2.0f - 1.0f;
-			x = x * 2.0f - 1.0f;
+			F32 z = x + pixelWidth * character.width;
 			F32 y = areaW + pixelHeight * character.yOffset;
-			F32 w = (y + pixelHeight * character.height) * 2.0f - 1.0f;
-			y = y * 2.0f - 1.0f;
+			F32 w = y + pixelHeight * character.height;
 
-			vertices[i * 4]		= UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, config.color };
+			vertices[i * 4] = UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, config.color };
 			vertices[i * 4 + 1] = UIVertex{ { z, y, id}, { character.x + character.uvWidth, character.y + character.uvHeight }, config.color };
 			vertices[i * 4 + 2] = UIVertex{ { z, w, id}, { character.x + character.uvWidth, character.y }, config.color };
 			vertices[i * 4 + 3] = UIVertex{ { x, w, id}, { character.x, character.y }, config.color };
@@ -674,9 +619,11 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 	uiText->mesh = mesh;
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
-	if (mesh) { goConfig.model = Resources::CreateModel(name, { 1, mesh }); }
-	goConfig.transform = new Transform2D();
-	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
+	if (mesh)
+	{
+		goConfig.model = Resources::CreateModel(name, { 1, mesh });
+		mesh->pushConstant = &uiText->push;
+	}
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
@@ -734,14 +681,13 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 		}
 		else
 		{
-			uiArea += Vector2{ config.parent->area.x, config.parent->area.y };
+			uiArea += { config.parent->area.x, config.parent->area.y };
 		}
 	}
 
 	bar->area = uiArea;
-
-	uiArea *= 2;
-	uiArea -= 1;
+	bar->push.position = Vector2::ZERO;
+	bar->push.renderArea = renderArea;
 
 	F32 id = 1.0f - (F32)bar->id * 0.001f;
 
@@ -795,14 +741,14 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 		return nullptr;
 	}
 
+	mesh0->pushConstant = &bar->push;
+	mesh1->pushConstant = &bar->push;
 	meshes.Push(mesh1);
 	meshes.Push(mesh0);
 
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	goConfig.model = Resources::CreateModel(name, meshes);
-	goConfig.transform = new Transform2D();
-	if (config.parent) { goConfig.transform->parent = config.parent->gameObject->transform; }
 
 	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
 	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
@@ -812,6 +758,66 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	config.scene->DrawGameObject(go);
 
 	return bar;
+}
+
+UIScrollWindow* UI::GenerateScrollWindow(UIElementConfig& config, F32 spacing, bool horizontal, bool vertical)
+{
+	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
+	{
+		Logger::Error("UI::GenerateImage: Area can't be negative!");
+		return nullptr;
+	}
+
+	if (!config.scene)
+	{
+		Logger::Error("UI::GenerateImage: Scene can't be nullptr!");
+		return nullptr;
+	}
+
+	UIScrollWindow* scroll = (UIScrollWindow*)Memory::Allocate(sizeof(UIScrollWindow), MEMORY_TAG_UI);
+	scroll->id = elementID++;
+	scroll->scene = config.scene;
+	scroll->color = config.color;
+	scroll->ignore = config.ignore;
+	scroll->selfEnabled = config.enabled;
+	scroll->parent = config.parent;
+	scroll->type = UI_TYPE_SCROLL;
+
+	String name("UI_Element_{}", scroll->id);
+
+	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
+
+	if (config.parent)
+	{
+		config.parent->children.PushBack(scroll);
+
+		if (!config.scaled)
+		{
+			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
+			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
+			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
+			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+		}
+		else
+		{
+			uiArea += { config.parent->area.x, config.parent->area.y };
+		}
+	}
+
+	scroll->area = uiArea;
+	scroll->push.position = Vector2::ZERO;
+	scroll->push.renderArea = { renderArea.z * uiArea.x, renderArea.z * uiArea.z, renderArea.w * uiArea.y, renderArea.w * uiArea.w };
+
+	GameObject2DConfig goConfig{};
+	goConfig.name = name;
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
+	scroll->gameObject = go;
+
+	elements.PushFront(scroll);
+
+	return scroll;
 }
 
 void UI::SetEnable(UIElement* element, bool enable)
@@ -877,39 +883,45 @@ void UI::ChangeSize(UIElement* element, const Vector4& newArea)
 void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 {
 	Vector2 move = (Vector2)delta / (Vector2)RendererFrontend::WindowSize();
-	Vector2 translate = move * 2.0f;
 
-	element->gameObject->transform->Translate(translate);
+	element->push.position += move;
+
+	for (UIElement* e : element->children)
+	{
+		e->push.position += move;
+	}
 }
 
 void UI::MoveElement(UIElement* element, const Vector2& delta)
 {
-	element->gameObject->transform->Translate(delta * 2.0f);
+	element->push.position += delta;
+
+	for (UIElement* e : element->children)
+	{
+		e->push.position += delta;
+	}
 }
 
 void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
 {
-	Vector2 scaledPos = (Vector2)position / (Vector2)RendererFrontend::WindowSize();
+	Vector2 pos = (Vector2)position / (Vector2)RendererFrontend::WindowSize();
 
-	Vector2 pos = scaledPos * 2.0f - 1.0f;
+	element->push.position = pos;
 
-	element->gameObject->transform->SetPosition(pos);
+	for (UIElement* e : element->children)
+	{
+		e->push.position = pos;
+	}
 }
 
 void UI::SetElementPosition(UIElement* element, const Vector2& position)
 {
-	Vector2 pos{ position };
+	element->push.position = position;
 
-	if (element->parent)
+	for (UIElement* e : element->children)
 	{
-		pos.x = element->parent->area.x + ((element->parent->area.z - element->parent->area.x) * pos.x);
-		pos.y = element->parent->area.y + ((element->parent->area.w - element->parent->area.y) * pos.y);
+		e->push.position = position;
 	}
-
-	pos *= 2.0f;
-	pos -= 1.0f;
-
-	element->gameObject->transform->SetPosition(pos);
 }
 
 void UI::ChangeColor(UIElement* element, const Vector4& newColor)
@@ -980,7 +992,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		F32 areaX = uiArea.x;
 		F32 areaW = uiArea.w - pixelHeight;
 
-		F32 id = (F32)element->id * 0.001f;
+		F32 id = 1.0f - (F32)element->id * 0.001f;
 		U32 i = 0;
 
 		Font* font = Resources::LoadFont("Arial");
@@ -1000,11 +1012,9 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				Character& character = font->characters[c];
 
 				F32 x = areaX + pixelWidth * character.xOffset;
-				F32 z = (x + pixelWidth * character.width) * 2.0f - 1.0f;
-				x = x * 2.0f - 1.0f;
+				F32 z = x + pixelWidth * character.width;
 				F32 y = areaW + pixelHeight * character.yOffset;
-				F32 w = (y + pixelHeight * character.height) * 2.0f - 1.0f;
-				y = y * 2.0f - 1.0f;
+				F32 w = y + pixelHeight * character.height;
 
 				vertices[i * 4] = UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, element->color };
 				vertices[i * 4 + 1] = UIVertex{ { z, y, id}, { character.x + character.uvWidth, character.y + character.uvHeight }, element->color };
@@ -1041,11 +1051,9 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				const Character& character = font->characters[c];
 
 				F32 x = areaX + pixelWidth * character.xOffset;
-				F32 z = (x + pixelWidth * character.width) * 2.0f - 1.0f;
-				x = x * 2.0f - 1.0f;
+				F32 z = x + pixelWidth * character.width;
 				F32 y = areaW + pixelHeight * character.yOffset;
-				F32 w = (y + pixelHeight * character.height) * 2.0f - 1.0f;
-				y = y * 2.0f - 1.0f;
+				F32 w = y + pixelHeight * character.height;
 
 				vertices[i * 4] = UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, element->color };
 				vertices[i * 4 + 1] = UIVertex{ { z, y, id}, { character.x + character.uvWidth, character.y + character.uvHeight }, element->color };
@@ -1064,6 +1072,8 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 			}
 
 			Mesh* mesh = Resources::CreateMesh(meshConfig);
+
+			mesh->pushConstant = &element->push;
 
 			element->mesh = mesh;
 			element->gameObject->model = Resources::CreateModel(element->gameObject->name, { 1, mesh });
@@ -1084,7 +1094,7 @@ void UI::ChangePercent(UIBar* element, F32 percent)
 {
 	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[0]->vertices;
 
-	Vector4 scaledArea = element->area * 2.0f - 1.0f;
+	Vector4 scaledArea = element->area;
 
 	F32 newX = scaledArea.z - (scaledArea.z - scaledArea.x) * (1.0f - percent);
 
@@ -1106,36 +1116,20 @@ void UI::ChangeFillColor(UIBar* element, const Vector4& fillColor)
 	RendererFrontend::CreateMesh(element->mesh);
 }
 
-void UI::ShowDescription(const Vector2Int& position, const String& desc)
+void UI::AddScrollItem(UIScrollWindow* scrollWindow, UIElement* element)
 {
-	if (!description) { CreateDescription(); }
-
-	if (description->scene != RendererFrontend::CurrentScene()) { ChangeScene(description); }
-
-	SetElementPosition(description, position);
-	descPos = position;
-
-	SetEnable(description, true);
-	description->scene->DrawGameObject(description->gameObject);
-
-	ChangeText((UIText*)description->children.Front(), desc);
-}
-
-void UI::MoveDescription(const Vector2Int& position)
-{
-	if (description)
+	if (scrollWindow->vertical)
 	{
-		SetElementPosition(description, position);
-		descPos = position;
+		F32 size = element->area.w - element->area.y;
+		scrollWindow->size += size;
+
+
+
+		element->gameObject->transform->parent = scrollWindow->gameObject->transform;
 	}
-}
-
-void UI::HideDescription()
-{
-	if (description)
+	else if (scrollWindow->horizontal)
 	{
-		SetEnable(description, false);
-		description->scene->UndrawGameObject(description->gameObject);
+
 	}
 }
 
@@ -1165,7 +1159,6 @@ void UI::DestroyElementInternal(UIElement* element)
 		if (element->parent)
 		{
 			element->parent->children.Remove(element);
-			element->gameObject->transform->parent = nullptr;
 		}
 
 		element->scene->UndrawGameObject(element->gameObject);
@@ -1192,6 +1185,8 @@ void UI::DestroyElementInternal(UIElement* element)
 		{
 			Memory::Free(element, sizeof(UIBar), MEMORY_TAG_UI);
 		} break;
+		case UI_TYPE_SCROLL:
+			Memory::Free(element, sizeof(UIScrollWindow), MEMORY_TAG_UI);
 		}
 	}
 }

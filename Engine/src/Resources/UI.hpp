@@ -35,8 +35,6 @@ struct Mesh;
 struct Model;
 struct Texture;
 struct GameObject2D;
-struct Vector3;
-struct Vector2;
 class Scene;
 
 struct UIVertex
@@ -44,6 +42,12 @@ struct UIVertex
 	Vector3 position;
 	Vector2 uv;
 	Vector4 color;
+};
+
+struct UIPushConstant
+{
+	Vector4 renderArea{};
+	Vector2 position{};
 };
 
 enum UIType
@@ -54,6 +58,7 @@ enum UIType
 	UI_TYPE_IMAGE,
 	UI_TYPE_TEXT,
 	UI_TYPE_BAR,
+	UI_TYPE_SCROLL,
 
 	UI_TYPE_COUNT
 };
@@ -66,6 +71,7 @@ struct UIElement
 	bool clicked{ false };
 	bool selfEnabled{ true };
 	Vector4 area{};
+	UIPushConstant push;
 	Vector4 color{};
 	UIElement* parent;
 	List<UIElement*> children;
@@ -106,6 +112,15 @@ struct UIBar : public UIElement
 	Vector4 fillColor;
 };
 
+struct UIScrollWindow : public UIElement
+{
+	List<UIElement*> elements;
+	F32 spacing;
+	bool horizontal;
+	bool vertical;
+	F32 size;
+};
+
 class NH_API UI
 {
 public:
@@ -113,6 +128,7 @@ public:
 	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture, const Vector<Vector2>& uvs);
 	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
 	static UIBar* GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 percent);
+	static UIScrollWindow* GenerateScrollWindow(UIElementConfig& config, F32 spacing, bool horizontal, bool vertical);
 
 	static void SetEnable(UIElement* element, bool enable);
 	static void ChangeScene(UIElement* element, Scene* scene = nullptr);
@@ -127,23 +143,21 @@ public:
 	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
 	static void ChangePercent(UIBar* element, F32 percent);
 	static void ChangeFillColor(UIBar* element, const Vector4& fillColor);
+	static void AddScrollItem(UIScrollWindow* scrollWindow, UIElement* element);
 	static void DestroyElement(UIElement* element);
 	static void DestroyAllChildren(UIElement* element);
-
-	static void ShowDescription(const Vector2Int& position, const String& desc);
-	static void MoveDescription(const Vector2Int& position);
-	static void HideDescription();
 
 	static OnMouse OnDragDefault;
 	static OnMouse OnHoverDefault;
 	static UIEvent OnExitDefault;
+	static OnScroll OnScrollWindowDefault;
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 	static void Update();
+	static bool OnResize(void* data);
 
-	static void CreateDescription();
 	static void SetEnableChild(UIElement* element, bool enable);
 	static void DestroyElementInternal(UIElement* element);
 
@@ -152,16 +166,15 @@ private:
 	static void DefaultOnDrag(UIElement* e, const Vector2Int& delta, void* data);
 	static void DefaultOnHover(UIElement* e, const Vector2Int& delta, void* data);
 	static void DefaultOnExit(UIElement* e, void* data);
+	static void DefaultOnScrollWindow(UIElement* e, const Vector2Int& position, I16 delta, void* data);
 
 	static U64 elementID;
 	static List<UIElement*> elements;
 	static List<UIElement*> elementsToDestroy;
 	static Texture* panelTexture;
-	static UIElement* description;
-	static UIText* descriptionText;
-	static Vector2Int descPos;
 	static UIElement* draggedElement;
 	static Vector2Int lastMousesPos;
+	static Vector4 renderArea;
 
 	friend class Engine;
 };

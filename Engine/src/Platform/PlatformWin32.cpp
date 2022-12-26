@@ -7,6 +7,7 @@
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
 #include "Math/Math.hpp"
+#include "Renderer/RendererFrontend.hpp"
 
 #include "../resource.h"
 #include <Windows.h>
@@ -683,7 +684,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		Settings::WINDOW_WIDTH = windowWidth - borderRect.right + borderRect.left;
 		Settings::WINDOW_HEIGHT = windowHeight - borderRect.bottom + borderRect.top;
 
-		Events::Notify("Resize", NULL);
+		RendererFrontend::OnResize();
 	} return 0;
 	case WM_MOVE: {
 		if (!Settings::Fullscreen)

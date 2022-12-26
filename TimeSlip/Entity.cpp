@@ -65,6 +65,9 @@ facing{ true }, ignore{ config.ignore }, player{ player }, despawnRange{ config.
 	goConfig.physics = Physics::Create2DPhysicsObject(physicsConfig);
 	goConfig.transform = physicsConfig.transform;
 
+	model = physicsConfig.transform->World();
+	goConfig.model->meshes[0]->pushConstant = &model;
+
 	gameObject = Resources::CreateGameObject2D(goConfig);
 	animation = Animations::AddAnimation(gameObject->model->meshes[0], 0, 12, 16, 3, 16);
 
@@ -84,6 +87,12 @@ void Entity::Destroy()
 	Physics::DestroyPhysicsObjects2D(gameObject->physics);
 	Resources::DestroyGameObject2D(gameObject);
 	gameObject = nullptr;
+}
+
+void Entity::InternalUpdate()
+{
+	model = gameObject->transform->World();
+	gameObject->model->meshes[0]->pushConstant = &model;
 }
 
 bool Entity::TakeDamage(const Damage& damage)

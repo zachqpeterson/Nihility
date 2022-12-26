@@ -76,11 +76,11 @@ void TimeSlip::OnClickSelect(UIElement* e, const Vector2Int& pos, void* data)
 	const Recipe* recipe = (const Recipe*)data;
 	selectedRecipe = recipe;
 
-	UI::SetElementPosition(recipeSelection, Vector2{ -0.1f, e->area.y * 1.5f + 0.22f }); //TODO: Fix this
+	//UI::SetElementPosition(recipeSelection, Vector2{ -0.1f, e->area.y * 1.5f + 0.22f }); //TODO: Fix this
 	UI::SetEnable(recipeSelection, true);
 	UI::ChangeTexture(craftResult, nullptr, Inventory::GetUV(recipe->result));
 
-	UpdateCraftingMenu();
+	UpdateCraftingMenu(); //TODO: check if the recipe is changing
 }
 
 void TimeSlip::OnClickCraft(UIElement* e, const Vector2Int& pos, void* data)

@@ -65,7 +65,7 @@ public:
 	static void SetInstanceUniform(Shader* shader, Uniform& uniform, const void* value);
 	static void SetPushConstant(Shader* shader, PushConstant& pushConstant, const void* value);
 
-	static bool OnResize(void* data);
+	static void OnResize();
 	static NH_API Vector2Int WindowSize();
 	static NH_API Vector2Int WindowOffset();
 	static NH_API Vector2 ScreenToWorld(const Vector2& v);
@@ -83,7 +83,6 @@ private:
 	static class Renderer* renderer;
 
 	static bool resizing;
-	static U8 framesSinceResize;
 	static U8 windowRenderTargetCount;
 	static U32 framebufferWidth;
 	static U32 framebufferHeight;

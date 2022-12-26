@@ -37,11 +37,6 @@ void Scene::Destroy()
 
 }
 
-void Scene::OnResize()
-{
-
-}
-
 bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 {
 	Timer timer{};
@@ -131,7 +126,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 
 					material.renderFrameNumber = frameNumber;
 
-					material.shader->ApplyMaterialLocals(data.model);
+					material.shader->ApplyMaterialLocals(data.mesh->pushConstant);
 
 					RendererFrontend::DrawMesh(data);
 				}

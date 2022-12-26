@@ -87,7 +87,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					UI::ChangeTexture(mouseSlot.button, nullptr, GetUV(mouseSlot.itemID));
 					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
 
-					UI::ShowDescription(pos, ""); //TODO: Description
+					//TODO: Show Description
 				}
 			}
 			else
@@ -106,7 +106,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					{
 						slot.itemID = 0;
 						UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
-						UI::HideDescription();
+						//TODO: Hide Description
 					}
 
 					UI::ChangeTexture(mouseSlot.button, nullptr, GetUV(mouseSlot.itemID));
@@ -124,7 +124,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					UI::ChangeTexture(mouseSlot.button, nullptr, GetUV(mouseSlot.itemID));
 					if (mouseSlot.amount > 1) { UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount); }
 
-					UI::HideDescription();
+					//TODO: Hide Description
 				}
 			}
 		}
@@ -148,7 +148,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount);
 				}
 
-				UI::ShowDescription(pos, ""); //TODO: Description
+				//TODO: Show Description
 			}
 			else if (Input::ButtonDown(SHIFT))			//Insert Half
 			{
@@ -173,7 +173,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
 				}
 
-				UI::ShowDescription(pos, ""); //TODO: Description
+				//TODO: Show Description
 			}
 			else										//Insert All
 			{
@@ -187,7 +187,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 				UI::ChangeTexture(mouseSlot.button, nullptr, blankUVs);
 				if (slot.amount > 1) { UI::ChangeText((UIText*)mouseSlot.button->children.Back(), ""); }
 
-				UI::ShowDescription(pos, ""); //TODO: Description
+				//TODO: Show Description
 			}
 		}
 	}
@@ -208,7 +208,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					UI::ChangeTexture(mouseSlot.button, nullptr, GetUV(mouseSlot.itemID));
 					UI::ChangeText((UIText*)mouseSlot.button->children.Back(), mouseSlot.amount);
 
-					UI::HideDescription();
+					//TODO: Hide Description
 				}
 				else if (Input::ButtonDown(SHIFT))		//Take Half
 				{
@@ -225,7 +225,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 						slot.itemID = 0;
 						UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
 						UI::ChangeText((UIText*)slot.button->children.Back(), "");
-						UI::HideDescription();
+						//TODO: Hide Description
 					}
 					else if (slot.amount > 1)
 					{
@@ -245,7 +245,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 					{
 						slot.itemID = 0;
 						UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
-						UI::HideDescription();
+						//TODO: Hide Description
 					}
 					else if (slot.amount > 1)
 					{
@@ -277,7 +277,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 				UI::ChangeText((UIText*)mouseSlot.button->children.Front(), mouseSlot.amount > 1 ? String(mouseSlot.amount) : String{});
 				UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount > 1 ? String(slot.amount) : String{});
 
-				UI::ShowDescription(pos, ""); //TODO: Description
+				//TODO: Show Description
 			}
 		}
 		else											//Take One
@@ -289,7 +289,7 @@ void Inventory::OnClick(UIElement* e, const Vector2Int& pos, void* data)
 			{
 				slot.itemID = 0;
 				UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
-				UI::HideDescription();
+				//TODO: Hide Description
 			}
 			else if (slot.amount > 1) { UI::ChangeText((UIText*)slot.button->children.Back(), slot.amount); }
 
@@ -307,24 +307,21 @@ void Inventory::OnHover(UIElement* e, const Vector2Int& pos, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	if (slot.itemID)
-	{
-		UI::ShowDescription(pos, ""/*{ "Item ID: {}", slot.itemID }*/);
-	}
+	//TODO: Show Description
 }
 
 void Inventory::OnMove(UIElement* e, const Vector2Int& delta, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	if (slot.itemID) { UI::MoveDescription(delta); }
+	//TODO: Move Description
 }
 
 void Inventory::OnExit(UIElement* e, void* data)
 {
 	Slot& slot = *(Slot*)data;
 
-	if (slot.itemID) { UI::HideDescription(); }
+	//TODO: Hide Description
 }
 
 Inventory::Inventory(InventoryConfig& config) : slots{ config.xMax, { config.yMax, { } } }, slotCount{ config.slotCount }, open{ config.enable }
@@ -446,7 +443,7 @@ void Inventory::Init(Scene* scene)
 	mouseSlot.amount = 0;
 
 	UIElementConfig imageCfg{};
-	imageCfg.position = { 0.5f, 0.5f };
+	imageCfg.position = { 0.0f, 0.0f };
 	imageCfg.scale = { 0.025f, 0.04444444444f };
 	imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	imageCfg.ignore = true;

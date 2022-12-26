@@ -33,8 +33,10 @@ protected:
 	virtual bool Death() { Destroy(); return true; }
 
 	virtual void Update() {}
+	void InternalUpdate();
 	bool TakeDamage(const Damage& damage);
 	virtual void DamageResponse() {}
+
 
 protected:
 	GameObject2D* gameObject;
@@ -49,6 +51,7 @@ protected:
 	bool facing; //NOTE: false - left, true is right
 	bool ignore;
 	bool player;
+	Matrix4 model;
 
 	F32 despawnRange;
 

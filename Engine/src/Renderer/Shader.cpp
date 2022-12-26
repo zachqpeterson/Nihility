@@ -90,13 +90,13 @@ bool Shader::AddPushConstant(PushConstant pushConstant)
 	return true;
 }
 
-void Shader::ApplyMaterialLocals(const Matrix4& model)
+void Shader::ApplyMaterialLocals(void* pushes)
 {
 	if (useLocals)
 	{
 		for (PushConstant& pushConstant : pushConstants)
 		{
-			RendererFrontend::SetPushConstant(this, pushConstant, &model); //TODO: Dynamic
+			RendererFrontend::SetPushConstant(this, pushConstant, (U8*)pushes + pushConstant.offset);
 		}
 	}
 }
