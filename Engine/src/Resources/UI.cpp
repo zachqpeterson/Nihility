@@ -106,7 +106,7 @@ void UI::Update()
 
 		for (UIElement* e : elements)
 		{
-			Vector4 area = e->area + e->push.position;
+			Vector4 area{ e->push.position.x, e->push.position.y, e->push.position.x + e->scale.x, e->push.position.y + e->scale.y };
 
 			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked &&
 				(pos.x > area.x && pos.x < area.z && pos.y > area.y && pos.y < area.w))
@@ -192,6 +192,7 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	panel->ignore = config.ignore;
 	panel->selfEnabled = config.enabled;
 	panel->parent = config.parent;
+	panel->push.renderArea = renderArea;
 
 	String name("UI_Element_{}", panel->id);
 
@@ -200,28 +201,35 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
 
-	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
-
 	if (config.parent)
 	{
 		config.parent->children.PushBack(panel);
 
-		if (!config.scaled)
+		panel->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+		panel->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+
+		if (config.scaled)
 		{
-			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+			panel->push.position.x = config.parent->push.position.x + config.position.x;
+			panel->push.position.y = config.parent->push.position.y + config.position.y;
+			panel->scale.x = config.scale.x;
+			panel->scale.y = config.scale.y;
 		}
 		else
 		{
-			uiArea += { config.parent->area.x, config.parent->area.y };
+			panel->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+			panel->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+			panel->scale.x = config.parent->scale.x * config.scale.x;
+			panel->scale.y = config.parent->scale.y * config.scale.y;
 		}
 	}
-
-	panel->area = uiArea;
-	panel->push.position = Vector2::ZERO;
-	panel->push.renderArea = renderArea;
+	else
+	{
+		panel->push.position.x = config.position.x;
+		panel->push.position.y = config.position.y;
+		panel->scale.x = config.scale.x;
+		panel->scale.y = config.scale.y;
+	}
 
 	F32 id = 1.0f - (F32)panel->id * 0.001f;
 
@@ -234,50 +242,50 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
 		//BOTTOM LEFT CORNER  
-		vertices[0] = UIVertex{ { uiArea.x,					uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[1] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[2] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[3] = UIVertex{ { uiArea.x,					uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[0] = UIVertex{ { 0.0f,			0.0f,			id }, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[1] = UIVertex{ { WIDTH_RATIO,	0.0f,			id }, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[2] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[3] = UIVertex{ { 0.0f,			HEIGHT_RATIO,	id }, { 0.0f, 0.66666666666f },	 config.color };
 		//TOP LEFT CORNER		
-		vertices[4] = UIVertex{ { uiArea.x,					uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[5] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[6] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[7] = UIVertex{ { uiArea.x,					uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[4] = UIVertex{ { 0.0f,			panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[5] = UIVertex{ { WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[6] = UIVertex{ { WIDTH_RATIO,	panel->scale.y,					id }, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[7] = UIVertex{ { 0.0f,			panel->scale.y,					id }, { 0.0f, 0.33333333333f },	 config.color };
 		//BOTTOM RIGHT CORNER
-		vertices[8] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[9] = UIVertex{ { uiArea.z,					uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[10] = UIVertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[11] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[8] = UIVertex{ { panel->scale.x - WIDTH_RATIO,		0.0f,			id }, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[9] = UIVertex{ { panel->scale.x,					0.0f,			id }, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[10] = UIVertex{ { panel->scale.x,					HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[11] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
 		//TOP RIGHT CORNER
-		vertices[12] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[13] = UIVertex{ { uiArea.z,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[14] = UIVertex{ { uiArea.z,				uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[15] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w,					id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[12] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[13] = UIVertex{ { panel->scale.x,					panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[14] = UIVertex{ { panel->scale.x,					panel->scale.y,					id }, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[15] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y,					id }, { 1.0f, 0.33333333333f },	 config.color };
 		//LEFT SIDE 
-		vertices[16] = UIVertex{ { uiArea.x,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.0f },			 config.color };
-		vertices[17] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
-		vertices[18] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[19] = UIVertex{ { uiArea.x,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[16] = UIVertex{ { 0.0f,		HEIGHT_RATIO,					id }, { 0.0f, 0.0f },			 config.color };
+		vertices[17] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,					id }, { 1.0f, 0.0f },			 config.color };
+		vertices[18] = UIVertex{ { WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[19] = UIVertex{ { 0.0f,		panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 0.33333333333f },	 config.color };
 		//RIGHT SIDE 																									
-		vertices[20] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[21] = UIVertex{ { uiArea.z,				uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[22] = UIVertex{ { uiArea.z,				uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 0.0f },			 config.color };
-		vertices[23] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
-		//TOP SIDE																										
-		vertices[24] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
-		vertices[25] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[26] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[27] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w,					id}, { 0.0f, 0.0f },			 config.color };
+		vertices[20] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,					id }, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[21] = UIVertex{ { panel->scale.x,					HEIGHT_RATIO,					id }, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[22] = UIVertex{ { panel->scale.x,					panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 0.0f },			 config.color };
+		vertices[23] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.0f },			 config.color };
+		//TOP SIDE																						 				
+		vertices[24] = UIVertex{ { WIDTH_RATIO,						panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.0f },			config.color };
+		vertices[25] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	config.color };
+		vertices[26] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y,					id }, { 0.0f, 0.33333333333f },	config.color };
+		vertices[27] = UIVertex{ { WIDTH_RATIO,						panel->scale.y,					id }, { 0.0f, 0.0f },			config.color };
 		//BOTTOM SIDE																									 
-		vertices[28] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[29] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y,					id}, { 0.0f, 0.0f },			 config.color };
-		vertices[30] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.0f },			 config.color };
-		vertices[31] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.33333333333f },	 config.color };
+		vertices[28] = UIVertex{ { WIDTH_RATIO,						0.0f,			id }, { 0.0f, 0.33333333333f },	 config.color };
+		vertices[29] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	0.0f,			id }, { 0.0f, 0.0f },			 config.color };
+		vertices[30] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	id }, { 1.0f, 0.0f },			 config.color };
+		vertices[31] = UIVertex{ { WIDTH_RATIO,						HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
 		//FILL																											
-		vertices[32] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[33] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.y + HEIGHT_RATIO,	id}, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[34] = UIVertex{ { uiArea.z - WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 1.0f, 1.0f },			 config.color };
-		vertices[35] = UIVertex{ { uiArea.x + WIDTH_RATIO,	uiArea.w - HEIGHT_RATIO,	id}, { 0.0f, 1.0f },			 config.color };
+		vertices[32] = UIVertex{ { WIDTH_RATIO,						HEIGHT_RATIO,					id }, { 0.0f, 0.66666666666f },	 config.color };
+		vertices[33] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,					id }, { 1.0f, 0.66666666666f },	 config.color };
+		vertices[34] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 1.0f },			 config.color };
+		vertices[35] = UIVertex{ { WIDTH_RATIO,						panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 1.0f },			 config.color };
 
 		meshConfig.indices.Resize(54);
 
@@ -352,10 +360,10 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		meshConfig.vertexCount = 4;
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f },	config.color };
-		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f },	config.color };
-		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f },				config.color };
-		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f },				config.color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,			id }, { 0.0f, 0.66666666666f },	config.color };
+		vertices[1] = UIVertex{ { panel->scale.x,	0.0f,			id }, { 1.0f, 0.66666666666f },	config.color };
+		vertices[2] = UIVertex{ { panel->scale.x,	panel->scale.y, id }, { 1.0f, 1.0f },			config.color };
+		vertices[3] = UIVertex{ { 0.0f,				panel->scale.y, id }, { 0.0f, 1.0f },			config.color };
 
 		meshConfig.indices.Resize(6);
 
@@ -415,6 +423,7 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	image->selfEnabled = config.enabled;
 	image->parent = config.parent;
 	image->type = UI_TYPE_IMAGE;
+	image->push.renderArea = renderArea;
 
 	String name("UI_Element_{}", image->id);
 
@@ -423,28 +432,32 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(texture);
 
-	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
-
 	if (config.parent)
 	{
 		config.parent->children.PushBack(image);
 
-		if (!config.scaled)
+		if (config.scaled)
 		{
-			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+			image->push.position.x = config.parent->push.position.x + config.position.x;
+			image->push.position.y = config.parent->push.position.y + config.position.y;
+			image->scale.x = config.scale.x;
+			image->scale.y = config.scale.y;
 		}
 		else
 		{
-			uiArea += { config.parent->area.x, config.parent->area.y };
+			image->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+			image->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+			image->scale.x = config.parent->scale.x * config.scale.x;
+			image->scale.y = config.parent->scale.y * config.scale.y;
 		}
 	}
-
-	image->area = uiArea;
-	image->push.position = Vector2::ZERO;
-	image->push.renderArea = renderArea;
+	else
+	{
+		image->push.position.x = config.position.x;
+		image->push.position.y = config.position.y;
+		image->scale.x = config.scale.x;
+		image->scale.y = config.scale.y;
+	}
 
 	F32 id = 1.0f - (F32)image->id * 0.001f;
 
@@ -455,17 +468,17 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 
 	if (uvs.Size())
 	{
-		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, uvs[0], config.color };
-		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, uvs[1], config.color };
-		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, uvs[2], config.color };
-		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, uvs[3], config.color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,			id }, uvs[0], config.color };
+		vertices[1] = UIVertex{ { image->scale.x,	0.0f,			id }, uvs[1], config.color };
+		vertices[2] = UIVertex{ { image->scale.x,	image->scale.y, id }, uvs[2], config.color };
+		vertices[3] = UIVertex{ { 0.0f,				image->scale.y, id }, uvs[3], config.color };
 	}
 	else
 	{
-		vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.0f }, config.color };
-		vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.0f }, config.color };
-		vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }, config.color };
-		vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }, config.color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,			id }, { 0.0f, 0.0f }, config.color };
+		vertices[1] = UIVertex{ { image->scale.x,	0.0f,			id }, { 1.0f, 0.0f }, config.color };
+		vertices[2] = UIVertex{ { image->scale.x,	image->scale.y, id }, { 1.0f, 1.0f }, config.color };
+		vertices[3] = UIVertex{ { 0.0f,				image->scale.y, id }, { 0.0f, 1.0f }, config.color };
 	}
 
 	meshConfig.indices.Resize(6);
@@ -529,31 +542,36 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 	uiText->type = UI_TYPE_TEXT;
 	uiText->selfEnabled = config.enabled;
 	uiText->parent = config.parent;
+	uiText->push.renderArea = renderArea;
 
 	String name("UI_Element_{}", uiText->id);
-
-	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
 
 	if (config.parent)
 	{
 		config.parent->children.PushBack(uiText);
 
-		if (!config.scaled)
+		if (config.scaled)
 		{
-			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+			uiText->push.position.x = config.parent->push.position.x + config.position.x;
+			uiText->push.position.y = config.parent->push.position.y + config.position.y;
+			uiText->scale.x = config.scale.x;
+			uiText->scale.y = config.scale.y;
 		}
 		else
 		{
-			uiArea += { config.parent->area.x, config.parent->area.y };
+			uiText->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+			uiText->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+			uiText->scale.x = config.parent->scale.x * config.scale.x;
+			uiText->scale.y = config.parent->scale.y * config.scale.y;
 		}
 	}
-
-	uiText->area = uiArea;
-	uiText->push.position = Vector2::ZERO;
-	uiText->push.renderArea = renderArea;
+	else
+	{
+		uiText->push.position.x = config.position.x;
+		uiText->push.position.y = config.position.y;
+		uiText->scale.x = config.scale.x;
+		uiText->scale.y = config.scale.y;
+	}
 
 	Mesh* mesh = nullptr;
 
@@ -572,8 +590,8 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 		F32 pixelWidth = size / 800.0f;
 		F32 pixelHeight = size / 450.0f;
 
-		F32 areaX = uiArea.x;
-		F32 areaW = uiArea.w - pixelHeight;
+		F32 areaX = 0.0f;
+		F32 areaW = uiText->scale.y - pixelHeight;
 
 		F32 id = 1.0f - (F32)uiText->id * 0.001f;
 		U32 i = 0;
@@ -589,10 +607,10 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 			F32 y = areaW + pixelHeight * character.yOffset;
 			F32 w = y + pixelHeight * character.height;
 
-			vertices[i * 4] = UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, config.color };
-			vertices[i * 4 + 1] = UIVertex{ { z, y, id}, { character.x + character.uvWidth, character.y + character.uvHeight }, config.color };
-			vertices[i * 4 + 2] = UIVertex{ { z, w, id}, { character.x + character.uvWidth, character.y }, config.color };
-			vertices[i * 4 + 3] = UIVertex{ { x, w, id}, { character.x, character.y }, config.color };
+			vertices[i * 4] = UIVertex{		{ x, y, id }, { character.x, character.y + character.uvHeight }, config.color };
+			vertices[i * 4 + 1] = UIVertex{ { z, y, id }, { character.x + character.uvWidth, character.y + character.uvHeight }, config.color };
+			vertices[i * 4 + 2] = UIVertex{ { z, w, id }, { character.x + character.uvWidth, character.y }, config.color };
+			vertices[i * 4 + 3] = UIVertex{ { x, w, id }, { character.x, character.y }, config.color };
 
 			meshConfig.indices[i * 6] = i * 4;
 			meshConfig.indices[i * 6 + 1] = i * 4 + 1;
@@ -657,6 +675,7 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	bar->selfEnabled = config.enabled;
 	bar->parent = config.parent;
 	bar->type = UI_TYPE_BAR;
+	bar->push.renderArea = renderArea;
 
 	String name("UI_Element_{}", bar->id);
 
@@ -666,28 +685,32 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
 
-	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
-
 	if (config.parent)
 	{
 		config.parent->children.PushBack(bar);
 
-		if (!config.scaled)
+		if (config.scaled)
 		{
-			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+			bar->push.position.x = config.parent->push.position.x + config.position.x;
+			bar->push.position.y = config.parent->push.position.y + config.position.y;
+			bar->scale.x = config.scale.x;
+			bar->scale.y = config.scale.y;
 		}
 		else
 		{
-			uiArea += { config.parent->area.x, config.parent->area.y };
+			bar->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+			bar->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+			bar->scale.x = config.parent->scale.x * config.scale.x;
+			bar->scale.y = config.parent->scale.y * config.scale.y;
 		}
 	}
-
-	bar->area = uiArea;
-	bar->push.position = Vector2::ZERO;
-	bar->push.renderArea = renderArea;
+	else
+	{
+		bar->push.position.x = config.position.x;
+		bar->push.position.y = config.position.y;
+		bar->scale.x = config.scale.x;
+		bar->scale.y = config.scale.y;
+	}
 
 	F32 id = 1.0f - (F32)bar->id * 0.001f;
 
@@ -696,10 +719,10 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	meshConfig.vertexCount = 4;
 	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-	vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f }, config.color };
-	vertices[1] = UIVertex{ { uiArea.z, uiArea.y, id}, { 1.0f, 0.66666666666f }, config.color };
-	vertices[2] = UIVertex{ { uiArea.z, uiArea.w, id}, { 1.0f, 1.0f }				, config.color };
-	vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }				, config.color };
+	vertices[0] = UIVertex{ { 0.0f,			0.0f,			id }, { 0.0f, 0.66666666666f }, config.color };
+	vertices[1] = UIVertex{ { bar->scale.x,	0.0f,			id }, { 1.0f, 0.66666666666f }, config.color };
+	vertices[2] = UIVertex{ { bar->scale.x,	bar->scale.y, id }, { 1.0f, 1.0f },			config.color };
+	vertices[3] = UIVertex{ { 0.0f,			bar->scale.y, id }, { 0.0f, 1.0f },			config.color };
 
 	meshConfig.indices.Resize(6);
 
@@ -724,12 +747,12 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	vertices = (UIVertex*)meshConfig.vertices;
 
 	//Generate fill
-	F32 z = uiArea.z - (uiArea.z - uiArea.x) * (1.0f - percent);
+	F32 scaleX = bar->scale.x * percent;
 
-	vertices[0] = UIVertex{ { uiArea.x, uiArea.y, id}, { 0.0f, 0.66666666666f }, fillColor };
-	vertices[1] = UIVertex{ { z, uiArea.y, id}, { 1.0f, 0.66666666666f }, fillColor };
-	vertices[2] = UIVertex{ { z, uiArea.w, id}, { 1.0f, 1.0f }, fillColor };
-	vertices[3] = UIVertex{ { uiArea.x, uiArea.w, id}, { 0.0f, 1.0f }, fillColor };
+	vertices[0] = UIVertex{ { 0.0f,		0.0f,			id }, { 0.0f, 0.66666666666f }, fillColor };
+	vertices[1] = UIVertex{ { scaleX,	0.0f,			id }, { 1.0f, 0.66666666666f }, fillColor };
+	vertices[2] = UIVertex{ { scaleX,	bar->scale.y,	id }, { 1.0f, 1.0f }, fillColor };
+	vertices[3] = UIVertex{ { 0.0f,		bar->scale.y,	id }, { 0.0f, 1.0f }, fillColor };
 
 	Mesh* mesh1 = Resources::CreateMesh(meshConfig);
 
@@ -785,27 +808,34 @@ UIScrollWindow* UI::GenerateScrollWindow(UIElementConfig& config, F32 spacing, b
 
 	String name("UI_Element_{}", scroll->id);
 
-	Vector4 uiArea = { config.position.x, config.position.y, config.position.x + config.scale.x, config.position.y + config.scale.y };
-
 	if (config.parent)
 	{
 		config.parent->children.PushBack(scroll);
 
-		if (!config.scaled)
+		if (config.scaled)
 		{
-			uiArea.x = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.x);
-			uiArea.y = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.y);
-			uiArea.z = config.parent->area.x + ((config.parent->area.z - config.parent->area.x) * uiArea.z);
-			uiArea.w = config.parent->area.y + ((config.parent->area.w - config.parent->area.y) * uiArea.w);
+			scroll->push.position.x = config.parent->push.position.x + config.position.x;
+			scroll->push.position.y = config.parent->push.position.y + config.position.y;
+			scroll->scale.x = config.scale.x;
+			scroll->scale.y = config.scale.y;
 		}
 		else
 		{
-			uiArea += { config.parent->area.x, config.parent->area.y };
+			scroll->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+			scroll->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+			scroll->scale.x = config.parent->scale.x * config.scale.x;
+			scroll->scale.y = config.parent->scale.y * config.scale.y;
 		}
 	}
+	else
+	{
+		scroll->push.position.x = config.position.x;
+		scroll->push.position.y = config.position.y;
+		scroll->scale.x = config.scale.x;
+		scroll->scale.y = config.scale.y;
+	}
 
-	scroll->area = uiArea;
-	scroll->push.position = Vector2::ZERO;
+	Vector4 uiArea = { scroll->push.position.x, scroll->push.position.y, scroll->push.position.x + scroll->scale.x, scroll->push.position.y + scroll->scale.y };
 	scroll->push.renderArea = { renderArea.z * uiArea.x, renderArea.z * uiArea.z, renderArea.w * uiArea.y, renderArea.w * uiArea.w };
 
 	GameObject2DConfig goConfig{};
@@ -984,13 +1014,11 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 
 	if (text && text.Length() && !dimentions.Zero())
 	{
-		Vector4 uiArea = element->area;
-
 		F32 pixelWidth = newSize / 800.0f;
 		F32 pixelHeight = newSize / 450.0f;
 
-		F32 areaX = uiArea.x;
-		F32 areaW = uiArea.w - pixelHeight;
+		F32 areaX = 0.0f;
+		F32 areaW = element->scale.y - pixelHeight;
 
 		F32 id = 1.0f - (F32)element->id * 0.001f;
 		U32 i = 0;
@@ -1094,9 +1122,7 @@ void UI::ChangePercent(UIBar* element, F32 percent)
 {
 	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[0]->vertices;
 
-	Vector4 scaledArea = element->area;
-
-	F32 newX = scaledArea.z - (scaledArea.z - scaledArea.x) * (1.0f - percent);
+	F32 newX = element->scale.x * percent;
 
 	vertices[1].position.x = newX;
 	vertices[2].position.x = newX;
@@ -1120,15 +1146,14 @@ void UI::AddScrollItem(UIScrollWindow* scrollWindow, UIElement* element)
 {
 	if (scrollWindow->vertical)
 	{
-		F32 size = element->area.w - element->area.y;
-		scrollWindow->size += size;
+		scrollWindow->size += element->scale.y;
 
 
-
-		element->gameObject->transform->parent = scrollWindow->gameObject->transform;
 	}
 	else if (scrollWindow->horizontal)
 	{
+		scrollWindow->size += element->scale.x;
+
 
 	}
 }

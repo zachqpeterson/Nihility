@@ -70,14 +70,15 @@ struct UIElement
 	bool hovered{ false };
 	bool clicked{ false };
 	bool selfEnabled{ true };
-	Vector4 area{};
 	UIPushConstant push;
+	Vector2 scale{};
 	Vector4 color{};
 	UIElement* parent;
 	List<UIElement*> children;
-	Mesh* mesh;
-	Scene* scene;
 	GameObject2D* gameObject{ nullptr };
+	Scene* scene;
+	Mesh* mesh;
+	UIType type;
 	OnMouse OnClick;
 	OnMouse OnDrag;
 	OnMouse OnRelease;
@@ -85,7 +86,6 @@ struct UIElement
 	OnMouse OnMove;
 	UIEvent OnExit;
 	OnScroll OnScroll;
-	UIType type;
 };
 
 struct UIElementConfig
@@ -93,10 +93,10 @@ struct UIElementConfig
 	bool enabled{ true };
 	bool ignore{ false };
 	bool scaled{ false };
-	UIElement* parent{ nullptr };
 	Vector2 position{ Vector2::ZERO };
 	Vector2 scale{ Vector2::ONE };
 	Vector4 color{ Vector4::ONE }; //TODO: color struct
+	UIElement* parent{ nullptr };
 	Scene* scene{ nullptr };
 };
 
