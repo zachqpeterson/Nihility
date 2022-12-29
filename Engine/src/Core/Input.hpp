@@ -277,6 +277,7 @@ public:
 	static bool OnButtonHold(ButtonCode code);
 	static bool OnButtonRelease(ButtonCode code);
 	static void ConsumeInput(ButtonCode code);
+	static void ConsumeScroll();
 	static const Vector2Int& MousePos();
 	static I16 MouseWheelDelta();
 
@@ -290,6 +291,7 @@ private:
 	static I16 mouseWheelDelta;
 	static Vector2Int mousePos;
 	static bool anyButtonDown;
+	static bool scrollConsumed;
 
 	Input() = delete;
 

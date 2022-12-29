@@ -51,6 +51,7 @@ UIElement* TimeSlip::craftResult;
 UIElement* TimeSlip::craftButton;
 UIElement* TimeSlip::ingredientList;
 UIElement* TimeSlip::recipeSelection;
+UIScrollWindow* TimeSlip::recipeWindow;
 const Recipe* TimeSlip::selectedRecipe;
 
 Vector<Vector2> TimeSlip::blankUVs;
@@ -186,14 +187,14 @@ bool TimeSlip::Update()
 	case GAME_STATE_MENU: break;
 	case GAME_STATE_GAME: {
 		if (Input::OnButtonDown(I))
-		{ 
+		{
 			inventory->ToggleShow();
 			if (inventory->IsOpen()) { Audio::PlaySFX("OpenInventory.wav"); }
 			else { Audio::PlaySFX("CloseInventory.wav"); }
 		}
-		if (Input::OnButtonDown(C)) 
-		{ 
-			UI::SetEnable(craftingMenu, !craftingMenu->selfEnabled); 
+		if (Input::OnButtonDown(C))
+		{
+			UI::SetEnable(craftingMenu, !craftingMenu->selfEnabled);
 			if (craftingMenu->selfEnabled) { Audio::PlaySFX("OpenInventory.wav"); }
 			else { Audio::PlaySFX("CloseInventory.wav"); }
 		}
@@ -236,7 +237,7 @@ void TimeSlip::HandleInput()
 	else if (Input::OnButtonDown(ZERO)) { UI::MoveElement(hotbarHighlight, Vector2{ (9.0f - equippedSlot) * 0.04333333333f, 0.0f }); equippedSlot = 9; }
 	else if (Input::MouseWheelDelta() != 0)
 	{
-		I16 delta = (I16)equippedSlot + Input::MouseWheelDelta();
+		I16 delta = (I16)equippedSlot - Input::MouseWheelDelta();
 		delta += 9 * (delta < 0) - 9 * (delta > 8);
 
 		UI::MoveElement(hotbarHighlight, Vector2{ (delta - equippedSlot) * 0.04333333333f, 0.0f });
@@ -452,16 +453,16 @@ void TimeSlip::UpdateCraftingMenu()
 		imageCfg.position.x += 0.25f;
 	}
 
-	if (found) 
-	{ 
+	if (found)
+	{
 		craftButton->OnClick = { OnClickCraft, (void*)selectedRecipe };
 		craftButton->OnHover = UI::OnHoverDefault;
 		craftButton->OnExit = UI::OnExitDefault;
 		UI::ChangeColor(craftButton, { 1.0f, 1.0f, 1.0f, 1.0f });
 		craftButton->ignore = false;
 	}
-	else 
-	{ 
+	else
+	{
 		craftButton->OnClick = { nullptr, nullptr };
 		craftButton->OnHover = {};
 		craftButton->OnExit = {};
@@ -841,17 +842,27 @@ void TimeSlip::CreateCraftingMenu()
 
 	recipeSelection = UI::GenerateImage(recipeSelectCfg, Resources::LoadTexture("TS_UI.bmp"), selectUvs);
 
-	const Recipe** allRecipes = Items::GetRecipes();
-	const Recipe* recipe = allRecipes[0];
+	UIElementConfig recipeWindowConfig{};
+	recipeWindowConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	recipeWindowConfig.enabled = true;
+	recipeWindowConfig.ignore = false;
+	recipeWindowConfig.parent = craftingMenu;
+	recipeWindowConfig.scene = worldScene;
+	recipeWindowConfig.position = { 0.1f, 0.05f };
+	recipeWindowConfig.scale = { 0.2f, 0.9f };
+	recipeWindow = UI::GenerateScrollWindow(recipeWindowConfig, 0.05f, false, true);
 
 	UIElementConfig recipeConfig{};
 	recipeConfig.color = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 	recipeConfig.enabled = true;
 	recipeConfig.ignore = false;
-	recipeConfig.position = { 0.1f, 0.1f };
-	recipeConfig.scale = { 0.2f, 0.1777777777f };
+	recipeConfig.position = { 0.0f, 0.0f };
+	recipeConfig.scale = { 1.0f, 0.2f };
 	recipeConfig.scene = worldScene;
-	recipeConfig.parent = craftingMenu;
+	recipeConfig.parent = recipeWindow;
+
+	const Recipe** allRecipes = Items::GetRecipes();
+	const Recipe* recipe = allRecipes[0];
 
 	U16 i = 0;
 	while (recipe)
@@ -859,7 +870,7 @@ void TimeSlip::CreateCraftingMenu()
 		UIElement* e = UI::GenerateImage(recipeConfig, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(recipe->result));
 		e->OnClick = { OnClickSelect, (void*)recipe };
 
-		recipeConfig.position.y += 0.3f;
+		UI::AddScrollItem(recipeWindow, e);
 
 		recipe = allRecipes[++i];
 	}

@@ -70,6 +70,7 @@ struct UIElement
 	bool hovered{ false };
 	bool clicked{ false };
 	bool selfEnabled{ true };
+	bool renderArea{ false };
 	UIPushConstant push;
 	Vector2 scale{};
 	Vector4 color{};

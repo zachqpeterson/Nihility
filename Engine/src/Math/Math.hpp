@@ -456,10 +456,13 @@ struct NH_API Vector4
 	Vector4& operator%= (F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f); w = Math::Mod(w, f);  return *this; }
 
 	Vector4 operator+ (const Vector4& v) const { return Vector4{ x + v.x, y + v.y, z + v.z, w + v.w }; }
-	Vector4 operator+ (const Vector2& v) const { return Vector4{ x + v.x, y + v.y, z + v.x, w + v.y }; }
 	Vector4 operator- (const Vector4& v) const { return Vector4{ x - v.x, y - v.y, z - v.z, w - v.w }; }
 	Vector4 operator* (const Vector4& v) const { return Vector4{ x * v.x, y * v.y, z * v.z, w * v.w }; }
 	Vector4 operator/ (const Vector4& v) const { return Vector4{ x / v.x, y / v.y, z / v.z, w / v.w }; }
+	Vector4 operator+ (const Vector2& v) const { return Vector4{ x + v.x, y + v.y, z + v.x, w + v.y }; }
+	Vector4 operator- (const Vector2& v) const { return Vector4{ x - v.x, y - v.y, z - v.x, w - v.y }; }
+	Vector4 operator* (const Vector2& v) const { return Vector4{ x * v.x, y * v.y, z * v.x, w * v.y }; }
+	Vector4 operator/ (const Vector2& v) const { return Vector4{ x / v.x, y / v.y, z / v.x, w / v.y }; }
 	Vector4 operator+ (F32 f) const { return Vector4{ x + f, y + f, z + f, w + f }; }
 	Vector4 operator- (F32 f) const { return Vector4{ x - f, y - f, z - f, w - f }; }
 	Vector4 operator* (F32 f) const { return Vector4{ x * f, y * f, z * f, w * f }; }

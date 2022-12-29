@@ -8,6 +8,7 @@ F32 Input::axisStates[GAMEPAD_AXIS_COUNT];
 I16 Input::mouseWheelDelta;
 Vector2Int Input::mousePos;
 bool Input::anyButtonDown;
+bool Input::scrollConsumed;
 
 void Input::Update()
 {
@@ -19,6 +20,9 @@ void Input::Update()
 		buttonStates[i].doubleClicked = false;
 		buttonStates[i].heldChanged = false;
 	}
+
+	mouseWheelDelta = 0;
+	scrollConsumed = false;
 }
 
 bool Input::OnAnyButtonDown()
@@ -76,6 +80,11 @@ void Input::ConsumeInput(ButtonCode code)
 	buttonStates[code].consumed = true;
 }
 
+void Input::ConsumeScroll()
+{
+	scrollConsumed = true;
+}
+
 const Vector2Int& Input::MousePos()
 {
 	return mousePos;
@@ -83,7 +92,7 @@ const Vector2Int& Input::MousePos()
 
 I16 Input::MouseWheelDelta()
 {
-	return mouseWheelDelta;
+	return mouseWheelDelta * !scrollConsumed;
 }
 
 F32 Input::GetAxis(GamepadAxis axis)

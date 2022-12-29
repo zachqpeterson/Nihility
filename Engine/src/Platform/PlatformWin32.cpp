@@ -846,7 +846,7 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		}
 	} return 0;
 	case WM_MOUSEWHEEL: {
-		Input::mouseWheelDelta = HIWORD((I16)((F32)HIWORD(wParam) * WHEEL_MULTIPLIER));
+		Input::mouseWheelDelta = GET_WHEEL_DELTA_WPARAM(wParam) / 120;
 	} return 0;
 	case WM_MOUSEMOVE: {
 		Input::mousePos = { LOWORD(lParam), HIWORD(lParam) };

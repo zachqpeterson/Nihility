@@ -16,7 +16,42 @@ enum ItemType
 	ITEM_TYPE_COUNT
 };
 
-//TODO: Item id enum
+enum ItemID
+{
+	ITEM_ID_HAND,
+
+	ITEM_ID_DIRT,
+	ITEM_ID_STONE,
+	ITEM_ID_DRY_DIRT,
+	ITEM_ID_CLAY,
+	ITEM_ID_SAND,
+	ITEM_ID_SANDSTONE,
+	ITEM_ID_DENSE_DIRT,
+	ITEM_ID_MOSSY_STONE,
+	ITEM_ID_MUD,
+	ITEM_ID_WET_STONE,
+
+	ITEM_ID_FLINT,
+	ITEM_ID_STICK,
+	ITEM_ID_WOOD,
+	ITEM_ID_COPPER_ORE,
+	ITEM_ID_TIN_ORE,
+	ITEM_ID_IRON_ORE,
+	ITEM_ID_COAL,
+
+	ITEM_ID_RESERVED_1,
+	ITEM_ID_RESERVED_2,
+	ITEM_ID_RESERVED_3,
+
+	ITEM_ID_FLINT_PICKAXE,
+
+	ITEM_ID_FLINT_KNIFE,
+
+	ITEM_ID_TORCH,
+
+
+	ITEM_ID_COUNT
+};
 
 struct Damage
 {
@@ -195,9 +230,9 @@ inline const Item* Items::items[]
 
 inline const Recipe* Items::recipes[]
 {
-	new Recipe(21, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Pickaxe
-	new Recipe(22, 1, 0, Ingredient{11}, Ingredient{12}), //Flint Knife
-	new Recipe(23, 1, 0, Ingredient{12}),
+	new Recipe(ITEM_ID_FLINT_PICKAXE, 1, 0, Ingredient{ITEM_ID_FLINT}, Ingredient{ITEM_ID_STICK}),
+	new Recipe(ITEM_ID_FLINT_KNIFE, 1, 0, Ingredient{ITEM_ID_FLINT}, Ingredient{ITEM_ID_STICK}),
+	new Recipe(ITEM_ID_TORCH, 1, 0, Ingredient{ITEM_ID_STICK}),
 
 	nullptr
 };

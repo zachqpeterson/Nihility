@@ -29,7 +29,53 @@ void UI::DefaultOnHover(UIElement* e, const Vector2Int& delta, void* data) { UI:
 void UI::DefaultOnExit(UIElement* e, void* data) { UI::ChangeColor(e, { 1.0f, 1.0f, 1.0f, 1.0f }); }
 void UI::DefaultOnScrollWindow(UIElement* e, const Vector2Int& position, I16 delta, void* data)
 {
+	if (e->type == UI_TYPE_SCROLL)
+	{
+		UIScrollWindow* scrollWindow = (UIScrollWindow*)e;
 
+		F32 scrollAmount = delta * 0.02f;
+
+		if (scrollWindow->vertical)
+		{
+			if (scrollAmount < 0.0f)
+			{
+				UIElement* back = scrollWindow->children.Back();
+				F32 scrollY = scrollWindow->push.position.y + scrollWindow->scale.y;
+				F32 elementY = back->push.position.y + back->scale.y;
+				scrollAmount = Math::Max(scrollAmount, scrollY - elementY) * (elementY > scrollY);
+			}
+			else
+			{
+				UIElement* front = scrollWindow->children.Front();
+				scrollAmount = Math::Min(scrollAmount, scrollWindow->push.position.y - front->push.position.y) * (scrollWindow->push.position.y > front->push.position.y);
+			}
+
+			for (UIElement* element : scrollWindow->children)
+			{
+				MoveElement(element, Vector2::UP * scrollAmount);
+			}
+		}
+		else if (scrollWindow->horizontal)
+		{
+			if (scrollAmount < 0.0f)
+			{
+				UIElement* back = scrollWindow->children.Back();
+				F32 scrollX = scrollWindow->push.position.x + scrollWindow->scale.x;
+				F32 elementX = back->push.position.x + back->scale.x;
+				scrollAmount = Math::Max(scrollAmount, scrollX - elementX) * (elementX > scrollX);
+			}
+			else
+			{
+				UIElement* front = scrollWindow->children.Front();
+				scrollAmount = Math::Min(scrollAmount, scrollWindow->push.position.x - front->push.position.x) * (scrollWindow->push.position.x > front->push.position.x);
+			}
+
+			for (UIElement* element : scrollWindow->children)
+			{
+				MoveElement(element, Vector2::RIGHT * scrollAmount);
+			}
+		}
+	}
 }
 
 bool UI::Initialize()
@@ -100,15 +146,26 @@ void UI::Update()
 	}
 	else
 	{
-		bool blocked = false;
 		draggedElement = nullptr;
-		Vector2 pos = (Vector2)mousePos / (Vector2)RendererFrontend::WindowSize();
+		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
+		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
+		Vector2 pos = (Vector2)mousePos / windowSize;
 
 		for (UIElement* e : elements)
 		{
-			Vector4 area{ e->push.position.x, e->push.position.y, e->push.position.x + e->scale.x, e->push.position.y + e->scale.y };
-
-			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() && !blocked &&
+			Vector4 area;
+			if (e->renderArea)
+			{
+				Vector4 rendArea = (e->push.renderArea - offset) / (Vector2{ renderArea.z, renderArea.w } - offset);
+				area = { Math::Max(e->push.position.x, rendArea.x), Math::Max(e->push.position.y, rendArea.y),
+					Math::Min(e->push.position.x + e->scale.x, rendArea.z), Math::Min(e->push.position.y + e->scale.y, rendArea.w) };
+			}
+			else
+			{
+				area = { e->push.position.x, e->push.position.y, e->push.position.x + e->scale.x, e->push.position.y + e->scale.y };
+			}
+			
+			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() &&
 				(pos.x > area.x && pos.x < area.z && pos.y > area.y && pos.y < area.w))
 			{
 				if (!e->hovered)
@@ -133,12 +190,13 @@ void UI::Update()
 					e->clicked = false;
 				}
 
-				if (I16 scroll = Input::MouseWheelDelta() != 0 && e->OnScroll.callback)
+				I16 scroll = Input::MouseWheelDelta();
+				if (scroll != 0 && e->OnScroll.callback)
 				{
+					Input::ConsumeScroll();
 					e->OnScroll.callback(e, mousePos, scroll, e->OnScroll.value);
 				}
 
-				blocked = true;
 				Input::ConsumeInput(LEFT_CLICK);
 				Input::ConsumeInput(RIGHT_CLICK);
 			}
@@ -167,6 +225,26 @@ bool UI::OnResize(void* data)
 	Vector2Int size = RendererFrontend::WindowSize();
 	Vector2Int offset = RendererFrontend::WindowOffset();
 	renderArea = { (F32)offset.x, (F32)offset.y, (F32)offset.x + (F32)size.x, (F32)size.y + (F32)offset.y };
+
+	for (UIElement* e : elements)
+	{
+		if (!e->renderArea)
+		{
+			e->push.renderArea = renderArea;
+		}
+
+		if (e->type == UI_TYPE_SCROLL)
+		{
+			e->push.renderArea = { (renderArea.z - offset.x) * e->push.position.x + offset.x, (renderArea.w - offset.y) * e->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (e->push.position.x + e->scale.x) + offset.x, (renderArea.w - offset.y) * (e->push.position.y + e->scale.y) + offset.y };
+
+			UIScrollWindow* sw = (UIScrollWindow*)e;
+			for (UIElement* c : sw->children)
+			{
+				c->push.renderArea = e->push.renderArea;
+			}
+		}
+	}
 
 	return false;
 }
@@ -607,7 +685,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 			F32 y = areaW + pixelHeight * character.yOffset;
 			F32 w = y + pixelHeight * character.height;
 
-			vertices[i * 4] = UIVertex{		{ x, y, id }, { character.x, character.y + character.uvHeight }, config.color };
+			vertices[i * 4] = UIVertex{ { x, y, id }, { character.x, character.y + character.uvHeight }, config.color };
 			vertices[i * 4 + 1] = UIVertex{ { z, y, id }, { character.x + character.uvWidth, character.y + character.uvHeight }, config.color };
 			vertices[i * 4 + 2] = UIVertex{ { z, w, id }, { character.x + character.uvWidth, character.y }, config.color };
 			vertices[i * 4 + 3] = UIVertex{ { x, w, id }, { character.x, character.y }, config.color };
@@ -805,6 +883,10 @@ UIScrollWindow* UI::GenerateScrollWindow(UIElementConfig& config, F32 spacing, b
 	scroll->selfEnabled = config.enabled;
 	scroll->parent = config.parent;
 	scroll->type = UI_TYPE_SCROLL;
+	scroll->horizontal = horizontal;
+	scroll->vertical = vertical;
+	scroll->spacing = spacing;
+	scroll->renderArea = true;
 
 	String name("UI_Element_{}", scroll->id);
 
@@ -835,8 +917,9 @@ UIScrollWindow* UI::GenerateScrollWindow(UIElementConfig& config, F32 spacing, b
 		scroll->scale.y = config.scale.y;
 	}
 
-	Vector4 uiArea = { scroll->push.position.x, scroll->push.position.y, scroll->push.position.x + scroll->scale.x, scroll->push.position.y + scroll->scale.y };
-	scroll->push.renderArea = { renderArea.z * uiArea.x, renderArea.z * uiArea.z, renderArea.w * uiArea.y, renderArea.w * uiArea.w };
+	Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
+	scroll->push.renderArea = { (renderArea.z - offset.x) * scroll->push.position.x + offset.x, (renderArea.w - offset.y) * scroll->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (scroll->push.position.x + scroll->scale.x) + offset.x, (renderArea.w - offset.y) * (scroll->push.position.y + scroll->scale.y) + offset.y };
 
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
@@ -846,6 +929,8 @@ UIScrollWindow* UI::GenerateScrollWindow(UIElementConfig& config, F32 spacing, b
 	scroll->gameObject = go;
 
 	elements.PushFront(scroll);
+
+	scroll->OnScroll = OnScrollWindowDefault;
 
 	return scroll;
 }
@@ -916,9 +1001,21 @@ void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 
 	element->push.position += move;
 
+	if (element->type == UI_TYPE_SCROLL)
+	{
+		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
+		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
+
+		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		{
+			e->push.renderArea = element->push.renderArea;
+		}
+	}
+
 	for (UIElement* e : element->children)
 	{
-		e->push.position += move;
+		MoveElement(e, move);
 	}
 }
 
@@ -926,9 +1023,21 @@ void UI::MoveElement(UIElement* element, const Vector2& delta)
 {
 	element->push.position += delta;
 
+	if (element->type == UI_TYPE_SCROLL)
+	{
+		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
+		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
+
+		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		{
+			e->push.renderArea = element->push.renderArea;
+		}
+	}
+
 	for (UIElement* e : element->children)
 	{
-		e->push.position += delta;
+		MoveElement(e, delta);
 	}
 }
 
@@ -938,9 +1047,21 @@ void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
 
 	element->push.position = pos;
 
+	if (element->type == UI_TYPE_SCROLL)
+	{
+		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
+		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
+
+		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		{
+			e->push.renderArea = element->push.renderArea;
+		}
+	}
+
 	for (UIElement* e : element->children)
 	{
-		e->push.position = pos;
+		SetElementPosition(e, pos);
 	}
 }
 
@@ -948,9 +1069,21 @@ void UI::SetElementPosition(UIElement* element, const Vector2& position)
 {
 	element->push.position = position;
 
+	if (element->type == UI_TYPE_SCROLL)
+	{
+		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
+		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
+
+		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		{
+			e->push.renderArea = element->push.renderArea;
+		}
+	}
+
 	for (UIElement* e : element->children)
 	{
-		e->push.position = position;
+		SetElementPosition(e, position);
 	}
 }
 
@@ -1144,17 +1277,43 @@ void UI::ChangeFillColor(UIBar* element, const Vector4& fillColor)
 
 void UI::AddScrollItem(UIScrollWindow* scrollWindow, UIElement* element)
 {
+	element->renderArea = true;
+
 	if (scrollWindow->vertical)
 	{
 		scrollWindow->size += element->scale.y;
+		element->push.renderArea = scrollWindow->push.renderArea;
 
+		if (scrollWindow->elements.Size())
+		{
+			UIElement* bottom = scrollWindow->elements.Back();
+			element->push.position = bottom->push.position;
+			element->push.position.y += bottom->scale.y + scrollWindow->spacing;
+		}
+		else
+		{
+			element->push.position = scrollWindow->push.position;
+		}
 
+		scrollWindow->elements.PushBack(element);
 	}
 	else if (scrollWindow->horizontal)
 	{
 		scrollWindow->size += element->scale.x;
+		element->push.renderArea = scrollWindow->push.renderArea;
 
+		if (scrollWindow->elements.Size())
+		{
+			UIElement* right = scrollWindow->elements.Back();
+			element->push.position = right->push.position;
+			element->push.position.y += right->scale.x + scrollWindow->spacing;
+		}
+		else
+		{
+			element->push.position = scrollWindow->push.position;
+		}
 
+		scrollWindow->elements.PushBack(element);
 	}
 }
 

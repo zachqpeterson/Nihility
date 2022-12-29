@@ -14,6 +14,7 @@ struct Damage;
 struct Vector2;
 struct Vector4;
 struct UIElement;
+struct UIScrollWindow;
 struct Transform2D;
 struct Recipe;
 
@@ -91,6 +92,7 @@ private:
 	static UIElement* craftButton;
 	static UIElement* ingredientList;
 	static UIElement* recipeSelection;
+	static UIScrollWindow* recipeWindow;
 	static const Recipe* selectedRecipe;
 
 	static Vector<Vector2> blankUVs;
