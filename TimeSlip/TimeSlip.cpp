@@ -857,7 +857,7 @@ void TimeSlip::CreateCraftingMenu()
 	recipeConfig.enabled = true;
 	recipeConfig.ignore = false;
 	recipeConfig.position = { 0.0f, 0.0f };
-	recipeConfig.scale = { 1.0f, 0.2f };
+	recipeConfig.scale = { 1.0f, 0.20f };
 	recipeConfig.scene = worldScene;
 	recipeConfig.parent = recipeWindow;
 

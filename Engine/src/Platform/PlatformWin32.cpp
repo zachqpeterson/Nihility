@@ -87,7 +87,7 @@ bool Platform::Initialize(const String& applicationName)
 		Settings::WINDOW_WIDTH = screenWidth;
 		Settings::WINDOW_HEIGHT = screenHeight;
 
-		style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_MAXIMIZE;
+		style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZE;
 	}
 	else
 	{
@@ -96,7 +96,7 @@ bool Platform::Initialize(const String& applicationName)
 		Settings::WINDOW_WIDTH = Settings::WindowWidthSmall;
 		Settings::WINDOW_HEIGHT = Settings::WindowHeightSmall;
 
-		style = WS_OVERLAPPEDWINDOW;
+		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
 	}
 
 	RECT borderRect{};
@@ -145,6 +145,7 @@ bool Platform::Update()
 		DispatchMessageA(&message);
 	}
 
+	if (Input::OnButtonDown(F11)) { SetFullscreen(!Settings::Fullscreen); }
 	UpdateMouse();
 
 	return running;
@@ -161,7 +162,7 @@ void Platform::SetFullscreen(bool fullscreen)
 		Settings::WINDOW_WIDTH = screenWidth;
 		Settings::WINDOW_HEIGHT = screenHeight;
 
-		style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_MAXIMIZE;
+		style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZE;
 	}
 	else
 	{
@@ -170,7 +171,7 @@ void Platform::SetFullscreen(bool fullscreen)
 		Settings::WINDOW_WIDTH = Settings::WindowWidthSmall;
 		Settings::WINDOW_HEIGHT = Settings::WindowHeightSmall;
 
-		style = WS_OVERLAPPEDWINDOW;
+		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
 	}
 
 	RECT borderRect{};
@@ -657,6 +658,12 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 	case WM_CLOSE: { Events::Notify("CLOSE", nullptr); running = false; } return 0;
 	case WM_DESTROY: { PostQuitMessage(0); running = false; } return 0;
 	case WM_SIZE: {
+		switch (wParam)
+		{
+		case SIZE_MINIMIZED: { Settings::FOCUSED = false; Settings::MINIMISED = true; } break;
+		case SIZE_RESTORED: { Settings::MINIMISED = false; } break;
+		}
+
 		RECT rect{};
 		GetWindowRect(hwnd, &rect);
 
@@ -667,9 +674,6 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 
 		RECT borderRect{};
 		AdjustWindowRectEx(&borderRect, style, 0, 0);
-
-		screenWidth = windowWidth - borderRect.right + borderRect.left;
-		screenHeight = windowHeight - borderRect.bottom + borderRect.top;
 
 		if (!Settings::Fullscreen)
 		{
@@ -715,14 +719,12 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 			Input::buttonStates[code].changed = !Input::buttonStates[code].pressed;
 			Input::buttonStates[code].pressed = true;
 		}
-		else
-		{
-			Input::buttonStates[wParam].heldChanged = Input::buttonStates[wParam].pressed && !Input::buttonStates[wParam].held;
-			Input::buttonStates[wParam].held = Input::buttonStates[wParam].pressed;
-			Input::buttonStates[wParam].changed = !Input::buttonStates[wParam].pressed;
-			Input::buttonStates[wParam].pressed = true;
-			Input::anyButtonDown |= Input::buttonStates[wParam].changed;
-		}
+
+		Input::buttonStates[wParam].heldChanged = Input::buttonStates[wParam].pressed && !Input::buttonStates[wParam].held;
+		Input::buttonStates[wParam].held = Input::buttonStates[wParam].pressed;
+		Input::buttonStates[wParam].changed = !Input::buttonStates[wParam].pressed;
+		Input::buttonStates[wParam].pressed = true;
+		Input::anyButtonDown |= Input::buttonStates[wParam].changed;
 	} return 0;
 	case WM_LBUTTONDOWN: {
 		Input::buttonStates[LEFT_CLICK].heldChanged = Input::buttonStates[LEFT_CLICK].pressed && !Input::buttonStates[LEFT_CLICK].held;
@@ -746,22 +748,12 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		Input::anyButtonDown |= Input::buttonStates[MIDDLE_CLICK].changed;
 	} return 0;
 	case WM_XBUTTONDOWN: {
-		if (wParam == MK_XBUTTON1)
-		{
-			Input::buttonStates[XBUTTON_ONE].heldChanged = Input::buttonStates[XBUTTON_ONE].pressed && !Input::buttonStates[XBUTTON_ONE].held;
-			Input::buttonStates[XBUTTON_ONE].held = Input::buttonStates[XBUTTON_ONE].pressed;
-			Input::buttonStates[XBUTTON_ONE].changed = !Input::buttonStates[XBUTTON_ONE].pressed;
-			Input::buttonStates[XBUTTON_ONE].pressed = true;
-			Input::anyButtonDown |= Input::buttonStates[XBUTTON_ONE].changed;
-		}
-		else
-		{
-			Input::buttonStates[XBUTTON_TWO].heldChanged = Input::buttonStates[XBUTTON_TWO].pressed && !Input::buttonStates[XBUTTON_TWO].held;
-			Input::buttonStates[XBUTTON_TWO].held = Input::buttonStates[XBUTTON_TWO].pressed;
-			Input::buttonStates[XBUTTON_TWO].changed = !Input::buttonStates[XBUTTON_TWO].pressed;
-			Input::buttonStates[XBUTTON_TWO].pressed = true;
-			Input::anyButtonDown |= Input::buttonStates[XBUTTON_TWO].changed;
-		}
+		wParam = wParam / 32 + 4;
+		Input::buttonStates[wParam].heldChanged = Input::buttonStates[wParam].pressed && !Input::buttonStates[wParam].held;
+		Input::buttonStates[wParam].held = Input::buttonStates[wParam].pressed;
+		Input::buttonStates[wParam].changed = !Input::buttonStates[wParam].pressed;
+		Input::buttonStates[wParam].pressed = true;
+		Input::anyButtonDown |= Input::buttonStates[wParam].changed;
 	} return 0;
 	case WM_KEYUP:
 	case WM_SYSKEYUP: {
@@ -774,13 +766,12 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 			Input::buttonStates[code].heldChanged = Input::buttonStates[code].held;
 			Input::buttonStates[code].held = false;
 		}
-		else
-		{
-			Input::buttonStates[wParam].changed = true;
-			Input::buttonStates[wParam].pressed = false;
-			Input::buttonStates[wParam].heldChanged = Input::buttonStates[wParam].held;
-			Input::buttonStates[wParam].held = false;
-		}
+
+		Input::buttonStates[wParam].changed = true;
+		Input::buttonStates[wParam].pressed = false;
+		Input::buttonStates[wParam].heldChanged = Input::buttonStates[wParam].held;
+		Input::buttonStates[wParam].held = false;
+
 	} return 0;
 	case WM_LBUTTONUP: {
 		Input::buttonStates[LEFT_CLICK].changed = true;
@@ -801,20 +792,11 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		Input::buttonStates[MIDDLE_CLICK].held = false;
 	} return 0;
 	case WM_XBUTTONUP: {
-		if (wParam == MK_XBUTTON1)
-		{
-			Input::buttonStates[XBUTTON_ONE].changed = true;
-			Input::buttonStates[XBUTTON_ONE].pressed = false;
-			Input::buttonStates[XBUTTON_ONE].heldChanged = Input::buttonStates[XBUTTON_ONE].held;
-			Input::buttonStates[XBUTTON_ONE].held = false;
-		}
-		else
-		{
-			Input::buttonStates[XBUTTON_TWO].changed = true;
-			Input::buttonStates[XBUTTON_TWO].pressed = false;
-			Input::buttonStates[XBUTTON_TWO].heldChanged = Input::buttonStates[XBUTTON_TWO].held;
-			Input::buttonStates[XBUTTON_TWO].held = false;
-		}
+		wParam = wParam / 32 + 4;
+		Input::buttonStates[wParam].changed = true;
+		Input::buttonStates[wParam].pressed = false;
+		Input::buttonStates[wParam].heldChanged = Input::buttonStates[wParam].held;
+		Input::buttonStates[wParam].held = false;
 	} return 0;
 	case WM_LBUTTONDBLCLK: {
 		Input::buttonStates[LEFT_CLICK].changed = true;
@@ -832,19 +814,11 @@ I64 __stdcall Platform::Win32MessageProc(HWND__* hwnd, U32 msg, U64 wParam, I64 
 		Input::buttonStates[MIDDLE_CLICK].doubleClicked = true;
 	} return 0;
 	case WM_XBUTTONDBLCLK: {
-		if (wParam == MK_XBUTTON1)
-		{
-			Input::buttonStates[XBUTTON_ONE].changed = true;
-			Input::buttonStates[XBUTTON_ONE].pressed = true;
-			Input::buttonStates[XBUTTON_ONE].doubleClicked = true;
-		}
-		else
-		{
-			Input::buttonStates[XBUTTON_TWO].changed = true;
-			Input::buttonStates[XBUTTON_TWO].pressed = true;
-			Input::buttonStates[XBUTTON_TWO].doubleClicked = true;
-		}
-	} return 0;
+		wParam = wParam / 32 + 4;
+		Input::buttonStates[wParam].changed = true;
+		Input::buttonStates[wParam].pressed = true;
+		Input::buttonStates[wParam].doubleClicked = true;
+	}  return 0;
 	case WM_MOUSEWHEEL: {
 		Input::mouseWheelDelta = GET_WHEEL_DELTA_WPARAM(wParam) / 120;
 	} return 0;

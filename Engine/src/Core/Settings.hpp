@@ -13,6 +13,7 @@ private:
 
 	//GRAPHICS
 	static inline bool FOCUSED = true;
+	static inline bool MINIMISED = true;
 	static inline bool FULLSCREEN = false;
 	static inline bool LOCK_CURSOR = false;
 	static inline bool HIDE_CURSOR = false;
@@ -37,6 +38,7 @@ public:
 	inline static const F32& SfxVolume = SFX_VOLUME;
 
 	static inline const bool& Focused = FOCUSED;
+	static inline const bool& Minimised = MINIMISED;
 	static inline const bool& Fullscreen = FULLSCREEN;
 	static inline const bool& LockCursor = LOCK_CURSOR;
 	static inline const bool& HideCursor = HIDE_CURSOR;

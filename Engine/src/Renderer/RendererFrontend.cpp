@@ -58,14 +58,14 @@ bool RendererFrontend::DrawFrame()
 {
 	++renderer->frameNumber;
 
-	if (resizing)
+	if (resizing && !Settings::Minimised)
 	{
 		renderer->OnResize();
 		resizing = false;
 		Events::Notify("Resize", NULL);
 	}
 
-	if (renderer->BeginFrame())
+	if (!resizing && renderer->BeginFrame())
 	{
 		U8 attachmentIndex = renderer->GetWindowAttachmentIndex();
 

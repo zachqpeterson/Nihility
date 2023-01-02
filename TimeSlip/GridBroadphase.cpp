@@ -3,6 +3,7 @@
 #include "Tile.hpp"
 
 #include <Physics/Physics.hpp>
+#include <Core/Time.hpp>
 
 GridBroadphase::GridBroadphase(Tile** grid, U16 width, U16 height) : width{ width }, height{ height }, grid{ grid }
 {
@@ -72,6 +73,108 @@ void GridBroadphase::Update(List<List<Contact2D>>& contacts)
 
 bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 {
+	//Vector2 move = obj->Move();
+	//Vector2 start = obj->Transform()->Position();
+	//Vector2 size = obj->Collider()->box.Size();
+	//Vector2 extents = obj->Collider()->box.Extents();
+	//Vector2 target;
+	//Vector2 step;
+	//Vector2Int tile;
+	//
+	//F32 accumulatedTime = 0.0f;
+	//F32 allottedTime = (F32)Time::DeltaTime();
+	//
+	//if (move.x < 0.0f)
+	//{
+	//	start.x -= extents.x;
+	//	target.x = Math::Round(start.x - 0.0001f) - 0.5f; //TODO: The tile size could be something other than 1, so use (tileSize * 0.5f)
+	//	tile.x = (I32)(target.x - 0.5f);
+	//	step.x = -1.0f;
+	//}
+	//else
+	//{
+	//	start.x += extents.x;
+	//	target.x = Math::Round(start.x - 0.0001f) + 0.5f;
+	//	tile.x = (I32)(target.x + 0.5f);
+	//	step.x = 1.0f;
+	//}
+	//
+	//if (move.y < 0.0f)
+	//{
+	//	start.y -= extents.y;
+	//	target.y = Math::Round(start.y - 0.0001f) - 0.5f;
+	//	tile.y = (I32)(target.y - 0.5f);
+	//	step.y = -1.0f;
+	//}
+	//else
+	//{
+	//	start.y += extents.y;
+	//	target.y = Math::Round(start.y - 0.0001f) + 0.5f;
+	//	tile.y = (I32)(target.y + 0.5f);
+	//	step.y = 1.0f;
+	//}
+	//
+	//Vector2 position = start;
+	//bool collidedX = move.x == 0.0f;
+	//bool collidedY = move.y == 0.0f;
+	//
+	//while (true)
+	//{
+	//	Vector2 t = (target - position) / move;
+	//
+	//	if ((t.x < t.y || collidedY) && !collidedX)
+	//	{
+	//		accumulatedTime += t.x;
+	//		if (accumulatedTime > allottedTime) { return contacts.Size(); }
+	//
+	//		position.x = target.x;
+	//
+	//		if (grid[tile.x][tile.y - (I32)step.y].blockID) //TODO: Check if in bounds
+	//		{
+	//			move.x = 0.0f; //TODO: Take restitution into account
+	//			collidedX = true;
+	//
+	//			Contact2D c{};
+	//			c.a = obj;
+	//			c.distance = position.x - start.x;
+	//			c.normal = Vector2::RIGHT * step.x;
+	//			c.relativeVelocity = obj->Move();
+	//			c.restitution = obj->Restitution(); //TODO: get tile restitution;
+	//
+	//			contacts.PushBack(c);
+	//		}
+	//
+	//		target.x += step.x;
+	//		tile.x += step.x;
+	//	}
+	//	else if (!collidedY)
+	//	{
+	//		accumulatedTime += t.y;
+	//		if (accumulatedTime > allottedTime) { return contacts.Size(); }
+	//
+	//		position.y = target.y;
+	//
+	//		if (grid[tile.x - (I32)step.x][tile.y].blockID)
+	//		{
+	//			move.y = 0.0f; //TODO: Take restitution into account
+	//			collidedY = true;
+	//
+	//			Contact2D c{};
+	//			c.a = obj;
+	//			c.distance = position.y - start.y;
+	//			c.normal = Vector2::UP * step.y;
+	//			c.relativeVelocity = obj->Move();
+	//			c.restitution = obj->Restitution(); //TODO: get tile restitution;
+	//
+	//			contacts.PushBack(c);
+	//		}
+	//
+	//		target.y += step.y;
+	//		tile.y += step.y;
+	//	}
+	//	else { break; }
+	//}
+
 	Vector2 start = obj->Transform()->Position();
 	Vector2 move = obj->Move();
 	F32 length = move.Magnitude();

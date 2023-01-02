@@ -510,7 +510,7 @@ bool VulkanRenderer::BeginFrame()
 	{
 		VkCheck_ERROR(vkDeviceWaitIdle(Device::logicalDevice));
 
-		if (!RecreateSwapchain()) { return false; }
+		if (Settings::Minimised || !RecreateSwapchain()) { return false; }
 
 		Logger::Info("Resized, booting.");
 		return false;
