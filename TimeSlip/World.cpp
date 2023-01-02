@@ -964,7 +964,7 @@ F32 World::GenerateWorld()
 		if (tiles[x][height].blockID)
 		{
 			F32 rand = Math::RandomF();
-			tiles[x][height - 1].decID = (rand < 0.3f) * 2 + (rand > 0.5 && rand < 0.6f) * 3 + (rand > 0.9) * 4;
+			tiles[x][height - 1].decID = (rand < 0.8f) * 2 + (rand > 0.88 && rand < 0.92f) * 3 + (rand > 0.92f) * 4;
 		}
 	}
 

@@ -560,6 +560,7 @@ bool Inventory::RemoveItem(U16 x, U16 y, U16 amount)
 		{
 			slot.itemID = 0;
 			UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
+			UI::ChangeText((UIText*)slot.button->children.Back(), "");
 		}
 		else if (slot.amount > 1)
 		{
@@ -601,6 +602,7 @@ void Inventory::RemoveItem(U16 itemID, U16 amount)
 					{
 						slot.itemID = 0;
 						UI::ChangeTexture(slot.button->children.Front(), nullptr, blankUVs);
+						UI::ChangeText((UIText*)slot.button->children.Back(), "");
 					}
 					else if (slot.amount > 1)
 					{

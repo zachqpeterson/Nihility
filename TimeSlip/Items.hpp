@@ -7,6 +7,7 @@
 
 enum ItemType
 {
+	ITEM_TYPE_BASIC,
 	ITEM_TYPE_TILE,
 	ITEM_TYPE_TOOL,
 	ITEM_TYPE_WEAPON,
@@ -38,16 +39,18 @@ enum ItemID
 	ITEM_ID_TIN_ORE,
 	ITEM_ID_IRON_ORE,
 	ITEM_ID_COAL,
+	ITEM_ID_COPPER_INGOT,
 
 	ITEM_ID_RESERVED_1,
 	ITEM_ID_RESERVED_2,
-	ITEM_ID_RESERVED_3,
 
 	ITEM_ID_FLINT_PICKAXE,
-
 	ITEM_ID_FLINT_KNIFE,
 
 	ITEM_ID_TORCH,
+
+	ITEM_ID_COPPER_PICKAXE,
+	ITEM_ID_COPPER_KNIFE,
 
 
 	ITEM_ID_COUNT
@@ -211,19 +214,19 @@ inline const Item* Items::items[]
 	new Block{"Tin Ore", "Combined with copper to make bronze", 2, 2, false},
 	new Block{"Iron Ore", "Used to create iron ingots", 3, 3, false},
 	new Block{"Coal", "Combined with iron to make steel", 4, 4, false},
+	new Item{"Copper Ingot", "Used to make copper tools", 1, ITEM_TYPE_BASIC},
 
 	//Reserved
 	new Item{"", "", 0, ITEM_TYPE_TOOL},
 	new Item{"", "", 0, ITEM_TYPE_TOOL},
-	new Item{"", "", 0, ITEM_TYPE_TOOL},
 
-	//Tools 21
 	new Tool{"Flint Pickaxe", "A primitive tool that'll get the job done", 0, 1, 1},
-
-	//Weapons 22
-	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.0f, 10.0f, 0.0f, 0.2f}},
+	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.1f, 10.0f, 0.0f, 0.2f}},
 
 	new Light{"Torch", "Light up the way in dark tunnels", 0, 8, Vector3::ONE},
+
+	new Tool{"Copper Pickaxe", "A decent tool that'll get the job done", 1, 1, 1},
+	new Weapon{"Copper Knife", "A decent weapon that'll get the job done", 1, Damage{40, 1, 0.1f, 0.6f, 0.1f, 10.0f, 0.0f, 0.2f}},
 
 	nullptr
 };
@@ -233,6 +236,9 @@ inline const Recipe* Items::recipes[]
 	new Recipe(ITEM_ID_FLINT_PICKAXE, 1, 0, Ingredient{ITEM_ID_FLINT}, Ingredient{ITEM_ID_STICK}),
 	new Recipe(ITEM_ID_FLINT_KNIFE, 1, 0, Ingredient{ITEM_ID_FLINT}, Ingredient{ITEM_ID_STICK}),
 	new Recipe(ITEM_ID_TORCH, 1, 0, Ingredient{ITEM_ID_STICK}),
+	new Recipe(ITEM_ID_COPPER_INGOT, 1, 0, Ingredient{ITEM_ID_COPPER_ORE, 2}),
+	new Recipe(ITEM_ID_COPPER_PICKAXE, 1, 0, Ingredient{ITEM_ID_COPPER_INGOT, 3}, Ingredient{ITEM_ID_STICK}),
+	new Recipe(ITEM_ID_COPPER_KNIFE, 1, 0, Ingredient{ITEM_ID_COPPER_INGOT, 2}, Ingredient{ITEM_ID_STICK}),
 
 	nullptr
 };

@@ -570,42 +570,31 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 0.66666f, 0.75f };
 	uvs[3] = { 0.33333f, 0.75f };
 
-	UIElementConfig titleConfig0{};
-	titleConfig0.position = { 0.375f, 0.05f };
-	titleConfig0.scale = { 0.25f, 0.1f };
-	titleConfig0.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	titleConfig0.enabled = true;
-	titleConfig0.ignore = true;
-	titleConfig0.scene = mainMenuScene;
-	titleImage0 = UI::GenerateImage(titleConfig0, uiTex, uvs);
+	UIElementConfig mainMenuConfig{};
+	mainMenuConfig.position = { 0.375f, 0.05f };
+	mainMenuConfig.scale = { 0.25f, 0.1f };
+	mainMenuConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	mainMenuConfig.enabled = true;
+	mainMenuConfig.ignore = true;
+	mainMenuConfig.scene = mainMenuScene;
+	titleImage0 = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 
 	uvs[0] = { 0.66666f, 1.0f };
 	uvs[1] = { 1.0f, 1.0f };
 	uvs[2] = { 1.0f, 0.75f };
 	uvs[3] = { 0.66666f, 0.75f };
 
-	UIElementConfig titleConfig1{};
-	titleConfig1.position = { 0.375f, 0.15f };
-	titleConfig1.scale = { 0.25f, 0.1f };
-	titleConfig1.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	titleConfig1.enabled = true;
-	titleConfig1.ignore = true;
-	titleConfig1.scene = mainMenuScene;
-	titleImage1 = UI::GenerateImage(titleConfig1, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.15f };
+	titleImage1 = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 
 	uvs[0] = { 0.0f, 0.25f };
 	uvs[1] = { 0.33333f, 0.25f };
 	uvs[2] = { 0.33333f, 0.0f };
 	uvs[3] = { 0.0f, 0.0f };
 
-	UIElementConfig playConfig{};
-	playConfig.position = { 0.375f, 0.375f };
-	playConfig.scale = { 0.25f, 0.1f };
-	playConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	playConfig.enabled = true;
-	playConfig.ignore = false;
-	playConfig.scene = mainMenuScene;
-	playButton = UI::GenerateImage(playConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.375f };
+	mainMenuConfig.ignore = false;
+	playButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	playButton->OnClick = { PlayMenu, nullptr };
 	playButton->OnHover = UI::OnHoverDefault;
 	playButton->OnExit = UI::OnExitDefault;
@@ -615,14 +604,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 0.66666f, 0.0f };
 	uvs[3] = { 0.33333f, 0.0f };
 
-	UIElementConfig settingsConfig{};
-	settingsConfig.position = { 0.375f, 0.525f };
-	settingsConfig.scale = { 0.25f, 0.1f };
-	settingsConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	settingsConfig.enabled = true;
-	settingsConfig.ignore = false;
-	settingsConfig.scene = mainMenuScene;
-	settingsButton = UI::GenerateImage(settingsConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.525f };
+	settingsButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	settingsButton->OnClick = { SettingsMenu, nullptr };
 	settingsButton->OnHover = UI::OnHoverDefault;
 	settingsButton->OnExit = UI::OnExitDefault;
@@ -632,14 +615,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 1.0f, 0.0f };
 	uvs[3] = { 0.66666f, 0.0f };
 
-	UIElementConfig exitConfig{};
-	exitConfig.position = { 0.375f, 0.675f };
-	exitConfig.scale = { 0.25f, 0.1f };
-	exitConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	exitConfig.enabled = true;
-	exitConfig.ignore = false;
-	exitConfig.scene = mainMenuScene;
-	exitButton = UI::GenerateImage(exitConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.675f };
+	exitButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	exitButton->OnClick = { Exit, nullptr };
 	exitButton->OnHover = UI::OnHoverDefault;
 	exitButton->OnExit = UI::OnExitDefault;
@@ -649,28 +626,21 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 1.0f, 0.5f };
 	uvs[3] = { 0.33333f, 0.5f };
 
-	UIElementConfig selectWorldConfig{};
-	selectWorldConfig.position = { 0.25f, 0.2f };
-	selectWorldConfig.scale = { 0.5f, 0.1f };
-	selectWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	selectWorldConfig.enabled = false;
-	selectWorldConfig.ignore = true;
-	selectWorldConfig.scene = mainMenuScene;
-	selectWorldImage = UI::GenerateImage(selectWorldConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.25f, 0.2f };
+	mainMenuConfig.scale = { 0.5f, 0.1f };
+	mainMenuConfig.enabled = false;
+	mainMenuConfig.ignore = true;
+	selectWorldImage = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 
 	uvs[0] = { 0.0f, 0.5f };
 	uvs[1] = { 0.33333f, 0.5f };
 	uvs[2] = { 0.33333f, 0.25f };
 	uvs[3] = { 0.0f, 0.25f };
 
-	UIElementConfig smallWorldConfig{};
-	smallWorldConfig.position = { 0.375f, 0.375f };
-	smallWorldConfig.scale = { 0.25f, 0.1f };
-	smallWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	smallWorldConfig.enabled = false;
-	smallWorldConfig.ignore = false;
-	smallWorldConfig.scene = mainMenuScene;
-	smallWorldButton = UI::GenerateImage(smallWorldConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.375f };
+	mainMenuConfig.scale = { 0.25f, 0.1f };
+	mainMenuConfig.ignore = false;
+	smallWorldButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	smallWorldButton->OnClick = { CreateWorld, (void*)&smallWorldSize };
 	smallWorldButton->OnHover = UI::OnHoverDefault;
 	smallWorldButton->OnExit = UI::OnExitDefault;
@@ -680,14 +650,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 0.66666f, 0.25f };
 	uvs[3] = { 0.33333f, 0.25f };
 
-	UIElementConfig mediumWorldConfig{};
-	mediumWorldConfig.position = { 0.375f, 0.525f };
-	mediumWorldConfig.scale = { 0.25f, 0.1f };
-	mediumWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	mediumWorldConfig.enabled = false;
-	mediumWorldConfig.ignore = false;
-	mediumWorldConfig.scene = mainMenuScene;
-	mediumWorldButton = UI::GenerateImage(mediumWorldConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.525f };
+	mediumWorldButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	mediumWorldButton->OnClick = { CreateWorld, (void*)&mediumWorldSize };
 	mediumWorldButton->OnHover = UI::OnHoverDefault;
 	mediumWorldButton->OnExit = UI::OnExitDefault;
@@ -697,14 +661,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 1.0f, 0.25f };
 	uvs[3] = { 0.66666f, 0.25f };
 
-	UIElementConfig largeWorldConfig{};
-	largeWorldConfig.position = { 0.375f, 0.675f };
-	largeWorldConfig.scale = { 0.25f, 0.1f };
-	largeWorldConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	largeWorldConfig.enabled = false;
-	largeWorldConfig.ignore = false;
-	largeWorldConfig.scene = mainMenuScene;
-	largeWorldButton = UI::GenerateImage(largeWorldConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.675f };
+	largeWorldButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	largeWorldButton->OnClick = { CreateWorld, (void*)&largeWorldSize };
 	largeWorldButton->OnHover = UI::OnHoverDefault;
 	largeWorldButton->OnExit = UI::OnExitDefault;
@@ -714,14 +672,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[2] = { 0.33333f, 0.5f };
 	uvs[3] = { 0.0f, 0.5f };
 
-	UIElementConfig backConfig{};
-	backConfig.position = { 0.375f, 0.825f };
-	backConfig.scale = { 0.25f, 0.1f };
-	backConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	backConfig.enabled = false;
-	backConfig.ignore = false;
-	backConfig.scene = mainMenuScene;
-	backButton = UI::GenerateImage(backConfig, uiTex, uvs);
+	mainMenuConfig.position = { 0.375f, 0.825f };
+	backButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
 	backButton->OnClick = { MainMenu, nullptr };
 	backButton->OnHover = UI::OnHoverDefault;
 	backButton->OnExit = UI::OnExitDefault;
