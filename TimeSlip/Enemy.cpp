@@ -82,7 +82,7 @@ void Enemy::BasicAI()
 			if (animation->y < 2) { Animations::SetAnimation(animation, 0, true); }
 			else { animation->nextAnimation = 0; }
 		}
-		else if (dist < 1.0f) //TODO: Attack range
+		else if (dist < 1.0f && Math::Abs(playerPos.y - pos.y) < 1.0f) //TODO: Attack range
 		{
 			startChase = false;
 			if (animation->y < 2) { Animations::SetAnimation(animation, 0, true); }
