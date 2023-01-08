@@ -1,3 +1,3 @@
 # NihilityEngine
 
-This is a primarily 2D game engine with some 3D support. Most of the systems were made from scratch without 3rd party libraries. Rendering is done with Vulkan, windowing and input is done through Win32, Audio is done with XAudio2, some of the assets loading is done with STB
+This is 2D game engine made from scratch. The only APIs I use are Vulkan for rendering, Win32 for window creation and handling and most input, RawInput for low level input(I'd like all the input to be done through RawInput in the future), and XAudio2 for Audio proccessing.
