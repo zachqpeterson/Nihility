@@ -13,8 +13,8 @@
 #define HEIGHT_RATIO 0.0162037037F
 
 U64 UI::elementID{ 1 };
-List<UIElement*> UI::elements;
-List<UIElement*> UI::elementsToDestroy;
+Vector<UIElement*> UI::elements;
+Vector<UIElement*> UI::elementsToDestroy;
 Texture* UI::panelTexture;
 UIElement* UI::draggedElement;
 Vector2Int UI::lastMousesPos;
@@ -29,48 +29,47 @@ void UI::DefaultOnHover(UIElement* e, const Vector2Int& delta, void* data) { UI:
 void UI::DefaultOnExit(UIElement* e, void* data) { UI::ChangeColor(e, { 1.0f, 1.0f, 1.0f, 1.0f }); }
 void UI::DefaultOnScrollWindow(UIElement* e, const Vector2Int& position, I16 delta, void* data)
 {
-	if (e->type == UI_TYPE_SCROLL)
+	if (e->scrollWindow)
 	{
-		UIScrollWindow* scrollWindow = (UIScrollWindow*)e;
-
 		F32 scrollAmount = delta * 0.02f;
 
-		if (scrollWindow->vertical)
+		//TODO: Potentially both, determine scroll direction in that case
+		if (e->scrollWindow->vertical)
 		{
 			if (scrollAmount < 0.0f)
 			{
-				UIElement* back = scrollWindow->children.Back();
-				F32 scrollY = scrollWindow->push.position.y + scrollWindow->scale.y;
+				UIElement* back = e->children.Back();
+				F32 scrollY = e->push.position.y + e->scale.y;
 				F32 elementY = back->push.position.y + back->scale.y;
 				scrollAmount = Math::Max(scrollAmount, scrollY - elementY) * (elementY > scrollY);
 			}
 			else
 			{
-				UIElement* front = scrollWindow->children.Front();
-				scrollAmount = Math::Min(scrollAmount, scrollWindow->push.position.y - front->push.position.y) * (scrollWindow->push.position.y > front->push.position.y);
+				UIElement* front = e->children.Front();
+				scrollAmount = Math::Min(scrollAmount, e->push.position.y - front->push.position.y) * (e->push.position.y > front->push.position.y);
 			}
 
-			for (UIElement* element : scrollWindow->children)
+			for (UIElement* element : e->children)
 			{
 				MoveElement(element, Vector2::UP * scrollAmount);
 			}
 		}
-		else if (scrollWindow->horizontal)
+		else if (e->scrollWindow->horizontal)
 		{
 			if (scrollAmount < 0.0f)
 			{
-				UIElement* back = scrollWindow->children.Back();
-				F32 scrollX = scrollWindow->push.position.x + scrollWindow->scale.x;
+				UIElement* back = e->children.Back();
+				F32 scrollX = e->push.position.x + e->scale.x;
 				F32 elementX = back->push.position.x + back->scale.x;
 				scrollAmount = Math::Max(scrollAmount, scrollX - elementX) * (elementX > scrollX);
 			}
 			else
 			{
-				UIElement* front = scrollWindow->children.Front();
-				scrollAmount = Math::Min(scrollAmount, scrollWindow->push.position.x - front->push.position.x) * (scrollWindow->push.position.x > front->push.position.x);
+				UIElement* front = e->children.Front();
+				scrollAmount = Math::Min(scrollAmount, e->push.position.x - front->push.position.x) * (e->push.position.x > front->push.position.x);
 			}
 
-			for (UIElement* element : scrollWindow->children)
+			for (UIElement* element : e->children)
 			{
 				MoveElement(element, Vector2::RIGHT * scrollAmount);
 			}
@@ -98,26 +97,20 @@ void UI::Shutdown()
 
 	for (UIElement* e : elements)
 	{
-		switch (e->type)
+		if (e->text)
 		{
-		default:
-		case UI_TYPE_NONE:
-		case UI_TYPE_PANEL:
-		case UI_TYPE_PANEL_BORDERED:
-		case UI_TYPE_IMAGE:
+			e->text->text.Destroy();
+			Memory::Free(e->text, sizeof(UIText), MEMORY_TAG_UI);
+		}
+
+		if (e->bar)
 		{
-			Memory::Free(e, sizeof(UIElement), MEMORY_TAG_UI);
-		} break;
-		case UI_TYPE_TEXT:
+			Memory::Free(e->bar, sizeof(UIBar), MEMORY_TAG_UI);
+		}
+
+		if (e->scrollWindow)
 		{
-			UIText* t = (UIText*)e;
-			t->text.Destroy();
-			Memory::Free(e, sizeof(UIText), MEMORY_TAG_UI);
-		} break;
-		case UI_TYPE_BAR:
-		{
-			Memory::Free(e, sizeof(UIBar), MEMORY_TAG_UI);
-		} break;
+			Memory::Free(e->scrollWindow, sizeof(UIScrollWindow), MEMORY_TAG_UI);
 		}
 	}
 
@@ -151,10 +144,10 @@ void UI::Update()
 		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 		Vector2 pos = (Vector2)mousePos / windowSize;
 
-		for (UIElement* e : elements)
+		for (UIElement* e : elements) //TODO: Reverse iterate
 		{
 			Vector4 area;
-			if (e->renderArea)
+			if (e->renderWindow)
 			{
 				Vector4 rendArea = (e->push.renderArea - offset) / (Vector2{ renderArea.z, renderArea.w } - offset);
 				area = { Math::Max(e->push.position.x, rendArea.x), Math::Max(e->push.position.y, rendArea.y),
@@ -164,7 +157,7 @@ void UI::Update()
 			{
 				area = { e->push.position.x, e->push.position.y, e->push.position.x + e->scale.x, e->push.position.y + e->scale.y };
 			}
-			
+
 			if (e->gameObject->enabled && !e->ignore && e->scene == RendererFrontend::CurrentScene() &&
 				(pos.x > area.x && pos.x < area.z && pos.y > area.y && pos.y < area.w))
 			{
@@ -228,18 +221,17 @@ bool UI::OnResize(void* data)
 
 	for (UIElement* e : elements)
 	{
-		if (!e->renderArea)
+		if (!e->renderWindow)
 		{
 			e->push.renderArea = renderArea;
 		}
 
-		if (e->type == UI_TYPE_SCROLL)
+		if (e->scrollWindow)
 		{
 			e->push.renderArea = { (renderArea.z - offset.x) * e->push.position.x + offset.x, (renderArea.w - offset.y) * e->push.position.y + offset.y,
 		(renderArea.z - offset.x) * (e->push.position.x + e->scale.x) + offset.x, (renderArea.w - offset.y) * (e->push.position.y + e->scale.y) + offset.y };
 
-			UIScrollWindow* sw = (UIScrollWindow*)e;
-			for (UIElement* c : sw->children)
+			for (UIElement* c : e->children)
 			{
 				c->push.renderArea = e->push.renderArea;
 			}
@@ -249,199 +241,79 @@ bool UI::OnResize(void* data)
 	return false;
 }
 
-UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
+UIElement* UI::CreateUIElement(UIElementConfig& config)
 {
 	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
 	{
-		Logger::Error("UI::GeneratePanel: Area can't be negative!");
+		Logger::Error("{}: Area can't be negative!", FUNCTION_NAME);
 		return nullptr;
 	}
 
-	if (!config.scene)
-	{
-		Logger::Error("UI::GeneratePanel: Scene can't be nullptr!");
-		return nullptr;
-	}
+	if (!config.scene) { RendererFrontend::CurrentScene(); }
 
-	UIElement* panel = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_UI);
-	panel->id = elementID++;
-	panel->scene = config.scene;
-	panel->color = config.color;
-	panel->ignore = config.ignore;
-	panel->selfEnabled = config.enabled;
-	panel->parent = config.parent;
-	panel->push.renderArea = renderArea;
-
-	String name("UI_Element_{}", panel->id);
-
-	MeshConfig meshConfig{};
-	meshConfig.name = name;
-	meshConfig.MaterialName = "UI.mat";
-	meshConfig.instanceTextures.Push(panelTexture);
+	UIElement* element = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_UI);
+	element->id = elementID++;
+	element->name = { "UI_Element_{}", element->id };
+	element->ignore = config.ignore;
+	element->hovered = false;
+	element->clicked = false;
+	element->selfEnabled = config.enabled;
+	element->push.renderArea = renderArea;
+	element->color = config.color;
+	element->parent = config.parent;
+	element->scene = config.scene;
 
 	if (config.parent)
 	{
-		config.parent->children.PushBack(panel);
+		config.parent->children.Push(element);
 
-		panel->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
-		panel->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+		element->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+		element->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
 
 		if (config.scaled)
 		{
-			panel->push.position.x = config.parent->push.position.x + config.position.x;
-			panel->push.position.y = config.parent->push.position.y + config.position.y;
-			panel->scale.x = config.scale.x;
-			panel->scale.y = config.scale.y;
+			element->push.position.x = config.parent->push.position.x + config.position.x;
+			element->push.position.y = config.parent->push.position.y + config.position.y;
+			element->scale.x = config.scale.x;
+			element->scale.y = config.scale.y;
 		}
 		else
 		{
-			panel->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
-			panel->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
-			panel->scale.x = config.parent->scale.x * config.scale.x;
-			panel->scale.y = config.parent->scale.y * config.scale.y;
+			element->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
+			element->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
+			element->scale.x = config.parent->scale.x * config.scale.x;
+			element->scale.y = config.parent->scale.y * config.scale.y;
 		}
+
+		element->renderWindow = config.parent->renderWindow;
 	}
 	else
 	{
-		panel->push.position.x = config.position.x;
-		panel->push.position.y = config.position.y;
-		panel->scale.x = config.scale.x;
-		panel->scale.y = config.scale.y;
+		element->push.position.x = config.position.x;
+		element->push.position.y = config.position.y;
+		element->scale.x = config.scale.x;
+		element->scale.y = config.scale.y;
 	}
 
-	F32 id = 1.0f - (F32)panel->id * 0.001f;
+	GameObject2DConfig goConfig{};
+	goConfig.name = element->name;
 
-	if (bordered)
+	if (config.panel)
 	{
-		panel->type = UI_TYPE_PANEL_BORDERED;
-		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 36, MEMORY_TAG_RESOURCE);
-		meshConfig.vertexSize = sizeof(UIVertex);
-		meshConfig.vertexCount = 36;
-		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
-
-		//BOTTOM LEFT CORNER  
-		vertices[0] = UIVertex{ { 0.0f,			0.0f,			id }, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[1] = UIVertex{ { WIDTH_RATIO,	0.0f,			id }, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[2] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[3] = UIVertex{ { 0.0f,			HEIGHT_RATIO,	id }, { 0.0f, 0.66666666666f },	 config.color };
-		//TOP LEFT CORNER		
-		vertices[4] = UIVertex{ { 0.0f,			panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[5] = UIVertex{ { WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[6] = UIVertex{ { WIDTH_RATIO,	panel->scale.y,					id }, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[7] = UIVertex{ { 0.0f,			panel->scale.y,					id }, { 0.0f, 0.33333333333f },	 config.color };
-		//BOTTOM RIGHT CORNER
-		vertices[8] = UIVertex{ { panel->scale.x - WIDTH_RATIO,		0.0f,			id }, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[9] = UIVertex{ { panel->scale.x,					0.0f,			id }, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[10] = UIVertex{ { panel->scale.x,					HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[11] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
-		//TOP RIGHT CORNER
-		vertices[12] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[13] = UIVertex{ { panel->scale.x,					panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[14] = UIVertex{ { panel->scale.x,					panel->scale.y,					id }, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[15] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y,					id }, { 1.0f, 0.33333333333f },	 config.color };
-		//LEFT SIDE 
-		vertices[16] = UIVertex{ { 0.0f,		HEIGHT_RATIO,					id }, { 0.0f, 0.0f },			 config.color };
-		vertices[17] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,					id }, { 1.0f, 0.0f },			 config.color };
-		vertices[18] = UIVertex{ { WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[19] = UIVertex{ { 0.0f,		panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 0.33333333333f },	 config.color };
-		//RIGHT SIDE 																									
-		vertices[20] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,					id }, { 1.0f, 0.33333333333f },	 config.color };
-		vertices[21] = UIVertex{ { panel->scale.x,					HEIGHT_RATIO,					id }, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[22] = UIVertex{ { panel->scale.x,					panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 0.0f },			 config.color };
-		vertices[23] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.0f },			 config.color };
-		//TOP SIDE																						 				
-		vertices[24] = UIVertex{ { WIDTH_RATIO,						panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.0f },			config.color };
-		vertices[25] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	config.color };
-		vertices[26] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y,					id }, { 0.0f, 0.33333333333f },	config.color };
-		vertices[27] = UIVertex{ { WIDTH_RATIO,						panel->scale.y,					id }, { 0.0f, 0.0f },			config.color };
-		//BOTTOM SIDE																									 
-		vertices[28] = UIVertex{ { WIDTH_RATIO,						0.0f,			id }, { 0.0f, 0.33333333333f },	 config.color };
-		vertices[29] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	0.0f,			id }, { 0.0f, 0.0f },			 config.color };
-		vertices[30] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	id }, { 1.0f, 0.0f },			 config.color };
-		vertices[31] = UIVertex{ { WIDTH_RATIO,						HEIGHT_RATIO,	id }, { 1.0f, 0.33333333333f },	 config.color };
-		//FILL																											
-		vertices[32] = UIVertex{ { WIDTH_RATIO,						HEIGHT_RATIO,					id }, { 0.0f, 0.66666666666f },	 config.color };
-		vertices[33] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,					id }, { 1.0f, 0.66666666666f },	 config.color };
-		vertices[34] = UIVertex{ { panel->scale.x - WIDTH_RATIO,	panel->scale.y - HEIGHT_RATIO,	id }, { 1.0f, 1.0f },			 config.color };
-		vertices[35] = UIVertex{ { WIDTH_RATIO,						panel->scale.y - HEIGHT_RATIO,	id }, { 0.0f, 1.0f },			 config.color };
-
-		meshConfig.indices.Resize(54);
-
-		meshConfig.indices[0] = 0;
-		meshConfig.indices[1] = 1;
-		meshConfig.indices[2] = 2;
-		meshConfig.indices[3] = 2;
-		meshConfig.indices[4] = 3;
-		meshConfig.indices[5] = 0;
-
-		meshConfig.indices[6] = 4;
-		meshConfig.indices[7] = 5;
-		meshConfig.indices[8] = 6;
-		meshConfig.indices[9] = 6;
-		meshConfig.indices[10] = 7;
-		meshConfig.indices[11] = 4;
-
-		meshConfig.indices[12] = 8;
-		meshConfig.indices[13] = 9;
-		meshConfig.indices[14] = 10;
-		meshConfig.indices[15] = 10;
-		meshConfig.indices[16] = 11;
-		meshConfig.indices[17] = 8;
-
-		meshConfig.indices[18] = 12;
-		meshConfig.indices[19] = 13;
-		meshConfig.indices[20] = 14;
-		meshConfig.indices[21] = 14;
-		meshConfig.indices[22] = 15;
-		meshConfig.indices[23] = 12;
-
-		meshConfig.indices[24] = 16;
-		meshConfig.indices[25] = 17;
-		meshConfig.indices[26] = 18;
-		meshConfig.indices[27] = 18;
-		meshConfig.indices[28] = 19;
-		meshConfig.indices[29] = 16;
-
-		meshConfig.indices[30] = 20;
-		meshConfig.indices[31] = 21;
-		meshConfig.indices[32] = 22;
-		meshConfig.indices[33] = 22;
-		meshConfig.indices[34] = 23;
-		meshConfig.indices[35] = 20;
-
-		meshConfig.indices[36] = 24;
-		meshConfig.indices[37] = 25;
-		meshConfig.indices[38] = 26;
-		meshConfig.indices[39] = 26;
-		meshConfig.indices[40] = 27;
-		meshConfig.indices[41] = 24;
-
-		meshConfig.indices[42] = 28;
-		meshConfig.indices[43] = 29;
-		meshConfig.indices[44] = 30;
-		meshConfig.indices[45] = 30;
-		meshConfig.indices[46] = 31;
-		meshConfig.indices[47] = 28;
-
-		meshConfig.indices[48] = 32;
-		meshConfig.indices[49] = 33;
-		meshConfig.indices[50] = 34;
-		meshConfig.indices[51] = 34;
-		meshConfig.indices[52] = 35;
-		meshConfig.indices[53] = 32;
-	}
-	else
-	{
-		panel->type = UI_TYPE_PANEL;
+		//TODO: Create panel
+		MeshConfig meshConfig{};
+		meshConfig.name = element->name;
+		meshConfig.MaterialName = "UI.mat";
+		meshConfig.instanceTextures.Push(panelTexture);
 		meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
 		meshConfig.vertexSize = sizeof(UIVertex);
 		meshConfig.vertexCount = 4;
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		vertices[0] = UIVertex{ { 0.0f,				0.0f,			id }, { 0.0f, 0.66666666666f },	config.color };
-		vertices[1] = UIVertex{ { panel->scale.x,	0.0f,			id }, { 1.0f, 0.66666666666f },	config.color };
-		vertices[2] = UIVertex{ { panel->scale.x,	panel->scale.y, id }, { 1.0f, 1.0f },			config.color };
-		vertices[3] = UIVertex{ { 0.0f,				panel->scale.y, id }, { 0.0f, 1.0f },			config.color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,				0.0f }, { 0.0f, 0.66666666666f },	config.color };
+		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				0.0f }, { 1.0f, 0.66666666666f },	config.color };
+		vertices[2] = UIVertex{ { element->scale.x,	element->scale.y,	0.0f }, { 1.0f, 1.0f },				config.color };
+		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	0.0f }, { 0.0f, 1.0f },				config.color };
 
 		meshConfig.indices.Resize(6);
 
@@ -451,93 +323,186 @@ UIElement* UI::GeneratePanel(UIElementConfig& config, bool bordered)
 		meshConfig.indices[3] = 2;
 		meshConfig.indices[4] = 3;
 		meshConfig.indices[5] = 0;
+
+		Mesh* mesh = Resources::CreateMesh(meshConfig);
+
+		if (!mesh)
+		{
+			Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
+			Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
+			return nullptr;
+		}
+
+		mesh->pushConstant = &element->push;
+		goConfig.model = Resources::CreateModel(element->name, { 1, mesh });
 	}
+	else
+	{
+		goConfig.model = Resources::CreateModel(element->name, {});
+	}
+
+	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
+	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
+	element->gameObject = go;
+
+	elements.Push(element);
+	config.scene->DrawGameObject(go);
+
+	return element;
+}
+
+bool UI::GenerateBorder(UIElement* element, const Vector4& color, F32 size)
+{
+	if (element->border)
+	{
+		Logger::Error("{}: Element {} already has a border!", FUNCTION_NAME, element->id);
+		return false;
+	}
+
+	element->border = (UIBorder*)Memory::Allocate(sizeof(UIBorder), MEMORY_TAG_UI);
+	element->border->color = color;
+	element->border->size = size;
+
+	MeshConfig meshConfig{};
+	meshConfig.name = element->name;
+	meshConfig.MaterialName = "UI.mat";
+	meshConfig.instanceTextures.Push(panelTexture);
+
+	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 32, MEMORY_TAG_RESOURCE);
+	meshConfig.vertexSize = sizeof(UIVertex);
+	meshConfig.vertexCount = 32;
+	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
+
+	//BOTTOM LEFT CORNER
+	vertices[0] = UIVertex{ { 0.0f,			0.0f,			0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[1] = UIVertex{ { WIDTH_RATIO,	0.0f,			0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[2] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
+	vertices[3] = UIVertex{ { 0.0f,			HEIGHT_RATIO,	0.0f }, { 0.0f, 0.66666666666f },	color };
+	//TOP LEFT CORNER
+	vertices[4] = UIVertex{ { 0.0f,			element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[5] = UIVertex{ { WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
+	vertices[6] = UIVertex{ { WIDTH_RATIO,	element->scale.y,					0.0f }, { 0.0f, 0.66666666666f },	color };
+	vertices[7] = UIVertex{ { 0.0f,			element->scale.y,					0.0f }, { 0.0f, 0.33333333333f },	color };
+	//BOTTOM RIGHT CORNER
+	vertices[8] = UIVertex{ { element->scale.x - WIDTH_RATIO,	0.0f,			0.0f }, { 0.0f, 0.66666666666f },	color };
+	vertices[9] = UIVertex{ { element->scale.x,					0.0f,			0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[10] = UIVertex{ { element->scale.x,				HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[11] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
+	//TOP RIGHT CORNER
+	vertices[12] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
+	vertices[13] = UIVertex{ { element->scale.x,				element->scale.y - HEIGHT_RATIO,	0.0f }, { 0.0f, 0.66666666666f },	color };
+	vertices[14] = UIVertex{ { element->scale.x,				element->scale.y,					0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[15] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y,					0.0f }, { 1.0f, 0.33333333333f },	color };
+	//LEFT SIDE
+	vertices[16] = UIVertex{ { 0.0f,		HEIGHT_RATIO,						0.0f }, { 0.0f, 0.0f },				color };
+	vertices[17] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,						0.0f }, { 1.0f, 0.0f },				color };
+	vertices[18] = UIVertex{ { WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[19] = UIVertex{ { 0.0f,		element->scale.y - HEIGHT_RATIO,	0.0f }, { 0.0f, 0.33333333333f },	color };
+	//RIGHT SIDE
+	vertices[20] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,						0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[21] = UIVertex{ { element->scale.x,				HEIGHT_RATIO,						0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[22] = UIVertex{ { element->scale.x,				element->scale.y - HEIGHT_RATIO,	0.0f }, { 0.0f, 0.0f },				color };
+	vertices[23] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.0f },				color };
+	//TOP SIDE
+	vertices[24] = UIVertex{ { WIDTH_RATIO,						element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.0f },				color };
+	vertices[25] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[26] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y,					0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[27] = UIVertex{ { WIDTH_RATIO,						element->scale.y,					0.0f }, { 0.0f, 0.0f },				color };
+	//BOTTOM SIDE
+	vertices[28] = UIVertex{ { WIDTH_RATIO,						0.0f,			0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[29] = UIVertex{ { element->scale.x - WIDTH_RATIO,	0.0f,			0.0f }, { 0.0f, 0.0f },				color };
+	vertices[30] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	0.0f }, { 1.0f, 0.0f },				color };
+	vertices[31] = UIVertex{ { WIDTH_RATIO,						HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
+
+	meshConfig.indices.Resize(48);
+
+	meshConfig.indices[0] = 0;
+	meshConfig.indices[1] = 1;
+	meshConfig.indices[2] = 2;
+	meshConfig.indices[3] = 2;
+	meshConfig.indices[4] = 3;
+	meshConfig.indices[5] = 0;
+
+	meshConfig.indices[6] = 4;
+	meshConfig.indices[7] = 5;
+	meshConfig.indices[8] = 6;
+	meshConfig.indices[9] = 6;
+	meshConfig.indices[10] = 7;
+	meshConfig.indices[11] = 4;
+
+	meshConfig.indices[12] = 8;
+	meshConfig.indices[13] = 9;
+	meshConfig.indices[14] = 10;
+	meshConfig.indices[15] = 10;
+	meshConfig.indices[16] = 11;
+	meshConfig.indices[17] = 8;
+
+	meshConfig.indices[18] = 12;
+	meshConfig.indices[19] = 13;
+	meshConfig.indices[20] = 14;
+	meshConfig.indices[21] = 14;
+	meshConfig.indices[22] = 15;
+	meshConfig.indices[23] = 12;
+
+	meshConfig.indices[24] = 16;
+	meshConfig.indices[25] = 17;
+	meshConfig.indices[26] = 18;
+	meshConfig.indices[27] = 18;
+	meshConfig.indices[28] = 19;
+	meshConfig.indices[29] = 16;
+
+	meshConfig.indices[30] = 20;
+	meshConfig.indices[31] = 21;
+	meshConfig.indices[32] = 22;
+	meshConfig.indices[33] = 22;
+	meshConfig.indices[34] = 23;
+	meshConfig.indices[35] = 20;
+
+	meshConfig.indices[36] = 24;
+	meshConfig.indices[37] = 25;
+	meshConfig.indices[38] = 26;
+	meshConfig.indices[39] = 26;
+	meshConfig.indices[40] = 27;
+	meshConfig.indices[41] = 24;
+
+	meshConfig.indices[42] = 28;
+	meshConfig.indices[43] = 29;
+	meshConfig.indices[44] = 30;
+	meshConfig.indices[45] = 30;
+	meshConfig.indices[46] = 31;
+	meshConfig.indices[47] = 28;
 
 	Mesh* mesh = Resources::CreateMesh(meshConfig);
 
 	if (!mesh)
 	{
-		Logger::Error("UI::GenerateBorderedPanel: Failed to Generate UI mesh!");
-		Memory::Free(panel, sizeof(UIElement), MEMORY_TAG_UI);
-		return nullptr;
+		Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
+		Memory::Free(element->border, sizeof(UIBorder), MEMORY_TAG_UI);
+		element->border = nullptr;
+		return false;
 	}
 
-	mesh->pushConstant = &panel->push;
-	panel->mesh = mesh;
-	Vector<Mesh*> meshes(1, mesh);
-	GameObject2DConfig goConfig{};
-	goConfig.name = name;
-	goConfig.model = Resources::CreateModel(name, meshes);
+	element->gameObject->model->meshes.Push(mesh);
 
-	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
-	panel->gameObject = go;
-
-	elements.PushFront(panel);
-	config.scene->DrawGameObject(go);
-
-	return panel;
+	return true;
 }
 
-UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Vector<Vector2>& uvs)
+bool UI::GenerateImage(UIElement* element, Texture* texture, const Vector<Vector2>& uvs)
 {
-	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
+	if (element->image)
 	{
-		Logger::Error("UI::GenerateImage: Area can't be negative!");
-		return nullptr;
+		Logger::Error("{}: Element {} already has an image!", FUNCTION_NAME, element->id);
+		return false;
 	}
 
-	if (!config.scene)
-	{
-		Logger::Error("UI::GenerateImage: Scene can't be nullptr!");
-		return nullptr;
-	}
-
-	UIElement* image = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_UI);
-	image->id = elementID++;
-	image->scene = config.scene;
-	image->color = config.color;
-	image->ignore = config.ignore;
-	image->selfEnabled = config.enabled;
-	image->parent = config.parent;
-	image->type = UI_TYPE_IMAGE;
-	image->push.renderArea = renderArea;
-
-	String name("UI_Element_{}", image->id);
+	element->image = (UIImage*)Memory::Allocate(sizeof(UIImage), MEMORY_TAG_UI);
+	element->image->texture = texture;
+	element->image->uvs = uvs;
 
 	MeshConfig meshConfig{};
-	meshConfig.name = name;
+	meshConfig.name = element->name;
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(texture);
-
-	if (config.parent)
-	{
-		config.parent->children.PushBack(image);
-
-		if (config.scaled)
-		{
-			image->push.position.x = config.parent->push.position.x + config.position.x;
-			image->push.position.y = config.parent->push.position.y + config.position.y;
-			image->scale.x = config.scale.x;
-			image->scale.y = config.scale.y;
-		}
-		else
-		{
-			image->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
-			image->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
-			image->scale.x = config.parent->scale.x * config.scale.x;
-			image->scale.y = config.parent->scale.y * config.scale.y;
-		}
-	}
-	else
-	{
-		image->push.position.x = config.position.x;
-		image->push.position.y = config.position.y;
-		image->scale.x = config.scale.x;
-		image->scale.y = config.scale.y;
-	}
-
-	F32 id = 1.0f - (F32)image->id * 0.001f;
 
 	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
 	meshConfig.vertexSize = sizeof(UIVertex);
@@ -546,17 +511,17 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 
 	if (uvs.Size())
 	{
-		vertices[0] = UIVertex{ { 0.0f,				0.0f,			id }, uvs[0], config.color };
-		vertices[1] = UIVertex{ { image->scale.x,	0.0f,			id }, uvs[1], config.color };
-		vertices[2] = UIVertex{ { image->scale.x,	image->scale.y, id }, uvs[2], config.color };
-		vertices[3] = UIVertex{ { 0.0f,				image->scale.y, id }, uvs[3], config.color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,				0.0f }, uvs[0], element->color };
+		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				0.0f }, uvs[1], element->color };
+		vertices[2] = UIVertex{ { element->scale.x, element->scale.y,	0.0f }, uvs[2], element->color };
+		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	0.0f }, uvs[3], element->color };
 	}
 	else
 	{
-		vertices[0] = UIVertex{ { 0.0f,				0.0f,			id }, { 0.0f, 0.0f }, config.color };
-		vertices[1] = UIVertex{ { image->scale.x,	0.0f,			id }, { 1.0f, 0.0f }, config.color };
-		vertices[2] = UIVertex{ { image->scale.x,	image->scale.y, id }, { 1.0f, 1.0f }, config.color };
-		vertices[3] = UIVertex{ { 0.0f,				image->scale.y, id }, { 0.0f, 1.0f }, config.color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,				0.0f }, { 0.0f, 0.0f }, element->color };
+		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				0.0f }, { 1.0f, 0.0f }, element->color };
+		vertices[2] = UIVertex{ { element->scale.x,	element->scale.y,	0.0f }, { 1.0f, 1.0f }, element->color };
+		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	0.0f }, { 0.0f, 1.0f }, element->color };
 	}
 
 	meshConfig.indices.Resize(6);
@@ -572,52 +537,30 @@ UIElement* UI::GenerateImage(UIElementConfig& config, Texture* texture, const Ve
 
 	if (!mesh)
 	{
-		Logger::Error("UI::GenerateImage: Failed to Generate UI mesh!");
-		Memory::Free(image, sizeof(UIElement), MEMORY_TAG_UI);
-		return nullptr;
+		Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
+		Memory::Free(element->image, sizeof(UIImage), MEMORY_TAG_UI);
+		element->image = nullptr;
+		return false;
 	}
 
-	mesh->pushConstant = &image->push;
-	image->mesh = mesh;
-	Vector<Mesh*> meshes(1, mesh);
-	GameObject2DConfig goConfig{};
-	goConfig.name = name;
-	goConfig.model = Resources::CreateModel(name, meshes);
+	element->gameObject->model->meshes.Push(mesh);
 
-	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
-	image->gameObject = go;
-
-	elements.PushFront(image);
-	if (texture) { config.scene->DrawGameObject(go); }
-
-	return image;
+	return false;
 }
 
-UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
+bool UI::GenerateText(UIElement* element, const String& text, F32 size)
 {
-	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
-	{
-		Logger::Error("UI::GenerateText: Area can't be negative!");
-		return nullptr;
-	}
-
-	if (!config.scene)
-	{
-		Logger::Error("UI::GenerateText: Scene can't be nullptr!");
-		return nullptr;
-	}
+	
 
 	Vector2Int dimentions = RendererFrontend::WindowSize();
 
-	UIText* uiText = (UIText*)Memory::Allocate(sizeof(UIText), MEMORY_TAG_UI);
+	UIElement* uiElement = (UIElement*)Memory::Allocate(sizeof(UIText), MEMORY_TAG_UI);
 	uiText->id = elementID++;
 	uiText->scene = config.scene;
 	uiText->size = size;
 	uiText->text = text;
 	uiText->color = config.color;
 	uiText->ignore = config.ignore;
-	uiText->type = UI_TYPE_TEXT;
 	uiText->selfEnabled = config.enabled;
 	uiText->parent = config.parent;
 	uiText->push.renderArea = renderArea;
@@ -626,7 +569,7 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 
 	if (config.parent)
 	{
-		config.parent->children.PushBack(uiText);
+		config.parent->children.Push(uiText);
 
 		if (config.scaled)
 		{
@@ -712,7 +655,6 @@ UIText* UI::GenerateText(UIElementConfig& config, const String& text, F32 size)
 		}
 	}
 
-	uiText->mesh = mesh;
 	GameObject2DConfig goConfig{};
 	goConfig.name = name;
 	if (mesh)
@@ -765,7 +707,7 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 
 	if (config.parent)
 	{
-		config.parent->children.PushBack(bar);
+		config.parent->children.Push(bar);
 
 		if (config.scaled)
 		{

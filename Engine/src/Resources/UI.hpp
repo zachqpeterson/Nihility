@@ -50,36 +50,63 @@ struct UIPushConstant
 	Vector2 position{};
 };
 
-enum UIType
+struct UIBorder
 {
-	UI_TYPE_NONE,
-	UI_TYPE_PANEL,
-	UI_TYPE_PANEL_BORDERED,
-	UI_TYPE_IMAGE,
-	UI_TYPE_TEXT,
-	UI_TYPE_BAR,
-	UI_TYPE_SCROLL,
+	Vector4 color;
+	F32 size;
+};
 
-	UI_TYPE_COUNT
+struct UIImage
+{
+	Texture* texture;
+	Vector<Vector2> uvs;
+};
+
+struct UIText
+{
+	//TODO: Border, shadow, etc.
+	String text;
+	Vector4 color;
+	F32 size;
+};
+
+struct UIBar
+{
+	F32 precent;
+	Vector4 color;
+};
+
+struct UIScrollWindow
+{
+	F32 spacing;
+	F32 size;
+	bool horizontal;
+	bool vertical;
 };
 
 struct UIElement
 {
 	U64 id;
+	String name;
 	bool ignore{ false };
 	bool hovered{ false };
 	bool clicked{ false };
 	bool selfEnabled{ true };
-	bool renderArea{ false };
+	bool renderWindow{ false };
 	UIPushConstant push;
 	Vector2 scale{};
 	Vector4 color{};
-	UIElement* parent;
-	List<UIElement*> children;
+	UIElement* parent{ nullptr };
+	Vector<UIElement*> children;
 	GameObject2D* gameObject{ nullptr };
-	Scene* scene;
-	Mesh* mesh;
-	UIType type;
+	Scene* scene{ nullptr };
+	
+	UIBorder* border;
+	UIImage* image;
+	UIText* text;
+	UIBar* bar;
+	UIScrollWindow* scrollWindow;
+
 	OnMouse OnClick;
 	OnMouse OnDrag;
 	OnMouse OnRelease;
@@ -94,6 +121,7 @@ struct UIElementConfig
 	bool enabled{ true };
 	bool ignore{ false };
 	bool scaled{ false };
+	bool panel{ false };
 	Vector2 position{ Vector2::ZERO };
 	Vector2 scale{ Vector2::ONE };
 	Vector4 color{ Vector4::ONE }; //TODO: color struct
@@ -101,35 +129,15 @@ struct UIElementConfig
 	Scene* scene{ nullptr };
 };
 
-struct UIText : public UIElement
-{
-	String text;
-	F32 size;
-};
-
-struct UIBar : public UIElement
-{
-	F32 precent;
-	Vector4 fillColor;
-};
-
-struct UIScrollWindow : public UIElement
-{
-	List<UIElement*> elements;
-	F32 spacing;
-	bool horizontal;
-	bool vertical;
-	F32 size;
-};
-
 class NH_API UI
 {
 public:
-	static UIElement* GeneratePanel(UIElementConfig& config, bool bordered = true);
-	static UIElement* GenerateImage(UIElementConfig& config, Texture* texture, const Vector<Vector2>& uvs);
-	static UIText* GenerateText(UIElementConfig& config, const String& text, F32 size);
-	static UIBar* GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 percent);
-	static UIScrollWindow* GenerateScrollWindow(UIElementConfig& config, F32 spacing, bool horizontal, bool vertical);
+	static UIElement* CreateUIElement(UIElementConfig& config);
+	static bool GenerateBorder(UIElement* element, const Vector4& color, F32 size);
+	static bool GenerateImage(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
+	static bool GenerateText(UIElement* element, const String& text, F32 size);
+	static bool GenerateBar(UIElement* element, const Vector4& fillColor, F32 percent);
+	static bool GenerateScrollWindow(UIElement* element, F32 spacing, bool horizontal, bool vertical);
 
 	static void SetEnable(UIElement* element, bool enable);
 	static void ChangeScene(UIElement* element, Scene* scene = nullptr);
@@ -170,8 +178,8 @@ private:
 	static void DefaultOnScrollWindow(UIElement* e, const Vector2Int& position, I16 delta, void* data);
 
 	static U64 elementID;
-	static List<UIElement*> elements;
-	static List<UIElement*> elementsToDestroy;
+	static Vector<UIElement*> elements;
+	static Vector<UIElement*> elementsToDestroy;
 	static Texture* panelTexture;
 	static UIElement* draggedElement;
 	static Vector2Int lastMousesPos;

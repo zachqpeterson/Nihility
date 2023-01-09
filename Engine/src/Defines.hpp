@@ -144,6 +144,10 @@ struct Range
 #endif
 #endif
 
+#define FUNCTION_NAME __FUNCTION__
+#define FILE_NAME __FILE__
+#define LINE_NUMBER __LINE__
+
 /***************************INLINING***************************/
 #if defined(__clang__) || defined(__gcc__)
 #define NH_INLINE __attribute__((always_inline)) inline

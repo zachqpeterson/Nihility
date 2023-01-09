@@ -1786,13 +1786,7 @@ Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 {
 	if (name.Blank())
 	{
-		Logger::Error("Model name can not be blank or nullptr!");
-		return nullptr;
-	}
-
-	if (!meshes.Size())
-	{
-		Logger::Error("Model must have at least one mesh!");
+		Logger::Error("{}: Model name can not be blank or nullptr!", FUNCTION_NAME);
 		return nullptr;
 	}
 
@@ -1800,7 +1794,7 @@ Model* Resources::CreateModel(const String& name, const Vector<Mesh*>& meshes)
 
 	if (model)
 	{
-		Logger::Error("Model with name '{}' has already been created!", name);
+		Logger::Error("{}: Model with name '{}' has already been created!", FUNCTION_NAME, name);
 		return nullptr;
 	}
 
