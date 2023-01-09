@@ -57,7 +57,7 @@ facing{ true }, ignore{ config.ignore }, player{ player }, despawnRange{ config.
 	physicsConfig.freezeRotation = true;
 	physicsConfig.layerMask = 1;
 	physicsConfig.type = BOX_COLLIDER;
-	physicsConfig.box = { {-0.5f, 0.5f}, {-1.0f, 1.0f} };
+	physicsConfig.box = { {-0.499f, 0.499f}, {-0.999f, 0.999f} }; //TODO: Don't hardcode this
 
 	GameObject2DConfig goConfig{};
 	goConfig.model = Resources::CreateModel(name, Vector<Mesh*>{1, Resources::CreateMesh(meshConfig)});

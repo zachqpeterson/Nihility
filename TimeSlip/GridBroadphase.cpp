@@ -133,13 +133,12 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 	
 			position.x = target.x;
 	
-			for (I32 y = checkTile.y - step.y; y != checkTile.y + checkSize.y - step.y && !collidedX; y -= step.y) //TODO: Check if in bounds
+			for (I32 y = checkTile.y - (I32)step.y; y != checkTile.y + checkSize.y - (I32)step.y * 2 && !collidedX; y -= (I32)step.y) //TODO: Check if in bounds
 			{
 				if (grid[checkTile.x][y].blockID)
 				{
 					move.x = 0.0f; //TODO: Take restitution into account
 					collidedX = true;
-					checkTile.x -= step.x; //TODO: temp
 	
 					Contact2D c{};
 					c.a = obj;
@@ -153,7 +152,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			}
 	
 			target.x += step.x;
-			checkTile.x += step.x;
+			if (!collidedX) { checkTile.x += (I32)step.x; }
 		}
 		else if (!collidedY)
 		{
@@ -161,14 +160,13 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			if (accumulatedTime > 1.0f) { return contacts.Size(); }
 	
 			position.y = target.y;
-	
-			for (I32 x = checkTile.x - step.x; x != checkTile.x + checkSize.x - step.x && !collidedY; x -= step.x) //TODO: Check if in bounds
+
+			for (I32 x = checkTile.x - (I32)step.x; x != checkTile.x + checkSize.x - (I32)step.x * 2 && !collidedY; x -= (I32)step.x) //TODO: Check if in bounds
 			{
 				if (grid[x][checkTile.y].blockID)
 				{
 					move.y = 0.0f; //TODO: Take restitution into account
 					collidedY = true;
-					checkTile.y -= step.y;
 	
 					Contact2D c{};
 					c.a = obj;
@@ -182,7 +180,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			}
 	
 			target.y += step.y;
-			checkTile.y += step.y;
+			if (!collidedY) { checkTile.y += (I32)step.y; }
 		}
 		else { break; }
 	}
