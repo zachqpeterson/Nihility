@@ -155,7 +155,7 @@ U32 BoxTree::Size() const
 U32 BoxTree::MaximumBalance() const
 {
 	U32 maxBalance = 0;
-	for (Node& node : nodes)
+	for (const Node& node : nodes)
 	{
 		if (node.height <= 1) { continue; }
 
@@ -173,7 +173,7 @@ F32 BoxTree::SurfaceAreaRatio() const
 	F32 rootArea = nodes[root].box.Area();
 	F32 totalArea = 0.0f;
 
-	for (Node& node : nodes)
+	for (const Node& node : nodes)
 	{
 		if (node.height < 0) { continue; }
 

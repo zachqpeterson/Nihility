@@ -26,15 +26,16 @@ maxStamina{ 100.0f, }, stamina{ maxStamina }, staminaRegen{ 10.0f }, maxMana{ 10
 	barConfig.scale = { 0.33f, 0.025f };
 	barConfig.scene = RendererFrontend::CurrentScene();
 
-	healthBar = UI::GenerateBar(barConfig, { 1.0f, 0.1f, 0.1f, 1.0f }, 1.0f);
+	healthBar = UI::CreateUIElement(barConfig);
+	UI::GenerateFillBar(healthBar, { 1.0f, 0.1f, 0.1f, 1.0f }, 1.0f);
 
 	barConfig.position = { 0.5f, 0.07f };
-
-	staminaBar = UI::GenerateBar(barConfig, { 0.1f, 1.0f, 0.1f, 1.0f }, 1.0f);
+	staminaBar = UI::CreateUIElement(barConfig); 
+	UI::GenerateFillBar(staminaBar, { 0.1f, 1.0f, 0.1f, 1.0f }, 1.0f);
 
 	barConfig.position = { 0.5f, 0.115f };
-
-	manaBar = UI::GenerateBar(barConfig, { 0.1f, 0.1f, 1.0f, 1.0f }, 1.0f);
+	manaBar = UI::CreateUIElement(barConfig); 
+	UI::GenerateFillBar(manaBar, { 0.1f, 0.1f, 1.0f, 1.0f }, 1.0f);
 }
 
 Player::~Player()
@@ -100,9 +101,9 @@ void Player::Update()
 		health = Math::Min(health + healthRegen * (F32)Time::DeltaTime(), maxHealth);
 		stamina = Math::Min(stamina + staminaRegen * (F32)Time::DeltaTime(), maxStamina);
 		mana = Math::Min(mana + manaRegen * (F32)Time::DeltaTime(), maxMana);
-		UI::ChangePercent(healthBar, health / maxHealth);
-		UI::ChangePercent(staminaBar, stamina / maxStamina);
-		UI::ChangePercent(manaBar, mana / maxMana);
+		UI::ChangeFillPercent(healthBar, health / maxHealth);
+		UI::ChangeFillPercent(staminaBar, stamina / maxStamina);
+		UI::ChangeFillPercent(manaBar, mana / maxMana);
 	}
 	else
 	{
@@ -117,9 +118,9 @@ void Player::Update()
 			health = maxHealth;
 			stamina = maxStamina;
 			mana = maxMana;
-			UI::ChangePercent(healthBar, 1.0f);
-			UI::ChangePercent(staminaBar, 1.0f);
-			UI::ChangePercent(manaBar, 1.0f);
+			UI::ChangeFillPercent(healthBar, 1.0f);
+			UI::ChangeFillPercent(staminaBar, 1.0f);
+			UI::ChangeFillPercent(manaBar, 1.0f);
 		}
 	}
 
@@ -133,7 +134,7 @@ void Player::SetPosition(const Vector2& position)
 
 void Player::DamageResponse()
 {
-	UI::ChangePercent(healthBar, health / maxHealth);
+	UI::ChangeFillPercent(healthBar, health / maxHealth);
 	if (health > 0) { Audio::PlaySFX("Hurt.wav", 1.0f, Math::RandomF() * 0.25f + 1.0f); }
 }
 
@@ -146,8 +147,8 @@ void Player::Attack(const Damage& damage)
 
 		stamina -= damage.staminaUse;
 		mana -= damage.manaUse;
-		UI::ChangePercent(staminaBar, stamina / maxStamina);
-		UI::ChangePercent(manaBar, mana / maxMana);
+		UI::ChangeFillPercent(staminaBar, stamina / maxStamina);
+		UI::ChangeFillPercent(manaBar, mana / maxMana);
 
 		Vector4 area{};
 

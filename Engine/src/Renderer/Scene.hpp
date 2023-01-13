@@ -23,6 +23,7 @@ struct MaterialList
 };
 
 struct GameObject2D;
+struct UIElement;
 struct Model;
 struct Camera;
 
@@ -46,4 +47,7 @@ private:
 	Vector<MaterialList> meshes;
 	List<GameObject2D*> gameObjects;
 	List<Model*> models;
+	List<UIElement*> elements;
+
+	friend class UI;
 };

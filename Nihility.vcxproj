@@ -55,7 +55,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>

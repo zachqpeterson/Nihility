@@ -78,7 +78,7 @@ public:
     const bool Empty() const { return !size; }
     const U64& Size() const { return size; }
 
-    T& Peek() { return *head; }
+    T& Peek() { return head->value; }
     T&& Pop()
     {
         if (head)

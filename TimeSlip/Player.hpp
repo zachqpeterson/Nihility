@@ -3,7 +3,7 @@
 #include "Entity.hpp"
 
 struct Vector2;
-struct UIBar;
+struct UIElement;
 
 class Player : public Entity
 {
@@ -29,9 +29,9 @@ private:
 	F32 attackTimer;
 
 	Vector2 spawnPoint;
-	UIBar* healthBar;
-	UIBar* staminaBar;
-	UIBar* manaBar;
+	UIElement* healthBar;
+	UIElement* staminaBar;
+	UIElement* manaBar;
 
 	F32 maxStamina;
 	F32 stamina;

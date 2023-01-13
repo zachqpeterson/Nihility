@@ -9,12 +9,13 @@
 
 #include <Containers/List.hpp>
 
-#define WIDTH_RATIO 0.00911458333F
-#define HEIGHT_RATIO 0.0162037037F
+#define WIDTH_RATIO 0.00455729166F
+#define HEIGHT_RATIO 0.00810185185F
 
 U64 UI::elementID{ 1 };
 Vector<UIElement*> UI::elements;
-Vector<UIElement*> UI::elementsToDestroy;
+Stack<UIElement*> UI::elementsToDestroy;
+Stack<U32> UI::freeIDs;
 Texture* UI::panelTexture;
 UIElement* UI::draggedElement;
 Vector2Int UI::lastMousesPos;
@@ -97,21 +98,12 @@ void UI::Shutdown()
 
 	for (UIElement* e : elements)
 	{
-		if (e->text)
-		{
-			e->text->text.Destroy();
-			Memory::Free(e->text, sizeof(UIText), MEMORY_TAG_UI);
-		}
-
-		if (e->bar)
-		{
-			Memory::Free(e->bar, sizeof(UIBar), MEMORY_TAG_UI);
-		}
-
-		if (e->scrollWindow)
-		{
-			Memory::Free(e->scrollWindow, sizeof(UIScrollWindow), MEMORY_TAG_UI);
-		}
+		if (!e) { continue; }
+		if (e->border) { Memory::Free(e->border, sizeof(UIBorder), MEMORY_TAG_UI); }
+		if (e->image) { e->image->uvs.Destroy(); Memory::Free(e->image, sizeof(UIImage), MEMORY_TAG_UI); }
+		if (e->text) { e->text->text.Destroy(); Memory::Free(e->text, sizeof(UIText), MEMORY_TAG_UI); }
+		if (e->fillBar) { Memory::Free(e->fillBar, sizeof(UIFillBar), MEMORY_TAG_UI); }
+		if (e->scrollWindow) { Memory::Free(e->scrollWindow, sizeof(UIScrollWindow), MEMORY_TAG_UI); }
 	}
 
 	elements.Clear();
@@ -119,12 +111,12 @@ void UI::Shutdown()
 
 void UI::Update()
 {
-	for (UIElement* e : elementsToDestroy)
+	while (elementsToDestroy.Size())
 	{
+		UIElement* e = elementsToDestroy.Peek();
+		elementsToDestroy.Pop();
 		DestroyElementInternal(e);
 	}
-
-	elementsToDestroy.Clear();
 
 	Vector2Int mousePos = Input::MousePos() - RendererFrontend::WindowOffset();
 	Vector2Int posDelta = mousePos - lastMousesPos;
@@ -144,8 +136,18 @@ void UI::Update()
 		Vector2 windowSize = (Vector2)RendererFrontend::WindowSize();
 		Vector2 pos = (Vector2)mousePos / windowSize;
 
-		for (UIElement* e : elements) //TODO: Reverse iterate
+		//UIElement** it = elements.rbegin();
+		//UIElement** end = elements.rend();
+		//for (; it != end; --it)
+		//{
+		//	UIElement* e = *it;
+		//for(UIElement* e : elements)
+		//{
+		for(I32 i = elements.Size() - 1; i >= 0; --i)
 		{
+			UIElement* e = elements[i];
+			if (!e) { continue; }
+
 			Vector4 area;
 			if (e->renderWindow)
 			{
@@ -252,7 +254,10 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 	if (!config.scene) { RendererFrontend::CurrentScene(); }
 
 	UIElement* element = (UIElement*)Memory::Allocate(sizeof(UIElement), MEMORY_TAG_UI);
-	element->id = elementID++;
+
+	if (freeIDs.Size()) { element->id = freeIDs.Peek(); freeIDs.Pop(); }
+	else { element->id = (U32)elements.Size(); elements.Push(nullptr); }
+
 	element->name = { "UI_Element_{}", element->id };
 	element->ignore = config.ignore;
 	element->hovered = false;
@@ -265,8 +270,6 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 
 	if (config.parent)
 	{
-		config.parent->children.Push(element);
-
 		element->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
 		element->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
 
@@ -285,7 +288,45 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 			element->scale.y = config.parent->scale.y * config.scale.y;
 		}
 
-		element->renderWindow = config.parent->renderWindow;
+		if (config.parent->scrollWindow)
+		{
+			element->renderWindow = true;
+
+			if (config.parent->scrollWindow->vertical)
+			{
+				config.parent->scrollWindow->size += element->scale.y;
+				element->push.renderArea = config.parent->push.renderArea;
+
+				if (config.parent->children.Size())
+				{
+					UIElement* bottom = config.parent->children.Back();
+					element->push.position = bottom->push.position;
+					element->push.position.y += bottom->scale.y + config.parent->scrollWindow->spacing;
+				}
+				else
+				{
+					element->push.position = config.parent->push.position;
+				}
+			}
+			else if (config.parent->scrollWindow->horizontal)
+			{
+				config.parent->scrollWindow->size += element->scale.x;
+				element->push.renderArea = config.parent->push.renderArea;
+
+				if (element->children.Size())
+				{
+					UIElement* right = config.parent->children.Back();
+					element->push.position = right->push.position;
+					element->push.position.y += right->scale.x + config.parent->scrollWindow->spacing;
+				}
+				else
+				{
+					element->push.position = config.parent->push.position;
+				}
+			}
+		}
+
+		config.parent->children.PushBack(element);
 	}
 	else
 	{
@@ -300,7 +341,6 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 
 	if (config.panel)
 	{
-		//TODO: Create panel
 		MeshConfig meshConfig{};
 		meshConfig.name = element->name;
 		meshConfig.MaterialName = "UI.mat";
@@ -310,10 +350,12 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 		meshConfig.vertexCount = 4;
 		UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
-		vertices[0] = UIVertex{ { 0.0f,				0.0f,				0.0f }, { 0.0f, 0.66666666666f },	config.color };
-		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				0.0f }, { 1.0f, 0.66666666666f },	config.color };
-		vertices[2] = UIVertex{ { element->scale.x,	element->scale.y,	0.0f }, { 1.0f, 1.0f },				config.color };
-		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	0.0f }, { 0.0f, 1.0f },				config.color };
+		F32 z = 1.0f - (F32)element->id * 0.001f;
+
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,				z }, { 0.0f, 0.5f },	config.color };
+		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				z }, { 1.0f, 0.5f },	config.color };
+		vertices[2] = UIVertex{ { element->scale.x,	element->scale.y,	z }, { 1.0f, 1.0f },	config.color };
+		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	z }, { 0.0f, 1.0f },	config.color };
 
 		meshConfig.indices.Resize(6);
 
@@ -324,17 +366,18 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 		meshConfig.indices[4] = 3;
 		meshConfig.indices[5] = 0;
 
-		Mesh* mesh = Resources::CreateMesh(meshConfig);
+		element->mesh = Resources::CreateMesh(meshConfig);
 
-		if (!mesh)
+		if (!element->mesh)
 		{
 			Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
 			Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
+			element->mesh = nullptr;
 			return nullptr;
 		}
 
-		mesh->pushConstant = &element->push;
-		goConfig.model = Resources::CreateModel(element->name, { 1, mesh });
+		element->mesh->pushConstant = &element->push;
+		goConfig.model = Resources::CreateModel(element->name, { 1, element->mesh });
 	}
 	else
 	{
@@ -345,7 +388,7 @@ UIElement* UI::CreateUIElement(UIElementConfig& config)
 	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
 	element->gameObject = go;
 
-	elements.Push(element);
+	elements[element->id] = element;
 	config.scene->DrawGameObject(go);
 
 	return element;
@@ -364,7 +407,7 @@ bool UI::GenerateBorder(UIElement* element, const Vector4& color, F32 size)
 	element->border->size = size;
 
 	MeshConfig meshConfig{};
-	meshConfig.name = element->name;
+	meshConfig.name = element->name + "_Border";
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
 
@@ -373,46 +416,48 @@ bool UI::GenerateBorder(UIElement* element, const Vector4& color, F32 size)
 	meshConfig.vertexCount = 32;
 	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
+	F32 z = 1.0f - (F32)element->id * 0.001f;
+
 	//BOTTOM LEFT CORNER
-	vertices[0] = UIVertex{ { 0.0f,			0.0f,			0.0f }, { 0.0f, 0.33333333333f },	color };
-	vertices[1] = UIVertex{ { WIDTH_RATIO,	0.0f,			0.0f }, { 1.0f, 0.33333333333f },	color };
-	vertices[2] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
-	vertices[3] = UIVertex{ { 0.0f,			HEIGHT_RATIO,	0.0f }, { 0.0f, 0.66666666666f },	color };
+	vertices[0] = UIVertex{ { -WIDTH_RATIO,	-HEIGHT_RATIO,	z }, { 1.0f, 0.5f },	color };
+	vertices[1] = UIVertex{ { WIDTH_RATIO,	-HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
+	vertices[2] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,	z }, { 0.0f, 0.0f },	color };
+	vertices[3] = UIVertex{ { -WIDTH_RATIO,	HEIGHT_RATIO,	z }, { 1.0f, 0.0f },	color };
 	//TOP LEFT CORNER
-	vertices[4] = UIVertex{ { 0.0f,			element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
-	vertices[5] = UIVertex{ { WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
-	vertices[6] = UIVertex{ { WIDTH_RATIO,	element->scale.y,					0.0f }, { 0.0f, 0.66666666666f },	color };
-	vertices[7] = UIVertex{ { 0.0f,			element->scale.y,					0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[4] = UIVertex{ { -WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
+	vertices[5] = UIVertex{ { WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	z }, { 0.0f, 0.0f },	color };
+	vertices[6] = UIVertex{ { WIDTH_RATIO,	element->scale.y + HEIGHT_RATIO,	z }, { 1.0f, 0.0f },	color };
+	vertices[7] = UIVertex{ { -WIDTH_RATIO,	element->scale.y + HEIGHT_RATIO,	z }, { 1.0f, 0.5f },	color };
 	//BOTTOM RIGHT CORNER
-	vertices[8] = UIVertex{ { element->scale.x - WIDTH_RATIO,	0.0f,			0.0f }, { 0.0f, 0.66666666666f },	color };
-	vertices[9] = UIVertex{ { element->scale.x,					0.0f,			0.0f }, { 0.0f, 0.33333333333f },	color };
-	vertices[10] = UIVertex{ { element->scale.x,				HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
-	vertices[11] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
+	vertices[8] = UIVertex{ { element->scale.x - WIDTH_RATIO,	-HEIGHT_RATIO,	z }, { 1.0f, 0.0f },	color };
+	vertices[9] = UIVertex{ { element->scale.x + WIDTH_RATIO,	-HEIGHT_RATIO,	z }, { 1.0f, 0.5f },	color };
+	vertices[10] = UIVertex{ { element->scale.x + WIDTH_RATIO,	HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
+	vertices[11] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	z }, { 0.0f, 0.0f },	color };
 	//TOP RIGHT CORNER
-	vertices[12] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.66666666666f },	color };
-	vertices[13] = UIVertex{ { element->scale.x,				element->scale.y - HEIGHT_RATIO,	0.0f }, { 0.0f, 0.66666666666f },	color };
-	vertices[14] = UIVertex{ { element->scale.x,				element->scale.y,					0.0f }, { 0.0f, 0.33333333333f },	color };
-	vertices[15] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y,					0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[12] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	z }, { 0.0f, 0.0f },	color };
+	vertices[13] = UIVertex{ { element->scale.x + WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	z }, { 1.0f, 0.0f },	color };
+	vertices[14] = UIVertex{ { element->scale.x + WIDTH_RATIO,	element->scale.y + HEIGHT_RATIO,	z }, { 1.0f, 0.5f },	color };
+	vertices[15] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y + HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
 	//LEFT SIDE
-	vertices[16] = UIVertex{ { 0.0f,		HEIGHT_RATIO,						0.0f }, { 0.0f, 0.0f },				color };
-	vertices[17] = UIVertex{ { WIDTH_RATIO,	HEIGHT_RATIO,						0.0f }, { 1.0f, 0.0f },				color };
-	vertices[18] = UIVertex{ { WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
-	vertices[19] = UIVertex{ { 0.0f,		element->scale.y - HEIGHT_RATIO,	0.0f }, { 0.0f, 0.33333333333f },	color };
+	vertices[16] = UIVertex{ { -WIDTH_RATIO,	HEIGHT_RATIO,						z }, { 0.0f, 0.5f },	color };
+	vertices[17] = UIVertex{ { 0.0f,			HEIGHT_RATIO,						z }, { 1.0f, 0.5f },	color };
+	vertices[18] = UIVertex{ { 0.0f,			element->scale.y - HEIGHT_RATIO,	z }, { 1.0f, 1.0f },	color };
+	vertices[19] = UIVertex{ { -WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	z }, { 0.0f, 1.0f },	color };
 	//RIGHT SIDE
-	vertices[20] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,						0.0f }, { 1.0f, 0.33333333333f },	color };
-	vertices[21] = UIVertex{ { element->scale.x,				HEIGHT_RATIO,						0.0f }, { 0.0f, 0.33333333333f },	color };
-	vertices[22] = UIVertex{ { element->scale.x,				element->scale.y - HEIGHT_RATIO,	0.0f }, { 0.0f, 0.0f },				color };
-	vertices[23] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.0f },				color };
+	vertices[20] = UIVertex{ { element->scale.x,				HEIGHT_RATIO,						z }, { 1.0f, 1.0f },	color };
+	vertices[21] = UIVertex{ { element->scale.x + WIDTH_RATIO,	HEIGHT_RATIO,						z }, { 0.0f, 1.0f },	color };
+	vertices[22] = UIVertex{ { element->scale.x + WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
+	vertices[23] = UIVertex{ { element->scale.x,				element->scale.y - HEIGHT_RATIO,	z }, { 1.0f, 0.5f },	color };
 	//TOP SIDE
-	vertices[24] = UIVertex{ { WIDTH_RATIO,						element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.0f },				color };
-	vertices[25] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y - HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
-	vertices[26] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y,					0.0f }, { 0.0f, 0.33333333333f },	color };
-	vertices[27] = UIVertex{ { WIDTH_RATIO,						element->scale.y,					0.0f }, { 0.0f, 0.0f },				color };
+	vertices[24] = UIVertex{ { WIDTH_RATIO,						element->scale.y,					z }, { 1.0f, 0.5f },	color };
+	vertices[25] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y,					z }, { 1.0f, 1.0f },	color };
+	vertices[26] = UIVertex{ { element->scale.x - WIDTH_RATIO,	element->scale.y + HEIGHT_RATIO,	z }, { 0.0f, 1.0f },	color };
+	vertices[27] = UIVertex{ { WIDTH_RATIO,						element->scale.y + HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
 	//BOTTOM SIDE
-	vertices[28] = UIVertex{ { WIDTH_RATIO,						0.0f,			0.0f }, { 0.0f, 0.33333333333f },	color };
-	vertices[29] = UIVertex{ { element->scale.x - WIDTH_RATIO,	0.0f,			0.0f }, { 0.0f, 0.0f },				color };
-	vertices[30] = UIVertex{ { element->scale.x - WIDTH_RATIO,	HEIGHT_RATIO,	0.0f }, { 1.0f, 0.0f },				color };
-	vertices[31] = UIVertex{ { WIDTH_RATIO,						HEIGHT_RATIO,	0.0f }, { 1.0f, 0.33333333333f },	color };
+	vertices[28] = UIVertex{ { WIDTH_RATIO,						-HEIGHT_RATIO,	z }, { 0.0f, 1.0f },	color };
+	vertices[29] = UIVertex{ { element->scale.x - WIDTH_RATIO,	-HEIGHT_RATIO,	z }, { 0.0f, 0.5f },	color };
+	vertices[30] = UIVertex{ { element->scale.x - WIDTH_RATIO,	0.0f,			z }, { 1.0f, 0.5f },	color };
+	vertices[31] = UIVertex{ { WIDTH_RATIO,						0.0f,			z }, { 1.0f, 1.0f },	color };
 
 	meshConfig.indices.Resize(48);
 
@@ -472,9 +517,9 @@ bool UI::GenerateBorder(UIElement* element, const Vector4& color, F32 size)
 	meshConfig.indices[46] = 31;
 	meshConfig.indices[47] = 28;
 
-	Mesh* mesh = Resources::CreateMesh(meshConfig);
+	element->border->mesh = Resources::CreateMesh(meshConfig);
 
-	if (!mesh)
+	if (!element->border->mesh)
 	{
 		Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
 		Memory::Free(element->border, sizeof(UIBorder), MEMORY_TAG_UI);
@@ -482,7 +527,10 @@ bool UI::GenerateBorder(UIElement* element, const Vector4& color, F32 size)
 		return false;
 	}
 
-	element->gameObject->model->meshes.Push(mesh);
+	element->border->mesh->pushConstant = &element->push;
+	element->scene->UndrawGameObject(element->gameObject);
+	element->gameObject->model->meshes.Push(element->border->mesh);
+	element->scene->DrawGameObject(element->gameObject);
 
 	return true;
 }
@@ -500,7 +548,7 @@ bool UI::GenerateImage(UIElement* element, Texture* texture, const Vector<Vector
 	element->image->uvs = uvs;
 
 	MeshConfig meshConfig{};
-	meshConfig.name = element->name;
+	meshConfig.name = element->name + "_Image";
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(texture);
 
@@ -509,19 +557,21 @@ bool UI::GenerateImage(UIElement* element, Texture* texture, const Vector<Vector
 	meshConfig.vertexCount = 4;
 	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
 
+	F32 z = 1.0f - (F32)element->id * 0.001f - 0.0001f;
+
 	if (uvs.Size())
 	{
-		vertices[0] = UIVertex{ { 0.0f,				0.0f,				0.0f }, uvs[0], element->color };
-		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				0.0f }, uvs[1], element->color };
-		vertices[2] = UIVertex{ { element->scale.x, element->scale.y,	0.0f }, uvs[2], element->color };
-		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	0.0f }, uvs[3], element->color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,				z }, uvs[0], element->color };
+		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				z }, uvs[1], element->color };
+		vertices[2] = UIVertex{ { element->scale.x, element->scale.y,	z }, uvs[2], element->color };
+		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	z }, uvs[3], element->color };
 	}
 	else
 	{
-		vertices[0] = UIVertex{ { 0.0f,				0.0f,				0.0f }, { 0.0f, 0.0f }, element->color };
-		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				0.0f }, { 1.0f, 0.0f }, element->color };
-		vertices[2] = UIVertex{ { element->scale.x,	element->scale.y,	0.0f }, { 1.0f, 1.0f }, element->color };
-		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	0.0f }, { 0.0f, 1.0f }, element->color };
+		vertices[0] = UIVertex{ { 0.0f,				0.0f,				z }, { 0.0f, 0.0f }, element->color };
+		vertices[1] = UIVertex{ { element->scale.x,	0.0f,				z }, { 1.0f, 0.0f }, element->color };
+		vertices[2] = UIVertex{ { element->scale.x,	element->scale.y,	z }, { 1.0f, 1.0f }, element->color };
+		vertices[3] = UIVertex{ { 0.0f,				element->scale.y,	z }, { 0.0f, 1.0f }, element->color };
 	}
 
 	meshConfig.indices.Resize(6);
@@ -533,9 +583,9 @@ bool UI::GenerateImage(UIElement* element, Texture* texture, const Vector<Vector
 	meshConfig.indices[4] = 3;
 	meshConfig.indices[5] = 0;
 
-	Mesh* mesh = Resources::CreateMesh(meshConfig);
+	element->image->mesh = Resources::CreateMesh(meshConfig);
 
-	if (!mesh)
+	if (!element->image->mesh)
 	{
 		Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
 		Memory::Free(element->image, sizeof(UIImage), MEMORY_TAG_UI);
@@ -543,63 +593,31 @@ bool UI::GenerateImage(UIElement* element, Texture* texture, const Vector<Vector
 		return false;
 	}
 
-	element->gameObject->model->meshes.Push(mesh);
+	element->image->mesh->pushConstant = &element->push;
+	element->scene->UndrawGameObject(element->gameObject);
+	element->gameObject->model->meshes.Push(element->image->mesh);
+	element->scene->DrawGameObject(element->gameObject);
 
-	return false;
+	return true;
 }
 
-bool UI::GenerateText(UIElement* element, const String& text, F32 size)
+bool UI::GenerateText(UIElement* element, const String& text, F32 size, const Vector4& color)
 {
-	
-
-	Vector2Int dimentions = RendererFrontend::WindowSize();
-
-	UIElement* uiElement = (UIElement*)Memory::Allocate(sizeof(UIText), MEMORY_TAG_UI);
-	uiText->id = elementID++;
-	uiText->scene = config.scene;
-	uiText->size = size;
-	uiText->text = text;
-	uiText->color = config.color;
-	uiText->ignore = config.ignore;
-	uiText->selfEnabled = config.enabled;
-	uiText->parent = config.parent;
-	uiText->push.renderArea = renderArea;
-
-	String name("UI_Element_{}", uiText->id);
-
-	if (config.parent)
+	if (element->text)
 	{
-		config.parent->children.Push(uiText);
-
-		if (config.scaled)
-		{
-			uiText->push.position.x = config.parent->push.position.x + config.position.x;
-			uiText->push.position.y = config.parent->push.position.y + config.position.y;
-			uiText->scale.x = config.scale.x;
-			uiText->scale.y = config.scale.y;
-		}
-		else
-		{
-			uiText->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
-			uiText->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
-			uiText->scale.x = config.parent->scale.x * config.scale.x;
-			uiText->scale.y = config.parent->scale.y * config.scale.y;
-		}
-	}
-	else
-	{
-		uiText->push.position.x = config.position.x;
-		uiText->push.position.y = config.position.y;
-		uiText->scale.x = config.scale.x;
-		uiText->scale.y = config.scale.y;
+		Logger::Error("{}: Element {} already has text! Use UI::ChangeText", FUNCTION_NAME, element->id);
+		return false;
 	}
 
-	Mesh* mesh = nullptr;
+	element->text = (UIText*)Memory::Allocate(sizeof(UIText), MEMORY_TAG_UI);
+	element->text->size = size;
+	element->text->text = text;
+	element->text->color = color;
 
 	if (text.Length())
 	{
 		MeshConfig meshConfig{};
-		meshConfig.name = name;
+		meshConfig.name = element->name + "_Text";
 		meshConfig.MaterialName = "Text.mat";
 		meshConfig.instanceTextures.Push(Resources::LoadTexture("Arial.bmp"));
 		meshConfig.indices.Resize(6 * text.Length());
@@ -612,9 +630,8 @@ bool UI::GenerateText(UIElement* element, const String& text, F32 size)
 		F32 pixelHeight = size / 450.0f;
 
 		F32 areaX = 0.0f;
-		F32 areaW = uiText->scale.y - pixelHeight;
+		F32 areaW = element->scale.y - pixelHeight;
 
-		F32 id = 1.0f - (F32)uiText->id * 0.001f;
 		U32 i = 0;
 
 		Font* font = Resources::LoadFont("Arial");
@@ -627,11 +644,12 @@ bool UI::GenerateText(UIElement* element, const String& text, F32 size)
 			F32 z = x + pixelWidth * character.width;
 			F32 y = areaW + pixelHeight * character.yOffset;
 			F32 w = y + pixelHeight * character.height;
+			F32 uvz = 1.0f - (F32)element->id * 0.001f - 0.0003f;
 
-			vertices[i * 4] = UIVertex{ { x, y, id }, { character.x, character.y + character.uvHeight }, config.color };
-			vertices[i * 4 + 1] = UIVertex{ { z, y, id }, { character.x + character.uvWidth, character.y + character.uvHeight }, config.color };
-			vertices[i * 4 + 2] = UIVertex{ { z, w, id }, { character.x + character.uvWidth, character.y }, config.color };
-			vertices[i * 4 + 3] = UIVertex{ { x, w, id }, { character.x, character.y }, config.color };
+			vertices[i * 4] = UIVertex{		{ x, y, uvz }, { character.x, character.y + character.uvHeight }, color };
+			vertices[i * 4 + 1] = UIVertex{ { z, y, uvz }, { character.x + character.uvWidth, character.y + character.uvHeight }, color };
+			vertices[i * 4 + 2] = UIVertex{ { z, w, uvz }, { character.x + character.uvWidth, character.y }, color };
+			vertices[i * 4 + 3] = UIVertex{ { x, w, uvz }, { character.x, character.y }, color };
 
 			meshConfig.indices[i * 6] = i * 4;
 			meshConfig.indices[i * 6 + 1] = i * 4 + 1;
@@ -644,105 +662,55 @@ bool UI::GenerateText(UIElement* element, const String& text, F32 size)
 			++i;
 		}
 
-		mesh = Resources::CreateMesh(meshConfig);
+		element->text->mesh = Resources::CreateMesh(meshConfig);
 
-		if (!mesh)
+		if (!element->text->mesh)
 		{
-			Logger::Error("UI::GenerateText: Failed to Generate UI mesh!");
-			Memory::Free(uiText, sizeof(UIText), MEMORY_TAG_UI);
+			Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
+			Memory::Free(element->text, sizeof(UIText), MEMORY_TAG_UI);
+			element->text = nullptr;
 
-			return nullptr;
+			return false;
 		}
+
+		element->text->mesh->pushConstant = &element->push;
+
+		element->scene->UndrawGameObject(element->gameObject);
+		element->gameObject->model->meshes.Push(element->text->mesh);
+		element->scene->DrawGameObject(element->gameObject);
 	}
 
-	GameObject2DConfig goConfig{};
-	goConfig.name = name;
-	if (mesh)
-	{
-		goConfig.model = Resources::CreateModel(name, { 1, mesh });
-		mesh->pushConstant = &uiText->push;
-	}
-
-	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
-	uiText->gameObject = go;
-
-	elements.PushFront(uiText);
-	if (mesh) { config.scene->DrawGameObject(go); }
-
-	return uiText;
+	return true;
 }
 
-UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 percent)
+bool UI::GenerateFillBar(UIElement* element, const Vector4& fillColor, F32 percent)
 {
-	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
+	if (element->fillBar)
 	{
-		Logger::Error("UI::GeneratePanel: Area can't be negative!");
-		return nullptr;
+		Logger::Error("{}: Element {} already has a fill bar! Use UI::ChangeFillPercent", FUNCTION_NAME, element->id);
+		return false;
 	}
 
-	if (!config.scene)
-	{
-		Logger::Error("UI::GeneratePanel: Scene can't be nullptr!");
-		return nullptr;
-	}
+	element->fillBar = (UIFillBar*)Memory::Allocate(sizeof(UIFillBar), MEMORY_TAG_UI);
+	element->fillBar->precent = percent;
+	element->fillBar->color = fillColor;
 
-	UIBar* bar = (UIBar*)Memory::Allocate(sizeof(UIBar), MEMORY_TAG_UI);
-	bar->id = elementID++;
-	bar->scene = config.scene;
-	bar->color = config.color;
-	bar->ignore = config.ignore;
-	bar->selfEnabled = config.enabled;
-	bar->parent = config.parent;
-	bar->type = UI_TYPE_BAR;
-	bar->push.renderArea = renderArea;
-
-	String name("UI_Element_{}", bar->id);
-
-	Vector<Mesh*> meshes{ 2 };
 	MeshConfig meshConfig{};
-	meshConfig.name = name;
+	meshConfig.name = element->name + "_FillBar";
 	meshConfig.MaterialName = "UI.mat";
 	meshConfig.instanceTextures.Push(panelTexture);
-
-	if (config.parent)
-	{
-		config.parent->children.Push(bar);
-
-		if (config.scaled)
-		{
-			bar->push.position.x = config.parent->push.position.x + config.position.x;
-			bar->push.position.y = config.parent->push.position.y + config.position.y;
-			bar->scale.x = config.scale.x;
-			bar->scale.y = config.scale.y;
-		}
-		else
-		{
-			bar->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
-			bar->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
-			bar->scale.x = config.parent->scale.x * config.scale.x;
-			bar->scale.y = config.parent->scale.y * config.scale.y;
-		}
-	}
-	else
-	{
-		bar->push.position.x = config.position.x;
-		bar->push.position.y = config.position.y;
-		bar->scale.x = config.scale.x;
-		bar->scale.y = config.scale.y;
-	}
-
-	F32 id = 1.0f - (F32)bar->id * 0.001f;
 
 	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
 	meshConfig.vertexSize = sizeof(UIVertex);
 	meshConfig.vertexCount = 4;
 	UIVertex* vertices = (UIVertex*)meshConfig.vertices;
+	F32 scaleX = element->scale.x * percent;
+	F32 z = 1.0f - (F32)element->id * 0.001f - 0.0002f;
 
-	vertices[0] = UIVertex{ { 0.0f,			0.0f,			id }, { 0.0f, 0.66666666666f }, config.color };
-	vertices[1] = UIVertex{ { bar->scale.x,	0.0f,			id }, { 1.0f, 0.66666666666f }, config.color };
-	vertices[2] = UIVertex{ { bar->scale.x,	bar->scale.y, id }, { 1.0f, 1.0f },			config.color };
-	vertices[3] = UIVertex{ { 0.0f,			bar->scale.y, id }, { 0.0f, 1.0f },			config.color };
+	vertices[0] = UIVertex{ { 0.0f,		0.0f,				z }, { 0.0f, 0.66666666666f },	fillColor };
+	vertices[1] = UIVertex{ { scaleX,	0.0f,				z }, { 1.0f, 0.66666666666f },	fillColor };
+	vertices[2] = UIVertex{ { scaleX,	element->scale.y,	z }, { 1.0f, 1.0f },			fillColor };
+	vertices[3] = UIVertex{ { 0.0f,		element->scale.y,	z }, { 0.0f, 1.0f },			fillColor };
 
 	meshConfig.indices.Resize(6);
 
@@ -753,128 +721,52 @@ UIBar* UI::GenerateBar(UIElementConfig& config, const Vector4& fillColor, F32 pe
 	meshConfig.indices[4] = 3;
 	meshConfig.indices[5] = 0;
 
-	Mesh* mesh0 = Resources::CreateMesh(meshConfig);
+	element->fillBar->mesh = Resources::CreateMesh(meshConfig);
 
-	if (!mesh0)
+	if (!element->fillBar->mesh)
 	{
-		Logger::Error("UI::GenerateBar: Failed to Generate UI mesh!");
-		Memory::Free(bar, sizeof(UIElement), MEMORY_TAG_UI);
-		return nullptr;
+		Logger::Error("{}: Failed to Generate UI mesh!", FUNCTION_NAME);
+		Memory::Free(element->fillBar, sizeof(UIFillBar), MEMORY_TAG_UI);
+		element->fillBar = nullptr;
+		return false;
 	}
 
-	meshConfig.name = name + "_";
-	meshConfig.vertices = Memory::Allocate(sizeof(UIVertex) * 4, MEMORY_TAG_RESOURCE);
-	vertices = (UIVertex*)meshConfig.vertices;
+	element->fillBar->mesh->pushConstant = &element->push;
+	element->scene->UndrawGameObject(element->gameObject);
+	element->gameObject->model->meshes.Push(element->fillBar->mesh);
+	element->scene->DrawGameObject(element->gameObject);
 
-	//Generate fill
-	F32 scaleX = bar->scale.x * percent;
-
-	vertices[0] = UIVertex{ { 0.0f,		0.0f,			id }, { 0.0f, 0.66666666666f }, fillColor };
-	vertices[1] = UIVertex{ { scaleX,	0.0f,			id }, { 1.0f, 0.66666666666f }, fillColor };
-	vertices[2] = UIVertex{ { scaleX,	bar->scale.y,	id }, { 1.0f, 1.0f }, fillColor };
-	vertices[3] = UIVertex{ { 0.0f,		bar->scale.y,	id }, { 0.0f, 1.0f }, fillColor };
-
-	Mesh* mesh1 = Resources::CreateMesh(meshConfig);
-
-	if (!mesh1)
-	{
-		Logger::Error("UI::GenerateBar: Failed to Generate UI mesh!");
-		Resources::DestroyMesh(mesh0);
-		Memory::Free(bar, sizeof(UIElement), MEMORY_TAG_UI);
-		return nullptr;
-	}
-
-	mesh0->pushConstant = &bar->push;
-	mesh1->pushConstant = &bar->push;
-	meshes.Push(mesh1);
-	meshes.Push(mesh0);
-
-	GameObject2DConfig goConfig{};
-	goConfig.name = name;
-	goConfig.model = Resources::CreateModel(name, meshes);
-
-	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
-	bar->gameObject = go;
-
-	elements.PushFront(bar);
-	config.scene->DrawGameObject(go);
-
-	return bar;
+	return true;
 }
 
-UIScrollWindow* UI::GenerateScrollWindow(UIElementConfig& config, F32 spacing, bool horizontal, bool vertical)
+bool UI::GenerateScrollWindow(UIElement* element, F32 spacing, bool horizontal, bool vertical)
 {
-	if (config.scale.x < FLOAT_EPSILON || config.scale.y < FLOAT_EPSILON)
+	if (element->scrollWindow)
 	{
-		Logger::Error("UI::GenerateImage: Area can't be negative!");
-		return nullptr;
+		Logger::Error("{}: Element {} already has a scroll window!", FUNCTION_NAME, element->id);
+		return false;
 	}
 
-	if (!config.scene)
-	{
-		Logger::Error("UI::GenerateImage: Scene can't be nullptr!");
-		return nullptr;
-	}
-
-	UIScrollWindow* scroll = (UIScrollWindow*)Memory::Allocate(sizeof(UIScrollWindow), MEMORY_TAG_UI);
-	scroll->id = elementID++;
-	scroll->scene = config.scene;
-	scroll->color = config.color;
-	scroll->ignore = config.ignore;
-	scroll->selfEnabled = config.enabled;
-	scroll->parent = config.parent;
-	scroll->type = UI_TYPE_SCROLL;
-	scroll->horizontal = horizontal;
-	scroll->vertical = vertical;
-	scroll->spacing = spacing;
-	scroll->renderArea = true;
-
-	String name("UI_Element_{}", scroll->id);
-
-	if (config.parent)
-	{
-		config.parent->children.PushBack(scroll);
-
-		if (config.scaled)
-		{
-			scroll->push.position.x = config.parent->push.position.x + config.position.x;
-			scroll->push.position.y = config.parent->push.position.y + config.position.y;
-			scroll->scale.x = config.scale.x;
-			scroll->scale.y = config.scale.y;
-		}
-		else
-		{
-			scroll->push.position.x = config.parent->push.position.x + config.parent->scale.x * config.position.x;
-			scroll->push.position.y = config.parent->push.position.y + config.parent->scale.y * config.position.y;
-			scroll->scale.x = config.parent->scale.x * config.scale.x;
-			scroll->scale.y = config.parent->scale.y * config.scale.y;
-		}
-	}
-	else
-	{
-		scroll->push.position.x = config.position.x;
-		scroll->push.position.y = config.position.y;
-		scroll->scale.x = config.scale.x;
-		scroll->scale.y = config.scale.y;
-	}
+	element->scrollWindow = (UIScrollWindow*)Memory::Allocate(sizeof(UIScrollWindow), MEMORY_TAG_UI);
+	element->scrollWindow->horizontal = horizontal;
+	element->scrollWindow->vertical = vertical;
+	element->scrollWindow->spacing = spacing;
+	element->renderWindow = true;
 
 	Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
-	scroll->push.renderArea = { (renderArea.z - offset.x) * scroll->push.position.x + offset.x, (renderArea.w - offset.y) * scroll->push.position.y + offset.y,
-		(renderArea.z - offset.x) * (scroll->push.position.x + scroll->scale.x) + offset.x, (renderArea.w - offset.y) * (scroll->push.position.y + scroll->scale.y) + offset.y };
+	element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
+		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
 
-	GameObject2DConfig goConfig{};
-	goConfig.name = name;
+	element->OnScroll = OnScrollWindowDefault;
 
-	GameObject2D* go = Resources::CreateGameObject2D(goConfig);
-	go->enabled = config.enabled && (!config.parent || config.parent->gameObject->enabled);
-	scroll->gameObject = go;
+	for (UIElement* e : element->children)
+	{
+		//TODO: Recursively set children
+		e->renderWindow = true;
+		e->push.renderArea = element->push.renderArea;
+	}
 
-	elements.PushFront(scroll);
-
-	scroll->OnScroll = OnScrollWindowDefault;
-
-	return scroll;
+	return true;
 }
 
 void UI::SetEnable(UIElement* element, bool enable)
@@ -916,25 +808,7 @@ void UI::ChangeScene(UIElement* element, Scene* scene)
 
 void UI::ChangeSize(UIElement* element, const Vector4& newArea)
 {
-	switch (element->type)
-	{
-	default:
-	case UI_TYPE_NONE:
-	case UI_TYPE_PANEL:
-	case UI_TYPE_IMAGE:
-	case UI_TYPE_PANEL_BORDERED:
-	{
-
-	}
-	case UI_TYPE_TEXT:
-	{
-
-	}
-	case UI_TYPE_BAR:
-	{
-
-	}
-	}
+	//TODO:
 }
 
 void UI::MoveElement(UIElement* element, const Vector2Int& delta)
@@ -943,14 +817,15 @@ void UI::MoveElement(UIElement* element, const Vector2Int& delta)
 
 	element->push.position += move;
 
-	if (element->type == UI_TYPE_SCROLL)
+	if (element->scrollWindow)
 	{
 		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
 		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
 		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
 
-		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		for (UIElement* e : element->children)
 		{
+			//TODO: Recursively set children
 			e->push.renderArea = element->push.renderArea;
 		}
 	}
@@ -965,14 +840,15 @@ void UI::MoveElement(UIElement* element, const Vector2& delta)
 {
 	element->push.position += delta;
 
-	if (element->type == UI_TYPE_SCROLL)
+	if (element->scrollWindow)
 	{
 		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
 		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
 		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
 
-		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		for (UIElement* e : element->children)
 		{
+			//TODO: Recursively set children
 			e->push.renderArea = element->push.renderArea;
 		}
 	}
@@ -989,14 +865,15 @@ void UI::SetElementPosition(UIElement* element, const Vector2Int& position)
 
 	element->push.position = pos;
 
-	if (element->type == UI_TYPE_SCROLL)
+	if (element->scrollWindow)
 	{
 		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
 		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
 		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
 
-		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		for (UIElement* e : element->children)
 		{
+			//TODO: Recursively set children
 			e->push.renderArea = element->push.renderArea;
 		}
 	}
@@ -1011,14 +888,15 @@ void UI::SetElementPosition(UIElement* element, const Vector2& position)
 {
 	element->push.position = position;
 
-	if (element->type == UI_TYPE_SCROLL)
+	if (element->scrollWindow)
 	{
 		Vector2 offset = (Vector2)RendererFrontend::WindowOffset();
 		element->push.renderArea = { (renderArea.z - offset.x) * element->push.position.x + offset.x, (renderArea.w - offset.y) * element->push.position.y + offset.y,
 		(renderArea.z - offset.x) * (element->push.position.x + element->scale.x) + offset.x, (renderArea.w - offset.y) * (element->push.position.y + element->scale.y) + offset.y };
 
-		for (UIElement* e : ((UIScrollWindow*)element)->elements)
+		for (UIElement* e : element->children)
 		{
+			//TODO: Recursively set children
 			e->push.renderArea = element->push.renderArea;
 		}
 	}
@@ -1031,63 +909,67 @@ void UI::SetElementPosition(UIElement* element, const Vector2& position)
 
 void UI::ChangeColor(UIElement* element, const Vector4& newColor)
 {
-	UIVertex* vertices = (UIVertex*)element->mesh->vertices;
-
-	for (U32 i = 0; i < element->mesh->vertexCount; i++)
-	{
-		vertices[i].color = newColor;
-	}
-
-	RendererFrontend::CreateMesh(element->mesh);
-}
-
-void UI::ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs)
-{
-	bool nullp = element->gameObject->model->meshes[0]->material.instanceTextureMaps[0].texture == nullptr;
-
-	if (uvs.Size())
+	if (element->mesh)
 	{
 		UIVertex* vertices = (UIVertex*)element->mesh->vertices;
 
 		for (U32 i = 0; i < element->mesh->vertexCount; i++)
 		{
-			vertices[i].uv = uvs[i];
+			vertices[i].color = newColor;
 		}
 
 		RendererFrontend::CreateMesh(element->mesh);
 	}
 
+	if (element->image)
+	{
+		UIVertex* vertices = (UIVertex*)element->image->mesh->vertices;
+
+		for (U32 i = 0; i < element->image->mesh->vertexCount; i++)
+		{
+			vertices[i].color = newColor;
+		}
+
+		RendererFrontend::CreateMesh(element->image->mesh);
+	}
+}
+
+void UI::ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs)
+{
+	bool nullp = element->image->texture == nullptr;
+
+	if (uvs.Size())
+	{
+		UIVertex* vertices = (UIVertex*)element->image->mesh->vertices;
+
+		for (U32 i = 0; i < element->image->mesh->vertexCount; i++)
+		{
+			vertices[i].uv = uvs[i];
+		}
+
+		RendererFrontend::CreateMesh(element->image->mesh);
+	}
+
 	if (texture)
 	{
-		Resources::ChangeInstanceTextures(element->gameObject->model->meshes[0]->material, { 1, texture });
-
-		if (nullp)
-		{
-			element->scene->DrawGameObject(element->gameObject);
-		}
-	}
-	else if (!nullp && !uvs.Size())
-	{
-		element->scene->UndrawGameObject(element->gameObject);
+		Resources::ChangeInstanceTextures(element->image->mesh->material, { 1, texture });
 	}
 }
 
-void UI::ChangeSize(UIText* element, F32 newSize)
+void UI::ChangeSize(UIElement* element, F32 newSize)
 {
 
 }
 
-void UI::ChangeText(UIText* element, const String& text, F32 newSize)
+void UI::ChangeText(UIElement* element, const String& text, F32 newSize)
 {
-	if (text == element->text && (Math::Zero(newSize) || Math::Zero(newSize - element->size))) { return; }
-	if (Math::Zero(newSize)) { newSize = element->size; }
-	element->size = newSize;
-	element->text.Destroy();
-	element->text = text;
+	if (text == element->text && (Math::Zero(newSize) || Math::Zero(newSize - element->text->size))) { return; }
+	if (Math::Zero(newSize)) { newSize = element->text->size; }
+	element->text->size = newSize;
+	element->text->text.Destroy();
+	element->text->text = text;
 
-	Vector2Int dimentions = RendererFrontend::WindowSize();
-
-	if (text && text.Length() && !dimentions.Zero())
+	if (text && text.Length())
 	{
 		F32 pixelWidth = newSize / 800.0f;
 		F32 pixelHeight = newSize / 450.0f;
@@ -1095,14 +977,13 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		F32 areaX = 0.0f;
 		F32 areaW = element->scale.y - pixelHeight;
 
-		F32 id = 1.0f - (F32)element->id * 0.001f;
 		U32 i = 0;
 
 		Font* font = Resources::LoadFont("Arial");
 
-		if (element->gameObject->model)
+		if (element->text->mesh)
 		{
-			Mesh* mesh = element->gameObject->model->meshes[0];
+			Mesh* mesh = element->text->mesh;
 
 			mesh->indices.Resize(6 * text.Length());
 			Memory::Free(mesh->vertices, sizeof(UIVertex) * mesh->vertexCount, MEMORY_TAG_RESOURCE);
@@ -1118,11 +999,12 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				F32 z = x + pixelWidth * character.width;
 				F32 y = areaW + pixelHeight * character.yOffset;
 				F32 w = y + pixelHeight * character.height;
+				F32 uvz = 1.0f - (F32)element->id * 0.001f - 0.0003f;
 
-				vertices[i * 4] = UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, element->color };
-				vertices[i * 4 + 1] = UIVertex{ { z, y, id}, { character.x + character.uvWidth, character.y + character.uvHeight }, element->color };
-				vertices[i * 4 + 2] = UIVertex{ { z, w, id}, { character.x + character.uvWidth, character.y }, element->color };
-				vertices[i * 4 + 3] = UIVertex{ { x, w, id}, { character.x, character.y }, element->color };
+				vertices[i * 4] = UIVertex{		{ x, y, uvz }, { character.x, character.y + character.uvHeight }, element->color };
+				vertices[i * 4 + 1] = UIVertex{ { z, y, uvz }, { character.x + character.uvWidth, character.y + character.uvHeight }, element->color };
+				vertices[i * 4 + 2] = UIVertex{ { z, w, uvz }, { character.x + character.uvWidth, character.y }, element->color };
+				vertices[i * 4 + 3] = UIVertex{ { x, w, uvz }, { character.x, character.y }, element->color };
 
 				mesh->indices[i * 6] = i * 4;
 				mesh->indices[i * 6 + 1] = i * 4 + 1;
@@ -1140,7 +1022,7 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 		else
 		{
 			MeshConfig meshConfig{};
-			meshConfig.name = element->gameObject->name;
+			meshConfig.name = element->gameObject->name + "_Text";
 			meshConfig.MaterialName = "Text.mat";
 			meshConfig.instanceTextures.Push(Resources::LoadTexture("Arial.bmp"));
 			meshConfig.indices.Resize(6 * text.Length());
@@ -1157,11 +1039,12 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				F32 z = x + pixelWidth * character.width;
 				F32 y = areaW + pixelHeight * character.yOffset;
 				F32 w = y + pixelHeight * character.height;
+				F32 uvz = 1.0f - (F32)element->id * 0.001f - 0.0003f;
 
-				vertices[i * 4] = UIVertex{ { x, y, id}, { character.x, character.y + character.uvHeight }, element->color };
-				vertices[i * 4 + 1] = UIVertex{ { z, y, id}, { character.x + character.uvWidth, character.y + character.uvHeight }, element->color };
-				vertices[i * 4 + 2] = UIVertex{ { z, w, id}, { character.x + character.uvWidth, character.y }, element->color };
-				vertices[i * 4 + 3] = UIVertex{ { x, w, id}, { character.x, character.y }, element->color };
+				vertices[i * 4] = UIVertex{		{ x, y, uvz }, { character.x, character.y + character.uvHeight }, element->color };
+				vertices[i * 4 + 1] = UIVertex{ { z, y, uvz }, { character.x + character.uvWidth, character.y + character.uvHeight }, element->color };
+				vertices[i * 4 + 2] = UIVertex{ { z, w, uvz }, { character.x + character.uvWidth, character.y }, element->color };
+				vertices[i * 4 + 3] = UIVertex{ { x, w, uvz }, { character.x, character.y }, element->color };
 
 				meshConfig.indices[i * 6] = i * 4;
 				meshConfig.indices[i * 6 + 1] = i * 4 + 1;
@@ -1174,28 +1057,26 @@ void UI::ChangeText(UIText* element, const String& text, F32 newSize)
 				++i;
 			}
 
-			Mesh* mesh = Resources::CreateMesh(meshConfig);
-
-			mesh->pushConstant = &element->push;
-
-			element->mesh = mesh;
-			element->gameObject->model = Resources::CreateModel(element->gameObject->name, { 1, mesh });
+			element->text->mesh = Resources::CreateMesh(meshConfig);
+			element->text->mesh->pushConstant = &element->push;
+			element->scene->UndrawGameObject(element->gameObject);
+			element->gameObject->model->meshes.Push(element->text->mesh);
 			element->scene->DrawGameObject(element->gameObject);
 		}
 	}
-	else if (element->gameObject->model)
+	else if (element->text->mesh)
 	{
-		element->scene->UndrawGameObject(element->gameObject);
-
-		Resources::DestroyModel(element->gameObject->model);
-		element->gameObject->model = nullptr;
-		element->mesh = nullptr;
+		for (U32 i = 0; i < element->gameObject->model->meshes.Size(); ++i)
+		{
+			if (element->gameObject->model->meshes[i] == element->text->mesh) { element->gameObject->model->meshes.Remove(i); }
+		}
+		element->text->mesh = nullptr;
 	}
 }
 
-void UI::ChangePercent(UIBar* element, F32 percent)
+void UI::ChangeFillPercent(UIElement* element, F32 percent)
 {
-	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[0]->vertices;
+	UIVertex* vertices = (UIVertex*)element->fillBar->mesh->vertices;
 
 	F32 newX = element->scale.x * percent;
 
@@ -1205,9 +1086,9 @@ void UI::ChangePercent(UIBar* element, F32 percent)
 	RendererFrontend::CreateMesh(element->gameObject->model->meshes[0]);
 }
 
-void UI::ChangeFillColor(UIBar* element, const Vector4& fillColor)
+void UI::ChangeFillColor(UIElement* element, const Vector4& fillColor)
 {
-	UIVertex* vertices = (UIVertex*)element->gameObject->model->meshes[1]->vertices;
+	UIVertex* vertices = (UIVertex*)element->fillBar->mesh->vertices;
 
 	for (U32 i = 0; i < element->mesh->vertexCount; i++)
 	{
@@ -1217,51 +1098,51 @@ void UI::ChangeFillColor(UIBar* element, const Vector4& fillColor)
 	RendererFrontend::CreateMesh(element->mesh);
 }
 
-void UI::AddScrollItem(UIScrollWindow* scrollWindow, UIElement* element)
+void UI::AddScrollItem(UIElement* element, UIElement* child)
 {
-	element->renderArea = true;
+	child->renderWindow = true;
 
-	if (scrollWindow->vertical)
+	if (element->scrollWindow->vertical)
 	{
-		scrollWindow->size += element->scale.y;
-		element->push.renderArea = scrollWindow->push.renderArea;
+		element->scrollWindow->size += child->scale.y;
+		child->push.renderArea = element->push.renderArea;
 
-		if (scrollWindow->elements.Size())
+		if (element->children.Size())
 		{
-			UIElement* bottom = scrollWindow->elements.Back();
-			element->push.position = bottom->push.position;
-			element->push.position.y += bottom->scale.y + scrollWindow->spacing;
+			UIElement* bottom = element->children.Back();
+			child->push.position = bottom->push.position;
+			child->push.position.y += bottom->scale.y + element->scrollWindow->spacing;
 		}
 		else
 		{
-			element->push.position = scrollWindow->push.position;
+			child->push.position = element->push.position;
 		}
 
-		scrollWindow->elements.PushBack(element);
+		element->children.PushBack(child);
 	}
-	else if (scrollWindow->horizontal)
+	else if (element->scrollWindow->horizontal)
 	{
-		scrollWindow->size += element->scale.x;
-		element->push.renderArea = scrollWindow->push.renderArea;
+		element->scrollWindow->size += child->scale.x;
+		child->push.renderArea = element->push.renderArea;
 
-		if (scrollWindow->elements.Size())
+		if (element->children.Size())
 		{
-			UIElement* right = scrollWindow->elements.Back();
-			element->push.position = right->push.position;
-			element->push.position.y += right->scale.x + scrollWindow->spacing;
+			UIElement* right = element->children.Back();
+			child->push.position = right->push.position;
+			child->push.position.y += right->scale.x + element->scrollWindow->spacing;
 		}
 		else
 		{
-			element->push.position = scrollWindow->push.position;
+			child->push.position = element->push.position;
 		}
 
-		scrollWindow->elements.PushBack(element);
+		element->children.PushBack(child);
 	}
 }
 
 void UI::DestroyElement(UIElement* element)
 {
-	elementsToDestroy.PushBack(element);
+	elementsToDestroy.Push(element);
 
 	DestroyAllChildren(element);
 }
@@ -1272,15 +1153,14 @@ void UI::DestroyAllChildren(UIElement* element)
 	{
 		DestroyElement(e);
 	}
-
-	element->children.Destroy();
 }
 
 void UI::DestroyElementInternal(UIElement* element)
 {
 	if (element)
 	{
-		elements.Remove(element);
+		freeIDs.Push(element->id);
+		elements[element->id] = nullptr;
 
 		if (element->parent)
 		{
@@ -1288,31 +1168,23 @@ void UI::DestroyElementInternal(UIElement* element)
 		}
 
 		element->scene->UndrawGameObject(element->gameObject);
-		if (element->gameObject->model) { Resources::DestroyModel(element->gameObject->model); }
+		Resources::DestroyModel(element->gameObject->model);
 		Resources::DestroyGameObject2D(element->gameObject);
 
-		switch (element->type)
+		if (element->border) { Memory::Free(element->border, sizeof(UIBorder), MEMORY_TAG_UI); }
+		if (element->image) { element->image->uvs.Destroy(); Memory::Free(element->image, sizeof(UIImage), MEMORY_TAG_UI); }
+		if (element->text) { element->text->text.Destroy(); Memory::Free(element->text, sizeof(UIText), MEMORY_TAG_UI); }
+		if (element->fillBar) { Memory::Free(element->fillBar, sizeof(UIFillBar), MEMORY_TAG_UI); }
+		if (element->scrollWindow) { Memory::Free(element->scrollWindow, sizeof(UIScrollWindow), MEMORY_TAG_UI); }
+
+		for (UIElement* child : element->children)
 		{
-		default:
-		case UI_TYPE_NONE:
-		case UI_TYPE_PANEL:
-		case UI_TYPE_PANEL_BORDERED:
-		case UI_TYPE_IMAGE:
-		{
-			Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
-		} break;
-		case UI_TYPE_TEXT:
-		{
-			UIText* t = (UIText*)element;
-			t->text.Destroy();
-			Memory::Free(element, sizeof(UIText), MEMORY_TAG_UI);
-		} break;
-		case UI_TYPE_BAR:
-		{
-			Memory::Free(element, sizeof(UIBar), MEMORY_TAG_UI);
-		} break;
-		case UI_TYPE_SCROLL:
-			Memory::Free(element, sizeof(UIScrollWindow), MEMORY_TAG_UI);
+			child->parent = nullptr;
 		}
+
+		element->children.Destroy();
+		element->name.Destroy();
+		Memory::Free(element, sizeof(UIElement), MEMORY_TAG_UI);
+		element = nullptr;
 	}
 }

@@ -23,6 +23,7 @@
     <ClInclude Include="Containers\Array2D.hpp" />
     <ClInclude Include="Containers\HashMap.hpp" />
     <ClInclude Include="Containers\HashTable.hpp" />
+    <ClInclude Include="Containers\Initializer.hpp" />
     <ClInclude Include="Containers\List.hpp" />
     <ClInclude Include="Containers\Map.hpp" />
     <ClInclude Include="Containers\Queue.hpp" />
@@ -128,6 +129,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

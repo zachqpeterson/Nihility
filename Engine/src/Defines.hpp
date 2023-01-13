@@ -69,8 +69,8 @@ typedef long double F128;
 
 struct Range
 {
-    U64 offset;
-    U64 size;
+	U64 offset;
+	U64 size;
 };
 
 #if defined(__clang__) || defined(__gcc__)
@@ -179,42 +179,42 @@ struct Range
 
 void ReportAssertion(const char* expression, const char* message, const char* file, I32 line);
 
-#define ASSERT(expr)                                        \
-    {                                                       \
-        if (expr) {                                         \
-        } else {                                            \
-            ReportAssertion(#expr, "", __FILE__, __LINE__); \
-            debugBreak();                                   \
-        }                                                   \
-    }
+#define ASSERT(expr)											\
+	{															\
+		if (expr) {												\
+		} else {												\
+			ReportAssertion(#expr, "", FILE_NAME, LINE_NUMBER);	\
+			debugBreak();										\
+		}														\
+	}
 
-#define ASSERT_MSG(expr, message)                                   \
-    {                                                               \
-        if (expr) {                                                 \
-        } else {                                                    \
-            ReportAssertion(#expr, message, __FILE__, __LINE__);    \
-            debugBreak();                                           \
-        }                                                           \
-    }
+#define ASSERT_MSG(expr, message)										\
+	{																	\
+		if (expr) {														\
+		} else {														\
+			ReportAssertion(#expr, message, FILE_NAME, LINE_NUMBER);	\
+			debugBreak();												\
+		}																\
+	}
 
 #ifdef NH_DEBUG
-#define ASSERT_DEBUG(expr)                                  \
-    {                                                       \
-        if (expr) {                                         \
-        } else {                                            \
-            ReportAssertion(#expr, "", __FILE__, __LINE__); \
-            debugBreak();                                   \
-        }                                                   \
-    }
+#define ASSERT_DEBUG(expr)										\
+	{															\
+		if (expr) {												\
+		} else {												\
+			ReportAssertion(#expr, "", FILE_NAME, LINE_NUMBER); \
+			debugBreak();										\
+		}														\
+	}
 
 #define ASSERT_DEBUG_MSG(expr, message)                             \
-    {                                                               \
-        if (expr) {                                                 \
-        } else {                                                    \
-            ReportAssertion(#expr, message, __FILE__, __LINE__);    \
-            debugBreak();                                           \
-        }                                                           \
-    }
+	{                                                               \
+		if (expr) {                                                 \
+		} else {                                                    \
+			ReportAssertion(#expr, message, FILE_NAME, LINE_NUMBER);\
+			debugBreak();                                           \
+		}                                                           \
+	}
 #else
 #define ASSERT_DEBUG(expr)
 #define ASSERT_DEBUG_MSG(expr, message)
@@ -233,11 +233,11 @@ void ReportAssertion(const char* expression, const char* message, const char* fi
 template<typename T>
 constexpr T&& Move(T&& t) noexcept
 {
-    return static_cast<T&&>(t);
+	return static_cast<T&&>(t);
 }
 
 template<typename T>
 constexpr T&& Move(T& t) noexcept
 {
-    return static_cast<T&&>(t);
+	return static_cast<T&&>(t);
 }

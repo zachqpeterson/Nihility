@@ -115,8 +115,7 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 		{
 			for (U64 i = 0; i < size; ++i)
 			{
-				MeshRenderData&& dataTemp = Move(list.renderData.Pop());
-				MeshRenderData data = dataTemp;
+				MeshRenderData& data = list.renderData[i];
 
 				if (data.mesh)
 				{
@@ -131,6 +130,8 @@ bool Scene::OnRender(U64 frameNumber, U64 renderTargetIndex)
 					RendererFrontend::DrawMesh(data);
 				}
 			}
+
+			list.renderData.Clear();
 		}
 	}
 

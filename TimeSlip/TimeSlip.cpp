@@ -51,7 +51,7 @@ UIElement* TimeSlip::craftResult;
 UIElement* TimeSlip::craftButton;
 UIElement* TimeSlip::ingredientList;
 UIElement* TimeSlip::recipeSelection;
-UIScrollWindow* TimeSlip::recipeWindow;
+UIElement* TimeSlip::recipeWindow;
 const Recipe* TimeSlip::selectedRecipe;
 
 Vector<Vector2> TimeSlip::blankUVs;
@@ -69,6 +69,9 @@ WorldSize TimeSlip::testWorldSize{ WS_TEST };
 WorldSize TimeSlip::smallWorldSize{ WS_SMALL };
 WorldSize TimeSlip::mediumWorldSize{ WS_MEDIUM };
 WorldSize TimeSlip::largeWorldSize{ WS_LARGE };
+
+//UI needs to be on one renderpass, preferably on one shader with a bool indicating if it's text
+//UI needs to have it's own vector in scene, maybe we could get away with not having gameobjects for UI, maybe no model either
 
 bool TimeSlip::running;
 
@@ -422,14 +425,6 @@ void TimeSlip::UpdateCraftingMenu()
 	imageCfg.scene = worldScene;
 	imageCfg.parent = ingredientList;
 
-	UIElementConfig amtCfg{};
-	amtCfg.position = { 0.0f, 0.0f };
-	amtCfg.scale = { 1.0f, 1.0f };
-	amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	amtCfg.ignore = true;
-	amtCfg.enabled = true;
-	amtCfg.scene = worldScene;
-
 	bool found = true;
 
 	for (U16 j = 0; j < selectedRecipe->ingredientCount; ++j)
@@ -437,18 +432,16 @@ void TimeSlip::UpdateCraftingMenu()
 		if (inventory->ContainsItem(selectedRecipe->ingredients[j].id, selectedRecipe->ingredients[j].amount))
 		{
 			imageCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-			amtCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		}
 		else
 		{
 			imageCfg.color = { 1.0f, 0.5f, 0.5f, 1.0f };
-			amtCfg.color = { 1.0f, 0.5f, 0.5f, 1.0f };
 			found = false;
 		}
 
-		amtCfg.parent = UI::GenerateImage(imageCfg, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(selectedRecipe->ingredients[j].id));
-		UI::GenerateText(amtCfg, selectedRecipe->ingredients[j].amount, 10);
-		amtCfg.parent = nullptr;
+		UIElement* img = UI::CreateUIElement(imageCfg);
+		UI::GenerateImage(img, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(selectedRecipe->ingredients[j].id));
+		UI::GenerateText(img, selectedRecipe->ingredients[j].amount, 12, imageCfg.color);
 
 		imageCfg.position.x += 0.25f;
 	}
@@ -577,7 +570,8 @@ void TimeSlip::CreateMainMenu()
 	mainMenuConfig.enabled = true;
 	mainMenuConfig.ignore = true;
 	mainMenuConfig.scene = mainMenuScene;
-	titleImage0 = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	titleImage0 = UI::CreateUIElement(mainMenuConfig);
+	UI::GenerateImage(titleImage0, uiTex, uvs);
 
 	uvs[0] = { 0.66666f, 1.0f };
 	uvs[1] = { 1.0f, 1.0f };
@@ -585,7 +579,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[3] = { 0.66666f, 0.75f };
 
 	mainMenuConfig.position = { 0.375f, 0.15f };
-	titleImage1 = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	titleImage1 = UI::CreateUIElement(mainMenuConfig);
+	UI::GenerateImage(titleImage1, uiTex, uvs);
 
 	uvs[0] = { 0.0f, 0.25f };
 	uvs[1] = { 0.33333f, 0.25f };
@@ -594,7 +589,8 @@ void TimeSlip::CreateMainMenu()
 
 	mainMenuConfig.position = { 0.375f, 0.375f };
 	mainMenuConfig.ignore = false;
-	playButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	playButton = UI::CreateUIElement(mainMenuConfig);
+	UI::GenerateImage(playButton, uiTex, uvs);
 	playButton->OnClick = { PlayMenu, nullptr };
 	playButton->OnHover = UI::OnHoverDefault;
 	playButton->OnExit = UI::OnExitDefault;
@@ -605,7 +601,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[3] = { 0.33333f, 0.0f };
 
 	mainMenuConfig.position = { 0.375f, 0.525f };
-	settingsButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	settingsButton = UI::CreateUIElement(mainMenuConfig);
+	UI::GenerateImage(settingsButton, uiTex, uvs);
 	settingsButton->OnClick = { SettingsMenu, nullptr };
 	settingsButton->OnHover = UI::OnHoverDefault;
 	settingsButton->OnExit = UI::OnExitDefault;
@@ -616,7 +613,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[3] = { 0.66666f, 0.0f };
 
 	mainMenuConfig.position = { 0.375f, 0.675f };
-	exitButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	exitButton = UI::CreateUIElement(mainMenuConfig); 
+	UI::GenerateImage(exitButton, uiTex, uvs);
 	exitButton->OnClick = { Exit, nullptr };
 	exitButton->OnHover = UI::OnHoverDefault;
 	exitButton->OnExit = UI::OnExitDefault;
@@ -630,7 +628,8 @@ void TimeSlip::CreateMainMenu()
 	mainMenuConfig.scale = { 0.5f, 0.1f };
 	mainMenuConfig.enabled = false;
 	mainMenuConfig.ignore = true;
-	selectWorldImage = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	selectWorldImage = UI::CreateUIElement(mainMenuConfig); 
+	UI::GenerateImage(selectWorldImage, uiTex, uvs);
 
 	uvs[0] = { 0.0f, 0.5f };
 	uvs[1] = { 0.33333f, 0.5f };
@@ -640,7 +639,8 @@ void TimeSlip::CreateMainMenu()
 	mainMenuConfig.position = { 0.375f, 0.375f };
 	mainMenuConfig.scale = { 0.25f, 0.1f };
 	mainMenuConfig.ignore = false;
-	smallWorldButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	smallWorldButton = UI::CreateUIElement(mainMenuConfig); 
+	UI::GenerateImage(smallWorldButton, uiTex, uvs);
 	smallWorldButton->OnClick = { CreateWorld, (void*)&smallWorldSize };
 	smallWorldButton->OnHover = UI::OnHoverDefault;
 	smallWorldButton->OnExit = UI::OnExitDefault;
@@ -651,7 +651,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[3] = { 0.33333f, 0.25f };
 
 	mainMenuConfig.position = { 0.375f, 0.525f };
-	mediumWorldButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	mediumWorldButton = UI::CreateUIElement(mainMenuConfig); 
+	UI::GenerateImage(mediumWorldButton, uiTex, uvs);
 	mediumWorldButton->OnClick = { CreateWorld, (void*)&mediumWorldSize };
 	mediumWorldButton->OnHover = UI::OnHoverDefault;
 	mediumWorldButton->OnExit = UI::OnExitDefault;
@@ -662,7 +663,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[3] = { 0.66666f, 0.25f };
 
 	mainMenuConfig.position = { 0.375f, 0.675f };
-	largeWorldButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	largeWorldButton = UI::CreateUIElement(mainMenuConfig); 
+	UI::GenerateImage(largeWorldButton, uiTex, uvs);
 	largeWorldButton->OnClick = { CreateWorld, (void*)&largeWorldSize };
 	largeWorldButton->OnHover = UI::OnHoverDefault;
 	largeWorldButton->OnExit = UI::OnExitDefault;
@@ -673,7 +675,8 @@ void TimeSlip::CreateMainMenu()
 	uvs[3] = { 0.0f, 0.5f };
 
 	mainMenuConfig.position = { 0.375f, 0.825f };
-	backButton = UI::GenerateImage(mainMenuConfig, uiTex, uvs);
+	backButton = UI::CreateUIElement(mainMenuConfig); 
+	UI::GenerateImage(backButton, uiTex, uvs);
 	backButton->OnClick = { MainMenu, nullptr };
 	backButton->OnHover = UI::OnHoverDefault;
 	backButton->OnExit = UI::OnExitDefault;
@@ -685,7 +688,8 @@ void TimeSlip::CreateInventory()
 
 	InventoryConfig config{};
 	config.color = Vector4{ 1.0f, 1.0f, 1.0f, 0.5f };
-	config.slotColor = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
+	config.borderColor = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
+	config.slotColor = Vector4{ 0.5f, 0.5f, 0.5f, 1.0f };
 	config.xMax = 9;
 	config.yMax = 3;
 	config.slotCount = 27;
@@ -697,9 +701,9 @@ void TimeSlip::CreateInventory()
 	config.yPosition = 0.025f;
 	config.xSlotSize = 0.03333333333f;
 	config.ySlotSize = 0.0624f;
-	config.xPadding = 0.01f;
+	config.xPadding = 0.005f;
 	config.xSpacing = 0.01f;
-	config.yPadding = 0.0182f;
+	config.yPadding = 0.0091f;
 	config.ySpacing = 0.0182f;
 
 	inventory = new Inventory(config);
@@ -720,7 +724,7 @@ void TimeSlip::CreateInventory()
 	highlightConfig.scale = { 0.033333333333f, 0.0624f };
 	highlightConfig.scene = worldScene;
 
-	hotbarHighlight = UI::GeneratePanel(highlightConfig, false);
+	hotbarHighlight = UI::CreateUIElement(highlightConfig);
 }
 
 void TimeSlip::CreateCraftingMenu()
@@ -732,8 +736,10 @@ void TimeSlip::CreateCraftingMenu()
 	craftPanel.position = { 0.55f, 0.15f };
 	craftPanel.scale = { 0.35f, 0.7f };
 	craftPanel.scene = worldScene;
+	craftPanel.panel = true;
 
-	craftingMenu = UI::GeneratePanel(craftPanel, true);
+	craftingMenu = UI::CreateUIElement(craftPanel);
+	UI::GenerateBorder(craftingMenu, Vector4::ONE, 0.1f);
 	craftingMenu->OnDrag = UI::OnDragDefault;
 
 	UIElementConfig craftingImage{};
@@ -745,7 +751,8 @@ void TimeSlip::CreateCraftingMenu()
 	craftingImage.scene = worldScene;
 	craftingImage.parent = craftingMenu;
 
-	craftResult = UI::GenerateImage(craftingImage, Resources::LoadTexture("Items.bmp"), blankUVs);
+	craftResult = UI::CreateUIElement(craftingImage);
+	UI::GenerateImage(craftResult, Resources::LoadTexture("Items.bmp"), blankUVs);
 
 	UIElementConfig craftingButton{};
 	craftingButton.color = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -762,7 +769,8 @@ void TimeSlip::CreateCraftingMenu()
 	uvs.Push({ 0.33333f, 0.75f });
 	uvs.Push({ 0.0f, 0.75f });
 
-	craftButton = UI::GenerateImage(craftingButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
+	craftButton = UI::CreateUIElement(craftingButton);
+	UI::GenerateImage(craftButton, Resources::LoadTexture("TS_UI.bmp"), uvs);
 	craftButton->OnHover = UI::OnHoverDefault;
 	craftButton->OnExit = UI::OnExitDefault;
 
@@ -775,7 +783,7 @@ void TimeSlip::CreateCraftingMenu()
 	ingrListCfg.scene = worldScene;
 	ingrListCfg.parent = craftingMenu;
 
-	ingredientList = UI::GeneratePanel(ingrListCfg, false);
+	ingredientList = UI::CreateUIElement(ingrListCfg);
 
 	UIElementConfig recipeSelectCfg{};
 	recipeSelectCfg.color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -792,7 +800,8 @@ void TimeSlip::CreateCraftingMenu()
 	selectUvs.Push({ 0.0f, 0.0f });
 	selectUvs.Push({ 0.0f, 0.0f });
 
-	recipeSelection = UI::GenerateImage(recipeSelectCfg, Resources::LoadTexture("TS_UI.bmp"), selectUvs);
+	recipeSelection = UI::CreateUIElement(recipeSelectCfg);
+	UI::GenerateImage(recipeSelection, Resources::LoadTexture("TS_UI.bmp"), selectUvs);
 
 	UIElementConfig recipeWindowConfig{};
 	recipeWindowConfig.color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -802,7 +811,8 @@ void TimeSlip::CreateCraftingMenu()
 	recipeWindowConfig.scene = worldScene;
 	recipeWindowConfig.position = { 0.1f, 0.05f };
 	recipeWindowConfig.scale = { 0.2f, 0.9f };
-	recipeWindow = UI::GenerateScrollWindow(recipeWindowConfig, 0.05f, false, true);
+	recipeWindow = UI::CreateUIElement(recipeWindowConfig);
+	UI::GenerateScrollWindow(recipeWindow, 0.05f, false, true);
 
 	UIElementConfig recipeConfig{};
 	recipeConfig.color = Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
@@ -819,10 +829,11 @@ void TimeSlip::CreateCraftingMenu()
 	U16 i = 0;
 	while (recipe)
 	{
-		UIElement* e = UI::GenerateImage(recipeConfig, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(recipe->result));
+		UIElement* e = UI::CreateUIElement(recipeConfig);
+		UI::GenerateImage(e, Resources::LoadTexture("Items.bmp"), Inventory::GetUV(recipe->result));
 		e->OnClick = { OnClickSelect, (void*)recipe };
 
-		UI::AddScrollItem(recipeWindow, e);
+		//UI::AddScrollItem(recipeWindow, e);
 
 		recipe = allRecipes[++i];
 	}

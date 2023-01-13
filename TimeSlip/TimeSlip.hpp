@@ -92,7 +92,7 @@ private:
 	static UIElement* craftButton;
 	static UIElement* ingredientList;
 	static UIElement* recipeSelection;
-	static UIScrollWindow* recipeWindow;
+	static UIElement* recipeWindow;
 	static const Recipe* selectedRecipe;
 
 	static Vector<Vector2> blankUVs;

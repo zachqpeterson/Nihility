@@ -194,7 +194,7 @@ PhysicsObject2D* Physics::Create2DPhysicsObject(const PhysicsObject2DConfig& con
 		box.yBounds = { F32_MAX, -F32_MAX };
 
 		auto next = config.shape.begin() + 1;
-		for (Vector2& point : config.shape)
+		for (const Vector2& point : config.shape)
 		{
 			Vector2 nextPoint = *next;
 
@@ -696,7 +696,7 @@ Vector2 Physics::FarthestPoint(const Vector<Vector2>& shape, const Vector2& dire
 	F32 maxDot = -F32_MAX;
 	Vector2 farthest;
 
-	for (Vector2& point : shape)
+	for (const Vector2& point : shape)
 	{
 		F32 dot = point.Dot(direction);
 		if (dot > maxDot)

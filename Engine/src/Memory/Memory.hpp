@@ -30,6 +30,7 @@ enum MemoryTag {
 class NH_API Memory
 {
 public:
+    //TODO: Resize
     static void* Allocate(U64 size, MemoryTag tag);
     static void  Free(void* block, U64 size, MemoryTag tag);
     static void* LinearAllocate(U64 size);

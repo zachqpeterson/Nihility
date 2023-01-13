@@ -48,8 +48,8 @@ public:
 
 	T* begin() { return array; }
 	T* end() { return array + size; }
-	T* begin() const { return array; }
-	T* end() const { return array + size; }
+	const T* begin() const { return array; }
+	const T* end() const { return array + size; }
 
 private:
 	T array[size];

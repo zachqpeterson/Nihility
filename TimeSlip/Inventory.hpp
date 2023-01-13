@@ -23,6 +23,7 @@ struct InventoryConfig
 	F32 ySlotSize;
 	U16 slotCount; //TODO: Start horizontally or vertically
 	Vector4 color; //TODO: color struct
+	Vector4 borderColor; //TODO: color struct
 	Vector4 slotColor; //TODO: color struct
 	bool enable;
 	bool draggable;

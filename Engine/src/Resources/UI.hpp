@@ -6,6 +6,7 @@
 #include "Containers/String.hpp"
 #include <Containers/List.hpp>
 #include <Containers/Vector.hpp>
+#include <Containers/Stack.hpp>
 
 struct UIElement;
 
@@ -54,12 +55,14 @@ struct UIBorder
 {
 	Vector4 color;
 	F32 size;
+	Mesh* mesh;
 };
 
 struct UIImage
 {
 	Texture* texture;
 	Vector<Vector2> uvs;
+	Mesh* mesh;
 };
 
 struct UIText
@@ -68,25 +71,28 @@ struct UIText
 	String text;
 	Vector4 color;
 	F32 size;
+	Mesh* mesh;
 };
 
-struct UIBar
+struct UIFillBar
 {
 	F32 precent;
 	Vector4 color;
+	Mesh* mesh;
 };
 
 struct UIScrollWindow
 {
 	F32 spacing;
 	F32 size;
+	//TODO: I think an enum would be best here, Vertical, Horizontal, VerticalGrid, HorizontalGrid, and None
 	bool horizontal;
 	bool vertical;
 };
 
 struct UIElement
 {
-	U64 id;
+	U32 id;
 	String name;
 	bool ignore{ false };
 	bool hovered{ false };
@@ -97,14 +103,15 @@ struct UIElement
 	Vector2 scale{};
 	Vector4 color{};
 	UIElement* parent{ nullptr };
-	Vector<UIElement*> children;
+	List<UIElement*> children; //TODO: Use vector
 	GameObject2D* gameObject{ nullptr };
 	Scene* scene{ nullptr };
 	
+	Mesh* mesh;
 	UIBorder* border;
 	UIImage* image;
 	UIText* text;
-	UIBar* bar;
+	UIFillBar* fillBar;
 	UIScrollWindow* scrollWindow;
 
 	OnMouse OnClick;
@@ -135,8 +142,8 @@ public:
 	static UIElement* CreateUIElement(UIElementConfig& config);
 	static bool GenerateBorder(UIElement* element, const Vector4& color, F32 size);
 	static bool GenerateImage(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
-	static bool GenerateText(UIElement* element, const String& text, F32 size);
-	static bool GenerateBar(UIElement* element, const Vector4& fillColor, F32 percent);
+	static bool GenerateText(UIElement* element, const String& text, F32 size, const Vector4& color);
+	static bool GenerateFillBar(UIElement* element, const Vector4& fillColor, F32 percent);
 	static bool GenerateScrollWindow(UIElement* element, F32 spacing, bool horizontal, bool vertical);
 
 	static void SetEnable(UIElement* element, bool enable);
@@ -148,11 +155,11 @@ public:
 	static void SetElementPosition(UIElement* element, const Vector2& position);
 	static void ChangeColor(UIElement* element, const Vector4& newColor);
 	static void ChangeTexture(UIElement* element, Texture* texture, const Vector<Vector2>& uvs);
-	static void ChangeSize(UIText* element, F32 newSize);
-	static void ChangeText(UIText* element, const String& text, F32 newSize = 0.0f);
-	static void ChangePercent(UIBar* element, F32 percent);
-	static void ChangeFillColor(UIBar* element, const Vector4& fillColor);
-	static void AddScrollItem(UIScrollWindow* scrollWindow, UIElement* element);
+	static void ChangeSize(UIElement* element, F32 newSize);
+	static void ChangeText(UIElement* element, const String& text, F32 newSize = 0.0f);
+	static void ChangeFillPercent(UIElement* element, F32 percent);
+	static void ChangeFillColor(UIElement* element, const Vector4& fillColor);
+	static void AddScrollItem(UIElement* scrollWindow, UIElement* element);
 	static void DestroyElement(UIElement* element);
 	static void DestroyAllChildren(UIElement* element);
 
@@ -179,7 +186,8 @@ private:
 
 	static U64 elementID;
 	static Vector<UIElement*> elements;
-	static Vector<UIElement*> elementsToDestroy;
+	static Stack<UIElement*> elementsToDestroy;
+	static Stack<U32> freeIDs;
 	static Texture* panelTexture;
 	static UIElement* draggedElement;
 	static Vector2Int lastMousesPos;

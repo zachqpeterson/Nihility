@@ -376,8 +376,9 @@ Binary* Resources::LoadBinary(const String& name)
 		Binary* binary = (Binary*)Memory::Allocate(sizeof(Binary), MEMORY_TAG_RESOURCE);
 		binary->name = name;
 
-		U64 size = file.Size();
-		binary->data.SetArray(file.ReadAllBytes(size, MEMORY_TAG_DATA_STRUCT), size);
+		U64 size = 0;
+		U8* bytes = file.ReadAllBytes(size, MEMORY_TAG_DATA_STRUCT);
+		binary->data.SetArray(bytes, size);
 		file.Close();
 
 		return binary;

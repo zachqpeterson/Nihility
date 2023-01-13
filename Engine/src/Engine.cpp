@@ -67,8 +67,10 @@ void Engine::MainLoop()
 	config.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	config.enabled = true;
 	config.ignore = true;
+	config.panel = false;
 	config.scene = (Scene*)RendererFrontend::CurrentScene();
-	UIText* fpsCounter = UI::GenerateText(config, "60", 12);
+	UIElement* elem = UI::CreateUIElement(config);
+	UI::GenerateText(elem, "60", 12, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 #endif
 
@@ -76,8 +78,8 @@ void Engine::MainLoop()
 	{
 		Time::Update();
 #ifdef NH_DEBUG
-		UI::ChangeText(fpsCounter, Time::FrameRate());
-		UI::ChangeScene(fpsCounter);
+		UI::ChangeText(elem, Time::FrameRate());
+		UI::ChangeScene(elem);
 #endif
 		accumulatedTime = Math::Min(Settings::TargetFrametime + accumulatedTime, 0.1);
 
