@@ -73,6 +73,7 @@ void GridBroadphase::Update(List<List<Contact2D>>& contacts)
 
 bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 {
+#ifdef 0
 	Vector2 move = obj->Move();
 	Vector2 start = obj->Transform()->Position();
 	Vector2 size = obj->Collider()->box.Size();
@@ -175,129 +176,133 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 		else { break; }
 	}
 
-	//Vector2 start = obj->Transform()->Position();
-	//Vector2 move = obj->Move();
-	//F32 length = move.Magnitude();
-	//Vector2 dir = move / length;
-	//
-	//Vector2 size = obj->Collider()->box.Size();
-	//Vector2 extents = obj->Collider()->box.Extents();
-	//
-	//Vector2 unitStepSize = { 1.0f / dir.x * Math::Sign(dir.x), 1.0f / dir.y * Math::Sign(dir.y) };
-	//Vector2 excess = Vector2::ONE / obj->Collider()->box.Size();
-	//
-	//Vector2Int mapCheck = (Vector2Int)start;
-	//Vector2 length1D;
-	//
-	//Vector2Int step;
-	//
-	//Vector2 startDist;
-	//
-	//if (dir.x < 0.0f)
-	//{
-	//	F32 side = start.x - extents.x;
-	//	side = (U32)(side + 1.0f) - side;
-	//	startDist.x = 0.5f - side + (side > 0.5f);
-	//	step.x = -1;
-	//	length1D.x = (start.x + 1.0f - mapCheck.x) * unitStepSize.x;
-	//}
-	//else
-	//{
-	//	F32 side = start.x + extents.x;
-	//	side -= (U32)side;
-	//	startDist.x = 0.5f - side + (side > 0.5f);
-	//	step.x = 1;
-	//	length1D.x = (mapCheck.x + 1.0f - start.x) * unitStepSize.x;
-	//}
-	//
-	//if (dir.y < 0.0f)
-	//{
-	//	F32 side = start.y - extents.y;
-	//	side = (U32)(side + 1.0f) - side;
-	//	startDist.y = 0.5f - side + (side > 0.5f);
-	//	step.y = -1;
-	//	length1D.y = (start.y + 1.0f - mapCheck.y) * unitStepSize.y;
-	//}
-	//else
-	//{
-	//	F32 side = start.y + extents.y;
-	//	side -= (U32)side;
-	//	startDist.y = 0.5f - side + (side > 0.5f);
-	//	step.y = 1;
-	//	length1D.y = (mapCheck.y + 1.0f - start.y) * unitStepSize.y;
-	//}
-	//
-	//bool collidedX = Math::NaN(length1D.x) || startDist.x > Math::Abs(move.x);
-	//bool collidedY = Math::NaN(length1D.y) || startDist.y > Math::Abs(move.y);
-	//
-	//U32 minX = (U32)(start.x - extents.x + 0.49999999999);
-	//U32 maxX = (U32)(start.x + extents.x + 0.49999999999);
-	//U32 minY = (U32)(start.y - extents.y + 0.49999999999);
-	//U32 maxY = (U32)(start.y + extents.y + 0.49999999999);
-	//
-	//U32& x = step.x > 0 ? maxX : minX;
-	//U32& y = step.y > 0 ? maxY : minY;
-	//
-	//F32 distanceX = startDist.x;
-	//F32 distanceY = startDist.y;
-	//
-	////TODO: You can pass through walls on the left
-	//
-	//while ((length1D.x < length + extents.x && !collidedX) || (length1D.y < length + extents.y && !collidedY))
-	//{
-	//	for (U32 y = minY; y <= maxY && !collidedX; ++y)
-	//	{
-	//		if ((U32)(x + step.x) < width && y < height && grid[x + step.x][y].blockID)
-	//		{
-	//			collidedX = true;
-	//
-	//			Contact2D c{};
-	//			c.a = obj;
-	//			c.distance = distanceX;
-	//			c.normal = Vector2::RIGHT * (F32)step.x;
-	//			c.relativeVelocity = obj->Move();
-	//			c.restitution = obj->Restitution(); //TODO: get tile restitution;
-	//
-	//			contacts.PushBack(c);
-	//		}
-	//	}
-	//
-	//	for (U32 x = minX; x <= maxX && !collidedY; ++x)
-	//	{
-	//		if (x < width && (U32)(y + step.y) < height && grid[x][y + step.y].blockID)
-	//		{
-	//			collidedY = true;
-	//
-	//			Contact2D c{};
-	//			c.a = obj;
-	//			c.distance = distanceY;
-	//			c.normal = Vector2::UP * (F32)step.y;
-	//			c.relativeVelocity = obj->Move();
-	//			c.restitution = obj->Restitution(); //TODO: get tile restitution;
-	//
-	//			contacts.PushBack(c);
-	//		}
-	//	}
-	//
-	//	if ((collidedY || length1D.x < length1D.y) && !collidedX)
-	//	{
-	//		mapCheck.x += step.x;
-	//		distanceX += 1;
-	//		length1D.x += 1;
-	//		minX += step.x;
-	//		maxX += step.x;
-	//	}
-	//	else if (!collidedY)
-	//	{
-	//		mapCheck.y += step.y;
-	//		distanceY += 1;
-	//		length1D.y += 1;
-	//		minY += step.y;
-	//		maxY += step.y;
-	//	}
-	//}
-	//
-	//return contacts.Size();
+#else
+
+	Vector2 start = obj->Transform()->Position();
+	Vector2 move = obj->Move();
+	F32 length = move.Magnitude();
+	Vector2 dir = move / length;
+	
+	Vector2 size = obj->Collider()->box.Size();
+	Vector2 extents = obj->Collider()->box.Extents();
+	
+	Vector2 unitStepSize = { 1.0f / dir.x * Math::Sign(dir.x), 1.0f / dir.y * Math::Sign(dir.y) };
+	Vector2 excess = Vector2::ONE / obj->Collider()->box.Size();
+	
+	Vector2Int mapCheck = (Vector2Int)start;
+	Vector2 length1D;
+	
+	Vector2Int step;
+	
+	Vector2 startDist;
+	
+	if (dir.x < 0.0f)
+	{
+		F32 side = start.x - extents.x;
+		side = (U32)(side + 1.0f) - side;
+		startDist.x = 0.5f - side + (side > 0.5f);
+		step.x = -1;
+		length1D.x = (start.x + 1.0f - mapCheck.x) * unitStepSize.x;
+	}
+	else
+	{
+		F32 side = start.x + extents.x;
+		side -= (U32)side;
+		startDist.x = 0.5f - side + (side > 0.5f);
+		step.x = 1;
+		length1D.x = (mapCheck.x + 1.0f - start.x) * unitStepSize.x;
+	}
+	
+	if (dir.y < 0.0f)
+	{
+		F32 side = start.y - extents.y;
+		side = (U32)(side + 1.0f) - side;
+		startDist.y = 0.5f - side + (side > 0.5f);
+		step.y = -1;
+		length1D.y = (start.y + 1.0f - mapCheck.y) * unitStepSize.y;
+	}
+	else
+	{
+		F32 side = start.y + extents.y;
+		side -= (U32)side;
+		startDist.y = 0.5f - side + (side > 0.5f);
+		step.y = 1;
+		length1D.y = (mapCheck.y + 1.0f - start.y) * unitStepSize.y;
+	}
+	
+	bool collidedX = Math::NaN(length1D.x) || startDist.x > Math::Abs(move.x);
+	bool collidedY = Math::NaN(length1D.y) || startDist.y > Math::Abs(move.y);
+	
+	U32 minX = (U32)(start.x - extents.x + 0.49999999999);
+	U32 maxX = (U32)(start.x + extents.x + 0.49999999999);
+	U32 minY = (U32)(start.y - extents.y + 0.49999999999);
+	U32 maxY = (U32)(start.y + extents.y + 0.49999999999);
+	
+	U32& x = step.x > 0 ? maxX : minX;
+	U32& y = step.y > 0 ? maxY : minY;
+	
+	F32 distanceX = startDist.x;
+	F32 distanceY = startDist.y;
+	
+	//TODO: You can pass through walls on the left
+	
+	while ((length1D.x < length + extents.x && !collidedX) || (length1D.y < length + extents.y && !collidedY))
+	{
+		for (U32 y = minY; y <= maxY && !collidedX; ++y)
+		{
+			if ((U32)(x + step.x) < width && y < height && grid[x + step.x][y].blockID)
+			{
+				collidedX = true;
+	
+				Contact2D c{};
+				c.a = obj;
+				c.distance = distanceX;
+				c.normal = Vector2::RIGHT * (F32)step.x;
+				c.relativeVelocity = obj->Move();
+				c.restitution = obj->Restitution(); //TODO: get tile restitution;
+	
+				contacts.PushBack(c);
+			}
+		}
+	
+		for (U32 x = minX; x <= maxX && !collidedY; ++x)
+		{
+			if (x < width && (U32)(y + step.y) < height && grid[x][y + step.y].blockID)
+			{
+				collidedY = true;
+	
+				Contact2D c{};
+				c.a = obj;
+				c.distance = distanceY;
+				c.normal = Vector2::UP * (F32)step.y;
+				c.relativeVelocity = obj->Move();
+				c.restitution = obj->Restitution(); //TODO: get tile restitution;
+	
+				contacts.PushBack(c);
+			}
+		}
+	
+		if ((collidedY || length1D.x < length1D.y) && !collidedX)
+		{
+			mapCheck.x += step.x;
+			distanceX += 1;
+			length1D.x += 1;
+			minX += step.x;
+			maxX += step.x;
+		}
+		else if (!collidedY)
+		{
+			mapCheck.y += step.y;
+			distanceY += 1;
+			length1D.y += 1;
+			minY += step.y;
+			maxY += step.y;
+		}
+	}
+	
+#endif
+
+	return contacts.Size();
 }
 
 bool GridBroadphase::Query(const Box& box, Vector<PhysicsObject2D*>& result)
