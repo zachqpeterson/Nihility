@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Nihility", "Nihility.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Containers", "Containers\Containers.vcxproj", "{56A07B6A-B13E-49EB-9580-F12A3144E6F2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Demo", "Demo\Demo.vcxproj", "{B40F3917-3551-4C5D-9902-BCCAEE53856A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -25,12 +27,16 @@ Global
 		{88F7F459-EDA9-4F25-97CA-460E8D710021}.Release|x86.Build.0 = Release|x64
 		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Debug|x64.ActiveCfg = Debug|x64
 		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Debug|x64.Build.0 = Debug|x64
-		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Debug|x86.ActiveCfg = Debug|Win32
-		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Debug|x86.Build.0 = Debug|Win32
+		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Debug|x86.ActiveCfg = Debug|x64
 		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Release|x64.ActiveCfg = Release|x64
 		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Release|x64.Build.0 = Release|x64
-		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Release|x86.ActiveCfg = Release|Win32
-		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Release|x86.Build.0 = Release|Win32
+		{56A07B6A-B13E-49EB-9580-F12A3144E6F2}.Release|x86.ActiveCfg = Release|x64
+		{B40F3917-3551-4C5D-9902-BCCAEE53856A}.Debug|x64.ActiveCfg = Debug|x64
+		{B40F3917-3551-4C5D-9902-BCCAEE53856A}.Debug|x64.Build.0 = Debug|x64
+		{B40F3917-3551-4C5D-9902-BCCAEE53856A}.Debug|x86.ActiveCfg = Debug|x64
+		{B40F3917-3551-4C5D-9902-BCCAEE53856A}.Release|x64.ActiveCfg = Release|x64
+		{B40F3917-3551-4C5D-9902-BCCAEE53856A}.Release|x64.Build.0 = Release|x64
+		{B40F3917-3551-4C5D-9902-BCCAEE53856A}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
