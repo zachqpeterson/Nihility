@@ -5,12 +5,17 @@
 ///Unsigned 8-bit integer
 typedef unsigned char U8;
 
-///Unsigned 16-bit integer
+///16-bit unicode character
+typedef wchar_t W16;
 
+///Unsigned 16-bit integer
 typedef unsigned short U16;
 
 ///Unsigned 32-bit integer
-typedef unsigned long U32;
+typedef unsigned int U32;
+
+///Unsigned 32-bit integer
+typedef unsigned long UL32;
 
 ///Unsigned 64-bit integer
 typedef unsigned long long U64;
@@ -22,7 +27,10 @@ typedef signed char I8;
 typedef signed short I16;
 
 ///Signed 32-bit integer
-typedef signed long I32;
+typedef signed int I32;
+
+///Signed 32-bit integer
+typedef signed long L32;
 
 ///Signed 64-bit integer
 typedef signed long long I64;
@@ -33,60 +41,53 @@ typedef float F32;
 ///64-bit floating point number
 typedef double F64;
 
-///128-bit floating point number
-typedef long double F128;
-
 ///Maximum value of an unsigned 64-bit integer
-#define U64_MAX 0xFFFFFFFFFFFFFFFFUI64
+static constexpr U64 U64_MAX = 0xFFFFFFFFFFFFFFFFUI64;
 
 ///Maximum value of a signed 64-bit integer
-#define I64_MAX 0x7FFFFFFFFFFFFFFFI64
+static constexpr I64 I64_MAX = 0x7FFFFFFFFFFFFFFFI64;
 
 ///Minimum value of a signed 64-bit integer
-#define I64_MIN 0x8000000000000000I64
+static constexpr I64 I64_MIN = 0x8000000000000000I64;
 
 ///Maximum value of an unsigned 32-bit integer
-#define U32_MAX 0xFFFFFFFFUI32
+static constexpr I64 U32_MAX = 0xFFFFFFFFUI32;
 
 ///Maximum value of a signed 32-bit integer
-#define I32_MAX 0x7FFFFFFFI32
+static constexpr I32 I32_MAX = 0x7FFFFFFFI32;
 
 ///Minimum value of a signed 32-bit integer
-#define I32_MIN 0x80000000I32
+static constexpr I32 I32_MIN = 0x80000000I32;
 
 ///Maximum value of an unsigned 16-bit integer
-#define U16_MAX 0xFFFFUI16
+static constexpr U16 U16_MAX = 0xFFFFUI16;
 
 ///Maximum value of a signed 16-bit integer
-#define I16_MAX 0x7FFFI16
+static constexpr I16 I16_MAX = 0x7FFFI16;
 
 ///Minimum value of a signed 16-bit integer
-#define I16_MIN 0x8000I16
+static constexpr I16 I16_MIN = 0x8000I16;
 
 ///Maximum value of an unsigned 8-bit integer
-#define U8_MAX  0xFFUI8
+static constexpr U8 U8_MAX = 0xFFUI8;
 
 ///Maximum value of a signed 8-bit integer
-#define I8_MAX  0x7FI8
+static constexpr I8 I8_MAX = 0x7FI8;
 
 ///Minimum value of a signed 8-bit integer
-#define I8_MIN  0x80I8
+static constexpr I8 I8_MIN = 0x80I8;
 
 ///Maximum value of a 32-bit float
-#define F32_MAX 3.402823466e+38F
+static constexpr F32 F32_MAX = 3.402823466e+38F;
 
 ///Maximum value of a 64-bit float
-#define F64_MAX 1.7976931348623158e+308
-
-///Maximum value of a 128-bit float
-#define F128_MAX 1.1897314953572317650857593266280070162e+4932
+static constexpr F64 F64_MAX = 1.7976931348623158e+308;
 
 /*---------PLATFORM DETECTION---------*/
 
 #if defined WIN32 || defined _WIN32 || defined __WIN32__ || defined _WIN64 //---WINDOWS
 #	define PLATFORM_WINDOWS
 #	define WIN32_LEAN_AND_MEAN
-#	define MIN_ALLOCATION_ALIGNMENT 16
 #	ifndef _WIN64
 #		error "64-bit is required on Windows!"
 #	endif
@@ -123,62 +124,141 @@ typedef long double F128;
 /*---------PLATFORM MACROS---------*/
 
 #ifdef _DEBUG
-#define NH_DEBUG
+	/// <summary>
+	/// Defined if running in debug mode
+	/// </summary>
+#	define NH_DEBUG
+#	define ASSERTIONS_ENABLED
 #else
-#define NH_RELEASE
+	/// <summary>
+	/// Defined if running in release mode
+	/// </summary>
+#	define NH_RELEASE
 #endif
 
 #ifdef NH_EXPORT
 #	ifdef _MSC_VER
+		/// <summary>
+		/// Marks a function or class to be exported
+		/// </summary>
 #		define NH_API __declspec(dllexport)
 #	else
+		/// <summary>
+		/// Marks a function or class to be exported
+		/// </summary>
 #		define NH_API __attribute__((visibility("default")))
 #	endif
 #else
 #	ifdef _MSC_VER
+		/// <summary>
+		/// Marks a function or class to be imported
+		/// </summary>
 #		define NH_API __declspec(dllimport)
 #	else
+		/// <summary>
+		/// Marks a function or class to be imported
+		/// </summary>
 #		define NH_API
 #	endif
 #endif
 
+/// <summary>
+/// Replaced by the name of this function ex. Class::Function
+/// </summary>
 #define FUNCTION_NAME __FUNCTION__
+
+/// <summary>
+/// Replaced by the name of this file ex. C:/file.cpp
+/// </summary>
 #define FILE_NAME __FILE__
+
+/// <summary>
+/// Replaced by the line number
+/// </summary>
 #define LINE_NUMBER __LINE__
 
+/// <summary>
+/// Deletes a class's constructors, assignment operators, destructor
+/// </summary>
+/// <param name="class:">The class to operate on</param>
+#define STATIC_CLASS(class)			\
+class() = delete;					\
+~class() = delete;					\
+class(class&) = delete;				\
+class(class&&) = delete;			\
+class& operator=(class&) = delete;	\
+class& operator=(class&&) = delete;	\
+
 #if defined __clang__ || defined __gcc__
+	/// <summary>
+	/// Tries to force the compiler to inline a function
+	/// </summary>
 #	define NH_INLINE __attribute__((always_inline)) inline
+
+	/// <summary>
+	/// Tries to force the compiler to not inline a function
+	/// </summary>
 #	define NH_NOINLINE __attribute__((noinline))
 #elif defined _MSC_VER
+	/// <summary>
+	/// Tries to force the compiler to inline a function
+	/// </summary>
 #	define NH_INLINE __forceinline
+
+	/// <summary>
+	/// Tries to force the compiler to not inline a function
+	/// </summary>
 #	define NH_NOINLINE __declspec(noinline)
 #else
+	/// <summary>
+	/// Tries to force the compiler to inline a function
+	/// </summary>
 #	define NH_INLINE static inline
+
+	/// <summary>
+	/// Tries to force the compiler to not inline a function
+	/// </summary>
 #	define NH_NOINLINE
 #endif
 
 /*---------ASSERTIONS---------*/
 
-#define ASSERTIONS_ENABLED
-
 #ifdef ASSERTIONS_ENABLED
 #	if _MSC_VER
 #		include <intrin.h>
-#		define debugBreak() __debugbreak()
+		/// <summary>
+		/// Halts the execution of the program when reached
+		/// </summary>
+#		define BreakPoint __debugbreak()
 #	else
-#		define debugBreak() __builtin_trap()
+		/// <summary>
+		/// Halts the execution of the program when reached
+		/// </summary>
+#		define BreakPoint __builtin_trap()
 #	endif
 
-#define ASSERT(expr) if (!(expr)) { debugBreak(); }
+	/// <summary>
+	/// Halts the execution of the program if expr is false
+	/// </summary>
+	/// <param name="expr:">The expression to check</param>
+#	define ASSERT(expr) if (!(expr)) { BreakPoint; }
 
 #if defined __clang__ || defined __gcc__
+	/// <summary>
+	/// Throws a compiler error is expr is false
+	/// </summary>
+	/// <param name="expr:">The expression to check</param>
 #	define STATIC_ASSERT(expr) _Static_assert(expr)
 #else
+	/// <summary>
+	/// Throws a compiler error is expr is false
+	/// </summary>
+	/// <param name="expr:">The expression to check</param>
 #	define STATIC_ASSERT(expr) static_assert(expr)
 #endif
 
 #else
-#	define ASSERT(expr)
+#	define ASSERT(expr) expr;
 #	define STATIC_ASSERT(expr)
 #endif
 
@@ -199,26 +279,26 @@ template<typename T> constexpr T&& Move(T&& t) noexcept { return static_cast<T&&
 template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>(t); }
 
 /// <summary>
-/// Sets value to the next 
+/// Sets value to the next multiple of 2^alignment
 /// </summary>
-/// <param name="value:"></param>
-/// <param name="alignment:"></param>
+/// <param name="value:">The value to set</param>
+/// <param name="alignment:">The power of 2 to align to</param>
 #define AlignPow2(value, alignment) ((value + (alignment - 1)) & ~(alignment - 1))
 
 /// <summary>
-/// 
+/// Sets value to the next multiple of 4
 /// </summary>
-/// <param name="value:"></param>
+/// <param name="value:">The value to set</param>
 #define Align4(value) ((value + 3) & ~3)
 
 /// <summary>
-/// 
+/// Sets value to the next multiple of 8
 /// </summary>
-/// <param name="value:"></param>
+/// <param name="value:">The value to set</param>
 #define Align8(value) ((value + 7) & ~7)
 
 /// <summary>
-/// 
+/// Sets value to the next multiple of 16
 /// </summary>
-/// <param name="value:"></param>
+/// <param name="value:">The value to set</param>
 #define Align16(value) ((value + 15) & ~15)

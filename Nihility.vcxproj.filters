@@ -8,17 +8,38 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{bed2f2d1-0695-488a-a49f-e8f77ab209f5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Platform">
+      <UniqueIdentifier>{74233341-01f8-4bde-910c-2befbbb0d033}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Memory">
+      <UniqueIdentifier>{3fd5d1b1-d24b-440f-a74e-3b9bbd26461f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\src\Defines.hpp">
+    <ClInclude Include="Engine\Defines.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Platform.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Engine.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Settings.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Memory\Memory.hpp">
+      <Filter>Source Files\Memory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="cpp.hint">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
@@ -31,5 +52,16 @@
     <ResourceCompile Include="Icons.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Memory\Memory.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,0 +1,32 @@
+#define PLATFORM_WINDOWS
+#define PLATFORM_LINUX
+#define PLATFORM_ANDROID
+#define PLATFORM_UNIX
+#define PLATFORM_POSIX
+#define PLATFORM_APPLE
+#define PLATFORM_IOS
+#define PLATFORM_IOS_SIMULATOR
+
+#define NH_DEBUG
+#define NH_RELEASE
+
+#define NH_API
+
+#define FUNCTION_NAME
+#define FILE_NAME
+#define LINE_NUMBER
+
+#define STATIC_CLASS(class)
+
+#define NH_INLINE
+#define NH_NOINLINE
+
+#define BreakPoint
+
+#define ASSERT(expr)
+#define STATIC_ASSERT(expr)
+
+#define AlignPow2(value, alignment)
+#define Align4(value)
+#define Align8(value)
+#define Align16(value)
