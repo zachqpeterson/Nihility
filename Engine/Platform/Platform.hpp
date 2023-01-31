@@ -14,7 +14,8 @@ class NH_API Platform
 {
 public:
 	static void SetFullscreen(bool fullscreen);
-	static void SetWindowSize(bool fullscreen);
+	static void SetWindowSize(U32 width, U32 height);
+	static void SetWindowPosition(I32 x, I32 y);
 	static void SetMousePosition(I32 x, I32 y);
 	static void ShowMouse(bool show);
 	static void LockMouse(bool lock);
@@ -31,12 +32,6 @@ private:
 	static void UpdateInput();
 	static void UpdateMouse();
 
-	static I32 windowX;
-	static I32 windowY;
-	static I32 windowWidth;
-	static I32 windowHeight;
-	static I32 screenWidth;
-	static I32 screenHeight;
 	static bool running;
 	static WindowData windowData;
 

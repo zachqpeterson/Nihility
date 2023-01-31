@@ -41,6 +41,11 @@ void Engine::UpdateLoop()
 {
 	while (Platform::Update())
 	{
-		
+		static bool f = true;
+		if (f)
+		{
+			f = false;
+			Platform::SetFullscreen(true);
+		}
 	}
 }
