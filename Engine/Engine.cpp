@@ -1,6 +1,13 @@
 #include "Engine.hpp"
 
+#include "Memory\Memory.hpp"
 #include "Platform\Platform.hpp"
+#include "Platform\Input.hpp"
+#include "Core\Logger.hpp"
+#include "Core\Time.hpp"
+#include "Settings.hpp"
+
+#include <string>
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -18,12 +25,17 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	running = true;
 	suspended = false;
 
-	//TODO: Initialize Memory
-	//TODO: Initialize Logger
+	ASSERT(Time::Initialize());
+	Memory::Initialize(1024 * 1024 * 1024, 1024 * 1024 * 1024);
+	Logger::Initialize();
 
 	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
 
-	Platform::Initialize(applicationName);
+	ASSERT(Platform::Initialize(applicationName));
+
+	ASSERT(Input::Initialize());
+
+	ASSERT(GameInit());
 
 	UpdateLoop();
 
@@ -39,13 +51,33 @@ void Engine::Shutdown()
 
 void Engine::UpdateLoop()
 {
-	while (Platform::Update())
+	while (running)
 	{
-		static bool f = true;
-		if (f)
+		Time::Update();
+
+		if (!Platform::Update()) { running = false; break; }
+
+		Input::Update();
+		//Physics::Update();
+		GameUpdate();
+		//UI::Update();
+		//Animations::Update();
+		//Renderer::Update(); //TODO: Checks for being minimised
+		//Audio::Update();
+
+		if (Settings::Focused)
 		{
-			f = false;
-			Platform::SetFullscreen(true);
+			F64 remainingFrameTime = Settings::TargetFrametime - Time::FrameUpTime();
+			U64 remainingNS = (U64)(remainingFrameTime * 10000000.0);
+
+			if (remainingNS > 0) { Platform::SleepFor(remainingNS - 5750); }
+		}
+		else
+		{
+			F64 remainingFrameTime = Settings::TargetFrametimeSuspended - Time::FrameUpTime();
+			U64 remainingNS = (U64)(remainingFrameTime * 10000000.0);
+
+			if (remainingNS > 0) { Platform::SleepFor(remainingNS - 5750); }
 		}
 	}
 }

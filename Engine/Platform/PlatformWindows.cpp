@@ -5,6 +5,7 @@
 #include "Settings.hpp"
 
 #include <Windows.h>
+#include <hidsdi.h>
 
 static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
@@ -62,8 +63,8 @@ bool Platform::Initialize(const W16* applicationName)
 		return false;
 	}
 
-	if (Settings::Fullscreen) { style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZE; }
-	else { style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU; }
+	if (Settings::Fullscreen) { style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE; }
+	else { style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME; }
 
 	windowData.window = CreateWindowExW(0, CLASS_NAME, applicationName, style, 0, 0, 0, 0, nullptr, nullptr, windowData.instance, nullptr);
 
@@ -106,6 +107,7 @@ bool Platform::Initialize(const W16* applicationName)
 	DEVMODEA monitorInfo{};
 	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &monitorInfo);
 	if (Settings::TargetFrametime == 0.0) { Settings::TARGET_FRAMETIME = 1.0 / monitorInfo.dmDisplayFrequency; }
+	Settings::MONITOR_HZ = monitorInfo.dmDisplayFrequency;
 
 	ShowWindow(windowData.window, Settings::Fullscreen ? SW_SHOWMAXIMIZED : SW_SHOW);
 
@@ -142,7 +144,7 @@ void Platform::SetFullscreen(bool fullscreen)
 
 	if (fullscreen)
 	{
-		style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZE;
+		style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE;
 
 		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
 		SetWindowLongPtrW(windowData.window, GWL_STYLE, style);
@@ -151,7 +153,7 @@ void Platform::SetFullscreen(bool fullscreen)
 	}
 	else
 	{
-		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME;
 		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
 		SetWindowLongPtrW(windowData.window, GWL_STYLE, style);
 		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionXSmall + border.left, Settings::WindowPositionYSmall + border.top,
@@ -161,27 +163,43 @@ void Platform::SetFullscreen(bool fullscreen)
 
 void Platform::SetWindowSize(U32 width, U32 height)
 {
-
+	if (Settings::Fullscreen)
+	{
+		//TODO: Log, can't change size in fullscreen
+	}
+	else
+	{
+		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX + border.left, Settings::WindowPositionY + border.top,
+			width + border.right - border.left, height + border.bottom - border.top, SWP_SHOWWINDOW);
+	}
 }
 
 void Platform::SetWindowPosition(I32 x, I32 y)
 {
-
+	if (Settings::Fullscreen)
+	{
+		//TODO: Log, can't change position in fullscreen
+	}
+	else
+	{
+		SetWindowPos(windowData.window, nullptr, x + border.left, y + border.top,
+			Settings::WindowWidth + border.right - border.left, Settings::WindowHeight + border.bottom - border.top, SWP_SHOWWINDOW);
+	}
 }
 
 void Platform::SetMousePosition(I32 x, I32 y)
 {
-
+	SetCursorPos(x, y);
 }
 
-void Platform::ShowMouse(bool show)
+void Platform::HideCursor(bool hide)
 {
-
+	Settings::HIDE_CURSOR = hide;
 }
 
-void Platform::LockMouse(bool lock)
+void Platform::LockCursor(bool lock)
 {
-
+	Settings::LOCK_CURSOR = lock;
 }
 
 void Platform::SleepFor(U64 ns)
@@ -196,16 +214,21 @@ const WindowData& Platform::GetWindowData()
 	return windowData;
 }
 
-void Platform::UpdateInput()
-{
-
-}
-
 void Platform::UpdateMouse()
 {
 	if (Settings::Focused)
 	{
-		if (Settings::ConstrainCursor)
+		if (Settings::LockCursor)
+		{
+			RECT clip{};
+			clip.left = Settings::WindowPositionX + Settings::WindowWidth / 2;
+			clip.right = clip.left;
+			clip.top = Settings::WindowPositionY + Settings::WindowHeight / 2;
+			clip.bottom = clip.top;
+
+			ClipCursor(&clip);
+		}
+		else if (Settings::ConstrainCursor)
 		{
 			RECT clip{};
 			if (Settings::Fullscreen)
@@ -222,18 +245,9 @@ void Platform::UpdateMouse()
 				ClipCursor(&clip);
 			}
 		}
-		else if (Settings::LockCursor)
-		{
-			RECT clip{};
-			clip.left = Settings::WindowPositionX + (I32)(Settings::WindowWidth * 0.5f);
-			clip.right = clip.left;
-			clip.top = Settings::WindowPositionY + (I32)(Settings::WindowHeight * 0.5f);
-			clip.bottom = clip.top;
 
-			ClipCursor(&clip);
-		}
-
-		ShowCursor(!Settings::HideCursor);
+		ShowCursor(!Settings::HideCursor); //TODO: Doesn't work after unfocusing and focusing the window
+		//TODO: Log the return to see the display count
 	}
 	else
 	{
@@ -247,13 +261,44 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	switch (msg)
 	{
 	case WM_CREATE: {
+		POINT point{};
+		GetCursorPos(&point);
+		//Input::mousePos.x = point.x - windowX;
+		//Input::mousePos.y = point.y - windowY;
 
+		RAWINPUTDEVICE rid[4];
+
+		rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		rid[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+		rid[0].dwFlags = RIDEV_DEVNOTIFY;
+		rid[0].hwndTarget = windowData.window;
+
+		rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		rid[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+		rid[1].dwFlags = RIDEV_DEVNOTIFY;
+		rid[1].hwndTarget = windowData.window;
+
+		rid[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		rid[2].usUsage = HID_USAGE_GENERIC_MOUSE;
+		rid[2].dwFlags = RIDEV_NOLEGACY | RIDEV_DEVNOTIFY;
+		rid[2].hwndTarget = windowData.window;
+
+		rid[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		rid[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+		rid[3].dwFlags = RIDEV_NOLEGACY | RIDEV_DEVNOTIFY;
+		rid[3].hwndTarget = windowData.window;
+		
+		if (!RegisterRawInputDevices(rid, 4, sizeof(RAWINPUTDEVICE))) 
+		{ 
+			DWORD d = GetLastError(); 
+			return -1;
+		}
 	} return 0;
 	case WM_SETFOCUS: { Settings::FOCUSED = true; } return 0;
 	case WM_KILLFOCUS: { Settings::FOCUSED = false; } return 0;
-	case WM_QUIT: { running = false; } return 0;
-	case WM_CLOSE: { running = false; } return 0;
-	case WM_DESTROY: { running = false; } return 0;
+	case WM_QUIT: { Settings::FOCUSED = false; running = false; } return 0;
+	case WM_CLOSE: { Settings::FOCUSED = false; running = false; } return 0;
+	case WM_DESTROY: { Settings::FOCUSED = false; running = false; } return 0;
 	case WM_ERASEBKGND: {} return 1;
 	case WM_DPICHANGED: {
 		Settings::DPI = HIWORD(wParam);

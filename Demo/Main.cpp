@@ -5,9 +5,9 @@ bool init()
 	return true;
 }
 
-bool update()
+void update()
 {
-	return true;
+	
 }
 
 void shutdown()

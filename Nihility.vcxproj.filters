@@ -14,6 +14,15 @@
     <Filter Include="Source Files\Memory">
       <UniqueIdentifier>{3fd5d1b1-d24b-440f-a74e-3b9bbd26461f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Core">
+      <UniqueIdentifier>{15731c35-3952-44c7-ac68-1e927f9c8c3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Math">
+      <UniqueIdentifier>{32ba4811-63bc-4c0c-8635-03fcfab7cb3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Rendering">
+      <UniqueIdentifier>{424eb8f9-f7e2-4834-833f-a345cc4d17bb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -33,6 +42,15 @@
     </ClInclude>
     <ClInclude Include="Engine\Memory\Memory.hpp">
       <Filter>Source Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Input.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Time.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Logger.hpp">
+      <Filter>Source Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -62,6 +80,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Memory\Memory.cpp">
       <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Input.cpp">
+      <Filter>Source Files\Platform</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

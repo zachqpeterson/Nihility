@@ -258,6 +258,7 @@ class& operator=(class&&) = delete;	\
 #endif
 
 #else
+#	define BreakPoint
 #	define ASSERT(expr) expr;
 #	define STATIC_ASSERT(expr)
 #endif

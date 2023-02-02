@@ -10,6 +10,12 @@ struct WindowData
 #endif
 };
 
+/*
+* TODO: Change cursor image (maybe define regions where the cursor changes)
+* TODO: Load cursors and icons from a folder: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadimagew
+* TODO: Multithread message loop
+* TODO: Handle copy and pasting: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboarddata?redirectedfrom=MSDN, https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
+*/
 class NH_API Platform
 {
 public:
@@ -17,8 +23,8 @@ public:
 	static void SetWindowSize(U32 width, U32 height);
 	static void SetWindowPosition(I32 x, I32 y);
 	static void SetMousePosition(I32 x, I32 y);
-	static void ShowMouse(bool show);
-	static void LockMouse(bool lock);
+	static void HideCursor(bool hide);
+	static void LockCursor(bool lock);
 
 	static const WindowData& GetWindowData();
 
@@ -27,9 +33,8 @@ private:
 	static void Shutdown();
 	static bool Update();
 
-	static void SleepFor(U64 ns); //TODO: specify thread
+	static void SleepFor(U64 ns); //TODO: specify thread, probably put in a multithreading handler
 
-	static void UpdateInput();
 	static void UpdateMouse();
 
 	static bool running;

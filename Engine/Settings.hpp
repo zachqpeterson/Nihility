@@ -6,10 +6,10 @@ class NH_API Settings
 {
 private:
 	//AUDIO
-	inline static U8 CHANNEL_COUNT = 2;
-	inline static F32 MASTER_VOLUME = 1.0f;
-	inline static F32 MUSIC_VOLUME = 1.0f;
-	inline static F32 SFX_VOLUME = 1.0f;
+	static inline U8 CHANNEL_COUNT = 2;
+	static inline F32 MASTER_VOLUME = 1.0f;
+	static inline F32 MUSIC_VOLUME = 1.0f;
+	static inline F32 SFX_VOLUME = 1.0f;
 
 	//GRAPHICS
 	static inline bool FOCUSED = true;
@@ -30,15 +30,15 @@ private:
 	static inline U32 SCREEN_WIDTH = 0;
 	static inline U32 SCREEN_HEIGHT = 0;
 	static inline F64 TARGET_FRAMETIME = 0.0;
-	static inline U8  MSAA_COUNT = 1;
-
-	//TODO: multisampling, 
+	static inline F64 TARGET_FRAMETIME_SUSPENDED = 10.0;
+	static inline F64 MONITOR_HZ = 0.0;
+	static inline U8 MSAA_COUNT = 1;
 
 public:
-	inline static const U8& ChannelCount = CHANNEL_COUNT;
-	inline static const F32& MasterVolume = MASTER_VOLUME;
-	inline static const F32& MusicVolume = MUSIC_VOLUME;
-	inline static const F32& SfxVolume = SFX_VOLUME;
+	static inline const U8& ChannelCount = CHANNEL_COUNT;
+	static inline const F32& MasterVolume = MASTER_VOLUME;
+	static inline const F32& MusicVolume = MUSIC_VOLUME;
+	static inline const F32& SfxVolume = SFX_VOLUME;
 
 	static inline const bool& Focused = FOCUSED;
 	static inline const bool& Minimised = MINIMISED;
@@ -58,6 +58,8 @@ public:
 	static inline const U32& ScreenWidth = SCREEN_WIDTH;
 	static inline const U32& ScreenHeight = SCREEN_HEIGHT;
 	static inline const F64& TargetFrametime = TARGET_FRAMETIME;
+	static inline const F64& TargetFrametimeSuspended = TARGET_FRAMETIME_SUSPENDED;
+	static inline const F64& MonitorHz = MONITOR_HZ;
 	static inline const U8& MSAACount = MSAA_COUNT;
 
 	friend class Platform;

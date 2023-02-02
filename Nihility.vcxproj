@@ -106,9 +106,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Core\Logger.hpp" />
+    <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
+    <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="Engine\Settings.hpp" />
     <ClInclude Include="resource.h" />
@@ -131,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
+    <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

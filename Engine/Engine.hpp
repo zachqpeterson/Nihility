@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 
 typedef bool(*InitializeFn)();
-typedef bool(*UpdateFn)();
+typedef void(*UpdateFn)();
 typedef void(*ShutdownFn)();
 
 class NH_API Engine
