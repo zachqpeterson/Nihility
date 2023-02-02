@@ -52,6 +52,12 @@
     <ClInclude Include="Engine\Core\Logger.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Core\WString.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\String.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor.cur">
