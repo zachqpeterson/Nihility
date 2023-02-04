@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-#include <stdlib.h>
+#include <string.h>
 
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection
@@ -224,22 +224,24 @@ inline void* Memory::Allocate(U64 size)
 
 inline void Memory::Free(void* ptr)
 {
-	//TODO: Zero memory
-
 	if (ptr >= pool1mbPointer)
 	{
+		memset(ptr, 0, sizeof(Region1mb));
 		free1mbIndices[last1mbFree++] = U32((Region1mb*)ptr - pool1mbPointer);
 	}
 	else if(ptr >= pool256kbPointer)
 	{
+		memset(ptr, 0, sizeof(Region256kb));
 		free256kbIndices[last256kbFree++] = U32((Region256kb*)ptr - pool256kbPointer);
 	}
 	else if (ptr >= pool16kbPointer)
 	{
+		memset(ptr, 0, sizeof(Region16kb));
 		free16kbIndices[last16kbFree++] = U32((Region16kb*)ptr - pool16kbPointer);
 	}
 	else if (ptr >= pool1kbPointer)
 	{
+		memset(ptr, 0, sizeof(Region1kb));
 		free1kbIndices[last1kbFree++] = U32((Region1kb*)ptr - pool1kbPointer);
 	}
 	else
@@ -283,7 +285,7 @@ template<typename T> inline T* Memory::Allocate()
 
 template<typename T> inline void Memory::Free(T* ptr)
 {
-	//TODO: Zero memory
+	memset(ptr, 0, sizeof(T));
 
 	if (ptr >= pool1mbPointer)
 	{
@@ -311,28 +313,24 @@ template<typename T> inline void Memory::Free(T* ptr)
 
 inline void* Memory::Allocate1kb()
 {
-	//TODO: Zero memory
 	if (last1kbFree) { return pool1kbPointer + free1kbIndices[last1kbFree-- - 1]; }
 	else { return pool1kbPointer + last1kbPointer++; }
 }
 
 inline void* Memory::Allocate16kb()
 {
-	//TODO: Zero memory
 	if (last16kbFree) { return pool16kbPointer + free16kbIndices[last16kbFree-- - 1]; }
 	else { return pool16kbPointer + last16kbPointer++; }
 }
 
 inline void* Memory::Allocate256kb()
 {
-	//TODO: Zero memory
 	if (last256kbFree) { return pool256kbPointer + free256kbIndices[last256kbFree-- - 1]; }
 	else { return pool256kbPointer + last256kbPointer++; }
 }
 
 inline void* Memory::Allocate1mb()
 {
-	//TODO: Zero memory
 	if (last1mbFree) { return pool1mbPointer + free1mbIndices[last1mbFree-- - 1]; }
 	else { return pool1mbPointer + last1mbPointer++; }
 }
@@ -340,25 +338,25 @@ inline void* Memory::Allocate1mb()
 //TODO: Debug checking that ensures this is the right size block to free
 inline void Memory::Free1kb(void* ptr)
 {
-	//TODO: Zero memory
+	memset(ptr, 0, sizeof(Region1kb));
 	free1kbIndices[last1kbFree++] = U32((Region1kb*)ptr - pool1kbPointer);
 }
 
 inline void Memory::Free16kb(void* ptr)
 {
-	//TODO: Zero memory
+	memset(ptr, 0, sizeof(Region16kb));
 	free16kbIndices[last16kbFree++] = U32((Region16kb*)ptr - pool16kbPointer);
 }
 
 inline void Memory::Free256kb(void* ptr)
 {
-	//TODO: Zero memory
+	memset(ptr, 0, sizeof(Region256kb));
 	free256kbIndices[last256kbFree++] = U32((Region256kb*)ptr - pool256kbPointer);
 }
 
 inline void Memory::Free1mb(void* ptr)
 {
-	//TODO: Zero memory
+	memset(ptr, 0, sizeof(Region1mb));
 	free1mbIndices[last1mbFree++] = U32((Region1mb*)ptr - pool1mbPointer);
 }
 
