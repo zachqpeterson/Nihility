@@ -39,12 +39,11 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 		String str2(4294967295ui32);
 		String str3(-2147483648i32);
 		String str4(65535ui16);
-		String str5(-32767i16);
+		String str5((I16)-32767i16);
 		String str6(255ui8);
-		String str7(-127i8);
+		String str7((I8)-127i8);
 		String str8(true);
 		String str9(false);
-		BreakPoint;
 	}
 	t0.Stop();
 
