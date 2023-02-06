@@ -34,36 +34,23 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	t0.Start();
 	for (U32 i = 0; i < 1000000; ++i)
 	{
-		String str0(18446744073709551615ui64);
-		String str1(-9223372036854775808i64);
-		String str2(4294967295ui32);
-		String str3(-2147483648i32);
-		String str4(65535ui16);
-		String str5((I16)-32767i16);
-		String str6(255ui8);
-		String str7((I8)-127i8);
-		String str8(true);
-		String str9(false);
-		String str10(":");
-		String str11(":");
-		String str12(":");
-		String str13(":");
-		String str14(":");
-		String str15(":");
-		String str16(":");
-		String str17(":");
-		String str18(":");
-		String str19(":");
-		str10 += 18446744073709551615ui64;
-		str11 += -9223372036854775808i64;
-		str12 += 4294967295ui32;
-		str13 += -2147483648i32;
-		str14 += 65535ui16;
-		str15 += (I16)-32767i16;
-		str16 += 255ui8;
-		str17 += (I8)-127i8;
-		str18 += true;
-		str19 += false;
+		String str0((I8)-100);
+		String str1((U8)255);
+		String str2((I16)-10000);
+		String str3((U16)65535);
+		String str4((I32)-12312512);
+		String str5((U32)12312512);
+		String str6((I64)-232412516242);
+		String str7((U64)232412516242);
+
+		I8 b0 = str0.ToI8();
+		U8 b1 = str1.ToU8();
+		I16 b2 = str2.ToI16();
+		U16 b3 = str3.ToU16();
+		I32 b4 = str4.ToI32();
+		U32 b5 = str5.ToU32();
+		I64 b6 = str6.ToI64();
+		U64 b7 = str7.ToU64();
 		BreakPoint;
 	}
 	t0.Stop();

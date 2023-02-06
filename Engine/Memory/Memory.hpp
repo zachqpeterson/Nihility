@@ -9,10 +9,10 @@
 /// </summary>
 class NH_API Memory
 {
-	struct Region1kb { U64 a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p; };
-	struct Region16kb { Region1kb a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p; };
-	struct Region256kb { Region16kb a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p; };
-	struct Region1mb { Region256kb a, b, c, d; };
+	struct Region1kb { U64 unused[16]; };
+	struct Region16kb { Region1kb unused[16]; };
+	struct Region256kb { Region16kb unused[16]; };
+	struct Region1mb { Region256kb unused[4]; };
 
 public:
 	/// <summary>

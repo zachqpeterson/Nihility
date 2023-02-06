@@ -84,9 +84,6 @@
     <ClCompile Include="Engine\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Memory\Memory.cpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Platform\Input.cpp">
       <Filter>Source Files\Platform</Filter>
     </ClCompile>

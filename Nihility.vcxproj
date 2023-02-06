@@ -135,7 +135,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Engine.cpp" />
-    <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
   </ItemGroup>

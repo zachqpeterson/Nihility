@@ -71,22 +71,6 @@ public:
 	String& operator+=(char* other);
 	String& operator+=(const char* other);
 	String& operator+=(const String& other);
-	String operator+(I8  value) const;
-	String operator+(U8  value) const;
-	String operator+(I16 value) const;
-	String operator+(U16 value) const;
-	String operator+(I32 value) const;
-	String operator+(U32 value) const;
-	String operator+(I64 value) const;
-	String operator+(U64 value) const;
-	String operator+(F32 value) const;
-	String operator+(F64 value) const;
-	String operator+(bool value) const;
-	String operator+(char* other) const;
-	String operator+(const char* other) const;
-	String operator+(const String& other) const;
-	friend String operator+(char* other0, const String& other1);
-	friend String operator+(const char* other0, const String& other1);
 
 	explicit operator char* ();
 	explicit operator const char* () const;
@@ -121,19 +105,17 @@ public:
 	bool CompareN(const char* other, U32 lenth, U32 start = 0) const;
 	bool CompareN(const String& other, U32 lenth, U32 start = 0) const;
 
-	const U32& Length() const;
-	String Duplicate() const;
-	String NDuplicate(U64 length) const;
+	const U64& Length() const;
 	bool Blank() const;
+	I32 IndexOf(char c, U64 start = 0) const;
 	String& Trim();
-	String SubString(U64 start, U64 length = I64_MAX) const;
-	I32 IndexOf(U8 c, U64 start = 0) const;
+	String& SubString(String& newStr, U64 start, U64 length = I64_MAX) const;
 	String& Append(const String& append);
 	String& Prepend(const String& prepend);
 	String& Surround(const String& prepend, const String& append);
 	String& Insert(const String& string, U32 i);
 	String& ReplaceAll(const String& find, const String& replace, U64 start = 0);
-	String& ReplaceN(const String& find, const String& replace, U64 start = 0);
+	String& ReplaceN(const String& find, const String& replace, U64 count, U64 start = 0);
 	String& ReplaceFirst(const String& find, const String& replace, U64 start = 0);
 	//Vector<String> Split(U8 delimiter, bool trimEntries) const;
 
@@ -346,7 +328,7 @@ inline String::String(I32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 
 inline String::String(U32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
 {
-	char* c = str + 9;
+	char* c = str + 10;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -365,7 +347,7 @@ inline String::String(U32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 9 - (c - str);
+	length = 10 - (c - str);
 
 	memcpy(str, c, length + 1);
 }
@@ -421,14 +403,14 @@ inline String::String(U64 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 		*--c = threeDigits[0];
 		value = newVal;
 	}
-	
+
 	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
 	*--c = threeDigits[2];
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
-	
+
 	length = 20 - (c - str);
-	
+
 	memcpy(str, c, length + 1);
 }
 
@@ -509,6 +491,8 @@ inline String& String::operator=(I8 value)
 		memcpy(str, c, length);
 		str[length] = '\0';
 	}
+
+	return *this;
 }
 
 inline String& String::operator=(U8 value)
@@ -522,6 +506,8 @@ inline String& String::operator=(U8 value)
 	length = 3 - (c - str);
 	memcpy(str, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(I16 value)
@@ -559,6 +545,8 @@ inline String& String::operator=(I16 value)
 
 	memcpy(str + neg, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(U16 value)
@@ -586,6 +574,8 @@ inline String& String::operator=(U16 value)
 
 	memcpy(str, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(I32 value)
@@ -623,11 +613,13 @@ inline String& String::operator=(I32 value)
 
 	memcpy(str + neg, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(U32 value)
 {
-	char* c = str + 9;
+	char* c = str + 10;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -646,10 +638,12 @@ inline String& String::operator=(U32 value)
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 9 - (c - str);
+	length = 10 - (c - str);
 
 	memcpy(str, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(I64 value)
@@ -687,6 +681,8 @@ inline String& String::operator=(I64 value)
 
 	memcpy(str + neg, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(U64 value)
@@ -714,16 +710,20 @@ inline String& String::operator=(U64 value)
 
 	memcpy(str, c, length);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator=(F32 value)
 {
 
+	return *this;
 }
 
 inline String& String::operator=(F64 value)
 {
 
+	return *this;
 }
 
 inline String& String::operator=(bool value)
@@ -740,24 +740,32 @@ inline String& String::operator=(bool value)
 		memcpy(str, "false", 5);
 		str[length] = '\0';
 	}
+
+	return *this;
 }
 
 inline String& String::operator=(char* str)
 {
 	length = strlen(str);
 	memcpy(this->str, str, length + 1);
+
+	return *this;
 }
 
 inline String& String::operator=(const char* str)
 {
 	length = strlen(str);
 	memcpy(this->str, str, length + 1);
+
+	return *this;
 }
 
 inline String& String::operator=(const String& other)
 {
 	length = other.length;
 	memcpy(this->str, str, length + 1);
+
+	return *this;
 }
 
 inline String& String::operator=(String&& other) noexcept
@@ -765,6 +773,8 @@ inline String& String::operator=(String&& other) noexcept
 	length = other.length;
 	memcpy(this->str, str, length + 1);
 	other.Destroy();
+
+	return *this;
 }
 
 inline String::~String()
@@ -787,44 +797,124 @@ inline void String::Clear()
 	length = 0;
 }
 
-inline I8  String::ToI8()
+inline I8 String::ToI8()
 {
+	char* it = str;
+	char c;
+	I8 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
-inline U8  String::ToU8()
+inline U8 String::ToU8()
 {
+	char* it = str;
+	char c;
+	U8 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline I16 String::ToI16()
 {
+	char* it = str;
+	char c;
+	I16 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline U16 String::ToU16()
 {
+	char* it = str;
+	char c;
+	U16 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline I32 String::ToI32()
 {
+	char* it = str;
+	char c;
+	I32 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline U32 String::ToU32()
 {
+	char* it = str;
+	char c;
+	U32 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline I64 String::ToI64()
 {
+	char* it = str;
+	char c;
+	I64 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline U64 String::ToU64()
 {
+	char* it = str;
+	char c;
+	U64 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline F32 String::ToF32()
@@ -836,7 +926,6 @@ inline F64 String::ToF64()
 {
 
 }
-
 
 inline bool String::ToBool()
 {
@@ -875,6 +964,8 @@ inline String& String::operator+=(I8 value)
 		memcpy(start, c, addLength);
 		str[length] = '\0';
 	}
+
+	return *this;
 }
 
 inline String& String::operator+=(U8 value)
@@ -890,6 +981,8 @@ inline String& String::operator+=(U8 value)
 	length += addLength;
 	memcpy(start, c, addLength);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(I16 value)
@@ -929,6 +1022,8 @@ inline String& String::operator+=(I16 value)
 
 	memcpy(start + neg, c, addLength);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(U16 value)
@@ -958,6 +1053,8 @@ inline String& String::operator+=(U16 value)
 
 	memcpy(start, c, addLength);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(I32 value)
@@ -997,12 +1094,14 @@ inline String& String::operator+=(I32 value)
 
 	memcpy(start + neg, c, addLength);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(U32 value)
 {
 	char* start = str + length;
-	char* c = start + 9;
+	char* c = start + 10;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -1021,11 +1120,13 @@ inline String& String::operator+=(U32 value)
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	U64 addLength = 9 - (c - start);
+	U64 addLength = 10 - (c - start);
 	length += addLength;
 
 	memcpy(start, c, addLength);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(I64 value)
@@ -1065,6 +1166,8 @@ inline String& String::operator+=(I64 value)
 
 	memcpy(start + neg, c, addLength);
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(U64 value)
@@ -1122,6 +1225,8 @@ inline String& String::operator+=(bool value)
 		length += 5;
 		str[length] = '\0';
 	}
+
+	return *this;
 }
 
 inline String& String::operator+=(char* other)
@@ -1130,6 +1235,8 @@ inline String& String::operator+=(char* other)
 	memcpy(str + length, other, addLength);
 	length += addLength;
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(const char* other)
@@ -1138,6 +1245,8 @@ inline String& String::operator+=(const char* other)
 	memcpy(str + length, other, addLength);
 	length += addLength;
 	str[length] = '\0';
+
+	return *this;
 }
 
 inline String& String::operator+=(const String& other)
@@ -1146,86 +1255,8 @@ inline String& String::operator+=(const String& other)
 	memcpy(str + length, other.str, addLength);
 	length += addLength;
 	str[length] = '\0';
-}
 
-inline String String::operator+(I8 value) const
-{
-
-}
-
-inline String String::operator+(U8 value) const
-{
-
-}
-
-inline String String::operator+(I16 value) const
-{
-
-}
-
-inline String String::operator+(U16 value) const
-{
-
-}
-
-inline String String::operator+(I32 value) const
-{
-
-}
-
-inline String String::operator+(U32 value) const
-{
-
-}
-
-inline String String::operator+(I64 value) const
-{
-
-}
-
-inline String String::operator+(U64 value) const
-{
-
-}
-
-inline String String::operator+(F32 value) const
-{
-
-}
-
-inline String String::operator+(F64 value) const
-{
-	
-}
-
-inline String String::operator+(bool value) const
-{
-
-}
-
-inline String String::operator+(char* other) const
-{
-
-}
-
-inline String String::operator+(const char* other) const
-{
-
-}
-
-inline String String::operator+(const String& other) const
-{
-
-}
-
-inline String operator+(char* other0, const String& other1)
-{
-
-}
-
-inline String operator+(const char* other0, const String& other1)
-{
-
+	return *this;
 }
 
 inline String::operator char* () { return str; }
@@ -1239,7 +1270,7 @@ inline String::operator I8() const
 
 inline String::operator U8() const
 {
-
+	
 }
 
 inline String::operator I16() const
@@ -1297,129 +1328,214 @@ inline const char& String::operator[](U32 i) const { return str[i]; }
 
 inline bool String::operator==(char* other) const
 {
+	U64 len = strlen(other);
+	if (len != length) { return false; }
 
+	return memcmp(str, other, length) == 0;
 }
 
 inline bool String::operator==(const char* other) const
 {
+	U64 len = strlen(other);
+	if (len != length) { return false; }
 
+	return memcmp(str, other, length) == 0;
 }
 
 inline bool String::operator==(const String& other) const
 {
+	if (other.length != length) { return false; }
 
+	return memcmp(str, other.str, length) == 0;
 }
 
 inline bool String::operator!=(char* other) const
 {
+	U64 len = strlen(other);
+	if (len != length) { return true; }
 
+	return memcmp(str, other, length);
 }
 
 inline bool String::operator!=(const char* other) const
 {
+	U64 len = strlen(other);
+	if (len != length) { return true; }
 
+	return memcmp(str, other, length);
 }
 
 inline bool String::operator!=(const String& other) const
 {
+	if (other.length != length) { return true; }
 
+	return memcmp(str, other.str, length);
 }
 
 inline bool String::Compare(char* other) const
 {
+	U64 len = strlen(other);
+	if (len != length) { return false; }
 
+	return memcmp(str, other, length) == 0;
 }
 
 inline bool String::Compare(const char* other) const
 {
+	U64 len = strlen(other);
+	if (len != length) { return false; }
 
+	return memcmp(str, other, length) == 0;
 }
 
 inline bool String::Compare(const String& other) const
 {
+	if (other.length != length) { return false; }
 
+	return memcmp(str, other.str, length) == 0;
 }
 
-inline bool String::CompareN(char* other, U32 lenth, U32 start) const
+inline bool String::CompareN(char* other, U32 nLength, U32 start) const
 {
+	U64 len = strlen(other);
+	if (len != nLength) { return false; }
 
+	return memcmp(str + start, other, nLength) == 0;
 }
 
-inline bool String::CompareN(const char* other, U32 lenth, U32 start) const
+inline bool String::CompareN(const char* other, U32 nLength, U32 start) const
 {
+	U64 len = strlen(other);
+	if (len != nLength) { return false; }
 
+	return memcmp(str + start, other, nLength) == 0;
 }
 
-inline bool String::CompareN(const String& other, U32 lenth, U32 start) const
+inline bool String::CompareN(const String& other, U32 nLength, U32 start) const
 {
+	if (other.length != nLength) { return false; }
 
+	return memcmp(str + start, other.str, nLength) == 0;
 }
 
-inline const U32& String::Length() const { return length; }
-
-inline String String::Duplicate() const
-{
-
-}
-
-inline String String::NDuplicate(U64 length) const
-{
-
-}
+inline const U64& String::Length() const { return length; }
 
 inline bool String::Blank() const
 {
+	if (length == 0) { return true; }
+	char* start = str;
+	char c;
 
+	while ((c = *start) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f');
+
+	return start - str == length;
+}
+
+inline I32 String::IndexOf(char c, U64 start) const
+{
+	char* it = str;
+
+	while (*it != c && *it != '\0') { ++it; }
+
+	if (*it == '\0') { return -1; }
+	return it - str;
 }
 
 inline String& String::Trim()
 {
+	char* start = str;
+	char* end = str + length;
+	char c;
 
+	while ((c = *start) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == '\0') { ++start; }
+	while ((c = *end) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == '\0') { --end; }
+
+	length = end - start;
+	memcpy(str, start, length);
+	str[length] = '\0';
+
+	return *this;
 }
 
-inline String String::SubString(U64 start, U64 length) const
+inline String& String::SubString(String& newStr, U64 start, U64 length) const
 {
+	if (length < U64_MAX)
+	{
+		newStr.length = length;
+		memcpy(newStr.str, str + start, length);
+		newStr.str[length] = '\0';
+	}
+	else
+	{
+		newStr.length = length - start;
+		memcpy(newStr.str, str + start, newStr.length);
+		newStr.str[newStr.length] = '\0';
+	}
 
-}
-
-inline I32 String::IndexOf(U8 c, U64 start) const
-{
-
+	return newStr;
 }
 
 inline String& String::Append(const String& append)
 {
+	memcpy(str + length, append.str, append.length);
+	length += append.length;
+	str[length] = '\0';
 
+	return *this;
 }
 
 inline String& String::Prepend(const String& prepend)
 {
+	memcpy(str + length, str, length);
+	memcpy(str, prepend.str, prepend.length);
+	length += prepend.length;
+	str[length] = '\0';
 
+	return *this;
 }
 
 inline String& String::Surround(const String& prepend, const String& append)
 {
+	memcpy(str + length, str, length);
+	memcpy(str, prepend.str, prepend.length);
+	length += prepend.length;
 
+	memcpy(str + length, append.str, append.length);
+	length += append.length;
+	str[length] = '\0';
+
+	return *this;
 }
 
-inline String& String::Insert(const String& string, U32 i)
+inline String& String::Insert(const String& other, U32 i)
 {
+	memcpy(str + i + other.length, str + i, length - i);
+	memcpy(str + i, other.str, other.length);
+	length += other.length;
+	str[length] = '\0';
 
+	return *this;
 }
 
 inline String& String::ReplaceAll(const String& find, const String& replace, U64 start)
 {
 
+
+	return *this;
 }
 
-inline String& String::ReplaceN(const String& find, const String& replace, U64 start)
+inline String& String::ReplaceN(const String& find, const String& replace, U64 count, U64 start)
 {
 
+
+	return *this;
 }
 
 inline String& String::ReplaceFirst(const String& find, const String& replace, U64 start)
 {
 
+
+	return *this;
 }
 
 //inline Vector<String> String::Split(U8 delimiter, bool trimEntries) const
