@@ -44,6 +44,27 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 		String str7((I8)-127i8);
 		String str8(true);
 		String str9(false);
+		String str10(":");
+		String str11(":");
+		String str12(":");
+		String str13(":");
+		String str14(":");
+		String str15(":");
+		String str16(":");
+		String str17(":");
+		String str18(":");
+		String str19(":");
+		str10 += 18446744073709551615ui64;
+		str11 += -9223372036854775808i64;
+		str12 += 4294967295ui32;
+		str13 += -2147483648i32;
+		str14 += 65535ui16;
+		str15 += (I16)-32767i16;
+		str16 += 255ui8;
+		str17 += (I8)-127i8;
+		str18 += true;
+		str19 += false;
+		BreakPoint;
 	}
 	t0.Stop();
 

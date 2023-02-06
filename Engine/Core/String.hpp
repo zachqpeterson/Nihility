@@ -57,13 +57,27 @@ public:
 	F64 ToF64();
 	bool ToBool();
 
+	String& operator+=(I8  value);
+	String& operator+=(U8  value);
+	String& operator+=(I16 value);
+	String& operator+=(U16 value);
+	String& operator+=(I32 value);
+	String& operator+=(U32 value);
+	String& operator+=(I64 value);
+	String& operator+=(U64 value);
+	String& operator+=(F32 value);
+	String& operator+=(F64 value);
+	String& operator+=(bool value);
+	String& operator+=(char* other);
+	String& operator+=(const char* other);
+	String& operator+=(const String& other);
 	String operator+(I8  value) const;
-	String operator+(I16 value) const;
-	String operator+(I32 value) const;
-	String operator+(I64 value) const;
 	String operator+(U8  value) const;
+	String operator+(I16 value) const;
 	String operator+(U16 value) const;
+	String operator+(I32 value) const;
 	String operator+(U32 value) const;
+	String operator+(I64 value) const;
 	String operator+(U64 value) const;
 	String operator+(F32 value) const;
 	String operator+(F64 value) const;
@@ -204,18 +218,18 @@ inline String::String(I8 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb()
 		if (abs > 9) { *--c = threeDigits[1]; }
 		if (abs > 99) { *--c = threeDigits[0]; }
 
-		length = 4 - (c - str);
+		length = 5 - (c - str);
 		memcpy(str + 1, c, length + 1);
 	}
 	else
 	{
-		char* c = str + 2;
+		char* c = str + 3;
 		const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
 		*--c = threeDigits[2];
 		if (value > 9) { *--c = threeDigits[1]; }
 		if (value > 99) { *--c = threeDigits[0]; }
 
-		length = 2 - (c - str);
+		length = 3 - (c - str);
 		memcpy(str, c, length + 1);
 	}
 }
@@ -270,7 +284,7 @@ inline String::String(I16 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 
 inline String::String(U16 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
 {
-	char* c = str + 4;
+	char* c = str + 5;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -289,7 +303,7 @@ inline String::String(U16 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 4 - (c - str);
+	length = 5 - (c - str);
 
 	memcpy(str, c, length + 1);
 }
@@ -325,14 +339,14 @@ inline String::String(I32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 	if (abs > 9) { *--c = threeDigits[1]; }
 	if (abs > 99) { *--c = threeDigits[0]; }
 
-	length = 10 + neg - (c - str);
+	length = 11 + neg - (c - str);
 
 	memcpy(str + neg, c, length + 1);
 }
 
 inline String::String(U32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
 {
-	char* c = str + 8;
+	char* c = str + 9;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -351,7 +365,7 @@ inline String::String(U32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 8 - (c - str);
+	length = 9 - (c - str);
 
 	memcpy(str, c, length + 1);
 }
@@ -394,7 +408,7 @@ inline String::String(I64 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 
 inline String::String(U64 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
 {
-	char* c = str + 19;
+	char* c = str + 20;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -413,7 +427,7 @@ inline String::String(U64 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 	
-	length = 19 - (c - str);
+	length = 20 - (c - str);
 	
 	memcpy(str, c, length + 1);
 }
@@ -433,12 +447,12 @@ inline String::String(bool value) : length{ 0 }, str{ (char*)Memory::Allocate1kb
 	if (value)
 	{
 		length = 4;
-		memcpy(str, "true", 5);
+		memcpy(str, "true", 4);
 	}
 	else
 	{
 		length = 5;
-		memcpy(str, "false", 6);
+		memcpy(str, "false", 5);
 	}
 }
 
@@ -479,19 +493,19 @@ inline String& String::operator=(I8 value)
 		if (abs > 9) { *--c = threeDigits[1]; }
 		if (abs > 99) { *--c = threeDigits[0]; }
 
-		length = 4 - (c - str);
+		length = 5 - (c - str);
 		memcpy(str + 1, c, length);
 		str[length] = '\0';
 	}
 	else
 	{
-		char* c = str + 2;
+		char* c = str + 3;
 		const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
 		*--c = threeDigits[2];
 		if (value > 9) { *--c = threeDigits[1]; }
 		if (value > 99) { *--c = threeDigits[0]; }
 
-		length = 2 - (c - str);
+		length = 3 - (c - str);
 		memcpy(str, c, length);
 		str[length] = '\0';
 	}
@@ -549,7 +563,7 @@ inline String& String::operator=(I16 value)
 
 inline String& String::operator=(U16 value)
 {
-	char* c = str + 4;
+	char* c = str + 5;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -568,7 +582,7 @@ inline String& String::operator=(U16 value)
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 4 - (c - str);
+	length = 5 - (c - str);
 
 	memcpy(str, c, length);
 	str[length] = '\0';
@@ -605,7 +619,7 @@ inline String& String::operator=(I32 value)
 	if (abs > 9) { *--c = threeDigits[1]; }
 	if (abs > 99) { *--c = threeDigits[0]; }
 
-	length = 10 + neg - (c - str);
+	length = 11 + neg - (c - str);
 
 	memcpy(str + neg, c, length);
 	str[length] = '\0';
@@ -613,7 +627,7 @@ inline String& String::operator=(I32 value)
 
 inline String& String::operator=(U32 value)
 {
-	char* c = str + 8;
+	char* c = str + 9;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -632,7 +646,7 @@ inline String& String::operator=(U32 value)
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 8 - (c - str);
+	length = 9 - (c - str);
 
 	memcpy(str, c, length);
 	str[length] = '\0';
@@ -677,7 +691,7 @@ inline String& String::operator=(I64 value)
 
 inline String& String::operator=(U64 value)
 {
-	char* c = str + 19;
+	char* c = str + 20;
 	const char* threeDigits;
 
 	while (value > 999)
@@ -696,7 +710,7 @@ inline String& String::operator=(U64 value)
 	if (value > 9) { *--c = threeDigits[1]; }
 	if (value > 99) { *--c = threeDigits[0]; }
 
-	length = 19 - (c - str);
+	length = 20 - (c - str);
 
 	memcpy(str, c, length);
 	str[length] = '\0';
@@ -717,13 +731,13 @@ inline String& String::operator=(bool value)
 	if (value)
 	{
 		length = 4;
-		memcpy(str, "true", 5);
+		memcpy(str, "true", 4);
 		str[length] = '\0';
 	}
 	else
 	{
 		length = 5;
-		memcpy(str, "false", 6);
+		memcpy(str, "false", 5);
 		str[length] = '\0';
 	}
 }
@@ -826,10 +840,320 @@ inline F64 String::ToF64()
 
 inline bool String::ToBool()
 {
+	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
+}
+
+inline String& String::operator+=(I8 value)
+{
+	char* start = str + length;
+
+	if (value < 0)
+	{
+		start[0] = '-';
+		U8 abs = (U8)-value;
+		char* c = start + 4;
+		const char* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
+		*--c = threeDigits[2];
+		if (abs > 9) { *--c = threeDigits[1]; }
+		if (abs > 99) { *--c = threeDigits[0]; }
+
+		U64 addLength = 5 - (c - start);
+		length += addLength;
+		memcpy(start + 1, c, addLength);
+		str[length] = '\0';
+	}
+	else
+	{
+		char* c = start + 3;
+		const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
+		*--c = threeDigits[2];
+		if (value > 9) { *--c = threeDigits[1]; }
+		if (value > 99) { *--c = threeDigits[0]; }
+
+		U64 addLength = 3 - (c - start);
+		length += addLength;
+		memcpy(start, c, addLength);
+		str[length] = '\0';
+	}
+}
+
+inline String& String::operator+=(U8 value)
+{
+	char* start = str + length;
+	char* c = start + 3;
+	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
+	*--c = threeDigits[2];
+	if (value > 9) { *--c = threeDigits[1]; }
+	if (value > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 3 - (c - start);
+	length += addLength;
+	memcpy(start, c, addLength);
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(I16 value)
+{
+	char* start = str + length;
+	char* c = start + 6;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	U16 abs = (U16)value;
+
+	if (value < 0)
+	{
+		start[0] = '-';
+		abs = (U16)-value;
+		neg = 1;
+	}
+
+	while (abs > 999)
+	{
+		U16 newVal = abs / 1000;
+		U16 remainder = abs % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		abs = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
+	*--c = threeDigits[2];
+	if (abs > 9) { *--c = threeDigits[1]; }
+	if (abs > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 6 + neg - (c - start);
+	length += addLength;
+
+	memcpy(start + neg, c, addLength);
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(U16 value)
+{
+	char* start = str + length;
+	char* c = start + 5;
+	const char* threeDigits;
+
+	while (value > 999)
+	{
+		U16 newVal = value / 1000;
+		U16 remainder = value % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		value = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
+	*--c = threeDigits[2];
+	if (value > 9) { *--c = threeDigits[1]; }
+	if (value > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 5 - (c - start);
+	length += addLength;
+
+	memcpy(start, c, addLength);
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(I32 value)
+{
+	char* start = str + length;
+	char* c = start + 11;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	U32 abs = (U32)value;
+
+	if (value < 0)
+	{
+		start[0] = '-';
+		abs = (U32)-value;
+		neg = 1;
+	}
+
+	while (abs > 999)
+	{
+		U32 newVal = abs / 1000;
+		U32 remainder = abs % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		abs = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
+	*--c = threeDigits[2];
+	if (abs > 9) { *--c = threeDigits[1]; }
+	if (abs > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 11 + neg - (c - start);
+	length += addLength;
+
+	memcpy(start + neg, c, addLength);
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(U32 value)
+{
+	char* start = str + length;
+	char* c = start + 9;
+	const char* threeDigits;
+
+	while (value > 999)
+	{
+		U32 newVal = value / 1000;
+		U32 remainder = value % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		value = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
+	*--c = threeDigits[2];
+	if (value > 9) { *--c = threeDigits[1]; }
+	if (value > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 9 - (c - start);
+	length += addLength;
+
+	memcpy(start, c, addLength);
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(I64 value)
+{
+	char* start = str + length;
+	char* c = start + 20;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	U64 abs = (U64)value;
+
+	if (value < 0)
+	{
+		start[0] = '-';
+		abs = (U64)-value;
+		neg = 1;
+	}
+
+	while (abs > 999)
+	{
+		U64 newVal = abs / 1000;
+		U64 remainder = abs % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		abs = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
+	*--c = threeDigits[2];
+	if (abs > 9) { *--c = threeDigits[1]; }
+	if (abs > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 + neg - (c - start);
+	length += addLength;
+
+	memcpy(start + neg, c, addLength);
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(U64 value)
+{
+	char* start = str + length;
+	char* c = start + 20;
+	const char* threeDigits;
+
+	while (value > 999)
+	{
+		U64 newVal = value / 1000;
+		U64 remainder = value % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		value = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
+	*--c = threeDigits[2];
+	if (value > 9) { *--c = threeDigits[1]; }
+	if (value > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 - (c - start);
+	length += addLength;
+
+	memcpy(start, c, addLength);
+	str[length] = '\0';
+
+	return *this;
+}
+
+inline String& String::operator+=(F32 value)
+{
 
 }
 
-inline String String::operator+(I8  value) const
+inline String& String::operator+=(F64 value)
+{
+
+}
+
+inline String& String::operator+=(bool value)
+{
+	if (value)
+	{
+		memcpy(str + length, "true", 4);
+		length += 4;
+		str[length] = '\0';
+	}
+	else
+	{
+		memcpy(str + length, "false", 5);
+		length += 5;
+		str[length] = '\0';
+	}
+}
+
+inline String& String::operator+=(char* other)
+{
+	U64 addLength = strlen(other);
+	memcpy(str + length, other, addLength);
+	length += addLength;
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(const char* other)
+{
+	U64 addLength = strlen(other);
+	memcpy(str + length, other, addLength);
+	length += addLength;
+	str[length] = '\0';
+}
+
+inline String& String::operator+=(const String& other)
+{
+	U64 addLength = strlen(other.str);
+	memcpy(str + length, other.str, addLength);
+	length += addLength;
+	str[length] = '\0';
+}
+
+inline String String::operator+(I8 value) const
+{
+
+}
+
+inline String String::operator+(U8 value) const
 {
 
 }
@@ -839,27 +1163,22 @@ inline String String::operator+(I16 value) const
 
 }
 
-inline String String::operator+(I32 value) const
-{
-
-}
-
-inline String String::operator+(I64 value) const
-{
-
-}
-
-inline String String::operator+(U8  value) const
-{
-
-}
-
 inline String String::operator+(U16 value) const
 {
 
 }
 
+inline String String::operator+(I32 value) const
+{
+
+}
+
 inline String String::operator+(U32 value) const
+{
+
+}
+
+inline String String::operator+(I64 value) const
 {
 
 }
@@ -876,7 +1195,7 @@ inline String String::operator+(F32 value) const
 
 inline String String::operator+(F64 value) const
 {
-
+	
 }
 
 inline String String::operator+(bool value) const
@@ -965,7 +1284,7 @@ inline String::operator F64() const
 
 inline String::operator bool() const
 {
-
+	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
 }
 
 inline char* String::operator*() { return str; }
