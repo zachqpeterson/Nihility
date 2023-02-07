@@ -107,20 +107,20 @@ template<typename... Types> inline void Logger::Trace(const char* message, const
 
 template<typename Types> inline void Logger::Fatal(const Types& arg)
 {
-	String str("{}{}{}", fatalTag, arg, endLine);
+	String str(fatalTag, arg, endLine);
 	PrintError(str, 64);
 }
 
 template<typename Types> inline void Logger::Error(const Types& arg)
 {
-	String str("{}{}{}", errorTag, arg, endLine);
+	String str(errorTag, arg, endLine);
 	PrintError(str, 4);
 }
 
 template<typename Types> inline void Logger::Warn(const Types& arg)
 {
 #if LOG_WARN_ENABLED
-	String str("{}{}{}", warnTag, arg, endLine);
+	String str(warnTag, arg, endLine);
 	Print(str, 6);
 #endif
 }
@@ -128,7 +128,7 @@ template<typename Types> inline void Logger::Warn(const Types& arg)
 template<typename Types> inline void Logger::Info(const Types& arg)
 {
 #if LOG_INFO_ENABLED
-	String str("{}{}{}", infoTag, arg, endLine);
+	String str(infoTag, arg, endLine);
 	Print(str, 10);
 #endif
 }
@@ -136,7 +136,7 @@ template<typename Types> inline void Logger::Info(const Types& arg)
 template<typename Types> inline void Logger::Debug(const Types& arg)
 {
 #if LOG_DEBUG_ENABLED
-	String str("{}{}{}", debugTag, arg, endLine);
+	String str(debugTag, arg, endLine);
 	Print(str, 11);
 #endif
 }
@@ -144,7 +144,7 @@ template<typename Types> inline void Logger::Debug(const Types& arg)
 template<typename Types> inline void Logger::Trace(const Types& arg)
 {
 #if LOG_TRACE_ENABLED
-	String str("{}{}{}", traceTag, arg, endLine);
+	String str(traceTag, arg, endLine);
 	Print(str, 8);
 #endif
 }

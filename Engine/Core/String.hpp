@@ -24,6 +24,7 @@ public:
 	String(const String& other);
 	String(String&& other) noexcept;
 	template<typename... Types> String(const char* fmt, const Types& ... args);
+	template<typename... Types> String(const Types& ... args);
 
 	String& operator=(I8 value);
 	String& operator=(U8 value);
@@ -469,6 +470,11 @@ template<typename... Types> inline String::String(const char* fmt, const Types& 
 	memcpy(str, fmt, length + 1);
 	U64 start = 0;
 	(Format(start, args), ...);
+}
+
+template<typename... Types> inline String::String(const Types& ... args) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
+{
+	(Append(args), ...);
 }
 
 inline String& String::operator=(I8 value)

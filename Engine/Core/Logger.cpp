@@ -9,13 +9,13 @@
 void* Logger::consoleHandle;
 void* Logger::errorHandle;
 
-String Logger::fatalTag;
-String Logger::errorTag;
-String Logger::warnTag;
-String Logger::debugTag;
-String Logger::infoTag;
-String Logger::traceTag;
-String Logger::endLine;
+String Logger::fatalTag("[FATAL]: ");
+String Logger::errorTag("[ERROR]: ");
+String Logger::warnTag("[WARN]:  ");
+String Logger::debugTag("[DEBUG]: ");
+String Logger::infoTag("[INFO]:  ");
+String Logger::traceTag("[TRACE]: ");
+String Logger::endLine("\n");
 
 bool Logger::Initialize()
 {
@@ -26,13 +26,6 @@ bool Logger::Initialize()
 	SetConsoleTitleW(L"Nihility Console");
 
 #endif
-	fatalTag = "[FATAL]: ";
-	errorTag = "[ERROR]: ";
-	warnTag = "[WARN]:  ";
-	debugTag = "[DEBUG]: ";
-	infoTag = "[INFO]:  ";
-	traceTag = "[TRACE]: ";
-	endLine = "\n";
 
 	//TODO: Open log file
 
@@ -41,7 +34,7 @@ bool Logger::Initialize()
 
 void Logger::Shutdown()
 {
-
+	//TODO: Close log file
 }
 
 void Logger::Print(const String& message, U16 color)
