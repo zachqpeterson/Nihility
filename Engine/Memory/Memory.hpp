@@ -4,6 +4,9 @@
 
 #include <string.h>
 
+#define STATIC_SIZE 1073741824
+#define DYNAMIC_SIZE 1073741824
+
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection
 /// </summary>
@@ -111,7 +114,7 @@ public:
 	template<typename T> static T* AllocateStatic();
 
 private:
-	static bool Initialize(U64 staticSize, U64 dynamicSize);
+	static bool Initialize();
 	static void Shutdown();
 
 	static inline U8* memory;
@@ -140,50 +143,56 @@ private:
 	static inline U32 last1mbFree;
 	static inline U32* free1mbIndices;
 
+	static inline bool initialized = false;
+
 	STATIC_CLASS(Memory);
 	friend class Engine;
 };
 
-inline bool Memory::Initialize(U64 staticBytes, U64 dynamicBytes)
+inline bool Memory::Initialize()
 {
-	U64 maxKilobytes = dynamicBytes / 1024;
+	if (!initialized)
+	{
+		initialized = true;
+		U64 maxKilobytes = DYNAMIC_SIZE / 1024;
 
-	U32 region1mbCount = U32(maxKilobytes / 20480);
-	U32 region256kbCount = U32(maxKilobytes * 0.15f) / 256;
-	U32 region16kbCount = U32(maxKilobytes * 0.3f) / 16;
-	U32 region1kbCount = U32(maxKilobytes - (region16kbCount * 16) - (region256kbCount * 256) - (region1mbCount * 1024));
+		U32 region1mbCount = U32(maxKilobytes / 20480);
+		U32 region256kbCount = U32(maxKilobytes * 0.15f) / 256;
+		U32 region16kbCount = U32(maxKilobytes * 0.3f) / 16;
+		U32 region1kbCount = U32(maxKilobytes - (region16kbCount * 16) - (region256kbCount * 256) - (region1mbCount * 1024));
 
-	U64 pointerToDynamic = sizeof(U32) * (region1kbCount + region16kbCount + region256kbCount + region1mbCount);
+		U64 pointerToDynamic = sizeof(U32) * (region1kbCount + region16kbCount + region256kbCount + region1mbCount);
 
-	totalSize = pointerToDynamic + dynamicBytes + staticBytes;
+		totalSize = pointerToDynamic + DYNAMIC_SIZE + STATIC_SIZE;
 
-	memory = (U8*)calloc(1, totalSize);
+		memory = (U8*)calloc(1, totalSize);
 
-	if (!memory) { return false; }
+		if (!memory) { return false; }
 
-	free1kbIndices = (U32*)memory;
-	free16kbIndices = free1kbIndices + region1kbCount;
-	free256kbIndices = free16kbIndices + region16kbCount;
-	free1mbIndices = free256kbIndices + region256kbCount;
+		free1kbIndices = (U32*)memory;
+		free16kbIndices = free1kbIndices + region1kbCount;
+		free256kbIndices = free16kbIndices + region16kbCount;
+		free1mbIndices = free256kbIndices + region256kbCount;
 
-	pool1kbPointer = (Region1kb*)(free1mbIndices + region1mbCount);
-	last1kbPointer = 0;
-	last1kbFree = 0;
+		pool1kbPointer = (Region1kb*)(free1mbIndices + region1mbCount);
+		last1kbPointer = 0;
+		last1kbFree = 0;
 
-	pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);
-	last16kbPointer = 0;
-	last16kbFree = 0;
+		pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);
+		last16kbPointer = 0;
+		last16kbFree = 0;
 
-	pool256kbPointer = (Region256kb*)(pool16kbPointer + region16kbCount);
-	last256kbPointer = 0;
-	last256kbFree = 0;
+		pool256kbPointer = (Region256kb*)(pool16kbPointer + region16kbCount);
+		last256kbPointer = 0;
+		last256kbFree = 0;
 
-	pool1mbPointer = (Region1mb*)(pool256kbPointer + region256kbCount);
-	last1mbPointer = 0;
-	last1mbFree = 0;
+		pool1mbPointer = (Region1mb*)(pool256kbPointer + region256kbCount);
+		last1mbPointer = 0;
+		last1mbFree = 0;
 
-	staticPointer = (U8*)(pool1mbPointer + region1mbCount);
-	staticSize = memory - staticPointer;
+		staticPointer = (U8*)(pool1mbPointer + region1mbCount);
+		staticSize = memory - staticPointer;
+	}
 
 	return true;
 }
@@ -195,24 +204,26 @@ inline void Memory::Shutdown()
 
 inline void* Memory::Allocate(U64 size)
 {
+	static bool init = Initialize();
+
 	if (size <= 1024)
 	{
-		if (last1kbFree) { return pool1kbPointer + free1kbIndices[last1kbFree-- - 1]; }
+		if (last1kbFree) { return pool1kbPointer + free1kbIndices[--last1kbFree]; }
 		else { return pool1kbPointer + last1kbPointer++; }
 	}
 	else if (size <= 16384)
 	{
-		if (last16kbFree) { return pool16kbPointer + free16kbIndices[last16kbFree-- - 1]; }
+		if (last16kbFree) { return pool16kbPointer + free16kbIndices[--last16kbFree]; }
 		else { return pool16kbPointer + last16kbPointer++; }
 	}
 	else if (size <= 262144)
 	{
-		if (last256kbFree) { return pool256kbPointer + free256kbIndices[last256kbFree-- - 1]; }
+		if (last256kbFree) { return pool256kbPointer + free256kbIndices[--last256kbFree]; }
 		else { return pool256kbPointer + last256kbPointer++; }
 	}
 	else if (size <= 1048576)
 	{
-		if (last1mbFree) { return pool1mbPointer + free1mbIndices[last1mbFree-- - 1]; }
+		if (last1mbFree) { return pool1mbPointer + free1mbIndices[--last1mbFree]; }
 		else { return pool1mbPointer + last1mbPointer++; }
 	}
 	
@@ -254,27 +265,28 @@ inline void Memory::Free(void* ptr)
 
 template<typename T> inline T* Memory::Allocate()
 {
+	static bool init = Initialize();
 	constexpr U64 size = sizeof(T);
 
 	if (size <= 1024)
 	{
-		if (last1kbFree) { return pool1kbPointer + free1kbIndices[last1kbFree-- - 1]; }
-		else { return pool1kbPointer + last1kbPointer++; }
+		if (last1kbFree) { return (T*)(pool1kbPointer + free1kbIndices[--last1kbFree]); }
+		else { return (T*)(pool1kbPointer + last1kbPointer++); }
 	}
 	else if (size <= 16384)
 	{
-		if (last16kbFree) { return pool16kbPointer + free16kbIndices[last16kbFree-- - 1]; }
-		else { return pool16kbPointer + last16kbPointer++; }
+		if (last16kbFree) { return (T*)(pool16kbPointer + free16kbIndices[--last16kbFree]); }
+		else { return (T*)(pool16kbPointer + last16kbPointer++); }
 	}
 	else if (size <= 262144)
 	{
-		if (last256kbFree) { return pool256kbPointer + free256kbIndices[last256kbFree-- - 1]; }
-		else { return pool256kbPointer + last256kbPointer++; }
+		if (last256kbFree) { return (T*)(pool256kbPointer + free256kbIndices[--last256kbFree]); }
+		else { return (T*)(pool256kbPointer + last256kbPointer++); }
 	}
 	else if (size <= 1048576)
 	{
-		if (last1mbFree) { return pool1mbPointer + free1mbIndices[last1mbFree-- - 1]; }
-		else { return pool1mbPointer + last1mbPointer++; }
+		if (last1mbFree) { return (T*)(pool1mbPointer + free1mbIndices[--last1mbFree]); }
+		else { return (T*)(pool1mbPointer + last1mbPointer++); }
 	}
 	else
 	{
@@ -313,25 +325,29 @@ template<typename T> inline void Memory::Free(T* ptr)
 
 inline void* Memory::Allocate1kb()
 {
-	if (last1kbFree) { return pool1kbPointer + free1kbIndices[last1kbFree-- - 1]; }
+	static bool init = Initialize();
+	if (last1kbFree) { return pool1kbPointer + free1kbIndices[--last1kbFree]; }
 	else { return pool1kbPointer + last1kbPointer++; }
 }
 
 inline void* Memory::Allocate16kb()
 {
-	if (last16kbFree) { return pool16kbPointer + free16kbIndices[last16kbFree-- - 1]; }
+	static bool init = Initialize();
+	if (last16kbFree) { return pool16kbPointer + free16kbIndices[--last16kbFree]; }
 	else { return pool16kbPointer + last16kbPointer++; }
 }
 
 inline void* Memory::Allocate256kb()
 {
-	if (last256kbFree) { return pool256kbPointer + free256kbIndices[last256kbFree-- - 1]; }
+	static bool init = Initialize();
+	if (last256kbFree) { return pool256kbPointer + free256kbIndices[--last256kbFree]; }
 	else { return pool256kbPointer + last256kbPointer++; }
 }
 
 inline void* Memory::Allocate1mb()
 {
-	if (last1mbFree) { return pool1mbPointer + free1mbIndices[last1mbFree-- - 1]; }
+	static bool init = Initialize();
+	if (last1mbFree) { return pool1mbPointer + free1mbIndices[--last1mbFree]; }
 	else { return pool1mbPointer + last1mbPointer++; }
 }
 
@@ -362,6 +378,8 @@ inline void Memory::Free1mb(void* ptr)
 
 inline void* Memory::AllocateStatic(U64 size)
 {
+	static bool init = Initialize();
+
 	if (staticPointer + size <= memory + totalSize)
 	{
 		U8* block = staticPointer;
@@ -375,6 +393,7 @@ inline void* Memory::AllocateStatic(U64 size)
 
 template<typename T> inline T* Memory::AllocateStatic()
 {
+	static bool init = Initialize();
 	constexpr U64 size = sizeof(T);
 
 	if (staticPointer + size <= memory + totalSize)
@@ -382,7 +401,7 @@ template<typename T> inline T* Memory::AllocateStatic()
 		U8* block = staticPointer;
 		staticPointer += size;
 
-		return block;
+		return (T*)block;
 	}
 
 	return nullptr;

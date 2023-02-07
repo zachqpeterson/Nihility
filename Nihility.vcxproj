@@ -106,6 +106,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Core\File.hpp" />
     <ClInclude Include="Engine\Core\Logger.hpp" />
     <ClInclude Include="Engine\Core\String.hpp" />
     <ClInclude Include="Engine\Core\Time.hpp" />
@@ -134,6 +135,7 @@
     <Image Include="icon.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />

@@ -27,18 +27,8 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	suspended = false;
 
 	ASSERT(Time::Initialize());
-	Memory::Initialize(1024 * 1024 * 1024, 1024 * 1024 * 1024);
-	Logger::Initialize();
-
-	Timer t0;
-	t0.Start();
-	for (U32 i = 0; i < 1000000; ++i)
-	{
-		String str0("Hello, {}! {}.{}", "world", 420, 69);
-
-		BreakPoint;
-	}
-	t0.Stop();
+	ASSERT(Memory::Initialize());
+	ASSERT(Logger::Initialize());
 
 	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
 

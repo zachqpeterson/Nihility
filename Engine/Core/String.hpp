@@ -1652,7 +1652,7 @@ inline String& String::Prepend(const String& prepend)
 
 inline String& String::Surround(const String& prepend, const String& append)
 {
-	memcpy(str + length, str, length);
+	memcpy(str + prepend.length, str, length);
 	memcpy(str, prepend.str, prepend.length);
 	length += prepend.length;
 
