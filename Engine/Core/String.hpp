@@ -421,11 +421,13 @@ inline String::String(U64 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb(
 inline String::String(F32 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
 {
 	//TODO: Keep 5 decimal places
+
 }
 
 inline String::String(F64 value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
 {
 	//TODO: Keep 5 decimal places
+
 }
 
 inline String::String(bool value) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
@@ -462,9 +464,11 @@ inline String::String(String&& other) noexcept : length{ other.length }, str{ ot
 	other.Destroy();
 }
 
-template<typename... Types> inline String::String(const char* fmt, const Types& ... args) : length{ 0 }, str{ (char*)Memory::Allocate1kb() }
+template<typename... Types> inline String::String(const char* fmt, const Types& ... args) : length{ strlen(fmt) }, str{ (char*)Memory::Allocate1kb() }
 {
-
+	memcpy(str, fmt, length + 1);
+	U64 start = 0;
+	(Format(start, args), ...);
 }
 
 inline String& String::operator=(I8 value)

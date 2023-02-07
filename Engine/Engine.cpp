@@ -34,11 +34,7 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	t0.Start();
 	for (U32 i = 0; i < 1000000; ++i)
 	{
-		String str0("asdasdasd{}adsasd{}asfasf");
-		String str1("asdasdasd{----}adsa{----}sdasfasf");
-
-		str0.ReplaceN("{}", "Hello", 1);
-		str1.ReplaceN("{----}", "{}", 2, 17);
+		String str0("Hello, {}! {}.{}", "world", 420, 69);
 
 		BreakPoint;
 	}
