@@ -34,23 +34,12 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	t0.Start();
 	for (U32 i = 0; i < 1000000; ++i)
 	{
-		String str0((I8)-100);
-		String str1((U8)255);
-		String str2((I16)-10000);
-		String str3((U16)65535);
-		String str4((I32)-12312512);
-		String str5((U32)12312512);
-		String str6((I64)-232412516242);
-		String str7((U64)232412516242);
+		String str0("asdasdasd{}adsasd{}asfasf");
+		String str1("asdasdasd{----}adsa{----}sdasfasf");
 
-		I8 b0 = str0.ToI8();
-		U8 b1 = str1.ToU8();
-		I16 b2 = str2.ToI16();
-		U16 b3 = str3.ToU16();
-		I32 b4 = str4.ToI32();
-		U32 b5 = str5.ToU32();
-		I64 b6 = str6.ToI64();
-		U64 b7 = str7.ToU64();
+		str0.ReplaceN("{}", "Hello", 1);
+		str1.ReplaceN("{----}", "{}", 2, 17);
+
 		BreakPoint;
 	}
 	t0.Stop();

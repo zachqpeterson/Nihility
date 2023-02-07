@@ -130,9 +130,12 @@ public:
 	const char* rend() const;
 
 private:
+	void Format(U64& start, const String& replace);
+
 	U64 length;
 	char* str;
 
+#pragma region THREE_DIGIT_NUMBERS
 	static inline constexpr const char* THREE_DIGIT_NUMBERS =
 		"000001002003004005006007008009010011012013014015016017018019"
 		"020021022023024025026027028029030031032033034035036037038039"
@@ -184,6 +187,7 @@ private:
 		"940941942943944945946947948949950951952953954955956957958959"
 		"960961962963964965966967968969970971972973974975976977978979"
 		"980981982983984985986987988989990991992993994995996997998999";
+#pragma endregion
 };
 
 inline String::String() : length{ 0 }, str{ (char*)Memory::Allocate1kb() } {}
@@ -919,12 +923,46 @@ inline U64 String::ToU64()
 
 inline F32 String::ToF32()
 {
+	char* it = str;
+	char c;
+	F32 value = 0.0f;
+	F32 mul = 0.1f;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+	}
+
+	return value;
 }
 
 inline F64 String::ToF64()
 {
+	char* it = str;
+	char c;
+	F64 value = 0.0f;
+	F64 mul = 0.1f;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+	}
+
+	return value;
 }
 
 inline bool String::ToBool()
@@ -1265,52 +1303,166 @@ inline String::operator const char* () const { return str; }
 
 inline String::operator I8() const
 {
+	char* it = str;
+	char c;
+	I8 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline String::operator U8() const
 {
-	
+	char* it = str;
+	char c;
+	U8 value = 0;
+
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline String::operator I16() const
 {
+	char* it = str;
+	char c;
+	I16 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline String::operator U16() const
 {
+	char* it = str;
+	char c;
+	U16 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline String::operator I32() const
 {
+	char* it = str;
+	char c;
+	I32 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline String::operator U32() const
 {
+	char* it = str;
+	char c;
+	U32 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline String::operator I64() const
 {
+	char* it = str;
+	char c;
+	I64 value = 0;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	}
+
+	return value;
 }
 
 inline String::operator U64() const
 {
+	char* it = str;
+	char c;
+	U64 value = 0;
 
+	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+
+	return value;
 }
 
 inline String::operator F32() const
 {
+	char* it = str;
+	char c;
+	F32 value = 0.0f;
+	F32 mul = 0.1f;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+	}
+
+	return value;
 }
 
 inline String::operator F64() const
 {
+	char* it = str;
+	char c;
+	F64 value = 0.0f;
+	F64 mul = 0.1f;
 
+	if (*str == '-')
+	{
+		++it;
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+	}
+	else
+	{
+		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+	}
+
+	return value;
 }
 
 inline String::operator bool() const
@@ -1519,23 +1671,74 @@ inline String& String::Insert(const String& other, U32 i)
 
 inline String& String::ReplaceAll(const String& find, const String& replace, U64 start)
 {
+	char* c = str + start;
+	char ch = *c;
+	while (ch != '\0')
+	{
+		while ((ch = *c) != '\0' && memcmp(c, find.str, find.length)) { ++c; }
 
+		if (ch != '\0')
+		{
+			memcpy(c + replace.length, c + find.length, length - find.length - (c - str));
+			memcpy(c, replace.str, replace.length);
+			length = length - find.length + replace.length;
+			str[length] = '\0';
+		}
+	}
 
 	return *this;
 }
 
 inline String& String::ReplaceN(const String& find, const String& replace, U64 count, U64 start)
 {
+	char* c = str + start;
+	char ch = *c;
+	while (ch != '\0' && count)
+	{
+		while ((ch = *c) != '\0' && memcmp(c, find.str, find.length)) { ++c; }
 
+		if (ch != '\0')
+		{
+			--count;
+			memcpy(c + replace.length, c + find.length, length - find.length - (c - str));
+			memcpy(c, replace.str, replace.length);
+			length = length - find.length + replace.length;
+			str[length] = '\0';
+		}
+	}
 
 	return *this;
 }
 
 inline String& String::ReplaceFirst(const String& find, const String& replace, U64 start)
 {
+	char* c = str + start;
+	while (*c != '\0' && memcmp(c, find.str, find.length)) { ++c; }
 
+	if (*c != '\0')
+	{
+		memcpy(c + replace.length, c + find.length, length - find.length - (c - str));
+		memcpy(c, replace.str, replace.length);
+		length = length - find.length + replace.length;
+		str[length] = '\0';
+	}
 
 	return *this;
+}
+
+inline void String::Format(U64& start, const String& replace)
+{
+	char* c = str + start;
+	while (*c != '\0' && memcmp(c, "{}", 2)) { ++c; }
+
+	if (*c != '\0')
+	{
+		start = (c - str) + replace.length;
+		memcpy(c + replace.length, c + 2, length - 2 - (c - str));
+		memcpy(c, replace.str, replace.length);
+		length = length - 2 + replace.length;
+		str[length] = '\0';
+	}
 }
 
 //inline Vector<String> String::Split(U8 delimiter, bool trimEntries) const
