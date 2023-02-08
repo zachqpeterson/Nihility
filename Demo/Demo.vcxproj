@@ -84,9 +84,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Containers\Containers.vcxproj">
-      <Project>{56a07b6a-b13e-49eb-9580-f12a3144e6f2}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\Nihility.vcxproj">
       <Project>{88f7f459-eda9-4f25-97ca-460e8d710021}</Project>
     </ProjectReference>

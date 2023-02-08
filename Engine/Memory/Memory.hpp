@@ -21,14 +21,22 @@ public:
 	/// <summary>
 	/// Allocates a block of memory, prefer to use Allocate1kb, Allocate16kb, Allocate256kb, Allocate1mb
 	/// </summary>
-	/// <param name="size">Size size in bytes to allocate</param>
+	/// <param name="size:">The size in bytes to allocate</param>
 	/// <returns>The pointer to the allocated block of memory</returns>
 	static void* Allocate(U64 size);
 
 	/// <summary>
+	/// Allocates a block of memory and gives the actual size of the allocation, prefer to use Allocate1kb, Allocate16kb, Allocate256kb, Allocate1mb
+	/// </summary>
+	/// <param name="size:">The size in bytes to allocate</param>
+	/// <param name="outSize:">The size variable to set</param>
+	/// <returns>The pointer to the allocated block of memory</returns>
+	static void* Allocate(U64 size, U64& outSize);
+
+	/// <summary>
 	/// Frees a block of memory, prefer to use Free1kb, Free16kb, Free256kb, Free1mb
 	/// </summary>
-	/// <param name="ptr">The pointer to the allocated block of memory to free</param>
+	/// <param name="ptr:">The pointer to the allocated block of memory to free</param>
 	static void Free(void* ptr);
 
 	/// <summary>
@@ -39,10 +47,18 @@ public:
 	template<typename T> static T* Allocate();
 
 	/// <summary>
+	/// Allocates a block of memory of size sizeof(T), gives the actual size of the allocation
+	/// </summary>
+	/// <param name="outSize:">The size variable to set</param>
+	/// <typeparam name="T">The type to allocate</typeparam>
+	/// <returns>The pointer to the allocated block of memory</returns>
+	template<typename T> static T* Allocate(U64& outSize);
+
+	/// <summary>
 	/// Frees a block of memory of size sizeof(T)
 	/// </summary>
 	/// <typeparam name="T">The type to free</typeparam>
-	/// <param name="ptr">The pointer to the allocated block of memory to free</param>
+	/// <param name="ptr:">The pointer to the allocated block of memory to free</param>
 	template<typename T> static void Free(T* ptr);
 
 
@@ -76,25 +92,25 @@ public:
 	/// <summary>
 	/// Free a 1kb block of memory
 	/// </summary>
-	/// <param name="ptr">The pointer to the block of memory to free</param>
+	/// <param name="ptr:">The pointer to the block of memory to free</param>
 	static void Free1kb(void* ptr);
 
 	/// <summary>
 	/// Free a 16kb block of memory
 	/// </summary>
-	/// <param name="ptr">The pointer to the block of memory to free</param>
+	/// <param name="ptr::">The pointer to the block of memory to free</param>
 	static void Free16kb(void* ptr);
 
 	/// <summary>
 	/// Free a 256kb block of memory
 	/// </summary>
-	/// <param name="ptr">The pointer to the block of memory to free</param>
+	/// <param name="ptr::">The pointer to the block of memory to free</param>
 	static void Free256kb(void* ptr);
 
 	/// <summary>
 	/// Free a 1mb block of memory
 	/// </summary>
-	/// <param name="ptr">The pointer to the block of memory to free</param>
+	/// <param name="ptr::">The pointer to the block of memory to free</param>
 	static void Free1mb(void* ptr);
 
 
@@ -102,7 +118,7 @@ public:
 	/// <summary>
 	/// Allocates a block of memory, this memory will only be freed at the end of the application
 	/// </summary>
-	/// <param name="size">The size in bytes to allocate</param>
+	/// <param name="size:">The size in bytes to allocate</param>
 	/// <returns>The pointer to the block of memory</returns>
 	static void* AllocateStatic(U64 size);
 
@@ -124,20 +140,20 @@ private:
 	static inline U8* staticPointer;
 
 	static inline Region1kb* pool1kbPointer;
-	static inline U32 last1kbFree;
 	static inline U32* free1kbIndices;
+	static inline U32 last1kbFree;
 
 	static inline Region16kb* pool16kbPointer;
-	static inline U32 last16kbFree;
 	static inline U32* free16kbIndices;
+	static inline U32 last16kbFree;
 
 	static inline Region256kb* pool256kbPointer;
-	static inline U32 last256kbFree;
 	static inline U32* free256kbIndices;
+	static inline U32 last256kbFree;
 
 	static inline Region1mb* pool1mbPointer;
-	static inline U32 last1mbFree;
 	static inline U32* free1mbIndices;
+	static inline U32 last1mbFree;
 
 	static inline bool initialized = false;
 
@@ -206,7 +222,22 @@ inline void* Memory::Allocate(U64 size)
 	else if (size <= 16384) { return pool16kbPointer + free16kbIndices[last16kbFree++]; }
 	else if (size <= 262144) { return pool256kbPointer + free256kbIndices[last256kbFree++]; }
 	else if (size <= 1048576) { return pool1mbPointer + free1mbIndices[last1mbFree++]; }
-	
+
+	BreakPoint;
+	//TODO: Log
+
+	return nullptr;
+}
+
+inline void* Memory::Allocate(U64 size, U64& outSize)
+{
+	static bool init = Initialize();
+
+	if (size <= 1024) { outSize = 1024; return pool1kbPointer + free1kbIndices[last1kbFree++]; }
+	else if (size <= 16384) { outSize = 16384; return pool16kbPointer + free16kbIndices[last16kbFree++]; }
+	else if (size <= 262144) { outSize = 262144; return pool256kbPointer + free256kbIndices[last256kbFree++]; }
+	else if (size <= 1048576) { outSize = 1048576; return pool1mbPointer + free1mbIndices[last1mbFree++]; }
+
 	BreakPoint;
 	//TODO: Log
 
@@ -220,7 +251,7 @@ inline void Memory::Free(void* ptr)
 		memset(ptr, 0, sizeof(Region1mb));
 		free1mbIndices[--last1mbFree] = U32((Region1mb*)ptr - pool1mbPointer);
 	}
-	else if(ptr >= pool256kbPointer)
+	else if (ptr >= pool256kbPointer)
 	{
 		memset(ptr, 0, sizeof(Region256kb));
 		free256kbIndices[--last256kbFree] = U32((Region256kb*)ptr - pool256kbPointer);
@@ -259,25 +290,41 @@ template<typename T> inline T* Memory::Allocate()
 	}
 }
 
+template<typename T> inline T* Memory::Allocate(U64& outSize)
+{
+	static bool init = Initialize();
+	constexpr U64 size = sizeof(T);
+
+	if (size <= 1024) { outSize = 1024; return (T*)(pool1kbPointer + free1kbIndices[last1kbFree++]); }
+	else if (size <= 16384) { outSize = 16384; return (T*)(pool16kbPointer + free16kbIndices[last16kbFree++]); }
+	else if (size <= 262144) { outSize = 262144; return (T*)(pool256kbPointer + free256kbIndices[last256kbFree++]); }
+	else if (size <= 1048576) { outSize = 1048576; return (T*)(pool1mbPointer + free1mbIndices[last1mbFree++]); }
+	else
+	{
+		BreakPoint;
+		//TODO: error, too large
+	}
+}
+
 template<typename T> inline void Memory::Free(T* ptr)
 {
 	memset(ptr, 0, sizeof(T));
 
-	if (ptr >= pool1mbPointer)
+	if (ptr >= (T*)pool1mbPointer)
 	{
-		free1mbIndices[--last1mbFree] = (Region1mb*)ptr - pool1mbPointer;
+		free1mbIndices[--last1mbFree] = (U32)((Region1mb*)ptr - pool1mbPointer);
 	}
-	else if (ptr >= pool256kbPointer)
+	else if (ptr >= (T*)pool256kbPointer)
 	{
-		free256kbIndices[--last256kbFree] = (Region256kb*)ptr - pool256kbPointer;
+		free256kbIndices[--last256kbFree] = (U32)((Region256kb*)ptr - pool256kbPointer);
 	}
-	else if (ptr >= pool16kbPointer)
+	else if (ptr >= (T*)pool16kbPointer)
 	{
-		free16kbIndices[--last16kbFree] = (Region16kb*)ptr - pool16kbPointer;
+		free16kbIndices[--last16kbFree] = (U32)((Region16kb*)ptr - pool16kbPointer);
 	}
-	else if (ptr >= pool1kbPointer)
+	else if (ptr >= (T*)pool1kbPointer)
 	{
-		free1kbIndices[--last1kbFree] = (Region1kb*)ptr - pool1kbPointer;
+		free1kbIndices[--last1kbFree] = (U32)((Region1kb*)ptr - pool1kbPointer);
 	}
 	else
 	{

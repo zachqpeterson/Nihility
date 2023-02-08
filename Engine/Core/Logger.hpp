@@ -15,7 +15,7 @@
 
 struct String;
 
-class Logger
+class NH_API Logger
 {
 public:
 	template<typename... Types> static void Fatal(const char* message, const Types&... args);

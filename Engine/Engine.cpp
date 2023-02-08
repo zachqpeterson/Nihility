@@ -5,8 +5,9 @@
 #include "Platform\Input.hpp"
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
-#include "Core\String.hpp"
-#include "Settings.hpp"
+#include "Core\Settings.hpp"
+#include "Containers\String.hpp"
+#include "Containers\Vector.hpp"
 
 #include <string>
 

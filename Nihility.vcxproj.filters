@@ -23,6 +23,9 @@
     <Filter Include="Source Files\Rendering">
       <UniqueIdentifier>{424eb8f9-f7e2-4834-833f-a345cc4d17bb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Containers">
+      <UniqueIdentifier>{5595688b-3ff6-4bd2-9887-0f6a23b23d43}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -37,9 +40,6 @@
     <ClInclude Include="Engine\Engine.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Settings.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Memory\Memory.hpp">
       <Filter>Source Files\Memory</Filter>
     </ClInclude>
@@ -52,13 +52,19 @@
     <ClInclude Include="Engine\Core\Logger.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\WString.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Core\String.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Core\File.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Vector.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\WString.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\String.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Settings.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
   </ItemGroup>

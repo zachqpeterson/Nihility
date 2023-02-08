@@ -106,23 +106,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Containers\String.hpp" />
+    <ClInclude Include="Engine\Containers\Vector.hpp" />
+    <ClInclude Include="Engine\Containers\WString.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
     <ClInclude Include="Engine\Core\Logger.hpp" />
-    <ClInclude Include="Engine\Core\String.hpp" />
+    <ClInclude Include="Engine\Core\Settings.hpp" />
     <ClInclude Include="Engine\Core\Time.hpp" />
-    <ClInclude Include="Engine\Core\WString.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
-    <ClInclude Include="Engine\Settings.hpp" />
     <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="Containers\Containers.vcxproj">
-      <Project>{56a07b6a-b13e-49eb-9580-f12a3144e6f2}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Icons.rc" />

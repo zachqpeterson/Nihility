@@ -2,7 +2,7 @@
 
 #ifdef PLATFORM_WINDOWS
 
-#include "Settings.hpp"
+#include "Core\Settings.hpp"
 
 #include <Windows.h>
 #include <hidsdi.h>

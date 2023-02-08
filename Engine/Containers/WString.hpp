@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-struct WString
+struct NH_API WString
 {
 public:
 

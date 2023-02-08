@@ -2,11 +2,10 @@
 
 #include "Defines.hpp"
 
-#include "String.hpp"
+#include "Containers\String.hpp"
+#include "Containers\Vector.hpp"
 
 #include <io.h>
-#include <fcntl.h>
-#include <stdio.h>
 
 enum FileOpenParam
 {
@@ -25,7 +24,7 @@ enum FileOpenParam
 
 //TODO: https://learn.microsoft.com/en-us/cpp/c-runtime-library/low-level-i-o?view=msvc-170
 //TODO: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/sopen-s-wsopen-s?view=msvc-170
-struct File
+struct NH_API File
 {
 public:
 	File();
@@ -37,8 +36,10 @@ public:
 	bool Open(const String& path, FileOpenParam param);
 	bool Opened() const;
 
-	bool ReadBytes(U8* bytes) const; //TODO: Vector
-	bool ReadString(String& string) const;
+	bool ReadAllBytes(U8* bytes) const;
+	bool ReadAllBytes(Vector<U8>& bytes) const;
+	bool ReadAllString(String& string) const;
+	//TODO: Read line
 
 	bool ReadU8(U8& value) const;
 	bool ReadI8(I8& value) const;
@@ -51,7 +52,8 @@ public:
 	template<typename T> bool ReadT(T& value) const;
 
 	bool Write(const String& str);
-	bool Write(U8* bytes, U64 count);// TODO: Vector version
+	bool Write(U8* bytes, U64 size);
+	bool Write(const Vector<U8>& bytes);
 
 	void Reset() const;
 	void Seek(L32 offset) const;
@@ -63,29 +65,38 @@ public:
 private:
 
 	L32 size;
-	int handle;
+	I32 handle;
 };
 
-inline File::File() : size{ 0 }, handle{ 0 } {}
+inline File::File() : size{ 0 }, handle{ -1 } {}
 
-inline File::File(const String& path, FileOpenParam param) : size{ 0 }, handle{ 0 } { _sopen_s(&handle, path.Data(), param, 64, 128); size = _lseek(handle, 0, 2); }
+inline File::File(const String& path, FileOpenParam param) : size{ 0 }, handle{ -1 } { _sopen_s(&handle, path.Data(), param, 64, 128); size = _lseek(handle, 0, 2); }
 
 inline File::~File() { Close(); }
 
-inline bool File::Open(const String& path, FileOpenParam param) { _sopen_s(&handle, path.Data(), param, 64, 128); }
+inline void File::Close() { if (handle > -1) { _close(handle); handle = -1; } }
 
-inline void File::Close() { if (handle) { _close(handle); } }
+inline bool File::Open(const String& path, FileOpenParam param) { if (handle > -1) { Close(); } _sopen_s(&handle, path.Data(), param, 64, 128); }
 
-inline bool File::Opened() const { return handle; }
+inline bool File::Opened() const { return handle > -1; }
 
-inline bool File::ReadBytes(U8* bytes) const
+inline bool File::ReadAllBytes(U8* bytes) const
 {
-
+	bytes = (U8*)Memory::Allocate(size);
+	_read(handle, bytes, size);
 }
 
-inline bool File::ReadString(String& string) const
+inline bool File::ReadAllBytes(Vector<U8>& bytes) const
 {
+	bytes.Resize(size);
+	return _read(handle, bytes.Data(), size) > 0;
+}
 
+inline bool File::ReadAllString(String& string) const
+{
+	string.Reserve(size);
+	string.SetSize(size);
+	return _read(handle, string.Data(), size) > 0;
 }
 
 inline bool File::ReadU8(U8& value) const { return _read(handle, &value, sizeof(U8)) > 0; }
@@ -105,6 +116,10 @@ inline bool File::ReadU64(U64& value) const { return _read(handle, &value, sizeo
 inline bool File::ReadI64(I64& value) const { return _read(handle, &value, sizeof(I64)) > 0; }
 
 template<typename T> inline bool File::ReadT(T& value) const { return _read(handle, &value, sizeof(T)) > 0; }
+
+inline bool File::Write(const String& str) { _write(handle, str.Data(), str.Size()); }
+
+inline bool File::Write(U8* bytes, U64 size) { _write(handle, bytes, size); }
 
 inline void File::Reset() const { _lseek(handle, 0, 0); }
 
