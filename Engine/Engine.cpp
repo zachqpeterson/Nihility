@@ -9,8 +9,6 @@
 #include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
 
-#include <string>
-
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
 ShutdownFn Engine::GameShutdown;

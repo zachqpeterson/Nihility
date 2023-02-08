@@ -22,8 +22,8 @@ enum FileOpenParam
 	FILE_OPEN_TEXT_WRITE_APPEND = 16425,
 };
 
-//TODO: https://learn.microsoft.com/en-us/cpp/c-runtime-library/low-level-i-o?view=msvc-170
-//TODO: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/sopen-s-wsopen-s?view=msvc-170
+//https://learn.microsoft.com/en-us/cpp/c-runtime-library/low-level-i-o?view=msvc-170
+//https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/sopen-s-wsopen-s?view=msvc-170
 struct NH_API File
 {
 public:
@@ -94,8 +94,7 @@ inline bool File::ReadAllBytes(Vector<U8>& bytes) const
 
 inline bool File::ReadAllString(String& string) const
 {
-	string.Reserve(size);
-	string.SetSize(size);
+	string.Resize(size);
 	return _read(handle, string.Data(), size) > 0;
 }
 
@@ -120,6 +119,8 @@ template<typename T> inline bool File::ReadT(T& value) const { return _read(hand
 inline bool File::Write(const String& str) { _write(handle, str.Data(), str.Size()); }
 
 inline bool File::Write(U8* bytes, U64 size) { _write(handle, bytes, size); }
+
+inline bool File::Write(const Vector<U8>& bytes) { _write(handle, bytes.Data(), bytes.Size()); }
 
 inline void File::Reset() const { _lseek(handle, 0, 0); }
 

@@ -3,7 +3,15 @@
 #include "Defines.hpp"
 
 #include "Memory\Memory.hpp"
+#include "Vector.hpp"
 
+/*
+* TODO: Documentation
+* 
+* TODO: Predicates / regex?
+* 
+* TODO: Count of a character
+*/
 struct NH_API String
 {
 public:
@@ -109,8 +117,8 @@ public:
 	bool CompareN(const char* other, U32 nLength, U32 start = 0) const;
 	bool CompareN(const String& other, U32 nLength, U32 start = 0) const;
 
-	void SetSize(U64 size);
 	const U64& Size() const;
+	const U64& Capacity() const;
 	char* Data();
 	const char* Data() const;
 	bool Blank() const;
@@ -124,7 +132,7 @@ public:
 	String& ReplaceAll(const String& find, const String& replace, U64 start = 0);
 	String& ReplaceN(const String& find, const String& replace, U64 count, U64 start = 0);
 	String& ReplaceFirst(const String& find, const String& replace, U64 start = 0);
-	//Vector<String> Split(U8 delimiter, bool trimEntries) const;
+	void Split(Vector<String>& list, U8 delimiter, bool trimEntries) const;
 
 	char* begin();
 	char* end();
@@ -1607,13 +1615,9 @@ inline bool String::CompareN(const String& other, U32 nLength, U32 start) const
 	return memcmp(str + start, other.str, nLength) == 0;
 }
 
-inline void String::SetSize(U64 size)
-{
-	size = size;
-	str[size] = '\0';
-}
-
 inline const U64& String::Size() const { return size; }
+
+inline const U64& String::Capacity() const { return capacity; }
 
 inline char* String::Data() { return str; }
 
@@ -1764,6 +1768,11 @@ inline String& String::ReplaceFirst(const String& find, const String& replace, U
 	}
 
 	return *this;
+}
+
+inline void String::Split(Vector<String>& list, U8 delimiter, bool trimEntries) const
+{
+
 }
 
 inline void String::Format(U64& start, const String& replace)
