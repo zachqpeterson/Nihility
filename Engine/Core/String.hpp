@@ -804,6 +804,7 @@ inline void String::Destroy()
 	{
 		length = 0;
 		Memory::Free1kb(str);
+		str = nullptr;
 	}
 }
 

@@ -37,7 +37,7 @@ public:
 	bool Open(const String& path, FileOpenParam param);
 	bool Opened() const;
 
-	bool ReadBytes(U8* bytes) const;
+	bool ReadBytes(U8* bytes) const; //TODO: Vector
 	bool ReadString(String& string) const;
 
 	bool ReadU8(U8& value) const;
@@ -49,6 +49,9 @@ public:
 	bool ReadU64(U64& value) const;
 	bool ReadI64(I64& value) const;
 	template<typename T> bool ReadT(T& value) const;
+
+	bool Write(const String& str);
+	bool Write(U8* bytes, U64 count);// TODO: Vector version
 
 	void Reset() const;
 	void Seek(L32 offset) const;
