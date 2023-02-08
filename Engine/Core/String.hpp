@@ -107,6 +107,8 @@ public:
 	bool CompareN(const String& other, U32 lenth, U32 start = 0) const;
 
 	const U64& Length() const;
+	char* Data();
+	const char* Data() const;
 	bool Blank() const;
 	I32 IndexOf(char c, U64 start = 0) const;
 	String& Trim();
@@ -1581,6 +1583,10 @@ inline bool String::CompareN(const String& other, U32 nLength, U32 start) const
 }
 
 inline const U64& String::Length() const { return length; }
+
+inline char* String::Data() { return str; }
+
+inline const char* String::Data() const { return str; }
 
 inline bool String::Blank() const
 {
