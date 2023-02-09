@@ -29,6 +29,13 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
+	Logger::Fatal("Test");
+	Logger::Error("Test");
+	Logger::Warn("Test");
+	Logger::Info("Test");
+	Logger::Debug("Test");
+	Logger::Trace("Test");
+
 	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
 
 	ASSERT(Platform::Initialize(applicationName));

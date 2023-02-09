@@ -67,6 +67,9 @@
     <ClInclude Include="Engine\Core\Settings.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Platform\Jobs.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor.cur">
@@ -95,9 +98,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Platform\Input.cpp">
       <Filter>Source Files\Platform</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Logger.cpp">
-      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

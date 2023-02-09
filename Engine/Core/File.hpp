@@ -63,9 +63,14 @@ public:
 	L32 Size() const;
 
 private:
+	void OpenInput();
+	void OpenOutput();
+	void OpenError();
 
 	L32 size;
 	I32 handle;
+
+	friend class Logger;
 };
 
 inline File::File() : size{ 0 }, handle{ -1 } {}
@@ -76,7 +81,13 @@ inline File::~File() { Close(); }
 
 inline void File::Close() { if (handle > -1) { _close(handle); handle = -1; } }
 
-inline bool File::Open(const String& path, FileOpenParam param) { if (handle > -1) { Close(); } _sopen_s(&handle, path.Data(), param, 64, 128); }
+inline bool File::Open(const String& path, FileOpenParam param) { if (handle > -1) { Close(); } _sopen_s(&handle, path.Data(), param, 64, 128); return handle > -1; }
+
+inline void File::OpenInput() { handle = 0; }
+
+inline void File::OpenOutput() { handle = 1; }
+
+inline void File::OpenError() { handle = 2; }
 
 inline bool File::Opened() const { return handle > -1; }
 
@@ -116,11 +127,11 @@ inline bool File::ReadI64(I64& value) const { return _read(handle, &value, sizeo
 
 template<typename T> inline bool File::ReadT(T& value) const { return _read(handle, &value, sizeof(T)) > 0; }
 
-inline bool File::Write(const String& str) { _write(handle, str.Data(), str.Size()); }
+inline bool File::Write(const String& str) { return _write(handle, str.Data(), (U32)str.Size()); }
 
-inline bool File::Write(U8* bytes, U64 size) { _write(handle, bytes, size); }
+inline bool File::Write(U8* bytes, U64 size) { return _write(handle, bytes, (U32)size); }
 
-inline bool File::Write(const Vector<U8>& bytes) { _write(handle, bytes.Data(), bytes.Size()); }
+inline bool File::Write(const Vector<U8>& bytes) { return _write(handle, bytes.Data(), (U32)bytes.Size()); }
 
 inline void File::Reset() const { _lseek(handle, 0, 0); }
 

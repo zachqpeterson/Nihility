@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 
 #include <string.h>
+#include <stdlib.h>
 
 #define STATIC_SIZE 1073741824
 #define DYNAMIC_SIZE 1073741824

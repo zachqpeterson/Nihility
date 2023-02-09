@@ -117,6 +117,7 @@
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
+    <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
@@ -131,7 +132,6 @@
     <Image Include="icon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />

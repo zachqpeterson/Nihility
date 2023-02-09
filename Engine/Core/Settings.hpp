@@ -12,13 +12,6 @@ private:
 	static inline F32 SFX_VOLUME = 1.0f;
 
 	//GRAPHICS
-	static inline bool FOCUSED = true;
-	static inline bool MINIMISED = true;
-	static inline bool FULLSCREEN = false;
-	static inline bool LOCK_CURSOR = false;
-	static inline bool HIDE_CURSOR = false;
-	static inline bool CONSTRAIN_CURSOR = false;
-	static inline U32 DPI = 192; //TODO: temp, don't leave it at 200%
 	static inline U32 WINDOW_WIDTH = 0;
 	static inline U32 WINDOW_HEIGHT = 0;
 	static inline U32 WINDOW_WIDTH_SMALL = 1280;
@@ -31,8 +24,18 @@ private:
 	static inline U32 SCREEN_HEIGHT = 0;
 	static inline F64 TARGET_FRAMETIME = 0.0;
 	static inline F64 TARGET_FRAMETIME_SUSPENDED = 10.0;
-	static inline F64 MONITOR_HZ = 0.0;
 	static inline U8 MSAA_COUNT = 1;
+
+	//PLATFORM
+	static inline U32 DPI = 192; //TODO: temp, don't leave it at 200%
+	static inline F64 MONITOR_HZ = 0.0;
+	static inline bool FOCUSED = true;
+	static inline bool MINIMISED = true;
+	static inline bool FULLSCREEN = false;
+	static inline bool LOCK_CURSOR = false;
+	static inline bool HIDE_CURSOR = false;
+	static inline bool CONSTRAIN_CURSOR = false;
+	static inline bool MULTITHREADED = true;
 
 public:
 	static inline const U8& ChannelCount = CHANNEL_COUNT;
@@ -40,13 +43,6 @@ public:
 	static inline const F32& MusicVolume = MUSIC_VOLUME;
 	static inline const F32& SfxVolume = SFX_VOLUME;
 
-	static inline const bool& Focused = FOCUSED;
-	static inline const bool& Minimised = MINIMISED;
-	static inline const bool& Fullscreen = FULLSCREEN;
-	static inline const bool& LockCursor = LOCK_CURSOR;
-	static inline const bool& HideCursor = HIDE_CURSOR;
-	static inline const bool& ConstrainCursor = CONSTRAIN_CURSOR;
-	static inline const U32& Dpi = DPI;
 	static inline const U32& WindowWidth = WINDOW_WIDTH;
 	static inline const U32& WindowHeight = WINDOW_HEIGHT;
 	static inline const U32& WindowWidthSmall = WINDOW_WIDTH_SMALL;
@@ -59,8 +55,17 @@ public:
 	static inline const U32& ScreenHeight = SCREEN_HEIGHT;
 	static inline const F64& TargetFrametime = TARGET_FRAMETIME;
 	static inline const F64& TargetFrametimeSuspended = TARGET_FRAMETIME_SUSPENDED;
-	static inline const F64& MonitorHz = MONITOR_HZ;
 	static inline const U8& MSAACount = MSAA_COUNT;
+
+	static inline const U32& Dpi = DPI;
+	static inline const F64& MonitorHz = MONITOR_HZ;
+	static inline const bool& Focused = FOCUSED;
+	static inline const bool& Minimised = MINIMISED;
+	static inline const bool& Fullscreen = FULLSCREEN;
+	static inline const bool& LockCursor = LOCK_CURSOR;
+	static inline const bool& HideCursor = HIDE_CURSOR;
+	static inline const bool& ConstrainCursor = CONSTRAIN_CURSOR;
+	static inline const bool& Multithreaded = MULTITHREADED;
 
 	friend class Platform;
 };

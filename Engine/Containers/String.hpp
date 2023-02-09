@@ -7,9 +7,9 @@
 
 /*
 * TODO: Documentation
-* 
+*
 * TODO: Predicates / regex?
-* 
+*
 * TODO: Count of a character
 */
 struct NH_API String
@@ -460,17 +460,17 @@ inline String::String(bool value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Mem
 	}
 }
 
-inline String::String(char* str) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(char* str) : size{ strlen(str) }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
 {
 	memcpy(this->str, str, size + 1);
 }
 
-inline String::String(const char* str) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(const char* str) : size{ strlen(str) }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
 {
 	memcpy(this->str, str, size + 1);
 }
 
-inline String::String(const String& other) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(const String& other) : size{ other.size }, capacity{ other.capacity }, str{ (char*)Memory::Allocate(capacity) }
 {
 	memcpy(str, other.str, size + 1);
 }
@@ -1662,7 +1662,7 @@ inline String& String::Trim()
 
 inline String& String::SubString(String& newStr, U64 start, U64 nLength) const
 {
-	if(nLength < U64_MAX) { newStr.size = nLength; }
+	if (nLength < U64_MAX) { newStr.size = nLength; }
 	else { newStr.size = size - start; }
 
 	memcpy(newStr.str, str + start, newStr.size);
