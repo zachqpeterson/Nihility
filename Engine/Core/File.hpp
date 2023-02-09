@@ -52,8 +52,8 @@ public:
 	template<typename T> bool ReadT(T& value) const;
 
 	bool Write(const String& str);
-	bool Write(U8* bytes, U64 size);
 	bool Write(const Vector<U8>& bytes);
+	bool Write(U8* bytes, U64 size);
 
 	void Reset() const;
 	void Seek(L32 offset) const;
