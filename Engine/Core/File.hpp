@@ -83,7 +83,7 @@ inline bool File::Opened() const { return handle > -1; }
 inline bool File::ReadAllBytes(U8* bytes) const
 {
 	bytes = (U8*)Memory::Allocate(size);
-	_read(handle, bytes, size);
+	return _read(handle, bytes, size) > 0;
 }
 
 inline bool File::ReadAllBytes(Vector<U8>& bytes) const
