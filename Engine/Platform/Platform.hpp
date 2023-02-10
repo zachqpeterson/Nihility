@@ -33,7 +33,7 @@ private:
 	static void Shutdown();
 	static bool Update();
 
-	static void SleepFor(U64 ns); //TODO: specify thread, probably put in a multithreading handler
+	static void SleepFor(U64 ns); //TODO: Move to Jobs
 
 	static void UpdateMouse();
 
