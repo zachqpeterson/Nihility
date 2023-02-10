@@ -13,7 +13,6 @@ struct WindowData
 /*
 * TODO: Change cursor image (maybe define regions where the cursor changes)
 * TODO: Load cursors and icons from a folder: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadimagew
-* TODO: Multithread message loop
 * TODO: Handle copy and pasting: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboarddata?redirectedfrom=MSDN, https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
 */
 class NH_API Platform
@@ -31,9 +30,7 @@ public:
 private:
 	static bool Initialize(const W16* applicationName);
 	static void Shutdown();
-	static bool Update();
-
-	static void SleepFor(U64 ns); //TODO: Move to Jobs
+	static void Update();
 
 	static void UpdateMouse();
 

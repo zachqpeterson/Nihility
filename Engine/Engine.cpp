@@ -3,6 +3,7 @@
 #include "Memory\Memory.hpp"
 #include "Platform\Platform.hpp"
 #include "Platform\Input.hpp"
+#include "Platform\Jobs.hpp"
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
 #include "Core\Settings.hpp"
@@ -38,13 +39,16 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 
 	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
 
+	ASSERT(Jobs::Initialize());
 	ASSERT(Platform::Initialize(applicationName));
 
 	ASSERT(Input::Initialize());
 
 	ASSERT(GameInit());
 
-	UpdateLoop();
+	Jobs::StartJob({ UpdateLoop, nullptr });
+
+	Platform::Update();
 
 	Shutdown();
 }
@@ -56,15 +60,13 @@ void Engine::Shutdown()
 	Platform::Shutdown();
 }
 
-void Engine::UpdateLoop()
+bool Engine::UpdateLoop(void*)
 {
 	while (running)
 	{
 		Time::Update();
 
-		if (!Platform::Update()) { running = false; break; }
-
-		Input::Update();
+		Input::Update(); //TODO: Run on separate thread
 		//Physics::Update();
 		GameUpdate();
 		//UI::Update();
@@ -77,14 +79,17 @@ void Engine::UpdateLoop()
 			F64 remainingFrameTime = Settings::TargetFrametime - Time::FrameUpTime();
 			U64 remainingNS = (U64)(remainingFrameTime * 10000000.0);
 
-			if (remainingNS > 0) { Platform::SleepFor(remainingNS - 5750); }
+			if (remainingNS > 0) { Jobs::SleepFor(remainingNS - 5750); }
 		}
 		else
 		{
 			F64 remainingFrameTime = Settings::TargetFrametimeSuspended - Time::FrameUpTime();
 			U64 remainingNS = (U64)(remainingFrameTime * 10000000.0);
 
-			if (remainingNS > 0) { Platform::SleepFor(remainingNS - 5750); }
+			if (remainingNS > 0) { Jobs::SleepFor(remainingNS - 5750); }
 		}
 	}
+
+	return true;
 }
+

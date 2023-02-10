@@ -106,6 +106,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Containers\Queue.hpp" />
+    <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\String.hpp" />
     <ClInclude Include="Engine\Containers\Vector.hpp" />
     <ClInclude Include="Engine\Containers\WString.hpp" />
@@ -134,7 +136,6 @@
   <ItemGroup>
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
-    <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

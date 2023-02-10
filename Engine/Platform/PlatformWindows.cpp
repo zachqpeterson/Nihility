@@ -3,12 +3,10 @@
 #ifdef PLATFORM_WINDOWS
 
 #include "Core\Settings.hpp"
+#include "Core\Logger.hpp"
 
 #include <Windows.h>
 #include <hidsdi.h>
-
-static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
-static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
 
 bool Platform::running;
 WindowData Platform::windowData;
@@ -28,8 +26,6 @@ static constexpr const W16* CLASS_NAME = L"Nihility Class";
 
 bool Platform::Initialize(const W16* applicationName)
 {
-	ULONG actualResolution;
-	ZwSetTimerResolution(1, true, &actualResolution);
 	windowData.instance = GetModuleHandleW(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
@@ -120,22 +116,25 @@ void Platform::Shutdown()
 	{
 		DestroyWindow(windowData.window);
 		windowData.window = nullptr;
+
+		UnregisterClassW(CLASS_NAME, windowData.instance);
 	}
 }
 
-bool Platform::Update()
+void Platform::Update()
 {
 	MSG message;
 
-	while (PeekMessageW(&message, windowData.window, 0, 0, PM_REMOVE))
+	while (running)
 	{
-		TranslateMessage(&message);
-		DispatchMessageW(&message);
+		while (PeekMessageW(&message, windowData.window, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&message);
+			DispatchMessageW(&message);
+		}
+
+		UpdateMouse();
 	}
-
-	UpdateMouse();
-
-	return running;
 }
 
 void Platform::SetFullscreen(bool fullscreen)
@@ -202,13 +201,6 @@ void Platform::LockCursor(bool lock)
 	Settings::LOCK_CURSOR = lock;
 }
 
-void Platform::SleepFor(U64 ns)
-{
-	LARGE_INTEGER interval;
-	interval.QuadPart = -1 * (I32)(ns);
-	NtDelayExecution(false, &interval);
-}
-
 const WindowData& Platform::GetWindowData()
 {
 	return windowData;
@@ -256,7 +248,7 @@ void Platform::UpdateMouse()
 	}
 }
 
-I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam) //TODO: Separate thread?
+I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam)
 {
 	switch (msg)
 	{
