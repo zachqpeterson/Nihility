@@ -5,11 +5,11 @@
 //TODO: Take in any amount of args
 struct Job
 {
-	typedef bool(*JobFunc)(void*);
+	typedef void(*JobFunc)(void*);
 
 	Job(JobFunc func, void* data) : func{ func }, data{ data } {}
 
-	bool Execute() { return func(data); }
+	void Execute() { return func(data); }
 
 	JobFunc func;
 	void* data;

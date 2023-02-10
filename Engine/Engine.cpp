@@ -60,7 +60,7 @@ void Engine::Shutdown()
 	Platform::Shutdown();
 }
 
-bool Engine::UpdateLoop(void*)
+void Engine::UpdateLoop(void*)
 {
 	while (running)
 	{
@@ -89,7 +89,5 @@ bool Engine::UpdateLoop(void*)
 			if (remainingNS > 0) { Jobs::SleepFor(remainingNS - 5750); }
 		}
 	}
-
-	return true;
 }
 
