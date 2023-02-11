@@ -121,20 +121,19 @@ void Platform::Shutdown()
 	}
 }
 
-void Platform::Update()
+bool Platform::Update()
 {
 	MSG message;
 
-	while (running)
+	while (PeekMessageW(&message, windowData.window, 0, 0, PM_REMOVE))
 	{
-		while (PeekMessageW(&message, windowData.window, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&message);
-			DispatchMessageW(&message);
-		}
-
-		UpdateMouse();
+		TranslateMessage(&message);
+		DispatchMessageW(&message);
 	}
+
+	UpdateMouse();
+
+	return running;
 }
 
 void Platform::SetFullscreen(bool fullscreen)
@@ -279,10 +278,10 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		rid[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
 		rid[3].dwFlags = RIDEV_NOLEGACY | RIDEV_DEVNOTIFY;
 		rid[3].hwndTarget = windowData.window;
-		
-		if (!RegisterRawInputDevices(rid, 4, sizeof(RAWINPUTDEVICE))) 
-		{ 
-			DWORD d = GetLastError(); 
+
+		if (!RegisterRawInputDevices(rid, 4, sizeof(RAWINPUTDEVICE)))
+		{
+			DWORD d = GetLastError();
 			return -1;
 		}
 	} return 0;

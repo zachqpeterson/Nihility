@@ -12,7 +12,7 @@ public:
 	static void Initialize(const W16* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown);
 
 private:
-	static void UpdateLoop(void*);
+	static void UpdateLoop();
 	static void Shutdown();
 
 	static InitializeFn GameInit;

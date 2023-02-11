@@ -8,6 +8,11 @@ struct Queue
 public:
 	Queue();
 	Queue(U64 capacity);
+	Queue(const Queue& other);
+	Queue(Queue&& other);
+
+	Queue& operator=(const Queue& other);
+	Queue& operator=(Queue&& other);
 
 	~Queue();
 	void Destroy();

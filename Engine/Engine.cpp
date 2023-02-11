@@ -41,14 +41,11 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 
 	ASSERT(Jobs::Initialize());
 	ASSERT(Platform::Initialize(applicationName));
-
 	ASSERT(Input::Initialize());
 
 	ASSERT(GameInit());
 
-	Jobs::StartJob({ UpdateLoop, nullptr });
-
-	Platform::Update();
+	UpdateLoop();
 
 	Shutdown();
 }
@@ -60,11 +57,13 @@ void Engine::Shutdown()
 	Platform::Shutdown();
 }
 
-void Engine::UpdateLoop(void*)
+void Engine::UpdateLoop()
 {
 	while (running)
 	{
 		Time::Update();
+
+		if (!Platform::Update()) { break; } //TODO: Run on separate thread
 
 		Input::Update(); //TODO: Run on separate thread
 		//Physics::Update();

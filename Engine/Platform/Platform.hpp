@@ -30,7 +30,7 @@ public:
 private:
 	static bool Initialize(const W16* applicationName);
 	static void Shutdown();
-	static void Update();
+	static bool Update();
 
 	static void UpdateMouse();
 
