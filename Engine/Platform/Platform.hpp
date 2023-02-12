@@ -14,6 +14,7 @@ struct WindowData
 * TODO: Change cursor image (maybe define regions where the cursor changes)
 * TODO: Load cursors and icons from a folder: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadimagew
 * TODO: Handle copy and pasting: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboarddata?redirectedfrom=MSDN, https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
+* TODO: Don't freeze the program when resizing
 */
 class NH_API Platform
 {

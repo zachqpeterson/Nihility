@@ -68,7 +68,8 @@ inline void Jobs::Update()
 
 inline bool Jobs::StartJob(Job job)
 {
-	return _beginthreadex(nullptr, 0, StartThread, &job, 0, nullptr);
+	U32 id;
+	return _beginthreadex(nullptr, 0, StartThread, &job, 0, &id);
 }
 
 inline void Jobs::SleepFor(U64 ns)
