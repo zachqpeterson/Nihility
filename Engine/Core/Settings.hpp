@@ -29,13 +29,13 @@ private:
 	//PLATFORM
 	static inline U32 DPI = 192; //TODO: temp, don't leave it at 200%
 	static inline F64 MONITOR_HZ = 0.0;
+	static inline U32 THREAD_COUNT = 1;
 	static inline bool FOCUSED = true;
 	static inline bool MINIMISED = true;
 	static inline bool FULLSCREEN = false;
 	static inline bool LOCK_CURSOR = false;
 	static inline bool HIDE_CURSOR = false;
 	static inline bool CONSTRAIN_CURSOR = false;
-	static inline bool MULTITHREADED = true;
 
 public:
 	static inline const U8& ChannelCount = CHANNEL_COUNT;
@@ -59,13 +59,14 @@ public:
 
 	static inline const U32& Dpi = DPI;
 	static inline const F64& MonitorHz = MONITOR_HZ;
+	static inline const U32& ThreadCount = THREAD_COUNT;
 	static inline const bool& Focused = FOCUSED;
 	static inline const bool& Minimised = MINIMISED;
 	static inline const bool& Fullscreen = FULLSCREEN;
 	static inline const bool& LockCursor = LOCK_CURSOR;
 	static inline const bool& HideCursor = HIDE_CURSOR;
 	static inline const bool& ConstrainCursor = CONSTRAIN_CURSOR;
-	static inline const bool& Multithreaded = MULTITHREADED;
 
 	friend class Platform;
+	friend class Jobs;
 };

@@ -417,9 +417,7 @@ template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : array{ (
 
 template<typename T> inline Vector<T>::Vector(Vector<T>&& other) noexcept : array{ other.array }, size{ other.size }, capacity{ other.capacity }
 {
-	other.array = nullptr;
-	other.size = 0;
-	other.capacity = 0;
+	other.Destroy();
 }
 
 template<typename T> inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
@@ -441,9 +439,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) n
 	capacity = other.capacity;
 	array = other.array;
 
-	other.array = nullptr;
-	other.size = 0;
-	other.capacity = 0;
+	other.Destroy();
 
 	return *this;
 }

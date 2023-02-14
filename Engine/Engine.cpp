@@ -9,6 +9,7 @@
 #include "Core\Settings.hpp"
 #include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
+#include "Containers\Queue.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -16,6 +17,11 @@ ShutdownFn Engine::GameShutdown;
 
 bool Engine::running;
 bool Engine::suspended;
+
+void work(String str)
+{
+	Logger::Info(str);
+}
 
 void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
@@ -37,9 +43,23 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	Logger::Debug("Test");
 	Logger::Trace("Test");
 
+	U64 size = sizeof(Memory::Region1kb);
+
 	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
 
 	ASSERT(Jobs::Initialize());
+
+	Jobs::StartJob(work, "String 0");
+	Jobs::StartJob(work, "String 1");
+	Jobs::StartJob(work, "String 2");
+	Jobs::StartJob(work, "String 3");
+	Jobs::StartJob(work, "String 4");
+	Jobs::StartJob(work, "String 5");
+	Jobs::StartJob(work, "String 6");
+	Jobs::StartJob(work, "String 7");
+	Jobs::StartJob(work, "String 8");
+	Jobs::StartJob(work, "String 9");
+
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());
 

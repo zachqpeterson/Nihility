@@ -2,10 +2,18 @@
 
 #include "Defines.hpp"
 
-#include "Containers\Vector.hpp";
+#include "Containers\Vector.hpp"
+#include "Containers\Queue.hpp"
+#include "Containers\String.hpp"
 
-template<typename... Args>
-using Job = void(*)(Args...);
+//template<typename... Args>
+using JobFunc = void(*)(String);
+
+struct Job
+{
+	JobFunc func;
+	String param;
+};
 
 struct Thread
 {
@@ -15,13 +23,12 @@ struct Thread
 
 /*
 * TODO: Limit jobs active at once, maybe add a queue system for low priority jobs
-* TODO: Wait for seconds
 * TODO: Wait for semaphore/fence
 */
 class NH_API Jobs
 {
 public:
-	static bool StartJob();
+	static bool StartJob(JobFunc job, String str);
 	static void SleepFor(U64 ns);
 
 private:
@@ -31,9 +38,12 @@ private:
 
 #if defined PLATFORM_WINDOWS
 	static U32 __stdcall RunThread(void*);
+
+	static void* workSemaphore;
 #endif
 
 	static Vector<Thread> threads;
+	static Queue<Job> jobs;
 
 	STATIC_CLASS(Jobs);
 	friend class Engine;

@@ -64,7 +64,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>
+      <DisableSpecificWarnings>26812; 4251;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -92,7 +92,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>
+      <DisableSpecificWarnings>26812; 4251;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
