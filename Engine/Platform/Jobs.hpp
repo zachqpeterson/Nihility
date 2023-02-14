@@ -30,7 +30,9 @@ class NH_API Jobs
 public:
 	static bool StartJob(JobFunc job, void* data);
 	static bool StartJob(Job job);
-	static void SleepFor(U64 ns);
+	static void SleepForSeconds(U64 s);
+	static void SleepForMilli(U64 ms);
+	static void SleepForMicro(U64 us);
 
 private:
 	static bool Initialize();
@@ -41,6 +43,7 @@ private:
 	static U32 __stdcall RunThread(void*);
 
 	static void* workSemaphore;
+	static UL32 sleepRes;
 #endif
 
 	static Vector<Thread> threads;

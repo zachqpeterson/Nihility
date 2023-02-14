@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 
 #include "Memory\Memory.hpp"
+#include "Platform\ThreadSafety.hpp"
 
 template<typename T>
 struct Queue
@@ -22,8 +23,8 @@ public:
 	void Push(const T& value);
 	void Push(T&& value) noexcept;
 	const T& Peek() const;
-	void Pop(T& value);
-	void Pop(T&& value) noexcept;
+	bool Pop(T& value);
+	bool Pop(T&& value) noexcept;
 
 	void Reserve(U64 capacity);
 
@@ -33,10 +34,10 @@ public:
 private:
 
 	T* array;
-	U64 last;
-	U64 first;
-	U64 size;
-	U64 capacity;
+	volatile I64 last;
+	volatile I64 first;
+	volatile I64 size;
+	volatile U64 capacity;
 };
 
 template<typename T> inline Queue<T>::Queue() : array{ (T*)Memory::Allocate1kb() }, last{ 0 }, first{ 0 }, size{ 0 }, capacity{ 1024 / sizeof(T) } {}
@@ -125,18 +126,28 @@ template<typename T> inline void Queue<T>::Push(T&& value) noexcept
 
 template<typename T> inline const T& Queue<T>::Peek() const { return array[first]; }
 
-template<typename T> inline void Queue<T>::Pop(T& value)
+template<typename T> inline bool Queue<T>::Pop(T& value)
 {
-	value = array[first];
-	++first;
-	--size;
+	if (SafeDecrement(&size) >= 0)
+	{
+		value = array[SafeIncrement(&first) - 1];
+		return true;
+	}
+
+	size = 0;
+	return false;
 }
 
-template<typename T> inline void Queue<T>::Pop(T&& value) noexcept
+template<typename T> inline bool Queue<T>::Pop(T&& value) noexcept
 {
-	value = Move(array[first]);
-	++first;
-	--size;
+	if (SafeDecrement(&size) >= 0)
+	{
+		value = Move(array[SafeIncrement(&first) - 1]);
+		return true;
+	}
+
+	size = 0;
+	return false;
 }
 
 template<typename T> inline void Queue<T>::Reserve(U64 capacity)

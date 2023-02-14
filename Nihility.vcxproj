@@ -109,6 +109,7 @@
     <ClInclude Include="Engine\Containers\Queue.hpp" />
     <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\String.hpp" />
+    <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\Vector.hpp" />
     <ClInclude Include="Engine\Containers\WString.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
@@ -121,6 +122,7 @@
     <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
+    <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -135,9 +137,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
+    <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

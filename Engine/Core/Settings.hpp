@@ -23,7 +23,7 @@ private:
 	static inline U32 SCREEN_WIDTH = 0;
 	static inline U32 SCREEN_HEIGHT = 0;
 	static inline F64 TARGET_FRAMETIME = 0.0;
-	static inline F64 TARGET_FRAMETIME_SUSPENDED = 10.0;
+	static inline F64 TARGET_FRAMETIME_SUSPENDED = 0.1;
 	static inline U8 MSAA_COUNT = 1;
 
 	//PLATFORM

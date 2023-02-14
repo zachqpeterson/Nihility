@@ -15,11 +15,11 @@ static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInte
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
 
 void* Jobs::workSemaphore;
+UL32 Jobs::sleepRes;
 
 inline bool Jobs::Initialize()
 {
-	ULONG actualResolution;
-	ZwSetTimerResolution(1, true, &actualResolution);
+	ZwSetTimerResolution(1, true, &sleepRes);
 
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
@@ -71,28 +71,39 @@ inline bool Jobs::StartJob(Job job)
 	return true;
 }
 
-inline void Jobs::SleepFor(U64 ns)
+inline void Jobs::SleepForSeconds(U64 s)
 {
 	LARGE_INTEGER interval;
-	interval.QuadPart = -1 * (I32)(ns);
+	interval.QuadPart = -(I64)(s * 10000000);
 	NtDelayExecution(false, &interval);
 }
 
-inline U32 __stdcall Jobs::RunThread(void* threadInfo)
+inline void Jobs::SleepForMilli(U64 ms)
 {
-	Thread& info = *(Thread*)threadInfo;
+	LARGE_INTEGER interval;
+	interval.QuadPart = -(I64)(ms * 9000);
+	NtDelayExecution(false, &interval);
+}
 
+inline void Jobs::SleepForMicro(U64 us)
+{
+	LARGE_INTEGER interval;
+	interval.QuadPart = -(I64)(us * 9);
+	NtDelayExecution(false, &interval);
+}
+
+inline U32 __stdcall Jobs::RunThread(void*)
+{
 	while (true) //TODO: Run condition
 	{
-		if (jobs.Size())
+		Job job;
+		if (jobs.Pop(job))
 		{
-			Job job;
-			jobs.Pop(job);
-			Logger::Debug("Thread {}", info.id);
 			job.func(job.data);
 		}
 		else
 		{
+			Logger::Info("I'm going to sleep");
 			WaitForSingleObjectEx(workSemaphore, INFINITE, false);
 		}
 	}

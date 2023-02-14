@@ -3,12 +3,10 @@
 #include "Defines.hpp"
 
 #include <string.h>
-#include <stdlib.h>
 
 #define STATIC_SIZE 1073741824
 #define DYNAMIC_SIZE 1073741824
 
-//TODO: Make thread-safe
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection
 /// </summary>
@@ -135,269 +133,76 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static inline U8* memory;
-	static inline U64 totalSize;
+	static U8* memory;
+	static U64 totalSize;
 
-	static inline U64 staticSize;
-	static inline U8* staticPointer;
+	static U64 staticSize;
+	static U8* staticPointer;
 
-	static inline Region1kb* pool1kbPointer;
-	static inline U32* free1kbIndices;
-	static inline U32 last1kbFree;
+	static Region1kb* pool1kbPointer;
+	static U32* free1kbIndices;
+	static I64 last1kbFree;
 
-	static inline Region16kb* pool16kbPointer;
-	static inline U32* free16kbIndices;
-	static inline U32 last16kbFree;
+	static Region16kb* pool16kbPointer;
+	static U32* free16kbIndices;
+	static I64 last16kbFree;
 
-	static inline Region256kb* pool256kbPointer;
-	static inline U32* free256kbIndices;
-	static inline U32 last256kbFree;
+	static Region256kb* pool256kbPointer;
+	static U32* free256kbIndices;
+	static I64 last256kbFree;
 
-	static inline Region1mb* pool1mbPointer;
-	static inline U32* free1mbIndices;
-	static inline U32 last1mbFree;
+	static Region1mb* pool1mbPointer;
+	static U32* free1mbIndices;
+	static I64 last1mbFree;
 
-	static inline bool initialized = false;
+	static bool initialized;
 
 	STATIC_CLASS(Memory);
 	friend class Engine;
 };
 
-inline bool Memory::Initialize()
-{
-	if (!initialized)
-	{
-		initialized = true;
-		U64 maxKilobytes = DYNAMIC_SIZE / 1024;
-
-		U32 region1mbCount = U32(maxKilobytes / 20480);
-		U32 region256kbCount = U32(maxKilobytes * 0.15f) / 256;
-		U32 region16kbCount = U32(maxKilobytes * 0.3f) / 16;
-		U32 region1kbCount = U32(maxKilobytes - (region16kbCount * 16) - (region256kbCount * 256) - (region1mbCount * 1024));
-
-		U64 pointerToDynamic = sizeof(U32) * (region1kbCount + region16kbCount + region256kbCount + region1mbCount);
-
-		totalSize = pointerToDynamic + DYNAMIC_SIZE + STATIC_SIZE;
-
-		memory = (U8*)calloc(1, totalSize);
-
-		if (!memory) { return false; }
-
-		free1kbIndices = (U32*)memory;
-		for (U32 i = 0; i < region1kbCount; ++i) { free1kbIndices[i] = i; }
-		free16kbIndices = free1kbIndices + region1kbCount;
-		for (U32 i = 0; i < region16kbCount; ++i) { free16kbIndices[i] = i; }
-		free256kbIndices = free16kbIndices + region16kbCount;
-		for (U32 i = 0; i < region256kbCount; ++i) { free256kbIndices[i] = i; }
-		free1mbIndices = free256kbIndices + region256kbCount;
-		for (U32 i = 0; i < region1mbCount; ++i) { free1mbIndices[i] = i; }
-
-		pool1kbPointer = (Region1kb*)(free1mbIndices + region1mbCount);
-		last1kbFree = 0;
-
-		pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);
-		last16kbFree = 0;
-
-		pool256kbPointer = (Region256kb*)(pool16kbPointer + region16kbCount);
-		last256kbFree = 0;
-
-		pool1mbPointer = (Region1mb*)(pool256kbPointer + region256kbCount);
-		last1mbFree = 0;
-
-		staticPointer = (U8*)(pool1mbPointer + region1mbCount); //TODO: linear allocator should be before dynamic allocator
-		staticSize = memory - staticPointer;
-	}
-
-	return true;
-}
-
-inline void Memory::Shutdown()
-{
-	free(memory);
-}
-
-inline void* Memory::Allocate(U64 size)
-{
-	static bool init = Initialize();
-
-	if (size <= 1024) { return pool1kbPointer + free1kbIndices[last1kbFree++]; }
-	else if (size <= 16384) { return pool16kbPointer + free16kbIndices[last16kbFree++]; }
-	else if (size <= 262144) { return pool256kbPointer + free256kbIndices[last256kbFree++]; }
-	else if (size <= 1048576) { return pool1mbPointer + free1mbIndices[last1mbFree++]; }
-
-	BreakPoint;
-	//TODO: Log
-
-	return nullptr;
-}
-
-inline void* Memory::Allocate(U64 size, U64& outSize)
-{
-	static bool init = Initialize();
-
-	if (size <= 1024) { outSize = 1024; return pool1kbPointer + free1kbIndices[last1kbFree++]; }
-	else if (size <= 16384) { outSize = 16384; return pool16kbPointer + free16kbIndices[last16kbFree++]; }
-	else if (size <= 262144) { outSize = 262144; return pool256kbPointer + free256kbIndices[last256kbFree++]; }
-	else if (size <= 1048576) { outSize = 1048576; return pool1mbPointer + free1mbIndices[last1mbFree++]; }
-
-	BreakPoint;
-	//TODO: Log
-
-	return nullptr;
-}
-
-inline void Memory::Free(void* ptr)
-{
-	if (ptr >= pool1mbPointer)
-	{
-		memset(ptr, 0, sizeof(Region1mb));
-		free1mbIndices[--last1mbFree] = U32((Region1mb*)ptr - pool1mbPointer);
-	}
-	else if (ptr >= pool256kbPointer)
-	{
-		memset(ptr, 0, sizeof(Region256kb));
-		free256kbIndices[--last256kbFree] = U32((Region256kb*)ptr - pool256kbPointer);
-	}
-	else if (ptr >= pool16kbPointer)
-	{
-		memset(ptr, 0, sizeof(Region16kb));
-		free16kbIndices[--last16kbFree] = U32((Region16kb*)ptr - pool16kbPointer);
-	}
-	else if (ptr >= pool1kbPointer)
-	{
-		memset(ptr, 0, sizeof(Region1kb));
-		free1kbIndices[--last1kbFree] = U32((Region1kb*)ptr - pool1kbPointer);
-	}
-	else
-	{
-		BreakPoint;
-		//TODO: error, too large
-		//TODO: check if pointer is past pool1mb range
-	}
-}
-
 template<typename T> inline T* Memory::Allocate()
 {
-	static bool init = Initialize();
 	constexpr U64 size = sizeof(T);
 
-	if (size <= 1024) { return (T*)(pool1kbPointer + free1kbIndices[last1kbFree++]); }
-	else if (size <= 16384) { return (T*)(pool16kbPointer + free16kbIndices[last16kbFree++]); }
-	else if (size <= 262144) { return (T*)(pool256kbPointer + free256kbIndices[last256kbFree++]); }
-	else if (size <= 1048576) { return (T*)(pool1mbPointer + free1mbIndices[last1mbFree++]); }
-	else
-	{
-		BreakPoint;
-		//TODO: error, too large
-	}
+	if (size <= 1024) { return (T*)Allocate1kb(); }
+	else if (size <= 16384) { return (T*)Allocate16kb(); }
+	else if (size <= 262144) { return (T*)Allocate256kb(); }
+	else if (size <= 1048576) { return (T*)Allocate1mb(); }
+
+	BreakPoint;
+	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, 1048576);
+
+	return nullptr;
 }
 
 template<typename T> inline T* Memory::Allocate(U64& outSize)
 {
-	static bool init = Initialize();
 	constexpr U64 size = sizeof(T);
 
-	if (size <= 1024) { outSize = 1024; return (T*)(pool1kbPointer + free1kbIndices[last1kbFree++]); }
-	else if (size <= 16384) { outSize = 16384; return (T*)(pool16kbPointer + free16kbIndices[last16kbFree++]); }
-	else if (size <= 262144) { outSize = 262144; return (T*)(pool256kbPointer + free256kbIndices[last256kbFree++]); }
-	else if (size <= 1048576) { outSize = 1048576; return (T*)(pool1mbPointer + free1mbIndices[last1mbFree++]); }
-	else
-	{
-		BreakPoint;
-		//TODO: error, too large
-	}
+	if (size <= 1024) { outSize = 1024; return (T*)Allocate1kb(); }
+	else if (size <= 16384) { outSize = 16384; return (T*)Allocate16kb(); }
+	else if (size <= 262144) { outSize = 262144; return (T*)Allocate256kb(); }
+	else if (size <= 1048576) { outSize = 1048576; return (T*)Allocate1mb(); }
+
+	BreakPoint;
+	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, 1048576);
+
+	return nullptr;
 }
 
 template<typename T> inline void Memory::Free(T* ptr)
 {
-	memset(ptr, 0, sizeof(T));
-
-	if (ptr >= (T*)pool1mbPointer)
-	{
-		free1mbIndices[--last1mbFree] = (U32)((Region1mb*)ptr - pool1mbPointer);
-	}
-	else if (ptr >= (T*)pool256kbPointer)
-	{
-		free256kbIndices[--last256kbFree] = (U32)((Region256kb*)ptr - pool256kbPointer);
-	}
-	else if (ptr >= (T*)pool16kbPointer)
-	{
-		free16kbIndices[--last16kbFree] = (U32)((Region16kb*)ptr - pool16kbPointer);
-	}
-	else if (ptr >= (T*)pool1kbPointer)
-	{
-		free1kbIndices[--last1kbFree] = (U32)((Region1kb*)ptr - pool1kbPointer);
-	}
+	if (ptr >= (T*)pool1mbPointer) { Free1mb(ptr); }
+	else if (ptr >= (T*)pool256kbPointer) { Free256kb(ptr); }
+	else if (ptr >= (T*)pool16kbPointer) { Free16kb(ptr); }
+	else if (ptr >= (T*)pool1kbPointer) { Free1kb(ptr); }
 	else
 	{
 		BreakPoint;
 		//TODO: error, too large
 		//TODO: check if pointer is past pool1mb range
 	}
-}
-
-inline void* Memory::Allocate1kb()
-{
-	static bool init = Initialize();
-	return pool1kbPointer + free1kbIndices[last1kbFree++];
-}
-
-inline void* Memory::Allocate16kb()
-{
-	static bool init = Initialize();
-	return pool16kbPointer + free16kbIndices[last16kbFree++];
-}
-
-inline void* Memory::Allocate256kb()
-{
-	static bool init = Initialize();
-	return pool256kbPointer + free256kbIndices[last256kbFree++];
-}
-
-inline void* Memory::Allocate1mb()
-{
-	static bool init = Initialize();
-	return pool1mbPointer + free1mbIndices[last1mbFree++];
-}
-
-//TODO: Debug checking that ensures this is the right size block to free
-inline void Memory::Free1kb(void* ptr)
-{
-	memset(ptr, 0, sizeof(Region1kb));
-	free1kbIndices[--last1kbFree] = U32((Region1kb*)ptr - pool1kbPointer);
-}
-
-inline void Memory::Free16kb(void* ptr)
-{
-	memset(ptr, 0, sizeof(Region16kb));
-	free16kbIndices[--last16kbFree] = U32((Region16kb*)ptr - pool16kbPointer);
-}
-
-inline void Memory::Free256kb(void* ptr)
-{
-	memset(ptr, 0, sizeof(Region256kb));
-	free256kbIndices[--last256kbFree] = U32((Region256kb*)ptr - pool256kbPointer);
-}
-
-inline void Memory::Free1mb(void* ptr)
-{
-	memset(ptr, 0, sizeof(Region1mb));
-	free1mbIndices[--last1mbFree] = U32((Region1mb*)ptr - pool1mbPointer);
-}
-
-inline void* Memory::AllocateStatic(U64 size)
-{
-	static bool init = Initialize();
-
-	if (staticPointer + size <= memory + totalSize)
-	{
-		U8* block = staticPointer;
-		staticPointer += size;
-
-		return block;
-	}
-
-	return nullptr;
 }
 
 template<typename T> inline T* Memory::AllocateStatic()
