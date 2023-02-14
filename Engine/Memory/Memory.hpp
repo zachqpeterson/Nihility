@@ -8,12 +8,13 @@
 #define STATIC_SIZE 1073741824
 #define DYNAMIC_SIZE 1073741824
 
+//TODO: Make thread-safe
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection
 /// </summary>
 class NH_API Memory
 {
-	struct Region1kb { U64 unused[16]; };
+	struct Region1kb { U64 unused[128]; };
 	struct Region16kb { Region1kb unused[16]; };
 	struct Region256kb { Region16kb unused[16]; };
 	struct Region1mb { Region256kb unused[4]; };

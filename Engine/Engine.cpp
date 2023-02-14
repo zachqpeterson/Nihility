@@ -18,9 +18,9 @@ ShutdownFn Engine::GameShutdown;
 bool Engine::running;
 bool Engine::suspended;
 
-void work(String str)
+void work(void* data)
 {
-	Logger::Info(str);
+	Logger::Info((char*)data);
 }
 
 void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
@@ -49,16 +49,36 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 
 	ASSERT(Jobs::Initialize());
 
-	Jobs::StartJob(work, "String 0");
-	Jobs::StartJob(work, "String 1");
-	Jobs::StartJob(work, "String 2");
-	Jobs::StartJob(work, "String 3");
-	Jobs::StartJob(work, "String 4");
-	Jobs::StartJob(work, "String 5");
-	Jobs::StartJob(work, "String 6");
-	Jobs::StartJob(work, "String 7");
-	Jobs::StartJob(work, "String 8");
-	Jobs::StartJob(work, "String 9");
+	Jobs::StartJob(work, (char *)"String 0");
+	Jobs::StartJob(work, (char *)"String 1");
+	Jobs::StartJob(work, (char *)"String 2");
+	Jobs::StartJob(work, (char *)"String 3");
+	Jobs::StartJob(work, (char *)"String 4");
+	Jobs::StartJob(work, (char *)"String 5");
+	Jobs::StartJob(work, (char *)"String 6");
+	Jobs::StartJob(work, (char *)"String 7");
+	Jobs::StartJob(work, (char *)"String 8");
+	Jobs::StartJob(work, (char *)"String 9");
+	Jobs::StartJob(work, (char *)"String 10");
+	Jobs::StartJob(work, (char *)"String 11");
+	Jobs::StartJob(work, (char *)"String 12");
+	Jobs::StartJob(work, (char *)"String 13");
+	Jobs::StartJob(work, (char *)"String 14");
+	Jobs::StartJob(work, (char *)"String 15");
+	Jobs::StartJob(work, (char *)"String 16");
+	Jobs::StartJob(work, (char *)"String 17");
+	Jobs::StartJob(work, (char *)"String 18");
+	Jobs::StartJob(work, (char *)"String 19");
+	Jobs::StartJob(work, (char *)"String 20");
+	Jobs::StartJob(work, (char *)"String 21");
+	Jobs::StartJob(work, (char *)"String 22");
+	Jobs::StartJob(work, (char *)"String 23");
+	Jobs::StartJob(work, (char *)"String 24");
+	Jobs::StartJob(work, (char *)"String 25");
+	Jobs::StartJob(work, (char *)"String 26");
+	Jobs::StartJob(work, (char *)"String 27");
+	Jobs::StartJob(work, (char *)"String 28");
+	Jobs::StartJob(work, (char *)"String 29");
 
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());

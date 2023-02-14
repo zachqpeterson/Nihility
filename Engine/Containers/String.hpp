@@ -11,6 +11,8 @@
 * TODO: Predicates / regex?
 *
 * TODO: Count of a character
+* 
+* TODO: Make sure str isn't nullptr and capacity is large enough
 */
 struct NH_API String
 {
@@ -460,12 +462,12 @@ inline String::String(bool value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Mem
 	}
 }
 
-inline String::String(char* str) : size{ strlen(str) }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(char* str) : size{ strlen(str) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
 {
 	memcpy(this->str, str, size + 1);
 }
 
-inline String::String(const char* str) : size{ strlen(str) }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(const char* str) : size{ strlen(str) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
 {
 	memcpy(this->str, str, size + 1);
 }
@@ -477,10 +479,12 @@ inline String::String(const String& other) : size{ other.size }, capacity{ other
 
 inline String::String(String&& other) noexcept : size{ other.size }, capacity{ other.capacity }, str{ other.str }
 {
-	other.Destroy();
+	other.size = 0;
+	other.capacity = 0;
+	other.str = nullptr;
 }
 
-template<typename... Types> inline String::String(const char* fmt, const Types& ... args) : size{ strlen(fmt) }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+template<typename... Types> inline String::String(const char* fmt, const Types& ... args) : size{ strlen(fmt) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
 {
 	memcpy(str, fmt, size + 1);
 	U64 start = 0;
@@ -494,6 +498,8 @@ template<typename... Types> inline String::String(const Types& ... args) : size{
 
 inline String& String::operator=(I8 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	if (value < 0)
 	{
 		str[0] = '-';
@@ -526,6 +532,8 @@ inline String& String::operator=(I8 value)
 
 inline String& String::operator=(U8 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 3;
 	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
 	*--c = threeDigits[2];
@@ -541,6 +549,8 @@ inline String& String::operator=(U8 value)
 
 inline String& String::operator=(I16 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 6;
 	const char* threeDigits;
 	U8 neg = 0;
@@ -580,6 +590,8 @@ inline String& String::operator=(I16 value)
 
 inline String& String::operator=(U16 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 5;
 	const char* threeDigits;
 
@@ -609,6 +621,8 @@ inline String& String::operator=(U16 value)
 
 inline String& String::operator=(I32 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 11;
 	const char* threeDigits;
 	U8 neg = 0;
@@ -648,6 +662,8 @@ inline String& String::operator=(I32 value)
 
 inline String& String::operator=(U32 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 10;
 	const char* threeDigits;
 
@@ -677,6 +693,8 @@ inline String& String::operator=(U32 value)
 
 inline String& String::operator=(I64 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 20;
 	const char* threeDigits;
 	U8 neg = 0;
@@ -716,6 +734,8 @@ inline String& String::operator=(I64 value)
 
 inline String& String::operator=(U64 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	char* c = str + 20;
 	const char* threeDigits;
 
@@ -745,18 +765,22 @@ inline String& String::operator=(U64 value)
 
 inline String& String::operator=(F32 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	return *this;
 }
 
 inline String& String::operator=(F64 value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	return *this;
 }
 
 inline String& String::operator=(bool value)
 {
+	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
 	if (value)
 	{
 		size = 4;
@@ -776,6 +800,8 @@ inline String& String::operator=(bool value)
 inline String& String::operator=(char* str)
 {
 	size = strlen(str);
+	if (!str) { str = (char*)Memory::Allocate(size, capacity); }
+
 	memcpy(this->str, str, size + 1);
 
 	return *this;
@@ -784,6 +810,8 @@ inline String& String::operator=(char* str)
 inline String& String::operator=(const char* str)
 {
 	size = strlen(str);
+	if (!str) { str = (char*)Memory::Allocate(size, capacity); }
+
 	memcpy(this->str, str, size + 1);
 
 	return *this;
@@ -791,17 +819,25 @@ inline String& String::operator=(const char* str)
 
 inline String& String::operator=(const String& other)
 {
+	if (!str) { str = (char*)Memory::Allocate(other.capacity); }
+
 	size = other.size;
-	memcpy(this->str, str, size + 1);
+	capacity = other.capacity;
+	memcpy(this->str, other.str, size + 1);
 
 	return *this;
 }
 
 inline String& String::operator=(String&& other) noexcept
 {
+	if (str) { Memory::Free(str); }
+
 	size = other.size;
-	memcpy(this->str, str, size + 1);
-	other.Destroy();
+	capacity = other.capacity;
+	str = other.str;
+	other.size = 0;
+	other.capacity = 0;
+	other.str = nullptr;
 
 	return *this;
 }
@@ -817,7 +853,7 @@ inline void String::Destroy()
 	{
 		size = 0;
 		capacity = 0;
-		Memory::Free1kb(str);
+		Memory::Free(str);
 		str = nullptr;
 	}
 }

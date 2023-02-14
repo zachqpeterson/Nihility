@@ -173,7 +173,7 @@ template<typename Type> inline void Logger::Debug(const Type& arg)
 #endif
 }
 
-template<typename Types> inline void Logger::Trace(const Types& arg)
+template<typename Type> inline void Logger::Trace(const Type& arg)
 {
 #if LOG_TRACE_ENABLED
 	String str(traceTag, arg, endLine);

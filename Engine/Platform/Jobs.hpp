@@ -6,13 +6,13 @@
 #include "Containers\Queue.hpp"
 #include "Containers\String.hpp"
 
-//template<typename... Args>
-using JobFunc = void(*)(String);
+//TODO: Variadic args
+using JobFunc = void(*)(void*);
 
 struct Job
 {
 	JobFunc func;
-	String param;
+	void* data;
 };
 
 struct Thread
@@ -28,7 +28,8 @@ struct Thread
 class NH_API Jobs
 {
 public:
-	static bool StartJob(JobFunc job, String str);
+	static bool StartJob(JobFunc job, void* data);
+	static bool StartJob(Job job);
 	static void SleepFor(U64 ns);
 
 private:

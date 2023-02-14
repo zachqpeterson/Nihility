@@ -1,6 +1,7 @@
 #include "Jobs.hpp"
 
 #include "Core\Settings.hpp"
+#include "Core\Logger.hpp"
 
 Vector<Thread> Jobs::threads;
 Queue<Job> Jobs::jobs;
@@ -52,10 +53,18 @@ inline void Jobs::Update()
 
 }
 
-inline bool Jobs::StartJob(JobFunc job, String str)
+inline bool Jobs::StartJob(JobFunc job, void* data)
 {
-	Job j{ job, str };
-	jobs.Push(j);
+	jobs.Push({ job, data });
+
+	ReleaseSemaphore(workSemaphore, 1, nullptr);
+
+	return true;
+}
+
+inline bool Jobs::StartJob(Job job)
+{
+	jobs.Push(job);
 
 	ReleaseSemaphore(workSemaphore, 1, nullptr);
 
@@ -69,15 +78,18 @@ inline void Jobs::SleepFor(U64 ns)
 	NtDelayExecution(false, &interval);
 }
 
-inline U32 __stdcall Jobs::RunThread(void*)
+inline U32 __stdcall Jobs::RunThread(void* threadInfo)
 {
+	Thread& info = *(Thread*)threadInfo;
+
 	while (true) //TODO: Run condition
 	{
-		if (jobs.Size()) //TODO: If work to do
+		if (jobs.Size())
 		{
 			Job job;
 			jobs.Pop(job);
-			job.func(job.param);
+			Logger::Debug("Thread {}", info.id);
+			job.func(job.data);
 		}
 		else
 		{
