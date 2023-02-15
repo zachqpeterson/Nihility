@@ -88,9 +88,9 @@ template<typename T> inline void Queue<T>::Destroy() { last = 0; first = 0; capa
 
 template<typename T> inline void Queue<T>::Push(const T& value)
 {
-	if (last == first && size) 
-	{ 
-		Reserve(capacity + 1); 
+	if (last == first && size)
+	{
+		Reserve(capacity + 1);
 		memcpy(array + size, array, sizeof(T) * last);
 		last += size;
 	}
@@ -100,9 +100,9 @@ template<typename T> inline void Queue<T>::Push(const T& value)
 		else { last = 0; }
 	}
 
-	array[last] = value;
-	++last;
-	++size;
+
+	array[SafeIncrement(&last) - 1] = value;
+	SafeIncrement(&size);
 }
 
 template<typename T> inline void Queue<T>::Push(T&& value) noexcept
@@ -119,9 +119,8 @@ template<typename T> inline void Queue<T>::Push(T&& value) noexcept
 		else { last = 0; }
 	}
 
-	array[last] = Move(value);
-	++last;
-	++size;
+	array[SafeIncrement(&last) - 1] = Move(value);
+	SafeIncrement(&size);
 }
 
 template<typename T> inline const T& Queue<T>::Peek() const { return array[first]; }

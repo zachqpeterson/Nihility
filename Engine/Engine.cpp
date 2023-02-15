@@ -47,13 +47,15 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 
 	ASSERT(Jobs::Initialize());
 
-	Jobs::StartJob<work>((char*)"I'm doing work");
-
-	//while (true)
-	//{
-	//	Jobs::StartJob({ work, (char*)"I'm doing work" });
-	//	Jobs::SleepForMilli(100);
-	//}
+	while (true)
+	{
+		Jobs::StartJob<work>((char*)"I'm doing work");
+		Jobs::StartJob<work>((char*)"I'm doing work");
+		Jobs::StartJob<work>((char*)"I'm doing work");
+		Jobs::StartJob<work>((char*)"I'm doing work");
+		Jobs::StartJob<work>((char*)"I'm doing work");
+		Jobs::SleepForMilli(100);
+	}
 
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());

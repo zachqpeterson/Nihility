@@ -56,10 +56,12 @@ private:
 	friend class Engine;
 };
 
+#include <Windows.h> //TODO: temp
+
 template<JobFunc func, typename... Args>
 inline void Jobs::StartJob(const Args&... args)
 {
 	jobs.Push({ func, args... });
 
-	//ReleaseSemaphore(workSemaphore, 1, nullptr);
+	ReleaseSemaphore(workSemaphore, 1, nullptr);
 }
