@@ -11,8 +11,9 @@ Queue<Job> Jobs::jobs;
 #include <Windows.h>
 #include <process.h>
 
-static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
+static U32(__stdcall* NtWaitForSingleObject)(HANDLE ObjectHandle, BOOLEAN Alertable, PLARGE_INTEGER TimeOut) = (U32(__stdcall*)(HANDLE, BOOLEAN, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtWaitForSingleObject");
+static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
 
 void* Jobs::workSemaphore;
 UL32 Jobs::sleepRes;
@@ -53,24 +54,6 @@ inline void Jobs::Update()
 
 }
 
-inline bool Jobs::StartJob(JobFunc job, void* data)
-{
-	jobs.Push({ job, data });
-
-	ReleaseSemaphore(workSemaphore, 1, nullptr);
-
-	return true;
-}
-
-inline bool Jobs::StartJob(Job job)
-{
-	jobs.Push(job);
-
-	ReleaseSemaphore(workSemaphore, 1, nullptr);
-
-	return true;
-}
-
 inline void Jobs::SleepForSeconds(U64 s)
 {
 	LARGE_INTEGER interval;
@@ -97,7 +80,7 @@ inline U32 __stdcall Jobs::RunThread(void*)
 	while (true) //TODO: Run condition
 	{
 		Job job;
-		if (jobs.Pop(job))
+		if (jobs.Pop(job) && job.func)
 		{
 			job.func(job.data);
 		}

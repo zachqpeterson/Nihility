@@ -9,6 +9,8 @@
 //TODO: Variadic args
 using JobFunc = void(*)(void*);
 
+//TODO: This syntax would be ideal: StartJob<func>(params, params, ...);
+
 struct Job
 {
 	JobFunc func;
@@ -28,11 +30,12 @@ struct Thread
 class NH_API Jobs
 {
 public:
-	static bool StartJob(JobFunc job, void* data);
-	static bool StartJob(Job job);
+	template<JobFunc func, typename... Args>
+	static void StartJob(const Args&... args);
 	static void SleepForSeconds(U64 s);
 	static void SleepForMilli(U64 ms);
 	static void SleepForMicro(U64 us);
+	static void WaitFor(); //TODO: Custom semaphore type
 
 private:
 	static bool Initialize();
@@ -52,3 +55,11 @@ private:
 	STATIC_CLASS(Jobs);
 	friend class Engine;
 };
+
+template<JobFunc func, typename... Args>
+inline void Jobs::StartJob(const Args&... args)
+{
+	jobs.Push({ func, args... });
+
+	//ReleaseSemaphore(workSemaphore, 1, nullptr);
+}
