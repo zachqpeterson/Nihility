@@ -17,10 +17,15 @@ struct Job
 	void* data;
 };
 
-struct Thread
+struct WorkQueue
 {
-	U64 handle;
-	U32 id;
+	//TODO: circular queue
+	Job queue[256];
+	U64 volatile entriesCompleted;
+	U64 volatile nextEntry;
+	U64 volatile entryCount;
+	U64 maxEntries;
+	void* semaphore;
 };
 
 /*
@@ -30,8 +35,7 @@ struct Thread
 class NH_API Jobs
 {
 public:
-	template<JobFunc func, typename... Args>
-	static void StartJob(const Args&... args);
+	static void StartJob(JobFunc func, void* data);
 	static void SleepForSeconds(U64 s);
 	static void SleepForMilli(U64 ms);
 	static void SleepForMicro(U64 us);
@@ -45,23 +49,12 @@ private:
 #if defined PLATFORM_WINDOWS
 	static U32 __stdcall RunThread(void*);
 
-	static void* workSemaphore;
 	static UL32 sleepRes;
 #endif
 
-	static Vector<Thread> threads;
-	static Queue<Job> jobs;
+	static WorkQueue jobs;
+	static bool running;
 
 	STATIC_CLASS(Jobs);
 	friend class Engine;
 };
-
-#include <Windows.h> //TODO: temp
-
-template<JobFunc func, typename... Args>
-inline void Jobs::StartJob(const Args&... args)
-{
-	jobs.Push({ func, args... });
-
-	ReleaseSemaphore(workSemaphore, 1, nullptr);
-}

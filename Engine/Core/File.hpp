@@ -24,6 +24,7 @@ enum FileOpenParam
 
 //https://learn.microsoft.com/en-us/cpp/c-runtime-library/low-level-i-o?view=msvc-170
 //https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/sopen-s-wsopen-s?view=msvc-170
+//TODO: Make thread safe, use mutex
 struct NH_API File
 {
 public:

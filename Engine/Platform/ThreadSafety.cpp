@@ -9,9 +9,19 @@ I64 SafeIncrement(I64 volatile* i)
 	return InterlockedIncrement64(i);
 }
 
+U64 SafeIncrement(U64 volatile* i)
+{
+	return InterlockedIncrement(i);
+}
+
 I64 SafeDecrement(I64 volatile* i)
 {
 	return InterlockedDecrement64(i);
+}
+
+U64 SafeDecrement(U64 volatile* i)
+{
+	return InterlockedDecrement(i);
 }
 
 bool SafeCheckAndSet(bool volatile* b)

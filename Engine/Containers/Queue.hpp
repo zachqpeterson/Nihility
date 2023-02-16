@@ -3,7 +3,6 @@
 #include "Defines.hpp"
 
 #include "Memory\Memory.hpp"
-#include "Platform\ThreadSafety.hpp"
 
 template<typename T>
 struct Queue
@@ -101,8 +100,8 @@ template<typename T> inline void Queue<T>::Push(const T& value)
 	}
 
 
-	array[SafeIncrement(&last) - 1] = value;
-	SafeIncrement(&size);
+	array[last--] = value;
+	--size;
 }
 
 template<typename T> inline void Queue<T>::Push(T&& value) noexcept
@@ -119,33 +118,33 @@ template<typename T> inline void Queue<T>::Push(T&& value) noexcept
 		else { last = 0; }
 	}
 
-	array[SafeIncrement(&last) - 1] = Move(value);
-	SafeIncrement(&size);
+	array[last--] = Move(value);
+	--size;
 }
 
 template<typename T> inline const T& Queue<T>::Peek() const { return array[first]; }
 
 template<typename T> inline bool Queue<T>::Pop(T& value)
 {
-	if (SafeDecrement(&size) >= 0)
+	if (size > 0)
 	{
-		value = array[SafeIncrement(&first) - 1];
+		value = array[first--];
+		--size;
 		return true;
 	}
 
-	size = 0;
 	return false;
 }
 
 template<typename T> inline bool Queue<T>::Pop(T&& value) noexcept
 {
-	if (SafeDecrement(&size) >= 0)
+	if (size > 0)
 	{
-		value = Move(array[SafeIncrement(&first) - 1]);
+		value = Move(array[first--]);
+		--size;
 		return true;
 	}
 
-	size = 0;
 	return false;
 }
 

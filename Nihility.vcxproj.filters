@@ -26,6 +26,9 @@
     <Filter Include="Source Files\Containers">
       <UniqueIdentifier>{5595688b-3ff6-4bd2-9887-0f6a23b23d43}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Resources">
+      <UniqueIdentifier>{a2468113-cc71-4f5a-a30c-d0f3aa530ac4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -64,9 +67,6 @@
     <ClInclude Include="Engine\Containers\String.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\Settings.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Platform\Jobs.hpp">
       <Filter>Source Files\Platform</Filter>
     </ClInclude>
@@ -81,6 +81,12 @@
     </ClInclude>
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp">
       <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\Resources.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\Settings.hpp">
+      <Filter>Source Files\Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

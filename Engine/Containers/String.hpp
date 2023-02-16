@@ -11,7 +11,7 @@
 * TODO: Predicates / regex?
 *
 * TODO: Count of a character
-* 
+*
 * TODO: Make sure str isn't nullptr and capacity is large enough
 */
 struct NH_API String
@@ -59,17 +59,17 @@ public:
 	void Reserve(U64 size);
 	void Resize(U64 size);
 
-	I8  ToI8();
-	U8  ToU8();
-	I16 ToI16();
-	U16 ToU16();
-	I32 ToI32();
-	U32 ToU32();
-	I64 ToI64();
-	U64 ToU64();
-	F32 ToF32();
-	F64 ToF64();
-	bool ToBool();
+	I8  ToI8() const;
+	U8  ToU8() const;
+	I16 ToI16() const;
+	U16 ToU16() const;
+	I32 ToI32() const;
+	U32 ToU32() const;
+	I64 ToI64() const;
+	U64 ToU64() const;
+	F32 ToF32() const;
+	F64 ToF64() const;
+	bool ToBool() const;
 
 	String& operator+=(I8  value);
 	String& operator+=(U8  value);
@@ -121,6 +121,7 @@ public:
 
 	const U64& Size() const;
 	const U64& Capacity() const;
+	U64 Hash();
 	char* Data();
 	const char* Data() const;
 	bool Blank() const;
@@ -149,8 +150,10 @@ public:
 private:
 	void Format(U64& start, const String& replace);
 
-	U64 size;
-	U64 capacity;
+	bool hashed{ false };
+	U64 hash{ 0 };
+	U64 size{ 0 };
+	U64 capacity{ 1024 };
 	char* str;
 
 #pragma region THREE_DIGIT_NUMBERS
@@ -208,9 +211,9 @@ private:
 #pragma endregion
 };
 
-inline String::String() : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() } {}
+inline String::String() : str{ (char*)Memory::Allocate1kb() } {}
 
-inline String::String(I8 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(I8 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	if (value < 0)
 	{
@@ -238,7 +241,7 @@ inline String::String(I8 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memor
 	}
 }
 
-inline String::String(U8 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(U8 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 3;
 	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
@@ -250,7 +253,7 @@ inline String::String(U8 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memor
 	memcpy(str, c, size + 1);
 }
 
-inline String::String(I16 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(I16 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 6;
 	const char* threeDigits;
@@ -286,7 +289,7 @@ inline String::String(I16 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memo
 	memcpy(str + neg, c, size + 1);
 }
 
-inline String::String(U16 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(U16 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 5;
 	const char* threeDigits;
@@ -312,7 +315,7 @@ inline String::String(U16 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memo
 	memcpy(str, c, size + 1);
 }
 
-inline String::String(I32 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(I32 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 11;
 	const char* threeDigits;
@@ -348,7 +351,7 @@ inline String::String(I32 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memo
 	memcpy(str + neg, c, size + 1);
 }
 
-inline String::String(U32 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(U32 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 10;
 	const char* threeDigits;
@@ -374,7 +377,7 @@ inline String::String(U32 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memo
 	memcpy(str, c, size + 1);
 }
 
-inline String::String(I64 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(I64 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 20;
 	const char* threeDigits;
@@ -410,7 +413,7 @@ inline String::String(I64 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memo
 	memcpy(str + neg, c, size + 1);
 }
 
-inline String::String(U64 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(U64 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	char* c = str + 20;
 	const char* threeDigits;
@@ -436,19 +439,19 @@ inline String::String(U64 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memo
 	memcpy(str, c, size + 1);
 }
 
-inline String::String(F32 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(F32 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	//TODO: Keep 5 decimal places
 
 }
 
-inline String::String(F64 value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(F64 value) : str{ (char*)Memory::Allocate1kb() }
 {
 	//TODO: Keep 5 decimal places
 
 }
 
-inline String::String(bool value) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+inline String::String(bool value) : str{ (char*)Memory::Allocate1kb() }
 {
 	if (value)
 	{
@@ -491,13 +494,14 @@ template<typename... Types> inline String::String(const char* fmt, const Types& 
 	(Format(start, args), ...);
 }
 
-template<typename... Types> inline String::String(const Types& ... args) : size{ 0 }, capacity{ 1024 }, str{ (char*)Memory::Allocate1kb() }
+template<typename... Types> inline String::String(const Types& ... args) : str{ (char*)Memory::Allocate1kb() }
 {
 	(Append(args), ...);
 }
 
 inline String& String::operator=(I8 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	if (value < 0)
@@ -532,6 +536,7 @@ inline String& String::operator=(I8 value)
 
 inline String& String::operator=(U8 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 3;
@@ -549,6 +554,7 @@ inline String& String::operator=(U8 value)
 
 inline String& String::operator=(I16 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 6;
@@ -590,6 +596,7 @@ inline String& String::operator=(I16 value)
 
 inline String& String::operator=(U16 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 5;
@@ -621,6 +628,7 @@ inline String& String::operator=(U16 value)
 
 inline String& String::operator=(I32 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 11;
@@ -662,6 +670,7 @@ inline String& String::operator=(I32 value)
 
 inline String& String::operator=(U32 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 10;
@@ -693,6 +702,7 @@ inline String& String::operator=(U32 value)
 
 inline String& String::operator=(I64 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 20;
@@ -734,6 +744,7 @@ inline String& String::operator=(I64 value)
 
 inline String& String::operator=(U64 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	char* c = str + 20;
@@ -765,6 +776,7 @@ inline String& String::operator=(U64 value)
 
 inline String& String::operator=(F32 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	return *this;
@@ -772,6 +784,7 @@ inline String& String::operator=(F32 value)
 
 inline String& String::operator=(F64 value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	return *this;
@@ -779,6 +792,7 @@ inline String& String::operator=(F64 value)
 
 inline String& String::operator=(bool value)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
 	if (value)
@@ -799,6 +813,7 @@ inline String& String::operator=(bool value)
 
 inline String& String::operator=(char* str)
 {
+	hashed = false;
 	size = strlen(str);
 	if (!str) { str = (char*)Memory::Allocate(size, capacity); }
 
@@ -809,6 +824,7 @@ inline String& String::operator=(char* str)
 
 inline String& String::operator=(const char* str)
 {
+	hashed = false;
 	size = strlen(str);
 	if (!str) { str = (char*)Memory::Allocate(size, capacity); }
 
@@ -819,6 +835,7 @@ inline String& String::operator=(const char* str)
 
 inline String& String::operator=(const String& other)
 {
+	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate(other.capacity); }
 
 	size = other.size;
@@ -830,6 +847,7 @@ inline String& String::operator=(const String& other)
 
 inline String& String::operator=(String&& other) noexcept
 {
+	hashed = false;
 	if (str) { Memory::Free(str); }
 
 	size = other.size;
@@ -849,6 +867,7 @@ inline String::~String()
 
 inline void String::Destroy()
 {
+	hashed = false;
 	if (str)
 	{
 		size = 0;
@@ -860,6 +879,7 @@ inline void String::Destroy()
 
 inline void String::Clear()
 {
+	hashed = false;
 	str[0] = '\0';
 	size = 0;
 }
@@ -882,7 +902,7 @@ inline void String::Resize(U64 size)
 	str[size] = '\0';
 }
 
-inline I8 String::ToI8()
+inline I8 String::ToI8() const
 {
 	char* it = str;
 	char c;
@@ -901,7 +921,7 @@ inline I8 String::ToI8()
 	return value;
 }
 
-inline U8 String::ToU8()
+inline U8 String::ToU8() const
 {
 	char* it = str;
 	char c;
@@ -912,7 +932,7 @@ inline U8 String::ToU8()
 	return value;
 }
 
-inline I16 String::ToI16()
+inline I16 String::ToI16() const
 {
 	char* it = str;
 	char c;
@@ -931,7 +951,7 @@ inline I16 String::ToI16()
 	return value;
 }
 
-inline U16 String::ToU16()
+inline U16 String::ToU16() const
 {
 	char* it = str;
 	char c;
@@ -942,7 +962,7 @@ inline U16 String::ToU16()
 	return value;
 }
 
-inline I32 String::ToI32()
+inline I32 String::ToI32() const
 {
 	char* it = str;
 	char c;
@@ -961,7 +981,7 @@ inline I32 String::ToI32()
 	return value;
 }
 
-inline U32 String::ToU32()
+inline U32 String::ToU32() const
 {
 	char* it = str;
 	char c;
@@ -972,7 +992,7 @@ inline U32 String::ToU32()
 	return value;
 }
 
-inline I64 String::ToI64()
+inline I64 String::ToI64() const
 {
 	char* it = str;
 	char c;
@@ -991,7 +1011,7 @@ inline I64 String::ToI64()
 	return value;
 }
 
-inline U64 String::ToU64()
+inline U64 String::ToU64() const
 {
 	char* it = str;
 	char c;
@@ -1002,7 +1022,7 @@ inline U64 String::ToU64()
 	return value;
 }
 
-inline F32 String::ToF32()
+inline F32 String::ToF32() const
 {
 	char* it = str;
 	char c;
@@ -1024,7 +1044,7 @@ inline F32 String::ToF32()
 	return value;
 }
 
-inline F64 String::ToF64()
+inline F64 String::ToF64() const
 {
 	char* it = str;
 	char c;
@@ -1046,13 +1066,14 @@ inline F64 String::ToF64()
 	return value;
 }
 
-inline bool String::ToBool()
+inline bool String::ToBool() const
 {
 	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
 }
 
 inline String& String::operator+=(I8 value)
 {
+	hashed = false;
 	char* start = str + size;
 
 	if (value < 0)
@@ -1089,6 +1110,7 @@ inline String& String::operator+=(I8 value)
 
 inline String& String::operator+=(U8 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 3;
 	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
@@ -1106,6 +1128,7 @@ inline String& String::operator+=(U8 value)
 
 inline String& String::operator+=(I16 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 6;
 	const char* threeDigits;
@@ -1147,6 +1170,7 @@ inline String& String::operator+=(I16 value)
 
 inline String& String::operator+=(U16 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 5;
 	const char* threeDigits;
@@ -1178,6 +1202,7 @@ inline String& String::operator+=(U16 value)
 
 inline String& String::operator+=(I32 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 11;
 	const char* threeDigits;
@@ -1219,6 +1244,7 @@ inline String& String::operator+=(I32 value)
 
 inline String& String::operator+=(U32 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 10;
 	const char* threeDigits;
@@ -1250,6 +1276,7 @@ inline String& String::operator+=(U32 value)
 
 inline String& String::operator+=(I64 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 20;
 	const char* threeDigits;
@@ -1291,6 +1318,7 @@ inline String& String::operator+=(I64 value)
 
 inline String& String::operator+=(U64 value)
 {
+	hashed = false;
 	char* start = str + size;
 	char* c = start + 20;
 	const char* threeDigits;
@@ -1322,16 +1350,19 @@ inline String& String::operator+=(U64 value)
 
 inline String& String::operator+=(F32 value)
 {
+	hashed = false;
 	return *this;
 }
 
 inline String& String::operator+=(F64 value)
 {
+	hashed = false;
 	return *this;
 }
 
 inline String& String::operator+=(bool value)
 {
+	hashed = false;
 	if (value)
 	{
 		memcpy(str + size, "true", 4);
@@ -1350,6 +1381,7 @@ inline String& String::operator+=(bool value)
 
 inline String& String::operator+=(char* other)
 {
+	hashed = false;
 	U64 addLength = strlen(other);
 	memcpy(str + size, other, addLength);
 	size += addLength;
@@ -1360,6 +1392,7 @@ inline String& String::operator+=(char* other)
 
 inline String& String::operator+=(const char* other)
 {
+	hashed = false;
 	U64 addLength = strlen(other);
 	memcpy(str + size, other, addLength);
 	size += addLength;
@@ -1370,6 +1403,7 @@ inline String& String::operator+=(const char* other)
 
 inline String& String::operator+=(const String& other)
 {
+	hashed = false;
 	U64 addLength = strlen(other.str);
 	memcpy(str + size, other.str, addLength);
 	size += addLength;
@@ -1655,6 +1689,18 @@ inline const U64& String::Size() const { return size; }
 
 inline const U64& String::Capacity() const { return capacity; }
 
+inline U64 String::Hash()
+{
+	if (hashed) { return hash; }
+
+	hash = 0;
+	const char* ptr = str;
+	while (*ptr) { hash = hash * 101 + *ptr++; }
+	hashed = true;
+
+	return hash;
+}
+
 inline char* String::Data() { return str; }
 
 inline const char* String::Data() const { return str; }
@@ -1682,6 +1728,7 @@ inline I32 String::IndexOf(char c, U64 start) const
 
 inline String& String::Trim()
 {
+	hashed = false;
 	char* start = str;
 	char* end = str + size;
 	char c;
@@ -1709,6 +1756,7 @@ inline String& String::SubString(String& newStr, U64 start, U64 nLength) const
 
 inline String& String::Append(const String& append)
 {
+	hashed = false;
 	memcpy(str + size, append.str, append.size);
 	size += append.size;
 	str[size] = '\0';
@@ -1718,6 +1766,7 @@ inline String& String::Append(const String& append)
 
 inline String& String::Prepend(const String& prepend)
 {
+	hashed = false;
 	memcpy(str + size, str, size);
 	memcpy(str, prepend.str, prepend.size);
 	size += prepend.size;
@@ -1728,6 +1777,7 @@ inline String& String::Prepend(const String& prepend)
 
 inline String& String::Surround(const String& prepend, const String& append)
 {
+	hashed = false;
 	memcpy(str + prepend.size, str, size);
 	memcpy(str, prepend.str, prepend.size);
 	size += prepend.size;
@@ -1741,6 +1791,7 @@ inline String& String::Surround(const String& prepend, const String& append)
 
 inline String& String::Insert(const String& other, U32 i)
 {
+	hashed = false;
 	memcpy(str + i + other.size, str + i, size - i);
 	memcpy(str + i, other.str, other.size);
 	size += other.size;
@@ -1751,6 +1802,7 @@ inline String& String::Insert(const String& other, U32 i)
 
 inline String& String::ReplaceAll(const String& find, const String& replace, U64 start)
 {
+	hashed = false;
 	char* c = str + start;
 	char ch = *c;
 	while (ch != '\0')
@@ -1771,6 +1823,7 @@ inline String& String::ReplaceAll(const String& find, const String& replace, U64
 
 inline String& String::ReplaceN(const String& find, const String& replace, U64 count, U64 start)
 {
+	hashed = false;
 	char* c = str + start;
 	char ch = *c;
 	while (ch != '\0' && count)
@@ -1792,6 +1845,7 @@ inline String& String::ReplaceN(const String& find, const String& replace, U64 c
 
 inline String& String::ReplaceFirst(const String& find, const String& replace, U64 start)
 {
+	hashed = false;
 	char* c = str + start;
 	while (*c != '\0' && memcmp(c, find.str, find.size)) { ++c; }
 
@@ -1813,6 +1867,7 @@ inline void String::Split(Vector<String>& list, U8 delimiter, bool trimEntries) 
 
 inline void String::Format(U64& start, const String& replace)
 {
+	hashed = false;
 	char* c = str + start;
 	while (*c != '\0' && memcmp(c, "{}", 2)) { ++c; }
 

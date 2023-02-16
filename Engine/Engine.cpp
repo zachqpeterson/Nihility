@@ -46,17 +46,6 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
 
 	ASSERT(Jobs::Initialize());
-
-	while (true)
-	{
-		Jobs::StartJob<work>((char*)"I'm doing work");
-		Jobs::StartJob<work>((char*)"I'm doing work");
-		Jobs::StartJob<work>((char*)"I'm doing work");
-		Jobs::StartJob<work>((char*)"I'm doing work");
-		Jobs::StartJob<work>((char*)"I'm doing work");
-		Jobs::SleepForMilli(100);
-	}
-
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());
 

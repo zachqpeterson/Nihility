@@ -114,7 +114,6 @@
     <ClInclude Include="Engine\Containers\WString.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
     <ClInclude Include="Engine\Core\Logger.hpp" />
-    <ClInclude Include="Engine\Core\Settings.hpp" />
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
@@ -123,6 +122,8 @@
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
+    <ClInclude Include="Engine\Resources\Resources.hpp" />
+    <ClInclude Include="Engine\Resources\Settings.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

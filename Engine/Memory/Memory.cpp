@@ -2,6 +2,7 @@
 
 #include "Platform\Jobs.hpp"
 #include "Core\Logger.hpp"
+#include "Platform\ThreadSafety.hpp"
 
 #include <stdlib.h>
 

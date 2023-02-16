@@ -5,6 +5,9 @@
 class NH_API Settings
 {
 private:
+	static bool Initialize();
+	static void Shutdown();
+
 	//AUDIO
 	static inline U8 CHANNEL_COUNT = 2;
 	static inline F32 MASTER_VOLUME = 1.0f;
@@ -67,6 +70,8 @@ public:
 	static inline const bool& HideCursor = HIDE_CURSOR;
 	static inline const bool& ConstrainCursor = CONSTRAIN_CURSOR;
 
+	STATIC_CLASS(Settings);
 	friend class Platform;
+	friend class Engine;
 	friend class Jobs;
 };
