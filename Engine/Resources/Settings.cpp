@@ -4,18 +4,14 @@
 #include "Core\Logger.hpp"
 #include "Containers\String.hpp"
 
-//TODO: Binary writing and reading
-
 bool Settings::Initialize()
 {
 	Logger::Trace("Loading Settings...");
 
-	File config("Settings.cfg", FILE_OPEN_TEXT_READ_SEQ);
+	File config("Settings.cfg", FILE_OPEN_BINARY_READ_SEQ);
 
 	if (config.Opened())
 	{
-		//TODO: Read Settings
-
 		String str;
 
 		if (config.ReadAllString(str))
