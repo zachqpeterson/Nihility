@@ -29,7 +29,7 @@ public:
 	/// Allocates a block of memory and gives the actual size of the allocation, prefer to use Allocate1kb, Allocate16kb, Allocate256kb, Allocate1mb
 	/// </summary>
 	/// <param name="size:">The size in bytes to allocate</param>
-	/// <param name="outSize:">The size variable to set</param>
+	/// <param name="outSize:">The actual size allocated</param>
 	/// <returns>The pointer to the allocated block of memory</returns>
 	static void* Allocate(U64 size, U64& outSize);
 
@@ -86,6 +86,25 @@ public:
 	/// </summary>
 	/// <returns>The pointer to the block of memory</returns>
 	static void* Allocate1mb();
+	
+
+	
+	/// <summary>
+	/// Frees memory and allocates a new block of memory, copying over the data
+	/// </summary>
+	/// <param name="ptr:">The pointer to the block of memory to free</param>
+	/// <param name="size:">The size in bytes to allocate</param>
+	/// <returns>The new pointer to the block of memory</returns>
+	static void* Reallocate(void* ptr, U64 size);
+
+	/// <summary>
+	/// Frees the pointer and allocate a new block of memory for it, copying over the data
+	/// </summary>
+	/// <param name="ptr:">The pointer to the block of memory to free</param>
+	/// <param name="size:">The size in bytes to allocate</param>
+	/// <param name="outSize:">The actual size allocated</param>
+	/// <returns>The new pointer to the block of memory</returns>
+	static void* Reallocate(void* ptr, U64 size, U64& outSize);
 
 
 

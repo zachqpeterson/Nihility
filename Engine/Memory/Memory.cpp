@@ -151,6 +151,42 @@ void* Memory::Allocate1mb()
 	return pool1mbPointer + free1mbIndices[i];
 }
 
+void* Memory::Reallocate(void* ptr, U64 size)
+{
+	void* newPtr = Allocate(size);
+
+	if (ptr >= pool1mbPointer) { memcpy(newPtr, ptr, 1048576); Free1mb(ptr); }
+	else if (ptr >= pool256kbPointer) { memcpy(newPtr, ptr, 262144); Free256kb(ptr); }
+	else if (ptr >= pool16kbPointer) { memcpy(newPtr, ptr, 16384); Free16kb(ptr); }
+	else if (ptr >= pool1kbPointer) { memcpy(newPtr, ptr, 1024); Free1kb(ptr); }
+	else
+	{
+		BreakPoint;
+		//TODO: error, too large
+		//TODO: check if pointer is past pool1mb range
+	}
+
+	return newPtr;
+}
+
+void* Memory::Reallocate(void* ptr, U64 size, U64& outSize)
+{
+	void* newPtr = Allocate(size, outSize);
+
+	if (ptr >= pool1mbPointer) { memcpy(newPtr, ptr, 1048576); Free1mb(ptr); }
+	else if (ptr >= pool256kbPointer) { memcpy(newPtr, ptr, 262144); Free256kb(ptr); }
+	else if (ptr >= pool16kbPointer) { memcpy(newPtr, ptr, 16384); Free16kb(ptr); }
+	else if (ptr >= pool1kbPointer) { memcpy(newPtr, ptr, 1024); Free1kb(ptr); }
+	else
+	{
+		BreakPoint;
+		//TODO: error, too large
+		//TODO: check if pointer is past pool1mb range
+	}
+
+	return newPtr;
+}
+
 //TODO: Debug checking that ensures this is the right size block to free
 void Memory::Free1kb(void* ptr)
 {

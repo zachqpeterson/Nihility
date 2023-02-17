@@ -1012,7 +1012,8 @@ inline String& String::operator=(char* str)
 {
 	hashed = false;
 	size = strlen(str);
-	if (!str) { str = (char*)Memory::Allocate(size, capacity); }
+	if (capacity < size) { Memory::Free(this->str); }
+	if (!this->str) { this->str = (char*)Memory::Allocate(size, capacity); }
 
 	memcpy(this->str, str, size + 1);
 
@@ -1023,7 +1024,8 @@ inline String& String::operator=(const char* str)
 {
 	hashed = false;
 	size = strlen(str);
-	if (!str) { str = (char*)Memory::Allocate(size, capacity); }
+	if (capacity < size) { Memory::Free(this->str); }
+	if (!this->str) { this->str = (char*)Memory::Allocate(size, capacity); }
 
 	memcpy(this->str, str, size + 1);
 
@@ -1033,6 +1035,7 @@ inline String& String::operator=(const char* str)
 inline String& String::operator=(const String& other)
 {
 	hashed = false;
+	if (capacity < other.size) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(other.capacity); }
 
 	size = other.size;
@@ -1270,6 +1273,7 @@ inline bool String::ToBool() const
 
 inline String& String::operator+=(I8 value)
 {
+	if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
 	hashed = false;
 	char* start = str + size;
 
@@ -1307,6 +1311,7 @@ inline String& String::operator+=(I8 value)
 
 inline String& String::operator+=(U8 value)
 {
+	if (capacity < size + 3) { Memory::Reallocate(str, size + 3, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 3;
@@ -1325,6 +1330,7 @@ inline String& String::operator+=(U8 value)
 
 inline String& String::operator+=(I16 value)
 {
+	if (capacity < size + 6) { Memory::Reallocate(str, size + 6, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 6;
@@ -1367,6 +1373,7 @@ inline String& String::operator+=(I16 value)
 
 inline String& String::operator+=(U16 value)
 {
+	if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 5;
@@ -1399,6 +1406,7 @@ inline String& String::operator+=(U16 value)
 
 inline String& String::operator+=(I32 value)
 {
+	if (capacity < size + 11) { Memory::Reallocate(str, size + 11, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 11;
@@ -1441,6 +1449,7 @@ inline String& String::operator+=(I32 value)
 
 inline String& String::operator+=(U32 value)
 {
+	if (capacity < size + 10) { Memory::Reallocate(str, size + 10, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 10;
@@ -1473,6 +1482,7 @@ inline String& String::operator+=(U32 value)
 
 inline String& String::operator+=(I64 value)
 {
+	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 20;
@@ -1515,6 +1525,7 @@ inline String& String::operator+=(I64 value)
 
 inline String& String::operator+=(U64 value)
 {
+	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
 	hashed = false;
 	char* start = str + size;
 	char* c = start + 20;
@@ -1547,13 +1558,121 @@ inline String& String::operator+=(U64 value)
 
 inline String& String::operator+=(F32 value)
 {
+	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
 	hashed = false;
+	char* start = str + size;
+	char* c = start + 27;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = '-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = '.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 27 + neg - (c - start);
+	size += addLength;
+
+	memcpy(start + neg, c, addLength);
+	str[size] = '\0';
+
 	return *this;
 }
 
 inline String& String::operator+=(F64 value)
 {
+	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
 	hashed = false;
+	char* start = str + size;
+	char* c = start + 27;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = '-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = '.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 27 + neg - (c - start);
+	size += addLength;
+
+	memcpy(start + neg, c, addLength);
+	str[size] = '\0';
+
 	return *this;
 }
 
@@ -1562,12 +1681,14 @@ inline String& String::operator+=(bool value)
 	hashed = false;
 	if (value)
 	{
+		if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
 		memcpy(str + size, "true", 4);
 		size += 4;
 		str[size] = '\0';
 	}
 	else
 	{
+		if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
 		memcpy(str + size, "false", 5);
 		size += 5;
 		str[size] = '\0';
@@ -1580,6 +1701,7 @@ inline String& String::operator+=(char* other)
 {
 	hashed = false;
 	U64 addLength = strlen(other);
+	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
 	memcpy(str + size, other, addLength);
 	size += addLength;
 	str[size] = '\0';
@@ -1591,6 +1713,7 @@ inline String& String::operator+=(const char* other)
 {
 	hashed = false;
 	U64 addLength = strlen(other);
+	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
 	memcpy(str + size, other, addLength);
 	size += addLength;
 	str[size] = '\0';
@@ -1601,9 +1724,9 @@ inline String& String::operator+=(const char* other)
 inline String& String::operator+=(const String& other)
 {
 	hashed = false;
-	U64 addLength = strlen(other.str);
-	memcpy(str + size, other.str, addLength);
-	size += addLength;
+	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
+	memcpy(str + size, other.str, other.size);
+	size += other.size;
 	str[size] = '\0';
 
 	return *this;
@@ -1964,6 +2087,7 @@ inline String& String::SubString(String& newStr, U64 start, U64 nLength) const
 
 inline String& String::Append(const String& append)
 {
+	if (capacity < size + append.size) { Memory::Reallocate(str, size + append.size, capacity); }
 	hashed = false;
 	memcpy(str + size, append.str, append.size);
 	size += append.size;
@@ -1974,6 +2098,7 @@ inline String& String::Append(const String& append)
 
 inline String& String::Prepend(const String& prepend)
 {
+	if (capacity < size + prepend.size) { Memory::Reallocate(str, size + prepend.size, capacity); }
 	hashed = false;
 	memcpy(str + size, str, size);
 	memcpy(str, prepend.str, prepend.size);
@@ -1985,6 +2110,7 @@ inline String& String::Prepend(const String& prepend)
 
 inline String& String::Surround(const String& prepend, const String& append)
 {
+	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(str, size + append.size + prepend.size, capacity); }
 	hashed = false;
 	memcpy(str + prepend.size, str, size);
 	memcpy(str, prepend.str, prepend.size);
@@ -1999,6 +2125,7 @@ inline String& String::Surround(const String& prepend, const String& append)
 
 inline String& String::Insert(const String& other, U32 i)
 {
+	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
 	hashed = false;
 	memcpy(str + i + other.size, str + i, size - i);
 	memcpy(str + i, other.str, other.size);
@@ -2010,6 +2137,7 @@ inline String& String::Insert(const String& other, U32 i)
 
 inline String& String::ReplaceAll(const String& find, const String& replace, U64 start)
 {
+	//TODO: Capacity Check
 	hashed = false;
 	char* c = str + start;
 	char ch = *c;
@@ -2031,6 +2159,7 @@ inline String& String::ReplaceAll(const String& find, const String& replace, U64
 
 inline String& String::ReplaceN(const String& find, const String& replace, U64 count, U64 start)
 {
+	//TODO: Capacity Check
 	hashed = false;
 	char* c = str + start;
 	char ch = *c;
@@ -2053,6 +2182,7 @@ inline String& String::ReplaceN(const String& find, const String& replace, U64 c
 
 inline String& String::ReplaceFirst(const String& find, const String& replace, U64 start)
 {
+	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, size + replace.size - find.size, capacity); }
 	hashed = false;
 	char* c = str + start;
 	while (*c != '\0' && memcmp(c, find.str, find.size)) { ++c; }
@@ -2075,6 +2205,7 @@ inline void String::Split(Vector<String>& list, U8 delimiter, bool trimEntries) 
 
 inline void String::Format(U64& start, const String& replace)
 {
+	//TODO: Capacity Check
 	hashed = false;
 	char* c = str + start;
 	while (*c != '\0' && memcmp(c, "{}", 2)) { ++c; }
@@ -2088,8 +2219,6 @@ inline void String::Format(U64& start, const String& replace)
 		str[size] = '\0';
 	}
 }
-
-//inline Vector<String> String::Split(U8 delimiter, bool trimEntries) const
 
 inline char* String::begin() { return str; }
 
