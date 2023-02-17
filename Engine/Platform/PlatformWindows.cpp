@@ -2,7 +2,7 @@
 
 #ifdef PLATFORM_WINDOWS
 
-#include "Core\Settings.hpp"
+#include "Resources\Settings.hpp"
 #include "Core\Logger.hpp"
 
 #include <Windows.h>
@@ -26,17 +26,19 @@ static constexpr const W16* CLASS_NAME = L"Nihility Class";
 
 bool Platform::Initialize(const W16* applicationName)
 {
+	Logger::Trace("Initializing Platform...");
+
 	windowData.instance = GetModuleHandleW(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
 
 	//Load cursor images
-	arrow = LoadCursorW(nullptr, IDC_ARROW);
-	hand = LoadCursorW(nullptr, IDC_HAND);
-	sizeNS = LoadCursorW(nullptr, IDC_SIZENS);
-	sizeWE = LoadCursorW(nullptr, IDC_SIZEWE);
-	sizeNESW = LoadCursorW(nullptr, IDC_SIZENESW);
-	sizeNWSE = LoadCursorW(nullptr, IDC_SIZENWSE);
+	//arrow = LoadCursorW(nullptr, IDC_ARROW);
+	//hand = LoadCursorW(nullptr, IDC_HAND);
+	//sizeNS = LoadCursorW(nullptr, IDC_SIZENS);
+	//sizeWE = LoadCursorW(nullptr, IDC_SIZEWE);
+	//sizeNESW = LoadCursorW(nullptr, IDC_SIZENESW);
+	//sizeNWSE = LoadCursorW(nullptr, IDC_SIZENWSE);
 
 	//Setup and register window class.
 	WNDCLASSEXW wc{};
@@ -71,15 +73,19 @@ bool Platform::Initialize(const W16* applicationName)
 	}
 
 	U32 dpi = Settings::Dpi;
+
 	Settings::DPI = GetDpiForWindow(windowData.window);
 
 	Settings::SCREEN_WIDTH = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::DPI);
 	Settings::SCREEN_HEIGHT = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::DPI);
 
-	Settings::WINDOW_POSITION_X_SMALL = MulDiv(Settings::WindowPositionXSmall, Settings::Dpi, dpi);
-	Settings::WINDOW_POSITION_Y_SMALL = MulDiv(Settings::WindowPositionYSmall, Settings::Dpi, dpi);
-	Settings::WINDOW_WIDTH_SMALL = MulDiv(Settings::WindowWidthSmall, Settings::Dpi, dpi);
-	Settings::WINDOW_HEIGHT_SMALL = MulDiv(Settings::WindowHeightSmall, Settings::Dpi, dpi);
+	if (dpi)
+	{
+		Settings::WINDOW_POSITION_X_SMALL = MulDiv(Settings::WindowPositionXSmall, Settings::Dpi, dpi);
+		Settings::WINDOW_POSITION_Y_SMALL = MulDiv(Settings::WindowPositionYSmall, Settings::Dpi, dpi);
+		Settings::WINDOW_WIDTH_SMALL = MulDiv(Settings::WindowWidthSmall, Settings::Dpi, dpi);
+		Settings::WINDOW_HEIGHT_SMALL = MulDiv(Settings::WindowHeightSmall, Settings::Dpi, dpi);
+	}
 
 	if (Settings::Fullscreen)
 	{

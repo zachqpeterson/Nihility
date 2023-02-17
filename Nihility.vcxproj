@@ -124,17 +124,6 @@
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
-    <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Icons.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cpp.hint" />
-    <None Include="cursor.cur" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="icon.ico" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Engine.cpp" />
@@ -143,6 +132,8 @@
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
+    <ClCompile Include="Engine\Resources\Resources.cpp" />
+    <ClCompile Include="Engine\Resources\Settings.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

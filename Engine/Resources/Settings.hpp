@@ -23,16 +23,16 @@ private:
 	static inline I32 WINDOW_POSITION_Y = 0;
 	static inline I32 WINDOW_POSITION_X_SMALL = 320;
 	static inline I32 WINDOW_POSITION_Y_SMALL = 180;
-	static inline U32 SCREEN_WIDTH = 0;
-	static inline U32 SCREEN_HEIGHT = 0;
 	static inline F64 TARGET_FRAMETIME = 0.0;
 	static inline F64 TARGET_FRAMETIME_SUSPENDED = 0.1;
 	static inline U8 MSAA_COUNT = 1;
 
 	//PLATFORM
-	static inline U32 DPI = 192; //TODO: temp, don't leave it at 200%
-	static inline F64 MONITOR_HZ = 0.0;
+	static inline U32 DPI = 0;
 	static inline U32 THREAD_COUNT = 1;
+	static inline U32 SCREEN_WIDTH = 0;
+	static inline U32 SCREEN_HEIGHT = 0;
+	static inline F64 MONITOR_HZ = 0.0;
 	static inline bool FOCUSED = true;
 	static inline bool MINIMISED = true;
 	static inline bool FULLSCREEN = false;

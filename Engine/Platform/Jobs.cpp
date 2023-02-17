@@ -1,7 +1,7 @@
 #include "Jobs.hpp"
 
 #include "ThreadSafety.hpp"
-#include "Core\Settings.hpp"
+#include "Resources\Settings.hpp"
 #include "Core\Logger.hpp"
 
 WorkQueue Jobs::jobs;
@@ -19,6 +19,8 @@ UL32 Jobs::sleepRes;
 
 bool Jobs::Initialize()
 {
+	Logger::Trace("Initializing Jobs...");
+
 	ZwSetTimerResolution(1, true, &sleepRes);
 
 	SYSTEM_INFO sysInfo;

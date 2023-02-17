@@ -1,7 +1,11 @@
 #include "Input.hpp"
 
+#include "Core\Logger.hpp"
+
 bool Input::Initialize()
 {
+	Logger::Trace("Initializing Input...");
+
 	return true;
 }
 

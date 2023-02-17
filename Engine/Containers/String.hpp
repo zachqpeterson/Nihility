@@ -125,7 +125,8 @@ public:
 	char* Data();
 	const char* Data() const;
 	bool Blank() const;
-	I32 IndexOf(char c, U64 start = 0) const;
+	I32 IndexOf(const char& c, U64 start = 0) const;
+	I32 LastIndexOf(const char& c, U64 start = 0) const;
 	String& Trim();
 	String& SubString(String& newStr, U64 start, U64 nLength = I64_MAX) const;
 	String& Append(const String& append);
@@ -441,14 +442,108 @@ inline String::String(U64 value) : str{ (char*)Memory::Allocate1kb() }
 
 inline String::String(F32 value) : str{ (char*)Memory::Allocate1kb() }
 {
-	//TODO: Keep 5 decimal places
+	char* c = str + 27;
+	const char* threeDigits;
+	U8 neg = 0;
 
+	F32 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = '-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F32)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = '.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	size = 27 + neg - (c - str);
+
+	memcpy(str + neg, c, size + 1);
 }
 
 inline String::String(F64 value) : str{ (char*)Memory::Allocate1kb() }
 {
-	//TODO: Keep 5 decimal places
+	char* c = str + 27;
+	const char* threeDigits;
+	U8 neg = 0;
 
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = '-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = '.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	size = 27 + neg - (c - str);
+
+	memcpy(str + neg, c, size + 1);
 }
 
 inline String::String(bool value) : str{ (char*)Memory::Allocate1kb() }
@@ -779,6 +874,57 @@ inline String& String::operator=(F32 value)
 	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
 
+	char* c = str + 27;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = '-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = '.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	size = 27 + neg - (c - str);
+
+	memcpy(str + neg, c, size + 1);
+	str[size] = '\0';
+
 	return *this;
 }
 
@@ -786,6 +932,57 @@ inline String& String::operator=(F64 value)
 {
 	hashed = false;
 	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
+
+	char* c = str + 27;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = '-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = '.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	size = 27 + neg - (c - str);
+
+	memcpy(str + neg, c, size + 1);
+	str[size] = '\0';
 
 	return *this;
 }
@@ -1716,14 +1913,25 @@ inline bool String::Blank() const
 	return start - str == size;
 }
 
-inline I32 String::IndexOf(char c, U64 start) const
+inline I32 String::IndexOf(const char& c, U64 start) const
 {
-	char* it = str;
+	char* it = str + start;
 
 	while (*it != c && *it != '\0') { ++it; }
 
 	if (*it == '\0') { return -1; }
 	return (I32)(it - str);
+}
+
+inline I32 String::LastIndexOf(const char& c, U64 start) const
+{
+	char* it = str + size - start - 1;
+
+	U64 len = size;
+	while (*it != c && len > 0) { --it; --len; }
+
+	if (len) { return (I32)(it - str); }
+	return -1;
 }
 
 inline String& String::Trim()

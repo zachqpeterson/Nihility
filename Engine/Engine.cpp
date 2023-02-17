@@ -6,7 +6,8 @@
 #include "Platform\Jobs.hpp"
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
-#include "Core\Settings.hpp"
+#include "Resources\Settings.hpp"
+#include "Resources\Resources.hpp"
 #include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
@@ -35,20 +36,16 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
-
-	Logger::Fatal("Test");
-	Logger::Error("Test");
-	Logger::Warn("Test");
-	Logger::Info("Test");
-	Logger::Debug("Test");
-	Logger::Trace("Test");
-
-	//TODO: Load Settings, First time running or if the config is missing, get monitor Hz and dpi scaling
-
+	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
-	ASSERT(Platform::Initialize(applicationName));
-	ASSERT(Input::Initialize());
-
+	ASSERT(Platform::Initialize(applicationName));	//Thread
+	ASSERT(Input::Initialize());					//Probably run on platform thread
+	//Audio
+	ASSERT(Resources::Initialize());
+	//Renderer
+	//UI
+	//Physics
+	//Particle
 	ASSERT(GameInit());
 
 	UpdateLoop();
@@ -59,8 +56,19 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 void Engine::Shutdown()
 {
 	GameShutdown();
-
+	//Particle
+	//Physics
+	//UI
+	//Renderer
+	Resources::Shutdown();
+	//Audio
+	Input::Shutdown();
 	Platform::Shutdown();
+	Jobs::Shutdown();
+	Settings::Shutdown();
+	Logger::Shutdown();
+	Memory::Shutdown();
+	Time::Shutdown();
 }
 
 void Engine::UpdateLoop()
@@ -68,7 +76,7 @@ void Engine::UpdateLoop()
 	while (running)
 	{
 		Time::Update();
-		Logger::Info("Framerate: {}", Time::FrameRate());
+		//Logger::Info("Framerate: {}", Time::FrameRate());
 
 		if (!Platform::Update()) { break; } //TODO: Run on separate thread
 

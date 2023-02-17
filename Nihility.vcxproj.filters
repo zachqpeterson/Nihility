@@ -31,9 +31,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h">
-      <Filter>Resource Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Defines.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -90,24 +87,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cursor.cur">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="cpp.hint">
-      <Filter>Resource Files</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="icon.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Icons.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
       <Filter>Source Files\Platform</Filter>
     </ClCompile>
@@ -125,6 +104,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp">
       <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Settings.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Resources.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
