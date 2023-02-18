@@ -2,6 +2,8 @@
 
 #include "Core\Logger.hpp"
 #include "Containers\Vector.hpp"
+#include "Containers\String.hpp"
+#include "Containers\WString.hpp"
 
 #if defined PLATFORM_WINDOWS
 
@@ -50,14 +52,35 @@ bool Input::Initialize()
 			HANDLE ntHandle;
 			if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr)) == INVALID_HANDLE_VALUE) { BreakPoint; }
 
-			String manufacturer;
+			WString manufacturer;
 			if (!HidD_GetManufacturerString(ntHandle, manufacturer.Data(), manufacturer.Capacity())) { BreakPoint; }
+			manufacturer.Resize();
 
-			String product;
+			WString product;
 			if (!HidD_GetProductString(ntHandle, product.Data(), product.Capacity())) { BreakPoint; }
+			product.Resize();
+
+			PHIDP_PREPARSED_DATA inputReportProtocol;
+			if (!HidD_GetPreparsedData(ntHandle, &inputReportProtocol)) { BreakPoint; }
+
+			HIDP_CAPS capabilities;
+			if (HidP_GetCaps(inputReportProtocol, &capabilities) != HIDP_STATUS_SUCCESS) { BreakPoint; }
+
+			if (capabilities.UsagePage != HID_USAGE_PAGE_GENERIC || (capabilities.Usage != HID_USAGE_GENERIC_GAMEPAD && capabilities.Usage != HID_USAGE_GENERIC_JOYSTICK))
+			{
+				//TODO: Don't care about this, scrap
+				BreakPoint;
+			}
+
+			U64 sizeOfInputReport = sizeof(RAWINPUTHEADER) + sizeof(RAWHID) + capabilities.InputReportByteLength;
+
+			Vector<HIDP_BUTTON_CAPS> buttonClasses(capabilities.NumberInputButtonCaps, {});
+			if (HidP_GetButtonCaps(HidP_Input, buttonClasses.Data(), &capabilities.NumberInputButtonCaps, inputReportProtocol) != HIDP_STATUS_SUCCESS) { BreakPoint; }
+
+			Vector<HIDP_VALUE_CAPS> axisClasses(capabilities.NumberInputValueCaps, {});
+			if (HidP_GetValueCaps(HidP_Input, axisClasses.Data(), &capabilities.NumberInputValueCaps, inputReportProtocol) != HIDP_STATUS_SUCCESS) { BreakPoint; }
 
 			BreakPoint;
-
 		} break;
 		default: break;
 		}

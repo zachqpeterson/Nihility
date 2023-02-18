@@ -58,6 +58,7 @@ public:
 
 	void Reserve(U64 size);
 	void Resize(U64 size);
+	void Resize();
 
 	I8  ToI8() const;
 	U8  ToU8() const;
@@ -1100,6 +1101,11 @@ inline void String::Resize(U64 size)
 	if (size > this->capacity) { Reserve(size); }
 	this->size = size;
 	str[size] = '\0';
+}
+
+inline void String::Resize()
+{
+	this->size = strlen(str);
 }
 
 inline I8 String::ToI8() const

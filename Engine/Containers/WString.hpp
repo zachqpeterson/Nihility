@@ -49,6 +49,7 @@ public:
 
 	void Reserve(U64 size);
 	void Resize(U64 size);
+	void Resize();
 
 	I8  ToI8() const;
 	U8  ToU8() const;
@@ -147,17 +148,69 @@ private:
 	U64 size{ 0 };
 	U64 capacity{ 1024 };
 	W16* str;
+
+#pragma region THREE_DIGIT_NUMBERS
+	static inline constexpr const W16* THREE_DIGIT_NUMBERS =
+		L"000001002003004005006007008009010011012013014015016017018019"
+		L"020021022023024025026027028029030031032033034035036037038039"
+		L"040041042043044045046047048049050051052053054055056057058059"
+		L"060061062063064065066067068069070071072073074075076077078079"
+		L"080081082083084085086087088089090091092093094095096097098099"
+		L"100101102103104105106107108109110111112113114115116117118119"
+		L"120121122123124125126127128129130131132133134135136137138139"
+		L"140141142143144145146147148149150151152153154155156157158159"
+		L"160161162163164165166167168169170171172173174175176177178179"
+		L"180181182183184185186187188189190191192193194195196197198199"
+		L"200201202203204205206207208209210211212213214215216217218219"
+		L"220221222223224225226227228229230231232233234235236237238239"
+		L"240241242243244245246247248249250251252253254255256257258259"
+		L"260261262263264265266267268269270271272273274275276277278279"
+		L"280281282283284285286287288289290291292293294295296297298299"
+		L"300301302303304305306307038309310311312313314315316317318319"
+		L"320321322323324325326327238329330331332333334335336337338339"
+		L"340341342343344345346347438349350351352353354355356357358359"
+		L"360361362363364365366367638369370371372373374375376377378379"
+		L"380381382383384385386387838389390391392393394395396397398399"
+		L"400401402403404405406407408409410411412413414415416417418419"
+		L"420421422423424425426427428429430431432433434435436437438439"
+		L"440441442443444445446447448449450451452453454455456457458459"
+		L"460461462463464465466467468469470471472473474475476477478479"
+		L"480481482483484485486487488489490491492493494495496497498499"
+		L"500501502503504505506507508509510511512513514515516517518519"
+		L"520521522523524525526527528529530531532533534535536537538539"
+		L"540541542543544545546547548549550551552553554555556557558559"
+		L"560561562563564565566567568569570571572573574575576577578579"
+		L"580581582583584585586587588589590591592593594595596597598599"
+		L"600601602603604605606607608609610611612613614615616617618619"
+		L"620621622623624625626627628629630631632633634635636637638639"
+		L"640641642643644645646647648649650651652653654655656657658659"
+		L"660661662663664665666667668669670671672673674675676677678679"
+		L"680681682683684685686687688689690691692693694695696697698699"
+		L"707701702703704705706707708709710711712713714715716717718719"
+		L"727721722723724725726727728729730731732733734735736737738739"
+		L"747741742743744745746747748749750751752753754755756757758759"
+		L"767761762763764765766767768769770771772773774775776777778779"
+		L"787781782783784785786787788789790791792793794795796797798799"
+		L"800801802803804805806807808809810811812813814815816817818819"
+		L"820821822823824825826827828829830831832833834835836837838839"
+		L"840841842843844845846847848849850851852853854855856857858859"
+		L"860861862863864865866867868869870871872873874875876877878879"
+		L"880881882883884885886887888889890891892893894895896897898899"
+		L"900901902903904905906907908909910911912913914915916917918919"
+		L"920921922923924925926927928929930931932933934935936937938939"
+		L"940941942943944945946947948949950951952953954955956957958959"
+		L"960961962963964965966967968969970971972973974975976977978979"
+		L"980981982983984985986987988989990991992993994995996997998999";
+#pragma endregion
 };
 
 inline WString::WString() : str{ (W16*)Memory::Allocate1kb() } {}
 
 inline WString::WString(I8 value) : str{ (W16*)Memory::Allocate1kb() }
 {
-	U32 i = L'0';
-
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		U8 abs = (U8)-value;
 		W16* c = str + 4;
 		const W16* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
@@ -166,7 +219,7 @@ inline WString::WString(I8 value) : str{ (W16*)Memory::Allocate1kb() }
 		if (abs > 99) { *--c = threeDigits[0]; }
 
 		size = 5 - (c - str);
-		memcpy(str + 1, c, size + 1);
+		memcpy(str + 1, c, (size + 1) * sizeof(W16));
 	}
 	else
 	{
@@ -177,7 +230,7 @@ inline WString::WString(I8 value) : str{ (W16*)Memory::Allocate1kb() }
 		if (value > 99) { *--c = threeDigits[0]; }
 
 		size = 3 - (c - str);
-		memcpy(str, c, size + 1);
+		memcpy(str, c, (size + 1) * sizeof(W16));
 	}
 }
 
@@ -190,7 +243,7 @@ inline WString::WString(U8 value) : str{ (W16*)Memory::Allocate1kb() }
 	if (value > 99) { *--c = threeDigits[0]; }
 
 	size = 3 - (c - str);
-	memcpy(str, c, size + 1);
+	memcpy(str, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(I16 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -203,7 +256,7 @@ inline WString::WString(I16 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = (U16)-value;
 		neg = 1;
 	}
@@ -226,7 +279,7 @@ inline WString::WString(I16 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 6 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(U16 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -252,7 +305,7 @@ inline WString::WString(U16 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 5 - (c - str);
 
-	memcpy(str, c, size + 1);
+	memcpy(str, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(I32 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -265,7 +318,7 @@ inline WString::WString(I32 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = (U32)-value;
 		neg = 1;
 	}
@@ -288,7 +341,7 @@ inline WString::WString(I32 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 11 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(U32 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -314,7 +367,7 @@ inline WString::WString(U32 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 10 - (c - str);
 
-	memcpy(str, c, size + 1);
+	memcpy(str, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(I64 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -327,7 +380,7 @@ inline WString::WString(I64 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = (U64)-value;
 		neg = 1;
 	}
@@ -350,7 +403,7 @@ inline WString::WString(I64 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 20 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(U64 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -376,7 +429,7 @@ inline WString::WString(U64 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 20 - (c - str);
 
-	memcpy(str, c, size + 1);
+	memcpy(str, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(F32 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -389,7 +442,7 @@ inline WString::WString(F32 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = -value;
 		neg = 1;
 	}
@@ -407,7 +460,7 @@ inline WString::WString(F32 value) : str{ (W16*)Memory::Allocate1kb() }
 	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
 	*--c = threeDigits[2];
 	*--c = threeDigits[1];
-	*--c = '.';
+	*--c = L'.';
 
 	U64 whole = (U64)abs;
 
@@ -429,7 +482,7 @@ inline WString::WString(F32 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 27 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(F64 value) : str{ (W16*)Memory::Allocate1kb() }
@@ -442,7 +495,7 @@ inline WString::WString(F64 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = -value;
 		neg = 1;
 	}
@@ -460,7 +513,7 @@ inline WString::WString(F64 value) : str{ (W16*)Memory::Allocate1kb() }
 	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
 	*--c = threeDigits[2];
 	*--c = threeDigits[1];
-	*--c = '.';
+	*--c = L'.';
 
 	U64 whole = (U64)abs;
 
@@ -482,7 +535,7 @@ inline WString::WString(F64 value) : str{ (W16*)Memory::Allocate1kb() }
 
 	size = 27 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(bool value) : str{ (W16*)Memory::Allocate1kb() }
@@ -490,28 +543,28 @@ inline WString::WString(bool value) : str{ (W16*)Memory::Allocate1kb() }
 	if (value)
 	{
 		size = 4;
-		memcpy(str, "true", 4);
+		memcpy(str, L"true", 4 * sizeof(W16));
 	}
 	else
 	{
 		size = 5;
-		memcpy(str, "false", 5);
+		memcpy(str, L"false", 5 * sizeof(W16));
 	}
 }
 
 inline WString::WString(W16* str) : size{ wcslen(str) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
 {
-	memcpy(this->str, str, size + 1);
+	memcpy(this->str, str, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(const W16* str) : size{ wcslen(str) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
 {
-	memcpy(this->str, str, size + 1);
+	memcpy(this->str, str, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(const WString& other) : size{ other.size }, capacity{ other.capacity }, str{ (W16*)Memory::Allocate(capacity) }
 {
-	memcpy(str, other.str, size + 1);
+	memcpy(str, other.str, (size + 1) * sizeof(W16));
 }
 
 inline WString::WString(WString&& other) noexcept : size{ other.size }, capacity{ other.capacity }, str{ other.str }
@@ -523,7 +576,7 @@ inline WString::WString(WString&& other) noexcept : size{ other.size }, capacity
 
 template<typename... Types> inline WString::WString(const W16* fmt, const Types& ... args) : size{ wcslen(fmt) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
 {
-	memcpy(str, fmt, size + 1);
+	memcpy(str, fmt, (size + 1) * sizeof(W16));
 	U64 start = 0;
 	(Format(start, args), ...);
 }
@@ -540,7 +593,7 @@ inline WString& WString::operator=(I8 value)
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		U8 abs = (U8)-value;
 		W16* c = str + 4;
 		const W16* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
@@ -549,8 +602,8 @@ inline WString& WString::operator=(I8 value)
 		if (abs > 99) { *--c = threeDigits[0]; }
 
 		size = 5 - (c - str);
-		memcpy(str + 1, c, size);
-		str[size] = '\0';
+		memcpy(str + 1, c, size * sizeof(W16));
+		str[size] = L'\0';
 	}
 	else
 	{
@@ -561,8 +614,8 @@ inline WString& WString::operator=(I8 value)
 		if (value > 99) { *--c = threeDigits[0]; }
 
 		size = 3 - (c - str);
-		memcpy(str, c, size);
-		str[size] = '\0';
+		memcpy(str, c, size * sizeof(W16));
+		str[size] = L'\0';
 	}
 
 	return *this;
@@ -580,8 +633,8 @@ inline WString& WString::operator=(U8 value)
 	if (value > 99) { *--c = threeDigits[0]; }
 
 	size = 3 - (c - str);
-	memcpy(str, c, size);
-	str[size] = '\0';
+	memcpy(str, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -599,7 +652,7 @@ inline WString& WString::operator=(I16 value)
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = (U16)-value;
 		neg = 1;
 	}
@@ -622,8 +675,8 @@ inline WString& WString::operator=(I16 value)
 
 	size = 6 + neg - (c - str);
 
-	memcpy(str + neg, c, size);
-	str[size] = '\0';
+	memcpy(str + neg, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -654,8 +707,8 @@ inline WString& WString::operator=(U16 value)
 
 	size = 5 - (c - str);
 
-	memcpy(str, c, size);
-	str[size] = '\0';
+	memcpy(str, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -673,7 +726,7 @@ inline WString& WString::operator=(I32 value)
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = (U32)-value;
 		neg = 1;
 	}
@@ -696,8 +749,8 @@ inline WString& WString::operator=(I32 value)
 
 	size = 11 + neg - (c - str);
 
-	memcpy(str + neg, c, size);
-	str[size] = '\0';
+	memcpy(str + neg, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -728,8 +781,8 @@ inline WString& WString::operator=(U32 value)
 
 	size = 10 - (c - str);
 
-	memcpy(str, c, size);
-	str[size] = '\0';
+	memcpy(str, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -747,7 +800,7 @@ inline WString& WString::operator=(I64 value)
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = (U64)-value;
 		neg = 1;
 	}
@@ -770,8 +823,8 @@ inline WString& WString::operator=(I64 value)
 
 	size = 20 + neg - (c - str);
 
-	memcpy(str + neg, c, size);
-	str[size] = '\0';
+	memcpy(str + neg, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -802,8 +855,8 @@ inline WString& WString::operator=(U64 value)
 
 	size = 20 - (c - str);
 
-	memcpy(str, c, size);
-	str[size] = '\0';
+	memcpy(str, c, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -821,7 +874,7 @@ inline WString& WString::operator=(F32 value)
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = -value;
 		neg = 1;
 	}
@@ -839,7 +892,7 @@ inline WString& WString::operator=(F32 value)
 	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
 	*--c = threeDigits[2];
 	*--c = threeDigits[1];
-	*--c = '.';
+	*--c = L'.';
 
 	U64 whole = (U64)abs;
 
@@ -861,8 +914,8 @@ inline WString& WString::operator=(F32 value)
 
 	size = 27 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
-	str[size] = '\0';
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -880,7 +933,7 @@ inline WString& WString::operator=(F64 value)
 
 	if (value < 0)
 	{
-		str[0] = '-';
+		str[0] = L'-';
 		abs = -value;
 		neg = 1;
 	}
@@ -898,7 +951,7 @@ inline WString& WString::operator=(F64 value)
 	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
 	*--c = threeDigits[2];
 	*--c = threeDigits[1];
-	*--c = '.';
+	*--c = L'.';
 
 	U64 whole = (U64)abs;
 
@@ -920,8 +973,8 @@ inline WString& WString::operator=(F64 value)
 
 	size = 27 + neg - (c - str);
 
-	memcpy(str + neg, c, size + 1);
-	str[size] = '\0';
+	memcpy(str + neg, c, (size + 1) * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -934,14 +987,14 @@ inline WString& WString::operator=(bool value)
 	if (value)
 	{
 		size = 4;
-		memcpy(str, "true", 4);
-		str[size] = '\0';
+		memcpy(str, L"true", 4 * sizeof(W16));
+		str[size] = L'\0';
 	}
 	else
 	{
 		size = 5;
-		memcpy(str, "false", 5);
-		str[size] = '\0';
+		memcpy(str, L"false", 5 * sizeof(W16));
+		str[size] = L'\0';
 	}
 
 	return *this;
@@ -951,9 +1004,10 @@ inline WString& WString::operator=(W16* str)
 {
 	hashed = false;
 	size = wcslen(str);
-	if (!str) { str = (W16*)Memory::Allocate(size, capacity); }
+	if (capacity < size) { Memory::Free(this->str); }
+	if (!this->str) { this->str = (W16*)Memory::Allocate(size, capacity); }
 
-	memcpy(this->str, str, size + 1);
+	memcpy(this->str, str, (size + 1) * sizeof(W16));
 
 	return *this;
 }
@@ -962,9 +1016,10 @@ inline WString& WString::operator=(const W16* str)
 {
 	hashed = false;
 	size = wcslen(str);
-	if (!str) { str = (W16*)Memory::Allocate(size, capacity); }
+	if (capacity < size) { Memory::Free(this->str); }
+	if (!this->str) { this->str = (W16*)Memory::Allocate(size, capacity); }
 
-	memcpy(this->str, str, size + 1);
+	memcpy(this->str, str, (size + 1) * sizeof(W16));
 
 	return *this;
 }
@@ -972,11 +1027,12 @@ inline WString& WString::operator=(const W16* str)
 inline WString& WString::operator=(const WString& other)
 {
 	hashed = false;
+	if (capacity < other.size) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate(other.capacity); }
 
 	size = other.size;
 	capacity = other.capacity;
-	memcpy(this->str, other.str, size + 1);
+	memcpy(this->str, other.str, (size + 1) * sizeof(W16));
 
 	return *this;
 }
@@ -1016,7 +1072,7 @@ inline void WString::Destroy()
 inline void WString::Clear()
 {
 	hashed = false;
-	str[0] = '\0';
+	str[0] = L'\0';
 	size = 0;
 }
 
@@ -1025,7 +1081,7 @@ inline void WString::Reserve(U64 size)
 	if (size > capacity)
 	{
 		W16* temp = (W16*)Memory::Allocate(size, capacity);
-		memcpy(temp, str, this->size);
+		memcpy(temp, str, this->size * sizeof(W16));
 		Memory::Free(str);
 		str = temp;
 	}
@@ -1035,7 +1091,12 @@ inline void WString::Resize(U64 size)
 {
 	if (size > this->capacity) { Reserve(size); }
 	this->size = size;
-	str[size] = '\0';
+	str[size] = L'\0';
+}
+
+inline void WString::Resize()
+{
+	this->size = wcslen(str);
 }
 
 inline I8 WString::ToI8() const
@@ -1044,14 +1105,14 @@ inline I8 WString::ToI8() const
 	W16 c;
 	I8 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1063,7 +1124,7 @@ inline U8 WString::ToU8() const
 	W16 c;
 	U8 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1074,14 +1135,14 @@ inline I16 WString::ToI16() const
 	W16 c;
 	I16 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1093,7 +1154,7 @@ inline U16 WString::ToU16() const
 	W16 c;
 	U16 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1104,14 +1165,14 @@ inline I32 WString::ToI32() const
 	W16 c;
 	I32 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1123,7 +1184,7 @@ inline U32 WString::ToU32() const
 	W16 c;
 	U32 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1134,14 +1195,14 @@ inline I64 WString::ToI64() const
 	W16 c;
 	I64 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1153,7 +1214,7 @@ inline U64 WString::ToU64() const
 	W16 c;
 	U64 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1165,16 +1226,16 @@ inline F32 WString::ToF32() const
 	F32 value = 0.0f;
 	F32 mul = 0.1f;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
+		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
+		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
 	}
 
 	return value;
@@ -1187,16 +1248,16 @@ inline F64 WString::ToF64() const
 	F64 value = 0.0f;
 	F64 mul = 0.1f;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
+		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
+		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
 	}
 
 	return value;
@@ -1204,17 +1265,18 @@ inline F64 WString::ToF64() const
 
 inline bool WString::ToBool() const
 {
-	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
+	return str[0] == L't' && str[1] == L'r' && str[2] == L'u' && str[3] == L'e';
 }
 
 inline WString& WString::operator+=(I8 value)
 {
+	if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
 	hashed = false;
 	W16* start = str + size;
 
 	if (value < 0)
 	{
-		start[0] = '-';
+		start[0] = L'-';
 		U8 abs = (U8)-value;
 		W16* c = start + 4;
 		const W16* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
@@ -1224,8 +1286,8 @@ inline WString& WString::operator+=(I8 value)
 
 		U64 addLength = 5 - (c - start);
 		size += addLength;
-		memcpy(start + 1, c, addLength);
-		str[size] = '\0';
+		memcpy(start + 1, c, addLength * sizeof(W16));
+		str[size] = L'\0';
 	}
 	else
 	{
@@ -1237,8 +1299,8 @@ inline WString& WString::operator+=(I8 value)
 
 		U64 addLength = 3 - (c - start);
 		size += addLength;
-		memcpy(start, c, addLength);
-		str[size] = '\0';
+		memcpy(start, c, addLength * sizeof(W16));
+		str[size] = L'\0';
 	}
 
 	return *this;
@@ -1246,6 +1308,7 @@ inline WString& WString::operator+=(I8 value)
 
 inline WString& WString::operator+=(U8 value)
 {
+	if (capacity < size + 3) { Memory::Reallocate(str, size + 3, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 3;
@@ -1256,14 +1319,15 @@ inline WString& WString::operator+=(U8 value)
 
 	U64 addLength = 3 - (c - start);
 	size += addLength;
-	memcpy(start, c, addLength);
-	str[size] = '\0';
+	memcpy(start, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(I16 value)
 {
+	if (capacity < size + 6) { Memory::Reallocate(str, size + 6, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 6;
@@ -1274,7 +1338,7 @@ inline WString& WString::operator+=(I16 value)
 
 	if (value < 0)
 	{
-		start[0] = '-';
+		start[0] = L'-';
 		abs = (U16)-value;
 		neg = 1;
 	}
@@ -1298,14 +1362,15 @@ inline WString& WString::operator+=(I16 value)
 	U64 addLength = 6 + neg - (c - start);
 	size += addLength;
 
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
+	memcpy(start + neg, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(U16 value)
 {
+	if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 5;
@@ -1330,14 +1395,15 @@ inline WString& WString::operator+=(U16 value)
 	U64 addLength = 5 - (c - start);
 	size += addLength;
 
-	memcpy(start, c, addLength);
-	str[size] = '\0';
+	memcpy(start, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(I32 value)
 {
+	if (capacity < size + 11) { Memory::Reallocate(str, size + 11, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 11;
@@ -1348,7 +1414,7 @@ inline WString& WString::operator+=(I32 value)
 
 	if (value < 0)
 	{
-		start[0] = '-';
+		start[0] = L'-';
 		abs = (U32)-value;
 		neg = 1;
 	}
@@ -1372,14 +1438,15 @@ inline WString& WString::operator+=(I32 value)
 	U64 addLength = 11 + neg - (c - start);
 	size += addLength;
 
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
+	memcpy(start + neg, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(U32 value)
 {
+	if (capacity < size + 10) { Memory::Reallocate(str, size + 10, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 10;
@@ -1404,14 +1471,15 @@ inline WString& WString::operator+=(U32 value)
 	U64 addLength = 10 - (c - start);
 	size += addLength;
 
-	memcpy(start, c, addLength);
-	str[size] = '\0';
+	memcpy(start, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(I64 value)
 {
+	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 20;
@@ -1422,7 +1490,7 @@ inline WString& WString::operator+=(I64 value)
 
 	if (value < 0)
 	{
-		start[0] = '-';
+		start[0] = L'-';
 		abs = (U64)-value;
 		neg = 1;
 	}
@@ -1446,14 +1514,15 @@ inline WString& WString::operator+=(I64 value)
 	U64 addLength = 20 + neg - (c - start);
 	size += addLength;
 
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
+	memcpy(start + neg, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(U64 value)
 {
+	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
 	hashed = false;
 	W16* start = str + size;
 	W16* c = start + 20;
@@ -1478,21 +1547,129 @@ inline WString& WString::operator+=(U64 value)
 	U64 addLength = 20 - (c - start);
 	size += addLength;
 
-	memcpy(start, c, addLength);
-	str[size] = '\0';
+	memcpy(start, c, addLength * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::operator+=(F32 value)
 {
+	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
 	hashed = false;
+	W16* start = str + size;
+	W16* c = start + 27;
+	const W16* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = L'-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = L'.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 27 + neg - (c - start);
+	size += addLength;
+
+	memcpy(start + neg, c, addLength * sizeof(W16));
+	str[size] = L'\0';
+
 	return *this;
 }
 
 inline WString& WString::operator+=(F64 value)
 {
+	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
 	hashed = false;
+	W16* start = str + size;
+	W16* c = start + 27;
+	const W16* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = L'-';
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = L'.';
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 27 + neg - (c - start);
+	size += addLength;
+
+	memcpy(start + neg, c, addLength * sizeof(W16));
+	str[size] = L'\0';
+
 	return *this;
 }
 
@@ -1501,15 +1678,17 @@ inline WString& WString::operator+=(bool value)
 	hashed = false;
 	if (value)
 	{
-		memcpy(str + size, "true", 4);
+		if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
+		memcpy(str + size, L"true", 4 * sizeof(W16));
 		size += 4;
-		str[size] = '\0';
+		str[size] = L'\0';
 	}
 	else
 	{
-		memcpy(str + size, "false", 5);
+		if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
+		memcpy(str + size, L"false", 5 * sizeof(W16));
 		size += 5;
-		str[size] = '\0';
+		str[size] = L'\0';
 	}
 
 	return *this;
@@ -1519,9 +1698,10 @@ inline WString& WString::operator+=(W16* other)
 {
 	hashed = false;
 	U64 addLength = wcslen(other);
-	memcpy(str + size, other, addLength);
+	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
+	memcpy(str + size, other, addLength * sizeof(W16));
 	size += addLength;
-	str[size] = '\0';
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -1530,9 +1710,10 @@ inline WString& WString::operator+=(const W16* other)
 {
 	hashed = false;
 	U64 addLength = wcslen(other);
-	memcpy(str + size, other, addLength);
+	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
+	memcpy(str + size, other, addLength * sizeof(W16));
 	size += addLength;
-	str[size] = '\0';
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -1540,10 +1721,10 @@ inline WString& WString::operator+=(const W16* other)
 inline WString& WString::operator+=(const WString& other)
 {
 	hashed = false;
-	U64 addLength = wcslen(other.str);
-	memcpy(str + size, other.str, addLength);
-	size += addLength;
-	str[size] = '\0';
+	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
+	memcpy(str + size, other.str, other.size * sizeof(W16));
+	size += other.size;
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -1558,14 +1739,14 @@ inline WString::operator I8() const
 	W16 c;
 	I8 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1577,7 +1758,7 @@ inline WString::operator U8() const
 	W16 c;
 	U8 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1588,14 +1769,14 @@ inline WString::operator I16() const
 	W16 c;
 	I16 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1607,7 +1788,7 @@ inline WString::operator U16() const
 	W16 c;
 	U16 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1618,14 +1799,14 @@ inline WString::operator I32() const
 	W16 c;
 	I32 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1637,7 +1818,7 @@ inline WString::operator U32() const
 	W16 c;
 	U32 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1648,14 +1829,14 @@ inline WString::operator I64() const
 	W16 c;
 	I64 value = 0;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 	}
 
 	return value;
@@ -1667,7 +1848,7 @@ inline WString::operator U64() const
 	W16 c;
 	U64 value = 0;
 
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
+	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
 
 	return value;
 }
@@ -1679,16 +1860,16 @@ inline WString::operator F32() const
 	F32 value = 0.0f;
 	F32 mul = 0.1f;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
+		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
+		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
 	}
 
 	return value;
@@ -1701,16 +1882,16 @@ inline WString::operator F64() const
 	F64 value = 0.0f;
 	F64 mul = 0.1f;
 
-	if (*str == '-')
+	if (*str == L'-')
 	{
 		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
+		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
 	}
 	else
 	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
+		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
+		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
 	}
 
 	return value;
@@ -1718,7 +1899,7 @@ inline WString::operator F64() const
 
 inline WString::operator bool() const
 {
-	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
+	return str[0] == L't' && str[1] == L'r' && str[2] == L'u' && str[3] == L'e';
 }
 
 inline W16* WString::operator*() { return str; }
@@ -1847,7 +2028,7 @@ inline bool WString::Blank() const
 	W16* start = str;
 	W16 c;
 
-	while ((c = *start) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f');
+	while ((c = *start) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f');
 
 	return start - str == size;
 }
@@ -1856,9 +2037,9 @@ inline I32 WString::IndexOf(const W16& c, U64 start) const
 {
 	W16* it = str + start;
 
-	while (*it != c && *it != '\0') { ++it; }
+	while (*it != c && *it != L'\0') { ++it; }
 
-	if (*it == '\0') { return -1; }
+	if (*it == L'\0') { return -1; }
 	return (I32)(it - str);
 }
 
@@ -1880,12 +2061,12 @@ inline WString& WString::Trim()
 	W16* end = str + size;
 	W16 c;
 
-	while ((c = *start) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == '\0') { ++start; }
-	while ((c = *end) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == '\0') { --end; }
+	while ((c = *start) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f' || c == L'\0') { ++start; }
+	while ((c = *end) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f' || c == L'\0') { --end; }
 
 	size = end - start;
-	memcpy(str, start, size);
-	str[size] = '\0';
+	memcpy(str, start, size * sizeof(W16));
+	str[size] = L'\0';
 
 	return *this;
 }
@@ -1895,73 +2076,78 @@ inline WString& WString::SubString(WString& newStr, U64 start, U64 nLength) cons
 	if (nLength < U64_MAX) { newStr.size = nLength; }
 	else { newStr.size = size - start; }
 
-	memcpy(newStr.str, str + start, newStr.size);
-	newStr.str[newStr.size] = '\0';
+	memcpy(newStr.str, str + start, newStr.size * sizeof(W16));
+	newStr.str[newStr.size] = L'\0';
 
 	return newStr;
 }
 
 inline WString& WString::Append(const WString& append)
 {
+	if (capacity < size + append.size) { Memory::Reallocate(str, size + append.size, capacity); }
 	hashed = false;
-	memcpy(str + size, append.str, append.size);
+	memcpy(str + size, append.str, append.size * sizeof(W16));
 	size += append.size;
-	str[size] = '\0';
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::Prepend(const WString& prepend)
 {
+	if (capacity < size + prepend.size) { Memory::Reallocate(str, size + prepend.size, capacity); }
 	hashed = false;
-	memcpy(str + size, str, size);
-	memcpy(str, prepend.str, prepend.size);
+	memcpy(str + size, str, size * sizeof(W16));
+	memcpy(str, prepend.str, prepend.size * sizeof(W16));
 	size += prepend.size;
-	str[size] = '\0';
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::Surround(const WString& prepend, const WString& append)
 {
+	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(str, size + append.size + prepend.size, capacity); }
 	hashed = false;
-	memcpy(str + prepend.size, str, size);
-	memcpy(str, prepend.str, prepend.size);
+	memcpy(str + prepend.size, str, size * sizeof(W16));
+	memcpy(str, prepend.str, prepend.size * sizeof(W16));
 	size += prepend.size;
 
-	memcpy(str + size, append.str, append.size);
+	memcpy(str + size, append.str, append.size * sizeof(W16));
 	size += append.size;
-	str[size] = '\0';
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::Insert(const WString& other, U32 i)
 {
+	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
 	hashed = false;
-	memcpy(str + i + other.size, str + i, size - i);
-	memcpy(str + i, other.str, other.size);
+	memcpy(str + i + other.size, str + i, (size - i) * sizeof(W16));
+	memcpy(str + i, other.str, other.size * sizeof(W16));
 	size += other.size;
-	str[size] = '\0';
+	str[size] = L'\0';
 
 	return *this;
 }
 
 inline WString& WString::ReplaceAll(const WString& find, const WString& replace, U64 start)
 {
+	//TODO: Capacity Check
 	hashed = false;
 	W16* c = str + start;
 	W16 ch = *c;
-	while (ch != '\0')
+	while (ch != L'\0')
 	{
-		while ((ch = *c) != '\0' && memcmp(c, find.str, find.size)) { ++c; }
+		while ((ch = *c) != L'\0' && memcmp(c, find.str, find.size)) { ++c; }
 
-		if (ch != '\0')
+		if (ch != L'\0')
 		{
-			memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
-			memcpy(c, replace.str, replace.size);
+			memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
+			memcpy(c, replace.str, replace.size * sizeof(W16));
 			size = size - find.size + replace.size;
-			str[size] = '\0';
+			str[size] = L'\0';
 		}
 	}
 
@@ -1970,20 +2156,21 @@ inline WString& WString::ReplaceAll(const WString& find, const WString& replace,
 
 inline WString& WString::ReplaceN(const WString& find, const WString& replace, U64 count, U64 start)
 {
+	//TODO: Capacity Check
 	hashed = false;
 	W16* c = str + start;
 	W16 ch = *c;
-	while (ch != '\0' && count)
+	while (ch != L'\0' && count)
 	{
-		while ((ch = *c) != '\0' && memcmp(c, find.str, find.size)) { ++c; }
+		while ((ch = *c) != L'\0' && memcmp(c, find.str, find.size)) { ++c; }
 
-		if (ch != '\0')
+		if (ch != L'\0')
 		{
 			--count;
-			memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
-			memcpy(c, replace.str, replace.size);
+			memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
+			memcpy(c, replace.str, replace.size * sizeof(W16));
 			size = size - find.size + replace.size;
-			str[size] = '\0';
+			str[size] = L'\0';
 		}
 	}
 
@@ -1992,16 +2179,17 @@ inline WString& WString::ReplaceN(const WString& find, const WString& replace, U
 
 inline WString& WString::ReplaceFirst(const WString& find, const WString& replace, U64 start)
 {
+	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, size + replace.size - find.size, capacity); }
 	hashed = false;
 	W16* c = str + start;
-	while (*c != '\0' && memcmp(c, find.str, find.size)) { ++c; }
+	while (*c != L'\0' && memcmp(c, find.str, find.size)) { ++c; }
 
-	if (*c != '\0')
+	if (*c != L'\0')
 	{
-		memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
-		memcpy(c, replace.str, replace.size);
+		memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
+		memcpy(c, replace.str, replace.size * sizeof(W16));
 		size = size - find.size + replace.size;
-		str[size] = '\0';
+		str[size] = L'\0';
 	}
 
 	return *this;
@@ -2014,21 +2202,20 @@ inline void WString::Split(Vector<WString>& list, U8 delimiter, bool trimEntries
 
 inline void WString::Format(U64& start, const WString& replace)
 {
+	//TODO: Capacity Check
 	hashed = false;
 	W16* c = str + start;
-	while (*c != '\0' && memcmp(c, "{}", 2)) { ++c; }
+	while (*c != L'\0' && memcmp(c, "{}", 2)) { ++c; }
 
-	if (*c != '\0')
+	if (*c != L'\0')
 	{
 		start = (c - str) + replace.size;
-		memcpy(c + replace.size, c + 2, size - 2 - (c - str));
-		memcpy(c, replace.str, replace.size);
+		memcpy(c + replace.size, c + 2, (size - 2 - (c - str)));
+		memcpy(c, replace.str, replace.size * sizeof(W16));
 		size = size - 2 + replace.size;
-		str[size] = '\0';
+		str[size] = L'\0';
 	}
 }
-
-//inline Vector<WString> WString::Split(U8 delimiter, bool trimEntries) const
 
 inline W16* WString::begin() { return str; }
 
