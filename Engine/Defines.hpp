@@ -221,6 +221,8 @@ class& operator=(class&&) = delete;	\
 #	define NH_NOINLINE
 #endif
 
+#define NH_NO_DISCARD [[nodiscard]]
+
 /*---------ASSERTIONS---------*/
 
 #ifdef ASSERTIONS_ENABLED

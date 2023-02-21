@@ -4,10 +4,7 @@
 #include "File.hpp"
 
 #include "Containers\String.hpp"
-
-#ifdef PLATFORM_WINDOWS
-#	include <Windows.h>
-#endif
+#include "Platform\Platform.hpp"
 
 #define LOG_WARN_ENABLED 1
 #define LOG_INFO_ENABLED 1
@@ -64,9 +61,7 @@ inline bool Logger::Initialize()
 	outputLog.OpenOutput();
 	errorLog.OpenError();
 
-#ifdef PLATFORM_WINDOWS
-	SetConsoleTitleW(L"Nihility Console");
-#endif
+	Platform::SetConsoleWindowTitle(L"Nihility Console");
 
 	return true;
 }

@@ -25,6 +25,7 @@ public:
 	static void SetMousePosition(I32 x, I32 y);
 	static void HideCursor(bool hide);
 	static void LockCursor(bool lock);
+	static void SetConsoleWindowTitle(const W16* name);
 
 	static const WindowData& GetWindowData();
 

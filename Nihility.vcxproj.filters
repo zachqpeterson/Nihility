@@ -120,5 +120,8 @@
     <ClCompile Include="Engine\Platform\Input.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Platform\Controller.cpp">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

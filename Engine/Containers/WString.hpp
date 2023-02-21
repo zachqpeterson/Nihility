@@ -5,21 +5,32 @@
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
 
+#include <type_traits> //TODO: Implementation of this
+
+#define IS_TRUE_W(c) c[0] == L't' && c[1] == L'r' && c[2] == L'u' && c[3] == L'e'
+#define WHITE_SPACE_W(c, ptr) (c = *ptr) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f' || c == NULL_CHAR
+
+static struct WHex {} WHEX;
+
+/*
+* TODO: Documentation
+*
+* TODO: Predicates / regex?
+*
+* TODO: Count of a W16acter
+*
+* TODO: Make sure str isn't nullptr and capacity is large enough
+*
+* TODO: Conversions from W16 to W16
+*
+* TODO: Conversions from WWString to WString
+*/
 struct NH_API WString
 {
 public:
 	WString();
-	WString(I8 value);
-	WString(U8 value);
-	WString(I16 value);
-	WString(U16 value);
-	WString(I32 value);
-	WString(U32 value);
-	WString(I64 value);
-	WString(U64 value);
-	WString(F32 value);
-	WString(F64 value);
-	WString(bool value);
+	template<typename T> WString(T value);
+	template<typename T> WString(T value, WHex flag);
 	WString(W16* str);
 	WString(const W16* str);
 	WString(const WString& other);
@@ -27,17 +38,7 @@ public:
 	template<typename... Types> WString(const W16* fmt, const Types& ... args);
 	template<typename... Types> WString(const Types& ... args);
 
-	WString& operator=(I8 value);
-	WString& operator=(U8 value);
-	WString& operator=(I16 value);
-	WString& operator=(U16 value);
-	WString& operator=(I32 value);
-	WString& operator=(U32 value);
-	WString& operator=(I64 value);
-	WString& operator=(U64 value);
-	WString& operator=(F32 value);
-	WString& operator=(F64 value);
-	WString& operator=(bool value);
+	template<typename T> WString& operator=(T value);
 	WString& operator=(W16* str);
 	WString& operator=(const W16* str);
 	WString& operator=(const WString& other);
@@ -51,46 +52,19 @@ public:
 	void Resize(U64 size);
 	void Resize();
 
-	I8  ToI8() const;
-	U8  ToU8() const;
-	I16 ToI16() const;
-	U16 ToU16() const;
-	I32 ToI32() const;
-	U32 ToU32() const;
-	I64 ToI64() const;
-	U64 ToU64() const;
-	F32 ToF32() const;
-	F64 ToF64() const;
-	bool ToBool() const;
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>, T> ToType() const;
 
-	WString& operator+=(I8  value);
-	WString& operator+=(U8  value);
-	WString& operator+=(I16 value);
-	WString& operator+=(U16 value);
-	WString& operator+=(I32 value);
-	WString& operator+=(U32 value);
-	WString& operator+=(I64 value);
-	WString& operator+=(U64 value);
-	WString& operator+=(F32 value);
-	WString& operator+=(F64 value);
-	WString& operator+=(bool value);
+	template<typename T> WString& operator+=(T value);
 	WString& operator+=(W16* other);
 	WString& operator+=(const W16* other);
 	WString& operator+=(const WString& other);
 
+	template<typename T> explicit operator T() const;
 	explicit operator W16* ();
 	explicit operator const W16* () const;
-	explicit operator I8() const;
-	explicit operator U8() const;
-	explicit operator I16() const;
-	explicit operator U16() const;
-	explicit operator I32() const;
-	explicit operator U32() const;
-	explicit operator I64() const;
-	explicit operator U64() const;
-	explicit operator F32() const;
-	explicit operator F64() const;
-	explicit operator bool() const;
 
 	W16* operator*();
 	const W16* operator*() const;
@@ -124,7 +98,7 @@ public:
 	WString& Append(const WString& append);
 	WString& Prepend(const WString& prepend);
 	WString& Surround(const WString& prepend, const WString& append);
-	WString& Insert(const WString& string, U32 i);
+	WString& Insert(const WString& WString, U32 i);
 	WString& ReplaceAll(const WString& find, const WString& replace, U64 start = 0);
 	WString& ReplaceN(const WString& find, const WString& replace, U64 count, U64 start = 0);
 	WString& ReplaceFirst(const WString& find, const WString& replace, U64 start = 0);
@@ -140,7 +114,22 @@ public:
 	const W16* rbegin() const;
 	const W16* rend() const;
 
+	static inline constexpr const W16 NULL_CHAR = L'\0';
+	static inline constexpr const W16 NEGATIVE_CHAR = L'-';
+	static inline constexpr const W16 DECIMAL_CHAR = L'.';
+	static inline constexpr const W16 ZERO_CHAR = L'0';
+	static inline constexpr const W16* TRUE_STR = L"true";
+	static inline constexpr const W16* FALSE_STR = L"false";
+
 private:
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> ToWString(W16* str, T value);
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> ToWString(W16* str, T value);
+	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> ToWString(W16* str, T value);
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> ToWString(W16* str, T value);
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> HexToWString(W16* str, T value);
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> HexToWString(W16* str, T value);
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> HexToWString(W16* str, T value);
+
 	void Format(U64& start, const WString& replace);
 
 	bool hashed{ false };
@@ -149,8 +138,8 @@ private:
 	U64 capacity{ 1024 };
 	W16* str;
 
-#pragma region THREE_DIGIT_NUMBERS
-	static inline constexpr const W16* THREE_DIGIT_NUMBERS =
+#pragma region LOOKUPS
+	static inline constexpr const W16 DECIMAL_LOOKUP[] =
 		L"000001002003004005006007008009010011012013014015016017018019"
 		L"020021022023024025026027028029030031032033034035036037038039"
 		L"040041042043044045046047048049050051052053054055056057058059"
@@ -201,356 +190,32 @@ private:
 		L"940941942943944945946947948949950951952953954955956957958959"
 		L"960961962963964965966967968969970971972973974975976977978979"
 		L"980981982983984985986987988989990991992993994995996997998999";
+
+	static inline constexpr const W16 HEX_LOOKUP[] =
+		L"000102030405060708090A0B0C0D0E0F"
+		L"101112131415161718191A1B1C1D1E1F"
+		L"202122232425262728292A2B2C2D2E2F"
+		L"303132333435363738393A3B3C3D3E3F"
+		L"404142434445464748494A4B4C4D4E4F"
+		L"505152535455565758595A5B5C5D5E5F"
+		L"606162636465666768696A6B6C6D6E6F"
+		L"707172737475767778797A7B7C7D7E7F"
+		L"808182838485868788898A8B8C8D8E8F"
+		L"909192939495969798999A9B9C9D9E9F"
+		L"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
+		L"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
+		L"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
+		L"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
+		L"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
+		L"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
 #pragma endregion
 };
 
 inline WString::WString() : str{ (W16*)Memory::Allocate1kb() } {}
 
-inline WString::WString(I8 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	if (value < 0)
-	{
-		str[0] = L'-';
-		U8 abs = (U8)-value;
-		W16* c = str + 4;
-		const W16* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-		*--c = threeDigits[2];
-		if (abs > 9) { *--c = threeDigits[1]; }
-		if (abs > 99) { *--c = threeDigits[0]; }
+template<typename T> inline WString::WString(T value) : str{ (W16*)Memory::Allocate1kb() } { ToWString(str, value); }
 
-		size = 5 - (c - str);
-		memcpy(str + 1, c, (size + 1) * sizeof(W16));
-	}
-	else
-	{
-		W16* c = str + 3;
-		const W16* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-		*--c = threeDigits[2];
-		if (value > 9) { *--c = threeDigits[1]; }
-		if (value > 99) { *--c = threeDigits[0]; }
-
-		size = 3 - (c - str);
-		memcpy(str, c, (size + 1) * sizeof(W16));
-	}
-}
-
-inline WString::WString(U8 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 3;
-	const W16* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 3 - (c - str);
-	memcpy(str, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(I16 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 6;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U16 abs = (U16)value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = (U16)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U16 newVal = abs / 1000;
-		U16 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 6 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(U16 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 5;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U16 newVal = value / 1000;
-		U16 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 5 - (c - str);
-
-	memcpy(str, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(I32 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 11;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U32 abs = (U32)value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = (U32)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U32 newVal = abs / 1000;
-		U32 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 11 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(U32 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 10;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U32 newVal = value / 1000;
-		U32 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 10 - (c - str);
-
-	memcpy(str, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(I64 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 20;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 20 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(U64 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 20;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U64 newVal = value / 1000;
-		U64 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 20 - (c - str);
-
-	memcpy(str, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(F32 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 27;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	F32 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F32)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = L'.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(F64 value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	W16* c = str + 27;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = L'.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-}
-
-inline WString::WString(bool value) : str{ (W16*)Memory::Allocate1kb() }
-{
-	if (value)
-	{
-		size = 4;
-		memcpy(str, L"true", 4 * sizeof(W16));
-	}
-	else
-	{
-		size = 5;
-		memcpy(str, L"false", 5 * sizeof(W16));
-	}
-}
+template<typename T> inline WString::WString(T value, WHex flag) : str{ (W16*)Memory::Allocate1kb() } { HexToWString(str, value); }
 
 inline WString::WString(W16* str) : size{ wcslen(str) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
 {
@@ -586,417 +251,9 @@ template<typename... Types> inline WString::WString(const Types& ... args) : str
 	(Append(args), ...);
 }
 
-inline WString& WString::operator=(I8 value)
+template<typename T> inline WString& WString::operator=(T value)
 {
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		U8 abs = (U8)-value;
-		W16* c = str + 4;
-		const W16* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-		*--c = threeDigits[2];
-		if (abs > 9) { *--c = threeDigits[1]; }
-		if (abs > 99) { *--c = threeDigits[0]; }
-
-		size = 5 - (c - str);
-		memcpy(str + 1, c, size * sizeof(W16));
-		str[size] = L'\0';
-	}
-	else
-	{
-		W16* c = str + 3;
-		const W16* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-		*--c = threeDigits[2];
-		if (value > 9) { *--c = threeDigits[1]; }
-		if (value > 99) { *--c = threeDigits[0]; }
-
-		size = 3 - (c - str);
-		memcpy(str, c, size * sizeof(W16));
-		str[size] = L'\0';
-	}
-
-	return *this;
-}
-
-inline WString& WString::operator=(U8 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 3;
-	const W16* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 3 - (c - str);
-	memcpy(str, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(I16 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 6;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U16 abs = (U16)value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = (U16)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U16 newVal = abs / 1000;
-		U16 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 6 + neg - (c - str);
-
-	memcpy(str + neg, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(U16 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 5;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U16 newVal = value / 1000;
-		U16 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 5 - (c - str);
-
-	memcpy(str, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(I32 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 11;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U32 abs = (U32)value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = (U32)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U32 newVal = abs / 1000;
-		U32 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 11 + neg - (c - str);
-
-	memcpy(str + neg, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(U32 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 10;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U32 newVal = value / 1000;
-		U32 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 10 - (c - str);
-
-	memcpy(str, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(I64 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 20;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 20 + neg - (c - str);
-
-	memcpy(str + neg, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(U64 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 20;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U64 newVal = value / 1000;
-		U64 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 20 - (c - str);
-
-	memcpy(str, c, size * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(F32 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 27;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = L'.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(F64 value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	W16* c = str + 27;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = L'.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, (size + 1) * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator=(bool value)
-{
-	hashed = false;
-	if (!str) { str = (W16*)Memory::Allocate1kb(); capacity = 1024; }
-
-	if (value)
-	{
-		size = 4;
-		memcpy(str, L"true", 4 * sizeof(W16));
-		str[size] = L'\0';
-	}
-	else
-	{
-		size = 5;
-		memcpy(str, L"false", 5 * sizeof(W16));
-		str[size] = L'\0';
-	}
-
+	ToWString(str, value);
 	return *this;
 }
 
@@ -1005,9 +262,9 @@ inline WString& WString::operator=(W16* str)
 	hashed = false;
 	size = wcslen(str);
 	if (capacity < size) { Memory::Free(this->str); }
-	if (!this->str) { this->str = (W16*)Memory::Allocate(size, capacity); }
+	if (!this->str) { this->str = (W16*)Memory::Allocate(size * sizeof(W16), capacity); }
 
-	memcpy(this->str, str, (size + 1) * sizeof(W16));
+	memcpy(this->str, str, size + 1);
 
 	return *this;
 }
@@ -1017,9 +274,9 @@ inline WString& WString::operator=(const W16* str)
 	hashed = false;
 	size = wcslen(str);
 	if (capacity < size) { Memory::Free(this->str); }
-	if (!this->str) { this->str = (W16*)Memory::Allocate(size, capacity); }
+	if (!this->str) { this->str = (W16*)Memory::Allocate(size * sizeof(W16), capacity); }
 
-	memcpy(this->str, str, (size + 1) * sizeof(W16));
+	memcpy(this->str, str, size + 1);
 
 	return *this;
 }
@@ -1032,7 +289,7 @@ inline WString& WString::operator=(const WString& other)
 
 	size = other.size;
 	capacity = other.capacity;
-	memcpy(this->str, other.str, (size + 1) * sizeof(W16));
+	memcpy(this->str, other.str, size + 1);
 
 	return *this;
 }
@@ -1072,7 +329,7 @@ inline void WString::Destroy()
 inline void WString::Clear()
 {
 	hashed = false;
-	str[0] = L'\0';
+	str[0] = NULL_CHAR;
 	size = 0;
 }
 
@@ -1080,7 +337,7 @@ inline void WString::Reserve(U64 size)
 {
 	if (size > capacity)
 	{
-		W16* temp = (W16*)Memory::Allocate(size, capacity);
+		W16* temp = (W16*)Memory::Allocate(size * sizeof(W16), capacity);
 		memcpy(temp, str, this->size * sizeof(W16));
 		Memory::Free(str);
 		str = temp;
@@ -1091,7 +348,7 @@ inline void WString::Resize(U64 size)
 {
 	if (size > this->capacity) { Reserve(size); }
 	this->size = size;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 }
 
 inline void WString::Resize()
@@ -1099,598 +356,9 @@ inline void WString::Resize()
 	this->size = wcslen(str);
 }
 
-inline I8 WString::ToI8() const
+template<typename T> inline WString& WString::operator+=(T value)
 {
-	W16* it = str;
-	W16 c;
-	I8 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline U8 WString::ToU8() const
-{
-	W16* it = str;
-	W16 c;
-	U8 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline I16 WString::ToI16() const
-{
-	W16* it = str;
-	W16 c;
-	I16 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline U16 WString::ToU16() const
-{
-	W16* it = str;
-	W16 c;
-	U16 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline I32 WString::ToI32() const
-{
-	W16* it = str;
-	W16 c;
-	I32 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline U32 WString::ToU32() const
-{
-	W16* it = str;
-	W16 c;
-	U32 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline I64 WString::ToI64() const
-{
-	W16* it = str;
-	W16 c;
-	I64 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline U64 WString::ToU64() const
-{
-	W16* it = str;
-	W16 c;
-	U64 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline F32 WString::ToF32() const
-{
-	W16* it = str;
-	W16 c;
-	F32 value = 0.0f;
-	F32 mul = 0.1f;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
-		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
-		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline F64 WString::ToF64() const
-{
-	W16* it = str;
-	W16 c;
-	F64 value = 0.0f;
-	F64 mul = 0.1f;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
-		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
-		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline bool WString::ToBool() const
-{
-	return str[0] == L't' && str[1] == L'r' && str[2] == L'u' && str[3] == L'e';
-}
-
-inline WString& WString::operator+=(I8 value)
-{
-	if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
-	hashed = false;
-	W16* start = str + size;
-
-	if (value < 0)
-	{
-		start[0] = L'-';
-		U8 abs = (U8)-value;
-		W16* c = start + 4;
-		const W16* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-		*--c = threeDigits[2];
-		if (abs > 9) { *--c = threeDigits[1]; }
-		if (abs > 99) { *--c = threeDigits[0]; }
-
-		U64 addLength = 5 - (c - start);
-		size += addLength;
-		memcpy(start + 1, c, addLength * sizeof(W16));
-		str[size] = L'\0';
-	}
-	else
-	{
-		W16* c = start + 3;
-		const W16* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-		*--c = threeDigits[2];
-		if (value > 9) { *--c = threeDigits[1]; }
-		if (value > 99) { *--c = threeDigits[0]; }
-
-		U64 addLength = 3 - (c - start);
-		size += addLength;
-		memcpy(start, c, addLength * sizeof(W16));
-		str[size] = L'\0';
-	}
-
-	return *this;
-}
-
-inline WString& WString::operator+=(U8 value)
-{
-	if (capacity < size + 3) { Memory::Reallocate(str, size + 3, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 3;
-	const W16* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 3 - (c - start);
-	size += addLength;
-	memcpy(start, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(I16 value)
-{
-	if (capacity < size + 6) { Memory::Reallocate(str, size + 6, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 6;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U16 abs = (U16)value;
-
-	if (value < 0)
-	{
-		start[0] = L'-';
-		abs = (U16)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U16 newVal = abs / 1000;
-		U16 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 6 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(U16 value)
-{
-	if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 5;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U16 newVal = value / 1000;
-		U16 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 5 - (c - start);
-	size += addLength;
-
-	memcpy(start, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(I32 value)
-{
-	if (capacity < size + 11) { Memory::Reallocate(str, size + 11, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 11;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U32 abs = (U32)value;
-
-	if (value < 0)
-	{
-		start[0] = L'-';
-		abs = (U32)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U32 newVal = abs / 1000;
-		U32 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 11 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(U32 value)
-{
-	if (capacity < size + 10) { Memory::Reallocate(str, size + 10, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 10;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U32 newVal = value / 1000;
-		U32 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 10 - (c - start);
-	size += addLength;
-
-	memcpy(start, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(I64 value)
-{
-	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 20;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		start[0] = L'-';
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 20 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(U64 value)
-{
-	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 20;
-	const W16* threeDigits;
-
-	while (value > 999)
-	{
-		U64 newVal = value / 1000;
-		U64 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 20 - (c - start);
-	size += addLength;
-
-	memcpy(start, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(F32 value)
-{
-	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 27;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = L'.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 27 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(F64 value)
-{
-	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
-	hashed = false;
-	W16* start = str + size;
-	W16* c = start + 27;
-	const W16* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = L'-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = L'.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 27 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength * sizeof(W16));
-	str[size] = L'\0';
-
-	return *this;
-}
-
-inline WString& WString::operator+=(bool value)
-{
-	hashed = false;
-	if (value)
-	{
-		if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
-		memcpy(str + size, L"true", 4 * sizeof(W16));
-		size += 4;
-		str[size] = L'\0';
-	}
-	else
-	{
-		if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
-		memcpy(str + size, L"false", 5 * sizeof(W16));
-		size += 5;
-		str[size] = L'\0';
-	}
-
+	ToWString(str + size, value);
 	return *this;
 }
 
@@ -1698,10 +366,10 @@ inline WString& WString::operator+=(W16* other)
 {
 	hashed = false;
 	U64 addLength = wcslen(other);
-	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
+	if (capacity < size + addLength) { Memory::Reallocate(str, (size + addLength) * sizeof(W16), capacity); }
 	memcpy(str + size, other, addLength * sizeof(W16));
 	size += addLength;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -1710,10 +378,10 @@ inline WString& WString::operator+=(const W16* other)
 {
 	hashed = false;
 	U64 addLength = wcslen(other);
-	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
+	if (capacity < size + addLength) { Memory::Reallocate(str, (size + addLength) * sizeof(W16), capacity); }
 	memcpy(str + size, other, addLength * sizeof(W16));
 	size += addLength;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -1721,186 +389,19 @@ inline WString& WString::operator+=(const W16* other)
 inline WString& WString::operator+=(const WString& other)
 {
 	hashed = false;
-	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
+	if (capacity < size + other.size) { Memory::Reallocate(str, (size + other.size) * sizeof(W16), capacity); }
 	memcpy(str + size, other.str, other.size * sizeof(W16));
 	size += other.size;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
 
+template<typename T> inline WString::operator T() const { return ToType<T>(); }
+
 inline WString::operator W16* () { return str; }
 
 inline WString::operator const W16* () const { return str; }
-
-inline WString::operator I8() const
-{
-	W16* it = str;
-	W16 c;
-	I8 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline WString::operator U8() const
-{
-	W16* it = str;
-	W16 c;
-	U8 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline WString::operator I16() const
-{
-	W16* it = str;
-	W16 c;
-	I16 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline WString::operator U16() const
-{
-	W16* it = str;
-	W16 c;
-	U16 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline WString::operator I32() const
-{
-	W16* it = str;
-	W16 c;
-	I32 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline WString::operator U32() const
-{
-	W16* it = str;
-	W16 c;
-	U32 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline WString::operator I64() const
-{
-	W16* it = str;
-	W16 c;
-	I64 value = 0;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0') { value *= 10; value -= c - L'0'; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-	}
-
-	return value;
-}
-
-inline WString::operator U64() const
-{
-	W16* it = str;
-	W16 c;
-	U64 value = 0;
-
-	while ((c = *it++) != L'\0') { value *= 10; value += c - L'0'; }
-
-	return value;
-}
-
-inline WString::operator F32() const
-{
-	W16* it = str;
-	W16 c;
-	F32 value = 0.0f;
-	F32 mul = 0.1f;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
-		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
-		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline WString::operator F64() const
-{
-	W16* it = str;
-	W16 c;
-	F64 value = 0.0f;
-	F64 mul = 0.1f;
-
-	if (*str == L'-')
-	{
-		++it;
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value -= c - L'0'; }
-		while ((c = *it++) != L'\0') { value -= (c - L'0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != L'\0' && c != L'.') { value *= 10; value += c - L'0'; }
-		while ((c = *it++) != L'\0') { value += (c - L'0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline WString::operator bool() const
-{
-	return str[0] == L't' && str[1] == L'r' && str[2] == L'u' && str[3] == L'e';
-}
 
 inline W16* WString::operator*() { return str; }
 
@@ -1915,7 +416,7 @@ inline bool WString::operator==(W16* other) const
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size) == 0;
+	return memcmp(str, other, size * sizeof(W16)) == 0;
 }
 
 inline bool WString::operator==(const W16* other) const
@@ -1923,14 +424,14 @@ inline bool WString::operator==(const W16* other) const
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size) == 0;
+	return memcmp(str, other, size * sizeof(W16)) == 0;
 }
 
 inline bool WString::operator==(const WString& other) const
 {
 	if (other.size != size) { return false; }
 
-	return memcmp(str, other.str, size) == 0;
+	return memcmp(str, other.str, size * sizeof(W16)) == 0;
 }
 
 inline bool WString::operator!=(W16* other) const
@@ -1938,7 +439,7 @@ inline bool WString::operator!=(W16* other) const
 	U64 len = wcslen(other);
 	if (len != size) { return true; }
 
-	return memcmp(str, other, size);
+	return memcmp(str, other, size * sizeof(W16));
 }
 
 inline bool WString::operator!=(const W16* other) const
@@ -1946,14 +447,14 @@ inline bool WString::operator!=(const W16* other) const
 	U64 len = wcslen(other);
 	if (len != size) { return true; }
 
-	return memcmp(str, other, size);
+	return memcmp(str, other, size * sizeof(W16));
 }
 
 inline bool WString::operator!=(const WString& other) const
 {
 	if (other.size != size) { return true; }
 
-	return memcmp(str, other.str, size);
+	return memcmp(str, other.str, size * sizeof(W16));
 }
 
 inline bool WString::Compare(W16* other) const
@@ -1961,7 +462,7 @@ inline bool WString::Compare(W16* other) const
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size) == 0;
+	return memcmp(str, other, size * sizeof(W16)) == 0;
 }
 
 inline bool WString::Compare(const W16* other) const
@@ -1969,14 +470,14 @@ inline bool WString::Compare(const W16* other) const
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size) == 0;
+	return memcmp(str, other, size * sizeof(W16)) == 0;
 }
 
 inline bool WString::Compare(const WString& other) const
 {
 	if (other.size != size) { return false; }
 
-	return memcmp(str, other.str, size) == 0;
+	return memcmp(str, other.str, size * sizeof(W16)) == 0;
 }
 
 inline bool WString::CompareN(W16* other, U32 nLength, U32 start) const
@@ -1984,7 +485,7 @@ inline bool WString::CompareN(W16* other, U32 nLength, U32 start) const
 	U64 len = wcslen(other);
 	if (len != nLength) { return false; }
 
-	return memcmp(str + start, other, nLength) == 0;
+	return memcmp(str + start, other, nLength * sizeof(W16)) == 0;
 }
 
 inline bool WString::CompareN(const W16* other, U32 nLength, U32 start) const
@@ -1992,14 +493,14 @@ inline bool WString::CompareN(const W16* other, U32 nLength, U32 start) const
 	U64 len = wcslen(other);
 	if (len != nLength) { return false; }
 
-	return memcmp(str + start, other, nLength) == 0;
+	return memcmp(str + start, other, nLength * sizeof(W16)) == 0;
 }
 
 inline bool WString::CompareN(const WString& other, U32 nLength, U32 start) const
 {
 	if (other.size != nLength) { return false; }
 
-	return memcmp(str + start, other.str, nLength) == 0;
+	return memcmp(str + start, other.str, nLength * sizeof(W16)) == 0;
 }
 
 inline const U64& WString::Size() const { return size; }
@@ -2011,7 +512,7 @@ inline U64 WString::Hash()
 	if (hashed) { return hash; }
 
 	hash = 0;
-	const W16* ptr = str;
+	const char* ptr = (char*)str;
 	while (*ptr) { hash = hash * 101 + *ptr++; }
 	hashed = true;
 
@@ -2028,7 +529,7 @@ inline bool WString::Blank() const
 	W16* start = str;
 	W16 c;
 
-	while ((c = *start) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f');
+	while (WHITE_SPACE_W(c, start));
 
 	return start - str == size;
 }
@@ -2037,9 +538,9 @@ inline I32 WString::IndexOf(const W16& c, U64 start) const
 {
 	W16* it = str + start;
 
-	while (*it != c && *it != L'\0') { ++it; }
+	while (*it != c && *it != NULL_CHAR) { ++it; }
 
-	if (*it == L'\0') { return -1; }
+	if (*it == NULL_CHAR) { return -1; }
 	return (I32)(it - str);
 }
 
@@ -2061,12 +562,12 @@ inline WString& WString::Trim()
 	W16* end = str + size;
 	W16 c;
 
-	while ((c = *start) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f' || c == L'\0') { ++start; }
-	while ((c = *end) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f' || c == L'\0') { --end; }
+	while (WHITE_SPACE_W(c, start)) { ++start; }
+	while (WHITE_SPACE_W(c, end)) { --end; }
 
 	size = end - start;
 	memcpy(str, start, size * sizeof(W16));
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2077,7 +578,7 @@ inline WString& WString::SubString(WString& newStr, U64 start, U64 nLength) cons
 	else { newStr.size = size - start; }
 
 	memcpy(newStr.str, str + start, newStr.size * sizeof(W16));
-	newStr.str[newStr.size] = L'\0';
+	newStr.str[newStr.size] = NULL_CHAR;
 
 	return newStr;
 }
@@ -2088,26 +589,26 @@ inline WString& WString::Append(const WString& append)
 	hashed = false;
 	memcpy(str + size, append.str, append.size * sizeof(W16));
 	size += append.size;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
 
 inline WString& WString::Prepend(const WString& prepend)
 {
-	if (capacity < size + prepend.size) { Memory::Reallocate(str, size + prepend.size, capacity); }
+	if (capacity < size + prepend.size) { Memory::Reallocate(str, (size + prepend.size) * sizeof(W16), capacity); }
 	hashed = false;
 	memcpy(str + size, str, size * sizeof(W16));
 	memcpy(str, prepend.str, prepend.size * sizeof(W16));
 	size += prepend.size;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
 
 inline WString& WString::Surround(const WString& prepend, const WString& append)
 {
-	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(str, size + append.size + prepend.size, capacity); }
+	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(str, (size + append.size + prepend.size) * sizeof(W16), capacity); }
 	hashed = false;
 	memcpy(str + prepend.size, str, size * sizeof(W16));
 	memcpy(str, prepend.str, prepend.size * sizeof(W16));
@@ -2115,19 +616,19 @@ inline WString& WString::Surround(const WString& prepend, const WString& append)
 
 	memcpy(str + size, append.str, append.size * sizeof(W16));
 	size += append.size;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
 
 inline WString& WString::Insert(const WString& other, U32 i)
 {
-	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
+	if (capacity < size + other.size) { Memory::Reallocate(str, (size + other.size) * sizeof(W16), capacity); }
 	hashed = false;
-	memcpy(str + i + other.size, str + i, (size - i) * sizeof(W16));
-	memcpy(str + i, other.str, other.size * sizeof(W16));
+	memcpy(str + i + other.size, str + i, size - i);
+	memcpy(str + i, other.str, other.size);
 	size += other.size;
-	str[size] = L'\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2138,16 +639,16 @@ inline WString& WString::ReplaceAll(const WString& find, const WString& replace,
 	hashed = false;
 	W16* c = str + start;
 	W16 ch = *c;
-	while (ch != L'\0')
+	while (ch != NULL_CHAR)
 	{
-		while ((ch = *c) != L'\0' && memcmp(c, find.str, find.size)) { ++c; }
+		while ((ch = *c) != NULL_CHAR && memcmp(c, find.str, find.size * sizeof(W16))) { ++c; }
 
-		if (ch != L'\0')
+		if (ch != NULL_CHAR)
 		{
 			memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
 			memcpy(c, replace.str, replace.size * sizeof(W16));
 			size = size - find.size + replace.size;
-			str[size] = L'\0';
+			str[size] = NULL_CHAR;
 		}
 	}
 
@@ -2160,17 +661,17 @@ inline WString& WString::ReplaceN(const WString& find, const WString& replace, U
 	hashed = false;
 	W16* c = str + start;
 	W16 ch = *c;
-	while (ch != L'\0' && count)
+	while (ch != NULL_CHAR && count)
 	{
-		while ((ch = *c) != L'\0' && memcmp(c, find.str, find.size)) { ++c; }
+		while ((ch = *c) != NULL_CHAR && memcmp(c, find.str, find.size * sizeof(W16))) { ++c; }
 
-		if (ch != L'\0')
+		if (ch != NULL_CHAR)
 		{
 			--count;
 			memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
 			memcpy(c, replace.str, replace.size * sizeof(W16));
 			size = size - find.size + replace.size;
-			str[size] = L'\0';
+			str[size] = NULL_CHAR;
 		}
 	}
 
@@ -2179,17 +680,17 @@ inline WString& WString::ReplaceN(const WString& find, const WString& replace, U
 
 inline WString& WString::ReplaceFirst(const WString& find, const WString& replace, U64 start)
 {
-	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, size + replace.size - find.size, capacity); }
+	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, (size + replace.size - find.size) * sizeof(W16), capacity); }
 	hashed = false;
 	W16* c = str + start;
-	while (*c != L'\0' && memcmp(c, find.str, find.size)) { ++c; }
+	while (*c != NULL_CHAR && memcmp(c, find.str, find.size * sizeof(W16))) { ++c; }
 
-	if (*c != L'\0')
+	if (*c != NULL_CHAR)
 	{
 		memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
 		memcpy(c, replace.str, replace.size * sizeof(W16));
 		size = size - find.size + replace.size;
-		str[size] = L'\0';
+		str[size] = NULL_CHAR;
 	}
 
 	return *this;
@@ -2205,15 +706,15 @@ inline void WString::Format(U64& start, const WString& replace)
 	//TODO: Capacity Check
 	hashed = false;
 	W16* c = str + start;
-	while (*c != L'\0' && memcmp(c, "{}", 2)) { ++c; }
+	while (*c != NULL_CHAR && memcmp(c, L"{}", 4)) { ++c; }
 
-	if (*c != L'\0')
+	if (*c != NULL_CHAR)
 	{
 		start = (c - str) + replace.size;
-		memcpy(c + replace.size, c + 2, (size - 2 - (c - str)));
+		memcpy(c + replace.size, c + 2, (size - 2 - (c - str)) * sizeof(W16));
 		memcpy(c, replace.str, replace.size * sizeof(W16));
 		size = size - 2 + replace.size;
-		str[size] = L'\0';
+		str[size] = NULL_CHAR;
 	}
 }
 
@@ -2232,3 +733,333 @@ inline W16* WString::rend() { return str - 1; }
 inline const W16* WString::rbegin() const { return str + size - 1; }
 
 inline const W16* WString::rend() const { return str - 1; }
+
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 20) { Memory::Free(str); }
+	if (!str) { str = (W16*)Memory::Allocate((size + 20) * sizeof(W16), capacity); }
+
+	W16* c = str + 20;
+	const W16* threeDigits;
+	U8 neg = 0;
+
+	U64 abs = (U64)value;
+
+	if (value < 0)
+	{
+		str[0] = NEGATIVE_CHAR;
+		abs = (U64)-value;
+		neg = 1;
+	}
+
+	while (abs > 999)
+	{
+		U64 newVal = abs / 1000;
+		U64 remainder = abs % 1000;
+		threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		abs = newVal;
+	}
+
+	threeDigits = DECIMAL_LOOKUP + (abs * 3);
+	*--c = threeDigits[2];
+	if (abs > 9) { *--c = threeDigits[1]; }
+	if (abs > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 + neg - (c - str);
+	size += addLength;
+
+	memcpy(str + neg, c, addLength * sizeof(W16));
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 20) { Memory::Free(str); }
+	if (!str) { str = (W16*)Memory::Allocate((size + 20) * sizeof(W16), capacity); }
+
+	W16* c = str + 20;
+	const W16* threeDigits;
+	U64 val = value;
+
+	while (val > 999)
+	{
+		U64 newVal = val / 1000;
+		U64 remainder = val % 1000;
+		threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		val = newVal;
+	}
+
+	threeDigits = DECIMAL_LOOKUP + (val * 3);
+	*--c = threeDigits[2];
+	if (val > 9) { *--c = threeDigits[1]; }
+	if (val > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 - (c - str);
+	size += addLength;
+
+	memcpy(str, c, addLength * sizeof(W16));
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
+{
+	hashed = false;
+	if (value)
+	{
+		if (capacity < size + 4) { Memory::Free(str); }
+		if (!str) { str = (W16*)Memory::Allocate((size + 4) * sizeof(W16), capacity); }
+		memcpy(str + size, TRUE_STR, 4 * sizeof(W16));
+		size += 4;
+		str[size] = NULL_CHAR;
+	}
+	else
+	{
+		if (capacity < size + 5) { Memory::Free(str); }
+		if (!str) { str = (W16*)Memory::Allocate((size + 5) * sizeof(W16), capacity); }
+		memcpy(str + size, FALSE_STR, 5 * sizeof(W16));
+		size += 5;
+		str[size] = NULL_CHAR;
+	}
+}
+
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WString::ToWString(W16* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 27) { Memory::Free(str); }
+	if (!str) { str = (W16*)Memory::Allocate((size + 27) * sizeof(W16), capacity); }
+
+	W16* c = str + 27;
+	const W16* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = NEGATIVE_CHAR;
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = DECIMAL_LOOKUP + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = DECIMAL_CHAR;
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = DECIMAL_LOOKUP + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 27 + neg - (c - str);
+	size += addLength;
+
+	memcpy(str + neg, c, addLength * sizeof(W16));
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> WString::HexToWString(W16* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 16) { Memory::Free(str); }
+	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
+
+	U8 pairs;
+	U8 digits;
+	U64 max;
+	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else { pairs = 8; digits = 16; max = U64_MAX; }
+
+	W16* c = str + digits;
+	const W16* twoDigits;
+
+	U64 abs;
+	if (value < 0)
+	{
+		abs = max - ((U64)-value - 1);
+
+		for (U8 i = 0; i < pairs; ++i)
+		{
+			U64 j = abs & 0xFF;
+			twoDigits = HEX_LOOKUP + (abs & 0xFF) * 2;
+
+			*--c = twoDigits[1];
+			*--c = twoDigits[0];
+
+			abs >>= 8;
+		}
+	}
+	else
+	{
+		abs = (U64)value;
+
+		for (U8 i = 0; i < pairs; ++i)
+		{
+			twoDigits = HEX_LOOKUP + (abs & 0xFF) * 2;
+
+			*--c = twoDigits[1];
+			*--c = twoDigits[0];
+
+			abs >>= 8;
+		}
+	}
+
+	size += digits;
+
+	memcpy(str, c, digits * sizeof(W16));
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> WString::HexToWString(W16* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 16) { Memory::Free(str); }
+	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
+
+	U8 pairs;
+	U8 digits;
+	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; }
+	else { pairs = 8; digits = 16; }
+
+	W16* c = str + digits;
+	const W16* twoDigits;
+	U64 val = value;
+
+	for (U8 i = 0; i < pairs; ++i)
+	{
+		twoDigits = HEX_LOOKUP + (val & 0xFF) * 2;
+
+		*--c = twoDigits[1];
+		*--c = twoDigits[0];
+
+		val >>= 8;
+	}
+
+	size += digits;
+
+	memcpy(str, c, digits * sizeof(W16));
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WString::HexToWString(W16* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 16) { Memory::Free(str); }
+	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
+
+	U8 pairs = 8;
+	U8 digits = 16;
+
+	W16* c = str + digits;
+	const W16* twoDigits;
+	U64 val = *reinterpret_cast<U64*>(&value);
+
+	for (U8 i = 0; i < pairs; ++i)
+	{
+		twoDigits = HEX_LOOKUP + (val & 0xFF) * 2;
+
+		*--c = twoDigits[1];
+		*--c = twoDigits[0];
+
+		val >>= 8;
+	}
+
+	size += digits;
+
+	memcpy(str, c, digits * sizeof(W16));
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> WString::ToType() const
+{
+	W16* it = str;
+	W16 c;
+	I64 value = 0;
+
+	if (*str == NEGATIVE_CHAR)
+	{
+		++it;
+		while ((c = *it++) != NULL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
+	}
+	else
+	{
+		while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+	}
+
+	return value;
+}
+
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> WString::ToType() const
+{
+	W16* it = str;
+	W16 c;
+	T value = 0;
+
+	while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+
+	return value;
+}
+
+template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> WString::ToType() const
+{
+	return IS_TRUE_W(str);
+}
+
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> WString::ToType() const
+{
+	W16* it = str;
+	W16 c;
+	F64 value = 0.0f;
+	F64 mul = 0.1f;
+
+	if (*str == NEGATIVE_CHAR)
+	{
+		++it;
+		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
+		while ((c = *it++) != NULL_CHAR) { value -= (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+	}
+	else
+	{
+		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+		while ((c = *it++) != NULL_CHAR) { value += (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+	}
+
+	return value;
+}

@@ -4,6 +4,14 @@
 
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
+#include "WString.hpp"
+
+#include <type_traits> //TODO: Implementation of this
+
+#define IS_TRUE(c) c[0] == 't' && c[1] == 'r' && c[2] == 'u' && c[3] == 'e'
+#define WHITE_SPACE(c, ptr) (c = *ptr) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == NULL_CHAR
+
+static struct Hex {} HEX;
 
 /*
 * TODO: Documentation
@@ -13,40 +21,26 @@
 * TODO: Count of a character
 *
 * TODO: Make sure str isn't nullptr and capacity is large enough
+*
+* TODO: Conversions from W16 to char
+*
+* TODO: Conversions from WString to String
 */
 struct NH_API String
 {
 public:
 	String();
-	String(I8 value);
-	String(U8 value);
-	String(I16 value);
-	String(U16 value);
-	String(I32 value);
-	String(U32 value);
-	String(I64 value);
-	String(U64 value);
-	String(F32 value);
-	String(F64 value);
-	String(bool value);
+	template<typename T> String(T value);
+	template<typename T> String(T value, Hex flag);
 	String(char* str);
 	String(const char* str);
 	String(const String& other);
+	String(const WString& other);
 	String(String&& other) noexcept;
 	template<typename... Types> String(const char* fmt, const Types& ... args);
 	template<typename... Types> String(const Types& ... args);
 
-	String& operator=(I8 value);
-	String& operator=(U8 value);
-	String& operator=(I16 value);
-	String& operator=(U16 value);
-	String& operator=(I32 value);
-	String& operator=(U32 value);
-	String& operator=(I64 value);
-	String& operator=(U64 value);
-	String& operator=(F32 value);
-	String& operator=(F64 value);
-	String& operator=(bool value);
+	template<typename T> String& operator=(T value);
 	String& operator=(char* str);
 	String& operator=(const char* str);
 	String& operator=(const String& other);
@@ -60,46 +54,19 @@ public:
 	void Resize(U64 size);
 	void Resize();
 
-	I8  ToI8() const;
-	U8  ToU8() const;
-	I16 ToI16() const;
-	U16 ToU16() const;
-	I32 ToI32() const;
-	U32 ToU32() const;
-	I64 ToI64() const;
-	U64 ToU64() const;
-	F32 ToF32() const;
-	F64 ToF64() const;
-	bool ToBool() const;
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>, T> ToType() const;
 
-	String& operator+=(I8  value);
-	String& operator+=(U8  value);
-	String& operator+=(I16 value);
-	String& operator+=(U16 value);
-	String& operator+=(I32 value);
-	String& operator+=(U32 value);
-	String& operator+=(I64 value);
-	String& operator+=(U64 value);
-	String& operator+=(F32 value);
-	String& operator+=(F64 value);
-	String& operator+=(bool value);
+	template<typename T> String& operator+=(T value);
 	String& operator+=(char* other);
 	String& operator+=(const char* other);
 	String& operator+=(const String& other);
 
+	template<typename T> explicit operator T() const;
 	explicit operator char* ();
 	explicit operator const char* () const;
-	explicit operator I8() const;
-	explicit operator U8() const;
-	explicit operator I16() const;
-	explicit operator U16() const;
-	explicit operator I32() const;
-	explicit operator U32() const;
-	explicit operator I64() const;
-	explicit operator U64() const;
-	explicit operator F32() const;
-	explicit operator F64() const;
-	explicit operator bool() const;
 
 	char* operator*();
 	const char* operator*() const;
@@ -149,7 +116,22 @@ public:
 	const char* rbegin() const;
 	const char* rend() const;
 
+	static inline constexpr const char NULL_CHAR = '\0';
+	static inline constexpr const char NEGATIVE_CHAR = '-';
+	static inline constexpr const char DECIMAL_CHAR = '.';
+	static inline constexpr const char ZERO_CHAR = '0';
+	static inline constexpr const char* TRUE_STR = "true";
+	static inline constexpr const char* FALSE_STR = "false";
+
 private:
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> ToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> ToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> ToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> ToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> HexToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> HexToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> HexToString(char* str, T value);
+
 	void Format(U64& start, const String& replace);
 
 	bool hashed{ false };
@@ -158,8 +140,8 @@ private:
 	U64 capacity{ 1024 };
 	char* str;
 
-#pragma region THREE_DIGIT_NUMBERS
-	static inline constexpr const char* THREE_DIGIT_NUMBERS =
+#pragma region LOOKUPS
+	static inline constexpr const char DECIMAL_LOOKUP[] =
 		"000001002003004005006007008009010011012013014015016017018019"
 		"020021022023024025026027028029030031032033034035036037038039"
 		"040041042043044045046047048049050051052053054055056057058059"
@@ -210,356 +192,32 @@ private:
 		"940941942943944945946947948949950951952953954955956957958959"
 		"960961962963964965966967968969970971972973974975976977978979"
 		"980981982983984985986987988989990991992993994995996997998999";
+
+	static inline constexpr const char HEX_LOOKUP[] =
+		"000102030405060708090A0B0C0D0E0F"
+		"101112131415161718191A1B1C1D1E1F"
+		"202122232425262728292A2B2C2D2E2F"
+		"303132333435363738393A3B3C3D3E3F"
+		"404142434445464748494A4B4C4D4E4F"
+		"505152535455565758595A5B5C5D5E5F"
+		"606162636465666768696A6B6C6D6E6F"
+		"707172737475767778797A7B7C7D7E7F"
+		"808182838485868788898A8B8C8D8E8F"
+		"909192939495969798999A9B9C9D9E9F"
+		"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
+		"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
+		"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
+		"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
+		"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
+		"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
 #pragma endregion
 };
 
 inline String::String() : str{ (char*)Memory::Allocate1kb() } {}
 
-inline String::String(I8 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	if (value < 0)
-	{
-		str[0] = '-';
-		U8 abs = (U8)-value;
-		char* c = str + 4;
-		const char* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-		*--c = threeDigits[2];
-		if (abs > 9) { *--c = threeDigits[1]; }
-		if (abs > 99) { *--c = threeDigits[0]; }
+template<typename T> inline String::String(T value) : str{ (char*)Memory::Allocate1kb() } { ToString(str, value); }
 
-		size = 5 - (c - str);
-		memcpy(str + 1, c, size + 1);
-	}
-	else
-	{
-		char* c = str + 3;
-		const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-		*--c = threeDigits[2];
-		if (value > 9) { *--c = threeDigits[1]; }
-		if (value > 99) { *--c = threeDigits[0]; }
-
-		size = 3 - (c - str);
-		memcpy(str, c, size + 1);
-	}
-}
-
-inline String::String(U8 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 3;
-	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 3 - (c - str);
-	memcpy(str, c, size + 1);
-}
-
-inline String::String(I16 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 6;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U16 abs = (U16)value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = (U16)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U16 newVal = abs / 1000;
-		U16 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 6 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-}
-
-inline String::String(U16 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 5;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U16 newVal = value / 1000;
-		U16 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 5 - (c - str);
-
-	memcpy(str, c, size + 1);
-}
-
-inline String::String(I32 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 11;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U32 abs = (U32)value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = (U32)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U32 newVal = abs / 1000;
-		U32 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 11 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-}
-
-inline String::String(U32 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 10;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U32 newVal = value / 1000;
-		U32 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 10 - (c - str);
-
-	memcpy(str, c, size + 1);
-}
-
-inline String::String(I64 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 20;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 20 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-}
-
-inline String::String(U64 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 20;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U64 newVal = value / 1000;
-		U64 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 20 - (c - str);
-
-	memcpy(str, c, size + 1);
-}
-
-inline String::String(F32 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 27;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	F32 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F32)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = '.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-}
-
-inline String::String(F64 value) : str{ (char*)Memory::Allocate1kb() }
-{
-	char* c = str + 27;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = '.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-}
-
-inline String::String(bool value) : str{ (char*)Memory::Allocate1kb() }
-{
-	if (value)
-	{
-		size = 4;
-		memcpy(str, "true", 4);
-	}
-	else
-	{
-		size = 5;
-		memcpy(str, "false", 5);
-	}
-}
+template<typename T> inline String::String(T value, Hex flag) : str{ (char*)Memory::Allocate1kb() } { HexToString(str, value); }
 
 inline String::String(char* str) : size{ strlen(str) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
 {
@@ -574,6 +232,19 @@ inline String::String(const char* str) : size{ strlen(str) }, capacity{ size }, 
 inline String::String(const String& other) : size{ other.size }, capacity{ other.capacity }, str{ (char*)Memory::Allocate(capacity) }
 {
 	memcpy(str, other.str, size + 1);
+}
+
+inline String::String(const WString& other) : size{ other.Size() }, capacity{ other.Capacity() }, str{ (char*)Memory::Allocate(capacity) }
+{
+	const W16* w = other.Data();
+	char* c = str;
+
+	W16 val;
+	while ((val = *w++) != WString::NULL_CHAR)
+	{
+		if (val < 128) { *c++ = (char)val; }
+		else { *c++ = (char)219; if (val >= 0xD800 && val <= 0xD8FF) { --size; ++w; } }
+	}
 }
 
 inline String::String(String&& other) noexcept : size{ other.size }, capacity{ other.capacity }, str{ other.str }
@@ -595,417 +266,9 @@ template<typename... Types> inline String::String(const Types& ... args) : str{ 
 	(Append(args), ...);
 }
 
-inline String& String::operator=(I8 value)
+template<typename T> inline String& String::operator=(T value)
 {
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		U8 abs = (U8)-value;
-		char* c = str + 4;
-		const char* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-		*--c = threeDigits[2];
-		if (abs > 9) { *--c = threeDigits[1]; }
-		if (abs > 99) { *--c = threeDigits[0]; }
-
-		size = 5 - (c - str);
-		memcpy(str + 1, c, size);
-		str[size] = '\0';
-	}
-	else
-	{
-		char* c = str + 3;
-		const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-		*--c = threeDigits[2];
-		if (value > 9) { *--c = threeDigits[1]; }
-		if (value > 99) { *--c = threeDigits[0]; }
-
-		size = 3 - (c - str);
-		memcpy(str, c, size);
-		str[size] = '\0';
-	}
-
-	return *this;
-}
-
-inline String& String::operator=(U8 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 3;
-	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 3 - (c - str);
-	memcpy(str, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(I16 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 6;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U16 abs = (U16)value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = (U16)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U16 newVal = abs / 1000;
-		U16 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 6 + neg - (c - str);
-
-	memcpy(str + neg, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(U16 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 5;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U16 newVal = value / 1000;
-		U16 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 5 - (c - str);
-
-	memcpy(str, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(I32 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 11;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U32 abs = (U32)value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = (U32)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U32 newVal = abs / 1000;
-		U32 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 11 + neg - (c - str);
-
-	memcpy(str + neg, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(U32 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 10;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U32 newVal = value / 1000;
-		U32 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 10 - (c - str);
-
-	memcpy(str, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(I64 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 20;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	size = 20 + neg - (c - str);
-
-	memcpy(str + neg, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(U64 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 20;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U64 newVal = value / 1000;
-		U64 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	size = 20 - (c - str);
-
-	memcpy(str, c, size);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(F32 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 27;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = '.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(F64 value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	char* c = str + 27;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = '.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	size = 27 + neg - (c - str);
-
-	memcpy(str + neg, c, size + 1);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator=(bool value)
-{
-	hashed = false;
-	if (!str) { str = (char*)Memory::Allocate1kb(); capacity = 1024; }
-
-	if (value)
-	{
-		size = 4;
-		memcpy(str, "true", 4);
-		str[size] = '\0';
-	}
-	else
-	{
-		size = 5;
-		memcpy(str, "false", 5);
-		str[size] = '\0';
-	}
-
+	ToString(str, value);
 	return *this;
 }
 
@@ -1081,7 +344,7 @@ inline void String::Destroy()
 inline void String::Clear()
 {
 	hashed = false;
-	str[0] = '\0';
+	str[0] = NULL_CHAR;
 	size = 0;
 }
 
@@ -1100,7 +363,7 @@ inline void String::Resize(U64 size)
 {
 	if (size > this->capacity) { Reserve(size); }
 	this->size = size;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 }
 
 inline void String::Resize()
@@ -1108,598 +371,9 @@ inline void String::Resize()
 	this->size = strlen(str);
 }
 
-inline I8 String::ToI8() const
+template<typename T> inline String& String::operator+=(T value)
 {
-	char* it = str;
-	char c;
-	I8 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline U8 String::ToU8() const
-{
-	char* it = str;
-	char c;
-	U8 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline I16 String::ToI16() const
-{
-	char* it = str;
-	char c;
-	I16 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline U16 String::ToU16() const
-{
-	char* it = str;
-	char c;
-	U16 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline I32 String::ToI32() const
-{
-	char* it = str;
-	char c;
-	I32 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline U32 String::ToU32() const
-{
-	char* it = str;
-	char c;
-	U32 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline I64 String::ToI64() const
-{
-	char* it = str;
-	char c;
-	I64 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline U64 String::ToU64() const
-{
-	char* it = str;
-	char c;
-	U64 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline F32 String::ToF32() const
-{
-	char* it = str;
-	char c;
-	F32 value = 0.0f;
-	F32 mul = 0.1f;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline F64 String::ToF64() const
-{
-	char* it = str;
-	char c;
-	F64 value = 0.0f;
-	F64 mul = 0.1f;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline bool String::ToBool() const
-{
-	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
-}
-
-inline String& String::operator+=(I8 value)
-{
-	if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
-	hashed = false;
-	char* start = str + size;
-
-	if (value < 0)
-	{
-		start[0] = '-';
-		U8 abs = (U8)-value;
-		char* c = start + 4;
-		const char* threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-		*--c = threeDigits[2];
-		if (abs > 9) { *--c = threeDigits[1]; }
-		if (abs > 99) { *--c = threeDigits[0]; }
-
-		U64 addLength = 5 - (c - start);
-		size += addLength;
-		memcpy(start + 1, c, addLength);
-		str[size] = '\0';
-	}
-	else
-	{
-		char* c = start + 3;
-		const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-		*--c = threeDigits[2];
-		if (value > 9) { *--c = threeDigits[1]; }
-		if (value > 99) { *--c = threeDigits[0]; }
-
-		U64 addLength = 3 - (c - start);
-		size += addLength;
-		memcpy(start, c, addLength);
-		str[size] = '\0';
-	}
-
-	return *this;
-}
-
-inline String& String::operator+=(U8 value)
-{
-	if (capacity < size + 3) { Memory::Reallocate(str, size + 3, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 3;
-	const char* threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 3 - (c - start);
-	size += addLength;
-	memcpy(start, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(I16 value)
-{
-	if (capacity < size + 6) { Memory::Reallocate(str, size + 6, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 6;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U16 abs = (U16)value;
-
-	if (value < 0)
-	{
-		start[0] = '-';
-		abs = (U16)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U16 newVal = abs / 1000;
-		U16 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 6 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(U16 value)
-{
-	if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 5;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U16 newVal = value / 1000;
-		U16 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 5 - (c - start);
-	size += addLength;
-
-	memcpy(start, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(I32 value)
-{
-	if (capacity < size + 11) { Memory::Reallocate(str, size + 11, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 11;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U32 abs = (U32)value;
-
-	if (value < 0)
-	{
-		start[0] = '-';
-		abs = (U32)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U32 newVal = abs / 1000;
-		U32 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 11 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(U32 value)
-{
-	if (capacity < size + 10) { Memory::Reallocate(str, size + 10, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 10;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U32 newVal = value / 1000;
-		U32 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 10 - (c - start);
-	size += addLength;
-
-	memcpy(start, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(I64 value)
-{
-	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 20;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		start[0] = '-';
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 20 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(U64 value)
-{
-	if (capacity < size + 20) { Memory::Reallocate(str, size + 20, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 20;
-	const char* threeDigits;
-
-	while (value > 999)
-	{
-		U64 newVal = value / 1000;
-		U64 remainder = value % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		value = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (value * 3);
-	*--c = threeDigits[2];
-	if (value > 9) { *--c = threeDigits[1]; }
-	if (value > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 20 - (c - start);
-	size += addLength;
-
-	memcpy(start, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(F32 value)
-{
-	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 27;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = '.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 27 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(F64 value)
-{
-	if (capacity < size + 27) { Memory::Reallocate(str, size + 27, capacity); }
-	hashed = false;
-	char* start = str + size;
-	char* c = start + 27;
-	const char* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = '-';
-		abs = -value;
-		neg = 1;
-	}
-
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = THREE_DIGIT_NUMBERS + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = '.';
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = THREE_DIGIT_NUMBERS + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = THREE_DIGIT_NUMBERS + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 27 + neg - (c - start);
-	size += addLength;
-
-	memcpy(start + neg, c, addLength);
-	str[size] = '\0';
-
-	return *this;
-}
-
-inline String& String::operator+=(bool value)
-{
-	hashed = false;
-	if (value)
-	{
-		if (capacity < size + 4) { Memory::Reallocate(str, size + 4, capacity); }
-		memcpy(str + size, "true", 4);
-		size += 4;
-		str[size] = '\0';
-	}
-	else
-	{
-		if (capacity < size + 5) { Memory::Reallocate(str, size + 5, capacity); }
-		memcpy(str + size, "false", 5);
-		size += 5;
-		str[size] = '\0';
-	}
-
+	ToString(str + size, value);
 	return *this;
 }
 
@@ -1710,7 +384,7 @@ inline String& String::operator+=(char* other)
 	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
 	memcpy(str + size, other, addLength);
 	size += addLength;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -1722,7 +396,7 @@ inline String& String::operator+=(const char* other)
 	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
 	memcpy(str + size, other, addLength);
 	size += addLength;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -1733,183 +407,16 @@ inline String& String::operator+=(const String& other)
 	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
 	memcpy(str + size, other.str, other.size);
 	size += other.size;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
 
+template<typename T> inline String::operator T() const { return ToType<T>(); }
+
 inline String::operator char* () { return str; }
 
 inline String::operator const char* () const { return str; }
-
-inline String::operator I8() const
-{
-	char* it = str;
-	char c;
-	I8 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline String::operator U8() const
-{
-	char* it = str;
-	char c;
-	U8 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline String::operator I16() const
-{
-	char* it = str;
-	char c;
-	I16 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline String::operator U16() const
-{
-	char* it = str;
-	char c;
-	U16 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline String::operator I32() const
-{
-	char* it = str;
-	char c;
-	I32 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline String::operator U32() const
-{
-	char* it = str;
-	char c;
-	U32 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline String::operator I64() const
-{
-	char* it = str;
-	char c;
-	I64 value = 0;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0') { value *= 10; value -= c - '0'; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-	}
-
-	return value;
-}
-
-inline String::operator U64() const
-{
-	char* it = str;
-	char c;
-	U64 value = 0;
-
-	while ((c = *it++) != '\0') { value *= 10; value += c - '0'; }
-
-	return value;
-}
-
-inline String::operator F32() const
-{
-	char* it = str;
-	char c;
-	F32 value = 0.0f;
-	F32 mul = 0.1f;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline String::operator F64() const
-{
-	char* it = str;
-	char c;
-	F64 value = 0.0f;
-	F64 mul = 0.1f;
-
-	if (*str == '-')
-	{
-		++it;
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value -= c - '0'; }
-		while ((c = *it++) != '\0') { value -= (c - '0') * mul; mul *= 0.1f; }
-	}
-	else
-	{
-		while ((c = *it++) != '\0' && c != '.') { value *= 10; value += c - '0'; }
-		while ((c = *it++) != '\0') { value += (c - '0') * mul; mul *= 0.1f; }
-	}
-
-	return value;
-}
-
-inline String::operator bool() const
-{
-	return str[0] == 't' && str[1] == 'r' && str[2] == 'u' && str[3] == 'e';
-}
 
 inline char* String::operator*() { return str; }
 
@@ -2037,7 +544,7 @@ inline bool String::Blank() const
 	char* start = str;
 	char c;
 
-	while ((c = *start) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f');
+	while (WHITE_SPACE(c, start));
 
 	return start - str == size;
 }
@@ -2046,9 +553,9 @@ inline I32 String::IndexOf(const char& c, U64 start) const
 {
 	char* it = str + start;
 
-	while (*it != c && *it != '\0') { ++it; }
+	while (*it != c && *it != NULL_CHAR) { ++it; }
 
-	if (*it == '\0') { return -1; }
+	if (*it == NULL_CHAR) { return -1; }
 	return (I32)(it - str);
 }
 
@@ -2070,12 +577,12 @@ inline String& String::Trim()
 	char* end = str + size;
 	char c;
 
-	while ((c = *start) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == '\0') { ++start; }
-	while ((c = *end) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == '\0') { --end; }
+	while (WHITE_SPACE(c, start)) { ++start; }
+	while (WHITE_SPACE(c, end)) { --end; }
 
 	size = end - start;
 	memcpy(str, start, size);
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2086,7 +593,7 @@ inline String& String::SubString(String& newStr, U64 start, U64 nLength) const
 	else { newStr.size = size - start; }
 
 	memcpy(newStr.str, str + start, newStr.size);
-	newStr.str[newStr.size] = '\0';
+	newStr.str[newStr.size] = NULL_CHAR;
 
 	return newStr;
 }
@@ -2097,7 +604,7 @@ inline String& String::Append(const String& append)
 	hashed = false;
 	memcpy(str + size, append.str, append.size);
 	size += append.size;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2109,7 +616,7 @@ inline String& String::Prepend(const String& prepend)
 	memcpy(str + size, str, size);
 	memcpy(str, prepend.str, prepend.size);
 	size += prepend.size;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2124,7 +631,7 @@ inline String& String::Surround(const String& prepend, const String& append)
 
 	memcpy(str + size, append.str, append.size);
 	size += append.size;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2136,7 +643,7 @@ inline String& String::Insert(const String& other, U32 i)
 	memcpy(str + i + other.size, str + i, size - i);
 	memcpy(str + i, other.str, other.size);
 	size += other.size;
-	str[size] = '\0';
+	str[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -2147,16 +654,16 @@ inline String& String::ReplaceAll(const String& find, const String& replace, U64
 	hashed = false;
 	char* c = str + start;
 	char ch = *c;
-	while (ch != '\0')
+	while (ch != NULL_CHAR)
 	{
-		while ((ch = *c) != '\0' && memcmp(c, find.str, find.size)) { ++c; }
+		while ((ch = *c) != NULL_CHAR && memcmp(c, find.str, find.size)) { ++c; }
 
-		if (ch != '\0')
+		if (ch != NULL_CHAR)
 		{
 			memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
 			memcpy(c, replace.str, replace.size);
 			size = size - find.size + replace.size;
-			str[size] = '\0';
+			str[size] = NULL_CHAR;
 		}
 	}
 
@@ -2169,17 +676,17 @@ inline String& String::ReplaceN(const String& find, const String& replace, U64 c
 	hashed = false;
 	char* c = str + start;
 	char ch = *c;
-	while (ch != '\0' && count)
+	while (ch != NULL_CHAR && count)
 	{
-		while ((ch = *c) != '\0' && memcmp(c, find.str, find.size)) { ++c; }
+		while ((ch = *c) != NULL_CHAR && memcmp(c, find.str, find.size)) { ++c; }
 
-		if (ch != '\0')
+		if (ch != NULL_CHAR)
 		{
 			--count;
 			memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
 			memcpy(c, replace.str, replace.size);
 			size = size - find.size + replace.size;
-			str[size] = '\0';
+			str[size] = NULL_CHAR;
 		}
 	}
 
@@ -2191,14 +698,14 @@ inline String& String::ReplaceFirst(const String& find, const String& replace, U
 	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, size + replace.size - find.size, capacity); }
 	hashed = false;
 	char* c = str + start;
-	while (*c != '\0' && memcmp(c, find.str, find.size)) { ++c; }
+	while (*c != NULL_CHAR && memcmp(c, find.str, find.size)) { ++c; }
 
-	if (*c != '\0')
+	if (*c != NULL_CHAR)
 	{
 		memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
 		memcpy(c, replace.str, replace.size);
 		size = size - find.size + replace.size;
-		str[size] = '\0';
+		str[size] = NULL_CHAR;
 	}
 
 	return *this;
@@ -2214,15 +721,15 @@ inline void String::Format(U64& start, const String& replace)
 	//TODO: Capacity Check
 	hashed = false;
 	char* c = str + start;
-	while (*c != '\0' && memcmp(c, "{}", 2)) { ++c; }
+	while (*c != NULL_CHAR && memcmp(c, "{}", 2)) { ++c; }
 
-	if (*c != '\0')
+	if (*c != NULL_CHAR)
 	{
 		start = (c - str) + replace.size;
 		memcpy(c + replace.size, c + 2, size - 2 - (c - str));
 		memcpy(c, replace.str, replace.size);
 		size = size - 2 + replace.size;
-		str[size] = '\0';
+		str[size] = NULL_CHAR;
 	}
 }
 
@@ -2241,3 +748,333 @@ inline char* String::rend() { return str - 1; }
 inline const char* String::rbegin() const { return str + size - 1; }
 
 inline const char* String::rend() const { return str - 1; }
+
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 20) { Memory::Free(str); }
+	if (!str) { str = (char*)Memory::Allocate(size + 20, capacity); }
+
+	char* c = str + 20;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	U64 abs = (U64)value;
+
+	if (value < 0)
+	{
+		str[0] = NEGATIVE_CHAR;
+		abs = (U64)-value;
+		neg = 1;
+	}
+
+	while (abs > 999)
+	{
+		U64 newVal = abs / 1000;
+		U64 remainder = abs % 1000;
+		threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		abs = newVal;
+	}
+
+	threeDigits = DECIMAL_LOOKUP + (abs * 3);
+	*--c = threeDigits[2];
+	if (abs > 9) { *--c = threeDigits[1]; }
+	if (abs > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 + neg - (c - str);
+	size += addLength;
+
+	memcpy(str + neg, c, addLength);
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 20) { Memory::Free(str); }
+	if (!str) { str = (char*)Memory::Allocate(size + 20, capacity); }
+
+	char* c = str + 20;
+	const char* threeDigits;
+	U64 val = value;
+
+	while (val > 999)
+	{
+		U64 newVal = val / 1000;
+		U64 remainder = val % 1000;
+		threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		val = newVal;
+	}
+
+	threeDigits = DECIMAL_LOOKUP + (val * 3);
+	*--c = threeDigits[2];
+	if (val > 9) { *--c = threeDigits[1]; }
+	if (val > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 - (c - str);
+	size += addLength;
+
+	memcpy(str, c, addLength);
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
+{
+	hashed = false;
+	if (value)
+	{
+		if (capacity < size + 4) { Memory::Free(str); }
+		if (!str) { str = (char*)Memory::Allocate(size + 4, capacity); }
+		memcpy(str + size, TRUE_STR, 4);
+		size += 4;
+		str[size] = NULL_CHAR;
+	}
+	else
+	{
+		if (capacity < size + 5) { Memory::Free(str); }
+		if (!str) { str = (char*)Memory::Allocate(size + 5, capacity); }
+		memcpy(str + size, FALSE_STR, 5);
+		size += 5;
+		str[size] = NULL_CHAR;
+	}
+}
+
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String::ToString(char* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 27) { Memory::Free(str); }
+	if (!str) { str = (char*)Memory::Allocate(size + 27, capacity); }
+
+	char* c = str + 27;
+	const char* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = NEGATIVE_CHAR;
+		abs = -value;
+		neg = 1;
+	}
+
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = DECIMAL_LOOKUP + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = DECIMAL_CHAR;
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = DECIMAL_LOOKUP + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 27 + neg - (c - str);
+	size += addLength;
+
+	memcpy(str + neg, c, addLength);
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> String::HexToString(char* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 16) { Memory::Free(str); }
+	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
+
+	U8 pairs;
+	U8 digits;
+	U64 max;
+	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else { pairs = 8; digits = 16; max = U64_MAX; }
+
+	char* c = str + digits;
+	const char* twoDigits;
+
+	U64 abs;
+	if (value < 0)
+	{
+		abs = max - ((U64)-value - 1);
+
+		for (U8 i = 0; i < pairs; ++i)
+		{
+			U64 j = abs & 0xFF;
+			twoDigits = HEX_LOOKUP + (abs & 0xFF) * 2;
+
+			*--c = twoDigits[1];
+			*--c = twoDigits[0];
+
+			abs >>= 8;
+		}
+	}
+	else
+	{
+		abs = (U64)value;
+
+		for (U8 i = 0; i < pairs; ++i)
+		{
+			twoDigits = HEX_LOOKUP + (abs & 0xFF) * 2;
+
+			*--c = twoDigits[1];
+			*--c = twoDigits[0];
+
+			abs >>= 8;
+		}
+	}
+
+	size += digits;
+
+	memcpy(str, c, digits);
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> String::HexToString(char* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 16) { Memory::Free(str); }
+	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
+
+	U8 pairs;
+	U8 digits;
+	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; }
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; }
+	else { pairs = 8; digits = 16; }
+
+	char* c = str + digits;
+	const char* twoDigits;
+	U64 val = value;
+
+	for (U8 i = 0; i < pairs; ++i)
+	{
+		twoDigits = HEX_LOOKUP + (val & 0xFF) * 2;
+
+		*--c = twoDigits[1];
+		*--c = twoDigits[0];
+
+		val >>= 8;
+	}
+
+	size += digits;
+
+	memcpy(str, c, digits);
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String::HexToString(char* str, T value)
+{
+	hashed = false;
+	if (capacity < size + 16) { Memory::Free(str); }
+	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
+
+	U8 pairs = 8;
+	U8 digits = 16;
+
+	char* c = str + digits;
+	const char* twoDigits;
+	U64 val = *reinterpret_cast<U64*>(&value);
+
+	for (U8 i = 0; i < pairs; ++i)
+	{
+		twoDigits = HEX_LOOKUP + (val & 0xFF) * 2;
+
+		*--c = twoDigits[1];
+		*--c = twoDigits[0];
+
+		val >>= 8;
+	}
+
+	size += digits;
+
+	memcpy(str, c, digits);
+	str[size] = NULL_CHAR;
+}
+
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType() const
+{
+	char* it = str;
+	char c;
+	I64 value = 0;
+
+	if (*str == NEGATIVE_CHAR)
+	{
+		++it;
+		while ((c = *it++) != NULL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
+	}
+	else
+	{
+		while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+	}
+
+	return value;
+}
+
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType() const
+{
+	char* it = str;
+	char c;
+	T value = 0;
+
+	while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+
+	return value;
+}
+
+template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> String::ToType() const
+{
+	return IS_TRUE(str);
+}
+
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> String::ToType() const
+{
+	char* it = str;
+	char c;
+	F64 value = 0.0f;
+	F64 mul = 0.1f;
+
+	if (*str == NEGATIVE_CHAR)
+	{
+		++it;
+		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
+		while ((c = *it++) != NULL_CHAR) { value -= (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+	}
+	else
+	{
+		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+		while ((c = *it++) != NULL_CHAR) { value += (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+	}
+
+	return value;
+}

@@ -7,16 +7,20 @@
 
 struct Controller
 {
-public:
-
-
 private:
+	Controller(void* handle);
+	~Controller();
+	void Destroy();
+
 	void* dHandle;				//HANDLE
 	void* ntHandle;				//HANDLE
+	bool openHandle;
 	String path;
 	WString manufacturer;
 	WString product;
 	void* inputReportProtocol;	//PHIDP_PREPARSED_DATA
-	Capabilities caps;
+	Capabilities capabilities;
 	U64 inputReportSize;
+
+	friend class Input;
 };

@@ -206,6 +206,11 @@ void Platform::LockCursor(bool lock)
 	Settings::LOCK_CURSOR = lock;
 }
 
+void Platform::SetConsoleWindowTitle(const W16* name)
+{
+	SetConsoleTitleW(name);
+}
+
 const WindowData& Platform::GetWindowData()
 {
 	return windowData;

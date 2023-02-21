@@ -25,3 +25,10 @@ struct Capabilities
 	U16 NumberFeatureValueCaps;
 	U16 NumberFeatureDataIndices;
 };
+
+struct Calibration
+{
+	L32 lMin;
+	L32 lCenter;
+	L32 lMax;
+};
