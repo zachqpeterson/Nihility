@@ -94,6 +94,12 @@
     <ClInclude Include="Engine\Platform\Devices.hpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Platform\Keyboard.hpp">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Mouse.hpp">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">

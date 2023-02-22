@@ -3,13 +3,11 @@
 #include "Devices.hpp"
 #include "Containers\String.hpp"
 #include "Containers\WString.hpp"
-#include "Containers\Vector.hpp"
 
-struct Controller
+struct Mouse
 {
-private:
-	Controller(void* handle);
-	~Controller();
+	Mouse(void* handle);
+	~Mouse();
 	void Destroy();
 
 	void* dHandle;				//HANDLE
@@ -20,9 +18,6 @@ private:
 	void* inputReportProtocol;	//PHIDP_PREPARSED_DATA
 	HIDCapabilities capabilities;
 	U64 inputReportSize;
-
-	Vector<HIDAxis> axes;
-	Vector<HIDButton> buttons;
 
 	friend class Input;
 };

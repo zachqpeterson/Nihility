@@ -5,6 +5,8 @@
 #include "Containers\String.hpp"
 #include "Containers\WString.hpp"
 #include "Controller.hpp"
+#include "Keyboard.hpp"
+#include "Mouse.hpp"
 
 #if defined PLATFORM_WINDOWS
 
@@ -34,19 +36,19 @@ bool Input::Initialize()
 		switch (hidDescriptor.dwType)
 		{
 		case RIM_TYPEMOUSE: {//TODO:
-
-			Controller controller(hidDescriptor.hDevice);
+			//Mouse mouse(hidDescriptor.hDevice);
 
 		} break;
 		case RIM_TYPEKEYBOARD: { //TODO:
+			//Keyboard keyboard(hidDescriptor.hDevice);
 
-
-
-			Controller controller(hidDescriptor.hDevice);
 		} break;
 		case RIM_TYPEHID: {
 			Controller controller(hidDescriptor.hDevice);
-
+			if (controller.openHandle)
+			{
+				//TODO: Add to vector
+			}
 		} break;
 		default: break;
 		}

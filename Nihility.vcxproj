@@ -122,6 +122,8 @@
     <ClInclude Include="Engine\Platform\Devices.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
+    <ClInclude Include="Engine\Platform\Keyboard.hpp" />
+    <ClInclude Include="Engine\Platform\Mouse.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />

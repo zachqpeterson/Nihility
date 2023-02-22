@@ -99,6 +99,7 @@ public:
 	WString& Prepend(const WString& prepend);
 	WString& Surround(const WString& prepend, const WString& append);
 	WString& Insert(const WString& WString, U32 i);
+	WString& Overwrite(const WString& string, U32 i = 0);
 	WString& ReplaceAll(const WString& find, const WString& replace, U64 start = 0);
 	WString& ReplaceN(const WString& find, const WString& replace, U64 count, U64 start = 0);
 	WString& ReplaceFirst(const WString& find, const WString& replace, U64 start = 0);
@@ -629,6 +630,14 @@ inline WString& WString::Insert(const WString& other, U32 i)
 	memcpy(str + i, other.str, other.size);
 	size += other.size;
 	str[size] = NULL_CHAR;
+
+	return *this;
+}
+
+inline WString& WString::Overwrite(const WString& string, U32 i)
+{
+	W16* c = str + i;
+	memcpy(c, string.str, (string.size + 1) * sizeof(W16));
 
 	return *this;
 }

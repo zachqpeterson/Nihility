@@ -25,6 +25,9 @@ static struct Hex {} HEX;
 * TODO: Conversions from W16 to char
 *
 * TODO: Conversions from WString to String
+* 
+* TODO: More formatting options
+*	TODO: {h} will convert to hexadecimal
 */
 struct NH_API String
 {
@@ -66,7 +69,9 @@ public:
 
 	template<typename T> explicit operator T() const;
 	explicit operator char* ();
+	explicit operator U8* ();
 	explicit operator const char* () const;
+	explicit operator const U8* () const;
 
 	char* operator*();
 	const char* operator*() const;
@@ -101,6 +106,7 @@ public:
 	String& Prepend(const String& prepend);
 	String& Surround(const String& prepend, const String& append);
 	String& Insert(const String& string, U32 i);
+	String& Overwrite(const String& string, U32 i = 0);
 	String& ReplaceAll(const String& find, const String& replace, U64 start = 0);
 	String& ReplaceN(const String& find, const String& replace, U64 count, U64 start = 0);
 	String& ReplaceFirst(const String& find, const String& replace, U64 start = 0);
@@ -416,7 +422,11 @@ template<typename T> inline String::operator T() const { return ToType<T>(); }
 
 inline String::operator char* () { return str; }
 
+inline String::operator U8* () { return (U8*)str; }
+
 inline String::operator const char* () const { return str; }
+
+inline String::operator const U8* () const { return (const U8*)str; }
 
 inline char* String::operator*() { return str; }
 
@@ -644,6 +654,14 @@ inline String& String::Insert(const String& other, U32 i)
 	memcpy(str + i, other.str, other.size);
 	size += other.size;
 	str[size] = NULL_CHAR;
+
+	return *this;
+}
+
+inline String& String::Overwrite(const String& string, U32 i)
+{
+	char* c = str + i;
+	memcpy(c, string.str, string.size + 1);
 
 	return *this;
 }
