@@ -135,6 +135,7 @@
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
+    <ClCompile Include="Engine\Platform\Mouse.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />

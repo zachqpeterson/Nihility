@@ -36,7 +36,7 @@ bool Input::Initialize()
 		switch (hidDescriptor.dwType)
 		{
 		case RIM_TYPEMOUSE: {//TODO:
-			//Mouse mouse(hidDescriptor.hDevice);
+			Mouse mouse(hidDescriptor.hDevice);
 
 		} break;
 		case RIM_TYPEKEYBOARD: { //TODO:
