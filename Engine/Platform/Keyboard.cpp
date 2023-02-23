@@ -1,4 +1,4 @@
-#include "Mouse.hpp"
+#include "Keyboard.hpp"
 #include "Core\Logger.hpp"
 
 #if defined PLATFORM_WINDOWS
@@ -7,7 +7,7 @@
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
 
-Mouse::Mouse(void* handle) : dHandle{ handle }, ntHandle{ nullptr }, openHandle{ false }, inputReportProtocol{ nullptr }, capabilities{}
+Keyboard::Keyboard(void* handle) : dHandle{ handle }, ntHandle{ nullptr }, openHandle{ false }, inputReportProtocol{ nullptr }, capabilities{}
 {
 	String path;
 	U32 len = (U32)path.Capacity();
@@ -25,14 +25,14 @@ Mouse::Mouse(void* handle) : dHandle{ handle }, ntHandle{ nullptr }, openHandle{
 
 	if (HidP_GetCaps((PHIDP_PREPARSED_DATA)inputReportProtocol, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
 
-	if (capabilities.UsagePage != HID_USAGE_PAGE_GENERIC || (capabilities.Usage != HID_USAGE_GENERIC_MOUSE && capabilities.Usage != HID_USAGE_GENERIC_POINTER)) { Logger::Trace("Not a mouse, skipping..."); Destroy(); return; }
+	if (capabilities.UsagePage != HID_USAGE_PAGE_GENERIC || (capabilities.Usage != HID_USAGE_GENERIC_KEYBOARD && capabilities.Usage != HID_USAGE_GENERIC_KEYPAD)) { Logger::Trace("Not a keyboard, skipping..."); Destroy(); return; }
 
 	Vector<HIDP_BUTTON_CAPS> buttonClasses(capabilities.NumberInputButtonCaps, {});
 	if (HidP_GetButtonCaps(HidP_Input, buttonClasses.Data(), &capabilities.NumberInputButtonCaps, (PHIDP_PREPARSED_DATA)inputReportProtocol) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get button capabilities, skipping..."); Destroy(); return; }
 
 	Vector<HIDP_VALUE_CAPS> axisClasses(capabilities.NumberInputValueCaps, {});
-	if (HidP_GetValueCaps(HidP_Input, axisClasses.Data(), &capabilities.NumberInputValueCaps, (PHIDP_PREPARSED_DATA)inputReportProtocol) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get axis capabilities, skipping..."); Destroy(); return; }
-	
+	HidP_GetValueCaps(HidP_Input, axisClasses.Data(), &capabilities.NumberInputValueCaps, (PHIDP_PREPARSED_DATA)inputReportProtocol);
+
 	U64 numberOfButtons = 0;
 	for (HIDP_BUTTON_CAPS& currentClass : buttonClasses)
 	{
@@ -62,15 +62,14 @@ Mouse::Mouse(void* handle) : dHandle{ handle }, ntHandle{ nullptr }, openHandle{
 	BreakPoint;
 }
 
-Mouse::~Mouse()
+Keyboard::~Keyboard()
 {
 	Destroy();
 }
 
-void Mouse::Destroy()
+void Keyboard::Destroy()
 {
 	if (inputReportProtocol) { HidD_FreePreparsedData((PHIDP_PREPARSED_DATA)inputReportProtocol); }
 	if (openHandle) { CloseHandle(ntHandle); openHandle = false; }
 }
-
 #endif

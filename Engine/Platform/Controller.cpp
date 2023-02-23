@@ -90,9 +90,6 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 		axisMappings[6].usagePage = axisMappings[6].usage = 0;
 	}
 
-	static constexpr U32 BUTTON_MAPPING_COUNT = 128;
-	Vector<HIDButtonMapping> buttonMappings(BUTTON_MAPPING_COUNT, {});
-
 	HIDD_ATTRIBUTES vendorAndProductID;
 	if (!HidD_GetAttributes(ntHandle, &vendorAndProductID)) { Destroy(); return; }
 
@@ -131,6 +128,9 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 
 		RegCloseKey(key);
 	}
+
+	static constexpr U32 BUTTON_MAPPING_COUNT = 128;
+	Vector<HIDButtonMapping> buttonMappings(BUTTON_MAPPING_COUNT, {});
 
 	axisPath.Overwrite("Buttons\\", 98);
 	for (U64 i = 0; i < BUTTON_MAPPING_COUNT; ++i)
@@ -303,8 +303,6 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 			Logger::Debug(button.name);
 		}
 	}
-
-	BreakPoint;
 }
 
 Controller::~Controller()

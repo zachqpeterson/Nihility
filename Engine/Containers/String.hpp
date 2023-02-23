@@ -280,6 +280,8 @@ template<typename T> inline String& String::operator=(T value)
 
 inline String& String::operator=(char* str)
 {
+	if (!str) { Destroy(); return *this; }
+
 	hashed = false;
 	size = strlen(str);
 	if (capacity < size) { Memory::Free(this->str); }
@@ -292,6 +294,8 @@ inline String& String::operator=(char* str)
 
 inline String& String::operator=(const char* str)
 {
+	if (!str) { Destroy(); return *this; }
+
 	hashed = false;
 	size = strlen(str);
 	if (capacity < size) { Memory::Free(this->str); }
@@ -304,6 +308,8 @@ inline String& String::operator=(const char* str)
 
 inline String& String::operator=(const String& other)
 {
+	if (!other.str) { Destroy(); return *this; }
+
 	hashed = false;
 	if (capacity < other.size) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(other.capacity); }
@@ -317,6 +323,8 @@ inline String& String::operator=(const String& other)
 
 inline String& String::operator=(String&& other) noexcept
 {
+	if (!other.str) { Destroy(); return *this; }
+
 	hashed = false;
 	if (str) { Memory::Free(str); }
 
@@ -338,6 +346,7 @@ inline String::~String()
 inline void String::Destroy()
 {
 	hashed = false;
+	hash = 0;
 	if (str)
 	{
 		size = 0;

@@ -10,9 +10,12 @@ struct _HIDP_DATA;
 
 struct Mouse
 {
+private:
 	Mouse(void* handle);
 	~Mouse();
 	void Destroy();
+
+	void Update();
 
 	void* dHandle;				//HANDLE
 	void* ntHandle;				//HANDLE

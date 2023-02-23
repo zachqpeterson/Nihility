@@ -40,7 +40,7 @@ bool Input::Initialize()
 
 		} break;
 		case RIM_TYPEKEYBOARD: { //TODO:
-			//Keyboard keyboard(hidDescriptor.hDevice);
+			Keyboard keyboard(hidDescriptor.hDevice);
 
 		} break;
 		case RIM_TYPEHID: {

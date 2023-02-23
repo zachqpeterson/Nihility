@@ -132,5 +132,8 @@
     <ClCompile Include="Engine\Platform\Mouse.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Platform\Keyboard.cpp">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
