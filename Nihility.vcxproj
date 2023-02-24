@@ -119,7 +119,7 @@
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
-    <ClInclude Include="Engine\Platform\Devices.hpp" />
+    <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Keyboard.hpp" />
@@ -133,6 +133,7 @@
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />
+    <ClCompile Include="Engine\Platform\Device.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\Keyboard.cpp" />

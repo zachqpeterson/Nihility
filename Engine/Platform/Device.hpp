@@ -3,6 +3,13 @@
 #include "Defines.hpp"
 #include "Containers\String.hpp"
 
+enum DeviceType
+{
+	DEVICE_TYPE_MOUSE,
+	DEVICE_TYPE_KEYBOARD,
+	DEVICE_TYPE_CONTROLLER,
+};
+
 struct HIDCapabilities
 {
 	U16 Usage;
@@ -11,17 +18,17 @@ struct HIDCapabilities
 	U16 OutputReportByteLength;
 	U16 FeatureReportByteLength;
 	U16 Reserved[17];
-	    
+
 	U16 NumberLinkCollectionNodes;
-	    
+
 	U16 NumberInputButtonCaps;
 	U16 NumberInputValueCaps;
 	U16 NumberInputDataIndices;
-	    
+
 	U16 NumberOutputButtonCaps;
 	U16 NumberOutputValueCaps;
 	U16 NumberOutputDataIndices;
-	    
+
 	U16 NumberFeatureButtonCaps;
 	U16 NumberFeatureValueCaps;
 	U16 NumberFeatureDataIndices;
@@ -87,4 +94,35 @@ struct HIDButtonMapping
 	U16 usagePage;
 	U16 usage;
 	String name;
+};
+
+struct _HIDP_PREPARSED_DATA;
+struct _HIDP_DATA;
+
+struct Device
+{
+public:
+	Device(void* handle, DeviceType type);
+	~Device();
+	void Destroy();
+
+	void LoadDevice(DeviceType type);
+	void UnloadDevice();
+
+private:
+	void* dHandle;				//HANDLE
+	void* ntHandle;				//HANDLE
+	bool openHandle;
+	WString manufacturer;
+	WString product;
+	HIDCapabilities capabilities;
+	_HIDP_PREPARSED_DATA* preparsedData;
+	U32 preparsedDataSize;
+	_HIDP_DATA* stateBuffer;
+	UL32 stateLength;
+	char* reportBuffer;
+	UL32 reportLength;
+
+	Vector<HIDAxis> axes;
+	Vector<HIDButton> buttons;
 };

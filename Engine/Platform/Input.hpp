@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Containers\Vector.hpp"
 
 enum NH_API ButtonCode
 {
@@ -253,6 +254,10 @@ enum NH_API AxisCode
 	AXIS_COUNT
 };
 
+struct Mouse;
+struct Keyboard;
+struct Controller;
+
 class NH_API Input
 {
 	struct ButtonState
@@ -286,6 +291,10 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 	static void Update();
+
+	static Vector<Mouse> mice;
+	static Vector<Keyboard> keyboards;
+	static Vector<Controller> controllers;
 
 	static ButtonState buttonStates[BUTTON_COUNT];
 	static F32 axisStates[AXIS_COUNT];

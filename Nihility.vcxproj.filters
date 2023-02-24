@@ -91,7 +91,7 @@
     <ClInclude Include="Engine\Platform\Controller.hpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Devices.hpp">
+    <ClInclude Include="Engine\Platform\Device.hpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Platform\Keyboard.hpp">
@@ -133,6 +133,9 @@
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Platform\Keyboard.cpp">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Device.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
   </ItemGroup>

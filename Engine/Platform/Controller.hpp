@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Devices.hpp"
+#include "Device.hpp"
 #include "Containers\String.hpp"
 #include "Containers\WString.hpp"
 #include "Containers\Vector.hpp"

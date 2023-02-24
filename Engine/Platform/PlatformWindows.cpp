@@ -6,7 +6,6 @@
 #include "Core\Logger.hpp"
 
 #include <Windows.h>
-#include <hidsdi.h>
 
 bool Platform::running;
 WindowData Platform::windowData;
@@ -262,40 +261,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 {
 	switch (msg)
 	{
-	case WM_CREATE: {
-		POINT point{};
-		GetCursorPos(&point);
-		//Input::mousePos.x = point.x - windowX;
-		//Input::mousePos.y = point.y - windowY;
-
-		RAWINPUTDEVICE rid[4];
-
-		rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-		rid[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-		rid[0].dwFlags = RIDEV_DEVNOTIFY;
-		rid[0].hwndTarget = windowData.window;
-
-		rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
-		rid[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-		rid[1].dwFlags = RIDEV_DEVNOTIFY;
-		rid[1].hwndTarget = windowData.window;
-
-		rid[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
-		rid[2].usUsage = HID_USAGE_GENERIC_MOUSE;
-		rid[2].dwFlags = RIDEV_NOLEGACY | RIDEV_DEVNOTIFY;
-		rid[2].hwndTarget = windowData.window;
-
-		rid[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
-		rid[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-		rid[3].dwFlags = RIDEV_NOLEGACY | RIDEV_DEVNOTIFY;
-		rid[3].hwndTarget = windowData.window;
-
-		if (!RegisterRawInputDevices(rid, 4, sizeof(RAWINPUTDEVICE)))
-		{
-			DWORD d = GetLastError();
-			return -1;
-		}
-	} return 0;
+	case WM_CREATE: { } return 0;
 	case WM_SETFOCUS: { Settings::FOCUSED = true; } return 0;
 	case WM_KILLFOCUS: { Settings::FOCUSED = false; } return 0;
 	case WM_QUIT: { Settings::FOCUSED = false; running = false; } return 0;

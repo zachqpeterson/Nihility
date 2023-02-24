@@ -262,7 +262,7 @@ inline WString& WString::operator=(W16* str)
 {
 	hashed = false;
 	size = wcslen(str);
-	if (capacity < size) { Memory::Free(this->str); }
+	if (capacity < size && this->str) { Memory::Free(this->str); }
 	if (!this->str) { this->str = (W16*)Memory::Allocate(size * sizeof(W16), capacity); }
 
 	memcpy(this->str, str, size + 1);
@@ -274,7 +274,7 @@ inline WString& WString::operator=(const W16* str)
 {
 	hashed = false;
 	size = wcslen(str);
-	if (capacity < size) { Memory::Free(this->str); }
+	if (capacity < size && this->str) { Memory::Free(this->str); }
 	if (!this->str) { this->str = (W16*)Memory::Allocate(size * sizeof(W16), capacity); }
 
 	memcpy(this->str, str, size + 1);
@@ -285,7 +285,7 @@ inline WString& WString::operator=(const W16* str)
 inline WString& WString::operator=(const WString& other)
 {
 	hashed = false;
-	if (capacity < other.size) { Memory::Free(str); }
+	if (capacity < other.size && str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate(other.capacity); }
 
 	size = other.size;
@@ -746,7 +746,7 @@ inline const W16* WString::rend() const { return str - 1; }
 template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20) { Memory::Free(str); }
+	if (capacity < size + 20 && this->str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate((size + 20) * sizeof(W16), capacity); }
 
 	W16* c = str + 20;
@@ -788,7 +788,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20) { Memory::Free(str); }
+	if (capacity < size + 20 && this->str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate((size + 20) * sizeof(W16), capacity); }
 
 	W16* c = str + 20;
@@ -823,7 +823,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 	hashed = false;
 	if (value)
 	{
-		if (capacity < size + 4) { Memory::Free(str); }
+		if (capacity < size + 4 && this->str) { Memory::Free(str); }
 		if (!str) { str = (W16*)Memory::Allocate((size + 4) * sizeof(W16), capacity); }
 		memcpy(str + size, TRUE_STR, 4 * sizeof(W16));
 		size += 4;
@@ -831,7 +831,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 	}
 	else
 	{
-		if (capacity < size + 5) { Memory::Free(str); }
+		if (capacity < size + 5 && this->str) { Memory::Free(str); }
 		if (!str) { str = (W16*)Memory::Allocate((size + 5) * sizeof(W16), capacity); }
 		memcpy(str + size, FALSE_STR, 5 * sizeof(W16));
 		size += 5;
@@ -842,7 +842,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WString::ToWString(W16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 27) { Memory::Free(str); }
+	if (capacity < size + 27 && this->str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate((size + 27) * sizeof(W16), capacity); }
 
 	W16* c = str + 27;
@@ -901,7 +901,7 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WStrin
 template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> WString::HexToWString(W16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16) { Memory::Free(str); }
+	if (capacity < size + 16 && this->str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
 
 	U8 pairs;
@@ -956,7 +956,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> WString::HexToWString(W16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16) { Memory::Free(str); }
+	if (capacity < size + 16 && this->str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
 
 	U8 pairs;
@@ -990,7 +990,7 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WString::HexToWString(W16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16) { Memory::Free(str); }
+	if (capacity < size + 16 && this->str) { Memory::Free(str); }
 	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
 
 	U8 pairs = 8;

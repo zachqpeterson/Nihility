@@ -284,7 +284,7 @@ inline String& String::operator=(char* str)
 
 	hashed = false;
 	size = strlen(str);
-	if (capacity < size) { Memory::Free(this->str); }
+	if (capacity < size && this->str) { Memory::Free(this->str); }
 	if (!this->str) { this->str = (char*)Memory::Allocate(size, capacity); }
 
 	memcpy(this->str, str, size + 1);
@@ -298,7 +298,7 @@ inline String& String::operator=(const char* str)
 
 	hashed = false;
 	size = strlen(str);
-	if (capacity < size) { Memory::Free(this->str); }
+	if (capacity < size && this->str) { Memory::Free(this->str); }
 	if (!this->str) { this->str = (char*)Memory::Allocate(size, capacity); }
 
 	memcpy(this->str, str, size + 1);
@@ -311,7 +311,7 @@ inline String& String::operator=(const String& other)
 	if (!other.str) { Destroy(); return *this; }
 
 	hashed = false;
-	if (capacity < other.size) { Memory::Free(str); }
+	if (capacity < other.size && str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(other.capacity); }
 
 	size = other.size;
@@ -779,7 +779,7 @@ inline const char* String::rend() const { return str - 1; }
 template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20) { Memory::Free(str); }
+	if (capacity < size + 20 && this->str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(size + 20, capacity); }
 
 	char* c = str + 20;
@@ -821,7 +821,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20) { Memory::Free(str); }
+	if (capacity < size + 20 && this->str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(size + 20, capacity); }
 
 	char* c = str + 20;
@@ -856,7 +856,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 	hashed = false;
 	if (value)
 	{
-		if (capacity < size + 4) { Memory::Free(str); }
+		if (capacity < size + 4 && this->str) { Memory::Free(str); }
 		if (!str) { str = (char*)Memory::Allocate(size + 4, capacity); }
 		memcpy(str + size, TRUE_STR, 4);
 		size += 4;
@@ -864,7 +864,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 	}
 	else
 	{
-		if (capacity < size + 5) { Memory::Free(str); }
+		if (capacity < size + 5 && this->str) { Memory::Free(str); }
 		if (!str) { str = (char*)Memory::Allocate(size + 5, capacity); }
 		memcpy(str + size, FALSE_STR, 5);
 		size += 5;
@@ -875,7 +875,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String::ToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 27) { Memory::Free(str); }
+	if (capacity < size + 27 && this->str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(size + 27, capacity); }
 
 	char* c = str + 27;
@@ -934,7 +934,7 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String
 template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> String::HexToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16) { Memory::Free(str); }
+	if (capacity < size + 16 && this->str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
 
 	U8 pairs;
@@ -989,7 +989,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> String::HexToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16) { Memory::Free(str); }
+	if (capacity < size + 16 && this->str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
 
 	U8 pairs;
@@ -1023,7 +1023,7 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String::HexToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16) { Memory::Free(str); }
+	if (capacity < size + 16 && this->str) { Memory::Free(str); }
 	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
 
 	U8 pairs = 8;
