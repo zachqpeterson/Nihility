@@ -8,6 +8,8 @@ enum DeviceType
 	DEVICE_TYPE_MOUSE,
 	DEVICE_TYPE_KEYBOARD,
 	DEVICE_TYPE_CONTROLLER,
+
+	DEVICE_TYPE_COUNT
 };
 
 struct HIDCapabilities
@@ -102,27 +104,37 @@ struct _HIDP_DATA;
 struct Device
 {
 public:
-	Device(void* handle, DeviceType type);
+	Device(WString path);
+	Device(Device&& other) noexcept;
+	Device& operator=(Device&& other) noexcept;
 	~Device();
 	void Destroy();
 
-	void LoadDevice(DeviceType type);
-	void UnloadDevice();
+	void Update();
+
+	bool openHandle;
 
 private:
-	void* dHandle;				//HANDLE
+	bool SetupMouse();
+	bool SetupKeyboard();
+	bool SetupController();
+
+	WString path;
 	void* ntHandle;				//HANDLE
-	bool openHandle;
 	WString manufacturer;
 	WString product;
+	DeviceType type;
+
 	HIDCapabilities capabilities;
 	_HIDP_PREPARSED_DATA* preparsedData;
 	U32 preparsedDataSize;
 	_HIDP_DATA* stateBuffer;
 	UL32 stateLength;
 	char* reportBuffer;
-	UL32 reportLength;
 
 	Vector<HIDAxis> axes;
 	Vector<HIDButton> buttons;
+
+	Device(const Device&) = delete;
+	Device& operator=(const Device&) = delete;
 };

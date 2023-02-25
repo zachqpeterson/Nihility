@@ -17,6 +17,8 @@ private:
 
 	void Update();
 
+	bool Valid();
+
 	void* dHandle;				//HANDLE
 	void* ntHandle;				//HANDLE
 	bool openHandle;
@@ -34,3 +36,5 @@ private:
 
 	friend class Input;
 };
+
+inline bool Controller::Valid() { return openHandle; }

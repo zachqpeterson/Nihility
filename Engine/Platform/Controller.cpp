@@ -324,9 +324,7 @@ void Controller::Destroy()
 
 void Controller::Update()
 {
-	UL32 count = 0;
-	HidP_GetData(HidP_Input, nullptr, &count, inputReportProtocol, nullptr, capabilities.InputReportByteLength);
-	HidP_GetData(HidP_Input, stateBuffer, &count, inputReportProtocol, nullptr, capabilities.InputReportByteLength);
+
 }
 
 #endif

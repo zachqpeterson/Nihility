@@ -94,12 +94,6 @@
     <ClInclude Include="Engine\Platform\Device.hpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Keyboard.hpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Platform\Mouse.hpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -127,12 +121,6 @@
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Platform\Controller.cpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Mouse.cpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Keyboard.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Platform\Device.cpp">

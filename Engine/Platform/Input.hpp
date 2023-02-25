@@ -254,9 +254,7 @@ enum NH_API AxisCode
 	AXIS_COUNT
 };
 
-struct Mouse;
-struct Keyboard;
-struct Controller;
+struct Device;
 
 class NH_API Input
 {
@@ -292,9 +290,9 @@ private:
 	static void Shutdown();
 	static void Update();
 
-	static Vector<Mouse> mice;
-	static Vector<Keyboard> keyboards;
-	static Vector<Controller> controllers;
+	static void* devInfoSet;						//HDEVINFO
+
+	static Vector<Device> devices;
 
 	static ButtonState buttonStates[BUTTON_COUNT];
 	static F32 axisStates[AXIS_COUNT];
