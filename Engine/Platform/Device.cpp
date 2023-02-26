@@ -155,7 +155,9 @@ void Device::Update()
 	{
 		if (!ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, &overlap) && (error = GetLastError()) != ERROR_IO_PENDING)
 		{
-
+			Logger::Error("Failed to get data, {}!", GetLastError());
+			BreakPoint;
+			break;
 		}
 
 
@@ -163,9 +165,7 @@ void Device::Update()
 
 	if (overlap.Internal == 0 && ! && )
 	{
-		Logger::Error("Failed to get data, {}!", GetLastError());
-		BreakPoint;
-		return;
+		
 	}
 	else if (overlap.Internal && overlap.Internal != STATUS_PENDING)
 	{
