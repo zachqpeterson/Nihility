@@ -73,7 +73,7 @@ void GridBroadphase::Update(List<List<Contact2D>>& contacts)
 
 bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 {
-#ifdef 0
+#if 0
 	Vector2 move = obj->Move();
 	Vector2 start = obj->Transform()->Position();
 	Vector2 size = obj->Collider()->box.Size();
