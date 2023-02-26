@@ -8,10 +8,10 @@
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
 
-Device::Device(WString path) : path{ path }, ntHandle{ nullptr }, type{ DEVICE_TYPE_COUNT }, capabilities{}, preparsedData{ nullptr },
-preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ nullptr }, openHandle{ false }
+Device::Device(WString path) : path{ path }, ntHandle{ nullptr }, type{ DEVICE_TYPE_COUNT }, capabilities{},
+preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ nullptr }, openHandle{ false }
 {
-	if ((ntHandle = CreateFileW(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open handle, skipping..."); return; }
+	if ((ntHandle = CreateFileW(path.Data(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open handle, skipping..."); return; }
 	openHandle = true;
 
 	if (!HidD_GetProductString(ntHandle, product.Data(), (UL32)product.Capacity())) { Logger::Trace("Failed to get product, {}", GetLastError()); }
@@ -25,9 +25,11 @@ preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ 
 	if (HidP_GetCaps(preparsedData, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
 
 	reportBuffer = (char*)Memory::Allocate(capabilities.InputReportByteLength);
-	
+
 	//TODO: we may want HIDs that don't have input
 	if (!(stateLength = HidP_MaxDataListLength(HidP_Input, preparsedData))) { Logger::Trace("Device has no capabilities, skipping..."); Destroy(); return; }
+
+	stateBuffer = (PHIDP_DATA)Memory::Allocate(stateLength * sizeof(HIDP_DATA));
 
 	Vector<HIDP_BUTTON_CAPS> buttonClasses(capabilities.NumberInputButtonCaps, {});
 	if (HidP_GetButtonCaps(HidP_Input, buttonClasses.Data(), &capabilities.NumberInputButtonCaps, preparsedData) != HIDP_STATUS_SUCCESS) { Logger::Trace("No Buttons"); }
@@ -98,7 +100,7 @@ preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, 
 
 Device& Device::operator=(Device&& other) noexcept
 {
-	path = Move(other.path); 
+	path = Move(other.path);
 	ntHandle = other.ntHandle;
 	type = other.type;
 	capabilities = other.capabilities;
@@ -145,23 +147,43 @@ void Device::Destroy()
 
 void Device::Update()
 {
+	static OVERLAPPED overlap{};
+	UL32 error;
 	UL32 read;
-	if (!ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, nullptr))
+
+	while (overlap.Internal != ERROR_NO_MORE_ITEMS)
+	{
+		if (!ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, &overlap) && (error = GetLastError()) != ERROR_IO_PENDING)
+		{
+
+		}
+
+
+	}
+
+	if (overlap.Internal == 0 && ! && )
 	{
 		Logger::Error("Failed to get data, {}!", GetLastError());
 		BreakPoint;
 		return;
 	}
-
-	NTSTATUS s;
-	if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
+	else if (overlap.Internal && overlap.Internal != STATUS_PENDING)
 	{
-		Logger::Error("Failed to get data, {}!", s);
-		BreakPoint;
-		return;
-	}
+		NTSTATUS s;
+		if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
+		{
+			Logger::Error("Failed to get data, {}!", s);
+			BreakPoint;
+			return;
+		}
 
-	BreakPoint;
+		if (!ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, &overlap) && (error = GetLastError()) != ERROR_IO_PENDING)
+		{
+			Logger::Error("Failed to get data, {}!", GetLastError());
+			BreakPoint;
+			return;
+		}
+	}
 }
 
 bool Device::SetupMouse()
