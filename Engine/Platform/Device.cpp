@@ -86,6 +86,11 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 	}
 
 	//KEYBOARD LAYOUT: "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout"
+
+	if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
+	{
+		Logger::Error(GetLastError());
+	}
 }
 
 Device::Device(Device&& other) noexcept : path{ Move(other.path) }, ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
@@ -145,45 +150,62 @@ void Device::Destroy()
 	}
 }
 
+void __stdcall Device::DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfered, _OVERLAPPED* lpOverlapped)
+{
+	BreakPoint;
+
+	NTSTATUS s;
+	if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
+	{
+		Logger::Error("Failed to get data, {}!", s);
+		BreakPoint;
+		return;
+	}
+
+	if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
+	{
+		Logger::Error(GetLastError());
+	}
+}
+
 void Device::Update()
 {
-	static OVERLAPPED overlap{};
-	UL32 error;
-	UL32 read;
+	//TODO: Move to job system
+	
 
-	while (overlap.Internal != ERROR_NO_MORE_ITEMS)
-	{
-		if (!ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, &overlap) && (error = GetLastError()) != ERROR_IO_PENDING)
-		{
-			Logger::Error("Failed to get data, {}!", GetLastError());
-			BreakPoint;
-			break;
-		}
+	//NTSTATUS s;
+	//if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
+	//{
+	//	Logger::Error("Failed to get data, {}!", s);
+	//	BreakPoint;
+	//	return;
+	//}
 
-
-	}
-
-	if (overlap.Internal == 0 && ! && )
-	{
-		
-	}
-	else if (overlap.Internal && overlap.Internal != STATUS_PENDING)
-	{
-		NTSTATUS s;
-		if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
-		{
-			Logger::Error("Failed to get data, {}!", s);
-			BreakPoint;
-			return;
-		}
-
-		if (!ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, &overlap) && (error = GetLastError()) != ERROR_IO_PENDING)
-		{
-			Logger::Error("Failed to get data, {}!", GetLastError());
-			BreakPoint;
-			return;
-		}
-	}
+	//do
+	//{
+	//	if (read == capabilities.InputReportByteLength) //TODO: Check previous read
+	//	{
+	//		NTSTATUS s;
+	//		if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
+	//		{
+	//			Logger::Error("Failed to get data, {}!", s);
+	//			BreakPoint;
+	//			return;
+	//		}
+	//
+	//		//TODO: Process data
+	//		BreakPoint;
+	//
+	//		read = 0;
+	//
+	//		ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, (LPOVERLAPPED)&overlap);
+	//	}
+	//	else
+	//	{
+	//		ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, (LPOVERLAPPED)&overlap);
+	//	}
+	//
+	//} while (overlap.Internal != ERROR_NO_MORE_ITEMS);
 }
 
 bool Device::SetupMouse()

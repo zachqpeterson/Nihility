@@ -98,6 +98,20 @@ struct HIDButtonMapping
 	String name;
 };
 
+struct Overlapped {
+	U64 Internal;
+	U64 InternalHigh;
+	union {
+		struct {
+			UL32 Offset;
+			UL32 OffsetHigh;
+		};
+		void* Pointer;
+	};
+
+	void* hEvent;
+};
+
 struct _HIDP_PREPARSED_DATA;
 struct _HIDP_DATA;
 
@@ -119,6 +133,8 @@ private:
 	bool SetupKeyboard();
 	bool SetupController();
 
+	void __stdcall DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfered, struct _OVERLAPPED* lpOverlapped);
+
 	WString path;
 	void* ntHandle;				//HANDLE
 	WString manufacturer;
@@ -131,6 +147,9 @@ private:
 	_HIDP_DATA* stateBuffer;
 	UL32 stateLength;
 	char* reportBuffer;
+
+	Overlapped overlap{};
+	UL32 read;
 
 	Vector<HIDAxis> axes;
 	Vector<HIDButton> buttons;
