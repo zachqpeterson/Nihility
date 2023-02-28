@@ -87,10 +87,10 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 
 	//KEYBOARD LAYOUT: "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout"
 
-	if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
-	{
-		Logger::Error(GetLastError());
-	}
+	//if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
+	//{
+	//	Logger::Error(GetLastError());
+	//}
 }
 
 Device::Device(Device&& other) noexcept : path{ Move(other.path) }, ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
@@ -162,10 +162,10 @@ void __stdcall Device::DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfer
 		return;
 	}
 
-	if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
-	{
-		Logger::Error(GetLastError());
-	}
+	//if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
+	//{
+	//	Logger::Error(GetLastError());
+	//}
 }
 
 void Device::Update()
