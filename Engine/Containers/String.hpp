@@ -9,7 +9,8 @@
 #include <type_traits> //TODO: Implementation of this
 
 #define IS_TRUE(c) c[0] == 't' && c[1] == 'r' && c[2] == 'u' && c[3] == 'e'
-#define WHITE_SPACE(c, ptr) (c = *ptr) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f' || c == NULL_CHAR
+#define WHITE_SPACE(c, ptr) (c = *ptr) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f'
+#define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '\v' && c != '\f'
 
 static struct Hex {} HEX;
 
@@ -25,6 +26,8 @@ static struct Hex {} HEX;
 * TODO: Conversions from W16 to char
 *
 * TODO: Conversions from WString to String
+* 
+* TODO: Convert Pointer types to String (as a hex or U64 value)
 * 
 * TODO: More formatting options
 *	TODO: {h} will convert to hexadecimal
@@ -57,10 +60,11 @@ public:
 	void Resize(U64 size);
 	void Resize();
 
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
-	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> ToType() const;
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>, T> ToType() const;
+	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> ToType(U64 start = 0) const;
+	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> ToType(U64 start = 0) const;
+	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> ToType(U64 start = 0) const;
+	template<typename T> std::enable_if_t<std::is_floating_point_v<T>, T> ToType(U64 start = 0) const;
+	template<typename T> std::enable_if_t<std::is_pointer_v<T>, T> ToType(U64 start = 0) const;
 
 	template<typename T> String& operator+=(T value);
 	String& operator+=(char* other);
@@ -134,9 +138,12 @@ private:
 	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> ToString(char* str, T value);
 	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> ToString(char* str, T value);
 	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> ToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_pointer_v<T>> ToString(char* str, T value);
+
 	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> HexToString(char* str, T value);
 	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> HexToString(char* str, T value);
 	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> HexToString(char* str, T value);
+	template<typename T> std::enable_if_t<std::is_pointer_v<T>> HexToString(char* str, T value);
 
 	void Format(U64& start, const String& replace);
 
@@ -1049,7 +1056,7 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType() const
+template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType(U64 start) const
 {
 	char* it = str;
 	char c;
@@ -1068,7 +1075,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 	return value;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType() const
+template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType(U64 start) const
 {
 	char* it = str;
 	char c;
@@ -1079,12 +1086,12 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 	return value;
 }
 
-template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> String::ToType() const
+template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> String::ToType(U64 start) const
 {
 	return IS_TRUE(str);
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> String::ToType() const
+template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> String::ToType(U64 start) const
 {
 	char* it = str;
 	char c;

@@ -110,6 +110,8 @@ void* Memory::Allocate(U64 size, U64& outSize)
 
 void Memory::Free(void* ptr)
 {
+	if (!ptr) { return; }
+
 	if (ptr >= pool1mbPointer) { Free1mb(ptr); }
 	else if (ptr >= pool256kbPointer) { Free256kb(ptr); }
 	else if (ptr >= pool16kbPointer) { Free16kb(ptr); }
@@ -190,24 +192,28 @@ void* Memory::Reallocate(void* ptr, U64 size, U64& outSize)
 //TODO: Debug checking that ensures this is the right size block to free
 void Memory::Free1kb(void* ptr)
 {
+	if (!ptr) { return; }
 	memset(ptr, 0, sizeof(Region1kb));
 	free1kbIndices[SafeDecrement(&last1kbFree)] = U32((Region1kb*)ptr - pool1kbPointer);
 }
 
 void Memory::Free16kb(void* ptr)
 {
+	if (!ptr) { return; }
 	memset(ptr, 0, sizeof(Region16kb));
 	free16kbIndices[SafeDecrement(&last16kbFree)] = U32((Region16kb*)ptr - pool16kbPointer);
 }
 
 void Memory::Free256kb(void* ptr)
 {
+	if (!ptr) { return; }
 	memset(ptr, 0, sizeof(Region256kb));
 	free256kbIndices[SafeDecrement(&last256kbFree)] = U32((Region256kb*)ptr - pool256kbPointer);
 }
 
 void Memory::Free1mb(void* ptr)
 {
+	if (!ptr) { return; }
 	memset(ptr, 0, sizeof(Region1mb));
 	free1mbIndices[SafeDecrement(&last1mbFree)] = U32((Region1mb*)ptr - pool1mbPointer);
 }

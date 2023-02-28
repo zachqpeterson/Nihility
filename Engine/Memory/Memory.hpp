@@ -184,10 +184,10 @@ template<typename T> inline T* Memory::Allocate()
 {
 	constexpr U64 size = sizeof(T);
 
-	if (size <= 1024) { return (T*)Allocate1kb(); }
-	else if (size <= 16384) { return (T*)Allocate16kb(); }
-	else if (size <= 262144) { return (T*)Allocate256kb(); }
-	else if (size <= 1048576) { return (T*)Allocate1mb(); }
+	if constexpr(size <= 1024) { return (T*)Allocate1kb(); }
+	else if constexpr (size <= 16384) { return (T*)Allocate16kb(); }
+	else if constexpr (size <= 262144) { return (T*)Allocate256kb(); }
+	else if constexpr (size <= 1048576) { return (T*)Allocate1mb(); }
 
 	BreakPoint;
 	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, 1048576);
@@ -199,10 +199,10 @@ template<typename T> inline T* Memory::Allocate(U64& outSize)
 {
 	constexpr U64 size = sizeof(T);
 
-	if (size <= 1024) { outSize = 1024; return (T*)Allocate1kb(); }
-	else if (size <= 16384) { outSize = 16384; return (T*)Allocate16kb(); }
-	else if (size <= 262144) { outSize = 262144; return (T*)Allocate256kb(); }
-	else if (size <= 1048576) { outSize = 1048576; return (T*)Allocate1mb(); }
+	if constexpr (size <= 1024) { outSize = 1024; return (T*)Allocate1kb(); }
+	else if constexpr (size <= 16384) { outSize = 16384; return (T*)Allocate16kb(); }
+	else if constexpr (size <= 262144) { outSize = 262144; return (T*)Allocate256kb(); }
+	else if constexpr (size <= 1048576) { outSize = 1048576; return (T*)Allocate1mb(); }
 
 	BreakPoint;
 	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, 1048576);
