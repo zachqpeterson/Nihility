@@ -4,15 +4,14 @@
 
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
-#include "WString.hpp"
-
-#include <type_traits> //TODO: Implementation of this
 
 #define IS_TRUE(c) c[0] == 't' && c[1] == 'r' && c[2] == 'u' && c[3] == 'e'
 #define WHITE_SPACE(c, ptr) (c = *ptr) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f'
 #define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '\v' && c != '\f'
 
 static struct Hex {} HEX;
+
+struct WString;
 
 /*
 * TODO: Documentation
@@ -43,6 +42,7 @@ public:
 	String(const String& other);
 	String(const WString& other);
 	String(String&& other) noexcept;
+	String(WString&& other) noexcept;
 	template<typename... Types> String(const char* fmt, const Types& ... args);
 	template<typename... Types> String(const Types& ... args);
 
@@ -50,7 +50,9 @@ public:
 	String& operator=(char* str);
 	String& operator=(const char* str);
 	String& operator=(const String& other);
+	String& operator=(const WString& other);
 	String& operator=(String&& other) noexcept;
+	String& operator=(WString&& other) noexcept;
 
 	~String();
 	void Destroy();
@@ -60,11 +62,11 @@ public:
 	void Resize(U64 size);
 	void Resize();
 
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> ToType(U64 start = 0) const;
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> ToType(U64 start = 0) const;
-	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> ToType(U64 start = 0) const;
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>, T> ToType(U64 start = 0) const;
-	template<typename T> std::enable_if_t<std::is_pointer_v<T>, T> ToType(U64 start = 0) const;
+	template<typename T> EnableSignedInt<T> ToType(U64 start = 0) const;
+	template<typename T> EnableUnsignedInt<T> ToType(U64 start = 0) const;
+	template<typename T> EnableBool<T> ToType(U64 start = 0) const;
+	template<typename T> EnableFloat<T> ToType(U64 start = 0) const;
+	template<typename T> EnablePointer<T> ToType(U64 start = 0) const;
 
 	template<typename T> String& operator+=(T value);
 	String& operator+=(char* other);
@@ -107,8 +109,11 @@ public:
 	String& Trim();
 	String& SubString(String& newStr, U64 start, U64 nLength = I64_MAX) const;
 	String& Append(const String& append);
+	String& Appended(String& newStr, const String& append);
 	String& Prepend(const String& prepend);
+	String& Prepended(String& newStr, const String& prepend);
 	String& Surround(const String& prepend, const String& append);
+	String& Surrounded(String& newStr, const String& prepend, const String& append);
 	String& Insert(const String& string, U32 i);
 	String& Overwrite(const String& string, U32 i = 0);
 	String& ReplaceAll(const String& find, const String& replace, U64 start = 0);
@@ -134,16 +139,16 @@ public:
 	static inline constexpr const char* FALSE_STR = "false";
 
 private:
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> ToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> ToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> ToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> ToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_pointer_v<T>> ToString(char* str, T value);
+	template<typename T> EnableSignedInt<T> ToString(char* str, T value);
+	template<typename T> EnableUnsignedInt<T> ToString(char* str, T value);
+	template<typename T> EnableBool<T> ToString(char* str, T value);
+	template<typename T> EnableFloat<T> ToString(char* str, T value);
+	template<typename T> EnablePointer<T> ToString(char* str, T value);
 
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> HexToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> HexToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> HexToString(char* str, T value);
-	template<typename T> std::enable_if_t<std::is_pointer_v<T>> HexToString(char* str, T value);
+	template<typename T> EnableSignedInt<T> HexToString(char* str, T value);
+	template<typename T> EnableUnsignedInt<T> HexToString(char* str, T value);
+	template<typename T> EnableFloat<T> HexToString(char* str, T value);
+	template<typename T> EnablePointer<T> HexToString(char* str, T value);
 
 	void Format(U64& start, const String& replace);
 
@@ -245,19 +250,6 @@ inline String::String(const char* str) : size{ strlen(str) }, capacity{ size }, 
 inline String::String(const String& other) : size{ other.size }, capacity{ other.capacity }, str{ (char*)Memory::Allocate(capacity) }
 {
 	memcpy(str, other.str, size + 1);
-}
-
-inline String::String(const WString& other) : size{ other.Size() }, capacity{ other.Capacity() }, str{ (char*)Memory::Allocate(capacity) }
-{
-	const W16* w = other.Data();
-	char* c = str;
-
-	W16 val;
-	while ((val = *w++) != WString::NULL_CHAR)
-	{
-		if (val < 128) { *c++ = (char)val; }
-		else { *c++ = (char)219; if (val >= 0xD800 && val <= 0xD8FF) { --size; ++w; } }
-	}
 }
 
 inline String::String(String&& other) noexcept : size{ other.size }, capacity{ other.capacity }, str{ other.str }
@@ -575,11 +567,12 @@ inline bool String::Blank() const
 	return start - str == size;
 }
 
-inline I32 String::IndexOf(const char& c, U64 start) const
+inline I32 String::IndexOf(const char& ch, U64 start) const
 {
 	char* it = str + start;
+	char c;
 
-	while (*it != c && *it != NULL_CHAR) { ++it; }
+	while ((c = *it) != ch && c != NULL_CHAR) { ++it; }
 
 	if (*it == NULL_CHAR) { return -1; }
 	return (I32)(it - str);
@@ -731,13 +724,15 @@ inline String& String::ReplaceFirst(const String& find, const String& replace, U
 {
 	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, size + replace.size - find.size, capacity); }
 	hashed = false;
-	char* c = str + start;
-	while (*c != NULL_CHAR && memcmp(c, find.str, find.size)) { ++c; }
+	char* it = str + start;
+	char c;
 
-	if (*c != NULL_CHAR)
+	while ((c = *it) != NULL_CHAR && memcmp(it, find.str, find.size)) { ++c; }
+
+	if (c != NULL_CHAR)
 	{
-		memcpy(c + replace.size, c + find.size, size - find.size - (c - str));
-		memcpy(c, replace.str, replace.size);
+		memcpy(it + replace.size, it + find.size, size - find.size - (it - str));
+		memcpy(it, replace.str, replace.size);
 		size = size - find.size + replace.size;
 		str[size] = NULL_CHAR;
 	}
@@ -783,7 +778,7 @@ inline const char* String::rbegin() const { return str + size - 1; }
 
 inline const char* String::rend() const { return str - 1; }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
+template<typename T> inline EnableSignedInt<T> String::ToString(char* str, T value)
 {
 	hashed = false;
 	if (capacity < size + 20 && this->str) { Memory::Free(str); }
@@ -825,7 +820,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
+template<typename T> inline EnableUnsignedInt<T> String::ToString(char* str, T value)
 {
 	hashed = false;
 	if (capacity < size + 20 && this->str) { Memory::Free(str); }
@@ -858,7 +853,7 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> String::ToString(char* str, T value)
+template<typename T> inline EnableBool<T> String::ToString(char* str, T value)
 {
 	hashed = false;
 	if (value)
@@ -879,7 +874,7 @@ template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_
 	}
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String::ToString(char* str, T value)
+template<typename T> inline EnableFloat<T> String::ToString(char* str, T value)
 {
 	hashed = false;
 	if (capacity < size + 27 && this->str) { Memory::Free(str); }
@@ -938,7 +933,7 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> String::HexToString(char* str, T value)
+template<typename T> inline EnableSignedInt<T> String::HexToString(char* str, T value)
 {
 	hashed = false;
 	if (capacity < size + 16 && this->str) { Memory::Free(str); }
@@ -947,10 +942,10 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 	U8 pairs;
 	U8 digits;
 	U64 max;
-	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	if constexpr (IsSame<T, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
+	else if constexpr (IsSame<T, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
+	else if constexpr (IsSame<T, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else if constexpr (IsSame<T, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
 	else { pairs = 8; digits = 16; max = U64_MAX; }
 
 	char* c = str + digits;
@@ -993,7 +988,7 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> String::HexToString(char* str, T value)
+template<typename T> inline EnableUnsignedInt<T> String::HexToString(char* str, T value)
 {
 	hashed = false;
 	if (capacity < size + 16 && this->str) { Memory::Free(str); }
@@ -1001,10 +996,10 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 
 	U8 pairs;
 	U8 digits;
-	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; }
+	if constexpr (IsSame<T, U8>) { pairs = 1; digits = 2; }
+	else if constexpr (IsSame<T, U16>) { pairs = 2; digits = 4; }
+	else if constexpr (IsSame<T, U32>) { pairs = 4; digits = 8; }
+	else if constexpr (IsSame<T, UL32>) { pairs = 4; digits = 8; }
 	else { pairs = 8; digits = 16; }
 
 	char* c = str + digits;
@@ -1027,7 +1022,7 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String::HexToString(char* str, T value)
+template<typename T> inline EnableFloat<T> String::HexToString(char* str, T value)
 {
 	hashed = false;
 	if (capacity < size + 16 && this->str) { Memory::Free(str); }
@@ -1038,7 +1033,7 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String
 
 	char* c = str + digits;
 	const char* twoDigits;
-	U64 val = *reinterpret_cast<U64*>(&value);
+	U64 val = reinterpret_cast<U64>(value);
 
 	for (U8 i = 0; i < pairs; ++i)
 	{
@@ -1056,44 +1051,45 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> String
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType(U64 start) const
+template<typename T> inline EnableSignedInt<T> String::ToType(U64 start) const
 {
-	char* it = str;
+	char* it = str + start;
 	char c;
 	I64 value = 0;
 
 	if (*str == NEGATIVE_CHAR)
 	{
 		++it;
-		while ((c = *it++) != NULL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
+		while (NOT_WHITE_SPACE(c, it) && c != NULL_CHAR) { value *= 10; value -= c - ZERO_CHAR; ++it; }
 	}
 	else
 	{
-		while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+		while (NOT_WHITE_SPACE(c, it)) { value *= 10; value += c - ZERO_CHAR; ++it; }
 	}
 
 	return value;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> String::ToType(U64 start) const
+template<typename T> inline EnableUnsignedInt<T> String::ToType(U64 start) const
 {
-	char* it = str;
+	char* it = str + start;
 	char c;
 	T value = 0;
 
-	while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+	while (NOT_WHITE_SPACE(c, it) && c != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; ++it; }
 
 	return value;
 }
 
-template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> String::ToType(U64 start) const
+template<typename T> inline EnableBool<T> String::ToType(U64 start) const
 {
-	return IS_TRUE(str);
+	char* c = str + start;
+	return IS_TRUE(c);
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> String::ToType(U64 start) const
+template<typename T> inline EnableFloat<T> String::ToType(U64 start) const
 {
-	char* it = str;
+	char* it = str + start;
 	char c;
 	F64 value = 0.0f;
 	F64 mul = 0.1f;
@@ -1101,13 +1097,13 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> Str
 	if (*str == NEGATIVE_CHAR)
 	{
 		++it;
-		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
-		while ((c = *it++) != NULL_CHAR) { value -= (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+		while (NOT_WHITE_SPACE(c, it) && c != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value -= c - ZERO_CHAR; ++it; }
+		while (NOT_WHITE_SPACE(c, it) && c != NULL_CHAR) { value -= (c - ZERO_CHAR) * mul; mul *= 0.1f; ++it; }
 	}
 	else
 	{
-		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
-		while ((c = *it++) != NULL_CHAR) { value += (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+		while (NOT_WHITE_SPACE(c, it) && c != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value += c - ZERO_CHAR; ++it; }
+		while (NOT_WHITE_SPACE(c, it) && c != NULL_CHAR) { value += (c - ZERO_CHAR) * mul; mul *= 0.1f; ++it; }
 	}
 
 	return value;

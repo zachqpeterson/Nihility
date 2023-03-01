@@ -126,5 +126,8 @@
     <ClCompile Include="Engine\Platform\Device.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Containers\String.cpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

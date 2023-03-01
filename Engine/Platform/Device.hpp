@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "Containers\String.hpp"
+#include "Containers\WString.hpp"
 
 enum DeviceType
 {

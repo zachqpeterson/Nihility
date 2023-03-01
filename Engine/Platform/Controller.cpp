@@ -17,10 +17,10 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 	if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open handle, skipping..."); return; }
 	openHandle = true;
 
-	if (!HidD_GetProductString(ntHandle, product.Data(), product.Capacity())) { Logger::Trace("Failed to get product, {}", GetLastError()); }
+	if (!HidD_GetProductString(ntHandle, product.Data(), (UL32)product.Capacity())) { Logger::Trace("Failed to get product, {}", GetLastError()); }
 	product.Resize();
 
-	if (!HidD_GetManufacturerString(ntHandle, manufacturer.Data(), manufacturer.Capacity())) { Logger::Trace("Failed to get manufacturer, {}", GetLastError()); }
+	if (!HidD_GetManufacturerString(ntHandle, manufacturer.Data(), (UL32)manufacturer.Capacity())) { Logger::Trace("Failed to get manufacturer, {}", GetLastError()); }
 	manufacturer.Resize();
 
 	if (!HidD_GetPreparsedData(ntHandle, &inputReportProtocol)) { Logger::Trace("Failed to get data, {}, skipping...", GetLastError()); Destroy(); return; }

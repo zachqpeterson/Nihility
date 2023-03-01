@@ -305,3 +305,26 @@ template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>
 /// </summary>
 /// <param name="value:">The value to set</param>
 #define Align16(value) ((value + 15) & ~15)
+
+#include <type_traits>
+
+template <typename Type, typename Return = void>
+using EnableSignedInt = std::enable_if_t<std::is_signed_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
+
+template <typename Type, typename Return = void>
+using EnableUnsignedInt = std::enable_if_t<std::is_unsigned_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
+
+template <typename Type, typename Return = void>
+using EnableBool = std::enable_if_t<std::is_integral_v<Type> && !std::_Is_nonbool_integral<Type>, Return>;
+
+template <typename Type, typename Return = void>
+using EnableFloat = std::enable_if_t<std::is_floating_point_v<Type>, Return>;
+
+template <typename Type, typename Return = void>
+using EnablePointer = std::enable_if_t<std::is_pointer_v<Type>, Return>;
+
+template <typename T0, typename T1>
+inline constexpr bool IsSame = std::is_same_v<T0, T1>;
+
+template <typename T0, typename T1>
+inline constexpr bool IsSameNoQuals = std::is_same_v<std::remove_cv_t<T0>, std::remove_cv_t<T1>>;
