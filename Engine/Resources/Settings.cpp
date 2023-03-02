@@ -8,31 +8,26 @@ bool Settings::Initialize()
 {
 	Logger::Trace("Loading Settings...");
 
-	File config("Settings.cfg", FILE_OPEN_BINARY_READ_SEQ);
+	File config("Settings.cfg", FILE_OPEN_READ_SEQ);
 
 	if (config.Opened())
 	{
-		String str;
-
-		if (config.ReadAllString(str))
-		{
-			config.ReadT(CHANNEL_COUNT);
-			config.ReadT(MASTER_VOLUME);
-			config.ReadT(MUSIC_VOLUME);
-			config.ReadT(SFX_VOLUME);
-			config.ReadT(WINDOW_WIDTH);
-			config.ReadT(WINDOW_HEIGHT);
-			config.ReadT(WINDOW_WIDTH_SMALL);
-			config.ReadT(WINDOW_HEIGHT_SMALL);
-			config.ReadT(WINDOW_POSITION_X);
-			config.ReadT(WINDOW_POSITION_Y);
-			config.ReadT(WINDOW_POSITION_X_SMALL);
-			config.ReadT(WINDOW_POSITION_Y_SMALL);
-			config.ReadT(TARGET_FRAMETIME);
-			config.ReadT(TARGET_FRAMETIME_SUSPENDED);
-			config.ReadT(MSAA_COUNT);
-			config.ReadT(DPI);
-		}
+		config.Read(CHANNEL_COUNT);
+		config.Read(MASTER_VOLUME);
+		config.Read(MUSIC_VOLUME);
+		config.Read(SFX_VOLUME);
+		config.Read(WINDOW_WIDTH);
+		config.Read(WINDOW_HEIGHT);
+		config.Read(WINDOW_WIDTH_SMALL);
+		config.Read(WINDOW_HEIGHT_SMALL);
+		config.Read(WINDOW_POSITION_X);
+		config.Read(WINDOW_POSITION_Y);
+		config.Read(WINDOW_POSITION_X_SMALL);
+		config.Read(WINDOW_POSITION_Y_SMALL);
+		config.Read(TARGET_FRAMETIME);
+		config.Read(TARGET_FRAMETIME_SUSPENDED);
+		config.Read(MSAA_COUNT);
+		config.Read(DPI);
 
 		config.Close();
 	}
@@ -42,7 +37,7 @@ bool Settings::Initialize()
 
 void Settings::Shutdown()
 {
-	File config("Settings.cfg", FILE_OPEN_BINARY_WRITE_NEW);
+	File config("Settings.cfg", FILE_OPEN_WRITE_NEW);
 
 	if (config.Opened())
 	{

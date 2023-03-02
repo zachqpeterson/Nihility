@@ -129,5 +129,8 @@
     <ClCompile Include="Engine\Containers\String.cpp">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Core\File.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

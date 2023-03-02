@@ -48,9 +48,8 @@ private:
 	static inline const String traceTag{ "\033[1;30m[TRACE]:\033[0m " };
 	static inline const String endLine{ "\n" };
 
-	static inline File log{ "Log.log", FILE_OPEN_TEXT_WRITE_NEW };
-	static inline File outputLog;
-	static inline File errorLog;
+	static inline File log{ "Log.log", FILE_OPEN_WRITE_NEW };
+	static inline File console{ "CONOUT$", FILE_OPEN_CONSOLE }; //TODO: This is platform specific
 
 	STATIC_CLASS(Logger);
 	friend class Engine;
@@ -58,9 +57,6 @@ private:
 
 inline bool Logger::Initialize()
 {
-	outputLog.OpenOutput();
-	errorLog.OpenError();
-
 	Platform::SetConsoleWindowTitle(L"Nihility Console");
 
 	return true;
@@ -75,7 +71,7 @@ template<typename... Types> inline void Logger::Fatal(const char* message, const
 {
 	String str(message, args...);
 	str.Surround(fatalTag, endLine);
-	errorLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 }
 
@@ -83,7 +79,7 @@ template<typename... Types> inline void Logger::Error(const char* message, const
 {
 	String str(message, args...);
 	str.Surround(errorTag, endLine);
-	errorLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 }
 
@@ -92,7 +88,7 @@ template<typename... Types> inline void Logger::Warn(const char* message, const 
 #if LOG_WARN_ENABLED
 	String str(message, args...);
 	str.Surround(warnTag, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -102,7 +98,7 @@ template<typename... Types> inline void Logger::Info(const char* message, const 
 #if LOG_INFO_ENABLED
 	String str(message, args...);
 	str.Surround(infoTag, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -112,7 +108,7 @@ template<typename... Types> inline void Logger::Debug(const char* message, const
 #if LOG_DEBUG_ENABLED
 	String str(message, args...);
 	str.Surround(debugTag, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -122,7 +118,7 @@ template<typename... Types> inline void Logger::Trace(const char* message, const
 #if LOG_TRACE_ENABLED
 	String str(message, args...);
 	str.Surround(traceTag, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -130,14 +126,14 @@ template<typename... Types> inline void Logger::Trace(const char* message, const
 template<typename Type> inline void Logger::Fatal(const Type& arg)
 {
 	String str(fatalTag, arg, endLine);
-	errorLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 }
 
 template<typename Type> inline void Logger::Error(const Type& arg)
 {
 	String str(errorTag, arg, endLine);
-	errorLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 }
 
@@ -145,7 +141,7 @@ template<typename Type> inline void Logger::Warn(const Type& arg)
 {
 #if LOG_WARN_ENABLED
 	String str(warnTag, arg, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -154,7 +150,7 @@ template<typename Type> inline void Logger::Info(const Type& arg)
 {
 #if LOG_INFO_ENABLED
 	String str(infoTag, arg, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -163,7 +159,7 @@ template<typename Type> inline void Logger::Debug(const Type& arg)
 {
 #if LOG_DEBUG_ENABLED
 	String str(debugTag, arg, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
@@ -172,7 +168,7 @@ template<typename Type> inline void Logger::Trace(const Type& arg)
 {
 #if LOG_TRACE_ENABLED
 	String str(traceTag, arg, endLine);
-	outputLog.Write(str);
+	console.Write(str);
 	log.Write(str);
 #endif
 }
