@@ -10,6 +10,7 @@
 #define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '\v' && c != '\f'
 
 static struct Hex {} HEX;
+static struct NoInit {} NO_INIT;
 
 struct WString;
 
@@ -25,9 +26,9 @@ struct WString;
 * TODO: Conversions from W16 to char
 *
 * TODO: Conversions from WString to String
-* 
+*
 * TODO: Convert Pointer types to String (as a hex or U64 value)
-* 
+*
 * TODO: More formatting options
 *	TODO: {h} will convert to hexadecimal
 */
@@ -35,6 +36,7 @@ struct NH_API String
 {
 public:
 	String();
+	String(NoInit flag);
 	template<typename T> String(T value);
 	template<typename T> String(T value, Hex flag);
 	String(char* str);
@@ -100,7 +102,7 @@ public:
 
 	const U64& Size() const;
 	const U64& Capacity() const;
-	U64 Hash();
+	const U64& Hash();
 	char* Data();
 	const char* Data() const;
 	bool Blank() const;
@@ -232,6 +234,8 @@ private:
 };
 
 inline String::String() : str{ (char*)Memory::Allocate1kb() } {}
+
+inline String::String(NoInit flag) : str{ nullptr }, capacity{ 0 } {}
 
 template<typename T> inline String::String(T value) : str{ (char*)Memory::Allocate1kb() } { ToString(str, value); }
 
@@ -540,7 +544,7 @@ inline const U64& String::Size() const { return size; }
 
 inline const U64& String::Capacity() const { return capacity; }
 
-inline U64 String::Hash()
+inline const U64& String::Hash()
 {
 	if (hashed) { return hash; }
 

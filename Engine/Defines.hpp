@@ -289,6 +289,12 @@ template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>
 #define AlignPow2(value, alignment) ((value + (alignment - 1)) & ~(alignment - 1))
 
 /// <summary>
+/// Sets value to the next multiple of 2
+/// </summary>
+/// <param name="value:">The value to set</param>
+#define Align2(value) ((value + 1) & ~1)
+
+/// <summary>
 /// Sets value to the next multiple of 4
 /// </summary>
 /// <param name="value:">The value to set</param>

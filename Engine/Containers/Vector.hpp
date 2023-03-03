@@ -410,7 +410,7 @@ template<typename T> inline Vector<T>::Vector(U64 size, const T& value) : array{
 	for (T* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
-template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : array{ (T*)Memory::Allocate(sizeof(T) * capacity) }, size{ other.size }, capacity{ other.capacity }
+template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : array{ (T*)Memory::Allocate(sizeof(T) * other.capacity) }, size{ other.size }, capacity{ other.capacity }
 {
 	memcpy(array, other.array, sizeof(T)* size);
 }

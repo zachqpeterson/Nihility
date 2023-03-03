@@ -40,8 +40,8 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 	ASSERT(Jobs::Initialize());
 	ASSERT(Platform::Initialize(applicationName));	//Thread
 	ASSERT(Input::Initialize());					//Probably run on platform thread
-	//Audio
 	ASSERT(Resources::Initialize());
+	//Audio
 	//Renderer
 	//UI
 	//Physics
