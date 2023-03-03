@@ -12,6 +12,8 @@
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
 
+#include <stdio.h>
+
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
 ShutdownFn Engine::GameShutdown;

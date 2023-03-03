@@ -17,7 +17,7 @@ struct Texture
 class NH_API Resources
 {
 public:
-	static Texture* LoadTexture(const String& name);
+	static Texture* LoadTexture(String& name);
 
 private:
 	static bool LoadBMP();

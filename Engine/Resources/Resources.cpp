@@ -56,7 +56,7 @@ void Resources::Shutdown()
 
 }
 
-Texture* Resources::LoadTexture(const String& name)
+Texture* Resources::LoadTexture(String& name)
 {
 	Texture* texture = nullptr;
 

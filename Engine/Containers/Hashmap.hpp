@@ -29,11 +29,11 @@ public:
 	~Hashmap();
 	void Destroy();
 
-	bool Insert(const String& key, const Value& value);
-	bool Insert(const String& key, Value&& value) noexcept;
-	bool Remove(const String& key);
-	bool Remove(const String& key, Value&& value) noexcept;
-	bool Get(const String& key, Value& value);
+	bool Insert(String& key, const Value& value);
+	bool Insert(String& key, Value&& value) noexcept;
+	bool Remove(String& key);
+	bool Remove(String& key, Value&& value) noexcept;
+	bool Get(String& key, Value& value);
 
 	void Reserve(U64 capacity);
 	void operator()(U64 capacity);
@@ -112,7 +112,7 @@ template<typename Value> inline void Hashmap<Value>::Destroy()
 	capMinusOne = 0;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Insert(const String& key, const Value& value)
+template<typename Value> inline bool Hashmap<Value>::Insert(String& key, const Value& value)
 {
 	if (size == capacity) { return false; }
 	U64 hash = key.Hash();
@@ -127,7 +127,7 @@ template<typename Value> inline bool Hashmap<Value>::Insert(const String& key, c
 	cell->key = key;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Insert(const String& key, Value&& value) noexcept
+template<typename Value> inline bool Hashmap<Value>::Insert(String& key, Value&& value) noexcept
 {
 	if (size == capacity) { return false; }
 	U64 hash = key.Hash();
@@ -142,7 +142,7 @@ template<typename Value> inline bool Hashmap<Value>::Insert(const String& key, V
 	cell->key = key;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Remove(const String& key)
+template<typename Value> inline bool Hashmap<Value>::Remove(String& key)
 {
 	if (size == 0) { return false; }
 	U64 hash = key.Hash();
@@ -163,7 +163,7 @@ template<typename Value> inline bool Hashmap<Value>::Remove(const String& key)
 	return false;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Remove(const String& key, Value&& value) noexcept
+template<typename Value> inline bool Hashmap<Value>::Remove(String& key, Value&& value) noexcept
 {
 	if (size == 0) { return false; }
 	U64 hash = key.Hash();
@@ -187,7 +187,7 @@ template<typename Value> inline bool Hashmap<Value>::Remove(const String& key, V
 	return false;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Get(const String& key, Value& value)
+template<typename Value> inline bool Hashmap<Value>::Get(String& key, Value& value)
 {
 	if (size == 0) { return false; }
 	U64 hash = key.Hash();

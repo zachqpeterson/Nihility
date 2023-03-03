@@ -131,6 +131,7 @@
   <ItemGroup>
     <ClCompile Include="Engine\Containers\String.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
+    <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />

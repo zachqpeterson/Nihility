@@ -135,5 +135,8 @@
     <ClCompile Include="Engine\Core\File.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Core\Logger.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

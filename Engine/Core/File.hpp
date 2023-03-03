@@ -10,7 +10,6 @@ enum FileOpenType
 	FILE_OPEN_READ_WRITE_NEW,
 	FILE_OPEN_WRITE_APPEND,
 	FILE_OPEN_WRITE_NEW,
-	FILE_OPEN_CONSOLE,
 
 	FILE_OPEN_COUNT
 };
@@ -18,6 +17,7 @@ enum FileOpenType
 struct String;
 template<typename T>
 struct Vector;
+struct _iobuf;
 
 //TODO: Make thread safe, use mutex
 struct NH_API File
@@ -43,12 +43,12 @@ public:
 	template<typename T> bool Write(const T& value);
 
 	void Reset();
-	void Seek(U64 offset);
-	void SeekFromStart(U64 offset);
+	void Seek(I64 offset);
+	void SeekFromStart(I64 offset);
 	void SeekToEnd();
 
 	I64 Pointer() const;
-	U64 Size() const;
+	I64 Size();
 
 private:
 	bool Read(void* value, U64 size);
@@ -56,9 +56,10 @@ private:
 
 	void GetSize();
 
-	void* handle;
+	_iobuf* handle;
 	I64 pointer;
-	U64 size;
+	I64 size;
+	bool updateSize;
 };
 
 template<typename T> inline bool File::ReadAll(Vector<T>& data)

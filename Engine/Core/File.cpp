@@ -6,42 +6,20 @@
 
 #if defined PLATFORM_WINDOWS
 
-#include <Windows.h>
-#include <fileapi.h>
+#include <stdio.h>
 
-static const UL32 fileAccesses[FILE_OPEN_COUNT]{
-	GENERIC_READ,
-	GENERIC_READ,
-	GENERIC_READ,
-	GENERIC_READ | GENERIC_WRITE,
-	GENERIC_WRITE,
-	GENERIC_WRITE,
-	GENERIC_WRITE,
+static const char* openMode[FILE_OPEN_COUNT]{
+	"rbS",
+	"rbR",
+	"r+R",
+	"w+R",
+	"aS",
+	"wS",
 };
 
-static const UL32 fileDispositions[FILE_OPEN_COUNT]{
-	OPEN_EXISTING,
-	OPEN_EXISTING,
-	OPEN_EXISTING,
-	OPEN_ALWAYS,
-	OPEN_EXISTING,
-	OPEN_ALWAYS,
-	OPEN_EXISTING,
-};
+File::File() : handle{ nullptr }, pointer{ 0 }, size{ 0 }, updateSize{ false } {}
 
-static const UL32 fileAttributes[FILE_OPEN_COUNT]{
-	FILE_FLAG_SEQUENTIAL_SCAN,
-	FILE_FLAG_RANDOM_ACCESS,
-	FILE_FLAG_RANDOM_ACCESS,
-	FILE_FLAG_RANDOM_ACCESS,
-	FILE_FLAG_SEQUENTIAL_SCAN,
-	FILE_FLAG_SEQUENTIAL_SCAN,
-	NULL,
-};
-
-File::File() : handle{ INVALID_HANDLE_VALUE }, pointer{ 0 }, size{ 0 } {}
-
-File::File(const String& path, FileOpenType type) : handle{ INVALID_HANDLE_VALUE }, pointer{ 0 }, size{ 0 }
+File::File(const String& path, FileOpenType type) : handle{ nullptr }, pointer{ 0 }, size{ 0 }
 {
 	Open(path, type);
 }
@@ -53,163 +31,88 @@ File::~File()
 
 void File::Close()
 {
-	if (handle != INVALID_HANDLE_VALUE)
+	if (handle)
 	{
-		CloseHandle(handle);
-		handle = INVALID_HANDLE_VALUE;
+		fclose(handle);
+		handle = nullptr;
 	}
 }
 
 bool File::Open(const String& path, FileOpenType type)
 {
 	Close();
-	handle = CreateFileA(path.Data(), fileAccesses[type], FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, fileDispositions[type], fileAttributes[type], nullptr);
-	GetSize();
+	fopen_s(&handle, path.Data(), openMode[type]);
+	updateSize = true;
 
-	return handle != INVALID_HANDLE_VALUE;
+	return handle;
 }
 
-bool File::Opened() const { return handle != INVALID_HANDLE_VALUE; }
+bool File::Opened() const { return handle; }
 
 bool File::ReadAll(String& string)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		UL32 read;
-		if (!ReadFile(handle, string.Data(), (UL32)size, &read, nullptr))
-		{
-			Logger::Error("Failed to read from file, {}", GetLastError());
-			return false;
-		}
-
-		string.Resize();
-
-		return true;
-	}
-
-	return false;
+	GetSize();
+	return fread_s(string.Data(), size, size, 1, handle);
 }
 
 bool File::Read(String& string, U64 size)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		UL32 read;
-		if (!ReadFile(handle, string.Data(), (UL32)size, &read, nullptr))
-		{
-			Logger::Error("Failed to read from file, {}", GetLastError());
-			return false;
-		}
-
-		string.Resize();
-
-		return true;
-	}
-
-	return false;
+	return fread_s(string.Data(), size, size, 1, handle);
 }
 
 bool File::Write(const String& string)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		UL32 wrote;
-		if (!WriteFile(handle, string.Data(), (UL32)string.Size(), &wrote, nullptr))
-		{
-			Logger::Error("Failed to write to file, {}", GetLastError());
-			return false;
-		}
-
-		return true;
-	}
-
-	return false;
+	updateSize = true;
+	return fwrite(string.Data(), string.Size(), 1, handle);
 }
 
 void File::Reset()
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		pointer = SetFilePointer(handle, 0, nullptr, FILE_BEGIN);
-	}
+	_fseeki64(handle, 0, SEEK_SET);
+	pointer = _ftelli64(handle);
 }
 
-void File::Seek(U64 offset)
+void File::Seek(I64 offset)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		LARGE_INTEGER li;
-		li.QuadPart = offset;
-
-		pointer = SetFilePointer(handle, li.LowPart, &li.HighPart, FILE_CURRENT);
-	}
+	_fseeki64(handle, offset, SEEK_CUR);
+	pointer = _ftelli64(handle);
 }
 
-void File::SeekFromStart(U64 offset)
+void File::SeekFromStart(I64 offset)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		LARGE_INTEGER li;
-		li.QuadPart = offset;
-
-		pointer = SetFilePointer(handle, li.LowPart, &li.HighPart, FILE_BEGIN);
-	}
+	_fseeki64(handle, offset, SEEK_SET);
+	pointer = _ftelli64(handle);
 }
 
 void File::SeekToEnd()
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		pointer = SetFilePointer(handle, 0, nullptr, FILE_END);
-	}
+	_fseeki64(handle, 0, SEEK_END);
+	pointer = _ftelli64(handle);
 }
 
 bool File::Read(void* value, U64 size)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		UL32 read;
-		if (!ReadFile(handle, value, (UL32)size, &read, nullptr))
-		{
-			Logger::Error("Failed to read from file, {}", GetLastError());
-			return false;
-		}
-
-		return true;
-	}
-
-	return false;
+	return fread_s(value, size, size, 1, handle);
 }
 
 bool File::Write(const void* value, U64 size)
 {
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		UL32 wrote;
-		if (!WriteFile(handle, value, (UL32)size, &wrote, nullptr))
-		{
-			Logger::Error("Failed to write to file, {}", GetLastError());
-			return false;
-		}
-
-		return true;
-	}
-
-	return false;
+	updateSize = true;
+	return fwrite(value, size, 1, handle);
 }
 
 I64 File::Pointer() const { return pointer; }
 
-U64 File::Size() const { return size; }
+I64 File::Size() { GetSize(); return size; }
 
 void File::GetSize()
 {
-	size = SetFilePointer(handle, 0, nullptr, FILE_END);
-
-	LARGE_INTEGER li;
-	li.QuadPart = pointer;
-
-	SetFilePointer(handle, li.LowPart, &li.HighPart, FILE_BEGIN);
+	if (updateSize)
+	{
+		_fseeki64(handle, 0, SEEK_END);
+		size = _ftelli64(handle);
+		_fseeki64(handle, pointer, SEEK_SET);
+	}
 }
 
 #endif
