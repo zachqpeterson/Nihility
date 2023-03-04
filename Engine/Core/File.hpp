@@ -64,13 +64,15 @@ private:
 
 template<typename T> inline bool File::ReadAll(Vector<T>& data)
 {
-	return Read(data.Data(), sizeof(T) * data.Size());
+	GetSize();
+	data.Resize(size);
+	return Read(data.Data(), sizeof(T) * data);
 }
 
 template<typename T> inline bool File::Read(Vector<T>& data, U64 size)
 {
-	if (Read(data.Data(), sizeof(T) * size)) { data.Resize(size); return true; }
-	return false;
+	data.Resize(size);
+	return Read(data.Data(), sizeof(T) * size);
 }
 
 template<typename T> inline bool File::Read(T& value)
