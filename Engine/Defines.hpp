@@ -1,5 +1,7 @@
 #pragma once
 
+//TODO: Separate this into different sections i.e. Platform, Resources, Containers, Math, etc.
+
 /*---------DATA TYPES---------*/
 
 ///Unsigned 8-bit integer
@@ -334,3 +336,6 @@ inline constexpr bool IsSame = std::is_same_v<T0, T1>;
 
 template <typename T0, typename T1>
 inline constexpr bool IsSameNoQuals = std::is_same_v<std::remove_cv_t<T0>, std::remove_cv_t<T1>>;
+
+static struct Hex {} HEX;
+static struct NoInit {} NO_INIT;

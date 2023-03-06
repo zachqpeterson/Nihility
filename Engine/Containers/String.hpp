@@ -9,9 +9,6 @@
 #define WHITE_SPACE(c, ptr) (c = *ptr) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f'
 #define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '\v' && c != '\f'
 
-static struct Hex {} HEX;
-static struct NoInit {} NO_INIT;
-
 struct WString;
 
 /*

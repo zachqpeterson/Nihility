@@ -5,32 +5,32 @@
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
 
-#include <type_traits> //TODO: Implementation of this
-
 #define IS_TRUE_W(c) c[0] == L't' && c[1] == L'r' && c[2] == L'u' && c[3] == L'e'
-#define WHITE_SPACE_W(c, ptr) (c = *ptr) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f' || c == NULL_CHAR
+#define WHITE_SPACE_W(c, ptr) (c = *ptr) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f'
+#define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != L' ' && c != L'\t' && c != L'\r' && c != L'\n' && c != L'\v' && c != L'\f'
 
-static struct WHex {} WHEX;
+struct String;
 
 /*
 * TODO: Documentation
 *
 * TODO: Predicates / regex?
 *
-* TODO: Count of a W16acter
+* TODO: Count of a character
 *
 * TODO: Make sure str isn't nullptr and capacity is large enough
 *
-* TODO: Conversions from W16 to W16
+* TODO: Conversions from char to W16
 *
-* TODO: Conversions from WWString to WString
+* TODO: Conversions from String to WString
 */
 struct NH_API WString
 {
 public:
 	WString();
+	WString(NoInit flag);
 	template<typename T> WString(T value);
-	template<typename T> WString(T value, WHex flag);
+	template<typename T> WString(T value, Hex flag);
 	WString(W16* str);
 	WString(const W16* str);
 	WString(const WString& other);
@@ -136,8 +136,8 @@ private:
 	bool hashed{ false };
 	U64 hash{ 0 };
 	U64 size{ 0 };
-	U64 capacity{ 1024 };
-	W16* str;
+	U64 capacity{ 0 };
+	W16* str{ nullptr };
 
 #pragma region LOOKUPS
 	static inline constexpr const W16 DECIMAL_LOOKUP[] =
@@ -212,11 +212,11 @@ private:
 #pragma endregion
 };
 
-inline WString::WString() : str{ (W16*)Memory::Allocate1kb() } {}
+inline WString::WString() { }
 
 template<typename T> inline WString::WString(T value) : str{ (W16*)Memory::Allocate1kb() } { ToWString(str, value); }
 
-template<typename T> inline WString::WString(T value, WHex flag) : str{ (W16*)Memory::Allocate1kb() } { HexToWString(str, value); }
+template<typename T> inline WString::WString(T value, Hex flag) : str{ (W16*)Memory::Allocate1kb() } { HexToWString(str, value); }
 
 inline WString::WString(W16* str) : size{ wcslen(str) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
 {
