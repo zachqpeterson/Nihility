@@ -37,6 +37,15 @@ void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn 
 
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
+
+	U64* p;
+	U64 count = 123;
+	Memory::AllocateArray(&p, count);
+
+	String str("123");
+
+	U64 i = str.ToType<U64>();
+
 	ASSERT(Logger::Initialize());
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
