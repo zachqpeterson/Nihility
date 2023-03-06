@@ -2,10 +2,18 @@
 
 #include "Defines.hpp"
 
+#include "Core\Logger.hpp"
+
 #include <string.h>
 
 #define STATIC_SIZE 1073741824
 #define DYNAMIC_SIZE 1073741824
+
+/*
+* TODO: Override new and delete globally
+* TODO: If one size is full, allocate next size
+* TODO: Debug Memory stats
+*/
 
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection
@@ -15,142 +23,43 @@ class NH_API Memory
 	struct Region1kb { U64 unused[128]; };
 	struct Region16kb { Region1kb unused[16]; };
 	struct Region256kb { Region16kb unused[16]; };
-	struct Region1mb { Region256kb unused[4]; };
+	struct Region4mb { Region256kb unused[16]; };
 
 public:
-	/// <summary>
-	/// Allocates a block of memory, prefer to use Allocate1kb, Allocate16kb, Allocate256kb, Allocate1mb
-	/// </summary>
-	/// <param name="size:">The size in bytes to allocate</param>
-	/// <returns>The pointer to the allocated block of memory</returns>
-	static void* Allocate(U64 size);
+	template<typename T>
+	static void Allocate(T** pointer);
 
-	/// <summary>
-	/// Allocates a block of memory and gives the actual size of the allocation, prefer to use Allocate1kb, Allocate16kb, Allocate256kb, Allocate1mb
-	/// </summary>
-	/// <param name="size:">The size in bytes to allocate</param>
-	/// <param name="outSize:">The actual size allocated</param>
-	/// <returns>The pointer to the allocated block of memory</returns>
-	static void* Allocate(U64 size, U64& outSize);
+	template<typename T>
+	static void Allocate(T** pointer, U64& outSize);
 
-	/// <summary>
-	/// Frees a block of memory, prefer to use Free1kb, Free16kb, Free256kb, Free1mb
-	/// </summary>
-	/// <param name="ptr:">The pointer to the allocated block of memory to free</param>
-	static void Free(void* ptr);
+	template<typename T>
+	static void AllocateArray(T** pointer, U64& count);
 
-	/// <summary>
-	/// Allocates a block of memory of size sizeof(T)
-	/// </summary>
-	/// <typeparam name="T">The type to allocate</typeparam>
-	/// <returns>The pointer to the allocated block of memory</returns>
-	template<typename T> static T* Allocate();
+	template<typename T>
+	static void Reallocate(T** pointer, U64& count);
 
-	/// <summary>
-	/// Allocates a block of memory of size sizeof(T), gives the actual size of the allocation
-	/// </summary>
-	/// <param name="outSize:">The size variable to set</param>
-	/// <typeparam name="T">The type to allocate</typeparam>
-	/// <returns>The pointer to the allocated block of memory</returns>
-	template<typename T> static T* Allocate(U64& outSize);
+	template<typename T>
+	static void Free(T** pointer);
 
-	/// <summary>
-	/// Frees a block of memory of size sizeof(T)
-	/// </summary>
-	/// <typeparam name="T">The type to free</typeparam>
-	/// <param name="ptr:">The pointer to the allocated block of memory to free</param>
-	template<typename T> static void Free(T* ptr);
+	template<typename T>
+	static void FreeArray(T** pointer);
 
-
-
-	/// <summary>
-	/// Allocates a 1kb block of memory
-	/// </summary>
-	/// <returns>The pointer to the block of memory</returns>
-	static void* Allocate1kb();
-
-	/// <summary>
-	/// Allocates a 16kb block of memory
-	/// </summary>
-	/// <returns>The pointer to the block of memory</returns>
-	static void* Allocate16kb();
-
-	/// <summary>
-	/// Allocates a 256kb block of memory
-	/// </summary>
-	/// <returns>The pointer to the block of memory</returns>
-	static void* Allocate256kb();
-
-	/// <summary>
-	/// Allocates a 1mb block of memory
-	/// </summary>
-	/// <returns>The pointer to the block of memory</returns>
-	static void* Allocate1mb();
-	
-
-	
-	/// <summary>
-	/// Frees memory and allocates a new block of memory, copying over the data
-	/// </summary>
-	/// <param name="ptr:">The pointer to the block of memory to free</param>
-	/// <param name="size:">The size in bytes to allocate</param>
-	/// <returns>The new pointer to the block of memory</returns>
-	static void* Reallocate(void* ptr, U64 size);
-
-	/// <summary>
-	/// Frees the pointer and allocate a new block of memory for it, copying over the data
-	/// </summary>
-	/// <param name="ptr:">The pointer to the block of memory to free</param>
-	/// <param name="size:">The size in bytes to allocate</param>
-	/// <param name="outSize:">The actual size allocated</param>
-	/// <returns>The new pointer to the block of memory</returns>
-	static void* Reallocate(void* ptr, U64 size, U64& outSize);
-
-
-
-	/// <summary>
-	/// Free a 1kb block of memory
-	/// </summary>
-	/// <param name="ptr:">The pointer to the block of memory to free</param>
-	static void Free1kb(void* ptr);
-
-	/// <summary>
-	/// Free a 16kb block of memory
-	/// </summary>
-	/// <param name="ptr::">The pointer to the block of memory to free</param>
-	static void Free16kb(void* ptr);
-
-	/// <summary>
-	/// Free a 256kb block of memory
-	/// </summary>
-	/// <param name="ptr::">The pointer to the block of memory to free</param>
-	static void Free256kb(void* ptr);
-
-	/// <summary>
-	/// Free a 1mb block of memory
-	/// </summary>
-	/// <param name="ptr::">The pointer to the block of memory to free</param>
-	static void Free1mb(void* ptr);
-
-
-
-	/// <summary>
-	/// Allocates a block of memory, this memory will only be freed at the end of the application
-	/// </summary>
-	/// <param name="size:">The size in bytes to allocate</param>
-	/// <returns>The pointer to the block of memory</returns>
-	static void* AllocateStatic(U64 size);
-
-	/// <summary>
-	/// Allocates a block of memory of size sizeof(T), this memory will only be freed at the end of the application
-	/// </summary>
-	/// <typeparam name="T">The type to allocate</typeparam>
-	/// <returns>The pointer to the block of memory</returns>
-	template<typename T> static T* AllocateStatic();
+	template<typename T>
+	static void AllocateStatic(T** pointer);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
+
+	static void Allocate1kb(void** pointer);
+	static void Allocate16kb(void** pointer);
+	static void Allocate256kb(void** pointer);
+	static void Allocate4mb(void** pointer);
+
+	static void Free1kb(void** ptr);
+	static void Free16kb(void** ptr);
+	static void Free256kb(void** ptr);
+	static void Free4mb(void** ptr);
 
 	static U8* memory;
 	static U64 totalSize;
@@ -170,9 +79,9 @@ private:
 	static U32* free256kbIndices;
 	static I64 last256kbFree;
 
-	static Region1mb* pool1mbPointer;
-	static U32* free1mbIndices;
-	static I64 last1mbFree;
+	static Region4mb* pool4mbPointer;
+	static U32* free4mbIndices;
+	static I64 last4mbFree;
 
 	static bool initialized;
 
@@ -180,62 +89,126 @@ private:
 	friend class Engine;
 };
 
-template<typename T> inline T* Memory::Allocate()
+template<typename T> inline void Memory::Allocate(T** pointer)
 {
 	constexpr U64 size = sizeof(T);
 
-	if constexpr(size <= 1024) { return (T*)Allocate1kb(); }
-	else if constexpr (size <= 16384) { return (T*)Allocate16kb(); }
-	else if constexpr (size <= 262144) { return (T*)Allocate256kb(); }
-	else if constexpr (size <= 1048576) { return (T*)Allocate1mb(); }
+	if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(pointer); return; }
+	else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(pointer); return; }
+	else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(pointer); return; }
+	else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(pointer); return; }
 
-	BreakPoint;
-	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, 1048576);
-
-	return nullptr;
+	Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
 }
 
-template<typename T> inline T* Memory::Allocate(U64& outSize)
+template<typename T> inline void Memory::Allocate(T** pointer, U64& outSize)
 {
 	constexpr U64 size = sizeof(T);
 
-	if constexpr (size <= 1024) { outSize = 1024; return (T*)Allocate1kb(); }
-	else if constexpr (size <= 16384) { outSize = 16384; return (T*)Allocate16kb(); }
-	else if constexpr (size <= 262144) { outSize = 262144; return (T*)Allocate256kb(); }
-	else if constexpr (size <= 1048576) { outSize = 1048576; return (T*)Allocate1mb(); }
+	if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(pointer); outSize = sizeof(Region1kb); return; }
+	else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(pointer); outSize = sizeof(Region16kb); return; }
+	else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(pointer); outSize = sizeof(Region256kb); return; }
+	else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(pointer); outSize = sizeof(Region4mb); return; }
 
-	BreakPoint;
-	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, 1048576);
-
-	return nullptr;
+	Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
 }
 
-template<typename T> inline void Memory::Free(T* ptr)
+template<typename T> inline void Memory::AllocateArray(T** pointer, U64& count)
 {
-	if (ptr >= (T*)pool1mbPointer) { Free1mb(ptr); }
-	else if (ptr >= (T*)pool256kbPointer) { Free256kb(ptr); }
-	else if (ptr >= (T*)pool16kbPointer) { Free16kb(ptr); }
-	else if (ptr >= (T*)pool1kbPointer) { Free1kb(ptr); }
+	constexpr U64 size = sizeof(T);
+
+	if (count == 0)
+	{
+		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(pointer); count = sizeof(Region1kb) / size; return; }
+		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(pointer); count = sizeof(Region16kb) / size; return; }
+		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(pointer); count = sizeof(Region256kb) / size; return; }
+		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(pointer); count = sizeof(Region4mb) / size; return; }
+
+		Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
+	}
 	else
 	{
-		BreakPoint;
-		//TODO: error, too large
-		//TODO: check if pointer is past pool1mb range
+		if (size * count <= sizeof(Region1kb)) { Allocate1kb(pointer); count = sizeof(Region1kb) / size; return; }
+		else if (size * count <= sizeof(Region16kb)) { Allocate16kb(pointer); count = sizeof(Region16kb) / size; return; }
+		else if (size * count <= sizeof(Region256kb)) { Allocate256kb(pointer); count = sizeof(Region256kb) / size; return; }
+		else if (size * count <= sizeof(Region4mb)) { Allocate4mb(pointer); count = sizeof(Region4mb) / size; return; }
+
+		Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
 	}
 }
 
-template<typename T> inline T* Memory::AllocateStatic()
+template<typename T> inline void Memory::Reallocate(T** pointer, U64& count)
+{
+	//TODO: Copy data over
+
+	if (pointer)
+	{
+		if (*pointer >= pool4mbPointer) { Free4mb(pointer); }
+		else if (*pointer >= pool256kbPointer) { Free256kb(pointer); }
+		else if (*pointer >= pool16kbPointer) { Free16kb(pointer); }
+		else if (*pointer >= pool1kbPointer) { Free1kb(pointer); }
+	}
+
+	constexpr U64 size = sizeof(T);
+
+	if (count == 0)
+	{
+		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(pointer); count = sizeof(Region1kb) / size; return; }
+		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(pointer); count = sizeof(Region16kb) / size; return; }
+		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(pointer); count = sizeof(Region256kb) / size; return; }
+		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(pointer); count = sizeof(Region4mb) / size; return; }
+
+		Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
+	}
+	else
+	{
+		if (size * count <= sizeof(Region1kb)) { Allocate1kb(pointer); count = sizeof(Region1kb) / size; return; }
+		else if (size * count <= sizeof(Region16kb)) { Allocate16kb(pointer); count = sizeof(Region16kb) / size; return; }
+		else if (size * count <= sizeof(Region256kb)) { Allocate256kb(pointer); count = sizeof(Region256kb) / size; return; }
+		else if (size * count <= sizeof(Region4mb)) { Allocate4mb(pointer); count = sizeof(Region4mb) / size; return; }
+
+		Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
+	}
+}
+
+template<typename T> inline void Memory::Free(T** pointer)
+{
+	if (!pointer) { return; }
+
+	constexpr U64 size = sizeof(T);
+
+	if constexpr (size <= sizeof(Region1kb)) { Free1kb(pointer); return; }
+	else if constexpr (size <= sizeof(Region16kb)) { Free16kb(pointer); return; }
+	else if constexpr (size <= sizeof(Region256kb)) { Free256kb(pointer); return; }
+	else if constexpr (size <= sizeof(Region4mb)) { Free4mb(pointer); return; }
+
+	Logger::Error("Pointer '{}' wasn't allocated with Memory::Allocate or Memory::AllocateArray", *pointer);
+}
+
+template<typename T> inline void Memory::FreeArray(T** pointer)
+{
+	if (!pointer) { return; }
+
+	if (*pointer >= pool4mbPointer) { Free4mb(pointer); }
+	else if (*pointer >= pool256kbPointer) { Free256kb(pointer); }
+	else if (*pointer >= pool16kbPointer) { Free16kb(pointer); }
+	else if (*pointer >= pool1kbPointer) { Free1kb(pointer); }
+
+	Logger::Error("Pointer '{}' wasn't allocated with Memory::Allocate or Memory::AllocateArray", *pointer);
+}
+
+template<typename T> inline void Memory::AllocateStatic(T** pointer)
 {
 	static bool init = Initialize();
 	constexpr U64 size = sizeof(T);
 
 	if (staticPointer + size <= memory + totalSize)
 	{
-		U8* block = staticPointer;
+		*pointer = staticPointer;
 		staticPointer += size;
 
-		return (T*)block;
+		return;
 	}
 
-	return nullptr;
+	Logger::Error("Not enough space to allocate size of '{}', space left: {}", size, memory + totalSize);
 }

@@ -315,19 +315,22 @@ template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>
 #include <type_traits>
 
 template <typename Type, typename Return = void>
-using EnableSignedInt = std::enable_if_t<std::is_signed_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
+using EnableForSignedInt = std::enable_if_t<std::is_signed_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
 
 template <typename Type, typename Return = void>
-using EnableUnsignedInt = std::enable_if_t<std::is_unsigned_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
+using EnableForUnsignedInt = std::enable_if_t<std::is_unsigned_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
 
 template <typename Type, typename Return = void>
-using EnableBool = std::enable_if_t<std::is_integral_v<Type> && !std::_Is_nonbool_integral<Type>, Return>;
+using EnableForBool = std::enable_if_t<std::is_integral_v<Type> && !std::_Is_nonbool_integral<Type>, Return>;
 
 template <typename Type, typename Return = void>
-using EnableFloat = std::enable_if_t<std::is_floating_point_v<Type>, Return>;
+using EnableForFloat = std::enable_if_t<std::is_floating_point_v<Type>, Return>;
 
 template <typename Type, typename Return = void>
-using EnablePointer = std::enable_if_t<std::is_pointer_v<Type>, Return>;
+using EnableForPointer = std::enable_if_t<std::is_pointer_v<Type>, Return>;
+
+template <typename Type, typename Return = void>
+using EnableForNotPointer = std::enable_if_t<!std::is_pointer_v<Type>, Return>;
 
 template <typename T0, typename T1>
 inline constexpr bool IsSame = std::is_same_v<T0, T1>;

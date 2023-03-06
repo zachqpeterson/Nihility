@@ -64,11 +64,11 @@ public:
 	void Resize(U64 size);
 	void Resize();
 
-	template<typename T> EnableSignedInt<T> ToType(U64 start = 0) const;
-	template<typename T> EnableUnsignedInt<T> ToType(U64 start = 0) const;
-	template<typename T> EnableBool<T> ToType(U64 start = 0) const;
-	template<typename T> EnableFloat<T> ToType(U64 start = 0) const;
-	template<typename T> EnablePointer<T> ToType(U64 start = 0) const;
+	template<typename T> EnableForSignedInt<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForUnsignedInt<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForBool<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForFloat<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForPointer<T, T> ToType(U64 start = 0) const;
 
 	template<typename T> String& operator+=(T value);
 	String& operator+=(char* other);
@@ -141,24 +141,24 @@ public:
 	static inline constexpr const char* FALSE_STR = "false";
 
 private:
-	template<typename T> EnableSignedInt<T> ToString(char* str, T value);
-	template<typename T> EnableUnsignedInt<T> ToString(char* str, T value);
-	template<typename T> EnableBool<T> ToString(char* str, T value);
-	template<typename T> EnableFloat<T> ToString(char* str, T value);
-	template<typename T> EnablePointer<T> ToString(char* str, T value);
+	template<typename T> EnableForSignedInt<T> ToString(char* str, T value);
+	template<typename T> EnableForUnsignedInt<T> ToString(char* str, T value);
+	template<typename T> EnableForBool<T> ToString(char* str, T value);
+	template<typename T> EnableForFloat<T> ToString(char* str, T value);
+	template<typename T> EnableForPointer<T> ToString(char* str, T value);
 
-	template<typename T> EnableSignedInt<T> HexToString(char* str, T value);
-	template<typename T> EnableUnsignedInt<T> HexToString(char* str, T value);
-	template<typename T> EnableFloat<T> HexToString(char* str, T value);
-	template<typename T> EnablePointer<T> HexToString(char* str, T value);
+	template<typename T> EnableForSignedInt<T> HexToString(char* str, T value);
+	template<typename T> EnableForUnsignedInt<T> HexToString(char* str, T value);
+	template<typename T> EnableForFloat<T> HexToString(char* str, T value);
+	template<typename T> EnableForPointer<T> HexToString(char* str, T value);
 
 	void Format(U64& start, const String& replace);
 
 	bool hashed{ false };
 	U64 hash{ 0 };
 	U64 size{ 0 };
-	U64 capacity{ 1024 };
-	char* str;
+	U64 capacity{ 0 };
+	char* str{ nullptr };
 
 #pragma region LOOKUPS
 	static inline constexpr const char DECIMAL_LOOKUP[] =
@@ -233,26 +233,29 @@ private:
 #pragma endregion
 };
 
-inline String::String() : str{ (char*)Memory::Allocate1kb() } {}
+inline String::String() { Memory::AllocateArray(&str, capacity); }
 
-inline String::String(NoInit flag) : str{ nullptr }, capacity{ 0 } {}
+inline String::String(NoInit flag) {}
 
-template<typename T> inline String::String(T value) : str{ (char*)Memory::Allocate1kb() } { ToString(str, value); }
+template<typename T> inline String::String(T value) { ToString(str, value); }
 
-template<typename T> inline String::String(T value, Hex flag) : str{ (char*)Memory::Allocate1kb() } { HexToString(str, value); }
+template<typename T> inline String::String(T value, Hex flag) { HexToString(str, value); }
 
-inline String::String(char* str) : size{ strlen(str) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
+inline String::String(char* str) : size{ strlen(str) }, capacity{ size }
 {
+	Memory::AllocateArray(&str, capacity);
 	memcpy(this->str, str, size + 1);
 }
 
-inline String::String(const char* str) : size{ strlen(str) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
+inline String::String(const char* str) : size{ strlen(str) }, capacity{ size }
 {
+	Memory::AllocateArray(&str, capacity);
 	memcpy(this->str, str, size + 1);
 }
 
-inline String::String(const String& other) : size{ other.size }, capacity{ other.capacity }, str{ (char*)Memory::Allocate(capacity) }
+inline String::String(const String& other) : size{ other.size }, capacity{ other.capacity }
 {
+	Memory::AllocateArray(&str, capacity);
 	memcpy(str, other.str, size + 1);
 }
 
@@ -263,15 +266,18 @@ inline String::String(String&& other) noexcept : size{ other.size }, capacity{ o
 	other.str = nullptr;
 }
 
-template<typename... Types> inline String::String(const char* fmt, const Types& ... args) : size{ strlen(fmt) }, capacity{ size }, str{ (char*)Memory::Allocate(capacity, capacity) }
+template<typename... Types> inline String::String(const char* fmt, const Types& ... args) : size{ strlen(fmt) }, capacity{ size }
 {
+	Memory::AllocateArray(&str, capacity);
+
 	memcpy(str, fmt, size + 1);
 	U64 start = 0;
 	(Format(start, args), ...);
 }
 
-template<typename... Types> inline String::String(const Types& ... args) : str{ (char*)Memory::Allocate1kb() }
+template<typename... Types> inline String::String(const Types& ... args)
 {
+	Memory::AllocateArray(&str, capacity);
 	(Append(args), ...);
 }
 
@@ -283,12 +289,12 @@ template<typename T> inline String& String::operator=(T value)
 
 inline String& String::operator=(char* str)
 {
+	hashed = false;
 	if (!str) { Destroy(); return *this; }
 
-	hashed = false;
 	size = strlen(str);
-	if (capacity < size && this->str) { Memory::Free(this->str); }
-	if (!this->str) { this->str = (char*)Memory::Allocate(size, capacity); }
+
+	if (capacity < size || !this->str) { Memory::Reallocate(&this->str, capacity = size); }
 
 	memcpy(this->str, str, size + 1);
 
@@ -297,12 +303,12 @@ inline String& String::operator=(char* str)
 
 inline String& String::operator=(const char* str)
 {
+	hashed = false;
 	if (!str) { Destroy(); return *this; }
 
-	hashed = false;
 	size = strlen(str);
-	if (capacity < size && this->str) { Memory::Free(this->str); }
-	if (!this->str) { this->str = (char*)Memory::Allocate(size, capacity); }
+
+	if (capacity < size || !this->str) { Memory::Reallocate(&this->str, capacity = size); }
 
 	memcpy(this->str, str, size + 1);
 
@@ -311,14 +317,11 @@ inline String& String::operator=(const char* str)
 
 inline String& String::operator=(const String& other)
 {
+	hashed = false;
 	if (!other.str) { Destroy(); return *this; }
 
-	hashed = false;
-	if (capacity < other.size && str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(other.capacity); }
+	if (capacity < other.size) { Memory::Reallocate(&this->str, capacity = other.size); }
 
-	size = other.size;
-	capacity = other.capacity;
 	memcpy(this->str, other.str, size + 1);
 
 	return *this;
@@ -326,10 +329,10 @@ inline String& String::operator=(const String& other)
 
 inline String& String::operator=(String&& other) noexcept
 {
+	hashed = false;
 	if (!other.str) { Destroy(); return *this; }
 
-	hashed = false;
-	if (str) { Memory::Free(str); }
+	if (str) { Memory::FreeArray(&str); }
 
 	size = other.size;
 	capacity = other.capacity;
@@ -354,8 +357,7 @@ inline void String::Destroy()
 	{
 		size = 0;
 		capacity = 0;
-		Memory::Free(str);
-		str = nullptr;
+		Memory::FreeArray(&str);
 	}
 }
 
@@ -370,10 +372,7 @@ inline void String::Reserve(U64 size)
 {
 	if (size > capacity)
 	{
-		char* temp = (char*)Memory::Allocate(size, capacity);
-		memcpy(temp, str, this->size);
-		Memory::Free(str);
-		str = temp;
+		Memory::Reallocate(&this->str, capacity = size);
 	}
 }
 
@@ -399,7 +398,7 @@ inline String& String::operator+=(char* other)
 {
 	hashed = false;
 	U64 addLength = strlen(other);
-	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
+	if (capacity < size + addLength) { Memory::Reallocate(&str, capacity = size + addLength); }
 	memcpy(str + size, other, addLength);
 	size += addLength;
 	str[size] = NULL_CHAR;
@@ -411,7 +410,7 @@ inline String& String::operator+=(const char* other)
 {
 	hashed = false;
 	U64 addLength = strlen(other);
-	if (capacity < size + addLength) { Memory::Reallocate(str, size + addLength, capacity); }
+	if (capacity < size + addLength) { Memory::Reallocate(&str, capacity = size + addLength); }
 	memcpy(str + size, other, addLength);
 	size += addLength;
 	str[size] = NULL_CHAR;
@@ -422,7 +421,7 @@ inline String& String::operator+=(const char* other)
 inline String& String::operator+=(const String& other)
 {
 	hashed = false;
-	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
+	if (capacity < size + other.size) { Memory::Reallocate(&str, capacity = size + other.size); }
 	memcpy(str + size, other.str, other.size);
 	size += other.size;
 	str[size] = NULL_CHAR;
@@ -623,7 +622,7 @@ inline String& String::SubString(String& newStr, U64 start, U64 nLength) const
 
 inline String& String::Append(const String& append)
 {
-	if (capacity < size + append.size) { Memory::Reallocate(str, size + append.size, capacity); }
+	if (capacity < size + append.size) { Memory::Reallocate(&str, capacity = size + append.size); }
 	hashed = false;
 	memcpy(str + size, append.str, append.size);
 	size += append.size;
@@ -634,7 +633,7 @@ inline String& String::Append(const String& append)
 
 inline String& String::Prepend(const String& prepend)
 {
-	if (capacity < size + prepend.size) { Memory::Reallocate(str, size + prepend.size, capacity); }
+	if (capacity < size + prepend.size) { Memory::Reallocate(&str, capacity = size + prepend.size); }
 	hashed = false;
 	memcpy(str + size, str, size);
 	memcpy(str, prepend.str, prepend.size);
@@ -646,7 +645,7 @@ inline String& String::Prepend(const String& prepend)
 
 inline String& String::Surround(const String& prepend, const String& append)
 {
-	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(str, size + append.size + prepend.size, capacity); }
+	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(&str, capacity = size + append.size + prepend.size); }
 	hashed = false;
 	memcpy(str + prepend.size, str, size);
 	memcpy(str, prepend.str, prepend.size);
@@ -661,7 +660,7 @@ inline String& String::Surround(const String& prepend, const String& append)
 
 inline String& String::Insert(const String& other, U32 i)
 {
-	if (capacity < size + other.size) { Memory::Reallocate(str, size + other.size, capacity); }
+	if (capacity < size + other.size) { Memory::Reallocate(&str, capacity = size + other.size); }
 	hashed = false;
 	memcpy(str + i + other.size, str + i, size - i);
 	memcpy(str + i, other.str, other.size);
@@ -703,7 +702,8 @@ inline String& String::ReplaceAll(const String& find, const String& replace, U64
 
 inline String& String::ReplaceN(const String& find, const String& replace, U64 count, U64 start)
 {
-	//TODO: Capacity Check
+	if (capacity < size + replace.size * count - find.size * count) { Memory::Reallocate(&str, capacity = size + replace.size * count - find.size * count); }
+
 	hashed = false;
 	char* c = str + start;
 	char ch = *c;
@@ -726,7 +726,7 @@ inline String& String::ReplaceN(const String& find, const String& replace, U64 c
 
 inline String& String::ReplaceFirst(const String& find, const String& replace, U64 start)
 {
-	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, size + replace.size - find.size, capacity); }
+	if (capacity < size + replace.size - find.size) { Memory::Reallocate(&str, capacity = size + replace.size - find.size); }
 	hashed = false;
 	char* it = str + start;
 	char c;
@@ -751,7 +751,8 @@ inline void String::Split(Vector<String>& list, U8 delimiter, bool trimEntries) 
 
 inline void String::Format(U64& start, const String& replace)
 {
-	//TODO: Capacity Check
+	if(capacity < size - 2 + replace.size) { Memory::Reallocate(&str, capacity = size - 2 + replace.size); }
+
 	hashed = false;
 	char* c = str + start;
 	while (*c != NULL_CHAR && memcmp(c, "{}", 2)) { ++c; }
@@ -782,11 +783,10 @@ inline const char* String::rbegin() const { return str + size - 1; }
 
 inline const char* String::rend() const { return str - 1; }
 
-template<typename T> inline EnableSignedInt<T> String::ToString(char* str, T value)
+template<typename T> inline EnableForSignedInt<T> String::ToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20 && this->str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(size + 20, capacity); }
+	if (!str || capacity < size + 20) { Memory::Reallocate(&str, capacity = size + 20); }
 
 	char* c = str + 20;
 	const char* threeDigits;
@@ -824,11 +824,10 @@ template<typename T> inline EnableSignedInt<T> String::ToString(char* str, T val
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline EnableUnsignedInt<T> String::ToString(char* str, T value)
+template<typename T> inline EnableForUnsignedInt<T> String::ToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20 && this->str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(size + 20, capacity); }
+	if (!str || capacity < size + 20) { Memory::Reallocate(&str, capacity = size + 20); }
 
 	char* c = str + 20;
 	const char* threeDigits;
@@ -857,32 +856,29 @@ template<typename T> inline EnableUnsignedInt<T> String::ToString(char* str, T v
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline EnableBool<T> String::ToString(char* str, T value)
+template<typename T> inline EnableForBool<T> String::ToString(char* str, T value)
 {
 	hashed = false;
 	if (value)
 	{
-		if (capacity < size + 4 && this->str) { Memory::Free(str); }
-		if (!str) { str = (char*)Memory::Allocate(size + 4, capacity); }
+		if (!str || capacity < size + 4) { Memory::Reallocate(&str, capacity = size + 4); }
 		memcpy(str + size, TRUE_STR, 4);
 		size += 4;
 		str[size] = NULL_CHAR;
 	}
 	else
 	{
-		if (capacity < size + 5 && this->str) { Memory::Free(str); }
-		if (!str) { str = (char*)Memory::Allocate(size + 5, capacity); }
+		if (!str || capacity < size + 5) { Memory::Reallocate(&str, capacity = size + 5); }
 		memcpy(str + size, FALSE_STR, 5);
 		size += 5;
 		str[size] = NULL_CHAR;
 	}
 }
 
-template<typename T> inline EnableFloat<T> String::ToString(char* str, T value)
+template<typename T> inline EnableForFloat<T> String::ToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 27 && this->str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(size + 27, capacity); }
+	if (!str || capacity < size + 27) { Memory::Reallocate(&str, capacity = size + 27); }
 
 	char* c = str + 27;
 	const char* threeDigits;
@@ -937,11 +933,15 @@ template<typename T> inline EnableFloat<T> String::ToString(char* str, T value)
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline EnableSignedInt<T> String::HexToString(char* str, T value)
+template<typename T> inline EnableForPointer<T> String::ToString(char* str, T value)
+{
+	ToString(str, (U64)value);
+}
+
+template<typename T> inline EnableForSignedInt<T> String::HexToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16 && this->str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
+	if (!str || capacity < size + 16) { Memory::Reallocate(&str, capacity = size + 16); }
 
 	U8 pairs;
 	U8 digits;
@@ -992,11 +992,10 @@ template<typename T> inline EnableSignedInt<T> String::HexToString(char* str, T 
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline EnableUnsignedInt<T> String::HexToString(char* str, T value)
+template<typename T> inline EnableForUnsignedInt<T> String::HexToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16 && this->str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
+	if (!str || capacity < size + 16) { Memory::Reallocate(&str, capacity = size + 16); }
 
 	U8 pairs;
 	U8 digits;
@@ -1026,11 +1025,10 @@ template<typename T> inline EnableUnsignedInt<T> String::HexToString(char* str, 
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline EnableFloat<T> String::HexToString(char* str, T value)
+template<typename T> inline EnableForFloat<T> String::HexToString(char* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16 && this->str) { Memory::Free(str); }
-	if (!str) { str = (char*)Memory::Allocate(size + 16, capacity); }
+	if (!str || capacity < size + 16) { Memory::Reallocate(&str, capacity = size + 16); }
 
 	U8 pairs = 8;
 	U8 digits = 16;
@@ -1055,7 +1053,7 @@ template<typename T> inline EnableFloat<T> String::HexToString(char* str, T valu
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline EnableSignedInt<T> String::ToType(U64 start) const
+template<typename T> inline EnableForSignedInt<T, T> String::ToType(U64 start) const
 {
 	char* it = str + start;
 	char c;
@@ -1074,7 +1072,7 @@ template<typename T> inline EnableSignedInt<T> String::ToType(U64 start) const
 	return value;
 }
 
-template<typename T> inline EnableUnsignedInt<T> String::ToType(U64 start) const
+template<typename T> inline EnableForUnsignedInt<T, T> String::ToType(U64 start) const
 {
 	char* it = str + start;
 	char c;
@@ -1085,13 +1083,13 @@ template<typename T> inline EnableUnsignedInt<T> String::ToType(U64 start) const
 	return value;
 }
 
-template<typename T> inline EnableBool<T> String::ToType(U64 start) const
+template<typename T> inline EnableForBool<T, T> String::ToType(U64 start) const
 {
 	char* c = str + start;
 	return IS_TRUE(c);
 }
 
-template<typename T> inline EnableFloat<T> String::ToType(U64 start) const
+template<typename T> inline EnableForFloat<T, T> String::ToType(U64 start) const
 {
 	char* it = str + start;
 	char c;
@@ -1111,4 +1109,9 @@ template<typename T> inline EnableFloat<T> String::ToType(U64 start) const
 	}
 
 	return value;
+}
+
+template<typename T> inline EnableForPointer<T, T> String::ToType(U64 start) const
+{
+	return (T)ToType<U64>(start);
 }
