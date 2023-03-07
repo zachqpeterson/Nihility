@@ -17,12 +17,16 @@
 
 struct C8Lookup
 {
+	static inline constexpr const C8* TRUE_STR = "true";
+	static inline constexpr const C8* FALSE_STR = "false";
 	static inline constexpr const C8 NULL_CHAR = '\0';
 	static inline constexpr const C8 NEGATIVE_CHAR = '-';
 	static inline constexpr const C8 DECIMAL_CHAR = '.';
 	static inline constexpr const C8 ZERO_CHAR = '0';
-	static inline constexpr const C8* TRUE_STR = "true";
-	static inline constexpr const C8* FALSE_STR = "false";
+	static inline constexpr const C8 OPEN_BRACE = '{';
+	static inline constexpr const C8 CLOSE_BRACE = '}';
+	static inline constexpr const C8 FMT_HEX = 'h';
+	static inline constexpr const C8 FMT_DEC = '.';
 
 	static inline constexpr const C8 DECIMAL_LOOKUP[] =
 		"000001002003004005006007008009010011012013014015016017018019"
@@ -97,12 +101,16 @@ struct C8Lookup
 
 struct C16Lookup
 {
+	static inline constexpr const C16* TRUE_STR = L"true";
+	static inline constexpr const C16* FALSE_STR = L"false";
 	static inline constexpr const C16 NULL_CHAR = L'\0';
 	static inline constexpr const C16 NEGATIVE_CHAR = L'-';
 	static inline constexpr const C16 DECIMAL_CHAR = L'.';
 	static inline constexpr const C16 ZERO_CHAR = L'0';
-	static inline constexpr const C16* TRUE_STR = L"true";
-	static inline constexpr const C16* FALSE_STR = L"false";
+	static inline constexpr const C16 OPEN_BRACE = L'{';
+	static inline constexpr const C16 CLOSE_BRACE = L'}';
+	static inline constexpr const C16 FMT_HEX = L'h';
+	static inline constexpr const C16 FMT_DEC = L'.';
 
 	static inline constexpr const C16 DECIMAL_LOOKUP[] =
 		L"000001002003004005006007008009010011012013014015016017018019"
@@ -182,14 +190,15 @@ struct C16Lookup
 *
 * TODO: Count of a character
 *
-* TODO: Make sure str isn't nullptr and capacity is large enough
-*
 * TODO: Conversions from C16 to C8
 *
 * TODO: More formatting options
 *	TODO: {h} will convert to hexadecimal
+*	TODO: {.n} will write n decimal places (only for floats)
 *
 * TODO: format strings without allocating new strings for every arg
+*
+* TODO: capacity checks should be capacity - 1 to avoid overunning the buffer when placing NULL_CHAR
 */
 template<typename T, typename LU>
 struct NH_API StringBase
@@ -301,6 +310,17 @@ private:
 	template<typename Arg> EnableForFloat<Arg> HexToString(T* str, const Arg& value);
 	template<typename Arg> EnableForPointer<Arg> HexToString(T* str, const Arg& value);
 
+	template<typename Arg> EnableForSignedInt<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> EnableForUnsignedInt<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> EnableForBool<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> EnableForFloat<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount = 5);
+	template<typename Arg> EnableForPointer<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt);
+
+	template<typename Arg> EnableForSignedInt<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> EnableForUnsignedInt<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> EnableForFloat<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> EnableForPointer<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
+
 	//TODO: Don't allocate string for every arg
 	void Format(U64& start, const StringBase& replace);
 
@@ -362,7 +382,7 @@ inline StringBase<T, LU>::StringBase(StringBase<T, LU>&& other) noexcept : size{
 }
 
 template<typename T, typename LU>
-template<typename... Args> 
+template<typename... Args>
 inline StringBase<T, LU>::StringBase(const T* fmt, const Args& ... args) : size{ Length(fmt) }, capacity{ size }
 {
 	Memory::AllocateArray(&string, capacity);
@@ -820,7 +840,6 @@ inline StringBase<T, LU>& StringBase<T, LU>::Overwrite(const StringBase<T, LU>& 
 template<typename T, typename LU>
 inline StringBase<T, LU>& StringBase<T, LU>::ReplaceAll(const StringBase<T, LU>& find, const StringBase<T, LU>& replace, U64 start)
 {
-	//TODO: Capacity Check
 	hashed = false;
 	T* c = string + start;
 	T ch = *c;
@@ -830,6 +849,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::ReplaceAll(const StringBase<T, LU>&
 
 		if (ch != LU::NULL_CHAR)
 		{
+			if (capacity < size - find.size + replace.size) { Memory::Reallocate(&string, capacity = size - find.size + replace.size); }
+
 			Copy(c + replace.size, c + find.size, size - find.size - (c - string));
 			Copy(c, replace.string, replace.size);
 			size = size - find.size + replace.size;
@@ -902,19 +923,29 @@ inline void StringBase<T, LU>::SubString(StringBase<T, LU>& newStr, U64 start, U
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Appended(StringBase& newStr, const StringBase& append) const
 {
-	//TODO
+	newStr.hashed = false;
+	newStr.Resize(size + append.size);
+	Copy(newStr.string, string, size);
+	Copy(newStr.string + size, append.string, append.size);
 }
 
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Prepended(StringBase& newStr, const StringBase& prepend) const
 {
-	//TODO
+	newStr.hashed = false;
+	newStr.Resize(size + prepend.size);
+	Copy(newStr.string, prepend.string, prepend.size);
+	Copy(newStr.string + prepend.size, string, size);
 }
 
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Surrounded(StringBase& newStr, const StringBase& prepend, const StringBase& append) const
 {
-	//TODO
+	newStr.hashed = false;
+	newStr.Resize(size + append.size + prepend.size);
+	Copy(newStr.string, prepend.string, prepend.size);
+	Copy(newStr.string + prepend.size, string, size);
+	Copy(newStr.string + prepend.size + size, append.string, append.size);
 }
 
 template<typename T, typename LU>
@@ -948,8 +979,8 @@ template<typename T, typename LU>
 inline const T* StringBase<T, LU>::rend() const { return string - 1; }
 
 template<typename T, typename LU>
-template<typename Arg> 
-EnableForSignedInt<Arg> 
+template<typename Arg>
+EnableForSignedInt<Arg>
 inline StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
 	hashed = false;
@@ -1323,29 +1354,68 @@ inline StringBase<T, LU>::ToType(U64 start) const
 template<typename T, typename LU>
 inline U64 StringBase<T, LU>::Length(T* str)
 {
-	//TODO
+	U64 length = 0;
+	T* c = str;
+
+	while (*c++ != LU::NULL_CHAR) { ++length; }
+
+	return length;
+}
+
+template<>
+inline U64 StringBase<C8, C8Lookup>::Length(C8* str)
+{
+	return strlen(str);
+}
+
+template<>
+inline U64 StringBase<C16, C16Lookup>::Length(C16* str)
+{
+	return wcslen(str);
 }
 
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Copy(T* dst, T* src, U64 length)
 {
-	//TODO
+	memcpy(dst, src, length * sizeof(T));
 }
 
 template<typename T, typename LU>
 inline bool StringBase<T, LU>::Compare(T* a, T* b, U64 length)
 {
-	//TODO
+	T* c0 = a;
+	T* c1 = b;
+
+	T c;
+
+	while ((c = *c0++) == *c1++ && --length) { if (c == LU::NULL_CHAR) { return true; } }
+
+	return false;
 }
 
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Format(U64& start, const StringBase<T, LU>& replace)
 {
-	if (capacity < size - 2 + replace.size) { Memory::Reallocate(&string, capacity = size - 2 + replace.size); }
-
 	hashed = false;
-	T* c = string + start;
-	//TODO: format options
+	T* it = string + start;
+	T c;
+
+	while ((c = *it++) != LU::NULL_CHAR && c != LU::OPEN_BRACE);
+
+	if (c != LU::NULL_CHAR)
+	{
+		//TODO: check for CLOSE_BRACE
+		c = *it++;
+		switch (c)
+		{
+		case LU::NULL_CHAR: { start = it - string; }
+		case LU::CLOSE_BRACE: { start = InsertType(it - 2, value, 2); }
+		case LU::FMT_HEX: { start = InsertHex(it - 2, value, 3); }
+		case LU::FMT_DEC: { start = InsertType(it - 3, value, 4, *it++); } //TODO: More checks, check if float (constexpr IsSame), check if single digit n
+		}
+	}
+
+
 	while (*c != LU::NULL_CHAR && Compare(c, "{}", 2)) { ++c; }
 
 	if (*c != LU::NULL_CHAR)
@@ -1356,4 +1426,76 @@ inline void StringBase<T, LU>::Format(U64& start, const StringBase<T, LU>& repla
 		size = size - 2 + replace.size;
 		string[size] = LU::NULL_CHAR;
 	}
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForSignedInt<Arg, U64> inline
+StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForUnsignedInt<Arg, U64> inline
+StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForBool<Arg, U64> inline
+StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForFloat<Arg, U64> inline
+StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForPointer<Arg, U64> inline
+StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForSignedInt<Arg, U64> inline
+StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForUnsignedInt<Arg, U64> inline
+StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForFloat<Arg, U64> inline
+StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+EnableForPointer<Arg, U64> inline
+StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
+{
+	//TODO
 }
