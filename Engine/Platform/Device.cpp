@@ -24,12 +24,14 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 
 	if (HidP_GetCaps(preparsedData, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
 
-	reportBuffer = (char*)Memory::Allocate(capabilities.InputReportByteLength);
+	U64 cap = capabilities.InputReportByteLength;
+	Memory::AllocateArray(&reportBuffer, cap);
 
 	//TODO: we may want HIDs that don't have input
 	if (!(stateLength = HidP_MaxDataListLength(HidP_Input, preparsedData))) { Logger::Trace("Device has no capabilities, skipping..."); Destroy(); return; }
 
-	stateBuffer = (PHIDP_DATA)Memory::Allocate(stateLength * sizeof(HIDP_DATA));
+	cap = stateLength * sizeof(HIDP_DATA);
+	Memory::AllocateArray(&stateBuffer, cap);
 
 	Vector<HIDP_BUTTON_CAPS> buttonClasses(capabilities.NumberInputButtonCaps, {});
 	if (HidP_GetButtonCaps(HidP_Input, buttonClasses.Data(), &capabilities.NumberInputButtonCaps, preparsedData) != HIDP_STATUS_SUCCESS) { Logger::Trace("No Buttons"); }
@@ -145,7 +147,7 @@ void Device::Destroy()
 	}
 	if (reportBuffer)
 	{
-		Memory::Free(reportBuffer);
+		Memory::FreeArray(&reportBuffer);
 		reportBuffer = nullptr;
 	}
 }

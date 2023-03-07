@@ -29,7 +29,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 
 	if(!(inputReportSize = HidP_MaxDataListLength(HidP_Input, inputReportProtocol))) { Logger::Trace("Failed to get report size, skipping..."); Destroy(); return; }
 
-	stateBuffer = (PHIDP_DATA)Memory::Allocate(inputReportSize * sizeof(_HIDP_DATA));
+	//stateBuffer = (PHIDP_DATA)Memory::Allocate(inputReportSize * sizeof(_HIDP_DATA));
 
 	if (capabilities.UsagePage != HID_USAGE_PAGE_GENERIC || (capabilities.Usage != HID_USAGE_GENERIC_GAMEPAD && capabilities.Usage != HID_USAGE_GENERIC_JOYSTICK)) { Logger::Trace("Not a controller, skipping..."); Destroy(); return; }
 
@@ -205,7 +205,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 			I32 calibratedMinimum;
 			I32 calibratedMaximum;
 			I32 calibratedCenter;
-			char* toName = nullptr;
+			C8* toName = nullptr;
 
 			for (HIDAxisMapping* it = axisMappings.begin(), *end = axisMappings.end(); it != end; ++it)
 			{
@@ -213,7 +213,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 
 				if (currentClass.UsagePage == mapping.usagePage && currentUsage == mapping.usage)
 				{
-					toName = (char*)mapping.name;
+					toName = (C8*)mapping.name;
 					isCalibrated = mapping.isCalibrated;
 					if (mapping.isCalibrated)
 					{
@@ -255,12 +255,12 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 		const U16 lastUsage = currentClass.Range.UsageMax;
 		for (U16 currentUsage = firstUsage, currentIndex = currentClass.Range.DataIndexMin; currentUsage <= lastUsage; ++currentUsage, ++currentIndex)
 		{
-			char* toName = nullptr;
+			C8* toName = nullptr;
 			for (HIDButtonMapping& mapping : buttonMappings)
 			{
 				if (mapping.usagePage == currentClass.UsagePage && mapping.usage == currentUsage)
 				{
-					toName = (char*)mapping.name;
+					toName = (C8*)mapping.name;
 
 					mapping.usage = 0; //TODO Optimization: skip on future iterations
 					break;

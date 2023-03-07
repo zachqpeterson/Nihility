@@ -7,7 +7,7 @@
 
 #define IS_TRUE_W(c) c[0] == L't' && c[1] == L'r' && c[2] == L'u' && c[3] == L'e'
 #define WHITE_SPACE_W(c, ptr) (c = *ptr) == L' ' || c == L'\t' || c == L'\r' || c == L'\n' || c == L'\v' || c == L'\f'
-#define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != L' ' && c != L'\t' && c != L'\r' && c != L'\n' && c != L'\v' && c != L'\f'
+#define NOT_WHITE_SPACE_W(c, ptr) (c = *ptr) != L' ' && c != L'\t' && c != L'\r' && c != L'\n' && c != L'\v' && c != L'\f'
 
 struct String;
 
@@ -20,7 +20,7 @@ struct String;
 *
 * TODO: Make sure str isn't nullptr and capacity is large enough
 *
-* TODO: Conversions from char to W16
+* TODO: Conversions from char to C16
 *
 * TODO: Conversions from String to WString
 */
@@ -31,16 +31,16 @@ public:
 	WString(NoInit flag);
 	template<typename T> WString(T value);
 	template<typename T> WString(T value, Hex flag);
-	WString(W16* str);
-	WString(const W16* str);
+	WString(C16* str);
+	WString(const C16* str);
 	WString(const WString& other);
 	WString(WString&& other) noexcept;
-	template<typename... Types> WString(const W16* fmt, const Types& ... args);
+	template<typename... Types> WString(const C16* fmt, const Types& ... args);
 	template<typename... Types> WString(const Types& ... args);
 
 	template<typename T> WString& operator=(T value);
-	WString& operator=(W16* str);
-	WString& operator=(const W16* str);
+	WString& operator=(C16* str);
+	WString& operator=(const C16* str);
 	WString& operator=(const WString& other);
 	WString& operator=(WString&& other) noexcept;
 
@@ -52,84 +52,88 @@ public:
 	void Resize(U64 size);
 	void Resize();
 
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> ToType() const;
-	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> ToType() const;
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>, T> ToType() const;
+	template<typename T> EnableForSignedInt<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForUnsignedInt<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForBool<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForFloat<T, T> ToType(U64 start = 0) const;
+	template<typename T> EnableForPointer<T, T> ToType(U64 start = 0) const;
 
 	template<typename T> WString& operator+=(T value);
-	WString& operator+=(W16* other);
-	WString& operator+=(const W16* other);
+	WString& operator+=(C16* other);
+	WString& operator+=(const C16* other);
 	WString& operator+=(const WString& other);
 
 	template<typename T> explicit operator T() const;
-	explicit operator W16* ();
-	explicit operator const W16* () const;
+	explicit operator C16* ();
+	explicit operator const C16* () const;
 
-	W16* operator*();
-	const W16* operator*() const;
-	W16& operator[](U32 i);
-	const W16& operator[](U32 i) const;
+	C16* operator*();
+	const C16* operator*() const;
+	C16& operator[](U32 i);
+	const C16& operator[](U32 i) const;
 
-	bool operator==(W16* other) const;
-	bool operator==(const W16* other) const;
+	bool operator==(C16* other) const;
+	bool operator==(const C16* other) const;
 	bool operator==(const WString& other) const;
-	bool operator!=(W16* other) const;
-	bool operator!=(const W16* other) const;
+	bool operator!=(C16* other) const;
+	bool operator!=(const C16* other) const;
 	bool operator!=(const WString& other) const;
 
-	bool Compare(W16* other) const;
-	bool Compare(const W16* other) const;
+	bool Compare(C16* other) const;
+	bool Compare(const C16* other) const;
 	bool Compare(const WString& other) const;
-	bool CompareN(W16* other, U32 nLength, U32 start = 0) const;
-	bool CompareN(const W16* other, U32 nLength, U32 start = 0) const;
+	bool CompareN(C16* other, U32 nLength, U32 start = 0) const;
+	bool CompareN(const C16* other, U32 nLength, U32 start = 0) const;
 	bool CompareN(const WString& other, U32 nLength, U32 start = 0) const;
 
 	const U64& Size() const;
 	const U64& Capacity() const;
 	U64 Hash();
-	W16* Data();
-	const W16* Data() const;
+	C16* Data();
+	const C16* Data() const;
 	bool Blank() const;
-	I32 IndexOf(const W16& c, U64 start = 0) const;
-	I32 LastIndexOf(const W16& c, U64 start = 0) const;
+	I32 IndexOf(const C16& c, U64 start = 0) const;
+	I32 LastIndexOf(const C16& c, U64 start = 0) const;
 	WString& Trim();
 	WString& SubString(WString& newStr, U64 start, U64 nLength = I64_MAX) const;
 	WString& Append(const WString& append);
 	WString& Prepend(const WString& prepend);
 	WString& Surround(const WString& prepend, const WString& append);
-	WString& Insert(const WString& WString, U32 i);
-	WString& Overwrite(const WString& string, U32 i = 0);
+	WString& Insert(const WString& other, U32 i);
+	WString& Overwrite(const WString& other, U32 i = 0);
 	WString& ReplaceAll(const WString& find, const WString& replace, U64 start = 0);
 	WString& ReplaceN(const WString& find, const WString& replace, U64 count, U64 start = 0);
 	WString& ReplaceFirst(const WString& find, const WString& replace, U64 start = 0);
 	void Split(Vector<WString>& list, U8 delimiter, bool trimEntries) const;
 
-	W16* begin();
-	W16* end();
-	const W16* begin() const;
-	const W16* end() const;
+	C16* begin();
+	C16* end();
+	const C16* begin() const;
+	const C16* end() const;
 
-	W16* rbegin();
-	W16* rend();
-	const W16* rbegin() const;
-	const W16* rend() const;
+	C16* rbegin();
+	C16* rend();
+	const C16* rbegin() const;
+	const C16* rend() const;
 
-	static inline constexpr const W16 NULL_CHAR = L'\0';
-	static inline constexpr const W16 NEGATIVE_CHAR = L'-';
-	static inline constexpr const W16 DECIMAL_CHAR = L'.';
-	static inline constexpr const W16 ZERO_CHAR = L'0';
-	static inline constexpr const W16* TRUE_STR = L"true";
-	static inline constexpr const W16* FALSE_STR = L"false";
+	static inline constexpr const C16 NULL_CHAR = L'\0';
+	static inline constexpr const C16 NEGATIVE_CHAR = L'-';
+	static inline constexpr const C16 DECIMAL_CHAR = L'.';
+	static inline constexpr const C16 ZERO_CHAR = L'0';
+	static inline constexpr const C16* TRUE_STR = L"true";
+	static inline constexpr const C16* FALSE_STR = L"false";
 
 private:
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> ToWString(W16* str, T value);
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> ToWString(W16* str, T value);
-	template<typename T> std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> ToWString(W16* str, T value);
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> ToWString(W16* str, T value);
-	template<typename T> std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> HexToWString(W16* str, T value);
-	template<typename T> std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> HexToWString(W16* str, T value);
-	template<typename T> std::enable_if_t<std::is_floating_point_v<T>> HexToWString(W16* str, T value);
+	template<typename T> EnableForSignedInt<T> ToString(C16* str, T value);
+	template<typename T> EnableForUnsignedInt<T> ToString(C16* str, T value);
+	template<typename T> EnableForBool<T> ToString(C16* str, T value);
+	template<typename T> EnableForFloat<T> ToString(C16* str, T value);
+	template<typename T> EnableForPointer<T> ToString(C16* str, T value);
+
+	template<typename T> EnableForSignedInt<T> HexToString(C16* str, T value);
+	template<typename T> EnableForUnsignedInt<T> HexToString(C16* str, T value);
+	template<typename T> EnableForFloat<T> HexToString(C16* str, T value);
+	template<typename T> EnableForPointer<T> HexToString(C16* str, T value);
 
 	void Format(U64& start, const WString& replace);
 
@@ -137,10 +141,10 @@ private:
 	U64 hash{ 0 };
 	U64 size{ 0 };
 	U64 capacity{ 0 };
-	W16* str{ nullptr };
+	C16* string{ nullptr };
 
 #pragma region LOOKUPS
-	static inline constexpr const W16 DECIMAL_LOOKUP[] =
+	static inline constexpr const C16 DECIMAL_LOOKUP[] =
 		L"000001002003004005006007008009010011012013014015016017018019"
 		L"020021022023024025026027028029030031032033034035036037038039"
 		L"040041042043044045046047048049050051052053054055056057058059"
@@ -192,7 +196,7 @@ private:
 		L"960961962963964965966967968969970971972973974975976977978979"
 		L"980981982983984985986987988989990991992993994995996997998999";
 
-	static inline constexpr const W16 HEX_LOOKUP[] =
+	static inline constexpr const C16 HEX_LOOKUP[] =
 		L"000102030405060708090A0B0C0D0E0F"
 		L"101112131415161718191A1B1C1D1E1F"
 		L"202122232425262728292A2B2C2D2E2F"
@@ -212,72 +216,80 @@ private:
 #pragma endregion
 };
 
-inline WString::WString() { }
+inline WString::WString() { Memory::AllocateArray(&string, capacity); }
 
-template<typename T> inline WString::WString(T value) : str{ (W16*)Memory::Allocate1kb() } { ToWString(str, value); }
+inline WString::WString(NoInit flag) {}
 
-template<typename T> inline WString::WString(T value, Hex flag) : str{ (W16*)Memory::Allocate1kb() } { HexToWString(str, value); }
+template<typename T> inline WString::WString(T value) { ToWString(string, value); }
 
-inline WString::WString(W16* str) : size{ wcslen(str) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
+template<typename T> inline WString::WString(T value, Hex flag) { HexToWString(string, value); }
+
+inline WString::WString(C16* str) : size{ wcslen(str) }, capacity{ size }
 {
-	memcpy(this->str, str, (size + 1) * sizeof(W16));
+	Memory::AllocateArray(&string, capacity);
+	memcpy(string, str, (size + 1) * sizeof(C16));
 }
 
-inline WString::WString(const W16* str) : size{ wcslen(str) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
+inline WString::WString(const C16* str) : size{ wcslen(str) }, capacity{ size }
 {
-	memcpy(this->str, str, (size + 1) * sizeof(W16));
+	Memory::AllocateArray(&string, capacity);
+	memcpy(string, str, (size + 1) * sizeof(C16));
 }
 
-inline WString::WString(const WString& other) : size{ other.size }, capacity{ other.capacity }, str{ (W16*)Memory::Allocate(capacity) }
+inline WString::WString(const WString& other) : size{ other.size }, capacity{ other.capacity }
 {
-	memcpy(str, other.str, (size + 1) * sizeof(W16));
+	Memory::AllocateArray(&string, capacity);
+	memcpy(string, other.string, (size + 1) * sizeof(C16));
 }
 
-inline WString::WString(WString&& other) noexcept : size{ other.size }, capacity{ other.capacity }, str{ other.str }
+inline WString::WString(WString&& other) noexcept : size{ other.size }, capacity{ other.capacity }, string{ other.string }
 {
 	other.size = 0;
 	other.capacity = 0;
-	other.str = nullptr;
+	other.string = nullptr;
 }
 
-template<typename... Types> inline WString::WString(const W16* fmt, const Types& ... args) : size{ wcslen(fmt) }, capacity{ size }, str{ (W16*)Memory::Allocate(capacity, capacity) }
+template<typename... Types> inline WString::WString(const C16* fmt, const Types& ... args) : size{ wcslen(fmt) }, capacity{ size }
 {
-	memcpy(str, fmt, (size + 1) * sizeof(W16));
+	Memory::AllocateArray(&string, capacity);
+
+	memcpy(string, fmt, (size + 1) * sizeof(C16));
 	U64 start = 0;
 	(Format(start, args), ...);
 }
 
-template<typename... Types> inline WString::WString(const Types& ... args) : str{ (W16*)Memory::Allocate1kb() }
+template<typename... Types> inline WString::WString(const Types& ... args)
 {
+	Memory::AllocateArray(&string, capacity);
 	(Append(args), ...);
 }
 
 template<typename T> inline WString& WString::operator=(T value)
 {
-	ToWString(str, value);
+	ToWString(string, value);
 	return *this;
 }
 
-inline WString& WString::operator=(W16* str)
+inline WString& WString::operator=(C16* str)
 {
 	hashed = false;
 	size = wcslen(str);
-	if (capacity < size && this->str) { Memory::Free(this->str); }
-	if (!this->str) { this->str = (W16*)Memory::Allocate(size * sizeof(W16), capacity); }
 
-	memcpy(this->str, str, size + 1);
+	if (capacity < size || !string) { Memory::Reallocate(&string, capacity = size); }
+
+	memcpy(string, str, size + 1);
 
 	return *this;
 }
 
-inline WString& WString::operator=(const W16* str)
+inline WString& WString::operator=(const C16* str)
 {
 	hashed = false;
 	size = wcslen(str);
-	if (capacity < size && this->str) { Memory::Free(this->str); }
-	if (!this->str) { this->str = (W16*)Memory::Allocate(size * sizeof(W16), capacity); }
 
-	memcpy(this->str, str, size + 1);
+	if (capacity < size || !string) { Memory::Reallocate(&string, capacity = size); }
+
+	memcpy(string, str, size + 1);
 
 	return *this;
 }
@@ -285,12 +297,13 @@ inline WString& WString::operator=(const W16* str)
 inline WString& WString::operator=(const WString& other)
 {
 	hashed = false;
-	if (capacity < other.size && str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate(other.capacity); }
+	if (!other.string) { Destroy(); return *this; }
 
 	size = other.size;
-	capacity = other.capacity;
-	memcpy(this->str, other.str, size + 1);
+
+	if (capacity < other.size) { Memory::Reallocate(&string, capacity = other.size); }
+
+	memcpy(string, other.string, size + 1);
 
 	return *this;
 }
@@ -298,14 +311,16 @@ inline WString& WString::operator=(const WString& other)
 inline WString& WString::operator=(WString&& other) noexcept
 {
 	hashed = false;
-	if (str) { Memory::Free(str); }
+	if (!other.string) { Destroy(); return *this; }
+
+	if (string) { Memory::FreeArray(&string); }
 
 	size = other.size;
 	capacity = other.capacity;
-	str = other.str;
+	string = other.string;
 	other.size = 0;
 	other.capacity = 0;
-	other.str = nullptr;
+	other.string = nullptr;
 
 	return *this;
 }
@@ -318,19 +333,19 @@ inline WString::~WString()
 inline void WString::Destroy()
 {
 	hashed = false;
-	if (str)
+	hash = 0;
+	if (string)
 	{
 		size = 0;
 		capacity = 0;
-		Memory::Free(str);
-		str = nullptr;
+		Memory::FreeArray(&string);
 	}
 }
 
 inline void WString::Clear()
 {
 	hashed = false;
-	str[0] = NULL_CHAR;
+	string[0] = NULL_CHAR;
 	size = 0;
 }
 
@@ -338,10 +353,7 @@ inline void WString::Reserve(U64 size)
 {
 	if (size > capacity)
 	{
-		W16* temp = (W16*)Memory::Allocate(size * sizeof(W16), capacity);
-		memcpy(temp, str, this->size * sizeof(W16));
-		Memory::Free(str);
-		str = temp;
+		Memory::Reallocate(&string, capacity = size);
 	}
 }
 
@@ -349,40 +361,40 @@ inline void WString::Resize(U64 size)
 {
 	if (size > this->capacity) { Reserve(size); }
 	this->size = size;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 }
 
 inline void WString::Resize()
 {
-	this->size = wcslen(str);
+	this->size = wcslen(string);
 }
 
 template<typename T> inline WString& WString::operator+=(T value)
 {
-	ToWString(str + size, value);
+	ToWString(string + size, value);
 	return *this;
 }
 
-inline WString& WString::operator+=(W16* other)
+inline WString& WString::operator+=(C16* other)
 {
 	hashed = false;
 	U64 addLength = wcslen(other);
-	if (capacity < size + addLength) { Memory::Reallocate(str, (size + addLength) * sizeof(W16), capacity); }
-	memcpy(str + size, other, addLength * sizeof(W16));
+	if (capacity < size + addLength) { Memory::Reallocate(&string, capacity = size + addLength); }
+	memcpy(string + size, other, addLength * sizeof(C16));
 	size += addLength;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
 
-inline WString& WString::operator+=(const W16* other)
+inline WString& WString::operator+=(const C16* other)
 {
 	hashed = false;
 	U64 addLength = wcslen(other);
-	if (capacity < size + addLength) { Memory::Reallocate(str, (size + addLength) * sizeof(W16), capacity); }
-	memcpy(str + size, other, addLength * sizeof(W16));
+	if (capacity < size + addLength) { Memory::Reallocate(&string, capacity = size + addLength); }
+	memcpy(string + size, other, addLength * sizeof(C16));
 	size += addLength;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -390,118 +402,118 @@ inline WString& WString::operator+=(const W16* other)
 inline WString& WString::operator+=(const WString& other)
 {
 	hashed = false;
-	if (capacity < size + other.size) { Memory::Reallocate(str, (size + other.size) * sizeof(W16), capacity); }
-	memcpy(str + size, other.str, other.size * sizeof(W16));
+	if (capacity < size + other.size) { Memory::Reallocate(&string, capacity = size + other.size); }
+	memcpy(string + size, other.string, other.size * sizeof(C16));
 	size += other.size;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
 
 template<typename T> inline WString::operator T() const { return ToType<T>(); }
 
-inline WString::operator W16* () { return str; }
+inline WString::operator C16* () { return string; }
 
-inline WString::operator const W16* () const { return str; }
+inline WString::operator const C16* () const { return string; }
 
-inline W16* WString::operator*() { return str; }
+inline C16* WString::operator*() { return string; }
 
-inline const W16* WString::operator*() const { return str; }
+inline const C16* WString::operator*() const { return string; }
 
-inline W16& WString::operator[](U32 i) { return str[i]; }
+inline C16& WString::operator[](U32 i) { return string[i]; }
 
-inline const W16& WString::operator[](U32 i) const { return str[i]; }
+inline const C16& WString::operator[](U32 i) const { return string[i]; }
 
-inline bool WString::operator==(W16* other) const
+inline bool WString::operator==(C16* other) const
 {
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size * sizeof(W16)) == 0;
+	return memcmp(string, other, size * sizeof(C16)) == 0;
 }
 
-inline bool WString::operator==(const W16* other) const
+inline bool WString::operator==(const C16* other) const
 {
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size * sizeof(W16)) == 0;
+	return memcmp(string, other, size * sizeof(C16)) == 0;
 }
 
 inline bool WString::operator==(const WString& other) const
 {
 	if (other.size != size) { return false; }
 
-	return memcmp(str, other.str, size * sizeof(W16)) == 0;
+	return memcmp(string, other.string, size * sizeof(C16)) == 0;
 }
 
-inline bool WString::operator!=(W16* other) const
+inline bool WString::operator!=(C16* other) const
 {
 	U64 len = wcslen(other);
 	if (len != size) { return true; }
 
-	return memcmp(str, other, size * sizeof(W16));
+	return memcmp(string, other, size * sizeof(C16));
 }
 
-inline bool WString::operator!=(const W16* other) const
+inline bool WString::operator!=(const C16* other) const
 {
 	U64 len = wcslen(other);
 	if (len != size) { return true; }
 
-	return memcmp(str, other, size * sizeof(W16));
+	return memcmp(string, other, size * sizeof(C16));
 }
 
 inline bool WString::operator!=(const WString& other) const
 {
 	if (other.size != size) { return true; }
 
-	return memcmp(str, other.str, size * sizeof(W16));
+	return memcmp(string, other.string, size * sizeof(C16));
 }
 
-inline bool WString::Compare(W16* other) const
+inline bool WString::Compare(C16* other) const
 {
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size * sizeof(W16)) == 0;
+	return memcmp(string, other, size * sizeof(C16)) == 0;
 }
 
-inline bool WString::Compare(const W16* other) const
+inline bool WString::Compare(const C16* other) const
 {
 	U64 len = wcslen(other);
 	if (len != size) { return false; }
 
-	return memcmp(str, other, size * sizeof(W16)) == 0;
+	return memcmp(string, other, size * sizeof(C16)) == 0;
 }
 
 inline bool WString::Compare(const WString& other) const
 {
 	if (other.size != size) { return false; }
 
-	return memcmp(str, other.str, size * sizeof(W16)) == 0;
+	return memcmp(string, other.string, size * sizeof(C16)) == 0;
 }
 
-inline bool WString::CompareN(W16* other, U32 nLength, U32 start) const
+inline bool WString::CompareN(C16* other, U32 nLength, U32 start) const
 {
 	U64 len = wcslen(other);
 	if (len != nLength) { return false; }
 
-	return memcmp(str + start, other, nLength * sizeof(W16)) == 0;
+	return memcmp(string + start, other, nLength * sizeof(C16)) == 0;
 }
 
-inline bool WString::CompareN(const W16* other, U32 nLength, U32 start) const
+inline bool WString::CompareN(const C16* other, U32 nLength, U32 start) const
 {
 	U64 len = wcslen(other);
 	if (len != nLength) { return false; }
 
-	return memcmp(str + start, other, nLength * sizeof(W16)) == 0;
+	return memcmp(string + start, other, nLength * sizeof(C16)) == 0;
 }
 
 inline bool WString::CompareN(const WString& other, U32 nLength, U32 start) const
 {
 	if (other.size != nLength) { return false; }
 
-	return memcmp(str + start, other.str, nLength * sizeof(W16)) == 0;
+	return memcmp(string + start, other.string, nLength * sizeof(C16)) == 0;
 }
 
 inline const U64& WString::Size() const { return size; }
@@ -513,62 +525,62 @@ inline U64 WString::Hash()
 	if (hashed) { return hash; }
 
 	hash = 0;
-	const char* ptr = (char*)str;
+	const C16* ptr = (C16*)string;
 	while (*ptr) { hash = hash * 101 + *ptr++; }
 	hashed = true;
 
 	return hash;
 }
 
-inline W16* WString::Data() { return str; }
+inline C16* WString::Data() { return string; }
 
-inline const W16* WString::Data() const { return str; }
+inline const C16* WString::Data() const { return string; }
 
 inline bool WString::Blank() const
 {
 	if (size == 0) { return true; }
-	W16* start = str;
-	W16 c;
+	C16* start = string;
+	C16 c;
 
 	while (WHITE_SPACE_W(c, start));
 
-	return start - str == size;
+	return start - string == size;
 }
 
-inline I32 WString::IndexOf(const W16& c, U64 start) const
+inline I32 WString::IndexOf(const C16& c, U64 start) const
 {
-	W16* it = str + start;
+	C16* it = string + start;
 
 	while (*it != c && *it != NULL_CHAR) { ++it; }
 
 	if (*it == NULL_CHAR) { return -1; }
-	return (I32)(it - str);
+	return (I32)(it - string);
 }
 
-inline I32 WString::LastIndexOf(const W16& c, U64 start) const
+inline I32 WString::LastIndexOf(const C16& c, U64 start) const
 {
-	W16* it = str + size - start - 1;
+	C16* it = string + size - start - 1;
 
 	U64 len = size;
 	while (*it != c && len > 0) { --it; --len; }
 
-	if (len) { return (I32)(it - str); }
+	if (len) { return (I32)(it - string); }
 	return -1;
 }
 
 inline WString& WString::Trim()
 {
 	hashed = false;
-	W16* start = str;
-	W16* end = str + size;
-	W16 c;
+	C16* start = string;
+	C16* end = string + size;
+	C16 c;
 
 	while (WHITE_SPACE_W(c, start)) { ++start; }
 	while (WHITE_SPACE_W(c, end)) { --end; }
 
 	size = end - start;
-	memcpy(str, start, size * sizeof(W16));
-	str[size] = NULL_CHAR;
+	memcpy(string, start, size * sizeof(C16));
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
@@ -578,66 +590,66 @@ inline WString& WString::SubString(WString& newStr, U64 start, U64 nLength) cons
 	if (nLength < U64_MAX) { newStr.size = nLength; }
 	else { newStr.size = size - start; }
 
-	memcpy(newStr.str, str + start, newStr.size * sizeof(W16));
-	newStr.str[newStr.size] = NULL_CHAR;
+	memcpy(newStr.string, string + start, newStr.size * sizeof(C16));
+	newStr.string[newStr.size] = NULL_CHAR;
 
 	return newStr;
 }
 
 inline WString& WString::Append(const WString& append)
 {
-	if (capacity < size + append.size) { Memory::Reallocate(str, size + append.size, capacity); }
+	if (capacity < size + append.size) { Memory::Reallocate(&string, capacity = size + append.size); }
 	hashed = false;
-	memcpy(str + size, append.str, append.size * sizeof(W16));
+	memcpy(string + size, append.string, append.size * sizeof(C16));
 	size += append.size;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
 
 inline WString& WString::Prepend(const WString& prepend)
 {
-	if (capacity < size + prepend.size) { Memory::Reallocate(str, (size + prepend.size) * sizeof(W16), capacity); }
+	if (capacity < size + prepend.size) { Memory::Reallocate(&string, capacity = size + prepend.size); }
 	hashed = false;
-	memcpy(str + size, str, size * sizeof(W16));
-	memcpy(str, prepend.str, prepend.size * sizeof(W16));
+	memcpy(string + size, string, size * sizeof(C16));
+	memcpy(string, prepend.string, prepend.size * sizeof(C16));
 	size += prepend.size;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
 
 inline WString& WString::Surround(const WString& prepend, const WString& append)
 {
-	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(str, (size + append.size + prepend.size) * sizeof(W16), capacity); }
+	if (capacity < size + append.size + prepend.size) { Memory::Reallocate(&string, capacity = size + append.size + prepend.size); }
 	hashed = false;
-	memcpy(str + prepend.size, str, size * sizeof(W16));
-	memcpy(str, prepend.str, prepend.size * sizeof(W16));
+	memcpy(string + prepend.size, string, size * sizeof(C16));
+	memcpy(string, prepend.string, prepend.size * sizeof(C16));
 	size += prepend.size;
 
-	memcpy(str + size, append.str, append.size * sizeof(W16));
+	memcpy(string + size, append.string, append.size * sizeof(C16));
 	size += append.size;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
 
 inline WString& WString::Insert(const WString& other, U32 i)
 {
-	if (capacity < size + other.size) { Memory::Reallocate(str, (size + other.size) * sizeof(W16), capacity); }
+	if (capacity < size + other.size) { Memory::Reallocate(&string, capacity = size + other.size); }
 	hashed = false;
-	memcpy(str + i + other.size, str + i, size - i);
-	memcpy(str + i, other.str, other.size);
+	memcpy(string + i + other.size, string + i, size - i);
+	memcpy(string + i, other.string, other.size);
 	size += other.size;
-	str[size] = NULL_CHAR;
+	string[size] = NULL_CHAR;
 
 	return *this;
 }
 
-inline WString& WString::Overwrite(const WString& string, U32 i)
+inline WString& WString::Overwrite(const WString& other, U32 i)
 {
-	W16* c = str + i;
-	memcpy(c, string.str, (string.size + 1) * sizeof(W16));
+	C16* c = string + i;
+	memcpy(c, other.string, (other.size + 1) * sizeof(C16));
 
 	return *this;
 }
@@ -646,18 +658,18 @@ inline WString& WString::ReplaceAll(const WString& find, const WString& replace,
 {
 	//TODO: Capacity Check
 	hashed = false;
-	W16* c = str + start;
-	W16 ch = *c;
+	C16* c = string + start;
+	C16 ch = *c;
 	while (ch != NULL_CHAR)
 	{
-		while ((ch = *c) != NULL_CHAR && memcmp(c, find.str, find.size * sizeof(W16))) { ++c; }
+		while ((ch = *c) != NULL_CHAR && memcmp(c, find.string, find.size * sizeof(C16))) { ++c; }
 
 		if (ch != NULL_CHAR)
 		{
-			memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
-			memcpy(c, replace.str, replace.size * sizeof(W16));
+			memcpy(c + replace.size, c + find.size, (size - find.size - (c - string)) * sizeof(C16));
+			memcpy(c, replace.string, replace.size * sizeof(C16));
 			size = size - find.size + replace.size;
-			str[size] = NULL_CHAR;
+			string[size] = NULL_CHAR;
 		}
 	}
 
@@ -666,21 +678,22 @@ inline WString& WString::ReplaceAll(const WString& find, const WString& replace,
 
 inline WString& WString::ReplaceN(const WString& find, const WString& replace, U64 count, U64 start)
 {
-	//TODO: Capacity Check
+	if (capacity < size + replace.size * count - find.size * count) { Memory::Reallocate(&string, capacity = size + replace.size * count - find.size * count); }
+
 	hashed = false;
-	W16* c = str + start;
-	W16 ch = *c;
+	C16* c = string + start;
+	C16 ch = *c;
 	while (ch != NULL_CHAR && count)
 	{
-		while ((ch = *c) != NULL_CHAR && memcmp(c, find.str, find.size * sizeof(W16))) { ++c; }
+		while ((ch = *c) != NULL_CHAR && memcmp(c, find.string, find.size * sizeof(C16))) { ++c; }
 
 		if (ch != NULL_CHAR)
 		{
 			--count;
-			memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
-			memcpy(c, replace.str, replace.size * sizeof(W16));
+			memcpy(c + replace.size, c + find.size, (size - find.size - (c - string)) * sizeof(C16));
+			memcpy(c, replace.string, replace.size * sizeof(C16));
 			size = size - find.size + replace.size;
-			str[size] = NULL_CHAR;
+			string[size] = NULL_CHAR;
 		}
 	}
 
@@ -689,17 +702,18 @@ inline WString& WString::ReplaceN(const WString& find, const WString& replace, U
 
 inline WString& WString::ReplaceFirst(const WString& find, const WString& replace, U64 start)
 {
-	if (capacity < size + replace.size - find.size) { Memory::Reallocate(str, (size + replace.size - find.size) * sizeof(W16), capacity); }
+	if (capacity < size + replace.size - find.size) { Memory::Reallocate(&string, capacity = size + replace.size - find.size); }
+
 	hashed = false;
-	W16* c = str + start;
-	while (*c != NULL_CHAR && memcmp(c, find.str, find.size * sizeof(W16))) { ++c; }
+	C16* c = string + start;
+	while (*c != NULL_CHAR && memcmp(c, find.string, find.size * sizeof(C16))) { ++c; }
 
 	if (*c != NULL_CHAR)
 	{
-		memcpy(c + replace.size, c + find.size, (size - find.size - (c - str)) * sizeof(W16));
-		memcpy(c, replace.str, replace.size * sizeof(W16));
+		memcpy(c + replace.size, c + find.size, (size - find.size - (c - string)) * sizeof(C16));
+		memcpy(c, replace.string, replace.size * sizeof(C16));
 		size = size - find.size + replace.size;
-		str[size] = NULL_CHAR;
+		string[size] = NULL_CHAR;
 	}
 
 	return *this;
@@ -712,45 +726,45 @@ inline void WString::Split(Vector<WString>& list, U8 delimiter, bool trimEntries
 
 inline void WString::Format(U64& start, const WString& replace)
 {
-	//TODO: Capacity Check
+	if (capacity < size - 2 + replace.size) { Memory::Reallocate(&string, capacity = size - 2 + replace.size); }
+
 	hashed = false;
-	W16* c = str + start;
+	C16* c = string + start;
 	while (*c != NULL_CHAR && memcmp(c, L"{}", 4)) { ++c; }
 
 	if (*c != NULL_CHAR)
 	{
-		start = (c - str) + replace.size;
-		memcpy(c + replace.size, c + 2, (size - 2 - (c - str)) * sizeof(W16));
-		memcpy(c, replace.str, replace.size * sizeof(W16));
+		start = (c - string) + replace.size;
+		memcpy(c + replace.size, c + 2, (size - 2 - (c - string)) * sizeof(C16));
+		memcpy(c, replace.string, replace.size * sizeof(C16));
 		size = size - 2 + replace.size;
-		str[size] = NULL_CHAR;
+		string[size] = NULL_CHAR;
 	}
 }
 
-inline W16* WString::begin() { return str; }
+inline C16* WString::begin() { return string; }
 
-inline W16* WString::end() { return str + size; }
+inline C16* WString::end() { return string + size; }
 
-inline const W16* WString::begin() const { return str; }
+inline const C16* WString::begin() const { return string; }
 
-inline const W16* WString::end() const { return str + size; }
+inline const C16* WString::end() const { return string + size; }
 
-inline W16* WString::rbegin() { return str + size - 1; }
+inline C16* WString::rbegin() { return string + size - 1; }
 
-inline W16* WString::rend() { return str - 1; }
+inline C16* WString::rend() { return string - 1; }
 
-inline const W16* WString::rbegin() const { return str + size - 1; }
+inline const C16* WString::rbegin() const { return string + size - 1; }
 
-inline const W16* WString::rend() const { return str - 1; }
+inline const C16* WString::rend() const { return string - 1; }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
+template<typename T> inline EnableForSignedInt<T> WString::ToString(C16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20 && this->str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate((size + 20) * sizeof(W16), capacity); }
+	if (!string || capacity < size + 20) { Memory::Reallocate(&string, capacity = size + 20); }
 
-	W16* c = str + 20;
-	const W16* threeDigits;
+	C16* c = str + 20;
+	const C16* threeDigits;
 	U8 neg = 0;
 
 	U64 abs = (U64)value;
@@ -781,18 +795,17 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 	U64 addLength = 20 + neg - (c - str);
 	size += addLength;
 
-	memcpy(str + neg, c, addLength * sizeof(W16));
+	memcpy(str + neg, c, addLength * sizeof(C16));
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
+template<typename T> inline EnableForUnsignedInt<T> WString::ToString(C16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 20 && this->str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate((size + 20) * sizeof(W16), capacity); }
+	if (!string || capacity < size + 20) { Memory::Reallocate(&string, capacity = size + 20); }
 
-	W16* c = str + 20;
-	const W16* threeDigits;
+	C16* c = str + 20;
+	const C16* threeDigits;
 	U64 val = value;
 
 	while (val > 999)
@@ -814,39 +827,36 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 	U64 addLength = 20 - (c - str);
 	size += addLength;
 
-	memcpy(str, c, addLength * sizeof(W16));
+	memcpy(str, c, addLength * sizeof(C16));
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>> WString::ToWString(W16* str, T value)
+template<typename T> inline EnableForBool<T> WString::ToString(C16* str, T value)
 {
 	hashed = false;
 	if (value)
 	{
-		if (capacity < size + 4 && this->str) { Memory::Free(str); }
-		if (!str) { str = (W16*)Memory::Allocate((size + 4) * sizeof(W16), capacity); }
-		memcpy(str + size, TRUE_STR, 4 * sizeof(W16));
+		if (!string || capacity < size + 4) { Memory::Reallocate(&string, capacity = size + 4); }
+		memcpy(str + size, TRUE_STR, 4 * sizeof(C16));
 		size += 4;
 		str[size] = NULL_CHAR;
 	}
 	else
 	{
-		if (capacity < size + 5 && this->str) { Memory::Free(str); }
-		if (!str) { str = (W16*)Memory::Allocate((size + 5) * sizeof(W16), capacity); }
-		memcpy(str + size, FALSE_STR, 5 * sizeof(W16));
+		if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); }
+		memcpy(str + size, FALSE_STR, 5 * sizeof(C16));
 		size += 5;
 		str[size] = NULL_CHAR;
 	}
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WString::ToWString(W16* str, T value)
+template<typename T> inline EnableForFloat<T> WString::ToString(C16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 27 && this->str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate((size + 27) * sizeof(W16), capacity); }
+	if (!string || capacity < size + 27) { Memory::Reallocate(&string, capacity = size + 27); }
 
-	W16* c = str + 27;
-	const W16* threeDigits;
+	C16* c = str + 27;
+	const C16* threeDigits;
 	U8 neg = 0;
 
 	F64 abs = value;
@@ -894,27 +904,32 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WStrin
 	U64 addLength = 27 + neg - (c - str);
 	size += addLength;
 
-	memcpy(str + neg, c, addLength * sizeof(W16));
+	memcpy(str + neg, c, addLength * sizeof(C16));
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>> WString::HexToWString(W16* str, T value)
+template<typename T> inline EnableForPointer<T> WString::ToString(C16* str, T value)
+{
+	ToString(str, (U64)value);
+}
+
+template<typename T> inline EnableForSignedInt<T> WString::HexToString(C16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16 && this->str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
+	if (!string || capacity < size + 16) { Memory::Reallocate(&string, capacity = size + 16); }
 
 	U8 pairs;
 	U8 digits;
 	U64 max;
-	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
+
+	if constexpr (IsSame<T, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
+	else if constexpr (IsSame<T, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
+	else if constexpr (IsSame<T, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else if constexpr (IsSame<T, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
 	else { pairs = 8; digits = 16; max = U64_MAX; }
 
-	W16* c = str + digits;
-	const W16* twoDigits;
+	C16* c = str + digits;
+	const C16* twoDigits;
 
 	U64 abs;
 	if (value < 0)
@@ -949,26 +964,25 @@ template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonb
 
 	size += digits;
 
-	memcpy(str, c, digits * sizeof(W16));
+	memcpy(str, c, digits * sizeof(C16));
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>> WString::HexToWString(W16* str, T value)
+template<typename T> inline EnableForUnsignedInt<T> WString::HexToString(C16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16 && this->str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
+	if (!string || capacity < size + 16) { Memory::Reallocate(&string, capacity = size + 16); }
 
 	U8 pairs;
 	U8 digits;
-	if constexpr (std::is_same_v<std::remove_cv_t<T>, U8>) { pairs = 1; digits = 2; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U16>) { pairs = 2; digits = 4; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, U32>) { pairs = 4; digits = 8; }
-	else if constexpr (std::is_same_v<std::remove_cv_t<T>, UL32>) { pairs = 4; digits = 8; }
+	if constexpr (IsSame<T, U8>) { pairs = 1; digits = 2; }
+	else if constexpr (IsSame<T, U16>) { pairs = 2; digits = 4; }
+	else if constexpr (IsSame<T, U32>) { pairs = 4; digits = 8; }
+	else if constexpr (IsSame<T, UL32>) { pairs = 4; digits = 8; }
 	else { pairs = 8; digits = 16; }
 
-	W16* c = str + digits;
-	const W16* twoDigits;
+	C16* c = str + digits;
+	const C16* twoDigits;
 	U64 val = value;
 
 	for (U8 i = 0; i < pairs; ++i)
@@ -983,21 +997,20 @@ template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_no
 
 	size += digits;
 
-	memcpy(str, c, digits * sizeof(W16));
+	memcpy(str, c, digits * sizeof(C16));
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WString::HexToWString(W16* str, T value)
+template<typename T> inline EnableForFloat<T> WString::HexToString(C16* str, T value)
 {
 	hashed = false;
-	if (capacity < size + 16 && this->str) { Memory::Free(str); }
-	if (!str) { str = (W16*)Memory::Allocate((size + 16) * sizeof(W16), capacity); }
+	if (!string || capacity < size + 16) { Memory::Reallocate(&string, capacity = size + 16); }
 
 	U8 pairs = 8;
 	U8 digits = 16;
 
-	W16* c = str + digits;
-	const W16* twoDigits;
+	C16* c = str + digits;
+	const C16* twoDigits;
 	U64 val = *reinterpret_cast<U64*>(&value);
 
 	for (U8 i = 0; i < pairs; ++i)
@@ -1012,63 +1025,69 @@ template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>> WStrin
 
 	size += digits;
 
-	memcpy(str, c, digits * sizeof(W16));
+	memcpy(str, c, digits * sizeof(C16));
 	str[size] = NULL_CHAR;
 }
 
-template<typename T> inline std::enable_if_t<std::is_signed_v<T>&& std::_Is_nonbool_integral<T>, T> WString::ToType() const
+template<typename T> inline EnableForSignedInt<T, T> WString::ToType(U64 start) const
 {
-	W16* it = str;
-	W16 c;
+	C16* it = string + start;
+	C16 c;
 	I64 value = 0;
 
-	if (*str == NEGATIVE_CHAR)
+	if (*string == NEGATIVE_CHAR)
 	{
 		++it;
-		while ((c = *it++) != NULL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
+		while (NOT_WHITE_SPACE_W(c, it) && c != NULL_CHAR) { value *= 10; value -= c - ZERO_CHAR; ++it; }
 	}
 	else
 	{
-		while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+		while (NOT_WHITE_SPACE_W(c, it)) { value *= 10; value += c - ZERO_CHAR; ++it; }
 	}
 
 	return value;
 }
 
-template<typename T> inline std::enable_if_t<std::is_unsigned_v<T>&& std::_Is_nonbool_integral<T>, T> WString::ToType() const
+template<typename T> inline EnableForUnsignedInt<T, T> WString::ToType(U64 start) const
 {
-	W16* it = str;
-	W16 c;
+	C16* it = string + start;
+	C16 c;
 	T value = 0;
 
-	while ((c = *it++) != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
+	while (NOT_WHITE_SPACE_W(c, it) && c != NULL_CHAR) { value *= 10; value += c - ZERO_CHAR; ++it; }
 
 	return value;
 }
 
-template<typename T> inline std::enable_if_t<std::is_integral_v<T> && !std::_Is_nonbool_integral<T>, T> WString::ToType() const
+template<typename T> inline EnableForBool<T, T> WString::ToType(U64 start) const
 {
-	return IS_TRUE_W(str);
+	C16* c = string + start;
+	return IS_TRUE_W(c);
 }
 
-template<typename T> inline std::enable_if_t<std::is_floating_point_v<T>, T> WString::ToType() const
+template<typename T> inline EnableForFloat<T, T> WString::ToType(U64 start) const
 {
-	W16* it = str;
-	W16 c;
+	C16* it = string + start;
+	C16 c;
 	F64 value = 0.0f;
 	F64 mul = 0.1f;
 
-	if (*str == NEGATIVE_CHAR)
+	if (*string == NEGATIVE_CHAR)
 	{
 		++it;
-		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value -= c - ZERO_CHAR; }
-		while ((c = *it++) != NULL_CHAR) { value -= (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+		while (NOT_WHITE_SPACE_W(c, it) && c != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value -= c - ZERO_CHAR; ++it; }
+		while (NOT_WHITE_SPACE_W(c, it) && c != NULL_CHAR) { value -= (c - ZERO_CHAR) * mul; mul *= 0.1f; ++it; }
 	}
 	else
 	{
-		while ((c = *it++) != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value += c - ZERO_CHAR; }
-		while ((c = *it++) != NULL_CHAR) { value += (c - ZERO_CHAR) * mul; mul *= 0.1f; }
+		while (NOT_WHITE_SPACE_W(c, it) && c != NULL_CHAR && c != DECIMAL_CHAR) { value *= 10; value += c - ZERO_CHAR; ++it; }
+		while (NOT_WHITE_SPACE_W(c, it) && c != NULL_CHAR) { value += (c - ZERO_CHAR) * mul; mul *= 0.1f; ++it; }
 	}
 
 	return value;
+}
+
+template<typename T> inline EnableForPointer<T, T> WString::ToType(U64 start) const
+{
+	return (T)ToType<U64>(start);
 }

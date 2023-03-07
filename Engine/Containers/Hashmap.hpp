@@ -4,20 +4,17 @@
 #include "String.hpp"
 #include "Memory\Memory.hpp"
 
-template<typename Value>
-struct Cell
-{
-	bool filled{ false };
-	String key{ NO_INIT };
-	Value value;
-};
-
 //TODO: U64 key version
-
-//TODO: Align capacity with 2, use binary & instead of modulo
 template<typename Value>
 struct Hashmap
 {
+	struct Cell
+	{
+		bool filled{ false };
+		String key{ NO_INIT };
+		Value value;
+	};
+
 public:
 	Hashmap();
 	Hashmap(U64 capacity);
@@ -42,27 +39,26 @@ public:
 	const U64& Size() const;
 	const U64& Capacity() const;
 
-	Cell<Value>* begin();
-	const Cell<Value>* begin() const;
-	Cell<Value>* end();
-	const Cell<Value>* end() const;
-
 private:
-	Cell<Value>* cells;
-	U64 size;
-	U64 capacity;
-	U64 capMinusOne;
+	Cell* begin() { return cells; }
+	const Cell* begin() const { return cells; }
+	Cell* end() { return cells + capacity; }
+	const Cell* end() const { return cells + capacity; }
+
+	U64 size{ 0 };
+	U64 capacity{ 0 };
+	U64 capMinusOne{ 0 };
+	Cell* cells{ nullptr };
 };
 
-template<typename Value> inline Hashmap<Value>::Hashmap() : cells{ nullptr }, size{ 0 }, capacity{ 0 }, capMinusOne{ 0 } {}
+template<typename Value> inline Hashmap<Value>::Hashmap() {}
 
-template<typename Value> inline Hashmap<Value>::Hashmap(U64 cap) :
-	cells{ (Cell<Value>*)Memory::Allocate(sizeof(Cell<Value>) * cap, capacity) }, size{ 0 }, capacity{ Align2(capacity) }, capMinusOne{ capacity - 1 } {}
+template<typename Value> inline Hashmap<Value>::Hashmap(U64 cap) : capacity{ capacity } { Memory::AllocateArray(&cells, capacity); capMinusOne = capacity - 1; }
 
-template<typename Value> inline Hashmap<Value>::Hashmap(const Hashmap& other) :
-	cells{ (Cell<Value>*)Memory::Allocate(sizeof(Cell<Value>) * other.capacity) }, size{ other.size }, capacity{ other.capacity }, capMinusOne{other.capMinusOne}
+template<typename Value> inline Hashmap<Value>::Hashmap(const Hashmap& other) : size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
 {
-	memcpy(other.cells, cells, sizeof(Cell<Value>) * capacity);
+	Memory::AllocateArray(&cells, capacity);
+	memcpy(other.cells, cells, capacity * sizeof(Cell));
 }
 
 template<typename Value> inline Hashmap<Value>::Hashmap(Hashmap&& other) noexcept :
@@ -76,11 +72,11 @@ template<typename Value> inline Hashmap<Value>::Hashmap(Hashmap&& other) noexcep
 
 template<typename Value> inline Hashmap<Value>& Hashmap<Value>::operator=(const Hashmap& other)
 {
-	cells = (Cell<Value>*)Memory::Allocate(sizeof(Cell<Value>) * other.capacity);
 	size = other.size;
 	capacity = other.capacity;
+	Memory::AllocateArray(&cells, capacity);
 	capMinusOne = other.capMinusOne;
-	memcpy(other.cells, cells, sizeof(Cell<Value>) * capacity);
+	memcpy(other.cells, cells, capacity * sizeof(Cell));
 
 	return *this;
 }
@@ -104,9 +100,9 @@ template<typename Value> inline Hashmap<Value>::~Hashmap() { Destroy(); }
 
 template<typename Value> inline void Hashmap<Value>::Destroy()
 {
-	//for (Cell<Value>& cell : cells) { cell.key.Destroy(); }
+	for (Cell& cell : *this) { cell.key.Destroy(); }
 
-	Memory::Free(cells);
+	Memory::FreeArray(&cells);
 	size = 0;
 	capacity = 0;
 	capMinusOne = 0;
@@ -118,7 +114,7 @@ template<typename Value> inline bool Hashmap<Value>::Insert(String& key, const V
 	U64 hash = key.Hash();
 
 	U32 i = 0;
-	Cell<Value>* cell = cells + (hash & capMinusOne);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	++size;
@@ -133,7 +129,7 @@ template<typename Value> inline bool Hashmap<Value>::Insert(String& key, Value&&
 	U64 hash = key.Hash();
 
 	U32 i = 0;
-	Cell<Value>* cell = cells + (hash & capMinusOne);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	++size;
@@ -148,7 +144,7 @@ template<typename Value> inline bool Hashmap<Value>::Remove(String& key)
 	U64 hash = key.Hash();
 
 	U32 i = 0;
-	Cell<Value>* cell = cells + (hash & capMinusOne);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	if (cell->filled)
@@ -169,7 +165,7 @@ template<typename Value> inline bool Hashmap<Value>::Remove(String& key, Value&&
 	U64 hash = key.Hash();
 
 	U32 i = 0;
-	Cell<Value>* cell = cells + (hash & capMinusOne);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	if (cell->filled)
@@ -193,7 +189,7 @@ template<typename Value> inline bool Hashmap<Value>::Get(String& key, Value& val
 	U64 hash = key.Hash();
 
 	U32 i = 0;
-	Cell<Value>* cell = cells + (hash % capacity);
+	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	value = cell->value;
@@ -205,38 +201,22 @@ template<typename Value> inline void Hashmap<Value>::Reserve(U64 capacity)
 {
 	if (capacity < this->capacity) { return; }
 
-	if (cells)
-	{
-		this->capacity = Align2(capacity);
-		Cell<Value>* newCells = (Cell<Value>*)Memory::Allocate(sizeof(Cell<Value>) * this->capacity);
+	this->capacity = capacity;
+	Memory::Reallocate(&cells, this->capacity);
+	capMinusOne = this->capacity - 1;
 
-		memcpy(newCells, cells, sizeof(Cell<Value>) * capacity);
-
-		Memory::Free(cells);
-		cells = newCells;
-	}
-	else
-	{
-		this->capacity = Align2(capacity);
-		cells = (Cell<Value>*)Memory::Allocate(sizeof(Cell<Value>) * this->capacity);
-		size = 0;
-	}
+	Empty();
 }
 
 template<typename Value> inline void Hashmap<Value>::operator()(U64 capacity) { Reserve(capacity); }
 
 template<typename Value> inline void Hashmap<Value>::Empty()
 {
-	//for (Cell<Value>& cell : cells) { cell.key.Destroy(); }
+	for (Cell& cell : *this) { cell.key.Destroy(); }
 
-	memset(cells, 0, sizeof(Cell) * capacity);
+	memset(cells, 0, capacity * sizeof(Cell));
 	size = 0;
 }
 
 template<typename Value> inline const U64& Hashmap<Value>::Size() const { return size; }
 template<typename Value> inline const U64& Hashmap<Value>::Capacity() const { return size; }
-
-template<typename Value> inline Cell<Value>* Hashmap<Value>::begin() { return cells; }
-template<typename Value> inline const Cell<Value>* Hashmap<Value>::begin() const { return cells; }
-template<typename Value> inline Cell<Value>* Hashmap<Value>::end() { return cells + capacity; }
-template<typename Value> inline const Cell<Value>* Hashmap<Value>::end() const { return cells + capacity; }

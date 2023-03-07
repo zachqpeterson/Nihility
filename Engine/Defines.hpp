@@ -7,9 +7,6 @@
 ///Unsigned 8-bit integer
 typedef unsigned char U8;
 
-///16-bit unicode character
-typedef wchar_t W16;
-
 ///Unsigned 16-bit integer
 typedef unsigned short U16;
 
@@ -42,6 +39,12 @@ typedef float F32;
 
 ///64-bit floating point number
 typedef double F64;
+
+///8-bit ascii character
+typedef char C8;
+
+///16-bit unicode character
+typedef wchar_t C16;
 
 ///Maximum value of an unsigned 64-bit integer
 static constexpr U64 U64_MAX = 0xFFFFFFFFFFFFFFFFUI64;
@@ -333,6 +336,9 @@ using EnableForPointer = std::enable_if_t<std::is_pointer_v<Type>, Return>;
 
 template <typename Type, typename Return = void>
 using EnableForNotPointer = std::enable_if_t<!std::is_pointer_v<Type>, Return>;
+
+template <typename Check, typename Type, typename Return = void>
+using EnableForT = std::enable_if_t<std::is_same_v<Check, Type>, Return>;
 
 template <typename T0, typename T1>
 inline constexpr bool IsSame = std::is_same_v<T0, T1>;

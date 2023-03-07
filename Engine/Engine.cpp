@@ -23,10 +23,10 @@ bool Engine::suspended;
 
 void work(void* data)
 {
-	Logger::Info((char*)data);
+	Logger::Info((C8*)data);
 }
 
-void Engine::Initialize(const W16* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
+void Engine::Initialize(const C16* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
 	GameUpdate = update;

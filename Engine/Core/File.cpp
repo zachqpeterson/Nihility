@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-static const char* openMode[FILE_OPEN_COUNT]{
+static const C8* openMode[FILE_OPEN_COUNT]{
 	"rbS",
 	"rbR",
 	"r+R",

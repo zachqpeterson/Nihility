@@ -20,10 +20,10 @@ HICON sizeWE;
 HICON sizeNESW;
 HICON sizeNWSE;
 
-static constexpr const W16* MENU_NAME = L"Nihility Menu";
-static constexpr const W16* CLASS_NAME = L"Nihility Class";
+static constexpr const C16* MENU_NAME = L"Nihility Menu";
+static constexpr const C16* CLASS_NAME = L"Nihility Class";
 
-bool Platform::Initialize(const W16* applicationName)
+bool Platform::Initialize(const C16* applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
@@ -205,7 +205,7 @@ void Platform::LockCursor(bool lock)
 	Settings::LOCK_CURSOR = lock;
 }
 
-void Platform::SetConsoleWindowTitle(const W16* name)
+void Platform::SetConsoleWindowTitle(const C16* name)
 {
 	SetConsoleTitleW(name);
 }

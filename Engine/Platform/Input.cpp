@@ -46,7 +46,8 @@ bool Input::Initialize()
 			continue;
 		}
 
-		PSP_DEVICE_INTERFACE_DETAIL_DATA_W interfaceDetailData = (PSP_DEVICE_INTERFACE_DETAIL_DATA_W)Memory::Allocate(size);
+		PSP_DEVICE_INTERFACE_DETAIL_DATA_W interfaceDetailData;
+		Memory::AllocateSize(&interfaceDetailData, size);
 		interfaceDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
 
 		SP_DEVINFO_DATA infoData{};

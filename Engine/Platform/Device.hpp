@@ -147,7 +147,7 @@ private:
 	U32 preparsedDataSize;
 	_HIDP_DATA* stateBuffer;
 	UL32 stateLength;
-	char* reportBuffer;
+	C8* reportBuffer;
 
 	Overlapped overlap{};
 	UL32 read;
