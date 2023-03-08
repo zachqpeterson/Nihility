@@ -338,7 +338,7 @@ template <typename Type, typename Return = void>
 using EnableForNotPointer = std::enable_if_t<!std::is_pointer_v<Type>, Return>;
 
 template <typename Check, typename Type, typename Return = void>
-using EnableForT = std::enable_if_t<std::is_same_v<Check, Type>, Return>;
+using EnableForT = std::enable_if_t<std::is_same_v<std::remove_cv_t<Check>, std::remove_cv_t<Type>>, Return>;
 
 template <typename T0, typename T1>
 inline constexpr bool IsSame = std::is_same_v<T0, T1>;

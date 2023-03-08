@@ -4,7 +4,6 @@
 #include "Core\Logger.hpp"
 #include "Containers\Vector.hpp"
 #include "Containers\String.hpp"
-#include "Containers\WString.hpp"
 
 void* Input::devInfoSet;
 

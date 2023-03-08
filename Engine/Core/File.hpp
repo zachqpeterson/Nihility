@@ -14,7 +14,6 @@ enum FileOpenType
 	FILE_OPEN_COUNT
 };
 
-struct String;
 template<typename T>
 struct Vector;
 struct _iobuf;

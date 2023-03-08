@@ -2,7 +2,6 @@
 
 #include "Device.hpp"
 #include "Containers\String.hpp"
-#include "Containers\WString.hpp"
 #include "Containers\Vector.hpp"
 
 struct _HIDP_PREPARSED_DATA;

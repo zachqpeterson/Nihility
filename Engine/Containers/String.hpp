@@ -5,16 +5,6 @@
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
 
-//Use memcmp(string, TRUE_STR, 4) instead
-#define IS_TRUE(c) c[0] == 't' && c[1] == 'r' && c[2] == 'u' && c[3] == 'e'
-
-#define WHITE_SPACE(c, ptr) (c = *ptr) == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f'
-
-#define NOT_WHITE_SPACE(c, ptr) (c = *ptr) != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '\v' && c != '\f'
-
-
-
-
 struct C8Lookup
 {
 	static inline constexpr const C8* TRUE_STR = "true";
@@ -23,6 +13,12 @@ struct C8Lookup
 	static inline constexpr const C8 NEGATIVE_CHAR = '-';
 	static inline constexpr const C8 DECIMAL_CHAR = '.';
 	static inline constexpr const C8 ZERO_CHAR = '0';
+	static inline constexpr const C8 SPACE = ' ';
+	static inline constexpr const C8 HTAB = '\t';
+	static inline constexpr const C8 VTAB = '\v';
+	static inline constexpr const C8 RETURN = '\r';
+	static inline constexpr const C8 NEW_LINE = '\n';
+	static inline constexpr const C8 FEED = '\f';
 	static inline constexpr const C8 OPEN_BRACE = '{';
 	static inline constexpr const C8 CLOSE_BRACE = '}';
 	static inline constexpr const C8 FMT_HEX = 'h';
@@ -107,6 +103,12 @@ struct C16Lookup
 	static inline constexpr const C16 NEGATIVE_CHAR = L'-';
 	static inline constexpr const C16 DECIMAL_CHAR = L'.';
 	static inline constexpr const C16 ZERO_CHAR = L'0';
+	static inline constexpr const C16 SPACE = L' ';
+	static inline constexpr const C16 HTAB = L'\t';
+	static inline constexpr const C16 VTAB = L'\v';
+	static inline constexpr const C16 RETURN = L'\r';
+	static inline constexpr const C16 NEW_LINE = L'\n';
+	static inline constexpr const C16 FEED = L'\f';
 	static inline constexpr const C16 OPEN_BRACE = L'{';
 	static inline constexpr const C16 CLOSE_BRACE = L'}';
 	static inline constexpr const C16 FMT_HEX = L'h';
@@ -315,18 +317,21 @@ private:
 	template<typename Arg> EnableForBool<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt);
 	template<typename Arg> EnableForFloat<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount = 5);
 	template<typename Arg> EnableForPointer<Arg, U64> InsertType(T* str, const Arg& value, U64 rmvAmt);
+	//TODO: Insert strings
 
 	template<typename Arg> EnableForSignedInt<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
 	template<typename Arg> EnableForUnsignedInt<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
 	template<typename Arg> EnableForFloat<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
 	template<typename Arg> EnableForPointer<Arg, U64> InsertHex(T* str, const Arg& value, U64 rmvAmt);
 
-	//TODO: Don't allocate string for every arg
-	void Format(U64& start, const StringBase& replace);
+	template<typename Arg>
+	void Format(U64& start, const Arg& value);
 
-	U64 Length(T* str);
-	void Copy(T* dst, T* src, U64 length);
-	bool Compare(T* a, T* b, U64 length);
+	U64 Length(const T* str);
+	void Copy(T* dst, const T* src, U64 length);
+	bool Compare(const T* a, const T* b, U64 length);
+	bool WhiteSpace(T c);
+	bool NotWhiteSpace(T c);
 
 	bool hashed{ false };
 	U64 hash{ 0 };
@@ -387,7 +392,7 @@ inline StringBase<T, LU>::StringBase(const T* fmt, const Args& ... args) : size{
 {
 	Memory::AllocateArray(&string, capacity);
 
-	Copy(string, fmt, size + 1);
+	Copy(string, (T*)fmt, size + 1);
 	U64 start = 0;
 	(Format(start, args), ...);
 }
@@ -397,7 +402,7 @@ template<typename... Args>
 inline StringBase<T, LU>::StringBase(const Args& ... args)
 {
 	Memory::AllocateArray(&string, capacity);
-	(Append(args), ...);
+	(ToString(string + size, args), ...);
 }
 
 template<typename T, typename LU>
@@ -722,13 +727,12 @@ template<typename T, typename LU>
 inline bool StringBase<T, LU>::Blank() const
 {
 	if (size == 0) { return true; }
-	T* start = string;
+	T* it = string;
 	T c;
 
-	//TODO:
-	while (WHITE_SPACE(c, start));
+	while (WhiteSpace(c = *it++));
 
-	return start - string == size;
+	return c == LU::NULL_CHAR;
 }
 
 template<typename T, typename LU>
@@ -763,9 +767,9 @@ inline StringBase<T, LU>& StringBase<T, LU>::Trim()
 	T* end = string + size;
 	T c;
 
-	//TODO:
-	while (WHITE_SPACE(c, start)) { ++start; }
-	while (WHITE_SPACE(c, end)) { --end; }
+	//TODO: Verify this works
+	while (WhiteSpace(c = *start++));
+	while (WhiteSpace(c = *end--));
 
 	size = end - start;
 	Copy(string, start, size);
@@ -1160,10 +1164,10 @@ inline StringBase<T, LU>::HexToString(T* str, const Arg& value)
 	U8 digits;
 	U64 max;
 
-	if constexpr (IsSame<T, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
-	else if constexpr (IsSame<T, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
-	else if constexpr (IsSame<T, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
-	else if constexpr (IsSame<T, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	if constexpr (IsSameNoQuals<Arg, U8>) { pairs = 1; digits = 2; max = U8_MAX; }
+	else if constexpr (IsSameNoQuals<Arg, U16>) { pairs = 2; digits = 4; max = U16_MAX; }
+	else if constexpr (IsSameNoQuals<Arg, U32>) { pairs = 4; digits = 8; max = U32_MAX; }
+	else if constexpr (IsSameNoQuals<Arg, UL32>) { pairs = 4; digits = 8; max = U32_MAX; }
 	else { pairs = 8; digits = 16; max = U64_MAX; }
 
 	T* c = str + digits;
@@ -1216,10 +1220,10 @@ inline StringBase<T, LU>::HexToString(T* str, const Arg& value)
 
 	U8 pairs;
 	U8 digits;
-	if constexpr (IsSame<T, U8>) { pairs = 1; digits = 2; }
-	else if constexpr (IsSame<T, U16>) { pairs = 2; digits = 4; }
-	else if constexpr (IsSame<T, U32>) { pairs = 4; digits = 8; }
-	else if constexpr (IsSame<T, UL32>) { pairs = 4; digits = 8; }
+	if constexpr (IsSameNoQuals<Arg, U8>) { pairs = 1; digits = 2; }
+	else if constexpr (IsSameNoQuals<Arg, U16>) { pairs = 2; digits = 4; }
+	else if constexpr (IsSameNoQuals<Arg, U32>) { pairs = 4; digits = 8; }
+	else if constexpr (IsSameNoQuals<Arg, UL32>) { pairs = 4; digits = 8; }
 	else { pairs = 8; digits = 16; }
 
 	T* c = str + digits;
@@ -1280,16 +1284,16 @@ inline StringBase<T, LU>::ToType(U64 start) const
 {
 	T* it = string + start;
 	T c;
-	I64 value = 0;
+	Arg value = 0;
 
-	if (*string == LU::NEGATIVE_CHAR)
+	if (*it == LU::NEGATIVE_CHAR)
 	{
 		++it;
-		while (NOT_WHITE_SPACE(c, it) && c != LU::NULL_CHAR) { value *= 10; value -= c - LU::ZERO_CHAR; ++it; }
+		while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR) { value *= 10; value -= c - LU::ZERO_CHAR; }
 	}
 	else
 	{
-		while (NOT_WHITE_SPACE(c, it)) { value *= 10; value += c - LU::ZERO_CHAR; ++it; }
+		while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR) { value *= 10; value += c - LU::ZERO_CHAR; }
 	}
 
 	return value;
@@ -1300,11 +1304,11 @@ template<typename Arg>
 EnableForUnsignedInt<Arg, Arg>
 inline StringBase<T, LU>::ToType(U64 start) const
 {
-	C8* it = string + start;
-	C8 c;
-	T value = 0;
+	T* it = string + start;
+	T c;
+	Arg value = 0;
 
-	while (NOT_WHITE_SPACE(c, it) && c != LU::NULL_CHAR) { value *= 10; value += c - LU::ZERO_CHAR; ++it; }
+	while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR) { value *= 10; value += c - LU::ZERO_CHAR; }
 
 	return value;
 }
@@ -1314,8 +1318,7 @@ template<typename Arg>
 EnableForBool<Arg, Arg>
 inline StringBase<T, LU>::ToType(U64 start) const
 {
-	T* c = string + start;
-	return IS_TRUE(c);
+	return Compare(string + start, LU::TRUE_STR, 4);
 }
 
 template<typename T, typename LU>
@@ -1325,19 +1328,19 @@ inline StringBase<T, LU>::ToType(U64 start) const
 {
 	T* it = string + start;
 	T c;
-	F64 value = 0.0f;
+	Arg value = 0.0f;
 	F64 mul = 0.1f;
 
-	if (*string == LU::NEGATIVE_CHAR)
+	if (*it == LU::NEGATIVE_CHAR)
 	{
 		++it;
-		while (NOT_WHITE_SPACE(c, it) && c != LU::NULL_CHAR && c != LU::DECIMAL_CHAR) { value *= 10; value -= c - LU::ZERO_CHAR; ++it; }
-		while (NOT_WHITE_SPACE(c, it) && c != LU::NULL_CHAR) { value -= (c - LU::ZERO_CHAR) * mul; mul *= 0.1f; ++it; }
+		while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR && c != LU::DECIMAL_CHAR) { value *= 10; value -= c - LU::ZERO_CHAR; }
+		while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR) { value -= (c - LU::ZERO_CHAR) * mul; mul *= 0.1f; }
 	}
 	else
 	{
-		while (NOT_WHITE_SPACE(c, it) && c != LU::NULL_CHAR && c != LU::DECIMAL_CHAR) { value *= 10; value += c - LU::ZERO_CHAR; ++it; }
-		while (NOT_WHITE_SPACE(c, it) && c != LU::NULL_CHAR) { value += (c - LU::ZERO_CHAR) * mul; mul *= 0.1f; ++it; }
+		while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR && c != LU::DECIMAL_CHAR) { value *= 10; value += c - LU::ZERO_CHAR; }
+		while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR) { value += (c - LU::ZERO_CHAR) * mul; mul *= 0.1f; }
 	}
 
 	return value;
@@ -1352,7 +1355,7 @@ inline StringBase<T, LU>::ToType(U64 start) const
 }
 
 template<typename T, typename LU>
-inline U64 StringBase<T, LU>::Length(T* str)
+inline U64 StringBase<T, LU>::Length(const T* str)
 {
 	U64 length = 0;
 	T* c = str;
@@ -1363,25 +1366,25 @@ inline U64 StringBase<T, LU>::Length(T* str)
 }
 
 template<>
-inline U64 StringBase<C8, C8Lookup>::Length(C8* str)
+inline U64 StringBase<C8, C8Lookup>::Length(const C8* str)
 {
 	return strlen(str);
 }
 
 template<>
-inline U64 StringBase<C16, C16Lookup>::Length(C16* str)
+inline U64 StringBase<C16, C16Lookup>::Length(const C16* str)
 {
 	return wcslen(str);
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::Copy(T* dst, T* src, U64 length)
+inline void StringBase<T, LU>::Copy(T* dst, const T* src, U64 length)
 {
 	memcpy(dst, src, length * sizeof(T));
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::Compare(T* a, T* b, U64 length)
+inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length)
 {
 	T* c0 = a;
 	T* c1 = b;
@@ -1394,37 +1397,55 @@ inline bool StringBase<T, LU>::Compare(T* a, T* b, U64 length)
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::Format(U64& start, const StringBase<T, LU>& replace)
+inline bool StringBase<T, LU>::WhiteSpace(T c)
+{
+	return c == LU::SPACE || c == LU::HTAB || c == LU::VTAB || c == LU::NEW_LINE || c == LU::RETURN || c == LU::FEED;
+}
+
+template<typename T, typename LU>
+inline bool StringBase<T, LU>::NotWhiteSpace(T c)
+{
+	return c != LU::SPACE && c != LU::HTAB && c != LU::VTAB && c != LU::NEW_LINE && c != LU::RETURN && c != LU::FEED;
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+inline void StringBase<T, LU>::Format(U64& start, const Arg& value)
 {
 	hashed = false;
 	T* it = string + start;
-	T c;
+	T c = *it;
 
-	while ((c = *it++) != LU::NULL_CHAR && c != LU::OPEN_BRACE);
-
-	if (c != LU::NULL_CHAR)
+	//TODO: escape characters ``
+	while ((c = *it++) != LU::NULL_CHAR)
 	{
-		//TODO: check for CLOSE_BRACE
-		c = *it++;
-		switch (c)
+		if (c == LU::OPEN_BRACE)
 		{
-		case LU::NULL_CHAR: { start = it - string; }
-		case LU::CLOSE_BRACE: { start = InsertType(it - 2, value, 2); }
-		case LU::FMT_HEX: { start = InsertHex(it - 2, value, 3); }
-		case LU::FMT_DEC: { start = InsertType(it - 3, value, 4, *it++); } //TODO: More checks, check if float (constexpr IsSame), check if single digit n
+			c = *it++;
+			switch (c)
+			{
+			case LU::CLOSE_BRACE: {
+				start = InsertType(it - 2, value, 2);
+			} break;
+			case LU::FMT_HEX: {
+				if (*it == LU::CLOSE_BRACE) { start = InsertHex(it - 2, value, 3); }
+				else { /*Logger::Error("Invalid hex token, must be '{h}'!");*/ start = it - string; }
+			} break;
+			case LU::FMT_DEC: {
+				if constexpr (IsSameNoQuals<Arg, F32> || IsSameNoQuals<Arg, F64>)
+				{
+					if (*it == LU::CLOSE_BRACE) { start = InsertType(it - 3, value, 4); }
+					else if (it[1] == LU::CLOSE_BRACE) { start = InsertType(it - 3, value, 4, *it++); }
+					else { /*Logger::Error("Invalid decimal token, must be '{.n}' where n is one digit!");*/ start = it - string; }
+				}
+				else { /*Logger::Error("Decimal token can only be used with float types!");*/ start = it - string; }
+			} break;
+			default: {
+				//Logger::Error("Unknown format option '{}'!", c);
+				start = it - string;
+			}
+			}
 		}
-	}
-
-
-	while (*c != LU::NULL_CHAR && Compare(c, "{}", 2)) { ++c; }
-
-	if (*c != LU::NULL_CHAR)
-	{
-		start = (c - string) + replace.size;
-		Copy(c + replace.size, c + 2, size - 2 - (c - string));
-		Copy(c, replace.string, replace.size);
-		size = size - 2 + replace.size;
-		string[size] = LU::NULL_CHAR;
 	}
 }
 
@@ -1433,7 +1454,46 @@ template<typename Arg>
 EnableForSignedInt<Arg, U64> inline
 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
 {
-	//TODO
+	if (capacity < size + 21 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 21 - rmvAmt); }
+
+	Copy(str + 20, str + rmvAmt, size - rmvAmt - (str - string));
+
+	T* c = str + 20;
+	const T* threeDigits;
+	U8 neg = 0;
+
+	U64 abs = (U64)value;
+
+	if (value < 0)
+	{
+		str[0] = LU::NEGATIVE_CHAR;
+		abs = (U64)-value;
+		neg = 1;
+	}
+
+	while (abs > 999)
+	{
+		U64 newVal = abs / 1000;
+		U64 remainder = abs % 1000;
+		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		abs = newVal;
+	}
+
+	threeDigits = LU::DECIMAL_LOOKUP + (abs * 3);
+	*--c = threeDigits[2];
+	if (abs > 9) { *--c = threeDigits[1]; }
+	if (abs > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 + neg - (c - str);
+	size += addLength;
+
+	Copy(str + neg, c, addLength);
+	str[size] = LU::NULL_CHAR;
+
+	return (str - string) + addLength + 1;
 }
 
 template<typename T, typename LU>
@@ -1441,7 +1501,37 @@ template<typename Arg>
 EnableForUnsignedInt<Arg, U64> inline
 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
 {
-	//TODO
+	if (capacity < size + 21 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 21 - rmvAmt); }
+
+	Copy(str + 20, str + rmvAmt, size - rmvAmt - (str - string));
+
+	T* c = str + 20;
+	const T* threeDigits;
+	U64 val = value;
+
+	while (val > 999)
+	{
+		U64 newVal = val / 1000;
+		U64 remainder = val % 1000;
+		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		val = newVal;
+	}
+
+	threeDigits = LU::DECIMAL_LOOKUP + (val * 3);
+	*--c = threeDigits[2];
+	if (val > 9) { *--c = threeDigits[1]; }
+	if (val > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 20 - (c - str);
+	size += addLength;
+
+	Copy(str, c, addLength);
+	str[size] = LU::NULL_CHAR;
+
+	return (str - string) + addLength + 1;
 }
 
 template<typename T, typename LU>
@@ -1449,7 +1539,28 @@ template<typename Arg>
 EnableForBool<Arg, U64> inline
 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
 {
-	//TODO
+	if (value)
+	{
+		if (capacity < size + 5 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 5 - rmvAmt); }
+
+		Copy(str + 4, str + rmvAmt, size - rmvAmt - (str - string));
+		Copy(str + size, LU::TRUE_STR, 4);
+		size += 4;
+		str[size] = LU::NULL_CHAR;
+
+		return (str - string) + 5;
+	}
+	else
+	{
+		if (capacity < size + 6 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 6 - rmvAmt); }
+
+		Copy(str + 5, str + rmvAmt, size - rmvAmt - (str - string));
+		Copy(str + size, LU::FALSE_STR, 5);
+		size += 5;
+		str[size] = LU::NULL_CHAR;
+
+		return (str - string) + 6;
+	}
 }
 
 template<typename T, typename LU>
@@ -1457,7 +1568,63 @@ template<typename Arg>
 EnableForFloat<Arg, U64> inline
 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount)
 {
-	//TODO
+	if (capacity < size + 22 + decimalCount) { Memory::Reallocate(&string, capacity = size + 22 + decimalCount); }
+
+	Copy(str + 21 + decimalCount, str + rmvAmt, size - rmvAmt - (str - string));
+	T* c = str + 21 + decimalCount;
+	const T* threeDigits;
+	U8 neg = 0;
+
+	F64 abs = value;
+
+	if (value < 0)
+	{
+		str[0] = LU::NEGATIVE_CHAR;
+		abs = -value;
+		neg = 1;
+	}
+
+	//TODO: use decimalCount
+	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+
+	U64 newVal = dec / 1000;
+	U64 remainder = dec % 1000;
+	threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = threeDigits[0];
+	dec = newVal;
+
+	threeDigits = LU::DECIMAL_LOOKUP + (dec * 3);
+	*--c = threeDigits[2];
+	*--c = threeDigits[1];
+	*--c = LU::DECIMAL_CHAR;
+
+	U64 whole = (U64)abs;
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
+		*--c = threeDigits[2];
+		*--c = threeDigits[1];
+		*--c = threeDigits[0];
+		whole = newVal;
+	}
+
+	threeDigits = LU::DECIMAL_LOOKUP + (whole * 3);
+	*--c = threeDigits[2];
+	if (whole > 9) { *--c = threeDigits[1]; }
+	if (whole > 99) { *--c = threeDigits[0]; }
+
+	U64 addLength = 21 + decimalCount + neg - (c - str);
+	size += addLength;
+
+	Copy(str + neg, c, addLength);
+	str[size] = LU::NULL_CHAR;
+
+	return (str - string) + addLength + 1;
 }
 
 template<typename T, typename LU>
@@ -1465,7 +1632,7 @@ template<typename Arg>
 EnableForPointer<Arg, U64> inline
 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
 {
-	//TODO
+	return InsertType(str, (U64)value, rmvAmt);
 }
 
 template<typename T, typename LU>

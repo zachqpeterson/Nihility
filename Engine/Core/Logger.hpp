@@ -17,7 +17,6 @@
 #	define LOG_TRACE_ENABLED 0
 #endif
 
-struct String;
 struct File;
 
 class NH_API Logger

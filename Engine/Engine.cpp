@@ -42,7 +42,8 @@ void Engine::Initialize(const C16* applicationName, InitializeFn init, UpdateFn 
 	U64 count = 123;
 	Memory::AllocateArray(&p, count);
 
-	String str("123");
+	String s("asd");
+	StringBase<C8, C8Lookup> str("asdsa");
 
 	U64 i = str.ToType<U64>();
 
