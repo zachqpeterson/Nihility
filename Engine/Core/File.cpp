@@ -1,14 +1,12 @@
 #include "File.hpp"
 
-#include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
-#include "Core\Logger.hpp"
 
 #if defined PLATFORM_WINDOWS
 
 #include <stdio.h>
 
-static const C8* openMode[FILE_OPEN_COUNT]{
+static const char* openMode[FILE_OPEN_COUNT]{
 	"rbS",
 	"rbR",
 	"r+R",
@@ -41,7 +39,7 @@ void File::Close()
 bool File::Open(const String& path, FileOpenType type)
 {
 	Close();
-	fopen_s(&handle, path.Data(), openMode[type]);
+	fopen_s(&handle, path.CStr(), openMode[type]);
 	updateSize = true;
 
 	return handle;

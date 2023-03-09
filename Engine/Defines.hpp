@@ -41,10 +41,13 @@ typedef float F32;
 typedef double F64;
 
 ///8-bit ascii character
-typedef char C8;
+typedef char8_t C8;
 
 ///16-bit unicode character
 typedef wchar_t C16;
+
+///16-bit unicode character
+typedef char32_t C32;
 
 ///Maximum value of an unsigned 64-bit integer
 static constexpr U64 U64_MAX = 0xFFFFFFFFFFFFFFFFUI64;
@@ -319,32 +322,47 @@ template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>
 
 #include <type_traits>
 
-template <typename Type, typename Return = void>
-using EnableForSignedInt = std::enable_if_t<std::is_signed_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
+template <class Type> struct RemoveConst { using type = Type; };
+template <class Type> struct RemoveConst<const Type> { using type = Type; };
+template <class Type> using ConstRemoved = typename RemoveConst<Type>::type;
 
-template <typename Type, typename Return = void>
-using EnableForUnsignedInt = std::enable_if_t<std::is_unsigned_v<Type> && std::_Is_nonbool_integral<Type>, Return>;
+template <class Type> struct RemoveVolatile { using type = Type; };
+template <class Type> struct RemoveVolatile<volatile Type> { using type = Type; };
+template <class Type> using VolatileRemoved = typename RemoveVolatile<Type>::type;
 
-template <typename Type, typename Return = void>
-using EnableForBool = std::enable_if_t<std::is_integral_v<Type> && !std::_Is_nonbool_integral<Type>, Return>;
+template <class Type> struct RemoveQuals { using type = Type; };
+template <class Type> struct RemoveQuals<const Type> { using type = Type; };
+template <class Type> struct RemoveQuals<volatile Type> { using type = Type; };
+template <class Type> struct RemoveQuals<const volatile Type> { using type = Type; };
+template <class Type> using QualsRemoved = typename RemoveQuals<Type>::type;
 
-template <typename Type, typename Return = void>
-using EnableForFloat = std::enable_if_t<std::is_floating_point_v<Type>, Return>;
+template <class Type> concept Pointer = IsPointer<Type>;
+template <class> inline constexpr bool IsPointer = false;
+template <class Type> inline constexpr bool IsPointer<Type*> = true;
+template <class Type> inline constexpr bool IsPointer<Type* const> = true;
+template <class Type> inline constexpr bool IsPointer<Type* volatile> = true;
+template <class Type> inline constexpr bool IsPointer<Type* const volatile> = true;
 
-template <typename Type, typename Return = void>
-using EnableForPointer = std::enable_if_t<std::is_pointer_v<Type>, Return>;
+template <class, class> inline constexpr bool IsSame = false;
+template <class Type> inline constexpr bool IsSame<Type, Type> = true;
 
-template <typename Type, typename Return = void>
-using EnableForNotPointer = std::enable_if_t<!std::is_pointer_v<Type>, Return>;
+template <class Type> concept Character = std::_Is_any_of_v<QualsRemoved<Type>, C8, C16, C32, char16_t>;
+template <class Type> inline constexpr bool IsCharacter = std::_Is_any_of_v<QualsRemoved<Type>, C8, C16, C32, char16_t>;
 
-template <typename Check, typename Type, typename Return = void>
-using EnableForT = std::enable_if_t<std::is_same_v<std::remove_cv_t<Check>, std::remove_cv_t<Type>>, Return>;
+template <class Type> concept Boolean = std::_Is_any_of_v<QualsRemoved<Type>, bool>;
+template <class Type> inline constexpr bool IsBoolean = std::_Is_any_of_v<QualsRemoved<Type>, bool>;
 
-template <typename T0, typename T1>
-inline constexpr bool IsSame = std::is_same_v<T0, T1>;
+template <class Type> concept Integer = std::_Is_any_of_v<QualsRemoved<Type>, I8, U8, I16, U16, I32, U32, L32, UL32, I64, U64, short, int, long, long long>;
+template <class Type> inline constexpr bool IsInteger = std::_Is_any_of_v<QualsRemoved<Type>, I8, U8, I16, U16, I32, U32, L32, UL32, I64, U64, short, int, long, long long>;
 
-template <typename T0, typename T1>
-inline constexpr bool IsSameNoQuals = std::is_same_v<std::remove_cv_t<T0>, std::remove_cv_t<T1>>;
+template <class Type> concept Signed = std::_Is_any_of_v<QualsRemoved<Type>, I8, I16, I32, L32, I64, short, int, long, long long>;
+template <class Type> inline constexpr bool IsSigned = std::_Is_any_of_v<QualsRemoved<Type>, I8, I16, I32, L32, I64, short, int, long, long long>;
+
+template <class Type> concept Unsigned = std::_Is_any_of_v<QualsRemoved<Type>, U8, U16, U32, UL32, U64, char>;
+template <class Type> inline constexpr bool IsUnsigned = std::_Is_any_of_v<QualsRemoved<Type>, U8, U16, U32, UL32, U64>;
+
+template <class Type> concept FloatingPoint = std::_Is_any_of_v<QualsRemoved<Type>, F32, F64, long double>;
+template <class Type> inline constexpr bool IsFloatingPoint = std::_Is_any_of_v<QualsRemoved<Type>, F32, F64, long double>;
 
 static struct Hex {} HEX;
 static struct NoInit {} NO_INIT;

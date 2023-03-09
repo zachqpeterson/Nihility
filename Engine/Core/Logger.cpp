@@ -1,5 +1,7 @@
 #include "Logger.hpp"
 
+#include "Platform\Platform.hpp"
+
 #if defined PLATFORM_WINDOWS
 
 #include <Windows.h>

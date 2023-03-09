@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "File.hpp"
 
+#include "File.hpp"
 #include "Containers\String.hpp"
-#include "Platform\Platform.hpp"
 
 #define LOG_WARN_ENABLED 1
 #define LOG_INFO_ENABLED 1

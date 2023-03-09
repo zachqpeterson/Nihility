@@ -1,6 +1,7 @@
 #include "Input.hpp"
 
 #include "Device.hpp"
+#include "Platform.hpp"
 #include "Core\Logger.hpp"
 #include "Containers\Vector.hpp"
 #include "Containers\String.hpp"

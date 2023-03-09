@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Containers\String.hpp"
 
 enum FileOpenType
 {
