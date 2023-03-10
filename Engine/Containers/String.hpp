@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
@@ -275,8 +276,8 @@ struct C32Lookup
 		U"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
 };
 
-template <class Type> concept Str = std::_Is_any_of_v<QualsRemoved<Type>, C8*, C16*, C32*, char*, char16_t*>;
-template <class Type> concept StrBs = std::_Is_any_of_v<QualsRemoved<Type>, StringBase<C8, C8Lookup>, StringBase<C16, C16Lookup>, StringBase<C32, C32Lookup>>;
+static struct Hex {} HEX;
+static struct NoInit {} NO_INIT;
 
 /*
 * TODO: Documentation
@@ -396,8 +397,8 @@ private:
 	template<FloatingPoint Arg> void ToString(T* str, const Arg& value);
 	template<Pointer Arg> void ToString(T* str, const Arg& value);
 	template<Character Arg> void ToString(T* str, const Arg& value);
-	template<Str Arg> void ToString(T* str, const Arg& value);
-	template<StrBs Arg> void ToString(T* str, const Arg& value);
+	template<StringLiteral Arg> void ToString(T* str, const Arg& value);
+	//template<StrBs Arg> void ToString(T* str, const Arg& value);
 
 	template<Signed Arg> void HexToString(T* str, const Arg& value);
 	template<Unsigned Arg> void HexToString(T* str, const Arg& value);
@@ -410,8 +411,8 @@ private:
 	template<FloatingPoint Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount = 5);
 	template<Pointer Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
 	template<Character Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<Str Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<StrBs Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
+	template<StringLiteral Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
+	//template<StrBs Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
 
 	template<Signed Arg> U64 InsertHex(T* str, const Arg& value, U64 rmvAmt);
 	template<Unsigned Arg> U64 InsertHex(T* str, const Arg& value, U64 rmvAmt);
@@ -1168,14 +1169,7 @@ inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
 }
 
 template<typename T, typename LU>
-template<Str Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<StrBs Arg>
+template<StringLiteral Arg>
 inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
 	//TODO
@@ -1192,10 +1186,10 @@ inline void StringBase<T, LU>::HexToString(T* str, const Arg& value)
 	U8 digits;
 	U64 max;
 
-	if constexpr (IsSameNoQuals<Arg, I8>) { if (!string || capacity < size + 3) { Memory::Reallocate(&string, capacity = size + 3); } pairs = 1; digits = 2; max = U8_MAX; }
-	else if constexpr (IsSameNoQuals<Arg, I16>) { if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); } pairs = 2; digits = 4; max = U16_MAX; }
-	else if constexpr (IsSameNoQuals<Arg, I32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; max = U32_MAX; }
-	else if constexpr (IsSameNoQuals<Arg, L32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; max = U32_MAX; }
+	if constexpr (IsSame<RemovedQuals<Arg>, I8>) { if (!string || capacity < size + 3) { Memory::Reallocate(&string, capacity = size + 3); } pairs = 1; digits = 2; max = U8_MAX; }
+	else if constexpr (IsSame<RemovedQuals<Arg>, I16>) { if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); } pairs = 2; digits = 4; max = U16_MAX; }
+	else if constexpr (IsSame<RemovedQuals<Arg>, I32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; max = U32_MAX; }
+	else if constexpr (IsSame<RemovedQuals<Arg>, L32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; max = U32_MAX; }
 	else { if (!string || capacity < size + 17) { Memory::Reallocate(&string, capacity = size + 17); } pairs = 8; digits = 16; max = U64_MAX; }
 
 	T* c = str + digits;
@@ -1246,10 +1240,10 @@ inline void StringBase<T, LU>::HexToString(T* str, const Arg& value)
 
 	U8 pairs;
 	U8 digits;
-	if constexpr (IsSameNoQuals<Arg, U8>) { if (!string || capacity < size + 3) { Memory::Reallocate(&string, capacity = size + 3); } pairs = 1; digits = 2; }
-	else if constexpr (IsSameNoQuals<Arg, U16>) { if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); } pairs = 2; digits = 4; }
-	else if constexpr (IsSameNoQuals<Arg, U32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; }
-	else if constexpr (IsSameNoQuals<Arg, UL32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; }
+	if constexpr (IsSame<RemovedQuals<Arg>, U8>) { if (!string || capacity < size + 3) { Memory::Reallocate(&string, capacity = size + 3); } pairs = 1; digits = 2; }
+	else if constexpr (IsSame<RemovedQuals<Arg>, U16>) { if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); } pairs = 2; digits = 4; }
+	else if constexpr (IsSame<RemovedQuals<Arg>, U32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; }
+	else if constexpr (IsSame<RemovedQuals<Arg>, UL32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; }
 	else { if (!string || capacity < size + 17) { Memory::Reallocate(&string, capacity = size + 17); } pairs = 8; digits = 16; }
 
 	T* c = str + digits;
@@ -1643,14 +1637,7 @@ inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
 }
 
 template<typename T, typename LU>
-template<Str Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<StrBs Arg>
+template<StringLiteral Arg>
 inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
 {
 	//TODO
