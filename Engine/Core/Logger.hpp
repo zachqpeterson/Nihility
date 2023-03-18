@@ -21,13 +21,12 @@ struct File;
 class NH_API Logger
 {
 public:
-	//TODO: WString versions
-	template<typename... Types> static void Fatal(const C8* message, const Types&... args);
-	template<typename... Types> static void Error(const C8* message, const Types&... args);
-	template<typename... Types> static void Warn(const C8* message, const Types&... args);
-	template<typename... Types> static void Info(const C8* message, const Types&... args);
-	template<typename... Types> static void Debug(const C8* message, const Types&... args);
-	template<typename... Types> static void Trace(const C8* message, const Types&... args);
+	template<Character T, typename... Types> static void Fatal(const T* message, const Types&... args);
+	template<Character T, typename... Types> static void Error(const T* message, const Types&... args);
+	template<Character T, typename... Types> static void Warn(const T* message, const Types&... args);
+	template<Character T, typename... Types> static void Info(const T* message, const Types&... args);
+	template<Character T, typename... Types> static void Debug(const T* message, const Types&... args);
+	template<Character T, typename... Types> static void Trace(const T* message, const Types&... args);
 	template<typename Type> static void Fatal(const Type& arg);
 	template<typename Type> static void Error(const Type& arg);
 	template<typename Type> static void Warn(const Type& arg);
@@ -56,21 +55,21 @@ private:
 	friend class Engine;
 };
 
-template<typename... Types> inline void Logger::Fatal(const C8* message, const Types&... args)
+template<Character T, typename... Types> inline void Logger::Fatal(const T* message, const Types&... args)
 {
 	String str(message, args...);
 	str.Surround(fatalTag, endLine);
 	Write(str);
 }
 
-template<typename... Types> inline void Logger::Error(const C8* message, const Types&... args)
+template<Character T, typename... Types> inline void Logger::Error(const T* message, const Types&... args)
 {
 	String str(message, args...);
 	str.Surround(errorTag, endLine);
 	Write(str);
 }
 
-template<typename... Types> inline void Logger::Warn(const C8* message, const Types&... args)
+template<Character T, typename... Types> inline void Logger::Warn(const T* message, const Types&... args)
 {
 #if LOG_WARN_ENABLED
 	String str(message, args...);
@@ -79,7 +78,7 @@ template<typename... Types> inline void Logger::Warn(const C8* message, const Ty
 #endif
 }
 
-template<typename... Types> inline void Logger::Info(const C8* message, const Types&... args)
+template<Character T, typename... Types> inline void Logger::Info(const T* message, const Types&... args)
 {
 #if LOG_INFO_ENABLED
 	String str(message, args...);
@@ -88,7 +87,7 @@ template<typename... Types> inline void Logger::Info(const C8* message, const Ty
 #endif
 }
 
-template<typename... Types> inline void Logger::Debug(const C8* message, const Types&... args)
+template<Character T, typename... Types> inline void Logger::Debug(const T* message, const Types&... args)
 {
 #if LOG_DEBUG_ENABLED
 	String str(message, args...);
@@ -97,7 +96,7 @@ template<typename... Types> inline void Logger::Debug(const C8* message, const T
 #endif
 }
 
-template<typename... Types> inline void Logger::Trace(const C8* message, const Types&... args)
+template<Character T, typename... Types> inline void Logger::Trace(const T* message, const Types&... args)
 {
 #if LOG_TRACE_ENABLED
 	String str(message, args...);

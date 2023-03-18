@@ -95,9 +95,8 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 	HIDD_ATTRIBUTES vendorAndProductID;
 	if (!HidD_GetAttributes(ntHandle, &vendorAndProductID)) { Destroy(); return; }
 
-	//TODO: {h} to automatically format hex
-	String axisPath("System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{}&PID_{}\\Axes\\",
-		String(vendorAndProductID.VendorID, HEX), String(vendorAndProductID.ProductID, HEX));
+	String axisPath("System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Axes\\",
+		vendorAndProductID.VendorID, vendorAndProductID.ProductID);
 
 	for (U64 i = 0; i < AXIS_MAPPING_COUNT; ++i)
 	{
@@ -111,7 +110,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 		RegQueryValueExA(key, "", nullptr, &valueType, nullptr, &valueSize);
 		if (valueType && sizeof(axisMappings[i].name) > valueSize == REG_SZ)
 		{
-			RegQueryValueExA(key, "", nullptr, &valueType, (U8*)(axisMappings[i].name), &valueSize);
+			//RegQueryValueExA(key, "", nullptr, &valueType, (U8*)(axisMappings[i].name), &valueSize);
 		}
 
 		HIDAttributes mapping;
@@ -147,7 +146,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 		RegQueryValueExA(key, "", nullptr, &valueType, nullptr, &valueSize);
 		if (REG_SZ == valueType && sizeof(buttonMappings[i].name) > valueSize)
 		{
-			RegQueryValueExA(key, "", nullptr, &valueType, (U8*)buttonMappings[i].name, &valueSize);
+			//RegQueryValueExA(key, "", nullptr, &valueType, (U8*)buttonMappings[i].name, &valueSize);
 		}
 
 		HIDAttributes mapping;
@@ -213,7 +212,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 
 				if (currentClass.UsagePage == mapping.usagePage && currentUsage == mapping.usage)
 				{
-					toName = (C8*)mapping.name;
+					//toName = (C8*)mapping.name;
 					isCalibrated = mapping.isCalibrated;
 					if (mapping.isCalibrated)
 					{
@@ -260,7 +259,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 			{
 				if (mapping.usagePage == currentClass.UsagePage && mapping.usage == currentUsage)
 				{
-					toName = (C8*)mapping.name;
+					//toName = (C8*)mapping.name;
 
 					mapping.usage = 0; //TODO Optimization: skip on future iterations
 					break;

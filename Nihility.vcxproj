@@ -106,6 +106,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
     <ClInclude Include="Engine\Containers\Queue.hpp" />
     <ClInclude Include="Engine\Containers\Stack.hpp" />
@@ -126,7 +127,6 @@
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
-    <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Core\File.cpp" />

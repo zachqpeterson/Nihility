@@ -20,14 +20,14 @@ HICON sizeWE;
 HICON sizeNESW;
 HICON sizeNWSE;
 
-static constexpr const C16* MENU_NAME = L"Nihility Menu";
-static constexpr const C16* CLASS_NAME = L"Nihility Class";
+static constexpr const C8* MENU_NAME = "Nihility Menu";
+static constexpr const C8* CLASS_NAME = "Nihility Class";
 
-bool Platform::Initialize(const C16* applicationName)
+bool Platform::Initialize(const C8* applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
-	windowData.instance = GetModuleHandleW(0);
+	windowData.instance = GetModuleHandleA(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
 
@@ -40,34 +40,34 @@ bool Platform::Initialize(const C16* applicationName)
 	//sizeNWSE = LoadCursorW(nullptr, IDC_SIZENWSE);
 
 	//Setup and register window class.
-	WNDCLASSEXW wc{};
-	wc.cbSize = sizeof(WNDCLASSEXW);
+	WNDCLASSEXA wc{};
+	wc.cbSize = sizeof(WNDCLASSEXA);
 	wc.style = CS_DBLCLKS;
 	wc.lpfnWndProc = WindowsMessageProc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = windowData.instance;
-	wc.hIcon = LoadIconW(nullptr, L""); //MAKEINTRESOURCEW(IDI_ICON)
+	wc.hIcon = LoadIconA(nullptr, ""); //MAKEINTRESOURCEW(IDI_ICON)
 	wc.hCursor = arrow;
 	wc.hbrBackground = nullptr;
 	wc.lpszMenuName = MENU_NAME;
 	wc.lpszClassName = CLASS_NAME;
-	wc.hIconSm = LoadIconW(nullptr, L""); //MAKEINTRESOURCEW(IDI_ICON)
+	wc.hIconSm = LoadIconA(nullptr, ""); //MAKEINTRESOURCEW(IDI_ICON)
 
-	if (!RegisterClassExW(&wc))
+	if (!RegisterClassExA(&wc))
 	{
-		MessageBoxW(nullptr, L"Window registration failed!", L"Error", MB_ICONEXCLAMATION | MB_OK);
+		MessageBoxA(nullptr, "Window registration failed!", "Error", MB_ICONEXCLAMATION | MB_OK);
 		return false;
 	}
 
 	if (Settings::Fullscreen) { style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE; }
 	else { style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME; }
 
-	windowData.window = CreateWindowExW(0, CLASS_NAME, applicationName, style, 0, 0, 0, 0, nullptr, nullptr, windowData.instance, nullptr);
+	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, 0, 0, 0, 0, nullptr, nullptr, windowData.instance, nullptr);
 
 	if (!windowData.window)
 	{
-		MessageBoxW(nullptr, L"Window creation failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
+		MessageBoxA(nullptr, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
 		return false;
 	}
 
@@ -122,7 +122,7 @@ void Platform::Shutdown()
 		DestroyWindow(windowData.window);
 		windowData.window = nullptr;
 
-		UnregisterClassW(CLASS_NAME, windowData.instance);
+		UnregisterClassA(CLASS_NAME, windowData.instance);
 	}
 }
 
@@ -130,10 +130,10 @@ bool Platform::Update()
 {
 	MSG message;
 
-	while (PeekMessageW(&message, windowData.window, 0, 0, PM_REMOVE))
+	while (PeekMessageA(&message, windowData.window, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&message);
-		DispatchMessageW(&message);
+		DispatchMessageA(&message);
 	}
 
 	UpdateMouse();
@@ -150,7 +150,7 @@ void Platform::SetFullscreen(bool fullscreen)
 		style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE;
 
 		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
-		SetWindowLongPtrW(windowData.window, GWL_STYLE, style);
+		SetWindowLongPtrA(windowData.window, GWL_STYLE, style);
 		SetWindowPos(windowData.window, nullptr, border.left, border.top,
 			Settings::ScreenWidth + border.right - border.left, Settings::ScreenHeight + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
@@ -158,7 +158,7 @@ void Platform::SetFullscreen(bool fullscreen)
 	{
 		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME;
 		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
-		SetWindowLongPtrW(windowData.window, GWL_STYLE, style);
+		SetWindowLongPtrA(windowData.window, GWL_STYLE, style);
 		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionXSmall + border.left, Settings::WindowPositionYSmall + border.top,
 			Settings::WindowWidthSmall + border.right - border.left, Settings::WindowHeightSmall + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
@@ -205,9 +205,9 @@ void Platform::LockCursor(bool lock)
 	Settings::LOCK_CURSOR = lock;
 }
 
-void Platform::SetConsoleWindowTitle(const C16* name)
+void Platform::SetConsoleWindowTitle(const C8* name)
 {
-	SetConsoleTitleW(name);
+	SetConsoleTitleA(name);
 }
 
 const WindowData& Platform::GetWindowData()
@@ -337,7 +337,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	} break;
 	}
 
-	return DefWindowProcW(hwnd, msg, wParam, lParam);
+	return DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
 #endif

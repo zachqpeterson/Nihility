@@ -21,8 +21,8 @@ private:
 	void* dHandle;				//HANDLE
 	void* ntHandle;				//HANDLE
 	bool openHandle;
-	WString manufacturer;
-	WString product;
+	String manufacturer;
+	String product;
 	_HIDP_PREPARSED_DATA* inputReportProtocol;
 	HIDCapabilities capabilities;
 	U64 inputReportSize;

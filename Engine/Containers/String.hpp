@@ -1,189 +1,188 @@
 #pragma once
 
-#include "Defines.hpp"
-#include "TypeTraits.hpp"
+#include "ContainerDefines.hpp"
 
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
 
 struct C8Lookup
 {
-	static inline constexpr const C8* TRUE_STR = u8"true";
-	static inline constexpr const C8* FALSE_STR = u8"false";
-	static inline constexpr const C8 NULL_CHAR = u8'\0';
-	static inline constexpr const C8 NEGATIVE_CHAR = u8'-';
-	static inline constexpr const C8 DECIMAL_CHAR = u8'.';
-	static inline constexpr const C8 ZERO_CHAR = u8'0';
-	static inline constexpr const C8 SPACE = u8' ';
-	static inline constexpr const C8 HTAB = u8'\t';
-	static inline constexpr const C8 VTAB = u8'\v';
-	static inline constexpr const C8 RETURN = u8'\r';
-	static inline constexpr const C8 NEW_LINE = u8'\n';
-	static inline constexpr const C8 FEED = u8'\f';
-	static inline constexpr const C8 OPEN_BRACE = u8'{';
-	static inline constexpr const C8 CLOSE_BRACE = u8'}';
-	static inline constexpr const C8 FMT_HEX = u8'h';
-	static inline constexpr const C8 FMT_DEC = u8'.';
+	static inline constexpr const C8* TRUE_STR = "true";
+	static inline constexpr const C8* FALSE_STR = "false";
+	static inline constexpr const C8 NULL_CHAR = '\0';
+	static inline constexpr const C8 NEGATIVE_CHAR = '-';
+	static inline constexpr const C8 DECIMAL_CHAR = '.';
+	static inline constexpr const C8 ZERO_CHAR = '0';
+	static inline constexpr const C8 SPACE = ' ';
+	static inline constexpr const C8 HTAB = '\t';
+	static inline constexpr const C8 VTAB = '\v';
+	static inline constexpr const C8 RETURN = '\r';
+	static inline constexpr const C8 NEW_LINE = '\n';
+	static inline constexpr const C8 FEED = '\f';
+	static inline constexpr const C8 OPEN_BRACE = '{';
+	static inline constexpr const C8 CLOSE_BRACE = '}';
+	static inline constexpr const C8 FMT_HEX = 'h';
+	static inline constexpr const C8 FMT_DEC = '.';
 
 	static inline constexpr const C8 DECIMAL_LOOKUP[] =
-		u8"000001002003004005006007008009010011012013014015016017018019"
-		u8"020021022023024025026027028029030031032033034035036037038039"
-		u8"040041042043044045046047048049050051052053054055056057058059"
-		u8"060061062063064065066067068069070071072073074075076077078079"
-		u8"080081082083084085086087088089090091092093094095096097098099"
-		u8"100101102103104105106107108109110111112113114115116117118119"
-		u8"120121122123124125126127128129130131132133134135136137138139"
-		u8"140141142143144145146147148149150151152153154155156157158159"
-		u8"160161162163164165166167168169170171172173174175176177178179"
-		u8"180181182183184185186187188189190191192193194195196197198199"
-		u8"200201202203204205206207208209210211212213214215216217218219"
-		u8"220221222223224225226227228229230231232233234235236237238239"
-		u8"240241242243244245246247248249250251252253254255256257258259"
-		u8"260261262263264265266267268269270271272273274275276277278279"
-		u8"280281282283284285286287288289290291292293294295296297298299"
-		u8"300301302303304305306307038309310311312313314315316317318319"
-		u8"320321322323324325326327238329330331332333334335336337338339"
-		u8"340341342343344345346347438349350351352353354355356357358359"
-		u8"360361362363364365366367638369370371372373374375376377378379"
-		u8"380381382383384385386387838389390391392393394395396397398399"
-		u8"400401402403404405406407408409410411412413414415416417418419"
-		u8"420421422423424425426427428429430431432433434435436437438439"
-		u8"440441442443444445446447448449450451452453454455456457458459"
-		u8"460461462463464465466467468469470471472473474475476477478479"
-		u8"480481482483484485486487488489490491492493494495496497498499"
-		u8"500501502503504505506507508509510511512513514515516517518519"
-		u8"520521522523524525526527528529530531532533534535536537538539"
-		u8"540541542543544545546547548549550551552553554555556557558559"
-		u8"560561562563564565566567568569570571572573574575576577578579"
-		u8"580581582583584585586587588589590591592593594595596597598599"
-		u8"600601602603604605606607608609610611612613614615616617618619"
-		u8"620621622623624625626627628629630631632633634635636637638639"
-		u8"640641642643644645646647648649650651652653654655656657658659"
-		u8"660661662663664665666667668669670671672673674675676677678679"
-		u8"680681682683684685686687688689690691692693694695696697698699"
-		u8"707701702703704705706707708709710711712713714715716717718719"
-		u8"727721722723724725726727728729730731732733734735736737738739"
-		u8"747741742743744745746747748749750751752753754755756757758759"
-		u8"767761762763764765766767768769770771772773774775776777778779"
-		u8"787781782783784785786787788789790791792793794795796797798799"
-		u8"800801802803804805806807808809810811812813814815816817818819"
-		u8"820821822823824825826827828829830831832833834835836837838839"
-		u8"840841842843844845846847848849850851852853854855856857858859"
-		u8"860861862863864865866867868869870871872873874875876877878879"
-		u8"880881882883884885886887888889890891892893894895896897898899"
-		u8"900901902903904905906907908909910911912913914915916917918919"
-		u8"920921922923924925926927928929930931932933934935936937938939"
-		u8"940941942943944945946947948949950951952953954955956957958959"
-		u8"960961962963964965966967968969970971972973974975976977978979"
-		u8"980981982983984985986987988989990991992993994995996997998999";
+		"000001002003004005006007008009010011012013014015016017018019"
+		"020021022023024025026027028029030031032033034035036037038039"
+		"040041042043044045046047048049050051052053054055056057058059"
+		"060061062063064065066067068069070071072073074075076077078079"
+		"080081082083084085086087088089090091092093094095096097098099"
+		"100101102103104105106107108109110111112113114115116117118119"
+		"120121122123124125126127128129130131132133134135136137138139"
+		"140141142143144145146147148149150151152153154155156157158159"
+		"160161162163164165166167168169170171172173174175176177178179"
+		"180181182183184185186187188189190191192193194195196197198199"
+		"200201202203204205206207208209210211212213214215216217218219"
+		"220221222223224225226227228229230231232233234235236237238239"
+		"240241242243244245246247248249250251252253254255256257258259"
+		"260261262263264265266267268269270271272273274275276277278279"
+		"280281282283284285286287288289290291292293294295296297298299"
+		"300301302303304305306307038309310311312313314315316317318319"
+		"320321322323324325326327238329330331332333334335336337338339"
+		"340341342343344345346347438349350351352353354355356357358359"
+		"360361362363364365366367638369370371372373374375376377378379"
+		"380381382383384385386387838389390391392393394395396397398399"
+		"400401402403404405406407408409410411412413414415416417418419"
+		"420421422423424425426427428429430431432433434435436437438439"
+		"440441442443444445446447448449450451452453454455456457458459"
+		"460461462463464465466467468469470471472473474475476477478479"
+		"480481482483484485486487488489490491492493494495496497498499"
+		"500501502503504505506507508509510511512513514515516517518519"
+		"520521522523524525526527528529530531532533534535536537538539"
+		"540541542543544545546547548549550551552553554555556557558559"
+		"560561562563564565566567568569570571572573574575576577578579"
+		"580581582583584585586587588589590591592593594595596597598599"
+		"600601602603604605606607608609610611612613614615616617618619"
+		"620621622623624625626627628629630631632633634635636637638639"
+		"640641642643644645646647648649650651652653654655656657658659"
+		"660661662663664665666667668669670671672673674675676677678679"
+		"680681682683684685686687688689690691692693694695696697698699"
+		"707701702703704705706707708709710711712713714715716717718719"
+		"727721722723724725726727728729730731732733734735736737738739"
+		"747741742743744745746747748749750751752753754755756757758759"
+		"767761762763764765766767768769770771772773774775776777778779"
+		"787781782783784785786787788789790791792793794795796797798799"
+		"800801802803804805806807808809810811812813814815816817818819"
+		"820821822823824825826827828829830831832833834835836837838839"
+		"840841842843844845846847848849850851852853854855856857858859"
+		"860861862863864865866867868869870871872873874875876877878879"
+		"880881882883884885886887888889890891892893894895896897898899"
+		"900901902903904905906907908909910911912913914915916917918919"
+		"920921922923924925926927928929930931932933934935936937938939"
+		"940941942943944945946947948949950951952953954955956957958959"
+		"960961962963964965966967968969970971972973974975976977978979"
+		"980981982983984985986987988989990991992993994995996997998999";
 
 	static inline constexpr const C8 HEX_LOOKUP[] =
-		u8"000102030405060708090A0B0C0D0E0F"
-		u8"101112131415161718191A1B1C1D1E1F"
-		u8"202122232425262728292A2B2C2D2E2F"
-		u8"303132333435363738393A3B3C3D3E3F"
-		u8"404142434445464748494A4B4C4D4E4F"
-		u8"505152535455565758595A5B5C5D5E5F"
-		u8"606162636465666768696A6B6C6D6E6F"
-		u8"707172737475767778797A7B7C7D7E7F"
-		u8"808182838485868788898A8B8C8D8E8F"
-		u8"909192939495969798999A9B9C9D9E9F"
-		u8"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-		u8"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-		u8"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-		u8"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-		u8"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-		u8"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
+		"000102030405060708090A0B0C0D0E0F"
+		"101112131415161718191A1B1C1D1E1F"
+		"202122232425262728292A2B2C2D2E2F"
+		"303132333435363738393A3B3C3D3E3F"
+		"404142434445464748494A4B4C4D4E4F"
+		"505152535455565758595A5B5C5D5E5F"
+		"606162636465666768696A6B6C6D6E6F"
+		"707172737475767778797A7B7C7D7E7F"
+		"808182838485868788898A8B8C8D8E8F"
+		"909192939495969798999A9B9C9D9E9F"
+		"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
+		"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
+		"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
+		"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
+		"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
+		"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
 };
 
 struct C16Lookup
 {
-	static inline constexpr const C16* TRUE_STR = L"true";
-	static inline constexpr const C16* FALSE_STR = L"false";
-	static inline constexpr const C16 NULL_CHAR = L'\0';
-	static inline constexpr const C16 NEGATIVE_CHAR = L'-';
-	static inline constexpr const C16 DECIMAL_CHAR = L'.';
-	static inline constexpr const C16 ZERO_CHAR = L'0';
-	static inline constexpr const C16 SPACE = L' ';
-	static inline constexpr const C16 HTAB = L'\t';
-	static inline constexpr const C16 VTAB = L'\v';
-	static inline constexpr const C16 RETURN = L'\r';
-	static inline constexpr const C16 NEW_LINE = L'\n';
-	static inline constexpr const C16 FEED = L'\f';
-	static inline constexpr const C16 OPEN_BRACE = L'{';
-	static inline constexpr const C16 CLOSE_BRACE = L'}';
-	static inline constexpr const C16 FMT_HEX = L'h';
-	static inline constexpr const C16 FMT_DEC = L'.';
+	static inline constexpr const C16* TRUE_STR = u"true";
+	static inline constexpr const C16* FALSE_STR = u"false";
+	static inline constexpr const C16 NULL_CHAR = u'\0';
+	static inline constexpr const C16 NEGATIVE_CHAR = u'-';
+	static inline constexpr const C16 DECIMAL_CHAR = u'.';
+	static inline constexpr const C16 ZERO_CHAR = u'0';
+	static inline constexpr const C16 SPACE = u' ';
+	static inline constexpr const C16 HTAB = u'\t';
+	static inline constexpr const C16 VTAB = u'\v';
+	static inline constexpr const C16 RETURN = u'\r';
+	static inline constexpr const C16 NEW_LINE = u'\n';
+	static inline constexpr const C16 FEED = u'\f';
+	static inline constexpr const C16 OPEN_BRACE = u'{';
+	static inline constexpr const C16 CLOSE_BRACE = u'}';
+	static inline constexpr const C16 FMT_HEX = u'h';
+	static inline constexpr const C16 FMT_DEC = u'.';
 
 	static inline constexpr const C16 DECIMAL_LOOKUP[] =
-		L"000001002003004005006007008009010011012013014015016017018019"
-		L"020021022023024025026027028029030031032033034035036037038039"
-		L"040041042043044045046047048049050051052053054055056057058059"
-		L"060061062063064065066067068069070071072073074075076077078079"
-		L"080081082083084085086087088089090091092093094095096097098099"
-		L"100101102103104105106107108109110111112113114115116117118119"
-		L"120121122123124125126127128129130131132133134135136137138139"
-		L"140141142143144145146147148149150151152153154155156157158159"
-		L"160161162163164165166167168169170171172173174175176177178179"
-		L"180181182183184185186187188189190191192193194195196197198199"
-		L"200201202203204205206207208209210211212213214215216217218219"
-		L"220221222223224225226227228229230231232233234235236237238239"
-		L"240241242243244245246247248249250251252253254255256257258259"
-		L"260261262263264265266267268269270271272273274275276277278279"
-		L"280281282283284285286287288289290291292293294295296297298299"
-		L"300301302303304305306307038309310311312313314315316317318319"
-		L"320321322323324325326327238329330331332333334335336337338339"
-		L"340341342343344345346347438349350351352353354355356357358359"
-		L"360361362363364365366367638369370371372373374375376377378379"
-		L"380381382383384385386387838389390391392393394395396397398399"
-		L"400401402403404405406407408409410411412413414415416417418419"
-		L"420421422423424425426427428429430431432433434435436437438439"
-		L"440441442443444445446447448449450451452453454455456457458459"
-		L"460461462463464465466467468469470471472473474475476477478479"
-		L"480481482483484485486487488489490491492493494495496497498499"
-		L"500501502503504505506507508509510511512513514515516517518519"
-		L"520521522523524525526527528529530531532533534535536537538539"
-		L"540541542543544545546547548549550551552553554555556557558559"
-		L"560561562563564565566567568569570571572573574575576577578579"
-		L"580581582583584585586587588589590591592593594595596597598599"
-		L"600601602603604605606607608609610611612613614615616617618619"
-		L"620621622623624625626627628629630631632633634635636637638639"
-		L"640641642643644645646647648649650651652653654655656657658659"
-		L"660661662663664665666667668669670671672673674675676677678679"
-		L"680681682683684685686687688689690691692693694695696697698699"
-		L"707701702703704705706707708709710711712713714715716717718719"
-		L"727721722723724725726727728729730731732733734735736737738739"
-		L"747741742743744745746747748749750751752753754755756757758759"
-		L"767761762763764765766767768769770771772773774775776777778779"
-		L"787781782783784785786787788789790791792793794795796797798799"
-		L"800801802803804805806807808809810811812813814815816817818819"
-		L"820821822823824825826827828829830831832833834835836837838839"
-		L"840841842843844845846847848849850851852853854855856857858859"
-		L"860861862863864865866867868869870871872873874875876877878879"
-		L"880881882883884885886887888889890891892893894895896897898899"
-		L"900901902903904905906907908909910911912913914915916917918919"
-		L"920921922923924925926927928929930931932933934935936937938939"
-		L"940941942943944945946947948949950951952953954955956957958959"
-		L"960961962963964965966967968969970971972973974975976977978979"
-		L"980981982983984985986987988989990991992993994995996997998999";
+		u"000001002003004005006007008009010011012013014015016017018019"
+		u"020021022023024025026027028029030031032033034035036037038039"
+		u"040041042043044045046047048049050051052053054055056057058059"
+		u"060061062063064065066067068069070071072073074075076077078079"
+		u"080081082083084085086087088089090091092093094095096097098099"
+		u"100101102103104105106107108109110111112113114115116117118119"
+		u"120121122123124125126127128129130131132133134135136137138139"
+		u"140141142143144145146147148149150151152153154155156157158159"
+		u"160161162163164165166167168169170171172173174175176177178179"
+		u"180181182183184185186187188189190191192193194195196197198199"
+		u"200201202203204205206207208209210211212213214215216217218219"
+		u"220221222223224225226227228229230231232233234235236237238239"
+		u"240241242243244245246247248249250251252253254255256257258259"
+		u"260261262263264265266267268269270271272273274275276277278279"
+		u"280281282283284285286287288289290291292293294295296297298299"
+		u"300301302303304305306307038309310311312313314315316317318319"
+		u"320321322323324325326327238329330331332333334335336337338339"
+		u"340341342343344345346347438349350351352353354355356357358359"
+		u"360361362363364365366367638369370371372373374375376377378379"
+		u"380381382383384385386387838389390391392393394395396397398399"
+		u"400401402403404405406407408409410411412413414415416417418419"
+		u"420421422423424425426427428429430431432433434435436437438439"
+		u"440441442443444445446447448449450451452453454455456457458459"
+		u"460461462463464465466467468469470471472473474475476477478479"
+		u"480481482483484485486487488489490491492493494495496497498499"
+		u"500501502503504505506507508509510511512513514515516517518519"
+		u"520521522523524525526527528529530531532533534535536537538539"
+		u"540541542543544545546547548549550551552553554555556557558559"
+		u"560561562563564565566567568569570571572573574575576577578579"
+		u"580581582583584585586587588589590591592593594595596597598599"
+		u"600601602603604605606607608609610611612613614615616617618619"
+		u"620621622623624625626627628629630631632633634635636637638639"
+		u"640641642643644645646647648649650651652653654655656657658659"
+		u"660661662663664665666667668669670671672673674675676677678679"
+		u"680681682683684685686687688689690691692693694695696697698699"
+		u"707701702703704705706707708709710711712713714715716717718719"
+		u"727721722723724725726727728729730731732733734735736737738739"
+		u"747741742743744745746747748749750751752753754755756757758759"
+		u"767761762763764765766767768769770771772773774775776777778779"
+		u"787781782783784785786787788789790791792793794795796797798799"
+		u"800801802803804805806807808809810811812813814815816817818819"
+		u"820821822823824825826827828829830831832833834835836837838839"
+		u"840841842843844845846847848849850851852853854855856857858859"
+		u"860861862863864865866867868869870871872873874875876877878879"
+		u"880881882883884885886887888889890891892893894895896897898899"
+		u"900901902903904905906907908909910911912913914915916917918919"
+		u"920921922923924925926927928929930931932933934935936937938939"
+		u"940941942943944945946947948949950951952953954955956957958959"
+		u"960961962963964965966967968969970971972973974975976977978979"
+		u"980981982983984985986987988989990991992993994995996997998999";
 
 	static inline constexpr const C16 HEX_LOOKUP[] =
-		L"000102030405060708090A0B0C0D0E0F"
-		L"101112131415161718191A1B1C1D1E1F"
-		L"202122232425262728292A2B2C2D2E2F"
-		L"303132333435363738393A3B3C3D3E3F"
-		L"404142434445464748494A4B4C4D4E4F"
-		L"505152535455565758595A5B5C5D5E5F"
-		L"606162636465666768696A6B6C6D6E6F"
-		L"707172737475767778797A7B7C7D7E7F"
-		L"808182838485868788898A8B8C8D8E8F"
-		L"909192939495969798999A9B9C9D9E9F"
-		L"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-		L"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-		L"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-		L"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-		L"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-		L"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
+		u"000102030405060708090A0B0C0D0E0F"
+		u"101112131415161718191A1B1C1D1E1F"
+		u"202122232425262728292A2B2C2D2E2F"
+		u"303132333435363738393A3B3C3D3E3F"
+		u"404142434445464748494A4B4C4D4E4F"
+		u"505152535455565758595A5B5C5D5E5F"
+		u"606162636465666768696A6B6C6D6E6F"
+		u"707172737475767778797A7B7C7D7E7F"
+		u"808182838485868788898A8B8C8D8E8F"
+		u"909192939495969798999A9B9C9D9E9F"
+		u"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
+		u"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
+		u"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
+		u"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
+		u"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
+		u"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
 };
 
 struct C32Lookup
@@ -277,7 +276,27 @@ struct C32Lookup
 };
 
 static struct Hex {} HEX;
-static struct NoInit {} NO_INIT;
+
+template<typename T, typename LU> struct StringBase;
+
+using String = StringBase<C8, C8Lookup>;
+using String8 = StringBase<C8, C8Lookup>;
+using String16 = StringBase<C16, C16Lookup>;
+using String32 = StringBase<C32, C32Lookup>;
+
+template <class Type> concept StringType = AnyOf<RemovedQuals<Type>, StringBase<C8, C8Lookup>, StringBase<C16, C16Lookup>, StringBase<C32, C32Lookup>>;
+template <class Type> concept NonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+
+static struct StringFinder
+{
+	template<Character T, StringType SB>
+	constexpr SB operator[](T)
+	{
+		if constexpr (IsSame<RemovedQuals<T>, C8>) { return StringBase<C8, C8Lookup>; }
+		if constexpr (IsSame<RemovedQuals<T>, C16>) { return StringBase<C16, C16Lookup>; }
+		if constexpr (IsSame<RemovedQuals<T>, C32>) { return StringBase<C32, C32Lookup>; }
+	}
+} STRING;
 
 /*
 * TODO: Documentation
@@ -286,15 +305,9 @@ static struct NoInit {} NO_INIT;
 *
 * TODO: Count of a character
 *
-* TODO: Conversions from C16 to C8
+* TODO: Conversions
 *
-* TODO: More formatting options
-*	TODO: {h} will convert to hexadecimal
-*	TODO: {.n} will write n decimal places (only for floats)
-*
-* TODO: format strings without allocating new strings for every arg
-*
-* TODO: capacity checks should be capacity - 1 to avoid overunning the buffer when placing NULL_CHAR
+* TODO: option to add 0x prefix to {h}
 */
 template<typename T, typename LU>
 struct NH_API StringBase
@@ -303,12 +316,12 @@ struct NH_API StringBase
 
 	StringBase();
 	StringBase(NoInit flag);
-	template<typename Arg> StringBase(const Arg& value) noexcept;
 	template<typename Arg> StringBase(const Arg& value, Hex flag) noexcept;
-	template<typename... Args> StringBase(const T* fmt, const Args& ... args) noexcept;
-	template<typename... Args> StringBase(const Args& ... args) noexcept;
+	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
+	template<typename First, typename... Args> StringBase(const T* fmt, const First& first, const Args& ... args) noexcept; //Take in any string literal type
 
 	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
+	template<typename Arg> StringBase& operator+=(const Arg& value) noexcept;
 
 	~StringBase();
 	void Destroy();
@@ -318,20 +331,14 @@ struct NH_API StringBase
 	void Resize(U64 size);
 	void Resize();
 
-	template<Signed Arg> Arg ToType(U64 start = 0) const;
-	template<Unsigned Arg> Arg ToType(U64 start = 0) const;
-	template<Boolean Arg> Arg ToType(U64 start = 0) const;
-	template<FloatingPoint Arg> Arg ToType(U64 start = 0) const;
-	template<Pointer Arg> Arg ToType(U64 start = 0) const;
-
-	explicit operator T* ();
-	explicit operator const T* () const;
-	template<typename Arg> explicit operator Arg() const;
-
-	template<typename Arg> StringBase& operator+=(const Arg& value);
-	StringBase& operator+=(T* other);
-	StringBase& operator+=(const T* other);
-	StringBase& operator+=(const StringBase& other);
+	template<Signed Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<Unsigned Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<Boolean Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<FloatingPoint Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<NonStringPointer Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<Character Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<StringLiteral Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<StringType Arg> void ToType(Arg& value, U64 start = 0) const;
 
 	T* operator*();
 	const T* operator*() const;
@@ -357,19 +364,19 @@ struct NH_API StringBase
 	I64 LastIndexOf(const T& c, U64 start = 0) const;
 
 	StringBase& Trim();
-	StringBase& Append(const StringBase& append);
-	StringBase& Prepend(const StringBase& prepend);
-	StringBase& Surround(const StringBase& prepend, const StringBase& append);
-	StringBase& Insert(const StringBase& string, U64 i);
-	StringBase& Overwrite(const StringBase& string, U64 i = 0);
-	StringBase& ReplaceAll(const StringBase& find, const StringBase& replace, U64 start = 0);
-	StringBase& ReplaceN(const StringBase& find, const StringBase& replace, U64 count, U64 start = 0);
-	StringBase& ReplaceFirst(const StringBase& find, const StringBase& replace, U64 start = 0);
+	template<typename Arg> StringBase& Append(const Arg& append);
+	template<typename Arg> StringBase& Prepend(const Arg& prepend);
+	template<typename PreArg, typename PostArg> StringBase& Surround(const PreArg& prepend, const PostArg& append);
+	template<typename Arg> StringBase& Insert(const Arg& value, U64 i);
+	template<typename Arg> StringBase& Overwrite(const Arg& value, U64 i = 0);
+	template<typename Arg> StringBase& ReplaceAll(const T* find, const Arg& replace, U64 start = 0);
+	template<typename Arg> StringBase& ReplaceN(const T* find, const Arg& replace, U64 count, U64 start = 0);
+	template<typename Arg> StringBase& Replace(const T* find, const Arg& replace, U64 start = 0);
 
 	void SubString(StringBase& newStr, U64 start, U64 nLength = I64_MAX) const;
-	void Appended(StringBase& newStr, const StringBase& append) const;
-	void Prepended(StringBase& newStr, const StringBase& prepend) const;
-	void Surrounded(StringBase& newStr, const StringBase& prepend, const StringBase& append) const;
+	template<typename Arg> void Appended(StringBase& newStr, const Arg& append) const;
+	template<typename Arg> void Prepended(StringBase& newStr, const Arg& prepend) const;
+	template<typename PreArg, typename PostArg> void Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const;
 	void Split(Vector<StringBase>& list, T delimiter, bool trimEntries) const;
 
 	const U64& Size() const;
@@ -391,38 +398,20 @@ struct NH_API StringBase
 	const T* rend() const;
 
 private:
-	template<Signed Arg> void ToString(T* str, const Arg& value);
-	template<Unsigned Arg> void ToString(T* str, const Arg& value);
-	template<Boolean Arg> void ToString(T* str, const Arg& value);
-	template<FloatingPoint Arg> void ToString(T* str, const Arg& value);
-	template<Pointer Arg> void ToString(T* str, const Arg& value);
-	template<Character Arg> void ToString(T* str, const Arg& value);
-	template<StringLiteral Arg> void ToString(T* str, const Arg& value);
-	//template<StrBs Arg> void ToString(T* str, const Arg& value);
+	template<Signed Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<Unsigned Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<Boolean Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value, U64 decimalCount = 5);
+	template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(T* str, const Arg& value);
+	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
 
-	template<Signed Arg> void HexToString(T* str, const Arg& value);
-	template<Unsigned Arg> void HexToString(T* str, const Arg& value);
-	template<FloatingPoint Arg> void HexToString(T* str, const Arg& value);
-	template<Pointer Arg> void HexToString(T* str, const Arg& value);
+	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity();
 
-	template<Signed Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<Unsigned Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<Boolean Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<FloatingPoint Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount = 5);
-	template<Pointer Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<Character Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	template<StringLiteral Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
-	//template<StrBs Arg> U64 InsertType(T* str, const Arg& value, U64 rmvAmt);
+	template<typename Arg> void Format(U64& start, const Arg& value);
 
-	template<Signed Arg> U64 InsertHex(T* str, const Arg& value, U64 rmvAmt);
-	template<Unsigned Arg> U64 InsertHex(T* str, const Arg& value, U64 rmvAmt);
-	template<FloatingPoint Arg> U64 InsertHex(T* str, const Arg& value, U64 rmvAmt);
-	template<Pointer Arg> U64 InsertHex(T* str, const Arg& value, U64 rmvAmt);
-
-	template<typename Arg>
-	void Format(U64& start, const Arg& value);
-
-	U64 Length(const T* str) const;
+	template<Character C> U64 Length(const C* str) const;
 	void Copy(T* dst, const T* src, U64 length);
 	bool Compare(const T* a, const T* b, U64 length) const;
 	bool WhiteSpace(T c) const;
@@ -435,9 +424,6 @@ private:
 	T* string{ nullptr };
 };
 
-using String = StringBase<C8, C8Lookup>;
-using WString = StringBase<C16, C16Lookup>;
-
 template<typename T, typename LU>
 inline StringBase<T, LU>::StringBase() { Memory::AllocateArray(&string, capacity); }
 
@@ -446,36 +432,42 @@ inline StringBase<T, LU>::StringBase(NoInit flag) {}
 
 template<typename T, typename LU>
 template<typename Arg>
-inline StringBase<T, LU>::StringBase(const Arg& value) noexcept { ToString(string, value); }
+inline StringBase<T, LU>::StringBase(const Arg& value, Hex flag) noexcept { ToString<Arg, true, false>(string, value); }
 
 template<typename T, typename LU>
-template<typename Arg>
-inline StringBase<T, LU>::StringBase(const Arg& value, Hex flag) noexcept { HexToString(string, value); }
-
-template<typename T, typename LU>
-template<typename... Args>
-inline StringBase<T, LU>::StringBase(const T* fmt, const Args& ... args) noexcept : size{ Length(fmt) }, capacity{ size }
+template<typename First, typename... Args>
+inline StringBase<T, LU>::StringBase(const First& first, const Args& ... args) noexcept
 {
 	Memory::AllocateArray(&string, capacity);
-
-	Copy(string, (T*)fmt, size + 1);
-	U64 start = 0;
-	(Format(start, args), ...);
+	ToString<First, false, false>(string, first);
+	(ToString<Args, false, false>(string + size, args), ...);
 }
 
 template<typename T, typename LU>
-template<typename... Args>
-inline StringBase<T, LU>::StringBase(const Args& ... args) noexcept
+template<typename First, typename... Args>
+inline StringBase<T, LU>::StringBase(const T* fmt, const First& first, const Args& ... args) noexcept : size{ Length(fmt) }, capacity{ size }
 {
 	Memory::AllocateArray(&string, capacity);
-	(ToString(string + size, args), ...);
+
+	Copy(string, fmt, size + 1);
+	U64 start = 0;
+	Format(start, first);
+	(Format(start, args), ...);
 }
 
 template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::operator=(const Arg& value) noexcept
 {
-	ToString(string, value);
+	ToString<Arg, false, false>(string, value);
+	return *this;
+}
+
+template<typename T, typename LU>
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value) noexcept
+{
+	ToString(string + size, value);
 	return *this;
 }
 
@@ -528,62 +520,6 @@ inline void StringBase<T, LU>::Resize()
 {
 	size = Length(string);
 }
-
-template<typename T, typename LU>
-template<typename Arg>
-inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value)
-{
-	ToString(string + size, value);
-	return *this;
-}
-
-template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::operator+=(T* other)
-{
-	hashed = false;
-	U64 addLength = Length(other);
-	if (capacity < size + addLength + 1) { Memory::Reallocate(&string, capacity = size + addLength + 1); }
-	Copy(string + size, other, addLength);
-	size += addLength;
-	string[size] = LU::NULL_CHAR;
-
-	return *this;
-}
-
-template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const T* other)
-{
-	hashed = false;
-	U64 addLength = Length(other);
-	if (capacity < size + addLength + 1) { Memory::Reallocate(&string, capacity = size + addLength + 1); }
-	Copy(string + size, other, addLength);
-	size += addLength;
-	string[size] = LU::NULL_CHAR;
-
-	return *this;
-}
-
-template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const StringBase<T, LU>& other)
-{
-	hashed = false;
-	if (capacity < size + other.size + 1) { Memory::Reallocate(&string, capacity = size + other.size + 1); }
-	Copy(string + size, other.string, other.size);
-	size += other.size;
-	string[size] = LU::NULL_CHAR;
-
-	return *this;
-}
-
-template<typename T, typename LU>
-template<typename Arg>
-inline StringBase<T, LU>::operator Arg() const { return ToType<Arg>(); }
-
-template<typename T, typename LU>
-inline StringBase<T, LU>::operator T* () { return string; }
-
-template<typename T, typename LU>
-inline StringBase<T, LU>::operator const T* () const { return string; }
 
 template<typename T, typename LU>
 inline T* StringBase<T, LU>::operator*() { return string; }
@@ -788,136 +724,111 @@ inline StringBase<T, LU>& StringBase<T, LU>::Trim()
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::Append(const StringBase<T, LU>& append)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::Append(const Arg& append)
 {
-	if (capacity < size + append.size + 1) { Memory::Reallocate(&string, capacity = size + append.size + 1); }
-	hashed = false;
-	Copy(string + size, append.string, append.size);
-	size += append.size;
-	string[size] = LU::NULL_CHAR;
+	ToString<Arg, false, false>(string + size, append);
 
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::Prepend(const StringBase<T, LU>& prepend)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::Prepend(const Arg& prepend)
 {
-	if (capacity < size + prepend.size + 1) { Memory::Reallocate(&string, capacity = size + prepend.size + 1); }
-	hashed = false;
-	Copy(string + size, string, size);
-	Copy(string, prepend.string, prepend.size);
-	size += prepend.size;
-	string[size] = LU::NULL_CHAR;
+	ToString<Arg, false, true>(string, prepend);
 
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::Surround(const StringBase<T, LU>& prepend, const StringBase<T, LU>& append)
+template<typename PreArg, typename PostArg>
+inline StringBase<T, LU>& StringBase<T, LU>::Surround(const PreArg& prepend, const PostArg& append)
 {
-	if (capacity < size + append.size + prepend.size + 1) { Memory::Reallocate(&string, capacity = size + append.size + prepend.size + 1); }
-	hashed = false;
-	Copy(string + prepend.size, string, size);
-	Copy(string, prepend.string, prepend.size);
-	size += prepend.size;
-
-	Copy(string + size, append.string, append.size);
-	size += append.size;
-	string[size] = LU::NULL_CHAR;
+	ToString<PreArg, false, true>(string, prepend);
+	ToString<PostArg, false, false>(string + size, append);
 
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::Insert(const StringBase<T, LU>& other, U64 i)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::Insert(const Arg& value, U64 i)
 {
-	if (capacity < size + other.size + 1) { Memory::Reallocate(&string, capacity = size + other.size + 1); }
-	hashed = false;
-	Copy(string + i + other.size, string + i, size - i);
-	Copy(string + i, other.string, other.size);
-	size += other.size;
-	string[size] = LU::NULL_CHAR;
+	ToString<Arg, false, true>(string + i, value);
 
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::Overwrite(const StringBase<T, LU>& other, U64 i)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::Overwrite(const Arg& value, U64 i)
 {
-	if (capacity < i + other.size + 2) { Memory::Reallocate(&string, capacity = i + other.size + 2); }
-	T* c = string + i;
-	Copy(c, other.string, other.size + 1);
+	ToString<Arg, false, false>(string + i, value);
 
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::ReplaceAll(const StringBase<T, LU>& find, const StringBase<T, LU>& replace, U64 start)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::ReplaceAll(const T* find, const Arg& replace, U64 start)
 {
 	hashed = false;
-	T* c = string + start;
-	T ch = *c;
-	while (ch != LU::NULL_CHAR)
+	U64 findSize = Length(find);
+	T* it = string + start;
+	T c = *it;
+
+	while (c != LU::NULL_CHAR)
 	{
-		while ((ch = *c) != LU::NULL_CHAR && Compare(c, find.string, find.size)) { ++c; }
+		while ((c = *it) != LU::NULL_CHAR && Compare(it, find, findSize)) { ++it; }
 
-		if (ch != LU::NULL_CHAR)
-		{
-			if (capacity < size - find.size + replace.size + 1) { Memory::Reallocate(&string, capacity = size - find.size + replace.size + 1); }
-
-			Copy(c + replace.size, c + find.size, size - find.size - (c - string));
-			Copy(c, replace.string, replace.size);
-			size = size - find.size + replace.size;
-			string[size] = LU::NULL_CHAR;
-		}
+		if (c != LU::NULL_CHAR) { ToString<Arg, false, true>(it, replace); }
 	}
 
+	string[size] = LU::NULL_CHAR;
+
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::ReplaceN(const StringBase<T, LU>& find, const StringBase<T, LU>& replace, U64 count, U64 start)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::ReplaceN(const T* find, const Arg& replace, U64 count, U64 start)
 {
-	if (capacity < size + replace.size * count - find.size * count + 1) { Memory::Reallocate(&string, capacity = size + replace.size * count - find.size * count + 1); }
-
 	hashed = false;
-	T* c = string + start;
-	T ch = *c;
-	while (ch != LU::NULL_CHAR && count)
-	{
-		while ((ch = *c) != LU::NULL_CHAR && Compare(c, find.string, find.size)) { ++c; }
+	U64 findSize = Length(find);
+	T* it = string + start;
+	T c = *it;
 
-		if (ch != LU::NULL_CHAR)
+	while (c != LU::NULL_CHAR && count)
+	{
+		while ((c = *it) != LU::NULL_CHAR && Compare(it, find, findSize)) { ++it; }
+
+		if (c != LU::NULL_CHAR)
 		{
 			--count;
-			Copy(c + replace.size, c + find.size, size - find.size - (c - string));
-			Copy(c, replace.string, replace.size);
-			size = size - find.size + replace.size;
-			string[size] = LU::NULL_CHAR;
+			ToString<Arg, false, true>(it, replace);
 		}
 	}
+
+	string[size] = LU::NULL_CHAR;
 
 	return *this;
 }
 
 template<typename T, typename LU>
-inline StringBase<T, LU>& StringBase<T, LU>::ReplaceFirst(const StringBase<T, LU>& find, const StringBase<T, LU>& replace, U64 start)
+template<typename Arg>
+inline StringBase<T, LU>& StringBase<T, LU>::Replace(const T* find, const Arg& replace, U64 start)
 {
-	if (capacity < size + replace.size - find.size + 1) { Memory::Reallocate(&string, capacity = size + replace.size - find.size + 1); }
-
 	hashed = false;
+	U64 findSize = Length(find);
 	T* it = string + start;
 	T c;
 
-	while ((c = *it) != LU::NULL_CHAR && Compare(it, find.string, find.size)) { ++c; }
+	while ((c = *it) != LU::NULL_CHAR && Compare(it, find, findSize)) { ++c; }
 
-	if (c != LU::NULL_CHAR)
-	{
-		Copy(it + replace.size, it + find.size, size - find.size - (it - string));
-		Copy(it, replace.string, replace.size);
-		size = size - find.size + replace.size;
-		string[size] = LU::NULL_CHAR;
-	}
+	if (c != LU::NULL_CHAR) { ToString<Arg, false, true>(c, replace); }
+
+	string[size] = LU::NULL_CHAR;
 
 	return *this;
 }
@@ -935,31 +846,27 @@ inline void StringBase<T, LU>::SubString(StringBase<T, LU>& newStr, U64 start, U
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::Appended(StringBase& newStr, const StringBase& append) const
+template<typename Arg>
+inline void StringBase<T, LU>::Appended(StringBase& newStr, const Arg& append) const
 {
-	newStr.hashed = false;
-	newStr.Resize(size + append.size);
-	Copy(newStr.string, string, size);
-	Copy(newStr.string + size, append.string, append.size);
+	newStr = *this;
+	newStr.Append(append);
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::Prepended(StringBase& newStr, const StringBase& prepend) const
+template<typename Arg>
+inline void StringBase<T, LU>::Prepended(StringBase& newStr, const Arg& prepend) const
 {
-	newStr.hashed = false;
-	newStr.Resize(size + prepend.size);
-	Copy(newStr.string, prepend.string, prepend.size);
-	Copy(newStr.string + prepend.size, string, size);
+	newStr = *this;
+	newStr.Prepend(prepend);
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::Surrounded(StringBase& newStr, const StringBase& prepend, const StringBase& append) const
+template<typename PreArg, typename PostArg>
+inline void StringBase<T, LU>::Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const
 {
-	newStr.hashed = false;
-	newStr.Resize(size + append.size + prepend.size);
-	Copy(newStr.string, prepend.string, prepend.size);
-	Copy(newStr.string + prepend.size, string, size);
-	Copy(newStr.string + prepend.size + size, append.string, append.size);
+	newStr = *this;
+	newStr.Surround(prepend, append);
 }
 
 template<typename T, typename LU>
@@ -993,316 +900,447 @@ template<typename T, typename LU>
 inline const T* StringBase<T, LU>::rend() const { return string - 1; }
 
 template<typename T, typename LU>
-template<Signed Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
+template<Signed Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
+	constexpr U64 typeSize = RequiredCapacity<Arg, Hex>();
+	constexpr U64 moveSize = typeSize - Remove;
+	const U64 strIndex = str - string;
+	const U64 excessSize = size - strIndex;
+
+	using UArg = Traits<UnsignedOf<Arg>>::Base;
+
 	hashed = false;
-	if (!string || capacity < size + 21) { Memory::Reallocate(&string, capacity = size + 21); }
 
-	T* c = str + 20;
-	const T* threeDigits;
-	U8 neg = 0;
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
-	U64 abs = (U64)value;
-
+	T* c = str + typeSize;
+	const T* digits;
+	I64 addLength;
+	UArg val;
+	U64 neg;
 	if (value < 0)
 	{
-		str[0] = LU::NEGATIVE_CHAR;
-		abs = (U64)-value;
-		neg = 1;
+		if constexpr (Hex) { val = Traits<UnsignedOf<Arg>>::MaxValue - ((U64)-value - 1); }
+		else
+		{
+			str[0] = LU::NEGATIVE_CHAR;
+			val = (UArg)-value;
+			neg = 1;
+		}
 	}
+	else { val = (UArg)value; neg = 0; }
 
-	while (abs > 999)
+	if constexpr (Hex)
 	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
+		constexpr U64 pairs = typeSize / 2;
+
+		for (U8 i = 0; i < pairs; ++i)
+		{
+			digits = LU::HEX_LOOKUP + (val & 0xFF) * 2;
+
+			*--c = digits[1];
+			*--c = digits[0];
+
+			val >>= 8;
+		}
+
+		addLength = typeSize;
+	}
+	else
+	{
+		while (val > 999)
+		{
+			UArg newVal = val / 1000;
+			UArg remainder = val % 1000;
+			digits = LU::DECIMAL_LOOKUP + (remainder * 3);
+			*--c = digits[2];
+			*--c = digits[1];
+			*--c = digits[0];
+			val = newVal;
+		}
+
+		digits = LU::DECIMAL_LOOKUP + (val * 3);
+		*--c = digits[2];
+		if (val > 9) { *--c = digits[1]; }
+		if (val > 99) { *--c = digits[0]; }
+
+		addLength = typeSize - (c - str) + neg;
 	}
 
-	threeDigits = LU::DECIMAL_LOOKUP + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
+	size += addLength - Remove;
 
-	U64 addLength = 20 + neg - (c - str);
-	size += addLength;
+	if constexpr (Insert && !Hex) { Copy(str + neg, c, addLength + excessSize - Remove); }
+	else { Copy(str, c, addLength); }
 
-	Copy(str + neg, c, addLength);
 	str[size] = LU::NULL_CHAR;
+
+	return strIndex + addLength;
 }
 
 template<typename T, typename LU>
-template<Unsigned Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
+template<Unsigned Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
-	hashed = false;
-	if (!string || capacity < size + 21) { Memory::Reallocate(&string, capacity = size + 21); }
+	constexpr U64 typeSize = RequiredCapacity<Arg, Hex>();
+	constexpr U64 moveSize = typeSize - Remove;
+	const U64 strIndex = str - string;
+	const U64 excessSize = size - strIndex;
 
-	T* c = str + 20;
-	const T* threeDigits;
+	hashed = false;
+
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+
+	T* c = str + typeSize;
+	const T* digits;
 	U64 val = value;
+	I64 addLength;
 
-	while (val > 999)
+	if constexpr (Hex)
 	{
-		U64 newVal = val / 1000;
-		U64 remainder = val % 1000;
-		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		val = newVal;
+		constexpr U64 pairs = typeSize / 2;
+
+		for (U8 i = 0; i < pairs; ++i)
+		{
+			digits = LU::HEX_LOOKUP + (val & 0xFF) * 2;
+
+			*--c = digits[1];
+			*--c = digits[0];
+
+			val >>= 8;
+		}
+
+		addLength = typeSize;
+	}
+	else
+	{
+		while (val > 999)
+		{
+			U64 newVal = val / 1000;
+			U64 remainder = val % 1000;
+			digits = LU::DECIMAL_LOOKUP + (remainder * 3);
+			*--c = digits[2];
+			*--c = digits[1];
+			*--c = digits[0];
+			val = newVal;
+		}
+
+		digits = LU::DECIMAL_LOOKUP + (val * 3);
+		*--c = digits[2];
+		if (val > 9) { *--c = digits[1]; }
+		if (val > 99) { *--c = digits[0]; }
+
+		addLength = typeSize - (c - str);
 	}
 
-	threeDigits = LU::DECIMAL_LOOKUP + (val * 3);
-	*--c = threeDigits[2];
-	if (val > 9) { *--c = threeDigits[1]; }
-	if (val > 99) { *--c = threeDigits[0]; }
+	size += addLength - Remove;
 
-	U64 addLength = 20 - (c - str);
-	size += addLength;
+	if constexpr (Insert && !Hex) { Copy(str, c, addLength + excessSize - Remove); }
+	else { Copy(str, c, addLength); }
 
-	Copy(str, c, addLength);
 	str[size] = LU::NULL_CHAR;
+
+	return strIndex + addLength;
 }
 
 template<typename T, typename LU>
-template<Boolean Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
+template<Boolean Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
+	constexpr U64 trueSize = 5 - Remove;
+	constexpr U64 falseSize = 6 - Remove;
+	const U64 strIndex = str - string;
+
 	hashed = false;
+
 	if (value)
 	{
-		if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); }
-		Copy(str + size, LU::TRUE_STR, 4);
+		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, capacity = size + trueSize); }
+
+		if constexpr (Insert) { Copy(str + 4, str, size - strIndex); }
+
+		Copy(str, LU::TRUE_STR, 4);
 		size += 4;
-		str[size] = LU::NULL_CHAR;
+
+		if constexpr (!Insert) { string[size] = LU::NULL_CHAR; }
+
+		return strIndex + 4;
 	}
 	else
 	{
-		if (!string || capacity < size + 6) { Memory::Reallocate(&string, capacity = size + 6); }
+		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, capacity = size + falseSize); }
+
+		if constexpr (Insert) { Copy(str + 5, str, size - strIndex); }
+
 		Copy(str + size, LU::FALSE_STR, 5);
 		size += 5;
-		str[size] = LU::NULL_CHAR;
+
+		if constexpr (!Insert) { string[size] = LU::NULL_CHAR; }
+
+		return strIndex + 5;
 	}
 }
 
 template<typename T, typename LU>
-template<FloatingPoint Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
+template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value, U64 decimalCount)
 {
-	hashed = false;
-	if (!string || capacity < size + 28) { Memory::Reallocate(&string, capacity = size + 28); }
-
-	T* c = str + 27;
-	const T* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
+	if constexpr (Hex) { return ToString<U64, Hex, Insert, Remove>(str, reinterpret_cast<const U64&>(value)); }
+	else
 	{
-		str[0] = LU::NEGATIVE_CHAR;
-		abs = -value;
-		neg = 1;
-	}
+		const U64 typeSize = RequiredCapacity<Arg, Hex>() + decimalCount;
+		const U64 moveSize = typeSize - Remove;
+		const U64 strIndex = str - string;
+		const U64 excessSize = size - strIndex;
 
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
+		hashed = false;
 
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
+		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+		if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
-	threeDigits = LU::DECIMAL_LOOKUP + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = LU::DECIMAL_CHAR;
+		T* c = str + typeSize;
+		const T* digits;
+		Arg val;
+		U64 neg;
 
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = LU::DECIMAL_LOOKUP + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 27 + neg - (c - str);
-	size += addLength;
-
-	Copy(str + neg, c, addLength);
-	str[size] = LU::NULL_CHAR;
-}
-
-template<typename T, typename LU>
-template<Pointer Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
-{
-	ToString(str, (U64)value);
-}
-
-template<typename T, typename LU>
-template<Character Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
-{
-	hashed = false;
-	if (!string || capacity < size + 2) { Memory::Reallocate(&string, capacity = size + 2); }
-
-	*str = value;
-	str[++size] = LU::NULL_CHAR;
-}
-
-template<typename T, typename LU>
-template<StringLiteral Arg>
-inline void StringBase<T, LU>::ToString(T* str, const Arg& value)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<Signed Arg>
-inline void StringBase<T, LU>::HexToString(T* str, const Arg& value)
-{
-	hashed = false;
-	if (!string || capacity < size + 17) { Memory::Reallocate(&string, capacity = size + 17); }
-
-	U8 pairs;
-	U8 digits;
-	U64 max;
-
-	if constexpr (IsSame<RemovedQuals<Arg>, I8>) { if (!string || capacity < size + 3) { Memory::Reallocate(&string, capacity = size + 3); } pairs = 1; digits = 2; max = U8_MAX; }
-	else if constexpr (IsSame<RemovedQuals<Arg>, I16>) { if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); } pairs = 2; digits = 4; max = U16_MAX; }
-	else if constexpr (IsSame<RemovedQuals<Arg>, I32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; max = U32_MAX; }
-	else if constexpr (IsSame<RemovedQuals<Arg>, L32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; max = U32_MAX; }
-	else { if (!string || capacity < size + 17) { Memory::Reallocate(&string, capacity = size + 17); } pairs = 8; digits = 16; max = U64_MAX; }
-
-	T* c = str + digits;
-	const T* twoDigits;
-
-	U64 abs;
-	if (value < 0)
-	{
-		abs = max - ((U64)-value - 1);
-
-		for (U8 i = 0; i < pairs; ++i)
+		if (value < 0)
 		{
-			U64 j = abs & 0xFF;
-			twoDigits = LU::HEX_LOOKUP + (abs & 0xFF) * 2;
-
-			*--c = twoDigits[1];
-			*--c = twoDigits[0];
-
-			abs >>= 8;
+			str[0] = LU::NEGATIVE_CHAR;
+			val = (Arg)-value;
+			neg = 1;
 		}
+		else
+		{
+			val = (Arg)value;
+			neg = 0;
+		}
+
+		if (decimalCount > 0)
+		{
+			U64 dec = (U64)((val - (F64)(U64)val) * 100000.0f);
+
+			while (decimalCount > 2)
+			{
+				U64 newVal = dec / 1000;
+				U64 remainder = dec % 1000;
+				digits = LU::DECIMAL_LOOKUP + (remainder * 3);
+				*--c = digits[2];
+				*--c = digits[1];
+				*--c = digits[0];
+				dec = newVal;
+
+				decimalCount -= 3;
+			}
+
+			digits = LU::DECIMAL_LOOKUP + (dec * 3);
+			if (decimalCount > 0) { *--c = digits[2]; }
+			if (decimalCount > 1) { *--c = digits[1]; }
+			*--c = LU::DECIMAL_CHAR;
+		}
+
+		U64 whole = (U64)val;
+
+		while (whole > 999)
+		{
+			U64 newVal = whole / 1000;
+			U64 remainder = whole % 1000;
+			digits = LU::DECIMAL_LOOKUP + (remainder * 3);
+			*--c = digits[2];
+			*--c = digits[1];
+			*--c = digits[0];
+			whole = newVal;
+		}
+
+		digits = LU::DECIMAL_LOOKUP + (whole * 3);
+		*--c = digits[2];
+		if (whole > 9) { *--c = digits[1]; }
+		if (whole > 99) { *--c = digits[0]; }
+
+		I64 addLength = typeSize + neg - (c - str);
+		size += addLength - Remove;
+
+		if constexpr (Insert) { Copy(str + neg, c, addLength + excessSize - Remove); }
+		else { Copy(str, c, addLength); }
+
+		str[size] = LU::NULL_CHAR;
+
+		return strIndex + addLength;
+	}
+}
+
+template<typename T, typename LU>
+template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
+{
+	return ToString<U64, Hex, Insert, Remove>(str, reinterpret_cast<const U64&>(value));
+}
+
+template<typename T, typename LU>
+template<Character Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
+{
+	using CharType = BaseType<Arg>;
+	return ToString<CharType*, Hex, Insert, Remove, 1>(str, (CharType*)&value);
+}
+
+template<typename T, typename LU>
+template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove, U64 Size>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
+{
+	using CharType = BaseType<Arg>;
+
+	U64 strSize;
+	if constexpr (Size == 0) { strSize = Length(value); }
+	else { strSize = Size; }
+
+	const U64 moveSize = strSize - Remove;
+	const U64 strIndex = str - string;
+	const U64 excessSize = size - strIndex;
+
+	hashed = false;
+
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+
+	if constexpr (IsSame<CharType, T>) { Copy(str, value, strSize); }
+	else if constexpr (IsSame<CharType, C8>)
+	{
+		if constexpr (IsSame<T, C16>)
+		{
+			//TODO
+		}
+		else //C32
+		{
+			//TODO
+		}
+	}
+	else if constexpr (IsSame<CharType, C16>)
+	{
+		if constexpr (IsSame<T, C8>)
+		{
+			const CharType* it0 = value;
+			CharType c;
+			T* it1 = str;
+			while ((c = *it0++) != '\0')
+			{
+				if (c <= 0x7F) { *it1++ = (T)c; }
+				else { *it1++ = '?'; }
+			}
+		}
+		else //C32
+		{
+			//TODO
+		}
+	}
+	else if constexpr (IsSame<CharType, C32>)
+	{
+		if constexpr (IsSame<T, C8>)
+		{
+			//TODO
+		}
+		else //C16
+		{
+			//TODO
+		}
+	}
+	else if constexpr (IsSame<CharType, char8_t>)
+	{
+		if constexpr (IsSame<T, C8>)
+		{
+			//TODO
+		}
+		else //C16
+		{
+			//TODO
+		}
+	}
+	else if constexpr (IsSame<CharType, wchar_t>)
+	{
+		if constexpr (IsSame<T, C8>)
+		{
+			const CharType* it0 = value;
+			CharType c;
+			T* it1 = str;
+			while ((c = *it0++) != '\0')
+			{
+				if (c <= 0x7F) { *it1++ = (T)c; }
+				else if (c <= 0x7FF) { *it1++ = (T)((c >> 6) | 0xC0); *it1++ = (T)((c & 0x3F) | 0x80); }
+				else if (c <= 0xFFFF) { *it1++ = (T)((c >> 12) | 0xE0); *it1++ = (T)(((c >> 6) & 0x3F) | 0x80); *it1++ = (T)((c & 0x3F) | 0x80); }
+				else { *it1++ = '?'; }
+			}
+		}
+		else //C16
+		{
+			//TODO
+		}
+	}
+
+	size += moveSize;
+	str[size] = LU::NULL_CHAR;
+
+	return strIndex + strSize;
+}
+
+template<typename T, typename LU>
+template<StringType Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
+{
+	//TODO: Move semantics
+
+	using StrBs = BaseType<Arg>;
+
+	if constexpr (IsSame<StrBs, StringBase<C8, C8Lookup>>) { using CharType = C8; }
+	else if constexpr (IsSame<StrBs, StringBase<C16, C16Lookup>>) { using CharType = C16; }
+	else if constexpr (IsSame<StrBs, StringBase<C32, C32Lookup>>) { using CharType = C32; }
+
+	return ToString<CharType*, Hex, Insert, Remove>(str, value.string);
+}
+
+template<typename T, typename LU>
+template<typename Arg, bool Hex>
+inline constexpr U64 StringBase<T, LU>::RequiredCapacity()
+{
+	if constexpr (Hex)
+	{
+		if constexpr (IsSame<Arg, U8>) { return 2; }
+		if constexpr (IsSame<Arg, U16>) { return 4; }
+		if constexpr (IsSame<Arg, U32>) { return 8; }
+		if constexpr (IsSame<Arg, UL32>) { return 8; }
+		if constexpr (IsSame<Arg, U64>) { return 16; }
+		if constexpr (IsSame<Arg, I8>) { return 2; }
+		if constexpr (IsSame<Arg, I16>) { return 4; }
+		if constexpr (IsSame<Arg, I32>) { return 8; }
+		if constexpr (IsSame<Arg, L32>) { return 8; }
+		if constexpr (IsSame<Arg, I64>) { return 16; }
+		if constexpr (IsSame<Arg, F32>) { return 16; }
+		if constexpr (IsSame<Arg, F64>) { return 16; }
 	}
 	else
 	{
-		abs = (U64)value;
-
-		for (U8 i = 0; i < pairs; ++i)
-		{
-			twoDigits = LU::HEX_LOOKUP + (abs & 0xFF) * 2;
-
-			*--c = twoDigits[1];
-			*--c = twoDigits[0];
-
-			abs >>= 8;
-		}
+		if constexpr (IsSame<Arg, U8>) { return 3; }
+		if constexpr (IsSame<Arg, U16>) { return 5; }
+		if constexpr (IsSame<Arg, U32>) { return 10; }
+		if constexpr (IsSame<Arg, UL32>) { return 10; }
+		if constexpr (IsSame<Arg, U64>) { return 20; }
+		if constexpr (IsSame<Arg, I8>) { return 4; }
+		if constexpr (IsSame<Arg, I16>) { return 6; }
+		if constexpr (IsSame<Arg, I32>) { return 11; }
+		if constexpr (IsSame<Arg, L32>) { return 11; }
+		if constexpr (IsSame<Arg, I64>) { return 20; }
+		if constexpr (IsSame<Arg, F32>) { return 22; }
+		if constexpr (IsSame<Arg, F64>) { return 22; }
 	}
-
-	size += digits;
-
-	Copy(str, c, digits);
-	str[size] = LU::NULL_CHAR;
-}
-
-template<typename T, typename LU>
-template<Unsigned Arg>
-inline void StringBase<T, LU>::HexToString(T* str, const Arg& value)
-{
-	hashed = false;
-
-	U8 pairs;
-	U8 digits;
-	if constexpr (IsSame<RemovedQuals<Arg>, U8>) { if (!string || capacity < size + 3) { Memory::Reallocate(&string, capacity = size + 3); } pairs = 1; digits = 2; }
-	else if constexpr (IsSame<RemovedQuals<Arg>, U16>) { if (!string || capacity < size + 5) { Memory::Reallocate(&string, capacity = size + 5); } pairs = 2; digits = 4; }
-	else if constexpr (IsSame<RemovedQuals<Arg>, U32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; }
-	else if constexpr (IsSame<RemovedQuals<Arg>, UL32>) { if (!string || capacity < size + 9) { Memory::Reallocate(&string, capacity = size + 9); } pairs = 4; digits = 8; }
-	else { if (!string || capacity < size + 17) { Memory::Reallocate(&string, capacity = size + 17); } pairs = 8; digits = 16; }
-
-	T* c = str + digits;
-	const T* twoDigits;
-	U64 val = value;
-
-	for (U8 i = 0; i < pairs; ++i)
-	{
-		twoDigits = LU::HEX_LOOKUP + (val & 0xFF) * 2;
-
-		*--c = twoDigits[1];
-		*--c = twoDigits[0];
-
-		val >>= 8;
-	}
-
-	size += digits;
-
-	Copy(str, c, digits);
-	str[size] = LU::NULL_CHAR;
-}
-
-template<typename T, typename LU>
-template<FloatingPoint Arg>
-inline void StringBase<T, LU>::HexToString(T* str, const Arg& value)
-{
-	hashed = false;
-	if (!string || capacity < size + 17) { Memory::Reallocate(&string, capacity = size + 17); }
-
-	U8 pairs = 8;
-	U8 digits = 16;
-
-	T* c = str + digits;
-	const T* twoDigits;
-	U64 val = reinterpret_cast<U64>(value);
-
-	for (U8 i = 0; i < pairs; ++i)
-	{
-		twoDigits = LU::HEX_LOOKUP + (val & 0xFF) * 2;
-
-		*--c = twoDigits[1];
-		*--c = twoDigits[0];
-
-		val >>= 8;
-	}
-
-	size += digits;
-
-	Copy(str, c, digits);
-	str[size] = LU::NULL_CHAR;
 }
 
 template<typename T, typename LU>
 template<Signed Arg>
-inline Arg StringBase<T, LU>::ToType(U64 start) const
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
 	T* it = string + start;
 	T c;
-	Arg value = 0;
+	value = 0;
 
 	if (*it == LU::NEGATIVE_CHAR)
 	{
@@ -1319,11 +1357,11 @@ inline Arg StringBase<T, LU>::ToType(U64 start) const
 
 template<typename T, typename LU>
 template<Unsigned Arg>
-inline Arg StringBase<T, LU>::ToType(U64 start) const
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
 	T* it = string + start;
 	T c;
-	Arg value = 0;
+	value = 0;
 
 	while (NotWhiteSpace(c = *it++) && c != LU::NULL_CHAR) { value *= 10; value += c - LU::ZERO_CHAR; }
 
@@ -1332,18 +1370,18 @@ inline Arg StringBase<T, LU>::ToType(U64 start) const
 
 template<typename T, typename LU>
 template<Boolean Arg>
-inline Arg StringBase<T, LU>::ToType(U64 start) const
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
-	return Compare(string + start, LU::TRUE_STR, 4);
+	value = Compare(string + start, LU::TRUE_STR, 4);
 }
 
 template<typename T, typename LU>
 template<FloatingPoint Arg>
-inline Arg StringBase<T, LU>::ToType(U64 start) const
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
 	T* it = string + start;
 	T c;
-	Arg value = 0.0f;
+	value = 0.0f;
 	F64 mul = 0.1f;
 
 	if (*it == LU::NEGATIVE_CHAR)
@@ -1362,17 +1400,74 @@ inline Arg StringBase<T, LU>::ToType(U64 start) const
 }
 
 template<typename T, typename LU>
-template<Pointer Arg>
-inline Arg StringBase<T, LU>::ToType(U64 start) const
+template<NonStringPointer Arg>
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
-	return (Arg)ToType<U64>(start);
+	ToType((U64)value, start);
 }
 
 template<typename T, typename LU>
-inline U64 StringBase<T, LU>::Length(const T* str) const
+template<Character Arg>
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
-	T* ptr = str;
-	while (*ptr++);
+	//TODO: conversions
+	value = string[start];
+}
+
+template<typename T, typename LU>
+template<StringLiteral Arg>
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
+{
+	//TODO: conversions
+	value = string + start;
+}
+
+template<typename T, typename LU>
+template<StringType Arg>
+inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
+{
+	if constexpr (IsSame<Arg, StringBase<T, LU>>) { value = String(string + start); }
+	else if constexpr (IsSame<Arg, StringBase<C8, C8Lookup>>)
+	{
+		if constexpr (IsSame<StringBase<T, LU>, StringBase<C16, C16Lookup>>)
+		{
+			//TODO
+		}
+		else //C32
+		{
+			//TODO
+		}
+	}
+	else if constexpr (IsSame<Arg, StringBase<C16, C16Lookup>>)
+	{
+		if constexpr (IsSame<StringBase<T, LU>, StringBase<C8, C8Lookup>>)
+		{
+			//TODO
+		}
+		else //C32
+		{
+			//TODO
+		}
+	}
+	else if constexpr (IsSame<Arg, StringBase<C32, C32Lookup>>)
+	{
+		if constexpr (IsSame<StringBase<T, LU>, StringBase<C8, C8Lookup>>)
+		{
+			//TODO
+		}
+		else //C16
+		{
+			//TODO
+		}
+	}
+}
+
+template<typename T, typename LU>
+template<Character C>
+inline U64 StringBase<T, LU>::Length(const C* str) const
+{
+	const C* ptr = str;
+	while (*ptr) { ++ptr; }
 	return ptr - str;
 }
 
@@ -1385,8 +1480,8 @@ inline void StringBase<T, LU>::Copy(T* dst, const T* src, U64 length)
 template<typename T, typename LU>
 inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length) const
 {
-	T* c0 = a;
-	T* c1 = b;
+	const T* c0 = a;
+	const T* c1 = b;
 
 	T c;
 
@@ -1423,250 +1518,16 @@ inline void StringBase<T, LU>::Format(U64& start, const Arg& value)
 			c = *it++;
 			switch (c)
 			{
-			case LU::CLOSE_BRACE: {
-				start = InsertType(it - 2, value, 2);
-			} break;
-			case LU::FMT_HEX: {
-				if (*it == LU::CLOSE_BRACE) { start = InsertHex(it - 2, value, 3); }
-				else { /*Logger::Error("Invalid hex token, must be '{h}'!");*/ start = it - string; }
-			} break;
+			case LU::CLOSE_BRACE: { start = ToString<Arg, false, true, 2>(it - 2, value); return; } break;
+			case LU::FMT_HEX: { if (*it == LU::CLOSE_BRACE) { start = ToString<Arg, true, true, 3>(it - 2, value); return; } } break;
 			case LU::FMT_DEC: {
-				if constexpr (IsSameNoQuals<Arg, F32> || IsSameNoQuals<Arg, F64>)
+				if constexpr (IsFloatingPoint<Arg>)
 				{
-					if (*it == LU::CLOSE_BRACE) { start = InsertType(it - 3, value, 4); }
-					else if (it[1] == LU::CLOSE_BRACE) { start = InsertType(it - 3, value, 4, *it++); }
-					else { /*Logger::Error("Invalid decimal token, must be '{.n}' where n is one digit!");*/ start = it - string; }
+					if (*it == LU::CLOSE_BRACE) { start = ToString<Arg, false, true, 3>(it - 2, value, 5); return; }
+					else if (it[1] == LU::CLOSE_BRACE) { start = ToString<Arg, false, true, 4>(it - 2, value, *it - '0'); return; }
 				}
-				else { /*Logger::Error("Decimal token can only be used with float types!");*/ start = it - string; }
 			} break;
-			default: {
-				//Logger::Error("Unknown format option '{}'!", c);
-				start = it - string;
-			}
 			}
 		}
 	}
-}
-
-template<typename T, typename LU>
-template<Signed Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	if (capacity < size + 21 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 21 - rmvAmt); }
-
-	Copy(str + 20, str + rmvAmt, size - rmvAmt - (str - string));
-
-	T* c = str + 20;
-	const T* threeDigits;
-	U8 neg = 0;
-
-	U64 abs = (U64)value;
-
-	if (value < 0)
-	{
-		str[0] = LU::NEGATIVE_CHAR;
-		abs = (U64)-value;
-		neg = 1;
-	}
-
-	while (abs > 999)
-	{
-		U64 newVal = abs / 1000;
-		U64 remainder = abs % 1000;
-		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		abs = newVal;
-	}
-
-	threeDigits = LU::DECIMAL_LOOKUP + (abs * 3);
-	*--c = threeDigits[2];
-	if (abs > 9) { *--c = threeDigits[1]; }
-	if (abs > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 20 + neg - (c - str);
-	size += addLength;
-
-	Copy(str + neg, c, addLength);
-	str[size] = LU::NULL_CHAR;
-
-	return (str - string) + addLength + 1;
-}
-
-template<typename T, typename LU>
-template<Unsigned Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	if (capacity < size + 21 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 21 - rmvAmt); }
-
-	Copy(str + 20, str + rmvAmt, size - rmvAmt - (str - string));
-
-	T* c = str + 20;
-	const T* threeDigits;
-	U64 val = value;
-
-	while (val > 999)
-	{
-		U64 newVal = val / 1000;
-		U64 remainder = val % 1000;
-		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		val = newVal;
-	}
-
-	threeDigits = LU::DECIMAL_LOOKUP + (val * 3);
-	*--c = threeDigits[2];
-	if (val > 9) { *--c = threeDigits[1]; }
-	if (val > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 20 - (c - str);
-	size += addLength;
-
-	Copy(str, c, addLength);
-	str[size] = LU::NULL_CHAR;
-
-	return (str - string) + addLength + 1;
-}
-
-template<typename T, typename LU>
-template<Boolean Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	if (value)
-	{
-		if (capacity < size + 5 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 5 - rmvAmt); }
-
-		Copy(str + 4, str + rmvAmt, size - rmvAmt - (str - string));
-		Copy(str + size, LU::TRUE_STR, 4);
-		size += 4;
-		str[size] = LU::NULL_CHAR;
-
-		return (str - string) + 5;
-	}
-	else
-	{
-		if (capacity < size + 6 - rmvAmt) { Memory::Reallocate(&string, capacity = size + 6 - rmvAmt); }
-
-		Copy(str + 5, str + rmvAmt, size - rmvAmt - (str - string));
-		Copy(str + size, LU::FALSE_STR, 5);
-		size += 5;
-		str[size] = LU::NULL_CHAR;
-
-		return (str - string) + 6;
-	}
-}
-
-template<typename T, typename LU>
-template<FloatingPoint Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt, U64 decimalCount)
-{
-	if (capacity < size + 22 + decimalCount) { Memory::Reallocate(&string, capacity = size + 22 + decimalCount); }
-
-	Copy(str + 21 + decimalCount, str + rmvAmt, size - rmvAmt - (str - string));
-	T* c = str + 21 + decimalCount;
-	const T* threeDigits;
-	U8 neg = 0;
-
-	F64 abs = value;
-
-	if (value < 0)
-	{
-		str[0] = LU::NEGATIVE_CHAR;
-		abs = -value;
-		neg = 1;
-	}
-
-	//TODO: use decimalCount
-	U64 dec = (U64)((abs - (F64)(U64)abs) * 100000.0f);
-
-	U64 newVal = dec / 1000;
-	U64 remainder = dec % 1000;
-	threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = threeDigits[0];
-	dec = newVal;
-
-	threeDigits = LU::DECIMAL_LOOKUP + (dec * 3);
-	*--c = threeDigits[2];
-	*--c = threeDigits[1];
-	*--c = LU::DECIMAL_CHAR;
-
-	U64 whole = (U64)abs;
-
-	while (whole > 999)
-	{
-		U64 newVal = whole / 1000;
-		U64 remainder = whole % 1000;
-		threeDigits = LU::DECIMAL_LOOKUP + (remainder * 3);
-		*--c = threeDigits[2];
-		*--c = threeDigits[1];
-		*--c = threeDigits[0];
-		whole = newVal;
-	}
-
-	threeDigits = LU::DECIMAL_LOOKUP + (whole * 3);
-	*--c = threeDigits[2];
-	if (whole > 9) { *--c = threeDigits[1]; }
-	if (whole > 99) { *--c = threeDigits[0]; }
-
-	U64 addLength = 21 + decimalCount + neg - (c - str);
-	size += addLength;
-
-	Copy(str + neg, c, addLength);
-	str[size] = LU::NULL_CHAR;
-
-	return (str - string) + addLength + 1;
-}
-
-template<typename T, typename LU>
-template<Pointer Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	return InsertType(str, (U64)value, rmvAmt);
-}
-
-template<typename T, typename LU>
-template<Character Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<StringLiteral Arg>
-inline U64 StringBase<T, LU>::InsertType(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<Signed Arg>
-inline U64 StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<Unsigned Arg>
-inline U64 StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<FloatingPoint Arg>
-inline U64 StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
-}
-
-template<typename T, typename LU>
-template<Pointer Arg>
-inline U64 StringBase<T, LU>::InsertHex(T* str, const Arg& value, U64 rmvAmt)
-{
-	//TODO
 }

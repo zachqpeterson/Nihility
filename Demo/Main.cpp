@@ -17,7 +17,7 @@ void shutdown()
 
 int main()
 {
-	Engine::Initialize(L"Nihility Demo", init, update, shutdown);
+	Engine::Initialize("Nihility Demo", init, update, shutdown);
 
 	return 0;
 }

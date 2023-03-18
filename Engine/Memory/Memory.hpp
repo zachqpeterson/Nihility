@@ -156,7 +156,7 @@ template<typename T> inline void Memory::Reallocate(T** pointer, U64& count)
 {
 	constexpr U64 size = sizeof(T);
 
-	void** temp;
+	void** temp = nullptr;
 
 	if (count == 0)
 	{
@@ -177,13 +177,13 @@ template<typename T> inline void Memory::Reallocate(T** pointer, U64& count)
 	{
 		void* cmp = *pointer;
 
-		if (cmp >= pool4mbPointer) { memcpy(*temp, *pointer, Region4mb); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { memcpy(*temp, *pointer, Region256kb); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { memcpy(*temp, *pointer, Region16kb); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { memcpy(*temp, *pointer, Region1kb); Free1kb((void**)pointer); }
+		if (cmp >= pool4mbPointer) { memcpy(*temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
+		else if (cmp >= pool256kbPointer) { memcpy(*temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
+		else if (cmp >= pool16kbPointer) { memcpy(*temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
+		else if (cmp >= pool1kbPointer) { memcpy(*temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
 	}
 
-	*pointer = *temp;
+	*pointer = (T*)*temp;
 }
 
 template<typename T> inline void Memory::Free(T** pointer)

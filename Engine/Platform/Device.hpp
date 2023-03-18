@@ -118,7 +118,7 @@ struct _HIDP_DATA;
 struct Device
 {
 public:
-	Device(WString path);
+	Device(String path);
 	Device(Device&& other) noexcept;
 	Device& operator=(Device&& other) noexcept;
 	~Device();
@@ -135,10 +135,10 @@ private:
 
 	void __stdcall DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfered, struct _OVERLAPPED* lpOverlapped);
 
-	WString path;
+	String path;
 	void* ntHandle;				//HANDLE
-	WString manufacturer;
-	WString product;
+	String manufacturer;
+	String product;
 	DeviceType type;
 
 	HIDCapabilities capabilities;

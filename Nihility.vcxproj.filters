@@ -94,8 +94,8 @@
     <ClInclude Include="Engine\Containers\Hashmap.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\TypeTraits.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="Engine\Containers\ContainerDefines.hpp">
+      <Filter>Source Files\Containers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

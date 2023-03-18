@@ -9,7 +9,7 @@
 
 bool Logger::Initialize()
 {
-	Platform::SetConsoleWindowTitle(L"Nihility Console");
+	Platform::SetConsoleWindowTitle("Nihility Console");
 
 	console = CreateFileA("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
 
