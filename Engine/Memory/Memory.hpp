@@ -28,7 +28,7 @@ public:
 	static void Allocate(T** pointer);
 
 	template<typename T>
-	static void Allocate(T** pointer, U64& outSize);
+	static void Allocate(T** pointer, U64& outSize); //TODO: Take in any integer type for size
 
 	template<typename T>
 	static void AllocateSize(T** pointer, U64 size);

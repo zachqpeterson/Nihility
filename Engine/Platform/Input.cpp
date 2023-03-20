@@ -40,26 +40,41 @@ bool Input::Initialize()
 	while (SetupDiEnumDeviceInterfaces(devInfoSet, nullptr, &guid, index++, &interfaceData))
 	{
 		UL32 size;
-		if(!SetupDiGetDeviceInterfaceDetailW(devInfoSet, &interfaceData, nullptr, 0, &size, nullptr) && (error = GetLastError()) != ERROR_INSUFFICIENT_BUFFER)
+		if(!SetupDiGetDeviceInterfaceDetailA(devInfoSet, &interfaceData, nullptr, 0, &size, nullptr) && (error = GetLastError()) != ERROR_INSUFFICIENT_BUFFER)
 		{
 			Logger::Error("Failed to get device interface detail size, {}", error);
 			continue;
 		}
 
-		PSP_DEVICE_INTERFACE_DETAIL_DATA_W interfaceDetailData;
+		PSP_DEVICE_INTERFACE_DETAIL_DATA_A interfaceDetailData;
 		Memory::AllocateSize(&interfaceDetailData, size);
-		interfaceDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
+		interfaceDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
 
 		SP_DEVINFO_DATA infoData{};
 		infoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
-		if (!SetupDiGetDeviceInterfaceDetailW(devInfoSet, &interfaceData, interfaceDetailData, size, nullptr, &infoData))
+		if (!SetupDiGetDeviceInterfaceDetailA(devInfoSet, &interfaceData, interfaceDetailData, size, nullptr, &infoData))
 		{ 
 			Logger::Error("Error when getting device interface details, {}", GetLastError());
 			continue;
 		}
 
-		Device device(interfaceDetailData->DevicePath);
+		if (!SetupDiGetDeviceRegistryPropertyA(devInfoSet, &infoData, SPDRP_PHYSICAL_DEVICE_OBJECT_NAME, nullptr, nullptr, 0, &size) && (error = GetLastError()) != ERROR_INSUFFICIENT_BUFFER)
+		{
+			Logger::Error("Error when getting device registry property, {}", error);
+			continue;
+		}
+
+		String path;
+		path.Resize(size);
+
+		if (!SetupDiGetDeviceRegistryPropertyA(devInfoSet, &infoData, SPDRP_PHYSICAL_DEVICE_OBJECT_NAME, nullptr, (U8*)path.Data(), size, nullptr))
+		{
+			Logger::Error("Error when getting device registry property, {}", GetLastError());
+			continue;
+		}
+
+		Device device(path);
 		if (device.openHandle) { devices.Push(Move(device)); }
 	}
 

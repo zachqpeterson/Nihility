@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "Containers\String.hpp"
+#include "Core\File.hpp"
 
 enum DeviceType
 {
@@ -135,6 +136,7 @@ private:
 
 	void __stdcall DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfered, struct _OVERLAPPED* lpOverlapped);
 
+	File file;
 	String path;
 	void* ntHandle;				//HANDLE
 	String manufacturer;

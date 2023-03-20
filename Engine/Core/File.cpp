@@ -13,6 +13,7 @@ static const char* openMode[FILE_OPEN_COUNT]{
 	"w+R",
 	"aS",
 	"wS",
+	"r+b",
 };
 
 File::File() : handle{ nullptr }, pointer{ 0 }, size{ 0 }, updateSize{ false } {}

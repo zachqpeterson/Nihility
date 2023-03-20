@@ -11,8 +11,12 @@
 Device::Device(String path) : path{ path }, ntHandle{ nullptr }, type{ DEVICE_TYPE_COUNT }, capabilities{},
 preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ nullptr }, openHandle{ false }
 {
-	if ((ntHandle = CreateFileA(path.Data(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open handle, skipping..."); return; }
-	openHandle = true;
+	//if ((ntHandle = CreateFileA(path.Data(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open handle, skipping..."); return; }
+	//openHandle = true;
+
+	file.Open(path, FILE_OPEN_DEVICE);
+
+	if (file.Opened()) { BreakPoint; }
 
 	if (!HidD_GetProductString(ntHandle, product.Data(), (UL32)product.Capacity())) { Logger::Trace("Failed to get product, {}", GetLastError()); }
 	product.Resize();
