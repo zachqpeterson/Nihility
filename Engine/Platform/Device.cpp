@@ -8,16 +8,9 @@
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
 
-Device::Device(String path) : path{ path }, ntHandle{ nullptr }, type{ DEVICE_TYPE_COUNT }, capabilities{},
+Device::Device(void* handle) : ntHandle{ handle }, type{ DEVICE_TYPE_COUNT }, capabilities{},
 preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ nullptr }, openHandle{ false }
 {
-	//if ((ntHandle = CreateFileA(path.Data(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open handle, skipping..."); return; }
-	//openHandle = true;
-
-	file.Open(path, FILE_OPEN_DEVICE);
-
-	if (file.Opened()) { BreakPoint; }
-
 	if (!HidD_GetProductString(ntHandle, product.Data(), (UL32)product.Capacity())) { Logger::Trace("Failed to get product, {}", GetLastError()); }
 	product.Resize();
 
@@ -86,6 +79,7 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 	}
 	else
 	{
+		//TODO: May not want to discard
 		Logger::Trace("Unkown device type, skipping...");
 		Destroy();
 		return;
@@ -99,7 +93,7 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 	//}
 }
 
-Device::Device(Device&& other) noexcept : path{ Move(other.path) }, ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
+Device::Device(Device&& other) noexcept : ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
 preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, stateLength{ other.stateLength }, reportBuffer{ other.reportBuffer }, openHandle{ other.openHandle }
 {
 	other.ntHandle = nullptr;
@@ -111,7 +105,6 @@ preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, 
 
 Device& Device::operator=(Device&& other) noexcept
 {
-	path = Move(other.path);
 	ntHandle = other.ntHandle;
 	type = other.type;
 	capabilities = other.capabilities;
@@ -218,7 +211,7 @@ bool Device::SetupMouse()
 {
 	type = DEVICE_TYPE_MOUSE;
 
-	Logger::Trace("Mouse detected");
+	Logger::Debug("Mouse detected");
 
 	return true;
 }
@@ -227,7 +220,7 @@ bool Device::SetupKeyboard()
 {
 	type = DEVICE_TYPE_KEYBOARD;
 
-	Logger::Trace("Keyboard detected");
+	Logger::Debug("Keyboard detected");
 
 	return true;
 }
@@ -236,7 +229,7 @@ bool Device::SetupController()
 {
 	type = DEVICE_TYPE_CONTROLLER;
 
-	Logger::Trace("Controller detected");
+	Logger::Debug("Controller detected");
 
 	return true;
 }

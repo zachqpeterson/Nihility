@@ -4,71 +4,77 @@
 
 class NH_API Settings
 {
+public:
+	//AUDIO
+	static const U8& ChannelCount() { return data.channelCount; }
+	static const F32& MasterVolume() { return data.masterVolume; }
+	static const F32& MusicVolume() { return data.musicVolume; }
+	static const F32& SfxVolume() { return data.sfxVolume; }
+
+	//GRAPHICS
+	static const U32& WindowWidth() { return data.windowWidth; }
+	static const U32& WindowHeight() { return data.windowHeight; }
+	static const U32& WindowWidthSmall() { return data.windowWidthSmall; }
+	static const U32& WindowHeightSmall() { return data.windowHeightSmall; }
+	static const I32& WindowPositionX() { return data.windowPositionX; }
+	static const I32& WindowPositionY() { return data.windowPositionY; }
+	static const I32& WindowPositionXSmall() { return data.windowPositionXSmall; }
+	static const I32& WindowPositionYSmall() { return data.windowPositionYSmall; }
+	static const F64& TargetFrametime() { return data.targetFrametime; }
+	static const F64& TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
+	static const U8& MsaaCount() { return data.msaaCount; }
+
+	//PLATFORM
+	static const U32& Dpi() { return data.dpi; }
+	static const U32& ThreadCount() { return data.threadCount; }
+	static const U32& ScreenWidth() { return data.screenWidth; }
+	static const U32& ScreenHeight() { return data.screenHeight; }
+	static const F64& MonitorHz() { return data.monitorHz; }
+	static const bool& Focused() { return data.focused; }
+	static const bool& Minimised() { return data.minimised; }
+	static const bool& Fullscreen() { return data.fullscreen; }
+	static const bool& LockCursor() { return data.lockCursor; }
+	static const bool& HideCursor() { return data.hideCursor; }
+	static const bool& ConstrainCursor() { return data.constrainCursor; }
+
 private:
 	static bool Initialize();
 	static void Shutdown();
 
-	//AUDIO
-	static inline U8 CHANNEL_COUNT = 2;
-	static inline F32 MASTER_VOLUME = 1.0f;
-	static inline F32 MUSIC_VOLUME = 1.0f;
-	static inline F32 SFX_VOLUME = 1.0f;
+	static inline struct Data
+	{
+		//AUDIO
+		U8 channelCount{ 2 };
+		F32 masterVolume{ 1.0f };
+		F32 musicVolume{ 1.0f };
+		F32 sfxVolume{ 1.0f };
 
-	//GRAPHICS
-	static inline U32 WINDOW_WIDTH = 0;
-	static inline U32 WINDOW_HEIGHT = 0;
-	static inline U32 WINDOW_WIDTH_SMALL = 1280;
-	static inline U32 WINDOW_HEIGHT_SMALL = 720;
-	static inline I32 WINDOW_POSITION_X = 0;
-	static inline I32 WINDOW_POSITION_Y = 0;
-	static inline I32 WINDOW_POSITION_X_SMALL = 320;
-	static inline I32 WINDOW_POSITION_Y_SMALL = 180;
-	static inline F64 TARGET_FRAMETIME = 0.0;
-	static inline F64 TARGET_FRAMETIME_SUSPENDED = 0.1;
-	static inline U8 MSAA_COUNT = 1;
+		//GRAPHICS
+		U32 windowWidth{ 0 };
+		U32 windowHeight{ 0 };
+		U32 windowWidthSmall{ 1280 };
+		U32 windowHeightSmall{ 720 };
+		I32 windowPositionX{ 0 };
+		I32 windowPositionY{ 0 };
+		I32 windowPositionXSmall{ 320 };
+		I32 windowPositionYSmall{ 180 };
+		F64 targetFrametime{ 0.0 };
+		F64 targetFrametimeSuspended{ 0.1 };
+		U8 msaaCount{ 1 };
 
-	//PLATFORM
-	static inline U32 DPI = 0;
-	static inline U32 THREAD_COUNT = 1;
-	static inline U32 SCREEN_WIDTH = 0;
-	static inline U32 SCREEN_HEIGHT = 0;
-	static inline F64 MONITOR_HZ = 0.0;
-	static inline bool FOCUSED = true;
-	static inline bool MINIMISED = true;
-	static inline bool FULLSCREEN = false;
-	static inline bool LOCK_CURSOR = false;
-	static inline bool HIDE_CURSOR = false;
-	static inline bool CONSTRAIN_CURSOR = false;
-
-public:
-	static inline const U8& ChannelCount = CHANNEL_COUNT;
-	static inline const F32& MasterVolume = MASTER_VOLUME;
-	static inline const F32& MusicVolume = MUSIC_VOLUME;
-	static inline const F32& SfxVolume = SFX_VOLUME;
-
-	static inline const U32& WindowWidth = WINDOW_WIDTH;
-	static inline const U32& WindowHeight = WINDOW_HEIGHT;
-	static inline const U32& WindowWidthSmall = WINDOW_WIDTH_SMALL;
-	static inline const U32& WindowHeightSmall = WINDOW_HEIGHT_SMALL;
-	static inline const I32& WindowPositionX = WINDOW_POSITION_X;
-	static inline const I32& WindowPositionY = WINDOW_POSITION_Y;
-	static inline const I32& WindowPositionXSmall = WINDOW_POSITION_X_SMALL;
-	static inline const I32& WindowPositionYSmall = WINDOW_POSITION_Y_SMALL;
-	static inline const U32& ScreenWidth = SCREEN_WIDTH;
-	static inline const U32& ScreenHeight = SCREEN_HEIGHT;
-	static inline const F64& TargetFrametime = TARGET_FRAMETIME;
-	static inline const F64& TargetFrametimeSuspended = TARGET_FRAMETIME_SUSPENDED;
-	static inline const U8& MSAACount = MSAA_COUNT;
-
-	static inline const U32& Dpi = DPI;
-	static inline const F64& MonitorHz = MONITOR_HZ;
-	static inline const U32& ThreadCount = THREAD_COUNT;
-	static inline const bool& Focused = FOCUSED;
-	static inline const bool& Minimised = MINIMISED;
-	static inline const bool& Fullscreen = FULLSCREEN;
-	static inline const bool& LockCursor = LOCK_CURSOR;
-	static inline const bool& HideCursor = HIDE_CURSOR;
-	static inline const bool& ConstrainCursor = CONSTRAIN_CURSOR;
+		//PLATFORM
+		U32 dpi{ 0 };
+		U32 threadCount{ 1 };
+		U32 screenWidth{ 0 };
+		U32 screenHeight{ 0 };
+		F64 monitorHz{ 0.0 };
+		bool focused{ true };
+		bool minimised{ true };
+		bool fullscreen{ false };
+		bool lockCursor{ false };
+		bool hideCursor{ false };
+		bool constrainCursor{ false };
+	} data;
 
 	STATIC_CLASS(Settings);
 	friend class Platform;

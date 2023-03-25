@@ -1,6 +1,7 @@
 #include "Resources.hpp"
 
 #include "Core\Logger.hpp"
+#include "Core\File.hpp"
 
 #define TEXTURES_PATH "textures/"
 #define AUDIO_PATH "audio/"
@@ -64,7 +65,7 @@ Texture* Resources::LoadTexture(String& name)
 
 	String path(TEXTURES_PATH, name);
 
-	File file(path, FILE_OPEN_READ_SEQ);
+	File file(path, FILE_OPEN_RESOURCE);
 	if (file.Opened())
 	{
 		//TODO: Find file type, redirect to method

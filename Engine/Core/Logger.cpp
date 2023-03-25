@@ -1,32 +1,26 @@
 #include "Logger.hpp"
 
+#include "File.hpp"
+#include "Containers\String.hpp"
 #include "Platform\Platform.hpp"
 
-#if defined PLATFORM_WINDOWS
-
-#include <Windows.h>
-#include <fileapi.h>
+static File log{ "Log.log", FILE_OPEN_LOG };
+static File console{ "CONOUT$", FILE_OPEN_CONSOLE };
 
 bool Logger::Initialize()
 {
 	Platform::SetConsoleWindowTitle("Nihility Console");
-
-	console = CreateFileA("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
-
-	return true;
+	return log.Opened() && console.Opened();
 }
 
 void Logger::Shutdown()
 {
-	CloseHandle(console);
+	console.Close();
 	log.Close();
 }
 
-void Logger::Write(const String& str)
+void Logger::Write(const String& message)
 {
-	UL32 wrote;
-	WriteFile(console, str.Data(), (UL32)str.Size(), &wrote, nullptr); //TODO: Thread-Safe
-	log.Write(str);
+	log.Write(message);
+	console.Write(message);
 }
-
-#endif

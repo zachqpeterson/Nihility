@@ -255,6 +255,7 @@ enum NH_API AxisCode
 };
 
 struct Device;
+struct HRAWINPUT__;
 
 class NH_API Input
 {
@@ -288,7 +289,10 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
-	static void Update();
+
+	static void Update(HRAWINPUT__* handle);
+	static void AddDevice(void* handle);
+	static void RemoveDevice(void* handle);
 
 	static void* devInfoSet;						//HDEVINFO
 
@@ -305,4 +309,5 @@ private:
 
 	STATIC_CLASS(Input);
 	friend class Engine;
+	friend class Platform;
 };

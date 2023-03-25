@@ -25,13 +25,13 @@ bool Jobs::Initialize()
 
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
-	Settings::THREAD_COUNT = sysInfo.dwNumberOfProcessors;
+	Settings::data.threadCount = sysInfo.dwNumberOfProcessors;
 
-	jobs.semaphore = CreateSemaphoreExW(nullptr, 0, Settings::ThreadCount, nullptr, 0, SEMAPHORE_ALL_ACCESS);
+	jobs.semaphore = CreateSemaphoreExW(nullptr, 0, Settings::ThreadCount(), nullptr, 0, SEMAPHORE_ALL_ACCESS);
 	jobs.maxEntries = 256;
 	running = true;
 
-	for (U32 i = 0; i < Settings::ThreadCount - 1; ++i)
+	for (U32 i = 0; i < Settings::ThreadCount() - 1; ++i)
 	{
 		U32 id;
 		CloseHandle((HANDLE)_beginthreadex(nullptr, 0, RunThread, nullptr, 0, &id));

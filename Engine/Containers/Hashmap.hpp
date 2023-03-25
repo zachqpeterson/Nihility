@@ -6,7 +6,7 @@
 
 //TODO: U64 key version
 template<typename Value>
-struct Hashmap
+struct NH_API Hashmap
 {
 	struct Cell
 	{

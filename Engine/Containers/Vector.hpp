@@ -28,7 +28,7 @@
 *	Search, remove all non-unique values
 */
 template<typename T>
-struct Vector
+struct NH_API Vector
 {
 public:
 	/// <summary>

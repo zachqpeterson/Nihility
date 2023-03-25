@@ -6,6 +6,7 @@
 #include "Platform\Jobs.hpp"
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
+#include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Containers\String.hpp"
@@ -39,9 +40,30 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
+	Logger::Fatal("Hello, World!");
+	Logger::Error("Hello, World!");
+	Logger::Warn("Hello, World!");
+	Logger::Info("Hello, World!");
+	Logger::Debug("Hello, World!");
+	Logger::Trace("Hello, World!");
+
 	F32 f = 123.123f;
 	//TODO: Only works with decimal count of 5 or 0
 	String s512("{.3}", f);
+
+	String path("test.txt");
+	File file(path, FILE_OPEN_WRITE | FILE_OPEN_APPEND | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY);
+
+	String str0("Hello, World!");
+	//String str1;
+	file.Write(str0);
+	file.Write(str0);
+	file.Write(str0);
+	file.Write(str0);
+	file.Write(str0);
+	file.Write(str0);
+	file.Close();
+	//I32 i1 = file.ReadCount(str1, 1);
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
@@ -87,7 +109,6 @@ void Engine::UpdateLoop()
 
 		if (!Platform::Update()) { break; } //TODO: Run on separate thread
 
-		Input::Update(); //TODO: Run on separate thread
 		//Physics::Update();
 		GameUpdate();
 		//UI::Update();
@@ -95,16 +116,16 @@ void Engine::UpdateLoop()
 		//Renderer::Update(); //TODO: Checks for being minimised
 		//Audio::Update();
 
-		if (Settings::Focused)
+		if (Settings::Focused())
 		{
-			F64 remainingFrameTime = Settings::TargetFrametime - Time::FrameUpTime();
+			F64 remainingFrameTime = Settings::TargetFrametime() - Time::FrameUpTime();
 			U64 remainingUS = (U64)(remainingFrameTime * 1090000.0);
 
 			if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }
 		}
 		else
 		{
-			F64 remainingFrameTime = Settings::TargetFrametimeSuspended - Time::FrameUpTime();
+			F64 remainingFrameTime = Settings::TargetFrametimeSuspended() - Time::FrameUpTime();
 			U64 remainingUS = (U64)(remainingFrameTime * 1090000.0);
 
 			if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }

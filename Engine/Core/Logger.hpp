@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 
-#include "File.hpp"
 #include "Containers\String.hpp"
 
 #define LOG_WARN_ENABLED 1
@@ -37,8 +36,7 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
-
-	static void Write(const String& str);
+	static void Write(const String& message);
 
 	static inline const String fatalTag{ "\033[0;41m[FATAL]:\033[0m " };
 	static inline const String errorTag{ "\033[0;31m[ERROR]:\033[0m " };
@@ -48,9 +46,6 @@ private:
 	static inline const String traceTag{ "\033[1;30m[TRACE]:\033[0m " };
 	static inline const String endLine{ "\n" };
 
-	static inline File log{ "Log.log", FILE_OPEN_WRITE_NEW };
-	static inline void* console; //TODO: This is platform specific
-
 	STATIC_CLASS(Logger);
 	friend class Engine;
 };
@@ -58,23 +53,20 @@ private:
 template<Character T, typename... Types> inline void Logger::Fatal(const T* message, const Types&... args)
 {
 	String str(message, args...);
-	str.Surround(fatalTag, endLine);
-	Write(str);
+	Write(str.Surround(fatalTag, endLine));
 }
 
 template<Character T, typename... Types> inline void Logger::Error(const T* message, const Types&... args)
 {
 	String str(message, args...);
-	str.Surround(errorTag, endLine);
-	Write(str);
+	Write(str.Surround(errorTag, endLine));
 }
 
 template<Character T, typename... Types> inline void Logger::Warn(const T* message, const Types&... args)
 {
 #if LOG_WARN_ENABLED
 	String str(message, args...);
-	str.Surround(warnTag, endLine);
-	Write(str);
+	Write(str.Surround(warnTag, endLine));
 #endif
 }
 
@@ -82,8 +74,7 @@ template<Character T, typename... Types> inline void Logger::Info(const T* messa
 {
 #if LOG_INFO_ENABLED
 	String str(message, args...);
-	str.Surround(infoTag, endLine);
-	Write(str);
+	Write(str.Surround(infoTag, endLine));
 #endif
 }
 
@@ -91,8 +82,7 @@ template<Character T, typename... Types> inline void Logger::Debug(const T* mess
 {
 #if LOG_DEBUG_ENABLED
 	String str(message, args...);
-	str.Surround(debugTag, endLine);
-	Write(str);
+	Write(str.Surround(debugTag, endLine));
 #endif
 }
 
@@ -100,51 +90,38 @@ template<Character T, typename... Types> inline void Logger::Trace(const T* mess
 {
 #if LOG_TRACE_ENABLED
 	String str(message, args...);
-	str.Surround(traceTag, endLine);
-	Write(str);
+	Write(str.Surround(traceTag, endLine));
 #endif
 }
 
-template<typename Type> inline void Logger::Fatal(const Type& arg)
-{
-	String str(fatalTag, arg, endLine);
-	Write(str);
-}
+template<typename Type> inline void Logger::Fatal(const Type& arg) { Write(String(fatalTag, arg, endLine)); }
 
-template<typename Type> inline void Logger::Error(const Type& arg)
-{
-	String str(errorTag, arg, endLine);
-	Write(str);
-}
+template<typename Type> inline void Logger::Error(const Type& arg) { Write(String(errorTag, arg, endLine)); }
 
 template<typename Type> inline void Logger::Warn(const Type& arg)
 {
 #if LOG_WARN_ENABLED
-	String str(warnTag, arg, endLine);
-	Write(str);
+	Write(String(warnTag, arg, endLine));
 #endif
 }
 
 template<typename Type> inline void Logger::Info(const Type& arg)
 {
 #if LOG_INFO_ENABLED
-	String str(infoTag, arg, endLine);
-	Write(str);
+	Write(String(infoTag, arg, endLine));
 #endif
 }
 
 template<typename Type> inline void Logger::Debug(const Type& arg)
 {
 #if LOG_DEBUG_ENABLED
-	String str(debugTag, arg, endLine);
-	Write(str);
+	Write(String(debugTag, arg, endLine));
 #endif
 }
 
 template<typename Type> inline void Logger::Trace(const Type& arg)
 {
 #if LOG_TRACE_ENABLED
-	String str(traceTag, arg, endLine);
-	Write(str);
+	Write(String(traceTag, arg, endLine));
 #endif
 }

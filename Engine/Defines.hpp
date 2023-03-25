@@ -47,6 +47,9 @@ typedef char C8;
 typedef char16_t C16;
 
 ///16-bit unicode character
+typedef wchar_t CW;
+
+///16-bit unicode character
 typedef char32_t C32;
 
 ///Maximum value of an unsigned 64-bit integer

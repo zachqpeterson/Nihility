@@ -27,17 +27,17 @@ public:
 	template<typename T>
 	static void Allocate(T** pointer);
 
-	template<typename T>
-	static void Allocate(T** pointer, U64& outSize); //TODO: Take in any integer type for size
+	template<typename T, Unsigned Int>
+	static void Allocate(T** pointer, Int& outSize); //TODO: Take in any integer type for size
 
-	template<typename T>
-	static void AllocateSize(T** pointer, U64 size);
+	template<typename T, Unsigned Int>
+	static void AllocateSize(T** pointer, Int size);
 
-	template<typename T>
-	static void AllocateArray(T** pointer, U64& count);
+	template<typename T, Unsigned Int>
+	static void AllocateArray(T** pointer, Int& count);
 
-	template<typename T>
-	static void Reallocate(T** pointer, U64& count);
+	template<typename T, Unsigned Int>
+	static void Reallocate(T** pointer, Int& count);
 
 	template<typename T>
 	static void Free(T** pointer);
@@ -90,7 +90,8 @@ private:
 	friend class Engine;
 };
 
-template<typename T> inline void Memory::Allocate(T** pointer)
+template<typename T> 
+inline void Memory::Allocate(T** pointer)
 {
 	constexpr U64 size = sizeof(T);
 
@@ -103,7 +104,8 @@ template<typename T> inline void Memory::Allocate(T** pointer)
 	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
 }
 
-template<typename T> inline void Memory::Allocate(T** pointer, U64& outSize)
+template<typename T, Unsigned Int>
+inline void Memory::Allocate(T** pointer, Int& outSize)
 {
 	constexpr U64 size = sizeof(T);
 
@@ -116,7 +118,8 @@ template<typename T> inline void Memory::Allocate(T** pointer, U64& outSize)
 	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
 }
 
-template<typename T> inline void Memory::AllocateSize(T** pointer, U64 size)
+template<typename T, Unsigned Int>
+inline void Memory::AllocateSize(T** pointer, Int size)
 {
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
@@ -126,7 +129,8 @@ template<typename T> inline void Memory::AllocateSize(T** pointer, U64 size)
 	BreakPoint;
 }
 
-template<typename T> inline void Memory::AllocateArray(T** pointer, U64& count)
+template<typename T, Unsigned Int>
+inline void Memory::AllocateArray(T** pointer, Int& count)
 {
 	constexpr U64 size = sizeof(T);
 
@@ -152,41 +156,43 @@ template<typename T> inline void Memory::AllocateArray(T** pointer, U64& count)
 	}
 }
 
-template<typename T> inline void Memory::Reallocate(T** pointer, U64& count)
+template<typename T, Unsigned Int>
+inline void Memory::Reallocate(T** pointer, Int& count)
 {
 	constexpr U64 size = sizeof(T);
 
-	void** temp = nullptr;
+	void* temp = nullptr;
 
 	if (count == 0)
 	{
-		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(temp); count = sizeof(Region1kb) / size; }
-		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(temp); count = sizeof(Region16kb) / size; }
-		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(temp); count = sizeof(Region256kb) / size; }
-		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(temp); count = sizeof(Region4mb) / size; }
+		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(&temp); count = sizeof(Region1kb) / size; }
+		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(&temp); count = sizeof(Region16kb) / size; }
+		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(&temp); count = sizeof(Region256kb) / size; }
+		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(&temp); count = sizeof(Region4mb) / size; }
 	}
 	else
 	{
-		if (size * count <= sizeof(Region1kb)) { Allocate1kb(temp); count = sizeof(Region1kb) / size; }
-		else if (size * count <= sizeof(Region16kb)) { Allocate16kb(temp); count = sizeof(Region16kb) / size; }
-		else if (size * count <= sizeof(Region256kb)) { Allocate256kb(temp); count = sizeof(Region256kb) / size; }
-		else if (size * count <= sizeof(Region4mb)) { Allocate4mb(temp); count = sizeof(Region4mb) / size; }
+		if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); count = sizeof(Region1kb) / size; }
+		else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); count = sizeof(Region16kb) / size; }
+		else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); count = sizeof(Region256kb) / size; }
+		else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); count = sizeof(Region4mb) / size; }
 	}
 
 	if (*pointer)
 	{
 		void* cmp = *pointer;
 
-		if (cmp >= pool4mbPointer) { memcpy(*temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { memcpy(*temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { memcpy(*temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { memcpy(*temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
+		if (cmp >= pool4mbPointer) { memcpy(temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
+		else if (cmp >= pool256kbPointer) { memcpy(temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
+		else if (cmp >= pool16kbPointer) { memcpy(temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
+		else if (cmp >= pool1kbPointer) { memcpy(temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
 	}
 
-	*pointer = (T*)*temp;
+	*pointer = (T*)temp;
 }
 
-template<typename T> inline void Memory::Free(T** pointer)
+template<typename T> 
+inline void Memory::Free(T** pointer)
 {
 	if (!pointer) { return; }
 
@@ -200,7 +206,8 @@ template<typename T> inline void Memory::Free(T** pointer)
 	//Logger::Error("Pointer '{}' wasn't allocated with Memory::Allocate or Memory::AllocateArray", *pointer);
 }
 
-template<typename T> inline void Memory::FreeArray(T** pointer)
+template<typename T> 
+inline void Memory::FreeArray(T** pointer)
 {
 	if (!pointer) { return; }
 
@@ -214,7 +221,8 @@ template<typename T> inline void Memory::FreeArray(T** pointer)
 	//Logger::Error("Pointer '{}' wasn't allocated with Memory::Allocate or Memory::AllocateArray", *pointer);
 }
 
-template<typename T> inline void Memory::AllocateStatic(T** pointer)
+template<typename T> 
+inline void Memory::AllocateStatic(T** pointer)
 {
 	static bool init = Initialize();
 	constexpr U64 size = sizeof(T);

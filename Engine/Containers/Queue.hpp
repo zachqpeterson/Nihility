@@ -5,7 +5,7 @@
 #include "Memory\Memory.hpp"
 
 template<typename T>
-struct Queue
+struct NH_API Queue
 {
 public:
 	Queue();

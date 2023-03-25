@@ -1,9 +1,10 @@
 #include "Platform.hpp"
 
-#ifdef PLATFORM_WINDOWS
-
+#include "Input.hpp"
 #include "Resources\Settings.hpp"
 #include "Core\Logger.hpp"
+
+#ifdef PLATFORM_WINDOWS
 
 #include <Windows.h>
 
@@ -30,6 +31,7 @@ bool Platform::Initialize(const C8* applicationName)
 	windowData.instance = GetModuleHandleA(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
+
 
 	//Load cursor images
 	//arrow = LoadCursorW(nullptr, IDC_ARROW);
@@ -60,7 +62,7 @@ bool Platform::Initialize(const C8* applicationName)
 		return false;
 	}
 
-	if (Settings::Fullscreen) { style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE; }
+	if (Settings::Fullscreen()) { style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE; }
 	else { style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME; }
 
 	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, 0, 0, 0, 0, nullptr, nullptr, windowData.instance, nullptr);
@@ -71,46 +73,46 @@ bool Platform::Initialize(const C8* applicationName)
 		return false;
 	}
 
-	U32 dpi = Settings::Dpi;
+	U32 dpi = Settings::Dpi();
 
-	Settings::DPI = GetDpiForWindow(windowData.window);
+	Settings::data.dpi = GetDpiForWindow(windowData.window);
 
-	Settings::SCREEN_WIDTH = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::DPI);
-	Settings::SCREEN_HEIGHT = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::DPI);
+	Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+	Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
 
 	if (dpi)
 	{
-		Settings::WINDOW_POSITION_X_SMALL = MulDiv(Settings::WindowPositionXSmall, Settings::Dpi, dpi);
-		Settings::WINDOW_POSITION_Y_SMALL = MulDiv(Settings::WindowPositionYSmall, Settings::Dpi, dpi);
-		Settings::WINDOW_WIDTH_SMALL = MulDiv(Settings::WindowWidthSmall, Settings::Dpi, dpi);
-		Settings::WINDOW_HEIGHT_SMALL = MulDiv(Settings::WindowHeightSmall, Settings::Dpi, dpi);
+		Settings::data.windowPositionXSmall = MulDiv(Settings::WindowPositionXSmall(), Settings::Dpi(), dpi);
+		Settings::data.windowPositionYSmall = MulDiv(Settings::WindowPositionYSmall(), Settings::Dpi(), dpi);
+		Settings::data.windowWidthSmall = MulDiv(Settings::WindowWidthSmall(), Settings::Dpi(), dpi);
+		Settings::data.windowHeightSmall = MulDiv(Settings::WindowHeightSmall(), Settings::Dpi(), dpi);
 	}
 
-	if (Settings::Fullscreen)
+	if (Settings::Fullscreen())
 	{
-		Settings::WINDOW_POSITION_X = 0;
-		Settings::WINDOW_POSITION_Y = 0;
-		Settings::WINDOW_WIDTH = Settings::ScreenWidth;
-		Settings::WINDOW_HEIGHT = Settings::ScreenHeight;
+		Settings::data.windowPositionX = 0;
+		Settings::data.windowPositionY = 0;
+		Settings::data.windowWidth = Settings::ScreenWidth();
+		Settings::data.windowHeight = Settings::ScreenHeight();
 	}
 	else
 	{
-		Settings::WINDOW_POSITION_X = Settings::WindowPositionXSmall;
-		Settings::WINDOW_POSITION_Y = Settings::WindowPositionYSmall;
-		Settings::WINDOW_WIDTH = Settings::WindowWidthSmall;
-		Settings::WINDOW_HEIGHT = Settings::WindowHeightSmall;
+		Settings::data.windowPositionX = Settings::WindowPositionXSmall();
+		Settings::data.windowPositionY = Settings::WindowPositionYSmall();
+		Settings::data.windowWidth = Settings::WindowWidthSmall();
+		Settings::data.windowHeight = Settings::WindowHeightSmall();
 	}
 
-	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
-	SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX + border.left, Settings::WindowPositionY + border.top,
-		Settings::WindowWidth + border.right - border.left, Settings::WindowHeight + border.bottom - border.top, SWP_NOZORDER | SWP_NOACTIVATE);
+	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
+	SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
+		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, SWP_NOZORDER | SWP_NOACTIVATE);
 
 	DEVMODEA monitorInfo{};
 	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &monitorInfo);
-	if (Settings::TargetFrametime == 0.0) { Settings::TARGET_FRAMETIME = 1.0 / monitorInfo.dmDisplayFrequency; }
-	Settings::MONITOR_HZ = monitorInfo.dmDisplayFrequency;
+	if (Settings::TargetFrametime() == 0.0) { Settings::data.targetFrametime = 1.0 / monitorInfo.dmDisplayFrequency; }
+	Settings::data.monitorHz = monitorInfo.dmDisplayFrequency;
 
-	ShowWindow(windowData.window, Settings::Fullscreen ? SW_SHOWMAXIMIZED : SW_SHOW);
+	ShowWindow(windowData.window, Settings::Fullscreen() ? SW_SHOWMAXIMIZED : SW_SHOW);
 
 	return true;
 }
@@ -143,50 +145,50 @@ bool Platform::Update()
 
 void Platform::SetFullscreen(bool fullscreen)
 {
-	Settings::FULLSCREEN = fullscreen;
+	Settings::data.fullscreen = fullscreen;
 
 	if (fullscreen)
 	{
 		style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE;
 
-		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
+		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
 		SetWindowLongPtrA(windowData.window, GWL_STYLE, style);
 		SetWindowPos(windowData.window, nullptr, border.left, border.top,
-			Settings::ScreenWidth + border.right - border.left, Settings::ScreenHeight + border.bottom - border.top, SWP_SHOWWINDOW);
+			Settings::ScreenWidth() + border.right - border.left, Settings::ScreenHeight() + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
 	else
 	{
 		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME;
-		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
+		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
 		SetWindowLongPtrA(windowData.window, GWL_STYLE, style);
-		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionXSmall + border.left, Settings::WindowPositionYSmall + border.top,
-			Settings::WindowWidthSmall + border.right - border.left, Settings::WindowHeightSmall + border.bottom - border.top, SWP_SHOWWINDOW);
+		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionXSmall() + border.left, Settings::WindowPositionYSmall() + border.top,
+			Settings::WindowWidthSmall() + border.right - border.left, Settings::WindowHeightSmall() + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
 }
 
 void Platform::SetWindowSize(U32 width, U32 height)
 {
-	if (Settings::Fullscreen)
+	if (Settings::Fullscreen())
 	{
 		//TODO: Log, can't change size in fullscreen
 	}
 	else
 	{
-		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX + border.left, Settings::WindowPositionY + border.top,
+		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
 			width + border.right - border.left, height + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
 }
 
 void Platform::SetWindowPosition(I32 x, I32 y)
 {
-	if (Settings::Fullscreen)
+	if (Settings::Fullscreen())
 	{
 		//TODO: Log, can't change position in fullscreen
 	}
 	else
 	{
 		SetWindowPos(windowData.window, nullptr, x + border.left, y + border.top,
-			Settings::WindowWidth + border.right - border.left, Settings::WindowHeight + border.bottom - border.top, SWP_SHOWWINDOW);
+			Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
 }
 
@@ -197,12 +199,12 @@ void Platform::SetMousePosition(I32 x, I32 y)
 
 void Platform::HideCursor(bool hide)
 {
-	Settings::HIDE_CURSOR = hide;
+	Settings::data.hideCursor = hide;
 }
 
 void Platform::LockCursor(bool lock)
 {
-	Settings::LOCK_CURSOR = lock;
+	Settings::data.lockCursor = lock;
 }
 
 void Platform::SetConsoleWindowTitle(const C8* name)
@@ -217,27 +219,27 @@ const WindowData& Platform::GetWindowData()
 
 void Platform::UpdateMouse()
 {
-	if (Settings::Focused)
+	if (Settings::Focused())
 	{
-		if (Settings::LockCursor)
+		if (Settings::LockCursor())
 		{
 			RECT clip{};
-			clip.left = Settings::WindowPositionX + Settings::WindowWidth / 2;
+			clip.left = Settings::WindowPositionX() + Settings::WindowWidth() / 2;
 			clip.right = clip.left;
-			clip.top = Settings::WindowPositionY + Settings::WindowHeight / 2;
+			clip.top = Settings::WindowPositionY() + Settings::WindowHeight() / 2;
 			clip.bottom = clip.top;
 
 			ClipCursor(&clip);
 		}
-		else if (Settings::ConstrainCursor)
+		else if (Settings::ConstrainCursor())
 		{
 			RECT clip{};
-			if (Settings::Fullscreen)
+			if (Settings::Fullscreen())
 			{
-				clip.left = Settings::WindowPositionX;
-				clip.top = Settings::WindowPositionY;
-				clip.right = Settings::WindowPositionX + Settings::WindowWidth;
-				clip.bottom = Settings::WindowPositionY + Settings::WindowHeight;
+				clip.left = Settings::WindowPositionX();
+				clip.top = Settings::WindowPositionY();
+				clip.right = Settings::WindowPositionX() + Settings::WindowWidth();
+				clip.bottom = Settings::WindowPositionY() + Settings::WindowHeight();
 				ClipCursor(&clip);
 			}
 			else
@@ -247,7 +249,7 @@ void Platform::UpdateMouse()
 			}
 		}
 
-		ShowCursor(!Settings::HideCursor); //TODO: Doesn't work after unfocusing and focusing the window
+		ShowCursor(!Settings::HideCursor()); //TODO: Doesn't work after unfocusing and focusing the window
 		//TODO: Log the return to see the display count
 	}
 	else
@@ -262,79 +264,82 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	switch (msg)
 	{
 	case WM_CREATE: { } return 0;
-	case WM_SETFOCUS: { Settings::FOCUSED = true; } return 0;
-	case WM_KILLFOCUS: { Settings::FOCUSED = false; } return 0;
-	case WM_QUIT: { Settings::FOCUSED = false; running = false; } return 0;
-	case WM_CLOSE: { Settings::FOCUSED = false; running = false; } return 0;
-	case WM_DESTROY: { Settings::FOCUSED = false; running = false; } return 0;
+	case WM_SETFOCUS: { Settings::data.focused = true; } return 0;
+	case WM_KILLFOCUS: { Settings::data.focused = false; } return 0;
+	case WM_QUIT: { Settings::data.focused = false; running = false; } return 0;
+	case WM_CLOSE: { Settings::data.focused = false; running = false; } return 0;
+	case WM_DESTROY: { Settings::data.focused = false; running = false; } return 0;
 	case WM_ERASEBKGND: {} return 1;
 	case WM_DPICHANGED: {
-		Settings::DPI = HIWORD(wParam);
-		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi);
+		Settings::data.dpi = HIWORD(wParam);
+		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
 		RECT* rect = (RECT*)lParam;
 
-		Settings::WINDOW_POSITION_X_SMALL = rect->left - border.left;
-		Settings::WINDOW_POSITION_Y_SMALL = rect->top - border.top;
-		Settings::WINDOW_WIDTH_SMALL = rect->right - rect->left - border.right + border.left;
-		Settings::WINDOW_HEIGHT_SMALL = rect->bottom - rect->top - border.bottom + border.top;
+		Settings::data.windowPositionXSmall = rect->left - border.left;
+		Settings::data.windowPositionYSmall = rect->top - border.top;
+		Settings::data.windowWidthSmall = rect->right - rect->left - border.right + border.left;
+		Settings::data.windowHeightSmall = rect->bottom - rect->top - border.bottom + border.top;
 
-		if (!Settings::Fullscreen)
+		if (!Settings::Fullscreen())
 		{
-			Settings::WINDOW_POSITION_X = Settings::WindowPositionXSmall;
-			Settings::WINDOW_POSITION_Y = Settings::WindowPositionYSmall;
-			Settings::WINDOW_WIDTH = Settings::WindowWidthSmall;
-			Settings::WINDOW_HEIGHT = Settings::WindowHeightSmall;
+			Settings::data.windowPositionX = Settings::WindowPositionXSmall();
+			Settings::data.windowPositionY = Settings::WindowPositionYSmall();
+			Settings::data.windowWidth = Settings::WindowWidthSmall();
+			Settings::data.windowHeight = Settings::WindowHeightSmall();
 
-			SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX + border.left, Settings::WindowPositionY + border.top,
-				Settings::WindowWidth + border.right - border.left, Settings::WindowHeight + border.bottom - border.top, SWP_NOZORDER | SWP_NOACTIVATE);
+			SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
+				Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 	} return 0;
 	case WM_SIZE: {
 		switch (wParam)
 		{
-		case SIZE_MINIMIZED: { Settings::FOCUSED = false; Settings::MINIMISED = true; } break;
-		case SIZE_RESTORED: { Settings::MINIMISED = false; } break;
+		case SIZE_MINIMIZED: { Settings::data.focused = false; Settings::data.minimised = true; } break;
+		case SIZE_RESTORED: { Settings::data.minimised = false; } break;
 		}
 
 		RECT rect{};
 		GetWindowRect(hwnd, &rect);
 
-		Settings::WINDOW_POSITION_X = rect.left - border.left;
-		Settings::WINDOW_POSITION_Y = rect.top - border.top;
-		Settings::WINDOW_WIDTH = rect.right - rect.left - border.right + border.left;
-		Settings::WINDOW_HEIGHT = rect.bottom - rect.top - border.bottom + border.top;
+		Settings::data.windowPositionX = rect.left - border.left;
+		Settings::data.windowPositionY = rect.top - border.top;
+		Settings::data.windowWidth = rect.right - rect.left - border.right + border.left;
+		Settings::data.windowHeight = rect.bottom - rect.top - border.bottom + border.top;
 
-		if (!Settings::Fullscreen)
+		if (!Settings::Fullscreen())
 		{
-			Settings::WINDOW_POSITION_X_SMALL = Settings::WindowPositionX;
-			Settings::WINDOW_POSITION_Y_SMALL = Settings::WindowPositionY;
-			Settings::WINDOW_WIDTH_SMALL = Settings::WindowWidth;
-			Settings::WINDOW_HEIGHT_SMALL = Settings::WindowHeight;
+			Settings::data.windowPositionXSmall = Settings::WindowPositionX();
+			Settings::data.windowPositionYSmall = Settings::WindowPositionY();
+			Settings::data.windowWidthSmall = Settings::WindowWidth();
+			Settings::data.windowHeightSmall = Settings::WindowHeight();
 		}
 
-		Settings::SCREEN_WIDTH = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::DPI);
-		Settings::SCREEN_HEIGHT = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::DPI);
+		Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+		Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
 
 		//RendererFrontend::OnResize();
 	} return 0;
 	case WM_MOVE: {
-		Settings::WINDOW_POSITION_X = LOWORD(lParam);
-		Settings::WINDOW_POSITION_Y = HIWORD(lParam);
+		Settings::data.windowPositionX = LOWORD(lParam);
+		Settings::data.windowPositionY = HIWORD(lParam);
 
-		if (!Settings::Fullscreen)
+		if (!Settings::Fullscreen())
 		{
-			Settings::WINDOW_POSITION_X_SMALL = Settings::WindowPositionX;
-			Settings::WINDOW_POSITION_Y_SMALL = Settings::WindowPositionY;
+			Settings::data.windowPositionXSmall = Settings::WindowPositionX();
+			Settings::data.windowPositionYSmall = Settings::WindowPositionY();
 		}
 
-		Settings::SCREEN_WIDTH = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::DPI);
-		Settings::SCREEN_HEIGHT = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::DPI);
+		Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+		Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
 	} return 0;
 
-
-	case WM_DEVICECHANGE: {
-		//TODO: 
+	case WM_INPUT: {
+		if (GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT) { Input::Update((HRAWINPUT)lParam); }
 	} break;
+	case WM_INPUT_DEVICE_CHANGE: {
+		if (wParam == GIDC_ARRIVAL) { Input::AddDevice((void*)lParam); }
+		else { Input::RemoveDevice((void*)lParam); }
+	} return 0;
 	}
 
 	return DefWindowProcA(hwnd, msg, wParam, lParam);

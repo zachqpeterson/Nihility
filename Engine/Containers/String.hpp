@@ -358,6 +358,8 @@ struct NH_API StringBase
 	bool CompareN(T* other, U64 nLength, U64 start = 0) const;
 	bool CompareN(const T* other, U64 nLength, U64 start = 0) const;
 	bool CompareN(const StringBase& other, U64 nLength, U64 start = 0) const;
+	bool StartsWith(const T* other) const;
+	bool EndsWith(const T* other) const;
 
 	bool Blank() const;
 	I64 IndexOf(const T& c, U64 start = 0) const;
@@ -384,8 +386,6 @@ struct NH_API StringBase
 	const U64& Hash();
 	T* Data();
 	const T* Data() const;
-	char* CStr();
-	const char* CStr() const;
 
 	T* begin();
 	T* end();
@@ -638,6 +638,22 @@ inline bool StringBase<T, LU>::CompareN(const StringBase<T, LU>& other, U64 nLen
 }
 
 template<typename T, typename LU>
+inline bool StringBase<T, LU>::StartsWith(const T* other) const
+{
+	U64 otherSize = Length(other);
+
+	return Compare(string, other, otherSize);
+}
+
+template<typename T, typename LU>
+inline bool StringBase<T, LU>::EndsWith(const T* other) const
+{
+	U64 otherSize = Length(other);
+
+	return Compare(string + (size - otherSize), other, otherSize);
+}
+
+template<typename T, typename LU>
 inline const U64& StringBase<T, LU>::Size() const { return size; }
 
 template<typename T, typename LU>
@@ -661,12 +677,6 @@ inline T* StringBase<T, LU>::Data() { return string; }
 
 template<typename T, typename LU>
 inline const T* StringBase<T, LU>::Data() const { return string; }
-
-template<typename T, typename LU>
-char* StringBase<T, LU>::CStr() { return (char*)string; }
-
-template<typename T, typename LU>
-const char* StringBase<T, LU>::CStr() const { return (const char*)string; }
 
 template<typename T, typename LU>
 inline bool StringBase<T, LU>::Blank() const
@@ -1256,7 +1266,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 			//TODO
 		}
 	}
-	else if constexpr (IsSame<CharType, wchar_t>)
+	else if constexpr (IsSame<CharType, CW>)
 	{
 		if constexpr (IsSame<T, C8>)
 		{
@@ -1295,7 +1305,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	else if constexpr (IsSame<StrBs, StringBase<C16, C16Lookup>>) { using CharType = C16; }
 	else if constexpr (IsSame<StrBs, StringBase<C32, C32Lookup>>) { using CharType = C32; }
 
-	return ToString<CharType*, Hex, Insert, Remove>(str, value.string);
+	return ToString<CharType*, Hex, Insert, Remove>(str, (CharType*)value.Data());
 }
 
 template<typename T, typename LU>
@@ -1418,8 +1428,36 @@ template<typename T, typename LU>
 template<StringLiteral Arg>
 inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 {
-	//TODO: conversions
-	value = string + start;
+	using CharType = BaseType<Arg>;
+
+	if constexpr (IsSame<CharType, T>) { value = string + start; }
+	else if constexpr (IsSame<CharType, C8>)
+	{
+		if constexpr (IsSame<T, C16>) {}
+		else if constexpr (IsSame<T, C32>) {}
+	}
+	else if constexpr (IsSame<CharType, C16>)
+	{
+		if constexpr (IsSame<T, C8>) {}
+		else if constexpr (IsSame<T, C32>) {}
+	}
+	else if constexpr (IsSame<CharType, C32>)
+	{
+		if constexpr (IsSame<T, C8>) {}
+		else if constexpr (IsSame<T, C16>) {}
+	}
+	else if constexpr (IsSame<CharType, char8_t>)
+	{
+		if constexpr (IsSame<T, C8>) { value = (C8*)(string + start); }
+		else if constexpr (IsSame<T, C16>) {}
+		else if constexpr (IsSame<T, C32>) {}
+	}
+	else if constexpr (IsSame<CharType, CW>)
+	{
+		if constexpr (IsSame<T, C8>) {}
+		else if constexpr (IsSame<T, C16>) { value = (CW*)(string + start); }
+		else if constexpr (IsSame<T, C32>) {}
+	}
 }
 
 template<typename T, typename LU>
@@ -1480,14 +1518,15 @@ inline void StringBase<T, LU>::Copy(T* dst, const T* src, U64 length)
 template<typename T, typename LU>
 inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length) const
 {
-	const T* c0 = a;
-	const T* c1 = b;
+	const T* it0 = a;
+	const T* it1 = b;
 
-	T c;
+	T c0;
+	T c1;
 
-	while ((c = *c0++) == *c1++ && --length) { if (c == LU::NULL_CHAR) { return true; } }
+	while (length-- && (c0 = *it0++) == (c1 = *it1++));
 
-	return false;
+	return length + 1 == 0;
 }
 
 template<typename T, typename LU>
