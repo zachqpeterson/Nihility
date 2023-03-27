@@ -175,9 +175,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 		}
 		else { break; }
 	}
-
 #else
-
 	Vector2 start = obj->Transform()->Position();
 	Vector2 move = obj->Move();
 	F32 length = move.Magnitude();
@@ -299,9 +297,7 @@ bool GridBroadphase::Query(PhysicsObject2D* obj, List<Contact2D>& contacts)
 			maxY += step.y;
 		}
 	}
-	
 #endif
-
 	return contacts.Size();
 }
 
