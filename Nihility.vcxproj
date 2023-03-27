@@ -125,6 +125,8 @@
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
+    <ClInclude Include="Engine\Rendering\Renderer.hpp" />
+    <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
   </ItemGroup>
@@ -139,6 +141,7 @@
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
+    <ClCompile Include="Engine\Rendering\Renderer.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Settings.cpp" />
   </ItemGroup>

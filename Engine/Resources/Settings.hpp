@@ -1,6 +1,13 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Containers\String.hpp"
+
+struct RegistryValue
+{
+	const C8* name;
+	U8* value;
+};
 
 class NH_API Settings
 {
@@ -36,6 +43,8 @@ public:
 	static const bool& LockCursor() { return data.lockCursor; }
 	static const bool& HideCursor() { return data.hideCursor; }
 	static const bool& ConstrainCursor() { return data.constrainCursor; }
+
+	static bool GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize = false);
 
 private:
 	static bool Initialize();

@@ -12,6 +12,7 @@
 #include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
+#include "Rendering\Renderer.hpp"
 
 #include <stdio.h>
 
@@ -40,30 +41,9 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
-	Logger::Fatal("Hello, World!");
-	Logger::Error("Hello, World!");
-	Logger::Warn("Hello, World!");
-	Logger::Info("Hello, World!");
-	Logger::Debug("Hello, World!");
-	Logger::Trace("Hello, World!");
-
 	F32 f = 123.123f;
 	//TODO: Only works with decimal count of 5 or 0
 	String s512("{.3}", f);
-
-	String path("test.txt");
-	File file(path, FILE_OPEN_WRITE | FILE_OPEN_APPEND | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY);
-
-	String str0("Hello, World!");
-	//String str1;
-	file.Write(str0);
-	file.Write(str0);
-	file.Write(str0);
-	file.Write(str0);
-	file.Write(str0);
-	file.Write(str0);
-	file.Close();
-	//I32 i1 = file.ReadCount(str1, 1);
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
@@ -71,7 +51,7 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Input::Initialize());					//Probably run on platform thread
 	ASSERT(Resources::Initialize());
 	//Audio
-	//Renderer
+	ASSERT(Renderer::Initialize(applicationName));
 	//UI
 	//Physics
 	//Particle
@@ -88,9 +68,9 @@ void Engine::Shutdown()
 	//Particle
 	//Physics
 	//UI
-	//Renderer
-	Resources::Shutdown();
+	Renderer::Shutdown();
 	//Audio
+	Resources::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
 	Jobs::Shutdown();
@@ -113,7 +93,7 @@ void Engine::UpdateLoop()
 		GameUpdate();
 		//UI::Update();
 		//Animations::Update();
-		//Renderer::Update(); //TODO: Checks for being minimised
+		Renderer::Update(); //TODO: Checks for being minimised
 		//Audio::Update();
 
 		if (Settings::Focused())

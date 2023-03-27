@@ -6,8 +6,6 @@
 #include "Containers\Vector.hpp"
 #include "Containers\String.hpp"
 
-void* Input::devInfoSet;
-
 Vector<Device> Input::devices;
 
 #if defined PLATFORM_WINDOWS
@@ -72,103 +70,99 @@ bool Input::Initialize()
 
 	deviceCount = GetRawInputDeviceList(deviceList, &deviceCount, sizeof(RAWINPUTDEVICELIST));
 
-	for (U32 i = 0; i < deviceCount; ++i)
-	{
-		RAWINPUTDEVICELIST device = deviceList[i];
+	for (U32 i = 0; i < deviceCount; ++i) { AddDevice(deviceList[i].hDevice); }
 
-		String path;
-		U32 len = (U32)path.Capacity();
-		len = GetRawInputDeviceInfoA(device.hDevice, RIDI_DEVICENAME, path.Data(), &len);
-		path.Resize(len);
-
-		HANDLE ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
-
-		Logger::Debug(path);
-
-		if (ntHandle != INVALID_HANDLE_VALUE)
-		{
-			Device device(ntHandle);
-
-			if (device.openHandle) { devices.Push(Move(device)); }
-		}
-	}
-
-	GUID guid;
-	HidD_GetHidGuid(&guid);
-
-	if ((devInfoSet = SetupDiGetClassDevsA(&guid, nullptr, wd.window, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE)) == INVALID_HANDLE_VALUE)
-	{
-		Logger::Error("Failed to get the device info set, {}!", GetLastError());
-		return false;
-	}
-
-	SP_DEVICE_INTERFACE_DATA interfaceData{};
-	interfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-
-	UL32 error;
-	UL32 index = 0;
-	while (SetupDiEnumDeviceInterfaces(devInfoSet, nullptr, &guid, index++, &interfaceData))
-	{
-		UL32 size;
-		if(!SetupDiGetDeviceInterfaceDetailA(devInfoSet, &interfaceData, nullptr, 0, &size, nullptr) && (error = GetLastError()) != ERROR_INSUFFICIENT_BUFFER)
-		{
-			Logger::Error("Failed to get device interface detail size, {}", error);
-			continue;
-		}
-
-		PSP_DEVICE_INTERFACE_DETAIL_DATA_A interfaceDetailData;
-		Memory::AllocateSize(&interfaceDetailData, size);
-		interfaceDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
-
-		SP_DEVINFO_DATA infoData{};
-		infoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
-		if (!SetupDiGetDeviceInterfaceDetailA(devInfoSet, &interfaceData, interfaceDetailData, size, nullptr, &infoData))
-		{ 
-			Logger::Error("Error when getting device interface details, {}", GetLastError());
-			continue;
-		}
-
-		UL32 dataType;
-
-		if (!SetupDiGetDeviceRegistryPropertyA(devInfoSet, &infoData, SPDRP_PHYSICAL_DEVICE_OBJECT_NAME, &dataType, nullptr, 0, &size) && (error = GetLastError()) != ERROR_INSUFFICIENT_BUFFER)
-		{
-			Logger::Error("Error when getting device registry property, {}", error);
-			continue;
-		}
-
-		String path("\\\\?\\GLOBALROOT");
-
-		if (!SetupDiGetDeviceRegistryPropertyA(devInfoSet, &infoData, SPDRP_PHYSICAL_DEVICE_OBJECT_NAME, &dataType, (U8*)path.Data() + path.Size(), size, nullptr))
-		{
-			Logger::Error("Error when getting device registry property, {}", GetLastError());
-			continue;
-		}
-		
-		path.Resize();
-
-		//Device device(path);
-		//if (device.openHandle) { devices.Push(Move(device)); }
-	}
-
-	if (error = GetLastError() != ERROR_NO_MORE_ITEMS) { Logger::Error("Error when enumurating devices, {}", error); return false; }
+	Memory::FreeArray(&deviceList);
 	
 	return true;
 }
 
 void Input::Shutdown()
 {
-	SetupDiDestroyDeviceInfoList(devInfoSet);
+
 }
 
 void Input::Update(HRAWINPUT handle)
 {
-	
+	U32 size = 0;
+	RAWINPUTHEADER header;
+
+	if (GetRawInputData(handle, RID_HEADER, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
+	if (GetRawInputData(handle, RID_HEADER, &header, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
+
+	switch (header.dwType)
+	{
+	case RIM_TYPEMOUSE: {
+		RAWMOUSE mouse;
+
+		if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
+		if (GetRawInputData(handle, RID_INPUT, &mouse, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
+	} break;
+
+	case RIM_TYPEKEYBOARD: {
+		RAWKEYBOARD keyboard;
+
+		if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
+		if (GetRawInputData(handle, RID_INPUT, &keyboard, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
+	} break;
+
+	case RIM_TYPEHID: {
+		RAWHID hid;
+
+		//Use calibration
+
+		if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
+		if (GetRawInputData(handle, RID_INPUT, &hid, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
+	} break;
+	}
+
+	//TODO: get device from handle
+
+	//TODO: call device.Update
 }
 
 void Input::AddDevice(void* handle)
 {
+	U32 size = 0;
+	RAWINPUTHEADER header;
+	PHIDP_PREPARSED_DATA preparsedData;
+	HIDP_CAPS capabilities;
 
+	if (GetRawInputData((HRAWINPUT)handle, RID_HEADER, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
+	if (GetRawInputData((HRAWINPUT)handle, RID_HEADER, &header, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
+
+	String path;
+	U32 len = (U32)path.Capacity();
+	GetRawInputDeviceInfoA(handle, RIDI_DEVICENAME, path.Data(), &len);
+
+	HANDLE ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr); //TODO: close
+
+	if (!HidD_GetPreparsedData(ntHandle, &preparsedData)) { Logger::Trace("Failed to get data, {}, skipping...", GetLastError()); }
+	if (HidP_GetCaps(preparsedData, &capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); }
+
+	switch (header.dwType)
+	{
+	case RIM_TYPEMOUSE: {
+		if (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || HID_USAGE_GENERIC_POINTER)
+		{
+			//good
+		}
+	} break;
+	case RIM_TYPEKEYBOARD: {
+		if (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD)
+		{
+			//good
+		}
+	} break;
+	case RIM_TYPEHID: {
+		if (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER)
+		{
+			//good
+		}
+	} break;
+	}
+
+	CloseHandle(ntHandle);
 }
 
 void Input::RemoveDevice(void* handle)

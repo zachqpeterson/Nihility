@@ -37,19 +37,6 @@ struct HIDCapabilities
 	U16 NumberFeatureDataIndices;
 };
 
-struct HIDCalibration
-{
-	L32 lMin;
-	L32 lCenter;
-	L32 lMax;
-};
-
-struct HIDAttributes {
-	UL32 dwFlags;
-	U16 wUsagePage;
-	U16 wUsage;
-};
-
 struct HIDAxis
 {
 	U16 usagePage;
@@ -78,41 +65,6 @@ struct HIDButton
 	I32 value;
 };
 
-struct HIDInfo
-{
-
-};
-
-struct HIDAxisMapping
-{
-	U16 usagePage;
-	U16 usage;
-	bool isCalibrated;
-	HIDCalibration calibration;
-	String name;
-};
-
-struct HIDButtonMapping
-{
-	U16 usagePage;
-	U16 usage;
-	String name;
-};
-
-struct Overlapped {
-	U64 Internal;
-	U64 InternalHigh;
-	union {
-		struct {
-			UL32 Offset;
-			UL32 OffsetHigh;
-		};
-		void* Pointer;
-	};
-
-	void* hEvent;
-};
-
 struct _HIDP_PREPARSED_DATA;
 struct _HIDP_DATA;
 
@@ -134,12 +86,8 @@ private:
 	bool SetupKeyboard();
 	bool SetupController();
 
-	void __stdcall DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfered, struct _OVERLAPPED* lpOverlapped);
-
-	File file;
 	void* ntHandle;				//HANDLE
-	String16 manufacturer;
-	String16 product;
+	String16 name;
 	DeviceType type;
 
 	HIDCapabilities capabilities;
@@ -148,9 +96,6 @@ private:
 	_HIDP_DATA* stateBuffer;
 	UL32 stateLength;
 	C8* reportBuffer;
-
-	Overlapped overlap{};
-	UL32 read;
 
 	Vector<HIDAxis> axes;
 	Vector<HIDButton> buttons;

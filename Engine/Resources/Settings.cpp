@@ -33,3 +33,31 @@ void Settings::Shutdown()
 		Logger::Error("Failed to open Settings.cnf!");
 	}
 }
+
+#if defined PLATFORM_WINDOWS
+
+#include <Windows.h>
+
+bool Settings::GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize)
+{
+	HKEY key = nullptr;
+	if (RegOpenKeyExA((HKEY)hKey, path.Data(), 0, KEY_READ, &key)) { return false; }
+
+	UL32 valueType = 0;
+	UL32 valueSize = 0;
+	RegQueryValueExA(key, name.Data(), nullptr, &valueType, nullptr, &valueSize);
+
+	if (valueType && valueSize)
+	{
+		if (!fixedSize) { Memory::Allocate(&value, valueSize); }
+		RegQueryValueExA(key, name.Data(), nullptr, &valueType, value, &valueSize);
+
+		RegCloseKey(key);
+		return true;
+	}
+
+	RegCloseKey(key);
+	return false;
+}
+
+#endif

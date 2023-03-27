@@ -8,27 +8,51 @@
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
 
+struct HIDCalibration
+{
+	L32 lMin;
+	L32 lCenter;
+	L32 lMax;
+};
+
+struct HIDAttributes {
+	UL32 dwFlags;
+	U16 wUsagePage;
+	U16 wUsage;
+};
+
+struct HIDAxisMapping
+{
+	U16 usagePage;
+	U16 usage;
+	bool isCalibrated;
+	HIDCalibration calibration;
+	String name;
+};
+
+struct HIDButtonMapping
+{
+	U16 usagePage;
+	U16 usage;
+	String name;
+};
+
 Device::Device(void* handle) : ntHandle{ handle }, type{ DEVICE_TYPE_COUNT }, capabilities{},
 preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ nullptr }, openHandle{ false }
 {
-	if (!HidD_GetProductString(ntHandle, product.Data(), (UL32)product.Capacity())) { Logger::Trace("Failed to get product, {}", GetLastError()); }
-	product.Resize();
-
-	if (!HidD_GetManufacturerString(ntHandle, manufacturer.Data(), (UL32)manufacturer.Capacity())) { Logger::Trace("Failed to get manufacturer, {}", GetLastError()); }
-	manufacturer.Resize();
+	if (!HidD_GetProductString(ntHandle, name.Data(), (UL32)name.Capacity())) { Logger::Trace("Failed to get name, {}", GetLastError()); }
+	name.Resize();
 
 	if (!HidD_GetPreparsedData(ntHandle, &preparsedData)) { Logger::Trace("Failed to get data, {}, skipping...", GetLastError()); Destroy(); return; }
 
 	if (HidP_GetCaps(preparsedData, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
 
-	U64 cap = capabilities.InputReportByteLength;
-	Memory::AllocateArray(&reportBuffer, cap);
+	Memory::AllocateArray(&reportBuffer, (const U16)capabilities.InputReportByteLength);
 
 	//TODO: we may want HIDs that don't have input
 	if (!(stateLength = HidP_MaxDataListLength(HidP_Input, preparsedData))) { Logger::Trace("Device has no capabilities, skipping..."); Destroy(); return; }
 
-	cap = stateLength * sizeof(HIDP_DATA);
-	Memory::AllocateArray(&stateBuffer, cap);
+	Memory::AllocateArray(&stateBuffer, (const U16)stateLength);
 
 	Vector<HIDP_BUTTON_CAPS> buttonClasses(capabilities.NumberInputButtonCaps, {});
 	if (HidP_GetButtonCaps(HidP_Input, buttonClasses.Data(), &capabilities.NumberInputButtonCaps, preparsedData) != HIDP_STATUS_SUCCESS) { Logger::Trace("No Buttons"); }
@@ -84,13 +108,6 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 		Destroy();
 		return;
 	}
-
-	//KEYBOARD LAYOUT: "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout"
-
-	//if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
-	//{
-	//	Logger::Error(GetLastError());
-	//}
 }
 
 Device::Device(Device&& other) noexcept : ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
@@ -149,62 +166,9 @@ void Device::Destroy()
 	}
 }
 
-void __stdcall Device::DeviceRead(UL32 dwErrorCode, UL32 dwNumberOfBytesTransfered, _OVERLAPPED* lpOverlapped)
-{
-	BreakPoint;
-
-	NTSTATUS s;
-	if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
-	{
-		Logger::Error("Failed to get data, {}!", s);
-		BreakPoint;
-		return;
-	}
-
-	//if (!ReadFileEx(ntHandle, reportBuffer, capabilities.InputReportByteLength, (LPOVERLAPPED)&overlap, Device::DeviceRead))
-	//{
-	//	Logger::Error(GetLastError());
-	//}
-}
-
 void Device::Update()
 {
-	//TODO: Move to job system
-	
 
-	//NTSTATUS s;
-	//if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
-	//{
-	//	Logger::Error("Failed to get data, {}!", s);
-	//	BreakPoint;
-	//	return;
-	//}
-
-	//do
-	//{
-	//	if (read == capabilities.InputReportByteLength) //TODO: Check previous read
-	//	{
-	//		NTSTATUS s;
-	//		if (s = HidP_GetData(HidP_Input, stateBuffer, &stateLength, preparsedData, reportBuffer, capabilities.InputReportByteLength) != HIDP_STATUS_SUCCESS)
-	//		{
-	//			Logger::Error("Failed to get data, {}!", s);
-	//			BreakPoint;
-	//			return;
-	//		}
-	//
-	//		//TODO: Process data
-	//		BreakPoint;
-	//
-	//		read = 0;
-	//
-	//		ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, (LPOVERLAPPED)&overlap);
-	//	}
-	//	else
-	//	{
-	//		ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, (LPOVERLAPPED)&overlap);
-	//	}
-	//
-	//} while (overlap.Internal != ERROR_NO_MORE_ITEMS);
 }
 
 bool Device::SetupMouse()
@@ -230,6 +194,10 @@ bool Device::SetupController()
 	type = DEVICE_TYPE_CONTROLLER;
 
 	Logger::Debug("Controller detected");
+
+	//HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Axes\\"
+	//HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Buttons\\"
+	//HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\DirectInput\\VID_{h}&PID_{h}\\Calibration\\0\\Type\\Axes\\"
 
 	return true;
 }

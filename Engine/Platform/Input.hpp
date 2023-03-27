@@ -294,18 +294,22 @@ private:
 	static void AddDevice(void* handle);
 	static void RemoveDevice(void* handle);
 
-	static void* devInfoSet;						//HDEVINFO
-
 	static Vector<Device> devices;
 
-	static ButtonState buttonStates[BUTTON_COUNT];
-	static F32 axisStates[AXIS_COUNT];
+	//MOUSE
 	static I16 mouseWheelDelta;
 	static I16 mouseHWheelDelta;
 	static I32 mousePosX;
 	static I32 mousePosY;
-	static bool anyButtonDown;
+	static bool scrollFocus;
+
+	//CONTROLLER
+	static F32 axisStates[AXIS_COUNT];
+
+	//ALL
+	static ButtonState buttonStates[BUTTON_COUNT];
 	static bool inputConsumed;
+	static bool anyButtonDown;
 
 	STATIC_CLASS(Input);
 	friend class Engine;

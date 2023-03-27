@@ -1,5 +1,6 @@
 #include "Controller.hpp"
 #include "Core\Logger.hpp"
+#include "Resources\Settings.hpp"
 
 #if defined PLATFORM_WINDOWS
 
@@ -7,6 +8,7 @@
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
 
+/*
 Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, openHandle{ false }, inputReportProtocol{ nullptr }, capabilities{}
 {
 	String path;
@@ -101,33 +103,16 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 	for (U64 i = 0; i < AXIS_MAPPING_COUNT; ++i)
 	{
 		axisPath.Overwrite(i, 103);
-
-		HKEY key = nullptr;
-		if (RegOpenKeyExA(HKEY_CURRENT_USER, axisPath.Data(), 0, KEY_READ, &key)) { continue; }
-
-		UL32 valueType = REG_NONE;
-		UL32 valueSize = 0;
-		RegQueryValueExA(key, "", nullptr, &valueType, nullptr, &valueSize);
-		if (valueType && sizeof(axisMappings[i].name) > valueSize == REG_SZ)
-		{
-			//RegQueryValueExA(key, "", nullptr, &valueType, (U8*)(axisMappings[i].name), &valueSize);
-		}
-
 		HIDAttributes mapping;
-		valueType = REG_NONE;
-		valueSize = 0;
-		RegQueryValueExA(key, "Attributes", nullptr, &valueType, nullptr, &valueSize);
-		if (REG_BINARY == valueType && valueSize == sizeof(HIDAttributes))
-		{
-			RegQueryValueExA(key, "Attributes", nullptr, &valueType, (U8*)(&mapping), &valueSize);
-			if (0x15 > mapping.wUsagePage)
-			{
-				axisMappings[i].usagePage = mapping.wUsagePage;
-				axisMappings[i].usage = mapping.wUsage;
-			}
-		}
 
-		RegCloseKey(key);
+		Settings::GetRegistryValue(HKEY_CURRENT_USER, axisPath, "", (U8*)axisMappings[i].name.Data());
+		Settings::GetRegistryValue(HKEY_CURRENT_USER, axisPath, "Attributes", (U8*)(&mapping));
+
+		if (mapping.wUsagePage < 0x15)
+		{
+			axisMappings[i].usagePage = mapping.wUsagePage;
+			axisMappings[i].usage = mapping.wUsage;
+		}
 	}
 
 	static constexpr U32 BUTTON_MAPPING_COUNT = 128;
@@ -137,61 +122,26 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 	for (U64 i = 0; i < BUTTON_MAPPING_COUNT; ++i)
 	{
 		axisPath.Overwrite(i, 106);
-
-		HKEY key = nullptr;
-		if (0 != RegOpenKeyExA(HKEY_CURRENT_USER, axisPath.Data(), 0, KEY_READ, &key)) { continue; }
-
-		UL32 valueType = REG_NONE;
-		UL32 valueSize = 0;
-		RegQueryValueExA(key, "", nullptr, &valueType, nullptr, &valueSize);
-		if (REG_SZ == valueType && sizeof(buttonMappings[i].name) > valueSize)
-		{
-			//RegQueryValueExA(key, "", nullptr, &valueType, (U8*)buttonMappings[i].name, &valueSize);
-		}
-
 		HIDAttributes mapping;
-		valueType = REG_NONE;
-		valueSize = 0;
-		RegQueryValueExA(key, "Attributes", nullptr, &valueType, nullptr, &valueSize);
-		if (REG_BINARY == valueType && sizeof(HIDAttributes) == valueSize)
-		{
-			RegQueryValueExA(key, "Attributes", nullptr, &valueType, (U8*)(&mapping), &valueSize);
-			if (0x15 > mapping.wUsagePage)
-			{
-				buttonMappings[i].usagePage = mapping.wUsagePage;
-				buttonMappings[i].usage = mapping.wUsage;
-			}
-		}
 
-		RegCloseKey(key);
+		Settings::GetRegistryValue(HKEY_CURRENT_USER, axisPath, "", (U8*)buttonMappings[i].name.Data());
+		Settings::GetRegistryValue(HKEY_CURRENT_USER, axisPath, "Attributes", (U8*)(&mapping));
+
+		if (mapping.wUsagePage < 0x15)
+		{
+			buttonMappings[i].usagePage = mapping.wUsagePage;
+			buttonMappings[i].usage = mapping.wUsage;
+		}
 	}
 
-	String calibrationPath("System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\DirectInput\\VID_{}&PID_{}\\Calibration\\0\\Type\\Axes\\",
-		String(vendorAndProductID.VendorID, HEX), String(vendorAndProductID.ProductID, HEX));
+	String calibrationPath("System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\DirectInput\\VID_{h}&PID_{h}\\Calibration\\0\\Type\\Axes\\",
+		vendorAndProductID.VendorID, vendorAndProductID.ProductID);
 
 	for (size_t i = 0; i < AXIS_MAPPING_COUNT; ++i)
 	{
 		calibrationPath.Overwrite(i, 121);
 
-		U8 success = false;
-
-		HKEY key = nullptr;
-		if (!RegOpenKeyExA(HKEY_CURRENT_USER, calibrationPath.Data(), 0, KEY_READ, &key))
-		{
-			HIDCalibration& calibration = axisMappings[i].calibration;
-			UL32 valueType = REG_NONE;
-			UL32 valueSize = 0;
-			RegQueryValueExA(key, "Calibration", nullptr, &valueType, nullptr, &valueSize);
-			if (valueType == REG_BINARY && valueSize == sizeof(HIDCalibration))
-			{
-				if (!RegQueryValueExA(key, "Calibration", nullptr, &valueType, (U8*)(&calibration), &valueSize))
-				{
-					axisMappings[i].isCalibrated = true;
-				}
-			}
-
-			RegCloseKey(key);
-		}
+		axisMappings[i].isCalibrated = Settings::GetRegistryValue(HKEY_CURRENT_USER, calibrationPath, "Calibration", (U8*)(&axisMappings[i].calibration));
 	}
 
 	for (const HIDP_VALUE_CAPS& currentClass : axisClasses)
@@ -305,6 +255,7 @@ Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, ope
 		}
 	}
 }
+*/
 
 Controller::~Controller()
 {
