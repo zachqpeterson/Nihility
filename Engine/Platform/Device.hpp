@@ -79,23 +79,24 @@ public:
 
 	void Update();
 
-	bool openHandle;
+	bool valid{ false };
 
 private:
 	bool SetupMouse();
 	bool SetupKeyboard();
 	bool SetupController();
 
-	void* ntHandle;				//HANDLE
+	void* riHandle;				//HRAWINPUT
+	void* ntHandle{ nullptr };	//HANDLE
 	String16 name;
-	DeviceType type;
+	DeviceType type{ DEVICE_TYPE_COUNT };
 
-	HIDCapabilities capabilities;
-	_HIDP_PREPARSED_DATA* preparsedData;
-	U32 preparsedDataSize;
-	_HIDP_DATA* stateBuffer;
-	UL32 stateLength;
-	C8* reportBuffer;
+	HIDCapabilities capabilities{};
+	_HIDP_PREPARSED_DATA* preparsedData{ nullptr };
+	U32 preparsedDataSize{ 0 };
+	_HIDP_DATA* stateBuffer{ nullptr };
+	UL32 stateLength{ 0 };
+	C8* reportBuffer{ nullptr };
 
 	Vector<HIDAxis> axes;
 	Vector<HIDButton> buttons;

@@ -37,15 +37,48 @@ struct HIDButtonMapping
 	String name;
 };
 
-Device::Device(void* handle) : ntHandle{ handle }, type{ DEVICE_TYPE_COUNT }, capabilities{},
-preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateLength{ 0 }, reportBuffer{ nullptr }, openHandle{ false }
+Device::Device(void* handle) : riHandle{ handle }
 {
+	U32 size = 0;
+	RAWINPUTHEADER header;
+
+	if (GetRawInputData((HRAWINPUT)riHandle, RID_HEADER, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
+	if (GetRawInputData((HRAWINPUT)riHandle, RID_HEADER, &header, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
+
+	String path;
+	U32 len = (U32)path.Capacity();
+	GetRawInputDeviceInfoA(riHandle, RIDI_DEVICENAME, path.Data(), &len);
+
+	if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open device, {}", GetLastError()); return; }
+
 	if (!HidD_GetProductString(ntHandle, name.Data(), (UL32)name.Capacity())) { Logger::Trace("Failed to get name, {}", GetLastError()); }
 	name.Resize();
 
 	if (!HidD_GetPreparsedData(ntHandle, &preparsedData)) { Logger::Trace("Failed to get data, {}, skipping...", GetLastError()); Destroy(); return; }
 
 	if (HidP_GetCaps(preparsedData, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
+
+	if (header.dwType == RIM_TYPEMOUSE && (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || capabilities.Usage == HID_USAGE_GENERIC_POINTER))
+	{
+		if (!SetupMouse()) { Destroy(); return; }
+	}
+	else if (header.dwType == RIM_TYPEKEYBOARD && (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD))
+	{
+		if (!SetupKeyboard()) { Destroy(); return; }
+	}
+	else if (header.dwType == RIM_TYPEHID && (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER))
+	{
+		if (!SetupController()) { Destroy(); return; }
+	}
+	else
+	{
+		//TODO: May not want to discard
+		Logger::Trace("Unkown device type, skipping...");
+		Destroy();
+		return;
+	}
+
+	valid = true;
 
 	Memory::AllocateArray(&reportBuffer, (const U16)capabilities.InputReportByteLength);
 
@@ -88,40 +121,21 @@ preparsedData{ nullptr }, preparsedDataSize{ 0 }, stateBuffer{ nullptr }, stateL
 
 	Vector<HIDButtonMapping> buttonMappings(numberOfButtons, {});
 	Vector<HIDAxisMapping> axisMappings(numberOfAxes, {});
-
-	if (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || capabilities.Usage == HID_USAGE_GENERIC_POINTER)
-	{
-		if (!SetupMouse()) { Destroy(); return; }
-	}
-	else if (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD)
-	{
-		if (!SetupKeyboard()) { Destroy(); return; }
-	}
-	else if (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER)
-	{
-		if (!SetupController()) { Destroy(); return; }
-	}
-	else
-	{
-		//TODO: May not want to discard
-		Logger::Trace("Unkown device type, skipping...");
-		Destroy();
-		return;
-	}
 }
 
-Device::Device(Device&& other) noexcept : ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
-preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, stateLength{ other.stateLength }, reportBuffer{ other.reportBuffer }, openHandle{ other.openHandle }
+Device::Device(Device&& other) noexcept : riHandle{ other.riHandle }, ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
+preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, stateLength{ other.stateLength }, reportBuffer{ other.reportBuffer }, valid{ other.valid }
 {
 	other.ntHandle = nullptr;
 	other.preparsedData = nullptr;
 	other.stateBuffer = nullptr;
 	other.reportBuffer = nullptr;
-	other.openHandle = false;
+	other.valid = false;
 }
 
 Device& Device::operator=(Device&& other) noexcept
 {
+	riHandle = other.riHandle;
 	ntHandle = other.ntHandle;
 	type = other.type;
 	capabilities = other.capabilities;
@@ -130,13 +144,13 @@ Device& Device::operator=(Device&& other) noexcept
 	stateBuffer = other.stateBuffer;
 	stateLength = other.stateLength;
 	reportBuffer = other.reportBuffer;
-	openHandle = other.openHandle;
+	valid = other.valid;
 
 	other.ntHandle = nullptr;
 	other.preparsedData = nullptr;
 	other.stateBuffer = nullptr;
 	other.reportBuffer = nullptr;
-	other.openHandle = false;
+	other.valid = false;
 
 	return *this;
 }
@@ -148,22 +162,20 @@ Device::~Device()
 
 void Device::Destroy()
 {
+	CloseHandle(ntHandle);
+	ntHandle = nullptr;
+
+	valid = false;
+
 	if (preparsedData)
 	{
 		HidD_FreePreparsedData(preparsedData);
 		preparsedData = nullptr;
 	}
-	if (openHandle)
-	{
-		CloseHandle(ntHandle);
-		ntHandle = nullptr;
-		openHandle = false;
-	}
-	if (reportBuffer)
-	{
-		Memory::FreeArray(&reportBuffer);
-		reportBuffer = nullptr;
-	}
+
+	if (stateBuffer) { Memory::FreeArray(&stateBuffer); }
+
+	if (reportBuffer) { Memory::FreeArray(&reportBuffer); }
 }
 
 void Device::Update()

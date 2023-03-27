@@ -123,46 +123,8 @@ void Input::Update(HRAWINPUT handle)
 
 void Input::AddDevice(void* handle)
 {
-	U32 size = 0;
-	RAWINPUTHEADER header;
-	PHIDP_PREPARSED_DATA preparsedData;
-	HIDP_CAPS capabilities;
-
-	if (GetRawInputData((HRAWINPUT)handle, RID_HEADER, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
-	if (GetRawInputData((HRAWINPUT)handle, RID_HEADER, &header, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
-
-	String path;
-	U32 len = (U32)path.Capacity();
-	GetRawInputDeviceInfoA(handle, RIDI_DEVICENAME, path.Data(), &len);
-
-	HANDLE ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr); //TODO: close
-
-	if (!HidD_GetPreparsedData(ntHandle, &preparsedData)) { Logger::Trace("Failed to get data, {}, skipping...", GetLastError()); }
-	if (HidP_GetCaps(preparsedData, &capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); }
-
-	switch (header.dwType)
-	{
-	case RIM_TYPEMOUSE: {
-		if (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || HID_USAGE_GENERIC_POINTER)
-		{
-			//good
-		}
-	} break;
-	case RIM_TYPEKEYBOARD: {
-		if (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD)
-		{
-			//good
-		}
-	} break;
-	case RIM_TYPEHID: {
-		if (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER)
-		{
-			//good
-		}
-	} break;
-	}
-
-	CloseHandle(ntHandle);
+	Device device(handle);
+	if (device.valid) { devices.Push(Move(device)); } //TODO: better data structure, probably HashMap
 }
 
 void Input::RemoveDevice(void* handle)
