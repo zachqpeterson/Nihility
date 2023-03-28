@@ -39,15 +39,15 @@ struct HIDButtonMapping
 
 Device::Device(void* handle) : riHandle{ handle }
 {
-	U32 size = 0;
-	RAWINPUTHEADER header;
-
-	if (GetRawInputData((HRAWINPUT)riHandle, RID_HEADER, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
-	if (GetRawInputData((HRAWINPUT)riHandle, RID_HEADER, &header, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
-
 	String path;
 	U32 len = (U32)path.Capacity();
 	GetRawInputDeviceInfoA(riHandle, RIDI_DEVICENAME, path.Data(), &len);
+
+	RID_DEVICE_INFO info;
+	info.cbSize = sizeof(RID_DEVICE_INFO);
+	U32 size = sizeof(RID_DEVICE_INFO);
+
+	GetRawInputDeviceInfoA(riHandle, RIDI_DEVICEINFO, &info, &size);
 
 	if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open device, {}", GetLastError()); return; }
 
@@ -58,15 +58,15 @@ Device::Device(void* handle) : riHandle{ handle }
 
 	if (HidP_GetCaps(preparsedData, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
 
-	if (header.dwType == RIM_TYPEMOUSE && (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || capabilities.Usage == HID_USAGE_GENERIC_POINTER))
+	if (info.dwType == RIM_TYPEMOUSE && (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || capabilities.Usage == HID_USAGE_GENERIC_POINTER))
 	{
 		if (!SetupMouse()) { Destroy(); return; }
 	}
-	else if (header.dwType == RIM_TYPEKEYBOARD && (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD))
+	else if (info.dwType == RIM_TYPEKEYBOARD && (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD))
 	{
 		if (!SetupKeyboard()) { Destroy(); return; }
 	}
-	else if (header.dwType == RIM_TYPEHID && (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER))
+	else if (info.dwType == RIM_TYPEHID && (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER))
 	{
 		if (!SetupController()) { Destroy(); return; }
 	}
