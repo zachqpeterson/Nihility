@@ -1704,7 +1704,7 @@ void Resources::BatchCreateFreeMeshes(Vector<MeshConfig>& configs, Vector<Mesh*>
 
 void Resources::DestroyMesh(Mesh* mesh)
 {
-	meshes.Remove(mesh->name);
+	if (mesh->name) { meshes.Remove(mesh->name); }
 
 	DestroyMaterialInstance(mesh->material);
 	RendererFrontend::DestroyMesh(mesh);

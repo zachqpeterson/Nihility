@@ -221,12 +221,12 @@ inline const Item* Items::items[]
 	new Item{"", "", 0, ITEM_TYPE_TOOL},
 
 	new Tool{"Flint Pickaxe", "A primitive tool that'll get the job done", 0, 1, 1},
-	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.1f, 10.0f, 0.0f, 0.2f}},
+	new Weapon{"Flint Knife", "A primitive weapon that'll get the job done", 0, Damage{25, 0, 0.05f, 0.5f, 0.1f, 10.0f, 0.0f, 0.30f}},
 
 	new Light{"Torch", "Light up the way in dark tunnels", 0, 8, Vector3::ONE},
 
 	new Tool{"Copper Pickaxe", "A decent tool that'll get the job done", 1, 1, 1},
-	new Weapon{"Copper Knife", "A decent weapon that'll get the job done", 1, Damage{40, 1, 0.1f, 0.6f, 0.1f, 10.0f, 0.0f, 0.2f}},
+	new Weapon{"Copper Knife", "A decent weapon that'll get the job done", 1, Damage{40, 1, 0.1f, 0.6f, 0.1f, 10.0f, 0.0f, 0.30f}},
 
 	nullptr
 };

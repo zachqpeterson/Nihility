@@ -347,7 +347,7 @@ void TimeSlip::HandleEntities()
 {
 	U16 maxEntities = MAX_ENTITIES + ((MAX_ENTITIES >> 1) * (playerCount - 1));
 
-	if (entities.Size() - playerCount < maxEntities && Math::RandomF() < ((F32)Time::DeltaTime() * 0.5f))
+	if (entities.Size() - playerCount < maxEntities && Math::RandomF() < ((F32)Time::DeltaTime() * 0.5f) && false)
 	{
 		Vector2 spawn;
 		Vector2 playerPos = player->gameObject->transform->Position();
