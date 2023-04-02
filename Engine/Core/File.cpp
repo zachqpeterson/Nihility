@@ -5,7 +5,7 @@
 
 File::File() { Memory::AllocateArray(&streamBuffer, bufferSize); streamPtr = streamBuffer; }
 
-File::~File() { Close(); Memory::FreeArray(&streamBuffer); }
+File::~File() { Destroy(); }
 
 bool File::Open(const C8* path, I32 mode)
 {
@@ -27,6 +27,12 @@ bool File::Open(const C8* path, I32 mode)
 	opened = true;
 
 	return true;
+}
+
+void File::Destroy()
+{
+	Close();
+	if (streamBuffer) { Memory::FreeArray(&streamBuffer); }
 }
 
 void File::Close()

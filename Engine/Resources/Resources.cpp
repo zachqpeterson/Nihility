@@ -54,7 +54,7 @@ bool Resources::Initialize()
 
 void Resources::Shutdown()
 {
-
+	textures.Destroy();
 }
 
 Texture* Resources::LoadTexture(String& name)

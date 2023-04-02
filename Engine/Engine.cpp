@@ -43,7 +43,7 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 
 	F32 f = 123.123f;
 	//TODO: Only works with decimal count of 5 or 0
-	String s512("{.3}", f);
+	//String s512("{.3}", f);
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
@@ -88,6 +88,7 @@ void Engine::UpdateLoop()
 		//Logger::Info("Framerate: {}", Time::FrameRate());
 
 		if (!Platform::Update()) { break; } //TODO: Run on separate thread
+		Input::Update();
 
 		//Physics::Update();
 		GameUpdate();

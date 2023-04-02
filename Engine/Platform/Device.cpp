@@ -49,7 +49,7 @@ Device::Device(void* handle) : riHandle{ handle }
 
 	GetRawInputDeviceInfoA(riHandle, RIDI_DEVICEINFO, &info, &size);
 
-	if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open device, {}", GetLastError()); return; }
+	if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open device, {}", GetLastError()); return; }
 
 	if (!HidD_GetProductString(ntHandle, name.Data(), (UL32)name.Capacity())) { Logger::Trace("Failed to get name, {}", GetLastError()); }
 	name.Resize();
@@ -87,6 +87,8 @@ Device::Device(void* handle) : riHandle{ handle }
 
 	Memory::AllocateArray(&stateBuffer, (const U16)stateLength);
 
+	async.event = CreateEventA(nullptr, false, false, nullptr);
+
 	Vector<HIDP_BUTTON_CAPS> buttonClasses(capabilities.NumberInputButtonCaps, {});
 	if (HidP_GetButtonCaps(HidP_Input, buttonClasses.Data(), &capabilities.NumberInputButtonCaps, preparsedData) != HIDP_STATUS_SUCCESS) { Logger::Trace("No Buttons"); }
 
@@ -123,8 +125,10 @@ Device::Device(void* handle) : riHandle{ handle }
 	Vector<HIDAxisMapping> axisMappings(numberOfAxes, {});
 }
 
-Device::Device(Device&& other) noexcept : riHandle{ other.riHandle }, ntHandle{ other.ntHandle }, type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData },
-preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, stateLength{ other.stateLength }, reportBuffer{ other.reportBuffer }, valid{ other.valid }
+Device::Device(Device&& other) noexcept : valid{ other.valid }, riHandle{ other.riHandle }, ntHandle{ other.ntHandle }, name{ Move(other.name) },
+type{ other.type }, capabilities{ other.capabilities }, preparsedData{ other.preparsedData }, preparsedDataSize{ other.preparsedDataSize },
+stateBuffer{ other.stateBuffer }, stateLength{ other.stateLength }, reportBuffer{ other.reportBuffer }, axes{ Move(other.axes) }, buttons{ Move(other.buttons) },
+async{ other.async }, reading{ other.reading }
 {
 	other.ntHandle = nullptr;
 	other.preparsedData = nullptr;
@@ -135,8 +139,10 @@ preparsedDataSize{ other.preparsedDataSize }, stateBuffer{ other.stateBuffer }, 
 
 Device& Device::operator=(Device&& other) noexcept
 {
+	valid = other.valid;
 	riHandle = other.riHandle;
 	ntHandle = other.ntHandle;
+	name = Move(other.name);
 	type = other.type;
 	capabilities = other.capabilities;
 	preparsedData = other.preparsedData;
@@ -144,7 +150,11 @@ Device& Device::operator=(Device&& other) noexcept
 	stateBuffer = other.stateBuffer;
 	stateLength = other.stateLength;
 	reportBuffer = other.reportBuffer;
-	valid = other.valid;
+	axes = Move(other.axes);
+	buttons = Move(other.buttons);
+
+	async = other.async;
+	reading = other.reading;
 
 	other.ntHandle = nullptr;
 	other.preparsedData = nullptr;
@@ -162,8 +172,8 @@ Device::~Device()
 
 void Device::Destroy()
 {
-	CloseHandle(ntHandle);
-	ntHandle = nullptr;
+	if (ntHandle) { CloseHandle(ntHandle); ntHandle = nullptr; }
+	if (async.event) { CloseHandle(async.event); async.event = nullptr; }
 
 	valid = false;
 
@@ -174,13 +184,64 @@ void Device::Destroy()
 	}
 
 	if (stateBuffer) { Memory::FreeArray(&stateBuffer); }
-
 	if (reportBuffer) { Memory::FreeArray(&reportBuffer); }
+
+	name.Destroy();
+	axes.Destroy();
+	buttons.Destroy();
 }
 
-void Device::Update()
+U8* Device::ReadInput(U32& size)
 {
+	bool overlapped = false;
+	bool result;
+	UL32 read;
+	U8* buffer = nullptr;
 
+	if (!reading)
+	{
+		reading = true;
+		memset(reportBuffer, 0, capabilities.InputReportByteLength);
+		ResetEvent(async.event);
+
+		result = ReadFile(ntHandle, reportBuffer, capabilities.InputReportByteLength, &read, (LPOVERLAPPED)&async);
+
+		if (!result)
+		{
+			UL32 err = GetLastError();
+			if (err != ERROR_IO_PENDING)
+			{
+				CancelIo(ntHandle);
+				reading = false;
+				return buffer;
+			}
+			overlapped = true;
+		}
+	}
+	else { overlapped = true; }
+
+	if (overlapped)
+	{
+		if (WaitForSingleObject(async.event, 0) != WAIT_OBJECT_0) { return buffer; }
+
+		result = GetOverlappedResult(ntHandle, (LPOVERLAPPED)&async, &read, true);
+	}
+
+	reading = false;
+
+	if (result && read)
+	{
+		if (*reportBuffer == 0)
+		{
+			--read;
+			buffer = reportBuffer + 1;
+		}
+		else { buffer = reportBuffer; }
+	}
+
+	size = read;
+
+	return buffer;
 }
 
 bool Device::SetupMouse()

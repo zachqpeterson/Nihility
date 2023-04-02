@@ -58,6 +58,7 @@ public:
 	File();
 	template <typename Str> File(const Str& path, I32 mode);
 	~File();
+	void Destroy();
 	void Close();
 
 	template <StringType Str> bool Open(const Str& path, I32 mode);
@@ -105,7 +106,7 @@ private:
 	U32 bufferRemaining{ 0 };
 	U64 streamFlag{ 0 };
 
-	FileStats stats;
+	FileStats stats{};
 };
 
 template <typename Str>

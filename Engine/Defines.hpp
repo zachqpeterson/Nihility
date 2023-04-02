@@ -292,38 +292,20 @@ class& operator=(class&&) = delete;	\
 #	define STATIC_ASSERT(expr)
 #endif
 
-/*---------MEMORY---------*/
+constexpr I64 NextPow2(const I64& value)
+{
+	I64 val = value;
 
-/// <summary>
-/// Sets value to the next multiple of 2^alignment
-/// </summary>
-/// <param name="value:">The value to set</param>
-/// <param name="alignment:">The power of 2 to align to</param>
-#define AlignPow2(value, alignment) ((value + (alignment - 1)) & ~(alignment - 1))
+	--val;
+	val |= val >> 1;
+	val |= val >> 2;
+	val |= val >> 4;
+	val |= val >> 8;
+	val |= val >> 16;
+	++val;
 
-/// <summary>
-/// Sets value to the next multiple of 2
-/// </summary>
-/// <param name="value:">The value to set</param>
-#define Align2(value) ((value + 1) & ~1)
-
-/// <summary>
-/// Sets value to the next multiple of 4
-/// </summary>
-/// <param name="value:">The value to set</param>
-#define Align4(value) ((value + 3) & ~3)
-
-/// <summary>
-/// Sets value to the next multiple of 8
-/// </summary>
-/// <param name="value:">The value to set</param>
-#define Align8(value) ((value + 7) & ~7)
-
-/// <summary>
-/// Sets value to the next multiple of 16
-/// </summary>
-/// <param name="value:">The value to set</param>
-#define Align16(value) ((value + 15) & ~15)
+	return val;
+}
 
 /*---------MOVE---------*/
 

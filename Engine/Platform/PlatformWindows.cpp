@@ -333,9 +333,6 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
 	} return 0;
 
-	case WM_INPUT: {
-		if (GET_RAWINPUT_CODE_WPARAM(wParam) == RIM_INPUT) { Input::Update((HRAWINPUT)lParam); }
-	} break;
 	case WM_INPUT_DEVICE_CHANGE: {
 		if (wParam == GIDC_ARRIVAL) { Input::AddDevice((void*)lParam); }
 		else { Input::RemoveDevice((void*)lParam); }

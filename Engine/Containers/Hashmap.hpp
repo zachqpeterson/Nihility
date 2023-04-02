@@ -53,7 +53,12 @@ private:
 
 template<typename Value> inline Hashmap<Value>::Hashmap() {}
 
-template<typename Value> inline Hashmap<Value>::Hashmap(U64 cap) : capacity{ capacity } { Memory::AllocateArray(&cells, capacity); capMinusOne = capacity - 1; }
+template<typename Value> inline Hashmap<Value>::Hashmap(U64 cap) : capacity{ capacity } 
+{
+	Memory::AllocateArray(&cells, capacity = cap);
+	capacity = NextPow2(capacity) >> 1;
+	capMinusOne = capacity - 1;
+}
 
 template<typename Value> inline Hashmap<Value>::Hashmap(const Hashmap& other) : size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
 {
@@ -100,12 +105,15 @@ template<typename Value> inline Hashmap<Value>::~Hashmap() { Destroy(); }
 
 template<typename Value> inline void Hashmap<Value>::Destroy()
 {
-	for (Cell& cell : *this) { cell.key.Destroy(); }
+	if (cells)
+	{
+		for (Cell& cell : *this) { cell.key.Destroy(); }
 
-	Memory::FreeArray(&cells);
-	size = 0;
-	capacity = 0;
-	capMinusOne = 0;
+		Memory::FreeArray(&cells);
+		size = 0;
+		capacity = 0;
+		capMinusOne = 0;
+	}
 }
 
 template<typename Value> inline bool Hashmap<Value>::Insert(String& key, const Value& value)
@@ -197,13 +205,13 @@ template<typename Value> inline bool Hashmap<Value>::Get(String& key, Value& val
 	return cell->filled;
 }
 
-template<typename Value> inline void Hashmap<Value>::Reserve(U64 capacity)
+template<typename Value> inline void Hashmap<Value>::Reserve(U64 cap)
 {
-	if (capacity < this->capacity) { return; }
+	if (cap < capacity) { return; }
 
-	this->capacity = capacity;
-	Memory::Reallocate(&cells, this->capacity);
-	capMinusOne = this->capacity - 1;
+	Memory::Reallocate(&cells, capacity = cap);
+	capacity = NextPow2(capacity) >> 1;
+	capMinusOne = capacity - 1;
 
 	Empty();
 }

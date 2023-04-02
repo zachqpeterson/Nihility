@@ -11,6 +11,7 @@
 * TODO: Override new and delete globally
 * TODO: If one size is full, allocate next size
 * TODO: Debug Memory stats
+* TODO: memcpy, memset, memset(ptr, 0, size) defines
 */
 
 /// <summary>
@@ -28,7 +29,7 @@ public:
 	static void Allocate(T** pointer);
 
 	template<typename T, Unsigned Int>
-	static void Allocate(T** pointer, Int& outSize); //TODO: Take in any integer type for size
+	static void Allocate(T** pointer, Int& outSize);
 
 	template<typename T, Unsigned Int>
 	static void AllocateSize(T** pointer, Int size);

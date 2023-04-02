@@ -45,17 +45,17 @@ bool Input::Initialize()
 
 	rid[4].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	rid[4].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-	rid[4].dwFlags = RIDEV_DEVNOTIFY;
+	rid[4].dwFlags = RIDEV_DEVNOTIFY | RIDEV_REMOVE;
 	rid[4].hwndTarget = nullptr;
 
 	rid[5].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	rid[5].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-	rid[5].dwFlags = RIDEV_DEVNOTIFY;
+	rid[5].dwFlags = RIDEV_DEVNOTIFY | RIDEV_REMOVE;
 	rid[5].hwndTarget = nullptr;
 
 	rid[6].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	rid[6].usUsage = HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER;
-	rid[6].dwFlags = RIDEV_DEVNOTIFY;
+	rid[6].dwFlags = RIDEV_DEVNOTIFY | RIDEV_REMOVE;
 	rid[6].hwndTarget = nullptr;
 
 	if (!RegisterRawInputDevices(rid, 7, sizeof(RAWINPUTDEVICE))) { Logger::Error("Failed to register devices, {}!", GetLastError()); return false; }
@@ -79,46 +79,21 @@ bool Input::Initialize()
 
 void Input::Shutdown()
 {
-
+	devices.Destroy();
 }
 
-void Input::Update(HRAWINPUT handle)
+void Input::Update()
 {
-	U32 size = 0;
-	RAWINPUTHEADER header;
-
-	if (GetRawInputData(handle, RID_HEADER, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
-	if (GetRawInputData(handle, RID_HEADER, &header, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
-
-	switch (header.dwType)
+	for (Device& device : devices)
 	{
-	case RIM_TYPEMOUSE: {
-		RAWMOUSE mouse;
+		U32 size;
+		U8* buffer = device.ReadInput(size);
 
-		if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
-		if (GetRawInputData(handle, RID_INPUT, &mouse, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
-	} break;
-
-	case RIM_TYPEKEYBOARD: {
-		RAWKEYBOARD keyboard;
-
-		if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
-		if (GetRawInputData(handle, RID_INPUT, &keyboard, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
-	} break;
-
-	case RIM_TYPEHID: {
-		RAWHID hid;
-
-		//Use calibration
-
-		if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) == -1) { return; }
-		if (GetRawInputData(handle, RID_INPUT, &hid, &size, sizeof(RAWINPUTHEADER)) != size) { return; }
-	} break;
+		if (buffer)
+		{
+			BreakPoint;
+		}
 	}
-
-	//TODO: get device from handle
-
-	//TODO: call device.Update
 }
 
 void Input::AddDevice(void* handle)

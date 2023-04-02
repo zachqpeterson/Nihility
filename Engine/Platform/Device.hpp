@@ -65,6 +65,20 @@ struct HIDButton
 	I32 value;
 };
 
+struct Async {
+	U64 internal;
+	U64 internalHigh;
+	union {
+		struct {
+			UL32 offset;
+			UL32 offsetHigh;
+		};
+		void* pointer;
+	};
+
+	void* event;
+};
+
 struct _HIDP_PREPARSED_DATA;
 struct _HIDP_DATA;
 
@@ -77,7 +91,7 @@ public:
 	~Device();
 	void Destroy();
 
-	void Update();
+	U8* ReadInput(U32& size);
 
 	bool valid{ false };
 
@@ -96,10 +110,13 @@ private:
 	U32 preparsedDataSize{ 0 };
 	_HIDP_DATA* stateBuffer{ nullptr };
 	UL32 stateLength{ 0 };
-	C8* reportBuffer{ nullptr };
+	U8* reportBuffer{ nullptr };
 
 	Vector<HIDAxis> axes;
 	Vector<HIDButton> buttons;
+
+	Async async{};
+	bool reading{ false };
 
 	Device(const Device&) = delete;
 	Device& operator=(const Device&) = delete;
