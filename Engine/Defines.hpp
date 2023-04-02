@@ -327,6 +327,9 @@ template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>
 
 #pragma region TypeTraits
 
+template <class Derived, class Base>
+concept Inherits = __is_base_of(Base, Derived) && __is_convertible_to(const volatile Derived*, const volatile Base*);
+
 template <class Type, Type Value>
 struct TypeConstant {
 	static constexpr Type value = Value;
