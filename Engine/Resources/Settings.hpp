@@ -19,10 +19,10 @@ public:
 	static const F32& SfxVolume() { return data.sfxVolume; }
 
 	//GRAPHICS
-	static const U32& WindowWidth() { return data.windowWidth; }
-	static const U32& WindowHeight() { return data.windowHeight; }
-	static const U32& WindowWidthSmall() { return data.windowWidthSmall; }
-	static const U32& WindowHeightSmall() { return data.windowHeightSmall; }
+	static const I32& WindowWidth() { return data.windowWidth; }
+	static const I32& WindowHeight() { return data.windowHeight; }
+	static const I32& WindowWidthSmall() { return data.windowWidthSmall; }
+	static const I32& WindowHeightSmall() { return data.windowHeightSmall; }
 	static const I32& WindowPositionX() { return data.windowPositionX; }
 	static const I32& WindowPositionY() { return data.windowPositionY; }
 	static const I32& WindowPositionXSmall() { return data.windowPositionXSmall; }
@@ -34,8 +34,8 @@ public:
 	//PLATFORM
 	static const U32& Dpi() { return data.dpi; }
 	static const U32& ThreadCount() { return data.threadCount; }
-	static const U32& ScreenWidth() { return data.screenWidth; }
-	static const U32& ScreenHeight() { return data.screenHeight; }
+	static const I32& ScreenWidth() { return data.screenWidth; }
+	static const I32& ScreenHeight() { return data.screenHeight; }
 	static const F64& MonitorHz() { return data.monitorHz; }
 	static const bool& Focused() { return data.focused; }
 	static const bool& Minimised() { return data.minimised; }
@@ -59,10 +59,10 @@ private:
 		F32 sfxVolume{ 1.0f };
 
 		//GRAPHICS
-		U32 windowWidth{ 0 };
-		U32 windowHeight{ 0 };
-		U32 windowWidthSmall{ 1280 };
-		U32 windowHeightSmall{ 720 };
+		I32 windowWidth{ 0 };
+		I32 windowHeight{ 0 };
+		I32 windowWidthSmall{ 1280 };
+		I32 windowHeightSmall{ 720 };
 		I32 windowPositionX{ 0 };
 		I32 windowPositionY{ 0 };
 		I32 windowPositionXSmall{ 320 };
@@ -74,8 +74,8 @@ private:
 		//PLATFORM
 		U32 dpi{ 0 };
 		U32 threadCount{ 1 };
-		U32 screenWidth{ 0 };
-		U32 screenHeight{ 0 };
+		I32 screenWidth{ 0 };
+		I32 screenHeight{ 0 };
 		F64 monitorHz{ 0.0 };
 		bool focused{ true };
 		bool minimised{ true };

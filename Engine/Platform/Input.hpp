@@ -6,14 +6,14 @@
 enum NH_API ButtonCode
 {
 	/*Mouse Buttons*/
-	LEFT_CLICK = 0x01,
-	RIGHT_CLICK = 0x02,
-	CANCEL = 0x03,
-	MIDDLE_CLICK = 0x04,
+	LEFT_MOUSE = 0x01,
+	RIGHT_MOUSE = 0x02,
+	MIDDLE_MOUSE = 0x04,
 	X_BUTTON_ONE = 0x05,
 	X_BUTTON_TWO = 0x06,
 
 	/*Keyboard Buttons*/
+	CANCEL = 0x03,
 	BACK = 0x08,
 	TAB = 0x09,
 	CLEAR = 0x0C,
@@ -305,7 +305,6 @@ private:
 	static I32 mousePosY;
 	static I32 deltaMousePosX;
 	static I32 deltaMousePosY;
-	static bool scrollFocus;
 
 	//CONTROLLER
 	static F32 axisStates[AXIS_COUNT];

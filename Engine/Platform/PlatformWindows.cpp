@@ -62,8 +62,7 @@ bool Platform::Initialize(const C8* applicationName)
 		return false;
 	}
 
-	if (Settings::Fullscreen()) { style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE; }
-	else { style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME; }
+	style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_VISIBLE;
 
 	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, 0, 0, 0, 0, nullptr, nullptr, windowData.instance, nullptr);
 
@@ -147,20 +146,15 @@ void Platform::SetFullscreen(bool fullscreen)
 {
 	Settings::data.fullscreen = fullscreen;
 
+	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
+
 	if (fullscreen)
 	{
-		style = WS_POPUP | WS_SYSMENU | WS_MAXIMIZE;
-
-		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
-		SetWindowLongPtrA(windowData.window, GWL_STYLE, style);
 		SetWindowPos(windowData.window, nullptr, border.left, border.top,
 			Settings::ScreenWidth() + border.right - border.left, Settings::ScreenHeight() + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
 	else
 	{
-		style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME;
-		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
-		SetWindowLongPtrA(windowData.window, GWL_STYLE, style);
 		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionXSmall() + border.left, Settings::WindowPositionYSmall() + border.top,
 			Settings::WindowWidthSmall() + border.right - border.left, Settings::WindowHeightSmall() + border.bottom - border.top, SWP_SHOWWINDOW);
 	}
@@ -199,6 +193,7 @@ void Platform::SetMousePosition(I32 x, I32 y)
 
 void Platform::HideCursor(bool hide)
 {
+	//ShowCursor(hide);
 	Settings::data.hideCursor = hide;
 }
 
@@ -249,7 +244,7 @@ void Platform::UpdateMouse()
 			}
 		}
 
-		ShowCursor(!Settings::HideCursor()); //TODO: Doesn't work after unfocusing and focusing the window
+		//int i = ShowCursor(!Settings::HideCursor()); //TODO: Doesn't work after unfocusing and focusing the window
 		//TODO: Log the return to see the display count
 	}
 	else
@@ -338,7 +333,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		else { Input::RemoveDevice((void*)lParam); }
 	} return 0;
 	case WM_INPUT: {
-		if (GET_RAWINPUT_CODE_WPARAM(wParam) == 0) { Input::Update((HRAWINPUT)lParam); }
+		if (GET_RAWINPUT_CODE_WPARAM(wParam) == 0) { Input::ReceiveInput((HRAWINPUT)lParam); }
 		else { Input::InputSink((HRAWINPUT)lParam); }
 	}
 	}

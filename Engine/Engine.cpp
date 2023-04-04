@@ -57,6 +57,8 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	//Particle
 	ASSERT(GameInit());
 
+	Platform::HideCursor(true);
+
 	UpdateLoop();
 
 	Shutdown();
@@ -87,6 +89,7 @@ void Engine::UpdateLoop()
 		Time::Update();
 		//Logger::Info("Framerate: {}", Time::FrameRate());
 
+		Input::Update();
 		if (!Platform::Update()) { break; } //TODO: Run on separate thread
 
 		//Physics::Update();

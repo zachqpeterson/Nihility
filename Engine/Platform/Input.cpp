@@ -6,6 +6,7 @@
 #include "Containers\Vector.hpp"
 #include "Containers\String.hpp"
 #include "Resources\Settings.hpp"
+#include "Math\Math.hpp"
 
 Vector<Device> Input::devices;
 I16 Input::mouseWheelDelta;
@@ -14,7 +15,11 @@ I32 Input::mousePosX;
 I32 Input::mousePosY;
 I32 Input::deltaMousePosX;
 I32 Input::deltaMousePosY;
-bool Input::scrollFocus;
+
+F32 Input::axisStates[AXIS_COUNT];
+Input::ButtonState Input::buttonStates[BUTTON_COUNT];
+bool Input::inputConsumed;
+bool Input::anyButtonDown;
 
 #if defined PLATFORM_WINDOWS
 
@@ -99,6 +104,13 @@ void Input::Shutdown()
 void Input::Update()
 {
 	//TODO: Reset values
+	deltaMousePosX = 0;
+	deltaMousePosY = 0;
+	mouseWheelDelta = 0;
+	mouseHWheelDelta = 0;
+
+	anyButtonDown = false;
+	for (ButtonState& state : buttonStates) { state.changed = false; }
 }
 
 void Input::ReceiveInput(HRAWINPUT handle)
@@ -134,15 +146,82 @@ void Input::ReceiveInput(HRAWINPUT handle)
 			I32 relativeX = mouse.lLastX;
 			I32 relativeY = mouse.lLastY;
 
-			//TODO: clamp
-			mousePosX += relativeX;
-			mousePosY += relativeY;
+			//TODO: Sensitivity from windows
 			deltaMousePosX = relativeX;
 			deltaMousePosY = relativeY;
+
+			if (Settings::ConstrainCursor())
+			{
+				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, Settings::WindowPositionX(), Settings::WindowWidth() + Settings::WindowPositionX());
+				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, Settings::WindowPositionY(), Settings::WindowHeight() + Settings::WindowPositionY());
+			}
+			else
+			{
+				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, 0, Settings::ScreenWidth());
+				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, 0, Settings::ScreenHeight());
+			}
 		}
 
-		if (mouse.usButtonFlags & RI_MOUSE_WHEEL) { mouseWheelDelta = (F32)(I16)mouse.usButtonData / WHEEL_DELTA; }
-		if (mouse.usButtonFlags & RI_MOUSE_HWHEEL) { mouseHWheelDelta = (F32)(I16)mouse.usButtonData / WHEEL_DELTA; }
+		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
+		{
+			buttonStates[LEFT_MOUSE].changed = true;
+			buttonStates[LEFT_MOUSE].pressed = true;
+			anyButtonDown = true;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
+		{
+			buttonStates[LEFT_MOUSE].changed = true;
+			buttonStates[LEFT_MOUSE].pressed = false;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
+		{
+			buttonStates[RIGHT_MOUSE].changed = true;
+			buttonStates[RIGHT_MOUSE].pressed = true;
+			anyButtonDown = true;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
+		{
+			buttonStates[RIGHT_MOUSE].changed = true;
+			buttonStates[RIGHT_MOUSE].pressed = false;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
+		{
+			buttonStates[MIDDLE_MOUSE].changed = true;
+			buttonStates[MIDDLE_MOUSE].pressed = true;
+			anyButtonDown = true;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
+		{
+			buttonStates[MIDDLE_MOUSE].changed = true;
+			buttonStates[MIDDLE_MOUSE].pressed = false;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
+		{
+			buttonStates[X_BUTTON_ONE].changed = true;
+			buttonStates[X_BUTTON_ONE].pressed = true;
+			anyButtonDown = true;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
+		{
+			buttonStates[X_BUTTON_ONE].changed = true;
+			buttonStates[X_BUTTON_ONE].pressed = false;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
+		{
+			buttonStates[X_BUTTON_TWO].changed = true;
+			buttonStates[X_BUTTON_TWO].pressed = true;
+			anyButtonDown = true;
+		}
+		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
+		{
+			buttonStates[X_BUTTON_TWO].changed = true;
+			buttonStates[X_BUTTON_TWO].pressed = false;
+		}
+
+		if (mouse.usButtonFlags & RI_MOUSE_WHEEL) { mouseWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
+		if (mouse.usButtonFlags & RI_MOUSE_HWHEEL) { mouseHWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
+
+		//Logger::Debug("{}, {}", mousePosX, mousePosY);
 
 	} break;
 	case RIM_TYPEKEYBOARD: {
@@ -166,6 +245,7 @@ void Input::InputSink(HRAWINPUT handle)
 		POINT p;
 		GetCursorPos(&p);
 
+		//TODO: Check if window is blocking
 		if (p.x >= Settings::WindowPositionX() && p.x <= Settings::WindowWidth() + Settings::WindowPositionX() && 
 			p.y >= Settings::WindowPositionY() && p.y <= Settings::WindowHeight() + Settings::WindowPositionY())
 		{
