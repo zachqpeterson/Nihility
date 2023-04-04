@@ -98,7 +98,7 @@ void Input::Shutdown()
 
 void Input::Update()
 {
-
+	//TODO: Reset values
 }
 
 void Input::ReceiveInput(HRAWINPUT handle)
