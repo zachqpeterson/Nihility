@@ -255,6 +255,7 @@ enum NH_API AxisCode
 };
 
 struct Device;
+struct HRAWINPUT__;
 
 class NH_API Input
 {
@@ -290,6 +291,8 @@ private:
 	static void Shutdown();
 
 	static void Update();
+	static void ReceiveInput(HRAWINPUT__* handle);
+	static void InputSink(HRAWINPUT__* handle);
 	static void AddDevice(void* handle);
 	static void RemoveDevice(void* handle);
 
@@ -300,6 +303,8 @@ private:
 	static I16 mouseHWheelDelta;
 	static I32 mousePosX;
 	static I32 mousePosY;
+	static I32 deltaMousePosX;
+	static I32 deltaMousePosY;
 	static bool scrollFocus;
 
 	//CONTROLLER

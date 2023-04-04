@@ -337,6 +337,10 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		if (wParam == GIDC_ARRIVAL) { Input::AddDevice((void*)lParam); }
 		else { Input::RemoveDevice((void*)lParam); }
 	} return 0;
+	case WM_INPUT: {
+		if (GET_RAWINPUT_CODE_WPARAM(wParam) == 0) { Input::Update((HRAWINPUT)lParam); }
+		else { Input::InputSink((HRAWINPUT)lParam); }
+	}
 	}
 
 	return DefWindowProcA(hwnd, msg, wParam, lParam);

@@ -88,7 +88,6 @@ void Engine::UpdateLoop()
 		//Logger::Info("Framerate: {}", Time::FrameRate());
 
 		if (!Platform::Update()) { break; } //TODO: Run on separate thread
-		Input::Update();
 
 		//Physics::Update();
 		GameUpdate();

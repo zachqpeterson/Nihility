@@ -8,6 +8,10 @@
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
 
+//HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Axes\\"
+//HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Buttons\\"
+//HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\DirectInput\\VID_{h}&PID_{h}\\Calibration\\0\\Type\\Axes\\"
+
 /*
 Controller::Controller(void* handle) : dHandle{ handle }, ntHandle{nullptr}, openHandle{ false }, inputReportProtocol{ nullptr }, capabilities{}
 {
