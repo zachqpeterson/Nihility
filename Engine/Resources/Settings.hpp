@@ -83,7 +83,7 @@ private:
 		bool lockCursor{ false };
 		bool hideCursor{ false };
 		bool constrainCursor{ false };
-	} data;
+	} data{};
 
 	STATIC_CLASS(Settings);
 	friend class Platform;

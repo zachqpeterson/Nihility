@@ -266,6 +266,7 @@ class NH_API Input
 		bool doubleClicked;
 		bool held;
 		bool heldChanged;
+		//TODO: Use Time::AbsoluteTime() to check if being held
 	};
 
 public:
@@ -279,8 +280,8 @@ public:
 	static bool OnButtonDoubleClick(ButtonCode code);
 	static bool OnButtonHold(ButtonCode code);
 	static bool OnButtonRelease(ButtonCode code);
+	static void MousePos(U32& x, U32& y);
 	static void ConsumeInput();
-	//static const Vector2Int& MousePos();
 	static I16 MouseWheelDelta();
 	static I16 MouseHWheelDelta();
 
@@ -311,7 +312,7 @@ private:
 
 	//ALL
 	static ButtonState buttonStates[BUTTON_COUNT];
-	static bool inputConsumed;
+	static bool receiveInput;
 	static bool anyButtonDown;
 
 	STATIC_CLASS(Input);

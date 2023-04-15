@@ -18,7 +18,7 @@ I32 Input::deltaMousePosY;
 
 F32 Input::axisStates[AXIS_COUNT];
 Input::ButtonState Input::buttonStates[BUTTON_COUNT];
-bool Input::inputConsumed;
+bool Input::receiveInput;
 bool Input::anyButtonDown;
 
 #if defined PLATFORM_WINDOWS
@@ -53,7 +53,7 @@ bool Input::Initialize()
 
 	rid[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	rid[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-	rid[3].dwFlags = RIDEV_DEVNOTIFY | RIDEV_NOLEGACY;
+	rid[3].dwFlags = RIDEV_DEVNOTIFY | RIDEV_NOLEGACY | RIDEV_APPKEYS;
 	rid[3].hwndTarget = nullptr;
 
 	rid[4].usUsagePage = HID_USAGE_PAGE_GENERIC;
@@ -110,7 +110,13 @@ void Input::Update()
 	mouseHWheelDelta = 0;
 
 	anyButtonDown = false;
-	for (ButtonState& state : buttonStates) { state.changed = false; }
+	receiveInput = true;
+	for (ButtonState& state : buttonStates)
+	{
+		state.changed = false;
+		state.doubleClicked = false;
+		state.heldChanged = false;
+	}
 }
 
 void Input::ReceiveInput(HRAWINPUT handle)
@@ -225,7 +231,51 @@ void Input::ReceiveInput(HRAWINPUT handle)
 
 	} break;
 	case RIM_TYPEKEYBOARD: {
+		RAWKEYBOARD keyboard = input.data.keyboard;
 
+		switch (keyboard.Message)
+		{
+		case WM_KEYDOWN:
+		case WM_SYSKEYDOWN: {
+			ButtonState& state = buttonStates[keyboard.VKey];
+
+			//if (HIWORD(lParam) & KF_EXTENDED)
+			//{
+			//	U8 code = (U8)LOWORD(MapVirtualKeyW(MAKEWORD(LOBYTE(HIWORD(lParam)), 0xE0), MAPVK_VSC_TO_VK_EX));
+			//
+			//	Input::buttonStates[code].heldChanged = Input::buttonStates[code].pressed && !Input::buttonStates[code].held;
+			//	Input::buttonStates[code].held = Input::buttonStates[code].pressed;
+			//	Input::buttonStates[code].changed = !Input::buttonStates[code].pressed;
+			//	Input::buttonStates[code].pressed = true;
+			//}
+
+			state.heldChanged = state.pressed && !state.held;
+			state.held = state.pressed;
+			state.changed = !state.pressed;
+			state.pressed = true;
+			anyButtonDown |= state.changed;
+		} break;
+
+		case WM_KEYUP:
+		case WM_SYSKEYUP: {
+			ButtonState& state = buttonStates[keyboard.VKey];
+
+			//if (HIWORD(lParam) & KF_EXTENDED)
+			//{
+			//	U8 code = (U8)LOWORD(MapVirtualKeyW(MAKEWORD(LOBYTE(HIWORD(lParam)), 0xE0), MAPVK_VSC_TO_VK_EX));
+			//
+			//	Input::buttonStates[code].changed = true;
+			//	Input::buttonStates[code].pressed = false;
+			//	Input::buttonStates[code].heldChanged = Input::buttonStates[code].held;
+			//	Input::buttonStates[code].held = false;
+			//}
+
+			state.changed = true;
+			state.pressed = false;
+			state.heldChanged = state.held;
+			state.held = false;
+		} break;
+		}
 	} break;
 	case RIM_TYPEHID: {
 
@@ -245,9 +295,9 @@ void Input::InputSink(HRAWINPUT handle)
 		POINT p;
 		GetCursorPos(&p);
 
-		//TODO: Check if window is blocking
-		if (p.x >= Settings::WindowPositionX() && p.x <= Settings::WindowWidth() + Settings::WindowPositionX() && 
-			p.y >= Settings::WindowPositionY() && p.y <= Settings::WindowHeight() + Settings::WindowPositionY())
+		HWND handle = WindowFromPoint(p);
+
+		if (handle == Platform::GetWindowData().window)
 		{
 			SetFocus(Platform::GetWindowData().window);
 
@@ -267,5 +317,33 @@ void Input::RemoveDevice(void* handle)
 {
 
 }
+
+bool Input::OnAnyButtonDown() { return anyButtonDown; }
+
+bool Input::ButtonUp(ButtonCode code) { return !buttonStates[code].pressed && receiveInput; }
+
+bool Input::ButtonDown(ButtonCode code) { return buttonStates[code].pressed && receiveInput; }
+
+bool Input::ButtonHeld(ButtonCode code) { return buttonStates[code].held && receiveInput; }
+
+bool Input::OnButtonUp(ButtonCode code) { return !buttonStates[code].pressed && buttonStates[code].changed && receiveInput; }
+
+bool Input::OnButtonDown(ButtonCode code) { return buttonStates[code].pressed && buttonStates[code].changed && receiveInput; }
+
+bool Input::OnButtonChange(ButtonCode code) { return buttonStates[code].changed && receiveInput; }
+
+bool Input::OnButtonDoubleClick(ButtonCode code) { return buttonStates[code].doubleClicked && receiveInput; }
+
+bool Input::OnButtonHold(ButtonCode code) { return buttonStates[code].held && buttonStates[code].heldChanged && receiveInput; }
+
+bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[code].held && buttonStates[code].heldChanged && receiveInput; }
+
+void Input::MousePos(U32& x, U32& y) { x = mousePosX; y = mousePosY; }
+
+void Input::ConsumeInput() { receiveInput = false; }
+
+I16 Input::MouseWheelDelta() { return mouseWheelDelta; }
+
+I16 Input::MouseHWheelDelta() { return mouseHWheelDelta; }
 
 #endif

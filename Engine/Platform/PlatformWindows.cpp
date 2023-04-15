@@ -64,17 +64,9 @@ bool Platform::Initialize(const C8* applicationName)
 
 	style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_VISIBLE;
 
-	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, 0, 0, 0, 0, nullptr, nullptr, windowData.instance, nullptr);
-
-	if (!windowData.window)
-	{
-		MessageBoxA(nullptr, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-		return false;
-	}
-
 	U32 dpi = Settings::Dpi();
 
-	Settings::data.dpi = GetDpiForWindow(windowData.window);
+	Settings::data.dpi = GetDpiForSystem();
 
 	Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
 	Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
@@ -103,8 +95,15 @@ bool Platform::Initialize(const C8* applicationName)
 	}
 
 	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
-	SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
-		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, SWP_NOZORDER | SWP_NOACTIVATE);
+
+	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top, 
+		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, nullptr, nullptr, windowData.instance, nullptr);
+
+	if (!windowData.window)
+	{
+		MessageBoxA(nullptr, "Window creation failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+		return false;
+	}
 
 	DEVMODEA monitorInfo{};
 	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &monitorInfo);
