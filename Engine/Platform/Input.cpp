@@ -153,6 +153,7 @@ void Input::ReceiveInput(HRAWINPUT handle)
 			I32 relativeY = mouse.lLastY;
 
 			//TODO: Sensitivity from windows
+			//TODO: Pointer ballistics
 			deltaMousePosX = relativeX;
 			deltaMousePosY = relativeY;
 
@@ -226,8 +227,6 @@ void Input::ReceiveInput(HRAWINPUT handle)
 
 		if (mouse.usButtonFlags & RI_MOUSE_WHEEL) { mouseWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
 		if (mouse.usButtonFlags & RI_MOUSE_HWHEEL) { mouseHWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
-
-		//Logger::Debug("{}, {}", mousePosX, mousePosY);
 
 	} break;
 	case RIM_TYPEKEYBOARD: {

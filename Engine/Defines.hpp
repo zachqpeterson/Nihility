@@ -307,22 +307,6 @@ constexpr I64 NextPow2(const I64& value)
 	return val;
 }
 
-/*---------MOVE---------*/
-
-/// <summary>
-/// Converts a value to a right value reference
-/// </summary>
-/// <param name="t:">The value to convert</param>
-/// <returns>The converted value</returns>
-template<typename T> constexpr T&& Move(T&& t) noexcept { return static_cast<T&&>(t); }
-
-/// <summary>
-/// Converts a value to a right value reference
-/// </summary>
-/// <param name="t:">The value to convert</param>
-/// <returns>The converted value</returns>
-template<typename T> constexpr T&& Move(T& t) noexcept { return static_cast<T&&>(t); }
-
 /*---------TYPE TRAITS---------*/
 
 #pragma region TypeTraits
@@ -502,6 +486,27 @@ template <class Type> concept Number = IsInteger<Type> || IsFloatingPoint<Type>;
 
 template <class Type> inline constexpr bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
+
+/// <summary>
+/// Forwards arg as movable
+/// </summary>
+/// <param name="arg:">The value to forward</param>
+/// <returns>The forwarded value</returns>
+template<typename Type> constexpr RemovedReference<Type>&& Move(Type&& arg) noexcept { return static_cast<RemovedReference<Type>&&>(arg); }
+
+/// <summary>
+/// Forwards an lValue as an rValue
+/// </summary>
+/// <param name="arg:">The value to forward</param>
+/// <returns>The forwarded value</returns>
+template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noexcept { return static_cast<Type&&>(arg); }
+
+/// <summary>
+/// Forwards an lValue as an rValue
+/// </summary>
+/// <param name="arg:">The value to forward</param>
+/// <returns>The forwarded value</returns>
+template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!LReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
 
 template <class Type> struct Traits
 {

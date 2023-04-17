@@ -21,9 +21,9 @@ struct WorkQueue
 {
 	//TODO: circular queue
 	Job queue[256];
-	U64 volatile entriesCompleted;
-	U64 volatile nextEntry;
-	U64 volatile entryCount;
+	volatile U64 entriesCompleted;
+	volatile U64 nextEntry;
+	volatile U64 entryCount;
 	U64 maxEntries;
 	void* semaphore;
 };
