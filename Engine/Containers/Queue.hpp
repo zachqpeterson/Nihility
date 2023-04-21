@@ -33,10 +33,10 @@ public:
 private:
 
 	T* array;
-	volatile I64 last;
-	volatile I64 first;
-	volatile I64 size;
-	volatile U64 capacity;
+	I64 last;
+	I64 first;
+	I64 size;
+	U64 capacity;
 };
 
 template<typename T> inline Queue<T>::Queue() : array{ (T*)Memory::Allocate1kb() }, last{ 0 }, first{ 0 }, size{ 0 }, capacity{ 1024 / sizeof(T) } {}

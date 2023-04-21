@@ -6,6 +6,13 @@
 #include "Containers\Queue.hpp"
 #include "Containers\String.hpp"
 
+enum JobPriority
+{
+	JOB_PRIORITY_LOW,
+	JOB_PRIORITY_MEDIUM,
+	JOB_PRIORITY_HIGH,
+};
+
 //TODO: Variadic args
 using JobFunc = void(*)(void*);
 

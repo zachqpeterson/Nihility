@@ -19,10 +19,10 @@
 /// </summary>
 class NH_API Memory
 {
-	struct Region1kb { U64 unused[128]; };
-	struct Region16kb { Region1kb unused[16]; };
-	struct Region256kb { Region16kb unused[16]; };
-	struct Region4mb { Region256kb unused[16]; };
+	struct Region1kb { private: U64 unused[128]; };
+	struct Region16kb { private: Region1kb unused[16]; };
+	struct Region256kb { private: Region16kb unused[16]; };
+	struct Region4mb { private: Region256kb unused[16]; };
 
 public:
 	template<typename T>

@@ -118,6 +118,7 @@
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\Function.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
@@ -131,6 +132,7 @@
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
+    <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Core\File.cpp" />

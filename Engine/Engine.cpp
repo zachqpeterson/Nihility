@@ -13,8 +13,7 @@
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
 #include "Rendering\Renderer.hpp"
-
-#include <stdio.h>
+#include "Function.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -23,9 +22,15 @@ ShutdownFn Engine::GameShutdown;
 bool Engine::running;
 bool Engine::suspended;
 
-void work(void* data)
+struct data
 {
-	Logger::Info((C8*)data);
+	float f;
+	int i;
+};
+
+void work(data d)
+{
+	Logger::Debug("Called: {}, {}", d.f, d.i);
 }
 
 void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
@@ -41,9 +46,13 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
-	F32 f = 123.123f;
+	func::function<void(data)> func = work;
+
 	//TODO: Only works with decimal count of 5 or 0
+	//F32 f = 123.123f;
 	//String s512("{.3}", f);
+
+	func({3.14f, 27});
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
