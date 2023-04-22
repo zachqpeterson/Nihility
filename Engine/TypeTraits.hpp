@@ -213,8 +213,8 @@ template <class Type> concept Number = IsInteger<Type> || IsFloatingPoint<Type>;
 template <class Type> inline constexpr bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 
-template <class Type> inline constexpr bool IsFunction = !IsConst<const Type> && !IsReference<Type>;
-template <class Type> concept Function = !IsConst<const Type> && !IsReference<Type>;
+template <class Type> inline constexpr bool IsFunctionPtr = !IsConst<const Type> && !IsReference<Type>;
+template <class Type> concept FunctionPtr = !IsConst<const Type> && !IsReference<Type>;
 
 template <class Type> inline constexpr bool IsMemberFunctionPtr = TypeTraits::IsMemberFunctionPtr<RemovedQuals<Type>>::type::value;
 

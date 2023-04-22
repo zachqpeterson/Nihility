@@ -32,7 +32,6 @@ bool Platform::Initialize(const C8* applicationName)
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
 
-
 	//Load cursor images
 	//arrow = LoadCursorW(nullptr, IDC_ARROW);
 	//hand = LoadCursorW(nullptr, IDC_HAND);

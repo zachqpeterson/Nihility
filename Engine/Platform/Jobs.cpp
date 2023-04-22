@@ -4,8 +4,12 @@
 #include "Resources\Settings.hpp"
 #include "Core\Logger.hpp"
 
-WorkQueue Jobs::jobs;
 bool Jobs::running;
+
+SafeQueue<Function<void()>, 256> Jobs::jobPool;
+U64 Jobs::currentLabel = 0;
+std::atomic<U64> Jobs::finishedLabel;
+void* Jobs::semaphore;
 
 #ifdef PLATFORM_WINDOWS
 
@@ -27,15 +31,23 @@ bool Jobs::Initialize()
 	GetSystemInfo(&sysInfo);
 	Settings::data.threadCount = sysInfo.dwNumberOfProcessors;
 
-	jobs.semaphore = CreateSemaphoreExW(nullptr, 0, Settings::ThreadCount(), nullptr, 0, SEMAPHORE_ALL_ACCESS);
-	jobs.maxEntries = 256;
+	semaphore = CreateSemaphoreExW(nullptr, 0, Settings::ThreadCount(), nullptr, 0, SEMAPHORE_ALL_ACCESS);
 	running = true;
+
+	finishedLabel.store(0);
 
 	for (U32 i = 0; i < Settings::ThreadCount() - 1; ++i)
 	{
 		U32 id;
-		CloseHandle((HANDLE)_beginthreadex(nullptr, 0, RunThread, nullptr, 0, &id));
-		Logger::Trace("Starting thread {}", id);
+		HANDLE handle = (HANDLE)_beginthreadex(nullptr, 0, RunThread, nullptr, 0, &id);
+		if (handle)
+		{
+			UL32 affinityMask = 1ull << id;
+			UL32 affinity_result = SetThreadAffinityMask(handle, affinityMask);
+			//BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_HIGHEST);
+
+			CloseHandle(handle);
+		}
 	}
 
 	return true;
@@ -44,12 +56,8 @@ bool Jobs::Initialize()
 void Jobs::Shutdown()
 {
 	running = false;
-	CloseHandle(jobs.semaphore);
-}
-
-void Jobs::Update()
-{
-
+	ReleaseSemaphore(semaphore, Settings::ThreadCount(), nullptr);
+	CloseHandle(semaphore);
 }
 
 void Jobs::SleepForSeconds(U64 s)
@@ -73,34 +81,77 @@ void Jobs::SleepForMicro(U64 us)
 	NtDelayExecution(false, &interval);
 }
 
-void Jobs::StartJob(JobFunc func, void* data)
+bool Jobs::Busy()
 {
-	jobs.queue[SafeIncrement(&jobs.entryCount) - 1] = {func, data};
-	ReleaseSemaphore(jobs.semaphore, 1, nullptr);
+	return finishedLabel.load() < currentLabel;
+}
+
+void Jobs::Wait()
+{
+	while (Busy()) { Poll(); }
+}
+
+void Jobs::Poll()
+{
+	ReleaseSemaphore(semaphore, 1, nullptr);
+	SwitchToThread(); //std::this_thread::yield(), _Thrd_yield()
+}
+
+void Jobs::Execute(const Function<void()>& job)
+{
+	currentLabel += 1;
+
+	while (!jobPool.Push(job)) { Poll(); }
+
+	ReleaseSemaphore(semaphore, 1, nullptr);
+}
+
+void Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job)
+{
+	if (jobCount == 0 || groupSize == 0) { return; }
+
+	const U32 groupCount = (jobCount + groupSize - 1) / groupSize;
+
+	currentLabel += groupCount;
+
+	for (U32 groupIndex = 0; groupIndex < groupCount; ++groupIndex)
+	{
+		const auto& jobGroup = [jobCount, groupSize, job, groupIndex]() {
+
+			const U32 groupJobOffset = groupIndex * groupSize;
+			U32 end = groupJobOffset + groupSize;
+			const U32 groupJobEnd = end < jobCount ? end : jobCount;
+
+			JobDispatchArgs args;
+			args.groupIndex = groupIndex;
+
+			for (U32 i = groupJobOffset; i < groupJobEnd; ++i)
+			{
+				args.jobIndex = i;
+				job(args);
+			}
+		};
+
+		while (!jobPool.Push(jobGroup)) { Poll(); }
+
+		ReleaseSemaphore(semaphore, 1, nullptr);
+	}
 }
 
 U32 __stdcall Jobs::RunThread(void*)
 {
-	while (running) //TODO: Run condition
+	Function<void()> job;
+
+	while (running)
 	{
-		//TODO: Don't use InterlockedCompareExchange
-
-		U64 entry = jobs.nextEntry;
-		if (entry < jobs.entryCount)
+		if (jobPool.Pop(job))
 		{
-			U64 index = InterlockedCompareExchange(&jobs.nextEntry, entry + 1, entry);
-
-			if (index == entry)
-			{
-				Job job = jobs.queue[index];
-				job.func(job.data);
-				SafeIncrement(&jobs.entriesCompleted);
-			}
+			job();
+			finishedLabel.fetch_add(1);
 		}
 		else
 		{
-			Logger::Debug("I'm going to sleep");
-			WaitForSingleObjectEx(jobs.semaphore, INFINITE, false);
+			WaitForSingleObjectEx(semaphore, INFINITE, false);
 		}
 	}
 

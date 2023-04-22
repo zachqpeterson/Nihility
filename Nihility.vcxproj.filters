@@ -32,6 +32,12 @@
     <Filter Include="Source Files\Platform\Input">
       <UniqueIdentifier>{bf9b158d-41f1-4872-be72-20c117c9e65d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Core\Multithreading">
+      <UniqueIdentifier>{e5d99e3f-ef69-4055-8c1b-2d1432503448}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Platform\Multithreading">
+      <UniqueIdentifier>{31a517af-19ea-4978-b274-99eab1d08649}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -61,9 +67,6 @@
     <ClInclude Include="Engine\Containers\String.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Jobs.hpp">
-      <Filter>Source Files\Platform</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Queue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -72,9 +75,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Containers\Tuple.hpp">
       <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Platform\ThreadSafety.hpp">
-      <Filter>Source Files\Platform</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Resources\Resources.hpp">
       <Filter>Source Files\Resources</Filter>
@@ -112,8 +112,17 @@
     <ClInclude Include="Engine\TypeTraits.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Function.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="Engine\Platform\ThreadSafety.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Jobs.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Function.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\SafeQueue.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -123,14 +132,8 @@
     <ClCompile Include="Engine\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Platform\Jobs.cpp">
-      <Filter>Source Files\Platform</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Memory\Memory.cpp">
       <Filter>Source Files\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\ThreadSafety.cpp">
-      <Filter>Source Files\Platform</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Resources\Settings.cpp">
       <Filter>Source Files\Resources</Filter>
@@ -158,6 +161,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Math\Math.cpp">
       <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\ThreadSafety.cpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Jobs.cpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

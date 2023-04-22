@@ -5,6 +5,8 @@
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
 #include "Containers\String.hpp"
+#include "Platform\Function.hpp"
+#include "SafeQueue.hpp"
 
 enum JobPriority
 {
@@ -13,45 +15,42 @@ enum JobPriority
 	JOB_PRIORITY_HIGH,
 };
 
-//TODO: Variadic args
-using JobFunc = void(*)(void*);
-
-//TODO: This syntax would be ideal: StartJob<func>(params, params, ...);
-
-struct Job
+struct JobDispatchArgs
 {
-	JobFunc func;
-	void* data;
+	U32 jobIndex;
+	U32 groupIndex;
 };
 
-struct WorkQueue
-{
-	//TODO: circular queue
-	Job queue[256];
-	volatile U64 entriesCompleted;
-	volatile U64 nextEntry;
-	volatile U64 entryCount;
-	U64 maxEntries;
-	void* semaphore;
-};
+#include <atomic>    // to use std::atomic<uint64_t>
 
 /*
 * TODO: Limit jobs active at once, maybe add a queue system for low priority jobs
 * TODO: Wait for semaphore/fence
+* TODO: This syntax would be ideal: StartJob<func>(params, params, ...);
 */
 class NH_API Jobs
 {
 public:
-	static void StartJob(JobFunc func, void* data);
+	static void Execute(const Function<void()>& job);
+	static void Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job);
+
+	static bool Busy();
+	static void Wait();
+
 	static void SleepForSeconds(U64 s);
 	static void SleepForMilli(U64 ms);
 	static void SleepForMicro(U64 us);
-	static void WaitFor(); //TODO: Custom semaphore type
 
 private:
 	static bool Initialize();
 	static void Shutdown();
-	static void Update();
+
+	static void Poll();
+
+	static SafeQueue<Function<void()>, 256> jobPool;
+	static U64 currentLabel;
+	static std::atomic<U64> finishedLabel;
+	static void* semaphore;
 
 #if defined PLATFORM_WINDOWS
 	static U32 __stdcall RunThread(void*);
@@ -59,7 +58,6 @@ private:
 	static UL32 sleepRes;
 #endif
 
-	static WorkQueue jobs;
 	static bool running;
 
 	STATIC_CLASS(Jobs);

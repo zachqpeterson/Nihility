@@ -13,7 +13,7 @@
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
 #include "Rendering\Renderer.hpp"
-#include "Function.hpp"
+#include "Platform\Function.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -21,17 +21,6 @@ ShutdownFn Engine::GameShutdown;
 
 bool Engine::running;
 bool Engine::suspended;
-
-struct data
-{
-	float f;
-	int i;
-};
-
-void work(data d)
-{
-	Logger::Debug("Called: {}, {}", d.f, d.i);
-}
 
 void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
@@ -46,18 +35,14 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
-	func::function<void(data)> func = work;
-
 	//TODO: Only works with decimal count of 5 or 0
 	//F32 f = 123.123f;
 	//String s512("{.3}", f);
 
-	func({3.14f, 27});
-
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
-	ASSERT(Platform::Initialize(applicationName));	//Thread
-	ASSERT(Input::Initialize());					//Probably run on platform thread
+	ASSERT(Platform::Initialize(applicationName));
+	ASSERT(Input::Initialize());
 	ASSERT(Resources::Initialize());
 	//Audio
 	ASSERT(Renderer::Initialize(applicationName));
@@ -97,7 +82,7 @@ void Engine::UpdateLoop()
 		//Logger::Info("Framerate: {}", Time::FrameRate());
 
 		Input::Update();
-		if (!Platform::Update() || Input::OnButtonDown(ESCAPE)) { break; } //TODO: Run on separate thread
+		if (!Platform::Update() || Input::OnButtonDown(ESCAPE)) { break; }
 
 		//Physics::Update();
 		GameUpdate();
