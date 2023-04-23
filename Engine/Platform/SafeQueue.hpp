@@ -2,45 +2,34 @@
 
 #include "Defines.hpp"
 
-#include <condition_variable>
-
-template <typename T, U64 capacity>
-class SafeQueue
+template <typename Type>
+struct SafeQueue
 {
 public:
-	bool Push(const T& item)
+	bool Push(const Type& value)
 	{
-		bool result = false;
-		lock.lock();
-		U64 next = head + 1;
-		if (next == capacity) { next -= capacity; }
-		if (next != tail)
-		{
-			data[head] = item;
-			head = next;
-			result = true;
-		}
-		lock.unlock();
-		return result;
+		if (write + 1 == read) { return false; }
+
+		array[write] = value;
+		_WriteBarrier();
+		++write;
+
+		return true;
 	}
 
-	bool Pop(T& item)
+	bool Pop(Type& value)
 	{
-		bool result = false;
-		lock.lock();
-		if (tail != head)
-		{
-			item = data[tail];
-			if (++tail == capacity) { tail -= capacity; }
-			result = true;
-		}
-		lock.unlock();
-		return result;
+		if (read == write) { return false; }
+
+		value = array[read];
+		_ReadWriteBarrier();
+		++read;
+
+		return true;
 	}
 
 private:
-	T data[capacity];
-	U64 head = 0;
-	U64 tail = 0;
-	std::mutex lock;
+	Type array[256];
+	U8 read{ 0 };
+	U8 write{ 0 };
 };

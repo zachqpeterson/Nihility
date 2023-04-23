@@ -33,6 +33,18 @@ void Work(Data d)
 	Logger::Debug("Works: {}, {}", d.f, d.i);
 }
 
+void Work2(Data d)
+{
+	Logger::Debug("This one also works: {}, {}", d.f, d.i);
+}
+
+void Job(int i, int i1, int i2, int i3)
+{
+	Logger::Debug("I'm doing work: {}, {}, {}, {}", i, i1, i2, i3);
+}
+
+typedef void(*Func)(Data);
+
 void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
@@ -46,36 +58,44 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
-	Function<void(Data)> func(Work);
+	Func work = Work;
+	Func work2 = Work2;
 
-	Function<void(Data)> testFunc0(func);
-	Function<void(Data)> testFunc1(Move(func));
-
-	testFunc0({ 3.14, 27 });
-	testFunc1({ 3.14, 27 });
-
-	Timer t;
-	t.Start();
-	for (int i = 0; i < 1000000; ++i)
-	{
-		Function<void(Data)> func(Work);
-		Function<void(Data)> newFunc = func;
-		func.~Function();
-		newFunc.~Function();
-	}
-
-	Logger::Debug(t.CurrentTime());
-
-	t.Reset();
-	t.Start();
-	for (int i = 0; i < 1000000; ++i)
-	{
-		Function<void(Data)> func(Work);
-		Function<void(Data)> newFunc = Move(func);
-		newFunc.~Function();
-	}
-
-	Logger::Debug(t.CurrentTime());
+	Data d0{ 3.14f, 27 };
+	Data d1{ 1.23f, 52 };
+	Function<void()> func([&, d0] { work(d0); });
+	func();
+	Function<void()> func2([&, d1] { work2(d1); });
+	func2(); 
+	
+	Function<void()> testFunc0(func);
+	Function<void()> testFunc1(Move(func2));
+	
+	testFunc0();
+	testFunc1();
+	
+	//Timer t;
+	//t.Start();
+	//for (int i = 0; i < 1000000; ++i)
+	//{
+	//	Function<void(Data)> func(Work);
+	//	Function<void(Data)> newFunc = func;
+	//	func.~Function();
+	//	newFunc.~Function();
+	//}
+	//
+	//Logger::Debug(t.CurrentTime());
+	//
+	//t.Reset();
+	//t.Start();
+	//for (int i = 0; i < 1000000; ++i)
+	//{
+	//	Function<void(Data)> func(Work);
+	//	Function<void(Data)> newFunc = Move(func);
+	//	newFunc.~Function();
+	//}
+	//
+	//Logger::Debug(t.CurrentTime());
 
 	//TODO: Only works with decimal count of 5 or 0
 	//F32 f = 123.123f;
@@ -92,6 +112,11 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	//Physics
 	//Particle
 	ASSERT(GameInit());
+
+	for (int i = 0; i < 100; ++i)
+	{
+		Jobs::Execute(Job, i, i, i, i);
+	}
 
 	UpdateLoop();
 

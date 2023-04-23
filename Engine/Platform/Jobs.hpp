@@ -32,6 +32,8 @@ class NH_API Jobs
 {
 public:
 	static void Execute(const Function<void()>& job);
+	template <typename... Args, typename Func>
+	static void Execute(Func func, const Args&... args);
 	static void Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job);
 
 	static bool Busy();
@@ -47,7 +49,7 @@ private:
 
 	static void Poll();
 
-	static SafeQueue<Function<void()>, 256> jobPool;
+	static SafeQueue<Function<void()>> jobPool;
 	static U64 currentLabel;
 	static std::atomic<U64> finishedLabel;
 	static void* semaphore;
@@ -63,3 +65,10 @@ private:
 	STATIC_CLASS(Jobs);
 	friend class Engine;
 };
+
+template <typename... Args, typename Func>
+inline void Jobs::Execute(Func func, const Args&... args)
+{
+	Function<void()> func1 = [&, args...] { func(args...); };
+	Execute(func1);
+}

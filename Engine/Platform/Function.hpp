@@ -8,25 +8,21 @@
 #define FUNC_MOVE(value) static_cast<RemovedReference<decltype(value)>&&>(value)
 #define FUNC_FORWARD(type, value) static_cast<type &&>(value)
 
-template<typename> class Function;
+template<typename> struct Function;
 
 namespace detail
 {
-	template<typename Type> struct ForceFunctionHeapAlloc : FalseConstant { };
-
-	struct ManagerStorage;
-	struct FunctionManager;
 	struct FunctorPadding { private: U64 unused[2]; };
-	struct Empty { };
+	struct Empty {};
 
-	template<typename Type, typename Allocator>
+	template<typename Type>
 	struct IsInplaceAllocated
 	{
-		static constexpr bool value = sizeof(Type) <= sizeof(FunctorPadding) && Alignment<FunctorPadding> % Alignment<Type> == 0
-			&& NothrowMoveConstructible<Type> && !ForceFunctionHeapAlloc<Type>::value;
+		static constexpr bool value = sizeof(Type) <= sizeof(FunctorPadding) && 
+			Alignment<FunctorPadding> % Alignment<Type> == 0 && NothrowMoveConstructible<Type>;
 	};
 
-	template<typename Type, typename Allocator> inline constexpr bool InplaceAllocated = IsInplaceAllocated<Type, Allocator>::value;
+	template<typename Type> inline constexpr bool InplaceAllocated = IsInplaceAllocated<Type>::value;
 
 	template<typename Type> Type ToFunctor(Type&& func) { return FUNC_FORWARD(Type, func); }
 
@@ -36,7 +32,7 @@ namespace detail
 	template<typename Result, typename Class, typename... Arguments>
 	auto ToFunctor(Result(Class::* func)(Arguments...) const) -> decltype(std::mem_fn(func)) { return std::mem_fn(func); }
 
-	template<typename Type> struct FunctorType { typedef decltype(ToFunctor(GetReference<Type>())) type; };
+	template<typename Type> struct FunctorType { using type = decltype(ToFunctor(DeclValue<Type>())); };
 
 	template<typename Type> bool IsNull(const Type&) { return false; }
 
@@ -57,7 +53,7 @@ namespace detail
 	template<typename Type, typename Result, typename... Arguments>
 	struct IsValidFunctionArg<Type, Result(Arguments...)> { static constexpr bool value = true; };
 
-	typedef const FunctionManager* Manager;
+	struct FunctionManager;
 
 	struct ManagerStorage
 	{
@@ -65,22 +61,22 @@ namespace detail
 		template<typename Allocator> const Allocator& GetAllocator() const { return reinterpret_cast<const Allocator&>(manager); }
 
 		FunctorPadding functor;
-		Manager manager;
+		const FunctionManager* manager;
 	};
 
-	template<typename T, typename Allocator, typename Enable = void>
+	template<typename Type, typename Allocator, typename Enable = void>
 	struct FunctionManagerSpecialization
 	{
 		template<typename Result, typename... Arguments> 
 		static Result Call(const FunctorPadding& storage, Arguments... arguments)
 		{
-			return const_cast<T&>(reinterpret_cast<const T&>(storage)) (FUNC_FORWARD(Arguments, arguments)...);
+			return const_cast<Type&>(reinterpret_cast<const Type&>(storage)) (FUNC_FORWARD(Arguments, arguments)...);
 		}
 
-		static void Store(ManagerStorage& storage, T toStore) { new (&FunctorReference(storage)) T(FUNC_FORWARD(T, toStore)); }
-		static void Move(ManagerStorage& lhs, ManagerStorage&& rhs) { new (&FunctorReference(lhs)) T(FUNC_MOVE(FunctorReference(rhs))); }
-		static void Destroy(Allocator&, ManagerStorage& storage) { FunctorReference(storage).~T(); }
-		static T& FunctorReference(const ManagerStorage& storage) { return const_cast<T&>(reinterpret_cast<const T&>(storage.functor)); }
+		static void Store(ManagerStorage& storage, Type toStore) { new (&FunctorReference(storage)) Type(FUNC_FORWARD(Type, toStore)); }
+		static void Move(ManagerStorage& lhs, ManagerStorage&& rhs) { new (&FunctorReference(lhs)) Type(FUNC_MOVE(FunctorReference(rhs))); }
+		static void Destroy(Allocator&, ManagerStorage& storage) { FunctorReference(storage).~Type(); }
+		static Type& FunctorReference(const ManagerStorage& storage) { return const_cast<Type&>(reinterpret_cast<const Type&>(storage.functor)); }
 	};
 
 	template<typename T, typename Allocator> static const FunctionManager& DefaultManager();
@@ -159,36 +155,20 @@ namespace detail
 			else { return nullptr; }
 		}
 	};
+
 	template<typename T, typename Allocator>
 	inline static const FunctionManager& DefaultManager()
 	{
 		static const FunctionManager defaultManager = FunctionManager::CreateDefaultManager<T, Allocator>();
 		return defaultManager;
 	}
-
-	template<typename Result, typename...>
-	struct typedeffer
-	{
-		typedef Result result;
-	};
-	template<typename Result, typename Argument>
-	struct typedeffer<Result, Argument>
-	{
-		typedef Result result;
-		typedef Argument arg;
-	};
-	template<typename Result, typename FirstArg, typename SecondArg>
-	struct typedeffer<Result, FirstArg, SecondArg>
-	{
-		typedef Result result;
-		typedef FirstArg firstArg;
-		typedef SecondArg secondArg;
-	};
 }
 
 template<typename Result, typename... Arguments>
-class Function<Result(Arguments...)> : public detail::typedeffer<Result, Arguments...>
+struct Function<Result(Arguments...)>
 {
+	typedef Result(*Func)(Arguments...);
+
 public:
 	Function() { InitializeEmpty(); }
 	Function(NullPointer) { InitializeEmpty(); }
@@ -224,25 +204,27 @@ public:
 
 	Result operator()(Arguments... arguments) const { return Call(managerStorage.functor, FUNC_FORWARD(Arguments, arguments)...); }
 
+	bool operator== (const Function& other) const { return Call == other.Call; }
+	bool operator!= (const Function& other) const { return Call != other.Call; }
 	operator bool() const { return Call != nullptr; }
 
 private:
 	detail::ManagerStorage managerStorage;
 	Result(*Call)(const detail::FunctorPadding&, Arguments...);
 
-	template<typename T, typename Allocator>
-	void Initialize(T functor, Allocator&& allocator)
+	template<typename Type, typename Allocator>
+	void Initialize(Type functor, Allocator&& allocator)
 	{
-		Call = &detail::FunctionManagerSpecialization<T, Allocator>::template Call<Result, Arguments...>;
-		detail::CreateManager<T, Allocator>(managerStorage, FUNC_FORWARD(Allocator, allocator));
-		detail::FunctionManagerSpecialization<T, Allocator>::Store(managerStorage, FUNC_FORWARD(T, functor));
+		Call = &detail::FunctionManagerSpecialization<Type, Allocator>::template Call<Result, Arguments...>;
+		detail::CreateManager<Type, Allocator>(managerStorage, FUNC_FORWARD(Allocator, allocator));
+		detail::FunctionManagerSpecialization<Type, Allocator>::Store(managerStorage, FUNC_FORWARD(Type, functor));
 	}
 
 	typedef Result(*Empty_Function_Type)(Arguments...);
 	void InitializeEmpty()
 	{
 		typedef std::allocator<Empty_Function_Type> Allocator;
-		static_assert(detail::InplaceAllocated<Empty_Function_Type, Allocator>, "The empty function should benefit from small functor optimization");
+		static_assert(detail::InplaceAllocated<Empty_Function_Type>, "The empty function should benefit from small functor optimization");
 
 		detail::CreateManager<Empty_Function_Type, Allocator>(managerStorage, Allocator());
 		detail::FunctionManagerSpecialization<Empty_Function_Type, Allocator>::Store(managerStorage, nullptr);

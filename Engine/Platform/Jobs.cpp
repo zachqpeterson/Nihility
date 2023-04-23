@@ -6,7 +6,7 @@
 
 bool Jobs::running;
 
-SafeQueue<Function<void()>, 256> Jobs::jobPool;
+SafeQueue<Function<void()>> Jobs::jobPool;
 U64 Jobs::currentLabel = 0;
 std::atomic<U64> Jobs::finishedLabel;
 void* Jobs::semaphore;
@@ -43,7 +43,7 @@ bool Jobs::Initialize()
 		if (handle)
 		{
 			UL32 affinityMask = 1ull << id;
-			UL32 affinity_result = SetThreadAffinityMask(handle, affinityMask);
+			U64 affinity_result = SetThreadAffinityMask(handle, affinityMask);
 			//BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_HIGHEST);
 
 			CloseHandle(handle);

@@ -239,7 +239,11 @@ template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noex
 /// <returns>The forwarded value</returns>
 template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLvalReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
 
-template<typename T> typename AddRvalReference<T> GetReference() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
+template<typename T> typename AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
+
+//template <class Func, class Type> inline constexpr bool Returns = ReturnType<Func> == Type;
+//template <class Func> concept VoidFunction = Returns<Func, void>;
+//template <class Func, class Type> concept TypeFunction = Returns<Func, Type>;
 
 template <class Type> struct Traits
 {
