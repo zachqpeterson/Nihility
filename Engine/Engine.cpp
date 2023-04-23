@@ -22,6 +22,17 @@ ShutdownFn Engine::GameShutdown;
 bool Engine::running;
 bool Engine::suspended;
 
+struct Data
+{
+	float f;
+	int i;
+};
+
+void Work(Data d)
+{
+	Logger::Debug("Works: {}, {}", d.f, d.i);
+}
+
 void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
@@ -34,6 +45,37 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
+
+	Function<void(Data)> func(Work);
+
+	Function<void(Data)> testFunc0(func);
+	Function<void(Data)> testFunc1(Move(func));
+
+	testFunc0({ 3.14, 27 });
+	testFunc1({ 3.14, 27 });
+
+	Timer t;
+	t.Start();
+	for (int i = 0; i < 1000000; ++i)
+	{
+		Function<void(Data)> func(Work);
+		Function<void(Data)> newFunc = func;
+		func.~Function();
+		newFunc.~Function();
+	}
+
+	Logger::Debug(t.CurrentTime());
+
+	t.Reset();
+	t.Start();
+	for (int i = 0; i < 1000000; ++i)
+	{
+		Function<void(Data)> func(Work);
+		Function<void(Data)> newFunc = Move(func);
+		newFunc.~Function();
+	}
+
+	Logger::Debug(t.CurrentTime());
 
 	//TODO: Only works with decimal count of 5 or 0
 	//F32 f = 123.123f;
