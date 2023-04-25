@@ -167,8 +167,6 @@ namespace detail
 template<typename Result, typename... Arguments>
 struct Function<Result(Arguments...)>
 {
-	typedef Result(*Func)(Arguments...);
-
 public:
 	Function() { InitializeEmpty(); }
 	Function(NullPointer) { InitializeEmpty(); }

@@ -38,9 +38,9 @@ void Work2(Data d)
 	Logger::Debug("This one also works: {}, {}", d.f, d.i);
 }
 
-void Job(int i, int i1, int i2, int i3)
+void Job(int i)
 {
-	Logger::Debug("I'm doing work: {}, {}, {}, {}", i, i1, i2, i3);
+	double d = sin(i);
 }
 
 typedef void(*Func)(Data);
@@ -66,14 +66,19 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	Function<void()> func([&, d0] { work(d0); });
 	func();
 	Function<void()> func2([&, d1] { work2(d1); });
-	func2(); 
-	
+	func2();
+
 	Function<void()> testFunc0(func);
 	Function<void()> testFunc1(Move(func2));
-	
+
 	testFunc0();
 	testFunc1();
-	
+
+	Jobs::Execute([&] { Work(d0); });
+
+	auto x = [](JobDispatchArgs args) { Job(args.jobIndex); };
+	x({});
+
 	//Timer t;
 	//t.Start();
 	//for (int i = 0; i < 1000000; ++i)
@@ -113,10 +118,22 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	//Particle
 	ASSERT(GameInit());
 
-	for (int i = 0; i < 100; ++i)
+	U32 dataSize = 10000000;
+
+	Timer t;
+	t.Start();
+	for (int i = 0; i < dataSize; ++i)
 	{
-		Jobs::Execute(Job, i, i, i, i);
+		Job(i);
 	}
+	Logger::Debug("Regular: {}", t.CurrentTime());
+	t.Reset();
+
+	const U32 groupSize = 1;
+	t.Start();
+	Jobs::Dispatch(dataSize, groupSize, [](JobDispatchArgs args) { Job(args.jobIndex); });
+	Logger::Debug("Dispatch: {}", t.CurrentTime());
+	t.Reset();
 
 	UpdateLoop();
 

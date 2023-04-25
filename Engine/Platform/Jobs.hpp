@@ -32,8 +32,6 @@ class NH_API Jobs
 {
 public:
 	static void Execute(const Function<void()>& job);
-	template <typename... Args, typename Func>
-	static void Execute(Func func, const Args&... args);
 	static void Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job);
 
 	static bool Busy();
@@ -65,10 +63,3 @@ private:
 	STATIC_CLASS(Jobs);
 	friend class Engine;
 };
-
-template <typename... Args, typename Func>
-inline void Jobs::Execute(Func func, const Args&... args)
-{
-	Function<void()> func1 = [&, args...] { func(args...); };
-	Execute(func1);
-}
