@@ -24,23 +24,12 @@ bool Engine::suspended;
 
 struct Data
 {
-	float f;
-	int i;
+	void Compute(int i) const { float f = sinf((float)i); }
 };
 
-void Work(Data d)
+void Work(int i)
 {
-	Logger::Debug("Works: {}, {}", d.f, d.i);
-}
-
-void Work2(Data d)
-{
-	Logger::Debug("This one also works: {}, {}", d.f, d.i);
-}
-
-void Job(int i)
-{
-	double d = sin(i);
+	Logger::Debug(i);
 }
 
 typedef void(*Func)(Data);
@@ -57,27 +46,6 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
-
-	Func work = Work;
-	Func work2 = Work2;
-
-	Data d0{ 3.14f, 27 };
-	Data d1{ 1.23f, 52 };
-	Function<void()> func([&, d0] { work(d0); });
-	func();
-	Function<void()> func2([&, d1] { work2(d1); });
-	func2();
-
-	Function<void()> testFunc0(func);
-	Function<void()> testFunc1(Move(func2));
-
-	testFunc0();
-	testFunc1();
-
-	Jobs::Execute([&] { Work(d0); });
-
-	auto x = [](JobDispatchArgs args) { Job(args.jobIndex); };
-	x({});
 
 	//Timer t;
 	//t.Start();
@@ -118,22 +86,27 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	//Particle
 	ASSERT(GameInit());
 
-	U32 dataSize = 10000000;
+	const U32 dataSize = 200;
+	Data* data = new Data[dataSize]{};
 
 	Timer t;
 	t.Start();
 	for (int i = 0; i < dataSize; ++i)
 	{
-		Job(i);
+		data[i].Compute(i);
 	}
 	Logger::Debug("Regular: {}", t.CurrentTime());
 	t.Reset();
 
-	const U32 groupSize = 1;
-	t.Start();
-	Jobs::Dispatch(dataSize, groupSize, [](JobDispatchArgs args) { Job(args.jobIndex); });
-	Logger::Debug("Dispatch: {}", t.CurrentTime());
-	t.Reset();
+	Jobs::Execute([] { Work(10); });
+
+	//const U32 groupSize = 1;
+	//t.Start();
+	//Jobs::Dispatch(dataSize, groupSize, [data](JobDispatchArgs args) { data[args.jobIndex].Compute(args.jobIndex); });
+	//
+	//Jobs::Wait();
+	//Logger::Debug("Dispatch: {}", t.CurrentTime());
+	//t.Reset();
 
 	UpdateLoop();
 

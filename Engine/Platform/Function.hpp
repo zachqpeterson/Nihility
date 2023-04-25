@@ -79,6 +79,49 @@ namespace detail
 		static Type& FunctorReference(const ManagerStorage& storage) { return const_cast<Type&>(reinterpret_cast<const Type&>(storage.functor)); }
 	};
 
+	template<typename Type, typename Allocator>
+	struct FunctionManagerSpecialization<Type, Allocator, typename std::enable_if<!InplaceAllocated<Type>>::type>
+	{
+		template<typename Result, typename... Arguments>
+		static Result Call(const FunctorPadding& storage, Arguments... arguments)
+		{
+			return (*reinterpret_cast<const typename std::allocator_traits<Allocator>::pointer&>(storage))(FUNC_FORWARD(Arguments, arguments)...);
+		}
+
+		static void Store(ManagerStorage& self, Type toStore)
+		{
+			Allocator& allocator = self.GetAllocator<Allocator>();
+			static_assert(sizeof(typename std::allocator_traits<Allocator>::pointer) <= sizeof(self.functor), "The allocator's pointer type is too big");
+			typename std::allocator_traits<Allocator>::pointer* ptr = new (&FunctorPtrReference(self)) typename std::allocator_traits<Allocator>::pointer(std::allocator_traits<Allocator>::allocate(allocator, 1));
+			std::allocator_traits<Allocator>::construct(allocator, *ptr, FUNC_FORWARD(Type, toStore));
+		}
+		static void Move(ManagerStorage& lhs, ManagerStorage&& rhs)
+		{
+			static_assert(NothrowMoveConstructible<typename std::allocator_traits<Allocator>::pointer>, "we can't offer a noexcept swap if the pointer type is not nothrow move constructible");
+			new (&FunctorPtrReference(lhs)) typename std::allocator_traits<Allocator>::pointer(FUNC_MOVE(FunctorPtrReference(rhs)));
+			FunctorPtrReference(rhs) = nullptr;
+		}
+		static void Destroy(Allocator& allocator, ManagerStorage& storage)
+		{
+			typename std::allocator_traits<Allocator>::pointer& pointer = FunctorPtrReference(storage);
+			if (!pointer) { return; }
+			std::allocator_traits<Allocator>::destroy(allocator, pointer);
+			std::allocator_traits<Allocator>::deallocate(allocator, pointer, 1);
+		}
+		static Type& FunctorReference(const ManagerStorage& storage)
+		{
+			return *FunctorPtrReference(storage);
+		}
+		static typename std::allocator_traits<Allocator>::pointer& FunctorPtrReference(ManagerStorage& storage)
+		{
+			return reinterpret_cast<typename std::allocator_traits<Allocator>::pointer&>(storage.functor);
+		}
+		static const typename std::allocator_traits<Allocator>::pointer& FunctorPtrReference(const ManagerStorage& storage)
+		{
+			return reinterpret_cast<const typename std::allocator_traits<Allocator>::pointer&>(storage.functor);
+		}
+	};
+
 	template<typename T, typename Allocator> static const FunctionManager& DefaultManager();
 
 	template<typename T, typename Allocator>
@@ -180,6 +223,68 @@ public:
 			typedef typename detail::FunctorType<Type>::type FunctorType;
 			Initialize(detail::ToFunctor(FUNC_FORWARD(Type, functor)), std::allocator<FunctorType>());
 		}
+	}
+
+	template<typename Allocator>
+	Function(std::allocator_arg_t, const Allocator&)
+	{
+		// ignore the allocator because I don't allocate
+		InitializeEmpty();
+	}
+	template<typename Allocator>
+	Function(std::allocator_arg_t, const Allocator&, std::nullptr_t)
+	{
+		// ignore the allocator because I don't allocate
+		InitializeEmpty();
+	}
+	template<typename Allocator, typename Type>
+	Function(std::allocator_arg_t, const Allocator& allocator, Type functor,
+		typename std::enable_if<detail::IsValidFunctionArg<Type, Result(Arguments...)>::value, detail::Empty>::type = detail::Empty())
+	{
+		if (detail::IsNull(functor))
+		{
+			InitializeEmpty();
+		}
+		else
+		{
+			Initialize(detail::ToFunctor(FUNC_FORWARD(Type, functor)), Allocator(allocator));
+		}
+	}
+	template<typename Allocator>
+	Function(std::allocator_arg_t, const Allocator& allocator, const Function& other) : Call(other.Call)
+	{
+		typedef typename std::allocator_traits<Allocator>::template rebind_alloc<Function> MyAllocator;
+
+		// first try to see if the allocator matches the target type
+		const detail::FunctionManager* manager_for_allocator = &detail::DefaultManager<typename std::allocator_traits<Allocator>::value_type, Allocator>();
+		if (other.managerStorage.manager == manager_for_allocator)
+		{
+			detail::CreateManager<typename std::allocator_traits<Allocator>::value_type, Allocator>(managerStorage, Allocator(allocator));
+			manager_for_allocator->CallCopyFuncOnly(managerStorage, other.managerStorage);
+		}
+		// if it does not, try to see if the target contains my type. this
+		// breaks the recursion of the last case. otherwise repeated copies
+		// would allocate more and more memory
+		else
+		{
+			const detail::FunctionManager* manager_for_function = &detail::DefaultManager<Function, MyAllocator>();
+			if (other.managerStorage.manager == manager_for_function)
+			{
+				detail::CreateManager<Function, MyAllocator>(managerStorage, MyAllocator(allocator));
+				manager_for_function->CallCopyFuncOnly(managerStorage, other.managerStorage);
+			}
+			else
+			{
+				// else store the other function as my target
+				Initialize(other, MyAllocator(allocator));
+			}
+		}
+	}
+	template<typename Allocator>
+	Function(std::allocator_arg_t, const Allocator&, Function&& other)
+	{
+		Call = other.Call;
+		other.managerStorage.manager->CallMoveDestroy(managerStorage, FUNC_MOVE(other.managerStorage));
 	}
 
 	Function& operator=(const Function& other)
