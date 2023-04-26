@@ -24,12 +24,28 @@ bool Engine::suspended;
 
 struct Data
 {
-	void Compute(int i) const { float f = sinf((float)i); }
+	int i;
+	float f;
 };
 
 void Work(int i)
 {
-	Logger::Debug(i);
+	Logger::Debug("I am working: {}", i);
+}
+
+void Work2(Data d)
+{
+	Logger::Debug("I am also working: {}, {}", d.i, d.f);
+}
+
+void Work3(Data d)
+{
+	Logger::Debug("I, too, am working: {}, {}", d.i, d.f);
+}
+
+void Work4()
+{
+	Logger::Debug("I'm work without data :(");
 }
 
 typedef void(*Func)(Data);
@@ -47,28 +63,14 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
-	//Timer t;
-	//t.Start();
-	//for (int i = 0; i < 1000000; ++i)
-	//{
-	//	Function<void(Data)> func(Work);
-	//	Function<void(Data)> newFunc = func;
-	//	func.~Function();
-	//	newFunc.~Function();
-	//}
-	//
-	//Logger::Debug(t.CurrentTime());
-	//
-	//t.Reset();
-	//t.Start();
-	//for (int i = 0; i < 1000000; ++i)
-	//{
-	//	Function<void(Data)> func(Work);
-	//	Function<void(Data)> newFunc = Move(func);
-	//	newFunc.~Function();
-	//}
-	//
-	//Logger::Debug(t.CurrentTime());
+	Data d{ 27, 3.14f };
+
+	auto f = Work3;
+
+	Jobs::Execute([] { Work(354); });
+	Jobs::Execute([&] { Work2(d); });
+	Jobs::Execute([&] { f(d); });
+	Jobs::Execute(Work4);
 
 	//TODO: Only works with decimal count of 5 or 0
 	//F32 f = 123.123f;
@@ -85,28 +87,6 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	//Physics
 	//Particle
 	ASSERT(GameInit());
-
-	const U32 dataSize = 200;
-	Data* data = new Data[dataSize]{};
-
-	Timer t;
-	t.Start();
-	for (int i = 0; i < dataSize; ++i)
-	{
-		data[i].Compute(i);
-	}
-	Logger::Debug("Regular: {}", t.CurrentTime());
-	t.Reset();
-
-	Jobs::Execute([] { Work(10); });
-
-	//const U32 groupSize = 1;
-	//t.Start();
-	//Jobs::Dispatch(dataSize, groupSize, [data](JobDispatchArgs args) { data[args.jobIndex].Compute(args.jobIndex); });
-	//
-	//Jobs::Wait();
-	//Logger::Debug("Dispatch: {}", t.CurrentTime());
-	//t.Reset();
 
 	UpdateLoop();
 

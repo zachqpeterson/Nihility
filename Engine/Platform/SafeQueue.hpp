@@ -3,7 +3,6 @@
 #include "Defines.hpp"
 
 #include <atomic>
-#include <cstdint>
 
 template <typename Type, U64 cacheLineSize = 64>
 struct SafeQueue
