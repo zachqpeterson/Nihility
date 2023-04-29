@@ -24,7 +24,7 @@ HICON sizeNWSE;
 static constexpr const C8* MENU_NAME = "Nihility Menu";
 static constexpr const C8* CLASS_NAME = "Nihility Class";
 
-bool Platform::Initialize(const C8* applicationName)
+bool Platform::Initialize(CSTR applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
@@ -116,6 +116,8 @@ bool Platform::Initialize(const C8* applicationName)
 
 void Platform::Shutdown()
 {
+	Logger::Trace("Cleaning Up Platform...");
+
 	if (windowData.window)
 	{
 		DestroyWindow(windowData.window);
@@ -200,7 +202,7 @@ void Platform::LockCursor(bool lock)
 	Settings::data.lockCursor = lock;
 }
 
-void Platform::SetConsoleWindowTitle(const C8* name)
+void Platform::SetConsoleWindowTitle(CSTR name)
 {
 	SetConsoleTitleA(name);
 }

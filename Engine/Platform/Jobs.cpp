@@ -55,6 +55,8 @@ bool Jobs::Initialize()
 
 void Jobs::Shutdown()
 {
+	Logger::Trace("Cleaning Up Jobs...");
+
 	running = false;
 	ReleaseSemaphore(semaphore, Settings::ThreadCount(), nullptr);
 	CloseHandle(semaphore);
@@ -155,7 +157,6 @@ U32 __stdcall Jobs::RunThread(void*)
 		}
 	}
 
-	Logger::Debug("Exiting thread");
 	_endthreadex(0);
 	return 0;
 }

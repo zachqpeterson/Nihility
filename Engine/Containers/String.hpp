@@ -298,6 +298,40 @@ static struct StringFinder
 	}
 } STRING;
 
+template<Character C> 
+static inline U64 Length(const C* str)
+{
+	const C* ptr = str;
+	while (*ptr) { ++ptr; }
+	return ptr - str;
+}
+
+template<Character C>
+static inline bool Compare(const C* a, const C* b, U64 length)
+{
+	const C* it0 = a;
+	const C* it1 = b;
+	C c0;
+	C c1;
+
+	while (length-- && (c0 = *it0++) == (c1 = *it1++));
+
+	return length + 1 == 0;
+}
+
+template<Character C>
+static inline bool Compare(const C* a, const C* b)
+{
+	const C* it0 = a;
+	const C* it1 = b;
+	C c0;
+	C c1;
+
+	while ((c0 = *it0++) == (c1 = *it1++) && c0 && c1);
+
+	return !(c0 || c1);
+}
+
 /*
 * TODO: Documentation
 *
@@ -307,7 +341,7 @@ static struct StringFinder
 *
 * TODO: Conversions
 *
-* TODO: option to add 0x prefix to {h}
+* TODO: Option to add 0x prefix to {h}
 */
 template<typename T, typename LU>
 struct NH_API StringBase
@@ -411,11 +445,11 @@ private:
 
 	template<typename Arg> void Format(U64& start, const Arg& value);
 
-	template<Character C> U64 Length(const C* str) const;
-	void Copy(T* dst, const T* src, U64 length);
-	bool Compare(const T* a, const T* b, U64 length) const;
-	bool WhiteSpace(T c) const;
-	bool NotWhiteSpace(T c) const;
+	template<Character C> static  U64 Length(const C* str);
+	static bool Compare(const T* a, const T* b, U64 length);
+	static void Copy(T* dst, const T* src, U64 length);
+	static bool WhiteSpace(T c);
+	static bool NotWhiteSpace(T c);
 
 	bool hashed{ false };
 	U64 hash{ 0 };
@@ -1502,7 +1536,7 @@ inline void StringBase<T, LU>::ToType(Arg& value, U64 start) const
 
 template<typename T, typename LU>
 template<Character C>
-inline U64 StringBase<T, LU>::Length(const C* str) const
+inline U64 StringBase<T, LU>::Length(const C* str)
 {
 	const C* ptr = str;
 	while (*ptr) { ++ptr; }
@@ -1516,7 +1550,7 @@ inline void StringBase<T, LU>::Copy(T* dst, const T* src, U64 length)
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length) const
+inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length)
 {
 	const T* it0 = a;
 	const T* it1 = b;
@@ -1530,13 +1564,13 @@ inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length) const
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::WhiteSpace(T c) const
+inline bool StringBase<T, LU>::WhiteSpace(T c)
 {
 	return c == LU::SPACE || c == LU::HTAB || c == LU::VTAB || c == LU::NEW_LINE || c == LU::RETURN || c == LU::FEED;
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::NotWhiteSpace(T c) const
+inline bool StringBase<T, LU>::NotWhiteSpace(T c)
 {
 	return c != LU::SPACE && c != LU::HTAB && c != LU::VTAB && c != LU::NEW_LINE && c != LU::RETURN && c != LU::FEED;
 }

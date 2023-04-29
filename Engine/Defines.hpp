@@ -52,6 +52,8 @@ typedef wchar_t CW;
 ///16-bit unicode character
 typedef char32_t C32;
 
+typedef const char* CSTR;
+
 typedef decltype(__nullptr) NullPointer;
 
 ///Maximum value of an unsigned 64-bit integer

@@ -9,7 +9,7 @@ typedef void(*ShutdownFn)();
 class NH_API Engine
 {
 public:
-	static void Initialize(const C8* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown);
+	static void Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown);
 
 private:
 	static void UpdateLoop();

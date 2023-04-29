@@ -98,6 +98,8 @@ bool Input::Initialize()
 
 void Input::Shutdown()
 {
+	Logger::Trace("Cleaning Up Input...");
+
 	devices.Destroy();
 }
 

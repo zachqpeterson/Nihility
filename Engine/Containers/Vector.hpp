@@ -408,7 +408,7 @@ template<typename T> inline Vector<T>::Vector() { Memory::AllocateArray(&array, 
 
 template<typename T> inline Vector<T>::Vector(NoInit flag) {}
 
-template<typename T> inline Vector<T>::Vector(U64 cap) : size{ 0 }, capacity{ capacity } { Memory::AllocateArray(&array, capacity); }
+template<typename T> inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity } { Memory::AllocateArray(&array, capacity); }
 
 template<typename T> inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
 {

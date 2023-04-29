@@ -25,12 +25,12 @@ public:
 	static void SetMousePosition(I32 x, I32 y);
 	static void HideCursor(bool hide);
 	static void LockCursor(bool lock);
-	static void SetConsoleWindowTitle(const C8* name);
+	static void SetConsoleWindowTitle(CSTR name);
 
 	static const WindowData& GetWindowData();
 
 private:
-	static bool Initialize(const C8* applicationName);
+	static bool Initialize(CSTR applicationName);
 	static void Shutdown();
 	static bool Update();
 

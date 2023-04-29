@@ -21,6 +21,8 @@ bool Settings::Initialize()
 
 void Settings::Shutdown()
 {
+	Logger::Trace("Saving Settings...");
+
 	File config("Settings.cfg", FILE_OPEN_WRITE_SETTINGS);
 
 	if (config.Opened())

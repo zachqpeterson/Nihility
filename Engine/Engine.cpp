@@ -50,7 +50,7 @@ void Work4()
 
 typedef void(*Func)(Data);
 
-void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
+void Engine::Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
 	GameUpdate = update;
@@ -63,14 +63,14 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 
-	Data d{ 27, 3.14f };
-
-	auto f = Work3;
-
-	Jobs::Execute([] { Work(354); });
-	Jobs::Execute([&] { Work2(d); });
-	Jobs::Execute([&] { f(d); });
-	Jobs::Execute(Work4);
+	//Data d{ 27, 3.14f };
+	//
+	//auto f = Work3;
+	//
+	//Jobs::Execute([] { Work(354); });
+	//Jobs::Execute([&] { Work2(d); });
+	//Jobs::Execute([&] { f(d); });
+	//Jobs::Execute(Work4);
 
 	//TODO: Only works with decimal count of 5 or 0
 	//F32 f = 123.123f;
@@ -82,7 +82,7 @@ void Engine::Initialize(const C8* applicationName, InitializeFn init, UpdateFn u
 	ASSERT(Input::Initialize());
 	ASSERT(Resources::Initialize());
 	//Audio
-	ASSERT(Renderer::Initialize(applicationName));
+	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	//UI
 	//Physics
 	//Particle

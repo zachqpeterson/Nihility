@@ -54,6 +54,8 @@ bool Resources::Initialize()
 
 void Resources::Shutdown()
 {
+	Logger::Trace("Cleaning Up Resources...");
+
 	textures.Destroy();
 }
 
