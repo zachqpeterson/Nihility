@@ -118,6 +118,7 @@
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\External\vk_mem_alloc.h" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
@@ -129,6 +130,7 @@
     <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="Engine\Platform\SafeQueue.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
+    <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
@@ -148,6 +150,7 @@
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
+    <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Settings.cpp" />
   </ItemGroup>

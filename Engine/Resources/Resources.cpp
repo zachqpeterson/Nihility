@@ -10,7 +10,7 @@
 #define MODELS_PATH "models/"
 #define FONTS_PATH "fonts/"
 
-Hashmap<Texture*> Resources::textures(1024);
+//Hashmap<Texture*> Resources::textures(1024);
 
 #pragma pack(push, 1)
 
@@ -56,27 +56,27 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
-	textures.Destroy();
+	//textures.Destroy();
 }
 
-Texture* Resources::LoadTexture(String& name)
-{
-	Texture* texture = nullptr;
-
-	if (textures.Get(name, texture)) { return texture; }
-
-	String path(TEXTURES_PATH, name);
-
-	File file(path, FILE_OPEN_RESOURCE);
-	if (file.Opened())
-	{
-		//TODO: Find file type, redirect to method
-
-		
-
-	}
-
-	Logger::Error("Failed to find or open file: {}", path);
-
-	return nullptr;
-}
+//Texture* Resources::LoadTexture(String& name)
+//{
+//	Texture* texture = nullptr;
+//
+//	if (textures.Get(name, texture)) { return texture; }
+//
+//	String path(TEXTURES_PATH, name);
+//
+//	File file(path, FILE_OPEN_RESOURCE);
+//	if (file.Opened())
+//	{
+//		//TODO: Find file type, redirect to method
+//
+//		
+//
+//	}
+//
+//	Logger::Error("Failed to find or open file: {}", path);
+//
+//	return nullptr;
+//}

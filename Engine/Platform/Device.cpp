@@ -58,22 +58,13 @@ Device::Device(void* handle) : riHandle{ handle }
 
 	if (HidP_GetCaps(preparsedData, (PHIDP_CAPS)&capabilities) != HIDP_STATUS_SUCCESS) { Logger::Trace("Failed to get capabilities, skipping..."); Destroy(); return; }
 
-	if (info.dwType == RIM_TYPEMOUSE && (capabilities.Usage == HID_USAGE_GENERIC_MOUSE || capabilities.Usage == HID_USAGE_GENERIC_POINTER))
-	{
-		if (!SetupMouse()) { Destroy(); return; }
-	}
-	else if (info.dwType == RIM_TYPEKEYBOARD && (capabilities.Usage == HID_USAGE_GENERIC_KEYBOARD || capabilities.Usage == HID_USAGE_GENERIC_KEYPAD))
-	{
-		if (!SetupKeyboard()) { Destroy(); return; }
-	}
-	else if (info.dwType == RIM_TYPEHID && (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER))
+	if (info.dwType == RIM_TYPEHID && (capabilities.Usage == HID_USAGE_GENERIC_GAMEPAD || capabilities.Usage == HID_USAGE_GENERIC_JOYSTICK || capabilities.Usage == HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER))
 	{
 		if (!SetupController()) { Destroy(); return; }
 	}
 	else
 	{
 		//TODO: May not want to discard
-		Logger::Trace("Unkown device type, skipping...");
 		Destroy();
 		return;
 	}
@@ -242,24 +233,6 @@ U8* Device::ReadInput(U32& size)
 	size = read;
 
 	return buffer;
-}
-
-bool Device::SetupMouse()
-{
-	type = DEVICE_TYPE_MOUSE;
-
-	Logger::Debug("Mouse detected");
-
-	return true;
-}
-
-bool Device::SetupKeyboard()
-{
-	type = DEVICE_TYPE_KEYBOARD;
-
-	Logger::Debug("Keyboard detected");
-
-	return true;
 }
 
 bool Device::SetupController()

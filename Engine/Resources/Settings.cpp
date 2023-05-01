@@ -51,7 +51,7 @@ bool Settings::GetRegistryValue(void* hKey, const String& path, const String& na
 
 	if (valueType && valueSize)
 	{
-		if (!fixedSize) { Memory::Allocate(&value, valueSize); }
+		if (!fixedSize) { Memory::AllocateSize(&value, valueSize); }
 		RegQueryValueExA(key, name.Data(), nullptr, &valueType, value, &valueSize);
 
 		RegCloseKey(key);

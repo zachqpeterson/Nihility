@@ -5,19 +5,10 @@
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
 
-struct Texture
-{
-	String name;
-	U32 width;
-	U32 height;
-	U8 channelCount;
-	U8* pixels;
-};
-
 class NH_API Resources
 {
 public:
-	static Texture* LoadTexture(String& name);
+	//static Texture* LoadTexture(String& name);
 
 private:
 	static bool LoadBMP();
@@ -28,7 +19,7 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static Hashmap<Texture*> textures;
+	//static Hashmap<Texture*> textures;
 
 	STATIC_CLASS(Resources);
 	friend class Engine;

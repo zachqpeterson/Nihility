@@ -404,21 +404,21 @@ private:
 	T* array{ nullptr };
 };
 
-template<typename T> inline Vector<T>::Vector() { Memory::AllocateArray(&array, capacity); }
+template<typename T> inline Vector<T>::Vector() { Memory::AllocateArray(&array, capacity, capacity); }
 
 template<typename T> inline Vector<T>::Vector(NoInit flag) {}
 
-template<typename T> inline Vector<T>::Vector(U64 capacity) : size{ 0 }, capacity{ capacity } { Memory::AllocateArray(&array, capacity); }
+template<typename T> inline Vector<T>::Vector(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
 
 template<typename T> inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
 {
-	Memory::AllocateArray(&array, capacity);
+	Memory::AllocateArray(&array, capacity, capacity);
 	for (T* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
 template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.size }
 {
-	Memory::AllocateArray(&array, capacity);
+	Memory::AllocateArray(&array, capacity, capacity);
 	memcpy(array, other.array, sizeof(T) * size);
 }
 
@@ -432,7 +432,7 @@ template<typename T> inline Vector<T>::Vector(Vector<T>&& other) noexcept : size
 template<typename T> inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 {
 	size = other.size;
-	if (capacity < other.size) { Memory::Reallocate(&array, capacity = size); }
+	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
 	memcpy(array, other.array, size * sizeof(T));
 
@@ -693,7 +693,7 @@ template<typename T> template<typename Predicate> inline void Vector<T>::RemoveA
 
 template<typename T> inline void Vector<T>::Reserve(U64 capacity)
 {
-	Memory::Reallocate(&array, this->capacity = capacity);
+	Memory::Reallocate(&array, capacity, this->capacity);
 }
 
 template<typename T> inline void Vector<T>::Resize(U64 size)

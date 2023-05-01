@@ -13,6 +13,8 @@ enum JobPriority
 	JOB_PRIORITY_LOW,
 	JOB_PRIORITY_MEDIUM,
 	JOB_PRIORITY_HIGH,
+
+	JOB_PRIORITY_COUNT
 };
 
 struct JobDispatchArgs

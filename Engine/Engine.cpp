@@ -15,6 +15,8 @@
 #include "Rendering\Renderer.hpp"
 #include "Platform\Function.hpp"
 
+#include <bit>
+
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
 ShutdownFn Engine::GameShutdown;
@@ -75,6 +77,9 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	//TODO: Only works with decimal count of 5 or 0
 	//F32 f = 123.123f;
 	//String s512("{.3}", f);
+
+	//std::bit_floor(12);	//TODO:
+	//std::but_ceiling(12); //TODO:
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());

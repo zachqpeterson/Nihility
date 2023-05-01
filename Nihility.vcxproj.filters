@@ -38,6 +38,9 @@
     <Filter Include="Source Files\Platform\Multithreading">
       <UniqueIdentifier>{31a517af-19ea-4978-b274-99eab1d08649}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\External">
+      <UniqueIdentifier>{55a9f224-ea4f-4eb7-a619-62a6a3ab505f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -124,6 +127,12 @@
     <ClInclude Include="Engine\Platform\SafeQueue.hpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\External\vk_mem_alloc.h">
+      <Filter>Source Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rendering\CommandBuffer.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -167,6 +176,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Platform\Jobs.cpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rendering\RenderingDefines.cpp">
+      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

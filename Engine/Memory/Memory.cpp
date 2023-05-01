@@ -136,3 +136,9 @@ void Memory::Free4mb(void** pointer)
 	free4mbIndices[SafeDecrement(&last4mbFree)] = U32((Region4mb*)*pointer - pool4mbPointer);
 	*pointer = nullptr;
 }
+
+U64 Memory::MemoryAlign(U64 size, U64 alignment)
+{
+	const U64 alignmentMask = alignment - 1;
+	return (size + alignmentMask) & ~alignmentMask;
+}

@@ -32,44 +32,44 @@ public:
 
 private:
 
-	T* array;
-	I64 last;
-	I64 first;
-	I64 size;
-	U64 capacity;
+	I64 last{ 0 };
+	I64 first{ 0 };
+	I64 size{ 0 };
+	U64 capacity{ 0 };
+	T* array{ nullptr };
 };
 
-template<typename T> inline Queue<T>::Queue() : array{ (T*)Memory::Allocate1kb() }, last{ 0 }, first{ 0 }, size{ 0 }, capacity{ 1024 / sizeof(T) } {}
+template<typename T> inline Queue<T>::Queue() { Memory::AllocateArray(&array, capacity, capacity); }
 
-template<typename T> inline Queue<T>::Queue(U64 cap) : array{ (T*)Memory::Allocate(sizeof(T) * cap, capacity) }, last{ 0 }, first{ 0 }, size{ 0 }, capacity{ capacity / sizeof(T) } {}
+template<typename T> inline Queue<T>::Queue(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
 
-template<typename T> inline Queue<T>::Queue(const Queue<T>& other) : array{ (T*)Memory::Allocate(sizeof(T) * capacity) }, 
-last{ other.last }, first{ other.first }, size{ other.size }, capacity{ other.capacity }
+template<typename T> inline Queue<T>::Queue(const Queue<T>& other) : last{ other.last }, first{ other.first }, size{ other.size }, capacity{ other.capacity }
 {
-	memcpy(array, other.array, sizeof(T)* size);
+	Memory::AllocateArray(&array, capacity);
+	memcpy(array, other.array, sizeof(T) * size);
 }
 
-template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : array{ other.array }, last{ other.last }, first{ other.first }, size{ other.size }, capacity{ other.capacity }
+template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : last{ other.last }, first{ other.first }, size{ other.size }, capacity{ other.capacity }, array{ other.array }
 {
 	other.Destroy();
 }
 
 template<typename T> inline Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 {
-	if (array) { Memory::Free(array); }
+	if (array) { Memory::FreeArray(array); }
 	size = other.size;
 	capacity = other.capacity;
 	size = other.size;
-	array = (T*)Memory::Allocate(sizeof(T) * capacity);
+	Memory::AllocateArray(&array, capacity);
 
-	memcpy(array, other.array, sizeof(T) * size);
+	memcpy(array, other.array, size);
 
 	return *this;
 }
 
 template<typename T> inline Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 {
-	if (array) { Memory::Free(array); }
+	if (array) { Memory::FreeArray(array); }
 	last = other.last;
 	first = other.first;
 	size = other.size;
@@ -83,7 +83,7 @@ template<typename T> inline Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 
 template<typename T> inline Queue<T>::~Queue() { Destroy(); }
 
-template<typename T> inline void Queue<T>::Destroy() { last = 0; first = 0; capacity = 0; if (array) { Memory::Free(array); } array = nullptr; }
+template<typename T> inline void Queue<T>::Destroy() { last = 0; first = 0; capacity = 0; if (array) { Memory::FreeArray(array); } }
 
 template<typename T> inline void Queue<T>::Push(const T& value)
 {
@@ -150,12 +150,7 @@ template<typename T> inline bool Queue<T>::Pop(T&& value) noexcept
 
 template<typename T> inline void Queue<T>::Reserve(U64 capacity)
 {
-	U64 cap;
-	T* temp = (T*)Memory::Allocate(sizeof(T) * capacity, cap);
-	memcpy(temp, array, sizeof(T) * this->capacity);
-	Memory::Free(array);
-	array = temp;
-	this->capacity = cap / sizeof(T);
+	Memory::Reallocate(&array, capacity, this->capacity);
 }
 
 template<typename T> inline const U64& Queue<T>::Capacity() const { return capacity; }

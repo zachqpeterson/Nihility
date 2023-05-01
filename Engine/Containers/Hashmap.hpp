@@ -4,14 +4,22 @@
 #include "String.hpp"
 #include "Memory\Memory.hpp"
 
+static inline U64 Hash(U64 x)
+{
+	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+	x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+	x = x ^ (x >> 31);
+	return x;
+}
+
 //TODO: U64 key version
-template<typename Value>
+template<class Key, class Value>
 struct NH_API Hashmap
 {
 	struct Cell
 	{
 		bool filled{ false };
-		String key{ NO_INIT };
+		Key key{ NO_INIT };
 		Value value;
 	};
 
@@ -26,11 +34,11 @@ public:
 	~Hashmap();
 	void Destroy();
 
-	bool Insert(String& key, const Value& value);
-	bool Insert(String& key, Value&& value) noexcept;
-	bool Remove(String& key);
-	bool Remove(String& key, Value&& value) noexcept;
-	bool Get(String& key, Value& value);
+	bool Insert(Key& key, const Value& value);
+	bool Insert(Key& key, Value&& value) noexcept;
+	bool Remove(Key& key);
+	bool Remove(Key& key, Value&& value) noexcept;
+	bool Get(Key& key, Value& value);
 
 	void Reserve(U64 capacity);
 	void operator()(U64 capacity);
@@ -51,22 +59,22 @@ private:
 	Cell* cells{ nullptr };
 };
 
-template<typename Value> inline Hashmap<Value>::Hashmap() {}
+template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap() {}
 
-template<typename Value> inline Hashmap<Value>::Hashmap(U64 cap) : capacity{ capacity } 
+template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap)
 {
-	Memory::AllocateArray(&cells, capacity = cap);
+	Memory::AllocateArray(&cells, cap, capacity);
 	capacity = NextPow2(capacity) >> 1;
 	capMinusOne = capacity - 1;
 }
 
-template<typename Value> inline Hashmap<Value>::Hashmap(const Hashmap& other) : size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
+template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(const Hashmap& other) : size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
 {
 	Memory::AllocateArray(&cells, capacity);
 	memcpy(other.cells, cells, capacity * sizeof(Cell));
 }
 
-template<typename Value> inline Hashmap<Value>::Hashmap(Hashmap&& other) noexcept :
+template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
 	cells{ other.cells }, size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
 {
 	other.cells = nullptr;
@@ -75,7 +83,7 @@ template<typename Value> inline Hashmap<Value>::Hashmap(Hashmap&& other) noexcep
 	other.capMinusOne = 0;
 }
 
-template<typename Value> inline Hashmap<Value>& Hashmap<Value>::operator=(const Hashmap& other)
+template<class Key, class Value> inline Hashmap<Key, Value>& Hashmap<Key, Value>::operator=(const Hashmap& other)
 {
 	size = other.size;
 	capacity = other.capacity;
@@ -86,7 +94,7 @@ template<typename Value> inline Hashmap<Value>& Hashmap<Value>::operator=(const 
 	return *this;
 }
 
-template<typename Value> inline Hashmap<Value>& Hashmap<Value>::operator=(Hashmap&& other) noexcept
+template<class Key, class Value> inline Hashmap<Key, Value>& Hashmap<Key, Value>::operator=(Hashmap&& other) noexcept
 {
 	cells = other.cells;
 	size = other.size;
@@ -101,13 +109,13 @@ template<typename Value> inline Hashmap<Value>& Hashmap<Value>::operator=(Hashma
 	return *this;
 }
 
-template<typename Value> inline Hashmap<Value>::~Hashmap() { Destroy(); }
+template<class Key, class Value> inline Hashmap<Key, Value>::~Hashmap() { Destroy(); }
 
-template<typename Value> inline void Hashmap<Value>::Destroy()
+template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 {
 	if (cells)
 	{
-		for (Cell& cell : *this) { cell.key.Destroy(); }
+		if constexpr(IsStringType<Key>) { for (Cell& cell : *this) { cell.key.Destroy(); } }
 
 		Memory::FreeArray(&cells);
 		size = 0;
@@ -116,11 +124,14 @@ template<typename Value> inline void Hashmap<Value>::Destroy()
 	}
 }
 
-template<typename Value> inline bool Hashmap<Value>::Insert(String& key, const Value& value)
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& key, const Value& value)
 {
 	if (size == capacity) { return false; }
-	U64 hash = key.Hash();
 
+	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	else { static_assert("Only integers and strings supported for hashing!"); }
+	
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
@@ -131,10 +142,13 @@ template<typename Value> inline bool Hashmap<Value>::Insert(String& key, const V
 	cell->key = key;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Insert(String& key, Value&& value) noexcept
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& key, Value&& value) noexcept
 {
 	if (size == capacity) { return false; }
-	U64 hash = key.Hash();
+
+	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -146,10 +160,13 @@ template<typename Value> inline bool Hashmap<Value>::Insert(String& key, Value&&
 	cell->key = key;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Remove(String& key)
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& key)
 {
 	if (size == 0) { return false; }
-	U64 hash = key.Hash();
+
+	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -158,7 +175,7 @@ template<typename Value> inline bool Hashmap<Value>::Remove(String& key)
 	if (cell->filled)
 	{
 		--size;
-		cell->key.Destroy();
+		if constexpr (IsStringType<Key>) { cell->key.Destroy(); }
 		memset(cell, 0, sizeof(cell));
 
 		return true;
@@ -167,10 +184,13 @@ template<typename Value> inline bool Hashmap<Value>::Remove(String& key)
 	return false;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Remove(String& key, Value&& value) noexcept
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& key, Value&& value) noexcept
 {
 	if (size == 0) { return false; }
-	U64 hash = key.Hash();
+
+	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -182,7 +202,7 @@ template<typename Value> inline bool Hashmap<Value>::Remove(String& key, Value&&
 
 		value = Move(cell->value);
 
-		cell->key.Destroy();
+		if constexpr (IsStringType<Key>) { cell->key.Destroy(); }
 		memset(cell, 0, sizeof(cell));
 
 		return true;
@@ -191,10 +211,13 @@ template<typename Value> inline bool Hashmap<Value>::Remove(String& key, Value&&
 	return false;
 }
 
-template<typename Value> inline bool Hashmap<Value>::Get(String& key, Value& value)
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Get(Key& key, Value& value)
 {
 	if (size == 0) { return false; }
-	U64 hash = key.Hash();
+
+	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash % capacity);
@@ -205,26 +228,27 @@ template<typename Value> inline bool Hashmap<Value>::Get(String& key, Value& val
 	return cell->filled;
 }
 
-template<typename Value> inline void Hashmap<Value>::Reserve(U64 cap)
+template<class Key, class Value> inline void Hashmap<Key, Value>::Reserve(U64 cap)
 {
 	if (cap < capacity) { return; }
 
-	Memory::Reallocate(&cells, capacity = cap);
+	Memory::Reallocate(&cells, cap, capacity);
 	capacity = NextPow2(capacity) >> 1;
 	capMinusOne = capacity - 1;
 
 	Empty();
 }
 
-template<typename Value> inline void Hashmap<Value>::operator()(U64 capacity) { Reserve(capacity); }
+template<class Key, class Value> inline void Hashmap<Key, Value>::operator()(U64 capacity) { Reserve(capacity); }
 
-template<typename Value> inline void Hashmap<Value>::Empty()
+template<class Key, class Value> inline void Hashmap<Key, Value>::Empty()
 {
-	for (Cell& cell : *this) { cell.key.Destroy(); }
+	if constexpr (IsStringType<Key>) { for (Cell& cell : *this) { cell.key.Destroy(); } }
+	//TODO: Free memory if value is allocated
 
 	memset(cells, 0, capacity * sizeof(Cell));
 	size = 0;
 }
 
-template<typename Value> inline const U64& Hashmap<Value>::Size() const { return size; }
-template<typename Value> inline const U64& Hashmap<Value>::Capacity() const { return size; }
+template<class Key, class Value> inline const U64& Hashmap<Key, Value>::Size() const { return size; }
+template<class Key, class Value> inline const U64& Hashmap<Key, Value>::Capacity() const { return size; }

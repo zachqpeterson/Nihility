@@ -284,7 +284,9 @@ using String8 = StringBase<C8, C8Lookup>;
 using String16 = StringBase<C16, C16Lookup>;
 using String32 = StringBase<C32, C32Lookup>;
 
+template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8, C8Lookup>, StringBase<C16, C16Lookup>, StringBase<C32, C32Lookup>>;
 template <class Type> concept StringType = AnyOf<RemovedQuals<Type>, StringBase<C8, C8Lookup>, StringBase<C16, C16Lookup>, StringBase<C32, C32Lookup>>;
+template <class Type> inline constexpr bool  InNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
 template <class Type> concept NonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
 
 static struct StringFinder
@@ -298,7 +300,7 @@ static struct StringFinder
 	}
 } STRING;
 
-template<Character C> 
+template<Character C>
 static inline U64 Length(const C* str)
 {
 	const C* ptr = str;
@@ -420,6 +422,8 @@ struct NH_API StringBase
 	const U64& Hash();
 	T* Data();
 	const T* Data() const;
+	operator T* ();
+	operator const T* () const;
 
 	T* begin();
 	T* end();
@@ -459,7 +463,7 @@ private:
 };
 
 template<typename T, typename LU>
-inline StringBase<T, LU>::StringBase() { Memory::AllocateArray(&string, capacity); }
+inline StringBase<T, LU>::StringBase() { Memory::AllocateArray(&string, capacity, capacity); }
 
 template<typename T, typename LU>
 inline StringBase<T, LU>::StringBase(NoInit flag) {}
@@ -472,7 +476,7 @@ template<typename T, typename LU>
 template<typename First, typename... Args>
 inline StringBase<T, LU>::StringBase(const First& first, const Args& ... args) noexcept
 {
-	Memory::AllocateArray(&string, capacity);
+	Memory::AllocateArray(&string, capacity, capacity);
 	ToString<First, false, false>(string, first);
 	(ToString<Args, false, false>(string + size, args), ...);
 }
@@ -481,7 +485,7 @@ template<typename T, typename LU>
 template<typename First, typename... Args>
 inline StringBase<T, LU>::StringBase(const T* fmt, const First& first, const Args& ... args) noexcept : size{ Length(fmt) }, capacity{ size }
 {
-	Memory::AllocateArray(&string, capacity);
+	Memory::AllocateArray(&string, capacity, capacity);
 
 	Copy(string, fmt, size + 1);
 	U64 start = 0;
@@ -537,7 +541,7 @@ inline void StringBase<T, LU>::Reserve(U64 size)
 {
 	if (size + 1 > capacity)
 	{
-		Memory::Reallocate(&string, capacity = size);
+		Memory::Reallocate(&string, size, capacity);
 	}
 }
 
@@ -711,6 +715,12 @@ inline T* StringBase<T, LU>::Data() { return string; }
 
 template<typename T, typename LU>
 inline const T* StringBase<T, LU>::Data() const { return string; }
+
+template<typename T, typename LU>
+inline StringBase<T, LU>::operator T* () { return string; }
+
+template<typename T, typename LU>
+inline StringBase<T, LU>::operator const T* () const { return string; }
 
 template<typename T, typename LU>
 inline bool StringBase<T, LU>::Blank() const
@@ -956,7 +966,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	hashed = false;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 	T* c = str + typeSize;
@@ -1034,7 +1044,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	hashed = false;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 	T* c = str + typeSize;
@@ -1101,7 +1111,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	if (value)
 	{
-		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, capacity = size + trueSize); }
+		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, size + trueSize, capacity); }
 
 		if constexpr (Insert) { Copy(str + 4, str, size - strIndex); }
 
@@ -1114,7 +1124,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	}
 	else
 	{
-		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, capacity = size + falseSize); }
+		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, size + falseSize, capacity); }
 
 		if constexpr (Insert) { Copy(str + 5, str, size - strIndex); }
 
@@ -1141,7 +1151,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value, U64 decimalCoun
 
 		hashed = false;
 
-		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 		if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 		T* c = str + typeSize;
@@ -1245,7 +1255,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	hashed = false;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, capacity = size + moveSize); }
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 	if constexpr (IsSame<CharType, T>) { Copy(str, value, strSize); }

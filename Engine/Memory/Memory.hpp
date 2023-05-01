@@ -19,41 +19,29 @@
 /// </summary>
 class NH_API Memory
 {
-	struct Region1kb { private: U64 unused[128]; };
-	struct Region16kb { private: Region1kb unused[16]; };
-	struct Region256kb { private: Region16kb unused[16]; };
-	struct Region4mb { private: Region256kb unused[16]; };
+struct Region1kb { private: U64 unused[128]; };
+struct Region16kb { private: Region1kb unused[16]; };
+struct Region256kb { private: Region16kb unused[16]; };
+struct Region4mb { private: Region256kb unused[16]; };
 
 public:
-	template<typename T>
-	static void Allocate(T** pointer);
+	template<typename T> static void Allocate(T** pointer);
+	template<typename T, Unsigned Int> static void AllocateSize(T** pointer, const Int& size);
+	template<typename T, Unsigned Int> static void AllocateSize(T** pointer, const Int& size, Int& newSize);
+	template<typename T, Unsigned Int> static void AllocateArray(T** pointer, const Int& count);
+	template<typename T, Unsigned Int> static void AllocateArray(T** pointer, const Int& count, Int& newCount);
+	template<typename T, Unsigned Int> static void Reallocate(T** pointer, const Int& count);
+	template<typename T, Unsigned Int> static void Reallocate(T** pointer, const Int& count, Int& newCount);
 
-	template<typename T, Unsigned Int>
-	static void Allocate(T** pointer, Int& outSize);
+	template<typename T> static void Free(T** pointer);
+	template<typename T> static void FreeSize(T** pointer);
+	template<typename T> static void FreeArray(T** pointer);
 
-	template<typename T, Unsigned Int>
-	static void AllocateSize(T** pointer, Int size);
+	template<typename T> static void AllocateStatic(T** pointer);
 
-	template<typename T, Unsigned Int>
-	static void AllocateArray(T** pointer, Int& count);
+	template<typename T> static bool IsAllocated(T* pointer);
 
-	template<typename T, Unsigned Int>
-	static void AllocateArray(T** pointer, const Int& count);
-
-	template<typename T, Unsigned Int>
-	static void Reallocate(T** pointer, Int& count);
-
-	template<typename T, Unsigned Int>
-	static void Reallocate(T** pointer, const Int& count);
-
-	template<typename T>
-	static void Free(T** pointer);
-
-	template<typename T>
-	static void FreeArray(T** pointer);
-
-	template<typename T>
-	static void AllocateStatic(T** pointer);
+	static U64 MemoryAlign(U64 size, U64 alignment);
 
 private:
 	static bool Initialize();
@@ -97,7 +85,7 @@ private:
 	friend class Engine;
 };
 
-template<typename T> 
+template<typename T>
 inline void Memory::Allocate(T** pointer)
 {
 	constexpr U64 size = sizeof(T);
@@ -108,25 +96,10 @@ inline void Memory::Allocate(T** pointer)
 	else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); return; }
 
 	BreakPoint;
-	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
 }
 
 template<typename T, Unsigned Int>
-inline void Memory::Allocate(T** pointer, Int& outSize)
-{
-	constexpr U64 size = sizeof(T);
-
-	if constexpr (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); outSize = sizeof(Region1kb); return; }
-	else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); outSize = sizeof(Region16kb); return; }
-	else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); outSize = sizeof(Region256kb); return; }
-	else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); outSize = sizeof(Region4mb); return; }
-
-	BreakPoint;
-	//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
-}
-
-template<typename T, Unsigned Int>
-inline void Memory::AllocateSize(T** pointer, Int size)
+inline void Memory::AllocateSize(T** pointer, const Int& size)
 {
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
@@ -137,30 +110,14 @@ inline void Memory::AllocateSize(T** pointer, Int size)
 }
 
 template<typename T, Unsigned Int>
-inline void Memory::AllocateArray(T** pointer, Int& count)
+inline void Memory::AllocateSize(T** pointer, const Int& size, Int& newSize)
 {
-	constexpr U64 size = sizeof(T);
+	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); newSize = sizeof(Region1kb); return; }
+	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); newSize = sizeof(Region16kb); return; }
+	else if (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); newSize = sizeof(Region256kb); return; }
+	else if (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); newSize = sizeof(Region4mb); return; }
 
-	if (count == 0)
-	{
-		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); count = sizeof(Region1kb) / size; return; }
-		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); count = sizeof(Region16kb) / size; return; }
-		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); count = sizeof(Region256kb) / size; return; }
-		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); count = sizeof(Region4mb) / size; return; }
-
-		BreakPoint;
-		//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
-	}
-	else
-	{
-		if (size * count <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); count = sizeof(Region1kb) / size; return; }
-		else if (size * count <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); count = sizeof(Region16kb) / size; return; }
-		else if (size * count <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); count = sizeof(Region256kb) / size; return; }
-		else if (size * count <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); count = sizeof(Region4mb) / size; return; }
-
-		BreakPoint;
-		//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
-	}
+	BreakPoint;
 }
 
 template<typename T, Unsigned Int>
@@ -168,61 +125,25 @@ inline void Memory::AllocateArray(T** pointer, const Int& count)
 {
 	constexpr U64 size = sizeof(T);
 
-	if (count == 0)
-	{
-		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
-		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
-		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); return; }
-		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); return; }
+	if (size * count <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
+	else if (size * count <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
+	else if (size * count <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); return; }
+	else if (size * count <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); return; }
 
-		BreakPoint;
-		//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
-	}
-	else
-	{
-		if (size * count <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
-		else if (size * count <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
-		else if (size * count <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); return; }
-		else if (size * count <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); return; }
-
-		BreakPoint;
-		//Logger::Error("Allocation size '{}' too big, maximum is '{}'", size, sizeof(Region4mb));
-	}
+	BreakPoint;
 }
 
 template<typename T, Unsigned Int>
-inline void Memory::Reallocate(T** pointer, Int& count)
+inline void Memory::AllocateArray(T** pointer, const Int& count, Int& newCount)
 {
 	constexpr U64 size = sizeof(T);
 
-	void* temp = nullptr;
+	if (size * count <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); newCount = sizeof(Region1kb) / size; return; }
+	else if (size * count <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); newCount = sizeof(Region16kb) / size; return; }
+	else if (size * count <= sizeof(Region256kb)) { Allocate256kb((void**)pointer); newCount = sizeof(Region256kb) / size; return; }
+	else if (size * count <= sizeof(Region4mb)) { Allocate4mb((void**)pointer); newCount = sizeof(Region4mb) / size; return; }
 
-	if (count == 0)
-	{
-		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(&temp); count = sizeof(Region1kb) / size; }
-		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(&temp); count = sizeof(Region16kb) / size; }
-		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(&temp); count = sizeof(Region256kb) / size; }
-		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(&temp); count = sizeof(Region4mb) / size; }
-	}
-	else
-	{
-		if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); count = sizeof(Region1kb) / size; }
-		else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); count = sizeof(Region16kb) / size; }
-		else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); count = sizeof(Region256kb) / size; }
-		else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); count = sizeof(Region4mb) / size; }
-	}
-
-	if (*pointer)
-	{
-		void* cmp = *pointer;
-
-		if (cmp >= pool4mbPointer) { memcpy(temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { memcpy(temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { memcpy(temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { memcpy(temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
-	}
-
-	*pointer = (T*)temp;
+	BreakPoint;
 }
 
 template<typename T, Unsigned Int>
@@ -232,22 +153,12 @@ static void Memory::Reallocate(T** pointer, const Int& count)
 
 	void* temp = nullptr;
 
-	if (count == 0)
-	{
-		if constexpr (size <= sizeof(Region1kb)) { Allocate1kb(&temp); }
-		else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb(&temp); }
-		else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb(&temp); }
-		else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb(&temp); }
-	}
-	else
-	{
-		if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); }
-		else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); }
-		else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); }
-		else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); }
-	}
+	if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); }
+	else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); }
+	else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); }
+	else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); }
 
-	if (*pointer)
+	if (*pointer != nullptr)
 	{
 		void* cmp = *pointer;
 
@@ -260,10 +171,35 @@ static void Memory::Reallocate(T** pointer, const Int& count)
 	*pointer = (T*)temp;
 }
 
-template<typename T> 
+template<typename T, Unsigned Int>
+static void Memory::Reallocate(T** pointer, const Int& count, Int& newCount)
+{
+	constexpr U64 size = sizeof(T);
+
+	void* temp = nullptr;
+
+	if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); newCount = sizeof(Region1kb) / size; }
+	else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); newCount = sizeof(Region16kb) / size; }
+	else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); newCount = sizeof(Region256kb) / size; }
+	else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); newCount = sizeof(Region4mb) / size; }
+
+	if (*pointer != nullptr)
+	{
+		void* cmp = *pointer;
+
+		if (cmp >= pool4mbPointer) { memcpy(temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
+		else if (cmp >= pool256kbPointer) { memcpy(temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
+		else if (cmp >= pool16kbPointer) { memcpy(temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
+		else if (cmp >= pool1kbPointer) { memcpy(temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
+	}
+
+	*pointer = (T*)temp;
+}
+
+template<typename T>
 inline void Memory::Free(T** pointer)
 {
-	if (!pointer) { return; }
+	if (*pointer == nullptr) { return; }
 
 	constexpr U64 size = sizeof(T);
 
@@ -272,25 +208,40 @@ inline void Memory::Free(T** pointer)
 	else if constexpr (size <= sizeof(Region256kb)) { Free256kb((void**)pointer); return; }
 	else if constexpr (size <= sizeof(Region4mb)) { Free4mb((void**)pointer); return; }
 
-	//Logger::Error("Pointer '{}' wasn't allocated with Memory::Allocate or Memory::AllocateArray", *pointer);
+	BreakPoint;
 }
 
-template<typename T> 
-inline void Memory::FreeArray(T** pointer)
+template<typename T>
+inline void Memory::FreeSize(T** pointer)
 {
-	if (!pointer) { return; }
+	if (*pointer == nullptr) { return; }
 
 	void* cmp = *pointer;
 
-	if (cmp >= pool4mbPointer) { Free4mb((void**)pointer); }
-	else if (cmp >= pool256kbPointer) { Free256kb((void**)pointer); }
-	else if (cmp >= pool16kbPointer) { Free16kb((void**)pointer); }
-	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); }
+	if (cmp >= pool4mbPointer) { Free4mb((void**)pointer); return; }
+	else if (cmp >= pool256kbPointer) { Free256kb((void**)pointer); return; }
+	else if (cmp >= pool16kbPointer) { Free16kb((void**)pointer); return; }
+	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); return; }
 
-	//Logger::Error("Pointer '{}' wasn't allocated with Memory::Allocate or Memory::AllocateArray", *pointer);
+	BreakPoint;
 }
 
-template<typename T> 
+template<typename T>
+inline void Memory::FreeArray(T** pointer)
+{
+	if (*pointer == nullptr) { return; }
+
+	void* cmp = *pointer;
+
+	if (cmp >= pool4mbPointer) { Free4mb((void**)pointer); return; }
+	else if (cmp >= pool256kbPointer) { Free256kb((void**)pointer); return; }
+	else if (cmp >= pool16kbPointer) { Free16kb((void**)pointer); return; }
+	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); return; }
+
+	BreakPoint;
+}
+
+template<typename T>
 inline void Memory::AllocateStatic(T** pointer)
 {
 	static bool init = Initialize();
@@ -304,5 +255,15 @@ inline void Memory::AllocateStatic(T** pointer)
 		return;
 	}
 
-	//Logger::Error("Not enough space to allocate size of '{}', space left: {}", size, memory + totalSize);
+	BreakPoint;
+}
+
+template<typename T>
+static bool Memory::IsAllocated(T* pointer)
+{
+	static const void* upperBound = memory + totalSize - staticSize;
+
+	void* cmp = pointer;
+
+	return cmp != nullptr && cmp >= pool1kbPointer && cmp < upperBound;
 }
