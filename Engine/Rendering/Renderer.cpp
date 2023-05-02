@@ -663,10 +663,94 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 	vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
 }
 
+void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture)
+{
+	texture->width = creation.width;
+	texture->height = creation.height;
+	texture->depth = creation.depth;
+	texture->mipmaps = creation.mipmaps;
+	texture->type = creation.type;
+	texture->name = creation.name;
+	texture->format = creation.format;
+	texture->sampler = nullptr;
+	texture->flags = creation.flags;
+	texture->handle = handle;
+
+	//// Create the image
+	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.format = texture->format;
+	imageInfo.flags = 0;
+	imageInfo.imageType = ToVkImageType(creation.type);
+	imageInfo.extent.width = creation.width;
+	imageInfo.extent.height = creation.height;
+	imageInfo.extent.depth = creation.depth;
+	imageInfo.mipLevels = creation.mipmaps;
+	imageInfo.arrayLayers = 1;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+
+	const bool is_render_target = (creation.flags & TEXTURE_FLAG_RENDER_TARGET_MASK) == TEXTURE_FLAG_RENDER_TARGET_MASK;
+	const bool is_compute_used = (creation.flags & TEXTURE_FLAG_COMPUTE_MASK) == TEXTURE_FLAG_COMPUTE_MASK;
+
+	// Default to always readable from shader.
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	imageInfo.usage |= is_compute_used ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
+
+	if (HasDepthOrStencil(creation.format))
+	{
+		// Depth/Stencil textures are normally textures you render into.
+		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	}
+	else
+	{
+		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT; // TODO
+		imageInfo.usage |= is_render_target ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : 0;
+	}
+
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	VmaAllocationCreateInfo memory_info{};
+	memory_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	VkValidate(vmaCreateImage(allocator, &imageInfo, &memory_info,
+		&texture->image, &texture->allocation, nullptr));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, creation.name);
+
+	//// Create the image view
+	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	info.image = texture->image;
+	info.viewType = ToVkImageViewType(creation.type);
+	info.format = imageInfo.format;
+
+	if (HasDepthOrStencil(creation.format))
+	{
+
+		info.subresourceRange.aspectMask = HasDepth(creation.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+		// TODO:gs
+		//info.subresourceRange.aspectMask |= HasStencil( creation.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+	}
+	else
+	{
+		info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+
+	info.subresourceRange.levelCount = 1;
+	info.subresourceRange.layerCount = 1;
+	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->imageView));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, creation.name);
+
+	texture->imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
 BufferHandle Renderer::CreateBuffer(const BufferCreation& creation)
 {
-	BufferHandle handle = { buffers.ObtainResource() };
-	if (handle.index == INVALID_INDEX) { return handle; }
+	U32 resourceIndex = buffers.ObtainResource();
+	BufferHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
 	Buffer* buffer = AccessBuffer(handle);
 
@@ -712,7 +796,7 @@ BufferHandle Renderer::CreateBuffer(const BufferCreation& creation)
 	// TODO
 	//if ( persistent )
 	//{
-	//    mapped_data = static_cast<uint8_t *>(allocation_info.pMappedData);
+	//    mapped_data = static_cast<uint8_t *>(allocationInfo.pMappedData);
 	//}
 
 	return handle;
@@ -720,37 +804,86 @@ BufferHandle Renderer::CreateBuffer(const BufferCreation& creation)
 
 TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 {
+	U32 resourceIndex = textures.ObtainResource();
+	TextureHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	Texture* texture = AccessTexture(handle);
+
+	CreateTexture(creation, handle, texture);
+
+	if (creation.initialData)
+	{
+
+	}
+
+	return handle;
 }
 
 PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 {
+	U32 resourceIndex = pipelines.ObtainResource();
+	PipelineHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	//Create
+
+	return handle;
 }
 
 SamplerHandle Renderer::CreateSampler(const SamplerCreation& creation)
 {
+	U32 resourceIndex = samplers.ObtainResource();
+	SamplerHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	//Create
+
+	return handle;
 }
 
 DescriptorSetLayoutHandle Renderer::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& creation)
 {
+	U32 resourceIndex = descriptorSetLayouts.ObtainResource();
+	DescriptorSetLayoutHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	//Create
+
+	return handle;
 }
 
 DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& creation)
 {
+	U32 resourceIndex = descriptorSets.ObtainResource();
+	DescriptorSetHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	//Create
+
+	return handle;
 }
 
 RenderPassHandle Renderer::CreateRenderPass(const RenderPassCreation& creation)
 {
+	U32 resourceIndex = renderPasses.ObtainResource();
+	RenderPassHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	//Create
+
+	return handle;
 }
 
 ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creation)
 {
+	U32 resourceIndex = shaders.ObtainResource();
+	ShaderStateHandle handle = { resourceIndex };
+	if (resourceIndex == INVALID_INDEX) { return handle; }
 
+	//Create
+
+	return handle;
 }
 
 void Renderer::DestroyBuffer(BufferHandle buffer)
@@ -871,4 +1004,35 @@ DesciptorSet* Renderer::AccessDescriptorSet(DescriptorSetHandle set)
 RenderPass* Renderer::AccessRenderPass(RenderPassHandle renderPass)
 {
 	return renderPasses.GetResource(renderPass.index);
+}
+
+
+bool Renderer::IsDepthStencil(VkFormat value)
+{
+	return value == VK_FORMAT_D16_UNORM_S8_UINT || value == VK_FORMAT_D24_UNORM_S8_UINT || value == VK_FORMAT_D32_SFLOAT_S8_UINT;
+}
+
+bool Renderer::IsDepthOnly(VkFormat value)
+{
+	return value >= VK_FORMAT_D16_UNORM && value < VK_FORMAT_D32_SFLOAT;
+}
+
+bool Renderer::IsStencilOnly(VkFormat value)
+{
+	return value == VK_FORMAT_S8_UINT;
+}
+
+bool Renderer::HasDepth(VkFormat value)
+{
+	return (value >= VK_FORMAT_D16_UNORM && value < VK_FORMAT_S8_UINT) || (value >= VK_FORMAT_D16_UNORM_S8_UINT && value <= VK_FORMAT_D32_SFLOAT_S8_UINT);
+}
+
+bool Renderer::HasStencil(VkFormat value)
+{
+	return value >= VK_FORMAT_S8_UINT && value <= VK_FORMAT_D32_SFLOAT_S8_UINT;
+}
+
+bool Renderer::HasDepthOrStencil(VkFormat value)
+{
+	return value >= VK_FORMAT_D16_UNORM && value <= VK_FORMAT_D32_SFLOAT_S8_UINT;
 }

@@ -661,6 +661,19 @@ enum ResourceType {
 };
 #pragma endregion
 
+
+static VkImageType ToVkImageType(TextureType type)
+{
+	static VkImageType vkTarget[TEXTURE_TYPE_COUNT] = { VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D };
+	return vkTarget[type];
+}
+
+static VkImageViewType ToVkImageViewType(TextureType type)
+{
+	static VkImageViewType vkData[] = { VK_IMAGE_VIEW_TYPE_1D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_CUBE_ARRAY };
+	return vkData[type];
+}
+
 /*---------STRUCTURES---------*/
 
 struct Rect2D 

@@ -30,8 +30,9 @@ private:
 	static void UnmapBuffer(const MapBufferParameters& parameters);
 	static void* DynamicAllocate(U32 size);
 
-
 	static void SetResourceName(VkObjectType type, U64 handle, CSTR name);
+
+	static void CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture);
 
 	static BufferHandle					CreateBuffer(const BufferCreation& creation);
 	static TextureHandle				CreateTexture(const TextureCreation& creation);
@@ -65,6 +66,13 @@ private:
 	static DesciptorSetLayout*			AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout);
 	static DesciptorSet*				AccessDescriptorSet(DescriptorSetHandle set);
 	static RenderPass*					AccessRenderPass(RenderPassHandle renderPass);
+
+	static bool							IsDepthStencil(VkFormat value);
+	static bool							IsDepthOnly(VkFormat value);
+	static bool							IsStencilOnly(VkFormat value);
+	static bool							HasDepth(VkFormat value);
+	static bool							HasStencil(VkFormat value);
+	static bool							HasDepthOrStencil(VkFormat value);
 
 private:
 	// INFO
@@ -125,8 +133,8 @@ private:
 	NH_HEADER_STATIC U32									dynamicPerFrameSize;
 	NH_HEADER_STATIC U32									numAllocatedCommandBuffers;
 	NH_HEADER_STATIC U32									numQueuedCommandBuffers;
+	NH_HEADER_STATIC C8										binariesPath[512];
 	NH_HEADER_STATIC bool									bindlessSupported{ false };
-	NH_HEADER_STATIC char									binariesPath[512];
 	// PRIMITIVE
 	NH_HEADER_STATIC BufferHandle							fullscreenVertexBuffer;
 	NH_HEADER_STATIC RenderPassHandle						swapchainPass;
