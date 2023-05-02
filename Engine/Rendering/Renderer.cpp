@@ -94,16 +94,58 @@ void Renderer::Shutdown()
 {
 	Logger::Trace("Cleaning Up Vulkan Renderer...");
 
-	
+	vkDeviceWaitIdle(device);
 
-	FlatHashMapIterator it = renderPassCache.iterator_begin();
-	while (it.is_valid())
+	commandBufferRing.Destroy();
+
+	for (size_t i = 0; i < MAX_SWAPCHAIN_IMAGES; i++)
 	{
-		VkRenderPass vk_render_pass = renderPassCache.get(it);
-		vkDestroyRenderPass(vulkan_device, vk_render_pass, vulkan_allocation_callbacks);
-		renderPassCache.iterator_advance(it);
+		vkDestroySemaphore(device, renderCompleted[i], allocationCallbacks);
+		vkDestroyFence(device, commandBufferExecuted[i], allocationCallbacks);
 	}
-	renderPassCache.shutdown();
+
+	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
+
+	timestampManager->Destroy();
+
+	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
+	UnmapBuffer(cbMap);
+
+	Memory::FreeSize(&timestampManager);
+
+	DestroyTexture(depthTexture);
+	DestroyBuffer(fullscreenVertexBuffer);
+	DestroyBuffer(dynamicBuffer);
+	DestroyRenderPass(swapchainPass);
+	DestroyTexture(dummyTexture);
+	DestroyBuffer(dummyConstantBuffer);
+	DestroySampler(defaultSampler);
+
+	for (ResourceUpdate& resourceDeletion : resourceDeletionQueue)
+	{
+		if (resourceDeletion.currentFrame == -1) { continue; }
+
+		switch (resourceDeletion.type)
+		{
+		case RESOURCE_DELETE_TYPE_BUFFER: { DestroyBufferInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_PIPELINE: { DestroyPipelineInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_RENDER_PASS: { DestroyRenderPassInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { DestroyDescriptorSetInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { DestroyDescriptorSetLayoutInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_SAMPLER: { DestroySamplerInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_SHADER_STATE: { DestroyShaderStateInstant(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_TEXTURE: { DestroyTextureInstant(resourceDeletion.handle); } break;
+		}
+	}
+
+	auto it = renderPassCache.begin();
+	auto end = renderPassCache.end();
+	for (; it != end; ++it)
+	{
+		if (it.Valid()) { vkDestroyRenderPass(device, *it, allocationCallbacks); }
+	}
+
+	renderPassCache.Destroy();
 
 	RenderPass* pass = AccessRenderPass(swapchainPass);
 	vkDestroyRenderPass(device, pass->renderPass, allocationCallbacks);
@@ -540,7 +582,7 @@ bool Renderer::CreatePrimitiveResources()
 
 #if defined(_MSC_VER)
 	ExpandEnvironmentStringsA("%VULKAN_SDK%", binariesPath, 512);
-	strcpy(binariesPath + Length(binariesPath), "%s\\Bin\\");
+	Copy(binariesPath + Length(binariesPath), "%s\\Bin\\", 7);
 #else
 	String vulkanEnv(getenv("VULKAN_SDK"));
 	vulkanEnv.Append("%s/bin/");
@@ -556,6 +598,8 @@ bool Renderer::CreatePrimitiveResources()
 
 	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
 	dynamicMappedMemory = (U8*)MapBuffer(cbMap);
+
+	return true;
 }
 
 void Renderer::Update()

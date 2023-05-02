@@ -3,8 +3,7 @@
 #include "RenderingDefines.hpp"
 
 #include "Containers\Hashmap.hpp"
-
-struct CommandBuffer;
+#include "CommandBuffer.hpp"
 
 class NH_API Renderer
 {
@@ -101,7 +100,6 @@ private:
 	NH_HEADER_STATIC U32				currentFrame;
 	NH_HEADER_STATIC U32				previousFrame;
 	NH_HEADER_STATIC U32				absoluteFrame;
-	NH_HEADER_STATIC U32                dynamicPerFrameSize;
 	NH_HEADER_STATIC bool				resized{ false };
 	NH_HEADER_STATIC bool				verticalSync{ false };
 
@@ -119,6 +117,7 @@ private:
 	NH_HEADER_STATIC Vector<DescriptorSetUpdate>			descriptorSetUpdates;
 	NH_HEADER_STATIC Hashmap<U64, VkRenderPass>				renderPassCache{ 16 };
 	NH_HEADER_STATIC CommandBuffer**						queuedCommandBuffers;
+	NH_HEADER_STATIC CommandBufferRing						commandBufferRing;
 	NH_HEADER_STATIC U32									dynamicMaxPerFrameSize;
 	NH_HEADER_STATIC BufferHandle							dynamicBuffer;
 	NH_HEADER_STATIC U8*									dynamicMappedMemory;
@@ -157,4 +156,5 @@ private:
 
 	STATIC_CLASS(Renderer);
 	friend class Engine;
+	friend struct CommandBufferRing;
 };

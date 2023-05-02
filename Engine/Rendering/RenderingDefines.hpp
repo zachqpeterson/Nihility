@@ -789,15 +789,6 @@ struct RasterizationCreation
 	FillMode			fill = FILL_MODE_SOLID;
 };
 
-struct BlendStateCreation
-{
-	BlendState	blendStates[MAX_IMAGE_OUTPUTS];
-	U32			activeStates = 0;
-
-	BlendStateCreation& Reset();
-	BlendState& AddBlendState();
-};
-
 struct ShaderStage 
 {
 	CSTR					code = nullptr;
@@ -896,6 +887,48 @@ struct TextureCreation
 	TextureCreation& SetFormatType(VkFormat format, TextureType type);
 	TextureCreation& SetName(CSTR name);
 	TextureCreation& SetData(void* data);
+};
+
+struct RenderPassOutput
+{
+	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS];
+	VkFormat			depthStencilFormat;
+	U32					numColorFormats;
+
+	RenderPassOperation	colorOperation = RENDER_PASS_OP_DONT_CARE;
+	RenderPassOperation	depthOperation = RENDER_PASS_OP_DONT_CARE;
+	RenderPassOperation	stencilOperation = RENDER_PASS_OP_DONT_CARE;
+
+	RenderPassOutput& Reset();
+	RenderPassOutput& Color(VkFormat format);
+	RenderPassOutput& Depth(VkFormat format);
+	RenderPassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+};
+
+struct RenderPass
+{
+	VkRenderPass		renderPass;
+	VkFramebuffer		frameBuffer;
+
+	RenderPassOutput	output;
+
+	TextureHandle		outputTextures[MAX_IMAGE_OUTPUTS];
+	TextureHandle		outputDepth;
+
+	RenderPassType		type;
+
+	F32					scaleX = 1.f;
+	F32					scaleY = 1.f;
+	U16					width = 0;
+	U16					height = 0;
+	U16					dispatchX = 0;
+	U16					dispatchY = 0;
+	U16					dispatchZ = 0;
+
+	U8					resize = 0;
+	U8					numRenderTargets = 0;
+
+	CSTR				name = nullptr;
 };
 
 struct PipelineCreation
@@ -1097,48 +1130,6 @@ struct Pipeline
 	bool						graphicsPipeline = true;
 };
 
-struct RenderPassOutput
-{
-	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS];
-	VkFormat			depthStencilFormat;
-	U32					numColorFormats;
-
-	RenderPassOperation	colorOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation	depthOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation	stencilOperation = RENDER_PASS_OP_DONT_CARE;
-
-	RenderPassOutput& Reset();
-	RenderPassOutput& Color(VkFormat format);
-	RenderPassOutput& Depth(VkFormat format);
-	RenderPassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
-};
-
-struct RenderPass
-{
-	VkRenderPass		renderPass;
-	VkFramebuffer		frameBuffer;
-
-	RenderPassOutput	output;
-
-	TextureHandle		outputTextures[MAX_IMAGE_OUTPUTS];
-	TextureHandle		outputDepth;
-
-	RenderPassType		type;
-
-	F32					scaleX = 1.f;
-	F32					scaleY = 1.f;
-	U16					width = 0;
-	U16					height = 0;
-	U16					dispatchX = 0;
-	U16					dispatchY = 0;
-	U16					dispatchZ = 0;
-
-	U8					resize = 0;
-	U8					numRenderTargets = 0;
-
-	CSTR				name = nullptr;
-};
-
 struct GPUTimestamp
 {
 	U32		start;
@@ -1232,7 +1223,7 @@ struct ResourcePool
 	Type* GetResource(U32 index);
 	const Type* GetResource(U32 index) const;
 
-	U8* memory{ nullptr };
+	Type* memory{ nullptr };
 	U32* freeIndices{ nullptr };
 	U32 lastFree{ 0 };
 };

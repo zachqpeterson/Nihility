@@ -334,6 +334,12 @@ static inline bool Compare(const C* a, const C* b)
 	return !(c0 || c1);
 }
 
+template<class T>
+static inline void Copy(T* dst, const T* src, U64 length)
+{
+	memcpy(dst, src, length * sizeof(T));
+}
+
 /*
 * TODO: Documentation
 *

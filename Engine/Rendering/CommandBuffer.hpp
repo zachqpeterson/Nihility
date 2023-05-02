@@ -40,8 +40,8 @@ struct CommandBuffer {
 
 	VkDescriptorSet	descriptorSets[16];
 
-	RenderPass* currentRenderPass;
-	Pipeline* currentPipeline;
+	RenderPass*		currentRenderPass;
+	Pipeline*		currentPipeline;
 	VkClearValue	clears[2];          // 0 = color, 1 = depth stencil
 	bool			isRecording;
 
@@ -54,4 +54,26 @@ struct CommandBuffer {
 
 	bool			baked = false;        // If baked reset will affect only the read of the commands.
 
+};
+
+struct CommandBufferRing
+{
+	void							Create();
+	void							Destroy();
+
+	void							ResetPools(U32 frameIndex);
+
+	CommandBuffer*					GetCommandBuffer(U32 frame, bool begin);
+	CommandBuffer*					GetCommandBufferInstant(U32 frame, bool begin);
+
+	static U16						PoolFromIndex(U32 index) { return (U16)index / bufferPerPool; }
+
+	NH_HEADER_STATIC constexpr U16	maxThreads = 1;
+	NH_HEADER_STATIC constexpr U16	maxPools = MAX_SWAPCHAIN_IMAGES * maxThreads;
+	NH_HEADER_STATIC constexpr U16	bufferPerPool = 4;
+	NH_HEADER_STATIC constexpr U16	maxBuffers = bufferPerPool * maxPools;
+
+	VkCommandPool					commandPools[maxPools];
+	CommandBuffer					commandBuffers[maxBuffers];
+	U8								nextFreePerThreadFrame[maxPools];
 };

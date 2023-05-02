@@ -180,5 +180,8 @@
     <ClCompile Include="Engine\Rendering\RenderingDefines.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Rendering\CommandBuffer.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

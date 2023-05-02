@@ -23,6 +23,41 @@ struct NH_API Hashmap
 		Value value;
 	};
 
+	struct Iterator
+	{
+	public:
+		Iterator(Cell* cell);
+		Iterator(const Iterator& other);
+		Iterator(Iterator&& other);
+
+		bool Valid() const;
+
+		Value& operator* ();
+		Value* operator-> ();
+
+		Iterator operator++();
+		Iterator& operator++(int);
+		Iterator operator--();
+		Iterator& operator--(int);
+
+		template<Integer I> Iterator operator+(I i) const;
+		template<Integer I> Iterator operator-(I i) const;
+		template<Integer I> Iterator& operator+=(I i) const;
+		template<Integer I> Iterator& operator-=(I i) const;
+
+		operator bool() const;
+
+		bool operator== (const Iterator& other) const;
+		bool operator!= (const Iterator& other) const;
+		bool operator< (const Iterator& other) const;
+		bool operator> (const Iterator& other) const;
+		bool operator<= (const Iterator& other) const;
+		bool operator>= (const Iterator& other) const;
+
+	private:
+		Cell* cell;
+	};
+
 public:
 	Hashmap();
 	Hashmap(U64 capacity);
@@ -47,11 +82,12 @@ public:
 	const U64& Size() const;
 	const U64& Capacity() const;
 
+	Iterator begin() { return { cells }; }
+	const Iterator begin() const { return { cells }; }
+	Iterator end() { return { cells + capacity }; }
+	const Iterator end() const { return { cells + capacity }; }
+
 private:
-	Cell* begin() { return cells; }
-	const Cell* begin() const { return cells; }
-	Cell* end() { return cells + capacity; }
-	const Cell* end() const { return cells + capacity; }
 
 	U64 size{ 0 };
 	U64 capacity{ 0 };
@@ -115,7 +151,7 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 {
 	if (cells)
 	{
-		if constexpr(IsStringType<Key>) { for (Cell& cell : *this) { cell.key.Destroy(); } }
+		if constexpr (IsStringType<Key>) { for (Cell& cell : *this) { cell.key.Destroy(); } }
 
 		Memory::FreeArray(&cells);
 		size = 0;
@@ -128,10 +164,11 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& ke
 {
 	if (size == capacity) { return false; }
 
-	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
 	else { static_assert("Only integers and strings supported for hashing!"); }
-	
+
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
@@ -146,8 +183,9 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& ke
 {
 	if (size == capacity) { return false; }
 
-	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
 	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
@@ -164,8 +202,9 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& ke
 {
 	if (size == 0) { return false; }
 
-	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
 	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
@@ -188,8 +227,9 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& ke
 {
 	if (size == 0) { return false; }
 
-	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
 	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
@@ -215,8 +255,9 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Get(Key& key, 
 {
 	if (size == 0) { return false; }
 
-	if constexpr (IsStringType<Key>) { U64 hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { U64 hash = Hash(key); }
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
 	else { static_assert("Only integers and strings supported for hashing!"); }
 
 	U32 i = 0;
@@ -252,3 +293,110 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Empty()
 
 template<class Key, class Value> inline const U64& Hashmap<Key, Value>::Size() const { return size; }
 template<class Key, class Value> inline const U64& Hashmap<Key, Value>::Capacity() const { return size; }
+
+/*------ITERATOR------*/
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::Iterator(Cell* cell) : cell{ cell } {}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::Iterator(const Iterator& other) : cell{ cell } {}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::Iterator(Iterator&& other) : cell{ cell } {}
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::Valid() const { return cell->filled; }
+
+template<class Key, class Value>
+inline Value& Hashmap<Key, Value>::Iterator::operator* () { return cell->value; }
+
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::Iterator::operator-> () { return &cell->value; }
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator++()
+{
+	Iterator newIt(cell);
+	++cell;
+
+	return newIt;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator++(int)
+{
+	++cell;
+
+	return *this;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator--()
+{
+	Iterator newIt(cell);
+	--cell;
+
+	return newIt;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator--(int)
+{
+	--cell;
+
+	return *this;
+}
+
+template<class Key, class Value>
+template<Integer I>
+inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator+(I i) const
+{
+	return Iterator(cell += i);
+}
+
+template<class Key, class Value>
+template<Integer I>
+inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator-(I i) const
+{
+	return Iterator(cell -= i);
+}
+
+template<class Key, class Value>
+template<Integer I>
+inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator+=(I i) const
+{
+	cell += i;
+
+	return *this;
+}
+
+template<class Key, class Value>
+template<Integer I>
+inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator-=(I i) const
+{
+	cell -= i;
+
+	return *this;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::operator bool() const { return cell; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator== (const Iterator& other) const { return cell == other.cell; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator!= (const Iterator& other) const { return cell != other.cell; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator< (const Iterator& other) const { return cell < other.cell; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator> (const Iterator& other) const { return cell > other.cell; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator<= (const Iterator& other) const { return cell <= other.cell; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator>= (const Iterator& other) const { return cell >= other.cell; }
