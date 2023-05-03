@@ -1411,42 +1411,101 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 
 void Renderer::DestroyBuffer(BufferHandle buffer)
 {
-
+	if (buffer.index < buffers.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_BUFFER, buffer.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid buffer {}", buffer.index);
+	}
 }
 
 void Renderer::DestroyTexture(TextureHandle texture)
 {
-
+	if (texture.index < textures.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_TEXTURE, texture.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid texture {}", texture.index);
+	}
 }
 
 void Renderer::DestroyPipeline(PipelineHandle pipeline)
 {
+	if (pipeline.index < pipelines.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_PIPELINE, pipeline.index, currentFrame });
 
+		Pipeline* v_pipeline = AccessPipeline(pipeline);
+		DestroyShaderState(v_pipeline->shaderState);
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid Pipeline {}", pipeline.index);
+	}
 }
 
 void Renderer::DestroySampler(SamplerHandle sampler)
 {
-
+	if (sampler.index < samplers.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SAMPLER, sampler.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid sampler {}", sampler.index);
+	}
 }
 
 void Renderer::DestroyDescriptorSetLayout(DescriptorSetLayoutHandle layout)
 {
-
+	if (layout.index < descriptorSetLayouts.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT, layout.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid descriptor set layout {}", layout.index);
+	}
 }
 
 void Renderer::DestroyDescriptorSet(DescriptorSetHandle set)
 {
-
+	if (set.index < descriptorSets.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET, set.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid descriptor set {}", set.index);
+	}
 }
 
 void Renderer::DestroyRenderPass(RenderPassHandle renderPass)
 {
-
+	if (renderPass.index < renderPasses.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, renderPass.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid render pass {}", renderPass.index);
+	}
 }
 
 void Renderer::DestroyShaderState(ShaderStateHandle shader)
 {
-
+	if (shader.index < shaders.ResourceCount)
+	{
+		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, shader.index, currentFrame });
+	}
+	else
+	{
+		Logger::Error("Graphics error: trying to free invalid shader {}", shader.index);
+	}
 }
 
 void Renderer::DestroyBufferInstant(ResourceHandle buffer)
@@ -1528,7 +1587,6 @@ RenderPass* Renderer::AccessRenderPass(RenderPassHandle renderPass)
 {
 	return renderPasses.GetResource(renderPass.index);
 }
-
 
 bool Renderer::IsDepthStencil(VkFormat value)
 {
