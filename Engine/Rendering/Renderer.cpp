@@ -900,28 +900,28 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 		U32 imageSize = creation.width * creation.height * 4;
 		bufferInfo.size = imageSize;
 
-		VmaAllocationCreateInfo memory_info{};
-		memory_info.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-		memory_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		VmaAllocationCreateInfo memoryInfo{};
+		memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+		memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-		VmaAllocationInfo allocation_info{};
-		VkBuffer staging_buffer;
-		VmaAllocation staging_allocation;
-		VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memory_info,
-			&staging_buffer, &staging_allocation, &allocation_info));
+		VmaAllocationInfo allocationInfo{};
+		VkBuffer stagingBuffer;
+		VmaAllocation stagingAllocation;
+		VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo,
+			&stagingBuffer, &stagingAllocation, &allocationInfo));
 
 		// Copy buffer_data
-		void* destination_data;
-		vmaMapMemory(allocator, staging_allocation, &destination_data);
-		memcpy(destination_data, creation.initialData, static_cast<size_t>(imageSize));
-		vmaUnmapMemory(allocator, staging_allocation);
+		void* destinationData;
+		vmaMapMemory(allocator, stagingAllocation, &destinationData);
+		memcpy(destinationData, creation.initialData, static_cast<size_t>(imageSize));
+		vmaUnmapMemory(allocator, stagingAllocation);
 
 		// Execute command buffer
 		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		CommandBuffer* command_buffer = GetInstantCommandBuffer();
-		vkBeginCommandBuffer(command_buffer->commandBuffer, &beginInfo);
+		CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
 		VkBufferImageCopy region = {};
 		region.bufferOffset = 0;
@@ -937,26 +937,26 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 		region.imageExtent = { creation.width, creation.height, creation.depth };
 
 		// Transition
-		TransitionImageLayout(command_buffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, false);
+		TransitionImageLayout(commandBuffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, false);
 		// Copy
-		vkCmdCopyBufferToImage(command_buffer->commandBuffer, staging_buffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		vkCmdCopyBufferToImage(commandBuffer->commandBuffer, stagingBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 		// Transition
-		TransitionImageLayout(command_buffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, false);
+		TransitionImageLayout(commandBuffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, false);
 
-		vkEndCommandBuffer(command_buffer->commandBuffer);
+		vkEndCommandBuffer(commandBuffer->commandBuffer);
 
 		// Submit command buffer
 		VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &command_buffer->commandBuffer;
+		submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
 
 		vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(deviceQueue);
 
-		vmaDestroyBuffer(allocator, staging_buffer, staging_allocation);
+		vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 
 		// TODO: free command buffer
-		vkResetCommandBuffer(command_buffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+		vkResetCommandBuffer(commandBuffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
 		texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
@@ -981,7 +981,39 @@ SamplerHandle Renderer::CreateSampler(const SamplerCreation& creation)
 	SamplerHandle handle = { resourceIndex };
 	if (resourceIndex == INVALID_INDEX) { return handle; }
 
-	//Create
+	Sampler* sampler = AccessSampler(handle);
+
+	sampler->addressModeU = creation.addressModeU;
+	sampler->addressModeV = creation.addressModeV;
+	sampler->addressModeW = creation.addressModeW;
+	sampler->minFilter = creation.minFilter;
+	sampler->magFilter = creation.magFilter;
+	sampler->mipFilter = creation.mipFilter;
+	sampler->name = creation.name;
+
+	VkSamplerCreateInfo create_info{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+	create_info.addressModeU = creation.addressModeU;
+	create_info.addressModeV = creation.addressModeV;
+	create_info.addressModeW = creation.addressModeW;
+	create_info.minFilter = creation.minFilter;
+	create_info.magFilter = creation.magFilter;
+	create_info.mipmapMode = creation.mipFilter;
+	create_info.anisotropyEnable = 0;
+	create_info.compareEnable = 0;
+	create_info.unnormalizedCoordinates = 0;
+	create_info.borderColor = VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+	// TODO:
+	/*float                   mipLodBias;
+	float                   maxAnisotropy;
+	VkCompareOp             compareOp;
+	float                   minLod;
+	float                   maxLod;
+	VkBorderColor           borderColor;
+	VkBool32                unnormalizedCoordinates;*/
+
+	vkCreateSampler(device, &create_info, allocationCallbacks, &sampler->sampler);
+
+	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)sampler->sampler, creation.name);
 
 	return handle;
 }
@@ -992,7 +1024,47 @@ DescriptorSetLayoutHandle Renderer::CreateDescriptorSetLayout(const DescriptorSe
 	DescriptorSetLayoutHandle handle = { resourceIndex };
 	if (resourceIndex == INVALID_INDEX) { return handle; }
 
-	//Create
+	DesciptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(handle);
+
+	// TODO: add support for multiple sets.
+	// Create flattened binding list
+	descriptorSetLayout->numBindings = (U16)creation.numBindings;
+	U8* memory;
+	Memory::AllocateSize(&memory, (sizeof(VkDescriptorSetLayoutBinding) + sizeof(DescriptorBinding)) * creation.numBindings);
+	descriptorSetLayout->bindings = (DescriptorBinding*)memory;
+	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * creation.numBindings);
+	descriptorSetLayout->handle = handle;
+	descriptorSetLayout->setIndex = (U16)creation.setIndex;
+
+	U32 used_bindings = 0;
+	for (U32 r = 0; r < creation.numBindings; ++r)
+	{
+		DescriptorBinding& binding = descriptorSetLayout->bindings[r];
+		const DescriptorSetLayoutCreation::Binding& inputBinding = creation.bindings[r];
+		binding.start = inputBinding.start == U16_MAX ? (U16)r : inputBinding.start;
+		binding.count = 1;
+		binding.type = inputBinding.type;
+		binding.name = inputBinding.name;
+
+		VkDescriptorSetLayoutBinding& vkBinding = descriptorSetLayout->binding[used_bindings];
+		++used_bindings;
+
+		vkBinding.binding = binding.start;
+		vkBinding.descriptorType = inputBinding.type;
+		vkBinding.descriptorType = vkBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : vkBinding.descriptorType;
+		vkBinding.descriptorCount = 1;
+
+		// TODO:
+		vkBinding.stageFlags = VK_SHADER_STAGE_ALL;
+		vkBinding.pImmutableSamplers = nullptr;
+	}
+
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layout_info.bindingCount = used_bindings;// creation.numBindings;
+	layout_info.pBindings = descriptorSetLayout->binding;
+
+	vkCreateDescriptorSetLayout(device, &layout_info, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
 
 	return handle;
 }
