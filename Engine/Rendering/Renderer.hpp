@@ -32,7 +32,13 @@ private:
 
 	static void SetResourceName(VkObjectType type, U64 handle, CSTR name);
 
+
+	static void FrameCountersAdvance();
+	static void QueueCommandBuffer(CommandBuffer* commandBuffer);
+	static CommandBuffer* GetCommandBuffer(QueueType type, bool begin);
+	static CommandBuffer* GetInstantCommandBuffer();
 	static void CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture);
+	static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
 
 	static BufferHandle					CreateBuffer(const BufferCreation& creation);
 	static TextureHandle				CreateTexture(const TextureCreation& creation);

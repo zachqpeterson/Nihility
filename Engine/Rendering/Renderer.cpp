@@ -663,6 +663,86 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 	vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
 }
 
+void Renderer::FrameCountersAdvance()
+{
+	previousFrame = currentFrame;
+	currentFrame = (currentFrame + 1) % swapchainImageCount;
+
+	++absoluteFrame;
+}
+
+void Renderer::QueueCommandBuffer(CommandBuffer* commandBuffer)
+{
+	queuedCommandBuffers[numQueuedCommandBuffers++] = commandBuffer;
+}
+
+CommandBuffer* Renderer::GetCommandBuffer(QueueType type, bool begin)
+{
+	CommandBuffer* cb = commandBufferRing.GetCommandBuffer(currentFrame, begin);
+
+	// The first commandbuffer issued in the frame is used to reset the timestamp queries used.
+	if (timestampReset && begin)
+	{
+		// These are currently indices!
+		vkCmdResetQueryPool(cb->commandBuffer, timestampQueryPool, currentFrame * timestampManager->queriesPerFrame * 2, timestampManager->queriesPerFrame);
+
+		timestampReset = false;
+	}
+
+	return cb;
+}
+
+CommandBuffer* Renderer::GetInstantCommandBuffer()
+{
+	CommandBuffer* cb = commandBufferRing.GetCommandBufferInstant(currentFrame, false);
+	return cb;
+}
+
+void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth)
+{
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+	barrier.image = image;
+	barrier.subresourceRange.aspectMask = isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else
+	{
+		Logger::Error("Unsupported layout transition: {} -> {}!", oldLayout, newLayout);
+	}
+
+	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
 void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture)
 {
 	texture->width = creation.width;
@@ -814,7 +894,71 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 
 	if (creation.initialData)
 	{
+		VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
+		U32 imageSize = creation.width * creation.height * 4;
+		bufferInfo.size = imageSize;
+
+		VmaAllocationCreateInfo memory_info{};
+		memory_info.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+		memory_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		VmaAllocationInfo allocation_info{};
+		VkBuffer staging_buffer;
+		VmaAllocation staging_allocation;
+		VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memory_info,
+			&staging_buffer, &staging_allocation, &allocation_info));
+
+		// Copy buffer_data
+		void* destination_data;
+		vmaMapMemory(allocator, staging_allocation, &destination_data);
+		memcpy(destination_data, creation.initialData, static_cast<size_t>(imageSize));
+		vmaUnmapMemory(allocator, staging_allocation);
+
+		// Execute command buffer
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		CommandBuffer* command_buffer = GetInstantCommandBuffer();
+		vkBeginCommandBuffer(command_buffer->commandBuffer, &beginInfo);
+
+		VkBufferImageCopy region = {};
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		region.imageOffset = { 0, 0, 0 };
+		region.imageExtent = { creation.width, creation.height, creation.depth };
+
+		// Transition
+		TransitionImageLayout(command_buffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, false);
+		// Copy
+		vkCmdCopyBufferToImage(command_buffer->commandBuffer, staging_buffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		// Transition
+		TransitionImageLayout(command_buffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, false);
+
+		vkEndCommandBuffer(command_buffer->commandBuffer);
+
+		// Submit command buffer
+		VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &command_buffer->commandBuffer;
+
+		vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(deviceQueue);
+
+		vmaDestroyBuffer(allocator, staging_buffer, staging_allocation);
+
+		// TODO: free command buffer
+		vkResetCommandBuffer(command_buffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+		texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
 	return handle;
