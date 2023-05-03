@@ -700,7 +700,6 @@ CommandBuffer* Renderer::GetInstantCommandBuffer()
 
 void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth)
 {
-
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.oldLayout = oldLayout;
@@ -737,10 +736,156 @@ void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage imag
 	}
 	else
 	{
-		Logger::Error("Unsupported layout transition: {} -> {}!", oldLayout, newLayout);
+		Logger::Error("Unsupported layout transition: {} -> {}!", (U32)oldLayout, (U32)newLayout);
 	}
 
 	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
+void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
+	VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
+	VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings)
+{
+	U32 usedResources = 0;
+	for (U32 r = 0; r < numResources; ++r)
+	{
+		// Binding array contains the index into the resource layout binding to retrieve
+		// the correct binding informations.
+		U32 layoutBindingIndex = bindings[r];
+
+		const DescriptorBinding& binding = descriptorSetLayout->bindings[layoutBindingIndex];
+
+		U32 i = usedResources;
+		++usedResources;
+
+		descriptorWrite[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		descriptorWrite[i].dstSet = vkDescriptorSet;
+		// Use binding array to get final binding point.
+		const U32 binding_point = binding.start;
+		descriptorWrite[i].dstBinding = binding_point;
+		descriptorWrite[i].dstArrayElement = 0;
+		descriptorWrite[i].descriptorCount = 1;
+
+		switch (binding.type)
+		{
+		case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+		{
+			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+			TextureHandle texture_handle = { resources[r] };
+			Texture* textureData = AccessTexture(texture_handle);
+
+			// Find proper sampler.
+			// TODO: improve. Remove the single texture interface ?
+			imageInfo[i].sampler = vkDefaultSampler;
+			if (textureData->sampler)
+			{
+				imageInfo[i].sampler = textureData->sampler->sampler;
+			}
+			// TODO: else ?
+			if (samplers[r].index != INVALID_INDEX)
+			{
+				Sampler* sampler = AccessSampler({ samplers[r] });
+				imageInfo[i].sampler = sampler->sampler;
+			}
+
+			imageInfo[i].imageLayout = HasDepthOrStencil(textureData->format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo[i].imageView = textureData->imageView;
+
+			descriptorWrite[i].pImageInfo = &imageInfo[i];
+
+			break;
+		}
+
+		case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+		{
+			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+			TextureHandle texture_handle = { resources[r] };
+			Texture* textureData = AccessTexture(texture_handle);
+
+			imageInfo[i].sampler = nullptr;
+			imageInfo[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			imageInfo[i].imageView = textureData->imageView;
+
+			descriptorWrite[i].pImageInfo = &imageInfo[i];
+
+			break;
+		}
+
+		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+		{
+			BufferHandle buffer_handle = { resources[r] };
+			Buffer* buffer = AccessBuffer(buffer_handle);
+
+			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite[i].descriptorType = buffer->usage == RESOURCE_USAGE_DYNAMIC ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+			// Bind parent buffer if present, used for dynamic resources.
+			if (buffer->parentBuffer.index != INVALID_INDEX)
+			{
+				Buffer* parentBuffer = AccessBuffer(buffer->parentBuffer);
+
+				bufferInfo[i].buffer = parentBuffer->buffer;
+			}
+			else
+			{
+				bufferInfo[i].buffer = buffer->buffer;
+			}
+
+			bufferInfo[i].offset = 0;
+			bufferInfo[i].range = buffer->size;
+
+			descriptorWrite[i].pBufferInfo = &bufferInfo[i];
+
+			break;
+		}
+
+		case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+		{
+			BufferHandle buffer_handle = { resources[r] };
+			Buffer* buffer = AccessBuffer(buffer_handle);
+
+			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			// Bind parent buffer if present, used for dynamic resources.
+			if (buffer->parentBuffer.index != INVALID_INDEX)
+			{
+				Buffer* parentBuffer = AccessBuffer(buffer->parentBuffer);
+
+				bufferInfo[i].buffer = parentBuffer->buffer;
+			}
+			else
+			{
+				bufferInfo[i].buffer = buffer->buffer;
+			}
+
+			bufferInfo[i].offset = 0;
+			bufferInfo[i].range = buffer->size;
+
+			descriptorWrite[i].pBufferInfo = &bufferInfo[i];
+
+			break;
+		}
+
+		default:
+		{
+			Logger::Fatal("Resource type {} not supported in descriptor set creation!", (U32)binding.type);
+			break;
+		}
+		}
+	}
+
+	numResources = usedResources;
+}
+
+VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShaderStageFlagBits stage, CSTR name)
+{
+
+}
+
+void Renderer::DumpShaderCode(CSTR code, VkShaderStageFlagBits stage, CSTR name)
+{
+
 }
 
 void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture)
@@ -1075,7 +1220,46 @@ DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& c
 	DescriptorSetHandle handle = { resourceIndex };
 	if (resourceIndex == INVALID_INDEX) { return handle; }
 
-	//Create
+	DesciptorSet* descriptorSet = AccessDescriptorSet(handle);
+	const DesciptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(creation.layout);
+
+	// Allocate descriptor set
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &descriptorSetLayout->descriptorSetLayout;
+
+	VkValidate(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet->descriptorSet));
+
+	// Cache data
+	U8* memory;
+	Memory::AllocateSize(&memory, (sizeof(ResourceHandle) + sizeof(SamplerHandle) + sizeof(U16)) * creation.numResources);
+	descriptorSet->resources = (ResourceHandle*)memory;
+	descriptorSet->samplers = (SamplerHandle*)(memory + sizeof(ResourceHandle) * creation.numResources);
+	descriptorSet->bindings = (U16*)(memory + (sizeof(ResourceHandle) + sizeof(SamplerHandle)) * creation.numResources);
+	descriptorSet->numResources = creation.numResources;
+	descriptorSet->layout = descriptorSetLayout;
+
+	// Update descriptor set
+	VkWriteDescriptorSet descriptorWrite[8];
+	VkDescriptorBufferInfo bufferInfo[8];
+	VkDescriptorImageInfo imageInfo[8];
+
+	Sampler* vkDefaultSampler = AccessSampler(defaultSampler);
+
+	U32 numResources = creation.numResources;
+	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, vkDefaultSampler->sampler,
+		numResources, creation.resources, creation.samplers, creation.bindings);
+
+	// Cache resources
+	for (U32 r = 0; r < creation.numResources; r++)
+	{
+		descriptorSet->resources[r] = creation.resources[r];
+		descriptorSet->samplers[r] = creation.samplers[r];
+		descriptorSet->bindings[r] = creation.bindings[r];
+	}
+
+	vkUpdateDescriptorSets(device, numResources, descriptorWrite, 0, nullptr);
 
 	return handle;
 }
@@ -1086,18 +1270,141 @@ RenderPassHandle Renderer::CreateRenderPass(const RenderPassCreation& creation)
 	RenderPassHandle handle = { resourceIndex };
 	if (resourceIndex == INVALID_INDEX) { return handle; }
 
-	//Create
+	RenderPass* renderPass = AccessRenderPass(handle);
+	renderPass->type = creation.type;
+	// Init the rest of the struct.
+	renderPass->numRenderTargets = (U8)creation.numRenderTargets;
+	renderPass->dispatchX = 0;
+	renderPass->dispatchY = 0;
+	renderPass->dispatchZ = 0;
+	renderPass->name = creation.name;
+	renderPass->frameBuffer = nullptr;
+	renderPass->renderPass = nullptr;
+	renderPass->scaleX = creation.scaleX;
+	renderPass->scaleY = creation.scaleY;
+	renderPass->resize = creation.resize;
+
+	// Cache texture handles
+	U32 c = 0;
+	for (; c < creation.numRenderTargets; ++c)
+	{
+		Texture* texture = AccessTexture(creation.outputTextures[c]);
+
+		renderPass->width = texture->width;
+		renderPass->height = texture->height;
+
+		// Cache texture handles
+		renderPass->outputTextures[c] = creation.outputTextures[c];
+	}
+
+	renderPass->outputDepth = creation.depthStencilTexture;
+
+	switch (creation.type)
+	{
+	case RENDER_PASS_TYPE_SWAPCHAIN:
+	{
+		CreateSwapchainPass(creation, renderPass);
+
+		break;
+	}
+
+	case RENDER_PASS_TYPE_COMPUTE:
+	{
+		break;
+	}
+
+	case RENDER_PASS_TYPE_GEOMETRY:
+	{
+		renderPass->output = FillRenderPassOutput(creation);
+		renderPass->renderPass = GetVulkanRenderPass(renderPass->output, creation.name);
+
+		CreateFramebuffer(renderPass, creation.outputTextures, creation.numRenderTargets, creation.depthStencilTexture);
+
+		break;
+	}
+	}
 
 	return handle;
 }
 
 ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creation)
 {
-	U32 resourceIndex = shaders.ObtainResource();
-	ShaderStateHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	ShaderStateHandle handle = { INVALID_INDEX };
 
-	//Create
+	if (creation.stagesCount == 0 || creation.stages == nullptr)
+	{
+		Logger::Error("Shader {} does not contain shader stages!", creation.name);
+		return handle;
+	}
+
+	handle.index = shaders.ObtainResource();
+	if (handle.index == INVALID_INDEX) { return handle; }
+
+	// For each shader stage, compile them individually.
+	U32 compiledShaders = 0;
+
+	ShaderState* shaderState = AccessShaderState(handle);
+	shaderState->graphicsPipeline = true;
+	shaderState->activeShaders = 0;
+
+	for (compiledShaders = 0; compiledShaders < creation.stagesCount; ++compiledShaders)
+	{
+		const ShaderStage& stage = creation.stages[compiledShaders];
+
+		// Gives priority to compute: if any is present (and it should not be) then it is not a graphics pipeline.
+		if (stage.type == VK_SHADER_STAGE_COMPUTE_BIT)
+		{
+			shaderState->graphicsPipeline = false;
+		}
+
+		VkShaderModuleCreateInfo shaderInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+
+		if (creation.spvInput)
+		{
+			shaderInfo.codeSize = stage.codeSize;
+			shaderInfo.pCode = reinterpret_cast<const U32*>(stage.code);
+		}
+		else
+		{
+			shaderInfo = CompileShader(stage.code, stage.codeSize, stage.type, creation.name);
+		} 
+
+		// Compile shader module
+		VkPipelineShaderStageCreateInfo& shader_stage_info = shaderState->shaderStageInfos[compiledShaders];
+		memset(&shader_stage_info, 0, sizeof(VkPipelineShaderStageCreateInfo));
+		shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shader_stage_info.pName = "main";
+		shader_stage_info.stage = stage.type;
+
+		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS)
+		{
+
+			break;
+		}
+
+		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderState->shaderStageInfos[compiledShaders].module, creation.name);
+	}
+
+	bool creationFailed = compiledShaders != creation.stagesCount;
+	if (!creationFailed)
+	{
+		shaderState->activeShaders = compiledShaders;
+		shaderState->name = creation.name;
+	}
+
+	if (creationFailed)
+	{
+		DestroyShaderState(handle);
+		handle.index = INVALID_INDEX;
+
+		// Dump shader code
+		Logger::Error("Error in creation of shader {}! Dumping all shader informations...", creation.name);
+		for (compiledShaders = 0; compiledShaders < creation.stagesCount; ++compiledShaders)
+		{
+			const ShaderStage& stage = creation.stages[compiledShaders];
+			Logger::Error("{}:\n{}", (U32)stage.type, stage.code);
+		}
+	}
 
 	return handle;
 }

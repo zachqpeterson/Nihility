@@ -39,6 +39,11 @@ private:
 	static CommandBuffer* GetInstantCommandBuffer();
 	static void CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture);
 	static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
+	static void FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
+		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
+		VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings);
+	static VkShaderModuleCreateInfo CompileShader(CSTR code, U32 codeSize, VkShaderStageFlagBits stage, CSTR name);
+	static void DumpShaderCode(CSTR code, VkShaderStageFlagBits stage, CSTR name);
 
 	static BufferHandle					CreateBuffer(const BufferCreation& creation);
 	static TextureHandle				CreateTexture(const TextureCreation& creation);
