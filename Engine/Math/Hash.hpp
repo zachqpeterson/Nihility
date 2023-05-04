@@ -171,8 +171,8 @@ static inline U64 Hash(const Type& value, U64 seed = 0)
 			seed ^= seed1 ^ seed2;
 		}
 
-		while (i > 16) 
-		{ 
+		while (i > 16)
+		{
 			seed = Mix(Read8(p) ^ secret1, Read8(p + 8) ^ seed);
 			i -= 16;
 			p += 16;
