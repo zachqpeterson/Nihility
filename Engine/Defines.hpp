@@ -88,6 +88,15 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #	error "Unknown platform!"
 #endif
 
+#if defined PLATFORM_WINDOWS || defined __LITTLE_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define NH_LITTLE_ENDIAN
+#elif defined __BIG_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define NH_BIG_ENDIAN
+#else
+#warning "could not determine endianness! Falling back to little endian..."
+#define NH_LITTLE_ENDIAN
+#endif
+
 /*---------PLATFORM MACROS---------*/
 
 #ifdef _DEBUG

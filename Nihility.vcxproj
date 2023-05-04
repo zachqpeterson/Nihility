@@ -119,8 +119,10 @@
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\External\vk_mem_alloc.h" />
+    <ClInclude Include="Engine\Math\Hash.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
+    <ClInclude Include="Engine\Math\Random.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />

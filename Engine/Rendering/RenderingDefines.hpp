@@ -674,6 +674,24 @@ static VkImageViewType ToVkImageViewType(TextureType type)
 	return vkData[type];
 }
 
+static VkFormat ToVkVertexFormat(VertexComponentFormat value)
+{
+	// Float, Float2, Float3, Float4, Mat4, Byte, Byte4N, UByte, UByte4N, Short2, Short2N, Short4, Short4N, Uint, Uint2, Uint4, Count
+	static VkFormat vkVertexFormats[VERTEX_COMPONENT_COUNT] = { VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, /*MAT4 TODO*/ VK_FORMAT_R32G32B32A32_SFLOAT,
+																		  VK_FORMAT_R8_SINT, VK_FORMAT_R8G8B8A8_SNORM, VK_FORMAT_R8_UINT, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R16G16_SINT, VK_FORMAT_R16G16_SNORM,
+																		  VK_FORMAT_R16G16B16A16_SINT, VK_FORMAT_R16G16B16A16_SNORM, VK_FORMAT_R32_UINT, VK_FORMAT_R32G32_UINT, VK_FORMAT_R32G32B32A32_UINT };
+
+	return vkVertexFormats[value];
+}
+
+//
+//
+static VkPipelineStageFlags ToVkPipelineStage(PipelineStage value)
+{
+	static VkPipelineStageFlags vkValues[] = { VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT };
+	return vkValues[value];
+}
+
 /*---------STRUCTURES---------*/
 
 struct Rect2D 
@@ -953,7 +971,7 @@ struct PipelineCreation
 	ShaderStateCreation			shaders;
 
 	RenderPassOutput			renderPass;
-	DescriptorSetLayoutHandle	descriptorSetLayout[MAX_DESCRIPTOR_SET_LAYOUTS];
+	DescriptorSetLayoutHandle	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 	const ViewportState*		viewport = nullptr;
 
 	U32							numActiveLayouts = 0;

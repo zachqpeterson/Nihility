@@ -336,7 +336,7 @@ bool Renderer::GetFamilyQueue(VkPhysicalDevice gpu)
 bool Renderer::CreateDevice()
 {
 	const F32 queuePriorities[]{ 1.0f };
-	VkDeviceQueueCreateInfo queueInfo[1] { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+	VkDeviceQueueCreateInfo queueInfo[1]{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
 	queueInfo[0].queueFamilyIndex = queueFamilyIndex;
 	queueInfo[0].queueCount = 1;
 	queueInfo[0].pQueuePriorities = queuePriorities;
@@ -507,7 +507,7 @@ bool Renderer::CreatePools()
 
 	VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &descriptorPool));
 
-	VkQueryPoolCreateInfo queryPoolInfo{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,  };
+	VkQueryPoolCreateInfo queryPoolInfo{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, };
 	queryPoolInfo.pNext = nullptr;
 	queryPoolInfo.flags = 0;
 	queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
@@ -888,6 +888,325 @@ void Renderer::DumpShaderCode(CSTR code, VkShaderStageFlagBits stage, CSTR name)
 
 }
 
+VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name)
+{
+	VkAttachmentDescription colorAttachments[8] = {};
+	VkAttachmentReference colorAttachmentsRef[8] = {};
+
+	VkAttachmentLoadOp colorOp, depthOp, stencilOp;
+	VkImageLayout colorInitial, depthInitial;
+
+	switch (output.colorOperation)
+	{
+	case RENDER_PASS_OP_LOAD: {
+		colorOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	} break;
+	case RENDER_PASS_OP_CLEAR: {
+		colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	} break;
+	default: {
+		colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorInitial = VK_IMAGE_LAYOUT_UNDEFINED;
+	} break;
+	}
+
+	switch (output.depthOperation)
+	{
+	case RENDER_PASS_OP_LOAD: {
+		depthOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	} break;
+	case RENDER_PASS_OP_CLEAR: {
+		depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	} break;
+	default: {
+		depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthInitial = VK_IMAGE_LAYOUT_UNDEFINED;
+	} break;
+	}
+
+	switch (output.stencilOperation)
+	{
+	case RENDER_PASS_OP_LOAD: {
+		stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	} break;
+	case RENDER_PASS_OP_CLEAR: {
+		stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	} break;
+	default: {
+		stencilOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	} break;
+	}
+
+	// Color attachments
+	U32 c = 0;
+	for (; c < output.numColorFormats; ++c)
+	{
+		VkAttachmentDescription& colorAttachment = colorAttachments[c];
+		colorAttachment.format = output.colorFormats[c];
+		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.loadOp = colorOp;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.stencilLoadOp = stencilOp;
+		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.initialLayout = colorInitial;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference& colorAttachmentRef = colorAttachmentsRef[c];
+		colorAttachmentRef.attachment = c;
+		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	}
+
+	// Depth attachment
+	VkAttachmentDescription depthAttachment{};
+	VkAttachmentReference depthAttachmentRef{};
+
+	if (output.depthStencilFormat != VK_FORMAT_UNDEFINED)
+	{
+		depthAttachment.format = output.depthStencilFormat;
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = depthOp;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttachment.stencilLoadOp = stencilOp;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = depthInitial;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		depthAttachmentRef.attachment = c;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	}
+
+	// Create subpass.
+	// TODO: for now is just a simple subpass, evolve API.
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	// Calculate active attachments for the subpass
+	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
+	U32 activeAttachments = 0;
+	for (; activeAttachments < output.numColorFormats; ++activeAttachments)
+	{
+		attachments[activeAttachments] = colorAttachments[activeAttachments];
+		++activeAttachments;
+	}
+	subpass.colorAttachmentCount = activeAttachments ? activeAttachments - 1 : 0;
+	subpass.pColorAttachments = colorAttachmentsRef;
+
+	subpass.pDepthStencilAttachment = nullptr;
+
+	U32 depthStencilCount = 0;
+	if (output.depthStencilFormat != VK_FORMAT_UNDEFINED)
+	{
+		attachments[subpass.colorAttachmentCount] = depthAttachment;
+
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+		depthStencilCount = 1;
+	}
+
+	VkRenderPassCreateInfo renderPassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+
+	renderPassInfo.attachmentCount = (activeAttachments ? activeAttachments - 1 : 0) + depthStencilCount;
+	renderPassInfo.pAttachments = attachments;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+
+	// Create external subpass dependencies
+	//VkSubpassDependency external_dependencies[ 16 ];
+	//u32 num_external_dependencies = 0;
+
+	VkRenderPass renderPass;
+	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+
+	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass, name);
+
+	return renderPass;
+}
+
+VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
+{
+	// Hash the memory output and find a compatible VkRenderPass.
+	// In current form RenderPassOutput should track everything needed, including load operations.
+	//TODO: Hash memory
+	U64 hashedMemory = raptor::hash_bytes((void*)&output, sizeof(RenderPassOutput));
+	VkRenderPass renderPass;
+	renderPassCache.Get(hashedMemory, renderPass);
+	if (renderPass)
+	{
+		return renderPass;
+	}
+	renderPass = CreateVulkanRenderPass(output, name);
+	renderPassCache.Insert(hashedMemory, renderPass);
+
+	return renderPass;
+}
+
+void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPass* renderPass)
+{
+	// Color attachment
+	VkAttachmentDescription colorAttachment = {};
+	colorAttachment.format = surfaceFormat.format;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentRef = {};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	// Depth attachment
+	VkAttachmentDescription depthAttachment{};
+	Texture* depthTextureVk = AccessTexture(depthTexture);
+	depthAttachment.format = depthTextureVk->format;
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef{};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+	VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
+	VkRenderPassCreateInfo renderPassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	renderPassInfo.attachmentCount = 2;
+	renderPassInfo.pAttachments = attachments;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+
+	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass->renderPass));
+
+	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, creation.name);
+
+	// Create framebuffer into the device.
+	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+	framebufferInfo.renderPass = renderPass->renderPass;
+	framebufferInfo.attachmentCount = 2;
+	framebufferInfo.width = swapchainWidth;
+	framebufferInfo.height = swapchainHeight;
+	framebufferInfo.layers = 1;
+
+	VkImageView framebufferAttachments[2];
+	framebufferAttachments[1] = depthTextureVk->imageView;
+
+	for (size_t i = 0; i < swapchainImageCount; i++)
+	{
+		framebufferAttachments[0] = swapchainImageViews[i];
+		framebufferInfo.pAttachments = framebufferAttachments;
+
+		vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchainFramebuffers[i]);
+		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchainFramebuffers[i], creation.name);
+	}
+
+	renderPass->width = swapchainWidth;
+	renderPass->height = swapchainHeight;
+
+	// Manually transition the texture
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
+
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { swapchainWidth, swapchainHeight, 1 };
+
+	// Transition
+	for (size_t i = 0; i < swapchainImageCount; i++)
+	{
+		TransitionImageLayout(commandBuffer->commandBuffer, swapchainImages[i], surfaceFormat.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, false);
+	}
+
+	vkEndCommandBuffer(commandBuffer->commandBuffer);
+
+	// Submit command buffer
+	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
+
+	vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(deviceQueue);
+}
+
+void Renderer::CreateFramebuffer(RenderPass* renderPass, const TextureHandle* outputTextures, U32 numRenderTargets, TextureHandle depthStencilTexture)
+{
+	// Create framebuffer
+	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+	framebufferInfo.renderPass = renderPass->renderPass;
+	framebufferInfo.width = renderPass->width;
+	framebufferInfo.height = renderPass->height;
+	framebufferInfo.layers = 1;
+
+	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1]{};
+	U32 activeAttachments = 0;
+	for (; activeAttachments < numRenderTargets; ++activeAttachments)
+	{
+		Texture* textureVk = AccessTexture(outputTextures[activeAttachments]);
+		framebufferAttachments[activeAttachments] = textureVk->imageView;
+	}
+
+	if (depthStencilTexture.index != INVALID_INDEX)
+	{
+		Texture* depthTextureVk = AccessTexture(depthStencilTexture);
+		framebufferAttachments[activeAttachments++] = depthTextureVk->imageView;
+	}
+	framebufferInfo.pAttachments = framebufferAttachments;
+	framebufferInfo.attachmentCount = activeAttachments;
+
+	vkCreateFramebuffer(device, &framebufferInfo, nullptr, &renderPass->frameBuffer);
+	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffer, renderPass->name);
+}
+
+RenderPassOutput Renderer::FillRenderPassOutput(const RenderPassCreation& creation)
+{
+	RenderPassOutput output;
+	output.Reset();
+
+	for (U32 i = 0; i < creation.numRenderTargets; ++i)
+	{
+		Texture* texture_vk = AccessTexture(creation.outputTextures[i]);
+		output.Color(texture_vk->format);
+	}
+	if (creation.depthStencilTexture.index != INVALID_INDEX)
+	{
+		Texture* texture_vk = AccessTexture(creation.depthStencilTexture);
+		output.Depth(texture_vk->format);
+	}
+
+	output.colorOperation = creation.colorOperation;
+	output.depthOperation = creation.depthOperation;
+	output.stencilOperation = creation.stencilOperation;
+
+	return output;
+}
+
 void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture)
 {
 	texture->width = creation.width;
@@ -1115,7 +1434,246 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 	PipelineHandle handle = { resourceIndex };
 	if (resourceIndex == INVALID_INDEX) { return handle; }
 
-	//Create
+	ShaderStateHandle shaderState = CreateShaderState(creation.shaders);
+	if (shaderState.index == INVALID_INDEX)
+	{
+		// Shader did not compile.
+		pipelines.ReleaseResource(handle.index);
+		handle.index = INVALID_INDEX;
+
+		return handle;
+	}
+
+	// Now that shaders have compiled we can create the pipeline.
+	Pipeline* pipeline = AccessPipeline(handle);
+	ShaderState* shaderStateData = AccessShaderState(shaderState);
+
+	pipeline->shaderState = shaderState;
+
+	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+
+	// Create VkPipelineLayout
+	for (U32 l = 0; l < creation.numActiveLayouts; ++l)
+	{
+		pipeline->descriptorSetLayouts[l] = AccessDescriptorSetLayout(creation.descriptorSetLayouts[l]);
+		pipeline->descriptorSetLayoutHandles[l] = creation.descriptorSetLayouts[l];
+
+		vkLayouts[l] = pipeline->descriptorSetLayouts[l]->descriptorSetLayout;
+	}
+
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipelineLayoutInfo.pSetLayouts = vkLayouts;
+	pipelineLayoutInfo.setLayoutCount = creation.numActiveLayouts;
+
+	VkPipelineLayout pipelineLayout;
+	VkValidate(vkCreatePipelineLayout(device, &pipelineLayoutInfo, allocationCallbacks, &pipelineLayout));
+	// Cache pipeline layout
+	pipeline->pipelineLayout = pipelineLayout;
+	pipeline->numActiveLayouts = creation.numActiveLayouts;
+
+	// Create full pipeline
+	if (shaderStateData->graphicsPipeline)
+	{
+		VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+
+		//// Shader stage
+		pipelineInfo.pStages = shaderStateData->shaderStageInfos;
+		pipelineInfo.stageCount = shaderStateData->activeShaders;
+		//// PipelineLayout
+		pipelineInfo.layout = pipelineLayout;
+
+		//// Vertex input
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+
+		// Vertex attributes.
+		VkVertexInputAttributeDescription vertexAttributes[8];
+		if (creation.vertexInput.numVertexAttributes)
+		{
+
+			for (U32 i = 0; i < creation.vertexInput.numVertexAttributes; ++i)
+			{
+				const VertexAttribute& vertexAttribute = creation.vertexInput.vertexAttributes[i];
+				vertexAttributes[i] = { vertexAttribute.location, vertexAttribute.binding, ToVkVertexFormat(vertexAttribute.format), vertexAttribute.offset };
+			}
+
+			vertexInputInfo.vertexAttributeDescriptionCount = creation.vertexInput.numVertexAttributes;
+			vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes;
+		}
+		else
+		{
+			vertexInputInfo.vertexAttributeDescriptionCount = 0;
+			vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+		}
+		// Vertex bindings
+		VkVertexInputBindingDescription vertexBindings[8];
+		if (creation.vertexInput.numVertexStreams)
+		{
+			vertexInputInfo.vertexBindingDescriptionCount = creation.vertexInput.numVertexStreams;
+
+			for (U32 i = 0; i < creation.vertexInput.numVertexStreams; ++i)
+			{
+				const VertexStream& vertexStream = creation.vertexInput.vertexStreams[i];
+				VkVertexInputRate vertexRate = vertexStream.inputRate == VERTEX_INPUT_RATE_VERTEX ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
+				vertexBindings[i] = { vertexStream.binding, vertexStream.stride, vertexRate };
+			}
+			vertexInputInfo.pVertexBindingDescriptions = vertexBindings;
+		}
+		else
+		{
+			vertexInputInfo.vertexBindingDescriptionCount = 0;
+			vertexInputInfo.pVertexBindingDescriptions = nullptr;
+		}
+
+		pipelineInfo.pVertexInputState = &vertexInputInfo;
+
+		//// Input Assembly
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+		pipelineInfo.pInputAssemblyState = &inputAssembly;
+
+		//// Color Blending
+		VkPipelineColorBlendAttachmentState colorBlendAttachment[8];
+
+		if (creation.blendState.activeStates)
+		{
+			for (size_t i = 0; i < creation.blendState.activeStates; i++)
+			{
+				const BlendState& blendState = creation.blendState.blendStates[i];
+
+				colorBlendAttachment[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				colorBlendAttachment[i].blendEnable = blendState.blendEnabled ? VK_TRUE : VK_FALSE;
+				colorBlendAttachment[i].srcColorBlendFactor = blendState.sourceColor;
+				colorBlendAttachment[i].dstColorBlendFactor = blendState.destinationColor;
+				colorBlendAttachment[i].colorBlendOp = blendState.colorOperation;
+
+				if (blendState.separateBlend)
+				{
+					colorBlendAttachment[i].srcAlphaBlendFactor = blendState.sourceAlpha;
+					colorBlendAttachment[i].dstAlphaBlendFactor = blendState.destinationAlpha;
+					colorBlendAttachment[i].alphaBlendOp = blendState.alphaOperation;
+				}
+				else
+				{
+					colorBlendAttachment[i].srcAlphaBlendFactor = blendState.sourceColor;
+					colorBlendAttachment[i].dstAlphaBlendFactor = blendState.destinationColor;
+					colorBlendAttachment[i].alphaBlendOp = blendState.colorOperation;
+				}
+			}
+		}
+		else
+		{
+			// Default non blended state
+			colorBlendAttachment[0] = {};
+			colorBlendAttachment[0].blendEnable = VK_FALSE;
+			colorBlendAttachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		}
+
+		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
+		colorBlending.attachmentCount = creation.blendState.activeStates ? creation.blendState.activeStates : 1; // Always have 1 blend defined.
+		colorBlending.pAttachments = colorBlendAttachment;
+		colorBlending.blendConstants[0] = 0.0f; // Optional
+		colorBlending.blendConstants[1] = 0.0f; // Optional
+		colorBlending.blendConstants[2] = 0.0f; // Optional
+		colorBlending.blendConstants[3] = 0.0f; // Optional
+
+		pipelineInfo.pColorBlendState = &colorBlending;
+
+		//// Depth Stencil
+		VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+
+		depthStencil.depthWriteEnable = creation.depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
+		depthStencil.stencilTestEnable = creation.depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
+		depthStencil.depthTestEnable = creation.depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
+		depthStencil.depthCompareOp = creation.depthStencil.depthComparison;
+		if (creation.depthStencil.stencilEnable)
+		{
+			// TODO: add stencil
+			Logger::Error("");
+		}
+
+		pipelineInfo.pDepthStencilState = &depthStencil;
+
+		//// Multisample
+		VkPipelineMultisampleStateCreateInfo multisampling = {};
+		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.sampleShadingEnable = VK_FALSE;
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampling.minSampleShading = 1.0f; // Optional
+		multisampling.pSampleMask = nullptr; // Optional
+		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
+		multisampling.alphaToOneEnable = VK_FALSE; // Optional
+
+		pipelineInfo.pMultisampleState = &multisampling;
+
+		//// Rasterizer
+		VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+		rasterizer.depthClampEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.lineWidth = 1.0f;
+		rasterizer.cullMode = creation.rasterization.cullMode;
+		rasterizer.frontFace = creation.rasterization.front;
+		rasterizer.depthBiasEnable = VK_FALSE;
+		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
+		rasterizer.depthBiasClamp = 0.0f; // Optional
+		rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+
+		pipelineInfo.pRasterizationState = &rasterizer;
+
+		//// Tessellation
+		pipelineInfo.pTessellationState;
+
+		//// Viewport state
+		VkViewport viewport = {};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = (F32)swapchainWidth;
+		viewport.height = (F32)swapchainHeight;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		VkRect2D scissor = {};
+		scissor.offset = { 0, 0 };
+		scissor.extent = { swapchainWidth, swapchainHeight };
+
+		VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+		viewportState.viewportCount = 1;
+		viewportState.pViewports = &viewport;
+		viewportState.scissorCount = 1;
+		viewportState.pScissors = &scissor;
+
+		pipelineInfo.pViewportState = &viewportState;
+
+		//// Render Pass
+		pipelineInfo.renderPass = GetRenderPass(creation.renderPass, creation.name);
+
+		//// Dynamic states
+		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
+		dynamicState.pDynamicStates = dynamicStates;
+
+		pipelineInfo.pDynamicState = &dynamicState;
+
+		vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
+
+		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+	}
+	else
+	{
+		VkComputePipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+
+		pipelineInfo.stage = shaderStateData->shaderStageInfos[0];
+		pipelineInfo.layout = pipelineLayout;
+
+		vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
+
+		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
 
 	return handle;
 }
@@ -1301,27 +1859,16 @@ RenderPassHandle Renderer::CreateRenderPass(const RenderPassCreation& creation)
 
 	switch (creation.type)
 	{
-	case RENDER_PASS_TYPE_SWAPCHAIN:
-	{
+	case RENDER_PASS_TYPE_SWAPCHAIN: {
 		CreateSwapchainPass(creation, renderPass);
-
-		break;
-	}
-
-	case RENDER_PASS_TYPE_COMPUTE:
-	{
-		break;
-	}
-
-	case RENDER_PASS_TYPE_GEOMETRY:
-	{
+	} break;
+	case RENDER_PASS_TYPE_COMPUTE: {} break;
+	case RENDER_PASS_TYPE_GEOMETRY: {
 		renderPass->output = FillRenderPassOutput(creation);
-		renderPass->renderPass = GetVulkanRenderPass(renderPass->output, creation.name);
+		renderPass->renderPass = GetRenderPass(renderPass->output, creation.name);
 
 		CreateFramebuffer(renderPass, creation.outputTextures, creation.numRenderTargets, creation.depthStencilTexture);
-
-		break;
-	}
+	} break;
 	}
 
 	return handle;
@@ -1367,7 +1914,7 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 		else
 		{
 			shaderInfo = CompileShader(stage.code, stage.codeSize, stage.type, creation.name);
-		} 
+		}
 
 		// Compile shader module
 		VkPipelineShaderStageCreateInfo& shader_stage_info = shaderState->shaderStageInfos[compiledShaders];
@@ -1510,42 +2057,97 @@ void Renderer::DestroyShaderState(ShaderStateHandle shader)
 
 void Renderer::DestroyBufferInstant(ResourceHandle buffer)
 {
+	Buffer* v_buffer = (Buffer*)buffers.GetResource(buffer);
 
+	if (v_buffer && v_buffer->parentBuffer.index == INVALID_BUFFER.index)
+	{
+		vmaDestroyBuffer(allocator, v_buffer->buffer, v_buffer->allocation);
+	}
+	buffers.ReleaseResource(buffer);
 }
 
 void Renderer::DestroyTextureInstant(ResourceHandle texture)
 {
+	Texture* v_texture = (Texture*)textures.GetResource(texture);
 
+	if (v_texture)
+	{
+		vkDestroyImageView(device, v_texture->imageView, allocationCallbacks);
+		vmaDestroyImage(allocator, v_texture->image, v_texture->allocation);
+	}
+	textures.ReleaseResource(texture);
 }
 
 void Renderer::DestroyPipelineInstant(ResourceHandle pipeline)
 {
+	Pipeline* v_pipeline = (Pipeline*)pipelines.GetResource(pipeline);
 
+	if (v_pipeline)
+	{
+		vkDestroyPipeline(device, v_pipeline->pipeline, allocationCallbacks);
+
+		vkDestroyPipelineLayout(device, v_pipeline->pipelineLayout, allocationCallbacks);
+	}
+	pipelines.ReleaseResource(pipeline);
 }
 
 void Renderer::DestroySamplerInstant(ResourceHandle sampler)
 {
+	Sampler* v_sampler = (Sampler*)samplers.GetResource(sampler);
 
+	if (v_sampler)
+	{
+		vkDestroySampler(device, v_sampler->sampler, allocationCallbacks);
+	}
+	samplers.ReleaseResource(sampler);
 }
 
 void Renderer::DestroyDescriptorSetLayoutInstant(ResourceHandle layout)
 {
+	DesciptorSetLayout* v_descriptorSetLayout = (DesciptorSetLayout*)descriptorSetLayouts.GetResource(layout);
 
+	if (v_descriptorSetLayout)
+	{
+		vkDestroyDescriptorSetLayout(device, v_descriptorSetLayout->descriptorSetLayout, allocationCallbacks);
+
+		Memory::FreeSize(&v_descriptorSetLayout->bindings);
+	}
+	descriptorSetLayouts.ReleaseResource(layout);
 }
 
 void Renderer::DestroyDescriptorSetInstant(ResourceHandle set)
 {
+	DesciptorSet* v_descriptorSet = (DesciptorSet*)descriptorSets.GetResource(set);
 
+	if (v_descriptorSet)
+	{
+		Memory::FreeSize(&v_descriptorSet->resources);
+	}
+	descriptorSets.ReleaseResource(set);
 }
 
 void Renderer::DestroyRenderPassInstant(ResourceHandle renderPass)
 {
+	RenderPass* v_renderPass = (RenderPass*)renderPasses.GetResource(renderPass);
 
+	if (v_renderPass)
+	{
+		if (v_renderPass->numRenderTargets) { vkDestroyFramebuffer(device, v_renderPass->frameBuffer, allocationCallbacks); }
+	}
+	renderPasses.ReleaseResource(renderPass);
 }
 
 void Renderer::DestroyShaderStateInstant(ResourceHandle shader)
 {
-
+	ShaderState* v_shaderState = (ShaderState*)shaders.GetResource(shader);
+	if (v_shaderState)
+	{
+		for (size_t i = 0; i < v_shaderState->activeShaders; i++)
+		{
+			vkDestroyShaderModule(device, v_shaderState->shaderStageInfos[i].module, allocationCallbacks);
+		}
+	}
+	shaders.ReleaseResource(shader);
 }
 
 ShaderState* Renderer::AccessShaderState(ShaderStateHandle shader)
