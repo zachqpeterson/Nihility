@@ -134,6 +134,9 @@ static inline U64 wytrand(U64* seed)
 //fast range integer random number generation on [0,k) credit to Daniel Lemire. May not work when WYHASH_32BIT_MUM=1. It can be combined with wyrand, wyhash64 or wyhash.
 static inline U64 wy2u0k(U64 r, U64 k) { Multiply(r, k); return k; }
 
+//TODO: Hash string
+//TODO: Hash memory
+
 template<class Type>
 static inline U64 Hash(const Type& value, U64 seed = 0)
 {
