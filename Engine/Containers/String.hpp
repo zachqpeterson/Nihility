@@ -423,6 +423,9 @@ struct NH_API StringBase
 	template<typename PreArg, typename PostArg> void Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const;
 	void Split(Vector<StringBase>& list, T delimiter, bool trimEntries) const;
 
+	void ToUpper();
+	void ToLower();
+
 	const U64& Size() const;
 	const U64& Capacity() const;
 	const U64& Hash();
@@ -933,6 +936,18 @@ template<typename T, typename LU>
 inline void StringBase<T, LU>::Split(Vector<StringBase<T, LU>>& list, T delimiter, bool trimEntries) const
 {
 	//TODO
+}
+
+template<typename T, typename LU>
+inline void StringBase<T, LU>::ToUpper()
+{
+	for (char& c : string) { c = toupper(c); }
+}
+
+template<typename T, typename LU>
+inline void StringBase<T, LU>::ToLower()
+{
+	for (char& c : string) { c = tolower(c); }
 }
 
 template<typename T, typename LU>

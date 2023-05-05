@@ -12,7 +12,7 @@ static inline U64 Hash(U64 x)
 	return x;
 }
 
-//TODO: U64 key version
+//TODO: Migrate to use wyhash
 template<class Key, class Value>
 struct NH_API Hashmap
 {
@@ -177,6 +177,8 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& ke
 	cell->filled = true;
 	cell->value = value;
 	cell->key = key;
+
+	return true;
 }
 
 template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& key, Value&& value) noexcept

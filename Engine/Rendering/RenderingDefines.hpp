@@ -661,20 +661,41 @@ enum ResourceType {
 };
 #pragma endregion
 
+static inline CSTR ToCompilerExtension(VkShaderStageFlagBits value)
+{
+	switch (value)
+	{
+	case VK_SHADER_STAGE_VERTEX_BIT: { return "vert"; }
+	case VK_SHADER_STAGE_FRAGMENT_BIT: { return "frag"; }
+	case VK_SHADER_STAGE_COMPUTE_BIT: { return "comp"; }
+	default: { return ""; }
+	}
+}
 
-static VkImageType ToVkImageType(TextureType type)
+static inline CSTR ToStageDefines(VkShaderStageFlagBits value)
+{
+	switch (value)
+	{
+	case VK_SHADER_STAGE_VERTEX_BIT: { return "VERTEX"; }
+	case VK_SHADER_STAGE_FRAGMENT_BIT: { return "FRAGMENT"; }
+	case VK_SHADER_STAGE_COMPUTE_BIT: { return "COMPUTE"; }
+	default: {return ""; }
+	}
+}
+
+static inline VkImageType ToVkImageType(TextureType type)
 {
 	static VkImageType vkTarget[TEXTURE_TYPE_COUNT] = { VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D };
 	return vkTarget[type];
 }
 
-static VkImageViewType ToVkImageViewType(TextureType type)
+static inline VkImageViewType ToVkImageViewType(TextureType type)
 {
 	static VkImageViewType vkData[] = { VK_IMAGE_VIEW_TYPE_1D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_CUBE_ARRAY };
 	return vkData[type];
 }
 
-static VkFormat ToVkVertexFormat(VertexComponentFormat value)
+static inline VkFormat ToVkVertexFormat(VertexComponentFormat value)
 {
 	// Float, Float2, Float3, Float4, Mat4, Byte, Byte4N, UByte, UByte4N, Short2, Short2N, Short4, Short4N, Uint, Uint2, Uint4, Count
 	static VkFormat vkVertexFormats[VERTEX_COMPONENT_COUNT] = { VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, /*MAT4 TODO*/ VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -684,9 +705,7 @@ static VkFormat ToVkVertexFormat(VertexComponentFormat value)
 	return vkVertexFormats[value];
 }
 
-//
-//
-static VkPipelineStageFlags ToVkPipelineStage(PipelineStage value)
+static inline VkPipelineStageFlags ToVkPipelineStage(PipelineStage value)
 {
 	static VkPipelineStageFlags vkValues[] = { VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT };
 	return vkValues[value];
@@ -694,7 +713,7 @@ static VkPipelineStageFlags ToVkPipelineStage(PipelineStage value)
 
 /*---------STRUCTURES---------*/
 
-struct Rect2D 
+struct Rect2D
 {
 	F32	x = 0.0f;
 	F32	y = 0.0f;
@@ -752,7 +771,7 @@ struct VertexStream
 	VertexInputRate	inputRate = VERTEX_INPUT_RATE_COUNT;
 };
 
-struct VertexInputCreation 
+struct VertexInputCreation
 {
 	U32                             numVertexStreams = 0;
 	U32                             numVertexAttributes = 0;
@@ -820,7 +839,7 @@ struct RasterizationCreation
 	FillMode			fill = FILL_MODE_SOLID;
 };
 
-struct ShaderStage 
+struct ShaderStage
 {
 	CSTR					code = nullptr;
 	U32						codeSize = 0;
@@ -845,7 +864,7 @@ struct ShaderStateCreation
 
 struct DescriptorSetLayoutCreation
 {
-	struct Binding 
+	struct Binding
 	{
 		VkDescriptorType	type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
 		U16					start = 0;
@@ -889,7 +908,7 @@ struct BufferCreation
 	VkBufferUsageFlags	typeFlags = 0;
 	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
 	U32					size = 0;
-	void*				initialData = nullptr;
+	void* initialData = nullptr;
 
 	CSTR				name = nullptr;
 
@@ -901,7 +920,7 @@ struct BufferCreation
 
 struct TextureCreation
 {
-	void*		initialData = nullptr;
+	void* initialData = nullptr;
 	U16			width = 1;
 	U16			height = 1;
 	U16			depth = 1;
@@ -972,7 +991,7 @@ struct PipelineCreation
 
 	RenderPassOutput			renderPass;
 	DescriptorSetLayoutHandle	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	const ViewportState*		viewport = nullptr;
+	const ViewportState* viewport = nullptr;
 
 	U32							numActiveLayouts = 0;
 
@@ -1001,7 +1020,7 @@ struct SamplerCreation
 	SamplerCreation& SetName(CSTR name);
 };
 
-struct RenderPassCreation 
+struct RenderPassCreation
 {
 	U16						numRenderTargets = 0;
 	RenderPassType			type = RENDER_PASS_TYPE_GEOMETRY;
@@ -1044,7 +1063,7 @@ struct DescriptorSetUpdate
 struct Buffer
 {
 	VkBuffer			buffer;
-	VmaAllocation_T*	allocation;
+	VmaAllocation_T* allocation;
 	VkDeviceMemory		deviceMemory;
 	VkDeviceSize		deviceSize;
 
@@ -1080,7 +1099,7 @@ struct Texture
 	VkImageView			imageView;
 	VkFormat			format;
 	VkImageLayout		imageLayout;
-	VmaAllocation_T*	allocation;
+	VmaAllocation_T* allocation;
 
 	U16					width = 1;
 	U16					height = 1;
@@ -1091,7 +1110,7 @@ struct Texture
 	TextureHandle		handle;
 	TextureType			type = TEXTURE_TYPE_2D;
 
-	Sampler*			sampler = nullptr;
+	Sampler* sampler = nullptr;
 
 	CSTR				name = nullptr;
 };
@@ -1207,7 +1226,7 @@ struct MapBufferParameters
 	U32				size = 0;
 };
 
-struct TextureBarrier 
+struct TextureBarrier
 {
 	TextureHandle texture;
 };
@@ -1217,7 +1236,7 @@ struct BufferBarrier
 	BufferHandle buffer;
 };
 
-struct ExecutionBarrier 
+struct ExecutionBarrier
 {
 	PipelineStage	sourcePipelineStage;
 	PipelineStage	destinationPipelineStage;

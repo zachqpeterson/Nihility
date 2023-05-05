@@ -29,6 +29,8 @@ public:
 
 	static const WindowData& GetWindowData();
 
+	static bool ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR arguments, CSTR searchErrorString);
+
 private:
 	static bool Initialize(CSTR applicationName);
 	static void Shutdown();

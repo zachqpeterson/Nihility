@@ -5,6 +5,7 @@
 #include "Containers\Vector.hpp"
 #include "Platform\Platform.hpp"
 #include "Math\Math.hpp"
+#include "Math\Hash.hpp"
 
 #define VMA_IMPLEMENTATION
 #include "External\vk_mem_alloc.h"
@@ -878,9 +879,72 @@ void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLa
 	numResources = usedResources;
 }
 
+//TODO: Cache compiled shaders
 VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShaderStageFlagBits stage, CSTR name)
 {
+	VkShaderModuleCreateInfo shaderCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 
+	// Compile from glsl to SpirV.
+	// TODO: detect if input is HLSL.
+	const char* tempFilename = "temp.shader";
+
+	// Write current shader to file.
+	//TODO(Zach): Use File
+	FILE* tempShaderFile = fopen(tempFilename, "w");
+	fwrite(code, codeSize, 1, tempShaderFile);
+	fclose(tempShaderFile);
+
+	// Add uppercase define as STAGE_NAME
+	String stageDefine(ToStageDefines(stage), "_", name);
+	stageDefine.ToUpper();
+
+	// Compile to SPV
+	String glslCompilerPath(binariesPath, "glslangValidator.exe");
+	String finalSpirvFilename("shader_final.spv");
+
+#if defined(_MSC_VER)
+	// TODO: add optional debug information in shaders (option -g).
+	String arguments("glslangValidator.exe {} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", tempFilename, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
+#else
+	String arguments("{} -V --target-env vulkan1.2 -o {} -S {} --D {} --D {}", tempFilename, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
+#endif
+
+	Platform::ExecuteProcess(".", glslCompilerPath, arguments, "");
+
+	bool optimizeShaders = false;
+
+	if (optimizeShaders)
+	{
+		// TODO: add optional optimization stage
+		//"spirv-opt -O input -o output
+		String spirvOptimizerPath(binariesPath, "spirv-opt.exe");
+		String optimizedSpirvFilename("shader_opt.spv");
+		String spirvOptArguments("spirv-opt.exe -O --preserve-bindings {} -o {}", finalSpirvFilename, optimizedSpirvFilename);
+
+		Platform::ExecuteProcess(".", spirvOptimizerPath, spirvOptArguments, "");
+
+		// Read back SPV file.
+		shaderCreateInfo.pCode = reinterpret_cast<const U32*>(file_read_binary(optimizedSpirvFilename, temporary_allocator, &shaderCreateInfo.codeSize));
+
+		file_delete(optimizedSpirvFilename);
+	}
+	else
+	{
+		// Read back SPV file.
+		shaderCreateInfo.pCode = reinterpret_cast<const U32*>(file_read_binary(finalSpirvFilename, temporary_allocator, &shaderCreateInfo.codeSize));
+	}
+
+	// Handling compilation error
+	if (shaderCreateInfo.pCode == nullptr)
+	{
+		DumpShaderCode(temp_string_buffer, code, stage, name);
+	}
+
+	// Temporary files cleanup
+	file_delete(tempFilename);
+	file_delete(finalSpirvFilename);
+
+	return shaderCreateInfo;
 }
 
 void Renderer::DumpShaderCode(CSTR code, VkShaderStageFlagBits stage, CSTR name)
@@ -1028,10 +1092,7 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 
 VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
 {
-	// Hash the memory output and find a compatible VkRenderPass.
-	// In current form RenderPassOutput should track everything needed, including load operations.
-	//TODO: Hash memory
-	U64 hashedMemory = raptor::hash_bytes((void*)&output, sizeof(RenderPassOutput));
+	U64 hashedMemory = Hash(output);
 	VkRenderPass renderPass;
 	renderPassCache.Get(hashedMemory, renderPass);
 	if (renderPass)
