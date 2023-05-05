@@ -343,78 +343,74 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 
 bool Platform::ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR arguments, CSTR searchErrorString)
 {
+	static C8 processOutputBuffer[1025];
+
 	// Create pipes for redirecting output
-	HANDLE handle_stdin_pipe_read = NULL;
-	HANDLE handle_stdin_pipe_write = NULL;
-	HANDLE handle_stdout_pipe_read = NULL;
-	HANDLE handle_std_pipe_write = NULL;
+	HANDLE inPipeRead = NULL;
+	HANDLE inPipeWrite = NULL;
+	HANDLE outPipeRead = NULL;
+	HANDLE outPipeWrite = NULL;
 
-	SECURITY_ATTRIBUTES security_attributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+	SECURITY_ATTRIBUTES securityAttributes = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
 
-	BOOL ok = CreatePipe(&handle_stdin_pipe_read, &handle_stdin_pipe_write, &security_attributes, 0);
+	BOOL ok = CreatePipe(&inPipeRead, &inPipeWrite, &securityAttributes, 0);
 	if (ok == FALSE) { return false; }
-	ok = CreatePipe(&handle_stdout_pipe_read, &handle_std_pipe_write, &security_attributes, 0);
+	ok = CreatePipe(&outPipeRead, &outPipeWrite, &securityAttributes, 0);
 	if (ok == FALSE) { return false; }
 
 	// Create startup informations with std redirection
-	STARTUPINFOA startup_info = {};
-	startup_info.cb = sizeof(startup_info);
-	startup_info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-	startup_info.hStdInput = handle_stdin_pipe_read;
-	startup_info.hStdError = handle_std_pipe_write;
-	startup_info.hStdOutput = handle_std_pipe_write;
-	startup_info.wShowWindow = SW_SHOW;
+	STARTUPINFOA startupInfo = {};
+	startupInfo.cb = sizeof(startupInfo);
+	startupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+	startupInfo.hStdInput = inPipeRead;
+	startupInfo.hStdError = outPipeWrite;
+	startupInfo.hStdOutput = outPipeWrite;
+	startupInfo.wShowWindow = SW_SHOW;
 
-	bool execution_success = false;
+	bool executionSuccess = false;
 	// Execute the process
-	PROCESS_INFORMATION process_info = {};
-	BOOL inherit_handles = TRUE;
-	if (CreateProcessA(processFullpath, (char*)arguments, 0, 0, inherit_handles, 0, 0, workingDirectory, &startup_info, &process_info))
+	PROCESS_INFORMATION processInfo{};
+	BOOL inheritHandles = TRUE;
+	if (CreateProcessA(processFullpath, (char*)arguments, 0, 0, inheritHandles, 0, 0, workingDirectory, &startupInfo, &processInfo))
 	{
-		CloseHandle(process_info.hThread);
-		CloseHandle(process_info.hProcess);
+		CloseHandle(processInfo.hThread);
+		CloseHandle(processInfo.hProcess);
 
-		execution_success = true;
+		executionSuccess = true;
 	}
 	else
 	{
-		win32_get_error(&s_process_log_buffer[0], k_process_log_buffer);
-
-		rprint("Execute process error.\n Exe: \"%s\" - Args: \"%s\" - Work_dir: \"%s\"\n", processFullpath, arguments, workingDirectory);
-		rprint("Message: %s\n", s_process_log_buffer);
+		Logger::Error("Execute process error.\n Exe: \"{}\" - Args: \"{}\" - Work_dir: \"{}\"\n", processFullpath, arguments, workingDirectory);
 	}
-	CloseHandle(handle_stdin_pipe_read);
-	CloseHandle(handle_std_pipe_write);
+	CloseHandle(inPipeRead);
+	CloseHandle(outPipeWrite);
 
 	// Output
-	DWORD bytes_read;
-	ok = ReadFile(handle_stdout_pipe_read, k_process_output_buffer, 1024, &bytes_read, nullptr);
+	DWORD bytesRead;
+	ok = ReadFile(outPipeRead, processOutputBuffer, 1024, &bytesRead, nullptr);
 
 	// Consume all outputs.
 	// Terminate current read and initialize the next.
 	while (ok == TRUE)
 	{
-		k_process_output_buffer[bytes_read] = 0;
-		rprint("%s", k_process_output_buffer);
+		processOutputBuffer[bytesRead] = 0;
 
-		ok = ReadFile(handle_stdout_pipe_read, k_process_output_buffer, 1024, &bytes_read, nullptr);
+		ok = ReadFile(outPipeRead, processOutputBuffer, 1024, &bytesRead, nullptr);
 	}
 
-	if (strlen(searchErrorString) > 0 && strstr(k_process_output_buffer, searchErrorString))
+	if (strlen(searchErrorString) > 0 && strstr(processOutputBuffer, searchErrorString))
 	{
-		execution_success = false;
+		executionSuccess = false;
 	}
-
-	rprint("\n");
 
 	// Close handles.
-	CloseHandle(handle_stdout_pipe_read);
-	CloseHandle(handle_stdin_pipe_write);
+	CloseHandle(outPipeRead);
+	CloseHandle(inPipeWrite);
 
-	DWORD process_exit_code = 0;
-	GetExitCodeProcess(process_info.hProcess, &process_exit_code);
+	DWORD processExitCode = 0;
+	GetExitCodeProcess(processInfo.hProcess, &processExitCode);
 
-	return execution_success;
+	return executionSuccess;
 }
 
 #endif

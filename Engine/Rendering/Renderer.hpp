@@ -43,7 +43,6 @@ private:
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 		VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings);
 	static VkShaderModuleCreateInfo CompileShader(CSTR code, U32 codeSize, VkShaderStageFlagBits stage, CSTR name);
-	static void DumpShaderCode(CSTR code, VkShaderStageFlagBits stage, CSTR name);
 	static VkRenderPass CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name);
 	static VkRenderPass GetRenderPass(const RenderPassOutput& output, CSTR name);
 	static void CreateSwapchainPass(const RenderPassCreation& creation, RenderPass* renderPass);
@@ -181,4 +180,5 @@ private:
 	STATIC_CLASS(Renderer);
 	friend class Engine;
 	friend struct CommandBufferRing;
+	friend struct CommandBuffer;
 };

@@ -2,16 +2,16 @@
 
 #include "RenderingDefines.hpp"
 
-struct CommandBuffer {
-
+struct CommandBuffer
+{
 	void Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked);
 	void Destroy();
 
 	void BindPass(RenderPassHandle handle);
 	void BindPipeline(PipelineHandle handle);
 	void BindVertexBuffer(BufferHandle handle, U32 binding, U32 offset);
-	void BindIndexBuffer(BufferHandle handle, U32 offset, VkIndexType index_type);
-	void BindDescriptorSet(DescriptorSetHandle* handles, U32 num_lists, U32* offsets, U32 num_offsets);
+	void BindIndexBuffer(BufferHandle handle, U32 offset, VkIndexType indexType);
+	void BindDescriptorSet(DescriptorSetHandle* handles, U32 numLists, U32* offsets, U32 numOffsets);
 
 	void SetViewport(const Viewport* viewport);
 	void SetScissor(const Rect2DInt* rect);
@@ -53,7 +53,6 @@ struct CommandBuffer {
 	U32				bufferSize = 0;
 
 	bool			baked = false;        // If baked reset will affect only the read of the commands.
-
 };
 
 struct CommandBufferRing

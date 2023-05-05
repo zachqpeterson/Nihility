@@ -23,11 +23,14 @@ enum FileOpenMode
 
 	FILE_OPEN_FLUSH_IMMEDIATE = 0x100000,
 
+	FILE_OPEN_TEMPORARY = 0x0040,
+
 	FILE_OPEN_LOG = FILE_OPEN_WRITE | FILE_OPEN_NEW | FILE_OPEN_SEQUENTIAL | FILE_OPEN_TEXT,
 	FILE_OPEN_CONSOLE = FILE_OPEN_WRITE | FILE_OPEN_SEQUENTIAL | FILE_OPEN_TEXT | FILE_OPEN_FLUSH_IMMEDIATE,
 	FILE_OPEN_READ_SETTINGS = FILE_OPEN_READ | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY,
 	FILE_OPEN_WRITE_SETTINGS = FILE_OPEN_WRITE | FILE_OPEN_NEW | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY,
 	FILE_OPEN_RESOURCE = FILE_OPEN_READ | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY,
+	FILE_OPEN_TEMP_RESOURCE = FILE_OPEN_WRITE | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY | FILE_OPEN_NEW | FILE_OPEN_FLUSH_IMMEDIATE | FILE_OPEN_TEMPORARY,
 };
 
 struct FileStats
@@ -67,6 +70,7 @@ public:
 
 	template <StringType Str> U32 ReadAll(Str& data);
 	template<typename Type> U32 ReadAll(Vector<Type>& data);
+	template<typename Type> U32 ReadAll(Type** data);
 
 	template <StringType Str> U32 ReadCount(Str& data, U32 count);
 	template<typename Type> U32 ReadCount(Vector<Type>& data, U32 count);
@@ -136,6 +140,13 @@ inline U32 File::ReadAll(Vector<Type>& data)
 {
 	data.Resize(stats.size);
 	return Read(data.Data(), stats.size);
+}
+
+template<typename Type> 
+inline U32 File::ReadAll(Type** data)
+{
+	Memory::AllocateSize(data, (U32)stats.size);
+	return Read((void*)*data, (U32)stats.size);
 }
 
 template <StringType Str>

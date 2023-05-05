@@ -2,6 +2,7 @@
 
 #include "CommandBuffer.hpp"
 #include "Core\Logger.hpp"
+#include "Core\File.hpp"
 #include "Containers\Vector.hpp"
 #include "Platform\Platform.hpp"
 #include "Math\Math.hpp"
@@ -889,10 +890,8 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShad
 	const char* tempFilename = "temp.shader";
 
 	// Write current shader to file.
-	//TODO(Zach): Use File
-	FILE* tempShaderFile = fopen(tempFilename, "w");
-	fwrite(code, codeSize, 1, tempShaderFile);
-	fclose(tempShaderFile);
+	File tempShaderFile(tempFilename, FILE_OPEN_TEMP_RESOURCE);
+	tempShaderFile.Write(code, codeSize);
 
 	// Add uppercase define as STAGE_NAME
 	String stageDefine(ToStageDefines(stage), "_", name);
@@ -924,32 +923,30 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShad
 		Platform::ExecuteProcess(".", spirvOptimizerPath, spirvOptArguments, "");
 
 		// Read back SPV file.
-		shaderCreateInfo.pCode = reinterpret_cast<const U32*>(file_read_binary(optimizedSpirvFilename, temporary_allocator, &shaderCreateInfo.codeSize));
+		File optimizedSpirvFile(optimizedSpirvFilename, FILE_OPEN_RESOURCE);
+		optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
 
-		file_delete(optimizedSpirvFilename);
+		File::Delete(optimizedSpirvFilename);
 	}
 	else
 	{
 		// Read back SPV file.
-		shaderCreateInfo.pCode = reinterpret_cast<const U32*>(file_read_binary(finalSpirvFilename, temporary_allocator, &shaderCreateInfo.codeSize));
+		File optimizedSpirvFile(finalSpirvFilename, FILE_OPEN_RESOURCE);
+		optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
+
+		File::Delete(finalSpirvFilename);
 	}
 
 	// Handling compilation error
 	if (shaderCreateInfo.pCode == nullptr)
 	{
-		DumpShaderCode(temp_string_buffer, code, stage, name);
+		//TODO: Cleanup code str
 	}
 
 	// Temporary files cleanup
-	file_delete(tempFilename);
-	file_delete(finalSpirvFilename);
+	tempShaderFile.Close();
 
 	return shaderCreateInfo;
-}
-
-void Renderer::DumpShaderCode(CSTR code, VkShaderStageFlagBits stage, CSTR name)
-{
-
 }
 
 VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name)
@@ -1986,7 +1983,6 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 
 		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS)
 		{
-
 			break;
 		}
 

@@ -5,6 +5,17 @@
 #include "Memory\Memory.hpp"
 #include "Vector.hpp"
 
+#define UPPER_CHAR		0x01
+#define LOWER_CHAR		0x02
+#define DIGIT_CHAR		0x04
+#define SPACE_CHAR		0x08
+#define PUNCT_CHAR		0x10
+#define CONTROL_CHAR	0x20
+#define HEX_CHAR		0x40
+
+#define ALPHA_CHAR		UPPER_CHAR | LOWER_CHAR
+#define ALPHANUM_CHAR	ALPHA_CHAR | DIGIT_CHAR
+
 struct C8Lookup
 {
 	static inline constexpr const C8* TRUE_STR = "true";
@@ -93,6 +104,138 @@ struct C8Lookup
 		"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
 		"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
 		"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
+
+	static inline constexpr C8 TYPE_LOOKUP[]{
+		0,							// -1 EOF
+		CONTROL_CHAR,				// 00 (NUL)
+		CONTROL_CHAR,				// 01 (SOH)
+		CONTROL_CHAR,				// 02 (STX)
+		CONTROL_CHAR,				// 03 (ETX)
+		CONTROL_CHAR,				// 04 (EOT)
+		CONTROL_CHAR,				// 05 (ENQ)
+		CONTROL_CHAR,				// 06 (ACK)
+		CONTROL_CHAR,				// 07 (BEL)
+		CONTROL_CHAR,				// 08 (BS)
+		SPACE_CHAR | CONTROL_CHAR,	// 09 (HT)
+		SPACE_CHAR | CONTROL_CHAR,	// 0A (LF)
+		SPACE_CHAR | CONTROL_CHAR,	// 0B (VT)
+		SPACE_CHAR | CONTROL_CHAR,	// 0C (FF)
+		SPACE_CHAR | CONTROL_CHAR,	// 0D (CR)
+		CONTROL_CHAR,				// 0E (SI)
+		CONTROL_CHAR,				// 0F (SO)
+		CONTROL_CHAR,				// 10 (DLE)
+		CONTROL_CHAR,				// 11 (DC1)
+		CONTROL_CHAR,				// 12 (DC2)
+		CONTROL_CHAR,				// 13 (DC3)
+		CONTROL_CHAR,				// 14 (DC4)
+		CONTROL_CHAR,				// 15 (NAK)
+		CONTROL_CHAR,				// 16 (SYN)
+		CONTROL_CHAR,				// 17 (ETB)
+		CONTROL_CHAR,				// 18 (CAN)
+		CONTROL_CHAR,				// 19 (EM)
+		CONTROL_CHAR,				// 1A (SUB)
+		CONTROL_CHAR,				// 1B (ESC)
+		CONTROL_CHAR,				// 1C (FS)
+		CONTROL_CHAR,				// 1D (GS)
+		CONTROL_CHAR,				// 1E (RS)
+		CONTROL_CHAR,				// 1F (US)
+		SPACE_CHAR,					// 20 SPACE
+		PUNCT_CHAR,					// 21 !
+		PUNCT_CHAR,					// 22 "
+		PUNCT_CHAR,					// 23 #
+		PUNCT_CHAR,					// 24 $
+		PUNCT_CHAR,					// 25 %
+		PUNCT_CHAR,					// 26 &
+		PUNCT_CHAR,					// 27 '
+		PUNCT_CHAR,					// 28 (
+		PUNCT_CHAR,					// 29 )
+		PUNCT_CHAR,					// 2A *
+		PUNCT_CHAR,					// 2B +
+		PUNCT_CHAR,					// 2C ,
+		PUNCT_CHAR,					// 2D -
+		PUNCT_CHAR,					// 2E .
+		PUNCT_CHAR,					// 2F /
+		DIGIT_CHAR | HEX_CHAR,		// 30 0
+		DIGIT_CHAR | HEX_CHAR,		// 31 1
+		DIGIT_CHAR | HEX_CHAR,		// 32 2
+		DIGIT_CHAR | HEX_CHAR,		// 33 3
+		DIGIT_CHAR | HEX_CHAR,		// 34 4
+		DIGIT_CHAR | HEX_CHAR,		// 35 5
+		DIGIT_CHAR | HEX_CHAR,		// 36 6
+		DIGIT_CHAR | HEX_CHAR,		// 37 7
+		DIGIT_CHAR | HEX_CHAR,		// 38 8
+		DIGIT_CHAR | HEX_CHAR,		// 39 9
+		PUNCT_CHAR,					// 3A :
+		PUNCT_CHAR,					// 3B ;
+		PUNCT_CHAR,					// 3C <
+		PUNCT_CHAR,					// 3D =
+		PUNCT_CHAR,					// 3E >
+		PUNCT_CHAR,					// 3F ?
+		PUNCT_CHAR,					// 40 @
+		UPPER_CHAR + HEX_CHAR,		// 41 A
+		UPPER_CHAR + HEX_CHAR,		// 42 B
+		UPPER_CHAR + HEX_CHAR,		// 43 C
+		UPPER_CHAR + HEX_CHAR,		// 44 D
+		UPPER_CHAR + HEX_CHAR,		// 45 E
+		UPPER_CHAR + HEX_CHAR,		// 46 F
+		UPPER_CHAR,					// 47 G
+		UPPER_CHAR,					// 48 H
+		UPPER_CHAR,					// 49 I
+		UPPER_CHAR,					// 4A J
+		UPPER_CHAR,					// 4B K
+		UPPER_CHAR,					// 4C L
+		UPPER_CHAR,					// 4D M
+		UPPER_CHAR,					// 4E N
+		UPPER_CHAR,					// 4F O
+		UPPER_CHAR,					// 50 P
+		UPPER_CHAR,					// 51 Q
+		UPPER_CHAR,					// 52 R
+		UPPER_CHAR,					// 53 S
+		UPPER_CHAR,					// 54 T
+		UPPER_CHAR,					// 55 U
+		UPPER_CHAR,					// 56 V
+		UPPER_CHAR,					// 57 W
+		UPPER_CHAR,					// 58 X
+		UPPER_CHAR,					// 59 Y
+		UPPER_CHAR,					// 5A Z
+		PUNCT_CHAR,					// 5B [
+		PUNCT_CHAR,					// 5C \ 
+		PUNCT_CHAR,					// 5D ]
+		PUNCT_CHAR,					// 5E ^
+		PUNCT_CHAR,					// 5F _
+		PUNCT_CHAR,					// 60 `
+		LOWER_CHAR + HEX_CHAR,		// 61 a
+		LOWER_CHAR + HEX_CHAR,		// 62 b
+		LOWER_CHAR + HEX_CHAR,		// 63 c
+		LOWER_CHAR + HEX_CHAR,		// 64 d
+		LOWER_CHAR + HEX_CHAR,		// 65 e
+		LOWER_CHAR + HEX_CHAR,		// 66 f
+		LOWER_CHAR,					// 67 g
+		LOWER_CHAR,					// 68 h
+		LOWER_CHAR,					// 69 i
+		LOWER_CHAR,					// 6A j
+		LOWER_CHAR,					// 6B k
+		LOWER_CHAR,					// 6C l
+		LOWER_CHAR,					// 6D m
+		LOWER_CHAR,					// 6E n
+		LOWER_CHAR,					// 6F o
+		LOWER_CHAR,					// 70 p
+		LOWER_CHAR,					// 71 q
+		LOWER_CHAR,					// 72 r
+		LOWER_CHAR,					// 73 s
+		LOWER_CHAR,					// 74 t
+		LOWER_CHAR,					// 75 u
+		LOWER_CHAR,					// 76 v
+		LOWER_CHAR,					// 77 w
+		LOWER_CHAR,					// 78 x
+		LOWER_CHAR,					// 79 y
+		LOWER_CHAR,					// 7A z
+		PUNCT_CHAR,					// 7B {
+		PUNCT_CHAR,					// 7C |
+		PUNCT_CHAR,					// 7D }
+		PUNCT_CHAR,					// 7E ~
+		CONTROL_CHAR,				// 7F (DEL)
+	};
 };
 
 struct C16Lookup
@@ -941,13 +1084,19 @@ inline void StringBase<T, LU>::Split(Vector<StringBase<T, LU>>& list, T delimite
 template<typename T, typename LU>
 inline void StringBase<T, LU>::ToUpper()
 {
-	for (char& c : string) { c = toupper(c); }
+	for (char& c : *this)
+	{
+		if (LU::TYPE_LOOKUP[c] & LOWER_CHAR) { c -= 32; }
+	}
 }
 
 template<typename T, typename LU>
 inline void StringBase<T, LU>::ToLower()
 {
-	for (char& c : string) { c = tolower(c); }
+	for (char& c : *this)
+	{
+		if (LU::TYPE_LOOKUP[c] & UPPER_CHAR) { c += 32; }
+	}
 }
 
 template<typename T, typename LU>

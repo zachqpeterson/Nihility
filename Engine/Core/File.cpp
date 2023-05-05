@@ -205,3 +205,5 @@ void File::SeekToEnd()
 I64 File::Pointer() const { return pointer; }
 
 I64 File::Size() { return stats.size; }
+
+bool File::Delete(String path) { return remove(path) == 0; }

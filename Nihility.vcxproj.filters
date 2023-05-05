@@ -32,9 +32,6 @@
     <Filter Include="Source Files\Platform\Input">
       <UniqueIdentifier>{bf9b158d-41f1-4872-be72-20c117c9e65d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Core\Multithreading">
-      <UniqueIdentifier>{e5d99e3f-ef69-4055-8c1b-2d1432503448}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Platform\Multithreading">
       <UniqueIdentifier>{31a517af-19ea-4978-b274-99eab1d08649}</UniqueIdentifier>
     </Filter>

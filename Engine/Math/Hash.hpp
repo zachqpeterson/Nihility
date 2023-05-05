@@ -155,9 +155,9 @@ static inline U64 Hash(const char(&value)[length], U64 seed = 0)
 			U64 seed1 = seed, seed2 = seed;
 			do
 			{
-				seed = hash::Mix(Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
-				seed1 = hash::Mix(Read8(p + 16) ^ hash::secret2, hash::Read8(p + 24) ^ seed1);
-				seed2 = hash::Mix(Read8(p + 32) ^ hash::secret3, hash::Read8(p + 40) ^ seed2);
+				seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
+				seed1 = hash::Mix(hash::Read8(p + 16) ^ hash::secret2, hash::Read8(p + 24) ^ seed1);
+				seed2 = hash::Mix(hash::Read8(p + 32) ^ hash::secret3, hash::Read8(p + 40) ^ seed2);
 				p += 48;
 				i -= 48;
 			} while (i > 48);
