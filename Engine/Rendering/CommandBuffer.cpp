@@ -65,31 +65,31 @@ void CommandBuffer::BindVertexBuffer(BufferHandle handle, U32 binding, U32 offse
 	Buffer* buffer = Renderer::AccessBuffer(handle);
 	VkDeviceSize offsets[] = { offset };
 
-	VkBuffer vk_buffer = buffer->buffer;
+	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
 	if (buffer->parentBuffer.index != INVALID_INDEX)
 	{
 		Buffer* parent_buffer = Renderer::AccessBuffer(buffer->parentBuffer);
-		vk_buffer = parent_buffer->buffer;
+		vkBuffer = parent_buffer->buffer;
 		offsets[0] = buffer->globalOffset;
 	}
 
-	vkCmdBindVertexBuffers(commandBuffer, binding, 1, &vk_buffer, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, binding, 1, &vkBuffer, offsets);
 }
 
 void CommandBuffer::BindIndexBuffer(BufferHandle handle, U32 offset, VkIndexType indexType)
 {
 	Buffer* buffer = Renderer::AccessBuffer(handle);
 
-	VkBuffer vk_buffer = buffer->buffer;
-	VkDeviceSize offset = offset;
+	VkBuffer vkBuffer = buffer->buffer;
+	VkDeviceSize vkOffset = offset;
 	if (buffer->parentBuffer.index != INVALID_INDEX)
 	{
 		Buffer* parent_buffer = Renderer::AccessBuffer(buffer->parentBuffer);
-		vk_buffer = parent_buffer->buffer;
-		offset = buffer->globalOffset;
+		vkBuffer = parent_buffer->buffer;
+		vkOffset = buffer->globalOffset;
 	}
-	vkCmdBindIndexBuffer(commandBuffer, vk_buffer, offset, indexType);
+	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, indexType);
 }
 
 void CommandBuffer::BindDescriptorSet(DescriptorSetHandle* handles, U32 numLists, U32* offsets, U32 numOffsets)
@@ -243,6 +243,20 @@ void CommandBuffer::DispatchIndirect(BufferHandle handle, U32 offset)
 	vkCmdDispatchIndirect(commandBuffer, vkBuffer, vkOffset);
 }
 
+static ResourceType ToResourceState(PipelineStage stage)
+{
+	static constexpr ResourceType states[]{ 
+		RESOURCE_TYPE_INDIRECT_ARGUMENT, 
+		RESOURCE_TYPE_VERTEX_AND_CONSTANT_BUFFER, 
+		RESOURCE_TYPE_NON_PIXEL_SHADER_RESOURCE, 
+		RESOURCE_TYPE_PIXEL_SHADER_RESOURCE, 
+		RESOURCE_TYPE_RENDER_TARGET,
+		RESOURCE_TYPE_UNORDERED_ACCESS,
+		RESOURCE_TYPE_COPY_DEST
+	};
+	return states[stage];
+}
+
 void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 {
 	if (currentRenderPass && (currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE))
@@ -261,32 +275,31 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 
 		for (U32 i = 0; i < barrier.numTextureBarriers; ++i)
 		{
+			Texture* texture = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
 
-			Texture* texture_vulkan = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
-
-			VkImageMemoryBarrier& vk_barrier = imageBarriers[i];
-			const bool is_color = !Renderer::HasDepthOrStencil(texture_vulkan->format);
+			VkImageMemoryBarrier& vkBarrier = imageBarriers[i];
+			const bool isColor = !Renderer::HasDepthOrStencil(texture->format);
 
 			{
-				VkImageMemoryBarrier* pImageBarrier = &vk_barrier;
+				VkImageMemoryBarrier* pImageBarrier = &vkBarrier;
 				pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 				pImageBarrier->pNext = NULL;
 
-				ResourceState current_state = barrier.source_pipeline_stage == PipelineStage::RenderTarget ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-				ResourceState next_state = barrier.destination_pipeline_stage == PipelineStage::RenderTarget ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-				if (!is_color)
+				ResourceType currentState = barrier.sourcePipelineStage == PIPELINE_STAGE_RENDER_TARGET ? RESOURCE_TYPE_RENDER_TARGET : RESOURCE_TYPE_PIXEL_SHADER_RESOURCE;
+				ResourceType nextState = barrier.destinationPipelineStage == PIPELINE_STAGE_RENDER_TARGET ? RESOURCE_TYPE_RENDER_TARGET : RESOURCE_TYPE_PIXEL_SHADER_RESOURCE;
+				if (!isColor)
 				{
-					current_state = barrier.source_pipeline_stage == PipelineStage::RenderTarget ? RESOURCE_STATE_DEPTH_WRITE : RESOURCE_STATE_DEPTH_READ;
-					next_state = barrier.destination_pipeline_stage == PipelineStage::RenderTarget ? RESOURCE_STATE_DEPTH_WRITE : RESOURCE_STATE_DEPTH_READ;
+					currentState = barrier.sourcePipelineStage == PIPELINE_STAGE_RENDER_TARGET ? RESOURCE_TYPE_DEPTH_WRITE : RESOURCE_TYPE_DEPTH_READ;
+					nextState = barrier.destinationPipelineStage == PIPELINE_STAGE_RENDER_TARGET ? RESOURCE_TYPE_DEPTH_WRITE : RESOURCE_TYPE_DEPTH_READ;
 				}
 
-				pImageBarrier->srcAccessMask = util_to_vk_access_flags(current_state);
-				pImageBarrier->dstAccessMask = util_to_vk_access_flags(next_state);
-				pImageBarrier->oldLayout = util_to_vk_image_layout(current_state);
-				pImageBarrier->newLayout = util_to_vk_image_layout(next_state);
+				pImageBarrier->srcAccessMask = ToVkAccessFlags(currentState);
+				pImageBarrier->dstAccessMask = ToVkAccessFlags(nextState);
+				pImageBarrier->oldLayout = ToVkImageLayout(currentState);
+				pImageBarrier->newLayout = ToVkImageLayout(nextState);
 
-				pImageBarrier->image = texture_vulkan->image;
-				pImageBarrier->subresourceRange.aspectMask = is_color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+				pImageBarrier->image = texture->image;
+				pImageBarrier->subresourceRange.aspectMask = isColor ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 				pImageBarrier->subresourceRange.baseMipLevel = 0;
 				pImageBarrier->subresourceRange.levelCount = 1;
 				pImageBarrier->subresourceRange.baseArrayLayer = 0;
@@ -297,182 +310,150 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 					pImageBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				}
 
-				source_access_flags |= pImageBarrier->srcAccessMask;
-				destination_access_flags |= pImageBarrier->dstAccessMask;
+				sourceAccessFlags |= pImageBarrier->srcAccessMask;
+				destinationAccessFlags |= pImageBarrier->dstAccessMask;
 			}
 
-			vk_barrier.oldLayout = texture_vulkan->imageLayout;
-			texture_vulkan->imageLayout = vk_barrier.newLayout;
+			vkBarrier.oldLayout = texture->imageLayout;
+			texture->imageLayout = vkBarrier.newLayout;
 		}
 
-		static VkBufferMemoryBarrier buffer_memory_barriers[8];
+		static VkBufferMemoryBarrier bufferMemoryBarriers[8];
 		for (U32 i = 0; i < barrier.numBufferBarriers; ++i)
 		{
-			VkBufferMemoryBarrier& vk_barrier = buffer_memory_barriers[i];
-			vk_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			VkBufferMemoryBarrier& vkBarrier = bufferMemoryBarriers[i];
+			vkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-			Buffer* buffer = device->access_buffer(barrier.bufferBarriers[i].buffer);
+			Buffer* buffer = Renderer::AccessBuffer(barrier.bufferBarriers[i].buffer);
 
-			vk_barrier.buffer = buffer->buffer;
-			vk_barrier.offset = 0;
-			vk_barrier.size = buffer->size;
+			vkBarrier.buffer = buffer->buffer;
+			vkBarrier.offset = 0;
+			vkBarrier.size = buffer->size;
 
-			ResourceState current_state = to_resource_state(barrier.source_pipeline_stage);
-			ResourceState next_state = to_resource_state(barrier.destination_pipeline_stage);
-			vk_barrier.srcAccessMask = util_to_vk_access_flags(current_state);
-			vk_barrier.dstAccessMask = util_to_vk_access_flags(next_state);
+			ResourceType currentState = ToResourceState(barrier.sourcePipelineStage);
+			ResourceType nextState = ToResourceState(barrier.destinationPipelineStage);
+			vkBarrier.srcAccessMask = ToVkAccessFlags(currentState);
+			vkBarrier.dstAccessMask = ToVkAccessFlags(nextState);
 
-			source_access_flags |= vk_barrier.srcAccessMask;
-			destination_access_flags |= vk_barrier.dstAccessMask;
+			sourceAccessFlags |= vkBarrier.srcAccessMask;
+			destinationAccessFlags |= vkBarrier.dstAccessMask;
 
-			vk_barrier.srcQueueFamilyIndex = 0;
-			vk_barrier.dstQueueFamilyIndex = 0;
+			vkBarrier.srcQueueFamilyIndex = 0;
+			vkBarrier.dstQueueFamilyIndex = 0;
 		}
 
-		sourceStageMask = util_determine_pipeline_stage_flags(source_access_flags, barrier.source_pipeline_stage == PipelineStage::ComputeShader ? QueueType::Compute : QueueType::Graphics);
-		destination_stage_mask = util_determine_pipeline_stage_flags(destination_access_flags, barrier.destination_pipeline_stage == PipelineStage::ComputeShader ? QueueType::Compute : QueueType::Graphics);
+		sourceStageMask = DeterminePipelineStageFlags(sourceAccessFlags, barrier.sourcePipelineStage == PIPELINE_STAGE_COMPUTE_SHADER ? QUEUE_TYPE_COMPUTE : QUEUE_TYPE_GRAPHICS);
+		destinationStageMask = DeterminePipelineStageFlags(destinationAccessFlags, barrier.destinationPipelineStage == PIPELINE_STAGE_COMPUTE_SHADER ? QUEUE_TYPE_COMPUTE : QUEUE_TYPE_GRAPHICS);
 
-		vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destination_stage_mask, 0, 0, nullptr, barrier.numBufferBarriers, buffer_memory_barriers, barrier.numTextureBarriers, image_barriers);
+		vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.numBufferBarriers, bufferMemoryBarriers, barrier.numTextureBarriers, imageBarriers);
 		return;
 	}
 
-	VkImageLayout new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	VkImageLayout new_depth_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-	VkAccessFlags source_access_mask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-	VkAccessFlags source_buffer_access_mask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-	VkAccessFlags source_depth_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	VkAccessFlags destination_access_mask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-	VkAccessFlags destination_buffer_access_mask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-	VkAccessFlags destination_depth_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	VkImageLayout newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	VkImageLayout newDepthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+	VkAccessFlags sourceAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+	VkAccessFlags sourceBufferAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+	VkAccessFlags sourceDepthAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	VkAccessFlags destinationAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+	VkAccessFlags destinationBufferAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+	VkAccessFlags destinationDepthAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-	switch (barrier.destination_pipeline_stage)
+	switch (barrier.destinationPipelineStage)
 	{
+	case PIPELINE_STAGE_FRAGMENT_SHADER: {
+		//newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	} break;
+	case PIPELINE_STAGE_COMPUTE_SHADER: {
+		newLayout = VK_IMAGE_LAYOUT_GENERAL;
+	} break;
+	case PIPELINE_STAGE_RENDER_TARGET: {
+		newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		newDepthLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		destinationAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		destinationDepthAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+	} break;
 
-	case PipelineStage::FragmentShader:
-	{
-		//new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		break;
+	case PIPELINE_STAGE_DRAW_INDIRECT: {
+		destinationBufferAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+	} break;
 	}
 
-	case PipelineStage::ComputeShader:
+	switch (barrier.sourcePipelineStage)
 	{
-		new_layout = VK_IMAGE_LAYOUT_GENERAL;
-
-
-		break;
+	case PIPELINE_STAGE_FRAGMENT_SHADER: {
+		//sourceAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+	} break;
+	case PIPELINE_STAGE_COMPUTE_SHADER: { } break;
+	case PIPELINE_STAGE_RENDER_TARGET: {
+		sourceAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		sourceDepthAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	} break;
+	case PIPELINE_STAGE_DRAW_INDIRECT: {
+		sourceBufferAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+	} break;
 	}
 
-	case PipelineStage::RenderTarget:
+	bool hasDepth = false;
+
+	for (U32 i = 0; i < barrier.numTextureBarriers; ++i)
 	{
-		new_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		new_depth_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		destination_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		destination_depth_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		Texture* texture = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
 
-		break;
-	}
+		VkImageMemoryBarrier& vkBarrier = imageBarriers[i];
+		vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 
-	case PipelineStage::DrawIndirect:
-	{
-		destination_buffer_access_mask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-		break;
-	}
-	}
+		vkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		vkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-	switch (barrier.source_pipeline_stage)
-	{
+		const bool isColor = !Renderer::HasDepthOrStencil(texture->format);
+		hasDepth = hasDepth || !isColor;
 
-	case PipelineStage::FragmentShader:
-	{
-		//source_access_mask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		break;
-	}
+		vkBarrier.image = texture->image;
+		vkBarrier.subresourceRange.aspectMask = isColor ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		vkBarrier.subresourceRange.baseMipLevel = 0;
+		vkBarrier.subresourceRange.levelCount = 1;
+		vkBarrier.subresourceRange.baseArrayLayer = 0;
+		vkBarrier.subresourceRange.layerCount = 1;
 
-	case PipelineStage::ComputeShader:
-	{
-
-		break;
-	}
-
-	case PipelineStage::RenderTarget:
-	{
-		source_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		source_depth_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		break;
-	}
-
-	case PipelineStage::DrawIndirect:
-	{
-		source_buffer_access_mask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-		break;
-	}
-	}
-
-	bool has_depth = false;
-
-	for (U32 i = 0; i < barrier.num_image_barriers; ++i)
-	{
-
-		Texture* texture_vulkan = device->access_texture(barrier.imageBarriers[i].texture);
-
-		VkImageMemoryBarrier& vk_barrier = imageBarriers[i];
-		vk_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-
-		vk_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		vk_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-		const bool is_color = !TextureFormat::has_depth_or_stencil(texture_vulkan->format);
-		has_depth = has_depth || !is_color;
-
-		vk_barrier.image = texture_vulkan->image;
-		vk_barrier.subresourceRange.aspectMask = is_color ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		vk_barrier.subresourceRange.baseMipLevel = 0;
-		vk_barrier.subresourceRange.levelCount = 1;
-		vk_barrier.subresourceRange.baseArrayLayer = 0;
-		vk_barrier.subresourceRange.layerCount = 1;
-
-		vk_barrier.oldLayout = texture_vulkan->imageLayout;
+		vkBarrier.oldLayout = texture->imageLayout;
 
 		// Transition to...
-		vk_barrier.newLayout = is_color ? new_layout : new_depth_layout;
+		vkBarrier.newLayout = isColor ? newLayout : newDepthLayout;
 
-		vk_barrier.srcAccessMask = is_color ? source_access_mask : source_depth_access_mask;
-		vk_barrier.dstAccessMask = is_color ? destination_access_mask : destination_depth_access_mask;
+		vkBarrier.srcAccessMask = isColor ? sourceAccessMask : sourceDepthAccessMask;
+		vkBarrier.dstAccessMask = isColor ? destinationAccessMask : destinationDepthAccessMask;
 
-		texture_vulkan->imageLayout = vk_barrier.newLayout;
+		texture->imageLayout = vkBarrier.newLayout;
 	}
 
-	VkPipelineStageFlags source_stage_mask = to_vk_pipeline_stage((PipelineStage)barrier.source_pipeline_stage);
-	VkPipelineStageFlags destination_stage_mask = to_vk_pipeline_stage((PipelineStage)barrier.destination_pipeline_stage);
+	VkPipelineStageFlags sourceStageMask = ToVkPipelineStage((PipelineStage)barrier.sourcePipelineStage);
+	VkPipelineStageFlags destinationStageMask = ToVkPipelineStage((PipelineStage)barrier.destinationPipelineStage);
 
-	if (has_depth)
+	if (hasDepth)
 	{
-
-		source_stage_mask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		destination_stage_mask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		sourceStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		destinationStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	}
 
-	static VkBufferMemoryBarrier buffer_memory_barriers[8];
+	static VkBufferMemoryBarrier bufferMemoryBarriers[8];
 	for (U32 i = 0; i < barrier.numBufferBarriers; ++i)
 	{
-		VkBufferMemoryBarrier& vk_barrier = buffer_memory_barriers[i];
-		vk_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		VkBufferMemoryBarrier& vkBarrier = bufferMemoryBarriers[i];
+		vkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-		Buffer* buffer = device->access_buffer(barrier.bufferBarriers[i].buffer);
+		Buffer* buffer = Renderer::AccessBuffer(barrier.bufferBarriers[i].buffer);
 
-		vk_barrier.buffer = buffer->buffer;
-		vk_barrier.offset = 0;
-		vk_barrier.size = buffer->size;
-		vk_barrier.srcAccessMask = source_buffer_access_mask;
-		vk_barrier.dstAccessMask = destination_buffer_access_mask;
+		vkBarrier.buffer = buffer->buffer;
+		vkBarrier.offset = 0;
+		vkBarrier.size = buffer->size;
+		vkBarrier.srcAccessMask = sourceBufferAccessMask;
+		vkBarrier.dstAccessMask = destinationBufferAccessMask;
 
-		vk_barrier.srcQueueFamilyIndex = 0;
-		vk_barrier.dstQueueFamilyIndex = 0;
+		vkBarrier.srcQueueFamilyIndex = 0;
+		vkBarrier.dstQueueFamilyIndex = 0;
 	}
 
-	vkCmdPipelineBarrier(commandBuffer, source_stage_mask, destination_stage_mask, 0, 0, nullptr, barrier.numBufferBarriers, buffer_memory_barriers, barrier.numTextureBarriers, imageBarriers);
+	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.numBufferBarriers, bufferMemoryBarriers, barrier.numTextureBarriers, imageBarriers);
 }
 
 void CommandBuffer::FillBuffer(BufferHandle buffer, U32 offset, U32 size, U32 data)
@@ -512,65 +493,65 @@ void CommandBuffer::Reset()
 
 void CommandBufferRing::Create()
 {
-    for (U32 i = 0; i < maxPools; ++i)
-    {
-        VkCommandPoolCreateInfo cmdPoolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr };
-        cmdPoolInfo.queueFamilyIndex = Renderer::queueFamilyIndex;
-        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	for (U32 i = 0; i < maxPools; ++i)
+	{
+		VkCommandPoolCreateInfo cmdPoolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr };
+		cmdPoolInfo.queueFamilyIndex = Renderer::queueFamilyIndex;
+		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        VkValidate(vkCreateCommandPool(Renderer::device, &cmdPoolInfo, Renderer::allocationCallbacks, &commandPools[i]));
-    }
+		VkValidate(vkCreateCommandPool(Renderer::device, &cmdPoolInfo, Renderer::allocationCallbacks, &commandPools[i]));
+	}
 
-    for (U32 i = 0; i < maxBuffers; ++i)
-    {
-        VkCommandBufferAllocateInfo cmd = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr };
-        const U32 poolIndex = PoolFromIndex(i);
-        cmd.commandPool = commandPools[poolIndex];
-        cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cmd.commandBufferCount = 1;
-        VkValidate(vkAllocateCommandBuffers(Renderer::device, &cmd, &commandBuffers[i].commandBuffer));
+	for (U32 i = 0; i < maxBuffers; ++i)
+	{
+		VkCommandBufferAllocateInfo cmd = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr };
+		const U32 poolIndex = PoolFromIndex(i);
+		cmd.commandPool = commandPools[poolIndex];
+		cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		cmd.commandBufferCount = 1;
+		VkValidate(vkAllocateCommandBuffers(Renderer::device, &cmd, &commandBuffers[i].commandBuffer));
 
-        commandBuffers[i].handle = i;
-        commandBuffers[i].Reset();
-    }
+		commandBuffers[i].handle = i;
+		commandBuffers[i].Reset();
+	}
 }
 
 void CommandBufferRing::Destroy()
 {
-    for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES * maxThreads; i++)
-    {
-        vkDestroyCommandPool(Renderer::device, commandPools[i], Renderer::allocationCallbacks);
-    }
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES * maxThreads; i++)
+	{
+		vkDestroyCommandPool(Renderer::device, commandPools[i], Renderer::allocationCallbacks);
+	}
 }
 
 void CommandBufferRing::ResetPools(U32 frameIndex)
 {
 
-    for (U32 i = 0; i < maxThreads; i++)
-    {
-        vkResetCommandPool(Renderer::device, commandPools[frameIndex * maxThreads + i], 0);
-    }
+	for (U32 i = 0; i < maxThreads; i++)
+	{
+		vkResetCommandPool(Renderer::device, commandPools[frameIndex * maxThreads + i], 0);
+	}
 }
 
 CommandBuffer* CommandBufferRing::GetCommandBuffer(U32 frame, bool begin)
 {
-    // TODO: take in account threads
-    CommandBuffer* cb = &commandBuffers[frame * bufferPerPool];
+	// TODO: take in account threads
+	CommandBuffer* cb = &commandBuffers[frame * bufferPerPool];
 
-    if (begin)
-    {
-        cb->Reset();
+	if (begin)
+	{
+		cb->Reset();
 
-        VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        vkBeginCommandBuffer(cb->commandBuffer, &beginInfo);
-    }
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(cb->commandBuffer, &beginInfo);
+	}
 
-    return cb;
+	return cb;
 }
 
 CommandBuffer* CommandBufferRing::GetCommandBufferInstant(U32 frame, bool begin)
 {
-    CommandBuffer* cb = &commandBuffers[frame * bufferPerPool + 1];
-    return cb;
+	CommandBuffer* cb = &commandBuffers[frame * bufferPerPool + 1];
+	return cb;
 }

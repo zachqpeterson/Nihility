@@ -95,8 +95,6 @@ public:
 	I64 Pointer() const;
 	I64 Size();
 
-	//TODO:
-	//remove()
 	static bool Delete(String path);
 
 private:

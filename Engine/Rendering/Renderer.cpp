@@ -559,7 +559,7 @@ bool Renderer::CreatePools()
 bool Renderer::CreatePrimitiveResources()
 {
 	SamplerCreation sc{};
-	sc.SetSddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
+	sc.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
 		.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR).SetName("Sampler Default");
 	defaultSampler = CreateSampler(sc);
 
@@ -663,6 +663,39 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 	nameInfo.objectHandle = handle;
 	nameInfo.pObjectName = name;
 	vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
+}
+
+void Renderer::PushMarker(VkCommandBuffer commandBuffer, CSTR name)
+{
+
+	VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+	label.pLabelName = name;
+	label.color[0] = 1.0f;
+	label.color[1] = 1.0f;
+	label.color[2] = 1.0f;
+	label.color[3] = 1.0f;
+	vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label);
+}
+
+void Renderer::PopMarker(VkCommandBuffer commandBuffer)
+{
+	vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+}
+
+void Renderer::PushGpuTimestamp(CommandBuffer* commandBuffer, CSTR name)
+{
+	if (!timestampsEnabled) { return; }
+
+	U32 queryIndex = timestampManager->Push(currentFrame, name);
+	vkCmdWriteTimestamp(commandBuffer->commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, timestampQueryPool, queryIndex);
+}
+
+void Renderer::PopGpuTimestamp(CommandBuffer* commandBuffer)
+{
+	if (!timestampsEnabled) { return; }
+
+	U32 queryIndex = timestampManager->Pop(currentFrame);
+	vkCmdWriteTimestamp(commandBuffer->commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, timestampQueryPool, queryIndex);
 }
 
 void Renderer::FrameCountersAdvance()

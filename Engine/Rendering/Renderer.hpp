@@ -31,7 +31,10 @@ private:
 	static void* DynamicAllocate(U32 size);
 
 	static void SetResourceName(VkObjectType type, U64 handle, CSTR name);
-
+	static void PushMarker(VkCommandBuffer commandBuffer, CSTR name);
+	static void PopMarker(VkCommandBuffer commandBuffer);
+	static void PushGpuTimestamp(CommandBuffer* commandBuffer, CSTR name);
+	static void PopGpuTimestamp(CommandBuffer* commandBuffer);
 
 	static void FrameCountersAdvance();
 	static void QueueCommandBuffer(CommandBuffer* commandBuffer);

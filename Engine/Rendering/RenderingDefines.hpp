@@ -711,6 +711,100 @@ static inline VkPipelineStageFlags ToVkPipelineStage(PipelineStage value)
 	return vkValues[value];
 }
 
+static VkAccessFlags ToVkAccessFlags(ResourceType state)
+{
+	VkAccessFlags ret = 0;
+	if (state & RESOURCE_TYPE_COPY_SOURCE) { ret |= VK_ACCESS_TRANSFER_READ_BIT; }
+	if (state & RESOURCE_TYPE_COPY_DEST) { ret |= VK_ACCESS_TRANSFER_WRITE_BIT; }
+	if (state & RESOURCE_TYPE_VERTEX_AND_CONSTANT_BUFFER) { ret |= VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; }
+	if (state & RESOURCE_TYPE_INDEX_BUFFER) { ret |= VK_ACCESS_INDEX_READ_BIT; }
+	if (state & RESOURCE_TYPE_UNORDERED_ACCESS) { ret |= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT; }
+	if (state & RESOURCE_TYPE_INDIRECT_ARGUMENT) { ret |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT; }
+	if (state & RESOURCE_TYPE_RENDER_TARGET) { ret |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; }
+	if (state & RESOURCE_TYPE_DEPTH_WRITE) { ret |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT; }
+	if (state & RESOURCE_TYPE_SHADER_RESOURCE) { ret |= VK_ACCESS_SHADER_READ_BIT; }
+	if (state & RESOURCE_TYPE_PRESENT) { ret |= VK_ACCESS_MEMORY_READ_BIT; }
+#ifdef ENABLE_RAYTRACING
+	if (state & RESOURCE_TYPE_RAYTRACING_ACCELERATION_STRUCTURE) { ret |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV; }
+#endif
+
+	return ret;
+}
+
+static VkImageLayout ToVkImageLayout(ResourceType usage)
+{
+	if (usage & RESOURCE_TYPE_COPY_SOURCE) { return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; }
+	if (usage & RESOURCE_TYPE_COPY_DEST) { return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }
+	if (usage & RESOURCE_TYPE_RENDER_TARGET) { return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; }
+	if (usage & RESOURCE_TYPE_DEPTH_WRITE) { return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; }
+	if (usage & RESOURCE_TYPE_DEPTH_READ) { return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL; }
+	if (usage & RESOURCE_TYPE_UNORDERED_ACCESS) { return VK_IMAGE_LAYOUT_GENERAL; }
+	if (usage & RESOURCE_TYPE_SHADER_RESOURCE) { return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; }
+	if (usage & RESOURCE_TYPE_PRESENT) { return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; }
+	if (usage == RESOURCE_TYPE_COMMON) { return VK_IMAGE_LAYOUT_GENERAL; }
+	return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
+static VkPipelineStageFlags DeterminePipelineStageFlags(VkAccessFlags accessFlags, QueueType queueType)
+{
+	VkPipelineStageFlags flags = 0;
+
+	switch (queueType)
+	{
+	case QUEUE_TYPE_GRAPHICS:
+	{
+		if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0) { flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT; }
+
+		if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+		{
+			flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+			flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			/*if ( pRenderer->pActiveGpuSettings->mGeometryShaderSupported ) {
+				flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+			}
+			if ( pRenderer->pActiveGpuSettings->mTessellationSupported ) {
+				flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+				flags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+			}*/
+			flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+#ifdef ENABLE_RAYTRACING
+			if (pRenderer->mVulkan.mRaytracingExtension) { flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV; }
+#endif
+		}
+
+		if ((accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0) { flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; }
+
+		if ((accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0) { flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; }
+
+		if ((accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0) { flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT; }
+	} break;
+	case QUEUE_TYPE_COMPUTE: {
+		if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0 ||
+			(accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0 ||
+			(accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0 ||
+			(accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+		{
+			return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		}
+
+		if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+		{
+			flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		}
+	} break;
+	case QUEUE_TYPE_COPY_TRANSFER: { return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT; }
+	default: break;
+	}
+
+	// Compatible with both compute and graphics queues
+	if ((accessFlags & VK_ACCESS_INDIRECT_COMMAND_READ_BIT) != 0) { flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT; }
+	if ((accessFlags & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0) { flags |= VK_PIPELINE_STAGE_TRANSFER_BIT; }
+	if ((accessFlags & (VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT)) != 0) { flags |= VK_PIPELINE_STAGE_HOST_BIT; }
+	if (flags == 0) { flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT; }
+
+	return flags;
+}
+
 /*---------STRUCTURES---------*/
 
 struct Rect2D
@@ -895,7 +989,7 @@ struct DescriptorSetCreation
 
 	CSTR						name = nullptr;
 
-	DescriptorSetCreation& Eeset();
+	DescriptorSetCreation& Reset();
 	DescriptorSetCreation& SetLayout(DescriptorSetLayoutHandle layout);
 	DescriptorSetCreation& Texture(TextureHandle texture, U16 binding);
 	DescriptorSetCreation& Buffer(BufferHandle buffer, U16 binding);
@@ -1014,9 +1108,9 @@ struct SamplerCreation
 	CSTR					name = nullptr;
 
 	SamplerCreation& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
-	SamplerCreation& SetSddressModeU(VkSamplerAddressMode u);
-	SamplerCreation& SetSddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
-	SamplerCreation& SetSddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
+	SamplerCreation& SetAddressModeU(VkSamplerAddressMode u);
+	SamplerCreation& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
+	SamplerCreation& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
 	SamplerCreation& SetName(CSTR name);
 };
 
