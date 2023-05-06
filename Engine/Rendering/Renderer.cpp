@@ -533,6 +533,8 @@ bool Renderer::CreatePools()
 	timestampManager = (GPUTimestampManager*)(memory);
 	timestampManager->Create(timeQueriesPerFrame, MAX_SWAPCHAIN_IMAGES);
 
+	commandBufferRing.Create();
+
 	queuedCommandBuffers = (CommandBuffer**)(timestampManager + 1);
 	CommandBuffer** correctlyAllocatedBuffer = (CommandBuffer**)(memory + sizeof(GPUTimestampManager));
 	numAllocatedCommandBuffers = 0;
