@@ -15,7 +15,7 @@ void shutdown()
 
 }
 
-int main()
+int main(int argc, char** argv)
 {
 	Engine::Initialize("Nihility Demo", 1, init, update, shutdown);
 

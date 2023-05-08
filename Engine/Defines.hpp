@@ -147,7 +147,7 @@ class& operator=(class&&) = delete;	\
 #	define NH_NOINLINE										// Tries to force the compiler to not inline a function
 #endif
 
-#define NH_HEADER_STATIC inline static	// A static member variable that doesn't get defined in a cpp file
+#define NH_HEADER_STATIC static inline	// A static member variable that doesn't get defined in a cpp file
 #define NH_NODISCARD [[nodiscard]]	// Issues a warning when the return value of a function isn't captured
 
 /*---------ASSERTIONS---------*/

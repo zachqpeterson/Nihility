@@ -9,40 +9,44 @@ struct RegistryValue
 	U8* value;
 };
 
+//TODO: Store settings in the registry
+
 class NH_API Settings
 {
 public:
 	//AUDIO
-	static const U8& ChannelCount() { return data.channelCount; }
-	static const F32& MasterVolume() { return data.masterVolume; }
-	static const F32& MusicVolume() { return data.musicVolume; }
-	static const F32& SfxVolume() { return data.sfxVolume; }
+	static inline const U8& ChannelCount() { return data.channelCount; }
+	static inline const F32& MasterVolume() { return data.masterVolume; }
+	static inline const F32& MusicVolume() { return data.musicVolume; }
+	static inline const F32& SfxVolume() { return data.sfxVolume; }
+	static inline const bool& UnfocusedAudio() { return data.unfocusedAudio; }
 
 	//GRAPHICS
-	static const I32& WindowWidth() { return data.windowWidth; }
-	static const I32& WindowHeight() { return data.windowHeight; }
-	static const I32& WindowWidthSmall() { return data.windowWidthSmall; }
-	static const I32& WindowHeightSmall() { return data.windowHeightSmall; }
-	static const I32& WindowPositionX() { return data.windowPositionX; }
-	static const I32& WindowPositionY() { return data.windowPositionY; }
-	static const I32& WindowPositionXSmall() { return data.windowPositionXSmall; }
-	static const I32& WindowPositionYSmall() { return data.windowPositionYSmall; }
-	static const F64& TargetFrametime() { return data.targetFrametime; }
-	static const F64& TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
-	static const U8& MsaaCount() { return data.msaaCount; }
+	static inline const I32& WindowWidth() { return data.windowWidth; }
+	static inline const I32& WindowHeight() { return data.windowHeight; }
+	static inline const I32& WindowWidthSmall() { return data.windowWidthSmall; }
+	static inline const I32& WindowHeightSmall() { return data.windowHeightSmall; }
+	static inline const I32& WindowPositionX() { return data.windowPositionX; }
+	static inline const I32& WindowPositionY() { return data.windowPositionY; }
+	static inline const I32& WindowPositionXSmall() { return data.windowPositionXSmall; }
+	static inline const I32& WindowPositionYSmall() { return data.windowPositionYSmall; }
+	static inline const F64& TargetFrametime() { return data.targetFrametime; }
+	static inline const F64& TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
+	static inline const U8& MsaaCount() { return data.msaaCount; }
 
 	//PLATFORM
-	static const U32& Dpi() { return data.dpi; }
-	static const U32& ThreadCount() { return data.threadCount; }
-	static const I32& ScreenWidth() { return data.screenWidth; }
-	static const I32& ScreenHeight() { return data.screenHeight; }
-	static const F64& MonitorHz() { return data.monitorHz; }
-	static const bool& Focused() { return data.focused; }
-	static const bool& Minimised() { return data.minimised; }
-	static const bool& Fullscreen() { return data.fullscreen; }
-	static const bool& LockCursor() { return data.lockCursor; }
-	static const bool& HideCursor() { return data.hideCursor; }
-	static const bool& ConstrainCursor() { return data.constrainCursor; }
+	static inline const U32& Dpi() { return data.dpi; }
+	static inline const U32& ThreadCount() { return data.threadCount; }
+	static inline const I32& ScreenWidth() { return data.screenWidth; }
+	static inline const I32& ScreenHeight() { return data.screenHeight; }
+	static inline const F64& MonitorHz() { return data.monitorHz; }
+	static inline const bool& Fullscreen() { return data.fullscreen; }
+	static inline const bool& ConstrainCursor() { return data.constrainCursor; }
+	static inline const bool& Focused() { return focused; }
+	static inline const bool& Minimised() { return minimised; }
+	static inline const bool& LockCursor() { return lockCursor; }
+	static inline const bool& HideCursor() { return hideCursor; }
+	static inline const bool& Resized() { return resized; }
 
 	static bool GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize = false);
 
@@ -50,13 +54,14 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static inline struct Data
+	NH_HEADER_STATIC struct Data
 	{
 		//AUDIO
 		U8 channelCount{ 2 };
 		F32 masterVolume{ 1.0f };
 		F32 musicVolume{ 1.0f };
 		F32 sfxVolume{ 1.0f };
+		bool unfocusedAudio{ false };
 
 		//GRAPHICS
 		I32 windowWidth{ 0 };
@@ -77,13 +82,15 @@ private:
 		I32 screenWidth{ 0 };
 		I32 screenHeight{ 0 };
 		F64 monitorHz{ 0.0 };
-		bool focused{ true };
-		bool minimised{ true };
 		bool fullscreen{ false };
-		bool lockCursor{ false };
-		bool hideCursor{ false };
 		bool constrainCursor{ false };
 	} data{};
+
+	NH_HEADER_STATIC bool focused{ true };
+	NH_HEADER_STATIC bool minimised{ true };
+	NH_HEADER_STATIC bool lockCursor{ false };
+	NH_HEADER_STATIC bool hideCursor{ false };
+	NH_HEADER_STATIC bool resized{ false };
 
 	STATIC_CLASS(Settings);
 	friend class Platform;

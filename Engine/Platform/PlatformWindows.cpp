@@ -194,12 +194,12 @@ void Platform::SetMousePosition(I32 x, I32 y)
 void Platform::HideCursor(bool hide)
 {
 	//ShowCursor(hide);
-	Settings::data.hideCursor = hide;
+	Settings::hideCursor = hide;
 }
 
 void Platform::LockCursor(bool lock)
 {
-	Settings::data.lockCursor = lock;
+	Settings::lockCursor = lock;
 }
 
 void Platform::SetConsoleWindowTitle(CSTR name)
@@ -259,11 +259,11 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	switch (msg)
 	{
 	case WM_CREATE: { } return 0;
-	case WM_SETFOCUS: { Settings::data.focused = true; } return 0;
-	case WM_KILLFOCUS: { Settings::data.focused = false; } return 0;
-	case WM_QUIT: { Settings::data.focused = false; running = false; } return 0;
-	case WM_CLOSE: { Settings::data.focused = false; running = false; } return 0;
-	case WM_DESTROY: { Settings::data.focused = false; running = false; } return 0;
+	case WM_SETFOCUS: { Settings::focused = true; } return 0;
+	case WM_KILLFOCUS: { Settings::focused = false; } return 0;
+	case WM_QUIT: { Settings::focused = false; running = false; } return 0;
+	case WM_CLOSE: { Settings::focused = false; running = false; } return 0;
+	case WM_DESTROY: { Settings::focused = false; running = false; } return 0;
 	case WM_ERASEBKGND: {} return 1;
 	case WM_DPICHANGED: {
 		Settings::data.dpi = HIWORD(wParam);
@@ -289,8 +289,8 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_SIZE: {
 		switch (wParam)
 		{
-		case SIZE_MINIMIZED: { Settings::data.focused = false; Settings::data.minimised = true; } break;
-		case SIZE_RESTORED: { Settings::data.minimised = false; } break;
+		case SIZE_MINIMIZED: { Settings::focused = false; Settings::minimised = true; } break;
+		case SIZE_RESTORED: { Settings::minimised = false; } break;
 		}
 
 		RECT rect{};
@@ -312,7 +312,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
 		Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
 
-		//RendererFrontend::OnResize();
+		Settings::resized = true;
 	} return 0;
 	case WM_MOVE: {
 		Settings::data.windowPositionX = LOWORD(lParam);

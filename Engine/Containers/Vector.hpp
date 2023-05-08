@@ -174,6 +174,26 @@ public:
 	void Remove(U64 index, T&& value) noexcept;
 
 	/// <summary>
+	/// Removes the value at index by swaping it with the last index
+	/// </summary>
+	/// <param name="index:">The index to remove</param>
+	void RemoveSwap(U64 index);
+
+	/// <summary>
+	/// Copies value at index into value, removes the value at index by swaping it with the last index
+	/// </summary>
+	/// <param name="index:">The index to remove</param>
+	/// <param name="value:">The value to copy to</param>
+	void RemoveSwap(U64 index, T& value);
+
+	/// <summary>
+	/// Moves value at index into value, removes the value at index by swaping it with the last index
+	/// </summary>
+	/// <param name="index:">The index to remove</param>
+	/// <param name="value:">The value to move to</param>
+	void RemoveSwap(U64 index, T&& value) noexcept;
+
+	/// <summary>
 	/// Moves values at and past index1 to index0
 	/// </summary>
 	/// <param name="index0:">The beginning of the erasure, inclusive</param>
@@ -548,6 +568,23 @@ template<typename T> inline void Vector<T>::Remove(U64 index, T&& value) noexcep
 	memcpy(array + index, array + index + 1, (size - index) * sizeof(T));
 
 	--size;
+}
+
+template<typename T> inline void Vector<T>::RemoveSwap(U64 index)
+{
+	array[index] = array[--size];
+}
+
+template<typename T> inline void Vector<T>::RemoveSwap(U64 index, T& value)
+{
+	value = array[index];
+	array[index] = array[--size];
+}
+
+template<typename T> inline void Vector<T>::RemoveSwap(U64 index, T&& value) noexcept
+{
+	value = Move(array[index]);
+	array[index] = array[--size];
 }
 
 template<typename T> inline void Vector<T>::Erase(U64 index0, U64 index1)

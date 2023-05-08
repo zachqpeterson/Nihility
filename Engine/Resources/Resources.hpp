@@ -11,10 +11,13 @@ public:
 	//static Texture* LoadTexture(String& name);
 
 private:
+	//Texture Loading
 	static bool LoadBMP();
 	static bool LoadPNG();
 	static bool LoadJPG();
-	static bool LoadQOI();
+	static bool LoadPSD();
+	static bool LoadTIFF();
+	static bool LoadTGA();
 
 	static bool Initialize();
 	static void Shutdown();

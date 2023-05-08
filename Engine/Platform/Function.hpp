@@ -134,7 +134,7 @@ namespace detail
 	struct FunctionManager
 	{
 		template<typename Type, typename Allocator>
-		inline static const FunctionManager CreateDefaultManager()
+		static inline const FunctionManager CreateDefaultManager()
 		{
 			FunctionManager result =
 			{
@@ -200,7 +200,7 @@ namespace detail
 	};
 
 	template<typename Type, typename Allocator>
-	inline static const FunctionManager& DefaultManager()
+	static inline const FunctionManager& DefaultManager()
 	{
 		static const FunctionManager defaultManager = FunctionManager::CreateDefaultManager<Type, Allocator>();
 		return defaultManager;

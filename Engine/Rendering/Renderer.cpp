@@ -7,6 +7,7 @@
 #include "Platform\Platform.hpp"
 #include "Math\Math.hpp"
 #include "Math\Hash.hpp"
+#include "Resources\Settings.hpp"
 
 #define VMA_IMPLEMENTATION
 #include "External\vk_mem_alloc.h"
@@ -123,8 +124,11 @@ void Renderer::Shutdown()
 	DestroyBuffer(dummyConstantBuffer);
 	DestroySampler(defaultSampler);
 
-	for (ResourceUpdate& resourceDeletion : resourceDeletionQueue)
+	while (resourceDeletionQueue.Size())
 	{
+		ResourceUpdate resourceDeletion;
+		resourceDeletionQueue.Pop(resourceDeletion);
+
 		if (resourceDeletion.currentFrame == -1) { continue; }
 
 		switch (resourceDeletion.type)
@@ -152,14 +156,7 @@ void Renderer::Shutdown()
 	RenderPass* pass = AccessRenderPass(swapchainPass);
 	vkDestroyRenderPass(device, pass->renderPass, allocationCallbacks);
 
-	for (U64 i = 0; i < swapchainImageCount; ++i)
-	{
-		vkDestroyImageView(device, swapchainImageViews[i], allocationCallbacks);
-		vkDestroyFramebuffer(device, swapchainFramebuffers[i], allocationCallbacks);
-	}
-
-	vkDestroySwapchainKHR(device, swapchain, allocationCallbacks);
-
+	DestroySwapchain();
 	vkDestroySurfaceKHR(instance, surface, allocationCallbacks);
 
 	vmaDestroyAllocator(allocator);
@@ -527,6 +524,18 @@ bool Renderer::CreatePools()
 	descriptorSets.Create();
 	samplers.Create();
 
+	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
+
+	for (U64 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	{
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &renderCompleted[i]);
+
+		VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		vkCreateFence(device, &fenceInfo, allocationCallbacks, &commandBufferExecuted[i]);
+	}
+
 	U8* memory;
 	Memory::AllocateSize(&memory, sizeof(GPUTimestampManager) + sizeof(CommandBuffer*) * 128);
 
@@ -606,10 +615,284 @@ bool Renderer::CreatePrimitiveResources()
 	return true;
 }
 
-void Renderer::Update()
+void Renderer::BeginFrame()
+{
+	// Fence wait and reset
+	VkFence renderCompleteFence = commandBufferExecuted[currentFrame];
+
+	if (vkGetFenceStatus(device, renderCompleteFence) != VK_SUCCESS)
+	{
+		vkWaitForFences(device, 1, &renderCompleteFence, VK_TRUE, UINT64_MAX);
+	}
+
+	vkResetFences(device, 1, &renderCompleteFence);
+	// Command pool reset
+	commandBufferRing.ResetPools(currentFrame);
+	// Dynamic memory update
+	const U32 usedSize = dynamicAllocatedSize - (dynamicPerFrameSize * previousFrame);
+	dynamicMaxPerFrameSize = Math::Max(usedSize, dynamicMaxPerFrameSize);
+	dynamicAllocatedSize = dynamicPerFrameSize * currentFrame;
+
+	// Descriptor Set Updates
+	while (descriptorSetUpdates.Size())
+	{
+		DescriptorSetUpdate update;
+		descriptorSetUpdates.Pop(update);
+
+		UpdateDescriptorSetInstant(update);
+	}
+}
+
+void Renderer::EndFrame()
+{
+	VkResult result = vkAcquireNextImageKHR(device, swapchain, U64_MAX, imageAcquired, nullptr, &imageIndex);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		ResizeSwapchain();
+		FrameCountersAdvance();
+
+		return;
+	}
+
+	VkFence renderCompleteFence = commandBufferExecuted[currentFrame];
+	VkSemaphore renderCompleteSemaphore = renderCompleted[currentFrame];
+
+	// Copy all commands
+	VkCommandBuffer enqueuedCommandBuffers[4];
+	for (U32 c = 0; c < numQueuedCommandBuffers; ++c)
+	{
+		CommandBuffer* commandBuffer = queuedCommandBuffers[c];
+
+		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
+
+		if (commandBuffer->isRecording && commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE))
+		{
+			vkCmdEndRenderPass(commandBuffer->commandBuffer);
+		}
+
+		vkEndCommandBuffer(commandBuffer->commandBuffer);
+	}
+
+	// Submit command buffers
+	VkSemaphore waitSemaphores[] = { imageAcquired };
+	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = numQueuedCommandBuffers;
+	submitInfo.pCommandBuffers = enqueuedCommandBuffers;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = renderCompleted;
+
+	vkQueueSubmit(deviceQueue, 1, &submitInfo, renderCompleteFence);
+
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = renderCompleted;
+
+	VkSwapchainKHR swap_chains[] = { swapchain };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swap_chains;
+	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pResults = nullptr; // Optional
+	result = vkQueuePresentKHR(deviceQueue, &presentInfo);
+
+	numQueuedCommandBuffers = 0;
+
+	// GPU Timestamp resolve
+	if (timestampsEnabled)
+	{
+		if (timestampManager->HasValidQueries())
+		{
+			// Query GPU for all timestamps.
+			const U32 queryOffset = (currentFrame * timestampManager->queriesPerFrame) * 2;
+			const U32 queryCount = timestampManager->currentQuery * 2;
+			vkGetQueryPoolResults(device, timestampQueryPool, queryOffset, queryCount,
+				sizeof(U64) * queryCount * 2, &timestampManager->timestampsData[queryOffset],
+				sizeof(timestampManager->timestampsData[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+
+			// Calculate and cache the elapsed time
+			for (U32 i = 0; i < timestampManager->currentQuery; ++i)
+			{
+				U32 index = (currentFrame * timestampManager->queriesPerFrame) + i;
+
+				GPUTimestamp& timestamp = timestampManager->timestamps[index];
+
+				F64 start = (F64)timestampManager->timestampsData[(index * 2)];
+				F64 end = (F64)timestampManager->timestampsData[(index * 2) + 1];
+				F64 range = end - start;
+				F64 elapsedTime = range * timestampFrequency;
+
+				timestamp.elapsedMs = elapsedTime;
+				timestamp.frameIndex = absoluteFrame;
+			}
+		}
+		else if (timestampManager->currentQuery)
+		{
+			Logger::Error("Asymmetrical GPU queries, missing pop of some markers!\n");
+		}
+
+		timestampManager->Reset();
+		timestampReset = true;
+	}
+	else
+	{
+		timestampReset = false;
+	}
+
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || resized)
+	{
+		resized = false;
+		ResizeSwapchain();
+		FrameCountersAdvance();
+
+		return;
+	}
+
+	FrameCountersAdvance();
+
+	while (resourceDeletionQueue.Size())
+	{
+		ResourceUpdate resourceDeletion;
+		resourceDeletionQueue.Pop(resourceDeletion);
+
+		if (resourceDeletion.currentFrame == currentFrame)
+		{
+			switch (resourceDeletion.type)
+			{
+			case RESOURCE_DELETE_TYPE_BUFFER: { DestroyBufferInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_PIPELINE: { DestroyPipelineInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_RENDER_PASS: { DestroyRenderPassInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { DestroyDescriptorSetInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { DestroyDescriptorSetLayoutInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_SAMPLER: { DestroySamplerInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_SHADER_STATE: { DestroyShaderStateInstant(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_TEXTURE: { DestroyTextureInstant(resourceDeletion.handle); } break;
+			}
+		}
+	}
+}
+
+void Renderer::Resize()
+{
+	swapchainWidth = Settings::WindowWidth();
+	swapchainHeight = Settings::WindowHeight();
+
+	resized = true;
+}
+
+void Renderer::ResizeSwapchain()
+{
+	vkDeviceWaitIdle(device);
+
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
+	VkExtent2D swapchainExtent = surfaceCapabilities.currentExtent;
+
+	if (swapchainExtent.width == 0 || swapchainExtent.height == 0) { return; }
+
+	// Internal destroy of swapchain pass to retain the same handle.
+	RenderPass* vkSwapchainPass = AccessRenderPass(swapchainPass);
+	vkDestroyRenderPass(device, vkSwapchainPass->renderPass, allocationCallbacks);
+
+	// Destroy swapchain images and framebuffers
+	DestroySwapchain();
+	vkDestroySurfaceKHR(instance, surface, allocationCallbacks);
+
+	// Recreate window surface
+	if (!CreateSurface()) { Logger::Error("Failed to create window surface!"); }
+
+	// Create swapchain
+	CreateSwapchain();
+
+	// Resize depth texture, maintaining handle, using a dummy texture to destroy.
+	TextureHandle textureToDelete = { textures.ObtainResource() };
+	Texture* vkTextureToDelete = AccessTexture(textureToDelete);
+	vkTextureToDelete->handle = textureToDelete;
+	Texture* vkDepthTexture = AccessTexture(depthTexture);
+	ResizeTexture(vkDepthTexture, vkTextureToDelete, swapchainWidth, swapchainHeight, 1);
+
+	DestroyTexture(textureToDelete);
+
+	RenderPassCreation swapchainPassCreation{};
+	swapchainPassCreation.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
+	CreateSwapchainPass(swapchainPassCreation, vkSwapchainPass);
+
+	vkDeviceWaitIdle(device);
+}
+
+void Renderer::ResizeTexture(Texture* texture, Texture* textureToDelete, U16 width, U16 height, U16 depth)
 {
 
+	// Cache handles to be delayed destroyed
+	textureToDelete->imageView = texture->imageView;
+	textureToDelete->image = texture->image;
+	textureToDelete->allocation = texture->allocation;
+
+	// Re-create image in place.
+	TextureCreation tc;
+	tc.SetFlags(texture->mipmaps, texture->flags).SetFormatType(texture->format, texture->type).SetName(texture->name).SetSize(width, height, depth);
+	CreateTexture(tc, texture->handle, texture);
 }
+
+void Renderer::DestroySwapchain()
+{
+	for (size_t i = 0; i < swapchainImageCount; ++i)
+	{
+		vkDestroyImageView(device, swapchainImageViews[i], allocationCallbacks);
+		vkDestroyFramebuffer(device, swapchainFramebuffers[i], allocationCallbacks);
+	}
+
+	vkDestroySwapchainKHR(device, swapchain, allocationCallbacks);
+}
+
+void Renderer::UpdateDescriptorSet(DescriptorSetHandle descriptorSet)
+{
+	if (descriptorSet.index < descriptorSets.ResourceCount) { descriptorSetUpdates.Push({ descriptorSet, currentFrame }); }
+	else { Logger::Error("Graphics error: trying to update invalid DescriptorSet {}", descriptorSet.index); }
+}
+
+void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
+{
+	// Use a dummy descriptor set to delete the vulkan descriptor set handle
+	DescriptorSetHandle dummyDeleteDescriptorSetHandle = { descriptorSets.ObtainResource() };
+	DesciptorSet* dummyDeleteDescriptorSet = AccessDescriptorSet(dummyDeleteDescriptorSetHandle);
+
+	DesciptorSet* descriptorSet = AccessDescriptorSet(update.descriptorSet);
+	const DesciptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+
+	dummyDeleteDescriptorSet->descriptorSet = descriptorSet->descriptorSet;
+	dummyDeleteDescriptorSet->bindings = nullptr;
+	dummyDeleteDescriptorSet->resources = nullptr;
+	dummyDeleteDescriptorSet->samplers = nullptr;
+	dummyDeleteDescriptorSet->numResources = 0;
+
+	DestroyDescriptorSet(dummyDeleteDescriptorSetHandle);
+
+	// Allocate the new descriptor set and update its content.
+	VkWriteDescriptorSet descriptorWrite[8];
+	VkDescriptorBufferInfo bufferInfo[8];
+	VkDescriptorImageInfo imageInfo[8];
+
+	Sampler* vkDefaultSampler = AccessSampler(defaultSampler);
+
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &descriptorSet->layout->descriptorSetLayout;
+	vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet->descriptorSet);
+
+	U32 numResources = descriptorSetLayout->numBindings;
+	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, vkDefaultSampler->sampler,
+		numResources, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
+
+	vkUpdateDescriptorSets(device, numResources, descriptorWrite, 0, nullptr);
+}
+
+//void Renderer::ResizeOutputTextures(RenderPassHandle renderPass, U32 width, U32 height)
 
 
 
@@ -669,7 +952,6 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 
 void Renderer::PushMarker(VkCommandBuffer commandBuffer, CSTR name)
 {
-
 	VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
 	label.pLabelName = name;
 	label.color[0] = 1.0f;
@@ -773,7 +1055,7 @@ void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage imag
 	}
 	else
 	{
-		Logger::Error("Unsupported layout transition: {} -> {}!", (U32)oldLayout, (U32)newLayout);
+		//Logger::Error("Unsupported layout transition: {} -> {}!", (U32)oldLayout, (U32)newLayout);
 	}
 
 	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
@@ -2078,8 +2360,8 @@ void Renderer::DestroyPipeline(PipelineHandle pipeline)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_PIPELINE, pipeline.index, currentFrame });
 
-		Pipeline* v_pipeline = AccessPipeline(pipeline);
-		DestroyShaderState(v_pipeline->shaderState);
+		Pipeline* vkPipeline = AccessPipeline(pipeline);
+		DestroyShaderState(vkPipeline->shaderState);
 	}
 	else
 	{
@@ -2149,94 +2431,94 @@ void Renderer::DestroyShaderState(ShaderStateHandle shader)
 
 void Renderer::DestroyBufferInstant(ResourceHandle buffer)
 {
-	Buffer* v_buffer = (Buffer*)buffers.GetResource(buffer);
+	Buffer* vkBuffer = (Buffer*)buffers.GetResource(buffer);
 
-	if (v_buffer && v_buffer->parentBuffer.index == INVALID_BUFFER.index)
+	if (vkBuffer && vkBuffer->parentBuffer.index == INVALID_BUFFER.index)
 	{
-		vmaDestroyBuffer(allocator, v_buffer->buffer, v_buffer->allocation);
+		vmaDestroyBuffer(allocator, vkBuffer->buffer, vkBuffer->allocation);
 	}
 	buffers.ReleaseResource(buffer);
 }
 
 void Renderer::DestroyTextureInstant(ResourceHandle texture)
 {
-	Texture* v_texture = (Texture*)textures.GetResource(texture);
+	Texture* vkTexture = (Texture*)textures.GetResource(texture);
 
-	if (v_texture)
+	if (vkTexture)
 	{
-		vkDestroyImageView(device, v_texture->imageView, allocationCallbacks);
-		vmaDestroyImage(allocator, v_texture->image, v_texture->allocation);
+		vkDestroyImageView(device, vkTexture->imageView, allocationCallbacks);
+		vmaDestroyImage(allocator, vkTexture->image, vkTexture->allocation);
 	}
 	textures.ReleaseResource(texture);
 }
 
 void Renderer::DestroyPipelineInstant(ResourceHandle pipeline)
 {
-	Pipeline* v_pipeline = (Pipeline*)pipelines.GetResource(pipeline);
+	Pipeline* vkPipeline = (Pipeline*)pipelines.GetResource(pipeline);
 
-	if (v_pipeline)
+	if (vkPipeline)
 	{
-		vkDestroyPipeline(device, v_pipeline->pipeline, allocationCallbacks);
+		vkDestroyPipeline(device, vkPipeline->pipeline, allocationCallbacks);
 
-		vkDestroyPipelineLayout(device, v_pipeline->pipelineLayout, allocationCallbacks);
+		vkDestroyPipelineLayout(device, vkPipeline->pipelineLayout, allocationCallbacks);
 	}
 	pipelines.ReleaseResource(pipeline);
 }
 
 void Renderer::DestroySamplerInstant(ResourceHandle sampler)
 {
-	Sampler* v_sampler = (Sampler*)samplers.GetResource(sampler);
+	Sampler* vkSampler = (Sampler*)samplers.GetResource(sampler);
 
-	if (v_sampler)
+	if (vkSampler)
 	{
-		vkDestroySampler(device, v_sampler->sampler, allocationCallbacks);
+		vkDestroySampler(device, vkSampler->sampler, allocationCallbacks);
 	}
 	samplers.ReleaseResource(sampler);
 }
 
 void Renderer::DestroyDescriptorSetLayoutInstant(ResourceHandle layout)
 {
-	DesciptorSetLayout* v_descriptorSetLayout = (DesciptorSetLayout*)descriptorSetLayouts.GetResource(layout);
+	DesciptorSetLayout* vkDescriptorSetLayout = (DesciptorSetLayout*)descriptorSetLayouts.GetResource(layout);
 
-	if (v_descriptorSetLayout)
+	if (vkDescriptorSetLayout)
 	{
-		vkDestroyDescriptorSetLayout(device, v_descriptorSetLayout->descriptorSetLayout, allocationCallbacks);
+		vkDestroyDescriptorSetLayout(device, vkDescriptorSetLayout->descriptorSetLayout, allocationCallbacks);
 
-		Memory::FreeSize(&v_descriptorSetLayout->bindings);
+		Memory::FreeSize(&vkDescriptorSetLayout->bindings);
 	}
 	descriptorSetLayouts.ReleaseResource(layout);
 }
 
 void Renderer::DestroyDescriptorSetInstant(ResourceHandle set)
 {
-	DesciptorSet* v_descriptorSet = (DesciptorSet*)descriptorSets.GetResource(set);
+	DesciptorSet* vkDescriptorSet = (DesciptorSet*)descriptorSets.GetResource(set);
 
-	if (v_descriptorSet)
+	if (vkDescriptorSet)
 	{
-		Memory::FreeSize(&v_descriptorSet->resources);
+		Memory::FreeSize(&vkDescriptorSet->resources);
 	}
 	descriptorSets.ReleaseResource(set);
 }
 
 void Renderer::DestroyRenderPassInstant(ResourceHandle renderPass)
 {
-	RenderPass* v_renderPass = (RenderPass*)renderPasses.GetResource(renderPass);
+	RenderPass* vkRenderPass = (RenderPass*)renderPasses.GetResource(renderPass);
 
-	if (v_renderPass)
+	if (vkRenderPass)
 	{
-		if (v_renderPass->numRenderTargets) { vkDestroyFramebuffer(device, v_renderPass->frameBuffer, allocationCallbacks); }
+		if (vkRenderPass->numRenderTargets) { vkDestroyFramebuffer(device, vkRenderPass->frameBuffer, allocationCallbacks); }
 	}
 	renderPasses.ReleaseResource(renderPass);
 }
 
 void Renderer::DestroyShaderStateInstant(ResourceHandle shader)
 {
-	ShaderState* v_shaderState = (ShaderState*)shaders.GetResource(shader);
-	if (v_shaderState)
+	ShaderState* vkShaderState = (ShaderState*)shaders.GetResource(shader);
+	if (vkShaderState)
 	{
-		for (size_t i = 0; i < v_shaderState->activeShaders; i++)
+		for (size_t i = 0; i < vkShaderState->activeShaders; i++)
 		{
-			vkDestroyShaderModule(device, v_shaderState->shaderStageInfos[i].module, allocationCallbacks);
+			vkDestroyShaderModule(device, vkShaderState->shaderStageInfos[i].module, allocationCallbacks);
 		}
 	}
 	shaders.ReleaseResource(shader);

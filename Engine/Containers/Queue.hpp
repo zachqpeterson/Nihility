@@ -32,9 +32,9 @@ public:
 
 private:
 
-	I64 last{ 0 };
-	I64 first{ 0 };
-	I64 size{ 0 };
+	U64 front{ 0 };
+	U64 back{ 0 };
+	U64 size{ 0 };
 	U64 capacity{ 0 };
 	T* array{ nullptr };
 };
@@ -43,13 +43,13 @@ template<typename T> inline Queue<T>::Queue() { Memory::AllocateArray(&array, ca
 
 template<typename T> inline Queue<T>::Queue(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
 
-template<typename T> inline Queue<T>::Queue(const Queue<T>& other) : last{ other.last }, first{ other.first }, size{ other.size }, capacity{ other.capacity }
+template<typename T> inline Queue<T>::Queue(const Queue<T>& other) : front{ other.front }, back{ other.back }, size{ other.size }, capacity{ other.capacity }
 {
 	Memory::AllocateArray(&array, capacity);
 	memcpy(array, other.array, sizeof(T) * size);
 }
 
-template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : last{ other.last }, first{ other.first }, size{ other.size }, capacity{ other.capacity }, array{ other.array }
+template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : front{ other.front }, back{ other.back }, size{ other.size }, capacity{ other.capacity }, array{ other.array }
 {
 	other.Destroy();
 }
@@ -57,6 +57,8 @@ template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : last{ other.last
 template<typename T> inline Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 {
 	if (array) { Memory::FreeArray(array); }
+	front = other.front;
+	back = other.back;
 	size = other.size;
 	capacity = other.capacity;
 	size = other.size;
@@ -70,8 +72,8 @@ template<typename T> inline Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 template<typename T> inline Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 {
 	if (array) { Memory::FreeArray(array); }
-	last = other.last;
-	first = other.first;
+	front = other.front;
+	back = other.back;
 	size = other.size;
 	capacity = other.capacity;
 	array = other.array;
@@ -83,53 +85,35 @@ template<typename T> inline Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 
 template<typename T> inline Queue<T>::~Queue() { Destroy(); }
 
-template<typename T> inline void Queue<T>::Destroy() { last = 0; first = 0; capacity = 0; if (array) { Memory::FreeArray(array); } }
+template<typename T> inline void Queue<T>::Destroy() { front = 0; back = 0; size = 0; capacity = 0; if (array) { Memory::FreeArray(&array); } }
 
 template<typename T> inline void Queue<T>::Push(const T& value)
 {
-	if (last == first && size)
-	{
-		Reserve(capacity + 1);
-		memcpy(array + size, array, sizeof(T) * last);
-		last += size;
-	}
-	else if (last == capacity)
-	{
-		if (first == 0) { Reserve(capacity + 1); }
-		else { last = 0; }
-	}
+	if (size == capacity) { Reserve(capacity + 1); }
 
-
-	array[last--] = value;
-	--size;
+	array[front++] = value;
+	++size;
 }
 
 template<typename T> inline void Queue<T>::Push(T&& value) noexcept
 {
-	if (last == first && size)
-	{
-		Reserve(capacity + 1);
-		memcpy(array + size, array, sizeof(T) * last);
-		last += size;
-	}
-	else if (last == capacity)
-	{
-		if (first == 0) { Reserve(capacity + 1); }
-		else { last = 0; }
-	}
+	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[last--] = Move(value);
-	--size;
+	array[front++] = Move(value);
+	++size;
 }
 
-template<typename T> inline const T& Queue<T>::Peek() const { return array[first]; }
+template<typename T> inline const T& Queue<T>::Peek() const { return array[back]; }
 
 template<typename T> inline bool Queue<T>::Pop(T& value)
 {
-	if (size > 0)
+	if (size)
 	{
-		value = array[first--];
+		value = array[back++];
 		--size;
+
+		if (back == capacity) { back = 0; }
+
 		return true;
 	}
 
@@ -138,10 +122,13 @@ template<typename T> inline bool Queue<T>::Pop(T& value)
 
 template<typename T> inline bool Queue<T>::Pop(T&& value) noexcept
 {
-	if (size > 0)
+	if (size)
 	{
-		value = Move(array[first--]);
+		value = Move(array[back++]);
 		--size;
+
+		if (back == capacity) { back = 0; }
+
 		return true;
 	}
 
