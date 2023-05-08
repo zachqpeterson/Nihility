@@ -8,11 +8,17 @@
 #define DYNAMIC_SIZE 1073741824
 
 /*
-* TODO: Override new and delete globally
 * TODO: If one size is full, allocate next size
 * TODO: Debug Memory stats
 * TODO: memcpy, memset, memset(ptr, 0, size) defines
 */
+
+/*---------GLOBAL NEW/DELETE---------*/
+
+NH_NODISCARD void* operator new (U64 size);
+NH_NODISCARD void* operator new[](U64 size);
+void operator delete (void* ptr);
+void operator delete[](void* ptr);
 
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection

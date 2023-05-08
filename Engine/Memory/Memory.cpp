@@ -142,3 +142,29 @@ U64 Memory::MemoryAlign(U64 size, U64 alignment)
 	const U64 alignmentMask = alignment - 1;
 	return (size + alignmentMask) & ~alignmentMask;
 }
+
+/*---------GLOBAL NEW/DELETE---------*/
+
+NH_NODISCARD void* operator new (U64 size)
+{
+	U8* ptr;
+	Memory::AllocateSize(&ptr, size);
+	return ptr;
+}
+
+NH_NODISCARD void* operator new[](U64 size)
+{
+	U8* ptr;
+	Memory::AllocateSize(&ptr, size);
+	return ptr;
+}
+
+void operator delete (void* ptr)
+{
+	Memory::FreeSize(&ptr);
+}
+
+void operator delete[](void* ptr)
+{
+	Memory::FreeSize(&ptr);
+}
