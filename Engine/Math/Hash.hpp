@@ -1,3 +1,5 @@
+// Based on wyhash - https://github.com/wangyi-fudan/wyhash
+
 #pragma once
 
 #include "Defines.hpp"
@@ -8,7 +10,7 @@
 #pragma intrinsic(_umul128)
 #endif
 
-namespace hash
+namespace detail
 {
 	NH_HEADER_STATIC constexpr U64 secret0 = 0xa0761d6478bd642full;
 	NH_HEADER_STATIC constexpr U64 secret1 = 0xe7037ed1a0b428dbull;
@@ -76,17 +78,17 @@ static inline U64 Hash(const Type& value, U64 seed = 0)
 	constexpr U64 length = sizeof(Type);
 
 	const U8* p = (const U8*)&value;
-	seed ^= hash::Mix(seed ^ hash::secret0, hash::secret1);
+	seed ^= detail::Mix(seed ^ detail::secret0, detail::secret1);
 
 	U64	a, b;
 	if constexpr (length <= 16)
 	{
 		if constexpr (length >= 4)
 		{
-			a = (hash::Read4(p) << 32) | hash::Read4(p + ((length >> 3) << 2));
-			b = (hash::Read4(p + length - 4) << 32) | hash::Read4(p + length - 4 - ((length >> 3) << 2));
+			a = (detail::Read4(p) << 32) | detail::Read4(p + ((length >> 3) << 2));
+			b = (detail::Read4(p + length - 4) << 32) | detail::Read4(p + length - 4 - ((length >> 3) << 2));
 		}
-		else if constexpr (length > 0) { a = hash::Read3(p, length); b = 0; }
+		else if constexpr (length > 0) { a = detail::Read3(p, length); b = 0; }
 		else { a = b = 0; }
 	}
 	else
@@ -97,9 +99,9 @@ static inline U64 Hash(const Type& value, U64 seed = 0)
 			U64 seed1 = seed, seed2 = seed;
 			do
 			{
-				seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
-				seed1 = hash::Mix(hash::Read8(p + 16) ^ hash::secret2, hash::Read8(p + 24) ^ seed1);
-				seed2 = hash::Mix(hash::Read8(p + 32) ^ hash::secret3, hash::Read8(p + 40) ^ seed2);
+				seed = detail::Mix(detail::Read8(p) ^ detail::secret1, detail::Read8(p + 8) ^ seed);
+				seed1 = detail::Mix(detail::Read8(p + 16) ^ detail::secret2, detail::Read8(p + 24) ^ seed1);
+				seed2 = detail::Mix(detail::Read8(p + 32) ^ detail::secret3, detail::Read8(p + 40) ^ seed2);
 				p += 48;
 				i -= 48;
 			} while (i > 48);
@@ -109,19 +111,19 @@ static inline U64 Hash(const Type& value, U64 seed = 0)
 
 		while (i > 16)
 		{
-			seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
+			seed = detail::Mix(detail::Read8(p) ^ detail::secret1, detail::Read8(p + 8) ^ seed);
 			i -= 16;
 			p += 16;
 		}
 
-		a = hash::Read8(p + i - 16);
-		b = hash::Read8(p + i - 8);
+		a = detail::Read8(p + i - 16);
+		b = detail::Read8(p + i - 8);
 	}
 
-	a ^= hash::secret1;
+	a ^= detail::secret1;
 	b ^= seed;
-	hash::Multiply(a, b);
-	return hash::Mix(a ^ hash::secret0 ^ length, b ^ hash::secret1);
+	detail::Multiply(a, b);
+	return detail::Mix(a ^ detail::secret0 ^ length, b ^ detail::secret1);
 }
 
 /// <summary>
@@ -134,17 +136,17 @@ template <U64 length>
 static inline U64 Hash(const char(&value)[length], U64 seed = 0)
 {
 	const U8* p = (const U8*)&value;
-	seed ^= hash::Mix(seed ^ hash::secret0, hash::secret1);
+	seed ^= detail::Mix(seed ^ detail::secret0, detail::secret1);
 
 	U64	a, b;
 	if constexpr (length <= 16)
 	{
 		if constexpr (length >= 4)
 		{
-			a = (hash::Read4(p) << 32) | hash::Read4(p + ((length >> 3) << 2));
-			b = (hash::Read4(p + length - 4) << 32) | hash::Read4(p + length - 4 - ((length >> 3) << 2));
+			a = (detail::Read4(p) << 32) | detail::Read4(p + ((length >> 3) << 2));
+			b = (detail::Read4(p + length - 4) << 32) | detail::Read4(p + length - 4 - ((length >> 3) << 2));
 		}
-		else if constexpr (length > 0) { a = hash::Read3(p, length); b = 0; }
+		else if constexpr (length > 0) { a = detail::Read3(p, length); b = 0; }
 		else { a = b = 0; }
 	}
 	else
@@ -155,9 +157,9 @@ static inline U64 Hash(const char(&value)[length], U64 seed = 0)
 			U64 seed1 = seed, seed2 = seed;
 			do
 			{
-				seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
-				seed1 = hash::Mix(hash::Read8(p + 16) ^ hash::secret2, hash::Read8(p + 24) ^ seed1);
-				seed2 = hash::Mix(hash::Read8(p + 32) ^ hash::secret3, hash::Read8(p + 40) ^ seed2);
+				seed = detail::Mix(detail::Read8(p) ^ detail::secret1, detail::Read8(p + 8) ^ seed);
+				seed1 = detail::Mix(detail::Read8(p + 16) ^ detail::secret2, detail::Read8(p + 24) ^ seed1);
+				seed2 = detail::Mix(detail::Read8(p + 32) ^ detail::secret3, detail::Read8(p + 40) ^ seed2);
 				p += 48;
 				i -= 48;
 			} while (i > 48);
@@ -167,19 +169,19 @@ static inline U64 Hash(const char(&value)[length], U64 seed = 0)
 
 		while (i > 16)
 		{
-			seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
+			seed = detail::Mix(detail::Read8(p) ^ detail::secret1, detail::Read8(p + 8) ^ seed);
 			i -= 16;
 			p += 16;
 		}
 
-		a = hash::Read8(p + i - 16);
-		b = hash::Read8(p + i - 8);
+		a = detail::Read8(p + i - 16);
+		b = detail::Read8(p + i - 8);
 	}
 
-	a ^= hash::secret1;
+	a ^= detail::secret1;
 	b ^= seed;
-	hash::Multiply(a, b);
-	return hash::Mix(a ^ hash::secret0 ^ length, b ^ hash::secret1);
+	detail::Multiply(a, b);
+	return detail::Mix(a ^ detail::secret0 ^ length, b ^ detail::secret1);
 }
 
 /// <summary>
@@ -192,17 +194,17 @@ static inline U64 Hash(const char(&value)[length], U64 seed = 0)
 static inline U64 Hash(const void* value, U64 length, U64 seed = 0)
 {
 	const U8* p = (const U8*)&value;
-	seed ^= hash::Mix(seed ^ hash::secret0, hash::secret1);
+	seed ^= detail::Mix(seed ^ detail::secret0, detail::secret1);
 
 	U64	a, b;
 	if (length <= 16)
 	{
 		if (length >= 4)
 		{
-			a = (hash::Read4(p) << 32) | hash::Read4(p + ((length >> 3) << 2));
-			b = (hash::Read4(p + length - 4) << 32) | hash::Read4(p + length - 4 - ((length >> 3) << 2));
+			a = (detail::Read4(p) << 32) | detail::Read4(p + ((length >> 3) << 2));
+			b = (detail::Read4(p + length - 4) << 32) | detail::Read4(p + length - 4 - ((length >> 3) << 2));
 		}
-		else if (length > 0) { a = hash::Read3(p, length); b = 0; }
+		else if (length > 0) { a = detail::Read3(p, length); b = 0; }
 		else { a = b = 0; }
 	}
 	else
@@ -213,9 +215,9 @@ static inline U64 Hash(const void* value, U64 length, U64 seed = 0)
 			U64 seed1 = seed, seed2 = seed;
 			do
 			{
-				seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
-				seed1 = hash::Mix(hash::Read8(p + 16) ^ hash::secret2, hash::Read8(p + 24) ^ seed1);
-				seed2 = hash::Mix(hash::Read8(p + 32) ^ hash::secret3, hash::Read8(p + 40) ^ seed2);
+				seed = detail::Mix(detail::Read8(p) ^ detail::secret1, detail::Read8(p + 8) ^ seed);
+				seed1 = detail::Mix(detail::Read8(p + 16) ^ detail::secret2, detail::Read8(p + 24) ^ seed1);
+				seed2 = detail::Mix(detail::Read8(p + 32) ^ detail::secret3, detail::Read8(p + 40) ^ seed2);
 				p += 48;
 				i -= 48;
 			} while (i > 48);
@@ -225,17 +227,17 @@ static inline U64 Hash(const void* value, U64 length, U64 seed = 0)
 
 		while (i > 16)
 		{
-			seed = hash::Mix(hash::Read8(p) ^ hash::secret1, hash::Read8(p + 8) ^ seed);
+			seed = detail::Mix(detail::Read8(p) ^ detail::secret1, detail::Read8(p + 8) ^ seed);
 			i -= 16;
 			p += 16;
 		}
 
-		a = hash::Read8(p + i - 16);
-		b = hash::Read8(p + i - 8);
+		a = detail::Read8(p + i - 16);
+		b = detail::Read8(p + i - 8);
 	}
 
-	a ^= hash::secret1;
+	a ^= detail::secret1;
 	b ^= seed;
-	hash::Multiply(a, b);
-	return hash::Mix(a ^ hash::secret0 ^ length, b ^ hash::secret1);
+	detail::Multiply(a, b);
+	return detail::Mix(a ^ detail::secret0 ^ length, b ^ detail::secret1);
 }

@@ -1193,7 +1193,7 @@ struct Texture
 	VkImageView			imageView;
 	VkFormat			format;
 	VkImageLayout		imageLayout;
-	VmaAllocation_T* allocation;
+	VmaAllocation_T*	allocation;
 
 	U16					width = 1;
 	U16					height = 1;
@@ -1204,7 +1204,7 @@ struct Texture
 	TextureHandle		handle;
 	TextureType			type = TEXTURE_TYPE_2D;
 
-	Sampler* sampler = nullptr;
+	Sampler*			sampler = nullptr;
 
 	CSTR				name = nullptr;
 };
