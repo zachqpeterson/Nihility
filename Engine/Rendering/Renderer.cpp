@@ -364,10 +364,11 @@ bool Renderer::CreateDevice()
 bool Renderer::SetFormats()
 {
 	const VkFormat imageFormats[]{
-		VK_FORMAT_B8G8R8A8_UNORM,
+		VK_FORMAT_R16G16B16A16_SFLOAT, //TODO: Enable and disable HDR
 		VK_FORMAT_R8G8B8A8_UNORM,
-		VK_FORMAT_B8G8R8_UNORM,
-		VK_FORMAT_R8G8B8_UNORM
+		VK_FORMAT_B8G8R8A8_UNORM,
+		VK_FORMAT_R8G8B8_UNORM,
+		VK_FORMAT_B8G8R8_UNORM
 	};
 	const VkColorSpaceKHR colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
 
@@ -1864,7 +1865,6 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		VkVertexInputAttributeDescription vertexAttributes[8];
 		if (creation.vertexInput.numVertexAttributes)
 		{
-
 			for (U32 i = 0; i < creation.vertexInput.numVertexAttributes; ++i)
 			{
 				const VertexAttribute& vertexAttribute = creation.vertexInput.vertexAttributes[i];

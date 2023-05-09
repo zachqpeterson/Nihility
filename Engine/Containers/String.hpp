@@ -3,6 +3,7 @@
 #include "ContainerDefines.hpp"
 
 #include "Memory\Memory.hpp"
+#include "Math\Hash.hpp"
 #include "Vector.hpp"
 
 #define UPPER_CHAR		0x01
@@ -854,10 +855,8 @@ inline const U64& StringBase<T, LU>::Hash()
 {
 	if (hashed) { return hash; }
 
-	hash = 0;
-	const T* c = string;
-	while (*c) { hash = hash * 101 + *c++; }
 	hashed = true;
+	hash = Hash(string, size);
 
 	return hash;
 }
