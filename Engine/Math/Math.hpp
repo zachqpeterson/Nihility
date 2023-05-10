@@ -313,10 +313,6 @@ public:
 	Vector4 Normalized() const;
 	Vector4 Projection(const Vector4& v) const;
 	Vector4 OrthoProjection(const Vector4& v) const;
-	Vector4 Cross(const Vector4& v) const;
-	Vector4 Normal(const Vector4& v) const;
-	Vector4& Rotate(const Vector4& center, const Quaternion3& quat);
-	Vector4 Rotated(const Vector4& center, const Quaternion3& quat) const;
 	Vector4& Clamp(const Vector4& xBound, const Vector4& yBound);
 	Vector4 Clamped(const Vector4& xBound, const Vector4& yBound) const;
 	Vector4& SetClosest(const Vector4& xBound, const Vector4& yBound);
@@ -346,9 +342,238 @@ public:
 	static const Vector4 Out;
 };
 
-struct Vector2Int{};
-struct Vector3Int{};
-struct Vector4Int{};
+struct Vector2Int
+{
+public:
+	Vector2Int();
+	Vector2Int(I32 i);
+	Vector2Int(I32 x, I32 y);
+	Vector2Int(const Vector2Int& v);
+	Vector2Int(Vector2Int&& v) noexcept;
+
+	Vector2Int& operator=(I32 i);
+	Vector2Int& operator=(const Vector2Int& v);
+	Vector2Int& operator=(Vector2Int&& v) noexcept;
+
+	Vector2Int& operator+=(I32 i);
+	Vector2Int& operator-=(I32 i);
+	Vector2Int& operator*=(I32 i);
+	Vector2Int& operator/=(I32 i);
+	Vector2Int& operator%=(I32 i);
+	Vector2Int& operator+=(const Vector2Int& v);
+	Vector2Int& operator-=(const Vector2Int& v);
+	Vector2Int& operator*=(const Vector2Int& v);
+	Vector2Int& operator/=(const Vector2Int& v);
+	Vector2Int& operator%=(const Vector2Int& v);
+
+	Vector2Int operator+(I32 i) const;
+	Vector2Int operator-(I32 i) const;
+	Vector2Int operator*(I32 i) const;
+	Vector2Int operator/(I32 i) const;
+	Vector2Int operator%(I32 i) const;
+	Vector2Int operator+(const Vector2Int& v) const;
+	Vector2Int operator-(const Vector2Int& v) const;
+	Vector2Int operator*(const Vector2Int& v) const;
+	Vector2Int operator/(const Vector2Int& v) const;
+	Vector2Int operator%(const Vector2Int& v) const;
+
+	bool operator==(const Vector2Int& v) const;
+	bool operator!=(const Vector2Int& v) const;
+	bool operator>(const Vector2Int& v) const;
+	bool operator<(const Vector2Int& v) const;
+	bool operator>=(const Vector2Int& v) const;
+	bool operator<=(const Vector2Int& v) const;
+	bool IsZero() const;
+
+	Vector2Int operator-() const;
+	Vector2Int operator~() const;
+	Vector2Int operator!() const;
+
+	I32 SqrMagnitude() const;
+	F32 Magnitude() const;
+	I32 Dot(const Vector2Int& v) const;
+	Vector2Int& Clamp(const Vector2Int& min, const Vector2Int& max);
+	Vector2Int Clamped(const Vector2Int& min, const Vector2Int& max) const;
+	Vector2Int& SetClosest(const Vector2Int& min, const Vector2Int& max);
+	Vector2Int Closest(const Vector2Int& min, const Vector2Int& max) const;
+
+	I32& operator[] (U64 i);
+	const I32& operator[] (U64 i) const;
+	I32* Data();
+	const I32* Data() const;
+
+	operator String() const;
+	operator String16() const;
+	operator String32() const;
+
+public:
+	I32 x, y;
+
+	static const Vector2Int Zero;
+	static const Vector2Int One;
+	static const Vector2Int Left;
+	static const Vector2Int Right;
+	static const Vector2Int Up;
+	static const Vector2Int Down;
+};
+
+struct Vector3Int
+{
+public:
+	Vector3Int();
+	Vector3Int(I32 i);
+	Vector3Int(I32 x, I32 y, I32 z);
+	Vector3Int(const Vector3Int& v);
+	Vector3Int(Vector3Int&& v) noexcept;
+
+	Vector3Int& operator=(I32 i);
+	Vector3Int& operator=(const Vector3Int& v);
+	Vector3Int& operator=(Vector3Int&& v) noexcept;
+
+	Vector3Int& operator+=(I32 i);
+	Vector3Int& operator-=(I32 i);
+	Vector3Int& operator*=(I32 i);
+	Vector3Int& operator/=(I32 i);
+	Vector3Int& operator%=(I32 i);
+	Vector3Int& operator+=(const Vector3Int& v);
+	Vector3Int& operator-=(const Vector3Int& v);
+	Vector3Int& operator*=(const Vector3Int& v);
+	Vector3Int& operator/=(const Vector3Int& v);
+	Vector3Int& operator%=(const Vector3Int& v);
+
+	Vector3Int operator+(I32 i) const;
+	Vector3Int operator-(I32 i) const;
+	Vector3Int operator*(I32 i) const;
+	Vector3Int operator/(I32 i) const;
+	Vector3Int operator%(I32 i) const;
+	Vector3Int operator+(const Vector3Int& v) const;
+	Vector3Int operator-(const Vector3Int& v) const;
+	Vector3Int operator*(const Vector3Int& v) const;
+	Vector3Int operator/(const Vector3Int& v) const;
+	Vector3Int operator%(const Vector3Int& v) const;
+
+	bool operator==(const Vector3Int& v) const;
+	bool operator!=(const Vector3Int& v) const;
+	bool operator>(const Vector3Int& v) const;
+	bool operator<(const Vector3Int& v) const;
+	bool operator>=(const Vector3Int& v) const;
+	bool operator<=(const Vector3Int& v) const;
+	bool IsZero() const;
+
+	Vector3Int operator-() const;
+	Vector3Int operator~() const;
+	Vector3Int operator!() const;
+
+	I32 SqrMagnitude() const;
+	F32 Magnitude() const;
+	I32 Dot(const Vector3Int& v) const;
+	Vector3Int& Clamp(const Vector3Int& xBound, const Vector3Int& yBound);
+	Vector3Int Clamped(const Vector3Int& xBound, const Vector3Int& yBound) const;
+	Vector3Int& SetClosest(const Vector3Int& xBound, const Vector3Int& yBound);
+	Vector3Int Closest(const Vector3Int& xBound, const Vector3Int& yBound) const;
+
+	I32& operator[] (U64 i);
+	const I32& operator[] (U64 i) const;
+	I32* Data();
+	const I32* Data() const;
+
+	operator String() const;
+	operator String16() const;
+	operator String32() const;
+
+public:
+	I32 x, y, z;
+
+	static const Vector3Int Zero;
+	static const Vector3Int One;
+	static const Vector3Int Left;
+	static const Vector3Int Right;
+	static const Vector3Int Up;
+	static const Vector3Int Down;
+	static const Vector3Int Forward;
+	static const Vector3Int Back;
+};
+
+struct Vector4Int
+{
+public:
+	Vector4Int();
+	Vector4Int(I32 i);
+	Vector4Int(I32 x, I32 y, I32 z, I32 w);
+	Vector4Int(const Vector4Int& v);
+	Vector4Int(Vector4Int&& v) noexcept;
+
+	Vector4Int& operator=(I32 i);
+	Vector4Int& operator=(const Vector4Int& v);
+	Vector4Int& operator=(Vector4Int&& v) noexcept;
+
+	Vector4Int& operator+=(I32 i);
+	Vector4Int& operator-=(I32 i);
+	Vector4Int& operator*=(I32 i);
+	Vector4Int& operator/=(I32 i);
+	Vector4Int& operator%=(I32 i);
+	Vector4Int& operator+=(const Vector4Int& v);
+	Vector4Int& operator-=(const Vector4Int& v);
+	Vector4Int& operator*=(const Vector4Int& v);
+	Vector4Int& operator/=(const Vector4Int& v);
+	Vector4Int& operator%=(const Vector4Int& v);
+
+	Vector4Int operator+(I32 i) const;
+	Vector4Int operator-(I32 i) const;
+	Vector4Int operator*(I32 i) const;
+	Vector4Int operator/(I32 i) const;
+	Vector4Int operator%(I32 i) const;
+	Vector4Int operator+(const Vector4Int& v) const;
+	Vector4Int operator-(const Vector4Int& v) const;
+	Vector4Int operator*(const Vector4Int& v) const;
+	Vector4Int operator/(const Vector4Int& v) const;
+	Vector4Int operator%(const Vector4Int& v) const;
+
+	bool operator==(const Vector4Int& v) const;
+	bool operator!=(const Vector4Int& v) const;
+	bool operator>(const Vector4Int& v) const;
+	bool operator<(const Vector4Int& v) const;
+	bool operator>=(const Vector4Int& v) const;
+	bool operator<=(const Vector4Int& v) const;
+	bool IsZero() const;
+
+	Vector4Int operator-() const;
+	Vector4Int operator~() const;
+	Vector4Int operator!() const;
+
+	I32 SqrMagnitude() const;
+	F32 Magnitude() const;
+	I32 Dot(const Vector4Int& v) const;
+	Vector4Int& Clamp(const Vector4Int& xBound, const Vector4Int& yBound);
+	Vector4Int Clamped(const Vector4Int& xBound, const Vector4Int& yBound) const;
+	Vector4Int& SetClosest(const Vector4Int& xBound, const Vector4Int& yBound);
+	Vector4Int Closest(const Vector4Int& xBound, const Vector4Int& yBound) const;
+
+	I32& operator[] (U64 i);
+	const I32& operator[] (U64 i) const;
+	I32* Data();
+	const I32* Data() const;
+
+	operator String() const;
+	operator String16() const;
+	operator String32() const;
+
+public:
+	I32 x, y, z, w;
+
+	static const Vector4Int Zero;
+	static const Vector4Int One;
+	static const Vector4Int Left;
+	static const Vector4Int Right;
+	static const Vector4Int Up;
+	static const Vector4Int Down;
+	static const Vector4Int Forward;
+	static const Vector4Int Back;
+	static const Vector4Int In;
+	static const Vector4Int Out;
+};
+
+
 struct Matrix2 {};
 struct Matrix3 {};
 struct Matrix4 {};
