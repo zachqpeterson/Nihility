@@ -5,6 +5,9 @@
 #include "Containers\String.hpp"
 #include <math.h>
 
+#undef far
+#undef near
+
 struct Vector2;
 struct Vector3;
 struct Vector4;
@@ -21,7 +24,7 @@ struct Quaternion3;
 
 template <class Type> concept VectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
 
-class Math
+class NH_API Math
 {
 public:
 	//TRIGONOMETRY
@@ -79,6 +82,8 @@ public:
 	template <VectorType Type> static Type InvLerp(const Type& a, const Type& b, F32 t); //TODO:
 	template <FloatingPoint Type> static Type MoveTowards(Type a, Type b, Type t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
 
+	static Quaternion3 Slerp(Quaternion3 a, Quaternion3 b, F32 t);
+
 	//EXPONENTS
 	template <FloatingPoint Type> static Type Pow(Type b, Type e) { if constexpr (IsSame<Type, F32>) { return powf(b, e); } else { return pow(b, e); } }
 
@@ -87,9 +92,8 @@ private:
 	STATIC_CLASS(Math);
 };
 
-struct Vector2
+struct NH_API Vector2
 {
-public:
 	Vector2();
 	Vector2(F32 f);
 	Vector2(F32 x, F32 y);
@@ -174,9 +178,8 @@ public:
 	static const Vector2 Down;
 };
 
-struct Vector3
+struct NH_API Vector3
 {
-public:
 	Vector3();
 	Vector3(F32 f);
 	Vector3(F32 x, F32 y, F32 z);
@@ -259,9 +262,8 @@ public:
 	static const Vector3 Back;
 };
 
-struct Vector4
+struct NH_API Vector4
 {
-public:
 	Vector4();
 	Vector4(F32 f);
 	Vector4(F32 x, F32 y, F32 z, F32 w);
@@ -342,9 +344,8 @@ public:
 	static const Vector4 Out;
 };
 
-struct Vector2Int
+struct NH_API Vector2Int
 {
-public:
 	Vector2Int();
 	Vector2Int(I32 i);
 	Vector2Int(I32 x, I32 y);
@@ -417,9 +418,8 @@ public:
 	static const Vector2Int Down;
 };
 
-struct Vector3Int
+struct NH_API Vector3Int
 {
-public:
 	Vector3Int();
 	Vector3Int(I32 i);
 	Vector3Int(I32 x, I32 y, I32 z);
@@ -494,9 +494,8 @@ public:
 	static const Vector3Int Back;
 };
 
-struct Vector4Int
+struct NH_API Vector4Int
 {
-public:
 	Vector4Int();
 	Vector4Int(I32 i);
 	Vector4Int(I32 x, I32 y, I32 z, I32 w);
@@ -573,9 +572,175 @@ public:
 	static const Vector4Int Out;
 };
 
+struct NH_API Matrix3
+{
+	Matrix3();
+	Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz);
+	Matrix3(const Vector3& a, const Vector3& b, const Vector3& c);
+	Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) noexcept;
+	Matrix3(const Matrix3& m);
+	Matrix3(Matrix3&& m) noexcept;
+	Matrix3(const Vector2& position, const F32& rotation, const Vector2& scale);
+	Matrix3(const Vector2& position, const Quaternion2& rotation, const Vector2& scale);
 
-struct Matrix2 {};
-struct Matrix3 {};
-struct Matrix4 {};
-struct Quaternion2 {};
-struct Quaternion3 {};
+	Matrix3& operator= (const Matrix3& m);
+	Matrix3& operator= (Matrix3&& m) noexcept;
+
+	void Set(const Vector2& position, const F32& rotation, const Vector2& scale);
+	void Set(const Vector2& position, const Quaternion2& rotation, const Vector2& scale);
+
+	Matrix3& operator+= (const Matrix3& m);
+	Matrix3& operator-= (const Matrix3& m);
+	Matrix3& operator*= (const Matrix3& m);
+
+	Matrix3 operator+(const Matrix3& m) const;
+	Matrix3 operator-(const Matrix3& m) const;
+	Matrix3 operator*(const Matrix3& m) const;
+	Vector3 operator*(const Vector3& v) const;
+
+	Matrix3 operator-() const;
+	Matrix3 operator~() const;
+	Matrix3 operator!() const;
+	bool operator==(const Matrix3& m) const;
+	bool operator!=(const Matrix3& m) const;
+
+	Vector3& operator[] (U8 i);
+	const Vector3& operator[] (U8 i) const;
+
+	F32* Data();
+	const F32* Data() const;
+
+public:
+	Vector3 a, b, c; //Columns
+
+	static const Matrix3 Identity;
+};
+
+struct NH_API Matrix4
+{
+	Matrix4();
+	Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw);
+	Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d);
+	Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) noexcept;
+	Matrix4(const Matrix4& m);
+	Matrix4(const Matrix3& m);
+	Matrix4(Matrix4&& m) noexcept;
+	Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale);
+	Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale);
+
+	Matrix4& operator= (const Matrix4& m);
+	Matrix4& operator= (Matrix4&& m) noexcept;
+
+	Matrix4& operator+= (const Matrix4& m);
+	Matrix4& operator-= (const Matrix4& m);
+	Matrix4& operator*= (const Matrix4& m);
+
+	Matrix4 operator+(const Matrix4& m) const;
+	Matrix4 operator-(const Matrix4& m) const;
+	Matrix4 operator*(const Matrix4& m) const;
+	Vector2 operator*(const Vector2& v) const;
+	Vector3 operator*(const Vector3& v) const;
+	Vector4 operator*(const Vector4& v) const;
+
+	Matrix4 Inverse() const;
+
+	void Invert();
+
+	void Transpose();
+
+	void SetPerspective(F32 fov, F32 aspect, F32 near, F32 far);
+
+	void SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
+
+	Vector3 Forward();
+	Vector3 Back();
+	Vector3 Right();
+	Vector3 Left();
+	Vector3 Up();
+	Vector3 Down();
+
+	Matrix4 operator-();
+	Matrix4 operator~();
+	Matrix4 operator!();
+	bool operator==(const Matrix4& m) const;
+	bool operator!=(const Matrix4& m) const;
+
+	Vector4& operator[] (U8 i);
+	const Vector4& operator[] (U8 i) const;
+
+	F32* Data();
+	const F32* Data() const;
+
+public:
+	Vector4 a, b, c, d; //Columns
+
+	static const Matrix4 Identity;
+};
+
+struct NH_API Quaternion2
+{
+	Quaternion2();
+	Quaternion2(F32 angle);
+	Quaternion2(const Quaternion2& q);
+	Quaternion2(Quaternion2&& q) noexcept;
+
+	Quaternion2& operator=(F32 angle);
+	Quaternion2& operator=(const Quaternion2& q);
+	Quaternion2& operator=(Quaternion2&& q) noexcept;
+
+	void Set(F32 angle);
+	void Rotate(F32 angle);
+
+	F32& operator[] (U8 i);
+	const F32& operator[] (U8 i) const;
+
+	F32* Data();
+	const F32* Data() const;
+
+private:
+	F32 angle;
+
+public:
+	F32 x, y; //sin, cos
+
+	static const Quaternion2 Identity;
+};
+
+struct NH_API Quaternion3
+{
+	Quaternion3();
+	Quaternion3(F32 x, F32 y, F32 z, F32 w);
+	Quaternion3(const Vector3& euler, bool normalize = false);
+	Quaternion3(const Vector3& axis, F32 angle, bool normalize = false);
+	Quaternion3(const Quaternion3& q);
+	Quaternion3(Quaternion3&& q) noexcept;
+
+	Quaternion3& operator=(const Vector3& euler);
+	Quaternion3& operator=(const Quaternion3& q);
+	Quaternion3& operator=(Quaternion3&& q) noexcept;
+
+	Quaternion3 operator* (const Quaternion3& q) const;
+
+	Matrix4 ToMatrix4() const;
+	Matrix4 RotationMatrix(Vector3 center) const;
+	Vector3 Euler() const;
+	Quaternion3 Slerp(const Quaternion3& q, F32 t) const;
+
+	F32 Dot(const Quaternion3& q) const;
+	F32 Normal() const;
+	void Normalize();
+	Quaternion3 Normalized() const;
+	Quaternion3 Conjugate() const;
+	Quaternion3 Inverse() const;
+
+	F32& operator[] (U8 i);
+	const F32& operator[] (U8 i) const;
+
+	F32* Data();
+	const F32* Data() const;
+
+public:
+	F32 x, y, z, w;
+
+	static const Quaternion3 Identity;
+};

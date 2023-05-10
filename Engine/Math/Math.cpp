@@ -69,8 +69,8 @@ Vector2 Vector2::Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x
 
 Vector2& Vector2::Rotate(const Vector2& center, F32 angle)
 {
-	F32 cos = Math::Cos(angle);
-	F32 sin = Math::Sin(angle);
+	F32 cos = Math::Cos(angle * DEG_TO_RAD_F);
+	F32 sin = Math::Sin(angle * DEG_TO_RAD_F);
 	F32 temp = cos * (x - center.x) - sin * (y - center.y) + center.x;
 	y = sin * (x - center.x) + cos * (y - center.y) + center.y;
 	x = temp;
@@ -80,8 +80,8 @@ Vector2& Vector2::Rotate(const Vector2& center, F32 angle)
 
 Vector2 Vector2::Rotated(const Vector2& center, F32 angle) const
 {
-	F32 cos = Math::Cos(angle);
-	F32 sin = Math::Sin(angle);
+	F32 cos = Math::Cos(angle * DEG_TO_RAD_F);
+	F32 sin = Math::Sin(angle * DEG_TO_RAD_F);
 	return Vector2{ cos * (x - center.x) - sin * (y - center.y) + center.x,
 	sin * (x - center.x) + cos * (y - center.y) + center.y };
 }
@@ -669,3 +669,523 @@ const I32* Vector4Int::Data() const { return &x; }
 Vector4Int::operator String() const { return String(x, ", ", y, ", ", z, ", ", w); }
 Vector4Int::operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
 Vector4Int::operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
+
+//Matrix3
+
+const Matrix3 Matrix3::Identity{};
+
+Matrix3::Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
+Matrix3::Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a{ ax, ay, az }, b{ bx, by, bz }, c{ cx, cy, cz } {}
+Matrix3::Matrix3(const Vector3& a, const Vector3& b, const Vector3& c) : a{ a }, b{ b }, c{ c } {}
+Matrix3::Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) noexcept : a{ v1 }, b{ v2 }, c{ v3 } {}
+Matrix3::Matrix3(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
+Matrix3::Matrix3(Matrix3&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c } {}
+
+Matrix3::Matrix3(const Vector2& position, const F32& rotation, const Vector2& scale)
+{
+	F32 cos = Math::Cos(rotation * DEG_TO_RAD_F);
+	F32 sin = Math::Sin(rotation * DEG_TO_RAD_F);
+	a.x = cos * scale.x;	b.x = -sin;				c.x = position.x;
+	a.y = sin;				b.y = cos * scale.y;	c.y = position.y;
+	a.z = 0.0f;				b.z = 0.0f;				c.z = 1.0f;
+}
+
+Matrix3::Matrix3(const Vector2& position, const Quaternion2& rotation, const Vector2& scale)
+{
+
+}
+
+void Matrix3::Set(const Vector2& position, const Quaternion2& rotation, const Vector2& scale)
+{
+
+}
+
+void Matrix3::Set(const Vector2& position, const F32& rotation, const Vector2& scale)
+{
+	F32 cos = Math::Cos(rotation * DEG_TO_RAD_F);
+	F32 sin = Math::Sin(rotation * DEG_TO_RAD_F);
+	a.x = cos * scale.x;	b.x = -sin;				c.x = position.x;
+	a.y = sin;				b.y = cos * scale.y;	c.y = position.y;
+	a.z = 0.0f;				b.z = 0.0f;				c.z = 1.0f;
+}
+
+Matrix3& Matrix3::operator= (const Matrix3& m) { a = m.a; b = m.b; c = m.c; return *this; }
+Matrix3& Matrix3::operator= (Matrix3&& m) noexcept { a = m.a; b = m.b; c = m.c; return *this; }
+
+Matrix3& Matrix3::operator+= (const Matrix3& m) { a += m.a; b += m.b; c += m.c; return *this; }
+Matrix3& Matrix3::operator-= (const Matrix3& m) { a -= m.a; b -= m.b; c -= m.c; return *this; }
+Matrix3& Matrix3::operator*= (const Matrix3& m)
+{
+	a.x = a.x * m.a.x + b.x * m.a.y + c.x * m.a.z;
+	a.y = a.y * m.a.x + b.y * m.a.y + c.y * m.a.z;
+	a.z = a.z * m.a.x + b.z * m.a.y + c.z * m.a.z;
+	b.x = a.x * m.b.x + b.x * m.b.y + c.x * m.b.z;
+	b.y = a.y * m.b.x + b.y * m.b.y + c.y * m.b.z;
+	b.z = a.z * m.b.x + b.z * m.b.y + c.z * m.b.z;
+	c.x = a.x * m.c.x + b.x * m.c.y + c.x * m.c.z;
+	c.y = a.y * m.c.x + b.y * m.c.y + c.y * m.c.z;
+	c.z = a.z * m.c.x + b.z * m.c.y + c.z * m.c.z;
+
+	return *this;
+}
+
+Matrix3 Matrix3::operator+(const Matrix3& m) const { return { a + m.a, b + m.b, c + m.c }; }
+Matrix3 Matrix3::operator-(const Matrix3& m) const { return { a - m.a, b - m.b, c - m.c }; }
+Matrix3 Matrix3::operator*(const Matrix3& m) const
+{
+	return {
+		a.x * m.a.x + b.x * m.a.y + c.x * m.a.z,
+		a.y * m.a.x + b.y * m.a.y + c.y * m.a.z,
+		a.z * m.a.x + b.z * m.a.y + c.z * m.a.z,
+		a.x * m.b.x + b.x * m.b.y + c.x * m.b.z,
+		a.y * m.b.x + b.y * m.b.y + c.y * m.b.z,
+		a.z * m.b.x + b.z * m.b.y + c.z * m.b.z,
+		a.x * m.c.x + b.x * m.c.y + c.x * m.c.z,
+		a.y * m.c.x + b.y * m.c.y + c.y * m.c.z,
+		a.z * m.c.x + b.z * m.c.y + c.z * m.c.z
+	};
+}
+Vector3 Matrix3::operator*(const Vector3& v) const
+{
+	return {
+		a.x * v.x + b.x * v.y + c.x * v.z,
+		a.y * v.x + b.y * v.y + c.y * v.z,
+		a.z * v.x + b.z * v.y + c.z * v.z
+	};
+}
+
+Matrix3 Matrix3::operator-() const { return { -a, -b, -c }; }
+Matrix3 Matrix3::operator~() const { return { -a, -b, -c }; }
+Matrix3 Matrix3::operator!() const { return { -a, -b, -c }; }
+bool Matrix3::operator==(const Matrix3& m) const { return a == m.a && b == m.b && c == m.c; }
+bool Matrix3::operator!=(const Matrix3& m) const { return a != m.a || b != m.b || c != m.c; }
+
+const Vector3& Matrix3::operator[] (U8 i) const { return (&a)[i]; }
+Vector3& Matrix3::operator[] (U8 i) { return (&a)[i]; }
+
+F32* Matrix3::Data() { return a.Data(); }
+const F32* Matrix3::Data() const { return a.Data(); }
+
+//Matrix4
+
+const Matrix4 Matrix4::Identity{};
+
+Matrix4::Matrix4() : a{ 1.0f, 0.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f, 0.0f }, d{ 0.0f, 0.0f, 0.0f, 1.0f } {}
+Matrix4::Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw) :
+	a{ ax, ay, az, aw }, b{ bx, by, bz, bw }, c{ cx, cy, cz, cw }, d{ dx, dy, dz, dw } { }
+Matrix4::Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
+Matrix4::Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) noexcept : a{ a }, b{ b }, c{ c }, d{ d } {}
+Matrix4::Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
+Matrix4::Matrix4(const Matrix3& m) : a{ m.a.x, m.a.y, 0.0f, m.a.z }, b{ m.b.x, m.b.y, 0.0f, m.b.z },
+	c{ 0.0f, 0.0f, 1.0f, m.b.z }, d{ m.c.x, m.c.y, 0.0f, 1.0f } {}
+Matrix4::Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
+Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale)
+{
+	//TODO:
+	a.x = 1.0f; b.x = 0.0f; c.x = 0.0f; d.x = position.x;
+	a.y = 0.0f; b.y = 1.0f; c.y = 0.0f; d.y = position.y;
+	a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = position.z;
+	a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
+}
+Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale)
+{
+
+}
+
+Matrix4& Matrix4::operator= (const Matrix4& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
+Matrix4& Matrix4::operator= (Matrix4&& m) noexcept { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
+
+Matrix4& Matrix4::operator+= (const Matrix4& m) { a += m.a; b += m.b; c += m.c; d += m.d; return *this; }
+Matrix4& Matrix4::operator-= (const Matrix4& m) { a -= m.a; b -= m.b; c -= m.c; d -= m.d; return *this; }
+Matrix4& Matrix4::operator*= (const Matrix4& m)
+{
+	a.x = a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + c.x * m.a.w;
+	a.y = a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + c.y * m.a.w;
+	a.z = a.z * m.a.x + b.z * m.a.y + c.z * m.a.z + c.z * m.a.w;
+	a.w = a.w * m.a.x + b.w * m.a.y + c.w * m.a.z + c.w * m.a.w;
+	b.x = a.x * m.b.x + b.x * m.b.y + c.x * m.b.z + c.x * m.b.w;
+	b.y = a.y * m.b.x + b.y * m.b.y + c.y * m.b.z + c.y * m.b.w;
+	b.z = a.z * m.b.x + b.z * m.b.y + c.z * m.b.z + c.z * m.b.w;
+	b.w = a.w * m.b.x + b.w * m.b.y + c.w * m.b.z + c.w * m.b.w;
+	c.x = a.x * m.c.x + b.x * m.c.y + c.x * m.c.z + c.x * m.c.w;
+	c.y = a.y * m.c.x + b.y * m.c.y + c.y * m.c.z + c.y * m.c.w;
+	c.z = a.z * m.c.x + b.z * m.c.y + c.z * m.c.z + c.z * m.c.w;
+	c.w = a.w * m.c.x + b.w * m.c.y + c.w * m.c.z + c.w * m.c.w;
+	d.x = a.x * m.d.x + b.x * m.d.y + c.x * m.d.z + c.x * m.d.w;
+	d.y = a.y * m.d.x + b.y * m.d.y + c.y * m.d.z + c.y * m.d.w;
+	d.z = a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + c.z * m.d.w;
+	d.w = a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w;
+
+	return *this;
+}
+
+Matrix4 Matrix4::operator+(const Matrix4& m) const { return { a + m.a, b + m.b, c + m.c, d + m.d }; }
+Matrix4 Matrix4::operator-(const Matrix4& m) const { return { a - m.a, b - m.b, c - m.c, d + m.d }; }
+Matrix4 Matrix4::operator*(const Matrix4& m) const
+{
+	return {
+		a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + c.x * m.a.w,
+		a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + c.y * m.a.w,
+		a.z * m.a.x + b.z * m.a.y + c.z * m.a.z + c.z * m.a.w,
+		a.w * m.a.x + b.w * m.a.y + c.w * m.a.z + c.w * m.a.w,
+		a.x * m.b.x + b.x * m.b.y + c.x * m.b.z + c.x * m.b.w,
+		a.y * m.b.x + b.y * m.b.y + c.y * m.b.z + c.y * m.b.w,
+		a.z * m.b.x + b.z * m.b.y + c.z * m.b.z + c.z * m.b.w,
+		a.w * m.b.x + b.w * m.b.y + c.w * m.b.z + c.w * m.b.w,
+		a.x * m.c.x + b.x * m.c.y + c.x * m.c.z + c.x * m.c.w,
+		a.y * m.c.x + b.y * m.c.y + c.y * m.c.z + c.y * m.c.w,
+		a.z * m.c.x + b.z * m.c.y + c.z * m.c.z + c.z * m.c.w,
+		a.w * m.c.x + b.w * m.c.y + c.w * m.c.z + c.w * m.c.w,
+		a.x * m.d.x + b.x * m.d.y + c.x * m.d.z + c.x * m.d.w,
+		a.y * m.d.x + b.y * m.d.y + c.y * m.d.z + c.y * m.d.w,
+		a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + c.z * m.d.w,
+		a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w
+	};
+}
+Vector2 Matrix4::operator*(const Vector2& v) const
+{
+	return {
+		a.x * v.x + b.x * v.y,
+		a.y * v.x + b.y * v.y
+	};
+}
+Vector3 Matrix4::operator*(const Vector3& v) const
+{
+	return {
+		a.x * v.x + b.x * v.y + c.x * v.z,
+		a.y * v.x + b.y * v.y + c.y * v.z,
+		a.z * v.x + b.z * v.y + c.z * v.z
+	};
+}
+Vector4 Matrix4::operator*(const Vector4& v) const
+{
+	return {
+		a.x * v.x + b.x * v.y + c.x * v.z + c.x * v.w,
+		a.y * v.x + b.y * v.y + c.y * v.z + c.y * v.w,
+		a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.w,
+		a.z * v.x + b.z * v.y + c.z * v.z + c.z * v.w
+	};
+}
+
+Matrix4 Matrix4::Inverse() const
+{
+	Matrix4 m;
+
+	F32 t0 = c.z * d.w;
+	F32 t1 = d.z * c.w;
+	F32 t2 = b.z * d.w;
+	F32 t3 = d.z * b.w;
+	F32 t4 = b.z * c.w;
+	F32 t5 = c.z * b.w;
+	F32 t6 = a.z * d.w;
+	F32 t7 = d.z * a.w;
+	F32 t8 = a.z * c.w;
+	F32 t9 = c.z * a.w;
+	F32 t10 = a.z * b.w;
+	F32 t11 = b.z * a.w;
+	F32 t12 = c.x * d.y;
+	F32 t13 = d.x * c.y;
+	F32 t14 = b.x * d.y;
+	F32 t15 = d.x * b.y;
+	F32 t16 = b.x * c.y;
+	F32 t17 = c.x * b.y;
+	F32 t18 = a.x * d.y;
+	F32 t19 = d.x * a.y;
+	F32 t20 = a.x * c.y;
+	F32 t21 = c.x * a.y;
+	F32 t22 = a.x * b.y;
+	F32 t23 = b.x * a.y;
+
+	m.a.x = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
+	m.a.y = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
+	m.a.z = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
+	m.a.w = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
+
+	F32 determinant = (a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w);
+	if (Math::Zero(determinant)) { return Identity; }
+	F32 f = 1.0f / determinant;
+
+	m.a.x = f * m.a.x;
+	m.a.y = f * m.a.y;
+	m.a.z = f * m.a.z;
+	m.a.w = f * m.a.w;
+	m.b.x = f * ((t1 * b.x + t2 * c.x + t5 * d.x) - (t0 * b.x + t3 * c.x + t4 * d.x));
+	m.b.y = f * ((t0 * a.x + t7 * c.x + t8 * d.x) - (t1 * a.x + t6 * c.x + t9 * d.x));
+	m.b.z = f * ((t3 * a.x + t6 * b.x + t11 * d.x) - (t2 * a.x + t7 * b.x + t10 * d.x));
+	m.b.w = f * ((t4 * a.x + t9 * b.x + t10 * c.x) - (t5 * a.x + t8 * b.x + t11 * c.x));
+	m.c.x = f * ((t12 * b.w + t15 * c.w + t16 * d.w) - (t13 * b.w + t14 * c.w + t17 * d.w));
+	m.c.y = f * ((t13 * a.w + t18 * c.w + t21 * d.w) - (t12 * a.w + t19 * c.w + t20 * d.w));
+	m.c.z = f * ((t14 * a.w + t19 * b.w + t22 * d.w) - (t15 * a.w + t18 * b.w + t23 * d.w));
+	m.c.w = f * ((t17 * a.w + t20 * b.w + t23 * c.w) - (t16 * a.w + t21 * b.w + t22 * c.w));
+	m.d.x = f * ((t14 * c.z + t17 * d.z + t13 * b.z) - (t16 * d.z + t12 * b.z + t15 * c.z));
+	m.d.y = f * ((t20 * d.z + t12 * a.z + t19 * c.z) - (t18 * c.z + t21 * d.z + t13 * a.z));
+	m.d.z = f * ((t18 * b.z + t23 * d.z + t15 * a.z) - (t22 * d.z + t14 * a.z + t19 * b.z));
+	m.d.w = f * ((t22 * c.z + t16 * a.z + t21 * b.z) - (t20 * b.z + t23 * c.z + t17 * a.z));
+
+	return m;
+}
+
+void Matrix4::Invert()
+{
+	Matrix4 m;
+
+	F32 t0 = c.z * d.w;
+	F32 t1 = d.z * c.w;
+	F32 t2 = b.z * d.w;
+	F32 t3 = d.z * b.w;
+	F32 t4 = b.z * c.w;
+	F32 t5 = c.z * b.w;
+	F32 t6 = a.z * d.w;
+	F32 t7 = d.z * a.w;
+	F32 t8 = a.z * c.w;
+	F32 t9 = c.z * a.w;
+	F32 t10 = a.z * b.w;
+	F32 t11 = b.z * a.w;
+	F32 t12 = c.x * d.y;
+	F32 t13 = d.x * c.y;
+	F32 t14 = b.x * d.y;
+	F32 t15 = d.x * b.y;
+	F32 t16 = b.x * c.y;
+	F32 t17 = c.x * b.y;
+	F32 t18 = a.x * d.y;
+	F32 t19 = d.x * a.y;
+	F32 t20 = a.x * c.y;
+	F32 t21 = c.x * a.y;
+	F32 t22 = a.x * b.y;
+	F32 t23 = b.x * a.y;
+
+	m.a.x = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
+	m.a.y = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
+	m.a.z = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
+	m.a.w = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
+
+	F32 f = 1.0f / (a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w);
+
+	m.a.x = f * m.a.x;
+	m.a.y = f * m.a.y;
+	m.a.z = f * m.a.z;
+	m.a.w = f * m.a.w;
+	m.b.x = f * ((t1 * b.x + t2 * c.x + t5 * d.x) - (t0 * b.x + t3 * c.x + t4 * d.x));
+	m.b.y = f * ((t0 * a.x + t7 * c.x + t8 * d.x) - (t1 * a.x + t6 * c.x + t9 * d.x));
+	m.b.z = f * ((t3 * a.x + t6 * b.x + t11 * d.x) - (t2 * a.x + t7 * b.x + t10 * d.x));
+	m.b.w = f * ((t4 * a.x + t9 * b.x + t10 * c.x) - (t5 * a.x + t8 * b.x + t11 * c.x));
+	m.c.x = f * ((t12 * b.w + t15 * c.w + t16 * d.w) - (t13 * b.w + t14 * c.w + t17 * d.w));
+	m.c.y = f * ((t13 * a.w + t18 * c.w + t21 * d.w) - (t12 * a.w + t19 * c.w + t20 * d.w));
+	m.c.z = f * ((t14 * a.w + t19 * b.w + t22 * d.w) - (t15 * a.w + t18 * b.w + t23 * d.w));
+	m.c.w = f * ((t17 * a.w + t20 * b.w + t23 * c.w) - (t16 * a.w + t21 * b.w + t22 * c.w));
+	m.d.x = f * ((t14 * c.z + t17 * d.z + t13 * b.z) - (t16 * d.z + t12 * b.z + t15 * c.z));
+	m.d.y = f * ((t20 * d.z + t12 * a.z + t19 * c.z) - (t18 * c.z + t21 * d.z + t13 * a.z));
+	m.d.z = f * ((t18 * b.z + t23 * d.z + t15 * a.z) - (t22 * d.z + t14 * a.z + t19 * b.z));
+	m.d.w = f * ((t22 * c.z + t16 * a.z + t21 * b.z) - (t20 * b.z + t23 * c.z + t17 * a.z));
+
+	a = m.a;
+	b = m.b;
+	c = m.c;
+	d = m.d;
+}
+
+void Matrix4::Transpose()
+{
+	F32 bx = a.y;
+	F32 cx = a.z;
+	F32 cy = b.z;
+	F32 dx = a.w;
+	F32 dy = b.w;
+	F32 dz = c.w;
+
+	a.y = b.x;
+	a.z = c.x;
+	a.w = d.x;
+	b.z = c.y;
+	b.w = d.y;
+	c.w = d.z;
+
+	b.x = bx;
+	c.x = cx;
+	c.y = cy;
+	d.x = dx;
+	d.y = dy;
+	d.z = dz;
+}
+
+void Matrix4::SetPerspective(F32 fov, F32 aspect, F32 near, F32 far)
+{
+	F32 yScale = Math::Tan(fov * DEG_TO_RAD_F * 0.5f);
+	F32 xScale = yScale / aspect;
+	F32 nearFar = near - far;
+
+	a.x = xScale;
+	a.y = 0.0f;
+	a.z = 0.0f;
+	a.w = 0.0f;
+
+	b.x = 0.0f;
+	b.y = yScale;
+	b.z = 0.0f;
+	b.w = 0.0f;
+
+	c.x = 0.0f;
+	c.y = 0.0f;
+	c.z = (far + near) / nearFar;
+	c.w = 2.0f * far * near / nearFar;
+
+	d.x = 0.0f;
+	d.y = 0.0f;
+	d.z = -1.0f;
+	d.w = 0.0f;
+}
+
+void Matrix4::SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
+{
+	F32 rightLeft = 1.0f / (right - left);
+	F32 topBottom = 1.0f / (top - bottom);
+	F32 farNear = -1.0f / (far - near);
+
+	a.x = 2.0f * rightLeft;
+	a.y = 0.0f;
+	a.z = 0.0f;
+	a.w = -(right + left) * rightLeft;
+
+	b.x = 0.0f;
+	b.y = 2.0f * topBottom;
+	b.z = 0.0f;
+	b.w = -(top + bottom) * topBottom;
+
+	c.x = 0.0f;
+	c.y = 0.0f;
+	c.z = 2.0f * farNear;
+	c.w = (far + near) * farNear;
+
+	d.x = 0.0f;
+	d.y = 0.0f;
+	d.z = 0.0f;
+	d.w = 1.0f;
+}
+
+Vector3 Matrix4::Forward() { return Vector3(-a.z, -b.z, -c.z).Normalized(); }
+Vector3 Matrix4::Back() { return Vector3(a.z, b.z, c.z).Normalized(); }
+Vector3 Matrix4::Right() { return Vector3(a.x, b.x, c.x).Normalized(); }
+Vector3 Matrix4::Left() { return Vector3(-a.x, -b.x, -c.x).Normalized(); }
+Vector3 Matrix4::Up() { return Vector3(a.y, b.y, c.y).Normalized(); }
+Vector3 Matrix4::Down() { return Vector3(-a.y, -b.y, -c.y).Normalized(); }
+
+Matrix4 Matrix4::operator-() { return { -a, -b, -c, -d }; }
+Matrix4 Matrix4::operator~() { return { -a, -b, -c, -d }; }
+Matrix4 Matrix4::operator!() { return { -a, -b, -c, -d }; }
+bool Matrix4::operator==(const Matrix4& m) const { return a == m.a && b == m.b && c == m.c && d == m.d; }
+bool Matrix4::operator!=(const Matrix4& m) const { return a != m.a || b != m.b || c != m.c || d != m.d; }
+
+Vector4& Matrix4::operator[] (U8 i) { return (&a)[i]; }
+const Vector4& Matrix4::operator[] (U8 i) const { return (&a)[i]; }
+
+F32* Matrix4::Data() { return a.Data(); }
+const F32* Matrix4::Data() const { return a.Data(); }
+
+//Quaternion2
+
+const Quaternion2 Quaternion2::Identity{};
+
+Quaternion2::Quaternion2() : angle{ 0.0f }, x{ 0.0f }, y{ 1.0f } {}
+Quaternion2::Quaternion2(F32 angle) : angle{ angle * DEG_TO_RAD_F }, x{ Math::Sin(this->angle) }, y{ Math::Cos(this->angle) } {}
+Quaternion2::Quaternion2(const Quaternion2& q) : angle{ q.angle }, x{ q.x }, y{ q.y } {}
+Quaternion2::Quaternion2(Quaternion2&& q) noexcept : angle{ q.angle }, x{ q.x }, y{ q.y } {}
+
+Quaternion2& Quaternion2::operator=(F32 angle) { this->angle = angle * DEG_TO_RAD_F; x = Math::Sin(this->angle); y = Math::Cos(this->angle); return *this; }
+Quaternion2& Quaternion2::operator=(const Quaternion2& q) { angle = q.angle; x = q.y; y = q.y; return *this; }
+Quaternion2& Quaternion2::operator=(Quaternion2&& q) noexcept { angle = q.angle; x = q.y; y = q.y; return *this; }
+
+void Quaternion2::Set(F32 angle)
+{
+	this->angle = angle * DEG_TO_RAD_F;
+	x = Math::Sin(this->angle);
+	y = Math::Cos(this->angle);
+}
+
+void Quaternion2::Rotate(F32 angle)
+{
+	this->angle += angle * DEG_TO_RAD_F;
+	x = Math::Sin(this->angle);
+	y = Math::Cos(this->angle);
+}
+
+F32& Quaternion2::operator[] (U8 i) { return (&x)[i]; }
+const F32& Quaternion2::operator[] (U8 i) const { return (&x)[i]; }
+
+F32* Quaternion2::Data() { return &x; }
+const F32* Quaternion2::Data() const { return &x; }
+
+//Quaternion3
+
+const Quaternion3 Quaternion3::Identity{};
+
+Quaternion3::Quaternion3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
+Quaternion3::Quaternion3(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
+Quaternion3::Quaternion3(const Vector3& euler, bool normalize)
+{
+	
+}
+
+Quaternion3::Quaternion3(const Vector3& axis, F32 angle, bool normalize)
+{
+	const F32 halfAngle = angle * 0.5f;
+	F32 s = Math::Sin(halfAngle);
+	F32 c = Math::Cos(halfAngle);
+
+	x = s * axis.x;
+	y = s * axis.y;
+	z = s * axis.z;
+	w = c;
+
+	if (normalize) { Normalize(); }
+}
+
+Quaternion3::Quaternion3(const Quaternion3& q) : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
+Quaternion3::Quaternion3(Quaternion3&& q) noexcept : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
+
+Quaternion3& Quaternion3::operator=(const Vector3& euler)
+{
+
+}
+Quaternion3& Quaternion3::operator=(const Quaternion3& q) { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
+Quaternion3& Quaternion3::operator=(Quaternion3&& q) noexcept { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
+
+Quaternion3 Quaternion3::operator* (const Quaternion3& q) const
+{
+	return { x * q.w + y * q.z - z * q.y + w * q.x,
+			-x * q.z + y * q.w + z * q.x + w * q.y,
+			x * q.y - y * q.x + z * q.w + w * q.z,
+			-x * q.x - y * q.y - z * q.z + w * q.w };
+}
+
+Matrix4 Quaternion3::ToMatrix4() const
+{
+
+}
+
+Matrix4 Quaternion3::RotationMatrix(Vector3 center) const
+{
+
+}
+
+Vector3 Quaternion3::Euler() const
+{
+
+}
+
+Quaternion3 Quaternion3::Slerp(const Quaternion3& q, F32 t) const
+{
+
+}
+
+F32 Quaternion3::Dot(const Quaternion3& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
+F32 Quaternion3::Normal() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
+void Quaternion3::Normalize() { F32 normal = 1.0f / Normal(); x *= normal; y *= normal; z *= normal; w *= normal; }
+Quaternion3 Quaternion3::Normalized() const { F32 normal = 1.0f / Normal(); return Quaternion3{ x * normal, y * normal, z * normal, w * normal }; }
+Quaternion3 Quaternion3::Conjugate() const { return Quaternion3{ -x, -y, -z, w }; }
+Quaternion3 Quaternion3::Inverse() const { return Conjugate().Normalized(); }
+
+F32& Quaternion3::operator[] (U8 i) { return (&x)[i]; }
+const F32& Quaternion3::operator[] (U8 i) const { return (&x)[i]; }
+
+F32* Quaternion3::Data() { return &x; }
+const F32* Quaternion3::Data() const { return &x; }
