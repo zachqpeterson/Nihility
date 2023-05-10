@@ -69,8 +69,6 @@ Vector2 Vector2::Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot
 Vector2 Vector2::OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
 F32 Vector2::Cross(const Vector2& v) const { return x * v.y - y * v.x; }
 Vector2 Vector2::Cross(const F32 f) const { return { y * f, x * -f }; }
-Vector2& Vector2::Tangent() { F32 t = x; x = -y; y = t; return *this; }
-Vector2& Vector2::TangentPerp() { F32 t = x; x = y; y = -t; return *this; }
 Vector2 Vector2::Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x - x).Normalized(); }
 
 Vector2& Vector2::Rotate(const Vector2& center, F32 angle)
@@ -102,33 +100,33 @@ Vector2 Vector2::Rotated(const Vector2& center, const Quaternion2& quat) const
 	return {};
 }
 
-Vector2& Vector2::Clamp(const Vector2& xBound, const Vector2& yBound)
+Vector2& Vector2::Clamp(const Vector2& min, const Vector2& max)
 {
-	x = Math::Clamp(x, xBound.x, xBound.y);
-	y = Math::Clamp(y, yBound.x, yBound.y);
+	x = Math::Clamp(x, min.x, max.x);
+	y = Math::Clamp(y, min.y, max.y);
 	return *this;
 }
 
-Vector2 Vector2::Clamped(const Vector2& xBound, const Vector2& yBound) const
+Vector2 Vector2::Clamped(const Vector2& min, const Vector2& max) const
 {
 	return {
-		Math::Clamp(x, xBound.x, xBound.y),
-		Math::Clamp(y, yBound.x, yBound.y)
+		Math::Clamp(x, min.x, max.x),
+		Math::Clamp(y, min.y, max.y)
 	};
 }
 
-Vector2& Vector2::SetClosest(const Vector2& xBound, const Vector2& yBound)
+Vector2& Vector2::SetClosest(const Vector2& min, const Vector2& max)
 {
-	x = Math::Closest(x, xBound.x, xBound.y);
-	y = Math::Closest(y, yBound.x, yBound.y);
+	x = Math::Closest(x, min.x, max.x);
+	y = Math::Closest(y, min.y, max.y);
 	return *this;
 }
 
-Vector2 Vector2::Closest(const Vector2& xBound, const Vector2& yBound) const
+Vector2 Vector2::Closest(const Vector2& min, const Vector2& max) const
 {
 	return {
-		Math::Closest(x, xBound.x, xBound.y),
-		Math::Closest(y, yBound.x, yBound.y)
+		Math::Closest(x, min.x, max.x),
+		Math::Closest(y, min.y, max.y)
 	};
 }
 
@@ -140,3 +138,120 @@ const F32* Vector2::Data() const { return &x; }
 Vector2::operator String() const { return String(x, ", ", y); }
 Vector2::operator String16() const { return String16(x, u", ", y); }
 Vector2::operator String32() const { return String32(x, U", ", y); }
+
+//Vector3
+
+const Vector3 Vector3::Zero{ 0.0f };
+const Vector3 Vector3::One{ 1.0f };
+const Vector3 Vector3::Left{ -1.0f, 0.0f, 0.0f };
+const Vector3 Vector3::Right{ 1.0f, 0.0f, 0.0f };
+const Vector3 Vector3::Up{ 0.0f, 1.0f, 0.0f };
+const Vector3 Vector3::Down{ 0.0f, -1.0f, 0.0f };
+const Vector3 Vector3::Forward{ 0.0f, 0.0f, 1.0f };
+const Vector3 Vector3::Back{ 0.0f, 0.0f, -1.0f };
+
+Vector3::Vector3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f } {}
+Vector3::Vector3(F32 f) : x{ f }, y{ f }, z{ f } {}
+Vector3::Vector3(F32 x, F32 y, F32 z) : x{ x }, y{ y }, z{ z } {}
+Vector3::Vector3(const Vector3& v) : x{ v.x }, y{ v.y }, z{ v.z } {}
+Vector3::Vector3(Vector3&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z } {}
+
+Vector3& Vector3::operator=(F32 f) { x = f; y = f; z = f; return *this; }
+Vector3& Vector3::operator=(const Vector3& v) { x = v.x; y = v.y; z = v.z; return *this; }
+Vector3& Vector3::operator=(Vector3&& v) noexcept { x = v.x; y = v.y; z = v.z; return *this; }
+
+Vector3& Vector3::operator+=(F32 f) { x += f; y += f; z += f; return *this; }
+Vector3& Vector3::operator-=(F32 f) { x -= f; y -= f; z -= f; return *this; }
+Vector3& Vector3::operator*=(F32 f) { x *= f; y *= f; z *= f; return *this; }
+Vector3& Vector3::operator/=(F32 f) { x /= f; y /= f; z /= f; return *this; }
+Vector3& Vector3::operator%=(F32 f) { x = Math::Mod(x, f); y = Math::Mod(y, f); z = Math::Mod(z, f); return *this; }
+Vector3& Vector3::operator+=(const Vector3& v) { x += v.x; y += v.y; z += v.z; return *this; }
+Vector3& Vector3::operator-=(const Vector3& v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
+Vector3& Vector3::operator*=(const Vector3& v) { x *= v.x; y *= v.y; z *= v.z; return *this; }
+Vector3& Vector3::operator/=(const Vector3& v) { x /= v.x; y /= v.y; z /= v.z; return *this; }
+Vector3& Vector3::operator%=(const Vector3& v) { x = Math::Mod(x, v.x); y = Math::Mod(y, v.y); z = Math::Mod(z, v.z); return *this; }
+
+Vector3 Vector3::operator+(F32 f) const { return { x + f, y + f, z + f }; }
+Vector3 Vector3::operator-(F32 f) const { return { x - f, y - f, z - f }; }
+Vector3 Vector3::operator*(F32 f) const { return { x * f, y * f, z * f }; }
+Vector3 Vector3::operator/(F32 f) const { return { x / f, y / f, z / f }; }
+Vector3 Vector3::operator%(F32 f) const { return { Math::Mod(x, f), Math::Mod(y, f), Math::Mod(z, f) }; }
+Vector3 Vector3::operator+(const Vector3& v) const { return { x + v.x, y + v.y, z + v.z }; }
+Vector3 Vector3::operator-(const Vector3& v) const { return { x - v.x, y - v.y, z - v.z }; }
+Vector3 Vector3::operator*(const Vector3& v) const { return { x * v.x, y * v.y, z * v.z }; }
+Vector3 Vector3::operator/(const Vector3& v) const { return { x / v.x, y / v.y, z / v.z }; }
+Vector3 Vector3::operator%(const Vector3& v) const { return { Math::Mod(x, v.x), Math::Mod(y, v.y), Math::Mod(z, v.z) }; }
+
+bool Vector3::operator==(const Vector3& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y) && Math::Zero(z - v.z); }
+bool Vector3::operator!=(const Vector3& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y) || !Math::Zero(z - v.z); }
+bool Vector3::operator>(const Vector3& v) const { return SqrMagnitude() > v.SqrMagnitude(); }
+bool Vector3::operator<(const Vector3& v) const { return SqrMagnitude() < v.SqrMagnitude(); }
+bool Vector3::operator>=(const Vector3& v) const { return *this == v || SqrMagnitude() > v.SqrMagnitude(); }
+bool Vector3::operator<=(const Vector3& v) const { return *this == v || SqrMagnitude() < v.SqrMagnitude(); }
+bool Vector3::IsZero() const { return Math::Zero(x) && Math::Zero(y) && Math::Zero(z); }
+
+Vector3 Vector3::operator-() const { return { -x, -y, -z }; }
+Vector3 Vector3::operator~() const { return { -x, -y, -z }; }
+Vector3 Vector3::operator!() const { return { -x, -y, -z }; }
+
+F32 Vector3::SqrMagnitude() const { return x * x + y * y + z * z; }
+F32 Vector3::Magnitude() const { return Math::Sqrt(x * x + y * y + z * z); }
+F32 Vector3::Dot(const Vector3& v) const { return x * v.x + y * v.y + z * v.z; }
+Vector3& Vector3::Normalize() { Vector3 v = Normalized(); x = v.x; y = v.y; z = v.z; return *this; }
+Vector3 Vector3::Normalized() const { return IsZero() ? Vector3::Zero : (*this) / Magnitude(); }
+Vector3 Vector3::Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
+Vector3 Vector3::OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
+Vector3 Vector3::Cross(const Vector3& v) const { return { y * v.z - z * v.y, z * v.x - v.x * z, x * v.y - y * v.x }; }
+
+Vector3& Vector3::Rotate(const Vector3& center, const Quaternion3& quat)
+{
+	return *this;
+}
+
+Vector3 Vector3::Rotated(const Vector3& center, const Quaternion3& quat) const
+{
+	return {};
+}
+
+Vector3& Vector3::Clamp(const Vector3& min, const Vector3& max)
+{
+	x = Math::Clamp(x, min.x, max.x);
+	y = Math::Clamp(y, min.y, max.y);
+	y = Math::Clamp(z, min.z, max.z);
+	return *this;
+}
+
+Vector3 Vector3::Clamped(const Vector3& min, const Vector3& max) const
+{
+	return {
+		Math::Clamp(x, min.x, max.x),
+		Math::Clamp(y, min.y, max.y),
+		Math::Clamp(z, min.z, max.z)
+	};
+}
+
+Vector3& Vector3::SetClosest(const Vector3& min, const Vector3& max)
+{
+	x = Math::Closest(x, min.x, max.x);
+	y = Math::Closest(y, min.y, max.y);
+	z = Math::Closest(z, min.z, max.z);
+	return *this;
+}
+
+Vector3 Vector3::Closest(const Vector3& min, const Vector3& max) const
+{
+	return {
+		Math::Closest(x, min.x, max.x),
+		Math::Closest(y, min.y, max.y),
+		Math::Closest(z, min.z, max.z)
+	};
+}
+
+F32& Vector3::operator[] (U64 i) { return (&x)[i]; }
+const F32& Vector3::operator[] (U64 i) const { return (&x)[i]; }
+F32* Vector3::Data() { return &x; }
+const F32* Vector3::Data() const { return &x; }
+
+Vector3::operator String() const { return String(x, ", ", y, ", ", z); }
+Vector3::operator String16() const { return String16(x, u", ", y, u", ", z); }
+Vector3::operator String32() const { return String32(x, U", ", y, U", ", z); }

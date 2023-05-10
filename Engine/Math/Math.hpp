@@ -144,17 +144,15 @@ public:
 	Vector2 OrthoProjection(const Vector2& v) const;
 	F32 Cross(const Vector2& v) const;
 	Vector2 Cross(const F32 f) const;
-	Vector2& Tangent();
-	Vector2& TangentPerp();
 	Vector2 Normal(const Vector2& v) const;
 	Vector2& Rotate(const Vector2& center, F32 angle);
 	Vector2 Rotated(const Vector2& center, F32 angle) const;
 	Vector2& Rotate(const Vector2& center, const Quaternion2& quat);
 	Vector2 Rotated(const Vector2& center, const Quaternion2& quat) const;
-	Vector2& Clamp(const Vector2& xBound, const Vector2& yBound);
-	Vector2 Clamped(const Vector2& xBound, const Vector2& yBound) const;
-	Vector2& SetClosest(const Vector2& xBound, const Vector2& yBound);
-	Vector2 Closest(const Vector2& xBound, const Vector2& yBound) const;
+	Vector2& Clamp(const Vector2& min, const Vector2& max);
+	Vector2 Clamped(const Vector2& min, const Vector2& max) const;
+	Vector2& SetClosest(const Vector2& min, const Vector2& max);
+	Vector2 Closest(const Vector2& min, const Vector2& max) const;
 
 	F32& operator[] (U64 i);
 	const F32& operator[] (U64 i) const;
@@ -228,16 +226,10 @@ public:
 	F32 Dot(const Vector3& v) const;
 	Vector3& Normalize();
 	Vector3 Normalized() const;
-	F32 AngleBetween(const Vector3& v) const;
 	Vector3 Projection(const Vector3& v) const;
 	Vector3 OrthoProjection(const Vector3& v) const;
-	F32 Cross(const Vector3& v) const;
-	Vector3 Cross(const F32 f) const;
-	Vector3& Tangent();
-	Vector3& TangentPerp();
+	Vector3 Cross(const Vector3& v) const;
 	Vector3 Normal(const Vector3& v) const;
-	Vector3& Rotate(const Vector3& center, F32 angle);
-	Vector3 Rotated(const Vector3& center, F32 angle) const;
 	Vector3& Rotate(const Vector3& center, const Quaternion3& quat);
 	Vector3 Rotated(const Vector3& center, const Quaternion3& quat) const;
 	Vector3& Clamp(const Vector3& xBound, const Vector3& yBound);
@@ -255,7 +247,7 @@ public:
 	operator String32() const;
 
 public:
-	F32 x, y;
+	F32 x, y, z;
 
 	static const Vector3 Zero;
 	static const Vector3 One;
@@ -267,7 +259,93 @@ public:
 	static const Vector3 Back;
 };
 
-struct Vector4{};
+struct Vector4
+{
+public:
+	Vector4();
+	Vector4(F32 f);
+	Vector4(F32 x, F32 y, F32 z, F32 w);
+	Vector4(const Vector4& v);
+	Vector4(Vector4&& v) noexcept;
+
+	Vector4& operator=(F32 f);
+	Vector4& operator=(const Vector4& v);
+	Vector4& operator=(Vector4&& v) noexcept;
+
+	Vector4& operator+=(F32 f);
+	Vector4& operator-=(F32 f);
+	Vector4& operator*=(F32 f);
+	Vector4& operator/=(F32 f);
+	Vector4& operator%=(F32 f);
+	Vector4& operator+=(const Vector4& v);
+	Vector4& operator-=(const Vector4& v);
+	Vector4& operator*=(const Vector4& v);
+	Vector4& operator/=(const Vector4& v);
+	Vector4& operator%=(const Vector4& v);
+
+	Vector4 operator+(F32 f) const;
+	Vector4 operator-(F32 f) const;
+	Vector4 operator*(F32 f) const;
+	Vector4 operator/(F32 f) const;
+	Vector4 operator%(F32 f) const;
+	Vector4 operator+(const Vector4& v) const;
+	Vector4 operator-(const Vector4& v) const;
+	Vector4 operator*(const Vector4& v) const;
+	Vector4 operator/(const Vector4& v) const;
+	Vector4 operator%(const Vector4& v) const;
+
+	bool operator==(const Vector4& v) const;
+	bool operator!=(const Vector4& v) const;
+	bool operator>(const Vector4& v) const;
+	bool operator<(const Vector4& v) const;
+	bool operator>=(const Vector4& v) const;
+	bool operator<=(const Vector4& v) const;
+	bool IsZero() const;
+
+	Vector4 operator-() const;
+	Vector4 operator~() const;
+	Vector4 operator!() const;
+
+	F32 SqrMagnitude() const;
+	F32 Magnitude() const;
+	F32 Dot(const Vector4& v) const;
+	Vector4& Normalize();
+	Vector4 Normalized() const;
+	Vector4 Projection(const Vector4& v) const;
+	Vector4 OrthoProjection(const Vector4& v) const;
+	Vector4 Cross(const Vector4& v) const;
+	Vector4 Normal(const Vector4& v) const;
+	Vector4& Rotate(const Vector4& center, const Quaternion3& quat);
+	Vector4 Rotated(const Vector4& center, const Quaternion3& quat) const;
+	Vector4& Clamp(const Vector4& xBound, const Vector4& yBound);
+	Vector4 Clamped(const Vector4& xBound, const Vector4& yBound) const;
+	Vector4& SetClosest(const Vector4& xBound, const Vector4& yBound);
+	Vector4 Closest(const Vector4& xBound, const Vector4& yBound) const;
+
+	F32& operator[] (U64 i);
+	const F32& operator[] (U64 i) const;
+	F32* Data();
+	const F32* Data() const;
+
+	operator String() const;
+	operator String16() const;
+	operator String32() const;
+
+public:
+	F32 x, y, z, w;
+
+	static const Vector4 Zero;
+	static const Vector4 One;
+	static const Vector4 Left;
+	static const Vector4 Right;
+	static const Vector4 Up;
+	static const Vector4 Down;
+	static const Vector4 Forward;
+	static const Vector4 Back;
+	static const Vector4 In;
+	static const Vector4 Out;
+};
+
 struct Vector2Int{};
 struct Vector3Int{};
 struct Vector4Int{};
