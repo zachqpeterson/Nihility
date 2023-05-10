@@ -499,6 +499,7 @@ template<typename T, typename LU>
 struct NH_API StringBase
 {
 	using CharType = T;
+	using StringBaseType = StringBase<T, LU>;
 
 	StringBase();
 	StringBase(NoInit flag);
@@ -597,6 +598,7 @@ private:
 	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
 	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(T* str, const Arg& value);
 	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<class Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
 
 	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity();
 
@@ -1519,6 +1521,15 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	else if constexpr (IsSame<StrBs, StringBase<C32, C32Lookup>>) { using CharType = C32; }
 
 	return ToString<CharType*, Hex, Insert, Remove>(str, (CharType*)value.Data());
+}
+
+template<typename T, typename LU>
+template<class Arg, bool Hex, bool Insert, U64 Remove> 
+inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
+{
+	static_assert(ConvertibleTo<Arg, StringBaseType>, "Arg passed into a string formatter must be convertable to a String type!");
+
+	return ToString<StringBaseType, Hex, Insert, Remove>(str, value.operator StringBaseType());
 }
 
 template<typename T, typename LU>

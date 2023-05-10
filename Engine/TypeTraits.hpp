@@ -1,9 +1,18 @@
 #pragma once
 
 template <class Derived, class Base> inline constexpr bool InheritsFrom = __is_base_of(Base, Derived) && __is_convertible_to(const volatile Derived*, const volatile Base*);
-template <class Derived, class Base> concept Inherits = __is_base_of(Base, Derived) && __is_convertible_to(const volatile Derived*, const volatile Base*);
 
-template <class Type> inline constexpr bool NothrowMoveConstructible = __is_nothrow_constructible(Type, Type);
+template <class From, class To> inline constexpr bool ConvertibleTo = __is_convertible_to(From, To);
+
+template <class Type> inline constexpr bool IsClass = __is_class(Type);
+template <class Type> concept Class = IsClass<Type>;
+
+template <class Type> inline constexpr bool IsUnion = __is_union(Type);
+template <class Type> concept Union = IsUnion<Type>;
+
+template <class Type> inline constexpr bool IsNothrowMoveConstructible = __is_nothrow_constructible(Type, Type);
+template <class Type> concept NothrowMoveConstructible = IsNothrowMoveConstructible<Type>;
+
 
 template <class Type> inline constexpr unsigned long long Alignment = alignof(Type);
 
@@ -109,7 +118,18 @@ namespace TypeTraits
 	template <class Type> struct EnableIf<true, Type> { using type = Type; };
 
 	template <class Type> struct IsMemberFunctionPtr { using type = FalseConstant; };
+
+	template <class Type> struct IsDefined
+	{
+		template <class U>
+		static auto Test(U*) -> BoolConstant<sizeof(U) == sizeof(U)>;
+		static auto Test(...) -> FalseConstant;
+		using type = decltype(Test((Type*)0));
+	};
 }
+
+template <class Type>
+using Defined = typename TypeTraits::IsDefined<Type>::type;
 
 template <bool Test, class Type0, class Type1>
 using Conditional = typename TypeTraits::ConditionalOf<Test, Type0, Type1>::type;
@@ -238,6 +258,13 @@ template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noex
 /// <param name="arg:">The value to forward</param>
 /// <returns>The forwarded value</returns>
 template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLvalReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
+
+template<class Type> inline constexpr void Swap(Type& a, Type& b)
+{
+	Type tmp = Move(a);
+	a = Move(b);
+	b = Move(tmp);
+}
 
 template<typename T> typename AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
 

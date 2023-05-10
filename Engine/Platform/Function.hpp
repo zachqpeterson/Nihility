@@ -19,7 +19,7 @@ namespace detail
 	struct IsInplaceAllocated
 	{
 		static constexpr bool value = sizeof(Type) <= sizeof(FunctorPadding) && 
-			Alignment<FunctorPadding> % Alignment<Type> == 0 && NothrowMoveConstructible<Type>;
+			Alignment<FunctorPadding> % Alignment<Type> == 0 && IsNothrowMoveConstructible<Type>;
 	};
 
 	template<typename Type> inline constexpr bool InplaceAllocated = IsInplaceAllocated<Type>::value;
@@ -97,7 +97,7 @@ namespace detail
 		}
 		static void Move(ManagerStorage& lhs, ManagerStorage&& rhs)
 		{
-			static_assert(NothrowMoveConstructible<typename std::allocator_traits<Allocator>::pointer>, "we can't offer a noexcept swap if the pointer type is not nothrow move constructible");
+			static_assert(IsNothrowMoveConstructible<typename std::allocator_traits<Allocator>::pointer>, "we can't offer a noexcept swap if the pointer type is not nothrow move constructible");
 			new (&FunctorPtrReference(lhs)) typename std::allocator_traits<Allocator>::pointer(FUNC_MOVE(FunctorPtrReference(rhs)));
 			FunctorPtrReference(rhs) = nullptr;
 		}

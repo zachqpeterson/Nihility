@@ -14,6 +14,7 @@
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
 #include "Rendering\Renderer.hpp"
+#include "Math\Math.hpp"
 
 #include "External\tracy\tracy\Tracy.hpp"
 
@@ -80,6 +81,9 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 
 	//std::bit_floor(12);	//TODO:
 	//std::but_ceiling(12); //TODO:
+
+	Vector2 v{ 12.123f, 123.12f };
+	Logger::Info(v);
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
