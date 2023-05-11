@@ -41,6 +41,7 @@ public:
 	template <FloatingPoint Type> static Type AsinH(Type f) { if constexpr (IsSame<Type, F32>) { return asinfh(f); } else { return asinh(f); } }
 	template <FloatingPoint Type> static Type AcosH(Type f) { if constexpr (IsSame<Type, F32>) { return acosfh(f); } else { return acosh(f); } }
 	template <FloatingPoint Type> static Type AtanH(Type f) { if constexpr (IsSame<Type, F32>) { return atanfh(f); } else { return atanh(f); } }
+	template <FloatingPoint Type> static Type Atan2(Type x, Type y) { if constexpr (IsSame<Type, F32>) { return atan2f(x, y); } else { return atan2(x, y); } }
 
 	template <FloatingPoint Type> static Type LogE(Type f) { if constexpr (IsSame<Type, F32>) { return logf(f); } else { return log(f); } }
 	template <FloatingPoint Type> static Type Log2(Type f) { if constexpr (IsSame<Type, F32>) { return log2f(f); } else { return log2(f); } }
@@ -688,6 +689,16 @@ struct NH_API Quaternion2
 	Quaternion2& operator=(const Quaternion2& q);
 	Quaternion2& operator=(Quaternion2&& q) noexcept;
 
+	Quaternion2& operator+=(const Quaternion2& q);
+	Quaternion2& operator-=(const Quaternion2& q);
+	Quaternion2& operator*=(const Quaternion2& q);
+	Quaternion2& operator/=(const Quaternion2& q);
+
+	Quaternion2 operator+(const Quaternion2& q) const;
+	Quaternion2 operator-(const Quaternion2& q) const;
+	Quaternion2 operator*(const Quaternion2& q) const;
+	Quaternion2 operator/(const Quaternion2& q) const;
+
 	void Set(F32 angle);
 	void Rotate(F32 angle);
 
@@ -706,12 +717,13 @@ public:
 	static const Quaternion2 Identity;
 };
 
+//TODO: Cache euler angles
 struct NH_API Quaternion3
 {
 	Quaternion3();
 	Quaternion3(F32 x, F32 y, F32 z, F32 w);
-	Quaternion3(const Vector3& euler, bool normalize = false);
-	Quaternion3(const Vector3& axis, F32 angle, bool normalize = false);
+	Quaternion3(const Vector3& euler);
+	Quaternion3(const Vector3& axis, F32 angle);
 	Quaternion3(const Quaternion3& q);
 	Quaternion3(Quaternion3&& q) noexcept;
 
@@ -719,7 +731,15 @@ struct NH_API Quaternion3
 	Quaternion3& operator=(const Quaternion3& q);
 	Quaternion3& operator=(Quaternion3&& q) noexcept;
 
-	Quaternion3 operator* (const Quaternion3& q) const;
+	Quaternion3& operator+=(const Quaternion3& q);
+	Quaternion3& operator-=(const Quaternion3& q);
+	Quaternion3& operator*=(const Quaternion3& q);
+	Quaternion3& operator/=(const Quaternion3& q);
+
+	Quaternion3 operator+(const Quaternion3& q) const;
+	Quaternion3 operator-(const Quaternion3& q) const;
+	Quaternion3 operator*(const Quaternion3& q) const;
+	Quaternion3 operator/(const Quaternion3& q) const;
 
 	Matrix4 ToMatrix4() const;
 	Matrix4 RotationMatrix(Vector3 center) const;
@@ -727,6 +747,7 @@ struct NH_API Quaternion3
 	Quaternion3 Slerp(const Quaternion3& q, F32 t) const;
 
 	F32 Dot(const Quaternion3& q) const;
+	F32 SqrNormal() const;
 	F32 Normal() const;
 	void Normalize();
 	Quaternion3 Normalized() const;
