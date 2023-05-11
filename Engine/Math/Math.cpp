@@ -128,6 +128,7 @@ Vector2 Vector2::Closest(const Vector2& min, const Vector2& max) const
 
 F32& Vector2::operator[] (U64 i) { return (&x)[i]; }
 const F32& Vector2::operator[] (U64 i) const { return (&x)[i]; }
+
 F32* Vector2::Data() { return &x; }
 const F32* Vector2::Data() const { return &x; }
 
@@ -245,6 +246,7 @@ Vector3 Vector3::Closest(const Vector3& min, const Vector3& max) const
 
 F32& Vector3::operator[] (U64 i) { return (&x)[i]; }
 const F32& Vector3::operator[] (U64 i) const { return (&x)[i]; }
+
 F32* Vector3::Data() { return &x; }
 const F32* Vector3::Data() const { return &x; }
 
@@ -357,6 +359,7 @@ Vector4 Vector4::Closest(const Vector4& min, const Vector4& max) const
 
 F32& Vector4::operator[] (U64 i) { return (&x)[i]; }
 const F32& Vector4::operator[] (U64 i) const { return (&x)[i]; }
+
 F32* Vector4::Data() { return &x; }
 const F32* Vector4::Data() const { return &x; }
 
@@ -453,6 +456,7 @@ Vector2Int Vector2Int::Closest(const Vector2Int& min, const Vector2Int& max) con
 
 I32& Vector2Int::operator[] (U64 i) { return (&x)[i]; }
 const I32& Vector2Int::operator[] (U64 i) const { return (&x)[i]; }
+
 I32* Vector2Int::Data() { return &x; }
 const I32* Vector2Int::Data() const { return &x; }
 
@@ -555,6 +559,7 @@ Vector3Int Vector3Int::Closest(const Vector3Int& min, const Vector3Int& max) con
 
 I32& Vector3Int::operator[] (U64 i) { return (&x)[i]; }
 const I32& Vector3Int::operator[] (U64 i) const { return (&x)[i]; }
+
 I32* Vector3Int::Data() { return &x; }
 const I32* Vector3Int::Data() const { return &x; }
 
@@ -663,6 +668,7 @@ Vector4Int Vector4Int::Closest(const Vector4Int& min, const Vector4Int& max) con
 
 I32& Vector4Int::operator[] (U64 i) { return (&x)[i]; }
 const I32& Vector4Int::operator[] (U64 i) const { return (&x)[i]; }
+
 I32* Vector4Int::Data() { return &x; }
 const I32* Vector4Int::Data() const { return &x; }
 
@@ -778,29 +784,85 @@ Matrix4::Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw,
 Matrix4::Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
 Matrix4::Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) noexcept : a{ a }, b{ b }, c{ c }, d{ d } {}
 Matrix4::Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
-Matrix4::Matrix4(const Matrix3& m) : a{ m.a.x, m.a.y, 0.0f, m.a.z }, b{ m.b.x, m.b.y, 0.0f, m.b.z },
-c{ 0.0f, 0.0f, 1.0f, m.b.z }, d{ m.c.x, m.c.y, 0.0f, 1.0f }
-{
-}
+Matrix4::Matrix4(const Matrix3& m) : a{ m.a.x, m.a.y, 0.0f, m.a.z }, b{ m.b.x, m.b.y, 0.0f, m.b.z }, c{ 0.0f, 0.0f, 1.0f, m.b.z }, d{ m.c.x, m.c.y, 0.0f, 1.0f } {}
 Matrix4::Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
-Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale)
-{
-	//TODO:
-	a.x = 1.0f; b.x = 0.0f; c.x = 0.0f; d.x = position.x;
-	a.y = 0.0f; b.y = 1.0f; c.y = 0.0f; d.y = position.y;
-	a.z = 0.0f; b.z = 0.0f; c.z = 1.0f; d.z = position.z;
-	a.w = 0.0f; b.w = 0.0f; c.w = 0.0f; d.w = 1.0f;
-}
-Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale)
-{
 
+Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale, const Vector3& skew)
+{
+	Quaternion3 q{ rotation };
+	q.Normalize();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.x * q.y;
+	F32 xz = 2.0f * q.x * q.z;
+	F32 xw = 2.0f * q.x * q.w;
+	F32 yy = 2.0f * q.y * q.y;
+	F32 yz = 2.0f * q.y * q.z;
+	F32 yw = 2.0f * q.y * q.w;
+	F32 zz = 2.0f * q.z * q.z;
+	F32 zw = 2.0f * q.z * q.w;
+
+	a.x = (1.0f - yy - zz) * scale.x;
+	a.y = xy - zw;
+	a.z = xz + yw;
+	a.w = skew.x;
+
+	b.x = xy + zw;
+	b.y = (1.0f - xx - zz) * scale.y;
+	b.z = yz - xw;
+	b.w = skew.y;
+
+	c.x = xz - yw;
+	c.y = yz + xw;
+	c.z = (1.0f - xx - yy) * scale.z;
+	c.w = skew.z;
+
+	d.x = position.x;
+	d.y = position.y;
+	d.z = position.z;
+	d.w = 1.0f;
+}
+
+Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale, const Vector3& skew)
+{
+	Quaternion3 q = rotation.Normalized();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.x * q.y;
+	F32 xz = 2.0f * q.x * q.z;
+	F32 xw = 2.0f * q.x * q.w;
+	F32 yy = 2.0f * q.y * q.y;
+	F32 yz = 2.0f * q.y * q.z;
+	F32 yw = 2.0f * q.y * q.w;
+	F32 zz = 2.0f * q.z * q.z;
+	F32 zw = 2.0f * q.z * q.w;
+
+	a.x = (1.0f - yy - zz) * scale.x;
+	a.y = xy - zw;
+	a.z = xz + yw;
+	a.w = skew.x;
+
+	b.x = xy + zw;
+	b.y = (1.0f - xx - zz) * scale.y;
+	b.z = yz - xw;
+	b.w = skew.y;
+
+	c.x = xz - yw;
+	c.y = yz + xw;
+	c.z = (1.0f - xx - yy) * scale.z;
+	c.w = skew.z;
+
+	d.x = position.x;
+	d.y = position.y;
+	d.z = position.z;
+	d.w = 1.0f;
 }
 
 Matrix4& Matrix4::operator= (const Matrix4& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
 Matrix4& Matrix4::operator= (Matrix4&& m) noexcept { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
-
 Matrix4& Matrix4::operator+= (const Matrix4& m) { a += m.a; b += m.b; c += m.c; d += m.d; return *this; }
 Matrix4& Matrix4::operator-= (const Matrix4& m) { a -= m.a; b -= m.b; c -= m.c; d -= m.d; return *this; }
+
 Matrix4& Matrix4::operator*= (const Matrix4& m)
 {
 	a.x = a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + c.x * m.a.w;
@@ -825,6 +887,7 @@ Matrix4& Matrix4::operator*= (const Matrix4& m)
 
 Matrix4 Matrix4::operator+(const Matrix4& m) const { return { a + m.a, b + m.b, c + m.c, d + m.d }; }
 Matrix4 Matrix4::operator-(const Matrix4& m) const { return { a - m.a, b - m.b, c - m.c, d + m.d }; }
+
 Matrix4 Matrix4::operator*(const Matrix4& m) const
 {
 	return {
@@ -846,6 +909,7 @@ Matrix4 Matrix4::operator*(const Matrix4& m) const
 		a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w
 	};
 }
+
 Vector2 Matrix4::operator*(const Vector2& v) const
 {
 	return {
@@ -853,6 +917,7 @@ Vector2 Matrix4::operator*(const Vector2& v) const
 		a.y * v.x + b.y * v.y
 	};
 }
+
 Vector3 Matrix4::operator*(const Vector3& v) const
 {
 	return {
@@ -861,6 +926,7 @@ Vector3 Matrix4::operator*(const Vector3& v) const
 		a.z * v.x + b.z * v.y + c.z * v.z
 	};
 }
+
 Vector4 Matrix4::operator*(const Vector4& v) const
 {
 	return {
@@ -929,7 +995,77 @@ Matrix4 Matrix4::Inverse() const
 	return m;
 }
 
-void Matrix4::Invert()
+Matrix4& Matrix4::Inversed()
+{
+	F32 t0 = c.z * d.w;
+	F32 t1 = d.z * c.w;
+	F32 t2 = b.z * d.w;
+	F32 t3 = d.z * b.w;
+	F32 t4 = b.z * c.w;
+	F32 t5 = c.z * b.w;
+	F32 t6 = a.z * d.w;
+	F32 t7 = d.z * a.w;
+	F32 t8 = a.z * c.w;
+	F32 t9 = c.z * a.w;
+	F32 t10 = a.z * b.w;
+	F32 t11 = b.z * a.w;
+	F32 t12 = c.x * d.y;
+	F32 t13 = d.x * c.y;
+	F32 t14 = b.x * d.y;
+	F32 t15 = d.x * b.y;
+	F32 t16 = b.x * c.y;
+	F32 t17 = c.x * b.y;
+	F32 t18 = a.x * d.y;
+	F32 t19 = d.x * a.y;
+	F32 t20 = a.x * c.y;
+	F32 t21 = c.x * a.y;
+	F32 t22 = a.x * b.y;
+	F32 t23 = b.x * a.y;
+
+	F32 ax = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
+	F32 ay = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
+	F32 az = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
+	F32 aw = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
+
+	F32 determinant = (a.x * ax + b.x * ay + c.x * az + d.x * aw);
+	if (Math::Zero(determinant)) { return *this = Identity; }
+	F32 f = 1.0f / determinant;
+
+	a.x = f * ax;
+	a.y = f * ay;
+	a.z = f * az;
+	a.w = f * aw;
+
+	F32 bx = f * ((t1 * b.x + t2 * c.x + t5 * d.x) - (t0 * b.x + t3 * c.x + t4 * d.x));
+	F32 by = f * ((t0 * a.x + t7 * c.x + t8 * d.x) - (t1 * a.x + t6 * c.x + t9 * d.x));
+	F32 bz = f * ((t3 * a.x + t6 * b.x + t11 * d.x) - (t2 * a.x + t7 * b.x + t10 * d.x));
+	F32 bw = f * ((t4 * a.x + t9 * b.x + t10 * c.x) - (t5 * a.x + t8 * b.x + t11 * c.x));
+	F32 cx = f * ((t12 * b.w + t15 * c.w + t16 * d.w) - (t13 * b.w + t14 * c.w + t17 * d.w));
+	F32 cy = f * ((t13 * a.w + t18 * c.w + t21 * d.w) - (t12 * a.w + t19 * c.w + t20 * d.w));
+	F32 cz = f * ((t14 * a.w + t19 * b.w + t22 * d.w) - (t15 * a.w + t18 * b.w + t23 * d.w));
+	F32 cw = f * ((t17 * a.w + t20 * b.w + t23 * c.w) - (t16 * a.w + t21 * b.w + t22 * c.w));
+	F32 dx = f * ((t14 * c.z + t17 * d.z + t13 * b.z) - (t16 * d.z + t12 * b.z + t15 * c.z));
+	F32 dy = f * ((t20 * d.z + t12 * a.z + t19 * c.z) - (t18 * c.z + t21 * d.z + t13 * a.z));
+	F32 dz = f * ((t18 * b.z + t23 * d.z + t15 * a.z) - (t22 * d.z + t14 * a.z + t19 * b.z));
+	F32 dw = f * ((t22 * c.z + t16 * a.z + t21 * b.z) - (t20 * b.z + t23 * c.z + t17 * a.z));
+
+	b.x = bx;
+	b.y = by;
+	b.z = bz;
+	b.w = bw;
+	c.x = cx;
+	c.y = cy;
+	c.z = cz;
+	c.w = cw;
+	d.x = dx;
+	d.y = dy;
+	d.z = dz;
+	d.w = dw;
+
+	return *this;
+}
+
+Matrix4 Matrix4::Invert() const
 {
 	Matrix4 m;
 
@@ -958,17 +1094,70 @@ void Matrix4::Invert()
 	F32 t22 = a.x * b.y;
 	F32 t23 = b.x * a.y;
 
-	m.a.x = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
-	m.a.y = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
-	m.a.z = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
-	m.a.w = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
+	F32 ax = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
+	F32 ay = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
+	F32 az = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
+	F32 aw = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
 
-	F32 f = 1.0f / (a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w);
+	F32 f = 1.0f / (a.x * ax + b.x * ay + c.x * az + d.x * aw);
 
-	m.a.x = f * m.a.x;
-	m.a.y = f * m.a.y;
-	m.a.z = f * m.a.z;
-	m.a.w = f * m.a.w;
+	return {
+		f * ax, f * ay, f * az, f * aw,
+		f * ((t1 * b.x + t2 * c.x + t5 * d.x) - (t0 * b.x + t3 * c.x + t4 * d.x)),
+		f * ((t0 * a.x + t7 * c.x + t8 * d.x) - (t1 * a.x + t6 * c.x + t9 * d.x)),
+		f * ((t3 * a.x + t6 * b.x + t11 * d.x) - (t2 * a.x + t7 * b.x + t10 * d.x)),
+		f * ((t4 * a.x + t9 * b.x + t10 * c.x) - (t5 * a.x + t8 * b.x + t11 * c.x)),
+		f * ((t12 * b.w + t15 * c.w + t16 * d.w) - (t13 * b.w + t14 * c.w + t17 * d.w)),
+		f * ((t13 * a.w + t18 * c.w + t21 * d.w) - (t12 * a.w + t19 * c.w + t20 * d.w)),
+		f * ((t14 * a.w + t19 * b.w + t22 * d.w) - (t15 * a.w + t18 * b.w + t23 * d.w)),
+		f * ((t17 * a.w + t20 * b.w + t23 * c.w) - (t16 * a.w + t21 * b.w + t22 * c.w)),
+		f * ((t14 * c.z + t17 * d.z + t13 * b.z) - (t16 * d.z + t12 * b.z + t15 * c.z)),
+		f * ((t20 * d.z + t12 * a.z + t19 * c.z) - (t18 * c.z + t21 * d.z + t13 * a.z)),
+		f * ((t18 * b.z + t23 * d.z + t15 * a.z) - (t22 * d.z + t14 * a.z + t19 * b.z)),
+		f * ((t22 * c.z + t16 * a.z + t21 * b.z) - (t20 * b.z + t23 * c.z + t17 * a.z))
+	};
+}
+
+Matrix4& Matrix4::Inverted()
+{
+	Matrix4 m;
+
+	F32 t0 = c.z * d.w;
+	F32 t1 = d.z * c.w;
+	F32 t2 = b.z * d.w;
+	F32 t3 = d.z * b.w;
+	F32 t4 = b.z * c.w;
+	F32 t5 = c.z * b.w;
+	F32 t6 = a.z * d.w;
+	F32 t7 = d.z * a.w;
+	F32 t8 = a.z * c.w;
+	F32 t9 = c.z * a.w;
+	F32 t10 = a.z * b.w;
+	F32 t11 = b.z * a.w;
+	F32 t12 = c.x * d.y;
+	F32 t13 = d.x * c.y;
+	F32 t14 = b.x * d.y;
+	F32 t15 = d.x * b.y;
+	F32 t16 = b.x * c.y;
+	F32 t17 = c.x * b.y;
+	F32 t18 = a.x * d.y;
+	F32 t19 = d.x * a.y;
+	F32 t20 = a.x * c.y;
+	F32 t21 = c.x * a.y;
+	F32 t22 = a.x * b.y;
+	F32 t23 = b.x * a.y;
+
+	F32 ax = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
+	F32 ay = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
+	F32 az = (t2 * a.y + t7 * b.y + t10 * d.y) - (t3 * a.y + t6 * b.y + t11 * d.y);
+	F32 aw = (t5 * a.y + t8 * b.y + t11 * c.y) - (t4 * a.y + t9 * b.y + t10 * c.y);
+
+	F32 f = 1.0f / (a.x * ax + b.x * ay + c.x * az + d.x * aw);
+
+	m.a.x = f * ax;
+	m.a.y = f * ay;
+	m.a.z = f * az;
+	m.a.w = f * aw;
 	m.b.x = f * ((t1 * b.x + t2 * c.x + t5 * d.x) - (t0 * b.x + t3 * c.x + t4 * d.x));
 	m.b.y = f * ((t0 * a.x + t7 * c.x + t8 * d.x) - (t1 * a.x + t6 * c.x + t9 * d.x));
 	m.b.z = f * ((t3 * a.x + t6 * b.x + t11 * d.x) - (t2 * a.x + t7 * b.x + t10 * d.x));
@@ -986,9 +1175,21 @@ void Matrix4::Invert()
 	b = m.b;
 	c = m.c;
 	d = m.d;
+
+	return *this;
 }
 
-void Matrix4::Transpose()
+Matrix4 Matrix4::Transpose() const
+{
+	return {
+		a.x, b.x, c.x, d.x,
+		a.y, b.y, c.y, d.y,
+		a.z, b.z, c.z, d.z,
+		a.w, b.w, c.w, c.z
+	};
+}
+
+Matrix4& Matrix4::Transposed()
 {
 	F32 bx = a.y;
 	F32 cx = a.z;
@@ -1010,6 +1211,8 @@ void Matrix4::Transpose()
 	d.x = dx;
 	d.y = dy;
 	d.z = dz;
+
+	return *this;
 }
 
 void Matrix4::SetPerspective(F32 fov, F32 aspect, F32 near, F32 far)
@@ -1076,6 +1279,7 @@ Vector3 Matrix4::Down() { return Vector3(-a.y, -b.y, -c.y).Normalized(); }
 Matrix4 Matrix4::operator-() { return { -a, -b, -c, -d }; }
 Matrix4 Matrix4::operator~() { return { -a, -b, -c, -d }; }
 Matrix4 Matrix4::operator!() { return { -a, -b, -c, -d }; }
+
 bool Matrix4::operator==(const Matrix4& m) const { return a == m.a && b == m.b && c == m.c && d == m.d; }
 bool Matrix4::operator!=(const Matrix4& m) const { return a != m.a || b != m.b || c != m.c || d != m.d; }
 
@@ -1089,52 +1293,148 @@ const F32* Matrix4::Data() const { return a.Data(); }
 
 const Quaternion2 Quaternion2::Identity{};
 
-Quaternion2::Quaternion2() : angle{ 0.0f }, x{ 0.0f }, y{ 1.0f } {}
-Quaternion2::Quaternion2(F32 angle) : angle{ angle * DEG_TO_RAD_F }, x{ Math::Sin(this->angle) }, y{ Math::Cos(this->angle) } {}
-Quaternion2::Quaternion2(const Quaternion2& q) : angle{ q.angle }, x{ q.x }, y{ q.y } {}
-Quaternion2::Quaternion2(Quaternion2&& q) noexcept : angle{ q.angle }, x{ q.x }, y{ q.y } {}
+Quaternion2::Quaternion2() : x{ 0.0f }, y{ 1.0f } {}
+Quaternion2::Quaternion2(F32 x, F32 y) : x{ x }, y{ y } {}
+Quaternion2::Quaternion2(F32 angle) { F32 a = angle * DEG_TO_RAD_F; x = Math::Sin(a); y = Math::Cos(a); }
+Quaternion2::Quaternion2(const Quaternion2& q) : x{ q.x }, y{ q.y } {}
+Quaternion2::Quaternion2(Quaternion2&& q) noexcept : x{ q.x }, y{ q.y } {}
 
-Quaternion2& Quaternion2::operator=(F32 angle) { this->angle = angle * DEG_TO_RAD_F; x = Math::Sin(this->angle); y = Math::Cos(this->angle); return *this; }
-Quaternion2& Quaternion2::operator=(const Quaternion2& q) { angle = q.angle; x = q.y; y = q.y; return *this; }
-Quaternion2& Quaternion2::operator=(Quaternion2&& q) noexcept { angle = q.angle; x = q.y; y = q.y; return *this; }
+Quaternion2& Quaternion2::operator=(F32 angle)
+{
+	F32 a = angle * DEG_TO_RAD_F;
+	x = Math::Sin(a);
+	y = Math::Cos(a);
+	return *this;
+}
+
+Quaternion2& Quaternion2::operator=(const Quaternion2& q) { x = q.y; y = q.y; return *this; }
+Quaternion2& Quaternion2::operator=(Quaternion2&& q) noexcept { x = q.y; y = q.y; return *this; }
 
 Quaternion2& Quaternion2::operator+=(const Quaternion2& q)
 {
+	x += q.x;
+	y += q.y;
+
 	return *this;
 }
 
 Quaternion2& Quaternion2::operator-=(const Quaternion2& q)
 {
+	x -= q.x;
+	y -= q.y;
+
 	return *this;
 }
 
 Quaternion2& Quaternion2::operator*=(const Quaternion2& q)
 {
+	x = y * q.x + x * q.y;
+	y = y * q.y - x * q.x;
+
 	return *this;
 }
 
 Quaternion2& Quaternion2::operator/=(const Quaternion2& q)
 {
+	F32 n2 = 1.0f / q.SqrNormal();
+
+	x = (-y * q.x + x * q.y) * n2;
+	y = (y * q.y + x * q.x) * n2;
+
 	return *this;
 }
 
-Quaternion2 Quaternion2::operator+(const Quaternion2& q) const {}
-Quaternion2 Quaternion2::operator-(const Quaternion2& q) const {}
-Quaternion2 Quaternion2::operator*(const Quaternion2& q) const {}
-Quaternion2 Quaternion2::operator/(const Quaternion2& q) const {}
+Quaternion2 Quaternion2::operator+(const Quaternion2& q) const
+{
+	return {
+		x + q.x,
+		y + q.y
+	};
+}
+
+Quaternion2 Quaternion2::operator-(const Quaternion2& q) const
+{
+	return {
+		x - q.x,
+		y - q.y
+	};
+}
+
+Quaternion2 Quaternion2::operator*(const Quaternion2& q) const
+{
+	return {
+		y * q.x + x * q.y,
+		y * q.y - x * q.x,
+	};
+}
+
+Quaternion2 Quaternion2::operator/(const Quaternion2& q) const
+{
+	F32 n2 = 1.0f / q.SqrNormal();
+
+	return {
+		(x * q.y - y * q.x) * n2,
+		(y * q.y + x * q.x) * n2
+	};
+}
 
 void Quaternion2::Set(F32 angle)
 {
-	this->angle = angle * DEG_TO_RAD_F;
-	x = Math::Sin(this->angle);
-	y = Math::Cos(this->angle);
+	F32 a = angle * DEG_TO_RAD_F;
+	x = Math::Sin(a);
+	y = Math::Cos(a);
 }
 
 void Quaternion2::Rotate(F32 angle)
 {
-	this->angle += angle * DEG_TO_RAD_F;
-	x = Math::Sin(this->angle);
-	y = Math::Cos(this->angle);
+	F32 a = angle * DEG_TO_RAD_F;
+	x += Math::Sin(a);
+	y += Math::Cos(a);
+}
+
+F32 Quaternion2::Angle() const
+{
+	return Math::Asin(x);
+}
+
+F32 Quaternion2::Dot(const Quaternion2& q) const
+{
+	return x * q.x + y * q.y;
+}
+
+F32 Quaternion2::SqrNormal() const
+{
+	return x * x + y * y;
+}
+
+F32 Quaternion2::Normal() const
+{
+	return Math::Sqrt(x * x + y * y);
+}
+
+void Quaternion2::Normalize()
+{
+	F32 n = 1.0f / Normal();
+
+	x *= n;
+	y *= n;
+}
+
+Quaternion2 Quaternion2::Normalized() const
+{
+	F32 n = 1.0f / Normal();
+
+	return { x * n, y * n };
+}
+
+Quaternion2 Quaternion2::Conjugate() const
+{
+	return { -x, y };
+}
+
+Quaternion2 Quaternion2::Inverse() const
+{
+	return Conjugate().Normalized();
 }
 
 F32& Quaternion2::operator[] (U8 i) { return (&x)[i]; }
@@ -1148,7 +1448,6 @@ const F32* Quaternion2::Data() const { return &x; }
 const Quaternion3 Quaternion3::Identity{};
 
 Quaternion3::Quaternion3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
-
 Quaternion3::Quaternion3(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
 
 Quaternion3::Quaternion3(const Vector3& euler)
@@ -1188,7 +1487,6 @@ Quaternion3::Quaternion3(const Vector3& axis, F32 angle)
 }
 
 Quaternion3::Quaternion3(const Quaternion3& q) : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
-
 Quaternion3::Quaternion3(Quaternion3&& q) noexcept : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
 
 Quaternion3& Quaternion3::operator=(const Vector3& euler)
@@ -1218,7 +1516,6 @@ Quaternion3& Quaternion3::operator=(const Vector3& euler)
 }
 
 Quaternion3& Quaternion3::operator=(const Quaternion3& q) { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
-
 Quaternion3& Quaternion3::operator=(Quaternion3&& q) noexcept { x = q.x; y = q.y; z = q.z; w = q.w; return *this; }
 
 Quaternion3& Quaternion3::operator+=(const Quaternion3& q)
@@ -1327,12 +1624,56 @@ Quaternion3 Quaternion3::operator/(const Quaternion3& q) const
 
 Matrix4 Quaternion3::ToMatrix4() const
 {
+	Quaternion3 q = Normalized();
 
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.x * q.y;
+	F32 xz = 2.0f * q.x * q.z;
+	F32 xw = 2.0f * q.x * q.w;
+	F32 yy = 2.0f * q.y * q.y;
+	F32 yz = 2.0f * q.y * q.z;
+	F32 yw = 2.0f * q.y * q.w;
+	F32 zz = 2.0f * q.z * q.z;
+	F32 zw = 2.0f * q.z * q.w;
+
+	return {
+		1.0f - yy - zz, xy + zw, xz - yw, 0.0f,
+		xy - zw,  1.0f - xx - zz,  yz + xw, 0.0f,
+		xz + yw, yz - xw, 1.0f - xx - yy, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
 }
 
 Matrix4 Quaternion3::RotationMatrix(Vector3 center) const
 {
+	Matrix4 matrix = Matrix4::Identity;
 
+	F32 xx = x * x;
+	F32 xy = x * y;
+	F32 xz = x * z;
+	F32 xw = x * w;
+	F32 yy = y * y;
+	F32 yz = y * z;
+	F32 yw = y * w;
+	F32 zz = z * z;
+	F32 ww = w * w;
+
+	matrix[0][0] = xx - yy - zz + ww;
+	matrix[1][0] = 2.0f * (xy + xw);
+	matrix[2][0] = 2.0f * (xz - yw);
+	matrix[3][0] = center.x - center.x * matrix[0][0] - center.y * matrix[1][0] - center.z * matrix[2][0];
+
+	matrix[0][1] = 2.0f * (xy - xw);
+	matrix[1][1] = -xx + yy - zz + ww;
+	matrix[2][1] = 2.0f * (yz + xw);
+	matrix[3][1] = center.y - center.x * matrix[0][1] - center.y * matrix[1][1] - center.z * matrix[2][1];
+
+	matrix[0][2] = 2.0f * (xz + yw);
+	matrix[1][2] = 2.0f * (yz - xw);
+	matrix[2][2] = -xx - yy + zz + ww;
+	matrix[3][2] = center.z - center.x * matrix[0][2] - center.y * matrix[1][2] - center.z * matrix[2][2];
+
+	return matrix;
 }
 
 Vector3 Quaternion3::Euler() const
@@ -1349,15 +1690,63 @@ Vector3 Quaternion3::Euler() const
 
 Quaternion3 Quaternion3::Slerp(const Quaternion3& q, F32 t) const
 {
+	static constexpr F32 DOT_THRESHOLD = 0.9995f;
 
+	Quaternion3 out;
+
+	Quaternion3 v0 = Normalized();
+	Quaternion3 v1 = q.Normalized();
+
+	F32 dot = v0.Dot(v1);
+
+	if (dot < 0.0f)
+	{
+		v1.x = -v1.x;
+		v1.y = -v1.y;
+		v1.z = -v1.z;
+		v1.w = -v1.w;
+		dot = -dot;
+	}
+
+	if (dot > DOT_THRESHOLD)
+	{
+		out = {
+			v0.x + ((v1.x - v0.x) * t),
+			v0.y + ((v1.y - v0.y) * t),
+			v0.z + ((v1.z - v0.z) * t),
+			v0.w + ((v1.w - v0.w) * t) };
+
+		return out.Normalized();
+	}
+
+	F32 theta0 = Math::Acos(dot);
+	F32 theta = theta0 * t;
+	F32 sinTheta = Math::Sin(theta);
+	F32 sinTheta0 = Math::Sin(theta0);
+
+	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
+	F32 s1 = sinTheta / sinTheta0;
+
+	return {
+		v0.x * s0 + v1.x * s1,
+		v0.y * s0 + v1.y * s1,
+		v0.z * s0 + v1.z * s1,
+		v0.w * s0 + v1.w * s1
+	};
 }
 
 F32 Quaternion3::Dot(const Quaternion3& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
+
 F32 Quaternion3::SqrNormal() const { return x * x + y * y + z * z + w * w; }
+
 F32 Quaternion3::Normal() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
+
 void Quaternion3::Normalize() { F32 n = 1.0f / Normal(); x *= n; y *= n; z *= n; w *= n; }
-Quaternion3 Quaternion3::Normalized() const { F32 n = 1.0f / Normal(); return Quaternion3{ x * n, y * n, z * n, w * n }; }
-Quaternion3 Quaternion3::Conjugate() const { return Quaternion3{ -x, -y, -z, w }; }
+
+Quaternion3 Quaternion3::Normalized() const { F32 n = 1.0f / Normal(); return { x * n, y * n, z * n, w * n }; }
+
+Quaternion3 Quaternion3::Conjugate() const { return { -x, -y, -z, w }; }
+
 Quaternion3 Quaternion3::Inverse() const { return Conjugate().Normalized(); }
 
 F32& Quaternion3::operator[] (U8 i) { return (&x)[i]; }

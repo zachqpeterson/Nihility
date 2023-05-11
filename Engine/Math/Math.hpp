@@ -617,20 +617,29 @@ public:
 	static const Matrix3 Identity;
 };
 
+enum ProjectionType
+{
+	PROJECTION_TYPE_PERSPECTIVE,
+	PROJECTION_TYPE_ORTHOGRAPHIC
+};
+
 struct NH_API Matrix4
 {
 	Matrix4();
+	Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale = Vector3::One, const Vector3& skew = Vector3::Zero);
+	Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale = Vector3::One, const Vector3& skew = Vector3::Zero);
 	Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw);
 	Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d);
 	Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) noexcept;
 	Matrix4(const Matrix4& m);
 	Matrix4(const Matrix3& m);
 	Matrix4(Matrix4&& m) noexcept;
-	Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale);
-	Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale);
 
 	Matrix4& operator= (const Matrix4& m);
 	Matrix4& operator= (Matrix4&& m) noexcept;
+
+	void SetPerspective(F32 fov, F32 aspect, F32 near, F32 far);
+	void SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
 
 	Matrix4& operator+= (const Matrix4& m);
 	Matrix4& operator-= (const Matrix4& m);
@@ -644,15 +653,13 @@ struct NH_API Matrix4
 	Vector4 operator*(const Vector4& v) const;
 
 	Matrix4 Inverse() const;
+	Matrix4& Inversed();
+	Matrix4 Invert() const;
+	Matrix4& Inverted();
+	Matrix4 Transpose() const;
+	Matrix4& Transposed();
 
-	void Invert();
-
-	void Transpose();
-
-	void SetPerspective(F32 fov, F32 aspect, F32 near, F32 far);
-
-	void SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
-
+	//TODO: Move to Transform
 	Vector3 Forward();
 	Vector3 Back();
 	Vector3 Right();
@@ -682,6 +689,7 @@ struct NH_API Quaternion2
 {
 	Quaternion2();
 	Quaternion2(F32 angle);
+	Quaternion2(F32 x, F32 y);
 	Quaternion2(const Quaternion2& q);
 	Quaternion2(Quaternion2&& q) noexcept;
 
@@ -702,14 +710,21 @@ struct NH_API Quaternion2
 	void Set(F32 angle);
 	void Rotate(F32 angle);
 
+	F32 Angle() const;
+
+	F32 Dot(const Quaternion2& q) const;
+	F32 SqrNormal() const;
+	F32 Normal() const;
+	void Normalize();
+	Quaternion2 Normalized() const;
+	Quaternion2 Conjugate() const;
+	Quaternion2 Inverse() const;
+
 	F32& operator[] (U8 i);
 	const F32& operator[] (U8 i) const;
 
 	F32* Data();
 	const F32* Data() const;
-
-private:
-	F32 angle;
 
 public:
 	F32 x, y; //sin, cos
