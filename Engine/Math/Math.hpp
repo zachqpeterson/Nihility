@@ -79,11 +79,11 @@ public:
 	//INTERPOLATION
 	template <FloatingPoint Type> static Type Lerp(Type a, Type b, Type t) { return a + (b - a) * t; }
 	template <FloatingPoint Type> static Type InvLerp(Type a, Type b, Type t) { return (t - a) / (b - a); }
-	template <VectorType Type> static Type Lerp(const Type& a, const Type& b, F32 t); //TODO:
-	template <VectorType Type> static Type InvLerp(const Type& a, const Type& b, F32 t); //TODO:
+	template <VectorType Type> static Type Lerp(const Type& a, const Type& b, F32 t);
 	template <FloatingPoint Type> static Type MoveTowards(Type a, Type b, Type t) { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
 
-	static Quaternion3 Slerp(Quaternion3 a, Quaternion3 b, F32 t);
+	static Quaternion2 Slerp(const Quaternion2& a, const Quaternion2& b, F32 t);
+	static Quaternion3 Slerp(const Quaternion3& a, const Quaternion3& b, F32 t);
 
 	//EXPONENTS
 	template <FloatingPoint Type> static Type Pow(Type b, Type e) { if constexpr (IsSame<Type, F32>) { return powf(b, e); } else { return pow(b, e); } }
@@ -115,6 +115,7 @@ struct NH_API Vector2
 	Vector2& operator*=(const Vector2& v);
 	Vector2& operator/=(const Vector2& v);
 	Vector2& operator%=(const Vector2& v);
+	Vector2& operator*=(const Quaternion2& q);
 
 	Vector2 operator+(F32 f) const;
 	Vector2 operator-(F32 f) const;
@@ -126,6 +127,7 @@ struct NH_API Vector2
 	Vector2 operator*(const Vector2& v) const;
 	Vector2 operator/(const Vector2& v) const;
 	Vector2 operator%(const Vector2& v) const;
+	Vector2 operator*(const Quaternion2& q) const;
 
 	bool operator==(const Vector2& v) const;
 	bool operator!=(const Vector2& v) const;
@@ -201,6 +203,7 @@ struct NH_API Vector3
 	Vector3& operator*=(const Vector3& v);
 	Vector3& operator/=(const Vector3& v);
 	Vector3& operator%=(const Vector3& v);
+	Vector3& operator*=(const Quaternion3& q);
 
 	Vector3 operator+(F32 f) const;
 	Vector3 operator-(F32 f) const;
@@ -212,6 +215,7 @@ struct NH_API Vector3
 	Vector3 operator*(const Vector3& v) const;
 	Vector3 operator/(const Vector3& v) const;
 	Vector3 operator%(const Vector3& v) const;
+	Vector3 operator*(const Quaternion3& q) const;
 
 	bool operator==(const Vector3& v) const;
 	bool operator!=(const Vector3& v) const;
@@ -711,14 +715,18 @@ struct NH_API Quaternion2
 	void Rotate(F32 angle);
 
 	F32 Angle() const;
+	Quaternion2 Slerp(const Quaternion2& q, F32 t) const;
+	Quaternion2& Slerped(const Quaternion2& q, F32 t);
 
 	F32 Dot(const Quaternion2& q) const;
 	F32 SqrNormal() const;
 	F32 Normal() const;
-	void Normalize();
-	Quaternion2 Normalized() const;
+	Quaternion2 Normalize() const;
+	Quaternion2& Normalized();
 	Quaternion2 Conjugate() const;
+	Quaternion2& Conjugated();
 	Quaternion2 Inverse() const;
+	Quaternion2& Inversed();
 
 	F32& operator[] (U8 i);
 	const F32& operator[] (U8 i) const;
@@ -760,14 +768,17 @@ struct NH_API Quaternion3
 	Matrix4 RotationMatrix(Vector3 center) const;
 	Vector3 Euler() const;
 	Quaternion3 Slerp(const Quaternion3& q, F32 t) const;
+	Quaternion3& Slerped(const Quaternion3& q, F32 t);
 
 	F32 Dot(const Quaternion3& q) const;
 	F32 SqrNormal() const;
 	F32 Normal() const;
-	void Normalize();
-	Quaternion3 Normalized() const;
+	Quaternion3 Normalize() const;
+	Quaternion3& Normalized();
 	Quaternion3 Conjugate() const;
+	Quaternion3& Conjugated();
 	Quaternion3 Inverse() const;
+	Quaternion3& Inversed();
 
 	F32& operator[] (U8 i);
 	const F32& operator[] (U8 i) const;
@@ -780,3 +791,11 @@ public:
 
 	static const Quaternion3 Identity;
 };
+
+//Math
+
+template <VectorType Type> 
+inline Type Math::Lerp(const Type& a, const Type& b, F32 t)
+{
+	return a + (b - a) * t;
+}

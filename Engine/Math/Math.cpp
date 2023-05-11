@@ -2,6 +2,94 @@
 
 #include "Containers\String.hpp"
 
+//Math
+
+Quaternion2 Math::Slerp(const Quaternion2& a, const Quaternion2& b, F32 t)
+{
+	static constexpr F32 DOT_THRESHOLD = 0.9995f;
+
+	Quaternion2 v0 = a.Normalize();
+	Quaternion2 v1 = b.Normalize();
+
+	F32 dot = v0.Dot(v1);
+
+	if (dot < 0.0f)
+	{
+		v1.x = -v1.x;
+		v1.y = -v1.y;
+		dot = -dot;
+	}
+
+	if (dot > DOT_THRESHOLD)
+	{
+		Quaternion2 out{
+			v0.x + ((v1.x - v0.x) * t),
+			v0.y + ((v1.y - v0.y) * t)
+		};
+
+		return out.Normalize();
+	}
+
+	F32 theta0 = Math::Acos(dot);
+	F32 theta = theta0 * t;
+	F32 sinTheta = Math::Sin(theta);
+	F32 sinTheta0 = Math::Sin(theta0);
+
+	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
+	F32 s1 = sinTheta / sinTheta0;
+
+	return {
+		v0.x * s0 + v1.x * s1,
+		v0.y * s0 + v1.y * s1
+	};
+}
+
+Quaternion3 Math::Slerp(const Quaternion3& a, const Quaternion3& b, F32 t)
+{
+	static constexpr F32 DOT_THRESHOLD = 0.9995f;
+
+	Quaternion3 v0 = a.Normalize();
+	Quaternion3 v1 = b.Normalize();
+
+	F32 dot = v0.Dot(v1);
+
+	if (dot < 0.0f)
+	{
+		v1.x = -v1.x;
+		v1.y = -v1.y;
+		v1.z = -v1.z;
+		v1.w = -v1.w;
+		dot = -dot;
+	}
+
+	if (dot > DOT_THRESHOLD)
+	{
+		Quaternion3 out{
+			v0.x + ((v1.x - v0.x) * t),
+			v0.y + ((v1.y - v0.y) * t),
+			v0.z + ((v1.z - v0.z) * t),
+			v0.w + ((v1.w - v0.w) * t)
+		};
+
+		return out.Normalize();
+	}
+
+	F32 theta0 = Math::Acos(dot);
+	F32 theta = theta0 * t;
+	F32 sinTheta = Math::Sin(theta);
+	F32 sinTheta0 = Math::Sin(theta0);
+
+	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
+	F32 s1 = sinTheta / sinTheta0;
+
+	return {
+		v0.x * s0 + v1.x * s1,
+		v0.y * s0 + v1.y * s1,
+		v0.z * s0 + v1.z * s1,
+		v0.w * s0 + v1.w * s1
+	};
+}
+
 //Vector2
 
 const Vector2 Vector2::Zero{ 0.0f };
@@ -31,6 +119,10 @@ Vector2& Vector2::operator-=(const Vector2& v) { x -= v.x; y -= v.y; return *thi
 Vector2& Vector2::operator*=(const Vector2& v) { x *= v.x; y *= v.y; return *this; }
 Vector2& Vector2::operator/=(const Vector2& v) { x /= v.x; y /= v.y; return *this; }
 Vector2& Vector2::operator%=(const Vector2& v) { x = Math::Mod(x, v.x); y = Math::Mod(y, v.y); return *this; }
+Vector2& Vector2::operator*=(const Quaternion2& q)
+{
+	//TODO:
+}
 
 Vector2 Vector2::operator+(F32 f) const { return { x + f, y + f }; }
 Vector2 Vector2::operator-(F32 f) const { return { x - f, y - f }; }
@@ -42,6 +134,10 @@ Vector2 Vector2::operator-(const Vector2& v) const { return { x - v.x, y - v.y }
 Vector2 Vector2::operator*(const Vector2& v) const { return { x * v.x, y * v.y }; }
 Vector2 Vector2::operator/(const Vector2& v) const { return { x / v.x, y / v.y }; }
 Vector2 Vector2::operator%(const Vector2& v) const { return { Math::Mod(x, v.x), Math::Mod(y, v.y) }; }
+Vector2 Vector2::operator*(const Quaternion2& q) const
+{
+	//TODO:
+}
 
 bool Vector2::operator==(const Vector2& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y); }
 bool Vector2::operator!=(const Vector2& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y); }
@@ -88,12 +184,17 @@ Vector2 Vector2::Rotated(const Vector2& center, F32 angle) const
 
 Vector2& Vector2::Rotate(const Vector2& center, const Quaternion2& quat)
 {
+	F32 temp = quat.y * (x - center.x) - quat.x * (y - center.y) + center.x;
+	y = quat.x * (x - center.x) + quat.y * (y - center.y) + center.y;
+	x = temp;
+
 	return *this;
 }
 
 Vector2 Vector2::Rotated(const Vector2& center, const Quaternion2& quat) const
 {
-	return {};
+	return Vector2{ quat.y * (x - center.x) - quat.x * (y - center.y) + center.x,
+	quat.x * (x - center.x) + quat.y * (y - center.y) + center.y };
 }
 
 Vector2& Vector2::Clamp(const Vector2& min, const Vector2& max)
@@ -167,6 +268,30 @@ Vector3& Vector3::operator-=(const Vector3& v) { x -= v.x; y -= v.y; z -= v.z; r
 Vector3& Vector3::operator*=(const Vector3& v) { x *= v.x; y *= v.y; z *= v.z; return *this; }
 Vector3& Vector3::operator/=(const Vector3& v) { x /= v.x; y /= v.y; z /= v.z; return *this; }
 Vector3& Vector3::operator%=(const Vector3& v) { x = Math::Mod(x, v.x); y = Math::Mod(y, v.y); z = Math::Mod(z, v.z); return *this; }
+Vector3& Vector3::operator*=(const Quaternion3& q)
+{
+	F32 xx = q.x + q.x;
+	F32 yy = q.y + q.y;
+	F32 zz = q.z + q.z;
+	F32 xxw = xx * q.w;
+	F32 yyw = yy * q.w;
+	F32 zzw = zz * q.w;
+	F32 xxx = xx * q.x;
+	F32 yyx = yy * x;
+	F32 zzx = zz * q.x;
+	F32 yyy = yy * q.y;
+	F32 zzy = zz * q.y;
+	F32 zzz = zz * z;
+	F32 xt = ((x * ((1.0f - yyy) - zzz)) + (y * (yyx - zzw))) + (z * (zzx + yyw));
+	F32 yt = ((x * (yyx + zzw)) + (y * ((1.0f - xxx) - zzz))) + (z * (zzy - xxw));
+	F32 zt = ((x * (zzx - yyw)) + (y * (zzy + xxw))) + (z * ((1.0f - xxx) - yyy));
+
+	x = xt;
+	y = yt;
+	z = zt;
+
+	return *this;
+}
 
 Vector3 Vector3::operator+(F32 f) const { return { x + f, y + f, z + f }; }
 Vector3 Vector3::operator-(F32 f) const { return { x - f, y - f, z - f }; }
@@ -178,6 +303,27 @@ Vector3 Vector3::operator-(const Vector3& v) const { return { x - v.x, y - v.y, 
 Vector3 Vector3::operator*(const Vector3& v) const { return { x * v.x, y * v.y, z * v.z }; }
 Vector3 Vector3::operator/(const Vector3& v) const { return { x / v.x, y / v.y, z / v.z }; }
 Vector3 Vector3::operator%(const Vector3& v) const { return { Math::Mod(x, v.x), Math::Mod(y, v.y), Math::Mod(z, v.z) }; }
+Vector3 Vector3::operator*(const Quaternion3& q) const
+{
+	F32 xx = q.x + q.x;
+	F32 yy = q.y + q.y;
+	F32 zz = q.z + q.z;
+	F32 xxw = xx * q.w;
+	F32 yyw = yy * q.w;
+	F32 zzw = zz * q.w;
+	F32 xxx = xx * q.x;
+	F32 yyx = yy * x;
+	F32 zzx = zz * q.x;
+	F32 yyy = yy * q.y;
+	F32 zzy = zz * q.y;
+	F32 zzz = zz * z;
+
+	return {
+		((x * ((1.0f - yyy) - zzz)) + (y * (yyx - zzw))) + (z * (zzx + yyw)),
+		((x * (yyx + zzw)) + (y * ((1.0f - xxx) - zzz))) + (z * (zzy - xxw)),
+		((x * (zzx - yyw)) + (y * (zzy + xxw))) + (z * ((1.0f - xxx) - yyy))
+	};
+}
 
 bool Vector3::operator==(const Vector3& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y) && Math::Zero(z - v.z); }
 bool Vector3::operator!=(const Vector3& v) const { return !Math::Zero(x - v.x) || !Math::Zero(y - v.y) || !Math::Zero(z - v.z); }
@@ -199,16 +345,6 @@ Vector3 Vector3::Normalized() const { return IsZero() ? Vector3::Zero : (*this) 
 Vector3 Vector3::Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
 Vector3 Vector3::OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
 Vector3 Vector3::Cross(const Vector3& v) const { return { y * v.z - z * v.y, z * v.x - v.x * z, x * v.y - y * v.x }; }
-
-Vector3& Vector3::Rotate(const Vector3& center, const Quaternion3& quat)
-{
-	return *this;
-}
-
-Vector3 Vector3::Rotated(const Vector3& center, const Quaternion3& quat) const
-{
-	return {};
-}
 
 Vector3& Vector3::Clamp(const Vector3& min, const Vector3& max)
 {
@@ -790,7 +926,7 @@ Matrix4::Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } 
 Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale, const Vector3& skew)
 {
 	Quaternion3 q{ rotation };
-	q.Normalize();
+	q.Normalized();
 
 	F32 xx = 2.0f * q.x * q.x;
 	F32 xy = 2.0f * q.x * q.y;
@@ -825,7 +961,7 @@ Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3
 
 Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale, const Vector3& skew)
 {
-	Quaternion3 q = rotation.Normalized();
+	Quaternion3 q = rotation.Normalize();
 
 	F32 xx = 2.0f * q.x * q.x;
 	F32 xy = 2.0f * q.x * q.y;
@@ -1269,12 +1405,12 @@ void Matrix4::SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near
 	d.w = 1.0f;
 }
 
-Vector3 Matrix4::Forward() { return Vector3(-a.z, -b.z, -c.z).Normalized(); }
-Vector3 Matrix4::Back() { return Vector3(a.z, b.z, c.z).Normalized(); }
-Vector3 Matrix4::Right() { return Vector3(a.x, b.x, c.x).Normalized(); }
-Vector3 Matrix4::Left() { return Vector3(-a.x, -b.x, -c.x).Normalized(); }
-Vector3 Matrix4::Up() { return Vector3(a.y, b.y, c.y).Normalized(); }
-Vector3 Matrix4::Down() { return Vector3(-a.y, -b.y, -c.y).Normalized(); }
+Vector3 Matrix4::Forward() { return Vector3(-a.z, -b.z, -c.z).Normalize(); }
+Vector3 Matrix4::Back() { return Vector3(a.z, b.z, c.z).Normalize(); }
+Vector3 Matrix4::Right() { return Vector3(a.x, b.x, c.x).Normalize(); }
+Vector3 Matrix4::Left() { return Vector3(-a.x, -b.x, -c.x).Normalize(); }
+Vector3 Matrix4::Up() { return Vector3(a.y, b.y, c.y).Normalize(); }
+Vector3 Matrix4::Down() { return Vector3(-a.y, -b.y, -c.y).Normalize(); }
 
 Matrix4 Matrix4::operator-() { return { -a, -b, -c, -d }; }
 Matrix4 Matrix4::operator~() { return { -a, -b, -c, -d }; }
@@ -1397,6 +1533,84 @@ F32 Quaternion2::Angle() const
 	return Math::Asin(x);
 }
 
+Quaternion2 Quaternion2::Slerp(const Quaternion2& q, F32 t) const
+{
+	static constexpr F32 DOT_THRESHOLD = 0.9995f;
+
+	Quaternion2 v0 = Normalize();
+	Quaternion2 v1 = q.Normalize();
+
+	F32 dot = v0.Dot(v1);
+
+	if (dot < 0.0f)
+	{
+		v1.x = -v1.x;
+		v1.y = -v1.y;
+		dot = -dot;
+	}
+
+	if (dot > DOT_THRESHOLD)
+	{
+		Quaternion2 out{
+			v0.x + ((v1.x - v0.x) * t),
+			v0.y + ((v1.y - v0.y) * t)
+		};
+
+		return out.Normalize();
+	}
+
+	F32 theta0 = Math::Acos(dot);
+	F32 theta = theta0 * t;
+	F32 sinTheta = Math::Sin(theta);
+	F32 sinTheta0 = Math::Sin(theta0);
+
+	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
+	F32 s1 = sinTheta / sinTheta0;
+
+	return {
+		v0.x * s0 + v1.x * s1,
+		v0.y * s0 + v1.y * s1
+	};
+}
+
+Quaternion2& Quaternion2::Slerped(const Quaternion2& q, F32 t)
+{
+	static constexpr F32 DOT_THRESHOLD = 0.9995f;
+
+	Quaternion2 v0 = Normalize();
+	Quaternion2 v1 = q.Normalize();
+
+	F32 dot = v0.Dot(v1);
+
+	if (dot < 0.0f)
+	{
+		v1.x = -v1.x;
+		v1.y = -v1.y;
+		dot = -dot;
+	}
+
+	if (dot > DOT_THRESHOLD)
+	{
+		x = v0.x + ((v1.x - v0.x) * t);
+		y = v0.y + ((v1.y - v0.y) * t);
+
+		return Normalized();
+	}
+
+	F32 theta0 = Math::Acos(dot);
+	F32 theta = theta0 * t;
+	F32 sinTheta = Math::Sin(theta);
+	F32 sinTheta0 = Math::Sin(theta0);
+
+	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
+	F32 s1 = sinTheta / sinTheta0;
+
+	x = v0.x * s0 + v1.x * s1;
+	y = v0.y * s0 + v1.y * s1;
+
+	return *this;
+}
+
 F32 Quaternion2::Dot(const Quaternion2& q) const
 {
 	return x * q.x + y * q.y;
@@ -1412,30 +1626,18 @@ F32 Quaternion2::Normal() const
 	return Math::Sqrt(x * x + y * y);
 }
 
-void Quaternion2::Normalize()
-{
-	F32 n = 1.0f / Normal();
-
-	x *= n;
-	y *= n;
-}
-
-Quaternion2 Quaternion2::Normalized() const
-{
-	F32 n = 1.0f / Normal();
-
-	return { x * n, y * n };
-}
-
-Quaternion2 Quaternion2::Conjugate() const
-{
-	return { -x, y };
-}
+Quaternion2 Quaternion2::Normalize() const { F32 n = 1.0f / Normal(); return { x * n, y * n }; }
+Quaternion2& Quaternion2::Normalized() { F32 n = 1.0f / Normal(); x *= n; y *= n; return *this; }
+Quaternion2 Quaternion2::Conjugate() const { return { -x, y }; }
+Quaternion2& Quaternion2::Conjugated() { x = -x; return *this; }
 
 Quaternion2 Quaternion2::Inverse() const
 {
-	return Conjugate().Normalized();
+	F32 n = 1.0f / Math::Sqrt(x * x + y * y);
+	return { -x * n, y * n };
 }
+
+Quaternion2& Quaternion2::Inversed() { return Conjugated().Normalized(); }
 
 F32& Quaternion2::operator[] (U8 i) { return (&x)[i]; }
 const F32& Quaternion2::operator[] (U8 i) const { return (&x)[i]; }
@@ -1624,7 +1826,7 @@ Quaternion3 Quaternion3::operator/(const Quaternion3& q) const
 
 Matrix4 Quaternion3::ToMatrix4() const
 {
-	Quaternion3 q = Normalized();
+	Quaternion3 q = Normalize();
 
 	F32 xx = 2.0f * q.x * q.x;
 	F32 xy = 2.0f * q.x * q.y;
@@ -1692,10 +1894,8 @@ Quaternion3 Quaternion3::Slerp(const Quaternion3& q, F32 t) const
 {
 	static constexpr F32 DOT_THRESHOLD = 0.9995f;
 
-	Quaternion3 out;
-
-	Quaternion3 v0 = Normalized();
-	Quaternion3 v1 = q.Normalized();
+	Quaternion3 v0 = Normalize();
+	Quaternion3 v1 = q.Normalize();
 
 	F32 dot = v0.Dot(v1);
 
@@ -1710,13 +1910,14 @@ Quaternion3 Quaternion3::Slerp(const Quaternion3& q, F32 t) const
 
 	if (dot > DOT_THRESHOLD)
 	{
-		out = {
+		Quaternion3 out{
 			v0.x + ((v1.x - v0.x) * t),
 			v0.y + ((v1.y - v0.y) * t),
 			v0.z + ((v1.z - v0.z) * t),
-			v0.w + ((v1.w - v0.w) * t) };
+			v0.w + ((v1.w - v0.w) * t)
+		};
 
-		return out.Normalized();
+		return out.Normalize();
 	}
 
 	F32 theta0 = Math::Acos(dot);
@@ -1735,19 +1936,65 @@ Quaternion3 Quaternion3::Slerp(const Quaternion3& q, F32 t) const
 	};
 }
 
+Quaternion3& Quaternion3::Slerped(const Quaternion3& q, F32 t)
+{
+	static constexpr F32 DOT_THRESHOLD = 0.9995f;
+
+	Quaternion3 v0 = Normalize();
+	Quaternion3 v1 = q.Normalize();
+
+	F32 dot = v0.Dot(v1);
+
+	if (dot < 0.0f)
+	{
+		v1.x = -v1.x;
+		v1.y = -v1.y;
+		v1.z = -v1.z;
+		v1.w = -v1.w;
+		dot = -dot;
+	}
+
+	if (dot > DOT_THRESHOLD)
+	{
+		x = v0.x + ((v1.x - v0.x) * t);
+		y = v0.y + ((v1.y - v0.y) * t);
+		z = v0.z + ((v1.z - v0.z) * t);
+		w = v0.w + ((v1.w - v0.w) * t);
+
+		return Normalized();
+	}
+
+	F32 theta0 = Math::Acos(dot);
+	F32 theta = theta0 * t;
+	F32 sinTheta = Math::Sin(theta);
+	F32 sinTheta0 = Math::Sin(theta0);
+
+	F32 s0 = Math::Cos(theta) - dot * sinTheta / sinTheta0;
+	F32 s1 = sinTheta / sinTheta0;
+
+	x = v0.x * s0 + v1.x * s1;
+	y = v0.y * s0 + v1.y * s1;
+	z = v0.z * s0 + v1.z * s1;
+	w = v0.w * s0 + v1.w * s1;
+
+	return *this;
+}
+
 F32 Quaternion3::Dot(const Quaternion3& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
-
 F32 Quaternion3::SqrNormal() const { return x * x + y * y + z * z + w * w; }
-
 F32 Quaternion3::Normal() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
-
-void Quaternion3::Normalize() { F32 n = 1.0f / Normal(); x *= n; y *= n; z *= n; w *= n; }
-
-Quaternion3 Quaternion3::Normalized() const { F32 n = 1.0f / Normal(); return { x * n, y * n, z * n, w * n }; }
-
+Quaternion3 Quaternion3::Normalize() const { F32 n = 1.0f / Normal(); return { x * n, y * n, z * n, w * n }; }
+Quaternion3& Quaternion3::Normalized() { F32 n = 1.0f / Normal(); x *= n; y *= n; z *= n; w *= n; return *this; }
 Quaternion3 Quaternion3::Conjugate() const { return { -x, -y, -z, w }; }
+Quaternion3& Quaternion3::Conjugated() { x = -x; y = -y; z = -z; return *this; }
 
-Quaternion3 Quaternion3::Inverse() const { return Conjugate().Normalized(); }
+Quaternion3 Quaternion3::Inverse() const
+{
+	F32 n = 1.0f / Math::Sqrt(x * x + y * y + z * z + w * w);
+	return { -x * n, -y * n, -z * n, w * n };
+}
+
+Quaternion3& Quaternion3::Inversed() { return Conjugated().Normalized(); }
 
 F32& Quaternion3::operator[] (U8 i) { return (&x)[i]; }
 const F32& Quaternion3::operator[] (U8 i) const { return (&x)[i]; }
