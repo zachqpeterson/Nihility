@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Defines.hpp"
+#include "ResourceDefines.hpp"
 
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"

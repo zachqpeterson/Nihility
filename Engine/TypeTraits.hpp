@@ -13,7 +13,6 @@ template <class Type> concept Union = IsUnion<Type>;
 template <class Type> inline constexpr bool IsNothrowMoveConstructible = __is_nothrow_constructible(Type, Type);
 template <class Type> concept NothrowMoveConstructible = IsNothrowMoveConstructible<Type>;
 
-
 template <class Type> inline constexpr unsigned long long Alignment = alignof(Type);
 
 template <class Type, Type Value>

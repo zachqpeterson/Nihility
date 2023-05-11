@@ -135,6 +135,8 @@
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
+    <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
+    <ClInclude Include="Engine\Resources\ResourcePool.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
     <ClInclude Include="Engine\TypeTraits.hpp" />

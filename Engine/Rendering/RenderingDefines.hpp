@@ -266,27 +266,6 @@ NH_HEADER_STATIC constexpr U8	MAX_VERTEX_STREAMS = 16;
 NH_HEADER_STATIC constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;
 NH_HEADER_STATIC constexpr U32	INVALID_INDEX = U32_MAX;		// Invalid index to a resource
 
-typedef U32 ResourceHandle;
-
-//TODO: Operators
-struct BufferHandle { ResourceHandle index; };
-struct TextureHandle { ResourceHandle index; };
-struct ShaderStateHandle { ResourceHandle index; };
-struct SamplerHandle { ResourceHandle index; };
-struct DescriptorSetLayoutHandle { ResourceHandle index; };
-struct DescriptorSetHandle { ResourceHandle index; };
-struct PipelineHandle { ResourceHandle index; };
-struct RenderPassHandle { ResourceHandle index; };
-
-NH_HEADER_STATIC constexpr BufferHandle					INVALID_BUFFER{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr TextureHandle				INVALID_TEXTURE{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr ShaderStateHandle			INVALID_SHADER{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr SamplerHandle				INVALID_SAMPLER{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr DescriptorSetLayoutHandle	INVALID_LAYOUT{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr DescriptorSetHandle			INVALID_SET{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr PipelineHandle				INVALID_PIPELINE{ INVALID_INDEX };
-NH_HEADER_STATIC constexpr RenderPassHandle				INVALID_PASS{ INVALID_INDEX };
-
 /*---------ENUMS---------*/
 
 #pragma region Enums
@@ -826,14 +805,14 @@ struct Rect2DInt
 struct Viewport
 {
 	Rect2DInt	rect;
-	F32			min_depth = 0.0f;
-	F32			max_depth = 0.0f;
+	F32			minDepth = 0.0f;
+	F32			maxDepth = 0.0f;
 };
 
 struct ViewportState
 {
-	U32 num_viewports = 0;
-	U32 num_scissors = 0;
+	U32 numViewports = 0;
+	U32 numScissors = 0;
 
 	Viewport* viewport = nullptr;
 	Rect2DInt* scissors = nullptr;
@@ -1049,31 +1028,7 @@ struct RenderPassOutput
 	RenderPassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 };
 
-struct RenderPass
-{
-	VkRenderPass		renderPass;
-	VkFramebuffer		frameBuffer;
 
-	RenderPassOutput	output;
-
-	TextureHandle		outputTextures[MAX_IMAGE_OUTPUTS];
-	TextureHandle		outputDepth;
-
-	RenderPassType		type;
-
-	F32					scaleX = 1.f;
-	F32					scaleY = 1.f;
-	U16					width = 0;
-	U16					height = 0;
-	U16					dispatchX = 0;
-	U16					dispatchY = 0;
-	U16					dispatchZ = 0;
-
-	U8					resize = 0;
-	U8					numRenderTargets = 0;
-
-	CSTR				name = nullptr;
-};
 
 struct PipelineCreation
 {
@@ -1154,70 +1109,7 @@ struct DescriptorSetUpdate
 	U32					frameIssued = 0;
 };
 
-struct Buffer
-{
-	VkBuffer			buffer;
-	VmaAllocation_T* allocation;
-	VkDeviceMemory		deviceMemory;
-	VkDeviceSize		deviceSize;
 
-	VkBufferUsageFlags	typeFlags = 0;
-	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
-	U32					size = 0;
-	U32					globalOffset = 0;	// Offset into global constant, if dynamic
-
-	BufferHandle		handle;
-	BufferHandle		parentBuffer;
-
-	CSTR				name = nullptr;
-};
-
-struct Sampler
-{
-	VkSampler				sampler;
-
-	VkFilter				minFilter = VK_FILTER_NEAREST;
-	VkFilter				magFilter = VK_FILTER_NEAREST;
-	VkSamplerMipmapMode		mipFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-
-	VkSamplerAddressMode	addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-	CSTR					name = nullptr;
-};
-
-struct Texture
-{
-	VkImage				image;
-	VkImageView			imageView;
-	VkFormat			format;
-	VkImageLayout		imageLayout;
-	VmaAllocation_T*	allocation;
-
-	U16					width = 1;
-	U16					height = 1;
-	U16					depth = 1;
-	U8					mipmaps = 1;
-	U8					flags = 0;
-
-	TextureHandle		handle;
-	TextureType			type = TEXTURE_TYPE_2D;
-
-	Sampler*			sampler = nullptr;
-
-	CSTR				name = nullptr;
-};
-
-struct ShaderState
-{
-	VkPipelineShaderStageCreateInfo	shaderStageInfos[MAX_SHADER_STAGES];
-
-	U32								activeShaders = 0;
-	bool							graphicsPipeline = false;
-
-	CSTR							name = nullptr;
-};
 
 struct DescriptorBinding
 {
@@ -1229,50 +1121,7 @@ struct DescriptorBinding
 	CSTR				name = nullptr;
 };
 
-struct DesciptorSetLayout
-{
-	VkDescriptorSetLayout			descriptorSetLayout;
 
-	VkDescriptorSetLayoutBinding* binding = nullptr;
-	DescriptorBinding* bindings = nullptr;
-	U16								numBindings = 0;
-	U16								setIndex = 0;
-
-	DescriptorSetLayoutHandle		handle;
-};
-
-struct DesciptorSet
-{
-	VkDescriptorSet				descriptorSet;
-
-	ResourceHandle* resources = nullptr;
-	SamplerHandle* samplers = nullptr;
-	U16* bindings = nullptr;
-
-	const DesciptorSetLayout* layout = nullptr;
-	U32							numResources = 0;
-};
-
-struct Pipeline
-{
-	VkPipeline					pipeline;
-	VkPipelineLayout			pipelineLayout;
-
-	VkPipelineBindPoint			bindPoint;
-
-	ShaderStateHandle			shaderState;
-
-	const DesciptorSetLayout* descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	DescriptorSetLayoutHandle	descriptorSetLayoutHandles[MAX_DESCRIPTOR_SET_LAYOUTS];
-	U32							numActiveLayouts = 0;
-
-	DepthStencilCreation		depthStencil;
-	BlendStateCreation			blendState;
-	RasterizationCreation		rasterization;
-
-	PipelineHandle				handle;
-	bool						graphicsPipeline = true;
-};
 
 struct GPUTimestamp
 {
@@ -1350,80 +1199,3 @@ struct ExecutionBarrier
 	ExecutionBarrier& AddMemoryBarrier(const BufferBarrier& bufferBarrier);
 };
 
-template<class Type, U64 Count>
-struct ResourcePool
-{
-	static constexpr U64 ResourceSize = sizeof(Type);
-	static constexpr U64 ResourceCount = Count;
-	static constexpr U64 MemorySize = ResourceCount * (ResourceSize + sizeof(U32));
-
-	void Create();
-	void Destroy();
-
-	U32 ObtainResource();
-	void ReleaseResource(U32 index);
-	void FreeResources();
-
-	Type* GetResource(U32 index);
-	const Type* GetResource(U32 index) const;
-
-	Type* memory{ nullptr };
-	U32* freeIndices{ nullptr };
-	U32 lastFree{ 0 };
-};
-
-template<class Type, U64 Count>
-inline void ResourcePool<Type, Count>::Create()
-{
-	Memory::AllocateSize(&memory, MemorySize);
-	freeIndices = (U32*)(memory + ResourceCount * ResourceSize);
-
-	for (U32 i = 0; i < ResourceCount; ++i) { freeIndices[i] = i; }
-}
-
-template<class Type, U64 Count>
-inline void ResourcePool<Type, Count>::Destroy()
-{
-	Memory::FreeSize(&memory);
-}
-
-template<class Type, U64 Count>
-inline void ResourcePool<Type, Count>::FreeResources()
-{
-	lastFree = 0;
-
-	for (uint32_t i = 0; i < ResourceCount; ++i) { freeIndices[i] = i; }
-}
-
-template<class Type, U64 Count>
-inline U32 ResourcePool<Type, Count>::ObtainResource()
-{
-	// TODO: add bits for checking if resource is alive and use bitmasks.
-	if (lastFree < ResourceCount) { return freeIndices[lastFree++]; }
-
-	Logger::Error("No Free Resources Left!");
-	return INVALID_INDEX;
-}
-
-template<class Type, U64 Count>
-inline void ResourcePool<Type, Count>::ReleaseResource(U32 handle)
-{
-	// TODO: add bits for checking if resource is alive and use bitmasks.
-	freeIndices[--lastFree] = handle;
-}
-
-template<class Type, U64 Count>
-inline Type* ResourcePool<Type, Count>::GetResource(U32 handle)
-{
-	if (handle != INVALID_INDEX) { return &memory[handle * ResourceSize]; }
-
-	return nullptr;
-}
-
-template<class Type, U64 Count>
-inline const Type* ResourcePool<Type, Count>::GetResource(U32 handle) const
-{
-	if (handle != INVALID_INDEX) { return &memory[handle * ResourceSize]; }
-
-	return nullptr;
-}
