@@ -156,6 +156,7 @@
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
     <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />
+    <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Settings.cpp" />
   </ItemGroup>

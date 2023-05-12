@@ -8,6 +8,7 @@
 #include "Math\Math.hpp"
 #include "Math\Hash.hpp"
 #include "Resources\Settings.hpp"
+#include "Resources\Resources.hpp"
 
 #define VMA_IMPLEMENTATION
 #include "External\vk_mem_alloc.h"
@@ -164,14 +165,7 @@ void Renderer::Shutdown()
 	resourceDeletionQueue.Destroy();
 	descriptorSetUpdates.Destroy();
 
-	pipelines.Destroy();
-	buffers.Destroy();
-	shaders.Destroy();
-	textures.Destroy();
-	samplers.Destroy();
-	descriptorSetLayouts.Destroy();
-	descriptorSets.Destroy();
-	renderPasses.Destroy();
+	Resources::Shutdown();
 
 #ifdef NH_DEBUG
 	vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
@@ -516,14 +510,7 @@ bool Renderer::CreatePools()
 
 	VkValidateFR(vkCreateQueryPool(device, &queryPoolInfo, allocationCallbacks, &timestampQueryPool));
 
-	buffers.Create();
-	textures.Create();
-	renderPasses.Create();
-	descriptorSetLayouts.Create();
-	pipelines.Create();
-	shaders.Create();
-	descriptorSets.Create();
-	samplers.Create();
+	Resources::Initialize();
 
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
@@ -810,7 +797,7 @@ void Renderer::ResizeSwapchain()
 	CreateSwapchain();
 
 	// Resize depth texture, maintaining handle, using a dummy texture to destroy.
-	TextureHandle textureToDelete = { textures.ObtainResource() };
+	TextureHandle textureToDelete = { Resources::textures.ObtainResource() };
 	Texture* vkTextureToDelete = AccessTexture(textureToDelete);
 	vkTextureToDelete->handle = textureToDelete;
 	Texture* vkDepthTexture = AccessTexture(depthTexture);
@@ -852,14 +839,14 @@ void Renderer::DestroySwapchain()
 
 void Renderer::UpdateDescriptorSet(DescriptorSetHandle descriptorSet)
 {
-	if (descriptorSet.index < descriptorSets.ResourceCount) { descriptorSetUpdates.Push({ descriptorSet, currentFrame }); }
+	if (descriptorSet.index < Resources::descriptorSets.ResourceCount) { descriptorSetUpdates.Push({ descriptorSet, currentFrame }); }
 	else { Logger::Error("Graphics error: trying to update invalid DescriptorSet {}", descriptorSet.index); }
 }
 
 void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 {
 	// Use a dummy descriptor set to delete the vulkan descriptor set handle
-	DescriptorSetHandle dummyDeleteDescriptorSetHandle = { descriptorSets.ObtainResource() };
+	DescriptorSetHandle dummyDeleteDescriptorSetHandle = { Resources::descriptorSets.ObtainResource() };
 	DesciptorSet* dummyDeleteDescriptorSet = AccessDescriptorSet(dummyDeleteDescriptorSetHandle);
 
 	DesciptorSet* descriptorSet = AccessDescriptorSet(update.descriptorSet);
@@ -902,7 +889,7 @@ void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 
 void* Renderer::MapBuffer(const MapBufferParameters& parameters)
 {
-	if (parameters.buffer.index == INVALID_INDEX)
+	if (parameters.buffer.index == INVALID_HANDLE)
 		return nullptr;
 
 	Buffer* buffer = AccessBuffer(parameters.buffer);
@@ -923,7 +910,7 @@ void* Renderer::MapBuffer(const MapBufferParameters& parameters)
 
 void Renderer::UnmapBuffer(const MapBufferParameters& parameters)
 {
-	if (parameters.buffer.index == INVALID_INDEX)
+	if (parameters.buffer.index == INVALID_HANDLE)
 		return;
 
 	Buffer* buffer = AccessBuffer(parameters.buffer);
@@ -1103,7 +1090,7 @@ void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLa
 				imageInfo[i].sampler = textureData->sampler->sampler;
 			}
 			// TODO: else ?
-			if (samplers[r].index != INVALID_INDEX)
+			if (samplers[r].index != INVALID_HANDLE)
 			{
 				Sampler* sampler = AccessSampler({ samplers[r] });
 				imageInfo[i].sampler = sampler->sampler;
@@ -1142,7 +1129,7 @@ void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLa
 			descriptorWrite[i].descriptorType = buffer->usage == RESOURCE_USAGE_DYNAMIC ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 			// Bind parent buffer if present, used for dynamic resources.
-			if (buffer->parentBuffer.index != INVALID_INDEX)
+			if (buffer->parentBuffer.index != INVALID_HANDLE)
 			{
 				Buffer* parentBuffer = AccessBuffer(buffer->parentBuffer);
 
@@ -1168,7 +1155,7 @@ void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLa
 
 			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			// Bind parent buffer if present, used for dynamic resources.
-			if (buffer->parentBuffer.index != INVALID_INDEX)
+			if (buffer->parentBuffer.index != INVALID_HANDLE)
 			{
 				Buffer* parentBuffer = AccessBuffer(buffer->parentBuffer);
 
@@ -1548,7 +1535,7 @@ void Renderer::CreateFramebuffer(RenderPass* renderPass, const TextureHandle* ou
 		framebufferAttachments[activeAttachments] = textureVk->imageView;
 	}
 
-	if (depthStencilTexture.index != INVALID_INDEX)
+	if (depthStencilTexture.index != INVALID_HANDLE)
 	{
 		Texture* depthTextureVk = AccessTexture(depthStencilTexture);
 		framebufferAttachments[activeAttachments++] = depthTextureVk->imageView;
@@ -1570,7 +1557,7 @@ RenderPassOutput Renderer::FillRenderPassOutput(const RenderPassCreation& creati
 		Texture* texture_vk = AccessTexture(creation.outputTextures[i]);
 		output.Color(texture_vk->format);
 	}
-	if (creation.depthStencilTexture.index != INVALID_INDEX)
+	if (creation.depthStencilTexture.index != INVALID_HANDLE)
 	{
 		Texture* texture_vk = AccessTexture(creation.depthStencilTexture);
 		output.Depth(texture_vk->format);
@@ -1668,9 +1655,9 @@ void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle hand
 
 BufferHandle Renderer::CreateBuffer(const BufferCreation& creation)
 {
-	U32 resourceIndex = buffers.ObtainResource();
+	U32 resourceIndex = Resources::buffers.ObtainResource();
 	BufferHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	Buffer* buffer = AccessBuffer(handle);
 
@@ -1724,9 +1711,9 @@ BufferHandle Renderer::CreateBuffer(const BufferCreation& creation)
 
 TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 {
-	U32 resourceIndex = textures.ObtainResource();
+	U32 resourceIndex = Resources::textures.ObtainResource();
 	TextureHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	Texture* texture = AccessTexture(handle);
 
@@ -1806,16 +1793,16 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 
 PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 {
-	U32 resourceIndex = pipelines.ObtainResource();
+	U32 resourceIndex = Resources::pipelines.ObtainResource();
 	PipelineHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	ShaderStateHandle shaderState = CreateShaderState(creation.shaders);
-	if (shaderState.index == INVALID_INDEX)
+	if (shaderState.index == INVALID_HANDLE)
 	{
 		// Shader did not compile.
-		pipelines.ReleaseResource(handle.index);
-		handle.index = INVALID_INDEX;
+		Resources::pipelines.ReleaseResource(handle.index);
+		handle.index = INVALID_HANDLE;
 
 		return handle;
 	}
@@ -2055,9 +2042,9 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 
 SamplerHandle Renderer::CreateSampler(const SamplerCreation& creation)
 {
-	U32 resourceIndex = samplers.ObtainResource();
+	U32 resourceIndex = Resources::samplers.ObtainResource();
 	SamplerHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	Sampler* sampler = AccessSampler(handle);
 
@@ -2098,9 +2085,9 @@ SamplerHandle Renderer::CreateSampler(const SamplerCreation& creation)
 
 DescriptorSetLayoutHandle Renderer::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& creation)
 {
-	U32 resourceIndex = descriptorSetLayouts.ObtainResource();
+	U32 resourceIndex = Resources::descriptorSetLayouts.ObtainResource();
 	DescriptorSetLayoutHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	DesciptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(handle);
 
@@ -2149,9 +2136,9 @@ DescriptorSetLayoutHandle Renderer::CreateDescriptorSetLayout(const DescriptorSe
 
 DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& creation)
 {
-	U32 resourceIndex = descriptorSets.ObtainResource();
+	U32 resourceIndex = Resources::descriptorSets.ObtainResource();
 	DescriptorSetHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	DesciptorSet* descriptorSet = AccessDescriptorSet(handle);
 	const DesciptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(creation.layout);
@@ -2199,9 +2186,9 @@ DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& c
 
 RenderPassHandle Renderer::CreateRenderPass(const RenderPassCreation& creation)
 {
-	U32 resourceIndex = renderPasses.ObtainResource();
+	U32 resourceIndex = Resources::renderPasses.ObtainResource();
 	RenderPassHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_INDEX) { return handle; }
+	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	RenderPass* renderPass = AccessRenderPass(handle);
 	renderPass->type = creation.type;
@@ -2251,7 +2238,7 @@ RenderPassHandle Renderer::CreateRenderPass(const RenderPassCreation& creation)
 
 ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creation)
 {
-	ShaderStateHandle handle = { INVALID_INDEX };
+	ShaderStateHandle handle = { INVALID_HANDLE };
 
 	if (creation.stagesCount == 0 || creation.stages == nullptr)
 	{
@@ -2259,8 +2246,8 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 		return handle;
 	}
 
-	handle.index = shaders.ObtainResource();
-	if (handle.index == INVALID_INDEX) { return handle; }
+	handle.index = Resources::shaders.ObtainResource();
+	if (handle.index == INVALID_HANDLE) { return handle; }
 
 	// For each shader stage, compile them individually.
 	U32 compiledShaders = 0;
@@ -2316,7 +2303,7 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 	if (creationFailed)
 	{
 		DestroyShaderState(handle);
-		handle.index = INVALID_INDEX;
+		handle.index = INVALID_HANDLE;
 
 		// Dump shader code
 		Logger::Error("Error in creation of shader {}! Dumping all shader informations...", creation.name);
@@ -2332,7 +2319,7 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 
 void Renderer::DestroyBuffer(BufferHandle buffer)
 {
-	if (buffer.index < buffers.ResourceCount)
+	if (buffer.index < Resources::buffers.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_BUFFER, buffer.index, currentFrame });
 	}
@@ -2344,7 +2331,7 @@ void Renderer::DestroyBuffer(BufferHandle buffer)
 
 void Renderer::DestroyTexture(TextureHandle texture)
 {
-	if (texture.index < textures.ResourceCount)
+	if (texture.index < Resources::textures.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_TEXTURE, texture.index, currentFrame });
 	}
@@ -2356,7 +2343,7 @@ void Renderer::DestroyTexture(TextureHandle texture)
 
 void Renderer::DestroyPipeline(PipelineHandle pipeline)
 {
-	if (pipeline.index < pipelines.ResourceCount)
+	if (pipeline.index < Resources::pipelines.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_PIPELINE, pipeline.index, currentFrame });
 
@@ -2371,7 +2358,7 @@ void Renderer::DestroyPipeline(PipelineHandle pipeline)
 
 void Renderer::DestroySampler(SamplerHandle sampler)
 {
-	if (sampler.index < samplers.ResourceCount)
+	if (sampler.index < Resources::samplers.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SAMPLER, sampler.index, currentFrame });
 	}
@@ -2383,7 +2370,7 @@ void Renderer::DestroySampler(SamplerHandle sampler)
 
 void Renderer::DestroyDescriptorSetLayout(DescriptorSetLayoutHandle layout)
 {
-	if (layout.index < descriptorSetLayouts.ResourceCount)
+	if (layout.index < Resources::descriptorSetLayouts.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT, layout.index, currentFrame });
 	}
@@ -2395,7 +2382,7 @@ void Renderer::DestroyDescriptorSetLayout(DescriptorSetLayoutHandle layout)
 
 void Renderer::DestroyDescriptorSet(DescriptorSetHandle set)
 {
-	if (set.index < descriptorSets.ResourceCount)
+	if (set.index < Resources::descriptorSets.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET, set.index, currentFrame });
 	}
@@ -2407,7 +2394,7 @@ void Renderer::DestroyDescriptorSet(DescriptorSetHandle set)
 
 void Renderer::DestroyRenderPass(RenderPassHandle renderPass)
 {
-	if (renderPass.index < renderPasses.ResourceCount)
+	if (renderPass.index < Resources::renderPasses.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, renderPass.index, currentFrame });
 	}
@@ -2419,7 +2406,7 @@ void Renderer::DestroyRenderPass(RenderPassHandle renderPass)
 
 void Renderer::DestroyShaderState(ShaderStateHandle shader)
 {
-	if (shader.index < shaders.ResourceCount)
+	if (shader.index < Resources::shaders.ResourceCount)
 	{
 		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, shader.index, currentFrame });
 	}
@@ -2431,54 +2418,57 @@ void Renderer::DestroyShaderState(ShaderStateHandle shader)
 
 void Renderer::DestroyBufferInstant(ResourceHandle buffer)
 {
-	Buffer* vkBuffer = (Buffer*)buffers.GetResource(buffer);
+	Buffer* vkBuffer = Resources::buffers.GetResource(buffer);
 
 	if (vkBuffer && vkBuffer->parentBuffer.index == INVALID_BUFFER.index)
 	{
 		vmaDestroyBuffer(allocator, vkBuffer->buffer, vkBuffer->allocation);
 	}
-	buffers.ReleaseResource(buffer);
+
+	Resources::buffers.ReleaseResource(buffer);
 }
 
 void Renderer::DestroyTextureInstant(ResourceHandle texture)
 {
-	Texture* vkTexture = (Texture*)textures.GetResource(texture);
+	Texture* vkTexture = Resources::textures.GetResource(texture);
 
 	if (vkTexture)
 	{
 		vkDestroyImageView(device, vkTexture->imageView, allocationCallbacks);
 		vmaDestroyImage(allocator, vkTexture->image, vkTexture->allocation);
 	}
-	textures.ReleaseResource(texture);
+
+	Resources::textures.ReleaseResource(texture);
 }
 
 void Renderer::DestroyPipelineInstant(ResourceHandle pipeline)
 {
-	Pipeline* vkPipeline = (Pipeline*)pipelines.GetResource(pipeline);
+	Pipeline* vkPipeline = Resources::pipelines.GetResource(pipeline);
 
 	if (vkPipeline)
 	{
 		vkDestroyPipeline(device, vkPipeline->pipeline, allocationCallbacks);
-
 		vkDestroyPipelineLayout(device, vkPipeline->pipelineLayout, allocationCallbacks);
 	}
-	pipelines.ReleaseResource(pipeline);
+
+	Resources::pipelines.ReleaseResource(pipeline);
 }
 
 void Renderer::DestroySamplerInstant(ResourceHandle sampler)
 {
-	Sampler* vkSampler = (Sampler*)samplers.GetResource(sampler);
+	Sampler* vkSampler = Resources::samplers.GetResource(sampler);
 
 	if (vkSampler)
 	{
 		vkDestroySampler(device, vkSampler->sampler, allocationCallbacks);
 	}
-	samplers.ReleaseResource(sampler);
+
+	Resources::samplers.ReleaseResource(sampler);
 }
 
 void Renderer::DestroyDescriptorSetLayoutInstant(ResourceHandle layout)
 {
-	DesciptorSetLayout* vkDescriptorSetLayout = (DesciptorSetLayout*)descriptorSetLayouts.GetResource(layout);
+	DesciptorSetLayout* vkDescriptorSetLayout = Resources::descriptorSetLayouts.GetResource(layout);
 
 	if (vkDescriptorSetLayout)
 	{
@@ -2486,34 +2476,37 @@ void Renderer::DestroyDescriptorSetLayoutInstant(ResourceHandle layout)
 
 		Memory::FreeSize(&vkDescriptorSetLayout->bindings);
 	}
-	descriptorSetLayouts.ReleaseResource(layout);
+
+	Resources::descriptorSetLayouts.ReleaseResource(layout);
 }
 
 void Renderer::DestroyDescriptorSetInstant(ResourceHandle set)
 {
-	DesciptorSet* vkDescriptorSet = (DesciptorSet*)descriptorSets.GetResource(set);
+	DesciptorSet* vkDescriptorSet = Resources::descriptorSets.GetResource(set);
 
 	if (vkDescriptorSet)
 	{
 		Memory::FreeSize(&vkDescriptorSet->resources);
 	}
-	descriptorSets.ReleaseResource(set);
+
+	Resources::descriptorSets.ReleaseResource(set);
 }
 
 void Renderer::DestroyRenderPassInstant(ResourceHandle renderPass)
 {
-	RenderPass* vkRenderPass = (RenderPass*)renderPasses.GetResource(renderPass);
+	RenderPass* vkRenderPass = Resources::renderPasses.GetResource(renderPass);
 
 	if (vkRenderPass)
 	{
 		if (vkRenderPass->numRenderTargets) { vkDestroyFramebuffer(device, vkRenderPass->frameBuffer, allocationCallbacks); }
 	}
-	renderPasses.ReleaseResource(renderPass);
+
+	Resources::renderPasses.ReleaseResource(renderPass);
 }
 
 void Renderer::DestroyShaderStateInstant(ResourceHandle shader)
 {
-	ShaderState* vkShaderState = (ShaderState*)shaders.GetResource(shader);
+	ShaderState* vkShaderState = Resources::shaders.GetResource(shader);
 	if (vkShaderState)
 	{
 		for (size_t i = 0; i < vkShaderState->activeShaders; i++)
@@ -2521,47 +2514,48 @@ void Renderer::DestroyShaderStateInstant(ResourceHandle shader)
 			vkDestroyShaderModule(device, vkShaderState->shaderStageInfos[i].module, allocationCallbacks);
 		}
 	}
-	shaders.ReleaseResource(shader);
+
+	Resources::shaders.ReleaseResource(shader);
 }
 
 ShaderState* Renderer::AccessShaderState(ShaderStateHandle shader)
 {
-	return shaders.GetResource(shader.index);
+	return Resources::shaders.GetResource(shader.index);
 }
 
 Texture* Renderer::AccessTexture(TextureHandle texture)
 {
-	return textures.GetResource(texture.index);
+	return Resources::textures.GetResource(texture.index);
 }
 
 Buffer* Renderer::AccessBuffer(BufferHandle buffer)
 {
-	return buffers.GetResource(buffer.index);
+	return Resources::buffers.GetResource(buffer.index);
 }
 
 Pipeline* Renderer::AccessPipeline(PipelineHandle pipeline)
 {
-	return pipelines.GetResource(pipeline.index);
+	return Resources::pipelines.GetResource(pipeline.index);
 }
 
 Sampler* Renderer::AccessSampler(SamplerHandle sampler)
 {
-	return samplers.GetResource(sampler.index);
+	return Resources::samplers.GetResource(sampler.index);
 }
 
 DesciptorSetLayout* Renderer::AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout)
 {
-	return descriptorSetLayouts.GetResource(layout.index);
+	return Resources::descriptorSetLayouts.GetResource(layout.index);
 }
 
 DesciptorSet* Renderer::AccessDescriptorSet(DescriptorSetHandle set)
 {
-	return descriptorSets.GetResource(set.index);
+	return Resources::descriptorSets.GetResource(set.index);
 }
 
 RenderPass* Renderer::AccessRenderPass(RenderPassHandle renderPass)
 {
-	return renderPasses.GetResource(renderPass.index);
+	return Resources::renderPasses.GetResource(renderPass.index);
 }
 
 bool Renderer::IsDepthStencil(VkFormat value)

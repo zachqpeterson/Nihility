@@ -49,6 +49,15 @@ bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
+	buffers.Create();
+	textures.Create();
+	renderPasses.Create();
+	descriptorSetLayouts.Create();
+	pipelines.Create();
+	shaders.Create();
+	descriptorSets.Create();
+	samplers.Create();
+
 	return true;
 }
 
@@ -56,7 +65,14 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
-	//textures.Destroy();
+	pipelines.Destroy();
+	buffers.Destroy();
+	shaders.Destroy();
+	textures.Destroy();
+	samplers.Destroy();
+	descriptorSetLayouts.Destroy();
+	descriptorSets.Destroy();
+	renderPasses.Destroy();
 }
 
 //Texture* Resources::LoadTexture(String& name)

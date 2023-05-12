@@ -192,5 +192,8 @@
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Resources\ResourceDefines.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

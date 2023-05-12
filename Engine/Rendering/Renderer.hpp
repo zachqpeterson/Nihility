@@ -144,14 +144,6 @@ private:
 
 	// RESOURCES
 	NH_HEADER_STATIC VmaAllocator_T*						allocator;
-	NH_HEADER_STATIC ResourcePool<Buffer, 4096>				buffers;
-	NH_HEADER_STATIC ResourcePool<Texture, 512>				textures;
-	NH_HEADER_STATIC ResourcePool<Pipeline, 128>			pipelines;
-	NH_HEADER_STATIC ResourcePool<Sampler, 32>				samplers;
-	NH_HEADER_STATIC ResourcePool<DesciptorSetLayout, 128>	descriptorSetLayouts;
-	NH_HEADER_STATIC ResourcePool<DesciptorSet, 256>		descriptorSets;
-	NH_HEADER_STATIC ResourcePool<RenderPass, 256>			renderPasses;
-	NH_HEADER_STATIC ResourcePool<ShaderState, 128>			shaders;
 	NH_HEADER_STATIC Queue<ResourceUpdate>					resourceDeletionQueue;
 	NH_HEADER_STATIC Queue<DescriptorSetUpdate>				descriptorSetUpdates;
 	NH_HEADER_STATIC Hashmap<U64, VkRenderPass>				renderPassCache{ 16 };

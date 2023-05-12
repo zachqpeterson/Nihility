@@ -67,7 +67,7 @@ void CommandBuffer::BindVertexBuffer(BufferHandle handle, U32 binding, U32 offse
 
 	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
-	if (buffer->parentBuffer.index != INVALID_INDEX)
+	if (buffer->parentBuffer.index != INVALID_HANDLE)
 	{
 		Buffer* parent_buffer = Renderer::AccessBuffer(buffer->parentBuffer);
 		vkBuffer = parent_buffer->buffer;
@@ -83,7 +83,7 @@ void CommandBuffer::BindIndexBuffer(BufferHandle handle, U32 offset, VkIndexType
 
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = offset;
-	if (buffer->parentBuffer.index != INVALID_INDEX)
+	if (buffer->parentBuffer.index != INVALID_HANDLE)
 	{
 		Buffer* parent_buffer = Renderer::AccessBuffer(buffer->parentBuffer);
 		vkBuffer = parent_buffer->buffer;
@@ -137,8 +137,8 @@ void CommandBuffer::SetViewport(const Viewport* viewport)
 		// Invert Y with negative height and proper offset - Vulkan has unique Clipping Y.
 		vkViewport.y = viewport->rect.height * 1.0f - viewport->rect.y;
 		vkViewport.height = -viewport->rect.height * 1.0f;
-		vkViewport.minDepth = viewport->min_depth;
-		vkViewport.maxDepth = viewport->max_depth;
+		vkViewport.minDepth = viewport->minDepth;
+		vkViewport.maxDepth = viewport->maxDepth;
 	}
 	else
 	{

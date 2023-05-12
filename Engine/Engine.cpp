@@ -82,14 +82,12 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	//std::bit_floor(12);	//TODO:
 	//std::but_ceiling(12); //TODO:
 
-	Vector2 v{ 12.123f, 123.12f };
-	Logger::Info(v);
+	//Logger::Info(Vector2{ 12.123f, 123.12f });
 
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());
-	ASSERT(Resources::Initialize());
 	//Audio
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	//UI
@@ -110,7 +108,6 @@ void Engine::Shutdown()
 	//UI
 	Renderer::Shutdown();
 	//Audio
-	Resources::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
 	Jobs::Shutdown();

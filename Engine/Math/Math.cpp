@@ -122,6 +122,7 @@ Vector2& Vector2::operator%=(const Vector2& v) { x = Math::Mod(x, v.x); y = Math
 Vector2& Vector2::operator*=(const Quaternion2& q)
 {
 	//TODO:
+	return *this;
 }
 
 Vector2 Vector2::operator+(F32 f) const { return { x + f, y + f }; }
@@ -137,6 +138,7 @@ Vector2 Vector2::operator%(const Vector2& v) const { return { Math::Mod(x, v.x),
 Vector2 Vector2::operator*(const Quaternion2& q) const
 {
 	//TODO:
+	return {};
 }
 
 bool Vector2::operator==(const Vector2& v) const { return Math::Zero(x - v.x) && Math::Zero(y - v.y); }

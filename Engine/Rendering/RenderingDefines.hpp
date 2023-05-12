@@ -264,7 +264,6 @@ NH_HEADER_STATIC constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;	// Maximum list elem
 NH_HEADER_STATIC constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;		// Maximum images a swapchain can support
 NH_HEADER_STATIC constexpr U8	MAX_VERTEX_STREAMS = 16;
 NH_HEADER_STATIC constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;
-NH_HEADER_STATIC constexpr U32	INVALID_INDEX = U32_MAX;		// Invalid index to a resource
 
 /*---------ENUMS---------*/
 
@@ -594,20 +593,6 @@ enum RenderPassType
 	RENDER_PASS_TYPE_COUNT
 };
 
-enum ResourceDeleteType
-{
-	RESOURCE_DELETE_TYPE_BUFFER,
-	RESOURCE_DELETE_TYPE_TEXTURE,
-	RESOURCE_DELETE_TYPE_PIPELINE,
-	RESOURCE_DELETE_TYPE_SAMPLER,
-	RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT,
-	RESOURCE_DELETE_TYPE_DESCRIPTOR_SET,
-	RESOURCE_DELETE_TYPE_RENDER_PASS,
-	RESOURCE_DELETE_TYPE_SHADER_STATE,
-
-	RESOURCE_DELETE_TYPE_COUNT
-};
-
 enum RenderPassOperation
 {
 	RENDER_PASS_OP_DONT_CARE,
@@ -811,11 +796,11 @@ struct Viewport
 
 struct ViewportState
 {
-	U32 numViewports = 0;
-	U32 numScissors = 0;
+	U32			numViewports = 0;
+	U32			numScissors = 0;
 
-	Viewport* viewport = nullptr;
-	Rect2DInt* scissors = nullptr;
+	Viewport*	viewport = nullptr;
+	Rect2DInt*	scissors = nullptr;
 };
 
 struct StencilOperationState
@@ -846,19 +831,23 @@ struct VertexStream
 
 struct VertexInputCreation
 {
-	U32                             numVertexStreams = 0;
-	U32                             numVertexAttributes = 0;
+	VertexInputCreation&	Reset();
+	VertexInputCreation&	AddVertexStream(const VertexStream& stream);
+	VertexInputCreation&	AddVertexAttribute(const VertexAttribute& attribute);
 
-	VertexStream                    vertexStreams[MAX_VERTEX_STREAMS];
-	VertexAttribute                 vertexAttributes[MAX_VERTEX_ATTRIBUTES];
+	U32						numVertexStreams = 0;
+	U32						numVertexAttributes = 0;
 
-	VertexInputCreation& Reset();
-	VertexInputCreation& AddVertexStream(const VertexStream& stream);
-	VertexInputCreation& AddVertexAttribute(const VertexAttribute& attribute);
+	VertexStream			vertexStreams[MAX_VERTEX_STREAMS];
+	VertexAttribute			vertexAttributes[MAX_VERTEX_ATTRIBUTES];
 };
 
 struct DepthStencilCreation
 {
+	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
+
+	DepthStencilCreation&	SetDepth(bool write, VkCompareOp comparison_test);
+
 	StencilOperationState	front;
 	StencilOperationState	back;
 	VkCompareOp				depthComparison = VK_COMPARE_OP_ALWAYS;
@@ -867,14 +856,16 @@ struct DepthStencilCreation
 	U8						depthWriteEnable : 1;
 	U8						stencilEnable : 1;
 	U8						pad : 5;
-
-	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
-
-	DepthStencilCreation& SetDepth(bool write, VkCompareOp comparison_test);
 };
 
 struct BlendState
 {
+	BlendState() : blendEnabled{ 0 }, separateBlend{ 0 } {}
+
+	BlendState&				SetColor(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
+	BlendState&				SetAlpha(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
+	BlendState&				SetColorWriteMask(ColorWriteEnableMask value);
+
 	VkBlendFactor			sourceColor = VK_BLEND_FACTOR_ONE;
 	VkBlendFactor			destinationColor = VK_BLEND_FACTOR_ONE;
 	VkBlendOp				colorOperation = VK_BLEND_OP_ADD;
@@ -888,21 +879,15 @@ struct BlendState
 	U8						blendEnabled : 1;
 	U8						separateBlend : 1;
 	U8						pad : 6;
-
-	BlendState() : blendEnabled{ 0 }, separateBlend{ 0 } {}
-
-	BlendState& SetColor(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
-	BlendState& SetAlpha(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
-	BlendState& SetColorWriteMask(ColorWriteEnableMask value);
 };
 
 struct BlendStateCreation
 {
-	BlendState	blendStates[MAX_IMAGE_OUTPUTS];
-	U32			activeStates = 0;
+	BlendStateCreation&	Reset();
+	BlendState&			AddBlendState();
 
-	BlendStateCreation& Reset();
-	BlendState& AddBlendState();
+	BlendState			blendStates[MAX_IMAGE_OUTPUTS];
+	U32					activeStates = 0;
 };
 
 struct RasterizationCreation
@@ -919,198 +904,6 @@ struct ShaderStage
 	VkShaderStageFlagBits	type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 };
 
-struct ShaderStateCreation
-{
-	ShaderStage	stages[MAX_SHADER_STAGES];
-
-	CSTR		name = nullptr;
-
-	U32			stagesCount = 0;
-	U32			spvInput = 0;
-
-	// Building helpers
-	ShaderStateCreation& Reset();
-	ShaderStateCreation& SetName(CSTR name);
-	ShaderStateCreation& AddStage(CSTR code, U32 codeSize, VkShaderStageFlagBits type);
-	ShaderStateCreation& SetSpvInput(bool value);
-};
-
-struct DescriptorSetLayoutCreation
-{
-	struct Binding
-	{
-		VkDescriptorType	type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
-		U16					start = 0;
-		U16					count = 0;
-		CSTR				name = nullptr;
-	};
-
-	Binding					bindings[MAX_DESCRIPTORS_PER_SET];
-	U32						numBindings = 0;
-	U32						setIndex = 0;
-
-	CSTR					name = nullptr;
-
-	DescriptorSetLayoutCreation& Reset();
-	DescriptorSetLayoutCreation& AddBinding(const Binding& binding);
-	DescriptorSetLayoutCreation& SetName(CSTR name);
-	DescriptorSetLayoutCreation& SetSetIndex(U32 index);
-};
-
-struct DescriptorSetCreation
-{
-	ResourceHandle				resources[MAX_DESCRIPTORS_PER_SET];
-	SamplerHandle				samplers[MAX_DESCRIPTORS_PER_SET];
-	U16							bindings[MAX_DESCRIPTORS_PER_SET];
-
-	DescriptorSetLayoutHandle	layout;
-	U32							numResources = 0;
-
-	CSTR						name = nullptr;
-
-	DescriptorSetCreation& Reset();
-	DescriptorSetCreation& SetLayout(DescriptorSetLayoutHandle layout);
-	DescriptorSetCreation& Texture(TextureHandle texture, U16 binding);
-	DescriptorSetCreation& Buffer(BufferHandle buffer, U16 binding);
-	DescriptorSetCreation& TextureSampler(TextureHandle texture, SamplerHandle sampler, U16 binding);   // TODO: separate samplers from textures
-	DescriptorSetCreation& SetName(CSTR name);
-};
-
-struct BufferCreation
-{
-	VkBufferUsageFlags	typeFlags = 0;
-	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
-	U32					size = 0;
-	void* initialData = nullptr;
-
-	CSTR				name = nullptr;
-
-	BufferCreation& Reset();
-	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U32 size);
-	BufferCreation& SetData(void* data);
-	BufferCreation& SetName(CSTR name);
-};
-
-struct TextureCreation
-{
-	void* initialData = nullptr;
-	U16			width = 1;
-	U16			height = 1;
-	U16			depth = 1;
-	U8			mipmaps = 1;
-	U8			flags = 0;    // TextureFlags bitmasks
-
-	VkFormat	format = VK_FORMAT_UNDEFINED;
-	TextureType	type = TEXTURE_TYPE_2D;
-
-	CSTR		name = nullptr;
-
-	TextureCreation& SetSize(U16 width, U16 height, U16 depth);
-	TextureCreation& SetFlags(U8 mipmaps, U8 flags);
-	TextureCreation& SetFormatType(VkFormat format, TextureType type);
-	TextureCreation& SetName(CSTR name);
-	TextureCreation& SetData(void* data);
-};
-
-struct RenderPassOutput
-{
-	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS];
-	VkFormat			depthStencilFormat;
-	U32					numColorFormats;
-
-	RenderPassOperation	colorOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation	depthOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation	stencilOperation = RENDER_PASS_OP_DONT_CARE;
-
-	RenderPassOutput& Reset();
-	RenderPassOutput& Color(VkFormat format);
-	RenderPassOutput& Depth(VkFormat format);
-	RenderPassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
-};
-
-
-
-struct PipelineCreation
-{
-	RasterizationCreation		rasterization;
-	DepthStencilCreation		depthStencil;
-	BlendStateCreation			blendState;
-	VertexInputCreation			vertexInput;
-	ShaderStateCreation			shaders;
-
-	RenderPassOutput			renderPass;
-	DescriptorSetLayoutHandle	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	const ViewportState* viewport = nullptr;
-
-	U32							numActiveLayouts = 0;
-
-	CSTR						name = nullptr;
-
-	PipelineCreation& AddDescriptorSetLayout(DescriptorSetLayoutHandle handle);
-	RenderPassOutput& RenderPassOutput();
-};
-
-struct SamplerCreation
-{
-	VkFilter				minFilter = VK_FILTER_NEAREST;
-	VkFilter				magFilter = VK_FILTER_NEAREST;
-	VkSamplerMipmapMode		mipFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-
-	VkSamplerAddressMode	addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-	CSTR					name = nullptr;
-
-	SamplerCreation& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
-	SamplerCreation& SetAddressModeU(VkSamplerAddressMode u);
-	SamplerCreation& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
-	SamplerCreation& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
-	SamplerCreation& SetName(CSTR name);
-};
-
-struct RenderPassCreation
-{
-	U16						numRenderTargets = 0;
-	RenderPassType			type = RENDER_PASS_TYPE_GEOMETRY;
-
-	TextureHandle			outputTextures[MAX_IMAGE_OUTPUTS];
-	TextureHandle			depthStencilTexture;
-
-	F32						scaleX = 1.f;
-	F32						scaleY = 1.f;
-	U8						resize = 1;
-
-	RenderPassOperation		colorOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation		depthOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation		stencilOperation = RENDER_PASS_OP_DONT_CARE;
-
-	CSTR					name = nullptr;
-
-	RenderPassCreation& Reset();
-	RenderPassCreation& AddRenderTexture(TextureHandle texture);
-	RenderPassCreation& SetScaling(F32 scaleX, F32 scaleY, U8 resize);
-	RenderPassCreation& SetDepthStencilTexture(TextureHandle texture);
-	RenderPassCreation& SetName(CSTR name);
-	RenderPassCreation& SetType(RenderPassType type);
-	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
-};
-
-struct ResourceUpdate
-{
-	ResourceDeleteType	type;
-	ResourceHandle		handle;
-	U32					currentFrame;
-};
-
-struct DescriptorSetUpdate
-{
-	DescriptorSetHandle	descriptorSet;
-	U32					frameIssued = 0;
-};
-
-
-
 struct DescriptorBinding
 {
 	VkDescriptorType	type;
@@ -1120,8 +913,6 @@ struct DescriptorBinding
 
 	CSTR				name = nullptr;
 };
-
-
 
 struct GPUTimestamp
 {
@@ -1151,8 +942,8 @@ struct GPUTimestampManager
 	U32 Push(U32 currentFrame, const char* name);    // Returns the timestamp query index.
 	U32 Pop(U32 currentFrame);
 
-	GPUTimestamp* timestamps = nullptr;
-	U64* timestampsData = nullptr;
+	GPUTimestamp*	timestamps = nullptr;
+	U64*			timestampsData = nullptr;
 
 	U32				queriesPerFrame = 0;
 	U32				currentQuery = 0;
@@ -1161,41 +952,3 @@ struct GPUTimestampManager
 
 	bool			currentFrameResolved = false;    // Used to query the GPU only once per frame if get_gpu_timestamps is called more than once per frame.
 };
-
-struct MapBufferParameters
-{
-	BufferHandle	buffer;
-	U32				offset = 0;
-	U32				size = 0;
-};
-
-struct TextureBarrier
-{
-	TextureHandle texture;
-};
-
-struct BufferBarrier
-{
-	BufferHandle buffer;
-};
-
-struct ExecutionBarrier
-{
-	PipelineStage	sourcePipelineStage;
-	PipelineStage	destinationPipelineStage;
-
-	U32				newBarrierExperimental = U32_MAX;
-	U32				loadOperation = 0;
-
-	U32				numTextureBarriers;
-	U32				numBufferBarriers;
-
-	TextureBarrier	textureBarriers[8];
-	BufferBarrier	bufferBarriers[8];
-
-	ExecutionBarrier& Reset();
-	ExecutionBarrier& Set(PipelineStage source, PipelineStage destination);
-	ExecutionBarrier& AddImageBarrier(const TextureBarrier& textureBarrier);
-	ExecutionBarrier& AddMemoryBarrier(const BufferBarrier& bufferBarrier);
-};
-

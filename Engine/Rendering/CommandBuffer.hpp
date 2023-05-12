@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderingDefines.hpp"
+#include "Resources\ResourceDefines.hpp"
 
 struct CommandBuffer
 {

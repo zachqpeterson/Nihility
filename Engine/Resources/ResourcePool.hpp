@@ -54,7 +54,7 @@ inline ResourceHandle ResourcePool<Type, Count>::ObtainResource()
 	if (lastFree < ResourceCount) { return freeHandles[lastFree++]; }
 
 	Logger::Error("No Free Resources Left!");
-	return INVALID_INDEX;
+	return INVALID_HANDLE;
 }
 
 template<class Type, ResourceHandle Count>
@@ -67,7 +67,7 @@ inline void ResourcePool<Type, Count>::ReleaseResource(ResourceHandle handle)
 template<class Type, ResourceHandle Count>
 inline Type* ResourcePool<Type, Count>::GetResource(ResourceHandle handle)
 {
-	if (handle != INVALID_INDEX) { return &memory[handle * ResourceSize]; }
+	if (handle != INVALID_HANDLE) { return &memory[handle * ResourceSize]; }
 
 	return nullptr;
 }
@@ -75,7 +75,7 @@ inline Type* ResourcePool<Type, Count>::GetResource(ResourceHandle handle)
 template<class Type, ResourceHandle Count>
 inline const Type* ResourcePool<Type, Count>::GetResource(ResourceHandle handle) const
 {
-	if (handle != INVALID_INDEX) { return &memory[handle * ResourceSize]; }
+	if (handle != INVALID_HANDLE) { return &memory[handle * ResourceSize]; }
 
 	return nullptr;
 }
