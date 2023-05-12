@@ -1,3 +1,3 @@
 # NihilityEngine
 
-This is 2D game engine made from scratch. The only APIs I use are Vulkan for rendering, Win32 for window creation and handling and most input, RawInput for low level input(I'd like all the input to be done through RawInput in the future), and XAudio2 for Audio proccessing. I've made all data structures I use from scratch, a memory allocator, UI system, Physics system, Shader/Material system, and a few other small things.
+This is game engine made from scratch, winner of my college's capstone invitational. I've made my own data structures, memory allocator, and math library. I try to get as low level as possible by making my own file stream, using Raw Input, and job system. This engine is currently going through a major refactor (Refactor branch) to make it more easily expandible.
