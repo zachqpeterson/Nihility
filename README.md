@@ -4,5 +4,5 @@ This is game engine made from scratch, winner of my college's capstone invitatio
 
 Current 3rd party libraries:
 wyhash/wyrand - https://github.com/wangyi-fudan/wyhash, rewritten to be optimised for this engine
-VulkanMemoryAllocator - https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/blob/master/include/vk_mem_alloc.h
+VulkanMemoryAllocator - https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 tracy - https://github.com/wolfpld/tracy, not currently in use
