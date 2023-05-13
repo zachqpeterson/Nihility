@@ -206,4 +206,29 @@ I64 File::Pointer() const { return pointer; }
 
 I64 File::Size() { return stats.size; }
 
-bool File::Delete(String path) { return remove(path) == 0; }
+const String& File::WorkingDirectory()
+{
+	static String wd;
+	static bool b = GetWorkingDirectory(wd);
+
+	return wd;
+}
+
+#if defined PLATFORM_WINDOWS
+
+#include <Windows.h>
+
+bool File::GetWorkingDirectory(String& str)
+{
+	UL32 length = 1024;
+
+	UL32 i = GetCurrentDirectoryA(length, str.Data());
+	str.Resize();
+
+	return i;
+}
+
+#endif 
+
+//TODO: Check if file is open
+bool File::Delete(const String& path) { return remove(path.Data()) == 0; }

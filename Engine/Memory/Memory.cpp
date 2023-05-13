@@ -11,19 +11,15 @@ U64 Memory::totalSize;
 U64 Memory::staticSize;
 U8* Memory::staticPointer;
 
-Memory::Region1kb* Memory::pool1kbPointer;
 U32* Memory::free1kbIndices;
 I64 Memory::last1kbFree;
 
-Memory::Region16kb* Memory::pool16kbPointer;
 U32* Memory::free16kbIndices;
 I64 Memory::last16kbFree;
 
-Memory::Region256kb* Memory::pool256kbPointer;
 U32* Memory::free256kbIndices;
 I64 Memory::last256kbFree;
 
-Memory::Region4mb* Memory::pool4mbPointer;
 U32* Memory::free4mbIndices;
 I64 Memory::last4mbFree;
 

@@ -3,16 +3,8 @@
 #include "ContainerDefines.hpp"
 #include "String.hpp"
 #include "Memory\Memory.hpp"
+#include "Math\Hash.hpp"
 
-static inline U64 Hash(U64 x)
-{
-	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
-	x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
-	x = x ^ (x >> 31);
-	return x;
-}
-
-//TODO: Migrate to use wyhash
 template<class Key, class Value>
 struct NH_API Hashmap
 {
@@ -61,6 +53,7 @@ struct NH_API Hashmap
 public:
 	Hashmap();
 	Hashmap(U64 capacity);
+	Hashmap(U64 capacity, const Value& def);
 	Hashmap(const Hashmap& other);
 	Hashmap(Hashmap&& other) noexcept;
 	Hashmap& operator=(const Hashmap& other);
@@ -69,11 +62,14 @@ public:
 	~Hashmap();
 	void Destroy();
 
-	bool Insert(Key& key, const Value& value);
-	bool Insert(Key& key, Value&& value) noexcept;
-	bool Remove(Key& key);
-	bool Remove(Key& key, Value&& value) noexcept;
-	bool Get(Key& key, Value& value);
+	bool Insert(const Key& key, const Value& value);
+	bool Insert(const Key& key, Value&& value) noexcept;
+	bool Remove(const Key& key);
+	bool Remove(const Key& key, Value&& value) noexcept;
+	Value& Get(const Key& key);
+
+	Value& operator[](const Key& key);
+	const Value& operator[](const Key& key) const;
 
 	void Reserve(U64 capacity);
 	void operator()(U64 capacity);
@@ -93,6 +89,7 @@ private:
 	U64 capacity{ 0 };
 	U64 capMinusOne{ 0 };
 	Cell* cells{ nullptr };
+	Value defVal;
 };
 
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap() {}
@@ -102,6 +99,15 @@ template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap)
 	Memory::AllocateArray(&cells, cap, capacity);
 	capacity = NextPow2(capacity) >> 1;
 	capMinusOne = capacity - 1;
+	defVal = {};
+}
+
+template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap, const Value& def)
+{
+	Memory::AllocateArray(&cells, cap, capacity);
+	capacity = NextPow2(capacity) >> 1;
+	capMinusOne = capacity - 1;
+	defVal = def;
 }
 
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(const Hashmap& other) : size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
@@ -160,14 +166,13 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 	}
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& key, const Value& value)
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(const Key& key, const Value& value)
 {
 	if (size == capacity) { return false; }
 
 	U64 hash;
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
-	else { static_assert("Only integers and strings supported for hashing!"); }
+	else { hash = Hash::Calculate(key); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -181,14 +186,13 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& ke
 	return true;
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& key, Value&& value) noexcept
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(const Key& key, Value&& value) noexcept
 {
 	if (size == capacity) { return false; }
 
 	U64 hash;
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
-	else { static_assert("Only integers and strings supported for hashing!"); }
+	else { hash = Hash::Calculate(key); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -200,14 +204,13 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(Key& ke
 	cell->key = key;
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& key)
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const Key& key)
 {
 	if (size == 0) { return false; }
 
 	U64 hash;
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
-	else { static_assert("Only integers and strings supported for hashing!"); }
+	else { hash = Hash::Calculate(key); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -225,14 +228,13 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& ke
 	return false;
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& key, Value&& value) noexcept
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const Key& key, Value&& value) noexcept
 {
 	if (size == 0) { return false; }
 
 	U64 hash;
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
-	else { static_assert("Only integers and strings supported for hashing!"); }
+	else { hash = Hash::Calculate(key); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -253,22 +255,52 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(Key& ke
 	return false;
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Get(Key& key, Value& value)
+template<class Key, class Value> inline Value& Hashmap<Key, Value>::Get(const Key& key)
 {
-	if (size == 0) { return false; }
+	if (size == 0) { return defVal; }
 
 	U64 hash;
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
-	else if constexpr (IsInteger<Key>) { hash = Hash(key); }
-	else { static_assert("Only integers and strings supported for hashing!"); }
+	else { hash = Hash::Calculate(key); }
 
 	U32 i = 0;
 	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
-	value = cell->value;
+	if (cell->filled) { return cell->value; }
+	else { return defVal; }
+}
 
-	return cell->filled;
+template<class Key, class Value> inline Value& Hashmap<Key, Value>::operator[](const Key& key)
+{
+	if (size == 0) { return defVal; }
+
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else { hash = Hash::Calculate(key); }
+
+	U32 i = 0;
+	Cell* cell = cells + (hash % capacity);
+	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
+
+	if (cell->filled) { return cell->value; }
+	else { return defVal; }
+}
+
+template<class Key, class Value> inline const Value& Hashmap<Key, Value>::operator[](const Key& key) const
+{
+	if (size == 0) { return defVal; }
+
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else { hash = Hash::Calculate(key); }
+
+	U32 i = 0;
+	Cell* cell = cells + (hash % capacity);
+	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
+
+	if (cell->filled) { return cell->value; }
+	else { return defVal; }
 }
 
 template<class Key, class Value> inline void Hashmap<Key, Value>::Reserve(U64 cap)

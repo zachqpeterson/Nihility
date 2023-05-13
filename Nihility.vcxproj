@@ -76,10 +76,12 @@
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
     <PostBuildEvent>
-      <Command>call "$(SolutionDir)post-build.bat"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Compiling shaders...</Message>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -119,6 +121,7 @@
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\External\vk_mem_alloc.h" />
+    <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Hash.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
@@ -133,6 +136,7 @@
     <ClInclude Include="Engine\Platform\SafeQueue.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Engine\Rendering\Profiler.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
@@ -145,6 +149,7 @@
     <ClCompile Include="Engine\Core\File.cpp" />
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Math.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />
@@ -154,6 +159,7 @@
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Engine\Rendering\Profiler.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
     <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />

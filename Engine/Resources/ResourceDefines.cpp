@@ -205,10 +205,9 @@ ShaderStateCreation& ShaderStateCreation::SetName(CSTR name)
 	return *this;
 }
 
-ShaderStateCreation& ShaderStateCreation::AddStage(CSTR code, U32 codeSize, VkShaderStageFlagBits type)
+ShaderStateCreation& ShaderStateCreation::AddStage(CSTR path, VkShaderStageFlagBits type)
 {
-	stages[stagesCount].code = code;
-	stages[stagesCount].codeSize = codeSize;
+	stages[stagesCount].path = path;
 	stages[stagesCount].type = type;
 	++stagesCount;
 

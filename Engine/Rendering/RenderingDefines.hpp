@@ -625,18 +625,18 @@ enum ResourceType {
 };
 #pragma endregion
 
-static inline CSTR ToCompilerExtension(VkShaderStageFlagBits value)
+static inline String ToCompilerExtension(VkShaderStageFlagBits value)
 {
 	switch (value)
 	{
 	case VK_SHADER_STAGE_VERTEX_BIT: { return "vert"; }
 	case VK_SHADER_STAGE_FRAGMENT_BIT: { return "frag"; }
 	case VK_SHADER_STAGE_COMPUTE_BIT: { return "comp"; }
-	default: { return ""; }
+	default: {return ""; }
 	}
 }
 
-static inline CSTR ToStageDefines(VkShaderStageFlagBits value)
+static inline String ToStageDefines(VkShaderStageFlagBits value)
 {
 	switch (value)
 	{
@@ -829,7 +829,8 @@ struct VertexStream
 	VertexInputRate	inputRate = VERTEX_INPUT_RATE_COUNT;
 };
 
-struct VertexInputCreation
+//TODO: Temporary export
+struct NH_API VertexInputCreation
 {
 	VertexInputCreation&	Reset();
 	VertexInputCreation&	AddVertexStream(const VertexStream& stream);
@@ -842,7 +843,8 @@ struct VertexInputCreation
 	VertexAttribute			vertexAttributes[MAX_VERTEX_ATTRIBUTES];
 };
 
-struct DepthStencilCreation
+//TODO: Temporary export
+struct NH_API DepthStencilCreation
 {
 	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
 
@@ -899,6 +901,7 @@ struct RasterizationCreation
 
 struct ShaderStage
 {
+	CSTR					path = nullptr;
 	CSTR					code = nullptr;
 	U32						codeSize = 0;
 	VkShaderStageFlagBits	type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
@@ -912,43 +915,4 @@ struct DescriptorBinding
 	U16					set = 0;
 
 	CSTR				name = nullptr;
-};
-
-struct GPUTimestamp
-{
-	U32		start;
-	U32		end;
-
-	F64		elapsedMs;
-
-	U16		parentIndex;
-	U16		depth;
-
-	U32		color;
-	U32		frameIndex;
-
-	CSTR	name;
-};
-
-struct GPUTimestampManager
-{
-	void Create(U16 queriesPerFrame, U16 maxFrames);
-	void Destroy();
-
-	bool HasValidQueries() const;
-	void Reset();
-	U32 Resolve(U32 currentFrame, GPUTimestamp* timestampsToFill);    // Returns the total queries for this frame.
-
-	U32 Push(U32 currentFrame, const char* name);    // Returns the timestamp query index.
-	U32 Pop(U32 currentFrame);
-
-	GPUTimestamp*	timestamps = nullptr;
-	U64*			timestampsData = nullptr;
-
-	U32				queriesPerFrame = 0;
-	U32				currentQuery = 0;
-	U32				parentIndex = 0;
-	U32				depth = 0;
-
-	bool			currentFrameResolved = false;    // Used to query the GPU only once per frame if get_gpu_timestamps is called more than once per frame.
 };

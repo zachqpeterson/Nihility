@@ -95,12 +95,15 @@ public:
 	I64 Pointer() const;
 	I64 Size();
 
-	static bool Delete(String path);
+	static const String& WorkingDirectory();
+	static bool Delete(const String& path);
 
 private:
 	bool Flush();
 	bool FillBuffer();
 	bool EmptyBuffer();
+
+	static bool GetWorkingDirectory(String& str);
 
 	I32 handle{ -1 };
 	I64 pointer{ 0 };
@@ -130,14 +133,14 @@ template <StringType Str>
 inline U32 File::ReadAll(Str& data)
 {
 	data.Resize(stats.size);
-	return Read(data.Data(), stats.size);
+	return Read(data.Data(), (U32)stats.size);
 }
 
 template <typename Type>
 inline U32 File::ReadAll(Vector<Type>& data)
 {
 	data.Resize(stats.size);
-	return Read(data.Data(), stats.size);
+	return Read(data.Data(), (U32)stats.size);
 }
 
 template<typename Type> 

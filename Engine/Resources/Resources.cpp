@@ -10,8 +10,6 @@
 #define MODELS_PATH "models/"
 #define FONTS_PATH "fonts/"
 
-//Hashmap<Texture*> Resources::textures(1024);
-
 #pragma pack(push, 1)
 
 struct BMPHeader
@@ -96,3 +94,23 @@ void Resources::Shutdown()
 //
 //	return nullptr;
 //}
+
+
+bool Resources::LoadBinary(const String& name, String& result)
+{
+	String path;
+	name.Prepended(path, SHADERS_PATH);
+
+	File file{ path, FILE_OPEN_RESOURCE };
+
+	if (file.Opened())
+	{
+		file.ReadAll(result);
+
+		file.Close();
+
+		return true;
+	}
+
+	return false;
+}

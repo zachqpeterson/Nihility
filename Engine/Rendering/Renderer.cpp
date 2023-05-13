@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 
+#include "Profiler.hpp"
 #include "CommandBuffer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
@@ -215,8 +216,7 @@ bool Renderer::CreateInstance()
 		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
 	};
 
-	VkValidationFeaturesEXT features = {};
-	features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+	VkValidationFeaturesEXT features{ VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
 	features.pNext = &debugInfo;
 	features.enabledValidationFeatureCount = CountOf32(featuresRequested);
 	features.pEnabledValidationFeatures = featuresRequested;
@@ -358,11 +358,11 @@ bool Renderer::CreateDevice()
 bool Renderer::SetFormats()
 {
 	const VkFormat imageFormats[]{
-		VK_FORMAT_R16G16B16A16_SFLOAT, //TODO: Enable and disable HDR
-		VK_FORMAT_R8G8B8A8_UNORM,
+		//VK_FORMAT_R16G16B16A16_SFLOAT, //TODO: Enable and disable HDR
 		VK_FORMAT_B8G8R8A8_UNORM,
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_FORMAT_B8G8R8_UNORM,
 		VK_FORMAT_R8G8B8_UNORM,
-		VK_FORMAT_B8G8R8_UNORM
 	};
 	const VkColorSpaceKHR colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
 
@@ -427,21 +427,20 @@ bool Renderer::CreateSwapchain()
 	swapchainWidth = (U16)swapchainExtent.width;
 	swapchainHeight = (U16)swapchainExtent.height;
 
-	VkSwapchainCreateInfoKHR swapchain_create_info = {};
-	swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapchain_create_info.surface = surface;
-	swapchain_create_info.minImageCount = swapchainImageCount;
-	swapchain_create_info.imageFormat = surfaceFormat.format;
-	swapchain_create_info.imageExtent = swapchainExtent;
-	swapchain_create_info.clipped = VK_TRUE;
-	swapchain_create_info.imageArrayLayers = 1;
-	swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	swapchain_create_info.preTransform = surfaceCapabilities.currentTransform;
-	swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	swapchain_create_info.presentMode = presentMode;
+	VkSwapchainCreateInfoKHR swapchainInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+	swapchainInfo.surface = surface;
+	swapchainInfo.minImageCount = swapchainImageCount;
+	swapchainInfo.imageFormat = surfaceFormat.format;
+	swapchainInfo.imageExtent = swapchainExtent;
+	swapchainInfo.clipped = VK_TRUE;
+	swapchainInfo.imageArrayLayers = 1;
+	swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	swapchainInfo.preTransform = surfaceCapabilities.currentTransform;
+	swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swapchainInfo.presentMode = presentMode;
 
-	VkValidateFR(vkCreateSwapchainKHR(device, &swapchain_create_info, 0, &swapchain));
+	VkValidateFR(vkCreateSwapchainKHR(device, &swapchainInfo, 0, &swapchain));
 
 	VkValidateFR(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, nullptr));
 	VkValidateFR(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, swapchainImages));
@@ -524,16 +523,17 @@ bool Renderer::CreatePools()
 		vkCreateFence(device, &fenceInfo, allocationCallbacks, &commandBufferExecuted[i]);
 	}
 
+	//TODO: Move to Profiler
 	U8* memory;
-	Memory::AllocateSize(&memory, sizeof(GPUTimestampManager) + sizeof(CommandBuffer*) * 128);
+	Memory::AllocateSize(&memory, sizeof(TimestampManager) + sizeof(CommandBuffer*) * 128);
 
-	timestampManager = (GPUTimestampManager*)(memory);
+	timestampManager = (TimestampManager*)(memory);
 	timestampManager->Create(timeQueriesPerFrame, MAX_SWAPCHAIN_IMAGES);
 
 	commandBufferRing.Create();
 
 	queuedCommandBuffers = (CommandBuffer**)(timestampManager + 1);
-	CommandBuffer** correctlyAllocatedBuffer = (CommandBuffer**)(memory + sizeof(GPUTimestampManager));
+	CommandBuffer** correctlyAllocatedBuffer = (CommandBuffer**)(memory + sizeof(TimestampManager));
 	numAllocatedCommandBuffers = 0;
 	numQueuedCommandBuffers = 0;
 
@@ -583,11 +583,11 @@ bool Renderer::CreatePrimitiveResources()
 
 #if defined(_MSC_VER)
 	ExpandEnvironmentStringsA("%VULKAN_SDK%", binariesPath, 512);
-	Copy(binariesPath + Length(binariesPath), "%s\\Bin\\", 7);
+	Copy(binariesPath + Length(binariesPath), "\\Bin\\", 7);
 #else
 	String vulkanEnv(getenv("VULKAN_SDK"));
-	vulkanEnv.Append("%s/bin/");
-	strcpy(binariesPath, vulkanEnv.Data());
+	vulkanEnv.Append("/bin/");
+	Copy(binariesPath + Length(binariesPath), vulkanEnv.Data(), 7);
 #endif
 
 	// TODO: Dynamic buffer handling
@@ -629,10 +629,21 @@ void Renderer::BeginFrame()
 
 		UpdateDescriptorSetInstant(update);
 	}
+
+	GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true)->PushMarker("Frame");
 }
 
 void Renderer::EndFrame()
 {
+	CommandBuffer* cb = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
+
+	cb->PopMarker();
+
+	Profiler::Update();
+
+	//TODO: temp
+	QueueCommandBuffer(cb);
+
 	VkResult result = vkAcquireNextImageKHR(device, swapchain, U64_MAX, imageAcquired, nullptr, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -690,6 +701,7 @@ void Renderer::EndFrame()
 	numQueuedCommandBuffers = 0;
 
 	// GPU Timestamp resolve
+	//TODO: Move to Profiler
 	if (timestampsEnabled)
 	{
 		if (timestampManager->HasValidQueries())
@@ -706,7 +718,7 @@ void Renderer::EndFrame()
 			{
 				U32 index = (currentFrame * timestampManager->queriesPerFrame) + i;
 
-				GPUTimestamp& timestamp = timestampManager->timestamps[index];
+				Timestamp& timestamp = timestampManager->timestamps[index];
 
 				F64 start = (F64)timestampManager->timestampsData[(index * 2)];
 				F64 end = (F64)timestampManager->timestampsData[(index * 2) + 1];
@@ -954,6 +966,16 @@ void Renderer::PopMarker(VkCommandBuffer commandBuffer)
 	vkCmdEndDebugUtilsLabelEXT(commandBuffer);
 }
 
+void Renderer::SetGpuTimestampsEnable(bool value)
+{
+	timestampsEnabled = value;
+}
+
+U32 Renderer::GetGpuTimestamps(Timestamp* outTimestamps)
+{
+	return timestampManager->Resolve(previousFrame, outTimestamps);
+}
+
 void Renderer::PushGpuTimestamp(CommandBuffer* commandBuffer, CSTR name)
 {
 	if (!timestampsEnabled) { return; }
@@ -1007,8 +1029,7 @@ CommandBuffer* Renderer::GetInstantCommandBuffer()
 
 void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth)
 {
-	VkImageMemoryBarrier barrier = {};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	barrier.oldLayout = oldLayout;
 	barrier.newLayout = newLayout;
 
@@ -1186,17 +1207,12 @@ void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLa
 }
 
 //TODO: Cache compiled shaders
-VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShaderStageFlagBits stage, CSTR name)
+VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name)
 {
 	VkShaderModuleCreateInfo shaderCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 
 	// Compile from glsl to SpirV.
 	// TODO: detect if input is HLSL.
-	const char* tempFilename = "temp.shader";
-
-	// Write current shader to file.
-	File tempShaderFile(tempFilename, FILE_OPEN_TEMP_RESOURCE);
-	tempShaderFile.Write(code, codeSize);
 
 	// Add uppercase define as STAGE_NAME
 	String stageDefine(ToStageDefines(stage), "_", name);
@@ -1208,9 +1224,9 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShad
 
 #if defined(_MSC_VER)
 	// TODO: add optional debug information in shaders (option -g).
-	String arguments("glslangValidator.exe {} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", tempFilename, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
+	String arguments("glslangValidator.exe {}{} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", "shaders/", path, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
 #else
-	String arguments("{} -V --target-env vulkan1.2 -o {} -S {} --D {} --D {}", tempFilename, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
+	String arguments("{} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", path, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
 #endif
 
 	Platform::ExecuteProcess(".", glslCompilerPath, arguments, "");
@@ -1219,8 +1235,6 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShad
 
 	if (optimizeShaders)
 	{
-		// TODO: add optional optimization stage
-		//"spirv-opt -O input -o output
 		String spirvOptimizerPath(binariesPath, "spirv-opt.exe");
 		String optimizedSpirvFilename("shader_opt.spv");
 		String spirvOptArguments("spirv-opt.exe -O --preserve-bindings {} -o {}", finalSpirvFilename, optimizedSpirvFilename);
@@ -1229,27 +1243,20 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR code, U32 codeSize, VkShad
 
 		// Read back SPV file.
 		File optimizedSpirvFile(optimizedSpirvFilename, FILE_OPEN_RESOURCE);
-		optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
+		shaderCreateInfo.codeSize = optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
 
+		optimizedSpirvFile.Close();
 		File::Delete(optimizedSpirvFilename);
 	}
 	else
 	{
 		// Read back SPV file.
 		File optimizedSpirvFile(finalSpirvFilename, FILE_OPEN_RESOURCE);
-		optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
+		shaderCreateInfo.codeSize = optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
 
+		optimizedSpirvFile.Close();
 		File::Delete(finalSpirvFilename);
 	}
-
-	// Handling compilation error
-	if (shaderCreateInfo.pCode == nullptr)
-	{
-		//TODO: Cleanup code str
-	}
-
-	// Temporary files cleanup
-	tempShaderFile.Close();
 
 	return shaderCreateInfo;
 }
@@ -1347,7 +1354,7 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 
 	// Create subpass.
 	// TODO: for now is just a simple subpass, evolve API.
-	VkSubpassDescription subpass = {};
+	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 	// Calculate active attachments for the subpass
@@ -1360,8 +1367,6 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 	}
 	subpass.colorAttachmentCount = activeAttachments ? activeAttachments - 1 : 0;
 	subpass.pColorAttachments = colorAttachmentsRef;
-
-	subpass.pDepthStencilAttachment = nullptr;
 
 	U32 depthStencilCount = 0;
 	if (output.depthStencilFormat != VK_FORMAT_UNDEFINED)
@@ -1394,9 +1399,9 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 
 VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
 {
-	U64 hashedMemory = Hash(output);
-	VkRenderPass renderPass;
-	renderPassCache.Get(hashedMemory, renderPass);
+	U64 hashedMemory = Hash::Calculate(output);
+	VkRenderPass renderPass = VK_NULL_HANDLE;
+	renderPass = renderPassCache[hashedMemory];
 	if (renderPass)
 	{
 		return renderPass;
@@ -1410,7 +1415,7 @@ VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
 void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPass* renderPass)
 {
 	// Color attachment
-	VkAttachmentDescription colorAttachment = {};
+	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = surfaceFormat.format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -1420,7 +1425,7 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-	VkAttachmentReference colorAttachmentRef = {};
+	VkAttachmentReference colorAttachmentRef{};
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -1488,7 +1493,7 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 	CommandBuffer* commandBuffer = GetInstantCommandBuffer();
 	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
-	VkBufferImageCopy region = {};
+	VkBufferImageCopy region{};
 	region.bufferOffset = 0;
 	region.bufferRowLength = 0;
 	region.bufferImageHeight = 0;
@@ -1750,7 +1755,7 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 		CommandBuffer* commandBuffer = GetInstantCommandBuffer();
 		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
-		VkBufferImageCopy region = {};
+		VkBufferImageCopy region{};
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;
 		region.bufferImageHeight = 0;
@@ -1896,7 +1901,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
 
 		//// Color Blending
-		VkPipelineColorBlendAttachmentState colorBlendAttachment[8];
+		VkPipelineColorBlendAttachmentState colorBlendAttachment[8]{};
 
 		if (creation.blendState.activeStates)
 		{
@@ -1927,7 +1932,6 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		else
 		{
 			// Default non blended state
-			colorBlendAttachment[0] = {};
 			colorBlendAttachment[0].blendEnable = VK_FALSE;
 			colorBlendAttachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		}
@@ -1960,8 +1964,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		pipelineInfo.pDepthStencilState = &depthStencil;
 
 		//// Multisample
-		VkPipelineMultisampleStateCreateInfo multisampling = {};
-		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 		multisampling.sampleShadingEnable = VK_FALSE;
 		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 		multisampling.minSampleShading = 1.0f; // Optional
@@ -1990,7 +1993,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		pipelineInfo.pTessellationState;
 
 		//// Viewport state
-		VkViewport viewport = {};
+		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
 		viewport.width = (F32)swapchainWidth;
@@ -1998,7 +2001,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
-		VkRect2D scissor = {};
+		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
 		scissor.extent = { swapchainWidth, swapchainHeight };
 
@@ -2275,7 +2278,7 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 		}
 		else
 		{
-			shaderInfo = CompileShader(stage.code, stage.codeSize, stage.type, creation.name);
+			shaderInfo = CompileShader(stage.path, stage.type, creation.name);
 		}
 
 		// Compile shader module
@@ -2557,6 +2560,8 @@ RenderPass* Renderer::AccessRenderPass(RenderPassHandle renderPass)
 {
 	return Resources::renderPasses.GetResource(renderPass.index);
 }
+
+const RenderPassOutput& Renderer::GetSwapchainOutput() { return swapchainOutput; }
 
 bool Renderer::IsDepthStencil(VkFormat value)
 {

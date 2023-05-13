@@ -6,10 +6,14 @@
 #include "Containers\Queue.hpp"
 #include "CommandBuffer.hpp"
 
+struct Timestamp;
+struct TimestampManager;
+
 class NH_API Renderer
 {
 public:
-
+	//TODO: Public only for temp testing
+	static const RenderPassOutput&		GetSwapchainOutput();
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -39,6 +43,8 @@ private:
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
 	static void							PopMarker(VkCommandBuffer commandBuffer);
+	static void                         SetGpuTimestampsEnable(bool value);
+	static U32                          GetGpuTimestamps(Timestamp* outTimestamps);
 	static void							PushGpuTimestamp(CommandBuffer* commandBuffer, CSTR name);
 	static void							PopGpuTimestamp(CommandBuffer* commandBuffer);
 
@@ -51,13 +57,14 @@ private:
 	static void							FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 											VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 											VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings);
-	static VkShaderModuleCreateInfo		CompileShader(CSTR code, U32 codeSize, VkShaderStageFlagBits stage, CSTR name);
+	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
 	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name);
 	static VkRenderPass					GetRenderPass(const RenderPassOutput& output, CSTR name);
 	static void							CreateSwapchainPass(const RenderPassCreation& creation, RenderPass* renderPass);
 	static void							CreateFramebuffer(RenderPass* renderPass, const TextureHandle* outputTextures, U32 numRenderTargets, TextureHandle depthStencilTexture);
 	static RenderPassOutput				FillRenderPassOutput(const RenderPassCreation& creation);
 
+public: //TODO: Temporarily public
 	static BufferHandle					CreateBuffer(const BufferCreation& creation);
 	static TextureHandle				CreateTexture(const TextureCreation& creation);
 	static PipelineHandle				CreatePipeline(const PipelineCreation& creation);
@@ -67,6 +74,7 @@ private:
 	static RenderPassHandle				CreateRenderPass(const RenderPassCreation& creation);
 	static ShaderStateHandle			CreateShaderState(const ShaderStateCreation& creation);
 
+private:
 	static void							DestroyBuffer(BufferHandle buffer);
 	static void							DestroyTexture(TextureHandle texture);
 	static void							DestroyPipeline(PipelineHandle pipeline);
@@ -168,7 +176,7 @@ private:
 
 	// TIMING
 	NH_HEADER_STATIC F32									timestampFrequency;
-	NH_HEADER_STATIC GPUTimestampManager*					timestampManager;
+	NH_HEADER_STATIC TimestampManager*						timestampManager; //TODO: Separate from Renderer
 	NH_HEADER_STATIC VkQueryPool							timestampQueryPool;
 	NH_HEADER_STATIC VkSemaphore							imageAcquired;
 	NH_HEADER_STATIC VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
@@ -187,6 +195,7 @@ private:
 
 	STATIC_CLASS(Renderer);
 	friend class Engine;
+	friend class Profiler;
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 };

@@ -49,7 +49,11 @@ struct MeshDraw
 class NH_API Resources
 {
 public:
-	//static Texture* LoadTexture(String& name);
+	static Texture* LoadTexture(String& name);
+
+
+
+	static bool LoadBinary(const String& name, String& result);
 
 private:
 	//Texture Loading

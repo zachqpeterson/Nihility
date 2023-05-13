@@ -69,19 +69,19 @@ private:
 	static U64 staticSize;
 	static U8* staticPointer;
 
-	static Region1kb* pool1kbPointer;
+	NH_HEADER_STATIC Region1kb* pool1kbPointer;
 	static U32* free1kbIndices;
 	static I64 last1kbFree;
 
-	static Region16kb* pool16kbPointer;
+	NH_HEADER_STATIC Region16kb* pool16kbPointer;
 	static U32* free16kbIndices;
 	static I64 last16kbFree;
 
-	static Region256kb* pool256kbPointer;
+	NH_HEADER_STATIC Region256kb* pool256kbPointer;
 	static U32* free256kbIndices;
 	static I64 last256kbFree;
 
-	static Region4mb* pool4mbPointer;
+	NH_HEADER_STATIC Region4mb* pool4mbPointer;
 	static U32* free4mbIndices;
 	static I64 last4mbFree;
 

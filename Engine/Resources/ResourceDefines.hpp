@@ -250,7 +250,7 @@ struct TextureCreation
 	CSTR				name = nullptr;
 };
 
-struct BufferCreation
+struct NH_API BufferCreation
 {
 	BufferCreation&		Reset();
 	BufferCreation&		Set(VkBufferUsageFlags flags, ResourceUsage usage, U32 size);
@@ -265,7 +265,7 @@ struct BufferCreation
 	CSTR				name = nullptr;
 };
 
-struct DescriptorSetLayoutCreation
+struct NH_API DescriptorSetLayoutCreation
 {
 	struct Binding
 	{
@@ -306,11 +306,11 @@ struct DescriptorSetCreation
 	CSTR						name = nullptr;
 };
 
-struct ShaderStateCreation
+struct NH_API ShaderStateCreation
 {
 	ShaderStateCreation&	Reset();
 	ShaderStateCreation&	SetName(CSTR name);
-	ShaderStateCreation&	AddStage(CSTR code, U32 codeSize, VkShaderStageFlagBits type);
+	ShaderStateCreation&	AddStage(CSTR path, VkShaderStageFlagBits type);
 	ShaderStateCreation&	SetSpvInput(bool value);
 
 	ShaderStage				stages[MAX_SHADER_STAGES];
@@ -348,7 +348,7 @@ struct RenderPassCreation
 	CSTR					name = nullptr;
 };
 
-struct PipelineCreation
+struct NH_API PipelineCreation
 {
 	PipelineCreation&			AddDescriptorSetLayout(DescriptorSetLayoutHandle handle);
 	RenderPassOutput&			GetRenderPassOutput();

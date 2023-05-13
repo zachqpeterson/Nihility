@@ -502,8 +502,8 @@ struct NH_API StringBase
 	using StringBaseType = StringBase<T, LU>;
 
 	StringBase();
-	StringBase(NoInit flag);
-	template<typename Arg> StringBase(const Arg& value, Hex flag) noexcept;
+	StringBase(NoInit);
+	template<typename Arg> StringBase(const Arg& value, Hex) noexcept;
 	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
 	template<typename First, typename... Args> StringBase(const T* fmt, const First& first, const Args& ... args) noexcept; //Take in any string literal type
 
@@ -858,7 +858,7 @@ inline const U64& StringBase<T, LU>::Hash()
 	if (hashed) { return hash; }
 
 	hashed = true;
-	hash = Hash(string, size);
+	hash = Hash::Calculate(string, size);
 
 	return hash;
 }
@@ -1728,6 +1728,8 @@ template<typename T, typename LU>
 template<Character C>
 inline U64 StringBase<T, LU>::Length(const C* str)
 {
+	if (!str) { return 0; }
+
 	const C* ptr = str;
 	while (*ptr) { ++ptr; }
 	return ptr - str;
