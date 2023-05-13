@@ -18,7 +18,7 @@ struct UniformData
 	Vector4 light;
 };
 
-bool init()
+bool Init()
 {
 	// Create pipeline state
 	PipelineCreation pipelineCreation;
@@ -70,19 +70,19 @@ bool init()
 	return true;
 }
 
-void update()
+void Update()
 {
 
 }
 
-void shutdown()
+void Shutdown()
 {
 
 }
 
 int main(int argc, char** argv)
 {
-	Engine::Initialize("Nihility Demo", 1, init, update, shutdown);
+	Engine::Initialize("Nihility Demo", MakeVersionNumber(0, 1, 0), Init, Update, Shutdown);
 
 	return 0;
 }

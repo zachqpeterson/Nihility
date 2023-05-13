@@ -203,4 +203,16 @@ template<class Type, U64 Count> inline constexpr U64 CountOf(Type(&)[Count]) { r
 /// <returns>The count of elements</returns>
 template<class Type, U64 Count> inline constexpr U32 CountOf32(Type(&)[Count]) { return (U32)Count; }
 
+/// <summary>
+/// Creates a number the represents the version of this application
+/// </summary>
+/// <param name="major:">The major version of this application</param>
+/// <param name="minor:">The minor version of this application</param>
+/// <param name="patch:">The patch version of this application</param>
+/// <returns>The version number</returns>
+inline constexpr U32 MakeVersionNumber(U32 major, U32 minor, U32 patch)
+{
+	return (major << 22) | (minor << 12) | patch;
+}
+
 #include "TypeTraits.hpp"
