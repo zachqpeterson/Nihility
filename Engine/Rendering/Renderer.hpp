@@ -13,7 +13,7 @@ class NH_API Renderer
 {
 public:
 	//TODO: Public only for temp testing
-	static const RenderPassOutput&		GetSwapchainOutput();
+	static const RenderPassOutput& GetSwapchainOutput();
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -26,7 +26,7 @@ private:
 	static bool							CreateDevice();
 	static bool							SetFormats();
 	static bool							CreateSwapchain();
-	static bool							CreatePools();
+	static bool							CreateResources();
 	static bool							CreatePrimitiveResources();
 
 	static void							BeginFrame();
@@ -36,27 +36,26 @@ private:
 	static void							ResizeTexture(Texture* texture, Texture* textureToDelete, U16 width, U16 height, U16 depth);
 	static void							DestroySwapchain();
 
-	static void*						MapBuffer(const MapBufferParameters& parameters);
+	static void* MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
-	static void*						DynamicAllocate(U32 size);
+	static void* DynamicAllocate(U32 size);
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
 	static void							PopMarker(VkCommandBuffer commandBuffer);
 	static void                         SetGpuTimestampsEnable(bool value);
-	static U32                          GetGpuTimestamps(Timestamp* outTimestamps);
-	static void							PushGpuTimestamp(CommandBuffer* commandBuffer, CSTR name);
+	static void							PushGpuTimestamp(CommandBuffer* commandBuffer, const String& name);
 	static void							PopGpuTimestamp(CommandBuffer* commandBuffer);
 
 	static void							FrameCountersAdvance();
 	static void							QueueCommandBuffer(CommandBuffer* commandBuffer);
-	static CommandBuffer*				GetCommandBuffer(QueueType type, bool begin);
-	static CommandBuffer*				GetInstantCommandBuffer();
+	static CommandBuffer* GetCommandBuffer(QueueType type, bool begin);
+	static CommandBuffer* GetInstantCommandBuffer();
 	static void							CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture);
 	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
 	static void							FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
-											VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-											VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings);
+		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
+		VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
 	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name);
 	static VkRenderPass					GetRenderPass(const RenderPassOutput& output, CSTR name);
@@ -97,14 +96,14 @@ private:
 	static void							UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
 	static void							ResizeOutputTextures(RenderPassHandle renderPass, U32 width, U32 height);
 
-	static ShaderState*					AccessShaderState(ShaderStateHandle shader);
-	static Texture*						AccessTexture(TextureHandle texture);
-	static Buffer*						AccessBuffer(BufferHandle buffer);
-	static Pipeline*					AccessPipeline(PipelineHandle pipeline);
-	static Sampler*						AccessSampler(SamplerHandle sampler);
-	static DesciptorSetLayout*			AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout);
-	static DesciptorSet*				AccessDescriptorSet(DescriptorSetHandle set);
-	static RenderPass*					AccessRenderPass(RenderPassHandle renderPass);
+	static ShaderState* AccessShaderState(ShaderStateHandle shader);
+	static Texture* AccessTexture(TextureHandle texture);
+	static Buffer* AccessBuffer(BufferHandle buffer);
+	static Pipeline* AccessPipeline(PipelineHandle pipeline);
+	static Sampler* AccessSampler(SamplerHandle sampler);
+	static DesciptorSetLayout* AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout);
+	static DesciptorSet* AccessDescriptorSet(DescriptorSetHandle set);
+	static RenderPass* AccessRenderPass(RenderPassHandle renderPass);
 
 	static bool							IsDepthStencil(VkFormat value);
 	static bool							IsDepthOnly(VkFormat value);
@@ -119,7 +118,7 @@ private:
 	NH_HEADER_STATIC U32									appVersion;
 
 	// DEVICE
-	NH_HEADER_STATIC VkAllocationCallbacks*					allocationCallbacks;
+	NH_HEADER_STATIC VkAllocationCallbacks* allocationCallbacks;
 	NH_HEADER_STATIC VkInstance								instance;
 	NH_HEADER_STATIC VkPhysicalDevice						physicalDevice;
 	NH_HEADER_STATIC VkPhysicalDeviceProperties				physicalDeviceProperties;
@@ -143,27 +142,27 @@ private:
 	NH_HEADER_STATIC VkImageView							swapchainImageViews[MAX_SWAPCHAIN_IMAGES];
 	NH_HEADER_STATIC VkFramebuffer							swapchainFramebuffers[MAX_SWAPCHAIN_IMAGES];
 	NH_HEADER_STATIC TextureHandle							depthTexture;
-	NH_HEADER_STATIC U32									imageIndex;
-	NH_HEADER_STATIC U32									currentFrame;
-	NH_HEADER_STATIC U32									previousFrame;
-	NH_HEADER_STATIC U32									absoluteFrame;
+	NH_HEADER_STATIC U32									imageIndex{ 0 };
+	NH_HEADER_STATIC U32									currentFrame{ 1 };
+	NH_HEADER_STATIC U32									previousFrame{ 0 };
+	NH_HEADER_STATIC U32									absoluteFrame{ 0 };
 	NH_HEADER_STATIC bool									resized{ false };
 	NH_HEADER_STATIC bool									verticalSync{ false };
 
 	// RESOURCES
-	NH_HEADER_STATIC VmaAllocator_T*						allocator;
+	NH_HEADER_STATIC VmaAllocator_T* allocator;
 	NH_HEADER_STATIC Queue<ResourceUpdate>					resourceDeletionQueue;
 	NH_HEADER_STATIC Queue<DescriptorSetUpdate>				descriptorSetUpdates;
 	NH_HEADER_STATIC Hashmap<U64, VkRenderPass>				renderPassCache{ 16 };
-	NH_HEADER_STATIC CommandBuffer**						queuedCommandBuffers;
 	NH_HEADER_STATIC CommandBufferRing						commandBufferRing;
+	NH_HEADER_STATIC CommandBuffer** queuedCommandBuffers;
+	NH_HEADER_STATIC U32									allocatedCommandBufferCount{ 0 };
+	NH_HEADER_STATIC U32									queuedCommandBufferCount{ 0 };
 	NH_HEADER_STATIC U32									dynamicMaxPerFrameSize;
 	NH_HEADER_STATIC BufferHandle							dynamicBuffer;
-	NH_HEADER_STATIC U8*									dynamicMappedMemory;
+	NH_HEADER_STATIC U8* dynamicMappedMemory;
 	NH_HEADER_STATIC U32									dynamicAllocatedSize;
 	NH_HEADER_STATIC U32									dynamicPerFrameSize;
-	NH_HEADER_STATIC U32									numAllocatedCommandBuffers;
-	NH_HEADER_STATIC U32									numQueuedCommandBuffers;
 	NH_HEADER_STATIC C8										binariesPath[512];
 	NH_HEADER_STATIC bool									bindlessSupported{ false };
 	// PRIMITIVE
@@ -176,13 +175,12 @@ private:
 
 	// TIMING
 	NH_HEADER_STATIC F32									timestampFrequency;
-	NH_HEADER_STATIC TimestampManager*						timestampManager; //TODO: Separate from Renderer
 	NH_HEADER_STATIC VkQueryPool							timestampQueryPool;
 	NH_HEADER_STATIC VkSemaphore							imageAcquired;
 	NH_HEADER_STATIC VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
 	NH_HEADER_STATIC VkFence								commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC bool									timestampsEnabled;
-	NH_HEADER_STATIC bool									timestampReset = true;
+	NH_HEADER_STATIC bool									timestampsEnabled{ false };
+	NH_HEADER_STATIC bool									timestampReset{ true };
 
 	// DEBUG
 	NH_HEADER_STATIC VkDebugUtilsMessengerEXT				debugMessenger;
@@ -191,7 +189,7 @@ private:
 	NH_HEADER_STATIC PFN_vkSetDebugUtilsObjectNameEXT		vkSetDebugUtilsObjectNameEXT;
 	NH_HEADER_STATIC PFN_vkCmdBeginDebugUtilsLabelEXT		vkCmdBeginDebugUtilsLabelEXT;
 	NH_HEADER_STATIC PFN_vkCmdEndDebugUtilsLabelEXT			vkCmdEndDebugUtilsLabelEXT;
-	NH_HEADER_STATIC bool									debugUtilsExtensionPresent = false;
+	NH_HEADER_STATIC bool									debugUtilsExtensionPresent{ false };
 
 	STATIC_CLASS(Renderer);
 	friend class Engine;

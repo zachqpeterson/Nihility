@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
-
-#include <string.h>
+#include "Platform\ThreadSafety.hpp"
 
 #define STATIC_SIZE 1073741824
 #define DYNAMIC_SIZE 1073741824
@@ -10,7 +9,6 @@
 /*
 * TODO: If one size is full, allocate next size
 * TODO: Debug Memory stats
-* TODO: memcpy, memset, memset(ptr, 0, size) defines
 */
 
 /*---------GLOBAL NEW/DELETE---------*/
@@ -21,7 +19,7 @@ void operator delete (void* ptr);
 void operator delete[](void* ptr);
 
 /// <summary>
-/// This is a general purpose memory allocator, with linear and dynamic allocating, NO garbage collection
+/// This is a general purpose memory allocator, with linear and dynamic allocating, with NO garbage collection
 /// </summary>
 class NH_API Memory
 {
@@ -31,23 +29,27 @@ struct Region256kb { private: Region16kb unused[16]; };
 struct Region4mb { private: Region256kb unused[16]; };
 
 public:
-	template<typename T> static void Allocate(T** pointer);
-	template<typename T, Unsigned Int> static void AllocateSize(T** pointer, const Int& size);
-	template<typename T, Unsigned Int> static void AllocateSize(T** pointer, const Int& size, Int& newSize);
-	template<typename T, Unsigned Int> static void AllocateArray(T** pointer, const Int& count);
-	template<typename T, Unsigned Int> static void AllocateArray(T** pointer, const Int& count, Int& newCount);
-	template<typename T, Unsigned Int> static void Reallocate(T** pointer, const Int& count);
-	template<typename T, Unsigned Int> static void Reallocate(T** pointer, const Int& count, Int& newCount);
+	template<Pointer Type> static void Allocate(Type* pointer);
+	template<Pointer Type, Unsigned Int> static void AllocateSize(Type* pointer, const Int& size);
+	template<Pointer Type, Unsigned Int> static void AllocateSize(Type* pointer, const Int& size, Int& newSize);
+	template<Pointer Type, Unsigned Int> static void AllocateArray(Type* pointer, const Int& count);
+	template<Pointer Type, Unsigned Int> static void AllocateArray(Type* pointer, const Int& count, Int& newCount);
+	template<Pointer Type, Unsigned Int> static void Reallocate(Type* pointer, const Int& count);
+	template<Pointer Type, Unsigned Int> static void Reallocate(Type* pointer, const Int& count, Int& newCount);
 
-	template<typename T> static void Free(T** pointer);
-	template<typename T> static void FreeSize(T** pointer);
-	template<typename T> static void FreeArray(T** pointer);
+	template<Pointer Type> static void Free(Type* pointer);
+	template<Pointer Type> static void FreeSize(Type* pointer);
+	template<Pointer Type> static void FreeArray(Type* pointer);
 
-	template<typename T> static void AllocateStatic(T** pointer);
+	template<Pointer Type> static void AllocateStatic(Type* pointer);
 
-	template<typename T> static bool IsAllocated(T* pointer);
+	template<Pointer Type> static bool IsAllocated(Type pointer);
 
 	static U64 MemoryAlign(U64 size, U64 alignment);
+
+	static void Set(void* pointer, U8 value, U64 size);
+	static void Zero(void* pointer, U64 size);
+	static void Copy(void* dst, const void* src, U64 size);
 
 private:
 	static bool Initialize();
@@ -91,10 +93,10 @@ private:
 	friend class Engine;
 };
 
-template<typename T>
-inline void Memory::Allocate(T** pointer)
+template<Pointer Type>
+inline void Memory::Allocate(Type* pointer)
 {
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
 	if constexpr (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
 	else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
@@ -104,8 +106,8 @@ inline void Memory::Allocate(T** pointer)
 	BreakPoint;
 }
 
-template<typename T, Unsigned Int>
-inline void Memory::AllocateSize(T** pointer, const Int& size)
+template<Pointer Type, Unsigned Int>
+inline void Memory::AllocateSize(Type* pointer, const Int& size)
 {
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
@@ -115,8 +117,8 @@ inline void Memory::AllocateSize(T** pointer, const Int& size)
 	BreakPoint;
 }
 
-template<typename T, Unsigned Int>
-inline void Memory::AllocateSize(T** pointer, const Int& size, Int& newSize)
+template<Pointer Type, Unsigned Int>
+inline void Memory::AllocateSize(Type* pointer, const Int& size, Int& newSize)
 {
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); newSize = sizeof(Region1kb); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); newSize = sizeof(Region16kb); return; }
@@ -126,10 +128,10 @@ inline void Memory::AllocateSize(T** pointer, const Int& size, Int& newSize)
 	BreakPoint;
 }
 
-template<typename T, Unsigned Int>
-inline void Memory::AllocateArray(T** pointer, const Int& count)
+template<Pointer Type, Unsigned Int>
+inline void Memory::AllocateArray(Type* pointer, const Int& count)
 {
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
 	if (size * count <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
 	else if (size * count <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
@@ -139,10 +141,10 @@ inline void Memory::AllocateArray(T** pointer, const Int& count)
 	BreakPoint;
 }
 
-template<typename T, Unsigned Int>
-inline void Memory::AllocateArray(T** pointer, const Int& count, Int& newCount)
+template<Pointer Type, Unsigned Int>
+inline void Memory::AllocateArray(Type* pointer, const Int& count, Int& newCount)
 {
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
 	if (size * count <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); newCount = sizeof(Region1kb) / size; return; }
 	else if (size * count <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); newCount = sizeof(Region16kb) / size; return; }
@@ -152,62 +154,69 @@ inline void Memory::AllocateArray(T** pointer, const Int& count, Int& newCount)
 	BreakPoint;
 }
 
-template<typename T, Unsigned Int>
-static void Memory::Reallocate(T** pointer, const Int& count)
+template<Pointer Type, Unsigned Int>
+static void Memory::Reallocate(Type* pointer, const Int& count)
 {
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	const U64 totalSize = size * count;
 
-	void* temp = nullptr;
+	Type temp = nullptr;
 
-	if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); }
-	else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); }
-	else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); }
-	else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); }
+	if (totalSize <= sizeof(Region1kb)) { Allocate1kb((void**)&temp); }
+	else if (totalSize <= sizeof(Region16kb)) { Allocate16kb((void**)&temp); }
+	else if (totalSize <= sizeof(Region256kb)) { Allocate256kb((void**)&temp); }
+	else if (totalSize <= sizeof(Region4mb)) { Allocate4mb((void**)&temp); }
 
 	if (*pointer != nullptr)
 	{
 		void* cmp = *pointer;
 
-		if (cmp >= pool4mbPointer) { memcpy(temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { memcpy(temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { memcpy(temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { memcpy(temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
+		if (cmp >= pool4mbPointer) { Copy(temp, *pointer, count); Free4mb((void**)pointer); }
+		else if (cmp >= pool256kbPointer) { Copy(temp, *pointer, count); Free256kb((void**)pointer); }
+		else if (cmp >= pool16kbPointer) { Copy(temp, *pointer, count); Free16kb((void**)pointer); }
+		else if (cmp >= pool1kbPointer) { Copy(temp, *pointer, count); Free1kb((void**)pointer); }
 	}
 
-	*pointer = (T*)temp;
+	*pointer = (Type)temp;
 }
 
-template<typename T, Unsigned Int>
-static void Memory::Reallocate(T** pointer, const Int& count, Int& newCount)
+template<Pointer Type, Unsigned Int>
+static void Memory::Reallocate(Type* pointer, const Int& count, Int& newCount)
 {
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 count1kb = sizeof(Region1kb) / size;
+	constexpr U64 count16kb = sizeof(Region16kb) / size;
+	constexpr U64 count256kb = sizeof(Region256kb) / size;
+	constexpr U64 count4mb = sizeof(Region4mb) / size;
 
-	void* temp = nullptr;
+	const U64 totalSize = size * count;
 
-	if (size * count <= sizeof(Region1kb)) { Allocate1kb(&temp); newCount = sizeof(Region1kb) / size; }
-	else if (size * count <= sizeof(Region16kb)) { Allocate16kb(&temp); newCount = sizeof(Region16kb) / size; }
-	else if (size * count <= sizeof(Region256kb)) { Allocate256kb(&temp); newCount = sizeof(Region256kb) / size; }
-	else if (size * count <= sizeof(Region4mb)) { Allocate4mb(&temp); newCount = sizeof(Region4mb) / size; }
+	Type temp = nullptr;
+
+	if (totalSize <= sizeof(Region1kb)) { Allocate1kb((void**)&temp); newCount = count1kb; }
+	else if (totalSize <= sizeof(Region16kb)) { Allocate16kb((void**)&temp); newCount = count16kb; }
+	else if (totalSize <= sizeof(Region256kb)) { Allocate256kb((void**)&temp); newCount = count256kb; }
+	else if (totalSize <= sizeof(Region4mb)) { Allocate4mb((void**)&temp); newCount = count4mb; }
 
 	if (*pointer != nullptr)
 	{
 		void* cmp = *pointer;
 
-		if (cmp >= pool4mbPointer) { memcpy(temp, *pointer, sizeof(Region4mb)); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { memcpy(temp, *pointer, sizeof(Region256kb)); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { memcpy(temp, *pointer, sizeof(Region16kb)); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { memcpy(temp, *pointer, sizeof(Region1kb)); Free1kb((void**)pointer); }
+		if (cmp >= pool4mbPointer) { Copy(temp, *pointer, count); Free4mb((void**)pointer); }
+		else if (cmp >= pool256kbPointer) { Copy(temp, *pointer, count); Free256kb((void**)pointer); }
+		else if (cmp >= pool16kbPointer) { Copy(temp, *pointer, count); Free16kb((void**)pointer); }
+		else if (cmp >= pool1kbPointer) { Copy(temp, *pointer, count); Free1kb((void**)pointer); }
 	}
 
-	*pointer = (T*)temp;
+	*pointer = (Type)temp;
 }
 
-template<typename T>
-inline void Memory::Free(T** pointer)
+template<Pointer Type>
+inline void Memory::Free(Type* pointer)
 {
 	if (*pointer == nullptr) { return; }
 
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
 	if constexpr (size <= sizeof(Region1kb)) { Free1kb((void**)pointer); return; }
 	else if constexpr (size <= sizeof(Region16kb)) { Free16kb((void**)pointer); return; }
@@ -217,8 +226,8 @@ inline void Memory::Free(T** pointer)
 	BreakPoint;
 }
 
-template<typename T>
-inline void Memory::FreeSize(T** pointer)
+template<Pointer Type>
+inline void Memory::FreeSize(Type* pointer)
 {
 	if (*pointer == nullptr) { return; }
 
@@ -232,8 +241,8 @@ inline void Memory::FreeSize(T** pointer)
 	BreakPoint;
 }
 
-template<typename T>
-inline void Memory::FreeArray(T** pointer)
+template<Pointer Type>
+inline void Memory::FreeArray(Type* pointer)
 {
 	if (*pointer == nullptr) { return; }
 
@@ -247,11 +256,11 @@ inline void Memory::FreeArray(T** pointer)
 	BreakPoint;
 }
 
-template<typename T>
-inline void Memory::AllocateStatic(T** pointer)
+template<Pointer Type>
+inline void Memory::AllocateStatic(Type* pointer)
 {
 	static bool init = Initialize();
-	constexpr U64 size = sizeof(T);
+	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
 	if (staticPointer + size <= memory + totalSize)
 	{
@@ -264,8 +273,8 @@ inline void Memory::AllocateStatic(T** pointer)
 	BreakPoint;
 }
 
-template<typename T>
-static bool Memory::IsAllocated(T* pointer)
+template<Pointer Type>
+inline bool Memory::IsAllocated(Type pointer)
 {
 	static const void* upperBound = memory + totalSize - staticSize;
 

@@ -20,39 +20,26 @@ struct Timestamp
 	String		name;
 };
 
-struct TimestampManager
-{
-	void Create(U16 queriesPerFrame, U16 maxFrames);
-	void Destroy();
-
-	bool HasValidQueries() const;
-	void Reset();
-	U32 Resolve(U32 currentFrame, Timestamp* timestampsToFill);    // Returns the total queries for this frame.
-
-	U32 Push(U32 currentFrame, const char* name);    // Returns the timestamp query index.
-	U32 Pop(U32 currentFrame);
-
-	Timestamp* timestamps = nullptr;
-	U64* timestampsData = nullptr;
-
-	U32				queriesPerFrame = 0;
-	U32				currentQuery = 0;
-	U32				parentIndex = 0;
-	U32				depth = 0;
-
-	bool			currentFrameResolved = false;    // Used to query the GPU only once per frame if get_gpu_timestamps is called more than once per frame.
-};
-
 class Profiler
 {
 private:
-	static void Create(U32 maxFrames);
-	static void Destroy();
+	static void Initialize(U16 queriesPerFrame, U32 maxFrames);
+	static void Shutdown();
 
 	static void Update();
+	static void Query();
+
+	static bool HasValidQueries();
+
+	static U32 Push(U32 currentFrame, const String& name); // Returns the timestamp query index.
+	static U32 Pop(U32 currentFrame);
 
 private:
+	static void Reset();
+	static U32 Resolve(U32 currentFrame, Timestamp* timestampsToFill); // Returns the total queries for this frame.
+
 	static Timestamp* timestamps;
+	static U64* timestampsData;
 	static U16* perFrameActive;
 
 	static U32 maxFrames;
@@ -65,6 +52,13 @@ private:
 	static U32 initialFramesPaused;
 	static F32 maxDuration;
 	static bool paused;
+
+	static U32 queriesPerFrame;
+	static U32 currentQuery;
+	static U32 parentIndex;
+	static U32 depth;
+
+	static bool currentFrameResolved;
 
 	static Hashmap<U64, U32> colors;
 

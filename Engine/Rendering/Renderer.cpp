@@ -10,6 +10,7 @@
 #include "Math\Hash.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
+#include "Memory\Memory.hpp"
 
 #define VMA_IMPLEMENTATION
 #include "External\vk_mem_alloc.h"
@@ -89,7 +90,7 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!CreateDevice()) { return false; }
 	if (!SetFormats()) { return false; }
 	if (!CreateSwapchain()) { return false; }
-	if (!CreatePools()) { return false; }
+	if (!CreateResources()) { return false; }
 	if (!CreatePrimitiveResources()) { return false; }
 
 	return true;
@@ -111,12 +112,12 @@ void Renderer::Shutdown()
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
 
-	timestampManager->Destroy();
-
 	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
 	UnmapBuffer(cbMap);
 
-	Memory::FreeSize(&timestampManager);
+	Profiler::Shutdown();
+
+
 
 	DestroyTexture(depthTexture);
 	DestroyBuffer(fullscreenVertexBuffer);
@@ -465,10 +466,8 @@ bool Renderer::CreateSwapchain()
 	return true;
 }
 
-bool Renderer::CreatePools()
+bool Renderer::CreateResources()
 {
-	static constexpr U16 timeQueriesPerFrame = 32; //TODO: Don't hardcode this
-
 	VmaAllocatorCreateInfo allocatorInfo{};
 	allocatorInfo.physicalDevice = physicalDevice;
 	allocatorInfo.device = device;
@@ -500,6 +499,8 @@ bool Renderer::CreatePools()
 
 	VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &descriptorPool));
 
+	static constexpr U16 timeQueriesPerFrame = 32;
+
 	VkQueryPoolCreateInfo queryPoolInfo{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, };
 	queryPoolInfo.pNext = nullptr;
 	queryPoolInfo.flags = 0;
@@ -508,6 +509,8 @@ bool Renderer::CreatePools()
 	queryPoolInfo.pipelineStatistics = 0;
 
 	VkValidateFR(vkCreateQueryPool(device, &queryPoolInfo, allocationCallbacks, &timestampQueryPool));
+
+	Profiler::Initialize(timeQueriesPerFrame, MAX_SWAPCHAIN_IMAGES);
 
 	Resources::Initialize();
 
@@ -523,31 +526,9 @@ bool Renderer::CreatePools()
 		vkCreateFence(device, &fenceInfo, allocationCallbacks, &commandBufferExecuted[i]);
 	}
 
-	//TODO: Move to Profiler
-	U8* memory;
-	Memory::AllocateSize(&memory, sizeof(TimestampManager) + sizeof(CommandBuffer*) * 128);
-
-	timestampManager = (TimestampManager*)(memory);
-	timestampManager->Create(timeQueriesPerFrame, MAX_SWAPCHAIN_IMAGES);
+	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
 
 	commandBufferRing.Create();
-
-	queuedCommandBuffers = (CommandBuffer**)(timestampManager + 1);
-	CommandBuffer** correctlyAllocatedBuffer = (CommandBuffer**)(memory + sizeof(TimestampManager));
-	numAllocatedCommandBuffers = 0;
-	numQueuedCommandBuffers = 0;
-
-	if (queuedCommandBuffers != correctlyAllocatedBuffer)
-	{
-		Logger::Fatal("Wrong calculations for queued command buffers arrays. Should be {}, but it is {}!", correctlyAllocatedBuffer, queuedCommandBuffers);
-		return false;
-	}
-
-	imageIndex = 0;
-	currentFrame = 1;
-	previousFrame = 0;
-	absoluteFrame = 0;
-	timestampsEnabled = false;
 
 	resourceDeletionQueue.Reserve(16);
 	descriptorSetUpdates.Reserve(16);
@@ -583,11 +564,11 @@ bool Renderer::CreatePrimitiveResources()
 
 #if defined(_MSC_VER)
 	ExpandEnvironmentStringsA("%VULKAN_SDK%", binariesPath, 512);
-	Copy(binariesPath + Length(binariesPath), "\\Bin\\", 7);
+	Memory::Copy(binariesPath + Length(binariesPath), "\\Bin\\", 7);
 #else
 	String vulkanEnv(getenv("VULKAN_SDK"));
 	vulkanEnv.Append("/bin/");
-	Copy(binariesPath + Length(binariesPath), vulkanEnv.Data(), 7);
+	Memory::Copy(binariesPath + Length(binariesPath), vulkanEnv.Data(), 7);
 #endif
 
 	// TODO: Dynamic buffer handling
@@ -658,7 +639,7 @@ void Renderer::EndFrame()
 
 	// Copy all commands
 	VkCommandBuffer enqueuedCommandBuffers[4];
-	for (U32 c = 0; c < numQueuedCommandBuffers; ++c)
+	for (U32 c = 0; c < queuedCommandBufferCount; ++c)
 	{
 		CommandBuffer* commandBuffer = queuedCommandBuffers[c];
 
@@ -680,7 +661,7 @@ void Renderer::EndFrame()
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = numQueuedCommandBuffers;
+	submitInfo.commandBufferCount = queuedCommandBufferCount;
 	submitInfo.pCommandBuffers = enqueuedCommandBuffers;
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = renderCompleted;
@@ -698,50 +679,9 @@ void Renderer::EndFrame()
 	presentInfo.pResults = nullptr; // Optional
 	result = vkQueuePresentKHR(deviceQueue, &presentInfo);
 
-	numQueuedCommandBuffers = 0;
+	queuedCommandBufferCount = 0;
 
-	// GPU Timestamp resolve
-	//TODO: Move to Profiler
-	if (timestampsEnabled)
-	{
-		if (timestampManager->HasValidQueries())
-		{
-			// Query GPU for all timestamps.
-			const U32 queryOffset = (currentFrame * timestampManager->queriesPerFrame) * 2;
-			const U32 queryCount = timestampManager->currentQuery * 2;
-			vkGetQueryPoolResults(device, timestampQueryPool, queryOffset, queryCount,
-				sizeof(U64) * queryCount * 2, &timestampManager->timestampsData[queryOffset],
-				sizeof(timestampManager->timestampsData[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-
-			// Calculate and cache the elapsed time
-			for (U32 i = 0; i < timestampManager->currentQuery; ++i)
-			{
-				U32 index = (currentFrame * timestampManager->queriesPerFrame) + i;
-
-				Timestamp& timestamp = timestampManager->timestamps[index];
-
-				F64 start = (F64)timestampManager->timestampsData[(index * 2)];
-				F64 end = (F64)timestampManager->timestampsData[(index * 2) + 1];
-				F64 range = end - start;
-				F64 elapsedTime = range * timestampFrequency;
-
-				timestamp.elapsedMs = elapsedTime;
-				timestamp.frameIndex = absoluteFrame;
-			}
-		}
-		else if (timestampManager->currentQuery)
-		{
-			Logger::Error("Asymmetrical GPU queries, missing pop of some markers!\n");
-		}
-
-		timestampManager->Reset();
-		timestampReset = true;
-	}
-	else
-	{
-		timestampReset = false;
-	}
-
+	Profiler::Query();
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || resized)
 	{
@@ -971,16 +911,11 @@ void Renderer::SetGpuTimestampsEnable(bool value)
 	timestampsEnabled = value;
 }
 
-U32 Renderer::GetGpuTimestamps(Timestamp* outTimestamps)
-{
-	return timestampManager->Resolve(previousFrame, outTimestamps);
-}
-
-void Renderer::PushGpuTimestamp(CommandBuffer* commandBuffer, CSTR name)
+void Renderer::PushGpuTimestamp(CommandBuffer* commandBuffer, const String& name)
 {
 	if (!timestampsEnabled) { return; }
 
-	U32 queryIndex = timestampManager->Push(currentFrame, name);
+	U32 queryIndex = Profiler::Push(currentFrame, name);
 	vkCmdWriteTimestamp(commandBuffer->commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, timestampQueryPool, queryIndex);
 }
 
@@ -988,7 +923,7 @@ void Renderer::PopGpuTimestamp(CommandBuffer* commandBuffer)
 {
 	if (!timestampsEnabled) { return; }
 
-	U32 queryIndex = timestampManager->Pop(currentFrame);
+	U32 queryIndex = Profiler::Pop(currentFrame);
 	vkCmdWriteTimestamp(commandBuffer->commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, timestampQueryPool, queryIndex);
 }
 
@@ -1002,7 +937,7 @@ void Renderer::FrameCountersAdvance()
 
 void Renderer::QueueCommandBuffer(CommandBuffer* commandBuffer)
 {
-	queuedCommandBuffers[numQueuedCommandBuffers++] = commandBuffer;
+	queuedCommandBuffers[queuedCommandBufferCount++] = commandBuffer;
 }
 
 CommandBuffer* Renderer::GetCommandBuffer(QueueType type, bool begin)
@@ -1013,7 +948,7 @@ CommandBuffer* Renderer::GetCommandBuffer(QueueType type, bool begin)
 	if (timestampReset && begin)
 	{
 		// These are currently indices!
-		vkCmdResetQueryPool(cb->commandBuffer, timestampQueryPool, currentFrame * timestampManager->queriesPerFrame * 2, timestampManager->queriesPerFrame);
+		vkCmdResetQueryPool(cb->commandBuffer, timestampQueryPool, currentFrame * Profiler::queriesPerFrame * 2, Profiler::queriesPerFrame);
 
 		timestampReset = false;
 	}

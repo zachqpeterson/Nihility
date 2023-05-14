@@ -478,12 +478,6 @@ static inline bool Compare(const C* a, const C* b)
 	return !(c0 || c1);
 }
 
-template<class T>
-static inline void Copy(T* dst, const T* src, U64 length)
-{
-	memcpy(dst, src, length * sizeof(T));
-}
-
 /*
 * TODO: Documentation
 *
@@ -606,7 +600,6 @@ private:
 
 	template<Character C> static  U64 Length(const C* str);
 	static bool Compare(const T* a, const T* b, U64 length);
-	static void Copy(T* dst, const T* src, U64 length);
 	static bool WhiteSpace(T c);
 	static bool NotWhiteSpace(T c);
 
@@ -642,7 +635,7 @@ inline StringBase<T, LU>::StringBase(const T* fmt, const First& first, const Arg
 {
 	Memory::AllocateArray(&string, capacity, capacity);
 
-	Copy(string, fmt, size + 1);
+	Memory::Copy(string, fmt, (size + 1) * sizeof(T));
 	U64 start = 0;
 	Format(start, first);
 	(Format(start, args), ...);
@@ -1138,7 +1131,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	hashed = false;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 	T* c = str + typeSize;
 	const T* digits;
@@ -1196,10 +1189,10 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	size += addLength - Remove;
 
-	if constexpr (Insert && !Hex) { Copy(str + neg, c, addLength + excessSize - Remove); }
-	else { Copy(str, c, addLength); }
+	if constexpr (Insert && !Hex) { Memory::Copy(str + neg, c, (addLength + excessSize - Remove) * sizeof(T)); }
+	else { Memory::Copy(str, c, addLength * sizeof(T)); }
 
-	str[size] = LU::NULL_CHAR;
+	string[size] = LU::NULL_CHAR;
 
 	return strIndex + addLength;
 }
@@ -1216,7 +1209,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	hashed = false;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 	T* c = str + typeSize;
 	const T* digits;
@@ -1262,10 +1255,10 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	size += addLength - Remove;
 
-	if constexpr (Insert && !Hex) { Copy(str, c, addLength + excessSize - Remove); }
-	else { Copy(str, c, addLength); }
+	if constexpr (Insert && !Hex) { Memory::Copy(str, c, (addLength + excessSize - Remove) * sizeof(T)); }
+	else { Memory::Copy(str, c, addLength * sizeof(T)); }
 
-	str[size] = LU::NULL_CHAR;
+	string[size] = LU::NULL_CHAR;
 
 	return strIndex + addLength;
 }
@@ -1323,7 +1316,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value, U64 decimalCoun
 		hashed = false;
 
 		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
-		if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+		if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 		T* c = str + typeSize;
 		const T* digits;
@@ -1386,10 +1379,10 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value, U64 decimalCoun
 		I64 addLength = typeSize + neg - (c - str);
 		size += addLength - Remove;
 
-		if constexpr (Insert) { Copy(str + neg, c, addLength + excessSize - Remove); }
-		else { Copy(str, c, addLength); }
+		if constexpr (Insert) { Memory::Copy(str + neg, c, (addLength + excessSize - Remove) * sizeof(T)); }
+		else { Memory::Copy(str, c, addLength * sizeof(T)); }
 
-		str[size] = LU::NULL_CHAR;
+		string[size] = LU::NULL_CHAR;
 
 		return strIndex + addLength;
 	}
@@ -1427,9 +1420,9 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	hashed = false;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
-	if constexpr (IsSame<CharType, T>) { Copy(str, value, strSize); }
+	if constexpr (IsSame<CharType, T>) { Memory::Copy(str, value, strSize * sizeof(T)); }
 	else if constexpr (IsSame<CharType, C8>)
 	{
 		if constexpr (IsSame<T, C16>)
@@ -1503,7 +1496,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	}
 
 	size += moveSize;
-	str[size] = LU::NULL_CHAR;
+	string[size] = LU::NULL_CHAR;
 
 	return strIndex + strSize;
 }
@@ -1733,12 +1726,6 @@ inline U64 StringBase<T, LU>::Length(const C* str)
 	const C* ptr = str;
 	while (*ptr) { ++ptr; }
 	return ptr - str;
-}
-
-template<typename T, typename LU>
-inline void StringBase<T, LU>::Copy(T* dst, const T* src, U64 length)
-{
-	memcpy(dst, src, length * sizeof(T));
 }
 
 template<typename T, typename LU>

@@ -38,13 +38,13 @@ private:
 	static void Shutdown();
 	static void Write(const String& message);
 
-	static inline String fatalTag{ "\033[0;41m[FATAL]:\033[0m " };
-	static inline String errorTag{ "\033[0;31m[ERROR]:\033[0m " };
-	static inline String warnTag{ "\033[1;33m[WARN]:\033[0m  " };
-	static inline String infoTag{ "\033[1;32m[INFO]:\033[0m  " };
-	static inline String debugTag{ "\033[0;36m[DEBUG]:\033[0m " };
-	static inline String traceTag{ "\033[1;30m[TRACE]:\033[0m " };
-	static inline String endLine{ "\n" };
+	NH_HEADER_STATIC const String fatalTag{ "\033[0;41m[FATAL]:\033[0m " };
+	NH_HEADER_STATIC const String errorTag{ "\033[0;31m[ERROR]:\033[0m " };
+	NH_HEADER_STATIC const String warnTag{ "\033[1;33m[WARN]:\033[0m  " };
+	NH_HEADER_STATIC const String infoTag{ "\033[1;32m[INFO]:\033[0m  " };
+	NH_HEADER_STATIC const String debugTag{ "\033[0;36m[DEBUG]:\033[0m " };
+	NH_HEADER_STATIC const String traceTag{ "\033[1;30m[TRACE]:\033[0m " };
+	NH_HEADER_STATIC const String endLine{ "\n" };
 
 	STATIC_CLASS(Logger);
 	friend class Engine;

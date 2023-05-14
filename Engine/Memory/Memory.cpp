@@ -1,10 +1,5 @@
 #include "Memory.hpp"
 
-#include "Platform\Jobs.hpp"
-#include "Platform\ThreadSafety.hpp"
-
-#include <stdlib.h>
-
 U8* Memory::memory;
 U64 Memory::totalSize;
 
@@ -12,18 +7,18 @@ U64 Memory::staticSize;
 U8* Memory::staticPointer;
 
 U32* Memory::free1kbIndices;
-I64 Memory::last1kbFree;
+I64 Memory::last1kbFree{ 0 };
 
 U32* Memory::free16kbIndices;
-I64 Memory::last16kbFree;
+I64 Memory::last16kbFree{ 0 };
 
 U32* Memory::free256kbIndices;
-I64 Memory::last256kbFree;
+I64 Memory::last256kbFree{ 0 };
 
 U32* Memory::free4mbIndices;
-I64 Memory::last4mbFree;
+I64 Memory::last4mbFree{ 0 };
 
-bool Memory::initialized = false;
+bool Memory::initialized{ false };
 
 bool Memory::Initialize()
 {
@@ -42,7 +37,7 @@ bool Memory::Initialize()
 
 		memory = (U8*)calloc(1, totalSize);
 
-		if (!memory) { return false; } //TODO: Log
+		if (!memory) { return false; }
 
 		free1kbIndices = (U32*)memory;
 		for (U32 i = 0; i < region1kbCount; ++i) { free1kbIndices[i] = i; }
@@ -54,16 +49,9 @@ bool Memory::Initialize()
 		for (U32 i = 0; i < region4mbCount; ++i) { free4mbIndices[i] = i; }
 
 		pool1kbPointer = (Region1kb*)(free4mbIndices + region4mbCount);
-		last1kbFree = 0;
-
 		pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);
-		last16kbFree = 0;
-
 		pool256kbPointer = (Region256kb*)(pool16kbPointer + region16kbCount);
-		last256kbFree = 0;
-
 		pool4mbPointer = (Region4mb*)(pool256kbPointer + region256kbCount);
-		last4mbFree = 0;
 
 		staticPointer = (U8*)(pool4mbPointer + region4mbCount); //TODO: linear allocator should be before dynamic allocator
 		staticSize = memory - staticPointer;
@@ -107,28 +95,28 @@ void Memory::Allocate4mb(void** pointer)
 
 void Memory::Free1kb(void** pointer)
 {
-	memset(*pointer, 0, sizeof(Region1kb));
+	Zero(*pointer, sizeof(Region1kb));
 	free1kbIndices[SafeDecrement(&last1kbFree)] = U32((Region1kb*)*pointer - pool1kbPointer);
 	*pointer = nullptr;
 }
 
 void Memory::Free16kb(void** pointer)
 {
-	memset(*pointer, 0, sizeof(Region16kb));
+	Zero(*pointer, sizeof(Region16kb));
 	free16kbIndices[SafeDecrement(&last16kbFree)] = U32((Region16kb*)*pointer - pool16kbPointer);
 	*pointer = nullptr;
 }
 
 void Memory::Free256kb(void** pointer)
 {
-	memset(*pointer, 0, sizeof(Region256kb));
+	Zero(*pointer, sizeof(Region256kb));
 	free256kbIndices[SafeDecrement(&last256kbFree)] = U32((Region256kb*)*pointer - pool256kbPointer);
 	*pointer = nullptr;
 }
 
 void Memory::Free4mb(void** pointer)
 {
-	memset(*pointer, 0, sizeof(Region4mb));
+	Zero(*pointer, sizeof(Region4mb));
 	free4mbIndices[SafeDecrement(&last4mbFree)] = U32((Region4mb*)*pointer - pool4mbPointer);
 	*pointer = nullptr;
 }
@@ -137,6 +125,28 @@ U64 Memory::MemoryAlign(U64 size, U64 alignment)
 {
 	const U64 alignmentMask = alignment - 1;
 	return (size + alignmentMask) & ~alignmentMask;
+}
+
+void Memory::Set(void* pointer, U8 value, U64 size)
+{
+	U8* ptr = (U8*)pointer;
+	while (size) { --size; *ptr = value; ++ptr; }
+}
+
+void Memory::Zero(void* pointer, U64 size)
+{
+	static constexpr U8 ZERO = 0UI8;
+
+	U8* ptr = (U8*)pointer;
+	while (size) { --size; *ptr = ZERO; ++ptr; }
+}
+
+void Memory::Copy(void* dst, const void* src, U64 size)
+{
+	U8* d = (U8*)dst;
+	U8* s = (U8*)src;
+
+	while (size) { --size; *d = *s; ++d; ++s; }
 }
 
 /*---------GLOBAL NEW/DELETE---------*/

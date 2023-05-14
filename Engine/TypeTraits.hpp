@@ -69,8 +69,13 @@ namespace TypeTraits
 	template <class Type> struct RemovePointer { using type = Type; };
 	template <class Type> struct RemovePointer<Type*> { using type = Type; };
 
+	template <class Type> struct AddPointer { using type = Type*; };
+
 	template <class Type> struct RemovePointerAll { using type = Type; };
 	template <class Type> struct RemovePointerAll<Type*> : public RemovePointerAll<Type> { };
+
+	template <class Type, U64 Count> struct GetPointerCount { static constexpr U64 count = Count; };
+	template <class Type, U64 Count> struct GetPointerCount<Type*, Count> : public GetPointerCount<Type, Count + 1> { };
 
 	template <class Type> struct RemoveArray { using type = Type; };
 	template <class Type> struct RemoveArray<Type[]> { using type = Type; };
@@ -135,11 +140,19 @@ using Conditional = typename TypeTraits::ConditionalOf<Test, Type0, Type1>::type
 
 namespace TypeTraits
 {
-	template<typename Type, typename... Rest>
+	template<class Type, class... Rest>
 	struct IsAnyOf : FalseConstant {};
 
-	template<typename Type, typename First, typename... Rest>
+	template<class Type, class First, class... Rest>
 	struct IsAnyOf<Type, First, Rest...> : Conditional<IsSame<Type, First>, TrueConstant, IsAnyOf<Type, Rest...>> {};
+
+	//TODO: Apply n pointers to a type
+
+	template<class Type>
+	struct AppliedPointers { using type = Type; };
+
+	template<class Type, U64 Count>
+	struct ApplyPointers : Conditional<Count == 0, AppliedPointers<Type>, ApplyPointers<Type*, Count - 1>> {};
 }
 
 template <bool Test, class Type = void>
@@ -154,6 +167,7 @@ template <class Type> using RemovedQuals = typename TypeTraits::RemoveQuals<Type
 template <class Type> using RemovedReference = typename TypeTraits::RemoveReference<Type>::type;
 template <class Type> using RemovedQualsReference = typename TypeTraits::RemoveQuals<RemovedReference<Type>>::type;
 template <class Type> using RemovedPointer = typename TypeTraits::RemovePointer<Type>::type;
+template <class Type> using AddedPointer = typename TypeTraits::AddPointer<Type>::type;
 template <class Type> using RemovedPointers = typename TypeTraits::RemovePointerAll<Type>::type;
 template <class Type> using RemovedArray = typename TypeTraits::RemoveArray<Type>::type;
 template <class Type> using RemovedArrays = typename TypeTraits::RemoveArrayAll<Type>::type;
@@ -162,6 +176,8 @@ template <class Type> using AddRvalReference = typename TypeTraits::AddReference
 template <class Type> using BaseType = typename TypeTraits::RemoveQuals<RemovedPointers<RemovedArrays<RemovedReference<Type>>>>::type;
 template <class Type> using UnsignedOf = typename TypeTraits::GetUnsigned<Type>::type;
 template <class Type> using SignedOf = typename TypeTraits::GetSigned<Type>::type;
+template <class Type> inline constexpr U64 PointerCount = TypeTraits::GetPointerCount<Type, 0>::count;
+template <class Type, U64 Count> using ApplyPointers = typename TypeTraits::ApplyPointers<Type, Count>::type;
 
 template <class Type> inline constexpr bool IsVoid = IsSame<RemovedQuals<Type>, void>;
 

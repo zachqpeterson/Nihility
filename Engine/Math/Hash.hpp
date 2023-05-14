@@ -4,6 +4,8 @@
 
 #include "Defines.hpp"
 
+#include "Memory\Memory.hpp"
+
 #ifdef _MSC_VER
 #pragma intrinsic(_umul128)
 #endif
@@ -58,19 +60,19 @@ inline U64 Hash::Read8(const U8* p)
 {
 #if defined NH_LITTLE_ENDIAN
 	U64 v;
-	memcpy(&v, p, 8);
+	Memory::Copy(&v, p, 8);
 	return v;
 #elif defined __GNUC__ || defined __INTEL_COMPILER || defined __clang__
 	U64 v;
-	memcpy(&v, p, 8);
+	Memory::Copy(&v, p, 8);
 	return __builtin_bswap64(v);
 #elif defined _MSC_VER
 	U64 v;
-	memcpy(&v, p, 8);
+	Memory::Copy(&v, p, 8);
 	return _byteswap_uint64(v);
 #else
 	U64 v;
-	memcpy(&v, p, 8);
+	Memory::Copy(&v, p, 8);
 	return (((v >> 56) & 0xff) | ((v >> 40) & 0xff00) | ((v >> 24) & 0xff0000) | ((v >> 8) & 0xff000000) | 
 		((v << 8) & 0xff00000000) | ((v << 24) & 0xff0000000000) | ((v << 40) & 0xff000000000000) | ((v << 56) & 0xff00000000000000));
 #endif
@@ -80,19 +82,19 @@ inline U64 Hash::Read4(const U8* p)
 {
 #if defined NH_LITTLE_ENDIAN
 	U32 v;
-	memcpy(&v, p, 4);
+	Memory::Copy(&v, p, 4);
 	return v;
 #elif defined __GNUC__ || defined __INTEL_COMPILER || defined __clang__
 	U32 v;
-	memcpy(&v, p, 4);
+	Memory::Copy(&v, p, 4);
 	return __builtin_bswap32(v);
 #elif defined _MSC_VER
 	U32 v;
-	memcpy(&v, p, 4);
+	Memory::Copy(&v, p, 4);
 	return _byteswap_ulong(v);
 #else
 	U32 v;
-	memcpy(&v, p, 4);
+	Memory::Copy(&v, p, 4);
 	return (((v >> 24) & 0xff) | ((v >> 8) & 0xff00) | ((v << 8) & 0xff0000) | ((v << 24) & 0xff000000));
 #endif
 }

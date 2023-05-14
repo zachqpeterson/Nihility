@@ -63,7 +63,7 @@ U32 File::Read(void* buffer, U32 size)
 		if (bufferRemaining)
 		{
 			nBytes = size < bufferRemaining ? size : bufferRemaining;
-			memcpy(data, streamPtr, nBytes);
+			Memory::Copy(data, streamPtr, nBytes);
 
 			size -= nBytes;
 			bufferRemaining -= nBytes;
@@ -105,7 +105,7 @@ U32 File::Write(const void* buffer, U32 size)
 			if (bufferRemaining)
 			{
 				nBytes = size < bufferRemaining ? size : bufferRemaining;
-				memcpy(streamPtr, data, nBytes);
+				Memory::Copy(streamPtr, data, nBytes);
 
 				size -= nBytes;
 				bufferRemaining -= nBytes;

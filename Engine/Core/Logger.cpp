@@ -17,14 +17,6 @@ void Logger::Shutdown()
 {
 	console.Destroy();
 	log.Destroy();
-
-	fatalTag.Destroy();
-	errorTag.Destroy();
-	warnTag.Destroy();
-	infoTag.Destroy();
-	debugTag.Destroy();
-	traceTag.Destroy();
-	endLine.Destroy();
 }
 
 void Logger::Write(const String& message)
