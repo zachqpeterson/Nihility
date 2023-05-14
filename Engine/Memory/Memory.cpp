@@ -1,5 +1,7 @@
 #include "Memory.hpp"
 
+#include <string.h>
+
 U8* Memory::memory;
 U64 Memory::totalSize;
 
@@ -143,10 +145,7 @@ void Memory::Zero(void* pointer, U64 size)
 
 void Memory::Copy(void* dst, const void* src, U64 size)
 {
-	U8* d = (U8*)dst;
-	U8* s = (U8*)src;
-
-	while (size) { --size; *d = *s; ++d; ++s; }
+	memcpy(dst, src, size);
 }
 
 /*---------GLOBAL NEW/DELETE---------*/
