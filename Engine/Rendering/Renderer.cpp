@@ -212,7 +212,7 @@ bool Renderer::CreateInstance()
 	const VkValidationFeatureEnableEXT featuresRequested[]{
 		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,							//Addition diagnostic data
 		VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
-		VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
+		//VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
 		//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
 		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
 	};
@@ -2497,6 +2497,8 @@ RenderPass* Renderer::AccessRenderPass(RenderPassHandle renderPass)
 }
 
 const RenderPassOutput& Renderer::GetSwapchainOutput() { return swapchainOutput; }
+
+RenderPassHandle Renderer::GetSwapchainPass() { return swapchainPass; }
 
 bool Renderer::IsDepthStencil(VkFormat value)
 {

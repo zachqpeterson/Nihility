@@ -644,6 +644,7 @@ struct NH_API Matrix4
 
 	void SetPerspective(F32 fov, F32 aspect, F32 near, F32 far);
 	void SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
+	void LookAt(const Vector3& eye, const Vector3& center, const Vector3& up);
 
 	Matrix4& operator+= (const Matrix4& m);
 	Matrix4& operator-= (const Matrix4& m);
@@ -764,6 +765,7 @@ struct NH_API Quaternion3
 	Quaternion3 operator*(const Quaternion3& q) const;
 	Quaternion3 operator/(const Quaternion3& q) const;
 
+	Matrix3 ToMatrix3() const;
 	Matrix4 ToMatrix4() const;
 	Matrix4 RotationMatrix(Vector3 center) const;
 	Vector3 Euler() const;

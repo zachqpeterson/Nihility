@@ -341,6 +341,8 @@ bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[code].held &
 
 void Input::MousePos(U32& x, U32& y) { x = mousePosX; y = mousePosY; }
 
+void Input::PreviousMousePos(U32& x, U32& y) { x = mousePosX - deltaMousePosX; y = mousePosY - deltaMousePosY; }
+
 void Input::ConsumeInput() { receiveInput = false; }
 
 I16 Input::MouseWheelDelta() { return mouseWheelDelta; }

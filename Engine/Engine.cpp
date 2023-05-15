@@ -125,7 +125,7 @@ void Engine::UpdateLoop()
 		Time::Update();
 		Input::Update();
 
-		if (!Platform::Update() || Input::OnButtonDown(ESCAPE)) { break; }
+		if (!Platform::Update() || Input::OnButtonDown(BUTTON_CODE_ESCAPE)) { break; }
 
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 

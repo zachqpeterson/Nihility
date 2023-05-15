@@ -1407,6 +1407,39 @@ void Matrix4::SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near
 	d.w = 1.0f;
 }
 
+void Matrix4::LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
+{
+	Vector3 f, u, s;
+
+	Vector3 f = center - eye;
+	f.Normalize();
+
+	Vector3 s = f.Cross(up);
+	s.Normalize();
+
+	Vector3 u = s.Cross(f);
+
+	a.x = s.x;
+	a.y = u.x;
+	a.z = f.x;
+	a.w = 0.0f;
+
+	b.x = s.y;
+	b.y = u.y;
+	b.z = f.y;
+	b.w = 0.0f;
+
+	c.x = s.z;
+	c.y = u.z;
+	c.z = f.z;
+	c.w = 0.0f;
+
+	d.x = -s.Dot(eye);
+	d.y = -u.Dot(eye);
+	d.z = -f.Dot(eye);
+	d.w = 1.0f;
+}
+
 Vector3 Matrix4::Forward() { return Vector3(-a.z, -b.z, -c.z).Normalize(); }
 Vector3 Matrix4::Back() { return Vector3(a.z, b.z, c.z).Normalize(); }
 Vector3 Matrix4::Right() { return Vector3(a.x, b.x, c.x).Normalize(); }
@@ -1823,6 +1856,27 @@ Quaternion3 Quaternion3::operator/(const Quaternion3& q) const
 		ty * n2,
 		tz * n2,
 		tw * n2
+	};
+}
+
+Matrix3 Quaternion3::ToMatrix3() const
+{
+	Quaternion3 q = Normalize();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.x * q.y;
+	F32 xz = 2.0f * q.x * q.z;
+	F32 xw = 2.0f * q.x * q.w;
+	F32 yy = 2.0f * q.y * q.y;
+	F32 yz = 2.0f * q.y * q.z;
+	F32 yw = 2.0f * q.y * q.w;
+	F32 zz = 2.0f * q.z * q.z;
+	F32 zw = 2.0f * q.z * q.w;
+
+	return {
+		1.0f - yy - zz, xy + zw, xz - yw,
+		xy - zw,  1.0f - xx - zz,  yz + xw,
+		xz + yw, yz - xw, 1.0f - xx - yy
 	};
 }
 

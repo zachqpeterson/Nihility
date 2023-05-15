@@ -2,7 +2,8 @@
 
 #include "Resources\ResourceDefines.hpp"
 
-struct CommandBuffer
+//TODO: temp
+struct NH_API CommandBuffer
 {
 	void Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked);
 	void Destroy();

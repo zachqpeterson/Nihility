@@ -14,6 +14,10 @@ class NH_API Renderer
 public:
 	//TODO: Public only for temp testing
 	static const RenderPassOutput& GetSwapchainOutput();
+	static RenderPassHandle GetSwapchainPass();
+	static CommandBuffer* GetCommandBuffer(QueueType type, bool begin);
+	static void* MapBuffer(const MapBufferParameters& parameters);
+	static void							UnmapBuffer(const MapBufferParameters& parameters);
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -36,8 +40,7 @@ private:
 	static void							ResizeTexture(Texture* texture, Texture* textureToDelete, U16 width, U16 height, U16 depth);
 	static void							DestroySwapchain();
 
-	static void* MapBuffer(const MapBufferParameters& parameters);
-	static void							UnmapBuffer(const MapBufferParameters& parameters);
+	
 	static void* DynamicAllocate(U32 size);
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
@@ -49,7 +52,6 @@ private:
 
 	static void							FrameCountersAdvance();
 	static void							QueueCommandBuffer(CommandBuffer* commandBuffer);
-	static CommandBuffer* GetCommandBuffer(QueueType type, bool begin);
 	static CommandBuffer* GetInstantCommandBuffer();
 	static void							CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture);
 	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);

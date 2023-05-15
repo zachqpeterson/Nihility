@@ -67,6 +67,7 @@ public:
 	bool Remove(const Key& key);
 	bool Remove(const Key& key, Value&& value) noexcept;
 	Value& Get(const Key& key);
+	Value& GetInsert(const Key& key);
 
 	Value& operator[](const Key& key);
 	const Value& operator[](const Key& key) const;
@@ -269,6 +270,20 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Get(const Ke
 
 	if (cell->filled) { return cell->value; }
 	else { return defVal; }
+}
+
+template<class Key, class Value> inline Value& Hashmap<Key, Value>::GetInsert(const Key& key)
+{
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else { hash = Hash::Calculate(key); }
+
+	U32 i = 0;
+	Cell* cell = cells + (hash % capacity);
+	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
+
+	cell->filled = true;
+	return cell->value;
 }
 
 template<class Key, class Value> inline Value& Hashmap<Key, Value>::operator[](const Key& key)
