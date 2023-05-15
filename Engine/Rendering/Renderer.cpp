@@ -337,8 +337,14 @@ bool Renderer::CreateDevice()
 	queueInfo[0].flags = 0;
 	queueInfo[0].pNext = nullptr;
 
+	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr };
+	VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
+
 	VkPhysicalDeviceFeatures2 physicalFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-	vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalFeatures2);
+	vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+
+	bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
+	if (bindlessSupported) { physicalFeatures2.pNext = &indexingFeatures; }
 
 	VkDeviceCreateInfo deviceInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 	deviceInfo.queueCreateInfoCount = CountOf32(queueInfo);
@@ -1510,41 +1516,56 @@ RenderPassOutput Renderer::FillRenderPassOutput(const RenderPassCreation& creati
 	return output;
 }
 
-void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture)
+bool Renderer::CreateSampler(Sampler* sampler)
 {
-	texture->width = creation.width;
-	texture->height = creation.height;
-	texture->depth = creation.depth;
-	texture->mipmaps = creation.mipmaps;
-	texture->type = creation.type;
-	texture->name = creation.name;
-	texture->format = creation.format;
-	texture->sampler = nullptr;
-	texture->flags = creation.flags;
-	texture->handle = handle;
+	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+	createInfo.addressModeU = sampler->addressModeU;
+	createInfo.addressModeV = sampler->addressModeV;
+	createInfo.addressModeW = sampler->addressModeW;
+	createInfo.minFilter = sampler->minFilter;
+	createInfo.magFilter = sampler->magFilter;
+	createInfo.mipmapMode = sampler->mipFilter;
+	createInfo.anisotropyEnable = 0;
+	createInfo.compareEnable = 0;
+	createInfo.unnormalizedCoordinates = 0;
+	createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+	// TODO:
+	/*float                   mipLodBias;
+	float                   maxAnisotropy;
+	VkCompareOp             compareOp;
+	float                   minLod;
+	float                   maxLod;
+	VkBorderColor           borderColor;
+	VkBool32                unnormalizedCoordinates;*/
 
-	//// Create the image
+	vkCreateSampler(device, &createInfo, allocationCallbacks, &sampler->sampler);
+
+	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)sampler->sampler, sampler->name);
+
+	return true;
+}
+
+bool Renderer::CreateTexture(Texture* texture, void* data)
+{
 	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.format = texture->format;
 	imageInfo.flags = 0;
-	imageInfo.imageType = ToVkImageType(creation.type);
-	imageInfo.extent.width = creation.width;
-	imageInfo.extent.height = creation.height;
-	imageInfo.extent.depth = creation.depth;
-	imageInfo.mipLevels = creation.mipmaps;
+	imageInfo.imageType = ToVkImageType(texture->type);
+	imageInfo.extent.width = texture->width;
+	imageInfo.extent.height = texture->height;
+	imageInfo.extent.depth = texture->depth;
+	imageInfo.mipLevels = texture->mipmaps;
 	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 
-	const bool is_render_target = (creation.flags & TEXTURE_FLAG_RENDER_TARGET_MASK) == TEXTURE_FLAG_RENDER_TARGET_MASK;
-	const bool is_compute_used = (creation.flags & TEXTURE_FLAG_COMPUTE_MASK) == TEXTURE_FLAG_COMPUTE_MASK;
+	const bool isRenderTarget = (texture->flags & TEXTURE_FLAG_RENDER_TARGET_MASK) == TEXTURE_FLAG_RENDER_TARGET_MASK;
+	const bool isComputeUsed = (texture->flags & TEXTURE_FLAG_COMPUTE_MASK) == TEXTURE_FLAG_COMPUTE_MASK;
 
-	// Default to always readable from shader.
 	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.usage |= isComputeUsed ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
 
-	imageInfo.usage |= is_compute_used ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
-
-	if (HasDepthOrStencil(creation.format))
+	if (HasDepthOrStencil(texture->format))
 	{
 		// Depth/Stencil textures are normally textures you render into.
 		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -1552,32 +1573,29 @@ void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle hand
 	else
 	{
 		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT; // TODO
-		imageInfo.usage |= is_render_target ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : 0;
+		imageInfo.usage |= isRenderTarget ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : 0;
 	}
 
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	VmaAllocationCreateInfo memory_info{};
-	memory_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-	VkValidate(vmaCreateImage(allocator, &imageInfo, &memory_info,
-		&texture->image, &texture->allocation, nullptr));
+	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &texture->image, &texture->allocation, nullptr));
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, creation.name);
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
 
-	//// Create the image view
 	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	info.image = texture->image;
-	info.viewType = ToVkImageViewType(creation.type);
+	info.viewType = ToVkImageViewType(texture->type);
 	info.format = imageInfo.format;
 
-	if (HasDepthOrStencil(creation.format))
+	if (HasDepthOrStencil(texture->format))
 	{
-
-		info.subresourceRange.aspectMask = HasDepth(creation.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+		info.subresourceRange.aspectMask = HasDepth(texture->format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
 		// TODO:gs
-		//info.subresourceRange.aspectMask |= HasStencil( creation.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+		//info.subresourceRange.aspectMask |= HasStencil(texture->format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
 	}
 	else
 	{
@@ -1588,83 +1606,16 @@ void Renderer::CreateTexture(const TextureCreation& creation, TextureHandle hand
 	info.subresourceRange.layerCount = 1;
 	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->imageView));
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, creation.name);
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
 
 	texture->imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-}
 
-BufferHandle Renderer::CreateBuffer(const BufferCreation& creation)
-{
-	U32 resourceIndex = Resources::buffers.ObtainResource();
-	BufferHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	Buffer* buffer = AccessBuffer(handle);
-
-	buffer->name = creation.name;
-	buffer->size = creation.size;
-	buffer->typeFlags = creation.typeFlags;
-	buffer->usage = creation.usage;
-	buffer->handle = handle;
-	buffer->globalOffset = 0;
-	buffer->parentBuffer = INVALID_BUFFER;
-
-	static const VkBufferUsageFlags dynamicBufferMask = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	const bool useGlobalBuffer = (creation.typeFlags & dynamicBufferMask) != 0;
-	if (creation.usage == RESOURCE_USAGE_DYNAMIC && useGlobalBuffer)
-	{
-		buffer->parentBuffer = dynamicBuffer;
-		return handle;
-	}
-
-	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | creation.typeFlags;
-	bufferInfo.size = creation.size > 0 ? creation.size : 1;
-
-	VmaAllocationCreateInfo memoryInfo{};
-	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-	memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-	VmaAllocationInfo allocationInfo{};
-	VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo, &buffer->buffer, &buffer->allocation, &allocationInfo));
-
-	SetResourceName(VK_OBJECT_TYPE_BUFFER, (U64)buffer->buffer, creation.name);
-
-	buffer->deviceMemory = allocationInfo.deviceMemory;
-
-	if (creation.initialData)
-	{
-		void* data;
-		vmaMapMemory(allocator, buffer->allocation, &data);
-		memcpy(data, creation.initialData, (U64)creation.size);
-		vmaUnmapMemory(allocator, buffer->allocation);
-	}
-
-	// TODO
-	//if ( persistent )
-	//{
-	//    mapped_data = static_cast<uint8_t *>(allocationInfo.pMappedData);
-	//}
-
-	return handle;
-}
-
-TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
-{
-	U32 resourceIndex = Resources::textures.ObtainResource();
-	TextureHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	Texture* texture = AccessTexture(handle);
-
-	CreateTexture(creation, handle, texture);
-
-	if (creation.initialData)
+	if (data)
 	{
 		VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-		U32 imageSize = creation.width * creation.height * 4;
+		U32 imageSize = texture->width * texture->height * 4;
 		bufferInfo.size = imageSize;
 
 		VmaAllocationCreateInfo memoryInfo{};
@@ -1680,7 +1631,7 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 		// Copy buffer_data
 		void* destinationData;
 		vmaMapMemory(allocator, stagingAllocation, &destinationData);
-		memcpy(destinationData, creation.initialData, static_cast<size_t>(imageSize));
+		Memory::Copy(destinationData, data, (U64)imageSize);
 		vmaUnmapMemory(allocator, stagingAllocation);
 
 		// Execute command buffer
@@ -1701,7 +1652,7 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 		region.imageSubresource.layerCount = 1;
 
 		region.imageOffset = { 0, 0, 0 };
-		region.imageExtent = { creation.width, creation.height, creation.depth };
+		region.imageExtent = { texture->width, texture->height, texture->depth };
 
 		// Transition
 		TransitionImageLayout(commandBuffer->commandBuffer, texture->image, texture->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, false);
@@ -1728,7 +1679,49 @@ TextureHandle Renderer::CreateTexture(const TextureCreation& creation)
 		texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
-	return handle;
+	return true;
+}
+
+bool Renderer::CreateBuffer(Buffer* buffer, void* data)
+{
+	static const VkBufferUsageFlags dynamicBufferMask = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	const bool useGlobalBuffer = (buffer->typeFlags & dynamicBufferMask) != 0;
+	if (buffer->usage == RESOURCE_USAGE_DYNAMIC && useGlobalBuffer)
+	{
+		buffer->parentBuffer = dynamicBuffer;
+		return true;
+	}
+
+	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | buffer->typeFlags;
+	bufferInfo.size = buffer->size > 0 ? buffer->size : 1;
+
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+	memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+	VmaAllocationInfo allocationInfo{};
+	VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo, &buffer->buffer, &buffer->allocation, &allocationInfo));
+
+	SetResourceName(VK_OBJECT_TYPE_BUFFER, (U64)buffer->buffer, buffer->name);
+
+	buffer->deviceMemory = allocationInfo.deviceMemory;
+
+	if (data)
+	{
+		void* data;
+		vmaMapMemory(allocator, buffer->allocation, &data);
+		Memory::Copy(data, data, (U64)buffer->size);
+		vmaUnmapMemory(allocator, buffer->allocation);
+	}
+
+	// TODO
+	//if ( persistent )
+	//{
+	//    mapped_data = static_cast<uint8_t *>(allocationInfo.pMappedData);
+	//}
+
+	return true;
 }
 
 PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
@@ -1974,49 +1967,6 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 
 		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
-
-	return handle;
-}
-
-SamplerHandle Renderer::CreateSampler(const SamplerCreation& creation)
-{
-	U32 resourceIndex = Resources::samplers.ObtainResource();
-	SamplerHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	Sampler* sampler = AccessSampler(handle);
-
-	sampler->addressModeU = creation.addressModeU;
-	sampler->addressModeV = creation.addressModeV;
-	sampler->addressModeW = creation.addressModeW;
-	sampler->minFilter = creation.minFilter;
-	sampler->magFilter = creation.magFilter;
-	sampler->mipFilter = creation.mipFilter;
-	sampler->name = creation.name;
-
-	VkSamplerCreateInfo create_info{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	create_info.addressModeU = creation.addressModeU;
-	create_info.addressModeV = creation.addressModeV;
-	create_info.addressModeW = creation.addressModeW;
-	create_info.minFilter = creation.minFilter;
-	create_info.magFilter = creation.magFilter;
-	create_info.mipmapMode = creation.mipFilter;
-	create_info.anisotropyEnable = 0;
-	create_info.compareEnable = 0;
-	create_info.unnormalizedCoordinates = 0;
-	create_info.borderColor = VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_WHITE;
-	// TODO:
-	/*float                   mipLodBias;
-	float                   maxAnisotropy;
-	VkCompareOp             compareOp;
-	float                   minLod;
-	float                   maxLod;
-	VkBorderColor           borderColor;
-	VkBool32                unnormalizedCoordinates;*/
-
-	vkCreateSampler(device, &create_info, allocationCallbacks, &sampler->sampler);
-
-	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)sampler->sampler, creation.name);
 
 	return handle;
 }

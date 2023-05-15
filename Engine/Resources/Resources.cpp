@@ -1,5 +1,6 @@
 #include "Resources.hpp"
 
+#include "Rendering\Renderer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
 
@@ -47,14 +48,19 @@ bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
-	buffers.Create();
-	textures.Create();
-	renderPasses.Create();
-	descriptorSetLayouts.Create();
-	pipelines.Create();
-	shaders.Create();
-	descriptorSets.Create();
-	samplers.Create();
+	//TODO: DummyResources
+
+	TextureCreation textureCreation{ };
+	U32 zeroValue = 0;
+	textureCreation.SetName("dummy_texture").SetSize(1, 1, 1).SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, TEXTURE_TYPE_2D).SetFlags(1, 0).SetData(&zeroValue);
+	TextureHandle dummyTexture = CreateTexture(textureCreation);
+
+	SamplerCreation samplerCreation{ };
+	samplerCreation.minFilter = VK_FILTER_LINEAR;
+	samplerCreation.magFilter = VK_FILTER_LINEAR;
+	samplerCreation.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreation.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	SamplerHandle dummySampler = CreateSampler(samplerCreation);
 
 	return true;
 }
@@ -73,21 +79,23 @@ void Resources::Shutdown()
 	renderPasses.Destroy();
 }
 
-Texture* Resources::LoadTexture(String& name)
+Texture* Resources::LoadTexture(const TextureCreation& info)
 {
-	Texture* texture = &textures.GetInsert(name);
+	Texture* texture = &textures.GetInsert(info.name);
 
 	if (!texture->name.Blank()) { return texture; }
 
-	String path(TEXTURES_PATH, name);
+	String path(TEXTURES_PATH, info.name);
 
 	File file(path, FILE_OPEN_RESOURCE);
 	if (file.Opened())
 	{
-		//TODO: Find file type, redirect to method
+		//TODO: Find file type, redirect to method, load data
+		void* data = nullptr;
 
-		
+		Renderer::CreateTexture(texture, data);
 
+		return texture;
 	}
 
 	Logger::Error("Failed to find or open file: {}", path);
@@ -95,6 +103,47 @@ Texture* Resources::LoadTexture(String& name)
 	return nullptr;
 }
 
+Sampler* Resources::CreateSampler(const SamplerCreation& info)
+{
+	Sampler* sampler = &samplers.GetInsert(info.name);
+
+	if (!sampler->name.Blank()) { return sampler; }
+
+	sampler->addressModeU = info.addressModeU;
+	sampler->addressModeV = info.addressModeV;
+	sampler->addressModeW = info.addressModeW;
+	sampler->minFilter = info.minFilter;
+	sampler->magFilter = info.magFilter;
+	sampler->mipFilter = info.mipFilter;
+	sampler->name = info.name;
+
+	Renderer::CreateSampler(sampler);
+
+	return sampler;
+}
+
+Buffer* Resources::CreateBuffer(const BufferCreation& info, void* data)
+{
+	Buffer* buffer = &buffers.GetInsert(info.name);
+
+	if (!buffer->name.Blank()) { return buffer; }
+
+	buffer->name = info.name;
+	buffer->size = info.size;
+	buffer->typeFlags = info.typeFlags;
+	buffer->usage = info.usage;
+	buffer->globalOffset = 0;
+	buffer->parentBuffer = nullptr;
+
+	Renderer::CreateBuffer(buffer, data);
+
+	return buffer;
+}
+
+Sampler* Resources::GetDummySampler()
+{
+
+}
 
 bool Resources::LoadBinary(const String& name, String& result)
 {
@@ -106,7 +155,24 @@ bool Resources::LoadBinary(const String& name, String& result)
 	if (file.Opened())
 	{
 		file.ReadAll(result);
+		file.Close();
 
+		return true;
+	}
+
+	return false;
+}
+
+bool Resources::LoadBinary(const String& name, void** result)
+{
+	String path;
+	name.Prepended(path, SHADERS_PATH);
+
+	File file{ path, FILE_OPEN_RESOURCE };
+
+	if (file.Opened())
+	{
+		file.ReadAll(result);
 		file.Close();
 
 		return true;

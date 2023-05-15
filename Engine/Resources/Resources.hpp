@@ -29,7 +29,7 @@ struct NH_API Scene
 	U32 nodesCount;
 };
 
-struct NH_API Texture
+struct NH_API TextureScene
 {
 	I32		sampler;
 	I32		source;
@@ -93,7 +93,14 @@ struct NH_API Mesh
 	String			name;
 };
 
-struct BufferView
+struct NH_API BufferScene
+{
+	I32		byteLength;
+	String	uri;
+	String	name;
+};
+
+struct NH_API BufferView
 {
 	enum Target {
 		ARRAY_BUFFER = 34962 /* Vertex Data */, ELEMENT_ARRAY_BUFFER = 34963 /* Index Data */
@@ -107,7 +114,7 @@ struct BufferView
 	String						name;
 };
 
-struct TextureInfo
+struct NH_API TextureInfo
 {
 	I32                         index;
 	I32                         texCoord;
@@ -271,7 +278,7 @@ struct glTF
 	U32 animationsCount;
 	BufferView* bufferViews;
 	U32 bufferViewsCount;
-	Buffer* buffers;
+	BufferScene* buffers;
 	U32 buffersCount;
 	Camera* cameras;
 	U32 camerasCount;
@@ -325,11 +332,16 @@ struct NH_API MeshDraw
 class NH_API Resources
 {
 public:
-	static Texture* LoadTexture(String& name);
+	static Sampler* CreateSampler(const SamplerCreation& info);
+	static Texture* CreateTexture(const TextureCreation& info);
+	static Buffer* CreateBuffer(const BufferCreation& info, void* data = nullptr);
 
+	static Sampler* GetDummySampler();
+	static Texture* GetDummyTexture();
 
 
 	static bool LoadBinary(const String& name, String& result);
+	static bool LoadBinary(const String& name, void** result);
 
 private:
 	static bool Initialize();
@@ -343,14 +355,17 @@ private:
 	static bool LoadTIFF();
 	static bool LoadTGA();
 
+	Sampler dummySampler;
+	Sampler dummyTexture;
+
 	NH_HEADER_STATIC Hashmap<String, Texture>				textures{ 512, {} };
-	NH_HEADER_STATIC ResourcePool<Buffer, 4096>				buffers;
-	NH_HEADER_STATIC ResourcePool<Pipeline, 128>			pipelines;
-	NH_HEADER_STATIC ResourcePool<Sampler, 32>				samplers;
-	NH_HEADER_STATIC ResourcePool<DesciptorSetLayout, 128>	descriptorSetLayouts;
-	NH_HEADER_STATIC ResourcePool<DesciptorSet, 256>		descriptorSets;
-	NH_HEADER_STATIC ResourcePool<RenderPass, 256>			renderPasses;
-	NH_HEADER_STATIC ResourcePool<ShaderState, 128>			shaders;
+	NH_HEADER_STATIC Hashmap<String, Buffer>				buffers{ 4096, {} };
+	NH_HEADER_STATIC Hashmap<String, Pipeline>				pipelines{ 128, {} };
+	NH_HEADER_STATIC Hashmap<String, Sampler>				samplers{ 32, {} };
+	NH_HEADER_STATIC Hashmap<String, DesciptorSetLayout>	descriptorSetLayouts{ 128, {} };
+	NH_HEADER_STATIC Hashmap<String, DesciptorSet>			descriptorSets{ 256, {} };
+	NH_HEADER_STATIC Hashmap<String, RenderPass>			renderPasses{ 256, {} };
+	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
 
 	STATIC_CLASS(Resources);
 	friend class Engine;

@@ -488,6 +488,8 @@ static inline bool Compare(const C* a, const C* b)
 * TODO: Conversions
 *
 * TODO: Option to add 0x prefix to {h}
+* 
+* TODO: Init with string literal
 */
 template<typename T, typename LU>
 struct NH_API StringBase

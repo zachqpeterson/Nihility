@@ -35,7 +35,7 @@ SamplerCreation& SamplerCreation::SetAddressModeUVW(VkSamplerAddressMode u, VkSa
 	return *this;
 }
 
-SamplerCreation& SamplerCreation::SetName(CSTR name)
+SamplerCreation& SamplerCreation::SetName(const String& name)
 {
 	this->name = name;
 
@@ -69,7 +69,7 @@ TextureCreation& TextureCreation::SetFormatType(VkFormat format, TextureType typ
 	return *this;
 }
 
-TextureCreation& TextureCreation::SetName(CSTR name)
+TextureCreation& TextureCreation::SetName(const String& name)
 {
 	this->name = name;
 
@@ -109,7 +109,7 @@ BufferCreation& BufferCreation::SetData(void* data)
 	return *this;
 }
 
-BufferCreation& BufferCreation::SetName(CSTR name)
+BufferCreation& BufferCreation::SetName(const String& name)
 {
 	this->name = name;
 
@@ -131,7 +131,7 @@ DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::AddBinding(const Bindi
 	return *this;
 }
 
-DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::SetName(CSTR name)
+DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::SetName(const String& name)
 {
 	this->name = name;
 	return *this;
@@ -183,7 +183,7 @@ DescriptorSetCreation& DescriptorSetCreation::TextureSampler(TextureHandle textu
 	return *this;
 }
 
-DescriptorSetCreation& DescriptorSetCreation::SetName(CSTR name)
+DescriptorSetCreation& DescriptorSetCreation::SetName(const String& name)
 {
 	this->name = name;
 	return *this;
@@ -198,14 +198,14 @@ ShaderStateCreation& ShaderStateCreation::Reset()
 	return *this;
 }
 
-ShaderStateCreation& ShaderStateCreation::SetName(CSTR name)
+ShaderStateCreation& ShaderStateCreation::SetName(const String& name)
 {
 	this->name = name;
 
 	return *this;
 }
 
-ShaderStateCreation& ShaderStateCreation::AddStage(CSTR path, VkShaderStageFlagBits type)
+ShaderStateCreation& ShaderStateCreation::AddStage(const String& path, VkShaderStageFlagBits type)
 {
 	stages[stagesCount].path = path;
 	stages[stagesCount].type = type;
@@ -297,7 +297,7 @@ RenderPassCreation& RenderPassCreation::SetDepthStencilTexture(TextureHandle tex
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetName(CSTR name)
+RenderPassCreation& RenderPassCreation::SetName(const String& name)
 {
 	this->name = name;
 

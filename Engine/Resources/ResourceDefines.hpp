@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Rendering\RenderingDefines.hpp"
+#include "Containers\String.hpp"
 
 typedef U32 ResourceHandle;
 NH_HEADER_STATIC constexpr Traits<ResourceHandle>::Base INVALID_HANDLE = Traits<ResourceHandle>::MaxValue;
@@ -53,7 +54,7 @@ struct DescriptorSetUpdate
 
 struct Sampler
 {
-	VkSampler				sampler;
+	String					name{ NO_INIT };
 
 	VkFilter				minFilter = VK_FILTER_NEAREST;
 	VkFilter				magFilter = VK_FILTER_NEAREST;
@@ -63,17 +64,12 @@ struct Sampler
 	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-	SamplerHandle			handle;
-	CSTR					name = nullptr;
+	VkSampler				sampler;
 };
 
 struct Texture
 {
-	VkImage				image;
-	VkImageView			imageView;
-	VkFormat			format;
-	VkImageLayout		imageLayout;
-	VmaAllocation_T*	allocation;
+	String				name{ NO_INIT };
 
 	U16					width = 1;
 	U16					height = 1;
@@ -83,44 +79,48 @@ struct Texture
 
 	TextureType			type = TEXTURE_TYPE_2D;
 
-	Sampler*			sampler = nullptr;
+	VkImage				image;
+	VkImageView			imageView;
+	VkFormat			format;
+	VkImageLayout		imageLayout;
+	VmaAllocation_T*	allocation;
 
-	TextureHandle		handle;
-	CSTR				name = nullptr;
+	Sampler*			sampler{ nullptr };
 };
 
 struct Buffer
 {
-	VkBuffer			buffer;
-	VmaAllocation_T*	allocation;
-	VkDeviceMemory		deviceMemory;
-	VkDeviceSize		deviceSize;
+	String				name{ NO_INIT };
+
+	Buffer*				parentBuffer;
 
 	VkBufferUsageFlags	typeFlags = 0;
 	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
 	U32					size = 0;
 	U32					globalOffset = 0;	// Offset into global constant, if dynamic
 
-	BufferHandle		handle;
-	BufferHandle		parentBuffer;
-
-	CSTR				name = nullptr;
+	VkBuffer			buffer;
+	VmaAllocation_T*	allocation;
+	VkDeviceMemory		deviceMemory;
+	VkDeviceSize		deviceSize;
 };
 
 struct DesciptorSetLayout
 {
+	String							name{ NO_INIT };
+
 	VkDescriptorSetLayout			descriptorSetLayout;
 
 	VkDescriptorSetLayoutBinding*	binding = nullptr;
 	DescriptorBinding*				bindings = nullptr;
 	U16								numBindings = 0;
 	U16								setIndex = 0;
-
-	DescriptorSetLayoutHandle		handle;
 };
 
 struct DesciptorSet
 {
+	String						name{ NO_INIT };
+
 	VkDescriptorSet				descriptorSet;
 
 	ResourceHandle*				resources = nullptr;
@@ -129,19 +129,16 @@ struct DesciptorSet
 
 	const DesciptorSetLayout*	layout = nullptr;
 	U32							numResources = 0;
-
-	DescriptorSetHandle			handle;
 };
 
 struct ShaderState
 {
+	String							name{ NO_INIT };
+
 	VkPipelineShaderStageCreateInfo	shaderStageInfos[MAX_SHADER_STAGES];
 
 	U32								activeShaders = 0;
 	bool							graphicsPipeline = false;
-
-	ShaderStateHandle				handle;
-	CSTR							name = nullptr;
 };
 
 struct RenderPassOutput
@@ -162,6 +159,8 @@ struct RenderPassOutput
 
 struct RenderPass
 {
+	String				name{ NO_INIT };
+
 	VkRenderPass		renderPass;
 	VkFramebuffer		frameBuffer;
 
@@ -182,13 +181,12 @@ struct RenderPass
 
 	U8					resize = 0;
 	U8					numRenderTargets = 0;
-
-	RenderPassHandle	handle;
-	CSTR				name = nullptr;
 };
 
 struct Pipeline
 {
+	String						name{ NO_INIT };
+
 	VkPipeline					pipeline;
 	VkPipelineLayout			pipelineLayout;
 
@@ -203,20 +201,19 @@ struct Pipeline
 	DepthStencilCreation		depthStencil;
 	BlendStateCreation			blendState;
 	RasterizationCreation		rasterization;
-
-	PipelineHandle				handle;
+	
 	bool						graphicsPipeline = true;
 };
 
 //Creation
 
-struct SamplerCreation
+struct NH_API SamplerCreation
 {
-	SamplerCreation&		SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
-	SamplerCreation&		SetAddressModeU(VkSamplerAddressMode u);
-	SamplerCreation&		SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
-	SamplerCreation&		SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
-	SamplerCreation&		SetName(CSTR name);
+	SamplerCreation& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
+	SamplerCreation& SetAddressModeU(VkSamplerAddressMode u);
+	SamplerCreation& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
+	SamplerCreation& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
+	SamplerCreation& SetName(const String& name);
 
 	VkFilter				minFilter = VK_FILTER_NEAREST;
 	VkFilter				magFilter = VK_FILTER_NEAREST;
@@ -226,16 +223,16 @@ struct SamplerCreation
 	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-	CSTR					name = nullptr;
+	String					name{ NO_INIT };
 };
 
-struct TextureCreation
+struct NH_API TextureCreation
 {
-	TextureCreation&	SetSize(U16 width, U16 height, U16 depth);
-	TextureCreation&	SetFlags(U8 mipmaps, U8 flags);
-	TextureCreation&	SetFormatType(VkFormat format, TextureType type);
-	TextureCreation&	SetName(CSTR name);
-	TextureCreation&	SetData(void* data);
+	TextureCreation& SetSize(U16 width, U16 height, U16 depth);
+	TextureCreation& SetFlags(U8 mipmaps, U8 flags);
+	TextureCreation& SetFormatType(VkFormat format, TextureType type);
+	TextureCreation& SetName(const String& name);
+	TextureCreation& SetData(void* data);
 
 	void*				initialData = nullptr;
 	U16					width = 1;
@@ -247,22 +244,22 @@ struct TextureCreation
 	VkFormat			format = VK_FORMAT_UNDEFINED;
 	TextureType			type = TEXTURE_TYPE_2D;
 
-	CSTR				name = nullptr;
+	String				name{ NO_INIT };
 };
 
 struct NH_API BufferCreation
 {
-	BufferCreation&		Reset();
-	BufferCreation&		Set(VkBufferUsageFlags flags, ResourceUsage usage, U32 size);
-	BufferCreation&		SetData(void* data);
-	BufferCreation&		SetName(CSTR name);
+	BufferCreation& Reset();
+	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U32 size);
+	BufferCreation& SetData(void* data);
+	BufferCreation& SetName(const String& name);
 
 	VkBufferUsageFlags	typeFlags = 0;
 	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
 	U32					size = 0;
 	void*				initialData = nullptr;
 
-	CSTR				name = nullptr;
+	String				name{ NO_INIT };
 };
 
 struct NH_API DescriptorSetLayoutCreation
@@ -272,29 +269,29 @@ struct NH_API DescriptorSetLayoutCreation
 		VkDescriptorType			type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
 		U16							start = 0;
 		U16							count = 0;
-		CSTR						name = nullptr;
+		String						name{ NO_INIT };
 	};
 
-	DescriptorSetLayoutCreation&	Reset();
-	DescriptorSetLayoutCreation&	AddBinding(const Binding& binding);
-	DescriptorSetLayoutCreation&	SetName(CSTR name);
-	DescriptorSetLayoutCreation&	SetSetIndex(U32 index);
+	DescriptorSetLayoutCreation& Reset();
+	DescriptorSetLayoutCreation& AddBinding(const Binding& binding);
+	DescriptorSetLayoutCreation& SetName(const String& name);
+	DescriptorSetLayoutCreation& SetSetIndex(U32 index);
 
 	Binding							bindings[MAX_DESCRIPTORS_PER_SET];
 	U32								numBindings = 0;
 	U32								setIndex = 0;
 
-	CSTR							name = nullptr;
+	String							name{ NO_INIT };
 };
 
-struct DescriptorSetCreation
+struct NH_API DescriptorSetCreation
 {
-	DescriptorSetCreation&		Reset();
-	DescriptorSetCreation&		SetLayout(DescriptorSetLayoutHandle layout);
-	DescriptorSetCreation&		Texture(TextureHandle texture, U16 binding);
-	DescriptorSetCreation&		Buffer(BufferHandle buffer, U16 binding);
-	DescriptorSetCreation&		TextureSampler(TextureHandle texture, SamplerHandle sampler, U16 binding);   // TODO: separate samplers from textures
-	DescriptorSetCreation&		SetName(CSTR name);
+	DescriptorSetCreation& Reset();
+	DescriptorSetCreation& SetLayout(DescriptorSetLayoutHandle layout);
+	DescriptorSetCreation& Texture(TextureHandle texture, U16 binding);
+	DescriptorSetCreation& Buffer(BufferHandle buffer, U16 binding);
+	DescriptorSetCreation& TextureSampler(TextureHandle texture, SamplerHandle sampler, U16 binding);   // TODO: separate samplers from textures
+	DescriptorSetCreation& SetName(const String& name);
 
 	ResourceHandle				resources[MAX_DESCRIPTORS_PER_SET];
 	SamplerHandle				samplers[MAX_DESCRIPTORS_PER_SET];
@@ -303,33 +300,33 @@ struct DescriptorSetCreation
 	DescriptorSetLayoutHandle	layout;
 	U32							numResources = 0;
 
-	CSTR						name = nullptr;
+	String						name{ NO_INIT };
 };
 
 struct NH_API ShaderStateCreation
 {
-	ShaderStateCreation&	Reset();
-	ShaderStateCreation&	SetName(CSTR name);
-	ShaderStateCreation&	AddStage(CSTR path, VkShaderStageFlagBits type);
-	ShaderStateCreation&	SetSpvInput(bool value);
+	ShaderStateCreation& Reset();
+	ShaderStateCreation& SetName(const String& name);
+	ShaderStateCreation& AddStage(const String& path, VkShaderStageFlagBits type);
+	ShaderStateCreation& SetSpvInput(bool value);
 
 	ShaderStage				stages[MAX_SHADER_STAGES];
 
-	CSTR					name = nullptr;
+	String					name{ NO_INIT };
 
 	U32						stagesCount = 0;
 	U32						spvInput = 0;
 };
 
-struct RenderPassCreation
+struct NH_API RenderPassCreation
 {
-	RenderPassCreation&		Reset();
-	RenderPassCreation&		AddRenderTexture(TextureHandle texture);
-	RenderPassCreation&		SetScaling(F32 scaleX, F32 scaleY, U8 resize);
-	RenderPassCreation&		SetDepthStencilTexture(TextureHandle texture);
-	RenderPassCreation&		SetName(CSTR name);
-	RenderPassCreation&		SetType(RenderPassType type);
-	RenderPassCreation&		SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	RenderPassCreation& Reset();
+	RenderPassCreation& AddRenderTexture(TextureHandle texture);
+	RenderPassCreation& SetScaling(F32 scaleX, F32 scaleY, U8 resize);
+	RenderPassCreation& SetDepthStencilTexture(TextureHandle texture);
+	RenderPassCreation& SetName(const String& name);
+	RenderPassCreation& SetType(RenderPassType type);
+	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 
 	U16						numRenderTargets = 0;
 	RenderPassType			type = RENDER_PASS_TYPE_GEOMETRY;
@@ -345,13 +342,13 @@ struct RenderPassCreation
 	RenderPassOperation		depthOperation = RENDER_PASS_OP_DONT_CARE;
 	RenderPassOperation		stencilOperation = RENDER_PASS_OP_DONT_CARE;
 
-	CSTR					name = nullptr;
+	String					name{ NO_INIT };
 };
 
 struct NH_API PipelineCreation
 {
-	PipelineCreation&			AddDescriptorSetLayout(DescriptorSetLayoutHandle handle);
-	RenderPassOutput&			GetRenderPassOutput();
+	PipelineCreation& AddDescriptorSetLayout(DescriptorSetLayoutHandle handle);
+	RenderPassOutput& GetRenderPassOutput();
 
 	RasterizationCreation		rasterization;
 	DepthStencilCreation		depthStencil;
@@ -365,7 +362,7 @@ struct NH_API PipelineCreation
 
 	U32							numActiveLayouts = 0;
 
-	CSTR						name = nullptr;
+	String						name{ NO_INIT };
 };
 
 struct MapBufferParameters

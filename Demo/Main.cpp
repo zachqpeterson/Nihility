@@ -54,18 +54,6 @@ bool Init()
 		images.Push(tr);
 	}
 
-	TextureCreation textureCreation{ };
-	U32 zeroValue = 0;
-	textureCreation.SetName("dummy_texture").SetSize(1, 1, 1).SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, TEXTURE_TYPE_2D).SetFlags(1, 0).SetData(&zeroValue);
-	TextureHandle dummyTexture = Renderer::CreateTexture(textureCreation);
-
-	SamplerCreation samplerCreation{ };
-	samplerCreation.minFilter = VK_FILTER_LINEAR;
-	samplerCreation.magFilter = VK_FILTER_LINEAR;
-	samplerCreation.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreation.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	SamplerHandle dummySampler = Renderer::CreateSampler(samplerCreation);
-
 	Vector<Sampler*> samplers{ scene.samplersCount };
 
 	for (U32 sampler_index = 0; sampler_index < scene.samplersCount; ++sampler_index)
@@ -79,29 +67,30 @@ bool Init()
 		creation.magFilter = sampler.magFilter == SamplerScene::Filter::LINEAR ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
 		creation.name = samplerName;
 
-		Sampler* sr = renderer.CreateSampler(creation);
+		Sampler* sr = Resources::CreateSampler(creation);
 		ASSERT(sr != nullptr);
 
 		samplers.Push(sr);
 	}
 
-	Vector<void*> buffers_data{ scene.buffersCount };
+	Vector<void*> buffersData{ scene.buffersCount };
 
 	for (U32 buffer_index = 0; buffer_index < scene.buffersCount; ++buffer_index)
 	{
-		Buffer& buffer = scene.buffers[buffer_index];
+		BufferScene& buffer = scene.buffers[buffer_index];
 
-		FileReadResult buffer_data = file_read_binary(buffer.uri);
-		buffers_data.Push(buffer_data.data);
+		void* result;
+		Resources::LoadBinary(buffer.uri, &result);
+		buffersData.Push(result);
 	}
 
-	Vector<BufferResource> buffers{ scene.bufferViewsCount };
+	Vector<Buffer*> buffers{ scene.bufferViewsCount };
 
 	for (U32 bufferIndex = 0; bufferIndex < scene.bufferViewsCount; ++bufferIndex)
 	{
 		String bufferName{ NO_INIT };
 		U32 buffer_size = 0;
-		U8* data = get_buffer_data(scene.bufferViews, bufferIndex, buffers_data, &buffer_size, &bufferName);
+		U8* data = get_buffer_data(scene.bufferViews, bufferIndex, buffersData, &buffer_size, &bufferName);
 
 		// NOTE(marco): the target attribute of a BufferView is not mandatory, so we prepare for both uses
 		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -116,10 +105,10 @@ bool Init()
 			bufferName = { "{}_{}", bufferName, bufferIndex };
 		}
 
-		BufferResource* br = renderer.CreateBuffer(flags, RESOURCE_USAGE_IMMUTABLE, buffer_size, data, bufferName);
+		Buffer* br = Resources::CreateBuffer(flags, RESOURCE_USAGE_IMMUTABLE, buffer_size, data, bufferName);
 		ASSERT(br != nullptr);
 
-		buffers.Push(*br);
+		buffers.Push(br);
 	}
 
 	Vector<MeshDraw> meshDraws{ scene.meshesCount };

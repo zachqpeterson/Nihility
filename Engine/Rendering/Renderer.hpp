@@ -53,7 +53,6 @@ private:
 	static void							FrameCountersAdvance();
 	static void							QueueCommandBuffer(CommandBuffer* commandBuffer);
 	static CommandBuffer* GetInstantCommandBuffer();
-	static void							CreateTexture(const TextureCreation& creation, TextureHandle handle, Texture* texture);
 	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
 	static void							FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
@@ -66,10 +65,10 @@ private:
 	static RenderPassOutput				FillRenderPassOutput(const RenderPassCreation& creation);
 
 public: //TODO: Temporarily public
-	static BufferHandle					CreateBuffer(const BufferCreation& creation);
-	static TextureHandle				CreateTexture(const TextureCreation& creation);
+	static bool							CreateSampler(Sampler* sampler);
+	static bool							CreateTexture(Texture* texture, void* data);
+	static bool							CreateBuffer(Buffer* buffer, void* data);
 	static PipelineHandle				CreatePipeline(const PipelineCreation& creation);
-	static SamplerHandle				CreateSampler(const SamplerCreation& creation);
 	static DescriptorSetLayoutHandle	CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& creation);
 	static DescriptorSetHandle			CreateDescriptorSet(const DescriptorSetCreation& creation);
 	static RenderPassHandle				CreateRenderPass(const RenderPassCreation& creation);
@@ -161,7 +160,7 @@ private:
 	NH_HEADER_STATIC U32									allocatedCommandBufferCount{ 0 };
 	NH_HEADER_STATIC U32									queuedCommandBufferCount{ 0 };
 	NH_HEADER_STATIC U32									dynamicMaxPerFrameSize;
-	NH_HEADER_STATIC BufferHandle							dynamicBuffer;
+	NH_HEADER_STATIC Buffer*								dynamicBuffer;
 	NH_HEADER_STATIC U8* dynamicMappedMemory;
 	NH_HEADER_STATIC U32									dynamicAllocatedSize;
 	NH_HEADER_STATIC U32									dynamicPerFrameSize;
