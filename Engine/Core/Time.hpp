@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 
 #if defined PLATFORM_WINDOWS
-#include <Windows.h>
+#include <Windows.h> //TODO: Dont include in header
 #endif
 
 struct NH_API Timer
