@@ -265,7 +265,7 @@ struct NH_API BufferCreation
 struct NH_API DescriptorSetLayoutCreation
 {
 	DescriptorSetLayoutCreation& Reset();
-	DescriptorSetLayoutCreation& AddBinding(const Binding& binding);
+	DescriptorSetLayoutCreation& AddBinding(const DescriptorBinding& binding);
 	DescriptorSetLayoutCreation& SetName(const String& name);
 	DescriptorSetLayoutCreation& SetSetIndex(U32 index);
 
