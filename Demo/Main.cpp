@@ -7,12 +7,12 @@
 #include "Resources\Settings.hpp"
 #include "Core\Time.hpp"
 
-BufferHandle                    cubeVertexBuffer;
-BufferHandle                    cubeIndexBuffer;
-PipelineHandle                  cubePipeline;
-BufferHandle                    cubeConstantBuffer;
-DescriptorSetLayoutHandle       cubeDescriptorSetLayout;
-MeshDraw                        meshDraw{};
+Buffer* cubeVertexBuffer;
+Buffer* cubeIndexBuffer;
+Pipeline* cubePipeline;
+Buffer* cubeConstantBuffer;
+DescriptorSetLayout* cubeDescriptorSetLayout;
+MeshDraw                   meshDraw{};
 
 Vector3 eye = Vector3{ 0.0f, 2.5f, 2.0f };
 Vector3 look = Vector3{ 0.0f, 0.0, -1.0f };
@@ -39,6 +39,25 @@ struct UniformData
 	Vector4 eye;
 	Vector4 light;
 };
+
+static U8* GetBufferData(BufferView* bufferViews, U32 bufferIndex, Vector<void*>& buffersData, String& bufferName, U32* bufferSize = nullptr)
+{
+	BufferView& buffer = bufferViews[bufferIndex];
+
+	I32 offset = buffer.byteOffset;
+	if (offset == I32_MAX) { offset = 0; }
+
+	bufferName = buffer.name;
+
+	if (bufferSize != nullptr)
+	{
+		*bufferSize = buffer.byteLength;
+	}
+
+	U8* data = (U8*)buffersData[buffer.buffer] + offset;
+
+	return data;
+}
 
 bool Init()
 {
@@ -89,8 +108,8 @@ bool Init()
 	for (U32 bufferIndex = 0; bufferIndex < scene.bufferViewsCount; ++bufferIndex)
 	{
 		String bufferName{ NO_INIT };
-		U32 buffer_size = 0;
-		U8* data = get_buffer_data(scene.bufferViews, bufferIndex, buffersData, &buffer_size, &bufferName);
+		U32 bufferSize = 0;
+		U8* data = GetBufferData(scene.bufferViews, bufferIndex, buffersData, bufferName, &bufferSize);
 
 		// NOTE(marco): the target attribute of a BufferView is not mandatory, so we prepare for both uses
 		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -105,7 +124,10 @@ bool Init()
 			bufferName = { "{}_{}", bufferName, bufferIndex };
 		}
 
-		Buffer* br = Resources::CreateBuffer(flags, RESOURCE_USAGE_IMMUTABLE, buffer_size, data, bufferName);
+		BufferCreation bufferCreation{};
+		bufferCreation.SetName(bufferName).Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
+
+		Buffer* br = Resources::CreateBuffer(bufferCreation);
 		ASSERT(br != nullptr);
 
 		buffers.Push(br);
@@ -119,7 +141,7 @@ bool Init()
 	BufferCreation bufferCreation{ };
 	bufferCreation.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, sizeof(Vector4) * 3).SetData(dummyData).SetName("dummy_attribute_buffer");
 
-	BufferHandle dummyAttributeBuffer = Renderer::CreateBuffer(bufferCreation);
+	Buffer* dummyAttributeBuffer = Resources::CreateBuffer(bufferCreation);
 
 	// Create pipeline state
 	PipelineCreation pipelineCreation;
@@ -150,21 +172,21 @@ bool Init()
 
 	// Descriptor set layout
 	DescriptorSetLayoutCreation cubeRllCreation{};
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, "LocalConstants" });
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, "MaterialConstant" });
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1, "diffuseTexture" });
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1, "roughnessMetalnessTexture" });
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 1, "roughnessMetalnessTexture" });
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 1, "emissiveTexture" });
-	cubeRllCreation.AddBinding({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 1, "occlusionTexture" });
+	cubeRllCreation.AddBinding({ "LocalConstants", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1 });
+	cubeRllCreation.AddBinding({ "MaterialConstant", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1 });
+	cubeRllCreation.AddBinding({ "diffuseTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1 });
+	cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1 });
+	cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 1 });
+	cubeRllCreation.AddBinding({ "emissiveTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 1 });
+	cubeRllCreation.AddBinding({ "occlusionTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 1 });
 	// Setting it into pipeline
-	cubeDescriptorSetLayout = Renderer::CreateDescriptorSetLayout(cubeRllCreation);
+	cubeDescriptorSetLayout = Resources::CreateDescriptorSetLayout(cubeRllCreation);
 	pipelineCreation.AddDescriptorSetLayout(cubeDescriptorSetLayout);
 
 	// Constant buffer
 	BufferCreation bufferCreation;
 	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("cube_cb");
-	cubeConstantBuffer = Renderer::CreateBuffer(bufferCreation);
+	cubeConstantBuffer = Resources::CreateBuffer(bufferCreation);
 
 	cubePipeline = Renderer::CreatePipeline(pipelineCreation);
 

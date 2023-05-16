@@ -54,7 +54,7 @@ private:
 	static void							QueueCommandBuffer(CommandBuffer* commandBuffer);
 	static CommandBuffer* GetInstantCommandBuffer();
 	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
-	static void							FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
+	static void							FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 		VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
@@ -68,11 +68,11 @@ public: //TODO: Temporarily public
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateBuffer(Buffer* buffer, void* data);
-	static PipelineHandle				CreatePipeline(const PipelineCreation& creation);
-	static DescriptorSetLayoutHandle	CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& creation);
+	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static DescriptorSetHandle			CreateDescriptorSet(const DescriptorSetCreation& creation);
-	static RenderPassHandle				CreateRenderPass(const RenderPassCreation& creation);
 	static ShaderStateHandle			CreateShaderState(const ShaderStateCreation& creation);
+	static RenderPassHandle				CreateRenderPass(const RenderPassCreation& creation);
+	static PipelineHandle				CreatePipeline(const PipelineCreation& creation);
 
 private:
 	static void							DestroyBuffer(BufferHandle buffer);
@@ -102,8 +102,8 @@ private:
 	static Buffer* AccessBuffer(BufferHandle buffer);
 	static Pipeline* AccessPipeline(PipelineHandle pipeline);
 	static Sampler* AccessSampler(SamplerHandle sampler);
-	static DesciptorSetLayout* AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout);
-	static DesciptorSet* AccessDescriptorSet(DescriptorSetHandle set);
+	static DescriptorSetLayout* AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout);
+	static DescriptorSet* AccessDescriptorSet(DescriptorSetHandle set);
 	static RenderPass* AccessRenderPass(RenderPassHandle renderPass);
 
 	static bool							IsDepthStencil(VkFormat value);

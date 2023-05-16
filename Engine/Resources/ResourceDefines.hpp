@@ -105,7 +105,7 @@ struct Buffer
 	VkDeviceSize		deviceSize;
 };
 
-struct DesciptorSetLayout
+struct DescriptorSetLayout
 {
 	String							name{ NO_INIT };
 
@@ -117,7 +117,7 @@ struct DesciptorSetLayout
 	U16								setIndex = 0;
 };
 
-struct DesciptorSet
+struct DescriptorSet
 {
 	String						name{ NO_INIT };
 
@@ -127,7 +127,7 @@ struct DesciptorSet
 	SamplerHandle*				samplers = nullptr;
 	U16*						bindings = nullptr;
 
-	const DesciptorSetLayout*	layout = nullptr;
+	const DescriptorSetLayout*	layout = nullptr;
 	U32							numResources = 0;
 };
 
@@ -194,7 +194,7 @@ struct Pipeline
 
 	ShaderStateHandle			shaderState;
 
-	const DesciptorSetLayout*	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+	const DescriptorSetLayout*	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 	DescriptorSetLayoutHandle	descriptorSetLayoutHandles[MAX_DESCRIPTOR_SET_LAYOUTS];
 	U32							numActiveLayouts = 0;
 
@@ -264,20 +264,12 @@ struct NH_API BufferCreation
 
 struct NH_API DescriptorSetLayoutCreation
 {
-	struct Binding
-	{
-		VkDescriptorType			type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
-		U16							start = 0;
-		U16							count = 0;
-		String						name{ NO_INIT };
-	};
-
 	DescriptorSetLayoutCreation& Reset();
-	DescriptorSetLayoutCreation& AddBinding(const Binding& binding);
+	DescriptorSetLayoutCreation& AddBinding(const DescriptorBinding& binding);
 	DescriptorSetLayoutCreation& SetName(const String& name);
 	DescriptorSetLayoutCreation& SetSetIndex(U32 index);
 
-	Binding							bindings[MAX_DESCRIPTORS_PER_SET];
+	DescriptorBinding				bindings[MAX_DESCRIPTORS_PER_SET];
 	U32								numBindings = 0;
 	U32								setIndex = 0;
 

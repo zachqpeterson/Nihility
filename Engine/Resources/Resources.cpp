@@ -140,6 +140,33 @@ Buffer* Resources::CreateBuffer(const BufferCreation& info, void* data)
 	return buffer;
 }
 
+DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info)
+{
+	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.GetInsert(info.name);
+
+	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
+
+	// TODO: add support for multiple sets.
+	// Create flattened binding list
+	descriptorSetLayout->numBindings = (U16)info.numBindings;
+	U8* memory;
+	Memory::AllocateSize(&memory, (sizeof(VkDescriptorSetLayoutBinding) + sizeof(DescriptorBinding)) * info.numBindings);
+	descriptorSetLayout->bindings = (DescriptorBinding*)memory;
+	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * info.numBindings);
+	descriptorSetLayout->setIndex = (U16)info.setIndex;
+
+	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
+
+	return descriptorSetLayout;
+}
+
+DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
+{
+	DescriptorSet* descriptorSet = &descriptorSets.GetInsert(info.name);
+
+	if (!descriptorSet->name.Blank()) { return descriptorSet; }
+}
+
 Sampler* Resources::GetDummySampler()
 {
 
