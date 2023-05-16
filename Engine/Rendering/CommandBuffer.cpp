@@ -16,13 +16,11 @@ void CommandBuffer::Destroy()
 	isRecording = false;
 }
 
-void CommandBuffer::BindPass(RenderPassHandle handle)
+void CommandBuffer::BindPass(RenderPass* renderPass)
 {
 	//if (!isRecording)
 	{
 		isRecording = true;
-
-		RenderPass* renderPass = Renderer::AccessRenderPass(handle);
 
 		// Begin/End render pass are valid only for graphics render passes.
 		if (currentRenderPass && (currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE) && (renderPass != currentRenderPass))
@@ -51,48 +49,42 @@ void CommandBuffer::BindPass(RenderPassHandle handle)
 	}
 }
 
-void CommandBuffer::BindPipeline(PipelineHandle handle)
+void CommandBuffer::BindPipeline(Pipeline* pipeline)
 {
-	Pipeline* pipeline = Renderer::AccessPipeline(handle);
 	vkCmdBindPipeline(commandBuffer, pipeline->bindPoint, pipeline->pipeline);
 
 	// Cache pipeline
 	currentPipeline = pipeline;
 }
 
-void CommandBuffer::BindVertexBuffer(BufferHandle handle, U32 binding, U32 offset)
+void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset)
 {
-	Buffer* buffer = Renderer::AccessBuffer(handle);
 	VkDeviceSize offsets[] = { offset };
 
 	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
-	if (buffer->parentBuffer.index != INVALID_HANDLE)
+	if (buffer->parentBuffer != nullptr)
 	{
-		Buffer* parent_buffer = Renderer::AccessBuffer(buffer->parentBuffer);
-		vkBuffer = parent_buffer->buffer;
+		vkBuffer = buffer->parentBuffer->buffer;
 		offsets[0] = buffer->globalOffset;
 	}
 
 	vkCmdBindVertexBuffers(commandBuffer, binding, 1, &vkBuffer, offsets);
 }
 
-void CommandBuffer::BindIndexBuffer(BufferHandle handle, U32 offset, VkIndexType indexType)
+void CommandBuffer::BindIndexBuffer(Buffer* buffer, U32 offset, VkIndexType indexType)
 {
-	Buffer* buffer = Renderer::AccessBuffer(handle);
-
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = offset;
-	if (buffer->parentBuffer.index != INVALID_HANDLE)
+	if (buffer->parentBuffer != nullptr)
 	{
-		Buffer* parent_buffer = Renderer::AccessBuffer(buffer->parentBuffer);
-		vkBuffer = parent_buffer->buffer;
+		vkBuffer = buffer->parentBuffer->buffer;
 		vkOffset = buffer->globalOffset;
 	}
 	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, indexType);
 }
 
-void CommandBuffer::BindDescriptorSet(DescriptorSetHandle* handles, U32 numLists, U32* offsets, U32 numOffsets)
+void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets)
 {
 	// TODO:
 	U32 offsetsCache[8];
@@ -100,7 +92,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSetHandle* handles, U32 numLists
 
 	for (U32 l = 0; l < numLists; ++l)
 	{
-		DesciptorSet* descriptorSet = Renderer::AccessDescriptorSet(handles[l]);
+		DescriptorSet* descriptorSet = sets[l];
 		descriptorSets[l] = descriptorSet->descriptorSet;
 
 		// Search for dynamic buffers
@@ -208,20 +200,16 @@ void CommandBuffer::DrawIndexed(TopologyType topology, U32 indexCount, U32 insta
 	vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void CommandBuffer::DrawIndirect(BufferHandle handle, U32 offset, U32 stride)
+void CommandBuffer::DrawIndirect(Buffer* buffer, U32 offset, U32 stride)
 {
-	Buffer* buffer = Renderer::AccessBuffer(handle);
-
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = offset;
 
 	vkCmdDrawIndirect(commandBuffer, vkBuffer, vkOffset, 1, sizeof(VkDrawIndirectCommand));
 }
 
-void CommandBuffer::DrawIndexedIndirect(BufferHandle handle, U32 offset, U32 stride)
+void CommandBuffer::DrawIndexedIndirect(Buffer* buffer, U32 offset, U32 stride)
 {
-	Buffer* buffer = Renderer::AccessBuffer(handle);
-
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = offset;
 
@@ -233,10 +221,8 @@ void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
 	vkCmdDispatch(commandBuffer, groupX, groupY, groupZ);
 }
 
-void CommandBuffer::DispatchIndirect(BufferHandle handle, U32 offset)
+void CommandBuffer::DispatchIndirect(Buffer* buffer, U32 offset)
 {
-	Buffer* buffer = Renderer::AccessBuffer(handle);
-
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = offset;
 
@@ -456,11 +442,9 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.numBufferBarriers, bufferMemoryBarriers, barrier.numTextureBarriers, imageBarriers);
 }
 
-void CommandBuffer::FillBuffer(BufferHandle buffer, U32 offset, U32 size, U32 data)
+void CommandBuffer::FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data)
 {
-	Buffer* vkBuffer = Renderer::AccessBuffer(buffer);
-
-	vkCmdFillBuffer(commandBuffer, vkBuffer->buffer, VkDeviceSize(offset), size ? VkDeviceSize(size) : VkDeviceSize(vkBuffer->size), data);
+	vkCmdFillBuffer(commandBuffer, buffer->buffer, VkDeviceSize(offset), size ? VkDeviceSize(size) : VkDeviceSize(buffer->size), data);
 }
 
 void CommandBuffer::PushMarker(const char* name)

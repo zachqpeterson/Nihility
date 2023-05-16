@@ -8,11 +8,11 @@ struct NH_API CommandBuffer
 	void Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked);
 	void Destroy();
 
-	void BindPass(RenderPassHandle handle);
-	void BindPipeline(PipelineHandle handle);
-	void BindVertexBuffer(BufferHandle handle, U32 binding, U32 offset);
-	void BindIndexBuffer(BufferHandle handle, U32 offset, VkIndexType indexType);
-	void BindDescriptorSet(DescriptorSetHandle* handles, U32 numLists, U32* offsets, U32 numOffsets);
+	void BindPass(RenderPass* renderPass);
+	void BindPipeline(Pipeline* pipeline);
+	void BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset);
+	void BindIndexBuffer(Buffer* buffer, U32 offset, VkIndexType indexType);
+	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
 
 	void SetViewport(const Viewport* viewport);
 	void SetScissor(const Rect2DInt* rect);
@@ -22,15 +22,15 @@ struct NH_API CommandBuffer
 
 	void Draw(TopologyType topology, U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(TopologyType topology, U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
-	void DrawIndirect(BufferHandle handle, U32 offset, U32 stride);
-	void DrawIndexedIndirect(BufferHandle handle, U32 offset, U32 stride);
+	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
+	void DrawIndexedIndirect(Buffer* buffer, U32 offset, U32 stride);
 
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
-	void DispatchIndirect(BufferHandle handle, U32 offset);
+	void DispatchIndirect(Buffer* buffer, U32 offset);
 
 	void Barrier(const ExecutionBarrier& barrier);
 
-	void FillBuffer(BufferHandle buffer, U32 offset, U32 size, U32 data);
+	void FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data);
 
 	void PushMarker(const char* name);
 	void PopMarker();

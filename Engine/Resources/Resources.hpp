@@ -6,6 +6,7 @@
 
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
+#include "Containers\Queue.hpp"
 #include "Math\Math.hpp"
 
 struct alignas(16) NH_API MaterialData
@@ -301,19 +302,19 @@ struct glTF
 	I32 scene;
 	Skin* skins;
 	U32 skinsCount;
-	Texture* textures;
+	TextureScene* textures;
 	U32 texturesCount;
 };
 
 struct NH_API MeshDraw
 {
-	BufferHandle indexBuffer;
-	BufferHandle positionBuffer;
-	BufferHandle tangentBuffer;
-	BufferHandle normalBuffer;
-	BufferHandle texcoordBuffer;
+	Buffer* indexBuffer;
+	Buffer* positionBuffer;
+	Buffer* tangentBuffer;
+	Buffer* normalBuffer;
+	Buffer* texcoordBuffer;
 
-	BufferHandle materialBuffer;
+	Buffer* materialBuffer;
 	MaterialData materialData;
 
 	U32 indexOffset;
@@ -326,7 +327,7 @@ struct NH_API MeshDraw
 
 	VkIndexType indexType;
 
-	DescriptorSetHandle descriptorSet;
+	DescriptorSet* descriptorSet;
 };
 
 class NH_API Resources
@@ -334,13 +335,33 @@ class NH_API Resources
 public:
 	static Sampler* CreateSampler(const SamplerCreation& info);
 	static Texture* CreateTexture(const TextureCreation& info);
+	static Texture* LoadTexture(const String& name);
 	static Buffer* CreateBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
+	static RenderPass* CreateRenderPass(const RenderPassCreation& info);
+	static Pipeline* CreatePipeline(const PipelineCreation& info);
 
-	static Sampler* GetDummySampler();
-	static Texture* GetDummyTexture();
+	static Sampler* AccessDummySampler();
+	static Texture* AccessDummyTexture();
+	static Buffer* AccessDummyAttributeBuffer();
 
+	static Sampler* AccessSampler(const String& name);
+	static Texture* AccessTexture(const String& name);
+	static DescriptorSetLayout* AccessDescriptorSetLayout(const String& name);
+	static DescriptorSet* AccessDescriptorSet(const String& name);
+	static ShaderState* AccessShaderState(const String& name);
+	static RenderPass* AccessRenderPass(const String& name);
+	static Pipeline* AccessPipeline(const String& name);
+
+	static void	DestroyBuffer(Buffer* buffer);
+	static void	DestroyTexture(Texture* texture);
+	static void	DestroyPipeline(Pipeline* pipeline);
+	static void	DestroySampler(Sampler* sampler);
+	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
+	static void	DestroyDescriptorSet(DescriptorSet* set);
+	static void	DestroyRenderPass(RenderPass* renderPass);
+	static void	DestroyShaderState(ShaderState* shader);
 
 	static bool LoadBinary(const String& name, String& result);
 	static bool LoadBinary(const String& name, void** result);
@@ -357,19 +378,21 @@ private:
 	static bool LoadTIFF();
 	static bool LoadTGA();
 
-	Sampler dummySampler;
-	Sampler dummyTexture;
+	NH_HEADER_STATIC Sampler dummySampler;
+	NH_HEADER_STATIC Texture dummyTexture;
+	NH_HEADER_STATIC Buffer dummyAttributeBuffer;
 
 	NH_HEADER_STATIC Hashmap<String, Texture>				textures{ 512, {} };
 	NH_HEADER_STATIC Hashmap<String, Buffer>				buffers{ 4096, {} };
 	NH_HEADER_STATIC Hashmap<String, Pipeline>				pipelines{ 128, {} };
 	NH_HEADER_STATIC Hashmap<String, Sampler>				samplers{ 32, {} };
 	NH_HEADER_STATIC Hashmap<String, DescriptorSetLayout>	descriptorSetLayouts{ 128, {} };
-	NH_HEADER_STATIC Hashmap<String, DesciptorSet>			descriptorSets{ 256, {} };
+	NH_HEADER_STATIC Hashmap<String, DescriptorSet>			descriptorSets{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, RenderPass>			renderPasses{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
 
+	NH_HEADER_STATIC Queue<ResourceDeletion>				resourceDeletionQueue{};
+
 	STATIC_CLASS(Resources);
-	friend class Engine;
 	friend class Renderer;
 };

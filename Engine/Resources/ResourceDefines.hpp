@@ -6,25 +6,6 @@
 typedef U32 ResourceHandle;
 NH_HEADER_STATIC constexpr Traits<ResourceHandle>::Base INVALID_HANDLE = Traits<ResourceHandle>::MaxValue;
 
-//TODO: Operators
-struct SamplerHandle { ResourceHandle index; };
-struct TextureHandle { ResourceHandle index; };
-struct BufferHandle { ResourceHandle index; };
-struct DescriptorSetLayoutHandle { ResourceHandle index; };
-struct DescriptorSetHandle { ResourceHandle index; };
-struct ShaderStateHandle { ResourceHandle index; };
-struct RenderPassHandle { ResourceHandle index; };
-struct PipelineHandle { ResourceHandle index; };
-
-NH_HEADER_STATIC constexpr SamplerHandle				INVALID_SAMPLER{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr TextureHandle				INVALID_TEXTURE{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr BufferHandle					INVALID_BUFFER{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr DescriptorSetLayoutHandle	INVALID_LAYOUT{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr DescriptorSetHandle			INVALID_SET{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr ShaderStateHandle			INVALID_SHADER{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr RenderPassHandle				INVALID_PASS{ INVALID_HANDLE };
-NH_HEADER_STATIC constexpr PipelineHandle				INVALID_PIPELINE{ INVALID_HANDLE };
-
 enum ResourceDeleteType
 {
 	RESOURCE_DELETE_TYPE_BUFFER,
@@ -39,17 +20,17 @@ enum ResourceDeleteType
 	RESOURCE_DELETE_TYPE_COUNT
 };
 
-struct ResourceUpdate
+struct ResourceDeletion
 {
 	ResourceDeleteType	type;
-	ResourceHandle		handle;
+	HashHandle			handle;
 	U32					currentFrame;
 };
 
 struct DescriptorSetUpdate
 {
-	DescriptorSetHandle	descriptorSet;
-	U32					frameIssued = 0;
+	DescriptorSet*	descriptorSet;
+	U32				frameIssued = 0;
 };
 
 struct Sampler
@@ -124,7 +105,7 @@ struct DescriptorSet
 	VkDescriptorSet				descriptorSet;
 
 	ResourceHandle*				resources = nullptr;
-	SamplerHandle*				samplers = nullptr;
+	Sampler**					samplers = nullptr;
 	U16*						bindings = nullptr;
 
 	const DescriptorSetLayout*	layout = nullptr;
@@ -166,8 +147,8 @@ struct RenderPass
 
 	RenderPassOutput	output;
 
-	TextureHandle		outputTextures[MAX_IMAGE_OUTPUTS];
-	TextureHandle		outputDepth;
+	Texture*			outputTextures[MAX_IMAGE_OUTPUTS];
+	Texture*			outputDepth;
 
 	RenderPassType		type;
 
@@ -192,10 +173,10 @@ struct Pipeline
 
 	VkPipelineBindPoint			bindPoint;
 
-	ShaderStateHandle			shaderState;
+	ShaderState*				shaderState;
 
 	const DescriptorSetLayout*	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	DescriptorSetLayoutHandle	descriptorSetLayoutHandles[MAX_DESCRIPTOR_SET_LAYOUTS];
+	DescriptorSetLayout*		descriptorSetLayoutHandles[MAX_DESCRIPTOR_SET_LAYOUTS];
 	U32							numActiveLayouts = 0;
 
 	DepthStencilCreation		depthStencil;
@@ -279,17 +260,17 @@ struct NH_API DescriptorSetLayoutCreation
 struct NH_API DescriptorSetCreation
 {
 	DescriptorSetCreation& Reset();
-	DescriptorSetCreation& SetLayout(DescriptorSetLayoutHandle layout);
-	DescriptorSetCreation& Texture(TextureHandle texture, U16 binding);
-	DescriptorSetCreation& Buffer(BufferHandle buffer, U16 binding);
-	DescriptorSetCreation& TextureSampler(TextureHandle texture, SamplerHandle sampler, U16 binding);   // TODO: separate samplers from textures
+	DescriptorSetCreation& SetLayout(DescriptorSetLayout* layout);
+	DescriptorSetCreation& SetTexture(Texture* texture, U16 binding);
+	DescriptorSetCreation& SetBuffer(Buffer* buffer, U16 binding);
+	DescriptorSetCreation& SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding);   // TODO: separate samplers from textures
 	DescriptorSetCreation& SetName(const String& name);
 
-	ResourceHandle				resources[MAX_DESCRIPTORS_PER_SET];
-	SamplerHandle				samplers[MAX_DESCRIPTORS_PER_SET];
+	//Resource*					resources[MAX_DESCRIPTORS_PER_SET];
+	Sampler*					samplers[MAX_DESCRIPTORS_PER_SET];
 	U16							bindings[MAX_DESCRIPTORS_PER_SET];
 
-	DescriptorSetLayoutHandle	layout;
+	DescriptorSetLayout*		layout;
 	U32							numResources = 0;
 
 	String						name{ NO_INIT };
@@ -313,9 +294,9 @@ struct NH_API ShaderStateCreation
 struct NH_API RenderPassCreation
 {
 	RenderPassCreation& Reset();
-	RenderPassCreation& AddRenderTexture(TextureHandle texture);
+	RenderPassCreation& AddRenderTexture(Texture* texture);
 	RenderPassCreation& SetScaling(F32 scaleX, F32 scaleY, U8 resize);
-	RenderPassCreation& SetDepthStencilTexture(TextureHandle texture);
+	RenderPassCreation& SetDepthStencilTexture(Texture* texture);
 	RenderPassCreation& SetName(const String& name);
 	RenderPassCreation& SetType(RenderPassType type);
 	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
@@ -323,8 +304,8 @@ struct NH_API RenderPassCreation
 	U16						numRenderTargets = 0;
 	RenderPassType			type = RENDER_PASS_TYPE_GEOMETRY;
 
-	TextureHandle			outputTextures[MAX_IMAGE_OUTPUTS];
-	TextureHandle			depthStencilTexture;
+	Texture*				outputTextures[MAX_IMAGE_OUTPUTS];
+	Texture*				depthStencilTexture;
 
 	F32						scaleX = 1.f;
 	F32						scaleY = 1.f;
@@ -339,7 +320,7 @@ struct NH_API RenderPassCreation
 
 struct NH_API PipelineCreation
 {
-	PipelineCreation& AddDescriptorSetLayout(DescriptorSetLayoutHandle handle);
+	PipelineCreation& AddDescriptorSetLayout(DescriptorSetLayout* handle);
 	RenderPassOutput& GetRenderPassOutput();
 
 	RasterizationCreation		rasterization;
@@ -349,7 +330,7 @@ struct NH_API PipelineCreation
 	ShaderStateCreation			shaders;
 
 	RenderPassOutput			renderPass;
-	DescriptorSetLayoutHandle	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+	DescriptorSetLayout*		descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 	const ViewportState*		viewport = nullptr;
 
 	U32							numActiveLayouts = 0;
@@ -359,19 +340,19 @@ struct NH_API PipelineCreation
 
 struct MapBufferParameters
 {
-	BufferHandle	buffer;
-	U32				offset = 0;
-	U32				size = 0;
+	Buffer*	buffer;
+	U32		offset = 0;
+	U32		size = 0;
 };
 
 struct TextureBarrier
 {
-	TextureHandle texture;
+	Texture* texture;
 };
 
 struct BufferBarrier
 {
-	BufferHandle buffer;
+	Buffer* buffer;
 };
 
 struct ExecutionBarrier

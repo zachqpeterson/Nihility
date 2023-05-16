@@ -50,17 +50,41 @@ bool Resources::Initialize()
 
 	//TODO: DummyResources
 
-	TextureCreation textureCreation{ };
-	U32 zeroValue = 0;
-	textureCreation.SetName("dummy_texture").SetSize(1, 1, 1).SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, TEXTURE_TYPE_2D).SetFlags(1, 0).SetData(&zeroValue);
-	TextureHandle dummyTexture = CreateTexture(textureCreation);
+	//TextureCreation textureCreation{ };
+	//U32 zeroValue = 0;
+	//textureCreation.SetName("dummy_texture").SetSize(1, 1, 1).SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, TEXTURE_TYPE_2D).SetFlags(1, 0).SetData(&zeroValue);
+	//TextureHandle dummyTexture = CreateTexture(textureCreation);
+	//
 
-	SamplerCreation samplerCreation{ };
-	samplerCreation.minFilter = VK_FILTER_LINEAR;
-	samplerCreation.magFilter = VK_FILTER_LINEAR;
-	samplerCreation.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreation.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	SamplerHandle dummySampler = CreateSampler(samplerCreation);
+	dummyTexture.name = "dummy_texture";
+	dummyTexture.width = 1;
+	dummyTexture.height = 1;
+	dummyTexture.depth = 1;
+	dummyTexture.type = TEXTURE_TYPE_2D;
+	dummyTexture.format = VK_FORMAT_R8G8B8A8_UNORM;
+	dummyTexture.mipmaps = 1;
+	dummyTexture.flags = 0;
+
+	U32 zero = 0;
+	Renderer::CreateTexture(&dummyTexture, &zero);
+
+	dummySampler.name = "dummy_sampler";
+	dummySampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	dummySampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	dummySampler.minFilter = VK_FILTER_LINEAR;
+	dummySampler.magFilter = VK_FILTER_LINEAR;
+
+	Renderer::CreateSampler(&dummySampler);
+
+	dummyAttributeBuffer.name = "dummy_attribute_buffer";
+	dummyAttributeBuffer.size = sizeof(Vector4) * 3;
+	dummyAttributeBuffer.typeFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	dummyAttributeBuffer.usage = RESOURCE_USAGE_IMMUTABLE;
+	dummyAttributeBuffer.globalOffset = 0;
+	dummyAttributeBuffer.parentBuffer = nullptr;
+
+	Vector4 dummyData[3]{};
+	Renderer::CreateBuffer(&dummyAttributeBuffer, dummyData);
 
 	return true;
 }
@@ -79,11 +103,31 @@ void Resources::Shutdown()
 	renderPasses.Destroy();
 }
 
-Texture* Resources::LoadTexture(const TextureCreation& info)
+Texture* Resources::CreateTexture(const TextureCreation& info)
 {
-	Texture* texture = &textures.GetInsert(info.name);
+	Texture* texture = &textures.Request(info.name);
 
 	if (!texture->name.Blank()) { return texture; }
+
+	texture->name = info.name;
+	texture->width = info.width;
+	texture->height = info.height;
+	texture->depth = info.depth;
+	texture->flags = info.flags;
+	texture->format = info.format;
+	texture->mipmaps = info.mipmaps;
+	texture->type = info.type;
+
+	Renderer::CreateTexture(texture, info.initialData);
+}
+
+Texture* Resources::LoadTexture(const String& name)
+{
+	Texture* texture = &textures.Request(name);
+
+	if (!texture->name.Blank()) { return texture; }
+
+	TextureCreation info{};
 
 	String path(TEXTURES_PATH, info.name);
 
@@ -105,7 +149,7 @@ Texture* Resources::LoadTexture(const TextureCreation& info)
 
 Sampler* Resources::CreateSampler(const SamplerCreation& info)
 {
-	Sampler* sampler = &samplers.GetInsert(info.name);
+	Sampler* sampler = &samplers.Request(info.name);
 
 	if (!sampler->name.Blank()) { return sampler; }
 
@@ -122,9 +166,9 @@ Sampler* Resources::CreateSampler(const SamplerCreation& info)
 	return sampler;
 }
 
-Buffer* Resources::CreateBuffer(const BufferCreation& info, void* data)
+Buffer* Resources::CreateBuffer(const BufferCreation& info)
 {
-	Buffer* buffer = &buffers.GetInsert(info.name);
+	Buffer* buffer = &buffers.Request(info.name);
 
 	if (!buffer->name.Blank()) { return buffer; }
 
@@ -135,14 +179,14 @@ Buffer* Resources::CreateBuffer(const BufferCreation& info, void* data)
 	buffer->globalOffset = 0;
 	buffer->parentBuffer = nullptr;
 
-	Renderer::CreateBuffer(buffer, data);
+	Renderer::CreateBuffer(buffer, info.initialData);
 
 	return buffer;
 }
 
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info)
 {
-	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.GetInsert(info.name);
+	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.Request(info.name);
 
 	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
 
@@ -162,12 +206,117 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 
 DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 {
-	DescriptorSet* descriptorSet = &descriptorSets.GetInsert(info.name);
+	DescriptorSet* descriptorSet = &descriptorSets.Request(info.name);
 
 	if (!descriptorSet->name.Blank()) { return descriptorSet; }
+
+	return descriptorSet;
 }
 
-Sampler* Resources::GetDummySampler()
+RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
+{
+	RenderPass* renderPass = &renderPasses.Request(info.name);
+
+	if (!renderPass->name.Blank()) { return renderPass; }
+
+	return renderPass;
+}
+
+Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
+{
+	Pipeline* pipeline = &pipelines.Request(info.name);
+
+	if (!pipeline->name.Blank()) { return pipeline; }
+
+	return pipeline;
+}
+
+Sampler* Resources::AccessDummySampler()
+{
+	return &dummySampler;
+}
+
+Texture* Resources::AccessDummyTexture()
+{
+	return &dummyTexture;
+}
+
+Buffer* Resources::AccessDummyAttributeBuffer()
+{
+	&dummyAttributeBuffer;
+}
+
+Sampler* Resources::AccessSampler(const String& name)
+{
+
+}
+
+Texture* Resources::AccessTexture(const String& name)
+{
+
+}
+
+DescriptorSetLayout* Resources::AccessDescriptorSetLayout(const String& name)
+{
+
+}
+
+DescriptorSet* Resources::AccessDescriptorSet(const String& name)
+{
+
+}
+
+ShaderState* Resources::AccessShaderState(const String& name)
+{
+
+}
+
+RenderPass* Resources::AccessRenderPass(const String& name)
+{
+
+}
+
+Pipeline* Resources::AccessPipeline(const String& name)
+{
+
+}
+
+void Resources::DestroyBuffer(Buffer* buffer)
+{
+
+}
+
+void Resources::DestroyTexture(Texture* texture)
+{
+
+}
+
+void Resources::DestroyPipeline(Pipeline* pipeline)
+{
+
+}
+
+void Resources::DestroySampler(Sampler* sampler)
+{
+
+}
+
+void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
+{
+
+}
+
+void Resources::DestroyDescriptorSet(DescriptorSet* set)
+{
+
+}
+
+void Resources::DestroyRenderPass(RenderPass* renderPass)
+{
+
+}
+
+void Resources::DestroyShaderState(ShaderState* shader)
 {
 
 }

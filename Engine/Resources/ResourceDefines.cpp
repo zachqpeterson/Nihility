@@ -125,7 +125,7 @@ DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::Reset()
 	return *this;
 }
 
-DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::AddBinding(const Binding& binding)
+DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::AddBinding(const DescriptorBinding& binding)
 {
 	bindings[numBindings++] = binding;
 	return *this;
@@ -152,34 +152,34 @@ DescriptorSetCreation& DescriptorSetCreation::Reset()
 	return *this;
 }
 
-DescriptorSetCreation& DescriptorSetCreation::SetLayout(DescriptorSetLayoutHandle layout)
+DescriptorSetCreation& DescriptorSetCreation::SetLayout(DescriptorSetLayout* layout)
 {
 	this->layout = layout;
 	return *this;
 }
 
-DescriptorSetCreation& DescriptorSetCreation::Texture(TextureHandle texture, U16 binding)
+DescriptorSetCreation& DescriptorSetCreation::SetTexture(Texture* texture, U16 binding)
 {
 	// Set a default sampler
-	samplers[numResources] = INVALID_SAMPLER;
+	samplers[numResources] = nullptr;
 	bindings[numResources] = binding;
-	resources[numResources++] = texture.index;
+	//resources[numResources++] = texture;
 	return *this;
 }
 
-DescriptorSetCreation& DescriptorSetCreation::Buffer(BufferHandle buffer, U16 binding)
+DescriptorSetCreation& DescriptorSetCreation::SetBuffer(Buffer* buffer, U16 binding)
 {
-	samplers[numResources] = INVALID_SAMPLER;
+	samplers[numResources] = nullptr;
 	bindings[numResources] = binding;
-	resources[numResources++] = buffer.index;
+	//resources[numResources++] = buffer;
 	return *this;
 }
 
-DescriptorSetCreation& DescriptorSetCreation::TextureSampler(TextureHandle texture, SamplerHandle sampler, U16 binding)
+DescriptorSetCreation& DescriptorSetCreation::SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding)
 {
-	bindings[numResources] = binding;
-	resources[numResources] = texture.index;
 	samplers[numResources++] = sampler;
+	bindings[numResources] = binding;
+	//resources[numResources] = texture;
 	return *this;
 }
 
@@ -265,7 +265,7 @@ RenderPassOutput& RenderPassOutput::SetOperations(RenderPassOperation color, Ren
 RenderPassCreation& RenderPassCreation::Reset()
 {
 	numRenderTargets = 0;
-	depthStencilTexture = INVALID_TEXTURE;
+	depthStencilTexture = nullptr;
 	resize = 0;
 	scaleX = 1.f;
 	scaleY = 1.f;
@@ -274,7 +274,7 @@ RenderPassCreation& RenderPassCreation::Reset()
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::AddRenderTexture(TextureHandle texture)
+RenderPassCreation& RenderPassCreation::AddRenderTexture(Texture* texture)
 {
 	outputTextures[numRenderTargets++] = texture;
 
@@ -290,7 +290,7 @@ RenderPassCreation& RenderPassCreation::SetScaling(F32 scaleX, F32 scaleY, U8 re
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetDepthStencilTexture(TextureHandle texture)
+RenderPassCreation& RenderPassCreation::SetDepthStencilTexture(Texture* texture)
 {
 	depthStencilTexture = texture;
 
@@ -322,7 +322,7 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 
 // PIPELINE CREATION
 
-PipelineCreation& PipelineCreation::AddDescriptorSetLayout(DescriptorSetLayoutHandle handle)
+PipelineCreation& PipelineCreation::AddDescriptorSetLayout(DescriptorSetLayout* handle)
 {
 	descriptorSetLayouts[numActiveLayouts++] = handle;
 	return *this;

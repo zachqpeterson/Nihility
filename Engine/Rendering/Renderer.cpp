@@ -117,16 +117,9 @@ void Renderer::Shutdown()
 
 	Profiler::Shutdown();
 
+	Resources::Shutdown();
 
-
-	DestroyTexture(depthTexture);
-	DestroyBuffer(fullscreenVertexBuffer);
-	DestroyBuffer(dynamicBuffer);
-	DestroyRenderPass(swapchainPass);
-	DestroyTexture(dummyTexture);
-	DestroyBuffer(dummyConstantBuffer);
-	DestroySampler(defaultSampler);
-
+	//TODO: Move to Resources
 	while (resourceDeletionQueue.Size())
 	{
 		ResourceUpdate resourceDeletion;
@@ -547,26 +540,26 @@ bool Renderer::CreatePrimitiveResources()
 	SamplerCreation sc{};
 	sc.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
 		.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR).SetName("Sampler Default");
-	defaultSampler = CreateSampler(sc);
+	defaultSampler = Resources::CreateSampler(sc);
 
 	BufferCreation fullscreenVbCreation{ VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 0, nullptr, "Fullscreen_vb" };
-	fullscreenVertexBuffer = CreateBuffer(fullscreenVbCreation);
+	fullscreenVertexBuffer = Resources::CreateBuffer(fullscreenVbCreation);
 
 	TextureCreation depthTextureCreation{ nullptr, swapchainWidth, swapchainHeight, 1, 1, 0, VK_FORMAT_D32_SFLOAT, TEXTURE_TYPE_2D, "DepthImage_Texture" };
-	depthTexture = CreateTexture(depthTextureCreation);
+	depthTexture = Resources::CreateTexture(depthTextureCreation);
 
 	swapchainOutput.Depth(VK_FORMAT_D32_SFLOAT);
 
 	RenderPassCreation swapchainPassCreation{};
 	swapchainPassCreation.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
 	swapchainPassCreation.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
-	swapchainPass = CreateRenderPass(swapchainPassCreation);
+	swapchainPass = Resources::CreateRenderPass(swapchainPassCreation);
 
 	TextureCreation dummyTextureCreation = { nullptr, 1, 1, 1, 1, 0, VK_FORMAT_R8_UINT, TEXTURE_TYPE_2D };
-	dummyTexture = CreateTexture(dummyTextureCreation);
+	dummyTexture = Resources::CreateTexture(dummyTextureCreation);
 
 	BufferCreation dummyConstantBufferCreation = { VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 16, nullptr, "Dummy_cb" };
-	dummyConstantBuffer = CreateBuffer(dummyConstantBufferCreation);
+	dummyConstantBuffer = Resources::CreateBuffer(dummyConstantBufferCreation);
 
 #if defined(_MSC_VER)
 	ExpandEnvironmentStringsA("%VULKAN_SDK%", binariesPath, 512);
@@ -582,7 +575,7 @@ bool Renderer::CreatePrimitiveResources()
 	BufferCreation bc;
 	bc.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, dynamicPerFrameSize * MAX_SWAPCHAIN_IMAGES).
 		SetName("Dynamic_Persistent_Buffer");
-	dynamicBuffer = CreateBuffer(bc);
+	dynamicBuffer = Resources::CreateBuffer(bc);
 
 	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
 	dynamicMappedMemory = (U8*)MapBuffer(cbMap);
@@ -2186,7 +2179,7 @@ ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creatio
 	return handle;
 }
 
-void Renderer::DestroyBuffer(BufferHandle buffer)
+void Renderer::DestroyBuffer(Buffer* buffer)
 {
 	if (buffer.index < Resources::buffers.ResourceCount)
 	{

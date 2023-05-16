@@ -5,6 +5,8 @@
 #include "Memory\Memory.hpp"
 #include "Math\Hash.hpp"
 
+typedef U64 HashHandle;
+
 template<class Key, class Value>
 struct NH_API Hashmap
 {
@@ -67,7 +69,9 @@ public:
 	bool Remove(const Key& key);
 	bool Remove(const Key& key, Value&& value) noexcept;
 	Value& Get(const Key& key);
-	Value& GetInsert(const Key& key);
+	Value& Request(const Key& key);
+	HashHandle GetHandle(const Key& key);
+	Value& Obtain(HashHandle handle);
 
 	Value& operator[](const Key& key);
 	const Value& operator[](const Key& key) const;
@@ -272,7 +276,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Get(const Ke
 	else { return defVal; }
 }
 
-template<class Key, class Value> inline Value& Hashmap<Key, Value>::GetInsert(const Key& key)
+template<class Key, class Value> inline Value& Hashmap<Key, Value>::Request(const Key& key)
 {
 	U64 hash;
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
@@ -284,6 +288,26 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::GetInsert(co
 
 	cell->filled = true;
 	return cell->value;
+}
+
+template<class Key, class Value> inline HashHandle Hashmap<Key, Value>::GetHandle(const Key& key)
+{
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else { hash = Hash::Calculate(key); }
+
+	U32 i = 0;
+	HashHandle handle = 0;
+	Cell* cell = cells + (hash % capacity);
+	while (cell->key != key && cell->filled) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
+
+	if (cell->filled) { return handle; }
+	else { return U64_MAX; }
+}
+
+template<class Key, class Value> inline Value& Hashmap<Key, Value>::Obtain(HashHandle handle)
+{
+	return cells[handle].value;
 }
 
 template<class Key, class Value> inline Value& Hashmap<Key, Value>::operator[](const Key& key)

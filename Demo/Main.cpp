@@ -135,13 +135,7 @@ bool Init()
 
 	Vector<MeshDraw> meshDraws{ scene.meshesCount };
 
-	Vector<BufferHandle> customMeshBuffers{ 8 };
-
-	Vector4 dummyData[3]{ };
-	BufferCreation bufferCreation{ };
-	bufferCreation.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, sizeof(Vector4) * 3).SetData(dummyData).SetName("dummy_attribute_buffer");
-
-	Buffer* dummyAttributeBuffer = Resources::CreateBuffer(bufferCreation);
+	Vector<Buffer*> customMeshBuffers{ 8 };
 
 	// Create pipeline state
 	PipelineCreation pipelineCreation;
@@ -188,7 +182,7 @@ bool Init()
 	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("cube_cb");
 	cubeConstantBuffer = Resources::CreateBuffer(bufferCreation);
 
-	cubePipeline = Renderer::CreatePipeline(pipelineCreation);
+	cubePipeline = Resources::CreatePipeline(pipelineCreation);
 
 	Vector<MeshDraw> meshDraws;
 
@@ -205,8 +199,8 @@ bool Init()
 		meshDraw.indexType = indicesAccessor.componentType == Accessor::UNSIGNED_INT ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
 
 		BufferView& indices_buffer_view = scene.bufferViews[indicesAccessor.bufferView];
-		BufferResource& indices_buffer_gpu = buffers[indicesAccessor.bufferView];
-		meshDraw.indexBuffer = indices_buffer_gpu.handle;
+		Buffer* indices_buffer_gpu = buffers[indicesAccessor.bufferView];
+		meshDraw.indexBuffer = indices_buffer_gpu;
 		meshDraw.indexOffset = indicesAccessor.byteOffset == I32_MAX ? 0 : indicesAccessor.byteOffset;
 		meshDraw.count = indicesAccessor.count;
 		ASSERT((meshDraw.count % 3) == 0);
@@ -217,7 +211,8 @@ bool Init()
 		I32 texcoord_accessor_index = gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "TEXCOORD_0");
 
 		Vector3* position_data = nullptr;
-		U32* index_data_32 = (U32*)get_buffer_data(scene.bufferViews, indicesAccessor.bufferView, buffers_data);
+		String name{ NO_INIT };
+		U32* index_data_32 = (U32*)GetBufferData(scene.bufferViews, indicesAccessor.bufferView, buffersData, name);
 		U16* index_data_16 = (U16*)index_data_32;
 		U32 vertex_count = 0;
 
@@ -225,14 +220,14 @@ bool Init()
 		{
 			Accessor& position_accessor = scene.accessors[position_accessor_index];
 			BufferView& position_buffer_view = scene.bufferViews[position_accessor.bufferView];
-			BufferResource& position_buffer_gpu = buffers[position_accessor.bufferView];
+			Buffer* position_buffer_gpu = buffers[position_accessor.bufferView];
 
 			vertex_count = position_accessor.count;
 
-			meshDraw.positionBuffer = position_buffer_gpu.handle;
+			meshDraw.positionBuffer = position_buffer_gpu;
 			meshDraw.positionOffset = position_accessor.byteOffset == I32_MAX ? 0 : position_accessor.byteOffset;
 
-			position_data = (vec3s*)get_buffer_data(scene.bufferViews, position_accessor.bufferView, buffers_data);
+			position_data = (Vector3*)GetBufferData(scene.bufferViews, position_accessor.bufferView, buffersData, name);
 		}
 		else
 		{
@@ -244,9 +239,9 @@ bool Init()
 		{
 			Accessor& normal_accessor = scene.accessors[normal_accessor_index];
 			BufferView& normal_buffer_view = scene.bufferViews[normal_accessor.bufferView];
-			BufferResource& normal_buffer_gpu = buffers[normal_accessor.bufferView];
+			Buffer* normal_buffer_gpu = buffers[normal_accessor.bufferView];
 
-			meshDraw.normalBuffer = normal_buffer_gpu.handle;
+			meshDraw.normalBuffer = normal_buffer_gpu;
 			meshDraw.normalOffset = normal_accessor.byteOffset == I32_MAX ? 0 : normal_accessor.byteOffset;
 		}
 		else
@@ -283,10 +278,10 @@ bool Init()
 			BufferCreation normals_creation{ };
 			normals_creation.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, normalsArray.Size() * sizeof(Vector3)).SetName("normals").SetData(normalsArray.Data());
 
-			meshDraw.normalBuffer = Renderer::CreateBuffer(normals_creation);
+			meshDraw.normalBuffer = Resources::CreateBuffer(normals_creation);
 			meshDraw.normalOffset = 0;
 
-			custom_mesh_buffers.push(meshDraw.normalBuffer);
+			customMeshBuffers.Push(meshDraw.normalBuffer);
 
 			normalsArray.Destroy();
 		}
@@ -295,9 +290,9 @@ bool Init()
 		{
 			Accessor& tangent_accessor = scene.accessors[tangent_accessor_index];
 			BufferView& tangent_buffer_view = scene.bufferViews[tangent_accessor.bufferView];
-			BufferResource& tangent_buffer_gpu = buffers[tangent_accessor.bufferView];
+			Buffer* tangent_buffer_gpu = buffers[tangent_accessor.bufferView];
 
-			meshDraw.tangentBuffer = tangent_buffer_gpu.handle;
+			meshDraw.tangentBuffer = tangent_buffer_gpu;
 			meshDraw.tangentOffset = tangent_accessor.byteOffset == I32_MAX ? 0 : tangent_accessor.byteOffset;
 
 			meshDraw.materialData.flags |= MaterialFeatures_TangentVertexAttribute;
@@ -307,9 +302,9 @@ bool Init()
 		{
 			Accessor& texcoord_accessor = scene.accessors[texcoord_accessor_index];
 			BufferView& texcoord_buffer_view = scene.bufferViews[texcoord_accessor.bufferView];
-			BufferResource& texcoord_buffer_gpu = buffers[texcoord_accessor.bufferView];
+			Buffer* texcoord_buffer_gpu = buffers[texcoord_accessor.bufferView];
 
-			meshDraw.texcoordBuffer = texcoord_buffer_gpu.handle;
+			meshDraw.texcoordBuffer = texcoord_buffer_gpu;
 			meshDraw.texcoordOffset = texcoord_accessor.byteOffset == I32_MAX ? 0 : texcoord_accessor.byteOffset;
 
 			meshDraw.materialData.flags |= MaterialFeatures_TexcoordVertexAttribute;
@@ -320,11 +315,11 @@ bool Init()
 
 		// Descriptor Set
 		DescriptorSetCreation ds_creation{};
-		ds_creation.SetLayout(cubeDescriptorSetLayout).Buffer(cubeConstantBuffer, 0);
+		ds_creation.SetLayout(cubeDescriptorSetLayout).SetBuffer(cubeConstantBuffer, 0);
 
 		bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MaterialData)).SetName("material");
-		meshDraw.materialBuffer = Renderer::CreateBuffer(bufferCreation);
-		ds_creation.Buffer(meshDraw.materialBuffer, 1);
+		meshDraw.materialBuffer = Resources::CreateBuffer(bufferCreation);
+		ds_creation.SetBuffer(meshDraw.materialBuffer, 1);
 
 		if (material.pbrMetallicRoughness != nullptr)
 		{
@@ -346,42 +341,42 @@ bool Init()
 
 			if (material.pbrMetallicRoughness->baseColorTexture != nullptr)
 			{
-				Texture& diffuseTexture = scene.textures[material.pbrMetallicRoughness->baseColorTexture->index];
-				TextureResource& diffuseTextureGpu = images[diffuseTexture.source];
+				TextureScene& diffuseTexture = scene.textures[material.pbrMetallicRoughness->baseColorTexture->index];
+				Texture* diffuseTextureGpu = images[diffuseTexture.source];
 
-				SamplerHandle sampler_handle = dummySampler;
-				if (diffuseTexture.sampler != I32_MAX)
+				Sampler* sampler = Resources::AccessDummySampler();
+				if (diffuseTexture.sampler != U32_MAX)
 				{
-					sampler_handle = samplers[diffuseTexture.sampler].handle;
+					sampler = samplers[diffuseTexture.sampler];
 				}
 
-				ds_creation.TextureSampler(diffuseTextureGpu.handle, sampler_handle, 2);
+				ds_creation.SetTextureSampler(diffuseTextureGpu, sampler, 2);
 
 				meshDraw.materialData.flags |= MaterialFeatures_ColorTexture;
 			}
 			else
 			{
-				ds_creation.TextureSampler(dummyTexture, dummySampler, 2);
+				ds_creation.SetTextureSampler(Resources::AccessDummyTexture(), Resources::AccessDummySampler(), 2);
 			}
 
 			if (material.pbrMetallicRoughness->metallicRoughnessTexture != nullptr)
 			{
-				Texture& roughnessTexture = scene.textures[material.pbrMetallicRoughness->metallicRoughnessTexture->index];
-				TextureResource& roughness_texture_gpu = images[roughnessTexture.source];
+				TextureScene& roughnessTexture = scene.textures[material.pbrMetallicRoughness->metallicRoughnessTexture->index];
+				Texture* roughness_texture_gpu = images[roughnessTexture.source];
 
-				SamplerHandle sampler_handle = dummySampler;
+				Sampler* sampler = Resources::AccessDummySampler();
 				if (roughnessTexture.sampler != I32_MAX)
 				{
-					sampler_handle = samplers[roughnessTexture.sampler].handle;
+					sampler = samplers[roughnessTexture.sampler];
 				}
 
-				ds_creation.TextureSampler(roughness_texture_gpu.handle, sampler_handle, 3);
+				ds_creation.SetTextureSampler(roughness_texture_gpu, sampler, 3);
 
 				meshDraw.materialData.flags |= MaterialFeatures_RoughnessTexture;
 			}
 			else
 			{
-				ds_creation.TextureSampler(dummyTexture, dummySampler, 3);
+				ds_creation.SetTextureSampler(Resources::AccessDummyTexture(), Resources::AccessDummySampler(), 3);
 			}
 
 			if (material.pbrMetallicRoughness->metallicFactor != F32_MAX)
@@ -405,19 +400,19 @@ bool Init()
 
 		if (material.occlusionTexture != nullptr)
 		{
-			Texture& occlusionTexture = scene.textures[material.occlusionTexture->index];
+			TextureScene& occlusionTexture = scene.textures[material.occlusionTexture->index];
 
 			// NOTE(marco): this could be the same as the roughness texture, but for now we treat it as a separate
 			// texture
-			TextureResource& occlusion_texture_gpu = images[occlusionTexture.source];
+			Texture* occlusion_texture_gpu = images[occlusionTexture.source];
 
-			SamplerHandle sampler_handle = dummySampler;
+			Sampler* sampler = Resources::AccessDummySampler();
 			if (occlusionTexture.sampler != I32_MAX)
 			{
-				sampler_handle = samplers[occlusionTexture.sampler].handle;
+				sampler = samplers[occlusionTexture.sampler];
 			}
 
-			ds_creation.TextureSampler(occlusion_texture_gpu.handle, sampler_handle, 4);
+			ds_creation.SetTextureSampler(occlusion_texture_gpu, sampler, 4);
 
 			meshDraw.materialData.occlusionFactor = material.occlusionTexture->strength != F32_MAX ? material.occlusionTexture->strength : 1.0f;
 			meshDraw.materialData.flags |= MaterialFeatures_OcclusionTexture;
@@ -425,7 +420,7 @@ bool Init()
 		else
 		{
 			meshDraw.materialData.occlusionFactor = 1.0f;
-			ds_creation.TextureSampler(dummyTexture, dummySampler, 4);
+			ds_creation.SetTextureSampler(Resources::AccessDummyTexture(), Resources::AccessDummySampler(), 4);
 		}
 
 		if (material.emissiveFactorCount != 0)
@@ -439,48 +434,48 @@ bool Init()
 
 		if (material.emissiveTexture != nullptr)
 		{
-			Texture& emissiveTexture = scene.textures[material.emissiveTexture->index];
+			TextureScene& emissiveTexture = scene.textures[material.emissiveTexture->index];
 
 			// NOTE(marco): this could be the same as the roughness texture, but for now we treat it as a separate
 			// texture
-			TextureResource& emissive_texture_gpu = images[emissiveTexture.source];
+			Texture* emissive_texture_gpu = images[emissiveTexture.source];
 
-			SamplerHandle sampler_handle = dummySampler;
+			Sampler* sampler = Resources::AccessDummySampler();
 			if (emissiveTexture.sampler != I32_MAX)
 			{
-				sampler_handle = samplers[emissiveTexture.sampler].handle;
+				sampler = samplers[emissiveTexture.sampler];
 			}
 
-			ds_creation.TextureSampler(emissive_texture_gpu.handle, sampler_handle, 5);
+			ds_creation.SetTextureSampler(emissive_texture_gpu, sampler, 5);
 
 			meshDraw.materialData.flags |= MaterialFeatures_EmissiveTexture;
 		}
 		else
 		{
-			ds_creation.TextureSampler(dummyTexture, dummySampler, 5);
+			ds_creation.SetTextureSampler(Resources::AccessDummyTexture(), Resources::AccessDummySampler(), 5);
 		}
 
 		if (material.normalTexture != nullptr)
 		{
-			Texture& normalTexture = scene.textures[material.normalTexture->index];
-			TextureResource& normal_texture_gpu = images[normal_texture.source];
+			TextureScene& normalTexture = scene.textures[material.normalTexture->index];
+			Texture* normal_texture_gpu = images[normalTexture.source];
 
-			SamplerHandle sampler_handle = dummySampler;
+			Sampler* sampler = Resources::AccessDummySampler();
 			if (normalTexture.sampler != I32_MAX)
 			{
-				sampler_handle = samplers[normalTexture.sampler].handle;
+				sampler = samplers[normalTexture.sampler];
 			}
 
-			ds_creation.TextureSampler(normal_texture_gpu.handle, sampler_handle, 6);
+			ds_creation.SetTextureSampler(normal_texture_gpu, sampler, 6);
 
 			meshDraw.materialData.flags |= MaterialFeatures_NormalTexture;
 		}
 		else
 		{
-			ds_creation.TextureSampler(dummyTexture, dummySampler, 6);
+			ds_creation.SetTextureSampler(Resources::AccessDummyTexture(), Resources::AccessDummySampler(), 6);
 		}
 
-		meshDraw.descriptorSet = Renderer::CreateDescriptorSet(ds_creation);
+		meshDraw.descriptorSet = Resources::CreateDescriptorSet(ds_creation);
 
 		meshDraws.Push(meshDraw);
 	}
@@ -575,7 +570,7 @@ void Update()
 	}
 	else
 	{
-		commands->BindVertexBuffer(dummyAttributeBuffer, 1, 0);
+		commands->BindVertexBuffer(Resources::AccessDummyAttributeBuffer(), 1, 0);
 	}
 
 	if (meshDraw.materialData.flags & MaterialFeatures_TexcoordVertexAttribute)
@@ -584,7 +579,7 @@ void Update()
 	}
 	else
 	{
-		commands->BindVertexBuffer(dummyAttributeBuffer, 3, 0);
+		commands->BindVertexBuffer(Resources::AccessDummyAttributeBuffer(), 3, 0);
 	}
 
 	commands->BindIndexBuffer(meshDraw.indexBuffer, meshDraw.indexOffset, meshDraw.indexType);
