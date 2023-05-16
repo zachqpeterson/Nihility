@@ -808,7 +808,7 @@ void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 	DesciptorSet* dummyDeleteDescriptorSet = AccessDescriptorSet(dummyDeleteDescriptorSetHandle);
 
 	DesciptorSet* descriptorSet = AccessDescriptorSet(update.descriptorSet);
-	const DesciptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+	const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
 
 	dummyDeleteDescriptorSet->descriptorSet = descriptorSet->descriptorSet;
 	dummyDeleteDescriptorSet->bindings = nullptr;
@@ -1011,7 +1011,7 @@ void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage imag
 	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void Renderer::FillWriteDescriptorSets(const DesciptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
+void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 	VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 	VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings)
 {
@@ -1971,39 +1971,20 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 	return handle;
 }
 
-DescriptorSetLayoutHandle Renderer::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& creation)
+bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout)
 {
-	U32 resourceIndex = Resources::descriptorSetLayouts.ObtainResource();
-	DescriptorSetLayoutHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	DesciptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(handle);
-
-	// TODO: add support for multiple sets.
-	// Create flattened binding list
-	descriptorSetLayout->numBindings = (U16)creation.numBindings;
-	U8* memory;
-	Memory::AllocateSize(&memory, (sizeof(VkDescriptorSetLayoutBinding) + sizeof(DescriptorBinding)) * creation.numBindings);
-	descriptorSetLayout->bindings = (DescriptorBinding*)memory;
-	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * creation.numBindings);
-	descriptorSetLayout->handle = handle;
-	descriptorSetLayout->setIndex = (U16)creation.setIndex;
-
-	U32 used_bindings = 0;
-	for (U32 r = 0; r < creation.numBindings; ++r)
+	U32 usedBindings = 0;
+	for (U32 r = 0; r < descriptorSetLayout->numBindings; ++r)
 	{
 		DescriptorBinding& binding = descriptorSetLayout->bindings[r];
-		const DescriptorSetLayoutCreation::Binding& inputBinding = creation.bindings[r];
-		binding.start = inputBinding.start == U16_MAX ? (U16)r : inputBinding.start;
+		binding.start = binding.start == U16_MAX ? (U16)r : binding.start;
 		binding.count = 1;
-		binding.type = inputBinding.type;
-		binding.name = inputBinding.name;
 
-		VkDescriptorSetLayoutBinding& vkBinding = descriptorSetLayout->binding[used_bindings];
-		++used_bindings;
+		VkDescriptorSetLayoutBinding& vkBinding = descriptorSetLayout->binding[usedBindings];
+		++usedBindings;
 
 		vkBinding.binding = binding.start;
-		vkBinding.descriptorType = inputBinding.type;
+		vkBinding.descriptorType = binding.type;
 		vkBinding.descriptorType = vkBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : vkBinding.descriptorType;
 		vkBinding.descriptorCount = 1;
 
@@ -2014,12 +1995,12 @@ DescriptorSetLayoutHandle Renderer::CreateDescriptorSetLayout(const DescriptorSe
 
 	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layout_info.bindingCount = used_bindings;// creation.numBindings;
+	layout_info.bindingCount = usedBindings;
 	layout_info.pBindings = descriptorSetLayout->binding;
 
 	vkCreateDescriptorSetLayout(device, &layout_info, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
 
-	return handle;
+	return true;
 }
 
 DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& creation)
@@ -2029,7 +2010,7 @@ DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& c
 	if (resourceIndex == INVALID_HANDLE) { return handle; }
 
 	DesciptorSet* descriptorSet = AccessDescriptorSet(handle);
-	const DesciptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(creation.layout);
+	const DescriptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(creation.layout);
 
 	// Allocate descriptor set
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -2356,7 +2337,7 @@ void Renderer::DestroySamplerInstant(ResourceHandle sampler)
 
 void Renderer::DestroyDescriptorSetLayoutInstant(ResourceHandle layout)
 {
-	DesciptorSetLayout* vkDescriptorSetLayout = Resources::descriptorSetLayouts.GetResource(layout);
+	DescriptorSetLayout* vkDescriptorSetLayout = Resources::descriptorSetLayouts.GetResource(layout);
 
 	if (vkDescriptorSetLayout)
 	{
@@ -2431,7 +2412,7 @@ Sampler* Renderer::AccessSampler(SamplerHandle sampler)
 	return Resources::samplers.GetResource(sampler.index);
 }
 
-DesciptorSetLayout* Renderer::AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout)
+DescriptorSetLayout* Renderer::AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout)
 {
 	return Resources::descriptorSetLayouts.GetResource(layout.index);
 }

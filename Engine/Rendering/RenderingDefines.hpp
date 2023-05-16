@@ -799,8 +799,8 @@ struct ViewportState
 	U32			numViewports = 0;
 	U32			numScissors = 0;
 
-	Viewport*	viewport = nullptr;
-	Rect2DInt*	scissors = nullptr;
+	Viewport* viewport = nullptr;
+	Rect2DInt* scissors = nullptr;
 };
 
 struct StencilOperationState
@@ -832,9 +832,9 @@ struct VertexStream
 //TODO: Temporary export
 struct NH_API VertexInputCreation
 {
-	VertexInputCreation&	Reset();
-	VertexInputCreation&	AddVertexStream(const VertexStream& stream);
-	VertexInputCreation&	AddVertexAttribute(const VertexAttribute& attribute);
+	VertexInputCreation& Reset();
+	VertexInputCreation& AddVertexStream(const VertexStream& stream);
+	VertexInputCreation& AddVertexAttribute(const VertexAttribute& attribute);
 
 	U32						numVertexStreams = 0;
 	U32						numVertexAttributes = 0;
@@ -848,7 +848,7 @@ struct NH_API DepthStencilCreation
 {
 	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
 
-	DepthStencilCreation&	SetDepth(bool write, VkCompareOp comparison_test);
+	DepthStencilCreation& SetDepth(bool write, VkCompareOp comparison_test);
 
 	StencilOperationState	front;
 	StencilOperationState	back;
@@ -864,9 +864,9 @@ struct BlendState
 {
 	BlendState() : blendEnabled{ 0 }, separateBlend{ 0 } {}
 
-	BlendState&				SetColor(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
-	BlendState&				SetAlpha(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
-	BlendState&				SetColorWriteMask(ColorWriteEnableMask value);
+	BlendState& SetColor(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
+	BlendState& SetAlpha(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
+	BlendState& SetColorWriteMask(ColorWriteEnableMask value);
 
 	VkBlendFactor			sourceColor = VK_BLEND_FACTOR_ONE;
 	VkBlendFactor			destinationColor = VK_BLEND_FACTOR_ONE;
@@ -885,8 +885,8 @@ struct BlendState
 
 struct BlendStateCreation
 {
-	BlendStateCreation&	Reset();
-	BlendState&			AddBlendState();
+	BlendStateCreation& Reset();
+	BlendState& AddBlendState();
 
 	BlendState			blendStates[MAX_IMAGE_OUTPUTS];
 	U32					activeStates = 0;
@@ -909,10 +909,9 @@ struct ShaderStage
 
 struct DescriptorBinding
 {
+	String				name{ NO_INIT };
 	VkDescriptorType	type;
 	U16					start = 0;
 	U16					count = 0;
 	U16					set = 0;
-
-	CSTR				name = nullptr;
 };

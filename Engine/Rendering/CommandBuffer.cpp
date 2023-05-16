@@ -104,7 +104,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSetHandle* handles, U32 numLists
 		descriptorSets[l] = descriptorSet->descriptorSet;
 
 		// Search for dynamic buffers
-		const DesciptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+		const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
 		for (U32 i = 0; i < descriptorSetLayout->numBindings; ++i)
 		{
 			const DescriptorBinding& rb = descriptorSetLayout->bindings[i];

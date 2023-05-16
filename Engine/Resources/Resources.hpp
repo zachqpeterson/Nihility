@@ -334,7 +334,9 @@ class NH_API Resources
 public:
 	static Sampler* CreateSampler(const SamplerCreation& info);
 	static Texture* CreateTexture(const TextureCreation& info);
-	static Buffer* CreateBuffer(const BufferCreation& info, void* data = nullptr);
+	static Buffer* CreateBuffer(const BufferCreation& info);
+	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
+	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
 
 	static Sampler* GetDummySampler();
 	static Texture* GetDummyTexture();
@@ -362,7 +364,7 @@ private:
 	NH_HEADER_STATIC Hashmap<String, Buffer>				buffers{ 4096, {} };
 	NH_HEADER_STATIC Hashmap<String, Pipeline>				pipelines{ 128, {} };
 	NH_HEADER_STATIC Hashmap<String, Sampler>				samplers{ 32, {} };
-	NH_HEADER_STATIC Hashmap<String, DesciptorSetLayout>	descriptorSetLayouts{ 128, {} };
+	NH_HEADER_STATIC Hashmap<String, DescriptorSetLayout>	descriptorSetLayouts{ 128, {} };
 	NH_HEADER_STATIC Hashmap<String, DesciptorSet>			descriptorSets{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, RenderPass>			renderPasses{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
