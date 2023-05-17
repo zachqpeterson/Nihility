@@ -2,7 +2,7 @@
 
 #include "ResourceDefines.hpp"
 
-#include "ResourcePool.hpp"
+#include "Scene.hpp"
 
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
@@ -335,7 +335,6 @@ class NH_API Resources
 public:
 	static Sampler* CreateSampler(const SamplerCreation& info);
 	static Texture* CreateTexture(const TextureCreation& info);
-	static Texture* RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 	static Texture* LoadTexture(const String& name);
 	static Buffer* CreateBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
@@ -343,6 +342,7 @@ public:
 	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
 	static RenderPass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const PipelineCreation& info);
+	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
@@ -394,6 +394,7 @@ private:
 	NH_HEADER_STATIC Hashmap<String, DescriptorSet>			descriptorSets{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, RenderPass>			renderPasses{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
+	NH_HEADER_STATIC Hashmap<String, Scene>					scenes{ 128, {} };
 
 	NH_HEADER_STATIC Queue<ResourceDeletion>				resourceDeletionQueue{};
 

@@ -18,19 +18,6 @@ enum ResourceDeleteType
 	RESOURCE_DELETE_TYPE_COUNT
 };
 
-struct ResourceDeletion
-{
-	ResourceDeleteType	type;
-	HashHandle			handle;
-	U32					currentFrame;
-};
-
-struct DescriptorSetUpdate
-{
-	DescriptorSet*	descriptorSet;
-	U32				frameIssued = 0;
-};
-
 struct Sampler
 {
 	String					name{ NO_INIT };
@@ -75,8 +62,8 @@ struct Buffer
 
 	VkBufferUsageFlags	typeFlags = 0;
 	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
-	U32					size = 0;
-	U32					globalOffset = 0;	// Offset into global constant, if dynamic
+	U64					size = 0;
+	U64					globalOffset = 0;	// Offset into global constant, if dynamic
 
 	VkBuffer			buffer;
 	VmaAllocation_T*	allocation;
@@ -228,13 +215,13 @@ struct NH_API TextureCreation
 struct NH_API BufferCreation
 {
 	BufferCreation& Reset();
-	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U32 size);
+	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size);
 	BufferCreation& SetData(void* data);
 	BufferCreation& SetName(const String& name);
 
 	VkBufferUsageFlags	typeFlags = 0;
 	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
-	U32					size = 0;
+	U64					size = 0;
 	void*				initialData = nullptr;
 
 	String				name{ NO_INIT };
@@ -335,11 +322,24 @@ struct NH_API PipelineCreation
 	String						name{ NO_INIT };
 };
 
+struct ResourceDeletion
+{
+	ResourceDeleteType	type;
+	HashHandle			handle;
+	U32					currentFrame;
+};
+
+struct DescriptorSetUpdate
+{
+	DescriptorSet* descriptorSet;
+	U32				frameIssued = 0;
+};
+
 struct MapBufferParameters
 {
 	Buffer*	buffer;
-	U32		offset = 0;
-	U32		size = 0;
+	U64		offset = 0;
+	U64		size = 0;
 };
 
 struct TextureBarrier

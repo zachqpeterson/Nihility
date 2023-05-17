@@ -570,7 +570,7 @@ void Renderer::BeginFrame()
 	// Command pool reset
 	commandBufferRing.ResetPools(currentFrame);
 	// Dynamic memory update
-	const U32 usedSize = dynamicAllocatedSize - (dynamicPerFrameSize * previousFrame);
+	const U64 usedSize = dynamicAllocatedSize - (dynamicPerFrameSize * previousFrame);
 	dynamicMaxPerFrameSize = Math::Max(usedSize, dynamicMaxPerFrameSize);
 	dynamicAllocatedSize = dynamicPerFrameSize * currentFrame;
 
@@ -784,10 +784,10 @@ void Renderer::UnmapBuffer(const MapBufferParameters& parameters)
 	vmaUnmapMemory(allocator, parameters.buffer->allocation);
 }
 
-void* Renderer::DynamicAllocate(U32 size)
+void* Renderer::DynamicAllocate(U64 size)
 {
 	void* mappedMemory = dynamicMappedMemory + dynamicAllocatedSize;
-	dynamicAllocatedSize += (U32)Memory::MemoryAlign(size, uboAlignment);
+	dynamicAllocatedSize += Memory::MemoryAlign(size, uboAlignment);
 	return mappedMemory;
 }
 
@@ -919,7 +919,7 @@ void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage imag
 
 void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 	VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-	VkSampler vkDefaultSampler, U32& resourceCount, const ResourceHandle* resources, const Sampler** samplers, const U16* bindings)
+	VkSampler vkDefaultSampler, U32& resourceCount, void** resources, Sampler** samplers, U16* bindings)
 {
 	U32 usedResources = 0;
 	for (U32 r = 0; r < resourceCount; ++r)

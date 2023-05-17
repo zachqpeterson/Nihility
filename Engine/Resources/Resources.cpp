@@ -178,14 +178,16 @@ Texture* Resources::CreateTexture(const TextureCreation& info)
 	texture->type = info.type;
 
 	Renderer::CreateTexture(texture, info.initialData);
+
+	return texture;
 }
 
-Texture* Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
+bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
 {
-	Texture* deleteTexture;
-	deleteTexture->imageView = texture->imageView;
-	deleteTexture->image = texture->image;
-	deleteTexture->allocation = texture->allocation;
+	Texture deleteTexture;
+	deleteTexture.imageView = texture->imageView;
+	deleteTexture.image = texture->image;
+	deleteTexture.allocation = texture->allocation;
 
 	texture->width = width;
 	texture->height = height;
@@ -193,7 +195,9 @@ Texture* Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16
 
 	Renderer::CreateTexture(texture, nullptr);
 
-	Renderer::DestroyTextureInstant(deleteTexture);
+	Renderer::DestroyTextureInstant(&deleteTexture);
+
+	return true;
 }
 
 Texture* Resources::LoadTexture(const String& name)

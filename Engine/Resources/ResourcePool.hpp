@@ -2,80 +2,80 @@
 
 #include "Memory\Memory.hpp"
 
-template<class Type, ResourceHandle Count>
+template<class Type, U64 Count>
 struct ResourcePool
 {
-	static constexpr ResourceHandle ResourceSize = sizeof(Type);
-	static constexpr ResourceHandle ResourceCount = Count;
-	static constexpr ResourceHandle MemorySize = ResourceCount * (ResourceSize + sizeof(U32));
+	static constexpr U64 ResourceSize = sizeof(Type);
+	static constexpr U64 ResourceCount = Count;
+	static constexpr U64 MemorySize = ResourceCount * (ResourceSize + sizeof(U32));
 
 	void Create();
 	void Destroy();
 
-	ResourceHandle ObtainResource();
-	void ReleaseResource(ResourceHandle handle);
+	U64 ObtainResource();
+	void ReleaseResource(U64 handle);
 	void FreeResources();
 
-	Type* GetResource(ResourceHandle handle);
-	const Type* GetResource(ResourceHandle handle) const;
+	Type* GetResource(U64 handle);
+	const Type* GetResource(U64 handle) const;
 
 	Type* memory{ nullptr };
-	ResourceHandle* freeHandles{ nullptr };
-	ResourceHandle lastFree{ 0 };
+	U64* freeHandles{ nullptr };
+	U64 lastFree{ 0 };
 };
 
-template<class Type, ResourceHandle Count>
+template<class Type, U64 Count>
 inline void ResourcePool<Type, Count>::Create()
 {
 	Memory::AllocateSize(&memory, MemorySize);
-	freeHandles = (ResourceHandle*)(memory + ResourceCount * ResourceSize);
+	freeHandles = (U64*)(memory + ResourceCount * ResourceSize);
 
-	for (ResourceHandle i = 0; i < ResourceCount; ++i) { freeHandles[i] = i; }
+	for (U64 i = 0; i < ResourceCount; ++i) { freeHandles[i] = i; }
 }
 
-template<class Type, ResourceHandle Count>
+template<class Type, U64 Count>
 inline void ResourcePool<Type, Count>::Destroy()
 {
 	Memory::FreeSize(&memory);
 }
 
-template<class Type, ResourceHandle Count>
+template<class Type, U64 Count>
 inline void ResourcePool<Type, Count>::FreeResources()
 {
 	lastFree = 0;
 
-	for (ResourceHandle i = 0; i < ResourceCount; ++i) { freeHandles[i] = i; }
+	for (U64 i = 0; i < ResourceCount; ++i) { freeHandles[i] = i; }
 }
 
-template<class Type, ResourceHandle Count>
-inline ResourceHandle ResourcePool<Type, Count>::ObtainResource()
+template<class Type, U64 Count>
+inline U64 ResourcePool<Type, Count>::ObtainResource()
 {
 	// TODO: add bits for checking if resource is alive and use bitmasks.
 	if (lastFree < ResourceCount) { return freeHandles[lastFree++]; }
 
 	Logger::Error("No Free Resources Left!");
-	return INVALID_HANDLE;
+	return U64_MAX;
 }
 
-template<class Type, ResourceHandle Count>
-inline void ResourcePool<Type, Count>::ReleaseResource(ResourceHandle handle)
+template<class Type, U64 Count>
+inline void ResourcePool<Type, Count>::ReleaseResource(U64 handle)
 {
 	// TODO: add bits for checking if resource is alive and use bitmasks.
 	freeHandles[--lastFree] = handle;
 }
 
-template<class Type, ResourceHandle Count>
-inline Type* ResourcePool<Type, Count>::GetResource(ResourceHandle handle)
+template<class Type, U64 Count>
+inline Type* ResourcePool<Type, Count>::GetResource(U64 handle)
 {
-	if (handle != INVALID_HANDLE) { return &memory[handle * ResourceSize]; }
+	if (handle != U64_MAX) { return &memory[handle * ResourceSize]; }
 
 	return nullptr;
 }
 
-template<class Type, ResourceHandle Count>
-inline const Type* ResourcePool<Type, Count>::GetResource(ResourceHandle handle) const
+template<class Type, U64 Count>
+inline const Type* ResourcePool<Type, Count>::GetResource(U64 handle) const
 {
-	if (handle != INVALID_HANDLE) { return &memory[handle * ResourceSize]; }
+	if (handle != U64_MAX) { return &memory[handle * ResourceSize]; }
 
 	return nullptr;
 }

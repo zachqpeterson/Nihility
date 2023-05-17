@@ -309,10 +309,10 @@ private:
 	static I32 deltaMousePosY;
 
 	//CONTROLLER
-	static F32 axisStates[AXIS_CODE_COUNT];
+	static F32 axisStates[];
 
 	//ALL
-	static ButtonState buttonStates[BUTTON_CODE_COUNT];
+	static ButtonState buttonStates[];
 	static bool receiveInput;
 	static bool anyButtonDown;
 

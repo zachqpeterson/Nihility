@@ -93,7 +93,7 @@ BufferCreation& BufferCreation::Reset()
 	return *this;
 }
 
-BufferCreation& BufferCreation::Set(VkBufferUsageFlags flags, ResourceUsage usage, U32 size)
+BufferCreation& BufferCreation::Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size)
 {
 	typeFlags = flags;
 	this->usage = usage;

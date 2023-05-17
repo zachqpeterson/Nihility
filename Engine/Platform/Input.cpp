@@ -16,8 +16,8 @@ I32 Input::mousePosY;
 I32 Input::deltaMousePosX;
 I32 Input::deltaMousePosY;
 
-F32 Input::axisStates[AXIS_COUNT];
-Input::ButtonState Input::buttonStates[BUTTON_COUNT];
+F32 Input::axisStates[AXIS_CODE_COUNT];
+Input::ButtonState Input::buttonStates[BUTTON_CODE_COUNT];
 bool Input::receiveInput;
 bool Input::anyButtonDown;
 
@@ -173,58 +173,58 @@ void Input::ReceiveInput(HRAWINPUT handle)
 
 		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
 		{
-			buttonStates[LEFT_MOUSE].changed = true;
-			buttonStates[LEFT_MOUSE].pressed = true;
+			buttonStates[BUTTON_CODE_LEFT_MOUSE].changed = true;
+			buttonStates[BUTTON_CODE_LEFT_MOUSE].pressed = true;
 			anyButtonDown = true;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
 		{
-			buttonStates[LEFT_MOUSE].changed = true;
-			buttonStates[LEFT_MOUSE].pressed = false;
+			buttonStates[BUTTON_CODE_LEFT_MOUSE].changed = true;
+			buttonStates[BUTTON_CODE_LEFT_MOUSE].pressed = false;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
 		{
-			buttonStates[RIGHT_MOUSE].changed = true;
-			buttonStates[RIGHT_MOUSE].pressed = true;
+			buttonStates[BUTTON_CODE_RIGHT_MOUSE].changed = true;
+			buttonStates[BUTTON_CODE_RIGHT_MOUSE].pressed = true;
 			anyButtonDown = true;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
 		{
-			buttonStates[RIGHT_MOUSE].changed = true;
-			buttonStates[RIGHT_MOUSE].pressed = false;
+			buttonStates[BUTTON_CODE_RIGHT_MOUSE].changed = true;
+			buttonStates[BUTTON_CODE_RIGHT_MOUSE].pressed = false;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
 		{
-			buttonStates[MIDDLE_MOUSE].changed = true;
-			buttonStates[MIDDLE_MOUSE].pressed = true;
+			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].changed = true;
+			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].pressed = true;
 			anyButtonDown = true;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
 		{
-			buttonStates[MIDDLE_MOUSE].changed = true;
-			buttonStates[MIDDLE_MOUSE].pressed = false;
+			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].changed = true;
+			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].pressed = false;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
 		{
-			buttonStates[X_BUTTON_ONE].changed = true;
-			buttonStates[X_BUTTON_ONE].pressed = true;
+			buttonStates[BUTTON_CODE_X_MOUSE_ONE].changed = true;
+			buttonStates[BUTTON_CODE_X_MOUSE_ONE].pressed = true;
 			anyButtonDown = true;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
 		{
-			buttonStates[X_BUTTON_ONE].changed = true;
-			buttonStates[X_BUTTON_ONE].pressed = false;
+			buttonStates[BUTTON_CODE_X_MOUSE_ONE].changed = true;
+			buttonStates[BUTTON_CODE_X_MOUSE_ONE].pressed = false;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
 		{
-			buttonStates[X_BUTTON_TWO].changed = true;
-			buttonStates[X_BUTTON_TWO].pressed = true;
+			buttonStates[BUTTON_CODE_X_MOUSE_TWO].changed = true;
+			buttonStates[BUTTON_CODE_X_MOUSE_TWO].pressed = true;
 			anyButtonDown = true;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
 		{
-			buttonStates[X_BUTTON_TWO].changed = true;
-			buttonStates[X_BUTTON_TWO].pressed = false;
+			buttonStates[BUTTON_CODE_X_MOUSE_TWO].changed = true;
+			buttonStates[BUTTON_CODE_X_MOUSE_TWO].pressed = false;
 		}
 
 		if (mouse.usButtonFlags & RI_MOUSE_WHEEL) { mouseWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }

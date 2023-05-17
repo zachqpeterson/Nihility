@@ -105,10 +105,9 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 			{
 				// Search for the actual buffer offset
 				const U32 resourceIndex = descriptorSet->bindings[i];
-				ResourceHandle bufferHandle = descriptorSet->resources[resourceIndex];
-				Buffer* buffer = Renderer::AccessBuffer({ bufferHandle });
+				Buffer* buffer = (Buffer*)descriptorSet->resources[resourceIndex];
 
-				offsetsCache[numOffsets++] = buffer->globalOffset;
+				offsetsCache[numOffsets++] = (U32)buffer->globalOffset;
 			}
 		}
 	}
@@ -261,7 +260,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 
 		for (U32 i = 0; i < barrier.textureBarrierCount; ++i)
 		{
-			Texture* texture = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
+			Texture* texture = barrier.textureBarriers[i].texture;
 
 			VkImageMemoryBarrier& vkBarrier = imageBarriers[i];
 			const bool isColor = !Renderer::HasDepthOrStencil(texture->format);
@@ -310,7 +309,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 			VkBufferMemoryBarrier& vkBarrier = bufferMemoryBarriers[i];
 			vkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-			Buffer* buffer = Renderer::AccessBuffer(barrier.bufferBarriers[i].buffer);
+			Buffer* buffer = barrier.bufferBarriers[i].buffer;
 
 			vkBarrier.buffer = buffer->buffer;
 			vkBarrier.offset = 0;
@@ -383,7 +382,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 
 	for (U32 i = 0; i < barrier.textureBarrierCount; ++i)
 	{
-		Texture* texture = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
+		Texture* texture = barrier.textureBarriers[i].texture;
 
 		VkImageMemoryBarrier& vkBarrier = imageBarriers[i];
 		vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -427,7 +426,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		VkBufferMemoryBarrier& vkBarrier = bufferMemoryBarriers[i];
 		vkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-		Buffer* buffer = Renderer::AccessBuffer(barrier.bufferBarriers[i].buffer);
+		Buffer* buffer = barrier.bufferBarriers[i].buffer;
 
 		vkBarrier.buffer = buffer->buffer;
 		vkBarrier.offset = 0;

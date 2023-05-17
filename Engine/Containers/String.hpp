@@ -564,12 +564,12 @@ struct NH_API StringBase
 	template<typename PreArg, typename PostArg> void Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const;
 	void Split(Vector<StringBase>& list, T delimiter, bool trimEntries) const;
 
-	void ToUpper();
-	void ToLower();
+	StringBase& ToUpper();
+	StringBase& ToLower();
 
 	const U64& Size() const;
 	const U64& Capacity() const;
-	const U64& Hash();
+	const U64& Hash() const;
 	T* Data();
 	const T* Data() const;
 	operator T* ();
@@ -605,7 +605,6 @@ private:
 	static bool WhiteSpace(T c);
 	static bool NotWhiteSpace(T c);
 
-	bool hashed{ false };
 	U64 hash{ 0 };
 	U64 size{ 0 };
 	U64 capacity{ 0 };
@@ -620,7 +619,7 @@ inline StringBase<T, LU>::StringBase(NoInit flag) {}
 
 template<typename T, typename LU>
 template<typename Arg>
-inline StringBase<T, LU>::StringBase(const Arg& value, Hex flag) noexcept { ToString<Arg, true, false>(string, value); }
+inline StringBase<T, LU>::StringBase(const Arg& value, Hex flag) noexcept { ToString<Arg, true, false>(string, value); hash = Hash::Calculate(string, size);}
 
 template<typename T, typename LU>
 template<typename First, typename... Args>
@@ -629,6 +628,7 @@ inline StringBase<T, LU>::StringBase(const First& first, const Args& ... args) n
 	Memory::AllocateArray(&string, capacity, capacity);
 	ToString<First, false, false>(string, first);
 	(ToString<Args, false, false>(string + size, args), ...);
+	hash = Hash::Calculate(string, size);
 }
 
 template<typename T, typename LU>
@@ -641,6 +641,7 @@ inline StringBase<T, LU>::StringBase(const T* fmt, const First& first, const Arg
 	U64 start = 0;
 	Format(start, first);
 	(Format(start, args), ...);
+	hash = Hash::Calculate(string, size);
 }
 
 template<typename T, typename LU>
@@ -648,6 +649,7 @@ template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::operator=(const Arg& value) noexcept
 {
 	ToString<Arg, false, false>(string, value);
+	hash = Hash::Calculate(string, size);
 	return *this;
 }
 
@@ -656,6 +658,7 @@ template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value) noexcept
 {
 	ToString(string + size, value);
+	hash = Hash::Calculate(string, size);
 	return *this;
 }
 
@@ -668,7 +671,6 @@ inline StringBase<T, LU>::~StringBase()
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Destroy()
 {
-	hashed = false;
 	hash = 0;
 	if (string)
 	{
@@ -681,7 +683,6 @@ inline void StringBase<T, LU>::Destroy()
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Clear()
 {
-	hashed = false;
 	string[0] = LU::NULL_CHAR;
 	size = 0;
 }
@@ -707,6 +708,8 @@ template<typename T, typename LU>
 inline void StringBase<T, LU>::Resize()
 {
 	size = Length(string);
+
+	hash = Hash::Calculate(string, size);
 }
 
 template<typename T, typename LU>
@@ -848,15 +851,7 @@ template<typename T, typename LU>
 inline const U64& StringBase<T, LU>::Capacity() const { return capacity; }
 
 template<typename T, typename LU>
-inline const U64& StringBase<T, LU>::Hash()
-{
-	if (hashed) { return hash; }
-
-	hashed = true;
-	hash = Hash::Calculate(string, size);
-
-	return hash;
-}
+inline const U64& StringBase<T, LU>::Hash() const { return hash; }
 
 template<typename T, typename LU>
 inline T* StringBase<T, LU>::Data() { return string; }
@@ -909,7 +904,6 @@ inline I64 StringBase<T, LU>::LastIndexOf(const T& c, U64 start) const
 template<typename T, typename LU>
 inline StringBase<T, LU>& StringBase<T, LU>::Trim()
 {
-	hashed = false;
 	T* start = string;
 	T* end = string + size;
 	T c;
@@ -922,6 +916,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::Trim()
 	Copy(string, start, size);
 	string[size] = LU::NULL_CHAR;
 
+	hash = Hash::Calculate(string, size);
+
 	return *this;
 }
 
@@ -931,6 +927,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::Append(const Arg& append)
 {
 	ToString<Arg, false, false>(string + size, append);
 
+	hash = Hash::Calculate(string, size);
+
 	return *this;
 }
 
@@ -939,6 +937,8 @@ template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::Prepend(const Arg& prepend)
 {
 	ToString<Arg, false, true>(string, prepend);
+
+	hash = Hash::Calculate(string, size);
 
 	return *this;
 }
@@ -950,6 +950,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::Surround(const PreArg& prepend, con
 	ToString<PreArg, false, true>(string, prepend);
 	ToString<PostArg, false, false>(string + size, append);
 
+	hash = Hash::Calculate(string, size);
+
 	return *this;
 }
 
@@ -958,6 +960,8 @@ template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::Insert(const Arg& value, U64 i)
 {
 	ToString<Arg, false, true>(string + i, value);
+
+	hash = Hash::Calculate(string, size);
 
 	return *this;
 }
@@ -968,6 +972,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::Overwrite(const Arg& value, U64 i)
 {
 	ToString<Arg, false, false>(string + i, value);
 
+	hash = Hash::Calculate(string, size);
+
 	return *this;
 }
 
@@ -975,7 +981,6 @@ template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::ReplaceAll(const T* find, const Arg& replace, U64 start)
 {
-	hashed = false;
 	U64 findSize = Length(find);
 	T* it = string + start;
 	T c = *it;
@@ -989,6 +994,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::ReplaceAll(const T* find, const Arg
 
 	string[size] = LU::NULL_CHAR;
 
+	hash = Hash::Calculate(string, size);
+
 	return *this;
 }
 
@@ -996,7 +1003,6 @@ template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::ReplaceN(const T* find, const Arg& replace, U64 count, U64 start)
 {
-	hashed = false;
 	U64 findSize = Length(find);
 	T* it = string + start;
 	T c = *it;
@@ -1014,6 +1020,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::ReplaceN(const T* find, const Arg& 
 
 	string[size] = LU::NULL_CHAR;
 
+	hash = Hash::Calculate(string, size);
+
 	return *this;
 }
 
@@ -1021,7 +1029,6 @@ template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::Replace(const T* find, const Arg& replace, U64 start)
 {
-	hashed = false;
 	U64 findSize = Length(find);
 	T* it = string + start;
 	T c;
@@ -1031,6 +1038,8 @@ inline StringBase<T, LU>& StringBase<T, LU>::Replace(const T* find, const Arg& r
 	if (c != LU::NULL_CHAR) { ToString<Arg, false, true>(c, replace); }
 
 	string[size] = LU::NULL_CHAR;
+
+	hash = Hash::Calculate(string, size);
 
 	return *this;
 }
@@ -1078,21 +1087,29 @@ inline void StringBase<T, LU>::Split(Vector<StringBase<T, LU>>& list, T delimite
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::ToUpper()
+inline StringBase<T, LU>& StringBase<T, LU>::ToUpper()
 {
 	for (char& c : *this)
 	{
 		if (LU::TYPE_LOOKUP[c] & LOWER_CHAR) { c -= 32; }
 	}
+
+	hash = Hash::Calculate(string, size);
+
+	return *this;
 }
 
 template<typename T, typename LU>
-inline void StringBase<T, LU>::ToLower()
+inline StringBase<T, LU>& StringBase<T, LU>::ToLower()
 {
 	for (char& c : *this)
 	{
 		if (LU::TYPE_LOOKUP[c] & UPPER_CHAR) { c += 32; }
 	}
+
+	hash = Hash::Calculate(string, size);
+
+	return *this;
 }
 
 template<typename T, typename LU>
@@ -1129,8 +1146,6 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	const U64 excessSize = size - strIndex;
 
 	using UArg = Traits<UnsignedOf<Arg>>::Base;
-
-	hashed = false;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
@@ -1208,8 +1223,6 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	const U64 strIndex = str - string;
 	const U64 excessSize = size - strIndex;
 
-	hashed = false;
-
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
@@ -1273,8 +1286,6 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	constexpr U64 falseSize = 6 - Remove;
 	const U64 strIndex = str - string;
 
-	hashed = false;
-
 	if (value)
 	{
 		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, size + trueSize, capacity); }
@@ -1314,8 +1325,6 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value, U64 decimalCoun
 		const U64 moveSize = typeSize - Remove;
 		const U64 strIndex = str - string;
 		const U64 excessSize = size - strIndex;
-
-		hashed = false;
 
 		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 		if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
@@ -1418,8 +1427,6 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	const U64 moveSize = strSize - Remove;
 	const U64 strIndex = str - string;
 	const U64 excessSize = size - strIndex;
-
-	hashed = false;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
@@ -1760,7 +1767,6 @@ template<typename T, typename LU>
 template<typename Arg>
 inline void StringBase<T, LU>::Format(U64& start, const Arg& value)
 {
-	hashed = false;
 	T* it = string + start;
 	T c = *it;
 

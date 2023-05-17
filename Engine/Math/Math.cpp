@@ -1409,8 +1409,6 @@ void Matrix4::SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near
 
 void Matrix4::LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
 {
-	Vector3 f, u, s;
-
 	Vector3 f = center - eye;
 	f.Normalize();
 

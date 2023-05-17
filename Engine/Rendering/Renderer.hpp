@@ -40,7 +40,7 @@ private:
 	static void							DestroySwapchain();
 
 	
-	static void* DynamicAllocate(U32 size);
+	static void* DynamicAllocate(U64 size);
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
@@ -55,7 +55,7 @@ private:
 	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
 	static void							FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-		VkSampler vkDefaultSampler, U32& numResources, const void** resources, const Sampler** samplers, const U16* bindings);
+		VkSampler vkDefaultSampler, U32& numResources, void** resources, Sampler** samplers, U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
 	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name);
 	static VkRenderPass					GetRenderPass(const RenderPassOutput& output, CSTR name);
@@ -136,11 +136,11 @@ private:
 	NH_HEADER_STATIC CommandBuffer**						queuedCommandBuffers;
 	NH_HEADER_STATIC U32									allocatedCommandBufferCount{ 0 };
 	NH_HEADER_STATIC U32									queuedCommandBufferCount{ 0 };
-	NH_HEADER_STATIC U32									dynamicMaxPerFrameSize;
+	NH_HEADER_STATIC U64									dynamicMaxPerFrameSize;
 	NH_HEADER_STATIC Buffer*								dynamicBuffer;
 	NH_HEADER_STATIC U8*									dynamicMappedMemory;
-	NH_HEADER_STATIC U32									dynamicAllocatedSize;
-	NH_HEADER_STATIC U32									dynamicPerFrameSize;
+	NH_HEADER_STATIC U64									dynamicAllocatedSize;
+	NH_HEADER_STATIC U64									dynamicPerFrameSize;
 	NH_HEADER_STATIC C8										binariesPath[512];
 	NH_HEADER_STATIC bool									bindlessSupported{ false };
 	// PRIMITIVE

@@ -148,6 +148,9 @@
     <ClInclude Include="Engine\Math\Color.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Resources\Scene.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">

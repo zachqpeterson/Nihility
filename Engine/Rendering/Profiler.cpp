@@ -67,12 +67,13 @@ void Profiler::Update()
 	{
 		Timestamp& timestamp = timestamps[32 * currentFrame + i];
 
-		U32 colorIndex = colors[timestamp.name.Hash()];
+		U64 hash = timestamp.name.Hash();
+		U32 colorIndex = colors[hash];
 
 		if (colorIndex == U32_MAX)
 		{
 			colorIndex = (U32)colors.Size();
-			colors.Insert(timestamp.name.Hash(), colorIndex);
+			colors.Insert(hash, colorIndex);
 		}
 
 		timestamp.color = ColorRGB::DistinctColor(colorIndex);

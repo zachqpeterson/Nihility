@@ -184,8 +184,6 @@ bool Init()
 
 	cubePipeline = Resources::CreatePipeline(pipelineCreation);
 
-	Vector<MeshDraw> meshDraws;
-
 	Mesh mesh;
 
 	for (U32 primitiveIndex = 0; primitiveIndex < mesh.primitivesCount; ++primitiveIndex)
@@ -205,10 +203,11 @@ bool Init()
 		meshDraw.count = indicesAccessor.count;
 		ASSERT((meshDraw.count % 3) == 0);
 
-		I32 position_accessor_index = gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "POSITION");
-		I32 tangent_accessor_index = gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "TANGENT");
-		I32 normal_accessor_index = gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "NORMAL");
-		I32 texcoord_accessor_index = gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "TEXCOORD_0");
+		//TODO:
+		I32 position_accessor_index = 0;//gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "POSITION");
+		I32 tangent_accessor_index = 0;//gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "TANGENT");
+		I32 normal_accessor_index = 0;//gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "NORMAL");
+		I32 texcoord_accessor_index = 0;//gltf_get_attribute_accessor_index(meshPrimitive.attributes, meshPrimitive.attributeCount, "TEXCOORD_0");
 
 		Vector3* position_data = nullptr;
 		String name{ NO_INIT };
@@ -515,7 +514,7 @@ void Update()
 				right = look.Cross(Vector3::Up);
 			}
 
-			F32 speed = 5.0f * Time::DeltaTime();
+			F32 speed = (F32)(5.0f * Time::DeltaTime());
 
 			eye += look * speed * Input::ButtonDown(BUTTON_CODE_W);
 			eye -= look * speed * Input::ButtonDown(BUTTON_CODE_S);

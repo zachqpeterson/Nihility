@@ -49,7 +49,7 @@ struct NH_API CommandBuffer
 	U32				handle;
 
 	U32				currentCommand;
-	ResourceHandle	resourceHandle;
+	void*			resourceHandle;
 	QueueType		type = QUEUE_TYPE_GRAPHICS;
 	U32				bufferSize = 0;
 

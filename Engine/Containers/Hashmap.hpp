@@ -163,7 +163,15 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 {
 	if (cells)
 	{
-		if constexpr (IsStringType<Key>) { for (Cell& cell : *this) { cell.key.Destroy(); } }
+		if constexpr (IsStringType<Key>)
+		{
+			Cell* cell = cells;
+			for (U64 i = 0; i < capacity; ++i)
+			{
+				if (cell->filled) { cell->key.Destroy(); }
+				++cell;
+			}
+		}
 
 		Memory::FreeArray(&cells);
 		size = 0;
