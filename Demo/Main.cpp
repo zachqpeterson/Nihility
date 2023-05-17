@@ -524,7 +524,7 @@ void Update()
 			Matrix4 view;
 			view.LookAt(eye, eye + look, Vector3::Up);
 			Matrix4 projection;
-			projection.SetPerspective(60.0f, Settings::WindowWidth() / Settings::WindowHeight(), 0.01f, 1000.0f);
+			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
 
 			// Calculate view projection matrix
 			Matrix4 viewProjection = projection * view;

@@ -65,6 +65,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)Lib;$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)$(Platform)\$(Configuration)\Nihility.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -85,6 +86,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)Lib;$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)$(Platform)\$(Configuration)\Nihility.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
