@@ -37,7 +37,6 @@ private:
 	static void							EndFrame();
 	static void							Resize();
 	static void							ResizeSwapchain();
-	static void							ResizeTexture(Texture* texture, Texture* textureToDelete, U16 width, U16 height, U16 depth);
 	static void							DestroySwapchain();
 
 	
@@ -56,33 +55,30 @@ private:
 	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
 	static void							FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-		VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const Sampler** samplers, const U16* bindings);
+		VkSampler vkDefaultSampler, U32& numResources, const void** resources, const Sampler** samplers, const U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
 	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name);
 	static VkRenderPass					GetRenderPass(const RenderPassOutput& output, CSTR name);
-	static void							CreateSwapchainPass(const RenderPassCreation& creation, RenderPass* renderPass);
-	static void							CreateFramebuffer(RenderPass* renderPass, const Texture** outputTextures, U32 numRenderTargets, Texture* depthStencilTexture);
-	static RenderPassOutput				FillRenderPassOutput(const RenderPassCreation& creation);
+	static void							CreateSwapchainPass(RenderPass* renderPass);
+	static void							CreateFramebuffer(RenderPass* renderPass);
 
-public: //TODO: Temporarily public
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateBuffer(Buffer* buffer, void* data);
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
-	static bool							CreateDescriptorSet(DescriptorSetCreation* descriptorSet);
-	static bool							CreateShaderState(ShaderState* shaderState);
-	static bool							CreateRenderPass(RenderPass* renderPass);
-	static bool							CreatePipeline(Pipeline* pipeline);
+	static bool							CreateDescriptorSet(DescriptorSet* descriptorSet);
+	static bool							CreateShaderState(ShaderState* shaderState, const ShaderStateCreation& info);
+	static bool							CreateRenderPass(RenderPass* renderPass, RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	static bool							CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput);
 
-private:
-	static void							DestroyBufferInstant(ResourceHandle buffer);
-	static void							DestroyTextureInstant(ResourceHandle texture);
-	static void							DestroyPipelineInstant(ResourceHandle pipeline);
-	static void							DestroySamplerInstant(ResourceHandle sampler);
-	static void							DestroyDescriptorSetLayoutInstant(ResourceHandle layout);
-	static void							DestroyDescriptorSetInstant(ResourceHandle set);
-	static void							DestroyRenderPassInstant(ResourceHandle renderPass);
-	static void							DestroyShaderStateInstant(ResourceHandle shader);
+	static void							DestroySamplerInstant(Sampler* sampler);
+	static void							DestroyTextureInstant(Texture* texture);
+	static void							DestroyBufferInstant(Buffer* buffer);
+	static void							DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout);
+	static void							DestroyDescriptorSetInstant(DescriptorSet* set);
+	static void							DestroyShaderStateInstant(ShaderState* shader);
+	static void							DestroyRenderPassInstant(RenderPass* renderPass);
+	static void							DestroyPipelineInstant(Pipeline* pipeline);
 
 	static void							UpdateDescriptorSet(DescriptorSet* descriptorSet);
 	static void							UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
@@ -150,10 +146,9 @@ private:
 	// PRIMITIVE
 	NH_HEADER_STATIC Buffer*								fullscreenVertexBuffer;
 	NH_HEADER_STATIC RenderPass*							swapchainPass;
-	NH_HEADER_STATIC Sampler*								defaultSampler;
+	NH_HEADER_STATIC Sampler*								defaultSampler;  //TODO: Move to Resources
 	// DUMMY
-	NH_HEADER_STATIC Texture*								dummyTexture;
-	NH_HEADER_STATIC Buffer*								dummyConstantBuffer;
+	NH_HEADER_STATIC Buffer*								dummyConstantBuffer; //TODO: Move to Resources
 
 	// TIMING
 	NH_HEADER_STATIC F32									timestampFrequency;
@@ -176,6 +171,7 @@ private:
 	STATIC_CLASS(Renderer);
 	friend class Engine;
 	friend class Profiler;
+	friend class Resources;
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 };

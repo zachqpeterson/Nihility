@@ -72,6 +72,8 @@ public:
 	Value& Request(const Key& key);
 	HashHandle GetHandle(const Key& key);
 	Value& Obtain(HashHandle handle);
+	bool Remove(HashHandle handle);
+	bool Remove(HashHandle handle, Value&& value) noexcept;
 
 	Value& operator[](const Key& key);
 	const Value& operator[](const Key& key) const;
@@ -89,7 +91,6 @@ public:
 	const Iterator end() const { return { cells + capacity }; }
 
 private:
-
 	U64 size{ 0 };
 	U64 capacity{ 0 };
 	U64 capMinusOne{ 0 };
@@ -118,7 +119,7 @@ template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap, co
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(const Hashmap& other) : size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
 {
 	Memory::AllocateArray(&cells, capacity);
-	memcpy(other.cells, cells, capacity * sizeof(Cell));
+	Memory::Copy(cells, other.cells, sizeof(Cell) * capacity);
 }
 
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
@@ -136,7 +137,7 @@ template<class Key, class Value> inline Hashmap<Key, Value>& Hashmap<Key, Value>
 	capacity = other.capacity;
 	Memory::AllocateArray(&cells, capacity);
 	capMinusOne = other.capMinusOne;
-	memcpy(other.cells, cells, capacity * sizeof(Cell));
+	Memory::Copy(cells, other.cells, sizeof(Cell) * capacity);
 
 	return *this;
 }
@@ -225,7 +226,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const K
 	{
 		--size;
 		if constexpr (IsStringType<Key>) { cell->key.Destroy(); }
-		memset(cell, 0, sizeof(cell));
+		Memory::Zero(cell, sizeof(Cell));
 
 		return true;
 	}
@@ -252,7 +253,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const K
 		value = Move(cell->value);
 
 		if constexpr (IsStringType<Key>) { cell->key.Destroy(); }
-		memset(cell, 0, sizeof(cell));
+		Memory::Zero(cell, sizeof(Cell));
 
 		return true;
 	}
@@ -310,6 +311,42 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Obtain(HashH
 	return cells[handle].value;
 }
 
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(HashHandle handle)
+{
+	Cell& cell = cells[handle];
+
+	if (cell.filled)
+	{
+		--size;
+
+		if constexpr (IsStringType<Key>) { cell.key.Destroy(); }
+		Memory::Zero(&cell, sizeof(Cell));
+
+		return true;
+	}
+
+	return false;
+}
+
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(HashHandle handle, Value&& value) noexcept
+{
+	Cell& cell = cells[handle];
+
+	if (cell.filled)
+	{
+		--size;
+
+		value = Move(cell.value);
+
+		if constexpr (IsStringType<Key>) { cell.key.Destroy(); }
+		Memory::Zero(&cell, sizeof(Cell));
+
+		return true;
+	}
+
+	return false;
+}
+
 template<class Key, class Value> inline Value& Hashmap<Key, Value>::operator[](const Key& key)
 {
 	if (size == 0) { return defVal; }
@@ -360,7 +397,7 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Empty()
 	if constexpr (IsStringType<Key>) { for (Cell& cell : *this) { cell.key.Destroy(); } }
 	//TODO: Free memory if value is allocated
 
-	memset(cells, 0, capacity * sizeof(Cell));
+	Memory::Zero(cells, sizeof(Cell) * capacity);
 	size = 0;
 }
 

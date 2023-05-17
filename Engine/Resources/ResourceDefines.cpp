@@ -120,14 +120,14 @@ BufferCreation& BufferCreation::SetName(const String& name)
 
 DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::Reset()
 {
-	numBindings = 0;
+	bindingCount = 0;
 	setIndex = 0;
 	return *this;
 }
 
 DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::AddBinding(const DescriptorBinding& binding)
 {
-	bindings[numBindings++] = binding;
+	bindings[bindingCount++] = binding;
 	return *this;
 }
 
@@ -148,7 +148,7 @@ DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::SetSetIndex(U32 index)
 
 DescriptorSetCreation& DescriptorSetCreation::Reset()
 {
-	numResources = 0;
+	resourceCount = 0;
 	return *this;
 }
 
@@ -160,26 +160,26 @@ DescriptorSetCreation& DescriptorSetCreation::SetLayout(DescriptorSetLayout* lay
 
 DescriptorSetCreation& DescriptorSetCreation::SetTexture(Texture* texture, U16 binding)
 {
-	// Set a default sampler
-	samplers[numResources] = nullptr;
-	bindings[numResources] = binding;
-	//resources[numResources++] = texture;
+	//TODO: Set a default sampler
+	samplers[resourceCount] = nullptr;
+	bindings[resourceCount] = binding;
+	resources[resourceCount++] = texture;
 	return *this;
 }
 
 DescriptorSetCreation& DescriptorSetCreation::SetBuffer(Buffer* buffer, U16 binding)
 {
-	samplers[numResources] = nullptr;
-	bindings[numResources] = binding;
-	//resources[numResources++] = buffer;
+	samplers[resourceCount] = nullptr;
+	bindings[resourceCount] = binding;
+	resources[resourceCount++] = buffer;
 	return *this;
 }
 
 DescriptorSetCreation& DescriptorSetCreation::SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding)
 {
-	samplers[numResources++] = sampler;
-	bindings[numResources] = binding;
-	//resources[numResources] = texture;
+	samplers[resourceCount] = sampler;
+	bindings[resourceCount] = binding;
+	resources[resourceCount++] = texture;
 	return *this;
 }
 
@@ -224,7 +224,7 @@ ShaderStateCreation& ShaderStateCreation::SetSpvInput(bool value)
 
 RenderPassOutput& RenderPassOutput::Reset()
 {
-	numColorFormats = 0;
+	colorFormatCount = 0;
 
 	for (U32 i = 0; i < MAX_IMAGE_OUTPUTS; ++i)
 	{
@@ -241,7 +241,7 @@ RenderPassOutput& RenderPassOutput::Reset()
 
 RenderPassOutput& RenderPassOutput::Color(VkFormat format)
 {
-	colorFormats[numColorFormats++] = format;
+	colorFormats[colorFormatCount++] = format;
 	return *this;
 }
 
@@ -264,7 +264,7 @@ RenderPassOutput& RenderPassOutput::SetOperations(RenderPassOperation color, Ren
 
 RenderPassCreation& RenderPassCreation::Reset()
 {
-	numRenderTargets = 0;
+	renderTargetCount = 0;
 	depthStencilTexture = nullptr;
 	resize = 0;
 	scaleX = 1.f;
@@ -276,7 +276,7 @@ RenderPassCreation& RenderPassCreation::Reset()
 
 RenderPassCreation& RenderPassCreation::AddRenderTexture(Texture* texture)
 {
-	outputTextures[numRenderTargets++] = texture;
+	outputTextures[renderTargetCount++] = texture;
 
 	return *this;
 }
@@ -324,7 +324,7 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 
 PipelineCreation& PipelineCreation::AddDescriptorSetLayout(DescriptorSetLayout* handle)
 {
-	descriptorSetLayouts[numActiveLayouts++] = handle;
+	descriptorSetLayouts[activeLayoutCount++] = handle;
 	return *this;
 }
 
@@ -337,7 +337,7 @@ RenderPassOutput& PipelineCreation::GetRenderPassOutput()
 
 ExecutionBarrier& ExecutionBarrier::Reset()
 {
-	numTextureBarriers = numBufferBarriers = 0;
+	textureBarrierCount = bufferBarrierCount = 0;
 	sourcePipelineStage = PIPELINE_STAGE_DRAW_INDIRECT;
 	destinationPipelineStage = PIPELINE_STAGE_DRAW_INDIRECT;
 	return *this;
@@ -353,14 +353,14 @@ ExecutionBarrier& ExecutionBarrier::Set(PipelineStage source, PipelineStage dest
 
 ExecutionBarrier& ExecutionBarrier::AddImageBarrier(const TextureBarrier& textureBarrier)
 {
-	textureBarriers[numTextureBarriers++] = textureBarrier;
+	textureBarriers[textureBarrierCount++] = textureBarrier;
 
 	return *this;
 }
 
 ExecutionBarrier& ExecutionBarrier::AddMemoryBarrier(const BufferBarrier& bufferBarrier)
 {
-	bufferBarriers[numBufferBarriers++] = bufferBarrier;
+	bufferBarriers[bufferBarrierCount++] = bufferBarrier;
 
 	return *this;
 }

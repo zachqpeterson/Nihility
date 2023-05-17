@@ -335,10 +335,12 @@ class NH_API Resources
 public:
 	static Sampler* CreateSampler(const SamplerCreation& info);
 	static Texture* CreateTexture(const TextureCreation& info);
+	static Texture* RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 	static Texture* LoadTexture(const String& name);
 	static Buffer* CreateBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
+	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
 	static RenderPass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const PipelineCreation& info);
 
@@ -354,14 +356,14 @@ public:
 	static RenderPass* AccessRenderPass(const String& name);
 	static Pipeline* AccessPipeline(const String& name);
 
-	static void	DestroyBuffer(Buffer* buffer);
-	static void	DestroyTexture(Texture* texture);
-	static void	DestroyPipeline(Pipeline* pipeline);
 	static void	DestroySampler(Sampler* sampler);
+	static void	DestroyTexture(Texture* texture);
+	static void	DestroyBuffer(Buffer* buffer);
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
-	static void	DestroyRenderPass(RenderPass* renderPass);
 	static void	DestroyShaderState(ShaderState* shader);
+	static void	DestroyRenderPass(RenderPass* renderPass);
+	static void	DestroyPipeline(Pipeline* pipeline);
 
 	static bool LoadBinary(const String& name, String& result);
 	static bool LoadBinary(const String& name, void** result);
@@ -369,6 +371,8 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
+
+	static void Update();
 
 	//Texture Loading
 	static bool LoadBMP();

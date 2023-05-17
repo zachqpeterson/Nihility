@@ -48,13 +48,7 @@ bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
-	//TODO: DummyResources
-
-	//TextureCreation textureCreation{ };
-	//U32 zeroValue = 0;
-	//textureCreation.SetName("dummy_texture").SetSize(1, 1, 1).SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, TEXTURE_TYPE_2D).SetFlags(1, 0).SetData(&zeroValue);
-	//TextureHandle dummyTexture = CreateTexture(textureCreation);
-	//
+	resourceDeletionQueue.Reserve(16);
 
 	dummyTexture.name = "dummy_texture";
 	dummyTexture.width = 1;
@@ -93,6 +87,26 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
+	while (resourceDeletionQueue.Size())
+	{
+		ResourceDeletion resourceDeletion;
+		resourceDeletionQueue.Pop(resourceDeletion);
+
+		if (resourceDeletion.currentFrame == -1) { continue; }
+
+		switch (resourceDeletion.type)
+		{
+		case RESOURCE_DELETE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_DELETE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+		}
+	}
+
 	pipelines.Destroy();
 	buffers.Destroy();
 	shaders.Destroy();
@@ -101,6 +115,51 @@ void Resources::Shutdown()
 	descriptorSetLayouts.Destroy();
 	descriptorSets.Destroy();
 	renderPasses.Destroy();
+
+	resourceDeletionQueue.Destroy();
+}
+
+void Resources::Update()
+{
+	while (resourceDeletionQueue.Size())
+	{
+		ResourceDeletion resourceDeletion;
+		resourceDeletionQueue.Pop(resourceDeletion);
+
+		if (resourceDeletion.currentFrame == Renderer::currentFrame)
+		{
+			switch (resourceDeletion.type)
+			{
+			case RESOURCE_DELETE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_DELETE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+			}
+		}
+	}
+}
+
+Sampler* Resources::CreateSampler(const SamplerCreation& info)
+{
+	Sampler* sampler = &samplers.Request(info.name);
+
+	if (!sampler->name.Blank()) { return sampler; }
+
+	sampler->addressModeU = info.addressModeU;
+	sampler->addressModeV = info.addressModeV;
+	sampler->addressModeW = info.addressModeW;
+	sampler->minFilter = info.minFilter;
+	sampler->magFilter = info.magFilter;
+	sampler->mipFilter = info.mipFilter;
+	sampler->name = info.name;
+
+	Renderer::CreateSampler(sampler);
+
+	return sampler;
 }
 
 Texture* Resources::CreateTexture(const TextureCreation& info)
@@ -119,6 +178,22 @@ Texture* Resources::CreateTexture(const TextureCreation& info)
 	texture->type = info.type;
 
 	Renderer::CreateTexture(texture, info.initialData);
+}
+
+Texture* Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
+{
+	Texture* deleteTexture;
+	deleteTexture->imageView = texture->imageView;
+	deleteTexture->image = texture->image;
+	deleteTexture->allocation = texture->allocation;
+
+	texture->width = width;
+	texture->height = height;
+	texture->depth = depth;
+
+	Renderer::CreateTexture(texture, nullptr);
+
+	Renderer::DestroyTextureInstant(deleteTexture);
 }
 
 Texture* Resources::LoadTexture(const String& name)
@@ -147,25 +222,6 @@ Texture* Resources::LoadTexture(const String& name)
 	return nullptr;
 }
 
-Sampler* Resources::CreateSampler(const SamplerCreation& info)
-{
-	Sampler* sampler = &samplers.Request(info.name);
-
-	if (!sampler->name.Blank()) { return sampler; }
-
-	sampler->addressModeU = info.addressModeU;
-	sampler->addressModeV = info.addressModeV;
-	sampler->addressModeW = info.addressModeW;
-	sampler->minFilter = info.minFilter;
-	sampler->magFilter = info.magFilter;
-	sampler->mipFilter = info.mipFilter;
-	sampler->name = info.name;
-
-	Renderer::CreateSampler(sampler);
-
-	return sampler;
-}
-
 Buffer* Resources::CreateBuffer(const BufferCreation& info)
 {
 	Buffer* buffer = &buffers.Request(info.name);
@@ -192,11 +248,11 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 
 	// TODO: add support for multiple sets.
 	// Create flattened binding list
-	descriptorSetLayout->numBindings = (U16)info.numBindings;
+	descriptorSetLayout->bindingCount = (U16)info.bindingCount;
 	U8* memory;
-	Memory::AllocateSize(&memory, (sizeof(VkDescriptorSetLayoutBinding) + sizeof(DescriptorBinding)) * info.numBindings);
+	Memory::AllocateSize(&memory, (sizeof(VkDescriptorSetLayoutBinding) + sizeof(DescriptorBinding)) * info.bindingCount);
 	descriptorSetLayout->bindings = (DescriptorBinding*)memory;
-	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * info.numBindings);
+	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * info.bindingCount);
 	descriptorSetLayout->setIndex = (U16)info.setIndex;
 
 	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
@@ -210,7 +266,46 @@ DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 
 	if (!descriptorSet->name.Blank()) { return descriptorSet; }
 
+	descriptorSet->name = info.name;
+	descriptorSet->resourceCount = info.resourceCount;
+	descriptorSet->layout = info.layout;
+
+	U8* memory;
+	Memory::AllocateSize(&memory, (sizeof(void*) + sizeof(Sampler*) + sizeof(U16)) * info.resourceCount);
+	descriptorSet->resources = (void**)memory;
+	descriptorSet->samplers = (Sampler**)(memory + sizeof(void*) * info.resourceCount);
+	descriptorSet->bindings = (U16*)(memory + (sizeof(void*) + sizeof(Sampler*)) * info.resourceCount);
+
+	for (U32 i = 0; i < info.resourceCount; ++i)
+	{
+		descriptorSet->resources[i] = info.resources[i];
+		descriptorSet->samplers[i] = info.samplers[i];
+		descriptorSet->bindings[i] = info.bindings[i];
+	}
+
 	return descriptorSet;
+}
+
+ShaderState* Resources::CreateShaderState(const ShaderStateCreation& info)
+{
+	ShaderState* shaderState = &shaders.Request(info.name);
+
+	if (!shaderState->name.Blank()) { return shaderState; }
+
+	if (info.stagesCount == 0 || info.stages == nullptr)
+	{
+		Logger::Error("Shader {} does not contain shader stages!", info.name);
+		return shaderState;
+	}
+
+	if (!Renderer::CreateShaderState(shaderState, info))
+	{
+		shaders.Remove(info.name);
+
+		return nullptr;
+	}
+
+	return shaderState;
 }
 
 RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
@@ -218,6 +313,28 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	RenderPass* renderPass = &renderPasses.Request(info.name);
 
 	if (!renderPass->name.Blank()) { return renderPass; }
+
+	renderPass->name = info.name;
+	renderPass->type = info.type;
+	renderPass->dispatchX = 0;
+	renderPass->dispatchY = 0;
+	renderPass->dispatchZ = 0;
+	renderPass->frameBuffer = nullptr;
+	renderPass->renderPass = nullptr;
+	renderPass->scaleX = info.scaleX;
+	renderPass->scaleY = info.scaleY;
+	renderPass->resize = info.resize;
+	renderPass->renderTargetCount = (U8)info.renderTargetCount;
+	renderPass->outputDepth = info.depthStencilTexture;
+
+	for (U32 i = 0; i < info.renderTargetCount; ++i)
+	{
+		Texture* texture = info.outputTextures[i];
+
+		renderPass->width = texture->width;
+		renderPass->height = texture->height;
+		renderPass->outputTextures[i] = texture;
+	}
 
 	return renderPass;
 }
@@ -227,6 +344,21 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	Pipeline* pipeline = &pipelines.Request(info.name);
 
 	if (!pipeline->name.Blank()) { return pipeline; }
+
+	pipeline->name = info.name;
+	pipeline->activeLayoutCount = info.activeLayoutCount;
+	pipeline->shaderState = CreateShaderState(info.shaders);
+	pipeline->depthStencil = info.depthStencil;
+	pipeline->blendState = info.blendState;
+	pipeline->rasterization = info.rasterization;
+	pipeline->graphicsPipeline = true;
+
+	for (U32 i = 0; i < info.activeLayoutCount; ++i)
+	{
+		pipeline->descriptorSetLayouts[i] = info.descriptorSetLayouts[i];
+	}
+
+	Renderer::CreatePipeline(pipeline, info.renderPass, info.vertexInput);
 
 	return pipeline;
 }
@@ -243,82 +375,216 @@ Texture* Resources::AccessDummyTexture()
 
 Buffer* Resources::AccessDummyAttributeBuffer()
 {
-	&dummyAttributeBuffer;
+	return &dummyAttributeBuffer;
 }
 
 Sampler* Resources::AccessSampler(const String& name)
 {
+	Sampler* sampler = &samplers.Request(name);
 
+	if (!sampler->name.Blank()) { return sampler; }
+
+	return nullptr;
 }
 
 Texture* Resources::AccessTexture(const String& name)
 {
+	Texture* texture = &textures.Request(name);
 
+	if (!texture->name.Blank()) { return texture; }
+
+	return nullptr;
 }
 
 DescriptorSetLayout* Resources::AccessDescriptorSetLayout(const String& name)
 {
+	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.Request(name);
 
+	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
+
+	return nullptr;
 }
 
 DescriptorSet* Resources::AccessDescriptorSet(const String& name)
 {
+	DescriptorSet* descriptorSet = &descriptorSets.Request(name);
 
+	if (!descriptorSet->name.Blank()) { return descriptorSet; }
+
+	return nullptr;
 }
 
 ShaderState* Resources::AccessShaderState(const String& name)
 {
+	ShaderState* shaderState = &shaders.Request(name);
 
+	if (!shaderState->name.Blank()) { return shaderState; }
+
+	return nullptr;
 }
 
 RenderPass* Resources::AccessRenderPass(const String& name)
 {
+	RenderPass* renderPass = &renderPasses.Request(name);
 
+	if (!renderPass->name.Blank()) { return renderPass; }
+
+	return nullptr;
 }
 
 Pipeline* Resources::AccessPipeline(const String& name)
 {
+	Pipeline* pipeline = &pipelines.Request(name);
 
-}
+	if (!pipeline->name.Blank()) { return pipeline; }
 
-void Resources::DestroyBuffer(Buffer* buffer)
-{
-
-}
-
-void Resources::DestroyTexture(Texture* texture)
-{
-
-}
-
-void Resources::DestroyPipeline(Pipeline* pipeline)
-{
-
+	return nullptr;
 }
 
 void Resources::DestroySampler(Sampler* sampler)
 {
+	HashHandle handle = samplers.GetHandle(sampler->name);
 
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_SAMPLER;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", sampler->name);
+	}
+}
+
+void Resources::DestroyTexture(Texture* texture)
+{
+	HashHandle handle = textures.GetHandle(texture->name);
+
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_TEXTURE;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", texture->name);
+	}
+}
+
+void Resources::DestroyBuffer(Buffer* buffer)
+{
+	HashHandle handle = buffers.GetHandle(buffer->name);
+
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_BUFFER;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", buffer->name);
+	}
 }
 
 void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 {
+	HashHandle handle = descriptorSetLayouts.GetHandle(layout->name);
 
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", layout->name);
+	}
 }
 
 void Resources::DestroyDescriptorSet(DescriptorSet* set)
 {
+	HashHandle handle = descriptorSets.GetHandle(set->name);
 
-}
-
-void Resources::DestroyRenderPass(RenderPass* renderPass)
-{
-
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_DESCRIPTOR_SET;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", set->name);
+	}
 }
 
 void Resources::DestroyShaderState(ShaderState* shader)
 {
+	HashHandle handle = shaders.GetHandle(shader->name);
 
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_SHADER_STATE;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", shader->name);
+	}
+}
+
+void Resources::DestroyRenderPass(RenderPass* renderPass)
+{
+	HashHandle handle = renderPasses.GetHandle(renderPass->name);
+
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_RENDER_PASS;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", renderPass->name);
+	}
+}
+
+void Resources::DestroyPipeline(Pipeline* pipeline)
+{
+	HashHandle handle = pipelines.GetHandle(pipeline->name);
+
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_PIPELINE;
+		deletion.currentFrame = Renderer::currentFrame;
+		resourceDeletionQueue.Push(deletion);
+
+		DestroyShaderState(pipeline->shaderState);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", pipeline->name);
+	}
 }
 
 bool Resources::LoadBinary(const String& name, String& result)

@@ -2,9 +2,7 @@
 
 #include "Rendering\RenderingDefines.hpp"
 #include "Containers\String.hpp"
-
-typedef U32 ResourceHandle;
-NH_HEADER_STATIC constexpr Traits<ResourceHandle>::Base INVALID_HANDLE = Traits<ResourceHandle>::MaxValue;
+#include "Containers\Hashmap.hpp"
 
 enum ResourceDeleteType
 {
@@ -94,7 +92,7 @@ struct DescriptorSetLayout
 
 	VkDescriptorSetLayoutBinding*	binding = nullptr;
 	DescriptorBinding*				bindings = nullptr;
-	U16								numBindings = 0;
+	U16								bindingCount = 0;
 	U16								setIndex = 0;
 };
 
@@ -104,12 +102,12 @@ struct DescriptorSet
 
 	VkDescriptorSet				descriptorSet;
 
-	ResourceHandle*				resources = nullptr;
+	void**						resources = nullptr;
 	Sampler**					samplers = nullptr;
 	U16*						bindings = nullptr;
 
-	const DescriptorSetLayout*	layout = nullptr;
-	U32							numResources = 0;
+	DescriptorSetLayout*		layout = nullptr;
+	U32							resourceCount = 0;
 };
 
 struct ShaderState
@@ -131,7 +129,7 @@ struct RenderPassOutput
 
 	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS];
 	VkFormat			depthStencilFormat;
-	U32					numColorFormats;
+	U32					colorFormatCount;
 
 	RenderPassOperation	colorOperation = RENDER_PASS_OP_DONT_CARE;
 	RenderPassOperation	depthOperation = RENDER_PASS_OP_DONT_CARE;
@@ -161,7 +159,7 @@ struct RenderPass
 	U16					dispatchZ = 0;
 
 	U8					resize = 0;
-	U8					numRenderTargets = 0;
+	U8					renderTargetCount = 0;
 };
 
 struct Pipeline
@@ -175,9 +173,8 @@ struct Pipeline
 
 	ShaderState*				shaderState;
 
-	const DescriptorSetLayout*	descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	DescriptorSetLayout*		descriptorSetLayoutHandles[MAX_DESCRIPTOR_SET_LAYOUTS];
-	U32							numActiveLayouts = 0;
+	DescriptorSetLayout*		descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+	U32							activeLayoutCount = 0;
 
 	DepthStencilCreation		depthStencil;
 	BlendStateCreation			blendState;
@@ -251,7 +248,7 @@ struct NH_API DescriptorSetLayoutCreation
 	DescriptorSetLayoutCreation& SetSetIndex(U32 index);
 
 	DescriptorBinding				bindings[MAX_DESCRIPTORS_PER_SET];
-	U32								numBindings = 0;
+	U32								bindingCount = 0;
 	U32								setIndex = 0;
 
 	String							name{ NO_INIT };
@@ -266,14 +263,14 @@ struct NH_API DescriptorSetCreation
 	DescriptorSetCreation& SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding);   // TODO: separate samplers from textures
 	DescriptorSetCreation& SetName(const String& name);
 
-	//Resource*					resources[MAX_DESCRIPTORS_PER_SET];
-	Sampler*					samplers[MAX_DESCRIPTORS_PER_SET];
-	U16							bindings[MAX_DESCRIPTORS_PER_SET];
+	void*					resources[MAX_DESCRIPTORS_PER_SET];
+	Sampler*				samplers[MAX_DESCRIPTORS_PER_SET];
+	U16						bindings[MAX_DESCRIPTORS_PER_SET];
 
-	DescriptorSetLayout*		layout;
-	U32							numResources = 0;
+	DescriptorSetLayout*	layout;
+	U32						resourceCount = 0;
 
-	String						name{ NO_INIT };
+	String					name{ NO_INIT };
 };
 
 struct NH_API ShaderStateCreation
@@ -301,7 +298,7 @@ struct NH_API RenderPassCreation
 	RenderPassCreation& SetType(RenderPassType type);
 	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 
-	U16						numRenderTargets = 0;
+	U16						renderTargetCount = 0;
 	RenderPassType			type = RENDER_PASS_TYPE_GEOMETRY;
 
 	Texture*				outputTextures[MAX_IMAGE_OUTPUTS];
@@ -333,7 +330,7 @@ struct NH_API PipelineCreation
 	DescriptorSetLayout*		descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 	const ViewportState*		viewport = nullptr;
 
-	U32							numActiveLayouts = 0;
+	U32							activeLayoutCount = 0;
 
 	String						name{ NO_INIT };
 };
@@ -368,8 +365,8 @@ struct ExecutionBarrier
 	U32				newBarrierExperimental = U32_MAX;
 	U32				loadOperation = 0;
 
-	U32				numTextureBarriers;
-	U32				numBufferBarriers;
+	U32				textureBarrierCount;
+	U32				bufferBarrierCount;
 
 	TextureBarrier	textureBarriers[8];
 	BufferBarrier	bufferBarriers[8];

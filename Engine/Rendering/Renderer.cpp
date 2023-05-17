@@ -119,27 +119,6 @@ void Renderer::Shutdown()
 
 	Resources::Shutdown();
 
-	//TODO: Move to Resources
-	while (resourceDeletionQueue.Size())
-	{
-		ResourceUpdate resourceDeletion;
-		resourceDeletionQueue.Pop(resourceDeletion);
-
-		if (resourceDeletion.currentFrame == -1) { continue; }
-
-		switch (resourceDeletion.type)
-		{
-		case RESOURCE_DELETE_TYPE_BUFFER: { DestroyBufferInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_PIPELINE: { DestroyPipelineInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_RENDER_PASS: { DestroyRenderPassInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { DestroyDescriptorSetInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { DestroyDescriptorSetLayoutInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_SAMPLER: { DestroySamplerInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_SHADER_STATE: { DestroyShaderStateInstant(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_TEXTURE: { DestroyTextureInstant(resourceDeletion.handle); } break;
-		}
-	}
-
 	auto it = renderPassCache.begin();
 	auto end = renderPassCache.end();
 	for (; it != end; ++it)
@@ -149,15 +128,13 @@ void Renderer::Shutdown()
 
 	renderPassCache.Destroy();
 
-	RenderPass* pass = AccessRenderPass(swapchainPass);
-	vkDestroyRenderPass(device, pass->renderPass, allocationCallbacks);
+	vkDestroyRenderPass(device, swapchainPass->renderPass, allocationCallbacks);
 
 	DestroySwapchain();
 	vkDestroySurfaceKHR(instance, surface, allocationCallbacks);
 
 	vmaDestroyAllocator(allocator);
 
-	resourceDeletionQueue.Destroy();
 	descriptorSetUpdates.Destroy();
 
 	Resources::Shutdown();
@@ -529,7 +506,6 @@ bool Renderer::CreateResources()
 
 	commandBufferRing.Create();
 
-	resourceDeletionQueue.Reserve(16);
 	descriptorSetUpdates.Reserve(16);
 
 	return true;
@@ -554,9 +530,6 @@ bool Renderer::CreatePrimitiveResources()
 	swapchainPassCreation.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
 	swapchainPassCreation.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
 	swapchainPass = Resources::CreateRenderPass(swapchainPassCreation);
-
-	TextureCreation dummyTextureCreation = { nullptr, 1, 1, 1, 1, 0, VK_FORMAT_R8_UINT, TEXTURE_TYPE_2D };
-	dummyTexture = Resources::CreateTexture(dummyTextureCreation);
 
 	BufferCreation dummyConstantBufferCreation = { VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 16, nullptr, "Dummy_cb" };
 	dummyConstantBuffer = Resources::CreateBuffer(dummyConstantBufferCreation);
@@ -693,26 +666,7 @@ void Renderer::EndFrame()
 
 	FrameCountersAdvance();
 
-	while (resourceDeletionQueue.Size())
-	{
-		ResourceUpdate resourceDeletion;
-		resourceDeletionQueue.Pop(resourceDeletion);
-
-		if (resourceDeletion.currentFrame == currentFrame)
-		{
-			switch (resourceDeletion.type)
-			{
-			case RESOURCE_DELETE_TYPE_BUFFER: { DestroyBufferInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_PIPELINE: { DestroyPipelineInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_RENDER_PASS: { DestroyRenderPassInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { DestroyDescriptorSetInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { DestroyDescriptorSetLayoutInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_SAMPLER: { DestroySamplerInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_SHADER_STATE: { DestroyShaderStateInstant(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_TEXTURE: { DestroyTextureInstant(resourceDeletion.handle); } break;
-			}
-		}
-	}
+	Resources::Update();
 }
 
 void Renderer::Resize()
@@ -734,8 +688,7 @@ void Renderer::ResizeSwapchain()
 	if (swapchainExtent.width == 0 || swapchainExtent.height == 0) { return; }
 
 	// Internal destroy of swapchain pass to retain the same handle.
-	RenderPass* vkSwapchainPass = AccessRenderPass(swapchainPass);
-	vkDestroyRenderPass(device, vkSwapchainPass->renderPass, allocationCallbacks);
+	vkDestroyRenderPass(device, swapchainPass->renderPass, allocationCallbacks);
 
 	// Destroy swapchain images and framebuffers
 	DestroySwapchain();
@@ -748,33 +701,11 @@ void Renderer::ResizeSwapchain()
 	CreateSwapchain();
 
 	// Resize depth texture, maintaining handle, using a dummy texture to destroy.
-	TextureHandle textureToDelete = { Resources::textures.ObtainResource() };
-	Texture* vkTextureToDelete = AccessTexture(textureToDelete);
-	vkTextureToDelete->handle = textureToDelete;
-	Texture* vkDepthTexture = AccessTexture(depthTexture);
-	ResizeTexture(vkDepthTexture, vkTextureToDelete, swapchainWidth, swapchainHeight, 1);
+	Resources::RecreateTexture(depthTexture, swapchainWidth, swapchainHeight, 1);
 
-	DestroyTexture(textureToDelete);
-
-	RenderPassCreation swapchainPassCreation{};
-	swapchainPassCreation.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
-	CreateSwapchainPass(swapchainPassCreation, vkSwapchainPass);
+	CreateSwapchainPass(swapchainPass);
 
 	vkDeviceWaitIdle(device);
-}
-
-void Renderer::ResizeTexture(Texture* texture, Texture* textureToDelete, U16 width, U16 height, U16 depth)
-{
-
-	// Cache handles to be delayed destroyed
-	textureToDelete->imageView = texture->imageView;
-	textureToDelete->image = texture->image;
-	textureToDelete->allocation = texture->allocation;
-
-	// Re-create image in place.
-	TextureCreation tc;
-	tc.SetFlags(texture->mipmaps, texture->flags).SetFormatType(texture->format, texture->type).SetName(texture->name).SetSize(width, height, depth);
-	CreateTexture(tc, texture->handle, texture);
 }
 
 void Renderer::DestroySwapchain()
@@ -788,35 +719,25 @@ void Renderer::DestroySwapchain()
 	vkDestroySwapchainKHR(device, swapchain, allocationCallbacks);
 }
 
-void Renderer::UpdateDescriptorSet(DescriptorSetHandle descriptorSet)
+void Renderer::UpdateDescriptorSet(DescriptorSet* descriptorSet)
 {
-	if (descriptorSet.index < Resources::descriptorSets.ResourceCount) { descriptorSetUpdates.Push({ descriptorSet, currentFrame }); }
-	else { Logger::Error("Graphics error: trying to update invalid DescriptorSet {}", descriptorSet.index); }
+	if (descriptorSet) { descriptorSetUpdates.Push({ descriptorSet, currentFrame }); }
+	else { Logger::Error("Trying to update invalid DescriptorSet!"); }
 }
 
 void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 {
-	// Use a dummy descriptor set to delete the vulkan descriptor set handle
-	DescriptorSetHandle dummyDeleteDescriptorSetHandle = { Resources::descriptorSets.ObtainResource() };
-	DesciptorSet* dummyDeleteDescriptorSet = AccessDescriptorSet(dummyDeleteDescriptorSetHandle);
+	DescriptorSet* descriptorSet = update.descriptorSet;
+	DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
 
-	DesciptorSet* descriptorSet = AccessDescriptorSet(update.descriptorSet);
-	const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+	DescriptorSet deleteDescriptorSet{};
+	deleteDescriptorSet.descriptorSet = descriptorSet->descriptorSet;
 
-	dummyDeleteDescriptorSet->descriptorSet = descriptorSet->descriptorSet;
-	dummyDeleteDescriptorSet->bindings = nullptr;
-	dummyDeleteDescriptorSet->resources = nullptr;
-	dummyDeleteDescriptorSet->samplers = nullptr;
-	dummyDeleteDescriptorSet->numResources = 0;
+	DestroyDescriptorSetInstant(&deleteDescriptorSet);
 
-	DestroyDescriptorSet(dummyDeleteDescriptorSetHandle);
-
-	// Allocate the new descriptor set and update its content.
 	VkWriteDescriptorSet descriptorWrite[8];
 	VkDescriptorBufferInfo bufferInfo[8];
 	VkDescriptorImageInfo imageInfo[8];
-
-	Sampler* vkDefaultSampler = AccessSampler(defaultSampler);
 
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	allocInfo.descriptorPool = descriptorPool;
@@ -824,11 +745,11 @@ void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 	allocInfo.pSetLayouts = &descriptorSet->layout->descriptorSetLayout;
 	vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet->descriptorSet);
 
-	U32 numResources = descriptorSetLayout->numBindings;
-	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, vkDefaultSampler->sampler,
-		numResources, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
+	U32 resourceCount = descriptorSetLayout->bindingCount;
+	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, defaultSampler->sampler,
+		resourceCount, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
 
-	vkUpdateDescriptorSets(device, numResources, descriptorWrite, 0, nullptr);
+	vkUpdateDescriptorSets(device, resourceCount, descriptorWrite, 0, nullptr);
 }
 
 //void Renderer::ResizeOutputTextures(RenderPassHandle renderPass, U32 width, U32 height)
@@ -840,35 +761,27 @@ void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 
 void* Renderer::MapBuffer(const MapBufferParameters& parameters)
 {
-	if (parameters.buffer.index == INVALID_HANDLE)
-		return nullptr;
+	if (parameters.buffer == nullptr) { return nullptr; }
 
-	Buffer* buffer = AccessBuffer(parameters.buffer);
-
-	if (buffer->parentBuffer.index == dynamicBuffer.index)
+	if (parameters.buffer->parentBuffer == dynamicBuffer)
 	{
 
-		buffer->globalOffset = dynamicAllocatedSize;
+		parameters.buffer->globalOffset = dynamicAllocatedSize;
 
-		return DynamicAllocate(parameters.size == 0 ? buffer->size : parameters.size);
+		return DynamicAllocate(parameters.size == 0 ? parameters.buffer->size : parameters.size);
 	}
 
 	void* data;
-	vmaMapMemory(allocator, buffer->allocation, &data);
+	vmaMapMemory(allocator, parameters.buffer->allocation, &data);
 
 	return data;
 }
 
 void Renderer::UnmapBuffer(const MapBufferParameters& parameters)
 {
-	if (parameters.buffer.index == INVALID_HANDLE)
-		return;
+	if (parameters.buffer == nullptr || parameters.buffer->parentBuffer == dynamicBuffer) { return; }
 
-	Buffer* buffer = AccessBuffer(parameters.buffer);
-	if (buffer->parentBuffer.index == dynamicBuffer.index)
-		return;
-
-	vmaUnmapMemory(allocator, buffer->allocation);
+	vmaUnmapMemory(allocator, parameters.buffer->allocation);
 }
 
 void* Renderer::DynamicAllocate(U32 size)
@@ -1006,10 +919,10 @@ void Renderer::TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage imag
 
 void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 	VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-	VkSampler vkDefaultSampler, U32& numResources, const ResourceHandle* resources, const SamplerHandle* samplers, const U16* bindings)
+	VkSampler vkDefaultSampler, U32& resourceCount, const ResourceHandle* resources, const Sampler** samplers, const U16* bindings)
 {
 	U32 usedResources = 0;
-	for (U32 r = 0; r < numResources; ++r)
+	for (U32 r = 0; r < resourceCount; ++r)
 	{
 		// Binding array contains the index into the resource layout binding to retrieve
 		// the correct binding informations.
@@ -1034,22 +947,12 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 		{
 			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-			TextureHandle texture_handle = { resources[r] };
-			Texture* textureData = AccessTexture(texture_handle);
+			Texture* textureData = (Texture*)resources[r];
 
-			// Find proper sampler.
 			// TODO: improve. Remove the single texture interface ?
 			imageInfo[i].sampler = vkDefaultSampler;
-			if (textureData->sampler)
-			{
-				imageInfo[i].sampler = textureData->sampler->sampler;
-			}
-			// TODO: else ?
-			if (samplers[r].index != INVALID_HANDLE)
-			{
-				Sampler* sampler = AccessSampler({ samplers[r] });
-				imageInfo[i].sampler = sampler->sampler;
-			}
+			if (textureData->sampler) { imageInfo[i].sampler = textureData->sampler->sampler; }
+			else if (samplers[r] != nullptr) { imageInfo[i].sampler = samplers[r]->sampler; }
 
 			imageInfo[i].imageLayout = HasDepthOrStencil(textureData->format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo[i].imageView = textureData->imageView;
@@ -1063,8 +966,7 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 		{
 			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
-			TextureHandle texture_handle = { resources[r] };
-			Texture* textureData = AccessTexture(texture_handle);
+			Texture* textureData = (Texture*)resources[r];
 
 			imageInfo[i].sampler = nullptr;
 			imageInfo[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -1077,23 +979,13 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 		{
-			BufferHandle buffer_handle = { resources[r] };
-			Buffer* buffer = AccessBuffer(buffer_handle);
+			Buffer* buffer = (Buffer*)resources[r];
 
 			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrite[i].descriptorType = buffer->usage == RESOURCE_USAGE_DYNAMIC ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-			// Bind parent buffer if present, used for dynamic resources.
-			if (buffer->parentBuffer.index != INVALID_HANDLE)
-			{
-				Buffer* parentBuffer = AccessBuffer(buffer->parentBuffer);
-
-				bufferInfo[i].buffer = parentBuffer->buffer;
-			}
-			else
-			{
-				bufferInfo[i].buffer = buffer->buffer;
-			}
+			if (buffer->parentBuffer != nullptr) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
+			else { bufferInfo[i].buffer = buffer->buffer; }
 
 			bufferInfo[i].offset = 0;
 			bufferInfo[i].range = buffer->size;
@@ -1105,21 +997,12 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 
 		case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
 		{
-			BufferHandle buffer_handle = { resources[r] };
-			Buffer* buffer = AccessBuffer(buffer_handle);
+			Buffer* buffer = (Buffer*)resources[r];
 
 			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			// Bind parent buffer if present, used for dynamic resources.
-			if (buffer->parentBuffer.index != INVALID_HANDLE)
-			{
-				Buffer* parentBuffer = AccessBuffer(buffer->parentBuffer);
 
-				bufferInfo[i].buffer = parentBuffer->buffer;
-			}
-			else
-			{
-				bufferInfo[i].buffer = buffer->buffer;
-			}
+			if (buffer->parentBuffer != nullptr) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
+			else { bufferInfo[i].buffer = buffer->buffer; }
 
 			bufferInfo[i].offset = 0;
 			bufferInfo[i].range = buffer->size;
@@ -1137,7 +1020,7 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 		}
 	}
 
-	numResources = usedResources;
+	resourceCount = usedResources;
 }
 
 //TODO: Cache compiled shaders
@@ -1250,7 +1133,7 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 
 	// Color attachments
 	U32 c = 0;
-	for (; c < output.numColorFormats; ++c)
+	for (; c < output.colorFormatCount; ++c)
 	{
 		VkAttachmentDescription& colorAttachment = colorAttachments[c];
 		colorAttachment.format = output.colorFormats[c];
@@ -1294,7 +1177,7 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 	// Calculate active attachments for the subpass
 	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
 	U32 activeAttachments = 0;
-	for (; activeAttachments < output.numColorFormats; ++activeAttachments)
+	for (; activeAttachments < output.colorFormatCount; ++activeAttachments)
 	{
 		attachments[activeAttachments] = colorAttachments[activeAttachments];
 		++activeAttachments;
@@ -1346,7 +1229,7 @@ VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
 	return renderPass;
 }
 
-void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPass* renderPass)
+void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 {
 	// Color attachment
 	VkAttachmentDescription colorAttachment{};
@@ -1365,8 +1248,7 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 
 	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
-	Texture* depthTextureVk = AccessTexture(depthTexture);
-	depthAttachment.format = depthTextureVk->format;
+	depthAttachment.format = depthTexture->format;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1378,7 +1260,6 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 	VkAttachmentReference depthAttachmentRef{};
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
 
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -1395,7 +1276,7 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 
 	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass->renderPass));
 
-	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, creation.name);
+	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, renderPass->name);
 
 	// Create framebuffer into the device.
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -1406,7 +1287,7 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 	framebufferInfo.layers = 1;
 
 	VkImageView framebufferAttachments[2];
-	framebufferAttachments[1] = depthTextureVk->imageView;
+	framebufferAttachments[1] = depthTexture->imageView;
 
 	for (size_t i = 0; i < swapchainImageCount; i++)
 	{
@@ -1414,7 +1295,7 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 		framebufferInfo.pAttachments = framebufferAttachments;
 
 		vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchainFramebuffers[i]);
-		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchainFramebuffers[i], creation.name);
+		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchainFramebuffers[i], renderPass->name);
 	}
 
 	renderPass->width = swapchainWidth;
@@ -1457,9 +1338,8 @@ void Renderer::CreateSwapchainPass(const RenderPassCreation& creation, RenderPas
 	vkQueueWaitIdle(deviceQueue);
 }
 
-void Renderer::CreateFramebuffer(RenderPass* renderPass, const TextureHandle* outputTextures, U32 numRenderTargets, TextureHandle depthStencilTexture)
+void Renderer::CreateFramebuffer(RenderPass* renderPass)
 {
-	// Create framebuffer
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderPass->renderPass;
 	framebufferInfo.width = renderPass->width;
@@ -1468,45 +1348,14 @@ void Renderer::CreateFramebuffer(RenderPass* renderPass, const TextureHandle* ou
 
 	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1]{};
 	U32 activeAttachments = 0;
-	for (; activeAttachments < numRenderTargets; ++activeAttachments)
-	{
-		Texture* textureVk = AccessTexture(outputTextures[activeAttachments]);
-		framebufferAttachments[activeAttachments] = textureVk->imageView;
-	}
+	for (; activeAttachments < renderPass->renderTargetCount; ++activeAttachments) { framebufferAttachments[activeAttachments] = renderPass->outputTextures[activeAttachments]->imageView; }
 
-	if (depthStencilTexture.index != INVALID_HANDLE)
-	{
-		Texture* depthTextureVk = AccessTexture(depthStencilTexture);
-		framebufferAttachments[activeAttachments++] = depthTextureVk->imageView;
-	}
+	if (renderPass->outputDepth) { framebufferAttachments[activeAttachments++] = renderPass->outputDepth->imageView; }
 	framebufferInfo.pAttachments = framebufferAttachments;
 	framebufferInfo.attachmentCount = activeAttachments;
 
 	vkCreateFramebuffer(device, &framebufferInfo, nullptr, &renderPass->frameBuffer);
 	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffer, renderPass->name);
-}
-
-RenderPassOutput Renderer::FillRenderPassOutput(const RenderPassCreation& creation)
-{
-	RenderPassOutput output;
-	output.Reset();
-
-	for (U32 i = 0; i < creation.numRenderTargets; ++i)
-	{
-		Texture* texture_vk = AccessTexture(creation.outputTextures[i]);
-		output.Color(texture_vk->format);
-	}
-	if (creation.depthStencilTexture.index != INVALID_HANDLE)
-	{
-		Texture* texture_vk = AccessTexture(creation.depthStencilTexture);
-		output.Depth(texture_vk->format);
-	}
-
-	output.colorOperation = creation.colorOperation;
-	output.depthOperation = creation.depthOperation;
-	output.stencilOperation = creation.stencilOperation;
-
-	return output;
 }
 
 bool Renderer::CreateSampler(Sampler* sampler)
@@ -1717,57 +1566,189 @@ bool Renderer::CreateBuffer(Buffer* buffer, void* data)
 	return true;
 }
 
-PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
+bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout)
 {
-	U32 resourceIndex = Resources::pipelines.ObtainResource();
-	PipelineHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	ShaderStateHandle shaderState = CreateShaderState(creation.shaders);
-	if (shaderState.index == INVALID_HANDLE)
+	U32 usedBindings = 0;
+	for (U32 r = 0; r < descriptorSetLayout->bindingCount; ++r)
 	{
-		// Shader did not compile.
-		Resources::pipelines.ReleaseResource(handle.index);
-		handle.index = INVALID_HANDLE;
+		DescriptorBinding& binding = descriptorSetLayout->bindings[r];
+		binding.start = binding.start == U16_MAX ? (U16)r : binding.start;
+		binding.count = 1;
 
-		return handle;
+		VkDescriptorSetLayoutBinding& vkBinding = descriptorSetLayout->binding[usedBindings];
+		++usedBindings;
+
+		vkBinding.binding = binding.start;
+		vkBinding.descriptorType = binding.type;
+		vkBinding.descriptorType = vkBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : vkBinding.descriptorType;
+		vkBinding.descriptorCount = 1;
+
+		// TODO:
+		vkBinding.stageFlags = VK_SHADER_STAGE_ALL;
+		vkBinding.pImmutableSamplers = nullptr;
 	}
 
-	// Now that shaders have compiled we can create the pipeline.
-	Pipeline* pipeline = AccessPipeline(handle);
-	ShaderState* shaderStateData = AccessShaderState(shaderState);
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layout_info.bindingCount = usedBindings;
+	layout_info.pBindings = descriptorSetLayout->binding;
 
-	pipeline->shaderState = shaderState;
+	vkCreateDescriptorSetLayout(device, &layout_info, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
 
+	return true;
+}
+
+bool Renderer::CreateDescriptorSet(DescriptorSet* descriptorSet)
+{
+	// Allocate descriptor set
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &descriptorSet->layout->descriptorSetLayout;
+
+	VkValidate(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet->descriptorSet));
+
+	// Update descriptor set
+	VkWriteDescriptorSet descriptorWrite[8];
+	VkDescriptorBufferInfo bufferInfo[8];
+	VkDescriptorImageInfo imageInfo[8];
+
+	U32 resourceCount = descriptorSet->resourceCount;
+	FillWriteDescriptorSets(descriptorSet->layout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, defaultSampler->sampler,
+		resourceCount, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
+
+	// Cache resources
+	for (U32 r = 0; r < descriptorSet->resourceCount; r++)
+	{
+		descriptorSet->resources[r] = descriptorSet->resources[r];
+		descriptorSet->samplers[r] = descriptorSet->samplers[r];
+		descriptorSet->bindings[r] = descriptorSet->bindings[r];
+	}
+
+	vkUpdateDescriptorSets(device, resourceCount, descriptorWrite, 0, nullptr);
+
+	return true;
+}
+
+bool Renderer::CreateRenderPass(RenderPass* renderPass, RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
+{
+	switch (renderPass->type)
+	{
+	case RENDER_PASS_TYPE_SWAPCHAIN: {
+		CreateSwapchainPass(renderPass);
+	} break;
+	case RENDER_PASS_TYPE_COMPUTE: {} break;
+	case RENDER_PASS_TYPE_GEOMETRY: {
+		renderPass->output.Reset();
+
+		for (U32 i = 0; i < renderPass->renderTargetCount; ++i) { renderPass->output.Color(renderPass->outputTextures[i]->format); }
+
+		if (renderPass->outputDepth) { renderPass->output.Depth(renderPass->outputDepth->format); }
+
+		renderPass->output.colorOperation = color;
+		renderPass->output.depthOperation = depth;
+		renderPass->output.stencilOperation = stencil;
+
+		renderPass->renderPass = GetRenderPass(renderPass->output, renderPass->name);
+
+		CreateFramebuffer(renderPass);
+	} break;
+	}
+
+	return true;
+}
+
+bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCreation& info)
+{
+	shaderState->graphicsPipeline = true;
+	shaderState->activeShaders = 0;
+
+	U32 compiledShaders = 0;
+
+	for (compiledShaders = 0; compiledShaders < info.stagesCount; ++compiledShaders)
+	{
+		const ShaderStage& stage = info.stages[compiledShaders];
+
+		// Gives priority to compute: if any is present (and it should not be) then it is not a graphics pipeline.
+		if (stage.type == VK_SHADER_STAGE_COMPUTE_BIT)
+		{
+			shaderState->graphicsPipeline = false;
+		}
+
+		VkShaderModuleCreateInfo shaderInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+
+		if (info.spvInput)
+		{
+			shaderInfo.codeSize = stage.codeSize;
+			shaderInfo.pCode = reinterpret_cast<const U32*>(stage.code);
+		}
+		else
+		{
+			shaderInfo = CompileShader(stage.path, stage.type, info.name);
+		}
+
+		// Compile shader module
+		VkPipelineShaderStageCreateInfo& shader_stage_info = shaderState->shaderStageInfos[compiledShaders];
+		memset(&shader_stage_info, 0, sizeof(VkPipelineShaderStageCreateInfo));
+		shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shader_stage_info.pName = "main";
+		shader_stage_info.stage = stage.type;
+
+		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS)
+		{
+			break;
+		}
+
+		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderState->shaderStageInfos[compiledShaders].module, info.name);
+	}
+
+	bool creationFailed = compiledShaders != info.stagesCount;
+	if (!creationFailed)
+	{
+		shaderState->activeShaders = compiledShaders;
+		shaderState->name = info.name;
+	}
+
+	if (creationFailed)
+	{
+		Logger::Error("Error in creation of shader {}! Dumping all shader informations...", info.name);
+
+		return false;
+	}
+
+	return true;
+}
+
+bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput)
+{
 	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 
-	// Create VkPipelineLayout
-	for (U32 l = 0; l < creation.numActiveLayouts; ++l)
+	for (U32 l = 0; l < pipeline->activeLayoutCount; ++l)
 	{
-		pipeline->descriptorSetLayouts[l] = AccessDescriptorSetLayout(creation.descriptorSetLayouts[l]);
-		pipeline->descriptorSetLayoutHandles[l] = creation.descriptorSetLayouts[l];
-
 		vkLayouts[l] = pipeline->descriptorSetLayouts[l]->descriptorSetLayout;
 	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.pSetLayouts = vkLayouts;
-	pipelineLayoutInfo.setLayoutCount = creation.numActiveLayouts;
+	pipelineLayoutInfo.setLayoutCount = pipeline->activeLayoutCount;
+	pipelineLayoutInfo.flags = 0;
+	pipelineLayoutInfo.pNext = nullptr;
+	//pipelineLayoutInfo.pPushConstantRanges; TODO:
+	//pipelineLayoutInfo.pushConstantRangeCount;
 
 	VkPipelineLayout pipelineLayout;
 	VkValidate(vkCreatePipelineLayout(device, &pipelineLayoutInfo, allocationCallbacks, &pipelineLayout));
-	// Cache pipeline layout
+
 	pipeline->pipelineLayout = pipelineLayout;
-	pipeline->numActiveLayouts = creation.numActiveLayouts;
 
 	// Create full pipeline
-	if (shaderStateData->graphicsPipeline)
+	if (pipeline->shaderState->graphicsPipeline)
 	{
 		VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
 		//// Shader stage
-		pipelineInfo.pStages = shaderStateData->shaderStageInfos;
-		pipelineInfo.stageCount = shaderStateData->activeShaders;
+		pipelineInfo.pStages = pipeline->shaderState->shaderStageInfos;
+		pipelineInfo.stageCount = pipeline->shaderState->activeShaders;
 		//// PipelineLayout
 		pipelineInfo.layout = pipelineLayout;
 
@@ -1776,15 +1757,15 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 
 		// Vertex attributes.
 		VkVertexInputAttributeDescription vertexAttributes[8];
-		if (creation.vertexInput.numVertexAttributes)
+		if (vertexInput.numVertexAttributes)
 		{
-			for (U32 i = 0; i < creation.vertexInput.numVertexAttributes; ++i)
+			for (U32 i = 0; i < vertexInput.numVertexAttributes; ++i)
 			{
-				const VertexAttribute& vertexAttribute = creation.vertexInput.vertexAttributes[i];
+				const VertexAttribute& vertexAttribute = vertexInput.vertexAttributes[i];
 				vertexAttributes[i] = { vertexAttribute.location, vertexAttribute.binding, ToVkVertexFormat(vertexAttribute.format), vertexAttribute.offset };
 			}
 
-			vertexInputInfo.vertexAttributeDescriptionCount = creation.vertexInput.numVertexAttributes;
+			vertexInputInfo.vertexAttributeDescriptionCount = vertexInput.numVertexAttributes;
 			vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes;
 		}
 		else
@@ -1794,13 +1775,13 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		}
 		// Vertex bindings
 		VkVertexInputBindingDescription vertexBindings[8];
-		if (creation.vertexInput.numVertexStreams)
+		if (vertexInput.numVertexStreams)
 		{
-			vertexInputInfo.vertexBindingDescriptionCount = creation.vertexInput.numVertexStreams;
+			vertexInputInfo.vertexBindingDescriptionCount = vertexInput.numVertexStreams;
 
-			for (U32 i = 0; i < creation.vertexInput.numVertexStreams; ++i)
+			for (U32 i = 0; i < vertexInput.numVertexStreams; ++i)
 			{
-				const VertexStream& vertexStream = creation.vertexInput.vertexStreams[i];
+				const VertexStream& vertexStream = vertexInput.vertexStreams[i];
 				VkVertexInputRate vertexRate = vertexStream.inputRate == VERTEX_INPUT_RATE_VERTEX ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
 				vertexBindings[i] = { vertexStream.binding, vertexStream.stride, vertexRate };
 			}
@@ -1824,11 +1805,11 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		//// Color Blending
 		VkPipelineColorBlendAttachmentState colorBlendAttachment[8]{};
 
-		if (creation.blendState.activeStates)
+		if (pipeline->blendState.activeStates)
 		{
-			for (size_t i = 0; i < creation.blendState.activeStates; i++)
+			for (size_t i = 0; i < pipeline->blendState.activeStates; i++)
 			{
-				const BlendState& blendState = creation.blendState.blendStates[i];
+				const BlendState& blendState = pipeline->blendState.blendStates[i];
 
 				colorBlendAttachment[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 				colorBlendAttachment[i].blendEnable = blendState.blendEnabled ? VK_TRUE : VK_FALSE;
@@ -1860,7 +1841,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-		colorBlending.attachmentCount = creation.blendState.activeStates ? creation.blendState.activeStates : 1; // Always have 1 blend defined.
+		colorBlending.attachmentCount = pipeline->blendState.activeStates ? pipeline->blendState.activeStates : 1; // Always have 1 blend defined.
 		colorBlending.pAttachments = colorBlendAttachment;
 		colorBlending.blendConstants[0] = 0.0f; // Optional
 		colorBlending.blendConstants[1] = 0.0f; // Optional
@@ -1872,11 +1853,11 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		//// Depth Stencil
 		VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 
-		depthStencil.depthWriteEnable = creation.depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
-		depthStencil.stencilTestEnable = creation.depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
-		depthStencil.depthTestEnable = creation.depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
-		depthStencil.depthCompareOp = creation.depthStencil.depthComparison;
-		if (creation.depthStencil.stencilEnable)
+		depthStencil.depthWriteEnable = pipeline->depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
+		depthStencil.stencilTestEnable = pipeline->depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
+		depthStencil.depthTestEnable = pipeline->depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
+		depthStencil.depthCompareOp = pipeline->depthStencil.depthComparison;
+		if (pipeline->depthStencil.stencilEnable)
 		{
 			// TODO: add stencil
 			Logger::Error("");
@@ -1901,8 +1882,8 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = creation.rasterization.cullMode;
-		rasterizer.frontFace = creation.rasterization.front;
+		rasterizer.cullMode = pipeline->rasterization.cullMode;
+		rasterizer.frontFace = pipeline->rasterization.front;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 		rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -1935,7 +1916,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		pipelineInfo.pViewportState = &viewportState;
 
 		//// Render Pass
-		pipelineInfo.renderPass = GetRenderPass(creation.renderPass, creation.name);
+		pipelineInfo.renderPass = GetRenderPass(renderPass, pipeline->name);
 
 		//// Dynamic states
 		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
@@ -1953,7 +1934,7 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 	{
 		VkComputePipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
 
-		pipelineInfo.stage = shaderStateData->shaderStageInfos[0];
+		pipelineInfo.stage = pipeline->shaderState->shaderStageInfos[0];
 		pipelineInfo.layout = pipelineLayout;
 
 		vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
@@ -1961,468 +1942,83 @@ PipelineHandle Renderer::CreatePipeline(const PipelineCreation& creation)
 		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
 
-	return handle;
-}
-
-bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout)
-{
-	U32 usedBindings = 0;
-	for (U32 r = 0; r < descriptorSetLayout->numBindings; ++r)
-	{
-		DescriptorBinding& binding = descriptorSetLayout->bindings[r];
-		binding.start = binding.start == U16_MAX ? (U16)r : binding.start;
-		binding.count = 1;
-
-		VkDescriptorSetLayoutBinding& vkBinding = descriptorSetLayout->binding[usedBindings];
-		++usedBindings;
-
-		vkBinding.binding = binding.start;
-		vkBinding.descriptorType = binding.type;
-		vkBinding.descriptorType = vkBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : vkBinding.descriptorType;
-		vkBinding.descriptorCount = 1;
-
-		// TODO:
-		vkBinding.stageFlags = VK_SHADER_STAGE_ALL;
-		vkBinding.pImmutableSamplers = nullptr;
-	}
-
-	// Create the descriptor set layout
-	VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layout_info.bindingCount = usedBindings;
-	layout_info.pBindings = descriptorSetLayout->binding;
-
-	vkCreateDescriptorSetLayout(device, &layout_info, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
-
 	return true;
 }
 
-DescriptorSetHandle Renderer::CreateDescriptorSet(const DescriptorSetCreation& creation)
+void Renderer::DestroySamplerInstant(Sampler* sampler)
 {
-	U32 resourceIndex = Resources::descriptorSets.ObtainResource();
-	DescriptorSetHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	DesciptorSet* descriptorSet = AccessDescriptorSet(handle);
-	const DescriptorSetLayout* descriptorSetLayout = AccessDescriptorSetLayout(creation.layout);
-
-	// Allocate descriptor set
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptorSetLayout->descriptorSetLayout;
-
-	VkValidate(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet->descriptorSet));
-
-	// Cache data
-	U8* memory;
-	Memory::AllocateSize(&memory, (sizeof(ResourceHandle) + sizeof(SamplerHandle) + sizeof(U16)) * creation.numResources);
-	descriptorSet->resources = (ResourceHandle*)memory;
-	descriptorSet->samplers = (SamplerHandle*)(memory + sizeof(ResourceHandle) * creation.numResources);
-	descriptorSet->bindings = (U16*)(memory + (sizeof(ResourceHandle) + sizeof(SamplerHandle)) * creation.numResources);
-	descriptorSet->numResources = creation.numResources;
-	descriptorSet->layout = descriptorSetLayout;
-
-	// Update descriptor set
-	VkWriteDescriptorSet descriptorWrite[8];
-	VkDescriptorBufferInfo bufferInfo[8];
-	VkDescriptorImageInfo imageInfo[8];
-
-	Sampler* vkDefaultSampler = AccessSampler(defaultSampler);
-
-	U32 numResources = creation.numResources;
-	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, vkDefaultSampler->sampler,
-		numResources, creation.resources, creation.samplers, creation.bindings);
-
-	// Cache resources
-	for (U32 r = 0; r < creation.numResources; r++)
+	if (sampler)
 	{
-		descriptorSet->resources[r] = creation.resources[r];
-		descriptorSet->samplers[r] = creation.samplers[r];
-		descriptorSet->bindings[r] = creation.bindings[r];
+		vkDestroySampler(device, sampler->sampler, allocationCallbacks);
 	}
-
-	vkUpdateDescriptorSets(device, numResources, descriptorWrite, 0, nullptr);
-
-	return handle;
 }
 
-RenderPassHandle Renderer::CreateRenderPass(const RenderPassCreation& creation)
+void Renderer::DestroyTextureInstant(Texture* texture)
 {
-	U32 resourceIndex = Resources::renderPasses.ObtainResource();
-	RenderPassHandle handle = { resourceIndex };
-	if (resourceIndex == INVALID_HANDLE) { return handle; }
-
-	RenderPass* renderPass = AccessRenderPass(handle);
-	renderPass->type = creation.type;
-	// Init the rest of the struct.
-	renderPass->numRenderTargets = (U8)creation.numRenderTargets;
-	renderPass->dispatchX = 0;
-	renderPass->dispatchY = 0;
-	renderPass->dispatchZ = 0;
-	renderPass->name = creation.name;
-	renderPass->frameBuffer = nullptr;
-	renderPass->renderPass = nullptr;
-	renderPass->scaleX = creation.scaleX;
-	renderPass->scaleY = creation.scaleY;
-	renderPass->resize = creation.resize;
-
-	// Cache texture handles
-	U32 c = 0;
-	for (; c < creation.numRenderTargets; ++c)
+	if (texture)
 	{
-		Texture* texture = AccessTexture(creation.outputTextures[c]);
-
-		renderPass->width = texture->width;
-		renderPass->height = texture->height;
-
-		// Cache texture handles
-		renderPass->outputTextures[c] = creation.outputTextures[c];
+		vkDestroyImageView(device, texture->imageView, allocationCallbacks);
+		vmaDestroyImage(allocator, texture->image, texture->allocation);
 	}
-
-	renderPass->outputDepth = creation.depthStencilTexture;
-
-	switch (creation.type)
-	{
-	case RENDER_PASS_TYPE_SWAPCHAIN: {
-		CreateSwapchainPass(creation, renderPass);
-	} break;
-	case RENDER_PASS_TYPE_COMPUTE: {} break;
-	case RENDER_PASS_TYPE_GEOMETRY: {
-		renderPass->output = FillRenderPassOutput(creation);
-		renderPass->renderPass = GetRenderPass(renderPass->output, creation.name);
-
-		CreateFramebuffer(renderPass, creation.outputTextures, creation.numRenderTargets, creation.depthStencilTexture);
-	} break;
-	}
-
-	return handle;
 }
 
-ShaderStateHandle Renderer::CreateShaderState(const ShaderStateCreation& creation)
+void Renderer::DestroyBufferInstant(Buffer* buffer)
 {
-	ShaderStateHandle handle = { INVALID_HANDLE };
-
-	if (creation.stagesCount == 0 || creation.stages == nullptr)
+	if (buffer && !buffer->parentBuffer)
 	{
-		Logger::Error("Shader {} does not contain shader stages!", creation.name);
-		return handle;
+		vmaDestroyBuffer(allocator, buffer->buffer, buffer->allocation);
 	}
+}
 
-	handle.index = Resources::shaders.ObtainResource();
-	if (handle.index == INVALID_HANDLE) { return handle; }
-
-	// For each shader stage, compile them individually.
-	U32 compiledShaders = 0;
-
-	ShaderState* shaderState = AccessShaderState(handle);
-	shaderState->graphicsPipeline = true;
-	shaderState->activeShaders = 0;
-
-	for (compiledShaders = 0; compiledShaders < creation.stagesCount; ++compiledShaders)
+void Renderer::DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout)
+{
+	if (layout)
 	{
-		const ShaderStage& stage = creation.stages[compiledShaders];
+		vkDestroyDescriptorSetLayout(device, layout->descriptorSetLayout, allocationCallbacks);
 
-		// Gives priority to compute: if any is present (and it should not be) then it is not a graphics pipeline.
-		if (stage.type == VK_SHADER_STAGE_COMPUTE_BIT)
-		{
-			shaderState->graphicsPipeline = false;
-		}
-
-		VkShaderModuleCreateInfo shaderInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-
-		if (creation.spvInput)
-		{
-			shaderInfo.codeSize = stage.codeSize;
-			shaderInfo.pCode = reinterpret_cast<const U32*>(stage.code);
-		}
-		else
-		{
-			shaderInfo = CompileShader(stage.path, stage.type, creation.name);
-		}
-
-		// Compile shader module
-		VkPipelineShaderStageCreateInfo& shader_stage_info = shaderState->shaderStageInfos[compiledShaders];
-		memset(&shader_stage_info, 0, sizeof(VkPipelineShaderStageCreateInfo));
-		shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shader_stage_info.pName = "main";
-		shader_stage_info.stage = stage.type;
-
-		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS)
-		{
-			break;
-		}
-
-		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderState->shaderStageInfos[compiledShaders].module, creation.name);
+		Memory::FreeSize(&layout->bindings);
 	}
+}
 
-	bool creationFailed = compiledShaders != creation.stagesCount;
-	if (!creationFailed)
+void Renderer::DestroyDescriptorSetInstant(DescriptorSet* set)
+{
+	if (set)
 	{
-		shaderState->activeShaders = compiledShaders;
-		shaderState->name = creation.name;
+		Memory::FreeSize(&set->resources);
 	}
+}
 
-	if (creationFailed)
+void Renderer::DestroyRenderPassInstant(RenderPass* renderPass)
+{
+	if (renderPass)
 	{
-		DestroyShaderState(handle);
-		handle.index = INVALID_HANDLE;
+		if (renderPass->renderTargetCount) { vkDestroyFramebuffer(device, renderPass->frameBuffer, allocationCallbacks); }
+	}
+}
 
-		// Dump shader code
-		Logger::Error("Error in creation of shader {}! Dumping all shader informations...", creation.name);
-		for (compiledShaders = 0; compiledShaders < creation.stagesCount; ++compiledShaders)
+void Renderer::DestroyShaderStateInstant(ShaderState* shader)
+{
+	if (shader)
+	{
+		for (size_t i = 0; i < shader->activeShaders; i++)
 		{
-			const ShaderStage& stage = creation.stages[compiledShaders];
-			Logger::Error("{}:\n{}", (U32)stage.type, stage.code);
+			vkDestroyShaderModule(device, shader->shaderStageInfos[i].module, allocationCallbacks);
 		}
 	}
-
-	return handle;
 }
 
-void Renderer::DestroyBuffer(Buffer* buffer)
+void Renderer::DestroyPipelineInstant(Pipeline* pipeline)
 {
-	if (buffer.index < Resources::buffers.ResourceCount)
+	if (pipeline)
 	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_BUFFER, buffer.index, currentFrame });
+		vkDestroyPipeline(device, pipeline->pipeline, allocationCallbacks);
+		vkDestroyPipelineLayout(device, pipeline->pipelineLayout, allocationCallbacks);
 	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid buffer {}", buffer.index);
-	}
-}
-
-void Renderer::DestroyTexture(TextureHandle texture)
-{
-	if (texture.index < Resources::textures.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_TEXTURE, texture.index, currentFrame });
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid texture {}", texture.index);
-	}
-}
-
-void Renderer::DestroyPipeline(PipelineHandle pipeline)
-{
-	if (pipeline.index < Resources::pipelines.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_PIPELINE, pipeline.index, currentFrame });
-
-		Pipeline* vkPipeline = AccessPipeline(pipeline);
-		DestroyShaderState(vkPipeline->shaderState);
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid Pipeline {}", pipeline.index);
-	}
-}
-
-void Renderer::DestroySampler(SamplerHandle sampler)
-{
-	if (sampler.index < Resources::samplers.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SAMPLER, sampler.index, currentFrame });
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid sampler {}", sampler.index);
-	}
-}
-
-void Renderer::DestroyDescriptorSetLayout(DescriptorSetLayoutHandle layout)
-{
-	if (layout.index < Resources::descriptorSetLayouts.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT, layout.index, currentFrame });
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid descriptor set layout {}", layout.index);
-	}
-}
-
-void Renderer::DestroyDescriptorSet(DescriptorSetHandle set)
-{
-	if (set.index < Resources::descriptorSets.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET, set.index, currentFrame });
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid descriptor set {}", set.index);
-	}
-}
-
-void Renderer::DestroyRenderPass(RenderPassHandle renderPass)
-{
-	if (renderPass.index < Resources::renderPasses.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, renderPass.index, currentFrame });
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid render pass {}", renderPass.index);
-	}
-}
-
-void Renderer::DestroyShaderState(ShaderStateHandle shader)
-{
-	if (shader.index < Resources::shaders.ResourceCount)
-	{
-		resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, shader.index, currentFrame });
-	}
-	else
-	{
-		Logger::Error("Graphics error: trying to free invalid shader {}", shader.index);
-	}
-}
-
-void Renderer::DestroyBufferInstant(ResourceHandle buffer)
-{
-	Buffer* vkBuffer = Resources::buffers.GetResource(buffer);
-
-	if (vkBuffer && vkBuffer->parentBuffer.index == INVALID_BUFFER.index)
-	{
-		vmaDestroyBuffer(allocator, vkBuffer->buffer, vkBuffer->allocation);
-	}
-
-	Resources::buffers.ReleaseResource(buffer);
-}
-
-void Renderer::DestroyTextureInstant(ResourceHandle texture)
-{
-	Texture* vkTexture = Resources::textures.GetResource(texture);
-
-	if (vkTexture)
-	{
-		vkDestroyImageView(device, vkTexture->imageView, allocationCallbacks);
-		vmaDestroyImage(allocator, vkTexture->image, vkTexture->allocation);
-	}
-
-	Resources::textures.ReleaseResource(texture);
-}
-
-void Renderer::DestroyPipelineInstant(ResourceHandle pipeline)
-{
-	Pipeline* vkPipeline = Resources::pipelines.GetResource(pipeline);
-
-	if (vkPipeline)
-	{
-		vkDestroyPipeline(device, vkPipeline->pipeline, allocationCallbacks);
-		vkDestroyPipelineLayout(device, vkPipeline->pipelineLayout, allocationCallbacks);
-	}
-
-	Resources::pipelines.ReleaseResource(pipeline);
-}
-
-void Renderer::DestroySamplerInstant(ResourceHandle sampler)
-{
-	Sampler* vkSampler = Resources::samplers.GetResource(sampler);
-
-	if (vkSampler)
-	{
-		vkDestroySampler(device, vkSampler->sampler, allocationCallbacks);
-	}
-
-	Resources::samplers.ReleaseResource(sampler);
-}
-
-void Renderer::DestroyDescriptorSetLayoutInstant(ResourceHandle layout)
-{
-	DescriptorSetLayout* vkDescriptorSetLayout = Resources::descriptorSetLayouts.GetResource(layout);
-
-	if (vkDescriptorSetLayout)
-	{
-		vkDestroyDescriptorSetLayout(device, vkDescriptorSetLayout->descriptorSetLayout, allocationCallbacks);
-
-		Memory::FreeSize(&vkDescriptorSetLayout->bindings);
-	}
-
-	Resources::descriptorSetLayouts.ReleaseResource(layout);
-}
-
-void Renderer::DestroyDescriptorSetInstant(ResourceHandle set)
-{
-	DesciptorSet* vkDescriptorSet = Resources::descriptorSets.GetResource(set);
-
-	if (vkDescriptorSet)
-	{
-		Memory::FreeSize(&vkDescriptorSet->resources);
-	}
-
-	Resources::descriptorSets.ReleaseResource(set);
-}
-
-void Renderer::DestroyRenderPassInstant(ResourceHandle renderPass)
-{
-	RenderPass* vkRenderPass = Resources::renderPasses.GetResource(renderPass);
-
-	if (vkRenderPass)
-	{
-		if (vkRenderPass->numRenderTargets) { vkDestroyFramebuffer(device, vkRenderPass->frameBuffer, allocationCallbacks); }
-	}
-
-	Resources::renderPasses.ReleaseResource(renderPass);
-}
-
-void Renderer::DestroyShaderStateInstant(ResourceHandle shader)
-{
-	ShaderState* vkShaderState = Resources::shaders.GetResource(shader);
-	if (vkShaderState)
-	{
-		for (size_t i = 0; i < vkShaderState->activeShaders; i++)
-		{
-			vkDestroyShaderModule(device, vkShaderState->shaderStageInfos[i].module, allocationCallbacks);
-		}
-	}
-
-	Resources::shaders.ReleaseResource(shader);
-}
-
-ShaderState* Renderer::AccessShaderState(ShaderStateHandle shader)
-{
-	return Resources::shaders.GetResource(shader.index);
-}
-
-Texture* Renderer::AccessTexture(TextureHandle texture)
-{
-	return Resources::textures.GetResource(texture.index);
-}
-
-Buffer* Renderer::AccessBuffer(BufferHandle buffer)
-{
-	return Resources::buffers.GetResource(buffer.index);
-}
-
-Pipeline* Renderer::AccessPipeline(PipelineHandle pipeline)
-{
-	return Resources::pipelines.GetResource(pipeline.index);
-}
-
-Sampler* Renderer::AccessSampler(SamplerHandle sampler)
-{
-	return Resources::samplers.GetResource(sampler.index);
-}
-
-DescriptorSetLayout* Renderer::AccessDescriptorSetLayout(DescriptorSetLayoutHandle layout)
-{
-	return Resources::descriptorSetLayouts.GetResource(layout.index);
-}
-
-DesciptorSet* Renderer::AccessDescriptorSet(DescriptorSetHandle set)
-{
-	return Resources::descriptorSets.GetResource(set.index);
-}
-
-RenderPass* Renderer::AccessRenderPass(RenderPassHandle renderPass)
-{
-	return Resources::renderPasses.GetResource(renderPass.index);
 }
 
 const RenderPassOutput& Renderer::GetSwapchainOutput() { return swapchainOutput; }
 
-RenderPassHandle Renderer::GetSwapchainPass() { return swapchainPass; }
+RenderPass* Renderer::GetSwapchainPass() { return swapchainPass; }
 
 bool Renderer::IsDepthStencil(VkFormat value)
 {

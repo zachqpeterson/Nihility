@@ -97,7 +97,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 
 		// Search for dynamic buffers
 		const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
-		for (U32 i = 0; i < descriptorSetLayout->numBindings; ++i)
+		for (U32 i = 0; i < descriptorSetLayout->bindingCount; ++i)
 		{
 			const DescriptorBinding& rb = descriptorSetLayout->bindings[i];
 
@@ -259,7 +259,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		VkPipelineStageFlags destinationStageMask = 0;
 		VkAccessFlags sourceAccessFlags = VK_ACCESS_NONE_KHR, destinationAccessFlags = VK_ACCESS_NONE_KHR;
 
-		for (U32 i = 0; i < barrier.numTextureBarriers; ++i)
+		for (U32 i = 0; i < barrier.textureBarrierCount; ++i)
 		{
 			Texture* texture = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
 
@@ -305,7 +305,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		}
 
 		static VkBufferMemoryBarrier bufferMemoryBarriers[8];
-		for (U32 i = 0; i < barrier.numBufferBarriers; ++i)
+		for (U32 i = 0; i < barrier.bufferBarrierCount; ++i)
 		{
 			VkBufferMemoryBarrier& vkBarrier = bufferMemoryBarriers[i];
 			vkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -331,7 +331,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		sourceStageMask = DeterminePipelineStageFlags(sourceAccessFlags, barrier.sourcePipelineStage == PIPELINE_STAGE_COMPUTE_SHADER ? QUEUE_TYPE_COMPUTE : QUEUE_TYPE_GRAPHICS);
 		destinationStageMask = DeterminePipelineStageFlags(destinationAccessFlags, barrier.destinationPipelineStage == PIPELINE_STAGE_COMPUTE_SHADER ? QUEUE_TYPE_COMPUTE : QUEUE_TYPE_GRAPHICS);
 
-		vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.numBufferBarriers, bufferMemoryBarriers, barrier.numTextureBarriers, imageBarriers);
+		vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.bufferBarrierCount, bufferMemoryBarriers, barrier.textureBarrierCount, imageBarriers);
 		return;
 	}
 
@@ -381,7 +381,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 
 	bool hasDepth = false;
 
-	for (U32 i = 0; i < barrier.numTextureBarriers; ++i)
+	for (U32 i = 0; i < barrier.textureBarrierCount; ++i)
 	{
 		Texture* texture = Renderer::AccessTexture(barrier.textureBarriers[i].texture);
 
@@ -422,7 +422,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 	}
 
 	static VkBufferMemoryBarrier bufferMemoryBarriers[8];
-	for (U32 i = 0; i < barrier.numBufferBarriers; ++i)
+	for (U32 i = 0; i < barrier.bufferBarrierCount; ++i)
 	{
 		VkBufferMemoryBarrier& vkBarrier = bufferMemoryBarriers[i];
 		vkBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -439,7 +439,7 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		vkBarrier.dstQueueFamilyIndex = 0;
 	}
 
-	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.numBufferBarriers, bufferMemoryBarriers, barrier.numTextureBarriers, imageBarriers);
+	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, barrier.bufferBarrierCount, bufferMemoryBarriers, barrier.textureBarrierCount, imageBarriers);
 }
 
 void CommandBuffer::FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data)
