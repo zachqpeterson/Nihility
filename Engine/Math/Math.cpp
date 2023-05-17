@@ -92,13 +92,6 @@ Quaternion3 Math::Slerp(const Quaternion3& a, const Quaternion3& b, F32 t)
 
 //Vector2
 
-const Vector2 Vector2::Zero{ 0.0f };
-const Vector2 Vector2::One{ 1.0f };
-const Vector2 Vector2::Left{ -1.0f, 0.0f };
-const Vector2 Vector2::Right{ 1.0f, 0.0f };
-const Vector2 Vector2::Up{ 0.0f, 1.0f };
-const Vector2 Vector2::Down{ 0.0f, -1.0f };
-
 Vector2::Vector2() : x{ 0.0f }, y{ 0.0f } {}
 Vector2::Vector2(F32 f) : x{ f }, y{ f } {}
 Vector2::Vector2(F32 x, F32 y) : x{ x }, y{ y } {}
@@ -240,15 +233,6 @@ Vector2::operator String16() const { return String16(x, u", ", y); }
 Vector2::operator String32() const { return String32(x, U", ", y); }
 
 //Vector3
-
-const Vector3 Vector3::Zero{ 0.0f };
-const Vector3 Vector3::One{ 1.0f };
-const Vector3 Vector3::Left{ -1.0f, 0.0f, 0.0f };
-const Vector3 Vector3::Right{ 1.0f, 0.0f, 0.0f };
-const Vector3 Vector3::Up{ 0.0f, 1.0f, 0.0f };
-const Vector3 Vector3::Down{ 0.0f, -1.0f, 0.0f };
-const Vector3 Vector3::Forward{ 0.0f, 0.0f, 1.0f };
-const Vector3 Vector3::Back{ 0.0f, 0.0f, -1.0f };
 
 Vector3::Vector3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f } {}
 Vector3::Vector3(F32 f) : x{ f }, y{ f }, z{ f } {}
@@ -394,17 +378,6 @@ Vector3::operator String32() const { return String32(x, U", ", y, U", ", z); }
 
 //Vector4
 
-const Vector4 Vector4::Zero{ 0.0f };
-const Vector4 Vector4::One{ 1.0f };
-const Vector4 Vector4::Left{ -1.0f, 0.0f, 0.0f, 0.0f };
-const Vector4 Vector4::Right{ 1.0f, 0.0f, 0.0f, 0.0f };
-const Vector4 Vector4::Up{ 0.0f, 1.0f, 0.0f, 0.0f };
-const Vector4 Vector4::Down{ 0.0f, -1.0f, 0.0f, 0.0f };
-const Vector4 Vector4::Forward{ 0.0f, 0.0f, 1.0f, 0.0f };
-const Vector4 Vector4::Back{ 0.0f, 0.0f, -1.0f, 0.0f };
-const Vector4 Vector4::In{ 0.0f, 0.0f, 0.0f, 1.0f };
-const Vector4 Vector4::Out{ 0.0f, 0.0f, 0.0f, -1.0f };
-
 Vector4::Vector4() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 0.0f } {}
 Vector4::Vector4(F32 f) : x{ f }, y{ f }, z{ f }, w{ f } {}
 Vector4::Vector4(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
@@ -507,13 +480,6 @@ Vector4::operator String32() const { return String32(x, U", ", y, U", ", z, U", 
 
 //Vector2Int
 
-const Vector2Int Vector2Int::Zero{ 0 };
-const Vector2Int Vector2Int::One{ 1 };
-const Vector2Int Vector2Int::Left{ -1, 0 };
-const Vector2Int Vector2Int::Right{ 1, 0 };
-const Vector2Int Vector2Int::Up{ 0, 1 };
-const Vector2Int Vector2Int::Down{ 0, -1 };
-
 Vector2Int::Vector2Int() : x{ 0 }, y{ 0 } {}
 Vector2Int::Vector2Int(I32 i) : x{ i }, y{ i } {}
 Vector2Int::Vector2Int(I32 x, I32 y) : x{ x }, y{ y } {}
@@ -603,15 +569,6 @@ Vector2Int::operator String16() const { return String16(x, u", ", y); }
 Vector2Int::operator String32() const { return String32(x, U", ", y); }
 
 //Vector3Int
-
-const Vector3Int Vector3Int::Zero{ 0 };
-const Vector3Int Vector3Int::One{ 1 };
-const Vector3Int Vector3Int::Left{ -1, 0, 0 };
-const Vector3Int Vector3Int::Right{ 1, 0, 0 };
-const Vector3Int Vector3Int::Up{ 0, 1, 0 };
-const Vector3Int Vector3Int::Down{ 0, -1, 0 };
-const Vector3Int Vector3Int::Forward{ 0, 0, 1 };
-const Vector3Int Vector3Int::Back{ 0, 0, -1 };
 
 Vector3Int::Vector3Int() : x{ 0 }, y{ 0 }, z{ 0 } {}
 Vector3Int::Vector3Int(I32 i) : x{ i }, y{ i }, z{ i } {}
@@ -706,17 +663,6 @@ Vector3Int::operator String16() const { return String16(x, u", ", y, u", ", z); 
 Vector3Int::operator String32() const { return String32(x, U", ", y, U", ", z); }
 
 //Vector4Int
-
-const Vector4Int Vector4Int::Zero{ 0 };
-const Vector4Int Vector4Int::One{ 1 };
-const Vector4Int Vector4Int::Left{ -1, 0, 0, 0 };
-const Vector4Int Vector4Int::Right{ 1, 0, 0, 0 };
-const Vector4Int Vector4Int::Up{ 0, 1, 0, 0 };
-const Vector4Int Vector4Int::Down{ 0, -1, 0, 0 };
-const Vector4Int Vector4Int::Forward{ 0, 0, 1, 0 };
-const Vector4Int Vector4Int::Back{ 0, 0, -1, 0 };
-const Vector4Int Vector4Int::In{ 0, 0, 0, 1 };
-const Vector4Int Vector4Int::Out{ 0, 0, 0, -1 };
 
 Vector4Int::Vector4Int() : x{ 0 }, y{ 0 }, z{ 0 }, w{ 0 } {}
 Vector4Int::Vector4Int(I32 i) : x{ i }, y{ i }, z{ i }, w{ i } {}
@@ -816,8 +762,6 @@ Vector4Int::operator String32() const { return String32(x, U", ", y, U", ", z, U
 
 //Matrix3
 
-const Matrix3 Matrix3::Identity{};
-
 Matrix3::Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
 Matrix3::Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a{ ax, ay, az }, b{ bx, by, bz }, c{ cx, cy, cz } {}
 Matrix3::Matrix3(const Vector3& a, const Vector3& b, const Vector3& c) : a{ a }, b{ b }, c{ c } {}
@@ -911,8 +855,6 @@ F32* Matrix3::Data() { return a.Data(); }
 const F32* Matrix3::Data() const { return a.Data(); }
 
 //Matrix4
-
-const Matrix4 Matrix4::Identity{};
 
 Matrix4::Matrix4() : a{ 1.0f, 0.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f, 0.0f }, d{ 0.0f, 0.0f, 0.0f, 1.0f } {}
 Matrix4::Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw) :
@@ -1460,8 +1402,6 @@ const F32* Matrix4::Data() const { return a.Data(); }
 
 //Quaternion2
 
-const Quaternion2 Quaternion2::Identity{};
-
 Quaternion2::Quaternion2() : x{ 0.0f }, y{ 1.0f } {}
 Quaternion2::Quaternion2(F32 x, F32 y) : x{ x }, y{ y } {}
 Quaternion2::Quaternion2(F32 angle) { F32 a = angle * DEG_TO_RAD_F; x = Math::Sin(a); y = Math::Cos(a); }
@@ -1679,8 +1619,6 @@ F32* Quaternion2::Data() { return &x; }
 const F32* Quaternion2::Data() const { return &x; }
 
 //Quaternion3
-
-const Quaternion3 Quaternion3::Identity{};
 
 Quaternion3::Quaternion3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
 Quaternion3::Quaternion3(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}

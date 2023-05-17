@@ -71,8 +71,11 @@ public:
 	template <FloatingPoint Type> static Type Closest(Type n, Type a, Type b) { return n < (b + a) * 0.5f ? a : b; }
 	template <Integer Type> static Type Closest(Type n, Type a, Type b) { return n < (b + a) >> 1 ? a : b; }
 
-	template <FloatingPoint Type> static bool Zero(Type f) { if constexpr (IsSame<Type, F32>) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
-		else { return f < DOUBLE_EPSILON&& f > -DOUBLE_EPSILON; } }
+	template <FloatingPoint Type> static bool Zero(Type f)
+	{
+		if constexpr (IsSame<Type, F32>) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
+		else { return f < DOUBLE_EPSILON&& f > -DOUBLE_EPSILON; }
+	}
 	template <FloatingPoint Type> static bool NaN(Type f) { return isnan(f); }
 	template <FloatingPoint Type> static bool Inf(Type f) { return isinf(f); }
 
@@ -134,7 +137,7 @@ struct NH_API Vector2
 	bool operator>(const Vector2& v) const;
 	bool operator<(const Vector2& v) const;
 	bool operator>=(const Vector2& v) const;
-	bool operator<=(const Vector2& v) const;  
+	bool operator<=(const Vector2& v) const;
 	bool IsZero() const;
 
 	Vector2 operator-() const;
@@ -180,6 +183,13 @@ public:
 	static const Vector2 Up;
 	static const Vector2 Down;
 };
+
+inline const Vector2 Vector2::Zero{ 0.0f };
+inline const Vector2 Vector2::One{ 1.0f };
+inline const Vector2 Vector2::Left{ -1.0f, 0.0f };
+inline const Vector2 Vector2::Right{ 1.0f, 0.0f };
+inline const Vector2 Vector2::Up{ 0.0f, 1.0f };
+inline const Vector2 Vector2::Down{ 0.0f, -1.0f };
 
 struct NH_API Vector3
 {
@@ -267,6 +277,15 @@ public:
 	static const Vector3 Back;
 };
 
+inline const Vector3 Vector3::Zero{ 0.0f };
+inline const Vector3 Vector3::One{ 1.0f };
+inline const Vector3 Vector3::Left{ -1.0f, 0.0f, 0.0f };
+inline const Vector3 Vector3::Right{ 1.0f, 0.0f, 0.0f };
+inline const Vector3 Vector3::Up{ 0.0f, 1.0f, 0.0f };
+inline const Vector3 Vector3::Down{ 0.0f, -1.0f, 0.0f };
+inline const Vector3 Vector3::Forward{ 0.0f, 0.0f, 1.0f };
+inline const Vector3 Vector3::Back{ 0.0f, 0.0f, -1.0f };
+
 struct NH_API Vector4
 {
 	Vector4();
@@ -349,6 +368,17 @@ public:
 	static const Vector4 Out;
 };
 
+inline const Vector4 Vector4::Zero{ 0.0f };
+inline const Vector4 Vector4::One{ 1.0f };
+inline const Vector4 Vector4::Left{ -1.0f, 0.0f, 0.0f, 0.0f };
+inline const Vector4 Vector4::Right{ 1.0f, 0.0f, 0.0f, 0.0f };
+inline const Vector4 Vector4::Up{ 0.0f, 1.0f, 0.0f, 0.0f };
+inline const Vector4 Vector4::Down{ 0.0f, -1.0f, 0.0f, 0.0f };
+inline const Vector4 Vector4::Forward{ 0.0f, 0.0f, 1.0f, 0.0f };
+inline const Vector4 Vector4::Back{ 0.0f, 0.0f, -1.0f, 0.0f };
+inline const Vector4 Vector4::In{ 0.0f, 0.0f, 0.0f, 1.0f };
+inline const Vector4 Vector4::Out{ 0.0f, 0.0f, 0.0f, -1.0f };
+
 struct NH_API Vector2Int
 {
 	Vector2Int();
@@ -422,6 +452,13 @@ public:
 	static const Vector2Int Up;
 	static const Vector2Int Down;
 };
+
+inline const Vector2Int Vector2Int::Zero{ 0 };
+inline const Vector2Int Vector2Int::One{ 1 };
+inline const Vector2Int Vector2Int::Left{ -1, 0 };
+inline const Vector2Int Vector2Int::Right{ 1, 0 };
+inline const Vector2Int Vector2Int::Up{ 0, 1 };
+inline const Vector2Int Vector2Int::Down{ 0, -1 };
 
 struct NH_API Vector3Int
 {
@@ -498,6 +535,15 @@ public:
 	static const Vector3Int Forward;
 	static const Vector3Int Back;
 };
+
+inline const Vector3Int Vector3Int::Zero{ 0 };
+inline const Vector3Int Vector3Int::One{ 1 };
+inline const Vector3Int Vector3Int::Left{ -1, 0, 0 };
+inline const Vector3Int Vector3Int::Right{ 1, 0, 0 };
+inline const Vector3Int Vector3Int::Up{ 0, 1, 0 };
+inline const Vector3Int Vector3Int::Down{ 0, -1, 0 };
+inline const Vector3Int Vector3Int::Forward{ 0, 0, 1 };
+inline const Vector3Int Vector3Int::Back{ 0, 0, -1 };
 
 struct NH_API Vector4Int
 {
@@ -577,6 +623,17 @@ public:
 	static const Vector4Int Out;
 };
 
+inline const Vector4Int Vector4Int::Zero{ 0 };
+inline const Vector4Int Vector4Int::One{ 1 };
+inline const Vector4Int Vector4Int::Left{ -1, 0, 0, 0 };
+inline const Vector4Int Vector4Int::Right{ 1, 0, 0, 0 };
+inline const Vector4Int Vector4Int::Up{ 0, 1, 0, 0 };
+inline const Vector4Int Vector4Int::Down{ 0, -1, 0, 0 };
+inline const Vector4Int Vector4Int::Forward{ 0, 0, 1, 0 };
+inline const Vector4Int Vector4Int::Back{ 0, 0, -1, 0 };
+inline const Vector4Int Vector4Int::In{ 0, 0, 0, 1 };
+inline const Vector4Int Vector4Int::Out{ 0, 0, 0, -1 };
+
 struct NH_API Matrix3
 {
 	Matrix3();
@@ -620,6 +677,8 @@ public:
 
 	static const Matrix3 Identity;
 };
+
+inline const Matrix3 Matrix3::Identity{};
 
 enum ProjectionType
 {
@@ -690,6 +749,8 @@ public:
 	static const Matrix4 Identity;
 };
 
+inline const Matrix4 Matrix4::Identity{};
+
 struct NH_API Quaternion2
 {
 	Quaternion2();
@@ -740,6 +801,8 @@ public:
 
 	static const Quaternion2 Identity;
 };
+
+inline const Quaternion2 Quaternion2::Identity{};
 
 //TODO: Cache euler angles
 struct NH_API Quaternion3
@@ -794,9 +857,11 @@ public:
 	static const Quaternion3 Identity;
 };
 
+inline const Quaternion3 Quaternion3::Identity{};
+
 //Math
 
-template <VectorType Type> 
+template <VectorType Type>
 inline Type Math::Lerp(const Type& a, const Type& b, F32 t)
 {
 	return a + (b - a) * t;
