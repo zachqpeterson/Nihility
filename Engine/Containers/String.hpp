@@ -1147,7 +1147,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	using UArg = Traits<UnsignedOf<Arg>>::Base;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 	T* c = str + typeSize;
@@ -1223,7 +1223,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	const U64 strIndex = str - string;
 	const U64 excessSize = size - strIndex;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 	T* c = str + typeSize;
@@ -1288,7 +1288,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 
 	if (value)
 	{
-		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, size + trueSize, capacity); }
+		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, size + trueSize, capacity); str = string + strIndex; }
 
 		if constexpr (Insert) { Copy(str + 4, str, size - strIndex); }
 
@@ -1301,7 +1301,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	}
 	else
 	{
-		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, size + falseSize, capacity); }
+		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, size + falseSize, capacity); str = string + strIndex; }
 
 		if constexpr (Insert) { Copy(str + 5, str, size - strIndex); }
 
@@ -1326,7 +1326,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value, U64 decimalCoun
 		const U64 strIndex = str - string;
 		const U64 excessSize = size - strIndex;
 
-		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
+		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
 		if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 		T* c = str + typeSize;
@@ -1428,7 +1428,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	const U64 strIndex = str - string;
 	const U64 excessSize = size - strIndex;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); }
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 	if constexpr (IsSame<CharType, T>) { Memory::Copy(str, value, strSize * sizeof(T)); }
