@@ -488,8 +488,6 @@ bool Renderer::CreateResources()
 
 	Profiler::Initialize(timeQueriesPerFrame, MAX_SWAPCHAIN_IMAGES);
 
-	Resources::Initialize();
-
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
 
@@ -507,6 +505,8 @@ bool Renderer::CreateResources()
 	commandBufferRing.Create();
 
 	descriptorSetUpdates.Reserve(16);
+
+	Resources::Initialize();
 
 	return true;
 }

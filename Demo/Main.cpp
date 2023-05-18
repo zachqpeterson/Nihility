@@ -61,7 +61,7 @@ static U8* GetBufferData(BufferView* bufferViews, U32 bufferIndex, Vector<void*>
 
 bool Init()
 {
-	glTF scene; //TODO: Load Scene file
+	glTF scene{}; //TODO: Load Scene file
 
 	Vector<Texture*> images{ scene.imagesCount };
 
