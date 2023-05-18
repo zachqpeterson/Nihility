@@ -264,7 +264,7 @@ struct NH_API ShaderStateCreation
 {
 	ShaderStateCreation& Reset();
 	ShaderStateCreation& SetName(const String& name);
-	ShaderStateCreation& AddStage(const String& path, VkShaderStageFlagBits type);
+	ShaderStateCreation& AddStage(CSTR path, VkShaderStageFlagBits type);
 	ShaderStateCreation& SetSpvInput(bool value);
 
 	ShaderStage				stages[MAX_SHADER_STAGES];

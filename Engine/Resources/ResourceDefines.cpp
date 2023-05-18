@@ -205,7 +205,7 @@ ShaderStateCreation& ShaderStateCreation::SetName(const String& name)
 	return *this;
 }
 
-ShaderStateCreation& ShaderStateCreation::AddStage(const String& path, VkShaderStageFlagBits type)
+ShaderStateCreation& ShaderStateCreation::AddStage(CSTR path, VkShaderStageFlagBits type)
 {
 	stages[stagesCount].path = path;
 	stages[stagesCount].type = type;

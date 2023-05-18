@@ -10,6 +10,7 @@
 #define MATERIALS_PATH "materials/"
 #define MODELS_PATH "models/"
 #define FONTS_PATH "fonts/"
+#define SCENES_PATH "scenes/"
 
 #pragma pack(push, 1)
 
@@ -222,6 +223,7 @@ Texture* Resources::LoadTexture(const String& name)
 	}
 
 	Logger::Error("Failed to find or open file: {}", path);
+	textures.Remove(name);
 
 	return nullptr;
 }
@@ -365,6 +367,28 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	Renderer::CreatePipeline(pipeline, info.renderPass, info.vertexInput);
 
 	return pipeline;
+}
+
+glTF* Resources::LoadScene(const String& name)
+{
+	glTF* gltf = &scenes.Request(name);
+
+	if (!gltf->name.Blank()) { return gltf; }
+
+	String path(SCENES_PATH, name);
+
+	File file(path, FILE_OPEN_RESOURCE);
+	if (file.Opened())
+	{
+		gltf->name = name;
+
+		return gltf;
+	}
+
+	Logger::Error("Failed to find or open file: {}", path);
+	scenes.Remove(name);
+
+	return nullptr;
 }
 
 Sampler* Resources::AccessDummySampler()

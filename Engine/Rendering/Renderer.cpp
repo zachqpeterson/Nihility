@@ -752,12 +752,7 @@ void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 	vkUpdateDescriptorSets(device, resourceCount, descriptorWrite, 0, nullptr);
 }
 
-//void Renderer::ResizeOutputTextures(RenderPassHandle renderPass, U32 width, U32 height)
-
-
-
-
-
+//void Renderer::ResizeOutputTextures(RenderPass* renderPass, U32 width, U32 height)
 
 void* Renderer::MapBuffer(const MapBufferParameters& parameters)
 {
