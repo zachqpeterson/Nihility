@@ -30,18 +30,18 @@ void CommandBuffer::BindPass(RenderPass* renderPass)
 
 		if (renderPass != currentRenderPass && (renderPass->type != RENDER_PASS_TYPE_COMPUTE))
 		{
-			VkRenderPassBeginInfo render_pass_begin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			render_pass_begin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? Renderer::swapchainFramebuffers[Renderer::imageIndex] : renderPass->frameBuffer;
-			render_pass_begin.renderPass = renderPass->renderPass;
+			VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? Renderer::swapchainFramebuffers[Renderer::imageIndex] : renderPass->frameBuffer;
+			renderPassBegin.renderPass = renderPass->renderPass;
 
-			render_pass_begin.renderArea.offset = { 0, 0 };
-			render_pass_begin.renderArea.extent = { renderPass->width, renderPass->height };
+			renderPassBegin.renderArea.offset = { 0, 0 };
+			renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
 
 			// TODO: this breaks.
-			render_pass_begin.clearValueCount = 2;// renderPass->output.color_operation ? 2 : 0;
-			render_pass_begin.pClearValues = clears;
+			renderPassBegin.clearValueCount = 2;// renderPass->output.color_operation ? 2 : 0;
+			renderPassBegin.pClearValues = clears;
 
-			vkCmdBeginRenderPass(commandBuffer, &render_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 		}
 
 		// Cache render pass

@@ -901,17 +901,17 @@ struct RasterizationCreation
 
 struct ShaderStage
 {
-	CSTR					path = nullptr;
-	CSTR					code = nullptr;
-	U32						codeSize = 0;
-	VkShaderStageFlagBits	type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+	CSTR					path{ nullptr };
+	CSTR					code{ nullptr };
+	U32						codeSize{ 0 };
+	VkShaderStageFlagBits	type{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
 };
 
 struct DescriptorBinding
 {
 	String				name{ NO_INIT };
 	VkDescriptorType	type;
-	U16					start = 0;
-	U16					count = 0;
-	U16					set = 0;
+	U16					start{ 0 };
+	U16					count{ 0 };
+	U16					set{ 0 };
 };

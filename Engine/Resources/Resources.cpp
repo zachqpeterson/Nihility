@@ -261,6 +261,11 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * info.bindingCount);
 	descriptorSetLayout->setIndex = (U16)info.setIndex;
 
+	for (U32 i = 0; i < info.bindingCount; ++i)
+	{
+		descriptorSetLayout->bindings[i] = info.bindings[i];
+	}
+
 	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
 
 	return descriptorSetLayout;
@@ -288,6 +293,8 @@ DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 		descriptorSet->samplers[i] = info.samplers[i];
 		descriptorSet->bindings[i] = info.bindings[i];
 	}
+
+	Renderer::CreateDescriptorSet(descriptorSet);
 
 	return descriptorSet;
 }
@@ -341,6 +348,8 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 		renderPass->height = texture->height;
 		renderPass->outputTextures[i] = texture;
 	}
+
+	Renderer::CreateRenderPass(renderPass, info.colorOperation, info.depthOperation, info.stencilOperation);
 
 	return renderPass;
 }
