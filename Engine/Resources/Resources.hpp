@@ -9,44 +9,6 @@
 #include "Containers\Queue.hpp"
 #include "Math\Math.hpp"
 
-struct alignas(16) NH_API MaterialData
-{
-	Vector4 baseColorFactor;
-	Matrix4 model;
-	Matrix4 modelInv;
-
-	Vector3 emissiveFactor;
-	F32   metallicFactor;
-
-	F32   roughnessFactor;
-	F32   occlusionFactor;
-	U32   flags;
-};
-
-struct NH_API MeshDraw
-{
-	Buffer* indexBuffer;
-	Buffer* positionBuffer;
-	Buffer* tangentBuffer;
-	Buffer* normalBuffer;
-	Buffer* texcoordBuffer;
-
-	Buffer* materialBuffer;
-	MaterialData materialData;
-
-	U32 indexOffset;
-	U32 positionOffset;
-	U32 tangentOffset;
-	U32 normalOffset;
-	U32 texcoordOffset;
-
-	U32 count;
-
-	VkIndexType indexType;
-
-	DescriptorSet* descriptorSet;
-};
-
 class NH_API Resources
 {
 public:
@@ -85,7 +47,7 @@ public:
 	static void	DestroyPipeline(Pipeline* pipeline);
 
 	static bool LoadBinary(const String& name, String& result);
-	static bool LoadBinary(const String& name, void** result);
+	static U32 LoadBinary(const String& name, void** result);
 
 private:
 	static bool Initialize();
@@ -94,12 +56,12 @@ private:
 	static void Update();
 
 	//Texture Loading
-	static bool LoadBMP();
-	static bool LoadPNG();
-	static bool LoadJPG();
-	static bool LoadPSD();
-	static bool LoadTIFF();
-	static bool LoadTGA();
+	static void* LoadBMP(Texture* texture, File& file);
+	static void* LoadPNG(Texture* texture, File& file);
+	static void* LoadJPG(Texture* texture, File& file);
+	static void* LoadPSD(Texture* texture, File& file);
+	static void* LoadTIFF(Texture* texture, File& file);
+	static void* LoadTGA(Texture* texture, File& file);
 
 	NH_HEADER_STATIC Sampler dummySampler;
 	NH_HEADER_STATIC Texture dummyTexture;

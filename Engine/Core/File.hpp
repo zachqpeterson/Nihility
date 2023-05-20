@@ -119,7 +119,7 @@ private:
 };
 
 template <typename Str>
-inline File::File(const Str& path, I32 mode) { Memory::AllocateArray(&streamBuffer, bufferSize); streamPtr = streamBuffer; Open(path, mode); }
+inline File::File(const Str& path, I32 mode) { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; Open(path, mode); }
 
 template <StringType Str>
 inline bool File::Open(const Str& path, I32 mode)

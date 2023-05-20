@@ -120,6 +120,7 @@
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\External\json.hpp" />
     <ClInclude Include="Engine\External\vk_mem_alloc.h" />
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Hash.hpp" />
@@ -165,6 +166,7 @@
     <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
+    <ClCompile Include="Engine\Resources\Scene.cpp" />
     <ClCompile Include="Engine\Resources\Settings.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

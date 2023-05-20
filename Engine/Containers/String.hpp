@@ -558,7 +558,7 @@ struct NH_API StringBase
 	template<typename Arg> StringBase& ReplaceN(const T* find, const Arg& replace, U64 count, U64 start = 0);
 	template<typename Arg> StringBase& Replace(const T* find, const Arg& replace, U64 start = 0);
 
-	void SubString(StringBase& newStr, U64 start, U64 nLength = I64_MAX) const;
+	void SubString(StringBase& newStr, U64 start, U64 nLength = U64_MAX) const;
 	template<typename Arg> void Appended(StringBase& newStr, const Arg& append) const;
 	template<typename Arg> void Prepended(StringBase& newStr, const Arg& prepend) const;
 	template<typename PreArg, typename PostArg> void Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const;
@@ -730,7 +730,7 @@ inline bool StringBase<T, LU>::operator==(T* other) const
 	U64 len = Length(other);
 	if (len != size) { return false; }
 
-	return Compare(string, other, size) == 0;
+	return Compare(string, other, size);
 }
 
 template<typename T, typename LU>
@@ -739,7 +739,7 @@ inline bool StringBase<T, LU>::operator==(const T* other) const
 	U64 len = Length(other);
 	if (len != size) { return false; }
 
-	return Compare(string, other, size) == 0;
+	return Compare(string, other, size);
 }
 
 template<typename T, typename LU>
@@ -747,7 +747,7 @@ inline bool StringBase<T, LU>::operator==(const StringBase<T, LU>& other) const
 {
 	if (other.size != size) { return false; }
 
-	return Compare(string, other.string, size) == 0;
+	return Compare(string, other.string, size);
 }
 
 template<typename T, typename LU>
@@ -782,7 +782,7 @@ inline bool StringBase<T, LU>::Compare(T* other) const
 	U64 len = Length(other);
 	if (len != size) { return false; }
 
-	return Compare(string, other, size) == 0;
+	return Compare(string, other, size);
 }
 
 template<typename T, typename LU>
@@ -791,7 +791,7 @@ inline bool StringBase<T, LU>::Compare(const T* other) const
 	U64 len = Length(other);
 	if (len != size) { return false; }
 
-	return Compare(string, other, size) == 0;
+	return Compare(string, other, size);
 }
 
 template<typename T, typename LU>
@@ -799,7 +799,7 @@ inline bool StringBase<T, LU>::Compare(const StringBase<T, LU>& other) const
 {
 	if (other.size != size) { return false; }
 
-	return Compare(string, other.string, size) == 0;
+	return Compare(string, other.string, size);
 }
 
 template<typename T, typename LU>
@@ -808,7 +808,7 @@ inline bool StringBase<T, LU>::CompareN(T* other, U64 nLength, U64 start) const
 	U64 len = Length(other);
 	if (len != nLength) { return false; }
 
-	return Compare(string + start, other, nLength) == 0;
+	return Compare(string + start, other, nLength);
 }
 
 template<typename T, typename LU>
@@ -817,7 +817,7 @@ inline bool StringBase<T, LU>::CompareN(const T* other, U64 nLength, U64 start) 
 	U64 len = Length(other);
 	if (len != nLength) { return false; }
 
-	return Compare(string + start, other, nLength) == 0;
+	return Compare(string + start, other, nLength);
 }
 
 template<typename T, typename LU>
@@ -825,7 +825,7 @@ inline bool StringBase<T, LU>::CompareN(const StringBase<T, LU>& other, U64 nLen
 {
 	if (other.size != nLength) { return false; }
 
-	return Compare(string + start, other.string, nLength) == 0;
+	return Compare(string + start, other.string, nLength);
 }
 
 template<typename T, typename LU>
@@ -1050,10 +1050,8 @@ inline void StringBase<T, LU>::SubString(StringBase<T, LU>& newStr, U64 start, U
 	if (nLength < U64_MAX) { newStr.Resize(nLength); }
 	else { newStr.Resize(size - start); }
 
-	Copy(newStr.string, string + start, newStr.size);
+	Memory::Copy(newStr.string, string + start, newStr.size);
 	newStr.string[newStr.size] = LU::NULL_CHAR;
-
-	return newStr;
 }
 
 template<typename T, typename LU>
@@ -1068,7 +1066,7 @@ template<typename T, typename LU>
 template<typename Arg>
 inline void StringBase<T, LU>::Prepended(StringBase& newStr, const Arg& prepend) const
 {
-	newStr = *this;
+	newStr = *this; //TODO: This doesn't make a copy
 	newStr.Prepend(prepend);
 }
 

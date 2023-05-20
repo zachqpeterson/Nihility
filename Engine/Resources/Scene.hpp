@@ -1,5 +1,9 @@
 #pragma once
 
+#include "ResourceDefines.hpp"
+
+#include "Math\Math.hpp"
+
 struct NH_API Asset
 {
 	String copyright{ NO_INIT };
@@ -116,11 +120,10 @@ struct NH_API TextureInfo
 
 struct NH_API MaterialPBRMetallicRoughness
 {
-	U32 baseColorFactorCount;
-	F32* baseColorFactor;
-	TextureInfo* baseColorTexture;
+	Vector4 baseColorFactor;
+	TextureInfo baseColorTexture;
 	F32 metallicFactor;
-	TextureInfo* metallicRoughnessTexture;
+	TextureInfo metallicRoughnessTexture;
 	F32 roughnessFactor;
 };
 
@@ -138,21 +141,37 @@ struct NH_API MaterialOcclusionTextureInfo
 	F32 strength;
 };
 
+enum MaterialFeatures {
+	MaterialFeatures_ColorTexture = 1 << 0,
+	MaterialFeatures_NormalTexture = 1 << 1,
+	MaterialFeatures_RoughnessTexture = 1 << 2,
+	MaterialFeatures_OcclusionTexture = 1 << 3,
+	MaterialFeatures_EmissiveTexture = 1 << 4,
+
+	MaterialFeatures_TangentVertexAttribute = 1 << 5,
+	MaterialFeatures_TexcoordVertexAttribute = 1 << 6,
+};
+
 struct NH_API Material
 {
 	F32 alphaCutoff;
-	// OPAQUE The alpha value is ignored, and the rendered output is fully opaque.
-	// MASK The rendered output is either fully opaque or fully transparent depending on the alpha value and the specified `alphaCutoff` value; the exact appearance of the edges **MAY** be subject to implementation-specific techniques such as "`Alpha-to-Coverage`".
-	// BLEND The alpha value is used to composite the source and destination areas. The rendered output is combined with the background using the normal painting operation (i.e. the Porter and Duff over operator).
 	String alphaMode{ NO_INIT };
 	bool doubleSided;
 	U32 emissiveFactorCount;
-	F32* emissiveFactor;
-	TextureInfo* emissiveTexture;
-	MaterialNormalTextureInfo* normalTexture;
-	MaterialOcclusionTextureInfo* occlusionTexture;
-	MaterialPBRMetallicRoughness* pbrMetallicRoughness;
+	Vector3 emissiveFactor;
+	TextureInfo emissiveTexture;
+	MaterialNormalTextureInfo normalTexture;
+	MaterialOcclusionTextureInfo occlusionTexture;
+	MaterialPBRMetallicRoughness pbrMetallicRoughness;
 	String name{ NO_INIT };
+};
+
+struct UniformData
+{
+	Matrix4 m;
+	Matrix4 vp;
+	Vector4 eye;
+	Vector4 light;
 };
 
 struct NH_API MeshPrimitive
@@ -224,11 +243,11 @@ struct NH_API SamplerRef
 	I32                         wrapT;
 };
 
-struct NH_API Scene
-{
-	U32 nodeCount;
-	I32* nodes;
-};
+//struct NH_API Scene
+//{
+//	U32 nodeCount;
+//	I32* nodes;
+//};
 
 struct NH_API Skin
 {
@@ -273,6 +292,108 @@ struct NH_API glTF
 	U32 samplerCount;
 	SamplerRef* samplers;
 	U32 sceneCount;
+	//Scene* scenes;
+	I32 scene;
+	U32 skinCount;
+	Skin* skins;
+	U32 textureCount;
+	TextureRef* textures;
+
+	String name{ NO_INIT };
+};
+
+enum AlphaMode
+{
+	ALPHA_MODE_OPAQUE,
+	ALPHA_MODE_MASK,
+	ALPHA_MODE_TRANSPARENT,
+};
+
+struct alignas(16) NH_API MaterialData
+{
+	Vector4 baseColorFactor;
+	Matrix4 model;
+	Matrix4 modelInv;
+
+	Vector3 emissiveFactor;
+
+	F32 metallicFactor;
+	F32 roughnessFactor;
+	F32 occlusionFactor;
+
+	U32 flags;
+};
+
+struct NH_API MeshDraw
+{
+	Buffer* indexBuffer;
+	Buffer* positionBuffer;
+	Buffer* tangentBuffer;
+	Buffer* normalBuffer;
+	Buffer* texcoordBuffer;
+
+	Buffer* materialBuffer;
+	MaterialData materialData;
+
+	U32 indexOffset;
+	U32 positionOffset;
+	U32 tangentOffset;
+	U32 normalOffset;
+	U32 texcoordOffset;
+
+	U32 count;
+
+	VkIndexType indexType;
+
+	DescriptorSet* descriptorSet;
+	
+	Matrix4 model;
+	Matrix4 modelInv;
+};
+
+
+struct NH_API Transform
+{
+	Vector3 position;
+	Vector3 scale;
+	Quaternion3 rotation;
+
+	void CalculateMatrix(Matrix4& matrix)
+	{
+		matrix.Set(position, rotation, scale);
+	}
+};
+
+struct Scene
+{
+public:
+
+private:
+	U32 accessorCount;
+	Accessor* accessors;
+	U32 animationCount;
+	Animation* animations;
+	U32 bufferViewCount;
+	BufferView* bufferViews;
+	U32 bufferCount;
+	BufferRef* buffers;
+	U32 cameraCount;
+	Camera* cameras;
+	U32 requiredExtentionCount;
+	String* requiredExtentions;
+	U32 usedExtensionCount;
+	String* usedExtensions;
+	U32 imageCount;
+	Image* images;
+	U32 materialCount;
+	Material* materials;
+	U32 meshCount;
+	Mesh* meshes;
+	U32 nodeCount;
+	Node* nodes;
+	U32 samplerCount;
+	SamplerRef* samplers;
+	U32 sceneCount;
 	Scene* scenes;
 	I32 scene;
 	U32 skinCount;
@@ -282,3 +403,5 @@ struct NH_API glTF
 
 	String name{ NO_INIT };
 };
+
+//bool SetupScene(Vector<MeshDraw>& draw);

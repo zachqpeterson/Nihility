@@ -867,7 +867,7 @@ Matrix4::Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
 Matrix4::Matrix4(const Matrix3& m) : a{ m.a.x, m.a.y, 0.0f, m.a.z }, b{ m.b.x, m.b.y, 0.0f, m.b.z }, c{ 0.0f, 0.0f, 1.0f, m.b.z }, d{ m.c.x, m.c.y, 0.0f, 1.0f } {}
 Matrix4::Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
 
-Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale, const Vector3& skew)
+Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale)
 {
 	Quaternion3 q{ rotation };
 	q.Normalized();
@@ -885,17 +885,17 @@ Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3
 	a.x = (1.0f - yy - zz) * scale.x;
 	a.y = xy - zw;
 	a.z = xz + yw;
-	a.w = skew.x;
+	a.w = 0.0f;
 
 	b.x = xy + zw;
 	b.y = (1.0f - xx - zz) * scale.y;
 	b.z = yz - xw;
-	b.w = skew.y;
+	b.w = 0.0f;
 
 	c.x = xz - yw;
 	c.y = yz + xw;
 	c.z = (1.0f - xx - yy) * scale.z;
-	c.w = skew.z;
+	c.w = 0.0f;
 
 	d.x = position.x;
 	d.y = position.y;
@@ -903,7 +903,7 @@ Matrix4::Matrix4(const Vector3& position, const Vector3& rotation, const Vector3
 	d.w = 1.0f;
 }
 
-Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale, const Vector3& skew)
+Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale)
 {
 	Quaternion3 q = rotation.Normalize();
 
@@ -920,17 +920,17 @@ Matrix4::Matrix4(const Vector3& position, const Quaternion3& rotation, const Vec
 	a.x = (1.0f - yy - zz) * scale.x;
 	a.y = xy - zw;
 	a.z = xz + yw;
-	a.w = skew.x;
+	a.w = 0.0f;
 
 	b.x = xy + zw;
 	b.y = (1.0f - xx - zz) * scale.y;
 	b.z = yz - xw;
-	b.w = skew.y;
+	b.w = 0.0f;
 
 	c.x = xz - yw;
 	c.y = yz + xw;
 	c.z = (1.0f - xx - yy) * scale.z;
-	c.w = skew.z;
+	c.w = 0.0f;
 
 	d.x = position.x;
 	d.y = position.y;
@@ -1293,6 +1293,77 @@ Matrix4& Matrix4::Transposed()
 	d.z = dz;
 
 	return *this;
+}
+
+void Matrix4::Set(const Vector3& position, const Vector3& rotation, const Vector3& scale)
+{
+	Quaternion3 q{ rotation };
+	q.Normalized();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.x * q.y;
+	F32 xz = 2.0f * q.x * q.z;
+	F32 xw = 2.0f * q.x * q.w;
+	F32 yy = 2.0f * q.y * q.y;
+	F32 yz = 2.0f * q.y * q.z;
+	F32 yw = 2.0f * q.y * q.w;
+	F32 zz = 2.0f * q.z * q.z;
+	F32 zw = 2.0f * q.z * q.w;
+
+	a.x = (1.0f - yy - zz) * scale.x;
+	a.y = xy - zw;
+	a.z = xz + yw;
+	a.w = 0.0f;
+
+	b.x = xy + zw;
+	b.y = (1.0f - xx - zz) * scale.y;
+	b.z = yz - xw;
+	b.w = 0.0f;
+
+	c.x = xz - yw;
+	c.y = yz + xw;
+	c.z = (1.0f - xx - yy) * scale.z;
+	c.w = 0.0f;
+
+	d.x = position.x;
+	d.y = position.y;
+	d.z = position.z;
+	d.w = 1.0f;
+}
+
+void Matrix4::Set(const Vector3& position, const Quaternion3& rotation, const Vector3& scale)
+{
+	Quaternion3 q = rotation.Normalize();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.x * q.y;
+	F32 xz = 2.0f * q.x * q.z;
+	F32 xw = 2.0f * q.x * q.w;
+	F32 yy = 2.0f * q.y * q.y;
+	F32 yz = 2.0f * q.y * q.z;
+	F32 yw = 2.0f * q.y * q.w;
+	F32 zz = 2.0f * q.z * q.z;
+	F32 zw = 2.0f * q.z * q.w;
+
+	a.x = (1.0f - yy - zz) * scale.x;
+	a.y = xy - zw;
+	a.z = xz + yw;
+	a.w = 0.0f;
+
+	b.x = xy + zw;
+	b.y = (1.0f - xx - zz) * scale.y;
+	b.z = yz - xw;
+	b.w = 0.0f;
+
+	c.x = xz - yw;
+	c.y = yz + xw;
+	c.z = (1.0f - xx - yy) * scale.z;
+	c.w = 0.0f;
+
+	d.x = position.x;
+	d.y = position.y;
+	d.z = position.z;
+	d.w = 1.0f;
 }
 
 void Matrix4::SetPerspective(F32 fov, F32 aspect, F32 near, F32 far)

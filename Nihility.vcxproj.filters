@@ -151,6 +151,9 @@
     <ClInclude Include="Engine\Resources\Scene.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\External\json.hpp">
+      <Filter>Source Files\External</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -209,6 +212,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Math\Color.cpp">
       <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Scene.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

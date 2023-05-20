@@ -3,7 +3,7 @@
 #include <io.h>
 #include <sys/stat.h>
 
-File::File() { Memory::AllocateArray(&streamBuffer, bufferSize); streamPtr = streamBuffer; }
+File::File() { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; }
 
 File::~File() { Destroy(); }
 
