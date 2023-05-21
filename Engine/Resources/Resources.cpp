@@ -13,7 +13,7 @@
 #define MODELS_PATH "models/"
 #define FONTS_PATH "fonts/"
 #define SCENES_PATH "scenes/"
-#define BINARIES_PATH "scenes/"
+#define BINARIES_PATH "binaries/"
 
 #define BYTECAST(x) ((U8)((x) & 255))
 
@@ -540,18 +540,22 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			}
 		} break;
 		case 1: {
-			U32 pixel;
+			U8 red;
+			U8 green;
+			U8 blue;
 			U32 index = 0;
 
 			for (I32 j = 0; j < info.imageHeight; ++j)
 			{
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
-					file.Read(&pixel, 3);
+					file.Read(blue);
+					file.Read(green);
+					file.Read(red);
 
-					data[index++] = pixel & info.redMask;
-					data[index++] = pixel & info.greenMask;
-					data[index++] = pixel & info.blueMask;
+					data[index++] = red;
+					data[index++] = green;
+					data[index++] = blue;
 					data[index++] = 255;
 				}
 
@@ -559,19 +563,25 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			}
 		} break;
 		case 2: {
-			U32 pixel;
+			U8 red;
+			U8 green;
+			U8 blue;
+			U8 alpha;
 			U32 index = 0;
 
 			for (I32 j = 0; j < info.imageHeight; ++j)
 			{
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
-					file.Read(pixel);
+					file.Read(blue);
+					file.Read(green);
+					file.Read(red);
+					file.Read(alpha);
 
-					data[index++] = pixel & info.redMask;
-					data[index++] = pixel & info.greenMask;
-					data[index++] = pixel & info.blueMask;
-					data[index++] = pixel & info.alphaMask;
+					data[index++] = red;
+					data[index++] = green;
+					data[index++] = blue;
+					data[index++] = alpha;
 				}
 
 				file.Seek(pad);

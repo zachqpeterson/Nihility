@@ -1546,9 +1546,9 @@ bool Renderer::CreateBuffer(Buffer* buffer, void* data)
 
 	if (data)
 	{
-		void* data;
-		vmaMapMemory(allocator, buffer->allocation, &data);
-		Memory::Copy(data, data, (U64)buffer->size);
+		void* mappedData;
+		vmaMapMemory(allocator, buffer->allocation, &mappedData);
+		Memory::Copy(mappedData, data, (U64)buffer->size);
 		vmaUnmapMemory(allocator, buffer->allocation);
 	}
 

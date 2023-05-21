@@ -79,7 +79,7 @@ bool Init()
 	texture = Resources::LoadTexture("Avocado_normal.bmp");
 	textures.Push(texture);
 
-	void* bufferData;
+	void* bufferData{ nullptr };
 	U32 bufferLength = Resources::LoadBinary("Avocado.bin", &bufferData);
 
 	Vector<Buffer*> buffers{ 3 };
@@ -241,8 +241,8 @@ void Update()
 				U32 prevX, prevY;
 				Input::MousePos(x, y);
 				Input::PreviousMousePos(prevX, prevY);
-				pitch += (y - prevY) * 0.3f;
-				yaw += (x - prevX) * 0.3f;
+				pitch += (I32)(y - prevY) * 0.01f;
+				yaw += (I32)(x - prevX) * 0.01f;
 
 				pitch = Math::Clamp(pitch, -60.0f, 60.0f);
 
@@ -267,12 +267,12 @@ void Update()
 			Matrix4 view;
 			view.LookAt(eye, eye + look, Vector3::Up);
 			Matrix4 projection;
-			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
+			//projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
+
+			F32 camHeight = 0.9375f / 2.0f;
+			F32 camWidth = 1.66666666667f / 2.0f;
 			
-			//F32 camHeight = 0.9375f;
-			//F32 camWidth = 1.66666666667f;
-			//
-			//projection.SetOrthographic(-camWidth, camWidth, -camHeight, camHeight, 0.1f, 1000.0f);
+			projection.SetOrthographic(-camWidth, camWidth, -camHeight, camHeight, 0.1f, 1000.0f);
 
 			// Calculate view projection matrix
 			Matrix4 viewProjection = projection * view;

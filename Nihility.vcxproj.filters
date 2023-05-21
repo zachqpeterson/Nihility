@@ -154,6 +154,9 @@
     <ClInclude Include="Engine\External\json.hpp">
       <Filter>Source Files\External</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\SIMD.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">

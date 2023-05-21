@@ -170,10 +170,11 @@ bool File::Flush()
 			bufferRemaining = 0;
 			return false;
 		}
+
+		streamPtr = streamBuffer;
+		bufferRemaining = bufferSize;
 	}
 
-	streamPtr = streamBuffer;
-	bufferRemaining = bufferSize;
 	return true;
 }
 
@@ -188,18 +189,21 @@ void File::Seek(I64 offset)
 	if (streamFlag & READ_MODE) { offset -= bufferRemaining; }
 	Flush();
 	pointer = _lseeki64(handle, offset, 1);
+	bufferRemaining = 0;
 }
 
 void File::SeekFromStart(I64 offset)
 {
 	Flush();
 	pointer = _lseeki64(handle, offset, 0);
+	bufferRemaining = 0;
 }
 
 void File::SeekToEnd()
 {
 	Flush();
 	pointer = _lseeki64(handle, 0, 2);
+	bufferRemaining = 0;
 }
 
 I64 File::Pointer() const { return pointer; }

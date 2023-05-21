@@ -1368,9 +1368,9 @@ void Matrix4::Set(const Vector3& position, const Quaternion3& rotation, const Ve
 
 void Matrix4::SetPerspective(F32 fov, F32 aspect, F32 near, F32 far)
 {
-	F32 yScale = Math::Tan(fov * DEG_TO_RAD_F * 0.5f);
+	F32 yScale = 1.0f / Math::Tan(fov * DEG_TO_RAD_F * 0.5f);
 	F32 xScale = yScale / aspect;
-	F32 nearFar = near - far;
+	F32 nearFar = 1.0f / (near - far);
 
 	a.x = xScale;
 	a.y = 0.0f;
@@ -1384,12 +1384,12 @@ void Matrix4::SetPerspective(F32 fov, F32 aspect, F32 near, F32 far)
 
 	c.x = 0.0f;
 	c.y = 0.0f;
-	c.z = (far + near) / nearFar;
-	c.w = 2.0f * far * near / nearFar;
+	c.z = -far * nearFar;
+	c.w = 1.0f;
 
 	d.x = 0.0f;
 	d.y = 0.0f;
-	d.z = -1.0f;
+	d.z = far * near * nearFar;
 	d.w = 0.0f;
 }
 

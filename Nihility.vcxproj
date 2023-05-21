@@ -145,6 +145,7 @@
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
+    <ClInclude Include="Engine\SIMD.hpp" />
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
