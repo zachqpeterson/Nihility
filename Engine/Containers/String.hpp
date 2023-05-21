@@ -488,7 +488,7 @@ static inline bool Compare(const C* a, const C* b)
 * TODO: Conversions
 *
 * TODO: Option to add 0x prefix to {h}
-* 
+*
 * TODO: Init with string literal
 */
 template<typename T, typename LU>
@@ -499,10 +499,14 @@ struct NH_API StringBase
 
 	StringBase();
 	StringBase(NoInit);
+	StringBase(const StringBase& other);
+	StringBase(StringBase&& other) noexcept;
 	template<typename Arg> StringBase(const Arg& value, Hex) noexcept;
 	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
 	template<typename First, typename... Args> StringBase(const T* fmt, const First& first, const Args& ... args) noexcept; //Take in any string literal type
 
+	StringBase& operator=(const StringBase& other);
+	StringBase& operator=(StringBase&& other) noexcept;
 	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
 	template<typename Arg> StringBase& operator+=(const Arg& value) noexcept;
 
@@ -618,8 +622,26 @@ template<typename T, typename LU>
 inline StringBase<T, LU>::StringBase(NoInit flag) {}
 
 template<typename T, typename LU>
+inline StringBase<T, LU>::StringBase(const StringBase& other) : hash{ other.hash }, size{ other.size }
+{
+	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
+
+	Memory::Copy(string, other.string, size * sizeof(T));
+	string[size] = LU::NULL_CHAR;
+}
+
+template<typename T, typename LU>
+inline StringBase<T, LU>::StringBase(StringBase&& other) noexcept : hash{ other.hash }, size{ other.size }, capacity{ other.capacity }, string{ other.string }
+{
+	other.hash = 0;
+	other.size = 0;
+	other.capacity = 0;
+	other.string = nullptr;
+}
+
+template<typename T, typename LU>
 template<typename Arg>
-inline StringBase<T, LU>::StringBase(const Arg& value, Hex flag) noexcept { ToString<Arg, true, false>(string, value); hash = Hash::Calculate(string, size);}
+inline StringBase<T, LU>::StringBase(const Arg& value, Hex flag) noexcept { ToString<Arg, true, false>(string, value); hash = Hash::Calculate(string, size); }
 
 template<typename T, typename LU>
 template<typename First, typename... Args>
@@ -645,6 +667,36 @@ inline StringBase<T, LU>::StringBase(const T* fmt, const First& first, const Arg
 }
 
 template<typename T, typename LU>
+inline StringBase<T, LU>& StringBase<T, LU>::operator=(const StringBase& other)
+{
+	hash = other.hash;
+	size = other.size;
+
+	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
+
+	Memory::Copy(string, other.string, size * sizeof(T));
+	string[size] = LU::NULL_CHAR;
+
+	return *this;
+}
+
+template<typename T, typename LU>
+inline StringBase<T, LU>& StringBase<T, LU>::operator=(StringBase&& other) noexcept
+{
+	hash = other.hash;
+	size = other.size;
+	capacity = other.capacity;
+	string = other.string;
+
+	other.hash = 0;
+	other.size = 0;
+	other.capacity = 0;
+	other.string = nullptr;
+
+	return *this;
+}
+
+template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::operator=(const Arg& value) noexcept
 {
@@ -665,7 +717,13 @@ inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value) noexce
 template<typename T, typename LU>
 inline StringBase<T, LU>::~StringBase()
 {
-	Destroy();
+	hash = 0;
+	if (string)
+	{
+		size = 0;
+		capacity = 0;
+		Memory::FreeArray(&string);
+	}
 }
 
 template<typename T, typename LU>
@@ -1524,7 +1582,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 }
 
 template<typename T, typename LU>
-template<class Arg, bool Hex, bool Insert, U64 Remove> 
+template<class Arg, bool Hex, bool Insert, U64 Remove>
 inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
 	static_assert(ConvertibleTo<Arg, StringBaseType>, "Arg passed into a string formatter must be convertable to a String type!");

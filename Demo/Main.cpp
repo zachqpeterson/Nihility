@@ -65,7 +65,7 @@ bool Init()
 
 	// Constant buffer
 	BufferCreation bufferCreation;
-	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("cube_cb");
+	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("cube_cb");
 	cubeConstantBuffer = Resources::CreateBuffer(bufferCreation);
 
 	cubePipeline = Resources::CreatePipeline(pipelineCreation);
@@ -89,7 +89,7 @@ bool Init()
 
 	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-	bufferCreation.SetName("buffer_0").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
+	bufferCreation.Reset().SetName("buffer_0").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
 
 	Buffer* br = Resources::CreateBuffer(bufferCreation);
 
@@ -268,6 +268,11 @@ void Update()
 			view.LookAt(eye, eye + look, Vector3::Up);
 			Matrix4 projection;
 			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
+			
+			//F32 camHeight = 0.9375f;
+			//F32 camWidth = 1.66666666667f;
+			//
+			//projection.SetOrthographic(-camWidth, camWidth, -camHeight, camHeight, 0.1f, 1000.0f);
 
 			// Calculate view projection matrix
 			Matrix4 viewProjection = projection * view;

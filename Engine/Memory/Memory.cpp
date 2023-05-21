@@ -2,22 +2,26 @@
 
 #include <string.h>
 
-U8* Memory::memory;
-U64 Memory::totalSize;
+U8* Memory::memory{ nullptr };
+U64 Memory::totalSize{ 0 };
 
-U64 Memory::staticSize;
-U8* Memory::staticPointer;
+U64 Memory::staticSize{ 0 };
+U8* Memory::staticPointer{ nullptr };
 
-U32* Memory::free1kbIndices;
+Memory::Region1kb* Memory::pool1kbPointer{ nullptr };
+U32* Memory::free1kbIndices{ nullptr };
 I64 Memory::last1kbFree{ 0 };
 
-U32* Memory::free16kbIndices;
+Memory::Region16kb* Memory::pool16kbPointer{ nullptr };
+U32* Memory::free16kbIndices{ nullptr };
 I64 Memory::last16kbFree{ 0 };
 
-U32* Memory::free256kbIndices;
+Memory::Region256kb* Memory::pool256kbPointer{ nullptr };
+U32* Memory::free256kbIndices{ nullptr };
 I64 Memory::last256kbFree{ 0 };
 
-U32* Memory::free4mbIndices;
+Memory::Region4mb* Memory::pool4mbPointer{ nullptr };
+U32* Memory::free4mbIndices{ nullptr };
 I64 Memory::last4mbFree{ 0 };
 
 bool Memory::initialized{ false };
@@ -93,6 +97,26 @@ void Memory::Allocate4mb(void** pointer)
 	static bool init = Initialize();
 
 	*pointer = pool4mbPointer + free4mbIndices[SafeIncrement(&last4mbFree) - 1];
+}
+
+void Memory::Free(void** pointer)
+{
+	void* cmp = *pointer;
+
+	if (cmp >= pool4mbPointer) { Free4mb(pointer); }
+	else if (cmp >= pool256kbPointer) { Free256kb(pointer); }
+	else if (cmp >= pool16kbPointer) { Free16kb(pointer); }
+	else if (cmp >= pool1kbPointer) { Free1kb(pointer); }
+}
+
+void Memory::CopyFree(void** pointer, void* copy, U64 size)
+{
+	void* cmp = *pointer;
+
+	if (cmp >= pool4mbPointer) { Copy(copy, *pointer, size); Free4mb((void**)pointer); }
+	else if (cmp >= pool256kbPointer) { Copy(copy, *pointer, size); Free256kb((void**)pointer); }
+	else if (cmp >= pool16kbPointer) { Copy(copy, *pointer, size); Free16kb((void**)pointer); }
+	else if (cmp >= pool1kbPointer) { Copy(copy, *pointer, size); Free1kb((void**)pointer); }
 }
 
 void Memory::Free1kb(void** pointer)

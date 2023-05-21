@@ -15,6 +15,8 @@
 #define SCENES_PATH "scenes/"
 #define BINARIES_PATH "scenes/"
 
+#define BYTECAST(x) ((U8)((x) & 255))
+
 #pragma pack(push, 1)
 
 struct BMPHeader
@@ -28,7 +30,7 @@ struct BMPHeader
 
 struct BMPInfo
 {
-	U32 imageSize;
+	U32 infoSize;
 	I32 imageWidth;
 	I32 imageHeight;
 
@@ -36,8 +38,9 @@ struct BMPInfo
 	U16 imageBitCount;
 	U32 imageCompression;
 
-	I32 biXPelsPerMeter;
-	I32 biYPelsPerMeter;
+	U32 imageSize;
+	I32 XPixelsPerMeter;
+	I32 YPixelsPerMeter;
 
 	U32 colorsUsed;
 	U32 importantColor;
@@ -226,6 +229,13 @@ Texture* Resources::LoadTexture(const String& name)
 	File file(path, FILE_OPEN_RESOURCE);
 	if (file.Opened())
 	{
+		texture->name = name;
+		texture->format = VK_FORMAT_R8G8B8A8_UNORM;
+		texture->type = TEXTURE_TYPE_2D;
+		texture->flags = 0;
+		texture->mipmaps = 1;
+		texture->depth = 1;
+
 		String ext{};
 		path.SubString(ext, path.LastIndexOf('.') + 1);
 		ext.ToLower();
@@ -248,6 +258,9 @@ Texture* Resources::LoadTexture(const String& name)
 
 		Renderer::CreateTexture(texture, data);
 
+		free(data);
+		file.Close();
+
 		return texture;
 	}
 
@@ -255,6 +268,47 @@ Texture* Resources::LoadTexture(const String& name)
 
 	textures.Remove(name);
 	return nullptr;
+}
+
+U32 HighBit(U32 z)
+{
+	U32 n = 0;
+	if (z == 0) { return 0; }
+	if (z >= 0x10000) { n += 16; z >>= 16; }
+	if (z >= 0x00100) { n += 8; z >>= 8; }
+	if (z >= 0x00010) { n += 4; z >>= 4; }
+	if (z >= 0x00004) { n += 2; z >>= 2; }
+	if (z >= 0x00002) { n += 1; }
+	return n;
+}
+
+U32 BitCount(U32 a)
+{
+	a = (a & 0x55555555) + ((a >> 1) & 0x55555555);
+	a = (a & 0x33333333) + ((a >> 2) & 0x33333333);
+	a = (a + (a >> 4)) & 0x0f0f0f0f;
+	a = (a + (a >> 8));
+	a = (a + (a >> 16));
+	return a & 0xff;
+}
+
+U32 ShiftSigned(U32 v, I32 shift, I32 bits)
+{
+	static U32 mulTable[9] = {
+	   0,
+	   0xff, 0x55, 0x49, 0x11,
+	   0x21, 0x41, 0x81, 0x01,
+	};
+
+	static U32 shiftTable[9] = {
+	   0, 0,0,1,0,2,4,6,0,
+	};
+
+	if (shift < 0) { v <<= -shift; }
+	else { v >>= shift; }
+	v >>= (8 - bits);
+
+	return (v * mulTable[bits]) >> shiftTable[bits];
 }
 
 void* Resources::LoadBMP(Texture* texture, File& file)
@@ -269,14 +323,14 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 		return nullptr;
 	}
 
-	file.Read(info.imageSize);
+	file.Read(info.infoSize);
 	info.extraRead = 14;
-	U32 notRead = 8;
+	U32 notRead = 12;
 
-	if (info.imageSize == 12) { file.Read((I16&)info.imageWidth); file.Read((I16&)info.imageHeight); notRead = 4; }
+	if (info.infoSize == 12) { file.Read((I16&)info.imageWidth); file.Read((I16&)info.imageHeight); notRead = 8; }
 	else { file.Read(info.imageWidth); file.Read(info.imageHeight); }
 
-	file.Read(&info.imagePlanes, info.imageSize - notRead);
+	file.Read(&info.imagePlanes, info.infoSize - notRead);
 
 	if (info.imagePlanes != 1) { Logger::Error("Invalid BMP!"); return nullptr; }
 
@@ -286,35 +340,224 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 		return nullptr;
 	}
 
-	//TODO: This might be wrong
-	if (info.imageCompression == 0)
+	texture->width = info.imageWidth;
+	texture->height = info.imageHeight;
+
+	U32 pSize = 0;
+	I32 width;
+	I32 pad;
+
+	if (info.infoSize == 12 && info.imageBitCount < 24) { pSize = (header.imageOffset - info.extraRead - 24) / 3; }
+	else if (info.imageBitCount < 16) { pSize = (header.imageOffset - info.extraRead - info.infoSize) >> 2; }
+
+	U8* data = (U8*)malloc(info.imageWidth * info.imageHeight * 4); //TODO: Go through Memory
+
+	if (info.imageBitCount < 16)
 	{
-		if (info.imageBitCount == 16)
+		if (pSize == 0 || pSize > 256)
 		{
-			info.redMask = 0x7C00U;
-			info.greenMask = 0x3E0U;
-			info.blueMask = 0x1FU;
+			Logger::Error("Invalid BMP!");
+			free(data);
+			return nullptr;
 		}
-		else if (info.imageBitCount == 32)
+
+		U8* palette;
+		Memory::AllocateSize(&palette, pSize);
+
+		if (info.infoSize != 12)
 		{
-			info.redMask = 0x00FF0000U;
-			info.greenMask = 0x0000FF00U;
-			info.blueMask = 0x000000FFU;
-			info.alphaMask = 0xFF000000U;
+			for (U32 i = 0; i < pSize; ++i)
+			{
+				file.Read(palette[i]);
+				file.Read(palette[++i]);
+				file.Read(palette[++i]);
+				file.Seek(1);
+			}
+		}
+		else
+		{
+			for (U32 i = 0; i < pSize; ++i)
+			{
+				file.Read(palette[i]);
+				file.Read(palette[++i]);
+				file.Read(palette[++i]);
+			}
+		}
+
+		file.SeekFromStart(header.imageOffset);
+
+		if (info.imageBitCount == 1) { width = (info.imageWidth + 7) >> 3; }
+		else if (info.imageBitCount == 4) { width = (info.imageWidth + 1) >> 1; }
+		else if (info.imageBitCount == 8) { width = info.imageWidth; }
+		else
+		{
+			Logger::Error("Invalid BMP!");
+			free(data);
+			Memory::FreeSize(&palette);
+			return nullptr;
+		}
+
+		pad = (-width) & 3;
+
+		switch (info.imageBitCount)
+		{
+		case 1:
+		{
+			for (I32 j = 0; j < info.imageHeight; ++j)
+			{
+				I8 bitOffset = 7;
+				U8 v;
+				file.Read(v);
+
+				I32 height = info.imageHeight * j;
+
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					U8 index = (v >> bitOffset) & 0x1;
+					data[height + i] = palette[index * 3];
+					data[height + ++i] = palette[index * 3 + 1];
+					data[height + ++i] = palette[index * 3 + 2];
+					data[height + ++i] = 255;
+					if ((--bitOffset) < 0 && i + 1 != info.imageWidth)
+					{
+						bitOffset = 7;
+						file.Read(v);
+					}
+				}
+				file.Seek(pad);
+			}
+		} break;
+		case 4:
+		{
+			for (I32 j = 0; j < info.imageHeight; ++j)
+			{
+				I32 height = info.imageHeight * j;
+
+				for (I32 i = 0; i < info.imageWidth; i += 2)
+				{
+					U8 index0;
+					file.Read(index0);
+					U8 index1 = index0 & 15;
+					index0 >>= 4;
+					data[height + i] = palette[index0 * 3];
+					data[height + ++i] = palette[index0 * 3 + 1];
+					data[height + ++i] = palette[index0 * 3 + 2];
+					data[height + ++i] = 255;
+					if (i + 1 >= info.imageWidth) { break; }
+					data[height + ++i] = palette[index1 * 3];
+					data[height + ++i] = palette[index1 * 3 + 1];
+					data[height + ++i] = palette[index1 * 3 + 2];
+					data[height + ++i] = 255;
+				}
+				file.Seek(pad);
+			}
+		} break;
+		case 8:
+		{
+			for (I32 j = 0; j < info.imageHeight; ++j)
+			{
+				I32 height = info.imageHeight * j;
+
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					U8 v;
+					file.Read(v);
+					data[height + i] = palette[v * 3];
+					data[height + ++i] = palette[v * 3 + 1];
+					data[height + ++i] = palette[v * 3 + 2];
+					data[height + ++i] = 255;
+				}
+				file.Seek(pad);
+			}
+		} break;
+		}
+
+		Memory::FreeSize(&palette);
+	}
+	else
+	{
+		int rshift = 0, gshift = 0, bshift = 0, ashift = 0, rcount = 0, gcount = 0, bcount = 0, acount = 0;
+		U8 easy = 0;
+
+		file.SeekFromStart(header.imageOffset);
+
+		if (info.imageBitCount == 24) { width = 3 * info.imageWidth; }
+		else if (info.imageBitCount == 16) { width = 2 * info.imageWidth; }
+		else { width = 0; }
+
+		pad = (-width) & 3;
+
+		if (info.imageBitCount == 24) { easy = 1; }
+		else if (info.imageBitCount == 32 && info.blueMask == 0xff && info.greenMask == 0xff00 && info.redMask == 0x00ff0000 && info.alphaMask == 0xff000000) { easy = 2; }
+
+		if (!easy)
+		{
+			if (!info.redMask || !info.greenMask || !info.blueMask)
+			{
+				Logger::Error("Invalid BMP!");
+				free(data);
+				return nullptr;
+			}
+
+			rshift = HighBit(info.redMask) - 7;
+			gshift = HighBit(info.greenMask) - 7;
+			bshift = HighBit(info.blueMask) - 7;
+			ashift = HighBit(info.alphaMask) - 7;
+
+			rcount = BitCount(info.redMask);
+			gcount = BitCount(info.greenMask);
+			bcount = BitCount(info.blueMask);
+			acount = BitCount(info.alphaMask);
+
+			if (rcount > 8 || gcount > 8 || bcount > 8 || acount > 8)
+			{
+				Logger::Error("Invalid BMP!");
+				free(data);
+				return nullptr;
+			}
+		}
+
+		for (I32 j = 0; j < info.imageHeight; ++j)
+		{
+			if (easy)
+			{
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					U8 red;
+					U8 green;
+					U8 blue;
+					U8 alpha;
+					file.Read(blue);
+					file.Read(green);
+					file.Read(red);
+					if (easy == 2) { file.Read(alpha); }
+					else { alpha = 255; }
+					data[i] = red;
+					data[++i] = green;
+					data[++i] = blue;
+					data[++i] = alpha;
+				}
+			}
+			else
+			{
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					U32 v;
+					info.imageBitCount == 16 ? file.Read((U16&)v) : file.Read(v);
+					U32 alpha;
+					data[i] = BYTECAST(ShiftSigned(v & info.redMask, rshift, rcount));
+					data[++i] = BYTECAST(ShiftSigned(v & info.greenMask, gshift, gcount));
+					data[++i] = BYTECAST(ShiftSigned(v & info.blueMask, bshift, bcount));
+					alpha = (info.alphaMask ? ShiftSigned(v & info.alphaMask, ashift, acount) : 255);
+					data[++i] = BYTECAST(alpha);
+				}
+			}
+
+			file.Seek(pad);
 		}
 	}
-	else if (info.imageCompression == 3)
-	{
-		file.Read(info.redMask);
-		file.Read(info.greenMask);
-		file.Read(info.blueMask);
-		info.extraRead += 12;
 
-		if (info.redMask == info.greenMask && info.greenMask == info.blueMask) { Logger::Error("Invalid BMP!"); return nullptr; }
-	}
-	else { Logger::Error("Invalid BMP!"); return nullptr; }
-
-	return nullptr;
+	return data;
 }
 
 void* Resources::LoadPNG(Texture* texture, File& file)

@@ -60,6 +60,9 @@ private:
 	static void Allocate256kb(void** pointer);
 	static void Allocate4mb(void** pointer);
 
+	static void Free(void** ptr);
+	static void CopyFree(void** ptr, void* copy, U64 size);
+
 	static void Free1kb(void** ptr);
 	static void Free16kb(void** ptr);
 	static void Free256kb(void** ptr);
@@ -71,19 +74,19 @@ private:
 	static U64 staticSize;
 	static U8* staticPointer;
 
-	NH_HEADER_STATIC Region1kb* pool1kbPointer;
+	static Region1kb* pool1kbPointer;
 	static U32* free1kbIndices;
 	static I64 last1kbFree;
 
-	NH_HEADER_STATIC Region16kb* pool16kbPointer;
+	static Region16kb* pool16kbPointer;
 	static U32* free16kbIndices;
 	static I64 last16kbFree;
 
-	NH_HEADER_STATIC Region256kb* pool256kbPointer;
+	static Region256kb* pool256kbPointer;
 	static U32* free256kbIndices;
 	static I64 last256kbFree;
 
-	NH_HEADER_STATIC Region4mb* pool4mbPointer;
+	static Region4mb* pool4mbPointer;
 	static U32* free4mbIndices;
 	static I64 last4mbFree;
 
@@ -169,12 +172,7 @@ static void Memory::Reallocate(Type* pointer, const Int& count)
 
 	if (*pointer != nullptr)
 	{
-		void* cmp = *pointer;
-
-		if (cmp >= pool4mbPointer) { Copy(temp, *pointer, count); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { Copy(temp, *pointer, count); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { Copy(temp, *pointer, count); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { Copy(temp, *pointer, count); Free1kb((void**)pointer); }
+		CopyFree((void**)pointer, (void*)temp, count);
 	}
 
 	*pointer = (Type)temp;
@@ -200,12 +198,7 @@ static void Memory::Reallocate(Type* pointer, const Int& count, Int& newCount)
 
 	if (*pointer != nullptr)
 	{
-		void* cmp = *pointer;
-
-		if (cmp >= pool4mbPointer) { Copy(temp, *pointer, count); Free4mb((void**)pointer); }
-		else if (cmp >= pool256kbPointer) { Copy(temp, *pointer, count); Free256kb((void**)pointer); }
-		else if (cmp >= pool16kbPointer) { Copy(temp, *pointer, count); Free16kb((void**)pointer); }
-		else if (cmp >= pool1kbPointer) { Copy(temp, *pointer, count); Free1kb((void**)pointer); }
+		CopyFree((void**)pointer, (void*)temp, count);
 	}
 
 	*pointer = (Type)temp;
@@ -233,12 +226,7 @@ inline void Memory::FreeSize(Type* pointer)
 
 	void* cmp = *pointer;
 
-	if (cmp >= pool4mbPointer) { Free4mb((void**)pointer); return; }
-	else if (cmp >= pool256kbPointer) { Free256kb((void**)pointer); return; }
-	else if (cmp >= pool16kbPointer) { Free16kb((void**)pointer); return; }
-	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); return; }
-
-	BreakPoint;
+	Free((void**)pointer);
 }
 
 template<Pointer Type>
@@ -246,14 +234,7 @@ inline void Memory::FreeArray(Type* pointer)
 {
 	if (*pointer == nullptr) { return; }
 
-	void* cmp = *pointer;
-
-	if (cmp >= pool4mbPointer) { Free4mb((void**)pointer); return; }
-	else if (cmp >= pool256kbPointer) { Free256kb((void**)pointer); return; }
-	else if (cmp >= pool16kbPointer) { Free16kb((void**)pointer); return; }
-	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); return; }
-
-	BreakPoint;
+	Free((void**)pointer);
 }
 
 template<Pointer Type>

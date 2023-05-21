@@ -931,8 +931,8 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 		descriptorWrite[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		descriptorWrite[i].dstSet = vkDescriptorSet;
 		// Use binding array to get final binding point.
-		const U32 binding_point = binding.start;
-		descriptorWrite[i].dstBinding = binding_point;
+		const U32 bindingPoint = binding.start;
+		descriptorWrite[i].dstBinding = bindingPoint;
 		descriptorWrite[i].dstArrayElement = 0;
 		descriptorWrite[i].descriptorCount = 1;
 
@@ -1452,8 +1452,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-		U32 imageSize = texture->width * texture->height * 4;
-		bufferInfo.size = imageSize;
+		U32 infoSize = texture->width * texture->height * 4;
+		bufferInfo.size = infoSize;
 
 		VmaAllocationCreateInfo memoryInfo{};
 		memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
@@ -1468,7 +1468,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		// Copy buffer_data
 		void* destinationData;
 		vmaMapMemory(allocator, stagingAllocation, &destinationData);
-		Memory::Copy(destinationData, data, (U64)imageSize);
+		Memory::Copy(destinationData, data, (U64)infoSize);
 		vmaUnmapMemory(allocator, stagingAllocation);
 
 		// Execute command buffer
@@ -1611,14 +1611,6 @@ bool Renderer::CreateDescriptorSet(DescriptorSet* descriptorSet)
 	U32 resourceCount = descriptorSet->resourceCount;
 	FillWriteDescriptorSets(descriptorSet->layout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, defaultSampler->sampler,
 		resourceCount, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
-
-	// Cache resources
-	for (U32 r = 0; r < descriptorSet->resourceCount; r++)
-	{
-		descriptorSet->resources[r] = descriptorSet->resources[r];
-		descriptorSet->samplers[r] = descriptorSet->samplers[r];
-		descriptorSet->bindings[r] = descriptorSet->bindings[r];
-	}
 
 	vkUpdateDescriptorSets(device, resourceCount, descriptorWrite, 0, nullptr);
 

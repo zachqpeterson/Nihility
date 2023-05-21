@@ -89,6 +89,7 @@ BufferCreation& BufferCreation::Reset()
 {
 	size = 0;
 	initialData = nullptr;
+	name.Destroy();
 
 	return *this;
 }
@@ -194,6 +195,7 @@ DescriptorSetCreation& DescriptorSetCreation::SetName(const String& name)
 ShaderStateCreation& ShaderStateCreation::Reset()
 {
 	stagesCount = 0;
+	name.Destroy();
 
 	return *this;
 }
