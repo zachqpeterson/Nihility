@@ -6,3 +6,4 @@ bin/
 *.log
 *.cfg
 console.log
+Settings.cfg
