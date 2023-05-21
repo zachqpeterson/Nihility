@@ -350,7 +350,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 	if (info.infoSize == 12 && info.imageBitCount < 24) { pSize = (header.imageOffset - info.extraRead - 24) / 3; }
 	else if (info.imageBitCount < 16) { pSize = (header.imageOffset - info.extraRead - info.infoSize) >> 2; }
 
-	U8* data = (U8*)malloc(info.imageWidth * info.imageHeight * 4); //TODO: Go through Memory
+	U8* data = (U8*)calloc(1, info.imageWidth * info.imageHeight * 4); //TODO: Go through Memory
 
 	if (info.imageBitCount < 16)
 	{
@@ -476,7 +476,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 	}
 	else
 	{
-		int rshift = 0, gshift = 0, bshift = 0, ashift = 0, rcount = 0, gcount = 0, bcount = 0, acount = 0;
+		I32 rshift = 0, gshift = 0, bshift = 0, ashift = 0, rcount = 0, gcount = 0, bcount = 0, acount = 0;
 		U8 easy = 0;
 
 		file.SeekFromStart(header.imageOffset);
@@ -517,43 +517,66 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			}
 		}
 
-		for (I32 j = 0; j < info.imageHeight; ++j)
+		switch (easy)
 		{
-			if (easy)
-			{
-				for (I32 i = 0; i < info.imageWidth; ++i)
-				{
-					U8 red;
-					U8 green;
-					U8 blue;
-					U8 alpha;
-					file.Read(blue);
-					file.Read(green);
-					file.Read(red);
-					if (easy == 2) { file.Read(alpha); }
-					else { alpha = 255; }
-					data[i] = red;
-					data[++i] = green;
-					data[++i] = blue;
-					data[++i] = alpha;
-				}
-			}
-			else
-			{
-				for (I32 i = 0; i < info.imageWidth; ++i)
-				{
-					U32 v;
-					info.imageBitCount == 16 ? file.Read((U16&)v) : file.Read(v);
-					U32 alpha;
-					data[i] = BYTECAST(ShiftSigned(v & info.redMask, rshift, rcount));
-					data[++i] = BYTECAST(ShiftSigned(v & info.greenMask, gshift, gcount));
-					data[++i] = BYTECAST(ShiftSigned(v & info.blueMask, bshift, bcount));
-					alpha = (info.alphaMask ? ShiftSigned(v & info.alphaMask, ashift, acount) : 255);
-					data[++i] = BYTECAST(alpha);
-				}
-			}
+		case 0: {
+			U32 pixel;
+			U32 alpha;
+			U32 index = 0;
 
-			file.Seek(pad);
+			for (I32 j = 0; j < info.imageHeight; ++j)
+			{
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					info.imageBitCount == 16 ? file.Read((U16&)pixel) : file.Read(pixel);
+					data[index++] = BYTECAST(ShiftSigned(pixel & info.redMask, rshift, rcount));
+					data[index++] = BYTECAST(ShiftSigned(pixel & info.greenMask, gshift, gcount));
+					data[index++] = BYTECAST(ShiftSigned(pixel & info.blueMask, bshift, bcount));
+					alpha = (info.alphaMask ? ShiftSigned(pixel & info.alphaMask, ashift, acount) : 255);
+					data[index++] = BYTECAST(alpha);
+				}
+
+				file.Seek(pad);
+			}
+		} break;
+		case 1: {
+			U32 pixel;
+			U32 index = 0;
+
+			for (I32 j = 0; j < info.imageHeight; ++j)
+			{
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					file.Read(&pixel, 3);
+
+					data[index++] = pixel & info.redMask;
+					data[index++] = pixel & info.greenMask;
+					data[index++] = pixel & info.blueMask;
+					data[index++] = 255;
+				}
+
+				file.Seek(pad);
+			}
+		} break;
+		case 2: {
+			U32 pixel;
+			U32 index = 0;
+
+			for (I32 j = 0; j < info.imageHeight; ++j)
+			{
+				for (I32 i = 0; i < info.imageWidth; ++i)
+				{
+					file.Read(pixel);
+
+					data[index++] = pixel & info.redMask;
+					data[index++] = pixel & info.greenMask;
+					data[index++] = pixel & info.blueMask;
+					data[index++] = pixel & info.alphaMask;
+				}
+
+				file.Seek(pad);
+			}
+		} break;
 		}
 	}
 
