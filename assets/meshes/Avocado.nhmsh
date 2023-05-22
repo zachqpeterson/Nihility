@@ -15,12 +15,3 @@ VkIndexType indexType;
 DescriptorSet* descriptorSet;
 
 
-//MaterialData
-Vector4 baseColorFactor;
-Matrix4 model;
-Matrix4 modelInv;
-Vector3 emissiveFactor;
-F32   metallicFactor;
-F32   roughnessFactor;
-F32   occlusionFactor;
-U32   flags;

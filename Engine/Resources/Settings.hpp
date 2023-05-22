@@ -13,48 +13,7 @@ struct RegistryValue
 
 class NH_API Settings
 {
-public:
-	//AUDIO
-	static inline const U8& ChannelCount() { return data.channelCount; }
-	static inline const F32& MasterVolume() { return data.masterVolume; }
-	static inline const F32& MusicVolume() { return data.musicVolume; }
-	static inline const F32& SfxVolume() { return data.sfxVolume; }
-	static inline const bool& UnfocusedAudio() { return data.unfocusedAudio; }
-
-	//GRAPHICS
-	static inline const I32& WindowWidth() { return data.windowWidth; }
-	static inline const I32& WindowHeight() { return data.windowHeight; }
-	static inline const I32& WindowWidthSmall() { return data.windowWidthSmall; }
-	static inline const I32& WindowHeightSmall() { return data.windowHeightSmall; }
-	static inline const I32& WindowPositionX() { return data.windowPositionX; }
-	static inline const I32& WindowPositionY() { return data.windowPositionY; }
-	static inline const I32& WindowPositionXSmall() { return data.windowPositionXSmall; }
-	static inline const I32& WindowPositionYSmall() { return data.windowPositionYSmall; }
-	static inline const F64& TargetFrametime() { return data.targetFrametime; }
-	static inline const F64& TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
-	static inline const U8& MsaaCount() { return data.msaaCount; }
-
-	//PLATFORM
-	static inline const U32& Dpi() { return data.dpi; }
-	static inline const U32& ThreadCount() { return data.threadCount; }
-	static inline const I32& ScreenWidth() { return data.screenWidth; }
-	static inline const I32& ScreenHeight() { return data.screenHeight; }
-	static inline const F64& MonitorHz() { return data.monitorHz; }
-	static inline const bool& Fullscreen() { return data.fullscreen; }
-	static inline const bool& ConstrainCursor() { return data.constrainCursor; }
-	static inline const bool& Focused() { return focused; }
-	static inline const bool& Minimised() { return minimised; }
-	static inline const bool& LockCursor() { return lockCursor; }
-	static inline const bool& HideCursor() { return hideCursor; }
-	static inline const bool& Resized() { return resized; }
-
-	static bool GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize = false);
-
-private:
-	static bool Initialize();
-	static void Shutdown();
-
-	NH_HEADER_STATIC struct Data
+	struct Data
 	{
 		//AUDIO
 		U8 channelCount{ 2 };
@@ -84,13 +43,56 @@ private:
 		F64 monitorHz{ 0.0 };
 		bool fullscreen{ false };
 		bool constrainCursor{ false };
-	} data{};
+	};
 
-	NH_HEADER_STATIC bool focused{ true };
-	NH_HEADER_STATIC bool minimised{ true };
-	NH_HEADER_STATIC bool lockCursor{ false };
-	NH_HEADER_STATIC bool hideCursor{ false };
-	NH_HEADER_STATIC bool resized{ false };
+public:
+	//AUDIO
+	static const U8& ChannelCount();
+	static const F32& MasterVolume();
+	static const F32& MusicVolume();
+	static const F32& SfxVolume();
+	static const bool& UnfocusedAudio();
+
+	//GRAPHICS
+	static const I32& WindowWidth();
+	static const I32& WindowHeight();
+	static const I32& WindowWidthSmall();
+	static const I32& WindowHeightSmall();
+	static const I32& WindowPositionX();
+	static const I32& WindowPositionY();
+	static const I32& WindowPositionXSmall();
+	static const I32& WindowPositionYSmall();
+	static const F64& TargetFrametime();
+	static const F64& TargetFrametimeSuspended();
+	static const U8& MsaaCount();
+
+	//PLATFORM
+	static const U32& Dpi();
+	static const U32& ThreadCount();
+	static const I32& ScreenWidth();
+	static const I32& ScreenHeight();
+	static const F64& MonitorHz();
+	static const bool& Fullscreen();
+	static const bool& ConstrainCursor();
+	static const bool& Focused();
+	static const bool& Minimised();
+	static const bool& LockCursor();
+	static const bool& HideCursor();
+	static const bool& Resized();
+
+	static bool GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize = false);
+
+private:
+	static bool Initialize();
+	static void Shutdown();
+
+	static Data data;
+
+	static bool focused;
+	static bool minimised;
+	static bool lockCursor;
+	static bool hideCursor;
+	static bool resized;
 
 	STATIC_CLASS(Settings);
 	friend class Platform;

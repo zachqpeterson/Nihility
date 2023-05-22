@@ -267,12 +267,7 @@ void Update()
 			Matrix4 view;
 			view.LookAt(eye, eye + look, Vector3::Up);
 			Matrix4 projection;
-			//projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
-
-			F32 camHeight = 0.9375f / 2.0f;
-			F32 camWidth = 1.66666666667f / 2.0f;
-			
-			projection.SetOrthographic(-camWidth, camWidth, -camHeight, camHeight, 0.1f, 1000.0f);
+			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
 
 			// Calculate view projection matrix
 			Matrix4 viewProjection = projection * view;

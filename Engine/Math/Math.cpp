@@ -2,6 +2,8 @@
 
 #include "Containers\String.hpp"
 
+#include "SIMD.hpp"
+
 //Math
 
 Quaternion2 Math::Slerp(const Quaternion2& a, const Quaternion2& b, F32 t)
@@ -330,7 +332,7 @@ Vector3& Vector3::Normalize() { Vector3 v = Normalized(); x = v.x; y = v.y; z = 
 Vector3 Vector3::Normalized() const { return IsZero() ? Vector3::Zero : (*this) / Magnitude(); }
 Vector3 Vector3::Projection(const Vector3& v) const { return v * (Dot(v) / v.Dot(v)); }
 Vector3 Vector3::OrthoProjection(const Vector3& v) const { return *this - Projection(v); }
-Vector3 Vector3::Cross(const Vector3& v) const { return { y * v.z - z * v.y, z * v.x - v.x * z, x * v.y - y * v.x }; }
+Vector3 Vector3::Cross(const Vector3& v) const { return { y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x }; }
 
 Vector3& Vector3::Clamp(const Vector3& min, const Vector3& max)
 {
@@ -970,24 +972,69 @@ Matrix4 Matrix4::operator-(const Matrix4& m) const { return { a - m.a, b - m.b, 
 
 Matrix4 Matrix4::operator*(const Matrix4& m) const
 {
+//#if defined NH_AVX
+//
+//#elif defined NH_SSE || defined NH_SSE2 //TODO: Failure
+//	M128 l, r0, r1, r2, r3, v0, v1, v2, v3;
+//	Vector4 f0, f1, f2, f3;
+//
+//	l = _mm_load_ps(a.Data());
+//	r0 = _mm_load_ps(m.a.Data());
+//	r1 = _mm_load_ps(m.b.Data());
+//	r2 = _mm_load_ps(m.c.Data());
+//	r3 = _mm_load_ps(m.d.Data());
+//
+//	v0 = _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(0, 0, 0, 0)), l);
+//	v1 = _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(0, 0, 0, 0)), l);
+//	v2 = _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(0, 0, 0, 0)), l);
+//	v3 = _mm_mul_ps(_mm_shuffle_ps(r0, r3, _MM_SHUFFLE(0, 0, 0, 0)), l);
+//
+//	l = _mm_load_ps(m.b.Data());
+//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(1, 1, 1, 1)), l));
+//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(1, 1, 1, 1)), l));
+//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(1, 1, 1, 1)), l));
+//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(1, 1, 1, 1)), l));
+//
+//	l = _mm_load_ps(m.c.Data());
+//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(2, 2, 2, 2)), l));
+//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 2, 2, 2)), l));
+//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(2, 2, 2, 2)), l));
+//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(2, 2, 2, 2)), l));
+//
+//	l = _mm_load_ps(m.d.Data());
+//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(3, 3, 3, 3)), l));
+//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(3, 3, 3, 3)), l));
+//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(3, 3, 3, 3)), l));
+//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(3, 3, 3, 3)), l));
+//
+//	_mm_store_ps(f0.Data(), v0);
+//	_mm_store_ps(f1.Data(), v1);
+//	_mm_store_ps(f2.Data(), v2);
+//	_mm_store_ps(f3.Data(), v3);
+//
+//	return { f0, f1, f2, f3 };
+//#elif defined NH_ARM_NEON
+//
+//#else
 	return {
-		a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + c.x * m.a.w,
-		a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + c.y * m.a.w,
-		a.z * m.a.x + b.z * m.a.y + c.z * m.a.z + c.z * m.a.w,
-		a.w * m.a.x + b.w * m.a.y + c.w * m.a.z + c.w * m.a.w,
-		a.x * m.b.x + b.x * m.b.y + c.x * m.b.z + c.x * m.b.w,
-		a.y * m.b.x + b.y * m.b.y + c.y * m.b.z + c.y * m.b.w,
-		a.z * m.b.x + b.z * m.b.y + c.z * m.b.z + c.z * m.b.w,
-		a.w * m.b.x + b.w * m.b.y + c.w * m.b.z + c.w * m.b.w,
-		a.x * m.c.x + b.x * m.c.y + c.x * m.c.z + c.x * m.c.w,
-		a.y * m.c.x + b.y * m.c.y + c.y * m.c.z + c.y * m.c.w,
-		a.z * m.c.x + b.z * m.c.y + c.z * m.c.z + c.z * m.c.w,
-		a.w * m.c.x + b.w * m.c.y + c.w * m.c.z + c.w * m.c.w,
-		a.x * m.d.x + b.x * m.d.y + c.x * m.d.z + c.x * m.d.w,
-		a.y * m.d.x + b.y * m.d.y + c.y * m.d.z + c.y * m.d.w,
-		a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + c.z * m.d.w,
-		a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + c.w * m.d.w
+		a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w,
+		a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + d.y * m.a.w,
+		a.z * m.a.x + b.z * m.a.y + c.z * m.a.z + d.z * m.a.w,
+		a.w * m.a.x + b.w * m.a.y + c.w * m.a.z + d.w * m.a.w,
+		a.x * m.b.x + b.x * m.b.y + c.x * m.b.z + d.x * m.b.w,
+		a.y * m.b.x + b.y * m.b.y + c.y * m.b.z + d.y * m.b.w,
+		a.z * m.b.x + b.z * m.b.y + c.z * m.b.z + d.z * m.b.w,
+		a.w * m.b.x + b.w * m.b.y + c.w * m.b.z + d.w * m.b.w,
+		a.x * m.c.x + b.x * m.c.y + c.x * m.c.z + d.x * m.c.w,
+		a.y * m.c.x + b.y * m.c.y + c.y * m.c.z + d.y * m.c.w,
+		a.z * m.c.x + b.z * m.c.y + c.z * m.c.z + d.z * m.c.w,
+		a.w * m.c.x + b.w * m.c.y + c.w * m.c.z + d.w * m.c.w,
+		a.x * m.d.x + b.x * m.d.y + c.x * m.d.z + d.x * m.d.w,
+		a.y * m.d.x + b.y * m.d.y + c.y * m.d.z + d.y * m.d.w,
+		a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + d.z * m.d.w,
+		a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + d.w * m.d.w
 	};
+//#endif
 }
 
 Vector2 Matrix4::operator*(const Vector2& v) const
