@@ -142,7 +142,7 @@ bool Init()
 
 	buffers.Push(br);
 
-	Vector3 nodeScale = Vector3::One;
+	Vector3 nodeScale = Vector3::One * 3.0f;
 
 	Vector3 nodeTranslation = Vector3::Zero;
 
@@ -275,7 +275,7 @@ void Update()
 			Matrix4 view;
 			view.LookAt(eye, eye + look, Vector3::Up);
 			Matrix4 projection;
-			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
+			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.0001f, 1000.0f);
 
 			//F32 camHeight = 0.9375f / 20.0f;
 			//F32 camWidth = 1.66666666667f / 20.0f;

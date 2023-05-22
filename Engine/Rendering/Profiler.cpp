@@ -100,8 +100,7 @@ void Profiler::Query()
 			const U32 queryOffset = (currentFrame * queriesPerFrame) * 2;
 			const U32 queryCount = currentQuery * 2;
 			vkGetQueryPoolResults(Renderer::device, Renderer::timestampQueryPool, queryOffset, queryCount,
-				sizeof(U64) * queryCount * 2, &timestampsData[queryOffset],
-				sizeof(timestampsData[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+				sizeof(U64) * queryCount * 2, &timestampsData[queryOffset], sizeof(U64), VK_QUERY_RESULT_64_BIT);
 
 			// Calculate and cache the elapsed time
 			for (U32 i = 0; i < currentQuery; ++i)
