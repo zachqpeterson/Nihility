@@ -21,6 +21,7 @@ enum ResourceDeleteType
 struct Sampler
 {
 	String					name{ NO_INIT };
+	HashHandle				handle;
 
 	VkFilter				minFilter = VK_FILTER_NEAREST;
 	VkFilter				magFilter = VK_FILTER_NEAREST;
@@ -36,6 +37,7 @@ struct Sampler
 struct Texture
 {
 	String				name{ NO_INIT };
+	HashHandle			handle;
 
 	U16					width = 1;
 	U16					height = 1;
@@ -57,6 +59,7 @@ struct Texture
 struct Buffer
 {
 	String				name{ NO_INIT };
+	HashHandle			handle;
 
 	Buffer*				parentBuffer;
 
@@ -74,6 +77,7 @@ struct Buffer
 struct DescriptorSetLayout
 {
 	String							name{ NO_INIT };
+	HashHandle						handle;
 
 	VkDescriptorSetLayout			descriptorSetLayout;
 
@@ -86,6 +90,7 @@ struct DescriptorSetLayout
 struct DescriptorSet
 {
 	String						name{ NO_INIT };
+	HashHandle					handle;
 
 	VkDescriptorSet				descriptorSet;
 
@@ -100,6 +105,7 @@ struct DescriptorSet
 struct ShaderState
 {
 	String							name{ NO_INIT };
+	HashHandle						handle;
 
 	VkPipelineShaderStageCreateInfo	shaderStageInfos[MAX_SHADER_STAGES];
 
@@ -126,6 +132,7 @@ struct RenderPassOutput
 struct RenderPass
 {
 	String				name{ NO_INIT };
+	HashHandle			handle;
 
 	VkRenderPass		renderPass;
 	VkFramebuffer		frameBuffer;
@@ -152,6 +159,7 @@ struct RenderPass
 struct Pipeline
 {
 	String						name{ NO_INIT };
+	HashHandle					handle;
 
 	VkPipeline					pipeline;
 	VkPipelineLayout			pipelineLayout;

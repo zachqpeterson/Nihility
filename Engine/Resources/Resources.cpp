@@ -102,6 +102,30 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
+	Hashmap<String, Sampler>::Iterator end0 = samplers.end();
+	for (auto it = samplers.begin(); it != end0; ++it) { if(it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SAMPLER, it->handle }); } }
+
+	Hashmap<String, Texture>::Iterator end1 = textures.end();
+	for (auto it = textures.begin(); it != end1; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_TEXTURE, it->handle }); } }
+
+	Hashmap<String, Buffer>::Iterator end2 = buffers.end();
+	for (auto it = buffers.begin(); it != end2; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_BUFFER, it->handle }); } }
+
+	Hashmap<String, DescriptorSetLayout>::Iterator end3 = descriptorSetLayouts.end();
+	for (auto it = descriptorSetLayouts.begin(); it != end3; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT, it->handle }); } }
+
+	Hashmap<String, DescriptorSet>::Iterator end4 = descriptorSets.end();
+	for (auto it = descriptorSets.begin(); it != end4; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET, it->handle }); } }
+
+	Hashmap<String, ShaderState>::Iterator end5 = shaders.end();
+	for (auto it = shaders.begin(); it != end5; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SHADER_STATE, it->handle }); } }
+
+	Hashmap<String, RenderPass>::Iterator end6 = renderPasses.end();
+	for (auto it = renderPasses.begin(); it != end6; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, it->handle }); } }
+
+	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
+	for (auto it = pipelines.begin(); it != end7; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_PIPELINE, it->handle }); } }
+
 	while (resourceDeletionQueue.Size())
 	{
 		ResourceDeletion resourceDeletion;
@@ -171,6 +195,7 @@ Sampler* Resources::CreateSampler(const SamplerCreation& info)
 	sampler->magFilter = info.magFilter;
 	sampler->mipFilter = info.mipFilter;
 	sampler->name = info.name;
+	sampler->handle = samplers.GetHandle(info.name);
 
 	Renderer::CreateSampler(sampler);
 
@@ -191,6 +216,7 @@ Texture* Resources::CreateTexture(const TextureCreation& info)
 	texture->format = info.format;
 	texture->mipmaps = info.mipmaps;
 	texture->type = info.type;
+	texture->handle = textures.GetHandle(info.name);
 
 	Renderer::CreateTexture(texture, info.initialData);
 
@@ -235,6 +261,7 @@ Texture* Resources::LoadTexture(const String& name)
 		texture->flags = 0;
 		texture->mipmaps = 1;
 		texture->depth = 1;
+		texture->handle = textures.GetHandle(name);
 
 		String ext{};
 		path.SubString(ext, path.LastIndexOf('.') + 1);
@@ -642,6 +669,7 @@ Buffer* Resources::CreateBuffer(const BufferCreation& info)
 	buffer->usage = info.usage;
 	buffer->globalOffset = 0;
 	buffer->parentBuffer = nullptr;
+	buffer->handle = buffers.GetHandle(info.name);
 
 	Renderer::CreateBuffer(buffer, info.initialData);
 
@@ -662,6 +690,7 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 	descriptorSetLayout->bindings = (DescriptorBinding*)memory;
 	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * info.bindingCount);
 	descriptorSetLayout->setIndex = (U16)info.setIndex;
+	descriptorSetLayout->handle = descriptorSetLayouts.GetHandle(info.name);
 
 	for (U32 i = 0; i < info.bindingCount; ++i)
 	{
@@ -682,6 +711,7 @@ DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 	descriptorSet->name = info.name;
 	descriptorSet->resourceCount = info.resourceCount;
 	descriptorSet->layout = info.layout;
+	descriptorSet->handle = descriptorSets.GetHandle(info.name);
 
 	U8* memory;
 	Memory::AllocateSize(&memory, (sizeof(void*) + sizeof(Sampler*) + sizeof(U16)) * info.resourceCount);
@@ -713,6 +743,9 @@ ShaderState* Resources::CreateShaderState(const ShaderStateCreation& info)
 		return shaderState;
 	}
 
+	shaderState->name = info.name;
+	shaderState->handle = shaders.GetHandle(info.name);
+
 	if (!Renderer::CreateShaderState(shaderState, info))
 	{
 		shaders.Remove(info.name);
@@ -741,6 +774,7 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	renderPass->resize = info.resize;
 	renderPass->renderTargetCount = (U8)info.renderTargetCount;
 	renderPass->outputDepth = info.depthStencilTexture;
+	renderPass->handle = renderPasses.GetHandle(info.name);
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
@@ -769,6 +803,7 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	pipeline->blendState = info.blendState;
 	pipeline->rasterization = info.rasterization;
 	pipeline->graphicsPipeline = true;
+	pipeline->handle = pipelines.GetHandle(info.name);
 
 	for (U32 i = 0; i < info.activeLayoutCount; ++i)
 	{

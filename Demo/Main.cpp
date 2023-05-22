@@ -277,10 +277,6 @@ void Update()
 			Matrix4 projection;
 			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.0001f, 1000.0f);
 
-			//F32 camHeight = 0.9375f / 20.0f;
-			//F32 camWidth = 1.66666666667f / 20.0f;
-			//projection.SetOrthographic(-camWidth, camWidth, -camHeight, camHeight, 0.1f, 1000.0f);
-
 			// Calculate view projection matrix
 			Matrix4 viewProjection = projection * view;
 
@@ -288,7 +284,7 @@ void Update()
 			uniformData.vp = viewProjection;
 			uniformData.m = globalModel;
 			uniformData.eye = Vector4{ eye.x, eye.y, eye.z, 1.0f };
-			uniformData.light = Vector4{ 2.0f, 2.0f, 0.0f, 1.0f };
+			uniformData.light = Vector4{ 1.0f, 1.0f, -1.0f, 1.0f };
 
 			Memory::Copy(cbData, &uniformData, sizeof(UniformData));
 

@@ -34,11 +34,6 @@ struct NH_API Hashmap
 		Iterator operator--();
 		Iterator& operator--(int);
 
-		template<Integer I> Iterator operator+(I i) const;
-		template<Integer I> Iterator operator-(I i) const;
-		template<Integer I> Iterator& operator+=(I i) const;
-		template<Integer I> Iterator& operator-=(I i) const;
-
 		operator bool() const;
 
 		bool operator== (const Iterator& other) const;
@@ -435,10 +430,10 @@ inline Value* Hashmap<Key, Value>::Iterator::operator-> () { return &cell->value
 template<class Key, class Value>
 inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator++()
 {
-	Iterator newIt(cell);
+	Cell* temp = cell;
 	++cell;
 
-	return newIt;
+	return { temp };
 }
 
 template<class Key, class Value>
@@ -452,48 +447,16 @@ inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator++(
 template<class Key, class Value>
 inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator--()
 {
-	Iterator newIt(cell);
+	Cell* temp = cell;
 	--cell;
 
-	return newIt;
+	return { temp };
 }
 
 template<class Key, class Value>
 inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator--(int)
 {
 	--cell;
-
-	return *this;
-}
-
-template<class Key, class Value>
-template<Integer I>
-inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator+(I i) const
-{
-	return Iterator(cell += i);
-}
-
-template<class Key, class Value>
-template<Integer I>
-inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator-(I i) const
-{
-	return Iterator(cell -= i);
-}
-
-template<class Key, class Value>
-template<Integer I>
-inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator+=(I i) const
-{
-	cell += i;
-
-	return *this;
-}
-
-template<class Key, class Value>
-template<Integer I>
-inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator-=(I i) const
-{
-	cell -= i;
 
 	return *this;
 }

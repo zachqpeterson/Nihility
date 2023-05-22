@@ -12,6 +12,8 @@
 #include "Resources\Resources.hpp"
 #include "Memory\Memory.hpp"
 
+#define VMA_VULKAN_VERSION 1003000
+#define VMA_DEBUG_LOG
 #define VMA_IMPLEMENTATION
 #include "External\vk_mem_alloc.h"
 
