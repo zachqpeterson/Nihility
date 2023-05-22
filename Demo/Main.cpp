@@ -14,7 +14,7 @@ Buffer* cubeConstantBuffer;
 DescriptorSetLayout* cubeDescriptorSetLayout;
 MeshDraw meshDraw{};
 
-Vector3 eye = Vector3{ 0.0f, 2.5f, 2.0f };
+Vector3 eye = Vector3{ 0.0f, 0.0f, 0.5f };
 Vector3 look = Vector3{ 0.0f, 0.0, -1.0f };
 Vector3 right = Vector3{ 1.0f, 0.0, 0.0f };
 
@@ -67,6 +67,13 @@ bool Init()
 	BufferCreation bufferCreation;
 	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("cube_cb");
 	cubeConstantBuffer = Resources::CreateBuffer(bufferCreation);
+
+	RasterizationCreation rasterization{};
+	rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterization.front = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterization.fill = FILL_MODE_SOLID;
+
+	pipelineCreation.rasterization = rasterization;
 
 	cubePipeline = Resources::CreatePipeline(pipelineCreation);
 
@@ -241,10 +248,10 @@ void Update()
 				U32 prevX, prevY;
 				Input::MousePos(x, y);
 				Input::PreviousMousePos(prevX, prevY);
-				pitch += (I32)(y - prevY) * 0.01f;
-				yaw += (I32)(x - prevX) * 0.01f;
+				pitch += (I32)(y - prevY) * 0.015f;
+				yaw += (I32)(x - prevX) * 0.015f;
 
-				pitch = Math::Clamp(pitch, -60.0f, 60.0f);
+				pitch = Math::Clamp(pitch, -90.0f, 90.0f);
 
 				if (yaw > 360.0f) { yaw -= 360.0f; }
 
@@ -257,7 +264,8 @@ void Update()
 				right = look.Cross(Vector3::Up);
 			}
 
-			F32 speed = (F32)(5.0f * Time::DeltaTime());
+			F32 speed = (F32)(0.5f * Time::DeltaTime());
+			if (Input::ButtonDown(BUTTON_CODE_SHIFT)) { speed *= 2.0f; }
 
 			eye += look * speed * Input::ButtonDown(BUTTON_CODE_W);
 			eye -= look * speed * Input::ButtonDown(BUTTON_CODE_S);
@@ -268,6 +276,10 @@ void Update()
 			view.LookAt(eye, eye + look, Vector3::Up);
 			Matrix4 projection;
 			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.01f, 1000.0f);
+
+			//F32 camHeight = 0.9375f / 20.0f;
+			//F32 camWidth = 1.66666666667f / 20.0f;
+			//projection.SetOrthographic(-camWidth, camWidth, -camHeight, camHeight, 0.1f, 1000.0f);
 
 			// Calculate view projection matrix
 			Matrix4 viewProjection = projection * view;

@@ -543,10 +543,12 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			U8 red;
 			U8 green;
 			U8 blue;
-			U32 index = 0;
+			U32 index;
 
-			for (I32 j = 0; j < info.imageHeight; ++j)
+			for (I32 j = info.imageHeight - 1; j >= 0; --j)
 			{
+				index = j * info.imageWidth * 4;
+
 				for (I32 i = 0; i < info.imageWidth; ++i)
 				{
 					file.Read(blue);
