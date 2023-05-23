@@ -105,7 +105,6 @@ private:
 	NH_HEADER_STATIC VkQueue								deviceQueue;
 	NH_HEADER_STATIC U32									queueFamilyIndex;
 	NH_HEADER_STATIC VkDescriptorPool						descriptorPool;
-	NH_HEADER_STATIC VkDescriptorPool						bindlessDescriptorPool;
 	NH_HEADER_STATIC U64									uboAlignment;
 	NH_HEADER_STATIC U64									ssboAlignemnt;
 

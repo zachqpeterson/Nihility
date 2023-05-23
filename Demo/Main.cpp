@@ -264,7 +264,7 @@ void Update()
 				right = look.Cross(Vector3::Up);
 			}
 
-			F32 speed = (F32)(0.5f * Time::DeltaTime());
+			F32 speed = (F32)(0.25f * Time::DeltaTime());
 			if (Input::ButtonDown(BUTTON_CODE_SHIFT)) { speed *= 2.0f; }
 
 			eye += look * speed * Input::ButtonDown(BUTTON_CODE_W);
