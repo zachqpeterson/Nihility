@@ -39,6 +39,7 @@ public:
 
 	static void	DestroySampler(Sampler* sampler);
 	static void	DestroyTexture(Texture* texture);
+	static void	DestroyBindlessTexture(Texture* texture);
 	static void	DestroyBuffer(Buffer* buffer);
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
@@ -78,6 +79,7 @@ private:
 	NH_HEADER_STATIC Hashmap<String, glTF>					scenes{ 128, {} };
 
 	NH_HEADER_STATIC Queue<ResourceDeletion>				resourceDeletionQueue{};
+	NH_HEADER_STATIC Queue<ResourceDeletion>				textureToUpdateBindless{};
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;

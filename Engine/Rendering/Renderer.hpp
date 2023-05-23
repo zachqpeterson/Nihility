@@ -105,8 +105,22 @@ private:
 	NH_HEADER_STATIC VkQueue								deviceQueue;
 	NH_HEADER_STATIC U32									queueFamilyIndex;
 	NH_HEADER_STATIC VkDescriptorPool						descriptorPool;
+	NH_HEADER_STATIC VkDescriptorPool						bindlessDescriptorPool;
 	NH_HEADER_STATIC U64									uboAlignment;
 	NH_HEADER_STATIC U64									ssboAlignemnt;
+
+	NH_HEADER_STATIC VkDescriptorPool						bindlessDescriptorPool;
+	NH_HEADER_STATIC VkDescriptorSet						bindlessDescriptorSet;
+	NH_HEADER_STATIC VkDescriptorSetLayout					bindlessDescriptorSetLayout;
+	NH_HEADER_STATIC constexpr U32							bindlessTextureBinding{ 10 };
+	NH_HEADER_STATIC constexpr U32							maxBindlessResources{ 1024 };
+	NH_HEADER_STATIC bool									bindlessSupported{ false };
+
+	// RAY TRACING
+	NH_HEADER_STATIC VkPhysicalDeviceRayTracingPipelineFeaturesKHR		rayTracingPipelineFeatures;
+	NH_HEADER_STATIC VkPhysicalDeviceRayTracingPipelinePropertiesKHR	rayTracingPipelineProperties;
+	NH_HEADER_STATIC VkPhysicalDeviceAccelerationStructureFeaturesKHR	accelerationStructureFeatures;
+	NH_HEADER_STATIC bool												rayTracingPresent{ false };
 
 	// WINDOW
 	NH_HEADER_STATIC VkSurfaceKHR							surface;
@@ -142,7 +156,6 @@ private:
 	NH_HEADER_STATIC U64									dynamicAllocatedSize;
 	NH_HEADER_STATIC U64									dynamicPerFrameSize;
 	NH_HEADER_STATIC C8										binariesPath[512];
-	NH_HEADER_STATIC bool									bindlessSupported{ false };
 	// PRIMITIVE
 	NH_HEADER_STATIC Buffer*								fullscreenVertexBuffer;
 	NH_HEADER_STATIC RenderPass*							swapchainPass;

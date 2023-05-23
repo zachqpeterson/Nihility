@@ -312,6 +312,14 @@ bool Renderer::CreateDevice()
 	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr };
 	VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
 
+	accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+	rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+	if (rayTracingPresent)
+	{
+		indexingFeatures.pNext = &accelerationStructureFeatures;
+		accelerationStructureFeatures.pNext = &rayTracingPipelineFeatures;
+	}
+
 	VkPhysicalDeviceFeatures2 physicalFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 
@@ -454,7 +462,7 @@ bool Renderer::CreateResources()
 	VkValidateFR(vmaCreateAllocator(&allocatorInfo, &allocator));
 
 	static constexpr U32 globalPoolElements = 128;
-	VkDescriptorPoolSize poolSizes[] =
+	VkDescriptorPoolSize poolSizes[]
 	{
 		{ VK_DESCRIPTOR_TYPE_SAMPLER, globalPoolElements },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, globalPoolElements },
@@ -476,6 +484,75 @@ bool Renderer::CreateResources()
 	poolInfo.pPoolSizes = poolSizes;
 
 	VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &descriptorPool));
+
+	if (bindlessSupported)
+	{
+		VkDescriptorPoolSize bindlessPoolSizes[]
+		{
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxBindlessResources },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, maxBindlessResources },
+		};
+
+		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+		poolInfo.maxSets = maxBindlessResources * CountOf32(bindlessPoolSizes);
+		poolInfo.poolSizeCount = CountOf32(bindlessPoolSizes);
+		poolInfo.pPoolSizes = bindlessPoolSizes;
+
+		VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &bindlessDescriptorPool));
+
+		const U32 poolCount = CountOf32(bindlessPoolSizes);
+		VkDescriptorSetLayoutBinding vkBinding[4];
+
+		// Actual descriptor set layout
+		VkDescriptorSetLayoutBinding& imageSamplerBinding = vkBinding[0];
+		imageSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageSamplerBinding.descriptorCount = maxBindlessResources;
+		imageSamplerBinding.binding = bindlessTextureBinding;
+		imageSamplerBinding.stageFlags = VK_SHADER_STAGE_ALL;
+		imageSamplerBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutBinding& storageImageBinding = vkBinding[1];
+		storageImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		storageImageBinding.descriptorCount = maxBindlessResources;
+		storageImageBinding.binding = bindlessTextureBinding + 1;
+		storageImageBinding.stageFlags = VK_SHADER_STAGE_ALL;
+		storageImageBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layoutInfo.bindingCount = poolCount;
+		layoutInfo.pBindings = vkBinding;
+		layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+
+		// TODO: reenable variable descriptor count
+		// Binding flags
+		VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | /*VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |*/ VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+		VkDescriptorBindingFlags bindingFlags[4];
+
+		bindingFlags[0] = bindlessFlags;
+		bindingFlags[1] = bindlessFlags;
+
+		VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT, nullptr };
+		extendedInfo.bindingCount = poolCount;
+		extendedInfo.pBindingFlags = bindingFlags;
+
+		layoutInfo.pNext = &extendedInfo;
+
+		VkValidateFR(vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &bindlessDescriptorSetLayout));
+
+		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		allocInfo.descriptorPool = bindlessDescriptorPool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = &bindlessDescriptorSetLayout;
+
+		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
+		U32 maxBinding = maxBindlessResources - 1;
+		countInfo.descriptorSetCount = 1;
+		// This number is the max allocatable count
+		countInfo.pDescriptorCounts = &maxBinding;
+		//allocInfo.pNext = &countInfo;
+
+		VkValidateFR(vkAllocateDescriptorSets(device, &allocInfo, &bindlessDescriptorSet));
+	}
 
 	static constexpr U16 timeQueriesPerFrame = 32;
 
@@ -1448,6 +1525,9 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
 
 	texture->imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	// Add deferred bindless update.
+	if (bindlessSupported) { Resources::DestroyBindlessTexture(texture); }
 
 	if (data)
 	{

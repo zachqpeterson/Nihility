@@ -1517,6 +1517,24 @@ void Resources::DestroyTexture(Texture* texture)
 	}
 }
 
+void Resources::DestroyBindlessTexture(Texture* texture)
+{
+	HashHandle handle = textures.GetHandle(texture->name);
+
+	if (handle != U64_MAX)
+	{
+		ResourceDeletion deletion{};
+		deletion.handle = handle;
+		deletion.type = RESOURCE_DELETE_TYPE_TEXTURE;
+		deletion.currentFrame = Renderer::currentFrame;
+		textureToUpdateBindless.Push(deletion);
+	}
+	else
+	{
+		Logger::Error("Resource '{}' doesn't exist!", texture->name);
+	}
+}
+
 void Resources::DestroyBuffer(Buffer* buffer)
 {
 	HashHandle handle = buffers.GetHandle(buffer->name);
