@@ -95,6 +95,16 @@ bool Resources::Initialize()
 	Vector4 dummyData[3]{};
 	Renderer::CreateBuffer(&dummyAttributeBuffer, dummyData);
 
+	defaultSampler.name = "default_sampler";
+	defaultSampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	defaultSampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	defaultSampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	defaultSampler.minFilter = VK_FILTER_LINEAR;
+	defaultSampler.magFilter = VK_FILTER_LINEAR;
+	defaultSampler.mipFilter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+	Renderer::CreateSampler(&defaultSampler);
+
 	return true;
 }
 
@@ -103,46 +113,46 @@ void Resources::Shutdown()
 	Logger::Trace("Cleaning Up Resources...");
 
 	Hashmap<String, Sampler>::Iterator end0 = samplers.end();
-	for (auto it = samplers.begin(); it != end0; ++it) { if(it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SAMPLER, it->handle }); } }
+	for (auto it = samplers.begin(); it != end0; ++it) { if(it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SAMPLER, it->handle }); } }
 
 	Hashmap<String, Texture>::Iterator end1 = textures.end();
-	for (auto it = textures.begin(); it != end1; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_TEXTURE, it->handle }); } }
+	for (auto it = textures.begin(); it != end1; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, it->handle }); } }
 
 	Hashmap<String, Buffer>::Iterator end2 = buffers.end();
-	for (auto it = buffers.begin(); it != end2; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_BUFFER, it->handle }); } }
+	for (auto it = buffers.begin(); it != end2; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_BUFFER, it->handle }); } }
 
 	Hashmap<String, DescriptorSetLayout>::Iterator end3 = descriptorSetLayouts.end();
-	for (auto it = descriptorSetLayouts.begin(); it != end3; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT, it->handle }); } }
+	for (auto it = descriptorSetLayouts.begin(); it != end3; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT, it->handle }); } }
 
 	Hashmap<String, DescriptorSet>::Iterator end4 = descriptorSets.end();
-	for (auto it = descriptorSets.begin(); it != end4; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_DESCRIPTOR_SET, it->handle }); } }
+	for (auto it = descriptorSets.begin(); it != end4; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET, it->handle }); } }
 
 	Hashmap<String, ShaderState>::Iterator end5 = shaders.end();
-	for (auto it = shaders.begin(); it != end5; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_SHADER_STATE, it->handle }); } }
+	for (auto it = shaders.begin(); it != end5; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SHADER_STATE, it->handle }); } }
 
 	Hashmap<String, RenderPass>::Iterator end6 = renderPasses.end();
-	for (auto it = renderPasses.begin(); it != end6; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_RENDER_PASS, it->handle }); } }
+	for (auto it = renderPasses.begin(); it != end6; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_RENDER_PASS, it->handle }); } }
 
 	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
-	for (auto it = pipelines.begin(); it != end7; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_DELETE_TYPE_PIPELINE, it->handle }); } }
+	for (auto it = pipelines.begin(); it != end7; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_PIPELINE, it->handle }); } }
 
 	while (resourceDeletionQueue.Size())
 	{
-		ResourceDeletion resourceDeletion;
+		ResourceUpdate resourceDeletion;
 		resourceDeletionQueue.Pop(resourceDeletion);
 
 		if (resourceDeletion.currentFrame == -1) { continue; }
 
 		switch (resourceDeletion.type)
 		{
-		case RESOURCE_DELETE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_DELETE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
 		}
 	}
 
@@ -162,21 +172,21 @@ void Resources::Update()
 {
 	while (resourceDeletionQueue.Size())
 	{
-		ResourceDeletion resourceDeletion;
+		ResourceUpdate resourceDeletion;
 		resourceDeletionQueue.Pop(resourceDeletion);
 
 		if (resourceDeletion.currentFrame == Renderer::currentFrame)
 		{
 			switch (resourceDeletion.type)
 			{
-			case RESOURCE_DELETE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_DELETE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
 			}
 		}
 	}
@@ -1418,6 +1428,11 @@ Buffer* Resources::AccessDummyAttributeBuffer()
 	return &dummyAttributeBuffer;
 }
 
+Sampler* Resources::AccessDefaultSampler()
+{
+	return &defaultSampler;
+}
+
 Sampler* Resources::AccessSampler(const String& name)
 {
 	Sampler* sampler = &samplers.Request(name);
@@ -1481,15 +1496,50 @@ Pipeline* Resources::AccessPipeline(const String& name)
 	return nullptr;
 }
 
+Sampler* Resources::AccessSampler(HashHandle handle)
+{
+	return &samplers.Obtain(handle);
+}
+
+Texture* Resources::AccessTexture(HashHandle handle)
+{
+	return &textures.Obtain(handle);
+}
+
+DescriptorSetLayout* Resources::AccessDescriptorSetLayout(HashHandle handle)
+{
+	return &descriptorSetLayouts.Obtain(handle);
+}
+
+DescriptorSet* Resources::AccessDescriptorSet(HashHandle handle)
+{
+	return &descriptorSets.Obtain(handle);
+}
+
+ShaderState* Resources::AccessShaderState(HashHandle handle)
+{
+	return &shaders.Obtain(handle);
+}
+
+RenderPass* Resources::AccessRenderPass(HashHandle handle)
+{
+	return &renderPasses.Obtain(handle);
+}
+
+Pipeline* Resources::AccessPipeline(HashHandle handle)
+{
+	return &pipelines.Obtain(handle);
+}
+
 void Resources::DestroySampler(Sampler* sampler)
 {
 	HashHandle handle = samplers.GetHandle(sampler->name);
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_SAMPLER;
+		deletion.type = RESOURCE_UPDATE_TYPE_SAMPLER;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
@@ -1505,29 +1555,11 @@ void Resources::DestroyTexture(Texture* texture)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_TEXTURE;
+		deletion.type = RESOURCE_UPDATE_TYPE_TEXTURE;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
-	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", texture->name);
-	}
-}
-
-void Resources::DestroyBindlessTexture(Texture* texture)
-{
-	HashHandle handle = textures.GetHandle(texture->name);
-
-	if (handle != U64_MAX)
-	{
-		ResourceDeletion deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_TEXTURE;
-		deletion.currentFrame = Renderer::currentFrame;
-		textureToUpdateBindless.Push(deletion);
 	}
 	else
 	{
@@ -1541,9 +1573,9 @@ void Resources::DestroyBuffer(Buffer* buffer)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_BUFFER;
+		deletion.type = RESOURCE_UPDATE_TYPE_BUFFER;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
@@ -1559,9 +1591,9 @@ void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_DESCRIPTOR_SET_LAYOUT;
+		deletion.type = RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
@@ -1577,9 +1609,9 @@ void Resources::DestroyDescriptorSet(DescriptorSet* set)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_DESCRIPTOR_SET;
+		deletion.type = RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
@@ -1595,9 +1627,9 @@ void Resources::DestroyShaderState(ShaderState* shader)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_SHADER_STATE;
+		deletion.type = RESOURCE_UPDATE_TYPE_SHADER_STATE;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
@@ -1613,9 +1645,9 @@ void Resources::DestroyRenderPass(RenderPass* renderPass)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_RENDER_PASS;
+		deletion.type = RESOURCE_UPDATE_TYPE_RENDER_PASS;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
@@ -1631,9 +1663,9 @@ void Resources::DestroyPipeline(Pipeline* pipeline)
 
 	if (handle != U64_MAX)
 	{
-		ResourceDeletion deletion{};
+		ResourceUpdate deletion{};
 		deletion.handle = handle;
-		deletion.type = RESOURCE_DELETE_TYPE_PIPELINE;
+		deletion.type = RESOURCE_UPDATE_TYPE_PIPELINE;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 

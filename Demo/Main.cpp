@@ -201,15 +201,17 @@ bool Init()
 	meshDraw.materialData.baseColorFactor = Vector4::One;
 
 	Texture* diffuseTexture = textures[0];
+	Sampler* defaultSampler = Resources::AccessDefaultSampler();
 	Sampler* dummySampler = Resources::AccessDummySampler();
 
-	dsCreation.SetTextureSampler(diffuseTexture, dummySampler, 2);
+	//TODO: Load Samplers - diffuseTexture->sampler = diffuseSampler;
+	dsCreation.SetTextureSampler(diffuseTexture, defaultSampler, 2);
 
 	meshDraw.materialData.flags |= MaterialFeatures_ColorTexture;
 
 	Texture* roughnessTexture = textures[1];
 
-	dsCreation.SetTextureSampler(roughnessTexture, dummySampler, 3);
+	dsCreation.SetTextureSampler(roughnessTexture, defaultSampler, 3);
 
 	meshDraw.materialData.flags |= MaterialFeatures_RoughnessTexture;
 
@@ -223,7 +225,7 @@ bool Init()
 
 	Texture* normalTexture = textures[2];
 
-	dsCreation.SetTextureSampler(normalTexture, dummySampler, 6);
+	dsCreation.SetTextureSampler(normalTexture, defaultSampler, 6);
 
 	meshDraw.materialData.flags |= MaterialFeatures_NormalTexture;
 

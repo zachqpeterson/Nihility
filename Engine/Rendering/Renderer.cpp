@@ -704,6 +704,49 @@ void Renderer::EndFrame()
 		vkEndCommandBuffer(commandBuffer->commandBuffer);
 	}
 
+	if (bindlessTexturesToUpdate.Size())
+	{
+		VkWriteDescriptorSet bindlessDescriptorWrites[maxBindlessResources];
+		VkDescriptorImageInfo bindlessImageInfo[maxBindlessResources];
+
+		Texture* dummyTexture = Resources::AccessDummyTexture();
+
+		U32 currentWriteIndex = 0;
+
+		while (bindlessTexturesToUpdate.Size())
+		{
+			ResourceUpdate textureToUpdate;
+			bindlessTexturesToUpdate.Pop(textureToUpdate);
+
+			//TODO: Maybe check frame
+			{
+				Texture* texture = Resources::AccessTexture(textureToUpdate.handle);
+
+				VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
+				descriptorWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				descriptorWrite.descriptorCount = 1;
+				descriptorWrite.dstArrayElement = (U32)textureToUpdate.handle; //TODO: Wrong handle maybe
+				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorWrite.dstSet = bindlessDescriptorSet;
+				descriptorWrite.dstBinding = bindlessTextureBinding;
+
+				Sampler* defaultSampler = Resources::AccessDefaultSampler();
+				VkDescriptorImageInfo& descriptorImageInfo = bindlessImageInfo[currentWriteIndex];
+
+				if (texture->sampler != nullptr) { descriptorImageInfo.sampler = texture->sampler->sampler; }
+				else { descriptorImageInfo.sampler = defaultSampler->sampler; }
+
+				descriptorImageInfo.imageView = texture->format != VK_FORMAT_UNDEFINED ? texture->imageView : dummyTexture->imageView;
+				descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				descriptorWrite.pImageInfo = &descriptorImageInfo;
+
+				++currentWriteIndex;
+			}
+
+			//vkUpdateDescriptorSets(device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
+		}
+	}
+
 	// Submit command buffers
 	VkSemaphore waitSemaphores[] = { imageAcquired };
 	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -1527,7 +1570,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	texture->imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	// Add deferred bindless update.
-	if (bindlessSupported) { Resources::DestroyBindlessTexture(texture); }
+	if (bindlessSupported) { bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	if (data)
 	{

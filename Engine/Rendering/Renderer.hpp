@@ -108,6 +108,7 @@ private:
 	NH_HEADER_STATIC U64									uboAlignment;
 	NH_HEADER_STATIC U64									ssboAlignemnt;
 
+	NH_HEADER_STATIC Queue<ResourceUpdate>					bindlessTexturesToUpdate{};
 	NH_HEADER_STATIC VkDescriptorPool						bindlessDescriptorPool;
 	NH_HEADER_STATIC VkDescriptorSet						bindlessDescriptorSet;
 	NH_HEADER_STATIC VkDescriptorSetLayout					bindlessDescriptorSetLayout;

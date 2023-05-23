@@ -28,6 +28,7 @@ public:
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
 	static Buffer* AccessDummyAttributeBuffer();
+	static Sampler* AccessDefaultSampler();
 
 	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
@@ -37,9 +38,16 @@ public:
 	static RenderPass* AccessRenderPass(const String& name);
 	static Pipeline* AccessPipeline(const String& name);
 
+	static Sampler* AccessSampler(HashHandle handle);
+	static Texture* AccessTexture(HashHandle handle);
+	static DescriptorSetLayout* AccessDescriptorSetLayout(HashHandle handle);
+	static DescriptorSet* AccessDescriptorSet(HashHandle handle);
+	static ShaderState* AccessShaderState(HashHandle handle);
+	static RenderPass* AccessRenderPass(HashHandle handle);
+	static Pipeline* AccessPipeline(HashHandle handle);
+
 	static void	DestroySampler(Sampler* sampler);
 	static void	DestroyTexture(Texture* texture);
-	static void	DestroyBindlessTexture(Texture* texture);
 	static void	DestroyBuffer(Buffer* buffer);
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
@@ -67,6 +75,7 @@ private:
 	NH_HEADER_STATIC Sampler dummySampler;
 	NH_HEADER_STATIC Texture dummyTexture;
 	NH_HEADER_STATIC Buffer dummyAttributeBuffer;
+	NH_HEADER_STATIC Sampler defaultSampler;
 
 	NH_HEADER_STATIC Hashmap<String, Texture>				textures{ 512, {} };
 	NH_HEADER_STATIC Hashmap<String, Buffer>				buffers{ 4096, {} };
@@ -78,8 +87,7 @@ private:
 	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
 	NH_HEADER_STATIC Hashmap<String, glTF>					scenes{ 128, {} };
 
-	NH_HEADER_STATIC Queue<ResourceDeletion>				resourceDeletionQueue{};
-	NH_HEADER_STATIC Queue<ResourceDeletion>				textureToUpdateBindless{};
+	NH_HEADER_STATIC Queue<ResourceUpdate>					resourceDeletionQueue{};
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;
