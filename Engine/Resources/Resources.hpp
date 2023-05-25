@@ -21,9 +21,10 @@ public:
 	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
 	static RenderPass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const PipelineCreation& info);
+	static Scene* LoadScene(const String& name);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 
-	static glTF* LoadScene(const String& name);
+	//static glTF* LoadScene(const String& name);
 
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
@@ -85,7 +86,7 @@ private:
 	NH_HEADER_STATIC Hashmap<String, DescriptorSet>			descriptorSets{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, RenderPass>			renderPasses{ 256, {} };
 	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
-	NH_HEADER_STATIC Hashmap<String, glTF>					scenes{ 128, {} };
+	NH_HEADER_STATIC Hashmap<String, Scene>					scenes{ 128, {} };
 
 	NH_HEADER_STATIC Queue<ResourceUpdate>					resourceDeletionQueue{};
 

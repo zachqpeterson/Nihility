@@ -369,39 +369,46 @@ struct Scene
 public:
 
 private:
-	U32 accessorCount;
-	Accessor* accessors;
-	U32 animationCount;
-	Animation* animations;
-	U32 bufferViewCount;
-	BufferView* bufferViews;
-	U32 bufferCount;
-	BufferRef* buffers;
-	U32 cameraCount;
-	Camera* cameras;
-	U32 requiredExtentionCount;
-	String* requiredExtentions;
-	U32 usedExtensionCount;
-	String* usedExtensions;
-	U32 imageCount;
-	Image* images;
-	U32 materialCount;
-	Material* materials;
-	U32 meshCount;
-	Mesh* meshes;
-	U32 nodeCount;
-	Node* nodes;
-	U32 samplerCount;
-	SamplerRef* samplers;
-	U32 sceneCount;
-	Scene* scenes;
-	I32 scene;
-	U32 skinCount;
-	Skin* skins;
-	U32 textureCount;
-	TextureRef* textures;
+	//U32 accessorCount;
+	//Accessor* accessors;
+	//U32 animationCount;
+	//Animation* animations;
+	//U32 bufferViewCount;
+	//BufferView* bufferViews;
+	//U32 bufferCount;
+	//BufferRef* buffers;
+	//U32 cameraCount;
+	//Camera* cameras;
+	//U32 requiredExtentionCount;
+	//String* requiredExtentions;
+	//U32 usedExtensionCount;
+	//String* usedExtensions;
+	//U32 imageCount;
+	//Image* images;
+	//U32 materialCount;
+	//Material* materials;
+	//U32 meshCount;
+	//Mesh* meshes;
+	//U32 nodeCount;
+	//Node* nodes;
+	//U32 samplerCount;
+	//SamplerRef* samplers;
+	//U32 sceneCount;
+	//Scene* scenes;
+	//I32 scene;
+	//U32 skinCount;
+	//Skin* skins;
+	//U32 textureCount;
+	//TextureRef* textures;
 
-	String name{ NO_INIT };
+public:
+	String				name{ NO_INIT };
+
+	Vector<MeshDraw>	mesh_draws;
+
+	Vector<Texture*>	images;
+	Vector<Sampler*>	samplers;
+	Vector<Buffer*>		buffers;
 };
 
 //bool SetupScene(Vector<MeshDraw>& draw);
