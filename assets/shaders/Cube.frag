@@ -182,7 +182,7 @@ void main() {
 
     float NdotL = clamp( dot(N, L), 0, 1 );
 
-    if ( NdotL > 1e-5 ) {
+    //if ( NdotL > 1e-5 ) {
         float NdotV = dot(N, V);
         float HdotL = dot(H, L);
         float HdotV = dot(H, V);
@@ -206,7 +206,7 @@ void main() {
         material_colour = emissive + mix( material_colour, material_colour * ao, occlusion_factor);
 
         frag_color = vec4( encode_srgb( material_colour ), base_colour.a );
-    } else {
-        frag_color = vec4( base_colour.rgb * 0.1, base_colour.a );
-    }
+    //} else {
+    //    frag_color = vec4( base_colour.rgb * 0.1, base_colour.a );
+    //}
 }
