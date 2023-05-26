@@ -725,7 +725,7 @@ void Renderer::EndFrame()
 				VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
 				descriptorWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 				descriptorWrite.descriptorCount = 1;
-				descriptorWrite.dstArrayElement = (U32)textureToUpdate.handle; //TODO: Wrong handle maybe
+				descriptorWrite.dstArrayElement = (U32)textureToUpdate.handle;
 				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				descriptorWrite.dstSet = bindlessDescriptorSet;
 				descriptorWrite.dstBinding = bindlessTextureBinding;
