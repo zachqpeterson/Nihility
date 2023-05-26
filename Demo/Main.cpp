@@ -46,9 +46,9 @@ bool Init()
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
 	pipelineCreation.shaders.
-		SetName("Cube").
-		AddStage("Cube.vert", VK_SHADER_STAGE_VERTEX_BIT).
-		AddStage("Cube.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+		SetName("PBR").
+		AddStage("Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).
+		AddStage("Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Descriptor set layout
 	DescriptorSetLayoutCreation cubeRllCreation{};
@@ -296,7 +296,7 @@ void Update()
 
 	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	commands->Clear(0.3f, 0.9f, 0.3f, 1.0f);
+	commands->Clear(0.3f, 0.3f, 0.9f, 1.0f);
 	commands->ClearDepthStencil(1.0f, 0);
 	commands->BindPass(Renderer::GetSwapchainPass());
 	commands->BindPipeline(cubePipeline);
