@@ -3,6 +3,7 @@
 #include "Defines.hpp"
 #include "Core\Logger.hpp"
 #include "Memory\Memory.hpp"
+#include "Math\Math.hpp"
 
 /*---------DEFINES---------*/
 
@@ -848,7 +849,7 @@ struct NH_API DepthStencilCreation
 {
 	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
 
-	DepthStencilCreation& SetDepth(bool write, VkCompareOp comparison_test);
+	DepthStencilCreation& SetDepth(bool write, VkCompareOp comparisonTest);
 
 	StencilOperationState	front;
 	StencilOperationState	back;
@@ -860,7 +861,7 @@ struct NH_API DepthStencilCreation
 	U8						pad : 5;
 };
 
-struct BlendState
+struct NH_API BlendState
 {
 	BlendState() : blendEnabled{ 0 }, separateBlend{ 0 } {}
 
@@ -883,7 +884,7 @@ struct BlendState
 	U8						pad : 6;
 };
 
-struct BlendStateCreation
+struct NH_API BlendStateCreation
 {
 	BlendStateCreation& Reset();
 	BlendState& AddBlendState();
@@ -901,9 +902,7 @@ struct RasterizationCreation
 
 struct ShaderStage
 {
-	CSTR					path{ nullptr };
-	CSTR					code{ nullptr };
-	U32						codeSize{ 0 };
+	CSTR					name{ nullptr };
 	VkShaderStageFlagBits	type{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
 };
 
@@ -914,4 +913,61 @@ struct DescriptorBinding
 	U16					start{ 0 };
 	U16					count{ 0 };
 	U16					set{ 0 };
+};
+
+struct NH_API Camera
+{
+	Camera(bool enabled = true, F32 rotationSpeed = 10.0f, F32 movementSpeed = 1.0f, F32 movementDelta = 0.1f);
+
+	void Reset();
+	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom);
+	void SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRatio);
+	void SetAspectRatio(F32 aspectRatio);
+
+	const Matrix4& ViewProjection();
+	Vector4 Eye();
+
+	void Update();
+	void ApplyJitter(F32 x, F32 y);
+
+	F32		targetYaw{ 0.0f };
+	F32		targetPitch{ 0.0f };
+
+	F32		mouseSensitivity{ 1.0f };
+	F32		movementDelta;
+	U32		ignoreDraggingFrames{ 3 };
+
+	Vector3	targetMovement{ Vector3::Zero };
+
+	bool	enabled;
+	bool	mouseDragging{ false };
+
+	F32		rotationSpeed;
+	F32		movementSpeed;
+
+private:
+	Matrix4	view{ Matrix4::Identity };
+	Matrix4	projection{ Matrix4::Identity };
+	Matrix4	viewProjection{ Matrix4::Identity };
+
+	Vector3	position{ Vector3::Zero };
+	Vector3	right{ Vector3::Right };
+	Vector3	forward{ Vector3::Forward };
+	Vector3	up{ Vector3::Up };
+
+	F32		yaw{ 0.0f };
+	F32		pitch{ 0.0f };
+
+	F32		nearPlane{ 0.0f };
+	F32		farPlane{ 0.0f };
+
+	F32		fov{ 0.0f };
+	F32		aspectRatio{ 0.0f };
+
+	F32		zoom{ 0.0f };
+	F32		viewportWidth{ 0.0f };
+	F32		viewportHeight{ 0.0f };
+
+	bool	perspective{ false };
+	bool	updateProjection{ false };
 };

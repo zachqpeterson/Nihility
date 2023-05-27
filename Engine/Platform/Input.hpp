@@ -19,8 +19,8 @@ enum NH_API ButtonCode
 	BUTTON_CODE_CLEAR = 0x0C,
 	BUTTON_CODE_RETURN = 0x0D,
 	BUTTON_CODE_SHIFT = 0x10,
-	BUTTON_CODE_CONTROL = 0x11,
-	BUTTON_CODE_MENU = 0x12,
+	BUTTON_CODE_CTRL = 0x11,
+	BUTTON_CODE_ALT = 0x12,
 	BUTTON_CODE_PAUSE = 0x13,
 	BUTTON_CODE_CAPITAL = 0x14,
 	BUTTON_CODE_KANA = 0x15,
@@ -51,7 +51,7 @@ enum NH_API ButtonCode
 	BUTTON_CODE_INSERT = 0x2D,
 	BUTTON_CODE_DELETE = 0x2E,
 	BUTTON_CODE_HELP = 0x2F,
-	BUTTON_CODE_ZERO = 0x30,
+	BUTTON_CODE_ZERO = 0x30, //TODO: Maybe 0..9
 	BUTTON_CODE_ONE = 0x31,
 	BUTTON_CODE_TWO = 0x32,
 	BUTTON_CODE_THREE = 0x33,
@@ -149,10 +149,10 @@ enum NH_API ButtonCode
 	BUTTON_CODE_OEM_FJ_ROYA = 0x96,
 	BUTTON_CODE_LSHIFT = 0xA0,
 	BUTTON_CODE_RSHIFT = 0xA1,
-	BUTTON_CODE_LCONTROL = 0xA2,
-	BUTTON_CODE_RCONTROL = 0xA3,
-	BUTTON_CODE_LMENU = 0xA4,
-	BUTTON_CODE_RMENU = 0xA5,
+	BUTTON_CODE_LCTRL = 0xA2,
+	BUTTON_CODE_RCTRL = 0xA3,
+	BUTTON_CODE_LALT = 0xA4,
+	BUTTON_CODE_RALT = 0xA5,
 	BUTTON_CODE_BROWSER_BACK = 0xA6,
 	BUTTON_CODE_BROWSER_FORWARD = 0xA7,
 	BUTTON_CODE_BROWSER_REFRESH = 0xA8,
@@ -274,14 +274,16 @@ public:
 	static bool ButtonUp(ButtonCode code);
 	static bool ButtonDown(ButtonCode code);
 	static bool ButtonHeld(ButtonCode code);
+	static bool ButtonDragging(ButtonCode code);
 	static bool OnButtonUp(ButtonCode code);
 	static bool OnButtonDown(ButtonCode code);
 	static bool OnButtonChange(ButtonCode code);
 	static bool OnButtonDoubleClick(ButtonCode code);
 	static bool OnButtonHold(ButtonCode code);
 	static bool OnButtonRelease(ButtonCode code);
-	static void MousePos(U32& x, U32& y);
-	static void PreviousMousePos(U32& x, U32& y);
+	static void MousePos(I32& x, I32& y);
+	static void MouseDelta(I32& x, I32& y);
+	static void PreviousMousePos(I32& x, I32& y);
 	static void ConsumeInput();
 	static I16 MouseWheelDelta();
 	static I16 MouseHWheelDelta();

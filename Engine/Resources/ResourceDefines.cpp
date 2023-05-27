@@ -132,6 +132,13 @@ DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::AddBinding(const Descr
 	return *this;
 }
 
+DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::AddBindingAtIndex(const DescriptorBinding& binding, U32 index)
+{
+	bindings[index] = binding;
+	bindingCount = (index + 1) > bindingCount ? (index + 1) : bindingCount;
+	return *this;
+}
+
 DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::SetName(const String& name)
 {
 	this->name = name;
@@ -207,18 +214,12 @@ ShaderStateCreation& ShaderStateCreation::SetName(const String& name)
 	return *this;
 }
 
-ShaderStateCreation& ShaderStateCreation::AddStage(CSTR path, VkShaderStageFlagBits type)
+ShaderStateCreation& ShaderStateCreation::AddStage(CSTR name, VkShaderStageFlagBits type)
 {
-	stages[stagesCount].path = path;
+	stages[stagesCount].name = name;
 	stages[stagesCount].type = type;
 	++stagesCount;
 
-	return *this;
-}
-
-ShaderStateCreation& ShaderStateCreation::SetSpvInput(bool value)
-{
-	spvInput = value;
 	return *this;
 }
 
@@ -324,15 +325,37 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 
 // PIPELINE CREATION
 
-PipelineCreation& PipelineCreation::AddDescriptorSetLayout(DescriptorSetLayout* handle)
-{
-	descriptorSetLayouts[activeLayoutCount++] = handle;
-	return *this;
-}
-
 RenderPassOutput& PipelineCreation::GetRenderPassOutput()
 {
 	return renderPass;
+}
+
+// MATERIAL CREATION
+
+MaterialCreation& MaterialCreation::Reset()
+{
+	program = nullptr;
+	name.Clear();
+	renderIndex = U32_MAX;
+	return *this;
+}
+
+MaterialCreation& MaterialCreation::SetProgram(Program* program_)
+{
+	program = program_;
+	return *this;
+}
+
+MaterialCreation& MaterialCreation::SetRenderIndex(U32 render_index_)
+{
+	renderIndex = render_index_;
+	return *this;
+}
+
+MaterialCreation& MaterialCreation::SetName(const String& name_)
+{
+	name = name_;
+	return *this;
 }
 
 // EXECUTION BARRIER

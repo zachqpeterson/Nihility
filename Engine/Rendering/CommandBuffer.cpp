@@ -1,6 +1,8 @@
 #include "CommandBuffer.hpp"
 
 #include "Renderer.hpp"
+#include "Resources\Resources.hpp"
+
 
 void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked)
 {
@@ -8,12 +10,88 @@ void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool 
 	this->bufferSize = bufferSize;
 	this->baked = baked;
 
+	//////// Create Descriptor Pools
+	static const U32 globalPoolElements = 128;
+	VkDescriptorPoolSize poolSizes[] =
+	{
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, globalPoolElements}
+	};
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	poolInfo.maxSets = globalPoolElements * CountOf(poolSizes);
+	poolInfo.poolSizeCount = CountOf32(poolSizes);
+	poolInfo.pPoolSizes = poolSizes;
+	VkValidateF(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &descriptorPool));
+
+	descriptorSets.Create();
+
 	Reset();
 }
 
 void CommandBuffer::Destroy()
 {
 	isRecording = false;
+
+	Reset();
+
+	descriptorSets.Destroy();
+
+	vkDestroyDescriptorPool(Renderer::device, descriptorPool, Renderer::allocationCallbacks);
+}
+
+DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
+{
+	U64 handle = descriptorSets.ObtainResource();
+
+	DescriptorSet* set = descriptorSets.GetResource(handle);
+
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &info.layout->descriptorSetLayout;
+
+	VkValidateF(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &set->descriptorSet));
+
+	// Cache data
+	U8* memory;
+	Memory::AllocateSize(&memory, (sizeof(void*) + sizeof(Sampler*) + sizeof(U16)) * info.resourceCount);
+	set->resources = (void**)memory;
+	set->samplers = (Sampler**)(memory + sizeof(void*) * info.resourceCount);
+	set->bindings = (U16*)(memory + (sizeof(void*) + sizeof(Sampler*)) * info.resourceCount);
+	set->resourceCount = info.resourceCount;
+	set->layout = info.layout;
+
+	// Update descriptor set
+	VkWriteDescriptorSet descriptorWrite[8];
+	VkDescriptorBufferInfo bufferInfo[8];
+	VkDescriptorImageInfo imageInfo[8];
+
+	U32 resourceCount = info.resourceCount;
+	Renderer::FillWriteDescriptorSets(info.layout, set->descriptorSet, descriptorWrite, bufferInfo, imageInfo, Resources::AccessDefaultSampler()->sampler,
+		resourceCount, info.resources, info.samplers, info.bindings);
+
+	// Cache resources
+	for (U32 r = 0; r < resourceCount; r++)
+	{
+		set->resources[r] = info.resources[r];
+		set->samplers[r] = info.samplers[r];
+		set->bindings[r] = info.bindings[r];
+	}
+
+	vkUpdateDescriptorSets(Renderer::device, resourceCount, descriptorWrite, 0, nullptr);
+
+	return set;
 }
 
 void CommandBuffer::BindPass(RenderPass* renderPass)
@@ -60,7 +138,6 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset)
 {
 	VkDeviceSize offsets[] = { offset };
-
 	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
 	if (buffer->parentBuffer != nullptr)
@@ -72,16 +149,18 @@ void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset)
 	vkCmdBindVertexBuffers(commandBuffer, binding, 1, &vkBuffer, offsets);
 }
 
-void CommandBuffer::BindIndexBuffer(Buffer* buffer, U32 offset, VkIndexType indexType)
+void CommandBuffer::BindIndexBuffer(Buffer* buffer, U32 offset)
 {
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = offset;
+
 	if (buffer->parentBuffer != nullptr)
 	{
 		vkBuffer = buffer->parentBuffer->buffer;
 		vkOffset = buffer->globalOffset;
 	}
-	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, indexType);
+
+	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, VK_INDEX_TYPE_UINT16);
 }
 
 void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets)
@@ -93,7 +172,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 	for (U32 l = 0; l < numLists; ++l)
 	{
 		DescriptorSet* descriptorSet = sets[l];
-		descriptorSets[l] = descriptorSet->descriptorSet;
+		vkDescriptorSets[l] = descriptorSet->descriptorSet;
 
 		// Search for dynamic buffers
 		const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
@@ -114,7 +193,13 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 
 	const U32 firstSet = 0;
 	vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->pipelineLayout, firstSet,
-		numLists, descriptorSets, numOffsets, offsetsCache);
+		numLists, vkDescriptorSets, numOffsets, offsetsCache);
+
+	if (Renderer::bindlessSupported)
+	{
+		vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->pipelineLayout, 1,
+			1, &Renderer::bindlessDescriptorSet, 0, nullptr);
+	}
 }
 
 void CommandBuffer::SetViewport(const Viewport* viewport)
@@ -470,6 +555,18 @@ void CommandBuffer::Reset()
 	currentRenderPass = nullptr;
 	currentPipeline = nullptr;
 	currentCommand = 0;
+
+	vkResetDescriptorPool(Renderer::device, descriptorPool, 0);
+
+	U32 resourceCount = descriptorSets.lastFree;
+	for (U32 i = 0; i < resourceCount; ++i)
+	{
+		DescriptorSet* descriptorSet = (DescriptorSet*)descriptorSets.GetResource(i);
+
+		if (descriptorSet) { Memory::FreeSize(&descriptorSet->resources); }
+
+		descriptorSets.ReleaseResource(i);
+	}
 }
 
 /*------COMMAND BUFFER RING------*/
@@ -494,8 +591,9 @@ void CommandBufferRing::Create()
 		cmd.commandBufferCount = 1;
 		VkValidate(vkAllocateCommandBuffers(Renderer::device, &cmd, &commandBuffers[i].commandBuffer));
 
+		//TODO: Have a ring per queue per thread
 		commandBuffers[i].handle = i;
-		commandBuffers[i].Reset();
+		commandBuffers[i].Create(QUEUE_TYPE_GRAPHICS, 0, 0, false);
 	}
 }
 
@@ -504,6 +602,11 @@ void CommandBufferRing::Destroy()
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES * maxThreads; i++)
 	{
 		vkDestroyCommandPool(Renderer::device, commandPools[i], Renderer::allocationCallbacks);
+	}
+
+	for (U32 i = 0; i < maxBuffers; ++i)
+	{
+		commandBuffers[i].Destroy();
 	}
 }
 

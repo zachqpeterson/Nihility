@@ -1759,10 +1759,10 @@ Quaternion3::Quaternion3(const Vector3& euler)
 	F32 s0c1 = s0 * c1;
 	F32 c0s1 = c0 * s1;
 
-	x = c0c1 * c2 + s0s1 * s2;
-	y = s0c1 * c2 - c0c1 * s2;
-	z = c0s1 * c2 + s0c1 * s2;
-	w = c0c1 * s2 - s0s1 * c2;
+	x = s0c1 * c2 - c0c1 * s2;
+	y = c0s1 * c2 + s0c1 * s2;
+	z = c0c1 * s2 - s0s1 * c2;
+	w = c0c1 * c2 + s0s1 * s2;
 }
 
 Quaternion3::Quaternion3(const Vector3& axis, F32 angle)
@@ -1770,6 +1770,8 @@ Quaternion3::Quaternion3(const Vector3& axis, F32 angle)
 	const F32 halfAngle = angle * 0.5f;
 	F32 s = Math::Sin(halfAngle);
 	F32 c = Math::Cos(halfAngle);
+
+	//TODO: Normalize axis?
 
 	x = s * axis.x;
 	y = s * axis.y;

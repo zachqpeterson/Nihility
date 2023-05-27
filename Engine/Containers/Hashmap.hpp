@@ -291,6 +291,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Request(cons
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	cell->filled = true;
+	cell->key = key;
 	return cell->value;
 }
 
@@ -301,9 +302,9 @@ template<class Key, class Value> inline HashHandle Hashmap<Key, Value>::GetHandl
 	else { hash = Hash::Calculate(key); }
 
 	U32 i = 0;
-	HashHandle handle = 0;
-	Cell* cell = cells + (hash % capacity);
-	while (cell->key != key && cell->filled) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
+	HashHandle handle = hash % capacity;
+	Cell* cell = cells + handle;
+	while (cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
 
 	if (cell->filled) { return handle; }
 	else { return U64_MAX; }

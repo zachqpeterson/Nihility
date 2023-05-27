@@ -689,7 +689,7 @@ enum ProjectionType
 struct NH_API Matrix4
 {
 	Matrix4();
-	Matrix4(const Vector3& position, const Vector3& rotation, const Vector3& scale = Vector3::One);
+	Matrix4(const Vector3& position, const Vector3& rotation = Vector3::Zero, const Vector3& scale = Vector3::One);
 	Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale = Vector3::One);
 	Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw);
 	Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d);
@@ -701,7 +701,7 @@ struct NH_API Matrix4
 	Matrix4& operator= (const Matrix4& m);
 	Matrix4& operator= (Matrix4&& m) noexcept;
 
-	void Set(const Vector3& position, const Vector3& rotation, const Vector3& scale = Vector3::One);
+	void Set(const Vector3& position, const Vector3& rotation = Vector3::Zero, const Vector3& scale = Vector3::One);
 	void Set(const Vector3& position, const Quaternion3& rotation, const Vector3& scale = Vector3::One);
 	void SetPerspective(F32 fov, F32 aspect, F32 near, F32 far);
 	void SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);

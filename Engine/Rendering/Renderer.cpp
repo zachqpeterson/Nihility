@@ -579,9 +579,9 @@ bool Renderer::CreateResources()
 		vkCreateFence(device, &fenceInfo, allocationCallbacks, &commandBufferExecuted[i]);
 	}
 
-	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
-
 	commandBufferRing.Create();
+
+	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
 
 	descriptorSetUpdates.Reserve(16);
 
@@ -742,13 +742,13 @@ void Renderer::EndFrame()
 
 				++currentWriteIndex;
 			}
-
-			//vkUpdateDescriptorSets(device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr);
 		}
+
+		if (currentWriteIndex) { vkUpdateDescriptorSets(device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); }
 	}
 
 	// Submit command buffers
-	VkSemaphore waitSemaphores[] = { imageAcquired };
+	VkSemaphore waitSemaphores[]{ imageAcquired };
 	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -766,9 +766,9 @@ void Renderer::EndFrame()
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = renderCompleted;
 
-	VkSwapchainKHR swap_chains[] = { swapchain };
+	VkSwapchainKHR swapChains[] = { swapchain };
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swap_chains;
+	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr; // Optional
 	result = vkQueuePresentKHR(deviceQueue, &presentInfo);
@@ -1782,34 +1782,22 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 		const ShaderStage& stage = info.stages[compiledShaders];
 
 		// Gives priority to compute: if any is present (and it should not be) then it is not a graphics pipeline.
-		if (stage.type == VK_SHADER_STAGE_COMPUTE_BIT)
-		{
-			shaderState->graphicsPipeline = false;
-		}
+		if (stage.type == VK_SHADER_STAGE_COMPUTE_BIT) { shaderState->graphicsPipeline = false; }
 
 		VkShaderModuleCreateInfo shaderInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 
-		if (info.spvInput)
-		{
-			shaderInfo.codeSize = stage.codeSize;
-			shaderInfo.pCode = reinterpret_cast<const U32*>(stage.code);
-		}
-		else
-		{
-			shaderInfo = CompileShader(stage.path, stage.type, info.name);
-		}
+		shaderInfo = CompileShader(stage.name, stage.type, info.name);
 
 		// Compile shader module
-		VkPipelineShaderStageCreateInfo& shader_stage_info = shaderState->shaderStageInfos[compiledShaders];
-		memset(&shader_stage_info, 0, sizeof(VkPipelineShaderStageCreateInfo));
-		shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shader_stage_info.pName = "main";
-		shader_stage_info.stage = stage.type;
+		VkPipelineShaderStageCreateInfo& shaderStageInfo = shaderState->shaderStageInfos[compiledShaders];
+		memset(&shaderStageInfo, 0, sizeof(VkPipelineShaderStageCreateInfo));
+		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageInfo.pName = "main";
+		shaderStageInfo.stage = stage.type;
 
-		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS)
-		{
-			break;
-		}
+		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS) { break; }
+
+		Resources::ParseSPIRV(shaderInfo, shaderState);
 
 		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderState->shaderStageInfos[compiledShaders].module, info.name);
 	}
@@ -1831,18 +1819,61 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 	return true;
 }
 
-bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput)
+bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput, const String& cachePath)
 {
-	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
-	for (U32 l = 0; l < pipeline->activeLayoutCount; ++l)
+	bool cacheExists = false;
+	File cache(cachePath, FILE_OPEN_RESOURCE);
+	if (cache.Opened())
 	{
+		U8* data = nullptr;
+		U32 size = cache.ReadAll(&data);
+
+		VkPipelineCacheHeaderVersionOne* cacheHeader = (VkPipelineCacheHeaderVersionOne*)data;
+
+		if (cacheHeader->deviceID == physicalDeviceProperties.deviceID &&
+			cacheHeader->vendorID == physicalDeviceProperties.vendorID &&
+			memcmp(cacheHeader->pipelineCacheUUID, physicalDeviceProperties.pipelineCacheUUID, VK_UUID_SIZE) == 0)
+		{
+			pipelineCacheCreateInfo.initialDataSize = size;
+			pipelineCacheCreateInfo.pInitialData = data;
+			cacheExists = true;
+		}
+
+		VkValidate(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, allocationCallbacks, &pipelineCache));
+
+		cache.Close();
+	}
+	else
+	{
+		VkValidate(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, allocationCallbacks, &pipelineCache));
+	}
+
+	pipeline->shaderState;
+
+	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+	U32 activeLayoutCount = pipeline->shaderState->setCount;
+
+	for (U32 l = 0; l < pipeline->shaderState->setCount; ++l)
+	{
+		pipeline->descriptorSetLayouts[l] = Resources::CreateDescriptorSetLayout(pipeline->shaderState->sets[l]);
 		vkLayouts[l] = pipeline->descriptorSetLayouts[l]->descriptorSetLayout;
+	}
+
+	pipeline->activeLayoutCount = activeLayoutCount;
+
+	U32 bindlessActive = 0;
+	if (bindlessSupported)
+	{
+		vkLayouts[pipeline->activeLayoutCount] = bindlessDescriptorSetLayout;
+		bindlessActive = 1;
 	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.pSetLayouts = vkLayouts;
-	pipelineLayoutInfo.setLayoutCount = pipeline->activeLayoutCount;
+	pipelineLayoutInfo.setLayoutCount = pipeline->activeLayoutCount + bindlessActive;
 	pipelineLayoutInfo.flags = 0;
 	pipelineLayoutInfo.pNext = nullptr;
 	//pipelineLayoutInfo.pPushConstantRanges; TODO:
@@ -2053,6 +2084,25 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 
 		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
+
+	if (!cacheExists)
+	{
+		cache.Open(cachePath, FILE_OPEN_WRITE_SETTINGS);
+
+		U64 cacheDataSize = 0;
+		VkValidate(vkGetPipelineCacheData(device, pipelineCache, &cacheDataSize, nullptr));
+
+		void* cacheData;
+		Memory::AllocateSize(&cacheData, cacheDataSize);
+		VkValidate(vkGetPipelineCacheData(device, pipelineCache, &cacheDataSize, cacheData));
+
+		cache.Write(cacheData, (U32)cacheDataSize);
+		Memory::FreeSize(&cacheData);
+
+		cache.Close();
+	}
+
+	vkDestroyPipelineCache(device, pipelineCache, allocationCallbacks);
 
 	return true;
 }

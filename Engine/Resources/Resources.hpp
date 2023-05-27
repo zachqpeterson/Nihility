@@ -21,6 +21,8 @@ public:
 	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
 	static RenderPass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const PipelineCreation& info);
+	static Program* CreateProgram(const ProgramCreation& info);
+	static Material* CreateMaterial(const MaterialCreation& info);
 	static Scene* LoadScene(const String& name);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 
@@ -58,6 +60,7 @@ public:
 
 	static bool LoadBinary(const String& name, String& result);
 	static U32 LoadBinary(const String& name, void** result);
+	static void ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* shaderState);
 
 private:
 	static bool Initialize();
@@ -73,22 +76,24 @@ private:
 	static void* LoadTIFF(Texture* texture, File& file);
 	static void* LoadTGA(Texture* texture, File& file);
 
-	NH_HEADER_STATIC Sampler dummySampler;
-	NH_HEADER_STATIC Texture dummyTexture;
-	NH_HEADER_STATIC Buffer dummyAttributeBuffer;
-	NH_HEADER_STATIC Sampler defaultSampler;
+	static Sampler*								dummySampler;
+	static Texture*								dummyTexture;
+	static Buffer*								dummyAttributeBuffer;
+	static Sampler*								defaultSampler;
 
-	NH_HEADER_STATIC Hashmap<String, Texture>				textures{ 512, {} };
-	NH_HEADER_STATIC Hashmap<String, Buffer>				buffers{ 4096, {} };
-	NH_HEADER_STATIC Hashmap<String, Pipeline>				pipelines{ 128, {} };
-	NH_HEADER_STATIC Hashmap<String, Sampler>				samplers{ 32, {} };
-	NH_HEADER_STATIC Hashmap<String, DescriptorSetLayout>	descriptorSetLayouts{ 128, {} };
-	NH_HEADER_STATIC Hashmap<String, DescriptorSet>			descriptorSets{ 256, {} };
-	NH_HEADER_STATIC Hashmap<String, RenderPass>			renderPasses{ 256, {} };
-	NH_HEADER_STATIC Hashmap<String, ShaderState>			shaders{ 128, {} };
-	NH_HEADER_STATIC Hashmap<String, Scene>					scenes{ 128, {} };
+	static Hashmap<String, Sampler>				samplers;
+	static Hashmap<String, Texture>				textures;
+	static Hashmap<String, Buffer>				buffers;
+	static Hashmap<String, DescriptorSetLayout>	descriptorSetLayouts;
+	static Hashmap<String, DescriptorSet>		descriptorSets;
+	static Hashmap<String, ShaderState>			shaders;
+	static Hashmap<String, RenderPass>			renderPasses;
+	static Hashmap<String, Pipeline>			pipelines;
+	static Hashmap<String, Program>				programs;
+	static Hashmap<String, Material>			materials;
+	static Hashmap<String, Scene>				scenes;
 
-	NH_HEADER_STATIC Queue<ResourceUpdate>					resourceDeletionQueue{};
+	static Queue<ResourceUpdate>				resourceDeletionQueue;
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;

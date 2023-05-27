@@ -1,46 +1,43 @@
 #version 450
-uint MATERIAL_FEATURE_COLOR = 1 << 0;
-uint MATERIAL_FEATURE_NORMAL = 1 << 1;
-uint MATERIAL_FEATURE_ROUGHNESS = 1 << 2;
-uint MATERIAL_FEATURE_OCCLUSION = 1 << 3;
-uint MATERIAL_FEATURE_EMISSIVE = 1 << 4;
-uint MATERIAL_FEATURE_TANGENT_VERTEX = 1 << 5;
-uint MATERIAL_FEATURE_TEXCOORD_VERTEX = 1 << 6;
+#extension GL_EXT_nonuniform_qualifier : enable
 
-layout(std140, binding = 0) uniform LocalConstants {
-    mat4 m;
-    mat4 vp;
-    vec4 eye;
-    vec4 light;
+uint DrawFlags_AlphaMask = 1 << 0;
+
+layout(std140, binding = 0) uniform LocalConstants
+{
+    mat4  viewProjection;
+    vec4  eye;
+    vec4  light;
+    float lightRange;
+    float lightIntensity;
 };
 
-layout(std140, binding = 1) uniform MaterialConstant {
-    vec4 baseColorFactor;
+layout(std140, binding = 1) uniform MaterialConstant
+{
     mat4 model;
     mat4 modelInv;
 
-    vec3  emissiveFactor;
-    float metallicFactor;
-
-    float roughnessFactor;
-    float occlusionFactor;
-    uint  flags;
+    // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
+    uvec4       textures;
+    vec4        baseColorFactor;
+    vec4        metalRoughOcclFactor;
+    float       alphaCutoff;
+    uint        flags;
 };
 
-layout (binding = 2) uniform sampler2D diffuseTexture;
-layout (binding = 3) uniform sampler2D roughnessMetalnessTexture;
-layout (binding = 4) uniform sampler2D occlusionTexture;
-layout (binding = 5) uniform sampler2D emissiveTexture;
-layout (binding = 6) uniform sampler2D normalTexture;
+layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
+layout (set = 1, binding = 10) uniform sampler3D globalTextures3D[];
 
 layout (location = 0) in vec2 texcoord0;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec4 tangent;
-layout (location = 3) in vec4 position;
+layout (location = 2) in vec3 tangent;
+layout (location = 3) in vec3 bitangent;
+layout (location = 4) in vec3 position;
 
 layout (location = 0) out vec4 fragColor;
 
 #define PI 3.1415926538
+#define INVALID_TEXTURE_INDEX 65535
 
 // GGX/Trowbridge-Reitz Normal Distribution Function
 float D(float alpha, vec3 N, vec3 H)
@@ -77,81 +74,61 @@ float F(float F0, vec3 V, vec3 H)
 
 void main()
 {
-	mat3 TBN = mat3(1.0);
+    vec4 baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
+
+    if ((flags & DrawFlags_AlphaMask) != 0 && baseColor.a < alphaCutoff)
+    {
+		discard; //TODO: May not want to discard
+    }
+
     vec3 N = normalize(normal);
-	vec3 V = normalize(eye.xyz - position.xyz);
+	vec3 T = normalize(tangent);
+	vec3 B = normalize(bitangent);
+
+	if(gl_FrontFacing == false)
+	{
+        N *= -1.0;
+		T *= -1.0;
+        B *= -1.0;
+	}
+
+	if (textures.z != INVALID_TEXTURE_INDEX)
+	{
+        //normal textures are encoded to [0, 1] but need to be mapped to [-1, 1] value
+        vec3 bumpNormal = normalize( texture(globalTextures[nonuniformEXT(textures.z)], texcoord0).rgb * 2.0 - 1.0 );
+        mat3 TBN = mat3(T, B, N);
+
+        N = normalize(TBN * normalize(bumpNormal));
+    }
+
+	vec3 V = normalize(eye.xyz - position);
     //For Directional Lights: vec3 L = normalize(light.xyz);
-    vec3 L = normalize(light.xyz - position.xyz);
+    vec3 L = normalize(light.xyz - position);
 	vec3 H = normalize(V + L);
 
-    if ((flags & MATERIAL_FEATURE_TANGENT_VERTEX) != 0)
+	float metalness = metalRoughOcclFactor.x;
+    float roughness = metalRoughOcclFactor.y;
+    float occlusion = metalRoughOcclFactor.z;
+
+	if (textures.w != INVALID_TEXTURE_INDEX)
 	{
-        vec3 T = normalize(tangent.xyz);
-        vec3 B = cross(N, T) * tangent.w;
+        vec4 rmo = texture(globalTextures[nonuniformEXT(textures.y)], texcoord0);
 
-        TBN = mat3(T, B, N);
-    }
-    else
-	{
-        // NOTE(marco): taken from https://community.khronos.org/t/computing-the-tangent-space-in-the-fragment-shader/52861
-        vec3 Q1 = dFdx(position.xyz);
-        vec3 Q2 = dFdy(position.xyz);
-        vec2 st1 = dFdx(texcoord0);
-        vec2 st2 = dFdy(texcoord0);
-
-        vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
-        vec3 B = normalize(-Q1 * st2.s + Q2 * st1.s);
-
-        // the transpose of texture-to-eye space matrix
-        TBN = mat3(T, B, N);
-    }
-
-	if ((flags & MATERIAL_FEATURE_NORMAL) != 0)
-	{
-        N = normalize(texture(normalTexture, texcoord0).rgb * 2.0 - 1.0);
-        N = normalize(TBN * N);
-    }
-
-	float roughness = roughnessFactor;
-    float metalness = metallicFactor;
-	
-	if ((flags & MATERIAL_FEATURE_ROUGHNESS) != 0)
-	{
-        // Red channel for occlusion value
         // Green channel contains roughness values
         // Blue channel contains metalness
-        vec4 rm = texture(roughnessMetalnessTexture, texcoord0);
-
-        roughness *= rm.g;
-        metalness *= rm.b;
-    }
-
-	float ambientOcclussion = 1.0f;
-    if ((flags & MATERIAL_FEATURE_OCCLUSION) != 0)
-	{
-        ambientOcclussion = texture(occlusionTexture, texcoord0).r;
+		// Red channel for occlusion value
+		occlusion *= rmo.r;
+        roughness *= rmo.g;
+        metalness *= rmo.b;
     }
 
 	float alpha = pow(roughness, 2.0);
 
-	vec4 baseColor = baseColorFactor;
-    if ((flags & MATERIAL_FEATURE_COLOR) != 0)
-	{
-        vec4 albedo = texture(diffuseTexture, texcoord0);
-        baseColor.rgb *= albedo.rgb;
-        baseColor.a *= albedo.a;
-    }
-
-    vec3 emissive = vec3( 0 );
-    if ((flags & MATERIAL_FEATURE_EMISSIVE) != 0)
-	{
-        vec4 e = texture(emissiveTexture, texcoord0);
-
-        emissive += e.rgb * emissiveFactor;
-    }
-
 	float NdotL = clamp(dot(N, L), 0.0, 1.0);
     float NdotV = clamp(dot(N, V), 0.0, 1.0);
+
+	float distance = length(light.xyz - position);
+    float intensity = lightIntensity * max(min(1.0 - pow(distance / lightRange, 4.0), 1.0), 0.0) / pow(distance, 2.0);
 
 	float F0 = 0.04; // pow( ( 1 - ior ) / ( 1 + ior ), 2 ), where ior == 1.5
 
@@ -165,8 +142,9 @@ void main()
     float cookTorrance = cookTorranceNumerator / cookTorranceDenominator;
 
     vec3 BRDF = lambert * Kd + cookTorrance;
-    // TODO: Light Intensity and Color
-    vec3 lightColor = vec3(1.0, 1.0, 1.0);
+    // TODO: Light Color
+    vec3 lightColor = vec3(1.0, 1.0, 1.0) * intensity;
 
-    fragColor = vec4(emissive + BRDF * lightColor * NdotL, 1.0);
+	//TODO: Emissivity
+    fragColor = vec4(BRDF * lightColor * NdotL, 1.0);
 }

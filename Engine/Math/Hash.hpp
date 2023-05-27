@@ -13,9 +13,9 @@
 class Hash
 {
 public:
-	template<class Type> static inline U64 Calculate(const Type& value, U64 seed = 0);
-	template <U64 length> static inline U64 Calculate(const char(&value)[length], U64 seed = 0);
-	static inline U64 Calculate(const void* value, U64 length, U64 seed = 0);
+	template<class Type> requires(!IsPointer<Type>) static inline U64 Calculate(const Type& value, U64 seed = 0);
+	template <class Type, U64 length> static inline U64 Calculate(const Type(&value)[length], U64 seed = 0);
+	template<class Type> static inline U64 Calculate(const Type* value, U64 length, U64 seed = 0);
 
 private:
 	static void Multiply(U64& a, U64& b);
@@ -101,13 +101,7 @@ inline U64 Hash::Read4(const U8* p)
 
 inline U64 Hash::Read3(const U8* p, U64 k) { return (((U64)p[0]) << 16) | (((U64)p[k >> 1]) << 8) | p[k - 1]; }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="value:"></param>
-/// <param name="seed:"></param>
-/// <returns></returns>
-template<class Type>
+template<class Type> requires(!IsPointer<Type>)
 inline U64 Hash::Calculate(const Type& value, U64 seed)
 {
 	constexpr U64 length = sizeof(Type);
@@ -161,16 +155,11 @@ inline U64 Hash::Calculate(const Type& value, U64 seed)
 	return Mix(a ^ secret0 ^ length, b ^ secret1);
 }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="value:"></param>
-/// <param name="seed:"></param>
-/// <returns></returns>
-template <U64 length>
-inline U64 Hash::Calculate(const char(&value)[length], U64 seed)
+template <class Type, U64 len>
+inline U64 Hash::Calculate(const Type(&value)[len], U64 seed)
 {
-	const U8* p = (const U8*)&value;
+	constexpr U64 length = len * sizeof(Type);
+	const U8* p = (const U8*)value;
 	seed ^= Mix(seed ^ secret0, secret1);
 
 	U64	a, b;
@@ -219,16 +208,11 @@ inline U64 Hash::Calculate(const char(&value)[length], U64 seed)
 	return Mix(a ^ secret0 ^ length, b ^ secret1);
 }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="value:"></param>
-/// <param name="length:"></param>
-/// <param name="seed:"></param>
-/// <returns></returns>
-inline U64 Hash::Calculate(const void* value, U64 length, U64 seed)
+template<class Type>
+inline U64 Hash::Calculate(const Type* value, U64 len, U64 seed)
 {
-	const U8* p = (const U8*)&value;
+	const U64 length = len * sizeof(Type);
+	const U8* p = (const U8*)value;
 	seed ^= Mix(seed ^ secret0, secret1);
 
 	U64	a, b;

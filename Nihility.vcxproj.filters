@@ -136,9 +136,6 @@
     <ClInclude Include="Engine\Math\Random.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Resources\ResourcePool.hpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
@@ -156,6 +153,9 @@
     </ClInclude>
     <ClInclude Include="Engine\SIMD.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Memory\Pool.hpp">
+      <Filter>Source Files\Memory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

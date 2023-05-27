@@ -69,7 +69,7 @@ private:
 	static bool							CreateDescriptorSet(DescriptorSet* descriptorSet);
 	static bool							CreateShaderState(ShaderState* shaderState, const ShaderStateCreation& info);
 	static bool							CreateRenderPass(RenderPass* renderPass, RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
-	static bool							CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput);
+	static bool							CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput, const String& cachePath);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);

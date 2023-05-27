@@ -321,11 +321,13 @@ void Input::RemoveDevice(void* handle)
 
 bool Input::OnAnyButtonDown() { return anyButtonDown; }
 
-bool Input::ButtonUp(ButtonCode code) { return !buttonStates[code].pressed && receiveInput; }
+bool Input::ButtonUp(ButtonCode code) { return receiveInput && !buttonStates[code].pressed; }
 
-bool Input::ButtonDown(ButtonCode code) { return buttonStates[code].pressed && receiveInput; }
+bool Input::ButtonDown(ButtonCode code) { return receiveInput && buttonStates[code].pressed; }
 
-bool Input::ButtonHeld(ButtonCode code) { return buttonStates[code].held && receiveInput; }
+bool Input::ButtonHeld(ButtonCode code) { return receiveInput && buttonStates[code].held; }
+
+bool Input::ButtonDragging(ButtonCode code) { return receiveInput && buttonStates[code].pressed && (deltaMousePosX || deltaMousePosY); }
 
 bool Input::OnButtonUp(ButtonCode code) { return !buttonStates[code].pressed && buttonStates[code].changed && receiveInput; }
 
@@ -339,9 +341,11 @@ bool Input::OnButtonHold(ButtonCode code) { return buttonStates[code].held && bu
 
 bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[code].held && buttonStates[code].heldChanged && receiveInput; }
 
-void Input::MousePos(U32& x, U32& y) { x = mousePosX; y = mousePosY; }
+void Input::MousePos(I32& x, I32& y) { x = mousePosX; y = mousePosY; }
 
-void Input::PreviousMousePos(U32& x, U32& y) { x = mousePosX - deltaMousePosX; y = mousePosY - deltaMousePosY; }
+void Input::MouseDelta(I32& x, I32& y) { x = deltaMousePosX; y = deltaMousePosY; }
+
+void Input::PreviousMousePos(I32& x, I32& y) { x = mousePosX - deltaMousePosX; y = mousePosY - deltaMousePosY; }
 
 void Input::ConsumeInput() { receiveInput = false; }
 

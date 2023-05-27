@@ -94,14 +94,14 @@ struct NH_API BufferRef
 	String name{ NO_INIT };
 };
 
-struct NH_API Camera
-{
-	I32 orthographic;
-	I32 perspective;
-	// perspective
-	// orthographic
-	String type{ NO_INIT };
-};
+//struct NH_API Camera
+//{
+//	I32 orthographic;
+//	I32 perspective;
+//	// perspective
+//	// orthographic
+//	String type{ NO_INIT };
+//};
 
 struct NH_API Image
 {
@@ -141,37 +141,27 @@ struct NH_API MaterialOcclusionTextureInfo
 	F32 strength;
 };
 
-enum MaterialFeatures {
-	MaterialFeatures_ColorTexture = 1 << 0,
-	MaterialFeatures_NormalTexture = 1 << 1,
-	MaterialFeatures_RoughnessTexture = 1 << 2,
-	MaterialFeatures_OcclusionTexture = 1 << 3,
-	MaterialFeatures_EmissiveTexture = 1 << 4,
-
-	MaterialFeatures_TangentVertexAttribute = 1 << 5,
-	MaterialFeatures_TexcoordVertexAttribute = 1 << 6,
-};
-
-struct NH_API Material
-{
-	F32 alphaCutoff;
-	String alphaMode{ NO_INIT };
-	bool doubleSided;
-	U32 emissiveFactorCount;
-	Vector3 emissiveFactor;
-	TextureInfo emissiveTexture;
-	MaterialNormalTextureInfo normalTexture;
-	MaterialOcclusionTextureInfo occlusionTexture;
-	MaterialPBRMetallicRoughness pbrMetallicRoughness;
-	String name{ NO_INIT };
-};
+//struct NH_API Material
+//{
+//	F32 alphaCutoff;
+//	String alphaMode{ NO_INIT };
+//	bool doubleSided;
+//	U32 emissiveFactorCount;
+//	Vector3 emissiveFactor;
+//	TextureInfo emissiveTexture;
+//	MaterialNormalTextureInfo normalTexture;
+//	MaterialOcclusionTextureInfo occlusionTexture;
+//	MaterialPBRMetallicRoughness pbrMetallicRoughness;
+//	String name{ NO_INIT };
+//};
 
 struct UniformData
 {
-	Matrix4 m;
 	Matrix4 vp;
 	Vector4 eye;
 	Vector4 light;
+	F32		lightRange;
+	F32		lightIntensity;
 };
 
 struct NH_API MeshPrimitive
@@ -284,7 +274,7 @@ struct NH_API glTF
 	U32 imageCount;
 	Image* images;
 	U32 materialCount;
-	Material* materials;
+	//Material* materials;
 	U32 meshCount;
 	Mesh* meshes;
 	U32 nodeCount;
@@ -309,31 +299,29 @@ enum AlphaMode
 	ALPHA_MODE_TRANSPARENT,
 };
 
-struct alignas(16) NH_API MaterialData
+struct MeshData
 {
-	Vector4 baseColorFactor;
-	Matrix4 model;
-	Matrix4 modelInv;
+	Matrix4		model;
+	Matrix4		modelInv;
 
-	Vector3 emissiveFactor;
-
-	F32 metallicFactor;
-	F32 roughnessFactor;
-	F32 occlusionFactor;
-
-	U32 flags;
+	Vector4Int	textures; // diffuse, roughness, normal, occlusion
+	Vector4		baseColorFactor;
+	Vector4		metalRoughOcclFactor;
+	F32			alphaCutoff;
+	F32			unused[3];
+	U32			flags;
 };
 
 struct NH_API MeshDraw
 {
+	Material* material;
+
 	Buffer* indexBuffer;
 	Buffer* positionBuffer;
 	Buffer* tangentBuffer;
 	Buffer* normalBuffer;
 	Buffer* texcoordBuffer;
-
 	Buffer* materialBuffer;
-	MaterialData materialData;
 
 	U32 indexOffset;
 	U32 positionOffset;
@@ -341,14 +329,19 @@ struct NH_API MeshDraw
 	U32 normalOffset;
 	U32 texcoordOffset;
 
-	U32 count;
+	U32 primitiveCount;
 
-	VkIndexType indexType;
+	U16			diffuseTextureIndex;
+	U16			roughnessTextureIndex;
+	U16			normalTextureIndex;
+	U16			occlusionTextureIndex;
 
-	DescriptorSet* descriptorSet;
-	
-	Matrix4 model;
-	Matrix4 modelInv;
+	Vector4		baseColorFactor;
+	Vector4		metalRoughOcclFactor;
+	Vector3		scale;
+
+	F32			alphaCutoff;
+	U32			flags;
 };
 
 

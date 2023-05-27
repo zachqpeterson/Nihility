@@ -453,7 +453,7 @@ static inline U64 Length(const C* str)
 }
 
 template<Character C>
-static inline bool Compare(const C* a, const C* b, U64 length)
+static inline bool Compare(const C* a, const C* b, I64 length)
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -462,7 +462,7 @@ static inline bool Compare(const C* a, const C* b, U64 length)
 
 	while (length-- && (c0 = *it0++) == (c1 = *it1++));
 
-	return length + 1 == 0;
+	return (length + 1) == 0;
 }
 
 template<Character C>
@@ -605,7 +605,7 @@ private:
 	template<typename Arg> void Format(U64& start, const Arg& value);
 
 	template<Character C> static  U64 Length(const C* str);
-	static bool Compare(const T* a, const T* b, U64 length);
+	static bool Compare(const T* a, const T* b, I64 length);
 	static bool WhiteSpace(T c);
 	static bool NotWhiteSpace(T c);
 
@@ -700,7 +700,7 @@ template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::operator=(const Arg& value) noexcept
 {
-	ToString<Arg, false, false>(string, value);
+	ToString<Arg, false, true, U64_MAX>(string, value);
 	hash = Hash::Calculate(string, size);
 	return *this;
 }
@@ -709,7 +709,7 @@ template<typename T, typename LU>
 template<typename Arg>
 inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value) noexcept
 {
-	ToString(string + size, value);
+	ToString<Arg, false, false>(string + size, value);
 	hash = Hash::Calculate(string, size);
 	return *this;
 }
@@ -814,7 +814,7 @@ inline bool StringBase<T, LU>::operator!=(T* other) const
 	U64 len = Length(other);
 	if (len != size) { return true; }
 
-	return Compare(string, other, size);
+	return !Compare(string, other, size);
 }
 
 template<typename T, typename LU>
@@ -823,7 +823,7 @@ inline bool StringBase<T, LU>::operator!=(const T* other) const
 	U64 len = Length(other);
 	if (len != size) { return true; }
 
-	return Compare(string, other, size);
+	return !Compare(string, other, size);
 }
 
 template<typename T, typename LU>
@@ -831,7 +831,7 @@ inline bool StringBase<T, LU>::operator!=(const StringBase<T, LU>& other) const
 {
 	if (other.size != size) { return true; }
 
-	return Compare(string, other.string, size);
+	return !Compare(string, other.string, size);
 }
 
 template<typename T, typename LU>
@@ -1480,11 +1480,16 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 	if constexpr (Size == 0) { strSize = Length(value); }
 	else { strSize = Size; }
 
-	const U64 moveSize = strSize - Remove;
+	bool replace = false;
+	U64 moveSize = strSize;
+	if constexpr (Remove == U64_MAX) { replace = true; }
+	else { moveSize -= Remove; }
+
 	const U64 strIndex = str - string;
 	const U64 excessSize = size - strIndex;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
+
 	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(T)); }
 
 	if constexpr (IsSame<CharType, T>) { Memory::Copy(str, value, strSize * sizeof(T)); }
@@ -1560,7 +1565,9 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 		}
 	}
 
-	size += moveSize;
+	if (replace) { size = moveSize; }
+	else { size += moveSize; }
+
 	string[size] = LU::NULL_CHAR;
 
 	return strIndex + strSize;
@@ -1794,7 +1801,7 @@ inline U64 StringBase<T, LU>::Length(const C* str)
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length)
+inline bool StringBase<T, LU>::Compare(const T* a, const T* b, I64 length)
 {
 	const T* it0 = a;
 	const T* it1 = b;
@@ -1804,7 +1811,7 @@ inline bool StringBase<T, LU>::Compare(const T* a, const T* b, U64 length)
 
 	while (length-- && (c0 = *it0++) == (c1 = *it1++));
 
-	return length + 1 == 0;
+	return (length + 1) == 0;
 }
 
 template<typename T, typename LU>

@@ -7,27 +7,18 @@
 #include "Resources\Settings.hpp"
 #include "Core\Time.hpp"
 
-Buffer* cubeVertexBuffer;
-Buffer* cubeIndexBuffer;
-Pipeline* cubePipeline;
-Buffer* cubeConstantBuffer;
+Buffer* sceneConstantBuffer;
 DescriptorSetLayout* cubeDescriptorSetLayout;
 MeshDraw meshDraw{};
-
-Vector3 eye = Vector3{ 0.0f, 0.0f, 0.5f };
-Vector3 look = Vector3{ 0.0f, 0.0, -1.0f };
-Vector3 right = Vector3{ 1.0f, 0.0, 0.0f };
-
-F32 yaw = 0.0f;
-F32 pitch = 0.0f;
+Camera camera{ true, 20.0f, 6.0f, 0.1f };
 
 bool Init()
 {
-	// Create pipeline state
+	camera.SetPerspective(0.1f, 4000.0f, 60.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
+
 	PipelineCreation pipelineCreation{};
 
-	// Vertex input
-	// TODO(marco): component format should be based on buffer view type
+	// TODO: Get From SPIR-V
 	pipelineCreation.vertexInput.AddVertexAttribute({ 0, 0, 0, VERTEX_COMPONENT_FLOAT3 }); // position
 	pipelineCreation.vertexInput.AddVertexStream({ 0, 12, VERTEX_INPUT_RATE_VERTEX });
 
@@ -40,58 +31,77 @@ bool Init()
 	pipelineCreation.vertexInput.AddVertexAttribute({ 3, 3, 0, VERTEX_COMPONENT_FLOAT2 }); // texcoord
 	pipelineCreation.vertexInput.AddVertexStream({ 3, 8, VERTEX_INPUT_RATE_VERTEX });
 
-	// Render pass
 	pipelineCreation.renderPass = Renderer::GetSwapchainOutput();
-	// Depth
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 
-	pipelineCreation.shaders.
-		SetName("PBR").
-		AddStage("Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).
-		AddStage("Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	pipelineCreation.shaders.SetName("PBR").AddStage("Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Descriptor set layout
-	DescriptorSetLayoutCreation cubeRllCreation{};
-	cubeRllCreation.AddBinding({ "LocalConstants", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, 0 });
-	cubeRllCreation.AddBinding({ "MaterialConstant", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, 0 });
-	cubeRllCreation.AddBinding({ "diffuseTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1 });
-	cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1, 0 });
-	cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 1, 0 });
-	cubeRllCreation.AddBinding({ "emissiveTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 1, 0 });
-	cubeRllCreation.AddBinding({ "occlusionTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 1, 0 });
+	//DescriptorSetLayoutCreation cubeRllCreation{};
+	//cubeRllCreation.AddBinding({ "LocalConstants", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, 0 });
+	//cubeRllCreation.AddBinding({ "MaterialConstant", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, 0 });
+	//cubeRllCreation.AddBinding({ "diffuseTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1 });
+	//cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1, 0 });
+	//cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 1, 0 });
+	//cubeRllCreation.AddBinding({ "emissiveTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 1, 0 });
+	//cubeRllCreation.AddBinding({ "occlusionTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 1, 0 });
 	// Setting it into pipeline
-	cubeDescriptorSetLayout = Resources::CreateDescriptorSetLayout(cubeRllCreation);
-	pipelineCreation.AddDescriptorSetLayout(cubeDescriptorSetLayout);
+	//cubeDescriptorSetLayout = Resources::CreateDescriptorSetLayout(cubeRllCreation);
+	//pipelineCreation.AddDescriptorSetLayout(cubeDescriptorSetLayout);
 
 	// Constant buffer
 	BufferCreation bufferCreation;
-	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("cube_cb");
-	cubeConstantBuffer = Resources::CreateBuffer(bufferCreation);
+	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb");
+	sceneConstantBuffer = Resources::CreateBuffer(bufferCreation);
 
 	RasterizationCreation rasterization{};
-	rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterization.cullMode = VK_CULL_MODE_NONE;
 	rasterization.front = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterization.fill = FILL_MODE_SOLID;
 
 	pipelineCreation.rasterization = rasterization;
 
-	cubePipeline = Resources::CreatePipeline(pipelineCreation);
+	pipelineCreation.name = "main_no_cull";
+	Program* programNoCull = Resources::CreateProgram({ pipelineCreation });
 
-	Vector<Texture*> textures{ 3 };
+	pipelineCreation.rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
 
-	Texture* texture = Resources::LoadTexture("Avocado_baseColor.bmp");
+	pipelineCreation.name = "main_cull";
+	Program* programCull = Resources::CreateProgram({ pipelineCreation });
+
+	MaterialCreation materialCreation;
+
+	materialCreation.SetName("material_no_cull_opaque").SetProgram(programNoCull).SetRenderIndex(0);
+	Material* materialNoCullOpaque = Resources::CreateMaterial(materialCreation);
+
+	materialCreation.SetName("material_cull_opaque").SetProgram(programCull).SetRenderIndex(1);
+	Material* materialCullOpaque = Resources::CreateMaterial(materialCreation);
+
+	materialCreation.SetName("material_no_cull_transparent").SetProgram(programNoCull).SetRenderIndex(2);
+	Material* materialNoCullTransparent = Resources::CreateMaterial(materialCreation);
+
+	materialCreation.SetName("material_cull_transparent").SetProgram(programCull).SetRenderIndex(3);
+	Material* materialCullTransparent = Resources::CreateMaterial(materialCreation);
+
+	Vector<Texture*> textures{ 4 };
+
+	Texture* texture = Resources::LoadTexture("BoomBox_baseColor.bmp");
 	textures.Push(texture);
-	texture = Resources::LoadTexture("Avocado_roughnessMetallic.bmp");
+	texture = Resources::LoadTexture("BoomBox_occlusionRoughnessMetallic.bmp");
 	textures.Push(texture);
-	texture = Resources::LoadTexture("Avocado_normal.bmp");
+	texture = Resources::LoadTexture("BoomBox_normal.bmp");
+	textures.Push(texture);
+	texture = Resources::LoadTexture("BoomBox_emissive.bmp");
 	textures.Push(texture);
 
 	void* bufferData{ nullptr };
-	U32 bufferLength = Resources::LoadBinary("Avocado.bin", &bufferData);
+	U32 bufferLength = Resources::LoadBinary("BoomBox.bin", &bufferData);
 
-	Vector<Buffer*> buffers{ 3 };
-	U32 bufferSize = 3248;
+	Vector<Buffer*> buffers{ 5 };
+
 	U32 bufferOffset = 0;
+	U32 bufferSize = 28600;
 	U8* data = (U8*)bufferData + bufferOffset;
 
 	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -102,8 +112,8 @@ bool Init()
 
 	buffers.Push(br);
 
-	bufferSize = 4872;
-	bufferOffset = 3248;
+	bufferSize = 42900;
+	bufferOffset = 28600;
 	data = (U8*)bufferData + bufferOffset;
 
 	bufferCreation.Reset().SetName("buffer_1").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
@@ -112,8 +122,8 @@ bool Init()
 
 	buffers.Push(br);
 
-	bufferSize = 6496;
-	bufferOffset = 8120;
+	bufferSize = 57200;
+	bufferOffset = 71500;
 	data = (U8*)bufferData + bufferOffset;
 
 	bufferCreation.Reset().SetName("buffer_2").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
@@ -122,8 +132,8 @@ bool Init()
 
 	buffers.Push(br);
 
-	bufferSize = 4872;
-	bufferOffset = 14616;
+	bufferSize = 42900;
+	bufferOffset = 128700;
 	data = (U8*)bufferData + bufferOffset;
 
 	bufferCreation.Reset().SetName("buffer_3").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
@@ -132,8 +142,8 @@ bool Init()
 
 	buffers.Push(br);
 
-	bufferSize = 4092;
-	bufferOffset = 19488;
+	bufferSize = 36216;
+	bufferOffset = 171600;
 	data = (U8*)bufferData + bufferOffset;
 
 	bufferCreation.Reset().SetName("buffer_4").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
@@ -156,26 +166,17 @@ bool Init()
 	Matrix4 finalMatrix{};
 	transform.CalculateMatrix(finalMatrix);
 
-	meshDraw.materialData.model = Matrix4::Identity;
-	meshDraw.indexType = VK_INDEX_TYPE_UINT16;
-	Buffer* indexBuffer = buffers[4];
-	meshDraw.indexBuffer = indexBuffer;
+	meshDraw.indexBuffer = buffers[4];
 	meshDraw.indexOffset = 0;
-	meshDraw.count = 2046;
+	meshDraw.primitiveCount = 18108;
 
 	I32 positionIndex = 3;
 	I32 tangentIndex = 2;
 	I32 normalIndex = 1;
 	I32 texcoordIndex = 0;
 
-	U16* indexData = (U16*)((U8*)bufferData + 19488);
-
-	U32 vertexCount = 406;
-
 	meshDraw.positionBuffer = buffers[positionIndex];
 	meshDraw.positionOffset = 0;
-
-	Vector3* positionData = (Vector3*)((U8*)bufferData + 14616);
 
 	meshDraw.normalBuffer = buffers[normalIndex];
 	meshDraw.normalOffset = 0;
@@ -183,112 +184,99 @@ bool Init()
 	meshDraw.tangentBuffer = buffers[tangentIndex];
 	meshDraw.tangentOffset = 0;
 
-	meshDraw.materialData.flags |= MaterialFeatures_TangentVertexAttribute;
-
 	meshDraw.texcoordBuffer = buffers[texcoordIndex];
 	meshDraw.texcoordOffset = 0;
 
-	meshDraw.materialData.flags |= MaterialFeatures_TexcoordVertexAttribute;
-
-	// Descriptor Set
-	DescriptorSetCreation dsCreation{};
-	dsCreation.SetLayout(cubeDescriptorSetLayout).SetBuffer(cubeConstantBuffer, 0);
-
-	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MaterialData)).SetName("material");
+	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
 	meshDraw.materialBuffer = Resources::CreateBuffer(bufferCreation);
-	dsCreation.SetBuffer(meshDraw.materialBuffer, 1);
 
-	meshDraw.materialData.baseColorFactor = Vector4::One;
+	meshDraw.diffuseTextureIndex = textures[0]->handle;
+	meshDraw.roughnessTextureIndex = textures[1]->handle;
+	meshDraw.occlusionTextureIndex = textures[1]->handle;
+	meshDraw.normalTextureIndex = textures[2]->handle;
 
-	Texture* diffuseTexture = textures[0];
-	Sampler* defaultSampler = Resources::AccessDefaultSampler();
-	Sampler* dummySampler = Resources::AccessDummySampler();
+	meshDraw.baseColorFactor = Vector4::One;
+	meshDraw.metalRoughOcclFactor = Vector4::One;
+	meshDraw.material = materialCullOpaque;
+	meshDraw.scale = Vector3::One * 100.0f;
 
-	//TODO: Load Samplers - diffuseTexture->sampler = diffuseSampler;
-	dsCreation.SetTextureSampler(diffuseTexture, defaultSampler, 2);
-
-	meshDraw.materialData.flags |= MaterialFeatures_ColorTexture;
-
-	Texture* roughnessTexture = textures[1];
-
-	dsCreation.SetTextureSampler(roughnessTexture, defaultSampler, 3);
-
-	meshDraw.materialData.flags |= MaterialFeatures_RoughnessTexture;
-
-	meshDraw.materialData.metallicFactor = 1.0f;
-	meshDraw.materialData.roughnessFactor = 1.0f;
-
-	meshDraw.materialData.occlusionFactor = 1.0f;
-	Texture* dummyTexture = Resources::AccessDummyTexture();
-	dsCreation.SetTextureSampler(dummyTexture, dummySampler, 4);
-	dsCreation.SetTextureSampler(dummyTexture, dummySampler, 5);
-
-	Texture* normalTexture = textures[2];
-
-	dsCreation.SetTextureSampler(normalTexture, defaultSampler, 6);
-
-	meshDraw.materialData.flags |= MaterialFeatures_NormalTexture;
-
-	meshDraw.descriptorSet = Resources::CreateDescriptorSet(dsCreation);
+	//TODO: Load Multiple Meshes
+	//TODO: Sort Meshes
 
 	return true;
 }
 
+static void UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw, const F32 globalScale)
+{
+	meshData.textures[0] = meshDraw.diffuseTextureIndex;
+	meshData.textures[1] = meshDraw.roughnessTextureIndex;
+	meshData.textures[2] = meshDraw.normalTextureIndex;
+	meshData.textures[3] = meshDraw.occlusionTextureIndex;
+	meshData.baseColorFactor = meshDraw.baseColorFactor;
+	meshData.metalRoughOcclFactor = meshDraw.metalRoughOcclFactor;
+	meshData.alphaCutoff = meshDraw.alphaCutoff;
+	meshData.flags = meshDraw.flags;
+
+	//For left-handed systems need to invert positive and negative Z.
+	Matrix4 model{ Vector3::Zero, Quaternion3::Identity, meshDraw.scale * Vector3{globalScale, globalScale, -globalScale} };
+	meshData.model = model;
+	meshData.modelInv = model.Transposed().Inversed();
+}
+
+static void DrawMesh(CommandBuffer* commands, MeshDraw& meshDraw)
+{
+	DescriptorSetCreation dsCreation{};
+	dsCreation.SetBuffer(sceneConstantBuffer, 0).SetBuffer(meshDraw.materialBuffer, 1);
+	dsCreation.SetLayout(meshDraw.material->program->passes[0].descriptorSetLayout);
+	DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
+
+	commands->BindVertexBuffer(meshDraw.positionBuffer, 0, meshDraw.positionOffset);
+	commands->BindVertexBuffer(meshDraw.tangentBuffer, 1, meshDraw.tangentOffset);
+	commands->BindVertexBuffer(meshDraw.normalBuffer, 2, meshDraw.normalOffset);
+	commands->BindVertexBuffer(meshDraw.texcoordBuffer, 3, meshDraw.texcoordOffset);
+	commands->BindIndexBuffer(meshDraw.indexBuffer, meshDraw.indexOffset);
+	commands->BindDescriptorSet(&descriptorSet, 1, nullptr, 0);
+
+	commands->DrawIndexed(TOPOLOGY_TYPE_TRIANGLE, meshDraw.primitiveCount, 1, 0, 0, 0);
+}
+
 void Update()
 {
+	float lightRange = 20.0f;
+	float lightIntensity = 10.0f;
+
+	if (Settings::Resized())
+	{
+		camera.SetAspectRatio((F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
+	}
+
+	camera.Update();
+
 	Matrix4 globalModel{};
 
 	{
-		// Update rotating cube gpu data
-		MapBufferParameters cbMap = { cubeConstantBuffer, 0, 0 };
+		MapBufferParameters cbMap = { sceneConstantBuffer, 0, 0 };
 		F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
 		if (cbData)
 		{
-			if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE))
-			{
-				U32 x, y;
-				U32 prevX, prevY;
-				Input::MousePos(x, y);
-				Input::PreviousMousePos(prevX, prevY);
-				pitch += (I32)(y - prevY) * 0.015f;
-				yaw += (I32)(x - prevX) * 0.015f;
-
-				pitch = Math::Clamp(pitch, -90.0f, 90.0f);
-
-				if (yaw > 360.0f) { yaw -= 360.0f; }
-
-				Quaternion3 rx{ Vector3::Right, -pitch };
-				Quaternion3 ry{ Vector3::Up, -yaw };
-
-				look = rx.ToMatrix3() * Vector3::Back;
-				look = ry.ToMatrix3() * look;
-
-				right = look.Cross(Vector3::Up);
-			}
-
-			F32 speed = (F32)(0.25f * Time::DeltaTime());
-			if (Input::ButtonDown(BUTTON_CODE_SHIFT)) { speed *= 2.0f; }
-
-			eye += look * speed * Input::ButtonDown(BUTTON_CODE_W);
-			eye -= look * speed * Input::ButtonDown(BUTTON_CODE_S);
-			eye += right * speed * Input::ButtonDown(BUTTON_CODE_D);
-			eye -= right * speed * Input::ButtonDown(BUTTON_CODE_A);
-
-			Matrix4 view;
-			view.LookAt(eye, eye + look, Vector3::Up);
-			Matrix4 projection;
-			projection.SetPerspective(60.0f, Settings::WindowWidth() / (F32)Settings::WindowHeight(), 0.0001f, 1000.0f);
-
-			// Calculate view projection matrix
-			Matrix4 viewProjection = projection * view;
-
 			UniformData uniformData{ };
-			uniformData.vp = viewProjection;
-			uniformData.m = globalModel;
-			uniformData.eye = Vector4{ eye.x, eye.y, eye.z, 1.0f };
-			uniformData.light = Vector4{ 1.0f, 1.0f, -1.0f, 1.0f };
+			uniformData.vp = camera.ViewProjection();
+			uniformData.eye = camera.Eye();
+			uniformData.light = Vector4{ 0.0f, 1.0f, 3.0f, 1.0f };
+			uniformData.lightRange = lightRange;
+			uniformData.lightIntensity = lightIntensity;
 
 			Memory::Copy(cbData, &uniformData, sizeof(UniformData));
+
+			Renderer::UnmapBuffer(cbMap);
+		}
+
+		//TODO: For each mesh
+		cbMap.buffer = meshDraw.materialBuffer;
+		MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
+		if (meshData)
+		{
+			UploadMaterial(*meshData, meshDraw, 1.0f);
 
 			Renderer::UnmapBuffer(cbMap);
 		}
@@ -296,47 +284,26 @@ void Update()
 
 	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	commands->Clear(0.3f, 0.3f, 0.9f, 1.0f);
+	commands->Clear(0.3f, 0.3f, 0.3f, 1.0f);
 	commands->ClearDepthStencil(1.0f, 0);
 	commands->BindPass(Renderer::GetSwapchainPass());
-	commands->BindPipeline(cubePipeline);
 	commands->SetScissor(nullptr);
 	commands->SetViewport(nullptr);
-
-	meshDraw.materialData.modelInv = (globalModel * meshDraw.materialData.model).Transposed().Inverse();
-
-	MapBufferParameters materialMap = { meshDraw.materialBuffer, 0, 0 };
-	MaterialData* materialBufferData = (MaterialData*)Renderer::MapBuffer(materialMap);
-
-	memcpy(materialBufferData, &meshDraw.materialData, sizeof(MaterialData));
-
-	Renderer::UnmapBuffer(materialMap);
-
-	commands->BindVertexBuffer(meshDraw.positionBuffer, 0, meshDraw.positionOffset);
-	commands->BindVertexBuffer(meshDraw.normalBuffer, 2, meshDraw.normalOffset);
-
-	if (meshDraw.materialData.flags & MaterialFeatures_TangentVertexAttribute)
+	
+	Material* lastMaterial = nullptr;
+	//TODO: Loop by material so that we can deal with multiple passes
+	//TODO: For each mesh
 	{
-		commands->BindVertexBuffer(meshDraw.tangentBuffer, 1, meshDraw.tangentOffset);
-	}
-	else
-	{
-		commands->BindVertexBuffer(Resources::AccessDummyAttributeBuffer(), 1, 0);
-	}
+		if (meshDraw.material != lastMaterial)
+		{
+			Pipeline* pipeline = meshDraw.material->program->passes[0].pipeline;
 
-	if (meshDraw.materialData.flags & MaterialFeatures_TexcoordVertexAttribute)
-	{
-		commands->BindVertexBuffer(meshDraw.texcoordBuffer, 3, meshDraw.texcoordOffset);
-	}
-	else
-	{
-		commands->BindVertexBuffer(Resources::AccessDummyAttributeBuffer(), 3, 0);
-	}
+			commands->BindPipeline(pipeline);
+			lastMaterial = meshDraw.material;
+		}
 
-	commands->BindIndexBuffer(meshDraw.indexBuffer, meshDraw.indexOffset, meshDraw.indexType);
-	commands->BindDescriptorSet(&meshDraw.descriptorSet, 1, nullptr, 0);
-
-	commands->DrawIndexed(TOPOLOGY_TYPE_TRIANGLE, meshDraw.count, 1, 0, 0, 0);
+		DrawMesh(commands, meshDraw);
+	}
 }
 
 void Shutdown()

@@ -132,7 +132,6 @@ void Engine::UpdateLoop()
 		if (Settings::Resized())
 		{
 			Renderer::Resize();
-			Settings::resized = false;
 		}
 
 		//Physics::Update();
@@ -149,6 +148,7 @@ void Engine::UpdateLoop()
 			//UI::Update();
 			
 			Renderer::EndFrame();
+			Settings::resized = false;
 		}
 
 		F64 remainingFrameTime;

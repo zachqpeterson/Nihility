@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Resources\ResourceDefines.hpp"
+#include "Memory\Pool.hpp"
 
 //TODO: temp
 struct NH_API CommandBuffer
@@ -8,10 +9,11 @@ struct NH_API CommandBuffer
 	void Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked);
 	void Destroy();
 
+	DescriptorSet* CreateDescriptorSet(DescriptorSetCreation& info);
 	void BindPass(RenderPass* renderPass);
 	void BindPipeline(Pipeline* pipeline);
 	void BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset);
-	void BindIndexBuffer(Buffer* buffer, U32 offset, VkIndexType indexType);
+	void BindIndexBuffer(Buffer* buffer, U32 offset);
 	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
 
 	void SetViewport(const Viewport* viewport);
@@ -37,23 +39,26 @@ struct NH_API CommandBuffer
 
 	void Reset();
 
-	VkCommandBuffer	commandBuffer;
+	VkCommandBuffer				commandBuffer;
 
-	VkDescriptorSet	descriptorSets[16];
+	VkDescriptorPool			descriptorPool;
+	Pool<DescriptorSet, 256>	descriptorSets;
 
-	RenderPass*		currentRenderPass;
-	Pipeline*		currentPipeline;
-	VkClearValue	clears[2];          // 0 = color, 1 = depth stencil
-	bool			isRecording;
+	VkDescriptorSet				vkDescriptorSets[16];
 
-	U32				handle;
+	RenderPass*					currentRenderPass;
+	Pipeline*					currentPipeline;
+	VkClearValue				clears[2]; //0 = Color, 1 = Depth Stencil
+	bool						isRecording;
 
-	U32				currentCommand;
-	void*			resourceHandle;
-	QueueType		type = QUEUE_TYPE_GRAPHICS;
-	U32				bufferSize = 0;
+	U32							handle;
 
-	bool			baked = false;        // If baked reset will affect only the read of the commands.
+	U32							currentCommand;
+	void*						resourceHandle;
+	QueueType					type = QUEUE_TYPE_GRAPHICS;
+	U32							bufferSize = 0;
+
+	bool						baked = false;	// If baked reset will affect only the read of the commands.
 };
 
 struct CommandBufferRing
@@ -68,10 +73,10 @@ struct CommandBufferRing
 
 	static U16						PoolFromIndex(U32 index) { return (U16)index / bufferPerPool; }
 
-	NH_HEADER_STATIC constexpr U16	maxThreads = 1;
-	NH_HEADER_STATIC constexpr U16	maxPools = MAX_SWAPCHAIN_IMAGES * maxThreads;
-	NH_HEADER_STATIC constexpr U16	bufferPerPool = 4;
-	NH_HEADER_STATIC constexpr U16	maxBuffers = bufferPerPool * maxPools;
+	static constexpr U16			maxThreads = 1;
+	static constexpr U16			maxPools = MAX_SWAPCHAIN_IMAGES * maxThreads;
+	static constexpr U16			bufferPerPool = 4;
+	static constexpr U16			maxBuffers = bufferPerPool * maxPools;
 
 	VkCommandPool					commandPools[maxPools];
 	CommandBuffer					commandBuffers[maxBuffers];

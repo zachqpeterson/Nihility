@@ -25,7 +25,7 @@ U32 Profiler::depth{ 0 };
 
 bool Profiler::currentFrameResolved{ false };
 
-Hashmap<U64, U32> Profiler::colors{ 16, U32_MAX };
+Hashmap<U64, U32> Profiler::colors{ 64, U32_MAX };
 
 void Profiler::Initialize(U16 queriesPerFrame_, U32 maxFrames_)
 {

@@ -4,7 +4,7 @@
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
 
-#include "External/json.hpp"
+#include "External\json.hpp"
 
 #define TEXTURES_PATH "textures/"
 #define AUDIO_PATH "audio/"
@@ -59,51 +59,58 @@ constexpr U64 size = sizeof(BMPInfo);
 
 #pragma pack(pop)
 
+Sampler*								Resources::dummySampler;
+Texture*								Resources::dummyTexture;
+Buffer*									Resources::dummyAttributeBuffer;
+Sampler*								Resources::defaultSampler;
+
+Hashmap<String, Sampler>				Resources::samplers{ 32, {} };
+Hashmap<String, Texture>				Resources::textures{ 512, {} };
+Hashmap<String, Buffer>					Resources::buffers{ 4096, {} };
+Hashmap<String, DescriptorSetLayout>	Resources::descriptorSetLayouts{ 128, {} };
+Hashmap<String, DescriptorSet>			Resources::descriptorSets{ 256, {} };
+Hashmap<String, ShaderState>			Resources::shaders{ 128, {} };
+Hashmap<String, RenderPass>				Resources::renderPasses{ 256, {} };
+Hashmap<String, Pipeline>				Resources::pipelines{ 128, {} };
+Hashmap<String, Program>				Resources::programs{ 128, {} };
+Hashmap<String, Material>				Resources::materials{ 128, {} };
+Hashmap<String, Scene>					Resources::scenes{ 128, {} };
+
+Queue<ResourceUpdate>					Resources::resourceDeletionQueue{};
+
 bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
 	resourceDeletionQueue.Reserve(16);
 
-	dummyTexture.name = "dummy_texture";
-	dummyTexture.width = 1;
-	dummyTexture.height = 1;
-	dummyTexture.depth = 1;
-	dummyTexture.type = TEXTURE_TYPE_2D;
-	dummyTexture.format = VK_FORMAT_R8G8B8A8_UNORM;
-	dummyTexture.mipmaps = 1;
-	dummyTexture.flags = 0;
-
+	TextureCreation dummyTextureInfo{};
+	dummyTextureInfo.SetName("dummy_texture");
+	dummyTextureInfo.SetFlags(1, 0);
+	dummyTextureInfo.SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, TEXTURE_TYPE_2D);
+	dummyTextureInfo.SetSize(1, 1, 1);
 	U32 zero = 0;
-	Renderer::CreateTexture(&dummyTexture, &zero);
+	dummyTextureInfo.SetData(&zero);
+	dummyTexture = Resources::CreateTexture(dummyTextureInfo);
 
-	dummySampler.name = "dummy_sampler";
-	dummySampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	dummySampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	dummySampler.minFilter = VK_FILTER_LINEAR;
-	dummySampler.magFilter = VK_FILTER_LINEAR;
+	SamplerCreation dummySamplerInfo{};
+	dummySamplerInfo.SetName("dummy_sampler");
+	dummySamplerInfo.SetAddressModeUV(VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	dummySamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
+	dummySampler = Resources::CreateSampler(dummySamplerInfo);
 
-	Renderer::CreateSampler(&dummySampler);
-
-	dummyAttributeBuffer.name = "dummy_attribute_buffer";
-	dummyAttributeBuffer.size = sizeof(Vector4) * 3;
-	dummyAttributeBuffer.typeFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	dummyAttributeBuffer.usage = RESOURCE_USAGE_IMMUTABLE;
-	dummyAttributeBuffer.globalOffset = 0;
-	dummyAttributeBuffer.parentBuffer = nullptr;
-
+	BufferCreation dummyAttributeBufferInfo{};
+	dummyAttributeBufferInfo.SetName("dummy_attribute_buffer");
+	dummyAttributeBufferInfo.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, sizeof(Vector4) * 3);
 	Vector4 dummyData[3]{};
-	Renderer::CreateBuffer(&dummyAttributeBuffer, dummyData);
+	dummyAttributeBufferInfo.SetData(dummyData);
+	dummyAttributeBuffer = Resources::CreateBuffer(dummyAttributeBufferInfo);
 
-	defaultSampler.name = "default_sampler";
-	defaultSampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	defaultSampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	defaultSampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	defaultSampler.minFilter = VK_FILTER_LINEAR;
-	defaultSampler.magFilter = VK_FILTER_LINEAR;
-	defaultSampler.mipFilter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	Renderer::CreateSampler(&defaultSampler);
+	SamplerCreation defaultSamplerInfo{};
+	defaultSamplerInfo.SetName("default_sampler");
+	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
+	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
 
 	return true;
 }
@@ -807,7 +814,6 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	if (!pipeline->name.Blank()) { return pipeline; }
 
 	pipeline->name = info.name;
-	pipeline->activeLayoutCount = info.activeLayoutCount;
 	pipeline->shaderState = CreateShaderState(info.shaders);
 	pipeline->depthStencil = info.depthStencil;
 	pipeline->blendState = info.blendState;
@@ -815,14 +821,47 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	pipeline->graphicsPipeline = true;
 	pipeline->handle = pipelines.GetHandle(info.name);
 
-	for (U32 i = 0; i < info.activeLayoutCount; ++i)
-	{
-		pipeline->descriptorSetLayouts[i] = info.descriptorSetLayouts[i];
-	}
+	String cachePath("{}{}.cache", SHADERS_PATH, info.name);
 
-	Renderer::CreatePipeline(pipeline, info.renderPass, info.vertexInput);
+	Renderer::CreatePipeline(pipeline, info.renderPass, info.vertexInput, cachePath);
 
 	return pipeline;
+}
+
+Program* Resources::CreateProgram(const ProgramCreation& info)
+{
+	Program* program = &programs.Request(info.pipelineCreation.name);
+
+	if (!program->name.Blank()) { return program; }
+
+	const U32 PassCount = 1;
+	program->passes.Resize(PassCount, {});
+	program->name = info.pipelineCreation.name;
+
+	String pipelineCachePath;
+
+	for (U32 i = 0; i < PassCount; ++i)
+	{
+		ProgramPass& pass = program->passes[i];
+
+		pass.pipeline = CreatePipeline(info.pipelineCreation);
+		pass.descriptorSetLayout = pass.pipeline->descriptorSetLayouts[0];
+	}
+
+	return program;
+}
+
+Material* Resources::CreateMaterial(const MaterialCreation& info)
+{
+	Material* material = &materials.Request(info.name);
+
+	if (!material->name.Blank()) { return material; }
+
+	material->program = info.program;
+	material->name = info.name;
+	material->renderIndex = info.renderIndex;
+
+	return material;
 }
 
 Scene* Resources::LoadScene(const String& name)
@@ -1426,22 +1465,22 @@ Scene* Resources::LoadScene(const String& name)
 
 Sampler* Resources::AccessDummySampler()
 {
-	return &dummySampler;
+	return dummySampler;
 }
 
 Texture* Resources::AccessDummyTexture()
 {
-	return &dummyTexture;
+	return dummyTexture;
 }
 
 Buffer* Resources::AccessDummyAttributeBuffer()
 {
-	return &dummyAttributeBuffer;
+	return dummyAttributeBuffer;
 }
 
 Sampler* Resources::AccessDefaultSampler()
 {
-	return &defaultSampler;
+	return defaultSampler;
 }
 
 Sampler* Resources::AccessSampler(const String& name)
@@ -1722,4 +1761,336 @@ U32 Resources::LoadBinary(const String& name, void** result)
 	}
 
 	return 0;
+}
+
+#if defined(_MSC_VER)
+#include <spirv-headers/spirv.h>
+#else
+#include <spirv_cross/spirv.h>
+#endif
+
+struct Member
+{
+	U32         idIndex;
+	U32         offset;
+
+	String		name;
+};
+
+struct Id
+{
+	SpvOp           op;
+	U32             set;
+	U32             binding;
+
+	// For integers and floats
+	U8              width;
+	U8              sign;
+
+	// For arrays, vectors and matrices
+	U32             typeIndex;
+	U32             count;
+
+	// For variables
+	SpvStorageClass storageClass;
+
+	// For constants
+	U32             value;
+
+	// For structs
+	String			name;
+	Vector<Member>	members;
+};
+
+VkShaderStageFlags ParseExecutionModel(SpvExecutionModel model)
+{
+	switch (model)
+	{
+	case SpvExecutionModelVertex: return VK_SHADER_STAGE_VERTEX_BIT;
+	case SpvExecutionModelGeometry: return VK_SHADER_STAGE_GEOMETRY_BIT;
+	case SpvExecutionModelFragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
+	case SpvExecutionModelKernel: return VK_SHADER_STAGE_COMPUTE_BIT;
+	}
+
+	return 0;
+}
+
+void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* shaderState)
+{
+	const U32* data = shaderInfo.pCode;
+	if (data == nullptr || data[0] != 0x07230203 || size == 0 || size % 4 != 0) { return; }
+	U32 spvWordCount = (U32)(shaderInfo.codeSize / 4);
+
+	U32 idBound = data[3];
+	Vector<Id> ids{ idBound, {} };
+
+	VkShaderStageFlags stage;
+
+	U64 wordIndex = 5;
+
+	while (wordIndex < spvWordCount)
+	{
+		SpvOp op = (SpvOp)(data[wordIndex] & 0xFF);
+		U16 wordCount = (U16)(data[wordIndex] >> 16);
+
+		switch (op)
+		{
+		case SpvOpEntryPoint: {
+			ASSERT(wordCount >= 4);
+
+			SpvExecutionModel model = (SpvExecutionModel)data[wordIndex + 1];
+			stage = ParseExecutionModel(model);
+
+			ASSERT(stage != 0);
+		} break;
+		case SpvOpDecorate: {
+			ASSERT(wordCount >= 3);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+
+			SpvDecoration decoration = (SpvDecoration)data[wordIndex + 2];
+
+			switch (decoration)
+			{
+			case SpvDecorationBinding: { id.binding = data[wordIndex + 3]; } break;
+			case SpvDecorationDescriptorSet: { id.set = data[wordIndex + 3]; } break;
+			}
+		} break;
+		case SpvOpMemberDecorate: {
+			ASSERT(wordCount >= 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+
+			U32 memberIndex = data[wordIndex + 2];
+
+			if (!id.members.Size()) { id.members.Resize(64, {}); }
+
+			Member& member = id.members[memberIndex];
+
+			SpvDecoration decoration = (SpvDecoration)data[wordIndex + 3];
+			switch (decoration)
+			{
+			case (SpvDecorationOffset): { member.offset = data[wordIndex + 4]; } break;
+			}
+		} break;
+		case SpvOpName: {
+			ASSERT(wordCount >= 3);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.name = (C8*)(data + (wordIndex + 2));
+		} break;
+		case SpvOpMemberName: {
+			ASSERT(wordCount >= 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+
+			U32 memberIndex = data[wordIndex + 2];
+
+			if (!id.members.Size()) { id.members.Resize(64, {}); }
+
+			Member& member = id.members[memberIndex];
+			member.name = (char*)(data + (wordIndex + 3));
+		} break;
+		case SpvOpTypeInt: {
+			ASSERT(wordCount == 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.width = (U8)data[wordIndex + 2];
+			id.sign = (U8)data[wordIndex + 3];
+		} break;
+		case SpvOpTypeFloat: {
+			ASSERT(wordCount == 3);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.width = (U8)data[wordIndex + 2];
+		} break;
+		case SpvOpTypeVector: {
+			ASSERT(wordCount == 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 2];
+			id.count = data[wordIndex + 3];
+		} break;
+		case SpvOpTypeMatrix: {
+			ASSERT(wordCount == 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 2];
+			id.count = data[wordIndex + 3];
+		} break;
+		case SpvOpTypeImage: {
+			//TODO: Might not need
+			ASSERT(wordCount >= 9);
+		} break;
+		case SpvOpTypeSampler: {
+			ASSERT(wordCount == 2);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+		}
+		case SpvOpTypeSampledImage: {
+			ASSERT(wordCount == 3);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+		} break;
+		case SpvOpTypeArray: {
+			ASSERT(wordCount == 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 2];
+			id.count = data[wordIndex + 3];
+		} break;
+		case SpvOpTypeRuntimeArray: {
+			ASSERT(wordCount == 3);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 2];
+		} break;
+		case SpvOpTypeStruct: {
+			ASSERT(wordCount >= 2);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+
+			if (wordCount > 2)
+			{
+				for (U16 memberIndex = 0; memberIndex < wordCount - 2; ++memberIndex)
+				{
+					id.members[memberIndex].idIndex = data[wordIndex + memberIndex + 2];
+				}
+			}
+		} break;
+		case SpvOpTypePointer: {
+			ASSERT(wordCount == 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 3];
+		} break;
+		case SpvOpConstant: {
+			ASSERT(wordCount >= 4);
+
+			U32 idIndex = data[wordIndex + 1];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 2];
+			id.value = data[wordIndex + 3]; //We assume all constants to have maximum 32bit width
+		} break;
+		case SpvOpVariable: {
+			ASSERT(wordCount >= 4);
+
+			U32 idIndex = data[wordIndex + 2];
+			ASSERT(idIndex < idBound);
+
+			Id& id = ids[idIndex];
+			id.op = op;
+			id.typeIndex = data[wordIndex + 1];
+			id.storageClass = (SpvStorageClass)data[wordIndex + 3];
+		} break;
+		}
+
+		wordIndex += wordCount;
+	}
+
+	for (U32 idIndex = 0; idIndex < ids.Size(); ++idIndex)
+	{
+		Id& id = ids[idIndex];
+
+		if (id.op == SpvOpVariable)
+		{
+			switch (id.storageClass)
+			{
+			case (SpvStorageClassUniform):
+			case (SpvStorageClassUniformConstant):
+			{
+				if (id.set == 1 && (id.binding == Renderer::bindlessTextureBinding || id.binding == (Renderer::bindlessTextureBinding + 1))) { continue; }
+
+				Id& uniformType = ids[ids[id.typeIndex].typeIndex];
+
+				DescriptorSetLayoutCreation& setLayout = shaderState->sets[id.set];
+				setLayout.SetSetIndex(id.set);
+
+				DescriptorBinding binding{};
+				binding.start = id.binding;
+				binding.count = 1;
+				
+				switch (uniformType.op)
+				{
+				case (SpvOpTypeStruct):
+				{
+					binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					binding.name = uniformType.name;
+					break;
+				}
+
+				case (SpvOpTypeSampledImage):
+				{
+					binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					binding.name = id.name;
+					break;
+				}
+				}
+
+				setLayout.AddBindingAtIndex(binding, id.binding);
+
+				shaderState->setCount = Math::Max(shaderState->setCount, (id.set + 1));
+
+				break;
+			}
+			}
+		}
+
+		id.members.Destroy();
+	}
 }

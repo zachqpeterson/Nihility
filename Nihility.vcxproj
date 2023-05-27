@@ -128,6 +128,7 @@
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
     <ClInclude Include="Engine\Math\Random.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
+    <ClInclude Include="Engine\Memory\Pool.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Function.hpp" />
@@ -141,7 +142,6 @@
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
-    <ClInclude Include="Engine\Resources\ResourcePool.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
