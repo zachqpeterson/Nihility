@@ -13,10 +13,10 @@ class NH_API Renderer
 {
 public:
 	//TODO: Public only for temp testing
-	static const RenderPassOutput& GetSwapchainOutput();
-	static RenderPass* GetSwapchainPass();
-	static CommandBuffer* GetCommandBuffer(QueueType type, bool begin);
-	static void* MapBuffer(const MapBufferParameters& parameters);
+	static const RenderPassOutput&		GetSwapchainOutput();
+	static RenderPass*					GetSwapchainPass();
+	static CommandBuffer*				GetCommandBuffer(QueueType type, bool begin);
+	static void*						MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
 
 private:
@@ -39,8 +39,8 @@ private:
 	static void							ResizeSwapchain();
 	static void							DestroySwapchain();
 
-	
-	static void* DynamicAllocate(U64 size);
+
+	static void*						DynamicAllocate(U64 size);
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
@@ -51,8 +51,9 @@ private:
 
 	static void							FrameCountersAdvance();
 	static void							QueueCommandBuffer(CommandBuffer* commandBuffer);
-	static CommandBuffer* GetInstantCommandBuffer();
-	static void							TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, bool isDepth);
+	static CommandBuffer*				GetInstantCommandBuffer();
+	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState,
+		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
 	static void							FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 		VkSampler vkDefaultSampler, U32& numResources, void** resources, Sampler** samplers, U16* bindings);
@@ -97,7 +98,7 @@ private:
 	NH_HEADER_STATIC U32									appVersion;
 
 	// DEVICE
-	NH_HEADER_STATIC VkAllocationCallbacks*					allocationCallbacks;
+	NH_HEADER_STATIC VkAllocationCallbacks* allocationCallbacks;
 	NH_HEADER_STATIC VkInstance								instance;
 	NH_HEADER_STATIC VkPhysicalDevice						physicalDevice;
 	NH_HEADER_STATIC VkPhysicalDeviceProperties				physicalDeviceProperties;
@@ -134,7 +135,7 @@ private:
 	NH_HEADER_STATIC VkImage								swapchainImages[MAX_SWAPCHAIN_IMAGES];
 	NH_HEADER_STATIC VkImageView							swapchainImageViews[MAX_SWAPCHAIN_IMAGES];
 	NH_HEADER_STATIC VkFramebuffer							swapchainFramebuffers[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC Texture*								depthTexture;
+	NH_HEADER_STATIC Texture* depthTexture;
 	NH_HEADER_STATIC U32									imageIndex{ 0 };
 	NH_HEADER_STATIC U32									currentFrame{ 1 };
 	NH_HEADER_STATIC U32									previousFrame{ 0 };
@@ -143,25 +144,25 @@ private:
 	NH_HEADER_STATIC bool									verticalSync{ false };
 
 	// RESOURCES
-	NH_HEADER_STATIC VmaAllocator_T*						allocator;
+	NH_HEADER_STATIC VmaAllocator_T* allocator;
 	NH_HEADER_STATIC Queue<DescriptorSetUpdate>				descriptorSetUpdates;
 	NH_HEADER_STATIC Hashmap<U64, VkRenderPass>				renderPassCache{ 16 };
 	NH_HEADER_STATIC CommandBufferRing						commandBufferRing;
-	NH_HEADER_STATIC CommandBuffer**						queuedCommandBuffers;
+	NH_HEADER_STATIC CommandBuffer** queuedCommandBuffers;
 	NH_HEADER_STATIC U32									allocatedCommandBufferCount{ 0 };
 	NH_HEADER_STATIC U32									queuedCommandBufferCount{ 0 };
 	NH_HEADER_STATIC U64									dynamicMaxPerFrameSize;
-	NH_HEADER_STATIC Buffer*								dynamicBuffer;
-	NH_HEADER_STATIC U8*									dynamicMappedMemory;
+	NH_HEADER_STATIC Buffer* dynamicBuffer;
+	NH_HEADER_STATIC U8* dynamicMappedMemory;
 	NH_HEADER_STATIC U64									dynamicAllocatedSize;
 	NH_HEADER_STATIC U64									dynamicPerFrameSize;
 	NH_HEADER_STATIC C8										binariesPath[512];
 	// PRIMITIVE
-	NH_HEADER_STATIC Buffer*								fullscreenVertexBuffer;
-	NH_HEADER_STATIC RenderPass*							swapchainPass;
-	NH_HEADER_STATIC Sampler*								defaultSampler;  //TODO: Move to Resources
+	NH_HEADER_STATIC Buffer* fullscreenVertexBuffer;
+	NH_HEADER_STATIC RenderPass* swapchainPass;
+	NH_HEADER_STATIC Sampler* defaultSampler;  //TODO: Move to Resources
 	// DUMMY
-	NH_HEADER_STATIC Buffer*								dummyConstantBuffer; //TODO: Move to Resources
+	NH_HEADER_STATIC Buffer* dummyConstantBuffer; //TODO: Move to Resources
 
 	// TIMING
 	NH_HEADER_STATIC F32									timestampFrequency;

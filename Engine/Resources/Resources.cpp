@@ -258,7 +258,7 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 	return true;
 }
 
-Texture* Resources::LoadTexture(const String& name)
+Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 {
 	Texture* texture = &textures.Request(name);
 
@@ -276,7 +276,6 @@ Texture* Resources::LoadTexture(const String& name)
 		texture->format = VK_FORMAT_R8G8B8A8_UNORM;
 		texture->type = TEXTURE_TYPE_2D;
 		texture->flags = 0;
-		texture->mipmaps = 1;
 		texture->depth = 1;
 		texture->handle = textures.GetHandle(name);
 
@@ -299,6 +298,23 @@ Texture* Resources::LoadTexture(const String& name)
 			textures.Remove(name);
 			return nullptr;
 		}
+
+		U32 mipLevels = 1;
+		if (generateMipMaps)
+		{
+			U32 w = texture->width;
+			U32 h = texture->height;
+
+			while (w > 1 && h > 1)
+			{
+				w /= 2;
+				h /= 2;
+
+				++mipLevels;
+			}
+		}
+
+		texture->mipmaps = mipLevels;
 
 		Renderer::CreateTexture(texture, data);
 

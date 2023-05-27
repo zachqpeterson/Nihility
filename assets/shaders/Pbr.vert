@@ -41,5 +41,5 @@ void main()
     outTexcoord0 = texCoord0;
     outNormal = normalize(mat3(modelInv) * normal);
     outTangent = normalize(mat3(model) * tangent.xyz);
-    outBiTangent = cross(outNormal, outTangent ) * tangent.w;
+    outBiTangent = cross(outNormal, outTangent) * tangent.w;
 }

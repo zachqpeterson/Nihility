@@ -37,19 +37,6 @@ bool Init()
 
 	pipelineCreation.shaders.SetName("PBR").AddStage("Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	// Descriptor set layout
-	//DescriptorSetLayoutCreation cubeRllCreation{};
-	//cubeRllCreation.AddBinding({ "LocalConstants", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, 0 });
-	//cubeRllCreation.AddBinding({ "MaterialConstant", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, 0 });
-	//cubeRllCreation.AddBinding({ "diffuseTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1 });
-	//cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1, 0 });
-	//cubeRllCreation.AddBinding({ "roughnessMetalnessTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 1, 0 });
-	//cubeRllCreation.AddBinding({ "emissiveTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 1, 0 });
-	//cubeRllCreation.AddBinding({ "occlusionTexture", VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 1, 0 });
-	// Setting it into pipeline
-	//cubeDescriptorSetLayout = Resources::CreateDescriptorSetLayout(cubeRllCreation);
-	//pipelineCreation.AddDescriptorSetLayout(cubeDescriptorSetLayout);
-
 	// Constant buffer
 	BufferCreation bufferCreation;
 	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb");
@@ -86,13 +73,13 @@ bool Init()
 
 	Vector<Texture*> textures{ 4 };
 
-	Texture* texture = Resources::LoadTexture("BoomBox_baseColor.bmp");
+	Texture* texture = Resources::LoadTexture("BoomBox_baseColor.bmp", true);
 	textures.Push(texture);
-	texture = Resources::LoadTexture("BoomBox_occlusionRoughnessMetallic.bmp");
+	texture = Resources::LoadTexture("BoomBox_occlusionRoughnessMetallic.bmp", true);
 	textures.Push(texture);
-	texture = Resources::LoadTexture("BoomBox_normal.bmp");
+	texture = Resources::LoadTexture("BoomBox_normal.bmp", true);
 	textures.Push(texture);
-	texture = Resources::LoadTexture("BoomBox_emissive.bmp");
+	texture = Resources::LoadTexture("BoomBox_emissive.bmp", true);
 	textures.Push(texture);
 
 	void* bufferData{ nullptr };

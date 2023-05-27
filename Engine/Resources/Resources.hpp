@@ -14,7 +14,7 @@ class NH_API Resources
 public:
 	static Sampler* CreateSampler(const SamplerCreation& info);
 	static Texture* CreateTexture(const TextureCreation& info);
-	static Texture* LoadTexture(const String& name);
+	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
 	static Buffer* CreateBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
