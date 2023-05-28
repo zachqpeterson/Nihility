@@ -178,9 +178,9 @@ bool Init()
 	meshDraw.materialBuffer = Resources::CreateBuffer(bufferCreation);
 
 	meshDraw.diffuseTextureIndex = textures[0]->handle;
-	meshDraw.roughnessTextureIndex = textures[1]->handle;
-	meshDraw.occlusionTextureIndex = textures[1]->handle;
+	meshDraw.metalRoughOcclTextureIndex = textures[1]->handle;
 	meshDraw.normalTextureIndex = textures[2]->handle;
+	meshDraw.emissivityTextureIndex = textures[3]->handle;
 
 	meshDraw.baseColorFactor = Vector4::One;
 	meshDraw.metalRoughOcclFactor = Vector4::One;
@@ -196,9 +196,9 @@ bool Init()
 static void UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw, const F32 globalScale)
 {
 	meshData.textures[0] = meshDraw.diffuseTextureIndex;
-	meshData.textures[1] = meshDraw.roughnessTextureIndex;
+	meshData.textures[1] = meshDraw.metalRoughOcclTextureIndex;
 	meshData.textures[2] = meshDraw.normalTextureIndex;
-	meshData.textures[3] = meshDraw.occlusionTextureIndex;
+	meshData.textures[3] = meshDraw.emissivityTextureIndex;
 	meshData.baseColorFactor = meshDraw.baseColorFactor;
 	meshData.metalRoughOcclFactor = meshDraw.metalRoughOcclFactor;
 	meshData.alphaCutoff = meshDraw.alphaCutoff;

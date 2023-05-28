@@ -184,7 +184,7 @@ bool Renderer::CreateInstance()
 	const VkValidationFeatureEnableEXT featuresRequested[]{
 		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,							//Addition diagnostic data
 		VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
-		//VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
+		VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
 		//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
 		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
 	};
@@ -1502,6 +1502,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	const bool isComputeUsed = (texture->flags & TEXTURE_FLAG_COMPUTE_MASK) == TEXTURE_FLAG_COMPUTE_MASK;
 
 	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	imageInfo.usage |= isComputeUsed ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
 
 	if (HasDepthOrStencil(texture->format))

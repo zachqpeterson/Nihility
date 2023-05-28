@@ -332,9 +332,9 @@ struct NH_API MeshDraw
 	U32 primitiveCount;
 
 	U16			diffuseTextureIndex;
-	U16			roughnessTextureIndex;
+	U16			metalRoughOcclTextureIndex;
 	U16			normalTextureIndex;
-	U16			occlusionTextureIndex;
+	U16			emissivityTextureIndex;
 
 	Vector4		baseColorFactor;
 	Vector4		metalRoughOcclFactor;

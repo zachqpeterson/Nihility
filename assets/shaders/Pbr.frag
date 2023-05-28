@@ -37,39 +37,44 @@ layout (location = 4) in vec3 position;
 layout (location = 0) out vec4 fragColor;
 
 #define PI 3.1415926538
+#define RecPI 1.0 / PI
+//NOTE: F0 in the formula notation refers to the value derived from ior = 1.5, (index of refraction)
+float F0 = 0.04; //pow((1 - ior) / (1 + ior), 2)
 #define INVALID_TEXTURE_INDEX 65535
 
-// GGX/Trowbridge-Reitz Normal Distribution Function
-float D(float alpha, vec3 N, vec3 H)
+vec3 DecodeSRGB(vec3 c)
 {
-    float numerator = pow(alpha, 2.0);
+    vec3 result;
+    if (c.r <= 0.04045) { result.r = c.r / 12.92; }
+    else { result.r = pow( ( c.r + 0.055 ) / 1.055, 2.4 ); }
 
-    float NdotH = max(dot(N, H), 0.0);
-    float denominator = PI * pow(pow(NdotH, 2.0) * (numerator - 1.0) + 1.0, 2.0);
-    denominator = max(denominator, 0.000001);
+    if (c.g <= 0.04045) { result.g = c.g / 12.92; }
+    else { result.g = pow( ( c.g + 0.055 ) / 1.055, 2.4 ); }
 
-    return numerator / denominator;
+    if (c.b <= 0.04045) { result.b = c.b / 12.92; }
+    else { result.b = pow( ( c.b + 0.055 ) / 1.055, 2.4 ); }
+
+    return clamp(result, 0.0, 1.0);
 }
 
-// Schlick-Beckmann Geometry Shadowing Function
-float G1(float alpha, float numerator)
+vec3 EncodeSRGB(vec3 c)
 {
-    float k = alpha / 2.0;
-    float denominator = max(numerator * (1.0 - k) + k, 0.000001);
+    vec3 result;
+    if (c.r <= 0.0031308) { result.r = c.r * 12.92; }
+    else { result.r = 1.055 * pow( c.r, 1.0 / 2.4 ) - 0.055; }
 
-    return numerator / denominator;
+    if (c.g <= 0.0031308) { result.g = c.g * 12.92; }
+    else { result.g = 1.055 * pow( c.g, 1.0 / 2.4 ) - 0.055; }
+
+    if (c.b <= 0.0031308) { result.b = c.b * 12.92; }
+    else { result.b = 1.055 * pow( c.b, 1.0 / 2.4 ) - 0.055; }
+
+    return clamp(result, 0.0, 1.0);
 }
 
-// Smith Model
-float G(float alpha, float numerator0, float numerator1)
-{
-    return G1(alpha, numerator0) * G1(alpha, numerator1);
-}
-
-// Fresnel-Schlick Function
-float F(float F0, vec3 V, vec3 H)
-{
-    return F0 + (1.0 - F0) * pow(1.0 - max(dot(V, H), 0.0), 5.0);
+float Heaviside(float v) {
+    if (v > 0.0) { return 1.0; }
+    else { return 0.0; }
 }
 
 void main()
@@ -95,7 +100,7 @@ void main()
 	if (textures.z != INVALID_TEXTURE_INDEX)
 	{
         //normal textures are encoded to [0, 1] but need to be mapped to [-1, 1] value
-        vec3 bumpNormal = normalize( texture(globalTextures[nonuniformEXT(textures.z)], texcoord0).rgb * 2.0 - 1.0 );
+        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(textures.z)], texcoord0).rgb * 2.0 - 1.0);
         mat3 TBN = mat3(T, B, N);
 
         N = normalize(TBN * normalize(bumpNormal));
@@ -106,45 +111,68 @@ void main()
     vec3 L = normalize(light.xyz - position);
 	vec3 H = normalize(V + L);
 
-	float metalness = metalRoughOcclFactor.x;
+	float metallicness = metalRoughOcclFactor.x;
     float roughness = metalRoughOcclFactor.y;
     float occlusion = metalRoughOcclFactor.z;
 
-	if (textures.w != INVALID_TEXTURE_INDEX)
+	if (textures.y != INVALID_TEXTURE_INDEX)
 	{
         vec4 rmo = texture(globalTextures[nonuniformEXT(textures.y)], texcoord0);
 
         // Green channel contains roughness values
-        // Blue channel contains metalness
+        // Blue channel contains metallicness
 		// Red channel for occlusion value
 		occlusion *= rmo.r;
         roughness *= rmo.g;
-        metalness *= rmo.b;
+        metallicness *= rmo.b;
     }
 
-	float alpha = pow(roughness, 2.0);
+    //TODO: Pass in emissivityFactor
+    vec3 emissivity = vec3(0.0);
 
+    if(textures.w != INVALID_TEXTURE_INDEX)
+    {
+        emissivity = texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).xyz;
+    }
+
+    baseColor.rgb = DecodeSRGB(baseColor.rgb);
+
+	float alpha = roughness * roughness;
+    float alphaSqr = alpha * alpha;
 	float NdotL = clamp(dot(N, L), 0.0, 1.0);
     float NdotV = clamp(dot(N, V), 0.0, 1.0);
+    float NdotH = clamp(dot(N, H), 0.0, 1.0);
+    float HdotL = clamp(dot(H, L), 0.0, 1.0);
+    float HdotV = clamp(dot(H, V), 0.0, 1.0);
 
-	float distance = length(light.xyz - position);
-    float intensity = lightIntensity * max(min(1.0 - pow(distance / lightRange, 4.0), 1.0), 0.0) / pow(distance, 2.0);
-
-	float F0 = 0.04; // pow( ( 1 - ior ) / ( 1 + ior ), 2 ), where ior == 1.5
-
-    float Ks = F(F0, V, H);
-    float Kd = (1.0 - Ks) * (1.0 - metalness);
-
-    vec3 lambert = baseColor.xyz / PI;
+    //TODO: pass in light color
+    vec3 lightColor = vec3(1.0, 1.0, 1.0);
     
-    float cookTorranceNumerator = D(alpha, N, H) * G(alpha, NdotV, NdotL) * Ks;
-    float cookTorranceDenominator = max(4.0 * NdotV * NdotL, 0.000001);
-    float cookTorrance = cookTorranceNumerator / cookTorranceDenominator;
+    vec3 materialColor = vec3(0.0, 0.0, 0.0);
+    if (NdotL > 0.0 || NdotV > 0.0)
+    {
+        float distance = length(light.xyz - position);
+        float intensity = (lightIntensity * clamp(1.0 - pow(distance / lightRange, 4), 0.0, 1.0) / (distance * distance)) * NdotL;
 
-    vec3 BRDF = lambert * Kd + cookTorrance;
-    // TODO: Light Color
-    vec3 lightColor = vec3(1.0, 1.0, 1.0) * intensity;
+        float denominator = (abs(NdotL) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotL * NdotL))) *
+            (abs(NdotV) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotV * NdotV)));
+        float numerator = Heaviside(HdotL) * Heaviside(HdotV);
 
-	//TODO: Emissivity
-    fragColor = vec4(BRDF * lightColor * NdotL, 1.0);
+        float visibility = numerator / denominator;
+
+        float distDen = (NdotH * NdotH) * (alphaSqr - 1.0) + 1.0;
+        float distribution = (alphaSqr * Heaviside(NdotH)) / (PI * distDen * distDen);
+
+        vec3 colorDifference = mix(baseColor.rgb, vec3(0.0), metallicness);
+        vec3 f0 = mix(vec3(F0), baseColor.rgb, metallicness);
+
+        vec3 F = f0 + (1.0 - f0) * pow(1.0 - abs(HdotV), 5);
+
+        vec3 specularBRDF = F * visibility * distribution;
+        vec3 diffuseBRDF = (1.0 - F) * RecPI * colorDifference;
+
+        materialColor = (diffuseBRDF + specularBRDF) * intensity;
+    }
+
+    fragColor = vec4(clamp(emissivity + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
 }
