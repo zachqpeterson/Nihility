@@ -1156,7 +1156,7 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 		Platform::ExecuteProcess(".", spirvOptimizerPath, spirvOptArguments, "");
 
 		// Read back SPV file.
-		File optimizedSpirvFile(optimizedSpirvFilename, FILE_OPEN_RESOURCE);
+		File optimizedSpirvFile(optimizedSpirvFilename, FILE_OPEN_RESOURCE_READ);
 		shaderCreateInfo.codeSize = optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
 
 		optimizedSpirvFile.Close();
@@ -1165,7 +1165,7 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 	else
 	{
 		// Read back SPV file.
-		File optimizedSpirvFile(finalSpirvFilename, FILE_OPEN_RESOURCE);
+		File optimizedSpirvFile(finalSpirvFilename, FILE_OPEN_RESOURCE_READ);
 		shaderCreateInfo.codeSize = optimizedSpirvFile.ReadAll(&shaderCreateInfo.pCode);
 
 		optimizedSpirvFile.Close();
@@ -1809,18 +1809,19 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 
 		shaderInfo = CompileShader(stage.name, stage.type, info.name);
 
+		Resources::ParseSPIRV(shaderInfo, shaderState);
+
 		// Compile shader module
 		VkPipelineShaderStageCreateInfo& shaderStageInfo = shaderState->shaderStageInfos[compiledShaders];
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.pNext = nullptr;
 		shaderStageInfo.flags = 0;
 		shaderStageInfo.stage = stage.type;
-		shaderStageInfo.pName = "main";
+		shaderStageInfo.pName = shaderState->entry.Data();
 		shaderStageInfo.pSpecializationInfo = nullptr;
 
 		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderStageInfo.module) != VK_SUCCESS) { break; }
 
-		Resources::ParseSPIRV(shaderInfo, shaderState);
 
 		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderStageInfo.module, info.name);
 	}
@@ -1848,7 +1849,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
 	bool cacheExists = false;
-	File cache(cachePath, FILE_OPEN_RESOURCE);
+	File cache(cachePath, FILE_OPEN_RESOURCE_READ);
 	if (cache.Opened())
 	{
 		U8* data = nullptr;

@@ -24,6 +24,7 @@ public:
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
 	static Scene* LoadScene(const String& name);
+	static void SaveScene(const Scene* scene);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 
 	//static glTF* LoadScene(const String& name);

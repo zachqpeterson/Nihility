@@ -267,7 +267,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 	String path;
 	name.Prepended(path, TEXTURES_PATH);
 
-	File file(path, FILE_OPEN_RESOURCE);
+	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
 		texture->name = name;
@@ -886,596 +886,31 @@ Scene* Resources::LoadScene(const String& name)
 
 	scene->name = name;
 
+	String path;
+	name.Prepended(path, TEXTURES_PATH);
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		//TODO: Load
+	}
+
 	return scene;
 }
 
-//glTF* Resources::LoadScene(const String& name)
-//{
-//	using json = nlohmann::json;
-//	
-//	glTF* gltf = &scenes.Request(name);
-//	
-//	if (!gltf->name.Blank()) { return gltf; }
-//	
-//	String path{};
-//	name.Prepended(path, SCENES_PATH);
-//	
-//	File file(path, FILE_OPEN_RESOURCE);
-//	if (file.Opened())
-//	{
-//		gltf->name = name;
-//
-//		C8* data;
-//		file.ReadAll(&data);
-//		
-//		json gltfData = json::parse(data);
-//		
-//		for (auto properties : gltfData.items())
-//		{
-//			if (properties.key() == "asset")
-//			{
-//				json& jsonAsset = gltfData["asset"];
-//		
-//				gltf->asset.copyright = jsonAsset.value("copyright", "").c_str();
-//				gltf->asset.generator = jsonAsset.value("generator", "").c_str();
-//				gltf->asset.minVersion = jsonAsset.value("minVersion", "").c_str();
-//				gltf->asset.version = jsonAsset.value("version", "").c_str();
-//			}
-//			else if (properties.key() == "scene")
-//			{
-//				gltf->scene = gltfData.value("version", I32_MAX);
-//			}
-//			else if (properties.key() == "scenes")
-//			{
-//				json& scenes = gltfData["scenes"];
-//		
-//				U64 sceneCount = scenes.size();
-//				gltf->sceneCount = sceneCount;
-//				Memory::AllocateArray(&gltf->scenes, sceneCount);
-//		
-//				for (U64 i = 0; i < sceneCount; ++i)
-//				{
-//					Scene& scene = gltf->scenes[i];
-//					json& data = scenes[i];
-//		
-//					json& jsonArray = data.at("nodes");
-//		
-//					scene.nodeCount = jsonArray.size();
-//		
-//					if (scene.nodeCount)
-//					{
-//						Memory::AllocateArray(&scene.nodes, scene.nodeCount);
-//		
-//						for (U64 i = 0; i < scene.nodeCount; ++i) { scene.nodes[i] = jsonArray.at(i); }
-//					}
-//				}
-//			}
-//			else if (properties.key() == "buffers")
-//			{
-//				json& buffers = gltfData["buffers"];
-//		
-//				U64 bufferCount = buffers.size();
-//				Memory::AllocateArray(&gltf->buffers, bufferCount);
-//				gltf->bufferCount = bufferCount;
-//		
-//				for (U64 i = 0; i < bufferCount; ++i)
-//				{
-//					json& data = buffers[i];
-//					BufferRef& buffer = gltf->buffers[i];
-//		
-//					buffer.uri = data.value("uri", "").c_str();
-//					buffer.byteLength = data.value("byteLength", I32_MAX);
-//					buffer.name = data.value("name", "").c_str();
-//				}
-//			}
-//			else if (properties.key() == "bufferViews")
-//			{
-//				json& buffers = gltfData["bufferViews"];
-//		
-//				U64 bufferCount = buffers.size();
-//				Memory::AllocateArray(&gltf->bufferViews, bufferCount);
-//				gltf->bufferViewCount = bufferCount;
-//		
-//				for (U64 i = 0; i < bufferCount; ++i)
-//				{
-//					json& data = buffers[i];
-//					BufferView& view = gltf->bufferViews[i];
-//		
-//					view.buffer = data.value("buffer", I32_MAX);
-//					view.byteLength = data.value("byteLength", I32_MAX);
-//					view.byteOffset = data.value("byteOffset", I32_MAX);
-//					view.byteStride = data.value("byteStride", I32_MAX);
-//					view.target = data.value("target", I32_MAX);
-//					view.name = data.value("name", "").c_str();
-//				}
-//			}
-//			else if (properties.key() == "nodes")
-//			{
-//				json& array = gltfData["nodes"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->nodes, arrayCount);
-//				gltf->nodeCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Node& node = gltf->nodes[i];
-//		
-//					node.camera = data.value("camera", I32_MAX);
-//					node.mesh = data.value("mesh", I32_MAX);
-//					node.skin = data.value("skin", I32_MAX);
-//					node.name = data.value("name", "").c_str();
-//		
-//					{
-//						json& jsonArray = data.at("children");
-//		
-//						node.childrenCount = jsonArray.size();
-//		
-//						if (node.childrenCount)
-//						{
-//							Memory::AllocateArray(&node.children, node.childrenCount);
-//		
-//							for (U64 i = 0; i < node.childrenCount; ++i) { node.children[i] = jsonArray.at(i); }
-//						}
-//					}
-//					{
-//						json& jsonArray = data.at("matrix");
-//		
-//						node.matrixCount = jsonArray.size();
-//		
-//						if (node.matrixCount)
-//						{
-//							Memory::AllocateArray(&node.matrix, node.matrixCount);
-//		
-//							for (U64 i = 0; i < node.matrixCount; ++i) { node.matrix[i] = jsonArray.at(i); }
-//						}
-//					}
-//					{
-//						json& jsonArray = data.at("rotation");
-//		
-//						node.rotationCount = jsonArray.size();
-//		
-//						if (node.rotationCount)
-//						{
-//							Memory::AllocateArray(&node.rotation, node.rotationCount);
-//		
-//							for (U64 i = 0; i < node.rotationCount; ++i) { node.rotation[i] = jsonArray.at(i); }
-//						}
-//					}
-//					{
-//						json& jsonArray = data.at("scale");
-//		
-//						node.scaleCount = jsonArray.size();
-//		
-//						if (node.scaleCount)
-//						{
-//							Memory::AllocateArray(&node.scale, node.scaleCount);
-//		
-//							for (U64 i = 0; i < node.scaleCount; ++i) { node.scale[i] = jsonArray.at(i); }
-//						}
-//					}
-//					{
-//						json& jsonArray = data.at("translation");
-//		
-//						node.translationCount = jsonArray.size();
-//		
-//						if (node.translationCount)
-//						{
-//							Memory::AllocateArray(&node.translation, node.translationCount);
-//		
-//							for (U64 i = 0; i < node.translationCount; ++i) { node.translation[i] = jsonArray.at(i); }
-//						}
-//					}
-//					{
-//						json& jsonArray = data.at("weights");
-//		
-//						node.weightCount = jsonArray.size();
-//		
-//						if (node.weightCount)
-//						{
-//							Memory::AllocateArray(&node.weights, node.weightCount);
-//		
-//							for (U64 i = 0; i < node.weightCount; ++i) { node.weights[i] = jsonArray.at(i); }
-//						}
-//					}
-//				}
-//			}
-//			else if (properties.key() == "meshes")
-//			{
-//				json& array = gltfData["meshes"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->meshes, arrayCount);
-//				gltf->meshCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Mesh& mesh = gltf->meshes[i];
-//		
-//					{
-//						json& array = data["primitives"];
-//		
-//						U64 arrayCount = array.size();
-//						Memory::AllocateArray(&mesh.primitives, arrayCount);
-//						mesh.primitiveCount = arrayCount;
-//		
-//						for (U64 i = 0; i < arrayCount; ++i)
-//						{
-//							json& data = array[i];
-//							MeshPrimitive& primitive = mesh.primitives[i];
-//		
-//							primitive.indices = data.value("indices", I32_MAX);
-//							primitive.material = data.value("material", I32_MAX);
-//							primitive.mode = data.value("mode", I32_MAX);
-//		
-//							json& attributes = data["attributes"];
-//		
-//							Memory::AllocateArray(&primitive.attributes, attributes.size());
-//							primitive.attributeCount = attributes.size();
-//		
-//							U32 index = 0;
-//							for (auto jsonAttribute : attributes.items())
-//							{
-//								MeshPrimitive::Attribute& attribute = primitive.attributes[index];
-//		
-//								attribute.key = jsonAttribute.key().c_str();
-//								attribute.accessorIndex = jsonAttribute.value();
-//		
-//								++index;
-//							}
-//						}
-//					}
-//		
-//					mesh.name = data.value("name", "").c_str();
-//		
-//					{
-//						json& jsonArray = data.at("weights");
-//		
-//						mesh.weightCount = jsonArray.size();
-//		
-//						if (mesh.weightCount)
-//						{
-//							Memory::AllocateArray(&mesh.weights, mesh.weightCount);
-//		
-//							for (U64 i = 0; i < mesh.weightCount; ++i) { mesh.weights[i] = jsonArray.at(i); }
-//						}
-//					}
-//				}
-//			}
-//			else if (properties.key() == "accessors")
-//			{
-//				json& array = gltfData["accessors"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->accessors, arrayCount);
-//				gltf->accessorCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Accessor& accessor = gltf->accessors[i];
-//		
-//					accessor.bufferView = data.value("bufferView", I32_MAX);
-//					accessor.byteOffset = data.value("byteOffset", I32_MAX);
-//					accessor.componentType = data.value("componentType", I32_MAX);
-//					accessor.count = data.value("count", I32_MAX);
-//					accessor.sparse = data.value("sparse", I32_MAX);
-//		
-//					{
-//						json& jsonArray = data.at("max");
-//		
-//						accessor.maxCount = jsonArray.size();
-//		
-//						if (accessor.maxCount)
-//						{
-//							Memory::AllocateArray(&accessor.max, accessor.maxCount);
-//		
-//							for (U64 i = 0; i < accessor.maxCount; ++i) { accessor.max[i] = jsonArray.at(i); }
-//						}
-//					}
-//		
-//					{
-//						json& jsonArray = data.at("min");
-//		
-//						accessor.minCount = jsonArray.size();
-//		
-//						if (accessor.minCount)
-//						{
-//							Memory::AllocateArray(&accessor.min, accessor.minCount);
-//		
-//							for (U64 i = 0; i < accessor.minCount; ++i) { accessor.min[i] = jsonArray.at(i); }
-//						}
-//					}
-//		
-//					accessor.normalized = data.value("normalized", false);
-//		
-//					std::string value = data.value("type", "").c_str();
-//					if (value == "SCALAR") { accessor.type = Accessor::Scalar; }
-//					else if (value == "VEC2") { accessor.type = Accessor::Vec2; }
-//					else if (value == "VEC3") { accessor.type = Accessor::Vec3; }
-//					else if (value == "VEC4") { accessor.type = Accessor::Vec4; }
-//					else if (value == "MAT2") { accessor.type = Accessor::Mat2; }
-//					else if (value == "MAT3") { accessor.type = Accessor::Mat3; }
-//					else if (value == "MAT4") { accessor.type = Accessor::Mat4; }
-//					else { ASSERT(false); }
-//				}
-//			}
-//			else if (properties.key() == "materials")
-//			{
-//				json& array = gltfData["materials"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->materials, arrayCount);
-//				gltf->materialCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Material& material = gltf->materials[i];
-//		
-//					{
-//						json& jsonArray = data.at("emissiveFactor");
-//		
-//						material.emissiveFactorCount = jsonArray.size();
-//		
-//						if (material.emissiveFactorCount)
-//						{
-//							Memory::AllocateArray(&material.emissiveFactor, material.emissiveFactorCount);
-//		
-//							for (U64 i = 0; i < material.emissiveFactorCount; ++i) { material.emissiveFactor[i] = jsonArray.at(i); }
-//						}
-//					}
-//		
-//					material.alphaCutoff = data.value("alphaCutoff", F32_MAX);
-//					material.alphaMode = data.value("alphaMode", "").c_str();
-//					material.doubleSided = data.value("doubleSided", false);
-//		
-//					{
-//						auto it = data.find("emissiveTexture");
-//		
-//						material.emissiveTexture.index = it->value("index", I32_MAX);
-//						material.emissiveTexture.texCoord = it->value("texCoord", I32_MAX);
-//					}
-//		
-//					{
-//						auto it = data.find("normalTexture");
-//		
-//						material.normalTexture.index = it->value("index", I32_MAX);
-//						material.normalTexture.texCoord = it->value("texCoord", I32_MAX);
-//						material.normalTexture.scale = it->value("scale", F32_MAX);
-//					}
-//		
-//					{
-//						auto it = data.find("occlusionTexture");
-//		
-//						material.occlusionTexture.index = it->value("index", I32_MAX);
-//						material.occlusionTexture.texCoord = it->value("texCoord", I32_MAX);
-//						material.occlusionTexture.strength = it->value("strength", F32_MAX);
-//					}
-//		
-//					{
-//						auto it = data.find("pbrMetallicRoughness");
-//		
-//		
-//						{
-//							json& jsonArray = it->at("baseColorFactor");
-//		
-//							material.pbrMetallicRoughness.baseColorFactorCount = jsonArray.size();
-//		
-//							if (material.pbrMetallicRoughness.baseColorFactorCount)
-//							{
-//								Memory::AllocateArray(&material.pbrMetallicRoughness.baseColorFactor, material.pbrMetallicRoughness.baseColorFactorCount);
-//		
-//								for (U64 i = 0; i < material.pbrMetallicRoughness.baseColorFactorCount; ++i) { material.pbrMetallicRoughness.baseColorFactor[i] = jsonArray.at(i); }
-//							}
-//						}
-//		
-//						{
-//							auto it2 = it->find("baseColorTexture");
-//		
-//							material.pbrMetallicRoughness.baseColorTexture.index = it2->value("index", I32_MAX);
-//							material.pbrMetallicRoughness.baseColorTexture.texCoord = it2->value("texCoord", I32_MAX);
-//						}
-//		
-//						material.pbrMetallicRoughness.metallicFactor = it->value("metallicFactor", F32_MAX);
-//		
-//						{
-//							auto it2 = it->find("metallicRoughnessTexture");
-//		
-//							material.pbrMetallicRoughness.metallicRoughnessTexture.index = it2->value("index", I32_MAX);
-//							material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord = it2->value("texCoord", I32_MAX);
-//						}
-//		
-//						material.pbrMetallicRoughness.roughnessFactor = it->value("roughnessFactor", F32_MAX);
-//					}
-//		
-//					material.name = data.value("name", "").c_str();
-//				}
-//			}
-//			else if (properties.key() == "textures")
-//			{
-//				json& array = gltfData["textures"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->textures, arrayCount);
-//				gltf->textureCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					TextureRef& texture = gltf->textures[i];
-//		
-//					texture.sampler = data.value("sampler", I32_MAX);
-//					texture.source = data.value("source", I32_MAX);
-//					texture.name = data.value("name", "").c_str();
-//				}
-//			}
-//			else if (properties.key() == "images")
-//			{
-//				json array = gltfData["images"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->images, arrayCount);
-//				gltf->imageCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Image& image = gltf->images[i];
-//		
-//					image.bufferView = data.value("bufferView", I32_MAX);
-//					image.mimeType = data.value("mimeType", "").c_str();
-//					image.uri = data.value("uri", "").c_str();
-//				}
-//			}
-//			else if (properties.key() == "samplers")
-//			{
-//				json array = gltfData["samplers"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->samplers, arrayCount);
-//				gltf->samplerCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					SamplerRef& sampler = gltf->samplers[i];
-//		
-//					sampler.magFilter = data.value("magFilter", I32_MAX);
-//					sampler.minFilter = data.value("minFilter", I32_MAX);
-//					sampler.wrapS = data.value("wrapS", I32_MAX);
-//					sampler.wrapT = data.value("wrapT", I32_MAX);
-//				}
-//			}
-//			else if (properties.key() == "skins")
-//			{
-//				json array = gltfData["skins"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->skins, arrayCount);
-//				gltf->skinCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Skin& skin = gltf->skins[i];
-//		
-//					skin.skeletonRootNodeIndex = data.value("skeleton", I32_MAX);
-//					skin.inverseBindMatricesBufferIndex = data.value("inverseBindMatrices", I32_MAX);
-//		
-//					{
-//						json& jsonArray = data.at("baseColorFactor");
-//		
-//						skin.jointCount = jsonArray.size();
-//		
-//						if (skin.jointCount)
-//						{
-//							Memory::AllocateArray(&skin.joints, skin.jointCount);
-//		
-//							for (U64 i = 0; i < skin.jointCount; ++i) { skin.joints[i] = jsonArray.at(i); }
-//						}
-//					}
-//				}
-//			}
-//			else if (properties.key() == "animations")
-//			{
-//				json array = gltfData["animations"];
-//		
-//				U64 arrayCount = array.size();
-//				Memory::AllocateArray(&gltf->animations, arrayCount);
-//				gltf->animationCount = arrayCount;
-//		
-//				for (U64 i = 0; i < arrayCount; ++i)
-//				{
-//					json& data = array[i];
-//					Animation& animation = gltf->animations[i];
-//		
-//					json& jsonArray = data.at("samplers");
-//					if (jsonArray.is_array())
-//					{
-//						U64 count = jsonArray.size();
-//		
-//						AnimationSampler* values;
-//						Memory::AllocateArray(&values, count);
-//		
-//						for (U64 i = 0; i < count; ++i)
-//						{
-//							json& element = jsonArray.at(i);
-//							AnimationSampler& sampler = values[i];
-//		
-//							sampler.inputKeyframeBufferIndex = element.value("input", I32_MAX);
-//							sampler.outputKeyframeBufferIndex = element.value("output", I32_MAX);
-//		
-//							String value = element.value("interpolation", "").c_str();
-//							if (value == "LINEAR") { sampler.interpolation = AnimationSampler::Linear; }
-//							else if (value == "STEP") { sampler.interpolation = AnimationSampler::Step; }
-//							else if (value == "CUBICSPLINE") { sampler.interpolation = AnimationSampler::CubicSpline; }
-//							else { sampler.interpolation = AnimationSampler::Linear; }
-//						}
-//		
-//						animation.samplers = values;
-//						animation.samplerCount = count;
-//					}
-//		
-//					jsonArray = data.at("channels");
-//					if (jsonArray.is_array())
-//					{
-//						U64 count = jsonArray.size();
-//		
-//						AnimationChannel* values;
-//						Memory::AllocateArray(&values, count);
-//		
-//						for (U64 i = 0; i < count; ++i)
-//						{
-//							json& element = jsonArray.at(i);
-//							AnimationChannel& channel = values[i];
-//		
-//							channel.sampler = element.value("sampler", I32_MAX);
-//		
-//							json& target = element.at("target");
-//							channel.targetNode = target.value("node", I32_MAX);
-//		
-//							String targetPath = target.value("path", "").c_str();
-//							if (targetPath == "scale")
-//							{
-//								channel.targetType = AnimationChannel::Scale;
-//							}
-//							else if (targetPath == "rotation")
-//							{
-//								channel.targetType = AnimationChannel::Rotation;
-//							}
-//							else if (targetPath == "translation")
-//							{
-//								channel.targetType = AnimationChannel::Translation;
-//							}
-//							else if (targetPath == "weights")
-//							{
-//								channel.targetType = AnimationChannel::Weights;
-//							}
-//							else
-//							{
-//								Logger::Fatal("Error parsing target path {}", targetPath);
-//								channel.targetType = AnimationChannel::Count;
-//							}
-//						}
-//		
-//						animation.channels = values;
-//						animation.channelCount = count;
-//					}
-//				}
-//			}
-//		}
-//
-//		return gltf;
-//	}
-//	
-//	Logger::Error("Failed to find or open file: {}", path);
-//	scenes.Remove(name);
-//	
-//	return nullptr;
-//}
+void Resources::SaveScene(const Scene* scene)
+{
+	String path;
+	scene->name.Prepended(path, TEXTURES_PATH);
+
+	File file(path, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
+	{
+		
+
+		//TODO: Save
+	}
+}
 
 Sampler* Resources::AccessDummySampler()
 {
@@ -1746,7 +1181,7 @@ bool Resources::LoadBinary(const String& name, String& result)
 	String path;
 	name.Prepended(path, BINARIES_PATH);
 
-	File file{ path, FILE_OPEN_RESOURCE };
+	File file{ path, FILE_OPEN_RESOURCE_READ };
 
 	if (file.Opened())
 	{
@@ -1764,7 +1199,7 @@ U32 Resources::LoadBinary(const String& name, void** result)
 	String path;
 	name.Prepended(path, BINARIES_PATH);
 
-	File file{ path, FILE_OPEN_RESOURCE };
+	File file{ path, FILE_OPEN_RESOURCE_READ };
 
 	if (file.Opened())
 	{
@@ -1840,7 +1275,6 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 	Vector<Id> ids{ idBound, {} };
 
 	SpvExecutionModel stage{ SpvExecutionModelMax };
-	String entry{ NO_INIT };
 
 	U64 wordIndex = 5;
 	U16 wordCount;
@@ -1850,7 +1284,7 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 
 	//TODO: There could be multiple entry points/excecution modes
 	stage = (SpvExecutionModel)data[wordIndex + 1];	//Shader type
-	entry = (C8*)(data + (wordIndex + 3));			//Entry point name
+	shaderState->entry = (C8*)(data + (wordIndex + 3));			//Entry point name
 	wordIndex += (U16)(data[wordIndex] >> 16);
 	wordIndex += (U16)(data[wordIndex] >> 16); //Skip excecution mode
 

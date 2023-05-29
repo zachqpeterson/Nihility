@@ -200,6 +200,7 @@ struct DescriptorSet
 struct ShaderState
 {
 	String							name{ NO_INIT };
+	String							entry{ NO_INIT };
 	HashHandle						handle;
 
 	VkPipelineShaderStageCreateInfo	shaderStageInfos[MAX_SHADER_STAGES];

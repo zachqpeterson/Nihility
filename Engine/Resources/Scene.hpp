@@ -13,7 +13,7 @@ private:
 public:
 	String				name{ NO_INIT };
 
-	Vector<MeshDraw>	mesh_draws;
+	Vector<MeshDraw>	meshDraws;
 
 	Vector<Texture*>	images;
 	Vector<Sampler*>	samplers;
