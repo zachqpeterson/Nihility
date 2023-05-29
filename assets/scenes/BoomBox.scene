@@ -1,0 +1,33 @@
+//TODO: sampler info
+
+for each mesh:
+
+name (null terminated string)
+bin uri (null terminated string)
+diffuse texture uri (null terminated string)
+metallic/roughness/occlusion texture uri (null terminated string)
+normal texture uri (null terminated string)
+emissive texture uri (null terminated string)
+texcoord buffer info:
+    buffer offset (U32)
+    buffer size (U32)
+normal buffer info:
+    buffer offset (U32)
+    buffer size (U32)
+tangent buffer info:
+    buffer offset (U32)
+    buffer size (U32)
+position buffer info:
+    buffer offset (U32)
+    buffer size (U32)
+material info:
+    base color factor (RGBA F32)
+    metallic factor (F32)
+    roughness factor (F32)
+    occlusion factor (F32)
+    alpha mode (U8) 0 = opaque, 1 = mask, 2 = transparent
+    alpha cutoff (F32)
+mesh info:
+    position (XYZ F32)
+    rotation (XYZ F32)
+    scale (XYZ F32)

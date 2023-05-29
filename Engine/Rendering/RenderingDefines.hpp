@@ -624,6 +624,13 @@ enum ResourceType {
 	RESOURCE_TYPE_RAYTRACING_ACCELERATION_STRUCTURE = 0x4000,
 	RESOURCE_TYPE_SHADING_RATE_SOURCE = 0x8000,
 };
+
+enum AlphaMode
+{
+	ALPHA_MODE_OPAQUE,
+	ALPHA_MODE_MASK,
+	ALPHA_MODE_TRANSPARENT,
+};
 #pragma endregion
 
 static inline String ToCompilerExtension(VkShaderStageFlagBits value)
@@ -970,4 +977,58 @@ private:
 
 	bool	perspective{ false };
 	bool	updateProjection{ false };
+};
+
+struct NH_API UniformData
+{
+	Matrix4 vp;
+	Vector4 eye;
+	Vector4 light;
+	F32		lightRange;
+	F32		lightIntensity;
+};
+
+struct NH_API MeshData
+{
+	Matrix4		model;
+	Matrix4		modelInv;
+
+	Vector4Int	textures; // diffuse, roughness, normal, occlusion
+	Vector4		baseColorFactor;
+	Vector4		metalRoughOcclFactor;
+	F32			alphaCutoff;
+	F32			unused[3];
+	U32			flags;
+};
+
+struct NH_API MeshDraw
+{
+	Material* material;
+
+	Buffer* indexBuffer;
+	Buffer* positionBuffer;
+	Buffer* tangentBuffer;
+	Buffer* normalBuffer;
+	Buffer* texcoordBuffer;
+	Buffer* materialBuffer;
+
+	U32 indexOffset;
+	U32 positionOffset;
+	U32 tangentOffset;
+	U32 normalOffset;
+	U32 texcoordOffset;
+
+	U32 primitiveCount;
+
+	U16			diffuseTextureIndex;
+	U16			metalRoughOcclTextureIndex;
+	U16			normalTextureIndex;
+	U16			emissivityTextureIndex;
+
+	Vector4		baseColorFactor;
+	Vector4		metalRoughOcclFactor;
+	Vector3		scale;
+
+	F32			alphaCutoff;
+	U32			flags;
 };

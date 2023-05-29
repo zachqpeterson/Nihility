@@ -120,6 +120,7 @@
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\Entities\EntityDefines.hpp" />
     <ClInclude Include="Engine\External\json.hpp" />
     <ClInclude Include="Engine\External\vk_mem_alloc.h" />
     <ClInclude Include="Engine\Math\Color.hpp" />

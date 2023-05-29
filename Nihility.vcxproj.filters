@@ -38,6 +38,9 @@
     <Filter Include="Source Files\External">
       <UniqueIdentifier>{55a9f224-ea4f-4eb7-a619-62a6a3ab505f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Entities">
+      <UniqueIdentifier>{daf9083b-3e48-4820-ae94-64d4c479ff6e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -156,6 +159,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Memory\Pool.hpp">
       <Filter>Source Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Entities\EntityDefines.hpp">
+      <Filter>Source Files\Entities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
