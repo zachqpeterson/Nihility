@@ -204,12 +204,16 @@ struct ShaderState
 
 	VkPipelineShaderStageCreateInfo	shaderStageInfos[MAX_SHADER_STAGES];
 
-	U32								activeShaders = 0;
-	bool							graphicsPipeline = false;
+	U32								activeShaders{ 0 };
+	bool							graphicsPipeline{ false };
 
-	static constexpr U32			MAX_SET_COUNT = 32;
-	U32								setCount;
+	U32								setCount{ 0 };
 	DescriptorSetLayoutCreation		sets[MAX_SET_COUNT];
+
+	U32								vertexStreamCount{ 0 };
+	U32								vertexAttributeCount{ 0 };
+	VertexStream					vertexStreams[MAX_VERTEX_STREAMS];
+	VertexAttribute					vertexAttributes[MAX_VERTEX_ATTRIBUTES];
 };
 
 struct RenderPassOutput
@@ -343,7 +347,6 @@ struct NH_API PipelineCreation
 	RasterizationCreation		rasterization;
 	DepthStencilCreation		depthStencil;
 	BlendStateCreation			blendState;
-	VertexInputCreation			vertexInput;
 	ShaderStateCreation			shaders;
 
 	RenderPassOutput			renderPass;

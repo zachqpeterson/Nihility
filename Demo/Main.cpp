@@ -17,20 +17,6 @@ bool Init()
 	camera.SetPerspective(0.1f, 4000.0f, 60.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
 
 	PipelineCreation pipelineCreation{};
-
-	// TODO: Get From SPIR-V
-	pipelineCreation.vertexInput.AddVertexAttribute({ 0, 0, 0, VERTEX_COMPONENT_FLOAT3 }); // position
-	pipelineCreation.vertexInput.AddVertexStream({ 0, 12, VERTEX_INPUT_RATE_VERTEX });
-
-	pipelineCreation.vertexInput.AddVertexAttribute({ 1, 1, 0, VERTEX_COMPONENT_FLOAT4 }); // tangent
-	pipelineCreation.vertexInput.AddVertexStream({ 1, 16, VERTEX_INPUT_RATE_VERTEX });
-
-	pipelineCreation.vertexInput.AddVertexAttribute({ 2, 2, 0, VERTEX_COMPONENT_FLOAT3 }); // normal
-	pipelineCreation.vertexInput.AddVertexStream({ 2, 12, VERTEX_INPUT_RATE_VERTEX });
-
-	pipelineCreation.vertexInput.AddVertexAttribute({ 3, 3, 0, VERTEX_COMPONENT_FLOAT2 }); // texcoord
-	pipelineCreation.vertexInput.AddVertexStream({ 3, 8, VERTEX_INPUT_RATE_VERTEX });
-
 	pipelineCreation.renderPass = Renderer::GetSwapchainOutput();
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);

@@ -4,8 +4,6 @@
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
 
-#include "External\json.hpp"
-
 #define TEXTURES_PATH "textures/"
 #define AUDIO_PATH "audio/"
 #define SHADERS_PATH "shaders/"
@@ -59,10 +57,10 @@ constexpr U64 size = sizeof(BMPInfo);
 
 #pragma pack(pop)
 
-Sampler*								Resources::dummySampler;
-Texture*								Resources::dummyTexture;
-Buffer*									Resources::dummyAttributeBuffer;
-Sampler*								Resources::defaultSampler;
+Sampler* Resources::dummySampler;
+Texture* Resources::dummyTexture;
+Buffer* Resources::dummyAttributeBuffer;
+Sampler* Resources::defaultSampler;
 
 Hashmap<String, Sampler>				Resources::samplers{ 32, {} };
 Hashmap<String, Texture>				Resources::textures{ 512, {} };
@@ -120,7 +118,7 @@ void Resources::Shutdown()
 	Logger::Trace("Cleaning Up Resources...");
 
 	Hashmap<String, Sampler>::Iterator end0 = samplers.end();
-	for (auto it = samplers.begin(); it != end0; ++it) { if(it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SAMPLER, it->handle }); } }
+	for (auto it = samplers.begin(); it != end0; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SAMPLER, it->handle }); } }
 
 	Hashmap<String, Texture>::Iterator end1 = textures.end();
 	for (auto it = textures.begin(); it != end1; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, it->handle }); } }
@@ -839,7 +837,7 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 
 	String cachePath("{}{}.cache", SHADERS_PATH, info.name);
 
-	Renderer::CreatePipeline(pipeline, info.renderPass, info.vertexInput, cachePath);
+	Renderer::CreatePipeline(pipeline, info.renderPass, cachePath);
 
 	return pipeline;
 }
@@ -1780,9 +1778,9 @@ U32 Resources::LoadBinary(const String& name, void** result)
 }
 
 #if defined(_MSC_VER)
-#include <spirv-headers/spirv.h>
+#include <spirv-headers\spirv.h>
 #else
-#include <spirv_cross/spirv.h>
+#include <spirv_cross\spirv.h>
 #endif
 
 struct Member
@@ -1798,6 +1796,7 @@ struct Id
 	SpvOp           op;
 	U32             set;
 	U32             binding;
+	U32				location;
 
 	// For integers and floats
 	U8              width;
@@ -1840,32 +1839,30 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 	U32 idBound = data[3];
 	Vector<Id> ids{ idBound, {} };
 
-	VkShaderStageFlags stage;
+	SpvExecutionModel stage{ SpvExecutionModelMax };
+	String entry{ NO_INIT };
 
 	U64 wordIndex = 5;
+	U16 wordCount;
+	SpvOp op;
+
+	while ((op = (SpvOp)(data[wordIndex] & 0xFF)) != SpvOpEntryPoint) { wordIndex += (data[wordIndex] >> 16); } //Skip to entry point
+
+	//TODO: There could be multiple entry points/excecution modes
+	stage = (SpvExecutionModel)data[wordIndex + 1];	//Shader type
+	entry = (C8*)(data + (wordIndex + 3));			//Entry point name
+	wordIndex += (U16)(data[wordIndex] >> 16);
+	wordIndex += (U16)(data[wordIndex] >> 16); //Skip excecution mode
 
 	while (wordIndex < spvWordCount)
 	{
-		SpvOp op = (SpvOp)(data[wordIndex] & 0xFF);
-		U16 wordCount = (U16)(data[wordIndex] >> 16);
+		op = (SpvOp)(data[wordIndex] & 0xFF);
+		wordCount = (U16)(data[wordIndex] >> 16);
 
 		switch (op)
 		{
-		case SpvOpEntryPoint: {
-			ASSERT(wordCount >= 4);
-
-			SpvExecutionModel model = (SpvExecutionModel)data[wordIndex + 1];
-			stage = ParseExecutionModel(model);
-
-			ASSERT(stage != 0);
-		} break;
 		case SpvOpDecorate: {
-			ASSERT(wordCount >= 3);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 
 			SpvDecoration decoration = (SpvDecoration)data[wordIndex + 2];
 
@@ -1873,15 +1870,11 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 			{
 			case SpvDecorationBinding: { id.binding = data[wordIndex + 3]; } break;
 			case SpvDecorationDescriptorSet: { id.set = data[wordIndex + 3]; } break;
+			case SpvDecorationLocation: { id.location = data[wordIndex + 3]; } break;
 			}
 		} break;
 		case SpvOpMemberDecorate: {
-			ASSERT(wordCount >= 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 
 			U32 memberIndex = data[wordIndex + 2];
 
@@ -1896,22 +1889,11 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 			}
 		} break;
 		case SpvOpName: {
-			ASSERT(wordCount >= 3);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.name = (C8*)(data + (wordIndex + 2));
 		} break;
 		case SpvOpMemberName: {
-			ASSERT(wordCount >= 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
-
+			Id& id = ids[data[wordIndex + 1]];
 			U32 memberIndex = data[wordIndex + 2];
 
 			if (!id.members.Size()) { id.members.Resize(64, {}); }
@@ -1920,98 +1902,52 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 			member.name = (char*)(data + (wordIndex + 3));
 		} break;
 		case SpvOpTypeInt: {
-			ASSERT(wordCount == 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.width = (U8)data[wordIndex + 2];
 			id.sign = (U8)data[wordIndex + 3];
 		} break;
 		case SpvOpTypeFloat: {
-			ASSERT(wordCount == 3);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.width = (U8)data[wordIndex + 2];
 		} break;
 		case SpvOpTypeVector: {
-			ASSERT(wordCount == 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 2];
 			id.count = data[wordIndex + 3];
 		} break;
 		case SpvOpTypeMatrix: {
-			ASSERT(wordCount == 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 2];
 			id.count = data[wordIndex + 3];
 		} break;
 		case SpvOpTypeImage: {
 			//TODO: Might not need
-			ASSERT(wordCount >= 9);
 		} break;
 		case SpvOpTypeSampler: {
-			ASSERT(wordCount == 2);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 		}
 		case SpvOpTypeSampledImage: {
-			ASSERT(wordCount == 3);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 		} break;
 		case SpvOpTypeArray: {
-			ASSERT(wordCount == 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 2];
 			id.count = data[wordIndex + 3];
 		} break;
 		case SpvOpTypeRuntimeArray: {
-			ASSERT(wordCount == 3);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 2];
 		} break;
 		case SpvOpTypeStruct: {
-			ASSERT(wordCount >= 2);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 
 			if (wordCount > 2)
@@ -2023,33 +1959,18 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 			}
 		} break;
 		case SpvOpTypePointer: {
-			ASSERT(wordCount == 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 3];
 		} break;
 		case SpvOpConstant: {
-			ASSERT(wordCount >= 4);
-
-			U32 idIndex = data[wordIndex + 1];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 2];
-			id.value = data[wordIndex + 3]; //We assume all constants to have maximum 32bit width
+			id.value = data[wordIndex + 3]; //Assume all constants to have maximum 32bit width
 		} break;
 		case SpvOpVariable: {
-			ASSERT(wordCount >= 4);
-
-			U32 idIndex = data[wordIndex + 2];
-			ASSERT(idIndex < idBound);
-
-			Id& id = ids[idIndex];
+			Id& id = ids[data[wordIndex + 2]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 1];
 			id.storageClass = (SpvStorageClass)data[wordIndex + 3];
@@ -2067,9 +1988,8 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 		{
 			switch (id.storageClass)
 			{
-			case (SpvStorageClassUniform):
-			case (SpvStorageClassUniformConstant):
-			{
+			case SpvStorageClassUniform:
+			case SpvStorageClassUniformConstant: {
 				if (id.set == 1 && (id.binding == Renderer::bindlessTextureBinding || id.binding == (Renderer::bindlessTextureBinding + 1))) { continue; }
 
 				Id& uniformType = ids[ids[id.typeIndex].typeIndex];
@@ -2080,30 +2000,57 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 				DescriptorBinding binding{};
 				binding.start = id.binding;
 				binding.count = 1;
-				
+
 				switch (uniformType.op)
 				{
-				case (SpvOpTypeStruct):
-				{
+				case SpvOpTypeStruct: {
 					binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 					binding.name = uniformType.name;
-					break;
-				}
-
-				case (SpvOpTypeSampledImage):
-				{
+				} break;
+				case SpvOpTypeSampledImage: {
 					binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 					binding.name = id.name;
-					break;
-				}
+				} break;
 				}
 
 				setLayout.AddBindingAtIndex(binding, id.binding);
 
 				shaderState->setCount = Math::Max(shaderState->setCount, (id.set + 1));
+			} break;
+			case SpvStorageClassInput: {
+				if (stage == SpvExecutionModelVertex || stage == SpvExecutionModelKernel)
+				{
+					Id& type = ids[ids[id.typeIndex].typeIndex];
+					
+					VertexAttribute attribute{};
+					attribute.binding = id.location;
+					attribute.location = id.location;
+					attribute.offset = 0;
+					attribute.count = 1;
 
-				break;
-			}
+					VertexStream stream{};
+					stream.binding = id.location;
+					stream.inputRate = VERTEX_INPUT_RATE_VERTEX;
+
+					switch (type.op)
+					{
+					case SpvOpTypeVector: {
+						attribute.count = type.count;
+						attribute.format = (ScalarType)type.typeIndex;
+						if (attribute.format == SCALAR_TYPE_DOUBLE) { stream.stride = 8 * type.count; }
+						else { stream.stride = 4 * type.count; }
+					} break;
+					case SpvOpConstant: {
+						//TODO:
+					} break;
+					}
+
+					++shaderState->vertexAttributeCount;
+					++shaderState->vertexStreamCount;
+					shaderState->vertexAttributes[id.location] = attribute;
+					shaderState->vertexStreams[id.location] = stream;
+				}
+			} break;
 			}
 		}
 

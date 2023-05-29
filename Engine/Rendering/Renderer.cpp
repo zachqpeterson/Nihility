@@ -1811,16 +1811,18 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 
 		// Compile shader module
 		VkPipelineShaderStageCreateInfo& shaderStageInfo = shaderState->shaderStageInfos[compiledShaders];
-		memset(&shaderStageInfo, 0, sizeof(VkPipelineShaderStageCreateInfo));
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStageInfo.pName = "main";
+		shaderStageInfo.pNext = nullptr;
+		shaderStageInfo.flags = 0;
 		shaderStageInfo.stage = stage.type;
+		shaderStageInfo.pName = "main";
+		shaderStageInfo.pSpecializationInfo = nullptr;
 
-		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderState->shaderStageInfos[compiledShaders].module) != VK_SUCCESS) { break; }
+		if (vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderStageInfo.module) != VK_SUCCESS) { break; }
 
 		Resources::ParseSPIRV(shaderInfo, shaderState);
 
-		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderState->shaderStageInfos[compiledShaders].module, info.name);
+		SetResourceName(VK_OBJECT_TYPE_SHADER_MODULE, (U64)shaderStageInfo.module, info.name);
 	}
 
 	bool creationFailed = compiledShaders != info.stagesCount;
@@ -1840,7 +1842,7 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 	return true;
 }
 
-bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const VertexInputCreation& vertexInput, const String& cachePath)
+bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const String& cachePath)
 {
 	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -1921,15 +1923,15 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 
 		// Vertex attributes.
 		VkVertexInputAttributeDescription vertexAttributes[8];
-		if (vertexInput.numVertexAttributes)
+		if (pipeline->shaderState->vertexAttributeCount)
 		{
-			for (U32 i = 0; i < vertexInput.numVertexAttributes; ++i)
+			for (U32 i = 0; i < pipeline->shaderState->vertexAttributeCount; ++i)
 			{
-				const VertexAttribute& vertexAttribute = vertexInput.vertexAttributes[i];
-				vertexAttributes[i] = { vertexAttribute.location, vertexAttribute.binding, ToVkVertexFormat(vertexAttribute.format), vertexAttribute.offset };
+				const VertexAttribute& vertexAttribute = pipeline->shaderState->vertexAttributes[i];
+				vertexAttributes[i] = { vertexAttribute.location, vertexAttribute.binding, ToVkVertexFormat(vertexAttribute), vertexAttribute.offset };
 			}
 
-			vertexInputInfo.vertexAttributeDescriptionCount = vertexInput.numVertexAttributes;
+			vertexInputInfo.vertexAttributeDescriptionCount = pipeline->shaderState->vertexAttributeCount;
 			vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes;
 		}
 		else
@@ -1939,13 +1941,13 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		}
 		// Vertex bindings
 		VkVertexInputBindingDescription vertexBindings[8];
-		if (vertexInput.numVertexStreams)
+		if (pipeline->shaderState->vertexStreamCount)
 		{
-			vertexInputInfo.vertexBindingDescriptionCount = vertexInput.numVertexStreams;
+			vertexInputInfo.vertexBindingDescriptionCount = pipeline->shaderState->vertexStreamCount;
 
-			for (U32 i = 0; i < vertexInput.numVertexStreams; ++i)
+			for (U32 i = 0; i < pipeline->shaderState->vertexStreamCount; ++i)
 			{
-				const VertexStream& vertexStream = vertexInput.vertexStreams[i];
+				const VertexStream& vertexStream = pipeline->shaderState->vertexStreams[i];
 				VkVertexInputRate vertexRate = vertexStream.inputRate == VERTEX_INPUT_RATE_VERTEX ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
 				vertexBindings[i] = { vertexStream.binding, vertexStream.stride, vertexRate };
 			}

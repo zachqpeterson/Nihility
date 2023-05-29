@@ -263,8 +263,9 @@ NH_HEADER_STATIC constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;	// Maximum number 
 NH_HEADER_STATIC constexpr U8	MAX_SHADER_STAGES = 5;			// Maximum simultaneous shader stages, applicable to all different type of pipelines
 NH_HEADER_STATIC constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;	// Maximum list elements for both descriptor set layout and descriptor sets
 NH_HEADER_STATIC constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;		// Maximum images a swapchain can support
-NH_HEADER_STATIC constexpr U8	MAX_VERTEX_STREAMS = 16;
-NH_HEADER_STATIC constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;
+NH_HEADER_STATIC constexpr U8	MAX_SET_COUNT = 32;				// Maximum descriptor sets a shader can have
+NH_HEADER_STATIC constexpr U8	MAX_VERTEX_STREAMS = 16;		// Maximum vertex streams a shader can have
+NH_HEADER_STATIC constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;		// Maximum vertex attributes a shader can have
 
 /*---------ENUMS---------*/
 
@@ -624,6 +625,14 @@ enum ResourceType {
 	RESOURCE_TYPE_RAYTRACING_ACCELERATION_STRUCTURE = 0x4000,
 	RESOURCE_TYPE_SHADING_RATE_SOURCE = 0x8000,
 };
+
+enum ScalarType
+{
+	SCALAR_TYPE_FLOAT = 6,
+	SCALAR_TYPE_DOUBLE = 21,
+	SCALAR_TYPE_INT = 16,
+	SCALAR_TYPE_UINT = 11,
+};
 #pragma endregion
 
 static inline String ToCompilerExtension(VkShaderStageFlagBits value)
@@ -658,16 +667,6 @@ static inline VkImageViewType ToVkImageViewType(TextureType type)
 {
 	static VkImageViewType vkData[] = { VK_IMAGE_VIEW_TYPE_1D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_CUBE_ARRAY };
 	return vkData[type];
-}
-
-static inline VkFormat ToVkVertexFormat(VertexComponentFormat value)
-{
-	// Float, Float2, Float3, Float4, Mat4, Byte, Byte4N, UByte, UByte4N, Short2, Short2N, Short4, Short4N, Uint, Uint2, Uint4, Count
-	static VkFormat vkVertexFormats[VERTEX_COMPONENT_COUNT] = { VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, /*MAT4 TODO*/ VK_FORMAT_R32G32B32A32_SFLOAT,
-																		  VK_FORMAT_R8_SINT, VK_FORMAT_R8G8B8A8_SNORM, VK_FORMAT_R8_UINT, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R16G16_SINT, VK_FORMAT_R16G16_SNORM,
-																		  VK_FORMAT_R16G16B16A16_SINT, VK_FORMAT_R16G16B16A16_SNORM, VK_FORMAT_R32_UINT, VK_FORMAT_R32G32_UINT, VK_FORMAT_R32G32B32A32_UINT };
-
-	return vkVertexFormats[value];
 }
 
 static inline VkPipelineStageFlags ToVkPipelineStage(PipelineStage value)
@@ -817,10 +816,11 @@ struct StencilOperationState
 
 struct VertexAttribute
 {
-	U16						location = 0;
-	U16						binding = 0;
-	U32						offset = 0;
-	VertexComponentFormat	format = VERTEX_COMPONENT_COUNT;
+	U16			location{ 0 };
+	U16			binding{ 0 };
+	U32			offset{ 0 };
+	U32			count{ 0 };
+	ScalarType	format{};
 };
 
 struct VertexStream
@@ -828,20 +828,6 @@ struct VertexStream
 	U16				binding = 0;
 	U16				stride = 0;
 	VertexInputRate	inputRate = VERTEX_INPUT_RATE_COUNT;
-};
-
-//TODO: Temporary export
-struct NH_API VertexInputCreation
-{
-	VertexInputCreation& Reset();
-	VertexInputCreation& AddVertexStream(const VertexStream& stream);
-	VertexInputCreation& AddVertexAttribute(const VertexAttribute& attribute);
-
-	U32						numVertexStreams = 0;
-	U32						numVertexAttributes = 0;
-
-	VertexStream			vertexStreams[MAX_VERTEX_STREAMS];
-	VertexAttribute			vertexAttributes[MAX_VERTEX_ATTRIBUTES];
 };
 
 //TODO: Temporary export
@@ -971,3 +957,47 @@ private:
 	bool	perspective{ false };
 	bool	updateProjection{ false };
 };
+
+static inline VkFormat ToVkVertexFormat(VertexAttribute attribute)
+{
+	switch (attribute.format)
+	{
+	case SCALAR_TYPE_FLOAT: {
+		switch (attribute.count)
+		{
+		case 1: return VK_FORMAT_R32_SFLOAT;
+		case 2: return VK_FORMAT_R32G32_SFLOAT;
+		case 3: return VK_FORMAT_R32G32B32_SFLOAT;
+		case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		}
+	} break;
+	case SCALAR_TYPE_INT: {
+		switch (attribute.count)
+		{
+		case 1: return VK_FORMAT_R32_SINT;
+		case 2: return VK_FORMAT_R32G32_SINT;
+		case 3: return VK_FORMAT_R32G32B32_SINT;
+		case 4: return VK_FORMAT_R32G32B32A32_SINT;
+		}
+	} break;
+	case SCALAR_TYPE_UINT: {
+		switch (attribute.count)
+		{
+		case 1: return VK_FORMAT_R32_UINT;
+		case 2: return VK_FORMAT_R32G32_UINT;
+		case 3: return VK_FORMAT_R32G32B32_UINT;
+		case 4: return VK_FORMAT_R32G32B32A32_UINT;
+		}
+	} break;
+	case SCALAR_TYPE_DOUBLE: {
+		switch (attribute.count)
+		{
+		case 1: return VK_FORMAT_R64_SFLOAT;
+		case 2: return VK_FORMAT_R64G64_SFLOAT;
+		case 3: return VK_FORMAT_R64G64B64_SFLOAT;
+		case 4: return VK_FORMAT_R64G64B64A64_SFLOAT;
+		}
+	} break;
+	default: return VK_FORMAT_MAX_ENUM;
+	}
+}

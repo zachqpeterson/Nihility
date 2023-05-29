@@ -5,26 +5,6 @@
 #include "Platform\Input.hpp"
 #include "Core\Time.hpp"
 
-// VERTEX INPUT CREATION
-
-VertexInputCreation& VertexInputCreation::Reset()
-{
-	numVertexStreams = numVertexAttributes = 0;
-	return *this;
-}
-
-VertexInputCreation& VertexInputCreation::AddVertexStream(const VertexStream& stream)
-{
-	vertexStreams[numVertexStreams++] = stream;
-	return *this;
-}
-
-VertexInputCreation& VertexInputCreation::AddVertexAttribute(const VertexAttribute& attribute)
-{
-	vertexAttributes[numVertexAttributes++] = attribute;
-	return *this;
-}
-
 // DEPTH STENCIL CREATION
 
 DepthStencilCreation& DepthStencilCreation::SetDepth(bool write, VkCompareOp comparisonTest)
