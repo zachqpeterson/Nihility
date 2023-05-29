@@ -7,11 +7,17 @@
 struct Scene
 {
 public:
+
+private:
+
+public:
 	String				name{ NO_INIT };
 
-	Vector<MeshDraw>	meshDraws;
+	Vector<MeshDraw>	mesh_draws;
 
 	Vector<Texture*>	images;
 	Vector<Sampler*>	samplers;
 	Vector<Buffer*>		buffers;
 };
+
+//bool SetupScene(Vector<MeshDraw>& draw);

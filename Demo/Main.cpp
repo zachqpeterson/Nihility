@@ -177,10 +177,10 @@ bool Init()
 	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
 	meshDraw.materialBuffer = Resources::CreateBuffer(bufferCreation);
 
-	meshDraw.diffuseTextureIndex = textures[0]->handle;
-	meshDraw.metalRoughOcclTextureIndex = textures[1]->handle;
-	meshDraw.normalTextureIndex = textures[2]->handle;
-	meshDraw.emissivityTextureIndex = textures[3]->handle;
+	meshDraw.diffuseTextureIndex = (U16)textures[0]->handle;
+	meshDraw.metalRoughOcclTextureIndex = (U16)textures[1]->handle;
+	meshDraw.normalTextureIndex = (U16)textures[2]->handle;
+	meshDraw.emissivityTextureIndex = (U16)textures[3]->handle;
 
 	meshDraw.baseColorFactor = Vector4::One;
 	meshDraw.metalRoughOcclFactor = Vector4::One;

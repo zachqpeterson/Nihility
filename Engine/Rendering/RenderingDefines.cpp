@@ -170,8 +170,8 @@ void Camera::Update()
 			I32 x, y;
 			Input::MouseDelta(x, y);
 
-			targetYaw -= x * mouseSensitivity * Time::DeltaTime();
-			targetPitch -= y * mouseSensitivity * Time::DeltaTime();
+			targetYaw -= x * mouseSensitivity * (F32)Time::DeltaTime();
+			targetPitch -= y * mouseSensitivity * (F32)Time::DeltaTime();
 		}
 		else
 		{
@@ -202,12 +202,12 @@ void Camera::Update()
 
 	targetMovement += cameraMovement;
 
-	const F32 tweenSpeed = rotationSpeed * Time::DeltaTime();
+	const F32 tweenSpeed = rotationSpeed * (F32)Time::DeltaTime();
 
 	pitch += (targetPitch - pitch) * tweenSpeed;
 	yaw += (targetYaw - yaw) * tweenSpeed;
 
-	const F32 tweenPositionSpeed = movementSpeed * Time::DeltaTime();
+	const F32 tweenPositionSpeed = movementSpeed * (F32)Time::DeltaTime();
 	position = Math::Lerp(position, targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime())); //TODO: Abstract
 }
 

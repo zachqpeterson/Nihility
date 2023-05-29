@@ -29,7 +29,7 @@ void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	poolInfo.maxSets = globalPoolElements * CountOf(poolSizes);
+	poolInfo.maxSets = globalPoolElements * CountOf32(poolSizes);
 	poolInfo.poolSizeCount = CountOf32(poolSizes);
 	poolInfo.pPoolSizes = poolSizes;
 	VkValidateF(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &descriptorPool));
@@ -558,8 +558,8 @@ void CommandBuffer::Reset()
 
 	vkResetDescriptorPool(Renderer::device, descriptorPool, 0);
 
-	U32 resourceCount = descriptorSets.lastFree;
-	for (U32 i = 0; i < resourceCount; ++i)
+	U64 resourceCount = descriptorSets.lastFree;
+	for (U64 i = 0; i < resourceCount; ++i)
 	{
 		DescriptorSet* descriptorSet = (DescriptorSet*)descriptorSets.GetResource(i);
 
