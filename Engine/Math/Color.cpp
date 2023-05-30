@@ -35,6 +35,7 @@ ColorRGB::ColorRGB(ColorRGB&& other) noexcept : rgba{ other.rgba } {}
 ColorRGB& ColorRGB::operator=(const ColorRGB& other) { rgba = other.rgba; return *this; }
 ColorRGB& ColorRGB::operator=(ColorRGB&& other) noexcept { rgba = other.rgba; return *this; }
 
+U32 ColorRGB::RGBA() const { return rgba; }
 F32 ColorRGB::R() const { return ((rgba >> 24) & 0xff) / 255.0f; }
 F32 ColorRGB::G() const { return ((rgba >> 16) & 0xff) / 255.0f; }
 F32 ColorRGB::B() const { return ((rgba >> 8) & 0xff) / 255.0f; }

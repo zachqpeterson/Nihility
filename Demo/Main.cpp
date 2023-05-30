@@ -170,6 +170,7 @@ bool Init()
 
 	meshDraw.baseColorFactor = Vector4::One;
 	meshDraw.metalRoughOcclFactor = Vector4::One;
+	meshDraw.emissiveFactor = Vector4::Zero;
 	meshDraw.material = materialCullOpaque;
 	meshDraw.scale = Vector3::One * 100.0f;
 
@@ -187,6 +188,7 @@ static void UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw, const F
 	meshData.textures[3] = meshDraw.emissivityTextureIndex;
 	meshData.baseColorFactor = meshDraw.baseColorFactor;
 	meshData.metalRoughOcclFactor = meshDraw.metalRoughOcclFactor;
+	meshData.emissiveFactor = meshDraw.emissiveFactor;
 	meshData.alphaCutoff = meshDraw.alphaCutoff;
 	meshData.flags = meshDraw.flags;
 

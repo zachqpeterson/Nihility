@@ -21,6 +21,7 @@ layout(std140, binding = 1) uniform MaterialConstant
     uvec4       textures;
     vec4        baseColorFactor;
     vec4        metalRoughOcclFactor;
+    vec4        emissiveFactor;
     float       alphaCutoff;
     uint        flags;
 };
@@ -127,12 +128,11 @@ void main()
         metallicness *= rmo.b;
     }
 
-    //TODO: Pass in emissivityFactor
-    vec3 emissivity = vec3(0.0);
+    vec3 emissivity = emissiveFactor.rgb;
 
     if(textures.w != INVALID_TEXTURE_INDEX)
     {
-        emissivity = texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).xyz;
+        emissivity += texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).xyz;
     }
 
     baseColor.rgb = DecodeSRGB(baseColor.rgb);

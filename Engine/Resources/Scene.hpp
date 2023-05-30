@@ -17,7 +17,7 @@ public:
 
 	Vector<Texture*>	images;
 	Vector<Sampler*>	samplers;
-	Vector<Buffer*>		buffers;
+	Vector<Buffer*>		buffers; //These should never be child buffers, most should be parent buffers
 };
 
 //bool SetupScene(Vector<MeshDraw>& draw);

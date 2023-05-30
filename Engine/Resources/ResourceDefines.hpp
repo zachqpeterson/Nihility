@@ -403,6 +403,7 @@ struct MeshData
 	Vector4Int	textures; // diffuse, roughness, normal, occlusion
 	Vector4		baseColorFactor;
 	Vector4		metalRoughOcclFactor;
+	Vector4		emissiveFactor;
 	F32			alphaCutoff;
 	F32			unused[3];
 	U32			flags;
@@ -410,22 +411,22 @@ struct MeshData
 
 struct NH_API MeshDraw
 {
-	Material* material;
+	Material*	material;
 
-	Buffer* indexBuffer;
-	Buffer* positionBuffer;
-	Buffer* tangentBuffer;
-	Buffer* normalBuffer;
-	Buffer* texcoordBuffer;
-	Buffer* materialBuffer;
+	Buffer*		indexBuffer;
+	Buffer*		positionBuffer;
+	Buffer*		tangentBuffer;
+	Buffer*		normalBuffer;
+	Buffer*		texcoordBuffer;
+	Buffer*		materialBuffer;
 
-	U32 indexOffset;
-	U32 positionOffset;
-	U32 tangentOffset;
-	U32 normalOffset;
-	U32 texcoordOffset;
+	U32			indexOffset;
+	U32			positionOffset;
+	U32			tangentOffset;
+	U32			normalOffset;
+	U32			texcoordOffset;
 
-	U32 primitiveCount;
+	U32			primitiveCount;
 
 	U16			diffuseTextureIndex;
 	U16			metalRoughOcclTextureIndex;
@@ -434,12 +435,14 @@ struct NH_API MeshDraw
 
 	Vector4		baseColorFactor;
 	Vector4		metalRoughOcclFactor;
+	Vector4		emissiveFactor;
+	Vector3		position;
+	Quaternion3	rotation;
 	Vector3		scale;
 
 	F32			alphaCutoff;
 	U32			flags;
 };
-
 
 struct NH_API Transform
 {

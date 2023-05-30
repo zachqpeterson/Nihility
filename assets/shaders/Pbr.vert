@@ -18,6 +18,7 @@ layout(std140, binding = 1) uniform MaterialConstant
     uvec4       textures;
     vec4        baseColorFactor;
     vec4        metalRoughOcclFactor;
+    vec4        emissiveFactor;
     float       alphaCutoff;
     uint        flags;
 };

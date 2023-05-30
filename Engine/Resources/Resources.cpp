@@ -3,6 +3,7 @@
 #include "Rendering\Renderer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
+#include "Math\Color.hpp"
 
 #define TEXTURES_PATH "textures/"
 #define AUDIO_PATH "audio/"
@@ -906,9 +907,58 @@ void Resources::SaveScene(const Scene* scene)
 	File file(path, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
 	{
-		
+		file.Write(scene->name);
+		for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
+		for (Texture* texture : scene->images) { file.Write(texture->name); }
+		//TODO: Samplers
 
-		//TODO: Save
+		for (const MeshDraw& mesh : scene->meshDraws)
+		{
+			//TODO: buffer indices, generate this when writing out URIs
+			file.Write(0);
+			file.Write(mesh.texcoordOffset);
+			file.Write(mesh.texcoordBuffer->size);
+			file.Write(1);
+			file.Write(mesh.normalOffset);
+			file.Write(mesh.normalBuffer->size);
+			file.Write(2);
+			file.Write(mesh.tangentOffset);
+			file.Write(mesh.tangentBuffer->size);
+			file.Write(3);
+			file.Write(mesh.positionOffset);
+			file.Write(mesh.positionBuffer->size);
+			file.Write(4);
+			file.Write(mesh.indexOffset);
+			file.Write(mesh.indexBuffer->size);
+
+			//TODO: texture indices, generate this when writing out URIs
+
+			file.Write(mesh.baseColorFactor.x);
+			file.Write(mesh.baseColorFactor.y);
+			file.Write(mesh.baseColorFactor.z);
+			file.Write(mesh.baseColorFactor.w);
+			file.Write(mesh.metalRoughOcclFactor.x);
+			file.Write(mesh.metalRoughOcclFactor.y);
+			file.Write(mesh.metalRoughOcclFactor.z);
+			file.Write(mesh.emissiveFactor.x);
+			file.Write(mesh.emissiveFactor.y);
+			file.Write(mesh.emissiveFactor.z);
+			file.Write(mesh.flags);
+			file.Write(mesh.alphaCutoff);
+
+			Vector3 rotation = mesh.rotation.Euler();
+			file.Write(mesh.position.x);
+			file.Write(mesh.position.y);
+			file.Write(mesh.position.z);
+			file.Write(rotation.x);
+			file.Write(rotation.y);
+			file.Write(rotation.z);
+			file.Write(mesh.scale.x);
+			file.Write(mesh.scale.y);
+			file.Write(mesh.scale.z);
+		}
+
+		file.Close();
 	}
 }
 

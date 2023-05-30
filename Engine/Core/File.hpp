@@ -174,7 +174,7 @@ inline U32 File::Read(Type& value)
 template <StringType Str>
 inline U32 File::Write(const Str& data)
 {
-	return Write(data.Data(), (U32)data.Size());
+	return Write(data.Data(), (U32)data.Size() + 1);
 }
 
 template <typename Type>

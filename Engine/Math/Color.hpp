@@ -13,6 +13,7 @@ struct ColorRGB
 	ColorRGB& operator=(const ColorRGB& other);
 	ColorRGB& operator=(ColorRGB&& other) noexcept;
 
+	U32 RGBA() const;
 	F32 R() const;
 	F32 G() const;
 	F32 B() const;
@@ -54,6 +55,7 @@ struct ColorHSV
 	ColorHSV& operator=(const ColorHSV& other);
 	ColorHSV& operator=(ColorHSV&& other) noexcept;
 
+	U32 HSVA() const;
 	F32 H() const;
 	F32 S() const;
 	F32 V() const;
