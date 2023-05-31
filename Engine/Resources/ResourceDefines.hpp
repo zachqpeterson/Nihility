@@ -117,6 +117,7 @@ struct Sampler
 {
 	String					name{ NO_INIT };
 	HashHandle				handle;
+	U32						sceneID;
 
 	VkFilter				minFilter = VK_FILTER_NEAREST;
 	VkFilter				magFilter = VK_FILTER_NEAREST;
@@ -133,6 +134,7 @@ struct Texture
 {
 	String				name{ NO_INIT };
 	HashHandle			handle;
+	U32					sceneID;
 
 	U16					width = 1;
 	U16					height = 1;
@@ -155,6 +157,7 @@ struct Buffer
 {
 	String				name{ NO_INIT };
 	HashHandle			handle;
+	U32					sceneID;
 
 	Buffer* parentBuffer;
 
@@ -411,37 +414,41 @@ struct MeshData
 
 struct NH_API MeshDraw
 {
-	Material*	material;
+	Material* material;
 
-	Buffer*		indexBuffer;
-	Buffer*		positionBuffer;
-	Buffer*		tangentBuffer;
-	Buffer*		normalBuffer;
-	Buffer*		texcoordBuffer;
-	Buffer*		materialBuffer;
+	Buffer* indexBuffer;
+	Buffer* positionBuffer;
+	Buffer* tangentBuffer;
+	Buffer* normalBuffer;
+	Buffer* texcoordBuffer;
+	Buffer* materialBuffer;
 
-	U32			indexOffset;
-	U32			positionOffset;
-	U32			tangentOffset;
-	U32			normalOffset;
-	U32			texcoordOffset;
+	//TODO: Are these needed?
+	U32			indexOffset{0};
+	U32			positionOffset{ 0 };
+	U32			tangentOffset{ 0 };
+	U32			normalOffset{ 0 };
+	U32			texcoordOffset{ 0 };
 
-	U32			primitiveCount;
+	U32			primitiveCount; //TODO: Probably don't need this, just use indexBuffer->size
 
-	U16			diffuseTextureIndex;
-	U16			metalRoughOcclTextureIndex;
-	U16			normalTextureIndex;
-	U16			emissivityTextureIndex;
+	//These are HashHandles, used in bindless resources
+	U16			diffuseTextureIndex{U16_MAX};
+	U16			metalRoughOcclTextureIndex{ U16_MAX };
+	U16			normalTextureIndex{ U16_MAX };
+	U16			emissivityTextureIndex{ U16_MAX };
 
-	Vector4		baseColorFactor;
-	Vector4		metalRoughOcclFactor;
-	Vector4		emissiveFactor;
-	Vector3		position;
-	Quaternion3	rotation;
-	Vector3		scale;
+	Vector4		baseColorFactor{ Vector4::One };
+	Vector4		metalRoughOcclFactor{ Vector4::One }; //TODO: Look into making these Vector3
+	Vector4		emissiveFactor{ Vector4::Zero };
 
-	F32			alphaCutoff;
-	U32			flags;
+	//TODO: Transform component
+	Vector3		position{ Vector3::Zero };
+	Quaternion3	rotation{ Quaternion3::Identity };
+	Vector3		scale{ Vector3::One };
+
+	F32			alphaCutoff{ 0.0f };
+	U32			flags{ 0 };
 };
 
 struct NH_API Transform

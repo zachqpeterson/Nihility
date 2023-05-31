@@ -914,24 +914,27 @@ void Resources::SaveScene(const Scene* scene)
 
 		for (const MeshDraw& mesh : scene->meshDraws)
 		{
-			//TODO: buffer indices, generate this when writing out URIs
+			//TODO: Don't hardcode buffer indices, if parent buffer, write sceneID, if child buffer, write parent's sceneID
 			file.Write(0);
 			file.Write(mesh.texcoordOffset);
 			file.Write(mesh.texcoordBuffer->size);
-			file.Write(1);
+			file.Write(0);
 			file.Write(mesh.normalOffset);
 			file.Write(mesh.normalBuffer->size);
-			file.Write(2);
+			file.Write(0);
 			file.Write(mesh.tangentOffset);
 			file.Write(mesh.tangentBuffer->size);
-			file.Write(3);
+			file.Write(0);
 			file.Write(mesh.positionOffset);
 			file.Write(mesh.positionBuffer->size);
-			file.Write(4);
+			file.Write(0);
 			file.Write(mesh.indexOffset);
 			file.Write(mesh.indexBuffer->size);
 
-			//TODO: texture indices, generate this when writing out URIs
+			file.Write(AccessTexture(mesh.diffuseTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.normalTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.emissivityTextureIndex)->sceneID);
 
 			file.Write(mesh.baseColorFactor.x);
 			file.Write(mesh.baseColorFactor.y);
