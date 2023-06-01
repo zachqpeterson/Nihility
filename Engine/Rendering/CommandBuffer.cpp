@@ -135,29 +135,27 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 	currentPipeline = pipeline;
 }
 
-void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset)
+void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding)
 {
-	VkDeviceSize offsets[] = { offset };
+	VkDeviceSize offsets[] = { buffer->globalOffset };
 	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
 	if (buffer->parentBuffer != nullptr)
 	{
 		vkBuffer = buffer->parentBuffer->buffer;
-		offsets[0] = buffer->globalOffset;
 	}
 
 	vkCmdBindVertexBuffers(commandBuffer, binding, 1, &vkBuffer, offsets);
 }
 
-void CommandBuffer::BindIndexBuffer(Buffer* buffer, U32 offset)
+void CommandBuffer::BindIndexBuffer(Buffer* buffer)
 {
 	VkBuffer vkBuffer = buffer->buffer;
-	VkDeviceSize vkOffset = offset;
+	VkDeviceSize vkOffset = buffer->globalOffset;
 
 	if (buffer->parentBuffer != nullptr)
 	{
 		vkBuffer = buffer->parentBuffer->buffer;
-		vkOffset = buffer->globalOffset;
 	}
 
 	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, VK_INDEX_TYPE_UINT16);

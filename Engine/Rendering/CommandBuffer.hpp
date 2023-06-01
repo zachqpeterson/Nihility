@@ -12,8 +12,8 @@ struct NH_API CommandBuffer
 	DescriptorSet* CreateDescriptorSet(DescriptorSetCreation& info);
 	void BindPass(RenderPass* renderPass);
 	void BindPipeline(Pipeline* pipeline);
-	void BindVertexBuffer(Buffer* buffer, U32 binding, U32 offset);
-	void BindIndexBuffer(Buffer* buffer, U32 offset);
+	void BindVertexBuffer(Buffer* buffer, U32 binding);
+	void BindIndexBuffer(Buffer* buffer);
 	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
 
 	void SetViewport(const Viewport* viewport);

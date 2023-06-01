@@ -15,8 +15,8 @@ public:
 
 	Vector<MeshDraw>	meshDraws;	//TODO: Just call these Mesh, not MeshDraw
 
-	Vector<Texture*>	images;		//TODO: Probably don't need to store textures here, just handles which might be more useful
-	Vector<Sampler*>	samplers;	//TODO: Probably don't need samplers here at all, textures have access to samplers
+	Vector<Texture*>	textures;	//TODO: Probably don't need to store textures here, just handles which might be more useful
+	Vector<Sampler*>	samplers;
 	Vector<Buffer*>		buffers;	//These are parent buffers, meshes will hold child buffers to these
 };
 

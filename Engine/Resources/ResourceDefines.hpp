@@ -67,21 +67,6 @@ struct NH_API TextureCreation
 	String				name{ NO_INIT };
 };
 
-struct NH_API BufferCreation
-{
-	BufferCreation& Reset();
-	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size);
-	BufferCreation& SetData(void* data);
-	BufferCreation& SetName(const String& name);
-
-	VkBufferUsageFlags	typeFlags = 0;
-	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
-	U64					size = 0;
-	void* initialData = nullptr;
-
-	String				name{ NO_INIT };
-};
-
 struct NH_API DescriptorSetLayoutCreation
 {
 	DescriptorSetLayoutCreation& Reset();
@@ -170,6 +155,24 @@ struct Buffer
 	VmaAllocation_T* allocation;
 	VkDeviceMemory		deviceMemory;
 	VkDeviceSize		deviceSize;
+};
+
+struct NH_API BufferCreation
+{
+	BufferCreation& Reset();
+	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size);
+	BufferCreation& SetData(void* data);
+	BufferCreation& SetName(const String& name);
+	BufferCreation& SetParent(Buffer* parent, U64 offset);
+
+	VkBufferUsageFlags	typeFlags{ 0 };
+	ResourceUsage		usage{ RESOURCE_USAGE_IMMUTABLE };
+	U64					size{ 0 };
+	U64					offset{ 0 };
+	void* initialData{ nullptr };
+	Buffer* parentBuffer{ nullptr };
+
+	String				name{ NO_INIT };
 };
 
 struct DescriptorSetLayout
@@ -423,17 +426,10 @@ struct NH_API MeshDraw
 	Buffer* texcoordBuffer;
 	Buffer* materialBuffer;
 
-	//TODO: Are these needed?
-	U32			indexOffset{0};
-	U32			positionOffset{ 0 };
-	U32			tangentOffset{ 0 };
-	U32			normalOffset{ 0 };
-	U32			texcoordOffset{ 0 };
-
 	U32			primitiveCount; //TODO: Probably don't need this, just use indexBuffer->size
 
 	//These are HashHandles, used in bindless resources
-	U16			diffuseTextureIndex{U16_MAX};
+	U16			diffuseTextureIndex{ U16_MAX };
 	U16			metalRoughOcclTextureIndex{ U16_MAX };
 	U16			normalTextureIndex{ U16_MAX };
 	U16			emissivityTextureIndex{ U16_MAX };

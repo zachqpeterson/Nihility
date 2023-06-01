@@ -597,7 +597,9 @@ bool Renderer::CreatePrimitiveResources()
 		.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR).SetName("Sampler Default");
 	defaultSampler = Resources::CreateSampler(sc);
 
-	BufferCreation fullscreenVbCreation{ VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 0, nullptr, "Fullscreen_vb" };
+	BufferCreation fullscreenVbCreation{};
+	fullscreenVbCreation.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 0);
+	fullscreenVbCreation.SetName("Fullscreen_vb");
 	fullscreenVertexBuffer = Resources::CreateBuffer(fullscreenVbCreation);
 
 	TextureCreation depthTextureCreation{ nullptr, swapchainWidth, swapchainHeight, 1, 1, 0, VK_FORMAT_D32_SFLOAT, TEXTURE_TYPE_2D, "DepthImage_Texture" };
@@ -610,7 +612,9 @@ bool Renderer::CreatePrimitiveResources()
 	swapchainPassCreation.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
 	swapchainPass = Resources::CreateRenderPass(swapchainPassCreation);
 
-	BufferCreation dummyConstantBufferCreation = { VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 16, nullptr, "Dummy_cb" };
+	BufferCreation dummyConstantBufferCreation{};
+	dummyConstantBufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 16);
+	dummyConstantBufferCreation.SetName("Dummy_cb");
 	dummyConstantBuffer = Resources::CreateBuffer(dummyConstantBufferCreation);
 
 #if defined(_MSC_VER)
@@ -882,7 +886,6 @@ void* Renderer::MapBuffer(const MapBufferParameters& parameters)
 
 	if (parameters.buffer->parentBuffer == dynamicBuffer)
 	{
-
 		parameters.buffer->globalOffset = dynamicAllocatedSize;
 
 		return DynamicAllocate(parameters.size == 0 ? parameters.buffer->size : parameters.size);

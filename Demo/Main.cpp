@@ -59,70 +59,55 @@ bool Init()
 
 	Vector<Texture*> textures{ 4 };
 
+	Sampler* sampler = Resources::AccessDefaultSampler();
+	sampler->sceneID = 0;
+
 	Texture* texture = Resources::LoadTexture("BoomBox_baseColor.bmp", true);
+	texture->sceneID = textures.Size();
+	texture->sampler = sampler;
 	textures.Push(texture);
 	texture = Resources::LoadTexture("BoomBox_occlusionRoughnessMetallic.bmp", true);
+	texture->sampler = sampler;
+	texture->sceneID = textures.Size();
 	textures.Push(texture);
 	texture = Resources::LoadTexture("BoomBox_normal.bmp", true);
+	texture->sampler = sampler;
+	texture->sceneID = textures.Size();
 	textures.Push(texture);
 	texture = Resources::LoadTexture("BoomBox_emissive.bmp", true);
+	texture->sampler = sampler;
+	texture->sceneID = textures.Size();
 	textures.Push(texture);
 
 	void* bufferData{ nullptr };
 	U32 bufferLength = Resources::LoadBinary("BoomBox.bin", &bufferData);
+	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+	bufferCreation.Reset().SetName("BoomBox").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferLength).SetData(bufferData);
+
+	Buffer* parentBuffer = Resources::CreateBuffer(bufferCreation);
+	parentBuffer->sceneID = 0;
 
 	Vector<Buffer*> buffers{ 5 };
 
-	U32 bufferOffset = 0;
-	U32 bufferSize = 28600;
-	U8* data = (U8*)bufferData + bufferOffset;
-
-	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-	bufferCreation.Reset().SetName("buffer_0").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
-
+	bufferCreation.Reset().SetName("buffer_0").Set(flags, RESOURCE_USAGE_IMMUTABLE, 28600).SetParent(parentBuffer, 0);
 	Buffer* br = Resources::CreateBuffer(bufferCreation);
-
 	buffers.Push(br);
 
-	bufferSize = 42900;
-	bufferOffset = 28600;
-	data = (U8*)bufferData + bufferOffset;
-
-	bufferCreation.Reset().SetName("buffer_1").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
-
+	bufferCreation.Reset().SetName("buffer_1").Set(flags, RESOURCE_USAGE_IMMUTABLE, 42900).SetParent(parentBuffer, 28600);
 	br = Resources::CreateBuffer(bufferCreation);
-
 	buffers.Push(br);
 
-	bufferSize = 57200;
-	bufferOffset = 71500;
-	data = (U8*)bufferData + bufferOffset;
-
-	bufferCreation.Reset().SetName("buffer_2").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
-
+	bufferCreation.Reset().SetName("buffer_2").Set(flags, RESOURCE_USAGE_IMMUTABLE, 57200).SetParent(parentBuffer, 71500);
 	br = Resources::CreateBuffer(bufferCreation);
-
 	buffers.Push(br);
 
-	bufferSize = 42900;
-	bufferOffset = 128700;
-	data = (U8*)bufferData + bufferOffset;
-
-	bufferCreation.Reset().SetName("buffer_3").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
-
+	bufferCreation.Reset().SetName("buffer_3").Set(flags, RESOURCE_USAGE_IMMUTABLE, 42900).SetParent(parentBuffer, 128700);
 	br = Resources::CreateBuffer(bufferCreation);
-
 	buffers.Push(br);
 
-	bufferSize = 36216;
-	bufferOffset = 171600;
-	data = (U8*)bufferData + bufferOffset;
-
-	bufferCreation.Reset().SetName("buffer_4").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferSize).SetData(data);
-
+	bufferCreation.Reset().SetName("buffer_4").Set(flags, RESOURCE_USAGE_IMMUTABLE, 36216).SetParent(parentBuffer, 171600);
 	br = Resources::CreateBuffer(bufferCreation);
-
 	buffers.Push(br);
 
 	Vector3 nodeScale = Vector3::One * 3.0f;
@@ -140,8 +125,7 @@ bool Init()
 	transform.CalculateMatrix(finalMatrix);
 
 	meshDraw.indexBuffer = buffers[4];
-	meshDraw.indexOffset = 0;
-	meshDraw.primitiveCount = 18108;
+	meshDraw.primitiveCount = meshDraw.indexBuffer->size / sizeof(U16);
 
 	I32 positionIndex = 3;
 	I32 tangentIndex = 2;
@@ -149,16 +133,9 @@ bool Init()
 	I32 texcoordIndex = 0;
 
 	meshDraw.positionBuffer = buffers[positionIndex];
-	meshDraw.positionOffset = 0;
-
 	meshDraw.normalBuffer = buffers[normalIndex];
-	meshDraw.normalOffset = 0;
-
 	meshDraw.tangentBuffer = buffers[tangentIndex];
-	meshDraw.tangentOffset = 0;
-
 	meshDraw.texcoordBuffer = buffers[texcoordIndex];
-	meshDraw.texcoordOffset = 0;
 
 	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
 	meshDraw.materialBuffer = Resources::CreateBuffer(bufferCreation);
@@ -205,11 +182,11 @@ static void DrawMesh(CommandBuffer* commands, MeshDraw& meshDraw)
 	dsCreation.SetLayout(meshDraw.material->program->passes[0].descriptorSetLayout);
 	DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
 
-	commands->BindVertexBuffer(meshDraw.positionBuffer, 0, meshDraw.positionOffset);
-	commands->BindVertexBuffer(meshDraw.tangentBuffer, 1, meshDraw.tangentOffset);
-	commands->BindVertexBuffer(meshDraw.normalBuffer, 2, meshDraw.normalOffset);
-	commands->BindVertexBuffer(meshDraw.texcoordBuffer, 3, meshDraw.texcoordOffset);
-	commands->BindIndexBuffer(meshDraw.indexBuffer, meshDraw.indexOffset);
+	commands->BindVertexBuffer(meshDraw.positionBuffer, 0);
+	commands->BindVertexBuffer(meshDraw.tangentBuffer, 1);
+	commands->BindVertexBuffer(meshDraw.normalBuffer, 2);
+	commands->BindVertexBuffer(meshDraw.texcoordBuffer, 3);
+	commands->BindIndexBuffer(meshDraw.indexBuffer);
 	commands->BindDescriptorSet(&descriptorSet, 1, nullptr, 0);
 
 	commands->DrawIndexed(TOPOLOGY_TYPE_TRIANGLE, meshDraw.primitiveCount, 1, 0, 0, 0);

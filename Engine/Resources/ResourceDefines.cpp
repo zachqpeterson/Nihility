@@ -117,6 +117,14 @@ BufferCreation& BufferCreation::SetName(const String& name)
 	return *this;
 }
 
+BufferCreation& BufferCreation::SetParent(Buffer* parent, U64 offset)
+{
+	parentBuffer = parent;
+	this->offset = offset;
+
+	return *this;
+}
+
 // DESCRIPTOR SET LAYOUT CREATION
 
 DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::Reset()

@@ -699,8 +699,8 @@ Buffer* Resources::CreateBuffer(const BufferCreation& info)
 	buffer->size = info.size;
 	buffer->typeFlags = info.typeFlags;
 	buffer->usage = info.usage;
-	buffer->globalOffset = 0;
-	buffer->parentBuffer = nullptr;
+	buffer->globalOffset = info.offset;
+	buffer->parentBuffer = info.parentBuffer;
 	buffer->handle = buffers.GetHandle(info.name);
 
 	Renderer::CreateBuffer(buffer, info.initialData);
@@ -907,34 +907,49 @@ void Resources::SaveScene(const Scene* scene)
 	File file(path, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
 	{
+		file.Write(scene->buffers.Size());
+		file.Write(scene->textures.Size());
+		file.Write(scene->samplers.Size());
+
 		file.Write(scene->name);
 		for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
-		for (Texture* texture : scene->images) { file.Write(texture->name); }
-		//TODO: Samplers
+		for (Texture* texture : scene->textures) { file.Write(texture->name); }
+		for (Sampler* sampler : scene->samplers)
+		{
+			file.Write(sampler->minFilter);
+			file.Write(sampler->magFilter);
+			file.Write(sampler->mipFilter);
+			file.Write(sampler->addressModeU);
+			file.Write(sampler->addressModeV);
+			file.Write(sampler->addressModeW);
+		}
 
 		for (const MeshDraw& mesh : scene->meshDraws)
 		{
-			//TODO: Don't hardcode buffer indices, if parent buffer, write sceneID, if child buffer, write parent's sceneID
-			file.Write(0);
-			file.Write(mesh.texcoordOffset);
+			file.Write(mesh.texcoordBuffer->parentBuffer->sceneID);
+			file.Write(mesh.texcoordBuffer->globalOffset);
 			file.Write(mesh.texcoordBuffer->size);
-			file.Write(0);
-			file.Write(mesh.normalOffset);
+			file.Write(mesh.normalBuffer->parentBuffer->sceneID);
+			file.Write(mesh.normalBuffer->globalOffset);
 			file.Write(mesh.normalBuffer->size);
-			file.Write(0);
-			file.Write(mesh.tangentOffset);
+			file.Write(mesh.tangentBuffer->parentBuffer->sceneID);
+			file.Write(mesh.tangentBuffer->globalOffset);
 			file.Write(mesh.tangentBuffer->size);
-			file.Write(0);
-			file.Write(mesh.positionOffset);
+			file.Write(mesh.positionBuffer->parentBuffer->sceneID);
+			file.Write(mesh.positionBuffer->globalOffset);
 			file.Write(mesh.positionBuffer->size);
-			file.Write(0);
-			file.Write(mesh.indexOffset);
+			file.Write(mesh.indexBuffer->parentBuffer->sceneID);
+			file.Write(mesh.indexBuffer->globalOffset);
 			file.Write(mesh.indexBuffer->size);
 
 			file.Write(AccessTexture(mesh.diffuseTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.diffuseTextureIndex)->sampler->sceneID);
 			file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sampler->sceneID);
 			file.Write(AccessTexture(mesh.normalTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.normalTextureIndex)->sampler->sceneID);
 			file.Write(AccessTexture(mesh.emissivityTextureIndex)->sceneID);
+			file.Write(AccessTexture(mesh.emissivityTextureIndex)->sampler->sceneID);
 
 			file.Write(mesh.baseColorFactor.x);
 			file.Write(mesh.baseColorFactor.y);

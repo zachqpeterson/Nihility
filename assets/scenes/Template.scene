@@ -4,6 +4,13 @@ scene name (null terminated string)
 bin uris (null terminated strings)		//These could technically be shuffled, a loader should determine uri type by file extension
 texture uris (null terminated string)
 //TODO: sampler info
+	VkFilter				minFilter = VK_FILTER_NEAREST;
+	VkFilter				magFilter = VK_FILTER_NEAREST;
+	VkSamplerMipmapMode		mipFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+	VkSamplerAddressMode	addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
 for each mesh:
 	texcoord buffer info:
@@ -28,9 +35,13 @@ for each mesh:
 		buffer size (U32)
 	material info:
 		diffuse texture index (U32)		//An index of U32_MAX will indicate there is no texture for this type
+		diffuse sampler index (U32)
 		metal/roughness/occlusion texture index (U32)
+		metal/roughness/occlusion sampler index (U32)
 		normal texture index (U32)
+		normal sampler index (U32)
 		emissive texture index (U32)
+		emissive sampler index (U32)
 		base color factor (RGBA F32)	//This will be clamped to 0.0 - 1.0
 		metallic factor (F32)			//Factors will be clamped to 0.0 - 1.0
 		roughness factor (F32)
