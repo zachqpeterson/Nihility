@@ -9,8 +9,8 @@
 
 Buffer* sceneConstantBuffer;
 DescriptorSetLayout* cubeDescriptorSetLayout;
-MeshDraw meshDraw{};
 Camera camera{ true, 20.0f, 6.0f, 0.1f };
+Scene scene;
 
 bool Init()
 {
@@ -21,7 +21,7 @@ bool Init()
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 
-	pipelineCreation.shaders.SetName("PBR").AddStage("Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Constant buffer
 	BufferCreation bufferCreation;
@@ -35,52 +35,51 @@ bool Init()
 
 	pipelineCreation.rasterization = rasterization;
 
-	pipelineCreation.name = "main_no_cull";
+	pipelineCreation.name = "shaders/main_no_cull";
 	Program* programNoCull = Resources::CreateProgram({ pipelineCreation });
 
 	pipelineCreation.rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
 
-	pipelineCreation.name = "main_cull";
+	pipelineCreation.name = "shaders/main_cull";
 	Program* programCull = Resources::CreateProgram({ pipelineCreation });
 
 	MaterialCreation materialCreation;
 
-	materialCreation.SetName("material_no_cull_opaque").SetProgram(programNoCull).SetRenderIndex(0);
+	materialCreation.SetName("materials/material_no_cull_opaque").SetProgram(programNoCull).SetRenderIndex(0);
 	Material* materialNoCullOpaque = Resources::CreateMaterial(materialCreation);
 
-	materialCreation.SetName("material_cull_opaque").SetProgram(programCull).SetRenderIndex(1);
+	materialCreation.SetName("materials/material_cull_opaque").SetProgram(programCull).SetRenderIndex(1);
 	Material* materialCullOpaque = Resources::CreateMaterial(materialCreation);
 
-	materialCreation.SetName("material_no_cull_transparent").SetProgram(programNoCull).SetRenderIndex(2);
+	materialCreation.SetName("materials/material_no_cull_transparent").SetProgram(programNoCull).SetRenderIndex(2);
 	Material* materialNoCullTransparent = Resources::CreateMaterial(materialCreation);
 
-	materialCreation.SetName("material_cull_transparent").SetProgram(programCull).SetRenderIndex(3);
+	materialCreation.SetName("materials/material_cull_transparent").SetProgram(programCull).SetRenderIndex(3);
 	Material* materialCullTransparent = Resources::CreateMaterial(materialCreation);
-
-	Vector<Texture*> textures{ 4 };
 
 	Sampler* sampler = Resources::AccessDefaultSampler();
 	sampler->sceneID = 0;
+	scene.samplers.Push(sampler);
 
-	Texture* texture = Resources::LoadTexture("BoomBox_baseColor.bmp", true);
-	texture->sceneID = textures.Size();
+	Texture* texture = Resources::LoadTexture("textures/BoomBox_baseColor.bmp", true);
+	texture->sceneID = scene.textures.Size();
 	texture->sampler = sampler;
-	textures.Push(texture);
-	texture = Resources::LoadTexture("BoomBox_occlusionRoughnessMetallic.bmp", true);
+	scene.textures.Push(texture);
+	texture = Resources::LoadTexture("textures/BoomBox_occlusionRoughnessMetallic.bmp", true);
 	texture->sampler = sampler;
-	texture->sceneID = textures.Size();
-	textures.Push(texture);
-	texture = Resources::LoadTexture("BoomBox_normal.bmp", true);
+	texture->sceneID = scene.textures.Size();
+	scene.textures.Push(texture);
+	texture = Resources::LoadTexture("textures/BoomBox_normal.bmp", true);
 	texture->sampler = sampler;
-	texture->sceneID = textures.Size();
-	textures.Push(texture);
-	texture = Resources::LoadTexture("BoomBox_emissive.bmp", true);
+	texture->sceneID = scene.textures.Size();
+	scene.textures.Push(texture);
+	texture = Resources::LoadTexture("textures/BoomBox_emissive.bmp", true);
 	texture->sampler = sampler;
-	texture->sceneID = textures.Size();
-	textures.Push(texture);
+	texture->sceneID = scene.textures.Size();
+	scene.textures.Push(texture);
 
 	void* bufferData{ nullptr };
-	U32 bufferLength = Resources::LoadBinary("BoomBox.bin", &bufferData);
+	U32 bufferLength = Resources::LoadBinary("binaries/BoomBox.bin", &bufferData);
 	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
 	bufferCreation.Reset().SetName("BoomBox").Set(flags, RESOURCE_USAGE_IMMUTABLE, bufferLength).SetData(bufferData);
@@ -88,27 +87,25 @@ bool Init()
 	Buffer* parentBuffer = Resources::CreateBuffer(bufferCreation);
 	parentBuffer->sceneID = 0;
 
-	Vector<Buffer*> buffers{ 5 };
-
 	bufferCreation.Reset().SetName("buffer_0").Set(flags, RESOURCE_USAGE_IMMUTABLE, 28600).SetParent(parentBuffer, 0);
 	Buffer* br = Resources::CreateBuffer(bufferCreation);
-	buffers.Push(br);
+	scene.buffers.Push(br);
 
 	bufferCreation.Reset().SetName("buffer_1").Set(flags, RESOURCE_USAGE_IMMUTABLE, 42900).SetParent(parentBuffer, 28600);
 	br = Resources::CreateBuffer(bufferCreation);
-	buffers.Push(br);
+	scene.buffers.Push(br);
 
 	bufferCreation.Reset().SetName("buffer_2").Set(flags, RESOURCE_USAGE_IMMUTABLE, 57200).SetParent(parentBuffer, 71500);
 	br = Resources::CreateBuffer(bufferCreation);
-	buffers.Push(br);
+	scene.buffers.Push(br);
 
 	bufferCreation.Reset().SetName("buffer_3").Set(flags, RESOURCE_USAGE_IMMUTABLE, 42900).SetParent(parentBuffer, 128700);
 	br = Resources::CreateBuffer(bufferCreation);
-	buffers.Push(br);
+	scene.buffers.Push(br);
 
 	bufferCreation.Reset().SetName("buffer_4").Set(flags, RESOURCE_USAGE_IMMUTABLE, 36216).SetParent(parentBuffer, 171600);
 	br = Resources::CreateBuffer(bufferCreation);
-	buffers.Push(br);
+	scene.buffers.Push(br);
 
 	Vector3 nodeScale = Vector3::One * 3.0f;
 
@@ -124,7 +121,8 @@ bool Init()
 	Matrix4 finalMatrix{};
 	transform.CalculateMatrix(finalMatrix);
 
-	meshDraw.indexBuffer = buffers[4];
+	MeshDraw meshDraw{};
+	meshDraw.indexBuffer = scene.buffers[4];
 	meshDraw.primitiveCount = meshDraw.indexBuffer->size / sizeof(U16);
 
 	I32 positionIndex = 3;
@@ -132,18 +130,18 @@ bool Init()
 	I32 normalIndex = 1;
 	I32 texcoordIndex = 0;
 
-	meshDraw.positionBuffer = buffers[positionIndex];
-	meshDraw.normalBuffer = buffers[normalIndex];
-	meshDraw.tangentBuffer = buffers[tangentIndex];
-	meshDraw.texcoordBuffer = buffers[texcoordIndex];
+	meshDraw.positionBuffer = scene.buffers[positionIndex];
+	meshDraw.normalBuffer = scene.buffers[normalIndex];
+	meshDraw.tangentBuffer = scene.buffers[tangentIndex];
+	meshDraw.texcoordBuffer = scene.buffers[texcoordIndex];
 
 	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
 	meshDraw.materialBuffer = Resources::CreateBuffer(bufferCreation);
 
-	meshDraw.diffuseTextureIndex = (U16)textures[0]->handle;
-	meshDraw.metalRoughOcclTextureIndex = (U16)textures[1]->handle;
-	meshDraw.normalTextureIndex = (U16)textures[2]->handle;
-	meshDraw.emissivityTextureIndex = (U16)textures[3]->handle;
+	meshDraw.diffuseTextureIndex = (U16)scene.textures[0]->handle;
+	meshDraw.metalRoughOcclTextureIndex = (U16)scene.textures[1]->handle;
+	meshDraw.normalTextureIndex = (U16)scene.textures[2]->handle;
+	meshDraw.emissivityTextureIndex = (U16)scene.textures[3]->handle;
 
 	meshDraw.baseColorFactor = Vector4::One;
 	meshDraw.metalRoughOcclFactor = Vector4::One;
@@ -153,6 +151,11 @@ bool Init()
 
 	//TODO: Load Multiple Meshes
 	//TODO: Sort Meshes
+
+	scene.meshDraws.Push(meshDraw);
+	scene.name = "scenes/Boombox.scene";
+
+	Resources::SaveScene(&scene);
 
 	return true;
 }
@@ -223,14 +226,16 @@ void Update()
 			Renderer::UnmapBuffer(cbMap);
 		}
 
-		//TODO: For each mesh
-		cbMap.buffer = meshDraw.materialBuffer;
-		MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
-		if (meshData)
+		for (MeshDraw& draw : scene.meshDraws)
 		{
-			UploadMaterial(*meshData, meshDraw, 1.0f);
+			cbMap.buffer = draw.materialBuffer;
+			MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
+			if (meshData)
+			{
+				UploadMaterial(*meshData, draw, 1.0f);
 
-			Renderer::UnmapBuffer(cbMap);
+				Renderer::UnmapBuffer(cbMap);
+			}
 		}
 	}
 
@@ -244,17 +249,17 @@ void Update()
 	
 	Material* lastMaterial = nullptr;
 	//TODO: Loop by material so that we can deal with multiple passes
-	//TODO: For each mesh
+	for (MeshDraw& draw : scene.meshDraws)
 	{
-		if (meshDraw.material != lastMaterial)
+		if (draw.material != lastMaterial)
 		{
-			Pipeline* pipeline = meshDraw.material->program->passes[0].pipeline;
+			Pipeline* pipeline = draw.material->program->passes[0].pipeline;
 
 			commands->BindPipeline(pipeline);
-			lastMaterial = meshDraw.material;
+			lastMaterial = draw.material;
 		}
 
-		DrawMesh(commands, meshDraw);
+		DrawMesh(commands, draw);
 	}
 }
 

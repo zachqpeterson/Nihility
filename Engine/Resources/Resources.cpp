@@ -5,15 +5,6 @@
 #include "Core\File.hpp"
 #include "Math\Color.hpp"
 
-#define TEXTURES_PATH "textures/"
-#define AUDIO_PATH "audio/"
-#define SHADERS_PATH "shaders/"
-#define MATERIALS_PATH "materials/"
-#define MODELS_PATH "models/"
-#define FONTS_PATH "fonts/"
-#define SCENES_PATH "scenes/"
-#define BINARIES_PATH "binaries/"
-
 #define BYTECAST(x) ((U8)((x) & 255))
 
 #pragma pack(push, 1)
@@ -265,10 +256,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 
 	TextureCreation info{};
 
-	String path;
-	name.Prepended(path, TEXTURES_PATH);
-
-	File file(path, FILE_OPEN_RESOURCE_READ);
+	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
 		texture->name = name;
@@ -279,7 +267,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		texture->handle = textures.GetHandle(name);
 
 		String ext{};
-		path.SubString(ext, path.LastIndexOf('.') + 1);
+		name.SubString(ext, name.LastIndexOf('.') + 1);
 		ext.ToLower();
 
 		void* data = nullptr;
@@ -323,7 +311,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		return texture;
 	}
 
-	Logger::Error("Failed to find or open file: {}", path);
+	Logger::Error("Failed to find or open file: {}", name);
 
 	textures.Remove(name);
 	return nullptr;
@@ -836,7 +824,7 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	pipeline->graphicsPipeline = true;
 	pipeline->handle = pipelines.GetHandle(info.name);
 
-	String cachePath("{}{}.cache", SHADERS_PATH, info.name);
+	String cachePath("{}.cache", info.name);
 
 	Renderer::CreatePipeline(pipeline, info.renderPass, cachePath);
 
@@ -887,10 +875,7 @@ Scene* Resources::LoadScene(const String& name)
 
 	scene->name = name;
 
-	String path;
-	name.Prepended(path, TEXTURES_PATH);
-
-	File file(path, FILE_OPEN_RESOURCE_READ);
+	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
 		//TODO: Load
@@ -901,10 +886,7 @@ Scene* Resources::LoadScene(const String& name)
 
 void Resources::SaveScene(const Scene* scene)
 {
-	String path;
-	scene->name.Prepended(path, TEXTURES_PATH);
-
-	File file(path, FILE_OPEN_RESOURCE_WRITE);
+	File file(scene->name, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
 	{
 		file.Write(scene->buffers.Size());
@@ -1246,10 +1228,7 @@ void Resources::DestroyPipeline(Pipeline* pipeline)
 
 bool Resources::LoadBinary(const String& name, String& result)
 {
-	String path;
-	name.Prepended(path, BINARIES_PATH);
-
-	File file{ path, FILE_OPEN_RESOURCE_READ };
+	File file{ name, FILE_OPEN_RESOURCE_READ };
 
 	if (file.Opened())
 	{
@@ -1264,10 +1243,7 @@ bool Resources::LoadBinary(const String& name, String& result)
 
 U32 Resources::LoadBinary(const String& name, void** result)
 {
-	String path;
-	name.Prepended(path, BINARIES_PATH);
-
-	File file{ path, FILE_OPEN_RESOURCE_READ };
+	File file{ name, FILE_OPEN_RESOURCE_READ };
 
 	if (file.Opened())
 	{

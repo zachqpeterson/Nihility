@@ -1141,7 +1141,7 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 
 #if defined(_MSC_VER)
 	// TODO: add optional debug information in shaders (option -g).
-	String arguments("glslangValidator.exe {}{} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", "shaders/", path, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
+	String arguments("glslangValidator.exe {} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", path, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
 #else
 	String arguments("{} -V --target-env vulkan1.3 -o {} -S {} --D {} --D {}", path, finalSpirvFilename, ToCompilerExtension(stage), stageDefine, ToStageDefines(stage));
 #endif

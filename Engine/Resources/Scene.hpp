@@ -13,6 +13,8 @@ public:
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
+	//TODO: Add Camera
+
 	Vector<MeshDraw>	meshDraws;	//TODO: Just call these Mesh, not MeshDraw
 
 	Vector<Texture*>	textures;	//TODO: Probably don't need to store textures here, just handles which might be more useful
