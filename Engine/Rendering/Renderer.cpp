@@ -585,8 +585,6 @@ bool Renderer::CreateResources()
 
 	descriptorSetUpdates.Reserve(16);
 
-	Resources::Initialize();
-
 	return true;
 }
 
@@ -635,6 +633,8 @@ bool Renderer::CreatePrimitiveResources()
 
 	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
 	dynamicMappedMemory = (U8*)MapBuffer(cbMap);
+
+	Resources::Initialize();
 
 	return true;
 }
@@ -1128,14 +1128,11 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 {
 	VkShaderModuleCreateInfo shaderCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 
-	// Compile from glsl to SpirV.
-	// TODO: detect if input is HLSL.
+	// TODO: detect if input is HLSL
 
-	// Add uppercase define as STAGE_NAME
 	String stageDefine(ToStageDefines(stage), "_", name);
 	stageDefine.ToUpper();
 
-	// Compile to SPV
 	String glslCompilerPath(binariesPath, "glslangValidator.exe");
 	String finalSpirvFilename("shader_final.spv");
 

@@ -87,6 +87,24 @@ U32 File::Read(void* buffer, U32 size)
 	return total;
 }
 
+void File::ReadString(String& string)
+{
+	C8* it = (C8*)streamPtr;
+
+	while (bufferRemaining && *it != '\0') { ++it; }
+
+	if (*it == '\0')
+	{
+		string = (C8*)streamPtr;
+		streamPtr += string.Size() + 1;
+	}
+	else
+	{
+		BreakPoint;
+		//TODO:  Refill buffer
+	}
+}
+
 //TODO: update file size
 U32 File::Write(const void* buffer, U32 size)
 {

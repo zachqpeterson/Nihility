@@ -16,6 +16,7 @@ public:
 	static Texture* CreateTexture(const TextureCreation& info);
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
 	static Buffer* CreateBuffer(const BufferCreation& info);
+	static Buffer* LoadBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
 	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
@@ -27,12 +28,11 @@ public:
 	static void SaveScene(const Scene* scene);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 
-	//static glTF* LoadScene(const String& name);
-
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
 	static Buffer* AccessDummyAttributeBuffer();
 	static Sampler* AccessDefaultSampler();
+	static Material* AccessDefaultMaterial(bool transparent = false, bool culling = true);
 
 	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
@@ -81,6 +81,10 @@ private:
 	static Texture*								dummyTexture;
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
+	static Material*							materialNoCullOpaque;
+	static Material*							materialCullOpaque;
+	static Material*							materialNoCullTransparent;
+	static Material*							materialCullTransparent;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;

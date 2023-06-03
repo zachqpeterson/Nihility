@@ -903,8 +903,6 @@ struct DescriptorBinding
 
 struct NH_API Camera
 {
-	Camera(bool enabled = true, F32 rotationSpeed = 10.0f, F32 movementSpeed = 1.0f, F32 movementDelta = 0.1f);
-
 	void Reset();
 	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom);
 	void SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRatio);
@@ -916,22 +914,18 @@ struct NH_API Camera
 	void Update();
 	void ApplyJitter(F32 x, F32 y);
 
-	F32		targetYaw{ 0.0f };
-	F32		targetPitch{ 0.0f };
-
+private:
 	F32		mouseSensitivity{ 1.0f };
-	F32		movementDelta;
+	F32		movementDelta{ 0.1f };
 	U32		ignoreDraggingFrames{ 3 };
 
 	Vector3	targetMovement{ Vector3::Zero };
 
-	bool	enabled;
 	bool	mouseDragging{ false };
 
-	F32		rotationSpeed;
-	F32		movementSpeed;
+	F32		rotationSpeed{ 20.0f };
+	F32		movementSpeed{ 5.0f };
 
-private:
 	Matrix4	view{ Matrix4::Identity };
 	Matrix4	projection{ Matrix4::Identity };
 	Matrix4	viewProjection{ Matrix4::Identity };
@@ -943,6 +937,8 @@ private:
 
 	F32		yaw{ 0.0f };
 	F32		pitch{ 0.0f };
+	F32		targetYaw{ 0.0f };
+	F32		targetPitch{ 0.0f };
 
 	F32		nearPlane{ 0.0f };
 	F32		farPlane{ 0.0f };
@@ -998,6 +994,7 @@ static inline VkFormat ToVkVertexFormat(VertexAttribute attribute)
 		case 4: return VK_FORMAT_R64G64B64A64_SFLOAT;
 		}
 	} break;
-	default: return VK_FORMAT_MAX_ENUM;
 	}
+
+	return VK_FORMAT_MAX_ENUM;
 }

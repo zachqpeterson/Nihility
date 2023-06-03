@@ -53,6 +53,10 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
+Material* Resources::materialNoCullOpaque;
+Material* Resources::materialCullOpaque;
+Material* Resources::materialNoCullTransparent;
+Material* Resources::materialCullTransparent;
 
 Hashmap<String, Sampler>				Resources::samplers{ 32, {} };
 Hashmap<String, Texture>				Resources::textures{ 512, {} };
@@ -101,6 +105,38 @@ bool Resources::Initialize()
 	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
 	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
+
+	RasterizationCreation rasterization{};
+	rasterization.cullMode = VK_CULL_MODE_NONE;
+	rasterization.front = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterization.fill = FILL_MODE_SOLID;
+
+	PipelineCreation pipelineCreation{};
+	pipelineCreation.renderPass = Renderer::GetSwapchainOutput();
+	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
+	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	pipelineCreation.rasterization = rasterization;
+	pipelineCreation.name = "shaders/main_no_cull";
+	Program* programNoCull = Resources::CreateProgram({ pipelineCreation });
+
+	pipelineCreation.rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
+	pipelineCreation.name = "shaders/main_cull";
+	Program* programCull = Resources::CreateProgram({ pipelineCreation });
+
+	MaterialCreation materialCreation{};
+
+	materialCreation.SetName("materials/default_no_cull_opaque").SetProgram(programNoCull).SetRenderIndex(0);
+	materialNoCullOpaque = Resources::CreateMaterial(materialCreation);
+
+	materialCreation.SetName("materials/default_cull_opaque").SetProgram(programCull).SetRenderIndex(1);
+	materialCullOpaque = Resources::CreateMaterial(materialCreation);
+
+	materialCreation.SetName("materials/default_no_cull_transparent").SetProgram(programNoCull).SetRenderIndex(2);
+	materialNoCullTransparent = Resources::CreateMaterial(materialCreation);
+
+	materialCreation.SetName("materials/default_cull_transparent").SetProgram(programCull).SetRenderIndex(3);
+	materialCullTransparent = Resources::CreateMaterial(materialCreation);
 
 	return true;
 }
@@ -696,6 +732,30 @@ Buffer* Resources::CreateBuffer(const BufferCreation& info)
 	return buffer;
 }
 
+Buffer* Resources::LoadBuffer(const BufferCreation& info)
+{
+	Buffer* buffer = &buffers.Request(info.name);
+
+	if (!buffer->name.Blank()) { return buffer; }
+
+	buffer->name = info.name;
+	buffer->typeFlags = info.typeFlags;
+	buffer->usage = info.usage;
+	buffer->globalOffset = info.offset;
+	buffer->parentBuffer = info.parentBuffer;
+	buffer->handle = buffers.GetHandle(info.name);
+
+	void* data;
+	U32 bufferLength = Resources::LoadBinary(info.name, &data);
+	buffer->size = bufferLength;
+
+	Renderer::CreateBuffer(buffer, data);
+
+	Memory::FreeSize(&data);
+
+	return buffer;
+}
+
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info)
 {
 	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.Request(info.name);
@@ -878,7 +938,157 @@ Scene* Resources::LoadScene(const String& name)
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
-		//TODO: Load
+		U32 bufferCount;
+		U32 textureCount;
+		U32 samplerCount;
+		U32 meshCount;
+
+		file.Read(bufferCount);
+		file.Read(textureCount);
+		file.Read(samplerCount);
+		file.Read(meshCount);
+
+		scene->buffers.Reserve(bufferCount);
+		scene->textures.Reserve(textureCount);
+		scene->samplers.Reserve(samplerCount);
+		scene->meshDraws.Reserve(meshCount);
+
+		String str{};
+		void* bufferData = nullptr;
+		U32 bufferLength = 0;
+		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+		for(U32 i = 0; i < bufferCount; ++i)
+		{
+			file.ReadString(str);
+
+			BufferCreation bufferCreation{};
+			bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
+			Buffer* buffer = LoadBuffer(bufferCreation);
+			buffer->sceneID = i;
+
+			scene->buffers.Push(buffer);
+		}
+
+		//TODO: Check for no samplers, use default sampler
+		for (U32 i = 0; i < samplerCount; ++i)
+		{
+			SamplerCreation samplerInfo{};
+			file.Read((I32&)samplerInfo.minFilter);
+			file.Read((I32&)samplerInfo.magFilter);
+			file.Read((I32&)samplerInfo.mipFilter);
+			file.Read((I32&)samplerInfo.addressModeU);
+			file.Read((I32&)samplerInfo.addressModeV);
+			file.Read((I32&)samplerInfo.addressModeW);
+
+			Sampler* sampler = CreateSampler(samplerInfo);
+			sampler->sceneID = i;
+
+			scene->samplers.Push(sampler);
+		}
+
+		for (U32 i = 0; i < textureCount; ++i)
+		{
+			file.ReadString(str);
+			U32 samplerID = 0;
+			file.Read(samplerID);
+
+			Texture* texture = LoadTexture(str, true);
+			texture->sceneID = i;
+			texture->sampler = scene->samplers[samplerID];
+
+			scene->textures.Push(texture);
+		}
+
+		for (U32 i = 0; i < meshCount; ++i)
+		{
+			MeshDraw mesh{};
+			BufferCreation bufferCreation{};
+			U32 id;
+			U64 offset;
+			U64 size;
+
+			file.Read(id);
+			file.Read(offset);
+			file.Read(size);
+			bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+			mesh.texcoordBuffer = Resources::CreateBuffer(bufferCreation);
+
+			file.Read(id);
+			file.Read(offset);
+			file.Read(size);
+			bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+			mesh.normalBuffer = Resources::CreateBuffer(bufferCreation);
+
+			file.Read(id);
+			file.Read(offset);
+			file.Read(size);
+			bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+			mesh.tangentBuffer = Resources::CreateBuffer(bufferCreation);
+
+			file.Read(id);
+			file.Read(offset);
+			file.Read(size);
+			bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+			mesh.positionBuffer = Resources::CreateBuffer(bufferCreation);
+
+			file.Read(id);
+			file.Read(offset);
+			file.Read(size);
+			bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+			mesh.indexBuffer = Resources::CreateBuffer(bufferCreation);
+
+			mesh.primitiveCount = mesh.indexBuffer->size / sizeof(U16);
+
+			file.Read(id);
+			mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
+			file.Read(id);
+			mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
+			file.Read(id);
+			mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
+			file.Read(id);
+			mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
+
+			file.Read(mesh.baseColorFactor.x);
+			file.Read(mesh.baseColorFactor.y);
+			file.Read(mesh.baseColorFactor.z);
+			file.Read(mesh.baseColorFactor.w);
+			file.Read(mesh.metalRoughOcclFactor.x);
+			file.Read(mesh.metalRoughOcclFactor.y);
+			file.Read(mesh.metalRoughOcclFactor.z);
+			file.Read(mesh.emissiveFactor.x);
+			file.Read(mesh.emissiveFactor.y);
+			file.Read(mesh.emissiveFactor.z);
+			file.Read(mesh.flags);
+			file.Read(mesh.alphaCutoff);
+
+			Vector3 euler;
+			file.Read(mesh.position.x);
+			file.Read(mesh.position.y);
+			file.Read(mesh.position.z);
+			file.Read(euler.x);
+			file.Read(euler.y);
+			file.Read(euler.z);
+			file.Read(mesh.scale.x);
+			file.Read(mesh.scale.y);
+			file.Read(mesh.scale.z);
+
+			mesh.rotation = Quaternion3(euler);
+
+			bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
+			mesh.materialBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
+
+			scene->meshDraws.Push(mesh);
+		}
+
+		scene->camera = {}; //TODO: Load Camera
+
+		BufferCreation bufferCreation{};
+		bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb"); //TODO: Unique name
+		scene->constantBuffer = Resources::CreateBuffer(bufferCreation);
+
+		file.Close();
 	}
 
 	return scene;
@@ -889,22 +1099,22 @@ void Resources::SaveScene(const Scene* scene)
 	File file(scene->name, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
 	{
-		file.Write(scene->buffers.Size());
-		file.Write(scene->textures.Size());
-		file.Write(scene->samplers.Size());
+		file.Write((U32)scene->buffers.Size());
+		file.Write((U32)scene->textures.Size());
+		file.Write((U32)scene->samplers.Size());
+		file.Write((U32)scene->meshDraws.Size());
 
-		file.Write(scene->name);
 		for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
-		for (Texture* texture : scene->textures) { file.Write(texture->name); }
 		for (Sampler* sampler : scene->samplers)
 		{
-			file.Write(sampler->minFilter);
-			file.Write(sampler->magFilter);
-			file.Write(sampler->mipFilter);
-			file.Write(sampler->addressModeU);
-			file.Write(sampler->addressModeV);
-			file.Write(sampler->addressModeW);
+			file.Write((I32)sampler->minFilter);
+			file.Write((I32)sampler->magFilter);
+			file.Write((I32)sampler->mipFilter);
+			file.Write((I32)sampler->addressModeU);
+			file.Write((I32)sampler->addressModeV);
+			file.Write((I32)sampler->addressModeW);
 		}
+		for (Texture* texture : scene->textures) { file.Write(texture->name); file.Write(texture->sampler->sceneID); }
 
 		for (const MeshDraw& mesh : scene->meshDraws)
 		{
@@ -925,13 +1135,9 @@ void Resources::SaveScene(const Scene* scene)
 			file.Write(mesh.indexBuffer->size);
 
 			file.Write(AccessTexture(mesh.diffuseTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.diffuseTextureIndex)->sampler->sceneID);
 			file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sampler->sceneID);
 			file.Write(AccessTexture(mesh.normalTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.normalTextureIndex)->sampler->sceneID);
 			file.Write(AccessTexture(mesh.emissivityTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.emissivityTextureIndex)->sampler->sceneID);
 
 			file.Write(mesh.baseColorFactor.x);
 			file.Write(mesh.baseColorFactor.y);
@@ -980,6 +1186,20 @@ Buffer* Resources::AccessDummyAttributeBuffer()
 Sampler* Resources::AccessDefaultSampler()
 {
 	return defaultSampler;
+}
+
+Material* Resources::AccessDefaultMaterial(bool transparent, bool culling)
+{
+	if (transparent)
+	{
+		if (culling) { return materialCullTransparent; }
+		else { return materialNoCullTransparent; }
+	}
+	else
+	{
+		if (culling) { return materialCullOpaque; }
+		else { return materialNoCullOpaque; }
+	}
 }
 
 Sampler* Resources::AccessSampler(const String& name)
@@ -1229,7 +1449,6 @@ void Resources::DestroyPipeline(Pipeline* pipeline)
 bool Resources::LoadBinary(const String& name, String& result)
 {
 	File file{ name, FILE_OPEN_RESOURCE_READ };
-
 	if (file.Opened())
 	{
 		file.ReadAll(result);
@@ -1244,7 +1463,6 @@ bool Resources::LoadBinary(const String& name, String& result)
 U32 Resources::LoadBinary(const String& name, void** result)
 {
 	File file{ name, FILE_OPEN_RESOURCE_READ };
-
 	if (file.Opened())
 	{
 		U32 read = file.ReadAll(result);

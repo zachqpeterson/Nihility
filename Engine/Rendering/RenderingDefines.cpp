@@ -61,9 +61,6 @@ BlendState& BlendStateCreation::AddBlendState()
 
 // CAMERA
 
-Camera::Camera(bool enabled, F32 rotationSpeed, F32 movementSpeed, F32 movementDelta) :
-	movementDelta{ movementDelta }, enabled{ enabled }, rotationSpeed{ rotationSpeed }, movementSpeed{ movementSpeed } { }
-
 void Camera::Reset()
 {
 	targetYaw = 0.0f;
@@ -120,8 +117,6 @@ Vector4 Camera::Eye()
 
 void Camera::Update()
 {
-	if (!enabled) { return; }
-
 	const Quaternion3 pitchRotation{ Vector3::Right, pitch };
 	const Quaternion3 yawRotation{ Vector3::Up, yaw };
 	const Quaternion3 rotation = (pitchRotation * yawRotation).Normalize();

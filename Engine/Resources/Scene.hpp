@@ -4,16 +4,23 @@
 
 #include "Math\Math.hpp"
 
-struct Scene
+struct CommandBuffer;
+
+struct NH_API Scene
 {
 public:
+	void Update();
 
+private:
+	void UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw);
+	void DrawMesh(CommandBuffer* commands, MeshDraw& meshDraw);
 
 public:
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
-	//TODO: Add Camera
+	Camera camera;
+	Buffer* constantBuffer;
 
 	Vector<MeshDraw>	meshDraws;	//TODO: Just call these Mesh, not MeshDraw
 
