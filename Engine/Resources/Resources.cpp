@@ -5,6 +5,9 @@
 #include "Core\File.hpp"
 #include "Math\Color.hpp"
 
+#undef near
+#undef far
+
 #define BYTECAST(x) ((U8)((x) & 255))
 
 #pragma pack(push, 1)
@@ -944,8 +947,8 @@ Scene* Resources::LoadScene(const String& name)
 		U32 meshCount;
 
 		file.Read(bufferCount);
-		file.Read(textureCount);
 		file.Read(samplerCount);
+		file.Read(textureCount);
 		file.Read(meshCount);
 
 		scene->buffers.Reserve(bufferCount);
@@ -998,6 +1001,41 @@ Scene* Resources::LoadScene(const String& name)
 			texture->sampler = scene->samplers[samplerID];
 
 			scene->textures.Push(texture);
+		}
+
+		scene->camera = {};
+		bool perspective;
+		F32 near, far;
+		Vector3 position, rotation;
+		file.Read(perspective);
+		file.Read(near);
+		file.Read(far);
+		file.Read(position.x);
+		file.Read(position.y);
+		file.Read(position.z);
+		file.Read(rotation.x);
+		file.Read(rotation.y);
+		file.Read(rotation.z);
+		
+		scene->camera.SetPosition(position);
+		scene->camera.SetRotation({ rotation });
+		
+		if (perspective)
+		{
+			F32 fov, aspect;
+			file.Read(fov);
+			file.Read(aspect);
+		
+			scene->camera.SetPerspective(near, far, fov, aspect);
+		}
+		else
+		{
+			F32 width, height, zoom;
+			file.Read(width);
+			file.Read(height);
+			file.Read(zoom);
+		
+			scene->camera.SetOrthograpic(near, far, width, height, zoom);
 		}
 
 		for (U32 i = 0; i < meshCount; ++i)
@@ -1082,8 +1120,6 @@ Scene* Resources::LoadScene(const String& name)
 			scene->meshDraws.Push(mesh);
 		}
 
-		scene->camera = {}; //TODO: Load Camera
-
 		BufferCreation bufferCreation{};
 		bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb"); //TODO: Unique name
 		scene->constantBuffer = Resources::CreateBuffer(bufferCreation);
@@ -1100,8 +1136,8 @@ void Resources::SaveScene(const Scene* scene)
 	if (file.Opened())
 	{
 		file.Write((U32)scene->buffers.Size());
-		file.Write((U32)scene->textures.Size());
 		file.Write((U32)scene->samplers.Size());
+		file.Write((U32)scene->textures.Size());
 		file.Write((U32)scene->meshDraws.Size());
 
 		for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
@@ -1115,6 +1151,29 @@ void Resources::SaveScene(const Scene* scene)
 			file.Write((I32)sampler->addressModeW);
 		}
 		for (Texture* texture : scene->textures) { file.Write(texture->name); file.Write(texture->sampler->sceneID); }
+
+		file.Write(scene->camera.perspective);
+		file.Write(scene->camera.nearPlane);
+		file.Write(scene->camera.farPlane);
+		file.Write(scene->camera.position.x);
+		file.Write(scene->camera.position.y);
+		file.Write(scene->camera.position.z);
+		Vector3 rotation = scene->camera.Rotation().Euler();
+		file.Write(rotation.x);
+		file.Write(rotation.y);
+		file.Write(rotation.z);
+
+		if (scene->camera.perspective)
+		{
+			file.Write(scene->camera.fov);
+			file.Write(scene->camera.aspectRatio);
+		}
+		else
+		{
+			file.Write(scene->camera.viewportWidth);
+			file.Write(scene->camera.viewportHeight);
+			file.Write(scene->camera.zoom);
+		}
 
 		for (const MeshDraw& mesh : scene->meshDraws)
 		{

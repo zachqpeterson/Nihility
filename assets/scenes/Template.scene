@@ -1,15 +1,34 @@
-//TODO: maybe add scene header
+bufferCount (U32)
+samplerCount (U32)
+textureCount (U32)
+meshCount (U32)
 
-scene name (null terminated string)
-bin uris (null terminated strings)		//These could technically be shuffled, a loader should determine uri type by file extension
-texture uris (null terminated string)
-for each sampler:
-	minFilter (enum U32)
-	magFilter (enum U32)
-	mipFilter (enum U32)
-	addressModeU (enum U32)
-	addressModeV (enum U32)
-	addressModeW (enum U32)
+for each buffer:
+	bin uri (null terminated strings)
+for each sampler:						//If there are no samplers, all texture will use the default sampler
+	minify filter (enum I32)
+	magnify filter (enum I32)
+	mipmap filter (enum I32)
+	address mode u (enum I32)
+	address mode v (enum I32)
+	address mode w (enum I32)
+for each texture:
+	texture uri (null terminated string)
+	sampler index (U32)
+
+camera:
+	type (bool)							//This refers to true = perspective, false = orthographic
+	near clipping plane (F32)
+	far clipping plane (F32)
+	position (XYZ F32)
+	rotation (XYZ F32)					//Euler angles
+	if perspective:
+		fov (F32)
+		aspect ratio (F32)
+	if orthographic:
+		width (F32)
+		height (F32)
+		zoom (F32)
 
 for each mesh:
 	texcoord buffer info:
@@ -34,13 +53,9 @@ for each mesh:
 		buffer size (U32)
 	material info:
 		diffuse texture index (U32)		//An index of U32_MAX will indicate there is no texture for this type
-		diffuse sampler index (U32)		//An index of U32_MAX will indicate result in the default sampler if there is a texture
 		metal/roughness/occlusion texture index (U32)
-		metal/roughness/occlusion sampler index (U32)
 		normal texture index (U32)
-		normal sampler index (U32)
 		emissive texture index (U32)
-		emissive sampler index (U32)
 		base color factor (RGBA F32)	//This will be clamped to 0.0 - 1.0
 		metallic factor (F32)			//Factors will be clamped to 0.0 - 1.0
 		roughness factor (F32)

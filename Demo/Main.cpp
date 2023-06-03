@@ -12,7 +12,8 @@ Scene* scene;
 bool Init()
 {
 	scene = Resources::LoadScene("scenes/Boombox.scene");
-	scene->camera.SetPerspective(0.1f, 4000.0f, 60.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
+
+	Resources::SaveScene(scene);
 
 	return true;
 }
@@ -24,7 +25,7 @@ void Update()
 
 void Shutdown()
 {
-
+	Resources::SaveScene(scene);
 }
 
 int main(int argc, char** argv)

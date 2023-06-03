@@ -105,14 +105,66 @@ void Camera::SetAspectRatio(F32 aspectRatio_)
 	updateProjection = true;
 }
 
-const Matrix4& Camera::ViewProjection()
+const Matrix4& Camera::ViewProjection() const
 {
 	return viewProjection;
 }
 
-Vector4 Camera::Eye()
+Vector4 Camera::Eye() const
 {
 	return { position.x, position.y, position.z, 1.0f };
+}
+
+const Vector3& Camera::Position() const
+{
+	return position;
+}
+
+Quaternion3 Camera::Rotation() const
+{
+	const Quaternion3 pitchRotation{ Vector3::Right, pitch };
+	const Quaternion3 yawRotation{ Vector3::Up, yaw };
+	return (pitchRotation * yawRotation).Normalize();
+}
+
+bool Camera::Perspective() const { return perspective; }
+
+void Camera::SetPosition(const Vector3& p)
+{
+	targetMovement = p;
+	position = p;
+}
+
+void Camera::SetRotation(const Quaternion3& q)
+{
+	F32 v = q.x * q.y + q.z * q.w;
+
+	if (Math::Abs(v - 0.5f) < FLOAT_EPSILON)
+	{
+		targetPitch = HALF_PI_F * RAD_TO_DEG_F;
+		targetYaw = 2.0f * Math::Atan2(q.x, q.w) * RAD_TO_DEG_F;
+	}
+	else if (Math::Abs(v + 0.5f) < FLOAT_EPSILON)
+	{
+		targetPitch = -HALF_PI_F * RAD_TO_DEG_F;
+		targetYaw = -2.0f * Math::Atan2(q.x, q.w) * RAD_TO_DEG_F;
+	}
+	else
+	{
+		targetPitch = Math::Asin(2.0f * v) * RAD_TO_DEG_F;
+		targetYaw = Math::Atan2(2.0f * (q.w * q.y - q.x * q.z), 1.0f - 2.0f * (q.y * q.y + q.z * q.z)) * RAD_TO_DEG_F;
+	}
+
+	pitch = targetPitch;
+	yaw = targetYaw;
+}
+
+void Camera::SetRotation(const Vector3& rotation)
+{
+	targetPitch = rotation.x;
+	targetYaw = rotation.y;
+	pitch = targetPitch;
+	yaw = targetYaw;
 }
 
 void Camera::Update()
@@ -127,7 +179,7 @@ void Camera::Update()
 	right = { view[0][0], view[1][0], view[2][0] };
 	up = { view[0][1], view[1][1], view[2][1] };
 	forward = { view[0][2], view[1][2], view[2][2] };
-
+	
 	if (updateProjection)
 	{
 		updateProjection = false;
@@ -145,8 +197,8 @@ void Camera::Update()
 			I32 x, y;
 			Input::MouseDelta(x, y);
 
-			targetYaw -= x * mouseSensitivity * (F32)Time::DeltaTime();
-			targetPitch -= y * mouseSensitivity * (F32)Time::DeltaTime();
+			targetYaw -= x * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+			targetPitch -= y * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
 		}
 		else
 		{
@@ -184,9 +236,4 @@ void Camera::Update()
 
 	const F32 tweenPositionSpeed = movementSpeed * (F32)Time::DeltaTime();
 	position = Math::Lerp(position, targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime())); //TODO: Abstract
-}
-
-void Camera::ApplyJitter(F32 x, F32 y)
-{
-
 }

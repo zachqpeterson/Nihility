@@ -1743,9 +1743,9 @@ Quaternion3::Quaternion3(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w
 
 Quaternion3::Quaternion3(const Vector3& euler)
 {
-	F32 hx = euler.x * 0.5f;
-	F32 hy = euler.y * 0.5f;
-	F32 hz = euler.z * 0.5f;
+	F32 hx = euler.x * DEG_TO_RAD_F * 0.5f;
+	F32 hy = euler.y * DEG_TO_RAD_F * 0.5f;
+	F32 hz = euler.z * DEG_TO_RAD_F * 0.5f;
 
 	F32 c0 = Math::Cos(hx);
 	F32 c1 = Math::Cos(hy);
@@ -1767,7 +1767,7 @@ Quaternion3::Quaternion3(const Vector3& euler)
 
 Quaternion3::Quaternion3(const Vector3& axis, F32 angle)
 {
-	const F32 halfAngle = angle * 0.5f;
+	const F32 halfAngle = angle * DEG_TO_RAD_F * 0.5f;
 	F32 s = Math::Sin(halfAngle);
 	F32 c = Math::Cos(halfAngle);
 
@@ -1784,9 +1784,9 @@ Quaternion3::Quaternion3(Quaternion3&& q) noexcept : x{ q.x }, y{ q.y }, z{ q.z 
 
 Quaternion3& Quaternion3::operator=(const Vector3& euler)
 {
-	F32 hx = euler.x * 0.5f;
-	F32 hy = euler.y * 0.5f;
-	F32 hz = euler.z * 0.5f;
+	F32 hx = euler.x * DEG_TO_RAD_F * 0.5f;
+	F32 hy = euler.y * DEG_TO_RAD_F * 0.5f;
+	F32 hz = euler.z * DEG_TO_RAD_F * 0.5f;
 
 	F32 c0 = Math::Cos(hx);
 	F32 c1 = Math::Cos(hy);
@@ -1994,12 +1994,14 @@ Vector3 Quaternion3::Euler() const
 {
 	F32 v = x * y + z * w;
 
-	if (Math::Abs(v - 0.5f) < FLOAT_EPSILON) { return { 2.0f * Math::Atan2(x, w), HALF_PI_F, 0.0f }; }
-	if (Math::Abs(v + 0.5f) < FLOAT_EPSILON) { return { -2.0f * Math::Atan2(x, w), -HALF_PI_F, 0.0f }; }
+	if (Math::Abs(v - 0.5f) < FLOAT_EPSILON) { return { 2.0f * Math::Atan2(x, w) * RAD_TO_DEG_F, HALF_PI_F * RAD_TO_DEG_F, 0.0f }; }
+	if (Math::Abs(v + 0.5f) < FLOAT_EPSILON) { return { -2.0f * Math::Atan2(x, w) * RAD_TO_DEG_F, -HALF_PI_F * RAD_TO_DEG_F, 0.0f }; }
 
-	return { Math::Atan2(2.0f * (w * y - x * z), 1.0f - 2.0f * (y * y + z * z)),
-			Math::Asin(2.0f * v),
-			Math::Atan2(2.0f * (w * x - y * z), 1.0f - 2.0f * (x * x + z * z)) };
+	return {
+		Math::Asin(2.0f * v) * RAD_TO_DEG_F,
+		Math::Atan2(2.0f * (w * y - x * z), 1.0f - 2.0f * (y * y + z * z)) * RAD_TO_DEG_F,
+		Math::Atan2(2.0f * (w * x - y * z), 1.0f - 2.0f * (x * x + z * z)) * RAD_TO_DEG_F
+	};
 }
 
 Quaternion3 Quaternion3::Slerp(const Quaternion3& q, F32 t) const

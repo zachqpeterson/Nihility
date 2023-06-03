@@ -908,11 +908,18 @@ struct NH_API Camera
 	void SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRatio);
 	void SetAspectRatio(F32 aspectRatio);
 
-	const Matrix4& ViewProjection();
-	Vector4 Eye();
+	const Matrix4& ViewProjection() const;
+	Vector4 Eye() const;
+	const Vector3& Position() const;
+	Quaternion3 Rotation() const;
+
+	bool Perspective() const;
+
+	void SetPosition(const Vector3& position);
+	void SetRotation(const Quaternion3& rotation);
+	void SetRotation(const Vector3& rotation);
 
 	void Update();
-	void ApplyJitter(F32 x, F32 y);
 
 private:
 	F32		mouseSensitivity{ 1.0f };
@@ -952,6 +959,8 @@ private:
 
 	bool	perspective{ false };
 	bool	updateProjection{ false };
+
+	friend class Resources;
 };
 
 static inline VkFormat ToVkVertexFormat(VertexAttribute attribute)
