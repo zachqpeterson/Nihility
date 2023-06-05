@@ -34,6 +34,7 @@ class NH_API Settings
 		F64 targetFrametime{ 0.0 };
 		F64 targetFrametimeSuspended{ 0.1 };
 		U8 msaaCount{ 1 };
+		bool vSync{ false };
 
 		//PLATFORM
 		U32 dpi{ 0 };
@@ -65,6 +66,7 @@ public:
 	static const F64& TargetFrametime();
 	static const F64& TargetFrametimeSuspended();
 	static const U8& MsaaCount();
+	static const bool& VSync();
 
 	//PLATFORM
 	static const U32& Dpi();
@@ -98,4 +100,5 @@ private:
 	friend class Platform;
 	friend class Engine;
 	friend class Jobs;
+	friend class Renderer;
 };

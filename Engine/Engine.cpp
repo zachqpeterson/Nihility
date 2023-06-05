@@ -127,12 +127,12 @@ void Engine::UpdateLoop()
 
 		if (!Platform::Update() || Input::OnButtonDown(BUTTON_CODE_ESCAPE)) { break; }
 
-		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
-
-		if (Settings::Resized())
+		if (Input::OnButtonDown(BUTTON_CODE_F11))
 		{
-			Renderer::Resize();
+			Platform::SetFullscreen(!Settings::Fullscreen());
 		}
+
+		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
 		//Physics::Update();
 		GameUpdate();

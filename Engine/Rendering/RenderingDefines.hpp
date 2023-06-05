@@ -255,6 +255,8 @@ inline bool ResultSuccess(VkResult result)
 
 struct VmaAllocation_T;
 struct VmaAllocator_T;
+struct RenderPass;
+struct Texture;
 
 /*---------CONSTANTS---------*/
 
@@ -899,6 +901,18 @@ struct DescriptorBinding
 	U16					start{ 0 };
 	U16					count{ 0 };
 	U16					set{ 0 };
+};
+
+struct SwapchainPass
+{
+	U16					width;
+	U16					height;
+	VkSampler			sampler;
+	RenderPass*			renderPass;
+	Vector<Texture*>	attachments{ 1, nullptr };
+	VkImage				images[MAX_SWAPCHAIN_IMAGES];
+	VkImageView			imageViews[MAX_SWAPCHAIN_IMAGES];
+	VkFramebuffer		framebuffers[MAX_SWAPCHAIN_IMAGES];
 };
 
 struct NH_API Camera

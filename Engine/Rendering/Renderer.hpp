@@ -5,6 +5,7 @@
 #include "Containers\Hashmap.hpp"
 #include "Containers\Queue.hpp"
 #include "CommandBuffer.hpp"
+#include "Swapchain.hpp"
 
 struct Timestamp;
 struct TimestampManager;
@@ -13,8 +14,6 @@ class NH_API Renderer
 {
 public:
 	//TODO: Public only for temp testing
-	static const RenderPassOutput&		GetSwapchainOutput();
-	static RenderPass*					GetSwapchainPass();
 	static CommandBuffer*				GetCommandBuffer(QueueType type, bool begin);
 	static void*						MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
@@ -24,21 +23,14 @@ private:
 	static void							Shutdown();
 
 	static bool							CreateInstance();
-	static bool							CreateSurface();
 	static bool							SelectGPU();
 	static bool							GetFamilyQueue(VkPhysicalDevice gpu);
 	static bool							CreateDevice();
-	static bool							SetFormats();
-	static bool							CreateSwapchain();
 	static bool							CreateResources();
-	static bool							CreatePrimitiveResources();
 
 	static void							BeginFrame();
 	static void							EndFrame();
 	static void							Resize();
-	static void							ResizeSwapchain();
-	static void							DestroySwapchain();
-
 
 	static void*						DynamicAllocate(U64 size);
 
@@ -97,17 +89,21 @@ private:
 	NH_HEADER_STATIC CSTR									appName;
 	NH_HEADER_STATIC U32									appVersion;
 
+	// CAPABILITIES
+	NH_HEADER_STATIC VkPhysicalDeviceProperties				physicalDeviceProperties;
+
 	// DEVICE
-	NH_HEADER_STATIC VkAllocationCallbacks* allocationCallbacks;
 	NH_HEADER_STATIC VkInstance								instance;
 	NH_HEADER_STATIC VkPhysicalDevice						physicalDevice;
-	NH_HEADER_STATIC VkPhysicalDeviceProperties				physicalDeviceProperties;
 	NH_HEADER_STATIC VkDevice								device;
 	NH_HEADER_STATIC VkQueue								deviceQueue;
+	NH_HEADER_STATIC Swapchain								swapchain{};
 	NH_HEADER_STATIC U32									queueFamilyIndex;
+
+	NH_HEADER_STATIC VkAllocationCallbacks*					allocationCallbacks;
 	NH_HEADER_STATIC VkDescriptorPool						descriptorPool;
 	NH_HEADER_STATIC U64									uboAlignment;
-	NH_HEADER_STATIC U64									ssboAlignemnt;
+	NH_HEADER_STATIC U64									sboAlignemnt;
 
 	NH_HEADER_STATIC Queue<ResourceUpdate>					bindlessTexturesToUpdate{};
 	NH_HEADER_STATIC VkDescriptorPool						bindlessDescriptorPool;
@@ -124,24 +120,14 @@ private:
 	NH_HEADER_STATIC bool												rayTracingPresent{ false };
 
 	// WINDOW
-	NH_HEADER_STATIC VkSurfaceKHR							surface;
 	NH_HEADER_STATIC RenderPassOutput						swapchainOutput;
-	NH_HEADER_STATIC VkSurfaceFormatKHR						surfaceFormat;
-	NH_HEADER_STATIC VkPresentModeKHR						presentMode;
-	NH_HEADER_STATIC VkSwapchainKHR							swapchain;
-	NH_HEADER_STATIC U32									swapchainImageCount;
-	NH_HEADER_STATIC U16									swapchainWidth;
-	NH_HEADER_STATIC U16									swapchainHeight;
-	NH_HEADER_STATIC VkImage								swapchainImages[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC VkImageView							swapchainImageViews[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC VkFramebuffer							swapchainFramebuffers[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC Texture* depthTexture;
+	NH_HEADER_STATIC SwapchainPass							offscreenPass;
+	NH_HEADER_STATIC SwapchainPass							filterPass;
 	NH_HEADER_STATIC U32									imageIndex{ 0 };
 	NH_HEADER_STATIC U32									currentFrame{ 1 };
 	NH_HEADER_STATIC U32									previousFrame{ 0 };
 	NH_HEADER_STATIC U32									absoluteFrame{ 0 };
 	NH_HEADER_STATIC bool									resized{ false };
-	NH_HEADER_STATIC bool									verticalSync{ false };
 
 	// RESOURCES
 	NH_HEADER_STATIC VmaAllocator_T* allocator;
@@ -157,11 +143,7 @@ private:
 	NH_HEADER_STATIC U64									dynamicAllocatedSize;
 	NH_HEADER_STATIC U64									dynamicPerFrameSize;
 	NH_HEADER_STATIC C8										binariesPath[512];
-	// PRIMITIVE
 	NH_HEADER_STATIC Buffer* fullscreenVertexBuffer;
-	NH_HEADER_STATIC RenderPass* swapchainPass;
-	NH_HEADER_STATIC Sampler* defaultSampler;  //TODO: Move to Resources
-	// DUMMY
 	NH_HEADER_STATIC Buffer* dummyConstantBuffer; //TODO: Move to Resources
 
 	// TIMING
@@ -188,4 +170,6 @@ private:
 	friend class Resources;
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
+	friend struct Swapchain;
+	friend struct Scene; //TODO: temp
 };

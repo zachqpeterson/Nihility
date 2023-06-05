@@ -163,6 +163,9 @@
     <ClInclude Include="Engine\Entities\EntityDefines.hpp">
       <Filter>Source Files\Entities</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Rendering\Swapchain.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -227,6 +230,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Core\Time.cpp">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rendering\Swapchain.cpp">
+      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

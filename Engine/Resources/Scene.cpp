@@ -15,7 +15,6 @@ void Scene::Update()
 
 	camera.Update();
 
-
 	MapBufferParameters cbMap = { constantBuffer, 0, 0 };
 	F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
 	if (cbData)
@@ -48,7 +47,7 @@ void Scene::Update()
 
 	commands->Clear(0.3f, 0.3f, 0.3f, 1.0f);
 	commands->ClearDepthStencil(1.0f, 0);
-	commands->BindPass(Renderer::GetSwapchainPass());
+	commands->BindPass(Renderer::swapchain.RenderPass());
 	commands->SetScissor(nullptr);
 	commands->SetViewport(nullptr);
 

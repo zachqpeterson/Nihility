@@ -115,7 +115,7 @@ bool Resources::Initialize()
 	rasterization.fill = FILL_MODE_SOLID;
 
 	PipelineCreation pipelineCreation{};
-	pipelineCreation.renderPass = Renderer::GetSwapchainOutput();
+	pipelineCreation.renderPass = Renderer::swapchain.Output();
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -716,6 +716,48 @@ void* Resources::LoadTGA(Texture* texture, File& file)
 	return nullptr;
 }
 
+void* Resources::LoadKTX(Texture* texture, File& file)
+{
+	static constexpr U8 FileIdentifier[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+	static constexpr U32 EndiannessIdentifier = 0x04030201;
+
+	//TODO: Check file identifier
+	//TODO: Check endianness
+	//TODO: Get Image Format
+	//TODO: glTypeSize?
+	//TODO: Get Pixel Format
+	//TODO: Get Compression
+	//TODO: Get Pixel Format again?
+	//TODO: Get pixel width, height, depth
+	//TODO: Get Array Element Count (0 = not an array texture)
+	//TODO: Get cubemap face count (1 = not a cubemap, faces are stored +X, -X, +Y, -Y, +Z, -Z)
+	//TODO: Get mipmap levels (0 = must be generated)
+
+	//TODO: Key Value Pairs
+
+	//TODO: Load Image:
+	//for each mipmap_level in numberOfMipmapLevels1
+	//	UInt32 imageSize;
+	//	for each array_element in numberOfArrayElements2
+	//		for each face in numberOfFaces3
+	//			for each z_slice in pixelDepth2
+	//				for each row or row_of_blocks in pixelHeight2
+	//					for each pixel or block_of_pixels in pixelWidth
+	//						Byte data[format - specific - number - of - bytes]4
+	//					end
+	//				end
+	//			end
+	//			Byte cubePadding[0 - 3]
+	//		end
+	//	end
+	//	Byte mipPadding[0 - 3]
+	//end
+
+	VK_FORMAT_R16G16B16A16_SFLOAT;
+
+	return nullptr;
+}
+
 Buffer* Resources::CreateBuffer(const BufferCreation& info)
 {
 	Buffer* buffer = &buffers.Request(info.name);
@@ -1076,7 +1118,7 @@ Scene* Resources::LoadScene(const String& name)
 			bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
 			mesh.indexBuffer = Resources::CreateBuffer(bufferCreation);
 
-			mesh.primitiveCount = mesh.indexBuffer->size / sizeof(U16);
+			mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
 
 			file.Read(id);
 			mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;

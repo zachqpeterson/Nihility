@@ -76,6 +76,7 @@ private:
 	static void* LoadPSD(Texture* texture, File& file);
 	static void* LoadTIFF(Texture* texture, File& file);
 	static void* LoadTGA(Texture* texture, File& file);
+	static void* LoadKTX(Texture* texture, File& file);
 
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;

@@ -87,13 +87,13 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	allocationCallbacks = nullptr;
 
 	if (!CreateInstance()) { return false; }
-	if (!CreateSurface()) { return false; }
+	if (!swapchain.CreateSurface()) { return false; }
 	if (!SelectGPU()) { return false; }
 	if (!CreateDevice()) { return false; }
-	if (!SetFormats()) { return false; }
-	if (!CreateSwapchain()) { return false; }
+	if (!swapchain.GetFormat()) { return false; }
+	if (!swapchain.Create()) { return false; }
 	if (!CreateResources()) { return false; }
-	if (!CreatePrimitiveResources()) { return false; }
+	if (!swapchain.CreateRenderPass()) { return false; }
 
 	return true;
 }
@@ -103,6 +103,8 @@ void Renderer::Shutdown()
 	Logger::Trace("Cleaning Up Vulkan Renderer...");
 
 	vkDeviceWaitIdle(device);
+
+	Resources::Shutdown();
 
 	commandBufferRing.Destroy();
 
@@ -119,8 +121,6 @@ void Renderer::Shutdown()
 
 	Profiler::Shutdown();
 
-	Resources::Shutdown();
-
 	auto it = renderPassCache.begin();
 	auto end = renderPassCache.end();
 	for (; it != end; ++it)
@@ -130,16 +130,15 @@ void Renderer::Shutdown()
 
 	renderPassCache.Destroy();
 
-	vkDestroyRenderPass(device, swapchainPass->renderPass, allocationCallbacks);
+	//TODO: Taken care by Resources?
+	//vkDestroyRenderPass(device, offscreenPass.renderPass->renderPass, allocationCallbacks);
+	//vkDestroyRenderPass(device, filterPass.renderPass->renderPass, allocationCallbacks);
 
-	DestroySwapchain();
-	vkDestroySurfaceKHR(instance, surface, allocationCallbacks);
+	swapchain.Destroy();
 
 	vmaDestroyAllocator(allocator);
 
 	descriptorSetUpdates.Destroy();
-
-	Resources::Shutdown();
 
 #ifdef NH_DEBUG
 	vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
@@ -224,26 +223,6 @@ bool Renderer::CreateInstance()
 	return true;
 }
 
-bool Renderer::CreateSurface()
-{
-#ifdef PLATFORM_WINDOWS
-	VkWin32SurfaceCreateInfoKHR surfaceInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-	surfaceInfo.pNext = nullptr;
-	surfaceInfo.flags = 0;
-	const WindowData& wd = Platform::GetWindowData();
-	surfaceInfo.hinstance = wd.instance;
-	surfaceInfo.hwnd = wd.window;
-
-	VkValidateFR(vkCreateWin32SurfaceKHR(instance, &surfaceInfo, allocationCallbacks, &surface));
-#elif PLATFORM_LINUX
-	//TODO:
-#elif PLATFORM_APPLE
-	//TODO:
-#endif
-
-	return true;
-}
-
 bool Renderer::SelectGPU()
 {
 	U32 physicalDeviceCount;
@@ -272,7 +251,7 @@ bool Renderer::SelectGPU()
 	Logger::Trace("Best GPU Found: {}", physicalDeviceProperties.deviceName);
 
 	uboAlignment = physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-	ssboAlignemnt = physicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+	sboAlignemnt = physicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
 
 	return true;
 }
@@ -290,7 +269,7 @@ bool Renderer::GetFamilyQueue(VkPhysicalDevice gpu)
 		VkQueueFamilyProperties queue_family = queueFamilies[familyIndex];
 		if (queue_family.queueCount > 0 && queue_family.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
 		{
-			VkValidateFR(vkGetPhysicalDeviceSurfaceSupportKHR(gpu, familyIndex, surface, &surfaceSupported));
+			VkValidateFR(vkGetPhysicalDeviceSurfaceSupportKHR(gpu, familyIndex, swapchain.surface, &surfaceSupported));
 
 			if (surfaceSupported) { queueFamilyIndex = familyIndex; break; }
 		}
@@ -338,116 +317,6 @@ bool Renderer::CreateDevice()
 	VkValidateFR(vkCreateDevice(physicalDevice, &deviceInfo, allocationCallbacks, &device));
 
 	vkGetDeviceQueue(device, queueFamilyIndex, 0, &deviceQueue);
-
-	return true;
-}
-
-bool Renderer::SetFormats()
-{
-	const VkFormat imageFormats[]{
-		//VK_FORMAT_R16G16B16A16_SFLOAT, //TODO: Enable and disable HDR
-		VK_FORMAT_B8G8R8A8_UNORM,
-		VK_FORMAT_R8G8B8A8_UNORM,
-		VK_FORMAT_B8G8R8_UNORM,
-		VK_FORMAT_R8G8B8_UNORM,
-	};
-	const VkColorSpaceKHR colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-
-	U32 supportedCount;
-	VkValidateFR(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &supportedCount, nullptr));
-	Vector<VkSurfaceFormatKHR> supportedFormats(supportedCount, {});
-	VkValidateFR(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &supportedCount, supportedFormats.Data()));
-
-	swapchainOutput.Reset();
-
-	bool formatFound = false;
-	const U32 surfaceFormatCount = CountOf32(imageFormats);
-
-	for (U32 i = 0; i < surfaceFormatCount; ++i)
-	{
-		for (U32 j = 0; j < supportedCount; ++j)
-		{
-			if (supportedFormats[j].format == imageFormats[i] && supportedFormats[j].colorSpace == colorSpace)
-			{
-				surfaceFormat = supportedFormats[j];
-				swapchainOutput.Color(imageFormats[j]);
-				formatFound = true;
-				break;
-			}
-		}
-
-		if (formatFound) { break; }
-	}
-
-	if (!formatFound) { Logger::Fatal("Failed to Find a Valid Surface Format!"); return false; }
-
-	supportedCount = 0;
-	VkPresentModeKHR supportedModes[8];
-	VkValidateFR(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &supportedCount, nullptr));
-	VkValidateFR(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &supportedCount, supportedModes));
-
-	bool modeFound = false;
-	VkPresentModeKHR requestedMode = VK_PRESENT_MODE_FIFO_KHR; //TODO: request VK_PRESENT_MODE_MAILBOX_KHR
-	for (U32 i = 0; i < supportedCount; ++i)
-	{
-		if (requestedMode == supportedModes[i]) { modeFound = true; break; }
-	}
-
-	presentMode = modeFound ? requestedMode : VK_PRESENT_MODE_FIFO_KHR;
-	swapchainImageCount = 3;
-
-	return true;
-}
-
-bool Renderer::CreateSwapchain()
-{
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	VkValidateFR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities));
-
-	VkExtent2D swapchainExtent = surfaceCapabilities.currentExtent;
-	if (swapchainExtent.width == UINT32_MAX)
-	{
-		swapchainExtent.width = Math::Clamp(swapchainExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
-		swapchainExtent.height = Math::Clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
-	}
-
-	swapchainWidth = (U16)swapchainExtent.width;
-	swapchainHeight = (U16)swapchainExtent.height;
-
-	VkSwapchainCreateInfoKHR swapchainInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-	swapchainInfo.surface = surface;
-	swapchainInfo.minImageCount = swapchainImageCount;
-	swapchainInfo.imageFormat = surfaceFormat.format;
-	swapchainInfo.imageExtent = swapchainExtent;
-	swapchainInfo.clipped = VK_TRUE;
-	swapchainInfo.imageArrayLayers = 1;
-	swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-	swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	swapchainInfo.preTransform = surfaceCapabilities.currentTransform;
-	swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	swapchainInfo.presentMode = presentMode;
-
-	VkValidateFR(vkCreateSwapchainKHR(device, &swapchainInfo, 0, &swapchain));
-
-	VkValidateFR(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, nullptr));
-	VkValidateFR(vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, swapchainImages));
-
-	for (size_t i = 0; i < swapchainImageCount; ++i)
-	{
-		VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = surfaceFormat.format;
-		viewInfo.image = swapchainImages[i];
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.layerCount = 1;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-		viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-
-		VkValidateFR(vkCreateImageView(device, &viewInfo, allocationCallbacks, swapchainImageViews + i));
-	}
 
 	return true;
 }
@@ -585,30 +454,10 @@ bool Renderer::CreateResources()
 
 	descriptorSetUpdates.Reserve(16);
 
-	return true;
-}
-
-bool Renderer::CreatePrimitiveResources()
-{
-	SamplerCreation sc{};
-	sc.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
-		.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR).SetName("Sampler Default");
-	defaultSampler = Resources::CreateSampler(sc);
-
 	BufferCreation fullscreenVbCreation{};
 	fullscreenVbCreation.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 0);
 	fullscreenVbCreation.SetName("Fullscreen_vb");
 	fullscreenVertexBuffer = Resources::CreateBuffer(fullscreenVbCreation);
-
-	TextureCreation depthTextureCreation{ nullptr, swapchainWidth, swapchainHeight, 1, 1, 0, VK_FORMAT_D32_SFLOAT, TEXTURE_TYPE_2D, "DepthImage_Texture" };
-	depthTexture = Resources::CreateTexture(depthTextureCreation);
-
-	swapchainOutput.Depth(VK_FORMAT_D32_SFLOAT);
-
-	RenderPassCreation swapchainPassCreation{};
-	swapchainPassCreation.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
-	swapchainPassCreation.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
-	swapchainPass = Resources::CreateRenderPass(swapchainPassCreation);
 
 	BufferCreation dummyConstantBufferCreation{};
 	dummyConstantBufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 16);
@@ -666,24 +515,22 @@ void Renderer::BeginFrame()
 		UpdateDescriptorSetInstant(update);
 	}
 
-	GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true)->PushMarker("Frame");
+	GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true);
 }
 
 void Renderer::EndFrame()
 {
 	CommandBuffer* cb = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	cb->PopMarker();
-
 	Profiler::Update();
 
 	//TODO: temp
 	QueueCommandBuffer(cb);
 
-	VkResult result = vkAcquireNextImageKHR(device, swapchain, U64_MAX, imageAcquired, nullptr, &imageIndex);
+	VkResult result = swapchain.NextImage(imageIndex, imageAcquired);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		ResizeSwapchain();
+		Resize();
 		FrameCountersAdvance();
 
 		return;
@@ -751,7 +598,6 @@ void Renderer::EndFrame()
 		if (currentWriteIndex) { vkUpdateDescriptorSets(device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); }
 	}
 
-	// Submit command buffers
 	VkSemaphore waitSemaphores[]{ imageAcquired };
 	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -762,29 +608,20 @@ void Renderer::EndFrame()
 	submitInfo.commandBufferCount = queuedCommandBufferCount;
 	submitInfo.pCommandBuffers = enqueuedCommandBuffers;
 	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = renderCompleted;
+	submitInfo.pSignalSemaphores = &renderCompleteSemaphore;
 
 	vkQueueSubmit(deviceQueue, 1, &submitInfo, renderCompleteFence);
 
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = renderCompleted;
-
-	VkSwapchainKHR swapChains[] = { swapchain };
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &imageIndex;
-	presentInfo.pResults = nullptr; // Optional
-	result = vkQueuePresentKHR(deviceQueue, &presentInfo);
+	result = swapchain.Present(deviceQueue, imageIndex, renderCompleteSemaphore);
 
 	queuedCommandBufferCount = 0;
 
 	Profiler::Query();
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || resized)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || Settings::Resized())
 	{
-		resized = false;
-		ResizeSwapchain();
+		Settings::resized = false;
+		Resize();
 		FrameCountersAdvance();
 
 		return;
@@ -797,52 +634,20 @@ void Renderer::EndFrame()
 
 void Renderer::Resize()
 {
-	swapchainWidth = Settings::WindowWidth();
-	swapchainHeight = Settings::WindowHeight();
-
-	resized = true;
-}
-
-void Renderer::ResizeSwapchain()
-{
-	vkDeviceWaitIdle(device);
-
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
-	VkExtent2D swapchainExtent = surfaceCapabilities.currentExtent;
-
-	if (swapchainExtent.width == 0 || swapchainExtent.height == 0) { return; }
-
-	// Internal destroy of swapchain pass to retain the same handle.
-	vkDestroyRenderPass(device, swapchainPass->renderPass, allocationCallbacks);
-
-	// Destroy swapchain images and framebuffers
-	DestroySwapchain();
-	vkDestroySurfaceKHR(instance, surface, allocationCallbacks);
-
-	// Recreate window surface
-	if (!CreateSurface()) { Logger::Error("Failed to create window surface!"); }
-
-	// Create swapchain
-	CreateSwapchain();
-
-	// Resize depth texture, maintaining handle, using a dummy texture to destroy.
-	Resources::RecreateTexture(depthTexture, swapchainWidth, swapchainHeight, 1);
-
-	CreateSwapchainPass(swapchainPass);
+	offscreenPass.width = Settings::WindowWidth();
+	offscreenPass.height = Settings::WindowHeight();
+	filterPass.width = Settings::WindowWidth();
+	filterPass.height = Settings::WindowHeight();
 
 	vkDeviceWaitIdle(device);
-}
 
-void Renderer::DestroySwapchain()
-{
-	for (size_t i = 0; i < swapchainImageCount; ++i)
-	{
-		vkDestroyImageView(device, swapchainImageViews[i], allocationCallbacks);
-		vkDestroyFramebuffer(device, swapchainFramebuffers[i], allocationCallbacks);
-	}
+	swapchain.Create();
 
-	vkDestroySwapchainKHR(device, swapchain, allocationCallbacks);
+	vkDeviceWaitIdle(device);
+
+	//TODO: Update camera here
+
+
 }
 
 void Renderer::UpdateDescriptorSet(DescriptorSet* descriptorSet)
@@ -872,7 +677,7 @@ void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
 	vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet->descriptorSet);
 
 	U32 resourceCount = descriptorSetLayout->bindingCount;
-	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, defaultSampler->sampler,
+	FillWriteDescriptorSets(descriptorSetLayout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, Resources::AccessDefaultSampler()->sampler,
 		resourceCount, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
 
 	vkUpdateDescriptorSets(device, resourceCount, descriptorWrite, 0, nullptr);
@@ -962,7 +767,7 @@ void Renderer::PopGpuTimestamp(CommandBuffer* commandBuffer)
 void Renderer::FrameCountersAdvance()
 {
 	previousFrame = currentFrame;
-	currentFrame = (currentFrame + 1) % swapchainImageCount;
+	currentFrame = (currentFrame + 1) % swapchain.imageCount;
 
 	++absoluteFrame;
 }
@@ -1185,55 +990,30 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 
 	switch (output.colorOperation)
 	{
-	case RENDER_PASS_OP_LOAD: {
-		colorOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	} break;
-	case RENDER_PASS_OP_CLEAR: {
-		colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	} break;
-	default: {
-		colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorInitial = VK_IMAGE_LAYOUT_UNDEFINED;
-	} break;
+	case RENDER_PASS_OP_LOAD: { colorOp = VK_ATTACHMENT_LOAD_OP_LOAD; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
+	case RENDER_PASS_OP_CLEAR: { colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
+	default: { colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; colorInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
 	}
 
 	switch (output.depthOperation)
 	{
-	case RENDER_PASS_OP_LOAD: {
-		depthOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	} break;
-	case RENDER_PASS_OP_CLEAR: {
-		depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	} break;
-	default: {
-		depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthInitial = VK_IMAGE_LAYOUT_UNDEFINED;
-	} break;
+	case RENDER_PASS_OP_LOAD: { depthOp = VK_ATTACHMENT_LOAD_OP_LOAD; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
+	case RENDER_PASS_OP_CLEAR: { depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
+	default: { depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; depthInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
 	}
 
 	switch (output.stencilOperation)
 	{
-	case RENDER_PASS_OP_LOAD: {
-		stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	} break;
-	case RENDER_PASS_OP_CLEAR: {
-		stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	} break;
-	default: {
-		stencilOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	} break;
+	case RENDER_PASS_OP_LOAD: { stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD; } break;
+	case RENDER_PASS_OP_CLEAR: { stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR; } break;
+	default: { stencilOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; } break;
 	}
 
-	// Color attachments
-	U32 c = 0;
-	for (; c < output.colorFormatCount; ++c)
+	U32 attachment = 0;
+	for (; attachment < output.colorFormatCount; ++attachment)
 	{
-		VkAttachmentDescription& colorAttachment = colorAttachments[c];
-		colorAttachment.format = output.colorFormats[c];
+		VkAttachmentDescription& colorAttachment = colorAttachments[attachment];
+		colorAttachment.format = output.colorFormats[attachment];
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = colorOp;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1242,12 +1022,11 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 		colorAttachment.initialLayout = colorInitial;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		VkAttachmentReference& colorAttachmentRef = colorAttachmentsRef[c];
-		colorAttachmentRef.attachment = c;
+		VkAttachmentReference& colorAttachmentRef = colorAttachmentsRef[attachment];
+		colorAttachmentRef.attachment = attachment;
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	}
 
-	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
 	VkAttachmentReference depthAttachmentRef{};
 
@@ -1262,12 +1041,11 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 		depthAttachment.initialLayout = depthInitial;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		depthAttachmentRef.attachment = c;
+		depthAttachmentRef.attachment = attachment;
 		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	}
 
 	// Create subpass.
-	// TODO: for now is just a simple subpass, evolve API.
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -1299,9 +1077,9 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 
-	// Create external subpass dependencies
-	//VkSubpassDependency external_dependencies[ 16 ];
-	//u32 num_external_dependencies = 0;
+	//TODO: Create external subpass dependencies
+	//VkSubpassDependency externalDependencies[16];
+	//U32 externalDependencyCount = 0;
 
 	VkRenderPass renderPass;
 	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
@@ -1328,9 +1106,10 @@ VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
 
 void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 {
-	// Color attachment
+	//TODO: This is hardcoded, pass in attachment info
+
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = surfaceFormat.format;
+	colorAttachment.format = swapchain.surfaceFormat.format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1343,9 +1122,8 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = depthTexture->format;
+	depthAttachment.format = swapchain.renderPass.attachments[0]->format;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1379,24 +1157,24 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderPass->renderPass;
 	framebufferInfo.attachmentCount = 2;
-	framebufferInfo.width = swapchainWidth;
-	framebufferInfo.height = swapchainHeight;
+	framebufferInfo.width = swapchain.renderPass.width;
+	framebufferInfo.height = swapchain.renderPass.height;
 	framebufferInfo.layers = 1;
 
 	VkImageView framebufferAttachments[2];
-	framebufferAttachments[1] = depthTexture->imageView;
+	framebufferAttachments[1] = swapchain.renderPass.attachments[0]->imageView;
 
-	for (size_t i = 0; i < swapchainImageCount; i++)
+	for (U64 i = 0; i < swapchain.imageCount; i++)
 	{
-		framebufferAttachments[0] = swapchainImageViews[i];
+		framebufferAttachments[0] = swapchain.renderPass.imageViews[i];
 		framebufferInfo.pAttachments = framebufferAttachments;
 
-		vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchainFramebuffers[i]);
-		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchainFramebuffers[i], renderPass->name);
+		vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchain.renderPass.framebuffers[i]);
+		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchain.renderPass.framebuffers[i], renderPass->name);
 	}
 
-	renderPass->width = swapchainWidth;
-	renderPass->height = swapchainHeight;
+	renderPass->width = swapchain.renderPass.width;
+	renderPass->height = swapchain.renderPass.height;
 
 	// Manually transition the texture
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -1416,12 +1194,12 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	region.imageSubresource.layerCount = 1;
 
 	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = { swapchainWidth, swapchainHeight, 1 };
+	region.imageExtent = { swapchain.renderPass.width, swapchain.renderPass.height, 1 };
 
 	// Transition
-	for (U64 i = 0; i < swapchainImageCount; ++i)
+	for (U64 i = 0; i < swapchain.imageCount; ++i)
 	{
-		AddImageBarrier(commandBuffer->commandBuffer, swapchainImages[i], RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
+		AddImageBarrier(commandBuffer->commandBuffer, swapchain.renderPass.images[i], RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
 	}
 
 	vkEndCommandBuffer(commandBuffer->commandBuffer);
@@ -1755,7 +1533,7 @@ bool Renderer::CreateDescriptorSet(DescriptorSet* descriptorSet)
 	VkDescriptorImageInfo imageInfo[8];
 
 	U32 resourceCount = descriptorSet->resourceCount;
-	FillWriteDescriptorSets(descriptorSet->layout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, defaultSampler->sampler,
+	FillWriteDescriptorSets(descriptorSet->layout, descriptorSet->descriptorSet, descriptorWrite, bufferInfo, imageInfo, Resources::AccessDefaultSampler()->sampler,
 		resourceCount, descriptorSet->resources, descriptorSet->samplers, descriptorSet->bindings);
 
 	vkUpdateDescriptorSets(device, resourceCount, descriptorWrite, 0, nullptr);
@@ -2065,14 +1843,14 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = (F32)swapchainWidth;
-		viewport.height = (F32)swapchainHeight;
+		viewport.width = (F32)swapchain.renderPass.width;
+		viewport.height = (F32)swapchain.renderPass.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = { swapchainWidth, swapchainHeight };
+		scissor.extent = { swapchain.renderPass.width, swapchain.renderPass.height };
 
 		VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 		viewportState.viewportCount = 1;
@@ -2201,10 +1979,6 @@ void Renderer::DestroyPipelineInstant(Pipeline* pipeline)
 		vkDestroyPipelineLayout(device, pipeline->pipelineLayout, allocationCallbacks);
 	}
 }
-
-const RenderPassOutput& Renderer::GetSwapchainOutput() { return swapchainOutput; }
-
-RenderPass* Renderer::GetSwapchainPass() { return swapchainPass; }
 
 bool Renderer::IsDepthStencil(VkFormat value)
 {

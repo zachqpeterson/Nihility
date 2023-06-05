@@ -146,8 +146,6 @@ void Platform::SetFullscreen(bool fullscreen)
 {
 	Settings::data.fullscreen = fullscreen;
 
-	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
-
 	if (fullscreen)
 	{
 		SetWindowPos(windowData.window, nullptr, border.left, border.top,
