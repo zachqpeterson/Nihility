@@ -122,6 +122,7 @@ const Vector3& Camera::Position() const
 
 Quaternion3 Camera::Rotation() const
 {
+	//TODO: This is bad, doesn't give roll
 	const Quaternion3 pitchRotation{ Vector3::Right, pitch };
 	const Quaternion3 yawRotation{ Vector3::Up, yaw };
 	return (pitchRotation * yawRotation).Normalize();

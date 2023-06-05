@@ -25,10 +25,10 @@ private:
 	static inline U64 Read4(const U8* p);
 	static inline U64 Read3(const U8* p, U64 k);
 
-	NH_HEADER_STATIC constexpr U64 secret0 = 0xa0761d6478bd642full;
-	NH_HEADER_STATIC constexpr U64 secret1 = 0xe7037ed1a0b428dbull;
-	NH_HEADER_STATIC constexpr U64 secret2 = 0x8ebc6af09c88c6e3ull;
-	NH_HEADER_STATIC constexpr U64 secret3 = 0x589965cc75374cc3ull;
+	static constexpr U64 secret0 = 0xa0761d6478bd642full;
+	static constexpr U64 secret1 = 0xe7037ed1a0b428dbull;
+	static constexpr U64 secret2 = 0x8ebc6af09c88c6e3ull;
+	static constexpr U64 secret3 = 0x589965cc75374cc3ull;
 
 	STATIC_CLASS(Hash);
 	friend class Random;

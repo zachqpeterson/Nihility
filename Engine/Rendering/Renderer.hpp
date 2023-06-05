@@ -86,83 +86,83 @@ private:
 
 private:
 	// INFO
-	NH_HEADER_STATIC CSTR									appName;
-	NH_HEADER_STATIC U32									appVersion;
+	static CSTR									appName;
+	static U32									appVersion;
 
 	// CAPABILITIES
-	NH_HEADER_STATIC VkPhysicalDeviceProperties				physicalDeviceProperties;
+	static VkPhysicalDeviceProperties			physicalDeviceProperties;
 
 	// DEVICE
-	NH_HEADER_STATIC VkInstance								instance;
-	NH_HEADER_STATIC VkPhysicalDevice						physicalDevice;
-	NH_HEADER_STATIC VkDevice								device;
-	NH_HEADER_STATIC VkQueue								deviceQueue;
-	NH_HEADER_STATIC Swapchain								swapchain{};
-	NH_HEADER_STATIC U32									queueFamilyIndex;
+	static VkInstance							instance;
+	static VkPhysicalDevice						physicalDevice;
+	static VkDevice								device;
+	static VkQueue								deviceQueue;
+	static Swapchain							swapchain;
+	static U32									queueFamilyIndex;
 
-	NH_HEADER_STATIC VkAllocationCallbacks*					allocationCallbacks;
-	NH_HEADER_STATIC VkDescriptorPool						descriptorPool;
-	NH_HEADER_STATIC U64									uboAlignment;
-	NH_HEADER_STATIC U64									sboAlignemnt;
+	static VkAllocationCallbacks*				allocationCallbacks;
+	static VkDescriptorPool						descriptorPool;
+	static U64									uboAlignment;
+	static U64									sboAlignemnt;
 
-	NH_HEADER_STATIC Queue<ResourceUpdate>					bindlessTexturesToUpdate{};
-	NH_HEADER_STATIC VkDescriptorPool						bindlessDescriptorPool;
-	NH_HEADER_STATIC VkDescriptorSet						bindlessDescriptorSet;
-	NH_HEADER_STATIC VkDescriptorSetLayout					bindlessDescriptorSetLayout;
-	NH_HEADER_STATIC constexpr U32							bindlessTextureBinding{ 10 };
-	NH_HEADER_STATIC constexpr U32							maxBindlessResources{ 1024 };
-	NH_HEADER_STATIC bool									bindlessSupported{ false };
+	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
+	static VkDescriptorPool						bindlessDescriptorPool;
+	static VkDescriptorSet						bindlessDescriptorSet;
+	static VkDescriptorSetLayout				bindlessDescriptorSetLayout;
+	static constexpr U32						bindlessTextureBinding{ 10 };
+	static constexpr U32						maxBindlessResources{ 1024 };
+	static bool									bindlessSupported;
 
 	// RAY TRACING
-	NH_HEADER_STATIC VkPhysicalDeviceRayTracingPipelineFeaturesKHR		rayTracingPipelineFeatures;
-	NH_HEADER_STATIC VkPhysicalDeviceRayTracingPipelinePropertiesKHR	rayTracingPipelineProperties;
-	NH_HEADER_STATIC VkPhysicalDeviceAccelerationStructureFeaturesKHR	accelerationStructureFeatures;
-	NH_HEADER_STATIC bool												rayTracingPresent{ false };
+	static VkPhysicalDeviceRayTracingPipelineFeaturesKHR	rayTracingPipelineFeatures;
+	static VkPhysicalDeviceRayTracingPipelinePropertiesKHR	rayTracingPipelineProperties;
+	static VkPhysicalDeviceAccelerationStructureFeaturesKHR	accelerationStructureFeatures;
+	static bool												rayTracingPresent;
 
 	// WINDOW
-	NH_HEADER_STATIC RenderPassOutput						swapchainOutput;
-	NH_HEADER_STATIC SwapchainPass							offscreenPass;
-	NH_HEADER_STATIC SwapchainPass							filterPass;
-	NH_HEADER_STATIC U32									imageIndex{ 0 };
-	NH_HEADER_STATIC U32									currentFrame{ 1 };
-	NH_HEADER_STATIC U32									previousFrame{ 0 };
-	NH_HEADER_STATIC U32									absoluteFrame{ 0 };
-	NH_HEADER_STATIC bool									resized{ false };
+	static RenderPassOutput						swapchainOutput;
+	static SwapchainPass						offscreenPass;
+	static SwapchainPass						filterPass;
+	static U32									imageIndex;
+	static U32									currentFrame;
+	static U32									previousFrame;
+	static U32									absoluteFrame;
+	static bool									resized;
 
 	// RESOURCES
-	NH_HEADER_STATIC VmaAllocator_T* allocator;
-	NH_HEADER_STATIC Queue<DescriptorSetUpdate>				descriptorSetUpdates;
-	NH_HEADER_STATIC Hashmap<U64, VkRenderPass>				renderPassCache{ 16 };
-	NH_HEADER_STATIC CommandBufferRing						commandBufferRing;
-	NH_HEADER_STATIC CommandBuffer** queuedCommandBuffers;
-	NH_HEADER_STATIC U32									allocatedCommandBufferCount{ 0 };
-	NH_HEADER_STATIC U32									queuedCommandBufferCount{ 0 };
-	NH_HEADER_STATIC U64									dynamicMaxPerFrameSize;
-	NH_HEADER_STATIC Buffer* dynamicBuffer;
-	NH_HEADER_STATIC U8* dynamicMappedMemory;
-	NH_HEADER_STATIC U64									dynamicAllocatedSize;
-	NH_HEADER_STATIC U64									dynamicPerFrameSize;
-	NH_HEADER_STATIC C8										binariesPath[512];
-	NH_HEADER_STATIC Buffer* fullscreenVertexBuffer;
-	NH_HEADER_STATIC Buffer* dummyConstantBuffer; //TODO: Move to Resources
+	static VmaAllocator_T*						allocator;
+	static Queue<DescriptorSetUpdate>			descriptorSetUpdates;
+	static Hashmap<U64, VkRenderPass>			renderPassCache;
+	static CommandBufferRing					commandBufferRing;
+	static CommandBuffer**						queuedCommandBuffers;
+	static U32									allocatedCommandBufferCount;
+	static U32									queuedCommandBufferCount;
+	static U64									dynamicMaxPerFrameSize;
+	static Buffer*								dynamicBuffer;
+	static U8*									dynamicMappedMemory;
+	static U64									dynamicAllocatedSize;
+	static U64									dynamicPerFrameSize;
+	static C8									binariesPath[512];
+	static Buffer*								fullscreenVertexBuffer;
+	static Buffer*								dummyConstantBuffer; //TODO: Move to Resources
 
 	// TIMING
-	NH_HEADER_STATIC F32									timestampFrequency;
-	NH_HEADER_STATIC VkQueryPool							timestampQueryPool;
-	NH_HEADER_STATIC VkSemaphore							imageAcquired;
-	NH_HEADER_STATIC VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC VkFence								commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
-	NH_HEADER_STATIC bool									timestampsEnabled{ false };
-	NH_HEADER_STATIC bool									timestampReset{ true };
+	static F32									timestampFrequency;
+	static VkQueryPool							timestampQueryPool;
+	static VkSemaphore							imageAcquired;
+	static VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
+	static VkFence								commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
+	static bool									timestampsEnabled;
+	static bool									timestampReset;
 
 	// DEBUG
-	NH_HEADER_STATIC VkDebugUtilsMessengerEXT				debugMessenger;
-	NH_HEADER_STATIC PFN_vkCreateDebugUtilsMessengerEXT		vkCreateDebugUtilsMessengerEXT;
-	NH_HEADER_STATIC PFN_vkDestroyDebugUtilsMessengerEXT	vkDestroyDebugUtilsMessengerEXT;
-	NH_HEADER_STATIC PFN_vkSetDebugUtilsObjectNameEXT		vkSetDebugUtilsObjectNameEXT;
-	NH_HEADER_STATIC PFN_vkCmdBeginDebugUtilsLabelEXT		vkCmdBeginDebugUtilsLabelEXT;
-	NH_HEADER_STATIC PFN_vkCmdEndDebugUtilsLabelEXT			vkCmdEndDebugUtilsLabelEXT;
-	NH_HEADER_STATIC bool									debugUtilsExtensionPresent{ false };
+	static VkDebugUtilsMessengerEXT				debugMessenger;
+	static PFN_vkCreateDebugUtilsMessengerEXT	vkCreateDebugUtilsMessengerEXT;
+	static PFN_vkDestroyDebugUtilsMessengerEXT	vkDestroyDebugUtilsMessengerEXT;
+	static PFN_vkSetDebugUtilsObjectNameEXT		vkSetDebugUtilsObjectNameEXT;
+	static PFN_vkCmdBeginDebugUtilsLabelEXT		vkCmdBeginDebugUtilsLabelEXT;
+	static PFN_vkCmdEndDebugUtilsLabelEXT		vkCmdEndDebugUtilsLabelEXT;
+	static bool									debugUtilsExtensionPresent;
 
 	STATIC_CLASS(Renderer);
 	friend class Engine;

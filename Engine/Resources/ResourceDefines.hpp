@@ -426,7 +426,7 @@ struct NH_API MeshDraw
 	Buffer* texcoordBuffer;
 	Buffer* materialBuffer;
 
-	U32			primitiveCount; //TODO: Probably don't need this, just use indexBuffer->size
+	U32			primitiveCount;
 
 	//These are HashHandles, used in bindless resources
 	U16			diffuseTextureIndex{ U16_MAX };

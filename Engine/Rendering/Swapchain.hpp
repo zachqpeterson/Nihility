@@ -22,7 +22,7 @@ public:
 	VkSurfaceKHR surface{ nullptr };
 	VkSurfaceFormatKHR surfaceFormat{};
 	RenderPassOutput output;
-	SwapchainPass renderPass;
+	SwapchainPass renderPass{};
 	U32 imageCount{ 3 };
 
 private:

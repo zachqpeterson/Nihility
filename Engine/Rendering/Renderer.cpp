@@ -78,6 +78,83 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 	return VK_FALSE;
 }
 
+// INFO
+CSTR								Renderer::appName;
+U32									Renderer::appVersion;
+
+// CAPABILITIES
+VkPhysicalDeviceProperties			Renderer::physicalDeviceProperties;
+
+// DEVICE
+VkInstance							Renderer::instance;
+VkPhysicalDevice					Renderer::physicalDevice;
+VkDevice							Renderer::device;
+VkQueue								Renderer::deviceQueue;
+Swapchain							Renderer::swapchain{};
+U32									Renderer::queueFamilyIndex;
+
+VkAllocationCallbacks*				Renderer::allocationCallbacks;
+VkDescriptorPool					Renderer::descriptorPool;
+U64									Renderer::uboAlignment;
+U64									Renderer::sboAlignemnt;
+
+Queue<ResourceUpdate>				Renderer::bindlessTexturesToUpdate{};
+VkDescriptorPool					Renderer::bindlessDescriptorPool;
+VkDescriptorSet						Renderer::bindlessDescriptorSet;
+VkDescriptorSetLayout				Renderer::bindlessDescriptorSetLayout;
+bool								Renderer::bindlessSupported{ false };
+
+// RAY TRACING
+VkPhysicalDeviceRayTracingPipelineFeaturesKHR		Renderer::rayTracingPipelineFeatures;
+VkPhysicalDeviceRayTracingPipelinePropertiesKHR		Renderer::rayTracingPipelineProperties;
+VkPhysicalDeviceAccelerationStructureFeaturesKHR	Renderer::accelerationStructureFeatures;
+bool												Renderer::rayTracingPresent{ false };
+
+// WINDOW
+RenderPassOutput					Renderer::swapchainOutput;
+SwapchainPass						Renderer::offscreenPass;
+SwapchainPass						Renderer::filterPass;
+U32									Renderer::imageIndex{ 0 };
+U32									Renderer::currentFrame{ 1 };
+U32									Renderer::previousFrame{ 0 };
+U32									Renderer::absoluteFrame{ 0 };
+bool								Renderer::resized{ false };
+
+// RESOURCES
+VmaAllocator_T*						Renderer::allocator;
+Queue<DescriptorSetUpdate>			Renderer::descriptorSetUpdates;
+Hashmap<U64, VkRenderPass>			Renderer::renderPassCache{ 16 };
+CommandBufferRing					Renderer::commandBufferRing;
+CommandBuffer**						Renderer::queuedCommandBuffers;
+U32									Renderer::allocatedCommandBufferCount{ 0 };
+U32									Renderer::queuedCommandBufferCount{ 0 };
+U64									Renderer::dynamicMaxPerFrameSize;
+Buffer*								Renderer::dynamicBuffer;
+U8*									Renderer::dynamicMappedMemory;
+U64									Renderer::dynamicAllocatedSize;
+U64									Renderer::dynamicPerFrameSize;
+C8									Renderer::binariesPath[512];
+Buffer*								Renderer::fullscreenVertexBuffer;
+Buffer*								Renderer::dummyConstantBuffer; //TODO: Move to Resources
+
+// TIMING
+F32									Renderer::timestampFrequency;
+VkQueryPool							Renderer::timestampQueryPool;
+VkSemaphore							Renderer::imageAcquired;
+VkSemaphore							Renderer::renderCompleted[MAX_SWAPCHAIN_IMAGES];
+VkFence								Renderer::commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
+bool								Renderer::timestampsEnabled{ false };
+bool								Renderer::timestampReset{ true };
+
+// DEBUG
+VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
+PFN_vkCreateDebugUtilsMessengerEXT	Renderer::vkCreateDebugUtilsMessengerEXT;
+PFN_vkDestroyDebugUtilsMessengerEXT	Renderer::vkDestroyDebugUtilsMessengerEXT;
+PFN_vkSetDebugUtilsObjectNameEXT	Renderer::vkSetDebugUtilsObjectNameEXT;
+PFN_vkCmdBeginDebugUtilsLabelEXT	Renderer::vkCmdBeginDebugUtilsLabelEXT;
+PFN_vkCmdEndDebugUtilsLabelEXT		Renderer::vkCmdEndDebugUtilsLabelEXT;
+bool								Renderer::debugUtilsExtensionPresent{ false };
+
 bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 {
 	Logger::Trace("Initializing Vulkan Renderer...");
@@ -104,8 +181,6 @@ void Renderer::Shutdown()
 
 	vkDeviceWaitIdle(device);
 
-	Resources::Shutdown();
-
 	commandBufferRing.Destroy();
 
 	for (size_t i = 0; i < MAX_SWAPCHAIN_IMAGES; i++)
@@ -119,6 +194,8 @@ void Renderer::Shutdown()
 	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
 	UnmapBuffer(cbMap);
 
+	Resources::Shutdown();
+
 	Profiler::Shutdown();
 
 	auto it = renderPassCache.begin();
@@ -130,10 +207,6 @@ void Renderer::Shutdown()
 
 	renderPassCache.Destroy();
 
-	//TODO: Taken care by Resources?
-	//vkDestroyRenderPass(device, offscreenPass.renderPass->renderPass, allocationCallbacks);
-	//vkDestroyRenderPass(device, filterPass.renderPass->renderPass, allocationCallbacks);
-
 	swapchain.Destroy();
 
 	vmaDestroyAllocator(allocator);
@@ -144,6 +217,8 @@ void Renderer::Shutdown()
 	vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
 #endif
 
+	vkDestroyDescriptorSetLayout(device, bindlessDescriptorSetLayout, allocationCallbacks);
+	vkDestroyDescriptorPool(device, bindlessDescriptorPool, allocationCallbacks);
 	vkDestroyDescriptorPool(device, descriptorPool, allocationCallbacks);
 	vkDestroyQueryPool(device, timestampQueryPool, allocationCallbacks);
 
@@ -167,6 +242,8 @@ bool Renderer::CreateInstance()
 	instanceInfo.pApplicationInfo = &applicationInfo;
 
 #ifdef NH_DEBUG
+	debugUtilsExtensionPresent = true;
+
 	VkDebugUtilsMessengerCreateInfoEXT debugInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 	debugInfo.pNext = nullptr;
 	debugInfo.flags = 0;
@@ -1300,7 +1377,9 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &texture->image, &texture->allocation, nullptr));
+	VmaAllocationInfo allocInfo{};
+	allocInfo.pName = "texture";
+	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &texture->image, &texture->allocation, &allocInfo));
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
 
@@ -1344,6 +1423,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
 		VmaAllocationInfo allocationInfo{};
+		allocationInfo.pName = "staging";
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
 		VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo,
@@ -1462,6 +1542,7 @@ bool Renderer::CreateBuffer(Buffer* buffer, void* data)
 	memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
 	VmaAllocationInfo allocationInfo{};
+	allocationInfo.pName = "buffer";
 	VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo, &buffer->buffer, &buffer->allocation, &allocationInfo));
 
 	SetResourceName(VK_OBJECT_TYPE_BUFFER, (U64)buffer->buffer, buffer->name);
@@ -1928,9 +2009,15 @@ void Renderer::DestroyTextureInstant(Texture* texture)
 
 void Renderer::DestroyBufferInstant(Buffer* buffer)
 {
-	if (buffer && !buffer->parentBuffer)
+	if (buffer)
 	{
-		vmaDestroyBuffer(allocator, buffer->buffer, buffer->allocation);
+		static const VkBufferUsageFlags dynamicBufferMask = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		const bool useGlobalBuffer = (buffer->typeFlags & dynamicBufferMask) != 0;
+
+		if (!(buffer->usage == RESOURCE_USAGE_DYNAMIC && useGlobalBuffer))
+		{
+			vmaDestroyBuffer(allocator, buffer->buffer, buffer->allocation);
+		}
 	}
 }
 
@@ -1957,6 +2044,7 @@ void Renderer::DestroyRenderPassInstant(RenderPass* renderPass)
 	if (renderPass)
 	{
 		if (renderPass->renderTargetCount) { vkDestroyFramebuffer(device, renderPass->frameBuffer, allocationCallbacks); }
+		vkDestroyRenderPass(device, renderPass->renderPass, allocationCallbacks);
 	}
 }
 

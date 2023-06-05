@@ -3,6 +3,17 @@
 #include "Rendering\Renderer.hpp"
 #include "Resources\Settings.hpp"
 
+Scene::~Scene() { Destroy(); }
+
+void Scene::Destroy()
+{
+	name.Destroy();
+	meshDraws.Destroy();
+	buffers.Destroy();
+	textures.Destroy();
+	samplers.Destroy();
+}
+
 void Scene::Update()
 {
 	float lightRange = 20.0f;

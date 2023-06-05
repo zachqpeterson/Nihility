@@ -9,6 +9,9 @@ struct CommandBuffer;
 struct NH_API Scene
 {
 public:
+	~Scene();
+	void Destroy();
+
 	void Update();
 
 private:
@@ -22,11 +25,11 @@ public:
 	Camera camera;
 	Buffer* constantBuffer;
 
-	Vector<MeshDraw>	meshDraws;	//TODO: Just call these Mesh, not MeshDraw
+	Vector<MeshDraw>	meshDraws{ NO_INIT };	//TODO: Just call these Mesh, not MeshDraw
 
-	Vector<Texture*>	textures;	//TODO: Probably don't need to store textures here, just handles which might be more useful
-	Vector<Sampler*>	samplers;
-	Vector<Buffer*>		buffers;	//These are parent buffers, meshes will hold child buffers to these
+	Vector<Texture*>	textures{ NO_INIT };	//TODO: Probably don't need to store textures here, just handles which might be more useful
+	Vector<Sampler*>	samplers{ NO_INIT };
+	Vector<Buffer*>		buffers{ NO_INIT };	//These are parent buffers, meshes will hold child buffers to these
 };
 
 //bool SetupScene(Vector<MeshDraw>& draw);

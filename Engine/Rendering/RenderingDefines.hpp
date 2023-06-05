@@ -260,14 +260,14 @@ struct Texture;
 
 /*---------CONSTANTS---------*/
 
-NH_HEADER_STATIC constexpr U8	MAX_IMAGE_OUTPUTS = 8;			// Maximum number of images/render targets/fbo attachments usable
-NH_HEADER_STATIC constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;	// Maximum number of layouts in the pipeline
-NH_HEADER_STATIC constexpr U8	MAX_SHADER_STAGES = 5;			// Maximum simultaneous shader stages, applicable to all different type of pipelines
-NH_HEADER_STATIC constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;	// Maximum list elements for both descriptor set layout and descriptor sets
-NH_HEADER_STATIC constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;		// Maximum images a swapchain can support
-NH_HEADER_STATIC constexpr U8	MAX_SET_COUNT = 32;				// Maximum descriptor sets a shader can have
-NH_HEADER_STATIC constexpr U8	MAX_VERTEX_STREAMS = 16;		// Maximum vertex streams a shader can have
-NH_HEADER_STATIC constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;		// Maximum vertex attributes a shader can have
+static constexpr U8	MAX_IMAGE_OUTPUTS = 8;			// Maximum number of images/render targets/fbo attachments usable
+static constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;	// Maximum number of layouts in the pipeline
+static constexpr U8	MAX_SHADER_STAGES = 5;			// Maximum simultaneous shader stages, applicable to all different type of pipelines
+static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;	// Maximum list elements for both descriptor set layout and descriptor sets
+static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;		// Maximum images a swapchain can support
+static constexpr U8	MAX_SET_COUNT = 32;				// Maximum descriptor sets a shader can have
+static constexpr U8	MAX_VERTEX_STREAMS = 16;		// Maximum vertex streams a shader can have
+static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;		// Maximum vertex attributes a shader can have
 
 /*---------ENUMS---------*/
 
@@ -908,7 +908,7 @@ struct SwapchainPass
 	U16					width;
 	U16					height;
 	VkSampler			sampler;
-	RenderPass*			renderPass;
+	RenderPass* renderPass{ nullptr };
 	Vector<Texture*>	attachments{ 1, nullptr };
 	VkImage				images[MAX_SWAPCHAIN_IMAGES];
 	VkImageView			imageViews[MAX_SWAPCHAIN_IMAGES];

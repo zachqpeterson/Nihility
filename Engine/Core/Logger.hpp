@@ -38,13 +38,16 @@ private:
 	static void Shutdown();
 	static void Write(const String& message);
 
-	NH_HEADER_STATIC const String fatalTag{ "\033[0;41m[FATAL]:\033[0m " };
-	NH_HEADER_STATIC const String errorTag{ "\033[0;31m[ERROR]:\033[0m " };
-	NH_HEADER_STATIC const String warnTag{ "\033[1;33m[WARN]:\033[0m  " };
-	NH_HEADER_STATIC const String infoTag{ "\033[1;32m[INFO]:\033[0m  " };
-	NH_HEADER_STATIC const String debugTag{ "\033[0;36m[DEBUG]:\033[0m " };
-	NH_HEADER_STATIC const String traceTag{ "\033[1;30m[TRACE]:\033[0m " };
-	NH_HEADER_STATIC const String endLine{ "\n" };
+	static const String fatalTag;
+	static const String errorTag;
+	static const String warnTag;
+	static const String infoTag;
+	static const String debugTag;
+	static const String traceTag;
+	static const String endLine;
+
+	static File log;
+	static File console;
 
 	STATIC_CLASS(Logger);
 	friend class Engine;

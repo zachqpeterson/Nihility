@@ -83,6 +83,12 @@ bool Swapchain::CreateRenderPass()
 	if (renderPass.renderPass)
 	{
 		vkDestroyRenderPass(Renderer::device, renderPass.renderPass->renderPass, Renderer::allocationCallbacks);
+
+		for (U32 i = 0; i < imageCount; ++i)
+		{
+			vkDestroyFramebuffer(Renderer::device, renderPass.framebuffers[i], Renderer::allocationCallbacks);
+		}
+
 		Renderer::CreateSwapchainPass(renderPass.renderPass);
 	}
 	else
@@ -226,9 +232,10 @@ void Swapchain::Destroy()
 {
 	if (swapchain)
 	{
-		for (uint32_t i = 0; i < imageCount; ++i)
+		for (U32 i = 0; i < imageCount; ++i)
 		{
 			vkDestroyImageView(Renderer::device, renderPass.imageViews[i], Renderer::allocationCallbacks);
+			vkDestroyFramebuffer(Renderer::device, renderPass.framebuffers[i], Renderer::allocationCallbacks);
 		}
 
 		vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks);
@@ -237,11 +244,6 @@ void Swapchain::Destroy()
 	if (surface)
 	{
 		vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks);
-	}
-
-	if (renderPass.renderPass->renderPass)
-	{
-		vkDestroyRenderPass(Renderer::device, renderPass.renderPass->renderPass, Renderer::allocationCallbacks);
 	}
 
 	surface = nullptr;

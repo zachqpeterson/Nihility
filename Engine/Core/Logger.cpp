@@ -4,8 +4,16 @@
 #include "Containers\String.hpp"
 #include "Platform\Platform.hpp"
 
-static File log{ "Log.log", FILE_OPEN_LOG };
-static File console{ "CONOUT$", FILE_OPEN_CONSOLE };
+const String Logger::fatalTag{ "\033[0;41m[FATAL]:\033[0m " };
+const String Logger::errorTag{ "\033[0;31m[ERROR]:\033[0m " };
+const String Logger::warnTag{ "\033[1;33m[WARN]:\033[0m  " };
+const String Logger::infoTag{ "\033[1;32m[INFO]:\033[0m  " };
+const String Logger::debugTag{ "\033[0;36m[DEBUG]:\033[0m " };
+const String Logger::traceTag{ "\033[1;30m[TRACE]:\033[0m " };
+const String Logger::endLine{ "\n" };
+
+File Logger::log{ "Log.log", FILE_OPEN_LOG };
+File Logger::console{ "CONOUT$", FILE_OPEN_CONSOLE };
 
 bool Logger::Initialize()
 {

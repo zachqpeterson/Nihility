@@ -172,6 +172,23 @@ void Resources::Shutdown()
 	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
 	for (auto it = pipelines.begin(); it != end7; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_PIPELINE, it->handle }); } }
 
+	Hashmap<String, Program>::Iterator end8 = programs.end();
+	for (auto it = programs.begin(); it != end8; ++it) {  }
+
+	Hashmap<String, Material>::Iterator end9 = materials.end();
+	for (auto it = materials.begin(); it != end9; ++it) {}
+
+	Hashmap<String, Scene>::Iterator end10 = scenes.end();
+	for (auto it = scenes.begin(); it != end10; ++it)
+	{
+		if (it.Valid())
+		{
+			Scene& scene = *it;
+			scene.Destroy();
+			pipelines.Remove(scene.handle);
+		}
+	}
+
 	while (resourceDeletionQueue.Size())
 	{
 		ResourceUpdate resourceDeletion;
@@ -192,14 +209,17 @@ void Resources::Shutdown()
 		}
 	}
 
-	pipelines.Destroy();
-	buffers.Destroy();
-	shaders.Destroy();
-	textures.Destroy();
 	samplers.Destroy();
+	textures.Destroy();
+	buffers.Destroy();
 	descriptorSetLayouts.Destroy();
 	descriptorSets.Destroy();
+	shaders.Destroy();
 	renderPasses.Destroy();
+	pipelines.Destroy();
+	programs.Destroy();
+	materials.Destroy();
+	scenes.Destroy();
 
 	resourceDeletionQueue.Destroy();
 }
@@ -807,6 +827,8 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 
 	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
 
+	descriptorSetLayout->name = info.name;
+
 	// TODO: add support for multiple sets.
 	// Create flattened binding list
 	descriptorSetLayout->bindingCount = (U16)info.bindingCount;
@@ -1060,7 +1082,7 @@ Scene* Resources::LoadScene(const String& name)
 		file.Read(rotation.z);
 		
 		scene->camera.SetPosition(position);
-		scene->camera.SetRotation({ rotation });
+		scene->camera.SetRotation(rotation);
 		
 		if (perspective)
 		{
@@ -1092,31 +1114,31 @@ Scene* Resources::LoadScene(const String& name)
 			file.Read(offset);
 			file.Read(size);
 			bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.texcoordBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.texcoordBuffer = CreateBuffer(bufferCreation);
 
 			file.Read(id);
 			file.Read(offset);
 			file.Read(size);
 			bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.normalBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.normalBuffer = CreateBuffer(bufferCreation);
 
 			file.Read(id);
 			file.Read(offset);
 			file.Read(size);
 			bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.tangentBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.tangentBuffer = CreateBuffer(bufferCreation);
 
 			file.Read(id);
 			file.Read(offset);
 			file.Read(size);
 			bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.positionBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.positionBuffer = CreateBuffer(bufferCreation);
 
 			file.Read(id);
 			file.Read(offset);
 			file.Read(size);
 			bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.indexBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.indexBuffer = CreateBuffer(bufferCreation);
 
 			mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
 
@@ -1156,7 +1178,7 @@ Scene* Resources::LoadScene(const String& name)
 			mesh.rotation = Quaternion3(euler);
 
 			bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
-			mesh.materialBuffer = Resources::CreateBuffer(bufferCreation);
+			mesh.materialBuffer = CreateBuffer(bufferCreation);
 			mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
 
 			scene->meshDraws.Push(mesh);
@@ -1164,7 +1186,7 @@ Scene* Resources::LoadScene(const String& name)
 
 		BufferCreation bufferCreation{};
 		bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb"); //TODO: Unique name
-		scene->constantBuffer = Resources::CreateBuffer(bufferCreation);
+		scene->constantBuffer = CreateBuffer(bufferCreation);
 
 		file.Close();
 	}
@@ -1852,5 +1874,10 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 		}
 
 		id.members.Destroy();
+	}
+
+	for (U32 i = 0; i < shaderState->setCount; ++i)
+	{
+		shaderState->name.Appended(shaderState->sets[i].name, "_ds"); //TODO: Unique name
 	}
 }
