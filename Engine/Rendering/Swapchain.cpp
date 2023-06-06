@@ -246,6 +246,7 @@ void Swapchain::Destroy()
 		vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks);
 	}
 
+	renderPass.Destroy();
 	surface = nullptr;
 	swapchain = nullptr;
 }

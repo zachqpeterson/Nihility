@@ -146,13 +146,20 @@ namespace TypeTraits
 	template<class Type, class First, class... Rest>
 	struct IsAnyOf<Type, First, Rest...> : Conditional<IsSame<Type, First>, TrueConstant, IsAnyOf<Type, Rest...>> {};
 
-	//TODO: Apply n pointers to a type
-
 	template<class Type>
 	struct AppliedPointers { using type = Type; };
 
 	template<class Type, U64 Count>
 	struct ApplyPointers : Conditional<Count == 0, AppliedPointers<Type>, ApplyPointers<Type*, Count - 1>> {};
+
+	template<class Type>
+	struct IsDestroyable
+	{
+		template<class C> static constexpr TrueConstant Test(decltype(&C::Destroy));
+		template<class> static constexpr FalseConstant Test(...);
+
+		static constexpr bool value = decltype(Test<Type>(0))::value;
+	};
 }
 
 template <bool Test, class Type = void>
@@ -178,6 +185,9 @@ template <class Type> using UnsignedOf = typename TypeTraits::GetUnsigned<Type>:
 template <class Type> using SignedOf = typename TypeTraits::GetSigned<Type>::type;
 template <class Type> inline constexpr U64 PointerCount = TypeTraits::GetPointerCount<Type, 0>::count;
 template <class Type, U64 Count> using ApplyPointers = typename TypeTraits::ApplyPointers<Type, Count>::type;
+
+template <class Type> inline constexpr bool IsDestroyable = TypeTraits::IsDestroyable<Type>::value;
+template <class Type> concept Destroyable = IsDestroyable<Type>;
 
 template <class Type> inline constexpr bool IsVoid = IsSame<RemovedQuals<Type>, void>;
 

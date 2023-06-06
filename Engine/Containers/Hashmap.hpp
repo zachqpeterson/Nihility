@@ -152,7 +152,10 @@ template<class Key, class Value> inline Hashmap<Key, Value>& Hashmap<Key, Value>
 	return *this;
 }
 
-template<class Key, class Value> inline Hashmap<Key, Value>::~Hashmap() { Destroy(); }
+template<class Key, class Value> inline Hashmap<Key, Value>::~Hashmap()
+{
+	Destroy();
+}
 
 template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 {
@@ -172,6 +175,11 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 		size = 0;
 		capacity = 0;
 		capMinusOne = 0;
+	}
+
+	if constexpr (IsDestroyable<Value>)
+	{
+		defVal.Destroy();
 	}
 }
 

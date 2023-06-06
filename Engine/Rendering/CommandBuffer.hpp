@@ -49,7 +49,6 @@ struct NH_API CommandBuffer
 	RenderPass*					currentRenderPass;
 	Pipeline*					currentPipeline;
 	VkClearValue				clears[2]; //0 = Color, 1 = Depth Stencil
-	bool						isRecording;
 
 	U32							handle;
 

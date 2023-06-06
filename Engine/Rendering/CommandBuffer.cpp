@@ -41,8 +41,6 @@ void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool 
 
 void CommandBuffer::Destroy()
 {
-	isRecording = false;
-
 	Reset();
 
 	descriptorSets.Destroy();
@@ -96,35 +94,29 @@ DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
 
 void CommandBuffer::BindPass(RenderPass* renderPass)
 {
-	//if (!isRecording)
+	// Begin/End render pass are valid only for graphics render passes.
+	if (currentRenderPass && (currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE) && (renderPass != currentRenderPass))
 	{
-		isRecording = true;
-
-		// Begin/End render pass are valid only for graphics render passes.
-		if (currentRenderPass && (currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE) && (renderPass != currentRenderPass))
-		{
-			vkCmdEndRenderPass(commandBuffer);
-		}
-
-		if (renderPass != currentRenderPass && (renderPass->type != RENDER_PASS_TYPE_COMPUTE))
-		{
-			VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? Renderer::swapchain.renderPass.framebuffers[Renderer::imageIndex] : renderPass->frameBuffer;
-			renderPassBegin.renderPass = renderPass->renderPass;
-
-			renderPassBegin.renderArea.offset = { 0, 0 };
-			renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
-
-			// TODO: this breaks.
-			renderPassBegin.clearValueCount = 2;// renderPass->output.color_operation ? 2 : 0;
-			renderPassBegin.pClearValues = clears;
-
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-		}
-
-		// Cache render pass
-		currentRenderPass = renderPass;
+		vkCmdEndRenderPass(commandBuffer);
 	}
+
+	if (renderPass != currentRenderPass && (renderPass->type != RENDER_PASS_TYPE_COMPUTE))
+	{
+		VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+		renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? Renderer::swapchain.renderPass.framebuffers[Renderer::imageIndex] : renderPass->frameBuffer;
+		renderPassBegin.renderPass = renderPass->renderPass;
+
+		renderPassBegin.renderArea.offset = { 0, 0 };
+		renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
+
+		renderPassBegin.clearValueCount = 2;
+		renderPassBegin.pClearValues = clears; //TODO: Move to RenderPass
+
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	// Cache render pass
+	currentRenderPass = renderPass;
 }
 
 void CommandBuffer::BindPipeline(Pipeline* pipeline)
@@ -313,11 +305,11 @@ void CommandBuffer::DispatchIndirect(Buffer* buffer, U32 offset)
 
 static ResourceType ToResourceState(PipelineStage stage)
 {
-	static constexpr ResourceType states[]{ 
-		RESOURCE_TYPE_INDIRECT_ARGUMENT, 
-		RESOURCE_TYPE_VERTEX_AND_CONSTANT_BUFFER, 
-		RESOURCE_TYPE_NON_PIXEL_SHADER_RESOURCE, 
-		RESOURCE_TYPE_PIXEL_SHADER_RESOURCE, 
+	static constexpr ResourceType states[]{
+		RESOURCE_TYPE_INDIRECT_ARGUMENT,
+		RESOURCE_TYPE_VERTEX_AND_CONSTANT_BUFFER,
+		RESOURCE_TYPE_NON_PIXEL_SHADER_RESOURCE,
+		RESOURCE_TYPE_PIXEL_SHADER_RESOURCE,
 		RESOURCE_TYPE_RENDER_TARGET,
 		RESOURCE_TYPE_UNORDERED_ACCESS,
 		RESOURCE_TYPE_COPY_DEST
@@ -549,7 +541,6 @@ void CommandBuffer::PopMarker()
 
 void CommandBuffer::Reset()
 {
-	isRecording = false;
 	currentRenderPass = nullptr;
 	currentPipeline = nullptr;
 	currentCommand = 0;
@@ -610,7 +601,6 @@ void CommandBufferRing::Destroy()
 
 void CommandBufferRing::ResetPools(U32 frameIndex)
 {
-
 	for (U32 i = 0; i < maxThreads; i++)
 	{
 		vkResetCommandPool(Renderer::device, commandPools[frameIndex * maxThreads + i], 0);

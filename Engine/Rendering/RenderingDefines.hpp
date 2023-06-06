@@ -896,6 +896,8 @@ struct ShaderStage
 
 struct DescriptorBinding
 {
+	void Destroy() { name.Destroy(); }
+
 	String				name{ NO_INIT };
 	VkDescriptorType	type;
 	U16					start{ 0 };
@@ -905,6 +907,8 @@ struct DescriptorBinding
 
 struct SwapchainPass
 {
+	void Destroy() { attachments.Destroy(); }
+
 	U16					width;
 	U16					height;
 	VkSampler			sampler;

@@ -38,13 +38,13 @@ private:
 	static void Shutdown();
 	static void Write(const String& message);
 
-	static const String fatalTag;
-	static const String errorTag;
-	static const String warnTag;
-	static const String infoTag;
-	static const String debugTag;
-	static const String traceTag;
-	static const String endLine;
+	static String fatalTag;
+	static String errorTag;
+	static String warnTag;
+	static String infoTag;
+	static String debugTag;
+	static String traceTag;
+	static String endLine;
 
 	static File log;
 	static File console;

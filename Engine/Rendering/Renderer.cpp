@@ -57,6 +57,7 @@ static constexpr CSTR layers[]{
 
 static constexpr CSTR deviceExtensions[]{
 	"VK_KHR_swapchain",
+//	"VK_KHR_dynamic_rendering",
 };
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
@@ -183,7 +184,7 @@ void Renderer::Shutdown()
 
 	commandBufferRing.Destroy();
 
-	for (size_t i = 0; i < MAX_SWAPCHAIN_IMAGES; i++)
+	for (U64 i = 0; i < MAX_SWAPCHAIN_IMAGES; i++)
 	{
 		vkDestroySemaphore(device, renderCompleted[i], allocationCallbacks);
 		vkDestroyFence(device, commandBufferExecuted[i], allocationCallbacks);
@@ -208,10 +209,13 @@ void Renderer::Shutdown()
 	renderPassCache.Destroy();
 
 	swapchain.Destroy();
+	filterPass.Destroy();
+	offscreenPass.Destroy();
 
 	vmaDestroyAllocator(allocator);
 
 	descriptorSetUpdates.Destroy();
+	bindlessTexturesToUpdate.Destroy();
 
 #ifdef NH_DEBUG
 	vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
@@ -624,7 +628,8 @@ void Renderer::EndFrame()
 
 		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
 
-		if (commandBuffer->isRecording && commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE))
+		//TODO: Check if commandBuffer recorded commands
+		if (commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE))
 		{
 			vkCmdEndRenderPass(commandBuffer->commandBuffer);
 		}
@@ -1237,15 +1242,15 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	framebufferInfo.width = swapchain.renderPass.width;
 	framebufferInfo.height = swapchain.renderPass.height;
 	framebufferInfo.layers = 1;
-
+	
 	VkImageView framebufferAttachments[2];
 	framebufferAttachments[1] = swapchain.renderPass.attachments[0]->imageView;
-
+	
 	for (U64 i = 0; i < swapchain.imageCount; i++)
 	{
 		framebufferAttachments[0] = swapchain.renderPass.imageViews[i];
 		framebufferInfo.pAttachments = framebufferAttachments;
-
+	
 		vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchain.renderPass.framebuffers[i]);
 		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchain.renderPass.framebuffers[i], renderPass->name);
 	}
@@ -1704,7 +1709,7 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 
 bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const String& cachePath)
 {
-	VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+	VkPipelineCache pipelineCache = nullptr;
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
 
 	bool cacheExists = false;
@@ -1734,8 +1739,6 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		VkValidate(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, allocationCallbacks, &pipelineCache));
 	}
 
-	pipeline->shaderState;
-
 	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 	U32 activeLayoutCount = pipeline->shaderState->setCount;
 
@@ -1759,29 +1762,25 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 	pipelineLayoutInfo.setLayoutCount = pipeline->activeLayoutCount + bindlessActive;
 	pipelineLayoutInfo.flags = 0;
 	pipelineLayoutInfo.pNext = nullptr;
-	//pipelineLayoutInfo.pPushConstantRanges; TODO:
-	//pipelineLayoutInfo.pushConstantRangeCount;
+	//TODO:
+	pipelineLayoutInfo.pushConstantRangeCount = 0;
+	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
 	VkPipelineLayout pipelineLayout;
 	VkValidate(vkCreatePipelineLayout(device, &pipelineLayoutInfo, allocationCallbacks, &pipelineLayout));
 
 	pipeline->pipelineLayout = pipelineLayout;
 
-	// Create full pipeline
 	if (pipeline->shaderState->graphicsPipeline)
 	{
 		VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
-		//// Shader stage
 		pipelineInfo.pStages = pipeline->shaderState->shaderStageInfos;
 		pipelineInfo.stageCount = pipeline->shaderState->activeShaders;
-		//// PipelineLayout
 		pipelineInfo.layout = pipelineLayout;
 
-		//// Vertex input
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 
-		// Vertex attributes.
 		VkVertexInputAttributeDescription vertexAttributes[8];
 		if (pipeline->shaderState->vertexAttributeCount)
 		{
@@ -1799,7 +1798,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 			vertexInputInfo.vertexAttributeDescriptionCount = 0;
 			vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 		}
-		// Vertex bindings
+
 		VkVertexInputBindingDescription vertexBindings[8];
 		if (pipeline->shaderState->vertexStreamCount)
 		{
@@ -1821,19 +1820,17 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 
-		//// Input Assembly
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
 
-		//// Color Blending
 		VkPipelineColorBlendAttachmentState colorBlendAttachment[8]{};
 
 		if (pipeline->blendState.activeStates)
 		{
-			for (size_t i = 0; i < pipeline->blendState.activeStates; i++)
+			for (U64 i = 0; i < pipeline->blendState.activeStates; ++i)
 			{
 				const BlendState& blendState = pipeline->blendState.blendStates[i];
 
@@ -1859,24 +1856,22 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		}
 		else
 		{
-			// Default non blended state
 			colorBlendAttachment[0].blendEnable = VK_FALSE;
 			colorBlendAttachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		}
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 		colorBlending.logicOpEnable = VK_FALSE;
-		colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-		colorBlending.attachmentCount = pipeline->blendState.activeStates ? pipeline->blendState.activeStates : 1; // Always have 1 blend defined.
+		colorBlending.logicOp = VK_LOGIC_OP_COPY;
+		colorBlending.attachmentCount = pipeline->blendState.activeStates ? pipeline->blendState.activeStates : 1;
 		colorBlending.pAttachments = colorBlendAttachment;
-		colorBlending.blendConstants[0] = 0.0f; // Optional
-		colorBlending.blendConstants[1] = 0.0f; // Optional
-		colorBlending.blendConstants[2] = 0.0f; // Optional
-		colorBlending.blendConstants[3] = 0.0f; // Optional
+		colorBlending.blendConstants[0] = 0.0f;
+		colorBlending.blendConstants[1] = 0.0f;
+		colorBlending.blendConstants[2] = 0.0f;
+		colorBlending.blendConstants[3] = 0.0f;
 
 		pipelineInfo.pColorBlendState = &colorBlending;
 
-		//// Depth Stencil
 		VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 
 		depthStencil.depthWriteEnable = pipeline->depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
@@ -1885,24 +1880,22 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		depthStencil.depthCompareOp = pipeline->depthStencil.depthComparison;
 		if (pipeline->depthStencil.stencilEnable)
 		{
-			// TODO: add stencil
-			Logger::Error("");
+			// TODO: Support stencil buffers
+			Logger::Error("Stencil Buffers Not Yet Supported!");
 		}
 
 		pipelineInfo.pDepthStencilState = &depthStencil;
 
-		//// Multisample
 		VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 		multisampling.sampleShadingEnable = VK_FALSE;
 		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisampling.minSampleShading = 1.0f; // Optional
-		multisampling.pSampleMask = nullptr; // Optional
-		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-		multisampling.alphaToOneEnable = VK_FALSE; // Optional
+		multisampling.minSampleShading = 1.0f;
+		multisampling.pSampleMask = nullptr;
+		multisampling.alphaToCoverageEnable = VK_FALSE;
+		multisampling.alphaToOneEnable = VK_FALSE;
 
 		pipelineInfo.pMultisampleState = &multisampling;
 
-		//// Rasterizer
 		VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
@@ -1911,16 +1904,14 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		rasterizer.cullMode = pipeline->rasterization.cullMode;
 		rasterizer.frontFace = pipeline->rasterization.front;
 		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-		rasterizer.depthBiasClamp = 0.0f; // Optional
-		rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+		rasterizer.depthBiasConstantFactor = 0.0f;
+		rasterizer.depthBiasClamp = 0.0f;
+		rasterizer.depthBiasSlopeFactor = 0.0f;
 
 		pipelineInfo.pRasterizationState = &rasterizer;
 
-		//// Tessellation
 		pipelineInfo.pTessellationState;
 
-		//// Viewport state
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -1941,10 +1932,8 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 
 		pipelineInfo.pViewportState = &viewportState;
 
-		//// Render Pass
 		pipelineInfo.renderPass = GetRenderPass(renderPass, pipeline->name);
 
-		//// Dynamic states
 		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
@@ -1952,7 +1941,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 
 		pipelineInfo.pDynamicState = &dynamicState;
 
-		vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
+		vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
 
 		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
 	}
@@ -1963,7 +1952,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		pipelineInfo.stage = pipeline->shaderState->shaderStageInfos[0];
 		pipelineInfo.layout = pipelineLayout;
 
-		vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
+		vkCreateComputePipelines(device, pipelineCache, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
 
 		pipeline->bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
@@ -2052,7 +2041,7 @@ void Renderer::DestroyShaderStateInstant(ShaderState* shader)
 {
 	if (shader)
 	{
-		for (size_t i = 0; i < shader->activeShaders; i++)
+		for (U64 i = 0; i < shader->activeShaders; i++)
 		{
 			vkDestroyShaderModule(device, shader->shaderStageInfos[i].module, allocationCallbacks);
 		}

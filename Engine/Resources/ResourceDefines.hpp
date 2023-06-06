@@ -29,6 +29,8 @@ enum AlphaMode
 
 struct NH_API SamplerCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	SamplerCreation& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
 	SamplerCreation& SetAddressModeU(VkSamplerAddressMode u);
 	SamplerCreation& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
@@ -48,6 +50,8 @@ struct NH_API SamplerCreation
 
 struct NH_API TextureCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	TextureCreation& SetSize(U16 width, U16 height, U16 depth);
 	TextureCreation& SetFlags(U8 mipmaps, U8 flags);
 	TextureCreation& SetFormatType(VkFormat format, TextureType type);
@@ -69,6 +73,8 @@ struct NH_API TextureCreation
 
 struct NH_API DescriptorSetLayoutCreation
 {
+	void Destroy() { name.Destroy(); for (U32 i = 0; i < MAX_DESCRIPTORS_PER_SET; ++i) { bindings[i].Destroy(); } }
+
 	DescriptorSetLayoutCreation& Reset();
 	DescriptorSetLayoutCreation& AddBinding(const DescriptorBinding& binding);
 	DescriptorSetLayoutCreation& AddBindingAtIndex(const DescriptorBinding& binding, U32 index);
@@ -84,6 +90,8 @@ struct NH_API DescriptorSetLayoutCreation
 
 struct NH_API ShaderStateCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	ShaderStateCreation& Reset();
 	ShaderStateCreation& SetName(const String& name);
 	ShaderStateCreation& AddStage(CSTR name, VkShaderStageFlagBits type);
@@ -100,6 +108,8 @@ struct NH_API ShaderStateCreation
 
 struct Sampler
 {
+	void Destroy() { name.Destroy(); }
+
 	String					name{ NO_INIT };
 	HashHandle				handle;
 	U32						sceneID;
@@ -117,6 +127,8 @@ struct Sampler
 
 struct Texture
 {
+	void Destroy() { name.Destroy(); }
+
 	String				name{ NO_INIT };
 	HashHandle			handle;
 	U32					sceneID;
@@ -140,6 +152,8 @@ struct Texture
 
 struct Buffer
 {
+	void Destroy() { name.Destroy(); }
+
 	String				name{ NO_INIT };
 	HashHandle			handle;
 	U32					sceneID;
@@ -159,6 +173,8 @@ struct Buffer
 
 struct NH_API BufferCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	BufferCreation& Reset();
 	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size);
 	BufferCreation& SetData(void* data);
@@ -177,6 +193,8 @@ struct NH_API BufferCreation
 
 struct DescriptorSetLayout
 {
+	void Destroy() { name.Destroy(); }
+
 	String							name{ NO_INIT };
 	HashHandle						handle;
 
@@ -190,6 +208,8 @@ struct DescriptorSetLayout
 
 struct DescriptorSet
 {
+	void Destroy() { name.Destroy(); }
+
 	String						name{ NO_INIT };
 	HashHandle					handle;
 
@@ -205,6 +225,8 @@ struct DescriptorSet
 
 struct ShaderState
 {
+	void Destroy() { name.Destroy(); entry.Destroy(); for (U32 i = 0; i < MAX_SET_COUNT; ++i) { sets[i].Destroy(); } }
+
 	String							name{ NO_INIT };
 	String							entry{ NO_INIT };
 	HashHandle						handle;
@@ -241,11 +263,13 @@ struct RenderPassOutput
 
 struct RenderPass
 {
+	void Destroy() { name.Destroy(); }
+
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
 	VkRenderPass		renderPass;
-	VkFramebuffer		frameBuffer;
+	VkFramebuffer		frameBuffer; //TODO: either 
 
 	RenderPassOutput	output;
 
@@ -268,6 +292,8 @@ struct RenderPass
 
 struct Pipeline
 {
+	void Destroy() { name.Destroy(); }
+
 	String						name{ NO_INIT };
 	HashHandle					handle;
 
@@ -296,13 +322,17 @@ struct ProgramPass
 
 struct Program
 {
-	String				name;
+	void Destroy() { name.Destroy(); passes.Destroy(); }
+
+	String				name{ NO_INIT };
 	Vector<ProgramPass>	passes;
 	U32					poolIndex;
 };
 
 struct NH_API DescriptorSetCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	DescriptorSetCreation& Reset();
 	DescriptorSetCreation& SetLayout(DescriptorSetLayout* layout);
 	DescriptorSetCreation& SetTexture(Texture* texture, U16 binding);
@@ -322,6 +352,8 @@ struct NH_API DescriptorSetCreation
 
 struct NH_API RenderPassCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	RenderPassCreation& Reset();
 	RenderPassCreation& AddRenderTexture(Texture* texture);
 	RenderPassCreation& SetScaling(F32 scaleX, F32 scaleY, U8 resize);
@@ -349,6 +381,8 @@ struct NH_API RenderPassCreation
 
 struct NH_API PipelineCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	RenderPassOutput& GetRenderPassOutput();
 
 	RasterizationCreation		rasterization;
@@ -369,6 +403,8 @@ struct NH_API ProgramCreation
 
 struct NH_API MaterialCreation
 {
+	void Destroy() { name.Destroy(); }
+
 	MaterialCreation& Reset();
 	MaterialCreation& SetProgram(Program* program);
 	MaterialCreation& SetName(const String& name);
@@ -384,12 +420,14 @@ struct NH_API MaterialCreation
 //
 struct NH_API Material
 {
-	Program* program{ nullptr };
+	void Destroy() { name.Destroy(); }
+
+	String		name{ NO_INIT };
 
 	U32			renderIndex;
 	U32			poolIndex;
 
-	String		name{ NO_INIT };
+	Program* program{ nullptr };
 };
 
 struct UniformData

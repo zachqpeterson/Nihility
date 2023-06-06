@@ -147,6 +147,13 @@ void Memory::Free4mb(void** pointer)
 	*pointer = nullptr;
 }
 
+bool Memory::IsAllocated(void* pointer)
+{
+	static const void* upperBound = memory + totalSize - staticSize;
+
+	return pointer != nullptr && pointer >= pool1kbPointer && pointer < upperBound;
+}
+
 U64 Memory::MemoryAlign(U64 size, U64 alignment)
 {
 	const U64 alignmentMask = alignment - 1;

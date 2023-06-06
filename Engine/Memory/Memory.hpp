@@ -43,7 +43,7 @@ public:
 
 	template<Pointer Type> static void AllocateStatic(Type* pointer);
 
-	template<Pointer Type> static bool IsAllocated(Type pointer);
+	static bool IsAllocated(void* pointer);
 
 	static U64 MemoryAlign(U64 size, U64 alignment);
 
@@ -207,7 +207,7 @@ static void Memory::Reallocate(Type* pointer, const Int& count, Int& newCount)
 template<Pointer Type>
 inline void Memory::Free(Type* pointer)
 {
-	if (*pointer == nullptr) { return; }
+	if (!IsAllocated(*pointer)) { return; }
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -222,7 +222,7 @@ inline void Memory::Free(Type* pointer)
 template<Pointer Type>
 inline void Memory::FreeSize(Type* pointer)
 {
-	if (*pointer == nullptr) { return; }
+	if (!IsAllocated(*pointer)) { return; }
 
 	void* cmp = *pointer;
 
@@ -232,7 +232,7 @@ inline void Memory::FreeSize(Type* pointer)
 template<Pointer Type>
 inline void Memory::FreeArray(Type* pointer)
 {
-	if (*pointer == nullptr) { return; }
+	if (!IsAllocated(*pointer)) { return; }
 
 	Free((void**)pointer);
 }
@@ -252,14 +252,4 @@ inline void Memory::AllocateStatic(Type* pointer)
 	}
 
 	BreakPoint;
-}
-
-template<Pointer Type>
-inline bool Memory::IsAllocated(Type pointer)
-{
-	static const void* upperBound = memory + totalSize - staticSize;
-
-	void* cmp = pointer;
-
-	return cmp != nullptr && cmp >= pool1kbPointer && cmp < upperBound;
 }
