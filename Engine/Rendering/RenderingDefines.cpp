@@ -122,10 +122,12 @@ const Vector3& Camera::Position() const
 
 Quaternion3 Camera::Rotation() const
 {
-	//TODO: This is bad, doesn't give roll
-	const Quaternion3 pitchRotation{ Vector3::Right, pitch };
-	const Quaternion3 yawRotation{ Vector3::Up, yaw };
-	return (pitchRotation * yawRotation).Normalize();
+	return Quaternion3{ Euler() };
+}
+
+Vector3 Camera::Euler() const
+{
+	return { pitch, yaw, 0.0f };
 }
 
 bool Camera::Perspective() const { return perspective; }
@@ -180,7 +182,7 @@ void Camera::Update()
 	right = { view[0][0], view[1][0], view[2][0] };
 	up = { view[0][1], view[1][1], view[2][1] };
 	forward = { view[0][2], view[1][2], view[2][2] };
-	
+
 	if (updateProjection)
 	{
 		updateProjection = false;

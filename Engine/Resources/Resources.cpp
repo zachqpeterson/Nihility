@@ -1222,7 +1222,7 @@ void Resources::SaveScene(const Scene* scene)
 		file.Write(scene->camera.position.x);
 		file.Write(scene->camera.position.y);
 		file.Write(scene->camera.position.z);
-		Vector3 rotation = scene->camera.Rotation().Euler();
+		Vector3 rotation = scene->camera.Euler();
 		file.Write(rotation.x);
 		file.Write(rotation.y);
 		file.Write(rotation.z);

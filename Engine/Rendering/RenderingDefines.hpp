@@ -930,6 +930,7 @@ struct NH_API Camera
 	Vector4 Eye() const;
 	const Vector3& Position() const;
 	Quaternion3 Rotation() const;
+	Vector3 Euler() const;
 
 	bool Perspective() const;
 
