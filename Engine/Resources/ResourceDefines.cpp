@@ -273,35 +273,14 @@ RenderPassOutput& RenderPassOutput::SetOperations(RenderPassOperation color, Ren
 
 // RENDER PASS CREATION
 
-RenderPassCreation& RenderPassCreation::Reset()
-{
-	renderTargetCount = 0;
-	depthStencilTexture = nullptr;
-	resize = 0;
-	scaleX = 1.f;
-	scaleY = 1.f;
-	colorOperation = depthOperation = stencilOperation = RENDER_PASS_OP_DONT_CARE;
-
-	return *this;
-}
-
-RenderPassCreation& RenderPassCreation::AddRenderTexture(Texture* texture)
+RenderPassCreation& RenderPassCreation::AddRenderTarget(const RenderTarget& texture)
 {
 	outputTextures[renderTargetCount++] = texture;
 
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetScaling(F32 scaleX, F32 scaleY, U8 resize)
-{
-	this->scaleX = scaleX;
-	this->scaleY = scaleY;
-	this->resize = resize;
-
-	return *this;
-}
-
-RenderPassCreation& RenderPassCreation::SetDepthStencilTexture(Texture* texture)
+RenderPassCreation& RenderPassCreation::SetDepthStencilTexture(const RenderTarget& texture)
 {
 	depthStencilTexture = texture;
 
@@ -329,13 +308,6 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 	stencilOperation = stencil;
 
 	return *this;
-}
-
-// PIPELINE CREATION
-
-RenderPassOutput& PipelineCreation::GetRenderPassOutput()
-{
-	return renderPass;
 }
 
 // MATERIAL CREATION

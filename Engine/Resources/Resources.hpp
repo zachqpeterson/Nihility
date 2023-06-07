@@ -103,4 +103,5 @@ private:
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;
+	friend class Engine;
 };

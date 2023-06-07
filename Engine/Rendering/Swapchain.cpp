@@ -58,8 +58,6 @@ bool Swapchain::GetFormat()
 		}
 	}
 
-	output.Color(surfaceFormat.format);
-
 	return true;
 }
 
@@ -67,39 +65,31 @@ bool Swapchain::CreateRenderPass()
 {
 	Texture* depthTexture = nullptr;
 
-	if (renderPass.attachments[0])
+	if (renderPass)
 	{
-		Resources::RecreateTexture(renderPass.attachments[0], renderPass.width, renderPass.height, 1);
-	}
-	else
-	{
-		TextureCreation depthTextureCreation{ nullptr, renderPass.width, renderPass.height, 1, 1, 0, VK_FORMAT_D32_SFLOAT, TEXTURE_TYPE_2D, "DepthImage_Texture" };
-		depthTexture = Resources::CreateTexture(depthTextureCreation);
-		renderPass.attachments[0] = depthTexture;
+		renderPass->width = renderPassInfo.width;
+		renderPass->height = renderPassInfo.height;
+		for (U32 i = 0; i < imageCount; ++i) { renderPass->outputTextures[i] = renderPassInfo.outputTextures[i]; }
 
-		if (depthTexture == nullptr) { return false; }
-	}
+		Renderer::RecreateRenderTarget(renderPass->outputDepth, renderPassInfo.width, renderPassInfo.height);
 
-	if (renderPass.renderPass)
-	{
-		vkDestroyRenderPass(Renderer::device, renderPass.renderPass->renderPass, Renderer::allocationCallbacks);
+		vkDestroyRenderPass(Renderer::device, renderPass->renderPass, Renderer::allocationCallbacks);
 
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			vkDestroyFramebuffer(Renderer::device, renderPass.framebuffers[i], Renderer::allocationCallbacks);
+			vkDestroyFramebuffer(Renderer::device, renderPass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
-		Renderer::CreateSwapchainPass(renderPass.renderPass);
+		Renderer::CreateSwapchainPass(renderPass);
 	}
 	else
 	{
-		RenderPassCreation swapchainPassCreation{};
-		swapchainPassCreation.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
-		swapchainPassCreation.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
-		swapchainPassCreation.SetDepthStencilTexture(depthTexture);
-		renderPass.renderPass = Resources::CreateRenderPass(swapchainPassCreation);
+		renderPassInfo.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
+		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
+		renderPassInfo.SetDepthStencilTexture(Renderer::CreateRenderTarget(renderPassInfo.width, renderPassInfo.height, VK_FORMAT_D32_SFLOAT, true));
+		renderPass = Resources::CreateRenderPass(renderPassInfo);
 
-		if (renderPass.renderPass == nullptr) { return false; }
+		if (renderPass == nullptr) { return false; }
 	}
 
 	return true;
@@ -124,8 +114,8 @@ bool Swapchain::Create()
 		swapchainExtent.height = Math::Clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
 	}
 
-	renderPass.width = swapchainExtent.width;
-	renderPass.height = swapchainExtent.height;
+	renderPassInfo.width = swapchainExtent.width;
+	renderPassInfo.height = swapchainExtent.height;
 
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -188,21 +178,30 @@ bool Swapchain::Create()
 	{
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			vkDestroyImageView(Renderer::device, renderPass.imageViews[i], Renderer::allocationCallbacks);
+			vkDestroyImageView(Renderer::device, renderPass->outputTextures[i].imageView, Renderer::allocationCallbacks);
 		}
 
 		vkDestroySwapchainKHR(Renderer::device, oldSwapchain, Renderer::allocationCallbacks);
 	}
 
+	VkImage images[MAX_SWAPCHAIN_IMAGES];
 	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, nullptr));
-	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, renderPass.images));
+	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, images));
+
+	renderPassInfo.renderTargetCount = imageCount;
+	for (U32 i = 0; i < imageCount; ++i)
+	{
+		renderPassInfo.outputTextures[i].image = images[i];
+		renderPassInfo.outputTextures[i].format = surfaceFormat.format;
+		renderPassInfo.outputTextures[i].swapchainTarget = true;
+	}
 
 	for (U32 i = 0; i < imageCount; ++i)
 	{
 		VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		viewInfo.pNext = nullptr;
 		viewInfo.flags = 0;
-		viewInfo.image = renderPass.images[i];
+		viewInfo.image = renderPassInfo.outputTextures[i].image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = surfaceFormat.format;
 		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
@@ -215,38 +214,21 @@ bool Swapchain::Create()
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &renderPass.imageViews[i]));
+		VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &renderPassInfo.outputTextures[i].imageView));
 	}
 
-	output.Depth(VK_FORMAT_D32_SFLOAT);
-
-	if (renderPass.renderPass)
-	{
-		CreateRenderPass();
-	}
+	CreateRenderPass();
 
 	return true;
 }
 
 void Swapchain::Destroy()
 {
-	if (swapchain)
-	{
-		for (U32 i = 0; i < imageCount; ++i)
-		{
-			vkDestroyImageView(Renderer::device, renderPass.imageViews[i], Renderer::allocationCallbacks);
-			vkDestroyFramebuffer(Renderer::device, renderPass.framebuffers[i], Renderer::allocationCallbacks);
-		}
+	if (swapchain) { vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks); }
+	if (surface) { vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks); }
 
-		vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks);
-	}
-
-	if (surface)
-	{
-		vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks);
-	}
-
-	renderPass.Destroy();
+	renderPass->Destroy();
+	renderPassInfo.Destroy();
 	surface = nullptr;
 	swapchain = nullptr;
 }
@@ -268,14 +250,4 @@ VkResult Swapchain::Present(VkQueue queue, U32 imageIndex, VkSemaphore semaphore
 	presentInfo.pResults = nullptr;
 
 	return vkQueuePresentKHR(queue, &presentInfo);
-}
-
-RenderPass* Swapchain::RenderPass()
-{
-	return renderPass.renderPass;
-}
-
-const RenderPassOutput& Swapchain::Output()
-{
-	return output;
 }

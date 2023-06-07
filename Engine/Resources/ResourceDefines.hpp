@@ -252,13 +252,23 @@ struct RenderPassOutput
 	RenderPassOutput& Depth(VkFormat format);
 	RenderPassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 
-	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS];
-	VkFormat			depthStencilFormat;
-	U32					colorFormatCount;
+	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS]{ VK_FORMAT_UNDEFINED };
+	VkFormat			depthStencilFormat{ VK_FORMAT_UNDEFINED };
+	U32					colorFormatCount{ 0 };
 
-	RenderPassOperation	colorOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation	depthOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation	stencilOperation = RENDER_PASS_OP_DONT_CARE;
+	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
+	RenderPassOperation	depthOperation{ RENDER_PASS_OP_DONT_CARE };
+	RenderPassOperation	stencilOperation{ RENDER_PASS_OP_DONT_CARE };
+};
+
+struct RenderTarget
+{
+	VkImage image{ nullptr };
+	VkImageView imageView{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
+	VkFormat format{ VK_FORMAT_UNDEFINED };
+	bool depth{ false };
+	bool swapchainTarget{ false };
 };
 
 struct RenderPass
@@ -268,26 +278,19 @@ struct RenderPass
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
-	VkRenderPass		renderPass;
-	VkFramebuffer		frameBuffer; //TODO: either 
+	VkSampler			sampler{ nullptr };
+	VkRenderPass		renderPass{ nullptr };
+	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{};
 
-	RenderPassOutput	output;
+	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
+	RenderTarget		outputDepth{};
 
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS];
-	Texture* outputDepth;
+	RenderPassOutput	output{};
+	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
 
-	RenderPassType		type;
-
-	F32					scaleX = 1.f;
-	F32					scaleY = 1.f;
-	U16					width = 0;
-	U16					height = 0;
-	U16					dispatchX = 0;
-	U16					dispatchY = 0;
-	U16					dispatchZ = 0;
-
-	U8					resize = 0;
-	U8					renderTargetCount = 0;
+	U16					width{ 0 };
+	U16					height{ 0 };
+	U8					renderTargetCount{ 0 };
 };
 
 struct Pipeline
@@ -354,44 +357,38 @@ struct NH_API RenderPassCreation
 {
 	void Destroy() { name.Destroy(); }
 
-	RenderPassCreation& Reset();
-	RenderPassCreation& AddRenderTexture(Texture* texture);
-	RenderPassCreation& SetScaling(F32 scaleX, F32 scaleY, U8 resize);
-	RenderPassCreation& SetDepthStencilTexture(Texture* texture);
+	RenderPassCreation& AddRenderTarget(const RenderTarget& target);
+	RenderPassCreation& SetDepthStencilTexture(const RenderTarget& target);
 	RenderPassCreation& SetName(const String& name);
 	RenderPassCreation& SetType(RenderPassType type);
 	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 
-	U16						renderTargetCount = 0;
-	RenderPassType			type = RENDER_PASS_TYPE_GEOMETRY;
+	U16					width{ 0 };
+	U16					height{ 0 };
+	U8					renderTargetCount{ 0 };
+	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
 
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS];
-	Texture* depthStencilTexture;
+	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
+	RenderTarget		depthStencilTexture{};
 
-	F32						scaleX = 1.f;
-	F32						scaleY = 1.f;
-	U8						resize = 1;
+	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
+	RenderPassOperation	depthOperation{ RENDER_PASS_OP_DONT_CARE };
+	RenderPassOperation	stencilOperation{ RENDER_PASS_OP_DONT_CARE };
 
-	RenderPassOperation		colorOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation		depthOperation = RENDER_PASS_OP_DONT_CARE;
-	RenderPassOperation		stencilOperation = RENDER_PASS_OP_DONT_CARE;
-
-	String					name{ NO_INIT };
+	String				name{ NO_INIT };
 };
 
 struct NH_API PipelineCreation
 {
 	void Destroy() { name.Destroy(); }
 
-	RenderPassOutput& GetRenderPassOutput();
-
 	RasterizationCreation		rasterization;
 	DepthStencilCreation		depthStencil;
 	BlendStateCreation			blendState;
 	ShaderStateCreation			shaders;
 
-	RenderPassOutput			renderPass;
-	const ViewportState* viewport = nullptr;
+	RenderPass* renderPass{ nullptr };
+	const ViewportState* viewport{ nullptr };
 
 	String						name{ NO_INIT };
 };

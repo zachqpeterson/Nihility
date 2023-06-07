@@ -905,20 +905,6 @@ struct DescriptorBinding
 	U16					set{ 0 };
 };
 
-struct SwapchainPass
-{
-	void Destroy() { attachments.Destroy(); }
-
-	U16					width;
-	U16					height;
-	VkSampler			sampler;
-	RenderPass* renderPass{ nullptr };
-	Vector<Texture*>	attachments{ 1, nullptr };
-	VkImage				images[MAX_SWAPCHAIN_IMAGES];
-	VkImageView			imageViews[MAX_SWAPCHAIN_IMAGES];
-	VkFramebuffer		framebuffers[MAX_SWAPCHAIN_IMAGES];
-};
-
 struct NH_API Camera
 {
 	void Reset();

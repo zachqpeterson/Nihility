@@ -14,17 +14,14 @@ public:
 	VkResult NextImage(U32& imageIndex, VkSemaphore semaphore = nullptr, VkFence fence = nullptr);
 	VkResult Present(VkQueue queue, U32 imageIndex, VkSemaphore semaphore = nullptr);
 
-	RenderPass* RenderPass();
-	const RenderPassOutput& Output();
-
 public:
 	VkSwapchainKHR swapchain{ nullptr };
 	VkSurfaceKHR surface{ nullptr };
 	VkSurfaceFormatKHR surfaceFormat{};
-	RenderPassOutput output;
-	SwapchainPass renderPass{};
+	RenderPass* renderPass{ nullptr };
 	U32 imageCount{ 3 };
 
 private:
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	RenderPassCreation renderPassInfo{};
 };

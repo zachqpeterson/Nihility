@@ -58,7 +58,7 @@ void Scene::Update()
 
 	commands->Clear(0.3f, 0.3f, 0.3f, 1.0f);
 	commands->ClearDepthStencil(1.0f, 0);
-	commands->BindPass(Renderer::swapchain.RenderPass());
+	commands->BindPass(Renderer::swapchain.renderPass);
 	commands->SetScissor(nullptr);
 	commands->SetViewport(nullptr);
 

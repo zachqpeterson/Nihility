@@ -50,9 +50,10 @@ private:
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 		VkSampler vkDefaultSampler, U32& numResources, void** resources, Sampler** samplers, U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
-	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name);
-	static VkRenderPass					GetRenderPass(const RenderPassOutput& output, CSTR name);
+	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output);
 	static void							CreateSwapchainPass(RenderPass* renderPass);
+	static RenderTarget					CreateRenderTarget(U16 width, U16 height, VkFormat format, bool depth);
+	static void							RecreateRenderTarget(RenderTarget& target, U16 width, U16 height);
 	static void							CreateFramebuffer(RenderPass* renderPass);
 
 	static bool							CreateSampler(Sampler* sampler);
@@ -61,8 +62,8 @@ private:
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateDescriptorSet(DescriptorSet* descriptorSet);
 	static bool							CreateShaderState(ShaderState* shaderState, const ShaderStateCreation& info);
-	static bool							CreateRenderPass(RenderPass* renderPass, RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
-	static bool							CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const String& cachePath);
+	static bool							CreateRenderPass(RenderPass* renderPass);
+	static bool							CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const String& cachePath);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
@@ -72,6 +73,7 @@ private:
 	static void							DestroyShaderStateInstant(ShaderState* shader);
 	static void							DestroyRenderPassInstant(RenderPass* renderPass);
 	static void							DestroyPipelineInstant(Pipeline* pipeline);
+	static void							DestroyRenderTarget(RenderTarget& target);
 
 	static void							UpdateDescriptorSet(DescriptorSet* descriptorSet);
 	static void							UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
@@ -121,8 +123,8 @@ private:
 
 	// WINDOW
 	static RenderPassOutput						swapchainOutput;
-	static SwapchainPass						offscreenPass;
-	static SwapchainPass						filterPass;
+	static RenderPass*							offscreenPass;
+	static RenderPass*							filterPass;
 	static U32									imageIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;
@@ -132,7 +134,6 @@ private:
 	// RESOURCES
 	static VmaAllocator_T*						allocator;
 	static Queue<DescriptorSetUpdate>			descriptorSetUpdates;
-	static Hashmap<U64, VkRenderPass>			renderPassCache;
 	static CommandBufferRing					commandBufferRing;
 	static CommandBuffer**						queuedCommandBuffers;
 	static U32									allocatedCommandBufferCount;

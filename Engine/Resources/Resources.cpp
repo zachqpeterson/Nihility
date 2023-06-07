@@ -115,7 +115,7 @@ bool Resources::Initialize()
 	rasterization.fill = FILL_MODE_SOLID;
 
 	PipelineCreation pipelineCreation{};
-	pipelineCreation.renderPass = Renderer::swapchain.Output();
+	pipelineCreation.renderPass = Renderer::swapchain.renderPass;
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -911,28 +911,25 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 
 	renderPass->name = info.name;
 	renderPass->type = info.type;
-	renderPass->dispatchX = 0;
-	renderPass->dispatchY = 0;
-	renderPass->dispatchZ = 0;
-	renderPass->frameBuffer = nullptr;
+	renderPass->width = info.width;
+	renderPass->height = info.height;
 	renderPass->renderPass = nullptr;
-	renderPass->scaleX = info.scaleX;
-	renderPass->scaleY = info.scaleY;
-	renderPass->resize = info.resize;
 	renderPass->renderTargetCount = (U8)info.renderTargetCount;
 	renderPass->outputDepth = info.depthStencilTexture;
 	renderPass->handle = renderPasses.GetHandle(info.name);
+	renderPass->output.colorOperation = info.colorOperation;
+	renderPass->output.depthOperation = info.depthOperation;
+	renderPass->output.stencilOperation = info.stencilOperation;
+	renderPass->output.depthStencilFormat = info.depthStencilTexture.format;
+	renderPass->output.colorFormatCount = info.renderTargetCount;
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
-		Texture* texture = info.outputTextures[i];
-
-		renderPass->width = texture->width;
-		renderPass->height = texture->height;
-		renderPass->outputTextures[i] = texture;
+		renderPass->outputTextures[i] = info.outputTextures[i];
+		renderPass->output.colorFormats[i] = info.outputTextures[i].format;
 	}
 
-	Renderer::CreateRenderPass(renderPass, info.colorOperation, info.depthOperation, info.stencilOperation);
+	Renderer::CreateRenderPass(renderPass);
 
 	return renderPass;
 }

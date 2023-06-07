@@ -90,6 +90,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Input::Initialize());
 	//Audio
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
+	ASSERT(Resources::Initialize());
 	//UI
 	//Physics
 	//Particle

@@ -113,8 +113,8 @@ bool												Renderer::rayTracingPresent{ false };
 
 // WINDOW
 RenderPassOutput					Renderer::swapchainOutput;
-SwapchainPass						Renderer::offscreenPass;
-SwapchainPass						Renderer::filterPass;
+RenderPass*							Renderer::offscreenPass;
+RenderPass*							Renderer::filterPass;
 U32									Renderer::imageIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
@@ -124,7 +124,6 @@ bool								Renderer::resized{ false };
 // RESOURCES
 VmaAllocator_T*						Renderer::allocator;
 Queue<DescriptorSetUpdate>			Renderer::descriptorSetUpdates;
-Hashmap<U64, VkRenderPass>			Renderer::renderPassCache{ 16 };
 CommandBufferRing					Renderer::commandBufferRing;
 CommandBuffer**						Renderer::queuedCommandBuffers;
 U32									Renderer::allocatedCommandBufferCount{ 0 };
@@ -168,9 +167,9 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!swapchain.CreateSurface()) { return false; }
 	if (!SelectGPU()) { return false; }
 	if (!CreateDevice()) { return false; }
+	if (!CreateResources()) { return false; }
 	if (!swapchain.GetFormat()) { return false; }
 	if (!swapchain.Create()) { return false; }
-	if (!CreateResources()) { return false; }
 	if (!swapchain.CreateRenderPass()) { return false; }
 
 	return true;
@@ -199,18 +198,7 @@ void Renderer::Shutdown()
 
 	Profiler::Shutdown();
 
-	auto it = renderPassCache.begin();
-	auto end = renderPassCache.end();
-	for (; it != end; ++it)
-	{
-		if (it.Valid()) { vkDestroyRenderPass(device, *it, allocationCallbacks); }
-	}
-
-	renderPassCache.Destroy();
-
 	swapchain.Destroy();
-	filterPass.Destroy();
-	offscreenPass.Destroy();
 
 	vmaDestroyAllocator(allocator);
 
@@ -564,8 +552,6 @@ bool Renderer::CreateResources()
 	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
 	dynamicMappedMemory = (U8*)MapBuffer(cbMap);
 
-	Resources::Initialize();
-
 	return true;
 }
 
@@ -716,11 +702,6 @@ void Renderer::EndFrame()
 
 void Renderer::Resize()
 {
-	offscreenPass.width = Settings::WindowWidth();
-	offscreenPass.height = Settings::WindowHeight();
-	filterPass.width = Settings::WindowWidth();
-	filterPass.height = Settings::WindowHeight();
-
 	vkDeviceWaitIdle(device);
 
 	swapchain.Create();
@@ -728,8 +709,6 @@ void Renderer::Resize()
 	vkDeviceWaitIdle(device);
 
 	//TODO: Update camera here
-
-
 }
 
 void Renderer::UpdateDescriptorSet(DescriptorSet* descriptorSet)
@@ -1062,7 +1041,7 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 	return shaderCreateInfo;
 }
 
-VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CSTR name)
+VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output)
 {
 	VkAttachmentDescription colorAttachments[8] = {};
 	VkAttachmentReference colorAttachmentsRef[8] = {};
@@ -1166,23 +1145,6 @@ VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output, CS
 	VkRenderPass renderPass;
 	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
 
-	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass, name);
-
-	return renderPass;
-}
-
-VkRenderPass Renderer::GetRenderPass(const RenderPassOutput& output, CSTR name)
-{
-	U64 hashedMemory = Hash::Calculate(output);
-	VkRenderPass renderPass = VK_NULL_HANDLE;
-	renderPass = renderPassCache[hashedMemory];
-	if (renderPass)
-	{
-		return renderPass;
-	}
-	renderPass = CreateVulkanRenderPass(output, name);
-	renderPassCache.Insert(hashedMemory, renderPass);
-
 	return renderPass;
 }
 
@@ -1191,7 +1153,7 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	//TODO: This is hardcoded, pass in attachment info
 
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = swapchain.surfaceFormat.format;
+	colorAttachment.format = renderPass->outputTextures[0].format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1205,7 +1167,7 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = swapchain.renderPass.attachments[0]->format;
+	depthAttachment.format = renderPass->outputDepth.format;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1231,32 +1193,28 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 
-	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass->renderPass));
+	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderPass->renderPass));
 
 	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, renderPass->name);
 
-	// Create framebuffer into the device.
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderPass->renderPass;
 	framebufferInfo.attachmentCount = 2;
-	framebufferInfo.width = swapchain.renderPass.width;
-	framebufferInfo.height = swapchain.renderPass.height;
+	framebufferInfo.width = renderPass->width;
+	framebufferInfo.height = renderPass->height;
 	framebufferInfo.layers = 1;
 	
 	VkImageView framebufferAttachments[2];
-	framebufferAttachments[1] = swapchain.renderPass.attachments[0]->imageView;
+	framebufferAttachments[1] = renderPass->outputDepth.imageView;
 	
 	for (U64 i = 0; i < swapchain.imageCount; i++)
 	{
-		framebufferAttachments[0] = swapchain.renderPass.imageViews[i];
+		framebufferAttachments[0] = renderPass->outputTextures[i].imageView;
 		framebufferInfo.pAttachments = framebufferAttachments;
 	
-		vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchain.renderPass.framebuffers[i]);
-		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)swapchain.renderPass.framebuffers[i], renderPass->name);
+		vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderPass->frameBuffers[i]);
+		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[i], renderPass->name);
 	}
-
-	renderPass->width = swapchain.renderPass.width;
-	renderPass->height = swapchain.renderPass.height;
 
 	// Manually transition the texture
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
@@ -1276,12 +1234,12 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	region.imageSubresource.layerCount = 1;
 
 	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = { swapchain.renderPass.width, swapchain.renderPass.height, 1 };
+	region.imageExtent = { renderPass->width, renderPass->height, 1 };
 
 	// Transition
 	for (U64 i = 0; i < swapchain.imageCount; ++i)
 	{
-		AddImageBarrier(commandBuffer->commandBuffer, swapchain.renderPass.images[i], RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
+		AddImageBarrier(commandBuffer->commandBuffer, renderPass->outputTextures[i].image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
 	}
 
 	vkEndCommandBuffer(commandBuffer->commandBuffer);
@@ -1291,8 +1249,124 @@ void Renderer::CreateSwapchainPass(RenderPass* renderPass)
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
 
-	vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr);
 	vkQueueWaitIdle(deviceQueue);
+}
+
+RenderTarget Renderer::CreateRenderTarget(U16 width, U16 height, VkFormat format, bool depth)
+{
+	RenderTarget target{};
+	target.depth = depth;
+	target.format = format;
+
+	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.format = format;
+	imageInfo.flags = 0;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+	if (depth)
+	{
+		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	}
+	else
+	{
+		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	}
+
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	VmaAllocationInfo allocInfo{};
+	allocInfo.pName = "texture";
+	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &target.image, &target.allocation, &allocInfo));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)target.image, "RenderTarget");
+
+	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	info.image = target.image;
+	info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	info.format = format;
+
+	if (depth) { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; }
+	else { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; }
+
+	info.subresourceRange.levelCount = 1;
+	info.subresourceRange.layerCount = 1;
+	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &target.imageView));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)target.imageView, "RenderTargetView");
+
+	return target;
+}
+
+void Renderer::RecreateRenderTarget(RenderTarget& target, U16 width, U16 height)
+{
+	DestroyRenderTarget(target);
+
+	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.format = target.format;
+	imageInfo.flags = 0;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+	if (target.depth)
+	{
+		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	}
+	else
+	{
+		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	}
+
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	VmaAllocationInfo allocInfo{};
+	allocInfo.pName = "texture";
+	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &target.image, &target.allocation, &allocInfo));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)target.image, "RenderTarget");
+
+	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	info.image = target.image;
+	info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	info.format = target.format;
+
+	if (target.depth) { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; }
+	else { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; }
+
+	info.subresourceRange.levelCount = 1;
+	info.subresourceRange.layerCount = 1;
+	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &target.imageView));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)target.imageView, "RenderTargetView");
 }
 
 void Renderer::CreateFramebuffer(RenderPass* renderPass)
@@ -1305,14 +1379,14 @@ void Renderer::CreateFramebuffer(RenderPass* renderPass)
 
 	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1]{};
 	U32 activeAttachments = 0;
-	for (; activeAttachments < renderPass->renderTargetCount; ++activeAttachments) { framebufferAttachments[activeAttachments] = renderPass->outputTextures[activeAttachments]->imageView; }
+	for (; activeAttachments < renderPass->renderTargetCount; ++activeAttachments) { framebufferAttachments[activeAttachments] = renderPass->outputTextures[activeAttachments].imageView; }
 
-	if (renderPass->outputDepth) { framebufferAttachments[activeAttachments++] = renderPass->outputDepth->imageView; }
+	if (renderPass->outputDepth.image) { framebufferAttachments[activeAttachments++] = renderPass->outputDepth.imageView; }
 	framebufferInfo.pAttachments = framebufferAttachments;
 	framebufferInfo.attachmentCount = activeAttachments;
 
-	vkCreateFramebuffer(device, &framebufferInfo, nullptr, &renderPass->frameBuffer);
-	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffer, renderPass->name);
+	vkCreateFramebuffer(device, &framebufferInfo, nullptr, &renderPass->frameBuffers[0]);
+	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[0], renderPass->name);
 }
 
 bool Renderer::CreateSampler(Sampler* sampler)
@@ -1627,26 +1701,20 @@ bool Renderer::CreateDescriptorSet(DescriptorSet* descriptorSet)
 	return true;
 }
 
-bool Renderer::CreateRenderPass(RenderPass* renderPass, RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
+bool Renderer::CreateRenderPass(RenderPass* renderPass)
 {
 	switch (renderPass->type)
 	{
 	case RENDER_PASS_TYPE_SWAPCHAIN: {
 		CreateSwapchainPass(renderPass);
 	} break;
-	case RENDER_PASS_TYPE_COMPUTE: {} break;
+	case RENDER_PASS_TYPE_COMPUTE: { Logger::Error("Compute RenderPasses Are Not Yet Supported!"); } return false;
 	case RENDER_PASS_TYPE_GEOMETRY: {
-		renderPass->output.Reset();
+		for (U32 i = 0; i < renderPass->renderTargetCount; ++i) { renderPass->output.Color(renderPass->outputTextures[i].format); }
+		if (renderPass->outputDepth.image) { renderPass->output.Depth(renderPass->outputDepth.format); }
 
-		for (U32 i = 0; i < renderPass->renderTargetCount; ++i) { renderPass->output.Color(renderPass->outputTextures[i]->format); }
-
-		if (renderPass->outputDepth) { renderPass->output.Depth(renderPass->outputDepth->format); }
-
-		renderPass->output.colorOperation = color;
-		renderPass->output.depthOperation = depth;
-		renderPass->output.stencilOperation = stencil;
-
-		renderPass->renderPass = GetRenderPass(renderPass->output, renderPass->name);
+		renderPass->renderPass = CreateVulkanRenderPass(renderPass->output);
+		SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass, renderPass->name);
 
 		CreateFramebuffer(renderPass);
 	} break;
@@ -1707,7 +1775,7 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 	return true;
 }
 
-bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& renderPass, const String& cachePath)
+bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const String& cachePath)
 {
 	VkPipelineCache pipelineCache = nullptr;
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -1915,14 +1983,14 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = (F32)swapchain.renderPass.width;
-		viewport.height = (F32)swapchain.renderPass.height;
+		viewport.width = (F32)renderPass->width;
+		viewport.height = (F32)renderPass->height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = { swapchain.renderPass.width, swapchain.renderPass.height };
+		scissor.extent = { renderPass->width, renderPass->height };
 
 		VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 		viewportState.viewportCount = 1;
@@ -1932,7 +2000,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, const RenderPassOutput& render
 
 		pipelineInfo.pViewportState = &viewportState;
 
-		pipelineInfo.renderPass = GetRenderPass(renderPass, pipeline->name);
+		pipelineInfo.renderPass = renderPass->renderPass;
 
 		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
@@ -2032,7 +2100,21 @@ void Renderer::DestroyRenderPassInstant(RenderPass* renderPass)
 {
 	if (renderPass)
 	{
-		if (renderPass->renderTargetCount) { vkDestroyFramebuffer(device, renderPass->frameBuffer, allocationCallbacks); }
+		for (U32 i = 0; i < swapchain.imageCount; ++i)
+		{
+			vkDestroyFramebuffer(Renderer::device, renderPass->frameBuffers[i], Renderer::allocationCallbacks);
+		}
+
+		for (U32 i = 0; i < renderPass->renderTargetCount; ++i)
+		{
+			DestroyRenderTarget(renderPass->outputTextures[i]);
+		}
+
+		if (renderPass->outputDepth.image)
+		{
+			DestroyRenderTarget(renderPass->outputDepth);
+		}
+
 		vkDestroyRenderPass(device, renderPass->renderPass, allocationCallbacks);
 	}
 }
@@ -2055,6 +2137,12 @@ void Renderer::DestroyPipelineInstant(Pipeline* pipeline)
 		vkDestroyPipeline(device, pipeline->pipeline, allocationCallbacks);
 		vkDestroyPipelineLayout(device, pipeline->pipelineLayout, allocationCallbacks);
 	}
+}
+
+void Renderer::DestroyRenderTarget(RenderTarget& target)
+{
+	vkDestroyImageView(device, target.imageView, allocationCallbacks);
+	if (!target.swapchainTarget) { vmaDestroyImage(allocator, target.image, target.allocation); }
 }
 
 bool Renderer::IsDepthStencil(VkFormat value)

@@ -103,7 +103,7 @@ void CommandBuffer::BindPass(RenderPass* renderPass)
 	if (renderPass != currentRenderPass && (renderPass->type != RENDER_PASS_TYPE_COMPUTE))
 	{
 		VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? Renderer::swapchain.renderPass.framebuffers[Renderer::imageIndex] : renderPass->frameBuffer;
+		renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? renderPass->frameBuffers[Renderer::imageIndex] : renderPass->frameBuffers[0];
 		renderPassBegin.renderPass = renderPass->renderPass;
 
 		renderPassBegin.renderArea.offset = { 0, 0 };
@@ -219,10 +219,10 @@ void CommandBuffer::SetViewport(const Viewport* viewport)
 		}
 		else
 		{
-			vkViewport.width = Renderer::swapchain.renderPass.width * 1.0f;
+			vkViewport.width = Renderer::swapchain.renderPass->width * 1.0f;
 			// Invert Y with negative height and proper offset - Vulkan has unique Clipping Y.
-			vkViewport.y = Renderer::swapchain.renderPass.height * 1.0f;
-			vkViewport.height = -Renderer::swapchain.renderPass.height * 1.0f;
+			vkViewport.y = Renderer::swapchain.renderPass->height * 1.0f;
+			vkViewport.height = -Renderer::swapchain.renderPass->height * 1.0f;
 		}
 		vkViewport.minDepth = 0.0f;
 		vkViewport.maxDepth = 1.0f;
@@ -246,8 +246,8 @@ void CommandBuffer::SetScissor(const Rect2DInt* rect)
 	{
 		vkScissor.offset.x = 0;
 		vkScissor.offset.y = 0;
-		vkScissor.extent.width = Renderer::swapchain.renderPass.width;
-		vkScissor.extent.height = Renderer::swapchain.renderPass.height;
+		vkScissor.extent.width = Renderer::swapchain.renderPass->width;
+		vkScissor.extent.height = Renderer::swapchain.renderPass->height;
 	}
 
 	vkCmdSetScissor(commandBuffer, 0, 1, &vkScissor);
