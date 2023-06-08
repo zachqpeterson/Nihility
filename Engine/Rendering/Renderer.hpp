@@ -50,11 +50,8 @@ private:
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 		VkSampler vkDefaultSampler, U32& numResources, void** resources, Sampler** samplers, U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
-	static VkRenderPass					CreateVulkanRenderPass(const RenderPassOutput& output);
-	static void							CreateSwapchainPass(RenderPass* renderPass);
 	static RenderTarget					CreateRenderTarget(U16 width, U16 height, VkFormat format, bool depth);
 	static void							RecreateRenderTarget(RenderTarget& target, U16 width, U16 height);
-	static void							CreateFramebuffer(RenderPass* renderPass);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
@@ -144,8 +141,6 @@ private:
 	static U64									dynamicAllocatedSize;
 	static U64									dynamicPerFrameSize;
 	static C8									binariesPath[512];
-	static Buffer*								fullscreenVertexBuffer;
-	static Buffer*								dummyConstantBuffer; //TODO: Move to Resources
 
 	// TIMING
 	static F32									timestampFrequency;

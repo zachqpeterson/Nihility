@@ -922,6 +922,7 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	renderPass->output.stencilOperation = info.stencilOperation;
 	renderPass->output.depthStencilFormat = info.depthStencilTexture.format;
 	renderPass->output.colorFormatCount = info.renderTargetCount;
+	renderPass->swapchain = info.swapchain;
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{

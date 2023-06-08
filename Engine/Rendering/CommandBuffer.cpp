@@ -94,29 +94,30 @@ DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
 
 void CommandBuffer::BindPass(RenderPass* renderPass)
 {
-	// Begin/End render pass are valid only for graphics render passes.
-	if (currentRenderPass && (currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE) && (renderPass != currentRenderPass))
+	if (renderPass != currentRenderPass)
 	{
-		vkCmdEndRenderPass(commandBuffer);
+		if (currentRenderPass && currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE)
+		{
+			vkCmdEndRenderPass(commandBuffer);
+		}
+
+		if (renderPass->type != RENDER_PASS_TYPE_COMPUTE)
+		{
+			VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? renderPass->frameBuffers[Renderer::imageIndex] : renderPass->frameBuffers[0];
+			renderPassBegin.renderPass = renderPass->renderPass;
+
+			renderPassBegin.renderArea.offset = { 0, 0 };
+			renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
+
+			renderPassBegin.clearValueCount = 2;
+			renderPassBegin.pClearValues = clears; //TODO: Move to RenderPass
+
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+			currentRenderPass = renderPass;
+		}
 	}
-
-	if (renderPass != currentRenderPass && (renderPass->type != RENDER_PASS_TYPE_COMPUTE))
-	{
-		VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? renderPass->frameBuffers[Renderer::imageIndex] : renderPass->frameBuffers[0];
-		renderPassBegin.renderPass = renderPass->renderPass;
-
-		renderPassBegin.renderArea.offset = { 0, 0 };
-		renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
-
-		renderPassBegin.clearValueCount = 2;
-		renderPassBegin.pClearValues = clears; //TODO: Move to RenderPass
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-	}
-
-	// Cache render pass
-	currentRenderPass = renderPass;
 }
 
 void CommandBuffer::BindPipeline(Pipeline* pipeline)

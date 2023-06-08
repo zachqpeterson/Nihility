@@ -291,6 +291,7 @@ struct RenderPass
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
+	bool				swapchain{ false };
 };
 
 struct Pipeline
@@ -366,6 +367,7 @@ struct NH_API RenderPassCreation
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
+	bool				swapchain{ false };
 	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
 
 	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};

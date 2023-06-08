@@ -134,8 +134,6 @@ U8*									Renderer::dynamicMappedMemory;
 U64									Renderer::dynamicAllocatedSize;
 U64									Renderer::dynamicPerFrameSize;
 C8									Renderer::binariesPath[512];
-Buffer*								Renderer::fullscreenVertexBuffer;
-Buffer*								Renderer::dummyConstantBuffer; //TODO: Move to Resources
 
 // TIMING
 F32									Renderer::timestampFrequency;
@@ -171,6 +169,7 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!swapchain.GetFormat()) { return false; }
 	if (!swapchain.Create()) { return false; }
 	if (!swapchain.CreateRenderPass()) { return false; }
+	//TODO: Create Post Process Passes
 
 	return true;
 }
@@ -522,16 +521,6 @@ bool Renderer::CreateResources()
 	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
 
 	descriptorSetUpdates.Reserve(16);
-
-	BufferCreation fullscreenVbCreation{};
-	fullscreenVbCreation.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 0);
-	fullscreenVbCreation.SetName("Fullscreen_vb");
-	fullscreenVertexBuffer = Resources::CreateBuffer(fullscreenVbCreation);
-
-	BufferCreation dummyConstantBufferCreation{};
-	dummyConstantBufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, 16);
-	dummyConstantBufferCreation.SetName("Dummy_cb");
-	dummyConstantBuffer = Resources::CreateBuffer(dummyConstantBufferCreation);
 
 #if defined(_MSC_VER)
 	ExpandEnvironmentStringsA("%VULKAN_SDK%", binariesPath, 512);
@@ -1041,218 +1030,6 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 	return shaderCreateInfo;
 }
 
-VkRenderPass Renderer::CreateVulkanRenderPass(const RenderPassOutput& output)
-{
-	VkAttachmentDescription colorAttachments[8] = {};
-	VkAttachmentReference colorAttachmentsRef[8] = {};
-
-	VkAttachmentLoadOp colorOp, depthOp, stencilOp;
-	VkImageLayout colorInitial, depthInitial;
-
-	switch (output.colorOperation)
-	{
-	case RENDER_PASS_OP_LOAD: { colorOp = VK_ATTACHMENT_LOAD_OP_LOAD; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
-	case RENDER_PASS_OP_CLEAR: { colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
-	default: { colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; colorInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
-	}
-
-	switch (output.depthOperation)
-	{
-	case RENDER_PASS_OP_LOAD: { depthOp = VK_ATTACHMENT_LOAD_OP_LOAD; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
-	case RENDER_PASS_OP_CLEAR: { depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
-	default: { depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; depthInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
-	}
-
-	switch (output.stencilOperation)
-	{
-	case RENDER_PASS_OP_LOAD: { stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD; } break;
-	case RENDER_PASS_OP_CLEAR: { stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR; } break;
-	default: { stencilOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; } break;
-	}
-
-	U32 attachment = 0;
-	for (; attachment < output.colorFormatCount; ++attachment)
-	{
-		VkAttachmentDescription& colorAttachment = colorAttachments[attachment];
-		colorAttachment.format = output.colorFormats[attachment];
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp = colorOp;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = stencilOp;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = colorInitial;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference& colorAttachmentRef = colorAttachmentsRef[attachment];
-		colorAttachmentRef.attachment = attachment;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	}
-
-	VkAttachmentDescription depthAttachment{};
-	VkAttachmentReference depthAttachmentRef{};
-
-	if (output.depthStencilFormat != VK_FORMAT_UNDEFINED)
-	{
-		depthAttachment.format = output.depthStencilFormat;
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachment.loadOp = depthOp;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		depthAttachment.stencilLoadOp = stencilOp;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = depthInitial;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		depthAttachmentRef.attachment = attachment;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	}
-
-	// Create subpass.
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-	// Calculate active attachments for the subpass
-	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
-	U32 activeAttachments = 0;
-	for (; activeAttachments < output.colorFormatCount; ++activeAttachments)
-	{
-		attachments[activeAttachments] = colorAttachments[activeAttachments];
-		++activeAttachments;
-	}
-	subpass.colorAttachmentCount = activeAttachments ? activeAttachments - 1 : 0;
-	subpass.pColorAttachments = colorAttachmentsRef;
-
-	U32 depthStencilCount = 0;
-	if (output.depthStencilFormat != VK_FORMAT_UNDEFINED)
-	{
-		attachments[subpass.colorAttachmentCount] = depthAttachment;
-
-		subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-		depthStencilCount = 1;
-	}
-
-	VkRenderPassCreateInfo renderPassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-
-	renderPassInfo.attachmentCount = (activeAttachments ? activeAttachments - 1 : 0) + depthStencilCount;
-	renderPassInfo.pAttachments = attachments;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-
-	//TODO: Create external subpass dependencies
-	//VkSubpassDependency externalDependencies[16];
-	//U32 externalDependencyCount = 0;
-
-	VkRenderPass renderPass;
-	VkValidate(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
-
-	return renderPass;
-}
-
-void Renderer::CreateSwapchainPass(RenderPass* renderPass)
-{
-	//TODO: This is hardcoded, pass in attachment info
-
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = renderPass->outputTextures[0].format;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = renderPass->outputDepth.format;
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference depthAttachmentRef{};
-	depthAttachmentRef.attachment = 1;
-	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-	subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-	VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
-	VkRenderPassCreateInfo renderPassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	renderPassInfo.attachmentCount = 2;
-	renderPassInfo.pAttachments = attachments;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-
-	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderPass->renderPass));
-
-	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, renderPass->name);
-
-	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-	framebufferInfo.renderPass = renderPass->renderPass;
-	framebufferInfo.attachmentCount = 2;
-	framebufferInfo.width = renderPass->width;
-	framebufferInfo.height = renderPass->height;
-	framebufferInfo.layers = 1;
-	
-	VkImageView framebufferAttachments[2];
-	framebufferAttachments[1] = renderPass->outputDepth.imageView;
-	
-	for (U64 i = 0; i < swapchain.imageCount; i++)
-	{
-		framebufferAttachments[0] = renderPass->outputTextures[i].imageView;
-		framebufferInfo.pAttachments = framebufferAttachments;
-	
-		vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderPass->frameBuffers[i]);
-		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[i], renderPass->name);
-	}
-
-	// Manually transition the texture
-	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	CommandBuffer* commandBuffer = GetInstantCommandBuffer();
-	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
-
-	VkBufferImageCopy region{};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
-
-	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = { renderPass->width, renderPass->height, 1 };
-
-	// Transition
-	for (U64 i = 0; i < swapchain.imageCount; ++i)
-	{
-		AddImageBarrier(commandBuffer->commandBuffer, renderPass->outputTextures[i].image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
-	}
-
-	vkEndCommandBuffer(commandBuffer->commandBuffer);
-
-	// Submit command buffer
-	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
-
-	vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr);
-	vkQueueWaitIdle(deviceQueue);
-}
-
 RenderTarget Renderer::CreateRenderTarget(U16 width, U16 height, VkFormat format, bool depth)
 {
 	RenderTarget target{};
@@ -1367,26 +1144,6 @@ void Renderer::RecreateRenderTarget(RenderTarget& target, U16 width, U16 height)
 	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &target.imageView));
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)target.imageView, "RenderTargetView");
-}
-
-void Renderer::CreateFramebuffer(RenderPass* renderPass)
-{
-	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-	framebufferInfo.renderPass = renderPass->renderPass;
-	framebufferInfo.width = renderPass->width;
-	framebufferInfo.height = renderPass->height;
-	framebufferInfo.layers = 1;
-
-	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1]{};
-	U32 activeAttachments = 0;
-	for (; activeAttachments < renderPass->renderTargetCount; ++activeAttachments) { framebufferAttachments[activeAttachments] = renderPass->outputTextures[activeAttachments].imageView; }
-
-	if (renderPass->outputDepth.image) { framebufferAttachments[activeAttachments++] = renderPass->outputDepth.imageView; }
-	framebufferInfo.pAttachments = framebufferAttachments;
-	framebufferInfo.attachmentCount = activeAttachments;
-
-	vkCreateFramebuffer(device, &framebufferInfo, nullptr, &renderPass->frameBuffers[0]);
-	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[0], renderPass->name);
 }
 
 bool Renderer::CreateSampler(Sampler* sampler)
@@ -1703,21 +1460,198 @@ bool Renderer::CreateDescriptorSet(DescriptorSet* descriptorSet)
 
 bool Renderer::CreateRenderPass(RenderPass* renderPass)
 {
-	switch (renderPass->type)
+	if (renderPass->type == RENDER_PASS_TYPE_COMPUTE)
 	{
-	case RENDER_PASS_TYPE_SWAPCHAIN: {
-		CreateSwapchainPass(renderPass);
-	} break;
-	case RENDER_PASS_TYPE_COMPUTE: { Logger::Error("Compute RenderPasses Are Not Yet Supported!"); } return false;
-	case RENDER_PASS_TYPE_GEOMETRY: {
-		for (U32 i = 0; i < renderPass->renderTargetCount; ++i) { renderPass->output.Color(renderPass->outputTextures[i].format); }
-		if (renderPass->outputDepth.image) { renderPass->output.Depth(renderPass->outputDepth.format); }
+		Logger::Error("Compute RenderPasses Are Not Yet Supported!");
+		return false;
+	}
 
-		renderPass->renderPass = CreateVulkanRenderPass(renderPass->output);
-		SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass, renderPass->name);
+	for (U32 i = 0; i < renderPass->renderTargetCount; ++i) { renderPass->output.Color(renderPass->outputTextures[i].format); }
+	if (renderPass->outputDepth.image) { renderPass->output.Depth(renderPass->outputDepth.format); }
 
-		CreateFramebuffer(renderPass);
-	} break;
+	VkAttachmentLoadOp colorOp, depthOp, stencilOp;
+	VkImageLayout colorInitial, depthInitial;
+
+	//TODO: Store VkAttachmentLoadOp instead of RenderPassOperation
+	//TODO: Check if this is first pass/last pass
+	switch (renderPass->output.colorOperation)
+	{
+	case RENDER_PASS_OP_LOAD: { colorOp = VK_ATTACHMENT_LOAD_OP_LOAD; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
+	case RENDER_PASS_OP_CLEAR: { colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
+	case RENDER_PASS_OP_DONT_CARE:
+	default: { colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; colorInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
+	}
+
+	switch (renderPass->output.depthOperation)
+	{
+	case RENDER_PASS_OP_LOAD: { depthOp = VK_ATTACHMENT_LOAD_OP_LOAD; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
+	case RENDER_PASS_OP_CLEAR: { depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
+	case RENDER_PASS_OP_DONT_CARE:
+	default: { depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; depthInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
+	}
+
+	switch (renderPass->output.stencilOperation)
+	{
+	case RENDER_PASS_OP_LOAD: { stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD; } break;
+	case RENDER_PASS_OP_CLEAR: { stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR; } break;
+	case RENDER_PASS_OP_DONT_CARE:
+	default: { stencilOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; } break;
+	}
+
+	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
+	VkAttachmentReference colorAttachments[MAX_IMAGE_OUTPUTS]{};
+	VkAttachmentReference depthAttachment{};
+
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	U32 attachmentCount = 0;
+	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	{
+		attachments[attachmentCount].flags = 0;
+		attachments[attachmentCount].format = renderPass->outputTextures[0].format;
+		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[attachmentCount].loadOp = colorOp;
+		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[attachmentCount].stencilLoadOp = stencilOp;
+		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		colorAttachments[attachmentCount].attachment = attachmentCount;
+		colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		++attachmentCount;
+	}
+	else
+	{
+		for (U32 i = 0; i < renderPass->renderTargetCount; ++i)
+		{
+			attachments[attachmentCount].flags = 0;
+			attachments[attachmentCount].format = renderPass->outputTextures[i].format;
+			attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[attachmentCount].loadOp = colorOp;
+			attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[attachmentCount].stencilLoadOp = stencilOp;
+			attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[attachmentCount].initialLayout = colorInitial;
+			attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			colorAttachments[attachmentCount].attachment = attachmentCount;
+			colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			++attachmentCount;
+		}
+	}
+
+	subpass.colorAttachmentCount = attachmentCount;
+	subpass.pColorAttachments = colorAttachments;
+
+	if (renderPass->outputDepth.image)
+	{
+		attachments[attachmentCount].flags = 0;
+		attachments[attachmentCount].format = renderPass->outputDepth.format;
+		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[attachmentCount].loadOp = depthOp;
+		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[attachmentCount].stencilLoadOp = stencilOp;
+		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		depthAttachment.attachment = attachmentCount;
+		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		++attachmentCount;
+	}
+
+	subpass.pDepthStencilAttachment = &depthAttachment;
+
+	VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	renderPassInfo.attachmentCount = attachmentCount;
+	renderPassInfo.pAttachments = attachments;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+
+	//TODO: Create external subpass dependencies
+	//VkSubpassDependency externalDependencies[16];
+	//U32 externalDependencyCount = 0;
+
+	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderPass->renderPass));
+
+	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, renderPass->name);
+
+	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+	framebufferInfo.renderPass = renderPass->renderPass;
+	framebufferInfo.attachmentCount = attachmentCount;
+	framebufferInfo.width = renderPass->width;
+	framebufferInfo.height = renderPass->height;
+	framebufferInfo.layers = 1;
+
+	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
+
+	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	{
+		framebufferAttachments[1] = renderPass->outputDepth.imageView;
+
+		for (U64 i = 0; i < swapchain.imageCount; i++)
+		{
+			framebufferAttachments[0] = renderPass->outputTextures[i].imageView;
+			framebufferInfo.pAttachments = framebufferAttachments;
+
+			vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderPass->frameBuffers[i]);
+			SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[i], renderPass->name);
+		}
+	}
+	else
+	{
+		attachmentCount = 0;
+		for (U32 i = 0; i < renderPass->renderTargetCount; ++i)
+		{
+			framebufferAttachments[attachmentCount++] = renderPass->outputTextures[i].imageView;
+		}
+
+		framebufferAttachments[attachmentCount] = renderPass->outputDepth.imageView;
+		framebufferInfo.pAttachments = framebufferAttachments;
+
+		vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderPass->frameBuffers[0]);
+		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[0], renderPass->name);
+	}
+
+	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	{
+		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
+
+		VkBufferImageCopy region{};
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		region.imageOffset = { 0, 0, 0 };
+		region.imageExtent = { renderPass->width, renderPass->height, 1 };
+
+		for (U64 i = 0; i < swapchain.imageCount; ++i)
+		{
+			AddImageBarrier(commandBuffer->commandBuffer, renderPass->outputTextures[i].image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
+		}
+
+		vkEndCommandBuffer(commandBuffer->commandBuffer);
+
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
+
+		vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr);
+		vkQueueWaitIdle(deviceQueue);
 	}
 
 	return true;

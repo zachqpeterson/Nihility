@@ -80,10 +80,11 @@ bool Swapchain::CreateRenderPass()
 			vkDestroyFramebuffer(Renderer::device, renderPass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
-		Renderer::CreateSwapchainPass(renderPass);
+		Renderer::CreateRenderPass(renderPass);
 	}
 	else
 	{
+		renderPassInfo.swapchain = true;
 		renderPassInfo.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
 		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
 		renderPassInfo.SetDepthStencilTexture(Renderer::CreateRenderTarget(renderPassInfo.width, renderPassInfo.height, VK_FORMAT_D32_SFLOAT, true));
