@@ -273,6 +273,25 @@ RenderPassOutput& RenderPassOutput::SetOperations(RenderPassOperation color, Ren
 
 // RENDER PASS CREATION
 
+RenderPassCreation& RenderPassCreation::Reset()
+{
+	width = 0;
+	height = 0;
+	renderTargetCount = 0;
+	type = RENDER_PASS_TYPE_GEOMETRY;
+
+	depthStencilTexture = {};
+	sampler = nullptr ;
+
+	colorOperation = RENDER_PASS_OP_DONT_CARE;
+	depthOperation = RENDER_PASS_OP_DONT_CARE;
+	stencilOperation = RENDER_PASS_OP_DONT_CARE;
+
+	name.Clear();
+
+	return *this;
+}
+
 RenderPassCreation& RenderPassCreation::AddRenderTarget(const RenderTarget& texture)
 {
 	outputTextures[renderTargetCount++] = texture;
@@ -306,6 +325,38 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 	colorOperation = color;
 	depthOperation = depth;
 	stencilOperation = stencil;
+
+	return *this;
+}
+
+// PROGRAM CREATION
+
+ProgramCreation& ProgramCreation::Reset()
+{
+	prePassCount = 0;
+	postPassCount = 0;
+	name.Clear();
+
+	return *this;
+}
+
+ProgramCreation& ProgramCreation::SetName(const String& name_)
+{
+	name = name_;
+
+	return *this;
+}
+
+ProgramCreation& ProgramCreation::AddPrePass(const PipelineCreation& pass)
+{
+	prePasses[prePassCount++] = pass;
+
+	return *this;
+}
+
+ProgramCreation& ProgramCreation::AddPostPass(const PipelineCreation& pass)
+{
+	postPasses[postPassCount++] = pass;
 
 	return *this;
 }

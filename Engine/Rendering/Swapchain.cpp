@@ -84,10 +84,17 @@ bool Swapchain::CreateRenderPass()
 	}
 	else
 	{
-		renderPassInfo.swapchain = true;
+		RenderTargetCreation info{};
+		info.name = "SwapchainDepth";
+		info.format = VK_FORMAT_D32_SFLOAT;
+		info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		info.width = renderPassInfo.width;
+		info.height = renderPassInfo.height;
+		RenderTarget depthTarget = Renderer::CreateRenderTarget(info);
+
 		renderPassInfo.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
 		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
-		renderPassInfo.SetDepthStencilTexture(Renderer::CreateRenderTarget(renderPassInfo.width, renderPassInfo.height, VK_FORMAT_D32_SFLOAT, true));
+		renderPassInfo.SetDepthStencilTexture(depthTarget);
 		renderPass = Resources::CreateRenderPass(renderPassInfo);
 
 		if (renderPass == nullptr) { return false; }

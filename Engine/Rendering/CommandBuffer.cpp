@@ -12,8 +12,7 @@ void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool 
 
 	//////// Create Descriptor Pools
 	static const U32 globalPoolElements = 128;
-	VkDescriptorPoolSize poolSizes[] =
-	{
+	VkDescriptorPoolSize poolSizes[] {
 		{ VK_DESCRIPTOR_TYPE_SAMPLER, globalPoolElements },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, globalPoolElements },
 		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, globalPoolElements },
@@ -26,8 +25,7 @@ void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool 
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, globalPoolElements },
 		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, globalPoolElements}
 	};
-	VkDescriptorPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	poolInfo.maxSets = globalPoolElements * CountOf32(poolSizes);
 	poolInfo.poolSizeCount = CountOf32(poolSizes);
@@ -80,7 +78,7 @@ DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
 		resourceCount, info.resources, info.samplers, info.bindings);
 
 	// Cache resources
-	for (U32 r = 0; r < resourceCount; r++)
+	for (U32 r = 0; r < resourceCount; ++r)
 	{
 		set->resources[r] = info.resources[r];
 		set->samplers[r] = info.samplers[r];
@@ -130,7 +128,7 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 
 void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding)
 {
-	VkDeviceSize offsets[] = { buffer->globalOffset };
+	VkDeviceSize offsets[]{ buffer->globalOffset };
 	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
 	if (buffer->parentBuffer != nullptr)
@@ -565,7 +563,7 @@ void CommandBufferRing::Create()
 {
 	for (U32 i = 0; i < maxPools; ++i)
 	{
-		VkCommandPoolCreateInfo cmdPoolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr };
+		VkCommandPoolCreateInfo cmdPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr };
 		cmdPoolInfo.queueFamilyIndex = Renderer::queueFamilyIndex;
 		cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
@@ -574,7 +572,7 @@ void CommandBufferRing::Create()
 
 	for (U32 i = 0; i < maxBuffers; ++i)
 	{
-		VkCommandBufferAllocateInfo cmd = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr };
+		VkCommandBufferAllocateInfo cmd{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr };
 		const U32 poolIndex = PoolFromIndex(i);
 		cmd.commandPool = commandPools[poolIndex];
 		cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -617,7 +615,7 @@ CommandBuffer* CommandBufferRing::GetCommandBuffer(U32 frame, bool begin)
 	{
 		cb->Reset();
 
-		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		vkBeginCommandBuffer(cb->commandBuffer, &beginInfo);
 	}

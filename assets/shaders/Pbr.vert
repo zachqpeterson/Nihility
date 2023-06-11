@@ -17,8 +17,8 @@ layout(std140, binding = 1) uniform MaterialConstant
     // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
     uvec4       textures;
     vec4        baseColorFactor;
-    vec4        metalRoughOcclFactor;
-    vec4        emissiveFactor;
+    vec3        metalRoughOcclFactor;
+    vec3        emissiveFactor;
     float       alphaCutoff;
     uint        flags;
 };

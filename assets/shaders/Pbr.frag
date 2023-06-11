@@ -20,8 +20,8 @@ layout(std140, binding = 1) uniform MaterialConstant
     // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
     uvec4       textures;
     vec4        baseColorFactor;
-    vec4        metalRoughOcclFactor;
-    vec4        emissiveFactor;
+    vec3        metalRoughOcclFactor;
+    vec3        emissiveFactor;
     float       alphaCutoff;
     uint        flags;
 };
@@ -120,9 +120,9 @@ void main()
 	{
         vec4 rmo = texture(globalTextures[nonuniformEXT(textures.y)], texcoord0);
 
+		// Red channel contains occlusion values
         // Green channel contains roughness values
         // Blue channel contains metallicness
-		// Red channel for occlusion value
 		occlusion *= rmo.r;
         roughness *= rmo.g;
         metallicness *= rmo.b;
@@ -132,7 +132,7 @@ void main()
 
     if(textures.w != INVALID_TEXTURE_INDEX)
     {
-        emissivity += texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).xyz;
+        emissivity += texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).rgb;
     }
 
     baseColor.rgb = DecodeSRGB(baseColor.rgb);

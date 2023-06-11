@@ -15,21 +15,19 @@ public:
 	void Update();
 
 private:
-	void UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw);
-	void DrawMesh(CommandBuffer* commands, MeshDraw& meshDraw);
+	void UploadMaterial(MeshData& meshData, const Mesh& meshDraw);
+	void DrawMesh(CommandBuffer* commands, Mesh& meshDraw);
 
 public:
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
-	Camera camera;
-	Buffer* constantBuffer;
+	Camera				camera;
+	Buffer*				constantBuffer;
 
-	Vector<MeshDraw>	meshDraws{ NO_INIT };	//TODO: Just call these Mesh, not MeshDraw
+	Vector<Mesh>		meshes{ NO_INIT };
 
-	Vector<Texture*>	textures{ NO_INIT };	//TODO: Probably don't need to store textures here, just handles which might be more useful
+	Vector<Texture*>	textures{ NO_INIT };
 	Vector<Sampler*>	samplers{ NO_INIT };
 	Vector<Buffer*>		buffers{ NO_INIT };	//These are parent buffers, meshes will hold child buffers to these
 };
-
-//bool SetupScene(Vector<MeshDraw>& draw);

@@ -13,8 +13,6 @@ bool Init()
 {
 	scene = Resources::LoadScene("scenes/Boombox.scene");
 
-	//Resources::SaveScene(scene);
-
 	return true;
 }
 

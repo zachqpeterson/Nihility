@@ -120,12 +120,17 @@ bool Resources::Initialize()
 	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 	pipelineCreation.rasterization = rasterization;
-	pipelineCreation.name = "shaders/main_no_cull";
-	Program* programNoCull = Resources::CreateProgram({ pipelineCreation });
+	pipelineCreation.name = "shaders/PBR_no_cull";
+
+	ProgramCreation programCreation{};
+	programCreation.SetName("PBR_no_cull").AddPrePass(pipelineCreation);
+
+	Program* programNoCull = Resources::CreateProgram(programCreation);
 
 	pipelineCreation.rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
-	pipelineCreation.name = "shaders/main_cull";
-	Program* programCull = Resources::CreateProgram({ pipelineCreation });
+	pipelineCreation.name = "shaders/PBR_cull";
+	programCreation.Reset().SetName("PBR_cull").AddPrePass(pipelineCreation);
+	Program* programCull = Resources::CreateProgram(programCreation);
 
 	MaterialCreation materialCreation{};
 
@@ -916,13 +921,13 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	renderPass->renderPass = nullptr;
 	renderPass->renderTargetCount = (U8)info.renderTargetCount;
 	renderPass->outputDepth = info.depthStencilTexture;
+	renderPass->sampler = info.sampler;
 	renderPass->handle = renderPasses.GetHandle(info.name);
 	renderPass->output.colorOperation = info.colorOperation;
 	renderPass->output.depthOperation = info.depthOperation;
 	renderPass->output.stencilOperation = info.stencilOperation;
 	renderPass->output.depthStencilFormat = info.depthStencilTexture.format;
 	renderPass->output.colorFormatCount = info.renderTargetCount;
-	renderPass->swapchain = info.swapchain;
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
@@ -958,23 +963,16 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 
 Program* Resources::CreateProgram(const ProgramCreation& info)
 {
-	Program* program = &programs.Request(info.pipelineCreation.name);
+	Program* program = &programs.Request(info.name);
 
 	if (!program->name.Blank()) { return program; }
 
-	const U32 PassCount = 1;
-	program->passes.Resize(PassCount, {});
-	program->name = info.pipelineCreation.name;
+	program->name = info.name;
+	program->prePassCount = info.prePassCount;
+	program->postPassCount = info.postPassCount;
 
-	String pipelineCachePath;
-
-	for (U32 i = 0; i < PassCount; ++i)
-	{
-		ProgramPass& pass = program->passes[i];
-
-		pass.pipeline = CreatePipeline(info.pipelineCreation);
-		pass.descriptorSetLayout = pass.pipeline->descriptorSetLayouts[0];
-	}
+	for (U32 i = 0; i < info.prePassCount; ++i) { program->prePasses[i] = CreatePipeline(info.prePasses[i]); }
+	for (U32 i = 0; i < info.postPassCount; ++i) { program->postPasses[i] = CreatePipeline(info.postPasses[i]); }
 
 	return program;
 }
@@ -1016,7 +1014,7 @@ Scene* Resources::LoadScene(const String& name)
 		scene->buffers.Reserve(bufferCount);
 		scene->textures.Reserve(textureCount);
 		scene->samplers.Reserve(samplerCount);
-		scene->meshDraws.Reserve(meshCount);
+		scene->meshes.Reserve(meshCount);
 
 		String str{};
 		void* bufferData = nullptr;
@@ -1045,6 +1043,7 @@ Scene* Resources::LoadScene(const String& name)
 			file.Read((I32&)samplerInfo.addressModeU);
 			file.Read((I32&)samplerInfo.addressModeV);
 			file.Read((I32&)samplerInfo.addressModeW);
+			file.Read((I32&)samplerInfo.border);
 
 			Sampler* sampler = CreateSampler(samplerInfo);
 			sampler->sceneID = i;
@@ -1102,7 +1101,7 @@ Scene* Resources::LoadScene(const String& name)
 
 		for (U32 i = 0; i < meshCount; ++i)
 		{
-			MeshDraw mesh{};
+			Mesh mesh{};
 			BufferCreation bufferCreation{};
 			U32 id;
 			U64 offset;
@@ -1179,7 +1178,7 @@ Scene* Resources::LoadScene(const String& name)
 			mesh.materialBuffer = CreateBuffer(bufferCreation);
 			mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
 
-			scene->meshDraws.Push(mesh);
+			scene->meshes.Push(mesh);
 		}
 
 		BufferCreation bufferCreation{};
@@ -1200,7 +1199,7 @@ void Resources::SaveScene(const Scene* scene)
 		file.Write((U32)scene->buffers.Size());
 		file.Write((U32)scene->samplers.Size());
 		file.Write((U32)scene->textures.Size());
-		file.Write((U32)scene->meshDraws.Size());
+		file.Write((U32)scene->meshes.Size());
 
 		for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
 		for (Sampler* sampler : scene->samplers)
@@ -1211,6 +1210,7 @@ void Resources::SaveScene(const Scene* scene)
 			file.Write((I32)sampler->addressModeU);
 			file.Write((I32)sampler->addressModeV);
 			file.Write((I32)sampler->addressModeW);
+			file.Write((I32)sampler->border);
 		}
 		for (Texture* texture : scene->textures) { file.Write(texture->name); file.Write(texture->sampler->sceneID); }
 
@@ -1237,7 +1237,7 @@ void Resources::SaveScene(const Scene* scene)
 			file.Write(scene->camera.zoom);
 		}
 
-		for (const MeshDraw& mesh : scene->meshDraws)
+		for (const Mesh& mesh : scene->meshes)
 		{
 			file.Write(mesh.texcoordBuffer->parentBuffer->sceneID);
 			file.Write(mesh.texcoordBuffer->globalOffset);

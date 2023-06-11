@@ -37,13 +37,15 @@ struct NH_API SamplerCreation
 	SamplerCreation& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
 	SamplerCreation& SetName(const String& name);
 
-	VkFilter				minFilter = VK_FILTER_NEAREST;
-	VkFilter				magFilter = VK_FILTER_NEAREST;
-	VkSamplerMipmapMode		mipFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	VkFilter				minFilter{ VK_FILTER_NEAREST };
+	VkFilter				magFilter{ VK_FILTER_NEAREST };
+	VkSamplerMipmapMode		mipFilter{ VK_SAMPLER_MIPMAP_MODE_NEAREST };
 
-	VkSamplerAddressMode	addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	VkSamplerAddressMode	addressModeU{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeV{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeW{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+
+	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
 
 	String					name{ NO_INIT };
 };
@@ -95,7 +97,6 @@ struct NH_API ShaderStateCreation
 	ShaderStateCreation& Reset();
 	ShaderStateCreation& SetName(const String& name);
 	ShaderStateCreation& AddStage(CSTR name, VkShaderStageFlagBits type);
-	ShaderStateCreation& SetSpvInput(bool value);
 
 	ShaderStage				stages[MAX_SHADER_STAGES];
 
@@ -114,13 +115,15 @@ struct Sampler
 	HashHandle				handle;
 	U32						sceneID;
 
-	VkFilter				minFilter = VK_FILTER_NEAREST;
-	VkFilter				magFilter = VK_FILTER_NEAREST;
-	VkSamplerMipmapMode		mipFilter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	VkFilter				minFilter{ VK_FILTER_NEAREST };
+	VkFilter				magFilter{ VK_FILTER_NEAREST };
+	VkSamplerMipmapMode		mipFilter{ VK_SAMPLER_MIPMAP_MODE_NEAREST };
 
-	VkSamplerAddressMode	addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	VkSamplerAddressMode	addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	VkSamplerAddressMode	addressModeU{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeV{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeW{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+
+	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
 
 	VkSampler				sampler;
 };
@@ -261,13 +264,22 @@ struct RenderPassOutput
 	RenderPassOperation	stencilOperation{ RENDER_PASS_OP_DONT_CARE };
 };
 
+struct RenderTargetCreation
+{
+	CSTR name;
+	VkFormat format;
+	VkImageUsageFlagBits usage;
+	U16 width;
+	U16 height;
+};
+
 struct RenderTarget
 {
 	VkImage image{ nullptr };
 	VkImageView imageView{ nullptr };
 	VmaAllocation_T* allocation{ nullptr };
 	VkFormat format{ VK_FORMAT_UNDEFINED };
-	bool depth{ false };
+	VkImageUsageFlagBits usage;
 	bool swapchainTarget{ false };
 };
 
@@ -278,7 +290,7 @@ struct RenderPass
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
-	VkSampler			sampler{ nullptr };
+	Sampler* sampler{ nullptr };
 	VkRenderPass		renderPass{ nullptr };
 	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{};
 
@@ -291,7 +303,6 @@ struct RenderPass
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
-	bool				swapchain{ false };
 };
 
 struct Pipeline
@@ -318,19 +329,15 @@ struct Pipeline
 	bool						graphicsPipeline = true;
 };
 
-struct ProgramPass
-{
-	Pipeline* pipeline{ nullptr };
-	DescriptorSetLayout* descriptorSetLayout{ nullptr };
-};
-
 struct Program
 {
-	void Destroy() { name.Destroy(); passes.Destroy(); }
+	void Destroy() { name.Destroy(); }
 
-	String				name{ NO_INIT };
-	Vector<ProgramPass>	passes;
-	U32					poolIndex;
+	String		name{ NO_INIT };
+	Pipeline*	prePasses[MAX_PROGRAM_PASSES];
+	Pipeline*	postPasses[MAX_PROGRAM_PASSES];
+	U8			prePassCount;
+	U8			postPassCount;
 };
 
 struct NH_API DescriptorSetCreation
@@ -348,7 +355,7 @@ struct NH_API DescriptorSetCreation
 	Sampler* samplers[MAX_DESCRIPTORS_PER_SET];
 	U16						bindings[MAX_DESCRIPTORS_PER_SET];
 
-	DescriptorSetLayout* layout;
+	DescriptorSetLayout*	layout;
 	U32						resourceCount = 0;
 
 	String					name{ NO_INIT };
@@ -358,6 +365,7 @@ struct NH_API RenderPassCreation
 {
 	void Destroy() { name.Destroy(); }
 
+	RenderPassCreation& Reset();
 	RenderPassCreation& AddRenderTarget(const RenderTarget& target);
 	RenderPassCreation& SetDepthStencilTexture(const RenderTarget& target);
 	RenderPassCreation& SetName(const String& name);
@@ -367,11 +375,11 @@ struct NH_API RenderPassCreation
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
-	bool				swapchain{ false };
 	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
 
 	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
 	RenderTarget		depthStencilTexture{};
+	Sampler* sampler{ nullptr };
 
 	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
 	RenderPassOperation	depthOperation{ RENDER_PASS_OP_DONT_CARE };
@@ -397,7 +405,19 @@ struct NH_API PipelineCreation
 
 struct NH_API ProgramCreation
 {
-	PipelineCreation	pipelineCreation;
+	void Destroy() { name.Destroy(); }
+	ProgramCreation& Reset();
+
+	ProgramCreation& SetName(const String& name);
+	ProgramCreation& AddPrePass(const PipelineCreation& pass);
+	ProgramCreation& AddPostPass(const PipelineCreation& pass);
+
+	String				name{ NO_INIT };
+
+	PipelineCreation	prePasses[MAX_PROGRAM_PASSES];
+	PipelineCreation	postPasses[MAX_PROGRAM_PASSES];
+	U8					prePassCount;
+	U8					postPassCount;
 };
 
 struct NH_API MaterialCreation
@@ -413,10 +433,8 @@ struct NH_API MaterialCreation
 	String		name{ NO_INIT };
 	U32			renderIndex{ U32_MAX };
 
-}; // struct MaterialCreation
+};
 
-//
-//
 struct NH_API Material
 {
 	void Destroy() { name.Destroy(); }
@@ -445,14 +463,14 @@ struct MeshData
 
 	Vector4Int	textures; // diffuse, roughness, normal, occlusion
 	Vector4		baseColorFactor;
-	Vector4		metalRoughOcclFactor;
-	Vector4		emissiveFactor;
+	Vector3		metalRoughOcclFactor;
+	Vector3		emissiveFactor;
 	F32			alphaCutoff;
 	F32			unused[3];
 	U32			flags;
 };
 
-struct NH_API MeshDraw
+struct NH_API Mesh
 {
 	Material* material;
 
@@ -466,22 +484,23 @@ struct NH_API MeshDraw
 	U32			primitiveCount;
 
 	//These are HashHandles, used in bindless resources
+	//TODO: Move these to Material
 	U16			diffuseTextureIndex{ U16_MAX };
 	U16			metalRoughOcclTextureIndex{ U16_MAX };
 	U16			normalTextureIndex{ U16_MAX };
 	U16			emissivityTextureIndex{ U16_MAX };
 
 	Vector4		baseColorFactor{ Vector4::One };
-	Vector4		metalRoughOcclFactor{ Vector4::One }; //TODO: Look into making these Vector3
-	Vector4		emissiveFactor{ Vector4::Zero };
-
-	//TODO: Transform component
-	Vector3		position{ Vector3::Zero };
-	Quaternion3	rotation{ Quaternion3::Identity };
-	Vector3		scale{ Vector3::One };
+	Vector3		metalRoughOcclFactor{ Vector3::One };
+	Vector3		emissiveFactor{ Vector3::Zero };
 
 	F32			alphaCutoff{ 0.0f };
 	U32			flags{ 0 };
+
+	//TODO: Transform component
+	Vector3		position{ Vector3::Zero };
+	Vector3		scale{ Vector3::One };
+	Quaternion3	rotation{ Quaternion3::Identity };
 };
 
 struct NH_API Transform

@@ -27,6 +27,7 @@ private:
 	static bool							GetFamilyQueue(VkPhysicalDevice gpu);
 	static bool							CreateDevice();
 	static bool							CreateResources();
+	static bool							CreateRenderPasses();
 
 	static void							BeginFrame();
 	static void							EndFrame();
@@ -50,7 +51,7 @@ private:
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
 		VkSampler vkDefaultSampler, U32& numResources, void** resources, Sampler** samplers, U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
-	static RenderTarget					CreateRenderTarget(U16 width, U16 height, VkFormat format, bool depth);
+	static RenderTarget					CreateRenderTarget(RenderTargetCreation& creation);
 	static void							RecreateRenderTarget(RenderTarget& target, U16 width, U16 height);
 
 	static bool							CreateSampler(Sampler* sampler);
@@ -122,6 +123,7 @@ private:
 	static RenderPassOutput						swapchainOutput;
 	static RenderPass*							offscreenPass;
 	static RenderPass*							filterPass;
+	static Program*								mainProgram;
 	static U32									imageIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;

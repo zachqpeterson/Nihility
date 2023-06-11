@@ -166,10 +166,10 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!SelectGPU()) { return false; }
 	if (!CreateDevice()) { return false; }
 	if (!CreateResources()) { return false; }
+	if (!CreateRenderPasses()) { return false; }
 	if (!swapchain.GetFormat()) { return false; }
 	if (!swapchain.Create()) { return false; }
 	if (!swapchain.CreateRenderPass()) { return false; }
-	//TODO: Create Post Process Passes
 
 	return true;
 }
@@ -190,7 +190,7 @@ void Renderer::Shutdown()
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
 
-	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
+	MapBufferParameters cbMap{ dynamicBuffer, 0, 0 };
 	UnmapBuffer(cbMap);
 
 	Resources::Shutdown();
@@ -455,7 +455,7 @@ bool Renderer::CreateResources()
 		storageImageBinding.stageFlags = VK_SHADER_STAGE_ALL;
 		storageImageBinding.pImmutableSamplers = nullptr;
 
-		VkDescriptorSetLayoutCreateInfo layoutInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		layoutInfo.bindingCount = poolCount;
 		layoutInfo.pBindings = vkBinding;
 		layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
@@ -538,8 +538,68 @@ bool Renderer::CreateResources()
 		SetName("Dynamic_Persistent_Buffer");
 	dynamicBuffer = Resources::CreateBuffer(bc);
 
-	MapBufferParameters cbMap = { dynamicBuffer, 0, 0 };
+	MapBufferParameters cbMap{ dynamicBuffer, 0, 0 };
 	dynamicMappedMemory = (U8*)MapBuffer(cbMap);
+
+	return true;
+}
+
+bool Renderer::CreateRenderPasses()
+{
+	//TODO: Use Program
+
+	SamplerCreation samplerInfo{};
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.mipFilter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.name = "RenderPassSampler";
+
+	Sampler* renderpassSampler = Resources::CreateSampler(samplerInfo);
+
+	RenderTargetCreation rtInfo{};
+	rtInfo.name = "OffscreenAlbedo";
+	rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	rtInfo.width = Settings::WindowWidth();
+	rtInfo.height = Settings::WindowWidth();
+	RenderTarget offscreenAlbedo = Renderer::CreateRenderTarget(rtInfo);
+
+	rtInfo.name = "OffscreenHighlights";
+	RenderTarget offscreenHighlights = Renderer::CreateRenderTarget(rtInfo);
+
+	rtInfo.name = "OffscreenDepth";
+	rtInfo.format = VK_FORMAT_D32_SFLOAT;
+	rtInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	RenderTarget offscreenDepth = Renderer::CreateRenderTarget(rtInfo);
+
+	RenderPassCreation renderPassInfo{};
+	renderPassInfo.SetType(RENDER_PASS_TYPE_GEOMETRY).SetName("OffscreenPass");
+	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
+	renderPassInfo.width = Settings::WindowWidth();
+	renderPassInfo.height = Settings::WindowWidth();
+	renderPassInfo.AddRenderTarget(offscreenAlbedo);
+	renderPassInfo.AddRenderTarget(offscreenHighlights);
+	renderPassInfo.SetDepthStencilTexture(offscreenDepth);
+	renderPassInfo.sampler = renderpassSampler;
+
+	offscreenPass = Resources::CreateRenderPass(renderPassInfo);
+
+	rtInfo.name = "FilterColor";
+	rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	RenderTarget filterColor = Renderer::CreateRenderTarget(rtInfo);
+
+	renderPassInfo.Reset().SetType(RENDER_PASS_TYPE_GEOMETRY).SetName("FilterPass");
+	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
+	renderPassInfo.width = Settings::WindowWidth();
+	renderPassInfo.height = Settings::WindowWidth();
+	renderPassInfo.AddRenderTarget(filterColor);
+	renderPassInfo.sampler = renderpassSampler;
+
+	filterPass = Resources::CreateRenderPass(renderPassInfo);
 
 	return true;
 }
@@ -572,16 +632,16 @@ void Renderer::BeginFrame()
 	}
 
 	GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true);
+
+
+	//Passes
 }
 
 void Renderer::EndFrame()
 {
-	CommandBuffer* cb = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
-
 	Profiler::Update();
 
-	//TODO: temp
-	QueueCommandBuffer(cb);
+	QueueCommandBuffer(GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false));
 
 	VkResult result = swapchain.NextImage(imageIndex, imageAcquired);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -655,12 +715,11 @@ void Renderer::EndFrame()
 		if (currentWriteIndex) { vkUpdateDescriptorSets(device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); }
 	}
 
-	VkSemaphore waitSemaphores[]{ imageAcquired };
 	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitSemaphores = &imageAcquired;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = queuedCommandBufferCount;
 	submitInfo.pCommandBuffers = enqueuedCommandBuffers;
@@ -770,7 +829,7 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 {
 	if (!debugUtilsExtensionPresent) { return; }
 
-	VkDebugUtilsObjectNameInfoEXT nameInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+	VkDebugUtilsObjectNameInfoEXT nameInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 	nameInfo.objectType = type;
 	nameInfo.objectHandle = handle;
 	nameInfo.pObjectName = name;
@@ -779,7 +838,7 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 
 void Renderer::PushMarker(VkCommandBuffer commandBuffer, CSTR name)
 {
-	VkDebugUtilsLabelEXT label = { VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+	VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
 	label.pLabelName = name;
 	label.color[0] = 1.0f;
 	label.color[1] = 1.0f;
@@ -981,7 +1040,7 @@ void Renderer::FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetL
 //TODO: Cache compiled shaders
 VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name)
 {
-	VkShaderModuleCreateInfo shaderCreateInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+	VkShaderModuleCreateInfo shaderCreateInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 
 	// TODO: detect if input is HLSL
 
@@ -1030,62 +1089,63 @@ VkShaderModuleCreateInfo Renderer::CompileShader(CSTR path, VkShaderStageFlagBit
 	return shaderCreateInfo;
 }
 
-RenderTarget Renderer::CreateRenderTarget(U16 width, U16 height, VkFormat format, bool depth)
+RenderTarget Renderer::CreateRenderTarget(RenderTargetCreation& creation)
 {
 	RenderTarget target{};
-	target.depth = depth;
-	target.format = format;
+	target.format = creation.format;
+	target.usage = creation.usage;
 
-	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	imageInfo.format = format;
-	imageInfo.flags = 0;
+	VkImageAspectFlags aspectMask = 0;
+	VkImageLayout imageLayout;
+
+	if (creation.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+	{
+		aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	}
+	else if (creation.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+	{
+		aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; //TODO: Add stencil depending on format
+		imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	}
+
+	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = width;
-	imageInfo.extent.height = height;
+	imageInfo.format = creation.format;
+	imageInfo.flags = 0;
+	imageInfo.extent.width = creation.width;
+	imageInfo.extent.height = creation.height;
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-
-	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-	if (depth)
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	}
-	else
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	}
-
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	imageInfo.usage = creation.usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
 	VmaAllocationInfo allocInfo{};
-	allocInfo.pName = "texture";
 	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &target.image, &target.allocation, &allocInfo));
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)target.image, "RenderTarget");
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)target.image, creation.name);
 
-	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	info.image = target.image;
-	info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	info.format = format;
+	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.image = target.image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = creation.format;
+	viewInfo.subresourceRange.aspectMask = aspectMask;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
 
-	if (depth) { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; }
-	else { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; }
+	VkValidate(vkCreateImageView(device, &viewInfo, allocationCallbacks, &target.imageView));
 
-	info.subresourceRange.levelCount = 1;
-	info.subresourceRange.layerCount = 1;
-	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &target.imageView));
-
-	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)target.imageView, "RenderTargetView");
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)target.imageView, creation.name);
 
 	return target;
 }
@@ -1094,10 +1154,24 @@ void Renderer::RecreateRenderTarget(RenderTarget& target, U16 width, U16 height)
 {
 	DestroyRenderTarget(target);
 
-	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	VkImageAspectFlags aspectMask = 0;
+	VkImageLayout imageLayout;
+
+	if (target.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+	{
+		aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	}
+	else if (target.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+	{
+		aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; //TODO: Add stencil depending on format
+		imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	}
+
+	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.format = target.format;
 	imageInfo.flags = 0;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.extent.width = width;
 	imageInfo.extent.height = height;
 	imageInfo.extent.depth = 1;
@@ -1105,43 +1179,30 @@ void Renderer::RecreateRenderTarget(RenderTarget& target, U16 width, U16 height)
 	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-
-	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-	if (target.depth)
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	}
-	else
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	}
-
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	imageInfo.usage = target.usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
 	VmaAllocationInfo allocInfo{};
-	allocInfo.pName = "texture";
 	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &target.image, &target.allocation, &allocInfo));
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)target.image, "RenderTarget");
 
-	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	info.image = target.image;
-	info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	info.format = target.format;
+	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.image = target.image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = target.format;
+	viewInfo.subresourceRange.aspectMask = aspectMask;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
 
-	if (target.depth) { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; }
-	else { info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; }
-
-	info.subresourceRange.levelCount = 1;
-	info.subresourceRange.layerCount = 1;
-	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &target.imageView));
+	VkValidate(vkCreateImageView(device, &viewInfo, allocationCallbacks, &target.imageView));
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)target.imageView, "RenderTargetView");
 }
@@ -1158,15 +1219,13 @@ bool Renderer::CreateSampler(Sampler* sampler)
 	createInfo.anisotropyEnable = 0;
 	createInfo.compareEnable = 0;
 	createInfo.unnormalizedCoordinates = 0;
-	createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+	createInfo.borderColor = sampler->border;
 	// TODO:
-	/*float                   mipLodBias;
-	float                   maxAnisotropy;
-	VkCompareOp             compareOp;
-	float                   minLod;
-	float                   maxLod;
-	VkBorderColor           borderColor;
-	VkBool32                unnormalizedCoordinates;*/
+	//float                   mipLodBias;
+	//float                   maxAnisotropy;
+	//float                   minLod;
+	//float                   maxLod;
+	//VkCompareOp             compareOp;
 
 	vkCreateSampler(device, &createInfo, allocationCallbacks, &sampler->sampler);
 
@@ -1177,7 +1236,7 @@ bool Renderer::CreateSampler(Sampler* sampler)
 
 bool Renderer::CreateTexture(Texture* texture, void* data)
 {
-	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.format = texture->format;
 	imageInfo.flags = 0;
 	imageInfo.imageType = ToVkImageType(texture->type);
@@ -1219,7 +1278,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
 
-	VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	VkImageViewCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	info.image = texture->image;
 	info.viewType = ToVkImageViewType(texture->type);
 	info.format = imageInfo.format;
@@ -1341,7 +1400,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		vkEndCommandBuffer(commandBuffer->commandBuffer);
 
 		// Submit command buffer
-		VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
 
@@ -1425,11 +1484,11 @@ bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayou
 	}
 
 	// Create the descriptor set layout
-	VkDescriptorSetLayoutCreateInfo layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layout_info.bindingCount = usedBindings;
-	layout_info.pBindings = descriptorSetLayout->binding;
+	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layoutInfo.bindingCount = usedBindings;
+	layoutInfo.pBindings = descriptorSetLayout->binding;
 
-	vkCreateDescriptorSetLayout(device, &layout_info, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
+	vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
 
 	return true;
 }
@@ -1535,7 +1594,7 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 			attachments[attachmentCount].stencilLoadOp = stencilOp;
 			attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachments[attachmentCount].initialLayout = colorInitial;
-			attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			colorAttachments[attachmentCount].attachment = attachmentCount;
 			colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1562,10 +1621,10 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 		depthAttachment.attachment = attachmentCount;
 		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		subpass.pDepthStencilAttachment = &depthAttachment;
+
 		++attachmentCount;
 	}
-
-	subpass.pDepthStencilAttachment = &depthAttachment;
 
 	VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
 	renderPassInfo.attachmentCount = attachmentCount;
@@ -1573,9 +1632,51 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 
-	//TODO: Create external subpass dependencies
-	//VkSubpassDependency externalDependencies[16];
-	//U32 externalDependencyCount = 0;
+	//TODO: This is hardcoded
+	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	{
+		VkSubpassDependency dependencies[2]{};
+
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+
+		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].dstSubpass = 0;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].srcAccessMask = 0;
+		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+		renderPassInfo.dependencyCount = 2;
+		renderPassInfo.pDependencies = dependencies;
+	}
+	else
+	{
+		VkSubpassDependency dependencies[2]{};
+
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		renderPassInfo.dependencyCount = 2;
+		renderPassInfo.pDependencies = dependencies;
+	}
 
 	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderPass->renderPass));
 
@@ -1671,7 +1772,7 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 		// Gives priority to compute: if any is present (and it should not be) then it is not a graphics pipeline.
 		if (stage.type == VK_SHADER_STAGE_COMPUTE_BIT) { shaderState->graphicsPipeline = false; }
 
-		VkShaderModuleCreateInfo shaderInfo = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+		VkShaderModuleCreateInfo shaderInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 
 		shaderInfo = CompileShader(stage.name, stage.type, info.name);
 
@@ -1759,7 +1860,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 		bindlessActive = 1;
 	}
 
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.pSetLayouts = vkLayouts;
 	pipelineLayoutInfo.setLayoutCount = pipeline->activeLayoutCount + bindlessActive;
 	pipelineLayoutInfo.flags = 0;
@@ -1775,15 +1876,15 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 
 	if (pipeline->shaderState->graphicsPipeline)
 	{
-		VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
 		pipelineInfo.pStages = pipeline->shaderState->shaderStageInfos;
 		pipelineInfo.stageCount = pipeline->shaderState->activeShaders;
 		pipelineInfo.layout = pipelineLayout;
 
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 
-		VkVertexInputAttributeDescription vertexAttributes[8];
+		VkVertexInputAttributeDescription vertexAttributes[8]{};
 		if (pipeline->shaderState->vertexAttributeCount)
 		{
 			for (U32 i = 0; i < pipeline->shaderState->vertexAttributeCount; ++i)
@@ -1801,7 +1902,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 			vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 		}
 
-		VkVertexInputBindingDescription vertexBindings[8];
+		VkVertexInputBindingDescription vertexBindings[8]{};
 		if (pipeline->shaderState->vertexStreamCount)
 		{
 			vertexInputInfo.vertexBindingDescriptionCount = pipeline->shaderState->vertexStreamCount;
@@ -1823,6 +1924,8 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+		inputAssembly.pNext = nullptr;
+		inputAssembly.flags = 0;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
@@ -1936,7 +2039,7 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 
 		pipelineInfo.renderPass = renderPass->renderPass;
 
-		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkDynamicState dynamicStates[]{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
 		dynamicState.pDynamicStates = dynamicStates;

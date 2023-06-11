@@ -8,7 +8,7 @@ Scene::~Scene() { Destroy(); }
 void Scene::Destroy()
 {
 	name.Destroy();
-	meshDraws.Destroy();
+	meshes.Destroy();
 	buffers.Destroy();
 	textures.Destroy();
 	samplers.Destroy();
@@ -42,7 +42,7 @@ void Scene::Update()
 		Renderer::UnmapBuffer(cbMap);
 	}
 
-	for (MeshDraw& draw : meshDraws)
+	for (Mesh& draw : meshes)
 	{
 		cbMap.buffer = draw.materialBuffer;
 		MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
@@ -64,11 +64,11 @@ void Scene::Update()
 
 	Material* lastMaterial = nullptr;
 	//TODO: Loop by material so that we can deal with multiple passes
-	for (MeshDraw& draw : meshDraws)
+	for (Mesh& draw : meshes)
 	{
 		if (draw.material != lastMaterial)
 		{
-			Pipeline* pipeline = draw.material->program->passes[0].pipeline;
+			Pipeline* pipeline = draw.material->program->prePasses[0];
 
 			commands->BindPipeline(pipeline);
 			lastMaterial = draw.material;
@@ -78,7 +78,7 @@ void Scene::Update()
 	}
 }
 
-void Scene::UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw)
+void Scene::UploadMaterial(MeshData& meshData, const Mesh& meshDraw)
 {
 	meshData.textures[0] = meshDraw.diffuseTextureIndex;
 	meshData.textures[1] = meshDraw.metalRoughOcclTextureIndex;
@@ -95,11 +95,11 @@ void Scene::UploadMaterial(MeshData& meshData, const MeshDraw& meshDraw)
 	meshData.modelInv = model.Transposed().Inversed();
 }
 
-void Scene::DrawMesh(CommandBuffer* commands, MeshDraw& meshDraw)
+void Scene::DrawMesh(CommandBuffer* commands, Mesh& meshDraw)
 {
 	DescriptorSetCreation dsCreation{};
 	dsCreation.SetBuffer(constantBuffer, 0).SetBuffer(meshDraw.materialBuffer, 1);
-	dsCreation.SetLayout(meshDraw.material->program->passes[0].descriptorSetLayout);
+	dsCreation.SetLayout(meshDraw.material->program->prePasses[0]->descriptorSetLayouts[0]);
 	DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
 
 	commands->BindVertexBuffer(meshDraw.positionBuffer, 0);

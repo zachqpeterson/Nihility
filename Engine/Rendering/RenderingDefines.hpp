@@ -262,6 +262,7 @@ struct Texture;
 
 static constexpr U8	MAX_IMAGE_OUTPUTS = 8;			// Maximum number of images/render targets/fbo attachments usable
 static constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;	// Maximum number of layouts in the pipeline
+static constexpr U8	MAX_PROGRAM_PASSES = 8;			// Maximum number of passes in a program pass group
 static constexpr U8	MAX_SHADER_STAGES = 5;			// Maximum simultaneous shader stages, applicable to all different type of pipelines
 static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;	// Maximum list elements for both descriptor set layout and descriptor sets
 static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;		// Maximum images a swapchain can support
@@ -832,8 +833,7 @@ struct VertexStream
 	VertexInputRate	inputRate = VERTEX_INPUT_RATE_COUNT;
 };
 
-//TODO: Temporary export
-struct NH_API DepthStencilCreation
+struct DepthStencilCreation
 {
 	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
 
@@ -843,10 +843,9 @@ struct NH_API DepthStencilCreation
 	StencilOperationState	back;
 	VkCompareOp				depthComparison = VK_COMPARE_OP_ALWAYS;
 
-	U8						depthEnable : 1;
-	U8						depthWriteEnable : 1;
-	U8						stencilEnable : 1;
-	U8						pad : 5;
+	bool					depthEnable;
+	bool					depthWriteEnable;
+	bool					stencilEnable;
 };
 
 struct NH_API BlendState
@@ -867,9 +866,8 @@ struct NH_API BlendState
 
 	ColorWriteEnableMask	colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
 
-	U8						blendEnabled : 1;
-	U8						separateBlend : 1;
-	U8						pad : 6;
+	bool					blendEnabled;
+	bool					separateBlend;
 };
 
 struct NH_API BlendStateCreation

@@ -12,6 +12,7 @@ for each sampler:						//If there are no samplers, all texture will use the defa
 	address mode u (enum I32)
 	address mode v (enum I32)
 	address mode w (enum I32)
+	border color (enum I32)
 for each texture:
 	texture uri (null terminated string)
 	sampler index (U32)
