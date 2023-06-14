@@ -65,6 +65,7 @@ public:
 
 private:
 	static bool Initialize();
+	static void CreateDefaults();
 	static void Shutdown();
 
 	static void Update();

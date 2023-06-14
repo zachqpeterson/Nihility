@@ -260,15 +260,18 @@ struct Texture;
 
 /*---------CONSTANTS---------*/
 
-static constexpr U8	MAX_IMAGE_OUTPUTS = 8;			// Maximum number of images/render targets/fbo attachments usable
-static constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;	// Maximum number of layouts in the pipeline
-static constexpr U8	MAX_PROGRAM_PASSES = 8;			// Maximum number of passes in a program pass group
-static constexpr U8	MAX_SHADER_STAGES = 5;			// Maximum simultaneous shader stages, applicable to all different type of pipelines
-static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;	// Maximum list elements for both descriptor set layout and descriptor sets
-static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;		// Maximum images a swapchain can support
-static constexpr U8	MAX_SET_COUNT = 32;				// Maximum descriptor sets a shader can have
-static constexpr U8	MAX_VERTEX_STREAMS = 16;		// Maximum vertex streams a shader can have
-static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;		// Maximum vertex attributes a shader can have
+static constexpr U8	MAX_IMAGE_OUTPUTS = 8;				// Maximum number of images/render targets/fbo attachments usable
+static constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;		// Maximum number of layouts in the pipeline
+static constexpr U8	MAX_PROGRAM_PASSES = 8;				// Maximum number of passes in a program pass group
+static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader stages, applicable to all different type of pipelines
+static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;		// Maximum list elements for both descriptor set layout and descriptor sets
+static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;			// Maximum images a swapchain can support
+static constexpr U8	MAX_VIEWPORTS = 8;					// Maximum viewports a renderpass can have
+static constexpr U8	MAX_SCISSORS = 8;					// Maximum scissors a renderpass can have
+static constexpr U8	MAX_SET_COUNT = 32;					// Maximum descriptor sets a shader can have
+static constexpr U8	MAX_VERTEX_STREAMS = 16;			// Maximum vertex streams a shader can have
+static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;			// Maximum vertex attributes a shader can have
+static constexpr U8 MAX_SPECIALIZATION_CONSTANTS = 8;	// Maximum specialization contants a shader can have
 
 /*---------ENUMS---------*/
 
@@ -792,29 +795,21 @@ struct Rect2DInt
 
 struct Viewport
 {
-	Rect2DInt	rect;
-	F32			minDepth = 0.0f;
-	F32			maxDepth = 0.0f;
-};
-
-struct ViewportState
-{
-	U32			numViewports = 0;
-	U32			numScissors = 0;
-
-	Viewport* viewport = nullptr;
-	Rect2DInt* scissors = nullptr;
+	VkViewport	viewports[MAX_VIEWPORTS];
+	VkRect2D	scissors[MAX_SCISSORS];
+	U8			viewportCount{ 0 };
+	U8			scissorCount{ 0 };
 };
 
 struct StencilOperationState
 {
-	VkStencilOp	fail = VK_STENCIL_OP_KEEP;
-	VkStencilOp	pass = VK_STENCIL_OP_KEEP;
-	VkStencilOp	depthFail = VK_STENCIL_OP_KEEP;
-	VkCompareOp	compare = VK_COMPARE_OP_ALWAYS;
-	U32			compareMask = 0xff;
-	U32			writeMask = 0xff;
-	U32			reference = 0xff;
+	VkStencilOp	fail{ VK_STENCIL_OP_KEEP };
+	VkStencilOp	pass{ VK_STENCIL_OP_KEEP };
+	VkStencilOp	depthFail{ VK_STENCIL_OP_KEEP };
+	VkCompareOp	compare{ VK_COMPARE_OP_ALWAYS };
+	U32			compareMask{ 0xff };
+	U32			writeMask{ 0xff };
+	U32			reference{ 0xff };
 };
 
 struct VertexAttribute
@@ -828,62 +823,50 @@ struct VertexAttribute
 
 struct VertexStream
 {
-	U16				binding = 0;
-	U16				stride = 0;
-	VertexInputRate	inputRate = VERTEX_INPUT_RATE_COUNT;
+	U16				binding{ 0 };
+	U16				stride{ 0 };
+	VertexInputRate	inputRate{ VERTEX_INPUT_RATE_COUNT };
 };
 
-struct DepthStencilCreation
+struct DepthStencil
 {
-	DepthStencilCreation() : depthEnable{ 0 }, depthWriteEnable{ 0 }, stencilEnable{ 0 } {}
+	DepthStencil& SetDepth(bool write, VkCompareOp comparisonTest);
 
-	DepthStencilCreation& SetDepth(bool write, VkCompareOp comparisonTest);
+	StencilOperationState	front{};
+	StencilOperationState	back{};
+	VkCompareOp				depthComparison{ VK_COMPARE_OP_ALWAYS };
 
-	StencilOperationState	front;
-	StencilOperationState	back;
-	VkCompareOp				depthComparison = VK_COMPARE_OP_ALWAYS;
-
-	bool					depthEnable;
-	bool					depthWriteEnable;
-	bool					stencilEnable;
+	bool					depthEnable{ false };
+	bool					depthWriteEnable{ false };
+	bool					stencilEnable{ false };
 };
 
-struct NH_API BlendState
+struct BlendState
 {
-	BlendState() : blendEnabled{ 0 }, separateBlend{ 0 } {}
-
+	BlendState& Reset();
 	BlendState& SetColor(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
 	BlendState& SetAlpha(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
 	BlendState& SetColorWriteMask(ColorWriteEnableMask value);
 
-	VkBlendFactor			sourceColor = VK_BLEND_FACTOR_ONE;
-	VkBlendFactor			destinationColor = VK_BLEND_FACTOR_ONE;
-	VkBlendOp				colorOperation = VK_BLEND_OP_ADD;
+	VkBlendFactor			sourceColor{ VK_BLEND_FACTOR_ONE };
+	VkBlendFactor			destinationColor{ VK_BLEND_FACTOR_ONE };
+	VkBlendOp				colorOperation{ VK_BLEND_OP_ADD };
 
-	VkBlendFactor			sourceAlpha = VK_BLEND_FACTOR_ONE;
-	VkBlendFactor			destinationAlpha = VK_BLEND_FACTOR_ONE;
-	VkBlendOp				alphaOperation = VK_BLEND_OP_ADD;
+	VkBlendFactor			sourceAlpha{ VK_BLEND_FACTOR_ONE };
+	VkBlendFactor			destinationAlpha{ VK_BLEND_FACTOR_ONE };
+	VkBlendOp				alphaOperation{ VK_BLEND_OP_ADD };
 
-	ColorWriteEnableMask	colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
+	ColorWriteEnableMask	colorWriteMask{ COLOR_WRITE_ENABLE_ALL_MASK };
 
-	bool					blendEnabled;
-	bool					separateBlend;
+	bool					blendEnabled{ false };
+	bool					separateBlend{ false };
 };
 
-struct NH_API BlendStateCreation
+struct Rasterization
 {
-	BlendStateCreation& Reset();
-	BlendState& AddBlendState();
-
-	BlendState			blendStates[MAX_IMAGE_OUTPUTS];
-	U32					activeStates = 0;
-};
-
-struct RasterizationCreation
-{
-	VkCullModeFlagBits	cullMode = VK_CULL_MODE_NONE;
-	VkFrontFace			front = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	FillMode			fill = FILL_MODE_SOLID;
+	VkCullModeFlagBits	cullMode{ VK_CULL_MODE_NONE };
+	VkFrontFace			front{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
+	FillMode			fill{ FILL_MODE_SOLID };
 };
 
 struct ShaderStage

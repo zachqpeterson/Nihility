@@ -103,23 +103,13 @@ bool Resources::Initialize()
 	dummyAttributeBufferInfo.SetData(dummyData);
 	dummyAttributeBuffer = Resources::CreateBuffer(dummyAttributeBufferInfo);
 
-	SamplerCreation defaultSamplerInfo{};
-	defaultSamplerInfo.SetName("default_sampler");
-	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
-	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
-
-	RasterizationCreation rasterization{};
-	rasterization.cullMode = VK_CULL_MODE_NONE;
-	rasterization.front = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	rasterization.fill = FILL_MODE_SOLID;
-
 	PipelineCreation pipelineCreation{};
-	pipelineCreation.renderPass = Renderer::swapchain.renderPass;
+	pipelineCreation.renderPass = Renderer::offscreenPass;
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
-	pipelineCreation.blendState.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
+	pipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
+	pipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	pipelineCreation.rasterization = rasterization;
+	pipelineCreation.rasterization = {};
 	pipelineCreation.name = "shaders/PBR_no_cull";
 
 	ProgramCreation programCreation{};
@@ -147,6 +137,15 @@ bool Resources::Initialize()
 	materialCullTransparent = Resources::CreateMaterial(materialCreation);
 
 	return true;
+}
+
+void Resources::CreateDefaults()
+{
+	SamplerCreation defaultSamplerInfo{};
+	defaultSamplerInfo.SetName("default_sampler");
+	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
+	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
 }
 
 void Resources::Shutdown()
@@ -865,12 +864,6 @@ DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 	descriptorSet->layout = info.layout;
 	descriptorSet->handle = descriptorSets.GetHandle(info.name);
 
-	U8* memory;
-	Memory::AllocateSize(&memory, (sizeof(void*) + sizeof(Sampler*) + sizeof(U16)) * info.resourceCount);
-	descriptorSet->resources = (void**)memory;
-	descriptorSet->samplers = (Sampler**)(memory + sizeof(void*) * info.resourceCount);
-	descriptorSet->bindings = (U16*)(memory + (sizeof(void*) + sizeof(Sampler*)) * info.resourceCount);
-
 	for (U32 i = 0; i < info.resourceCount; ++i)
 	{
 		descriptorSet->resources[i] = info.resources[i];
@@ -921,7 +914,7 @@ RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	renderPass->renderPass = nullptr;
 	renderPass->renderTargetCount = (U8)info.renderTargetCount;
 	renderPass->outputDepth = info.depthStencilTexture;
-	renderPass->sampler = info.sampler;
+	renderPass->sampler = info.sampler ? info.sampler : defaultSampler;
 	renderPass->handle = renderPasses.GetHandle(info.name);
 	renderPass->output.colorOperation = info.colorOperation;
 	renderPass->output.depthOperation = info.depthOperation;
@@ -949,10 +942,15 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	pipeline->name = info.name;
 	pipeline->shaderState = CreateShaderState(info.shaders);
 	pipeline->depthStencil = info.depthStencil;
-	pipeline->blendState = info.blendState;
 	pipeline->rasterization = info.rasterization;
 	pipeline->graphicsPipeline = true;
 	pipeline->handle = pipelines.GetHandle(info.name);
+	pipeline->blendStateCount = info.blendStateCount;
+	pipeline->renderPass = info.renderPass;
+
+	for (U8 i = 0; i < info.specializationCount; ++i) { pipeline->shaderState->SetSpecializationData(info.specializationData[i]); }
+
+	for (U8 i = 0; i < info.blendStateCount; ++i) { pipeline->blendStates[i] = info.blendStates[i]; }
 
 	String cachePath("{}.cache", info.name);
 
@@ -1666,10 +1664,10 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 	while ((op = (SpvOp)(data[wordIndex] & 0xFF)) != SpvOpEntryPoint) { wordIndex += (data[wordIndex] >> 16); } //Skip to entry point
 
 	//TODO: There could be multiple entry points/excecution modes
-	stage = (SpvExecutionModel)data[wordIndex + 1];	//Shader type
-	shaderState->entry = (C8*)(data + (wordIndex + 3));			//Entry point name
+	stage = (SpvExecutionModel)data[wordIndex + 1];		//Shader type
+	shaderState->entry = (C8*)(data + (wordIndex + 3)); //Entry point name
 	wordIndex += (U16)(data[wordIndex] >> 16);
-	wordIndex += (U16)(data[wordIndex] >> 16); //Skip excecution mode
+	wordIndex += (U16)(data[wordIndex] >> 16);			//Skip excecution mode
 
 	while (wordIndex < spvWordCount)
 	{
@@ -1679,12 +1677,14 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 		switch (op)
 		{
 		case SpvOpDecorate: {
+			U32 i = data[wordIndex + 1];
 			Id& id = ids[data[wordIndex + 1]];
 
 			SpvDecoration decoration = (SpvDecoration)data[wordIndex + 2];
 
 			switch (decoration)
 			{
+			case SpvDecorationSpecId: { id.location = data[wordIndex + 2]; } break;
 			case SpvDecorationBinding: { id.binding = data[wordIndex + 3]; } break;
 			case SpvDecorationDescriptorSet: { id.set = data[wordIndex + 3]; } break;
 			case SpvDecorationLocation: { id.location = data[wordIndex + 3]; } break;
@@ -1782,9 +1782,19 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 		} break;
 		case SpvOpConstant: {
 			Id& id = ids[data[wordIndex + 1]];
+			if (id.op != SpvOpSpecConstant)
+			{
+				id.op = op;
+				id.typeIndex = data[wordIndex + 2];
+				id.value = data[wordIndex + 3]; //Assume all constants to have maximum 32bit width
+			}
+		} break;
+		case SpvOpSpecConstant: {
+			U32 i = data[wordIndex + 1];
+			Id& id = ids[data[wordIndex + 1]];
 			id.op = op;
 			id.typeIndex = data[wordIndex + 2];
-			id.value = data[wordIndex + 3]; //Assume all constants to have maximum 32bit width
+			id.value = data[wordIndex + 3];
 		} break;
 		case SpvOpVariable: {
 			Id& id = ids[data[wordIndex + 2]];
@@ -1857,18 +1867,53 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 						if (attribute.format == SCALAR_TYPE_DOUBLE) { stream.stride = 8 * type.count; }
 						else { stream.stride = 4 * type.count; }
 					} break;
-					case SpvOpConstant: {
-						//TODO:
-					} break;
 					}
 
-					++shaderState->vertexAttributeCount;
-					++shaderState->vertexStreamCount;
-					shaderState->vertexAttributes[id.location] = attribute;
-					shaderState->vertexStreams[id.location] = stream;
+					if (type.op != SpvOpConstant)
+					{
+						++shaderState->vertexAttributeCount;
+						++shaderState->vertexStreamCount;
+						shaderState->vertexAttributes[id.location] = attribute;
+						shaderState->vertexStreams[id.location] = stream;
+					}
 				}
 			} break;
 			}
+		}
+		else if (id.op == SpvOpSpecConstant)
+		{
+			Id& type = ids[id.typeIndex];
+
+			U8 stageIndex;
+			switch (stage)
+			{
+			case SpvExecutionModelVertex: { stageIndex = 0; } break;
+			case SpvExecutionModelGeometry: { stageIndex = 1; } break;
+			case SpvExecutionModelFragment: { stageIndex = 2; } break;
+			case SpvExecutionModelKernel: { stageIndex = 3; } break;
+			}
+
+			SpecializationInfo& specialization = shaderState->specializationInfos[stageIndex];
+
+			if (specialization.specializationBuffer == nullptr)
+			{
+				Memory::AllocateSize(&specialization.specializationBuffer, 1u);
+				specialization.specializationInfo.pData = specialization.specializationBuffer;
+				specialization.specializationInfo.pMapEntries = specialization.specializationData;
+			}
+
+			specialization.specializationData[id.location].constantID = id.location;
+			specialization.specializationData[id.location].size = id.width / 8;
+
+			if (id.location > 0)
+			{
+				specialization.specializationData[id.location].offset = (U32)(specialization.specializationData[id.location - 1].offset + specialization.specializationData[id.location - 1].size);
+			}
+
+			specialization.specializationInfo.dataSize += specialization.specializationData[id.location].size;
+			Memory::Copy(specialization.specializationBuffer + specialization.specializationData[id.location].offset, &id.value, specialization.specializationData[id.location].size);
+
+			++specialization.specializationInfo.mapEntryCount;
 		}
 
 		id.members.Destroy();

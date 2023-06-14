@@ -27,7 +27,7 @@ private:
 	static bool							GetFamilyQueue(VkPhysicalDevice gpu);
 	static bool							CreateDevice();
 	static bool							CreateResources();
-	static bool							CreateRenderPasses();
+	static bool							CreatePostProcessing();
 
 	static void							BeginFrame();
 	static void							EndFrame();
@@ -49,7 +49,7 @@ private:
 		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
 	static void							FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
 		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-		VkSampler vkDefaultSampler, U32& numResources, void** resources, Sampler** samplers, U16* bindings);
+		VkSampler vkDefaultSampler, U32& numResources, DescriptorSetResource* resources, Sampler** samplers, U16* bindings);
 	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
 	static RenderTarget					CreateRenderTarget(RenderTargetCreation& creation);
 	static void							RecreateRenderTarget(RenderTarget& target, U16 width, U16 height);
@@ -123,7 +123,7 @@ private:
 	static RenderPassOutput						swapchainOutput;
 	static RenderPass*							offscreenPass;
 	static RenderPass*							filterPass;
-	static Program*								mainProgram;
+	static Program*								postProcessing;
 	static U32									imageIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;
@@ -170,4 +170,5 @@ private:
 	friend struct CommandBuffer;
 	friend struct Swapchain;
 	friend struct Scene; //TODO: temp
+	friend struct Program; //TODO: temp
 };

@@ -1,5 +1,8 @@
 #include "ResourceDefines.hpp"
 
+#include "Rendering\CommandBuffer.hpp"
+#include "Rendering\Renderer.hpp"
+
 // SAMPLER CREATION
 
 SamplerCreation& SamplerCreation::SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip)
@@ -176,26 +179,64 @@ DescriptorSetCreation& DescriptorSetCreation::SetLayout(DescriptorSetLayout* lay
 
 DescriptorSetCreation& DescriptorSetCreation::SetTexture(Texture* texture, U16 binding)
 {
-	//TODO: Set a default sampler
+	DescriptorSetResource resource{};
+	resource.imageInfo.image = texture->imageView;
+	resource.imageInfo.layout = texture->format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 	samplers[resourceCount] = nullptr;
 	bindings[resourceCount] = binding;
-	resources[resourceCount++] = texture;
+	resources[resourceCount++] = resource;
+	return *this;
+}
+
+DescriptorSetCreation& DescriptorSetCreation::SetTexture(RenderTarget& texture, U16 binding)
+{
+	DescriptorSetResource resource{};
+	resource.imageInfo.image = texture.imageView;
+	resource.imageInfo.layout = texture.format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	samplers[resourceCount] = nullptr;
+	bindings[resourceCount] = binding;
+	resources[resourceCount++] = resource;
 	return *this;
 }
 
 DescriptorSetCreation& DescriptorSetCreation::SetBuffer(Buffer* buffer, U16 binding)
 {
+	DescriptorSetResource resource{};
+	if (buffer->parentBuffer) { resource.bufferInfo.buffer = buffer->parentBuffer->buffer; }
+	else { resource.bufferInfo.buffer = buffer->buffer; }
+	resource.bufferInfo.size = buffer->size;
+	resource.bufferInfo.offset = (U32)buffer->globalOffset;
+	resource.bufferInfo.type = buffer->usage == RESOURCE_USAGE_DYNAMIC ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
 	samplers[resourceCount] = nullptr;
 	bindings[resourceCount] = binding;
-	resources[resourceCount++] = buffer;
+	resources[resourceCount++] = resource;
 	return *this;
 }
 
 DescriptorSetCreation& DescriptorSetCreation::SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding)
 {
+	DescriptorSetResource resource{};
+	resource.imageInfo.image = texture->imageView;
+	resource.imageInfo.layout = texture->format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 	samplers[resourceCount] = sampler;
 	bindings[resourceCount] = binding;
-	resources[resourceCount++] = texture;
+	resources[resourceCount++] = resource;
+	return *this;
+}
+
+DescriptorSetCreation& DescriptorSetCreation::SetTextureSampler(RenderTarget& texture, Sampler* sampler, U16 binding)
+{
+	DescriptorSetResource resource{};
+	resource.imageInfo.image = texture.imageView;
+	resource.imageInfo.layout = texture.format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	samplers[resourceCount] = sampler;
+	bindings[resourceCount] = binding;
+	resources[resourceCount++] = resource;
 	return *this;
 }
 
@@ -229,6 +270,14 @@ ShaderStateCreation& ShaderStateCreation::AddStage(CSTR name, VkShaderStageFlagB
 	++stagesCount;
 
 	return *this;
+}
+
+// SHADER STATE
+
+void ShaderState::SetSpecializationData(const SpecializationData& data)
+{
+	Memory::Copy(specializationInfos[data.stage].specializationBuffer + specializationInfos[data.stage].specializationData[data.index].offset,
+		data.data, specializationInfos[data.stage].specializationData[data.index].size);
 }
 
 // RENDER PASS OUTPUT
@@ -329,6 +378,27 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 	return *this;
 }
 
+// PIPELINE CREATION
+
+PipelineCreation& PipelineCreation::AddBlendState(const BlendState& blendState)
+{
+	blendStates[blendStateCount++] = blendState;
+
+	return *this;
+}
+
+BlendState& PipelineCreation::AddBlendState()
+{
+	return blendStates[blendStateCount++] = {};
+}
+
+PipelineCreation& PipelineCreation::AddSpecializationData(const SpecializationData& data)
+{
+	specializationData[specializationCount++] = data;
+
+	return *this;
+}
+
 // PROGRAM CREATION
 
 ProgramCreation& ProgramCreation::Reset()
@@ -419,4 +489,59 @@ ExecutionBarrier& ExecutionBarrier::AddMemoryBarrier(const BufferBarrier& buffer
 	bufferBarriers[bufferBarrierCount++] = bufferBarrier;
 
 	return *this;
+}
+
+// PROGRAM
+
+void Program::RunPrePasses()
+{
+
+}
+
+void Program::RunPostPasses(CommandBuffer* commands)
+{
+	RenderPass* renderPass = nullptr;
+
+	for (U8 i = 0; i < postPassCount; ++i)
+	{
+		Pipeline* pipeline = postPasses[i];
+
+		if (pipeline->renderPass != renderPass)
+		{
+			if(renderPass != nullptr) {} //TODO: End renderpass
+			
+			renderPass = pipeline->renderPass;
+			commands->BindPass(pipeline->renderPass);
+		}
+
+		DescriptorSetCreation dsCreation{};
+		dsCreation.SetLayout(pipeline->descriptorSetLayouts[0]);
+
+		U32 textureIndex = 0;
+
+		for (U32 i = 0; i < pipeline->descriptorSetLayouts[0]->bindingCount; ++i)
+		{
+			switch (pipeline->descriptorSetLayouts[0]->bindings[i].type)
+			{
+				//TODO: Indicate we want an output texture instead of some other texture
+			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
+				//TODO: Use previous renderpass
+				dsCreation.SetTextureSampler(Renderer::offscreenPass->outputTextures[textureIndex++], renderPass->sampler, i);
+			} break;
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+				//TODO:
+				BreakPoint;
+			} break;
+			}
+		}
+		
+		DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
+
+		commands->BindPipeline(pipeline);
+		commands->BindDescriptorSet(&descriptorSet, 1, nullptr, 0);
+
+		commands->Draw(TOPOLOGY_TYPE_TRIANGLE, 0, 3, 0, 1);
+	}
+
+	if (renderPass != nullptr) {} //TODO: End renderpass
 }

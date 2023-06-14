@@ -56,11 +56,8 @@ void Scene::Update()
 
 	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	commands->Clear(0.3f, 0.3f, 0.3f, 1.0f);
-	commands->ClearDepthStencil(1.0f, 0);
-	commands->BindPass(Renderer::swapchain.renderPass);
-	commands->SetScissor(nullptr);
-	commands->SetViewport(nullptr);
+	//TODO: Use program for this
+	commands->BindPass(Renderer::offscreenPass);
 
 	Material* lastMaterial = nullptr;
 	//TODO: Loop by material so that we can deal with multiple passes

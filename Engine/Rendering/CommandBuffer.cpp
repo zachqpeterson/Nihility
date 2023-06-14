@@ -59,16 +59,9 @@ DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
 
 	VkValidateF(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &set->descriptorSet));
 
-	// Cache data
-	U8* memory;
-	Memory::AllocateSize(&memory, (sizeof(void*) + sizeof(Sampler*) + sizeof(U16)) * info.resourceCount);
-	set->resources = (void**)memory;
-	set->samplers = (Sampler**)(memory + sizeof(void*) * info.resourceCount);
-	set->bindings = (U16*)(memory + (sizeof(void*) + sizeof(Sampler*)) * info.resourceCount);
 	set->resourceCount = info.resourceCount;
 	set->layout = info.layout;
 
-	// Update descriptor set
 	VkWriteDescriptorSet descriptorWrite[8];
 	VkDescriptorBufferInfo bufferInfo[8];
 	VkDescriptorImageInfo imageInfo[8];
@@ -77,7 +70,6 @@ DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
 	Renderer::FillWriteDescriptorSets(info.layout, set->descriptorSet, descriptorWrite, bufferInfo, imageInfo, Resources::AccessDefaultSampler()->sampler,
 		resourceCount, info.resources, info.samplers, info.bindings);
 
-	// Cache resources
 	for (U32 r = 0; r < resourceCount; ++r)
 	{
 		set->resources[r] = info.resources[r];
@@ -108,12 +100,15 @@ void CommandBuffer::BindPass(RenderPass* renderPass)
 			renderPassBegin.renderArea.offset = { 0, 0 };
 			renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
 
-			renderPassBegin.clearValueCount = 2;
-			renderPassBegin.pClearValues = clears; //TODO: Move to RenderPass
+			renderPassBegin.clearValueCount = renderPass->clearCount;
+			renderPassBegin.pClearValues = renderPass->clears;
 
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 
 			currentRenderPass = renderPass;
+
+			vkCmdSetViewport(commandBuffer, 0, renderPass->viewport.viewportCount, renderPass->viewport.viewports);
+			vkCmdSetScissor(commandBuffer, 0, renderPass->viewport.scissorCount, renderPass->viewport.scissors);
 		}
 	}
 }
@@ -124,6 +119,8 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 
 	// Cache pipeline
 	currentPipeline = pipeline;
+
+	//TODO: Bind DescriptorSets here
 }
 
 void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding)
@@ -171,11 +168,9 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 
 			if (rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 			{
-				// Search for the actual buffer offset
 				const U32 resourceIndex = descriptorSet->bindings[i];
-				Buffer* buffer = (Buffer*)descriptorSet->resources[resourceIndex];
 
-				offsetsCache[numOffsets++] = (U32)buffer->globalOffset;
+				offsetsCache[numOffsets++] = descriptorSet->resources[resourceIndex].bufferInfo.offset;
 			}
 		}
 	}
@@ -189,78 +184,6 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 		vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->pipelineLayout, 1,
 			1, &Renderer::bindlessDescriptorSet, 0, nullptr);
 	}
-}
-
-void CommandBuffer::SetViewport(const Viewport* viewport)
-{
-	VkViewport vkViewport;
-
-	if (viewport)
-	{
-		vkViewport.x = viewport->rect.x * 1.0f;
-		vkViewport.width = viewport->rect.width * 1.0f;
-		// Invert Y with negative height and proper offset - Vulkan has unique Clipping Y.
-		vkViewport.y = viewport->rect.height * 1.0f - viewport->rect.y;
-		vkViewport.height = -viewport->rect.height * 1.0f;
-		vkViewport.minDepth = viewport->minDepth;
-		vkViewport.maxDepth = viewport->maxDepth;
-	}
-	else
-	{
-		vkViewport.x = 0.f;
-
-		if (currentRenderPass)
-		{
-			vkViewport.width = currentRenderPass->width * 1.0f;
-			// Invert Y with negative height and proper offset - Vulkan has unique Clipping Y.
-			vkViewport.y = currentRenderPass->height * 1.0f;
-			vkViewport.height = -currentRenderPass->height * 1.0f;
-		}
-		else
-		{
-			vkViewport.width = Renderer::swapchain.renderPass->width * 1.0f;
-			// Invert Y with negative height and proper offset - Vulkan has unique Clipping Y.
-			vkViewport.y = Renderer::swapchain.renderPass->height * 1.0f;
-			vkViewport.height = -Renderer::swapchain.renderPass->height * 1.0f;
-		}
-		vkViewport.minDepth = 0.0f;
-		vkViewport.maxDepth = 1.0f;
-	}
-
-	vkCmdSetViewport(commandBuffer, 0, 1, &vkViewport);
-}
-
-void CommandBuffer::SetScissor(const Rect2DInt* rect)
-{
-	VkRect2D vkScissor;
-
-	if (rect)
-	{
-		vkScissor.offset.x = rect->x;
-		vkScissor.offset.y = rect->y;
-		vkScissor.extent.width = rect->width;
-		vkScissor.extent.height = rect->height;
-	}
-	else
-	{
-		vkScissor.offset.x = 0;
-		vkScissor.offset.y = 0;
-		vkScissor.extent.width = Renderer::swapchain.renderPass->width;
-		vkScissor.extent.height = Renderer::swapchain.renderPass->height;
-	}
-
-	vkCmdSetScissor(commandBuffer, 0, 1, &vkScissor);
-}
-
-void CommandBuffer::Clear(F32 red, F32 green, F32 blue, F32 alpha)
-{
-	clears[0].color = { red, green, blue, alpha };
-}
-
-void CommandBuffer::ClearDepthStencil(F32 depth, U8 stencil)
-{
-	clears[1].depthStencil.depth = depth;
-	clears[1].depthStencil.stencil = stencil;
 }
 
 void CommandBuffer::Draw(TopologyType topology, U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
@@ -549,10 +472,6 @@ void CommandBuffer::Reset()
 	U64 resourceCount = descriptorSets.lastFree;
 	for (U64 i = 0; i < resourceCount; ++i)
 	{
-		DescriptorSet* descriptorSet = (DescriptorSet*)descriptorSets.GetResource(i);
-
-		if (descriptorSet) { Memory::FreeSize(&descriptorSet->resources); }
-
 		descriptorSets.ReleaseResource(i);
 	}
 }

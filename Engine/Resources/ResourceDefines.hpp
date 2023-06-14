@@ -25,9 +25,11 @@ enum AlphaMode
 	ALPHA_MODE_TRANSPARENT,
 };
 
+struct CommandBuffer;
+
 //Creation
 
-struct NH_API SamplerCreation
+struct SamplerCreation
 {
 	void Destroy() { name.Destroy(); }
 
@@ -50,7 +52,7 @@ struct NH_API SamplerCreation
 	String					name{ NO_INIT };
 };
 
-struct NH_API TextureCreation
+struct TextureCreation
 {
 	void Destroy() { name.Destroy(); }
 
@@ -60,20 +62,20 @@ struct NH_API TextureCreation
 	TextureCreation& SetName(const String& name);
 	TextureCreation& SetData(void* data);
 
-	void* initialData = nullptr;
-	U16					width = 1;
-	U16					height = 1;
-	U16					depth = 1;
-	U8					mipmaps = 1;
-	U8					flags = 0;    // TextureFlags bitmasks
+	void* initialData{ nullptr };
+	U16					width{ 1 };
+	U16					height{ 1 };
+	U16					depth{ 1 };
+	U8					mipmaps{ 1 };
+	U8					flags{ 0 };
 
-	VkFormat			format = VK_FORMAT_UNDEFINED;
-	TextureType			type = TEXTURE_TYPE_2D;
+	VkFormat			format{ VK_FORMAT_UNDEFINED };
+	TextureType			type{ TEXTURE_TYPE_2D };
 
 	String				name{ NO_INIT };
 };
 
-struct NH_API DescriptorSetLayoutCreation
+struct DescriptorSetLayoutCreation
 {
 	void Destroy() { name.Destroy(); for (U32 i = 0; i < MAX_DESCRIPTORS_PER_SET; ++i) { bindings[i].Destroy(); } }
 
@@ -84,13 +86,13 @@ struct NH_API DescriptorSetLayoutCreation
 	DescriptorSetLayoutCreation& SetSetIndex(U32 index);
 
 	DescriptorBinding				bindings[MAX_DESCRIPTORS_PER_SET];
-	U32								bindingCount = 0;
-	U32								setIndex = 0;
+	U32								bindingCount{ 0 };
+	U32								setIndex{ 0 };
 
 	String							name{ NO_INIT };
 };
 
-struct NH_API ShaderStateCreation
+struct ShaderStateCreation
 {
 	void Destroy() { name.Destroy(); }
 
@@ -102,7 +104,7 @@ struct NH_API ShaderStateCreation
 
 	String					name{ NO_INIT };
 
-	U32						stagesCount = 0;
+	U32						stagesCount{ 0 };
 };
 
 // Resources
@@ -136,13 +138,13 @@ struct Texture
 	HashHandle			handle;
 	U32					sceneID;
 
-	U16					width = 1;
-	U16					height = 1;
-	U16					depth = 1;
-	U8					mipmaps = 1;
-	U8					flags = 0;
+	U16					width{ 1 };
+	U16					height{ 1 };
+	U16					depth{ 1 };
+	U8					mipmaps{ 1 };
+	U8					flags{ 0 };
 
-	TextureType			type = TEXTURE_TYPE_2D;
+	TextureType			type{ TEXTURE_TYPE_2D };
 
 	VkImage				image;
 	VkImageView			imageView;
@@ -163,10 +165,10 @@ struct Buffer
 
 	Buffer* parentBuffer;
 
-	VkBufferUsageFlags	typeFlags = 0;
-	ResourceUsage		usage = RESOURCE_USAGE_IMMUTABLE;
-	U64					size = 0;
-	U64					globalOffset = 0;	// Offset into global constant, if dynamic
+	VkBufferUsageFlags	typeFlags{ 0 };
+	ResourceUsage		usage{ RESOURCE_USAGE_IMMUTABLE };
+	U64					size{ 0 };
+	U64					globalOffset{ 0 };	// Offset into global constant, if dynamic
 
 	VkBuffer			buffer;
 	VmaAllocation_T* allocation;
@@ -174,7 +176,7 @@ struct Buffer
 	VkDeviceSize		deviceSize;
 };
 
-struct NH_API BufferCreation
+struct BufferCreation
 {
 	void Destroy() { name.Destroy(); }
 
@@ -203,38 +205,77 @@ struct DescriptorSetLayout
 
 	VkDescriptorSetLayout			descriptorSetLayout;
 
-	VkDescriptorSetLayoutBinding* binding = nullptr;
-	DescriptorBinding* bindings = nullptr;
-	U16								bindingCount = 0;
-	U16								setIndex = 0;
+	VkDescriptorSetLayoutBinding* binding{ nullptr };
+	DescriptorBinding* bindings{ nullptr };
+	U16								bindingCount{ 0 };
+	U16								setIndex{ 0 };
+};
+
+union DescriptorSetResource
+{
+	struct ImageInfo
+	{
+		VkImageView image;
+		VkImageLayout layout;
+	} imageInfo;
+
+	struct BufferInfo
+	{
+		VkBuffer buffer;
+		VkDeviceSize size;
+		VkDescriptorType type;
+		U32 offset;
+	} bufferInfo;
 };
 
 struct DescriptorSet
 {
 	void Destroy() { name.Destroy(); }
 
-	String						name{ NO_INIT };
-	HashHandle					handle;
+	String					name{ NO_INIT };
+	HashHandle				handle;
 
-	VkDescriptorSet				descriptorSet;
+	VkDescriptorSet			descriptorSet;
 
-	void** resources = nullptr;
-	Sampler** samplers = nullptr;
-	U16* bindings = nullptr;
+	DescriptorSetResource	resources[MAX_DESCRIPTORS_PER_SET]{};
+	Sampler* samplers[MAX_DESCRIPTORS_PER_SET]{};
+	U16						bindings[MAX_DESCRIPTORS_PER_SET]{};
 
-	DescriptorSetLayout* layout = nullptr;
-	U32						resourceCount = 0;
+	DescriptorSetLayout* layout{ nullptr };
+	U32						resourceCount{ 0 };
+};
+
+struct SpecializationData
+{
+	U8 stage{ 0 };
+	U8 index{ 0 };
+
+	union
+	{
+		U32 i;
+		U8 data[4];
+	};
+};
+
+struct SpecializationInfo
+{
+	VkSpecializationInfo			specializationInfo{};
+	VkSpecializationMapEntry		specializationData[MAX_SPECIALIZATION_CONSTANTS]{};
+	U8* specializationBuffer;
 };
 
 struct ShaderState
 {
 	void Destroy() { name.Destroy(); entry.Destroy(); for (U32 i = 0; i < MAX_SET_COUNT; ++i) { sets[i].Destroy(); } }
 
+	void SetSpecializationData(const SpecializationData& data);
+
 	String							name{ NO_INIT };
 	String							entry{ NO_INIT };
 	HashHandle						handle;
 
 	VkPipelineShaderStageCreateInfo	shaderStageInfos[MAX_SHADER_STAGES];
+	SpecializationInfo				specializationInfos[MAX_SHADER_STAGES];
 
 	U32								activeShaders{ 0 };
 	bool							graphicsPipeline{ false };
@@ -296,6 +337,9 @@ struct RenderPass
 
 	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
 	RenderTarget		outputDepth{};
+	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1];
+	U8					clearCount{ 0 };
+	Viewport			viewport;
 
 	RenderPassOutput	output{};
 	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
@@ -309,59 +353,67 @@ struct Pipeline
 {
 	void Destroy() { name.Destroy(); }
 
-	String						name{ NO_INIT };
-	HashHandle					handle;
+	String					name{ NO_INIT };
+	HashHandle				handle;
 
-	VkPipeline					pipeline;
-	VkPipelineLayout			pipelineLayout;
+	VkPipeline				pipeline{ nullptr };
+	VkPipelineLayout		pipelineLayout{ nullptr };
 
-	VkPipelineBindPoint			bindPoint;
+	VkPipelineBindPoint		bindPoint{ VK_PIPELINE_BIND_POINT_GRAPHICS };
 
-	ShaderState* shaderState;
+	ShaderState* shaderState{ nullptr };
+	RenderPass* renderPass{ nullptr };
 
+	DescriptorSet* descriptorSet[MAX_SWAPCHAIN_IMAGES];
 	DescriptorSetLayout* descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	U32							activeLayoutCount = 0;
+	U32						activeLayoutCount{ 0 };
 
-	DepthStencilCreation		depthStencil;
-	BlendStateCreation			blendState;
-	RasterizationCreation		rasterization;
+	Rasterization			rasterization{};
+	DepthStencil			depthStencil{};
+	BlendState				blendStates[MAX_IMAGE_OUTPUTS];
+	U8						blendStateCount{ 0 };
 
-	bool						graphicsPipeline = true;
+	bool					graphicsPipeline{ true };
 };
 
 struct Program
 {
 	void Destroy() { name.Destroy(); }
 
+	void RunPrePasses();
+	void RunPostPasses(CommandBuffer* commands);
+
 	String		name{ NO_INIT };
-	Pipeline*	prePasses[MAX_PROGRAM_PASSES];
-	Pipeline*	postPasses[MAX_PROGRAM_PASSES];
+	Pipeline* prePasses[MAX_PROGRAM_PASSES];
+	Pipeline* postPasses[MAX_PROGRAM_PASSES];
 	U8			prePassCount;
 	U8			postPassCount;
 };
 
-struct NH_API DescriptorSetCreation
+struct DescriptorSetCreation
 {
 	void Destroy() { name.Destroy(); }
 
 	DescriptorSetCreation& Reset();
 	DescriptorSetCreation& SetLayout(DescriptorSetLayout* layout);
 	DescriptorSetCreation& SetTexture(Texture* texture, U16 binding);
+	DescriptorSetCreation& SetTexture(RenderTarget& texture, U16 binding);
 	DescriptorSetCreation& SetBuffer(Buffer* buffer, U16 binding);
-	DescriptorSetCreation& SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding);   // TODO: separate samplers from textures
+	DescriptorSetCreation& SetTextureSampler(Texture* texture, Sampler* sampler, U16 binding);
+	DescriptorSetCreation& SetTextureSampler(RenderTarget& texture, Sampler* sampler, U16 binding);
 	DescriptorSetCreation& SetName(const String& name);
 
-	void* resources[MAX_DESCRIPTORS_PER_SET];
+	DescriptorSetResource	resources[MAX_DESCRIPTORS_PER_SET];
 	Sampler* samplers[MAX_DESCRIPTORS_PER_SET];
 	U16						bindings[MAX_DESCRIPTORS_PER_SET];
 
-	DescriptorSetLayout*	layout;
-	U32						resourceCount = 0;
+	DescriptorSetLayout* layout;
+	U32						resourceCount{ 0 };
 
 	String					name{ NO_INIT };
 };
 
-struct NH_API RenderPassCreation
+struct RenderPassCreation
 {
 	void Destroy() { name.Destroy(); }
 
@@ -380,6 +432,7 @@ struct NH_API RenderPassCreation
 	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
 	RenderTarget		depthStencilTexture{};
 	Sampler* sampler{ nullptr };
+	//TODO: Pass in Viewport info
 
 	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
 	RenderPassOperation	depthOperation{ RENDER_PASS_OP_DONT_CARE };
@@ -388,22 +441,29 @@ struct NH_API RenderPassCreation
 	String				name{ NO_INIT };
 };
 
-struct NH_API PipelineCreation
+struct PipelineCreation
 {
 	void Destroy() { name.Destroy(); }
 
-	RasterizationCreation		rasterization;
-	DepthStencilCreation		depthStencil;
-	BlendStateCreation			blendState;
-	ShaderStateCreation			shaders;
+	PipelineCreation& AddBlendState(const BlendState& blendState);
+	BlendState& AddBlendState();
+	PipelineCreation& AddSpecializationData(const SpecializationData& data);
+
+	ShaderStateCreation	shaders{};
+	Rasterization		rasterization{};
+	DepthStencil		depthStencil{};
+	BlendState			blendStates[MAX_IMAGE_OUTPUTS];
+	U8					blendStateCount{ 0 };
+
+	SpecializationData	specializationData[MAX_SPECIALIZATION_CONSTANTS]{};
+	U32					specializationCount{ 0 };
 
 	RenderPass* renderPass{ nullptr };
-	const ViewportState* viewport{ nullptr };
 
 	String						name{ NO_INIT };
 };
 
-struct NH_API ProgramCreation
+struct ProgramCreation
 {
 	void Destroy() { name.Destroy(); }
 	ProgramCreation& Reset();
@@ -420,7 +480,7 @@ struct NH_API ProgramCreation
 	U8					postPassCount;
 };
 
-struct NH_API MaterialCreation
+struct MaterialCreation
 {
 	void Destroy() { name.Destroy(); }
 
@@ -435,7 +495,7 @@ struct NH_API MaterialCreation
 
 };
 
-struct NH_API Material
+struct Material
 {
 	void Destroy() { name.Destroy(); }
 
@@ -525,14 +585,14 @@ struct ResourceUpdate
 struct DescriptorSetUpdate
 {
 	DescriptorSet* descriptorSet;
-	U32				frameIssued = 0;
+	U32				frameIssued{ 0 };
 };
 
 struct MapBufferParameters
 {
 	Buffer* buffer;
-	U64		offset = 0;
-	U64		size = 0;
+	U64		offset{ 0 };
+	U64		size{ 0 };
 };
 
 struct TextureBarrier
@@ -556,7 +616,7 @@ struct ExecutionBarrier
 	PipelineStage	destinationPipelineStage;
 
 	U32				newBarrierExperimental = U32_MAX;
-	U32				loadOperation = 0;
+	U32				loadOperation{ 0 };
 
 	U32				textureBarrierCount;
 	U32				bufferBarrierCount;

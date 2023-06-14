@@ -16,12 +16,6 @@ struct NH_API CommandBuffer
 	void BindIndexBuffer(Buffer* buffer);
 	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
 
-	void SetViewport(const Viewport* viewport);
-	void SetScissor(const Rect2DInt* rect);
-
-	void Clear(F32 red, F32 green, F32 blue, F32 alpha);
-	void ClearDepthStencil(F32 depth, U8 stencil);
-
 	void Draw(TopologyType topology, U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(TopologyType topology, U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
 	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
@@ -48,7 +42,6 @@ struct NH_API CommandBuffer
 
 	RenderPass*					currentRenderPass;
 	Pipeline*					currentPipeline;
-	VkClearValue				clears[2]; //0 = Color, 1 = Depth Stencil
 
 	U32							handle;
 
