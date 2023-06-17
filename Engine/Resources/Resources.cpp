@@ -168,47 +168,6 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
-	Hashmap<String, Sampler>::Iterator end0 = samplers.end();
-	for (auto it = samplers.begin(); it != end0; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SAMPLER, it->handle }); } }
-
-	Hashmap<String, Texture>::Iterator end1 = textures.end();
-	for (auto it = textures.begin(); it != end1; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, it->handle }); } }
-
-	Hashmap<String, Buffer>::Iterator end2 = buffers.end();
-	for (auto it = buffers.begin(); it != end2; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_BUFFER, it->handle }); } }
-
-	Hashmap<String, DescriptorSetLayout>::Iterator end3 = descriptorSetLayouts.end();
-	for (auto it = descriptorSetLayouts.begin(); it != end3; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT, it->handle }); } }
-
-	Hashmap<String, DescriptorSet>::Iterator end4 = descriptorSets.end();
-	for (auto it = descriptorSets.begin(); it != end4; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET, it->handle }); } }
-
-	Hashmap<String, ShaderState>::Iterator end5 = shaders.end();
-	for (auto it = shaders.begin(); it != end5; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SHADER_STATE, it->handle }); } }
-
-	Hashmap<String, Renderpass>::Iterator end6 = renderPasses.end();
-	for (auto it = renderPasses.begin(); it != end6; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_RENDER_PASS, it->handle }); } }
-
-	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
-	for (auto it = pipelines.begin(); it != end7; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_PIPELINE, it->handle }); } }
-
-	Hashmap<String, Program>::Iterator end8 = programs.end();
-	for (auto it = programs.begin(); it != end8; ++it) {}
-
-	Hashmap<String, Material>::Iterator end9 = materials.end();
-	for (auto it = materials.begin(); it != end9; ++it) {}
-
-	Hashmap<String, Scene>::Iterator end10 = scenes.end();
-	for (auto it = scenes.begin(); it != end10; ++it)
-	{
-		if (it.Valid())
-		{
-			Scene& scene = *it;
-			scene.Destroy();
-			pipelines.Remove(scene.handle);
-		}
-	}
-
 	while (resourceDeletionQueue.Size())
 	{
 		ResourceUpdate resourceDeletion;
@@ -218,7 +177,7 @@ void Resources::Shutdown()
 
 		switch (resourceDeletion.type)
 		{
-		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_SAMPLER: {Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); }
 		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
@@ -226,6 +185,127 @@ void Resources::Shutdown()
 		case RESOURCE_UPDATE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+		}
+	}
+
+	Hashmap<String, Sampler>::Iterator end0 = samplers.end();
+	for (auto it = samplers.begin(); it != end0; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroySamplerInstant(&samplers.Obtain(it->handle));
+			it->Destroy();
+			samplers.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Texture>::Iterator end1 = textures.end();
+	for (auto it = textures.begin(); it != end1; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyTextureInstant(&textures.Obtain(it->handle));
+			it->Destroy();
+			textures.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Buffer>::Iterator end2 = buffers.end();
+	for (auto it = buffers.begin(); it != end2; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyBufferInstant(&buffers.Obtain(it->handle));
+			it->Destroy();
+			buffers.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, DescriptorSetLayout>::Iterator end3 = descriptorSetLayouts.end();
+	for (auto it = descriptorSetLayouts.begin(); it != end3; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(it->handle));
+			it->Destroy();
+			descriptorSetLayouts.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, DescriptorSet>::Iterator end4 = descriptorSets.end();
+	for (auto it = descriptorSets.begin(); it != end4; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(it->handle));
+			it->Destroy();
+			descriptorSets.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, ShaderState>::Iterator end5 = shaders.end();
+	for (auto it = shaders.begin(); it != end5; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyShaderStateInstant(&shaders.Obtain(it->handle));
+			it->Destroy();
+			shaders.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Renderpass>::Iterator end6 = renderPasses.end();
+	for (auto it = renderPasses.begin(); it != end6; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(it->handle));
+			it->Destroy();
+			renderPasses.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
+	for (auto it = pipelines.begin(); it != end7; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Renderer::DestroyPipelineInstant(&pipelines.Obtain(it->handle));
+			it->Destroy();
+			pipelines.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Program>::Iterator end8 = programs.end();
+	for (auto it = programs.begin(); it != end8; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Program& program = *it;
+			program.Destroy();
+			programs.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Material>::Iterator end9 = materials.end();
+	for (auto it = materials.begin(); it != end9; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			Material& material = *it;
+			material.Destroy();
+			materials.Remove(it->handle);
+		}
+	}
+
+	Hashmap<String, Scene>::Iterator end10 = scenes.end();
+	for (auto it = scenes.begin(); it != end10; ++it)
+	{
+		if (it.Valid())
+		{
+			Scene& scene = *it;
+			scene.Destroy();
+			scenes.Remove(scene.handle);
 		}
 	}
 
@@ -270,6 +350,8 @@ void Resources::Update()
 
 Sampler* Resources::CreateSampler(const SamplerCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Sampler* sampler = &samplers.Request(info.name);
 
 	if (!sampler->name.Blank()) { return sampler; }
@@ -290,6 +372,8 @@ Sampler* Resources::CreateSampler(const SamplerCreation& info)
 
 Texture* Resources::CreateTexture(const TextureCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Texture* texture = &textures.Request(info.name);
 
 	if (!texture->name.Blank()) { return texture; }
@@ -329,6 +413,8 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 
 Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 {
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Texture* texture = &textures.Request(name);
 
 	if (!texture->name.Blank()) { return texture; }
@@ -800,6 +886,8 @@ void* Resources::LoadKTX(Texture* texture, File& file)
 
 Buffer* Resources::CreateBuffer(const BufferCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Buffer* buffer = &buffers.Request(info.name);
 
 	if (!buffer->name.Blank()) { return buffer; }
@@ -819,6 +907,8 @@ Buffer* Resources::CreateBuffer(const BufferCreation& info)
 
 Buffer* Resources::LoadBuffer(const BufferCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Buffer* buffer = &buffers.Request(info.name);
 
 	if (!buffer->name.Blank()) { return buffer; }
@@ -843,6 +933,8 @@ Buffer* Resources::LoadBuffer(const BufferCreation& info)
 
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.Request(info.name);
 
 	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
@@ -871,6 +963,8 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 
 DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	DescriptorSet* descriptorSet = &descriptorSets.Request(info.name);
 
 	if (!descriptorSet->name.Blank()) { return descriptorSet; }
@@ -894,6 +988,8 @@ DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
 
 ShaderState* Resources::CreateShaderState(const ShaderStateCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	ShaderState* shaderState = &shaders.Request(info.name);
 
 	if (!shaderState->name.Blank()) { return shaderState; }
@@ -919,6 +1015,8 @@ ShaderState* Resources::CreateShaderState(const ShaderStateCreation& info)
 
 Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Renderpass* renderpass = &renderPasses.Request(info.name);
 
 	if (!renderpass->name.Blank()) { return renderpass; }
@@ -951,16 +1049,18 @@ Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 
 Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Pipeline* pipeline = &pipelines.Request(info.name);
 
 	if (!pipeline->name.Blank()) { return pipeline; }
 
 	pipeline->name = info.name;
+	pipeline->handle = pipelines.GetHandle(info.name);
 	pipeline->shaderState = CreateShaderState(info.shaders);
 	pipeline->depthStencil = info.depthStencil;
 	pipeline->rasterization = info.rasterization;
 	pipeline->graphicsPipeline = true;
-	pipeline->handle = pipelines.GetHandle(info.name);
 	pipeline->blendStateCount = info.blendStateCount;
 	pipeline->renderpass = info.renderpass;
 
@@ -977,11 +1077,14 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 
 Program* Resources::CreateProgram(const ProgramCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Program* program = &programs.Request(info.name);
 
 	if (!program->name.Blank()) { return program; }
 
 	program->name = info.name;
+	program->handle = programs.GetHandle(info.name);
 	program->prePassCount = info.prePassCount;
 	program->postPassCount = info.postPassCount;
 	program->geometryPass = info.geometryPass;
@@ -994,12 +1097,16 @@ Program* Resources::CreateProgram(const ProgramCreation& info)
 
 Material* Resources::CreateMaterial(const MaterialCreation& info)
 {
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Material* material = &materials.Request(info.name);
 
 	if (!material->name.Blank()) { return material; }
 
-	material->program = info.program;
 	material->name = info.name;
+	material->handle = materials.GetHandle(info.name);
+
+	material->program = info.program;
 	material->renderIndex = info.renderIndex;
 
 	return material;
@@ -1007,6 +1114,8 @@ Material* Resources::CreateMaterial(const MaterialCreation& info)
 
 Scene* Resources::LoadScene(const String& name)
 {
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
 	Scene* scene = &scenes.Request(name);
 
 	if (!scene->name.Blank()) { return scene; }
@@ -1052,6 +1161,7 @@ Scene* Resources::LoadScene(const String& name)
 		for (U32 i = 0; i < samplerCount; ++i)
 		{
 			SamplerCreation samplerInfo{};
+			samplerInfo.SetName("Sampler"); //TODO: Unique name!
 			file.Read((I32&)samplerInfo.minFilter);
 			file.Read((I32&)samplerInfo.magFilter);
 			file.Read((I32&)samplerInfo.mipFilter);

@@ -870,6 +870,8 @@ void Renderer::Resize()
 
 	swapchain.Create();
 
+
+
 	vkDeviceWaitIdle(device);
 
 	//TODO: Update camera here

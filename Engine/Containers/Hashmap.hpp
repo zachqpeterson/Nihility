@@ -298,6 +298,8 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Request(cons
 	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
+	size += !cell->filled;
+
 	cell->filled = true;
 	cell->key = key;
 	return cell->value;

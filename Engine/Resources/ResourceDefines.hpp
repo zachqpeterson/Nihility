@@ -395,6 +395,8 @@ struct Program
 	void DrawMesh(const Mesh& mesh, CommandBuffer* commands, Buffer* constantBuffer);
 
 	String		name{ NO_INIT };
+	HashHandle	handle;
+
 	Pipeline* geometryPass;
 	Pipeline* prePasses[MAX_PROGRAM_PASSES];
 	Pipeline* postPasses[MAX_PROGRAM_PASSES];
@@ -515,6 +517,7 @@ struct Material
 	void Destroy() { name.Destroy(); }
 
 	String		name{ NO_INIT };
+	HashHandle	handle;
 
 	U32			renderIndex;
 	U32			poolIndex;
