@@ -10,7 +10,7 @@ struct NH_API CommandBuffer
 	void Destroy();
 
 	DescriptorSet* CreateDescriptorSet(DescriptorSetCreation& info);
-	void BindPass(RenderPass* renderPass);
+	void BindPass(Renderpass* renderpass);
 	void BindPipeline(Pipeline* pipeline);
 	void BindVertexBuffer(Buffer* buffer, U32 binding);
 	void BindIndexBuffer(Buffer* buffer);
@@ -40,7 +40,7 @@ struct NH_API CommandBuffer
 
 	VkDescriptorSet				vkDescriptorSets[16];
 
-	RenderPass*					currentRenderPass;
+	Renderpass*					currentRenderPass;
 	Pipeline*					currentPipeline;
 
 	U32							handle;

@@ -82,33 +82,33 @@ DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
 	return set;
 }
 
-void CommandBuffer::BindPass(RenderPass* renderPass)
+void CommandBuffer::BindPass(Renderpass* renderpass)
 {
-	if (renderPass != currentRenderPass)
+	if (renderpass != currentRenderPass)
 	{
-		if (currentRenderPass && currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE)
+		if (currentRenderPass && currentRenderPass->type != RENDERPASS_TYPE_COMPUTE)
 		{
 			vkCmdEndRenderPass(commandBuffer);
 		}
 
-		if (renderPass->type != RENDER_PASS_TYPE_COMPUTE)
+		if (renderpass->type != RENDERPASS_TYPE_COMPUTE)
 		{
 			VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			renderPassBegin.framebuffer = renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN ? renderPass->frameBuffers[Renderer::imageIndex] : renderPass->frameBuffers[0];
-			renderPassBegin.renderPass = renderPass->renderPass;
+			renderPassBegin.framebuffer = renderpass->type == RENDERPASS_TYPE_SWAPCHAIN ? renderpass->frameBuffers[Renderer::imageIndex] : renderpass->frameBuffers[0];
+			renderPassBegin.renderPass = renderpass->renderpass;
 
 			renderPassBegin.renderArea.offset = { 0, 0 };
-			renderPassBegin.renderArea.extent = { renderPass->width, renderPass->height };
+			renderPassBegin.renderArea.extent = { renderpass->width, renderpass->height };
 
-			renderPassBegin.clearValueCount = renderPass->clearCount;
-			renderPassBegin.pClearValues = renderPass->clears;
+			renderPassBegin.clearValueCount = renderpass->clearCount;
+			renderPassBegin.pClearValues = renderpass->clears;
 
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 
-			currentRenderPass = renderPass;
+			currentRenderPass = renderpass;
 
-			vkCmdSetViewport(commandBuffer, 0, renderPass->viewport.viewportCount, renderPass->viewport.viewports);
-			vkCmdSetScissor(commandBuffer, 0, renderPass->viewport.scissorCount, renderPass->viewport.scissors);
+			vkCmdSetViewport(commandBuffer, 0, renderpass->viewport.viewportCount, renderpass->viewport.viewports);
+			vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
 		}
 	}
 }
@@ -119,8 +119,6 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 
 	// Cache pipeline
 	currentPipeline = pipeline;
-
-	//TODO: Bind DescriptorSets here
 }
 
 void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding)
@@ -160,7 +158,6 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 		DescriptorSet* descriptorSet = sets[l];
 		vkDescriptorSets[l] = descriptorSet->descriptorSet;
 
-		// Search for dynamic buffers
 		const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
 		for (U32 i = 0; i < descriptorSetLayout->bindingCount; ++i)
 		{
@@ -241,7 +238,7 @@ static ResourceType ToResourceState(PipelineStage stage)
 
 void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 {
-	if (currentRenderPass && (currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE))
+	if (currentRenderPass && (currentRenderPass->type != RENDERPASS_TYPE_COMPUTE))
 	{
 		vkCmdEndRenderPass(commandBuffer);
 		currentRenderPass = nullptr;
@@ -279,18 +276,14 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 				pImageBarrier->dstAccessMask = ToVkAccessFlags(nextState);
 				pImageBarrier->oldLayout = ToVkImageLayout(currentState);
 				pImageBarrier->newLayout = ToVkImageLayout(nextState);
-
 				pImageBarrier->image = texture->image;
 				pImageBarrier->subresourceRange.aspectMask = isColor ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 				pImageBarrier->subresourceRange.baseMipLevel = 0;
 				pImageBarrier->subresourceRange.levelCount = 1;
 				pImageBarrier->subresourceRange.baseArrayLayer = 0;
 				pImageBarrier->subresourceRange.layerCount = 1;
-
-				{
-					pImageBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					pImageBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				}
+				pImageBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				pImageBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 				sourceAccessFlags |= pImageBarrier->srcAccessMask;
 				destinationAccessFlags |= pImageBarrier->dstAccessMask;
@@ -396,12 +389,8 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		vkBarrier.subresourceRange.levelCount = 1;
 		vkBarrier.subresourceRange.baseArrayLayer = 0;
 		vkBarrier.subresourceRange.layerCount = 1;
-
 		vkBarrier.oldLayout = texture->imageLayout;
-
-		// Transition to...
 		vkBarrier.newLayout = isColor ? newLayout : newDepthLayout;
-
 		vkBarrier.srcAccessMask = isColor ? sourceAccessMask : sourceDepthAccessMask;
 		vkBarrier.dstAccessMask = isColor ? destinationAccessMask : destinationDepthAccessMask;
 
@@ -430,7 +419,6 @@ void CommandBuffer::Barrier(const ExecutionBarrier& barrier)
 		vkBarrier.size = buffer->size;
 		vkBarrier.srcAccessMask = sourceBufferAccessMask;
 		vkBarrier.dstAccessMask = destinationBufferAccessMask;
-
 		vkBarrier.srcQueueFamilyIndex = 0;
 		vkBarrier.dstQueueFamilyIndex = 0;
 	}

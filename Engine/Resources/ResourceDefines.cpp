@@ -282,7 +282,7 @@ void ShaderState::SetSpecializationData(const SpecializationData& data)
 
 // RENDER PASS OUTPUT
 
-RenderPassOutput& RenderPassOutput::Reset()
+RenderpassOutput& RenderpassOutput::Reset()
 {
 	colorFormatCount = 0;
 
@@ -299,19 +299,19 @@ RenderPassOutput& RenderPassOutput::Reset()
 	return *this;
 }
 
-RenderPassOutput& RenderPassOutput::Color(VkFormat format)
+RenderpassOutput& RenderpassOutput::Color(VkFormat format)
 {
 	colorFormats[colorFormatCount++] = format;
 	return *this;
 }
 
-RenderPassOutput& RenderPassOutput::Depth(VkFormat format)
+RenderpassOutput& RenderpassOutput::Depth(VkFormat format)
 {
 	depthStencilFormat = format;
 	return *this;
 }
 
-RenderPassOutput& RenderPassOutput::SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
+RenderpassOutput& RenderpassOutput::SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
 {
 	colorOperation = color;
 	depthOperation = depth;
@@ -327,10 +327,10 @@ RenderPassCreation& RenderPassCreation::Reset()
 	width = 0;
 	height = 0;
 	renderTargetCount = 0;
-	type = RENDER_PASS_TYPE_GEOMETRY;
+	type = RENDERPASS_TYPE_GEOMETRY;
 
 	depthStencilTexture = {};
-	sampler = nullptr ;
+	sampler = nullptr;
 
 	colorOperation = RENDER_PASS_OP_DONT_CARE;
 	depthOperation = RENDER_PASS_OP_DONT_CARE;
@@ -362,7 +362,7 @@ RenderPassCreation& RenderPassCreation::SetName(const String& name)
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetType(RenderPassType type)
+RenderPassCreation& RenderPassCreation::SetType(RenderpassType type)
 {
 	this->type = type;
 
@@ -379,6 +379,18 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 }
 
 // PIPELINE CREATION
+
+PipelineCreation& PipelineCreation::Reset()
+{
+	name.Clear();
+	shaders.Reset();
+	rasterization = {};
+	depthStencil = {};
+	blendStateCount = 0;
+	specializationCount = 0;
+
+	return *this;
+}
 
 PipelineCreation& PipelineCreation::AddBlendState(const BlendState& blendState)
 {
@@ -417,14 +429,21 @@ ProgramCreation& ProgramCreation::SetName(const String& name_)
 	return *this;
 }
 
-ProgramCreation& ProgramCreation::AddPrePass(const PipelineCreation& pass)
+ProgramCreation& ProgramCreation::SetGeometry(Pipeline* pass)
+{
+	geometryPass = pass;
+
+	return *this;
+}
+
+ProgramCreation& ProgramCreation::AddPrePass(Pipeline* pass)
 {
 	prePasses[prePassCount++] = pass;
 
 	return *this;
 }
 
-ProgramCreation& ProgramCreation::AddPostPass(const PipelineCreation& pass)
+ProgramCreation& ProgramCreation::AddPostPass(Pipeline* pass)
 {
 	postPasses[postPassCount++] = pass;
 
@@ -491,50 +510,57 @@ ExecutionBarrier& ExecutionBarrier::AddMemoryBarrier(const BufferBarrier& buffer
 	return *this;
 }
 
-// PROGRAM
-
-void Program::RunPrePasses()
+void Pipeline::AddTargetInput(const RenderTarget& target)
 {
-
+	targetInputs[targetInputCount++] = target;
 }
 
-void Program::RunPostPasses(CommandBuffer* commands)
+void Pipeline::AddBufferInput(Buffer* buffer)
 {
-	RenderPass* renderPass = nullptr;
+	bufferInputs[bufferInputCount++] = buffer;
+}
 
-	for (U8 i = 0; i < postPassCount; ++i)
+// PROGRAM
+
+Renderpass* Program::prevRenderpass{ nullptr };
+
+void Program::RunPrePasses(CommandBuffer* commands)
+{
+	Renderpass* renderpass = nullptr;
+
+	for (U8 i = 0; i < prePassCount; ++i)
 	{
-		Pipeline* pipeline = postPasses[i];
+		Pipeline* pipeline = prePasses[i];
 
-		if (pipeline->renderPass != renderPass)
+		if (pipeline->renderpass != renderpass)
 		{
-			if(renderPass != nullptr) {} //TODO: End renderpass
-			
-			renderPass = pipeline->renderPass;
-			commands->BindPass(pipeline->renderPass);
+			if (renderpass != nullptr) { prevRenderpass = renderpass; } //TODO: End renderpass
+
+			renderpass = pipeline->renderpass;
+			commands->BindPass(pipeline->renderpass);
 		}
 
 		DescriptorSetCreation dsCreation{};
 		dsCreation.SetLayout(pipeline->descriptorSetLayouts[0]);
 
+		U32 outputIndex = 0;
 		U32 textureIndex = 0;
+		U32 bufferIndex = 0;
 
 		for (U32 i = 0; i < pipeline->descriptorSetLayouts[0]->bindingCount; ++i)
 		{
 			switch (pipeline->descriptorSetLayouts[0]->bindings[i].type)
 			{
-				//TODO: Indicate we want an output texture instead of some other texture
 			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
-				//TODO: Use previous renderpass
-				dsCreation.SetTextureSampler(Renderer::offscreenPass->outputTextures[textureIndex++], renderPass->sampler, i);
+				if (textureIndex < pipeline->targetInputCount) { dsCreation.SetTextureSampler(pipeline->targetInputs[textureIndex++], renderpass->sampler, i); }
+				else { dsCreation.SetTextureSampler(prevRenderpass->outputTextures[outputIndex++], renderpass->sampler, i); }
 			} break;
 			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-				//TODO:
-				BreakPoint;
+				dsCreation.SetBuffer(pipeline->bufferInputs[bufferIndex++], i);
 			} break;
 			}
 		}
-		
+
 		DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
 
 		commands->BindPipeline(pipeline);
@@ -543,5 +569,92 @@ void Program::RunPostPasses(CommandBuffer* commands)
 		commands->Draw(TOPOLOGY_TYPE_TRIANGLE, 0, 3, 0, 1);
 	}
 
-	if (renderPass != nullptr) {} //TODO: End renderpass
+	if (renderpass != nullptr) {} //TODO: End renderpass
+}
+
+void Program::RunPostPasses(CommandBuffer* commands)
+{
+	Renderpass* renderpass = nullptr;
+
+	for (U8 i = 0; i < postPassCount; ++i)
+	{
+		Pipeline* pipeline = postPasses[i];
+
+		if (pipeline->renderpass != renderpass)
+		{
+			if (renderpass != nullptr) { prevRenderpass = renderpass; } //TODO: End renderpass
+
+			renderpass = pipeline->renderpass;
+			commands->BindPass(pipeline->renderpass);
+		}
+
+		DescriptorSetCreation dsCreation{};
+		dsCreation.SetLayout(pipeline->descriptorSetLayouts[0]);
+
+		U32 outputIndex = 0;
+		U32 textureIndex = 0;
+		U32 bufferIndex = 0;
+
+		for (U32 i = 0; i < pipeline->descriptorSetLayouts[0]->bindingCount; ++i)
+		{
+			switch (pipeline->descriptorSetLayouts[0]->bindings[i].type)
+			{
+			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
+				if (textureIndex < pipeline->targetInputCount) { dsCreation.SetTextureSampler(pipeline->targetInputs[textureIndex++], renderpass->sampler, i); }
+				else { dsCreation.SetTextureSampler(prevRenderpass->outputTextures[outputIndex++], renderpass->sampler, i); }
+			} break;
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+				dsCreation.SetBuffer(pipeline->bufferInputs[bufferIndex++], i);
+			} break;
+			}
+		}
+
+		DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
+
+		commands->BindPipeline(pipeline);
+		commands->BindDescriptorSet(&descriptorSet, 1, nullptr, 0);
+
+		commands->Draw(TOPOLOGY_TYPE_TRIANGLE, 0, 3, 0, 1);
+	}
+
+	if (renderpass != nullptr) {} //TODO: End renderpass
+}
+
+void Program::DrawMesh(const Mesh& mesh, CommandBuffer* commands, Buffer* constantBuffer)
+{
+	prevRenderpass = geometryPass->renderpass;
+
+	commands->BindPipeline(geometryPass);
+	commands->BindPass(geometryPass->renderpass);
+
+	DescriptorSetCreation dsCreation{};
+	dsCreation.SetLayout(geometryPass->descriptorSetLayouts[0]);
+
+	//U32 textureIndex = 0;
+	//U32 bufferIndex = 0;
+	//
+	//for (U32 i = 0; i < geometryPass->descriptorSetLayouts[0]->bindingCount; ++i)
+	//{
+	//	switch (geometryPass->descriptorSetLayouts[0]->bindings[i].type)
+	//	{
+	//	case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
+	//		dsCreation.SetTextureSampler(geometryPass->targetInputs[textureIndex++], geometryPass->renderpass->sampler, i);
+	//	} break;
+	//	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+	//		dsCreation.SetBuffer(geometryPass->bufferInputs[bufferIndex++], i);
+	//	} break;
+	//	}
+	//}
+
+	dsCreation.SetBuffer(constantBuffer, 0).SetBuffer(mesh.materialBuffer, 1);
+	DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
+
+	commands->BindVertexBuffer(mesh.positionBuffer, 0);
+	commands->BindVertexBuffer(mesh.tangentBuffer, 1);
+	commands->BindVertexBuffer(mesh.normalBuffer, 2);
+	commands->BindVertexBuffer(mesh.texcoordBuffer, 3);
+	commands->BindIndexBuffer(mesh.indexBuffer);
+	commands->BindDescriptorSet(&descriptorSet, 1, nullptr, 0);
+
+	commands->DrawIndexed(TOPOLOGY_TYPE_TRIANGLE, mesh.primitiveCount, 1, 0, 0, 0);
 }

@@ -267,6 +267,7 @@ static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader sta
 static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;		// Maximum list elements for both descriptor set layout and descriptor sets
 static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;			// Maximum images a swapchain can support
 static constexpr U8	MAX_VIEWPORTS = 8;					// Maximum viewports a renderpass can have
+static constexpr U8	MAX_BLOOM_PASSES = 8;				// Maximum renderpasses to calculate bloom
 static constexpr U8	MAX_SCISSORS = 8;					// Maximum scissors a renderpass can have
 static constexpr U8	MAX_SET_COUNT = 32;					// Maximum descriptor sets a shader can have
 static constexpr U8	MAX_VERTEX_STREAMS = 16;			// Maximum vertex streams a shader can have
@@ -592,13 +593,13 @@ enum PipelineStageMask
 	PIPELINE_STAGE_TRANSFER_MASK = 1 << 6
 };
 
-enum RenderPassType
+enum RenderpassType
 {
-	RENDER_PASS_TYPE_GEOMETRY,
-	RENDER_PASS_TYPE_SWAPCHAIN,
-	RENDER_PASS_TYPE_COMPUTE,
+	RENDERPASS_TYPE_GEOMETRY,
+	RENDERPASS_TYPE_SWAPCHAIN,
+	RENDERPASS_TYPE_COMPUTE,
 
-	RENDER_PASS_TYPE_COUNT
+	RENDERPASS_TYPE_COUNT
 };
 
 enum RenderPassOperation

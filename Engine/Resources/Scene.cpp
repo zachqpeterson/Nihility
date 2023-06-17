@@ -42,36 +42,20 @@ void Scene::Update()
 		Renderer::UnmapBuffer(cbMap);
 	}
 
-	for (Mesh& draw : meshes)
+	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
+
+	for (Mesh& mesh : meshes)
 	{
-		cbMap.buffer = draw.materialBuffer;
+		cbMap.buffer = mesh.materialBuffer;
 		MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
 		if (meshData)
 		{
-			UploadMaterial(*meshData, draw);
+			UploadMaterial(*meshData, mesh);
 
 			Renderer::UnmapBuffer(cbMap);
+
+			mesh.material->program->DrawMesh(mesh, commands, constantBuffer);
 		}
-	}
-
-	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
-
-	//TODO: Use program for this
-	commands->BindPass(Renderer::offscreenPass);
-
-	Material* lastMaterial = nullptr;
-	//TODO: Loop by material so that we can deal with multiple passes
-	for (Mesh& draw : meshes)
-	{
-		if (draw.material != lastMaterial)
-		{
-			Pipeline* pipeline = draw.material->program->prePasses[0];
-
-			commands->BindPipeline(pipeline);
-			lastMaterial = draw.material;
-		}
-
-		DrawMesh(commands, draw);
 	}
 }
 
@@ -90,21 +74,4 @@ void Scene::UploadMaterial(MeshData& meshData, const Mesh& meshDraw)
 	Matrix4 model{ meshDraw.position, meshDraw.rotation, meshDraw.scale * Vector3{1.0f, 1.0f, -1.0f} };
 	meshData.model = model;
 	meshData.modelInv = model.Transposed().Inversed();
-}
-
-void Scene::DrawMesh(CommandBuffer* commands, Mesh& meshDraw)
-{
-	DescriptorSetCreation dsCreation{};
-	dsCreation.SetBuffer(constantBuffer, 0).SetBuffer(meshDraw.materialBuffer, 1);
-	dsCreation.SetLayout(meshDraw.material->program->prePasses[0]->descriptorSetLayouts[0]);
-	DescriptorSet* descriptorSet = commands->CreateDescriptorSet(dsCreation);
-
-	commands->BindVertexBuffer(meshDraw.positionBuffer, 0);
-	commands->BindVertexBuffer(meshDraw.tangentBuffer, 1);
-	commands->BindVertexBuffer(meshDraw.normalBuffer, 2);
-	commands->BindVertexBuffer(meshDraw.texcoordBuffer, 3);
-	commands->BindIndexBuffer(meshDraw.indexBuffer);
-	commands->BindDescriptorSet(&descriptorSet, 1, nullptr, 0);
-
-	commands->DrawIndexed(TOPOLOGY_TYPE_TRIANGLE, meshDraw.primitiveCount, 1, 0, 0, 0);
 }

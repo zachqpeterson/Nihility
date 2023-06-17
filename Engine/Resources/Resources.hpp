@@ -20,7 +20,7 @@ public:
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
 	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
-	static RenderPass* CreateRenderPass(const RenderPassCreation& info);
+	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const PipelineCreation& info);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
@@ -32,6 +32,7 @@ public:
 	static Texture* AccessDummyTexture();
 	static Buffer* AccessDummyAttributeBuffer();
 	static Sampler* AccessDefaultSampler();
+	static Renderpass* AccessDefaultRenderpass();
 	static Material* AccessDefaultMaterial(bool transparent = false, bool culling = true);
 
 	static Sampler* AccessSampler(const String& name);
@@ -39,7 +40,7 @@ public:
 	static DescriptorSetLayout* AccessDescriptorSetLayout(const String& name);
 	static DescriptorSet* AccessDescriptorSet(const String& name);
 	static ShaderState* AccessShaderState(const String& name);
-	static RenderPass* AccessRenderPass(const String& name);
+	static Renderpass* AccessRenderPass(const String& name);
 	static Pipeline* AccessPipeline(const String& name);
 
 	static Sampler* AccessSampler(HashHandle handle);
@@ -47,7 +48,7 @@ public:
 	static DescriptorSetLayout* AccessDescriptorSetLayout(HashHandle handle);
 	static DescriptorSet* AccessDescriptorSet(HashHandle handle);
 	static ShaderState* AccessShaderState(HashHandle handle);
-	static RenderPass* AccessRenderPass(HashHandle handle);
+	static Renderpass* AccessRenderPass(HashHandle handle);
 	static Pipeline* AccessPipeline(HashHandle handle);
 
 	static void	DestroySampler(Sampler* sampler);
@@ -56,7 +57,7 @@ public:
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
 	static void	DestroyShaderState(ShaderState* shader);
-	static void	DestroyRenderPass(RenderPass* renderPass);
+	static void	DestroyRenderPass(Renderpass* renderpass);
 	static void	DestroyPipeline(Pipeline* pipeline);
 
 	static bool LoadBinary(const String& name, String& result);
@@ -83,6 +84,7 @@ private:
 	static Texture*								dummyTexture;
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
+	static Renderpass*							defaultRenderpass;
 	static Material*							materialNoCullOpaque;
 	static Material*							materialCullOpaque;
 	static Material*							materialNoCullTransparent;
@@ -94,7 +96,7 @@ private:
 	static Hashmap<String, DescriptorSetLayout>	descriptorSetLayouts;
 	static Hashmap<String, DescriptorSet>		descriptorSets;
 	static Hashmap<String, ShaderState>			shaders;
-	static Hashmap<String, RenderPass>			renderPasses;
+	static Hashmap<String, Renderpass>			renderPasses;
 	static Hashmap<String, Pipeline>			pipelines;
 	static Hashmap<String, Program>				programs;
 	static Hashmap<String, Material>			materials;

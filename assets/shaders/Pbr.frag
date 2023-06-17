@@ -35,8 +35,8 @@ layout (location = 2) in vec3 tangent;
 layout (location = 3) in vec3 bitangent;
 layout (location = 4) in vec3 position;
 
-layout (location = 0) out vec4 fragColor0;
-layout (location = 1) out vec4 fragColor1;
+layout (location = 0) out vec4 fragColor;
+layout (location = 1) out vec4 fragHighlight;
 
 #define PI 3.1415926538
 #define RecPI 1.0 / PI
@@ -175,17 +175,7 @@ void main()
         materialColor = (diffuseBRDF + specularBRDF) * intensity;
     }
 
-    vec4 color = vec4(clamp(emissivity + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
+    fragColor = vec4(clamp(emissivity + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
 
-    // Color with manual exposure into attachment 0
-    float exposure = 1.0;
-	fragColor0.rgb = vec3(1.0) - exp(-(color.rgb + emissivity * 5.0f) * exposure);
-
-	// Bright parts for bloom into attachment 1
-	float l = dot(fragColor0.rgb, vec3(0.2126, 0.7152, 0.0722));
-	float threshold = 0.75;
-	fragColor1.rgb = (l > threshold) ? fragColor0.rgb : vec3(0.0);
-	fragColor1.a = 1.0;
-
-    fragColor0 = color;
+    fragHighlight = vec4(emissivity, 1.0);
 }

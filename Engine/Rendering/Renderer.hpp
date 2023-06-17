@@ -60,8 +60,8 @@ private:
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateDescriptorSet(DescriptorSet* descriptorSet);
 	static bool							CreateShaderState(ShaderState* shaderState, const ShaderStateCreation& info);
-	static bool							CreateRenderPass(RenderPass* renderPass);
-	static bool							CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const String& cachePath);
+	static bool							CreateRenderPass(Renderpass* renderpass);
+	static bool							CreatePipeline(Pipeline* pipeline, Renderpass* renderpass, const String& cachePath);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
@@ -69,13 +69,13 @@ private:
 	static void							DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout);
 	static void							DestroyDescriptorSetInstant(DescriptorSet* set);
 	static void							DestroyShaderStateInstant(ShaderState* shader);
-	static void							DestroyRenderPassInstant(RenderPass* renderPass);
+	static void							DestroyRenderPassInstant(Renderpass* renderpass);
 	static void							DestroyPipelineInstant(Pipeline* pipeline);
 	static void							DestroyRenderTarget(RenderTarget& target);
 
 	static void							UpdateDescriptorSet(DescriptorSet* descriptorSet);
 	static void							UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
-	static void							ResizeOutputTextures(RenderPass* renderPass, U32 width, U32 height);
+	static void							ResizeOutputTextures(Renderpass* renderpass, U32 width, U32 height);
 
 	static bool							IsDepthStencil(VkFormat value);
 	static bool							IsDepthOnly(VkFormat value);
@@ -120,10 +120,14 @@ private:
 	static bool												rayTracingPresent;
 
 	// WINDOW
-	static RenderPassOutput						swapchainOutput;
-	static RenderPass*							offscreenPass;
-	static RenderPass*							filterPass;
+	static RenderpassOutput						swapchainOutput;
+	static Renderpass*							offscreenPass;
+	static Renderpass*							filterPass;
+	static Renderpass*							bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
+	static U8									bloomPassCount;
+	static Program*								offscreen;
 	static Program*								postProcessing;
+	static Program*								bloom;
 	static U32									imageIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;
@@ -170,5 +174,4 @@ private:
 	friend struct CommandBuffer;
 	friend struct Swapchain;
 	friend struct Scene; //TODO: temp
-	friend struct Program; //TODO: temp
 };

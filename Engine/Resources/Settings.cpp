@@ -64,6 +64,7 @@ const F64& Settings::TargetFrametime() { return data.targetFrametime; }
 const F64& Settings::TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
 const U8& Settings::MsaaCount() { return data.msaaCount; }
 const bool& Settings::VSync() { return data.vSync; }
+const bool& Settings::Bloom() { return data.bloom; }
 
 //PLATFORM
 const U32& Settings::Dpi() { return data.dpi; }

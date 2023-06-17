@@ -289,12 +289,12 @@ struct ShaderState
 	VertexAttribute					vertexAttributes[MAX_VERTEX_ATTRIBUTES];
 };
 
-struct RenderPassOutput
+struct RenderpassOutput
 {
-	RenderPassOutput& Reset();
-	RenderPassOutput& Color(VkFormat format);
-	RenderPassOutput& Depth(VkFormat format);
-	RenderPassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	RenderpassOutput& Reset();
+	RenderpassOutput& Color(VkFormat format);
+	RenderpassOutput& Depth(VkFormat format);
+	RenderpassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 
 	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS]{ VK_FORMAT_UNDEFINED };
 	VkFormat			depthStencilFormat{ VK_FORMAT_UNDEFINED };
@@ -324,7 +324,7 @@ struct RenderTarget
 	bool swapchainTarget{ false };
 };
 
-struct RenderPass
+struct Renderpass
 {
 	void Destroy() { name.Destroy(); }
 
@@ -332,7 +332,7 @@ struct RenderPass
 	HashHandle			handle;
 
 	Sampler* sampler{ nullptr };
-	VkRenderPass		renderPass{ nullptr };
+	VkRenderPass		renderpass{ nullptr };
 	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{};
 
 	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
@@ -341,8 +341,8 @@ struct RenderPass
 	U8					clearCount{ 0 };
 	Viewport			viewport;
 
-	RenderPassOutput	output{};
-	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
+	RenderpassOutput	output{};
+	RenderpassType		type{ RENDERPASS_TYPE_GEOMETRY };
 
 	U16					width{ 0 };
 	U16					height{ 0 };
@@ -353,6 +353,9 @@ struct Pipeline
 {
 	void Destroy() { name.Destroy(); }
 
+	void AddTargetInput(const RenderTarget& target);
+	void AddBufferInput(Buffer* buffer);
+
 	String					name{ NO_INIT };
 	HashHandle				handle;
 
@@ -362,11 +365,16 @@ struct Pipeline
 	VkPipelineBindPoint		bindPoint{ VK_PIPELINE_BIND_POINT_GRAPHICS };
 
 	ShaderState* shaderState{ nullptr };
-	RenderPass* renderPass{ nullptr };
+	Renderpass* renderpass{ nullptr };
 
 	DescriptorSet* descriptorSet[MAX_SWAPCHAIN_IMAGES];
 	DescriptorSetLayout* descriptorSetLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 	U32						activeLayoutCount{ 0 };
+
+	RenderTarget			targetInputs[8];
+	U8						targetInputCount{ 0 };
+	Buffer*					bufferInputs[8];
+	U8						bufferInputCount{ 0 };
 
 	Rasterization			rasterization{};
 	DepthStencil			depthStencil{};
@@ -376,18 +384,24 @@ struct Pipeline
 	bool					graphicsPipeline{ true };
 };
 
+struct Mesh;
+
 struct Program
 {
 	void Destroy() { name.Destroy(); }
 
-	void RunPrePasses();
+	void RunPrePasses(CommandBuffer* commands);
 	void RunPostPasses(CommandBuffer* commands);
+	void DrawMesh(const Mesh& mesh, CommandBuffer* commands, Buffer* constantBuffer);
 
 	String		name{ NO_INIT };
+	Pipeline* geometryPass;
 	Pipeline* prePasses[MAX_PROGRAM_PASSES];
 	Pipeline* postPasses[MAX_PROGRAM_PASSES];
 	U8			prePassCount;
 	U8			postPassCount;
+
+	static Renderpass* prevRenderpass;
 };
 
 struct DescriptorSetCreation
@@ -421,13 +435,13 @@ struct RenderPassCreation
 	RenderPassCreation& AddRenderTarget(const RenderTarget& target);
 	RenderPassCreation& SetDepthStencilTexture(const RenderTarget& target);
 	RenderPassCreation& SetName(const String& name);
-	RenderPassCreation& SetType(RenderPassType type);
+	RenderPassCreation& SetType(RenderpassType type);
 	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
 
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
-	RenderPassType		type{ RENDER_PASS_TYPE_GEOMETRY };
+	RenderpassType		type{ RENDERPASS_TYPE_GEOMETRY };
 
 	RenderTarget		outputTextures[MAX_IMAGE_OUTPUTS]{};
 	RenderTarget		depthStencilTexture{};
@@ -444,6 +458,7 @@ struct RenderPassCreation
 struct PipelineCreation
 {
 	void Destroy() { name.Destroy(); }
+	PipelineCreation& Reset();
 
 	PipelineCreation& AddBlendState(const BlendState& blendState);
 	BlendState& AddBlendState();
@@ -455,12 +470,11 @@ struct PipelineCreation
 	BlendState			blendStates[MAX_IMAGE_OUTPUTS];
 	U8					blendStateCount{ 0 };
 
+	Renderpass* renderpass{ nullptr };
 	SpecializationData	specializationData[MAX_SPECIALIZATION_CONSTANTS]{};
 	U32					specializationCount{ 0 };
 
-	RenderPass* renderPass{ nullptr };
-
-	String						name{ NO_INIT };
+	String				name{ NO_INIT };
 };
 
 struct ProgramCreation
@@ -469,13 +483,15 @@ struct ProgramCreation
 	ProgramCreation& Reset();
 
 	ProgramCreation& SetName(const String& name);
-	ProgramCreation& AddPrePass(const PipelineCreation& pass);
-	ProgramCreation& AddPostPass(const PipelineCreation& pass);
+	ProgramCreation& SetGeometry(Pipeline* pass);
+	ProgramCreation& AddPrePass(Pipeline* pass);
+	ProgramCreation& AddPostPass(Pipeline* pass);
 
 	String				name{ NO_INIT };
 
-	PipelineCreation	prePasses[MAX_PROGRAM_PASSES];
-	PipelineCreation	postPasses[MAX_PROGRAM_PASSES];
+	Pipeline* geometryPass;
+	Pipeline* prePasses[MAX_PROGRAM_PASSES];
+	Pipeline* postPasses[MAX_PROGRAM_PASSES];
 	U8					prePassCount;
 	U8					postPassCount;
 };
@@ -492,7 +508,6 @@ struct MaterialCreation
 	Program* program{ nullptr };
 	String		name{ NO_INIT };
 	U32			renderIndex{ U32_MAX };
-
 };
 
 struct Material
@@ -529,6 +544,7 @@ struct MeshData
 	F32			unused[3];
 	U32			flags;
 };
+
 
 struct NH_API Mesh
 {

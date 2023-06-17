@@ -1,5 +1,6 @@
 #include "Resources.hpp"
 
+#include "Settings.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
@@ -56,6 +57,7 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
+Renderpass* Resources::defaultRenderpass;
 Material* Resources::materialNoCullOpaque;
 Material* Resources::materialCullOpaque;
 Material* Resources::materialNoCullTransparent;
@@ -67,7 +69,7 @@ Hashmap<String, Buffer>					Resources::buffers{ 4096, {} };
 Hashmap<String, DescriptorSetLayout>	Resources::descriptorSetLayouts{ 128, {} };
 Hashmap<String, DescriptorSet>			Resources::descriptorSets{ 256, {} };
 Hashmap<String, ShaderState>			Resources::shaders{ 128, {} };
-Hashmap<String, RenderPass>				Resources::renderPasses{ 256, {} };
+Hashmap<String, Renderpass>				Resources::renderPasses{ 256, {} };
 Hashmap<String, Pipeline>				Resources::pipelines{ 128, {} };
 Hashmap<String, Program>				Resources::programs{ 128, {} };
 Hashmap<String, Material>				Resources::materials{ 128, {} };
@@ -104,7 +106,7 @@ bool Resources::Initialize()
 	dummyAttributeBuffer = Resources::CreateBuffer(dummyAttributeBufferInfo);
 
 	PipelineCreation pipelineCreation{};
-	pipelineCreation.renderPass = Renderer::offscreenPass;
+	pipelineCreation.renderpass = Renderer::offscreenPass;
 	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 	pipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 	pipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
@@ -112,14 +114,19 @@ bool Resources::Initialize()
 	pipelineCreation.rasterization = {};
 	pipelineCreation.name = "shaders/PBR_no_cull";
 
+	Pipeline* pipeline = CreatePipeline(pipelineCreation);
+
 	ProgramCreation programCreation{};
-	programCreation.SetName("PBR_no_cull").AddPrePass(pipelineCreation);
+	programCreation.SetName("PBR_no_cull").SetGeometry(pipeline);
 
 	Program* programNoCull = Resources::CreateProgram(programCreation);
 
 	pipelineCreation.rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
 	pipelineCreation.name = "shaders/PBR_cull";
-	programCreation.Reset().SetName("PBR_cull").AddPrePass(pipelineCreation);
+
+	pipeline = CreatePipeline(pipelineCreation);
+
+	programCreation.Reset().SetName("PBR_cull").SetGeometry(pipeline);
 	Program* programCull = Resources::CreateProgram(programCreation);
 
 	MaterialCreation materialCreation{};
@@ -146,6 +153,15 @@ void Resources::CreateDefaults()
 	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
 	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
+
+	RenderPassCreation renderPassInfo{};
+	renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName("DefaultRenderpass");
+	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
+	renderPassInfo.width = Settings::WindowWidth();
+	renderPassInfo.height = Settings::WindowHeight();
+	renderPassInfo.sampler = defaultSampler;
+
+	defaultRenderpass = Resources::CreateRenderPass(renderPassInfo);
 }
 
 void Resources::Shutdown()
@@ -170,14 +186,14 @@ void Resources::Shutdown()
 	Hashmap<String, ShaderState>::Iterator end5 = shaders.end();
 	for (auto it = shaders.begin(); it != end5; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_SHADER_STATE, it->handle }); } }
 
-	Hashmap<String, RenderPass>::Iterator end6 = renderPasses.end();
+	Hashmap<String, Renderpass>::Iterator end6 = renderPasses.end();
 	for (auto it = renderPasses.begin(); it != end6; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_RENDER_PASS, it->handle }); } }
 
 	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
 	for (auto it = pipelines.begin(); it != end7; ++it) { if (it.Valid()) { resourceDeletionQueue.Push({ RESOURCE_UPDATE_TYPE_PIPELINE, it->handle }); } }
 
 	Hashmap<String, Program>::Iterator end8 = programs.end();
-	for (auto it = programs.begin(); it != end8; ++it) {  }
+	for (auto it = programs.begin(); it != end8; ++it) {}
 
 	Hashmap<String, Material>::Iterator end9 = materials.end();
 	for (auto it = materials.begin(); it != end9; ++it) {}
@@ -901,36 +917,36 @@ ShaderState* Resources::CreateShaderState(const ShaderStateCreation& info)
 	return shaderState;
 }
 
-RenderPass* Resources::CreateRenderPass(const RenderPassCreation& info)
+Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 {
-	RenderPass* renderPass = &renderPasses.Request(info.name);
+	Renderpass* renderpass = &renderPasses.Request(info.name);
 
-	if (!renderPass->name.Blank()) { return renderPass; }
+	if (!renderpass->name.Blank()) { return renderpass; }
 
-	renderPass->name = info.name;
-	renderPass->type = info.type;
-	renderPass->width = info.width;
-	renderPass->height = info.height;
-	renderPass->renderPass = nullptr;
-	renderPass->renderTargetCount = (U8)info.renderTargetCount;
-	renderPass->outputDepth = info.depthStencilTexture;
-	renderPass->sampler = info.sampler ? info.sampler : defaultSampler;
-	renderPass->handle = renderPasses.GetHandle(info.name);
-	renderPass->output.colorOperation = info.colorOperation;
-	renderPass->output.depthOperation = info.depthOperation;
-	renderPass->output.stencilOperation = info.stencilOperation;
-	renderPass->output.depthStencilFormat = info.depthStencilTexture.format;
-	renderPass->output.colorFormatCount = info.renderTargetCount;
+	renderpass->name = info.name;
+	renderpass->type = info.type;
+	renderpass->width = info.width;
+	renderpass->height = info.height;
+	renderpass->renderpass = nullptr;
+	renderpass->renderTargetCount = (U8)info.renderTargetCount;
+	renderpass->outputDepth = info.depthStencilTexture;
+	renderpass->sampler = info.sampler ? info.sampler : defaultSampler;
+	renderpass->handle = renderPasses.GetHandle(info.name);
+	renderpass->output.colorOperation = info.colorOperation;
+	renderpass->output.depthOperation = info.depthOperation;
+	renderpass->output.stencilOperation = info.stencilOperation;
+	renderpass->output.depthStencilFormat = info.depthStencilTexture.format;
+	renderpass->output.colorFormatCount = info.renderTargetCount;
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
-		renderPass->outputTextures[i] = info.outputTextures[i];
-		renderPass->output.colorFormats[i] = info.outputTextures[i].format;
+		renderpass->outputTextures[i] = info.outputTextures[i];
+		renderpass->output.colorFormats[i] = info.outputTextures[i].format;
 	}
 
-	Renderer::CreateRenderPass(renderPass);
+	Renderer::CreateRenderPass(renderpass);
 
-	return renderPass;
+	return renderpass;
 }
 
 Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
@@ -946,7 +962,7 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 	pipeline->graphicsPipeline = true;
 	pipeline->handle = pipelines.GetHandle(info.name);
 	pipeline->blendStateCount = info.blendStateCount;
-	pipeline->renderPass = info.renderPass;
+	pipeline->renderpass = info.renderpass;
 
 	for (U8 i = 0; i < info.specializationCount; ++i) { pipeline->shaderState->SetSpecializationData(info.specializationData[i]); }
 
@@ -954,7 +970,7 @@ Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
 
 	String cachePath("{}.cache", info.name);
 
-	Renderer::CreatePipeline(pipeline, info.renderPass, cachePath);
+	Renderer::CreatePipeline(pipeline, info.renderpass, cachePath);
 
 	return pipeline;
 }
@@ -968,9 +984,10 @@ Program* Resources::CreateProgram(const ProgramCreation& info)
 	program->name = info.name;
 	program->prePassCount = info.prePassCount;
 	program->postPassCount = info.postPassCount;
+	program->geometryPass = info.geometryPass;
 
-	for (U32 i = 0; i < info.prePassCount; ++i) { program->prePasses[i] = CreatePipeline(info.prePasses[i]); }
-	for (U32 i = 0; i < info.postPassCount; ++i) { program->postPasses[i] = CreatePipeline(info.postPasses[i]); }
+	for (U32 i = 0; i < info.prePassCount; ++i) { program->prePasses[i] = info.prePasses[i]; }
+	for (U32 i = 0; i < info.postPassCount; ++i) { program->postPasses[i] = info.postPasses[i]; }
 
 	return program;
 }
@@ -1019,7 +1036,7 @@ Scene* Resources::LoadScene(const String& name)
 		U32 bufferLength = 0;
 		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-		for(U32 i = 0; i < bufferCount; ++i)
+		for (U32 i = 0; i < bufferCount; ++i)
 		{
 			file.ReadString(str);
 
@@ -1075,16 +1092,16 @@ Scene* Resources::LoadScene(const String& name)
 		file.Read(rotation.x);
 		file.Read(rotation.y);
 		file.Read(rotation.z);
-		
+
 		scene->camera.SetPosition(position);
 		scene->camera.SetRotation(rotation);
-		
+
 		if (perspective)
 		{
 			F32 fov, aspect;
 			file.Read(fov);
 			file.Read(aspect);
-		
+
 			scene->camera.SetPerspective(near, far, fov, aspect);
 		}
 		else
@@ -1093,7 +1110,7 @@ Scene* Resources::LoadScene(const String& name)
 			file.Read(width);
 			file.Read(height);
 			file.Read(zoom);
-		
+
 			scene->camera.SetOrthograpic(near, far, width, height, zoom);
 		}
 
@@ -1307,6 +1324,11 @@ Sampler* Resources::AccessDefaultSampler()
 	return defaultSampler;
 }
 
+Renderpass* Resources::AccessDefaultRenderpass()
+{
+	return defaultRenderpass;
+}
+
 Material* Resources::AccessDefaultMaterial(bool transparent, bool culling)
 {
 	if (transparent)
@@ -1366,11 +1388,11 @@ ShaderState* Resources::AccessShaderState(const String& name)
 	return nullptr;
 }
 
-RenderPass* Resources::AccessRenderPass(const String& name)
+Renderpass* Resources::AccessRenderPass(const String& name)
 {
-	RenderPass* renderPass = &renderPasses.Request(name);
+	Renderpass* renderpass = &renderPasses.Request(name);
 
-	if (!renderPass->name.Blank()) { return renderPass; }
+	if (!renderpass->name.Blank()) { return renderpass; }
 
 	return nullptr;
 }
@@ -1409,7 +1431,7 @@ ShaderState* Resources::AccessShaderState(HashHandle handle)
 	return &shaders.Obtain(handle);
 }
 
-RenderPass* Resources::AccessRenderPass(HashHandle handle)
+Renderpass* Resources::AccessRenderPass(HashHandle handle)
 {
 	return &renderPasses.Obtain(handle);
 }
@@ -1527,9 +1549,9 @@ void Resources::DestroyShaderState(ShaderState* shader)
 	}
 }
 
-void Resources::DestroyRenderPass(RenderPass* renderPass)
+void Resources::DestroyRenderPass(Renderpass* renderpass)
 {
-	HashHandle handle = renderPasses.GetHandle(renderPass->name);
+	HashHandle handle = renderPasses.GetHandle(renderpass->name);
 
 	if (handle != U64_MAX)
 	{
@@ -1541,7 +1563,7 @@ void Resources::DestroyRenderPass(RenderPass* renderPass)
 	}
 	else
 	{
-		Logger::Error("Resource '{}' doesn't exist!", renderPass->name);
+		Logger::Error("Resource '{}' doesn't exist!", renderpass->name);
 	}
 }
 
@@ -1848,7 +1870,7 @@ void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* sh
 				if (stage == SpvExecutionModelVertex || stage == SpvExecutionModelKernel)
 				{
 					Id& type = ids[ids[id.typeIndex].typeIndex];
-					
+
 					VertexAttribute attribute{};
 					attribute.binding = id.location;
 					attribute.location = id.location;

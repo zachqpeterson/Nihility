@@ -57,7 +57,7 @@ static constexpr CSTR layers[]{
 
 static constexpr CSTR deviceExtensions[]{
 	"VK_KHR_swapchain",
-	//	"VK_KHR_dynamic_rendering",
+	"VK_KHR_dynamic_rendering",
 };
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
@@ -112,10 +112,13 @@ VkPhysicalDeviceAccelerationStructureFeaturesKHR	Renderer::accelerationStructure
 bool												Renderer::rayTracingPresent{ false };
 
 // WINDOW
-RenderPassOutput					Renderer::swapchainOutput;
-RenderPass* Renderer::offscreenPass;
-RenderPass* Renderer::filterPass;
-Program* Renderer::postProcessing;
+RenderpassOutput					Renderer::swapchainOutput;
+Renderpass*							Renderer::offscreenPass;
+Renderpass*							Renderer::filterPass;
+Renderpass*							Renderer::bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
+U8									Renderer::bloomPassCount;
+Program*							Renderer::postProcessing;
+Program*							Renderer::bloom;
 U32									Renderer::imageIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
@@ -371,6 +374,11 @@ bool Renderer::CreateDevice()
 	VkPhysicalDeviceFeatures2 physicalFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 
+	//TODO: Setup dynamic rendering
+	//VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeaturesKHR{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
+	//dynamicRenderingFeaturesKHR.dynamicRendering = VK_TRUE;
+	//physicalFeatures2.pNext = &dynamicRenderingFeaturesKHR;
+
 	bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
 	if (bindlessSupported) { physicalFeatures2.pNext = &indexingFeatures; }
 
@@ -561,15 +569,15 @@ bool Renderer::CreatePostProcessing()
 	Sampler* renderpassSampler = Resources::CreateSampler(samplerInfo);
 
 	RenderTargetCreation rtInfo{};
-	rtInfo.name = "OffscreenAlbedo";
+	rtInfo.name = "OffscreenColor";
 	rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 	rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	rtInfo.width = Settings::WindowWidth();
 	rtInfo.height = Settings::WindowHeight();
-	RenderTarget offscreenAlbedo = Renderer::CreateRenderTarget(rtInfo);
+	RenderTarget offscreenColor = Renderer::CreateRenderTarget(rtInfo);
 
-	rtInfo.name = "OffscreenHighlights";
-	RenderTarget offscreenHighlights = Renderer::CreateRenderTarget(rtInfo);
+	rtInfo.name = "OffscreenHighlight";
+	RenderTarget offscreenHighlight = Renderer::CreateRenderTarget(rtInfo);
 
 	rtInfo.name = "OffscreenDepth";
 	rtInfo.format = VK_FORMAT_D32_SFLOAT;
@@ -577,55 +585,108 @@ bool Renderer::CreatePostProcessing()
 	RenderTarget offscreenDepth = Renderer::CreateRenderTarget(rtInfo);
 
 	RenderPassCreation renderPassInfo{};
-	renderPassInfo.SetType(RENDER_PASS_TYPE_GEOMETRY).SetName("OffscreenPass");
+	renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName("OffscreenPass");
 	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
 	renderPassInfo.width = Settings::WindowWidth();
 	renderPassInfo.height = Settings::WindowHeight();
-	renderPassInfo.AddRenderTarget(offscreenAlbedo);
-	renderPassInfo.AddRenderTarget(offscreenHighlights);
+	renderPassInfo.AddRenderTarget(offscreenColor);
+	renderPassInfo.AddRenderTarget(offscreenHighlight);
 	renderPassInfo.SetDepthStencilTexture(offscreenDepth);
 	renderPassInfo.sampler = renderpassSampler;
 
 	offscreenPass = Resources::CreateRenderPass(renderPassInfo);
 
-	rtInfo.name = "FilterColor";
-	rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	RenderTarget filterColor = Renderer::CreateRenderTarget(rtInfo);
+	bloomPassCount = 8;
+	U16 width = Settings::WindowWidth();
+	U16 height = Settings::WindowHeight();
 
-	renderPassInfo.Reset().SetType(RENDER_PASS_TYPE_GEOMETRY).SetName("FilterPass");
-	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	renderPassInfo.width = Settings::WindowWidth();
-	renderPassInfo.height = Settings::WindowHeight();
-	renderPassInfo.AddRenderTarget(filterColor);
-	renderPassInfo.sampler = renderpassSampler;
+	PipelineCreation bloomPipelineCreation{};
+	bloomPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
+	bloomPipelineCreation.AddBlendState();
+	bloomPipelineCreation.shaders.SetName("BloomDownsample").AddStage("shaders/Bloom.vert", VK_SHADER_STAGE_VERTEX_BIT).
+		AddStage("shaders/BloomDownsample.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	bloomPipelineCreation.rasterization = {};
 
-	filterPass = Resources::CreateRenderPass(renderPassInfo);
+	ProgramCreation bloomCreation{};
+	bloomCreation.SetName("Bloom");
+
+	for (U8 i = 0; i < bloomPassCount; ++i)
+	{
+		RenderTargetCreation rtInfo{};
+		rtInfo.name = "BloomColor";
+		rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		rtInfo.width = width;
+		rtInfo.height = height;
+		RenderTarget bloomColor = Renderer::CreateRenderTarget(rtInfo);
+
+		RenderPassCreation renderPassInfo{};
+		renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName({ "BloomPass{}", i });
+		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
+		renderPassInfo.width = width;
+		renderPassInfo.height = height;
+		renderPassInfo.AddRenderTarget(bloomColor);
+		renderPassInfo.sampler = renderpassSampler;
+
+		bloomPasses[i] = Resources::CreateRenderPass(renderPassInfo);
+
+		bloomPipelineCreation.name = { "shaders/BloomDownsample{}", i };
+		bloomPipelineCreation.renderpass = bloomPasses[i];
+
+		Pipeline* bloomDownsample = Resources::CreatePipeline(bloomPipelineCreation);
+
+		if (i == 0) { bloomDownsample->AddTargetInput(offscreenHighlight); }
+
+		bloomCreation.AddPrePass(bloomDownsample);
+
+		width /= 2;
+		height /= 2;
+	}
+
+	bloomPipelineCreation.Reset();
+	bloomPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
+	bloomPipelineCreation.AddBlendState(); //TODO: Not sure if we need blend
+	bloomPipelineCreation.shaders.SetName("BloomUpsample").AddStage("shaders/Bloom.vert", VK_SHADER_STAGE_VERTEX_BIT).
+		AddStage("shaders/BloomUpsample.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	bloomPipelineCreation.rasterization = {};
+
+	for (U8 i = bloomPassCount - 1; i > 0; --i)
+	{
+		Renderpass* pass = bloomPasses[i - 1];
+
+		RenderTargetCreation rtInfo{};
+		rtInfo.name = "BloomColor";
+		rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		rtInfo.width = pass->width;
+		rtInfo.height = pass->height;
+		RenderTarget bloomColor = Renderer::CreateRenderTarget(rtInfo);
+
+		RenderPassCreation renderPassInfo{};
+		renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName({ "BloomPass{}", i + bloomPassCount });
+		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
+		renderPassInfo.width = pass->width;
+		renderPassInfo.height = pass->height;
+		renderPassInfo.AddRenderTarget(bloomColor);
+		renderPassInfo.sampler = renderpassSampler;
+
+		bloomPasses[i + bloomPassCount] = Resources::CreateRenderPass(renderPassInfo);
+
+		bloomPipelineCreation.name = { "shaders/BloomUpsample{}", i + bloomPassCount };
+		bloomPipelineCreation.renderpass = bloomPasses[i + bloomPassCount];
+
+		Pipeline* bloomUpsample = Resources::CreatePipeline(bloomPipelineCreation);
+
+		bloomCreation.AddPostPass(bloomUpsample);
+	}
+
+	bloom = Resources::CreateProgram(bloomCreation);
 
 	ProgramCreation programCreation{};
 	programCreation.SetName("PostProcessing");
 
-	PipelineCreation bloomPipelineCreation{};
-	bloomPipelineCreation.renderPass = filterPass;
-	bloomPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
-	bloomPipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD).
-		SetAlpha(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_DST_ALPHA, VK_BLEND_OP_ADD);
-	bloomPipelineCreation.shaders.SetName("Bloom").AddStage("shaders/Bloom.vert", VK_SHADER_STAGE_VERTEX_BIT).
-		AddStage("shaders/Bloom.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	bloomPipelineCreation.rasterization = {};
-	bloomPipelineCreation.name = "shaders/Bloom1";
-
-	programCreation.AddPostPass(bloomPipelineCreation);
-
-	bloomPipelineCreation.name = "shaders/Bloom0";
-	bloomPipelineCreation.renderPass = Renderer::swapchain.renderPass;
-	U32 dir = 0;
-	bloomPipelineCreation.AddSpecializationData({ 2, 0, dir });
-
-	programCreation.AddPostPass(bloomPipelineCreation);
-
 	PipelineCreation compPipelineCreation{};
-	compPipelineCreation.renderPass = Renderer::swapchain.renderPass;
+	compPipelineCreation.renderpass = Renderer::swapchain.renderpass;
 	compPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
 	compPipelineCreation.AddBlendState();
 	compPipelineCreation.shaders.SetName("Composition").AddStage("shaders/Composition.vert", VK_SHADER_STAGE_VERTEX_BIT).
@@ -633,8 +694,12 @@ bool Renderer::CreatePostProcessing()
 	compPipelineCreation.rasterization = {};
 	compPipelineCreation.name = "shaders/Composition";
 
-	programCreation.AddPostPass(compPipelineCreation);
+	Pipeline* compPipeline = Resources::CreatePipeline(compPipelineCreation);
+	compPipeline->AddTargetInput(offscreenColor);
 
+	programCreation.AddPostPass(compPipeline);
+
+	//TODO: Add color correction
 	postProcessing = Resources::CreateProgram(programCreation);
 
 	return true;
@@ -678,11 +743,15 @@ void Renderer::EndFrame()
 {
 	CommandBuffer* commands = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	//Passes
+	//TODO: Color Correction
+
+	if (Settings::Bloom())
+	{
+		bloom->RunPrePasses(commands);
+		bloom->RunPostPasses(commands);
+	}
 
 	postProcessing->RunPostPasses(commands);
-
-	//TODO: Color correction
 
 	//TODO: UI
 
@@ -711,7 +780,7 @@ void Renderer::EndFrame()
 		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
 
 		//TODO: Check if commandBuffer recorded commands
-		if (commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDER_PASS_TYPE_COMPUTE))
+		if (commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDERPASS_TYPE_COMPUTE))
 		{
 			vkCmdEndRenderPass(commandBuffer->commandBuffer);
 		}
@@ -1532,23 +1601,23 @@ bool Renderer::CreateDescriptorSet(DescriptorSet* descriptorSet)
 	return true;
 }
 
-bool Renderer::CreateRenderPass(RenderPass* renderPass)
+bool Renderer::CreateRenderPass(Renderpass* renderpass)
 {
-	if (renderPass->type == RENDER_PASS_TYPE_COMPUTE)
+	if (renderpass->type == RENDERPASS_TYPE_COMPUTE)
 	{
 		Logger::Error("Compute RenderPasses Are Not Yet Supported!");
 		return false;
 	}
 
-	for (U32 i = 0; i < renderPass->renderTargetCount; ++i) { renderPass->output.Color(renderPass->outputTextures[i].format); }
-	if (renderPass->outputDepth.image) { renderPass->output.Depth(renderPass->outputDepth.format); }
+	for (U32 i = 0; i < renderpass->renderTargetCount; ++i) { renderpass->output.Color(renderpass->outputTextures[i].format); }
+	if (renderpass->outputDepth.image) { renderpass->output.Depth(renderpass->outputDepth.format); }
 
 	VkAttachmentLoadOp colorOp, depthOp, stencilOp;
 	VkImageLayout colorInitial, depthInitial;
 
 	//TODO: Store VkAttachmentLoadOp instead of RenderPassOperation
 	//TODO: Check if this is first pass/last pass
-	switch (renderPass->output.colorOperation)
+	switch (renderpass->output.colorOperation)
 	{
 	case RENDER_PASS_OP_LOAD: { colorOp = VK_ATTACHMENT_LOAD_OP_LOAD; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
 	case RENDER_PASS_OP_CLEAR: { colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
@@ -1556,7 +1625,7 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 	default: { colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; colorInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
 	}
 
-	switch (renderPass->output.depthOperation)
+	switch (renderpass->output.depthOperation)
 	{
 	case RENDER_PASS_OP_LOAD: { depthOp = VK_ATTACHMENT_LOAD_OP_LOAD; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
 	case RENDER_PASS_OP_CLEAR: { depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
@@ -1564,7 +1633,7 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 	default: { depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; depthInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
 	}
 
-	switch (renderPass->output.stencilOperation)
+	switch (renderpass->output.stencilOperation)
 	{
 	case RENDER_PASS_OP_LOAD: { stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD; } break;
 	case RENDER_PASS_OP_CLEAR: { stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR; } break;
@@ -1580,10 +1649,10 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 	U32 attachmentCount = 0;
-	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
 	{
 		attachments[attachmentCount].flags = 0;
-		attachments[attachmentCount].format = renderPass->outputTextures[0].format;
+		attachments[attachmentCount].format = renderpass->outputTextures[0].format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[attachmentCount].loadOp = colorOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1595,17 +1664,17 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 		colorAttachments[attachmentCount].attachment = attachmentCount;
 		colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		renderPass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f }; //TODO: Pass in clear values
-		++renderPass->clearCount;
+		renderpass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f }; //TODO: Pass in clear values
+		++renderpass->clearCount;
 
 		++attachmentCount;
 	}
 	else
 	{
-		for (U32 i = 0; i < renderPass->renderTargetCount; ++i)
+		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
 			attachments[attachmentCount].flags = 0;
-			attachments[attachmentCount].format = renderPass->outputTextures[i].format;
+			attachments[attachmentCount].format = renderpass->outputTextures[i].format;
 			attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
 			attachments[attachmentCount].loadOp = colorOp;
 			attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1617,9 +1686,8 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 			colorAttachments[attachmentCount].attachment = attachmentCount;
 			colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-			//TODO: make black
-			renderPass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f }; //TODO: Pass in clear values
-			++renderPass->clearCount;
+			renderpass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f }; //TODO: Pass in clear values
+			++renderpass->clearCount;
 
 			++attachmentCount;
 		}
@@ -1628,10 +1696,10 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 	subpass.colorAttachmentCount = attachmentCount;
 	subpass.pColorAttachments = colorAttachments;
 
-	if (renderPass->outputDepth.image)
+	if (renderpass->outputDepth.image)
 	{
 		attachments[attachmentCount].flags = 0;
-		attachments[attachmentCount].format = renderPass->outputDepth.format;
+		attachments[attachmentCount].format = renderpass->outputDepth.format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[attachmentCount].loadOp = depthOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1643,8 +1711,8 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 		depthAttachment.attachment = attachmentCount;
 		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		renderPass->clears[attachmentCount].depthStencil = { 1.0f, 0 }; //TODO: Pass in clear values
-		++renderPass->clearCount;
+		renderpass->clears[attachmentCount].depthStencil = { 1.0f, 0 }; //TODO: Pass in clear values
+		++renderpass->clearCount;
 
 		subpass.pDepthStencilAttachment = &depthAttachment;
 
@@ -1658,7 +1726,7 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 	renderPassInfo.pSubpasses = &subpass;
 
 	//TODO: This is hardcoded
-	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
 	{
 		VkSubpassDependency dependencies[2]{};
 
@@ -1703,70 +1771,70 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 		renderPassInfo.pDependencies = dependencies;
 	}
 
-	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderPass->renderPass));
+	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
 
-	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderPass->renderPass, renderPass->name);
+	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderpass->renderpass, renderpass->name);
 
-	renderPass->viewport.viewportCount = 0;
-	renderPass->viewport.scissorCount = 0;
+	renderpass->viewport.viewportCount = 0;
+	renderpass->viewport.scissorCount = 0;
 
 	//TODO: Pass in Viewport info
 	VkViewport viewport{};
 	viewport.x = 0.0f;
-	viewport.width = renderPass->width;
-	viewport.y = renderPass->height;
-	viewport.height = -renderPass->height;
+	viewport.width = renderpass->width;
+	viewport.y = renderpass->height;
+	viewport.height = -renderpass->height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
-	renderPass->viewport.viewports[0] = viewport;
-	++renderPass->viewport.viewportCount;
+	renderpass->viewport.viewports[0] = viewport;
+	++renderpass->viewport.viewportCount;
 
 	VkRect2D scissor{};
 	scissor.offset.x = 0;
 	scissor.offset.y = 0;
-	scissor.extent.width = renderPass->width;
-	scissor.extent.height = renderPass->height;
-	renderPass->viewport.scissors[0] = scissor;
-	++renderPass->viewport.scissorCount;
+	scissor.extent.width = renderpass->width;
+	scissor.extent.height = renderpass->height;
+	renderpass->viewport.scissors[0] = scissor;
+	++renderpass->viewport.scissorCount;
 
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-	framebufferInfo.renderPass = renderPass->renderPass;
+	framebufferInfo.renderPass = renderpass->renderpass;
 	framebufferInfo.attachmentCount = attachmentCount;
-	framebufferInfo.width = renderPass->width;
-	framebufferInfo.height = renderPass->height;
+	framebufferInfo.width = renderpass->width;
+	framebufferInfo.height = renderpass->height;
 	framebufferInfo.layers = 1;
 
 	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
 
-	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
 	{
-		framebufferAttachments[1] = renderPass->outputDepth.imageView;
+		framebufferAttachments[1] = renderpass->outputDepth.imageView;
 
 		for (U64 i = 0; i < swapchain.imageCount; i++)
 		{
-			framebufferAttachments[0] = renderPass->outputTextures[i].imageView;
+			framebufferAttachments[0] = renderpass->outputTextures[i].imageView;
 			framebufferInfo.pAttachments = framebufferAttachments;
 
-			vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderPass->frameBuffers[i]);
-			SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[i], renderPass->name);
+			vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffers[i]);
+			SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderpass->frameBuffers[i], renderpass->name);
 		}
 	}
 	else
 	{
 		attachmentCount = 0;
-		for (U32 i = 0; i < renderPass->renderTargetCount; ++i)
+		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
-			framebufferAttachments[attachmentCount++] = renderPass->outputTextures[i].imageView;
+			framebufferAttachments[attachmentCount++] = renderpass->outputTextures[i].imageView;
 		}
 
-		framebufferAttachments[attachmentCount] = renderPass->outputDepth.imageView;
+		framebufferAttachments[attachmentCount] = renderpass->outputDepth.imageView;
 		framebufferInfo.pAttachments = framebufferAttachments;
 
-		vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderPass->frameBuffers[0]);
-		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderPass->frameBuffers[0], renderPass->name);
+		vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffers[0]);
+		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderpass->frameBuffers[0], renderpass->name);
 	}
 
-	if (renderPass->type == RENDER_PASS_TYPE_SWAPCHAIN)
+	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
 	{
 		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -1785,11 +1853,11 @@ bool Renderer::CreateRenderPass(RenderPass* renderPass)
 		region.imageSubresource.layerCount = 1;
 
 		region.imageOffset = { 0, 0, 0 };
-		region.imageExtent = { renderPass->width, renderPass->height, 1 };
+		region.imageExtent = { renderpass->width, renderpass->height, 1 };
 
 		for (U64 i = 0; i < swapchain.imageCount; ++i)
 		{
-			AddImageBarrier(commandBuffer->commandBuffer, renderPass->outputTextures[i].image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
+			AddImageBarrier(commandBuffer->commandBuffer, renderpass->outputTextures[i].image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
 		}
 
 		vkEndCommandBuffer(commandBuffer->commandBuffer);
@@ -1864,7 +1932,7 @@ bool Renderer::CreateShaderState(ShaderState* shaderState, const ShaderStateCrea
 	return true;
 }
 
-bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const String& cachePath)
+bool Renderer::CreatePipeline(Pipeline* pipeline, Renderpass* renderpass, const String& cachePath)
 {
 	VkPipelineCache pipelineCache = nullptr;
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -2071,17 +2139,18 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 
 		pipelineInfo.pTessellationState;
 
+		//TODO: See if this works
 		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (F32)renderPass->width;
-		viewport.height = (F32)renderPass->height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
+		//viewport.x = 0.0f;
+		//viewport.y = 0.0f;
+		//viewport.width = (F32)renderPass->width;
+		//viewport.height = (F32)renderPass->height;
+		//viewport.minDepth = 0.0f;
+		//viewport.maxDepth = 1.0f;
+		
 		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = { renderPass->width, renderPass->height };
+		//scissor.offset = { 0, 0 };
+		//scissor.extent = { renderPass->width, renderPass->height };
 
 		VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 		viewportState.viewportCount = 1;
@@ -2091,14 +2160,22 @@ bool Renderer::CreatePipeline(Pipeline* pipeline, RenderPass* renderPass, const 
 
 		pipelineInfo.pViewportState = &viewportState;
 
-		pipelineInfo.renderPass = renderPass->renderPass;
-
 		VkDynamicState dynamicStates[]{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
 		dynamicState.pDynamicStates = dynamicStates;
 
 		pipelineInfo.pDynamicState = &dynamicState;
+
+		pipelineInfo.renderPass = renderpass->renderpass;
+
+		//TODO: Setup dynamic rendering
+		//VkPipelineRenderingCreateInfoKHR renderingInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+		//renderingInfo.pNext = nullptr;
+		//renderingInfo.viewMask = 0;
+		//renderingInfo.colorAttachmentCount;
+		//renderingInfo.pColorAttachmentFormats;
+		//renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
 		vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineInfo, allocationCallbacks, &pipeline->pipeline);
 
@@ -2184,26 +2261,26 @@ void Renderer::DestroyDescriptorSetInstant(DescriptorSet* set)
 	if (set) { set->Destroy(); }
 }
 
-void Renderer::DestroyRenderPassInstant(RenderPass* renderPass)
+void Renderer::DestroyRenderPassInstant(Renderpass* renderpass)
 {
-	if (renderPass)
+	if (renderpass)
 	{
 		for (U32 i = 0; i < swapchain.imageCount; ++i)
 		{
-			vkDestroyFramebuffer(Renderer::device, renderPass->frameBuffers[i], Renderer::allocationCallbacks);
+			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
-		for (U32 i = 0; i < renderPass->renderTargetCount; ++i)
+		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
-			DestroyRenderTarget(renderPass->outputTextures[i]);
+			DestroyRenderTarget(renderpass->outputTextures[i]);
 		}
 
-		if (renderPass->outputDepth.image)
+		if (renderpass->outputDepth.image)
 		{
-			DestroyRenderTarget(renderPass->outputDepth);
+			DestroyRenderTarget(renderpass->outputDepth);
 		}
 
-		vkDestroyRenderPass(device, renderPass->renderPass, allocationCallbacks);
+		vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks);
 	}
 }
 

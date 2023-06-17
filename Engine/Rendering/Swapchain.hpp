@@ -18,7 +18,7 @@ public:
 	VkSwapchainKHR swapchain{ nullptr };
 	VkSurfaceKHR surface{ nullptr };
 	VkSurfaceFormatKHR surfaceFormat{};
-	RenderPass* renderPass{ nullptr };
+	Renderpass* renderpass{ nullptr };
 	U32 imageCount{ 3 };
 
 private:

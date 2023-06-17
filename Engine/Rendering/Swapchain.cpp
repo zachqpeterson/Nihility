@@ -65,39 +65,28 @@ bool Swapchain::CreateRenderPass()
 {
 	Texture* depthTexture = nullptr;
 
-	if (renderPass)
+	if (renderpass)
 	{
-		renderPass->width = renderPassInfo.width;
-		renderPass->height = renderPassInfo.height;
-		for (U32 i = 0; i < imageCount; ++i) { renderPass->outputTextures[i] = renderPassInfo.outputTextures[i]; }
+		renderpass->width = renderPassInfo.width;
+		renderpass->height = renderPassInfo.height;
+		for (U32 i = 0; i < imageCount; ++i) { renderpass->outputTextures[i] = renderPassInfo.outputTextures[i]; }
 
-		Renderer::RecreateRenderTarget(renderPass->outputDepth, renderPassInfo.width, renderPassInfo.height);
-
-		vkDestroyRenderPass(Renderer::device, renderPass->renderPass, Renderer::allocationCallbacks);
+		vkDestroyRenderPass(Renderer::device, renderpass->renderpass, Renderer::allocationCallbacks);
 
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			vkDestroyFramebuffer(Renderer::device, renderPass->frameBuffers[i], Renderer::allocationCallbacks);
+			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
-		Renderer::CreateRenderPass(renderPass);
+		Renderer::CreateRenderPass(renderpass);
 	}
 	else
 	{
-		RenderTargetCreation info{};
-		info.name = "SwapchainDepth";
-		info.format = VK_FORMAT_D32_SFLOAT;
-		info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		info.width = renderPassInfo.width;
-		info.height = renderPassInfo.height;
-		RenderTarget depthTarget = Renderer::CreateRenderTarget(info);
-
-		renderPassInfo.SetType(RENDER_PASS_TYPE_SWAPCHAIN).SetName("Swapchain");
+		renderPassInfo.SetType(RENDERPASS_TYPE_SWAPCHAIN).SetName("Swapchain");
 		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
-		renderPassInfo.SetDepthStencilTexture(depthTarget);
-		renderPass = Resources::CreateRenderPass(renderPassInfo);
+		renderpass = Resources::CreateRenderPass(renderPassInfo);
 
-		if (renderPass == nullptr) { return false; }
+		if (renderpass == nullptr) { return false; }
 	}
 
 	return true;
@@ -186,7 +175,7 @@ bool Swapchain::Create()
 	{
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			vkDestroyImageView(Renderer::device, renderPass->outputTextures[i].imageView, Renderer::allocationCallbacks);
+			vkDestroyImageView(Renderer::device, renderpass->outputTextures[i].imageView, Renderer::allocationCallbacks);
 		}
 
 		vkDestroySwapchainKHR(Renderer::device, oldSwapchain, Renderer::allocationCallbacks);
@@ -235,7 +224,7 @@ void Swapchain::Destroy()
 	if (swapchain) { vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks); }
 	if (surface) { vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks); }
 
-	renderPass->Destroy();
+	renderpass->Destroy();
 	renderPassInfo.Destroy();
 	surface = nullptr;
 	swapchain = nullptr;

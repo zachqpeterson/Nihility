@@ -35,6 +35,7 @@ class NH_API Settings
 		F64 targetFrametimeSuspended{ 0.1 };
 		U8 msaaCount{ 1 };
 		bool vSync{ false };
+		bool bloom{ true };
 
 		//PLATFORM
 		U32 dpi{ 0 };
@@ -67,6 +68,7 @@ public:
 	static const F64& TargetFrametimeSuspended();
 	static const U8& MsaaCount();
 	static const bool& VSync();
+	static const bool& Bloom();
 
 	//PLATFORM
 	static const U32& Dpi();

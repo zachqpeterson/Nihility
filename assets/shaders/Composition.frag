@@ -7,7 +7,7 @@ layout (binding = 1) uniform sampler2D samplerColor1;
 
 layout (location = 0) out vec4 outColor;
 
-void main() 
+void main()
 {
-	outColor = texture(samplerColor0, inUV) + texture(samplerColor1, inUV);
+	outColor = mix(texture(samplerColor0, inUV), texture(samplerColor1, inUV), 0.3);
 }
