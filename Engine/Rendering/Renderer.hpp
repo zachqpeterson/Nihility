@@ -9,6 +9,7 @@
 
 struct Timestamp;
 struct TimestampManager;
+struct Scene;
 
 class NH_API Renderer
 {
@@ -21,6 +22,8 @@ public:
 	static void							SetSkybox(Texture* skyboxTexture, Buffer* constantBuffer);
 
 	static U32							GetFrameIndex();
+
+	static void							LoadScene(const String& name);
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -123,6 +126,7 @@ private:
 	static bool									resized;
 
 	// RESOURCES
+	static Scene*								currentScene;
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
 	static CommandBuffer**						queuedCommandBuffers;
@@ -133,7 +137,6 @@ private:
 	static U8*									dynamicMappedMemory;
 	static U64									dynamicAllocatedSize;
 	static U64									dynamicPerFrameSize;
-	static C8									binariesPath[512];
 
 	// TIMING
 	static F32									timestampFrequency;

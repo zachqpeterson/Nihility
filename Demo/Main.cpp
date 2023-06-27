@@ -7,23 +7,21 @@
 #include "Resources\Settings.hpp"
 #include "Core\Time.hpp"
 
-Scene* scene;
-
 bool Init()
 {
-	scene = Resources::LoadScene("scenes/Boombox.scene");
+	Renderer::LoadScene("scenes/Boombox.scene");
 
 	return true;
 }
 
 void Update()
 {
-	scene->Update();
+
 }
 
 void Shutdown()
 {
-	Resources::SaveScene(scene);
+	
 }
 
 int main(int argc, char** argv)

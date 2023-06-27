@@ -12,6 +12,7 @@
 #include "Resources\Resources.hpp"
 #include "Memory\Memory.hpp"
 #include "Pipeline.hpp"
+#include "Resources\Scene.hpp"
 
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_DEBUG_LOG
@@ -139,7 +140,6 @@ Buffer*								Renderer::dynamicBuffer;
 U8*									Renderer::dynamicMappedMemory;
 U64									Renderer::dynamicAllocatedSize;
 U64									Renderer::dynamicPerFrameSize;
-C8									Renderer::binariesPath[512];
 
 // TIMING
 F32									Renderer::timestampFrequency;
@@ -183,6 +183,11 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 void Renderer::Shutdown()
 {
 	Logger::Trace("Cleaning Up Vulkan Renderer...");
+
+	if (currentScene)
+	{
+		Resources::SaveScene(currentScene);
+	}
 
 	vkDeviceWaitIdle(device);
 
@@ -459,15 +464,6 @@ bool Renderer::CreateResources()
 
 	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
 
-#if defined(_MSC_VER)
-	ExpandEnvironmentStringsA("%VULKAN_SDK%", binariesPath, 512);
-	Memory::Copy(binariesPath + Length(binariesPath), "\\Bin\\", 7);
-#else
-	String vulkanEnv(getenv("VULKAN_SDK"));
-	vulkanEnv.Append("/bin/");
-	Memory::Copy(binariesPath + Length(binariesPath), vulkanEnv.Data(), 7);
-#endif
-
 	// TODO: Dynamic buffer handling
 	dynamicPerFrameSize = 1024 * 1024 * 10;
 	BufferCreation bc;
@@ -673,6 +669,10 @@ void Renderer::BeginFrame()
 	CommandBuffer* cb = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true);
 
 	//skybox->RunPrePasses(cb);
+	if (currentScene) //TODO: Default scene?
+	{
+		currentScene->Update();
+	}
 }
 
 void Renderer::EndFrame()
@@ -773,6 +773,17 @@ void Renderer::Resize()
 U32 Renderer::GetFrameIndex()
 {
 	return imageIndex;
+}
+
+void Renderer::LoadScene(const String& name)
+{
+	if (currentScene)
+	{
+		Resources::SaveScene(currentScene);
+		//TODO: Unload scene
+	}
+
+	currentScene = Resources::LoadScene("scenes/Boombox.scene");
 }
 
 void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
