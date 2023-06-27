@@ -19,7 +19,7 @@
 #define VK_USE_PLATFORM_IOS_MVK
 #endif
 
-#include <vulkan\vulkan.h>
+#include "External\Vulkan\vulkan.h"
 
 //#define VK_ADDITIONAL_VALIDATION
 
@@ -262,17 +262,18 @@ struct Texture;
 
 static constexpr U8	MAX_IMAGE_OUTPUTS = 8;				// Maximum number of images/render targets/fbo attachments usable
 static constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;		// Maximum number of layouts in the pipeline
-static constexpr U8	MAX_PROGRAM_PASSES = 8;				// Maximum number of passes in a program pass group
-static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader stages, applicable to all different type of pipelines
 static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;		// Maximum list elements for both descriptor set layout and descriptor sets
+static constexpr U8 MAX_DESCRIPTOR_SETS = 8;
+static constexpr U8 MAX_SPECIALIZATION_CONSTANTS = 8;	// Maximum specialization contants a shader can have
+static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader stages, applicable to all different type of pipelines
+static constexpr U8	MAX_VERTEX_STREAMS = 16;			// Maximum vertex streams a shader can have
+static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;			// Maximum vertex attributes a shader can have
+static constexpr U8	MAX_VERTEX_BUFFERS = 8;
+static constexpr U8	MAX_PROGRAM_PASSES = 8;				// Maximum number of passes in a program pass group
 static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;			// Maximum images a swapchain can support
 static constexpr U8	MAX_VIEWPORTS = 8;					// Maximum viewports a renderpass can have
 static constexpr U8	MAX_BLOOM_PASSES = 8;				// Maximum renderpasses to calculate bloom
 static constexpr U8	MAX_SCISSORS = 8;					// Maximum scissors a renderpass can have
-static constexpr U8	MAX_SET_COUNT = 32;					// Maximum descriptor sets a shader can have
-static constexpr U8	MAX_VERTEX_STREAMS = 16;			// Maximum vertex streams a shader can have
-static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;			// Maximum vertex attributes a shader can have
-static constexpr U8 MAX_SPECIALIZATION_CONSTANTS = 8;	// Maximum specialization contants a shader can have
 
 /*---------ENUMS---------*/
 
@@ -330,22 +331,6 @@ enum DepthWriteMask
 {
 	DEPTH_WRITE_ZERO_MASK = 1 << 0,
 	DEPTH_WRITE_ALL_MASK = 1 << 1
-};
-
-enum FillMode
-{
-	FILL_MODE_WIREFRAME,
-	FILL_MODE_SOLID,
-	FILL_MODE_POINT,
-
-	FILL_MODE_COUNT
-};
-
-enum FillModeMask
-{
-	FILL_MODE_WIREFRAME_MASK = 1 << 0,
-	FILL_MODE_SOLID_MASK = 1 << 1,
-	FILL_MODE_POINT_MASK = 1 << 2
 };
 
 enum StencilOperation
@@ -642,28 +627,6 @@ enum ScalarType
 };
 #pragma endregion
 
-static inline String ToCompilerExtension(VkShaderStageFlagBits value)
-{
-	switch (value)
-	{
-	case VK_SHADER_STAGE_VERTEX_BIT: { return "vert"; }
-	case VK_SHADER_STAGE_FRAGMENT_BIT: { return "frag"; }
-	case VK_SHADER_STAGE_COMPUTE_BIT: { return "comp"; }
-	default: {return ""; }
-	}
-}
-
-static inline String ToStageDefines(VkShaderStageFlagBits value)
-{
-	switch (value)
-	{
-	case VK_SHADER_STAGE_VERTEX_BIT: { return "VERTEX"; }
-	case VK_SHADER_STAGE_FRAGMENT_BIT: { return "FRAGMENT"; }
-	case VK_SHADER_STAGE_COMPUTE_BIT: { return "COMPUTE"; }
-	default: {return ""; }
-	}
-}
-
 static inline VkImageType ToVkImageType(TextureType type)
 {
 	static VkImageType vkTarget[TEXTURE_TYPE_COUNT] = { VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D };
@@ -794,32 +757,13 @@ struct Rect2DInt
 	U16 height = 0;
 };
 
-struct Viewport
-{
-	VkViewport	viewports[MAX_VIEWPORTS];
-	VkRect2D	scissors[MAX_SCISSORS];
-	U8			viewportCount{ 0 };
-	U8			scissorCount{ 0 };
-};
-
-struct StencilOperationState
-{
-	VkStencilOp	fail{ VK_STENCIL_OP_KEEP };
-	VkStencilOp	pass{ VK_STENCIL_OP_KEEP };
-	VkStencilOp	depthFail{ VK_STENCIL_OP_KEEP };
-	VkCompareOp	compare{ VK_COMPARE_OP_ALWAYS };
-	U32			compareMask{ 0xff };
-	U32			writeMask{ 0xff };
-	U32			reference{ 0xff };
-};
-
 struct VertexAttribute
 {
 	U16			location{ 0 };
 	U16			binding{ 0 };
 	U32			offset{ 0 };
 	U32			count{ 0 };
-	ScalarType	format{};
+	VkFormat	format{};
 };
 
 struct VertexStream
@@ -829,62 +773,12 @@ struct VertexStream
 	VertexInputRate	inputRate{ VERTEX_INPUT_RATE_COUNT };
 };
 
-struct DepthStencil
+struct Viewport
 {
-	DepthStencil& SetDepth(bool write, VkCompareOp comparisonTest);
-
-	StencilOperationState	front{};
-	StencilOperationState	back{};
-	VkCompareOp				depthComparison{ VK_COMPARE_OP_ALWAYS };
-
-	bool					depthEnable{ false };
-	bool					depthWriteEnable{ false };
-	bool					stencilEnable{ false };
-};
-
-struct BlendState
-{
-	BlendState& Reset();
-	BlendState& SetColor(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
-	BlendState& SetAlpha(VkBlendFactor sourceColor, VkBlendFactor destinationColor, VkBlendOp colorOperation);
-	BlendState& SetColorWriteMask(ColorWriteEnableMask value);
-
-	VkBlendFactor			sourceColor{ VK_BLEND_FACTOR_ONE };
-	VkBlendFactor			destinationColor{ VK_BLEND_FACTOR_ONE };
-	VkBlendOp				colorOperation{ VK_BLEND_OP_ADD };
-
-	VkBlendFactor			sourceAlpha{ VK_BLEND_FACTOR_ONE };
-	VkBlendFactor			destinationAlpha{ VK_BLEND_FACTOR_ONE };
-	VkBlendOp				alphaOperation{ VK_BLEND_OP_ADD };
-
-	ColorWriteEnableMask	colorWriteMask{ COLOR_WRITE_ENABLE_ALL_MASK };
-
-	bool					blendEnabled{ false };
-	bool					separateBlend{ false };
-};
-
-struct Rasterization
-{
-	VkCullModeFlagBits	cullMode{ VK_CULL_MODE_NONE };
-	VkFrontFace			front{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
-	FillMode			fill{ FILL_MODE_SOLID };
-};
-
-struct ShaderStage
-{
-	CSTR					name{ nullptr };
-	VkShaderStageFlagBits	type{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
-};
-
-struct DescriptorBinding
-{
-	void Destroy() { name.Destroy(); }
-
-	String				name{ NO_INIT };
-	VkDescriptorType	type;
-	U16					start{ 0 };
-	U16					count{ 0 };
-	U16					set{ 0 };
+	VkViewport	viewports[MAX_VIEWPORTS];
+	VkRect2D	scissors[MAX_SCISSORS];
+	U8			viewportCount{ 0 };
+	U8			scissorCount{ 0 };
 };
 
 struct NH_API Camera
@@ -949,48 +843,3 @@ private:
 
 	friend class Resources;
 };
-
-static inline VkFormat ToVkVertexFormat(VertexAttribute attribute)
-{
-	switch (attribute.format)
-	{
-	case SCALAR_TYPE_FLOAT: {
-		switch (attribute.count)
-		{
-		case 1: return VK_FORMAT_R32_SFLOAT;
-		case 2: return VK_FORMAT_R32G32_SFLOAT;
-		case 3: return VK_FORMAT_R32G32B32_SFLOAT;
-		case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		}
-	} break;
-	case SCALAR_TYPE_INT: {
-		switch (attribute.count)
-		{
-		case 1: return VK_FORMAT_R32_SINT;
-		case 2: return VK_FORMAT_R32G32_SINT;
-		case 3: return VK_FORMAT_R32G32B32_SINT;
-		case 4: return VK_FORMAT_R32G32B32A32_SINT;
-		}
-	} break;
-	case SCALAR_TYPE_UINT: {
-		switch (attribute.count)
-		{
-		case 1: return VK_FORMAT_R32_UINT;
-		case 2: return VK_FORMAT_R32G32_UINT;
-		case 3: return VK_FORMAT_R32G32B32_UINT;
-		case 4: return VK_FORMAT_R32G32B32A32_UINT;
-		}
-	} break;
-	case SCALAR_TYPE_DOUBLE: {
-		switch (attribute.count)
-		{
-		case 1: return VK_FORMAT_R64_SFLOAT;
-		case 2: return VK_FORMAT_R64G64_SFLOAT;
-		case 3: return VK_FORMAT_R64G64B64_SFLOAT;
-		case 4: return VK_FORMAT_R64G64B64A64_SFLOAT;
-		}
-	} break;
-	}
-
-	return VK_FORMAT_MAX_ENUM;
-}

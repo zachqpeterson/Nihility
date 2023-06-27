@@ -65,14 +65,14 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(VULKAN_SDK)/Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)/Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
     <PostBuildEvent>
@@ -94,22 +94,30 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine; $(VULKAN_SDK)/Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)/Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codecs_common.h" />
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h264std.h" />
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h264std_decode.h" />
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h264std_encode.h" />
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h265std.h" />
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h265std_decode.h" />
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h265std_encode.h" />
     <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
+    <ClInclude Include="Engine\Containers\Pool.hpp" />
     <ClInclude Include="Engine\Containers\Queue.hpp" />
     <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\String.hpp" />
@@ -121,15 +129,127 @@
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\Entities\EntityDefines.hpp" />
-    <ClInclude Include="Engine\External\json.hpp" />
-    <ClInclude Include="Engine\External\vk_mem_alloc.h" />
+    <ClInclude Include="Engine\External\glslang\Include\arrays.h" />
+    <ClInclude Include="Engine\External\glslang\Include\BaseTypes.h" />
+    <ClInclude Include="Engine\External\glslang\Include\Common.h" />
+    <ClInclude Include="Engine\External\glslang\Include\ConstantUnion.h" />
+    <ClInclude Include="Engine\External\glslang\Include\glslang_c_interface.h" />
+    <ClInclude Include="Engine\External\glslang\Include\glslang_c_shader_types.h" />
+    <ClInclude Include="Engine\External\glslang\Include\InfoSink.h" />
+    <ClInclude Include="Engine\External\glslang\Include\intermediate.h" />
+    <ClInclude Include="Engine\External\glslang\Include\PoolAlloc.h" />
+    <ClInclude Include="Engine\External\glslang\Include\ResourceLimits.h" />
+    <ClInclude Include="Engine\External\glslang\Include\ShHandle.h" />
+    <ClInclude Include="Engine\External\glslang\Include\SpirvIntrinsics.h" />
+    <ClInclude Include="Engine\External\glslang\Include\Types.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\attribute.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\glslang_tab.cpp.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\gl_types.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\Initialize.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\iomapper.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\LiveTraverser.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\localintermediate.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\ParseHelper.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\parseVersions.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\pch.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\preprocessor\PpContext.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\preprocessor\PpTokens.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\propagateNoContraction.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\reflection.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\RemoveTree.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\Scan.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\ScanContext.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\SymbolTable.h" />
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\Versions.h" />
+    <ClInclude Include="Engine\External\glslang\OSDependent\osinclude.h" />
+    <ClInclude Include="Engine\External\glslang\Public\ResourceLimits.h" />
+    <ClInclude Include="Engine\External\glslang\Public\resource_limits_c.h" />
+    <ClInclude Include="Engine\External\glslang\Public\ShaderLang.h" />
+    <ClInclude Include="Engine\External\glslang\SPIRV\GlslangToSpv.h" />
+    <ClInclude Include="Engine\External\glslang\SPIRV\Logger.h" />
+    <ClInclude Include="Engine\External\glslang\SPIRV\spirv.hpp" />
+    <ClInclude Include="Engine\External\glslang\SPIRV\spvIR.h" />
+    <ClInclude Include="Engine\External\glslang\SPIRV\SPVRemapper.h" />
+    <ClInclude Include="Engine\External\glslang\SPIRV\SpvTools.h" />
+    <ClInclude Include="Engine\External\spirv-headers\GLSL.std.450.h" />
+    <ClInclude Include="Engine\External\spirv-headers\spirv.h" />
+    <ClInclude Include="Engine\External\spirv-headers\spirv.hpp" />
+    <ClInclude Include="Engine\External\SPIRV\bitutils.h" />
+    <ClInclude Include="Engine\External\SPIRV\disassemble.h" />
+    <ClInclude Include="Engine\External\SPIRV\doc.h" />
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.AMD.h" />
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.ARM.h" />
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.EXT.h" />
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.KHR.h" />
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.NV.h" />
+    <ClInclude Include="Engine\External\SPIRV\GLSL.std.450.h" />
+    <ClInclude Include="Engine\External\SPIRV\GlslangToSpv.h" />
+    <ClInclude Include="Engine\External\SPIRV\hex_float.h" />
+    <ClInclude Include="Engine\External\SPIRV\NonSemanticDebugPrintf.h" />
+    <ClInclude Include="Engine\External\SPIRV\NonSemanticShaderDebugInfo100.h" />
+    <ClInclude Include="Engine\External\SPIRV\spirv.hpp" />
+    <ClInclude Include="Engine\External\SPIRV\SpvBuilder.h" />
+    <ClInclude Include="Engine\External\SPIRV\spvIR.h" />
+    <ClInclude Include="Engine\External\SPIRV\SpvLogger.h" />
+    <ClInclude Include="Engine\External\SPIRV\SPVRemapper.h" />
+    <ClInclude Include="Engine\External\SPIRV\SpvTools.h" />
+    <ClInclude Include="Engine\External\spirv_cross\GLSL.std.450.h" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv.h" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cfg.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_common.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_c.h" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_containers.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_error_handling.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_parsed_ir.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_glsl.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_hlsl.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_msl.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_parser.hpp" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_reflect.h" />
+    <ClInclude Include="Engine\External\spirv_cross\spirv_reflect.hpp" />
+    <ClInclude Include="Engine\External\StandAlone\DirStackFileIncluder.h" />
+    <ClInclude Include="Engine\External\vma\vk_mem_alloc.h" />
+    <ClInclude Include="Engine\External\Vulkan\vk_enum_string_helper.h" />
+    <ClInclude Include="Engine\External\Vulkan\vk_icd.h" />
+    <ClInclude Include="Engine\External\Vulkan\vk_layer.h" />
+    <ClInclude Include="Engine\External\Vulkan\vk_platform.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_android.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_beta.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_core.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_directfb.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_enums.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_extension_inspection.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_format_traits.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_fuchsia.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_funcs.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_ggp.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_handles.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_hash.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_ios.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_macos.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_metal.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_profiles.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_raii.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_screen.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_static_assertions.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_structs.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_to_string.hpp" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_vi.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_wayland.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_win32.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_xcb.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_xlib.h" />
+    <ClInclude Include="Engine\External\Vulkan\vulkan_xlib_xrandr.h" />
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Hash.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
     <ClInclude Include="Engine\Math\Random.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
-    <ClInclude Include="Engine\Memory\Pool.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Function.hpp" />
@@ -139,6 +259,7 @@
     <ClInclude Include="Engine\Platform\SafeQueue.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
     <ClInclude Include="Engine\Rendering\Profiler.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
@@ -155,6 +276,49 @@
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\External\glslang\Include\glslang_c_interface.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\attribute.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Constant.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\glslang_tab.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\InfoSink.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Initialize.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Intermediate.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\intermOut.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\IntermTraverse.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\iomapper.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\limits.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\linkValidate.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\parseConst.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\ParseContextBase.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\ParseHelper.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\PoolAlloc.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\Pp.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\propagateNoContraction.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\reflection.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\RemoveTree.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Scan.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\ShaderLang.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\SpirvIntrinsics.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\SymbolTable.cpp" />
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Versions.cpp" />
+    <ClCompile Include="Engine\External\glslang\OSDependent\Unix\ossource.cpp" />
+    <ClCompile Include="Engine\External\glslang\OSDependent\Web\glslang.js.cpp" />
+    <ClCompile Include="Engine\External\glslang\OSDependent\Windows\ossource.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\CInterface\spirv_c_interface.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\disassemble.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\doc.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\GlslangToSpv.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\InReadableOrder.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\SpvBuilder.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\SpvLogger.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\SpvPostProcess.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\SPVRemapper.cpp" />
+    <ClCompile Include="Engine\External\SPIRV\SpvTools.cpp" />
+    <ClCompile Include="Engine\External\spirv_cross\spirv_reflect.c" />
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Math.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
@@ -165,6 +329,7 @@
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
     <ClCompile Include="Engine\Rendering\Profiler.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
     <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />

@@ -5,6 +5,7 @@
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
 #include "Math\Color.hpp"
+#include "Rendering\Pipeline.hpp"
 
 #undef near
 #undef far
@@ -49,7 +50,23 @@ struct BMPInfo
 	U32 extraRead;
 };
 
-constexpr U64 size = sizeof(BMPInfo);
+struct KTXHeader
+{
+	U8	identifier[12];
+	U32	endianness;
+	KTXType	type;
+	U32	typeSize;
+	KTXFormat format;
+	KTXCompression internalFormat;
+	KTXFormat baseInternalFormat;
+	U32	pixelWidth;
+	U32	pixelHeight;
+	U32	pixelDepth;
+	U32 arrayElementCount;
+	U32	faceCount;
+	U32	mipmapLevelCount;
+	U32	keyValueDataSize;
+};
 
 #pragma pack(pop)
 
@@ -57,31 +74,57 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
-Renderpass* Resources::defaultRenderpass;
-Material* Resources::materialNoCullOpaque;
-Material* Resources::materialCullOpaque;
-Material* Resources::materialNoCullTransparent;
-Material* Resources::materialCullTransparent;
+Material* Resources::materialOpaque;
+Material* Resources::materialTransparent;
 
-Hashmap<String, Sampler>				Resources::samplers{ 32, {} };
-Hashmap<String, Texture>				Resources::textures{ 512, {} };
-Hashmap<String, Buffer>					Resources::buffers{ 4096, {} };
-Hashmap<String, DescriptorSetLayout>	Resources::descriptorSetLayouts{ 128, {} };
-Hashmap<String, DescriptorSet>			Resources::descriptorSets{ 256, {} };
-Hashmap<String, ShaderState>			Resources::shaders{ 128, {} };
-Hashmap<String, Renderpass>				Resources::renderPasses{ 256, {} };
-Hashmap<String, Pipeline>				Resources::pipelines{ 128, {} };
-Hashmap<String, Program>				Resources::programs{ 128, {} };
-Hashmap<String, Material>				Resources::materials{ 128, {} };
-Hashmap<String, Scene>					Resources::scenes{ 128, {} };
+VkDescriptorPool				Resources::descriptorPool;
 
-Queue<ResourceUpdate>					Resources::resourceDeletionQueue{};
+Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
+Hashmap<String, Texture>		Resources::textures{ 512, {} };
+Hashmap<String, Buffer>			Resources::buffers{ 4096, {} };
+Pool<DescriptorSet, 256>		Resources::descriptorSets;
+Pool<DescriptorSetLayout, 256>	Resources::descriptorSetLayouts;
+Hashmap<String, Renderpass>		Resources::renderPasses{ 256, {} };
+Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
+Hashmap<String, Program>		Resources::programs{ 128, {} };
+Hashmap<String, Material>		Resources::materials{ 128, {} };
+Hashmap<String, Scene>			Resources::scenes{ 128, {} };
+
+Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
+Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
+Queue<DescriptorSetUpdate>		Resources::descriptorSetUpdates;
+
+VkDescriptorPool				Resources::bindlessDescriptorPool;
+VkDescriptorSet					Resources::bindlessDescriptorSet;
+VkDescriptorSetLayout			Resources::bindlessDescriptorSetLayout;
 
 bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
-	resourceDeletionQueue.Reserve(16);
+	static const U32 globalPoolElements = 128;
+	VkDescriptorPoolSize poolSizes[]{
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, globalPoolElements },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, globalPoolElements}
+	};
+	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	poolInfo.maxSets = globalPoolElements * CountOf32(poolSizes);
+	poolInfo.poolSizeCount = CountOf32(poolSizes);
+	poolInfo.pPoolSizes = poolSizes;
+	VkValidateF(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &descriptorPool));
+
+	descriptorSets.Create();
+	descriptorSetLayouts.Create();
 
 	TextureCreation dummyTextureInfo{};
 	dummyTextureInfo.SetName("dummy_texture");
@@ -90,58 +133,34 @@ bool Resources::Initialize()
 	dummyTextureInfo.SetSize(1, 1, 1);
 	U32 zero = 0;
 	dummyTextureInfo.SetData(&zero);
-	dummyTexture = Resources::CreateTexture(dummyTextureInfo);
+	dummyTexture = CreateTexture(dummyTextureInfo);
 
 	SamplerCreation dummySamplerInfo{};
 	dummySamplerInfo.SetName("dummy_sampler");
 	dummySamplerInfo.SetAddressModeUV(VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	dummySamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
-	dummySampler = Resources::CreateSampler(dummySamplerInfo);
+	dummySampler = CreateSampler(dummySamplerInfo);
 
 	BufferCreation dummyAttributeBufferInfo{};
 	dummyAttributeBufferInfo.SetName("dummy_attribute_buffer");
 	dummyAttributeBufferInfo.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, sizeof(Vector4) * 3);
 	Vector4 dummyData[3]{};
 	dummyAttributeBufferInfo.SetData(dummyData);
-	dummyAttributeBuffer = Resources::CreateBuffer(dummyAttributeBufferInfo);
+	dummyAttributeBuffer = CreateBuffer(dummyAttributeBufferInfo);
 
-	PipelineCreation pipelineCreation{};
-	pipelineCreation.renderpass = Renderer::offscreenPass;
-	pipelineCreation.depthStencil.SetDepth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
-	pipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
-	pipelineCreation.AddBlendState().SetColor(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
-	pipelineCreation.shaders.SetName("PBR").AddStage("shaders/Pbr.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Pbr.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	pipelineCreation.rasterization = {};
-	pipelineCreation.name = "shaders/PBR_no_cull";
-
-	Pipeline* pipeline = CreatePipeline(pipelineCreation);
+	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
 
 	ProgramCreation programCreation{};
-	programCreation.SetName("PBR_no_cull").SetGeometry(pipeline);
-
-	Program* programNoCull = Resources::CreateProgram(programCreation);
-
-	pipelineCreation.rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
-	pipelineCreation.name = "shaders/PBR_cull";
-
-	pipeline = CreatePipeline(pipelineCreation);
-
-	programCreation.Reset().SetName("PBR_cull").SetGeometry(pipeline);
-	Program* programCull = Resources::CreateProgram(programCreation);
-
+	programCreation.SetName("PBR").AddPass(pbr);
+	Program* pbrProgram = Resources::CreateProgram(programCreation);
+	
 	MaterialCreation materialCreation{};
-
-	materialCreation.SetName("materials/default_no_cull_opaque").SetProgram(programNoCull).SetRenderIndex(0);
-	materialNoCullOpaque = Resources::CreateMaterial(materialCreation);
-
-	materialCreation.SetName("materials/default_cull_opaque").SetProgram(programCull).SetRenderIndex(1);
-	materialCullOpaque = Resources::CreateMaterial(materialCreation);
-
-	materialCreation.SetName("materials/default_no_cull_transparent").SetProgram(programNoCull).SetRenderIndex(2);
-	materialNoCullTransparent = Resources::CreateMaterial(materialCreation);
-
-	materialCreation.SetName("materials/default_cull_transparent").SetProgram(programCull).SetRenderIndex(3);
-	materialCullTransparent = Resources::CreateMaterial(materialCreation);
+	
+	materialCreation.SetName("materials/pbr_opaque").SetProgram(pbrProgram).SetRenderIndex(0);
+	materialOpaque = Resources::CreateMaterial(materialCreation);
+	
+	materialCreation.SetName("materials/pbr_transparent").SetProgram(pbrProgram).SetRenderIndex(1);
+	materialTransparent = Resources::CreateMaterial(materialCreation);
 
 	return true;
 }
@@ -153,15 +172,78 @@ void Resources::CreateDefaults()
 	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
 	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
+}
 
-	RenderPassCreation renderPassInfo{};
-	renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName("DefaultRenderpass");
-	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	renderPassInfo.width = Settings::WindowWidth();
-	renderPassInfo.height = Settings::WindowHeight();
-	renderPassInfo.sampler = defaultSampler;
+bool Resources::CreateBindless()
+{
+	VkDescriptorPoolSize bindlessPoolSizes[]
+	{
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxBindlessResources },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, maxBindlessResources },
+	};
 
-	defaultRenderpass = Resources::CreateRenderPass(renderPassInfo);
+	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+	poolInfo.maxSets = maxBindlessResources * CountOf32(bindlessPoolSizes);
+	poolInfo.poolSizeCount = CountOf32(bindlessPoolSizes);
+	poolInfo.pPoolSizes = bindlessPoolSizes;
+
+	VkValidateFR(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &bindlessDescriptorPool));
+
+	const U32 poolCount = CountOf32(bindlessPoolSizes);
+	VkDescriptorSetLayoutBinding vkBinding[4];
+
+	// Actual descriptor set layout
+	VkDescriptorSetLayoutBinding& imageSamplerBinding = vkBinding[0];
+	imageSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	imageSamplerBinding.descriptorCount = maxBindlessResources;
+	imageSamplerBinding.binding = bindlessTextureBinding;
+	imageSamplerBinding.stageFlags = VK_SHADER_STAGE_ALL;
+	imageSamplerBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutBinding& storageImageBinding = vkBinding[1];
+	storageImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	storageImageBinding.descriptorCount = maxBindlessResources;
+	storageImageBinding.binding = bindlessTextureBinding + 1;
+	storageImageBinding.stageFlags = VK_SHADER_STAGE_ALL;
+	storageImageBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layoutInfo.bindingCount = poolCount;
+	layoutInfo.pBindings = vkBinding;
+	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+
+	// TODO: reenable variable descriptor count
+	// Binding flags
+	VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | /*VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |*/ VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+	VkDescriptorBindingFlags bindingFlags[4];
+
+	bindingFlags[0] = bindlessFlags;
+	bindingFlags[1] = bindlessFlags;
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT, nullptr };
+	extendedInfo.bindingCount = poolCount;
+	extendedInfo.pBindingFlags = bindingFlags;
+
+	layoutInfo.pNext = &extendedInfo;
+
+	VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout));
+
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = bindlessDescriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &bindlessDescriptorSetLayout;
+
+	VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
+	U32 maxBinding = maxBindlessResources - 1;
+	countInfo.descriptorSetCount = 1;
+	// This number is the max allocatable count
+	countInfo.pDescriptorCounts = &maxBinding;
+	//allocInfo.pNext = &countInfo;
+
+	VkValidateFR(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &bindlessDescriptorSet));
+
+	return true;
 }
 
 void Resources::Shutdown()
@@ -177,144 +259,30 @@ void Resources::Shutdown()
 
 		switch (resourceDeletion.type)
 		{
-		case RESOURCE_UPDATE_TYPE_SAMPLER: {Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); }
+		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Release(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 		}
 	}
 
-	Hashmap<String, Sampler>::Iterator end0 = samplers.end();
-	for (auto it = samplers.begin(); it != end0; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroySamplerInstant(&samplers.Obtain(it->handle));
-			it->Destroy();
-			samplers.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Texture>::Iterator end1 = textures.end();
-	for (auto it = textures.begin(); it != end1; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyTextureInstant(&textures.Obtain(it->handle));
-			it->Destroy();
-			textures.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Buffer>::Iterator end2 = buffers.end();
-	for (auto it = buffers.begin(); it != end2; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyBufferInstant(&buffers.Obtain(it->handle));
-			it->Destroy();
-			buffers.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, DescriptorSetLayout>::Iterator end3 = descriptorSetLayouts.end();
-	for (auto it = descriptorSetLayouts.begin(); it != end3; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(it->handle));
-			it->Destroy();
-			descriptorSetLayouts.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, DescriptorSet>::Iterator end4 = descriptorSets.end();
-	for (auto it = descriptorSets.begin(); it != end4; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(it->handle));
-			it->Destroy();
-			descriptorSets.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, ShaderState>::Iterator end5 = shaders.end();
-	for (auto it = shaders.begin(); it != end5; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyShaderStateInstant(&shaders.Obtain(it->handle));
-			it->Destroy();
-			shaders.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Renderpass>::Iterator end6 = renderPasses.end();
-	for (auto it = renderPasses.begin(); it != end6; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(it->handle));
-			it->Destroy();
-			renderPasses.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Pipeline>::Iterator end7 = pipelines.end();
-	for (auto it = pipelines.begin(); it != end7; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Renderer::DestroyPipelineInstant(&pipelines.Obtain(it->handle));
-			it->Destroy();
-			pipelines.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Program>::Iterator end8 = programs.end();
-	for (auto it = programs.begin(); it != end8; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Program& program = *it;
-			program.Destroy();
-			programs.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Material>::Iterator end9 = materials.end();
-	for (auto it = materials.begin(); it != end9; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			Material& material = *it;
-			material.Destroy();
-			materials.Remove(it->handle);
-		}
-	}
-
-	Hashmap<String, Scene>::Iterator end10 = scenes.end();
-	for (auto it = scenes.begin(); it != end10; ++it)
-	{
-		if (it.Valid())
-		{
-			Scene& scene = *it;
-			scene.Destroy();
-			scenes.Remove(scene.handle);
-		}
-	}
+	CleanupHashmap(samplers, Renderer::DestroySamplerInstant);
+	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
+	CleanupHashmap(buffers, Renderer::DestroyBufferInstant);
+	CleanupHashmap(renderPasses, Renderer::DestroyRenderPassInstant);
+	CleanupHashmap(pipelines, nullptr);
+	CleanupHashmap(programs, nullptr);
+	CleanupHashmap(materials, nullptr);
+	CleanupHashmap(scenes, nullptr);
 
 	samplers.Destroy();
 	textures.Destroy();
 	buffers.Destroy();
 	descriptorSetLayouts.Destroy();
 	descriptorSets.Destroy();
-	shaders.Destroy();
 	renderPasses.Destroy();
 	pipelines.Destroy();
 	programs.Destroy();
@@ -322,6 +290,12 @@ void Resources::Shutdown()
 	scenes.Destroy();
 
 	resourceDeletionQueue.Destroy();
+	descriptorSetUpdates.Destroy();
+	bindlessTexturesToUpdate.Destroy();
+
+	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout, Renderer::allocationCallbacks);
+	vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
+	vkDestroyDescriptorPool(Renderer::device, descriptorPool, Renderer::allocationCallbacks);
 }
 
 void Resources::Update()
@@ -338,13 +312,64 @@ void Resources::Update()
 			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(&descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { Renderer::DestroyDescriptorSetInstant(&descriptorSets.Obtain(resourceDeletion.handle)); descriptorSets.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_SHADER_STATE: { Renderer::DestroyShaderStateInstant(&shaders.Obtain(resourceDeletion.handle)); shaders.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Release(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_PIPELINE: { Renderer::DestroyPipelineInstant(&pipelines.Obtain(resourceDeletion.handle)); pipelines.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 			}
 		}
+	}
+
+	// Descriptor Set Updates
+	while (descriptorSetUpdates.Size())
+	{
+		DescriptorSetUpdate update;
+		descriptorSetUpdates.Pop(update);
+
+		UpdateDescriptorSetInstant(update);
+	}
+
+	if (bindlessTexturesToUpdate.Size())
+	{
+		VkWriteDescriptorSet bindlessDescriptorWrites[maxBindlessResources];
+		VkDescriptorImageInfo bindlessImageInfo[maxBindlessResources];
+
+		Texture* dummyTexture = Resources::AccessDummyTexture();
+
+		U32 currentWriteIndex = 0;
+
+		while (bindlessTexturesToUpdate.Size())
+		{
+			ResourceUpdate textureToUpdate;
+			bindlessTexturesToUpdate.Pop(textureToUpdate);
+
+			//TODO: Maybe check frame
+			{
+				Texture* texture = Resources::AccessTexture(textureToUpdate.handle);
+
+				VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
+				descriptorWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				descriptorWrite.descriptorCount = 1;
+				descriptorWrite.dstArrayElement = (U32)textureToUpdate.handle;
+				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorWrite.dstSet = bindlessDescriptorSet;
+				descriptorWrite.dstBinding = bindlessTextureBinding;
+
+				Sampler* defaultSampler = Resources::AccessDefaultSampler();
+				VkDescriptorImageInfo& descriptorImageInfo = bindlessImageInfo[currentWriteIndex];
+
+				if (texture->sampler != nullptr) { descriptorImageInfo.sampler = texture->sampler->sampler; }
+				else { descriptorImageInfo.sampler = defaultSampler->sampler; }
+
+				descriptorImageInfo.imageView = texture->format != VK_FORMAT_UNDEFINED ? texture->imageView : dummyTexture->imageView;
+				descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				descriptorWrite.pImageInfo = &descriptorImageInfo;
+
+				++currentWriteIndex;
+			}
+		}
+
+		if (currentWriteIndex) { vkUpdateDescriptorSets(Renderer::device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); }
 	}
 }
 
@@ -381,6 +406,7 @@ Texture* Resources::CreateTexture(const TextureCreation& info)
 	texture->name = info.name;
 	texture->width = info.width;
 	texture->height = info.height;
+	texture->size = info.width * info.height * 4;
 	texture->depth = info.depth;
 	texture->flags = info.flags;
 	texture->format = info.format;
@@ -391,6 +417,65 @@ Texture* Resources::CreateTexture(const TextureCreation& info)
 	Renderer::CreateTexture(texture, info.initialData);
 
 	return texture;
+}
+
+Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 index)
+{
+	String name{ "SwapchainTexture{}", index };
+
+	Texture* texture = &textures.Request(name);
+
+	texture->name = name;
+	texture->swapchainImage = true;
+	texture->format = format;
+	texture->image = image;
+
+	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.pNext = nullptr;
+	viewInfo.flags = 0;
+	viewInfo.image = texture->image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = format;
+	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+	viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { return nullptr; }
+
+	return texture;
+}
+
+bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
+{
+	vkDestroyImageView(Renderer::device, texture->imageView, Renderer::allocationCallbacks);
+
+	texture->image = image;
+
+	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.pNext = nullptr;
+	viewInfo.flags = 0;
+	viewInfo.image = image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = texture->format;
+	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+	viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView));
+
+	return true;
 }
 
 bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
@@ -443,6 +528,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		else if (ext == "psd") { data = LoadPSD(texture, file); }
 		else if (ext == "tiff") { data = LoadTIFF(texture, file); }
 		else if (ext == "tga") { data = LoadTGA(texture, file); }
+		else if (ext == "ktx") { data = LoadKTX(texture, file); }
 		else { Logger::Error("Unknown Texture Extension {}!", ext); textures.Remove(name); return nullptr; }
 
 		if (data == nullptr)
@@ -554,6 +640,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 
 	texture->width = info.imageWidth;
 	texture->height = info.imageHeight;
+	texture->size = info.imageWidth * info.imageHeight * 4;
 
 	U32 pSize = 0;
 	I32 width;
@@ -847,41 +934,54 @@ void* Resources::LoadKTX(Texture* texture, File& file)
 	static constexpr U8 FileIdentifier[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 	static constexpr U32 EndiannessIdentifier = 0x04030201;
 
-	//TODO: Check file identifier
-	//TODO: Check endianness
-	//TODO: Get Image Format
-	//TODO: glTypeSize?
-	//TODO: Get Pixel Format
-	//TODO: Get Compression
-	//TODO: Get Pixel Format again?
-	//TODO: Get pixel width, height, depth
-	//TODO: Get Array Element Count (0 = not an array texture)
-	//TODO: Get cubemap face count (1 = not a cubemap, faces are stored +X, -X, +Y, -Y, +Z, -Z)
-	//TODO: Get mipmap levels (0 = must be generated)
+	KTXHeader header{};
 
-	//TODO: Key Value Pairs
+	file.Read(header);
 
-	//TODO: Load Image:
-	//for each mipmap_level in numberOfMipmapLevels1
-	//	UInt32 imageSize;
-	//	for each array_element in numberOfArrayElements2
-	//		for each face in numberOfFaces3
-	//			for each z_slice in pixelDepth2
-	//				for each row or row_of_blocks in pixelHeight2
-	//					for each pixel or block_of_pixels in pixelWidth
-	//						Byte data[format - specific - number - of - bytes]4
-	//					end
-	//				end
-	//			end
-	//			Byte cubePadding[0 - 3]
-	//		end
-	//	end
-	//	Byte mipPadding[0 - 3]
-	//end
+	if (!Memory::Compare(header.identifier, FileIdentifier, 12))
+	{
+		Logger::Error("Texture Is Not a KTX!");
+		return nullptr;
+	}
 
-	VK_FORMAT_R16G16B16A16_SFLOAT;
+	if (header.endianness != EndiannessIdentifier)
+	{
+		Logger::Error("Too Lazy to Flip Endianness!");
+		return nullptr;
+	}
 
-	return nullptr;
+	file.Seek(header.keyValueDataSize);
+
+	U32 elementCount = Math::Max(1u, header.arrayElementCount);
+	U32 depth = Math::Max(1u, header.pixelDepth);
+
+	//TODO: mipmaps
+	U32 imageSize;
+	file.Read(imageSize);
+
+	U8* data = (U8*)calloc(1, imageSize); //TODO: Go through Memory
+	U32 dataPtr = 0;
+
+	U32 readSize = depth * header.pixelWidth * header.pixelHeight * header.typeSize * 4; //TODO: Take into account rgba vs rgb vs rg...
+
+	for (U32 element = 0; element < elementCount; ++element)
+	{
+		for (U32 face = 0; face < header.faceCount; ++face)
+		{
+			file.ReadCount(data + dataPtr, readSize);
+			dataPtr += readSize;
+			//file.Seek(cubePadding); TODO:
+		}
+	}
+
+	texture->format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	texture->type = TEXTURE_TYPE_2D;
+	texture->width = header.pixelWidth;
+	texture->height = header.pixelHeight;
+	texture->depth = 1;
+	texture->size = imageSize;
+
+	return data;
 }
 
 Buffer* Resources::CreateBuffer(const BufferCreation& info)
@@ -933,23 +1033,12 @@ Buffer* Resources::LoadBuffer(const BufferCreation& info)
 
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info)
 {
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	U64 handle;
+	DescriptorSetLayout* descriptorSetLayout = descriptorSetLayouts.Request(handle);
 
-	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.Request(info.name);
-
-	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
-
-	descriptorSetLayout->name = info.name;
-
-	// TODO: add support for multiple sets.
-	// Create flattened binding list
-	descriptorSetLayout->bindingCount = (U16)info.bindingCount;
-	U8* memory;
-	Memory::AllocateSize(&memory, (sizeof(VkDescriptorSetLayoutBinding) + sizeof(DescriptorBinding)) * info.bindingCount);
-	descriptorSetLayout->bindings = (DescriptorBinding*)memory;
-	descriptorSetLayout->binding = (VkDescriptorSetLayoutBinding*)(memory + sizeof(DescriptorBinding) * info.bindingCount);
-	descriptorSetLayout->setIndex = (U16)info.setIndex;
-	descriptorSetLayout->handle = descriptorSetLayouts.GetHandle(info.name);
+	descriptorSetLayout->bindingCount = info.bindingCount;
+	descriptorSetLayout->setIndex = info.setIndex;
+	descriptorSetLayout->handle = handle;
 
 	for (U32 i = 0; i < info.bindingCount; ++i)
 	{
@@ -961,56 +1050,48 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 	return descriptorSetLayout;
 }
 
-DescriptorSet* Resources::CreateDescriptorSet(const DescriptorSetCreation& info)
+DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 {
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	U64 handle;
+	DescriptorSet* descriptorSet = descriptorSets.Request(handle);
 
-	DescriptorSet* descriptorSet = &descriptorSets.Request(info.name);
+	descriptorSet->bindingCount = layout->bindingCount;
+	descriptorSet->layout = layout;
+	descriptorSet->handle = handle;
 
-	if (!descriptorSet->name.Blank()) { return descriptorSet; }
-
-	descriptorSet->name = info.name;
-	descriptorSet->resourceCount = info.resourceCount;
-	descriptorSet->layout = info.layout;
-	descriptorSet->handle = descriptorSets.GetHandle(info.name);
-
-	for (U32 i = 0; i < info.resourceCount; ++i)
+	for (U32 i = 0; i < layout->bindingCount; ++i)
 	{
-		descriptorSet->resources[i] = info.resources[i];
-		descriptorSet->samplers[i] = info.samplers[i];
-		descriptorSet->bindings[i] = info.bindings[i];
+		descriptorSet->bindings[i] = layout->bindings[i];
 	}
 
-	Renderer::CreateDescriptorSet(descriptorSet);
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &layout->descriptorSetLayout;
+
+	VkValidateF(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &descriptorSet->descriptorSet));
 
 	return descriptorSet;
 }
 
-ShaderState* Resources::CreateShaderState(const ShaderStateCreation& info)
+void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet)
 {
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (descriptorSet) { descriptorSetUpdates.Push({ descriptorSet, Renderer::currentFrame }); }
+	else { Logger::Error("Trying to update invalid DescriptorSet!"); }
+}
 
-	ShaderState* shaderState = &shaders.Request(info.name);
+void Resources::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
+{
+	DescriptorSet* descriptorSet = update.descriptorSet;
+	DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
 
-	if (!shaderState->name.Blank()) { return shaderState; }
+	VkWriteDescriptorSet descriptorWrite[8];
+	VkDescriptorBufferInfo bufferInfo[8];
+	VkDescriptorImageInfo imageInfo[8];
 
-	if (info.stagesCount == 0 || info.stages == nullptr)
-	{
-		Logger::Error("Shader {} does not contain shader stages!", info.name);
-		return shaderState;
-	}
+	Renderer::UpdateDescriptorSet(descriptorSet, descriptorWrite, bufferInfo, imageInfo);
 
-	shaderState->name = info.name;
-	shaderState->handle = shaders.GetHandle(info.name);
-
-	if (!Renderer::CreateShaderState(shaderState, info))
-	{
-		shaders.Remove(info.name);
-
-		return nullptr;
-	}
-
-	return shaderState;
+	vkUpdateDescriptorSets(Renderer::device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
 }
 
 Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
@@ -1028,18 +1109,17 @@ Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	renderpass->renderpass = nullptr;
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->outputDepth = info.depthStencilTexture;
-	renderpass->sampler = info.sampler ? info.sampler : defaultSampler;
 	renderpass->handle = renderPasses.GetHandle(info.name);
 	renderpass->output.colorOperation = info.colorOperation;
 	renderpass->output.depthOperation = info.depthOperation;
 	renderpass->output.stencilOperation = info.stencilOperation;
-	renderpass->output.depthStencilFormat = info.depthStencilTexture.format;
 	renderpass->output.colorFormatCount = info.renderTargetCount;
+	if (info.depthStencilTexture) { renderpass->output.depthStencilFormat = info.depthStencilTexture->format; }
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
 		renderpass->outputTextures[i] = info.outputTextures[i];
-		renderpass->output.colorFormats[i] = info.outputTextures[i].format;
+		renderpass->output.colorFormats[i] = info.outputTextures[i]->format;
 	}
 
 	Renderer::CreateRenderPass(renderpass);
@@ -1047,30 +1127,21 @@ Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	return renderpass;
 }
 
-Pipeline* Resources::CreatePipeline(const PipelineCreation& info)
+Pipeline* Resources::CreatePipeline(const String& name)
 {
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Pipeline* pipeline = &pipelines.Request(info.name);
+	Pipeline* pipeline = &pipelines.Request(name);
 
 	if (!pipeline->name.Blank()) { return pipeline; }
 
-	pipeline->name = info.name;
-	pipeline->handle = pipelines.GetHandle(info.name);
-	pipeline->shaderState = CreateShaderState(info.shaders);
-	pipeline->depthStencil = info.depthStencil;
-	pipeline->rasterization = info.rasterization;
-	pipeline->graphicsPipeline = true;
-	pipeline->blendStateCount = info.blendStateCount;
-	pipeline->renderpass = info.renderpass;
+	pipeline->handle = pipelines.GetHandle(name);
 
-	for (U8 i = 0; i < info.specializationCount; ++i) { pipeline->shaderState->SetSpecializationData(info.specializationData[i]); }
-
-	for (U8 i = 0; i < info.blendStateCount; ++i) { pipeline->blendStates[i] = info.blendStates[i]; }
-
-	String cachePath("{}.cache", info.name);
-
-	Renderer::CreatePipeline(pipeline, info.renderpass, cachePath);
+	if (!pipeline->Create(name))
+	{
+		pipelines.Remove(pipeline->handle);
+		pipeline->handle = U64_MAX;
+	}
 
 	return pipeline;
 }
@@ -1085,12 +1156,9 @@ Program* Resources::CreateProgram(const ProgramCreation& info)
 
 	program->name = info.name;
 	program->handle = programs.GetHandle(info.name);
-	program->prePassCount = info.prePassCount;
-	program->postPassCount = info.postPassCount;
-	program->geometryPass = info.geometryPass;
+	program->passCount = info.passCount;
 
-	for (U32 i = 0; i < info.prePassCount; ++i) { program->prePasses[i] = info.prePasses[i]; }
-	for (U32 i = 0; i < info.postPassCount; ++i) { program->postPasses[i] = info.postPasses[i]; }
+	for (U32 i = 0; i < info.passCount; ++i) { program->passes[i] = info.passes[i]; }
 
 	return program;
 }
@@ -1188,6 +1256,9 @@ Scene* Resources::LoadScene(const String& name)
 
 			scene->textures.Push(texture);
 		}
+
+		file.ReadString(str);
+		scene->skybox = LoadTexture(str, false);
 
 		scene->camera = {};
 		bool perspective;
@@ -1313,6 +1384,8 @@ Scene* Resources::LoadScene(const String& name)
 		file.Close();
 	}
 
+	scene->Create();
+
 	return scene;
 }
 
@@ -1338,6 +1411,8 @@ void Resources::SaveScene(const Scene* scene)
 			file.Write((I32)sampler->border);
 		}
 		for (Texture* texture : scene->textures) { file.Write(texture->name); file.Write(texture->sampler->sceneID); }
+
+		file.Write(scene->skybox->name);
 
 		file.Write(scene->camera.perspective);
 		file.Write(scene->camera.nearPlane);
@@ -1434,23 +1509,10 @@ Sampler* Resources::AccessDefaultSampler()
 	return defaultSampler;
 }
 
-Renderpass* Resources::AccessDefaultRenderpass()
+Material* Resources::AccessDefaultMaterial(bool transparent)
 {
-	return defaultRenderpass;
-}
-
-Material* Resources::AccessDefaultMaterial(bool transparent, bool culling)
-{
-	if (transparent)
-	{
-		if (culling) { return materialCullTransparent; }
-		else { return materialNoCullTransparent; }
-	}
-	else
-	{
-		if (culling) { return materialCullOpaque; }
-		else { return materialNoCullOpaque; }
-	}
+	if (transparent) { return materialTransparent; }
+	else { return materialOpaque; }
 }
 
 Sampler* Resources::AccessSampler(const String& name)
@@ -1467,33 +1529,6 @@ Texture* Resources::AccessTexture(const String& name)
 	Texture* texture = &textures.Request(name);
 
 	if (!texture->name.Blank()) { return texture; }
-
-	return nullptr;
-}
-
-DescriptorSetLayout* Resources::AccessDescriptorSetLayout(const String& name)
-{
-	DescriptorSetLayout* descriptorSetLayout = &descriptorSetLayouts.Request(name);
-
-	if (!descriptorSetLayout->name.Blank()) { return descriptorSetLayout; }
-
-	return nullptr;
-}
-
-DescriptorSet* Resources::AccessDescriptorSet(const String& name)
-{
-	DescriptorSet* descriptorSet = &descriptorSets.Request(name);
-
-	if (!descriptorSet->name.Blank()) { return descriptorSet; }
-
-	return nullptr;
-}
-
-ShaderState* Resources::AccessShaderState(const String& name)
-{
-	ShaderState* shaderState = &shaders.Request(name);
-
-	if (!shaderState->name.Blank()) { return shaderState; }
 
 	return nullptr;
 }
@@ -1526,21 +1561,6 @@ Texture* Resources::AccessTexture(HashHandle handle)
 	return &textures.Obtain(handle);
 }
 
-DescriptorSetLayout* Resources::AccessDescriptorSetLayout(HashHandle handle)
-{
-	return &descriptorSetLayouts.Obtain(handle);
-}
-
-DescriptorSet* Resources::AccessDescriptorSet(HashHandle handle)
-{
-	return &descriptorSets.Obtain(handle);
-}
-
-ShaderState* Resources::AccessShaderState(HashHandle handle)
-{
-	return &shaders.Obtain(handle);
-}
-
 Renderpass* Resources::AccessRenderPass(HashHandle handle)
 {
 	return &renderPasses.Obtain(handle);
@@ -1553,7 +1573,7 @@ Pipeline* Resources::AccessPipeline(HashHandle handle)
 
 void Resources::DestroySampler(Sampler* sampler)
 {
-	HashHandle handle = samplers.GetHandle(sampler->name);
+	HashHandle handle = sampler->handle;
 
 	if (handle != U64_MAX)
 	{
@@ -1563,15 +1583,11 @@ void Resources::DestroySampler(Sampler* sampler)
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", sampler->name);
-	}
 }
 
 void Resources::DestroyTexture(Texture* texture)
 {
-	HashHandle handle = textures.GetHandle(texture->name);
+	HashHandle handle = texture->handle;
 
 	if (handle != U64_MAX)
 	{
@@ -1581,15 +1597,11 @@ void Resources::DestroyTexture(Texture* texture)
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", texture->name);
-	}
 }
 
 void Resources::DestroyBuffer(Buffer* buffer)
 {
-	HashHandle handle = buffers.GetHandle(buffer->name);
+	HashHandle handle = buffer->handle;
 
 	if (handle != U64_MAX)
 	{
@@ -1599,15 +1611,11 @@ void Resources::DestroyBuffer(Buffer* buffer)
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", buffer->name);
-	}
 }
 
 void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 {
-	HashHandle handle = descriptorSetLayouts.GetHandle(layout->name);
+	HashHandle handle = layout->handle;
 
 	if (handle != U64_MAX)
 	{
@@ -1617,15 +1625,11 @@ void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", layout->name);
-	}
 }
 
 void Resources::DestroyDescriptorSet(DescriptorSet* set)
 {
-	HashHandle handle = descriptorSets.GetHandle(set->name);
+	HashHandle handle = set->handle;
 
 	if (handle != U64_MAX)
 	{
@@ -1635,33 +1639,11 @@ void Resources::DestroyDescriptorSet(DescriptorSet* set)
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", set->name);
-	}
-}
-
-void Resources::DestroyShaderState(ShaderState* shader)
-{
-	HashHandle handle = shaders.GetHandle(shader->name);
-
-	if (handle != U64_MAX)
-	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_SHADER_STATE;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
-	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", shader->name);
-	}
 }
 
 void Resources::DestroyRenderPass(Renderpass* renderpass)
 {
-	HashHandle handle = renderPasses.GetHandle(renderpass->name);
+	HashHandle handle = renderpass->handle;
 
 	if (handle != U64_MAX)
 	{
@@ -1670,30 +1652,6 @@ void Resources::DestroyRenderPass(Renderpass* renderpass)
 		deletion.type = RESOURCE_UPDATE_TYPE_RENDER_PASS;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
-	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", renderpass->name);
-	}
-}
-
-void Resources::DestroyPipeline(Pipeline* pipeline)
-{
-	HashHandle handle = pipelines.GetHandle(pipeline->name);
-
-	if (handle != U64_MAX)
-	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_PIPELINE;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
-
-		DestroyShaderState(pipeline->shaderState);
-	}
-	else
-	{
-		Logger::Error("Resource '{}' doesn't exist!", pipeline->name);
 	}
 }
 
@@ -1723,336 +1681,4 @@ U32 Resources::LoadBinary(const String& name, void** result)
 	}
 
 	return 0;
-}
-
-#if defined(_MSC_VER)
-#include <spirv-headers\spirv.h>
-#else
-#include <spirv_cross\spirv.h>
-#endif
-
-struct Member
-{
-	U32         idIndex;
-	U32         offset;
-
-	String		name;
-};
-
-struct Id
-{
-	SpvOp           op;
-	U32             set;
-	U32             binding;
-	U32				location;
-
-	// For integers and floats
-	U8              width;
-	U8              sign;
-
-	// For arrays, vectors and matrices
-	U32             typeIndex;
-	U32             count;
-
-	// For variables
-	SpvStorageClass storageClass;
-
-	// For constants
-	U32             value;
-
-	// For structs
-	String			name;
-	Vector<Member>	members;
-};
-
-VkShaderStageFlags ParseExecutionModel(SpvExecutionModel model)
-{
-	switch (model)
-	{
-	case SpvExecutionModelVertex: return VK_SHADER_STAGE_VERTEX_BIT;
-	case SpvExecutionModelGeometry: return VK_SHADER_STAGE_GEOMETRY_BIT;
-	case SpvExecutionModelFragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
-	case SpvExecutionModelKernel: return VK_SHADER_STAGE_COMPUTE_BIT;
-	}
-
-	return 0;
-}
-
-void Resources::ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* shaderState)
-{
-	const U32* data = shaderInfo.pCode;
-	if (data == nullptr || data[0] != 0x07230203 || size == 0 || size % 4 != 0) { return; }
-	U32 spvWordCount = (U32)(shaderInfo.codeSize / 4);
-
-	U32 idBound = data[3];
-	Vector<Id> ids{ idBound, {} };
-
-	SpvExecutionModel stage{ SpvExecutionModelMax };
-
-	U64 wordIndex = 5;
-	U16 wordCount;
-	SpvOp op;
-
-	while ((op = (SpvOp)(data[wordIndex] & 0xFF)) != SpvOpEntryPoint) { wordIndex += (data[wordIndex] >> 16); } //Skip to entry point
-
-	//TODO: There could be multiple entry points/excecution modes
-	stage = (SpvExecutionModel)data[wordIndex + 1];		//Shader type
-	shaderState->entry = (C8*)(data + (wordIndex + 3)); //Entry point name
-	wordIndex += (U16)(data[wordIndex] >> 16);
-	wordIndex += (U16)(data[wordIndex] >> 16);			//Skip excecution mode
-
-	while (wordIndex < spvWordCount)
-	{
-		op = (SpvOp)(data[wordIndex] & 0xFF);
-		wordCount = (U16)(data[wordIndex] >> 16);
-
-		switch (op)
-		{
-		case SpvOpDecorate: {
-			U32 i = data[wordIndex + 1];
-			Id& id = ids[data[wordIndex + 1]];
-
-			SpvDecoration decoration = (SpvDecoration)data[wordIndex + 2];
-
-			switch (decoration)
-			{
-			case SpvDecorationSpecId: { id.location = data[wordIndex + 2]; } break;
-			case SpvDecorationBinding: { id.binding = data[wordIndex + 3]; } break;
-			case SpvDecorationDescriptorSet: { id.set = data[wordIndex + 3]; } break;
-			case SpvDecorationLocation: { id.location = data[wordIndex + 3]; } break;
-			}
-		} break;
-		case SpvOpMemberDecorate: {
-			Id& id = ids[data[wordIndex + 1]];
-
-			U32 memberIndex = data[wordIndex + 2];
-
-			if (!id.members.Size()) { id.members.Resize(64, {}); }
-
-			Member& member = id.members[memberIndex];
-
-			SpvDecoration decoration = (SpvDecoration)data[wordIndex + 3];
-			switch (decoration)
-			{
-			case (SpvDecorationOffset): { member.offset = data[wordIndex + 4]; } break;
-			}
-		} break;
-		case SpvOpName: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.name = (C8*)(data + (wordIndex + 2));
-		} break;
-		case SpvOpMemberName: {
-			Id& id = ids[data[wordIndex + 1]];
-			U32 memberIndex = data[wordIndex + 2];
-
-			if (!id.members.Size()) { id.members.Resize(64, {}); }
-
-			Member& member = id.members[memberIndex];
-			member.name = (char*)(data + (wordIndex + 3));
-		} break;
-		case SpvOpTypeInt: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.width = (U8)data[wordIndex + 2];
-			id.sign = (U8)data[wordIndex + 3];
-		} break;
-		case SpvOpTypeFloat: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.width = (U8)data[wordIndex + 2];
-		} break;
-		case SpvOpTypeVector: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 2];
-			id.count = data[wordIndex + 3];
-		} break;
-		case SpvOpTypeMatrix: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 2];
-			id.count = data[wordIndex + 3];
-		} break;
-		case SpvOpTypeImage: {
-			//TODO: Might not need
-		} break;
-		case SpvOpTypeSampler: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-		}
-		case SpvOpTypeSampledImage: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-		} break;
-		case SpvOpTypeArray: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 2];
-			id.count = data[wordIndex + 3];
-		} break;
-		case SpvOpTypeRuntimeArray: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 2];
-		} break;
-		case SpvOpTypeStruct: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-
-			if (wordCount > 2)
-			{
-				for (U16 memberIndex = 0; memberIndex < wordCount - 2; ++memberIndex)
-				{
-					id.members[memberIndex].idIndex = data[wordIndex + memberIndex + 2];
-				}
-			}
-		} break;
-		case SpvOpTypePointer: {
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 3];
-		} break;
-		case SpvOpConstant: {
-			Id& id = ids[data[wordIndex + 1]];
-			if (id.op != SpvOpSpecConstant)
-			{
-				id.op = op;
-				id.typeIndex = data[wordIndex + 2];
-				id.value = data[wordIndex + 3]; //Assume all constants to have maximum 32bit width
-			}
-		} break;
-		case SpvOpSpecConstant: {
-			U32 i = data[wordIndex + 1];
-			Id& id = ids[data[wordIndex + 1]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 2];
-			id.value = data[wordIndex + 3];
-		} break;
-		case SpvOpVariable: {
-			Id& id = ids[data[wordIndex + 2]];
-			id.op = op;
-			id.typeIndex = data[wordIndex + 1];
-			id.storageClass = (SpvStorageClass)data[wordIndex + 3];
-		} break;
-		}
-
-		wordIndex += wordCount;
-	}
-
-	for (U32 idIndex = 0; idIndex < ids.Size(); ++idIndex)
-	{
-		Id& id = ids[idIndex];
-
-		if (id.op == SpvOpVariable)
-		{
-			switch (id.storageClass)
-			{
-			case SpvStorageClassUniform:
-			case SpvStorageClassUniformConstant: {
-				if (id.set == 1 && (id.binding == Renderer::bindlessTextureBinding || id.binding == (Renderer::bindlessTextureBinding + 1))) { continue; }
-
-				Id& uniformType = ids[ids[id.typeIndex].typeIndex];
-
-				DescriptorSetLayoutCreation& setLayout = shaderState->sets[id.set];
-				setLayout.SetSetIndex(id.set);
-
-				DescriptorBinding binding{};
-				binding.start = id.binding;
-				binding.count = 1;
-
-				switch (uniformType.op)
-				{
-				case SpvOpTypeStruct: {
-					binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					binding.name = uniformType.name;
-				} break;
-				case SpvOpTypeSampledImage: {
-					binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					binding.name = id.name;
-				} break;
-				}
-
-				setLayout.AddBindingAtIndex(binding, id.binding);
-
-				shaderState->setCount = Math::Max(shaderState->setCount, (id.set + 1));
-			} break;
-			case SpvStorageClassInput: {
-				if (stage == SpvExecutionModelVertex || stage == SpvExecutionModelKernel)
-				{
-					Id& type = ids[ids[id.typeIndex].typeIndex];
-
-					VertexAttribute attribute{};
-					attribute.binding = id.location;
-					attribute.location = id.location;
-					attribute.offset = 0;
-					attribute.count = 1;
-
-					VertexStream stream{};
-					stream.binding = id.location;
-					stream.inputRate = VERTEX_INPUT_RATE_VERTEX;
-
-					switch (type.op)
-					{
-					case SpvOpTypeVector: {
-						attribute.count = type.count;
-						attribute.format = (ScalarType)type.typeIndex;
-						if (attribute.format == SCALAR_TYPE_DOUBLE) { stream.stride = 8 * type.count; }
-						else { stream.stride = 4 * type.count; }
-					} break;
-					}
-
-					if (type.op != SpvOpConstant)
-					{
-						++shaderState->vertexAttributeCount;
-						++shaderState->vertexStreamCount;
-						shaderState->vertexAttributes[id.location] = attribute;
-						shaderState->vertexStreams[id.location] = stream;
-					}
-				}
-			} break;
-			}
-		}
-		else if (id.op == SpvOpSpecConstant)
-		{
-			Id& type = ids[id.typeIndex];
-
-			U8 stageIndex;
-			switch (stage)
-			{
-			case SpvExecutionModelVertex: { stageIndex = 0; } break;
-			case SpvExecutionModelGeometry: { stageIndex = 1; } break;
-			case SpvExecutionModelFragment: { stageIndex = 2; } break;
-			case SpvExecutionModelKernel: { stageIndex = 3; } break;
-			}
-
-			SpecializationInfo& specialization = shaderState->specializationInfos[stageIndex];
-
-			if (specialization.specializationBuffer == nullptr)
-			{
-				Memory::AllocateSize(&specialization.specializationBuffer, 1u);
-				specialization.specializationInfo.pData = specialization.specializationBuffer;
-				specialization.specializationInfo.pMapEntries = specialization.specializationData;
-			}
-
-			specialization.specializationData[id.location].constantID = id.location;
-			specialization.specializationData[id.location].size = id.width / 8;
-
-			if (id.location > 0)
-			{
-				specialization.specializationData[id.location].offset = (U32)(specialization.specializationData[id.location - 1].offset + specialization.specializationData[id.location - 1].size);
-			}
-
-			specialization.specializationInfo.dataSize += specialization.specializationData[id.location].size;
-			Memory::Copy(specialization.specializationBuffer + specialization.specializationData[id.location].offset, &id.value, specialization.specializationData[id.location].size);
-
-			++specialization.specializationInfo.mapEntryCount;
-		}
-
-		id.members.Destroy();
-	}
-
-	for (U32 i = 0; i < shaderState->setCount; ++i)
-	{
-		shaderState->name.Appended(shaderState->sets[i].name, "_ds"); //TODO: Unique name
-	}
 }

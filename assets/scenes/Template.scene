@@ -17,6 +17,8 @@ for each texture:
 	texture uri (null terminated string)
 	sampler index (U32)
 
+skybox texture uri (null terminated string)
+
 camera:
 	type (bool)							//This refers to true = perspective, false = orthographic
 	near clipping plane (F32)

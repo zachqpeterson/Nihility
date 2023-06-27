@@ -41,6 +41,24 @@
     <Filter Include="Source Files\Entities">
       <UniqueIdentifier>{daf9083b-3e48-4820-ae94-64d4c479ff6e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\External\Vulkan">
+      <UniqueIdentifier>{32c0f01e-4872-4a1b-a7a1-da7d4ca93d28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\SpirvCross">
+      <UniqueIdentifier>{d1da3bdb-cae0-4e85-9703-eafaae88cd9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\SpirvHeaders">
+      <UniqueIdentifier>{a1ba36a4-fa06-4fcc-ad4b-79203a4a2970}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\StandAlone">
+      <UniqueIdentifier>{fb297ebb-f312-4452-93ad-788fde41e9cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\Glslang">
+      <UniqueIdentifier>{8e12efba-4d21-4aae-8f73-0f40b4d9caf3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\SPIRV">
+      <UniqueIdentifier>{262c30c1-9b12-4610-ae5d-b8ef27545aa0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -127,9 +145,6 @@
     <ClInclude Include="Engine\Platform\SafeQueue.hpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\External\vk_mem_alloc.h">
-      <Filter>Source Files\External</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
@@ -151,20 +166,386 @@
     <ClInclude Include="Engine\Resources\Scene.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\External\json.hpp">
-      <Filter>Source Files\External</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\SIMD.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Memory\Pool.hpp">
-      <Filter>Source Files\Memory</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Entities\EntityDefines.hpp">
       <Filter>Source Files\Entities</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Rendering\Swapchain.hpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rendering\Pipeline.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Pool.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_xcb.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_xlib.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_xlib_xrandr.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vk_enum_string_helper.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vk_icd.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vk_layer.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vk_platform.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_android.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_beta.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_core.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_directfb.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_enums.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_extension_inspection.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_format_traits.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_fuchsia.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_funcs.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_ggp.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_handles.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_hash.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_ios.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_macos.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_metal.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_profiles.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_raii.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_screen.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_static_assertions.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_structs.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_to_string.hpp">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_vi.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_wayland.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Vulkan\vulkan_win32.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv-headers\GLSL.std.450.h">
+      <Filter>Source Files\External\SpirvHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv-headers\spirv.h">
+      <Filter>Source Files\External\SpirvHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv-headers\spirv.hpp">
+      <Filter>Source Files\External\SpirvHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\GLSL.std.450.h">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv.h">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cfg.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_common.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_c.h">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_containers.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_error_handling.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_cross_parsed_ir.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_glsl.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_hlsl.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_msl.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_parser.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_reflect.hpp">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\vma\vk_mem_alloc.h">
+      <Filter>Source Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h264std.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h264std_decode.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h264std_encode.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h265std.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h265std_decode.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codec_h265std_encode.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\VulkanSDK\Include\vulkan\vulkan_video_codecs_common.h">
+      <Filter>Source Files\External\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\StandAlone\DirStackFileIncluder.h">
+      <Filter>Source Files\External\StandAlone</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\spirv_cross\spirv_reflect.h">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\arrays.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\BaseTypes.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\Common.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\ConstantUnion.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\glslang_c_interface.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\glslang_c_shader_types.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\InfoSink.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\intermediate.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\PoolAlloc.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\ResourceLimits.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\ShHandle.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\SpirvIntrinsics.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Include\Types.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\attribute.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\glslang_tab.cpp.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\gl_types.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\Initialize.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\iomapper.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\LiveTraverser.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\localintermediate.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\ParseHelper.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\parseVersions.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\pch.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\preprocessor\PpContext.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\preprocessor\PpTokens.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\propagateNoContraction.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\reflection.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\RemoveTree.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\Scan.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\ScanContext.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\SymbolTable.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\MachineIndependent\Versions.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\OSDependent\osinclude.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Public\ResourceLimits.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Public\resource_limits_c.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\Public\ShaderLang.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\SPIRV\GlslangToSpv.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\SPIRV\Logger.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\SPIRV\spirv.hpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\SPIRV\spvIR.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\SPIRV\SPVRemapper.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\glslang\SPIRV\SpvTools.h">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\bitutils.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\disassemble.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\doc.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.AMD.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.ARM.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.EXT.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.KHR.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GLSL.ext.NV.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GLSL.std.450.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\GlslangToSpv.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\hex_float.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\NonSemanticDebugPrintf.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\NonSemanticShaderDebugInfo100.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\spirv.hpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\SpvBuilder.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\spvIR.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\SPVRemapper.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\SpvTools.h">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\SPIRV\SpvLogger.h">
+      <Filter>Source Files\External\SPIRV</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -233,6 +614,138 @@
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Swapchain.cpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rendering\Pipeline.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\spirv_cross\spirv_reflect.c">
+      <Filter>Source Files\External\SpirvCross</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\Include\glslang_c_interface.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\attribute.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Constant.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\glslang_tab.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\InfoSink.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Initialize.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Intermediate.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\intermOut.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\IntermTraverse.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\iomapper.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\limits.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\linkValidate.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\parseConst.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\ParseContextBase.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\ParseHelper.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\PoolAlloc.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\Pp.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpAtom.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpContext.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpScanner.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\preprocessor\PpTokens.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\propagateNoContraction.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\reflection.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\RemoveTree.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Scan.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\ShaderLang.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\SpirvIntrinsics.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\SymbolTable.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\MachineIndependent\Versions.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\OSDependent\Unix\ossource.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\OSDependent\Web\glslang.js.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\glslang\OSDependent\Windows\ossource.cpp">
+      <Filter>Source Files\External\Glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\CInterface\spirv_c_interface.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\disassemble.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\doc.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\GlslangToSpv.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\InReadableOrder.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\SpvBuilder.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\SpvPostProcess.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\SPVRemapper.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\SpvTools.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\SPIRV\SpvLogger.cpp">
+      <Filter>Source Files\External\SPIRV</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -5,64 +5,6 @@
 #include "Platform\Input.hpp"
 #include "Core\Time.hpp"
 
-// DEPTH STENCIL
-
-DepthStencil& DepthStencil::SetDepth(bool write, VkCompareOp comparisonTest)
-{
-	depthWriteEnable = write;
-	depthComparison = comparisonTest;
-	depthEnable = true;
-
-	return *this;
-}
-
-// BLEND STATE
-
-BlendState& BlendState::Reset()
-{
-	sourceColor = VK_BLEND_FACTOR_ONE;
-	destinationColor = VK_BLEND_FACTOR_ONE;
-	colorOperation = VK_BLEND_OP_ADD;
-
-	sourceAlpha = VK_BLEND_FACTOR_ONE;
-	destinationAlpha = VK_BLEND_FACTOR_ONE;
-	alphaOperation = VK_BLEND_OP_ADD;
-
-	colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
-
-	blendEnabled = false;
-	separateBlend = false;
-
-	return *this;
-}
-
-BlendState& BlendState::SetColor(VkBlendFactor source, VkBlendFactor destination, VkBlendOp operation)
-{
-	sourceColor = source;
-	destinationColor = destination;
-	colorOperation = operation;
-	blendEnabled = true;
-
-	return *this;
-}
-
-BlendState& BlendState::SetAlpha(VkBlendFactor source, VkBlendFactor destination, VkBlendOp operation)
-{
-	sourceAlpha = source;
-	destinationAlpha = destination;
-	alphaOperation = operation;
-	separateBlend = true;
-
-	return *this;
-}
-
-BlendState& BlendState::SetColorWriteMask(ColorWriteEnableMask value)
-{
-	colorWriteMask = value;
-
-	return *this;
-}
-
 // CAMERA
 
 void Camera::Reset()

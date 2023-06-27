@@ -201,22 +201,22 @@ template <class Type> concept Pointer = IsPointer<Type>;
 template <class Type> inline constexpr bool IsSinglePointer = IsPointer<Type> && !IsPointer<RemovedPointer<Type>>;
 template <class Type> concept SinglePointer = IsPointer<Type> && !IsPointer<RemovedPointer<Type>>;
 
-template <class> inline constexpr bool IsLvalReference = false;
-template <class Type> inline constexpr bool IsLvalReference<Type&> = true;
-template <class Type> inline constexpr bool IsLvalReference<const Type&> = true;
-template <class Type> inline constexpr bool IsLvalReference<volatile Type&> = true;
-template <class Type> inline constexpr bool IsLvalReference<const volatile Type&> = true;
-template <class Type> concept LvalReference = IsLvalReference<Type>;
+template <class> inline constexpr bool IsLReference = false;
+template <class Type> inline constexpr bool IsLReference<Type&> = true;
+template <class Type> inline constexpr bool IsLReference<const Type&> = true;
+template <class Type> inline constexpr bool IsLReference<volatile Type&> = true;
+template <class Type> inline constexpr bool IsLReference<const volatile Type&> = true;
+template <class Type> concept LvalReference = IsLReference<Type>;
 
-template <class> inline constexpr bool IsRvalReference = false;
-template <class Type> inline constexpr bool IsRvalReference<Type&&> = true;
-template <class Type> inline constexpr bool IsRvalReference<const Type&&> = true;
-template <class Type> inline constexpr bool IsRvalReference<volatile Type&&> = true;
-template <class Type> inline constexpr bool IsRvalReference<const volatile Type&&> = true;
-template <class Type> concept RvalReference = IsRvalReference<Type>;
+template <class> inline constexpr bool IsRReference = false;
+template <class Type> inline constexpr bool IsRReference<Type&&> = true;
+template <class Type> inline constexpr bool IsRReference<const Type&&> = true;
+template <class Type> inline constexpr bool IsRReference<volatile Type&&> = true;
+template <class Type> inline constexpr bool IsRReference<const volatile Type&&> = true;
+template <class Type> concept RvalReference = IsRReference<Type>;
 
 template <class Type> inline constexpr bool IsReference = IsLReference<Type> || IsRReference<Type>;
-template <class Type> concept Reference = IsLvalReference<Type> || IsRvalReference<Type>;
+template <class Type> concept Reference = IsLReference<Type> || IsRReference<Type>;
 
 template <class> inline constexpr bool IsArray = false;
 template <class Type> inline constexpr bool IsArray<Type[]> = true;
@@ -282,7 +282,7 @@ template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noex
 /// </summary>
 /// <param name="arg:">The value to forward</param>
 /// <returns>The forwarded value</returns>
-template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLvalReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
+template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
 
 template<class Type> inline constexpr void Swap(Type& a, Type& b)
 {

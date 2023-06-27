@@ -510,6 +510,8 @@ struct NH_API StringBase
 	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
 	template<typename Arg> StringBase& operator+=(const Arg& value) noexcept;
 
+	template<typename Arg> StringBase operator+(const Arg& value) noexcept;
+
 	~StringBase();
 	void Destroy();
 	void Clear();
@@ -715,6 +717,16 @@ inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value) noexce
 }
 
 template<typename T, typename LU>
+template<typename Arg>
+inline StringBase<T, LU> StringBase<T, LU>::operator+(const Arg& value) noexcept
+{
+	StringBase<T, LU> copy = *this;
+	copy += value;
+
+	return Move(copy);
+}
+
+template<typename T, typename LU>
 inline StringBase<T, LU>::~StringBase()
 {
 	hash = 0;
@@ -741,8 +753,11 @@ inline void StringBase<T, LU>::Destroy()
 template<typename T, typename LU>
 inline void StringBase<T, LU>::Clear()
 {
-	string[0] = LU::NULL_CHAR;
-	size = 0;
+	if (string)
+	{
+		string[0] = LU::NULL_CHAR;
+		size = 0;
+	}
 }
 
 template<typename T, typename LU>
@@ -963,15 +978,15 @@ template<typename T, typename LU>
 inline StringBase<T, LU>& StringBase<T, LU>::Trim()
 {
 	T* start = string;
-	T* end = string + size;
+	T* end = string + size - 1;
 	T c;
-
+	
 	//TODO: Verify this works
-	while (WhiteSpace(c = *start++));
-	while (WhiteSpace(c = *end--));
+	while (WhiteSpace(c = *start)) { ++start; }
+	while (WhiteSpace(c = *end)) { --end; }
 
-	size = end - start;
-	Copy(string, start, size);
+	size = end - start + 1;
+	Memory::Copy(string, start, size);
 	string[size] = LU::NULL_CHAR;
 
 	hash = Hash::Calculate(string, size);

@@ -3,6 +3,27 @@
 #include "Rendering\Renderer.hpp"
 #include "Resources\Settings.hpp"
 
+void Scene::Create()
+{
+	//MapBufferParameters cbMap = { constantBuffer, 0, 0 };
+	//F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
+	//if (cbData)
+	//{
+	//	UniformData uniformData{ };
+	//	uniformData.vp = camera.ViewProjection();
+	//	uniformData.eye = camera.Eye();
+	//	uniformData.light = Vector4::Zero;
+	//	uniformData.lightRange = 0.0f;
+	//	uniformData.lightIntensity = 0.0f;
+	//
+	//	Memory::Copy(cbData, &uniformData, sizeof(UniformData));
+	//
+	//	Renderer::UnmapBuffer(cbMap);
+	//}
+	//
+	//Renderer::SetSkybox(skybox, constantBuffer);
+}
+
 Scene::~Scene() { Destroy(); }
 
 void Scene::Destroy()
@@ -54,24 +75,24 @@ void Scene::Update()
 
 			Renderer::UnmapBuffer(cbMap);
 
-			mesh.material->program->DrawMesh(mesh, commands, constantBuffer);
+			//mesh.material->program->DrawMesh(mesh, commands, constantBuffer);
 		}
 	}
 }
 
-void Scene::UploadMaterial(MeshData& meshData, const Mesh& meshDraw)
+void Scene::UploadMaterial(MeshData& meshData, const Mesh& mesh)
 {
-	meshData.textures[0] = meshDraw.diffuseTextureIndex;
-	meshData.textures[1] = meshDraw.metalRoughOcclTextureIndex;
-	meshData.textures[2] = meshDraw.normalTextureIndex;
-	meshData.textures[3] = meshDraw.emissivityTextureIndex;
-	meshData.baseColorFactor = meshDraw.baseColorFactor;
-	meshData.metalRoughOcclFactor = meshDraw.metalRoughOcclFactor;
-	meshData.emissiveFactor = meshDraw.emissiveFactor;
-	meshData.alphaCutoff = meshDraw.alphaCutoff;
-	meshData.flags = meshDraw.flags;
+	meshData.textures[0] = mesh.diffuseTextureIndex;
+	meshData.textures[1] = mesh.metalRoughOcclTextureIndex;
+	meshData.textures[2] = mesh.normalTextureIndex;
+	meshData.textures[3] = mesh.emissivityTextureIndex;
+	meshData.baseColorFactor = mesh.baseColorFactor;
+	meshData.metalRoughOcclFactor = mesh.metalRoughOcclFactor;
+	meshData.emissiveFactor = mesh.emissiveFactor;
+	meshData.alphaCutoff = mesh.alphaCutoff;
+	meshData.flags = mesh.flags;
 
-	Matrix4 model{ meshDraw.position, meshDraw.rotation, meshDraw.scale * Vector3{1.0f, 1.0f, -1.0f} };
+	Matrix4 model{ mesh.position, mesh.rotation, mesh.scale * Vector3{1.0f, 1.0f, -1.0f} };
 	meshData.model = model;
 	meshData.modelInv = model.Transposed().Inversed();
 }

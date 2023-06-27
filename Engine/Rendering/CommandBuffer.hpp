@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Resources\ResourceDefines.hpp"
-#include "Memory\Pool.hpp"
 
 //TODO: temp
 struct NH_API CommandBuffer
@@ -9,7 +8,6 @@ struct NH_API CommandBuffer
 	void Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked);
 	void Destroy();
 
-	DescriptorSet* CreateDescriptorSet(DescriptorSetCreation& info);
 	void BindPass(Renderpass* renderpass);
 	void BindPipeline(Pipeline* pipeline);
 	void BindVertexBuffer(Buffer* buffer, U32 binding);
@@ -34,9 +32,6 @@ struct NH_API CommandBuffer
 	void Reset();
 
 	VkCommandBuffer				commandBuffer;
-
-	VkDescriptorPool			descriptorPool;
-	Pool<DescriptorSet, 256>	descriptorSets;
 
 	VkDescriptorSet				vkDescriptorSets[16];
 

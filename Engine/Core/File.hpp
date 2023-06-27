@@ -75,16 +75,18 @@ public:
 
 	template <StringType Str> U32 ReadCount(Str& data, U32 count);
 	template<typename Type> U32 ReadCount(Vector<Type>& data, U32 count);
+	template<typename Type> U32 ReadCount(Type* data, U32 count);
 
 	template<typename Type> U32 Read(Type& value);
 	U32 Read(void* buffer, U32 size);
 	void ReadString(String& string);
+	void ReadLine(String& string);
 
 	template <StringType Str> U32 Write(const Str& data);
 	template<typename Type> U32 Write(const Vector<Type>& data);
 
 	template <StringType Str> U32 WriteCount(const Str& data, U32 count);
-	template<typename Type> U32 WriteCount(const Vector<Type>& data, U32 count);
+	template<typename Type> U32 WriteCount(const Type* data, U32 count);
 
 	template<typename Type> U32 Write(const Type& value);
 	U32 Write(const void* buffer, U32 size);
@@ -166,6 +168,12 @@ inline U32 File::ReadCount(Vector<Type>& data, U32 count)
 	return Read(data.Data(), count);
 }
 
+template<typename Type> 
+inline U32 File::ReadCount(Type* data, U32 count)
+{
+	return Read(data, count);
+}
+
 template <typename Type>
 inline U32 File::Read(Type& value)
 {
@@ -191,9 +199,9 @@ inline U32 File::WriteCount(const Str& data, U32 count)
 }
 
 template <typename Type>
-inline U32 File::WriteCount(const Vector<Type>& data, U32 count)
+inline U32 File::WriteCount(const Type* data, U32 count)
 {
-	return Write(data.Data(), sizeof(Type) * count);
+	return Write(data, sizeof(Type) * count);
 }
 
 template <typename Type>

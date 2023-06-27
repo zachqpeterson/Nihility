@@ -9,14 +9,14 @@ struct CommandBuffer;
 struct NH_API Scene
 {
 public:
+	void Create();
 	~Scene();
 	void Destroy();
 
 	void Update();
 
 private:
-	void UploadMaterial(MeshData& meshData, const Mesh& meshDraw);
-	void DrawMesh(CommandBuffer* commands, Mesh& meshDraw);
+	void UploadMaterial(MeshData& meshData, const Mesh& mesh);
 
 public:
 	String				name{ NO_INIT };
@@ -24,6 +24,7 @@ public:
 
 	Camera				camera;
 	Buffer*				constantBuffer;
+	Texture*			skybox;
 
 	Vector<Mesh>		meshes{ NO_INIT };
 

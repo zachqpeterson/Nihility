@@ -18,6 +18,10 @@ public:
 	static void*						MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
 
+	static void							SetSkybox(Texture* skyboxTexture, Buffer* constantBuffer);
+
+	static U32							GetFrameIndex();
+
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
 	static void							Shutdown();
@@ -47,35 +51,22 @@ private:
 	static CommandBuffer*				GetInstantCommandBuffer();
 	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState,
 		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
-	static void							FillWriteDescriptorSets(const DescriptorSetLayout* descriptorSetLayout, VkDescriptorSet vkDescriptorSet,
-		VkWriteDescriptorSet* descriptorWrite, VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo,
-		VkSampler vkDefaultSampler, U32& numResources, DescriptorSetResource* resources, Sampler** samplers, U16* bindings);
-	static VkShaderModuleCreateInfo		CompileShader(CSTR path, VkShaderStageFlagBits stage, CSTR name);
-	static RenderTarget					CreateRenderTarget(RenderTargetCreation& creation);
-	static void							RecreateRenderTarget(RenderTarget& target, U16 width, U16 height);
+	static void							UpdateDescriptorSet(DescriptorSet* descriptorSet, VkWriteDescriptorSet* descriptorWrite, 
+		VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateBuffer(Buffer* buffer, void* data);
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
-	static bool							CreateDescriptorSet(DescriptorSet* descriptorSet);
-	static bool							CreateShaderState(ShaderState* shaderState, const ShaderStateCreation& info);
 	static bool							CreateRenderPass(Renderpass* renderpass);
-	static bool							CreatePipeline(Pipeline* pipeline, Renderpass* renderpass, const String& cachePath);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
 	static void							DestroyBufferInstant(Buffer* buffer);
 	static void							DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout);
-	static void							DestroyDescriptorSetInstant(DescriptorSet* set);
-	static void							DestroyShaderStateInstant(ShaderState* shader);
 	static void							DestroyRenderPassInstant(Renderpass* renderpass);
-	static void							DestroyPipelineInstant(Pipeline* pipeline);
-	static void							DestroyRenderTarget(RenderTarget& target);
 
-	static void							UpdateDescriptorSet(DescriptorSet* descriptorSet);
 	static void							UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
-	static void							ResizeOutputTextures(Renderpass* renderpass, U32 width, U32 height);
 
 	static bool							IsDepthStencil(VkFormat value);
 	static bool							IsDepthOnly(VkFormat value);
@@ -105,12 +96,6 @@ private:
 	static U64									uboAlignment;
 	static U64									sboAlignemnt;
 
-	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
-	static VkDescriptorPool						bindlessDescriptorPool;
-	static VkDescriptorSet						bindlessDescriptorSet;
-	static VkDescriptorSetLayout				bindlessDescriptorSetLayout;
-	static constexpr U32						bindlessTextureBinding{ 10 };
-	static constexpr U32						maxBindlessResources{ 1024 };
 	static bool									bindlessSupported;
 
 	// RAY TRACING
@@ -121,10 +106,13 @@ private:
 
 	// WINDOW
 	static RenderpassOutput						swapchainOutput;
+	static Renderpass*							skyboxPass;
 	static Renderpass*							offscreenPass;
 	static Renderpass*							filterPass;
 	static Renderpass*							bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
 	static U8									bloomPassCount;
+	static Pipeline*							skyboxPipeline;
+	static Program*								skybox;
 	static Program*								offscreen;
 	static Program*								postProcessing;
 	static Program*								bloom;
@@ -136,7 +124,6 @@ private:
 
 	// RESOURCES
 	static VmaAllocator_T*						allocator;
-	static Queue<DescriptorSetUpdate>			descriptorSetUpdates;
 	static CommandBufferRing					commandBufferRing;
 	static CommandBuffer**						queuedCommandBuffers;
 	static U32									allocatedCommandBufferCount;
@@ -173,5 +160,6 @@ private:
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 	friend struct Swapchain;
+	friend struct Pipeline;
 	friend struct Scene; //TODO: temp
 };

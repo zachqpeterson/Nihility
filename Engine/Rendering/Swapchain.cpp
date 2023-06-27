@@ -171,47 +171,27 @@ bool Swapchain::Create()
 
 	VkValidateFR(vkCreateSwapchainKHR(Renderer::device, &swapchainInfo, Renderer::allocationCallbacks, &swapchain));
 
-	if (oldSwapchain)
-	{
-		for (U32 i = 0; i < imageCount; ++i)
-		{
-			vkDestroyImageView(Renderer::device, renderpass->outputTextures[i].imageView, Renderer::allocationCallbacks);
-		}
-
-		vkDestroySwapchainKHR(Renderer::device, oldSwapchain, Renderer::allocationCallbacks);
-	}
-
 	VkImage images[MAX_SWAPCHAIN_IMAGES];
 	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, nullptr));
 	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, images));
 
-	renderPassInfo.renderTargetCount = imageCount;
-	for (U32 i = 0; i < imageCount; ++i)
+	if (oldSwapchain)
 	{
-		renderPassInfo.outputTextures[i].image = images[i];
-		renderPassInfo.outputTextures[i].format = surfaceFormat.format;
-		renderPassInfo.outputTextures[i].swapchainTarget = true;
+		vkDestroySwapchainKHR(Renderer::device, oldSwapchain, Renderer::allocationCallbacks);
+
+		renderPassInfo.renderTargetCount = imageCount;
+		for (U32 i = 0; i < imageCount; ++i)
+		{
+			Resources::RecreateSwapchainTexture(renderPassInfo.outputTextures[i], images[i]);
+		}
 	}
-
-	for (U32 i = 0; i < imageCount; ++i)
+	else
 	{
-		VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		viewInfo.pNext = nullptr;
-		viewInfo.flags = 0;
-		viewInfo.image = renderPassInfo.outputTextures[i].image;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = surfaceFormat.format;
-		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-		viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-
-		VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &renderPassInfo.outputTextures[i].imageView));
+		renderPassInfo.renderTargetCount = imageCount;
+		for (U32 i = 0; i < imageCount; ++i)
+		{
+			renderPassInfo.outputTextures[i] = Resources::CreateSwapchainTexture(images[i], surfaceFormat.format, i);
+		}
 	}
 
 	CreateRenderPass();

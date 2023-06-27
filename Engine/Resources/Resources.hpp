@@ -7,21 +7,27 @@
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
 #include "Containers\Queue.hpp"
+#include "Containers\Pool.hpp"
 #include "Math\Math.hpp"
+
+struct Pipeline;
 
 class NH_API Resources
 {
 public:
 	static Sampler* CreateSampler(const SamplerCreation& info);
 	static Texture* CreateTexture(const TextureCreation& info);
+	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
+	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
 	static Buffer* CreateBuffer(const BufferCreation& info);
 	static Buffer* LoadBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
-	static DescriptorSet* CreateDescriptorSet(const DescriptorSetCreation& info);
-	static ShaderState* CreateShaderState(const ShaderStateCreation& info);
+	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
+	static void UpdateDescriptorSet(DescriptorSet* descriptorSet);
+	static void UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
 	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
-	static Pipeline* CreatePipeline(const PipelineCreation& info);
+	static Pipeline* CreatePipeline(const String& name);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
 	static Scene* LoadScene(const String& name);
@@ -32,22 +38,15 @@ public:
 	static Texture* AccessDummyTexture();
 	static Buffer* AccessDummyAttributeBuffer();
 	static Sampler* AccessDefaultSampler();
-	static Renderpass* AccessDefaultRenderpass();
-	static Material* AccessDefaultMaterial(bool transparent = false, bool culling = true);
+	static Material* AccessDefaultMaterial(bool transparent = false);
 
 	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
-	static DescriptorSetLayout* AccessDescriptorSetLayout(const String& name);
-	static DescriptorSet* AccessDescriptorSet(const String& name);
-	static ShaderState* AccessShaderState(const String& name);
 	static Renderpass* AccessRenderPass(const String& name);
 	static Pipeline* AccessPipeline(const String& name);
 
 	static Sampler* AccessSampler(HashHandle handle);
 	static Texture* AccessTexture(HashHandle handle);
-	static DescriptorSetLayout* AccessDescriptorSetLayout(HashHandle handle);
-	static DescriptorSet* AccessDescriptorSet(HashHandle handle);
-	static ShaderState* AccessShaderState(HashHandle handle);
 	static Renderpass* AccessRenderPass(HashHandle handle);
 	static Pipeline* AccessPipeline(HashHandle handle);
 
@@ -56,18 +55,20 @@ public:
 	static void	DestroyBuffer(Buffer* buffer);
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
-	static void	DestroyShaderState(ShaderState* shader);
 	static void	DestroyRenderPass(Renderpass* renderpass);
-	static void	DestroyPipeline(Pipeline* pipeline);
 
 	static bool LoadBinary(const String& name, String& result);
 	static U32 LoadBinary(const String& name, void** result);
-	static void ParseSPIRV(VkShaderModuleCreateInfo& shaderInfo, ShaderState* shaderState);
 
 private:
 	static bool Initialize();
 	static void CreateDefaults();
+	static bool CreateBindless();
 	static void Shutdown();
+
+	template<typename Type> using DestroyFn = void(*)(Type);
+	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy);
+	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer);
 
 	static void Update();
 
@@ -84,18 +85,16 @@ private:
 	static Texture*								dummyTexture;
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
-	static Renderpass*							defaultRenderpass;
-	static Material*							materialNoCullOpaque;
-	static Material*							materialCullOpaque;
-	static Material*							materialNoCullTransparent;
-	static Material*							materialCullTransparent;
+	static Material*							materialOpaque;
+	static Material*							materialTransparent;
+
+	static VkDescriptorPool						descriptorPool;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
 	static Hashmap<String, Buffer>				buffers;
-	static Hashmap<String, DescriptorSetLayout>	descriptorSetLayouts;
-	static Hashmap<String, DescriptorSet>		descriptorSets;
-	static Hashmap<String, ShaderState>			shaders;
+	static Pool<DescriptorSet, 256>				descriptorSets;
+	static Pool<DescriptorSetLayout, 256>		descriptorSetLayouts;
 	static Hashmap<String, Renderpass>			renderPasses;
 	static Hashmap<String, Pipeline>			pipelines;
 	static Hashmap<String, Program>				programs;
@@ -103,8 +102,47 @@ private:
 	static Hashmap<String, Scene>				scenes;
 
 	static Queue<ResourceUpdate>				resourceDeletionQueue;
+	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
+	static Queue<DescriptorSetUpdate>			descriptorSetUpdates;
+
+	static VkDescriptorPool						bindlessDescriptorPool;
+	static VkDescriptorSet						bindlessDescriptorSet;
+	static VkDescriptorSetLayout				bindlessDescriptorSetLayout;
+	static constexpr U32						maxBindlessResources{ 1024 };
+	static constexpr U32						bindlessTextureBinding{ 10 };
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;
 	friend class Engine;
+	friend struct CommandBuffer;
+	friend struct Pipeline;
 };
+
+template<typename Type>
+inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy)
+{
+	typename Hashmap<String, Type>::Iterator end0 = hashmap.end();
+	for (auto it = hashmap.begin(); it != end0; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			destroy(&hashmap.Obtain(it->handle));
+			if constexpr (IsDestroyable<Type>) { it->Destroy(); }
+			hashmap.Remove(it->handle);
+		}
+	}
+}
+
+template<typename Type>
+inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer)
+{
+	typename Hashmap<String, Type>::Iterator end0 = hashmap.end();
+	for (auto it = hashmap.begin(); it != end0; ++it)
+	{
+		if (it.Valid() && !it->name.Blank())
+		{
+			if constexpr (IsDestroyable<Type>) { it->Destroy(); }
+			hashmap.Remove(it->handle);
+		}
+	}
+}

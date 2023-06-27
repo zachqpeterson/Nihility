@@ -2,6 +2,7 @@
 
 #include <io.h>
 #include <sys/stat.h>
+#include <share.h>
 
 File::File() { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; }
 
@@ -11,7 +12,7 @@ bool File::Open(const C8* path, I32 mode)
 {
 	if (opened) { Close(); }
 
-	_sopen_s(&handle, path, mode, 0x0040, 0x0100 | 0x0080);
+	_sopen_s(&handle, path, mode, _SH_DENYNO, _S_IREAD | _S_IWRITE);
 
 	if (handle < 0 || _fstat64(handle, (struct _stat64*)&stats)) { return false; }
 
@@ -89,19 +90,51 @@ U32 File::Read(void* buffer, U32 size)
 
 void File::ReadString(String& string)
 {
-	C8* it = (C8*)streamPtr;
+	string.Clear();
 
-	while (bufferRemaining && *it != '\0') { ++it; }
+	bool end = false;
 
-	if (*it == '\0')
+	while (!end)
 	{
-		string = (C8*)streamPtr;
-		streamPtr += string.Size() + 1;
+		C8* it = (C8*)streamPtr;
+
+		while (bufferRemaining && *it != '\0') { ++it; }
+
+		if (*it == '\0')
+		{
+			string.Append((C8*)streamPtr);
+			streamPtr += string.Size() + 1;
+			end = true;
+		}
+		else if (!FillBuffer())
+		{
+			end = true;
+		}
 	}
-	else
+}
+
+void File::ReadLine(String& string)
+{
+	string.Clear();
+
+	bool end = false;
+
+	while (!end)
 	{
-		BreakPoint;
-		//TODO:  Refill buffer
+		C8* it = (C8*)streamPtr;
+
+		while (bufferRemaining && *it != '\n' && *it != '\r') { ++it; }
+
+		if (*it == '\n' || *it != '\r')
+		{
+			string.Append((C8*)streamPtr);
+			streamPtr += string.Size() + 1;
+			end = true;
+		}
+		else if(!FillBuffer())
+		{
+			end = true;
+		}
 	}
 }
 

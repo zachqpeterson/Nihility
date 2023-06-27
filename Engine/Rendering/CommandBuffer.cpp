@@ -2,7 +2,7 @@
 
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
-
+#include "Pipeline.hpp"
 
 void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked)
 {
@@ -10,76 +10,12 @@ void CommandBuffer::Create(QueueType type, U32 bufferSize, U32 submitSize, bool 
 	this->bufferSize = bufferSize;
 	this->baked = baked;
 
-	//////// Create Descriptor Pools
-	static const U32 globalPoolElements = 128;
-	VkDescriptorPoolSize poolSizes[] {
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, globalPoolElements}
-	};
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	poolInfo.maxSets = globalPoolElements * CountOf32(poolSizes);
-	poolInfo.poolSizeCount = CountOf32(poolSizes);
-	poolInfo.pPoolSizes = poolSizes;
-	VkValidateF(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &descriptorPool));
-
-	descriptorSets.Create();
-
 	Reset();
 }
 
 void CommandBuffer::Destroy()
 {
 	Reset();
-
-	descriptorSets.Destroy();
-
-	vkDestroyDescriptorPool(Renderer::device, descriptorPool, Renderer::allocationCallbacks);
-}
-
-DescriptorSet* CommandBuffer::CreateDescriptorSet(DescriptorSetCreation& info)
-{
-	U64 handle = descriptorSets.ObtainResource();
-
-	DescriptorSet* set = descriptorSets.GetResource(handle);
-
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &info.layout->descriptorSetLayout;
-
-	VkValidateF(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &set->descriptorSet));
-
-	set->resourceCount = info.resourceCount;
-	set->layout = info.layout;
-
-	VkWriteDescriptorSet descriptorWrite[8];
-	VkDescriptorBufferInfo bufferInfo[8];
-	VkDescriptorImageInfo imageInfo[8];
-
-	U32 resourceCount = info.resourceCount;
-	Renderer::FillWriteDescriptorSets(info.layout, set->descriptorSet, descriptorWrite, bufferInfo, imageInfo, Resources::AccessDefaultSampler()->sampler,
-		resourceCount, info.resources, info.samplers, info.bindings);
-
-	for (U32 r = 0; r < resourceCount; ++r)
-	{
-		set->resources[r] = info.resources[r];
-		set->samplers[r] = info.samplers[r];
-		set->bindings[r] = info.bindings[r];
-	}
-
-	vkUpdateDescriptorSets(Renderer::device, resourceCount, descriptorWrite, 0, nullptr);
-
-	return set;
 }
 
 void CommandBuffer::BindPass(Renderpass* renderpass)
@@ -147,39 +83,40 @@ void CommandBuffer::BindIndexBuffer(Buffer* buffer)
 	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, VK_INDEX_TYPE_UINT16);
 }
 
+Texture* textures[MAX_DESCRIPTORS_PER_SET]{};
+Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{};
+
+DescriptorBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
+
 void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets)
 {
-	// TODO:
 	U32 offsetsCache[8];
 	numOffsets = 0;
-
+	
 	for (U32 l = 0; l < numLists; ++l)
 	{
 		DescriptorSet* descriptorSet = sets[l];
 		vkDescriptorSets[l] = descriptorSet->descriptorSet;
-
-		const DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
-		for (U32 i = 0; i < descriptorSetLayout->bindingCount; ++i)
+	
+		for (U32 i = 0, b = 0; i < descriptorSet->bindingCount; ++i)
 		{
-			const DescriptorBinding& rb = descriptorSetLayout->bindings[i];
-
+			const DescriptorBinding& rb = descriptorSet->bindings[i];
+	
 			if (rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 			{
-				const U32 resourceIndex = descriptorSet->bindings[i];
-
-				offsetsCache[numOffsets++] = descriptorSet->resources[resourceIndex].bufferInfo.offset;
+				offsetsCache[numOffsets++] = (U32)descriptorSet->buffers[b++]->globalOffset;
 			}
 		}
 	}
 
 	const U32 firstSet = 0;
-	vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->pipelineLayout, firstSet,
+	vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->layout, firstSet,
 		numLists, vkDescriptorSets, numOffsets, offsetsCache);
 
 	if (Renderer::bindlessSupported)
 	{
-		vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->pipelineLayout, 1,
-			1, &Renderer::bindlessDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->layout, 1,
+			1, &Resources::bindlessDescriptorSet, 0, nullptr);
 	}
 }
 
@@ -454,14 +391,6 @@ void CommandBuffer::Reset()
 	currentRenderPass = nullptr;
 	currentPipeline = nullptr;
 	currentCommand = 0;
-
-	vkResetDescriptorPool(Renderer::device, descriptorPool, 0);
-
-	U64 resourceCount = descriptorSets.lastFree;
-	for (U64 i = 0; i < resourceCount; ++i)
-	{
-		descriptorSets.ReleaseResource(i);
-	}
 }
 
 /*------COMMAND BUFFER RING------*/

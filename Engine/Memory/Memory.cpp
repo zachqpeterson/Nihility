@@ -179,6 +179,13 @@ void Memory::Copy(void* dst, const void* src, U64 size)
 	memcpy(dst, src, size);
 }
 
+bool Memory::Compare(const U8* a, const U8* b, U64 length)
+{
+	while (length--) { if (*a != *b) { return false; } }
+
+	return true;
+}
+
 /*---------GLOBAL NEW/DELETE---------*/
 
 NH_NODISCARD void* operator new (U64 size)

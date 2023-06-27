@@ -50,6 +50,7 @@ public:
 	static void Set(void* pointer, U8 value, U64 size);
 	static void Zero(void* pointer, U64 size);
 	static void Copy(void* dst, const void* src, U64 size);
+	static bool Compare(const U8* a, const U8* b, U64 length);
 
 private:
 	static bool Initialize();
