@@ -75,6 +75,7 @@ void Scene::Update()
 
 			Renderer::UnmapBuffer(cbMap);
 
+			mesh.material->program->DrawMesh(commands, mesh);
 			//mesh.material->program->DrawMesh(mesh, commands, constantBuffer);
 		}
 	}

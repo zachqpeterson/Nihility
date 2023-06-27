@@ -3,6 +3,7 @@
 #include "Rendering\CommandBuffer.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
+#include "Resources\Resources.hpp"
 
 // SAMPLER CREATION
 
@@ -360,4 +361,12 @@ void Program::RunPasses(CommandBuffer* commands)
 	}
 
 	if (renderpass != nullptr) {} //TODO: End renderpass
+}
+
+void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh)
+{
+	//TODO: Update Descriptor Sets
+	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[0][Renderer::GetFrameIndex()]);
+
+	RunPasses(commands);
 }

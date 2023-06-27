@@ -92,7 +92,6 @@ Hashmap<String, Scene>			Resources::scenes{ 128, {} };
 
 Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
-Queue<DescriptorSetUpdate>		Resources::descriptorSetUpdates;
 
 VkDescriptorPool				Resources::bindlessDescriptorPool;
 VkDescriptorSet					Resources::bindlessDescriptorSet;
@@ -290,7 +289,6 @@ void Resources::Shutdown()
 	scenes.Destroy();
 
 	resourceDeletionQueue.Destroy();
-	descriptorSetUpdates.Destroy();
 	bindlessTexturesToUpdate.Destroy();
 
 	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout, Renderer::allocationCallbacks);
@@ -318,15 +316,6 @@ void Resources::Update()
 			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 			}
 		}
-	}
-
-	// Descriptor Set Updates
-	while (descriptorSetUpdates.Size())
-	{
-		DescriptorSetUpdate update;
-		descriptorSetUpdates.Pop(update);
-
-		UpdateDescriptorSetInstant(update);
 	}
 
 	if (bindlessTexturesToUpdate.Size())
@@ -1076,22 +1065,18 @@ DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 
 void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet)
 {
-	if (descriptorSet) { descriptorSetUpdates.Push({ descriptorSet, Renderer::currentFrame }); }
-	else { Logger::Error("Trying to update invalid DescriptorSet!"); }
-}
+	if (descriptorSet)
+	{
+		DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
 
-void Resources::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
-{
-	DescriptorSet* descriptorSet = update.descriptorSet;
-	DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+		VkWriteDescriptorSet descriptorWrite[8];
+		VkDescriptorBufferInfo bufferInfo[8];
+		VkDescriptorImageInfo imageInfo[8];
 
-	VkWriteDescriptorSet descriptorWrite[8];
-	VkDescriptorBufferInfo bufferInfo[8];
-	VkDescriptorImageInfo imageInfo[8];
+		Renderer::UpdateDescriptorSet(descriptorSet, descriptorWrite, bufferInfo, imageInfo);
 
-	Renderer::UpdateDescriptorSet(descriptorSet, descriptorWrite, bufferInfo, imageInfo);
-
-	vkUpdateDescriptorSets(Renderer::device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
+		vkUpdateDescriptorSets(Renderer::device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
+	}
 }
 
 Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)

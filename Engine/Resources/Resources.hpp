@@ -25,7 +25,6 @@ public:
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet);
-	static void UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
 	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const String& name);
 	static Program* CreateProgram(const ProgramCreation& info);
@@ -103,7 +102,6 @@ private:
 
 	static Queue<ResourceUpdate>				resourceDeletionQueue;
 	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
-	static Queue<DescriptorSetUpdate>			descriptorSetUpdates;
 
 	static VkDescriptorPool						bindlessDescriptorPool;
 	static VkDescriptorSet						bindlessDescriptorSet;

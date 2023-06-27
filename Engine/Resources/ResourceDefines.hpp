@@ -531,6 +531,7 @@ struct Program
 	void Destroy() { name.Destroy(); }
 
 	void RunPasses(CommandBuffer* commands);
+	void DrawMesh(CommandBuffer* commands, Mesh& mesh);
 
 	String		name{ NO_INIT };
 	HashHandle	handle;
