@@ -112,7 +112,7 @@ struct Pipeline
 	BlendState			blendStates[MAX_IMAGE_OUTPUTS]{};
 	U8					blendStateCount{ 0 };
 
-	DescriptorSet*		descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
+	DescriptorSet*		descriptorSets[MAX_DESCRIPTOR_SETS];
 	U8					descriptorSetCount{ 0 };
 	bool				useBindless{ false };
 

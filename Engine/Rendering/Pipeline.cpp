@@ -17,7 +17,7 @@
 #include <spirv_cross\spirv.h>
 #endif
 
-TBuiltInResource resources {
+TBuiltInResource resources{
 	.maxLights = 32,
 		.maxClipPlanes = 6,
 		.maxTextureUnits = 32,
@@ -214,17 +214,8 @@ bool Pipeline::Create(const String& shaderPath)
 	for (U8 i = 0; i < descriptorSetCount; ++i)
 	{
 		shader.setLayouts[i] = Resources::CreateDescriptorSetLayout(setLayoutInfos[i]);
-	}
-
-	for (U8 j = 0; j < descriptorSetCount; ++j)
-	{
-		DescriptorSet** sets = descriptorSets[j];
-		vkLayouts[j] = shader.setLayouts[j]->descriptorSetLayout;
-
-		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-		{
-			sets[i] = Resources::CreateDescriptorSet(shader.setLayouts[j]);
-		}
+		vkLayouts[i] = shader.setLayouts[i]->descriptorSetLayout;
+		descriptorSets[i] = Resources::CreateDescriptorSet(shader.setLayouts[i]);
 	}
 
 	RenderPassCreation renderPassInfo{};
@@ -266,10 +257,7 @@ void Pipeline::Destroy()
 
 	for (U8 i = 0; i < descriptorSetCount; ++i)
 	{
-		for (U8 j = 0; j < MAX_SWAPCHAIN_IMAGES; ++j)
-		{
-			Resources::DestroyDescriptorSet(descriptorSets[j][i]);
-		}
+		Resources::DestroyDescriptorSet(descriptorSets[i]);
 	}
 
 	for (U8 i = 0; i < shader.shaderCount; ++i)
@@ -479,13 +467,13 @@ bool Pipeline::ParseStage(const String& data, I64& index, DescriptorSetLayoutCre
 
 const String& Pipeline::ToStageDefines(VkShaderStageFlagBits value)
 {
-	static const String vertex{"VERTEX"};
-	static const String geometry{"GEOMETRY"};
-	static const String fragment{"FRAGMENT"};
-	static const String compute{"COMPUTE"};
-	static const String tessControl{"TESSCONTROLL"};
-	static const String tessEval{"TESSEVAL"};
-	static const String def{""};
+	static const String vertex{ "VERTEX" };
+	static const String geometry{ "GEOMETRY" };
+	static const String fragment{ "FRAGMENT" };
+	static const String compute{ "COMPUTE" };
+	static const String tessControl{ "TESSCONTROLL" };
+	static const String tessEval{ "TESSEVAL" };
+	static const String def{ "" };
 
 	switch (value)
 	{
@@ -501,13 +489,13 @@ const String& Pipeline::ToStageDefines(VkShaderStageFlagBits value)
 
 const String& Pipeline::ToCompilerExtension(VkShaderStageFlagBits value)
 {
-	static const String vertex{"vert"};
-	static const String geometry{"geom"};
-	static const String fragment{"frag"};
-	static const String compute{"comp"};
-	static const String tessControl{"tesc"};
-	static const String tessEval{"tese"};
-	static const String def{""};
+	static const String vertex{ "vert" };
+	static const String geometry{ "geom" };
+	static const String fragment{ "frag" };
+	static const String compute{ "comp" };
+	static const String tessControl{ "tesc" };
+	static const String tessEval{ "tese" };
+	static const String def{ "" };
 
 	switch (value)
 	{
@@ -590,7 +578,7 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 			SpvReflectInterfaceVariable* var = module.input_variables[i];
 
 			U32 location = var->location;
-
+			
 			VertexAttribute attribute{};
 			attribute.binding = location; //TODO: Support one vertex buffer vs multiple
 			attribute.location = location;

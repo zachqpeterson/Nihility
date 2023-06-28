@@ -441,9 +441,7 @@ struct DescriptorSet
 	VkDescriptorSet			descriptorSet{ nullptr };
 	DescriptorSetLayout*	layout{ nullptr };
 
-	Texture*				textures[MAX_DESCRIPTORS_PER_SET]{};
-	Buffer*					buffers[MAX_DESCRIPTORS_PER_SET]{};
-
+	U32						offsetsCache[MAX_DESCRIPTORS_PER_SET]{};
 	DescriptorBinding		bindings[MAX_DESCRIPTORS_PER_SET]{};
 	U8						bindingCount{ 0 };
 };
@@ -531,7 +529,7 @@ struct Program
 	void Destroy() { name.Destroy(); }
 
 	void RunPasses(CommandBuffer* commands);
-	void DrawMesh(CommandBuffer* commands, Mesh& mesh);
+	void DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuffer);
 
 	String		name{ NO_INIT };
 	HashHandle	handle;
@@ -567,8 +565,6 @@ struct Material
 	U32			poolIndex;
 
 	Program* program{ nullptr };
-
-	DescriptorSet* descriptorSet{ nullptr };
 };
 
 struct MaterialCreation

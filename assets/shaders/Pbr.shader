@@ -12,7 +12,7 @@ language=GLSL
 #VERTEX
 #version 450
 
-layout(std140, binding = 0) uniform LocalConstants
+layout(std140, binding = 0) uniform LocalConstants //Per frame
 {
     mat4 viewProjection;
     vec4 eye;
@@ -21,7 +21,7 @@ layout(std140, binding = 0) uniform LocalConstants
     float lightIntensity;
 };
 
-layout(std140, binding = 1) uniform MaterialConstant
+layout(std140, binding = 1) uniform MaterialConstant //Per instance
 {
     mat4 model;
     mat4 modelInv;
@@ -35,6 +35,7 @@ layout(std140, binding = 1) uniform MaterialConstant
     uint        flags;
 };
 
+//TODO: Need some way to tell which buffers these come from
 layout(location=0) in vec3 position;
 layout(location=1) in vec4 tangent;
 layout(location=2) in vec3 normal;

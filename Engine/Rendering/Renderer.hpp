@@ -54,8 +54,6 @@ private:
 	static CommandBuffer*				GetInstantCommandBuffer();
 	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState,
 		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
-	static void							UpdateDescriptorSet(DescriptorSet* descriptorSet, VkWriteDescriptorSet* descriptorWrite, 
-		VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
@@ -68,8 +66,6 @@ private:
 	static void							DestroyBufferInstant(Buffer* buffer);
 	static void							DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout);
 	static void							DestroyRenderPassInstant(Renderpass* renderpass);
-
-	static void							UpdateDescriptorSetInstant(const DescriptorSetUpdate& update);
 
 	static bool							IsDepthStencil(VkFormat value);
 	static bool							IsDepthOnly(VkFormat value);

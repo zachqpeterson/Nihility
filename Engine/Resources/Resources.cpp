@@ -1063,7 +1063,7 @@ DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 	return descriptorSet;
 }
 
-void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet)
+void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers)
 {
 	if (descriptorSet)
 	{
@@ -1073,7 +1073,68 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet)
 		VkDescriptorBufferInfo bufferInfo[8];
 		VkDescriptorImageInfo imageInfo[8];
 
-		Renderer::UpdateDescriptorSet(descriptorSet, descriptorWrite, bufferInfo, imageInfo);
+		U8 t = 0, b = 0, o = 0;
+
+		for (U32 i = 0; i < descriptorSet->bindingCount; ++i)
+		{
+			const DescriptorBinding& binding = descriptorSet->bindings[i];
+
+			descriptorWrite[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			descriptorWrite[i].dstSet = descriptorSet->descriptorSet;
+			descriptorWrite[i].dstBinding = binding.binding;
+			descriptorWrite[i].dstArrayElement = 0;
+			descriptorWrite[i].descriptorCount = 1;
+
+			switch (binding.type)
+			{
+			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
+				Texture* texture = textures[t++];
+
+				imageInfo[i].sampler = texture->sampler->sampler;
+				imageInfo[i].imageLayout = texture->imageLayout;
+				imageInfo[i].imageView = texture->imageView;
+
+				descriptorWrite[i].pImageInfo = &imageInfo[i];
+				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			} break;
+			case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: {
+				Texture* texture = textures[t++];
+
+				imageInfo[i].sampler = nullptr;
+				imageInfo[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				imageInfo[i].imageView = texture->imageView;
+
+				descriptorWrite[i].pImageInfo = &imageInfo[i];
+				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			} break;
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+				Buffer* buffer = buffers[b++];
+
+				bufferInfo[i].offset = buffer->globalOffset;
+				bufferInfo[i].range = buffer->size;
+				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
+				else { bufferInfo[i].buffer = buffer->buffer; }
+
+				descriptorSet->offsetsCache[o++] = buffer->globalOffset;
+				descriptorWrite[i].pBufferInfo = &bufferInfo[i];
+				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			} break;
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: {
+				Buffer* buffer = buffers[b++];
+
+				bufferInfo[i].offset = buffer->globalOffset;
+				bufferInfo[i].range = buffer->size;
+				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
+				else { bufferInfo[i].buffer = buffer->buffer; }
+
+				descriptorWrite[i].pBufferInfo = &bufferInfo[i];
+				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			} break;
+			default: {
+				Logger::Fatal("Resource type {} not supported in descriptor set creation!", (U32)binding.type);
+			}break;
+			}
+		}
 
 		vkUpdateDescriptorSets(Renderer::device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
 	}

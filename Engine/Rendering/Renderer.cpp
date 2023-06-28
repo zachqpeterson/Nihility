@@ -130,6 +130,7 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
+Scene*								Renderer::currentScene;
 VmaAllocator_T*						Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 CommandBuffer**						Renderer::queuedCommandBuffers;
@@ -786,20 +787,6 @@ void Renderer::LoadScene(const String& name)
 	currentScene = Resources::LoadScene("scenes/Boombox.scene");
 }
 
-void Renderer::UpdateDescriptorSetInstant(const DescriptorSetUpdate& update)
-{
-	DescriptorSet* descriptorSet = update.descriptorSet;
-	DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
-
-	VkWriteDescriptorSet descriptorWrite[8];
-	VkDescriptorBufferInfo bufferInfo[8];
-	VkDescriptorImageInfo imageInfo[8];
-
-	UpdateDescriptorSet(descriptorSet, descriptorWrite, bufferInfo, imageInfo);
-
-	vkUpdateDescriptorSets(device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
-}
-
 void* Renderer::MapBuffer(const MapBufferParameters& parameters)
 {
 	if (parameters.buffer == nullptr) { return nullptr; }
@@ -935,71 +922,6 @@ void Renderer::AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, Res
 	const VkPipelineStageFlags destinationStageMask = DeterminePipelineStageFlags(barrier.dstAccessMask, QUEUE_TYPE_GRAPHICS);
 
 	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-}
-
-void Renderer::UpdateDescriptorSet(DescriptorSet* descriptorSet, VkWriteDescriptorSet* descriptorWrite,
-	VkDescriptorBufferInfo* bufferInfo, VkDescriptorImageInfo* imageInfo)
-{
-	U8 t = 0;
-	U8 b = 0;
-
-	for (U32 i = 0; i < descriptorSet->bindingCount; ++i)
-	{
-		const DescriptorBinding& binding = descriptorSet->bindings[i];
-
-		descriptorWrite[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		descriptorWrite[i].dstSet = descriptorSet->descriptorSet;
-		descriptorWrite[i].dstBinding = binding.binding;
-		descriptorWrite[i].dstArrayElement = 0;
-		descriptorWrite[i].descriptorCount = 1;
-
-		switch (binding.type)
-		{
-		case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
-			Texture* texture = descriptorSet->textures[t++];
-
-			imageInfo[i].sampler = texture->sampler->sampler;
-			imageInfo[i].imageLayout = texture->imageLayout;
-			imageInfo[i].imageView = texture->imageView;
-
-			descriptorWrite[i].pImageInfo = &imageInfo[i];
-			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		} break;
-		case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: {
-			Texture* texture = descriptorSet->textures[t++];
-
-			imageInfo[i].sampler = nullptr;
-			imageInfo[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			imageInfo[i].imageView = texture->imageView;
-
-			descriptorWrite[i].pImageInfo = &imageInfo[i];
-			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		} break;
-		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-			Buffer* buffer = descriptorSet->buffers[b++];
-
-			bufferInfo[i].offset = 0;
-			bufferInfo[i].range = buffer->size;
-			bufferInfo[i].buffer = buffer->buffer;
-
-			descriptorWrite[i].pBufferInfo = &bufferInfo[i];
-			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		} break;
-		case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: {
-			Buffer* buffer = descriptorSet->buffers[b++];
-
-			bufferInfo[i].offset = 0;
-			bufferInfo[i].range = buffer->size;
-			bufferInfo[i].buffer = buffer->buffer;
-
-			descriptorWrite[i].pBufferInfo = &bufferInfo[i];
-			descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		} break;
-		default: {
-			Logger::Fatal("Resource type {} not supported in descriptor set creation!", (U32)binding.type);
-		}break;
-		}
-	}
 }
 
 bool Renderer::CreateSampler(Sampler* sampler)

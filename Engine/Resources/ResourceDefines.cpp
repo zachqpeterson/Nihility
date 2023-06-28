@@ -334,7 +334,7 @@ void Program::RunPasses(CommandBuffer* commands)
 			commands->BindPass(pipeline->renderpass);
 		}
 
-		commands->BindDescriptorSet(pipeline->descriptorSets[frame], pipeline->descriptorSetCount, nullptr, 0);
+		commands->BindDescriptorSet(pipeline->descriptorSets, pipeline->descriptorSetCount, nullptr, 0);
 
 		if (pipeline->vertexBufferCount)
 		{
@@ -363,10 +363,18 @@ void Program::RunPasses(CommandBuffer* commands)
 	if (renderpass != nullptr) {} //TODO: End renderpass
 }
 
-void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh)
+void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuffer)
 {
-	//TODO: Update Descriptor Sets
-	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[0][Renderer::GetFrameIndex()]);
+	Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{ constantBuffer, mesh.materialBuffer };
+
+	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[0], nullptr, buffers);
+
+	passes[0]->indexBuffer = mesh.indexBuffer;
+	passes[0]->vertexBuffers[0] = mesh.positionBuffer;
+	passes[0]->vertexBuffers[1] = mesh.tangentBuffer;
+	passes[0]->vertexBuffers[2] = mesh.normalBuffer;
+	passes[0]->vertexBuffers[3] = mesh.texcoordBuffer;
+	passes[0]->vertexBufferCount = 4;
 
 	RunPasses(commands);
 }

@@ -90,7 +90,7 @@ DescriptorBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
 
 void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets)
 {
-	U32 offsetsCache[8];
+	U32 offsetsCache[64];
 	numOffsets = 0;
 	
 	for (U32 l = 0; l < numLists; ++l)
@@ -104,7 +104,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 	
 			if (rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 			{
-				offsetsCache[numOffsets++] = (U32)descriptorSet->buffers[b++]->globalOffset;
+				offsetsCache[numOffsets++] = (U32)descriptorSet->offsetsCache[b++];
 			}
 		}
 	}

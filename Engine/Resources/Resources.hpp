@@ -24,7 +24,7 @@ public:
 	static Buffer* LoadBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
-	static void UpdateDescriptorSet(DescriptorSet* descriptorSet);
+	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers);
 	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const String& name);
 	static Program* CreateProgram(const ProgramCreation& info);
