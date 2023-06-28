@@ -567,6 +567,8 @@ struct Material
 	U32			poolIndex;
 
 	Program* program{ nullptr };
+
+	DescriptorSet* descriptorSet{ nullptr };
 };
 
 struct MaterialCreation
