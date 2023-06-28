@@ -1115,7 +1115,7 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** text
 				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
 				else { bufferInfo[i].buffer = buffer->buffer; }
 
-				descriptorSet->offsetsCache[o++] = buffer->globalOffset;
+				descriptorSet->offsetsCache[o++] = 0;
 				descriptorWrite[i].pBufferInfo = &bufferInfo[i];
 				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 			} break;

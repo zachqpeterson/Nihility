@@ -334,7 +334,7 @@ void Program::RunPasses(CommandBuffer* commands)
 			commands->BindPass(pipeline->renderpass);
 		}
 
-		commands->BindDescriptorSet(pipeline->descriptorSets, pipeline->descriptorSetCount, nullptr, 0);
+		commands->BindDescriptorSet(pipeline->descriptorSets[frame], pipeline->descriptorSetCount, nullptr, 0);
 
 		if (pipeline->vertexBufferCount)
 		{
@@ -346,17 +346,17 @@ void Program::RunPasses(CommandBuffer* commands)
 			if (pipeline->indexBuffer)
 			{
 				commands->BindIndexBuffer(pipeline->indexBuffer);
-				commands->DrawIndexed(TOPOLOGY_TYPE_TRIANGLE, (U32)(pipeline->indexBuffer->deviceSize / 2), 1, 0, 0, 0);
+				commands->DrawIndexed((U32)(pipeline->indexBuffer->size / 2), 1, 0, 0, 0);
 			}
 			else
 			{
 				//TODO:
-				//commands->Draw(TOPOLOGY_TYPE_TRIANGLE, 0, pipeline->vertexBuffers[0]->deviceSize / vertexSize, 0, 1);
+				//commands->Draw(0, pipeline->vertexBuffers[0]->deviceSize / vertexSize, 0, 1);
 			}
 		}
 		else
 		{
-			commands->Draw(TOPOLOGY_TYPE_TRIANGLE, 0, 3, 0, 1);
+			commands->Draw(0, 3, 0, 1);
 		}
 	}
 
@@ -367,7 +367,7 @@ void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuff
 {
 	Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{ constantBuffer, mesh.materialBuffer };
 
-	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[0], nullptr, buffers);
+	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[Renderer::GetFrameIndex()][0], nullptr, buffers);
 
 	passes[0]->indexBuffer = mesh.indexBuffer;
 	passes[0]->vertexBuffers[0] = mesh.positionBuffer;

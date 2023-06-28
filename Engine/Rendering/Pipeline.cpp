@@ -215,7 +215,11 @@ bool Pipeline::Create(const String& shaderPath)
 	{
 		shader.setLayouts[i] = Resources::CreateDescriptorSetLayout(setLayoutInfos[i]);
 		vkLayouts[i] = shader.setLayouts[i]->descriptorSetLayout;
-		descriptorSets[i] = Resources::CreateDescriptorSet(shader.setLayouts[i]);
+
+		for (U8 j = 0; j < MAX_SWAPCHAIN_IMAGES; ++j)
+		{
+			descriptorSets[j][i] = Resources::CreateDescriptorSet(shader.setLayouts[i]);
+		}
 	}
 
 	RenderPassCreation renderPassInfo{};
@@ -257,7 +261,10 @@ void Pipeline::Destroy()
 
 	for (U8 i = 0; i < descriptorSetCount; ++i)
 	{
-		Resources::DestroyDescriptorSet(descriptorSets[i]);
+		for (U8 j = 0; j < MAX_SWAPCHAIN_IMAGES; ++j)
+		{
+			Resources::DestroyDescriptorSet(descriptorSets[i][j]);
+		}
 	}
 
 	for (U8 i = 0; i < shader.shaderCount; ++i)

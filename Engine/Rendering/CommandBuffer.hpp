@@ -14,8 +14,8 @@ struct NH_API CommandBuffer
 	void BindIndexBuffer(Buffer* buffer);
 	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
 
-	void Draw(TopologyType topology, U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
-	void DrawIndexed(TopologyType topology, U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
+	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
+	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
 	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
 	void DrawIndexedIndirect(Buffer* buffer, U32 offset, U32 stride);
 

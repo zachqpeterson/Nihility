@@ -62,7 +62,7 @@ void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding)
 	VkDeviceSize offsets[]{ buffer->globalOffset };
 	VkBuffer vkBuffer = buffer->buffer;
 	// TODO: add global vertex buffer ?
-	if (buffer->parentBuffer != nullptr)
+	if (buffer->parentBuffer)
 	{
 		vkBuffer = buffer->parentBuffer->buffer;
 	}
@@ -75,7 +75,7 @@ void CommandBuffer::BindIndexBuffer(Buffer* buffer)
 	VkBuffer vkBuffer = buffer->buffer;
 	VkDeviceSize vkOffset = buffer->globalOffset;
 
-	if (buffer->parentBuffer != nullptr)
+	if (buffer->parentBuffer)
 	{
 		vkBuffer = buffer->parentBuffer->buffer;
 	}
@@ -120,12 +120,12 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 	}
 }
 
-void CommandBuffer::Draw(TopologyType topology, U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
+void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
 {
 	vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void CommandBuffer::DrawIndexed(TopologyType topology, U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance)
+void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance)
 {
 	vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
