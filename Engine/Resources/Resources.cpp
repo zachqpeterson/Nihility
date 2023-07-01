@@ -261,7 +261,6 @@ void Resources::Shutdown()
 		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Release(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
@@ -310,7 +309,6 @@ void Resources::Update()
 			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_BUFFER: { Renderer::DestroyBufferInstant(&buffers.Obtain(resourceDeletion.handle)); buffers.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT: { Renderer::DestroyDescriptorSetLayoutInstant(descriptorSetLayouts.Obtain(resourceDeletion.handle)); descriptorSetLayouts.Release(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
@@ -418,6 +416,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	texture->swapchainImage = true;
 	texture->format = format;
 	texture->image = image;
+	texture->handle = textures.GetHandle(name);
 
 	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewInfo.pNext = nullptr;
@@ -436,6 +435,8 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	viewInfo.subresourceRange.layerCount = 1;
 
 	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { return nullptr; }
+	
+	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
 
 	return texture;
 }
@@ -463,6 +464,8 @@ bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
 	viewInfo.subresourceRange.layerCount = 1;
 
 	VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView));
+
+	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
 
 	return true;
 }
@@ -1661,15 +1664,9 @@ void Resources::DestroyBuffer(Buffer* buffer)
 
 void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 {
-	HashHandle handle = layout->handle;
-
-	if (handle != U64_MAX)
+	if (layout)
 	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
+		vkDestroyDescriptorSetLayout(Renderer::device, layout->descriptorSetLayout, Renderer::allocationCallbacks);
 	}
 }
 

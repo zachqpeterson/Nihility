@@ -204,7 +204,10 @@ void Swapchain::Destroy()
 	if (swapchain) { vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks); }
 	if (surface) { vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks); }
 
-	renderpass->Destroy();
+	for (U32 i = 0; i < imageCount; ++i) { Resources::DestroyTexture(renderPassInfo.outputTextures[i]); }
+
+	Resources::DestroyRenderPass(renderpass);
+
 	renderPassInfo.Destroy();
 	surface = nullptr;
 	swapchain = nullptr;

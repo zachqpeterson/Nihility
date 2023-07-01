@@ -263,7 +263,7 @@ void Pipeline::Destroy()
 	{
 		for (U8 j = 0; j < MAX_SWAPCHAIN_IMAGES; ++j)
 		{
-			Resources::DestroyDescriptorSet(descriptorSets[i][j]);
+			Resources::DestroyDescriptorSet(descriptorSets[j][i]);
 		}
 	}
 
@@ -558,14 +558,15 @@ VkPipelineShaderStageCreateInfo Pipeline::CompileShader(ShaderStage& shaderStage
 
 	ParseSPIRV((U32*)shaderInfo.pCode, shaderInfo.codeSize, shaderStage, setLayoutInfos);
 
+	vkCreateShaderModule(Renderer::device, &shaderInfo, Renderer::allocationCallbacks, &shaderStage.module);
+
 	VkPipelineShaderStageCreateInfo shaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 	shaderStageInfo.pNext = nullptr;
 	shaderStageInfo.flags = 0;
+	shaderStageInfo.module = shaderStage.module;
 	shaderStageInfo.stage = shaderStage.stage;
 	shaderStageInfo.pName = shaderStage.entry.Data();
 	shaderStageInfo.pSpecializationInfo = &shaderStage.specializationInfo.specializationInfo;
-
-	vkCreateShaderModule(Renderer::device, &shaderInfo, Renderer::allocationCallbacks, &shaderStageInfo.module);
 
 	return shaderStageInfo;
 }
@@ -601,7 +602,7 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 				SpvReflectNumericTraits traits = var->type_description->traits.numeric;
 
 				attribute.count = traits.vector.component_count;
-				stream.stride = traits.scalar.width * attribute.count;
+				stream.stride = (traits.scalar.width / 8) * attribute.count;
 				attribute.format = (VkFormat)var->format;
 			}
 

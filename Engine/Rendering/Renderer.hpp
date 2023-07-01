@@ -64,7 +64,6 @@ private:
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
 	static void							DestroyBufferInstant(Buffer* buffer);
-	static void							DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout);
 	static void							DestroyRenderPassInstant(Renderpass* renderpass);
 
 	static bool							IsDepthStencil(VkFormat value);

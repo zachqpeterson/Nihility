@@ -205,11 +205,11 @@ void Renderer::Shutdown()
 	MapBufferParameters cbMap{ dynamicBuffer, 0, 0 };
 	UnmapBuffer(cbMap);
 
-	Resources::Shutdown();
-
 	Profiler::Shutdown();
 
 	swapchain.Destroy();
+
+	Resources::Shutdown();
 
 	vmaDestroyAllocator(allocator);
 
@@ -1495,7 +1495,7 @@ void Renderer::DestroyTextureInstant(Texture* texture)
 	if (texture)
 	{
 		vkDestroyImageView(device, texture->imageView, allocationCallbacks);
-		vmaDestroyImage(allocator, texture->image, texture->allocation);
+		if (!texture->swapchainImage) { vmaDestroyImage(allocator, texture->image, texture->allocation); }
 	}
 }
 
@@ -1510,14 +1510,6 @@ void Renderer::DestroyBufferInstant(Buffer* buffer)
 		{
 			vmaDestroyBuffer(allocator, buffer->buffer, buffer->allocation);
 		}
-	}
-}
-
-void Renderer::DestroyDescriptorSetLayoutInstant(DescriptorSetLayout* layout)
-{
-	if (layout)
-	{
-		vkDestroyDescriptorSetLayout(device, layout->descriptorSetLayout, allocationCallbacks);
 	}
 }
 
