@@ -1112,7 +1112,7 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** text
 
 				bufferInfo[i].offset = buffer->globalOffset;
 				bufferInfo[i].range = buffer->size;
-				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
+				if(buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
 				else { bufferInfo[i].buffer = buffer->buffer; }
 
 				descriptorSet->offsetsCache[o++] = 0;
