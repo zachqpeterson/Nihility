@@ -337,9 +337,9 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format;
 	VkImageLayout		imageLayout;
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
-	Sampler*			sampler{ nullptr };
+	Sampler* sampler{ nullptr };
 
 	bool				swapchainImage;
 };
@@ -375,7 +375,7 @@ struct Buffer
 	HashHandle			handle{ U64_MAX };
 	U32					sceneID{ U32_MAX };
 
-	Buffer*				parentBuffer{ nullptr };
+	Buffer* parentBuffer{ nullptr };
 
 	VkBufferUsageFlags	typeFlags{ 0 };
 	ResourceUsage		usage{ RESOURCE_USAGE_IMMUTABLE };
@@ -383,7 +383,7 @@ struct Buffer
 	U64					globalOffset{ 0 };
 
 	VkBuffer			buffer{ nullptr };
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 	VkDeviceMemory		deviceMemory{ nullptr };
 	VkDeviceSize		deviceSize{ 0 };
 };
@@ -439,7 +439,7 @@ struct DescriptorSet
 	HashHandle				handle{ U64_MAX };
 
 	VkDescriptorSet			descriptorSet{ nullptr };
-	DescriptorSetLayout*	layout{ nullptr };
+	DescriptorSetLayout* layout{ nullptr };
 
 	U32						offsetsCache[MAX_DESCRIPTORS_PER_SET]{};
 	DescriptorBinding		bindings[MAX_DESCRIPTORS_PER_SET]{};
@@ -479,8 +479,8 @@ struct Renderpass
 	VkRenderPass		renderpass{ nullptr };
 	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
 
-	Texture*			outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*			outputDepth{ nullptr };
+	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* outputDepth{ nullptr };
 	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
 	U8					clearCount{ 0 };
 	Viewport			viewport{};
@@ -509,8 +509,8 @@ struct RenderPassCreation
 	U8					renderTargetCount{ 0 };
 	RenderpassType		type{ RENDERPASS_TYPE_GEOMETRY };
 
-	Texture*			outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*			depthStencilTexture{ nullptr };
+	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* depthStencilTexture{ nullptr };
 	//TODO: Pass in Viewport info
 
 	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
@@ -534,7 +534,7 @@ struct Program
 	String		name{ NO_INIT };
 	HashHandle	handle;
 
-	Pipeline*	passes[MAX_PROGRAM_PASSES];
+	Pipeline* passes[MAX_PROGRAM_PASSES];
 	U8			passCount;
 
 	static Renderpass* prevRenderpass;
@@ -550,7 +550,7 @@ struct ProgramCreation
 
 	String		name{ NO_INIT };
 
-	Pipeline*	passes[MAX_PROGRAM_PASSES];
+	Pipeline* passes[MAX_PROGRAM_PASSES];
 	U8			passCount;
 };
 
@@ -637,6 +637,27 @@ struct NH_API Mesh
 	Quaternion3	rotation{ Quaternion3::Identity };
 };
 
+struct Skybox
+{
+	String name{ NO_INIT };
+
+	Buffer* indexBuffer{ nullptr };
+	Buffer* vertexBuffer{ nullptr };
+
+	Texture* texture{ nullptr };
+};
+
+struct SkyboxCreation
+{
+	String name{ NO_INIT };
+
+	U16 vertexCount{ 0 };
+	U16 indexCount{ 0 };
+
+	String textureName{ NO_INIT };
+	String binaryName{ NO_INIT };
+};
+
 struct NH_API Transform
 {
 	Vector3 position;
@@ -658,7 +679,7 @@ struct ResourceUpdate
 
 struct DescriptorSetUpdate
 {
-	DescriptorSet*	descriptorSet;
+	DescriptorSet* descriptorSet;
 	U32				frameIssued{ 0 };
 };
 

@@ -25,10 +25,15 @@ public:
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers);
+	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding);
+	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding);
 	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
 	static Pipeline* CreatePipeline(const String& name);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
+	static Skybox* CreateSkybox(const SkyboxCreation& info);
+	static void SaveSkybox(Skybox* skybox);
+	static Skybox* LoadSkybox(const String& name);
 	static Scene* LoadScene(const String& name);
 	static void SaveScene(const Scene* scene);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
@@ -84,6 +89,7 @@ private:
 	static Texture*								dummyTexture;
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
+	static Program*								skyboxProgram;
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
 
@@ -98,6 +104,7 @@ private:
 	static Hashmap<String, Pipeline>			pipelines;
 	static Hashmap<String, Program>				programs;
 	static Hashmap<String, Material>			materials;
+	static Hashmap<String, Skybox>				skyboxes;
 	static Hashmap<String, Scene>				scenes;
 
 	static Queue<ResourceUpdate>				resourceDeletionQueue;

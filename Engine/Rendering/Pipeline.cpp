@@ -306,7 +306,6 @@ bool Pipeline::ParseConfig(const String& data, I64& index)
 	static const String BLEND_SUB{ "SUB" };
 
 	//TODO: Blend Masks
-	//TODO: Multiple Blend States
 	//TODO: Add Stencils
 	//TODO: Get Specialization Data
 	while (index != -1)
@@ -579,37 +578,40 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 
 	stage.entry = module.entry_point_name;
 
-	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
+	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) //TODO: Take in inputs from all shader stages
 	{
 		for (U32 i = 0; i < module.input_variable_count; ++i)
 		{
 			SpvReflectInterfaceVariable* var = module.input_variables[i];
 
-			U32 location = var->location;
-			
-			VertexAttribute attribute{};
-			attribute.binding = location; //TODO: Support one vertex buffer vs multiple
-			attribute.location = location;
-			attribute.offset = 0;
-			attribute.count = 1;
-
-			VertexStream stream{};
-			stream.binding = location; //TODO: Support one vertex buffer vs multiple
-			stream.inputRate = VERTEX_INPUT_RATE_VERTEX;
-
-			if (var->type_description->op == SpvOpTypeVector)
+			if (var->built_in == -1)
 			{
-				SpvReflectNumericTraits traits = var->type_description->traits.numeric;
+				U32 location = var->location;
 
-				attribute.count = traits.vector.component_count;
-				stream.stride = (traits.scalar.width / 8) * attribute.count;
-				attribute.format = (VkFormat)var->format;
+				VertexAttribute attribute{};
+				attribute.binding = location; //TODO: Support one vertex buffer vs multiple
+				attribute.location = location;
+				attribute.offset = 0;
+				attribute.count = 1;
+
+				VertexStream stream{};
+				stream.binding = location; //TODO: Support one vertex buffer vs multiple
+				stream.inputRate = VERTEX_INPUT_RATE_VERTEX;
+
+				if (var->type_description->op == SpvOpTypeVector)
+				{
+					SpvReflectNumericTraits traits = var->type_description->traits.numeric;
+
+					attribute.count = traits.vector.component_count;
+					stream.stride = (traits.scalar.width / 8) * attribute.count;
+					attribute.format = (VkFormat)var->format;
+				}
+
+				++shader.vertexAttributeCount;
+				++shader.vertexStreamCount;
+				shader.vertexAttributes[location] = attribute;
+				shader.vertexStreams[location] = stream;
 			}
-
-			++shader.vertexAttributeCount;
-			++shader.vertexStreamCount;
-			shader.vertexAttributes[location] = attribute;
-			shader.vertexStreams[location] = stream;
 		}
 	}
 
@@ -923,4 +925,12 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 	vkDestroyPipelineCache(Renderer::device, pipelineCache, Renderer::allocationCallbacks);
 
 	return true;
+}
+
+void Pipeline::SetInput(Texture* texture, U32 binding)
+{
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	{
+		Resources::UpdateDescriptorSet(descriptorSets[i][0], texture, binding);
+	}
 }

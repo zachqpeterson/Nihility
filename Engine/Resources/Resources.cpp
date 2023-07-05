@@ -74,6 +74,7 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
+Program* Resources::skyboxProgram;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
 
@@ -88,6 +89,7 @@ Hashmap<String, Renderpass>		Resources::renderPasses{ 256, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
 Hashmap<String, Program>		Resources::programs{ 128, {} };
 Hashmap<String, Material>		Resources::materials{ 128, {} };
+Hashmap<String, Skybox>			Resources::skyboxes{ 32, {} };
 Hashmap<String, Scene>			Resources::scenes{ 128, {} };
 
 Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
@@ -147,17 +149,27 @@ bool Resources::Initialize()
 	dummyAttributeBufferInfo.SetData(dummyData);
 	dummyAttributeBuffer = CreateBuffer(dummyAttributeBufferInfo);
 
+	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader");
 	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
+	Pipeline* composition = CreatePipeline("shaders/Composition.shader");
+	composition->SetInput(skybox->renderpass->outputTextures[0], 0);
+	composition->SetInput(pbr->renderpass->outputTextures[0], 1);
 
 	ProgramCreation programCreation{};
 	programCreation.SetName("PBR").AddPass(pbr);
 	Program* pbrProgram = Resources::CreateProgram(programCreation);
-	
+
+	programCreation.Reset().SetName("Skybox").AddPass(skybox);
+	skyboxProgram = Resources::CreateProgram(programCreation);
+
+	programCreation.Reset().SetName("Composition").AddPass(composition);
+	Program* compositionProgram = Resources::CreateProgram(programCreation);
+
 	MaterialCreation materialCreation{};
-	
+
 	materialCreation.SetName("materials/pbr_opaque").SetProgram(pbrProgram).SetRenderIndex(0);
 	materialOpaque = Resources::CreateMaterial(materialCreation);
-	
+
 	materialCreation.SetName("materials/pbr_transparent").SetProgram(pbrProgram).SetRenderIndex(1);
 	materialTransparent = Resources::CreateMaterial(materialCreation);
 
@@ -435,7 +447,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	viewInfo.subresourceRange.layerCount = 1;
 
 	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { return nullptr; }
-	
+
 	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
 
 	return texture;
@@ -1093,7 +1105,8 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** text
 			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
 				Texture* texture = textures[t++];
 
-				imageInfo[i].sampler = texture->sampler->sampler;
+				if (texture->sampler) { imageInfo[i].sampler = texture->sampler->sampler; }
+				else { imageInfo[i].sampler = defaultSampler->sampler; }
 				imageInfo[i].imageLayout = texture->imageLayout;
 				imageInfo[i].imageView = texture->imageView;
 
@@ -1115,7 +1128,7 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** text
 
 				bufferInfo[i].offset = buffer->globalOffset;
 				bufferInfo[i].range = buffer->size;
-				if(buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
+				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
 				else { bufferInfo[i].buffer = buffer->buffer; }
 
 				descriptorSet->offsetsCache[o++] = 0;
@@ -1140,6 +1153,56 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** text
 		}
 
 		vkUpdateDescriptorSets(Renderer::device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
+	}
+}
+
+void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding)
+{
+	if (descriptorSet)
+	{
+		DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+
+		VkDescriptorImageInfo imageInfo;
+		if (texture->sampler) { imageInfo.sampler = texture->sampler->sampler; }
+		else { imageInfo.sampler = defaultSampler->sampler; }
+		imageInfo.imageLayout = texture->imageLayout;
+		imageInfo.imageView = texture->imageView;
+
+		VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		descriptorWrite.dstSet = descriptorSet->descriptorSet;
+		descriptorWrite.dstBinding = binding;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pImageInfo = &imageInfo;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
+	}
+}
+
+void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding)
+{
+	if (descriptorSet)
+	{
+		DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
+
+		//TODO: Offset Cache
+
+		VkDescriptorBufferInfo bufferInfo;
+		bufferInfo.offset = buffer->globalOffset;
+		bufferInfo.range = buffer->size;
+		if (buffer->parentBuffer) { bufferInfo.buffer = buffer->parentBuffer->buffer; }
+		else { bufferInfo.buffer = buffer->buffer; }
+
+		VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		descriptorWrite.dstSet = descriptorSet->descriptorSet;
+		descriptorWrite.dstBinding = binding;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+
+		vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
 	}
 }
 
@@ -1229,6 +1292,104 @@ Material* Resources::CreateMaterial(const MaterialCreation& info)
 	return material;
 }
 
+Skybox* Resources::CreateSkybox(const SkyboxCreation& info)
+{
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	Skybox* skybox = &skyboxes.Request(info.name);
+
+	if (!skybox->name.Blank()) { return skybox; }
+
+	skybox->name = info.name;
+	void* data;
+	LoadBinary(info.binaryName, &data);
+
+	U32 size = info.vertexCount + info.indexCount;
+
+	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	BufferCreation bufferCreation{};
+	bufferCreation.SetName(skybox->name + "buffer").SetData(data).Set(flags, RESOURCE_USAGE_IMMUTABLE, size);
+
+	Buffer* buffer = CreateBuffer(bufferCreation);
+	Memory::FreeSize(&data);
+
+	bufferCreation.Reset().SetName(skybox->name + "vertices").Set(flags, RESOURCE_USAGE_IMMUTABLE, info.vertexCount).SetParent(buffer, 0);
+	skybox->vertexBuffer = CreateBuffer(bufferCreation);
+
+	bufferCreation.Reset().SetName(skybox->name + "indices").Set(flags, RESOURCE_USAGE_IMMUTABLE, info.indexCount).SetParent(buffer, info.vertexCount);
+	skybox->indexBuffer = CreateBuffer(bufferCreation);
+
+	skybox->texture = LoadTexture(info.textureName, false);
+
+	return skybox;
+}
+
+void Resources::SaveSkybox(Skybox* skybox)
+{
+	if (skybox->name.Blank()) { return; }
+
+	File file(skybox->name, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
+	{
+		file.Write(skybox->texture->name);
+		file.Write((U16&)skybox->vertexBuffer->size);
+		file.Write((U16&)skybox->indexBuffer->size);
+
+		MapBufferParameters map = { skybox->vertexBuffer->parentBuffer, 0, 0 };
+		U8* mapData = (U8*)Renderer::MapBuffer(map);
+
+		file.Write(mapData, skybox->vertexBuffer->size + skybox->indexBuffer->size);
+
+		file.Close();
+	}
+}
+
+Skybox* Resources::LoadSkybox(const String& name)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	Skybox* skybox = &skyboxes.Request(name);
+
+	if (!skybox->name.Blank()) { return skybox; }
+
+	skybox->name = name;
+
+	File file(name, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		String textureName;
+		U16 vertexCount;
+		U16 indexCount;
+		U32 size;
+
+		file.ReadString(textureName);
+		skybox->texture = LoadTexture(textureName, false);
+		file.Read(vertexCount);
+		file.Read(indexCount);
+		size = vertexCount + indexCount;
+
+		U8* data = new U8[size];
+		file.ReadCount(data, size);
+
+		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		BufferCreation bufferCreation{};
+		bufferCreation.SetName(name + "buffer").SetData(data).Set(flags, RESOURCE_USAGE_IMMUTABLE, size);
+			
+		Buffer* buffer = CreateBuffer(bufferCreation);
+		delete[] data;
+
+		bufferCreation.Reset().SetName(name + "vertices").Set(flags, RESOURCE_USAGE_IMMUTABLE, vertexCount).SetParent(buffer, 0);
+		skybox->vertexBuffer = CreateBuffer(bufferCreation);
+
+		bufferCreation.Reset().SetName(name + "indices").Set(flags, RESOURCE_USAGE_IMMUTABLE, indexCount).SetParent(buffer, vertexCount);
+		skybox->indexBuffer = CreateBuffer(bufferCreation);
+
+		file.Close();
+	}
+
+	return skybox;
+}
+
 Scene* Resources::LoadScene(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -1307,7 +1468,7 @@ Scene* Resources::LoadScene(const String& name)
 		}
 
 		file.ReadString(str);
-		scene->skybox = LoadTexture(str, false);
+		scene->skybox = LoadSkybox(str);
 
 		scene->camera = {};
 		bool perspective;

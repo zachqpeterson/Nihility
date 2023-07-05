@@ -98,6 +98,8 @@ struct Pipeline
 	bool Create(const String& shaderPath);
 	void Destroy();
 
+	void SetInput(Texture* texture, U32 binding);
+
 	String				name{ NO_INIT };
 	U64					handle{ U64_MAX };
 

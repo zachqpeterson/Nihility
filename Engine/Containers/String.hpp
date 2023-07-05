@@ -510,7 +510,7 @@ struct NH_API StringBase
 	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
 	template<typename Arg> StringBase& operator+=(const Arg& value) noexcept;
 
-	template<typename Arg> StringBase operator+(const Arg& value) noexcept;
+	template<typename Arg> StringBase operator+(const Arg& value) const noexcept;
 
 	~StringBase();
 	void Destroy();
@@ -718,7 +718,7 @@ inline StringBase<T, LU>& StringBase<T, LU>::operator+=(const Arg& value) noexce
 
 template<typename T, typename LU>
 template<typename Arg>
-inline StringBase<T, LU> StringBase<T, LU>::operator+(const Arg& value) noexcept
+inline StringBase<T, LU> StringBase<T, LU>::operator+(const Arg& value) const noexcept
 {
 	StringBase<T, LU> copy = *this;
 	copy += value;

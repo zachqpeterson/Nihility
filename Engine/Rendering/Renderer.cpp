@@ -669,7 +669,6 @@ void Renderer::BeginFrame()
 
 	CommandBuffer* cb = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true);
 
-	//skybox->RunPrePasses(cb);
 	if (currentScene) //TODO: Default scene?
 	{
 		currentScene->Update();
@@ -756,6 +755,19 @@ void Renderer::EndFrame()
 	}
 
 	FrameCountersAdvance();
+}
+
+void Renderer::RenderSkybox(Skybox* skybox, Buffer* constantBuffer)
+{
+	Pipeline* skyboxPipeline = Resources::skyboxProgram->passes[0];
+
+	Resources::UpdateDescriptorSet(skyboxPipeline->descriptorSets[imageIndex][0], &skybox->texture, &constantBuffer);
+
+	skyboxPipeline->vertexBuffers[0] = skybox->vertexBuffer;
+	skyboxPipeline->vertexBufferCount = 1;
+	skyboxPipeline->indexBuffer = skybox->indexBuffer;
+
+	Resources::skyboxProgram->RunPasses(Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false));
 }
 
 void Renderer::Resize()

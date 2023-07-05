@@ -365,6 +365,7 @@ void Program::RunPasses(CommandBuffer* commands)
 
 void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuffer)
 {
+	//TODO: Move to renderer
 	Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{ constantBuffer, mesh.materialBuffer };
 
 	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[Renderer::GetFrameIndex()][0], nullptr, buffers);

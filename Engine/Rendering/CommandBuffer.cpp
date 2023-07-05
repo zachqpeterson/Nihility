@@ -104,7 +104,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 	
 			if (rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 			{
-				offsetsCache[numOffsets++] = (U32)descriptorSet->offsetsCache[b++];
+				offsetsCache[numOffsets++] = 0;//(U32)descriptorSet->offsetsCache[b++];
 			}
 		}
 	}
@@ -113,7 +113,7 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 	vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->layout, firstSet,
 		numLists, vkDescriptorSets, numOffsets, offsetsCache);
 
-	if (Renderer::bindlessSupported)
+	if (currentPipeline->useBindless && Renderer::bindlessSupported)
 	{
 		vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->layout, 1,
 			1, &Resources::bindlessDescriptorSet, 0, nullptr);

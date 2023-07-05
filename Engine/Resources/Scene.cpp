@@ -5,23 +5,7 @@
 
 void Scene::Create()
 {
-	//MapBufferParameters cbMap = { constantBuffer, 0, 0 };
-	//F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
-	//if (cbData)
-	//{
-	//	UniformData uniformData{ };
-	//	uniformData.vp = camera.ViewProjection();
-	//	uniformData.eye = camera.Eye();
-	//	uniformData.light = Vector4::Zero;
-	//	uniformData.lightRange = 0.0f;
-	//	uniformData.lightIntensity = 0.0f;
-	//
-	//	Memory::Copy(cbData, &uniformData, sizeof(UniformData));
-	//
-	//	Renderer::UnmapBuffer(cbMap);
-	//}
-	//
-	//Renderer::SetSkybox(skybox, constantBuffer);
+	
 }
 
 Scene::~Scene() { Destroy(); }
@@ -62,6 +46,8 @@ void Scene::Update()
 
 		Renderer::UnmapBuffer(cbMap);
 	}
+
+	Renderer::RenderSkybox(skybox, constantBuffer);
 
 	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 

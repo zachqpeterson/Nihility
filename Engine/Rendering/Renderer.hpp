@@ -19,7 +19,7 @@ public:
 	static void*						MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
 
-	static void							SetSkybox(Texture* skyboxTexture, Buffer* constantBuffer);
+	static void							RenderSkybox(Skybox* skybox, Buffer* constantBuffer);
 
 	static U32							GetFrameIndex();
 

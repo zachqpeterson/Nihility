@@ -100,10 +100,12 @@ void File::ReadString(String& string)
 
 		while (bufferRemaining && *it != '\0') { ++it; }
 
-		if (*it == '\0')
+		if (bufferRemaining && *it == '\0')
 		{
 			string.Append((C8*)streamPtr);
 			streamPtr += string.Size() + 1;
+			bufferRemaining -= string.Size() + 1;
+			pointer += string.Size() + 1;
 			end = true;
 		}
 		else if (!FillBuffer())
@@ -125,10 +127,12 @@ void File::ReadLine(String& string)
 
 		while (bufferRemaining && *it != '\n' && *it != '\r') { ++it; }
 
-		if (*it == '\n' || *it != '\r')
+		if (bufferRemaining && *it == '\n' || *it != '\r')
 		{
 			string.Append((C8*)streamPtr);
 			streamPtr += string.Size() + 1;
+			bufferRemaining -= string.Size() + 1;
+			pointer += string.Size() + 1;
 			end = true;
 		}
 		else if(!FillBuffer())

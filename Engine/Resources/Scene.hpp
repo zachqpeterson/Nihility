@@ -24,7 +24,7 @@ public:
 
 	Camera				camera;
 	Buffer*				constantBuffer;
-	Texture*			skybox;
+	Skybox*				skybox;
 
 	Vector<Mesh>		meshes{ NO_INIT };
 

@@ -9,6 +9,16 @@
 
 bool Init()
 {
+	//SkyboxCreation info{};
+	//info.name = "skyboxes/Skybox.sky";
+	//info.textureName = "textures/UffiziCube.ktx";
+	//info.binaryName = "binaries/Skybox.bin";
+	//info.vertexCount = 288;
+	//info.indexCount = 72;
+	//Skybox* skybox = Resources::CreateSkybox(info);
+	//
+	//Resources::SaveSkybox(skybox);
+
 	Renderer::LoadScene("scenes/Boombox.scene");
 
 	return true;
