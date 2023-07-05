@@ -526,13 +526,13 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 
 		void* data = nullptr;
 
-		if (ext == "bmp") { data = LoadBMP(texture, file); }
-		else if (ext == "png") { data = LoadPNG(texture, file); }
-		else if (ext == "jpg" || ext == "jpeg") { data = LoadJPG(texture, file); }
-		else if (ext == "psd") { data = LoadPSD(texture, file); }
-		else if (ext == "tiff") { data = LoadTIFF(texture, file); }
-		else if (ext == "tga") { data = LoadTGA(texture, file); }
-		else if (ext == "ktx") { data = LoadKTX(texture, file); }
+		if (ext == "bmp") { data = LoadBMP(texture, file, generateMipMaps); }
+		else if (ext == "png") { data = LoadPNG(texture, file, generateMipMaps); }
+		else if (ext == "jpg" || ext == "jpeg") { data = LoadJPG(texture, file, generateMipMaps); }
+		else if (ext == "psd") { data = LoadPSD(texture, file, generateMipMaps); }
+		else if (ext == "tiff") { data = LoadTIFF(texture, file, generateMipMaps); }
+		else if (ext == "tga") { data = LoadTGA(texture, file, generateMipMaps); }
+		else if (ext == "ktx") { data = LoadKTX(texture, file, generateMipMaps); }
 		else { Logger::Error("Unknown Texture Extension {}!", ext); textures.Remove(name); return nullptr; }
 
 		if (data == nullptr)
@@ -541,26 +541,6 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 			return nullptr;
 		}
 
-		U32 mipLevels = 1;
-		if (generateMipMaps)
-		{
-			U32 w = texture->width;
-			U32 h = texture->height;
-
-			while (w > 1 && h > 1)
-			{
-				w /= 2;
-				h /= 2;
-
-				++mipLevels;
-			}
-		}
-
-		texture->mipmaps = mipLevels;
-
-		Renderer::CreateTexture(texture, data);
-
-		free(data);
 		file.Close();
 
 		return texture;
@@ -613,7 +593,7 @@ U32 ShiftSigned(U32 v, I32 shift, I32 bits)
 	return (v * mulTable[bits]) >> shiftTable[bits];
 }
 
-void* Resources::LoadBMP(Texture* texture, File& file)
+bool Resources::LoadBMP(Texture* texture, File& file, bool generateMipMaps)
 {
 	BMPHeader header{};
 	BMPInfo info{};
@@ -622,7 +602,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 	if (header.signature != 0x4D42)
 	{
 		Logger::Error("Texture Is Not a BMP!");
-		return nullptr;
+		return false;
 	}
 
 	file.Read(info.infoSize);
@@ -634,12 +614,12 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 
 	file.Read(&info.imagePlanes, info.infoSize - notRead);
 
-	if (info.imagePlanes != 1) { Logger::Error("Invalid BMP!"); return nullptr; }
+	if (info.imagePlanes != 1) { Logger::Error("Invalid BMP!"); return false; }
 
 	if (info.imageCompression != 0 && (info.imageCompression != 3 || (info.imageBitCount != 16 && info.imageBitCount != 32)))
 	{
 		Logger::Error("RLE Compressed BMPs Not Yet Supported!");
-		return nullptr;
+		return false;
 	}
 
 	texture->width = info.imageWidth;
@@ -661,7 +641,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 		{
 			Logger::Error("Invalid BMP!");
 			free(data);
-			return nullptr;
+			return false;
 		}
 
 		U8* palette;
@@ -697,7 +677,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			Logger::Error("Invalid BMP!");
 			free(data);
 			Memory::FreeSize(&palette);
-			return nullptr;
+			return false;
 		}
 
 		pad = (-width) & 3;
@@ -799,7 +779,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			{
 				Logger::Error("Invalid BMP!");
 				free(data);
-				return nullptr;
+				return false;
 			}
 
 			rshift = HighBit(info.redMask) - 7;
@@ -816,7 +796,7 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 			{
 				Logger::Error("Invalid BMP!");
 				free(data);
-				return nullptr;
+				return false;
 			}
 		}
 
@@ -895,45 +875,66 @@ void* Resources::LoadBMP(Texture* texture, File& file)
 		}
 	}
 
-	return data;
+	U32 mipLevels = 1;
+	if (generateMipMaps)
+	{
+		U32 w = texture->width;
+		U32 h = texture->height;
+
+		while (w > 1 && h > 1)
+		{
+			w /= 2;
+			h /= 2;
+
+			++mipLevels;
+		}
+	}
+
+	texture->mipmaps = mipLevels;
+
+	Renderer::CreateTexture(texture, data);
+
+	free(data);
+
+	return true;
 }
 
-void* Resources::LoadPNG(Texture* texture, File& file)
+bool Resources::LoadPNG(Texture* texture, File& file, bool generateMipMaps)
 {
 	Logger::Error("PNG Texture Format Not Yet Supported!");
 
-	return nullptr;
+	return false;
 }
 
-void* Resources::LoadJPG(Texture* texture, File& file)
+bool Resources::LoadJPG(Texture* texture, File& file, bool generateMipMaps)
 {
 	Logger::Error("JPG Texture Format Not Yet Supported!");
 
-	return nullptr;
+	return false;
 }
 
-void* Resources::LoadPSD(Texture* texture, File& file)
+bool Resources::LoadPSD(Texture* texture, File& file, bool generateMipMaps)
 {
 	Logger::Error("PSD Texture Format Not Yet Supported!");
 
-	return nullptr;
+	return false;
 }
 
-void* Resources::LoadTIFF(Texture* texture, File& file)
+bool Resources::LoadTIFF(Texture* texture, File& file, bool generateMipMaps)
 {
 	Logger::Error("TIFF Texture Format Not Yet Supported!");
 
-	return nullptr;
+	return false;
 }
 
-void* Resources::LoadTGA(Texture* texture, File& file)
+bool Resources::LoadTGA(Texture* texture, File& file, bool generateMipMaps)
 {
 	Logger::Error("TGA Texture Format Not Yet Supported!");
 
-	return nullptr;
+	return false;
 }
 
-void* Resources::LoadKTX(Texture* texture, File& file)
+bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 {
 	static constexpr U8 FileIdentifier[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 	static constexpr U32 EndiannessIdentifier = 0x04030201;
@@ -945,13 +946,13 @@ void* Resources::LoadKTX(Texture* texture, File& file)
 	if (!Memory::Compare(header.identifier, FileIdentifier, 12))
 	{
 		Logger::Error("Texture Is Not a KTX!");
-		return nullptr;
+		return false;
 	}
 
 	if (header.endianness != EndiannessIdentifier)
 	{
 		Logger::Error("Too Lazy to Flip Endianness!");
-		return nullptr;
+		return false;
 	}
 
 	file.Seek(header.keyValueDataSize);
@@ -979,13 +980,18 @@ void* Resources::LoadKTX(Texture* texture, File& file)
 	}
 
 	texture->format = VK_FORMAT_R16G16B16A16_SFLOAT;
-	texture->type = TEXTURE_TYPE_2D;
+	texture->type = TEXTURE_TYPE_CUBE;
 	texture->width = header.pixelWidth;
 	texture->height = header.pixelHeight;
 	texture->depth = 1;
 	texture->size = imageSize;
+	texture->mipmaps = 1;
 
-	return data;
+	Renderer::CreateCubeMap(texture, data);
+
+	free(data);
+
+	return true;
 }
 
 Buffer* Resources::CreateBuffer(const BufferCreation& info)

@@ -57,6 +57,7 @@ private:
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
+	static bool							CreateCubeMap(Texture* texture, void* data);
 	static bool							CreateBuffer(Buffer* buffer, void* data);
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateRenderPass(Renderpass* renderpass);

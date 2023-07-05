@@ -341,7 +341,7 @@ struct Texture
 
 	Sampler* sampler{ nullptr };
 
-	bool				swapchainImage;
+	bool				swapchainImage{ false };
 };
 
 struct TextureCreation

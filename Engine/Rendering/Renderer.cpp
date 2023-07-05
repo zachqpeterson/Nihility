@@ -967,13 +967,13 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.format = texture->format;
-	imageInfo.flags = 0;
+	imageInfo.flags = texture->type == TEXTURE_TYPE_CUBE ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 	imageInfo.imageType = ToVkImageType(texture->type);
 	imageInfo.extent.width = texture->width;
 	imageInfo.extent.height = texture->height;
 	imageInfo.extent.depth = texture->depth;
 	imageInfo.mipLevels = texture->mipmaps;
-	imageInfo.arrayLayers = 1;
+	imageInfo.arrayLayers = texture->type == TEXTURE_TYPE_CUBE ? 6 : 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 
@@ -1142,6 +1142,126 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 		texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
+
+	return true;
+}
+
+bool Renderer::CreateCubeMap(Texture* texture, void* data)
+{
+	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.format = texture->format;
+	imageInfo.mipLevels = texture->mipmaps;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.extent = { texture->width, texture->height, texture->depth };
+	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.arrayLayers = 6;
+	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+	VkValidateR(vkCreateImage(device, &imageInfo, allocationCallbacks, &texture->image));
+
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	VmaAllocationInfo allocInfo{};
+	allocInfo.pName = texture->name;
+	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &texture->image, &texture->allocation, &allocInfo));
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
+
+	VkBufferImageCopy bufferCopyRegions[6 * 12];
+	U32 regionCount = 0;
+	U32 offset = 0;
+
+	for (U32 face = 0; face < 6; ++face)
+	{
+		for (U32 level = 0; level < texture->mipmaps; ++level)
+		{
+			// Calculate offset into staging buffer for the current mip level and face
+			U64 offset;
+			KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset);
+			assert(ret == KTX_SUCCESS);
+			VkBufferImageCopy bufferCopyRegion{};
+			bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			bufferCopyRegion.imageSubresource.mipLevel = level;
+			bufferCopyRegion.imageSubresource.baseArrayLayer = face;
+			bufferCopyRegion.imageSubresource.layerCount = 1;
+			bufferCopyRegion.imageExtent.width = texture->width >> level;
+			bufferCopyRegion.imageExtent.height = texture->height >> level;
+			bufferCopyRegion.imageExtent.depth = texture->depth;
+			bufferCopyRegion.bufferOffset = offset;
+			bufferCopyRegions[regionCount++] = bufferCopyRegion;
+		}
+	}
+
+	VkImageSubresourceRange subresourceRange{};
+	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.levelCount = texture->mipmaps;
+	subresourceRange.layerCount = 6;
+
+	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+	bufferInfo.size = texture->size;
+
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+	memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+	VmaAllocationInfo allocationInfo{};
+	allocationInfo.pName = "staging";
+	VkBuffer stagingBuffer;
+	VmaAllocation stagingAllocation;
+	VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo,
+		&stagingBuffer, &stagingAllocation, &allocationInfo));
+
+	void* destinationData;
+	vmaMapMemory(allocator, stagingAllocation, &destinationData);
+	Memory::Copy(destinationData, data, texture->size);
+	vmaUnmapMemory(allocator, stagingAllocation);
+
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
+
+	AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_COPY_DEST, 0, 1, false);
+
+	vkCmdCopyBufferToImage(commandBuffer->commandBuffer, stagingBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, bufferCopyRegions);
+
+	if (texture->mipmaps > 1)
+	{
+		AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_COPY_DEST, RESOURCE_TYPE_COPY_SOURCE, 0, 1, false);
+	}
+
+	VkImageViewCreateInfo view{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	view.format = texture->format;
+	view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	view.subresourceRange.layerCount = 6;
+	view.subresourceRange.levelCount = texture->mipmaps;
+	view.image = texture->image;
+	VkValidateR(vkCreateImageView(device, &view, allocationCallbacks, &texture->imageView));
+
+	vkEndCommandBuffer(commandBuffer->commandBuffer);
+
+	// Submit command buffer
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
+
+	vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(deviceQueue);
+
+	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+
+	// TODO: free command buffer
+	vkResetCommandBuffer(commandBuffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
 	return true;
 }

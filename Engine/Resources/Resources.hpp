@@ -77,13 +77,13 @@ private:
 	static void Update();
 
 	//Texture Loading
-	static void* LoadBMP(Texture* texture, File& file);
-	static void* LoadPNG(Texture* texture, File& file);
-	static void* LoadJPG(Texture* texture, File& file);
-	static void* LoadPSD(Texture* texture, File& file);
-	static void* LoadTIFF(Texture* texture, File& file);
-	static void* LoadTGA(Texture* texture, File& file);
-	static void* LoadKTX(Texture* texture, File& file);
+	static bool LoadBMP(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadPNG(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadJPG(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadPSD(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadTIFF(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadTGA(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
 
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;
