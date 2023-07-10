@@ -95,6 +95,7 @@ Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
 Program* Resources::skyboxProgram;
+Program* Resources::compositionProgram;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
 
@@ -171,7 +172,7 @@ bool Resources::Initialize()
 
 	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader");
 	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
-	Pipeline* composition = CreatePipeline("shaders/Composition.shader");
+	Pipeline* composition = CreatePipeline("shaders/Composition.shader", true);
 	composition->SetInput(skybox->renderpass->outputTextures[0], 0);
 	composition->SetInput(pbr->renderpass->outputTextures[0], 1);
 
@@ -183,7 +184,7 @@ bool Resources::Initialize()
 	skyboxProgram = Resources::CreateProgram(programCreation);
 
 	programCreation.Reset().SetName("Composition").AddPass(composition);
-	Program* compositionProgram = Resources::CreateProgram(programCreation);
+	compositionProgram = Resources::CreateProgram(programCreation);
 
 	MaterialCreation materialCreation{};
 
@@ -1654,7 +1655,7 @@ Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	return renderpass;
 }
 
-Pipeline* Resources::CreatePipeline(const String& name)
+Pipeline* Resources::CreatePipeline(const String& name, bool RenderToswapchain)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1664,7 +1665,7 @@ Pipeline* Resources::CreatePipeline(const String& name)
 
 	pipeline->handle = pipelines.GetHandle(name);
 
-	if (!pipeline->Create(name))
+	if (!pipeline->Create(name, RenderToswapchain))
 	{
 		pipelines.Remove(pipeline->handle);
 		pipeline->handle = U64_MAX;

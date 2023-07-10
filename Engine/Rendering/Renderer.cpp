@@ -679,6 +679,8 @@ void Renderer::EndFrame()
 {
 	CommandBuffer* commands = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
+	Resources::compositionProgram->RunPasses(commands);
+
 	//TODO: Color Correction
 
 	//if (Settings::Bloom())

@@ -29,7 +29,7 @@ public:
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding);
 	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
-	static Pipeline* CreatePipeline(const String& name);
+	static Pipeline* CreatePipeline(const String& name, bool RenderToswapchain = false);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
 	static Skybox* CreateSkybox(const SkyboxCreation& info);
@@ -92,6 +92,7 @@ private:
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
 	static Program*								skyboxProgram;
+	static Program*								compositionProgram;
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
 

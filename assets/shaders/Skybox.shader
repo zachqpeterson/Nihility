@@ -4,7 +4,6 @@ language=GLSL
 cull=NONE
 front=CLOCKWISE
 fill=SOLID
-depth=LESS
 blend=ADD
 #CONFIG_END
 

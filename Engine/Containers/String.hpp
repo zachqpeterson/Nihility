@@ -535,20 +535,24 @@ struct NH_API StringBase
 	const T& operator[](U64 i) const;
 
 	bool operator==(T* other) const;
-	bool operator==(const T* other) const;
 	bool operator==(const StringBase& other) const;
+	template<U64 Count> bool operator==(const T(&other)[Count]) const;
 	bool operator!=(T* other) const;
-	bool operator!=(const T* other) const;
 	bool operator!=(const StringBase& other) const;
+	template<U64 Count> bool operator!=(const T(&other)[Count]) const;
 
 	bool Compare(T* other) const;
-	bool Compare(const T* other) const;
 	bool Compare(const StringBase& other) const;
-	bool CompareN(T* other, U64 nLength, U64 start = 0) const;
-	bool CompareN(const T* other, U64 nLength, U64 start = 0) const;
-	bool CompareN(const StringBase& other, U64 nLength, U64 start = 0) const;
-	bool StartsWith(const T* other) const;
-	bool EndsWith(const T* other) const;
+	template<U64 Count> bool Compare(const T(&other)[Count]) const;
+	bool CompareN(T* other, U64 start = 0) const;
+	bool CompareN(const StringBase& other, U64 start = 0) const;
+	template<U64 Count> bool CompareN(const T(&other)[Count], U64 start = 0) const;
+	bool StartsWith(T* other) const;
+	bool StartsWith(const StringBase& other) const;
+	template<U64 Count> bool StartsWith(const T(&other)[Count]) const;
+	bool EndsWith(T* other) const;
+	bool EndsWith(const StringBase& other) const;
+	template<U64 Count> bool EndsWith(const T(&other)[Count]) const;
 
 	bool Blank() const;
 	I64 IndexOf(const T& c, U64 start = 0) const;
@@ -807,15 +811,6 @@ inline bool StringBase<T, LU>::operator==(T* other) const
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::operator==(const T* other) const
-{
-	U64 len = Length(other);
-	if (len != size) { return false; }
-
-	return Compare(string, other, size);
-}
-
-template<typename T, typename LU>
 inline bool StringBase<T, LU>::operator==(const StringBase<T, LU>& other) const
 {
 	if (other.size != size) { return false; }
@@ -824,16 +819,16 @@ inline bool StringBase<T, LU>::operator==(const StringBase<T, LU>& other) const
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::operator!=(T* other) const
+template<U64 Count>
+inline bool StringBase<T, LU>::operator==(const T(&other)[Count]) const
 {
-	U64 len = Length(other);
-	if (len != size) { return true; }
+	if (Count - 1 != size) { return false; }
 
-	return !Compare(string, other, size);
+	return Compare(string, other, Count - 1);
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::operator!=(const T* other) const
+inline bool StringBase<T, LU>::operator!=(T* other) const
 {
 	U64 len = Length(other);
 	if (len != size) { return true; }
@@ -850,16 +845,16 @@ inline bool StringBase<T, LU>::operator!=(const StringBase<T, LU>& other) const
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::Compare(T* other) const
+template<U64 Count> 
+inline bool StringBase<T, LU>::operator!=(const T(&other)[Count]) const
 {
-	U64 len = Length(other);
-	if (len != size) { return false; }
+	if (Count - 1 != size) { return true; }
 
-	return Compare(string, other, size);
+	return !Compare(string, other, Count - 1);
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::Compare(const T* other) const
+inline bool StringBase<T, LU>::Compare(T* other) const
 {
 	U64 len = Length(other);
 	if (len != size) { return false; }
@@ -876,33 +871,37 @@ inline bool StringBase<T, LU>::Compare(const StringBase<T, LU>& other) const
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::CompareN(T* other, U64 nLength, U64 start) const
+template<U64 Count>
+inline bool StringBase<T, LU>::Compare(const T(&other)[Count]) const
+{
+	if (Count - 1 != size) { return false; }
+
+	return Compare(string, other, Count - 1);
+}
+
+template<typename T, typename LU>
+inline bool StringBase<T, LU>::CompareN(T* other, U64 start) const
 {
 	U64 len = Length(other);
-	if (len != nLength) { return false; }
 
-	return Compare(string + start, other, nLength);
+	return Compare(string + start, other, len);
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::CompareN(const T* other, U64 nLength, U64 start) const
+inline bool StringBase<T, LU>::CompareN(const StringBase<T, LU>& other, U64 start) const
 {
-	U64 len = Length(other);
-	if (len != nLength) { return false; }
-
-	return Compare(string + start, other, nLength);
+	return Compare(string + start, other.string);
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::CompareN(const StringBase<T, LU>& other, U64 nLength, U64 start) const
+template<U64 Count> 
+inline bool StringBase<T, LU>::CompareN(const T(&other)[Count], U64 start) const
 {
-	if (other.size != nLength) { return false; }
-
-	return Compare(string + start, other.string, nLength);
+	return Compare(string + start, other, Count - 1);
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::StartsWith(const T* other) const
+inline bool StringBase<T, LU>::StartsWith(T* other) const
 {
 	U64 otherSize = Length(other);
 
@@ -910,11 +909,37 @@ inline bool StringBase<T, LU>::StartsWith(const T* other) const
 }
 
 template<typename T, typename LU>
-inline bool StringBase<T, LU>::EndsWith(const T* other) const
+inline bool StringBase<T, LU>::StartsWith(const StringBase& other) const
+{
+	return Compare(string, other.string, other.size);
+}
+
+template<typename T, typename LU>
+template<U64 Count> 
+inline bool StringBase<T, LU>::StartsWith(const T(&other)[Count]) const
+{
+	return Compare(string, other, Count - 1);
+}
+
+template<typename T, typename LU>
+inline bool StringBase<T, LU>::EndsWith(T* other) const
 {
 	U64 otherSize = Length(other);
 
 	return Compare(string + (size - otherSize), other, otherSize);
+}
+
+template<typename T, typename LU>
+inline bool StringBase<T, LU>::EndsWith(const StringBase& other) const
+{
+	return Compare(string + (size - other.size), other.string, other.size);
+}
+
+template<typename T, typename LU>
+template<U64 Count> 
+inline bool StringBase<T, LU>::EndsWith(const T(&other)[Count]) const
+{
+	return Compare(string + (size - Count - 1), other, Count - 1);
 }
 
 template<typename T, typename LU>
@@ -1824,7 +1849,7 @@ inline bool StringBase<T, LU>::Compare(const T* a, const T* b, I64 length)
 	T c0;
 	T c1;
 
-	while (length-- && (c0 = *it0++) == (c1 = *it1++));
+	while (length-- && (c0 = *it0++) == (c1 = *it1++)) {}
 
 	return (length + 1) == 0;
 }

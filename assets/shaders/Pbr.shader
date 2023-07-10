@@ -35,7 +35,7 @@ layout(std140, binding = 1) uniform MaterialConstant //Per instance
     uint        flags;
 };
 
-//TODO: Need some way to tell which buffers these come from
+//TODO: Need some way to tell which buffers these come from, except it could be handled per model maybe?
 layout(location=0) in vec3 position;
 layout(location=1) in vec4 tangent;
 layout(location=2) in vec3 normal;

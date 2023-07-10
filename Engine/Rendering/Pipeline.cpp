@@ -124,21 +124,6 @@ TBuiltInResource resources{
 	}
 };
 
-String Pipeline::CONFIG_BEGIN{ "#CONFIG" };
-String Pipeline::CONFIG_END{ "#CONFIG_END" };
-String Pipeline::VERT_BEGIN{ "#VERTEX" };
-String Pipeline::VERT_END{ "#VERTEX_END" };
-String Pipeline::CTRL_BEGIN{ "#CONTROL" };
-String Pipeline::CTRL_END{ "#CONTROL_END" };
-String Pipeline::EVAL_BEGIN{ "#EVALUATION" };
-String Pipeline::EVAL_END{ "#EVALUATION_END" };
-String Pipeline::GEOM_BEGIN{ "#GEOMETRY" };
-String Pipeline::GEOM_END{ "#GEOMETRY_END" };
-String Pipeline::FRAG_BEGIN{ "#FRAGMENT" };
-String Pipeline::FRAG_END{ "#FRAGMENT_END" };
-String Pipeline::COMP_BEGIN{ "#COMPUTE" };
-String Pipeline::COMP_END{ "#COMPUTE_END" };
-
 struct Member
 {
 	U32	idIndex;
@@ -176,7 +161,7 @@ struct Id
 //		data.data, specializationInfos[data.stage].specializationData[data.index].size);
 //}
 
-bool Pipeline::Create(const String& shaderPath)
+bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 {
 	String data{ NO_INIT };
 	Resources::LoadBinary(shaderPath, data);
@@ -191,13 +176,13 @@ bool Pipeline::Create(const String& shaderPath)
 
 		//TODO: Validate only graphics or compute
 		//TODO: Validate both or neither ctrl and eval
-		if (data.CompareN(CONFIG_BEGIN, CONFIG_BEGIN.Size(), index)) { ParseConfig(data, index); }
-		else if (data.CompareN(VERT_BEGIN, VERT_BEGIN.Size(), index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_VERTEX_BIT); }
-		else if (data.CompareN(CTRL_BEGIN, CTRL_BEGIN.Size(), index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT); }
-		else if (data.CompareN(EVAL_BEGIN, EVAL_BEGIN.Size(), index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT); }
-		else if (data.CompareN(GEOM_BEGIN, GEOM_BEGIN.Size(), index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_GEOMETRY_BIT); }
-		else if (data.CompareN(FRAG_BEGIN, FRAG_BEGIN.Size(), index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_FRAGMENT_BIT); }
-		else if (data.CompareN(COMP_BEGIN, COMP_BEGIN.Size(), index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_COMPUTE_BIT); }
+		if (data.CompareN("#CONFIG", index)) { ParseConfig(data, index); }
+		else if (data.CompareN("#VERTEX", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_VERTEX_BIT); }
+		else if (data.CompareN("#CONTROL", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT); }
+		else if (data.CompareN("#EVALUATION", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT); }
+		else if (data.CompareN("#GEOMETRY", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_GEOMETRY_BIT); }
+		else if (data.CompareN("#FRAGMENT", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_FRAGMENT_BIT); }
+		else if (data.CompareN("#COMPUTE", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_COMPUTE_BIT); }
 	} while (index != -1);
 
 	if (shader.shaderCount == 0) { Logger::Error("Pipeline '{}' Has No Shaders Stages!", shaderPath); BreakPoint; }
@@ -222,30 +207,52 @@ bool Pipeline::Create(const String& shaderPath)
 		}
 	}
 
-	RenderPassCreation renderPassInfo{};
-	renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName(name + "_pass");
-	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	renderPassInfo.width = Settings::WindowWidth();
-	renderPassInfo.height = Settings::WindowHeight();
-
-	String textureName = name + "_output_";
-
-	for (U32 i = 0; i < shader.outputCount; ++i)
+	if (RenderToswapchain)
 	{
-		TextureCreation textureInfo{};
-		textureInfo.name = textureName + i;
-		textureInfo.format = shader.outputs[i].format;
-		textureInfo.width = renderPassInfo.width;
-		textureInfo.height = renderPassInfo.height;
-		textureInfo.depth = 1;
-		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
-		textureInfo.type = TEXTURE_TYPE_2D;
-
-		Texture* texture = Resources::CreateTexture(textureInfo);
-		renderPassInfo.AddRenderTarget(texture);
+		renderpass = Renderer::swapchain.renderpass;
 	}
+	else
+	{
+		RenderPassCreation renderPassInfo{};
+		renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName(name + "_pass");
+		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
+		renderPassInfo.width = Settings::WindowWidth();
+		renderPassInfo.height = Settings::WindowHeight();
 
-	renderpass = Resources::CreateRenderPass(renderPassInfo);
+		String textureName = name + "_output_";
+
+		for (U32 i = 0; i < shader.outputCount; ++i)
+		{
+			TextureCreation textureInfo{};
+			textureInfo.name = textureName + i;
+			textureInfo.format = shader.outputs[i].format;
+			textureInfo.width = renderPassInfo.width;
+			textureInfo.height = renderPassInfo.height;
+			textureInfo.depth = 1;
+			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
+			textureInfo.type = TEXTURE_TYPE_2D;
+
+			Texture* texture = Resources::CreateTexture(textureInfo);
+			renderPassInfo.AddRenderTarget(texture);
+		}
+
+		if (useDepth)
+		{
+			TextureCreation textureInfo{};
+			textureInfo.name = textureName + "depth";
+			textureInfo.format = VK_FORMAT_D16_UNORM;
+			textureInfo.width = renderPassInfo.width;
+			textureInfo.height = renderPassInfo.height;
+			textureInfo.depth = 1;
+			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
+			textureInfo.type = TEXTURE_TYPE_2D;
+
+			Texture* texture = Resources::CreateTexture(textureInfo);
+			renderPassInfo.SetDepthStencilTexture(texture);
+		}
+
+		renderpass = Resources::CreateRenderPass(renderPassInfo);
+	}
 
 	if (!CreatePipeline(vkLayouts)) { return false; }
 
@@ -280,121 +287,98 @@ void Pipeline::Destroy()
 
 bool Pipeline::ParseConfig(const String& data, I64& index)
 {
-	static const String NAME{ "name" };
-	static const String LANG{ "language" };
-	static const String LANG_GLSL{ "GLSL" };
-	static const String LANG_HLSL{ "HLSL" };
-	static const String CULL{ "cull" };
-	static const String CULL_NONE{ "NONE" };
-	static const String CULL_FRONT{ "FRONT" };
-	static const String CULL_BACK{ "BACK" };
-	static const String CULL_BOTH{ "BOTH" };
-	static const String FRONT{ "front" };
-	static const String FRONT_CLOCKWISE{ "CLOCKWISE" };
-	static const String FRONT_COUNTER{ "COUNTER" };
-	static const String FILL{ "fill" };
-	static const String FILL_SOLID{ "SOLID" };
-	static const String FILL_LINE{ "SOLID" };
-	static const String FILL_POINT{ "SOLID" };
-	static const String DEPTH{ "depth" };
-	static const String DEPTH_NONE{ "NONE" };
-	static const String DEPTH_LESS{ "LESS" };
-	static const String DEPTH_GREATER{ "GREATER" };
-	static const String DEPTH_EQUAL{ "EQUAL" };
-	static const String BLEND{ "blend" };
-	static const String BLEND_ADD{ "ADD" };
-	static const String BLEND_SUB{ "SUB" };
-
 	//TODO: Blend Masks
 	//TODO: Add Stencils
 	//TODO: Get Specialization Data
 	while (index != -1)
 	{
-		if (data.CompareN(CONFIG_END, CONFIG_END.Size(), index + 1))
+		if (data.CompareN("#CONFIG_END", index + 1))
 		{
 			++index;
 			return true;
 		}
-		else if (data.CompareN(NAME, NAME.Size(), index + 1))
+		else if (data.CompareN("name", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
 			data.SubString(name, index + 1, data.IndexOf('\n', index + 1) - index);
 			name.Trim();
 		}
-		else if (data.CompareN(LANG, LANG.Size(), index + 1))
+		else if (data.CompareN("language", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
 
-			if (data.CompareN(LANG_GLSL, LANG_GLSL.Size(), index + 1)) { shader.language = glslang::EShSourceGlsl; }
-			else if (data.CompareN(LANG_HLSL, LANG_HLSL.Size(), index + 1)) { shader.language = glslang::EShSourceHlsl; }
+			if (data.CompareN("GLSL", index + 1)) { shader.language = glslang::EShSourceGlsl; }
+			else if (data.CompareN("HLSL", index + 1)) { shader.language = glslang::EShSourceHlsl; }
 		}
-		else if (data.CompareN(CULL, CULL.Size(), index + 1))
+		else if (data.CompareN("cull", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
 
-			if (data.CompareN(CULL_NONE, CULL_NONE.Size(), index + 1)) { rasterization.cullMode = VK_CULL_MODE_NONE; }
-			else if (data.CompareN(CULL_FRONT, CULL_FRONT.Size(), index + 1)) { rasterization.cullMode = VK_CULL_MODE_FRONT_BIT; }
-			else if (data.CompareN(CULL_BACK, CULL_BACK.Size(), index + 1)) { rasterization.cullMode = VK_CULL_MODE_BACK_BIT; }
-			else if (data.CompareN(CULL_BOTH, CULL_BOTH.Size(), index + 1)) { rasterization.cullMode = VK_CULL_MODE_FRONT_AND_BACK; }
+			if (data.CompareN("NONE", index + 1)) { rasterization.cullMode = VK_CULL_MODE_NONE; }
+			else if (data.CompareN("FRONT", index + 1)) { rasterization.cullMode = VK_CULL_MODE_FRONT_BIT; }
+			else if (data.CompareN("BACK", index + 1)) { rasterization.cullMode = VK_CULL_MODE_BACK_BIT; }
+			else if (data.CompareN("BOTH", index + 1)) { rasterization.cullMode = VK_CULL_MODE_FRONT_AND_BACK; }
 		}
-		else if (data.CompareN(FRONT, FRONT.Size(), index + 1))
+		else if (data.CompareN("front", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
 
-			if (data.CompareN(FRONT_CLOCKWISE, FRONT_CLOCKWISE.Size(), index + 1)) { rasterization.front = VK_FRONT_FACE_CLOCKWISE; }
-			else if (data.CompareN(FRONT_COUNTER, FRONT_COUNTER.Size(), index + 1)) { rasterization.front = VK_FRONT_FACE_COUNTER_CLOCKWISE; }
+			if (data.CompareN("CLOCKWISE", index + 1)) { rasterization.front = VK_FRONT_FACE_CLOCKWISE; }
+			else if (data.CompareN("COUNTER", index + 1)) { rasterization.front = VK_FRONT_FACE_COUNTER_CLOCKWISE; }
 		}
-		else if (data.CompareN(FILL, FILL.Size(), index + 1))
+		else if (data.CompareN("fill", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
 
-			if (data.CompareN(FILL_SOLID, FILL_SOLID.Size(), index + 1)) { rasterization.fill = VK_POLYGON_MODE_FILL; }
-			else if (data.CompareN(FILL_LINE, FILL_LINE.Size(), index + 1)) { rasterization.fill = VK_POLYGON_MODE_LINE; }
-			else if (data.CompareN(FILL_POINT, FILL_POINT.Size(), index + 1)) { rasterization.fill = VK_POLYGON_MODE_POINT; }
+			if (data.CompareN("SOLID", index + 1)) { rasterization.fill = VK_POLYGON_MODE_FILL; }
+			else if (data.CompareN("LINE", index + 1)) { rasterization.fill = VK_POLYGON_MODE_LINE; }
+			else if (data.CompareN("POINT", index + 1)) { rasterization.fill = VK_POLYGON_MODE_POINT; }
 		}
-		else if (data.CompareN(DEPTH, DEPTH.Size(), index + 1))
+		else if (data.CompareN("depth", index + 1))
 		{
+			useDepth = true;
+
 			index = data.IndexOf('=', index + 1);
 
-			if (data.CompareN(DEPTH_NONE, DEPTH_NONE.Size(), index + 1))
+			if (data.CompareN("NONE", index + 1))
 			{
 				depthStencil.depthEnable = false;
 				depthStencil.depthWriteEnable = false;
 				depthStencil.depthComparison = VK_COMPARE_OP_ALWAYS;
 			}
-			else if (data.CompareN(DEPTH_LESS, DEPTH_LESS.Size(), index + 1))
+			else if (data.CompareN("LESS", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
 			}
-			else if (data.CompareN(DEPTH_GREATER, DEPTH_GREATER.Size(), index + 1))
+			else if (data.CompareN("GREATER", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_GREATER_OR_EQUAL;
 			}
-			else if (data.CompareN(DEPTH_EQUAL, DEPTH_EQUAL.Size(), index + 1))
+			else if (data.CompareN("EQUAL", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_EQUAL;
 			}
 		}
-		else if (data.CompareN(BLEND, BLEND.Size(), index + 1))
+		else if (data.CompareN("blend", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
 
-			if (data.CompareN(BLEND_ADD, BLEND_ADD.Size(), index + 1))
+			if (data.CompareN("ADD", index + 1))
 			{
 				BlendState& blendState = blendStates[blendStateCount];
 
 				blendState.sourceColor = VK_BLEND_FACTOR_ONE;
-				blendState.destinationColor = VK_BLEND_FACTOR_ONE;
+				blendState.destinationColor = VK_BLEND_FACTOR_ZERO;
 				blendState.colorOperation = VK_BLEND_OP_ADD;
 
 				blendState.sourceAlpha = VK_BLEND_FACTOR_ONE;
-				blendState.destinationAlpha = VK_BLEND_FACTOR_ONE;
+				blendState.destinationAlpha = VK_BLEND_FACTOR_ZERO;
 				blendState.alphaOperation = VK_BLEND_OP_ADD;
 
 				blendState.colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
@@ -404,16 +388,16 @@ bool Pipeline::ParseConfig(const String& data, I64& index)
 
 				++blendStateCount;
 			}
-			else if (data.CompareN(BLEND_SUB, BLEND_SUB.Size(), index + 1))
+			else if (data.CompareN("SUB", index + 1))
 			{
 				BlendState& blendState = blendStates[blendStateCount];
 
 				blendState.sourceColor = VK_BLEND_FACTOR_ONE;
-				blendState.destinationColor = VK_BLEND_FACTOR_ONE;
+				blendState.destinationColor = VK_BLEND_FACTOR_ZERO;
 				blendState.colorOperation = VK_BLEND_OP_SUBTRACT;
 
 				blendState.sourceAlpha = VK_BLEND_FACTOR_ONE;
-				blendState.destinationAlpha = VK_BLEND_FACTOR_ONE;
+				blendState.destinationAlpha = VK_BLEND_FACTOR_ZERO;
 				blendState.alphaOperation = VK_BLEND_OP_SUBTRACT;
 
 				blendState.colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
@@ -449,12 +433,12 @@ bool Pipeline::ParseStage(const String& data, I64& index, DescriptorSetLayoutCre
 
 	switch (stage)
 	{
-	case VK_SHADER_STAGE_VERTEX_BIT: { while (end != -1) { if (data.CompareN(VERT_END, VERT_END.Size(), end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { while (end != -1) { if (data.CompareN(CTRL_END, CTRL_END.Size(), end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { while (end != -1) { if (data.CompareN(EVAL_END, EVAL_END.Size(), end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_GEOMETRY_BIT: { while (end != -1) { if (data.CompareN(GEOM_END, GEOM_END.Size(), end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_FRAGMENT_BIT: { while (end != -1) { if (data.CompareN(FRAG_END, FRAG_END.Size(), end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_COMPUTE_BIT: { while (end != -1) { if (data.CompareN(COMP_END, COMP_END.Size(), end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_VERTEX_BIT: { while (end != -1) { if (data.CompareN("#VERTEX_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { while (end != -1) { if (data.CompareN("#CONTROL_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { while (end != -1) { if (data.CompareN("#EVALUATION_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_GEOMETRY_BIT: { while (end != -1) { if (data.CompareN("#GEOMETRY_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_FRAGMENT_BIT: { while (end != -1) { if (data.CompareN("#FRAGMENT_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_COMPUTE_BIT: { while (end != -1) { if (data.CompareN("#COMPUTE_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
 	default: return false;
 	}
 

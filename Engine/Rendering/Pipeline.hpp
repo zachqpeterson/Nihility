@@ -95,7 +95,7 @@ struct Shader
 
 struct Pipeline
 {
-	bool Create(const String& shaderPath);
+	bool Create(const String& shaderPath, bool RenderToswapchain);
 	void Destroy();
 
 	void SetInput(Texture* texture, U32 binding);
@@ -124,6 +124,7 @@ struct Pipeline
 	U8					vertexBufferCount{ 0 };
 
 	bool				graphics{ true };
+	bool				useDepth{ false };
 
 private:
 	bool ParseConfig(const String& data, I64& index);
