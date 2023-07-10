@@ -578,7 +578,7 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 
 	stage.entry = module.entry_point_name;
 
-	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT) //TODO: Take in inputs from all shader stages
+	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
 	{
 		for (U32 i = 0; i < module.input_variable_count; ++i)
 		{
@@ -646,6 +646,7 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 			}
 
 			setLayout.bindings[binding->binding] = setBinding;
+			setLayout.bindingCount = Math::Max(binding->binding + 1, (U32)setLayout.bindingCount);
 		}
 	}
 
@@ -664,7 +665,6 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 		}
 	}
 
-	//TODO: Fragment Shader Outputs
 	//TODO: Specialization Constants
 	//TODO: Push Constants
 
@@ -932,5 +932,13 @@ void Pipeline::SetInput(Texture* texture, U32 binding)
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
 	{
 		Resources::UpdateDescriptorSet(descriptorSets[i][0], texture, binding);
+	}
+}
+
+void Pipeline::SetInput(Buffer* buffer, U32 binding)
+{
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	{
+		Resources::UpdateDescriptorSet(descriptorSets[i][0], buffer, binding);
 	}
 }

@@ -68,6 +68,26 @@ struct KTXHeader
 	U32	keyValueDataSize;
 };
 
+enum KTXFormatType
+{
+	KTX_FORMAT_TYPE_NONE = 0x00000000,
+	KTX_FORMAT_TYPE_PACKED = 0x00000001,
+	KTX_FORMAT_TYPE_COMPRESSED = 0x00000002,
+	KTX_FORMAT_TYPE_PALETTIZED = 0x00000004,
+	KTX_FORMAT_TYPE_DEPTH = 0x00000008,
+	KTX_FORMAT_TYPE_STENCIL = 0x00000010,
+};
+
+struct KTXInfo
+{
+	U32 flags;
+	U32 paletteSizeInBits;
+	U32 blockSizeInBits;
+	U32 blockWidth;			// in texels
+	U32 blockHeight;		// in texels
+	U32 blockDepth;			// in texels
+};
+
 #pragma pack(pop)
 
 Sampler* Resources::dummySampler;
@@ -232,7 +252,7 @@ bool Resources::CreateBindless()
 	bindingFlags[0] = bindlessFlags;
 	bindingFlags[1] = bindlessFlags;
 
-	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT, nullptr };
+	VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
 	extendedInfo.bindingCount = poolCount;
 	extendedInfo.pBindingFlags = bindingFlags;
 
@@ -524,25 +544,25 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		name.SubString(ext, name.LastIndexOf('.') + 1);
 		ext.ToLower();
 
-		void* data = nullptr;
+		bool success = false;
 
-		if (ext == "bmp") { data = LoadBMP(texture, file, generateMipMaps); }
-		else if (ext == "png") { data = LoadPNG(texture, file, generateMipMaps); }
-		else if (ext == "jpg" || ext == "jpeg") { data = LoadJPG(texture, file, generateMipMaps); }
-		else if (ext == "psd") { data = LoadPSD(texture, file, generateMipMaps); }
-		else if (ext == "tiff") { data = LoadTIFF(texture, file, generateMipMaps); }
-		else if (ext == "tga") { data = LoadTGA(texture, file, generateMipMaps); }
-		else if (ext == "ktx") { data = LoadKTX(texture, file, generateMipMaps); }
+		if (ext == "bmp") { success = LoadBMP(texture, file, generateMipMaps); }
+		else if (ext == "png") { success = LoadPNG(texture, file, generateMipMaps); }
+		else if (ext == "jpg" || ext == "jpeg") { success = LoadJPG(texture, file, generateMipMaps); }
+		else if (ext == "psd") { success = LoadPSD(texture, file, generateMipMaps); }
+		else if (ext == "tiff") { success = LoadTIFF(texture, file, generateMipMaps); }
+		else if (ext == "tga") { success = LoadTGA(texture, file, generateMipMaps); }
+		else if (ext == "ktx") { success = LoadKTX(texture, file, generateMipMaps); }
 		else { Logger::Error("Unknown Texture Extension {}!", ext); textures.Remove(name); return nullptr; }
 
-		if (data == nullptr)
+		if (!success)
 		{
 			textures.Remove(name);
+			file.Close();
 			return nullptr;
 		}
 
 		file.Close();
-
 		return texture;
 	}
 
@@ -890,6 +910,7 @@ bool Resources::LoadBMP(Texture* texture, File& file, bool generateMipMaps)
 		}
 	}
 
+	texture->mipmapsGenerated = false;
 	texture->mipmaps = mipLevels;
 
 	Renderer::CreateTexture(texture, data);
@@ -951,31 +972,72 @@ bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 
 	if (header.endianness != EndiannessIdentifier)
 	{
+		//TODO: Don't be lazy
 		Logger::Error("Too Lazy to Flip Endianness!");
 		return false;
 	}
+
+	U8 compression = 0;
+	if (header.type == 0 || header.format == 0)
+	{
+		if (header.type + header.format != 0) { return false; }
+		compression = 1;
+	}
+
+	if (header.format == header.internalFormat) { return false; }
+	if (header.pixelWidth == 0 || (header.pixelDepth > 0 && header.pixelHeight == 0)) { return false; }
+
+	U16 dimension = 0;
+	if (header.pixelDepth > 0)
+	{
+		if (header.arrayElementCount > 0)
+		{
+			Logger::Error("3D Array Textures Are Not Yet Supported!");
+			return false;
+		}
+		dimension = 3;
+	}
+	else if (header.pixelHeight > 0) { dimension = 2; }
+	else { dimension = 1; }
+
+	if (header.faceCount == 6) { if (dimension != 2) { return false; } }
+	else if (header.faceCount != 1) { return false; }
+
+	if (header.mipmapLevelCount == 0)
+	{
+		texture->mipmapsGenerated = false;
+		header.mipmapLevelCount = 1;
+	}
+	else
+	{
+		texture->mipmapsGenerated = true;
+	}
+
+	KTXInfo info{};
+	GetKTXInfo(header.internalFormat, info);
 
 	file.Seek(header.keyValueDataSize);
 
 	U32 elementCount = Math::Max(1u, header.arrayElementCount);
 	U32 depth = Math::Max(1u, header.pixelDepth);
+	U32 dataSize = file.Size() - file.Pointer() - header.mipmapLevelCount * sizeof(U32);
 
-	//TODO: mipmaps
-	U32 imageSize;
-	file.Read(imageSize);
-
-	U8* data = (U8*)calloc(1, imageSize); //TODO: Go through Memory
+	U8* data = (U8*)calloc(1, dataSize); //TODO: Go through Memory
 	U32 dataPtr = 0;
 
-	U32 readSize = depth * header.pixelWidth * header.pixelHeight * header.typeSize * 4; //TODO: Take into account rgba vs rgb vs rg...
+	U32 levelSizes[14];
 
-	for (U32 element = 0; element < elementCount; ++element)
+	for (U32 mipLevel = 0; mipLevel < header.mipmapLevelCount; ++mipLevel)
 	{
+		U32 faceLodSize;
+		file.Read(faceLodSize);
+
+		levelSizes[mipLevel] = faceLodSize;
+
 		for (U32 face = 0; face < header.faceCount; ++face)
 		{
-			file.ReadCount(data + dataPtr, readSize);
-			dataPtr += readSize;
-			//file.Seek(cubePadding); TODO:
+			file.Read(data + dataPtr, faceLodSize);
+			dataPtr += faceLodSize;
 		}
 	}
 
@@ -984,14 +1046,361 @@ bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 	texture->width = header.pixelWidth;
 	texture->height = header.pixelHeight;
 	texture->depth = 1;
-	texture->size = imageSize;
-	texture->mipmaps = 1;
+	texture->size = dataSize;
+	texture->mipmaps = header.mipmapLevelCount;
 
-	Renderer::CreateCubeMap(texture, data);
+	Renderer::CreateCubeMap(texture, data, levelSizes);
 
 	free(data);
 
 	return true;
+}
+
+void Resources::GetKTXInfo(U32 internalFormat, KTXInfo& info)
+{
+	switch (internalFormat)
+	{
+	case KTX_FORMAT_R8:
+	case KTX_FORMAT_R8_SNORM:
+	case KTX_FORMAT_R8UI:
+	case KTX_FORMAT_R8I:
+	case KTX_FORMAT_SR8: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_RG8:
+	case KTX_FORMAT_RG8_SNORM:
+	case KTX_FORMAT_RG8UI:
+	case KTX_FORMAT_RG8I:
+	case KTX_FORMAT_SRG8: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 16;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_RGB8:
+	case KTX_FORMAT_RGB8_SNORM:
+	case KTX_FORMAT_RGB8UI:
+	case KTX_FORMAT_RGB8I:
+	case KTX_FORMAT_SRGB8: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 24;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_RGBA8:
+	case KTX_FORMAT_RGBA8_SNORM:
+	case KTX_FORMAT_RGBA8UI:
+	case KTX_FORMAT_RGBA8I:
+	case KTX_FORMAT_SRGB8_ALPHA8: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_R16:
+	case KTX_FORMAT_R16_SNORM:
+	case KTX_FORMAT_R16UI:
+	case KTX_FORMAT_R16I:
+	case KTX_FORMAT_R16F: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 16;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_RG16:
+	case KTX_FORMAT_RG16_SNORM:
+	case KTX_FORMAT_RG16UI:
+	case KTX_FORMAT_RG16I:
+	case KTX_FORMAT_RG16F: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_RGB16:
+	case KTX_FORMAT_RGB16_SNORM:
+	case KTX_FORMAT_RGB16UI:
+	case KTX_FORMAT_RGB16I:
+	case KTX_FORMAT_RGB16F: {
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 48;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+	} break;
+	case KTX_FORMAT_RGBA16:
+	case KTX_FORMAT_RGBA16_SNORM:
+	case KTX_FORMAT_RGBA16UI:
+	case KTX_FORMAT_RGBA16I:
+	case KTX_FORMAT_RGBA16F:
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 64;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_R32UI:
+	case KTX_FORMAT_R32I:
+	case KTX_FORMAT_R32F:
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RG32UI:
+	case KTX_FORMAT_RG32I:
+	case KTX_FORMAT_RG32F:
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 64;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB32UI:
+	case KTX_FORMAT_RGB32I:
+	case KTX_FORMAT_RGB32F:
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 12 * 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGBA32UI:
+	case KTX_FORMAT_RGBA32I:
+	case KTX_FORMAT_RGBA32F:
+		info.flags = KTX_FORMAT_TYPE_NONE;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 16 * 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_R3_G3_B2:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB4:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 12;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB5:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 16;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB565:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 16;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB10:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB12:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 36;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGBA2:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGBA4:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 16;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGBA12:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 48;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB5_A1:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB10_A2:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_RGB10_A2UI:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_R11F_G11F_B10F:
+	case KTX_FORMAT_RGB9_E5:
+		info.flags = KTX_FORMAT_TYPE_PACKED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 32;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_COMPRESSION_ETC1_RGB8_OES:
+	case KTX_COMPRESSION_RGB8_ETC2:
+	case KTX_COMPRESSION_SRGB8_ETC2:
+	case KTX_COMPRESSION_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+	case KTX_COMPRESSION_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+		info.flags = KTX_FORMAT_TYPE_COMPRESSED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 64;
+		info.blockWidth = 4;
+		info.blockHeight = 4;
+		info.blockDepth = 1;
+		break;
+	case KTX_COMPRESSION_RGBA8_ETC2_EAC:
+	case KTX_COMPRESSION_SRGB8_ALPHA8_ETC2_EAC:
+		info.flags = KTX_FORMAT_TYPE_COMPRESSED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 128;
+		info.blockWidth = 4;
+		info.blockHeight = 4;
+		info.blockDepth = 1;
+		break;
+	case KTX_COMPRESSION_R11_EAC:
+	case KTX_COMPRESSION_SIGNED_R11_EAC:
+		info.flags = KTX_FORMAT_TYPE_COMPRESSED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 64;
+		info.blockWidth = 4;
+		info.blockHeight = 4;
+		info.blockDepth = 1;
+		break;
+	case KTX_COMPRESSION_RG11_EAC:
+	case KTX_COMPRESSION_SIGNED_RG11_EAC:
+		info.flags = KTX_FORMAT_TYPE_COMPRESSED;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 128;
+		info.blockWidth = 4;
+		info.blockHeight = 4;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_PALETTE4_RGB8_OES:
+		info.flags = KTX_FORMAT_TYPE_PALETTIZED;
+		info.paletteSizeInBits = 16 * 24;
+		info.blockSizeInBits = 4;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_PALETTE4_RGBA8_OES:
+		info.flags = KTX_FORMAT_TYPE_PALETTIZED;
+		info.paletteSizeInBits = 16 * 32;
+		info.blockSizeInBits = 4;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_PALETTE4_R5_G6_B5_OES:
+	case KTX_FORMAT_PALETTE4_RGBA4_OES:
+	case KTX_FORMAT_PALETTE4_RGB5_A1_OES:
+		info.flags = KTX_FORMAT_TYPE_PALETTIZED;
+		info.paletteSizeInBits = 16 * 16;
+		info.blockSizeInBits = 4;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_PALETTE8_RGB8_OES:
+		info.flags = KTX_FORMAT_TYPE_PALETTIZED;
+		info.paletteSizeInBits = 256 * 24;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_PALETTE8_RGBA8_OES:
+		info.flags = KTX_FORMAT_TYPE_PALETTIZED;
+		info.paletteSizeInBits = 256 * 32;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	case KTX_FORMAT_PALETTE8_R5_G6_B5_OES:
+	case KTX_FORMAT_PALETTE8_RGBA4_OES:
+	case KTX_FORMAT_PALETTE8_RGB5_A1_OES:
+		info.flags = KTX_FORMAT_TYPE_PALETTIZED;
+		info.paletteSizeInBits = 256 * 16;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	default:
+		info.flags = 0;
+		info.paletteSizeInBits = 0;
+		info.blockSizeInBits = 8;
+		info.blockWidth = 1;
+		info.blockHeight = 1;
+		info.blockDepth = 1;
+		break;
+	}
 }
 
 Buffer* Resources::CreateBuffer(const BufferCreation& info)
@@ -1380,7 +1789,7 @@ Skybox* Resources::LoadSkybox(const String& name)
 		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		BufferCreation bufferCreation{};
 		bufferCreation.SetName(name + "buffer").SetData(data).Set(flags, RESOURCE_USAGE_IMMUTABLE, size);
-			
+
 		Buffer* buffer = CreateBuffer(bufferCreation);
 		delete[] data;
 

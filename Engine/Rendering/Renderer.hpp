@@ -54,10 +54,12 @@ private:
 	static CommandBuffer*				GetInstantCommandBuffer();
 	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState,
 		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
+	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
+		VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
-	static bool							CreateCubeMap(Texture* texture, void* data);
+	static bool							CreateCubeMap(Texture* texture, void* data, U32* layerSize);
 	static bool							CreateBuffer(Buffer* buffer, void* data);
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateRenderPass(Renderpass* renderpass);

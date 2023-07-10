@@ -11,6 +11,7 @@
 #include "Math\Math.hpp"
 
 struct Pipeline;
+struct KTXInfo;
 
 class NH_API Resources
 {
@@ -84,6 +85,7 @@ private:
 	static bool LoadTIFF(Texture* texture, File& file, bool generateMipMaps);
 	static bool LoadTGA(Texture* texture, File& file, bool generateMipMaps);
 	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
+	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;

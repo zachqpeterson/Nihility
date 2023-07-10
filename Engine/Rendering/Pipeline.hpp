@@ -99,6 +99,7 @@ struct Pipeline
 	void Destroy();
 
 	void SetInput(Texture* texture, U32 binding);
+	void SetInput(Buffer* buffer, U32 binding);
 
 	String				name{ NO_INIT };
 	U64					handle{ U64_MAX };

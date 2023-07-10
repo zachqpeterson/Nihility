@@ -99,7 +99,7 @@ VkQueue								Renderer::deviceQueue;
 Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
 
-VkAllocationCallbacks*				Renderer::allocationCallbacks;
+VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPool;
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -114,15 +114,15 @@ bool												Renderer::rayTracingPresent{ false };
 
 // WINDOW
 RenderpassOutput					Renderer::swapchainOutput;
-Renderpass*							Renderer::skyboxPass;
-Renderpass*							Renderer::offscreenPass;
-Renderpass*							Renderer::filterPass;
-Renderpass*							Renderer::bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
+Renderpass* Renderer::skyboxPass;
+Renderpass* Renderer::offscreenPass;
+Renderpass* Renderer::filterPass;
+Renderpass* Renderer::bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
 U8									Renderer::bloomPassCount;
-Pipeline*							Renderer::skyboxPipeline;
-Program*							Renderer::skybox;
-Program*							Renderer::postProcessing;
-Program*							Renderer::bloom;
+Pipeline* Renderer::skyboxPipeline;
+Program* Renderer::skybox;
+Program* Renderer::postProcessing;
+Program* Renderer::bloom;
 U32									Renderer::imageIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
@@ -130,15 +130,15 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene*								Renderer::currentScene;
-VmaAllocator_T*						Renderer::allocator;
+Scene* Renderer::currentScene;
+VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
-CommandBuffer**						Renderer::queuedCommandBuffers;
+CommandBuffer** Renderer::queuedCommandBuffers;
 U32									Renderer::allocatedCommandBufferCount{ 0 };
 U32									Renderer::queuedCommandBufferCount{ 0 };
 U64									Renderer::dynamicMaxPerFrameSize;
-Buffer*								Renderer::dynamicBuffer;
-U8*									Renderer::dynamicMappedMemory;
+Buffer* Renderer::dynamicBuffer;
+U8* Renderer::dynamicMappedMemory;
 U64									Renderer::dynamicAllocatedSize;
 U64									Renderer::dynamicPerFrameSize;
 
@@ -936,6 +936,41 @@ void Renderer::AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, Res
 	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
+void Renderer::TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
+	VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
+{
+	VkImageMemoryBarrier imageMemoryBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+	imageMemoryBarrier.oldLayout = oldLayout;
+	imageMemoryBarrier.newLayout = newLayout;
+	imageMemoryBarrier.image = image;
+	imageMemoryBarrier.subresourceRange = subresourceRange;
+
+	switch (oldLayout)
+	{
+	case VK_IMAGE_LAYOUT_UNDEFINED: {imageMemoryBarrier.srcAccessMask = 0; } break;
+	case VK_IMAGE_LAYOUT_PREINITIALIZED: { imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: { imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL: { imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: { imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT; } break;
+	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: { imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: { imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT; } break;
+	}
+
+	switch (newLayout)
+	{
+	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: { imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: { imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT; } break;
+	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: { imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL: { imageMemoryBarrier.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; } break;
+	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: {
+		if (imageMemoryBarrier.srcAccessMask == 0) { imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT; }
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	} break;
+	}
+
+	vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+}
+
 bool Renderer::CreateSampler(Sampler* sampler)
 {
 	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -965,6 +1000,8 @@ bool Renderer::CreateSampler(Sampler* sampler)
 
 bool Renderer::CreateTexture(Texture* texture, void* data)
 {
+	//TODO: Check for blit feature
+
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.format = texture->format;
 	imageInfo.flags = texture->type == TEXTURE_TYPE_CUBE ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
@@ -986,12 +1023,11 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	if (HasDepthOrStencil(texture->format))
 	{
-		// Depth/Stencil textures are normally textures you render into.
 		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	}
 	else
 	{
-		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT; // TODO
+		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		imageInfo.usage |= isRenderTarget ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : 0;
 	}
 
@@ -1015,7 +1051,6 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	if (HasDepthOrStencil(texture->format))
 	{
 		info.subresourceRange.aspectMask = HasDepth(texture->format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
-		// TODO:gs
 		//info.subresourceRange.aspectMask |= HasStencil(texture->format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
 	}
 	else
@@ -1029,16 +1064,15 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
 
-	texture->imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	// Add deferred bindless update.
-	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame}); }
+	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	if (data)
 	{
 		VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
 		bufferInfo.size = texture->size;
 
 		VmaAllocationCreateInfo memoryInfo{};
@@ -1052,13 +1086,11 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo,
 			&stagingBuffer, &stagingAllocation, &allocationInfo));
 
-		// Copy buffer_data
 		void* destinationData;
 		vmaMapMemory(allocator, stagingAllocation, &destinationData);
 		Memory::Copy(destinationData, data, texture->size);
 		vmaUnmapMemory(allocator, stagingAllocation);
 
-		// Execute command buffer
 		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
@@ -1078,56 +1110,19 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		region.imageOffset = { 0, 0, 0 };
 		region.imageExtent = { texture->width, texture->height, texture->depth };
 
-		// Copy from the staging buffer to the image
-		AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_COPY_DEST, 0, 1, false);
-		// Copy
+		VkImageSubresourceRange subresourceRange{};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = 1;
+
+		TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 		vkCmdCopyBufferToImage(commandBuffer->commandBuffer, stagingBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-		// Prepare first mip to create lower mipmaps
-		if (texture->mipmaps > 1)
-		{
-			AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_COPY_DEST, RESOURCE_TYPE_COPY_SOURCE, 0, 1, false);
-		}
-
-		I32 w = texture->width;
-		I32 h = texture->height;
-
-		for (I32 mipIndex = 1; mipIndex < texture->mipmaps; ++mipIndex)
-		{
-			AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_COPY_DEST, mipIndex, 1, false);
-
-			VkImageBlit blitRegion{ };
-			blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			blitRegion.srcSubresource.mipLevel = mipIndex - 1;
-			blitRegion.srcSubresource.baseArrayLayer = 0;
-			blitRegion.srcSubresource.layerCount = 1;
-
-			blitRegion.srcOffsets[0] = { 0, 0, 0 };
-			blitRegion.srcOffsets[1] = { w, h, 1 };
-
-			w /= 2;
-			h /= 2;
-
-			blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			blitRegion.dstSubresource.mipLevel = mipIndex;
-			blitRegion.dstSubresource.baseArrayLayer = 0;
-			blitRegion.dstSubresource.layerCount = 1;
-
-			blitRegion.dstOffsets[0] = { 0, 0, 0 };
-			blitRegion.dstOffsets[1] = { w, h, 1 };
-
-			vkCmdBlitImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blitRegion, VK_FILTER_LINEAR);
-
-			// Prepare current mip for next level
-			AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_COPY_DEST, RESOURCE_TYPE_COPY_SOURCE, mipIndex, 1, false);
-		}
-
-		// Transition
-		AddImageBarrier(commandBuffer->commandBuffer, texture->image, (texture->mipmaps > 1) ?
-			RESOURCE_TYPE_COPY_SOURCE : RESOURCE_TYPE_COPY_DEST, RESOURCE_TYPE_SHADER_RESOURCE, 0, texture->mipmaps, false);
+		TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 		vkEndCommandBuffer(commandBuffer->commandBuffer);
 
-		// Submit command buffer
 		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
@@ -1137,16 +1132,61 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 		vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 
-		// TODO: free command buffer
 		vkResetCommandBuffer(commandBuffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
-		texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		CommandBuffer* blitCmd = GetInstantCommandBuffer();
+		vkBeginCommandBuffer(blitCmd->commandBuffer, &beginInfo);
+
+		//TODO: Some textures could have mipmaps stored in the already
+		for (U32 i = 1; i < texture->mipmaps; ++i)
+		{
+			VkImageBlit blitRegion{};
+			blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blitRegion.srcSubresource.layerCount = 1;
+			blitRegion.srcSubresource.mipLevel = i - 1;
+			blitRegion.srcOffsets[1].x = texture->width >> (i - 1);
+			blitRegion.srcOffsets[1].y = texture->height >> (i - 1);
+			blitRegion.srcOffsets[1].z = 1;
+
+			blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blitRegion.dstSubresource.layerCount = 1;
+			blitRegion.dstSubresource.mipLevel = i;
+			blitRegion.dstOffsets[1].x = texture->width >> i;
+			blitRegion.dstOffsets[1].y = texture->height >> i;
+			blitRegion.dstOffsets[1].z = 1;
+
+			VkImageSubresourceRange mipSubRange{};
+			mipSubRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			mipSubRange.baseMipLevel = i;
+			mipSubRange.levelCount = 1;
+			mipSubRange.layerCount = 1;
+
+			TransitionImage(blitCmd->commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				mipSubRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+			vkCmdBlitImage(blitCmd->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, texture->image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blitRegion, VK_FILTER_LINEAR);
+			TransitionImage(blitCmd->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				mipSubRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+		}
+
+		subresourceRange.levelCount = texture->mipmaps;
+		TransitionImage(blitCmd->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT); //VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+
+		vkEndCommandBuffer(blitCmd->commandBuffer);
+
+		submitInfo.pCommandBuffers = &blitCmd->commandBuffer;
+
+		vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(deviceQueue);
+
+		vkResetCommandBuffer(blitCmd->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 	}
 
 	return true;
 }
 
-bool Renderer::CreateCubeMap(Texture* texture, void* data)
+bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1157,11 +1197,9 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data)
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.extent = { texture->width, texture->height, texture->depth };
-	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	imageInfo.arrayLayers = 6;
 	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-	VkValidateR(vkCreateImage(device, &imageInfo, allocationCallbacks, &texture->image));
 
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -1172,18 +1210,14 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
 
-	VkBufferImageCopy bufferCopyRegions[6 * 12];
+	VkBufferImageCopy bufferCopyRegions[6 * 14];
 	U32 regionCount = 0;
 	U32 offset = 0;
 
-	for (U32 face = 0; face < 6; ++face)
+	for (U32 level = 0; level < texture->mipmaps; ++level)
 	{
-		for (U32 level = 0; level < texture->mipmaps; ++level)
+		for (U32 face = 0; face < 6; ++face)
 		{
-			// Calculate offset into staging buffer for the current mip level and face
-			U64 offset;
-			KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset);
-			assert(ret == KTX_SUCCESS);
 			VkBufferImageCopy bufferCopyRegion{};
 			bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			bufferCopyRegion.imageSubresource.mipLevel = level;
@@ -1194,6 +1228,7 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data)
 			bufferCopyRegion.imageExtent.depth = texture->depth;
 			bufferCopyRegion.bufferOffset = offset;
 			bufferCopyRegions[regionCount++] = bufferCopyRegion;
+			offset += layerSizes[level];
 		}
 	}
 
@@ -1208,7 +1243,6 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data)
 
 	bufferInfo.size = texture->size;
 
-	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
 	memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
@@ -1230,23 +1264,13 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data)
 	CommandBuffer* commandBuffer = GetInstantCommandBuffer();
 	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
-	AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_COPY_DEST, 0, 1, false);
-
+	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+		subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 	vkCmdCopyBufferToImage(commandBuffer->commandBuffer, stagingBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, bufferCopyRegions);
+	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+		subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
 
-	if (texture->mipmaps > 1)
-	{
-		AddImageBarrier(commandBuffer->commandBuffer, texture->image, RESOURCE_TYPE_COPY_DEST, RESOURCE_TYPE_COPY_SOURCE, 0, 1, false);
-	}
-
-	VkImageViewCreateInfo view{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	view.format = texture->format;
-	view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	view.subresourceRange.layerCount = 6;
-	view.subresourceRange.levelCount = texture->mipmaps;
-	view.image = texture->image;
-	VkValidateR(vkCreateImageView(device, &view, allocationCallbacks, &texture->imageView));
+	texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	vkEndCommandBuffer(commandBuffer->commandBuffer);
 
@@ -1262,6 +1286,15 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data)
 
 	// TODO: free command buffer
 	vkResetCommandBuffer(commandBuffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+	VkImageViewCreateInfo view{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+	view.format = texture->format;
+	view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	view.subresourceRange.layerCount = 6;
+	view.subresourceRange.levelCount = texture->mipmaps;
+	view.image = texture->image;
+	VkValidateR(vkCreateImageView(device, &view, allocationCallbacks, &texture->imageView));
 
 	return true;
 }
@@ -1330,7 +1363,6 @@ bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayou
 		vkBinding.pImmutableSamplers = nullptr;
 	}
 
-	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 	layoutInfo.bindingCount = usedBindings;
 	layoutInfo.pBindings = descriptorSetLayout->vkBindings;
@@ -1568,7 +1600,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		{
 			framebufferAttachments[attachmentCount++] = renderpass->outputDepth->imageView;
 		}
-		
+
 		framebufferInfo.pAttachments = framebufferAttachments;
 
 		vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffers[0]);
@@ -1654,7 +1686,7 @@ void Renderer::DestroyRenderPassInstant(Renderpass* renderpass)
 			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
-		for (U32 i = 0; i < renderpass->renderTargetCount ; ++i)
+		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
 			Resources::DestroyTexture(renderpass->outputTextures[i]);
 		}

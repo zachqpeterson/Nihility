@@ -22,8 +22,6 @@ layout(binding = 0) uniform LocalConstants
     float lightIntensity;
 };
 
-layout (binding = 1) uniform samplerCube samplerEnvMap;
-
 layout (location = 0) out vec3 outUVW;
 
 void main()
@@ -37,15 +35,6 @@ void main()
 #version 450
 
 layout (location = 0) in vec3 UVW;
-
-layout(binding = 0) uniform LocalConstants
-{
-    mat4 viewProjection;
-    vec4 eye;
-    vec4 light;
-    float lightRange;
-    float lightIntensity;
-};
 
 layout (binding = 1) uniform samplerCube samplerEnvMap;
 
