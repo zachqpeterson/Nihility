@@ -1,12 +1,12 @@
 #CONFIG
 name=PBR
+language=GLSL
 cull=FRONT
 front=CLOCKWISE
 fill=SOLID
 depth=LESS
 blend=ADD
 blend=ADD
-language=GLSL
 #CONFIG_END
 
 #VERTEX

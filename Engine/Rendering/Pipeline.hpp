@@ -135,19 +135,4 @@ private:
 
 	static const String& ToStageDefines(VkShaderStageFlagBits value);
 	static const String& ToCompilerExtension(VkShaderStageFlagBits value);
-
-	static String CONFIG_BEGIN;
-	static String CONFIG_END;
-	static String VERT_BEGIN;
-	static String VERT_END;
-	static String CTRL_BEGIN;
-	static String CTRL_END;
-	static String EVAL_BEGIN;
-	static String EVAL_END;
-	static String GEOM_BEGIN;
-	static String GEOM_END;
-	static String FRAG_BEGIN;
-	static String FRAG_END;
-	static String COMP_BEGIN;
-	static String COMP_END;
 };

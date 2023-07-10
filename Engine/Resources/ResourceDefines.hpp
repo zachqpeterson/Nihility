@@ -644,7 +644,10 @@ struct NH_API Mesh
 
 struct Skybox
 {
+	void Destroy() { name.Destroy(); }
+
 	String name{ NO_INIT };
+	HashHandle	handle;
 
 	Buffer* indexBuffer{ nullptr };
 	Buffer* vertexBuffer{ nullptr };

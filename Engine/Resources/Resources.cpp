@@ -308,6 +308,7 @@ void Resources::Shutdown()
 	CleanupHashmap(programs, nullptr);
 	CleanupHashmap(materials, nullptr);
 	CleanupHashmap(scenes, nullptr);
+	CleanupHashmap(skyboxes, nullptr);
 
 	samplers.Destroy();
 	textures.Destroy();
@@ -1717,6 +1718,7 @@ Skybox* Resources::CreateSkybox(const SkyboxCreation& info)
 	if (!skybox->name.Blank()) { return skybox; }
 
 	skybox->name = info.name;
+	skybox->handle = skyboxes.GetHandle(info.name);
 	void* data;
 	LoadBinary(info.binaryName, &data);
 
@@ -1769,6 +1771,7 @@ Skybox* Resources::LoadSkybox(const String& name)
 	if (!skybox->name.Blank()) { return skybox; }
 
 	skybox->name = name;
+	skybox->handle = skyboxes.GetHandle(name);
 
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
