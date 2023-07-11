@@ -167,6 +167,13 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 	Resources::LoadBinary(shaderPath, data);
 
 	DescriptorSetLayoutCreation setLayoutInfos[MAX_DESCRIPTOR_SETS]{};
+	RenderPassCreation renderPassInfo{};
+	renderPassInfo.SetName(name + "_pass");
+	renderPassInfo.colorOperation = RENDER_PASS_OP_CLEAR;
+	renderPassInfo.depthOperation = RENDER_PASS_OP_DONT_CARE;
+	renderPassInfo.stencilOperation = RENDER_PASS_OP_DONT_CARE;
+	renderPassInfo.width = Settings::WindowWidth();
+	renderPassInfo.height = Settings::WindowHeight();
 
 	I64 index = -1;
 
@@ -176,13 +183,13 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 
 		//TODO: Validate only graphics or compute
 		//TODO: Validate both or neither ctrl and eval
-		if (data.CompareN("#CONFIG", index)) { ParseConfig(data, index); }
-		else if (data.CompareN("#VERTEX", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_VERTEX_BIT); }
-		else if (data.CompareN("#CONTROL", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT); }
-		else if (data.CompareN("#EVALUATION", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT); }
-		else if (data.CompareN("#GEOMETRY", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_GEOMETRY_BIT); }
-		else if (data.CompareN("#FRAGMENT", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_FRAGMENT_BIT); }
-		else if (data.CompareN("#COMPUTE", index)) { ParseStage(data, index, setLayoutInfos, VK_SHADER_STAGE_COMPUTE_BIT); }
+		if (data.CompareN("#CONFIG", index)) { ParseConfig(data, index, renderPassInfo); }
+		else if (data.CompareN("#VERTEX", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_VERTEX_BIT); }
+		else if (data.CompareN("#CONTROL", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT); }
+		else if (data.CompareN("#EVALUATION", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT); }
+		else if (data.CompareN("#GEOMETRY", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_GEOMETRY_BIT); }
+		else if (data.CompareN("#FRAGMENT", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_FRAGMENT_BIT); }
+		else if (data.CompareN("#COMPUTE", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_COMPUTE_BIT); }
 	} while (index != -1);
 
 	if (shader.shaderCount == 0) { Logger::Error("Pipeline '{}' Has No Shaders Stages!", shaderPath); BreakPoint; }
@@ -213,12 +220,6 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 	}
 	else
 	{
-		RenderPassCreation renderPassInfo{};
-		renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName(name + "_pass");
-		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-		renderPassInfo.width = Settings::WindowWidth();
-		renderPassInfo.height = Settings::WindowHeight();
-
 		String textureName = name + "_output_";
 
 		for (U32 i = 0; i < shader.outputCount; ++i)
@@ -233,7 +234,7 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 			textureInfo.type = TEXTURE_TYPE_2D;
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
-			renderPassInfo.AddRenderTarget(texture);
+			renderPassInfo.AddRenderTarget(texture); //TODO: Add clear colors if not equal to render targets
 		}
 
 		if (useDepth)
@@ -283,9 +284,16 @@ void Pipeline::Destroy()
 
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
 	if (layout) { vkDestroyPipelineLayout(Renderer::device, layout, Renderer::allocationCallbacks); }
+
+	name.Destroy();
+
+	for (U32 i = 0; i < MAX_SHADER_STAGES; ++i)
+	{
+		shader.stages[i].entry.Destroy();
+	}
 }
 
-bool Pipeline::ParseConfig(const String& data, I64& index)
+bool Pipeline::ParseConfig(const String& data, I64& index, RenderPassCreation& renderPassInfo)
 {
 	//TODO: Blend Masks
 	//TODO: Add Stencils
@@ -337,6 +345,8 @@ bool Pipeline::ParseConfig(const String& data, I64& index)
 		else if (data.CompareN("depth", index + 1))
 		{
 			useDepth = true;
+			renderPassInfo.AddClearDepth(0.0f);
+			renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
 
 			index = data.IndexOf('=', index + 1);
 
@@ -408,6 +418,39 @@ bool Pipeline::ParseConfig(const String& data, I64& index)
 				++blendStateCount;
 			}
 		}
+		else if (data.CompareN("clear", index + 1))
+		{
+			index = data.IndexOf('=', index + 1);
+
+			if (data.CompareN("RED", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 1.0f, 0.0f, 0.0f, 1.0f });
+			}
+			else if (data.CompareN("GREEN", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 0.0f, 1.0f, 0.0f, 1.0f });
+			}
+			else if (data.CompareN("BLUE", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 1.0f, 1.0f });
+			}
+			else if (data.CompareN("MAGENTA", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 1.0f, 0.0f, 1.0f, 1.0f });
+			}
+			else if (data.CompareN("BLACK", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+			}
+			else if (data.CompareN("WHITE", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+			}
+			else if (data.CompareN("CLEAR", index + 1))
+			{
+				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+			}
+		}
 
 		index = data.IndexOf('\n', index + 1);
 	}
@@ -415,17 +458,21 @@ bool Pipeline::ParseConfig(const String& data, I64& index)
 	return false;
 }
 
-bool Pipeline::ParseStage(const String& data, I64& index, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage)
+bool Pipeline::ParseStage(const String& data, I64& index, RenderPassCreation& renderPassInfo, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage)
 {
 	if (stage != VK_SHADER_STAGE_COMPUTE_BIT)
 	{
 		if (bindPoint == VK_PIPELINE_BIND_POINT_COMPUTE) { return false; }
 		bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+		renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY);
 	}
 	else
 	{
 		if (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) { return false; }
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+
+		renderPassInfo.SetType(RENDERPASS_TYPE_COMPUTE);
 	}
 
 	I64 begin = data.IndexOf('\n', index + 1) + 1;

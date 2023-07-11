@@ -227,6 +227,20 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 	return *this;
 }
 
+RenderPassCreation& RenderPassCreation::AddClearColor(const Vector4& color)
+{
+	clears[clearCount++].color = { color.x, color.y, color.z, color.w };
+
+	return *this;
+}
+
+RenderPassCreation& RenderPassCreation::AddClearDepth(F32 depth)
+{
+	clears[clearCount++].depthStencil = { depth, 0 };
+
+	return *this;
+}
+
 // PROGRAM CREATION
 
 ProgramCreation& ProgramCreation::Reset()

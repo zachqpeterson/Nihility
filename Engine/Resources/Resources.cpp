@@ -307,8 +307,8 @@ void Resources::Shutdown()
 	CleanupHashmap(pipelines, nullptr);
 	CleanupHashmap(programs, nullptr);
 	CleanupHashmap(materials, nullptr);
-	CleanupHashmap(scenes, nullptr);
 	CleanupHashmap(skyboxes, nullptr);
+	CleanupHashmap(scenes, nullptr);
 
 	samplers.Destroy();
 	textures.Destroy();
@@ -319,6 +319,7 @@ void Resources::Shutdown()
 	pipelines.Destroy();
 	programs.Destroy();
 	materials.Destroy();
+	skyboxes.Destroy();
 	scenes.Destroy();
 
 	resourceDeletionQueue.Destroy();
@@ -1643,7 +1644,13 @@ Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	renderpass->output.depthOperation = info.depthOperation;
 	renderpass->output.stencilOperation = info.stencilOperation;
 	renderpass->output.colorFormatCount = info.renderTargetCount;
+	renderpass->clearCount = info.clearCount;
 	if (info.depthStencilTexture) { renderpass->output.depthStencilFormat = info.depthStencilTexture->format; }
+
+	for (U32 i = 0; i < info.clearCount; ++i)
+	{
+		renderpass->clears[i] = info.clears[i];
+	}
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{

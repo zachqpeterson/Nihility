@@ -7,6 +7,8 @@ fill=SOLID
 depth=LESS
 blend=ADD
 blend=ADD
+clear=MAGENTA
+clear=CLEAR
 #CONFIG_END
 
 #VERTEX

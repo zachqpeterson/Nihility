@@ -5,6 +5,7 @@ cull=NONE
 front=CLOCKWISE
 fill=SOLID
 blend=ADD
+clear=BLUE
 #CONFIG_END
 
 #VERTEX

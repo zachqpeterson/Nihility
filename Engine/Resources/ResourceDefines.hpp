@@ -508,11 +508,16 @@ struct RenderPassCreation
 	RenderPassCreation& SetName(const String& name);
 	RenderPassCreation& SetType(RenderpassType type);
 	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	RenderPassCreation& AddClearColor(const Vector4& color);
+	RenderPassCreation& AddClearDepth(F32 depth);
 
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
 	RenderpassType		type{ RENDERPASS_TYPE_GEOMETRY };
+
+	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
+	U8					clearCount{ 0 };
 
 	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTexture{ nullptr };
