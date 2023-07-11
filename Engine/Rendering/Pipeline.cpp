@@ -168,7 +168,6 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 
 	DescriptorSetLayoutCreation setLayoutInfos[MAX_DESCRIPTOR_SETS]{};
 	RenderPassCreation renderPassInfo{};
-	renderPassInfo.SetName(name + "_pass");
 	renderPassInfo.colorOperation = RENDER_PASS_OP_CLEAR;
 	renderPassInfo.depthOperation = RENDER_PASS_OP_DONT_CARE;
 	renderPassInfo.stencilOperation = RENDER_PASS_OP_DONT_CARE;
@@ -221,6 +220,7 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 	else
 	{
 		String textureName = name + "_output_";
+		renderPassInfo.SetName(name + "_pass");
 
 		for (U32 i = 0; i < shader.outputCount; ++i)
 		{
@@ -234,7 +234,8 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 			textureInfo.type = TEXTURE_TYPE_2D;
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
-			renderPassInfo.AddRenderTarget(texture); //TODO: Add clear colors if not equal to render targets
+			renderPassInfo.AddRenderTarget(texture);
+			//TODO: Add clear colors if not equal to render targets
 		}
 
 		if (useDepth)
@@ -250,6 +251,7 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
 			renderPassInfo.SetDepthStencilTexture(texture);
+			renderPassInfo.AddClearDepth(1.0f);
 		}
 
 		renderpass = Resources::CreateRenderPass(renderPassInfo);
@@ -345,7 +347,6 @@ bool Pipeline::ParseConfig(const String& data, I64& index, RenderPassCreation& r
 		else if (data.CompareN("depth", index + 1))
 		{
 			useDepth = true;
-			renderPassInfo.AddClearDepth(0.0f);
 			renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
 
 			index = data.IndexOf('=', index + 1);

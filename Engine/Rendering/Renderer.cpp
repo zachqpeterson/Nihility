@@ -1459,9 +1459,6 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 			colorAttachments[attachmentCount].attachment = attachmentCount;
 			colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-			renderpass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f }; //TODO: Pass in clear values
-			++renderpass->clearCount;
-
 			++attachmentCount;
 		}
 	}
@@ -1483,9 +1480,6 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 
 		depthAttachment.attachment = attachmentCount;
 		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		renderpass->clears[attachmentCount].depthStencil = { 1.0f, 0 }; //TODO: Pass in clear values
-		++renderpass->clearCount;
 
 		subpass.pDepthStencilAttachment = &depthAttachment;
 
