@@ -239,7 +239,11 @@ void main()
         materialColor = (diffuseBRDF + specularBRDF) * intensity;
     }
 
-    fragColor = vec4(clamp(emissivity + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
+    vec3 ambientLight = vec3(0.3, 0.0, 0.3) * baseColor.rgb;
+
+    fragColor = vec4(clamp(emissivity + ambientLight + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
+
+    fragColor = clamp(pow(abs(fragColor), vec4(1.0 / 2.2)), 0.0, 1.0);
 
     fragHighlight = vec4(emissivity, 1.0);
 }

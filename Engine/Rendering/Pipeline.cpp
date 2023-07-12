@@ -820,7 +820,8 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 				const BlendState& blendState = blendStates[i];
 
 				colorBlendAttachment[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				colorBlendAttachment[i].blendEnable = blendState.blendEnabled ? VK_TRUE : VK_FALSE;
+				//colorBlendAttachment[i].blendEnable = blendState.blendEnabled ? VK_TRUE : VK_FALSE;
+				colorBlendAttachment[i].blendEnable = VK_FALSE;
 				colorBlendAttachment[i].srcColorBlendFactor = blendState.sourceColor;
 				colorBlendAttachment[i].dstColorBlendFactor = blendState.destinationColor;
 				colorBlendAttachment[i].colorBlendOp = blendState.colorOperation;
