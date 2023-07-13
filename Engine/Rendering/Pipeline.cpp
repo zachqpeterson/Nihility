@@ -242,7 +242,7 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 		{
 			TextureCreation textureInfo{};
 			textureInfo.name = textureName + "depth";
-			textureInfo.format = VK_FORMAT_D16_UNORM;
+			textureInfo.format = VK_FORMAT_D32_SFLOAT;
 			textureInfo.width = renderPassInfo.width;
 			textureInfo.height = renderPassInfo.height;
 			textureInfo.depth = 1;

@@ -708,9 +708,6 @@
     <ClCompile Include="Engine\External\glslang\MachineIndependent\Versions.cpp">
       <Filter>Source Files\External\Glslang</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\External\glslang\OSDependent\Unix\ossource.cpp">
-      <Filter>Source Files\External\Glslang</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\External\glslang\OSDependent\Web\glslang.js.cpp">
       <Filter>Source Files\External\Glslang</Filter>
     </ClCompile>

@@ -305,7 +305,6 @@
     <ClCompile Include="Engine\External\glslang\MachineIndependent\SpirvIntrinsics.cpp" />
     <ClCompile Include="Engine\External\glslang\MachineIndependent\SymbolTable.cpp" />
     <ClCompile Include="Engine\External\glslang\MachineIndependent\Versions.cpp" />
-    <ClCompile Include="Engine\External\glslang\OSDependent\Unix\ossource.cpp" />
     <ClCompile Include="Engine\External\glslang\OSDependent\Web\glslang.js.cpp" />
     <ClCompile Include="Engine\External\glslang\OSDependent\Windows\ossource.cpp" />
     <ClCompile Include="Engine\External\SPIRV\CInterface\spirv_c_interface.cpp" />

@@ -156,7 +156,7 @@ void Engine::UpdateLoop()
 
 		if (Settings::Focused()) { remainingFrameTime = Settings::TargetFrametime() - Time::FrameUpTime(); }
 		else { remainingFrameTime = Settings::TargetFrametimeSuspended() - Time::FrameUpTime(); }
-
+		
 		U64 remainingUS = (U64)(remainingFrameTime * 1090000.0);
 
 		if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }
