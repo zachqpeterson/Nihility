@@ -23,7 +23,7 @@ layout (location = 0) out vec3 outTexCoord;
 
 void main()
 {
-	outTexCoord = position;
+	outTexCoord = vec3(position.x, -position.y, position.z);
     vec4 pos = viewProjection * vec4(position, 1.0);
 	gl_Position = pos.xyww;
 }
