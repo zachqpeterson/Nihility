@@ -347,7 +347,6 @@ bool Pipeline::ParseConfig(const String& data, I64& index, RenderPassCreation& r
 		else if (data.CompareN("depth", index + 1))
 		{
 			useDepth = true;
-			renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
 
 			index = data.IndexOf('=', index + 1);
 
@@ -357,23 +356,40 @@ bool Pipeline::ParseConfig(const String& data, I64& index, RenderPassCreation& r
 				depthStencil.depthWriteEnable = false;
 				depthStencil.depthComparison = VK_COMPARE_OP_ALWAYS;
 			}
-			else if (data.CompareN("LESS", index + 1))
+			else if (data.CompareN("LESS_EQUAL", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
+				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+			}
+			else if (data.CompareN("LESS", index + 1))
+			{
+				depthStencil.depthEnable = true;
+				depthStencil.depthWriteEnable = true;
+				depthStencil.depthComparison = VK_COMPARE_OP_LESS;
+				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+			}
+			else if (data.CompareN("GREATER_EQUAL", index + 1))
+			{
+				depthStencil.depthEnable = true;
+				depthStencil.depthWriteEnable = true;
+				depthStencil.depthComparison = VK_COMPARE_OP_GREATER_OR_EQUAL;
+				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
 			}
 			else if (data.CompareN("GREATER", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
-				depthStencil.depthComparison = VK_COMPARE_OP_GREATER_OR_EQUAL;
+				depthStencil.depthComparison = VK_COMPARE_OP_GREATER;
+				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
 			}
 			else if (data.CompareN("EQUAL", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_EQUAL;
+				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
 			}
 		}
 		else if (data.CompareN("blend", index + 1))
@@ -639,6 +655,7 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 					attribute.format = (VkFormat)var->format;
 				}
 
+				shader.vertexSize += stream.stride;
 				++shader.vertexAttributeCount;
 				++shader.vertexStreamCount;
 				shader.vertexAttributes[location] = attribute;

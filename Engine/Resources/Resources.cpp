@@ -95,7 +95,6 @@ Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
 Program* Resources::skyboxProgram;
-Program* Resources::compositionProgram;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
 
@@ -170,21 +169,15 @@ bool Resources::Initialize()
 	dummyAttributeBufferInfo.SetData(dummyData);
 	dummyAttributeBuffer = CreateBuffer(dummyAttributeBufferInfo);
 
-	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader");
-	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
-	Pipeline* composition = CreatePipeline("shaders/Composition.shader", true);
-	composition->SetInput(skybox->renderpass->outputTextures[0], 0);
-	composition->SetInput(pbr->renderpass->outputTextures[0], 1);
+	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader", true);
+	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader", true);
 
 	ProgramCreation programCreation{};
-	programCreation.SetName("PBR").AddPass(pbr);
-	Program* pbrProgram = Resources::CreateProgram(programCreation);
-
-	programCreation.Reset().SetName("Skybox").AddPass(skybox);
+	programCreation.SetName("Skybox").AddPass(skybox);
 	skyboxProgram = Resources::CreateProgram(programCreation);
 
-	programCreation.Reset().SetName("Composition").AddPass(composition);
-	compositionProgram = Resources::CreateProgram(programCreation);
+	programCreation.Reset().SetName("PBR").AddPass(pbr);
+	Program* pbrProgram = Resources::CreateProgram(programCreation);
 
 	MaterialCreation materialCreation{};
 
@@ -543,20 +536,18 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		texture->depth = 1;
 		texture->handle = textures.GetHandle(name);
 
-		String ext{};
-		name.SubString(ext, name.LastIndexOf('.') + 1);
-		ext.ToLower();
+		I64 extIndex = name.LastIndexOf('.') + 1;
 
 		bool success = false;
 
-		if (ext == "bmp") { success = LoadBMP(texture, file, generateMipMaps); }
-		else if (ext == "png") { success = LoadPNG(texture, file, generateMipMaps); }
-		else if (ext == "jpg" || ext == "jpeg") { success = LoadJPG(texture, file, generateMipMaps); }
-		else if (ext == "psd") { success = LoadPSD(texture, file, generateMipMaps); }
-		else if (ext == "tiff") { success = LoadTIFF(texture, file, generateMipMaps); }
-		else if (ext == "tga") { success = LoadTGA(texture, file, generateMipMaps); }
-		else if (ext == "ktx") { success = LoadKTX(texture, file, generateMipMaps); }
-		else { Logger::Error("Unknown Texture Extension {}!", ext); textures.Remove(name); return nullptr; }
+		if (name.CompareN("bmp", extIndex)) { success = LoadBMP(texture, file, generateMipMaps); }
+		else if (name.CompareN("png", extIndex)) { success = LoadPNG(texture, file, generateMipMaps); }
+		else if (name.CompareN("jpg", extIndex) || name.CompareN("jpeg", extIndex)) { success = LoadJPG(texture, file, generateMipMaps); }
+		else if (name.CompareN("psd", extIndex)) { success = LoadPSD(texture, file, generateMipMaps); }
+		else if (name.CompareN("tiff", extIndex)) { success = LoadTIFF(texture, file, generateMipMaps); }
+		else if (name.CompareN("tga", extIndex)) { success = LoadTGA(texture, file, generateMipMaps); }
+		else if (name.CompareN("ktx", extIndex)) { success = LoadKTX(texture, file, generateMipMaps); }
+		else { Logger::Error("Unknown Texture Extension {}!", name); textures.Remove(name); return nullptr; }
 
 		if (!success)
 		{
@@ -569,7 +560,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		return texture;
 	}
 
-	Logger::Error("Failed to find or open file: {}", name);
+	Logger::Error("Failed To Find Or Open File: {}", name);
 
 	textures.Remove(name);
 	return nullptr;
@@ -1716,59 +1707,6 @@ Material* Resources::CreateMaterial(const MaterialCreation& info)
 	return material;
 }
 
-Skybox* Resources::CreateSkybox(const SkyboxCreation& info)
-{
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	Skybox* skybox = &skyboxes.Request(info.name);
-
-	if (!skybox->name.Blank()) { return skybox; }
-
-	skybox->name = info.name;
-	skybox->handle = skyboxes.GetHandle(info.name);
-	void* data;
-	LoadBinary(info.binaryName, &data);
-
-	U32 size = info.vertexCount + info.indexCount;
-
-	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	BufferCreation bufferCreation{};
-	bufferCreation.SetName(skybox->name + "buffer").SetData(data).Set(flags, RESOURCE_USAGE_IMMUTABLE, size);
-
-	Buffer* buffer = CreateBuffer(bufferCreation);
-	Memory::FreeSize(&data);
-
-	bufferCreation.Reset().SetName(skybox->name + "vertices").Set(flags, RESOURCE_USAGE_IMMUTABLE, info.vertexCount).SetParent(buffer, 0);
-	skybox->vertexBuffer = CreateBuffer(bufferCreation);
-
-	bufferCreation.Reset().SetName(skybox->name + "indices").Set(flags, RESOURCE_USAGE_IMMUTABLE, info.indexCount).SetParent(buffer, info.vertexCount);
-	skybox->indexBuffer = CreateBuffer(bufferCreation);
-
-	skybox->texture = LoadTexture(info.textureName, false);
-
-	return skybox;
-}
-
-void Resources::SaveSkybox(Skybox* skybox)
-{
-	if (skybox->name.Blank()) { return; }
-
-	File file(skybox->name, FILE_OPEN_RESOURCE_WRITE);
-	if (file.Opened())
-	{
-		file.Write(skybox->texture->name);
-		file.Write((U16&)skybox->vertexBuffer->size);
-		file.Write((U16&)skybox->indexBuffer->size);
-
-		MapBufferParameters map = { skybox->vertexBuffer->parentBuffer, 0, 0 };
-		U8* mapData = (U8*)Renderer::MapBuffer(map);
-
-		file.Write(mapData, skybox->vertexBuffer->size + skybox->indexBuffer->size);
-
-		file.Close();
-	}
-}
-
 Skybox* Resources::LoadSkybox(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -1779,39 +1717,12 @@ Skybox* Resources::LoadSkybox(const String& name)
 
 	skybox->name = name;
 	skybox->handle = skyboxes.GetHandle(name);
+	skybox->texture = LoadTexture(name, false);
 
-	File file(name, FILE_OPEN_RESOURCE_READ);
-	if (file.Opened())
-	{
-		String textureName;
-		U16 vertexCount;
-		U16 indexCount;
-		U32 size;
-
-		file.ReadString(textureName);
-		skybox->texture = LoadTexture(textureName, false);
-		file.Read(vertexCount);
-		file.Read(indexCount);
-		size = vertexCount + indexCount;
-
-		U8* data = new U8[size];
-		file.ReadCount(data, size);
-
-		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		BufferCreation bufferCreation{};
-		bufferCreation.SetName(name + "buffer").SetData(data).Set(flags, RESOURCE_USAGE_IMMUTABLE, size);
-
-		Buffer* buffer = CreateBuffer(bufferCreation);
-		delete[] data;
-
-		bufferCreation.Reset().SetName(name + "vertices").Set(flags, RESOURCE_USAGE_IMMUTABLE, vertexCount).SetParent(buffer, 0);
-		skybox->vertexBuffer = CreateBuffer(bufferCreation);
-
-		bufferCreation.Reset().SetName(name + "indices").Set(flags, RESOURCE_USAGE_IMMUTABLE, indexCount).SetParent(buffer, vertexCount);
-		skybox->indexBuffer = CreateBuffer(bufferCreation);
-
-		file.Close();
-	}
+	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	BufferCreation bufferCreation{};
+	bufferCreation.SetName("binaries/Skybox.bin").Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
+	skybox->buffer = LoadBuffer(bufferCreation);
 
 	return skybox;
 }
@@ -1829,200 +1740,253 @@ Scene* Resources::LoadScene(const String& name)
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
-		U32 bufferCount;
-		U32 textureCount;
-		U32 samplerCount;
-		U32 meshCount;
+		I64 extIndex = name.LastIndexOf('.') + 1;
 
-		file.Read(bufferCount);
-		file.Read(samplerCount);
-		file.Read(textureCount);
-		file.Read(meshCount);
+		bool success = false;
 
-		scene->buffers.Reserve(bufferCount);
-		scene->textures.Reserve(textureCount);
-		scene->samplers.Reserve(samplerCount);
-		scene->meshes.Reserve(meshCount);
+		if (name.CompareN("nhscn", extIndex)) { success = LoadNHSCN(scene, file); }
+		else if (name.CompareN("gltf", extIndex)) { success = LoadGLTF(scene, file); }
+		else if (name.CompareN("glb", extIndex)) { success = LoadGLB(scene, file); }
+		else if (name.CompareN("fbx", extIndex)) { success = LoadFBX(scene, file); }
+		else if (name.CompareN("obj", extIndex)) { success = LoadOBJ(scene, file); }
+		else { Logger::Error("Unknown Texture Extension {}!", name); textures.Remove(name); return nullptr; }
 
-		String str{};
-		void* bufferData = nullptr;
-		U32 bufferLength = 0;
-		VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-		for (U32 i = 0; i < bufferCount; ++i)
+		if (!success)
 		{
-			file.ReadString(str);
-
-			BufferCreation bufferCreation{};
-			bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
-			Buffer* buffer = LoadBuffer(bufferCreation);
-			buffer->sceneID = i;
-
-			scene->buffers.Push(buffer);
+			textures.Remove(name);
+			file.Close();
+			return nullptr;
 		}
-
-		//TODO: Check for no samplers, use default sampler
-		for (U32 i = 0; i < samplerCount; ++i)
-		{
-			SamplerCreation samplerInfo{};
-			samplerInfo.SetName("Sampler"); //TODO: Unique name!
-			file.Read((I32&)samplerInfo.minFilter);
-			file.Read((I32&)samplerInfo.magFilter);
-			file.Read((I32&)samplerInfo.mipFilter);
-			file.Read((I32&)samplerInfo.addressModeU);
-			file.Read((I32&)samplerInfo.addressModeV);
-			file.Read((I32&)samplerInfo.addressModeW);
-			file.Read((I32&)samplerInfo.border);
-
-			Sampler* sampler = CreateSampler(samplerInfo);
-			sampler->sceneID = i;
-
-			scene->samplers.Push(sampler);
-		}
-
-		for (U32 i = 0; i < textureCount; ++i)
-		{
-			file.ReadString(str);
-			U32 samplerID = 0;
-			file.Read(samplerID);
-
-			Texture* texture = LoadTexture(str, true);
-			texture->sceneID = i;
-			texture->sampler = scene->samplers[samplerID];
-
-			scene->textures.Push(texture);
-		}
-
-		file.ReadString(str);
-		scene->skybox = LoadSkybox(str);
-
-		scene->camera = {};
-		bool perspective;
-		F32 near, far;
-		Vector3 position, rotation;
-		file.Read(perspective);
-		file.Read(near);
-		file.Read(far);
-		file.Read(position.x);
-		file.Read(position.y);
-		file.Read(position.z);
-		file.Read(rotation.x);
-		file.Read(rotation.y);
-		file.Read(rotation.z);
-
-		scene->camera.SetPosition(position);
-		scene->camera.SetRotation(rotation);
-
-		if (perspective)
-		{
-			F32 fov, aspect;
-			file.Read(fov);
-			file.Read(aspect);
-
-			scene->camera.SetPerspective(near, far, fov, aspect);
-		}
-		else
-		{
-			F32 width, height, zoom;
-			file.Read(width);
-			file.Read(height);
-			file.Read(zoom);
-
-			scene->camera.SetOrthograpic(near, far, width, height, zoom);
-		}
-
-		for (U32 i = 0; i < meshCount; ++i)
-		{
-			Mesh mesh{};
-			BufferCreation bufferCreation{};
-			U32 id;
-			U64 offset;
-			U64 size;
-
-			file.Read(id);
-			file.Read(offset);
-			file.Read(size);
-			bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.texcoordBuffer = CreateBuffer(bufferCreation);
-
-			file.Read(id);
-			file.Read(offset);
-			file.Read(size);
-			bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.normalBuffer = CreateBuffer(bufferCreation);
-
-			file.Read(id);
-			file.Read(offset);
-			file.Read(size);
-			bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.tangentBuffer = CreateBuffer(bufferCreation);
-
-			file.Read(id);
-			file.Read(offset);
-			file.Read(size);
-			bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.positionBuffer = CreateBuffer(bufferCreation);
-
-			file.Read(id);
-			file.Read(offset);
-			file.Read(size);
-			bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-			mesh.indexBuffer = CreateBuffer(bufferCreation);
-
-			mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
-
-			file.Read(id);
-			mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
-			file.Read(id);
-			mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
-			file.Read(id);
-			mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
-			file.Read(id);
-			mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
-
-			file.Read(mesh.baseColorFactor.x);
-			file.Read(mesh.baseColorFactor.y);
-			file.Read(mesh.baseColorFactor.z);
-			file.Read(mesh.baseColorFactor.w);
-			file.Read(mesh.metalRoughOcclFactor.x);
-			file.Read(mesh.metalRoughOcclFactor.y);
-			file.Read(mesh.metalRoughOcclFactor.z);
-			file.Read(mesh.emissiveFactor.x);
-			file.Read(mesh.emissiveFactor.y);
-			file.Read(mesh.emissiveFactor.z);
-			file.Read(mesh.flags);
-			file.Read(mesh.alphaCutoff);
-
-			Vector3 euler;
-			file.Read(mesh.position.x);
-			file.Read(mesh.position.y);
-			file.Read(mesh.position.z);
-			file.Read(euler.x);
-			file.Read(euler.y);
-			file.Read(euler.z);
-			file.Read(mesh.scale.x);
-			file.Read(mesh.scale.y);
-			file.Read(mesh.scale.z);
-
-			mesh.rotation = Quaternion3(euler);
-
-			bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
-			mesh.materialBuffer = CreateBuffer(bufferCreation);
-			mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
-
-			scene->meshes.Push(mesh);
-		}
-
-		BufferCreation bufferCreation{};
-		bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb"); //TODO: Unique name
-		scene->constantBuffer = CreateBuffer(bufferCreation);
 
 		file.Close();
+		return scene;
 	}
 
-	scene->Create();
+	Logger::Error("Failed To Find Or Open File: {}", name);
 
-	return scene;
+	scenes.Remove(name);
+	return nullptr;
+}
+
+bool Resources::LoadNHSCN(Scene* scene, File& file)
+{
+	U32 bufferCount;
+	U32 textureCount;
+	U32 samplerCount;
+	U32 meshCount;
+
+	file.Read(bufferCount);
+	file.Read(samplerCount);
+	file.Read(textureCount);
+	file.Read(meshCount);
+
+	scene->buffers.Reserve(bufferCount);
+	scene->textures.Reserve(textureCount);
+	scene->samplers.Reserve(samplerCount);
+	scene->meshes.Reserve(meshCount);
+
+	String str{};
+	void* bufferData = nullptr;
+	U32 bufferLength = 0;
+	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+	for (U32 i = 0; i < bufferCount; ++i)
+	{
+		file.ReadString(str);
+
+		BufferCreation bufferCreation{};
+		bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
+		Buffer* buffer = LoadBuffer(bufferCreation);
+		buffer->sceneID = i;
+
+		scene->buffers.Push(buffer);
+	}
+
+	//TODO: Check for no samplers, use default sampler
+	for (U32 i = 0; i < samplerCount; ++i)
+	{
+		SamplerCreation samplerInfo{};
+		samplerInfo.SetName("Sampler"); //TODO: Unique name!
+		file.Read((I32&)samplerInfo.minFilter);
+		file.Read((I32&)samplerInfo.magFilter);
+		file.Read((I32&)samplerInfo.mipFilter);
+		file.Read((I32&)samplerInfo.addressModeU);
+		file.Read((I32&)samplerInfo.addressModeV);
+		file.Read((I32&)samplerInfo.addressModeW);
+		file.Read((I32&)samplerInfo.border);
+
+		Sampler* sampler = CreateSampler(samplerInfo);
+		sampler->sceneID = i;
+
+		scene->samplers.Push(sampler);
+	}
+
+	for (U32 i = 0; i < textureCount; ++i)
+	{
+		file.ReadString(str);
+		U32 samplerID = 0;
+		file.Read(samplerID);
+
+		Texture* texture = LoadTexture(str, true);
+		texture->sceneID = i;
+		texture->sampler = scene->samplers[samplerID];
+
+		scene->textures.Push(texture);
+	}
+
+	file.ReadString(str);
+	scene->skybox = LoadSkybox(str);
+
+	scene->camera = {};
+	bool perspective;
+	F32 near, far;
+	Vector3 position, rotation;
+	file.Read(perspective);
+	file.Read(near);
+	file.Read(far);
+	file.Read(position.x);
+	file.Read(position.y);
+	file.Read(position.z);
+	file.Read(rotation.x);
+	file.Read(rotation.y);
+	file.Read(rotation.z);
+
+	scene->camera.SetPosition(position);
+	scene->camera.SetRotation(rotation);
+
+	if (perspective)
+	{
+		F32 fov, aspect;
+		file.Read(fov);
+		file.Read(aspect);
+
+		scene->camera.SetPerspective(near, far, fov, aspect);
+	}
+	else
+	{
+		F32 width, height, zoom;
+		file.Read(width);
+		file.Read(height);
+		file.Read(zoom);
+
+		scene->camera.SetOrthograpic(near, far, width, height, zoom);
+	}
+
+	for (U32 i = 0; i < meshCount; ++i)
+	{
+		Mesh mesh{};
+		BufferCreation bufferCreation{};
+		U32 id;
+		U64 offset;
+		U64 size;
+
+		file.Read(id);
+		file.Read(offset);
+		file.Read(size);
+		bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+		mesh.texcoordBuffer = CreateBuffer(bufferCreation);
+
+		file.Read(id);
+		file.Read(offset);
+		file.Read(size);
+		bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+		mesh.normalBuffer = CreateBuffer(bufferCreation);
+
+		file.Read(id);
+		file.Read(offset);
+		file.Read(size);
+		bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+		mesh.tangentBuffer = CreateBuffer(bufferCreation);
+
+		file.Read(id);
+		file.Read(offset);
+		file.Read(size);
+		bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+		mesh.positionBuffer = CreateBuffer(bufferCreation);
+
+		file.Read(id);
+		file.Read(offset);
+		file.Read(size);
+		bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+		mesh.indexBuffer = CreateBuffer(bufferCreation);
+
+		mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
+
+		file.Read(id);
+		mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
+		file.Read(id);
+		mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
+		file.Read(id);
+		mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
+		file.Read(id);
+		mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
+
+		file.Read(mesh.baseColorFactor.x);
+		file.Read(mesh.baseColorFactor.y);
+		file.Read(mesh.baseColorFactor.z);
+		file.Read(mesh.baseColorFactor.w);
+		file.Read(mesh.metalRoughOcclFactor.x);
+		file.Read(mesh.metalRoughOcclFactor.y);
+		file.Read(mesh.metalRoughOcclFactor.z);
+		file.Read(mesh.emissiveFactor.x);
+		file.Read(mesh.emissiveFactor.y);
+		file.Read(mesh.emissiveFactor.z);
+		file.Read(mesh.flags);
+		file.Read(mesh.alphaCutoff);
+
+		Vector3 euler;
+		file.Read(mesh.position.x);
+		file.Read(mesh.position.y);
+		file.Read(mesh.position.z);
+		file.Read(euler.x);
+		file.Read(euler.y);
+		file.Read(euler.z);
+		file.Read(mesh.scale.x);
+		file.Read(mesh.scale.y);
+		file.Read(mesh.scale.z);
+
+		mesh.rotation = Quaternion3(euler);
+
+		bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
+		mesh.materialBuffer = CreateBuffer(bufferCreation);
+		mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
+
+		scene->meshes.Push(mesh);
+	}
+
+	BufferCreation bufferCreation{};
+	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb"); //TODO: Unique name
+	scene->constantBuffer = CreateBuffer(bufferCreation);
+
+	return true;
+}
+
+bool Resources::LoadGLB(Scene* scene, File& file)
+{
+	Logger::Error("GLB File Format Not Yet Supported!");
+
+	return false;
+}
+
+bool Resources::LoadGLTF(Scene* scene, File& file)
+{
+	Logger::Error("GLB File Format Not Yet Supported!");
+
+	return false;
+}
+
+bool Resources::LoadFBX(Scene* scene, File& file)
+{
+	Logger::Error("GLB File Format Not Yet Supported!");
+
+	return false;
+}
+
+bool Resources::LoadOBJ(Scene* scene, File& file)
+{
+	Logger::Error("GLB File Format Not Yet Supported!");
+
+	return false;
 }
 
 void Resources::SaveScene(const Scene* scene)
@@ -2296,6 +2260,8 @@ bool Resources::LoadBinary(const String& name, String& result)
 		return true;
 	}
 
+	Logger::Error("Failed To Find Or Open File: {}", name);
+
 	return false;
 }
 
@@ -2310,5 +2276,31 @@ U32 Resources::LoadBinary(const String& name, void** result)
 		return read;
 	}
 
-	return 0;
+	Logger::Error("Failed To Find Or Open File: {}", name);
+
+	return false;
+}
+
+void Resources::SaveBinary(const String& name, const String& data)
+{
+	File file{ name, FILE_OPEN_WRITE_SETTINGS };
+	if (file.Opened())
+	{
+		file.Write(data);
+		file.Close();
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", name);
+}
+
+void Resources::SaveBinary(const String& name, void* data, U64 length)
+{
+	File file{ name, FILE_OPEN_WRITE_SETTINGS };
+	if (file.Opened())
+	{
+		file.Write(data, length);
+		file.Close();
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", name);
 }

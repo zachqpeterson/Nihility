@@ -78,12 +78,27 @@ bool Swapchain::CreateRenderPass()
 			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
+		Resources::RecreateTexture(renderpass->outputDepth, renderPassInfo.width, renderPassInfo.height, 1);
+
 		Renderer::CreateRenderPass(renderpass);
 	}
 	else
 	{
 		renderPassInfo.SetType(RENDERPASS_TYPE_SWAPCHAIN).SetName("Swapchain");
 		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
+
+		TextureCreation textureInfo{};
+		textureInfo.name = "swapchain_depth";
+		textureInfo.format = VK_FORMAT_D32_SFLOAT;
+		textureInfo.width = renderPassInfo.width;
+		textureInfo.height = renderPassInfo.height;
+		textureInfo.depth = 1;
+		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
+		textureInfo.type = TEXTURE_TYPE_2D;
+
+		Texture* texture = Resources::CreateTexture(textureInfo);
+		renderPassInfo.SetDepthStencilTexture(texture);
+
 		renderpass = Resources::CreateRenderPass(renderPassInfo);
 
 		if (renderpass == nullptr) { return false; }

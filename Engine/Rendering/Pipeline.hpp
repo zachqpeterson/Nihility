@@ -57,7 +57,7 @@ struct SpecializationInfo
 {
 	VkSpecializationInfo		specializationInfo{};
 	VkSpecializationMapEntry	specializationData[MAX_SPECIALIZATION_CONSTANTS]{};
-	U8*							specializationBuffer{ nullptr };
+	U8* specializationBuffer{ nullptr };
 };
 
 struct ShaderStage
@@ -80,12 +80,13 @@ struct Shader
 	U32								shaderCount{ 0 };
 
 	U32								setCount{ 0 };
-	DescriptorSetLayout*			setLayouts[MAX_DESCRIPTOR_SETS]{ nullptr };
+	DescriptorSetLayout* setLayouts[MAX_DESCRIPTOR_SETS]{ nullptr };
 
 	U32								vertexStreamCount{ 0 };
 	U32								vertexAttributeCount{ 0 };
 	VertexStream					vertexStreams[MAX_VERTEX_STREAMS]{};
 	VertexAttribute					vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
+	U32								vertexSize{ 0 };
 
 	U32								language;
 
@@ -107,7 +108,7 @@ struct Pipeline
 	U64					handle{ U64_MAX };
 
 	Shader				shader{};
-	Renderpass*			renderpass{ nullptr };
+	Renderpass* renderpass{ nullptr };
 	VkPipeline			pipeline{ nullptr };
 	VkPipelineLayout	layout{ nullptr };
 	VkPipelineBindPoint	bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
@@ -117,12 +118,12 @@ struct Pipeline
 	BlendState			blendStates[MAX_IMAGE_OUTPUTS]{};
 	U8					blendStateCount{ 0 };
 
-	DescriptorSet*		descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
+	DescriptorSet* descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
 	U8					descriptorSetCount{ 0 };
 	bool				useBindless{ false };
 
-	Buffer*				indexBuffer{ nullptr };
-	Buffer*				vertexBuffers[MAX_VERTEX_BUFFERS]{};
+	Buffer* indexBuffer{ nullptr };
+	Buffer* vertexBuffers[MAX_VERTEX_BUFFERS]{};
 	U8					vertexBufferCount{ 0 };
 
 	bool				graphics{ true };

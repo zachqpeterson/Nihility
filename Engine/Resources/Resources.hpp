@@ -32,8 +32,6 @@ public:
 	static Pipeline* CreatePipeline(const String& name, bool RenderToswapchain = false);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
-	static Skybox* CreateSkybox(const SkyboxCreation& info);
-	static void SaveSkybox(Skybox* skybox);
 	static Skybox* LoadSkybox(const String& name);
 	static Scene* LoadScene(const String& name);
 	static void SaveScene(const Scene* scene);
@@ -64,6 +62,8 @@ public:
 
 	static bool LoadBinary(const String& name, String& result);
 	static U32 LoadBinary(const String& name, void** result);
+	static void SaveBinary(const String& name, const String& data);
+	static void SaveBinary(const String& name, void* data, U64 length);
 
 private:
 	static bool Initialize();
@@ -87,12 +87,18 @@ private:
 	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
+	//Scene Loading
+	static bool LoadNHSCN(Scene* scene, File& file);
+	static bool LoadGLTF(Scene* scene, File& file);
+	static bool LoadGLB(Scene* scene, File& file);
+	static bool LoadFBX(Scene* scene, File& file);
+	static bool LoadOBJ(Scene* scene, File& file);
+
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
 	static Program*								skyboxProgram;
-	static Program*								compositionProgram;
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
 

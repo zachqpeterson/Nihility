@@ -4,6 +4,7 @@ language=GLSL
 cull=NONE
 front=CLOCKWISE
 fill=SOLID
+depth=LESS_EQUAL
 blend=ADD
 clear=CLEAR
 #CONFIG_END
@@ -16,25 +17,22 @@ layout (location = 0) in vec3 position;
 layout(binding = 0) uniform LocalConstants
 {
     mat4 viewProjection;
-    vec4 eye;
-    vec4 light;
-    float lightRange;
-    float lightIntensity;
 };
 
-layout (location = 0) out vec3 outUVW;
+layout (location = 0) out vec3 outTexCoord;
 
 void main()
 {
-	outUVW = position;
-	gl_Position = viewProjection * vec4(position, 1.0);
+	outTexCoord = position;
+    vec4 pos = viewProjection * vec4(position, 1.0);
+	gl_Position = pos.xyww;
 }
 #VERTEX_END
 
 #FRAGMENT
 #version 450
 
-layout (location = 0) in vec3 UVW;
+layout (location = 0) in vec3 texCoord;
 
 layout (binding = 1) uniform samplerCube samplerEnvMap;
 
@@ -42,7 +40,6 @@ layout (location = 0) out vec4 fragColor;
 
 void main()
 {
-    vec3 normal = normalize(UVW);
-	fragColor = texture(samplerEnvMap, normal);
+	fragColor = texture(samplerEnvMap, texCoord);
 }
 #FRAGMENT_END

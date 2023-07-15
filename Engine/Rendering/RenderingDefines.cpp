@@ -56,6 +56,11 @@ const Matrix4& Camera::ViewProjection() const
 	return viewProjection;
 }
 
+const Matrix4& Camera::ViewProjectionNoTranslation() const
+{
+	return viewProjectionNoTranslation;
+}
+
 Vector4 Camera::Eye() const
 {
 	return { position.x, position.y, position.z, 1.0f };
@@ -138,6 +143,12 @@ void Camera::Update()
 	}
 
 	viewProjection = projection * view;
+
+	Matrix4 viewNoTranslation = view;
+	viewNoTranslation[3][0] = 0.0f;
+	viewNoTranslation[3][1] = 0.0f;
+	viewNoTranslation[3][2] = 0.0f;
+	viewProjectionNoTranslation = projection * viewNoTranslation;
 
 	if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
 	{

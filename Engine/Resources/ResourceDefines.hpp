@@ -654,21 +654,9 @@ struct Skybox
 	String name{ NO_INIT };
 	HashHandle	handle;
 
-	Buffer* indexBuffer{ nullptr };
-	Buffer* vertexBuffer{ nullptr };
+	Buffer* buffer{ nullptr };
 
 	Texture* texture{ nullptr };
-};
-
-struct SkyboxCreation
-{
-	String name{ NO_INIT };
-
-	U16 vertexCount{ 0 };
-	U16 indexCount{ 0 };
-
-	String textureName{ NO_INIT };
-	String binaryName{ NO_INIT };
 };
 
 struct NH_API Transform

@@ -6,8 +6,6 @@ front=CLOCKWISE
 fill=SOLID
 depth=LESS
 blend=ADD
-blend=ADD
-clear=MAGENTA
 clear=CLEAR
 #CONFIG_END
 
@@ -100,7 +98,6 @@ layout (location = 3) in vec3 bitangent;
 layout (location = 4) in vec3 position;
 
 layout (location = 0) out vec4 fragColor;
-layout (location = 1) out vec4 fragHighlight;
 
 #define PI 3.1415926538
 #define RecPI 1.0 / PI
@@ -239,12 +236,9 @@ void main()
         materialColor = (diffuseBRDF + specularBRDF) * intensity;
     }
 
-    vec3 ambientLight = vec3(0.3, 0.0, 0.3) * baseColor.rgb;
+    vec3 ambientLight = vec3(0.3, 0.3, 0.3) * baseColor.rgb; //TODO: Pass in ambient light
 
     fragColor = vec4(clamp(emissivity + ambientLight + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
-
     fragColor = clamp(pow(abs(fragColor), vec4(1.0 / 2.2)), 0.0, 1.0);
-
-    fragHighlight = vec4(emissivity, 1.0);
 }
 #FRAGMENT_END

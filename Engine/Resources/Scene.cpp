@@ -3,11 +3,6 @@
 #include "Rendering\Renderer.hpp"
 #include "Resources\Settings.hpp"
 
-void Scene::Create()
-{
-	
-}
-
 Scene::~Scene() { Destroy(); }
 
 void Scene::Destroy()
@@ -47,8 +42,6 @@ void Scene::Update()
 		Renderer::UnmapBuffer(cbMap);
 	}
 
-	Renderer::RenderSkybox(skybox, constantBuffer);
-
 	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
 	for (Mesh& mesh : meshes)
@@ -64,6 +57,8 @@ void Scene::Update()
 			mesh.material->program->DrawMesh(commands, mesh, constantBuffer);
 		}
 	}
+
+	Renderer::RenderSkybox(skybox, camera);
 }
 
 void Scene::UploadMaterial(MeshData& meshData, const Mesh& mesh)

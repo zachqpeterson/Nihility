@@ -138,6 +138,7 @@ U32									Renderer::allocatedCommandBufferCount{ 0 };
 U32									Renderer::queuedCommandBufferCount{ 0 };
 U64									Renderer::dynamicMaxPerFrameSize;
 Buffer* Renderer::dynamicBuffer;
+Buffer* Renderer::skyboxConstantBuffer;
 U8* Renderer::dynamicMappedMemory;
 U64									Renderer::dynamicAllocatedSize;
 U64									Renderer::dynamicPerFrameSize;
@@ -485,166 +486,9 @@ bool Renderer::CreateResources()
 
 bool Renderer::CreatePostProcessing()
 {
-	//RenderTargetCreation rtInfo{};
-	//rtInfo.name = "SkyboxColor";
-	//rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	//rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	//rtInfo.width = Settings::WindowWidth();
-	//rtInfo.height = Settings::WindowHeight();
-	//RenderTarget skyboxColor = Renderer::CreateRenderTarget(rtInfo);
-	//
-	//RenderPassCreation renderPassInfo{};
-	//renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName("SkyboxPass");
-	//renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	//renderPassInfo.width = Settings::WindowWidth();
-	//renderPassInfo.height = Settings::WindowHeight();
-	//renderPassInfo.AddRenderTarget(skyboxColor);
-	//renderPassInfo.sampler = renderpassSampler;
-	//
-	//skyboxPass = Resources::CreateRenderPass(renderPassInfo);
-	//
-	//PipelineCreation skyboxInfo{};
-	//skyboxInfo.renderpass = Renderer::skyboxPass;
-	//skyboxInfo.AddBlendState();
-	//skyboxInfo.shaders.SetName("Skybox").AddStage("shaders/Skybox.vert", VK_SHADER_STAGE_VERTEX_BIT).AddStage("shaders/Skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	//skyboxInfo.rasterization = {};
-	//skyboxInfo.name = "shaders/Skybox";
-	//
-	//skyboxPipeline = Resources::CreatePipeline(skyboxInfo);
-	//
-	//ProgramCreation skyboxProgram{};
-	//skyboxProgram.SetName("Skybox");
-	//skyboxProgram.AddPrePass(skyboxPipeline);
-	//skybox = Resources::CreateProgram(skyboxProgram);
-	//
-	//rtInfo.name = "OffscreenColor"; 
-	//RenderTarget offscreenColor = Renderer::CreateRenderTarget(rtInfo);
-	//
-	//rtInfo.name = "OffscreenHighlight";
-	//RenderTarget offscreenHighlight = Renderer::CreateRenderTarget(rtInfo);
-	//
-	//rtInfo.name = "OffscreenDepth";
-	//rtInfo.format = VK_FORMAT_D32_SFLOAT;
-	//rtInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	//RenderTarget offscreenDepth = Renderer::CreateRenderTarget(rtInfo);
-	//
-	//renderPassInfo.Reset();
-	//renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName("OffscreenPass");
-	//renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	//renderPassInfo.width = Settings::WindowWidth();
-	//renderPassInfo.height = Settings::WindowHeight();
-	//renderPassInfo.AddRenderTarget(offscreenColor);
-	//renderPassInfo.AddRenderTarget(offscreenHighlight);
-	//renderPassInfo.SetDepthStencilTexture(offscreenDepth);
-	//renderPassInfo.sampler = renderpassSampler;
-	//
-	//offscreenPass = Resources::CreateRenderPass(renderPassInfo);
-	//
-	//bloomPassCount = 8;
-	//U16 width = Settings::WindowWidth();
-	//U16 height = Settings::WindowHeight();
-	//
-	//PipelineCreation bloomPipelineCreation{};
-	//bloomPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
-	//bloomPipelineCreation.AddBlendState();
-	//bloomPipelineCreation.shaders.SetName("BloomDownsample").AddStage("shaders/Bloom.vert", VK_SHADER_STAGE_VERTEX_BIT).
-	//	AddStage("shaders/BloomDownsample.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	//bloomPipelineCreation.rasterization = {};
-	//
-	//ProgramCreation bloomCreation{};
-	//bloomCreation.SetName("Bloom");
-	//
-	//for (U8 i = 0; i < bloomPassCount; ++i)
-	//{
-	//	RenderTargetCreation rtInfo{};
-	//	rtInfo.name = "BloomColor";
-	//	rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	//	rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	//	rtInfo.width = width;
-	//	rtInfo.height = height;
-	//	RenderTarget bloomColor = Renderer::CreateRenderTarget(rtInfo);
-	//
-	//	RenderPassCreation renderPassInfo{};
-	//	renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName({ "BloomPass{}", i });
-	//	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	//	renderPassInfo.width = width;
-	//	renderPassInfo.height = height;
-	//	renderPassInfo.AddRenderTarget(bloomColor);
-	//	renderPassInfo.sampler = renderpassSampler;
-	//
-	//	bloomPasses[i] = Resources::CreateRenderPass(renderPassInfo);
-	//
-	//	bloomPipelineCreation.name = { "shaders/BloomDownsample{}", i };
-	//	bloomPipelineCreation.renderpass = bloomPasses[i];
-	//
-	//	Pipeline* bloomDownsample = Resources::CreatePipeline(bloomPipelineCreation);
-	//
-	//	if (i == 0) { bloomDownsample->AddTargetInput(offscreenHighlight); }
-	//
-	//	bloomCreation.AddPrePass(bloomDownsample);
-	//
-	//	width /= 2;
-	//	height /= 2;
-	//}
-	//
-	//bloomPipelineCreation.Reset();
-	//bloomPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
-	//bloomPipelineCreation.AddBlendState(); //TODO: Not sure if we need blend
-	//bloomPipelineCreation.shaders.SetName("BloomUpsample").AddStage("shaders/Bloom.vert", VK_SHADER_STAGE_VERTEX_BIT).
-	//	AddStage("shaders/BloomUpsample.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	//bloomPipelineCreation.rasterization = {};
-	//
-	//for (U8 i = bloomPassCount - 1; i > 0; --i)
-	//{
-	//	Renderpass* pass = bloomPasses[i - 1];
-	//
-	//	RenderTargetCreation rtInfo{};
-	//	rtInfo.name = "BloomColor";
-	//	rtInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	//	rtInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	//	rtInfo.width = pass->width;
-	//	rtInfo.height = pass->height;
-	//	RenderTarget bloomColor = Renderer::CreateRenderTarget(rtInfo);
-	//
-	//	RenderPassCreation renderPassInfo{};
-	//	renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY).SetName({ "BloomPass{}", i + bloomPassCount });
-	//	renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_DONT_CARE);
-	//	renderPassInfo.width = pass->width;
-	//	renderPassInfo.height = pass->height;
-	//	renderPassInfo.AddRenderTarget(bloomColor);
-	//	renderPassInfo.sampler = renderpassSampler;
-	//
-	//	bloomPasses[i + (bloomPassCount - 1)] = Resources::CreateRenderPass(renderPassInfo);
-	//
-	//	bloomPipelineCreation.name = { "shaders/BloomUpsample{}", i + (bloomPassCount - 1) };
-	//	bloomPipelineCreation.renderpass = bloomPasses[i + (bloomPassCount - 1)];
-	//
-	//	Pipeline* bloomUpsample = Resources::CreatePipeline(bloomPipelineCreation);
-	//
-	//	bloomCreation.AddPostPass(bloomUpsample);
-	//}
-	//
-	//bloom = Resources::CreateProgram(bloomCreation);
-	//
-	//ProgramCreation programCreation{};
-	//programCreation.SetName("PostProcessing");
-	//
-	//PipelineCreation compPipelineCreation{};
-	//compPipelineCreation.renderpass = Renderer::swapchain.renderpass;
-	//compPipelineCreation.depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
-	//compPipelineCreation.AddBlendState();
-	//compPipelineCreation.shaders.SetName("Composition").AddStage("shaders/Composition.vert", VK_SHADER_STAGE_VERTEX_BIT).
-	//	AddStage("shaders/Composition.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-	//compPipelineCreation.rasterization = {};
-	//compPipelineCreation.name = "shaders/Composition";
-	//
-	//Pipeline* compPipeline = Resources::CreatePipeline(compPipelineCreation);
-	//compPipeline->AddTargetInput(offscreenColor);
-	//
-	//programCreation.AddPostPass(compPipeline);
-	//
-	////TODO: Add color correction
-	//postProcessing = Resources::CreateProgram(programCreation);
+	BufferCreation bufferCreation{};
+	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("skybox_cb");
+	skyboxConstantBuffer = Resources::CreateBuffer(bufferCreation);
 
 	return true;
 }
@@ -678,8 +522,6 @@ void Renderer::BeginFrame()
 void Renderer::EndFrame()
 {
 	CommandBuffer* commands = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
-
-	Resources::compositionProgram->RunPasses(commands);
 
 	//TODO: Color Correction
 
@@ -759,15 +601,26 @@ void Renderer::EndFrame()
 	FrameCountersAdvance();
 }
 
-void Renderer::RenderSkybox(Skybox* skybox, Buffer* constantBuffer)
+void Renderer::RenderSkybox(Skybox* skybox, const Camera& camera)
 {
+	MapBufferParameters cbMap = { skyboxConstantBuffer, 0, 0 };
+	F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
+	if (cbData)
+	{
+		Matrix4 vp = camera.ViewProjectionNoTranslation();
+
+		Memory::Copy(cbData, &vp, sizeof(Matrix4));
+
+		Renderer::UnmapBuffer(cbMap);
+	}
+
+
 	Pipeline* skyboxPipeline = Resources::skyboxProgram->passes[0];
 
-	Resources::UpdateDescriptorSet(skyboxPipeline->descriptorSets[imageIndex][0], &skybox->texture, &constantBuffer);
+	Resources::UpdateDescriptorSet(skyboxPipeline->descriptorSets[imageIndex][0], &skybox->texture, &skyboxConstantBuffer);
 
-	skyboxPipeline->vertexBuffers[0] = skybox->vertexBuffer;
+	skyboxPipeline->vertexBuffers[0] = skybox->buffer;
 	skyboxPipeline->vertexBufferCount = 1;
-	skyboxPipeline->indexBuffer = skybox->indexBuffer;
 
 	Resources::skyboxProgram->RunPasses(Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false));
 }
@@ -798,7 +651,7 @@ void Renderer::LoadScene(const String& name)
 		//TODO: Unload scene
 	}
 
-	currentScene = Resources::LoadScene("scenes/Boombox.scene");
+	currentScene = Resources::LoadScene(name);
 }
 
 void* Renderer::MapBuffer(const MapBufferParameters& parameters)
@@ -1437,7 +1290,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		colorAttachments[attachmentCount].attachment = attachmentCount;
 		colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		renderpass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f }; //TODO: Pass in clear values
+		renderpass->clears[attachmentCount].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 		++renderpass->clearCount;
 
 		++attachmentCount;
@@ -1482,6 +1335,12 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		subpass.pDepthStencilAttachment = &depthAttachment;
+
+		if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
+		{
+			renderpass->clears[attachmentCount].depthStencil = { 1, 0 };
+			++renderpass->clearCount;
+		}
 
 		++attachmentCount;
 	}
@@ -1578,6 +1437,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		for (U64 i = 0; i < swapchain.imageCount; i++)
 		{
 			framebufferAttachments[0] = renderpass->outputTextures[i]->imageView;
+			framebufferAttachments[1] = renderpass->outputDepth->imageView;
 			framebufferInfo.pAttachments = framebufferAttachments;
 
 			vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffers[i]);

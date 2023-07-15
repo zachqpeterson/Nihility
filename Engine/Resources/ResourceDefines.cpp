@@ -364,8 +364,7 @@ void Program::RunPasses(CommandBuffer* commands)
 			}
 			else
 			{
-				//TODO:
-				//commands->Draw(0, pipeline->vertexBuffers[0]->deviceSize / vertexSize, 0, 1);
+				commands->Draw(0, pipeline->vertexBuffers[0]->size / pipeline->shader.vertexSize, 0, 1);
 			}
 		}
 		else

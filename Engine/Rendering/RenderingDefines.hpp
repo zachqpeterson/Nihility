@@ -790,6 +790,7 @@ struct NH_API Camera
 	void SetAspectRatio(F32 aspectRatio);
 
 	const Matrix4& ViewProjection() const;
+	const Matrix4& ViewProjectionNoTranslation() const;
 	Vector4 Eye() const;
 	const Vector3& Position() const;
 	Quaternion3 Rotation() const;
@@ -818,6 +819,7 @@ private:
 	Matrix4	view{ Matrix4::Identity };
 	Matrix4	projection{ Matrix4::Identity };
 	Matrix4	viewProjection{ Matrix4::Identity };
+	Matrix4	viewProjectionNoTranslation{ Matrix4::Identity };
 
 	Vector3	position{ Vector3::Zero };
 	Vector3	right{ Vector3::Right };

@@ -19,7 +19,7 @@ public:
 	static void*						MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
 
-	static void							RenderSkybox(Skybox* skybox, Buffer* constantBuffer);
+	static void							RenderSkybox(Skybox* skybox, const Camera& camera);
 
 	static U32							GetFrameIndex();
 
@@ -132,6 +132,7 @@ private:
 	static U32									queuedCommandBufferCount;
 	static U64									dynamicMaxPerFrameSize;
 	static Buffer*								dynamicBuffer;
+	static Buffer*								skyboxConstantBuffer;
 	static U8*									dynamicMappedMemory;
 	static U64									dynamicAllocatedSize;
 	static U64									dynamicPerFrameSize;
