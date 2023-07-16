@@ -36,6 +36,7 @@ void Scene::Update()
 		uniformData.light = Vector4{ 0.0f, 1.0f, 3.0f, 1.0f };
 		uniformData.lightRange = lightRange;
 		uniformData.lightIntensity = lightIntensity;
+		uniformData.skymapIndex = skybox->texture->handle;
 
 		Memory::Copy(cbData, &uniformData, sizeof(UniformData));
 

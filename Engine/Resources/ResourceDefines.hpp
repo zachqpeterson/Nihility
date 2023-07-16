@@ -598,6 +598,7 @@ struct UniformData
 	Vector4 light;
 	F32		lightRange;
 	F32		lightIntensity;
+	U32		skymapIndex;
 };
 
 struct MeshData

@@ -921,7 +921,6 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-	// Add deferred bindless update.
 	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	if (data)
@@ -1150,6 +1149,8 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	view.subresourceRange.levelCount = texture->mipmaps;
 	view.image = texture->image;
 	VkValidateR(vkCreateImageView(device, &view, allocationCallbacks, &texture->imageView));
+
+	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	return true;
 }

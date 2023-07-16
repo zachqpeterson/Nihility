@@ -34,7 +34,7 @@ void main()
 
 layout (location = 0) in vec3 texCoord;
 
-layout (binding = 1) uniform samplerCube samplerEnvMap;
+layout (binding = 1) uniform samplerCube samplerEnvMap; //TODO: Use bindless
 
 layout (location = 0) out vec4 fragColor;
 

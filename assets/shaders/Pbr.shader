@@ -72,6 +72,7 @@ layout(std140, binding = 0) uniform LocalConstants
     vec4    light;
     float   lightRange;
     float   lightIntensity;
+    uint    skyboxIndex;
 };
 
 layout(std140, binding = 1) uniform MaterialConstant
@@ -89,7 +90,7 @@ layout(std140, binding = 1) uniform MaterialConstant
 };
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
-layout (set = 1, binding = 10) uniform sampler3D globalTextures3D[];
+layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
 
 layout (location = 0) in vec2 texcoord0;
 layout (location = 1) in vec3 normal;
@@ -105,8 +106,7 @@ layout (location = 0) out vec4 fragColor;
 float F0 = 0.04; //pow((1 - ior) / (1 + ior), 2)
 #define INVALID_TEXTURE_INDEX 65535
 
-vec3 DecodeSRGB(vec3 c)
-{
+vec3 DecodeSRGB(vec3 c) {
     vec3 result;
     if (c.r <= 0.04045) { result.r = c.r / 12.92; }
     else { result.r = pow((c.r + 0.055) / 1.055, 2.4); }
@@ -120,8 +120,7 @@ vec3 DecodeSRGB(vec3 c)
     return clamp(result, 0.0, 1.0);
 }
 
-vec3 EncodeSRGB(vec3 c)
-{
+vec3 EncodeSRGB(vec3 c) {
     vec3 result;
     if (c.r <= 0.0031308) { result.r = c.r * 12.92; }
     else { result.r = 1.055 * pow(c.r, 1.0 / 2.4) - 0.055; }
@@ -144,10 +143,12 @@ void main()
 {
     vec4 baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
 
-    if ((flags & DrawFlags_AlphaMask) != 0 && baseColor.a < alphaCutoff)
-    {
-		discard; //TODO: May not want to discard
-    }
+    if ((flags & DrawFlags_AlphaMask) != 0 && baseColor.a < alphaCutoff) { discard; }
+
+    vec3 I = normalize(position - eye.xyz);
+    vec3 R = reflect(I, normalize(normal));
+    R.y = -R.y;
+    vec3 environment = texture(globalTexturesCubes[skyboxIndex], R).rgb;
 
     vec3 N = normalize(normal);
 	vec3 T = normalize(tangent);
@@ -188,6 +189,7 @@ void main()
 		occlusion *= rmo.r;
         roughness *= rmo.g;
         metallicness *= rmo.b;
+        environment = clamp(environment * (metallicness * (1.0 - roughness)), 0.0, 1.0);
     }
 
     vec3 emissivity = emissiveFactor.rgb;
@@ -238,7 +240,7 @@ void main()
 
     vec3 ambientLight = vec3(0.3, 0.3, 0.3) * baseColor.rgb; //TODO: Pass in ambient light
 
-    fragColor = vec4(clamp(emissivity + ambientLight + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
+    fragColor = vec4(clamp(emissivity + ambientLight + environment + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
     fragColor = clamp(pow(abs(fragColor), vec4(1.0 / 2.2)), 0.0, 1.0);
 }
 #FRAGMENT_END
