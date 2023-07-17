@@ -24,6 +24,7 @@
 
 static constexpr CSTR extensions[]{
 	VK_KHR_SURFACE_EXTENSION_NAME,
+	//VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
 
 #if defined PLATFORM_WINDOWS
 	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
@@ -113,16 +114,6 @@ VkPhysicalDeviceAccelerationStructureFeaturesKHR	Renderer::accelerationStructure
 bool												Renderer::rayTracingPresent{ false };
 
 // WINDOW
-RenderpassOutput					Renderer::swapchainOutput;
-Renderpass* Renderer::skyboxPass;
-Renderpass* Renderer::offscreenPass;
-Renderpass* Renderer::filterPass;
-Renderpass* Renderer::bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
-U8									Renderer::bloomPassCount;
-Pipeline* Renderer::skyboxPipeline;
-Program* Renderer::skybox;
-Program* Renderer::postProcessing;
-Program* Renderer::bloom;
 U32									Renderer::imageIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
@@ -138,7 +129,6 @@ U32									Renderer::allocatedCommandBufferCount{ 0 };
 U32									Renderer::queuedCommandBufferCount{ 0 };
 U64									Renderer::dynamicMaxPerFrameSize;
 Buffer* Renderer::dynamicBuffer;
-Buffer* Renderer::skyboxConstantBuffer;
 U8* Renderer::dynamicMappedMemory;
 U64									Renderer::dynamicAllocatedSize;
 U64									Renderer::dynamicPerFrameSize;
@@ -177,7 +167,6 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!swapchain.GetFormat()) { return false; }
 	if (!swapchain.Create()) { return false; }
 	if (!swapchain.CreateRenderPass()) { return false; }
-	if (!CreatePostProcessing()) { return false; }
 
 	return true;
 }
@@ -484,15 +473,6 @@ bool Renderer::CreateResources()
 	return true;
 }
 
-bool Renderer::CreatePostProcessing()
-{
-	BufferCreation bufferCreation{};
-	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("skybox_cb");
-	skyboxConstantBuffer = Resources::CreateBuffer(bufferCreation);
-
-	return true;
-}
-
 void Renderer::BeginFrame()
 {
 	// Fence wait and reset
@@ -523,15 +503,16 @@ void Renderer::EndFrame()
 {
 	CommandBuffer* commands = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	//TODO: Color Correction
-
-	//if (Settings::Bloom())
-	//{
-	//	bloom->RunPrePasses(commands);
-	//	bloom->RunPostPasses(commands);
-	//}
-	//
-	//postProcessing->RunPostPasses(commands);
+	//TODO: Fog
+	//TODO: Bloom
+	//TODO: Exposure
+	//TODO: White Balancing
+	//TODO: Contrast
+	//TODO: Brightness
+	//TODO: Color Filtering
+	//TODO: Saturation
+	//TODO: Tonemapping
+	//TODO: Gamma
 
 	//TODO: UI
 
@@ -599,30 +580,6 @@ void Renderer::EndFrame()
 	}
 
 	FrameCountersAdvance();
-}
-
-void Renderer::RenderSkybox(Skybox* skybox, const Camera& camera)
-{
-	MapBufferParameters cbMap = { skyboxConstantBuffer, 0, 0 };
-	F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
-	if (cbData)
-	{
-		Matrix4 vp = camera.ViewProjectionNoTranslation();
-
-		Memory::Copy(cbData, &vp, sizeof(Matrix4));
-
-		Renderer::UnmapBuffer(cbMap);
-	}
-
-
-	Pipeline* skyboxPipeline = Resources::skyboxProgram->passes[0];
-
-	Resources::UpdateDescriptorSet(skyboxPipeline->descriptorSets[imageIndex][0], &skybox->texture, &skyboxConstantBuffer);
-
-	skyboxPipeline->vertexBuffers[0] = skybox->buffer;
-	skyboxPipeline->vertexBufferCount = 1;
-
-	Resources::skyboxProgram->RunPasses(Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false));
 }
 
 void Renderer::Resize()

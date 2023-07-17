@@ -23,5 +23,5 @@ public:
 
 private:
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	RenderPassCreation renderPassInfo{};
+	RenderpassCreation renderPassInfo{};
 };

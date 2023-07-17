@@ -28,8 +28,8 @@ public:
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding);
-	static Renderpass* CreateRenderPass(const RenderPassCreation& info);
-	static Pipeline* CreatePipeline(const String& name, bool RenderToswapchain = false);
+	static Renderpass* CreateRenderPass(const RenderpassCreation& info);
+	static Pipeline* CreatePipeline(const String& name, Renderpass* renderpass = nullptr);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
 	static Skybox* LoadSkybox(const String& name);
@@ -99,6 +99,7 @@ private:
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
 	static Program*								skyboxProgram;
+	static Program*								postProcessProgram;
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
 
@@ -130,6 +131,7 @@ private:
 	friend class Engine;
 	friend struct CommandBuffer;
 	friend struct Pipeline;
+	friend struct Scene;
 };
 
 template<typename Type>

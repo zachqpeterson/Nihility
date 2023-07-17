@@ -94,11 +94,11 @@ struct Shader
 	U32								outputCount{ 0 };
 };
 
-struct RenderPassCreation;
+struct RenderpassCreation;
 
 struct Pipeline
 {
-	bool Create(const String& shaderPath, bool RenderToswapchain);
+	bool Create(const String& shaderPath, Renderpass* renderpass);
 	void Destroy();
 
 	void SetInput(Texture* texture, U32 binding);
@@ -130,8 +130,8 @@ struct Pipeline
 	bool				useDepth{ false };
 
 private:
-	bool ParseConfig(const String& data, I64& index, RenderPassCreation& renderPassInfo);
-	bool ParseStage(const String& data, I64& index, RenderPassCreation& renderPassInfo, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage);
+	bool ParseConfig(const String& data, I64& index, RenderpassCreation& renderPassInfo);
+	bool ParseStage(const String& data, I64& index, RenderpassCreation& renderPassInfo, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage);
 	VkPipelineShaderStageCreateInfo CompileShader(ShaderStage& shaderStage, String& code, const String& name, DescriptorSetLayoutCreation* setLayoutInfos);
 	bool ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutCreation* setLayoutInfos);
 	bool CreatePipeline(VkDescriptorSetLayout* vkLayouts);

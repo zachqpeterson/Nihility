@@ -2,10 +2,6 @@
 
 #include "ResourceDefines.hpp"
 
-#include "Math\Math.hpp"
-
-struct CommandBuffer;
-
 struct NH_API Scene
 {
 public:
@@ -23,8 +19,15 @@ public:
 	HashHandle			handle;
 
 	Camera				camera;
-	Buffer*				constantBuffer;
+	Buffer*				sceneConstantBuffer;
+
 	Skybox*				skybox;
+	Buffer*				skyboxConstantBuffer;
+	bool				drawSkybox{ true };
+
+	PostProcessData		postProcessData{};
+	Buffer*				postProcessConstantBuffer;
+	bool				updatePostProcess{ true };
 
 	Vector<Mesh>		meshes{ NO_INIT };
 

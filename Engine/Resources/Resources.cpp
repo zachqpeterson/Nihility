@@ -50,10 +50,8 @@ struct BMPInfo
 	U32 extraRead;
 };
 
-struct KTXHeader
+struct KTXHeader11
 {
-	U8	identifier[12];
-	U32	endianness;
 	KTXType	type;
 	U32	typeSize;
 	KTXFormat format;
@@ -66,6 +64,32 @@ struct KTXHeader
 	U32	faceCount;
 	U32	mipmapLevelCount;
 	U32	keyValueDataSize;
+};
+
+struct KTXHeader20
+{
+	VkFormat format;
+	U32 typeSize;
+	U32 pixelWidth;
+	U32 pixelHeight;
+	U32 pixelDepth;
+	U32 layerCount;
+	U32 faceCount;
+	U32 levelCount;
+	U32 superCompressionScheme;
+	U32 dfdByteOffset;
+	U32 dfdByteLength;
+	U32 kvdByteOffset;
+	U32 kvdByteLength;
+	U64 sgdByteOffset;
+	U64 sgdByteLength;
+};
+
+struct KTXLevel
+{
+	U64 byteOffset;
+	U64 byteLength;
+	U64 uncompressedByteLength;
 };
 
 enum KTXFormatType
@@ -95,6 +119,7 @@ Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
 Program* Resources::skyboxProgram;
+Program* Resources::postProcessProgram;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
 
@@ -169,8 +194,10 @@ bool Resources::Initialize()
 	dummyAttributeBufferInfo.SetData(dummyData);
 	dummyAttributeBuffer = CreateBuffer(dummyAttributeBufferInfo);
 
-	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader", true);
-	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader", true);
+	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
+	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader", pbr->renderpass);
+	Pipeline* postProcess = CreatePipeline("shaders/PostProcess.shader", Renderer::swapchain.renderpass);
+	postProcess->SetInput(pbr->renderpass->outputTextures[0], 1);
 
 	ProgramCreation programCreation{};
 	programCreation.SetName("Skybox").AddPass(skybox);
@@ -178,6 +205,9 @@ bool Resources::Initialize()
 
 	programCreation.Reset().SetName("PBR").AddPass(pbr);
 	Program* pbrProgram = Resources::CreateProgram(programCreation);
+
+	programCreation.Reset().SetName("PostProcess").AddPass(postProcess);
+	postProcessProgram = Resources::CreateProgram(programCreation);
 
 	MaterialCreation materialCreation{};
 
@@ -546,7 +576,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 		else if (name.CompareN("psd", extIndex)) { success = LoadPSD(texture, file, generateMipMaps); }
 		else if (name.CompareN("tiff", extIndex)) { success = LoadTIFF(texture, file, generateMipMaps); }
 		else if (name.CompareN("tga", extIndex)) { success = LoadTGA(texture, file, generateMipMaps); }
-		else if (name.CompareN("ktx", extIndex)) { success = LoadKTX(texture, file, generateMipMaps); }
+		else if (name.CompareN("ktx", extIndex) || name.CompareN("ktx2", extIndex) || name.CompareN("ktx1", extIndex)) { success = LoadKTX(texture, file, generateMipMaps); }
 		else { Logger::Error("Unknown Texture Extension {}!", name); textures.Remove(name); return nullptr; }
 
 		if (!success)
@@ -951,101 +981,161 @@ bool Resources::LoadTGA(Texture* texture, File& file, bool generateMipMaps)
 
 bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 {
-	static constexpr U8 FileIdentifier[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+	static constexpr U8 FileIdentifier11[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+	static constexpr U8 FileIdentifier20[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 	static constexpr U32 EndiannessIdentifier = 0x04030201;
 
-	KTXHeader header{};
+	U8 identifier[12]{};
 
-	file.Read(header);
+	file.Read(identifier);
 
-	if (!Memory::Compare(header.identifier, FileIdentifier, 12))
+	if (Memory::Compare(identifier, FileIdentifier11, 12))
+	{
+		U32 endianness;
+		file.Read(endianness);
+
+		if (endianness != EndiannessIdentifier)
+		{
+			//TODO: Don't be lazy
+			Logger::Error("Too Lazy to Flip Endianness!");
+			return false;
+		}
+
+		KTXHeader11 header;
+		file.Read(header);
+
+		U8 compression = 0;
+		if (header.type == 0 || header.format == 0)
+		{
+			if (header.type + header.format != 0) { return false; }
+			compression = 1;
+
+			Logger::Error("KTX Textures With Compression Not Yet Supported!");
+			return false;
+		}
+
+		if (header.format == header.internalFormat) { return false; }
+		if (header.pixelWidth == 0 || (header.pixelDepth > 0 && header.pixelHeight == 0)) { return false; }
+
+		U16 dimension = 0;
+		if (header.pixelDepth > 0)
+		{
+			if (header.arrayElementCount > 0)
+			{
+				Logger::Error("3D Array Textures Are Not Yet Supported!");
+				return false;
+			}
+			dimension = 3;
+		}
+		else if (header.pixelHeight > 0) { dimension = 2; }
+		else { dimension = 1; }
+
+		if (header.faceCount == 6) { if (dimension != 2) { return false; } }
+		else if (header.faceCount != 1) { return false; }
+
+		if (header.mipmapLevelCount == 0)
+		{
+			texture->mipmapsGenerated = false;
+			header.mipmapLevelCount = 1;
+		}
+		else
+		{
+			texture->mipmapsGenerated = true;
+		}
+
+		KTXInfo info{};
+		GetKTXInfo(header.internalFormat, info);
+
+		file.Seek(header.keyValueDataSize);
+
+		U32 elementCount = Math::Max(1u, header.arrayElementCount);
+		U32 depth = Math::Max(1u, header.pixelDepth);
+		U32 dataSize = (U32)(file.Size() - file.Pointer() - header.mipmapLevelCount * sizeof(U32));
+
+		U8* data = (U8*)calloc(1, dataSize); //TODO: Go through Memory
+		U32 dataPtr = 0;
+
+		U32 levelSizes[14];
+
+		for (U32 mipLevel = 0; mipLevel < header.mipmapLevelCount; ++mipLevel)
+		{
+			U32 faceLodSize;
+			file.Read(faceLodSize);
+
+			levelSizes[mipLevel] = faceLodSize;
+
+			for (U32 face = 0; face < header.faceCount; ++face)
+			{
+				file.Read(data + dataPtr, faceLodSize); //TODO: This can be read in one read
+				dataPtr += faceLodSize;
+			}
+		}
+
+		texture->format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		texture->type = TEXTURE_TYPE_CUBE;
+		texture->width = header.pixelWidth;
+		texture->height = header.pixelHeight;
+		texture->depth = 1;
+		texture->size = dataSize;
+		texture->mipmaps = header.mipmapLevelCount;
+
+		Renderer::CreateCubeMap(texture, data, levelSizes);
+
+		free(data);
+	}
+	else if (Memory::Compare(identifier, FileIdentifier20, 12))
+	{
+		KTXHeader20 header;
+		file.Read(header);
+
+		KTXLevel level[14];
+
+		file.Read(level, sizeof(KTXLevel) * header.levelCount);
+
+		U32 dfdTotalSize;
+		file.Read(dfdTotalSize);
+
+		file.Seek(dfdTotalSize + header.kvdByteLength);
+
+		if (header.superCompressionScheme != 0)
+		{
+			Logger::Error("KTX Textures With Compression Not Yet Supported!");
+			return false;
+		}
+
+		if (header.levelCount == 0)
+		{
+			texture->mipmapsGenerated = false;
+			header.levelCount = 1;
+		}
+		else
+		{
+			texture->mipmapsGenerated = true;
+		}
+
+		U32 dataSize = level[0].uncompressedByteLength;
+		U8* data = (U8*)calloc(1, dataSize); //TODO: Go through Memory
+
+		file.Read(data, dataSize);
+
+		texture->format = header.format;
+		texture->type = TEXTURE_TYPE_CUBE;
+		texture->width = header.pixelWidth;
+		texture->height = header.pixelHeight;
+		texture->depth = 1;
+		texture->size = dataSize;
+		texture->mipmaps = 1;
+		
+		U32 layerSize = dataSize / header.faceCount;
+		Renderer::CreateCubeMap(texture, data, &layerSize);
+		
+		free(data);
+	}
+	else
 	{
 		Logger::Error("Texture Is Not a KTX!");
 		return false;
 	}
-
-	if (header.endianness != EndiannessIdentifier)
-	{
-		//TODO: Don't be lazy
-		Logger::Error("Too Lazy to Flip Endianness!");
-		return false;
-	}
-
-	U8 compression = 0;
-	if (header.type == 0 || header.format == 0)
-	{
-		if (header.type + header.format != 0) { return false; }
-		compression = 1;
-	}
-
-	if (header.format == header.internalFormat) { return false; }
-	if (header.pixelWidth == 0 || (header.pixelDepth > 0 && header.pixelHeight == 0)) { return false; }
-
-	U16 dimension = 0;
-	if (header.pixelDepth > 0)
-	{
-		if (header.arrayElementCount > 0)
-		{
-			Logger::Error("3D Array Textures Are Not Yet Supported!");
-			return false;
-		}
-		dimension = 3;
-	}
-	else if (header.pixelHeight > 0) { dimension = 2; }
-	else { dimension = 1; }
-
-	if (header.faceCount == 6) { if (dimension != 2) { return false; } }
-	else if (header.faceCount != 1) { return false; }
-
-	if (header.mipmapLevelCount == 0)
-	{
-		texture->mipmapsGenerated = false;
-		header.mipmapLevelCount = 1;
-	}
-	else
-	{
-		texture->mipmapsGenerated = true;
-	}
-
-	KTXInfo info{};
-	GetKTXInfo(header.internalFormat, info);
-
-	file.Seek(header.keyValueDataSize);
-
-	U32 elementCount = Math::Max(1u, header.arrayElementCount);
-	U32 depth = Math::Max(1u, header.pixelDepth);
-	U32 dataSize = file.Size() - file.Pointer() - header.mipmapLevelCount * sizeof(U32);
-
-	U8* data = (U8*)calloc(1, dataSize); //TODO: Go through Memory
-	U32 dataPtr = 0;
-
-	U32 levelSizes[14];
-
-	for (U32 mipLevel = 0; mipLevel < header.mipmapLevelCount; ++mipLevel)
-	{
-		U32 faceLodSize;
-		file.Read(faceLodSize);
-
-		levelSizes[mipLevel] = faceLodSize;
-
-		for (U32 face = 0; face < header.faceCount; ++face)
-		{
-			file.Read(data + dataPtr, faceLodSize);
-			dataPtr += faceLodSize;
-		}
-	}
-
-	texture->format = VK_FORMAT_R16G16B16A16_SFLOAT;
-	texture->type = TEXTURE_TYPE_CUBE;
-	texture->width = header.pixelWidth;
-	texture->height = header.pixelHeight;
-	texture->depth = 1;
-	texture->size = dataSize;
-	texture->mipmaps = header.mipmapLevelCount;
-
-	Renderer::CreateCubeMap(texture, data, levelSizes);
-
-	free(data);
 
 	return true;
 }
@@ -1615,7 +1705,7 @@ void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer
 	}
 }
 
-Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
+Renderpass* Resources::CreateRenderPass(const RenderpassCreation& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1654,7 +1744,7 @@ Renderpass* Resources::CreateRenderPass(const RenderPassCreation& info)
 	return renderpass;
 }
 
-Pipeline* Resources::CreatePipeline(const String& name, bool RenderToswapchain)
+Pipeline* Resources::CreatePipeline(const String& name, Renderpass* renderpass)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1664,7 +1754,7 @@ Pipeline* Resources::CreatePipeline(const String& name, bool RenderToswapchain)
 
 	pipeline->handle = pipelines.GetHandle(name);
 
-	if (!pipeline->Create(name, RenderToswapchain))
+	if (!pipeline->Create(name, renderpass))
 	{
 		pipelines.Remove(pipeline->handle);
 		pipeline->handle = U64_MAX;
@@ -1736,6 +1826,8 @@ Scene* Resources::LoadScene(const String& name)
 	if (!scene->name.Blank()) { return scene; }
 
 	scene->name = name;
+	scene->updatePostProcess = true;
+	scene->drawSkybox = true; //TODO: save in scene file
 
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1953,10 +2045,8 @@ bool Resources::LoadNHSCN(Scene* scene, File& file)
 
 		scene->meshes.Push(mesh);
 	}
-
-	BufferCreation bufferCreation{};
-	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName("scene_cb"); //TODO: Unique name
-	scene->constantBuffer = CreateBuffer(bufferCreation);
+	
+	scene->Create();
 
 	return true;
 }
@@ -2298,7 +2388,7 @@ void Resources::SaveBinary(const String& name, void* data, U64 length)
 	File file{ name, FILE_OPEN_WRITE_SETTINGS };
 	if (file.Opened())
 	{
-		file.Write(data, length);
+		file.Write(data, (U32)length);
 		file.Close();
 	}
 

@@ -100,11 +100,12 @@ layout (location = 4) in vec3 position;
 
 layout (location = 0) out vec4 fragColor;
 
-#define PI 3.1415926538
-#define RecPI 1.0 / PI
 //NOTE: F0 in the formula notation refers to the value derived from ior = 1.5, (index of refraction)
-float F0 = 0.04; //pow((1 - ior) / (1 + ior), 2)
-#define INVALID_TEXTURE_INDEX 65535
+const float F0 = 0.04; //pow((1 - ior) / (1 + ior), 2)
+const float PI = 3.1415926538;
+const uint INVALID_TEXTURE_INDEX = 65535;
+
+const float RecPI = 1.0 / PI;
 
 vec3 DecodeSRGB(vec3 c) {
     vec3 result;
@@ -142,6 +143,7 @@ float Heaviside(float v) {
 void main()
 {
     vec4 baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
+    baseColor.rgb = DecodeSRGB(baseColor.rgb);
 
     if ((flags & DrawFlags_AlphaMask) != 0 && baseColor.a < alphaCutoff) { discard; }
 
@@ -199,8 +201,6 @@ void main()
         emissivity += texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).rgb;
     }
 
-    baseColor.rgb = DecodeSRGB(baseColor.rgb);
-
 	float alpha = roughness * roughness;
     float alphaSqr = alpha * alpha;
 	float NdotL = clamp(dot(N, L), 0.0, 1.0);
@@ -240,7 +240,6 @@ void main()
 
     vec3 ambientLight = vec3(0.3, 0.3, 0.3) * baseColor.rgb; //TODO: Pass in ambient light
 
-    fragColor = vec4(clamp(emissivity + ambientLight + environment + EncodeSRGB(materialColor) * lightColor, 0.0, 1.0), baseColor.a);
-    fragColor = clamp(pow(abs(fragColor), vec4(1.0 / 2.2)), 0.0, 1.0);
+    fragColor = vec4(emissivity + ambientLight + environment + EncodeSRGB(materialColor) * lightColor, baseColor.a);
 }
 #FRAGMENT_END

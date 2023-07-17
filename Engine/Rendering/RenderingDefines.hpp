@@ -255,7 +255,7 @@ inline bool ResultSuccess(VkResult result)
 
 struct VmaAllocation_T;
 struct VmaAllocator_T;
-struct RenderPass;
+struct Renderpass;
 struct Texture;
 
 /*---------CONSTANTS---------*/

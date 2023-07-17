@@ -19,8 +19,6 @@ public:
 	static void*						MapBuffer(const MapBufferParameters& parameters);
 	static void							UnmapBuffer(const MapBufferParameters& parameters);
 
-	static void							RenderSkybox(Skybox* skybox, const Camera& camera);
-
 	static U32							GetFrameIndex();
 
 	static void							LoadScene(const String& name);
@@ -34,7 +32,6 @@ private:
 	static bool							GetFamilyQueue(VkPhysicalDevice gpu);
 	static bool							CreateDevice();
 	static bool							CreateResources();
-	static bool							CreatePostProcessing();
 
 	static void							BeginFrame();
 	static void							EndFrame();
@@ -106,17 +103,6 @@ private:
 	static bool												rayTracingPresent;
 
 	// WINDOW
-	static RenderpassOutput						swapchainOutput;
-	static Renderpass*							skyboxPass;
-	static Renderpass*							offscreenPass;
-	static Renderpass*							filterPass;
-	static Renderpass*							bloomPasses[MAX_BLOOM_PASSES * 2 - 1];
-	static U8									bloomPassCount;
-	static Pipeline*							skyboxPipeline;
-	static Program*								skybox;
-	static Program*								offscreen;
-	static Program*								postProcessing;
-	static Program*								bloom;
 	static U32									imageIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;
@@ -132,7 +118,6 @@ private:
 	static U32									queuedCommandBufferCount;
 	static U64									dynamicMaxPerFrameSize;
 	static Buffer*								dynamicBuffer;
-	static Buffer*								skyboxConstantBuffer;
 	static U8*									dynamicMappedMemory;
 	static U64									dynamicAllocatedSize;
 	static U64									dynamicPerFrameSize;

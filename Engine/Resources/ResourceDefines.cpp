@@ -172,7 +172,7 @@ RenderpassOutput& RenderpassOutput::SetOperations(RenderPassOperation color, Ren
 
 // RENDER PASS CREATION
 
-RenderPassCreation& RenderPassCreation::Reset()
+RenderpassCreation& RenderpassCreation::Reset()
 {
 	width = 0;
 	height = 0;
@@ -190,35 +190,35 @@ RenderPassCreation& RenderPassCreation::Reset()
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::AddRenderTarget(Texture* texture)
+RenderpassCreation& RenderpassCreation::AddRenderTarget(Texture* texture)
 {
 	outputTextures[renderTargetCount++] = texture;
 
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetDepthStencilTexture(Texture* texture)
+RenderpassCreation& RenderpassCreation::SetDepthStencilTexture(Texture* texture)
 {
 	depthStencilTexture = texture;
 
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetName(const String& name)
+RenderpassCreation& RenderpassCreation::SetName(const String& name)
 {
 	this->name = name;
 
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetType(RenderpassType type)
+RenderpassCreation& RenderpassCreation::SetType(RenderpassType type)
 {
 	this->type = type;
 
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
+RenderpassCreation& RenderpassCreation::SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
 {
 	colorOperation = color;
 	depthOperation = depth;
@@ -227,14 +227,14 @@ RenderPassCreation& RenderPassCreation::SetOperations(RenderPassOperation color,
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::AddClearColor(const Vector4& color)
+RenderpassCreation& RenderpassCreation::AddClearColor(const Vector4& color)
 {
 	clears[clearCount++].color = { color.x, color.y, color.z, color.w };
 
 	return *this;
 }
 
-RenderPassCreation& RenderPassCreation::AddClearDepth(F32 depth)
+RenderpassCreation& RenderpassCreation::AddClearDepth(F32 depth)
 {
 	clears[clearCount++].depthStencil = { depth, 0 };
 
@@ -342,7 +342,7 @@ void Program::RunPasses(CommandBuffer* commands)
 
 		if (pipeline->renderpass != renderpass)
 		{
-			if (renderpass != nullptr) { prevRenderpass = renderpass; } //TODO: End renderpass
+			if (renderpass != nullptr) { prevRenderpass = renderpass; }
 
 			renderpass = pipeline->renderpass;
 			commands->BindPass(pipeline->renderpass);
@@ -373,7 +373,7 @@ void Program::RunPasses(CommandBuffer* commands)
 		}
 	}
 
-	if (renderpass != nullptr) {} //TODO: End renderpass
+	if (renderpass != nullptr) {}
 }
 
 void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuffer)

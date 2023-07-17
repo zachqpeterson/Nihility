@@ -32,30 +32,22 @@ bool Swapchain::GetFormat()
 	Vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount, {});
 	VkValidateFR(vkGetPhysicalDeviceSurfaceFormatsKHR(Renderer::physicalDevice, surface, &surfaceFormatCount, surfaceFormats.Data()));
 
-	if (surfaceFormatCount == 1 && surfaceFormats[0].format == VK_FORMAT_UNDEFINED)
+	bool foundFormat = false;
+	for (VkSurfaceFormatKHR& format : surfaceFormats)
 	{
-		surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
-		surfaceFormat.colorSpace = surfaceFormats[0].colorSpace;
+		if (format.format == VK_FORMAT_B8G8R8A8_UNORM)
+		{
+			surfaceFormat.format = format.format;
+			surfaceFormat.colorSpace = format.colorSpace;
+			foundFormat = true;
+			break;
+		}
 	}
-	else
-	{
-		bool foundFormat = false;
-		for (VkSurfaceFormatKHR& format : surfaceFormats)
-		{
-			if (format.format == VK_FORMAT_B8G8R8A8_UNORM)
-			{
-				surfaceFormat.format = format.format;
-				surfaceFormat.colorSpace = format.colorSpace;
-				foundFormat = true;
-				break;
-			}
-		}
 
-		if (!foundFormat)
-		{
-			surfaceFormat.format = surfaceFormats[0].format;
-			surfaceFormat.colorSpace = surfaceFormats[0].colorSpace;
-		}
+	if (!foundFormat)
+	{
+		surfaceFormat.format = surfaceFormats[0].format;
+		surfaceFormat.colorSpace = surfaceFormats[0].colorSpace;
 	}
 
 	return true;

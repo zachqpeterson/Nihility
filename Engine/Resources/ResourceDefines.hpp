@@ -498,18 +498,18 @@ struct Renderpass
 	U8					renderTargetCount{ 0 };
 };
 
-struct RenderPassCreation
+struct RenderpassCreation
 {
 	void Destroy() { name.Destroy(); }
 
-	RenderPassCreation& Reset();
-	RenderPassCreation& AddRenderTarget(Texture* texture);
-	RenderPassCreation& SetDepthStencilTexture(Texture* texture);
-	RenderPassCreation& SetName(const String& name);
-	RenderPassCreation& SetType(RenderpassType type);
-	RenderPassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
-	RenderPassCreation& AddClearColor(const Vector4& color);
-	RenderPassCreation& AddClearDepth(F32 depth);
+	RenderpassCreation& Reset();
+	RenderpassCreation& AddRenderTarget(Texture* texture);
+	RenderpassCreation& SetDepthStencilTexture(Texture* texture);
+	RenderpassCreation& SetName(const String& name);
+	RenderpassCreation& SetType(RenderpassType type);
+	RenderpassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	RenderpassCreation& AddClearColor(const Vector4& color);
+	RenderpassCreation& AddClearDepth(F32 depth);
 
 	U16					width{ 0 };
 	U16					height{ 0 };
@@ -589,6 +589,14 @@ struct MaterialCreation
 	Program* program{ nullptr };
 	String		name{ NO_INIT };
 	U32			renderIndex{ U32_MAX };
+};
+
+struct PostProcessData
+{
+	F32 contrast = 1.0f;
+	F32 brightness = 0.0f;
+	F32 saturation = 1.0f;
+	F32 gammaCorrection = 1.0f;
 };
 
 struct UniformData

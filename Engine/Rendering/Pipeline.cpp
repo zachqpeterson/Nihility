@@ -161,13 +161,13 @@ struct Id
 //		data.data, specializationInfos[data.stage].specializationData[data.index].size);
 //}
 
-bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
+bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 {
 	String data{ NO_INIT };
 	Resources::LoadBinary(shaderPath, data);
 
 	DescriptorSetLayoutCreation setLayoutInfos[MAX_DESCRIPTOR_SETS]{};
-	RenderPassCreation renderPassInfo{};
+	RenderpassCreation renderPassInfo{};
 	renderPassInfo.colorOperation = RENDER_PASS_OP_CLEAR;
 	renderPassInfo.depthOperation = RENDER_PASS_OP_DONT_CARE;
 	renderPassInfo.stencilOperation = RENDER_PASS_OP_DONT_CARE;
@@ -213,9 +213,9 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 		}
 	}
 
-	if (RenderToswapchain)
+	if (renderpass)
 	{
-		renderpass = Renderer::swapchain.renderpass;
+		this->renderpass = renderpass;
 	}
 	else
 	{
@@ -254,7 +254,7 @@ bool Pipeline::Create(const String& shaderPath, bool RenderToswapchain)
 			renderPassInfo.AddClearDepth(1.0f);
 		}
 
-		renderpass = Resources::CreateRenderPass(renderPassInfo);
+		this->renderpass = Resources::CreateRenderPass(renderPassInfo);
 	}
 
 	if (!CreatePipeline(vkLayouts)) { return false; }
@@ -295,7 +295,7 @@ void Pipeline::Destroy()
 	}
 }
 
-bool Pipeline::ParseConfig(const String& data, I64& index, RenderPassCreation& renderPassInfo)
+bool Pipeline::ParseConfig(const String& data, I64& index, RenderpassCreation& renderPassInfo)
 {
 	//TODO: Blend Masks
 	//TODO: Add Stencils
@@ -475,7 +475,7 @@ bool Pipeline::ParseConfig(const String& data, I64& index, RenderPassCreation& r
 	return false;
 }
 
-bool Pipeline::ParseStage(const String& data, I64& index, RenderPassCreation& renderPassInfo, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage)
+bool Pipeline::ParseStage(const String& data, I64& index, RenderpassCreation& renderPassInfo, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage)
 {
 	if (stage != VK_SHADER_STAGE_COMPUTE_BIT)
 	{

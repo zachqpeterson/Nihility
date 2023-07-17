@@ -181,7 +181,7 @@ void Memory::Copy(void* dst, const void* src, U64 size)
 
 bool Memory::Compare(const U8* a, const U8* b, U64 length)
 {
-	while (length--) { if (*a != *b) { return false; } }
+	while (length--) { if (*a++ != *b++) { return false; } }
 
 	return true;
 }

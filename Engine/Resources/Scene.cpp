@@ -1,7 +1,26 @@
 #include "Scene.hpp"
 #include "Resources.hpp"
+#include "Settings.hpp"
 #include "Rendering\Renderer.hpp"
-#include "Resources\Settings.hpp"
+#include "Rendering\Pipeline.hpp"
+
+void Scene::Create()
+{
+	BufferCreation bufferCreation{};
+	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(UniformData)).SetName(name + "_scene_cb");
+	sceneConstantBuffer = Resources::CreateBuffer(bufferCreation);
+
+	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(Matrix4)).SetName(name + "_skybox_cb");
+	skyboxConstantBuffer = Resources::CreateBuffer(bufferCreation);
+
+	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(PostProcessData)).SetName(name + "_postProcess_cb");
+	postProcessConstantBuffer = Resources::CreateBuffer(bufferCreation);
+
+	postProcessData.contrast = 1.0f;
+	postProcessData.brightness = 0.0f;
+	postProcessData.saturation = 1.0f;
+	postProcessData.gammaCorrection = 0.8f;
+}
 
 Scene::~Scene() { Destroy(); }
 
@@ -26,7 +45,7 @@ void Scene::Update()
 
 	camera.Update();
 
-	MapBufferParameters cbMap = { constantBuffer, 0, 0 };
+	MapBufferParameters cbMap = { sceneConstantBuffer, 0, 0 };
 	F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
 	if (cbData)
 	{
@@ -36,7 +55,7 @@ void Scene::Update()
 		uniformData.light = Vector4{ 0.0f, 1.0f, 3.0f, 1.0f };
 		uniformData.lightRange = lightRange;
 		uniformData.lightIntensity = lightIntensity;
-		uniformData.skymapIndex = skybox->texture->handle;
+		uniformData.skymapIndex = (U32)skybox->texture->handle;
 
 		Memory::Copy(cbData, &uniformData, sizeof(UniformData));
 
@@ -55,11 +74,48 @@ void Scene::Update()
 
 			Renderer::UnmapBuffer(cbMap);
 
-			mesh.material->program->DrawMesh(commands, mesh, constantBuffer);
+			mesh.material->program->DrawMesh(commands, mesh, sceneConstantBuffer);
 		}
 	}
 
-	Renderer::RenderSkybox(skybox, camera);
+	if(drawSkybox)
+	{
+		MapBufferParameters cbMap = { skyboxConstantBuffer, 0, 0 };
+		F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
+		if (cbData)
+		{
+			Matrix4 vp = camera.ViewProjectionNoTranslation();
+
+			Memory::Copy(cbData, &vp, sizeof(Matrix4));
+
+			Renderer::UnmapBuffer(cbMap);
+		}
+
+		Pipeline* skyboxPipeline = Resources::skyboxProgram->passes[0];
+
+		Resources::UpdateDescriptorSet(skyboxPipeline->descriptorSets[Renderer::GetFrameIndex()][0], &skybox->texture, &skyboxConstantBuffer);
+
+		skyboxPipeline->vertexBuffers[0] = skybox->buffer;
+		skyboxPipeline->vertexBufferCount = 1;
+
+		Resources::skyboxProgram->RunPasses(Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false));
+	}
+
+	if (updatePostProcess)
+	{
+		updatePostProcess = false;
+		MapBufferParameters cbMap = { postProcessConstantBuffer, 0, 0 };
+		F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
+		if (cbData)
+		{
+			Memory::Copy(cbData, &postProcessData, sizeof(PostProcessData));
+			Renderer::UnmapBuffer(cbMap);
+		}
+
+		Resources::postProcessProgram->passes[0]->SetInput(postProcessConstantBuffer, 0);
+	}
+
+	Resources::postProcessProgram->RunPasses(commands);
 }
 
 void Scene::UploadMaterial(MeshData& meshData, const Mesh& mesh)
