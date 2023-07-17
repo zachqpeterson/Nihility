@@ -47,7 +47,7 @@ private:
 	static void							PopGpuTimestamp(CommandBuffer* commandBuffer);
 
 	static void							FrameCountersAdvance();
-	static void							QueueCommandBuffer(CommandBuffer* commandBuffer);
+	static void							QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer);
 	static CommandBuffer*				GetInstantCommandBuffer();
 	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState,
 		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);

@@ -16,9 +16,11 @@ layout(std140, binding = 0) uniform LocalConstants //Per frame
 {
     mat4 viewProjection;
     vec4 eye;
-    vec4 light;
-    float lightRange;
+    vec4 directionalLight;
+    vec4 directionalLightColor;
+    vec4 ambientLight;
     float lightIntensity;
+    uint skyboxIndex;
 };
 
 layout(std140, binding = 1) uniform MaterialConstant //Per instance
@@ -67,12 +69,13 @@ uint DrawFlags_AlphaMask = 1 << 0;
 
 layout(std140, binding = 0) uniform LocalConstants
 {
-    mat4    viewProjection;
-    vec4    eye;
-    vec4    light;
-    float   lightRange;
-    float   lightIntensity;
-    uint    skyboxIndex;
+    mat4 viewProjection;
+    vec4 eye;
+    vec4 directionalLight;
+    vec4 directionalLightColor;
+    vec4 ambientLight;
+    float lightIntensity;
+    uint skyboxIndex;
 };
 
 layout(std140, binding = 1) uniform MaterialConstant
@@ -173,8 +176,9 @@ void main()
     }
 
 	vec3 V = normalize(eye.xyz - position);
-    //For Directional Lights: vec3 L = normalize(light.xyz);
-    vec3 L = normalize(light.xyz - position);
+    vec3 lightDirection = directionalLight.xyz;
+    float lightDistance = length(lightDirection);
+    vec3 L = normalize(lightDirection);
 	vec3 H = normalize(V + L);
 
 	float metallicness = metalRoughOcclFactor.x;
@@ -208,15 +212,12 @@ void main()
     float NdotH = clamp(dot(N, H), 0.0, 1.0);
     float HdotL = clamp(dot(H, L), 0.0, 1.0);
     float HdotV = clamp(dot(H, V), 0.0, 1.0);
-
-    //TODO: pass in light color
-    vec3 lightColor = vec3(1.0, 1.0, 1.0);
     
     vec3 materialColor = vec3(0.0, 0.0, 0.0);
     if (NdotL > 0.0 || NdotV > 0.0)
     {
-        float distance = length(light.xyz - position);
-        float intensity = (lightIntensity * clamp(1.0 - pow(distance / lightRange, 4), 0.0, 1.0) / (distance * distance)) * NdotL;
+        //float intensity = (lightIntensity * clamp(1.0 - pow(lightDistance / lightRange, 4), 0.0, 1.0) / (lightDistance * lightDistance)) * NdotL;
+        float intensity = (lightIntensity / (lightDistance * lightDistance)) * NdotL;
 
         float denominator = (abs(NdotL) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotL * NdotL))) *
             (abs(NdotV) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotV * NdotV)));
@@ -238,8 +239,6 @@ void main()
         materialColor = (diffuseBRDF + specularBRDF) * intensity;
     }
 
-    vec3 ambientLight = vec3(0.3, 0.3, 0.3) * baseColor.rgb; //TODO: Pass in ambient light
-
-    fragColor = vec4(emissivity + ambientLight + environment + EncodeSRGB(materialColor) * lightColor, baseColor.a);
+    fragColor = vec4(emissivity + ambientLight.xyz * baseColor.rgb + environment + EncodeSRGB(materialColor) * directionalLightColor.xyz, baseColor.a);
 }
 #FRAGMENT_END

@@ -35,9 +35,6 @@ void Scene::Destroy()
 
 void Scene::Update()
 {
-	float lightRange = 20.0f;
-	float lightIntensity = 10.0f;
-
 	if (Settings::Resized())
 	{
 		camera.SetAspectRatio((F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
@@ -52,10 +49,11 @@ void Scene::Update()
 		UniformData uniformData{ };
 		uniformData.vp = camera.ViewProjection();
 		uniformData.eye = camera.Eye();
-		uniformData.light = Vector4{ 0.0f, 1.0f, 3.0f, 1.0f };
-		uniformData.lightRange = lightRange;
-		uniformData.lightIntensity = lightIntensity;
-		uniformData.skymapIndex = (U32)skybox->texture->handle;
+		uniformData.directionalLight = Vector4{ 0.0f, 3.0f, 1.0f, 1.0f };
+		uniformData.directionalLightColor = Vector4{ 1.0f, 0.882352941f, 0.63921568627f, 1.0f};
+		uniformData.ambientLight = Vector4{ 0.3f, 0.3f, 0.3f, 1.0f }; //brg
+		uniformData.lightIntensity = 10.0f;
+		uniformData.skyboxIndex = (U32)skybox->texture->handle;
 
 		Memory::Copy(cbData, &uniformData, sizeof(UniformData));
 

@@ -591,6 +591,8 @@ struct MaterialCreation
 	U32			renderIndex{ U32_MAX };
 };
 
+#pragma pack(push)
+
 struct PostProcessData
 {
 	F32 contrast = 1.0f;
@@ -603,10 +605,11 @@ struct UniformData
 {
 	Matrix4 vp;
 	Vector4 eye;
-	Vector4 light;
-	F32		lightRange;
+	Vector4 directionalLight;
+	Vector4 directionalLightColor;
+	Vector4 ambientLight;
 	F32		lightIntensity;
-	U32		skymapIndex;
+	U32		skyboxIndex;
 };
 
 struct MeshData
@@ -622,6 +625,8 @@ struct MeshData
 	F32			unused[3];
 	U32			flags;
 };
+
+#pragma pack(pop)
 
 struct NH_API Mesh
 {

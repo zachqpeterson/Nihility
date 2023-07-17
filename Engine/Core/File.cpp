@@ -104,7 +104,7 @@ void File::ReadString(String& string)
 		{
 			string.Append((C8*)streamPtr);
 			streamPtr += string.Size() + 1;
-			bufferRemaining -= string.Size() + 1;
+			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
 			end = true;
 		}
@@ -131,7 +131,7 @@ void File::ReadLine(String& string)
 		{
 			string.Append((C8*)streamPtr);
 			streamPtr += string.Size() + 1;
-			bufferRemaining -= string.Size() + 1;
+			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
 			end = true;
 		}

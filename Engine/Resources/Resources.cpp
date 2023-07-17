@@ -1113,7 +1113,7 @@ bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 			texture->mipmapsGenerated = true;
 		}
 
-		U32 dataSize = level[0].uncompressedByteLength;
+		U32 dataSize = (U32)level[0].uncompressedByteLength;
 		U8* data = (U8*)calloc(1, dataSize); //TODO: Go through Memory
 
 		file.Read(data, dataSize);

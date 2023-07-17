@@ -518,7 +518,10 @@ void Renderer::EndFrame()
 
 	Profiler::Update();
 
-	QueueCommandBuffer(commands);
+	Resources::Update();
+
+	VkCommandBuffer enqueuedCommandBuffers[4];
+	QueueCommandBuffer(enqueuedCommandBuffers, commands);
 
 	VkResult result = swapchain.NextImage(imageIndex, imageAcquired);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -531,26 +534,6 @@ void Renderer::EndFrame()
 
 	VkFence renderCompleteFence = commandBufferExecuted[currentFrame];
 	VkSemaphore renderCompleteSemaphore = renderCompleted[currentFrame];
-
-	// Copy all commands
-	VkCommandBuffer enqueuedCommandBuffers[4];
-	for (U32 c = 0; c < queuedCommandBufferCount; ++c)
-	{
-		CommandBuffer* commandBuffer = queuedCommandBuffers[c];
-
-		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
-
-		//TODO: Check if commandBuffer recorded commands
-		if (commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDERPASS_TYPE_COMPUTE))
-		{
-			vkCmdEndRenderPass(commandBuffer->commandBuffer);
-		}
-
-		vkEndCommandBuffer(commandBuffer->commandBuffer);
-	}
-
-	Resources::Update();
-
 	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -574,7 +557,6 @@ void Renderer::EndFrame()
 	{
 		Settings::resized = false;
 		Resize();
-		FrameCountersAdvance();
 
 		return;
 	}
@@ -698,9 +680,25 @@ void Renderer::FrameCountersAdvance()
 	++absoluteFrame;
 }
 
-void Renderer::QueueCommandBuffer(CommandBuffer* commandBuffer)
+void Renderer::QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer)
 {
 	queuedCommandBuffers[queuedCommandBufferCount++] = commandBuffer;
+
+	// Copy all commands
+	for (U32 c = 0; c < queuedCommandBufferCount; ++c)
+	{
+		CommandBuffer* commandBuffer = queuedCommandBuffers[c];
+
+		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
+
+		//TODO: Check if commandBuffer recorded commands
+		if (commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDERPASS_TYPE_COMPUTE))
+		{
+			vkCmdEndRenderPass(commandBuffer->commandBuffer);
+		}
+
+		vkEndCommandBuffer(commandBuffer->commandBuffer);
+	}
 }
 
 CommandBuffer* Renderer::GetCommandBuffer(QueueType type, bool begin)
