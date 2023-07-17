@@ -38,14 +38,55 @@ layout (location = 0) out vec4 outColor;
 
 const vec3 greyscale = vec3(0.299, 0.587, 0.114);
 
+vec3 uncharted2_tonemap_partial(vec3 x)
+{
+    const float A = 0.15;
+    const float B = 0.50;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.02;
+    const float F = 0.30;
+	const float CB = C * B;
+	const float DE = D * E;
+	const float DF = D * F;
+	const float EF = E / F;
+    return ((x * (A * x + CB) + DE) / (x * (A * x + B) + DF)) - EF;
+}
+
+vec3 uncharted2_filmic(vec3 v)
+{
+    float exposure_bias = 2.0f;
+    vec3 curr = uncharted2_tonemap_partial(v * exposure_bias);
+
+    vec3 W = vec3(11.2f);
+    vec3 white_scale = vec3(1.0f) / uncharted2_tonemap_partial(W);
+    return curr * white_scale;
+}
+
+vec3 aces_approx(vec3 v)
+{
+    v *= 0.6;
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return (v * (a * v + b)) / (v * (c * v + d) + e);
+}
+
 void main()
 {
     outColor = texture(samplerColor, inUV);
 
     //contrast and brightness
 	outColor.rgb = clamp(contrast * (outColor.rgb - 0.5) + 0.5 + brightness, 0.0, 1.0);
+
 	//saturation
 	outColor.rgb = clamp(mix(vec3(dot(outColor.rgb, greyscale)), outColor.rgb, saturation), 0.0, 1.0);
+
+	//tonemap
+	outColor.rgb = clamp(uncharted2_filmic(outColor.rgb), 0.0, 1.0);
+
 	//gamma correction
 	outColor.rgb = clamp(pow(outColor.rgb, vec3(gammaCorrection)), 0.0, 1.0);
 }

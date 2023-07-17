@@ -507,12 +507,12 @@ void Renderer::EndFrame()
 	//TODO: Bloom
 	//TODO: Exposure
 	//TODO: White Balancing
-	//TODO: Contrast
-	//TODO: Brightness
+	//TODO: Contrast x
+	//TODO: Brightness x
 	//TODO: Color Filtering
-	//TODO: Saturation
-	//TODO: Tonemapping
-	//TODO: Gamma
+	//TODO: Saturation x
+	//TODO: Tonemapping x
+	//TODO: Gamma x
 
 	//TODO: UI
 
