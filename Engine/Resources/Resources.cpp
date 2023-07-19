@@ -2060,21 +2060,29 @@ bool Resources::LoadGLB(Scene* scene, File& file)
 
 bool Resources::LoadGLTF(Scene* scene, File& file)
 {
-	Logger::Error("GLB File Format Not Yet Supported!");
+	Logger::Error("GLTF File Format Not Yet Supported!");
 
 	return false;
 }
 
 bool Resources::LoadFBX(Scene* scene, File& file)
 {
-	Logger::Error("GLB File Format Not Yet Supported!");
+	U8 indentifier[18];
+	file.Read(indentifier);
+
+	if (!Memory::Compare(indentifier, (const U8*)"Kaydara FBX Binary", 18))
+	{
+		BreakPoint;
+	}
+
+	BreakPoint;
 
 	return false;
 }
 
 bool Resources::LoadOBJ(Scene* scene, File& file)
 {
-	Logger::Error("GLB File Format Not Yet Supported!");
+	Logger::Error("OBJ File Format Not Yet Supported!");
 
 	return false;
 }
