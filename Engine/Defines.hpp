@@ -147,7 +147,36 @@ class& operator=(class&&) = delete;	\
 #	define NH_NOINLINE										// Tries to force the compiler to not inline a function
 #endif
 
-#define NH_NODISCARD [[nodiscard]]	// Issues a warning when the return value of a function isn't captured
+#ifndef HAS_NODISCARD
+#	ifndef __has_cpp_attribute
+#		define HAS_NODISCARD 0
+#	elif __has_cpp_attribute(nodiscard) >= 201603L
+#		define HAS_NODISCARD 1
+#	else
+#		define HAS_NODISCARD 0
+#	endif
+#endif
+
+#if HAS_NODISCARD
+#	define NH_NODISCARD [[nodiscard]] // Issues a warning when the return value of a function isn't captured
+#else
+#	define NH_NODISCARD
+#endif
+
+enum ISAAvailability
+{
+	ISA_AVAILABLE_X86 = 0,
+	ISA_AVAILABLE_SSE2 = 1,
+	ISA_AVAILABLE_SSE42 = 2,
+	ISA_AVAILABLE_AVX = 3,
+	ISA_AVAILABLE_ENFSTRG = 4,
+	ISA_AVAILABLE_AVX2 = 5,
+	ISA_AVAILABLE_AVX512 = 6,
+
+	ISA_AVAILABLE_ARMNT = 0,
+	ISA_AVAILABLE_NEON = 1,
+	ISA_AVAILABLE_NEON_ARM64 = 2,
+};
 
 /*---------ASSERTIONS---------*/
 

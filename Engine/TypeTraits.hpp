@@ -15,6 +15,11 @@ template <class Type> concept NothrowMoveConstructible = IsNothrowMoveConstructi
 
 template <class Type> inline constexpr unsigned long long Alignment = alignof(Type);
 
+NH_NODISCARD constexpr bool ConstantEvaluation() noexcept
+{
+	return __builtin_is_constant_evaluated();
+}
+
 template <class Type, Type Value>
 struct TypeConstant {
 	static constexpr Type value = Value;
@@ -372,3 +377,161 @@ public:
 	static constexpr Base MaxValue = GetMaxValue();
 	static constexpr Base MinValue = GetMinValue();
 };
+
+namespace TypeTraits
+{
+#if defined(_M_ARM) || defined(_M_ARM64)
+#ifdef __clang__
+	constexpr U64 ClangLeftZeroBitsArmArm64(const unsigned short val)
+	{
+		return __builtin_clzs(val);
+	}
+
+	constexpr U64 ClangLeftZeroBitsArmArm64(const unsigned int val)
+	{
+		return __builtin_clz(val);
+	}
+
+	constexpr U64 ClangLeftZeroBitsArmArm64(const unsigned long val)
+	{
+		return __builtin_clzl(val);
+	}
+
+	constexpr U64 ClangLeftZeroBitsArmArm64(const unsigned long long val)
+	{
+		return __builtin_clzll(val);
+	}
+#endif
+
+	template <Unsigned T>
+	U64 LeftZeroBitsArmArm64(const T val) noexcept
+	{
+		constexpr U64 bits = Traits<T>::NumericalBits;
+		if (val == 0) { return bits; }
+
+#ifdef __clang__
+		if constexpr (IsSame<RemovedQuals<T>, char>, unsigned char > )
+		{
+			return ClangLeftZeroBitsArmArm64(static_cast<unsigned short>(val))
+				- (Traits<unsigned short>::NumericalBits - bits);
+		}
+		else { return ClangLeftZeroBitsArmArm64(val); }
+#else
+		if constexpr (bits <= 32) { return static_cast<int>(_CountLeadingZeros(val)) - (Traits<unsigned long>::NumericalBits - bits); }
+		else { return static_cast<int>(_CountLeadingZeros64(val)); }
+#endif
+	}
+#endif
+
+	template <class T>
+	constexpr U64 LeftZeroBitsFallback(T val) noexcept
+	{
+		T shiftVal = 0;
+
+		U64 bits = Traits<T>::NumericalBits;
+		U64 halfBits = Traits<T>::NumericalBits / 2;
+		do
+		{
+			shiftVal = static_cast<T>(val >> halfBits);
+			if (shiftVal != 0)
+			{
+				bits -= halfBits;
+				val = shiftVal;
+			}
+			halfBits >>= 1;
+		} while (halfBits != 0);
+		return static_cast<U64>(bits - val);
+	}
+
+	extern "C" { extern int __isa_available; }
+
+	template <Unsigned T>
+	U64 LeftZeroBitsLzcnt(const T val) noexcept
+	{
+		constexpr U64 bits = Traits<T>::NumericalBits;
+
+		if constexpr (bits <= 16) { return static_cast<U64>(__lzcnt16(val) - (16 - bits)); }
+		else if constexpr (bits == 32) { return static_cast<U64>(__lzcnt(val)); }
+		else
+		{
+#ifdef _M_IX86
+			const unsigned int high = val >> 32;
+			if (high != 0) { return LeftZeroBitsLzcnt(high); }
+
+			const unsigned int low = static_cast<unsigned int>(val);
+			return 32 + LeftZeroBitsLzcnt(low);
+#else
+			return __lzcnt64(val);
+#endif
+		}
+	}
+
+	template <Unsigned T>
+	U64 LeftZeroBitsBsr(const T val) noexcept
+	{
+		constexpr U64 bits = Traits<T>::NumericalBits;
+
+		unsigned long result;
+		if constexpr (bits <= 32)
+		{
+			if (!_BitScanReverse(&result, val)) { return bits; }
+		}
+		else
+		{
+#ifdef _M_IX86
+			const unsigned int high = val >> 32;
+			if (_BitScanReverse(&result, high)) { return static_cast<U64>(31 - result); }
+
+			const auto low = static_cast<unsigned int>(val);
+			if (!_BitScanReverse(&result, low)) { return bits; }
+#else
+			if (!_BitScanReverse64(&result, val)) { return bits; }
+#endif
+		}
+		return static_cast<U64>(bits - 1 - result);
+	}
+
+	template <Unsigned T>
+	U64 LeftZeroBitsx64x86(const T val) noexcept
+	{
+#ifdef __AVX2__
+		return LeftZeroBitsLzcnt(val);
+#else
+		const bool hasLzcnt = __isa_available >= ISA_AVAILABLE_AVX2;
+
+		if (hasLzcnt) { return LeftZeroBitsLzcnt(val); }
+		else { return LeftZeroBitsBsr(val); }
+#endif
+	}
+}
+
+template <Unsigned T>
+constexpr U64 LeftZeroBits(const T val) noexcept
+{
+	if (!ConstantEvaluation())
+	{
+#if defined(_M_IX86) || (defined(_M_X64) && !defined(_M_ARM64EC))
+		return TypeTraits::LeftZeroBitsx64x86(val);
+#elif defined(_M_ARM) || defined(_M_ARM64)
+		return TypeTraits::LeftZeroBitsArmArm64(val);
+#endif
+	}
+
+	return TypeTraits::LeftZeroBitsFallback(val);
+}
+
+template<Unsigned T>
+NH_NODISCARD constexpr T BitCeiling(const T val) noexcept
+{
+	if (val <= 1u) { return T{ 1 }; }
+
+	return static_cast<T>(T{ 1 } << (Traits<T>::NumericalBits - LeftZeroBits(static_cast<T>(val - 1))));
+}
+
+template<Unsigned T>
+constexpr T BitFloor(const T val) noexcept
+{
+	if (val == 0u) { return val; }
+
+	return static_cast<T>(T{ 1 } << (Traits<T>::NumericalBits - 1 - LeftZeroBits(val)));
+}

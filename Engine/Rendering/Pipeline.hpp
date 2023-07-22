@@ -94,6 +94,27 @@ struct Shader
 	U32								outputCount{ 0 };
 };
 
+enum ConnectionType
+{
+	CONNECTION_TYPE_RENDERTARGET,
+	CONNECTION_TYPE_DEPTHBUFFER,
+	CONNECTION_TYPE_BUFFER,
+};
+
+struct Pipeline;
+
+struct PipelineConnection
+{
+	ConnectionType type;
+
+	Pipeline* pipeline{ nullptr };
+	Buffer* buffer{ nullptr };
+
+	U32 index;
+	U32 set;
+	U32 binding;
+};
+
 struct RenderpassCreation;
 
 struct Pipeline
@@ -101,8 +122,10 @@ struct Pipeline
 	bool Create(const String& shaderPath, Renderpass* renderpass);
 	void Destroy();
 
-	void SetInput(Texture* texture, U32 binding);
-	void SetInput(Buffer* buffer, U32 binding);
+	void Resize();
+
+	void AddConnection(const PipelineConnection& connection);
+	void UpdateDescriptors();
 
 	String				name{ NO_INIT };
 	U64					handle{ U64_MAX };
@@ -118,6 +141,8 @@ struct Pipeline
 	BlendState			blendStates[MAX_IMAGE_OUTPUTS]{};
 	U8					blendStateCount{ 0 };
 
+	PipelineConnection	pipelineConnections[MAX_PIPELINE_CONNECTIONS];
+	U8					connectionCount;
 	DescriptorSet* descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
 	U8					descriptorSetCount{ 0 };
 	bool				useBindless{ false };
@@ -128,6 +153,7 @@ struct Pipeline
 
 	bool				graphics{ true };
 	bool				useDepth{ false };
+	bool				outsideRenderpass{ false };
 
 private:
 	bool ParseConfig(const String& data, I64& index, RenderpassCreation& renderPassInfo);

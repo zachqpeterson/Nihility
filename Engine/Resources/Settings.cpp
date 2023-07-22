@@ -16,7 +16,7 @@ bool Settings::Initialize()
 {
 	Logger::Trace("Loading Settings...");
 
-	File config("Settings.cfg", FILE_OPEN_READ_SETTINGS);
+	File config("Settings.cfg", FILE_OPEN_RESOURCE_READ);
 
 	if (config.Opened())
 	{
@@ -31,7 +31,7 @@ void Settings::Shutdown()
 {
 	Logger::Trace("Saving Settings...");
 
-	File config("Settings.cfg", FILE_OPEN_WRITE_SETTINGS);
+	File config("Settings.cfg", FILE_OPEN_RESOURCE_WRITE);
 
 	if (config.Opened())
 	{

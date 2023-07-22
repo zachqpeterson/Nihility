@@ -570,7 +570,8 @@ void Renderer::Resize()
 
 	swapchain.Create();
 
-	//TODO: Resize all programs
+	Resources::UpdatePipelines();
+	currentScene->updatePostProcess = true;
 
 	vkDeviceWaitIdle(device);
 
@@ -591,6 +592,7 @@ void Renderer::LoadScene(const String& name)
 	}
 
 	currentScene = Resources::LoadScene(name);
+	currentScene->updatePostProcess = true;
 }
 
 void* Renderer::MapBuffer(const MapBufferParameters& parameters)
@@ -1354,6 +1356,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 	}
 
 	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
+	renderpass->lastResize = absoluteFrame;
 
 	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderpass->renderpass, renderpass->name);
 

@@ -264,6 +264,7 @@ static constexpr U8	MAX_IMAGE_OUTPUTS = 8;				// Maximum number of images/render
 static constexpr U8	MAX_DESCRIPTOR_SET_LAYOUTS = 8;		// Maximum number of layouts in the pipeline
 static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;		// Maximum list elements for both descriptor set layout and descriptor sets
 static constexpr U8 MAX_DESCRIPTOR_SETS = 8;
+static constexpr U8 MAX_PIPELINE_CONNECTIONS = 16;
 static constexpr U8 MAX_SPECIALIZATION_CONSTANTS = 8;	// Maximum specialization contants a shader can have
 static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader stages, applicable to all different type of pipelines
 static constexpr U8	MAX_VERTEX_STREAMS = 16;			// Maximum vertex streams a shader can have

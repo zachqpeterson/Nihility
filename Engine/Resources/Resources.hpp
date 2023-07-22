@@ -32,6 +32,7 @@ public:
 	static Pipeline* CreatePipeline(const String& name, Renderpass* renderpass = nullptr);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Material* CreateMaterial(const MaterialCreation& info);
+	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
 	static Scene* LoadScene(const String& name);
 	static void SaveScene(const Scene* scene);
@@ -76,6 +77,7 @@ private:
 	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer);
 
 	static void Update();
+	static void UpdatePipelines();
 
 	//Texture Loading
 	static bool LoadBMP(Texture* texture, File& file, bool generateMipMaps);
@@ -87,12 +89,14 @@ private:
 	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
+	//Model Loading
+	static bool LoadFBX(Model* model, File& file);
+	static bool LoadOBJ(Model* model, File& file);
+
 	//Scene Loading
 	static bool LoadNHSCN(Scene* scene, File& file);
 	static bool LoadGLTF(Scene* scene, File& file);
 	static bool LoadGLB(Scene* scene, File& file);
-	static bool LoadFBX(Scene* scene, File& file);
-	static bool LoadOBJ(Scene* scene, File& file);
 
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;
@@ -114,6 +118,7 @@ private:
 	static Hashmap<String, Pipeline>			pipelines;
 	static Hashmap<String, Program>				programs;
 	static Hashmap<String, Material>			materials;
+	static Hashmap<String, Model>				models;
 	static Hashmap<String, Skybox>				skyboxes;
 	static Hashmap<String, Scene>				scenes;
 
@@ -137,8 +142,8 @@ private:
 template<typename Type>
 inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy)
 {
-	typename Hashmap<String, Type>::Iterator end0 = hashmap.end();
-	for (auto it = hashmap.begin(); it != end0; ++it)
+	typename Hashmap<String, Type>::Iterator end = hashmap.end();
+	for (auto it = hashmap.begin(); it != end; ++it)
 	{
 		if (it.Valid() && !it->name.Blank())
 		{
@@ -152,8 +157,8 @@ inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<
 template<typename Type>
 inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer)
 {
-	typename Hashmap<String, Type>::Iterator end0 = hashmap.end();
-	for (auto it = hashmap.begin(); it != end0; ++it)
+	typename Hashmap<String, Type>::Iterator end = hashmap.end();
+	for (auto it = hashmap.begin(); it != end; ++it)
 	{
 		if (it.Valid() && !it->name.Blank())
 		{

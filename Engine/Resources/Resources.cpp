@@ -112,6 +112,13 @@ struct KTXInfo
 	U32 blockDepth;			// in texels
 };
 
+struct FBXHeader
+{
+	U8 magic[21];
+	U8 reserved[2];
+	U32 version;
+};
+
 #pragma pack(pop)
 
 Sampler* Resources::dummySampler;
@@ -134,6 +141,7 @@ Hashmap<String, Renderpass>		Resources::renderPasses{ 256, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
 Hashmap<String, Program>		Resources::programs{ 128, {} };
 Hashmap<String, Material>		Resources::materials{ 128, {} };
+Hashmap<String, Model>			Resources::models{ 128, {} };
 Hashmap<String, Skybox>			Resources::skyboxes{ 32, {} };
 Hashmap<String, Scene>			Resources::scenes{ 128, {} };
 
@@ -197,7 +205,15 @@ bool Resources::Initialize()
 	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
 	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader", pbr->renderpass);
 	Pipeline* postProcess = CreatePipeline("shaders/PostProcess.shader", Renderer::swapchain.renderpass);
-	postProcess->SetInput(pbr->renderpass->outputTextures[0], 1);
+
+	PipelineConnection connection{};
+	connection.type = CONNECTION_TYPE_RENDERTARGET;
+	connection.pipeline = pbr;
+	connection.index = 0;
+	connection.set = 0;
+	connection.binding = 1;
+
+	postProcess->AddConnection(connection);
 
 	ProgramCreation programCreation{};
 	programCreation.SetName("Skybox").AddPass(skybox);
@@ -415,6 +431,20 @@ void Resources::Update()
 		}
 
 		if (currentWriteIndex) { vkUpdateDescriptorSets(Renderer::device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); }
+	}
+}
+
+void Resources::UpdatePipelines()
+{
+	typename Hashmap<String, Pipeline>::Iterator end = pipelines.end();
+	for (auto it = pipelines.begin(); it != end; ++it)
+	{
+		if (it.Valid() && !it->name.Blank()) { it->Resize(); }
+	}
+
+	for (auto it = pipelines.begin(); it != end; ++it)
+	{
+		if (it.Valid() && !it->name.Blank()) { it->UpdateDescriptors(); }
 	}
 }
 
@@ -1797,6 +1827,66 @@ Material* Resources::CreateMaterial(const MaterialCreation& info)
 	return material;
 }
 
+Model* Resources::LoadModel(const String& name)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	Model* model = &models.Request(name);
+
+	if (!model->name.Blank()) { return model; }
+
+	model->name = name;
+
+	File file(name, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		I64 extIndex = name.LastIndexOf('.') + 1;
+
+		bool success = false;
+
+		if (name.CompareN("fbx", extIndex)) { success = LoadFBX(model, file); }
+		else if (name.CompareN("obj", extIndex)) { success = LoadOBJ(model, file); }
+		else { Logger::Error("Unknown Texture Extension {}!", name); textures.Remove(name); return nullptr; }
+
+		if (!success)
+		{
+			textures.Remove(name);
+			file.Close();
+			return nullptr;
+		}
+
+		file.Close();
+		return model;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", name);
+
+	models.Remove(name);
+	return nullptr;
+}
+
+bool Resources::LoadFBX(Model* model, File& file)
+{
+	FBXHeader header;
+	file.Read(header);
+
+	if (!Memory::Compare(header.magic, (const U8*)"Kaydara FBX Binary  \0", 21))
+	{
+		BreakPoint;
+	}
+
+	BreakPoint;
+
+	return false;
+}
+
+bool Resources::LoadOBJ(Model* model, File& file)
+{
+	Logger::Error("OBJ File Format Not Yet Supported!");
+
+	return false;
+}
+
 Skybox* Resources::LoadSkybox(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -1839,8 +1929,6 @@ Scene* Resources::LoadScene(const String& name)
 		if (name.CompareN("nhscn", extIndex)) { success = LoadNHSCN(scene, file); }
 		else if (name.CompareN("gltf", extIndex)) { success = LoadGLTF(scene, file); }
 		else if (name.CompareN("glb", extIndex)) { success = LoadGLB(scene, file); }
-		else if (name.CompareN("fbx", extIndex)) { success = LoadFBX(scene, file); }
-		else if (name.CompareN("obj", extIndex)) { success = LoadOBJ(scene, file); }
 		else { Logger::Error("Unknown Texture Extension {}!", name); textures.Remove(name); return nullptr; }
 
 		if (!success)
@@ -2061,28 +2149,6 @@ bool Resources::LoadGLB(Scene* scene, File& file)
 bool Resources::LoadGLTF(Scene* scene, File& file)
 {
 	Logger::Error("GLTF File Format Not Yet Supported!");
-
-	return false;
-}
-
-bool Resources::LoadFBX(Scene* scene, File& file)
-{
-	U8 indentifier[18];
-	file.Read(indentifier);
-
-	if (!Memory::Compare(indentifier, (const U8*)"Kaydara FBX Binary", 18))
-	{
-		BreakPoint;
-	}
-
-	BreakPoint;
-
-	return false;
-}
-
-bool Resources::LoadOBJ(Scene* scene, File& file)
-{
-	Logger::Error("OBJ File Format Not Yet Supported!");
 
 	return false;
 }
@@ -2381,7 +2447,7 @@ U32 Resources::LoadBinary(const String& name, void** result)
 
 void Resources::SaveBinary(const String& name, const String& data)
 {
-	File file{ name, FILE_OPEN_WRITE_SETTINGS };
+	File file{ name, FILE_OPEN_RESOURCE_WRITE };
 	if (file.Opened())
 	{
 		file.Write(data);
@@ -2393,7 +2459,7 @@ void Resources::SaveBinary(const String& name, const String& data)
 
 void Resources::SaveBinary(const String& name, void* data, U64 length)
 {
-	File file{ name, FILE_OPEN_WRITE_SETTINGS };
+	File file{ name, FILE_OPEN_RESOURCE_WRITE };
 	if (file.Opened())
 	{
 		file.Write(data, (U32)length);

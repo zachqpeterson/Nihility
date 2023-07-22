@@ -215,6 +215,7 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 
 	if (renderpass)
 	{
+		outsideRenderpass = true;
 		this->renderpass = renderpass;
 	}
 	else
@@ -260,6 +261,61 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 	if (!CreatePipeline(vkLayouts)) { return false; }
 
 	return true;
+}
+
+void Pipeline::Resize()
+{
+	if (!outsideRenderpass)
+	{
+		renderpass->width = Settings::WindowWidth();
+		renderpass->height = Settings::WindowHeight();
+
+		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
+		{
+			Resources::RecreateTexture(renderpass->outputTextures[i], renderpass->width, renderpass->height, 1);
+		}
+
+		if(renderpass->outputDepth)
+		{
+			Resources::RecreateTexture(renderpass->outputDepth, renderpass->width, renderpass->height, 1);
+		}
+
+		Renderer::CreateRenderPass(renderpass);
+	}
+}
+
+void Pipeline::UpdateDescriptors()
+{
+	for (U32 i = 0; i < connectionCount; ++i)
+	{
+		PipelineConnection& connection = pipelineConnections[i];
+
+		switch (connection.type)
+		{
+		case CONNECTION_TYPE_RENDERTARGET: {
+			Texture* texture = connection.pipeline->renderpass->outputTextures[connection.index];
+
+			for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+			{
+				Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
+			}
+		} break;
+		case CONNECTION_TYPE_DEPTHBUFFER: {
+			Texture* texture = connection.pipeline->renderpass->outputDepth;
+
+			for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+			{
+				Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
+			}
+		} break;
+		case CONNECTION_TYPE_BUFFER: {
+			for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+			{
+				Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], connection.buffer, connection.binding);
+			}
+		} break;
+		}
+	}
 }
 
 void Pipeline::Destroy()
@@ -957,7 +1013,7 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 
 	if (!cacheExists)
 	{
-		cache.Open(cachePath, FILE_OPEN_WRITE_SETTINGS);
+		cache.Open(cachePath, FILE_OPEN_RESOURCE_WRITE);
 
 		U64 cacheDataSize = 0;
 		VkValidate(vkGetPipelineCacheData(Renderer::device, pipelineCache, &cacheDataSize, nullptr));
@@ -977,18 +1033,33 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 	return true;
 }
 
-void Pipeline::SetInput(Texture* texture, U32 binding)
+void Pipeline::AddConnection(const PipelineConnection& connection)
 {
-	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-	{
-		Resources::UpdateDescriptorSet(descriptorSets[i][0], texture, binding);
-	}
-}
+	pipelineConnections[connectionCount++] = connection;
 
-void Pipeline::SetInput(Buffer* buffer, U32 binding)
-{
-	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	switch (connection.type)
 	{
-		Resources::UpdateDescriptorSet(descriptorSets[i][0], buffer, binding);
+	case CONNECTION_TYPE_RENDERTARGET: {
+		Texture* texture = connection.pipeline->renderpass->outputTextures[connection.index];
+
+		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+		{
+			Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
+		}
+	} break;
+	case CONNECTION_TYPE_DEPTHBUFFER: {
+		Texture* texture = connection.pipeline->renderpass->outputDepth;
+
+		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+		{
+			Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
+		}
+	} break;
+	case CONNECTION_TYPE_BUFFER: {
+		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+		{
+			Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], connection.buffer, connection.binding);
+		}
+	} break;
 	}
 }

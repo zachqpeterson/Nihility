@@ -496,6 +496,8 @@ struct Renderpass
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
+
+	U32					lastResize{ 0 };
 };
 
 struct RenderpassCreation
@@ -683,6 +685,11 @@ struct NH_API Transform
 	{
 		matrix.Set(position, rotation, scale);
 	}
+};
+
+struct Model
+{
+	String name{ NO_INIT };
 };
 
 struct ResourceUpdate

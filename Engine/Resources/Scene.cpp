@@ -20,6 +20,22 @@ void Scene::Create()
 	postProcessData.brightness = 0.0f;
 	postProcessData.saturation = 1.0f;
 	postProcessData.gammaCorrection = 0.8f;
+
+	MapBufferParameters cbMap = { postProcessConstantBuffer, 0, 0 };
+	F32* cbData = (F32*)Renderer::MapBuffer(cbMap);
+	if (cbData)
+	{
+		Memory::Copy(cbData, &postProcessData, sizeof(PostProcessData));
+		Renderer::UnmapBuffer(cbMap);
+	}
+
+	PipelineConnection connection{};
+	connection.type = CONNECTION_TYPE_BUFFER;
+	connection.buffer = postProcessConstantBuffer;
+	connection.set = 0;
+	connection.binding = 0;
+
+	Resources::postProcessProgram->passes[0]->AddConnection(connection);
 }
 
 Scene::~Scene() { Destroy(); }
@@ -109,8 +125,6 @@ void Scene::Update()
 			Memory::Copy(cbData, &postProcessData, sizeof(PostProcessData));
 			Renderer::UnmapBuffer(cbMap);
 		}
-
-		Resources::postProcessProgram->passes[0]->SetInput(postProcessConstantBuffer, 0);
 	}
 
 	Resources::postProcessProgram->RunPasses(commands);
