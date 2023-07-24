@@ -9,8 +9,8 @@
 
 bool Init()
 {
-	//Resources::LoadModel("scenes/Audi R8.fbx");
-	Renderer::LoadScene("scenes/Boombox.nhscn");
+	Resources::LoadModel("models/Audi R8.fbx");
+	//Renderer::LoadScene("scenes/Boombox.nhscn");
 
 	return true;
 }

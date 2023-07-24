@@ -7,6 +7,8 @@
 #include "Math\Color.hpp"
 #include "Rendering\Pipeline.hpp"
 
+#include "External\zlib\zlib.h"
+
 #undef near
 #undef far
 
@@ -117,6 +119,21 @@ struct FBXHeader
 	U8 magic[21];
 	U8 reserved[2];
 	U32 version;
+};
+
+struct FBXNode
+{
+	U32 endOffset;
+	U32 propertyCount;
+	U32 propertyListSize;
+	U8 nameLength;
+};
+
+struct FBXArray
+{
+	U32 count;
+	U32 encoding;
+	U32 compressedLength;
 };
 
 #pragma pack(pop)
@@ -1872,12 +1889,93 @@ bool Resources::LoadFBX(Model* model, File& file)
 
 	if (!Memory::Compare(header.magic, (const U8*)"Kaydara FBX Binary  \0", 21))
 	{
-		BreakPoint;
+		Logger::Error("Model Is Not An FBX!");
+		return false;
+	}
+
+
+	U32 nesting = 0;
+	while (true)
+	{
+		FBXNode node;
+		ReadFBXNode(model, file, node);
+
+		if (node.endOffset == 0 && nesting-- == 0) { break; }
+
+		nesting += file.Pointer() < node.endOffset;
 	}
 
 	BreakPoint;
 
-	return false;
+	return true;
+}
+
+void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node)
+{
+	C8 data[100];
+
+	file.Read(node);
+	file.ReadCount(data, node.nameLength);
+	data[node.nameLength] = '\0';
+
+	for (U32 i = 0; i < node.propertyCount; ++i)
+	{
+		U8 type;
+		file.Read(type);
+
+		switch (type)
+		{
+		case 'Y': { I16 i; file.Read(i); } break;
+		case 'I': { I32 i; file.Read(i); } break;
+		case 'F': { F32 f; file.Read(f); } break;
+		case 'D': { F64 d; file.Read(d); } break;
+		case 'L': { I64 i; file.Read(i); } break;
+		case 'C': { bool b; file.Read(b); } break;
+
+		case 'f': { FBXArray array; ReadFBXArray(file, array, 4); } break;
+		case 'd': { FBXArray array; ReadFBXArray(file, array, 8); } break;
+		case 'l': { FBXArray array; ReadFBXArray(file, array, 8); } break;
+		case 'i': { FBXArray array; ReadFBXArray(file, array, 4); } break;
+		case 'b': { FBXArray array; ReadFBXArray(file, array, 1); } break;
+
+		case 'S': { U32 length; file.Read(length); file.ReadCount(data, length); } break;
+		case 'R': { U32 length; file.Read(length); file.ReadCount(data, length); } break;
+		}
+	}
+}
+
+void ReadFBXArray(File& file, FBXArray& array, U32 elementSize)
+{
+	file.Read(array);
+
+	U8* data;
+	U32 dataSize = elementSize * array.count;
+	Memory::AllocateSize(&data, dataSize);
+
+	if (array.encoding == 1)
+	{
+		U8* compressed;
+		Memory::AllocateSize(&compressed, array.compressedLength);
+		file.Read(compressed, array.compressedLength);
+
+		z_stream stream{};
+		inflateInit(&stream);
+
+		stream.avail_in = array.compressedLength;
+		stream.next_in = compressed;
+		stream.avail_out = dataSize;
+		stream.next_out = (U8*)data;
+
+		int status = inflate(&stream, Z_FINISH);
+
+		inflateEnd(&stream);
+	}
+	else
+	{
+		file.Read(data, dataSize);
+	}
+
+	BreakPoint;
 }
 
 bool Resources::LoadOBJ(Model* model, File& file)

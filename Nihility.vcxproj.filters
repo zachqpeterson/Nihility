@@ -59,6 +59,9 @@
     <Filter Include="Source Files\External\SPIRV">
       <UniqueIdentifier>{262c30c1-9b12-4610-ae5d-b8ef27545aa0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\External\zlib">
+      <UniqueIdentifier>{026b70fd-e1fa-499f-8d71-ff8f3ef237dd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -547,6 +550,33 @@
     <ClInclude Include="Engine\External\SPIRV\SpvLogger.h">
       <Filter>Source Files\External\SPIRV</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\External\zlib\zconf.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\zlib.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\inffast.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\inflate.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\inftrees.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\zutil.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\gzguts.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\inffixed.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\zlib\crc32.h">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -743,6 +773,24 @@
     </ClCompile>
     <ClCompile Include="Engine\External\SPIRV\SpvLogger.cpp">
       <Filter>Source Files\External\SPIRV</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\zlib\inflate.c">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\zlib\inftrees.c">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\zlib\zutil.c">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\zlib\inffast.c">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\zlib\adler32.c">
+      <Filter>Source Files\External\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\zlib\crc32.c">
+      <Filter>Source Files\External\zlib</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
