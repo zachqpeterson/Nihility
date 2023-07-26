@@ -1899,7 +1899,7 @@ bool Resources::LoadFBX(Model* model, File& file)
 	while (true)
 	{
 		FBXNode node;
-		ReadFBXNode(model, file, node);
+		ReadFBXNode(model, file, node, nesting);
 
 		if (node.endOffset == 0 && nesting-- == 0) { break; }
 
@@ -1911,13 +1911,24 @@ bool Resources::LoadFBX(Model* model, File& file)
 	return true;
 }
 
-void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node)
+void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node, U64 nesting)
 {
+	static bool geometry = false;
 	C8 data[100];
 
 	file.Read(node);
 	file.ReadCount(data, node.nameLength);
 
+	if (nesting > 0)
+	{
+		if (!geometry && Memory::Compare(data, "Geometry", 8)) { geometry = true; }
+	}
+	else { geometry = false; }
+
+	if (Memory::Compare(data, "Vertices", 8)) { BreakPoint; }
+	if (Memory::Compare(data, "PolygonVertexIndex", 18)) { BreakPoint; }
+	if (Memory::Compare(data, "Normals", 7)) { BreakPoint; }
+	if (Memory::Compare(data, "UV", 2)) { BreakPoint; }
 	if (Memory::Compare(data, "UVIndex", 7)) { BreakPoint; }
 
 	for (U32 i = 0; i < node.propertyCount; ++i)
@@ -1950,14 +1961,14 @@ void Resources::ReadFBXArray(File& file, FBXArray& array, U32 elementSize)
 {
 	file.Read(array);
 
-	U8* data;
 	U32 dataSize = elementSize * array.count;
-	Memory::AllocateSize(&data, dataSize);
+	U8* data = (U8*)malloc(dataSize);
+	//Memory::AllocateSize(&data, dataSize);
 
 	if (array.encoding == 1)
 	{
-		U8* compressed;
-		Memory::AllocateSize(&compressed, array.compressedLength);
+		U8* compressed = (U8*)malloc(array.compressedLength);;
+		//Memory::AllocateSize(&compressed, array.compressedLength);
 		file.Read(compressed, array.compressedLength);
 
 		z_stream stream{};

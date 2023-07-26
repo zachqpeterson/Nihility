@@ -30,12 +30,12 @@ struct Region4mb { private: Region256kb unused[16]; };
 
 public:
 	template<Pointer Type> static void Allocate(Type* pointer);
-	template<Pointer Type, Unsigned Int> static void AllocateSize(Type* pointer, const Int& size);
-	template<Pointer Type, Unsigned Int> static void AllocateSize(Type* pointer, const Int& size, Int& newSize);
-	template<Pointer Type, Unsigned Int> static void AllocateArray(Type* pointer, const Int& count);
-	template<Pointer Type, Unsigned Int> static void AllocateArray(Type* pointer, const Int& count, Int& newCount);
-	template<Pointer Type, Unsigned Int> static void Reallocate(Type* pointer, const Int& count);
-	template<Pointer Type, Unsigned Int> static void Reallocate(Type* pointer, const Int& count, Int& newCount);
+	template<Pointer Type> static void AllocateSize(Type* pointer, const U64& size);
+	template<Pointer Type, Unsigned Int> static void AllocateSize(Type* pointer, const U64& size, Int& newSize);
+	template<Pointer Type> static void AllocateArray(Type* pointer, const U64& count);
+	template<Pointer Type, Unsigned Int> static void AllocateArray(Type* pointer, const U64& count, Int& newCount);
+	template<Pointer Type> static void Reallocate(Type* pointer, const U64& count);
+	template<Pointer Type, Unsigned Int> static void Reallocate(Type* pointer, const U64& count, Int& newCount);
 
 	template<Pointer Type> static void Free(Type* pointer);
 	template<Pointer Type> static void FreeSize(Type* pointer);
@@ -111,8 +111,8 @@ inline void Memory::Allocate(Type* pointer)
 	BreakPoint;
 }
 
-template<Pointer Type, Unsigned Int>
-inline void Memory::AllocateSize(Type* pointer, const Int& size)
+template<Pointer Type>
+inline void Memory::AllocateSize(Type* pointer, const U64& size)
 {
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); return; }
@@ -123,7 +123,7 @@ inline void Memory::AllocateSize(Type* pointer, const Int& size)
 }
 
 template<Pointer Type, Unsigned Int>
-inline void Memory::AllocateSize(Type* pointer, const Int& size, Int& newSize)
+inline void Memory::AllocateSize(Type* pointer, const U64& size, Int& newSize)
 {
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer); newSize = sizeof(Region1kb); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer); newSize = sizeof(Region16kb); return; }
@@ -133,8 +133,8 @@ inline void Memory::AllocateSize(Type* pointer, const Int& size, Int& newSize)
 	BreakPoint;
 }
 
-template<Pointer Type, Unsigned Int>
-inline void Memory::AllocateArray(Type* pointer, const Int& count)
+template<Pointer Type>
+inline void Memory::AllocateArray(Type* pointer, const U64& count)
 {
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -147,7 +147,7 @@ inline void Memory::AllocateArray(Type* pointer, const Int& count)
 }
 
 template<Pointer Type, Unsigned Int>
-inline void Memory::AllocateArray(Type* pointer, const Int& count, Int& newCount)
+inline void Memory::AllocateArray(Type* pointer, const U64& count, Int& newCount)
 {
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -159,8 +159,8 @@ inline void Memory::AllocateArray(Type* pointer, const Int& count, Int& newCount
 	BreakPoint;
 }
 
-template<Pointer Type, Unsigned Int>
-static void Memory::Reallocate(Type* pointer, const Int& count)
+template<Pointer Type>
+static void Memory::Reallocate(Type* pointer, const U64& count)
 {
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 	const U64 totalSize = size * count;
@@ -181,7 +181,7 @@ static void Memory::Reallocate(Type* pointer, const Int& count)
 }
 
 template<Pointer Type, Unsigned Int>
-static void Memory::Reallocate(Type* pointer, const Int& count, Int& newCount)
+static void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 {
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 	constexpr U64 count1kb = sizeof(Region1kb) / size;

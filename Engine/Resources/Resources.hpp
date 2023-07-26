@@ -93,7 +93,7 @@ private:
 	static bool LoadFBX(Model* model, File& file);
 	static bool LoadOBJ(Model* model, File& file);
 
-	static void ReadFBXNode(Model* model, File& file, struct FBXNode& node);
+	static void ReadFBXNode(Model* model, File& file, struct FBXNode& node, U64 nesting);
 	static void ReadFBXArray(File& file, struct FBXArray& array, U32 elementSize);
 
 	//Scene Loading

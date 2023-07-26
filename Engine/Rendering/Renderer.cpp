@@ -63,7 +63,7 @@ static constexpr CSTR layers[]{
 
 static constexpr CSTR deviceExtensions[]{
 	"VK_KHR_swapchain",
-	"VK_KHR_dynamic_rendering",
+	//"VK_KHR_dynamic_rendering",
 };
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
