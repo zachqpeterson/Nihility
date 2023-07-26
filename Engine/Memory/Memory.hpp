@@ -50,7 +50,8 @@ public:
 	static void Set(void* pointer, U8 value, U64 size);
 	static void Zero(void* pointer, U64 size);
 	static void Copy(void* dst, const void* src, U64 size);
-	static bool Compare(const U8* a, const U8* b, U64 length);
+	template<class T>
+	static bool Compare(const T* a, const T* b, U64 length);
 
 private:
 	static bool Initialize();
@@ -253,4 +254,12 @@ inline void Memory::AllocateStatic(Type* pointer)
 	}
 
 	BreakPoint;
+}
+
+template<class T>
+inline bool Memory::Compare(const T* a, const T* b, U64 length)
+{
+	while (length--) { if (*a++ != *b++) { return false; } }
+
+	return true;
 }

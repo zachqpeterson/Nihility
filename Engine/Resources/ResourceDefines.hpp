@@ -663,6 +663,13 @@ struct NH_API Mesh
 	Quaternion3	rotation{ Quaternion3::Identity };
 };
 
+struct Model
+{
+	String name{ NO_INIT };
+
+	Mesh* meshes[16];
+};
+
 struct Skybox
 {
 	void Destroy() { name.Destroy(); }
@@ -685,11 +692,6 @@ struct NH_API Transform
 	{
 		matrix.Set(position, rotation, scale);
 	}
-};
-
-struct Model
-{
-	String name{ NO_INIT };
 };
 
 struct ResourceUpdate

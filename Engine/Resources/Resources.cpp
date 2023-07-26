@@ -1893,7 +1893,6 @@ bool Resources::LoadFBX(Model* model, File& file)
 		return false;
 	}
 
-
 	U32 nesting = 0;
 	while (true)
 	{
@@ -1916,7 +1915,8 @@ void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node)
 
 	file.Read(node);
 	file.ReadCount(data, node.nameLength);
-	data[node.nameLength] = '\0';
+
+	if (Memory::Compare(data, "UVIndex", 7)) { BreakPoint; }
 
 	for (U32 i = 0; i < node.propertyCount; ++i)
 	{
@@ -1944,7 +1944,7 @@ void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node)
 	}
 }
 
-void ReadFBXArray(File& file, FBXArray& array, U32 elementSize)
+void Resources::ReadFBXArray(File& file, FBXArray& array, U32 elementSize)
 {
 	file.Read(array);
 
@@ -1974,8 +1974,6 @@ void ReadFBXArray(File& file, FBXArray& array, U32 elementSize)
 	{
 		file.Read(data, dataSize);
 	}
-
-	BreakPoint;
 }
 
 bool Resources::LoadOBJ(Model* model, File& file)
