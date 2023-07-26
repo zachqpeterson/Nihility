@@ -593,8 +593,6 @@ struct MaterialCreation
 	U32			renderIndex{ U32_MAX };
 };
 
-#pragma pack(push)
-
 struct PostProcessData
 {
 	F32 contrast = 1.0f;
@@ -627,8 +625,6 @@ struct MeshData
 	F32			unused[3];
 	U32			flags;
 };
-
-#pragma pack(pop)
 
 struct NH_API Mesh
 {
@@ -670,7 +666,7 @@ struct Model
 	String		name{ NO_INIT };
 	HashHandle	handle;
 
-	Mesh*		meshes[16];
+	Mesh*		meshes[32];
 };
 
 struct Skybox

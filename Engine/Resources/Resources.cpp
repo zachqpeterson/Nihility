@@ -1913,18 +1913,12 @@ bool Resources::LoadFBX(Model* model, File& file)
 
 void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node, U64 nesting)
 {
-	static bool geometry = false;
 	C8 data[100];
 
 	file.Read(node);
 	file.ReadCount(data, node.nameLength);
 
-	if (nesting > 0)
-	{
-		if (!geometry && Memory::Compare(data, "Geometry", 8)) { geometry = true; }
-	}
-	else { geometry = false; }
-
+	//TODO: Test multiple FBX files to verify these names are consistent!
 	if (Memory::Compare(data, "Vertices", 8)) { BreakPoint; }
 	if (Memory::Compare(data, "PolygonVertexIndex", 18)) { BreakPoint; }
 	if (Memory::Compare(data, "Normals", 7)) { BreakPoint; }
