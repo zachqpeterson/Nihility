@@ -363,6 +363,7 @@ void Resources::Shutdown()
 	CleanupHashmap(pipelines, nullptr);
 	CleanupHashmap(programs, nullptr);
 	CleanupHashmap(materials, nullptr);
+	CleanupHashmap(models, nullptr);
 	CleanupHashmap(skyboxes, nullptr);
 	CleanupHashmap(scenes, nullptr);
 
@@ -375,6 +376,7 @@ void Resources::Shutdown()
 	pipelines.Destroy();
 	programs.Destroy();
 	materials.Destroy();
+	models.Destroy();
 	skyboxes.Destroy();
 	scenes.Destroy();
 

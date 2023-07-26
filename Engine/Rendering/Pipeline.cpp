@@ -273,12 +273,15 @@ void Pipeline::Resize()
 		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
 			Resources::RecreateTexture(renderpass->outputTextures[i], renderpass->width, renderpass->height, 1);
+			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
 		if(renderpass->outputDepth)
 		{
 			Resources::RecreateTexture(renderpass->outputDepth, renderpass->width, renderpass->height, 1);
 		}
+
+		vkDestroyRenderPass(Renderer::device, renderpass->renderpass, Renderer::allocationCallbacks);
 
 		Renderer::CreateRenderPass(renderpass);
 	}

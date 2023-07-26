@@ -665,9 +665,12 @@ struct NH_API Mesh
 
 struct Model
 {
-	String name{ NO_INIT };
+	void Destroy() { name.Destroy(); }
 
-	Mesh* meshes[16];
+	String		name{ NO_INIT };
+	HashHandle	handle;
+
+	Mesh*		meshes[16];
 };
 
 struct Skybox
