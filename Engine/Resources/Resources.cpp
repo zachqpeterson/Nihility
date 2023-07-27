@@ -8,6 +8,9 @@
 #include "Rendering\Pipeline.hpp"
 
 #include "External\zlib\zlib.h"
+#include "External\Assimp\cimport.h"
+#include "External\Assimp\scene.h"
+#include "External\Assimp\postprocess.h"
 
 #undef near
 #undef far
@@ -1855,6 +1858,10 @@ Model* Resources::LoadModel(const String& name)
 	if (!model->name.Blank()) { return model; }
 
 	model->name = name;
+
+	const aiScene* scene = aiImportFile(name.Data(), aiProcessPreset_TargetRealtime_MaxQuality);
+
+
 
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())

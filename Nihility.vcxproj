@@ -71,7 +71,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
@@ -102,7 +102,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
