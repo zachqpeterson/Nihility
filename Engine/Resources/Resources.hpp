@@ -90,11 +90,8 @@ private:
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
 	//Model Loading
-	static bool LoadFBX(Model* model, File& file);
-	static bool LoadOBJ(Model* model, File& file);
-
-	static void ReadFBXNode(Model* model, File& file, struct FBXNode& node, U64 nesting);
-	static void ReadFBXArray(File& file, struct FBXArray& array, U32 elementSize);
+	static Mesh* CreateMesh(const struct aiMesh* meshInfo, const String& modelName);
+	static Material* CreateMaterial(const struct aiMaterial* materialInfo, const String& modelName);
 
 	//Scene Loading
 	static bool LoadNHSCN(Scene* scene, File& file);

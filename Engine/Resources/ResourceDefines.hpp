@@ -18,11 +18,12 @@ enum ResourceUpdateType
 	RESOURCE_UPDATE_TYPE_COUNT
 };
 
-enum AlphaMode
+enum MaterialFlags
 {
-	ALPHA_MODE_OPAQUE,
-	ALPHA_MODE_MASK,
-	ALPHA_MODE_TRANSPARENT,
+	MATERIAL_FLAG_NONE = 0x00,
+	ALPHA_MODE_OPAQUE = 0x01,
+	ALPHA_MODE_MASK = 0x02,
+	ALPHA_MODE_TRANSPARENT = 0x04,
 };
 
 enum KTXType
@@ -341,9 +342,9 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format;
 	VkImageLayout		imageLayout;
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
-	Sampler*			sampler{ nullptr };
+	Sampler* sampler{ nullptr };
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };
@@ -659,6 +660,39 @@ struct NH_API Mesh
 	Quaternion3	rotation{ Quaternion3::Identity };
 };
 
+struct MaterialTest
+{
+	String name{ NO_INIT };
+
+	U32 renderIndex;
+	F32 alphaCutoff{ 0.0f };
+	MaterialFlags flags{ MATERIAL_FLAG_NONE };
+
+	U16 diffuseTextureIndex{ U16_MAX };
+	U16 metalRoughOcclTextureIndex{ U16_MAX };
+	U16 normalTextureIndex{ U16_MAX };
+	U16 emissivityTextureIndex{ U16_MAX };
+
+	Vector4 baseColorFactor{ Vector4::One };
+	Vector3 metalRoughOcclFactor{ Vector3::One };
+	Vector3 emissiveFactor{ Vector3::Zero };
+};
+
+struct MeshTest
+{
+	String name{ NO_INIT };
+
+	Material* material{ nullptr };
+
+	Buffer* indexBuffer{ nullptr };
+	Buffer* positionBuffer{ nullptr };
+	Buffer* normalBuffer{ nullptr };
+	Buffer* tangentBuffer{ nullptr };
+	Buffer* bitangentBuffer{ nullptr };
+	Buffer* texcoordBuffer{ nullptr };
+	U32 vertexCount{ 0 };
+};
+
 struct Model
 {
 	void Destroy() { name.Destroy(); }
@@ -666,7 +700,7 @@ struct Model
 	String		name{ NO_INIT };
 	HashHandle	handle;
 
-	Mesh*		meshes[32];
+	Mesh* meshes[32];
 };
 
 struct Skybox

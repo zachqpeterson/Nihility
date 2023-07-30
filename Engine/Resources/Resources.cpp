@@ -1857,144 +1857,155 @@ Model* Resources::LoadModel(const String& name)
 
 	if (!model->name.Blank()) { return model; }
 
-	model->name = name;
-
 	const aiScene* scene = aiImportFile(name.Data(), aiProcessPreset_TargetRealtime_MaxQuality);
 
+	//TODO: Verify name isn't blank
+	model->name = scene->mName.data;
 
-
-	File file(name, FILE_OPEN_RESOURCE_READ);
-	if (file.Opened())
+	for (U32 i = 0; i < scene->mNumMeshes; ++i)
 	{
-		I64 extIndex = name.LastIndexOf('.') + 1;
+		aiMesh* tempMesh = scene->mMeshes[i];
 
-		bool success = false;
+		Mesh* mesh = CreateMesh(tempMesh, model->name);
 
-		if (name.CompareN("fbx", extIndex)) { success = LoadFBX(model, file); }
-		else if (name.CompareN("obj", extIndex)) { success = LoadOBJ(model, file); }
-		else { Logger::Error("Unknown Texture Extension {}!", name); textures.Remove(name); return nullptr; }
+		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
 
-		if (!success)
-		{
-			textures.Remove(name);
-			file.Close();
-			return nullptr;
-		}
+		Material* material = CreateMaterial(tempMaterial, model->name);
 
-		file.Close();
-		return model;
+
+		BreakPoint;
 	}
 
-	Logger::Error("Failed To Find Or Open File: {}", name);
+	if (!scene)
+	{
+		Logger::Error("Failed To Import Model: {}!", name);
+		models.Remove(name);
+		return nullptr;
+	}
 
 	models.Remove(name);
 	return nullptr;
 }
 
-bool Resources::LoadFBX(Model* model, File& file)
+Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName)
 {
-	FBXHeader header;
-	file.Read(header);
+	MeshTest mesh{};
+	//TODO: Verify name isn't blank
+	mesh.name = modelName + meshInfo->mName.data;
+	mesh.vertexCount = meshInfo->mNumVertices;
 
-	if (!Memory::Compare(header.magic, (const U8*)"Kaydara FBX Binary  \0", 21))
+	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	BufferCreation bufferInfo{};
+	bufferInfo.Set(flags, RESOURCE_USAGE_IMMUTABLE, meshInfo->mNumVertices * sizeof(Vector3));
+
+	if (meshInfo->HasPositions())
 	{
-		Logger::Error("Model Is Not An FBX!");
-		return false;
+		bufferInfo.name = mesh.name + "PositionBuffer";
+		bufferInfo.initialData = meshInfo->mVertices;
+
+		mesh.positionBuffer = CreateBuffer(bufferInfo);
 	}
 
-	U32 nesting = 0;
-	while (true)
+	if (meshInfo->HasNormals())
 	{
-		FBXNode node;
-		ReadFBXNode(model, file, node, nesting);
+		bufferInfo.name = mesh.name + "NormalBuffer";
+		bufferInfo.initialData = meshInfo->mNormals;
 
-		if (node.endOffset == 0 && nesting-- == 0) { break; }
-
-		nesting += file.Pointer() < node.endOffset;
+		mesh.normalBuffer = CreateBuffer(bufferInfo);
 	}
 
-	BreakPoint;
+	if (meshInfo->HasTangentsAndBitangents())
+	{
+		bufferInfo.name = mesh.name + "TangentBuffer";
+		bufferInfo.initialData = meshInfo->mTangents;
 
-	return true;
+		mesh.tangentBuffer = CreateBuffer(bufferInfo);
+
+		bufferInfo.name = mesh.name + "BitangentBuffer";
+		bufferInfo.initialData = meshInfo->mBitangents;
+
+		mesh.bitangentBuffer = CreateBuffer(bufferInfo);
+	}
+
+	if (meshInfo->HasTextureCoords(0))
+	{
+		bufferInfo.name = mesh.name + "TextureCoordBuffer";
+		//bufferInfo.initialData = meshInfo->mTextureCoords;
+
+		mesh.texcoordBuffer = CreateBuffer(bufferInfo);
+	}
+
+	bufferInfo.name = mesh.name + "IndexBuffer";
+	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
+	bufferInfo.size = meshInfo->mNumFaces * faceSize;
+
+	U32* indexBuffer;
+	Memory::AllocateSize(&indexBuffer, bufferInfo.size);
+
+	U8* it = (U8*)indexBuffer;
+
+	for (U32 i = 0; i < meshInfo->mNumFaces; ++i)
+	{
+		Memory::Copy(it, meshInfo->mFaces[i].mIndices, faceSize);
+		it += faceSize;
+	}
+
+	bufferInfo.initialData = indexBuffer;
+	mesh.indexBuffer = CreateBuffer(bufferInfo);
+
+	Memory::FreeSize(&indexBuffer);
 }
 
-void Resources::ReadFBXNode(Model* model, File& file, FBXNode& node, U64 nesting)
+Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String& modelName)
 {
-	C8 data[100];
+	MaterialTest material{};
 
-	file.Read(node);
-	file.ReadCount(data, node.nameLength);
+	aiReturn ret;
+	aiString materialName;
+	ret = materialInfo->Get(AI_MATKEY_NAME, materialName);
+	material.name = modelName + materialName.data;
 
-	//TODO: Test multiple FBX files to verify these names are consistent!
-	if (Memory::Compare(data, "Vertices", 8)) { BreakPoint; }
-	if (Memory::Compare(data, "PolygonVertexIndex", 18)) { BreakPoint; }
-	if (Memory::Compare(data, "Normals", 7)) { BreakPoint; }
-	if (Memory::Compare(data, "UV", 2)) { BreakPoint; }
-	if (Memory::Compare(data, "UVIndex", 7)) { BreakPoint; }
+	U32 textureCount = materialInfo->GetTextureCount(aiTextureType_DIFFUSE);
 
-	for (U32 i = 0; i < node.propertyCount; ++i)
-	{
-		U8 type;
-		file.Read(type);
 
-		switch (type)
-		{
-		case 'Y': { I16 i; file.Read(i); } break;
-		case 'I': { I32 i; file.Read(i); } break;
-		case 'F': { F32 f; file.Read(f); } break;
-		case 'D': { F64 d; file.Read(d); } break;
-		case 'L': { I64 i; file.Read(i); } break;
-		case 'C': { bool b; file.Read(b); } break;
 
-		case 'f': { FBXArray array; ReadFBXArray(file, array, 4); } break;
-		case 'd': { FBXArray array; ReadFBXArray(file, array, 8); } break;
-		case 'l': { FBXArray array; ReadFBXArray(file, array, 8); } break;
-		case 'i': { FBXArray array; ReadFBXArray(file, array, 4); } break;
-		case 'b': { FBXArray array; ReadFBXArray(file, array, 1); } break;
-
-		case 'S': { U32 length; file.Read(length); file.ReadCount(data, length); } break;
-		case 'R': { U32 length; file.Read(length); file.ReadCount(data, length); } break;
-		}
-	}
-}
-
-void Resources::ReadFBXArray(File& file, FBXArray& array, U32 elementSize)
-{
-	file.Read(array);
-
-	U32 dataSize = elementSize * array.count;
-	U8* data = (U8*)malloc(dataSize);
-	//Memory::AllocateSize(&data, dataSize);
-
-	if (array.encoding == 1)
-	{
-		U8* compressed = (U8*)malloc(array.compressedLength);;
-		//Memory::AllocateSize(&compressed, array.compressedLength);
-		file.Read(compressed, array.compressedLength);
-
-		z_stream stream{};
-		inflateInit(&stream);
-
-		stream.avail_in = array.compressedLength;
-		stream.next_in = compressed;
-		stream.avail_out = dataSize;
-		stream.next_out = (U8*)data;
-
-		int status = inflate(&stream, Z_FINISH);
-
-		inflateEnd(&stream);
-	}
-	else
-	{
-		file.Read(data, dataSize);
-	}
-}
-
-bool Resources::LoadOBJ(Model* model, File& file)
-{
-	Logger::Error("OBJ File Format Not Yet Supported!");
-
-	return false;
+	//TODO: Verify name isn't blank
+	I32 shadingModel;
+	ret = materialInfo->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
+	aiColor4D color;
+	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+	ai_real roughness;
+	ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+	ai_real transparent;
+	ret = materialInfo->Get(AI_MATKEY_COLOR_TRANSPARENT, transparent);
+	ai_real transparencyFactor;
+	ret = materialInfo->Get(AI_MATKEY_TRANSPARENCYFACTOR, transparencyFactor);
+	ai_real opacity;
+	ret = materialInfo->Get(AI_MATKEY_OPACITY, opacity);
+	aiColor3D colorReflective;
+	ret = materialInfo->Get(AI_MATKEY_COLOR_REFLECTIVE, colorReflective);
+	ai_real reflectivity;
+	ret = materialInfo->Get(AI_MATKEY_REFLECTIVITY, reflectivity);
+	ai_real bumpScaling;
+	ret = materialInfo->Get(AI_MATKEY_BUMPSCALING, bumpScaling);
+	ai_real displacementScaling;
+	ret = materialInfo->Get("$mat.displacementscaling", 0, 0, displacementScaling);
+	ai_real vectorDisplacementFactor;
+	ret = materialInfo->Get("$raw.VectorDisplacementFactor", 0, 0, vectorDisplacementFactor);
+	//ShadingModel
+	//ret = materialInfo->Get("$raw.ShadingModel", 0, 0, shadingModel);
+	bool multiLayer;
+	ret = materialInfo->Get("$raw.MultiLayer", 0, 0, multiLayer);
+	//NormalMap
+	//ret = materialInfo->Get("$raw.NormalMap", 0, 0, normalMap);
+	aiColor3D vectorDisplacementColor;
+	ret = materialInfo->Get("$raw.VectorDisplacementColor", 0, 0, vectorDisplacementColor);
+	//Bump
+	//ret = materialInfo->Get("$raw.Bump", 0, 0, shininess);
+	aiColor3D displacementColor;
+	ret = materialInfo->Get("$raw.DisplacementColor", 0, 0, displacementColor);
+	ai_real shininess;
+	ret = materialInfo->Get("$raw.Shininess", 0, 0, shininess);
 }
 
 Skybox* Resources::LoadSkybox(const String& name)
