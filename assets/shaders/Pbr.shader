@@ -152,7 +152,7 @@ void main()
     vec4 baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
     baseColor.rgb = DecodeSRGB(baseColor.rgb);
 
-    if ((flags & DrawFlags_AlphaMask) != 0 && baseColor.a < alphaCutoff) { discard; }
+    if ((flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < alphaCutoff) { discard; }
 
     vec3 I = normalize(position - eye.xyz);
     vec3 R = reflect(I, normalize(normal));

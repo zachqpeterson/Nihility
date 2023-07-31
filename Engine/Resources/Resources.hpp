@@ -90,6 +90,7 @@ private:
 
 	//Model Loading
 	static Mesh* CreateMesh(const struct aiMesh* meshInfo, const String& modelName, Material* material);
+	static void CombineMesh(Mesh* mesh, const aiMesh* meshInfo);
 	static Material* CreateMaterial(const struct aiMaterial* materialInfo, const String& modelName);
 
 	//Scene Loading

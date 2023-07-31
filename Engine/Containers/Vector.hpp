@@ -287,6 +287,14 @@ public:
 	/// <param name="other:">A Vector to fill with values</param>
 	template<typename Predicate> void RemoveAll(Predicate predicate, Vector& other);
 
+	/// <summary>
+	/// Finds the first value that satisfies the predicate, return true if one exists
+	/// </summary>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="value:">A reference to return the found value</param>
+	/// <returns>true if a value exists, false otherwise</returns>
+	template<typename Predicate> bool Find(Predicate predicate, T& value);
+
 
 
 	/// <summary>
@@ -655,7 +663,9 @@ template<typename T> inline Vector<T>& Vector<T>::operator+=(Vector<T>&& other) 
 	return *this;
 }
 
-template<typename T> template<typename Predicate> inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
+template<typename T> 
+template<typename Predicate> 
+inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
 {
 	other.Reserve(size);
 	other.size = 0;
@@ -666,7 +676,9 @@ template<typename T> template<typename Predicate> inline void Vector<T>::SearchF
 	}
 }
 
-template<typename T> template<typename Predicate> inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
+template<typename T> 
+template<typename Predicate> 
+inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
 {
 	other.Reserve(size);
 	other.size = 0;
@@ -678,7 +690,9 @@ template<typename T> template<typename Predicate> inline void Vector<T>::SearchF
 	}
 }
 
-template<typename T> template<typename Predicate> inline U64 Vector<T>::SearchCount(Predicate predicate)
+template<typename T> 
+template<typename Predicate> 
+inline U64 Vector<T>::SearchCount(Predicate predicate)
 {
 	U64 i = 0;
 	for (T* t = array, *end = array + size; t != end; ++t)
@@ -689,7 +703,9 @@ template<typename T> template<typename Predicate> inline U64 Vector<T>::SearchCo
 	return i;
 }
 
-template<typename T> template<typename Predicate> inline U64 Vector<T>::RemoveAll(Predicate predicate)
+template<typename T> 
+template<typename Predicate> 
+inline U64 Vector<T>::RemoveAll(Predicate predicate)
 {
 	T* last = array + size;
 
@@ -708,7 +724,9 @@ template<typename T> template<typename Predicate> inline U64 Vector<T>::RemoveAl
 	return i;
 }
 
-template<typename T> template<typename Predicate> inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
+template<typename T> 
+template<typename Predicate> 
+inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 {
 	T* last = array + size;
 
@@ -728,18 +746,33 @@ template<typename T> template<typename Predicate> inline void Vector<T>::RemoveA
 	}
 }
 
-template<typename T> inline void Vector<T>::Reserve(U64 capacity)
+template<typename T>
+template<typename Predicate> 
+inline bool Vector<T>::Find(Predicate predicate, T& value)
+{
+	for (T* t = array, *end = array + size; t != end; ++t)
+	{
+		if (predicate(*t)) { value = *t; return true; }
+	}
+
+	return false;
+}
+
+template<typename T> 
+inline void Vector<T>::Reserve(U64 capacity)
 {
 	Memory::Reallocate(&array, capacity, this->capacity);
 }
 
-template<typename T> inline void Vector<T>::Resize(U64 size)
+template<typename T> 
+inline void Vector<T>::Resize(U64 size)
 {
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
 }
 
-template<typename T> inline void Vector<T>::Resize(U64 size, const T& value)
+template<typename T> 
+inline void Vector<T>::Resize(U64 size, const T& value)
 {
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
@@ -747,7 +780,8 @@ template<typename T> inline void Vector<T>::Resize(U64 size, const T& value)
 	for (U64 i = 0; i < size; ++i) { array[i] = value; }
 }
 
-template<typename T> inline bool Vector<T>::Contains(const T& value) const
+template<typename T> 
+inline bool Vector<T>::Contains(const T& value) const
 {
 	for (T* t = array, *end = array + size; t != end; ++t)
 	{
@@ -757,7 +791,8 @@ template<typename T> inline bool Vector<T>::Contains(const T& value) const
 	return false;
 }
 
-template<typename T> inline U64 Vector<T>::Count(const T& value) const
+template<typename T> 
+inline U64 Vector<T>::Count(const T& value) const
 {
 	U64 count = 0;
 	for (T* t = array, *end = array + size; t != end; ++t)
@@ -768,7 +803,8 @@ template<typename T> inline U64 Vector<T>::Count(const T& value) const
 	return count;
 }
 
-template<typename T> inline U64 Vector<T>::Find(const T& value) const
+template<typename T> 
+inline U64 Vector<T>::Find(const T& value) const
 {
 	U64 index = 0;
 	for (T* t = array; index < size; ++index, ++t)

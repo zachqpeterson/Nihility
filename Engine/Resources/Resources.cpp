@@ -1867,16 +1867,32 @@ Model* Resources::LoadModel(const String& name)
 		name.SubString(model->name, name.LastIndexOf('/') + 1);
 	}
 
+	Vector<Mesh*> meshes(scene->mNumMeshes);
+
 	for (U32 i = 0; i < scene->mNumMeshes; ++i)
 	{
 		aiMesh* tempMesh = scene->mMeshes[i];
 		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
 
-		//TODO: Materials here are often used multiple times, combine those meshes
 		Material* material = CreateMaterial(tempMaterial, model->name);
-		Mesh* mesh = CreateMesh(tempMesh, model->name, material);
 
-		model->meshes[model->meshCount++] = mesh;
+		bool base = false;
+		for (Mesh* m : meshes) 
+		{ 
+			if (m->material == material) 
+			{
+				base = true;
+				CombineMesh(m, tempMesh);
+
+				break;
+			}
+		}
+
+		if (!base)
+		{
+			Mesh* mesh = CreateMesh(tempMesh, model->name, material);
+			model->meshes[model->meshCount++] = mesh;
+		}
 	}
 
 	if (!scene)
@@ -1893,7 +1909,6 @@ Model* Resources::LoadModel(const String& name)
 Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Material* material)
 {
 	MeshTest mesh{};
-	//TODO: Verify name isn't blank
 	mesh.name = modelName + meshInfo->mName.data;
 	mesh.vertexCount = meshInfo->mNumVertices;
 
@@ -1958,6 +1973,12 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 	free(indexBuffer);
 
 	return {};
+}
+
+void Resources::CombineMesh(Mesh* mesh, const aiMesh* meshInfo)
+{
+	//TODO: Add vertex count to every index
+	//TODO: Add onto the current buffers
 }
 
 Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String& modelName)
