@@ -65,7 +65,11 @@ void main()
 #version 450
 #extension GL_EXT_nonuniform_qualifier : enable
 
-uint DrawFlags_AlphaMask = 1 << 0;
+const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
+const uint MATERIAL_FLAG_DIFFUSE_TEXTURE = 1 << 1;
+const uint MATERIAL_FLAG_NORMAL_TEXTURE = 1 << 2;
+const uint MATERIAL_FLAG_RMAO_TEXTURE = 1 << 3;
+const uint MATERIAL_FLAG_EMMISIVE_TEXTURE = 1 << 4;
 
 layout(std140, binding = 0) uniform LocalConstants
 {
@@ -83,7 +87,7 @@ layout(std140, binding = 1) uniform MaterialConstant
     mat4	model;
     mat4	modelInv;
 
-    // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
+
     uvec4	textures;
     vec4	baseColorFactor;
     vec3	metalRoughOcclFactor;

@@ -31,7 +31,6 @@ public:
 	static Renderpass* CreateRenderPass(const RenderpassCreation& info);
 	static Pipeline* CreatePipeline(const String& name, Renderpass* renderpass = nullptr);
 	static Program* CreateProgram(const ProgramCreation& info);
-	static Material* CreateMaterial(const MaterialCreation& info);
 	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
 	static Scene* LoadScene(const String& name);
@@ -90,7 +89,7 @@ private:
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
 	//Model Loading
-	static Mesh* CreateMesh(const struct aiMesh* meshInfo, const String& modelName);
+	static Mesh* CreateMesh(const struct aiMesh* meshInfo, const String& modelName, Material* material);
 	static Material* CreateMaterial(const struct aiMaterial* materialInfo, const String& modelName);
 
 	//Scene Loading

@@ -17,6 +17,22 @@
 
 #define BYTECAST(x) ((U8)((x) & 255))
 
+#define ASSIMP_IMPORT_FLAGS (					\
+	aiProcess_CalcTangentSpace				|	\
+    aiProcess_JoinIdenticalVertices			|	\
+    aiProcess_Triangulate					|	\
+	aiProcess_RemoveComponent				|	\
+    aiProcess_GenSmoothNormals				|	\
+    aiProcess_ValidateDataStructure			|	\
+    aiProcess_ImproveCacheLocality			|	\
+    aiProcess_RemoveRedundantMaterials		|	\
+    aiProcess_FindInvalidData				|	\
+    aiProcess_GenUVCoords					|	\
+	aiProcess_FindInstances					|	\
+    aiProcess_OptimizeMeshes				|	\
+    aiProcess_OptimizeGraph					|	\
+    aiProcess_EmbedTextures)
+
 #pragma pack(push, 1)
 
 struct BMPHeader
@@ -245,13 +261,13 @@ bool Resources::Initialize()
 	programCreation.Reset().SetName("PostProcess").AddPass(postProcess);
 	postProcessProgram = Resources::CreateProgram(programCreation);
 
-	MaterialCreation materialCreation{};
-
-	materialCreation.SetName("materials/pbr_opaque").SetProgram(pbrProgram).SetRenderIndex(0);
-	materialOpaque = Resources::CreateMaterial(materialCreation);
-
-	materialCreation.SetName("materials/pbr_transparent").SetProgram(pbrProgram).SetRenderIndex(1);
-	materialTransparent = Resources::CreateMaterial(materialCreation);
+	//MaterialCreation materialCreation{};
+	//
+	//materialCreation.SetName("materials/pbr_opaque").SetProgram(pbrProgram).SetRenderIndex(0);
+	//materialOpaque = Resources::CreateMaterial(materialCreation);
+	//
+	//materialCreation.SetName("materials/pbr_transparent").SetProgram(pbrProgram).SetRenderIndex(1);
+	//materialTransparent = Resources::CreateMaterial(materialCreation);
 
 	return true;
 }
@@ -1832,23 +1848,6 @@ Program* Resources::CreateProgram(const ProgramCreation& info)
 	return program;
 }
 
-Material* Resources::CreateMaterial(const MaterialCreation& info)
-{
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	Material* material = &materials.Request(info.name);
-
-	if (!material->name.Blank()) { return material; }
-
-	material->name = info.name;
-	material->handle = materials.GetHandle(info.name);
-
-	material->program = info.program;
-	material->renderIndex = info.renderIndex;
-
-	return material;
-}
-
 Model* Resources::LoadModel(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -1857,23 +1856,27 @@ Model* Resources::LoadModel(const String& name)
 
 	if (!model->name.Blank()) { return model; }
 
-	const aiScene* scene = aiImportFile(name.Data(), aiProcessPreset_TargetRealtime_MaxQuality);
+	const aiScene* scene = aiImportFile(name.Data(), ASSIMP_IMPORT_FLAGS);
 
-	//TODO: Verify name isn't blank
 	model->name = scene->mName.data;
+
+	if (model->name.Blank())
+	{
+		//TODO: this should work for paths with '\\' also
+		//TODO: this should work for paths without '/' or '\\'
+		name.SubString(model->name, name.LastIndexOf('/') + 1);
+	}
 
 	for (U32 i = 0; i < scene->mNumMeshes; ++i)
 	{
 		aiMesh* tempMesh = scene->mMeshes[i];
-
-		Mesh* mesh = CreateMesh(tempMesh, model->name);
-
 		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
 
+		//TODO: Materials here are often used multiple times, combine those meshes
 		Material* material = CreateMaterial(tempMaterial, model->name);
+		Mesh* mesh = CreateMesh(tempMesh, model->name, material);
 
-
-		BreakPoint;
+		model->meshes[model->meshCount++] = mesh;
 	}
 
 	if (!scene)
@@ -1887,7 +1890,7 @@ Model* Resources::LoadModel(const String& name)
 	return nullptr;
 }
 
-Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName)
+Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Material* material)
 {
 	MeshTest mesh{};
 	//TODO: Verify name isn't blank
@@ -1939,8 +1942,7 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName)
 	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
 	bufferInfo.size = meshInfo->mNumFaces * faceSize;
 
-	U32* indexBuffer;
-	Memory::AllocateSize(&indexBuffer, bufferInfo.size);
+	U32* indexBuffer = (U32*)malloc(bufferInfo.size);
 
 	U8* it = (U8*)indexBuffer;
 
@@ -1953,59 +1955,52 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName)
 	bufferInfo.initialData = indexBuffer;
 	mesh.indexBuffer = CreateBuffer(bufferInfo);
 
-	Memory::FreeSize(&indexBuffer);
+	free(indexBuffer);
+
+	return {};
 }
 
 Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String& modelName)
 {
-	MaterialTest material{};
-
 	aiReturn ret;
 	aiString materialName;
 	ret = materialInfo->Get(AI_MATKEY_NAME, materialName);
-	material.name = modelName + materialName.data;
 
-	U32 textureCount = materialInfo->GetTextureCount(aiTextureType_DIFFUSE);
+	String name = modelName + materialName.data;
 
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
+	Material* material = &materials.Request(name);
 
-	//TODO: Verify name isn't blank
+	if (!material->name.Blank()) { return material; }
+
+	material->name = Move(name);
+	material->handle = materials.GetHandle(material->name);
+
+	//material->program = info.program;
+	//material->renderIndex = info.renderIndex;
+
+	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_BASE_COLOR)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_EMISSION_COLOR)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_METALNESS)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION)) { BreakPoint; }
+
 	I32 shadingModel;
 	ret = materialInfo->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
 	aiColor4D color;
 	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+	aiColor4D baseColor;
+	ret = materialInfo->Get(AI_MATKEY_BASE_COLOR, baseColor);
 	ai_real roughness;
 	ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
-	ai_real transparent;
-	ret = materialInfo->Get(AI_MATKEY_COLOR_TRANSPARENT, transparent);
-	ai_real transparencyFactor;
-	ret = materialInfo->Get(AI_MATKEY_TRANSPARENCYFACTOR, transparencyFactor);
+	ai_real metallic;
+	ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
 	ai_real opacity;
 	ret = materialInfo->Get(AI_MATKEY_OPACITY, opacity);
-	aiColor3D colorReflective;
-	ret = materialInfo->Get(AI_MATKEY_COLOR_REFLECTIVE, colorReflective);
-	ai_real reflectivity;
-	ret = materialInfo->Get(AI_MATKEY_REFLECTIVITY, reflectivity);
-	ai_real bumpScaling;
-	ret = materialInfo->Get(AI_MATKEY_BUMPSCALING, bumpScaling);
-	ai_real displacementScaling;
-	ret = materialInfo->Get("$mat.displacementscaling", 0, 0, displacementScaling);
-	ai_real vectorDisplacementFactor;
-	ret = materialInfo->Get("$raw.VectorDisplacementFactor", 0, 0, vectorDisplacementFactor);
-	//ShadingModel
-	//ret = materialInfo->Get("$raw.ShadingModel", 0, 0, shadingModel);
-	bool multiLayer;
-	ret = materialInfo->Get("$raw.MultiLayer", 0, 0, multiLayer);
-	//NormalMap
-	//ret = materialInfo->Get("$raw.NormalMap", 0, 0, normalMap);
-	aiColor3D vectorDisplacementColor;
-	ret = materialInfo->Get("$raw.VectorDisplacementColor", 0, 0, vectorDisplacementColor);
-	//Bump
-	//ret = materialInfo->Get("$raw.Bump", 0, 0, shininess);
-	aiColor3D displacementColor;
-	ret = materialInfo->Get("$raw.DisplacementColor", 0, 0, displacementColor);
-	ai_real shininess;
-	ret = materialInfo->Get("$raw.Shininess", 0, 0, shininess);
+
+	return material;
 }
 
 Skybox* Resources::LoadSkybox(const String& name)

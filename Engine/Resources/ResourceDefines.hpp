@@ -567,19 +567,6 @@ struct ProgramCreation
 	U8			passCount;
 };
 
-struct Material
-{
-	void Destroy() { name.Destroy(); }
-
-	String		name{ NO_INIT };
-	HashHandle	handle;
-
-	U32			renderIndex;
-	U32			poolIndex;
-
-	Program* program{ nullptr };
-};
-
 struct MaterialCreation
 {
 	void Destroy() { name.Destroy(); }
@@ -627,6 +614,29 @@ struct MeshData
 	U32			flags;
 };
 
+struct Material
+{
+	void Destroy() { name.Destroy(); }
+
+	String name{ NO_INIT };
+	HashHandle	handle;
+
+	Program* program{ nullptr };
+
+	U32 renderIndex;
+	F32 alphaCutoff{ 0.0f };
+	MaterialFlags flags{ MATERIAL_FLAG_NONE };
+
+	U16 diffuseTextureIndex{ U16_MAX };
+	U16 metalRoughOcclTextureIndex{ U16_MAX };
+	U16 normalTextureIndex{ U16_MAX };
+	U16 emissivityTextureIndex{ U16_MAX };
+
+	Vector4 baseColorFactor{ Vector4::One };
+	Vector3 metalRoughOcclFactor{ Vector3::One };
+	Vector3 emissiveFactor{ Vector3::Zero };
+};
+
 struct NH_API Mesh
 {
 	Material* material;
@@ -660,24 +670,6 @@ struct NH_API Mesh
 	Quaternion3	rotation{ Quaternion3::Identity };
 };
 
-struct MaterialTest
-{
-	String name{ NO_INIT };
-
-	U32 renderIndex;
-	F32 alphaCutoff{ 0.0f };
-	MaterialFlags flags{ MATERIAL_FLAG_NONE };
-
-	U16 diffuseTextureIndex{ U16_MAX };
-	U16 metalRoughOcclTextureIndex{ U16_MAX };
-	U16 normalTextureIndex{ U16_MAX };
-	U16 emissivityTextureIndex{ U16_MAX };
-
-	Vector4 baseColorFactor{ Vector4::One };
-	Vector3 metalRoughOcclFactor{ Vector3::One };
-	Vector3 emissiveFactor{ Vector3::Zero };
-};
-
 struct MeshTest
 {
 	String name{ NO_INIT };
@@ -700,7 +692,8 @@ struct Model
 	String		name{ NO_INIT };
 	HashHandle	handle;
 
-	Mesh* meshes[32];
+	Mesh* meshes[32]{ nullptr };
+	U32 meshCount{ 0 };
 };
 
 struct Skybox
