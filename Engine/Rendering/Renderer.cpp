@@ -17,10 +17,8 @@
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_DEBUG_LOG
 #define VMA_IMPLEMENTATION
-#include "External\vma\vk_mem_alloc.h"
-
-//#include "External\glslang\Include\glslang_c_interface.h"
-#include "External\glslang\Public\ShaderLang.h"
+#include "External\LunarG\vma\vk_mem_alloc.h"
+#include "External\LunarG\glslang\Public\ShaderLang.h"
 
 static constexpr CSTR extensions[]{
 	VK_KHR_SURFACE_EXTENSION_NAME,
@@ -57,7 +55,6 @@ static constexpr CSTR layers[]{
 	//"VK_LAYER_LUNARG_parameter_validation",
 	//"VK_LAYER_LUNARG_object_tracker",
 #else
-	"",
 #endif
 };
 
@@ -352,8 +349,6 @@ bool Renderer::CreateDevice()
 
 	for (VkExtensionProperties& ext : extensions)
 	{
-		Logger::Debug(ext.extensionName);
-
 		pushDescriptorsSupported |= Memory::Compare(ext.extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 22);
 		meshShadingSupported |= Memory::Compare(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME, 18);
 		profilingSupported |= Memory::Compare(ext.extensionName, VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME, 24);
@@ -362,10 +357,17 @@ bool Renderer::CreateDevice()
 	U32 deviceExtensionCount = 0;
 	CSTR deviceExtensions[4];
 
-	deviceExtensions[deviceExtensionCount++] = "VK_KHR_swapchain";
+	deviceExtensions[deviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 	if (pushDescriptorsSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME; }
 	if (meshShadingSupported) { deviceExtensions[deviceExtensionCount++] = VK_EXT_MESH_SHADER_EXTENSION_NAME; }
 	if (profilingSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME; }
+
+	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr };
+	VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
+
+	vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+
+	bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
 
 	VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	features.features.multiDrawIndirect = true;
@@ -386,6 +388,12 @@ bool Renderer::CreateDevice()
 	features12.samplerFilterMinmax = true;
 	features12.scalarBlockLayout = true;
 
+	if (bindlessSupported)
+	{
+		features12.descriptorBindingPartiallyBound = true;
+		features12.runtimeDescriptorArray = true;
+	}
+
 	VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
 	features13.dynamicRendering = true;
 	features13.synchronization2 = true;
@@ -399,18 +407,9 @@ bool Renderer::CreateDevice()
 	features11.pNext = &features12;
 	features12.pNext = &features13;
 
-	//TODO: multiple conditional features
-	if (meshShadingSupported)
-		features13.pNext = &featuresMesh;
+	void** next = &features13.pNext;
 
-	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr };
-	VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
-
-	VkPhysicalDeviceFeatures2 physicalFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-	vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
-
-	bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
-	if (bindlessSupported) { physicalFeatures2.pNext = &indexingFeatures; }
+	if (meshShadingSupported) { *next = &featuresMesh; next = &featuresMesh.pNext; }
 
 	VkDeviceCreateInfo deviceInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 	deviceInfo.queueCreateInfoCount = CountOf32(queueInfo);

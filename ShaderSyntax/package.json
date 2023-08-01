@@ -1,0 +1,25 @@
+{
+  "name": "nhshd",
+  "displayName": "Nihility Shader",
+  "description": "Nihility Shader",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "nhshd",
+      "aliases": ["Nihility Shader", "nhshd"],
+      "extensions": [".nhshd"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "nhshd",
+      "scopeName": "source.nhshd",
+      "path": "./syntaxes/nhshd.tmLanguage.json"
+    }]
+  }
+}

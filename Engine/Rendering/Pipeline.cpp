@@ -6,15 +6,14 @@
 #include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 
-//#include "External\glslang\Include\glslang_c_interface.h"
-#include "External\glslang\Public\ShaderLang.h"
-#include "External\spirv_cross\spirv_reflect.h"
-#include "External\SPIRV\GlslangToSpv.h"
+#include "External\LunarG\glslang\Public\ShaderLang.h"
+#include "External\LunarG\glslang\SPIRV\GlslangToSpv.h"
+#include "External\LunarG\spirv_cross\spirv_reflect.h"
 
 #if defined(_MSC_VER)
-#include <spirv-headers\spirv.h>
+#include "External\LunarG\spirv-headers\spirv.h"
 #else
-#include <spirv_cross\spirv.h>
+#include "External\LunarG\spirv_cross\spirv.h"
 #endif
 
 TBuiltInResource resources{
@@ -122,37 +121,6 @@ TBuiltInResource resources{
 			.generalVariableIndexing = 1,
 			.generalConstantMatrixVectorIndexing = 1,
 	}
-};
-
-struct Member
-{
-	U32	idIndex;
-	U32	offset;
-};
-
-struct Id
-{
-	SpvOp	op;
-	U32		set;
-	U32		binding;
-	U32		location;
-
-	// For integers and floats
-	U8		width;
-	U8		sign;
-
-	// For arrays, vectors and matrices
-	U32		typeIndex;
-	U32		count;
-
-	// For variables
-	SpvStorageClass	storageClass;
-
-	// For constants
-	U32				value;
-
-	// For structs
-	Vector<Member>	members;
 };
 
 //void Shader::SetSpecializationData(const SpecializationData& data)
