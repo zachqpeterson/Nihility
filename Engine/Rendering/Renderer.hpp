@@ -95,12 +95,9 @@ private:
 	static U64									sboAlignemnt;
 
 	static bool									bindlessSupported;
-
-	// RAY TRACING
-	static VkPhysicalDeviceRayTracingPipelineFeaturesKHR	rayTracingPipelineFeatures;
-	static VkPhysicalDeviceRayTracingPipelinePropertiesKHR	rayTracingPipelineProperties;
-	static VkPhysicalDeviceAccelerationStructureFeaturesKHR	accelerationStructureFeatures;
-	static bool												rayTracingPresent;
+	static bool									pushDescriptorsSupported;
+	static bool									meshShadingSupported;
+	static bool									profilingSupported;
 
 	// WINDOW
 	static U32									imageIndex;

@@ -61,11 +61,6 @@ static constexpr CSTR layers[]{
 #endif
 };
 
-static constexpr CSTR deviceExtensions[]{
-	"VK_KHR_swapchain",
-	//"VK_KHR_dynamic_rendering",
-};
-
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -106,12 +101,9 @@ U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
 
 bool								Renderer::bindlessSupported{ false };
-
-// RAY TRACING
-VkPhysicalDeviceRayTracingPipelineFeaturesKHR		Renderer::rayTracingPipelineFeatures;
-VkPhysicalDeviceRayTracingPipelinePropertiesKHR		Renderer::rayTracingPipelineProperties;
-VkPhysicalDeviceAccelerationStructureFeaturesKHR	Renderer::accelerationStructureFeatures;
-bool												Renderer::rayTracingPresent{ false };
+bool								Renderer::pushDescriptorsSupported{ false };
+bool								Renderer::meshShadingSupported{ false };
+bool								Renderer::profilingSupported{ false };
 
 // WINDOW
 U32									Renderer::imageIndex{ 0 };
@@ -353,24 +345,69 @@ bool Renderer::CreateDevice()
 	queueInfo[0].flags = 0;
 	queueInfo[0].pNext = nullptr;
 
+	U32 extensionCount = 0;
+	VkValidateFR(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &extensionCount, 0));
+	Vector<VkExtensionProperties> extensions(extensionCount, {});
+	VkValidateFR(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &extensionCount, extensions.Data()));
+
+	for (VkExtensionProperties& ext : extensions)
+	{
+		Logger::Debug(ext.extensionName);
+
+		pushDescriptorsSupported |= Memory::Compare(ext.extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 22);
+		meshShadingSupported |= Memory::Compare(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME, 18);
+		profilingSupported |= Memory::Compare(ext.extensionName, VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME, 24);
+	}
+
+	U32 deviceExtensionCount = 0;
+	CSTR deviceExtensions[4];
+
+	deviceExtensions[deviceExtensionCount++] = "VK_KHR_swapchain";
+	if (pushDescriptorsSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME; }
+	if (meshShadingSupported) { deviceExtensions[deviceExtensionCount++] = VK_EXT_MESH_SHADER_EXTENSION_NAME; }
+	if (profilingSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME; }
+
+	VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+	features.features.multiDrawIndirect = true;
+	features.features.pipelineStatisticsQuery = true;
+	features.features.shaderInt16 = true;
+	features.features.shaderInt64 = true;
+
+	VkPhysicalDeviceVulkan11Features features11{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+	features11.storageBuffer16BitAccess = true;
+	features11.shaderDrawParameters = true;
+
+	VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+	features12.drawIndirectCount = true;
+	features12.storageBuffer8BitAccess = true;
+	features12.uniformAndStorageBuffer8BitAccess = true;
+	features12.shaderFloat16 = true;
+	features12.shaderInt8 = true;
+	features12.samplerFilterMinmax = true;
+	features12.scalarBlockLayout = true;
+
+	VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+	features13.dynamicRendering = true;
+	features13.synchronization2 = true;
+	features13.maintenance4 = true;
+
+	VkPhysicalDeviceMeshShaderFeaturesEXT featuresMesh{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };
+	featuresMesh.taskShader = true;
+	featuresMesh.meshShader = true;
+
+	features.pNext = &features11;
+	features11.pNext = &features12;
+	features12.pNext = &features13;
+
+	//TODO: multiple conditional features
+	if (meshShadingSupported)
+		features13.pNext = &featuresMesh;
+
 	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr };
 	VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
 
-	accelerationStructureFeatures = VkPhysicalDeviceAccelerationStructureFeaturesKHR{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
-	rayTracingPipelineFeatures = VkPhysicalDeviceRayTracingPipelineFeaturesKHR{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
-	if (rayTracingPresent)
-	{
-		indexingFeatures.pNext = &accelerationStructureFeatures;
-		accelerationStructureFeatures.pNext = &rayTracingPipelineFeatures;
-	}
-
 	VkPhysicalDeviceFeatures2 physicalFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
-
-	//TODO: Setup dynamic rendering
-	//VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeaturesKHR{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
-	//dynamicRenderingFeaturesKHR.dynamicRendering = VK_TRUE;
-	//physicalFeatures2.pNext = &dynamicRenderingFeaturesKHR;
 
 	bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
 	if (bindlessSupported) { physicalFeatures2.pNext = &indexingFeatures; }
@@ -378,9 +415,9 @@ bool Renderer::CreateDevice()
 	VkDeviceCreateInfo deviceInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 	deviceInfo.queueCreateInfoCount = CountOf32(queueInfo);
 	deviceInfo.pQueueCreateInfos = queueInfo;
-	deviceInfo.enabledExtensionCount = CountOf32(deviceExtensions);
+	deviceInfo.enabledExtensionCount = deviceExtensionCount;
 	deviceInfo.ppEnabledExtensionNames = deviceExtensions;
-	deviceInfo.pNext = &physicalFeatures2;
+	deviceInfo.pNext = &features;
 	deviceInfo.pEnabledFeatures = nullptr;
 	deviceInfo.flags = 0;
 
