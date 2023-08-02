@@ -162,6 +162,7 @@ Texture* Resources::dummyTexture;
 Buffer* Resources::dummyAttributeBuffer;
 Sampler* Resources::defaultSampler;
 Program* Resources::skyboxProgram;
+Program* Resources::pbrProgram;
 Program* Resources::postProcessProgram;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
@@ -177,6 +178,7 @@ Hashmap<String, Renderpass>		Resources::renderPasses{ 256, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
 Hashmap<String, Program>		Resources::programs{ 128, {} };
 Hashmap<String, Material>		Resources::materials{ 128, {} };
+Hashmap<String, Mesh>			Resources::meshes{ 128, {} };
 Hashmap<String, Model>			Resources::models{ 128, {} };
 Hashmap<String, Skybox>			Resources::skyboxes{ 32, {} };
 Hashmap<String, Scene>			Resources::scenes{ 128, {} };
@@ -256,7 +258,7 @@ bool Resources::Initialize()
 	skyboxProgram = Resources::CreateProgram(programCreation);
 
 	programCreation.Reset().SetName("PBR").AddPass(pbr);
-	Program* pbrProgram = Resources::CreateProgram(programCreation);
+	pbrProgram = Resources::CreateProgram(programCreation);
 
 	programCreation.Reset().SetName("PostProcess").AddPass(postProcess);
 	postProcessProgram = Resources::CreateProgram(programCreation);
@@ -1193,10 +1195,10 @@ bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 		texture->depth = 1;
 		texture->size = dataSize;
 		texture->mipmaps = 1;
-		
+
 		U32 layerSize = dataSize / header.faceCount;
 		Renderer::CreateCubeMap(texture, data, &layerSize);
-		
+
 		free(data);
 	}
 	else
@@ -1858,6 +1860,13 @@ Model* Resources::LoadModel(const String& name)
 
 	const aiScene* scene = aiImportFile(name.Data(), ASSIMP_IMPORT_FLAGS);
 
+	if (!scene)
+	{
+		Logger::Error("Failed To Import Model: {}!", name);
+		models.Remove(name);
+		return nullptr;
+	}
+
 	model->name = scene->mName.data;
 
 	if (model->name.Blank())
@@ -1877,9 +1886,9 @@ Model* Resources::LoadModel(const String& name)
 		Material* material = CreateMaterial(tempMaterial, model->name);
 
 		bool base = false;
-		for (Mesh* m : meshes) 
-		{ 
-			if (m->material == material) 
+		for (Mesh* m : meshes)
+		{
+			if (m->material == material)
 			{
 				base = true;
 				CombineMesh(m, tempMesh);
@@ -1895,22 +1904,24 @@ Model* Resources::LoadModel(const String& name)
 		}
 	}
 
-	if (!scene)
-	{
-		Logger::Error("Failed To Import Model: {}!", name);
-		models.Remove(name);
-		return nullptr;
-	}
+	aiReleaseImport(scene);
 
-	models.Remove(name);
-	return nullptr;
+	return model;
 }
 
 Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Material* material)
 {
-	MeshTest mesh{};
-	mesh.name = modelName + meshInfo->mName.data;
-	mesh.vertexCount = meshInfo->mNumVertices;
+	String name = modelName + meshInfo->mName.C_Str();
+
+	if (name.Blank()) { Logger::Error("CreateMesh: Resources Must Have Names!"); return nullptr; }
+
+	Mesh* mesh = &meshes.Request(name);
+
+	if (!mesh->name.Blank()) { return mesh; }
+
+	mesh->name = modelName + meshInfo->mName.data;
+	mesh->vertexCount = meshInfo->mNumVertices;
+	mesh->material = material;
 
 	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 	BufferCreation bufferInfo{};
@@ -1918,42 +1929,51 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 
 	if (meshInfo->HasPositions())
 	{
-		bufferInfo.name = mesh.name + "PositionBuffer";
+		bufferInfo.name = mesh->name + "PositionBuffer";
 		bufferInfo.initialData = meshInfo->mVertices;
 
-		mesh.positionBuffer = CreateBuffer(bufferInfo);
+		mesh->positionBuffer = CreateBuffer(bufferInfo);
 	}
 
 	if (meshInfo->HasNormals())
 	{
-		bufferInfo.name = mesh.name + "NormalBuffer";
+		bufferInfo.name = mesh->name + "NormalBuffer";
 		bufferInfo.initialData = meshInfo->mNormals;
 
-		mesh.normalBuffer = CreateBuffer(bufferInfo);
+		mesh->normalBuffer = CreateBuffer(bufferInfo);
 	}
 
 	if (meshInfo->HasTangentsAndBitangents())
 	{
-		bufferInfo.name = mesh.name + "TangentBuffer";
+		bufferInfo.name = mesh->name + "TangentBuffer";
 		bufferInfo.initialData = meshInfo->mTangents;
 
-		mesh.tangentBuffer = CreateBuffer(bufferInfo);
+		mesh->tangentBuffer = CreateBuffer(bufferInfo);
 
-		bufferInfo.name = mesh.name + "BitangentBuffer";
+		bufferInfo.name = mesh->name + "BitangentBuffer";
 		bufferInfo.initialData = meshInfo->mBitangents;
 
-		mesh.bitangentBuffer = CreateBuffer(bufferInfo);
+		mesh->bitangentBuffer = CreateBuffer(bufferInfo);
+	}
+	else
+	{
+		mesh->material->flags != MATERIAL_FLAG_NO_TANGENTS;
 	}
 
 	if (meshInfo->HasTextureCoords(0))
 	{
-		bufferInfo.name = mesh.name + "TextureCoordBuffer";
+		bufferInfo.name = mesh->name + "TextureCoordBuffer";
+		//TODO:
 		//bufferInfo.initialData = meshInfo->mTextureCoords;
 
-		mesh.texcoordBuffer = CreateBuffer(bufferInfo);
+		mesh->texcoordBuffer = CreateBuffer(bufferInfo);
+	}
+	else
+	{
+		mesh->material->flags != MATERIAL_FLAG_NO_TEXTURE_COORDS;
 	}
 
-	bufferInfo.name = mesh.name + "IndexBuffer";
+	bufferInfo.name = mesh->name + "IndexBuffer";
 	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
 	bufferInfo.size = meshInfo->mNumFaces * faceSize;
 
@@ -1968,11 +1988,11 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 	}
 
 	bufferInfo.initialData = indexBuffer;
-	mesh.indexBuffer = CreateBuffer(bufferInfo);
+	mesh->indexBuffer = CreateBuffer(bufferInfo);
 
 	free(indexBuffer);
 
-	return {};
+	return mesh;
 }
 
 void Resources::CombineMesh(Mesh* mesh, const aiMesh* meshInfo)
@@ -1989,7 +2009,7 @@ Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String
 
 	String name = modelName + materialName.data;
 
-	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (name.Blank()) { Logger::Error("CreateMaterial: Resources Must Have Names!"); return nullptr; }
 
 	Material* material = &materials.Request(name);
 
@@ -1997,8 +2017,8 @@ Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String
 
 	material->name = Move(name);
 	material->handle = materials.GetHandle(material->name);
+	material->program = pbrProgram;
 
-	//material->program = info.program;
 	//material->renderIndex = info.renderIndex;
 
 	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE)) { BreakPoint; }
@@ -2008,18 +2028,25 @@ Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String
 	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION)) { BreakPoint; }
 
-	I32 shadingModel;
-	ret = materialInfo->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
-	aiColor4D color;
+	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
 	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-	aiColor4D baseColor;
-	ret = materialInfo->Get(AI_MATKEY_BASE_COLOR, baseColor);
-	ai_real roughness;
+	ai_real roughness{ 0.5f };
 	ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
-	ai_real metallic;
+	ai_real metallic{ 0.5f };
 	ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
-	ai_real opacity;
-	ret = materialInfo->Get(AI_MATKEY_OPACITY, opacity);
+
+	material->baseColorFactor.x = color.r;
+	material->baseColorFactor.y = color.g;
+	material->baseColorFactor.z = color.b;
+	material->baseColorFactor.w = color.a;
+
+	material->metalRoughOcclFactor.x = metallic;
+	material->metalRoughOcclFactor.y = roughness;
+	material->metalRoughOcclFactor.z = 0.0f;
+
+	BufferCreation bufferCreation{};
+	bufferCreation.Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName(material->name);
+	material->materialBuffer = CreateBuffer(bufferCreation);
 
 	return material;
 }
@@ -2042,6 +2069,24 @@ Skybox* Resources::LoadSkybox(const String& name)
 	skybox->buffer = LoadBuffer(bufferCreation);
 
 	return skybox;
+}
+
+Scene* Resources::CreateScene(const String& name)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	Scene* scene = &scenes.Request(name);
+
+	if (!scene->name.Blank()) { return scene; }
+
+	scene->name = name;
+	scene->drawSkybox = false;
+
+	scene->camera.SetPerspective(0.00001f, 1000.0f, 45.0f, Settings::WindowWidth() / Settings::WindowHeight());
+
+	scene->Create();
+
+	return scene;
 }
 
 Scene* Resources::LoadScene(const String& name)
@@ -2087,192 +2132,192 @@ Scene* Resources::LoadScene(const String& name)
 
 bool Resources::LoadNHSCN(Scene* scene, File& file)
 {
-	U32 bufferCount;
-	U32 textureCount;
-	U32 samplerCount;
-	U32 meshCount;
-
-	file.Read(bufferCount);
-	file.Read(samplerCount);
-	file.Read(textureCount);
-	file.Read(meshCount);
-
-	scene->buffers.Reserve(bufferCount);
-	scene->textures.Reserve(textureCount);
-	scene->samplers.Reserve(samplerCount);
-	scene->meshes.Reserve(meshCount);
-
-	String str{};
-	void* bufferData = nullptr;
-	U32 bufferLength = 0;
-	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-	for (U32 i = 0; i < bufferCount; ++i)
-	{
-		file.ReadString(str);
-
-		BufferCreation bufferCreation{};
-		bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
-		Buffer* buffer = LoadBuffer(bufferCreation);
-		buffer->sceneID = i;
-
-		scene->buffers.Push(buffer);
-	}
-
-	//TODO: Check for no samplers, use default sampler
-	for (U32 i = 0; i < samplerCount; ++i)
-	{
-		SamplerCreation samplerInfo{};
-		samplerInfo.SetName("Sampler"); //TODO: Unique name!
-		file.Read((I32&)samplerInfo.minFilter);
-		file.Read((I32&)samplerInfo.magFilter);
-		file.Read((I32&)samplerInfo.mipFilter);
-		file.Read((I32&)samplerInfo.addressModeU);
-		file.Read((I32&)samplerInfo.addressModeV);
-		file.Read((I32&)samplerInfo.addressModeW);
-		file.Read((I32&)samplerInfo.border);
-
-		Sampler* sampler = CreateSampler(samplerInfo);
-		sampler->sceneID = i;
-
-		scene->samplers.Push(sampler);
-	}
-
-	for (U32 i = 0; i < textureCount; ++i)
-	{
-		file.ReadString(str);
-		U32 samplerID = 0;
-		file.Read(samplerID);
-
-		Texture* texture = LoadTexture(str, true);
-		texture->sceneID = i;
-		texture->sampler = scene->samplers[samplerID];
-
-		scene->textures.Push(texture);
-	}
-
-	file.ReadString(str);
-	scene->skybox = LoadSkybox(str);
-
-	scene->camera = {};
-	bool perspective;
-	F32 near, far;
-	Vector3 position, rotation;
-	file.Read(perspective);
-	file.Read(near);
-	file.Read(far);
-	file.Read(position.x);
-	file.Read(position.y);
-	file.Read(position.z);
-	file.Read(rotation.x);
-	file.Read(rotation.y);
-	file.Read(rotation.z);
-
-	scene->camera.SetPosition(position);
-	scene->camera.SetRotation(rotation);
-
-	if (perspective)
-	{
-		F32 fov, aspect;
-		file.Read(fov);
-		file.Read(aspect);
-
-		scene->camera.SetPerspective(near, far, fov, aspect);
-	}
-	else
-	{
-		F32 width, height, zoom;
-		file.Read(width);
-		file.Read(height);
-		file.Read(zoom);
-
-		scene->camera.SetOrthograpic(near, far, width, height, zoom);
-	}
-
-	for (U32 i = 0; i < meshCount; ++i)
-	{
-		Mesh mesh{};
-		BufferCreation bufferCreation{};
-		U32 id;
-		U64 offset;
-		U64 size;
-
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.texcoordBuffer = CreateBuffer(bufferCreation);
-
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.normalBuffer = CreateBuffer(bufferCreation);
-
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.tangentBuffer = CreateBuffer(bufferCreation);
-
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.positionBuffer = CreateBuffer(bufferCreation);
-
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.indexBuffer = CreateBuffer(bufferCreation);
-
-		mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
-
-		file.Read(id);
-		mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
-		file.Read(id);
-		mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
-		file.Read(id);
-		mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
-		file.Read(id);
-		mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
-
-		file.Read(mesh.baseColorFactor.x);
-		file.Read(mesh.baseColorFactor.y);
-		file.Read(mesh.baseColorFactor.z);
-		file.Read(mesh.baseColorFactor.w);
-		file.Read(mesh.metalRoughOcclFactor.x);
-		file.Read(mesh.metalRoughOcclFactor.y);
-		file.Read(mesh.metalRoughOcclFactor.z);
-		file.Read(mesh.emissiveFactor.x);
-		file.Read(mesh.emissiveFactor.y);
-		file.Read(mesh.emissiveFactor.z);
-		file.Read(mesh.flags);
-		file.Read(mesh.alphaCutoff);
-
-		Vector3 euler;
-		file.Read(mesh.position.x);
-		file.Read(mesh.position.y);
-		file.Read(mesh.position.z);
-		file.Read(euler.x);
-		file.Read(euler.y);
-		file.Read(euler.z);
-		file.Read(mesh.scale.x);
-		file.Read(mesh.scale.y);
-		file.Read(mesh.scale.z);
-
-		mesh.rotation = Quaternion3(euler);
-
-		bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
-		mesh.materialBuffer = CreateBuffer(bufferCreation);
-		mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
-
-		scene->meshes.Push(mesh);
-	}
-	
-	scene->Create();
-
+	//U32 bufferCount;
+	//U32 textureCount;
+	//U32 samplerCount;
+	//U32 meshCount;
+	//
+	//file.Read(bufferCount);
+	//file.Read(samplerCount);
+	//file.Read(textureCount);
+	//file.Read(meshCount);
+	//
+	//scene->buffers.Reserve(bufferCount);
+	//scene->textures.Reserve(textureCount);
+	//scene->samplers.Reserve(samplerCount);
+	//scene->meshes.Reserve(meshCount);
+	//
+	//String str{};
+	//void* bufferData = nullptr;
+	//U32 bufferLength = 0;
+	//VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	//
+	//for (U32 i = 0; i < bufferCount; ++i)
+	//{
+	//	file.ReadString(str);
+	//
+	//	BufferCreation bufferCreation{};
+	//	bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
+	//	Buffer* buffer = LoadBuffer(bufferCreation);
+	//	buffer->sceneID = i;
+	//
+	//	scene->buffers.Push(buffer);
+	//}
+	//
+	////TODO: Check for no samplers, use default sampler
+	//for (U32 i = 0; i < samplerCount; ++i)
+	//{
+	//	SamplerCreation samplerInfo{};
+	//	samplerInfo.SetName("Sampler"); //TODO: Unique name!
+	//	file.Read((I32&)samplerInfo.minFilter);
+	//	file.Read((I32&)samplerInfo.magFilter);
+	//	file.Read((I32&)samplerInfo.mipFilter);
+	//	file.Read((I32&)samplerInfo.addressModeU);
+	//	file.Read((I32&)samplerInfo.addressModeV);
+	//	file.Read((I32&)samplerInfo.addressModeW);
+	//	file.Read((I32&)samplerInfo.border);
+	//
+	//	Sampler* sampler = CreateSampler(samplerInfo);
+	//	sampler->sceneID = i;
+	//
+	//	scene->samplers.Push(sampler);
+	//}
+	//
+	//for (U32 i = 0; i < textureCount; ++i)
+	//{
+	//	file.ReadString(str);
+	//	U32 samplerID = 0;
+	//	file.Read(samplerID);
+	//
+	//	Texture* texture = LoadTexture(str, true);
+	//	texture->sceneID = i;
+	//	texture->sampler = scene->samplers[samplerID];
+	//
+	//	scene->textures.Push(texture);
+	//}
+	//
+	//file.ReadString(str);
+	//scene->skybox = LoadSkybox(str);
+	//
+	//scene->camera = {};
+	//bool perspective;
+	//F32 near, far;
+	//Vector3 position, rotation;
+	//file.Read(perspective);
+	//file.Read(near);
+	//file.Read(far);
+	//file.Read(position.x);
+	//file.Read(position.y);
+	//file.Read(position.z);
+	//file.Read(rotation.x);
+	//file.Read(rotation.y);
+	//file.Read(rotation.z);
+	//
+	//scene->camera.SetPosition(position);
+	//scene->camera.SetRotation(rotation);
+	//
+	//if (perspective)
+	//{
+	//	F32 fov, aspect;
+	//	file.Read(fov);
+	//	file.Read(aspect);
+	//
+	//	scene->camera.SetPerspective(near, far, fov, aspect);
+	//}
+	//else
+	//{
+	//	F32 width, height, zoom;
+	//	file.Read(width);
+	//	file.Read(height);
+	//	file.Read(zoom);
+	//
+	//	scene->camera.SetOrthograpic(near, far, width, height, zoom);
+	//}
+	//
+	//for (U32 i = 0; i < meshCount; ++i)
+	//{
+	//	Mesh mesh{};
+	//	BufferCreation bufferCreation{};
+	//	U32 id;
+	//	U64 offset;
+	//	U64 size;
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.texcoordBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.normalBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.tangentBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.positionBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.indexBuffer = CreateBuffer(bufferCreation);
+	//
+	//	mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
+	//
+	//	file.Read(id);
+	//	mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
+	//	file.Read(id);
+	//	mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
+	//	file.Read(id);
+	//	mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
+	//	file.Read(id);
+	//	mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
+	//
+	//	file.Read(mesh.baseColorFactor.x);
+	//	file.Read(mesh.baseColorFactor.y);
+	//	file.Read(mesh.baseColorFactor.z);
+	//	file.Read(mesh.baseColorFactor.w);
+	//	file.Read(mesh.metalRoughOcclFactor.x);
+	//	file.Read(mesh.metalRoughOcclFactor.y);
+	//	file.Read(mesh.metalRoughOcclFactor.z);
+	//	file.Read(mesh.emissiveFactor.x);
+	//	file.Read(mesh.emissiveFactor.y);
+	//	file.Read(mesh.emissiveFactor.z);
+	//	file.Read(mesh.flags);
+	//	file.Read(mesh.alphaCutoff);
+	//
+	//	Vector3 euler;
+	//	file.Read(mesh.position.x);
+	//	file.Read(mesh.position.y);
+	//	file.Read(mesh.position.z);
+	//	file.Read(euler.x);
+	//	file.Read(euler.y);
+	//	file.Read(euler.z);
+	//	file.Read(mesh.scale.x);
+	//	file.Read(mesh.scale.y);
+	//	file.Read(mesh.scale.z);
+	//
+	//	mesh.rotation = Quaternion3(euler);
+	//
+	//	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
+	//	mesh.materialBuffer = CreateBuffer(bufferCreation);
+	//	mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
+	//
+	//	scene->meshes.Push(mesh);
+	//}
+	//
+	//scene->Create();
+	//
 	return true;
 }
 
@@ -2292,102 +2337,102 @@ bool Resources::LoadGLTF(Scene* scene, File& file)
 
 void Resources::SaveScene(const Scene* scene)
 {
-	File file(scene->name, FILE_OPEN_RESOURCE_WRITE);
-	if (file.Opened())
-	{
-		file.Write((U32)scene->buffers.Size());
-		file.Write((U32)scene->samplers.Size());
-		file.Write((U32)scene->textures.Size());
-		file.Write((U32)scene->meshes.Size());
-
-		for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
-		for (Sampler* sampler : scene->samplers)
-		{
-			file.Write((I32)sampler->minFilter);
-			file.Write((I32)sampler->magFilter);
-			file.Write((I32)sampler->mipFilter);
-			file.Write((I32)sampler->addressModeU);
-			file.Write((I32)sampler->addressModeV);
-			file.Write((I32)sampler->addressModeW);
-			file.Write((I32)sampler->border);
-		}
-		for (Texture* texture : scene->textures) { file.Write(texture->name); file.Write(texture->sampler->sceneID); }
-
-		file.Write(scene->skybox->name);
-
-		file.Write(scene->camera.perspective);
-		file.Write(scene->camera.nearPlane);
-		file.Write(scene->camera.farPlane);
-		file.Write(scene->camera.position.x);
-		file.Write(scene->camera.position.y);
-		file.Write(scene->camera.position.z);
-		Vector3 rotation = scene->camera.Euler();
-		file.Write(rotation.x);
-		file.Write(rotation.y);
-		file.Write(rotation.z);
-
-		if (scene->camera.perspective)
-		{
-			file.Write(scene->camera.fov);
-			file.Write(scene->camera.aspectRatio);
-		}
-		else
-		{
-			file.Write(scene->camera.viewportWidth);
-			file.Write(scene->camera.viewportHeight);
-			file.Write(scene->camera.zoom);
-		}
-
-		for (const Mesh& mesh : scene->meshes)
-		{
-			file.Write(mesh.texcoordBuffer->parentBuffer->sceneID);
-			file.Write(mesh.texcoordBuffer->globalOffset);
-			file.Write(mesh.texcoordBuffer->size);
-			file.Write(mesh.normalBuffer->parentBuffer->sceneID);
-			file.Write(mesh.normalBuffer->globalOffset);
-			file.Write(mesh.normalBuffer->size);
-			file.Write(mesh.tangentBuffer->parentBuffer->sceneID);
-			file.Write(mesh.tangentBuffer->globalOffset);
-			file.Write(mesh.tangentBuffer->size);
-			file.Write(mesh.positionBuffer->parentBuffer->sceneID);
-			file.Write(mesh.positionBuffer->globalOffset);
-			file.Write(mesh.positionBuffer->size);
-			file.Write(mesh.indexBuffer->parentBuffer->sceneID);
-			file.Write(mesh.indexBuffer->globalOffset);
-			file.Write(mesh.indexBuffer->size);
-
-			file.Write(AccessTexture(mesh.diffuseTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.normalTextureIndex)->sceneID);
-			file.Write(AccessTexture(mesh.emissivityTextureIndex)->sceneID);
-
-			file.Write(mesh.baseColorFactor.x);
-			file.Write(mesh.baseColorFactor.y);
-			file.Write(mesh.baseColorFactor.z);
-			file.Write(mesh.baseColorFactor.w);
-			file.Write(mesh.metalRoughOcclFactor.x);
-			file.Write(mesh.metalRoughOcclFactor.y);
-			file.Write(mesh.metalRoughOcclFactor.z);
-			file.Write(mesh.emissiveFactor.x);
-			file.Write(mesh.emissiveFactor.y);
-			file.Write(mesh.emissiveFactor.z);
-			file.Write(mesh.flags);
-			file.Write(mesh.alphaCutoff);
-
-			Vector3 rotation = mesh.rotation.Euler();
-			file.Write(mesh.position.x);
-			file.Write(mesh.position.y);
-			file.Write(mesh.position.z);
-			file.Write(rotation.x);
-			file.Write(rotation.y);
-			file.Write(rotation.z);
-			file.Write(mesh.scale.x);
-			file.Write(mesh.scale.y);
-			file.Write(mesh.scale.z);
-		}
-
-		file.Close();
-	}
+	//File file(scene->name, FILE_OPEN_RESOURCE_WRITE);
+	//if (file.Opened())
+	//{
+	//	file.Write((U32)scene->buffers.Size());
+	//	file.Write((U32)scene->samplers.Size());
+	//	file.Write((U32)scene->textures.Size());
+	//	file.Write((U32)scene->meshes.Size());
+	//
+	//	for (Buffer* buffer : scene->buffers) { file.Write(buffer->name); }
+	//	for (Sampler* sampler : scene->samplers)
+	//	{
+	//		file.Write((I32)sampler->minFilter);
+	//		file.Write((I32)sampler->magFilter);
+	//		file.Write((I32)sampler->mipFilter);
+	//		file.Write((I32)sampler->addressModeU);
+	//		file.Write((I32)sampler->addressModeV);
+	//		file.Write((I32)sampler->addressModeW);
+	//		file.Write((I32)sampler->border);
+	//	}
+	//	for (Texture* texture : scene->textures) { file.Write(texture->name); file.Write(texture->sampler->sceneID); }
+	//
+	//	file.Write(scene->skybox->name);
+	//
+	//	file.Write(scene->camera.perspective);
+	//	file.Write(scene->camera.nearPlane);
+	//	file.Write(scene->camera.farPlane);
+	//	file.Write(scene->camera.position.x);
+	//	file.Write(scene->camera.position.y);
+	//	file.Write(scene->camera.position.z);
+	//	Vector3 rotation = scene->camera.Euler();
+	//	file.Write(rotation.x);
+	//	file.Write(rotation.y);
+	//	file.Write(rotation.z);
+	//
+	//	if (scene->camera.perspective)
+	//	{
+	//		file.Write(scene->camera.fov);
+	//		file.Write(scene->camera.aspectRatio);
+	//	}
+	//	else
+	//	{
+	//		file.Write(scene->camera.viewportWidth);
+	//		file.Write(scene->camera.viewportHeight);
+	//		file.Write(scene->camera.zoom);
+	//	}
+	//
+	//	for (const Mesh& mesh : scene->meshes)
+	//	{
+	//		file.Write(mesh.texcoordBuffer->parentBuffer->sceneID);
+	//		file.Write(mesh.texcoordBuffer->globalOffset);
+	//		file.Write(mesh.texcoordBuffer->size);
+	//		file.Write(mesh.normalBuffer->parentBuffer->sceneID);
+	//		file.Write(mesh.normalBuffer->globalOffset);
+	//		file.Write(mesh.normalBuffer->size);
+	//		file.Write(mesh.tangentBuffer->parentBuffer->sceneID);
+	//		file.Write(mesh.tangentBuffer->globalOffset);
+	//		file.Write(mesh.tangentBuffer->size);
+	//		file.Write(mesh.positionBuffer->parentBuffer->sceneID);
+	//		file.Write(mesh.positionBuffer->globalOffset);
+	//		file.Write(mesh.positionBuffer->size);
+	//		file.Write(mesh.indexBuffer->parentBuffer->sceneID);
+	//		file.Write(mesh.indexBuffer->globalOffset);
+	//		file.Write(mesh.indexBuffer->size);
+	//
+	//		file.Write(AccessTexture(mesh.diffuseTextureIndex)->sceneID);
+	//		file.Write(AccessTexture(mesh.metalRoughOcclTextureIndex)->sceneID);
+	//		file.Write(AccessTexture(mesh.normalTextureIndex)->sceneID);
+	//		file.Write(AccessTexture(mesh.emissivityTextureIndex)->sceneID);
+	//
+	//		file.Write(mesh.baseColorFactor.x);
+	//		file.Write(mesh.baseColorFactor.y);
+	//		file.Write(mesh.baseColorFactor.z);
+	//		file.Write(mesh.baseColorFactor.w);
+	//		file.Write(mesh.metalRoughOcclFactor.x);
+	//		file.Write(mesh.metalRoughOcclFactor.y);
+	//		file.Write(mesh.metalRoughOcclFactor.z);
+	//		file.Write(mesh.emissiveFactor.x);
+	//		file.Write(mesh.emissiveFactor.y);
+	//		file.Write(mesh.emissiveFactor.z);
+	//		file.Write(mesh.flags);
+	//		file.Write(mesh.alphaCutoff);
+	//
+	//		Vector3 rotation = mesh.rotation.Euler();
+	//		file.Write(mesh.position.x);
+	//		file.Write(mesh.position.y);
+	//		file.Write(mesh.position.z);
+	//		file.Write(rotation.x);
+	//		file.Write(rotation.y);
+	//		file.Write(rotation.z);
+	//		file.Write(mesh.scale.x);
+	//		file.Write(mesh.scale.y);
+	//		file.Write(mesh.scale.z);
+	//	}
+	//
+	//	file.Close();
+	//}
 }
 
 Sampler* Resources::AccessDummySampler()

@@ -376,18 +376,18 @@ void Program::RunPasses(CommandBuffer* commands)
 	if (renderpass != nullptr) {}
 }
 
-void Program::DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuffer)
+void Program::DrawMesh(CommandBuffer* commands, Mesh* mesh, Buffer* constantBuffer)
 {
 	//TODO: Move to renderer
-	Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{ constantBuffer, mesh.materialBuffer };
-
+	Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{ constantBuffer, mesh->material->materialBuffer };
+	
 	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[Renderer::GetFrameIndex()][0], nullptr, buffers);
 
-	passes[0]->indexBuffer = mesh.indexBuffer;
-	passes[0]->vertexBuffers[0] = mesh.positionBuffer;
-	passes[0]->vertexBuffers[1] = mesh.tangentBuffer;
-	passes[0]->vertexBuffers[2] = mesh.normalBuffer;
-	passes[0]->vertexBuffers[3] = mesh.texcoordBuffer;
+	passes[0]->indexBuffer = mesh->indexBuffer;
+	passes[0]->vertexBuffers[0] = mesh->positionBuffer;
+	passes[0]->vertexBuffers[1] = mesh->tangentBuffer ? mesh->tangentBuffer : Resources::AccessDummyAttributeBuffer();
+	passes[0]->vertexBuffers[2] = mesh->normalBuffer;
+	passes[0]->vertexBuffers[3] = mesh->texcoordBuffer ? mesh->texcoordBuffer : Resources::AccessDummyAttributeBuffer();
 	passes[0]->vertexBufferCount = 4;
 
 	RunPasses(commands);

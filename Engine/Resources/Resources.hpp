@@ -33,6 +33,7 @@ public:
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
+	static Scene* CreateScene(const String& name);
 	static Scene* LoadScene(const String& name);
 	static void SaveScene(const Scene* scene);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
@@ -103,6 +104,7 @@ private:
 	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
 	static Program*								skyboxProgram;
+	static Program*								pbrProgram;
 	static Program*								postProcessProgram;
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
@@ -118,6 +120,7 @@ private:
 	static Hashmap<String, Pipeline>			pipelines;
 	static Hashmap<String, Program>				programs;
 	static Hashmap<String, Material>			materials;
+	static Hashmap<String, Mesh>				meshes;
 	static Hashmap<String, Model>				models;
 	static Hashmap<String, Skybox>				skyboxes;
 	static Hashmap<String, Scene>				scenes;

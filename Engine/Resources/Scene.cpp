@@ -29,6 +29,8 @@ void Scene::Create()
 		Renderer::UnmapBuffer(cbMap);
 	}
 
+	updatePostProcess = false;
+
 	PipelineConnection connection{};
 	connection.type = CONNECTION_TYPE_BUFFER;
 	connection.buffer = postProcessConstantBuffer;
@@ -43,10 +45,6 @@ Scene::~Scene() { Destroy(); }
 void Scene::Destroy()
 {
 	name.Destroy();
-	meshes.Destroy();
-	buffers.Destroy();
-	textures.Destroy();
-	samplers.Destroy();
 }
 
 void Scene::Update()
@@ -69,7 +67,7 @@ void Scene::Update()
 		uniformData.directionalLightColor = Vector4{ 1.0f, 0.882352941f, 0.63921568627f, 1.0f};
 		uniformData.ambientLight = Vector4{ 0.3f, 0.3f, 0.3f, 1.0f }; //brg
 		uniformData.lightIntensity = 10.0f;
-		uniformData.skyboxIndex = (U32)skybox->texture->handle;
+		if (drawSkybox) { uniformData.skyboxIndex = (U32)skybox->texture->handle; }
 
 		Memory::Copy(cbData, &uniformData, sizeof(UniformData));
 
@@ -78,17 +76,22 @@ void Scene::Update()
 
 	CommandBuffer* commands = Renderer::GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
 
-	for (Mesh& mesh : meshes)
+	for (Model* model : models)
 	{
-		cbMap.buffer = mesh.materialBuffer;
-		MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
-		if (meshData)
+		for (U32 i = 0; i < model->meshCount; ++i)
 		{
-			UploadMaterial(*meshData, mesh);
+			Mesh* mesh = model->meshes[i];
 
-			Renderer::UnmapBuffer(cbMap);
+			cbMap.buffer = mesh->material->materialBuffer;
+			MeshData* meshData = (MeshData*)Renderer::MapBuffer(cbMap);
+			if (meshData)
+			{
+				UploadMaterial(*meshData, mesh);
 
-			mesh.material->program->DrawMesh(commands, mesh, sceneConstantBuffer);
+				Renderer::UnmapBuffer(cbMap);
+
+				mesh->material->program->DrawMesh(commands, mesh, sceneConstantBuffer);
+			}
 		}
 	}
 
@@ -130,19 +133,30 @@ void Scene::Update()
 	Resources::postProcessProgram->RunPasses(commands);
 }
 
-void Scene::UploadMaterial(MeshData& meshData, const Mesh& mesh)
+void Scene::AddModel(Model* model)
 {
-	meshData.textures[0] = mesh.diffuseTextureIndex;
-	meshData.textures[1] = mesh.metalRoughOcclTextureIndex;
-	meshData.textures[2] = mesh.normalTextureIndex;
-	meshData.textures[3] = mesh.emissivityTextureIndex;
-	meshData.baseColorFactor = mesh.baseColorFactor;
-	meshData.metalRoughOcclFactor = mesh.metalRoughOcclFactor;
-	meshData.emissiveFactor = mesh.emissiveFactor;
-	meshData.alphaCutoff = mesh.alphaCutoff;
-	meshData.flags = mesh.flags;
+	models.Push(model);
+}
 
-	Matrix4 model{ mesh.position, mesh.rotation, mesh.scale * Vector3{1.0f, 1.0f, -1.0f} };
+void Scene::SetSkybox(const String& name)
+{
+	skybox = Resources::LoadSkybox(name);
+	drawSkybox = true;
+}
+
+void Scene::UploadMaterial(MeshData& meshData, Mesh* mesh)
+{
+	meshData.textures[0] = mesh->material->diffuseTextureIndex;
+	meshData.textures[1] = mesh->material->metalRoughOcclTextureIndex;
+	meshData.textures[2] = mesh->material->normalTextureIndex;
+	meshData.textures[3] = mesh->material->emissivityTextureIndex;
+	meshData.baseColorFactor = mesh->material->baseColorFactor;
+	meshData.metalRoughOcclFactor = mesh->material->metalRoughOcclFactor;
+	meshData.emissiveFactor = mesh->material->emissiveFactor;
+	meshData.alphaCutoff = mesh->material->alphaCutoff;
+	meshData.flags = mesh->material->flags;
+	
+	Matrix4 model{ Vector3::Zero, Vector3::Zero, Vector3{1.0f, 1.0f, -1.0f} };
 	meshData.model = model;
 	meshData.modelInv = model.Transposed().Inversed();
 }

@@ -21,7 +21,7 @@
 
 #include "External\LunarG\Vulkan\vulkan.h"
 
-#define VK_ADDITIONAL_VALIDATION
+//#define VK_ADDITIONAL_VALIDATION
 
 /// <summary>
 /// Gets the description of a VkResult

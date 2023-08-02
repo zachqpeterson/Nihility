@@ -12,6 +12,10 @@ clear=CLEAR
 #VERTEX
 #version 450
 
+const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
+const uint MATERIAL_FLAG_NO_TANGENTS = 1 << 1;
+const uint MATERIAL_FLAG_NO_TEXURE_COORDS = 1 << 2;
+
 layout(std140, binding = 0) uniform LocalConstants //Per frame
 {
     mat4 viewProjection;
@@ -37,7 +41,6 @@ layout(std140, binding = 1) uniform MaterialConstant //Per instance
     uint        flags;
 };
 
-//TODO: Need some way to tell which buffers these come from, except it could be handled per model maybe?
 layout(location=0) in vec3 position;
 layout(location=1) in vec4 tangent;
 layout(location=2) in vec3 normal;
@@ -54,22 +57,24 @@ void main()
     vec4 worldPosition = model * vec4(position, 1.0);
     gl_Position = viewProjection * worldPosition;
     outPosition = worldPosition.xyz / worldPosition.w;
-    outTexcoord0 = texCoord0;
     outNormal = normalize(mat3(modelInv) * normal);
-    outTangent = normalize(mat3(model) * tangent.xyz);
-    outBiTangent = cross(outNormal, outTangent) * tangent.w;
+    if((flags & MATERIAL_FLAG_NO_TEXURE_COORDS) != 0) { outTexcoord0 = texCoord0; }
+
+    if((flags & MATERIAL_FLAG_NO_TANGENTS) != 0)
+    {
+        outTangent = normalize(mat3(model) * tangent.xyz);
+        outBiTangent = cross(outNormal, outTangent) * tangent.w;
+    }
 }
 #VERTEX_END
 
 #FRAGMENT
 #version 450
-#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_nonuniform_qualifier : require
 
 const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
-const uint MATERIAL_FLAG_DIFFUSE_TEXTURE = 1 << 1;
-const uint MATERIAL_FLAG_NORMAL_TEXTURE = 1 << 2;
-const uint MATERIAL_FLAG_RMAO_TEXTURE = 1 << 3;
-const uint MATERIAL_FLAG_EMMISIVE_TEXTURE = 1 << 4;
+const uint MATERIAL_FLAG_NO_TANGENTS = 1 << 1;
+const uint MATERIAL_FLAG_NO_TEXURE_COORDS = 1 << 2;
 
 layout(std140, binding = 0) uniform LocalConstants
 {
@@ -149,35 +154,45 @@ float Heaviside(float v) {
 
 void main()
 {
-    vec4 baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
-    baseColor.rgb = DecodeSRGB(baseColor.rgb);
+    vec4 baseColor = vec4(1.0);
+
+    if(textures.z != INVALID_TEXTURE_INDEX)
+    {
+        baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
+        baseColor.rgb = DecodeSRGB(baseColor.rgb);
+    }
 
     if ((flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < alphaCutoff) { discard; }
 
     vec3 I = normalize(position - eye.xyz);
     vec3 R = reflect(I, normalize(normal));
     R.y = -R.y;
-    vec3 environment = texture(globalTexturesCubes[skyboxIndex], R).rgb;
+    vec3 environment = vec3(0.0);
+    if(skyboxIndex != INVALID_TEXTURE_INDEX) { environment = texture(globalTexturesCubes[skyboxIndex], R).rgb; }
 
     vec3 N = normalize(normal);
-	vec3 T = normalize(tangent);
-	vec3 B = normalize(bitangent);
 
-	if(gl_FrontFacing == false)
-	{
-        N *= -1.0;
-		T *= -1.0;
-        B *= -1.0;
-	}
-
-	if (textures.z != INVALID_TEXTURE_INDEX)
-	{
-        //normal textures are encoded to [0, 1] but need to be mapped to [-1, 1] value
+    if (textures.z != INVALID_TEXTURE_INDEX)
+    {
         vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(textures.z)], texcoord0).rgb * 2.0 - 1.0);
-        mat3 TBN = mat3(T, B, N);
 
-        N = normalize(TBN * normalize(bumpNormal));
+        if((flags & MATERIAL_FLAG_NO_TANGENTS) == 0)
+        {
+            vec3 T = normalize(tangent);
+	        vec3 B = normalize(bitangent);
+
+            mat3 TBN = mat3(T, B, N);
+
+            N = normalize(TBN * normalize(bumpNormal));
+        }
     }
+
+    //if(gl_FrontFacing == false)
+	//{
+    //    N *= -1.0;
+	//	  T *= -1.0;
+    //    B *= -1.0;
+	//}
 
 	vec3 V = normalize(eye.xyz - position);
     vec3 lightDirection = directionalLight.xyz;

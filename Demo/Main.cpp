@@ -9,7 +9,14 @@
 
 bool Init()
 {
-	Resources::LoadModel("models/Audi.fbx");
+	Model* model = Resources::LoadModel("models/Audi.fbx");
+
+	Scene* scene = Resources::CreateScene("scenes/CarTest.nhscn");
+
+	scene->AddModel(model);
+	scene->SetSkybox("textures/UffiziCube.ktx");
+
+	Renderer::LoadScene("scenes/CarTest.nhscn");
 	//Renderer::LoadScene("scenes/Boombox.nhscn");
 
 	return true;

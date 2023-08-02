@@ -21,9 +21,9 @@ enum ResourceUpdateType
 enum MaterialFlags
 {
 	MATERIAL_FLAG_NONE = 0x00,
-	ALPHA_MODE_OPAQUE = 0x01,
-	ALPHA_MODE_MASK = 0x02,
-	ALPHA_MODE_TRANSPARENT = 0x04,
+	MATERIAL_FLAG_ALPHA_MASK = 0x01,
+	MATERIAL_FLAG_NO_TANGENTS = 0x02,
+	MATERIAL_FLAG_NO_TEXTURE_COORDS = 0x04,
 };
 
 enum KTXType
@@ -542,7 +542,7 @@ struct Program
 	void Destroy() { name.Destroy(); }
 
 	void RunPasses(CommandBuffer* commands);
-	void DrawMesh(CommandBuffer* commands, Mesh& mesh, Buffer* constantBuffer);
+	void DrawMesh(CommandBuffer* commands, Mesh* mesh, Buffer* constantBuffer);
 
 	String		name{ NO_INIT };
 	HashHandle	handle;
@@ -597,7 +597,7 @@ struct UniformData
 	Vector4 directionalLightColor;
 	Vector4 ambientLight;
 	F32		lightIntensity;
-	U32		skyboxIndex;
+	U32		skyboxIndex{ U16_MAX };
 };
 
 struct MeshData
@@ -622,6 +622,7 @@ struct Material
 	HashHandle	handle;
 
 	Program* program{ nullptr };
+	Buffer* materialBuffer{ nullptr };
 
 	U32 renderIndex;
 	F32 alphaCutoff{ 0.0f };
@@ -637,7 +638,7 @@ struct Material
 	Vector3 emissiveFactor{ Vector3::Zero };
 };
 
-struct NH_API Mesh
+struct NH_API MeshOld
 {
 	Material* material;
 
@@ -670,7 +671,7 @@ struct NH_API Mesh
 	Quaternion3	rotation{ Quaternion3::Identity };
 };
 
-struct MeshTest
+struct Mesh
 {
 	String name{ NO_INIT };
 

@@ -392,6 +392,7 @@ bool Renderer::CreateDevice()
 	{
 		features12.descriptorBindingPartiallyBound = true;
 		features12.runtimeDescriptorArray = true;
+		features12.shaderSampledImageArrayNonUniformIndexing = true;
 	}
 
 	VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };

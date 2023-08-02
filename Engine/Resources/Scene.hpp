@@ -11,27 +11,26 @@ public:
 
 	void Update();
 
+	void AddModel(Model* model);
+	void SetSkybox(const String& name);
+
 private:
-	void UploadMaterial(MeshData& meshData, const Mesh& mesh);
+	void UploadMaterial(MeshData& meshData, Mesh* mesh);
 
 public:
 	String				name{ NO_INIT };
 	HashHandle			handle;
 
-	Camera				camera;
-	Buffer*				sceneConstantBuffer;
+	Camera				camera{};
+	Buffer* sceneConstantBuffer{ nullptr };
 
-	Skybox*				skybox;
-	Buffer*				skyboxConstantBuffer;
+	Skybox* skybox{ nullptr };
+	Buffer* skyboxConstantBuffer{ nullptr };
 	bool				drawSkybox{ true };
 
 	PostProcessData		postProcessData{};
-	Buffer*				postProcessConstantBuffer;
-	bool				updatePostProcess{ true };
+	Buffer* postProcessConstantBuffer{ nullptr };
+	bool				updatePostProcess{ false };
 
-	Vector<Mesh>		meshes{ NO_INIT };
-
-	Vector<Texture*>	textures{ NO_INIT };
-	Vector<Sampler*>	samplers{ NO_INIT };
-	Vector<Buffer*>		buffers{ NO_INIT };	//These are parent buffers, meshes will hold child buffers to these
+	Vector<Model*>		models{}; //TODO: Objects
 };
