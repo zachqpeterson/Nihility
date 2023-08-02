@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 
-#include "Profiler.hpp"
 #include "CommandBuffer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
@@ -100,7 +99,6 @@ U64									Renderer::sboAlignemnt;
 bool								Renderer::bindlessSupported{ false };
 bool								Renderer::pushDescriptorsSupported{ false };
 bool								Renderer::meshShadingSupported{ false };
-bool								Renderer::profilingSupported{ false };
 
 // WINDOW
 U32									Renderer::imageIndex{ 0 };
@@ -123,13 +121,9 @@ U64									Renderer::dynamicAllocatedSize;
 U64									Renderer::dynamicPerFrameSize;
 
 // TIMING
-F32									Renderer::timestampFrequency;
-VkQueryPool							Renderer::timestampQueryPool;
 VkSemaphore							Renderer::imageAcquired;
 VkSemaphore							Renderer::renderCompleted[MAX_SWAPCHAIN_IMAGES];
 VkFence								Renderer::commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
-bool								Renderer::timestampsEnabled{ false };
-bool								Renderer::timestampReset{ true };
 
 // DEBUG
 VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
@@ -184,8 +178,6 @@ void Renderer::Shutdown()
 	MapBufferParameters cbMap{ dynamicBuffer, 0, 0 };
 	UnmapBuffer(cbMap);
 
-	Profiler::Shutdown();
-
 	swapchain.Destroy();
 
 	Resources::Shutdown();
@@ -197,7 +189,6 @@ void Renderer::Shutdown()
 #endif
 
 	vkDestroyDescriptorPool(device, descriptorPool, allocationCallbacks);
-	vkDestroyQueryPool(device, timestampQueryPool, allocationCallbacks);
 
 	vkDestroyDevice(device, allocationCallbacks);
 
@@ -300,7 +291,6 @@ bool Renderer::SelectGPU()
 	else { Logger::Fatal("No Suitable GPU Found!"); return false; }
 
 	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-	timestampFrequency = physicalDeviceProperties.limits.timestampPeriod / (1000 * 1000);
 
 	Logger::Trace("Best GPU Found: {}", physicalDeviceProperties.deviceName);
 
@@ -351,7 +341,6 @@ bool Renderer::CreateDevice()
 	{
 		pushDescriptorsSupported |= Memory::Compare(ext.extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 22);
 		meshShadingSupported |= Memory::Compare(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME, 18);
-		profilingSupported |= Memory::Compare(ext.extensionName, VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME, 24);
 	}
 
 	U32 deviceExtensionCount = 0;
@@ -360,7 +349,6 @@ bool Renderer::CreateDevice()
 	deviceExtensions[deviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 	if (pushDescriptorsSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME; }
 	if (meshShadingSupported) { deviceExtensions[deviceExtensionCount++] = VK_EXT_MESH_SHADER_EXTENSION_NAME; }
-	if (profilingSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME; }
 
 	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr };
 	VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
@@ -472,10 +460,6 @@ bool Renderer::CreateResources()
 	queryPoolInfo.queryCount = timeQueriesPerFrame * 2u * MAX_SWAPCHAIN_IMAGES;
 	queryPoolInfo.pipelineStatistics = 0;
 
-	VkValidateFR(vkCreateQueryPool(device, &queryPoolInfo, allocationCallbacks, &timestampQueryPool));
-
-	Profiler::Initialize(timeQueriesPerFrame, MAX_SWAPCHAIN_IMAGES);
-
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
 
@@ -553,8 +537,6 @@ void Renderer::EndFrame()
 
 	//TODO: UI
 
-	Profiler::Update();
-
 	Resources::Update();
 
 	VkCommandBuffer enqueuedCommandBuffers[4];
@@ -587,8 +569,6 @@ void Renderer::EndFrame()
 	result = swapchain.Present(deviceQueue, imageIndex, renderCompleteSemaphore);
 
 	queuedCommandBufferCount = 0;
-
-	Profiler::Query();
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || Settings::Resized())
 	{
@@ -690,27 +670,6 @@ void Renderer::PopMarker(VkCommandBuffer commandBuffer)
 	vkCmdEndDebugUtilsLabelEXT(commandBuffer);
 }
 
-void Renderer::SetGpuTimestampsEnable(bool value)
-{
-	timestampsEnabled = value;
-}
-
-void Renderer::PushGpuTimestamp(CommandBuffer* commandBuffer, const String& name)
-{
-	if (!timestampsEnabled) { return; }
-
-	U32 queryIndex = Profiler::Push(currentFrame, name);
-	vkCmdWriteTimestamp(commandBuffer->commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, timestampQueryPool, queryIndex);
-}
-
-void Renderer::PopGpuTimestamp(CommandBuffer* commandBuffer)
-{
-	if (!timestampsEnabled) { return; }
-
-	U32 queryIndex = Profiler::Pop(currentFrame);
-	vkCmdWriteTimestamp(commandBuffer->commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, timestampQueryPool, queryIndex);
-}
-
 void Renderer::FrameCountersAdvance()
 {
 	previousFrame = currentFrame;
@@ -742,24 +701,7 @@ void Renderer::QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, Comma
 
 CommandBuffer* Renderer::GetCommandBuffer(QueueType type, bool begin)
 {
-	CommandBuffer* cb = commandBufferRing.GetCommandBuffer(currentFrame, begin);
-
-	// The first commandbuffer issued in the frame is used to reset the timestamp queries used.
-	if (timestampReset && begin)
-	{
-		// These are currently indices!
-		vkCmdResetQueryPool(cb->commandBuffer, timestampQueryPool, currentFrame * Profiler::queriesPerFrame * 2, Profiler::queriesPerFrame);
-
-		timestampReset = false;
-	}
-
-	return cb;
-}
-
-CommandBuffer* Renderer::GetInstantCommandBuffer()
-{
-	CommandBuffer* cb = commandBufferRing.GetCommandBufferInstant(currentFrame, false);
-	return cb;
+	return commandBufferRing.GetCommandBuffer(currentFrame, begin);
 }
 
 void Renderer::AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState, ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth)
@@ -942,7 +884,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+		CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
 		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
 		VkBufferImageCopy region{};
@@ -982,7 +924,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 		vkResetCommandBuffer(commandBuffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
-		CommandBuffer* blitCmd = GetInstantCommandBuffer();
+		CommandBuffer* blitCmd = commandBufferRing.GetCommandBufferInstant(currentFrame);
 		vkBeginCommandBuffer(blitCmd->commandBuffer, &beginInfo);
 
 		//TODO: Some textures could have mipmaps stored in the already
@@ -1109,7 +1051,7 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
 	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
 	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
@@ -1464,7 +1406,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		CommandBuffer* commandBuffer = GetInstantCommandBuffer();
+		CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
 		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
 		VkBufferImageCopy region{};

@@ -2,8 +2,7 @@
 
 #include "Resources\ResourceDefines.hpp"
 
-//TODO: temp
-struct NH_API CommandBuffer
+struct CommandBuffer
 {
 	void Create(QueueType type, U32 bufferSize, U32 submitSize, bool baked);
 	void Destroy();
@@ -26,26 +25,12 @@ struct NH_API CommandBuffer
 
 	void FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data);
 
-	void PushMarker(const char* name);
-	void PopMarker();
-
 	void Reset();
 
-	VkCommandBuffer				commandBuffer;
-
-	VkDescriptorSet				vkDescriptorSets[16];
-
-	Renderpass*					currentRenderPass;
-	Pipeline*					currentPipeline;
-
-	U32							handle;
-
-	U32							currentCommand;
-	void*						resourceHandle;
-	QueueType					type = QUEUE_TYPE_GRAPHICS;
-	U32							bufferSize = 0;
-
-	bool						baked = false;	// If baked reset will affect only the read of the commands.
+	VkCommandBuffer				commandBuffer{ nullptr };
+	U32							handle{ U32_MAX };
+	QueueType					type{ QUEUE_TYPE_GRAPHICS };
+	bool						baked{ false };
 };
 
 struct CommandBufferRing
@@ -55,8 +40,8 @@ struct CommandBufferRing
 
 	void							ResetPools(U32 frameIndex);
 
-	CommandBuffer*					GetCommandBuffer(U32 frame, bool begin);
-	CommandBuffer*					GetCommandBufferInstant(U32 frame, bool begin);
+	CommandBuffer* GetCommandBuffer(U32 frame, bool begin);
+	CommandBuffer* GetCommandBufferInstant(U32 frame);
 
 	static U16						PoolFromIndex(U32 index) { return (U16)index / bufferPerPool; }
 

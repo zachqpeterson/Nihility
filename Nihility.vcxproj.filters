@@ -157,9 +157,6 @@
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Rendering\Profiler.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Math\Color.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
@@ -518,9 +515,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp">
       <Filter>Source Files\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rendering\Profiler.cpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Color.cpp">
       <Filter>Source Files\Math</Filter>

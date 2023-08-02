@@ -626,7 +626,7 @@ struct Material
 
 	U32 renderIndex;
 	F32 alphaCutoff{ 0.0f };
-	MaterialFlags flags{ MATERIAL_FLAG_NONE };
+	U32 flags{ MATERIAL_FLAG_NONE };
 
 	U16 diffuseTextureIndex{ U16_MAX };
 	U16 metalRoughOcclTextureIndex{ U16_MAX };

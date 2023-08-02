@@ -368,24 +368,6 @@ void CommandBuffer::FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data)
 	vkCmdFillBuffer(commandBuffer, buffer->buffer, VkDeviceSize(offset), size ? VkDeviceSize(size) : VkDeviceSize(buffer->size), data);
 }
 
-void CommandBuffer::PushMarker(const char* name)
-{
-	Renderer::PushGpuTimestamp(this, name);
-
-	if (!Renderer::debugUtilsExtensionPresent) { return; }
-
-	Renderer::PushMarker(commandBuffer, name);
-}
-
-void CommandBuffer::PopMarker()
-{
-	Renderer::PopGpuTimestamp(this);
-
-	if (!Renderer::debugUtilsExtensionPresent) { return; }
-
-	Renderer::PopMarker(commandBuffer);
-}
-
 void CommandBuffer::Reset()
 {
 	currentRenderPass = nullptr;
@@ -459,8 +441,7 @@ CommandBuffer* CommandBufferRing::GetCommandBuffer(U32 frame, bool begin)
 	return cb;
 }
 
-CommandBuffer* CommandBufferRing::GetCommandBufferInstant(U32 frame, bool begin)
+CommandBuffer* CommandBufferRing::GetCommandBufferInstant(U32 frame)
 {
-	CommandBuffer* cb = &commandBuffers[frame * bufferPerPool + 1];
-	return cb;
+	return &commandBuffers[frame * bufferPerPool + 1];
 }

@@ -1957,7 +1957,7 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 	}
 	else
 	{
-		mesh->material->flags != MATERIAL_FLAG_NO_TANGENTS;
+		mesh->material->flags |= MATERIAL_FLAG_NO_TANGENTS;
 	}
 
 	if (meshInfo->HasTextureCoords(0))
@@ -1970,7 +1970,7 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 	}
 	else
 	{
-		mesh->material->flags != MATERIAL_FLAG_NO_TEXTURE_COORDS;
+		mesh->material->flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
 	}
 
 	bufferInfo.name = mesh->name + "IndexBuffer";
@@ -2082,7 +2082,7 @@ Scene* Resources::CreateScene(const String& name)
 	scene->name = name;
 	scene->drawSkybox = false;
 
-	scene->camera.SetPerspective(0.00001f, 1000.0f, 45.0f, Settings::WindowWidth() / Settings::WindowHeight());
+	scene->camera.SetPerspective(0.00001f, 1000.0f, 45.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
 
 	scene->Create();
 

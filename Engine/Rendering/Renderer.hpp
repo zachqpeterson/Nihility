@@ -42,13 +42,9 @@ private:
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
 	static void							PopMarker(VkCommandBuffer commandBuffer);
-	static void                         SetGpuTimestampsEnable(bool value);
-	static void							PushGpuTimestamp(CommandBuffer* commandBuffer, const String& name);
-	static void							PopGpuTimestamp(CommandBuffer* commandBuffer);
 
 	static void							FrameCountersAdvance();
 	static void							QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer);
-	static CommandBuffer*				GetInstantCommandBuffer();
 	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState,
 		ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
 	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
@@ -97,7 +93,6 @@ private:
 	static bool									bindlessSupported;
 	static bool									pushDescriptorsSupported;
 	static bool									meshShadingSupported;
-	static bool									profilingSupported;
 
 	// WINDOW
 	static U32									imageIndex;
@@ -120,13 +115,9 @@ private:
 	static U64									dynamicPerFrameSize;
 
 	// TIMING
-	static F32									timestampFrequency;
-	static VkQueryPool							timestampQueryPool;
 	static VkSemaphore							imageAcquired;
 	static VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
 	static VkFence								commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
-	static bool									timestampsEnabled;
-	static bool									timestampReset;
 
 	// DEBUG
 	static VkDebugUtilsMessengerEXT				debugMessenger;
