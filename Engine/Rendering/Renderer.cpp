@@ -762,6 +762,47 @@ void Renderer::TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkI
 	vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 }
 
+VkImageMemoryBarrier2 Renderer::ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
+	VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, VkImageLayout newLayout,
+	VkImageAspectFlags aspectMask, U32 baseMipLevel, U32 levelCount)
+{
+	VkImageMemoryBarrier2 result{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+
+	result.srcStageMask = srcStageMask;
+	result.srcAccessMask = srcAccessMask;
+	result.dstStageMask = dstStageMask;
+	result.dstAccessMask = dstAccessMask;
+	result.oldLayout = oldLayout;
+	result.newLayout = newLayout;
+	result.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	result.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	result.image = image;
+	result.subresourceRange.aspectMask = aspectMask;
+	result.subresourceRange.baseMipLevel = baseMipLevel;
+	result.subresourceRange.levelCount = levelCount;
+	result.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+
+	return result;
+}
+
+VkBufferMemoryBarrier2 Renderer::BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
+	VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask)
+{
+	VkBufferMemoryBarrier2 result{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+
+	result.srcStageMask = srcStageMask;
+	result.srcAccessMask = srcAccessMask;
+	result.dstStageMask = dstStageMask;
+	result.dstAccessMask = dstAccessMask;
+	result.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	result.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	result.buffer = buffer;
+	result.offset = 0;
+	result.size = VK_WHOLE_SIZE;
+
+	return result;
+}
+
 bool Renderer::CreateSampler(Sampler* sampler)
 {
 	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -1054,10 +1095,10 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
 	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
-	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 	vkCmdCopyBufferToImage(commandBuffer->commandBuffer, stagingBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, bufferCopyRegions);
-	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+	TransitionImage(commandBuffer->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
 
 	texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
