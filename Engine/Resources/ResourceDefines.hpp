@@ -18,12 +18,20 @@ enum ResourceUpdateType
 	RESOURCE_UPDATE_TYPE_COUNT
 };
 
-enum MaterialFlags
+enum MaterialFlag
 {
 	MATERIAL_FLAG_NONE = 0x00,
 	MATERIAL_FLAG_ALPHA_MASK = 0x01,
 	MATERIAL_FLAG_NO_TANGENTS = 0x02,
 	MATERIAL_FLAG_NO_TEXTURE_COORDS = 0x04,
+};
+
+enum TextureFlag
+{
+	TEXTURE_FLAG_RENDER_TARGET_MASK,
+	TEXTURE_FLAG_COMPUTE_MASK,
+
+	TEXTURE_FLAG_COUNT
 };
 
 enum KTXType
@@ -334,14 +342,14 @@ struct Texture
 	U16					height{ 1 };
 	U16					depth{ 1 };
 	U8					mipmaps{ 1 };
-	U8					flags{ 0 };
+	U32					flags{ 0 };
 
-	TextureType			type{ TEXTURE_TYPE_2D };
+	VkImageType			type{ VK_IMAGE_TYPE_2D };
 
 	VkImage				image{ nullptr };
 	VkImageView			imageView{ nullptr };
-	VkFormat			format;
-	VkImageLayout		imageLayout;
+	VkFormat			format{ VK_FORMAT_UNDEFINED };
+	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
 	VmaAllocation_T* allocation{ nullptr };
 
 	Sampler* sampler{ nullptr };
@@ -355,8 +363,7 @@ struct TextureCreation
 	void Destroy() { name.Destroy(); }
 
 	TextureCreation& SetSize(U16 width, U16 height, U16 depth);
-	TextureCreation& SetFlags(U8 mipmaps, U8 flags);
-	TextureCreation& SetFormatType(VkFormat format, TextureType type);
+	TextureCreation& SetFormatType(VkFormat format, VkImageType type);
 	TextureCreation& SetName(const String& name);
 	TextureCreation& SetData(void* data);
 
@@ -365,53 +372,27 @@ struct TextureCreation
 	U16					height{ 1 };
 	U16					depth{ 1 };
 	U8					mipmaps{ 1 };
-	U8					flags{ 0 };
+	U32					flags{ 0 };
 
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
-	TextureType			type{ TEXTURE_TYPE_2D };
+	VkImageType			type{ VK_IMAGE_TYPE_2D };
 
 	String				name{ NO_INIT };
 };
 
 struct Buffer
 {
-	void Destroy() { name.Destroy(); }
+	VkBufferUsageFlags		usage{ 0 };
+	VkMemoryPropertyFlags	memoryProperties{ 0 };
 
-	String				name{ NO_INIT };
-	HashHandle			handle{ U64_MAX };
-	U32					sceneID{ U32_MAX };
+	VkBuffer				vkBuffer{ nullptr };
+	VkDeviceMemory			deviceMemory{ nullptr };
+	VmaAllocation_T*		allocation{ nullptr };
+	U64						size{ 0 };
+	U64						allocationOffset{ 0 };
 
-	Buffer* parentBuffer{ nullptr };
-
-	VkBufferUsageFlags	typeFlags{ 0 };
-	ResourceUsage		usage{ RESOURCE_USAGE_IMMUTABLE };
-	U64					size{ 0 };
-	U64					globalOffset{ 0 };
-
-	VkBuffer			buffer{ nullptr };
-	VmaAllocation_T* allocation{ nullptr };
-	VkDeviceMemory		deviceMemory{ nullptr };
-	VkDeviceSize		deviceSize{ 0 };
-};
-
-struct BufferCreation
-{
-	void Destroy() { name.Destroy(); }
-
-	BufferCreation& Reset();
-	BufferCreation& Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size);
-	BufferCreation& SetData(void* data);
-	BufferCreation& SetName(const String& name);
-	BufferCreation& SetParent(Buffer* parent, U64 offset);
-
-	VkBufferUsageFlags	typeFlags{ 0 };
-	ResourceUsage		usage{ RESOURCE_USAGE_IMMUTABLE };
-	U64					size{ 0 };
-	U64					offset{ 0 };
-	void* initialData{ nullptr };
-	Buffer* parentBuffer{ nullptr };
-
-	String				name{ NO_INIT };
+	void* data{ nullptr };
+	bool mapped{ false };
 };
 
 struct DescriptorBinding
@@ -464,15 +445,15 @@ struct RenderpassOutput
 	RenderpassOutput& Reset();
 	RenderpassOutput& Color(VkFormat format);
 	RenderpassOutput& Depth(VkFormat format);
-	RenderpassOutput& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	RenderpassOutput& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
 
 	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS]{ VK_FORMAT_UNDEFINED };
 	VkFormat			depthStencilFormat{ VK_FORMAT_UNDEFINED };
 	U32					colorFormatCount{ 0 };
 
-	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
-	RenderPassOperation	depthOperation{ RENDER_PASS_OP_DONT_CARE };
-	RenderPassOperation	stencilOperation{ RENDER_PASS_OP_DONT_CARE };
+	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 };
 
 struct Renderpass
@@ -492,7 +473,6 @@ struct Renderpass
 	Viewport			viewport{};
 
 	RenderpassOutput	output{};
-	RenderpassType		type{ RENDERPASS_TYPE_GEOMETRY };
 
 	U16					width{ 0 };
 	U16					height{ 0 };
@@ -509,15 +489,13 @@ struct RenderpassCreation
 	RenderpassCreation& AddRenderTarget(Texture* texture);
 	RenderpassCreation& SetDepthStencilTexture(Texture* texture);
 	RenderpassCreation& SetName(const String& name);
-	RenderpassCreation& SetType(RenderpassType type);
-	RenderpassCreation& SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil);
+	RenderpassCreation& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
 	RenderpassCreation& AddClearColor(const Vector4& color);
 	RenderpassCreation& AddClearDepth(F32 depth);
 
 	U16					width{ 0 };
 	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
-	RenderpassType		type{ RENDERPASS_TYPE_GEOMETRY };
 
 	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
 	U8					clearCount{ 0 };
@@ -526,9 +504,9 @@ struct RenderpassCreation
 	Texture* depthStencilTexture{ nullptr };
 	//TODO: Pass in Viewport info
 
-	RenderPassOperation	colorOperation{ RENDER_PASS_OP_DONT_CARE };
-	RenderPassOperation	depthOperation{ RENDER_PASS_OP_DONT_CARE };
-	RenderPassOperation	stencilOperation{ RENDER_PASS_OP_DONT_CARE };
+	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 
 	String				name{ NO_INIT };
 };
@@ -549,8 +527,6 @@ struct Program
 
 	Pipeline* passes[MAX_PROGRAM_PASSES];
 	U8			passCount;
-
-	static Renderpass* prevRenderpass;
 };
 
 struct ProgramCreation
@@ -589,7 +565,7 @@ struct PostProcessData
 	F32 gammaCorrection = 1.0f;
 };
 
-struct UniformData
+struct GlobalData
 {
 	Matrix4 vp;
 	Vector4 eye;
@@ -600,20 +576,6 @@ struct UniformData
 	U32		skyboxIndex{ U16_MAX };
 };
 
-struct MeshData
-{
-	Matrix4		model;
-	Matrix4		modelInv;
-
-	Vector4Int	textures; // diffuse, roughness, normal, occlusion
-	Vector4		baseColorFactor;
-	Vector3		metalRoughOcclFactor;
-	Vector3		emissiveFactor;
-	F32			alphaCutoff;
-	F32			unused[3];
-	U32			flags;
-};
-
 struct Material
 {
 	void Destroy() { name.Destroy(); }
@@ -622,7 +584,6 @@ struct Material
 	HashHandle	handle;
 
 	Program* program{ nullptr };
-	Buffer* materialBuffer{ nullptr };
 
 	U32 renderIndex;
 	F32 alphaCutoff{ 0.0f };
@@ -634,56 +595,53 @@ struct Material
 	U16 emissivityTextureIndex{ U16_MAX };
 
 	Vector4 baseColorFactor{ Vector4::One };
-	Vector3 metalRoughOcclFactor{ Vector3::One };
+	Vector2 metalRoughFactor{ Vector2::One };
 	Vector3 emissiveFactor{ Vector3::Zero };
 };
 
-struct NH_API MeshOld
+struct Vertex
 {
-	Material* material;
+	Vector3 position;
+	Vector3 normal;
+	Vector3 tangent;
+	Vector3 bitangent;
+	Vector2 texcoord;
+};
 
-	Buffer* indexBuffer;
-	Buffer* positionBuffer;
-	Buffer* tangentBuffer;
-	Buffer* normalBuffer;
-	Buffer* texcoordBuffer;
-	Buffer* materialBuffer;
+struct MeshData
+{
+	Matrix4		model{ Matrix4::Identity };
+	U32			meshIndex{ U32_MAX };
+	U32			vertexOffset{ 0 };
 
-	U32			primitiveCount;
-
-	//These are HashHandles, used in bindless resources
-	//TODO: Move these to Material
 	U16			diffuseTextureIndex{ U16_MAX };
 	U16			metalRoughOcclTextureIndex{ U16_MAX };
 	U16			normalTextureIndex{ U16_MAX };
 	U16			emissivityTextureIndex{ U16_MAX };
-
 	Vector4		baseColorFactor{ Vector4::One };
-	Vector3		metalRoughOcclFactor{ Vector3::One };
+	Vector2		metalRoughFactor{ Vector2::One };
 	Vector3		emissiveFactor{ Vector3::Zero };
-
 	F32			alphaCutoff{ 0.0f };
-	U32			flags{ 0 };
+	U32			flags{ MATERIAL_FLAG_NONE };
+};
 
-	//TODO: Transform component
-	Vector3		position{ Vector3::Zero };
-	Vector3		scale{ Vector3::One };
-	Quaternion3	rotation{ Quaternion3::Identity };
+struct MeshDrawCommand
+{
+	U32 drawId;
+	VkDrawIndexedIndirectCommand indirect;
 };
 
 struct Mesh
 {
 	String name{ NO_INIT };
+	HashHandle handle;
 
 	Material* material{ nullptr };
 
-	Buffer* indexBuffer{ nullptr };
-	Buffer* positionBuffer{ nullptr };
-	Buffer* normalBuffer{ nullptr };
-	Buffer* tangentBuffer{ nullptr };
-	Buffer* bitangentBuffer{ nullptr };
-	Buffer* texcoordBuffer{ nullptr };
 	U32 vertexCount{ 0 };
+	U32 vertexOffset{ 0 };
+	U32 indexOffset{ 0 };
+	U32 indexCount{ 0 };
 };
 
 struct Model
@@ -732,41 +690,4 @@ struct DescriptorSetUpdate
 {
 	DescriptorSet* descriptorSet;
 	U32				frameIssued{ 0 };
-};
-
-struct MapBufferParameters
-{
-	Buffer* buffer;
-	U64		offset{ 0 };
-	U64		size{ 0 };
-};
-
-struct TextureBarrier
-{
-	Texture* texture;
-};
-
-struct BufferBarrier
-{
-	Buffer* buffer;
-};
-
-struct ExecutionBarrier
-{
-	ExecutionBarrier& Reset();
-	ExecutionBarrier& Set(PipelineStage source, PipelineStage destination);
-	ExecutionBarrier& AddImageBarrier(const TextureBarrier& textureBarrier);
-	ExecutionBarrier& AddMemoryBarrier(const BufferBarrier& bufferBarrier);
-
-	PipelineStage	sourcePipelineStage;
-	PipelineStage	destinationPipelineStage;
-
-	U32				newBarrierExperimental = U32_MAX;
-	U32				loadOperation{ 0 };
-
-	U32				textureBarrierCount;
-	U32				bufferBarrierCount;
-
-	TextureBarrier	textureBarriers[8];
-	BufferBarrier	bufferBarriers[8];
 };

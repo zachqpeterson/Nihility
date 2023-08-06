@@ -6,8 +6,9 @@
 #include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 
-#include "External\LunarG\glslang\Public\ShaderLang.h"
+//TODO: #define ENABLE_OPT for optimised shaders
 #include "External\LunarG\glslang\SPIRV\GlslangToSpv.h"
+#include "External\LunarG\glslang\Public\ShaderLang.h"
 #include "External\LunarG\spirv_cross\spirv_reflect.h"
 
 #if defined(_MSC_VER)
@@ -136,9 +137,9 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 
 	DescriptorSetLayoutCreation setLayoutInfos[MAX_DESCRIPTOR_SETS]{};
 	RenderpassCreation renderPassInfo{};
-	renderPassInfo.colorOperation = RENDER_PASS_OP_CLEAR;
-	renderPassInfo.depthOperation = RENDER_PASS_OP_DONT_CARE;
-	renderPassInfo.stencilOperation = RENDER_PASS_OP_DONT_CARE;
+	renderPassInfo.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	renderPassInfo.stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	renderPassInfo.width = Settings::WindowWidth();
 	renderPassInfo.height = Settings::WindowHeight();
 
@@ -200,7 +201,7 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 			textureInfo.height = renderPassInfo.height;
 			textureInfo.depth = 1;
 			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
-			textureInfo.type = TEXTURE_TYPE_2D;
+			textureInfo.type = VK_IMAGE_TYPE_2D;
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
 			renderPassInfo.AddRenderTarget(texture);
@@ -216,7 +217,7 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 			textureInfo.height = renderPassInfo.height;
 			textureInfo.depth = 1;
 			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
-			textureInfo.type = TEXTURE_TYPE_2D;
+			textureInfo.type = VK_IMAGE_TYPE_2D;
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
 			renderPassInfo.SetDepthStencilTexture(texture);
@@ -388,35 +389,35 @@ bool Pipeline::ParseConfig(const String& data, I64& index, RenderpassCreation& r
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_LESS_OR_EQUAL;
-				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+				renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			}
 			else if (data.CompareN("LESS", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_LESS;
-				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+				renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			}
 			else if (data.CompareN("GREATER_EQUAL", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_GREATER_OR_EQUAL;
-				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+				renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			}
 			else if (data.CompareN("GREATER", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_GREATER;
-				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+				renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			}
 			else if (data.CompareN("EQUAL", index + 1))
 			{
 				depthStencil.depthEnable = true;
 				depthStencil.depthWriteEnable = true;
 				depthStencil.depthComparison = VK_COMPARE_OP_EQUAL;
-				renderPassInfo.depthOperation = RENDER_PASS_OP_CLEAR;
+				renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			}
 		}
 		else if (data.CompareN("blend", index + 1))
@@ -425,39 +426,37 @@ bool Pipeline::ParseConfig(const String& data, I64& index, RenderpassCreation& r
 
 			if (data.CompareN("ADD", index + 1))
 			{
-				BlendState& blendState = blendStates[blendStateCount];
+				VkPipelineColorBlendAttachmentState& blendState = blendStates[blendStateCount];
 
-				blendState.sourceColor = VK_BLEND_FACTOR_ONE;
-				blendState.destinationColor = VK_BLEND_FACTOR_ZERO;
-				blendState.colorOperation = VK_BLEND_OP_ADD;
+				blendState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+				blendState.colorBlendOp = VK_BLEND_OP_ADD;
 
-				blendState.sourceAlpha = VK_BLEND_FACTOR_ONE;
-				blendState.destinationAlpha = VK_BLEND_FACTOR_ZERO;
-				blendState.alphaOperation = VK_BLEND_OP_ADD;
+				blendState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+				blendState.alphaBlendOp = VK_BLEND_OP_ADD;
 
-				blendState.colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
+				blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-				blendState.blendEnabled = true;
-				blendState.separateBlend = false; //Adding alpha
+				blendState.blendEnable = VK_TRUE;
 
 				++blendStateCount;
 			}
 			else if (data.CompareN("SUB", index + 1))
 			{
-				BlendState& blendState = blendStates[blendStateCount];
+				VkPipelineColorBlendAttachmentState& blendState = blendStates[blendStateCount];
 
-				blendState.sourceColor = VK_BLEND_FACTOR_ONE;
-				blendState.destinationColor = VK_BLEND_FACTOR_ZERO;
-				blendState.colorOperation = VK_BLEND_OP_SUBTRACT;
+				blendState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+				blendState.colorBlendOp = VK_BLEND_OP_SUBTRACT;
 
-				blendState.sourceAlpha = VK_BLEND_FACTOR_ONE;
-				blendState.destinationAlpha = VK_BLEND_FACTOR_ZERO;
-				blendState.alphaOperation = VK_BLEND_OP_SUBTRACT;
+				blendState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+				blendState.alphaBlendOp = VK_BLEND_OP_SUBTRACT;
 
-				blendState.colorWriteMask = COLOR_WRITE_ENABLE_ALL_MASK;
+				blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-				blendState.blendEnabled = true;
-				blendState.separateBlend = false; //Adding alpha
+				blendState.blendEnable = VK_TRUE;
 
 				++blendStateCount;
 			}
@@ -508,15 +507,11 @@ bool Pipeline::ParseStage(const String& data, I64& index, RenderpassCreation& re
 	{
 		if (bindPoint == VK_PIPELINE_BIND_POINT_COMPUTE) { return false; }
 		bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-		renderPassInfo.SetType(RENDERPASS_TYPE_GEOMETRY);
 	}
 	else
 	{
 		if (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) { return false; }
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
-
-		renderPassInfo.SetType(RENDERPASS_TYPE_COMPUTE);
 	}
 
 	I64 begin = data.IndexOf('\n', index + 1) + 1;
@@ -663,23 +658,20 @@ bool Pipeline::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, Descripto
 			{
 				U32 location = var->location;
 
-				VertexAttribute attribute{};
-				attribute.binding = location; //TODO: Support one vertex buffer vs multiple
+				VkVertexInputAttributeDescription attribute{};
+				attribute.binding = location;
 				attribute.location = location;
 				attribute.offset = 0;
-				attribute.count = 1;
+				attribute.format = (VkFormat)var->format;
 
-				VertexStream stream{};
-				stream.binding = location; //TODO: Support one vertex buffer vs multiple
-				stream.inputRate = VERTEX_INPUT_RATE_VERTEX;
+				VkVertexInputBindingDescription stream{};
+				stream.binding = location;
+				stream.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 				if (var->type_description->op == SpvOpTypeVector)
 				{
-					SpvReflectNumericTraits traits = var->type_description->traits.numeric;
-
-					attribute.count = traits.vector.component_count;
-					stream.stride = (traits.scalar.width / 8) * attribute.count;
-					attribute.format = (VkFormat)var->format;
+					SpvReflectNumericTraits& traits = var->type_description->traits.numeric;
+					stream.stride = (traits.scalar.width / 8) * traits.vector.component_count;
 				}
 
 				shader.vertexSize += stream.stride;
@@ -800,52 +792,11 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 
 	if (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
-		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-
-		pipelineInfo.pStages = shader.stageInfos;
-		pipelineInfo.stageCount = shader.shaderCount;
-		pipelineInfo.layout = pipelineLayout;
-
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
-		VkVertexInputAttributeDescription vertexAttributes[8]{};
-		if (shader.vertexAttributeCount)
-		{
-			for (U32 i = 0; i < shader.vertexAttributeCount; ++i)
-			{
-				const VertexAttribute& vertexAttribute = shader.vertexAttributes[i];
-				vertexAttributes[i] = { vertexAttribute.location, vertexAttribute.binding, vertexAttribute.format, vertexAttribute.offset };
-			}
-
-			vertexInputInfo.vertexAttributeDescriptionCount = shader.vertexAttributeCount;
-			vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes;
-		}
-		else
-		{
-			vertexInputInfo.vertexAttributeDescriptionCount = 0;
-			vertexInputInfo.pVertexAttributeDescriptions = nullptr;
-		}
-
-		VkVertexInputBindingDescription vertexBindings[8]{};
-		if (shader.vertexStreamCount)
-		{
-			vertexInputInfo.vertexBindingDescriptionCount = shader.vertexStreamCount;
-
-			for (U32 i = 0; i < shader.vertexStreamCount; ++i)
-			{
-				const VertexStream& vertexStream = shader.vertexStreams[i];
-				VkVertexInputRate vertexRate = vertexStream.inputRate == VERTEX_INPUT_RATE_VERTEX ? VK_VERTEX_INPUT_RATE_VERTEX : VK_VERTEX_INPUT_RATE_INSTANCE;
-				vertexBindings[i] = { vertexStream.binding, vertexStream.stride, vertexRate };
-			}
-			vertexInputInfo.pVertexBindingDescriptions = vertexBindings;
-		}
-		else
-		{
-			vertexInputInfo.vertexBindingDescriptionCount = 0;
-			vertexInputInfo.pVertexBindingDescriptions = nullptr;
-		}
-
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
+		vertexInputInfo.vertexAttributeDescriptionCount = shader.vertexAttributeCount;
+		vertexInputInfo.pVertexAttributeDescriptions = shader.vertexAttributes;
+		vertexInputInfo.vertexBindingDescriptionCount = shader.vertexStreamCount;
+		vertexInputInfo.pVertexBindingDescriptions = shader.vertexStreams;
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 		inputAssembly.pNext = nullptr;
@@ -853,54 +804,22 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment[MAX_IMAGE_OUTPUTS]{};
-
-		if (blendStateCount)
+		if (blendStateCount == 0)
 		{
-			for (U64 i = 0; i < blendStateCount; ++i)
-			{
-				const BlendState& blendState = blendStates[i];
-
-				colorBlendAttachment[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				//colorBlendAttachment[i].blendEnable = blendState.blendEnabled ? VK_TRUE : VK_FALSE;
-				colorBlendAttachment[i].blendEnable = VK_FALSE;
-				colorBlendAttachment[i].srcColorBlendFactor = blendState.sourceColor;
-				colorBlendAttachment[i].dstColorBlendFactor = blendState.destinationColor;
-				colorBlendAttachment[i].colorBlendOp = blendState.colorOperation;
-
-				if (blendState.separateBlend)
-				{
-					colorBlendAttachment[i].srcAlphaBlendFactor = blendState.sourceAlpha;
-					colorBlendAttachment[i].dstAlphaBlendFactor = blendState.destinationAlpha;
-					colorBlendAttachment[i].alphaBlendOp = blendState.alphaOperation;
-				}
-				else
-				{
-					colorBlendAttachment[i].srcAlphaBlendFactor = blendState.sourceColor;
-					colorBlendAttachment[i].dstAlphaBlendFactor = blendState.destinationColor;
-					colorBlendAttachment[i].alphaBlendOp = blendState.colorOperation;
-				}
-			}
-		}
-		else
-		{
-			colorBlendAttachment[0].blendEnable = VK_FALSE;
-			colorBlendAttachment[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			blendStates[0].blendEnable = VK_FALSE;
+			blendStates[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			++blendStateCount;
 		}
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = blendStateCount ? blendStateCount : 1;
-		colorBlending.pAttachments = colorBlendAttachment;
+		colorBlending.attachmentCount = blendStateCount;
+		colorBlending.pAttachments = blendStates;
 		colorBlending.blendConstants[0] = 0.0f;
 		colorBlending.blendConstants[1] = 0.0f;
 		colorBlending.blendConstants[2] = 0.0f;
 		colorBlending.blendConstants[3] = 0.0f;
-
-		pipelineInfo.pColorBlendState = &colorBlending;
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 
@@ -908,13 +827,7 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		depthStencilInfo.stencilTestEnable = depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
 		depthStencilInfo.depthTestEnable = depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
 		depthStencilInfo.depthCompareOp = depthStencil.depthComparison;
-		if (depthStencil.stencilEnable)
-		{
-			// TODO: Support stencil buffers
-			Logger::Error("Stencil Buffers Not Yet Supported!");
-		}
-
-		pipelineInfo.pDepthStencilState = &depthStencilInfo;
+		if (depthStencil.stencilEnable) { Logger::Error("Stencil Buffers Not Yet Supported!"); }
 
 		VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 		multisampling.sampleShadingEnable = VK_FALSE;
@@ -923,8 +836,6 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		multisampling.pSampleMask = nullptr;
 		multisampling.alphaToCoverageEnable = VK_FALSE;
 		multisampling.alphaToOneEnable = VK_FALSE;
-
-		pipelineInfo.pMultisampleState = &multisampling;
 
 		VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 		rasterizer.depthClampEnable = VK_FALSE;
@@ -938,10 +849,6 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		rasterizer.depthBiasClamp = 0.0f;
 		rasterizer.depthBiasSlopeFactor = 0.0f;
 
-		pipelineInfo.pRasterizationState = &rasterizer;
-
-		pipelineInfo.pTessellationState = nullptr;
-
 		VkViewport viewport{};
 		VkRect2D scissor{};
 
@@ -951,24 +858,25 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		viewportState.scissorCount = 1;
 		viewportState.pScissors = &scissor;
 
-		pipelineInfo.pViewportState = &viewportState;
-
 		VkDynamicState dynamicStates[]{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
 		dynamicState.pDynamicStates = dynamicStates;
 
+		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+		pipelineInfo.pStages = shader.stageInfos;
+		pipelineInfo.stageCount = shader.shaderCount;
+		pipelineInfo.layout = pipelineLayout;
+		pipelineInfo.pVertexInputState = &vertexInputInfo;
+		pipelineInfo.pInputAssemblyState = &inputAssembly;
+		pipelineInfo.pColorBlendState = &colorBlending;
+		pipelineInfo.pDepthStencilState = &depthStencilInfo;
+		pipelineInfo.pMultisampleState = &multisampling;
+		pipelineInfo.pRasterizationState = &rasterizer;
+		pipelineInfo.pTessellationState = nullptr;
+		pipelineInfo.pViewportState = &viewportState;
 		pipelineInfo.pDynamicState = &dynamicState;
-
 		pipelineInfo.renderPass = renderpass->renderpass;
-
-		//TODO: Setup dynamic rendering
-		//VkPipelineRenderingCreateInfoKHR renderingInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
-		//renderingInfo.pNext = nullptr;
-		//renderingInfo.viewMask = 0;
-		//renderingInfo.colorAttachmentCount;
-		//renderingInfo.pColorAttachmentFormats;
-		//renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
 		vkCreateGraphicsPipelines(Renderer::device, pipelineCache, 1, &pipelineInfo, Renderer::allocationCallbacks, &pipeline);
 	}

@@ -16,7 +16,7 @@ const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
 const uint MATERIAL_FLAG_NO_TANGENTS = 1 << 1;
 const uint MATERIAL_FLAG_NO_TEXURE_COORDS = 1 << 2;
 
-layout(std140, binding = 0) uniform LocalConstants //Per frame
+layout(std140, binding = 0) uniform Globals //Per frame
 {
     mat4 viewProjection;
     vec4 eye;
@@ -27,43 +27,45 @@ layout(std140, binding = 0) uniform LocalConstants //Per frame
     uint skyboxIndex;
 };
 
-layout(std140, binding = 1) uniform MaterialConstant //Per instance
+layout(std140, binding = 1) uniform MeshConstant
 {
-    mat4 model;
-    mat4 modelInv;
+    mat4        model;
+    uint		meshIndex;
+	uint		vertexOffset;
 
-    // x = diffuse index, y = roughness index, z = normal index, w = occlusion index.
-    uvec4       textures;
-    vec4        baseColorFactor;
-    vec3        metalRoughOcclFactor;
-    vec3        emissiveFactor;
-    float       alphaCutoff;
-    uint        flags;
+	uint		diffuseTextureIndex;
+	uint		metalRoughOcclTextureIndex;
+	uint		normalTextureIndex;
+	uint		emissivityTextureIndex;
+
+	vec4		baseColorFactor;
+	float		metalicFactor;
+	float		roughnessFactor;
+	vec3		emissiveFactor;
+
+	F32			alphaCutoff;
+	U32			flags;
 };
 
-layout(location=0) in vec3 position;
-layout(location=1) in vec4 tangent;
-layout(location=2) in vec3 normal;
-layout(location=3) in vec2 texCoord0;
-
-layout (location = 0) out vec2 outTexcoord0;
+layout (location = 0) out vec3 outPosition;
 layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec3 outTangent;
-layout (location = 3) out vec3 outBiTangent;
-layout (location = 4) out vec3 outPosition;
+layout (location = 3) out vec3 outBitangent;
+layout (location = 4) out vec2 outTexcoord;
 
 void main()
 {
     vec4 worldPosition = model * vec4(position, 1.0);
     gl_Position = viewProjection * worldPosition;
     outPosition = worldPosition.xyz / worldPosition.w;
-    outNormal = normalize(mat3(modelInv) * normal);
-    if((flags & MATERIAL_FLAG_NO_TEXURE_COORDS) != 0) { outTexcoord0 = texCoord0; }
+    outNormal = normal;
+
+    if((flags & MATERIAL_FLAG_NO_TEXURE_COORDS) != 0) { outTexcoord = texCoord; }
 
     if((flags & MATERIAL_FLAG_NO_TANGENTS) != 0)
     {
-        outTangent = normalize(mat3(model) * tangent.xyz);
-        outBiTangent = cross(outNormal, outTangent) * tangent.w;
+        outTangent = tangent;
+        outBitangent = bitangent;
     }
 }
 #VERTEX_END
@@ -87,28 +89,34 @@ layout(std140, binding = 0) uniform LocalConstants
     uint skyboxIndex;
 };
 
-layout(std140, binding = 1) uniform MaterialConstant
+layout(std140, binding = 1) uniform MeshConstant
 {
-    mat4	model;
-    mat4	modelInv;
+    mat4        model;
+	uint		meshIndex;
+	uint		vertexOffset;
 
+	uint		diffuseTextureIndex;
+	uint		metalRoughOcclTextureIndex;
+	uint		normalTextureIndex;
+	uint		emissivityTextureIndex;
 
-    uvec4	textures;
-    vec4	baseColorFactor;
-    vec3	metalRoughOcclFactor;
-    vec3	emissiveFactor;
-    float	alphaCutoff;
-    uint	flags;
+	vec4		baseColorFactor;
+	float		metalicFactor;
+	float		roughnessFactor;
+	vec3		emissiveFactor;
+
+	F32			alphaCutoff;
+	U32			flags;
 };
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
 
-layout (location = 0) in vec2 texcoord0;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec3 tangent;
-layout (location = 3) in vec3 bitangent;
-layout (location = 4) in vec3 position;
+layout (location = 0) out vec3 position;
+layout (location = 1) out vec3 normal;
+layout (location = 2) out vec3 tangent;
+layout (location = 3) out vec3 bitangent;
+layout (location = 4) out vec2 texcoord;
 
 layout (location = 0) out vec4 fragColor;
 
@@ -119,7 +127,8 @@ const uint INVALID_TEXTURE_INDEX = 65535;
 
 const float RecPI = 1.0 / PI;
 
-vec3 DecodeSRGB(vec3 c) {
+vec3 DecodeSRGB(vec3 c) 
+{
     vec3 result;
     if (c.r <= 0.04045) { result.r = c.r / 12.92; }
     else { result.r = pow((c.r + 0.055) / 1.055, 2.4); }
@@ -133,7 +142,8 @@ vec3 DecodeSRGB(vec3 c) {
     return clamp(result, 0.0, 1.0);
 }
 
-vec3 EncodeSRGB(vec3 c) {
+vec3 EncodeSRGB(vec3 c) 
+{
     vec3 result;
     if (c.r <= 0.0031308) { result.r = c.r * 12.92; }
     else { result.r = 1.055 * pow(c.r, 1.0 / 2.4) - 0.055; }
@@ -147,7 +157,8 @@ vec3 EncodeSRGB(vec3 c) {
     return clamp(result, 0.0, 1.0);
 }
 
-float Heaviside(float v) {
+float Heaviside(float v) 
+{
     if (v > 0.0) { return 1.0; }
     else { return 0.0; }
 }
@@ -156,9 +167,9 @@ void main()
 {
     vec4 baseColor = vec4(1.0);
 
-    if(textures.z != INVALID_TEXTURE_INDEX)
+    if(diffuseTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        baseColor = texture(globalTextures[nonuniformEXT(textures.x)], texcoord0) * baseColorFactor;
+        baseColor = texture(globalTextures[nonuniformEXT(diffuseTextureIndex)], texcoord) * baseColorFactor;
         baseColor.rgb = DecodeSRGB(baseColor.rgb);
     }
 
@@ -172,9 +183,9 @@ void main()
 
     vec3 N = normalize(normal);
 
-    if (textures.z != INVALID_TEXTURE_INDEX)
+    if (normalTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(textures.z)], texcoord0).rgb * 2.0 - 1.0);
+        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(normalTextureIndex)], texcoord).rgb * 2.0 - 1.0);
 
         if((flags & MATERIAL_FLAG_NO_TANGENTS) == 0)
         {
@@ -204,9 +215,9 @@ void main()
     float roughness = metalRoughOcclFactor.y;
     float occlusion = metalRoughOcclFactor.z;
 
-	if (textures.y != INVALID_TEXTURE_INDEX)
+	if (metalRoughOcclTextureIndex != INVALID_TEXTURE_INDEX)
 	{
-        vec4 rmo = texture(globalTextures[nonuniformEXT(textures.y)], texcoord0);
+        vec4 rmo = texture(globalTextures[nonuniformEXT(metalRoughOcclTextureIndex)], texcoord);
 
 		// Red channel contains occlusion values
         // Green channel contains roughness values
@@ -219,9 +230,9 @@ void main()
 
     vec3 emissivity = emissiveFactor.rgb;
 
-    if(textures.w != INVALID_TEXTURE_INDEX)
+    if(emissivityTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        emissivity += texture(globalTextures[nonuniformEXT(textures.w)], texcoord0).rgb;
+        emissivity += texture(globalTextures[nonuniformEXT(emissivityTextureIndex)], texcoord).rgb;
     }
 
 	float alpha = roughness * roughness;

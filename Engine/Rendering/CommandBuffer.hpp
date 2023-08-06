@@ -4,7 +4,7 @@
 
 struct CommandBuffer
 {
-	void Create(QueueType type, bool baked);
+	void Create(VkQueueFlagBits type, bool baked);
 	void Destroy();
 	 
 	void BindPass(Renderpass* renderpass);
@@ -23,11 +23,9 @@ struct CommandBuffer
 
 	void PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 
-	void FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data);
-
 	VkCommandBuffer				commandBuffer{ nullptr };
 	U32							handle{ U32_MAX };
-	QueueType					type{ QUEUE_TYPE_GRAPHICS };
+	VkQueueFlagBits				type{ VK_QUEUE_GRAPHICS_BIT };
 	bool						baked{ false };
 };
 

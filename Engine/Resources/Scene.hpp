@@ -22,14 +22,11 @@ public:
 	HashHandle			handle;
 
 	Camera				camera{};
-	Buffer* sceneConstantBuffer{ nullptr };
 
 	Skybox* skybox{ nullptr };
-	Buffer* skyboxConstantBuffer{ nullptr };
-	bool				drawSkybox{ true };
+	bool drawSkybox{ true };
 
 	PostProcessData		postProcessData{};
-	Buffer* postProcessConstantBuffer{ nullptr };
 	bool				updatePostProcess{ false };
 
 	Vector<Model*>		models{}; //TODO: Objects

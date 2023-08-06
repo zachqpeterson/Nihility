@@ -112,13 +112,12 @@ Scene* Renderer::currentScene;
 VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 CommandBuffer** Renderer::queuedCommandBuffers;
+Buffer Renderer::vertexBuffer;
+Buffer Renderer::indexBuffer;
+Buffer Renderer::meshBuffer;
+Buffer Renderer::stagingBuffer;
 U32									Renderer::allocatedCommandBufferCount{ 0 };
 U32									Renderer::queuedCommandBufferCount{ 0 };
-U64									Renderer::dynamicMaxPerFrameSize;
-Buffer* Renderer::dynamicBuffer;
-U8* Renderer::dynamicMappedMemory;
-U64									Renderer::dynamicAllocatedSize;
-U64									Renderer::dynamicPerFrameSize;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired;
@@ -175,8 +174,10 @@ void Renderer::Shutdown()
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
 
-	MapBufferParameters cbMap{ dynamicBuffer, 0, 0 };
-	UnmapBuffer(cbMap);
+	DestroyBuffer(stagingBuffer);
+	DestroyBuffer(vertexBuffer);
+	DestroyBuffer(indexBuffer);
+	DestroyBuffer(meshBuffer);
 
 	swapchain.Destroy();
 
@@ -422,6 +423,7 @@ bool Renderer::CreateResources()
 	allocatorInfo.physicalDevice = physicalDevice;
 	allocatorInfo.device = device;
 	allocatorInfo.instance = instance;
+	//allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 	VkValidateFR(vmaCreateAllocator(&allocatorInfo, &allocator));
 
@@ -476,19 +478,14 @@ bool Renderer::CreateResources()
 
 	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
 
-	// TODO: Dynamic buffer handling
-	dynamicPerFrameSize = 1024 * 1024 * 10;
-	BufferCreation bc;
-	bc.Set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, RESOURCE_USAGE_IMMUTABLE, dynamicPerFrameSize * MAX_SWAPCHAIN_IMAGES).
-		SetName("Dynamic_Persistent_Buffer");
-	dynamicBuffer = Resources::CreateBuffer(bc);
-
-	MapBufferParameters cbMap{ dynamicBuffer, 0, 0 };
-	dynamicMappedMemory = (U8*)MapBuffer(cbMap);
+	vertexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	indexBuffer;
+	meshBuffer;
+	stagingBuffer;
 
 	Resources::CreateDefaults();
 
-	//glslang_initialize_process();
+	//TODO: Move to resources?
 	glslang::InitializeProcess();
 
 	return true;
@@ -496,7 +493,6 @@ bool Renderer::CreateResources()
 
 void Renderer::BeginFrame()
 {
-	// Fence wait and reset
 	VkFence renderCompleteFence = commandBufferExecuted[currentFrame];
 
 	if (vkGetFenceStatus(device, renderCompleteFence) != VK_SUCCESS)
@@ -505,14 +501,9 @@ void Renderer::BeginFrame()
 	}
 
 	vkResetFences(device, 1, &renderCompleteFence);
-	// Command pool reset
 	commandBufferRing.ResetPools(currentFrame);
-	// Dynamic memory update
-	const U64 usedSize = dynamicAllocatedSize - (dynamicPerFrameSize * previousFrame);
-	dynamicMaxPerFrameSize = Math::Max(usedSize, dynamicMaxPerFrameSize);
-	dynamicAllocatedSize = dynamicPerFrameSize * currentFrame;
 
-	CommandBuffer* cb = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, true);
+	CommandBuffer* cb = GetCommandBuffer(true);
 
 	if (currentScene) //TODO: Default scene?
 	{
@@ -522,7 +513,9 @@ void Renderer::BeginFrame()
 
 void Renderer::EndFrame()
 {
-	CommandBuffer* commands = GetCommandBuffer(QUEUE_TYPE_GRAPHICS, false);
+	//Before this is called, all mesh data should be loaded into vertex/index/material buffers
+
+	CommandBuffer* commands = GetCommandBuffer(false);
 
 	//TODO: Fog
 	//TODO: Bloom
@@ -612,37 +605,6 @@ void Renderer::LoadScene(const String& name)
 	currentScene->updatePostProcess = true;
 }
 
-void* Renderer::MapBuffer(const MapBufferParameters& parameters)
-{
-	if (parameters.buffer == nullptr) { return nullptr; }
-
-	if (parameters.buffer->parentBuffer == dynamicBuffer)
-	{
-		parameters.buffer->globalOffset = dynamicAllocatedSize;
-
-		return DynamicAllocate(parameters.size == 0 ? parameters.buffer->size : parameters.size);
-	}
-
-	void* data;
-	vmaMapMemory(allocator, parameters.buffer->allocation, &data);
-
-	return data;
-}
-
-void Renderer::UnmapBuffer(const MapBufferParameters& parameters)
-{
-	if (parameters.buffer == nullptr || parameters.buffer->parentBuffer == dynamicBuffer) { return; }
-
-	vmaUnmapMemory(allocator, parameters.buffer->allocation);
-}
-
-void* Renderer::DynamicAllocate(U64 size)
-{
-	void* mappedMemory = dynamicMappedMemory + dynamicAllocatedSize;
-	dynamicAllocatedSize += Memory::MemoryAlign(size, uboAlignment);
-	return mappedMemory;
-}
-
 void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 {
 	if (!debugUtilsExtensionPresent) { return; }
@@ -690,7 +652,7 @@ void Renderer::QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, Comma
 		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
 
 		//TODO: Check if commandBuffer recorded commands
-		if (commandBuffer->currentRenderPass && (commandBuffer->currentRenderPass->type != RENDERPASS_TYPE_COMPUTE))
+		if (commandBuffer->currentRenderPass)
 		{
 			vkCmdEndRenderPass(commandBuffer->commandBuffer);
 		}
@@ -699,32 +661,9 @@ void Renderer::QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, Comma
 	}
 }
 
-CommandBuffer* Renderer::GetCommandBuffer(QueueType type, bool begin)
+CommandBuffer* Renderer::GetCommandBuffer(bool begin)
 {
 	return commandBufferRing.GetCommandBuffer(currentFrame, begin);
-}
-
-void Renderer::AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState, ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth)
-{
-	VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-	barrier.image = image;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.subresourceRange.aspectMask = isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-	barrier.subresourceRange.levelCount = mipCount;
-
-	barrier.subresourceRange.baseMipLevel = baseMipLevel;
-	barrier.oldLayout = ToVkImageLayout(oldState);
-	barrier.newLayout = ToVkImageLayout(newState);
-	barrier.srcAccessMask = ToVkAccessFlags(oldState);
-	barrier.dstAccessMask = ToVkAccessFlags(newState);
-
-	const VkPipelineStageFlags sourceStageMask = DeterminePipelineStageFlags(barrier.srcAccessMask, QUEUE_TYPE_GRAPHICS);
-	const VkPipelineStageFlags destinationStageMask = DeterminePipelineStageFlags(barrier.dstAccessMask, QUEUE_TYPE_GRAPHICS);
-
-	vkCmdPipelineBarrier(commandBuffer, sourceStageMask, destinationStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 void Renderer::TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
@@ -803,6 +742,114 @@ VkBufferMemoryBarrier2 Renderer::BufferBarrier(VkBuffer buffer, VkPipelineStageF
 	return result;
 }
 
+Buffer Renderer::CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags)
+{
+	Buffer buffer{};
+	buffer.size = size;
+	buffer.usage = usageFlags;
+	buffer.memoryProperties = memoryFlags;
+
+	VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	info.size = size;
+	info.usage = usageFlags;
+
+	VmaAllocationCreateInfo memoryInfo{};
+	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+	memoryInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	memoryInfo.requiredFlags = memoryFlags;
+
+	VmaAllocationInfo allocationInfo{};
+	allocationInfo.pName = "buffer";
+	VkValidate(vmaCreateBuffer(allocator, &info, &memoryInfo, &buffer.vkBuffer, &buffer.allocation, &allocationInfo));
+
+	//TODO: Generate resource name?
+
+	buffer.deviceMemory = allocationInfo.deviceMemory;
+
+	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { VkValidate(vmaMapMemory(allocator, buffer.allocation, &buffer.data)); buffer.mapped = true; }
+
+	//TODO: CreateBufferWithData
+	//if (data)
+	//{
+	//	void* mappedData;
+	//	vmaMapMemory(allocator, buffer->allocation, &mappedData);
+	//	Memory::Copy(mappedData, data, (U64)buffer->size);
+	//	vmaUnmapMemory(allocator, buffer->allocation);
+	//}
+
+	return Move(buffer);
+}
+
+void Renderer::FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset)
+{
+	//TODO: Batch buffer writes
+
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
+	vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
+
+	Memory::Copy(stagingBuffer.data, data, size);
+
+	VkBufferCopy region = { 0, offset, size };
+	vkCmdCopyBuffer(commandBuffer->commandBuffer, stagingBuffer.vkBuffer, buffer.vkBuffer, 1, &region);
+
+	vkEndCommandBuffer(commandBuffer->commandBuffer);
+
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
+
+	vkQueueSubmit(deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(deviceQueue);
+	vkResetCommandBuffer(commandBuffer->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+}
+
+U64 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U64 size)
+{
+	FillBuffer(buffer, data, size, buffer.allocationOffset);
+
+	U64 offset = buffer.allocationOffset;
+	buffer.allocationOffset += size;
+
+	return offset;
+}
+
+void Renderer::MapBuffer(Buffer& buffer)
+{
+	if (buffer.memoryProperties & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+	{
+		vmaMapMemory(allocator, buffer.allocation, &buffer.data);
+		buffer.mapped = true;
+	}
+}
+
+void Renderer::UnmapBuffer(Buffer& buffer)
+{
+	if (buffer.memoryProperties & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+	{
+		vmaUnmapMemory(allocator, buffer.allocation);
+		buffer.data = nullptr;
+		buffer.mapped = false;
+	}
+}
+
+void Renderer::DestroyBuffer(Buffer& buffer)
+{
+	if (buffer.vkBuffer)
+	{
+		if (buffer.mapped)
+		{
+			vmaUnmapMemory(allocator, buffer.allocation);
+			buffer.data = nullptr;
+			buffer.mapped = false;
+		}
+
+		vmaDestroyBuffer(allocator, buffer.vkBuffer, buffer.allocation);
+	}
+}
+
 bool Renderer::CreateSampler(Sampler* sampler)
 {
 	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -836,13 +883,13 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.format = texture->format;
-	imageInfo.flags = texture->type == TEXTURE_TYPE_CUBE ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
-	imageInfo.imageType = ToVkImageType(texture->type);
+	imageInfo.flags = 0;
+	imageInfo.imageType = texture->type;
 	imageInfo.extent.width = texture->width;
 	imageInfo.extent.height = texture->height;
 	imageInfo.extent.depth = texture->depth;
 	imageInfo.mipLevels = texture->mipmaps;
-	imageInfo.arrayLayers = texture->type == TEXTURE_TYPE_CUBE ? 6 : 1;
+	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 
@@ -877,7 +924,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	VkImageViewCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	info.image = texture->image;
-	info.viewType = ToVkImageViewType(texture->type);
+	info.viewType = VK_IMAGE_VIEW_TYPE_2D; //TODO: Don't hardcode
 	info.format = imageInfo.format;
 
 	if (HasDepthOrStencil(texture->format))
@@ -1132,49 +1179,6 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	return true;
 }
 
-bool Renderer::CreateBuffer(Buffer* buffer, void* data)
-{
-	static const VkBufferUsageFlags dynamicBufferMask = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	const bool useGlobalBuffer = (buffer->typeFlags & dynamicBufferMask) != 0;
-	if (buffer->usage == RESOURCE_USAGE_DYNAMIC && useGlobalBuffer)
-	{
-		buffer->parentBuffer = dynamicBuffer;
-		return true;
-	}
-
-	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | buffer->typeFlags;
-	bufferInfo.size = buffer->size > 0 ? buffer->size : 1;
-
-	VmaAllocationCreateInfo memoryInfo{};
-	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-	memoryInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-	VmaAllocationInfo allocationInfo{};
-	allocationInfo.pName = "buffer";
-	VkValidate(vmaCreateBuffer(allocator, &bufferInfo, &memoryInfo, &buffer->buffer, &buffer->allocation, &allocationInfo));
-
-	SetResourceName(VK_OBJECT_TYPE_BUFFER, (U64)buffer->buffer, buffer->name);
-
-	buffer->deviceMemory = allocationInfo.deviceMemory;
-
-	if (data)
-	{
-		void* mappedData;
-		vmaMapMemory(allocator, buffer->allocation, &mappedData);
-		Memory::Copy(mappedData, data, (U64)buffer->size);
-		vmaUnmapMemory(allocator, buffer->allocation);
-	}
-
-	// TODO
-	//if ( persistent )
-	//{
-	//    mapped_data = static_cast<uint8_t *>(allocationInfo.pMappedData);
-	//}
-
-	return true;
-}
-
 bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout)
 {
 	U32 usedBindings = 0;
@@ -1205,44 +1209,27 @@ bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayou
 	return true;
 }
 
-bool Renderer::CreateRenderPass(Renderpass* renderpass)
+bool Renderer::CreateRenderPass(Renderpass* renderpass, bool swapchainRenderpass)
 {
-	if (renderpass->type == RENDERPASS_TYPE_COMPUTE)
-	{
-		Logger::Error("Compute RenderPasses Are Not Yet Supported!");
-		return false;
-	}
-
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i) { renderpass->output.Color(renderpass->outputTextures[i]->format); }
 	if (renderpass->outputDepth) { renderpass->output.Depth(renderpass->outputDepth->format); }
 
-	VkAttachmentLoadOp colorOp, depthOp, stencilOp;
 	VkImageLayout colorInitial, depthInitial;
 
-	//TODO: Store VkAttachmentLoadOp instead of RenderPassOperation
-	//TODO: Check if this is first pass/last pass
 	switch (renderpass->output.colorOperation)
 	{
-	case RENDER_PASS_OP_LOAD: { colorOp = VK_ATTACHMENT_LOAD_OP_LOAD; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
-	case RENDER_PASS_OP_CLEAR: { colorOp = VK_ATTACHMENT_LOAD_OP_CLEAR; colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
-	case RENDER_PASS_OP_DONT_CARE:
-	default: { colorOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; colorInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
+	case VK_ATTACHMENT_LOAD_OP_LOAD: { colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
+	case VK_ATTACHMENT_LOAD_OP_CLEAR: { colorInitial = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; } break;
+	case VK_ATTACHMENT_LOAD_OP_DONT_CARE:
+	default: { colorInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
 	}
 
 	switch (renderpass->output.depthOperation)
 	{
-	case RENDER_PASS_OP_LOAD: { depthOp = VK_ATTACHMENT_LOAD_OP_LOAD; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
-	case RENDER_PASS_OP_CLEAR: { depthOp = VK_ATTACHMENT_LOAD_OP_CLEAR; depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
-	case RENDER_PASS_OP_DONT_CARE:
-	default: { depthOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; depthInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
-	}
-
-	switch (renderpass->output.stencilOperation)
-	{
-	case RENDER_PASS_OP_LOAD: { stencilOp = VK_ATTACHMENT_LOAD_OP_LOAD; } break;
-	case RENDER_PASS_OP_CLEAR: { stencilOp = VK_ATTACHMENT_LOAD_OP_CLEAR; } break;
-	case RENDER_PASS_OP_DONT_CARE:
-	default: { stencilOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; } break;
+	case VK_ATTACHMENT_LOAD_OP_LOAD: { depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
+	case VK_ATTACHMENT_LOAD_OP_CLEAR: { depthInitial = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; } break;
+	case VK_ATTACHMENT_LOAD_OP_DONT_CARE:
+	default: { depthInitial = VK_IMAGE_LAYOUT_UNDEFINED; } break;
 	}
 
 	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
@@ -1253,14 +1240,14 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 	U32 attachmentCount = 0;
-	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
+	if (swapchainRenderpass)
 	{
 		attachments[attachmentCount].flags = 0;
 		attachments[attachmentCount].format = renderpass->outputTextures[0]->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = colorOp;
+		attachments[attachmentCount].loadOp = renderpass->output.colorOperation;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = stencilOp;
+		attachments[attachmentCount].stencilLoadOp = renderpass->output.stencilOperation;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -1280,9 +1267,9 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 			attachments[attachmentCount].flags = 0;
 			attachments[attachmentCount].format = renderpass->outputTextures[i]->format;
 			attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachments[attachmentCount].loadOp = colorOp;
+			attachments[attachmentCount].loadOp = renderpass->output.colorOperation;
 			attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachments[attachmentCount].stencilLoadOp = stencilOp;
+			attachments[attachmentCount].stencilLoadOp = renderpass->output.stencilOperation;
 			attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1302,9 +1289,9 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		attachments[attachmentCount].flags = 0;
 		attachments[attachmentCount].format = renderpass->outputDepth->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = depthOp;
+		attachments[attachmentCount].loadOp = renderpass->output.depthOperation;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = stencilOp;
+		attachments[attachmentCount].stencilLoadOp = renderpass->output.stencilOperation;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1314,7 +1301,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 
 		subpass.pDepthStencilAttachment = &depthAttachment;
 
-		if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
+		if (swapchainRenderpass)
 		{
 			renderpass->clears[attachmentCount].depthStencil = { 1, 0 };
 			++renderpass->clearCount;
@@ -1329,8 +1316,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 
-	//TODO: This is hardcoded
-	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
+	if (swapchainRenderpass)
 	{
 		VkSubpassDependency dependencies[2]{};
 
@@ -1411,7 +1397,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 
 	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
 
-	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
+	if (swapchainRenderpass)
 	{
 		for (U64 i = 0; i < swapchain.imageCount; i++)
 		{
@@ -1442,7 +1428,7 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderpass->frameBuffers[0], renderpass->name);
 	}
 
-	if (renderpass->type == RENDERPASS_TYPE_SWAPCHAIN)
+	if (swapchainRenderpass)
 	{
 		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -1463,10 +1449,16 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass)
 		region.imageOffset = { 0, 0, 0 };
 		region.imageExtent = { renderpass->width, renderpass->height, 1 };
 
+		U32 imageBarrierCount = 0;
+		VkImageMemoryBarrier2 imageBarriers[MAX_SWAPCHAIN_IMAGES];
 		for (U64 i = 0; i < swapchain.imageCount; ++i)
 		{
-			AddImageBarrier(commandBuffer->commandBuffer, renderpass->outputTextures[i]->image, RESOURCE_TYPE_UNDEFINED, RESOURCE_TYPE_PRESENT, 0, 1, false);
+			imageBarriers[i] = ImageBarrier(renderpass->outputTextures[i]->image, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1);
+			++imageBarrierCount;
 		}
+
+		commandBuffer->PipelineBarrier(0, 0, nullptr, imageBarrierCount, imageBarriers);
 
 		vkEndCommandBuffer(commandBuffer->commandBuffer);
 
@@ -1495,20 +1487,6 @@ void Renderer::DestroyTextureInstant(Texture* texture)
 	{
 		vkDestroyImageView(device, texture->imageView, allocationCallbacks);
 		if (!texture->swapchainImage) { vmaDestroyImage(allocator, texture->image, texture->allocation); }
-	}
-}
-
-void Renderer::DestroyBufferInstant(Buffer* buffer)
-{
-	if (buffer)
-	{
-		static const VkBufferUsageFlags dynamicBufferMask = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		const bool useGlobalBuffer = (buffer->typeFlags & dynamicBufferMask) != 0;
-
-		if (!(buffer->usage == RESOURCE_USAGE_DYNAMIC && useGlobalBuffer))
-		{
-			vmaDestroyBuffer(allocator, buffer->buffer, buffer->allocation);
-		}
 	}
 }
 

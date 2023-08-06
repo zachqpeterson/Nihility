@@ -37,22 +37,6 @@ struct DepthStencil
 	bool					stencilEnable{ false };
 };
 
-struct BlendState
-{
-	VkBlendFactor			sourceColor{ VK_BLEND_FACTOR_ONE };
-	VkBlendFactor			destinationColor{ VK_BLEND_FACTOR_ONE };
-	VkBlendOp				colorOperation{ VK_BLEND_OP_ADD };
-
-	VkBlendFactor			sourceAlpha{ VK_BLEND_FACTOR_ONE };
-	VkBlendFactor			destinationAlpha{ VK_BLEND_FACTOR_ONE };
-	VkBlendOp				alphaOperation{ VK_BLEND_OP_ADD };
-
-	ColorWriteEnableMask	colorWriteMask{ COLOR_WRITE_ENABLE_ALL_MASK };
-
-	bool					blendEnabled{ false };
-	bool					separateBlend{ false };
-};
-
 struct SpecializationInfo
 {
 	VkSpecializationInfo		specializationInfo{};
@@ -75,23 +59,23 @@ struct ShaderOutput
 
 struct Shader
 {
-	VkPipelineShaderStageCreateInfo	stageInfos[MAX_SHADER_STAGES]{};
-	ShaderStage						stages[MAX_SHADER_STAGES]{};
-	U32								shaderCount{ 0 };
+	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
+	ShaderStage							stages[MAX_SHADER_STAGES]{};
+	U32									shaderCount{ 0 };
+	U32									language{ 0 };
 
-	U32								setCount{ 0 };
+	U32									setCount{ 0 };
 	DescriptorSetLayout* setLayouts[MAX_DESCRIPTOR_SETS]{ nullptr };
 
-	U32								vertexStreamCount{ 0 };
-	U32								vertexAttributeCount{ 0 };
-	VertexStream					vertexStreams[MAX_VERTEX_STREAMS]{};
-	VertexAttribute					vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
-	U32								vertexSize{ 0 };
+	U32									vertexStreamCount{ 0 };
+	U32									vertexAttributeCount{ 0 };
+	VkVertexInputBindingDescription		vertexStreams[MAX_VERTEX_STREAMS]{};
+	VkVertexInputAttributeDescription	vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
+	U32									vertexSize{ 0 };
 
-	U32								language;
 
-	ShaderOutput					outputs[MAX_IMAGE_OUTPUTS]{};
-	U32								outputCount{ 0 };
+	ShaderOutput						outputs[MAX_IMAGE_OUTPUTS]{};
+	U32									outputCount{ 0 };
 };
 
 enum ConnectionType
@@ -138,7 +122,7 @@ struct Pipeline
 
 	Rasterization		rasterization{};
 	DepthStencil		depthStencil{};
-	BlendState			blendStates[MAX_IMAGE_OUTPUTS]{};
+	VkPipelineColorBlendAttachmentState blendStates[MAX_IMAGE_OUTPUTS]{};
 	U8					blendStateCount{ 0 };
 
 	PipelineConnection	pipelineConnections[MAX_PIPELINE_CONNECTIONS];
@@ -146,10 +130,6 @@ struct Pipeline
 	DescriptorSet* descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
 	U8					descriptorSetCount{ 0 };
 	bool				useBindless{ false };
-
-	Buffer* indexBuffer{ nullptr };
-	Buffer* vertexBuffers[MAX_VERTEX_BUFFERS]{};
-	U8					vertexBufferCount{ 0 };
 
 	bool				graphics{ true };
 	bool				useDepth{ false };

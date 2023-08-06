@@ -21,8 +21,6 @@ public:
 	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
 	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
-	static Buffer* CreateBuffer(const BufferCreation& info);
-	static Buffer* LoadBuffer(const BufferCreation& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers);
@@ -56,7 +54,6 @@ public:
 
 	static void	DestroySampler(Sampler* sampler);
 	static void	DestroyTexture(Texture* texture);
-	static void	DestroyBuffer(Buffer* buffer);
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
 	static void	DestroyRenderPass(Renderpass* renderpass);
@@ -101,7 +98,6 @@ private:
 
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;
-	static Buffer*								dummyAttributeBuffer;
 	static Sampler*								defaultSampler;
 	static Program*								skyboxProgram;
 	static Program*								pbrProgram;
@@ -113,7 +109,6 @@ private:
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
-	static Hashmap<String, Buffer>				buffers;
 	static Pool<DescriptorSet, 256>				descriptorSets;
 	static Pool<DescriptorSetLayout, 256>		descriptorSetLayouts;
 	static Hashmap<String, Renderpass>			renderPasses;

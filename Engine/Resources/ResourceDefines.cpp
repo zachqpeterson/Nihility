@@ -58,15 +58,7 @@ TextureCreation& TextureCreation::SetSize(U16 width, U16 height, U16 depth)
 	return *this;
 }
 
-TextureCreation& TextureCreation::SetFlags(U8 mipmaps, U8 flags)
-{
-	this->mipmaps = mipmaps;
-	this->flags = flags;
-
-	return *this;
-}
-
-TextureCreation& TextureCreation::SetFormatType(VkFormat format, TextureType type)
+TextureCreation& TextureCreation::SetFormatType(VkFormat format, VkImageType type)
 {
 	this->format = format;
 	this->type = type;
@@ -88,48 +80,6 @@ TextureCreation& TextureCreation::SetData(void* data)
 	return *this;
 }
 
-// BUFFER CREATION
-
-BufferCreation& BufferCreation::Reset()
-{
-	size = 0;
-	initialData = nullptr;
-	name.Destroy();
-
-	return *this;
-}
-
-BufferCreation& BufferCreation::Set(VkBufferUsageFlags flags, ResourceUsage usage, U64 size)
-{
-	typeFlags = flags;
-	this->usage = usage;
-	this->size = size;
-
-	return *this;
-}
-
-BufferCreation& BufferCreation::SetData(void* data)
-{
-	initialData = data;
-
-	return *this;
-}
-
-BufferCreation& BufferCreation::SetName(const String& name)
-{
-	this->name = name;
-
-	return *this;
-}
-
-BufferCreation& BufferCreation::SetParent(Buffer* parent, U64 offset)
-{
-	parentBuffer = parent;
-	this->offset = offset;
-
-	return *this;
-}
-
 // RENDER PASS OUTPUT
 
 RenderpassOutput& RenderpassOutput::Reset()
@@ -142,9 +92,9 @@ RenderpassOutput& RenderpassOutput::Reset()
 	}
 
 	depthStencilFormat = VK_FORMAT_UNDEFINED;
-	colorOperation = RENDER_PASS_OP_DONT_CARE;
-	depthOperation = RENDER_PASS_OP_DONT_CARE;
-	stencilOperation = RENDER_PASS_OP_DONT_CARE;
+	colorOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
 	return *this;
 }
@@ -161,7 +111,7 @@ RenderpassOutput& RenderpassOutput::Depth(VkFormat format)
 	return *this;
 }
 
-RenderpassOutput& RenderpassOutput::SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
+RenderpassOutput& RenderpassOutput::SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
 {
 	colorOperation = color;
 	depthOperation = depth;
@@ -177,13 +127,12 @@ RenderpassCreation& RenderpassCreation::Reset()
 	width = 0;
 	height = 0;
 	renderTargetCount = 0;
-	type = RENDERPASS_TYPE_GEOMETRY;
 
 	depthStencilTexture = {};
 
-	colorOperation = RENDER_PASS_OP_DONT_CARE;
-	depthOperation = RENDER_PASS_OP_DONT_CARE;
-	stencilOperation = RENDER_PASS_OP_DONT_CARE;
+	colorOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
 	name.Clear();
 
@@ -211,14 +160,7 @@ RenderpassCreation& RenderpassCreation::SetName(const String& name)
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::SetType(RenderpassType type)
-{
-	this->type = type;
-
-	return *this;
-}
-
-RenderpassCreation& RenderpassCreation::SetOperations(RenderPassOperation color, RenderPassOperation depth, RenderPassOperation stencil)
+RenderpassCreation& RenderpassCreation::SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
 {
 	colorOperation = color;
 	depthOperation = depth;
@@ -290,38 +232,6 @@ MaterialCreation& MaterialCreation::SetRenderIndex(U32 render_index_)
 MaterialCreation& MaterialCreation::SetName(const String& name_)
 {
 	name = name_;
-	return *this;
-}
-
-// EXECUTION BARRIER
-
-ExecutionBarrier& ExecutionBarrier::Reset()
-{
-	textureBarrierCount = bufferBarrierCount = 0;
-	sourcePipelineStage = PIPELINE_STAGE_DRAW_INDIRECT;
-	destinationPipelineStage = PIPELINE_STAGE_DRAW_INDIRECT;
-	return *this;
-}
-
-ExecutionBarrier& ExecutionBarrier::Set(PipelineStage source, PipelineStage destination)
-{
-	sourcePipelineStage = source;
-	destinationPipelineStage = destination;
-
-	return *this;
-}
-
-ExecutionBarrier& ExecutionBarrier::AddImageBarrier(const TextureBarrier& textureBarrier)
-{
-	textureBarriers[textureBarrierCount++] = textureBarrier;
-
-	return *this;
-}
-
-ExecutionBarrier& ExecutionBarrier::AddMemoryBarrier(const BufferBarrier& bufferBarrier)
-{
-	bufferBarriers[bufferBarrierCount++] = bufferBarrier;
-
 	return *this;
 }
 

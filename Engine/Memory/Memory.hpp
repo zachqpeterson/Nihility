@@ -5,10 +5,14 @@
 
 #define STATIC_SIZE 1073741824
 #define DYNAMIC_SIZE 1073741824
+#define KILOBYTES(c) c * 1024
+#define MEGABYTES(c) c * 1024 * 1024
+#define GIGABYTES(c) c * 1024 * 1024 * 1024
 
 /*
 * TODO: If one size is full, allocate next size
 * TODO: Debug Memory stats
+* TODO: Pages
 */
 
 /*---------GLOBAL NEW/DELETE---------*/

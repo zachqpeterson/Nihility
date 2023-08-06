@@ -14,13 +14,6 @@ struct Scene;
 class NH_API Renderer
 {
 public:
-	//TODO: Public only for temp testing
-	static CommandBuffer*				GetCommandBuffer(QueueType type, bool begin);
-	static void*						MapBuffer(const MapBufferParameters& parameters);
-	static void							UnmapBuffer(const MapBufferParameters& parameters);
-
-	static U32							GetFrameIndex();
-
 	static void							LoadScene(const String& name);
 
 private:
@@ -37,29 +30,34 @@ private:
 	static void							EndFrame();
 	static void							Resize();
 
-	static void*						DynamicAllocate(U64 size);
-
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
 	static void							PopMarker(VkCommandBuffer commandBuffer);
 
 	static void							FrameCountersAdvance();
+	static U32							GetFrameIndex();
+	static CommandBuffer*				GetCommandBuffer(bool begin);
 	static void							QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer);
-	static void							AddImageBarrier(VkCommandBuffer commandBuffer, VkImage image, ResourceType oldState, ResourceType newState, U32 baseMipLevel, U32 mipCount, bool isDepth);
 	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+	
 	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, VkImageLayout newLayout, VkImageAspectFlags aspectMask, U32 baseMipLevel, U32 levelCount);
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
+
+	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
+	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
+	static U64							UploadToBuffer(Buffer& buffer, const void* data, U64 size);
+	static void							MapBuffer(Buffer& buffer);
+	static void							UnmapBuffer(Buffer& buffer);
+	static void							DestroyBuffer(Buffer& buffer);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubeMap(Texture* texture, void* data, U32* layerSize);
-	static bool							CreateBuffer(Buffer* buffer, void* data);
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
-	static bool							CreateRenderPass(Renderpass* renderpass);
+	static bool							CreateRenderPass(Renderpass* renderpass, bool swapchain = false);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
-	static void							DestroyBufferInstant(Buffer* buffer);
 	static void							DestroyRenderPassInstant(Renderpass* renderpass);
 
 	static bool							IsDepthStencil(VkFormat value);
@@ -76,6 +74,7 @@ private:
 
 	// CAPABILITIES
 	static VkPhysicalDeviceProperties			physicalDeviceProperties;
+	static VkPhysicalDeviceMemoryProperties		physicalDeviceMemoryProperties;
 
 	// DEVICE
 	static VkInstance							instance;
@@ -106,15 +105,14 @@ private:
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
 	static CommandBuffer**						queuedCommandBuffers;
+	static Buffer								vertexBuffer;
+	static Buffer								indexBuffer;
+	static Buffer								meshBuffer;
+	static Buffer								stagingBuffer;
 	static U32									allocatedCommandBufferCount;
 	static U32									queuedCommandBufferCount;
-	static U64									dynamicMaxPerFrameSize;
-	static Buffer*								dynamicBuffer;
-	static U8*									dynamicMappedMemory;
-	static U64									dynamicAllocatedSize;
-	static U64									dynamicPerFrameSize;
 
-	// TIMING
+	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;
 	static VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
 	static VkFence								commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];

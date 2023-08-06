@@ -4,47 +4,42 @@
 #include "Resources\Resources.hpp"
 #include "Pipeline.hpp"
 
-void CommandBuffer::Create(QueueType type, bool baked)
+void CommandBuffer::Create(VkQueueFlagBits type, bool baked)
 {
 	this->type = type;
 	this->baked = baked;
-
-	Reset();
 }
 
 void CommandBuffer::Destroy()
 {
-	Reset();
+
 }
 
 void CommandBuffer::BindPass(Renderpass* renderpass)
 {
-	if (renderpass != currentRenderPass)
+	if (currentRenderPass && currentRenderPass->type != RENDERPASS_TYPE_COMPUTE)
 	{
-		if (currentRenderPass && currentRenderPass->type != RENDERPASS_TYPE_COMPUTE)
-		{
-			vkCmdEndRenderPass(commandBuffer);
-		}
+		vkCmdEndRenderPass(commandBuffer);
+	}
 
-		if (renderpass->type != RENDERPASS_TYPE_COMPUTE)
-		{
-			VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			renderPassBegin.framebuffer = renderpass->type == RENDERPASS_TYPE_SWAPCHAIN ? renderpass->frameBuffers[Renderer::imageIndex] : renderpass->frameBuffers[0];
-			renderPassBegin.renderPass = renderpass->renderpass;
+	if (renderpass->type != RENDERPASS_TYPE_COMPUTE)
+	{
+		VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+		renderPassBegin.framebuffer = renderpass->type == RENDERPASS_TYPE_SWAPCHAIN ? renderpass->frameBuffers[Renderer::imageIndex] : renderpass->frameBuffers[0];
+		renderPassBegin.renderPass = renderpass->renderpass;
 
-			renderPassBegin.renderArea.offset = { 0, 0 };
-			renderPassBegin.renderArea.extent = { renderpass->width, renderpass->height };
+		renderPassBegin.renderArea.offset = { 0, 0 };
+		renderPassBegin.renderArea.extent = { renderpass->width, renderpass->height };
 
-			renderPassBegin.clearValueCount = renderpass->clearCount;
-			renderPassBegin.pClearValues = renderpass->clears;
+		renderPassBegin.clearValueCount = renderpass->clearCount;
+		renderPassBegin.pClearValues = renderpass->clears;
 
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 
-			currentRenderPass = renderpass;
+		currentRenderPass = renderpass;
 
-			vkCmdSetViewport(commandBuffer, 0, renderpass->viewport.viewportCount, renderpass->viewport.viewports);
-			vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
-		}
+		vkCmdSetViewport(commandBuffer, 0, renderpass->viewport.viewportCount, renderpass->viewport.viewports);
+		vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
 	}
 }
 
@@ -91,16 +86,16 @@ void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* o
 {
 	U32 offsetsCache[64];
 	numOffsets = 0;
-	
+
 	for (U32 l = 0; l < numLists; ++l)
 	{
 		DescriptorSet* descriptorSet = sets[l];
 		vkDescriptorSets[l] = descriptorSet->descriptorSet;
-	
+
 		for (U32 i = 0, b = 0; i < descriptorSet->bindingCount; ++i)
 		{
 			const DescriptorBinding& rb = descriptorSet->bindings[i];
-	
+
 			if (rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 			{
 				offsetsCache[numOffsets++] = 0;//(U32)descriptorSet->offsetsCache[b++];
@@ -158,20 +153,6 @@ void CommandBuffer::DispatchIndirect(Buffer* buffer, U32 offset)
 	vkCmdDispatchIndirect(commandBuffer, vkBuffer, vkOffset);
 }
 
-static ResourceType ToResourceState(PipelineStage stage)
-{
-	static constexpr ResourceType states[]{
-		RESOURCE_TYPE_INDIRECT_ARGUMENT,
-		RESOURCE_TYPE_VERTEX_AND_CONSTANT_BUFFER,
-		RESOURCE_TYPE_NON_PIXEL_SHADER_RESOURCE,
-		RESOURCE_TYPE_PIXEL_SHADER_RESOURCE,
-		RESOURCE_TYPE_RENDER_TARGET,
-		RESOURCE_TYPE_UNORDERED_ACCESS,
-		RESOURCE_TYPE_COPY_DEST
-	};
-	return states[stage];
-}
-
 void CommandBuffer::PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers)
 {
 	VkDependencyInfo dependencyInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
@@ -182,11 +163,6 @@ void CommandBuffer::PipelineBarrier(VkDependencyFlags dependencyFlags, U32 buffe
 	dependencyInfo.pImageMemoryBarriers = imageBarriers;
 
 	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
-}
-
-void CommandBuffer::FillBuffer(Buffer* buffer, U32 offset, U32 size, U32 data)
-{
-	vkCmdFillBuffer(commandBuffer, buffer->buffer, VkDeviceSize(offset), size ? VkDeviceSize(size) : VkDeviceSize(buffer->size), data);
 }
 
 /*------COMMAND BUFFER RING------*/
@@ -213,7 +189,7 @@ void CommandBufferRing::Create()
 
 		//TODO: Have a ring per queue per thread
 		commandBuffers[i].handle = i;
-		commandBuffers[i].Create(QUEUE_TYPE_GRAPHICS, 0, 0, false);
+		commandBuffers[i].Create(VK_QUEUE_GRAPHICS_BIT, false);
 	}
 }
 
@@ -245,8 +221,6 @@ CommandBuffer* CommandBufferRing::GetCommandBuffer(U32 frame, bool begin)
 
 	if (begin)
 	{
-		cb->Reset();
-
 		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		vkBeginCommandBuffer(cb->commandBuffer, &beginInfo);
