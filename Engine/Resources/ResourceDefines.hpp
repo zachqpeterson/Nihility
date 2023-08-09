@@ -465,6 +465,7 @@ struct Renderpass
 
 	VkRenderPass		renderpass{ nullptr };
 	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
+	bool				tiedToFrame{ false };
 
 	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* outputDepth{ nullptr };
@@ -502,7 +503,6 @@ struct RenderpassCreation
 
 	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTexture{ nullptr };
-	//TODO: Pass in Viewport info
 
 	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };

@@ -149,8 +149,7 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 	{
 		index = data.IndexOf('#', index + 1);
 
-		//TODO: Validate only graphics or compute
-		//TODO: Validate both or neither ctrl and eval
+		//TODO: Validate stage combonations
 		if (data.CompareN("#CONFIG", index)) { ParseConfig(data, index, renderPassInfo); }
 		else if (data.CompareN("#VERTEX", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_VERTEX_BIT); }
 		else if (data.CompareN("#CONTROL", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT); }
@@ -158,6 +157,8 @@ bool Pipeline::Create(const String& shaderPath, Renderpass* renderpass)
 		else if (data.CompareN("#GEOMETRY", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_GEOMETRY_BIT); }
 		else if (data.CompareN("#FRAGMENT", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_FRAGMENT_BIT); }
 		else if (data.CompareN("#COMPUTE", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_COMPUTE_BIT); }
+		else if (data.CompareN("#TASK", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_TASK_BIT_EXT); }
+		else if (data.CompareN("#MESH", index)) { ParseStage(data, index, renderPassInfo, setLayoutInfos, VK_SHADER_STAGE_MESH_BIT_EXT); }
 	} while (index != -1);
 
 	if (shader.shaderCount == 0) { Logger::Error("Pipeline '{}' Has No Shaders Stages!", shaderPath); BreakPoint; }
@@ -505,12 +506,10 @@ bool Pipeline::ParseStage(const String& data, I64& index, RenderpassCreation& re
 {
 	if (stage != VK_SHADER_STAGE_COMPUTE_BIT)
 	{
-		if (bindPoint == VK_PIPELINE_BIND_POINT_COMPUTE) { return false; }
 		bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	}
 	else
 	{
-		if (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) { return false; }
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
 
@@ -525,6 +524,8 @@ bool Pipeline::ParseStage(const String& data, I64& index, RenderpassCreation& re
 	case VK_SHADER_STAGE_GEOMETRY_BIT: { while (end != -1) { if (data.CompareN("#GEOMETRY_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
 	case VK_SHADER_STAGE_FRAGMENT_BIT: { while (end != -1) { if (data.CompareN("#FRAGMENT_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
 	case VK_SHADER_STAGE_COMPUTE_BIT: { while (end != -1) { if (data.CompareN("#COMPUTE_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_TASK_BIT_EXT: { while (end != -1) { if (data.CompareN("#TASK_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
+	case VK_SHADER_STAGE_MESH_BIT_EXT: { while (end != -1) { if (data.CompareN("#MESH_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
 	default: return false;
 	}
 
@@ -544,21 +545,25 @@ bool Pipeline::ParseStage(const String& data, I64& index, RenderpassCreation& re
 const String& Pipeline::ToStageDefines(VkShaderStageFlagBits value)
 {
 	static const String vertex{ "VERTEX" };
+	static const String tessControl{ "TESSCONTROL" };
+	static const String tessEval{ "TESSEVAL" };
 	static const String geometry{ "GEOMETRY" };
 	static const String fragment{ "FRAGMENT" };
 	static const String compute{ "COMPUTE" };
-	static const String tessControl{ "TESSCONTROLL" };
-	static const String tessEval{ "TESSEVAL" };
+	static const String task{ "TASK" };
+	static const String mesh{ "MESH" };
 	static const String def{ "" };
 
 	switch (value)
 	{
 	case VK_SHADER_STAGE_VERTEX_BIT: { return vertex; }
+	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { return tessControl; }
+	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { return tessEval; }
 	case VK_SHADER_STAGE_GEOMETRY_BIT: { return geometry; }
 	case VK_SHADER_STAGE_FRAGMENT_BIT: { return fragment; }
 	case VK_SHADER_STAGE_COMPUTE_BIT: { return compute; }
-	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { return tessControl; }
-	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { return tessEval; }
+	case VK_SHADER_STAGE_TASK_BIT_EXT: { return task; }
+	case VK_SHADER_STAGE_MESH_BIT_EXT: { return mesh; }
 	default: { return def; }
 	}
 }
@@ -566,21 +571,25 @@ const String& Pipeline::ToStageDefines(VkShaderStageFlagBits value)
 const String& Pipeline::ToCompilerExtension(VkShaderStageFlagBits value)
 {
 	static const String vertex{ "vert" };
+	static const String tessControl{ "tesc" };
+	static const String tessEval{ "tese" };
 	static const String geometry{ "geom" };
 	static const String fragment{ "frag" };
 	static const String compute{ "comp" };
-	static const String tessControl{ "tesc" };
-	static const String tessEval{ "tese" };
+	static const String task{ "task" };
+	static const String mesh{ "mesh" };
 	static const String def{ "" };
 
 	switch (value)
 	{
 	case VK_SHADER_STAGE_VERTEX_BIT: { return vertex; }
+	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { return tessControl; }
+	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { return tessEval; }
 	case VK_SHADER_STAGE_GEOMETRY_BIT: { return geometry; }
 	case VK_SHADER_STAGE_FRAGMENT_BIT: { return fragment; }
 	case VK_SHADER_STAGE_COMPUTE_BIT: { return compute; }
-	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { return tessControl; }
-	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { return tessEval; }
+	case VK_SHADER_STAGE_TASK_BIT_EXT: { return task; }
+	case VK_SHADER_STAGE_MESH_BIT_EXT: { return mesh; }
 	default: {return def; }
 	}
 }
@@ -602,6 +611,8 @@ VkPipelineShaderStageCreateInfo Pipeline::CompileShader(ShaderStage& shaderStage
 	case VK_SHADER_STAGE_GEOMETRY_BIT: { stage = EShLangGeometry; stageIndex = 3; } break;
 	case VK_SHADER_STAGE_FRAGMENT_BIT: { stage = EShLangFragment; stageIndex = 4; } break;
 	case VK_SHADER_STAGE_COMPUTE_BIT: { stage = EShLangCompute; stageIndex = 5; } break;
+	case VK_SHADER_STAGE_TASK_BIT_EXT: { stage = EShLangTask; stageIndex = 6; } break;
+	case VK_SHADER_STAGE_MESH_BIT_EXT: { stage = EShLangMesh; stageIndex = 7; } break;
 	}
 
 	TShader tShader(stage);

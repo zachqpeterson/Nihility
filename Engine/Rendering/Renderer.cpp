@@ -1399,6 +1399,8 @@ bool Renderer::CreateRenderPass(Renderpass* renderpass, bool swapchainRenderpass
 
 	if (swapchainRenderpass)
 	{
+		renderpass->tiedToFrame = true;
+
 		for (U64 i = 0; i < swapchain.imageCount; i++)
 		{
 			framebufferAttachments[0] = renderpass->outputTextures[i]->imageView;

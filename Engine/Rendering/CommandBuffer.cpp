@@ -15,66 +15,31 @@ void CommandBuffer::Destroy()
 
 }
 
-void CommandBuffer::BindPass(Renderpass* renderpass)
+void CommandBuffer::UnbindRenderpass()
 {
-	if (currentRenderPass && currentRenderPass->type != RENDERPASS_TYPE_COMPUTE)
-	{
-		vkCmdEndRenderPass(commandBuffer);
-	}
+	vkCmdEndRenderPass(commandBuffer);
+}
 
-	if (renderpass->type != RENDERPASS_TYPE_COMPUTE)
-	{
-		VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderPassBegin.framebuffer = renderpass->type == RENDERPASS_TYPE_SWAPCHAIN ? renderpass->frameBuffers[Renderer::imageIndex] : renderpass->frameBuffers[0];
-		renderPassBegin.renderPass = renderpass->renderpass;
+void CommandBuffer::BindRenderpass(Renderpass* renderpass)
+{
+	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	renderPassBegin.framebuffer = renderpass->frameBuffers[renderpass->tiedToFrame ? Renderer::imageIndex : 0];
+	renderPassBegin.renderPass = renderpass->renderpass;
 
-		renderPassBegin.renderArea.offset = { 0, 0 };
-		renderPassBegin.renderArea.extent = { renderpass->width, renderpass->height };
+	renderPassBegin.renderArea.offset = { 0, 0 };
+	renderPassBegin.renderArea.extent = { renderpass->width, renderpass->height };
 
-		renderPassBegin.clearValueCount = renderpass->clearCount;
-		renderPassBegin.pClearValues = renderpass->clears;
+	renderPassBegin.clearValueCount = renderpass->clearCount;
+	renderPassBegin.pClearValues = renderpass->clears;
 
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-
-		currentRenderPass = renderpass;
-
-		vkCmdSetViewport(commandBuffer, 0, renderpass->viewport.viewportCount, renderpass->viewport.viewports);
-		vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
-	}
+	vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdSetViewport(commandBuffer, 0, renderpass->viewport.viewportCount, renderpass->viewport.viewports);
+	vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
 }
 
 void CommandBuffer::BindPipeline(Pipeline* pipeline)
 {
 	vkCmdBindPipeline(commandBuffer, pipeline->bindPoint, pipeline->pipeline);
-
-	// Cache pipeline
-	currentPipeline = pipeline;
-}
-
-void CommandBuffer::BindVertexBuffer(Buffer* buffer, U32 binding)
-{
-	VkDeviceSize offsets[]{ buffer->globalOffset };
-	VkBuffer vkBuffer = buffer->buffer;
-	// TODO: add global vertex buffer ?
-	if (buffer->parentBuffer)
-	{
-		vkBuffer = buffer->parentBuffer->buffer;
-	}
-
-	vkCmdBindVertexBuffers(commandBuffer, binding, 1, &vkBuffer, offsets);
-}
-
-void CommandBuffer::BindIndexBuffer(Buffer* buffer)
-{
-	VkBuffer vkBuffer = buffer->buffer;
-	VkDeviceSize vkOffset = buffer->globalOffset;
-
-	if (buffer->parentBuffer)
-	{
-		vkBuffer = buffer->parentBuffer->buffer;
-	}
-
-	vkCmdBindIndexBuffer(commandBuffer, vkBuffer, vkOffset, VK_INDEX_TYPE_UINT16);
 }
 
 Texture* textures[MAX_DESCRIPTORS_PER_SET]{};

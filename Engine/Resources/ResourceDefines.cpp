@@ -237,8 +237,6 @@ MaterialCreation& MaterialCreation::SetName(const String& name_)
 
 // PROGRAM
 
-Renderpass* Program::prevRenderpass{ nullptr };
-
 void Program::RunPasses(CommandBuffer* commands)
 {
 	Renderpass* renderpass = nullptr;
@@ -252,7 +250,7 @@ void Program::RunPasses(CommandBuffer* commands)
 
 		if (pipeline->renderpass != renderpass)
 		{
-			if (renderpass != nullptr) { prevRenderpass = renderpass; }
+			if (renderpass != nullptr) { /*TODO: End Renderpass*/ }
 
 			renderpass = pipeline->renderpass;
 			commands->BindPass(pipeline->renderpass);

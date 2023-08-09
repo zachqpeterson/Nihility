@@ -6,8 +6,9 @@ struct CommandBuffer
 {
 	void Create(VkQueueFlagBits type, bool baked);
 	void Destroy();
-	 
-	void BindPass(Renderpass* renderpass);
+
+	void UnbindRenderpass();
+	void BindRenderpass(Renderpass* renderpass);
 	void BindPipeline(Pipeline* pipeline);
 	void BindVertexBuffer(Buffer* buffer, U32 binding);
 	void BindIndexBuffer(Buffer* buffer);

@@ -76,8 +76,8 @@ bool Swapchain::CreateRenderPass()
 	}
 	else
 	{
-		renderPassInfo.SetType(RENDERPASS_TYPE_SWAPCHAIN).SetName("Swapchain");
-		renderPassInfo.SetOperations(RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR, RENDER_PASS_OP_CLEAR);
+		renderPassInfo.SetName("Swapchain");
+		renderPassInfo.SetOperations(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_CLEAR);
 
 		TextureCreation textureInfo{};
 		textureInfo.name = "swapchain_depth";
@@ -86,7 +86,7 @@ bool Swapchain::CreateRenderPass()
 		textureInfo.height = renderPassInfo.height;
 		textureInfo.depth = 1;
 		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
-		textureInfo.type = TEXTURE_TYPE_2D;
+		textureInfo.type = VK_IMAGE_TYPE_2D;
 
 		Texture* texture = Resources::CreateTexture(textureInfo);
 		renderPassInfo.SetDepthStencilTexture(texture);
