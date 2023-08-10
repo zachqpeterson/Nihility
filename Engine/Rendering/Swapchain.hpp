@@ -11,8 +11,8 @@ public:
 	bool Create();
 	void Destroy();
 
+	VkResult Update();
 	VkResult NextImage(U32& imageIndex, VkSemaphore semaphore = nullptr, VkFence fence = nullptr);
-	VkResult Present(VkQueue queue, U32 imageIndex, VkSemaphore semaphore = nullptr);
 
 public:
 	VkSwapchainKHR swapchain{ nullptr };

@@ -253,7 +253,7 @@ void Program::RunPasses(CommandBuffer* commands)
 			if (renderpass != nullptr) { /*TODO: End Renderpass*/ }
 
 			renderpass = pipeline->renderpass;
-			commands->BindPass(pipeline->renderpass);
+			commands->BindRenderpass(pipeline->renderpass);
 		}
 
 		commands->BindDescriptorSet(pipeline->descriptorSets[frame], pipeline->descriptorSetCount, nullptr, 0);

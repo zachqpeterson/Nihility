@@ -10,8 +10,7 @@ struct CommandBuffer
 	void UnbindRenderpass();
 	void BindRenderpass(Renderpass* renderpass);
 	void BindPipeline(Pipeline* pipeline);
-	void BindVertexBuffer(Buffer* buffer, U32 binding);
-	void BindIndexBuffer(Buffer* buffer);
+	void BindIndexBuffer(Buffer& buffer);
 	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
 
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);

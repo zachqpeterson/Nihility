@@ -23,14 +23,14 @@ class NH_API Settings
 		bool unfocusedAudio{ false };
 
 		//GRAPHICS
-		I32 windowWidth{ 0 };
-		I32 windowHeight{ 0 };
-		I32 windowWidthSmall{ 1280 };
-		I32 windowHeightSmall{ 720 };
-		I32 windowPositionX{ 0 };
-		I32 windowPositionY{ 0 };
-		I32 windowPositionXSmall{ 320 };
-		I32 windowPositionYSmall{ 180 };
+		U32 windowWidth{ 0 };
+		U32 windowHeight{ 0 };
+		U32 windowWidthSmall{ 1280 };
+		U32 windowHeightSmall{ 720 };
+		U32 windowPositionX{ 0 };
+		U32 windowPositionY{ 0 };
+		U32 windowPositionXSmall{ 320 };
+		U32 windowPositionYSmall{ 180 };
 		F64 targetFrametime{ 0.0 };
 		F64 targetFrametimeSuspended{ 0.1 };
 		U8 msaaCount{ 1 };
@@ -56,14 +56,14 @@ public:
 	static const bool& UnfocusedAudio();
 
 	//GRAPHICS
-	static const I32& WindowWidth();
-	static const I32& WindowHeight();
-	static const I32& WindowWidthSmall();
-	static const I32& WindowHeightSmall();
-	static const I32& WindowPositionX();
-	static const I32& WindowPositionY();
-	static const I32& WindowPositionXSmall();
-	static const I32& WindowPositionYSmall();
+	static const U32& WindowWidth();
+	static const U32& WindowHeight();
+	static const U32& WindowWidthSmall();
+	static const U32& WindowHeightSmall();
+	static const U32& WindowPositionX();
+	static const U32& WindowPositionY();
+	static const U32& WindowPositionXSmall();
+	static const U32& WindowPositionYSmall();
 	static const F64& TargetFrametime();
 	static const F64& TargetFrametimeSuspended();
 	static const U8& MsaaCount();

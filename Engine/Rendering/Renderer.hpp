@@ -26,7 +26,8 @@ private:
 	static bool							CreateDevice();
 	static bool							CreateResources();
 
-	static void							BeginFrame();
+	static bool							BeginFrame();
+	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline);
 	static void							EndFrame();
 	static void							Resize();
 
@@ -40,7 +41,7 @@ private:
 	static void							QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer);
 	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 	
-	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, VkImageLayout newLayout, VkImageAspectFlags aspectMask, U32 baseMipLevel, U32 levelCount);
+	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, VkImageLayout newLayout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, U32 baseMipLevel = 0, U32 levelCount = VK_REMAINING_MIP_LEVELS);
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
 
 	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
@@ -114,8 +115,7 @@ private:
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;
-	static VkSemaphore							renderCompleted[MAX_SWAPCHAIN_IMAGES];
-	static VkFence								commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
+	static VkSemaphore							queueSubmitted;
 
 	// DEBUG
 	static VkDebugUtilsMessengerEXT				debugMessenger;

@@ -120,9 +120,8 @@ U32									Renderer::allocatedCommandBufferCount{ 0 };
 U32									Renderer::queuedCommandBufferCount{ 0 };
 
 // TIMING
-VkSemaphore							Renderer::imageAcquired;
-VkSemaphore							Renderer::renderCompleted[MAX_SWAPCHAIN_IMAGES];
-VkFence								Renderer::commandBufferExecuted[MAX_SWAPCHAIN_IMAGES];
+VkSemaphore							Renderer::imageAcquired{ nullptr };
+VkSemaphore							Renderer::queueSubmitted{ nullptr };
 
 // DEBUG
 VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
@@ -166,13 +165,8 @@ void Renderer::Shutdown()
 
 	commandBufferRing.Destroy();
 
-	for (U64 i = 0; i < MAX_SWAPCHAIN_IMAGES; i++)
-	{
-		vkDestroySemaphore(device, renderCompleted[i], allocationCallbacks);
-		vkDestroyFence(device, commandBufferExecuted[i], allocationCallbacks);
-	}
-
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
+	vkDestroySemaphore(device, queueSubmitted, allocationCallbacks);
 
 	DestroyBuffer(stagingBuffer);
 	DestroyBuffer(vertexBuffer);
@@ -464,15 +458,7 @@ bool Renderer::CreateResources()
 
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
-
-	for (U64 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-	{
-		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &renderCompleted[i]);
-
-		VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		vkCreateFence(device, &fenceInfo, allocationCallbacks, &commandBufferExecuted[i]);
-	}
+	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &queueSubmitted);
 
 	commandBufferRing.Create();
 
@@ -491,32 +477,98 @@ bool Renderer::CreateResources()
 	return true;
 }
 
-void Renderer::BeginFrame()
+bool Renderer::BeginFrame()
 {
-	VkFence renderCompleteFence = commandBufferExecuted[currentFrame];
-
-	if (vkGetFenceStatus(device, renderCompleteFence) != VK_SUCCESS)
+	VkResult result = swapchain.Update();
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		vkWaitForFences(device, 1, &renderCompleteFence, VK_TRUE, UINT64_MAX);
+		Resize();
+	}
+	else if (result == VK_NOT_READY)
+	{
+		FrameCountersAdvance();
+		return false;
 	}
 
-	vkResetFences(device, 1, &renderCompleteFence);
-	commandBufferRing.ResetPools(currentFrame);
+	CommandBuffer* commandBuffer = GetCommandBuffer(true);
 
-	CommandBuffer* cb = GetCommandBuffer(true);
+	Renderpass* renderpass = Resources::pbrProgram->passes[0]->renderpass;
+
+	VkImageMemoryBarrier2 renderBeginBarriers[]{
+		ImageBarrier(renderpass->outputTextures[0]->image,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL),
+		ImageBarrier(renderpass->outputDepth->image,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 0, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_DEPTH_BIT),
+	};
+
+	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(renderBeginBarriers), renderBeginBarriers);
+
+	VkResult result = swapchain.NextImage(imageIndex, imageAcquired);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		Resize();
+		FrameCountersAdvance();
+		return false;
+	}
+}
+
+void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
+{
+	commandBuffer->BindRenderpass(pipeline->renderpass);
+
+	bool taskSubmit = false;
+
+	if (taskSubmit)
+	{
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
+		//
+		//// TODO: double-check synchronization
+		//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
+		//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
+		//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
+		//pushDescriptors(meshProgramMS, descriptors);
+		//
+		//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
+		//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
+	}
+	else
+	{
+		commandBuffer->BindPipeline(pipeline);
+
+		DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, vb.buffer };
+		pushDescriptors(meshProgram, descriptors);
+
+		commandBuffer->BindIndexBuffer(indexBuffer);
+
+		vkCmdPushConstants(commandBuffer, meshProgram.layout, meshProgram.pushConstantStages, 0, sizeof(globals), &globals);
+		vkCmdDrawIndexedIndirectCount(commandBuffer, dcb.buffer, offsetof(MeshDrawCommand, indirect), dccb.buffer, 0, uint32_t(draws.size()), sizeof(MeshDrawCommand));
+	}
+
+	vkCmdEndRendering(commandBuffer);
+}
+
+void Renderer::EndFrame()
+{
+	CommandBuffer* commandBuffer = GetCommandBuffer(false);
 
 	if (currentScene) //TODO: Default scene?
 	{
 		currentScene->Update();
 	}
-}
 
-void Renderer::EndFrame()
-{
-	//Before this is called, all mesh data should be loaded into vertex/index/material buffers
+	Resources::Update();
 
-	CommandBuffer* commands = GetCommandBuffer(false);
+	//TODO: Early Cull
+	//TODO: Early Render
+	//TODO: Generate Depth Pyramid
+	//TODO: Late Cull
+	//TODO: Late Render
 
+	//Post Processing
+	//TODO: Skybox
 	//TODO: Fog
 	//TODO: Bloom
 	//TODO: Exposure
@@ -530,46 +582,61 @@ void Renderer::EndFrame()
 
 	//TODO: UI
 
-	Resources::Update();
+	VkImageMemoryBarrier2 copyBarriers[]{
+		ImageBarrier(Resources::pbrProgram->passes[0]->renderpass->outputTextures[0]->image,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
+		ImageBarrier(swapchain.renderpass->outputTextures[imageIndex]->image,
+			0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL),
+		ImageBarrier(depthPyramid.image,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL),
+	};
 
-	VkCommandBuffer enqueuedCommandBuffers[4];
-	QueueCommandBuffer(enqueuedCommandBuffers, commands);
+	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(copyBarriers), copyBarriers);
 
-	VkResult result = swapchain.NextImage(imageIndex, imageAcquired);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
-	{
-		Resize();
-		FrameCountersAdvance();
+	VkImageCopy copyRegion{};
+	copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	copyRegion.srcSubresource.layerCount = 1;
+	copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	copyRegion.dstSubresource.layerCount = 1;
+	copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1};
 
-		return;
-	}
+	vkCmdCopyImage(commandBuffer, Resources::pbrProgram->passes[0]->renderpass->outputTextures[0]->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		swapchain.renderpass->outputTextures[imageIndex]->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-	VkFence renderCompleteFence = commandBufferExecuted[currentFrame];
-	VkSemaphore renderCompleteSemaphore = renderCompleted[currentFrame];
-	VkPipelineStageFlags waitStages[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderpass->outputTextures[imageIndex]->image,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
+
+	VkValidate(vkEndCommandBuffer(commandBuffer->commandBuffer));
+
+	VkPipelineStageFlags submitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = &imageAcquired;
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = queuedCommandBufferCount;
-	submitInfo.pCommandBuffers = enqueuedCommandBuffers;
+	submitInfo.pWaitDstStageMask = &submitStageMask;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer->commandBuffer;
 	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &renderCompleteSemaphore;
+	submitInfo.pSignalSemaphores = &queueSubmitted;
 
-	vkQueueSubmit(deviceQueue, 1, &submitInfo, renderCompleteFence);
+	VkValidate(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
 
-	result = swapchain.Present(deviceQueue, imageIndex, renderCompleteSemaphore);
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &queueSubmitted;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &swapchain.swapchain;
+	presentInfo.pImageIndices = &imageIndex;
 
-	queuedCommandBufferCount = 0;
+	VkResult result = vkQueuePresentKHR(deviceQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || Settings::Resized())
-	{
-		Settings::resized = false;
-		Resize();
-
-		return;
-	}
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) { Resize(); }
 
 	FrameCountersAdvance();
 }
@@ -638,27 +705,6 @@ void Renderer::FrameCountersAdvance()
 	currentFrame = (currentFrame + 1) % swapchain.imageCount;
 
 	++absoluteFrame;
-}
-
-void Renderer::QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer)
-{
-	queuedCommandBuffers[queuedCommandBufferCount++] = commandBuffer;
-
-	// Copy all commands
-	for (U32 c = 0; c < queuedCommandBufferCount; ++c)
-	{
-		CommandBuffer* commandBuffer = queuedCommandBuffers[c];
-
-		enqueuedCommandBuffers[c] = commandBuffer->commandBuffer;
-
-		//TODO: Check if commandBuffer recorded commands
-		if (commandBuffer->currentRenderPass)
-		{
-			vkCmdEndRenderPass(commandBuffer->commandBuffer);
-		}
-
-		vkEndCommandBuffer(commandBuffer->commandBuffer);
-	}
 }
 
 CommandBuffer* Renderer::GetCommandBuffer(bool begin)

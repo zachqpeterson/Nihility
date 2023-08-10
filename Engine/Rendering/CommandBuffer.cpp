@@ -42,6 +42,11 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 	vkCmdBindPipeline(commandBuffer, pipeline->bindPoint, pipeline->pipeline);
 }
 
+void CommandBuffer::BindIndexBuffer(Buffer& buffer)
+{
+	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
+}
+
 Texture* textures[MAX_DESCRIPTORS_PER_SET]{};
 Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{};
 

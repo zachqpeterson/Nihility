@@ -52,14 +52,14 @@ const F32& Settings::SfxVolume() { return data.sfxVolume; }
 const bool& Settings::UnfocusedAudio() { return data.unfocusedAudio; }
 
 //GRAPHICS
-const I32& Settings::WindowWidth() { return data.windowWidth; }
-const I32& Settings::WindowHeight() { return data.windowHeight; }
-const I32& Settings::WindowWidthSmall() { return data.windowWidthSmall; }
-const I32& Settings::WindowHeightSmall() { return data.windowHeightSmall; }
-const I32& Settings::WindowPositionX() { return data.windowPositionX; }
-const I32& Settings::WindowPositionY() { return data.windowPositionY; }
-const I32& Settings::WindowPositionXSmall() { return data.windowPositionXSmall; }
-const I32& Settings::WindowPositionYSmall() { return data.windowPositionYSmall; }
+const U32& Settings::WindowWidth() { return data.windowWidth; }
+const U32& Settings::WindowHeight() { return data.windowHeight; }
+const U32& Settings::WindowWidthSmall() { return data.windowWidthSmall; }
+const U32& Settings::WindowHeightSmall() { return data.windowHeightSmall; }
+const U32& Settings::WindowPositionX() { return data.windowPositionX; }
+const U32& Settings::WindowPositionY() { return data.windowPositionY; }
+const U32& Settings::WindowPositionXSmall() { return data.windowPositionXSmall; }
+const U32& Settings::WindowPositionYSmall() { return data.windowPositionYSmall; }
 const F64& Settings::TargetFrametime() { return data.targetFrametime; }
 const F64& Settings::TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
 const U8& Settings::MsaaCount() { return data.msaaCount; }

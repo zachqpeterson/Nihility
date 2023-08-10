@@ -220,21 +220,15 @@ void Swapchain::Destroy()
 	swapchain = nullptr;
 }
 
+VkResult Swapchain::Update()
+{
+	if (renderpass->width != Settings::WindowWidth() || renderpass->height != Settings::WindowHeight()) { return VK_ERROR_OUT_OF_DATE_KHR; }
+	if (renderpass->width == 0 || renderpass->height == 0) { return VK_NOT_READY; }
+
+	return VK_SUCCESS;
+}
+
 VkResult Swapchain::NextImage(U32& imageIndex, VkSemaphore semaphore, VkFence fence)
 {
 	return vkAcquireNextImageKHR(Renderer::device, swapchain, U64_MAX, semaphore, fence, &imageIndex);
-}
-
-VkResult Swapchain::Present(VkQueue queue, U32 imageIndex, VkSemaphore semaphore)
-{
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.pNext = 0;
-	presentInfo.waitSemaphoreCount = semaphore != nullptr;
-	presentInfo.pWaitSemaphores = semaphore ? &semaphore : nullptr;
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &swapchain;
-	presentInfo.pImageIndices = &imageIndex;
-	presentInfo.pResults = nullptr;
-
-	return vkQueuePresentKHR(queue, &presentInfo);
 }

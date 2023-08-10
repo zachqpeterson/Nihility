@@ -25,34 +25,6 @@ ShutdownFn Engine::GameShutdown;
 bool Engine::running;
 bool Engine::suspended;
 
-struct Data
-{
-	int i;
-	float f;
-};
-
-void Work(int i)
-{
-	Logger::Debug("I am working: {}", i);
-}
-
-void Work2(Data d)
-{
-	Logger::Debug("I am also working: {}, {}", d.i, d.f);
-}
-
-void Work3(Data d)
-{
-	Logger::Debug("I, too, am working: {}, {}", d.i, d.f);
-}
-
-void Work4()
-{
-	Logger::Debug("I'm work without data :(");
-}
-
-typedef void(*Func)(Data);
-
 void Engine::Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
@@ -65,35 +37,16 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
-
-	//Data d{ 27, 3.14f };
-	//
-	//auto f = Work3;
-	//
-	//Jobs::Execute([] { Work(354); });
-	//Jobs::Execute([&] { Work2(d); });
-	//Jobs::Execute([&] { f(d); });
-	//Jobs::Execute(Work4);
-
-	//TODO: Only works with decimal count of 5 or 0
-	//F32 f = 123.123f;
-	//String s512("{.3}", f);
-
-	//std::bit_floor(12);	//TODO:
-	//std::but_ceiling(12); //TODO:
-
-	//Logger::Info(Vector2{ 12.123f, 123.12f });
-
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());
-	//Audio
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
 	//UI
 	//Physics
 	//Particle
+	//Audio
 	ASSERT(GameInit());
 
 	UpdateLoop();
@@ -104,11 +57,11 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 void Engine::Shutdown()
 {
 	GameShutdown();
+	//Audio
 	//Particle
 	//Physics
 	//UI
 	Renderer::Shutdown();
-	//Audio
 	Input::Shutdown();
 	Platform::Shutdown();
 	Jobs::Shutdown();
