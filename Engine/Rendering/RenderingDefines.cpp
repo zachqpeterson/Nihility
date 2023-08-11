@@ -5,6 +5,22 @@
 #include "Platform\Input.hpp"
 #include "Core\Time.hpp"
 
+Descriptor::Descriptor() {}
+
+Descriptor::Descriptor(VkImageView imageView, VkImageLayout imageLayout, VkSampler sampler)
+{
+	imageInfo.sampler = sampler;
+	imageInfo.imageView = imageView;
+	imageInfo.imageLayout = imageLayout;
+}
+
+Descriptor::Descriptor(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
+{
+	bufferInfo.buffer = buffer;
+	bufferInfo.offset = offset;
+	bufferInfo.range = range;
+}
+
 // CAMERA
 
 void Camera::Reset()

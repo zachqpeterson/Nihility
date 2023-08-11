@@ -302,6 +302,46 @@ struct Viewport
 	U8			scissorCount{ 0 };
 };
 
+struct Descriptor
+{
+	union
+	{
+		VkDescriptorBufferInfo bufferInfo{};
+		VkDescriptorImageInfo imageInfo;
+	};
+
+	Descriptor();
+	Descriptor(VkBuffer buffer, VkDeviceSize offset = 0, VkDeviceSize range = VK_WHOLE_SIZE);
+	Descriptor(VkImageView imageView, VkImageLayout imageLayout, VkSampler sampler = nullptr);
+};
+
+struct DescriptorSetLayout
+{
+	U64								handle{ U64_MAX };
+
+	VkDescriptorSetLayout			descriptorSetLayout{ nullptr };
+	VkDescriptorUpdateTemplate		updateTemplate{ nullptr };
+
+	VkDescriptorSetLayoutBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
+	U8								bindingCount{ 0 };
+	U8								setIndex{ 0 };
+};
+
+struct DescriptorSetLayoutInfo
+{
+	VkDescriptorSetLayoutBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
+	U8								bindingCount{ 0 };
+	U8								setIndex{ 0 };
+};
+
+struct DescriptorSet
+{
+	U64						handle{ U64_MAX };
+
+	VkDescriptorSet			descriptorSet{ nullptr };
+	DescriptorSetLayout*	layout{ nullptr };
+};
+
 struct NH_API Camera
 {
 	void Reset();

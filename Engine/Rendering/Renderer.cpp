@@ -111,13 +111,14 @@ bool								Renderer::resized{ false };
 Scene* Renderer::currentScene;
 VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
-CommandBuffer** Renderer::queuedCommandBuffers;
-Buffer Renderer::vertexBuffer;
-Buffer Renderer::indexBuffer;
-Buffer Renderer::meshBuffer;
-Buffer Renderer::stagingBuffer;
-U32									Renderer::allocatedCommandBufferCount{ 0 };
-U32									Renderer::queuedCommandBufferCount{ 0 };
+Buffer								Renderer::stagingBuffer;
+Buffer								Renderer::vertexBuffer;
+Buffer								Renderer::indexBuffer;
+Buffer								Renderer::meshBuffer;
+Buffer								Renderer::drawsBuffer;
+Buffer								Renderer::drawCommandsBuffer;
+Buffer								Renderer::drawCountsBuffer;
+Buffer								Renderer::drawVisibilityBuffer;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -462,12 +463,14 @@ bool Renderer::CreateResources()
 
 	commandBufferRing.Create();
 
-	Memory::AllocateArray(&queuedCommandBuffers, 128UI8);
-
+	stagingBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	vertexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	indexBuffer;
-	meshBuffer;
-	stagingBuffer;
+	indexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	meshBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	drawsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	drawCountsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	drawVisibilityBuffer = CreateBuffer(16, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	Resources::CreateDefaults();
 
@@ -538,7 +541,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
 	{
 		commandBuffer->BindPipeline(pipeline);
 
-		DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, vb.buffer };
+		Descriptor descriptors[] = { dcb.buffer, db.buffer, vertexBuffer.vkBuffer };
 		pushDescriptors(meshProgram, descriptors);
 
 		commandBuffer->BindIndexBuffer(indexBuffer);
@@ -1247,10 +1250,45 @@ bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayou
 	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layoutInfo.pNext = nullptr;
+	layoutInfo.flags = pushDescriptorsSupported ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR : 0;
 	layoutInfo.bindingCount = usedBindings;
-	layoutInfo.pBindings = descriptorSetLayout->vkBindings;
+	layoutInfo.pBindings = descriptorSetLayout->bindings;
 
-	vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout);
+	VkValidateR(vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout));
+
+	return true;
+}
+
+bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader)
+{
+	VkDescriptorUpdateTemplateEntry entries[MAX_DESCRIPTORS_PER_SET]{};
+
+	for (U32 i = 0; i < descriptorSetLayout->bindingCount; ++i)
+	{
+		VkDescriptorSetLayoutBinding& binding = descriptorSetLayout->bindings[i];
+		VkDescriptorUpdateTemplateEntry& entry = entries[i];
+
+		entry.dstBinding = binding.binding;
+		entry.dstArrayElement = 0;
+		entry.descriptorCount = binding.descriptorCount;
+		entry.descriptorType = binding.descriptorType;
+		entry.offset = sizeof(Descriptor) * i;
+		entry.stride = sizeof(Descriptor);
+	}
+
+	VkDescriptorUpdateTemplateCreateInfo descriptorTemplateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO };
+	descriptorTemplateInfo.pNext = nullptr;
+	descriptorTemplateInfo.flags = 0;
+	descriptorTemplateInfo.templateType = pushDescriptorsSupported ? VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR : VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET;
+	descriptorTemplateInfo.descriptorSetLayout = pushDescriptorsSupported ? nullptr : descriptorSetLayout->descriptorSetLayout;
+	descriptorTemplateInfo.pipelineBindPoint = shader->bindPoint;
+	descriptorTemplateInfo.pipelineLayout = shader->pipelineLayout;
+	descriptorTemplateInfo.descriptorUpdateEntryCount = descriptorSetLayout->bindingCount;
+	descriptorTemplateInfo.pDescriptorUpdateEntries = entries;
+	//descriptorTemplateInfo.set = descriptorSetLayout->setIndex;
+
+	VkValidateR(vkCreateDescriptorUpdateTemplate(device, &descriptorTemplateInfo, allocationCallbacks, &descriptorSetLayout->updateTemplate));
 
 	return true;
 }

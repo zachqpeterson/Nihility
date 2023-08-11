@@ -395,44 +395,6 @@ struct Buffer
 	bool mapped{ false };
 };
 
-struct DescriptorBinding
-{
-	VkDescriptorType	type;
-	U16					binding{ 0 };
-	U16					count{ 0 };
-};
-
-struct DescriptorSetLayout
-{
-	HashHandle						handle{ U64_MAX };
-
-	VkDescriptorSetLayout			descriptorSetLayout{ nullptr };
-
-	VkDescriptorSetLayoutBinding	vkBindings[MAX_DESCRIPTORS_PER_SET]{};
-	DescriptorBinding				bindings[MAX_DESCRIPTORS_PER_SET]{};
-	U8								bindingCount{ 0 };
-	U8								setIndex{ 0 };
-};
-
-struct DescriptorSetLayoutCreation
-{
-	DescriptorBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
-	U8					bindingCount{ 0 };
-	U8					setIndex{ 0 };
-};
-
-struct DescriptorSet
-{
-	HashHandle				handle{ U64_MAX };
-
-	VkDescriptorSet			descriptorSet{ nullptr };
-	DescriptorSetLayout* layout{ nullptr };
-
-	U32						offsetsCache[MAX_DESCRIPTORS_PER_SET]{};
-	DescriptorBinding		bindings[MAX_DESCRIPTORS_PER_SET]{};
-	U8						bindingCount{ 0 };
-};
-
 struct ShaderCreation
 {
 	String					name{ NO_INIT };
@@ -459,6 +421,8 @@ struct RenderpassOutput
 struct Renderpass
 {
 	void Destroy() { name.Destroy(); }
+
+	void Resize();
 
 	String				name{ NO_INIT };
 	HashHandle			handle;

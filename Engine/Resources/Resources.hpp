@@ -9,8 +9,8 @@
 #include "Containers\Queue.hpp"
 #include "Containers\Pool.hpp"
 #include "Math\Math.hpp"
+#include "Rendering\Pipeline.hpp"
 
-struct Pipeline;
 struct KTXInfo;
 
 class NH_API Resources
@@ -21,12 +21,13 @@ public:
 	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
 	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
-	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info);
+	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding);
 	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding);
 	static Renderpass* CreateRenderPass(const RenderpassCreation& info);
+	static Shader* CreateShader(const String& name);
 	static Pipeline* CreatePipeline(const String& name, Renderpass* renderpass = nullptr);
 	static Program* CreateProgram(const ProgramCreation& info);
 	static Model* LoadModel(const String& name);
@@ -105,13 +106,11 @@ private:
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
 
-	static VkDescriptorPool						descriptorPool;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
-	static Pool<DescriptorSet, 256>				descriptorSets;
-	static Pool<DescriptorSetLayout, 256>		descriptorSetLayouts;
-	static Hashmap<String, Renderpass>			renderPasses;
+	static Hashmap<String, Renderpass>			renderpasses;
+	static Hashmap<String, Shader>				shaders;
 	static Hashmap<String, Pipeline>			pipelines;
 	static Hashmap<String, Program>				programs;
 	static Hashmap<String, Material>			materials;
@@ -123,9 +122,12 @@ private:
 	static Queue<ResourceUpdate>				resourceDeletionQueue;
 	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
 
+	static Pool<DescriptorSet, 256>				descriptorSets;
+	static Pool<DescriptorSetLayout, 256>		descriptorSetLayouts;
+	static VkDescriptorPool						descriptorPool;
 	static VkDescriptorPool						bindlessDescriptorPool;
 	static VkDescriptorSet						bindlessDescriptorSet;
-	static VkDescriptorSetLayout				bindlessDescriptorSetLayout;
+	static DescriptorSetLayout*					bindlessDescriptorSetLayout;
 	static constexpr U32						maxBindlessResources{ 1024 };
 	static constexpr U32						bindlessTextureBinding{ 10 };
 
@@ -133,6 +135,7 @@ private:
 	friend class Renderer;
 	friend class Engine;
 	friend struct CommandBuffer;
+	friend struct Shader;
 	friend struct Pipeline;
 	friend struct Scene;
 };

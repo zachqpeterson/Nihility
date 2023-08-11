@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderingDefines.hpp"
+#include "Shader.hpp"
 
 struct DescriptorSetLayoutCreation;
 struct DescriptorSetLayout;
@@ -8,74 +9,10 @@ struct DescriptorSet;
 struct Renderpass;
 struct Buffer;
 
-struct Rasterization
-{
-	VkCullModeFlagBits	cullMode{ VK_CULL_MODE_NONE };
-	VkFrontFace			front{ VK_FRONT_FACE_COUNTER_CLOCKWISE };
-	VkPolygonMode		fill{ VK_POLYGON_MODE_FILL };
-};
-
-struct StencilOperationState
-{
-	VkStencilOp	fail{ VK_STENCIL_OP_KEEP };
-	VkStencilOp	pass{ VK_STENCIL_OP_KEEP };
-	VkStencilOp	depthFail{ VK_STENCIL_OP_KEEP };
-	VkCompareOp	compare{ VK_COMPARE_OP_ALWAYS };
-	U32			compareMask{ 0xff };
-	U32			writeMask{ 0xff };
-	U32			reference{ 0xff };
-};
-
-struct DepthStencil
-{
-	StencilOperationState	front{};
-	StencilOperationState	back{};
-	VkCompareOp				depthComparison{ VK_COMPARE_OP_ALWAYS };
-
-	bool					depthEnable{ false };
-	bool					depthWriteEnable{ false };
-	bool					stencilEnable{ false };
-};
-
 struct SpecializationInfo
 {
 	VkSpecializationInfo		specializationInfo{};
-	VkSpecializationMapEntry	specializationData[MAX_SPECIALIZATION_CONSTANTS]{};
-	U8* specializationBuffer{ nullptr };
-};
-
-struct ShaderStage
-{
-	VkShaderStageFlagBits	stage;
-	String					entry{ NO_INIT };
-	VkShaderModule			module{ nullptr };
-	SpecializationInfo		specializationInfo{};
-};
-
-struct ShaderOutput
-{
-	VkFormat format;
-};
-
-struct Shader
-{
-	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
-	ShaderStage							stages[MAX_SHADER_STAGES]{};
-	U32									shaderCount{ 0 };
-	U32									language{ 0 };
-
-	U32									setCount{ 0 };
-	DescriptorSetLayout* setLayouts[MAX_DESCRIPTOR_SETS]{ nullptr };
-
-	U32									vertexStreamCount{ 0 };
-	U32									vertexAttributeCount{ 0 };
-	VkVertexInputBindingDescription		vertexStreams[MAX_VERTEX_STREAMS]{};
-	VkVertexInputAttributeDescription	vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
-	U32									vertexSize{ 0 };
-
-
-	ShaderOutput						outputs[MAX_IMAGE_OUTPUTS]{};
-	U32									outputCount{ 0 };
+	U8*							specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * sizeof(U32)];
 };
 
 enum ConnectionType
@@ -103,7 +40,7 @@ struct RenderpassCreation;
 
 struct Pipeline
 {
-	bool Create(const String& shaderPath, Renderpass* renderpass);
+	bool Create(Shader* shader, Renderpass* renderpass);
 	void Destroy();
 
 	void Resize();
@@ -114,34 +51,16 @@ struct Pipeline
 	String				name{ NO_INIT };
 	U64					handle{ U64_MAX };
 
-	Shader				shader{};
-	Renderpass* renderpass{ nullptr };
+	Shader*				shader{};
+	Renderpass*			renderpass{ nullptr };
 	VkPipeline			pipeline{ nullptr };
-	VkPipelineLayout	layout{ nullptr };
-	VkPipelineBindPoint	bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
 
-	Rasterization		rasterization{};
-	DepthStencil		depthStencil{};
-	VkPipelineColorBlendAttachmentState blendStates[MAX_IMAGE_OUTPUTS]{};
-	U8					blendStateCount{ 0 };
+	DescriptorSet*		descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
+	U8					descriptorSetCount{ 0 };
 
 	PipelineConnection	pipelineConnections[MAX_PIPELINE_CONNECTIONS];
 	U8					connectionCount;
-	DescriptorSet* descriptorSets[MAX_SWAPCHAIN_IMAGES][MAX_DESCRIPTOR_SETS];
-	U8					descriptorSetCount{ 0 };
-	bool				useBindless{ false };
-
-	bool				graphics{ true };
-	bool				useDepth{ false };
-	bool				outsideRenderpass{ false };
 
 private:
-	bool ParseConfig(const String& data, I64& index, RenderpassCreation& renderPassInfo);
-	bool ParseStage(const String& data, I64& index, RenderpassCreation& renderPassInfo, DescriptorSetLayoutCreation* setLayoutInfos, VkShaderStageFlagBits stage);
-	VkPipelineShaderStageCreateInfo CompileShader(ShaderStage& shaderStage, String& code, const String& name, DescriptorSetLayoutCreation* setLayoutInfos);
-	bool ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutCreation* setLayoutInfos);
 	bool CreatePipeline(VkDescriptorSetLayout* vkLayouts);
-
-	static const String& ToStageDefines(VkShaderStageFlagBits value);
-	static const String& ToCompilerExtension(VkShaderStageFlagBits value);
 };

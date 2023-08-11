@@ -6,7 +6,6 @@ front=CLOCKWISE
 fill=SOLID
 depth=LESS
 blend=ADD
-clear=CLEAR
 #CONFIG_END
 
 #VERTEX

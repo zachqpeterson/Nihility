@@ -55,6 +55,7 @@ private:
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubeMap(Texture* texture, void* data, U32* layerSize);
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
+	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
 	static bool							CreateRenderPass(Renderpass* renderpass, bool swapchain = false);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
@@ -105,13 +106,14 @@ private:
 	static Scene*								currentScene;
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
-	static CommandBuffer**						queuedCommandBuffers;
+	static Buffer								stagingBuffer;
 	static Buffer								vertexBuffer;
 	static Buffer								indexBuffer;
 	static Buffer								meshBuffer;
-	static Buffer								stagingBuffer;
-	static U32									allocatedCommandBufferCount;
-	static U32									queuedCommandBufferCount;
+	static Buffer								drawsBuffer;
+	static Buffer								drawCommandsBuffer;
+	static Buffer								drawCountsBuffer;
+	static Buffer								drawVisibilityBuffer;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;
@@ -133,6 +135,7 @@ private:
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 	friend struct Swapchain;
+	friend struct Shader;
 	friend struct Pipeline;
 	friend struct Scene; //TODO: temp
 };

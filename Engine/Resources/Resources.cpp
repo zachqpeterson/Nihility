@@ -166,13 +166,10 @@ Program* Resources::postProcessProgram;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
 
-VkDescriptorPool				Resources::descriptorPool;
-
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
-Pool<DescriptorSet, 256>		Resources::descriptorSets;
-Pool<DescriptorSetLayout, 256>	Resources::descriptorSetLayouts;
-Hashmap<String, Renderpass>		Resources::renderPasses{ 256, {} };
+Hashmap<String, Renderpass>		Resources::renderpasses{ 256, {} };
+Hashmap<String, Shader>			Resources::shaders{ 128, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
 Hashmap<String, Program>		Resources::programs{ 128, {} };
 Hashmap<String, Material>		Resources::materials{ 128, {} };
@@ -184,9 +181,12 @@ Hashmap<String, Scene>			Resources::scenes{ 128, {} };
 Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
 
+Pool<DescriptorSet, 256>		Resources::descriptorSets;
+Pool<DescriptorSetLayout, 256>	Resources::descriptorSetLayouts;
+VkDescriptorPool				Resources::descriptorPool;
 VkDescriptorPool				Resources::bindlessDescriptorPool;
 VkDescriptorSet					Resources::bindlessDescriptorSet;
-VkDescriptorSetLayout			Resources::bindlessDescriptorSetLayout;
+DescriptorSetLayout*			Resources::bindlessDescriptorSetLayout;
 
 bool Resources::Initialize()
 {
@@ -361,14 +361,15 @@ void Resources::Shutdown()
 		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 		}
 	}
 
 	CleanupHashmap(samplers, Renderer::DestroySamplerInstant);
 	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
-	CleanupHashmap(renderPasses, Renderer::DestroyRenderPassInstant);
+	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
+	CleanupHashmap(shaders, nullptr);
 	CleanupHashmap(pipelines, nullptr);
 	CleanupHashmap(programs, nullptr);
 	CleanupHashmap(materials, nullptr);
@@ -380,7 +381,8 @@ void Resources::Shutdown()
 	textures.Destroy();
 	descriptorSetLayouts.Destroy();
 	descriptorSets.Destroy();
-	renderPasses.Destroy();
+	renderpasses.Destroy();
+	shaders.Destroy();
 	pipelines.Destroy();
 	programs.Destroy();
 	materials.Destroy();
@@ -410,7 +412,7 @@ void Resources::Update()
 			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderPasses.Obtain(resourceDeletion.handle)); renderPasses.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 			}
 		}
@@ -1543,7 +1545,7 @@ void Resources::GetKTXInfo(U32 internalFormat, KTXInfo& info)
 	}
 }
 
-DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutCreation& info)
+DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info)
 {
 	U64 handle;
 	DescriptorSetLayout* descriptorSetLayout = descriptorSetLayouts.Request(handle);
@@ -1551,11 +1553,8 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 	descriptorSetLayout->bindingCount = info.bindingCount;
 	descriptorSetLayout->setIndex = info.setIndex;
 	descriptorSetLayout->handle = handle;
-
-	for (U32 i = 0; i < info.bindingCount; ++i)
-	{
-		descriptorSetLayout->bindings[i] = info.bindings[i];
-	}
+	
+	Memory::Copy(descriptorSetLayout->bindings, info.bindings, info.bindingCount * sizeof(VkDescriptorSetLayoutBinding));
 
 	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
 
@@ -1750,6 +1749,26 @@ Renderpass* Resources::CreateRenderPass(const RenderpassCreation& info)
 	Renderer::CreateRenderPass(renderpass);
 
 	return renderpass;
+}
+
+Shader* Resources::CreateShader(const String& name)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	U64 handle = shaders.GetHandle(name);
+	Shader* shader = &shaders.Obtain(handle);
+
+	if (!shader->name.Blank()) { return shader; }
+
+	shader->handle = handle;
+
+	if (!shader->Create(name))
+	{
+		shaders.Remove(shader->handle);
+		shader->handle = U64_MAX;
+	}
+
+	return shader;
 }
 
 Pipeline* Resources::CreatePipeline(const String& name, Renderpass* renderpass)
@@ -2391,7 +2410,7 @@ Texture* Resources::AccessTexture(const String& name)
 
 Renderpass* Resources::AccessRenderPass(const String& name)
 {
-	Renderpass* renderpass = &renderPasses.Request(name);
+	Renderpass* renderpass = &renderpasses.Request(name);
 
 	if (!renderpass->name.Blank()) { return renderpass; }
 
@@ -2419,7 +2438,7 @@ Texture* Resources::AccessTexture(HashHandle handle)
 
 Renderpass* Resources::AccessRenderPass(HashHandle handle)
 {
-	return &renderPasses.Obtain(handle);
+	return &renderpasses.Obtain(handle);
 }
 
 Pipeline* Resources::AccessPipeline(HashHandle handle)
@@ -2457,10 +2476,9 @@ void Resources::DestroyTexture(Texture* texture)
 
 void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 {
-	if (layout)
-	{
-		vkDestroyDescriptorSetLayout(Renderer::device, layout->descriptorSetLayout, Renderer::allocationCallbacks);
-	}
+	if (layout) { vkDestroyDescriptorSetLayout(Renderer::device, layout->descriptorSetLayout, Renderer::allocationCallbacks); }
+
+	if (layout->updateTemplate) { vkDestroyDescriptorUpdateTemplate(Renderer::device, layout->updateTemplate, Renderer::allocationCallbacks); layout->updateTemplate = nullptr; }
 }
 
 void Resources::DestroyDescriptorSet(DescriptorSet* set)
