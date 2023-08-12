@@ -43,6 +43,8 @@ struct ShaderStage
 	U32								localSizeX{ 1 };
 	U32								localSizeY{ 1 };
 	U32								localSizeZ{ 1 };
+
+	bool							usePushConstants{ false };
 };
 
 struct Shader
@@ -65,7 +67,7 @@ struct Shader
 	VkPipelineColorBlendAttachmentState blendStates[MAX_IMAGE_OUTPUTS]{};
 	U8									blendStateCount{ 0 };
 
-	DescriptorSetLayout*				setLayouts[MAX_DESCRIPTOR_SETS]{};
+	DescriptorSetLayout* setLayouts[MAX_DESCRIPTOR_SETS]{};
 	U32									setCount{ 0 };
 
 	U32									vertexStreamCount{ 0 };

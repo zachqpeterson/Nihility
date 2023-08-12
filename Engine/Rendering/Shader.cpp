@@ -121,6 +121,16 @@ TBuiltInResource resources{
 	}
 };
 
+struct Id
+{
+	U32 opcode;
+	U32 typeId;
+	U32 storageClass;
+	U32 binding;
+	U32 set;
+	U32 constant;
+};
+
 bool Shader::Create(const String& shaderPath)
 {
 	String data{ NO_INIT };
@@ -472,16 +482,136 @@ VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, 
 	return shaderStageInfo;
 }
 
+static VkShaderStageFlagBits GetShaderStage(SpvExecutionModel executionModel)
+{
+	switch (executionModel)
+	{
+	case SpvExecutionModelVertex:
+		return VK_SHADER_STAGE_VERTEX_BIT;
+	case SpvExecutionModelFragment:
+		return VK_SHADER_STAGE_FRAGMENT_BIT;
+	case SpvExecutionModelGLCompute:
+		return VK_SHADER_STAGE_COMPUTE_BIT;
+	case SpvExecutionModelTaskEXT:
+		return VK_SHADER_STAGE_TASK_BIT_EXT;
+	case SpvExecutionModelMeshEXT:
+		return VK_SHADER_STAGE_MESH_BIT_EXT;
+	default:
+		Logger::Error("Unsupported execution model");
+		return VkShaderStageFlagBits(0);
+	}
+}
+
+static VkDescriptorType GetDescriptorType(SpvOp op)
+{
+	switch (op)
+	{
+	case SpvOpTypeStruct:
+		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	case SpvOpTypeImage:
+		return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	case SpvOpTypeSampler:
+		return VK_DESCRIPTOR_TYPE_SAMPLER;
+	case SpvOpTypeSampledImage:
+		return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	default:
+		Logger::Error("Unknown resource type");
+		return VkDescriptorType(0);
+	}
+}
+
 bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutInfo* setLayoutInfos)
 {
-	SpvReflectShaderModule module;
-	SpvReflectResult result = spvReflectCreateShaderModule(codeSize, code, &module);
-	if (result != SPV_REFLECT_RESULT_SUCCESS) { return false; }
+	uint32_t idBound = code[3];
 
-	stage.entryPoint = module.entry_point_name;
+	Vector<Id> ids(idBound);
+
+	const U32* it = code + 5;
+
+	I32 localSizeIdX = -1;
+	I32 localSizeIdY = -1;
+	I32 localSizeIdZ = -1;
+
+	while (it != code + codeSize)
+	{
+		U16 opcode = (U16)it[0];
+		U16 wordCount = (U16)(it[0] >> 16);
+
+		switch (opcode)
+		{
+		case SpvOpEntryPoint:
+		{
+			stage.stage = GetShaderStage((SpvExecutionModel)it[1]);
+		} break;
+		case SpvOpExecutionMode:
+		{
+			U32 mode = it[2];
+
+			switch (mode)
+			{
+			case SpvExecutionModeLocalSize: {
+				stage.localSizeX = it[3];
+				stage.localSizeY = it[4];
+				stage.localSizeZ = it[5];
+			} break;
+			}
+		} break;
+		case SpvOpExecutionModeId:
+		{
+			U32 mode = it[2];
+
+			switch (mode)
+			{
+			case SpvExecutionModeLocalSizeId: {
+				localSizeIdX = I32(it[3]);
+				localSizeIdY = I32(it[4]);
+				localSizeIdZ = I32(it[5]);
+			} break;
+			}
+		} break;
+		case SpvOpDecorate:
+		{
+			U32 id = it[1];
+
+			switch (it[2])
+			{
+			case SpvDecorationDescriptorSet: { ids[id].set = it[3]; } break;
+			case SpvDecorationBinding: { ids[id].binding = it[3]; } break;
+			}
+		} break;
+		case SpvOpTypeStruct:
+		case SpvOpTypeImage:
+		case SpvOpTypeSampler:
+		case SpvOpTypeSampledImage: { ids[it[1]].opcode = opcode; } break;
+		case SpvOpTypePointer:
+		{
+			U32 id = it[1];
+			ids[id].opcode = opcode;
+			ids[id].typeId = it[3];
+			ids[id].storageClass = it[2];
+		} break;
+		case SpvOpConstant:
+		{
+			//TODO: Support constants bigger than 32-bit
+			U32 id = it[2];
+			ids[id].opcode = opcode;
+			ids[id].typeId = it[1];
+			ids[id].constant = it[3];
+		} break;
+		case SpvOpVariable:
+		{
+			U32 id = it[2];
+			ids[id].opcode = opcode;
+			ids[id].typeId = it[1];
+			ids[id].storageClass = it[3];
+		} break;
+		}
+
+		it += wordCount;
+	}
 
 	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
-	{
+	{ 
 		for (U32 i = 0; i < module.input_variable_count; ++i)
 		{
 			SpvReflectInterfaceVariable* var = module.input_variables[i];
@@ -565,6 +695,27 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		}
 	}
 
+	for (const Id& id : ids)
+	{
+		if (id.opcode == SpvOpVariable && (id.storageClass == SpvStorageClassUniform || id.storageClass == SpvStorageClassUniformConstant || id.storageClass == SpvStorageClassStorageBuffer))
+		{
+			U32 typeKind = ids[ids[id.typeId].typeId].opcode;
+			VkDescriptorType descriptorType = GetDescriptorType(SpvOp(typeKind));
+			VkDescriptorSetLayoutBinding& binding = setLayoutInfos[id.set].bindings[id.binding];
+			binding.descriptorType = descriptorType;
+			binding.stageFlags |= stage.stage;
+			binding.binding = id.binding;
+			//TODO: descriptor count
+		}
+
+		if (id.opcode == SpvOpVariable && id.storageClass == SpvStorageClassPushConstant)
+		{
+			stage.usePushConstants = true;
+		}
+	}
+
+	//TODO: Fragment Outputs
+	//TODO: Vertex Attributes
 	//TODO: Specialization Constants
 	//TODO: Push Constants
 
