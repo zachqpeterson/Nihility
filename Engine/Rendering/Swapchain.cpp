@@ -85,7 +85,7 @@ bool Swapchain::CreateRenderPass()
 		textureInfo.width = renderPassInfo.width;
 		textureInfo.height = renderPassInfo.height;
 		textureInfo.depth = 1;
-		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
+		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 		textureInfo.type = VK_IMAGE_TYPE_2D;
 
 		Texture* texture = Resources::CreateTexture(textureInfo);
@@ -228,7 +228,7 @@ VkResult Swapchain::Update()
 	return VK_SUCCESS;
 }
 
-VkResult Swapchain::NextImage(U32& imageIndex, VkSemaphore semaphore, VkFence fence)
+VkResult Swapchain::NextImage(U32& frameIndex, VkSemaphore semaphore, VkFence fence)
 {
-	return vkAcquireNextImageKHR(Renderer::device, swapchain, U64_MAX, semaphore, fence, &imageIndex);
+	return vkAcquireNextImageKHR(Renderer::device, swapchain, U64_MAX, semaphore, fence, &frameIndex);
 }

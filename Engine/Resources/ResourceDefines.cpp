@@ -3,6 +3,7 @@
 #include "Rendering\CommandBuffer.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
+#include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 
 // SAMPLER CREATION
@@ -120,6 +121,34 @@ RenderpassOutput& RenderpassOutput::SetOperations(VkAttachmentLoadOp color, VkAt
 	return *this;
 }
 
+// RENDER PASS
+
+void Renderpass::Resize()
+{
+	if (lastResize < Renderer::CurrentFrame())
+	{
+		lastResize = Renderer::CurrentFrame();
+
+		width = Settings::WindowWidth();
+		height = Settings::WindowHeight();
+
+		for (U32 i = 0; i < renderTargetCount; ++i)
+		{
+			Resources::RecreateTexture(outputTextures[i], width, height, 1);
+			vkDestroyFramebuffer(Renderer::device, frameBuffers[i], Renderer::allocationCallbacks);
+		}
+
+		if (outputDepth)
+		{
+			Resources::RecreateTexture(outputDepth, width, height, 1);
+		}
+
+		vkDestroyRenderPass(Renderer::device, renderpass, Renderer::allocationCallbacks);
+
+		Renderer::CreateRenderPass(this);
+	}
+}
+
 // RENDER PASS CREATION
 
 RenderpassCreation& RenderpassCreation::Reset()
@@ -181,122 +210,4 @@ RenderpassCreation& RenderpassCreation::AddClearDepth(F32 depth)
 	clears[clearCount++].depthStencil = { depth, 0 };
 
 	return *this;
-}
-
-// PROGRAM CREATION
-
-ProgramCreation& ProgramCreation::Reset()
-{
-	passCount = 0;
-	name.Clear();
-
-	return *this;
-}
-
-ProgramCreation& ProgramCreation::SetName(const String& name_)
-{
-	name = name_;
-
-	return *this;
-}
-
-ProgramCreation& ProgramCreation::AddPass(Pipeline* pass)
-{
-	passes[passCount++] = pass;
-
-	return *this;
-}
-
-// MATERIAL CREATION
-
-MaterialCreation& MaterialCreation::Reset()
-{
-	program = nullptr;
-	name.Clear();
-	renderIndex = U32_MAX;
-	return *this;
-}
-
-MaterialCreation& MaterialCreation::SetProgram(Program* program_)
-{
-	program = program_;
-	return *this;
-}
-
-MaterialCreation& MaterialCreation::SetRenderIndex(U32 render_index_)
-{
-	renderIndex = render_index_;
-	return *this;
-}
-
-MaterialCreation& MaterialCreation::SetName(const String& name_)
-{
-	name = name_;
-	return *this;
-}
-
-// PROGRAM
-
-void Program::RunPasses(CommandBuffer* commands)
-{
-	Renderpass* renderpass = nullptr;
-
-	U8 frame = Renderer::GetFrameIndex();
-
-	for (U8 i = 0; i < passCount; ++i)
-	{
-		Pipeline* pipeline = passes[i];
-		commands->BindPipeline(pipeline);
-
-		if (pipeline->renderpass != renderpass)
-		{
-			if (renderpass != nullptr) { /*TODO: End Renderpass*/ }
-
-			renderpass = pipeline->renderpass;
-			commands->BindRenderpass(pipeline->renderpass);
-		}
-
-		commands->BindDescriptorSet(pipeline->descriptorSets[frame], pipeline->descriptorSetCount, nullptr, 0);
-
-		if (pipeline->vertexBufferCount)
-		{
-			for (U8 i = 0; i < pipeline->vertexBufferCount; ++i)
-			{
-				commands->BindVertexBuffer(pipeline->vertexBuffers[i], i);
-			}
-
-			if (pipeline->indexBuffer)
-			{
-				commands->BindIndexBuffer(pipeline->indexBuffer);
-				commands->DrawIndexed((U32)(pipeline->indexBuffer->size / 2), 1, 0, 0, 0);
-			}
-			else
-			{
-				commands->Draw(0, (U32)pipeline->vertexBuffers[0]->size / pipeline->shader.vertexSize, 0, 1);
-			}
-		}
-		else
-		{
-			commands->Draw(0, 3, 0, 1);
-		}
-	}
-
-	if (renderpass != nullptr) {}
-}
-
-void Program::DrawMesh(CommandBuffer* commands, Mesh* mesh, Buffer* constantBuffer)
-{
-	//TODO: Move to renderer
-	Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{ constantBuffer, mesh->material->materialBuffer };
-	
-	Resources::UpdateDescriptorSet(passes[0]->descriptorSets[Renderer::GetFrameIndex()][0], nullptr, buffers);
-
-	passes[0]->indexBuffer = mesh->indexBuffer;
-	passes[0]->vertexBuffers[0] = mesh->positionBuffer;
-	passes[0]->vertexBuffers[1] = mesh->tangentBuffer ? mesh->tangentBuffer : Resources::AccessDummyAttributeBuffer();
-	passes[0]->vertexBuffers[2] = mesh->normalBuffer;
-	passes[0]->vertexBuffers[3] = mesh->texcoordBuffer ? mesh->texcoordBuffer : Resources::AccessDummyAttributeBuffer();
-	passes[0]->vertexBufferCount = 4;
-
-	RunPasses(commands);
 }

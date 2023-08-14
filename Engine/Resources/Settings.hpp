@@ -40,8 +40,8 @@ class NH_API Settings
 		//PLATFORM
 		U32 dpi{ 0 };
 		U32 threadCount{ 1 };
-		I32 screenWidth{ 0 };
-		I32 screenHeight{ 0 };
+		U32 screenWidth{ 0 };
+		U32 screenHeight{ 0 };
 		F64 monitorHz{ 0.0 };
 		bool fullscreen{ false };
 		bool constrainCursor{ false };
@@ -73,8 +73,8 @@ public:
 	//PLATFORM
 	static const U32& Dpi();
 	static const U32& ThreadCount();
-	static const I32& ScreenWidth();
-	static const I32& ScreenHeight();
+	static const U32& ScreenWidth();
+	static const U32& ScreenHeight();
 	static const F64& MonitorHz();
 	static const bool& Fullscreen();
 	static const bool& ConstrainCursor();

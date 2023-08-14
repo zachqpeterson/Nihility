@@ -23,13 +23,9 @@ public:
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
-	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers);
-	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding);
-	static void UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding);
 	static Renderpass* CreateRenderPass(const RenderpassCreation& info);
 	static Shader* CreateShader(const String& name);
-	static Pipeline* CreatePipeline(const String& name, Renderpass* renderpass = nullptr);
-	static Program* CreateProgram(const ProgramCreation& info);
+	static Pipeline* CreatePipeline(const PipelineInfo& info);
 	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
 	static Scene* CreateScene(const String& name);
@@ -39,7 +35,6 @@ public:
 
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
-	static Buffer* AccessDummyAttributeBuffer();
 	static Sampler* AccessDefaultSampler();
 	static Material* AccessDefaultMaterial(bool transparent = false);
 
@@ -89,7 +84,6 @@ private:
 
 	//Model Loading
 	static Mesh* CreateMesh(const struct aiMesh* meshInfo, const String& modelName, Material* material);
-	static void CombineMesh(Mesh* mesh, const aiMesh* meshInfo);
 	static Material* CreateMaterial(const struct aiMaterial* materialInfo, const String& modelName);
 
 	//Scene Loading
@@ -100,19 +94,22 @@ private:
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;
 	static Sampler*								defaultSampler;
-	static Program*								skyboxProgram;
-	static Program*								pbrProgram;
-	static Program*								postProcessProgram;
+	static Shader*								meshProgram;
+	static Shader*								cullProgram;
+	static Shader*								depthProgram;
+	static Pipeline*							earlyRenderPipeline;
+	static Pipeline*							lateRenderPipeline;
+	static Pipeline*							earlyCullPipeline;
+	static Pipeline*							lateCullPipeline;
+	static Pipeline*							depthReducePipeline;
 	static Material*							materialOpaque;
 	static Material*							materialTransparent;
-
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
 	static Hashmap<String, Renderpass>			renderpasses;
 	static Hashmap<String, Shader>				shaders;
 	static Hashmap<String, Pipeline>			pipelines;
-	static Hashmap<String, Program>				programs;
 	static Hashmap<String, Material>			materials;
 	static Hashmap<String, Mesh>				meshes;
 	static Hashmap<String, Model>				models;

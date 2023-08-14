@@ -6,6 +6,7 @@
 #include "Containers\Queue.hpp"
 #include "CommandBuffer.hpp"
 #include "Swapchain.hpp"
+#include "Pipeline.hpp"
 
 struct Timestamp;
 struct TimestampManager;
@@ -15,6 +16,8 @@ class NH_API Renderer
 {
 public:
 	static void							LoadScene(const String& name);
+	static U32							FrameIndex();
+	static U32							CurrentFrame();
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -27,16 +30,16 @@ private:
 	static bool							CreateResources();
 
 	static bool							BeginFrame();
-	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline);
+	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late);
+	static void							Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late);
 	static void							EndFrame();
 	static void							Resize();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
 	static void							PopMarker(VkCommandBuffer commandBuffer);
-
 	static void							FrameCountersAdvance();
-	static U32							GetFrameIndex();
+	
 	static CommandBuffer*				GetCommandBuffer(bool begin);
 	static void							QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer);
 	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
@@ -51,11 +54,13 @@ private:
 	static void							UnmapBuffer(Buffer& buffer);
 	static void							DestroyBuffer(Buffer& buffer);
 
+	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
+	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
+	static void							PushDescriptors(Shader* shader, const Descriptor* descriptors);
+
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubeMap(Texture* texture, void* data, U32* layerSize);
-	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
-	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
 	static bool							CreateRenderPass(Renderpass* renderpass, bool swapchain = false);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
@@ -96,7 +101,7 @@ private:
 	static bool									meshShadingSupported;
 
 	// WINDOW
-	static U32									imageIndex;
+	static U32									frameIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;
 	static U32									absoluteFrame;
@@ -114,6 +119,8 @@ private:
 	static Buffer								drawCommandsBuffer;
 	static Buffer								drawCountsBuffer;
 	static Buffer								drawVisibilityBuffer;
+	static Texture*								depthPyramid;
+	static Sampler*								depthSampler;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;
@@ -135,6 +142,7 @@ private:
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 	friend struct Swapchain;
+	friend struct Renderpass;
 	friend struct Shader;
 	friend struct Pipeline;
 	friend struct Scene; //TODO: temp

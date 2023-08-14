@@ -188,7 +188,7 @@ void Shader::Destroy()
 	for (U8 i = 0; i < stageCount; ++i)
 	{
 		Resources::DestroyDescriptorSetLayout(setLayouts[i]);
-		vkDestroyShaderModule(Renderer::device, stages[i].stageInfo.module, Renderer::allocationCallbacks);
+		vkDestroyShaderModule(Renderer::device, stageInfos[i].module, Renderer::allocationCallbacks);
 	}
 
 	stageCount = 0;
@@ -365,7 +365,7 @@ bool Shader::ParseStage(const String& data, I64& index, DescriptorSetLayoutInfo*
 	data.SubString(code, begin, end - begin - 1);
 
 	stages[stageCount].stage = stage;
-	stages[stageCount].stageInfo = CompileShader(stages[stageCount], code, name, setLayoutInfos);
+	stageInfos[stageCount] = CompileShader(stages[stageCount], code, name, setLayoutInfos);
 	++stageCount;
 
 	index = data.IndexOf('\n', end + 1);
@@ -610,90 +610,90 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		it += wordCount;
 	}
 
-	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
-	{ 
-		for (U32 i = 0; i < module.input_variable_count; ++i)
-		{
-			SpvReflectInterfaceVariable* var = module.input_variables[i];
-
-			if (var->built_in == -1)
-			{
-				U32 location = var->location;
-
-				VkVertexInputAttributeDescription attribute{};
-				attribute.binding = location;
-				attribute.location = location;
-				attribute.offset = 0;
-				attribute.format = (VkFormat)var->format;
-
-				VkVertexInputBindingDescription stream{};
-				stream.binding = location;
-				stream.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-				if (var->type_description->op == SpvOpTypeVector)
-				{
-					SpvReflectNumericTraits& traits = var->type_description->traits.numeric;
-					stream.stride = (traits.scalar.width / 8) * traits.vector.component_count;
-				}
-
-				shader.vertexSize += stream.stride;
-				++shader.vertexAttributeCount;
-				++shader.vertexStreamCount;
-				shader.vertexAttributes[location] = attribute;
-				shader.vertexStreams[location] = stream;
-			}
-		}
-	}
-
-	shader.setCount = module.descriptor_set_count;
-
-	for (U32 i = 0; i < shader.setCount; ++i)
-	{
-		SpvReflectDescriptorSet set = module.descriptor_sets[i];
-
-		DescriptorSetLayoutCreation& setLayout = setLayoutInfos[set.set];
-		setLayout.setIndex = set.set;
-		setLayout.bindingCount = set.binding_count;
-
-		for (U32 j = 0; j < set.binding_count; ++j)
-		{
-			SpvReflectDescriptorBinding* binding = set.bindings[j];
-
-			if (set.set == 1 && (binding->binding == Resources::bindlessTextureBinding ||
-				binding->binding == (Resources::bindlessTextureBinding + 1)))
-			{
-				useBindless = true; continue;
-			}
-
-			DescriptorBinding setBinding{};
-			setBinding.binding = binding->binding;
-			setBinding.count = binding->count;
-
-			switch (binding->type_description->op)
-			{
-			case SpvOpTypeStruct: { setBinding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; } break;
-			case SpvOpTypeSampledImage: { setBinding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; } break;
-			}
-
-			setLayout.bindings[binding->binding] = setBinding;
-			setLayout.bindingCount = Math::Max(binding->binding + 1, (U32)setLayout.bindingCount);
-		}
-	}
-
-	if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT)
-	{
-		for (U32 i = 0; i < module.output_variable_count; ++i)
-		{
-			SpvReflectInterfaceVariable* var = module.output_variables[i];
-
-			U32 location = var->location;
-
-			ShaderOutput output{};
-			output.format = (VkFormat)var->format;
-
-			shader.outputs[shader.outputCount++] = output;
-		}
-	}
+	//if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
+	//{ 
+	//	for (U32 i = 0; i < module.input_variable_count; ++i)
+	//	{
+	//		SpvReflectInterfaceVariable* var = module.input_variables[i];
+	//
+	//		if (var->built_in == -1)
+	//		{
+	//			U32 location = var->location;
+	//
+	//			VkVertexInputAttributeDescription attribute{};
+	//			attribute.binding = location;
+	//			attribute.location = location;
+	//			attribute.offset = 0;
+	//			attribute.format = (VkFormat)var->format;
+	//
+	//			VkVertexInputBindingDescription stream{};
+	//			stream.binding = location;
+	//			stream.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	//
+	//			if (var->type_description->op == SpvOpTypeVector)
+	//			{
+	//				SpvReflectNumericTraits& traits = var->type_description->traits.numeric;
+	//				stream.stride = (traits.scalar.width / 8) * traits.vector.component_count;
+	//			}
+	//
+	//			shader.vertexSize += stream.stride;
+	//			++shader.vertexAttributeCount;
+	//			++shader.vertexStreamCount;
+	//			shader.vertexAttributes[location] = attribute;
+	//			shader.vertexStreams[location] = stream;
+	//		}
+	//	}
+	//}
+	//
+	//shader.setCount = module.descriptor_set_count;
+	//
+	//for (U32 i = 0; i < shader.setCount; ++i)
+	//{
+	//	SpvReflectDescriptorSet set = module.descriptor_sets[i];
+	//
+	//	DescriptorSetLayoutCreation& setLayout = setLayoutInfos[set.set];
+	//	setLayout.setIndex = set.set;
+	//	setLayout.bindingCount = set.binding_count;
+	//
+	//	for (U32 j = 0; j < set.binding_count; ++j)
+	//	{
+	//		SpvReflectDescriptorBinding* binding = set.bindings[j];
+	//
+	//		if (set.set == 1 && (binding->binding == Resources::bindlessTextureBinding ||
+	//			binding->binding == (Resources::bindlessTextureBinding + 1)))
+	//		{
+	//			useBindless = true; continue;
+	//		}
+	//
+	//		DescriptorBinding setBinding{};
+	//		setBinding.binding = binding->binding;
+	//		setBinding.count = binding->count;
+	//
+	//		switch (binding->type_description->op)
+	//		{
+	//		case SpvOpTypeStruct: { setBinding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; } break;
+	//		case SpvOpTypeSampledImage: { setBinding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; } break;
+	//		}
+	//
+	//		setLayout.bindings[binding->binding] = setBinding;
+	//		setLayout.bindingCount = Math::Max(binding->binding + 1, (U32)setLayout.bindingCount);
+	//	}
+	//}
+	//
+	//if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT)
+	//{
+	//	for (U32 i = 0; i < module.output_variable_count; ++i)
+	//	{
+	//		SpvReflectInterfaceVariable* var = module.output_variables[i];
+	//
+	//		U32 location = var->location;
+	//
+	//		ShaderOutput output{};
+	//		output.format = (VkFormat)var->format;
+	//
+	//		shader.outputs[shader.outputCount++] = output;
+	//	}
+	//}
 
 	for (const Id& id : ids)
 	{
@@ -714,12 +714,17 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		}
 	}
 
+	if (stage.stage == VK_SHADER_STAGE_COMPUTE_BIT)
+	{
+		if (localSizeIdX >= 0) { stage.localSizeX = ids[localSizeIdX].constant; }
+		if (localSizeIdY >= 0) { stage.localSizeY = ids[localSizeIdY].constant; }
+		if (localSizeIdZ >= 0) { stage.localSizeZ = ids[localSizeIdZ].constant; }
+	}
+
 	//TODO: Fragment Outputs
 	//TODO: Vertex Attributes
 	//TODO: Specialization Constants
 	//TODO: Push Constants
-
-	spvReflectDestroyShaderModule(&module);
 
 	return true;
 }

@@ -12,45 +12,29 @@
 //		data.data, specializationInfos[data.stage].specializationData[data.index].size);
 //}
 
-bool Pipeline::Create(Shader* shader, Renderpass* renderpass)
+bool Pipeline::Create()
 {
-	this->shader = shader;
-
 	RenderpassCreation renderPassInfo{};
 	renderPassInfo.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	renderPassInfo.stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	renderPassInfo.width = Settings::WindowWidth();
 	renderPassInfo.height = Settings::WindowHeight();
 
-	descriptorSetCount = shader->setCount;
-
-	for (U8 i = 0; i < descriptorSetCount; ++i)
-	{
-		for (U8 j = 0; j < MAX_SWAPCHAIN_IMAGES; ++j)
-		{
-			descriptorSets[j][i] = Resources::CreateDescriptorSet(shader->setLayouts[i]);
-		}
-	}
-
-	if (renderpass)
-	{
-		this->renderpass = renderpass;
-	}
-	else
+	if (!renderpass)
 	{
 		String textureName = name + "_output_";
 		renderPassInfo.SetName(name + "_pass");
 
-		for (U32 i = 0; i < shader.outputCount; ++i)
+		for (U32 i = 0; i < shader->outputCount; ++i)
 		{
 			TextureCreation textureInfo{};
 			textureInfo.name = textureName + i;
-			textureInfo.format = shader.outputs[i].format;
+			textureInfo.format = shader->outputs[i];
 			textureInfo.width = renderPassInfo.width;
 			textureInfo.height = renderPassInfo.height;
 			textureInfo.depth = 1;
-			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
+			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 			textureInfo.type = VK_IMAGE_TYPE_2D;
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
@@ -58,7 +42,7 @@ bool Pipeline::Create(Shader* shader, Renderpass* renderpass)
 			//TODO: Add clear colors if not equal to render targets
 		}
 
-		if (useDepth)
+		if (shader->depthStencil.depthEnable)
 		{
 			TextureCreation textureInfo{};
 			textureInfo.name = textureName + "depth";
@@ -66,7 +50,7 @@ bool Pipeline::Create(Shader* shader, Renderpass* renderpass)
 			textureInfo.width = renderPassInfo.width;
 			textureInfo.height = renderPassInfo.height;
 			textureInfo.depth = 1;
-			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET_MASK;
+			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 			textureInfo.type = VK_IMAGE_TYPE_2D;
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
@@ -77,86 +61,34 @@ bool Pipeline::Create(Shader* shader, Renderpass* renderpass)
 		this->renderpass = Resources::CreateRenderPass(renderPassInfo);
 	}
 
-	if (!CreatePipeline(vkLayouts)) { return false; }
+	if (!CreatePipeline()) { return false; }
 
 	return true;
 }
 
-void Pipeline::Resize()
+void Pipeline::Update()
 {
-	//TODO: Renderpass->Resize();
-	if (!outsideRenderpass)
-	{
-		renderpass->width = Settings::WindowWidth();
-		renderpass->height = Settings::WindowHeight();
-
-		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
-		{
-			Resources::RecreateTexture(renderpass->outputTextures[i], renderpass->width, renderpass->height, 1);
-			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
-		}
-
-		if(renderpass->outputDepth)
-		{
-			Resources::RecreateTexture(renderpass->outputDepth, renderpass->width, renderpass->height, 1);
-		}
-
-		vkDestroyRenderPass(Renderer::device, renderpass->renderpass, Renderer::allocationCallbacks);
-
-		Renderer::CreateRenderPass(renderpass);
-	}
+	Renderer::PushDescriptors(shader, descriptors);
 }
 
-void Pipeline::UpdateDescriptors()
+void Pipeline::Resize()
 {
-	for (U32 i = 0; i < connectionCount; ++i)
-	{
-		PipelineConnection& connection = pipelineConnections[i];
-
-		switch (connection.type)
-		{
-		case CONNECTION_TYPE_RENDERTARGET: {
-			Texture* texture = connection.pipeline->renderpass->outputTextures[connection.index];
-
-			for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-			{
-				Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
-			}
-		} break;
-		case CONNECTION_TYPE_DEPTHBUFFER: {
-			Texture* texture = connection.pipeline->renderpass->outputDepth;
-
-			for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-			{
-				Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
-			}
-		} break;
-		case CONNECTION_TYPE_BUFFER: {
-			for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-			{
-				Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], connection.buffer, connection.binding);
-			}
-		} break;
-		}
-	}
+	renderpass->Resize();
 }
 
 void Pipeline::Destroy()
 {
-	for (U8 i = 0; i < descriptorSetCount; ++i)
-	{
-		for (U8 j = 0; j < MAX_SWAPCHAIN_IMAGES; ++j)
-		{
-			Resources::DestroyDescriptorSet(descriptorSets[j][i]);
-		}
-	}
-
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
 
 	name.Destroy();
 }
 
-bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
+void Pipeline::AddDescriptor(const Descriptor& descriptor)
+{
+	descriptors[descriptorCount++] = descriptor;
+}
+
+bool Pipeline::CreatePipeline()
 {
 	VkPipelineCache pipelineCache = nullptr;
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -191,13 +123,13 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		VkValidate(vkCreatePipelineCache(Renderer::device, &pipelineCacheCreateInfo, Renderer::allocationCallbacks, &pipelineCache));
 	}
 
-	if (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+	if (shader->bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-		vertexInputInfo.vertexAttributeDescriptionCount = shader.vertexAttributeCount;
-		vertexInputInfo.pVertexAttributeDescriptions = shader.vertexAttributes;
-		vertexInputInfo.vertexBindingDescriptionCount = shader.vertexStreamCount;
-		vertexInputInfo.pVertexBindingDescriptions = shader.vertexStreams;
+		vertexInputInfo.vertexAttributeDescriptionCount = shader->vertexAttributeCount;
+		vertexInputInfo.pVertexAttributeDescriptions = shader->vertexAttributes;
+		vertexInputInfo.vertexBindingDescriptionCount = shader->vertexStreamCount;
+		vertexInputInfo.pVertexBindingDescriptions = shader->vertexStreams;
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 		inputAssembly.pNext = nullptr;
@@ -205,18 +137,18 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-		if (blendStateCount == 0)
+		if (shader->blendStateCount == 0)
 		{
-			blendStates[0].blendEnable = VK_FALSE;
-			blendStates[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-			++blendStateCount;
+			shader->blendStates[0].blendEnable = VK_FALSE;
+			shader->blendStates[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			++shader->blendStateCount;
 		}
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = blendStateCount;
-		colorBlending.pAttachments = blendStates;
+		colorBlending.attachmentCount = shader->blendStateCount;
+		colorBlending.pAttachments = shader->blendStates;
 		colorBlending.blendConstants[0] = 0.0f;
 		colorBlending.blendConstants[1] = 0.0f;
 		colorBlending.blendConstants[2] = 0.0f;
@@ -224,11 +156,11 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 
-		depthStencilInfo.depthWriteEnable = depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
-		depthStencilInfo.stencilTestEnable = depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
-		depthStencilInfo.depthTestEnable = depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
-		depthStencilInfo.depthCompareOp = depthStencil.depthComparison;
-		if (depthStencil.stencilEnable) { Logger::Error("Stencil Buffers Not Yet Supported!"); }
+		depthStencilInfo.depthWriteEnable = shader->depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
+		depthStencilInfo.stencilTestEnable = shader->depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
+		depthStencilInfo.depthTestEnable = shader->depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
+		depthStencilInfo.depthCompareOp = shader->depthStencil.depthComparison;
+		if (shader->depthStencil.stencilEnable) { Logger::Error("Stencil Buffers Not Yet Supported!"); }
 
 		VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 		multisampling.sampleShadingEnable = VK_FALSE;
@@ -243,8 +175,8 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = rasterization.cullMode;
-		rasterizer.frontFace = rasterization.front;
+		rasterizer.cullMode = shader->rasterization.cullMode;
+		rasterizer.frontFace = shader->rasterization.front;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f;
 		rasterizer.depthBiasClamp = 0.0f;
@@ -265,9 +197,9 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 		dynamicState.pDynamicStates = dynamicStates;
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-		pipelineInfo.pStages = shader.stageInfos;
-		pipelineInfo.stageCount = shader.shaderCount;
-		pipelineInfo.layout = pipelineLayout;
+		pipelineInfo.pStages = shader->stageInfos;
+		pipelineInfo.stageCount = shader->stageCount;
+		pipelineInfo.layout = shader->pipelineLayout;
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
 		pipelineInfo.pColorBlendState = &colorBlending;
@@ -285,8 +217,8 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 	{
 		VkComputePipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
 
-		pipelineInfo.stage = shader.stageInfos[0];
-		pipelineInfo.layout = pipelineLayout;
+		pipelineInfo.stage = shader->stageInfos[0];
+		pipelineInfo.layout = shader->pipelineLayout;
 
 		vkCreateComputePipelines(Renderer::device, pipelineCache, 1, &pipelineInfo, Renderer::allocationCallbacks, &pipeline);
 	}
@@ -311,35 +243,4 @@ bool Pipeline::CreatePipeline(VkDescriptorSetLayout* vkLayouts)
 	vkDestroyPipelineCache(Renderer::device, pipelineCache, Renderer::allocationCallbacks);
 
 	return true;
-}
-
-void Pipeline::AddConnection(const PipelineConnection& connection)
-{
-	pipelineConnections[connectionCount++] = connection;
-
-	switch (connection.type)
-	{
-	case CONNECTION_TYPE_RENDERTARGET: {
-		Texture* texture = connection.pipeline->renderpass->outputTextures[connection.index];
-
-		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-		{
-			Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
-		}
-	} break;
-	case CONNECTION_TYPE_DEPTHBUFFER: {
-		Texture* texture = connection.pipeline->renderpass->outputDepth;
-
-		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-		{
-			Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], texture, connection.binding);
-		}
-	} break;
-	case CONNECTION_TYPE_BUFFER: {
-		for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
-		{
-			Resources::UpdateDescriptorSet(descriptorSets[i][connection.set], connection.buffer, connection.binding);
-		}
-	} break;
-	}
 }

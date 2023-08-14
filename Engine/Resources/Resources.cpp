@@ -11,6 +11,7 @@
 #include "External\Assimp\cimport.h"
 #include "External\Assimp\scene.h"
 #include "External\Assimp\postprocess.h"
+#include <LunarG\glslang\Include\intermediate.h>
 
 #undef near
 #undef far
@@ -160,9 +161,14 @@ struct FBXArray
 Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
-Program* Resources::skyboxProgram;
-Program* Resources::pbrProgram;
-Program* Resources::postProcessProgram;
+Shader* Resources::meshProgram;
+Shader* Resources::cullProgram;
+Shader* Resources::depthProgram;
+Pipeline* Resources::earlyRenderPipeline;
+Pipeline* Resources::lateRenderPipeline;
+Pipeline* Resources::earlyCullPipeline;
+Pipeline* Resources::lateCullPipeline;
+Pipeline* Resources::depthReducePipeline;
 Material* Resources::materialOpaque;
 Material* Resources::materialTransparent;
 
@@ -171,7 +177,6 @@ Hashmap<String, Texture>		Resources::textures{ 512, {} };
 Hashmap<String, Renderpass>		Resources::renderpasses{ 256, {} };
 Hashmap<String, Shader>			Resources::shaders{ 128, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
-Hashmap<String, Program>		Resources::programs{ 128, {} };
 Hashmap<String, Material>		Resources::materials{ 128, {} };
 Hashmap<String, Mesh>			Resources::meshes{ 128, {} };
 Hashmap<String, Model>			Resources::models{ 128, {} };
@@ -230,36 +235,30 @@ bool Resources::Initialize()
 	dummySamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
 	dummySampler = CreateSampler(dummySamplerInfo);
 
-	Pipeline* pbr = CreatePipeline("shaders/Pbr.shader");
-	Pipeline* skybox = CreatePipeline("shaders/Skybox.shader", pbr->renderpass);
-	Pipeline* postProcess = CreatePipeline("shaders/PostProcess.shader", Renderer::swapchain.renderpass);
+	meshProgram = CreateShader("shaders/MeshPbr.shader");
+	cullProgram = CreateShader("shaders/MeshPbr.shader");
+	depthProgram = CreateShader("shaders/MeshPbr.shader");
 
-	PipelineConnection connection{};
-	connection.type = CONNECTION_TYPE_RENDERTARGET;
-	connection.pipeline = pbr;
-	connection.index = 0;
-	connection.set = 0;
-	connection.binding = 1;
+	PipelineInfo info{};
+	info.name = "early_render_pipeline";
+	info.shader = meshProgram;
+	earlyRenderPipeline = CreatePipeline(info);
 
-	postProcess->AddConnection(connection);
+	info.name = "late_render_pipeline";
+	info.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	info.depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	lateRenderPipeline = CreatePipeline(info);
 
-	ProgramCreation programCreation{};
-	programCreation.SetName("Skybox").AddPass(skybox);
-	skyboxProgram = Resources::CreateProgram(programCreation);
+	info.name = "early_cull_pipeline";
+	info.shader = cullProgram;
+	earlyCullPipeline = CreatePipeline(info);
 
-	programCreation.Reset().SetName("PBR").AddPass(pbr);
-	pbrProgram = Resources::CreateProgram(programCreation);
+	info.name = "late_cull_pipeline";
+	lateCullPipeline = CreatePipeline(info);
 
-	programCreation.Reset().SetName("PostProcess").AddPass(postProcess);
-	postProcessProgram = Resources::CreateProgram(programCreation);
-
-	//MaterialCreation materialCreation{};
-	//
-	//materialCreation.SetName("materials/pbr_opaque").SetProgram(pbrProgram).SetRenderIndex(0);
-	//materialOpaque = Resources::CreateMaterial(materialCreation);
-	//
-	//materialCreation.SetName("materials/pbr_transparent").SetProgram(pbrProgram).SetRenderIndex(1);
-	//materialTransparent = Resources::CreateMaterial(materialCreation);
+	info.name = "depth_reduce_pipeline";
+	info.shader = depthProgram;
+	depthReducePipeline = CreatePipeline(info);
 
 	return true;
 }
@@ -326,12 +325,12 @@ bool Resources::CreateBindless()
 
 	layoutInfo.pNext = &extendedInfo;
 
-	VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout));
+	VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout->descriptorSetLayout));
 
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	allocInfo.descriptorPool = bindlessDescriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &bindlessDescriptorSetLayout;
+	allocInfo.pSetLayouts = &bindlessDescriptorSetLayout->descriptorSetLayout;
 
 	VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
 	U32 maxBinding = maxBindlessResources - 1;
@@ -371,7 +370,6 @@ void Resources::Shutdown()
 	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
 	CleanupHashmap(shaders, nullptr);
 	CleanupHashmap(pipelines, nullptr);
-	CleanupHashmap(programs, nullptr);
 	CleanupHashmap(materials, nullptr);
 	CleanupHashmap(models, nullptr);
 	CleanupHashmap(skyboxes, nullptr);
@@ -384,7 +382,6 @@ void Resources::Shutdown()
 	renderpasses.Destroy();
 	shaders.Destroy();
 	pipelines.Destroy();
-	programs.Destroy();
 	materials.Destroy();
 	models.Destroy();
 	skyboxes.Destroy();
@@ -393,7 +390,7 @@ void Resources::Shutdown()
 	resourceDeletionQueue.Destroy();
 	bindlessTexturesToUpdate.Destroy();
 
-	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout, Renderer::allocationCallbacks);
+	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout->descriptorSetLayout, Renderer::allocationCallbacks);
 	vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
 	vkDestroyDescriptorPool(Renderer::device, descriptorPool, Renderer::allocationCallbacks);
 }
@@ -472,7 +469,7 @@ void Resources::UpdatePipelines()
 
 	for (auto it = pipelines.begin(); it != end; ++it)
 	{
-		if (it.Valid() && !it->name.Blank()) { it->UpdateDescriptors(); }
+		if (it.Valid() && !it->name.Blank()) { it->Update(); }
 	}
 }
 
@@ -1566,14 +1563,8 @@ DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 	U64 handle;
 	DescriptorSet* descriptorSet = descriptorSets.Request(handle);
 
-	descriptorSet->bindingCount = layout->bindingCount;
-	descriptorSet->layout = layout;
 	descriptorSet->handle = handle;
-
-	for (U32 i = 0; i < layout->bindingCount; ++i)
-	{
-		descriptorSet->bindings[i] = layout->bindings[i];
-	}
+	descriptorSet->layout = layout;
 
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	allocInfo.descriptorPool = descriptorPool;
@@ -1585,139 +1576,11 @@ DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 	return descriptorSet;
 }
 
-void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture** textures, Buffer** buffers)
-{
-	if (descriptorSet)
-	{
-		DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
-
-		VkWriteDescriptorSet descriptorWrite[8];
-		VkDescriptorBufferInfo bufferInfo[8];
-		VkDescriptorImageInfo imageInfo[8];
-
-		U8 t = 0, b = 0, o = 0;
-
-		for (U32 i = 0; i < descriptorSet->bindingCount; ++i)
-		{
-			const DescriptorBinding& binding = descriptorSet->bindings[i];
-
-			descriptorWrite[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			descriptorWrite[i].dstSet = descriptorSet->descriptorSet;
-			descriptorWrite[i].dstBinding = binding.binding;
-			descriptorWrite[i].dstArrayElement = 0;
-			descriptorWrite[i].descriptorCount = 1;
-
-			switch (binding.type)
-			{
-			case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: {
-				Texture* texture = textures[t++];
-
-				if (texture->sampler) { imageInfo[i].sampler = texture->sampler->sampler; }
-				else { imageInfo[i].sampler = defaultSampler->sampler; }
-				imageInfo[i].imageLayout = texture->imageLayout;
-				imageInfo[i].imageView = texture->imageView;
-
-				descriptorWrite[i].pImageInfo = &imageInfo[i];
-				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			} break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: {
-				Texture* texture = textures[t++];
-
-				imageInfo[i].sampler = nullptr;
-				imageInfo[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				imageInfo[i].imageView = texture->imageView;
-
-				descriptorWrite[i].pImageInfo = &imageInfo[i];
-				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-			} break;
-			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-				Buffer* buffer = buffers[b++];
-
-				bufferInfo[i].offset = buffer->globalOffset;
-				bufferInfo[i].range = buffer->size;
-				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
-				else { bufferInfo[i].buffer = buffer->buffer; }
-
-				descriptorSet->offsetsCache[o++] = 0;
-				descriptorWrite[i].pBufferInfo = &bufferInfo[i];
-				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-			} break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: {
-				Buffer* buffer = buffers[b++];
-
-				bufferInfo[i].offset = buffer->globalOffset;
-				bufferInfo[i].range = buffer->size;
-				if (buffer->parentBuffer) { bufferInfo[i].buffer = buffer->parentBuffer->buffer; }
-				else { bufferInfo[i].buffer = buffer->buffer; }
-
-				descriptorWrite[i].pBufferInfo = &bufferInfo[i];
-				descriptorWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			} break;
-			default: {
-				Logger::Fatal("Resource type {} not supported in descriptor set creation!", (U32)binding.type);
-			}break;
-			}
-		}
-
-		vkUpdateDescriptorSets(Renderer::device, descriptorSetLayout->bindingCount, descriptorWrite, 0, nullptr);
-	}
-}
-
-void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Texture* texture, U32 binding)
-{
-	if (descriptorSet)
-	{
-		DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
-
-		VkDescriptorImageInfo imageInfo;
-		if (texture->sampler) { imageInfo.sampler = texture->sampler->sampler; }
-		else { imageInfo.sampler = defaultSampler->sampler; }
-		imageInfo.imageLayout = texture->imageLayout;
-		imageInfo.imageView = texture->imageView;
-
-		VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		descriptorWrite.dstSet = descriptorSet->descriptorSet;
-		descriptorWrite.dstBinding = binding;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-		vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
-	}
-}
-
-void Resources::UpdateDescriptorSet(DescriptorSet* descriptorSet, Buffer* buffer, U32 binding)
-{
-	if (descriptorSet)
-	{
-		DescriptorSetLayout* descriptorSetLayout = descriptorSet->layout;
-
-		//TODO: Offset Cache
-
-		VkDescriptorBufferInfo bufferInfo;
-		bufferInfo.offset = buffer->globalOffset;
-		bufferInfo.range = buffer->size;
-		if (buffer->parentBuffer) { bufferInfo.buffer = buffer->parentBuffer->buffer; }
-		else { bufferInfo.buffer = buffer->buffer; }
-
-		VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		descriptorWrite.dstSet = descriptorSet->descriptorSet;
-		descriptorWrite.dstBinding = binding;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pBufferInfo = &bufferInfo;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-
-		vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
-	}
-}
-
 Renderpass* Resources::CreateRenderPass(const RenderpassCreation& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Renderpass* renderpass = &renderPasses.Request(info.name);
+	Renderpass* renderpass = &renderpasses.Request(info.name);
 
 	if (!renderpass->name.Blank()) { return renderpass; }
 
@@ -1727,7 +1590,7 @@ Renderpass* Resources::CreateRenderPass(const RenderpassCreation& info)
 	renderpass->renderpass = nullptr;
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->outputDepth = info.depthStencilTexture;
-	renderpass->handle = renderPasses.GetHandle(info.name);
+	renderpass->handle = renderpasses.GetHandle(info.name);
 	renderpass->output.colorOperation = info.colorOperation;
 	renderpass->output.depthOperation = info.depthOperation;
 	renderpass->output.stencilOperation = info.stencilOperation;
@@ -1771,40 +1634,26 @@ Shader* Resources::CreateShader(const String& name)
 	return shader;
 }
 
-Pipeline* Resources::CreatePipeline(const String& name, Renderpass* renderpass)
+Pipeline* Resources::CreatePipeline(const PipelineInfo& info)
 {
-	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Pipeline* pipeline = &pipelines.Request(name);
+	Pipeline* pipeline = &pipelines.Request(info.name);
 
 	if (!pipeline->name.Blank()) { return pipeline; }
 
-	pipeline->handle = pipelines.GetHandle(name);
+	pipeline->name = info.name;
+	pipeline->handle = pipelines.GetHandle(info.name);
+	pipeline->shader = info.shader;
+	pipeline->renderpass = info.renderpass;
 
-	if (!pipeline->Create(name, renderpass))
+	if (!pipeline->Create())
 	{
 		pipelines.Remove(pipeline->handle);
 		pipeline->handle = U64_MAX;
 	}
 
 	return pipeline;
-}
-
-Program* Resources::CreateProgram(const ProgramCreation& info)
-{
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	Program* program = &programs.Request(info.name);
-
-	if (!program->name.Blank()) { return program; }
-
-	program->name = info.name;
-	program->handle = programs.GetHandle(info.name);
-	program->passCount = info.passCount;
-
-	for (U32 i = 0; i < info.passCount; ++i) { program->passes[i] = info.passes[i]; }
-
-	return program;
 }
 
 Model* Resources::LoadModel(const String& name)
@@ -1933,6 +1782,7 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 
 	mesh->vertexOffset = Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, mesh->vertexCount * sizeof(Vertex));
 	mesh->indexOffset = Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, meshInfo->mNumFaces * faceSize);
+	Renderer::FillBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh), mesh->handle * sizeof(Mesh));
 
 	free(vertexData);
 	free(indexData);
@@ -1956,7 +1806,6 @@ Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String
 
 	material->name = Move(name);
 	material->handle = materials.GetHandle(material->name);
-	material->program = pbrProgram;
 
 	//material->renderIndex = info.renderIndex;
 
@@ -1998,9 +1847,9 @@ Skybox* Resources::LoadSkybox(const String& name)
 	skybox->texture = LoadTexture(name, false);
 
 	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	BufferCreation bufferCreation{};
-	bufferCreation.SetName("binaries/Skybox.bin").Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
-	skybox->buffer = LoadBuffer(bufferCreation);
+	//BufferCreation bufferCreation{};
+	//bufferCreation.SetName("binaries/Skybox.bin").Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
+	//skybox->buffer = LoadBuffer(bufferCreation);
 
 	return skybox;
 }
@@ -2018,7 +1867,7 @@ Scene* Resources::CreateScene(const String& name)
 
 	scene->camera.SetPerspective(0.00001f, 1000.0f, 45.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
 
-	scene->Create();
+	//scene->Create();
 
 	return scene;
 }
@@ -2066,191 +1915,191 @@ Scene* Resources::LoadScene(const String& name)
 
 bool Resources::LoadNHSCN(Scene* scene, File& file)
 {
-	U32 bufferCount;
-	U32 textureCount;
-	U32 samplerCount;
-	U32 meshCount;
-	
-	file.Read(bufferCount);
-	file.Read(samplerCount);
-	file.Read(textureCount);
-	file.Read(meshCount);
-	
-	scene->buffers.Reserve(bufferCount);
-	scene->textures.Reserve(textureCount);
-	scene->samplers.Reserve(samplerCount);
-	scene->meshes.Reserve(meshCount);
-	
-	String str{};
-	void* bufferData = nullptr;
-	U32 bufferLength = 0;
-	VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	
-	for (U32 i = 0; i < bufferCount; ++i)
-	{
-		file.ReadString(str);
-	
-		BufferCreation bufferCreation{};
-		bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
-		Buffer* buffer = LoadBuffer(bufferCreation);
-		buffer->sceneID = i;
-	
-		scene->buffers.Push(buffer);
-	}
-	
-	//TODO: Check for no samplers, use default sampler
-	for (U32 i = 0; i < samplerCount; ++i)
-	{
-		SamplerCreation samplerInfo{};
-		samplerInfo.SetName("Sampler"); //TODO: Unique name!
-		file.Read((I32&)samplerInfo.minFilter);
-		file.Read((I32&)samplerInfo.magFilter);
-		file.Read((I32&)samplerInfo.mipFilter);
-		file.Read((I32&)samplerInfo.addressModeU);
-		file.Read((I32&)samplerInfo.addressModeV);
-		file.Read((I32&)samplerInfo.addressModeW);
-		file.Read((I32&)samplerInfo.border);
-	
-		Sampler* sampler = CreateSampler(samplerInfo);
-		sampler->sceneID = i;
-	
-		scene->samplers.Push(sampler);
-	}
-	
-	for (U32 i = 0; i < textureCount; ++i)
-	{
-		file.ReadString(str);
-		U32 samplerID = 0;
-		file.Read(samplerID);
-	
-		Texture* texture = LoadTexture(str, true);
-		texture->sceneID = i;
-		texture->sampler = scene->samplers[samplerID];
-	
-		scene->textures.Push(texture);
-	}
-	
-	file.ReadString(str);
-	scene->skybox = LoadSkybox(str);
-	
-	scene->camera = {};
-	bool perspective;
-	F32 near, far;
-	Vector3 position, rotation;
-	file.Read(perspective);
-	file.Read(near);
-	file.Read(far);
-	file.Read(position.x);
-	file.Read(position.y);
-	file.Read(position.z);
-	file.Read(rotation.x);
-	file.Read(rotation.y);
-	file.Read(rotation.z);
-	
-	scene->camera.SetPosition(position);
-	scene->camera.SetRotation(rotation);
-	
-	if (perspective)
-	{
-		F32 fov, aspect;
-		file.Read(fov);
-		file.Read(aspect);
-	
-		scene->camera.SetPerspective(near, far, fov, aspect);
-	}
-	else
-	{
-		F32 width, height, zoom;
-		file.Read(width);
-		file.Read(height);
-		file.Read(zoom);
-	
-		scene->camera.SetOrthograpic(near, far, width, height, zoom);
-	}
-	
-	for (U32 i = 0; i < meshCount; ++i)
-	{
-		Mesh mesh{};
-		BufferCreation bufferCreation{};
-		U32 id;
-		U64 offset;
-		U64 size;
-	
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.texcoordBuffer = CreateBuffer(bufferCreation);
-	
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.normalBuffer = CreateBuffer(bufferCreation);
-	
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.tangentBuffer = CreateBuffer(bufferCreation);
-	
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.positionBuffer = CreateBuffer(bufferCreation);
-	
-		file.Read(id);
-		file.Read(offset);
-		file.Read(size);
-		bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
-		mesh.indexBuffer = CreateBuffer(bufferCreation);
-	
-		mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
-	
-		file.Read(id);
-		mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
-		file.Read(id);
-		mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
-		file.Read(id);
-		mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
-		file.Read(id);
-		mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
-	
-		file.Read(mesh.baseColorFactor.x);
-		file.Read(mesh.baseColorFactor.y);
-		file.Read(mesh.baseColorFactor.z);
-		file.Read(mesh.baseColorFactor.w);
-		file.Read(mesh.metalRoughOcclFactor.x);
-		file.Read(mesh.metalRoughOcclFactor.y);
-		file.Read(mesh.metalRoughOcclFactor.z);
-		file.Read(mesh.emissiveFactor.x);
-		file.Read(mesh.emissiveFactor.y);
-		file.Read(mesh.emissiveFactor.z);
-		file.Read(mesh.flags);
-		file.Read(mesh.alphaCutoff);
-	
-		Vector3 euler;
-		file.Read(mesh.position.x);
-		file.Read(mesh.position.y);
-		file.Read(mesh.position.z);
-		file.Read(euler.x);
-		file.Read(euler.y);
-		file.Read(euler.z);
-		file.Read(mesh.scale.x);
-		file.Read(mesh.scale.y);
-		file.Read(mesh.scale.z);
-	
-		mesh.rotation = Quaternion3(euler);
-	
-		bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
-		mesh.materialBuffer = CreateBuffer(bufferCreation);
-		mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
-	
-		scene->meshes.Push(mesh);
-	}
-	
-	scene->Create();
+	//U32 bufferCount;
+	//U32 textureCount;
+	//U32 samplerCount;
+	//U32 meshCount;
+	//
+	//file.Read(bufferCount);
+	//file.Read(samplerCount);
+	//file.Read(textureCount);
+	//file.Read(meshCount);
+	//
+	//scene->buffers.Reserve(bufferCount);
+	//scene->textures.Reserve(textureCount);
+	//scene->samplers.Reserve(samplerCount);
+	//scene->meshes.Reserve(meshCount);
+	//
+	//String str{};
+	//void* bufferData = nullptr;
+	//U32 bufferLength = 0;
+	//VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	//
+	//for (U32 i = 0; i < bufferCount; ++i)
+	//{
+	//	file.ReadString(str);
+	//
+	//	BufferCreation bufferCreation{};
+	//	bufferCreation.SetName(str).Set(flags, RESOURCE_USAGE_IMMUTABLE, 0);
+	//	Buffer* buffer = LoadBuffer(bufferCreation);
+	//	buffer->sceneID = i;
+	//
+	//	scene->buffers.Push(buffer);
+	//}
+	//
+	////TODO: Check for no samplers, use default sampler
+	//for (U32 i = 0; i < samplerCount; ++i)
+	//{
+	//	SamplerCreation samplerInfo{};
+	//	samplerInfo.SetName("Sampler"); //TODO: Unique name!
+	//	file.Read((I32&)samplerInfo.minFilter);
+	//	file.Read((I32&)samplerInfo.magFilter);
+	//	file.Read((I32&)samplerInfo.mipFilter);
+	//	file.Read((I32&)samplerInfo.addressModeU);
+	//	file.Read((I32&)samplerInfo.addressModeV);
+	//	file.Read((I32&)samplerInfo.addressModeW);
+	//	file.Read((I32&)samplerInfo.border);
+	//
+	//	Sampler* sampler = CreateSampler(samplerInfo);
+	//	sampler->sceneID = i;
+	//
+	//	scene->samplers.Push(sampler);
+	//}
+	//
+	//for (U32 i = 0; i < textureCount; ++i)
+	//{
+	//	file.ReadString(str);
+	//	U32 samplerID = 0;
+	//	file.Read(samplerID);
+	//
+	//	Texture* texture = LoadTexture(str, true);
+	//	texture->sceneID = i;
+	//	texture->sampler = scene->samplers[samplerID];
+	//
+	//	scene->textures.Push(texture);
+	//}
+	//
+	//file.ReadString(str);
+	//scene->skybox = LoadSkybox(str);
+	//
+	//scene->camera = {};
+	//bool perspective;
+	//F32 near, far;
+	//Vector3 position, rotation;
+	//file.Read(perspective);
+	//file.Read(near);
+	//file.Read(far);
+	//file.Read(position.x);
+	//file.Read(position.y);
+	//file.Read(position.z);
+	//file.Read(rotation.x);
+	//file.Read(rotation.y);
+	//file.Read(rotation.z);
+	//
+	//scene->camera.SetPosition(position);
+	//scene->camera.SetRotation(rotation);
+	//
+	//if (perspective)
+	//{
+	//	F32 fov, aspect;
+	//	file.Read(fov);
+	//	file.Read(aspect);
+	//
+	//	scene->camera.SetPerspective(near, far, fov, aspect);
+	//}
+	//else
+	//{
+	//	F32 width, height, zoom;
+	//	file.Read(width);
+	//	file.Read(height);
+	//	file.Read(zoom);
+	//
+	//	scene->camera.SetOrthograpic(near, far, width, height, zoom);
+	//}
+	//
+	//for (U32 i = 0; i < meshCount; ++i)
+	//{
+	//	Mesh mesh{};
+	//	BufferCreation bufferCreation{};
+	//	U32 id;
+	//	U64 offset;
+	//	U64 size;
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("texcoord_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.texcoordBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("normal_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.normalBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("tangent_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.tangentBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("position_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.positionBuffer = CreateBuffer(bufferCreation);
+	//
+	//	file.Read(id);
+	//	file.Read(offset);
+	//	file.Read(size);
+	//	bufferCreation.Reset().SetName("index_buffer").Set(flags, RESOURCE_USAGE_IMMUTABLE, size).SetParent(scene->buffers[id], offset);
+	//	mesh.indexBuffer = CreateBuffer(bufferCreation);
+	//
+	//	mesh.primitiveCount = (U32)(mesh.indexBuffer->size / sizeof(U16));
+	//
+	//	file.Read(id);
+	//	mesh.diffuseTextureIndex = (U16)scene->textures[id]->handle;
+	//	file.Read(id);
+	//	mesh.metalRoughOcclTextureIndex = (U16)scene->textures[id]->handle;
+	//	file.Read(id);
+	//	mesh.normalTextureIndex = (U16)scene->textures[id]->handle;
+	//	file.Read(id);
+	//	mesh.emissivityTextureIndex = (U16)scene->textures[id]->handle;
+	//
+	//	file.Read(mesh.baseColorFactor.x);
+	//	file.Read(mesh.baseColorFactor.y);
+	//	file.Read(mesh.baseColorFactor.z);
+	//	file.Read(mesh.baseColorFactor.w);
+	//	file.Read(mesh.metalRoughOcclFactor.x);
+	//	file.Read(mesh.metalRoughOcclFactor.y);
+	//	file.Read(mesh.metalRoughOcclFactor.z);
+	//	file.Read(mesh.emissiveFactor.x);
+	//	file.Read(mesh.emissiveFactor.y);
+	//	file.Read(mesh.emissiveFactor.z);
+	//	file.Read(mesh.flags);
+	//	file.Read(mesh.alphaCutoff);
+	//
+	//	Vector3 euler;
+	//	file.Read(mesh.position.x);
+	//	file.Read(mesh.position.y);
+	//	file.Read(mesh.position.z);
+	//	file.Read(euler.x);
+	//	file.Read(euler.y);
+	//	file.Read(euler.z);
+	//	file.Read(mesh.scale.x);
+	//	file.Read(mesh.scale.y);
+	//	file.Read(mesh.scale.z);
+	//
+	//	mesh.rotation = Quaternion3(euler);
+	//
+	//	bufferCreation.Reset().Set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, RESOURCE_USAGE_DYNAMIC, sizeof(MeshData)).SetName("material"); //TODO: Unique name
+	//	mesh.materialBuffer = CreateBuffer(bufferCreation);
+	//	mesh.material = AccessDefaultMaterial(); //TODO: Checks for transparency and culling
+	//
+	//	scene->meshes.Push(mesh);
+	//}
+	//
+	//scene->Create();
 	
 	return true;
 }

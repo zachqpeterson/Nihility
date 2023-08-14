@@ -161,13 +161,13 @@ void Input::ReceiveInput(HRAWINPUT handle)
 
 			if (Settings::ConstrainCursor())
 			{
-				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, Settings::WindowPositionX(), Settings::WindowWidth() + Settings::WindowPositionX());
-				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, Settings::WindowPositionY(), Settings::WindowHeight() + Settings::WindowPositionY());
+				mousePosX = Math::Clamp((U32)(mousePosX += deltaMousePosX), Settings::WindowPositionX(), Settings::WindowWidth() + Settings::WindowPositionX());
+				mousePosY = Math::Clamp((U32)(mousePosY += deltaMousePosY), Settings::WindowPositionY(), Settings::WindowHeight() + Settings::WindowPositionY());
 			}
 			else
 			{
-				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, 0, Settings::ScreenWidth());
-				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, 0, Settings::ScreenHeight());
+				mousePosX = Math::Clamp((U32)(mousePosX += deltaMousePosX), 0u, Settings::ScreenWidth());
+				mousePosY = Math::Clamp((U32)(mousePosY += deltaMousePosY), 0u, Settings::ScreenHeight());
 			}
 		}
 

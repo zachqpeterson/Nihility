@@ -101,7 +101,7 @@ bool								Renderer::pushDescriptorsSupported{ false };
 bool								Renderer::meshShadingSupported{ false };
 
 // WINDOW
-U32									Renderer::imageIndex{ 0 };
+U32									Renderer::frameIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
 U32									Renderer::absoluteFrame{ 0 };
@@ -472,6 +472,17 @@ bool Renderer::CreateResources()
 	drawCountsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawVisibilityBuffer = CreateBuffer(16, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+	TextureCreation info{};
+	info.name = "depth_pyramid";
+	info.width = BitFloor(Settings::WindowWidth());
+	info.height = BitFloor(Settings::WindowHeight());
+	info.depth = 1;
+	info.flags = TEXTURE_FLAG_COMPUTE;
+	info.mipmaps = Math::Min(DegreeOfTwo(info.width), DegreeOfTwo(info.height)) + 1;
+	info.format = VK_FORMAT_R32_SFLOAT;
+	info.type = VK_IMAGE_TYPE_2D;
+	depthPyramid = Resources::CreateTexture(info);
+
 	Resources::CreateDefaults();
 
 	//TODO: Move to resources?
@@ -495,7 +506,7 @@ bool Renderer::BeginFrame()
 
 	CommandBuffer* commandBuffer = GetCommandBuffer(true);
 
-	Renderpass* renderpass = Resources::pbrProgram->passes[0]->renderpass;
+	Renderpass* renderpass = Resources::earlyRenderPipeline->renderpass;
 
 	VkImageMemoryBarrier2 renderBeginBarriers[]{
 		ImageBarrier(renderpass->outputTextures[0]->image,
@@ -509,7 +520,7 @@ bool Renderer::BeginFrame()
 
 	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(renderBeginBarriers), renderBeginBarriers);
 
-	VkResult result = swapchain.NextImage(imageIndex, imageAcquired);
+	result = swapchain.NextImage(frameIndex, imageAcquired);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		Resize();
@@ -518,8 +529,17 @@ bool Renderer::BeginFrame()
 	}
 }
 
-void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
+void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late)
 {
+	GlobalData globalData{};
+	Matrix4 vp;
+	Vector4 eye;
+	Vector4 directionalLight;
+	Vector4 directionalLightColor;
+	Vector4 ambientLight;
+	F32		lightIntensity;
+	U32		skyboxIndex{ U16_MAX };
+
 	commandBuffer->BindRenderpass(pipeline->renderpass);
 
 	bool taskSubmit = false;
@@ -541,16 +561,85 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
 	{
 		commandBuffer->BindPipeline(pipeline);
 
-		Descriptor descriptors[] = { dcb.buffer, db.buffer, vertexBuffer.vkBuffer };
-		pushDescriptors(meshProgram, descriptors);
+		Descriptor descriptors[] = { drawCommandsBuffer.vkBuffer, drawsBuffer.vkBuffer, vertexBuffer.vkBuffer };
+		PushDescriptors(pipeline->shader, descriptors);
 
 		commandBuffer->BindIndexBuffer(indexBuffer);
 
-		vkCmdPushConstants(commandBuffer, meshProgram.layout, meshProgram.pushConstantStages, 0, sizeof(globals), &globals);
-		vkCmdDrawIndexedIndirectCount(commandBuffer, dcb.buffer, offsetof(MeshDrawCommand, indirect), dccb.buffer, 0, uint32_t(draws.size()), sizeof(MeshDrawCommand));
+		vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(GlobalData), &globalData);
+		vkCmdDrawIndexedIndirectCount(commandBuffer->commandBuffer, drawCommandsBuffer.vkBuffer, offsetof(MeshDrawCommand, indirect), drawCountsBuffer.vkBuffer, 0, drawCount, sizeof(MeshDrawCommand));
 	}
 
-	vkCmdEndRendering(commandBuffer);
+	vkCmdEndRendering(commandBuffer->commandBuffer);
+}
+
+void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late)
+{
+	U32 rasterizationStage =
+		taskSubmit
+		? VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT | VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT
+		: VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+
+	VkBufferMemoryBarrier2 prefillBarrier = BufferBarrier(drawCountsBuffer.vkBuffer,
+		VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+	commandBuffer->PipelineBarrier(0, 1, &prefillBarrier, 0, nullptr);
+
+	vkCmdFillBuffer(commandBuffer->commandBuffer, drawCountsBuffer.vkBuffer, 0, 4, 0);
+
+	// pyramid barrier is tricky: our frame sequence is cull -> render -> pyramid -> cull -> render
+	// the first cull (late=0) doesn't read pyramid data BUT the read in the shader is guarded by a push constant value (which could be specialization constant but isn't due to AMD bug)
+	// the second cull (late=1) does read pyramid data that was written in the pyramid stage
+	// as such, second cull needs to transition GENERAL->GENERAL with a COMPUTE->COMPUTE barrier, but the first cull needs to have a dummy transition because pyramid starts in UNDEFINED state on first frame
+	VkImageMemoryBarrier2 pyramidBarrier = ImageBarrier(depthPyramid->image,
+		late ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : 0, late ? VK_ACCESS_SHADER_WRITE_BIT : 0, late ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+	VkBufferMemoryBarrier2 fillBarriers[]{
+		BufferBarrier(drawCommandsBuffer.vkBuffer,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | rasterizationStage, VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT),
+		BufferBarrier(drawCountsBuffer.vkBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT),
+	};
+	commandBuffer->PipelineBarrier(0, CountOf32(fillBarriers), fillBarriers, 1, &pyramidBarrier);
+
+	commandBuffer->BindPipeline(pipeline);
+
+	Descriptor pyramidDesc(depthPyramid->imageView, VK_IMAGE_LAYOUT_GENERAL, depthSampler->sampler);
+	Descriptor descriptors[] = { drawsBuffer.vkBuffer, meshBuffer.vkBuffer, drawCommandsBuffer.vkBuffer, drawCountsBuffer.vkBuffer, dvb.buffer, pyramidDesc };
+	PushDescriptors(pipeline->shader, descriptors);
+
+	vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(cullData), &cullData);
+	vkCmdDispatch(commandBuffer->commandBuffer, getGroupCount(U32(draws.size()), pipeline->shader->stages[0].localSizeX), 1, 1);
+
+	if (taskSubmit)
+	{
+		VkBufferMemoryBarrier2 syncBarrier = BufferBarrier(drawCountsBuffer.vkBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+
+		commandBuffer->PipelineBarrier(0, 1, &syncBarrier, 0, nullptr);
+
+		//commandBuffer->BindPipeline(tasksubmitPipeline);
+
+		Descriptor descriptors[] = { drawCountsBuffer.vkBuffer, drawCommandsBuffer.vkBuffer };
+		//PushDescriptors(tasksubmitProgram, descriptors);
+
+		commandBuffer->Dispatch(1, 1, 1);
+	}
+
+	VkBufferMemoryBarrier2 cullBarriers[]{
+		BufferBarrier(drawCommandsBuffer.vkBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | rasterizationStage, VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT),
+		BufferBarrier(drawCountsBuffer.vkBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT),
+	};
+
+	commandBuffer->PipelineBarrier(0, CountOf32(cullBarriers), cullBarriers, 0, nullptr);
 }
 
 void Renderer::EndFrame()
@@ -560,15 +649,16 @@ void Renderer::EndFrame()
 	if (currentScene) //TODO: Default scene?
 	{
 		currentScene->Update();
+
 	}
 
 	Resources::Update();
 
 	//TODO: Early Cull
-	//TODO: Early Render
+	Render(commandBuffer, Resources::earlyRenderPipeline, currentScene->draws.Size());
 	//TODO: Generate Depth Pyramid
 	//TODO: Late Cull
-	//TODO: Late Render
+	Render(commandBuffer, Resources::lateRenderPipeline, currentScene->draws.Size());
 
 	//Post Processing
 	//TODO: Skybox
@@ -586,13 +676,13 @@ void Renderer::EndFrame()
 	//TODO: UI
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(Resources::pbrProgram->passes[0]->renderpass->outputTextures[0]->image,
+		ImageBarrier(Resources::lateRenderPipeline->renderpass->outputTextures[0]->image,
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
-		ImageBarrier(swapchain.renderpass->outputTextures[imageIndex]->image,
+		ImageBarrier(swapchain.renderpass->outputTextures[frameIndex]->image,
 			0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL),
-		ImageBarrier(depthPyramid.image,
+		ImageBarrier(depthPyramid->image,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL),
 	};
@@ -604,12 +694,12 @@ void Renderer::EndFrame()
 	copyRegion.srcSubresource.layerCount = 1;
 	copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	copyRegion.dstSubresource.layerCount = 1;
-	copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1};
+	copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1 };
 
-	vkCmdCopyImage(commandBuffer, Resources::pbrProgram->passes[0]->renderpass->outputTextures[0]->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-		swapchain.renderpass->outputTextures[imageIndex]->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+	vkCmdCopyImage(commandBuffer->commandBuffer, Resources::lateRenderPipeline->renderpass->outputTextures[0]->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		swapchain.renderpass->outputTextures[frameIndex]->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderpass->outputTextures[imageIndex]->image,
+	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderpass->outputTextures[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
@@ -635,7 +725,7 @@ void Renderer::EndFrame()
 	presentInfo.pWaitSemaphores = &queueSubmitted;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &swapchain.swapchain;
-	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pImageIndices = &frameIndex;
 
 	VkResult result = vkQueuePresentKHR(deviceQueue, &presentInfo);
 
@@ -649,6 +739,7 @@ void Renderer::Resize()
 	vkDeviceWaitIdle(device);
 
 	swapchain.Create();
+	Resources::RecreateTexture(depthPyramid, BitFloor(Settings::WindowWidth()), BitFloor(Settings::WindowHeight()), 1);
 
 	Resources::UpdatePipelines();
 	currentScene->updatePostProcess = true;
@@ -656,11 +747,6 @@ void Renderer::Resize()
 	vkDeviceWaitIdle(device);
 
 	//TODO: Update camera here
-}
-
-U32 Renderer::GetFrameIndex()
-{
-	return imageIndex;
 }
 
 void Renderer::LoadScene(const String& name)
@@ -708,6 +794,16 @@ void Renderer::FrameCountersAdvance()
 	currentFrame = (currentFrame + 1) % swapchain.imageCount;
 
 	++absoluteFrame;
+}
+
+U32 Renderer::FrameIndex()
+{
+	return frameIndex;
+}
+
+U32 Renderer::CurrentFrame()
+{
+	return currentFrame;
 }
 
 CommandBuffer* Renderer::GetCommandBuffer(bool begin)
@@ -941,22 +1037,14 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-	const bool isRenderTarget = (texture->flags & TEXTURE_FLAG_RENDER_TARGET_MASK) == TEXTURE_FLAG_RENDER_TARGET_MASK;
-	const bool isComputeUsed = (texture->flags & TEXTURE_FLAG_COMPUTE_MASK) == TEXTURE_FLAG_COMPUTE_MASK;
-
-	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-	imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-	imageInfo.usage |= isComputeUsed ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
-
-	if (HasDepthOrStencil(texture->format))
-	{
-		imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	}
-	else
+	if (texture->flags & TEXTURE_FLAG_COMPUTE) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
+	if (texture->flags & TEXTURE_FLAG_RENDER_TARGET)
 	{
 		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		imageInfo.usage |= isRenderTarget ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : 0;
+		if (HasDepthOrStencil(texture->format)) { imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; }
+		else { imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; }
 	}
 
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -979,7 +1067,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	if (HasDepthOrStencil(texture->format))
 	{
 		info.subresourceRange.aspectMask = HasDepth(texture->format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
-		//info.subresourceRange.aspectMask |= HasStencil(texture->format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+		info.subresourceRange.aspectMask |= HasStencil(texture->format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
 	}
 	else
 	{
@@ -1230,29 +1318,10 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 
 bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout)
 {
-	U32 usedBindings = 0;
-	for (U32 r = 0; r < descriptorSetLayout->bindingCount; ++r)
-	{
-		DescriptorBinding& binding = descriptorSetLayout->bindings[r];
-		binding.binding = binding.binding == U16_MAX ? (U16)r : binding.binding;
-		binding.count = 1;
-
-		VkDescriptorSetLayoutBinding& vkBinding = descriptorSetLayout->vkBindings[usedBindings];
-		++usedBindings;
-
-		vkBinding.binding = binding.binding;
-		vkBinding.descriptorType = binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : binding.type;
-		vkBinding.descriptorCount = 1;
-
-		// TODO: differentiate shader stages
-		vkBinding.stageFlags = VK_SHADER_STAGE_ALL;
-		vkBinding.pImmutableSamplers = nullptr;
-	}
-
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 	layoutInfo.pNext = nullptr;
 	layoutInfo.flags = pushDescriptorsSupported ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR : 0;
-	layoutInfo.bindingCount = usedBindings;
+	layoutInfo.bindingCount = descriptorSetLayout->bindingCount;
 	layoutInfo.pBindings = descriptorSetLayout->bindings;
 
 	VkValidateR(vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout));
@@ -1292,6 +1361,31 @@ bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSet
 
 	return true;
 }
+
+void Renderer::PushDescriptors(Shader* shader, const Descriptor* descriptors)
+{
+	CommandBuffer* commandBuffer = GetCommandBuffer(false);
+
+	if (pushDescriptorsSupported)
+	{
+		vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, shader->setLayouts[0]->updateTemplate, shader->pipelineLayout, 0, descriptors);
+	}
+	else
+	{
+		VkDescriptorSetAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+
+		allocateInfo.descriptorPool = descriptorPool;
+		allocateInfo.descriptorSetCount = 1;
+		allocateInfo.pSetLayouts = &shader->setLayouts[0]->descriptorSetLayout;
+
+		VkDescriptorSet set = nullptr;
+		VkValidate(vkAllocateDescriptorSets(device, &allocateInfo, &set));
+
+		vkUpdateDescriptorSetWithTemplate(device, set, shader->setLayouts[0]->updateTemplate, descriptors);
+
+		vkCmdBindDescriptorSets(commandBuffer->commandBuffer, shader->bindPoint, shader->pipelineLayout, 0, 1, &set, 0, 0);
+	}
+};
 
 bool Renderer::CreateRenderPass(Renderpass* renderpass, bool swapchainRenderpass)
 {

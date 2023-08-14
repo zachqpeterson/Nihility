@@ -36,10 +36,6 @@ struct ShaderStage
 	String							entryPoint{ NO_INIT };
 	VkShaderStageFlagBits			stage{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
 
-	VkPipelineShaderStageCreateInfo	stageInfo{};
-	VkSpecializationMapEntry		specializationConstants[MAX_SPECIALIZATION_CONSTANTS]{};
-	U8								specializationCount{ 0 };
-
 	U32								localSizeX{ 1 };
 	U32								localSizeY{ 1 };
 	U32								localSizeZ{ 1 };
@@ -59,6 +55,7 @@ struct Shader
 	VkPipelineLayout					pipelineLayout{ nullptr };
 	VkShaderStageFlagBits				pushConstantStages{};
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
+	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
 	U32									stageCount{ 0 };
 	U32									language{ 0 };
 

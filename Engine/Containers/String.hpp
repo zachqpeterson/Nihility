@@ -430,8 +430,10 @@ using String32 = StringBase<C32, C32Lookup>;
 
 template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8, C8Lookup>, StringBase<C16, C16Lookup>, StringBase<C32, C32Lookup>>;
 template <class Type> concept StringType = AnyOf<RemovedQuals<Type>, StringBase<C8, C8Lookup>, StringBase<C16, C16Lookup>, StringBase<C32, C32Lookup>>;
-template <class Type> inline constexpr bool  InNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
 template <class Type> concept NonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
+template <class Type> concept NonStringClass = IsClass<Type> && !IsStringType<Type>;
 
 static struct StringFinder
 {
@@ -604,7 +606,7 @@ private:
 	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
 	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(T* str, const Arg& value);
 	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
-	template<class Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
+	template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(T* str, const Arg& value);
 
 	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity();
 
@@ -1629,7 +1631,7 @@ inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 }
 
 template<typename T, typename LU>
-template<class Arg, bool Hex, bool Insert, U64 Remove>
+template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove>
 inline U64 StringBase<T, LU>::ToString(T* str, const Arg& value)
 {
 	static_assert(ConvertibleTo<Arg, StringBaseType>, "Arg passed into a string formatter must be convertable to a String type!");

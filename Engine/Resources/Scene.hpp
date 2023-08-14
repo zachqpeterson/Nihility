@@ -13,9 +13,6 @@ public:
 	void AddModel(Model* model);
 	void SetSkybox(const String& name);
 
-private:
-	void UploadMaterial(MeshData& meshData, Mesh* mesh);
-
 public:
 	String				name{ NO_INIT };
 	HashHandle			handle;
@@ -29,4 +26,5 @@ public:
 	bool				updatePostProcess{ false };
 
 	Vector<Model*>		models{}; //TODO: Objects
+	Vector<MeshData>	draws{};
 };

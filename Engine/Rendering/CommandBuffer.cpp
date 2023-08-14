@@ -23,7 +23,7 @@ void CommandBuffer::UnbindRenderpass()
 void CommandBuffer::BindRenderpass(Renderpass* renderpass)
 {
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderPassBegin.framebuffer = renderpass->frameBuffers[renderpass->tiedToFrame ? Renderer::imageIndex : 0];
+	renderPassBegin.framebuffer = renderpass->frameBuffers[renderpass->tiedToFrame ? Renderer::frameIndex : 0];
 	renderPassBegin.renderPass = renderpass->renderpass;
 
 	renderPassBegin.renderArea.offset = { 0, 0 };
@@ -39,49 +39,12 @@ void CommandBuffer::BindRenderpass(Renderpass* renderpass)
 
 void CommandBuffer::BindPipeline(Pipeline* pipeline)
 {
-	vkCmdBindPipeline(commandBuffer, pipeline->bindPoint, pipeline->pipeline);
+	vkCmdBindPipeline(commandBuffer, pipeline->shader->bindPoint, pipeline->pipeline);
 }
 
 void CommandBuffer::BindIndexBuffer(Buffer& buffer)
 {
 	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
-}
-
-Texture* textures[MAX_DESCRIPTORS_PER_SET]{};
-Buffer* buffers[MAX_DESCRIPTORS_PER_SET]{};
-
-DescriptorBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
-
-void CommandBuffer::BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets)
-{
-	U32 offsetsCache[64];
-	numOffsets = 0;
-
-	for (U32 l = 0; l < numLists; ++l)
-	{
-		DescriptorSet* descriptorSet = sets[l];
-		vkDescriptorSets[l] = descriptorSet->descriptorSet;
-
-		for (U32 i = 0, b = 0; i < descriptorSet->bindingCount; ++i)
-		{
-			const DescriptorBinding& rb = descriptorSet->bindings[i];
-
-			if (rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-			{
-				offsetsCache[numOffsets++] = 0;//(U32)descriptorSet->offsetsCache[b++];
-			}
-		}
-	}
-
-	const U32 firstSet = 0;
-	vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->layout, firstSet,
-		numLists, vkDescriptorSets, numOffsets, offsetsCache);
-
-	if (currentPipeline->useBindless && Renderer::bindlessSupported)
-	{
-		vkCmdBindDescriptorSets(commandBuffer, currentPipeline->bindPoint, currentPipeline->layout, 1,
-			1, &Resources::bindlessDescriptorSet, 0, nullptr);
-	}
 }
 
 void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
@@ -94,33 +57,9 @@ void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstInde
 	vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void CommandBuffer::DrawIndirect(Buffer* buffer, U32 offset, U32 stride)
-{
-	VkBuffer vkBuffer = buffer->buffer;
-	VkDeviceSize vkOffset = offset;
-
-	vkCmdDrawIndirect(commandBuffer, vkBuffer, vkOffset, 1, sizeof(VkDrawIndirectCommand));
-}
-
-void CommandBuffer::DrawIndexedIndirect(Buffer* buffer, U32 offset, U32 stride)
-{
-	VkBuffer vkBuffer = buffer->buffer;
-	VkDeviceSize vkOffset = offset;
-
-	vkCmdDrawIndexedIndirect(commandBuffer, vkBuffer, vkOffset, 1, sizeof(VkDrawIndirectCommand));
-}
-
 void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
 {
 	vkCmdDispatch(commandBuffer, groupX, groupY, groupZ);
-}
-
-void CommandBuffer::DispatchIndirect(Buffer* buffer, U32 offset)
-{
-	VkBuffer vkBuffer = buffer->buffer;
-	VkDeviceSize vkOffset = offset;
-
-	vkCmdDispatchIndirect(commandBuffer, vkBuffer, vkOffset);
 }
 
 void CommandBuffer::PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers)

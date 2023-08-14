@@ -69,8 +69,8 @@ const bool& Settings::Bloom() { return data.bloom; }
 //PLATFORM
 const U32& Settings::Dpi() { return data.dpi; }
 const U32& Settings::ThreadCount() { return data.threadCount; }
-const I32& Settings::ScreenWidth() { return data.screenWidth; }
-const I32& Settings::ScreenHeight() { return data.screenHeight; }
+const U32& Settings::ScreenWidth() { return data.screenWidth; }
+const U32& Settings::ScreenHeight() { return data.screenHeight; }
 const F64& Settings::MonitorHz() { return data.monitorHz; }
 const bool& Settings::Fullscreen() { return data.fullscreen; }
 const bool& Settings::ConstrainCursor() { return data.constrainCursor; }

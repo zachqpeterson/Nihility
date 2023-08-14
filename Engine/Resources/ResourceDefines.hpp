@@ -28,10 +28,9 @@ enum MaterialFlag
 
 enum TextureFlag
 {
-	TEXTURE_FLAG_RENDER_TARGET_MASK,
-	TEXTURE_FLAG_COMPUTE_MASK,
-
-	TEXTURE_FLAG_COUNT
+	TEXTURE_FLAG_NONE = 0x00,
+	TEXTURE_FLAG_RENDER_TARGET = 0x01,
+	TEXTURE_FLAG_COMPUTE = 0x02,
 };
 
 enum KTXType
@@ -387,7 +386,7 @@ struct Buffer
 
 	VkBuffer				vkBuffer{ nullptr };
 	VkDeviceMemory			deviceMemory{ nullptr };
-	VmaAllocation_T*		allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 	U64						size{ 0 };
 	U64						allocationOffset{ 0 };
 
@@ -479,48 +478,6 @@ struct CommandBuffer;
 struct Mesh;
 struct Pipeline;
 
-struct Program
-{
-	void Destroy() { name.Destroy(); }
-
-	void RunPasses(CommandBuffer* commands);
-	void DrawMesh(CommandBuffer* commands, Mesh* mesh, Buffer* constantBuffer);
-
-	String		name{ NO_INIT };
-	HashHandle	handle;
-
-	Pipeline* passes[MAX_PROGRAM_PASSES];
-	U8			passCount;
-};
-
-struct ProgramCreation
-{
-	void Destroy() { name.Destroy(); }
-	ProgramCreation& Reset();
-
-	ProgramCreation& SetName(const String& name);
-	ProgramCreation& AddPass(Pipeline* pass);
-
-	String		name{ NO_INIT };
-
-	Pipeline* passes[MAX_PROGRAM_PASSES];
-	U8			passCount;
-};
-
-struct MaterialCreation
-{
-	void Destroy() { name.Destroy(); }
-
-	MaterialCreation& Reset();
-	MaterialCreation& SetProgram(Program* program);
-	MaterialCreation& SetName(const String& name);
-	MaterialCreation& SetRenderIndex(U32 renderIndex);
-
-	Program* program{ nullptr };
-	String		name{ NO_INIT };
-	U32			renderIndex{ U32_MAX };
-};
-
 struct PostProcessData
 {
 	F32 contrast = 1.0f;
@@ -547,9 +504,7 @@ struct Material
 	String name{ NO_INIT };
 	HashHandle	handle;
 
-	Program* program{ nullptr };
-
-	U32 renderIndex;
+	U32 renderIndex{ 0 };
 	F32 alphaCutoff{ 0.0f };
 	U32 flags{ MATERIAL_FLAG_NONE };
 
@@ -572,11 +527,18 @@ struct Vertex
 	Vector2 texcoord;
 };
 
+struct MeshDrawCommand
+{
+	U32 drawId;
+	VkDrawIndexedIndirectCommand indirect;
+};
+
 struct MeshData
 {
 	Matrix4		model{ Matrix4::Identity };
 	U32			meshIndex{ U32_MAX };
 	U32			vertexOffset{ 0 };
+	U32			meshletVisibilityOffset{ 0 };
 
 	U16			diffuseTextureIndex{ U16_MAX };
 	U16			metalRoughOcclTextureIndex{ U16_MAX };
@@ -589,18 +551,15 @@ struct MeshData
 	U32			flags{ MATERIAL_FLAG_NONE };
 };
 
-struct MeshDrawCommand
-{
-	U32 drawId;
-	VkDrawIndexedIndirectCommand indirect;
-};
-
 struct Mesh
 {
 	String name{ NO_INIT };
 	HashHandle handle;
 
 	Material* material{ nullptr };
+
+	Vector3 center{ Vector3::Zero };
+	F32 radius{ 0.0f };
 
 	U32 vertexCount{ 0 };
 	U32 vertexOffset{ 0 };

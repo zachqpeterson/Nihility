@@ -373,9 +373,45 @@ private:
 		if constexpr (IsSame<Base, double>) { return F64_MIN; }
 	}
 
+	static constexpr U64 GetNumericalBits()
+	{
+		if constexpr (IsSame<Base, char>) { return 8; }
+		if constexpr (IsSame<Base, unsigned char>) { return 8; }
+		if constexpr (IsSame<Base, signed char>) { return 7; }
+		if constexpr (IsSame<Base, char8_t>) { return 8; }
+
+#ifdef PLATFORM_WINDOWS
+		if constexpr (IsSame<Base, wchar_t>) { return 16; }
+#else
+		if constexpr (IsSame<Base, wchar_t>) { return 32; }
+#endif
+		if constexpr (IsSame<Base, char16_t>) { return 16; }
+		if constexpr (IsSame<Base, short>) { return 15; }
+		if constexpr (IsSame<Base, unsigned short>) { return 16; }
+		if constexpr (IsSame<Base, signed short>) { return 15; }
+
+		if constexpr (IsSame<Base, char32_t>) { return 32; }
+		if constexpr (IsSame<Base, int>) { return 31; }
+		if constexpr (IsSame<Base, unsigned int>) { return 32; }
+		if constexpr (IsSame<Base, signed int>) { return 31; }
+		if constexpr (IsSame<Base, long>) { return 31; }
+		if constexpr (IsSame<Base, unsigned long>) { return 32; }
+		if constexpr (IsSame<Base, signed long>) { return 31; }
+
+		if constexpr (IsSame<Base, long long>) { return 63; }
+		if constexpr (IsSame<Base, unsigned long long>) { return 64; }
+		if constexpr (IsSame<Base, signed long long>) { return 63; }
+
+		if constexpr (IsSame<Base, float>) { return 24; }
+		if constexpr (IsSame<Base, double>) { return 53; }
+
+		if constexpr (IsSame<Base, bool>) { return 1; }
+	}
+
 public:
 	static constexpr Base MaxValue = GetMaxValue();
 	static constexpr Base MinValue = GetMinValue();
+	static constexpr U64 NumericalBits = GetNumericalBits();
 };
 
 namespace TypeTraits
@@ -529,9 +565,17 @@ NH_NODISCARD constexpr T BitCeiling(const T val) noexcept
 }
 
 template<Unsigned T>
-constexpr T BitFloor(const T val) noexcept
+NH_NODISCARD constexpr T BitFloor(const T val) noexcept
 {
 	if (val == 0u) { return val; }
 
 	return static_cast<T>(T{ 1 } << (Traits<T>::NumericalBits - 1 - LeftZeroBits(val)));
+}
+
+template<Unsigned T>
+NH_NODISCARD constexpr T DegreeOfTwo(const T val) noexcept
+{
+	if (val <= 1u) { return T{ 0 }; }
+
+	return static_cast<T>(Traits<T>::NumericalBits - 1 - LeftZeroBits(val));
 }

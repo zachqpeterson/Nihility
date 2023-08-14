@@ -12,7 +12,7 @@ public:
 	void Destroy();
 
 	VkResult Update();
-	VkResult NextImage(U32& imageIndex, VkSemaphore semaphore = nullptr, VkFence fence = nullptr);
+	VkResult NextImage(U32& frameIndex, VkSemaphore semaphore = nullptr, VkFence fence = nullptr);
 
 public:
 	VkSwapchainKHR swapchain{ nullptr };
