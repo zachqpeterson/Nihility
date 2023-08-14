@@ -4,6 +4,8 @@
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
 
+static constexpr U32 MAX_MIPMAP_COUNT = 16;
+
 enum ResourceUpdateType
 {
 	RESOURCE_UPDATE_TYPE_BUFFER,
@@ -290,7 +292,6 @@ struct Sampler
 
 	String					name{ NO_INIT };
 	HashHandle				handle{ U64_MAX };
-	U32						sceneID{ U32_MAX };
 
 	VkFilter				minFilter{ VK_FILTER_NEAREST };
 	VkFilter				magFilter{ VK_FILTER_NEAREST };
@@ -305,15 +306,15 @@ struct Sampler
 	VkSampler				sampler{ nullptr };
 };
 
-struct SamplerCreation
+struct SamplerInfo
 {
 	void Destroy() { name.Destroy(); }
 
-	SamplerCreation& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
-	SamplerCreation& SetAddressModeU(VkSamplerAddressMode u);
-	SamplerCreation& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
-	SamplerCreation& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
-	SamplerCreation& SetName(const String& name);
+	SamplerInfo& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
+	SamplerInfo& SetAddressModeU(VkSamplerAddressMode u);
+	SamplerInfo& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
+	SamplerInfo& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
+	SamplerInfo& SetName(const String& name);
 
 	VkFilter				minFilter{ VK_FILTER_NEAREST };
 	VkFilter				magFilter{ VK_FILTER_NEAREST };
@@ -325,6 +326,8 @@ struct SamplerCreation
 
 	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
 
+	VkSamplerReductionMode	reductionMode{ VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE };
+
 	String					name{ NO_INIT };
 };
 
@@ -334,13 +337,11 @@ struct Texture
 
 	String				name{ NO_INIT };
 	HashHandle			handle{ U64_MAX };
-	U32					sceneID{ U32_MAX };
 
 	U64					size{ 0 };
 	U16					width{ 1 };
 	U16					height{ 1 };
 	U16					depth{ 1 };
-	U8					mipmaps{ 1 };
 	U32					flags{ 0 };
 
 	VkImageType			type{ VK_IMAGE_TYPE_2D };
@@ -349,29 +350,32 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T* allocation{ nullptr };
+	VmaAllocation_T*	allocation{ nullptr };
 
-	Sampler* sampler{ nullptr };
+	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
+	U8					mipmapCount{ 1 };
+
+	Sampler*			sampler{ nullptr };
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };
 };
 
-struct TextureCreation
+struct TextureInfo
 {
 	void Destroy() { name.Destroy(); }
 
-	TextureCreation& SetSize(U16 width, U16 height, U16 depth);
-	TextureCreation& SetFormatType(VkFormat format, VkImageType type);
-	TextureCreation& SetName(const String& name);
-	TextureCreation& SetData(void* data);
+	TextureInfo& SetSize(U16 width, U16 height, U16 depth);
+	TextureInfo& SetFormatType(VkFormat format, VkImageType type);
+	TextureInfo& SetName(const String& name);
+	TextureInfo& SetData(void* data);
 
 	void* initialData{ nullptr };
 	U16					width{ 1 };
 	U16					height{ 1 };
 	U16					depth{ 1 };
-	U8					mipmaps{ 1 };
 	U32					flags{ 0 };
+	U8					mipmapCount{ 1 };
 
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageType			type{ VK_IMAGE_TYPE_2D };
@@ -392,13 +396,6 @@ struct Buffer
 
 	void* data{ nullptr };
 	bool mapped{ false };
-};
-
-struct ShaderCreation
-{
-	String					name{ NO_INIT };
-	VkShaderStageFlagBits	stages[MAX_SHADER_STAGES];
-	U8						stageCount{ 0 };
 };
 
 struct RenderpassOutput
@@ -445,17 +442,17 @@ struct Renderpass
 	U32					lastResize{ 0 };
 };
 
-struct RenderpassCreation
+struct RenderpassInfo
 {
 	void Destroy() { name.Destroy(); }
 
-	RenderpassCreation& Reset();
-	RenderpassCreation& AddRenderTarget(Texture* texture);
-	RenderpassCreation& SetDepthStencilTexture(Texture* texture);
-	RenderpassCreation& SetName(const String& name);
-	RenderpassCreation& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
-	RenderpassCreation& AddClearColor(const Vector4& color);
-	RenderpassCreation& AddClearDepth(F32 depth);
+	RenderpassInfo& Reset();
+	RenderpassInfo& AddRenderTarget(Texture* texture);
+	RenderpassInfo& SetDepthStencilTexture(Texture* texture);
+	RenderpassInfo& SetName(const String& name);
+	RenderpassInfo& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
+	RenderpassInfo& AddClearColor(const Vector4& color);
+	RenderpassInfo& AddClearDepth(F32 depth);
 
 	U16					width{ 0 };
 	U16					height{ 0 };

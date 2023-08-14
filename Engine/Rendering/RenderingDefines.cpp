@@ -67,6 +67,21 @@ void Camera::SetAspectRatio(F32 aspectRatio_)
 	updateProjection = true;
 }
 
+const F32& Camera::Near() const
+{
+	return nearPlane;
+}
+
+const F32& Camera::Far() const
+{
+	return farPlane;
+}
+
+const Matrix4& Camera::Projection() const
+{
+	return projection;
+}
+
 const Matrix4& Camera::ViewProjection() const
 {
 	return viewProjection;

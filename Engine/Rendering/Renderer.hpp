@@ -31,7 +31,8 @@ private:
 
 	static bool							BeginFrame();
 	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late);
-	static void							Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late);
+	static void							Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late);
+	static void							GenerateDepthPyramid(CommandBuffer* commandBuffer);
 	static void							EndFrame();
 	static void							Resize();
 
@@ -41,11 +42,10 @@ private:
 	static void							FrameCountersAdvance();
 	
 	static CommandBuffer*				GetCommandBuffer(bool begin);
-	static void							QueueCommandBuffer(VkCommandBuffer* enqueuedCommandBuffers, CommandBuffer* commandBuffer);
-	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 	
 	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, VkImageLayout newLayout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, U32 baseMipLevel = 0, U32 levelCount = VK_REMAINING_MIP_LEVELS);
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
+	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
 	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
@@ -120,7 +120,6 @@ private:
 	static Buffer								drawCountsBuffer;
 	static Buffer								drawVisibilityBuffer;
 	static Texture*								depthPyramid;
-	static Sampler*								depthSampler;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;

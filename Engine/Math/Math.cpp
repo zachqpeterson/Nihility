@@ -428,7 +428,7 @@ F32 Vector4::SqrMagnitude() const { return x * x + y * y + z * z + w * w; }
 F32 Vector4::Magnitude() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
 F32 Vector4::Dot(const Vector4& v) const { return x * v.x + y * v.y + z * v.z + w * v.w; }
 Vector4& Vector4::Normalize() { Vector4 v = Normalized(); x = v.x; y = v.y; z = v.z; w = v.w; return *this; }
-Vector4 Vector4::Normalized() const { return IsZero() ? Vector4::Zero : (*this) / Magnitude(); }
+Vector4 Vector4::Normalized() const { return IsZero() ? Vector4::Zero : (Vector3(this->x, this->y, this->z) / Magnitude(), this->z); }
 Vector4 Vector4::Projection(const Vector4& v) const { return v * (Dot(v) / v.Dot(v)); }
 Vector4 Vector4::OrthoProjection(const Vector4& v) const { return *this - Projection(v); }
 

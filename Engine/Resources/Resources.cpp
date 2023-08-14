@@ -221,7 +221,7 @@ bool Resources::Initialize()
 	descriptorSets.Create();
 	descriptorSetLayouts.Create();
 
-	TextureCreation dummyTextureInfo{};
+	TextureInfo dummyTextureInfo{};
 	dummyTextureInfo.SetName("dummy_texture");
 	dummyTextureInfo.SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D);
 	dummyTextureInfo.SetSize(1, 1, 1);
@@ -229,15 +229,15 @@ bool Resources::Initialize()
 	dummyTextureInfo.SetData(&zero);
 	dummyTexture = CreateTexture(dummyTextureInfo);
 
-	SamplerCreation dummySamplerInfo{};
+	SamplerInfo dummySamplerInfo{};
 	dummySamplerInfo.SetName("dummy_sampler");
 	dummySamplerInfo.SetAddressModeUV(VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	dummySamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
 	dummySampler = CreateSampler(dummySamplerInfo);
 
 	meshProgram = CreateShader("shaders/MeshPbr.shader");
-	cullProgram = CreateShader("shaders/MeshPbr.shader");
-	depthProgram = CreateShader("shaders/MeshPbr.shader");
+	cullProgram = CreateShader("shaders/Cull.shader");
+	depthProgram = CreateShader("shaders/DepthReduce.shader");
 
 	PipelineInfo info{};
 	info.name = "early_render_pipeline";
@@ -265,7 +265,7 @@ bool Resources::Initialize()
 
 void Resources::CreateDefaults()
 {
-	SamplerCreation defaultSamplerInfo{};
+	SamplerInfo defaultSamplerInfo{};
 	defaultSamplerInfo.SetName("default_sampler");
 	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
@@ -473,7 +473,7 @@ void Resources::UpdatePipelines()
 	}
 }
 
-Sampler* Resources::CreateSampler(const SamplerCreation& info)
+Sampler* Resources::CreateSampler(const SamplerInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -495,7 +495,7 @@ Sampler* Resources::CreateSampler(const SamplerCreation& info)
 	return sampler;
 }
 
-Texture* Resources::CreateTexture(const TextureCreation& info)
+Texture* Resources::CreateTexture(const TextureInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -510,7 +510,7 @@ Texture* Resources::CreateTexture(const TextureCreation& info)
 	texture->depth = info.depth;
 	texture->flags = info.flags;
 	texture->format = info.format;
-	texture->mipmaps = info.mipmaps;
+	texture->mipmapCount = info.mipmapCount;
 	texture->type = info.type;
 	texture->handle = textures.GetHandle(info.name);
 
@@ -609,7 +609,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 
 	if (!texture->name.Blank()) { return texture; }
 
-	TextureCreation info{};
+	TextureInfo info{};
 
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -990,7 +990,7 @@ bool Resources::LoadBMP(Texture* texture, File& file, bool generateMipMaps)
 	}
 
 	texture->mipmapsGenerated = false;
-	texture->mipmaps = mipLevels;
+	texture->mipmapCount = mipLevels;
 
 	Renderer::CreateTexture(texture, data);
 
@@ -1132,7 +1132,7 @@ bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 		texture->height = header.pixelHeight;
 		texture->depth = 1;
 		texture->size = dataSize;
-		texture->mipmaps = header.mipmapLevelCount;
+		texture->mipmapCount = header.mipmapLevelCount;
 
 		Renderer::CreateCubeMap(texture, data, levelSizes);
 
@@ -1179,7 +1179,7 @@ bool Resources::LoadKTX(Texture* texture, File& file, bool generateMipMaps)
 		texture->height = header.pixelHeight;
 		texture->depth = 1;
 		texture->size = dataSize;
-		texture->mipmaps = 1;
+		texture->mipmapCount = 1;
 
 		U32 layerSize = dataSize / header.faceCount;
 		Renderer::CreateCubeMap(texture, data, &layerSize);
@@ -1576,7 +1576,7 @@ DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 	return descriptorSet;
 }
 
-Renderpass* Resources::CreateRenderPass(const RenderpassCreation& info)
+Renderpass* Resources::CreateRenderPass(const RenderpassInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1950,7 +1950,7 @@ bool Resources::LoadNHSCN(Scene* scene, File& file)
 	////TODO: Check for no samplers, use default sampler
 	//for (U32 i = 0; i < samplerCount; ++i)
 	//{
-	//	SamplerCreation samplerInfo{};
+	//	SamplerInfo samplerInfo{};
 	//	samplerInfo.SetName("Sampler"); //TODO: Unique name!
 	//	file.Read((I32&)samplerInfo.minFilter);
 	//	file.Read((I32&)samplerInfo.magFilter);

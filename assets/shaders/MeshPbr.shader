@@ -1,5 +1,4 @@
 #CONFIG
-name=PBR
 language=GLSL
 cull=FRONT
 front=CLOCKWISE

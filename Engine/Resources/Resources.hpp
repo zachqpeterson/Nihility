@@ -16,14 +16,14 @@ struct KTXInfo;
 class NH_API Resources
 {
 public:
-	static Sampler* CreateSampler(const SamplerCreation& info);
-	static Texture* CreateTexture(const TextureCreation& info);
+	static Sampler* CreateSampler(const SamplerInfo& info);
+	static Texture* CreateTexture(const TextureInfo& info);
 	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
 	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
-	static Renderpass* CreateRenderPass(const RenderpassCreation& info);
+	static Renderpass* CreateRenderPass(const RenderpassInfo& info);
 	static Shader* CreateShader(const String& name);
 	static Pipeline* CreatePipeline(const PipelineInfo& info);
 	static Model* LoadModel(const String& name);

@@ -8,7 +8,7 @@
 
 // SAMPLER CREATION
 
-SamplerCreation& SamplerCreation::SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip)
+SamplerInfo& SamplerInfo::SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip)
 {
 	minFilter = min;
 	magFilter = mag;
@@ -17,14 +17,14 @@ SamplerCreation& SamplerCreation::SetMinMagMip(VkFilter min, VkFilter mag, VkSam
 	return *this;
 }
 
-SamplerCreation& SamplerCreation::SetAddressModeU(VkSamplerAddressMode u)
+SamplerInfo& SamplerInfo::SetAddressModeU(VkSamplerAddressMode u)
 {
 	addressModeU = u;
 
 	return *this;
 }
 
-SamplerCreation& SamplerCreation::SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v)
+SamplerInfo& SamplerInfo::SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v)
 {
 	addressModeU = u;
 	addressModeV = v;
@@ -32,7 +32,7 @@ SamplerCreation& SamplerCreation::SetAddressModeUV(VkSamplerAddressMode u, VkSam
 	return *this;
 }
 
-SamplerCreation& SamplerCreation::SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w)
+SamplerInfo& SamplerInfo::SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w)
 {
 	addressModeU = u;
 	addressModeV = v;
@@ -41,7 +41,7 @@ SamplerCreation& SamplerCreation::SetAddressModeUVW(VkSamplerAddressMode u, VkSa
 	return *this;
 }
 
-SamplerCreation& SamplerCreation::SetName(const String& name)
+SamplerInfo& SamplerInfo::SetName(const String& name)
 {
 	this->name = name;
 
@@ -50,7 +50,7 @@ SamplerCreation& SamplerCreation::SetName(const String& name)
 
 // TEXTURE CREATION
 
-TextureCreation& TextureCreation::SetSize(U16 width, U16 height, U16 depth)
+TextureInfo& TextureInfo::SetSize(U16 width, U16 height, U16 depth)
 {
 	this->width = width;
 	this->height = height;
@@ -59,7 +59,7 @@ TextureCreation& TextureCreation::SetSize(U16 width, U16 height, U16 depth)
 	return *this;
 }
 
-TextureCreation& TextureCreation::SetFormatType(VkFormat format, VkImageType type)
+TextureInfo& TextureInfo::SetFormatType(VkFormat format, VkImageType type)
 {
 	this->format = format;
 	this->type = type;
@@ -67,14 +67,14 @@ TextureCreation& TextureCreation::SetFormatType(VkFormat format, VkImageType typ
 	return *this;
 }
 
-TextureCreation& TextureCreation::SetName(const String& name)
+TextureInfo& TextureInfo::SetName(const String& name)
 {
 	this->name = name;
 
 	return *this;
 }
 
-TextureCreation& TextureCreation::SetData(void* data)
+TextureInfo& TextureInfo::SetData(void* data)
 {
 	initialData = data;
 
@@ -151,7 +151,7 @@ void Renderpass::Resize()
 
 // RENDER PASS CREATION
 
-RenderpassCreation& RenderpassCreation::Reset()
+RenderpassInfo& RenderpassInfo::Reset()
 {
 	width = 0;
 	height = 0;
@@ -168,28 +168,28 @@ RenderpassCreation& RenderpassCreation::Reset()
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::AddRenderTarget(Texture* texture)
+RenderpassInfo& RenderpassInfo::AddRenderTarget(Texture* texture)
 {
 	outputTextures[renderTargetCount++] = texture;
 
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::SetDepthStencilTexture(Texture* texture)
+RenderpassInfo& RenderpassInfo::SetDepthStencilTexture(Texture* texture)
 {
 	depthStencilTexture = texture;
 
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::SetName(const String& name)
+RenderpassInfo& RenderpassInfo::SetName(const String& name)
 {
 	this->name = name;
 
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
+RenderpassInfo& RenderpassInfo::SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
 {
 	colorOperation = color;
 	depthOperation = depth;
@@ -198,14 +198,14 @@ RenderpassCreation& RenderpassCreation::SetOperations(VkAttachmentLoadOp color, 
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::AddClearColor(const Vector4& color)
+RenderpassInfo& RenderpassInfo::AddClearColor(const Vector4& color)
 {
 	clears[clearCount++].color = { color.x, color.y, color.z, color.w };
 
 	return *this;
 }
 
-RenderpassCreation& RenderpassCreation::AddClearDepth(F32 depth)
+RenderpassInfo& RenderpassInfo::AddClearDepth(F32 depth)
 {
 	clears[clearCount++].depthStencil = { depth, 0 };
 

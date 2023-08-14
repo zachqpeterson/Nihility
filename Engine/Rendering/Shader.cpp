@@ -181,6 +181,8 @@ bool Shader::Create(const String& shaderPath)
 	{
 		Renderer::CreateDescriptorUpdateTemplate(setLayouts[i], this);
 	}
+
+	return true;
 }
 
 void Shader::Destroy()
@@ -213,12 +215,6 @@ bool Shader::ParseConfig(const String& data, I64& index)
 		{
 			++index;
 			return true;
-		}
-		else if (data.CompareN("name", index + 1))
-		{
-			index = data.IndexOf('=', index + 1);
-			data.SubString(name, index + 1, data.IndexOf('\n', index + 1) - index);
-			name.Trim();
 		}
 		else if (data.CompareN("language", index + 1))
 		{

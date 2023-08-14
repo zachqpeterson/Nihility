@@ -79,7 +79,7 @@ bool Swapchain::CreateRenderPass()
 		renderPassInfo.SetName("Swapchain");
 		renderPassInfo.SetOperations(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_CLEAR);
 
-		TextureCreation textureInfo{};
+		TextureInfo textureInfo{};
 		textureInfo.name = "swapchain_depth";
 		textureInfo.format = VK_FORMAT_D32_SFLOAT;
 		textureInfo.width = renderPassInfo.width;

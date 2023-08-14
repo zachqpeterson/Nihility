@@ -14,7 +14,7 @@
 
 bool Pipeline::Create()
 {
-	RenderpassCreation renderPassInfo{};
+	RenderpassInfo renderPassInfo{};
 	renderPassInfo.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	renderPassInfo.stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -28,7 +28,7 @@ bool Pipeline::Create()
 
 		for (U32 i = 0; i < shader->outputCount; ++i)
 		{
-			TextureCreation textureInfo{};
+			TextureInfo textureInfo{};
 			textureInfo.name = textureName + i;
 			textureInfo.format = shader->outputs[i];
 			textureInfo.width = renderPassInfo.width;
@@ -44,7 +44,7 @@ bool Pipeline::Create()
 
 		if (shader->depthStencil.depthEnable)
 		{
-			TextureCreation textureInfo{};
+			TextureInfo textureInfo{};
 			textureInfo.name = textureName + "depth";
 			textureInfo.format = VK_FORMAT_D32_SFLOAT;
 			textureInfo.width = renderPassInfo.width;

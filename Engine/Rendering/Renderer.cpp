@@ -119,6 +119,7 @@ Buffer								Renderer::drawsBuffer;
 Buffer								Renderer::drawCommandsBuffer;
 Buffer								Renderer::drawCountsBuffer;
 Buffer								Renderer::drawVisibilityBuffer;
+Texture* Renderer::depthPyramid;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -339,6 +340,9 @@ bool Renderer::CreateDevice()
 		meshShadingSupported |= Memory::Compare(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME, 18);
 	}
 
+	//TODO: Remove
+	meshShadingSupported = false;
+
 	U32 deviceExtensionCount = 0;
 	CSTR deviceExtensions[4];
 
@@ -472,16 +476,21 @@ bool Renderer::CreateResources()
 	drawCountsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawVisibilityBuffer = CreateBuffer(16, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	TextureCreation info{};
+	TextureInfo info{};
 	info.name = "depth_pyramid";
 	info.width = BitFloor(Settings::WindowWidth());
 	info.height = BitFloor(Settings::WindowHeight());
 	info.depth = 1;
 	info.flags = TEXTURE_FLAG_COMPUTE;
-	info.mipmaps = Math::Min(DegreeOfTwo(info.width), DegreeOfTwo(info.height)) + 1;
+	info.mipmapCount = Math::Min(DegreeOfTwo(info.width), DegreeOfTwo(info.height)) + 1;
 	info.format = VK_FORMAT_R32_SFLOAT;
 	info.type = VK_IMAGE_TYPE_2D;
 	depthPyramid = Resources::CreateTexture(info);
+
+	SamplerInfo samplerInfo{};
+	samplerInfo.name = "depth_sampler";
+	samplerInfo.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
+	depthPyramid->sampler = Resources::CreateSampler(samplerInfo);
 
 	Resources::CreateDefaults();
 
@@ -527,18 +536,22 @@ bool Renderer::BeginFrame()
 		FrameCountersAdvance();
 		return false;
 	}
+
+	return true;
 }
 
 void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late)
 {
+	Camera& camera = currentScene->camera;
+
 	GlobalData globalData{};
-	Matrix4 vp;
-	Vector4 eye;
-	Vector4 directionalLight;
-	Vector4 directionalLightColor;
-	Vector4 ambientLight;
-	F32		lightIntensity;
-	U32		skyboxIndex{ U16_MAX };
+	globalData.vp = camera.ViewProjection();
+	globalData.eye = camera.Eye();
+	globalData.directionalLight = { Vector4::Forward };
+	globalData.directionalLightColor = { Vector4::One };
+	globalData.ambientLight = { 0.2, 0.2, 0.2, 1.0f };
+	globalData.lightIntensity = 10.0f;
+	globalData.skyboxIndex = U16_MAX;
 
 	commandBuffer->BindRenderpass(pipeline->renderpass);
 
@@ -573,10 +586,36 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	vkCmdEndRendering(commandBuffer->commandBuffer);
 }
 
-void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late)
+void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late)
 {
+	Camera camera = currentScene->camera;
+	Matrix4 projection = camera.Projection();
+	Matrix4 projectionT = projection.Transpose();
+
+	Vector4 frustumX = (projectionT[3] + projectionT[0]).Normalized();
+	Vector4 frustumY = (projectionT[3] + projectionT[1]).Normalized();
+
+	DrawCullData cullData{};
+	cullData.P00 = projection[0][0];
+	cullData.P11 = projection[1][1];
+	cullData.znear = camera.Near();
+	cullData.zfar = camera.Far();
+	cullData.frustum[0] = frustumX.x;
+	cullData.frustum[1] = frustumX.z;
+	cullData.frustum[2] = frustumY.y;
+	cullData.frustum[3] = frustumY.z;
+	cullData.drawCount = drawCount;
+	cullData.cullingEnabled = true;
+	cullData.lodEnabled = true;
+	cullData.occlusionEnabled = true;
+	cullData.lodBase = 10.f;
+	cullData.lodStep = 1.5f;
+	cullData.pyramidWidth = (F32)depthPyramid->width;
+	cullData.pyramidHeight = (F32)depthPyramid->height;
+	cullData.clusterOcclusionEnabled = meshShadingSupported;
+
 	U32 rasterizationStage =
-		taskSubmit
+		meshShadingSupported
 		? VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT | VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT
 		: VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
 
@@ -587,10 +626,6 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late)
 
 	vkCmdFillBuffer(commandBuffer->commandBuffer, drawCountsBuffer.vkBuffer, 0, 4, 0);
 
-	// pyramid barrier is tricky: our frame sequence is cull -> render -> pyramid -> cull -> render
-	// the first cull (late=0) doesn't read pyramid data BUT the read in the shader is guarded by a push constant value (which could be specialization constant but isn't due to AMD bug)
-	// the second cull (late=1) does read pyramid data that was written in the pyramid stage
-	// as such, second cull needs to transition GENERAL->GENERAL with a COMPUTE->COMPUTE barrier, but the first cull needs to have a dummy transition because pyramid starts in UNDEFINED state on first frame
 	VkImageMemoryBarrier2 pyramidBarrier = ImageBarrier(depthPyramid->image,
 		late ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : 0, late ? VK_ACCESS_SHADER_WRITE_BIT : 0, late ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL);
@@ -603,18 +638,21 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late)
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT),
 	};
+
 	commandBuffer->PipelineBarrier(0, CountOf32(fillBarriers), fillBarriers, 1, &pyramidBarrier);
 
 	commandBuffer->BindPipeline(pipeline);
 
-	Descriptor pyramidDesc(depthPyramid->imageView, VK_IMAGE_LAYOUT_GENERAL, depthSampler->sampler);
-	Descriptor descriptors[] = { drawsBuffer.vkBuffer, meshBuffer.vkBuffer, drawCommandsBuffer.vkBuffer, drawCountsBuffer.vkBuffer, dvb.buffer, pyramidDesc };
+	Descriptor pyramidDesc(depthPyramid->imageView, VK_IMAGE_LAYOUT_GENERAL, depthPyramid->sampler->sampler);
+	Descriptor descriptors[]{ drawsBuffer.vkBuffer, meshBuffer.vkBuffer, drawCommandsBuffer.vkBuffer, drawCountsBuffer.vkBuffer, drawVisibilityBuffer.vkBuffer, pyramidDesc };
 	PushDescriptors(pipeline->shader, descriptors);
 
-	vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(cullData), &cullData);
-	vkCmdDispatch(commandBuffer->commandBuffer, getGroupCount(U32(draws.size()), pipeline->shader->stages[0].localSizeX), 1, 1);
+	U32 groupCount = (drawCount + pipeline->shader->stages[0].localSizeX - 1) / pipeline->shader->stages[0].localSizeX;
 
-	if (taskSubmit)
+	vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(DrawCullData), &cullData);
+	vkCmdDispatch(commandBuffer->commandBuffer, groupCount, 1, 1);
+
+	if (meshShadingSupported)
 	{
 		VkBufferMemoryBarrier2 syncBarrier = BufferBarrier(drawCountsBuffer.vkBuffer,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT,
@@ -642,6 +680,58 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, bool late)
 	commandBuffer->PipelineBarrier(0, CountOf32(cullBarriers), cullBarriers, 0, nullptr);
 }
 
+void Renderer::GenerateDepthPyramid(CommandBuffer* commandBuffer)
+{
+	VkImageMemoryBarrier2 depthBarriers[]{
+		ImageBarrier(Resources::earlyRenderPipeline->renderpass->outputDepth->image,
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_ASPECT_DEPTH_BIT),
+		ImageBarrier(depthPyramid->image,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL)
+	};
+
+	commandBuffer->PipelineBarrier(0, 0, nullptr, CountOf32(depthBarriers), depthBarriers);
+
+	commandBuffer->BindPipeline(Resources::depthReducePipeline);
+
+	for (U32 i = 0; i < depthPyramid->mipmapCount; ++i)
+	{
+		Descriptor sourceDepth = (i == 0)
+			? Descriptor(Resources::earlyRenderPipeline->renderpass->outputDepth->imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, depthPyramid->sampler->sampler)
+			: Descriptor(depthPyramid->mipmaps[i - 1], VK_IMAGE_LAYOUT_GENERAL, depthPyramid->sampler->sampler);
+
+		Descriptor descriptors[]{ { depthPyramid->mipmaps[i], VK_IMAGE_LAYOUT_GENERAL }, sourceDepth };
+		PushDescriptors(Resources::depthProgram, descriptors);
+
+		U32 levelWidth = Math::Max(1, depthPyramid->width >> i);
+		U32 levelHeight = Math::Max(1, depthPyramid->height >> i);
+
+		DepthReduceData reduceData{ Vector2(levelWidth, levelHeight) };
+
+		U32 groupCountX = (levelWidth + Resources::depthProgram->stages[0].localSizeX - 1) / Resources::depthProgram->stages[0].localSizeX;
+		U32 groupCountY = (levelHeight + Resources::depthProgram->stages[0].localSizeY - 1) / Resources::depthProgram->stages[0].localSizeY;
+
+		vkCmdPushConstants(commandBuffer->commandBuffer, Resources::depthProgram->pipelineLayout, Resources::depthProgram->pushConstantStages, 0, sizeof(DepthReduceData), &reduceData);
+		commandBuffer->Dispatch(groupCountX, groupCountY, 1);
+
+		VkImageMemoryBarrier2 reduceBarrier = ImageBarrier(depthPyramid->image,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_ASPECT_COLOR_BIT, i, 1);
+
+		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &reduceBarrier);
+	}
+
+	VkImageMemoryBarrier2 depthWriteBarrier = ImageBarrier(Resources::earlyRenderPipeline->renderpass->outputDepth->image,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+		VK_IMAGE_ASPECT_DEPTH_BIT);
+
+	commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &depthWriteBarrier);
+}
+
 void Renderer::EndFrame()
 {
 	CommandBuffer* commandBuffer = GetCommandBuffer(false);
@@ -649,16 +739,15 @@ void Renderer::EndFrame()
 	if (currentScene) //TODO: Default scene?
 	{
 		currentScene->Update();
-
 	}
 
 	Resources::Update();
 
-	//TODO: Early Cull
-	Render(commandBuffer, Resources::earlyRenderPipeline, currentScene->draws.Size());
-	//TODO: Generate Depth Pyramid
-	//TODO: Late Cull
-	Render(commandBuffer, Resources::lateRenderPipeline, currentScene->draws.Size());
+	Cull(commandBuffer, Resources::earlyCullPipeline, currentScene->draws.Size(), false);
+	Render(commandBuffer, Resources::earlyRenderPipeline, currentScene->draws.Size(), false);
+	GenerateDepthPyramid(commandBuffer);
+	Cull(commandBuffer, Resources::lateCullPipeline, currentScene->draws.Size(), true);
+	Render(commandBuffer, Resources::lateRenderPipeline, currentScene->draws.Size(), true);
 
 	//Post Processing
 	//TODO: Skybox
@@ -1004,9 +1093,9 @@ bool Renderer::CreateSampler(Sampler* sampler)
 	createInfo.minFilter = sampler->minFilter;
 	createInfo.magFilter = sampler->magFilter;
 	createInfo.mipmapMode = sampler->mipFilter;
-	createInfo.anisotropyEnable = 0;
-	createInfo.compareEnable = 0;
-	createInfo.unnormalizedCoordinates = 0;
+	createInfo.anisotropyEnable = VK_FALSE;
+	createInfo.compareEnable = VK_FALSE;
+	createInfo.unnormalizedCoordinates = VK_FALSE;
 	createInfo.borderColor = sampler->border;
 	// TODO:
 	//float                   mipLodBias;
@@ -1033,10 +1122,12 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	imageInfo.extent.width = texture->width;
 	imageInfo.extent.height = texture->height;
 	imageInfo.extent.depth = texture->depth;
-	imageInfo.mipLevels = texture->mipmaps;
+	imageInfo.mipLevels = texture->mipmapCount;
 	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
 	if (texture->flags & TEXTURE_FLAG_COMPUTE) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
@@ -1046,9 +1137,6 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		if (HasDepthOrStencil(texture->format)) { imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; }
 		else { imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; }
 	}
-
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -1063,6 +1151,9 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	info.image = texture->image;
 	info.viewType = VK_IMAGE_VIEW_TYPE_2D; //TODO: Don't hardcode
 	info.format = imageInfo.format;
+	info.subresourceRange.levelCount = texture->mipmapCount;
+	info.subresourceRange.layerCount = 1;
+	info.subresourceRange.baseMipLevel = 0;
 
 	if (HasDepthOrStencil(texture->format))
 	{
@@ -1074,9 +1165,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	}
 
-	info.subresourceRange.levelCount = 1;
-	info.subresourceRange.layerCount = 1;
 	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->imageView));
+	texture->mipmaps[0] = texture->imageView;
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
 
@@ -1153,7 +1243,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		vkBeginCommandBuffer(blitCmd->commandBuffer, &beginInfo);
 
 		//TODO: Some textures could have mipmaps stored in the already
-		for (U32 i = 1; i < texture->mipmaps; ++i)
+		for (U32 i = 1; i < texture->mipmapCount; ++i)
 		{
 			VkImageBlit blitRegion{};
 			blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1182,9 +1272,15 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blitRegion, VK_FILTER_LINEAR);
 			TransitionImage(blitCmd->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				mipSubRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+			//Create Texture View
+
+			info.subresourceRange.baseMipLevel = i;
+
+			VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->mipmaps[i]));
 		}
 
-		subresourceRange.levelCount = texture->mipmaps;
+		subresourceRange.levelCount = texture->mipmapCount;
 		TransitionImage(blitCmd->commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			subresourceRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT); //VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 
@@ -1206,7 +1302,7 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.format = texture->format;
-	imageInfo.mipLevels = texture->mipmaps;
+	imageInfo.mipLevels = texture->mipmapCount;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -1229,7 +1325,7 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	U32 regionCount = 0;
 	U32 offset = 0;
 
-	for (U32 level = 0; level < texture->mipmaps; ++level)
+	for (U32 level = 0; level < texture->mipmapCount; ++level)
 	{
 		for (U32 face = 0; face < 6; ++face)
 		{
@@ -1250,7 +1346,7 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	VkImageSubresourceRange subresourceRange{};
 	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	subresourceRange.baseMipLevel = 0;
-	subresourceRange.levelCount = texture->mipmaps;
+	subresourceRange.levelCount = texture->mipmapCount;
 	subresourceRange.layerCount = 6;
 
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -1307,7 +1403,7 @@ bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
 	view.format = texture->format;
 	view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	view.subresourceRange.layerCount = 6;
-	view.subresourceRange.levelCount = texture->mipmaps;
+	view.subresourceRange.levelCount = texture->mipmapCount;
 	view.image = texture->image;
 	VkValidateR(vkCreateImageView(device, &view, allocationCallbacks, &texture->imageView));
 
@@ -1665,7 +1761,11 @@ void Renderer::DestroyTextureInstant(Texture* texture)
 {
 	if (texture)
 	{
-		vkDestroyImageView(device, texture->imageView, allocationCallbacks);
+		for (U32 i = 0; i < texture->mipmapCount; ++i)
+		{
+			vkDestroyImageView(device, texture->mipmaps[i], allocationCallbacks);
+		}
+
 		if (!texture->swapchainImage) { vmaDestroyImage(allocator, texture->image, texture->allocation); }
 	}
 }
