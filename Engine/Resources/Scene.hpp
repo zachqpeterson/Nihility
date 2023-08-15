@@ -26,5 +26,5 @@ public:
 	bool				updatePostProcess{ false };
 
 	Vector<Model*>		models{}; //TODO: Objects
-	Vector<MeshData>	draws{};
+	Vector<Mesh>	draws{};
 };

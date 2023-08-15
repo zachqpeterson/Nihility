@@ -90,6 +90,7 @@ private:
 	static VkQueue								deviceQueue;
 	static Swapchain							swapchain;
 	static U32									queueFamilyIndex;
+	static PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTemplateKHR;
 
 	static VkAllocationCallbacks*				allocationCallbacks;
 	static VkDescriptorPool						descriptorPool;
@@ -115,7 +116,6 @@ private:
 	static Buffer								vertexBuffer;
 	static Buffer								indexBuffer;
 	static Buffer								meshBuffer;
-	static Buffer								drawsBuffer;
 	static Buffer								drawCommandsBuffer;
 	static Buffer								drawCountsBuffer;
 	static Buffer								drawVisibilityBuffer;

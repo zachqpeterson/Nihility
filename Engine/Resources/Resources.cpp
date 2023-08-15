@@ -169,16 +169,12 @@ Pipeline* Resources::lateRenderPipeline;
 Pipeline* Resources::earlyCullPipeline;
 Pipeline* Resources::lateCullPipeline;
 Pipeline* Resources::depthReducePipeline;
-Material* Resources::materialOpaque;
-Material* Resources::materialTransparent;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
 Hashmap<String, Renderpass>		Resources::renderpasses{ 256, {} };
 Hashmap<String, Shader>			Resources::shaders{ 128, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
-Hashmap<String, Material>		Resources::materials{ 128, {} };
-Hashmap<String, Mesh>			Resources::meshes{ 128, {} };
 Hashmap<String, Model>			Resources::models{ 128, {} };
 Hashmap<String, Skybox>			Resources::skyboxes{ 32, {} };
 Hashmap<String, Scene>			Resources::scenes{ 128, {} };
@@ -191,7 +187,7 @@ Pool<DescriptorSetLayout, 256>	Resources::descriptorSetLayouts;
 VkDescriptorPool				Resources::descriptorPool;
 VkDescriptorPool				Resources::bindlessDescriptorPool;
 VkDescriptorSet					Resources::bindlessDescriptorSet;
-DescriptorSetLayout*			Resources::bindlessDescriptorSetLayout;
+DescriptorSetLayout				Resources::bindlessDescriptorSetLayout;
 
 bool Resources::Initialize()
 {
@@ -313,7 +309,7 @@ bool Resources::CreateBindless()
 
 	// TODO: reenable variable descriptor count
 	// Binding flags
-	VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT | /*VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |*/ VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT;
+	VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
 	VkDescriptorBindingFlags bindingFlags[4];
 
 	bindingFlags[0] = bindlessFlags;
@@ -325,12 +321,12 @@ bool Resources::CreateBindless()
 
 	layoutInfo.pNext = &extendedInfo;
 
-	VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout->descriptorSetLayout));
+	VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout.descriptorSetLayout));
 
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	allocInfo.descriptorPool = bindlessDescriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &bindlessDescriptorSetLayout->descriptorSetLayout;
+	allocInfo.pSetLayouts = &bindlessDescriptorSetLayout.descriptorSetLayout;
 
 	VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
 	U32 maxBinding = maxBindlessResources - 1;
@@ -370,7 +366,6 @@ void Resources::Shutdown()
 	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
 	CleanupHashmap(shaders, nullptr);
 	CleanupHashmap(pipelines, nullptr);
-	CleanupHashmap(materials, nullptr);
 	CleanupHashmap(models, nullptr);
 	CleanupHashmap(skyboxes, nullptr);
 	CleanupHashmap(scenes, nullptr);
@@ -382,7 +377,6 @@ void Resources::Shutdown()
 	renderpasses.Destroy();
 	shaders.Destroy();
 	pipelines.Destroy();
-	materials.Destroy();
 	models.Destroy();
 	skyboxes.Destroy();
 	scenes.Destroy();
@@ -390,7 +384,7 @@ void Resources::Shutdown()
 	resourceDeletionQueue.Destroy();
 	bindlessTexturesToUpdate.Destroy();
 
-	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout->descriptorSetLayout, Renderer::allocationCallbacks);
+	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout.descriptorSetLayout, Renderer::allocationCallbacks);
 	vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
 	vkDestroyDescriptorPool(Renderer::device, descriptorPool, Renderer::allocationCallbacks);
 }
@@ -1618,12 +1612,12 @@ Shader* Resources::CreateShader(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	U64 handle = shaders.GetHandle(name);
-	Shader* shader = &shaders.Obtain(handle);
+	Shader* shader = &shaders.Request(name);
 
 	if (!shader->name.Blank()) { return shader; }
 
-	shader->handle = handle;
+	shader->name = name;
+	shader->handle = shaders.GetHandle(name);
 
 	if (!shader->Create(name))
 	{
@@ -1689,10 +1683,7 @@ Model* Resources::LoadModel(const String& name)
 		aiMesh* tempMesh = scene->mMeshes[i];
 		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
 
-		Material* material = CreateMaterial(tempMaterial, model->name);
-		Mesh* mesh = CreateMesh(tempMesh, model->name, material);
-
-		model->meshes[model->meshCount++] = mesh;
+		model->meshes[model->meshCount++] = Move(CreateMesh(tempMesh, tempMaterial));
 	}
 
 	aiReleaseImport(scene);
@@ -1700,27 +1691,41 @@ Model* Resources::LoadModel(const String& name)
 	return model;
 }
 
-Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Material* material)
+Mesh Resources::CreateMesh(const aiMesh* meshInfo, const struct aiMaterial* materialInfo)
 {
-	String name = modelName + meshInfo->mName.C_Str();
+	Mesh mesh{};
 
-	if (name.Blank()) { Logger::Error("CreateMesh: Resources Must Have Names!"); return nullptr; }
+	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_BASE_COLOR)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_EMISSION_COLOR)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_METALNESS)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION)) { BreakPoint; }
 
-	Mesh* mesh = &meshes.Request(name);
+	aiReturn ret;
+	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
+	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+	ai_real roughness{ 0.5f };
+	ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+	ai_real metallic{ 0.5f };
+	ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
 
-	if (!mesh->name.Blank()) { return mesh; }
+	mesh.baseColorFactor.x = color.r;
+	mesh.baseColorFactor.y = color.g;
+	mesh.baseColorFactor.z = color.b;
+	mesh.baseColorFactor.w = color.a;
 
-	mesh->name = modelName + meshInfo->mName.data;
-	mesh->vertexCount = meshInfo->mNumVertices;
-	mesh->material = material;
+	mesh.metalRoughFactor.x = metallic;
+	mesh.metalRoughFactor.y = roughness;
 
-	Vertex* vertexData = (Vertex*)malloc(mesh->vertexCount * sizeof(Vertex));
+	mesh.vertexCount = meshInfo->mNumVertices;
+	Vertex* vertexData = (Vertex*)malloc(mesh.vertexCount * sizeof(Vertex));
 
 	if (meshInfo->HasTangentsAndBitangents())
 	{
 		if (meshInfo->HasTextureCoords(0))
 		{
-			for (U32 i = 0; i < mesh->vertexCount; ++i)
+			for (U32 i = 0; i < mesh.vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1731,9 +1736,9 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 		}
 		else
 		{
-			mesh->material->flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
+			mesh.flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
 
-			for (U32 i = 0; i < mesh->vertexCount; ++i)
+			for (U32 i = 0; i < mesh.vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1744,11 +1749,11 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 	}
 	else
 	{
-		mesh->material->flags |= MATERIAL_FLAG_NO_TANGENTS;
+		mesh.flags |= MATERIAL_FLAG_NO_TANGENTS;
 
 		if (meshInfo->HasTextureCoords(0))
 		{
-			for (U32 i = 0; i < mesh->vertexCount; ++i)
+			for (U32 i = 0; i < mesh.vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1757,9 +1762,9 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 		}
 		else
 		{
-			mesh->material->flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
+			mesh.flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
 
-			for (U32 i = 0; i < mesh->vertexCount; ++i)
+			for (U32 i = 0; i < mesh.vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1767,7 +1772,8 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 		}
 	}
 
-	mesh->indexCount = meshInfo->mNumFaces * meshInfo->mFaces[0].mNumIndices;
+	mesh.lodCount = 1;
+	mesh.lods[0].indexCount = meshInfo->mNumFaces * meshInfo->mFaces[0].mNumIndices;
 	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
 
 	U32* indexData = (U32*)malloc(meshInfo->mNumFaces * faceSize);
@@ -1780,58 +1786,15 @@ Mesh* Resources::CreateMesh(const aiMesh* meshInfo, const String& modelName, Mat
 		it += faceSize;
 	}
 
-	mesh->vertexOffset = Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, mesh->vertexCount * sizeof(Vertex));
-	mesh->indexOffset = Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, meshInfo->mNumFaces * faceSize);
-	Renderer::FillBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh), mesh->handle * sizeof(Mesh));
+	mesh.vertexOffset = Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, mesh.vertexCount * sizeof(Vertex));
+	mesh.lods[0].indexOffset = Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, meshInfo->mNumFaces * faceSize);
+	mesh.meshIndex = Renderer::meshBuffer.allocationOffset / sizeof(Mesh);
+	Renderer::UploadToBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh));
 
 	free(vertexData);
 	free(indexData);
 
 	return mesh;
-}
-
-Material* Resources::CreateMaterial(const aiMaterial* materialInfo, const String& modelName)
-{
-	aiReturn ret;
-	aiString materialName;
-	ret = materialInfo->Get(AI_MATKEY_NAME, materialName);
-
-	String name = modelName + materialName.data;
-
-	if (name.Blank()) { Logger::Error("CreateMaterial: Resources Must Have Names!"); return nullptr; }
-
-	Material* material = &materials.Request(name);
-
-	if (!material->name.Blank()) { return material; }
-
-	material->name = Move(name);
-	material->handle = materials.GetHandle(material->name);
-
-	//material->renderIndex = info.renderIndex;
-
-	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_BASE_COLOR)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_EMISSION_COLOR)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_METALNESS)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION)) { BreakPoint; }
-
-	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
-	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-	ai_real roughness{ 0.5f };
-	ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
-	ai_real metallic{ 0.5f };
-	ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
-
-	material->baseColorFactor.x = color.r;
-	material->baseColorFactor.y = color.g;
-	material->baseColorFactor.z = color.b;
-	material->baseColorFactor.w = color.a;
-
-	material->metalRoughFactor.x = metallic;
-	material->metalRoughFactor.y = roughness;
-
-	return material;
 }
 
 Skybox* Resources::LoadSkybox(const String& name)
@@ -2231,12 +2194,6 @@ Texture* Resources::AccessDummyTexture()
 Sampler* Resources::AccessDefaultSampler()
 {
 	return defaultSampler;
-}
-
-Material* Resources::AccessDefaultMaterial(bool transparent)
-{
-	if (transparent) { return materialTransparent; }
-	else { return materialOpaque; }
 }
 
 Sampler* Resources::AccessSampler(const String& name)

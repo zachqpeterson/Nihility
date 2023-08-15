@@ -13,12 +13,80 @@ blend=ADD
 #extension GL_EXT_shader_16bit_storage: require
 #extension GL_EXT_shader_8bit_storage: require
 
-#extension GL_GOOGLE_include_directive: require
-
 #extension GL_ARB_shader_draw_parameters: require
 
-#include "mesh.h"
-#include "math.h"
+struct Globals
+{
+	mat4 viewProjection;
+	vec4 eye;
+	vec4 directionalLight;
+	vec4 directionalLightColor;
+	vec4 ambientLight;
+	float lightIntensity;
+	uint skyboxIndex;
+
+	float screenWidth, screenHeight, znear, zfar; // symmetric projection parameters
+	vec4 frustum; // data for left/right/top/bottom frustum planes
+
+	float pyramidWidth, pyramidHeight; // depth pyramid size in texels
+	int clusterOcclusionEnabled;
+};
+
+struct MeshDrawCommand
+{
+	uint drawID;
+
+	// VkDrawIndexedIndirectCommand
+	uint indexCount;
+	uint instanceCount;
+	uint firstIndex;
+	uint vertexOffset;
+	uint firstInstance;
+};
+
+struct MeshLod
+{
+	uint indexOffset;
+	uint indexCount;
+	uint meshletOffset;
+	uint meshletCount;
+};
+
+struct Mesh
+{
+	mat4	model;
+	uint	meshIndex;
+	uint 	vertexOffset;
+	uint 	vertexCount;
+	uint	meshletVisibilityOffset;
+
+	uint	diffuseTextureIndex;
+	uint	metalRoughOcclTextureIndex;
+	uint	normalTextureIndex;
+	uint	emissivityTextureIndex;
+
+	vec4	baseColorFactor;
+	vec2	metalRoughFactor;
+	vec3	emissiveFactor;
+
+	float	alphaCutoff;
+	uint	flags;
+
+	vec3    center;
+	float   radius;
+
+	uint    lodCount;
+	MeshLod lods[8];
+};
+
+struct Vertex
+{
+	vec3 position;
+	vec3 normal;
+	vec3 tangent;
+	vec3 bitangent;
+	vec2 texcoord;
+};
 
 layout(push_constant) uniform block
 {
@@ -30,9 +98,9 @@ layout(binding = 0) readonly buffer DrawCommands
 	MeshDrawCommand drawCommands[];
 };
 
-layout(binding = 1) readonly buffer Draws
+layout(binding = 1) readonly buffer Meshes
 {
-	MeshDraw draws[];
+	Mesh meshes[];
 };
 
 layout(binding = 2) readonly buffer Vertices
@@ -45,20 +113,22 @@ layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec3 outTangent;
 layout (location = 3) out vec3 outBitangent;
 layout (location = 4) out vec2 outTexcoord;
+layout (location = 5) flat out uint outDrawID;
 
 void main()
 {
-    uint drawId = drawCommands[gl_DrawIDARB].drawId;
-    MeshDraw meshDraw = draws[drawId];
+    uint drawID = drawCommands[gl_DrawIDARB].drawID;
+    Mesh mesh = meshes[drawID];
     Vertex vertex = vertices[gl_VertexIndex];
 
-    vec4 worldPosition = meshDraw.model * vec4(vertex.position, 1.0);
+    vec4 worldPosition = mesh.model * vec4(vertex.position, 1.0);
     gl_Position = globals.viewProjection * worldPosition;
     outPosition = worldPosition.xyz / worldPosition.w;
     outNormal = vertex.normal;
-    outTexcoord = vertex.texCoord;
+    outTexcoord = vertex.texcoord;
     outTangent = vertex.tangent;
     outBitangent = vertex.bitangent;
+    outDrawID = drawID;
 }
 #VERTEX_END
 
@@ -66,26 +136,55 @@ void main()
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 
-#include "mesh.h"
-#include "math.h"
-
 const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
 const uint MATERIAL_FLAG_NO_TANGENTS = 1 << 1;
 const uint MATERIAL_FLAG_NO_TEXURE_COORDS = 1 << 2;
+
+struct Globals
+{
+	mat4 viewProjection;
+	vec4 eye;
+	vec4 directionalLight;
+	vec4 directionalLightColor;
+	vec4 ambientLight;
+	float lightIntensity;
+	uint skyboxIndex;
+
+	float screenWidth, screenHeight, znear, zfar; // symmetric projection parameters
+	vec4 frustum; // data for left/right/top/bottom frustum planes
+
+	float pyramidWidth, pyramidHeight; // depth pyramid size in texels
+	int clusterOcclusionEnabled;
+};
+
+struct Mesh
+{
+	mat4		model;
+	uint		meshIndex;
+	uint		vertexOffset;
+	uint		meshletVisibilityOffset;
+
+	uint	    diffuseTextureIndex;
+	uint	    metalRoughOcclTextureIndex;
+	uint	    normalTextureIndex;
+	uint	    emissivityTextureIndex;
+
+	vec4		baseColorFactor;
+	vec2		metalRoughFactor;
+	vec3		emissiveFactor;
+
+	float		alphaCutoff;
+	uint		flags;
+};
 
 layout(push_constant) uniform block
 {
 	Globals globals;
 };
 
-layout(binding = 0) readonly buffer DrawCommands
+layout(binding = 1) readonly buffer Meshes
 {
-	MeshDrawCommand drawCommands[];
-};
-
-layout(binding = 1) readonly buffer Draws
-{
-	MeshDraw draws[];
+	Mesh meshes[];
 };
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
@@ -96,11 +195,14 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec3 tangent;
 layout (location = 3) in vec3 bitangent;
 layout (location = 4) in vec2 texcoord;
+layout (location = 5) flat in uint drawID;
 
 layout (location = 0) out vec4 fragColor;
 
 //NOTE: F0 in the formula notation refers to the value derived from ior = 1.5, (index of refraction)
 const float F0 = 0.04; //pow((1 - ior) / (1 + ior), 2)
+const float PI = 3.141592654;
+const float RecPI = 1.0 / PI;
 const uint INVALID_TEXTURE_INDEX = 65535;
 
 vec3 DecodeSRGB(vec3 c) 
@@ -133,20 +235,25 @@ vec3 EncodeSRGB(vec3 c)
     return clamp(result, 0.0, 1.0);
 }
 
+float Heaviside(float v)
+{
+	if (v > 0.0) { return 1.0; }
+	else { return 0.0; }
+}
+
 void main()
 {
-    uint drawId = drawCommands[gl_DrawIDARB].drawId;
-    MeshDraw meshDraw = draws[drawId];
+    Mesh mesh = meshes[drawID];
 
     vec4 baseColor = vec4(1.0);
 
-    if(meshDraw.diffuseTextureIndex != INVALID_TEXTURE_INDEX)
+    if(mesh.diffuseTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        baseColor = texture(globalTextures[nonuniformEXT(meshDraw.diffuseTextureIndex)], texcoord) * meshDraw.baseColorFactor;
+        baseColor = texture(globalTextures[nonuniformEXT(mesh.diffuseTextureIndex)], texcoord) * mesh.baseColorFactor;
         baseColor.rgb = DecodeSRGB(baseColor.rgb);
     }
 
-    if ((flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < alphaCutoff) { discard; }
+    if ((mesh.flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < mesh.alphaCutoff) { discard; }
 
     vec3 I = normalize(position - globals.eye.xyz);
     vec3 R = reflect(I, normalize(normal));
@@ -156,11 +263,11 @@ void main()
 
     vec3 N = normalize(normal);
 
-    if (meshDraw.normalTextureIndex != INVALID_TEXTURE_INDEX)
+    if (mesh.normalTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(meshDraw.normalTextureIndex)], texcoord).rgb * 2.0 - 1.0);
+        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(mesh.normalTextureIndex)], texcoord).rgb * 2.0 - 1.0);
 
-        if((meshDraw.flags & MATERIAL_FLAG_NO_TANGENTS) == 0)
+        if((mesh.flags & MATERIAL_FLAG_NO_TANGENTS) == 0)
         {
             vec3 T = normalize(tangent);
 	        vec3 B = normalize(bitangent);
@@ -184,13 +291,13 @@ void main()
     vec3 L = normalize(lightDirection);
 	vec3 H = normalize(V + L);
 
-	float metallicness = meshDraw.metalRoughFactor.x;
-    float roughness = meshDraw.metalRoughFactor.y;
+	float metallicness = mesh.metalRoughFactor.x;
+    float roughness = mesh.metalRoughFactor.y;
     float occlusion = 0.0f;
 
-	if (meshDraw.metalRoughOcclTextureIndex != INVALID_TEXTURE_INDEX)
+	if (mesh.metalRoughOcclTextureIndex != INVALID_TEXTURE_INDEX)
 	{
-        vec4 rmo = texture(globalTextures[nonuniformEXT(meshDraw.metalRoughOcclTextureIndex)], texcoord);
+        vec4 rmo = texture(globalTextures[nonuniformEXT(mesh.metalRoughOcclTextureIndex)], texcoord);
 
 		// Red channel contains occlusion values
         // Green channel contains roughness values
@@ -201,11 +308,11 @@ void main()
         environment = clamp(environment * (metallicness * (1.0 - roughness)), 0.0, 1.0);
     }
 
-    vec3 emissivity = meshDraw.emissiveFactor.rgb;
+    vec3 emissivity = mesh.emissiveFactor.rgb;
 
-    if(meshDraw.emissivityTextureIndex != INVALID_TEXTURE_INDEX)
+    if(mesh.emissivityTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        emissivity += texture(globalTextures[nonuniformEXT(meshDraw.emissivityTextureIndex)], texcoord).rgb;
+        emissivity += texture(globalTextures[nonuniformEXT(mesh.emissivityTextureIndex)], texcoord).rgb;
     }
 
 	float alpha = roughness * roughness;

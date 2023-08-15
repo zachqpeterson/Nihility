@@ -350,12 +350,12 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
 	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
-	Sampler*			sampler{ nullptr };
+	Sampler* sampler{ nullptr };
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };
@@ -494,27 +494,6 @@ struct GlobalData
 	U32		skyboxIndex{ U16_MAX };
 };
 
-struct Material
-{
-	void Destroy() { name.Destroy(); }
-
-	String name{ NO_INIT };
-	HashHandle	handle;
-
-	U32 renderIndex{ 0 };
-	F32 alphaCutoff{ 0.0f };
-	U32 flags{ MATERIAL_FLAG_NONE };
-
-	U16 diffuseTextureIndex{ U16_MAX };
-	U16 metalRoughOcclTextureIndex{ U16_MAX };
-	U16 normalTextureIndex{ U16_MAX };
-	U16 emissivityTextureIndex{ U16_MAX };
-
-	Vector4 baseColorFactor{ Vector4::One };
-	Vector2 metalRoughFactor{ Vector2::One };
-	Vector3 emissiveFactor{ Vector3::Zero };
-};
-
 struct Vertex
 {
 	Vector3 position;
@@ -530,11 +509,20 @@ struct MeshDrawCommand
 	VkDrawIndexedIndirectCommand indirect;
 };
 
-struct MeshData
+struct MeshLod
+{
+	U32 indexOffset{ 0 };
+	U32 indexCount{ 0 };
+	U32 meshletOffset{ 0 };
+	U32 meshletCount{ 0 };
+};
+
+struct Mesh
 {
 	Matrix4		model{ Matrix4::Identity };
 	U32			meshIndex{ U32_MAX };
 	U32			vertexOffset{ 0 };
+	U32			vertexCount{ 0 };
 	U32			meshletVisibilityOffset{ 0 };
 
 	U16			diffuseTextureIndex{ U16_MAX };
@@ -546,22 +534,12 @@ struct MeshData
 	Vector3		emissiveFactor{ Vector3::Zero };
 	F32			alphaCutoff{ 0.0f };
 	U32			flags{ MATERIAL_FLAG_NONE };
-};
-
-struct Mesh
-{
-	String name{ NO_INIT };
-	HashHandle handle;
-
-	Material* material{ nullptr };
 
 	Vector3 center{ Vector3::Zero };
-	F32 radius{ 0.0f };
+	F32 radius{ 10.0f }; //TODO:
 
-	U32 vertexCount{ 0 };
-	U32 vertexOffset{ 0 };
-	U32 indexOffset{ 0 };
-	U32 indexCount{ 0 };
+	U32 lodCount{ 0 };
+	MeshLod lods[8]{};
 };
 
 struct Model
@@ -571,7 +549,7 @@ struct Model
 	String		name{ NO_INIT };
 	HashHandle	handle;
 
-	Mesh* meshes[32]{ nullptr };
+	Mesh meshes[32]{ };
 	U32 meshCount{ 0 };
 };
 

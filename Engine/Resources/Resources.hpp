@@ -36,7 +36,6 @@ public:
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
 	static Sampler* AccessDefaultSampler();
-	static Material* AccessDefaultMaterial(bool transparent = false);
 
 	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
@@ -83,8 +82,7 @@ private:
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
 	//Model Loading
-	static Mesh* CreateMesh(const struct aiMesh* meshInfo, const String& modelName, Material* material);
-	static Material* CreateMaterial(const struct aiMaterial* materialInfo, const String& modelName);
+	static Mesh CreateMesh(const struct aiMesh* meshInfo, const struct aiMaterial* materialInfo);
 
 	//Scene Loading
 	static bool LoadNHSCN(Scene* scene, File& file);
@@ -102,16 +100,12 @@ private:
 	static Pipeline*							earlyCullPipeline;
 	static Pipeline*							lateCullPipeline;
 	static Pipeline*							depthReducePipeline;
-	static Material*							materialOpaque;
-	static Material*							materialTransparent;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
 	static Hashmap<String, Renderpass>			renderpasses;
 	static Hashmap<String, Shader>				shaders;
 	static Hashmap<String, Pipeline>			pipelines;
-	static Hashmap<String, Material>			materials;
-	static Hashmap<String, Mesh>				meshes;
 	static Hashmap<String, Model>				models;
 	static Hashmap<String, Skybox>				skyboxes;
 	static Hashmap<String, Scene>				scenes;
@@ -124,7 +118,7 @@ private:
 	static VkDescriptorPool						descriptorPool;
 	static VkDescriptorPool						bindlessDescriptorPool;
 	static VkDescriptorSet						bindlessDescriptorSet;
-	static DescriptorSetLayout*					bindlessDescriptorSetLayout;
+	static DescriptorSetLayout					bindlessDescriptorSetLayout;
 	static constexpr U32						maxBindlessResources{ 1024 };
 	static constexpr U32						bindlessTextureBinding{ 10 };
 

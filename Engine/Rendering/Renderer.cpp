@@ -82,6 +82,7 @@ U32									Renderer::appVersion;
 
 // CAPABILITIES
 VkPhysicalDeviceProperties			Renderer::physicalDeviceProperties;
+VkPhysicalDeviceMemoryProperties	Renderer::physicalDeviceMemoryProperties;
 
 // DEVICE
 VkInstance							Renderer::instance;
@@ -90,6 +91,7 @@ VkDevice							Renderer::device;
 VkQueue								Renderer::deviceQueue;
 Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
+PFN_vkCmdPushDescriptorSetWithTemplateKHR Renderer::vkCmdPushDescriptorSetWithTemplateKHR;
 
 VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPool;
@@ -115,7 +117,6 @@ Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::vertexBuffer;
 Buffer								Renderer::indexBuffer;
 Buffer								Renderer::meshBuffer;
-Buffer								Renderer::drawsBuffer;
 Buffer								Renderer::drawCommandsBuffer;
 Buffer								Renderer::drawCountsBuffer;
 Buffer								Renderer::drawVisibilityBuffer;
@@ -251,6 +252,8 @@ bool Renderer::CreateInstance()
 	instanceInfo.ppEnabledExtensionNames = extensions;
 
 	VkValidateFR(vkCreateInstance(&instanceInfo, allocationCallbacks, &instance));
+
+	vkCmdPushDescriptorSetWithTemplateKHR = (PFN_vkCmdPushDescriptorSetWithTemplateKHR)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 
 #ifdef NH_DEBUG
 	vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -471,7 +474,6 @@ bool Renderer::CreateResources()
 	vertexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	indexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	meshBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	drawsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawCountsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawVisibilityBuffer = CreateBuffer(16, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -574,7 +576,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	{
 		commandBuffer->BindPipeline(pipeline);
 
-		Descriptor descriptors[] = { drawCommandsBuffer.vkBuffer, drawsBuffer.vkBuffer, vertexBuffer.vkBuffer };
+		Descriptor descriptors[] = { drawCommandsBuffer.vkBuffer, meshBuffer.vkBuffer, vertexBuffer.vkBuffer };
 		PushDescriptors(pipeline->shader, descriptors);
 
 		commandBuffer->BindIndexBuffer(indexBuffer);
@@ -606,7 +608,7 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCo
 	cullData.frustum[3] = frustumY.z;
 	cullData.drawCount = drawCount;
 	cullData.cullingEnabled = true;
-	cullData.lodEnabled = true;
+	cullData.lodEnabled = false;
 	cullData.occlusionEnabled = true;
 	cullData.lodBase = 10.f;
 	cullData.lodStep = 1.5f;
@@ -644,7 +646,7 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCo
 	commandBuffer->BindPipeline(pipeline);
 
 	Descriptor pyramidDesc(depthPyramid->imageView, VK_IMAGE_LAYOUT_GENERAL, depthPyramid->sampler->sampler);
-	Descriptor descriptors[]{ drawsBuffer.vkBuffer, meshBuffer.vkBuffer, drawCommandsBuffer.vkBuffer, drawCountsBuffer.vkBuffer, drawVisibilityBuffer.vkBuffer, pyramidDesc };
+	Descriptor descriptors[]{ meshBuffer.vkBuffer, drawCommandsBuffer.vkBuffer, drawCountsBuffer.vkBuffer, drawVisibilityBuffer.vkBuffer, pyramidDesc };
 	PushDescriptors(pipeline->shader, descriptors);
 
 	U32 groupCount = (drawCount + pipeline->shader->stages[0].localSizeX - 1) / pipeline->shader->stages[0].localSizeX;
@@ -702,7 +704,7 @@ void Renderer::GenerateDepthPyramid(CommandBuffer* commandBuffer)
 			? Descriptor(Resources::earlyRenderPipeline->renderpass->outputDepth->imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, depthPyramid->sampler->sampler)
 			: Descriptor(depthPyramid->mipmaps[i - 1], VK_IMAGE_LAYOUT_GENERAL, depthPyramid->sampler->sampler);
 
-		Descriptor descriptors[]{ { depthPyramid->mipmaps[i], VK_IMAGE_LAYOUT_GENERAL }, sourceDepth };
+		Descriptor descriptors[]{ sourceDepth, { depthPyramid->mipmaps[i], VK_IMAGE_LAYOUT_GENERAL } };
 		PushDescriptors(Resources::depthProgram, descriptors);
 
 		U32 levelWidth = Math::Max(1, depthPyramid->width >> i);
@@ -989,6 +991,7 @@ Buffer Renderer::CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryP
 
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
+	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { memoryInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; }
 	memoryInfo.usage = VMA_MEMORY_USAGE_AUTO;
 	memoryInfo.requiredFlags = memoryFlags;
 
@@ -1000,7 +1003,7 @@ Buffer Renderer::CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryP
 
 	buffer.deviceMemory = allocationInfo.deviceMemory;
 
-	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { VkValidate(vmaMapMemory(allocator, buffer.allocation, &buffer.data)); buffer.mapped = true; }
+	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { buffer.data = allocationInfo.pMappedData; buffer.mapped = true; }
 
 	//TODO: CreateBufferWithData
 	//if (data)
@@ -1128,12 +1131,11 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 	if (texture->flags & TEXTURE_FLAG_COMPUTE) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
 	if (texture->flags & TEXTURE_FLAG_RENDER_TARGET)
 	{
-		imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		if (HasDepthOrStencil(texture->format)) { imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; }
 		else { imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; }
 	}

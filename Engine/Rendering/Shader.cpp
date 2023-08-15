@@ -160,7 +160,7 @@ bool Shader::Create(const String& shaderPath)
 
 	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 
-	if (Renderer::bindlessSupported && useBindless) { setLayouts[--setCount] = Resources::bindlessDescriptorSetLayout; }
+	if (Renderer::bindlessSupported && useBindless) { setLayouts[--setCount] = &Resources::bindlessDescriptorSetLayout; }
 
 	for (U8 i = 0; i < setCount; ++i)
 	{
@@ -463,7 +463,7 @@ VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, 
 	shaderInfo.codeSize = spv.size() * 4;
 	shaderInfo.pCode = spv.data();
 
-	ParseSPIRV((U32*)shaderInfo.pCode, shaderInfo.codeSize, shaderStage, setLayoutInfos);
+	ParseSPIRV((U32*)shaderInfo.pCode, spv.size(), shaderStage, setLayoutInfos);
 
 	VkShaderModule module;
 	vkCreateShaderModule(Renderer::device, &shaderInfo, Renderer::allocationCallbacks, &module);
@@ -520,7 +520,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 {
 	uint32_t idBound = code[3];
 
-	Vector<Id> ids(idBound);
+	Vector<Id> ids(idBound, {});
 
 	const U32* it = code + 5;
 
@@ -538,6 +538,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		case SpvOpEntryPoint:
 		{
 			stage.stage = GetShaderStage((SpvExecutionModel)it[1]);
+			stage.entryPoint = (C8*)(it + 3);
 		} break;
 		case SpvOpExecutionMode:
 		{
