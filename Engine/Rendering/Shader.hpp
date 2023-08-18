@@ -45,7 +45,7 @@ struct ShaderStage
 
 struct Shader
 {
-	bool Create(const String& shaderPath);
+	bool Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants);
 	void Destroy();
 
 	String								name{ NO_INIT };
@@ -53,7 +53,7 @@ struct Shader
 
 	VkPipelineBindPoint					bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
 	VkPipelineLayout					pipelineLayout{ nullptr };
-	VkShaderStageFlagBits				pushConstantStages{};
+	VkShaderStageFlags					pushConstantStages{};
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
 	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
 	U32									stageCount{ 0 };

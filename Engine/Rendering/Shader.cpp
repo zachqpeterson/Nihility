@@ -131,7 +131,7 @@ struct Id
 	U32 constant;
 };
 
-bool Shader::Create(const String& shaderPath)
+bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants)
 {
 	String data{ NO_INIT };
 	Resources::LoadBinary(shaderPath, data);
@@ -160,11 +160,16 @@ bool Shader::Create(const String& shaderPath)
 
 	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
 
-	if (Renderer::bindlessSupported && useBindless) { setLayouts[--setCount] = &Resources::bindlessDescriptorSetLayout; }
+	if (Renderer::bindlessSupported && useBindless)
+	{
+		setLayouts[setCount] = &Resources::bindlessDescriptorSetLayout;
+		vkLayouts[setCount] = Resources::bindlessDescriptorSetLayout.descriptorSetLayout;
+	}
 
 	for (U8 i = 0; i < setCount; ++i)
 	{
 		setLayouts[i] = Resources::CreateDescriptorSetLayout(setLayoutInfos[i]);
+		vkLayouts[i] = setLayouts[i]->descriptorSetLayout;
 	}
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -172,8 +177,8 @@ bool Shader::Create(const String& shaderPath)
 	pipelineLayoutInfo.pNext = nullptr;
 	pipelineLayoutInfo.pSetLayouts = vkLayouts;
 	pipelineLayoutInfo.setLayoutCount = setCount + useBindless;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	pipelineLayoutInfo.pPushConstantRanges = nullptr;
+	pipelineLayoutInfo.pushConstantRangeCount = pushConstantCount;
+	pipelineLayoutInfo.pPushConstantRanges = pushConstants;
 
 	VkValidate(vkCreatePipelineLayout(Renderer::device, &pipelineLayoutInfo, Renderer::allocationCallbacks, &pipelineLayout));
 
@@ -607,107 +612,47 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		it += wordCount;
 	}
 
-	//if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
-	//{ 
-	//	for (U32 i = 0; i < module.input_variable_count; ++i)
-	//	{
-	//		SpvReflectInterfaceVariable* var = module.input_variables[i];
-	//
-	//		if (var->built_in == -1)
-	//		{
-	//			U32 location = var->location;
-	//
-	//			VkVertexInputAttributeDescription attribute{};
-	//			attribute.binding = location;
-	//			attribute.location = location;
-	//			attribute.offset = 0;
-	//			attribute.format = (VkFormat)var->format;
-	//
-	//			VkVertexInputBindingDescription stream{};
-	//			stream.binding = location;
-	//			stream.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-	//
-	//			if (var->type_description->op == SpvOpTypeVector)
-	//			{
-	//				SpvReflectNumericTraits& traits = var->type_description->traits.numeric;
-	//				stream.stride = (traits.scalar.width / 8) * traits.vector.component_count;
-	//			}
-	//
-	//			shader.vertexSize += stream.stride;
-	//			++shader.vertexAttributeCount;
-	//			++shader.vertexStreamCount;
-	//			shader.vertexAttributes[location] = attribute;
-	//			shader.vertexStreams[location] = stream;
-	//		}
-	//	}
-	//}
-	//
-	//shader.setCount = module.descriptor_set_count;
-	//
-	//for (U32 i = 0; i < shader.setCount; ++i)
-	//{
-	//	SpvReflectDescriptorSet set = module.descriptor_sets[i];
-	//
-	//	DescriptorSetLayoutCreation& setLayout = setLayoutInfos[set.set];
-	//	setLayout.setIndex = set.set;
-	//	setLayout.bindingCount = set.binding_count;
-	//
-	//	for (U32 j = 0; j < set.binding_count; ++j)
-	//	{
-	//		SpvReflectDescriptorBinding* binding = set.bindings[j];
-	//
-	//		if (set.set == 1 && (binding->binding == Resources::bindlessTextureBinding ||
-	//			binding->binding == (Resources::bindlessTextureBinding + 1)))
-	//		{
-	//			useBindless = true; continue;
-	//		}
-	//
-	//		DescriptorBinding setBinding{};
-	//		setBinding.binding = binding->binding;
-	//		setBinding.count = binding->count;
-	//
-	//		switch (binding->type_description->op)
-	//		{
-	//		case SpvOpTypeStruct: { setBinding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; } break;
-	//		case SpvOpTypeSampledImage: { setBinding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; } break;
-	//		}
-	//
-	//		setLayout.bindings[binding->binding] = setBinding;
-	//		setLayout.bindingCount = Math::Max(binding->binding + 1, (U32)setLayout.bindingCount);
-	//	}
-	//}
-	//
-	//if (module.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT)
-	//{
-	//	for (U32 i = 0; i < module.output_variable_count; ++i)
-	//	{
-	//		SpvReflectInterfaceVariable* var = module.output_variables[i];
-	//
-	//		U32 location = var->location;
-	//
-	//		ShaderOutput output{};
-	//		output.format = (VkFormat)var->format;
-	//
-	//		shader.outputs[shader.outputCount++] = output;
-	//	}
-	//}
-
 	for (const Id& id : ids)
 	{
-		if (id.opcode == SpvOpVariable && (id.storageClass == SpvStorageClassUniform || id.storageClass == SpvStorageClassUniformConstant || id.storageClass == SpvStorageClassStorageBuffer))
-		{
-			U32 typeKind = ids[ids[id.typeId].typeId].opcode;
-			VkDescriptorType descriptorType = GetDescriptorType(SpvOp(typeKind));
-			VkDescriptorSetLayoutBinding& binding = setLayoutInfos[id.set].bindings[id.binding];
-			binding.descriptorType = descriptorType;
-			binding.stageFlags |= stage.stage;
-			binding.binding = id.binding;
-			//TODO: descriptor count
-		}
+		if (id.set == 1 && id.binding == 10) { useBindless = true; continue; }
 
-		if (id.opcode == SpvOpVariable && id.storageClass == SpvStorageClassPushConstant)
+		if (id.opcode == SpvOpVariable)
 		{
-			stage.usePushConstants = true;
+			switch (id.storageClass)
+			{
+			case SpvStorageClassPushConstant:
+			{
+				stage.usePushConstants = true;
+				pushConstantStages |= stage.stage;
+			} break;
+			case SpvStorageClassUniform:
+			case SpvStorageClassUniformConstant:
+			case SpvStorageClassStorageBuffer: {
+				U32 typeKind = ids[ids[id.typeId].typeId].opcode;
+				VkDescriptorType descriptorType = GetDescriptorType(SpvOp(typeKind));
+				VkDescriptorSetLayoutBinding& binding = setLayoutInfos[id.set].bindings[id.binding];
+				binding.descriptorType = descriptorType;
+				binding.stageFlags |= stage.stage;
+				binding.binding = id.binding;
+				binding.descriptorCount = 1;
+
+				setLayoutInfos[id.set].bindingCount = Math::Max(setLayoutInfos[id.set].bindingCount, (U8)(id.binding + 1));
+				setCount = Math::Max(setCount, id.set + 1);
+			} break;
+			case SpvStorageClassOutput: {
+				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+				{
+					//TODO: Don't hardcode this
+					outputs[outputCount++] = VK_FORMAT_R32G32B32A32_SFLOAT;
+				}
+			}
+			}
+		}
+		else if (id.opcode == SpvDecorationSpecId)
+		{
+			Id id0 = ids[ids[id.typeId].typeId];
+			Id id1 = ids[id.typeId];
+			BreakPoint;
 		}
 	}
 
@@ -718,8 +663,6 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		if (localSizeIdZ >= 0) { stage.localSizeZ = ids[localSizeIdZ].constant; }
 	}
 
-	//TODO: Fragment Outputs
-	//TODO: Vertex Attributes
 	//TODO: Specialization Constants
 	//TODO: Push Constants
 

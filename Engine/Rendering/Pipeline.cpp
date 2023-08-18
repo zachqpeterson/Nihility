@@ -12,7 +12,7 @@
 //		data.data, specializationInfos[data.stage].specializationData[data.index].size);
 //}
 
-bool Pipeline::Create()
+bool Pipeline::Create(const SpecializationInfo& specializationInfo)
 {
 	RenderpassInfo renderPassInfo{};
 	renderPassInfo.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -61,7 +61,7 @@ bool Pipeline::Create()
 		this->renderpass = Resources::CreateRenderPass(renderPassInfo);
 	}
 
-	if (!CreatePipeline()) { return false; }
+	if (!CreatePipeline(specializationInfo)) { return false; }
 
 	return true;
 }
@@ -88,7 +88,7 @@ void Pipeline::AddDescriptor(const Descriptor& descriptor)
 	descriptors[descriptorCount++] = descriptor;
 }
 
-bool Pipeline::CreatePipeline()
+bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 {
 	VkPipelineCache pipelineCache = nullptr;
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -195,6 +195,11 @@ bool Pipeline::CreatePipeline()
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
 		dynamicState.pDynamicStates = dynamicStates;
+		
+		for (U32 i = 0; i < shader->stageCount; ++i)
+		{
+			//shader->stageInfos[i].pSpecializationInfo->pData = specializationInfo.specializationBuffer;
+		}
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 		pipelineInfo.pStages = shader->stageInfos;

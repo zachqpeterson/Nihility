@@ -231,9 +231,14 @@ bool Resources::Initialize()
 	dummySamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
 	dummySampler = CreateSampler(dummySamplerInfo);
 
-	meshProgram = CreateShader("shaders/MeshPbr.shader");
-	cullProgram = CreateShader("shaders/Cull.shader");
-	depthProgram = CreateShader("shaders/DepthReduce.shader");
+	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
+	meshProgram = CreateShader("shaders/MeshPbr.shader", 1, &pushConstant);
+
+	pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	pushConstant.size = sizeof(DrawCullData);
+	cullProgram = CreateShader("shaders/Cull.shader", 1, &pushConstant);
+	pushConstant.size = sizeof(DepthReduceData);
+	depthProgram = CreateShader("shaders/DepthReduce.shader", 1, &pushConstant);
 
 	PipelineInfo info{};
 	info.name = "early_render_pipeline";
@@ -1608,7 +1613,7 @@ Renderpass* Resources::CreateRenderPass(const RenderpassInfo& info)
 	return renderpass;
 }
 
-Shader* Resources::CreateShader(const String& name)
+Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, VkPushConstantRange* pushConstants)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1619,7 +1624,7 @@ Shader* Resources::CreateShader(const String& name)
 	shader->name = name;
 	shader->handle = shaders.GetHandle(name);
 
-	if (!shader->Create(name))
+	if (!shader->Create(name, pushConstantCount, pushConstants))
 	{
 		shaders.Remove(shader->handle);
 		shader->handle = U64_MAX;
@@ -1628,7 +1633,7 @@ Shader* Resources::CreateShader(const String& name)
 	return shader;
 }
 
-Pipeline* Resources::CreatePipeline(const PipelineInfo& info)
+Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1641,7 +1646,7 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info)
 	pipeline->shader = info.shader;
 	pipeline->renderpass = info.renderpass;
 
-	if (!pipeline->Create())
+	if (!pipeline->Create(specializationInfo))
 	{
 		pipelines.Remove(pipeline->handle);
 		pipeline->handle = U64_MAX;
@@ -1695,12 +1700,28 @@ Mesh Resources::CreateMesh(const aiMesh* meshInfo, const struct aiMaterial* mate
 {
 	Mesh mesh{};
 
+	if (materialInfo->GetTextureCount(aiTextureType_NONE)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_SPECULAR)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_EMISSIVE)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_HEIGHT)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_NORMALS)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_SHININESS)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_OPACITY)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_DISPLACEMENT)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_LIGHTMAP)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_REFLECTION)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_BASE_COLOR)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_NORMAL_CAMERA)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_EMISSION_COLOR)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_METALNESS)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS)) { BreakPoint; }
 	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_SHEEN)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_CLEARCOAT)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_TRANSMISSION)) { BreakPoint; }
+	if (materialInfo->GetTextureCount(aiTextureType_UNKNOWN)) { BreakPoint; }
 
 	aiReturn ret;
 	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };

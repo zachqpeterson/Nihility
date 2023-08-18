@@ -481,17 +481,23 @@ struct PostProcessData
 	F32 brightness = 0.0f;
 	F32 saturation = 1.0f;
 	F32 gammaCorrection = 1.0f;
+	Vector4 directionalLight;
+	Vector4 directionalLightColor;
+	Vector4 ambientLight;
+	F32		lightIntensity;
+	U32		skyboxIndex{ U16_MAX };
 };
 
 struct GlobalData
 {
 	Matrix4 vp;
 	Vector4 eye;
-	Vector4 directionalLight;
-	Vector4 directionalLightColor;
-	Vector4 ambientLight;
-	F32		lightIntensity;
-	U32		skyboxIndex{ U16_MAX };
+
+	F32 screenWidth, screenHeight, znear, zfar;
+	Vector4 frustum;
+
+	F32 pyramidWidth, pyramidHeight;
+	I32 clusterOcclusionEnabled;
 };
 
 struct Vertex

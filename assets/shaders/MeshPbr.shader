@@ -19,11 +19,6 @@ struct Globals
 {
 	mat4 viewProjection;
 	vec4 eye;
-	vec4 directionalLight;
-	vec4 directionalLightColor;
-	vec4 ambientLight;
-	float lightIntensity;
-	uint skyboxIndex;
 
 	float screenWidth, screenHeight, znear, zfar; // symmetric projection parameters
 	vec4 frustum; // data for left/right/top/bottom frustum planes
@@ -144,11 +139,6 @@ struct Globals
 {
 	mat4 viewProjection;
 	vec4 eye;
-	vec4 directionalLight;
-	vec4 directionalLightColor;
-	vec4 ambientLight;
-	float lightIntensity;
-	uint skyboxIndex;
 
 	float screenWidth, screenHeight, znear, zfar; // symmetric projection parameters
 	vec4 frustum; // data for left/right/top/bottom frustum planes
@@ -258,8 +248,6 @@ void main()
     vec3 I = normalize(position - globals.eye.xyz);
     vec3 R = reflect(I, normalize(normal));
     R.y = -R.y;
-    vec3 environment = vec3(0.0);
-    if(globals.skyboxIndex != INVALID_TEXTURE_INDEX) { environment = texture(globalTexturesCubes[globals.skyboxIndex], R).rgb; }
 
     vec3 N = normalize(normal);
 
@@ -285,8 +273,10 @@ void main()
     //    B *= -1.0;
 	//}
 
+    vec3 lightPos = vec3(0.0, 2.0, 1.0);
+
 	vec3 V = normalize(globals.eye.xyz - position);
-    vec3 lightDirection = globals.directionalLight.xyz;
+    vec3 lightDirection = position - lightPos;
     float lightDistance = length(lightDirection);
     vec3 L = normalize(lightDirection);
 	vec3 H = normalize(V + L);
@@ -305,7 +295,6 @@ void main()
 		occlusion = rmo.r;
         roughness *= rmo.g;
         metallicness *= rmo.b;
-        environment = clamp(environment * (metallicness * (1.0 - roughness)), 0.0, 1.0);
     }
 
     vec3 emissivity = mesh.emissiveFactor.rgb;
@@ -322,12 +311,16 @@ void main()
     float NdotH = clamp(dot(N, H), 0.0, 1.0);
     float HdotL = clamp(dot(H, L), 0.0, 1.0);
     float HdotV = clamp(dot(H, V), 0.0, 1.0);
+
+    float lightIntensity = 10.0;
+    float lightRange = 10.0;
+    vec3 lightColor = vec3(1.0, 1.0, 1.0);
     
     vec3 materialColor = vec3(0.0, 0.0, 0.0);
     if (NdotL > 0.0 || NdotV > 0.0)
     {
-        //float intensity = (lightIntensity * clamp(1.0 - pow(lightDistance / lightRange, 4), 0.0, 1.0) / (lightDistance * lightDistance)) * NdotL;
-        float intensity = (globals.lightIntensity / (lightDistance * lightDistance)) * NdotL;
+        float intensity = (lightIntensity * clamp(1.0 - pow(lightDistance / lightRange, 4), 0.0, 1.0) / (lightDistance * lightDistance)) * NdotL;
+        //float intensity = (globals.lightIntensity / (lightDistance * lightDistance)) * NdotL;
 
         float denominator = (abs(NdotL) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotL * NdotL))) *
             (abs(NdotV) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotV * NdotV)));
@@ -349,6 +342,8 @@ void main()
         materialColor = (diffuseBRDF + specularBRDF) * intensity;
     }
 
-    fragColor = vec4(emissivity + globals.ambientLight.xyz * baseColor.rgb + environment + EncodeSRGB(materialColor) * globals.directionalLightColor.xyz, baseColor.a);
+    vec3 ambientLight = vec3(0.2, 0.2, 0.2);
+
+    fragColor = vec4(emissivity + ambientLight * baseColor.rgb + EncodeSRGB(materialColor) * lightColor, baseColor.a);
 }
 #FRAGMENT_END

@@ -24,8 +24,8 @@ public:
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static Renderpass* CreateRenderPass(const RenderpassInfo& info);
-	static Shader* CreateShader(const String& name);
-	static Pipeline* CreatePipeline(const PipelineInfo& info);
+	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, VkPushConstantRange* pushConstants = nullptr);
+	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
 	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
 	static Scene* CreateScene(const String& name);

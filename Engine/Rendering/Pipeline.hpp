@@ -16,17 +16,18 @@ struct SpecializationInfo
 {
 	SpecializationInfo() {}
 
-	template <U64 Count>
-	constexpr SpecializationInfo(const SpecializationData(&data)[Count])
+	template<typename... Data>
+	SpecializationInfo(Data&... data)
 	{
 		U32 i = 0;
-		for (; i < Count; ++i)
+
+		Memory::Copy(specializationBuffer + i++ * sizeof(U32), data ..., sizeof(U32));
+		
+		for (U32 j = 0; j < i; ++j)
 		{
-			specializationConstants->constantID = i;
-			specializationConstants->offset = i * sizeof(U32);
+			specializationConstants->constantID = j;
+			specializationConstants->offset = j * sizeof(U32);
 			specializationConstants->size = 4;
-			Memory::Copy(specializationBuffer + i * sizeof(U32), data + i, sizeof(U32));
-			BreakPoint;
 		}
 
 		specializationInfo.dataSize = i * sizeof(U32);
@@ -59,7 +60,7 @@ struct PipelineInfo
 
 struct Pipeline
 {
-	bool Create();
+	bool Create(const SpecializationInfo& specializationInfo);
 	void Destroy();
 
 	void Update();
@@ -78,5 +79,5 @@ struct Pipeline
 	U8					descriptorCount;
 
 private:
-	bool CreatePipeline();
+	bool CreatePipeline(const SpecializationInfo& specializationInfo);
 };

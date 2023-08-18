@@ -549,11 +549,15 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	GlobalData globalData{};
 	globalData.vp = camera.ViewProjection();
 	globalData.eye = camera.Eye();
-	globalData.directionalLight = { Vector4::Forward };
-	globalData.directionalLightColor = { Vector4::One };
-	globalData.ambientLight = { 0.2, 0.2, 0.2, 1.0f };
-	globalData.lightIntensity = 10.0f;
-	globalData.skyboxIndex = U16_MAX;
+	globalData.screenWidth;
+	globalData.screenHeight;
+	globalData.znear;
+	globalData.zfar;
+	globalData.frustum;
+
+	globalData.pyramidWidth;
+	globalData.pyramidHeight;
+	globalData.clusterOcclusionEnabled;
 
 	commandBuffer->BindRenderpass(pipeline->renderpass);
 
