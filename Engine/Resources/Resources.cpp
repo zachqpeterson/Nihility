@@ -420,7 +420,7 @@ void Resources::Update()
 		VkDescriptorImageInfo bindlessImageInfo[maxBindlessResources];
 
 		Texture* dummyTexture = Resources::AccessDummyTexture();
-
+		 
 		U32 currentWriteIndex = 0;
 
 		while (bindlessTexturesToUpdate.Size())
