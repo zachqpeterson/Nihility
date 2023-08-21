@@ -2,9 +2,10 @@
 
 #include "ContainerDefines.hpp"
 
+#include "Vector.hpp"
 #include "Memory\Memory.hpp"
 #include "Math\Hash.hpp"
-#include "Vector.hpp"
+#include "Math\Random.hpp"
 
 #define UPPER_CHAR		0x01
 #define LOWER_CHAR		0x02
@@ -105,6 +106,11 @@ struct C8Lookup
 		"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
 		"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
 		"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
+
+	static inline constexpr const C8 ALPHANUM_LOOKUP[] =
+		"abcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"0123456789";
 
 	static inline constexpr C8 TYPE_LOOKUP[]{
 		0,							// -1 EOF
@@ -490,14 +496,14 @@ static inline bool Compare(const C* a, const C* b)
 * TODO: Conversions
 *
 * TODO: Option to add 0x prefix to {h}
-*
-* TODO: Init with string literal
 */
 template<typename T, typename LU>
 struct NH_API StringBase
 {
 	using CharType = T;
 	using StringBaseType = StringBase<T, LU>;
+
+	static StringBase RandomString(U32 length);
 
 	StringBase();
 	StringBase(NoInit);
@@ -622,6 +628,21 @@ private:
 	U64 capacity{ 0 };
 	T* string{ nullptr };
 };
+
+template<typename T, typename LU>
+inline StringBase<T, LU> StringBase<T, LU>::RandomString(U32 length)
+{
+	String str{ length };
+
+	T* it = str.string;
+
+	for (U32 i = 0; i < length; ++i)
+	{
+		*it++ = LU::ALPHANUM_LOOKUP[Random::RandomRange(0, CountOf(LU::ALPHANUM_LOOKUP))];
+	}
+
+	return str;
+}
 
 template<typename T, typename LU>
 inline StringBase<T, LU>::StringBase() { Memory::AllocateArray(&string, capacity, capacity); }
@@ -847,7 +868,7 @@ inline bool StringBase<T, LU>::operator!=(const StringBase<T, LU>& other) const
 }
 
 template<typename T, typename LU>
-template<U64 Count> 
+template<U64 Count>
 inline bool StringBase<T, LU>::operator!=(const T(&other)[Count]) const
 {
 	if (Count - 1 != size) { return true; }
@@ -896,7 +917,7 @@ inline bool StringBase<T, LU>::CompareN(const StringBase<T, LU>& other, U64 star
 }
 
 template<typename T, typename LU>
-template<U64 Count> 
+template<U64 Count>
 inline bool StringBase<T, LU>::CompareN(const T(&other)[Count], U64 start) const
 {
 	return Compare(string + start, other, Count - 1);
@@ -917,7 +938,7 @@ inline bool StringBase<T, LU>::StartsWith(const StringBase& other) const
 }
 
 template<typename T, typename LU>
-template<U64 Count> 
+template<U64 Count>
 inline bool StringBase<T, LU>::StartsWith(const T(&other)[Count]) const
 {
 	return Compare(string, other, Count - 1);
@@ -938,7 +959,7 @@ inline bool StringBase<T, LU>::EndsWith(const StringBase& other) const
 }
 
 template<typename T, typename LU>
-template<U64 Count> 
+template<U64 Count>
 inline bool StringBase<T, LU>::EndsWith(const T(&other)[Count]) const
 {
 	return Compare(string + (size - Count - 1), other, Count - 1);
@@ -1007,7 +1028,7 @@ inline StringBase<T, LU>& StringBase<T, LU>::Trim()
 	T* start = string;
 	T* end = string + size - 1;
 	T c;
-	
+
 	//TODO: Verify this works
 	while (WhiteSpace(c = *start)) { ++start; }
 	while (WhiteSpace(c = *end)) { --end; }

@@ -19,8 +19,8 @@ public:
 	static Sampler* CreateSampler(const SamplerInfo& info);
 	static Texture* CreateTexture(const TextureInfo& info);
 	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
-	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
+	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static Renderpass* CreateRenderPass(const RenderpassInfo& info);
@@ -81,8 +81,12 @@ private:
 	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
+	static Texture* AssimpToNihility(const String& name, const struct aiTexture* texture);
+	static bool JpgToNhimg(Texture* texture, U32 size, U8* data);
+	static bool ExrToNhimg(Texture* texture, U32 size, U8* data);
+
 	//Model Loading
-	static Mesh CreateMesh(const struct aiMesh* meshInfo, const struct aiMaterial* materialInfo);
+	static Mesh CreateMesh(U32 meshNumber, const struct aiMesh* meshInfo, const struct aiMaterial* materialInfo, const struct aiScene* scene);
 
 	//Scene Loading
 	static bool LoadNHSCN(Scene* scene, File& file);

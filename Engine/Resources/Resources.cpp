@@ -1541,6 +1541,38 @@ void Resources::GetKTXInfo(U32 internalFormat, KTXInfo& info)
 	}
 }
 
+Texture* Resources::AssimpToNihility(const String& name, const aiTexture* textureInfo)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	Texture* texture = &textures.Request(name);
+
+	if (!texture->name.Blank()) { return texture; }
+
+	texture->name = name;
+
+	if (Memory::Compare(textureInfo->achFormatHint, "jpg", 3))
+	{
+		BreakPoint;
+	}
+	else if (Memory::Compare(textureInfo->achFormatHint, "exr", 3))
+	{
+		BreakPoint;
+	}
+
+	return nullptr;
+}
+
+bool Resources::JpgToNhimg(Texture* texture, U32 size, U8* data)
+{
+	return false;
+}
+
+bool Resources::ExrToNhimg(Texture* texture, U32 size, U8* data)
+{
+	return false;
+}
+
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info)
 {
 	U64 handle;
@@ -1688,7 +1720,7 @@ Model* Resources::LoadModel(const String& name)
 		aiMesh* tempMesh = scene->mMeshes[i];
 		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
 
-		model->meshes[model->meshCount++] = Move(CreateMesh(tempMesh, tempMaterial));
+		model->meshes[model->meshCount++] = Move(CreateMesh(i, tempMesh, tempMaterial, scene));
 	}
 
 	aiReleaseImport(scene);
@@ -1696,34 +1728,24 @@ Model* Resources::LoadModel(const String& name)
 	return model;
 }
 
-Mesh Resources::CreateMesh(const aiMesh* meshInfo, const struct aiMaterial* materialInfo)
+Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMaterial* materialInfo, const aiScene* scene)
 {
 	Mesh mesh{};
 
-	if (materialInfo->GetTextureCount(aiTextureType_NONE)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_SPECULAR)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_EMISSIVE)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_HEIGHT)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_NORMALS)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_SHININESS)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_OPACITY)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_DISPLACEMENT)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_LIGHTMAP)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_REFLECTION)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_BASE_COLOR)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_NORMAL_CAMERA)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_EMISSION_COLOR)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_METALNESS)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_SHEEN)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_CLEARCOAT)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_TRANSMISSION)) { BreakPoint; }
-	if (materialInfo->GetTextureCount(aiTextureType_UNKNOWN)) { BreakPoint; }
-
 	aiReturn ret;
+
+	for (U32 i = 0; i <= AI_TEXTURE_TYPE_MAX; ++i)
+	{
+		aiString texturePath;
+		ret = materialInfo->GetTexture((aiTextureType)i, 0, &texturePath, nullptr, nullptr, nullptr, nullptr, nullptr);
+		if (ret == aiReturn_SUCCESS)
+		{
+			Texture* texture = AssimpToNihility(String::RandomString(16), scene->GetEmbeddedTexture(texturePath.C_Str()));
+
+			//TODO: determine texture and set index in mesh
+		}
+	}
+	
 	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
 	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
 	ai_real roughness{ 0.5f };
