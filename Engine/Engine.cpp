@@ -25,8 +25,6 @@ ShutdownFn Engine::GameShutdown;
 bool Engine::running;
 bool Engine::suspended;
 
-constexpr U32 i = DegreeOfTwo(47u);
-
 void Engine::Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
