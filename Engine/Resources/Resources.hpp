@@ -17,10 +17,6 @@ class NH_API Resources
 {
 public:
 	static Sampler* CreateSampler(const SamplerInfo& info);
-	static Texture* CreateTexture(const TextureInfo& info);
-	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
-	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
-	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static Renderpass* CreateRenderPass(const RenderpassInfo& info);
@@ -31,7 +27,6 @@ public:
 	static Scene* CreateScene(const String& name);
 	static Scene* LoadScene(const String& name);
 	static void SaveScene(const Scene* scene);
-	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
@@ -58,6 +53,14 @@ public:
 	static void SaveBinary(const String& name, const String& data);
 	static void SaveBinary(const String& name, void* data, U64 length);
 
+
+
+	static Texture* CreateTexture(const TextureInfo& info);
+	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
+	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
+	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
+	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
+
 private:
 	static bool Initialize();
 	static void CreateDefaults();
@@ -81,9 +84,8 @@ private:
 	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
-	static Texture* AssimpToNihility(const String& name, const struct aiTexture* texture);
-	static bool JpgToNhimg(Texture* texture, U32 size, U8* data);
-	static bool ExrToNhimg(Texture* texture, U32 size, U8* data);
+	static Texture* AssimpToNhimg(const String& name, const struct aiTexture* texture);
+	static Texture* ConvertToNhimg(const String& name, const U8* data);
 
 	//Model Loading
 	static Mesh CreateMesh(U32 meshNumber, const struct aiMesh* meshInfo, const struct aiMaterial* materialInfo, const struct aiScene* scene);

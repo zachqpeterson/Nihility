@@ -13,6 +13,9 @@
 #include "External\Assimp\postprocess.h"
 #include <LunarG\glslang\Include\intermediate.h>
 
+#include "External\stb_image.h";
+#include "External\tinyexr.h";
+
 #undef near
 #undef far
 
@@ -1541,7 +1544,7 @@ void Resources::GetKTXInfo(U32 internalFormat, KTXInfo& info)
 	}
 }
 
-Texture* Resources::AssimpToNihility(const String& name, const aiTexture* textureInfo)
+Texture* Resources::AssimpToNhimg(const String& name, const aiTexture* textureInfo)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1563,14 +1566,15 @@ Texture* Resources::AssimpToNihility(const String& name, const aiTexture* textur
 	return nullptr;
 }
 
-bool Resources::JpgToNhimg(Texture* texture, U32 size, U8* data)
+Texture* Resources::ConvertToNhimg(const String& name, const U8* data)
 {
-	return false;
-}
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-bool Resources::ExrToNhimg(Texture* texture, U32 size, U8* data)
-{
-	return false;
+	Texture* texture = &textures.Request(name);
+
+	if (!texture->name.Blank()) { return texture; }
+
+	texture->name = name;
 }
 
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info)
@@ -1740,7 +1744,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		ret = materialInfo->GetTexture((aiTextureType)i, 0, &texturePath, nullptr, nullptr, nullptr, nullptr, nullptr);
 		if (ret == aiReturn_SUCCESS)
 		{
-			Texture* texture = AssimpToNihility(String::RandomString(16), scene->GetEmbeddedTexture(texturePath.C_Str()));
+			Texture* texture = AssimpToNhimg(String::RandomString(16), scene->GetEmbeddedTexture(texturePath.C_Str()));
 
 			//TODO: determine texture and set index in mesh
 		}
