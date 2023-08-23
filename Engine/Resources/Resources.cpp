@@ -13,8 +13,11 @@
 #include "External\Assimp\postprocess.h"
 #include <LunarG\glslang\Include\intermediate.h>
 
-#include "External\stb_image.h";
-#include "External\tinyexr.h";
+#define STBI_NO_STDIO
+#define STB_IMAGE_IMPLEMENTATION
+#include "External\stb_image.h"
+#define TINYEXR_IMPLEMENTATION
+#include "External\tinyexr.h"
 
 #undef near
 #undef far
@@ -135,28 +138,6 @@ struct KTXInfo
 	U32 blockWidth;			// in texels
 	U32 blockHeight;		// in texels
 	U32 blockDepth;			// in texels
-};
-
-struct FBXHeader
-{
-	U8 magic[21];
-	U8 reserved[2];
-	U32 version;
-};
-
-struct FBXNode
-{
-	U32 endOffset;
-	U32 propertyCount;
-	U32 propertyListSize;
-	U8 nameLength;
-};
-
-struct FBXArray
-{
-	U32 count;
-	U32 encoding;
-	U32 compressedLength;
 };
 
 #pragma pack(pop)
