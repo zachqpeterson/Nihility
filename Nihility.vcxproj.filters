@@ -469,9 +469,6 @@
     <ClInclude Include="Engine\External\stb_image.h">
       <Filter>Source Files\External</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\External\tinyexr.h">
-      <Filter>Source Files\External</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">

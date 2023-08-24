@@ -283,26 +283,16 @@ template <U64... Indices> using IndexSequence = IntegerSequence<U64, Indices...>
 template <Integer I, I Size> using CreateIntegerSequence = __make_integer_seq<IntegerSequence, I, Size>;
 template <U64 Size> using CreateIndexSequence = CreateIntegerSequence<U64, Size>;
 
+template <Character C, C... Chars>
+struct CharPack
+{
+	static constexpr C pack[sizeof...(Chars)] = { Chars... };
+};
+
 template<class Dest, class Src>
 constexpr Dest CharCast(Src x)
 {
-	if (x < 0 || x > 127) { static_assert("Character value must be in basic ASCII range (0..127)"); }
 	return static_cast<Dest>(x);
-}
-
-namespace TypeTraits
-{
-	template<class Dest, class Src, U64 N, U64... I>
-	constexpr auto AggregateString(const Src(&a)[N], IndexSequence<I...>) -> const Dest(&)[N]
-	{
-		return { CharCast<Dest>(a[I])..., 0 };
-	}
-}
-
-template<class Dest, class Src, U64 N, typename Indices = CreateIndexSequence<N - 1>>
-constexpr auto StringCast(const Src(&a)[N]) -> const Dest(&)[N]
-{
-	return TypeTraits::AggregateString<Dest>(a, Indices{});
 }
 
 /// <summary>

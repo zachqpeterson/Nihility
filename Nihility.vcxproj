@@ -209,7 +209,6 @@
     <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_reflect.h" />
     <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_reflect.hpp" />
     <ClInclude Include="Engine\External\stb_image.h" />
-    <ClInclude Include="Engine\External\tinyexr.h" />
     <ClInclude Include="Engine\External\zlib\crc32.h" />
     <ClInclude Include="Engine\External\zlib\gzguts.h" />
     <ClInclude Include="Engine\External\zlib\inffast.h" />

@@ -16,8 +16,6 @@
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
 #include "External\stb_image.h"
-#define TINYEXR_IMPLEMENTATION
-#include "External\tinyexr.h"
 
 #undef near
 #undef far
@@ -1535,7 +1533,11 @@ Texture* Resources::AssimpToNhimg(const String& name, const aiTexture* textureIn
 
 	texture->name = name;
 
-	if (Memory::Compare(textureInfo->achFormatHint, "jpg", 3))
+	if (Memory::Compare(textureInfo->achFormatHint, "png", 3))
+	{
+		BreakPoint;
+	}
+	else if (Memory::Compare(textureInfo->achFormatHint, "jpg", 3))
 	{
 		BreakPoint;
 	}

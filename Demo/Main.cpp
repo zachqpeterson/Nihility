@@ -9,7 +9,7 @@
 
 bool Init()
 {
-	Model* model = Resources::LoadModel("models/Cannon.fbx");
+	Model* model = Resources::LoadModel("models/Chess.fbx");
 
 	Scene* scene = Resources::CreateScene("scenes/CarTest.nhscn");
 
