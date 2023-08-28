@@ -344,6 +344,7 @@ bool Renderer::CreateDevice()
 	}
 
 	//TODO: Remove
+	pushDescriptorsSupported = false;
 	meshShadingSupported = false;
 
 	U32 deviceExtensionCount = 0;
@@ -580,7 +581,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	{
 		commandBuffer->BindPipeline(pipeline);
 
-		Descriptor descriptors[] = { drawCommandsBuffer.vkBuffer, meshBuffer.vkBuffer, vertexBuffer.vkBuffer };
+		Descriptor descriptors[] = { {drawCommandsBuffer.vkBuffer}, {meshBuffer.vkBuffer}, {vertexBuffer.vkBuffer} };
 		PushDescriptors(pipeline->shader, descriptors);
 
 		commandBuffer->BindIndexBuffer(indexBuffer);
@@ -589,7 +590,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 		vkCmdDrawIndexedIndirectCount(commandBuffer->commandBuffer, drawCommandsBuffer.vkBuffer, offsetof(MeshDrawCommand, indirect), drawCountsBuffer.vkBuffer, 0, drawCount, sizeof(MeshDrawCommand));
 	}
 
-	vkCmdEndRendering(commandBuffer->commandBuffer);
+	vkCmdEndRenderPass(commandBuffer->commandBuffer);
 }
 
 void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, bool late)
@@ -650,13 +651,13 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCo
 	commandBuffer->BindPipeline(pipeline);
 
 	Descriptor pyramidDesc(depthPyramid->imageView, VK_IMAGE_LAYOUT_GENERAL, depthPyramid->sampler->sampler);
-	Descriptor descriptors[]{ meshBuffer.vkBuffer, drawCommandsBuffer.vkBuffer, drawCountsBuffer.vkBuffer, drawVisibilityBuffer.vkBuffer, pyramidDesc };
+	Descriptor descriptors[]{ {meshBuffer.vkBuffer}, {drawCommandsBuffer.vkBuffer}, {drawCountsBuffer.vkBuffer}, {drawVisibilityBuffer.vkBuffer}, pyramidDesc };
 	PushDescriptors(pipeline->shader, descriptors);
 
 	U32 groupCount = (drawCount + pipeline->shader->stages[0].localSizeX - 1) / pipeline->shader->stages[0].localSizeX;
 
 	vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(DrawCullData), &cullData);
-	vkCmdDispatch(commandBuffer->commandBuffer, groupCount, 1, 1);
+	commandBuffer->Dispatch(groupCount, 1, 1);
 
 	if (meshShadingSupported)
 	{
@@ -668,7 +669,7 @@ void Renderer::Cull(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCo
 
 		//commandBuffer->BindPipeline(tasksubmitPipeline);
 
-		Descriptor descriptors[] = { drawCountsBuffer.vkBuffer, drawCommandsBuffer.vkBuffer };
+		Descriptor descriptors[]{ {drawCountsBuffer.vkBuffer}, {drawCommandsBuffer.vkBuffer} };
 		//PushDescriptors(tasksubmitProgram, descriptors);
 
 		commandBuffer->Dispatch(1, 1, 1);
@@ -714,7 +715,7 @@ void Renderer::GenerateDepthPyramid(CommandBuffer* commandBuffer)
 		U32 levelWidth = Math::Max(1, depthPyramid->width >> i);
 		U32 levelHeight = Math::Max(1, depthPyramid->height >> i);
 
-		DepthReduceData reduceData{ Vector2(levelWidth, levelHeight) };
+		DepthReduceData reduceData{ Vector2((F32)levelWidth, (F32)levelHeight) };
 
 		U32 groupCountX = (levelWidth + Resources::depthProgram->stages[0].localSizeX - 1) / Resources::depthProgram->stages[0].localSizeX;
 		U32 groupCountY = (levelHeight + Resources::depthProgram->stages[0].localSizeY - 1) / Resources::depthProgram->stages[0].localSizeY;
@@ -749,11 +750,11 @@ void Renderer::EndFrame()
 
 	Resources::Update();
 
-	Cull(commandBuffer, Resources::earlyCullPipeline, currentScene->draws.Size(), false);
-	Render(commandBuffer, Resources::earlyRenderPipeline, currentScene->draws.Size(), false);
+	Cull(commandBuffer, Resources::earlyCullPipeline, (U32)currentScene->draws.Size(), false);
+	Render(commandBuffer, Resources::earlyRenderPipeline, (U32)currentScene->draws.Size(), false);
 	GenerateDepthPyramid(commandBuffer);
-	Cull(commandBuffer, Resources::lateCullPipeline, currentScene->draws.Size(), true);
-	Render(commandBuffer, Resources::lateRenderPipeline, currentScene->draws.Size(), true);
+	Cull(commandBuffer, Resources::lateCullPipeline, (U32)currentScene->draws.Size(), true);
+	Render(commandBuffer, Resources::lateRenderPipeline, (U32)currentScene->draws.Size(), true);
 
 	//Post Processing
 	//TODO: Skybox
@@ -848,7 +849,7 @@ void Renderer::LoadScene(const String& name)
 {
 	if (currentScene)
 	{
-		Resources::SaveScene(currentScene);
+		//Resources::SaveScene(currentScene);
 		//TODO: Unload scene
 	}
 
@@ -1007,7 +1008,11 @@ Buffer Renderer::CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryP
 
 	buffer.deviceMemory = allocationInfo.deviceMemory;
 
-	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { buffer.data = allocationInfo.pMappedData; buffer.mapped = true; }
+	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+	{
+		buffer.data = allocationInfo.pMappedData;
+		buffer.mapped = true;
+	}
 
 	//TODO: CreateBufferWithData
 	//if (data)
@@ -1248,6 +1253,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		CommandBuffer* blitCmd = commandBufferRing.GetCommandBufferInstant(currentFrame);
 		vkBeginCommandBuffer(blitCmd->commandBuffer, &beginInfo);
 
+		info.subresourceRange.levelCount = 1;
+
 		//TODO: Some textures could have mipmaps stored in the already
 		for (U32 i = 1; i < texture->mipmapCount; ++i)
 		{
@@ -1452,12 +1459,12 @@ bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSet
 	descriptorTemplateInfo.pNext = nullptr;
 	descriptorTemplateInfo.flags = 0;
 	descriptorTemplateInfo.templateType = pushDescriptorsSupported ? VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR : VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET;
-	descriptorTemplateInfo.descriptorSetLayout = pushDescriptorsSupported ? nullptr : descriptorSetLayout->descriptorSetLayout;
+	descriptorTemplateInfo.descriptorSetLayout = descriptorSetLayout->descriptorSetLayout;
 	descriptorTemplateInfo.pipelineBindPoint = shader->bindPoint;
 	descriptorTemplateInfo.pipelineLayout = shader->pipelineLayout;
 	descriptorTemplateInfo.descriptorUpdateEntryCount = descriptorSetLayout->bindingCount;
 	descriptorTemplateInfo.pDescriptorUpdateEntries = entries;
-	//descriptorTemplateInfo.set = descriptorSetLayout->setIndex;
+	descriptorTemplateInfo.set = descriptorSetLayout->setIndex;
 
 	VkValidateR(vkCreateDescriptorUpdateTemplate(device, &descriptorTemplateInfo, allocationCallbacks, &descriptorSetLayout->updateTemplate));
 

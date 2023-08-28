@@ -1530,22 +1530,37 @@ Texture* Resources::AssimpToNhimg(const String& name, const aiTexture* textureIn
 	Texture* texture = &textures.Request(name);
 
 	if (!texture->name.Blank()) { return texture; }
+	
+	if (Memory::Compare(textureInfo->achFormatHint, "exr", 3))
+	{
+		Logger::Error("Exr Images Are Not Yet Supported!");
+		BreakPoint;
+	}
+
+	U8* data = stbi_load_from_memory((U8*)textureInfo->pcData, textureInfo->mWidth, (I32*)&texture->width, (I32*)&texture->height, nullptr, 4);
+
+	if (!data)
+	{
+		Logger::Error("Failed To Convert Image!");
+		textures.Remove(name);
+		return nullptr;
+	}
 
 	texture->name = name;
+	texture->depth = 1;
+	texture->size = texture->width * texture->height * 4;
+	texture->format = VK_FORMAT_R8G8B8A8_UNORM;
+	texture->mipmapCount = (U8)Math::Min(DegreeOfTwo(texture->width), DegreeOfTwo(texture->height));
+	texture->type = VK_IMAGE_TYPE_2D;
+	texture->handle = textures.GetHandle(name);
 
-	if (Memory::Compare(textureInfo->achFormatHint, "png", 3))
+	if (Renderer::CreateTexture(texture, data))
 	{
-		BreakPoint;
-	}
-	else if (Memory::Compare(textureInfo->achFormatHint, "jpg", 3))
-	{
-		BreakPoint;
-	}
-	else if (Memory::Compare(textureInfo->achFormatHint, "exr", 3))
-	{
-		BreakPoint;
+		return texture;
 	}
 
+	Logger::Error("Failed To Convert Image!");
+	textures.Remove(name);
 	return nullptr;
 }
 
@@ -1558,6 +1573,8 @@ Texture* Resources::ConvertToNhimg(const String& name, const U8* data)
 	if (!texture->name.Blank()) { return texture; }
 
 	texture->name = name;
+
+	return nullptr;
 }
 
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info)
@@ -1707,7 +1724,7 @@ Model* Resources::LoadModel(const String& name)
 		aiMesh* tempMesh = scene->mMeshes[i];
 		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
 
-		model->meshes[model->meshCount++] = Move(CreateMesh(i, tempMesh, tempMaterial, scene));
+		model->meshes[model->meshCount++] = CreateMesh(i, tempMesh, tempMaterial, scene);
 	}
 
 	aiReleaseImport(scene);
@@ -1729,7 +1746,35 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		{
 			Texture* texture = AssimpToNhimg(String::RandomString(16), scene->GetEmbeddedTexture(texturePath.C_Str()));
 
-			//TODO: determine texture and set index in mesh
+			switch (i)
+			{
+			case aiTextureType_DIFFUSE: { mesh.diffuseTextureIndex = texture->handle; } break;
+				case aiTextureType_EMISSIVE: { mesh.emissivityTextureIndex = texture->handle; } break;
+				case aiTextureType_NORMALS: { mesh.normalTextureIndex = texture->handle; } break;
+				case aiTextureType_SHININESS: {  } break;
+				case aiTextureType_BASE_COLOR: { mesh.diffuseTextureIndex = texture->handle; } break;
+				case aiTextureType_EMISSION_COLOR: { mesh.emissivityTextureIndex = texture->handle; } break;
+				case aiTextureType_METALNESS: {  } break;
+				case aiTextureType_DIFFUSE_ROUGHNESS: {  } break;
+				case aiTextureType_AMBIENT_OCCLUSION: {  } break;
+
+				case aiTextureType_NONE:
+				case aiTextureType_SPECULAR:
+				case aiTextureType_AMBIENT:
+				case aiTextureType_HEIGHT:
+				case aiTextureType_OPACITY:
+				case aiTextureType_DISPLACEMENT:
+				case aiTextureType_LIGHTMAP:
+				case aiTextureType_REFLECTION:
+				case aiTextureType_NORMAL_CAMERA:
+				case aiTextureType_UNKNOWN:
+				case aiTextureType_SHEEN:
+				case aiTextureType_CLEARCOAT:
+				case aiTextureType_TRANSMISSION:
+				default: {
+					Logger::Warn("Unknown Texture Usage '{}'!", i);
+				}
+			}
 		}
 	}
 	
@@ -1761,7 +1806,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
 				vertexData[i].tangent = *(Vector3*)&meshInfo->mTangents[i];
 				vertexData[i].bitangent = *(Vector3*)&meshInfo->mBitangents[i];
-				vertexData[i].texcoord = *(Vector2*)&meshInfo->mTextureCoords[i];
+				vertexData[i].texcoord = *(Vector2*)&meshInfo->mTextureCoords[0][i];
 			}
 		}
 		else
@@ -1787,7 +1832,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
-				vertexData[i].texcoord = *(Vector2*)&meshInfo->mTextureCoords[i];
+				vertexData[i].texcoord = *(Vector2*)&meshInfo->mTextureCoords[0][i];
 			}
 		}
 		else
@@ -1816,15 +1861,15 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		it += faceSize;
 	}
 
-	mesh.vertexOffset = Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, mesh.vertexCount * sizeof(Vertex));
-	mesh.lods[0].indexOffset = Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, meshInfo->mNumFaces * faceSize);
-	mesh.meshIndex = Renderer::meshBuffer.allocationOffset / sizeof(Mesh);
+	mesh.vertexOffset = (U32)Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, mesh.vertexCount * sizeof(Vertex));
+	mesh.lods[0].indexOffset = (U32)Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, meshInfo->mNumFaces * faceSize);
+	mesh.meshIndex = (U32)Renderer::meshBuffer.allocationOffset / sizeof(Mesh);
 	Renderer::UploadToBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh));
 
 	free(vertexData);
 	free(indexData);
 
-	return mesh;
+	return Move(mesh);
 }
 
 Skybox* Resources::LoadSkybox(const String& name)
@@ -2312,9 +2357,12 @@ void Resources::DestroyTexture(Texture* texture)
 
 void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
 {
-	if (layout) { vkDestroyDescriptorSetLayout(Renderer::device, layout->descriptorSetLayout, Renderer::allocationCallbacks); }
+	if (layout)
+	{
+		vkDestroyDescriptorSetLayout(Renderer::device, layout->descriptorSetLayout, Renderer::allocationCallbacks);
 
-	if (layout->updateTemplate) { vkDestroyDescriptorUpdateTemplate(Renderer::device, layout->updateTemplate, Renderer::allocationCallbacks); layout->updateTemplate = nullptr; }
+		if (layout->updateTemplate) { vkDestroyDescriptorUpdateTemplate(Renderer::device, layout->updateTemplate, Renderer::allocationCallbacks); layout->updateTemplate = nullptr; }
+	}
 }
 
 void Resources::DestroyDescriptorSet(DescriptorSet* set)

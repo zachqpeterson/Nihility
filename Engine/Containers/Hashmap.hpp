@@ -211,7 +211,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(const K
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
@@ -229,7 +229,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const K
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
@@ -253,7 +253,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const K
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
@@ -280,7 +280,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Get(const Ke
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
@@ -294,7 +294,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Request(cons
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
@@ -311,7 +311,7 @@ template<class Key, class Value> inline HashHandle Hashmap<Key, Value>::GetHandl
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	HashHandle handle = hash % capacity;
 	Cell* cell = cells + handle;
 	while (cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
@@ -369,7 +369,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::operator[](c
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
@@ -385,7 +385,7 @@ template<class Key, class Value> inline const Value& Hashmap<Key, Value>::operat
 	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
 	else { hash = Hash::Calculate(key); }
 
-	U32 i = 0;
+	U64 i = 0;
 	Cell* cell = cells + (hash % capacity);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 

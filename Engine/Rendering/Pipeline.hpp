@@ -22,7 +22,7 @@ struct SpecializationInfo
 		U32 i = 0;
 
 		Memory::Copy(specializationBuffer + i++ * sizeof(U32), data ..., sizeof(U32));
-		
+
 		for (U32 j = 0; j < i; ++j)
 		{
 			specializationConstants->constantID = j;
@@ -38,7 +38,7 @@ struct SpecializationInfo
 
 	VkSpecializationMapEntry	specializationConstants[MAX_SPECIALIZATION_CONSTANTS]{};
 	VkSpecializationInfo		specializationInfo{};
-	U8*							specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * sizeof(U32)]{};
+	U8* specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * sizeof(U32)]{};
 };
 
 struct PipelineInfo
@@ -49,8 +49,8 @@ struct PipelineInfo
 	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkAttachmentLoadOp	stencilLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 
-	Shader*				shader{ nullptr };
-	Renderpass*			renderpass{ nullptr };
+	Shader* shader{ nullptr };
+	Renderpass* renderpass{ nullptr };
 
 	SpecializationInfo	specialization{};
 
@@ -76,7 +76,7 @@ struct Pipeline
 	VkPipeline			pipeline{ nullptr };
 
 	Descriptor			descriptors[MAX_DESCRIPTORS_PER_SET]{};
-	U8					descriptorCount;
+	U8					descriptorCount{ 0 };
 
 private:
 	bool CreatePipeline(const SpecializationInfo& specializationInfo);

@@ -39,7 +39,7 @@ bool Pipeline::Create(const SpecializationInfo& specializationInfo)
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
 			renderPassInfo.AddRenderTarget(texture);
-			//TODO: Add clear colors if not equal to render targets
+			renderPassInfo.AddClearColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 
 		if (shader->depthStencil.depthEnable)

@@ -11,13 +11,12 @@ bool Init()
 {
 	Model* model = Resources::LoadModel("models/Chess.fbx");
 
-	Scene* scene = Resources::CreateScene("scenes/CarTest.nhscn");
+	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn");
 
 	scene->AddModel(model);
-	scene->SetSkybox("textures/UffiziCube.ktx");
+	//scene->SetSkybox("textures/UffiziCube.ktx");
 
-	Renderer::LoadScene("scenes/CarTest.nhscn");
-	//Renderer::LoadScene("scenes/Boombox.nhscn");
+	Renderer::LoadScene("scenes/Chess.nhscn");
 
 	return true;
 }
