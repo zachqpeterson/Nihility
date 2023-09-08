@@ -510,9 +510,6 @@ bool Renderer::BeginFrame()
 		return false;
 	}
 
-	commandBufferRing.ResetPools(frameIndex);
-	VkValidateFR(vkResetDescriptorPool(device, descriptorPool, 0));
-
 	return true;
 }
 
@@ -524,7 +521,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	globalData.vp = camera.ViewProjection();
 	globalData.eye = camera.Eye();
 
-	commandBuffer->BindRenderpass(pipeline->renderpass);
+	commandBuffer->BeginRenderpass(pipeline->renderpass);
 
 	bool taskSubmit = false;
 
@@ -547,33 +544,22 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 
 		Descriptor descriptors[]{ {drawCommandsBuffer.vkBuffer}, {meshBuffer.vkBuffer} };
 		PushDescriptors(pipeline->shader, descriptors);
-		vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(GlobalData), &globalData);
+		commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData);
 
 		commandBuffer->BindIndexBuffer(indexBuffer);
 		commandBuffer->BindVertexBuffer(vertexBuffer);
 		commandBuffer->BindInstanceBuffer(instanceBuffer);
 
-		//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount;
-
-		if (physicalDeviceFeatures.multiDrawIndirect)
-		{
-			vkCmdDrawIndexedIndirect(commandBuffer->commandBuffer, drawCommandsBuffer.vkBuffer, 0, drawCount, sizeof(VkDrawIndexedIndirectCommand));
-		}
-		else
-		{
-			for (U32 i = 0; i < drawCount; ++i)
-			{
-				vkCmdDrawIndexedIndirect(commandBuffer->commandBuffer, drawCommandsBuffer.vkBuffer, sizeof(VkDrawIndexedIndirectCommand) * i, 1, sizeof(VkDrawIndexedIndirectCommand));
-			}
-		}
+		commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, drawCount);
 	}
 
-	vkCmdEndRenderPass(commandBuffer->commandBuffer);
+	commandBuffer->EndRenderpass();
 }
 
 void Renderer::EndFrame()
 {
-	CommandBuffer* commandBuffer = GetCommandBuffer(true);
+	CommandBuffer* commandBuffer = GetCommandBuffer();
+	commandBuffer->Begin();
 
 	if (currentScene)
 	{
@@ -624,17 +610,19 @@ void Renderer::EndFrame()
 	//
 	//commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
 
-	commandBuffer->BindRenderpass(&swapchain.renderpass);
+	//Swapchain Renderpass
+	commandBuffer->BeginRenderpass(&swapchain.renderpass);
 	commandBuffer->BindPipeline(Resources::swapchainPipeline);
 
 	Descriptor descriptors[]{ {Resources::renderPipeline->renderpass->outputTextures[0]->imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, Resources::defaultSampler->sampler} };
 	PushDescriptors(Resources::swapchainProgram, descriptors);
 
 	commandBuffer->Draw(0, 3, 0, 1);
-	vkCmdEndRenderPass(commandBuffer->commandBuffer);
+	commandBuffer->EndRenderpass();
 
-	VkValidate(vkEndCommandBuffer(commandBuffer->commandBuffer));
+	commandBuffer->End();
 
+	//Submit Frame
 	VkPipelineStageFlags submitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -646,7 +634,6 @@ void Renderer::EndFrame()
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &queueSubmitted;
 
-	//BreakPoint;
 	VkValidate(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
 
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
@@ -660,9 +647,11 @@ void Renderer::EndFrame()
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) { Resize(); }
 
-	FrameCountersAdvance();
+	vkQueueWaitIdle(deviceQueue);
+	commandBufferRing.ResetPools(frameIndex);
+	VkValidateF(vkResetDescriptorPool(device, descriptorPool, 0));
 
-	VkValidate(vkDeviceWaitIdle(device));
+	FrameCountersAdvance();
 }
 
 void Renderer::Resize()
@@ -736,9 +725,9 @@ U32 Renderer::CurrentFrame()
 	return currentFrame;
 }
 
-CommandBuffer* Renderer::GetCommandBuffer(bool begin)
+CommandBuffer* Renderer::GetCommandBuffer()
 {
-	return commandBufferRing.GetCommandBuffer(currentFrame, begin);
+	return commandBufferRing.GetCommandBuffer(frameIndex);
 }
 
 void Renderer::TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
@@ -1333,7 +1322,7 @@ bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSet
 
 void Renderer::PushDescriptors(Shader* shader, const Descriptor* descriptors)
 {
-	CommandBuffer* commandBuffer = GetCommandBuffer(false);
+	CommandBuffer* commandBuffer = GetCommandBuffer();
 
 	if (pushDescriptorsSupported)
 	{

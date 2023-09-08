@@ -15,12 +15,19 @@ void CommandBuffer::Destroy()
 
 }
 
-void CommandBuffer::UnbindRenderpass()
+void CommandBuffer::Begin()
 {
-	vkCmdEndRenderPass(commandBuffer);
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
 }
 
-void CommandBuffer::BindRenderpass(Renderpass* renderpass)
+void CommandBuffer::End()
+{
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 {
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderPassBegin.framebuffer = renderpass->frameBuffers[renderpass->tiedToFrame ? Renderer::frameIndex : 0];
@@ -37,26 +44,36 @@ void CommandBuffer::BindRenderpass(Renderpass* renderpass)
 	vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
 }
 
+void CommandBuffer::EndRenderpass()
+{
+	vkCmdEndRenderPass(commandBuffer);
+}
+
 void CommandBuffer::BindPipeline(Pipeline* pipeline)
 {
 	vkCmdBindPipeline(commandBuffer, pipeline->shader->bindPoint, pipeline->pipeline);
 }
 
-void CommandBuffer::BindIndexBuffer(Buffer& buffer)
+void CommandBuffer::BindIndexBuffer(const Buffer& buffer)
 {
 	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
-void CommandBuffer::BindVertexBuffer(Buffer& buffer)
+void CommandBuffer::BindVertexBuffer(const Buffer& buffer)
 {
 	VkDeviceSize offset = 0;
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer.vkBuffer, &offset);
 }
 
-void CommandBuffer::BindInstanceBuffer(Buffer& buffer)
+void CommandBuffer::BindInstanceBuffer(const Buffer& buffer)
 {
 	VkDeviceSize offset = 0;
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
+}
+
+void CommandBuffer::PushConstants(Shader* shader, U32 offset, U32 size, const void* data)
+{
+	vkCmdPushConstants(commandBuffer, shader->pipelineLayout, shader->pushConstantStages, offset, size, data);
 }
 
 void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
@@ -67,6 +84,23 @@ void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U3
 void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance)
 {
 	vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count)
+{
+	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount;
+
+	if (Renderer::physicalDeviceFeatures.multiDrawIndirect)
+	{
+		vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, 0, count, sizeof(VkDrawIndexedIndirectCommand));
+	}
+	else
+	{
+		for (U32 i = 0; i < count; ++i)
+		{
+			vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, sizeof(VkDrawIndexedIndirectCommand) * i, 1, sizeof(VkDrawIndexedIndirectCommand));
+		}
+	}
 }
 
 void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
@@ -135,19 +169,10 @@ void CommandBufferRing::ResetPools(U32 frameIndex)
 	}
 }
 
-CommandBuffer* CommandBufferRing::GetCommandBuffer(U32 frame, bool begin)
+CommandBuffer* CommandBufferRing::GetCommandBuffer(U32 frame)
 {
 	// TODO: take in account threads
-	CommandBuffer* cb = &commandBuffers[frame * bufferPerPool];
-
-	if (begin)
-	{
-		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		vkBeginCommandBuffer(cb->commandBuffer, &beginInfo);
-	}
-
-	return cb;
+	return &commandBuffers[frame * bufferPerPool];
 }
 
 CommandBuffer* CommandBufferRing::GetCommandBufferInstant(U32 frame)

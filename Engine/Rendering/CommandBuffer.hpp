@@ -2,22 +2,31 @@
 
 #include "Resources\ResourceDefines.hpp"
 
+struct Shader;
+
 struct CommandBuffer
 {
 	void Create(VkQueueFlagBits type, bool baked);
 	void Destroy();
 
-	void UnbindRenderpass();
-	void BindRenderpass(Renderpass* renderpass);
+	void Begin();
+	void End();
+
+	void BeginRenderpass(Renderpass* renderpass);
+	void EndRenderpass();
+
 	void BindPipeline(Pipeline* pipeline);
-	void BindIndexBuffer(Buffer& buffer);
-	void BindVertexBuffer(Buffer& buffer);
-	void BindInstanceBuffer(Buffer& buffer);
+	void BindIndexBuffer(const Buffer& buffer);
+	void BindVertexBuffer(const Buffer& buffer);
+	void BindInstanceBuffer(const Buffer& buffer);
+
+	void PushDescriptors();
+	void PushConstants(Shader* shader, U32 offset, U32 size, const void* data);
 
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
 	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
-	void DrawIndexedIndirect(Buffer* buffer, U32 offset, U32 stride);
+	void DrawIndexedIndirect(const Buffer& buffer, U32 count);
 
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(Buffer* buffer, U32 offset);
@@ -37,8 +46,8 @@ struct CommandBufferRing
 
 	void							ResetPools(U32 frameIndex);
 
-	CommandBuffer* GetCommandBuffer(U32 frame, bool begin);
-	CommandBuffer* GetCommandBufferInstant(U32 frame);
+	CommandBuffer*					GetCommandBuffer(U32 frame);
+	CommandBuffer*					GetCommandBufferInstant(U32 frame);
 
 	static U16						PoolFromIndex(U32 index) { return (U16)index / bufferPerPool; }
 

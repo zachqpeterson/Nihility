@@ -39,7 +39,7 @@ private:
 	static void							PopMarker(VkCommandBuffer commandBuffer);
 	static void							FrameCountersAdvance();
 	
-	static CommandBuffer*				GetCommandBuffer(bool begin);
+	static CommandBuffer*				GetCommandBuffer();
 	
 	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, 
 		VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, 
