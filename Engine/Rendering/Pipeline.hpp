@@ -14,23 +14,26 @@ union SpecializationData {
 
 struct SpecializationInfo
 {
-	SpecializationInfo() {}
+	using SizeType = U32;
+	static constexpr U64 SIZE = sizeof(SizeType);
 
 	template<typename... Data>
-	SpecializationInfo(Data&... data)
+	SpecializationInfo(const Data&... data)
 	{
-		U32 i = 0;
+		constexpr U64 count = sizeof...(Data);
 
-		Memory::Copy(specializationBuffer + i++ * sizeof(U32), data ..., sizeof(U32));
+		U64 i = 0;
 
-		for (U32 j = 0; j < i; ++j)
+		(Memory::Copy(specializationBuffer + i++, &data, sizeof(data)), ...);
+
+		for (U64 j = 0; j < count; ++j)
 		{
-			specializationConstants->constantID = j;
-			specializationConstants->offset = j * sizeof(U32);
-			specializationConstants->size = 4;
+			specializationConstants[j].constantID = j;
+			specializationConstants[j].offset = j * SIZE;
+			specializationConstants[j].size = 4;
 		}
 
-		specializationInfo.dataSize = i * sizeof(U32);
+		specializationInfo.dataSize = i * SIZE;
 		specializationInfo.mapEntryCount = i;
 		specializationInfo.pData = specializationBuffer;
 		specializationInfo.pMapEntries = specializationConstants;
@@ -38,7 +41,7 @@ struct SpecializationInfo
 
 	VkSpecializationMapEntry	specializationConstants[MAX_SPECIALIZATION_CONSTANTS]{};
 	VkSpecializationInfo		specializationInfo{};
-	U8* specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * sizeof(U32)]{};
+	SizeType					specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * SIZE]{};
 };
 
 struct PipelineInfo
@@ -48,6 +51,7 @@ struct PipelineInfo
 	VkAttachmentLoadOp	colorLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkAttachmentLoadOp	stencilLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
+	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
 
 	Shader* shader{ nullptr };
 	Renderpass* renderpass{ nullptr };
@@ -60,7 +64,7 @@ struct PipelineInfo
 
 struct Pipeline
 {
-	bool Create(const SpecializationInfo& specializationInfo);
+	bool Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo);
 	void Destroy();
 
 	void Update();

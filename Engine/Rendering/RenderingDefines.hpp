@@ -342,26 +342,6 @@ struct DescriptorSet
 	DescriptorSetLayout*	layout{ nullptr };
 };
 
-struct alignas(16) DrawCullData
-{
-	F32 P00, P11, znear, zfar; // symmetric projection parameters
-	F32 frustum[4]; // data for left/right/top/bottom frustum planes
-	F32 lodBase, lodStep; // lod distance i = base * pow(step, i)
-	F32 pyramidWidth, pyramidHeight; // depth pyramid size in texels
-
-	U32 drawCount;
-
-	I32 cullingEnabled;
-	I32 lodEnabled;
-	I32 occlusionEnabled;
-	I32 clusterOcclusionEnabled;
-};
-
-struct alignas(16) DepthReduceData
-{
-	Vector2 imageSize;
-};
-
 struct NH_API Camera
 {
 	void Reset();

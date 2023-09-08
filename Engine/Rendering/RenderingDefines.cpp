@@ -9,9 +9,9 @@ Descriptor::Descriptor() {}
 
 Descriptor::Descriptor(VkImageView imageView, VkImageLayout imageLayout, VkSampler sampler)
 {
-	imageInfo.sampler = sampler;
 	imageInfo.imageView = imageView;
 	imageInfo.imageLayout = imageLayout;
+	imageInfo.sampler = sampler;
 }
 
 Descriptor::Descriptor(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)

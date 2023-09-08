@@ -250,14 +250,14 @@ struct NH_API StringBase
 	void Resize(U64 size);
 	void Resize();
 
-	template<Signed Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<Unsigned Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<Boolean Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<FloatingPoint Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<NonStringPointer Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<Character Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<StringLiteral Arg> void ToType(Arg& value, U64 start = 0) const;
-	template<StringType Arg> void ToType(Arg& value, U64 start = 0) const;
+	template<Signed Arg> Arg ToType(U64 start = 0) const;
+	template<Unsigned Arg> Arg ToType(U64 start = 0) const;
+	template<Boolean Arg> Arg ToType(U64 start = 0) const;
+	template<FloatingPoint Arg> Arg ToType(U64 start = 0) const;
+	template<NonStringPointer Arg> Arg ToType(U64 start = 0) const;
+	template<Character Arg> Arg ToType(U64 start = 0) const;
+	template<StringLiteral Arg> Arg ToType(U64 start = 0) const;
+	template<StringType Arg> Arg ToType(U64 start = 0) const;
 
 	C* operator*();
 	const C* operator*() const;
@@ -1423,11 +1423,11 @@ inline constexpr U64 StringBase<C>::RequiredCapacity()
 
 template<class C>
 template<Signed Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
 	C* it = string + start;
 	C c;
-	value = 0;
+	Arg value = 0;
 
 	if (*it == StringLookup<C>::NEGATIVE_CHAR)
 	{
@@ -1439,36 +1439,36 @@ inline void StringBase<C>::ToType(Arg& value, U64 start) const
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 	}
 
-	return value;
+	return Move(value);
 }
 
 template<class C>
 template<Unsigned Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
 	C* it = string + start;
 	C c;
-	value = 0;
+	Arg value = 0;
 
 	while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 
-	return value;
+	return Move(value);
 }
 
 template<class C>
 template<Boolean Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
-	value = Compare(string + start, StringLookup<C>::TRUE_STR, 4);
+	return Compare(string + start, StringLookup<C>::TRUE_STR, 4);
 }
 
 template<class C>
 template<FloatingPoint Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
 	C* it = string + start;
 	C c;
-	value = 0.0f;
+	Arg value = 0.0f;
 	F64 mul = 0.1f;
 
 	if (*it == StringLookup<C>::NEGATIVE_CHAR)
@@ -1483,31 +1483,32 @@ inline void StringBase<C>::ToType(Arg& value, U64 start) const
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value += (c - StringLookup<C>::ZERO_CHAR) * mul; mul *= 0.1f; }
 	}
 
-	return value;
+	return Move(value);
 }
 
 template<class C>
 template<NonStringPointer Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
-	ToType((U64)value, start);
+	U64 value = ToType(start);
+	return Move(value);
 }
 
 template<class C>
 template<Character Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
 	//TODO: conversions
-	value = string[start];
+	return string[start];
 }
 
 template<class C>
 template<StringLiteral Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
 	using CharType = BaseType<Arg>;
 
-	if constexpr (IsSame<CharType, C>) { value = string + start; }
+	if constexpr (IsSame<CharType, C>) { return string + start; }
 	else if constexpr (IsSame<CharType, C8>)
 	{
 		if constexpr (IsSame<C, C16>) {}
@@ -1525,23 +1526,23 @@ inline void StringBase<C>::ToType(Arg& value, U64 start) const
 	}
 	else if constexpr (IsSame<CharType, char8_t>)
 	{
-		if constexpr (IsSame<C, C8>) { value = (C8*)(string + start); }
+		if constexpr (IsSame<C, C8>) { return (C8*)(string + start); }
 		else if constexpr (IsSame<C, C16>) {}
 		else if constexpr (IsSame<C, C32>) {}
 	}
 	else if constexpr (IsSame<CharType, CW>)
 	{
 		if constexpr (IsSame<C, C8>) {}
-		else if constexpr (IsSame<C, C16>) { value = (CW*)(string + start); }
+		else if constexpr (IsSame<C, C16>) { return (CW*)(string + start); }
 		else if constexpr (IsSame<C, C32>) {}
 	}
 }
 
 template<class C>
 template<StringType Arg>
-inline void StringBase<C>::ToType(Arg& value, U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const
 {
-	if constexpr (IsSame<Arg, StringBase<C>>) { value = String(string + start); }
+	if constexpr (IsSame<Arg, StringBase<C>>) { return Move(String(string + start)); }
 	else if constexpr (IsSame<Arg, StringBase<C8>>)
 	{
 		if constexpr (IsSame<StringBase<C>, StringBase<C16>>)

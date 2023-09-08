@@ -64,7 +64,7 @@ struct Shader
 	VkPipelineColorBlendAttachmentState blendStates[MAX_IMAGE_OUTPUTS]{};
 	U8									blendStateCount{ 0 };
 
-	DescriptorSetLayout* setLayouts[MAX_DESCRIPTOR_SETS]{};
+	DescriptorSetLayout*				setLayouts[MAX_DESCRIPTOR_SETS]{};
 	U32									setCount{ 0 };
 
 	U32									vertexStreamCount{ 0 };
@@ -77,6 +77,7 @@ struct Shader
 	U32									outputCount{ 0 };
 
 	bool								useBindless{ false };
+	U8									instanceOffset{ U8_MAX };
 
 private:
 	bool ParseConfig(const String& data, I64& index);

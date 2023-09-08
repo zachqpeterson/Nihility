@@ -19,7 +19,7 @@ public:
 	static Sampler* CreateSampler(const SamplerInfo& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
-	static Renderpass* CreateRenderPass(const RenderpassInfo& info);
+	static Renderpass* CreateRenderpass(const RenderpassInfo& info);
 	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, VkPushConstantRange* pushConstants = nullptr);
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
 	static Model* LoadModel(const String& name);
@@ -34,26 +34,24 @@ public:
 
 	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
-	static Renderpass* AccessRenderPass(const String& name);
+	static Renderpass* AccessRenderpass(const String& name);
 	static Pipeline* AccessPipeline(const String& name);
 
 	static Sampler* AccessSampler(HashHandle handle);
 	static Texture* AccessTexture(HashHandle handle);
-	static Renderpass* AccessRenderPass(HashHandle handle);
+	static Renderpass* AccessRenderpass(HashHandle handle);
 	static Pipeline* AccessPipeline(HashHandle handle);
 
 	static void	DestroySampler(Sampler* sampler);
 	static void	DestroyTexture(Texture* texture);
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
-	static void	DestroyRenderPass(Renderpass* renderpass);
+	static void	DestroyRenderpass(Renderpass* renderpass);
 
 	static bool LoadBinary(const String& name, String& result);
 	static U32 LoadBinary(const String& name, void** result);
 	static void SaveBinary(const String& name, const String& data);
 	static void SaveBinary(const String& name, void* data, U64 length);
-
-
 
 	static Texture* CreateTexture(const TextureInfo& info);
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
@@ -99,13 +97,7 @@ private:
 	static Texture*								dummyTexture;
 	static Sampler*								defaultSampler;
 	static Shader*								meshProgram;
-	static Shader*								cullProgram;
-	static Shader*								depthProgram;
-	static Pipeline*							earlyRenderPipeline;
-	static Pipeline*							lateRenderPipeline;
-	static Pipeline*							earlyCullPipeline;
-	static Pipeline*							lateCullPipeline;
-	static Pipeline*							depthReducePipeline;
+	static Pipeline*							renderPipeline;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;

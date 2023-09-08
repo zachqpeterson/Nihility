@@ -47,6 +47,18 @@ void CommandBuffer::BindIndexBuffer(Buffer& buffer)
 	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
+void CommandBuffer::BindVertexBuffer(Buffer& buffer)
+{
+	VkDeviceSize offset = 0;
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer.vkBuffer, &offset);
+}
+
+void CommandBuffer::BindInstanceBuffer(Buffer& buffer)
+{
+	VkDeviceSize offset = 0;
+	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
+}
+
 void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
 {
 	vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);

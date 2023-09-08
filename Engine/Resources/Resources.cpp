@@ -16,6 +16,7 @@
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
 #include "External\stb_image.h"
+#include "External\LunarG\glslang\Public\ShaderLang.h"
 
 #undef near
 #undef far
@@ -144,13 +145,7 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
 Shader* Resources::meshProgram;
-Shader* Resources::cullProgram;
-Shader* Resources::depthProgram;
-Pipeline* Resources::earlyRenderPipeline;
-Pipeline* Resources::lateRenderPipeline;
-Pipeline* Resources::earlyCullPipeline;
-Pipeline* Resources::lateCullPipeline;
-Pipeline* Resources::depthReducePipeline;
+Pipeline* Resources::renderPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -174,6 +169,8 @@ DescriptorSetLayout				Resources::bindlessDescriptorSetLayout;
 bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
+
+	glslang::InitializeProcess();
 
 	static const U32 globalPoolElements = 128;
 	VkDescriptorPoolSize poolSizes[]{
@@ -216,32 +213,11 @@ bool Resources::Initialize()
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
 	meshProgram = CreateShader("shaders/MeshPbr.shader", 1, &pushConstant);
 
-	pushConstant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	pushConstant.size = sizeof(DrawCullData);
-	cullProgram = CreateShader("shaders/Cull.shader", 1, &pushConstant);
-	pushConstant.size = sizeof(DepthReduceData);
-	depthProgram = CreateShader("shaders/DepthReduce.shader", 1, &pushConstant);
-
 	PipelineInfo info{};
-	info.name = "early_render_pipeline";
+	info.name = "render_pipeline";
 	info.shader = meshProgram;
-	earlyRenderPipeline = CreatePipeline(info);
-
-	info.name = "late_render_pipeline";
-	info.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	info.depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	lateRenderPipeline = CreatePipeline(info);
-
-	info.name = "early_cull_pipeline";
-	info.shader = cullProgram;
-	earlyCullPipeline = CreatePipeline(info);
-
-	info.name = "late_cull_pipeline";
-	lateCullPipeline = CreatePipeline(info);
-
-	info.name = "depth_reduce_pipeline";
-	info.shader = depthProgram;
-	depthReducePipeline = CreatePipeline(info);
+	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	renderPipeline = CreatePipeline(info);
 
 	return true;
 }
@@ -1611,7 +1587,7 @@ DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
 	return descriptorSet;
 }
 
-Renderpass* Resources::CreateRenderPass(const RenderpassInfo& info)
+Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1630,6 +1606,7 @@ Renderpass* Resources::CreateRenderPass(const RenderpassInfo& info)
 	renderpass->output.depthOperation = info.depthOperation;
 	renderpass->output.stencilOperation = info.stencilOperation;
 	renderpass->output.colorFormatCount = info.renderTargetCount;
+	renderpass->output.attachmentFinalLayout = info.attachmentFinalLayout;
 	renderpass->clearCount = info.clearCount;
 	if (info.depthStencilTexture) { renderpass->output.depthStencilFormat = info.depthStencilTexture->format; }
 
@@ -1644,7 +1621,7 @@ Renderpass* Resources::CreateRenderPass(const RenderpassInfo& info)
 		renderpass->output.colorFormats[i] = info.outputTextures[i]->format;
 	}
 
-	Renderer::CreateRenderPass(renderpass);
+	Renderer::CreateRenderpass(renderpass);
 
 	return renderpass;
 }
@@ -1656,6 +1633,8 @@ Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, VkPush
 	Shader* shader = &shaders.Request(name);
 
 	if (!shader->name.Blank()) { return shader; }
+
+	*shader = {};
 
 	shader->name = name;
 	shader->handle = shaders.GetHandle(name);
@@ -1679,10 +1658,8 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 
 	pipeline->name = info.name;
 	pipeline->handle = pipelines.GetHandle(info.name);
-	pipeline->shader = info.shader;
-	pipeline->renderpass = info.renderpass;
 
-	if (!pipeline->Create(specializationInfo))
+	if (!pipeline->Create(info, specializationInfo))
 	{
 		pipelines.Remove(pipeline->handle);
 		pipeline->handle = U64_MAX;
@@ -1793,14 +1770,14 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 	mesh.metalRoughFactor.x = metallic;
 	mesh.metalRoughFactor.y = roughness;
 
-	mesh.vertexCount = meshInfo->mNumVertices;
-	Vertex* vertexData = (Vertex*)malloc(mesh.vertexCount * sizeof(Vertex));
+	U32 vertexCount = meshInfo->mNumVertices;
+	Vertex* vertexData = (Vertex*)malloc(vertexCount * sizeof(Vertex));
 
 	if (meshInfo->HasTangentsAndBitangents())
 	{
 		if (meshInfo->HasTextureCoords(0))
 		{
-			for (U32 i = 0; i < mesh.vertexCount; ++i)
+			for (U32 i = 0; i < vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1813,7 +1790,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		{
 			mesh.flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
 
-			for (U32 i = 0; i < mesh.vertexCount; ++i)
+			for (U32 i = 0; i < vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1828,7 +1805,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 
 		if (meshInfo->HasTextureCoords(0))
 		{
-			for (U32 i = 0; i < mesh.vertexCount; ++i)
+			for (U32 i = 0; i < vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1839,7 +1816,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		{
 			mesh.flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
 
-			for (U32 i = 0; i < mesh.vertexCount; ++i)
+			for (U32 i = 0; i < vertexCount; ++i)
 			{
 				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
 				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
@@ -1847,8 +1824,6 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		}
 	}
 
-	mesh.lodCount = 1;
-	mesh.lods[0].indexCount = meshInfo->mNumFaces * meshInfo->mFaces[0].mNumIndices;
 	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
 
 	U32* indexData = (U32*)malloc(meshInfo->mNumFaces * faceSize);
@@ -1861,10 +1836,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		it += faceSize;
 	}
 
-	mesh.vertexOffset = (U32)Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, mesh.vertexCount * sizeof(Vertex));
-	mesh.lods[0].indexOffset = (U32)Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, meshInfo->mNumFaces * faceSize);
-	mesh.meshIndex = (U32)Renderer::meshBuffer.allocationOffset / sizeof(Mesh);
-	Renderer::UploadToBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh));
+	Renderer::UploadDraw(mesh, meshInfo->mNumFaces * meshInfo->mFaces[0].mNumIndices, indexData, vertexCount, vertexData);
 
 	free(vertexData);
 	free(indexData);
@@ -2289,7 +2261,7 @@ Texture* Resources::AccessTexture(const String& name)
 	return nullptr;
 }
 
-Renderpass* Resources::AccessRenderPass(const String& name)
+Renderpass* Resources::AccessRenderpass(const String& name)
 {
 	Renderpass* renderpass = &renderpasses.Request(name);
 
@@ -2317,7 +2289,7 @@ Texture* Resources::AccessTexture(HashHandle handle)
 	return &textures.Obtain(handle);
 }
 
-Renderpass* Resources::AccessRenderPass(HashHandle handle)
+Renderpass* Resources::AccessRenderpass(HashHandle handle)
 {
 	return &renderpasses.Obtain(handle);
 }
@@ -2379,7 +2351,7 @@ void Resources::DestroyDescriptorSet(DescriptorSet* set)
 	}
 }
 
-void Resources::DestroyRenderPass(Renderpass* renderpass)
+void Resources::DestroyRenderpass(Renderpass* renderpass)
 {
 	HashHandle handle = renderpass->handle;
 

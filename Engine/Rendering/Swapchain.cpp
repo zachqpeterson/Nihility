@@ -35,7 +35,7 @@ bool Swapchain::GetFormat()
 	bool foundFormat = false;
 	for (VkSurfaceFormatKHR& format : surfaceFormats)
 	{
-		if (format.format == VK_FORMAT_B8G8R8A8_UNORM)
+		if (format.format == VK_FORMAT_R8G8B8A8_UNORM)
 		{
 			surfaceFormat.format = format.format;
 			surfaceFormat.colorSpace = format.colorSpace;
@@ -48,52 +48,6 @@ bool Swapchain::GetFormat()
 	{
 		surfaceFormat.format = surfaceFormats[0].format;
 		surfaceFormat.colorSpace = surfaceFormats[0].colorSpace;
-	}
-
-	return true;
-}
-
-bool Swapchain::CreateRenderPass()
-{
-	Texture* depthTexture = nullptr;
-
-	if (renderpass)
-	{
-		renderpass->width = renderPassInfo.width;
-		renderpass->height = renderPassInfo.height;
-		for (U32 i = 0; i < imageCount; ++i) { renderpass->outputTextures[i] = renderPassInfo.outputTextures[i]; }
-
-		vkDestroyRenderPass(Renderer::device, renderpass->renderpass, Renderer::allocationCallbacks);
-
-		for (U32 i = 0; i < imageCount; ++i)
-		{
-			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
-		}
-
-		Resources::RecreateTexture(renderpass->outputDepth, renderPassInfo.width, renderPassInfo.height, 1);
-
-		Renderer::CreateRenderPass(renderpass);
-	}
-	else
-	{
-		renderPassInfo.SetName("Swapchain");
-		renderPassInfo.SetOperations(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_CLEAR);
-
-		TextureInfo textureInfo{};
-		textureInfo.name = "swapchain_depth";
-		textureInfo.format = VK_FORMAT_D32_SFLOAT;
-		textureInfo.width = renderPassInfo.width;
-		textureInfo.height = renderPassInfo.height;
-		textureInfo.depth = 1;
-		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-		textureInfo.type = VK_IMAGE_TYPE_2D;
-
-		Texture* texture = Resources::CreateTexture(textureInfo);
-		renderPassInfo.SetDepthStencilTexture(texture);
-
-		renderpass = Resources::CreateRenderPass(renderPassInfo);
-
-		if (renderpass == nullptr) { return false; }
 	}
 
 	return true;
@@ -118,8 +72,8 @@ bool Swapchain::Create()
 		swapchainExtent.height = Math::Clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
 	}
 
-	renderPassInfo.width = swapchainExtent.width;
-	renderPassInfo.height = swapchainExtent.height;
+	width = swapchainExtent.width;
+	height = swapchainExtent.height;
 
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -186,22 +140,18 @@ bool Swapchain::Create()
 	{
 		vkDestroySwapchainKHR(Renderer::device, oldSwapchain, Renderer::allocationCallbacks);
 
-		renderPassInfo.renderTargetCount = imageCount;
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			Resources::RecreateSwapchainTexture(renderPassInfo.outputTextures[i], images[i]);
+			Resources::RecreateSwapchainTexture(renderTargets[i], images[i]);
 		}
 	}
 	else
 	{
-		renderPassInfo.renderTargetCount = imageCount;
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			renderPassInfo.outputTextures[i] = Resources::CreateSwapchainTexture(images[i], surfaceFormat.format, i);
+			renderTargets[i] = Resources::CreateSwapchainTexture(images[i], surfaceFormat.format, i);
 		}
 	}
-
-	CreateRenderPass();
 
 	return true;
 }
@@ -211,19 +161,16 @@ void Swapchain::Destroy()
 	if (swapchain) { vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks); }
 	if (surface) { vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks); }
 
-	for (U32 i = 0; i < imageCount; ++i) { Resources::DestroyTexture(renderPassInfo.outputTextures[i]); }
+	for (U32 i = 0; i < imageCount; ++i) { Resources::DestroyTexture(renderTargets[i]); }
 
-	Resources::DestroyRenderPass(renderpass);
-
-	renderPassInfo.Destroy();
 	surface = nullptr;
 	swapchain = nullptr;
 }
 
 VkResult Swapchain::Update()
 {
-	if (renderpass->width != Settings::WindowWidth() || renderpass->height != Settings::WindowHeight()) { return VK_ERROR_OUT_OF_DATE_KHR; }
-	if (renderpass->width == 0 || renderpass->height == 0) { return VK_NOT_READY; }
+	if (width != Settings::WindowWidth() || height != Settings::WindowHeight()) { return VK_ERROR_OUT_OF_DATE_KHR; }
+	if (width == 0 || height == 0) { return VK_NOT_READY; }
 
 	return VK_SUCCESS;
 }

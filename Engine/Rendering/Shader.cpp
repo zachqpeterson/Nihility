@@ -126,8 +126,15 @@ struct Id
 	U32 opcode;
 	U32 typeId;
 	U32 storageClass;
-	U32 binding;
+
 	U32 set;
+	U32 binding;
+	U32 location;
+
+	U32 width;
+	U32 sign;
+	U32 count;
+
 	U32 constant;
 };
 
@@ -334,6 +341,11 @@ bool Shader::ParseConfig(const String& data, I64& index)
 				++blendStateCount;
 			}
 		}
+		else if (data.CompareN("instanceOffset", index + 1))
+		{
+			index = data.IndexOf('=', index + 1);
+			instanceOffset = data.ToType<U8>(index + 1);
+		}
 
 		index = data.IndexOf('\n', index + 1);
 	}
@@ -521,6 +533,131 @@ static VkDescriptorType GetDescriptorType(SpvOp op)
 	}
 }
 
+static VkFormat GetFormat(const Vector<Id>& ids, const Id& type)
+{
+	switch (type.opcode)
+	{
+	case SpvOpTypeInt: {
+		switch (type.width)
+		{
+		case 8: { if (type.sign) { return VK_FORMAT_R8_SINT; } return VK_FORMAT_R8_UINT; }
+		case 16: { if (type.sign) { return VK_FORMAT_R16_SINT; } return VK_FORMAT_R16_UINT; }
+		case 32: { if (type.sign) { return VK_FORMAT_R32_SINT; } return VK_FORMAT_R32_UINT; }
+		case 64: { if (type.sign) { return VK_FORMAT_R64_SINT; } return VK_FORMAT_R64_UINT; }
+		}
+	} break;
+	case SpvOpTypeFloat: {
+		switch (type.width)
+		{
+		case 32: { return VK_FORMAT_R32_SFLOAT; }
+		case 64: { return VK_FORMAT_R64_SFLOAT; }
+		}
+	} break;
+	case SpvOpTypeVector: {
+		const Id& component = ids[type.typeId];
+
+		switch (type.count)
+		{
+		case 2: {
+			switch (component.opcode)
+			{
+			case SpvOpTypeFloat: {
+				switch (component.width)
+				{
+				case 32: { return VK_FORMAT_R32G32_SFLOAT; }
+				case 64: { return VK_FORMAT_R64G64_SFLOAT; }
+				}
+			} break;
+			case SpvOpTypeInt: {
+				switch (component.width)
+				{
+				case 8: { if (type.sign) { return VK_FORMAT_R8G8_SINT; } return VK_FORMAT_R8G8_UINT; }
+				case 16: { if (type.sign) { return VK_FORMAT_R16G16_SINT; } return VK_FORMAT_R16G16_UINT; }
+				case 32: { if (type.sign) { return VK_FORMAT_R32G32_SINT; } return VK_FORMAT_R32G32_UINT; }
+				case 64: { if (type.sign) { return VK_FORMAT_R64G64_SINT; } return VK_FORMAT_R64G64_UINT; }
+				}
+			} break;
+			}
+		} break;
+		case 3: {
+			switch (component.opcode)
+			{
+			case SpvOpTypeFloat: {
+				switch (component.width)
+				{
+				case 32: { return VK_FORMAT_R32G32B32_SFLOAT; }
+				case 64: { return VK_FORMAT_R64G64B64_SFLOAT; }
+				}
+			} break;
+			case SpvOpTypeInt: {
+				switch (component.width)
+				{
+				case 8: { if (type.sign) { return VK_FORMAT_R8G8B8_SINT; } return VK_FORMAT_R8G8B8_UINT; }
+				case 16: { if (type.sign) { return VK_FORMAT_R16G16B16_SINT; } return VK_FORMAT_R16G16B16_UINT; }
+				case 32: { if (type.sign) { return VK_FORMAT_R32G32B32_SINT; } return VK_FORMAT_R32G32B32_UINT; }
+				case 64: { if (type.sign) { return VK_FORMAT_R64G64B64_SINT; } return VK_FORMAT_R64G64B64_UINT; }
+				}
+			} break;
+			}
+		} break;
+		case 4: {
+			switch (component.opcode)
+			{
+			case SpvOpTypeFloat: {
+				switch (component.width)
+				{
+				case 32: { return VK_FORMAT_R32G32B32A32_SFLOAT; }
+				case 64: { return VK_FORMAT_R64G64B64A64_SFLOAT; }
+				}
+			} break;
+			case SpvOpTypeInt: {
+				switch (component.width)
+				{
+				case 8: { if (type.sign) { return VK_FORMAT_R8G8B8A8_SINT; } return VK_FORMAT_R8G8B8A8_UINT; }
+				case 16: { if (type.sign) { return VK_FORMAT_R16G16B16A16_SINT; } return VK_FORMAT_R16G16B16A16_UINT; }
+				case 32: { if (type.sign) { return VK_FORMAT_R32G32B32A32_SINT; } return VK_FORMAT_R32G32B32A32_UINT; }
+				case 64: { if (type.sign) { return VK_FORMAT_R64G64B64A64_SINT; } return VK_FORMAT_R64G64B64A64_UINT; }
+				}
+			} break;
+			}
+		} break;
+		}
+	} break;
+	}
+
+	Logger::Error("Unkown Format!");
+	BreakPoint;
+	return VK_FORMAT_UNDEFINED;
+}
+
+static U32 FormatStride(VkFormat format)
+{
+	switch (format)
+	{
+	case VK_FORMAT_R8_UINT: 
+	case VK_FORMAT_R8_SINT:	return 1;
+	case VK_FORMAT_R16_UINT:
+	case VK_FORMAT_R16_SINT: return 2;
+	case VK_FORMAT_R32_UINT:
+	case VK_FORMAT_R32_SINT:
+	case VK_FORMAT_R32_SFLOAT: return 4;
+	case VK_FORMAT_R32G32_UINT:
+	case VK_FORMAT_R32G32_SINT:
+	case VK_FORMAT_R32G32_SFLOAT: return 8;
+	case VK_FORMAT_R32G32B32_UINT:
+	case VK_FORMAT_R32G32B32_SINT:
+	case VK_FORMAT_R32G32B32_SFLOAT: return 12;
+	case VK_FORMAT_R32G32B32A32_UINT:
+	case VK_FORMAT_R32G32B32A32_SINT:
+	case VK_FORMAT_R32G32B32A32_SFLOAT: return 16;
+	default: {
+		Logger::Error("Unknown format stride!");
+		BreakPoint;
+		return 0;
+	}
+	}		
+}
+
 bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutInfo* setLayoutInfos)
 {
 	uint32_t idBound = code[3];
@@ -577,9 +714,33 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 
 			switch (it[2])
 			{
-			case SpvDecorationDescriptorSet: { ids[id].set = it[3]; } break;
 			case SpvDecorationBinding: { ids[id].binding = it[3]; } break;
+			case SpvDecorationDescriptorSet: { ids[id].set = it[3]; } break;
+			case SpvDecorationLocation: { ids[id].location = it[3]; } break;
 			}
+		} break;
+		case SpvOpTypeInt: {
+			Id& id = ids[it[1]];
+			id.opcode = opcode;
+			id.width = (U8)it[2];
+			id.sign = (U8)it[3];
+		} break;
+		case SpvOpTypeFloat: {
+			Id& id = ids[it[1]];
+			id.opcode = opcode;
+			id.width = (U8)it[2];
+		} break;
+		case SpvOpTypeVector: {
+			Id& id = ids[it[1]];
+			id.opcode = opcode;
+			id.typeId = it[2];
+			id.count = it[3];
+		} break;
+		case SpvOpTypeMatrix: {
+			Id& id = ids[it[1]];
+			id.opcode = opcode;
+			id.typeId = it[2];
+			id.count = it[3];
 		} break;
 		case SpvOpTypeStruct:
 		case SpvOpTypeImage:
@@ -620,6 +781,22 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		{
 			switch (id.storageClass)
 			{
+			case SpvStorageClassInput: {
+				if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT)
+				{
+					Id& type = ids[ids[id.typeId].typeId];
+
+					VkVertexInputAttributeDescription attribute{};
+					attribute.location = id.location;
+					attribute.binding = id.location >= instanceOffset;
+					attribute.format = GetFormat(ids, type);
+					attribute.offset = 0;
+
+					vertexAttributes[id.location] = attribute;
+
+					++vertexAttributeCount;
+				}
+			} break;
 			case SpvStorageClassPushConstant:
 			{
 				stage.usePushConstants = true;
@@ -628,8 +805,8 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 			case SpvStorageClassUniform:
 			case SpvStorageClassUniformConstant:
 			case SpvStorageClassStorageBuffer: {
-				U32 typeKind = ids[ids[id.typeId].typeId].opcode;
-				VkDescriptorType descriptorType = GetDescriptorType(SpvOp(typeKind));
+				U32 type = ids[ids[id.typeId].typeId].opcode;
+				VkDescriptorType descriptorType = GetDescriptorType(SpvOp(type));
 				VkDescriptorSetLayoutBinding& binding = setLayoutInfos[id.set].bindings[id.binding];
 				binding.descriptorType = descriptorType;
 				binding.stageFlags |= stage.stage;
@@ -642,8 +819,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 			case SpvStorageClassOutput: {
 				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
 				{
-					//TODO: Don't hardcode this
-					outputs[outputCount++] = VK_FORMAT_R32G32B32A32_SFLOAT;
+					outputs[outputCount++] = Renderer::swapchain.renderTargets[0]->format;
 				}
 			}
 			}
@@ -656,6 +832,49 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		}
 	}
 
+	if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && vertexAttributeCount)
+	{
+		if (instanceOffset != U8_MAX)
+		{
+			for (U32 i = 1; i < instanceOffset; ++i)
+			{
+				vertexAttributes[i].offset = vertexAttributes[i - 1].offset + FormatStride(vertexAttributes[i - 1].format);
+			}
+
+			VkVertexInputBindingDescription binding{};
+			binding.binding = 0;
+			binding.stride = vertexAttributes[instanceOffset - 1].offset + FormatStride(vertexAttributes[instanceOffset - 1].format);
+			binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			vertexStreams[vertexStreamCount++] = binding;
+
+			for (U32 i = instanceOffset + 1; i < vertexAttributeCount; ++i)
+			{
+				vertexAttributes[i].offset = vertexAttributes[i - 1].offset + FormatStride(vertexAttributes[i - 1].format);
+			}
+
+			binding.binding = 1;
+			binding.stride = vertexAttributes[vertexAttributeCount - 1].offset + FormatStride(vertexAttributes[vertexAttributeCount - 1].format);
+			binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+			vertexStreams[vertexStreamCount++] = binding;
+		}
+		else
+		{
+			for (U32 i = 1; i < vertexAttributeCount; ++i)
+			{
+				vertexAttributes[i].offset = vertexAttributes[i - 1].offset + FormatStride(vertexAttributes[i - 1].format);
+			}
+
+			VkVertexInputBindingDescription binding{};
+			binding.binding = 0;
+			binding.stride = vertexAttributes[vertexAttributeCount - 1].offset + FormatStride(vertexAttributes[vertexAttributeCount - 1].format);
+			binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			vertexStreams[vertexStreamCount++] = binding;
+		}
+	}
+
 	if (stage.stage == VK_SHADER_STAGE_COMPUTE_BIT)
 	{
 		if (localSizeIdX >= 0) { stage.localSizeX = ids[localSizeIdX].constant; }
@@ -663,7 +882,6 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 		if (localSizeIdZ >= 0) { stage.localSizeZ = ids[localSizeIdZ].constant; }
 	}
 
-	//TODO: Specialization Constants
 	//TODO: Push Constants
 
 	return true;

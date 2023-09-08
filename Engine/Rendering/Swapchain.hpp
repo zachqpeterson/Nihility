@@ -7,7 +7,6 @@ struct Swapchain
 public:
 	bool CreateSurface();
 	bool GetFormat();
-	bool CreateRenderPass();
 	bool Create();
 	void Destroy();
 
@@ -15,13 +14,15 @@ public:
 	VkResult NextImage(U32& frameIndex, VkSemaphore semaphore = nullptr, VkFence fence = nullptr);
 
 public:
-	VkSwapchainKHR swapchain{ nullptr };
-	VkSurfaceKHR surface{ nullptr };
-	VkSurfaceFormatKHR surfaceFormat{};
-	Renderpass* renderpass{ nullptr };
-	U32 imageCount{ 3 };
+	VkSwapchainKHR		swapchain{ nullptr };
+	VkSurfaceKHR		surface{ nullptr };
+	VkSurfaceFormatKHR	surfaceFormat{};
+	U32					imageCount{ 3 };
+	Texture*			renderTargets[MAX_SWAPCHAIN_IMAGES]{ nullptr };
+
+	U32					width;
+	U32					height;
 
 private:
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	RenderpassInfo renderPassInfo{};
 };

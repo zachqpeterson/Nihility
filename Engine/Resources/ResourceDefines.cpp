@@ -145,7 +145,7 @@ void Renderpass::Resize()
 
 		vkDestroyRenderPass(Renderer::device, renderpass, Renderer::allocationCallbacks);
 
-		Renderer::CreateRenderPass(this);
+		Renderer::CreateRenderpass(this);
 	}
 }
 

@@ -12,16 +12,20 @@
 //		data.data, specializationInfos[data.stage].specializationData[data.index].size);
 //}
 
-bool Pipeline::Create(const SpecializationInfo& specializationInfo)
+bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo)
 {
+	shader = info.shader;
+	renderpass = info.renderpass;
+
 	RenderpassInfo renderPassInfo{};
 	renderPassInfo.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	renderPassInfo.stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	renderPassInfo.attachmentFinalLayout = info.attachmentFinalLayout;
 	renderPassInfo.width = Settings::WindowWidth();
 	renderPassInfo.height = Settings::WindowHeight();
 
-	if (!renderpass)
+	if (!renderpass && shader->bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
 		String textureName = name + "_output_";
 		renderPassInfo.SetName(name + "_pass");
@@ -39,7 +43,7 @@ bool Pipeline::Create(const SpecializationInfo& specializationInfo)
 
 			Texture* texture = Resources::CreateTexture(textureInfo);
 			renderPassInfo.AddRenderTarget(texture);
-			renderPassInfo.AddClearColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+			renderPassInfo.AddClearColor({ 1.0f, 0.0f, 1.0f, 1.0f });
 		}
 
 		if (shader->depthStencil.depthEnable)
@@ -58,7 +62,7 @@ bool Pipeline::Create(const SpecializationInfo& specializationInfo)
 			renderPassInfo.AddClearDepth(1.0f);
 		}
 
-		this->renderpass = Resources::CreateRenderPass(renderPassInfo);
+		renderpass = Resources::CreateRenderpass(renderPassInfo);
 	}
 
 	if (!CreatePipeline(specializationInfo)) { return false; }
@@ -198,7 +202,7 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		
 		for (U32 i = 0; i < shader->stageCount; ++i)
 		{
-			//shader->stageInfos[i].pSpecializationInfo->pData = specializationInfo.specializationBuffer;
+			shader->stageInfos[i].pSpecializationInfo = &specializationInfo.specializationInfo;
 		}
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
@@ -221,6 +225,8 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 	else
 	{
 		VkComputePipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+
+		shader->stageInfos[0].pSpecializationInfo = &specializationInfo.specializationInfo;
 
 		pipelineInfo.stage = shader->stageInfos[0];
 		pipelineInfo.layout = shader->pipelineLayout;

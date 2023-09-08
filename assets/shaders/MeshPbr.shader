@@ -5,6 +5,7 @@ front=CLOCKWISE
 fill=SOLID
 depth=LESS
 blend=ADD
+instanceOffset=5
 #CONFIG_END
 
 #VERTEX
@@ -19,18 +20,10 @@ struct Globals
 {
 	mat4 viewProjection;
 	vec4 eye;
-
-	float screenWidth, screenHeight, znear, zfar; // symmetric projection parameters
-	vec4 frustum; // data for left/right/top/bottom frustum planes
-
-	float pyramidWidth, pyramidHeight; // depth pyramid size in texels
-	int clusterOcclusionEnabled;
 };
 
 struct MeshDrawCommand
 {
-	uint drawID;
-
 	// VkDrawIndexedIndirectCommand
 	uint indexCount;
 	uint instanceCount;
@@ -39,21 +32,9 @@ struct MeshDrawCommand
 	uint firstInstance;
 };
 
-struct MeshLod
-{
-	uint indexOffset;
-	uint indexCount;
-	uint meshletOffset;
-	uint meshletCount;
-};
-
 struct Mesh
 {
 	mat4	model;
-	uint	meshIndex;
-	uint 	vertexOffset;
-	uint 	vertexCount;
-	uint	meshletVisibilityOffset;
 
 	uint	diffuseTextureIndex;
 	uint	metalRoughOcclTextureIndex;
@@ -66,21 +47,6 @@ struct Mesh
 
 	float	alphaCutoff;
 	uint	flags;
-
-	vec3    center;
-	float   radius;
-
-	uint    lodCount;
-	MeshLod lods[8];
-};
-
-struct Vertex
-{
-	vec3 position;
-	vec3 normal;
-	vec3 tangent;
-	vec3 bitangent;
-	vec2 texcoord;
 };
 
 layout(push_constant) uniform block
@@ -98,32 +64,33 @@ layout(binding = 1) readonly buffer Meshes
 	Mesh meshes[];
 };
 
-layout(binding = 2) readonly buffer Vertices
-{
-	Vertex vertices[];
-};
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 normal;
+layout (location = 2) in vec3 tangent;
+layout (location = 3) in vec3 bitangent;
+layout (location = 4) in vec2 texcoord;
+
+layout (location = 5) in uint meshIndex;
 
 layout (location = 0) out vec3 outPosition;
 layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec3 outTangent;
 layout (location = 3) out vec3 outBitangent;
 layout (location = 4) out vec2 outTexcoord;
-layout (location = 5) flat out uint outDrawID;
+layout (location = 5) flat out uint outMeshIndex;
 
 void main()
 {
-    uint drawID = drawCommands[gl_DrawIDARB].drawID;
-    Mesh mesh = meshes[drawID];
-    Vertex vertex = vertices[gl_VertexIndex];
+    Mesh mesh = meshes[meshIndex];
 
-    vec4 worldPosition = mesh.model * vec4(vertex.position, 1.0);
+    vec4 worldPosition = mesh.model * vec4(position, 1.0);
     gl_Position = globals.viewProjection * worldPosition;
     outPosition = worldPosition.xyz / worldPosition.w;
-    outNormal = vertex.normal;
-    outTexcoord = vertex.texcoord;
-    outTangent = vertex.tangent;
-    outBitangent = vertex.bitangent;
-    outDrawID = drawID;
+    outNormal = normal;
+    outTexcoord = texcoord;
+    outTangent = tangent;
+    outBitangent = bitangent;
+    outMeshIndex = meshIndex;
 }
 #VERTEX_END
 
@@ -139,20 +106,11 @@ struct Globals
 {
 	mat4 viewProjection;
 	vec4 eye;
-
-	float screenWidth, screenHeight, znear, zfar; // symmetric projection parameters
-	vec4 frustum; // data for left/right/top/bottom frustum planes
-
-	float pyramidWidth, pyramidHeight; // depth pyramid size in texels
-	int clusterOcclusionEnabled;
 };
 
 struct Mesh
 {
 	mat4		model;
-	uint		meshIndex;
-	uint		vertexOffset;
-	uint		meshletVisibilityOffset;
 
 	uint	    diffuseTextureIndex;
 	uint	    metalRoughOcclTextureIndex;
@@ -185,7 +143,7 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec3 tangent;
 layout (location = 3) in vec3 bitangent;
 layout (location = 4) in vec2 texcoord;
-layout (location = 5) flat in uint drawID;
+layout (location = 5) flat in uint meshIndex;
 
 layout (location = 0) out vec4 fragColor;
 
@@ -233,7 +191,7 @@ float Heaviside(float v)
 
 void main()
 {
-    Mesh mesh = meshes[drawID];
+    Mesh mesh = meshes[meshIndex];
 
     vec4 baseColor = vec4(1.0);
 

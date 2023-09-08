@@ -11,7 +11,8 @@ struct CommandBuffer
 	void BindRenderpass(Renderpass* renderpass);
 	void BindPipeline(Pipeline* pipeline);
 	void BindIndexBuffer(Buffer& buffer);
-	void BindDescriptorSet(DescriptorSet** sets, U32 numLists, U32* offsets, U32 numOffsets);
+	void BindVertexBuffer(Buffer& buffer);
+	void BindInstanceBuffer(Buffer& buffer);
 
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);

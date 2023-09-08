@@ -126,8 +126,7 @@ inline File::File(const Str& path, I32 mode) { Memory::AllocateArray(&streamBuff
 template <StringType Str>
 inline bool File::Open(const Str& path, I32 mode)
 {
-	C8* p;
-	path.ToType<C8*>(p);
+	C8* p = path.ToType<C8*>();
 	return Open(p, mode);
 }
 
