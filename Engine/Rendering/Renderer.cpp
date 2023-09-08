@@ -637,7 +637,7 @@ void Renderer::EndFrame()
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &queueSubmitted;
 
-	BreakPoint;
+	//BreakPoint;
 	VkValidate(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
 
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
@@ -653,7 +653,7 @@ void Renderer::EndFrame()
 
 	FrameCountersAdvance();
 
-	VkValidate(vkQueueWaitIdle(deviceQueue));
+	VkValidate(vkDeviceWaitIdle(device));
 }
 
 void Renderer::Resize()
@@ -887,15 +887,15 @@ U64 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U64 size)
 
 void Renderer::UploadDraw(const Mesh& mesh, U32 indexCount, U32* indices, U32 vertexCount, Vertex* vertices)
 {
+	U32 meshIndex = Renderer::UploadToBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh)) / sizeof(Mesh);
+
 	VkDrawIndexedIndirectCommand drawCommand{};
 	drawCommand.indexCount = indexCount;
 	drawCommand.instanceCount = 1;
-	drawCommand.firstIndex = (U32)Renderer::UploadToBuffer(Renderer::indexBuffer, indices, indexCount * sizeof(U32));
-	drawCommand.vertexOffset = (U32)Renderer::UploadToBuffer(Renderer::vertexBuffer, vertices, vertexCount * sizeof(Vertex));
-	drawCommand.firstInstance = 0;
+	drawCommand.firstIndex = (U32)Renderer::UploadToBuffer(Renderer::indexBuffer, indices, indexCount * sizeof(U32)) / sizeof(U32);
+	drawCommand.vertexOffset = (U32)Renderer::UploadToBuffer(Renderer::vertexBuffer, vertices, vertexCount * sizeof(Vertex)) / sizeof(Vertex);
+	drawCommand.firstInstance = Renderer::UploadToBuffer(Renderer::instanceBuffer, &meshIndex, sizeof(U32)) / sizeof(U32);
 
-	U32 meshIndex = Renderer::UploadToBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh)) / sizeof(Mesh);
-	Renderer::UploadToBuffer(Renderer::instanceBuffer, &meshIndex, sizeof(U32));
 	Renderer::UploadToBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand));
 
 	drawCommands.Push(drawCommand);
