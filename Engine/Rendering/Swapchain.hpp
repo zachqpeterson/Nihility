@@ -7,6 +7,7 @@ struct Swapchain
 public:
 	bool CreateSurface();
 	bool GetFormat();
+	bool CreateRenderpass();
 	bool Create();
 	void Destroy();
 
@@ -18,11 +19,9 @@ public:
 	VkSurfaceKHR		surface{ nullptr };
 	VkSurfaceFormatKHR	surfaceFormat{};
 	U32					imageCount{ 3 };
-	Texture*			renderTargets[MAX_SWAPCHAIN_IMAGES]{ nullptr };
-
-	U32					width;
-	U32					height;
+	Renderpass			renderpass{ };
 
 private:
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	bool created{ false };
 };

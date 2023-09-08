@@ -545,7 +545,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	{
 		commandBuffer->BindPipeline(pipeline);
 
-		Descriptor descriptors[] = { {drawCommandsBuffer.vkBuffer}, {meshBuffer.vkBuffer} };
+		Descriptor descriptors[]{ {drawCommandsBuffer.vkBuffer}, {meshBuffer.vkBuffer} };
 		PushDescriptors(pipeline->shader, descriptors);
 		vkCmdPushConstants(commandBuffer->commandBuffer, pipeline->shader->pipelineLayout, pipeline->shader->pushConstantStages, 0, sizeof(GlobalData), &globalData);
 
@@ -603,26 +603,35 @@ void Renderer::EndFrame()
 
 	//TODO: UI
 
-	VkImageMemoryBarrier2 copyBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
-		0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	
-	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &copyBarrier);
-	
-	VkImageCopy copyRegion{};
-	copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	copyRegion.srcSubresource.layerCount = 1;
-	copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	copyRegion.dstSubresource.layerCount = 1;
-	copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1 };
-	
-	vkCmdCopyImage(commandBuffer->commandBuffer, Resources::renderPipeline->renderpass->outputTextures[0]->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-		swapchain.renderTargets[frameIndex]->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
-	
-	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
-		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-	
-	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
+	//VkImageMemoryBarrier2 copyBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
+	//	0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	//
+	//commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &copyBarrier);
+	//
+	//VkImageCopy copyRegion{};
+	//copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	//copyRegion.srcSubresource.layerCount = 1;
+	//copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	//copyRegion.dstSubresource.layerCount = 1;
+	//copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1 };
+	//
+	//vkCmdCopyImage(commandBuffer->commandBuffer, Resources::renderPipeline->renderpass->outputTextures[0]->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	//	swapchain.renderTargets[frameIndex]->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+	//
+	//VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
+	//	VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	//	0, 0, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	//
+	//commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
+
+	commandBuffer->BindRenderpass(&swapchain.renderpass);
+	commandBuffer->BindPipeline(Resources::swapchainPipeline);
+
+	Descriptor descriptors[]{ {Resources::renderPipeline->renderpass->outputTextures[0]->imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, Resources::defaultSampler->sampler} };
+	PushDescriptors(Resources::swapchainProgram, descriptors);
+
+	commandBuffer->Draw(0, 3, 0, 1);
+	vkCmdEndRenderPass(commandBuffer->commandBuffer);
 
 	VkValidate(vkEndCommandBuffer(commandBuffer->commandBuffer));
 

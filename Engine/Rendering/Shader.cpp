@@ -819,7 +819,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 			case SpvStorageClassOutput: {
 				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
 				{
-					outputs[outputCount++] = Renderer::swapchain.renderTargets[0]->format;
+					outputs[outputCount++] = Renderer::swapchain.renderpass.outputTextures[0]->format;
 				}
 			}
 			}

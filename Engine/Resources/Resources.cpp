@@ -145,7 +145,9 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
 Shader* Resources::meshProgram;
+Shader* Resources::swapchainProgram;
 Pipeline* Resources::renderPipeline;
+Pipeline* Resources::swapchainPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -213,11 +215,18 @@ bool Resources::Initialize()
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
 	meshProgram = CreateShader("shaders/MeshPbr.shader", 1, &pushConstant);
 
+	swapchainProgram = CreateShader("shaders/Swapchain.shader");
+
 	PipelineInfo info{};
 	info.name = "render_pipeline";
 	info.shader = meshProgram;
-	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 	renderPipeline = CreatePipeline(info);
+
+	info.name = "swapchain_pipeline";
+	info.shader = swapchainProgram;
+	info.renderpass = &Renderer::swapchain.renderpass;
+	swapchainPipeline = CreatePipeline(info);
 
 	return true;
 }
