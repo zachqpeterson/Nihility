@@ -161,9 +161,7 @@ Hashmap<String, Scene>			Resources::scenes{ 128, {} };
 Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
 
-Pool<DescriptorSet, 256>		Resources::descriptorSets;
 Pool<DescriptorSetLayout, 256>	Resources::descriptorSetLayouts;
-VkDescriptorPool				Resources::descriptorPool;
 VkDescriptorPool				Resources::bindlessDescriptorPool;
 VkDescriptorSet					Resources::bindlessDescriptorSet;
 DescriptorSetLayout				Resources::bindlessDescriptorSetLayout;
@@ -174,28 +172,6 @@ bool Resources::Initialize()
 
 	glslang::InitializeProcess();
 
-	static const U32 globalPoolElements = 128;
-	VkDescriptorPoolSize poolSizes[]{
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, globalPoolElements },
-		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, globalPoolElements}
-	};
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	poolInfo.maxSets = globalPoolElements * CountOf32(poolSizes);
-	poolInfo.poolSizeCount = CountOf32(poolSizes);
-	poolInfo.pPoolSizes = poolSizes;
-	VkValidateF(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &descriptorPool));
-
-	descriptorSets.Create();
 	descriptorSetLayouts.Create();
 
 	TextureInfo dummyTextureInfo{};
@@ -327,7 +303,6 @@ void Resources::Shutdown()
 		{
 		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
 		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 		}
@@ -345,7 +320,6 @@ void Resources::Shutdown()
 	samplers.Destroy();
 	textures.Destroy();
 	descriptorSetLayouts.Destroy();
-	descriptorSets.Destroy();
 	renderpasses.Destroy();
 	shaders.Destroy();
 	pipelines.Destroy();
@@ -358,7 +332,6 @@ void Resources::Shutdown()
 
 	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout.descriptorSetLayout, Renderer::allocationCallbacks);
 	vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
-	vkDestroyDescriptorPool(Renderer::device, descriptorPool, Renderer::allocationCallbacks);
 }
 
 void Resources::Update()
@@ -374,7 +347,6 @@ void Resources::Update()
 			{
 			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET: { descriptorSets.Release(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
 			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 			}
@@ -1576,24 +1548,6 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
 
 	return descriptorSetLayout;
-}
-
-DescriptorSet* Resources::CreateDescriptorSet(DescriptorSetLayout* layout)
-{
-	U64 handle;
-	DescriptorSet* descriptorSet = descriptorSets.Request(handle);
-
-	descriptorSet->handle = handle;
-	descriptorSet->layout = layout;
-
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &layout->descriptorSetLayout;
-
-	VkValidateF(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &descriptorSet->descriptorSet));
-
-	return descriptorSet;
 }
 
 Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)

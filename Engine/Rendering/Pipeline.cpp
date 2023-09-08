@@ -6,12 +6,6 @@
 #include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 
-//void Shader::SetSpecializationData(const SpecializationData& data)
-//{
-//	Memory::Copy(specializationInfos[data.stage].specializationBuffer + specializationInfos[data.stage].specializationData[data.index].offset,
-//		data.data, specializationInfos[data.stage].specializationData[data.index].size);
-//}
-
 bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo)
 {
 	shader = info.shader;

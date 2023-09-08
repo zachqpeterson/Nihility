@@ -18,7 +18,6 @@ class NH_API Resources
 public:
 	static Sampler* CreateSampler(const SamplerInfo& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
-	static DescriptorSet* CreateDescriptorSet(DescriptorSetLayout* layout);
 	static Renderpass* CreateRenderpass(const RenderpassInfo& info);
 	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, VkPushConstantRange* pushConstants = nullptr);
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
@@ -113,9 +112,7 @@ private:
 	static Queue<ResourceUpdate>				resourceDeletionQueue;
 	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
 
-	static Pool<DescriptorSet, 256>				descriptorSets;
 	static Pool<DescriptorSetLayout, 256>		descriptorSetLayouts;
-	static VkDescriptorPool						descriptorPool;
 	static VkDescriptorPool						bindlessDescriptorPool;
 	static VkDescriptorSet						bindlessDescriptorSet;
 	static DescriptorSetLayout					bindlessDescriptorSetLayout;

@@ -459,15 +459,6 @@ bool Renderer::CreateResources()
 
 	if (bindlessSupported) { Resources::CreateBindless(); }
 
-	static constexpr U16 timeQueriesPerFrame = 32;
-
-	VkQueryPoolCreateInfo queryPoolInfo{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, };
-	queryPoolInfo.pNext = nullptr;
-	queryPoolInfo.flags = 0;
-	queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
-	queryPoolInfo.queryCount = timeQueriesPerFrame * 2u * MAX_SWAPCHAIN_IMAGES;
-	queryPoolInfo.pipelineStatistics = 0;
-
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
 	SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)imageAcquired, "image_aquired_semaphore");
@@ -890,8 +881,8 @@ void Renderer::UploadDraw(const Mesh& mesh, U32 indexCount, U32* indices, U32 ve
 	VkDrawIndexedIndirectCommand drawCommand{};
 	drawCommand.indexCount = indexCount;
 	drawCommand.instanceCount = 1;
-	drawCommand.firstIndex = (U32)Renderer::UploadToBuffer(Renderer::indexBuffer, indices, indexCount * sizeof(U32)) / sizeof(U32);
-	drawCommand.vertexOffset = (U32)Renderer::UploadToBuffer(Renderer::vertexBuffer, vertices, vertexCount * sizeof(Vertex)) / sizeof(Vertex);
+	drawCommand.firstIndex = Renderer::UploadToBuffer(Renderer::indexBuffer, indices, indexCount * sizeof(U32)) / sizeof(U32);
+	drawCommand.vertexOffset = Renderer::UploadToBuffer(Renderer::vertexBuffer, vertices, vertexCount * sizeof(Vertex)) / sizeof(Vertex);
 	drawCommand.firstInstance = Renderer::UploadToBuffer(Renderer::instanceBuffer, &meshIndex, sizeof(U32)) / sizeof(U32);
 
 	Renderer::UploadToBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand));
@@ -1308,7 +1299,7 @@ bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSet
 	descriptorTemplateInfo.pNext = nullptr;
 	descriptorTemplateInfo.flags = 0;
 	descriptorTemplateInfo.templateType = pushDescriptorsSupported ? VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR : VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET;
-	descriptorTemplateInfo.descriptorSetLayout = descriptorSetLayout->descriptorSetLayout;
+	descriptorTemplateInfo.descriptorSetLayout = pushDescriptorsSupported ? 0 : descriptorSetLayout->descriptorSetLayout;
 	descriptorTemplateInfo.pipelineBindPoint = shader->bindPoint;
 	descriptorTemplateInfo.pipelineLayout = shader->pipelineLayout;
 	descriptorTemplateInfo.descriptorUpdateEntryCount = descriptorSetLayout->bindingCount;
