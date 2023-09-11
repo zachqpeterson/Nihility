@@ -1,7 +1,7 @@
 #CONFIG
 language=GLSL
 cull=FRONT
-front=CLOCKWISE
+front=COUNTER
 fill=SOLID
 depth=LESS
 blend=ADD
@@ -22,16 +22,6 @@ struct Globals
 	vec4 eye;
 };
 
-struct MeshDrawCommand
-{
-	// VkDrawIndexedIndirectCommand
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	uint vertexOffset;
-	uint firstInstance;
-};
-
 struct Mesh
 {
 	mat4	model;
@@ -42,8 +32,8 @@ struct Mesh
 	uint	emissivityTextureIndex;
 
 	vec4	baseColorFactor;
-	vec2	metalRoughFactor;
-	vec3	emissiveFactor;
+	vec4	metalRoughFactor;
+	vec4	emissiveFactor;
 
 	float	alphaCutoff;
 	uint	flags;
@@ -54,12 +44,7 @@ layout(push_constant) uniform block
 	Globals globals;
 };
 
-layout(binding = 0) readonly buffer DrawCommands
-{
-	MeshDrawCommand drawCommands[];
-};
-
-layout(binding = 1) readonly buffer Meshes
+layout(std140, binding = 0) readonly buffer Meshes
 {
 	Mesh meshes[];
 };
@@ -118,8 +103,8 @@ struct Mesh
 	uint	    emissivityTextureIndex;
 
 	vec4		baseColorFactor;
-	vec2		metalRoughFactor;
-	vec3		emissiveFactor;
+	vec4		metalRoughFactor;
+	vec4		emissiveFactor;
 
 	float		alphaCutoff;
 	uint		flags;
@@ -130,7 +115,7 @@ layout(push_constant) uniform block
 	Globals globals;
 };
 
-layout(binding = 1) readonly buffer Meshes
+layout(std140, binding = 0) readonly buffer Meshes
 {
 	Mesh meshes[];
 };
@@ -200,6 +185,9 @@ void main()
         baseColor = texture(globalTextures[nonuniformEXT(mesh.diffuseTextureIndex)], texcoord) * mesh.baseColorFactor;
         baseColor.rgb = DecodeSRGB(baseColor.rgb);
     }
+
+    fragColor = baseColor;
+    return;
 
     if ((mesh.flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < mesh.alphaCutoff) { discard; }
 

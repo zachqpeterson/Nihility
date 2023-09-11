@@ -15,16 +15,45 @@ void CommandBuffer::Destroy()
 
 }
 
-void CommandBuffer::Begin()
+VkResult CommandBuffer::Begin()
 {
 	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	return vkBeginCommandBuffer(commandBuffer, &beginInfo);
 }
 
-void CommandBuffer::End()
+VkResult CommandBuffer::End()
 {
-	vkEndCommandBuffer(commandBuffer);
+	return vkEndCommandBuffer(commandBuffer);
+}
+
+VkResult CommandBuffer::Submit(VkQueue queue)
+{
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	return vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+}
+
+VkResult CommandBuffer::Submit(VkQueue queue, const VkPipelineStageFlags* stageMasks, U32 waitCount, const VkSemaphore* waits, U32 signalCount, const VkSemaphore* signals)
+{
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.waitSemaphoreCount = waitCount;
+	submitInfo.pWaitSemaphores = waits;
+	submitInfo.pWaitDstStageMask = stageMasks;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = signalCount;
+	submitInfo.pSignalSemaphores = signals;
+
+	return vkQueueSubmit(queue, 1, &submitInfo, nullptr);
+}
+
+VkResult CommandBuffer::Reset()
+{
+	return vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 }
 
 void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
@@ -71,6 +100,11 @@ void CommandBuffer::BindInstanceBuffer(const Buffer& buffer)
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
 }
 
+void CommandBuffer::BindDescriptorSets(Shader* shader, U32 setCount, const VkDescriptorSet* sets)
+{
+	vkCmdBindDescriptorSets(commandBuffer, shader->bindPoint, shader->pipelineLayout, 0, setCount, sets, 0, nullptr);
+}
+
 void CommandBuffer::PushConstants(Shader* shader, U32 offset, U32 size, const void* data)
 {
 	vkCmdPushConstants(commandBuffer, shader->pipelineLayout, shader->pushConstantStages, offset, size, data);
@@ -88,7 +122,7 @@ void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstInde
 
 void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count)
 {
-	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount;
+	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount and physicalDeviceFeatures.drawIndirectFirstInstance;
 
 	if (Renderer::physicalDeviceFeatures.multiDrawIndirect)
 	{
@@ -106,6 +140,31 @@ void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count)
 void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
 {
 	vkCmdDispatch(commandBuffer, groupX, groupY, groupZ);
+}
+
+void CommandBuffer::BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions)
+{
+	vkCmdCopyBufferToImage(commandBuffer, buffer.vkBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
+}
+
+void CommandBuffer::ImageToBuffer(Texture* texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions)
+{
+	vkCmdCopyImageToBuffer(commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer.vkBuffer, regionCount, regions);
+}
+
+void CommandBuffer::BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions)
+{
+	vkCmdCopyBuffer(commandBuffer, src.vkBuffer, dst.vkBuffer, regionCount, regions);
+}
+
+void CommandBuffer::ImageToImage(Texture* src, Texture* dst, U32 regionCount, const VkImageCopy* regions)
+{
+	vkCmdCopyImage(commandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
+}
+
+void CommandBuffer::Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)
+{
+	vkCmdBlitImage(commandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, blitCount, blits, filter);
 }
 
 void CommandBuffer::PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers)

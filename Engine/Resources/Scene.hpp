@@ -5,6 +5,7 @@
 struct NH_API Scene
 {
 public:
+	void Create();
 	~Scene();
 	void Destroy();
 

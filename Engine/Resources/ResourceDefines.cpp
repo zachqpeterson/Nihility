@@ -81,46 +81,6 @@ TextureInfo& TextureInfo::SetData(void* data)
 	return *this;
 }
 
-// RENDER PASS OUTPUT
-
-RenderpassOutput& RenderpassOutput::Reset()
-{
-	colorFormatCount = 0;
-
-	for (U32 i = 0; i < MAX_IMAGE_OUTPUTS; ++i)
-	{
-		colorFormats[i] = VK_FORMAT_UNDEFINED;
-	}
-
-	depthStencilFormat = VK_FORMAT_UNDEFINED;
-	colorOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-
-	return *this;
-}
-
-RenderpassOutput& RenderpassOutput::Color(VkFormat format)
-{
-	colorFormats[colorFormatCount++] = format;
-	return *this;
-}
-
-RenderpassOutput& RenderpassOutput::Depth(VkFormat format)
-{
-	depthStencilFormat = format;
-	return *this;
-}
-
-RenderpassOutput& RenderpassOutput::SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
-{
-	colorOperation = color;
-	depthOperation = depth;
-	stencilOperation = stencil;
-
-	return *this;
-}
-
 // RENDER PASS
 
 void Renderpass::Resize()

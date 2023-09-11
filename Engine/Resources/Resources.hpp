@@ -96,9 +96,7 @@ private:
 	static Texture*								dummyTexture;
 	static Sampler*								defaultSampler;
 	static Shader*								meshProgram;
-	static Shader*								swapchainProgram;
 	static Pipeline*							renderPipeline;
-	static Pipeline*							swapchainPipeline;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;

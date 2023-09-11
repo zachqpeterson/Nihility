@@ -43,12 +43,9 @@ private:
 	
 	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, 
 		VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, 
-		VkImageLayout newLayout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, U32 baseMipLevel = 0, U32 levelCount = VK_REMAINING_MIP_LEVELS);
+		VkImageLayout newLayout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, U32 baseMipLevel = 0, U32 levelCount = VK_REMAINING_MIP_LEVELS, U32 layerCount = VK_REMAINING_ARRAY_LAYERS);
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
 		VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
-	static void							TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, 
-		VkImageLayout newLayout, VkImageSubresourceRange subresourceRange, VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 
-		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
 	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
@@ -65,7 +62,7 @@ private:
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubeMap(Texture* texture, void* data, U32* layerSize);
-	static bool							CreateRenderpass(Renderpass* renderpass, bool swapchain = false);
+	static bool							CreateRenderpass(Renderpass* renderpass);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
 	static void							DestroyTextureInstant(Texture* texture);
@@ -119,12 +116,11 @@ private:
 	static CommandBufferRing					commandBufferRing;
 	static Buffer								stagingBuffer;
 	static Buffer								vertexBuffer;
-	static Buffer								indexBuffer;
 	static Buffer								instanceBuffer;
+	static Buffer								indexBuffer;
 	static Buffer								meshBuffer;
 	static Buffer								drawCommandsBuffer;
 	static Vector<VkDrawIndexedIndirectCommand>	drawCommands;
-	static U32									drawCount;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;

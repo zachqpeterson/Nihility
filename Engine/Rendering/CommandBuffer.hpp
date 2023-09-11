@@ -9,8 +9,11 @@ struct CommandBuffer
 	void Create(VkQueueFlagBits type, bool baked);
 	void Destroy();
 
-	void Begin();
-	void End();
+	VkResult Begin();
+	VkResult End();
+	VkResult Submit(VkQueue queue);
+	VkResult Submit(VkQueue queue, const VkPipelineStageFlags* stageMasks, U32 waitCount, const VkSemaphore* waits, U32 signalCount, const VkSemaphore* signals);
+	VkResult Reset();
 
 	void BeginRenderpass(Renderpass* renderpass);
 	void EndRenderpass();
@@ -19,6 +22,7 @@ struct CommandBuffer
 	void BindIndexBuffer(const Buffer& buffer);
 	void BindVertexBuffer(const Buffer& buffer);
 	void BindInstanceBuffer(const Buffer& buffer);
+	void BindDescriptorSets(Shader* shader, U32 setCount, const VkDescriptorSet* sets);
 
 	void PushDescriptors();
 	void PushConstants(Shader* shader, U32 offset, U32 size, const void* data);
@@ -31,12 +35,22 @@ struct CommandBuffer
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(Buffer* buffer, U32 offset);
 
+	void BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions);
+	void ImageToBuffer(Texture* texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions);
+	void BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions);
+	void ImageToImage(Texture* src, Texture* dst, U32 regionCount, const VkImageCopy* regions);
+	void Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
+
 	void PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 
-	VkCommandBuffer				commandBuffer{ nullptr };
 	U32							handle{ U32_MAX };
 	VkQueueFlagBits				type{ VK_QUEUE_GRAPHICS_BIT };
 	bool						baked{ false };
+
+private:
+	VkCommandBuffer				commandBuffer{ nullptr };
+
+	friend struct CommandBufferRing;
 };
 
 struct CommandBufferRing

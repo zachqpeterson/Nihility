@@ -28,13 +28,13 @@ struct SpecializationInfo
 
 		for (U64 j = 0; j < count; ++j)
 		{
-			specializationConstants[j].constantID = j;
-			specializationConstants[j].offset = j * SIZE;
+			specializationConstants[j].constantID = (U32)j;
+			specializationConstants[j].offset = (U32)(j * SIZE);
 			specializationConstants[j].size = 4;
 		}
 
 		specializationInfo.dataSize = i * SIZE;
-		specializationInfo.mapEntryCount = i;
+		specializationInfo.mapEntryCount = (U32)i;
 		specializationInfo.pData = specializationBuffer;
 		specializationInfo.pMapEntries = specializationConstants;
 	}

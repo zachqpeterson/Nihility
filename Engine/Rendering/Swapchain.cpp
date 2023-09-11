@@ -53,33 +53,6 @@ bool Swapchain::GetFormat()
 	return true;
 }
 
-bool Swapchain::CreateRenderpass()
-{
-	if (created)
-	{
-		vkDestroyRenderPass(Renderer::device, renderpass.renderpass, Renderer::allocationCallbacks);
-
-		for (U32 i = 0; i < imageCount; ++i)
-		{
-			vkDestroyFramebuffer(Renderer::device, renderpass.frameBuffers[i], Renderer::allocationCallbacks);
-		}
-
-		Renderer::CreateRenderpass(&renderpass, true);
-	}
-	else
-	{
-		renderpass.name = "Swapchain";
-		renderpass.output.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		renderpass.output.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		renderpass.output.stencilOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		renderpass.output.colorFormatCount = renderpass.renderTargetCount;
-
-		if (!Renderer::CreateRenderpass(&renderpass, true)) { return false; }
-	}
-
-	return true;
-}
-
 bool Swapchain::Create()
 {
 	VkSwapchainKHR oldSwapchain = swapchain;
@@ -99,8 +72,8 @@ bool Swapchain::Create()
 		swapchainExtent.height = Math::Clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
 	}
 
-	renderpass.width = swapchainExtent.width;
-	renderpass.height = swapchainExtent.height;
+	width = swapchainExtent.width;
+	height = swapchainExtent.height;
 
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -169,20 +142,16 @@ bool Swapchain::Create()
 
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			Resources::RecreateSwapchainTexture(renderpass.outputTextures[i], images[i]);
+			Resources::RecreateSwapchainTexture(renderTargets[i], images[i]);
 		}
 	}
 	else
 	{
-		renderpass.renderTargetCount = imageCount;
-
 		for (U32 i = 0; i < imageCount; ++i)
 		{
-			renderpass.outputTextures[i] = Resources::CreateSwapchainTexture(images[i], surfaceFormat.format, i);
+			renderTargets[i] = Resources::CreateSwapchainTexture(images[i], surfaceFormat.format, i);
 		}
 	}
-
-	CreateRenderpass();
 
 	return true;
 }
@@ -192,7 +161,7 @@ void Swapchain::Destroy()
 	if (swapchain) { vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks); }
 	if (surface) { vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks); }
 
-	for (U32 i = 0; i < imageCount; ++i) { Resources::DestroyTexture(renderpass.outputTextures[i]); }
+	for (U32 i = 0; i < imageCount; ++i) { Renderer::DestroyTextureInstant(renderTargets[i]); }
 
 	surface = nullptr;
 	swapchain = nullptr;
@@ -200,8 +169,8 @@ void Swapchain::Destroy()
 
 VkResult Swapchain::Update()
 {
-	if (renderpass.width != Settings::WindowWidth() || renderpass.height != Settings::WindowHeight()) { return VK_ERROR_OUT_OF_DATE_KHR; }
-	if (renderpass.width == 0 || renderpass.height == 0) { return VK_NOT_READY; }
+	if (width != Settings::WindowWidth() || height != Settings::WindowHeight()) { return VK_ERROR_OUT_OF_DATE_KHR; }
+	if (width == 0 || height == 0) { return VK_NOT_READY; }
 
 	return VK_SUCCESS;
 }
@@ -209,4 +178,16 @@ VkResult Swapchain::Update()
 VkResult Swapchain::NextImage(U32& frameIndex, VkSemaphore semaphore, VkFence fence)
 {
 	return vkAcquireNextImageKHR(Renderer::device, swapchain, U64_MAX, semaphore, fence, &frameIndex);
+}
+
+VkResult Swapchain::Present(VkQueue queue, U32 imageIndex, U32 waitCount, const VkSemaphore* waits)
+{
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = waitCount;
+	presentInfo.pWaitSemaphores = waits;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &swapchain;
+	presentInfo.pImageIndices = &imageIndex;
+
+	return vkQueuePresentKHR(queue, &presentInfo);
 }

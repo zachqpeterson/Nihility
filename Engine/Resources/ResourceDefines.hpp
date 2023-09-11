@@ -399,23 +399,6 @@ struct Buffer
 	bool mapped{ false };
 };
 
-struct RenderpassOutput
-{
-	RenderpassOutput& Reset();
-	RenderpassOutput& Color(VkFormat format);
-	RenderpassOutput& Depth(VkFormat format);
-	RenderpassOutput& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
-
-	VkFormat			colorFormats[MAX_IMAGE_OUTPUTS]{ VK_FORMAT_UNDEFINED };
-	VkFormat			depthStencilFormat{ VK_FORMAT_UNDEFINED };
-	U32					colorFormatCount{ 0 };
-
-	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
-};
-
 struct Renderpass
 {
 	void Destroy() { name.Destroy(); }
@@ -429,13 +412,15 @@ struct Renderpass
 	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
 	bool				tiedToFrame{ false };
 
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* outputDepth{ nullptr };
+	Texture*			outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture*			outputDepth{ nullptr };
 	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
 	U8					clearCount{ 0 };
 	Viewport			viewport{};
 
-	RenderpassOutput	output{};
+	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 
 	U16					width{ 0 };
 	U16					height{ 0 };
@@ -510,17 +495,19 @@ struct Mesh
 {
 	Matrix4		model{ Matrix4::Identity };
 
-	U16			diffuseTextureIndex{ U16_MAX };
-	U16			metalRoughOcclTextureIndex{ U16_MAX };
-	U16			normalTextureIndex{ U16_MAX };
-	U16			emissivityTextureIndex{ U16_MAX };
+	U32			diffuseTextureIndex{ U16_MAX };
+	U32			metalRoughOcclTextureIndex{ U16_MAX };
+	U32			normalTextureIndex{ U16_MAX };
+	U32			emissivityTextureIndex{ U16_MAX };
 
 	Vector4		baseColorFactor{ Vector4::One };
-	Vector2		metalRoughFactor{ Vector2::One };
-	Vector3		emissiveFactor{ Vector3::Zero };
+	Vector4		metalRoughFactor{ Vector4::One };
+	Vector4		emissiveFactor{ Vector4::Zero };
 
 	F32			alphaCutoff{ 0.0f };
 	U32			flags{ MATERIAL_FLAG_NONE };
+
+	U32			unused[2];
 };
 
 struct Model

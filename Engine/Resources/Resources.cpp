@@ -145,9 +145,7 @@ Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
 Shader* Resources::meshProgram;
-Shader* Resources::swapchainProgram;
 Pipeline* Resources::renderPipeline;
-Pipeline* Resources::swapchainPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -191,18 +189,11 @@ bool Resources::Initialize()
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
 	meshProgram = CreateShader("shaders/MeshPbr.shader", 1, &pushConstant);
 
-	swapchainProgram = CreateShader("shaders/Swapchain.shader");
-
 	PipelineInfo info{};
 	info.name = "render_pipeline";
 	info.shader = meshProgram;
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 	renderPipeline = CreatePipeline(info);
-
-	info.name = "swapchain_pipeline";
-	info.shader = swapchainProgram;
-	info.renderpass = &Renderer::swapchain.renderpass;
-	swapchainPipeline = CreatePipeline(info);
 
 	return true;
 }
@@ -359,7 +350,7 @@ void Resources::Update()
 		VkDescriptorImageInfo bindlessImageInfo[maxBindlessResources];
 
 		Texture* dummyTexture = Resources::AccessDummyTexture();
-		 
+
 		U32 currentWriteIndex = 0;
 
 		while (bindlessTexturesToUpdate.Size())
@@ -441,6 +432,8 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 
 	if (!texture->name.Blank()) { return texture; }
 
+	*texture = {};
+
 	texture->name = info.name;
 	texture->width = info.width;
 	texture->height = info.height;
@@ -462,6 +455,8 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	String name{ "SwapchainTexture{}", index };
 
 	Texture* texture = &textures.Request(name);
+
+	*texture = {};
 
 	texture->name = name;
 	texture->swapchainImage = true;
@@ -486,6 +481,8 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	viewInfo.subresourceRange.layerCount = 1;
 
 	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { return nullptr; }
+
+	texture->mipmaps[0] = texture->imageView;
 
 	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
 
@@ -515,6 +512,8 @@ bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
 	viewInfo.subresourceRange.layerCount = 1;
 
 	VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView));
+
+	texture->mipmaps[0] = texture->imageView;
 
 	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
 
@@ -547,7 +546,7 @@ Texture* Resources::LoadTexture(const String& name, bool generateMipMaps)
 
 	if (!texture->name.Blank()) { return texture; }
 
-	TextureInfo info{};
+	*texture = {};
 
 	File file(name, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1487,7 +1486,7 @@ Texture* Resources::AssimpToNhimg(const String& name, const aiTexture* textureIn
 	Texture* texture = &textures.Request(name);
 
 	if (!texture->name.Blank()) { return texture; }
-	
+
 	if (Memory::Compare(textureInfo->achFormatHint, "exr", 3))
 	{
 		Logger::Error("Exr Images Are Not Yet Supported!");
@@ -1542,7 +1541,7 @@ DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLay
 	descriptorSetLayout->bindingCount = info.bindingCount;
 	descriptorSetLayout->setIndex = info.setIndex;
 	descriptorSetLayout->handle = handle;
-	
+
 	Memory::Copy(descriptorSetLayout->bindings, info.bindings, info.bindingCount * sizeof(VkDescriptorSetLayoutBinding));
 
 	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
@@ -1565,13 +1564,10 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->outputDepth = info.depthStencilTexture;
 	renderpass->handle = renderpasses.GetHandle(info.name);
-	renderpass->output.colorOperation = info.colorOperation;
-	renderpass->output.depthOperation = info.depthOperation;
-	renderpass->output.stencilOperation = info.stencilOperation;
-	renderpass->output.colorFormatCount = info.renderTargetCount;
-	renderpass->output.attachmentFinalLayout = info.attachmentFinalLayout;
+	renderpass->colorOperation = info.colorOperation;
+	renderpass->depthOperation = info.depthOperation;
+	renderpass->stencilOperation = info.stencilOperation;
 	renderpass->clearCount = info.clearCount;
-	if (info.depthStencilTexture) { renderpass->output.depthStencilFormat = info.depthStencilTexture->format; }
 
 	for (U32 i = 0; i < info.clearCount; ++i)
 	{
@@ -1581,7 +1577,6 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
 		renderpass->outputTextures[i] = info.outputTextures[i];
-		renderpass->output.colorFormats[i] = info.outputTextures[i]->format;
 	}
 
 	Renderer::CreateRenderpass(renderpass);
@@ -1688,36 +1683,34 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 
 			switch (i)
 			{
-			case aiTextureType_DIFFUSE: { mesh.diffuseTextureIndex = texture->handle; } break;
-				case aiTextureType_EMISSIVE: { mesh.emissivityTextureIndex = texture->handle; } break;
-				case aiTextureType_NORMALS: { mesh.normalTextureIndex = texture->handle; } break;
-				case aiTextureType_SHININESS: {  } break;
-				case aiTextureType_BASE_COLOR: { mesh.diffuseTextureIndex = texture->handle; } break;
-				case aiTextureType_EMISSION_COLOR: { mesh.emissivityTextureIndex = texture->handle; } break;
-				case aiTextureType_METALNESS: {  } break;
-				case aiTextureType_DIFFUSE_ROUGHNESS: {  } break;
-				case aiTextureType_AMBIENT_OCCLUSION: {  } break;
+			case aiTextureType_DIFFUSE: { mesh.diffuseTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_EMISSIVE: { mesh.emissivityTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_NORMALS: { mesh.normalTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_SHININESS: {  } break;
+			case aiTextureType_BASE_COLOR: { mesh.diffuseTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_EMISSION_COLOR: { mesh.emissivityTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_METALNESS: {  } break;
+			case aiTextureType_DIFFUSE_ROUGHNESS: {  } break;
+			case aiTextureType_AMBIENT_OCCLUSION: {  } break;
 
-				case aiTextureType_NONE:
-				case aiTextureType_SPECULAR:
-				case aiTextureType_AMBIENT:
-				case aiTextureType_HEIGHT:
-				case aiTextureType_OPACITY:
-				case aiTextureType_DISPLACEMENT:
-				case aiTextureType_LIGHTMAP:
-				case aiTextureType_REFLECTION:
-				case aiTextureType_NORMAL_CAMERA:
-				case aiTextureType_UNKNOWN:
-				case aiTextureType_SHEEN:
-				case aiTextureType_CLEARCOAT:
-				case aiTextureType_TRANSMISSION:
-				default: {
-					Logger::Warn("Unknown Texture Usage '{}'!", i);
-				}
+			case aiTextureType_NONE:
+			case aiTextureType_SPECULAR:
+			case aiTextureType_AMBIENT:
+			case aiTextureType_HEIGHT:
+			case aiTextureType_OPACITY:
+			case aiTextureType_DISPLACEMENT:
+			case aiTextureType_LIGHTMAP:
+			case aiTextureType_REFLECTION:
+			case aiTextureType_NORMAL_CAMERA:
+			case aiTextureType_UNKNOWN:
+			case aiTextureType_SHEEN:
+			case aiTextureType_CLEARCOAT:
+			case aiTextureType_TRANSMISSION:
+			default: { Logger::Warn("Unknown Texture Usage '{}'!", i); }
 			}
 		}
 	}
-	
+
 	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
 	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
 	ai_real roughness{ 0.5f };
@@ -1735,7 +1728,7 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 
 	U32 vertexCount = meshInfo->mNumVertices;
 	Vertex* vertexData = (Vertex*)malloc(vertexCount * sizeof(Vertex));
-
+	
 	if (meshInfo->HasTangentsAndBitangents())
 	{
 		if (meshInfo->HasTextureCoords(0))
@@ -1835,12 +1828,12 @@ Scene* Resources::CreateScene(const String& name)
 
 	if (!scene->name.Blank()) { return scene; }
 
+	*scene = {};
+
 	scene->name = name;
 	scene->drawSkybox = false;
 
-	scene->camera.SetPerspective(0.00001f, 1000.0f, 45.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
-
-	//scene->Create();
+	scene->Create();
 
 	return scene;
 }
@@ -2073,7 +2066,7 @@ bool Resources::LoadNHSCN(Scene* scene, File& file)
 	//}
 	//
 	//scene->Create();
-	
+
 	return true;
 }
 
