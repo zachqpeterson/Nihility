@@ -16,7 +16,6 @@ void Scene::Destroy()
 	name.Destroy();
 
 	models.Destroy();
-	draws.Destroy();
 }
 
 void Scene::Update()
@@ -32,11 +31,6 @@ void Scene::Update()
 void Scene::AddModel(Model* model)
 {
 	models.Push(model);
-
-	for (U32 i = 0; i < model->meshCount; ++i)
-	{
-		draws.Push(model->meshes[i]);
-	}
 }
 
 void Scene::SetSkybox(const String& name)

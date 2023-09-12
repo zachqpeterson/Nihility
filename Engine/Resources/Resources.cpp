@@ -6,6 +6,7 @@
 #include "Core\File.hpp"
 #include "Math\Color.hpp"
 #include "Rendering\Pipeline.hpp"
+#include "Containers\Stack.hpp"
 
 #include "External\zlib\zlib.h"
 #include "External\Assimp\cimport.h"
@@ -37,6 +38,7 @@
 	aiProcess_FindInstances					|	\
     aiProcess_OptimizeMeshes				|	\
     aiProcess_OptimizeGraph					|	\
+	aiProcess_FlipUVs						|   \
     aiProcess_EmbedTextures)
 
 #pragma pack(push, 1)
@@ -1652,24 +1654,33 @@ Model* Resources::LoadModel(const String& name)
 		name.SubString(model->name, name.LastIndexOf('/') + 1);
 	}
 
-	Vector<Mesh*> meshes(scene->mNumMeshes);
+	U32 materialIndices[32]{ U32_MAX };
+	DrawCall drawCalls[32]{ };
+	U32 meshMaterials[32]{ };
+
+	for (U32 i = 0; i < scene->mNumMaterials; ++i)
+	{
+		aiMaterial* materialInfo = scene->mMaterials[i];
+		materialIndices[i] = UploadMaterial(materialInfo, scene);
+	}
 
 	for (U32 i = 0; i < scene->mNumMeshes; ++i)
 	{
-		aiMesh* tempMesh = scene->mMeshes[i];
-		aiMaterial* tempMaterial = scene->mMaterials[tempMesh->mMaterialIndex];
-
-		model->meshes[model->meshCount++] = CreateMesh(i, tempMesh, tempMaterial, scene);
+		aiMesh* meshInfo = scene->mMeshes[i];
+		drawCalls[i] = UploadMesh(meshInfo);
+		meshMaterials[i] = materialIndices[meshInfo->mMaterialIndex];
 	}
+
+	ParseModel(model, drawCalls, meshMaterials, scene);
 
 	aiReleaseImport(scene);
 
 	return model;
 }
 
-Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMaterial* materialInfo, const aiScene* scene)
+U32 Resources::UploadMaterial(const aiMaterial* materialInfo, const aiScene* scene)
 {
-	Mesh mesh{};
+	Material material{};
 
 	aiReturn ret;
 
@@ -1683,13 +1694,13 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 
 			switch (i)
 			{
-			case aiTextureType_DIFFUSE: { mesh.diffuseTextureIndex = (U32)texture->handle; } break;
-			case aiTextureType_EMISSIVE: { mesh.emissivityTextureIndex = (U32)texture->handle; } break;
-			case aiTextureType_NORMALS: { mesh.normalTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_DIFFUSE: { material.diffuseTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_EMISSIVE: { material.emissivityTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_NORMALS: { material.normalTextureIndex = (U32)texture->handle; } break;
 			case aiTextureType_SHININESS: {  } break;
-			case aiTextureType_BASE_COLOR: { mesh.diffuseTextureIndex = (U32)texture->handle; } break;
-			case aiTextureType_EMISSION_COLOR: { mesh.emissivityTextureIndex = (U32)texture->handle; } break;
-			case aiTextureType_METALNESS: {  } break;
+			case aiTextureType_BASE_COLOR: { material.diffuseTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_EMISSION_COLOR: { material.emissivityTextureIndex = (U32)texture->handle; } break;
+			case aiTextureType_METALNESS: {  } break;			//TODO: Combine these textures
 			case aiTextureType_DIFFUSE_ROUGHNESS: {  } break;
 			case aiTextureType_AMBIENT_OCCLUSION: {  } break;
 
@@ -1718,64 +1729,69 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 	ai_real metallic{ 0.5f };
 	ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
 
-	mesh.baseColorFactor.x = color.r;
-	mesh.baseColorFactor.y = color.g;
-	mesh.baseColorFactor.z = color.b;
-	mesh.baseColorFactor.w = color.a;
+	material.baseColorFactor.x = color.r;
+	material.baseColorFactor.y = color.g;
+	material.baseColorFactor.z = color.b;
+	material.baseColorFactor.w = color.a;
 
-	mesh.metalRoughFactor.x = metallic;
-	mesh.metalRoughFactor.y = roughness;
+	material.metalRoughFactor.x = metallic;
+	material.metalRoughFactor.y = roughness;
+
+	return Renderer::UploadToBuffer(Renderer::materialBuffer, &material, sizeof(Material)) / sizeof(Material);
+}
+
+DrawCall Resources::UploadMesh(const aiMesh* meshInfo)
+{
+	aiReturn ret;
 
 	U32 vertexCount = meshInfo->mNumVertices;
 	Vertex* vertexData = (Vertex*)malloc(vertexCount * sizeof(Vertex));
-	
+
 	if (meshInfo->HasTangentsAndBitangents())
 	{
 		if (meshInfo->HasTextureCoords(0))
 		{
 			for (U32 i = 0; i < vertexCount; ++i)
 			{
-				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
-				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
-				vertexData[i].tangent = *(Vector3*)&meshInfo->mTangents[i];
-				vertexData[i].bitangent = *(Vector3*)&meshInfo->mBitangents[i];
-				vertexData[i].texcoord = *(Vector2*)&meshInfo->mTextureCoords[0][i];
+				vertexData[i].position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
+				vertexData[i].normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
+				vertexData[i].tangent = *reinterpret_cast<Vector3*>(&meshInfo->mTangents[i]);
+				vertexData[i].bitangent = *reinterpret_cast<Vector3*>(&meshInfo->mBitangents[i]);
+				vertexData[i].texcoord = *reinterpret_cast<Vector2*>(&meshInfo->mTextureCoords[0][i]);
 			}
 		}
 		else
 		{
-			mesh.flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
-
 			for (U32 i = 0; i < vertexCount; ++i)
 			{
-				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
-				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
-				vertexData[i].tangent = *(Vector3*)&meshInfo->mTangents[i];
-				vertexData[i].bitangent = *(Vector3*)&meshInfo->mBitangents[i];
+				vertexData[i].position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
+				vertexData[i].normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
+				vertexData[i].tangent = *reinterpret_cast<Vector3*>(&meshInfo->mTangents[i]);
+				vertexData[i].bitangent = *reinterpret_cast<Vector3*>(&meshInfo->mBitangents[i]);
 			}
 		}
 	}
 	else
 	{
-		mesh.flags |= MATERIAL_FLAG_NO_TANGENTS;
-
 		if (meshInfo->HasTextureCoords(0))
 		{
 			for (U32 i = 0; i < vertexCount; ++i)
 			{
-				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
-				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
-				vertexData[i].texcoord = *(Vector2*)&meshInfo->mTextureCoords[0][i];
+				vertexData[i].position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
+				vertexData[i].normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
+				vertexData[i].texcoord = *reinterpret_cast<Vector2*>(&meshInfo->mTextureCoords[0][i]);
+				vertexData[i].tangent = {};
+				vertexData[i].bitangent = {};
 			}
 		}
 		else
 		{
-			mesh.flags |= MATERIAL_FLAG_NO_TEXTURE_COORDS;
-
 			for (U32 i = 0; i < vertexCount; ++i)
 			{
-				vertexData[i].position = *(Vector3*)&meshInfo->mVertices[i];
-				vertexData[i].normal = *(Vector3*)&meshInfo->mNormals[i];
+				vertexData[i].position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
+				vertexData[i].normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
+				vertexData[i].tangent = {};
+				vertexData[i].bitangent = {};
 			}
 		}
 	}
@@ -1792,12 +1808,50 @@ Mesh Resources::CreateMesh(U32 meshNumber, const aiMesh* meshInfo, const aiMater
 		it += faceSize;
 	}
 
-	Renderer::UploadDraw(mesh, meshInfo->mNumFaces * meshInfo->mFaces[0].mNumIndices, indexData, vertexCount, vertexData);
+	DrawCall draw{};
+	draw.indexCount = meshInfo->mNumFaces * meshInfo->mFaces[0].mNumIndices;
+	draw.indexOffset = (U32)(Renderer::UploadToBuffer(Renderer::indexBuffer, indexData, draw.indexCount * sizeof(U32)) / sizeof(U32));
+	draw.vertexOffset = (U32)(Renderer::UploadToBuffer(Renderer::vertexBuffer, vertexData, vertexCount * sizeof(Vertex)) / sizeof(Vertex));
 
 	free(vertexData);
 	free(indexData);
 
-	return Move(mesh);
+	return draw;
+}
+
+void Resources::ParseModel(Model* model, DrawCall* drawCalls, U32* meshMaterials, const aiScene* scene)
+{
+	Stack<aiNode*> nodes{ 32 };
+
+	nodes.Push(scene->mRootNode);
+
+	while (nodes.Size())
+	{
+		aiNode* node = nodes.Pop();
+
+		for (U32 i = 0; i < node->mNumMeshes; ++i)
+		{
+			DrawCall& draw = drawCalls[node->mMeshes[i]];
+
+			draw.instances.Push({ meshMaterials[node->mMeshes[i]], *reinterpret_cast<Matrix4*>(&node->mTransformation.Transpose()) });
+		}
+
+		for (U32 i = 0; i < node->mNumChildren; ++i)
+		{
+			nodes.Push(node->mChildren[i]);
+		}
+	}
+
+	for (U32 i = 0; i < scene->mNumMeshes; ++i)
+	{
+		DrawCall& draw = drawCalls[i];
+
+		if (draw.instances.Size())
+		{
+			Renderer::UploadDrawCall(draw);
+			model->meshes.Push(Move(draw));
+		}
+	}
 }
 
 Skybox* Resources::LoadSkybox(const String& name)

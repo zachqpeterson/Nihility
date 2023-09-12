@@ -117,9 +117,9 @@ Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::vertexBuffer;
 Buffer								Renderer::instanceBuffer;
 Buffer								Renderer::indexBuffer;
-Buffer								Renderer::meshBuffer;
+Buffer								Renderer::materialBuffer;
 Buffer								Renderer::drawCommandsBuffer;
-Vector<VkDrawIndexedIndirectCommand>Renderer::drawCommands;
+U32									Renderer::drawCount;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -173,7 +173,7 @@ void Renderer::Shutdown()
 	DestroyBuffer(vertexBuffer);
 	DestroyBuffer(instanceBuffer);
 	DestroyBuffer(indexBuffer);
-	DestroyBuffer(meshBuffer);
+	DestroyBuffer(materialBuffer);
 	DestroyBuffer(drawCommandsBuffer);
 
 	swapchain.Destroy();
@@ -191,8 +191,6 @@ void Renderer::Shutdown()
 	vkDestroyDevice(device, allocationCallbacks);
 
 	vkDestroyInstance(instance, allocationCallbacks);
-
-	drawCommands.Destroy();
 }
 
 bool Renderer::CreateInstance()
@@ -475,7 +473,7 @@ bool Renderer::CreateResources()
 	vertexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	instanceBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	indexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	meshBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	Resources::CreateDefaults();
@@ -539,7 +537,7 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 	{
 		commandBuffer->BindPipeline(pipeline);
 
-		Descriptor descriptors[]{ {meshBuffer.vkBuffer} };
+		Descriptor descriptors[]{ {materialBuffer.vkBuffer} };
 		PushDescriptors(pipeline->shader, descriptors);
 		commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData);
 
@@ -569,7 +567,7 @@ void Renderer::EndFrame()
 
 	Resources::Update();
 
-	Render(commandBuffer, Resources::renderPipeline, (U32)currentScene->draws.Size());
+	Render(commandBuffer, Resources::renderPipeline, drawCount);
 
 	//Post Processing
 	//TODO: Skybox
@@ -813,20 +811,18 @@ U64 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U64 size)
 	return offset;
 }
 
-void Renderer::UploadDraw(const Mesh& mesh, U32 indexCount, U32* indices, U32 vertexCount, Vertex* vertices)
+void Renderer::UploadDrawCall(const DrawCall& drawCall)
 {
-	U32 meshIndex = (U32)(Renderer::UploadToBuffer(Renderer::meshBuffer, &mesh, sizeof(Mesh)) / sizeof(Mesh));
-
 	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = indexCount;
-	drawCommand.instanceCount = 1;
-	drawCommand.firstIndex = (U32)(Renderer::UploadToBuffer(Renderer::indexBuffer, indices, indexCount * sizeof(U32)) / sizeof(U32));
-	drawCommand.vertexOffset = (U32)(Renderer::UploadToBuffer(Renderer::vertexBuffer, vertices, vertexCount * sizeof(Vertex)) / sizeof(Vertex));
-	drawCommand.firstInstance = (U32)(Renderer::UploadToBuffer(Renderer::instanceBuffer, &meshIndex, sizeof(U32)) / sizeof(U32));
+	drawCommand.indexCount = drawCall.indexCount;
+	drawCommand.instanceCount = drawCall.instances.Size();
+	drawCommand.firstIndex = drawCall.indexOffset;
+	drawCommand.vertexOffset = drawCall.vertexOffset;
+	drawCommand.firstInstance = (U32)(Renderer::UploadToBuffer(Renderer::instanceBuffer, drawCall.instances.Data(), drawCall.instances.Size() * sizeof(MeshInstance)) / sizeof(MeshInstance));
 
 	Renderer::UploadToBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand));
 
-	drawCommands.Push(drawCommand);
+	++drawCount;
 }
 
 void Renderer::MapBuffer(Buffer& buffer)

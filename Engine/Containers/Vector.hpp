@@ -489,16 +489,14 @@ template<typename T> inline void Vector<T>::Push(const T& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size] = value;
-	++size;
+	array[size++] = value;
 }
 
 template<typename T> inline void Vector<T>::Push(T&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size] = Move(value);
-	++size;
+	array[size++] = Move(value);
 }
 
 template<typename T> inline void Vector<T>::Pop()

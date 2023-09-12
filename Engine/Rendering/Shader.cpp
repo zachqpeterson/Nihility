@@ -790,15 +790,77 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 				{
 					Id& type = ids[ids[id.typeId].typeId];
 
-					VkVertexInputAttributeDescription attribute{};
-					attribute.location = id.location;
-					attribute.binding = id.location >= instanceOffset;
-					attribute.format = GetFormat(ids, type);
-					attribute.offset = 0;
+					if (type.opcode == SpvOpTypeMatrix)
+					{
+						const Id& component = ids[type.typeId];
+						
+						switch (type.count)
+						{
+						case 2: {
+							VkVertexInputAttributeDescription attribute{};
+							attribute.location = id.location;
+							attribute.binding = id.location >= instanceOffset;
+							attribute.format = GetFormat(ids, component);
+							attribute.offset = 0;
 
-					vertexAttributes[id.location] = attribute;
+							vertexAttributes[id.location] = attribute;
 
-					++vertexAttributeCount;
+							attribute.location = id.location + 1;
+							vertexAttributes[id.location + 1] = attribute;
+
+							vertexAttributeCount += 2;
+						} break;
+						case 3: {
+							VkVertexInputAttributeDescription attribute{};
+							attribute.location = id.location;
+							attribute.binding = id.location >= instanceOffset;
+							attribute.format = GetFormat(ids, component);
+							attribute.offset = 0;
+
+							vertexAttributes[id.location] = attribute;
+
+							attribute.location = id.location + 1;
+							vertexAttributes[id.location + 1] = attribute;
+
+							attribute.location = id.location + 2;
+							vertexAttributes[id.location + 2] = attribute;
+
+							vertexAttributeCount += 3;
+						} break;
+						case 4: {
+							VkVertexInputAttributeDescription attribute{};
+							attribute.location = id.location;
+							attribute.binding = id.location >= instanceOffset;
+							attribute.format = GetFormat(ids, component);
+							attribute.offset = 0;
+
+							vertexAttributes[id.location] = attribute;
+
+							attribute.location = id.location + 1;
+							vertexAttributes[id.location + 1] = attribute;
+
+							attribute.location = id.location + 2;
+							vertexAttributes[id.location + 2] = attribute;
+
+							attribute.location = id.location + 3;
+							vertexAttributes[id.location + 3] = attribute;
+
+							vertexAttributeCount += 4;
+						} break;
+						}
+					}
+					else
+					{
+						VkVertexInputAttributeDescription attribute{};
+						attribute.location = id.location;
+						attribute.binding = id.location >= instanceOffset;
+						attribute.format = GetFormat(ids, type);
+						attribute.offset = 0;
+
+						vertexAttributes[id.location] = attribute;
+
+						++vertexAttributeCount;
+					}
 				}
 			} break;
 			case SpvStorageClassPushConstant:

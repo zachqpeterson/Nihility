@@ -12,6 +12,10 @@
 #include "Rendering\Pipeline.hpp"
 
 struct KTXInfo;
+struct aiTexture;
+struct aiMaterial;
+struct aiMesh;
+struct aiScene;
 
 class NH_API Resources
 {
@@ -81,11 +85,13 @@ private:
 	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
-	static Texture* AssimpToNhimg(const String& name, const struct aiTexture* texture);
+	static Texture* AssimpToNhimg(const String& name, const aiTexture* texture);
 	static Texture* ConvertToNhimg(const String& name, const U8* data);
 
 	//Model Loading
-	static Mesh CreateMesh(U32 meshNumber, const struct aiMesh* meshInfo, const struct aiMaterial* materialInfo, const struct aiScene* scene);
+	static U32 UploadMaterial(const aiMaterial* materialInfo, const aiScene* scene);
+	static DrawCall UploadMesh(const aiMesh* meshInfo);
+	static void ParseModel(Model* model, DrawCall* drawCalls, U32* meshMaterials, const aiScene* scene);
 
 	//Scene Loading
 	static bool LoadNHSCN(Scene* scene, File& file);

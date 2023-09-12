@@ -50,7 +50,7 @@ private:
 	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
 	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
 	static U64							UploadToBuffer(Buffer& buffer, const void* data, U64 size);
-	static void							UploadDraw(const Mesh& mesh, U32 indexCount, U32* indices, U32 vertexCount, Vertex* vertices);
+	static void							UploadDrawCall(const DrawCall& drawCall);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
 	static void							DestroyBuffer(Buffer& buffer);
@@ -118,9 +118,9 @@ private:
 	static Buffer								vertexBuffer;
 	static Buffer								instanceBuffer;
 	static Buffer								indexBuffer;
-	static Buffer								meshBuffer;
+	static Buffer								materialBuffer;
 	static Buffer								drawCommandsBuffer;
-	static Vector<VkDrawIndexedIndirectCommand>	drawCommands;
+	static U32									drawCount;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;

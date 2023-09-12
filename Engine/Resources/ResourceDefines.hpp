@@ -24,8 +24,6 @@ enum MaterialFlag
 {
 	MATERIAL_FLAG_NONE = 0x00,
 	MATERIAL_FLAG_ALPHA_MASK = 0x01,
-	MATERIAL_FLAG_NO_TANGENTS = 0x02,
-	MATERIAL_FLAG_NO_TEXTURE_COORDS = 0x04,
 };
 
 enum TextureFlag
@@ -412,8 +410,8 @@ struct Renderpass
 	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
 	bool				tiedToFrame{ false };
 
-	Texture*			outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*			outputDepth{ nullptr };
+	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* outputDepth{ nullptr };
 	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
 	U8					clearCount{ 0 };
 	Viewport			viewport{};
@@ -491,10 +489,8 @@ struct Vertex
 	Vector2 texcoord;
 };
 
-struct Mesh
+struct Material
 {
-	Matrix4		model{ Matrix4::Identity };
-
 	U32			diffuseTextureIndex{ U16_MAX };
 	U32			metalRoughOcclTextureIndex{ U16_MAX };
 	U32			normalTextureIndex{ U16_MAX };
@@ -510,15 +506,29 @@ struct Mesh
 	U32			unused[2];
 };
 
+struct MeshInstance
+{
+	U32 materialIndex;
+	Matrix4 model{ };
+};
+
+struct DrawCall
+{
+	U32 indexCount;
+	U32 indexOffset;
+	U32 vertexOffset;
+
+	Vector<MeshInstance> instances;
+};
+
 struct Model
 {
-	void Destroy() { name.Destroy(); }
+	void Destroy() { name.Destroy(); meshes.Destroy(); }
 
 	String		name{ NO_INIT };
 	HashHandle	handle;
 
-	Mesh meshes[32]{ };
-	U32 meshCount{ 0 };
+	Vector<DrawCall> meshes;
 };
 
 struct Skybox
