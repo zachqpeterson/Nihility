@@ -116,6 +116,7 @@
     <ClInclude Include="Engine\Containers\String.hpp" />
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\Vector.hpp" />
+    <ClInclude Include="Engine\Core\DataReader.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
     <ClInclude Include="Engine\Core\Logger.hpp" />
     <ClInclude Include="Engine\Core\Time.hpp" />
@@ -246,6 +247,7 @@
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Core\DataReader.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />

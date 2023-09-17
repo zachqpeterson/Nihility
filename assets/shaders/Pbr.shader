@@ -1,71 +1,80 @@
 #CONFIG
-name=PBR
 language=GLSL
 cull=FRONT
-front=CLOCKWISE
+front=COUNTER
 fill=SOLID
 depth=LESS
 blend=ADD
+instanceOffset=5
 #CONFIG_END
 
 #VERTEX
 #version 450
 
-const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
-const uint MATERIAL_FLAG_NO_TANGENTS = 1 << 1;
-const uint MATERIAL_FLAG_NO_TEXURE_COORDS = 1 << 2;
+#extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_8bit_storage: require
 
-layout(std140, binding = 0) uniform Globals //Per frame
+#extension GL_ARB_shader_draw_parameters: require
+
+struct Globals
 {
-    mat4 viewProjection;
-    vec4 eye;
-    vec4 directionalLight;
-    vec4 directionalLightColor;
-    vec4 ambientLight;
-    float lightIntensity;
-    uint skyboxIndex;
+	mat4 viewProjection;
+	vec4 eye;
 };
 
-layout(std140, binding = 1) uniform MeshConstant
+struct Material
 {
-    mat4        model;
-    uint		meshIndex;
-	uint		vertexOffset;
+	uint	diffuseTextureIndex;
+	uint	metalRoughOcclTextureIndex;
+	uint	normalTextureIndex;
+	uint	emissivityTextureIndex;
 
-	uint		diffuseTextureIndex;
-	uint		metalRoughOcclTextureIndex;
-	uint		normalTextureIndex;
-	uint		emissivityTextureIndex;
+	vec4	baseColorFactor;
+	vec4	metalRoughFactor;
+	vec4	emissiveFactor;
 
-	vec4		baseColorFactor;
-	float		metalicFactor;
-	float		roughnessFactor;
-	vec3		emissiveFactor;
-
-	F32			alphaCutoff;
-	U32			flags;
+	float	alphaCutoff;
+	uint	flags;
 };
+
+layout(push_constant) uniform block
+{
+	Globals globals;
+};
+
+layout(std140, binding = 0) readonly buffer Materials
+{
+	Material materials[];
+};
+
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 normal;
+layout (location = 2) in vec3 tangent;
+layout (location = 3) in vec3 bitangent;
+layout (location = 4) in vec2 texcoord;
+
+layout (location = 5) in uint materialIndex;
+layout (location = 6) in mat4 model;
 
 layout (location = 0) out vec3 outPosition;
 layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec3 outTangent;
 layout (location = 3) out vec3 outBitangent;
 layout (location = 4) out vec2 outTexcoord;
+layout (location = 5) flat out uint outMaterialIndex;
 
 void main()
 {
+    Material material = materials[materialIndex];
+
     vec4 worldPosition = model * vec4(position, 1.0);
-    gl_Position = viewProjection * worldPosition;
+    gl_Position = globals.viewProjection * worldPosition;
     outPosition = worldPosition.xyz / worldPosition.w;
     outNormal = normal;
-
-    if((flags & MATERIAL_FLAG_NO_TEXURE_COORDS) != 0) { outTexcoord = texCoord; }
-
-    if((flags & MATERIAL_FLAG_NO_TANGENTS) != 0)
-    {
-        outTangent = tangent;
-        outBitangent = bitangent;
-    }
+    outTexcoord = texcoord;
+    outTangent = tangent;
+    outBitangent = bitangent;
+    outMaterialIndex = materialIndex;
 }
 #VERTEX_END
 
@@ -74,57 +83,55 @@ void main()
 #extension GL_EXT_nonuniform_qualifier : require
 
 const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
-const uint MATERIAL_FLAG_NO_TANGENTS = 1 << 1;
-const uint MATERIAL_FLAG_NO_TEXURE_COORDS = 1 << 2;
 
-layout(std140, binding = 0) uniform LocalConstants
+struct Globals
 {
-    mat4 viewProjection;
-    vec4 eye;
-    vec4 directionalLight;
-    vec4 directionalLightColor;
-    vec4 ambientLight;
-    float lightIntensity;
-    uint skyboxIndex;
+	mat4 viewProjection;
+	vec4 eye;
 };
 
-layout(std140, binding = 1) uniform MeshConstant
+struct Material
 {
-    mat4        model;
-	uint		meshIndex;
-	uint		vertexOffset;
-
-	uint		diffuseTextureIndex;
-	uint		metalRoughOcclTextureIndex;
-	uint		normalTextureIndex;
-	uint		emissivityTextureIndex;
+	uint	    diffuseTextureIndex;
+	uint	    metalRoughOcclTextureIndex;
+	uint	    normalTextureIndex;
+	uint	    emissivityTextureIndex;
 
 	vec4		baseColorFactor;
-	float		metalicFactor;
-	float		roughnessFactor;
-	vec3		emissiveFactor;
+	vec4		metalRoughFactor;
+	vec4		emissiveFactor;
 
-	F32			alphaCutoff;
-	U32			flags;
+	float		alphaCutoff;
+	uint		flags;
+};
+
+layout(push_constant) uniform block
+{
+	Globals globals;
+};
+
+layout(std140, binding = 0) readonly buffer Materials
+{
+	Material materials[];
 };
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
 
-layout (location = 0) out vec3 position;
-layout (location = 1) out vec3 normal;
-layout (location = 2) out vec3 tangent;
-layout (location = 3) out vec3 bitangent;
-layout (location = 4) out vec2 texcoord;
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 normal;
+layout (location = 2) in vec3 tangent;
+layout (location = 3) in vec3 bitangent;
+layout (location = 4) in vec2 texcoord;
+layout (location = 5) flat in uint materialIndex;
 
 layout (location = 0) out vec4 fragColor;
 
 //NOTE: F0 in the formula notation refers to the value derived from ior = 1.5, (index of refraction)
 const float F0 = 0.04; //pow((1 - ior) / (1 + ior), 2)
-const float PI = 3.1415926538;
-const uint INVALID_TEXTURE_INDEX = 65535;
-
+const float PI = 3.141592654;
 const float RecPI = 1.0 / PI;
+const uint INVALID_TEXTURE_INDEX = 65535;
 
 vec3 DecodeSRGB(vec3 c) 
 {
@@ -156,45 +163,45 @@ vec3 EncodeSRGB(vec3 c)
     return clamp(result, 0.0, 1.0);
 }
 
-float Heaviside(float v) 
+float Heaviside(float v)
 {
-    if (v > 0.0) { return 1.0; }
-    else { return 0.0; }
+	if (v > 0.0) { return 1.0; }
+	else { return 0.0; }
 }
 
 void main()
 {
+    Material material = materials[materialIndex];
+
     vec4 baseColor = vec4(1.0);
 
-    if(diffuseTextureIndex != INVALID_TEXTURE_INDEX)
+    if(material.diffuseTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        baseColor = texture(globalTextures[nonuniformEXT(diffuseTextureIndex)], texcoord) * baseColorFactor;
+        baseColor = texture(globalTextures[nonuniformEXT(material.diffuseTextureIndex)], texcoord) * material.baseColorFactor;
         baseColor.rgb = DecodeSRGB(baseColor.rgb);
     }
 
-    if ((flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < alphaCutoff) { discard; }
+    fragColor = baseColor;
+    return;
 
-    vec3 I = normalize(position - eye.xyz);
+    if ((material.flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < material.alphaCutoff) { discard; }
+
+    vec3 I = normalize(position - globals.eye.xyz);
     vec3 R = reflect(I, normalize(normal));
     R.y = -R.y;
-    vec3 environment = vec3(0.0);
-    if(skyboxIndex != INVALID_TEXTURE_INDEX) { environment = texture(globalTexturesCubes[skyboxIndex], R).rgb; }
 
     vec3 N = normalize(normal);
 
-    if (normalTextureIndex != INVALID_TEXTURE_INDEX)
+    if (material.normalTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(normalTextureIndex)], texcoord).rgb * 2.0 - 1.0);
+        vec3 bumpNormal = normalize(texture(globalTextures[nonuniformEXT(material.normalTextureIndex)], texcoord).rgb * 2.0 - 1.0);
 
-        if((flags & MATERIAL_FLAG_NO_TANGENTS) == 0)
-        {
-            vec3 T = normalize(tangent);
-	        vec3 B = normalize(bitangent);
+        vec3 T = normalize(tangent);
+		vec3 B = normalize(bitangent);
 
-            mat3 TBN = mat3(T, B, N);
+        mat3 TBN = mat3(T, B, N);
 
-            N = normalize(TBN * normalize(bumpNormal));
-        }
+        N = normalize(TBN * normalize(bumpNormal));
     }
 
     //if(gl_FrontFacing == false)
@@ -204,34 +211,35 @@ void main()
     //    B *= -1.0;
 	//}
 
-	vec3 V = normalize(eye.xyz - position);
-    vec3 lightDirection = directionalLight.xyz;
+    vec3 lightPos = vec3(0.0, 2.0, 1.0);
+
+	vec3 V = normalize(globals.eye.xyz - position);
+    vec3 lightDirection = position - lightPos;
     float lightDistance = length(lightDirection);
     vec3 L = normalize(lightDirection);
 	vec3 H = normalize(V + L);
 
-	float metallicness = metalRoughOcclFactor.x;
-    float roughness = metalRoughOcclFactor.y;
-    float occlusion = metalRoughOcclFactor.z;
+	float metallicness = material.metalRoughFactor.x;
+    float roughness = material.metalRoughFactor.y;
+    float occlusion = 0.0f;
 
-	if (metalRoughOcclTextureIndex != INVALID_TEXTURE_INDEX)
+	if (material.metalRoughOcclTextureIndex != INVALID_TEXTURE_INDEX)
 	{
-        vec4 rmo = texture(globalTextures[nonuniformEXT(metalRoughOcclTextureIndex)], texcoord);
+        vec4 rmo = texture(globalTextures[nonuniformEXT(material.metalRoughOcclTextureIndex)], texcoord);
 
 		// Red channel contains occlusion values
         // Green channel contains roughness values
         // Blue channel contains metallicness
-		occlusion *= rmo.r;
+		occlusion = rmo.r;
         roughness *= rmo.g;
         metallicness *= rmo.b;
-        environment = clamp(environment * (metallicness * (1.0 - roughness)), 0.0, 1.0);
     }
 
-    vec3 emissivity = emissiveFactor.rgb;
+    vec3 emissivity = material.emissiveFactor.rgb;
 
-    if(emissivityTextureIndex != INVALID_TEXTURE_INDEX)
+    if(material.emissivityTextureIndex != INVALID_TEXTURE_INDEX)
     {
-        emissivity += texture(globalTextures[nonuniformEXT(emissivityTextureIndex)], texcoord).rgb;
+        emissivity += texture(globalTextures[nonuniformEXT(material.emissivityTextureIndex)], texcoord).rgb;
     }
 
 	float alpha = roughness * roughness;
@@ -241,12 +249,16 @@ void main()
     float NdotH = clamp(dot(N, H), 0.0, 1.0);
     float HdotL = clamp(dot(H, L), 0.0, 1.0);
     float HdotV = clamp(dot(H, V), 0.0, 1.0);
+
+    float lightIntensity = 10.0;
+    float lightRange = 10.0;
+    vec3 lightColor = vec3(1.0, 1.0, 1.0);
     
     vec3 materialColor = vec3(0.0, 0.0, 0.0);
     if (NdotL > 0.0 || NdotV > 0.0)
     {
-        //float intensity = (lightIntensity * clamp(1.0 - pow(lightDistance / lightRange, 4), 0.0, 1.0) / (lightDistance * lightDistance)) * NdotL;
-        float intensity = (lightIntensity / (lightDistance * lightDistance)) * NdotL;
+        float intensity = (lightIntensity * clamp(1.0 - pow(lightDistance / lightRange, 4), 0.0, 1.0) / (lightDistance * lightDistance)) * NdotL;
+        //float intensity = (globals.lightIntensity / (lightDistance * lightDistance)) * NdotL;
 
         float denominator = (abs(NdotL) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotL * NdotL))) *
             (abs(NdotV) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotV * NdotV)));
@@ -268,6 +280,8 @@ void main()
         materialColor = (diffuseBRDF + specularBRDF) * intensity;
     }
 
-    fragColor = vec4(emissivity + ambientLight.xyz * baseColor.rgb + environment + EncodeSRGB(materialColor) * directionalLightColor.xyz, baseColor.a);
+    vec3 ambientLight = vec3(0.2, 0.2, 0.2);
+
+    fragColor = vec4(emissivity + ambientLight * baseColor.rgb + EncodeSRGB(materialColor) * lightColor, baseColor.a);
 }
 #FRAGMENT_END

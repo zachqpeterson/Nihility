@@ -33,7 +33,7 @@ struct DepthStencil
 
 struct ShaderStage
 {
-	String							entryPoint{ NO_INIT };
+	String							entryPoint{  };
 	VkShaderStageFlagBits			stage{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
 
 	U32								localSizeX{ 1 };
@@ -48,7 +48,7 @@ struct Shader
 	bool Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants);
 	void Destroy();
 
-	String								name{ NO_INIT };
+	String								name{  };
 	U64									handle{ U64_MAX };
 
 	VkPipelineBindPoint					bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };

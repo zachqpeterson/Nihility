@@ -1,4 +1,0 @@
-color=1.000000,1.000000,1.000000,1.000000
-shininess=0.000000
-globalTextureMaps=DefaultDiffuse.bmp,DefaultSpecular.bmp,DefaultNormal.bmp
-shader=Material.shd

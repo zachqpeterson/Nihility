@@ -46,7 +46,7 @@ struct SpecializationInfo
 
 struct PipelineInfo
 {
-	String				name{ NO_INIT };
+	String				name{  };
 
 	VkAttachmentLoadOp	colorLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
@@ -72,7 +72,7 @@ struct Pipeline
 
 	void AddDescriptor(const Descriptor& descriptor);
 
-	String				name{ NO_INIT };
+	String				name{  };
 	U64					handle{ U64_MAX };
 
 	Shader*				shader{};

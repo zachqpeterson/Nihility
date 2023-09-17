@@ -15,7 +15,7 @@ public:
 	void SetSkybox(const String& name);
 
 public:
-	String				name{ NO_INIT };
+	String				name{  };
 	HashHandle			handle;
 
 	Camera				camera{};

@@ -88,13 +88,11 @@ U32 File::Read(void* buffer, U32 size)
 	return total;
 }
 
-void File::ReadString(String& string)
+String File::ReadString()
 {
-	string.Clear();
+	String string;
 
-	bool end = false;
-
-	while (!end)
+	while (true)
 	{
 		C8* it = (C8*)streamPtr;
 
@@ -106,22 +104,20 @@ void File::ReadString(String& string)
 			streamPtr += string.Size() + 1;
 			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
-			end = true;
+			return Move(string);
 		}
 		else if (!FillBuffer())
 		{
-			end = true;
+			return Move(string);
 		}
 	}
 }
 
-void File::ReadLine(String& string)
+String File::ReadLine()
 {
-	string.Clear();
+	String string;
 
-	bool end = false;
-
-	while (!end)
+	while (true)
 	{
 		C8* it = (C8*)streamPtr;
 
@@ -133,11 +129,11 @@ void File::ReadLine(String& string)
 			streamPtr += string.Size() + 1;
 			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
-			end = true;
+			return Move(string);
 		}
 		else if(!FillBuffer())
 		{
-			end = true;
+			return Move(string);
 		}
 	}
 }

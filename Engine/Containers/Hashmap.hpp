@@ -13,7 +13,7 @@ struct NH_API Hashmap
 	struct Cell
 	{
 		bool filled{ false };
-		Key key{ NO_INIT };
+		Key key{};
 		Value value;
 	};
 
@@ -62,13 +62,14 @@ public:
 	bool Insert(const Key& key, const Value& value);
 	bool Insert(const Key& key, Value&& value) noexcept;
 	bool Remove(const Key& key);
-	bool Remove(const Key& key, Value&& value) noexcept;
+	bool Remove(const Key& key, Value& value) noexcept;
 	Value& Get(const Key& key);
 	Value& Request(const Key& key);
+	Value& Request(const Key& key, HashHandle& handle);
 	HashHandle GetHandle(const Key& key);
 	Value& Obtain(HashHandle handle);
 	bool Remove(HashHandle handle);
-	bool Remove(HashHandle handle, Value&& value) noexcept;
+	bool Remove(HashHandle handle, Value& value) noexcept;
 
 	Value& operator[](const Key& key);
 	const Value& operator[](const Key& key) const;
@@ -98,7 +99,7 @@ template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap() {}
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap)
 {
 	Memory::AllocateArray(&cells, cap, capacity);
-	capacity = NextPow2(capacity) >> 1;
+	capacity = BitCeiling(capacity) >> 1;
 	capMinusOne = capacity - 1;
 	defVal = {};
 }
@@ -106,7 +107,7 @@ template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap)
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap, const Value& def)
 {
 	Memory::AllocateArray(&cells, cap, capacity);
-	capacity = NextPow2(capacity) >> 1;
+	capacity = BitCeiling(capacity) >> 1;
 	capMinusOne = capacity - 1;
 	defVal = def;
 }
@@ -245,7 +246,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const K
 	return false;
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const Key& key, Value&& value) noexcept
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const Key& key, Value& value) noexcept
 {
 	if (size == 0) { return false; }
 
@@ -281,7 +282,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Get(const Ke
 	else { hash = Hash::Calculate(key); }
 
 	U64 i = 0;
-	Cell* cell = cells + (hash % capacity);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	if (cell->filled) { return cell->value; }
@@ -295,11 +296,30 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::Request(cons
 	else { hash = Hash::Calculate(key); }
 
 	U64 i = 0;
-	Cell* cell = cells + (hash % capacity);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	size += !cell->filled;
 
+	cell->filled = true;
+	cell->key = key;
+	return cell->value;
+}
+
+template<class Key, class Value> inline Value& Hashmap<Key, Value>::Request(const Key& key, HashHandle& hnd)
+{
+	U64 hash;
+	if constexpr (IsStringType<Key>) { hash = key.Hash(); }
+	else { hash = Hash::Calculate(key); }
+
+	U64 i = 0;
+	HashHandle handle = hash & capMinusOne;
+	Cell* cell = cells + handle;
+	while (cell->key != key && cell->filled) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
+
+	size += !cell->filled;
+
+	hnd = handle;
 	cell->filled = true;
 	cell->key = key;
 	return cell->value;
@@ -312,7 +332,7 @@ template<class Key, class Value> inline HashHandle Hashmap<Key, Value>::GetHandl
 	else { hash = Hash::Calculate(key); }
 
 	U64 i = 0;
-	HashHandle handle = hash % capacity;
+	HashHandle handle = hash & capMinusOne;
 	Cell* cell = cells + handle;
 	while (cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
 
@@ -342,7 +362,7 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(HashHan
 	return false;
 }
 
-template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(HashHandle handle, Value&& value) noexcept
+template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(HashHandle handle, Value& value) noexcept
 {
 	Cell& cell = cells[handle];
 
@@ -370,7 +390,7 @@ template<class Key, class Value> inline Value& Hashmap<Key, Value>::operator[](c
 	else { hash = Hash::Calculate(key); }
 
 	U64 i = 0;
-	Cell* cell = cells + (hash % capacity);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	if (cell->filled) { return cell->value; }
@@ -386,7 +406,7 @@ template<class Key, class Value> inline const Value& Hashmap<Key, Value>::operat
 	else { hash = Hash::Calculate(key); }
 
 	U64 i = 0;
-	Cell* cell = cells + (hash % capacity);
+	Cell* cell = cells + (hash & capMinusOne);
 	while (cell->key != key && cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	if (cell->filled) { return cell->value; }
@@ -398,7 +418,7 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Reserve(U64 ca
 	if (cap < capacity) { return; }
 
 	Memory::Reallocate(&cells, cap, capacity);
-	capacity = NextPow2(capacity) >> 1;
+	capacity = BitCeiling(capacity) >> 1;
 	capMinusOne = capacity - 1;
 
 	Empty();

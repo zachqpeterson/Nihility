@@ -32,14 +32,9 @@ struct NH_API Vector
 {
 public:
 	/// <summary>
-	/// Creates a new Vector instance, size and capacity will be 1024 / sizeof(T), 1kb array will be allocated
-	/// </summary>
-	Vector();
-
-	/// <summary>
 	/// Creates a new Vector instance, size and capacity will be zero, array will be nullptr
 	/// </summary>
-	Vector(NoInit flag);
+	Vector();
 
 	/// <summary>
 	/// Creates a new Vector instance, size will be zero, creates an array of size sizeof(T) * capacity
@@ -432,9 +427,7 @@ private:
 	T* array{ nullptr };
 };
 
-template<typename T> inline Vector<T>::Vector() { Memory::AllocateArray(&array, capacity, capacity); }
-
-template<typename T> inline Vector<T>::Vector(NoInit flag) {}
+template<typename T> inline Vector<T>::Vector() {}
 
 template<typename T> inline Vector<T>::Vector(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
 

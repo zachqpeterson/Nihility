@@ -469,6 +469,9 @@
     <ClInclude Include="Engine\External\stb_image.h">
       <Filter>Source Files\External</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Core\DataReader.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -695,6 +698,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Shader.cpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\DataReader.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

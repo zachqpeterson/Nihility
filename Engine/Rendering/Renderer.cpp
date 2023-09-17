@@ -815,7 +815,7 @@ void Renderer::UploadDrawCall(const DrawCall& drawCall)
 {
 	VkDrawIndexedIndirectCommand drawCommand{};
 	drawCommand.indexCount = drawCall.indexCount;
-	drawCommand.instanceCount = drawCall.instances.Size();
+	drawCommand.instanceCount = (U32)drawCall.instances.Size();
 	drawCommand.firstIndex = drawCall.indexOffset;
 	drawCommand.vertexOffset = drawCall.vertexOffset;
 	drawCommand.firstInstance = (U32)(Renderer::UploadToBuffer(Renderer::instanceBuffer, drawCall.instances.Data(), drawCall.instances.Size() * sizeof(MeshInstance)) / sizeof(MeshInstance));

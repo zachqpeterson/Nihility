@@ -77,8 +77,8 @@ public:
 
 	template<typename Type> U32 Read(Type& value);
 	U32 Read(void* buffer, U32 size);
-	void ReadString(String& string);
-	void ReadLine(String& string);
+	String ReadString();
+	String ReadLine();
 
 	template <StringType Str> U32 Write(const Str& data);
 	template<typename Type> U32 Write(const Vector<Type>& data);

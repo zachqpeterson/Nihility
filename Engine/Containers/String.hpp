@@ -7,152 +7,7 @@
 #include "Math\Hash.hpp"
 #include "Math\Random.hpp"
 
-#define UPPER_CHAR		0x01
-#define LOWER_CHAR		0x02
-#define DIGIT_CHAR		0x04
-#define SPACE_CHAR		0x08
-#define PUNCT_CHAR		0x10
-#define CONTROL_CHAR	0x20
-#define HEX_CHAR		0x40
-
-#define ALPHA_CHAR		UPPER_CHAR | LOWER_CHAR
-#define ALPHANUM_CHAR	ALPHA_CHAR | DIGIT_CHAR
-
-static inline constexpr C8 TYPE_LOOKUP[]{
-	0,							// -1 EOF
-	CONTROL_CHAR,				// 00 (NUL)
-	CONTROL_CHAR,				// 01 (SOH)
-	CONTROL_CHAR,				// 02 (STX)
-	CONTROL_CHAR,				// 03 (ETX)
-	CONTROL_CHAR,				// 04 (EOT)
-	CONTROL_CHAR,				// 05 (ENQ)
-	CONTROL_CHAR,				// 06 (ACK)
-	CONTROL_CHAR,				// 07 (BEL)
-	CONTROL_CHAR,				// 08 (BS)
-	SPACE_CHAR | CONTROL_CHAR,	// 09 (HT)
-	SPACE_CHAR | CONTROL_CHAR,	// 0A (LF)
-	SPACE_CHAR | CONTROL_CHAR,	// 0B (VT)
-	SPACE_CHAR | CONTROL_CHAR,	// 0C (FF)
-	SPACE_CHAR | CONTROL_CHAR,	// 0D (CR)
-	CONTROL_CHAR,				// 0E (SI)
-	CONTROL_CHAR,				// 0F (SO)
-	CONTROL_CHAR,				// 10 (DLE)
-	CONTROL_CHAR,				// 11 (DC1)
-	CONTROL_CHAR,				// 12 (DC2)
-	CONTROL_CHAR,				// 13 (DC3)
-	CONTROL_CHAR,				// 14 (DC4)
-	CONTROL_CHAR,				// 15 (NAK)
-	CONTROL_CHAR,				// 16 (SYN)
-	CONTROL_CHAR,				// 17 (ETB)
-	CONTROL_CHAR,				// 18 (CAN)
-	CONTROL_CHAR,				// 19 (EM)
-	CONTROL_CHAR,				// 1A (SUB)
-	CONTROL_CHAR,				// 1B (ESC)
-	CONTROL_CHAR,				// 1C (FS)
-	CONTROL_CHAR,				// 1D (GS)
-	CONTROL_CHAR,				// 1E (RS)
-	CONTROL_CHAR,				// 1F (US)
-	SPACE_CHAR,					// 20 SPACE
-	PUNCT_CHAR,					// 21 !
-	PUNCT_CHAR,					// 22 "
-	PUNCT_CHAR,					// 23 #
-	PUNCT_CHAR,					// 24 $
-	PUNCT_CHAR,					// 25 %
-	PUNCT_CHAR,					// 26 &
-	PUNCT_CHAR,					// 27 '
-	PUNCT_CHAR,					// 28 (
-	PUNCT_CHAR,					// 29 )
-	PUNCT_CHAR,					// 2A *
-	PUNCT_CHAR,					// 2B +
-	PUNCT_CHAR,					// 2C ,
-	PUNCT_CHAR,					// 2D -
-	PUNCT_CHAR,					// 2E .
-	PUNCT_CHAR,					// 2F /
-	DIGIT_CHAR | HEX_CHAR,		// 30 0
-	DIGIT_CHAR | HEX_CHAR,		// 31 1
-	DIGIT_CHAR | HEX_CHAR,		// 32 2
-	DIGIT_CHAR | HEX_CHAR,		// 33 3
-	DIGIT_CHAR | HEX_CHAR,		// 34 4
-	DIGIT_CHAR | HEX_CHAR,		// 35 5
-	DIGIT_CHAR | HEX_CHAR,		// 36 6
-	DIGIT_CHAR | HEX_CHAR,		// 37 7
-	DIGIT_CHAR | HEX_CHAR,		// 38 8
-	DIGIT_CHAR | HEX_CHAR,		// 39 9
-	PUNCT_CHAR,					// 3A :
-	PUNCT_CHAR,					// 3B ;
-	PUNCT_CHAR,					// 3C <
-	PUNCT_CHAR,					// 3D =
-	PUNCT_CHAR,					// 3E >
-	PUNCT_CHAR,					// 3F ?
-	PUNCT_CHAR,					// 40 @
-	UPPER_CHAR + HEX_CHAR,		// 41 A
-	UPPER_CHAR + HEX_CHAR,		// 42 B
-	UPPER_CHAR + HEX_CHAR,		// 43 C
-	UPPER_CHAR + HEX_CHAR,		// 44 D
-	UPPER_CHAR + HEX_CHAR,		// 45 E
-	UPPER_CHAR + HEX_CHAR,		// 46 F
-	UPPER_CHAR,					// 47 G
-	UPPER_CHAR,					// 48 H
-	UPPER_CHAR,					// 49 I
-	UPPER_CHAR,					// 4A J
-	UPPER_CHAR,					// 4B K
-	UPPER_CHAR,					// 4C L
-	UPPER_CHAR,					// 4D M
-	UPPER_CHAR,					// 4E N
-	UPPER_CHAR,					// 4F O
-	UPPER_CHAR,					// 50 P
-	UPPER_CHAR,					// 51 Q
-	UPPER_CHAR,					// 52 R
-	UPPER_CHAR,					// 53 S
-	UPPER_CHAR,					// 54 T
-	UPPER_CHAR,					// 55 U
-	UPPER_CHAR,					// 56 V
-	UPPER_CHAR,					// 57 W
-	UPPER_CHAR,					// 58 X
-	UPPER_CHAR,					// 59 Y
-	UPPER_CHAR,					// 5A Z
-	PUNCT_CHAR,					// 5B [
-	PUNCT_CHAR,					// 5C \ 
-	PUNCT_CHAR,					// 5D ]
-	PUNCT_CHAR,					// 5E ^
-	PUNCT_CHAR,					// 5F _
-	PUNCT_CHAR,					// 60 `
-	LOWER_CHAR + HEX_CHAR,		// 61 a
-	LOWER_CHAR + HEX_CHAR,		// 62 b
-	LOWER_CHAR + HEX_CHAR,		// 63 c
-	LOWER_CHAR + HEX_CHAR,		// 64 d
-	LOWER_CHAR + HEX_CHAR,		// 65 e
-	LOWER_CHAR + HEX_CHAR,		// 66 f
-	LOWER_CHAR,					// 67 g
-	LOWER_CHAR,					// 68 h
-	LOWER_CHAR,					// 69 i
-	LOWER_CHAR,					// 6A j
-	LOWER_CHAR,					// 6B k
-	LOWER_CHAR,					// 6C l
-	LOWER_CHAR,					// 6D m
-	LOWER_CHAR,					// 6E n
-	LOWER_CHAR,					// 6F o
-	LOWER_CHAR,					// 70 p
-	LOWER_CHAR,					// 71 q
-	LOWER_CHAR,					// 72 r
-	LOWER_CHAR,					// 73 s
-	LOWER_CHAR,					// 74 t
-	LOWER_CHAR,					// 75 u
-	LOWER_CHAR,					// 76 v
-	LOWER_CHAR,					// 77 w
-	LOWER_CHAR,					// 78 x
-	LOWER_CHAR,					// 79 y
-	LOWER_CHAR,					// 7A z
-	PUNCT_CHAR,					// 7B {
-	PUNCT_CHAR,					// 7C |
-	PUNCT_CHAR,					// 7D }
-	PUNCT_CHAR,					// 7E ~
-	CONTROL_CHAR,				// 7F (DEL)
-};
-
-static struct Hex {} HEX;
-
-template<class C> struct StringBase;
+template<Character C> struct StringBase;
 
 using String = StringBase<C8>;
 using String8 = StringBase<C8>;
@@ -167,7 +22,7 @@ template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && 
 template <class Type> concept NonStringClass = IsClass<Type> && !IsStringType<Type>;
 
 template<Character C>
-constexpr inline U64 Length(const C* str)
+constexpr inline U64 Length(const C* str) noexcept
 {
 	if (!str) { return 0; }
 
@@ -177,13 +32,13 @@ constexpr inline U64 Length(const C* str)
 	return it - str;
 }
 
-constexpr inline U64 Length(NullPointer)
+constexpr inline U64 Length(NullPointer) noexcept
 {
 	return 0;
 }
 
 template<Character C>
-static inline bool Compare(const C* a, const C* b, I64 length)
+static inline bool Compare(const C* a, const C* b, I64 length) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -196,7 +51,7 @@ static inline bool Compare(const C* a, const C* b, I64 length)
 }
 
 template<Character C>
-static inline bool Compare(const C* a, const C* b)
+static inline bool Compare(const C* a, const C* b) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -219,141 +74,143 @@ static inline bool Compare(const C* a, const C* b)
 *
 * TODO: Option to add 0x prefix to {h}
 */
-template<class C>
+template<Character C>
 struct NH_API StringBase
 {
 	using CharType = C;
 	using StringBaseType = StringBase<C>;
 
-	static StringBase RandomString(U32 length);
+	static StringBase RandomString(U32 length) noexcept;
 
-	StringBase();
-	StringBase(NoInit);
-	StringBase(const StringBase& other);
+	StringBase() noexcept;
+	StringBase(const StringBase& other) noexcept;
 	StringBase(StringBase&& other) noexcept;
-	template<typename Arg> StringBase(const Arg& value, Hex) noexcept;
 	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
-	template<typename First, typename... Args> StringBase(const C* fmt, const First& first, const Args& ... args) noexcept; //Take in any string literal type
+	template<typename First, typename... Args> StringBase(const C* fmt, const First& first, const Args& ... args) noexcept; //TODO: Take in any string literal type
 
-	StringBase& operator=(const StringBase& other);
+	StringBase& operator=(const StringBase& other) noexcept;
 	StringBase& operator=(StringBase&& other) noexcept;
 	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
 	template<typename Arg> StringBase& operator+=(const Arg& value) noexcept;
 
 	template<typename Arg> StringBase operator+(const Arg& value) const noexcept;
 
-	~StringBase();
-	void Destroy();
-	void Clear();
+	~StringBase() noexcept;
+	void Destroy() noexcept;
+	void Clear() noexcept;
 
-	void Reserve(U64 size);
-	void Resize(U64 size);
-	void Resize();
+	void Reserve(U64 size) noexcept;
+	void Resize(U64 size) noexcept;
+	void Resize() noexcept;
 
-	template<Signed Arg> Arg ToType(U64 start = 0) const;
-	template<Unsigned Arg> Arg ToType(U64 start = 0) const;
-	template<Boolean Arg> Arg ToType(U64 start = 0) const;
-	template<FloatingPoint Arg> Arg ToType(U64 start = 0) const;
-	template<NonStringPointer Arg> Arg ToType(U64 start = 0) const;
-	template<Character Arg> Arg ToType(U64 start = 0) const;
-	template<StringLiteral Arg> Arg ToType(U64 start = 0) const;
-	template<StringType Arg> Arg ToType(U64 start = 0) const;
+	template<Signed Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<Unsigned Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<Boolean Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<FloatingPoint Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<NonStringPointer Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<Character Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<StringLiteral Arg> Arg ToType(U64 start = 0) const noexcept;
+	template<StringType Arg> Arg ToType(U64 start = 0) const noexcept;
 
-	C* operator*();
-	const C* operator*() const;
-	C& operator[](U64 i);
-	const C& operator[](U64 i) const;
+	C* operator*() noexcept;
+	const C* operator*() const noexcept;
+	C& operator[](U64 i) noexcept;
+	const C& operator[](U64 i) const noexcept;
 
-	bool operator==(C* other) const;
-	bool operator==(const StringBase& other) const;
-	template<U64 Count> bool operator==(const C(&other)[Count]) const;
-	bool operator!=(C* other) const;
-	bool operator!=(const StringBase& other) const;
-	template<U64 Count> bool operator!=(const C(&other)[Count]) const;
+	bool operator==(C* other) const noexcept;
+	bool operator==(const StringBase& other) const noexcept;
+	template<U64 Count> bool operator==(const C(&other)[Count]) const noexcept;
+	bool operator!=(C* other) const noexcept;
+	bool operator!=(const StringBase& other) const noexcept;
+	template<U64 Count> bool operator!=(const C(&other)[Count]) const noexcept;
 
-	bool Compare(C* other) const;
-	bool Compare(const StringBase& other) const;
-	template<U64 Count> bool Compare(const C(&other)[Count]) const;
-	bool CompareN(C* other, U64 start = 0) const;
-	bool CompareN(const StringBase& other, U64 start = 0) const;
-	template<U64 Count> bool CompareN(const C(&other)[Count], U64 start = 0) const;
-	bool StartsWith(C* other) const;
-	bool StartsWith(const StringBase& other) const;
-	template<U64 Count> bool StartsWith(const C(&other)[Count]) const;
-	bool EndsWith(C* other) const;
-	bool EndsWith(const StringBase& other) const;
-	template<U64 Count> bool EndsWith(const C(&other)[Count]) const;
+	bool Compare(C* other) const noexcept;
+	bool Compare(const StringBase& other) const noexcept;
+	template<U64 Count> bool Compare(const C(&other)[Count]) const noexcept;
+	bool CompareN(C* other, U64 start = 0) const noexcept;
+	bool CompareN(const StringBase& other, U64 start = 0) const noexcept;
+	template<U64 Count> bool CompareN(const C(&other)[Count], U64 start = 0) const noexcept;
+	bool StartsWith(C* other) const noexcept;
+	bool StartsWith(const StringBase& other) const noexcept;
+	template<U64 Count> bool StartsWith(const C(&other)[Count]) const noexcept;
+	bool EndsWith(C* other) const noexcept;
+	bool EndsWith(const StringBase& other) const noexcept;
+	template<U64 Count> bool EndsWith(const C(&other)[Count]) const noexcept;
 
-	bool Blank() const;
-	I64 IndexOf(const C& c, U64 start = 0) const;
-	I64 LastIndexOf(const C& c, U64 start = 0) const;
+	bool Blank() const noexcept;
+	I64 IndexOf(const C& c, U64 start = 0) const noexcept;
+	I64 LastIndexOf(const C& c, U64 start = 0) const noexcept;
 
-	StringBase& Trim();
-	template<typename Arg> StringBase& Append(const Arg& append);
-	template<typename Arg> StringBase& Prepend(const Arg& prepend);
-	template<typename PreArg, typename PostArg> StringBase& Surround(const PreArg& prepend, const PostArg& append);
-	template<typename Arg> StringBase& Insert(const Arg& value, U64 i);
-	template<typename Arg> StringBase& Overwrite(const Arg& value, U64 i = 0);
-	template<typename Arg> StringBase& ReplaceAll(const C* find, const Arg& replace, U64 start = 0);
-	template<typename Arg> StringBase& ReplaceN(const C* find, const Arg& replace, U64 count, U64 start = 0);
-	template<typename Arg> StringBase& Replace(const C* find, const Arg& replace, U64 start = 0);
+	StringBase& Trim() noexcept;
+	template<typename Arg> StringBase& Append(const Arg& append) noexcept;
+	template<typename Arg> StringBase& Prepend(const Arg& prepend) noexcept;
+	template<typename PreArg, typename PostArg> StringBase& Surround(const PreArg& prepend, const PostArg& append) noexcept;
+	template<typename Arg> StringBase& Insert(const Arg& value, U64 i) noexcept;
+	template<typename Arg> StringBase& Overwrite(const Arg& value, U64 i = 0) noexcept;
+	template<typename Arg> StringBase& ReplaceAll(const C* find, const Arg& replace, U64 start = 0) noexcept;
+	template<typename Arg> StringBase& ReplaceN(const C* find, const Arg& replace, U64 count, U64 start = 0) noexcept;
+	template<typename Arg> StringBase& Replace(const C* find, const Arg& replace, U64 start = 0) noexcept;
 
-	void SubString(StringBase& newStr, U64 start, U64 nLength = U64_MAX) const;
-	template<typename Arg> void Appended(StringBase& newStr, const Arg& append) const;
-	template<typename Arg> void Prepended(StringBase& newStr, const Arg& prepend) const;
-	template<typename PreArg, typename PostArg> void Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const;
-	void Split(Vector<StringBase>& list, C delimiter, bool trimEntries) const;
+	StringBase GetFileName() const noexcept;
+	StringBase SubString(U64 start, U64 nLength = U64_MAX) const noexcept;
+	template<typename Arg> StringBase Appended(const Arg& append) const noexcept;
+	template<typename Arg> StringBase Prepended(const Arg& prepend) const noexcept;
+	template<typename PreArg, typename PostArg> StringBase Surrounded(const PreArg& prepend, const PostArg& append) const noexcept;
+	Vector<StringBase> Split(C delimiter, bool trimEntries) const noexcept;
 
-	StringBase& ToUpper();
-	StringBase& ToLower();
+	StringBase& ToUpper() noexcept;
+	StringBase& ToLower() noexcept;
 
-	const U64& Size() const;
-	const U64& Capacity() const;
-	const U64& Hash() const;
-	C* Data();
-	const C* Data() const;
-	operator C* ();
-	operator const C* () const;
+	U64 Size() const noexcept;
+	U64 Capacity() const noexcept;
+	U64 Hash() noexcept;
+	U64 Hash() const noexcept;
+	C* Data() noexcept;
+	const C* Data() const noexcept;
+	operator C* () noexcept;
+	operator const C* () const noexcept;
 
-	C* begin();
-	C* end();
-	const C* begin() const;
-	const C* end() const;
+	C* begin() noexcept;
+	C* end() noexcept;
+	const C* begin() const noexcept;
+	const C* end() const noexcept;
 
-	C* rbegin();
-	C* rend();
-	const C* rbegin() const;
-	const C* rend() const;
+	C* rbegin() noexcept;
+	C* rend() noexcept;
+	const C* rbegin() const noexcept;
+	const C* rend() const noexcept;
 
 private:
-	template<Signed Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
-	template<Unsigned Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
-	template<Boolean Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
-	template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value, U64 decimalCount = 5);
-	template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
-	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
-	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(C* str, const Arg& value);
-	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
-	template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value);
+	template<Signed Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<Unsigned Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<Boolean Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value, U64 decimalCount = 5) noexcept;
+	template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
 
-	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity();
+	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity() noexcept;
 
-	template<typename Arg> void Format(U64& start, const Arg& value);
+	template<typename Arg> void Format(U64& start, const Arg& value) noexcept;
 
-	static bool Compare(const C* a, const C* b, I64 length);
-	static bool WhiteSpace(C c);
-	static bool NotWhiteSpace(C c);
+	static bool Compare(const C* a, const C* b, I64 length) noexcept;
+	static bool WhiteSpace(C c) noexcept;
+	static bool NotWhiteSpace(C c) noexcept;
 
+	bool needHash{ true };
 	U64 hash{ 0 };
 	U64 size{ 0 };
 	U64 capacity{ 0 };
 	C* string{ nullptr };
 };
 
-template<class C>
-inline StringBase<C> StringBase<C>::RandomString(U32 length)
+template<Character C>
+inline StringBase<C> StringBase<C>::RandomString(U32 length) noexcept
 {
-	String str{ length };
+	String str{ };
+	str.Resize(16);
 
 	C* it = str.string;
 
@@ -365,14 +222,11 @@ inline StringBase<C> StringBase<C>::RandomString(U32 length)
 	return str;
 }
 
-template<class C>
-inline StringBase<C>::StringBase() { Memory::AllocateArray(&string, capacity, capacity); }
+template<Character C>
+inline StringBase<C>::StringBase() noexcept {}
 
-template<class C>
-inline StringBase<C>::StringBase(NoInit flag) {}
-
-template<class C>
-inline StringBase<C>::StringBase(const StringBase& other) : hash{ other.hash }, size{ other.size }
+template<Character C>
+inline StringBase<C>::StringBase(const StringBase& other) noexcept : needHash{ other.needHash }, hash{ other.hash }, size{ other.size }
 {
 	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
 
@@ -380,8 +234,8 @@ inline StringBase<C>::StringBase(const StringBase& other) : hash{ other.hash }, 
 	string[size] = StringLookup<C>::NULL_CHAR;
 }
 
-template<class C>
-inline StringBase<C>::StringBase(StringBase&& other) noexcept : hash{ other.hash }, size{ other.size }, capacity{ other.capacity }, string{ other.string }
+template<Character C>
+inline StringBase<C>::StringBase(StringBase&& other) noexcept : needHash{ other.needHash }, hash{ other.hash }, size{ other.size }, capacity{ other.capacity }, string{ other.string }
 {
 	other.hash = 0;
 	other.size = 0;
@@ -389,21 +243,16 @@ inline StringBase<C>::StringBase(StringBase&& other) noexcept : hash{ other.hash
 	other.string = nullptr;
 }
 
-template<class C>
-template<typename Arg>
-inline StringBase<C>::StringBase(const Arg& value, Hex flag) noexcept { ToString<Arg, true, false>(string, value); hash = Hash::Calculate(string, size); }
-
-template<class C>
+template<Character C>
 template<typename First, typename... Args>
 inline StringBase<C>::StringBase(const First& first, const Args& ... args) noexcept
 {
 	Memory::AllocateArray(&string, capacity, capacity);
 	ToString<First, false, false>(string, first);
 	(ToString<Args, false, false>(string + size, args), ...);
-	hash = Hash::Calculate(string, size);
 }
 
-template<class C>
+template<Character C>
 template<typename First, typename... Args>
 inline StringBase<C>::StringBase(const C* fmt, const First& first, const Args& ... args) noexcept : size{ Length(fmt) }, capacity{ size }
 {
@@ -413,11 +262,10 @@ inline StringBase<C>::StringBase(const C* fmt, const First& first, const Args& .
 	U64 start = 0;
 	Format(start, first);
 	(Format(start, args), ...);
-	hash = Hash::Calculate(string, size);
 }
 
-template<class C>
-inline StringBase<C>& StringBase<C>::operator=(const StringBase& other)
+template<Character C>
+inline StringBase<C>& StringBase<C>::operator=(const StringBase& other) noexcept
 {
 	hash = other.hash;
 	size = other.size;
@@ -430,9 +278,11 @@ inline StringBase<C>& StringBase<C>::operator=(const StringBase& other)
 	return *this;
 }
 
-template<class C>
+template<Character C>
 inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
 {
+	if(string) { Memory::FreeArray(&string); }
+
 	hash = other.hash;
 	size = other.size;
 	capacity = other.capacity;
@@ -446,25 +296,23 @@ inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
 inline StringBase<C>& StringBase<C>::operator=(const Arg& value) noexcept
 {
 	ToString<Arg, false, true, U64_MAX>(string, value);
-	hash = Hash::Calculate(string, size);
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
 inline StringBase<C>& StringBase<C>::operator+=(const Arg& value) noexcept
 {
 	ToString<Arg, false, false>(string + size, value);
-	hash = Hash::Calculate(string, size);
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
 inline StringBase<C> StringBase<C>::operator+(const Arg& value) const noexcept
 {
@@ -474,8 +322,8 @@ inline StringBase<C> StringBase<C>::operator+(const Arg& value) const noexcept
 	return Move(copy);
 }
 
-template<class C>
-inline StringBase<C>::~StringBase()
+template<Character C>
+inline StringBase<C>::~StringBase() noexcept
 {
 	hash = 0;
 	if (string)
@@ -486,8 +334,8 @@ inline StringBase<C>::~StringBase()
 	}
 }
 
-template<class C>
-inline void StringBase<C>::Destroy()
+template<Character C>
+inline void StringBase<C>::Destroy() noexcept
 {
 	hash = 0;
 	if (string)
@@ -498,18 +346,20 @@ inline void StringBase<C>::Destroy()
 	}
 }
 
-template<class C>
-inline void StringBase<C>::Clear()
+template<Character C>
+inline void StringBase<C>::Clear() noexcept
 {
 	if (string)
 	{
 		string[0] = StringLookup<C>::NULL_CHAR;
 		size = 0;
+		hash = 0;
+		needHash = false;
 	}
 }
 
-template<class C>
-inline void StringBase<C>::Reserve(U64 size)
+template<Character C>
+inline void StringBase<C>::Reserve(U64 size) noexcept
 {
 	if (size + 1 > capacity)
 	{
@@ -517,36 +367,36 @@ inline void StringBase<C>::Reserve(U64 size)
 	}
 }
 
-template<class C>
-inline void StringBase<C>::Resize(U64 size)
+template<Character C>
+inline void StringBase<C>::Resize(U64 size) noexcept
 {
 	if (size + 1 > this->capacity) { Reserve(size); }
 	this->size = size;
 	string[size] = StringLookup<C>::NULL_CHAR;
+	needHash = true;
 }
 
-template<class C>
-inline void StringBase<C>::Resize()
+template<Character C>
+inline void StringBase<C>::Resize() noexcept
 {
 	size = Length(string);
-
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 }
 
-template<class C>
-inline C* StringBase<C>::operator*() { return string; }
+template<Character C>
+inline C* StringBase<C>::operator*() noexcept { return string; }
 
-template<class C>
-inline const C* StringBase<C>::operator*() const { return string; }
+template<Character C>
+inline const C* StringBase<C>::operator*() const noexcept { return string; }
 
-template<class C>
-inline C& StringBase<C>::operator[](U64 i) { return string[i]; }
+template<Character C>
+inline C& StringBase<C>::operator[](U64 i) noexcept { return string[i]; }
 
-template<class C>
-inline const C& StringBase<C>::operator[](U64 i) const { return string[i]; }
+template<Character C>
+inline const C& StringBase<C>::operator[](U64 i) const noexcept { return string[i]; }
 
-template<class C>
-inline bool StringBase<C>::operator==(C* other) const
+template<Character C>
+inline bool StringBase<C>::operator==(C* other) const noexcept
 {
 	U64 len = Length(other);
 	if (len != size) { return false; }
@@ -554,25 +404,25 @@ inline bool StringBase<C>::operator==(C* other) const
 	return Compare(string, other, size);
 }
 
-template<class C>
-inline bool StringBase<C>::operator==(const StringBase<C>& other) const
+template<Character C>
+inline bool StringBase<C>::operator==(const StringBase<C>& other) const noexcept
 {
 	if (other.size != size) { return false; }
 
 	return Compare(string, other.string, size);
 }
 
-template<class C>
+template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::operator==(const C(&other)[Count]) const
+inline bool StringBase<C>::operator==(const C(&other)[Count]) const noexcept
 {
 	if (Count - 1 != size) { return false; }
 
 	return Compare(string, other, Count - 1);
 }
 
-template<class C>
-inline bool StringBase<C>::operator!=(C* other) const
+template<Character C>
+inline bool StringBase<C>::operator!=(C* other) const noexcept
 {
 	U64 len = Length(other);
 	if (len != size) { return true; }
@@ -580,25 +430,25 @@ inline bool StringBase<C>::operator!=(C* other) const
 	return !Compare(string, other, size);
 }
 
-template<class C>
-inline bool StringBase<C>::operator!=(const StringBase<C>& other) const
+template<Character C>
+inline bool StringBase<C>::operator!=(const StringBase<C>& other) const noexcept
 {
 	if (other.size != size) { return true; }
 
 	return !Compare(string, other.string, size);
 }
 
-template<class C>
+template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::operator!=(const C(&other)[Count]) const
+inline bool StringBase<C>::operator!=(const C(&other)[Count]) const noexcept
 {
 	if (Count - 1 != size) { return true; }
 
 	return !Compare(string, other, Count - 1);
 }
 
-template<class C>
-inline bool StringBase<C>::Compare(C* other) const
+template<Character C>
+inline bool StringBase<C>::Compare(C* other) const noexcept
 {
 	U64 len = Length(other);
 	if (len != size) { return false; }
@@ -606,109 +456,127 @@ inline bool StringBase<C>::Compare(C* other) const
 	return Compare(string, other, size);
 }
 
-template<class C>
-inline bool StringBase<C>::Compare(const StringBase<C>& other) const
+template<Character C>
+inline bool StringBase<C>::Compare(const StringBase<C>& other) const noexcept
 {
 	if (other.size != size) { return false; }
 
 	return Compare(string, other.string, size);
 }
 
-template<class C>
+template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::Compare(const C(&other)[Count]) const
+inline bool StringBase<C>::Compare(const C(&other)[Count]) const noexcept
 {
 	if (Count - 1 != size) { return false; }
 
 	return Compare(string, other, Count - 1);
 }
 
-template<class C>
-inline bool StringBase<C>::CompareN(C* other, U64 start) const
+template<Character C>
+inline bool StringBase<C>::CompareN(C* other, U64 start) const noexcept
 {
 	U64 len = Length(other);
 
 	return Compare(string + start, other, len);
 }
 
-template<class C>
-inline bool StringBase<C>::CompareN(const StringBase<C>& other, U64 start) const
+template<Character C>
+inline bool StringBase<C>::CompareN(const StringBase<C>& other, U64 start) const noexcept
 {
 	return Compare(string + start, other.string);
 }
 
-template<class C>
+template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::CompareN(const C(&other)[Count], U64 start) const
+inline bool StringBase<C>::CompareN(const C(&other)[Count], U64 start) const noexcept
 {
 	return Compare(string + start, other, Count - 1);
 }
 
-template<class C>
-inline bool StringBase<C>::StartsWith(C* other) const
+template<Character C>
+inline bool StringBase<C>::StartsWith(C* other) const noexcept
 {
 	U64 otherSize = Length(other);
 
 	return Compare(string, other, otherSize);
 }
 
-template<class C>
-inline bool StringBase<C>::StartsWith(const StringBase& other) const
+template<Character C>
+inline bool StringBase<C>::StartsWith(const StringBase& other) const noexcept
 {
 	return Compare(string, other.string, other.size);
 }
 
-template<class C>
+template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::StartsWith(const C(&other)[Count]) const
+inline bool StringBase<C>::StartsWith(const C(&other)[Count]) const noexcept
 {
 	return Compare(string, other, Count - 1);
 }
 
-template<class C>
-inline bool StringBase<C>::EndsWith(C* other) const
+template<Character C>
+inline bool StringBase<C>::EndsWith(C* other) const noexcept
 {
 	U64 otherSize = Length(other);
 
 	return Compare(string + (size - otherSize), other, otherSize);
 }
 
-template<class C>
-inline bool StringBase<C>::EndsWith(const StringBase& other) const
+template<Character C>
+inline bool StringBase<C>::EndsWith(const StringBase& other) const noexcept
 {
 	return Compare(string + (size - other.size), other.string, other.size);
 }
 
-template<class C>
+template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::EndsWith(const C(&other)[Count]) const
+inline bool StringBase<C>::EndsWith(const C(&other)[Count]) const noexcept
 {
 	return Compare(string + (size - Count - 1), other, Count - 1);
 }
 
-template<class C>
-inline const U64& StringBase<C>::Size() const { return size; }
+template<Character C>
+inline U64 StringBase<C>::Size() const noexcept { return size; }
 
-template<class C>
-inline const U64& StringBase<C>::Capacity() const { return capacity; }
+template<Character C>
+inline U64 StringBase<C>::Capacity() const noexcept { return capacity; }
 
-template<class C>
-inline const U64& StringBase<C>::Hash() const { return hash; }
+template<Character C>
+inline U64 StringBase<C>::Hash() noexcept
+{
+	if (needHash)
+	{
+		needHash = false;
+		hash = Hash::Calculate(string);
+	}
+	else
+	{
+		return hash;
+	}
+}
 
-template<class C>
-inline C* StringBase<C>::Data() { return string; }
+template<Character C>
+inline U64 StringBase<C>::Hash() const noexcept
+{
+	if (needHash) { return Hash::Calculate(string, size); }
+	else { return hash; }
+}
 
-template<class C>
-inline const C* StringBase<C>::Data() const { return string; }
+template<Character C>
+inline C* StringBase<C>::Data() noexcept { return string; }
 
-template<class C>
-inline StringBase<C>::operator C* () { return string; }
+template<Character C>
+inline const C* StringBase<C>::Data() const noexcept { return string; }
 
-template<class C>
-inline StringBase<C>::operator const C* () const { return string; }
+template<Character C>
+inline StringBase<C>::operator C* () noexcept { return string; }
 
-template<class C>
-inline bool StringBase<C>::Blank() const
+template<Character C>
+inline StringBase<C>::operator const C* () const noexcept { return string; }
+
+template<Character C>
+inline bool StringBase<C>::Blank() const noexcept
 {
 	if (size == 0) { return true; }
 	C* it = string;
@@ -719,8 +587,8 @@ inline bool StringBase<C>::Blank() const
 	return c == StringLookup<C>::NULL_CHAR;
 }
 
-template<class C>
-inline I64 StringBase<C>::IndexOf(const C& ch, U64 start) const
+template<Character C>
+inline I64 StringBase<C>::IndexOf(const C& ch, U64 start) const noexcept
 {
 	C* it = string + start;
 	C c;
@@ -731,8 +599,8 @@ inline I64 StringBase<C>::IndexOf(const C& ch, U64 start) const
 	return (I64)(it - string);
 }
 
-template<class C>
-inline I64 StringBase<C>::LastIndexOf(const C& c, U64 start) const
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(const C& c, U64 start) const noexcept
 {
 	C* it = string + size - start - 1;
 
@@ -743,8 +611,8 @@ inline I64 StringBase<C>::LastIndexOf(const C& c, U64 start) const
 	return -1;
 }
 
-template<class C>
-inline StringBase<C>& StringBase<C>::Trim()
+template<Character C>
+inline StringBase<C>& StringBase<C>::Trim() noexcept
 {
 	C* start = string;
 	C* end = string + size - 1;
@@ -757,71 +625,55 @@ inline StringBase<C>& StringBase<C>::Trim()
 	size = end - start + 1;
 	Memory::Copy(string, start, size);
 	string[size] = StringLookup<C>::NULL_CHAR;
-
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::Append(const Arg& append)
+inline StringBase<C>& StringBase<C>::Append(const Arg& append) noexcept
 {
 	ToString<Arg, false, false>(string + size, append);
-
-	hash = Hash::Calculate(string, size);
-
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::Prepend(const Arg& prepend)
+inline StringBase<C>& StringBase<C>::Prepend(const Arg& prepend) noexcept
 {
 	ToString<Arg, false, true>(string, prepend);
-
-	hash = Hash::Calculate(string, size);
-
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename PreArg, typename PostArg>
-inline StringBase<C>& StringBase<C>::Surround(const PreArg& prepend, const PostArg& append)
+inline StringBase<C>& StringBase<C>::Surround(const PreArg& prepend, const PostArg& append) noexcept
 {
 	ToString<PreArg, false, true>(string, prepend);
 	ToString<PostArg, false, false>(string + size, append);
-
-	hash = Hash::Calculate(string, size);
-
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::Insert(const Arg& value, U64 i)
+inline StringBase<C>& StringBase<C>::Insert(const Arg& value, U64 i) noexcept
 {
 	ToString<Arg, false, true>(string + i, value);
-
-	hash = Hash::Calculate(string, size);
-
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::Overwrite(const Arg& value, U64 i)
+inline StringBase<C>& StringBase<C>::Overwrite(const Arg& value, U64 i) noexcept
 {
 	ToString<Arg, false, false>(string + i, value);
-
-	hash = Hash::Calculate(string, size);
-
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::ReplaceAll(const C* find, const Arg& replace, U64 start)
+inline StringBase<C>& StringBase<C>::ReplaceAll(const C* find, const Arg& replace, U64 start) noexcept
 {
 	U64 findSize = Length(find);
 	C* it = string + start;
@@ -835,15 +687,14 @@ inline StringBase<C>& StringBase<C>::ReplaceAll(const C* find, const Arg& replac
 	}
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::ReplaceN(const C* find, const Arg& replace, U64 count, U64 start)
+inline StringBase<C>& StringBase<C>::ReplaceN(const C* find, const Arg& replace, U64 count, U64 start) noexcept
 {
 	U64 findSize = Length(find);
 	C* it = string + start;
@@ -861,15 +712,14 @@ inline StringBase<C>& StringBase<C>::ReplaceN(const C* find, const Arg& replace,
 	}
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 
 	return *this;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, U64 start)
+inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, U64 start) noexcept
 {
 	U64 findSize = Length(find);
 	C* it = string + start;
@@ -880,54 +730,82 @@ inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, 
 	if (c != StringLookup<C>::NULL_CHAR) { ToString<Arg, false, true>(c, replace); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 
 	return *this;
 }
 
-template<class C>
-inline void StringBase<C>::SubString(StringBase<C>& newStr, U64 start, U64 nLength) const
+template<Character C>
+inline StringBase<C> StringBase<C>::GetFileName() const noexcept
 {
-	if (nLength < U64_MAX) { newStr.Resize(nLength); }
-	else { newStr.Resize(size - start); }
+	I64 index;
+	I64 extIndex = LastIndexOf(StringLookup<C>::DECIMAL_CHAR);
+	if (extIndex != -1) { extIndex = size - extIndex + 1; }
 
-	Memory::Copy(newStr.string, string + start, newStr.size);
-	newStr.string[newStr.size] = StringLookup<C>::NULL_CHAR;
+	if ((index = LastIndexOf(StringLookup<C>::FORWARD_SLASH)) != -1) { return Move(SubString(index + 1, extIndex)); }
+	if ((index = LastIndexOf(StringLookup<C>::BACK_SLASH)) != -1) { return Move(SubString(index + 1, extIndex)); }
+
+	return Move(SubString(0, extIndex));
 }
 
-template<class C>
+template<Character C>
+inline StringBase<C> StringBase<C>::SubString(U64 start, U64 nLength) const noexcept
+{
+	StringBase<C> str;
+
+	if (nLength < U64_MAX) { str.Resize(nLength); }
+	else { str.Resize(size - start); }
+
+	Memory::Copy(str.string, string + start, str.size);
+	str.string[str.size] = StringLookup<C>::NULL_CHAR;
+
+	return Move(str);
+}
+
+template<Character C>
 template<typename Arg>
-inline void StringBase<C>::Appended(StringBase& newStr, const Arg& append) const
+inline StringBase<C> StringBase<C>::Appended(const Arg& append) const noexcept
 {
-	newStr = *this;
-	newStr.Append(append);
+	StringBase<C> str;
+
+	str = *this;
+	str.Append(append);
+
+	return Move(str);
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline void StringBase<C>::Prepended(StringBase& newStr, const Arg& prepend) const
+inline StringBase<C> StringBase<C>::Prepended(const Arg& prepend) const noexcept
 {
-	newStr = *this; //TODO: This doesn't make a copy
-	newStr.Prepend(prepend);
+	StringBase<C> str;
+
+	str = *this;
+	str.Prepend(prepend);
+
+	return Move(str);
 }
 
-template<class C>
+template<Character C>
 template<typename PreArg, typename PostArg>
-inline void StringBase<C>::Surrounded(StringBase& newStr, const PreArg& prepend, const PostArg& append) const
+inline StringBase<C> StringBase<C>::Surrounded(const PreArg& prepend, const PostArg& append) const noexcept
 {
-	newStr = *this;
-	newStr.Surround(prepend, append);
+	StringBase<C> str;
+
+	str = *this;
+	str.Surround(prepend, append);
+
+	return Move(str);
 }
 
-template<class C>
-inline void StringBase<C>::Split(Vector<StringBase<C>>& list, C delimiter, bool trimEntries) const
+template<Character C>
+inline Vector<StringBase<C>> StringBase<C>::Split(C delimiter, bool trimEntries) const noexcept
 {
-	//TODO
+	//TODO: this
 }
 
-template<class C>
-inline StringBase<C>& StringBase<C>::ToUpper()
+template<Character C>
+inline StringBase<C>& StringBase<C>::ToUpper() noexcept
 {
 	static_assert(IsSame<C, char>, "ToUpper is only supported for char strings currently");
 
@@ -936,13 +814,13 @@ inline StringBase<C>& StringBase<C>::ToUpper()
 		if (StringLookup<C>::TYPE_LOOKUP[c] & LOWER_CHAR) { c -= 32; }
 	}
 
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 
 	return *this;
 }
 
-template<class C>
-inline StringBase<C>& StringBase<C>::ToLower()
+template<Character C>
+inline StringBase<C>& StringBase<C>::ToLower() noexcept
 {
 	static_assert(IsSame<C, char>, "ToLower is only supported for char strings currently");
 
@@ -951,38 +829,38 @@ inline StringBase<C>& StringBase<C>::ToLower()
 		if (StringLookup<C>::TYPE_LOOKUP[c] & UPPER_CHAR) { c += 32; }
 	}
 
-	hash = Hash::Calculate(string, size);
+	needHash = true;
 
 	return *this;
 }
 
-template<class C>
-inline C* StringBase<C>::begin() { return string; }
+template<Character C>
+inline C* StringBase<C>::begin() noexcept { return string; }
 
-template<class C>
-inline C* StringBase<C>::end() { return string + size; }
+template<Character C>
+inline C* StringBase<C>::end() noexcept { return string + size; }
 
-template<class C>
-inline const C* StringBase<C>::begin() const { return string; }
+template<Character C>
+inline const C* StringBase<C>::begin() const noexcept { return string; }
 
-template<class C>
-inline const C* StringBase<C>::end() const { return string + size; }
+template<Character C>
+inline const C* StringBase<C>::end() const noexcept { return string + size; }
 
-template<class C>
-inline C* StringBase<C>::rbegin() { return string + size - 1; }
+template<Character C>
+inline C* StringBase<C>::rbegin() noexcept { return string + size - 1; }
 
-template<class C>
-inline C* StringBase<C>::rend() { return string - 1; }
+template<Character C>
+inline C* StringBase<C>::rend() noexcept { return string - 1; }
 
-template<class C>
-inline const C* StringBase<C>::rbegin() const { return string + size - 1; }
+template<Character C>
+inline const C* StringBase<C>::rbegin() const noexcept { return string + size - 1; }
 
-template<class C>
-inline const C* StringBase<C>::rend() const { return string - 1; }
+template<Character C>
+inline const C* StringBase<C>::rend() const noexcept { return string - 1; }
 
-template<class C>
+template<Character C>
 template<Signed Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	constexpr U64 typeSize = RequiredCapacity<Arg, Hex>();
 	constexpr U64 moveSize = typeSize - Remove;
@@ -1054,13 +932,14 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value)
 	else { Memory::Copy(str, c, addLength * sizeof(C)); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
+	needHash = true;
 
 	return strIndex + addLength;
 }
 
-template<class C>
+template<Character C>
 template<Unsigned Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	constexpr U64 typeSize = RequiredCapacity<Arg, Hex>();
 	constexpr U64 moveSize = typeSize - Remove;
@@ -1118,13 +997,14 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value)
 	else { Memory::Copy(str, c, addLength * sizeof(C)); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
+	needHash = true;
 
 	return strIndex + addLength;
 }
 
-template<class C>
+template<Character C>
 template<Boolean Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	constexpr U64 trueSize = 5 - Remove;
 	constexpr U64 falseSize = 6 - Remove;
@@ -1140,6 +1020,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value)
 		size += 4;
 
 		if constexpr (!Insert) { string[size] = StringLookup<C>::NULL_CHAR; }
+		needHash = true;
 
 		return strIndex + 4;
 	}
@@ -1153,14 +1034,15 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value)
 		size += 5;
 
 		if constexpr (!Insert) { string[size] = StringLookup<C>::NULL_CHAR; }
+		needHash = true;
 
 		return strIndex + 5;
 	}
 }
 
-template<class C>
+template<Character C>
 template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount) noexcept
 {
 	if constexpr (Hex) { return ToString<U64, Hex, Insert, Remove>(str, reinterpret_cast<const U64&>(value)); }
 	else
@@ -1238,29 +1120,30 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount)
 		else { Memory::Copy(str, c, addLength * sizeof(C)); }
 
 		string[size] = StringLookup<C>::NULL_CHAR;
+		needHash = true;
 
 		return strIndex + addLength;
 	}
 }
 
-template<class C>
+template<Character C>
 template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	return ToString<U64, Hex, Insert, Remove>(str, reinterpret_cast<const U64&>(value));
 }
 
-template<class C>
+template<Character C>
 template<Character Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	using CharType = BaseType<Arg>;
 	return ToString<CharType*, Hex, Insert, Remove, 1>(str, (CharType*)&value);
 }
 
-template<class C>
+template<Character C>
 template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove, U64 Size>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	using CharType = BaseType<Arg>;
 
@@ -1357,13 +1240,14 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value)
 	else { size += moveSize; }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
+	needHash = true;
 
 	return strIndex + strSize;
 }
 
-template<class C>
+template<Character C>
 template<StringType Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	//TODO: Move semantics
 
@@ -1376,18 +1260,18 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value)
 	return ToString<CharType*, Hex, Insert, Remove>(str, (CharType*)value.Data());
 }
 
-template<class C>
+template<Character C>
 template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value)
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	static_assert(ConvertibleTo<Arg, StringBaseType>, "Arg passed into a string formatter must be convertable to a String type!");
 
 	return ToString<StringBaseType, Hex, Insert, Remove>(str, value.operator StringBaseType());
 }
 
-template<class C>
+template<Character C>
 template<typename Arg, bool Hex>
-inline constexpr U64 StringBase<C>::RequiredCapacity()
+inline constexpr U64 StringBase<C>::RequiredCapacity() noexcept
 {
 	if constexpr (Hex)
 	{
@@ -1421,9 +1305,9 @@ inline constexpr U64 StringBase<C>::RequiredCapacity()
 	}
 }
 
-template<class C>
+template<Character C>
 template<Signed Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	C* it = string + start;
 	C c;
@@ -1442,9 +1326,9 @@ inline Arg StringBase<C>::ToType(U64 start) const
 	return Move(value);
 }
 
-template<class C>
+template<Character C>
 template<Unsigned Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	C* it = string + start;
 	C c;
@@ -1455,16 +1339,16 @@ inline Arg StringBase<C>::ToType(U64 start) const
 	return Move(value);
 }
 
-template<class C>
+template<Character C>
 template<Boolean Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	return Compare(string + start, StringLookup<C>::TRUE_STR, 4);
 }
 
-template<class C>
+template<Character C>
 template<FloatingPoint Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	C* it = string + start;
 	C c;
@@ -1486,25 +1370,25 @@ inline Arg StringBase<C>::ToType(U64 start) const
 	return Move(value);
 }
 
-template<class C>
+template<Character C>
 template<NonStringPointer Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	U64 value = ToType(start);
 	return Move(value);
 }
 
-template<class C>
+template<Character C>
 template<Character Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	//TODO: conversions
 	return string[start];
 }
 
-template<class C>
+template<Character C>
 template<StringLiteral Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	using CharType = BaseType<Arg>;
 
@@ -1538,9 +1422,9 @@ inline Arg StringBase<C>::ToType(U64 start) const
 	}
 }
 
-template<class C>
+template<Character C>
 template<StringType Arg>
-inline Arg StringBase<C>::ToType(U64 start) const
+inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
 	if constexpr (IsSame<Arg, StringBase<C>>) { return Move(String(string + start)); }
 	else if constexpr (IsSame<Arg, StringBase<C8>>)
@@ -1578,8 +1462,8 @@ inline Arg StringBase<C>::ToType(U64 start) const
 	}
 }
 
-template<class C>
-inline bool StringBase<C>::Compare(const C* a, const C* b, I64 length)
+template<Character C>
+inline bool StringBase<C>::Compare(const C* a, const C* b, I64 length) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -1592,23 +1476,23 @@ inline bool StringBase<C>::Compare(const C* a, const C* b, I64 length)
 	return (length + 1) == 0;
 }
 
-template<class C>
-inline bool StringBase<C>::WhiteSpace(C c)
+template<Character C>
+inline bool StringBase<C>::WhiteSpace(C c) noexcept
 {
-	return c == StringLookup<C>::SPACE || c == StringLookup<C>::HTAB || c == StringLookup<C>::VTAB || 
+	return c == StringLookup<C>::SPACE || c == StringLookup<C>::HTAB || c == StringLookup<C>::VTAB ||
 		c == StringLookup<C>::NEW_LINE || c == StringLookup<C>::RETURN || c == StringLookup<C>::FEED;
 }
 
-template<class C>
-inline bool StringBase<C>::NotWhiteSpace(C c)
+template<Character C>
+inline bool StringBase<C>::NotWhiteSpace(C c) noexcept
 {
-	return c != StringLookup<C>::SPACE && c != StringLookup<C>::HTAB && c != StringLookup<C>::VTAB && 
+	return c != StringLookup<C>::SPACE && c != StringLookup<C>::HTAB && c != StringLookup<C>::VTAB &&
 		c != StringLookup<C>::NEW_LINE && c != StringLookup<C>::RETURN && c != StringLookup<C>::FEED;
 }
 
-template<class C>
+template<Character C>
 template<typename Arg>
-inline void StringBase<C>::Format(U64& start, const Arg& value)
+inline void StringBase<C>::Format(U64& start, const Arg& value) noexcept
 {
 	C* it = string + start;
 	C c = *it;

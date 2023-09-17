@@ -202,6 +202,7 @@ template <class Type> inline constexpr bool IsPointer<const Type*> = true;
 template <class Type> inline constexpr bool IsPointer<volatile Type*> = true;
 template <class Type> inline constexpr bool IsPointer<const volatile Type*> = true;
 template <class Type> concept Pointer = IsPointer<Type>;
+template <class Type> concept NonPointer = !IsPointer<Type>;
 
 template <class Type> inline constexpr bool IsSinglePointer = IsPointer<Type> && !IsPointer<RemovedPointer<Type>>;
 template <class Type> concept SinglePointer = IsPointer<Type> && !IsPointer<RemovedPointer<Type>>;

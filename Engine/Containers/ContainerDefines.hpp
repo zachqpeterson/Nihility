@@ -2,7 +2,148 @@
 
 #include "Defines.hpp"
 
-static struct NoInit {} NO_INIT;
+#define UPPER_CHAR		0x01
+#define LOWER_CHAR		0x02
+#define DIGIT_CHAR		0x04
+#define SPACE_CHAR		0x08
+#define PUNCT_CHAR		0x10
+#define CONTROL_CHAR	0x20
+#define HEX_CHAR		0x40
+
+#define ALPHA_CHAR		UPPER_CHAR | LOWER_CHAR
+#define ALPHANUM_CHAR	ALPHA_CHAR | DIGIT_CHAR
+
+static inline constexpr C8 TYPE_LOOKUP[]{
+	0,							// -1 EOF
+	CONTROL_CHAR,				// 00 (NUL)
+	CONTROL_CHAR,				// 01 (SOH)
+	CONTROL_CHAR,				// 02 (STX)
+	CONTROL_CHAR,				// 03 (ETX)
+	CONTROL_CHAR,				// 04 (EOT)
+	CONTROL_CHAR,				// 05 (ENQ)
+	CONTROL_CHAR,				// 06 (ACK)
+	CONTROL_CHAR,				// 07 (BEL)
+	CONTROL_CHAR,				// 08 (BS)
+	SPACE_CHAR | CONTROL_CHAR,	// 09 (HT)
+	SPACE_CHAR | CONTROL_CHAR,	// 0A (LF)
+	SPACE_CHAR | CONTROL_CHAR,	// 0B (VT)
+	SPACE_CHAR | CONTROL_CHAR,	// 0C (FF)
+	SPACE_CHAR | CONTROL_CHAR,	// 0D (CR)
+	CONTROL_CHAR,				// 0E (SI)
+	CONTROL_CHAR,				// 0F (SO)
+	CONTROL_CHAR,				// 10 (DLE)
+	CONTROL_CHAR,				// 11 (DC1)
+	CONTROL_CHAR,				// 12 (DC2)
+	CONTROL_CHAR,				// 13 (DC3)
+	CONTROL_CHAR,				// 14 (DC4)
+	CONTROL_CHAR,				// 15 (NAK)
+	CONTROL_CHAR,				// 16 (SYN)
+	CONTROL_CHAR,				// 17 (ETB)
+	CONTROL_CHAR,				// 18 (CAN)
+	CONTROL_CHAR,				// 19 (EM)
+	CONTROL_CHAR,				// 1A (SUB)
+	CONTROL_CHAR,				// 1B (ESC)
+	CONTROL_CHAR,				// 1C (FS)
+	CONTROL_CHAR,				// 1D (GS)
+	CONTROL_CHAR,				// 1E (RS)
+	CONTROL_CHAR,				// 1F (US)
+	SPACE_CHAR,					// 20 SPACE
+	PUNCT_CHAR,					// 21 !
+	PUNCT_CHAR,					// 22 "
+	PUNCT_CHAR,					// 23 #
+	PUNCT_CHAR,					// 24 $
+	PUNCT_CHAR,					// 25 %
+	PUNCT_CHAR,					// 26 &
+	PUNCT_CHAR,					// 27 '
+	PUNCT_CHAR,					// 28 (
+	PUNCT_CHAR,					// 29 )
+	PUNCT_CHAR,					// 2A *
+	PUNCT_CHAR,					// 2B +
+	PUNCT_CHAR,					// 2C ,
+	PUNCT_CHAR,					// 2D -
+	PUNCT_CHAR,					// 2E .
+	PUNCT_CHAR,					// 2F /
+	DIGIT_CHAR | HEX_CHAR,		// 30 0
+	DIGIT_CHAR | HEX_CHAR,		// 31 1
+	DIGIT_CHAR | HEX_CHAR,		// 32 2
+	DIGIT_CHAR | HEX_CHAR,		// 33 3
+	DIGIT_CHAR | HEX_CHAR,		// 34 4
+	DIGIT_CHAR | HEX_CHAR,		// 35 5
+	DIGIT_CHAR | HEX_CHAR,		// 36 6
+	DIGIT_CHAR | HEX_CHAR,		// 37 7
+	DIGIT_CHAR | HEX_CHAR,		// 38 8
+	DIGIT_CHAR | HEX_CHAR,		// 39 9
+	PUNCT_CHAR,					// 3A :
+	PUNCT_CHAR,					// 3B ;
+	PUNCT_CHAR,					// 3C <
+	PUNCT_CHAR,					// 3D =
+	PUNCT_CHAR,					// 3E >
+	PUNCT_CHAR,					// 3F ?
+	PUNCT_CHAR,					// 40 @
+	UPPER_CHAR + HEX_CHAR,		// 41 A
+	UPPER_CHAR + HEX_CHAR,		// 42 B
+	UPPER_CHAR + HEX_CHAR,		// 43 C
+	UPPER_CHAR + HEX_CHAR,		// 44 D
+	UPPER_CHAR + HEX_CHAR,		// 45 E
+	UPPER_CHAR + HEX_CHAR,		// 46 F
+	UPPER_CHAR,					// 47 G
+	UPPER_CHAR,					// 48 H
+	UPPER_CHAR,					// 49 I
+	UPPER_CHAR,					// 4A J
+	UPPER_CHAR,					// 4B K
+	UPPER_CHAR,					// 4C L
+	UPPER_CHAR,					// 4D M
+	UPPER_CHAR,					// 4E N
+	UPPER_CHAR,					// 4F O
+	UPPER_CHAR,					// 50 P
+	UPPER_CHAR,					// 51 Q
+	UPPER_CHAR,					// 52 R
+	UPPER_CHAR,					// 53 S
+	UPPER_CHAR,					// 54 T
+	UPPER_CHAR,					// 55 U
+	UPPER_CHAR,					// 56 V
+	UPPER_CHAR,					// 57 W
+	UPPER_CHAR,					// 58 X
+	UPPER_CHAR,					// 59 Y
+	UPPER_CHAR,					// 5A Z
+	PUNCT_CHAR,					// 5B [
+	PUNCT_CHAR,					// 5C \ 
+	PUNCT_CHAR,					// 5D ]
+	PUNCT_CHAR,					// 5E ^
+	PUNCT_CHAR,					// 5F _
+	PUNCT_CHAR,					// 60 `
+	LOWER_CHAR + HEX_CHAR,		// 61 a
+	LOWER_CHAR + HEX_CHAR,		// 62 b
+	LOWER_CHAR + HEX_CHAR,		// 63 c
+	LOWER_CHAR + HEX_CHAR,		// 64 d
+	LOWER_CHAR + HEX_CHAR,		// 65 e
+	LOWER_CHAR + HEX_CHAR,		// 66 f
+	LOWER_CHAR,					// 67 g
+	LOWER_CHAR,					// 68 h
+	LOWER_CHAR,					// 69 i
+	LOWER_CHAR,					// 6A j
+	LOWER_CHAR,					// 6B k
+	LOWER_CHAR,					// 6C l
+	LOWER_CHAR,					// 6D m
+	LOWER_CHAR,					// 6E n
+	LOWER_CHAR,					// 6F o
+	LOWER_CHAR,					// 70 p
+	LOWER_CHAR,					// 71 q
+	LOWER_CHAR,					// 72 r
+	LOWER_CHAR,					// 73 s
+	LOWER_CHAR,					// 74 t
+	LOWER_CHAR,					// 75 u
+	LOWER_CHAR,					// 76 v
+	LOWER_CHAR,					// 77 w
+	LOWER_CHAR,					// 78 x
+	LOWER_CHAR,					// 79 y
+	LOWER_CHAR,					// 7A z
+	PUNCT_CHAR,					// 7B {
+	PUNCT_CHAR,					// 7C |
+	PUNCT_CHAR,					// 7D }
+	PUNCT_CHAR,					// 7E ~
+	CONTROL_CHAR,				// 7F (DEL)
+};
 
 template<Character C>
 struct StringLookup { };
@@ -16,6 +157,8 @@ struct StringLookup<char>
 	static inline const char NEGATIVE_CHAR = '-';
 	static inline const char DECIMAL_CHAR = '.';
 	static inline const char ZERO_CHAR = '0';
+	static inline const char BACK_SLASH = '\\';
+	static inline const char FORWARD_SLASH = '/';
 	static inline const char SPACE = ' ';
 	static inline const char HTAB = '\t';
 	static inline const char VTAB = '\v';
@@ -112,6 +255,8 @@ struct StringLookup<char8_t>
 	static inline const char8_t NEGATIVE_CHAR = u8'-';
 	static inline const char8_t DECIMAL_CHAR = u8'.';
 	static inline const char8_t ZERO_CHAR = u8'0';
+	static inline const char8_t BACK_SLASH = u8'\\';
+	static inline const char8_t FORWARD_SLASH = u8'/';
 	static inline const char8_t SPACE = u8' ';
 	static inline const char8_t HTAB = u8'\t';
 	static inline const char8_t VTAB = u8'\v';
@@ -208,6 +353,8 @@ struct StringLookup<char16_t>
 	static inline const char16_t NEGATIVE_CHAR = u'-';
 	static inline const char16_t DECIMAL_CHAR = u'.';
 	static inline const char16_t ZERO_CHAR = u'0';
+	static inline const char16_t BACK_SLASH = u'\\';
+	static inline const char16_t FORWARD_SLASH = u'/';
 	static inline const char16_t SPACE = u' ';
 	static inline const char16_t HTAB = u'\t';
 	static inline const char16_t VTAB = u'\v';
@@ -304,6 +451,8 @@ struct StringLookup<char32_t>
 	static inline const char32_t NEGATIVE_CHAR = U'-';
 	static inline const char32_t DECIMAL_CHAR = U'.';
 	static inline const char32_t ZERO_CHAR = U'0';
+	static inline const char32_t BACK_SLASH = U'\\';
+	static inline const char32_t FORWARD_SLASH = U'/';
 	static inline const char32_t SPACE = U' ';
 	static inline const char32_t HTAB = U'\t';
 	static inline const char32_t VTAB = U'\v';
@@ -400,6 +549,8 @@ struct StringLookup<wchar_t>
 	static inline const wchar_t NEGATIVE_CHAR = L'-';
 	static inline const wchar_t DECIMAL_CHAR = L'.';
 	static inline const wchar_t ZERO_CHAR = L'0';
+	static inline const wchar_t BACK_SLASH = L'\\';
+	static inline const wchar_t FORWARD_SLASH = L'/';
 	static inline const wchar_t SPACE = L' ';
 	static inline const wchar_t HTAB = L'\t';
 	static inline const wchar_t VTAB = L'\v';

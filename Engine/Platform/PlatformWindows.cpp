@@ -7,9 +7,23 @@
 #ifdef PLATFORM_WINDOWS
 
 #include <Windows.h>
+#include <shellapi.h>
+#include <ole2.h>
 
 bool Platform::running;
 WindowData Platform::windowData;
+
+struct DropTarget : public IDropTarget
+{
+	HRESULT __stdcall DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::DragEnter(pDataObj, grfKeyState, pt, pdwEffect); }
+	HRESULT __stdcall DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::DragOver(grfKeyState, pt, pdwEffect); }
+	HRESULT __stdcall DragLeave() final { return Platform::DragLeave(); }
+	HRESULT __stdcall Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::Drop(pDataObj, grfKeyState, pt, pdwEffect); }
+
+	HRESULT __stdcall QueryInterface(const IID& riid, void** ppvObject) final { return 0; }
+	ULONG __stdcall AddRef() final { return 0; }
+	ULONG __stdcall Release() final { return 0; }
+} dropTarget;
 
 U32 style;
 RECT border;
@@ -108,6 +122,8 @@ bool Platform::Initialize(CSTR applicationName)
 	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &monitorInfo);
 	if (Settings::TargetFrametime() == 0.0) { Settings::data.targetFrametime = 1.0 / monitorInfo.dmDisplayFrequency; }
 	Settings::data.monitorHz = monitorInfo.dmDisplayFrequency;
+	
+	RegisterDragDrop(windowData.window, &dropTarget);
 
 	ShowWindow(windowData.window, Settings::Fullscreen() ? SW_SHOWMAXIMIZED : SW_SHOW);
 
@@ -409,6 +425,30 @@ bool Platform::ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR 
 	GetExitCodeProcess(processInfo.hProcess, &processExitCode);
 
 	return executionSuccess;
+}
+
+HRESULT Platform::DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+{
+	BreakPoint;
+	return 0;
+}
+
+HRESULT Platform::DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+{
+	BreakPoint;
+	return 0;
+}
+
+HRESULT Platform::DragLeave()
+{
+	BreakPoint;
+	return 0;
+}
+
+HRESULT Platform::Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
+{
+	BreakPoint;
+	return 0;
 }
 
 #endif

@@ -289,7 +289,7 @@ struct Sampler
 {
 	void Destroy() { name.Destroy(); }
 
-	String					name{ NO_INIT };
+	String					name{  };
 	HashHandle				handle{ U64_MAX };
 
 	VkFilter				minFilter{ VK_FILTER_NEAREST };
@@ -327,17 +327,17 @@ struct SamplerInfo
 
 	VkSamplerReductionMode	reductionMode{ VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE };
 
-	String					name{ NO_INIT };
+	String					name{  };
 };
 
 struct Texture
 {
 	void Destroy() { name.Destroy(); }
 
-	String				name{ NO_INIT };
+	String				name{ };
 	HashHandle			handle{ U64_MAX };
 
-	U64					size{ 0 };
+	U32					size{ 0 };
 	U16					width{ 1 };
 	U16					height{ 1 };
 	U16					depth{ 1 };
@@ -349,7 +349,7 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T* allocation{ nullptr };
+	VmaAllocation_T*	allocation{ nullptr };
 
 	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
@@ -379,7 +379,7 @@ struct TextureInfo
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageType			type{ VK_IMAGE_TYPE_2D };
 
-	String				name{ NO_INIT };
+	String				name{  };
 };
 
 struct Buffer
@@ -403,7 +403,7 @@ struct Renderpass
 
 	void Resize();
 
-	String				name{ NO_INIT };
+	String				name{  };
 	HashHandle			handle;
 
 	VkRenderPass		renderpass{ nullptr };
@@ -454,7 +454,7 @@ struct RenderpassInfo
 	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
 
-	String				name{ NO_INIT };
+	String				name{  };
 };
 
 struct CommandBuffer;
@@ -525,7 +525,7 @@ struct Model
 {
 	void Destroy() { name.Destroy(); meshes.Destroy(); }
 
-	String		name{ NO_INIT };
+	String		name{  };
 	HashHandle	handle;
 
 	Vector<DrawCall> meshes;
@@ -535,7 +535,7 @@ struct Skybox
 {
 	void Destroy() { name.Destroy(); }
 
-	String name{ NO_INIT };
+	String name{  };
 	HashHandle	handle;
 
 	Buffer* buffer{ nullptr };
@@ -566,4 +566,93 @@ struct DescriptorSetUpdate
 {
 	DescriptorSet* descriptorSet;
 	U32				frameIssued{ 0 };
+};
+
+enum KTXFormatType
+{
+	KTX_FORMAT_TYPE_NONE = 0x00000000,
+	KTX_FORMAT_TYPE_PACKED = 0x00000001,
+	KTX_FORMAT_TYPE_COMPRESSED = 0x00000002,
+	KTX_FORMAT_TYPE_PALETTIZED = 0x00000004,
+	KTX_FORMAT_TYPE_DEPTH = 0x00000008,
+	KTX_FORMAT_TYPE_STENCIL = 0x00000010,
+};
+
+#pragma pack(push, 1)
+
+struct KTXHeader11
+{
+	KTXType	type;
+	U32	typeSize;
+	KTXFormat format;
+	KTXCompression internalFormat;
+	KTXFormat baseInternalFormat;
+	U32	pixelWidth;
+	U32	pixelHeight;
+	U32	pixelDepth;
+	U32 arrayElementCount;
+	U32	faceCount;
+	U32	mipmapLevelCount;
+	U32	keyValueDataSize;
+};
+
+struct KTXHeader20
+{
+	VkFormat format;
+	U32 typeSize;
+	U32 pixelWidth;
+	U32 pixelHeight;
+	U32 pixelDepth;
+	U32 layerCount;
+	U32 faceCount;
+	U32 levelCount;
+	U32 superCompressionScheme;
+	U32 dfdByteOffset;
+	U32 dfdByteLength;
+	U32 kvdByteOffset;
+	U32 kvdByteLength;
+	U64 sgdByteOffset;
+	U64 sgdByteLength;
+};
+
+struct KTXLevel
+{
+	U64 byteOffset;
+	U64 byteLength;
+	U64 uncompressedByteLength;
+};
+
+struct KTXInfo
+{
+	U32 flags;
+	U32 paletteSizeInBits;
+	U32 blockSizeInBits;
+	U32 blockWidth;			// in texels
+	U32 blockHeight;		// in texels
+	U32 blockDepth;			// in texels
+};
+
+#pragma pack(pop)
+
+struct MeshUpload
+{
+	U16 materialIndex{ U16_MAX };
+
+	U32 verticesSize{ 0 };
+	Vertex* vertices{ nullptr };
+	U32 indicesSize{ 0 };
+	U32* indices{ nullptr };
+
+	U32 instanceCount{ 0 };
+	Matrix4 instances[32];
+};
+
+struct ModelUpload
+{
+	U32 textureCount{ 0 };
+	String textures[32]{};
+	U32 materialCount{ 0 };
+	Material materials[32];
+	U32 meshCount{ 0 };
+	MeshUpload meshes[32];
 };

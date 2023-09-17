@@ -11,7 +11,6 @@
 #include "Math\Math.hpp"
 #include "Rendering\Pipeline.hpp"
 
-struct KTXInfo;
 struct aiTexture;
 struct aiMaterial;
 struct aiMesh;
@@ -20,16 +19,28 @@ struct aiScene;
 class NH_API Resources
 {
 public:
+	static Texture* CreateTexture(const TextureInfo& info);
+	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
 	static Sampler* CreateSampler(const SamplerInfo& info);
 	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static Renderpass* CreateRenderpass(const RenderpassInfo& info);
 	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, VkPushConstantRange* pushConstants = nullptr);
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
+	static Scene* CreateScene(const String& name);
+
+	static Texture* LoadTexture(const String& path);
 	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
-	static Scene* CreateScene(const String& name);
 	static Scene* LoadScene(const String& name);
+	static bool LoadBinary(const String& name, String& result);
+	static U32 LoadBinary(const String& name, void** result);
+
 	static void SaveScene(const Scene* scene);
+	static void SaveBinary(const String& name, const String& data);
+	static void SaveBinary(const String& name, void* data, U64 length);
+
+	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
+	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
 
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
@@ -51,16 +62,15 @@ public:
 	static void	DestroyDescriptorSet(DescriptorSet* set);
 	static void	DestroyRenderpass(Renderpass* renderpass);
 
-	static bool LoadBinary(const String& name, String& result);
-	static U32 LoadBinary(const String& name, void** result);
-	static void SaveBinary(const String& name, const String& data);
-	static void SaveBinary(const String& name, void* data, U64 length);
+	static U8 MipmapCount(U16 width, U16 height);
 
-	static Texture* CreateTexture(const TextureInfo& info);
-	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
-	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
-	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
-	static Texture* LoadTexture(const String& name, bool generateMipMaps = false);
+	//Convert 3rd party asset formats to nh formats
+	static String UploadFont(const String& path);
+	static String UploadAudio(const String& path);
+	static String UploadTexture(const String& path);
+	static String UploadTexture(const aiTexture* textureInfo);
+	static String UploadSkybox(const String& path);
+	static String UploadModel(const String& path);
 
 private:
 	static bool Initialize();
@@ -76,27 +86,13 @@ private:
 	static void UpdatePipelines();
 
 	//Texture Loading
-	static bool LoadBMP(Texture* texture, File& file, bool generateMipMaps);
-	static bool LoadPNG(Texture* texture, File& file, bool generateMipMaps);
-	static bool LoadJPG(Texture* texture, File& file, bool generateMipMaps);
-	static bool LoadPSD(Texture* texture, File& file, bool generateMipMaps);
-	static bool LoadTIFF(Texture* texture, File& file, bool generateMipMaps);
-	static bool LoadTGA(Texture* texture, File& file, bool generateMipMaps);
-	static bool LoadKTX(Texture* texture, File& file, bool generateMipMaps);
+	static bool LoadKTX(File& file);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 
-	static Texture* AssimpToNhimg(const String& name, const aiTexture* texture);
-	static Texture* ConvertToNhimg(const String& name, const U8* data);
-
-	//Model Loading
-	static U32 UploadMaterial(const aiMaterial* materialInfo, const aiScene* scene);
-	static DrawCall UploadMesh(const aiMesh* meshInfo);
-	static void ParseModel(Model* model, DrawCall* drawCalls, U32* meshMaterials, const aiScene* scene);
-
-	//Scene Loading
-	static bool LoadNHSCN(Scene* scene, File& file);
-	static bool LoadGLTF(Scene* scene, File& file);
-	static bool LoadGLB(Scene* scene, File& file);
+	//Assimp Utilities
+	static Material ParseAssimpMaterial(ModelUpload& model, const aiMaterial* materialInfo, const aiScene* scene);
+	static MeshUpload ParseAssimpMesh(const aiMesh* meshInfo);
+	static void ParseAssimpModel(ModelUpload& model, const aiScene* scene);
 
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;

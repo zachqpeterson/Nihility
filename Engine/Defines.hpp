@@ -200,26 +200,6 @@ enum ISAAvailability
 #endif
 
 /// <summary>
-/// Gets the next power of 2 from a starting point
-/// </summary>
-/// <param name="value:">The starting value</param>
-/// <returns></returns>
-inline constexpr I64 NextPow2(const I64& value)
-{
-	I64 val = value;
-
-	--val;
-	val |= val >> 1;
-	val |= val >> 2;
-	val |= val >> 4;
-	val |= val >> 8;
-	val |= val >> 16;
-	++val;
-
-	return val;
-}
-
-/// <summary>
 /// Gets the element count of a static array
 /// </summary>
 /// <returns>The count of elements</returns>
@@ -229,14 +209,14 @@ template<class Type, U64 Count> inline constexpr U64 CountOf(Type(&)[Count]) { r
 /// Gets the element count of a static array
 /// </summary>
 /// <returns>The count of elements</returns>
-template<class Type, U64 Count> inline constexpr U32 CountOf32(Type(&)[Count]) { return (U32)Count; }
+template<class Type, U32 Count> inline constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
 
 /// <summary>
-/// Creates a number the represents the version of this application
+/// Creates a number that represents a version
 /// </summary>
-/// <param name="major:">The major version of this application</param>
-/// <param name="minor:">The minor version of this application</param>
-/// <param name="patch:">The patch version of this application</param>
+/// <param name="major:">The major version</param>
+/// <param name="minor:">The minor version</param>
+/// <param name="patch:">The patch version</param>
 /// <returns>The version number</returns>
 inline constexpr U32 MakeVersionNumber(U32 major, U32 minor, U32 patch)
 {

@@ -1,6 +1,0 @@
-Vector4 baseColorFactor;
-Vector3 emissiveFactor;
-F32   metallicFactor;
-F32   roughnessFactor;
-F32   occlusionFactor;
-U32   flags;

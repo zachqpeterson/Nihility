@@ -140,7 +140,7 @@ struct Id
 
 bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants)
 {
-	String data{ NO_INIT };
+	String data{  };
 	Resources::LoadBinary(shaderPath, data);
 
 	DescriptorSetLayoutInfo setLayoutInfos[MAX_DESCRIPTOR_SET_LAYOUTS]{};
@@ -378,8 +378,7 @@ bool Shader::ParseStage(const String& data, I64& index, DescriptorSetLayoutInfo*
 	default: return false;
 	}
 
-	String code;
-	data.SubString(code, begin, end - begin - 1);
+	String code = data.SubString(begin, end - begin - 1);
 
 	stages[stageCount].stage = stage;
 	stageInfos[stageCount] = CompileShader(stages[stageCount], code, name, setLayoutInfos);

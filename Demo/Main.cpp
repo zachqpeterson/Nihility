@@ -9,7 +9,8 @@
 
 bool Init()
 {
-	Model* model = Resources::LoadModel("models/Chess.fbx");
+	//String path = Resources::UploadModel("models/Chess.fbx");
+	Model* model = Resources::LoadModel("models/Chess.nhmdl");
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn");
 
