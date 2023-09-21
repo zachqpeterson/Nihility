@@ -7,7 +7,9 @@
 #ifdef PLATFORM_WINDOWS
 
 #include <Windows.h>
-#include <shellapi.h>
+#include <shlwapi.h>
+#include <strsafe.h>
+#include <shlobj.h>
 #include <ole2.h>
 
 bool Platform::running;
@@ -15,14 +17,18 @@ WindowData Platform::windowData;
 
 struct DropTarget : public IDropTarget
 {
+	DropTarget() : referenceCount{ 1 } {}
+
 	HRESULT __stdcall DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::DragEnter(pDataObj, grfKeyState, pt, pdwEffect); }
 	HRESULT __stdcall DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::DragOver(grfKeyState, pt, pdwEffect); }
 	HRESULT __stdcall DragLeave() final { return Platform::DragLeave(); }
 	HRESULT __stdcall Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::Drop(pDataObj, grfKeyState, pt, pdwEffect); }
 
-	HRESULT __stdcall QueryInterface(const IID& riid, void** ppvObject) final { return 0; }
-	ULONG __stdcall AddRef() final { return 0; }
-	ULONG __stdcall Release() final { return 0; }
+	HRESULT __stdcall QueryInterface(const IID& riid, void** ppv) final { return E_NOINTERFACE; }
+	ULONG __stdcall AddRef() final { return InterlockedIncrement(&referenceCount); }
+	ULONG __stdcall Release() final { return InterlockedDecrement(&referenceCount); }
+
+	UL32 referenceCount;
 } dropTarget;
 
 U32 style;
@@ -42,6 +48,7 @@ bool Platform::Initialize(CSTR applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
+	OleInitialize(nullptr);
 	windowData.instance = GetModuleHandleA(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
@@ -123,7 +130,8 @@ bool Platform::Initialize(CSTR applicationName)
 	if (Settings::TargetFrametime() == 0.0) { Settings::data.targetFrametime = 1.0 / monitorInfo.dmDisplayFrequency; }
 	Settings::data.monitorHz = monitorInfo.dmDisplayFrequency;
 	
-	RegisterDragDrop(windowData.window, &dropTarget);
+	RegisterClipboardFormatA("NihilityClipboard");
+	HRESULT result = RegisterDragDrop(windowData.window, &dropTarget);
 
 	ShowWindow(windowData.window, Settings::Fullscreen() ? SW_SHOWMAXIMIZED : SW_SHOW);
 
@@ -136,6 +144,7 @@ void Platform::Shutdown()
 
 	if (windowData.window)
 	{
+		RevokeDragDrop(windowData.window);
 		DestroyWindow(windowData.window);
 		windowData.window = nullptr;
 

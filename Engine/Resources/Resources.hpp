@@ -99,6 +99,8 @@ private:
 	static Sampler*								defaultSampler;
 	static Shader*								meshProgram;
 	static Pipeline*							renderPipeline;
+	static Shader*								uiProgram;
+	static Pipeline*							uiPipeline;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;

@@ -239,6 +239,7 @@
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Rendering\Shader.hpp" />
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
+    <ClInclude Include="Engine\Rendering\UI.hpp" />
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
@@ -319,6 +320,7 @@
     <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />
     <ClCompile Include="Engine\Rendering\Shader.cpp" />
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
+    <ClCompile Include="Engine\Rendering\UI.cpp" />
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Scene.cpp" />

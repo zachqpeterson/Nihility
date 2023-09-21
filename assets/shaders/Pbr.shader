@@ -11,11 +11,6 @@ instanceOffset=5
 #VERTEX
 #version 450
 
-#extension GL_EXT_shader_16bit_storage: require
-#extension GL_EXT_shader_8bit_storage: require
-
-#extension GL_ARB_shader_draw_parameters: require
-
 struct Globals
 {
 	mat4 viewProjection;

@@ -740,10 +740,9 @@ inline StringBase<C> StringBase<C>::GetFileName() const noexcept
 {
 	I64 index;
 	I64 extIndex = LastIndexOf(StringLookup<C>::DECIMAL_CHAR);
-	if (extIndex != -1) { extIndex = size - extIndex + 1; }
 
-	if ((index = LastIndexOf(StringLookup<C>::FORWARD_SLASH)) != -1) { return Move(SubString(index + 1, extIndex)); }
-	if ((index = LastIndexOf(StringLookup<C>::BACK_SLASH)) != -1) { return Move(SubString(index + 1, extIndex)); }
+	if ((index = LastIndexOf(StringLookup<C>::FORWARD_SLASH) + 1) != -1) { return Move(SubString(index, extIndex - index)); }
+	if ((index = LastIndexOf(StringLookup<C>::BACK_SLASH) + 1) != -1) { return Move(SubString(index, extIndex - index)); }
 
 	return Move(SubString(0, extIndex));
 }

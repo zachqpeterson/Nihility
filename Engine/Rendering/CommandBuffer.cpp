@@ -100,9 +100,9 @@ void CommandBuffer::BindInstanceBuffer(const Buffer& buffer)
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
 }
 
-void CommandBuffer::BindDescriptorSets(Shader* shader, U32 setCount, const VkDescriptorSet* sets)
+void CommandBuffer::BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, const VkDescriptorSet* sets)
 {
-	vkCmdBindDescriptorSets(commandBuffer, shader->bindPoint, shader->pipelineLayout, 0, setCount, sets, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, shader->bindPoint, shader->pipelineLayout, setOffset, setCount, sets, 0, nullptr);
 }
 
 void CommandBuffer::PushConstants(Shader* shader, U32 offset, U32 size, const void* data)
@@ -120,19 +120,19 @@ void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstInde
 	vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count)
+void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset)
 {
 	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount and physicalDeviceFeatures.drawIndirectFirstInstance;
 
 	if (Renderer::physicalDeviceFeatures.multiDrawIndirect)
 	{
-		vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, 0, count, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, offset, count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 	else
 	{
 		for (U32 i = 0; i < count; ++i)
 		{
-			vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, sizeof(VkDrawIndexedIndirectCommand) * i, 1, sizeof(VkDrawIndexedIndirectCommand));
+			vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, sizeof(VkDrawIndexedIndirectCommand) * i + offset, 1, sizeof(VkDrawIndexedIndirectCommand));
 		}
 	}
 }

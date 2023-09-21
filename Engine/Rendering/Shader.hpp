@@ -33,7 +33,7 @@ struct DepthStencil
 
 struct ShaderStage
 {
-	String							entryPoint{  };
+	String							entryPoint{};
 	VkShaderStageFlagBits			stage{ VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM };
 
 	U32								localSizeX{ 1 };
@@ -46,9 +46,10 @@ struct ShaderStage
 struct Shader
 {
 	bool Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants);
+	void AddDescriptor(const Descriptor& descriptor);
 	void Destroy();
 
-	String								name{  };
+	String								name{};
 	U64									handle{ U64_MAX };
 
 	VkPipelineBindPoint					bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
@@ -58,6 +59,9 @@ struct Shader
 	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
 	U32									stageCount{ 0 };
 	U32									language{ 0 };
+
+	U8									descriptorCount{ 0 };
+	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET];
 
 	Rasterization						rasterization{};
 	DepthStencil						depthStencil{};
@@ -81,9 +85,9 @@ struct Shader
 
 private:
 	bool ParseConfig(const String& data, I64& index);
-	bool ParseStage(const String& data, I64& index, DescriptorSetLayoutInfo* setLayoutInfos, VkShaderStageFlagBits stage);
-	VkPipelineShaderStageCreateInfo CompileShader(ShaderStage& shaderStage, String& code, const String& name, DescriptorSetLayoutInfo* setLayoutInfos);
-	bool ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutInfo* setLayoutInfos);
+	bool ParseStage(const String& data, I64& index, DescriptorSetLayoutInfo& setLayoutInfo, VkShaderStageFlagBits stage);
+	VkPipelineShaderStageCreateInfo CompileShader(ShaderStage& shaderStage, String& code, const String& name, DescriptorSetLayoutInfo& setLayoutInfo);
+	bool ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutInfo& setLayoutInfo);
 
 	static const String& ToStageDefines(VkShaderStageFlagBits value);
 	static const String& ToCompilerExtension(VkShaderStageFlagBits value);

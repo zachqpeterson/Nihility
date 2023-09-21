@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 
+#include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
@@ -119,7 +120,9 @@ Buffer								Renderer::instanceBuffer;
 Buffer								Renderer::indexBuffer;
 Buffer								Renderer::materialBuffer;
 Buffer								Renderer::drawCommandsBuffer;
-U32									Renderer::drawCount;
+U32									Renderer::meshDrawCount{ 0 };
+U32									Renderer::uiDrawCount{ 0 };
+U32									Renderer::uiInstanceOffset{ 0 };
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -476,6 +479,8 @@ bool Renderer::CreateResources()
 	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+	uiInstanceOffset = MEGABYTES(64);
+
 	Resources::CreateDefaults();
 
 	return true;
@@ -508,47 +513,45 @@ bool Renderer::BeginFrame()
 	return true;
 }
 
-void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount)
+void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, U32 offset)
 {
-	Camera& camera = currentScene->camera;
-
-	GlobalData globalData{};
-	globalData.vp = camera.ViewProjection();
-	globalData.eye = camera.Eye();
-
-	commandBuffer->BeginRenderpass(pipeline->renderpass);
-
-	bool taskSubmit = false;
-
-	if (taskSubmit)
+	if (drawCount)
 	{
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
-		//
-		//// TODO: double-check synchronization
-		//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
-		//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
-		//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
-		//pushDescriptors(meshProgramMS, descriptors);
-		//
-		//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
-		//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
+		Camera& camera = currentScene->camera;
+
+		GlobalData globalData{};
+		globalData.vp = camera.ViewProjection();
+		globalData.eye = camera.Eye();
+
+		bool taskSubmit = false;
+
+		if (taskSubmit)
+		{
+			//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
+			//
+			//// TODO: double-check synchronization
+			//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
+			//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
+			//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
+			//pushDescriptors(meshProgramMS, descriptors);
+			//
+			//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
+			//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
+		}
+		else
+		{
+			commandBuffer->BindPipeline(pipeline);
+
+			PushDescriptors(pipeline->shader);
+			if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
+
+			commandBuffer->BindIndexBuffer(indexBuffer);
+			if (pipeline->shader->instanceOffset) { commandBuffer->BindVertexBuffer(vertexBuffer); }
+			if (pipeline->shader->instanceOffset != U8_MAX) { commandBuffer->BindInstanceBuffer(instanceBuffer); }
+
+			commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, drawCount, offset);
+		}
 	}
-	else
-	{
-		commandBuffer->BindPipeline(pipeline);
-
-		Descriptor descriptors[]{ {materialBuffer.vkBuffer} };
-		PushDescriptors(pipeline->shader, descriptors);
-		commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData);
-
-		commandBuffer->BindIndexBuffer(indexBuffer);
-		commandBuffer->BindVertexBuffer(vertexBuffer);
-		commandBuffer->BindInstanceBuffer(instanceBuffer);
-
-		commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, drawCount);
-	}
-
-	commandBuffer->EndRenderpass();
 }
 
 void Renderer::EndFrame()
@@ -567,7 +570,9 @@ void Renderer::EndFrame()
 
 	Resources::Update();
 
-	Render(commandBuffer, Resources::renderPipeline, drawCount);
+	commandBuffer->BeginRenderpass(Resources::renderPipeline->renderpass);
+
+	Render(commandBuffer, Resources::renderPipeline, meshDrawCount, 0);
 
 	//Post Processing
 	//TODO: Skybox
@@ -582,7 +587,9 @@ void Renderer::EndFrame()
 	//TODO: Tonemapping
 	//TODO: Gamma
 
-	//TODO: UI
+	Render(commandBuffer, Resources::uiPipeline, uiDrawCount, UI::uploadOffset);
+
+	commandBuffer->EndRenderpass();
 
 	VkImageMemoryBarrier2 copyBarriers[]{
 		ImageBarrier(Resources::renderPipeline->renderpass->outputTextures[0]->image,
@@ -811,18 +818,17 @@ U64 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U64 size)
 	return offset;
 }
 
-void Renderer::UploadDrawCall(const DrawCall& drawCall)
+void Renderer::UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 offset)
 {
 	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = drawCall.indexCount;
-	drawCommand.instanceCount = (U32)drawCall.instances.Size();
-	drawCommand.firstIndex = drawCall.indexOffset;
-	drawCommand.vertexOffset = drawCall.vertexOffset;
-	drawCommand.firstInstance = (U32)(Renderer::UploadToBuffer(Renderer::instanceBuffer, drawCall.instances.Data(), drawCall.instances.Size() * sizeof(MeshInstance)) / sizeof(MeshInstance));
+	drawCommand.indexCount = indexCount;
+	drawCommand.instanceCount = instanceCount;
+	drawCommand.firstIndex = indexOffset;
+	drawCommand.vertexOffset = vertexOffset;
+	drawCommand.firstInstance = instanceOffset;
 
-	Renderer::UploadToBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand));
-
-	++drawCount;
+	if (offset == U32_MAX) { Renderer::UploadToBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand)); }
+	else { FillBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand), offset); }
 }
 
 void Renderer::MapBuffer(Buffer& buffer)
@@ -1183,28 +1189,34 @@ bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSet
 	return true;
 }
 
-void Renderer::PushDescriptors(Shader* shader, const Descriptor* descriptors)
+void Renderer::PushDescriptors(Shader* shader)
 {
 	CommandBuffer* commandBuffer = GetCommandBuffer();
 
 	if (pushDescriptorsSupported)
 	{
-		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, shader->setLayouts[0]->updateTemplate, shader->pipelineLayout, 0, descriptors);
+		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, shader->setLayouts[0]->updateTemplate, shader->pipelineLayout, 0, shader->descriptors);
 	}
 	else
 	{
-		VkDescriptorSetAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-
-		allocateInfo.descriptorPool = descriptorPool;
-		allocateInfo.descriptorSetCount = 1;
-		allocateInfo.pSetLayouts = &shader->setLayouts[0]->descriptorSetLayout;
-
 		VkDescriptorSet sets[]{ nullptr, Resources::bindlessDescriptorSet };
-		VkValidate(vkAllocateDescriptorSets(device, &allocateInfo, sets));
+		U32 firstSet = 0;
 
-		vkUpdateDescriptorSetWithTemplate(device, sets[0], shader->setLayouts[0]->updateTemplate, descriptors);
+		if (shader->descriptorCount)
+		{
+			VkDescriptorSetAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 
-		commandBuffer->BindDescriptorSets(shader, 1 + shader->useBindless, sets);
+			allocateInfo.descriptorPool = descriptorPool;
+			allocateInfo.descriptorSetCount = 1;
+			allocateInfo.pSetLayouts = &shader->setLayouts[0]->descriptorSetLayout;
+
+			VkValidate(vkAllocateDescriptorSets(device, &allocateInfo, sets));
+
+			vkUpdateDescriptorSetWithTemplate(device, sets[0], shader->setLayouts[0]->updateTemplate, shader->descriptors);
+		}
+		else { firstSet = 1; }
+
+		commandBuffer->BindDescriptorSets(shader, firstSet, shader->descriptorCount + shader->useBindless, sets + firstSet);
 	}
 };
 
@@ -1214,8 +1226,12 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	VkAttachmentReference colorAttachments[MAX_IMAGE_OUTPUTS]{};
 	VkAttachmentReference depthAttachment{};
 
+	//TODO: Support multiple subpasses
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	VkImageLayout initialColorLayout = renderpass->colorOperation == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	VkImageLayout initialDepthLayout = renderpass->depthOperation == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 
 	U32 attachmentCount = 0;
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
@@ -1227,7 +1243,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[attachmentCount].stencilLoadOp = renderpass->stencilOperation;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[attachmentCount].initialLayout = initialColorLayout;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		colorAttachments[attachmentCount].attachment = attachmentCount;
@@ -1248,7 +1264,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[attachmentCount].stencilLoadOp = renderpass->stencilOperation;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[attachmentCount].initialLayout = initialDepthLayout;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		depthAttachment.attachment = attachmentCount;

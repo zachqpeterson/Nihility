@@ -65,6 +65,8 @@ Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
 Shader* Resources::meshProgram;
 Pipeline* Resources::renderPipeline;
+Shader* Resources::uiProgram;
+Pipeline* Resources::uiPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -107,12 +109,20 @@ bool Resources::Initialize()
 
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
 	meshProgram = CreateShader("shaders/Pbr.shader", 1, &pushConstant);
+	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+
+	uiProgram = CreateShader("shaders/UI.shader");
 
 	PipelineInfo info{};
 	info.name = "render_pipeline";
 	info.shader = meshProgram;
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 	renderPipeline = CreatePipeline(info);
+
+	info.name = "ui_pipeline";
+	info.shader = uiProgram;
+	info.renderpass = renderPipeline->renderpass;
+	uiPipeline = CreatePipeline(info);
 
 	return true;
 }
@@ -313,11 +323,6 @@ void Resources::UpdatePipelines()
 	for (auto it = pipelines.begin(); it != end; ++it)
 	{
 		if (it.Valid() && !it->name.Blank()) { it->Resize(); }
-	}
-
-	for (auto it = pipelines.begin(); it != end; ++it)
-	{
-		if (it.Valid() && !it->name.Blank()) { it->Update(); }
 	}
 }
 
@@ -697,7 +702,9 @@ Model* Resources::LoadModel(const String& path)
 				reader.Read(draw.instances[j].model);
 			}
 
-			Renderer::UploadDrawCall(draw);
+			U32 instanceOffset = (U32)(Renderer::UploadToBuffer(Renderer::instanceBuffer, draw.instances.Data(), sizeof(MeshInstance) * draw.instances.Size()) / sizeof(MeshInstance));
+			Renderer::UploadDrawCall(draw.indexCount, draw.indexOffset, draw.vertexOffset, draw.instances.Size(), instanceOffset);
+			++Renderer::meshDrawCount;
 		}
 
 		return model;
@@ -1830,7 +1837,7 @@ String Resources::UploadModel(const String& path)
 {
 	const aiScene* scene = aiImportFile(path.Data(), ASSIMP_IMPORT_FLAGS);
 
-	if (!scene) { Logger::Error("Failed To Import Model: {}!", path); return {  }; }
+	if (!scene) { Logger::Error("Failed To Import Model: {}!", path); return {}; }
 
 	ModelUpload model{};
 
@@ -1919,12 +1926,12 @@ Material Resources::ParseAssimpMaterial(ModelUpload& model, const aiMaterial* ma
 			case aiTextureType_DIFFUSE: { material.diffuseTextureIndex = index; } break;
 			case aiTextureType_EMISSIVE: { material.emissivityTextureIndex = index; } break;
 			case aiTextureType_NORMALS: { material.normalTextureIndex = index; } break;
-			case aiTextureType_SHININESS: {  } break;
+			case aiTextureType_SHININESS: {} break;
 			case aiTextureType_BASE_COLOR: { material.diffuseTextureIndex = index; } break;
 			case aiTextureType_EMISSION_COLOR: { material.emissivityTextureIndex = index; } break;
-			case aiTextureType_METALNESS: {  } break;			//TODO: Combine these textures
-			case aiTextureType_DIFFUSE_ROUGHNESS: {  } break;
-			case aiTextureType_AMBIENT_OCCLUSION: {  } break;
+			case aiTextureType_METALNESS: {} break;			//TODO: Combine these textures
+			case aiTextureType_DIFFUSE_ROUGHNESS: {} break;
+			case aiTextureType_AMBIENT_OCCLUSION: {} break;
 
 			case aiTextureType_NONE:
 			case aiTextureType_SPECULAR:

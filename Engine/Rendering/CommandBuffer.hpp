@@ -3,6 +3,7 @@
 #include "Resources\ResourceDefines.hpp"
 
 struct Shader;
+struct Pipeline;
 
 struct CommandBuffer
 {
@@ -22,7 +23,7 @@ struct CommandBuffer
 	void BindIndexBuffer(const Buffer& buffer);
 	void BindVertexBuffer(const Buffer& buffer);
 	void BindInstanceBuffer(const Buffer& buffer);
-	void BindDescriptorSets(Shader* shader, U32 setCount, const VkDescriptorSet* sets);
+	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, const VkDescriptorSet* sets);
 
 	void PushDescriptors();
 	void PushConstants(Shader* shader, U32 offset, U32 size, const void* data);
@@ -30,7 +31,7 @@ struct CommandBuffer
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
 	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
-	void DrawIndexedIndirect(const Buffer& buffer, U32 count);
+	void DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset = 0);
 
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(Buffer* buffer, U32 offset);

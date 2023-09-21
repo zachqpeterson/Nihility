@@ -46,15 +46,19 @@ struct SpecializationInfo
 
 struct PipelineInfo
 {
-	String				name{  };
+	String				name{};
 
 	VkAttachmentLoadOp	colorLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkAttachmentLoadOp	stencilLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
 	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
+	Texture*			outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture*			outputDepth{ nullptr };
+	U8					outputCount{ 0 };
 
-	Shader* shader{ nullptr };
-	Renderpass* renderpass{ nullptr };
+	Shader*				shader{ nullptr };
+	Renderpass*			renderpass{ nullptr };
+	U32					subpass{ 0 };
 
 	SpecializationInfo	specialization{};
 
@@ -67,20 +71,15 @@ struct Pipeline
 	bool Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo);
 	void Destroy();
 
-	void Update();
 	void Resize();
 
-	void AddDescriptor(const Descriptor& descriptor);
-
-	String				name{  };
+	String				name{};
 	U64					handle{ U64_MAX };
 
 	Shader*				shader{};
-	Renderpass*			renderpass{ nullptr };
 	VkPipeline			pipeline{ nullptr };
-
-	Descriptor			descriptors[MAX_DESCRIPTORS_PER_SET]{};
-	U8					descriptorCount{ 0 };
+	Renderpass*			renderpass{ nullptr };
+	U32					subpass{ 0 };
 
 private:
 	bool CreatePipeline(const SpecializationInfo& specializationInfo);

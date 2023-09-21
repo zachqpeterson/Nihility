@@ -1,0 +1,54 @@
+#CONFIG
+language=GLSL
+cull=NONE
+front=COUNTER
+fill=SOLID
+depth=LESS
+blend=ADD
+instanceOffset=3
+#CONFIG_END
+
+#VERTEX
+#version 450
+
+layout (location = 0) in vec2 position;
+layout (location = 1) in vec2 texcoord;
+layout (location = 2) in vec4 color;
+
+layout (location = 3) in uint textureIndex;
+layout (location = 4) in mat4 model;
+
+layout (location = 0) out vec2 outTexcoord;
+layout (location = 1) out vec4 outColor;
+layout (location = 2) out flat uint outTextureIndex;
+
+void main()
+{
+	gl_Position = model * vec4(position, 0.99, 1.0);
+    outTexcoord = texcoord;
+	outColor = color;
+    outTextureIndex = textureIndex;
+}
+#VERTEX_END
+
+#FRAGMENT
+#version 450
+#extension GL_EXT_nonuniform_qualifier : require
+
+const uint INVALID_TEXTURE_INDEX = 65535;
+
+layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
+layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
+
+layout (location = 0) in vec2 texcoord;
+layout (location = 1) in vec4 color;
+layout (location = 2) in flat uint textureIndex;
+
+layout (location = 0) out vec4 outColor;
+
+void main()
+{
+    if(textureIndex != INVALID_TEXTURE_INDEX) { outColor = texture(globalTextures[textureIndex], texcoord) * color; }
+    else { outColor = color; }
+}
+#FRAGMENT_END

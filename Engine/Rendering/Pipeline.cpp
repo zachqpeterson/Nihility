@@ -10,11 +10,12 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 {
 	shader = info.shader;
 	renderpass = info.renderpass;
+	subpass = info.subpass;
 
 	RenderpassInfo renderPassInfo{};
-	renderPassInfo.colorOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	renderPassInfo.depthOperation = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	renderPassInfo.stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	renderPassInfo.colorOperation = info.colorLoadOp;
+	renderPassInfo.depthOperation = info.depthLoadOp;
+	renderPassInfo.stencilOperation = info.stencilLoadOp;
 	renderPassInfo.attachmentFinalLayout = info.attachmentFinalLayout;
 	renderPassInfo.width = Settings::WindowWidth();
 	renderPassInfo.height = Settings::WindowHeight();
@@ -26,22 +27,28 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 
 		for (U32 i = 0; i < shader->outputCount; ++i)
 		{
-			TextureInfo textureInfo{};
-			textureInfo.name = textureName + i;
-			textureInfo.format = shader->outputs[i];
-			textureInfo.width = renderPassInfo.width;
-			textureInfo.height = renderPassInfo.height;
-			textureInfo.depth = 1;
-			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-			textureInfo.type = VK_IMAGE_TYPE_2D;
+			if(i < info.outputCount) { renderPassInfo.AddRenderTarget(info.outputTextures[i]); }
+			else
+			{
+				TextureInfo textureInfo{};
+				textureInfo.name = textureName + i;
+				textureInfo.format = shader->outputs[i];
+				textureInfo.width = renderPassInfo.width;
+				textureInfo.height = renderPassInfo.height;
+				textureInfo.depth = 1;
+				textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+				textureInfo.type = VK_IMAGE_TYPE_2D;
 
-			Texture* texture = Resources::CreateTexture(textureInfo);
-			renderPassInfo.AddRenderTarget(texture);
-			renderPassInfo.AddClearColor({ 1.0f, 0.0f, 1.0f, 1.0f });
+				Texture* texture = Resources::CreateTexture(textureInfo);
+				renderPassInfo.AddRenderTarget(texture);
+				renderPassInfo.AddClearColor({ 1.0f, 0.0f, 1.0f, 1.0f });
+			}
 		}
 
 		if (shader->depthStencil.depthEnable)
 		{
+			if(info.outputDepth) { renderPassInfo.SetDepthStencilTexture(info.outputDepth); }
+
 			TextureInfo textureInfo{};
 			textureInfo.name = textureName + "depth";
 			textureInfo.format = VK_FORMAT_D32_SFLOAT;
@@ -64,11 +71,6 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 	return true;
 }
 
-void Pipeline::Update()
-{
-	Renderer::PushDescriptors(shader, descriptors);
-}
-
 void Pipeline::Resize()
 {
 	renderpass->Resize();
@@ -79,11 +81,6 @@ void Pipeline::Destroy()
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
 
 	name.Destroy();
-}
-
-void Pipeline::AddDescriptor(const Descriptor& descriptor)
-{
-	descriptors[descriptorCount++] = descriptor;
 }
 
 bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
@@ -213,6 +210,7 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		pipelineInfo.pViewportState = &viewportState;
 		pipelineInfo.pDynamicState = &dynamicState;
 		pipelineInfo.renderPass = renderpass->renderpass;
+		pipelineInfo.subpass = subpass;
 
 		vkCreateGraphicsPipelines(Renderer::device, pipelineCache, 1, &pipelineInfo, Renderer::allocationCallbacks, &pipeline);
 	}

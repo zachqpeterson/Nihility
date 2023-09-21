@@ -14,6 +14,7 @@
 #include "Containers\Vector.hpp"
 #include "Containers\Queue.hpp"
 #include "Rendering\Renderer.hpp"
+#include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
 
 #include "External\tracy\tracy\Tracy.hpp"
@@ -43,7 +44,20 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Input::Initialize());
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
-	//UI
+	ASSERT(UI::Initialize());
+
+	UIElementInfo info{};
+	info.area = { -0.5f, -0.5f, .5f, .5f };
+	info.color = { 1.0f, 1.0f, 1.0f, 0.75f };
+
+	info.enabled = true;
+	info.ignore = false;
+
+	info.parent = nullptr;
+	info.scene = nullptr;
+
+	UI::CreateImage(info, Resources::LoadTexture("textures/Collie.nhtex"), { 0.0f, 0.0f, 1.0f, 1.0f });
+
 	//Physics
 	//Particle
 	//Audio
@@ -60,7 +74,7 @@ void Engine::Shutdown()
 	//Audio
 	//Particle
 	//Physics
-	//UI
+	UI::Shutdown();
 	Renderer::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
@@ -91,16 +105,16 @@ void Engine::UpdateLoop()
 		//Physics::Update();
 		GameUpdate();
 		//Animations::Update();
-		
+
 		if (Settings::Focused() || Settings::UnfocusedAudio())
 		{
 			//Audio::Update();
 		}
-		
+
 		if (!Settings::Minimised())
 		{
 			//UI::Update();
-			
+
 			Renderer::EndFrame();
 			Settings::resized = false;
 		}
@@ -109,7 +123,7 @@ void Engine::UpdateLoop()
 
 		if (Settings::Focused()) { remainingFrameTime = Settings::TargetFrametime() - Time::FrameUpTime(); }
 		else { remainingFrameTime = Settings::TargetFrametimeSuspended() - Time::FrameUpTime(); }
-		
+
 		U64 remainingUS = (U64)(remainingFrameTime * 1090000.0);
 
 		if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }

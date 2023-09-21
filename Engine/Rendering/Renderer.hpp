@@ -30,7 +30,7 @@ private:
 	static bool							CreateResources();
 
 	static bool							BeginFrame();
-	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount);
+	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, U32 offset);
 	static void							EndFrame();
 	static void							Resize();
 
@@ -50,14 +50,14 @@ private:
 	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
 	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
 	static U64							UploadToBuffer(Buffer& buffer, const void* data, U64 size);
-	static void							UploadDrawCall(const DrawCall& drawCall);
+	static void							UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 offset = U32_MAX);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
 	static void							DestroyBuffer(Buffer& buffer);
 
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
-	static void							PushDescriptors(Shader* shader, const Descriptor* descriptors);
+	static void							PushDescriptors(Shader* shader);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
@@ -120,7 +120,9 @@ private:
 	static Buffer								indexBuffer;
 	static Buffer								materialBuffer;
 	static Buffer								drawCommandsBuffer;
-	static U32									drawCount;
+	static U32									meshDrawCount;
+	static U32									uiDrawCount;
+	static U32									uiInstanceOffset;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;
@@ -139,11 +141,11 @@ private:
 	friend class Engine;
 	friend class Profiler;
 	friend class Resources;
+	friend class UI;
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 	friend struct Swapchain;
 	friend struct Renderpass;
 	friend struct Shader;
 	friend struct Pipeline;
-	friend struct Scene; //TODO: temp
 };

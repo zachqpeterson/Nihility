@@ -285,289 +285,6 @@ enum KTXCompression
 	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_12x12 = 0x93DD
 };
 
-struct Sampler
-{
-	void Destroy() { name.Destroy(); }
-
-	String					name{  };
-	HashHandle				handle{ U64_MAX };
-
-	VkFilter				minFilter{ VK_FILTER_NEAREST };
-	VkFilter				magFilter{ VK_FILTER_NEAREST };
-	VkSamplerMipmapMode		mipFilter{ VK_SAMPLER_MIPMAP_MODE_NEAREST };
-
-	VkSamplerAddressMode	addressModeU{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
-	VkSamplerAddressMode	addressModeV{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
-	VkSamplerAddressMode	addressModeW{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
-
-	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
-
-	VkSampler				sampler{ nullptr };
-};
-
-struct SamplerInfo
-{
-	void Destroy() { name.Destroy(); }
-
-	SamplerInfo& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
-	SamplerInfo& SetAddressModeU(VkSamplerAddressMode u);
-	SamplerInfo& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
-	SamplerInfo& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
-	SamplerInfo& SetName(const String& name);
-
-	VkFilter				minFilter{ VK_FILTER_NEAREST };
-	VkFilter				magFilter{ VK_FILTER_NEAREST };
-	VkSamplerMipmapMode		mipFilter{ VK_SAMPLER_MIPMAP_MODE_NEAREST };
-
-	VkSamplerAddressMode	addressModeU{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
-	VkSamplerAddressMode	addressModeV{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
-	VkSamplerAddressMode	addressModeW{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
-
-	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
-
-	VkSamplerReductionMode	reductionMode{ VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE };
-
-	String					name{  };
-};
-
-struct Texture
-{
-	void Destroy() { name.Destroy(); }
-
-	String				name{ };
-	HashHandle			handle{ U64_MAX };
-
-	U32					size{ 0 };
-	U16					width{ 1 };
-	U16					height{ 1 };
-	U16					depth{ 1 };
-	U32					flags{ 0 };
-
-	VkImageType			type{ VK_IMAGE_TYPE_2D };
-
-	VkImage				image{ nullptr };
-	VkImageView			imageView{ nullptr };
-	VkFormat			format{ VK_FORMAT_UNDEFINED };
-	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T*	allocation{ nullptr };
-
-	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
-	U8					mipmapCount{ 1 };
-
-	Sampler* sampler{ nullptr };
-
-	bool				swapchainImage{ false };
-	bool				mipmapsGenerated{ false };
-};
-
-struct TextureInfo
-{
-	void Destroy() { name.Destroy(); }
-
-	TextureInfo& SetSize(U16 width, U16 height, U16 depth);
-	TextureInfo& SetFormatType(VkFormat format, VkImageType type);
-	TextureInfo& SetName(const String& name);
-	TextureInfo& SetData(void* data);
-
-	void* initialData{ nullptr };
-	U16					width{ 1 };
-	U16					height{ 1 };
-	U16					depth{ 1 };
-	U32					flags{ 0 };
-	U8					mipmapCount{ 1 };
-
-	VkFormat			format{ VK_FORMAT_UNDEFINED };
-	VkImageType			type{ VK_IMAGE_TYPE_2D };
-
-	String				name{  };
-};
-
-struct Buffer
-{
-	VkBufferUsageFlags		usage{ 0 };
-	VkMemoryPropertyFlags	memoryProperties{ 0 };
-
-	VkBuffer				vkBuffer{ nullptr };
-	VkDeviceMemory			deviceMemory{ nullptr };
-	VmaAllocation_T* allocation{ nullptr };
-	U64						size{ 0 };
-	U64						allocationOffset{ 0 };
-
-	void* data{ nullptr };
-	bool mapped{ false };
-};
-
-struct Renderpass
-{
-	void Destroy() { name.Destroy(); }
-
-	void Resize();
-
-	String				name{  };
-	HashHandle			handle;
-
-	VkRenderPass		renderpass{ nullptr };
-	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
-	bool				tiedToFrame{ false };
-
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* outputDepth{ nullptr };
-	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
-	U8					clearCount{ 0 };
-	Viewport			viewport{};
-
-	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-
-	U16					width{ 0 };
-	U16					height{ 0 };
-	U8					renderTargetCount{ 0 };
-
-	U32					lastResize{ 0 };
-};
-
-struct RenderpassInfo
-{
-	void Destroy() { name.Destroy(); }
-
-	RenderpassInfo& Reset();
-	RenderpassInfo& AddRenderTarget(Texture* texture);
-	RenderpassInfo& SetDepthStencilTexture(Texture* texture);
-	RenderpassInfo& SetName(const String& name);
-	RenderpassInfo& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
-	RenderpassInfo& AddClearColor(const Vector4& color);
-	RenderpassInfo& AddClearDepth(F32 depth);
-
-	U16					width{ 0 };
-	U16					height{ 0 };
-	U8					renderTargetCount{ 0 };
-
-	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
-	U8					clearCount{ 0 };
-
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* depthStencilTexture{ nullptr };
-
-	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
-
-	String				name{  };
-};
-
-struct CommandBuffer;
-struct Mesh;
-struct Pipeline;
-
-struct PostProcessData
-{
-	F32 contrast = 1.0f;
-	F32 brightness = 0.0f;
-	F32 saturation = 1.0f;
-	F32 gammaCorrection = 1.0f;
-	Vector4 directionalLight;
-	Vector4 directionalLightColor;
-	Vector4 ambientLight;
-	F32		lightIntensity;
-	U32		skyboxIndex{ U16_MAX };
-};
-
-struct GlobalData
-{
-	Matrix4 vp;
-	Vector4 eye;
-};
-
-struct Vertex
-{
-	Vector3 position;
-	Vector3 normal;
-	Vector3 tangent;
-	Vector3 bitangent;
-	Vector2 texcoord;
-};
-
-struct Material
-{
-	U32			diffuseTextureIndex{ U16_MAX };
-	U32			metalRoughOcclTextureIndex{ U16_MAX };
-	U32			normalTextureIndex{ U16_MAX };
-	U32			emissivityTextureIndex{ U16_MAX };
-
-	Vector4		baseColorFactor{ Vector4::One };
-	Vector4		metalRoughFactor{ Vector4::One };
-	Vector4		emissiveFactor{ Vector4::Zero };
-
-	F32			alphaCutoff{ 0.0f };
-	U32			flags{ MATERIAL_FLAG_NONE };
-
-	U32			unused[2];
-};
-
-struct MeshInstance
-{
-	U32 materialIndex;
-	Matrix4 model{ };
-};
-
-struct DrawCall
-{
-	U32 indexCount;
-	U32 indexOffset;
-	U32 vertexOffset;
-
-	Vector<MeshInstance> instances;
-};
-
-struct Model
-{
-	void Destroy() { name.Destroy(); meshes.Destroy(); }
-
-	String		name{  };
-	HashHandle	handle;
-
-	Vector<DrawCall> meshes;
-};
-
-struct Skybox
-{
-	void Destroy() { name.Destroy(); }
-
-	String name{  };
-	HashHandle	handle;
-
-	Buffer* buffer{ nullptr };
-
-	Texture* texture{ nullptr };
-};
-
-struct NH_API Transform
-{
-	Vector3 position;
-	Vector3 scale;
-	Quaternion3 rotation;
-
-	void CalculateMatrix(Matrix4& matrix)
-	{
-		matrix.Set(position, rotation, scale);
-	}
-};
-
-struct ResourceUpdate
-{
-	ResourceUpdateType	type;
-	HashHandle			handle;
-	U32					currentFrame;
-};
-
-struct DescriptorSetUpdate
-{
-	DescriptorSet* descriptorSet;
-	U32				frameIssued{ 0 };
-};
-
 enum KTXFormatType
 {
 	KTX_FORMAT_TYPE_NONE = 0x00000000,
@@ -633,6 +350,285 @@ struct KTXInfo
 };
 
 #pragma pack(pop)
+
+struct Sampler
+{
+	void Destroy() { name.Destroy(); }
+
+	String					name{};
+	HashHandle				handle{ U64_MAX };
+
+	VkFilter				minFilter{ VK_FILTER_NEAREST };
+	VkFilter				magFilter{ VK_FILTER_NEAREST };
+	VkSamplerMipmapMode		mipFilter{ VK_SAMPLER_MIPMAP_MODE_NEAREST };
+
+	VkSamplerAddressMode	addressModeU{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeV{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeW{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+
+	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
+
+	VkSampler				sampler{ nullptr };
+};
+
+struct SamplerInfo
+{
+	void Destroy() { name.Destroy(); }
+
+	SamplerInfo& SetMinMagMip(VkFilter min, VkFilter mag, VkSamplerMipmapMode mip);
+	SamplerInfo& SetAddressModeU(VkSamplerAddressMode u);
+	SamplerInfo& SetAddressModeUV(VkSamplerAddressMode u, VkSamplerAddressMode v);
+	SamplerInfo& SetAddressModeUVW(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w);
+	SamplerInfo& SetName(const String& name);
+
+	VkFilter				minFilter{ VK_FILTER_NEAREST };
+	VkFilter				magFilter{ VK_FILTER_NEAREST };
+	VkSamplerMipmapMode		mipFilter{ VK_SAMPLER_MIPMAP_MODE_NEAREST };
+
+	VkSamplerAddressMode	addressModeU{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeV{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+	VkSamplerAddressMode	addressModeW{ VK_SAMPLER_ADDRESS_MODE_REPEAT };
+
+	VkBorderColor			border{ VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
+
+	VkSamplerReductionMode	reductionMode{ VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE };
+
+	String					name{};
+};
+
+struct Texture
+{
+	void Destroy() { name.Destroy(); }
+
+	String				name{ };
+	HashHandle			handle{ U64_MAX };
+
+	U32					size{ 0 };
+	U16					width{ 1 };
+	U16					height{ 1 };
+	U16					depth{ 1 };
+	U32					flags{ 0 };
+
+	VkImageType			type{ VK_IMAGE_TYPE_2D };
+
+	VkImage				image{ nullptr };
+	VkImageView			imageView{ nullptr };
+	VkFormat			format{ VK_FORMAT_UNDEFINED };
+	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
+	VmaAllocation_T*	allocation{ nullptr };
+
+	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
+	U8					mipmapCount{ 1 };
+
+	Sampler* sampler{ nullptr };
+
+	bool				swapchainImage{ false };
+	bool				mipmapsGenerated{ false };
+};
+
+struct TextureInfo
+{
+	void Destroy() { name.Destroy(); }
+
+	TextureInfo& SetSize(U16 width, U16 height, U16 depth);
+	TextureInfo& SetFormatType(VkFormat format, VkImageType type);
+	TextureInfo& SetName(const String& name);
+	TextureInfo& SetData(void* data);
+
+	void* initialData{ nullptr };
+	U16					width{ 1 };
+	U16					height{ 1 };
+	U16					depth{ 1 };
+	U32					flags{ 0 };
+	U8					mipmapCount{ 1 };
+
+	VkFormat			format{ VK_FORMAT_UNDEFINED };
+	VkImageType			type{ VK_IMAGE_TYPE_2D };
+
+	String				name{};
+};
+
+struct Buffer
+{
+	VkBufferUsageFlags		usage{ 0 };
+	VkMemoryPropertyFlags	memoryProperties{ 0 };
+
+	VkBuffer				vkBuffer{ nullptr };
+	VkDeviceMemory			deviceMemory{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
+	U64						size{ 0 };
+	U64						allocationOffset{ 0 };
+
+	void* data{ nullptr };
+	bool mapped{ false };
+};
+
+struct Renderpass
+{
+	void Destroy() { name.Destroy(); }
+
+	void Resize();
+
+	String				name{};
+	HashHandle			handle;
+
+	VkRenderPass		renderpass{ nullptr };
+	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
+	bool				tiedToFrame{ false };
+
+	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* outputDepth{ nullptr };
+	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
+	U8					clearCount{ 0 };
+	Viewport			viewport{};
+
+	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+
+	U16					width{ 0 };
+	U16					height{ 0 };
+	U8					renderTargetCount{ 0 };
+
+	U32					lastResize{ 0 };
+};
+
+struct RenderpassInfo
+{
+	void Destroy() { name.Destroy(); }
+
+	RenderpassInfo& Reset();
+	RenderpassInfo& AddRenderTarget(Texture* texture);
+	RenderpassInfo& SetDepthStencilTexture(Texture* texture);
+	RenderpassInfo& SetName(const String& name);
+	RenderpassInfo& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
+	RenderpassInfo& AddClearColor(const Vector4& color);
+	RenderpassInfo& AddClearDepth(F32 depth);
+
+	U16					width{ 0 };
+	U16					height{ 0 };
+	U8					renderTargetCount{ 0 };
+
+	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
+	U8					clearCount{ 0 };
+
+	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* depthStencilTexture{ nullptr };
+
+	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
+
+	String				name{};
+};
+
+struct PostProcessData
+{
+	F32 contrast = 1.0f;
+	F32 brightness = 0.0f;
+	F32 saturation = 1.0f;
+	F32 gammaCorrection = 1.0f;
+	Vector4 directionalLight;
+	Vector4 directionalLightColor;
+	Vector4 ambientLight;
+	F32		lightIntensity;
+	U32		skyboxIndex{ U16_MAX };
+};
+
+struct GlobalData
+{
+	Matrix4 vp;
+	Vector4 eye;
+};
+
+struct Vertex
+{
+	Vector3 position;
+	Vector3 normal;
+	Vector3 tangent;
+	Vector3 bitangent;
+	Vector2 texcoord;
+};
+
+struct Material
+{
+	U32			diffuseTextureIndex{ U16_MAX };
+	U32			metalRoughOcclTextureIndex{ U16_MAX };
+	U32			normalTextureIndex{ U16_MAX };
+	U32			emissivityTextureIndex{ U16_MAX };
+
+	Vector4		baseColorFactor{ Vector4::One };
+	Vector4		metalRoughFactor{ Vector4::One };
+	Vector4		emissiveFactor{ Vector4::Zero };
+
+	F32			alphaCutoff{ 0.0f };
+	U32			flags{ MATERIAL_FLAG_NONE };
+
+	U32			unused[2];
+};
+
+struct MeshInstance
+{
+	U32 materialIndex;
+	Matrix4 model{ };
+};
+
+struct DrawCall
+{
+	U32 indexCount;
+	U32 indexOffset;
+	U32 vertexOffset;
+
+	Vector<MeshInstance> instances;
+};
+
+struct Model
+{
+	void Destroy() { name.Destroy(); meshes.Destroy(); }
+
+	String		name{};
+	HashHandle	handle;
+
+	Vector<DrawCall> meshes;
+};
+
+struct Skybox
+{
+	void Destroy() { name.Destroy(); }
+
+	String name{};
+	HashHandle	handle;
+
+	Buffer* buffer{ nullptr };
+
+	Texture* texture{ nullptr };
+};
+
+struct NH_API Transform
+{
+	Vector3 position;
+	Vector3 scale;
+	Quaternion3 rotation;
+
+	void CalculateMatrix(Matrix4& matrix)
+	{
+		matrix.Set(position, rotation, scale);
+	}
+};
+
+struct ResourceUpdate
+{
+	ResourceUpdateType	type;
+	HashHandle			handle;
+	U32					currentFrame;
+};
+
+struct DescriptorSetUpdate
+{
+	DescriptorSet* descriptorSet;
+	U32				frameIssued{ 0 };
+};
 
 struct MeshUpload
 {
