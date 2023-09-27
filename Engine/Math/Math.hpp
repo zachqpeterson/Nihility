@@ -30,6 +30,7 @@ enum ProjectionType
 	PROJECTION_TYPE_ORTHOGRAPHIC
 };
 
+//TODO: Check if these function are available at compile-time
 class NH_API Math
 {
 public:
@@ -67,6 +68,7 @@ public:
 	template <typename Type> static Type Max(const Type& a, const Type& b) { return a < b ? b : a; }
 	template <typename Type> static Type Clamp(const Type& n, const Type& min, const Type& max) { return n < min ? min : n > max ? max : n; }
 	template <typename Type> static Type Sign(const Type& n) { return (Type)((n > 0) - (n < 0)); }
+	template <typename Type> static Type NonZeroSign(const Type& n) { return (Type)(2 * (n > 0) - 1); }
 	template <FloatingPoint Type> static I64 Floor(const Type& n) { return n >= 0.0 ? (I64)n : (I64)n - 1; }
 	template <FloatingPoint Type> static Type FloorF(const Type& n) { return n >= 0.0 ? n : n - 1; }
 	template <FloatingPoint Type> static I64 Ceiling(const Type& n) { return (n - (I64)n) < 0.0 ? (I64)n : (I64)n + 1; }
@@ -79,11 +81,11 @@ public:
 
 	template <FloatingPoint Type> static bool Zero(Type f)
 	{
-		if constexpr (IsSame<Type, F32>) { return f < FLOAT_EPSILON&& f > -FLOAT_EPSILON; }
-		else { return f < DOUBLE_EPSILON&& f > -DOUBLE_EPSILON; }
+		if constexpr (IsSame<Type, F32>) { return f < F32_EPSILON&& f > -F32_EPSILON; }
+		else { return f < F64_EPSILON&& f > -F64_EPSILON; }
 	}
-	template <FloatingPoint Type> static bool NaN(Type f) { return isnan(f); }
-	template <FloatingPoint Type> static bool Inf(Type f) { return isinf(f); }
+	template <FloatingPoint Type> static bool NaN(Type f) { return __builtin_isnan(f); }
+	template <FloatingPoint Type> static bool Inf(Type f) { return __builtin_isinf(f); }
 
 	//INTERPOLATION
 	template <FloatingPoint Type> static Type Lerp(Type a, Type b, Type t) { return a + (b - a) * t; }
@@ -391,6 +393,10 @@ struct NH_API Vector2Int
 	Vector2Int operator*(const Vector2Int& v) const;
 	Vector2Int operator/(const Vector2Int& v) const;
 	Vector2Int operator%(const Vector2Int& v) const;
+	Vector2Int operator+(const Vector2& v) const;
+	Vector2Int operator-(const Vector2& v) const;
+	Vector2Int operator*(const Vector2& v) const;
+	Vector2Int operator/(const Vector2& v) const;
 
 	bool operator==(const Vector2Int& v) const;
 	bool operator!=(const Vector2Int& v) const;
@@ -416,6 +422,8 @@ struct NH_API Vector2Int
 	const I32& operator[] (U64 i) const;
 	I32* Data();
 	const I32* Data() const;
+
+	operator Vector2() const;
 
 	operator String() const;
 	operator String16() const;
@@ -525,6 +533,10 @@ struct NH_API Vector4Int
 	Vector4Int& operator*=(I32 i);
 	Vector4Int& operator/=(I32 i);
 	Vector4Int& operator%=(I32 i);
+	Vector4Int& operator+=(F32 f);
+	Vector4Int& operator-=(F32 f);
+	Vector4Int& operator*=(F32 f);
+	Vector4Int& operator/=(F32 f);
 	Vector4Int& operator+=(const Vector4Int& v);
 	Vector4Int& operator-=(const Vector4Int& v);
 	Vector4Int& operator*=(const Vector4Int& v);
@@ -536,6 +548,10 @@ struct NH_API Vector4Int
 	Vector4Int operator*(I32 i) const;
 	Vector4Int operator/(I32 i) const;
 	Vector4Int operator%(I32 i) const;
+	Vector4Int operator+(F32 f) const;
+	Vector4Int operator-(F32 f) const;
+	Vector4Int operator*(F32 f) const;
+	Vector4Int operator/(F32 f) const;
 	Vector4Int operator+(const Vector4Int& v) const;
 	Vector4Int operator-(const Vector4Int& v) const;
 	Vector4Int operator*(const Vector4Int& v) const;

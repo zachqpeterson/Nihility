@@ -124,12 +124,12 @@ void Camera::SetRotation(const Quaternion3& q)
 {
 	F32 v = q.x * q.y + q.z * q.w;
 
-	if (Math::Abs(v - 0.5f) < FLOAT_EPSILON)
+	if (Math::Abs(v - 0.5f) < F32_EPSILON)
 	{
 		targetPitch = HALF_PI_F * RAD_TO_DEG_F;
 		targetYaw = 2.0f * Math::Atan2(q.x, q.w) * RAD_TO_DEG_F;
 	}
-	else if (Math::Abs(v + 0.5f) < FLOAT_EPSILON)
+	else if (Math::Abs(v + 0.5f) < F32_EPSILON)
 	{
 		targetPitch = -HALF_PI_F * RAD_TO_DEG_F;
 		targetYaw = -2.0f * Math::Atan2(q.x, q.w) * RAD_TO_DEG_F;

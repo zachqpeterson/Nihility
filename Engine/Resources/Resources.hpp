@@ -11,6 +11,7 @@
 #include "Math\Math.hpp"
 #include "Rendering\Pipeline.hpp"
 
+struct Font;
 struct aiTexture;
 struct aiMaterial;
 struct aiMesh;
@@ -28,6 +29,7 @@ public:
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
 	static Scene* CreateScene(const String& name);
 
+	static Font* LoadFont(const String& path);
 	static Texture* LoadTexture(const String& path);
 	static Model* LoadModel(const String& name);
 	static Skybox* LoadSkybox(const String& name);
@@ -97,13 +99,11 @@ private:
 	static Sampler*								dummySampler;
 	static Texture*								dummyTexture;
 	static Sampler*								defaultSampler;
-	static Shader*								meshProgram;
-	static Pipeline*							renderPipeline;
-	static Shader*								uiProgram;
-	static Pipeline*							uiPipeline;
+	static Pipeline*							meshPipeline;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
+	static Hashmap<String, Font>				fonts;
 	static Hashmap<String, Renderpass>			renderpasses;
 	static Hashmap<String, Shader>				shaders;
 	static Hashmap<String, Pipeline>			pipelines;
@@ -123,6 +123,7 @@ private:
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;
+	friend class UI;
 	friend class Engine;
 	friend struct CommandBuffer;
 	friend struct Shader;

@@ -436,10 +436,19 @@ private:
 		if constexpr (IsSame<Base, bool>) { return 1; }
 	}
 
+	static constexpr Base GetInfinity()
+	{
+		if constexpr (IsSame<Base, float>) { return __builtin_huge_valf(); }
+		if constexpr (IsSame<Base, double>) { return __builtin_huge_val(); }
+
+		return 0;
+	}
+
 public:
 	static constexpr Base MaxValue = GetMaxValue();
 	static constexpr Base MinValue = GetMinValue();
 	static constexpr U64 NumericalBits = GetNumericalBits();
+	static constexpr Base Infinity = GetInfinity();
 };
 
 namespace TypeTraits

@@ -20,9 +20,9 @@ struct CommandBuffer
 	void EndRenderpass();
 
 	void BindPipeline(Pipeline* pipeline);
-	void BindIndexBuffer(const Buffer& buffer);
-	void BindVertexBuffer(const Buffer& buffer);
-	void BindInstanceBuffer(const Buffer& buffer);
+	void BindIndexBuffer(Shader* shader, const Buffer& buffer);
+	void BindVertexBuffer(Shader* shader, const Buffer& buffer);
+	void BindInstanceBuffer(Shader* shader, const Buffer& buffer);
 	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, const VkDescriptorSet* sets);
 
 	void PushDescriptors();

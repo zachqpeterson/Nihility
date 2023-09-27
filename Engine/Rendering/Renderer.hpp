@@ -30,7 +30,7 @@ private:
 	static bool							CreateResources();
 
 	static bool							BeginFrame();
-	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, U32 offset);
+	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline);
 	static void							EndFrame();
 	static void							Resize();
 
@@ -50,10 +50,14 @@ private:
 	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
 	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
 	static U64							UploadToBuffer(Buffer& buffer, const void* data, U64 size);
-	static void							UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 offset = U32_MAX);
+	static U32							UploadIndices(Pipeline* pipeline, const void* data, U64 size);
+	static U32							UploadVertices(Pipeline* pipeline, const void* data, U64 size);
+	static U32							UploadInstances(Pipeline* pipeline, const void* data, U64 size);
+	static void							UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
 	static void							DestroyBuffer(Buffer& buffer);
+	static U32							GetShaderUploadOffset();
 
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
@@ -120,9 +124,7 @@ private:
 	static Buffer								indexBuffer;
 	static Buffer								materialBuffer;
 	static Buffer								drawCommandsBuffer;
-	static U32									meshDrawCount;
-	static U32									uiDrawCount;
-	static U32									uiInstanceOffset;
+	static U32									shaderUploadOffset;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;

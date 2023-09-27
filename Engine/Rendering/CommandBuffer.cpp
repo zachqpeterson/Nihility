@@ -83,20 +83,20 @@ void CommandBuffer::BindPipeline(Pipeline* pipeline)
 	vkCmdBindPipeline(commandBuffer, pipeline->shader->bindPoint, pipeline->pipeline);
 }
 
-void CommandBuffer::BindIndexBuffer(const Buffer& buffer)
+void CommandBuffer::BindIndexBuffer(Shader* shader, const Buffer& buffer)
 {
-	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, shader->uploadOffset, VK_INDEX_TYPE_UINT32);
 }
 
-void CommandBuffer::BindVertexBuffer(const Buffer& buffer)
+void CommandBuffer::BindVertexBuffer(Shader* shader, const Buffer& buffer)
 {
-	VkDeviceSize offset = 0;
+	VkDeviceSize offset = shader->uploadOffset;
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer.vkBuffer, &offset);
 }
 
-void CommandBuffer::BindInstanceBuffer(const Buffer& buffer)
+void CommandBuffer::BindInstanceBuffer(Shader* shader, const Buffer& buffer)
 {
-	VkDeviceSize offset = 0;
+	VkDeviceSize offset = shader->uploadOffset;
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
 }
 

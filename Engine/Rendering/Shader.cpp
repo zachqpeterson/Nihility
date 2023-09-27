@@ -190,6 +190,8 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConsta
 
 	if (setLayoutInfo.bindingCount) { Renderer::CreateDescriptorUpdateTemplate(setLayouts[0], this); }
 
+	uploadOffset = Renderer::GetShaderUploadOffset();
+
 	return true;
 }
 
@@ -350,7 +352,7 @@ bool Shader::ParseConfig(const String& data, I64& index)
 		else if (data.CompareN("instanceOffset", index + 1))
 		{
 			index = data.IndexOf('=', index + 1);
-			instanceOffset = data.ToType<U8>(index + 1);
+			instanceLocation = data.ToType<U8>(index + 1);
 		}
 
 		index = data.IndexOf('\n', index + 1);
@@ -801,7 +803,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 						case 2: {
 							VkVertexInputAttributeDescription attribute{};
 							attribute.location = id.location;
-							attribute.binding = id.location >= instanceOffset;
+							attribute.binding = id.location >= instanceLocation;
 							attribute.format = GetFormat(ids, component);
 							attribute.offset = 0;
 
@@ -815,7 +817,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 						case 3: {
 							VkVertexInputAttributeDescription attribute{};
 							attribute.location = id.location;
-							attribute.binding = id.location >= instanceOffset;
+							attribute.binding = id.location >= instanceLocation;
 							attribute.format = GetFormat(ids, component);
 							attribute.offset = 0;
 
@@ -832,7 +834,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 						case 4: {
 							VkVertexInputAttributeDescription attribute{};
 							attribute.location = id.location;
-							attribute.binding = id.location >= instanceOffset;
+							attribute.binding = id.location >= instanceLocation;
 							attribute.format = GetFormat(ids, component);
 							attribute.offset = 0;
 
@@ -855,7 +857,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 					{
 						VkVertexInputAttributeDescription attribute{};
 						attribute.location = id.location;
-						attribute.binding = id.location >= instanceOffset;
+						attribute.binding = id.location >= instanceLocation;
 						attribute.format = GetFormat(ids, type);
 						attribute.offset = 0;
 
@@ -902,21 +904,21 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 
 	if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && vertexAttributeCount)
 	{
-		if (instanceOffset != U8_MAX)
+		if (instanceLocation != U8_MAX)
 		{
-			for (U32 i = 1; i < instanceOffset; ++i)
+			for (U32 i = 1; i < instanceLocation; ++i)
 			{
 				vertexAttributes[i].offset = vertexAttributes[i - 1].offset + FormatStride(vertexAttributes[i - 1].format);
 			}
 
 			VkVertexInputBindingDescription binding{};
 			binding.binding = 0;
-			binding.stride = vertexAttributes[instanceOffset - 1].offset + FormatStride(vertexAttributes[instanceOffset - 1].format);
+			binding.stride = vertexAttributes[instanceLocation - 1].offset + FormatStride(vertexAttributes[instanceLocation - 1].format);
 			binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 			vertexStreams[vertexStreamCount++] = binding;
 
-			for (U32 i = instanceOffset + 1; i < vertexAttributeCount; ++i)
+			for (U32 i = instanceLocation + 1; i < vertexAttributeCount; ++i)
 			{
 				vertexAttributes[i].offset = vertexAttributes[i - 1].offset + FormatStride(vertexAttributes[i - 1].format);
 			}

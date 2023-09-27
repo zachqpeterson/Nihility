@@ -41,9 +41,6 @@
     <Filter Include="Source Files\Entities">
       <UniqueIdentifier>{daf9083b-3e48-4820-ae94-64d4c479ff6e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\External\zlib">
-      <UniqueIdentifier>{026b70fd-e1fa-499f-8d71-ff8f3ef237dd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\External\LunarG">
       <UniqueIdentifier>{a4c7f3ee-b177-4662-adb2-7cfcf01fe006}</UniqueIdentifier>
     </Filter>
@@ -177,33 +174,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Containers\Pool.hpp">
       <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\zconf.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\zlib.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\inffast.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\inflate.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\inftrees.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\zutil.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\gzguts.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\inffixed.h">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\External\zlib\crc32.h">
-      <Filter>Source Files\External\zlib</Filter>
     </ClInclude>
     <ClInclude Include="Engine\External\LunarG\glslang\build_info.h">
       <Filter>Source Files\External\LunarG\glslang</Filter>
@@ -475,6 +445,12 @@
     <ClInclude Include="Engine\Rendering\UI.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\External\stb_truetype.h">
+      <Filter>Source Files\External</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\Font.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -542,24 +518,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Pipeline.cpp">
       <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\External\zlib\inflate.c">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\External\zlib\inftrees.c">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\External\zlib\zutil.c">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\External\zlib\inffast.c">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\External\zlib\adler32.c">
-      <Filter>Source Files\External\zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\External\zlib\crc32.c">
-      <Filter>Source Files\External\zlib</Filter>
     </ClCompile>
     <ClCompile Include="Engine\External\LunarG\glslang\GenericCodeGen\CodeGen.cpp">
       <Filter>Source Files\External\LunarG\glslang</Filter>
@@ -707,6 +665,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Rendering\UI.cpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Font.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

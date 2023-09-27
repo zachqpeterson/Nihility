@@ -1,7 +1,8 @@
 #pragma once
 
 #include "RenderingDefines.hpp"
-#include "Resources/ResourceDefines.hpp"
+#include "Resources\ResourceDefines.hpp"
+#include "Containers\String.hpp"
 
 struct Scene;
 
@@ -149,6 +150,8 @@ struct UIElementInfo
 	UIElement* parent{ nullptr };
 };
 
+struct Pipeline;
+
 class NH_API UI
 {
 public:
@@ -165,7 +168,7 @@ public:
 	static UIElement* CreateColorPicker(const UIElementInfo& info);
 	static UIElement* CreateScrollWindow(const UIElementInfo& info);
 	static UIElement* CreateDropdown(const UIElementInfo& info);
-	static UIElement* CreateText(const UIElementInfo& info);
+	static UIElement* CreateText(const UIElementInfo& info, const String& string, F32 scale);
 	static UIElement* CreateTextBox(const UIElementInfo& info);
 
 	//TODO: Edit elements
@@ -174,11 +177,13 @@ private:
 	static UIElement* SetupElement(const UIElementInfo& info);
 
 	static Vector<UIElement> elements;
-	static U32 uploadOffset;
-	static U32 vertexOffset;
-	static U32 instanceOffset;
-	static U32 drawOffset;
-	static U32 indexCount;
+
+	static Pipeline* uiPipeline;
+	static Pipeline* textPipeline;
+
+	static U32 textVertexOffset;
+	static F32 textWidth;
+	static F32 textHeight;
 
 	STATIC_CLASS(UI);
 	friend class Renderer;

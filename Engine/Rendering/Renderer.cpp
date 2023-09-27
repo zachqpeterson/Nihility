@@ -120,9 +120,7 @@ Buffer								Renderer::instanceBuffer;
 Buffer								Renderer::indexBuffer;
 Buffer								Renderer::materialBuffer;
 Buffer								Renderer::drawCommandsBuffer;
-U32									Renderer::meshDrawCount{ 0 };
-U32									Renderer::uiDrawCount{ 0 };
-U32									Renderer::uiInstanceOffset{ 0 };
+U32									Renderer::shaderUploadOffset;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -479,7 +477,7 @@ bool Renderer::CreateResources()
 	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	uiInstanceOffset = MEGABYTES(64);
+	shaderUploadOffset = 0;
 
 	Resources::CreateDefaults();
 
@@ -513,9 +511,9 @@ bool Renderer::BeginFrame()
 	return true;
 }
 
-void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 drawCount, U32 offset)
+void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
 {
-	if (drawCount)
+	if (pipeline->drawCount)
 	{
 		Camera& camera = currentScene->camera;
 
@@ -545,11 +543,11 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline, U32 draw
 			PushDescriptors(pipeline->shader);
 			if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
 
-			commandBuffer->BindIndexBuffer(indexBuffer);
-			if (pipeline->shader->instanceOffset) { commandBuffer->BindVertexBuffer(vertexBuffer); }
-			if (pipeline->shader->instanceOffset != U8_MAX) { commandBuffer->BindInstanceBuffer(instanceBuffer); }
+			commandBuffer->BindIndexBuffer(pipeline->shader, indexBuffer);
+			if (pipeline->shader->instanceOffset) { commandBuffer->BindVertexBuffer(pipeline->shader, vertexBuffer); }
+			if (pipeline->shader->instanceOffset != U8_MAX) { commandBuffer->BindInstanceBuffer(pipeline->shader, instanceBuffer); }
 
-			commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, drawCount, offset);
+			commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, pipeline->drawCount, pipeline->shader->uploadOffset);
 		}
 	}
 }
@@ -570,9 +568,9 @@ void Renderer::EndFrame()
 
 	Resources::Update();
 
-	commandBuffer->BeginRenderpass(Resources::renderPipeline->renderpass);
+	commandBuffer->BeginRenderpass(Resources::meshPipeline->renderpass);
 
-	Render(commandBuffer, Resources::renderPipeline, meshDrawCount, 0);
+	Render(commandBuffer, Resources::meshPipeline);
 
 	//Post Processing
 	//TODO: Skybox
@@ -587,12 +585,13 @@ void Renderer::EndFrame()
 	//TODO: Tonemapping
 	//TODO: Gamma
 
-	Render(commandBuffer, Resources::uiPipeline, uiDrawCount, UI::uploadOffset);
+	Render(commandBuffer, UI::uiPipeline);
+	Render(commandBuffer, UI::textPipeline);
 
 	commandBuffer->EndRenderpass();
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(Resources::renderPipeline->renderpass->outputTextures[0]->image,
+		ImageBarrier(Resources::meshPipeline->renderpass->outputTextures[0]->image,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
 		ImageBarrier(swapchain.renderTargets[frameIndex]->image, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -608,7 +607,7 @@ void Renderer::EndFrame()
 	copyRegion.dstSubresource.layerCount = 1;
 	copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1 };
 
-	commandBuffer->ImageToImage(Resources::renderPipeline->renderpass->outputTextures[0], swapchain.renderTargets[frameIndex], 1, &copyRegion);
+	commandBuffer->ImageToImage(Resources::meshPipeline->renderpass->outputTextures[0], swapchain.renderTargets[frameIndex], 1, &copyRegion);
 
 	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -818,7 +817,37 @@ U64 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U64 size)
 	return offset;
 }
 
-void Renderer::UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 offset)
+U32 Renderer::UploadIndices(Pipeline* pipeline, const void* data, U64 size)
+{
+	FillBuffer(indexBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->indexOffset);
+
+	U32 offset = pipeline->shader->indexOffset;
+	pipeline->shader->indexOffset += (U32)size;
+
+	return offset;
+}
+
+U32 Renderer::UploadVertices(Pipeline* pipeline, const void* data, U64 size)
+{
+	FillBuffer(vertexBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->vertexOffset);
+
+	U32 offset = pipeline->shader->vertexOffset;
+	pipeline->shader->vertexOffset += (U32)size;
+
+	return offset;
+}
+
+U32 Renderer::UploadInstances(Pipeline* pipeline, const void* data, U64 size)
+{
+	FillBuffer(instanceBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->instanceOffset);
+
+	U32 offset = pipeline->shader->instanceOffset;
+	pipeline->shader->instanceOffset += (U32)size;
+
+	return offset;
+}
+
+void Renderer::UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset)
 {
 	VkDrawIndexedIndirectCommand drawCommand{};
 	drawCommand.indexCount = indexCount;
@@ -827,8 +856,9 @@ void Renderer::UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset,
 	drawCommand.vertexOffset = vertexOffset;
 	drawCommand.firstInstance = instanceOffset;
 
-	if (offset == U32_MAX) { Renderer::UploadToBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand)); }
-	else { FillBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand), offset); }
+	FillBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand), pipeline->shader->uploadOffset + pipeline->drawCount * sizeof(VkDrawIndexedIndirectCommand));
+
+	++pipeline->drawCount;
 }
 
 void Renderer::MapBuffer(Buffer& buffer)
@@ -863,6 +893,13 @@ void Renderer::DestroyBuffer(Buffer& buffer)
 
 		vmaDestroyBuffer(allocator, buffer.vkBuffer, buffer.allocation);
 	}
+}
+
+U32 Renderer::GetShaderUploadOffset()
+{
+	U32 offset = shaderUploadOffset;
+	shaderUploadOffset += MEGABYTES(4);
+	return offset;
 }
 
 bool Renderer::CreateSampler(Sampler* sampler)

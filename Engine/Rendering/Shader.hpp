@@ -81,7 +81,12 @@ struct Shader
 	U32									outputCount{ 0 };
 
 	bool								useBindless{ false };
-	U8									instanceOffset{ U8_MAX };
+	U8									instanceLocation{ U8_MAX };
+
+	U32									uploadOffset{ 0 };
+	U32									indexOffset{ 0 };
+	U32									vertexOffset{ 0 };
+	U32									instanceOffset{ 0 };
 
 private:
 	bool ParseConfig(const String& data, I64& index);

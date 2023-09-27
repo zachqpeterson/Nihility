@@ -513,6 +513,10 @@ Vector2Int Vector2Int::operator-(const Vector2Int& v) const { return { x - v.x, 
 Vector2Int Vector2Int::operator*(const Vector2Int& v) const { return { x * v.x, y * v.y }; }
 Vector2Int Vector2Int::operator/(const Vector2Int& v) const { return { x / v.x, y / v.y }; }
 Vector2Int Vector2Int::operator%(const Vector2Int& v) const { return { x % v.x, y % v.y }; }
+Vector2Int Vector2Int::operator+(const Vector2& v) const { return { (I32)(x + v.x), (I32)(y + v.y) }; }
+Vector2Int Vector2Int::operator-(const Vector2& v) const { return { (I32)(x - v.x), (I32)(y - v.y) }; }
+Vector2Int Vector2Int::operator*(const Vector2& v) const { return { (I32)(x * v.x), (I32)(y * v.y) }; }
+Vector2Int Vector2Int::operator/(const Vector2& v) const { return { (I32)(x / v.x), (I32)(y / v.y) }; }
 
 bool Vector2Int::operator==(const Vector2Int& v) const { return !(x - v.x) && !(y - v.y); }
 bool Vector2Int::operator!=(const Vector2Int& v) const { return (x - v.x) || (y - v.y); }
@@ -565,6 +569,8 @@ const I32& Vector2Int::operator[] (U64 i) const { return (&x)[i]; }
 
 I32* Vector2Int::Data() { return &x; }
 const I32* Vector2Int::Data() const { return &x; }
+
+Vector2Int::operator Vector2() const { return { (F32)x, (F32)y }; }
 
 Vector2Int::operator String() const { return String(x, ", ", y); }
 Vector2Int::operator String16() const { return String16(x, u", ", y); }
@@ -681,6 +687,10 @@ Vector4Int& Vector4Int::operator-=(I32 i) { x -= i; y -= i; z -= i; w -= i; retu
 Vector4Int& Vector4Int::operator*=(I32 i) { x *= i; y *= i; z *= i; w *= i; return *this; }
 Vector4Int& Vector4Int::operator/=(I32 i) { x /= i; y /= i; z /= i; w /= i; return *this; }
 Vector4Int& Vector4Int::operator%=(I32 i) { x &= i; y %= i; z %= i; w %= i; return *this; }
+Vector4Int& Vector4Int::operator+=(F32 f) { x += (I32)f; y += (I32)f; z += (I32)f; w += (I32)f; return *this; }
+Vector4Int& Vector4Int::operator-=(F32 f) { x -= (I32)f; y -= (I32)f; z -= (I32)f; w -= (I32)f; return *this; }
+Vector4Int& Vector4Int::operator*=(F32 f) { x *= (I32)f; y *= (I32)f; z *= (I32)f; w *= (I32)f; return *this; }
+Vector4Int& Vector4Int::operator/=(F32 f) { x /= (I32)f; y /= (I32)f; z /= (I32)f; w /= (I32)f; return *this; }
 Vector4Int& Vector4Int::operator+=(const Vector4Int& v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
 Vector4Int& Vector4Int::operator-=(const Vector4Int& v) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
 Vector4Int& Vector4Int::operator*=(const Vector4Int& v) { x *= v.x; y *= v.y; z *= v.z; w *= v.w; return *this; }
@@ -692,6 +702,10 @@ Vector4Int Vector4Int::operator-(I32 i) const { return { x - i, y - i, z - i, w 
 Vector4Int Vector4Int::operator*(I32 i) const { return { x * i, y * i, z * i, w * i }; }
 Vector4Int Vector4Int::operator/(I32 i) const { return { x / i, y / i, z / i, w / i }; }
 Vector4Int Vector4Int::operator%(I32 i) const { return { x % i, y % i, z % i, w % i }; }
+Vector4Int Vector4Int::operator+(F32 f) const { return { (I32)(x + f), (I32)(y + f), (I32)(z + f), (I32)(w + f) }; }
+Vector4Int Vector4Int::operator-(F32 f) const { return { (I32)(x - f), (I32)(y - f), (I32)(z - f), (I32)(w - f) }; }
+Vector4Int Vector4Int::operator*(F32 f) const { return { (I32)(x * f), (I32)(y * f), (I32)(z * f), (I32)(w * f) }; }
+Vector4Int Vector4Int::operator/(F32 f) const { return { (I32)(x / f), (I32)(y / f), (I32)(z / f), (I32)(w / f) }; }
 Vector4Int Vector4Int::operator+(const Vector4Int& v) const { return { x + v.x, y + v.y, z + v.z, w + v.w }; }
 Vector4Int Vector4Int::operator-(const Vector4Int& v) const { return { x - v.x, y - v.y, z - v.z, w - v.w }; }
 Vector4Int Vector4Int::operator*(const Vector4Int& v) const { return { x * v.x, y * v.y, z * v.z, w * v.w }; }
@@ -972,50 +986,50 @@ Matrix4 Matrix4::operator-(const Matrix4& m) const { return { a - m.a, b - m.b, 
 
 Matrix4 Matrix4::operator*(const Matrix4& m) const
 {
-//#if defined NH_AVX
-//
-//#elif defined NH_SSE || defined NH_SSE2 //TODO: Failure
-//	M128 l, r0, r1, r2, r3, v0, v1, v2, v3;
-//	Vector4 f0, f1, f2, f3;
-//
-//	l = _mm_load_ps(a.Data());
-//	r0 = _mm_load_ps(m.a.Data());
-//	r1 = _mm_load_ps(m.b.Data());
-//	r2 = _mm_load_ps(m.c.Data());
-//	r3 = _mm_load_ps(m.d.Data());
-//
-//	v0 = _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(0, 0, 0, 0)), l);
-//	v1 = _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(0, 0, 0, 0)), l);
-//	v2 = _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(0, 0, 0, 0)), l);
-//	v3 = _mm_mul_ps(_mm_shuffle_ps(r0, r3, _MM_SHUFFLE(0, 0, 0, 0)), l);
-//
-//	l = _mm_load_ps(m.b.Data());
-//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(1, 1, 1, 1)), l));
-//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(1, 1, 1, 1)), l));
-//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(1, 1, 1, 1)), l));
-//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(1, 1, 1, 1)), l));
-//
-//	l = _mm_load_ps(m.c.Data());
-//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(2, 2, 2, 2)), l));
-//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 2, 2, 2)), l));
-//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(2, 2, 2, 2)), l));
-//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(2, 2, 2, 2)), l));
-//
-//	l = _mm_load_ps(m.d.Data());
-//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(3, 3, 3, 3)), l));
-//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(3, 3, 3, 3)), l));
-//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(3, 3, 3, 3)), l));
-//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(3, 3, 3, 3)), l));
-//
-//	_mm_store_ps(f0.Data(), v0);
-//	_mm_store_ps(f1.Data(), v1);
-//	_mm_store_ps(f2.Data(), v2);
-//	_mm_store_ps(f3.Data(), v3);
-//
-//	return { f0, f1, f2, f3 };
-//#elif defined NH_ARM_NEON
-//
-//#else
+	//#if defined NH_AVX
+	//
+	//#elif defined NH_SSE || defined NH_SSE2 //TODO: Failure
+	//	M128 l, r0, r1, r2, r3, v0, v1, v2, v3;
+	//	Vector4 f0, f1, f2, f3;
+	//
+	//	l = _mm_load_ps(a.Data());
+	//	r0 = _mm_load_ps(m.a.Data());
+	//	r1 = _mm_load_ps(m.b.Data());
+	//	r2 = _mm_load_ps(m.c.Data());
+	//	r3 = _mm_load_ps(m.d.Data());
+	//
+	//	v0 = _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(0, 0, 0, 0)), l);
+	//	v1 = _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(0, 0, 0, 0)), l);
+	//	v2 = _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(0, 0, 0, 0)), l);
+	//	v3 = _mm_mul_ps(_mm_shuffle_ps(r0, r3, _MM_SHUFFLE(0, 0, 0, 0)), l);
+	//
+	//	l = _mm_load_ps(m.b.Data());
+	//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(1, 1, 1, 1)), l));
+	//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(1, 1, 1, 1)), l));
+	//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(1, 1, 1, 1)), l));
+	//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(1, 1, 1, 1)), l));
+	//
+	//	l = _mm_load_ps(m.c.Data());
+	//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(2, 2, 2, 2)), l));
+	//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 2, 2, 2)), l));
+	//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(2, 2, 2, 2)), l));
+	//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(2, 2, 2, 2)), l));
+	//
+	//	l = _mm_load_ps(m.d.Data());
+	//	v0 = _mm_add_ps(v0, _mm_mul_ps(_mm_shuffle_ps(r0, r0, _MM_SHUFFLE(3, 3, 3, 3)), l));
+	//	v1 = _mm_add_ps(v1, _mm_mul_ps(_mm_shuffle_ps(r1, r1, _MM_SHUFFLE(3, 3, 3, 3)), l));
+	//	v2 = _mm_add_ps(v2, _mm_mul_ps(_mm_shuffle_ps(r2, r2, _MM_SHUFFLE(3, 3, 3, 3)), l));
+	//	v3 = _mm_add_ps(v3, _mm_mul_ps(_mm_shuffle_ps(r3, r3, _MM_SHUFFLE(3, 3, 3, 3)), l));
+	//
+	//	_mm_store_ps(f0.Data(), v0);
+	//	_mm_store_ps(f1.Data(), v1);
+	//	_mm_store_ps(f2.Data(), v2);
+	//	_mm_store_ps(f3.Data(), v3);
+	//
+	//	return { f0, f1, f2, f3 };
+	//#elif defined NH_ARM_NEON
+	//
+	//#else
 	return {
 		a.x * m.a.x + b.x * m.a.y + c.x * m.a.z + d.x * m.a.w,
 		a.y * m.a.x + b.y * m.a.y + c.y * m.a.z + d.y * m.a.w,
@@ -1034,7 +1048,7 @@ Matrix4 Matrix4::operator*(const Matrix4& m) const
 		a.z * m.d.x + b.z * m.d.y + c.z * m.d.z + d.z * m.d.w,
 		a.w * m.d.x + b.w * m.d.y + c.w * m.d.z + d.w * m.d.w
 	};
-//#endif
+	//#endif
 }
 
 Vector2 Matrix4::operator*(const Vector2& v) const
@@ -1994,8 +2008,8 @@ Vector3 Quaternion3::Euler() const
 {
 	F32 v = x * y + z * w;
 
-	if (Math::Abs(v - 0.5f) < FLOAT_EPSILON) { return { 2.0f * Math::Atan2(x, w) * RAD_TO_DEG_F, HALF_PI_F * RAD_TO_DEG_F, 0.0f }; }
-	if (Math::Abs(v + 0.5f) < FLOAT_EPSILON) { return { -2.0f * Math::Atan2(x, w) * RAD_TO_DEG_F, -HALF_PI_F * RAD_TO_DEG_F, 0.0f }; }
+	if (Math::Abs(v - 0.5f) < F32_EPSILON) { return { 2.0f * Math::Atan2(x, w) * RAD_TO_DEG_F, HALF_PI_F * RAD_TO_DEG_F, 0.0f }; }
+	if (Math::Abs(v + 0.5f) < F32_EPSILON) { return { -2.0f * Math::Atan2(x, w) * RAD_TO_DEG_F, -HALF_PI_F * RAD_TO_DEG_F, 0.0f }; }
 
 	return {
 		Math::Asin(2.0f * v) * RAD_TO_DEG_F,

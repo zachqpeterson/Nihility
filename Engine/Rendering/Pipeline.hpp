@@ -81,6 +81,8 @@ struct Pipeline
 	Renderpass*			renderpass{ nullptr };
 	U32					subpass{ 0 };
 
+	U32					drawCount{ 0 };
+
 private:
 	bool CreatePipeline(const SpecializationInfo& specializationInfo);
 };

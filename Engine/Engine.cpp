@@ -17,8 +17,6 @@
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
 
-#include "External\tracy\tracy\Tracy.hpp"
-
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
 ShutdownFn Engine::GameShutdown;
@@ -45,18 +43,6 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
-
-	UIElementInfo info{};
-	info.area = { -0.5f, -0.5f, .5f, .5f };
-	info.color = { 1.0f, 1.0f, 1.0f, 0.75f };
-
-	info.enabled = true;
-	info.ignore = false;
-
-	info.parent = nullptr;
-	info.scene = nullptr;
-
-	UI::CreateImage(info, Resources::LoadTexture("textures/Collie.nhtex"), { 0.0f, 0.0f, 1.0f, 1.0f });
 
 	//Physics
 	//Particle

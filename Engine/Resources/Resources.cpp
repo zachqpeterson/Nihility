@@ -1,5 +1,6 @@
 #include "Resources.hpp"
 
+#include "Font.hpp"
 #include "Settings.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Core\Logger.hpp"
@@ -8,16 +9,16 @@
 #include "Rendering\Pipeline.hpp"
 #include "Containers\Stack.hpp"
 
-#include "External\zlib\zlib.h"
 #include "External\Assimp\cimport.h"
 #include "External\Assimp\scene.h"
 #include "External\Assimp\postprocess.h"
-#include <LunarG\glslang\Include\intermediate.h>
+
+#include "External\LunarG\glslang\Public\ShaderLang.h"
+#include "External\LunarG\glslang\Include\intermediate.h"
 
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
 #include "External\stb_image.h"
-#include "External\LunarG\glslang\Public\ShaderLang.h"
 
 #undef near
 #undef far
@@ -63,13 +64,11 @@ constexpr U32 FONT_VERSION = MakeVersionNumber(0, 1, 0);
 Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
-Shader* Resources::meshProgram;
-Pipeline* Resources::renderPipeline;
-Shader* Resources::uiProgram;
-Pipeline* Resources::uiPipeline;
+Pipeline* Resources::meshPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
+Hashmap<String, Font>			Resources::fonts{ 32, {} };
 Hashmap<String, Renderpass>		Resources::renderpasses{ 256, {} };
 Hashmap<String, Shader>			Resources::shaders{ 128, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
@@ -108,21 +107,14 @@ bool Resources::Initialize()
 	dummySampler = CreateSampler(dummySamplerInfo);
 
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
-	meshProgram = CreateShader("shaders/Pbr.shader", 1, &pushConstant);
+	Shader* meshProgram = CreateShader("shaders/Pbr.shader", 1, &pushConstant);
 	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 
-	uiProgram = CreateShader("shaders/UI.shader");
-
 	PipelineInfo info{};
-	info.name = "render_pipeline";
+	info.name = "mesh_pipeline";
 	info.shader = meshProgram;
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	renderPipeline = CreatePipeline(info);
-
-	info.name = "ui_pipeline";
-	info.shader = uiProgram;
-	info.renderpass = renderPipeline->renderpass;
-	uiPipeline = CreatePipeline(info);
+	meshPipeline = CreatePipeline(info);
 
 	return true;
 }
@@ -462,6 +454,82 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 	return true;
 }
 
+Font* Resources::LoadFont(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Font* font = &fonts.Request(path, handle);
+
+	if (!font->name.Blank()) { return font; }
+
+	*font = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		font->name = path;
+		font->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Font"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Font!", path);
+			fonts.Remove(handle);
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.Read(font->ascent);
+		reader.Read(font->descent);
+		reader.Read(font->lineGap);
+
+		for (U32 i = 0; i < 96; ++i)
+		{
+			reader.Read(font->glyphs[i].leftBearing);
+			reader.Read(font->glyphs[i].advance);
+			reader.Read(font->glyphs[i].atlasPosition);
+		}
+
+		String textureName = path.GetFileName().Appended("_texture");
+
+		Texture* texture = &textures.Request(textureName, handle);
+		*texture = {};
+
+		reader.Read(texture->width);
+		reader.Read(texture->height);
+
+		texture->name = Move(textureName);
+		texture->handle = handle;
+		texture->type = VK_IMAGE_TYPE_2D;
+		texture->flags = 0;
+		texture->depth = 1;
+		texture->format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		texture->mipmapCount = 1;
+		texture->size = texture->width * texture->height * 4 * sizeof(F32);
+
+		if (!Renderer::CreateTexture(texture, reader.Pointer()))
+		{
+			Logger::Error("Failed To Create Texture: {}!", texture->name);
+			fonts.Remove(font->handle);
+			textures.Remove(handle);
+			return nullptr;
+		}
+
+		font->texture = texture;
+
+		return font;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+
+	fonts.Remove(handle);
+	return nullptr;
+}
+
 Texture* Resources::LoadTexture(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -681,13 +749,13 @@ Model* Resources::LoadModel(const String& path)
 
 			U32 verticesSize;
 			reader.Read(verticesSize);
-			draw.vertexOffset = (U32)(Renderer::UploadToBuffer(Renderer::vertexBuffer, reader.Pointer(), verticesSize) / sizeof(Vertex));
+			draw.vertexOffset = (U32)((Renderer::UploadVertices(meshPipeline, reader.Pointer(), verticesSize) / sizeof(Vertex)));
 			reader.Seek(verticesSize);
 
 			U32 indicesSize;
 			reader.Read(indicesSize);
 			draw.indexCount = indicesSize / sizeof(U32);
-			draw.indexOffset = (U32)(Renderer::UploadToBuffer(Renderer::indexBuffer, reader.Pointer(), indicesSize) / sizeof(U32));
+			draw.indexOffset = (U32)(Renderer::UploadIndices(meshPipeline, reader.Pointer(), indicesSize) / sizeof(U32));
 			reader.Seek(indicesSize);
 
 			U32 instanceCount;
@@ -702,9 +770,8 @@ Model* Resources::LoadModel(const String& path)
 				reader.Read(draw.instances[j].model);
 			}
 
-			U32 instanceOffset = (U32)(Renderer::UploadToBuffer(Renderer::instanceBuffer, draw.instances.Data(), sizeof(MeshInstance) * draw.instances.Size()) / sizeof(MeshInstance));
-			Renderer::UploadDrawCall(draw.indexCount, draw.indexOffset, draw.vertexOffset, draw.instances.Size(), instanceOffset);
-			++Renderer::meshDrawCount;
+			U32 instanceOffset = (U32)(Renderer::UploadInstances(meshPipeline, draw.instances.Data(), sizeof(MeshInstance) * draw.instances.Size()) / sizeof(MeshInstance));
+			Renderer::UploadDrawCall(meshPipeline, draw.indexCount, draw.indexOffset, draw.vertexOffset, (U32)draw.instances.Size(), instanceOffset);
 		}
 
 		return model;
@@ -1269,7 +1336,50 @@ U8 Resources::MipmapCount(U16 width, U16 height)
 
 String Resources::UploadFont(const String& path)
 {
-	//TODO: 
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		U8* data = (U8*)malloc(file.Size());
+		file.ReadCount(data, (U32)file.Size());
+		file.Close();
+
+		Font font;
+		F32* atlas = FontLoader::LoadFont(data, font);
+
+		free(data);
+
+		String newPath = path.GetFileName().Surround("fonts/", ".nhfnt");
+		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+
+		file.Write("NH Font");
+		file.Write(FONT_VERSION);
+
+		file.Write(font.ascent);
+		file.Write(font.descent);
+		file.Write(font.lineGap);
+
+		for (U32 i = 0; i < 96; ++i)
+		{
+			file.Write(font.glyphs[i].leftBearing);
+			file.Write(font.glyphs[i].advance);
+			file.Write(font.glyphs[i].atlasPosition);
+		}
+
+		const U16 width = 256;
+		const U16 height = 384;
+
+		file.Write(width);
+		file.Write(height);
+
+		file.WriteCount(atlas, 256 * 384 * 4);
+
+		file.Close();
+
+		return newPath;
+	}
+
+	Logger::Error("Failed To Upload Font: '{}'", path);
+
 	return {};
 }
 
@@ -1919,7 +2029,9 @@ Material Resources::ParseAssimpMaterial(ModelUpload& model, const aiMaterial* ma
 		if (ret == aiReturn_SUCCESS)
 		{
 			U16 index = model.textureCount;
-			model.textures[model.textureCount++] = UploadTexture(scene->GetEmbeddedTexture(texturePath.C_Str()));
+			const aiTexture* texture = scene->GetEmbeddedTexture(texturePath.C_Str());
+			if (texture) { model.textures[model.textureCount++] = UploadTexture(texture); }
+			else { model.textures[model.textureCount++] = UploadTexture(texturePath.C_Str()); }
 
 			switch (i)
 			{
