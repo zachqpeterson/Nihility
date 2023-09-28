@@ -220,6 +220,8 @@ template<class Key, class Value> inline bool Hashmap<Key, Value>::Insert(const K
 	cell->filled = true;
 	cell->value = Move(value);
 	cell->key = key;
+
+	return true;
 }
 
 template<class Key, class Value> inline bool Hashmap<Key, Value>::Remove(const Key& key)

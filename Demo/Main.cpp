@@ -27,10 +27,10 @@ bool Init()
 
 	UI::CreateImage(info, Resources::LoadTexture("textures/Collie.nhtex"), { 0.0f, 0.0f, 1.0f, 1.0f });
 
-	info.area = { -1.0f, -1.0f, -0.5f, -0.5f };
+	info.area = { -0.95f, -0.95f, -0.5f, -0.5f };
 	info.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	UI::CreateText(info, "Hello, World!", 3.0f);
+	UI::CreateText(info, "Hello, World!", 10.0f);
 
 	Model* model = Resources::LoadModel("models/Chess.nhmdl");
 

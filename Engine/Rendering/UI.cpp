@@ -282,26 +282,39 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 	Vector2 startPosition = { info.area.x, info.area.y };
 	Vector2 position = startPosition;
 
+	U8 prev = 255;
+
 	U32 i = 0;
 	for (C8 c : string)
 	{
 		Glyph& glyph = font->glyphs[c - 32];
-		TextInstance& instance = instances[i];
 
-		instance.textureIndex = (U32)font->texture->handle;
-		instance.position = position;
-		instance.texcoord = (Vector2)glyph.atlasPosition * texcoordSize;
-		instance.color = info.color;
-		instance.scale = scale;
+		if (c != ' ')
+		{
+			TextInstance& instance = instances[i];
 
-		position.x += textWidth * scale;
+			instance.textureIndex = (U32)font->texture->handle;
+			instance.position = position - Vector2{ glyph.x * textWidth * scale, glyph.y * textHeight * scale };
+			instance.texcoord = (Vector2)glyph.atlasPosition * texcoordSize;
+			instance.color = info.color;
+			instance.scale = scale;
 
-		++i;
+			++i;
+		}
+
+		position.x += glyph.advance * textWidth * scale;
+
+		if (prev != 255)
+		{
+			position.x += font->glyphs[prev - 32].kerning[c - 32] * textWidth * scale;
+		}
+
+		prev = c;
 	}
 
-	element->instanceOffset = Renderer::UploadInstances(textPipeline, instances, sizeof(TextInstance) * string.Size()) / sizeof(TextInstance);
+	element->instanceOffset = Renderer::UploadInstances(textPipeline, instances, sizeof(TextInstance) * i) / sizeof(TextInstance);
 
-	Renderer::UploadDrawCall(textPipeline, 6, 0, element->vertexOffset, string.Size(), element->instanceOffset);
+	Renderer::UploadDrawCall(textPipeline, 6, 0, element->vertexOffset, i, element->instanceOffset);
 
 	return nullptr;
 }

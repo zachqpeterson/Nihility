@@ -168,7 +168,10 @@ I32 PixelClash(const Vector3& a, const Vector3& b, F32 threshold)
 	if (aIn != bIn) { return 0; }
 
 	if ((a.x > 0.5f && a.y > 0.5f && a.z > 0.5f) || (a.x < 0.5f && a.y < 0.5f && a.z < 0.5f) ||
-		(b.x > 0.5f && b.y > 0.5f && b.z > 0.5f) || (b.x < 0.5f && b.y < 0.5f && b.z < 0.5f)) { return 0; }
+		(b.x > 0.5f && b.y > 0.5f && b.z > 0.5f) || (b.x < 0.5f && b.y < 0.5f && b.z < 0.5f))
+	{
+		return 0;
+	}
 
 	F32 aa, ab, ba, bb, ac, bc;
 	if ((a.x > 0.5f) != (b.x > 0.5f) && (a.x < 0.5f) != (b.x < 0.5f))
@@ -186,7 +189,7 @@ I32 PixelClash(const Vector3& a, const Vector3& b, F32 threshold)
 		}
 		else { return 0; }
 	}
-	else if ((a.y > 0.5f) != (b.y > 0.5f) && (a.y < 0.5f) != (b.y < 0.5f) && 
+	else if ((a.y > 0.5f) != (b.y > 0.5f) && (a.y < 0.5f) != (b.y < 0.5f) &&
 		(a.z > 0.5f) != (b.z > 0.5f) && (a.z < 0.5f) != (b.z < 0.5f))
 	{
 		aa = a.y, ba = b.y;
@@ -591,16 +594,18 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 	F32* bitmap;
 	Memory::AllocateArray(&bitmap, 32 * 32 * 4);
 
-	const U32 rowSize = 1024;
-	const U32 glyphRowSize = rowSize * 32;
+	const I32 rowSize = 1024;
+	const I32 glyphRowSize = rowSize * 32;
 	I32 x = 0;
 	I32 y = 0;
+
+	Hashmap<I32, C8> glyphToCodepoint{ 128 };
 
 	for (C8 i = 0; i < 96; ++i)
 	{
 		C8 codepoint = i + 32;
 
-		bool glyph = LoadGlyph(&info, font, font.glyphs[i], UTF8(&codepoint), bitmap);
+		bool glyph = LoadGlyph(&info, font, font.glyphs[i], UTF8(&codepoint), glyphToCodepoint, bitmap);
 
 		if (glyph)
 		{
@@ -616,14 +621,57 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 		if (x == 1024) { x = 0; y += glyphRowSize; }
 	}
 
+	I32 length = stbtt_GetKerningTableLength(&info);
+
+	stbtt_kerningentry* kerningTable;
+	Memory::AllocateArray(&kerningTable, length);
+
+	stbtt_GetKerningTable(&info, kerningTable, length);
+
+	I32 lastGlyph = 0;
+
+	U8 codepoint = 255;
+
+	for (I32 i = 0; i < length; ++i)
+	{
+		stbtt_kerningentry& entry = kerningTable[i];
+
+		if (entry.glyph1 != lastGlyph)
+		{
+			lastGlyph = entry.glyph1;
+			codepoint = glyphToCodepoint.Get(lastGlyph);
+		}
+
+		font.glyphs[codepoint].kerning[glyphToCodepoint.Get(entry.glyph2)] = ((F32)entry.advance * font.scale) / 32.0f;
+	}
+
 	return atlas;
 }
 
-bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, F32* bitmap)
+bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, Hashmap<I32, C8>& glyphToCodepoint, F32* bitmap)
 {
 	I32 w = 32;
 	I32 h = 32;
 	I32 index = stbtt_FindGlyphIndex(info, codepoint);
+
+	glyphToCodepoint.Insert(index, codepoint - 32);
+
+	I32 boxX, boxY, boxZ, boxW;
+	F32 xoff = 0.5f, yoff = 0.5f;
+	stbtt_GetGlyphBox(info, index, &boxX, &boxY, &boxZ, &boxW);
+
+	I32 advance;
+	stbtt_GetGlyphHMetrics(info, index, &advance, nullptr);
+	glyph.advance = ((F32)advance * font.scale) / (F32)w;
+
+	I32 translateX = (I32)(w / 2 - ((boxZ - boxX) * font.scale) / 2 - boxX * font.scale);
+	I32 translateY = (I32)(h / 2 - ((boxW - boxY) * font.scale) / 2 - boxY * font.scale);
+
+	glyph.x = (F32)translateX / (F32)w;
+	glyph.y = (F32)translateY / (F32)h;
+
+	boxW = (I32)(boxW * font.scale);
+	boxY = (I32)(boxY * font.scale);
 
 	stbtt_vertex* verts;
 	I32 vertexCount = stbtt_GetGlyphShape(info, index, &verts);
@@ -635,20 +683,6 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 	}
 
 	if (contourCount == 0) { return false; }
-
-	I32 boxX, boxY, boxZ, boxW;
-	F32 xoff = 0.5f, yoff = 0.5f;
-	stbtt_GetGlyphBox(info, index, &boxX, &boxY, &boxZ, &boxW);
-
-	stbtt_GetGlyphHMetrics(info, index, &glyph.advance, &glyph.leftBearing);
-	glyph.leftBearing = (I32)(glyph.leftBearing * font.scale);
-	glyph.advance = (I32)(glyph.advance * font.scale);
-
-	I32 translateX = (I32)(w / 2 - ((boxZ - boxX) * font.scale) / 2 - glyph.leftBearing);
-	I32 translateY = (I32)(h / 2 - ((boxW - boxY) * font.scale) / 2 - boxY * font.scale);
-
-	boxW = (I32)(boxW * font.scale);
-	boxY = (I32)(boxY * font.scale);
 
 	struct Indices
 	{
@@ -874,7 +908,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 			Vector2 a = Point(&contourData[i].edges[0], 0.0f);
 			Vector2 b = Point(&contourData[i].edges[0], ONE_THIRD_F);
 			Vector2 c = Point(&contourData[i].edges[0], TWO_THIRDS_F);
-			
+
 			total += Shoelace(a, b);
 			total += Shoelace(b, c);
 			total += Shoelace(c, a);
@@ -1046,7 +1080,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 			bitmap[index + 3] = 1.0f;
 		}
 	}
-	
+
 	for (I32 i = 0; i < contourCount; ++i) { Memory::FreeArray(&contourData[i].edges); }
 
 	Memory::FreeArray(&contourData);
@@ -1056,7 +1090,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 	stbtt_FreeShape(info, verts);
 
-	struct Clashes 
+	struct Clashes
 	{
 		I32 x, y;
 	};

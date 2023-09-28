@@ -4,13 +4,16 @@
 
 #include "ResourceDefines.hpp"
 
+#include "Containers\Hashmap.hpp"
+
 struct Glyph
 {
-	I32 leftBearing{ 0 };
-	I32 advance{ 0 };
+	F32 advance{ 1.0f };
+	F32 x{ 0.0f };
+	F32 y{ 0.0f };
 	Vector2Int atlasPosition{};
 
-	//TODO: Kerning
+	F32 kerning[96]{ 0.0f };
 };
 
 struct Font
@@ -29,6 +32,7 @@ struct Font
 };
 
 struct stbtt_fontinfo;
+struct stbtt_kerningentry;
 
 class FontLoader
 {
@@ -36,7 +40,7 @@ public:
 	static F32* LoadFont(U8* data, Font& font);
 
 private:
-	static bool LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, F32* bitmap);
+	static bool LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, Hashmap<I32, C8>& glyphToCodepoint, F32* bitmap);
 
 	STATIC_CLASS(FontLoader);
 };

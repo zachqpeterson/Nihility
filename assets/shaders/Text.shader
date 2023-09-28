@@ -3,7 +3,7 @@ language=GLSL
 cull=NONE
 front=COUNTER
 fill=SOLID
-depth=LESS
+depth=NONE
 blend=ADD
 instanceOffset=2
 #CONFIG_END

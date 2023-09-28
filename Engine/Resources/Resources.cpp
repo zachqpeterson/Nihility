@@ -489,9 +489,7 @@ Font* Resources::LoadFont(const String& path)
 
 		for (U32 i = 0; i < 96; ++i)
 		{
-			reader.Read(font->glyphs[i].leftBearing);
-			reader.Read(font->glyphs[i].advance);
-			reader.Read(font->glyphs[i].atlasPosition);
+			reader.Read(font->glyphs[i]);
 		}
 
 		String textureName = path.GetFileName().Appended("_texture");
@@ -1360,9 +1358,7 @@ String Resources::UploadFont(const String& path)
 
 		for (U32 i = 0; i < 96; ++i)
 		{
-			file.Write(font.glyphs[i].leftBearing);
-			file.Write(font.glyphs[i].advance);
-			file.Write(font.glyphs[i].atlasPosition);
+			file.Write(font.glyphs[i]);
 		}
 
 		const U16 width = 256;
