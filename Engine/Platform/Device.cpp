@@ -174,8 +174,8 @@ void Device::Destroy()
 		preparsedData = nullptr;
 	}
 
-	if (stateBuffer) { Memory::FreeArray(&stateBuffer); }
-	if (reportBuffer) { Memory::FreeArray(&reportBuffer); }
+	if (stateBuffer) { Memory::Free(&stateBuffer); }
+	if (reportBuffer) { Memory::Free(&reportBuffer); }
 
 	name.Destroy();
 	axes.Destroy();

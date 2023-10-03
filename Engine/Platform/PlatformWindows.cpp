@@ -1,6 +1,7 @@
 #include "Platform.hpp"
 
 #include "Input.hpp"
+#include "Audio.hpp"
 #include "Resources\Settings.hpp"
 #include "Core\Logger.hpp"
 
@@ -48,7 +49,7 @@ bool Platform::Initialize(CSTR applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
-	OleInitialize(nullptr);
+	if (OleInitialize(nullptr) < 0) { return false; }
 	windowData.instance = GetModuleHandleA(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	running = true;
@@ -185,11 +186,7 @@ void Platform::SetFullscreen(bool fullscreen)
 
 void Platform::SetWindowSize(U32 width, U32 height)
 {
-	if (Settings::Fullscreen())
-	{
-		//TODO: Log, can't change size in fullscreen
-	}
-	else
+	if (!Settings::Fullscreen())
 	{
 		SetWindowPos(windowData.window, nullptr, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
 			width + border.right - border.left, height + border.bottom - border.top, SWP_SHOWWINDOW);
@@ -198,11 +195,7 @@ void Platform::SetWindowSize(U32 width, U32 height)
 
 void Platform::SetWindowPosition(I32 x, I32 y)
 {
-	if (Settings::Fullscreen())
-	{
-		//TODO: Log, can't change position in fullscreen
-	}
-	else
+	if (!Settings::Fullscreen())
 	{
 		SetWindowPos(windowData.window, nullptr, x + border.left, y + border.top,
 			Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, SWP_SHOWWINDOW);
@@ -282,8 +275,8 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	switch (msg)
 	{
 	case WM_CREATE: { } return 0;
-	case WM_SETFOCUS: { Settings::focused = true; } return 0;
-	case WM_KILLFOCUS: { Settings::focused = false; } return 0;
+	case WM_SETFOCUS: { Settings::focused = true; Audio::Focus(); } return 0;
+	case WM_KILLFOCUS: { Settings::focused = false; Audio::Unfocus(); } return 0;
 	case WM_QUIT: { Settings::focused = false; running = false; } return 0;
 	case WM_CLOSE: { Settings::focused = false; running = false; } return 0;
 	case WM_DESTROY: { Settings::focused = false; running = false; } return 0;
@@ -312,8 +305,8 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_SIZE: {
 		switch (wParam)
 		{
-		case SIZE_MINIMIZED: { Settings::focused = false; Settings::minimised = true; } break;
-		case SIZE_RESTORED: { Settings::minimised = false; } break;
+		case SIZE_MINIMIZED: { Settings::focused = false; Settings::minimised = true; Audio::Unfocus(); } break;
+		case SIZE_RESTORED: {  Settings::focused = true; Settings::minimised = false; Audio::Focus(); } break;
 		}
 
 		RECT rect{};

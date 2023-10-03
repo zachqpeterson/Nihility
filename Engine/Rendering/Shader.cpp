@@ -140,8 +140,7 @@ struct Id
 
 bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants)
 {
-	String data{};
-	Resources::LoadBinary(shaderPath, data);
+	String data = Resources::LoadBinaryString(shaderPath);
 
 	DescriptorSetLayoutInfo setLayoutInfo{};
 

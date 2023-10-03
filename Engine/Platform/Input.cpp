@@ -91,7 +91,7 @@ bool Input::Initialize()
 	//
 	//for (U32 i = 0; i < deviceCount; ++i) { AddDevice(deviceList[i].hDevice); }
 	//
-	//Memory::FreeArray(&deviceList);
+	//Memory::Free(&deviceList);
 
 	return true;
 }

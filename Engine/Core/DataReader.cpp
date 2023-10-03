@@ -6,7 +6,7 @@ DataReader::DataReader(void* data, U32 size) : size{ size }, remaining{ size }, 
 
 DataReader::DataReader(File& file) : allocated{ true }, size{ (U64)file.Size() }, remaining{ size }
 {
-	data = (U8*)malloc(size);
+	Memory::AllocateSize(&data, size);
 	I64 ptr = file.Pointer();
 	file.Read(data, (U32)size);
 	file.SeekFromStart(ptr);
@@ -21,7 +21,14 @@ DataReader::~DataReader()
 
 void DataReader::Destroy()
 {
-	if (allocated) { free(data); }
+	if (allocated) { Memory::Free(&data); }
+}
+
+void DataReader::ReadSize(void* data, U32 size)
+{
+	data = dataPtr;
+	dataPtr += size;
+	remaining -= size;
 }
 
 String DataReader::ReadString()

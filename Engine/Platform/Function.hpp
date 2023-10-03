@@ -12,199 +12,199 @@ template<typename> struct Function;
 
 namespace detail
 {
-	struct FunctorPadding { private: U64 unused[2]; };
-	struct Empty {};
+struct FunctorPadding { private: U64 unused[2]; };
+							   struct Empty {};
 
-	template<typename Type>
-	struct IsInplaceAllocated
-	{
-		static constexpr bool value = sizeof(Type) <= sizeof(FunctorPadding) && 
-			Alignment<FunctorPadding> % Alignment<Type> == 0 && IsNothrowMoveConstructible<Type>;
-	};
+							   template<typename Type>
+							   struct IsInplaceAllocated
+							   {
+								   static constexpr bool value = sizeof(Type) <= sizeof(FunctorPadding) &&
+									   Alignment<FunctorPadding> % Alignment<Type> == 0 && IsNothrowMoveConstructible<Type>;
+							   };
 
-	template<typename Type> inline constexpr bool InplaceAllocated = IsInplaceAllocated<Type>::value;
+							   template<typename Type> inline constexpr bool InplaceAllocated = IsInplaceAllocated<Type>::value;
 
-	template<typename Type> Type ToFunctor(Type&& func) { return FUNC_FORWARD(Type, func); }
+							   template<typename Type> Type ToFunctor(Type&& func) { return FUNC_FORWARD(Type, func); }
 
-	template<typename Result, typename Class, typename... Arguments>
-	auto ToFunctor(Result(Class::* func)(Arguments...)) -> decltype(std::mem_fn(func)) { return std::mem_fn(func); }
+							   template<typename Result, typename Class, typename... Arguments>
+							   auto ToFunctor(Result(Class::* func)(Arguments...)) -> decltype(std::mem_fn(func)) { return std::mem_fn(func); }
 
-	template<typename Result, typename Class, typename... Arguments>
-	auto ToFunctor(Result(Class::* func)(Arguments...) const) -> decltype(std::mem_fn(func)) { return std::mem_fn(func); }
+							   template<typename Result, typename Class, typename... Arguments>
+							   auto ToFunctor(Result(Class::* func)(Arguments...) const) -> decltype(std::mem_fn(func)) { return std::mem_fn(func); }
 
-	template<typename Type> struct FunctorType { using type = decltype(ToFunctor(DeclValue<Type>())); };
+							   template<typename Type> struct FunctorType { using type = decltype(ToFunctor(DeclValue<Type>())); };
 
-	template<typename Type> bool IsNull(const Type&) { return false; }
+							   template<typename Type> bool IsNull(const Type&) { return false; }
 
-	template<typename Result, typename... Arguments>
-	bool IsNull(Result(* const& functionPtr)(Arguments...)) { return functionPtr == nullptr; }
+							   template<typename Result, typename... Arguments>
+							   bool IsNull(Result(* const& functionPtr)(Arguments...)) { return functionPtr == nullptr; }
 
-	template<typename Result, typename Class, typename... Arguments>
-	bool IsNull(Result(Class::* const& functionPtr)(Arguments...)) { return functionPtr == nullptr; }
+							   template<typename Result, typename Class, typename... Arguments>
+							   bool IsNull(Result(Class::* const& functionPtr)(Arguments...)) { return functionPtr == nullptr; }
 
-	template<typename Result, typename Class, typename... Arguments>
-	bool IsNull(Result(Class::* const& functionPtr)(Arguments...) const) { return functionPtr == nullptr; }
+							   template<typename Result, typename Class, typename... Arguments>
+							   bool IsNull(Result(Class::* const& functionPtr)(Arguments...) const) { return functionPtr == nullptr; }
 
-	template<typename, typename> struct IsValidFunctionArg { static constexpr bool value = false; };
+							   template<typename, typename> struct IsValidFunctionArg { static constexpr bool value = false; };
 
-	template<typename Result, typename... Arguments>
-	struct IsValidFunctionArg<Function<Result(Arguments...)>, Result(Arguments...)> { static constexpr bool value = false; };
+							   template<typename Result, typename... Arguments>
+							   struct IsValidFunctionArg<Function<Result(Arguments...)>, Result(Arguments...)> { static constexpr bool value = false; };
 
-	template<typename Type, typename Result, typename... Arguments>
-	struct IsValidFunctionArg<Type, Result(Arguments...)> { static constexpr bool value = true; };
+							   template<typename Type, typename Result, typename... Arguments>
+							   struct IsValidFunctionArg<Type, Result(Arguments...)> { static constexpr bool value = true; };
 
-	struct FunctionManager;
+							   struct FunctionManager;
 
-	struct ManagerStorage
-	{
-		template<typename Allocator> Allocator& GetAllocator() { return reinterpret_cast<Allocator&>(manager); }
-		template<typename Allocator> const Allocator& GetAllocator() const { return reinterpret_cast<const Allocator&>(manager); }
+							   struct ManagerStorage
+							   {
+								   template<typename Allocator> Allocator& GetAllocator() { return reinterpret_cast<Allocator&>(manager); }
+								   template<typename Allocator> const Allocator& GetAllocator() const { return reinterpret_cast<const Allocator&>(manager); }
 
-		FunctorPadding functor;
-		const FunctionManager* manager;
-	};
+								   FunctorPadding functor;
+								   const FunctionManager* manager;
+							   };
 
-	template<typename Type, typename Allocator, typename Enable = void>
-	struct FunctionManagerSpecialization
-	{
-		template<typename Result, typename... Arguments> 
-		static Result Call(const FunctorPadding& storage, Arguments... arguments)
-		{
-			return const_cast<Type&>(reinterpret_cast<const Type&>(storage)) (FUNC_FORWARD(Arguments, arguments)...);
-		}
+							   template<typename Type, typename Allocator, typename Enable = void>
+							   struct FunctionManagerSpecialization
+							   {
+								   template<typename Result, typename... Arguments>
+								   static Result Call(const FunctorPadding& storage, Arguments... arguments)
+								   {
+									   return const_cast<Type&>(reinterpret_cast<const Type&>(storage)) (FUNC_FORWARD(Arguments, arguments)...);
+								   }
 
-		static void Store(ManagerStorage& storage, Type toStore) { new (&FunctorReference(storage)) Type(FUNC_FORWARD(Type, toStore)); }
-		static void Move(ManagerStorage& lhs, ManagerStorage&& rhs) { new (&FunctorReference(lhs)) Type(FUNC_MOVE(FunctorReference(rhs))); }
-		static void Destroy(Allocator&, ManagerStorage& storage) { FunctorReference(storage).~Type(); }
-		static Type& FunctorReference(const ManagerStorage& storage) { return const_cast<Type&>(reinterpret_cast<const Type&>(storage.functor)); }
-	};
+								   static void Store(ManagerStorage& storage, Type toStore) { new (&FunctorReference(storage)) Type(FUNC_FORWARD(Type, toStore)); }
+								   static void Move(ManagerStorage& lhs, ManagerStorage&& rhs) { new (&FunctorReference(lhs)) Type(FUNC_MOVE(FunctorReference(rhs))); }
+								   static void Destroy(Allocator&, ManagerStorage& storage) { FunctorReference(storage).~Type(); }
+								   static Type& FunctorReference(const ManagerStorage& storage) { return const_cast<Type&>(reinterpret_cast<const Type&>(storage.functor)); }
+							   };
 
-	template<typename Type, typename Allocator>
-	struct FunctionManagerSpecialization<Type, Allocator, typename std::enable_if<!InplaceAllocated<Type>>::type>
-	{
-		template<typename Result, typename... Arguments>
-		static Result Call(const FunctorPadding& storage, Arguments... arguments)
-		{
-			return (*reinterpret_cast<const typename std::allocator_traits<Allocator>::pointer&>(storage))(FUNC_FORWARD(Arguments, arguments)...);
-		}
+							   template<typename Type, typename Allocator>
+							   struct FunctionManagerSpecialization<Type, Allocator, typename std::enable_if<!InplaceAllocated<Type>>::type>
+							   {
+								   template<typename Result, typename... Arguments>
+								   static Result Call(const FunctorPadding& storage, Arguments... arguments)
+								   {
+									   return (*reinterpret_cast<const typename std::allocator_traits<Allocator>::pointer&>(storage))(FUNC_FORWARD(Arguments, arguments)...);
+								   }
 
-		static void Store(ManagerStorage& self, Type toStore)
-		{
-			Allocator& allocator = self.GetAllocator<Allocator>();
-			static_assert(sizeof(typename std::allocator_traits<Allocator>::pointer) <= sizeof(self.functor), "The allocator's pointer type is too big");
-			typename std::allocator_traits<Allocator>::pointer* ptr = new (&FunctorPtrReference(self)) typename std::allocator_traits<Allocator>::pointer(std::allocator_traits<Allocator>::allocate(allocator, 1));
-			std::allocator_traits<Allocator>::construct(allocator, *ptr, FUNC_FORWARD(Type, toStore));
-		}
-		static void Move(ManagerStorage& lhs, ManagerStorage&& rhs)
-		{
-			static_assert(IsNothrowMoveConstructible<typename std::allocator_traits<Allocator>::pointer>, "we can't offer a noexcept swap if the pointer type is not nothrow move constructible");
-			new (&FunctorPtrReference(lhs)) typename std::allocator_traits<Allocator>::pointer(FUNC_MOVE(FunctorPtrReference(rhs)));
-			FunctorPtrReference(rhs) = nullptr;
-		}
-		static void Destroy(Allocator& allocator, ManagerStorage& storage)
-		{
-			typename std::allocator_traits<Allocator>::pointer& pointer = FunctorPtrReference(storage);
-			if (!pointer) { return; }
-			std::allocator_traits<Allocator>::destroy(allocator, pointer);
-			std::allocator_traits<Allocator>::deallocate(allocator, pointer, 1);
-		}
-		static Type& FunctorReference(const ManagerStorage& storage)
-		{
-			return *FunctorPtrReference(storage);
-		}
-		static typename std::allocator_traits<Allocator>::pointer& FunctorPtrReference(ManagerStorage& storage)
-		{
-			return reinterpret_cast<typename std::allocator_traits<Allocator>::pointer&>(storage.functor);
-		}
-		static const typename std::allocator_traits<Allocator>::pointer& FunctorPtrReference(const ManagerStorage& storage)
-		{
-			return reinterpret_cast<const typename std::allocator_traits<Allocator>::pointer&>(storage.functor);
-		}
-	};
+								   static void Store(ManagerStorage& self, Type toStore)
+								   {
+									   Allocator& allocator = self.GetAllocator<Allocator>();
+									   static_assert(sizeof(typename std::allocator_traits<Allocator>::pointer) <= sizeof(self.functor), "The allocator's pointer type is too big");
+									   typename std::allocator_traits<Allocator>::pointer* ptr = new (&FunctorPtrReference(self)) typename std::allocator_traits<Allocator>::pointer(std::allocator_traits<Allocator>::allocate(allocator, 1));
+									   std::allocator_traits<Allocator>::construct(allocator, *ptr, FUNC_FORWARD(Type, toStore));
+								   }
+								   static void Move(ManagerStorage& lhs, ManagerStorage&& rhs)
+								   {
+									   static_assert(IsNothrowMoveConstructible<typename std::allocator_traits<Allocator>::pointer>, "we can't offer a noexcept swap if the pointer type is not nothrow move constructible");
+									   new (&FunctorPtrReference(lhs)) typename std::allocator_traits<Allocator>::pointer(FUNC_MOVE(FunctorPtrReference(rhs)));
+									   FunctorPtrReference(rhs) = nullptr;
+								   }
+								   static void Destroy(Allocator& allocator, ManagerStorage& storage)
+								   {
+									   typename std::allocator_traits<Allocator>::pointer& pointer = FunctorPtrReference(storage);
+									   if (!pointer) { return; }
+									   std::allocator_traits<Allocator>::destroy(allocator, pointer);
+									   std::allocator_traits<Allocator>::deallocate(allocator, pointer, 1);
+								   }
+								   static Type& FunctorReference(const ManagerStorage& storage)
+								   {
+									   return *FunctorPtrReference(storage);
+								   }
+								   static typename std::allocator_traits<Allocator>::pointer& FunctorPtrReference(ManagerStorage& storage)
+								   {
+									   return reinterpret_cast<typename std::allocator_traits<Allocator>::pointer&>(storage.functor);
+								   }
+								   static const typename std::allocator_traits<Allocator>::pointer& FunctorPtrReference(const ManagerStorage& storage)
+								   {
+									   return reinterpret_cast<const typename std::allocator_traits<Allocator>::pointer&>(storage.functor);
+								   }
+							   };
 
-	template<typename Type, typename Allocator> static const FunctionManager& DefaultManager();
+							   template<typename Type, typename Allocator> static const FunctionManager& DefaultManager();
 
-	template<typename Type, typename Allocator>
-	static void CreateManager(ManagerStorage& storage, Allocator&& allocator)
-	{
-		new (&storage.GetAllocator<Allocator>()) Allocator(FUNC_MOVE(allocator));
-		storage.manager = &DefaultManager<Type, Allocator>();
-	}
+							   template<typename Type, typename Allocator>
+							   static void CreateManager(ManagerStorage& storage, Allocator&& allocator)
+							   {
+								   new (&storage.GetAllocator<Allocator>()) Allocator(FUNC_MOVE(allocator));
+								   storage.manager = &DefaultManager<Type, Allocator>();
+							   }
 
-	struct FunctionManager
-	{
-		template<typename Type, typename Allocator>
-		static inline const FunctionManager CreateDefaultManager()
-		{
-			FunctionManager result =
-			{
-				&TemplatedCallMoveDestroy<Type, Allocator>,
-				&TemplatedCallCopy<Type, Allocator>,
-				&TemplatedCallCopyFuncOnly<Type, Allocator>,
-				&TemplatedCallDestroy<Type, Allocator>,
-				&TemplatedCallTypeId<Type, Allocator>,
-				&TemplatedCallTarget<Type, Allocator>
-			};
+							   struct FunctionManager
+							   {
+								   template<typename Type, typename Allocator>
+								   static inline const FunctionManager CreateDefaultManager()
+								   {
+									   FunctionManager result =
+									   {
+										   &TemplatedCallMoveDestroy<Type, Allocator>,
+										   &TemplatedCallCopy<Type, Allocator>,
+										   &TemplatedCallCopyFuncOnly<Type, Allocator>,
+										   &TemplatedCallDestroy<Type, Allocator>,
+										   &TemplatedCallTypeId<Type, Allocator>,
+										   &TemplatedCallTarget<Type, Allocator>
+									   };
 
-			return result;
-		}
+									   return result;
+								   }
 
-		void (* const CallMoveDestroy)(ManagerStorage& lhs, ManagerStorage&& rhs);
-		void (* const CallCopy)(ManagerStorage& lhs, const ManagerStorage& rhs);
-		void (* const CallCopyFuncOnly)(ManagerStorage& lhs, const ManagerStorage& rhs);
-		void (* const CallDestroy)(ManagerStorage& manager);
-		const std::type_info& (* const CallTypeId)();
-		void* (* const CallTarget)(const ManagerStorage& manager, const std::type_info& type);
+								   void (* const CallMoveDestroy)(ManagerStorage& lhs, ManagerStorage&& rhs);
+								   void (* const CallCopy)(ManagerStorage& lhs, const ManagerStorage& rhs);
+								   void (* const CallCopyFuncOnly)(ManagerStorage& lhs, const ManagerStorage& rhs);
+								   void (* const CallDestroy)(ManagerStorage& manager);
+								   const std::type_info& (* const CallTypeId)();
+								   void* (* const CallTarget)(const ManagerStorage& manager, const std::type_info& type);
 
-		template<typename Type, typename Allocator>
-		static void TemplatedCallMoveDestroy(ManagerStorage& lhs, ManagerStorage&& rhs)
-		{
-			typedef FunctionManagerSpecialization<Type, Allocator> specialization;
-			specialization::Move(lhs, FUNC_MOVE(rhs));
-			specialization::Destroy(rhs.GetAllocator<Allocator>(), rhs);
-			CreateManager<Type, Allocator>(lhs, FUNC_MOVE(rhs.GetAllocator<Allocator>()));
-			rhs.GetAllocator<Allocator>().~Allocator();
-		}
-		template<typename Type, typename Allocator>
-		static void TemplatedCallCopy(ManagerStorage& lhs, const ManagerStorage& rhs)
-		{
-			typedef FunctionManagerSpecialization<Type, Allocator> specialization;
-			CreateManager<Type, Allocator>(lhs, Allocator(rhs.GetAllocator<Allocator>()));
-			specialization::Store(lhs, specialization::FunctorReference(rhs));
-		}
-		template<typename Type, typename Allocator>
-		static void TemplatedCallDestroy(ManagerStorage& self)
-		{
-			typedef FunctionManagerSpecialization<Type, Allocator> specialization;
-			specialization::Destroy(self.GetAllocator<Allocator>(), self);
-			self.GetAllocator<Allocator>().~Allocator();
-		}
-		template<typename Type, typename Allocator>
-		static void TemplatedCallCopyFuncOnly(ManagerStorage& lhs, const ManagerStorage& rhs)
-		{
-			typedef FunctionManagerSpecialization<Type, Allocator> specialization;
-			specialization::Store(lhs, specialization::FunctorReference(rhs));
-		}
-		template<typename Type, typename>
-		static const std::type_info& TemplatedCallTypeId()
-		{
-			return typeid(Type);
-		}
-		template<typename Type, typename Allocator>
-		static void* TemplatedCallTarget(const ManagerStorage& self, const std::type_info& type)
-		{
-			typedef FunctionManagerSpecialization<Type, Allocator> specialization;
-			if (type == typeid(Type)) { return &specialization::FunctorReference(self); }
-			else { return nullptr; }
-		}
-	};
+								   template<typename Type, typename Allocator>
+								   static void TemplatedCallMoveDestroy(ManagerStorage& lhs, ManagerStorage&& rhs)
+								   {
+									   typedef FunctionManagerSpecialization<Type, Allocator> specialization;
+									   specialization::Move(lhs, FUNC_MOVE(rhs));
+									   specialization::Destroy(rhs.GetAllocator<Allocator>(), rhs);
+									   CreateManager<Type, Allocator>(lhs, FUNC_MOVE(rhs.GetAllocator<Allocator>()));
+									   rhs.GetAllocator<Allocator>().~Allocator();
+								   }
+								   template<typename Type, typename Allocator>
+								   static void TemplatedCallCopy(ManagerStorage& lhs, const ManagerStorage& rhs)
+								   {
+									   typedef FunctionManagerSpecialization<Type, Allocator> specialization;
+									   CreateManager<Type, Allocator>(lhs, Allocator(rhs.GetAllocator<Allocator>()));
+									   specialization::Store(lhs, specialization::FunctorReference(rhs));
+								   }
+								   template<typename Type, typename Allocator>
+								   static void TemplatedCallDestroy(ManagerStorage& self)
+								   {
+									   typedef FunctionManagerSpecialization<Type, Allocator> specialization;
+									   specialization::Destroy(self.GetAllocator<Allocator>(), self);
+									   self.GetAllocator<Allocator>().~Allocator();
+								   }
+								   template<typename Type, typename Allocator>
+								   static void TemplatedCallCopyFuncOnly(ManagerStorage& lhs, const ManagerStorage& rhs)
+								   {
+									   typedef FunctionManagerSpecialization<Type, Allocator> specialization;
+									   specialization::Store(lhs, specialization::FunctorReference(rhs));
+								   }
+								   template<typename Type, typename>
+								   static const std::type_info& TemplatedCallTypeId()
+								   {
+									   return typeid(Type);
+								   }
+								   template<typename Type, typename Allocator>
+								   static void* TemplatedCallTarget(const ManagerStorage& self, const std::type_info& type)
+								   {
+									   typedef FunctionManagerSpecialization<Type, Allocator> specialization;
+									   if (type == typeid(Type)) { return &specialization::FunctorReference(self); }
+									   else { return nullptr; }
+								   }
+							   };
 
-	template<typename Type, typename Allocator>
-	static inline const FunctionManager& DefaultManager()
-	{
-		static const FunctionManager defaultManager = FunctionManager::CreateDefaultManager<Type, Allocator>();
-		return defaultManager;
-	}
+							   template<typename Type, typename Allocator>
+							   static inline const FunctionManager& DefaultManager()
+							   {
+								   static const FunctionManager defaultManager = FunctionManager::CreateDefaultManager<Type, Allocator>();
+								   return defaultManager;
+							   }
 }
 
 template<typename Result, typename... Arguments>

@@ -99,7 +99,7 @@ template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap() {}
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap)
 {
 	Memory::AllocateArray(&cells, cap, capacity);
-	capacity = BitCeiling(capacity) >> 1;
+	capacity = BitFloor(capacity);
 	capMinusOne = capacity - 1;
 	defVal = {};
 }
@@ -107,7 +107,7 @@ template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap)
 template<class Key, class Value> inline Hashmap<Key, Value>::Hashmap(U64 cap, const Value& def)
 {
 	Memory::AllocateArray(&cells, cap, capacity);
-	capacity = BitCeiling(capacity) >> 1;
+	capacity = BitFloor(capacity);
 	capMinusOne = capacity - 1;
 	defVal = def;
 }
@@ -172,7 +172,7 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Destroy()
 			}
 		}
 
-		Memory::FreeArray(&cells);
+		Memory::Free(&cells);
 		size = 0;
 		capacity = 0;
 		capMinusOne = 0;
@@ -420,7 +420,7 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Reserve(U64 ca
 	if (cap < capacity) { return; }
 
 	Memory::Reallocate(&cells, cap, capacity);
-	capacity = BitCeiling(capacity) >> 1;
+	capacity = BitFloor(capacity);
 	capMinusOne = capacity - 1;
 
 	Empty();

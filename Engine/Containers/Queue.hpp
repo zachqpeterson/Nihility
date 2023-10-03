@@ -56,7 +56,7 @@ template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : front{ other.fro
 
 template<typename T> inline Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 {
-	if (array) { Memory::FreeArray(array); }
+	if (array) { Memory::Free(array); }
 	front = other.front;
 	back = other.back;
 	size = other.size;
@@ -71,7 +71,7 @@ template<typename T> inline Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 
 template<typename T> inline Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 {
-	if (array) { Memory::FreeArray(array); }
+	if (array) { Memory::Free(array); }
 	front = other.front;
 	back = other.back;
 	size = other.size;
@@ -85,7 +85,7 @@ template<typename T> inline Queue<T>& Queue<T>::operator=(Queue<T>&& other)
 
 template<typename T> inline Queue<T>::~Queue() { Destroy(); }
 
-template<typename T> inline void Queue<T>::Destroy() { front = 0; back = 0; size = 0; capacity = 0; if (array) { Memory::FreeArray(&array); } }
+template<typename T> inline void Queue<T>::Destroy() { front = 0; back = 0; size = 0; capacity = 0; if (array) { Memory::Free(&array); } }
 
 template<typename T> inline void Queue<T>::Push(const T& value)
 {

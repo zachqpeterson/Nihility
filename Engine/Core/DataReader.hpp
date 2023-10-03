@@ -13,6 +13,8 @@ struct DataReader
 
 	template<typename Type> void Read(Type& value);
 	template<typename Type> Type Read();
+	template<typename Type> void ReadSize(Type& value, U32 size);
+	void ReadSize(void* data, U32 size);
 	String ReadString();
 	String ReadLine();
 	template<Character C, U64 Count> bool Compare(const C(&str)[Count]);
@@ -48,6 +50,14 @@ inline Type DataReader::Read()
 	dataPtr += sizeof(Type);
 	remaining -= sizeof(Type);
 	return Move(value);
+}
+
+template<typename Type> 
+inline void DataReader::ReadSize(Type& value, U32 size)
+{
+	value = *reinterpret_cast<Type*>(dataPtr);
+	dataPtr += size;
+	remaining -= size;
 }
 
 template<Character C, U64 Count> 

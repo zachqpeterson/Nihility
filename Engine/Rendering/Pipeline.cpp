@@ -71,11 +71,6 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 	return true;
 }
 
-void Pipeline::Resize()
-{
-	renderpass->Resize();
-}
-
 void Pipeline::Destroy()
 {
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
@@ -238,7 +233,7 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		VkValidate(vkGetPipelineCacheData(Renderer::device, pipelineCache, &cacheDataSize, cacheData));
 
 		cache.Write(cacheData, (U32)cacheDataSize);
-		Memory::FreeSize(&cacheData);
+		Memory::Free(&cacheData);
 
 		cache.Close();
 	}

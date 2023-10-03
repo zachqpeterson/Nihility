@@ -1,34 +1,28 @@
 #include "Memory.hpp"
 
-#include <string.h>
+#include "Platform\ThreadSafety.hpp"
 
 U8* Memory::memory{ nullptr };
 U64 Memory::totalSize{ 0 };
 
-U64 Memory::staticSize{ 0 };
+U8* Memory::dynamicPointer{ nullptr };
 U8* Memory::staticPointer{ nullptr };
 
 Memory::Region1kb* Memory::pool1kbPointer{ nullptr };
-U32* Memory::free1kbIndices{ nullptr };
-I64 Memory::last1kbFree{ 0 };
+Freelist Memory::free1kbIndices;
 
 Memory::Region16kb* Memory::pool16kbPointer{ nullptr };
-U32* Memory::free16kbIndices{ nullptr };
-I64 Memory::last16kbFree{ 0 };
+Freelist Memory::free16kbIndices;
 
 Memory::Region256kb* Memory::pool256kbPointer{ nullptr };
-U32* Memory::free256kbIndices{ nullptr };
-I64 Memory::last256kbFree{ 0 };
+Freelist Memory::free256kbIndices;
 
 Memory::Region4mb* Memory::pool4mbPointer{ nullptr };
-U32* Memory::free4mbIndices{ nullptr };
-I64 Memory::last4mbFree{ 0 };
-
-bool Memory::initialized{ false };
+Freelist Memory::free4mbIndices;
 
 bool Memory::Initialize()
 {
-	if (!SafeCheckAndSet(&initialized))
+	if (!SafeCheckAndSet(&initialized, 0L))
 	{
 		U64 maxKilobytes = DYNAMIC_SIZE / 1024;
 
@@ -37,30 +31,28 @@ bool Memory::Initialize()
 		U32 region16kbCount = U32(maxKilobytes * 0.3f) / 16;
 		U32 region1kbCount = U32(maxKilobytes - (region16kbCount * 16) - (region256kbCount * 256) - (region4mbCount * 4096));
 
-		U64 pointerToDynamic = sizeof(U32) * (region1kbCount + region16kbCount + region256kbCount + region4mbCount);
+		U32 freeListMemory = (region4mbCount + region256kbCount + region16kbCount + region1kbCount) * sizeof(U32);
 
-		totalSize = pointerToDynamic + DYNAMIC_SIZE + STATIC_SIZE;
+		totalSize = DYNAMIC_SIZE + STATIC_SIZE;
 
-		memory = (U8*)calloc(1, totalSize);
+		memory = (U8*)calloc(1, totalSize + freeListMemory);
 
 		if (!memory) { return false; }
 
-		free1kbIndices = (U32*)memory;
-		for (U32 i = 0; i < region1kbCount; ++i) { free1kbIndices[i] = i; }
-		free16kbIndices = free1kbIndices + region1kbCount;
-		for (U32 i = 0; i < region16kbCount; ++i) { free16kbIndices[i] = i; }
-		free256kbIndices = free16kbIndices + region16kbCount;
-		for (U32 i = 0; i < region256kbCount; ++i) { free256kbIndices[i] = i; }
-		free4mbIndices = free256kbIndices + region256kbCount;
-		for (U32 i = 0; i < region4mbCount; ++i) { free4mbIndices[i] = i; }
+		staticPointer = memory;
+		dynamicPointer = memory + STATIC_SIZE;
 
-		pool1kbPointer = (Region1kb*)(free4mbIndices + region4mbCount);
+		pool1kbPointer = (Region1kb*)(dynamicPointer);
 		pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);
 		pool256kbPointer = (Region256kb*)(pool16kbPointer + region16kbCount);
 		pool4mbPointer = (Region4mb*)(pool256kbPointer + region256kbCount);
 
-		staticPointer = (U8*)(pool4mbPointer + region4mbCount); //TODO: linear allocator should be before dynamic allocator
-		staticSize = memory - staticPointer;
+		U32* freeLists = (U32*)(memory + totalSize);
+
+		free1kbIndices(freeLists, region1kbCount);
+		free16kbIndices(freeLists + region1kbCount, region16kbCount);
+		free256kbIndices(freeLists + region1kbCount + region16kbCount, region256kbCount);
+		free4mbIndices(freeLists + region1kbCount + region16kbCount + region256kbCount, region4mbCount);
 	}
 
 	return true;
@@ -68,45 +60,49 @@ bool Memory::Initialize()
 
 void Memory::Shutdown()
 {
+	free1kbIndices.Destroy();
+	free16kbIndices.Destroy();
+	free256kbIndices.Destroy();
+	free4mbIndices.Destroy();
 	free(memory);
 }
 
-void Memory::Allocate1kb(void** pointer)
+void Memory::Allocate1kb(void** pointer, U64 size)
 {
-	static bool init = Initialize();
+	if (free1kbIndices.Full()) { Allocate16kb(pointer, size); return; }
 
-	*pointer = pool1kbPointer + free1kbIndices[SafeIncrement(&last1kbFree) - 1];
+	*pointer = pool1kbPointer + free1kbIndices.GetFree();
 }
 
-void Memory::Allocate16kb(void** pointer)
+void Memory::Allocate16kb(void** pointer, U64 size)
 {
-	static bool init = Initialize();
+	if (free16kbIndices.Full()) { Allocate256kb(pointer, size); return; }
 
-	*pointer = pool16kbPointer + free16kbIndices[SafeIncrement(&last16kbFree) - 1];
+	*pointer = pool16kbPointer + free16kbIndices.GetFree();
 }
 
-void Memory::Allocate256kb(void** pointer)
+void Memory::Allocate256kb(void** pointer, U64 size)
 {
-	static bool init = Initialize();
+	if (free256kbIndices.Full()) { Allocate4mb(pointer, size); return; }
 
-	*pointer = pool256kbPointer + free256kbIndices[SafeIncrement(&last256kbFree) - 1];
+	*pointer = pool256kbPointer + free256kbIndices.GetFree();
 }
 
-void Memory::Allocate4mb(void** pointer)
+void Memory::Allocate4mb(void** pointer, U64 size)
 {
-	static bool init = Initialize();
+	if (free4mbIndices.Full()) { *pointer = calloc(1, size); return; }
 
-	*pointer = pool4mbPointer + free4mbIndices[SafeIncrement(&last4mbFree) - 1];
+	*pointer = pool4mbPointer + free4mbIndices.GetFree();
 }
 
-void Memory::Free(void** pointer)
+void Memory::FreeChunk(void** pointer)
 {
-	void* cmp = *pointer;
+	void* cmp = (void*)*pointer;
 
-	if (cmp >= pool4mbPointer) { Free4mb(pointer); }
-	else if (cmp >= pool256kbPointer) { Free256kb(pointer); }
-	else if (cmp >= pool16kbPointer) { Free16kb(pointer); }
-	else if (cmp >= pool1kbPointer) { Free1kb(pointer); }
+	if (cmp >= pool4mbPointer) { Free4mb((void**)pointer); }
+	else if (cmp >= pool256kbPointer) { Free256kb((void**)pointer); }
+	else if (cmp >= pool16kbPointer) { Free16kb((void**)pointer); }
+	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); }
 }
 
 void Memory::CopyFree(void** pointer, void* copy, U64 size)
@@ -122,36 +118,41 @@ void Memory::CopyFree(void** pointer, void* copy, U64 size)
 void Memory::Free1kb(void** pointer)
 {
 	Zero(*pointer, sizeof(Region1kb));
-	free1kbIndices[SafeDecrement(&last1kbFree)] = U32((Region1kb*)*pointer - pool1kbPointer);
+	free1kbIndices.Release((U32)((Region1kb*)*pointer - pool1kbPointer));
 	*pointer = nullptr;
 }
 
 void Memory::Free16kb(void** pointer)
 {
 	Zero(*pointer, sizeof(Region16kb));
-	free16kbIndices[SafeDecrement(&last16kbFree)] = U32((Region16kb*)*pointer - pool16kbPointer);
+	free16kbIndices.Release((U32)((Region16kb*)*pointer - pool16kbPointer));
 	*pointer = nullptr;
 }
 
 void Memory::Free256kb(void** pointer)
 {
 	Zero(*pointer, sizeof(Region256kb));
-	free256kbIndices[SafeDecrement(&last256kbFree)] = U32((Region256kb*)*pointer - pool256kbPointer);
+	free256kbIndices.Release((U32)((Region256kb*)*pointer - pool256kbPointer));
 	*pointer = nullptr;
 }
 
 void Memory::Free4mb(void** pointer)
 {
 	Zero(*pointer, sizeof(Region4mb));
-	free4mbIndices[SafeDecrement(&last4mbFree)] = U32((Region4mb*)*pointer - pool4mbPointer);
+	free4mbIndices.Release((U32)((Region4mb*)*pointer - pool4mbPointer));
 	*pointer = nullptr;
 }
 
-bool Memory::IsAllocated(void* pointer)
+bool Memory::IsDynamicallyAllocated(void* pointer)
 {
-	static const void* upperBound = memory + totalSize - staticSize;
+	static const void* upperBound = memory + totalSize;
 
 	return pointer != nullptr && pointer >= pool1kbPointer && pointer < upperBound;
+}
+
+bool Memory::IsStaticallyAllocated(void* pointer)
+{
+	return pointer != nullptr && pointer >= memory && pointer < pool1kbPointer;
 }
 
 U64 Memory::MemoryAlign(U64 size, U64 alignment)
@@ -163,7 +164,7 @@ U64 Memory::MemoryAlign(U64 size, U64 alignment)
 void Memory::Set(void* pointer, U8 value, U64 size)
 {
 	U8* ptr = (U8*)pointer;
-	while (size) { --size; *ptr = value; ++ptr; }
+	while (size--) { *ptr++ = value; }
 }
 
 void Memory::Zero(void* pointer, U64 size)
@@ -171,12 +172,25 @@ void Memory::Zero(void* pointer, U64 size)
 	static constexpr U8 ZERO = 0UI8;
 
 	U8* ptr = (U8*)pointer;
-	while (size) { --size; *ptr = ZERO; ++ptr; }
+	while (size--) { *ptr++ = ZERO; }
 }
 
 void Memory::Copy(void* dst, const void* src, U64 size)
 {
-	memcpy(dst, src, size);
+	if (src > dst)
+	{
+		U8* it0 = (U8*)dst;
+		const U8* it1 = (const U8*)src;
+	
+		while (size--) { *it0++ = *it1++; }
+	}
+	else
+	{
+		U8* it0 = (U8*)dst + size - 1;
+		const U8* it1 = (const U8*)src + size - 1;
+
+		while (size--) { *it0-- = *it1--; }
+	}
 }
 
 /*---------GLOBAL NEW/DELETE---------*/
@@ -197,10 +211,10 @@ NH_NODISCARD void* operator new[](U64 size)
 
 void operator delete (void* ptr)
 {
-	Memory::FreeSize(&ptr);
+	Memory::Free(&ptr);
 }
 
 void operator delete[](void* ptr)
 {
-	Memory::FreeSize(&ptr);
+	Memory::Free(&ptr);
 }

@@ -2,6 +2,7 @@
 
 #include "Memory\Memory.hpp"
 #include "Platform\Platform.hpp"
+#include "Platform\Audio.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Jobs.hpp"
 #include "Platform\Function.hpp"
@@ -45,8 +46,8 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(UI::Initialize());
 
 	//Physics
-	//Particle
-	//Audio
+	//Particles
+	ASSERT(Audio::Initialize());
 	ASSERT(GameInit());
 
 	UpdateLoop();
@@ -57,8 +58,8 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 void Engine::Shutdown()
 {
 	GameShutdown();
-	//Audio
-	//Particle
+	Audio::Shutdown();
+	//Particles
 	//Physics
 	UI::Shutdown();
 	Renderer::Shutdown();
@@ -92,10 +93,7 @@ void Engine::UpdateLoop()
 		GameUpdate();
 		//Animations::Update();
 
-		if (Settings::Focused() || Settings::UnfocusedAudio())
-		{
-			//Audio::Update();
-		}
+		Audio::Update();
 
 		if (!Settings::Minimised())
 		{

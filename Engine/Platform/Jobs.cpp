@@ -43,8 +43,8 @@ bool Jobs::Initialize()
 		if (handle)
 		{
 			UL32 affinityMask = 1ull << id;
-			U64 affinity_result = SetThreadAffinityMask(handle, affinityMask);
-			//BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_HIGHEST);
+			U64 affinityResult = SetThreadAffinityMask(handle, affinityMask);
+			//BOOL priorityResult = SetThreadPriority(handle, THREAD_PRIORITY_HIGHEST);
 
 			CloseHandle(handle);
 		}

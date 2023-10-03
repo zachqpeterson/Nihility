@@ -462,7 +462,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator=(const Vector<T>& oth
 
 template<typename T> inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
 {
-	if (array) { Memory::FreeArray(&array); }
+	if (array) { Memory::Free(&array); }
 	size = other.size;
 	capacity = other.capacity;
 	array = other.array;
@@ -476,7 +476,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) n
 
 template<typename T> inline Vector<T>::~Vector() { Destroy(); }
 
-template<typename T> inline void Vector<T>::Destroy() { size = 0; capacity = 0; Memory::FreeArray(&array); }
+template<typename T> inline void Vector<T>::Destroy() { size = 0; capacity = 0; Memory::Free(&array); }
 
 template<typename T> inline void Vector<T>::Push(const T& value)
 {

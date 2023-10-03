@@ -33,7 +33,7 @@ bool File::Open(const C8* path, I32 mode)
 void File::Destroy()
 {
 	Close();
-	if (streamBuffer) { Memory::FreeArray(&streamBuffer); }
+	if (streamBuffer) { Memory::Free(&streamBuffer); }
 }
 
 void File::Close()

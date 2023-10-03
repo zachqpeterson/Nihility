@@ -101,6 +101,7 @@ private:
 	STATIC_CLASS(Settings);
 	friend class Platform;
 	friend class Engine;
+	friend class Audio;
 	friend class Jobs;
 	friend class Renderer;
 };

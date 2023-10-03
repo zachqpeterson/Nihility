@@ -37,7 +37,7 @@ inline void Pool<Type, Count>::Create()
 template<class Type, U64 Count>
 inline void Pool<Type, Count>::Destroy()
 {
-	Memory::FreeSize(&memory);
+	Memory::Free(&memory);
 	lastFree = 0;
 }
 

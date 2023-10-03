@@ -415,7 +415,7 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
 	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
@@ -461,6 +461,12 @@ struct Buffer
 
 	void* data{ nullptr };
 	bool mapped{ false };
+};
+
+struct Binary
+{
+	U32 size{ 0 };
+	void* data{ nullptr };
 };
 
 struct Renderpass

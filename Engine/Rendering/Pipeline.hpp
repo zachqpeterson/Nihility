@@ -71,8 +71,6 @@ struct Pipeline
 	bool Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo);
 	void Destroy();
 
-	void Resize();
-
 	String				name{};
 	U64					handle{ U64_MAX };
 

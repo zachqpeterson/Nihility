@@ -4,34 +4,57 @@
 
 #include <Windows.h>
 
-I64 SafeIncrement(I64 volatile* i)
+namespace Details
 {
-	return InterlockedIncrement64(i);
-}
+	I64 Increment64(volatile I64* i)
+	{
+		return InterlockedIncrement64(i);
+	}
 
-U64 SafeIncrement(U64 volatile* i)
-{
-	return InterlockedIncrement(i);
-}
+	I64 Decrement64(volatile I64* i)
+	{
+		return InterlockedDecrement64(i);
+	}
 
-I64 SafeDecrement(I64 volatile* i)
-{
-	return InterlockedDecrement64(i);
-}
+	L32 Increment(volatile L32* i)
+	{
+		return InterlockedIncrement(i);
+	}
 
-U64 SafeDecrement(U64 volatile* i)
-{
-	return InterlockedDecrement(i);
-}
+	L32 Decrement(volatile L32* i)
+	{
+		return InterlockedDecrement(i);
+	}
 
-bool SafeCheckAndSet(bool volatile* b)
-{
-	return InterlockedBitTestAndSet64((I64 volatile*)b, 0);
-}
+	I64 CheckAndSet64(volatile I64* i, I64 pos)
+	{
+		return InterlockedBitTestAndSet64(i, pos);
+	}
 
-bool SafeCheckAndReset(bool volatile* b)
-{
-	return InterlockedBitTestAndSet64((I64 volatile*)b, 0);
+	L32 CheckAndSet(volatile L32* i, L32 pos)
+	{
+		return InterlockedBitTestAndSet(i, pos);
+	}
+
+	I64 CheckAndReset64(volatile I64* i, I64 pos)
+	{
+		return InterlockedBitTestAndReset64(i, pos);
+	}
+
+	L32 CheckAndReset(volatile L32* i, L32 pos)
+	{
+		return InterlockedBitTestAndReset(i, pos);
+	}
+
+	I64 CompareAndExchange64(volatile I64* i, I64 exchange, I64 comperand)
+	{
+		return InterlockedCompareExchange64(i, exchange, comperand);
+	}
+
+	L32 CompareAndExchange(volatile L32* i, L32 exchange, L32 comperand)
+	{
+		return InterlockedCompareExchange(i, exchange, comperand);
+	}
 }
 
 #endif

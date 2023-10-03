@@ -5,6 +5,8 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "External\stb_truetype.h"
 
+Vector2Int Font::atlasPositions[96];
+
 U32 UTF8(const C8* c)
 {
 	U32 val = 0;
@@ -601,6 +603,7 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 
 	Hashmap<I32, C8> glyphToCodepoint{ 128 };
 
+	//TODO: Add padding between glyphs
 	for (C8 i = 0; i < 96; ++i)
 	{
 		C8 codepoint = i + 32;
@@ -614,8 +617,6 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 				Memory::Copy(atlas + x + j * rowSize + y, bitmap + j * 128, sizeof(F32) * 128);
 			}
 		}
-
-		font.glyphs[i].atlasPosition = { x >> 7, y >> 15 };
 
 		x += 128;
 		if (x == 1024) { x = 0; y += glyphRowSize; }
@@ -878,7 +879,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 		}
 	}
 
-	Memory::FreeArray(&corners);
+	Memory::Free(&corners);
 
 	for (I32 i = 0; i < contourCount; ++i)
 	{
@@ -1081,12 +1082,12 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 		}
 	}
 
-	for (I32 i = 0; i < contourCount; ++i) { Memory::FreeArray(&contourData[i].edges); }
+	for (I32 i = 0; i < contourCount; ++i) { Memory::Free(&contourData[i].edges); }
 
-	Memory::FreeArray(&contourData);
-	Memory::FreeArray(&contourSd);
-	Memory::FreeArray(&contours);
-	Memory::FreeArray(&windings);
+	Memory::Free(&contourData);
+	Memory::Free(&contourSd);
+	Memory::Free(&contours);
+	Memory::Free(&windings);
 
 	stbtt_FreeShape(info, verts);
 
@@ -1125,7 +1126,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 		bitmap[index + 2] = med;
 	}
 
-	Memory::FreeArray(&clashes);
+	Memory::Free(&clashes);
 
 	return true;
 }

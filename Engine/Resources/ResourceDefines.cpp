@@ -85,9 +85,9 @@ TextureInfo& TextureInfo::SetData(void* data)
 
 void Renderpass::Resize()
 {
-	if (lastResize < Renderer::CurrentFrame())
+	if (lastResize < Renderer::absoluteFrame)
 	{
-		lastResize = Renderer::CurrentFrame();
+		lastResize = Renderer::absoluteFrame;
 
 		width = Settings::WindowWidth();
 		height = Settings::WindowHeight();

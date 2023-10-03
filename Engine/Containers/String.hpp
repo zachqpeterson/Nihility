@@ -281,7 +281,7 @@ inline StringBase<C>& StringBase<C>::operator=(const StringBase& other) noexcept
 template<Character C>
 inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
 {
-	if(string) { Memory::FreeArray(&string); }
+	if(string) { Memory::Free(&string); }
 
 	hash = other.hash;
 	size = other.size;
@@ -330,7 +330,7 @@ inline StringBase<C>::~StringBase() noexcept
 	{
 		size = 0;
 		capacity = 0;
-		Memory::FreeArray(&string);
+		Memory::Free(&string);
 	}
 }
 
@@ -342,7 +342,7 @@ inline void StringBase<C>::Destroy() noexcept
 	{
 		size = 0;
 		capacity = 0;
-		Memory::FreeArray(&string);
+		Memory::Free(&string);
 	}
 }
 

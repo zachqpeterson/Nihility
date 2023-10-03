@@ -56,6 +56,9 @@
     <Filter Include="Source Files\External\LunarG\glslang\SPIRV">
       <UniqueIdentifier>{b5f44c78-25b3-4293-b2bc-eb181564e7c6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Platform\Audio">
+      <UniqueIdentifier>{aeb6384d-a089-44d2-b2cc-9bc52c467d0a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -451,6 +454,12 @@
     <ClInclude Include="Engine\Resources\Font.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Platform\Audio.hpp">
+      <Filter>Source Files\Platform\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Freelist.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -668,6 +677,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Resources\Font.cpp">
       <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Audio.cpp">
+      <Filter>Source Files\Platform\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Freelist.cpp">
+      <Filter>Source Files\Containers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

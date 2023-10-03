@@ -636,7 +636,7 @@ void Renderer::Resize()
 
 	swapchain.Create();
 
-	Resources::UpdatePipelines();
+	Resources::Resize();
 	currentScene->updatePostProcess = true;
 
 	vkDeviceWaitIdle(device);

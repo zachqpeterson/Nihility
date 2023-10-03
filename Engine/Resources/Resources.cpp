@@ -1,6 +1,7 @@
 #include "Resources.hpp"
 
 #include "Font.hpp"
+#include "Platform\Audio.hpp"
 #include "Settings.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Core\Logger.hpp"
@@ -23,8 +24,6 @@
 #undef near
 #undef far
 
-#define BYTECAST(x) ((U8)((x) & 255))
-
 #define ASSIMP_IMPORT_FLAGS (					\
 	aiProcess_CalcTangentSpace				|	\
     aiProcess_JoinIdenticalVertices			|	\
@@ -41,6 +40,46 @@
     aiProcess_OptimizeGraph					|	\
 	aiProcess_FlipUVs						|   \
     aiProcess_EmbedTextures)
+
+#if NH_BIG_ENDIAN
+#define WAV_RIFF 'RIFF'
+#define WAV_DATA 'data'
+#define WAV_FMT 'fmt '
+#define WAV_WAVE 'WAVE'
+#define WAV_XWMA 'XWMA'
+#define WAV_DPDS 'dpds'
+#define WAV_LIST 'LIST'
+#else
+#define WAV_RIFF 'FFIR'
+#define WAV_DATA 'atad'
+#define WAV_FMT ' tmf'
+#define WAV_WAVE 'EVAW'
+#define WAV_XWMA 'AMWX'
+#define WAV_DPDS 'sdpd'
+#define WAV_LIST 'TSIL'
+#endif
+
+struct MP3Header
+{
+	U16 sync : 12;
+	U16 version : 1;
+	U16 layer : 2;
+	U16 errorProtection : 1;
+
+	U8 bitRate : 4;
+	U8 frequency : 2;
+	U8 padded : 1;
+	U8 unknown : 1;
+
+	U8 mode : 2;
+	U8 intensityStereo : 1;
+	U8 msStereo : 1;
+	U8 copywrited : 1;
+	U8 original : 1;
+	U8 emphasis : 2;
+};
+
+constexpr U64 size = sizeof(MP3Header);
 
 //nhtex
 //nhaud
@@ -69,7 +108,8 @@ Pipeline* Resources::meshPipeline;
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
 Hashmap<String, Font>			Resources::fonts{ 32, {} };
-Hashmap<String, Renderpass>		Resources::renderpasses{ 256, {} };
+Hashmap<String, AudioClip>		Resources::audioClips{ 512, {} };
+Hashmap<String, Renderpass>		Resources::renderpasses{ 32, {} };
 Hashmap<String, Shader>			Resources::shaders{ 128, {} };
 Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
 Hashmap<String, Model>			Resources::models{ 128, {} };
@@ -223,6 +263,8 @@ void Resources::Shutdown()
 	CleanupHashmap(samplers, Renderer::DestroySamplerInstant);
 	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
 	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
+	CleanupHashmap(fonts, nullptr);
+	CleanupHashmap(audioClips, nullptr);
 	CleanupHashmap(shaders, nullptr);
 	CleanupHashmap(pipelines, nullptr);
 	CleanupHashmap(models, nullptr);
@@ -233,6 +275,8 @@ void Resources::Shutdown()
 	textures.Destroy();
 	descriptorSetLayouts.Destroy();
 	renderpasses.Destroy();
+	fonts.Destroy();
+	audioClips.Destroy();
 	shaders.Destroy();
 	pipelines.Destroy();
 	models.Destroy();
@@ -309,35 +353,13 @@ void Resources::Update()
 	}
 }
 
-void Resources::UpdatePipelines()
+void Resources::Resize()
 {
-	typename Hashmap<String, Pipeline>::Iterator end = pipelines.end();
-	for (auto it = pipelines.begin(); it != end; ++it)
+	typename Hashmap<String, Renderpass>::Iterator end = renderpasses.end();
+	for (auto it = renderpasses.begin(); it != end; ++it)
 	{
 		if (it.Valid() && !it->name.Blank()) { it->Resize(); }
 	}
-}
-
-Sampler* Resources::CreateSampler(const SamplerInfo& info)
-{
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	Sampler* sampler = &samplers.Request(info.name);
-
-	if (!sampler->name.Blank()) { return sampler; }
-
-	sampler->addressModeU = info.addressModeU;
-	sampler->addressModeV = info.addressModeV;
-	sampler->addressModeW = info.addressModeW;
-	sampler->minFilter = info.minFilter;
-	sampler->magFilter = info.magFilter;
-	sampler->mipFilter = info.mipFilter;
-	sampler->name = info.name;
-	sampler->handle = samplers.GetHandle(info.name);
-
-	Renderer::CreateSampler(sampler);
-
-	return sampler;
 }
 
 Texture* Resources::CreateTexture(const TextureInfo& info)
@@ -405,181 +427,26 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	return texture;
 }
 
-bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
+Sampler* Resources::CreateSampler(const SamplerInfo& info)
 {
-	vkDestroyImageView(Renderer::device, texture->imageView, Renderer::allocationCallbacks);
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	texture->image = image;
+	Sampler* sampler = &samplers.Request(info.name);
 
-	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	viewInfo.pNext = nullptr;
-	viewInfo.flags = 0;
-	viewInfo.image = image;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = texture->format;
-	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-	viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
+	if (!sampler->name.Blank()) { return sampler; }
 
-	VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView));
+	sampler->addressModeU = info.addressModeU;
+	sampler->addressModeV = info.addressModeV;
+	sampler->addressModeW = info.addressModeW;
+	sampler->minFilter = info.minFilter;
+	sampler->magFilter = info.magFilter;
+	sampler->mipFilter = info.mipFilter;
+	sampler->name = info.name;
+	sampler->handle = samplers.GetHandle(info.name);
 
-	texture->mipmaps[0] = texture->imageView;
+	Renderer::CreateSampler(sampler);
 
-	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
-
-	return true;
-}
-
-bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
-{
-	Texture deleteTexture;
-	deleteTexture.imageView = texture->imageView;
-	deleteTexture.image = texture->image;
-	deleteTexture.allocation = texture->allocation;
-
-	texture->width = width;
-	texture->height = height;
-	texture->depth = depth;
-
-	Renderer::CreateTexture(texture, nullptr);
-
-	Renderer::DestroyTextureInstant(&deleteTexture);
-
-	return true;
-}
-
-Font* Resources::LoadFont(const String& path)
-{
-	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	HashHandle handle;
-	Font* font = &fonts.Request(path, handle);
-
-	if (!font->name.Blank()) { return font; }
-
-	*font = {};
-
-	File file(path, FILE_OPEN_RESOURCE_READ);
-	if (file.Opened())
-	{
-		font->name = path;
-		font->handle = handle;
-
-		DataReader reader{ file };
-		file.Close();
-
-		if (!reader.Compare("NH Font"))
-		{
-			Logger::Error("Asset '{}' Is Not A Nihility Font!", path);
-			fonts.Remove(handle);
-			return nullptr;
-		}
-
-		reader.Seek(4); //Skip version number for now, there is only one
-
-		reader.Read(font->ascent);
-		reader.Read(font->descent);
-		reader.Read(font->lineGap);
-
-		for (U32 i = 0; i < 96; ++i)
-		{
-			reader.Read(font->glyphs[i]);
-		}
-
-		String textureName = path.GetFileName().Appended("_texture");
-
-		Texture* texture = &textures.Request(textureName, handle);
-		*texture = {};
-
-		reader.Read(texture->width);
-		reader.Read(texture->height);
-
-		texture->name = Move(textureName);
-		texture->handle = handle;
-		texture->type = VK_IMAGE_TYPE_2D;
-		texture->flags = 0;
-		texture->depth = 1;
-		texture->format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		texture->mipmapCount = 1;
-		texture->size = texture->width * texture->height * 4 * sizeof(F32);
-
-		if (!Renderer::CreateTexture(texture, reader.Pointer()))
-		{
-			Logger::Error("Failed To Create Texture: {}!", texture->name);
-			fonts.Remove(font->handle);
-			textures.Remove(handle);
-			return nullptr;
-		}
-
-		font->texture = texture;
-
-		return font;
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}!", path);
-
-	fonts.Remove(handle);
-	return nullptr;
-}
-
-Texture* Resources::LoadTexture(const String& path)
-{
-	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	HashHandle handle;
-	Texture* texture = &textures.Request(path, handle);
-
-	if (!texture->name.Blank()) { return texture; }
-
-	*texture = {};
-
-	File file(path, FILE_OPEN_RESOURCE_READ);
-	if (file.Opened())
-	{
-		texture->name = path;
-		texture->type = VK_IMAGE_TYPE_2D;
-		texture->flags = 0;
-		texture->depth = 1;
-		texture->handle = textures.GetHandle(path);
-
-		DataReader reader{ file };
-		file.Close();
-
-		if (!reader.Compare("NH Texture"))
-		{
-			Logger::Error("Asset '{}' Is Not A Nihility Texture!", path);
-			textures.Remove(handle);
-			return nullptr;
-		}
-
-		reader.Seek(4); //Skip version number for now, there is only one
-
-		reader.Read(texture->width);
-		reader.Read(texture->height);
-		reader.Read(texture->format);
-		reader.Read(texture->mipmapCount);
-		texture->size = texture->width * texture->height * 4;
-
-		if (!Renderer::CreateTexture(texture, reader.Pointer()))
-		{
-			Logger::Error("Failed To Create Texture: {}!", path);
-			textures.Remove(path);
-			return nullptr;
-		}
-
-		return texture;
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}!", path);
-
-	textures.Remove(path);
-	return nullptr;
+	return sampler;
 }
 
 DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info)
@@ -673,6 +540,264 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 	}
 
 	return pipeline;
+}
+
+Scene* Resources::CreateScene(const String& name)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	Scene* scene = &scenes.Request(name);
+
+	if (!scene->name.Blank()) { return scene; }
+
+	*scene = {};
+
+	scene->name = name;
+	scene->drawSkybox = false;
+
+	scene->Create();
+
+	return scene;
+}
+
+bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
+{
+	vkDestroyImageView(Renderer::device, texture->imageView, Renderer::allocationCallbacks);
+
+	texture->image = image;
+
+	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.pNext = nullptr;
+	viewInfo.flags = 0;
+	viewInfo.image = image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = texture->format;
+	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+	viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	VkValidateFR(vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView));
+
+	texture->mipmaps[0] = texture->imageView;
+
+	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
+
+	return true;
+}
+
+bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
+{
+	Texture deleteTexture;
+	deleteTexture.imageView = texture->imageView;
+	deleteTexture.image = texture->image;
+	deleteTexture.allocation = texture->allocation;
+
+	texture->width = width;
+	texture->height = height;
+	texture->depth = depth;
+
+	Renderer::CreateTexture(texture, nullptr);
+
+	Renderer::DestroyTextureInstant(&deleteTexture);
+
+	return true;
+}
+
+bool SetAtlasPositions()
+{
+	U8 x = 0;
+	U8 y = 0;
+
+	for (C8 i = 0; i < 96; ++i)
+	{
+		Font::atlasPositions[i] = { x, y };
+
+		++x &= 7;
+		y += x == 0;
+	}
+
+	return true;
+}
+
+Font* Resources::LoadFont(const String& path)
+{
+	static bool b = SetAtlasPositions();
+
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Font* font = &fonts.Request(path, handle);
+
+	if (!font->name.Blank()) { return font; }
+
+	*font = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		font->name = path;
+		font->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Font"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Font!", path);
+			fonts.Remove(handle);
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.Read(font->ascent);
+		reader.Read(font->descent);
+		reader.Read(font->lineGap);
+
+		for (U32 i = 0; i < 96; ++i)
+		{
+			reader.Read(font->glyphs[i]);
+		}
+
+		String textureName = path.GetFileName().Appended("_texture");
+
+		Texture* texture = &textures.Request(textureName, handle);
+		*texture = {};
+
+		reader.Read(texture->width);
+		reader.Read(texture->height);
+
+		texture->name = Move(textureName);
+		texture->handle = handle;
+		texture->type = VK_IMAGE_TYPE_2D;
+		texture->flags = 0;
+		texture->depth = 1;
+		texture->format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		texture->mipmapCount = 1;
+		texture->size = texture->width * texture->height * 4 * sizeof(F32);
+
+		if (!Renderer::CreateTexture(texture, reader.Pointer()))
+		{
+			Logger::Error("Failed To Create Texture: {}!", texture->name);
+			fonts.Remove(font->handle);
+			textures.Remove(handle);
+			return nullptr;
+		}
+
+		font->texture = texture;
+
+		return font;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+
+	fonts.Remove(handle);
+	return nullptr;
+}
+
+AudioClip* Resources::LoadAudio(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	AudioClip* audioClip = &audioClips.Request(path, handle);
+
+	if (!audioClip->name.Blank()) { return audioClip; }
+
+	*audioClip = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		audioClip->name = path;
+		audioClip->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Audio"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Audio!", path);
+			audioClips.Remove(handle);
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.Read(audioClip->format);
+		reader.Read(audioClip->size);
+
+		Memory::AllocateSize(&audioClip->buffer, audioClip->size);
+
+		Memory::Copy(audioClip->buffer, reader.Pointer(), audioClip->size);
+
+		return audioClip;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+
+	audioClips.Remove(handle);
+	return nullptr;
+}
+
+Texture* Resources::LoadTexture(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Texture* texture = &textures.Request(path, handle);
+
+	if (!texture->name.Blank()) { return texture; }
+
+	*texture = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		texture->name = path;
+		texture->type = VK_IMAGE_TYPE_2D;
+		texture->flags = 0;
+		texture->depth = 1;
+		texture->handle = textures.GetHandle(path);
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Texture"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Texture!", path);
+			textures.Remove(handle);
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.Read(texture->width);
+		reader.Read(texture->height);
+		reader.Read(texture->format);
+		reader.Read(texture->mipmapCount);
+		texture->size = texture->width * texture->height * 4;
+
+		if (!Renderer::CreateTexture(texture, reader.Pointer()))
+		{
+			Logger::Error("Failed To Create Texture: {}!", path);
+			textures.Remove(path);
+			return nullptr;
+		}
+
+		return texture;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+
+	textures.Remove(path);
+	return nullptr;
 }
 
 Model* Resources::LoadModel(const String& path)
@@ -780,54 +905,36 @@ Model* Resources::LoadModel(const String& path)
 	return nullptr;
 }
 
-Skybox* Resources::LoadSkybox(const String& name)
+Skybox* Resources::LoadSkybox(const String& path)
 {
-	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Skybox* skybox = &skyboxes.Request(name);
+	Skybox* skybox = &skyboxes.Request(path);
 
 	if (!skybox->name.Blank()) { return skybox; }
 
-	skybox->name = name;
-	skybox->handle = skyboxes.GetHandle(name);
+	skybox->name = path;
+	skybox->handle = skyboxes.GetHandle(path);
 
 	return skybox;
 }
 
-Scene* Resources::CreateScene(const String& name)
+Scene* Resources::LoadScene(const String& path)
 {
-	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Scene* scene = &scenes.Request(name);
+	Scene* scene = &scenes.Request(path);
 
 	if (!scene->name.Blank()) { return scene; }
 
-	*scene = {};
-
-	scene->name = name;
-	scene->drawSkybox = false;
-
-	scene->Create();
-
-	return scene;
-}
-
-Scene* Resources::LoadScene(const String& name)
-{
-	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	Scene* scene = &scenes.Request(name);
-
-	if (!scene->name.Blank()) { return scene; }
-
-	scene->name = name;
+	scene->name = path;
 	scene->updatePostProcess = true;
 	scene->drawSkybox = true; //TODO: save in scene file
 
-	File file(name, FILE_OPEN_RESOURCE_READ);
+	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
-		I64 extIndex = name.LastIndexOf('.') + 1;
+		I64 extIndex = path.LastIndexOf('.') + 1;
 
 		bool success = false;
 
@@ -1019,7 +1126,7 @@ Scene* Resources::LoadScene(const String& name)
 
 		if (!success)
 		{
-			textures.Remove(name);
+			scenes.Remove(path);
 			file.Close();
 			return nullptr;
 		}
@@ -1028,10 +1135,48 @@ Scene* Resources::LoadScene(const String& name)
 		return scene;
 	}
 
-	Logger::Error("Failed To Find Or Open File: {}", name);
+	Logger::Error("Failed To Find Or Open File: {}", path);
 
-	scenes.Remove(name);
+	scenes.Remove(path);
 	return nullptr;
+}
+
+Binary Resources::LoadBinary(const String& path)
+{
+	File file{ path, FILE_OPEN_RESOURCE_READ };
+	if (file.Opened())
+	{
+		Binary binary{};
+
+		binary.size = (U32)file.Size();
+		Memory::AllocateSize(&binary.data, binary.size);
+
+		file.ReadCount((U8*)binary.data, binary.size);
+		file.Close();
+
+		return binary;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", path);
+
+	return {};
+}
+
+String Resources::LoadBinaryString(const String& path)
+{
+	File file{ path, FILE_OPEN_RESOURCE_READ };
+	if (file.Opened())
+	{
+		String string;
+		file.ReadAll(string);
+		file.Close();
+
+		return Move(string);
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", path);
+
+	return {};
 }
 
 void Resources::SaveScene(const Scene* scene)
@@ -1132,6 +1277,18 @@ void Resources::SaveScene(const Scene* scene)
 	//
 	//	file.Close();
 	//}
+}
+
+void Resources::SaveBinary(const String& path, U32 size, void* data)
+{
+	File file{ path, FILE_OPEN_RESOURCE_WRITE };
+	if (file.Opened())
+	{
+		file.Write(data, (U32)size);
+		file.Close();
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", path);
 }
 
 Sampler* Resources::AccessDummySampler()
@@ -1271,60 +1428,11 @@ void Resources::DestroyRenderpass(Renderpass* renderpass)
 	}
 }
 
-bool Resources::LoadBinary(const String& name, String& result)
+void Resources::DestroyBinary(Binary& binary)
 {
-	File file{ name, FILE_OPEN_RESOURCE_READ };
-	if (file.Opened())
-	{
-		file.ReadAll(result);
-		file.Close();
-
-		return true;
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}", name);
-
-	return false;
-}
-
-U32 Resources::LoadBinary(const String& name, void** result)
-{
-	File file{ name, FILE_OPEN_RESOURCE_READ };
-	if (file.Opened())
-	{
-		U32 read = file.ReadAll(result);
-		file.Close();
-
-		return read;
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}", name);
-
-	return false;
-}
-
-void Resources::SaveBinary(const String& name, const String& data)
-{
-	File file{ name, FILE_OPEN_RESOURCE_WRITE };
-	if (file.Opened())
-	{
-		file.Write(data);
-		file.Close();
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}", name);
-}
-
-void Resources::SaveBinary(const String& name, void* data, U64 length)
-{
-	File file{ name, FILE_OPEN_RESOURCE_WRITE };
-	if (file.Opened())
-	{
-		file.Write(data, (U32)length);
-		file.Close();
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}", name);
+	Memory::Free(&binary.data);
+	binary.data = nullptr;
+	binary.size = 0;
 }
 
 U8 Resources::MipmapCount(U16 width, U16 height)
@@ -1337,14 +1445,15 @@ String Resources::UploadFont(const String& path)
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
-		U8* data = (U8*)malloc(file.Size());
+		U8* data;
+		Memory::AllocateSize(&data, file.Size());
 		file.ReadCount(data, (U32)file.Size());
 		file.Close();
 
 		Font font;
 		F32* atlas = FontLoader::LoadFont(data, font);
 
-		free(data);
+		Memory::Free(&data);
 
 		String newPath = path.GetFileName().Surround("fonts/", ".nhfnt");
 		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
@@ -1374,14 +1483,81 @@ String Resources::UploadFont(const String& path)
 		return newPath;
 	}
 
-	Logger::Error("Failed To Upload Font: '{}'", path);
-
+	Logger::Error("Failed To Find Or Open File: {}!", path);
 	return {};
 }
 
 String Resources::UploadAudio(const String& path)
 {
-	//TODO: 
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		I64 extension = path.LastIndexOf('.');
+
+		if (Memory::Compare(path.Data() + extension + 1, "wav", 3))
+		{
+			DataReader reader{ file };
+			file.Close();
+
+			String newPath = path.GetFileName().Surround("audio/", ".nhaud");
+			file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+
+			file.Write("NH Audio");
+			file.Write(AUDIO_VERSION);
+
+			U32 chunkType;
+			U32 chunkSize;
+			U32 fileType;
+
+			AudioFormat format;
+
+			bool finished = false;
+			while (!finished)
+			{
+				reader.Read(chunkType);
+				reader.Read(chunkSize);
+
+				switch (chunkType)
+				{
+				case WAV_RIFF: {
+					reader.Read(fileType);
+					if (fileType != WAV_WAVE)
+					{
+						Logger::Error("Invalid WAV File: '{}'!", path);
+						return {};
+					}
+				} break;
+				case WAV_FMT: {
+					reader.ReadSize(format, chunkSize);
+					file.Write(format);
+				} break;
+				case WAV_DATA: {
+					file.Write(chunkSize);
+					file.WriteCount(reader.Pointer(), chunkSize);
+					finished = true;
+				} break;
+				default: {
+					reader.Seek(chunkSize);
+				} break;
+				}
+			}
+
+			file.Close();
+			return Move(newPath);
+		}
+		else if (Memory::Compare(path.Data() + extension + 1, "mp3", 3))
+		{
+			DataReader reader{ file };
+			file.Close();
+		}
+		else
+		{
+			Logger::Error("Unknown Audio Format!");
+			return {};
+		}
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
 	return {};
 }
 
@@ -1391,7 +1567,8 @@ String Resources::UploadTexture(const String& path)
 	if (file.Opened())
 	{
 		U32 fileSize = (U32)file.Size();
-		U8* fileData = (U8*)malloc(fileSize);
+		U8* fileData;
+		Memory::AllocateSize(&fileData, fileSize);
 		file.ReadCount(fileData, fileSize);
 		file.Close();
 
@@ -1399,7 +1576,7 @@ String Resources::UploadTexture(const String& path)
 		I32 height;
 
 		U8* textureData = stbi_load_from_memory(fileData, fileSize, &width, &height, nullptr, 4);
-		free(fileData);
+		Memory::Free(&fileData);
 
 		if (!textureData)
 		{
@@ -1419,13 +1596,14 @@ String Resources::UploadTexture(const String& path)
 		file.Write(VK_FORMAT_R8G8B8A8_UNORM);
 		file.Write(MipmapCount(width, height));
 		file.Write(textureData, width * height * 4);
-		free(textureData);
+		Memory::Free(&textureData);
 
 		file.Close();
 
 		return Move(newPath);
 	}
 
+	Logger::Error("Failed To Find Or Open File: {}!", path);
 	return {};
 }
 
@@ -1457,7 +1635,7 @@ String Resources::UploadTexture(const aiTexture* textureInfo)
 		file.Write(VK_FORMAT_R8G8B8A8_UNORM);
 		file.Write(MipmapCount(width, height));
 		file.Write(textureData, width * height * 4);
-		free(textureData);
+		Memory::Free(&textureData);
 
 		file.Close();
 
@@ -1480,6 +1658,7 @@ String Resources::UploadSkybox(const String& path)
 		//TODO: 
 	}
 
+	Logger::Error("Failed To Find Or Open File: {}!", path);
 	return {};
 }
 
@@ -1546,15 +1725,15 @@ bool Resources::LoadKTX(File& file)
 		U32 depth = Math::Max(1u, header.pixelDepth);
 		U32 dataSize = (U32)(file.Size() - file.Pointer() - header.mipmapLevelCount * sizeof(U32));
 
-		U8* data = (U8*)malloc(dataSize); //TODO: Go through Memory
-
+		U8* data;
+		Memory::AllocateSize(&data, dataSize);
 
 		U32 faceLodSize;
 		file.Read(faceLodSize);
 
 		file.Read(data, faceLodSize * header.faceCount);
 
-		free(data);
+		Memory::Free(&data);
 	}
 	else if (Memory::Compare(identifier, FileIdentifier20, 12))
 	{
@@ -1577,11 +1756,12 @@ bool Resources::LoadKTX(File& file)
 		}
 
 		U32 dataSize = (U32)level[0].uncompressedByteLength;
-		U8* data = (U8*)malloc(dataSize); //TODO: Go through Memory
+		U8* data;
+		Memory::AllocateSize(&data, dataSize);
 
 		file.Read(data, dataSize);
 
-		free(data);
+		Memory::Free(&data);
 	}
 	else
 	{
@@ -2083,7 +2263,7 @@ MeshUpload Resources::ParseAssimpMesh(const aiMesh* meshInfo)
 
 	U32 vertexCount = meshInfo->mNumVertices;
 	mesh.verticesSize = vertexCount * sizeof(Vertex);
-	mesh.vertices = (Vertex*)malloc(mesh.verticesSize);
+	Memory::AllocateSize(&mesh.vertices, mesh.verticesSize);
 
 	if (meshInfo->HasTangentsAndBitangents())
 	{
@@ -2145,7 +2325,7 @@ MeshUpload Resources::ParseAssimpMesh(const aiMesh* meshInfo)
 	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
 
 	mesh.indicesSize = meshInfo->mNumFaces * faceSize;
-	mesh.indices = (U32*)malloc(mesh.indicesSize);
+	Memory::AllocateSize(&mesh.indices, mesh.indicesSize);
 
 	U8* it = (U8*)mesh.indices;
 

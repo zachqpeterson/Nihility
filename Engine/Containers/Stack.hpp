@@ -86,7 +86,7 @@ inline Stack<T>& Stack<T>::operator=(const Stack& other)
 template <class T>
 inline Stack<T>& Stack<T>::operator=(Stack&& other) noexcept
 {
-	if (array) { Memory::FreeArray(&array); }
+	if (array) { Memory::Free(&array); }
 	size = other.size;
 	capacity = other.capacity;
 	array = other.array;
@@ -107,7 +107,7 @@ inline Stack<T>::~Stack()
 template <class T>
 inline void Stack<T>::Destroy()
 {
-	size = 0; capacity = 0; Memory::FreeArray(&array);
+	size = 0; capacity = 0; Memory::Free(&array);
 }
 
 template <class T>

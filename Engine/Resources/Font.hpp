@@ -11,13 +11,14 @@ struct Glyph
 	F32 advance{ 1.0f };
 	F32 x{ 0.0f };
 	F32 y{ 0.0f };
-	Vector2Int atlasPosition{};
 
 	F32 kerning[96]{ 0.0f };
 };
 
 struct Font
 {
+	void Destroy() { name.Destroy(); }
+
 	String name{};
 	HashHandle handle;
 
@@ -29,6 +30,8 @@ struct Font
 	F32 scale{ 0.0f };
 
 	Glyph glyphs[96];
+
+	static Vector2Int atlasPositions[96];
 };
 
 struct stbtt_fontinfo;

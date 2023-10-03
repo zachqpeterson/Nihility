@@ -12,6 +12,7 @@
 #include "Rendering\Pipeline.hpp"
 
 struct Font;
+struct AudioClip;
 struct aiTexture;
 struct aiMaterial;
 struct aiMesh;
@@ -29,20 +30,20 @@ public:
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
 	static Scene* CreateScene(const String& name);
 
-	static Font* LoadFont(const String& path);
-	static Texture* LoadTexture(const String& path);
-	static Model* LoadModel(const String& name);
-	static Skybox* LoadSkybox(const String& name);
-	static Scene* LoadScene(const String& name);
-	static bool LoadBinary(const String& name, String& result);
-	static U32 LoadBinary(const String& name, void** result);
-
-	static void SaveScene(const Scene* scene);
-	static void SaveBinary(const String& name, const String& data);
-	static void SaveBinary(const String& name, void* data, U64 length);
-
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
+
+	static Font* LoadFont(const String& path);
+	static AudioClip* LoadAudio(const String& path);
+	static Texture* LoadTexture(const String& path);
+	static Model* LoadModel(const String& path);
+	static Skybox* LoadSkybox(const String& path);
+	static Scene* LoadScene(const String& path);
+	static Binary LoadBinary(const String& path);
+	static String LoadBinaryString(const String& path);
+
+	static void SaveScene(const Scene* scene);
+	static void SaveBinary(const String& path, U32 size, void* data);
 
 	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
@@ -63,6 +64,7 @@ public:
 	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
 	static void	DestroyDescriptorSet(DescriptorSet* set);
 	static void	DestroyRenderpass(Renderpass* renderpass);
+	static void DestroyBinary(Binary& binary);
 
 	static U8 MipmapCount(U16 width, U16 height);
 
@@ -85,7 +87,7 @@ private:
 	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer);
 
 	static void Update();
-	static void UpdatePipelines();
+	static void Resize();
 
 	//Texture Loading
 	static bool LoadKTX(File& file);
@@ -104,6 +106,7 @@ private:
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
 	static Hashmap<String, Font>				fonts;
+	static Hashmap<String, AudioClip>			audioClips;
 	static Hashmap<String, Renderpass>			renderpasses;
 	static Hashmap<String, Shader>				shaders;
 	static Hashmap<String, Pipeline>			pipelines;

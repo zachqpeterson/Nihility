@@ -161,7 +161,7 @@ bool UI::Initialize()
 
 void UI::Shutdown()
 {
-
+	elements.Destroy();
 }
 
 void UI::Update()
@@ -295,7 +295,7 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 
 			instance.textureIndex = (U32)font->texture->handle;
 			instance.position = position - Vector2{ glyph.x * textWidth * scale, glyph.y * textHeight * scale };
-			instance.texcoord = (Vector2)glyph.atlasPosition * texcoordSize;
+			instance.texcoord = (Vector2)Font::atlasPositions[c - 32] * texcoordSize;
 			instance.color = info.color;
 			instance.scale = scale;
 
