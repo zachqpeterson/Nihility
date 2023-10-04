@@ -1451,7 +1451,9 @@ String Resources::UploadFont(const String& path)
 		file.Close();
 
 		Font font;
-		F32* atlas = FontLoader::LoadFont(data, font);
+		U16 width;
+		U16 height;
+		F32* atlas = FontLoader::LoadFont(data, font, width, height);
 
 		Memory::Free(&data);
 
@@ -1470,13 +1472,10 @@ String Resources::UploadFont(const String& path)
 			file.Write(font.glyphs[i]);
 		}
 
-		const U16 width = 256;
-		const U16 height = 384;
-
 		file.Write(width);
 		file.Write(height);
 
-		file.WriteCount(atlas, 256 * 384 * 4);
+		file.WriteCount(atlas, width * height * 4);
 
 		file.Close();
 

@@ -579,7 +579,7 @@ Vector3 Pixel(F32* array, I32 x, I32 y, I32 width)
 	return { *data++, *data++, *data };
 }
 
-F32* FontLoader::LoadFont(U8* data, Font& font)
+F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 {
 	stbtt_fontinfo info{};
 
@@ -590,16 +590,22 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 	font.descent = (I32)(font.descent * font.scale);
 	font.lineGap = (I32)(font.lineGap * font.scale);
 
+	width = 48;
+	height = 48;
+	U32 padding = 1;
+
+	U32 rowWidth = (width + padding) * 8 + padding;
+	U32 columnHeight = (height + padding) * 12 + padding;
+
 	F32* atlas;
-	Memory::AllocateArray(&atlas, 256 * 384 * 4);
+	Memory::AllocateArray(&atlas, rowWidth * columnHeight * 4);
 
 	F32* bitmap;
-	Memory::AllocateArray(&bitmap, 32 * 32 * 4);
+	Memory::AllocateArray(&bitmap, width * height * 4);
 
-	const I32 rowSize = 1024;
-	const I32 glyphRowSize = rowSize * 32;
-	I32 x = 0;
-	I32 y = 0;
+	U32 glyphRowSize = rowWidth * (height + padding) * 4;
+	U32 x = padding * 4;
+	U32 y = rowWidth * padding * 4;
 
 	Hashmap<I32, C8> glyphToCodepoint{ 128 };
 
@@ -612,15 +618,20 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 
 		if (glyph)
 		{
-			for (I32 j = 0; j < 32; ++j)
+			U32 start = x + y;
+
+			for (I32 j = 0; j < height; ++j)
 			{
-				Memory::Copy(atlas + x + j * rowSize + y, bitmap + j * 128, sizeof(F32) * 128);
+				Memory::Copy(atlas + start + j * rowWidth * 4, bitmap + j * width * 4, sizeof(F32) * width * 4);
 			}
 		}
 
-		x += 128;
-		if (x == 1024) { x = 0; y += glyphRowSize; }
+		x += (width + padding) * 4;
+		if (x == rowWidth * 4) { x = padding * 4; y += glyphRowSize; }
 	}
+
+	width = rowWidth;
+	height = columnHeight;
 
 	I32 length = stbtt_GetKerningTableLength(&info);
 
@@ -643,7 +654,7 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 			codepoint = glyphToCodepoint.Get(lastGlyph);
 		}
 
-		font.glyphs[codepoint].kerning[glyphToCodepoint.Get(entry.glyph2)] = ((F32)entry.advance * font.scale) / 32.0f;
+		font.glyphs[codepoint].kerning[glyphToCodepoint.Get(entry.glyph2)] = (F32)(entry.advance * font.scale) / (F32)width;
 	}
 
 	return atlas;
@@ -651,8 +662,8 @@ F32* FontLoader::LoadFont(U8* data, Font& font)
 
 bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, Hashmap<I32, C8>& glyphToCodepoint, F32* bitmap)
 {
-	I32 w = 32;
-	I32 h = 32;
+	I32 w = 48;
+	I32 h = 48;
 	I32 index = stbtt_FindGlyphIndex(info, codepoint);
 
 	glyphToCodepoint.Insert(index, codepoint - 32);

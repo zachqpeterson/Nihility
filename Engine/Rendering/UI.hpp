@@ -184,6 +184,8 @@ private:
 	static U32 textVertexOffset;
 	static F32 textWidth;
 	static F32 textHeight;
+	static Vector2 textPosistion;
+	static Vector2 textPadding;
 
 	STATIC_CLASS(UI);
 	friend class Renderer;

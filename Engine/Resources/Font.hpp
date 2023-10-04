@@ -40,7 +40,7 @@ struct stbtt_kerningentry;
 class FontLoader
 {
 public:
-	static F32* LoadFont(U8* data, Font& font);
+	static F32* LoadFont(U8* data, Font& font, U16& width, U16& height);
 
 private:
 	static bool LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, Hashmap<I32, C8>& glyphToCodepoint, F32* bitmap);

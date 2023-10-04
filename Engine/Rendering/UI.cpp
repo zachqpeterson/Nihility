@@ -123,6 +123,8 @@ Pipeline* UI::textPipeline;
 U32 UI::textVertexOffset;
 F32 UI::textWidth;
 F32 UI::textHeight;
+Vector2 UI::textPosistion;
+Vector2 UI::textPadding;
 
 bool UI::Initialize()
 {
@@ -142,19 +144,22 @@ bool UI::Initialize()
 	Renderer::UploadIndices(uiPipeline, indices, sizeof(U32) * CountOf(indices));
 	Renderer::UploadIndices(textPipeline, indices, sizeof(U32) * CountOf(indices));
 
-	textWidth = 32.0f / (F32)Settings::WindowWidth();
-	textHeight = 32.0f / (F32)Settings::WindowHeight();
-
-	TextVertex vertices[4]{
-		{ { 0.0f, 0.0f }, { 0.0f, 0.0833333333f } },
-		{ { textWidth, 0.0f }, { 0.125f, 0.0833333333f } },
-		{ { 0.0f, textHeight }, { 0.0f, 0.0f } },
-		{ { textWidth, textHeight }, { 0.125f, 0.0f } }
-	};
-
-	textVertexOffset = Renderer::UploadVertices(textPipeline, vertices, sizeof(TextVertex) * 4) / sizeof(TextVertex);
-
 	font = Resources::LoadFont("fonts/arial.nhfnt");
+	
+	textWidth = 48.0f / (F32)Settings::WindowWidth();
+	textHeight = 48.0f / (F32)Settings::WindowHeight();
+	
+	textPosistion = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
+	textPadding = Vector2::One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
+	
+	TextVertex vertices[4]{
+		{ { 0.0f, 0.0f }, { 0.0f, textPosistion.y } },
+		{ { textWidth, 0.0f }, { textPosistion.x, textPosistion.y } },
+		{ { 0.0f, textHeight }, { 0.0f, 0.0f } },
+		{ { textWidth, textHeight }, { textPosistion.x, 0.0f } }
+	};
+	
+	textVertexOffset = Renderer::UploadVertices(textPipeline, vertices, sizeof(TextVertex) * 4) / sizeof(TextVertex);
 
 	return true;
 }
@@ -270,8 +275,6 @@ UIElement* UI::CreateDropdown(const UIElementInfo& info)
 
 UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 scale)
 {
-	static const Vector2 texcoordSize{ 0.125f, 0.0833333333f };
-
 	UIElement* element = SetupElement(info);
 
 	element->vertexOffset = textVertexOffset;
@@ -293,9 +296,11 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 		{
 			TextInstance& instance = instances[i];
 
+			Vector2 texPos = Font::atlasPositions[c - 32];
+
 			instance.textureIndex = (U32)font->texture->handle;
 			instance.position = position - Vector2{ glyph.x * textWidth * scale, glyph.y * textHeight * scale };
-			instance.texcoord = (Vector2)Font::atlasPositions[c - 32] * texcoordSize;
+			instance.texcoord = texPos * textPosistion + (texPos + Vector2::One) * textPadding;
 			instance.color = info.color;
 			instance.scale = scale;
 
