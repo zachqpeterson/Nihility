@@ -5,8 +5,10 @@
 namespace Details
 {
 	I64 Increment64(volatile I64* i);
-	I64 Decrement64(volatile I64* i);
 	L32 Increment(volatile L32* i);
+	I64 Add64(volatile I64* i, I64 value);
+	L32 Add(volatile L32* i, L32 value);
+	I64 Decrement64(volatile I64* i);
 	L32 Decrement(volatile L32* i);
 	I64 CheckAndSet64(volatile I64* i, I64 pos);
 	L32 CheckAndSet(volatile L32* i, L32 pos);
@@ -30,6 +32,19 @@ inline Type NH_API SafeIncrement(volatile Type* t)
 }
 
 template<Integer Type>
+inline Type NH_API SafeAdd(volatile Type* t, Type value)
+{
+	if constexpr (sizeof(Type) == 8)
+	{
+		return Details::Add64((volatile I64*)t, (I64)value);
+	}
+	else
+	{
+		return Details::Add((volatile L32*)t, (L32)value);
+	}
+}
+
+template<Integer Type>
 inline Type NH_API SafeDecrement(volatile Type* t)
 {
 	if constexpr (sizeof(Type) == 8)
@@ -39,6 +54,19 @@ inline Type NH_API SafeDecrement(volatile Type* t)
 	else
 	{
 		return Details::Decrement((volatile L32*)t);
+	}
+}
+
+template<Integer Type>
+inline Type NH_API SafeSubtract(volatile Type* t, Type value)
+{
+	if constexpr (sizeof(Type) == 8)
+	{
+		return Details::Add64((volatile I64*)t, -(I64)value);
+	}
+	else
+	{
+		return Details::Add((volatile L32*)t, -(L32)value);
 	}
 }
 

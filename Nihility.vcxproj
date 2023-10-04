@@ -113,6 +113,7 @@
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
     <ClInclude Include="Engine\Containers\Pool.hpp" />
     <ClInclude Include="Engine\Containers\Queue.hpp" />
+    <ClInclude Include="Engine\Containers\SafeQueue.hpp" />
     <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\String.hpp" />
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
@@ -225,7 +226,6 @@
     <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
-    <ClInclude Include="Engine\Platform\SafeQueue.hpp" />
     <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />

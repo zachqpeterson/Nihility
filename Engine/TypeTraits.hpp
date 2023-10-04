@@ -126,8 +126,6 @@ namespace TypeTraits
 	template <bool Test, class Type = void> struct EnableIf {};
 	template <class Type> struct EnableIf<true, Type> { using type = Type; };
 
-	template <class Type> struct IsMemberFunctionPtr { using type = FalseConstant; };
-
 	template <class Type> struct IsDefined
 	{
 		template <class U>
@@ -266,8 +264,6 @@ template <class Type> concept StringLiteral = AnyOf<BaseType<Type>, char, wchar_
 
 template <class Type> inline constexpr bool IsFunctionPtr = !IsConst<const Type> && !IsReference<Type>;
 template <class Type> concept FunctionPtr = !IsConst<const Type> && !IsReference<Type>;
-
-template <class Type> inline constexpr bool IsMemberFunctionPtr = TypeTraits::IsMemberFunctionPtr<RemovedQuals<Type>>::type::value;
 
 template <Integer I, I... Indices>
 struct IntegerSequence

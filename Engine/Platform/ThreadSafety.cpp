@@ -11,14 +11,24 @@ namespace Details
 		return InterlockedIncrement64(i);
 	}
 
-	I64 Decrement64(volatile I64* i)
-	{
-		return InterlockedDecrement64(i);
-	}
-
 	L32 Increment(volatile L32* i)
 	{
 		return InterlockedIncrement(i);
+	}
+
+	I64 Add64(volatile I64* i, I64 value)
+	{
+		return InterlockedAdd64(i, value);
+	}
+
+	L32 Add(volatile L32* i, L32 value)
+	{
+		return InterlockedAdd(i, value);
+	}
+
+	I64 Decrement64(volatile I64* i)
+	{
+		return InterlockedDecrement64(i);
 	}
 
 	L32 Decrement(volatile L32* i)

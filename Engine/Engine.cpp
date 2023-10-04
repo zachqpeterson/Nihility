@@ -39,6 +39,25 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Logger::Initialize());
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
+
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
+
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));

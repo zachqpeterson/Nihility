@@ -142,9 +142,6 @@
     <ClInclude Include="Engine\Platform\Function.hpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\SafeQueue.hpp">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
@@ -458,6 +455,9 @@
       <Filter>Source Files\Platform\Audio</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Containers\Freelist.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\SafeQueue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
   </ItemGroup>

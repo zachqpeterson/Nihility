@@ -6,9 +6,8 @@
 
 bool Jobs::running;
 
-SafeQueue<Function<void()>> Jobs::jobPool;
-U64 Jobs::currentLabel = 0;
-std::atomic<U64> Jobs::finishedLabel;
+SafeQueue<Function<void()>> Jobs::jobs{ 256 };
+U32 Jobs::runningJobs{ 0 };
 void* Jobs::semaphore;
 
 #ifdef PLATFORM_WINDOWS
@@ -33,8 +32,6 @@ bool Jobs::Initialize()
 
 	semaphore = CreateSemaphoreExW(nullptr, 0, Settings::ThreadCount(), nullptr, 0, SEMAPHORE_ALL_ACCESS);
 	running = true;
-
-	finishedLabel.store(0);
 
 	for (U32 i = 0; i < Settings::ThreadCount() - 1; ++i)
 	{
@@ -85,7 +82,7 @@ void Jobs::SleepForMicro(U64 us)
 
 bool Jobs::Busy()
 {
-	return finishedLabel.load() < currentLabel;
+	return runningJobs;
 }
 
 void Jobs::Wait()
@@ -99,22 +96,24 @@ void Jobs::Poll()
 	SwitchToThread(); //std::this_thread::yield(), _Thrd_yield()
 }
 
-void Jobs::Execute(const Function<void()>& job)
+bool Jobs::Execute(const Function<void()>& job)
 {
-	currentLabel += 1;
+	SafeIncrement(&runningJobs);
 
-	while (!jobPool.Push(job)) { Poll(); }
+	while (!jobs.Push(job)) { Poll(); }
 
 	ReleaseSemaphore(semaphore, 1, nullptr);
+
+	return true;
 }
 
-void Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job)
+bool Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job)
 {
-	if (jobCount == 0 || groupSize == 0) { return; }
+	if (jobCount == 0 || groupSize == 0) { return false; }
 
 	const U32 groupCount = (jobCount + groupSize - 1) / groupSize;
 
-	currentLabel += groupCount;
+	SafeAdd(&runningJobs, groupCount);
 
 	for (U32 groupIndex = 0; groupIndex < groupCount; ++groupIndex)
 	{
@@ -134,10 +133,12 @@ void Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatch
 			}
 		};
 
-		while (!jobPool.Push(jobGroup)) { Poll(); }
+		while (!jobs.Push(jobGroup)) { Poll(); }
 
 		ReleaseSemaphore(semaphore, 1, nullptr);
 	}
+
+	return true;
 }
 
 U32 __stdcall Jobs::RunThread(void*)
@@ -146,15 +147,12 @@ U32 __stdcall Jobs::RunThread(void*)
 
 	while (running)
 	{
-		if (jobPool.Pop(job))
+		if (jobs.Pop(job))
 		{
 			job();
-			finishedLabel.fetch_add(1);
+			SafeDecrement(&runningJobs);
 		}
-		else
-		{
-			WaitForSingleObjectEx(semaphore, INFINITE, false);
-		}
+		else { WaitForSingleObjectEx(semaphore, INFINITE, false); }
 	}
 
 	_endthreadex(0);

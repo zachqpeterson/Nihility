@@ -2,11 +2,9 @@
 
 #include "Defines.hpp"
 
-#include "Containers\Vector.hpp"
-#include "Containers\Queue.hpp"
-#include "Containers\String.hpp"
+#include "Containers\Freelist.hpp"
+#include "Containers\SafeQueue.hpp"
 #include "Platform\Function.hpp"
-#include "SafeQueue.hpp"
 
 enum JobPriority
 {
@@ -23,18 +21,16 @@ struct JobDispatchArgs
 	U32 groupIndex;
 };
 
-#include <atomic>    // to use std::atomic<uint64_t>
-
 /*
 * TODO: Limit jobs active at once, maybe add a queue system for low priority jobs
 * TODO: Wait for semaphore/fence
-* TODO: This syntax would be ideal: StartJob<func>(params, params, ...);
+* TODO: This syntax would be ideal: StartJob<func>(param, param, ...);
 */
 class NH_API Jobs
 {
 public:
-	static void Execute(const Function<void()>& job);
-	static void Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job);
+	static bool Execute(const Function<void()>& job);
+	static bool Dispatch(U32 jobCount, U32 groupSize, const Function<void(JobDispatchArgs)>& job);
 
 	static bool Busy();
 	static void Wait();
@@ -49,9 +45,8 @@ private:
 
 	static void Poll();
 
-	static SafeQueue<Function<void()>> jobPool;
-	static U64 currentLabel;
-	static std::atomic<U64> finishedLabel;
+	static SafeQueue<Function<void()>> jobs;
+	static U32 runningJobs;
 	static void* semaphore;
 
 #if defined PLATFORM_WINDOWS
