@@ -581,18 +581,19 @@ Vector3 Pixel(F32* array, I32 x, I32 y, I32 width)
 
 F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 {
+	width = 48;
+	height = 48;
+	U32 padding = 1;
+
 	stbtt_fontinfo info{};
 
 	stbtt_InitFont(&info, data, stbtt_GetFontOffsetForIndex(data, 0));
 	font.scale = stbtt_ScaleForMappingEmToPixels(&info, 32.0f);
-	stbtt_GetFontVMetrics(&info, &font.ascent, &font.descent, &font.lineGap);
-	font.ascent = (I32)(font.ascent * font.scale);
-	font.descent = (I32)(font.descent * font.scale);
-	font.lineGap = (I32)(font.lineGap * font.scale);
-
-	width = 48;
-	height = 48;
-	U32 padding = 1;
+	I32 ascent, descent, lineGap;
+	stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
+	font.ascent = ascent * font.scale / (F32)height;
+	font.descent = descent * font.scale / (F32)height;
+	font.lineGap = lineGap * font.scale / (F32)height;
 
 	U32 rowWidth = (width + padding) * 8 + padding;
 	U32 columnHeight = (height + padding) * 12 + padding;
@@ -614,7 +615,7 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 	{
 		C8 codepoint = i + 32;
 
-		bool glyph = LoadGlyph(&info, font, font.glyphs[i], UTF8(&codepoint), glyphToCodepoint, bitmap);
+		bool glyph = LoadGlyph(&info, font, font.glyphs[i], UTF8(&codepoint), width, height, glyphToCodepoint, bitmap);
 
 		if (glyph)
 		{
@@ -660,10 +661,8 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 	return atlas;
 }
 
-bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, Hashmap<I32, C8>& glyphToCodepoint, F32* bitmap)
+bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 codepoint, I32 width, I32 height, Hashmap<I32, C8>& glyphToCodepoint, F32* bitmap)
 {
-	I32 w = 48;
-	I32 h = 48;
 	I32 index = stbtt_FindGlyphIndex(info, codepoint);
 
 	glyphToCodepoint.Insert(index, codepoint - 32);
@@ -674,13 +673,13 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 	I32 advance;
 	stbtt_GetGlyphHMetrics(info, index, &advance, nullptr);
-	glyph.advance = ((F32)advance * font.scale) / (F32)w;
+	glyph.advance = ((F32)advance * font.scale) / (F32)width;
 
-	I32 translateX = (I32)(w / 2 - ((boxZ - boxX) * font.scale) / 2 - boxX * font.scale);
-	I32 translateY = (I32)(h / 2 - ((boxW - boxY) * font.scale) / 2 - boxY * font.scale);
+	I32 translateX = (I32)(width / 2 - ((boxZ - boxX) * font.scale) / 2 - boxX * font.scale);
+	I32 translateY = (I32)(height / 2 - ((boxW - boxY) * font.scale) / 2 - boxY * font.scale);
 
-	glyph.x = (F32)translateX / (F32)w;
-	glyph.y = (F32)translateY / (F32)h;
+	glyph.x = (F32)translateX / (F32)width;
+	glyph.y = (F32)translateY / (F32)height;
 
 	boxW = (I32)(boxW * font.scale);
 	boxY = (I32)(boxY * font.scale);
@@ -962,10 +961,10 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 	Memory::Zero(bitmap, 4 * 32 * 32 * sizeof(F32));
 
-	for (I32 y = 0; y < h; ++y)
+	for (I32 y = 0; y < height; ++y)
 	{
-		I32 row = boxY > boxW ? y : h - y - 1;
-		for (I32 x = 0; x < w; ++x)
+		I32 row = boxY > boxW ? y : height - y - 1;
+		for (I32 x = 0; x < width; ++x)
 		{
 			Vector2 p = { (x + xoff - translateX) / (font.scale * 64.0f), (y + yoff - translateY) / (font.scale * 64.0f) };
 
@@ -1085,7 +1084,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 				msd.b = sb.minDistance.dist;
 			}
 
-			U32 index = 4 * ((row * w) + x);
+			U32 index = 4 * ((row * width) + x);
 			bitmap[index] = (F32)msd.r + 0.5f;
 			bitmap[index + 1] = (F32)msd.g + 0.5f;
 			bitmap[index + 2] = (F32)msd.b + 0.5f;
@@ -1108,19 +1107,19 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 	};
 
 	Clashes* clashes;
-	Memory::AllocateArray(&clashes, w * h);
+	Memory::AllocateArray(&clashes, width * height);
 	U32 cindex = 0;
 
 	F32 tx = EDGE_THRESHOLD / font.scale;
 	F32 ty = EDGE_THRESHOLD / font.scale;
-	for (I32 y = 0; y < h; y++)
+	for (I32 y = 0; y < height; y++)
 	{
-		for (I32 x = 0; x < w; x++)
+		for (I32 x = 0; x < width; x++)
 		{
-			if ((x > 0 && PixelClash(Pixel(bitmap, x, y, w), Pixel(bitmap, Math::Max(x - 1, 0), y, w), tx)) ||
-				(x < w - 1 && PixelClash(Pixel(bitmap, x, y, w), Pixel(bitmap, Math::Min(x + 1, w - 1), y, w), tx)) ||
-				(y > 0 && PixelClash(Pixel(bitmap, x, y, w), Pixel(bitmap, x, Math::Max(y - 1, 0), w), ty)) ||
-				(y < h - 1 && PixelClash(Pixel(bitmap, x, y, w), Pixel(bitmap, x, Math::Min(y + 1, h - 1), w), ty)))
+			if ((x > 0 && PixelClash(Pixel(bitmap, x, y, width), Pixel(bitmap, Math::Max(x - 1, 0), y, width), tx)) ||
+				(x < width - 1 && PixelClash(Pixel(bitmap, x, y, width), Pixel(bitmap, Math::Min(x + 1, width - 1), y, width), tx)) ||
+				(y > 0 && PixelClash(Pixel(bitmap, x, y, width), Pixel(bitmap, x, Math::Max(y - 1, 0), width), ty)) ||
+				(y < width - 1 && PixelClash(Pixel(bitmap, x, y, width), Pixel(bitmap, x, Math::Min(y + 1, height - 1), width), ty)))
 			{
 				clashes[cindex].x = x;
 				clashes[cindex++].y = y;
@@ -1130,7 +1129,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 	for (U32 i = 0; i < cindex; ++i)
 	{
-		U32 index = 4 * ((clashes[i].y * w) + clashes[i].x);
+		U32 index = 4 * ((clashes[i].y * width) + clashes[i].x);
 		F32 med = Median(bitmap[index], bitmap[index + 1], bitmap[index + 2]);
 		bitmap[index + 0] = med;
 		bitmap[index + 1] = med;

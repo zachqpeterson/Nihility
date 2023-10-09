@@ -16,6 +16,8 @@ class NH_API Renderer
 {
 public:
 	static void							LoadScene(const String& name);
+
+	static const Vector4&				RenderArea();
 	static U32							FrameIndex();
 	static U32							CurrentFrame();
 
@@ -33,6 +35,7 @@ private:
 	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline);
 	static void							EndFrame();
 	static void							Resize();
+	static void							SetRenderArea();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
@@ -47,12 +50,13 @@ private:
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
 		VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
 
-	static Buffer						CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
-	static void							FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset);
-	static U64							UploadToBuffer(Buffer& buffer, const void* data, U64 size);
-	static U32							UploadIndices(Pipeline* pipeline, const void* data, U64 size);
-	static U32							UploadVertices(Pipeline* pipeline, const void* data, U64 size);
-	static U32							UploadInstances(Pipeline* pipeline, const void* data, U64 size);
+	static Buffer						CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
+	static void							FillBuffer(Buffer& buffer, const void* data, U32 size, U32 offset);
+	static U32							UploadToBuffer(Buffer& buffer, const void* data, U32 size);
+	static U32							UploadIndices(Pipeline* pipeline, const void* data, U32 size);
+	static U32							UploadVertices(Pipeline* pipeline, const void* data, U32 size);
+	static U32							UploadInstances(Pipeline* pipeline, const void* data, U32 size);
+	static void							UpdateInstances(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions);
 	static void							UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
@@ -65,7 +69,7 @@ private:
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
-	static bool							CreateCubeMap(Texture* texture, void* data, U32* layerSize);
+	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
 	static bool							CreateRenderpass(Renderpass* renderpass);
 
 	static void							DestroySamplerInstant(Sampler* sampler);
@@ -108,6 +112,7 @@ private:
 	static bool									meshShadingSupported;
 
 	// WINDOW
+	static Vector4								renderArea;
 	static U32									frameIndex;
 	static U32									currentFrame;
 	static U32									previousFrame;
@@ -125,6 +130,7 @@ private:
 	static Buffer								materialBuffer;
 	static Buffer								drawCommandsBuffer;
 	static U32									shaderUploadOffset;
+	static GlobalData							globalData;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;
@@ -150,4 +156,5 @@ private:
 	friend struct Renderpass;
 	friend struct Shader;
 	friend struct Pipeline;
+	friend struct Scene;
 };

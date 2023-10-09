@@ -456,8 +456,8 @@ struct Buffer
 	VkBuffer				vkBuffer{ nullptr };
 	VkDeviceMemory			deviceMemory{ nullptr };
 	VmaAllocation_T* allocation{ nullptr };
-	U64						size{ 0 };
-	U64						allocationOffset{ 0 };
+	U32						size{ 0 };
+	U32						allocationOffset{ 0 };
 
 	void* data{ nullptr };
 	bool mapped{ false };
@@ -492,8 +492,6 @@ struct Renderpass
 	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 
-	U16					width{ 0 };
-	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
 
 	U32					lastResize{ 0 };
@@ -511,8 +509,6 @@ struct RenderpassInfo
 	RenderpassInfo& AddClearColor(const Vector4& color);
 	RenderpassInfo& AddClearDepth(F32 depth);
 
-	U16					width{ 0 };
-	U16					height{ 0 };
 	U8					renderTargetCount{ 0 };
 
 	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
@@ -606,8 +602,7 @@ struct Skybox
 	String name{};
 	HashHandle	handle;
 
-	Buffer* buffer{ nullptr };
-
+	U32 instance;
 	Texture* texture{ nullptr };
 };
 

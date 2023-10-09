@@ -82,6 +82,7 @@ struct MP3Header
 constexpr U64 size = sizeof(MP3Header);
 
 //nhtex
+//nhskb
 //nhaud
 //nhmat
 //nhmsh
@@ -92,6 +93,7 @@ constexpr U64 size = sizeof(MP3Header);
 //nhbin
 
 constexpr U32 TEXTURE_VERSION = MakeVersionNumber(0, 1, 0);
+constexpr U32 SKYBOX_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 AUDIO_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 MATERIAL_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 MESH_VERSION = MakeVersionNumber(0, 1, 0);
@@ -100,10 +102,31 @@ constexpr U32 SHADER_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 SCENE_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 FONT_VERSION = MakeVersionNumber(0, 1, 0);
 
+F32 skyboxVertices[]{
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+};
+
+U32 skyboxIndices[]{
+	1, 2, 6, 6, 5, 1, //Right
+	0, 4, 7, 7, 3, 0, //Left
+	4, 5, 6, 6, 7, 4, //Top
+	0, 3, 2, 2, 1, 0, //Bottom
+	0, 1, 5, 5, 4, 0, //Back
+	3, 7, 6, 6, 2, 3, //Front
+};
+
 Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
 Sampler* Resources::defaultSampler;
 Pipeline* Resources::meshPipeline;
+Pipeline* Resources::skyboxPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -147,7 +170,7 @@ bool Resources::Initialize()
 	dummySampler = CreateSampler(dummySamplerInfo);
 
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
-	Shader* meshProgram = CreateShader("shaders/Pbr.shader", 1, &pushConstant);
+	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
 	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 
 	PipelineInfo info{};
@@ -155,6 +178,17 @@ bool Resources::Initialize()
 	info.shader = meshProgram;
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 	meshPipeline = CreatePipeline(info);
+
+	pushConstant.stageFlags &= ~VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	Shader* skyboxProgram = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
+
+	info.name = "skybox_pipeline";
+	info.shader = skyboxProgram;
+	skyboxPipeline = CreatePipeline(info);
+
+	Renderer::UploadVertices(skyboxPipeline, skyboxVertices, sizeof(F32) * CountOf32(skyboxVertices));
+	Renderer::UploadIndices(skyboxPipeline, skyboxIndices, sizeof(U32) * CountOf32(skyboxIndices));
 
 	return true;
 }
@@ -362,6 +396,20 @@ void Resources::Resize()
 	}
 }
 
+void Resources::UseSkybox(Skybox* skybox)
+{
+	VkDrawIndexedIndirectCommand drawCommand{};
+	drawCommand.indexCount = CountOf32(skyboxIndices);
+	drawCommand.instanceCount = 1;
+	drawCommand.firstIndex = 0;
+	drawCommand.vertexOffset = 0;
+	drawCommand.firstInstance = 0;
+
+	Renderer::FillBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand), skyboxPipeline->shader->uploadOffset);
+
+	skyboxPipeline->drawCount = 1;
+}
+
 Texture* Resources::CreateTexture(const TextureInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -474,8 +522,6 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	if (!renderpass->name.Blank()) { return renderpass; }
 
 	renderpass->name = info.name;
-	renderpass->width = info.width;
-	renderpass->height = info.height;
 	renderpass->renderpass = nullptr;
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->outputDepth = info.depthStencilTexture;
@@ -553,7 +599,6 @@ Scene* Resources::CreateScene(const String& name)
 	*scene = {};
 
 	scene->name = name;
-	scene->drawSkybox = false;
 
 	scene->Create();
 
@@ -764,7 +809,7 @@ Texture* Resources::LoadTexture(const String& path)
 		texture->type = VK_IMAGE_TYPE_2D;
 		texture->flags = 0;
 		texture->depth = 1;
-		texture->handle = textures.GetHandle(path);
+		texture->handle = handle;
 
 		DataReader reader{ file };
 		file.Close();
@@ -787,7 +832,7 @@ Texture* Resources::LoadTexture(const String& path)
 		if (!Renderer::CreateTexture(texture, reader.Pointer()))
 		{
 			Logger::Error("Failed To Create Texture: {}!", path);
-			textures.Remove(path);
+			textures.Remove(handle);
 			return nullptr;
 		}
 
@@ -796,7 +841,7 @@ Texture* Resources::LoadTexture(const String& path)
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
 
-	textures.Remove(path);
+	textures.Remove(handle);
 	return nullptr;
 }
 
@@ -893,7 +938,7 @@ Model* Resources::LoadModel(const String& path)
 				reader.Read(draw.instances[j].model);
 			}
 
-			U32 instanceOffset = (U32)(Renderer::UploadInstances(meshPipeline, draw.instances.Data(), sizeof(MeshInstance) * draw.instances.Size()) / sizeof(MeshInstance));
+			U32 instanceOffset = (U32)(Renderer::UploadInstances(meshPipeline, draw.instances.Data(), (U32)sizeof(MeshInstance) * (U32)draw.instances.Size()) / sizeof(MeshInstance));
 			Renderer::UploadDrawCall(meshPipeline, draw.indexCount, draw.indexOffset, draw.vertexOffset, (U32)draw.instances.Size(), instanceOffset);
 		}
 
@@ -909,14 +954,72 @@ Skybox* Resources::LoadSkybox(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Skybox* skybox = &skyboxes.Request(path);
+	HashHandle handle;
+	Skybox* skybox = &skyboxes.Request(path, handle);
 
 	if (!skybox->name.Blank()) { return skybox; }
 
-	skybox->name = path;
-	skybox->handle = skyboxes.GetHandle(path);
+	*skybox = {};
 
-	return skybox;
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		skybox->name = path;
+		skybox->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Skybox"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Skybox!", path);
+			skyboxes.Remove(handle);
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		U32 faceCount;
+		U32 faceSize;
+
+		reader.Read(faceCount);
+		reader.Read(faceSize);
+
+		String textureName = path.GetFileName().Appended("_texture");
+
+		Texture* texture = &textures.Request(textureName, handle);
+		*texture = {};
+
+		reader.Read((U32&)texture->width);
+		reader.Read((U32&)texture->height);
+		reader.Read(texture->format);
+
+		texture->name = Move(textureName);
+		texture->handle = handle;
+		texture->type = VK_IMAGE_TYPE_2D;
+		texture->flags = 0;
+		texture->depth = 1;
+		texture->mipmapCount = 1;
+		texture->size = faceSize * faceCount;
+
+		if (!Renderer::CreateCubemap(texture, reader.Pointer(), &faceSize))
+		{
+			Logger::Error("Failed To Create Cubemap!", path);
+			textures.Remove(handle);
+			skyboxes.Remove(skybox->handle);
+			return {};
+		}
+
+		skybox->texture = texture;
+
+		skybox->instance = Renderer::UploadInstances(skyboxPipeline, (U16*)&texture->handle, sizeof(U16));
+
+		return skybox;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+	skyboxes.Remove(skybox->handle);
+	return nullptr;
 }
 
 Scene* Resources::LoadScene(const String& path)
@@ -929,7 +1032,6 @@ Scene* Resources::LoadScene(const String& path)
 
 	scene->name = path;
 	scene->updatePostProcess = true;
-	scene->drawSkybox = true; //TODO: save in scene file
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1650,54 +1752,78 @@ String Resources::UploadSkybox(const String& path)
 	if (file.Opened())
 	{
 		I64 extIndex = path.LastIndexOf('.') + 1;
-		bool success = false;
+		DataReader reader{ file };
+		file.Close();
 
-		if (path.CompareN("ktx", extIndex) || path.CompareN("ktx2", extIndex) || path.CompareN("ktx1", extIndex)) { success = LoadKTX(file); }
+		U8* imageData = nullptr;
+		U32 faceCount;
+		U32 faceSize;
+		U32 width;
+		U32 height;
+		VkFormat format;
 
-		//TODO: 
+		if (path.CompareN("ktx", extIndex) || path.CompareN("ktx2", extIndex) || path.CompareN("ktx1", extIndex)) { imageData = LoadKTX(reader, faceCount, faceSize, width, height, format); }
+
+		if(imageData == nullptr) { return {}; }
+
+		String newPath = path.GetFileName().Surround("textures/", ".nhskb");
+
+		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+
+		file.Write("NH Skybox");
+		file.Write(SKYBOX_VERSION);
+		file.Write(faceCount);
+		file.Write(faceSize);
+		file.Write(width);
+		file.Write(height);
+		file.Write(format);
+		file.WriteCount(imageData, faceSize * faceCount);
+
+		file.Close();
+
+		return Move(newPath);
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
 	return {};
 }
 
-bool Resources::LoadKTX(File& file)
+U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& width, U32& height, VkFormat& format)
 {
 	static constexpr U8 FileIdentifier11[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 	static constexpr U8 FileIdentifier20[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 	static constexpr U32 EndiannessIdentifier = 0x04030201;
 
-	U8 identifier[12]{};
-
-	file.Read(identifier);
+	U8* identifier = reader.Pointer();
+	reader.Seek(CountOf32(FileIdentifier11));
 
 	if (Memory::Compare(identifier, FileIdentifier11, 12))
 	{
 		U32 endianness;
-		file.Read(endianness);
+		reader.Read(endianness);
 
 		if (endianness != EndiannessIdentifier)
 		{
 			//TODO: Don't be lazy
 			Logger::Error("Too Lazy to Flip Endianness!");
-			return false;
+			return nullptr;
 		}
 
 		KTXHeader11 header;
-		file.Read(header);
+		reader.Read(header);
 
 		U8 compression = 0;
 		if (header.type == 0 || header.format == 0)
 		{
-			if (header.type + header.format != 0) { return false; }
+			if (header.type + header.format != 0) { return nullptr; }
 			compression = 1;
 
 			Logger::Error("KTX Textures With Compression Not Yet Supported!");
-			return false;
+			return nullptr;
 		}
 
-		if (header.format == header.internalFormat) { return false; }
-		if (header.pixelWidth == 0 || (header.pixelDepth > 0 && header.pixelHeight == 0)) { return false; }
+		if (header.format == header.internalFormat) { return nullptr; }
+		if (header.pixelWidth == 0 || (header.pixelDepth > 0 && header.pixelHeight == 0)) { return nullptr; }
 
 		U16 dimension = 0;
 		if (header.pixelDepth > 0)
@@ -1705,70 +1831,76 @@ bool Resources::LoadKTX(File& file)
 			if (header.arrayElementCount > 0)
 			{
 				Logger::Error("3D Array Textures Are Not Yet Supported!");
-				return false;
+				return nullptr;
 			}
 			dimension = 3;
 		}
 		else if (header.pixelHeight > 0) { dimension = 2; }
 		else { dimension = 1; }
 
-		if (header.faceCount == 6) { if (dimension != 2) { return false; } }
-		else if (header.faceCount != 1) { return false; }
+		if (header.faceCount == 6) { if (dimension != 2) { return nullptr; } }
+		else if (header.faceCount != 1) { return nullptr; }
 
 		KTXInfo info{};
 		GetKTXInfo(header.internalFormat, info);
 
-		file.Seek(header.keyValueDataSize);
+		reader.Seek(header.keyValueDataSize);
 
 		U32 elementCount = Math::Max(1u, header.arrayElementCount);
 		U32 depth = Math::Max(1u, header.pixelDepth);
-		U32 dataSize = (U32)(file.Size() - file.Pointer() - header.mipmapLevelCount * sizeof(U32));
+		U32 dataSize = (U32)(reader.Size() - reader.Position() - header.mipmapLevelCount * sizeof(U32));
 
 		U8* data;
 		Memory::AllocateSize(&data, dataSize);
 
 		U32 faceLodSize;
-		file.Read(faceLodSize);
+		reader.Read(faceLodSize);
 
-		file.Read(data, faceLodSize * header.faceCount);
+		faceCount = header.faceCount;
+		faceSize = faceLodSize;
+		width = header.pixelWidth;
+		height = header.pixelHeight;
+		format = GetKTXFormat(header.type, header.format);
 
-		Memory::Free(&data);
+		if (format == VK_FORMAT_UNDEFINED) { return nullptr; }
+
+		return reader.Pointer();
 	}
 	else if (Memory::Compare(identifier, FileIdentifier20, 12))
 	{
 		KTXHeader20 header;
-		file.Read(header);
+		reader.Read(header);
 
-		KTXLevel level[14];
-
-		file.Read(level, sizeof(KTXLevel) * header.levelCount);
+		KTXLevel* level = (KTXLevel*)reader.Pointer();
+		reader.Seek(sizeof(KTXLevel) * header.levelCount);
 
 		U32 dfdTotalSize;
-		file.Read(dfdTotalSize);
+		reader.Read(dfdTotalSize);
 
-		file.Seek(dfdTotalSize + header.kvdByteLength);
+		reader.Seek(dfdTotalSize + header.kvdByteLength);
 
 		if (header.superCompressionScheme != 0)
 		{
 			Logger::Error("KTX Textures With Compression Not Yet Supported!");
-			return false;
+			return nullptr;
 		}
 
 		U32 dataSize = (U32)level[0].uncompressedByteLength;
 		U8* data;
 		Memory::AllocateSize(&data, dataSize);
 
-		file.Read(data, dataSize);
+		faceCount = header.faceCount;
+		faceSize = dataSize / header.faceCount;
+		width = header.pixelWidth;
+		height = header.pixelHeight;
+		format = header.format;
 
-		Memory::Free(&data);
-	}
-	else
-	{
-		Logger::Error("Texture Is Not a KTX!");
-		return false;
+		return reader.Pointer();
 	}
 
-	return true;
+	Logger::Error("Texture Is Not a KTX!");
+
+	return nullptr;
 }
 
 void Resources::GetKTXInfo(U32 internalFormat, KTXInfo& info)
@@ -2116,6 +2248,44 @@ void Resources::GetKTXInfo(U32 internalFormat, KTXInfo& info)
 		info.blockDepth = 1;
 		break;
 	}
+}
+
+VkFormat Resources::GetKTXFormat(KTXType type, KTXFormat format)
+{
+	switch (format)
+	{
+	case KTX_FORMAT_RGB: {
+		switch (type)
+		{
+		case KTX_TYPE_BYTE: return VK_FORMAT_R8G8B8_SINT;
+		case KTX_TYPE_UNSIGNED_BYTE: return VK_FORMAT_R8G8B8_UINT;
+		case KTX_TYPE_SHORT: return VK_FORMAT_R16G16B16_SINT;
+		case KTX_TYPE_UNSIGNED_SHORT: return VK_FORMAT_R16G16B16_UINT;
+		case KTX_TYPE_INT: return VK_FORMAT_R32G32B32_SINT;
+		case KTX_TYPE_UNSIGNED_INT: return VK_FORMAT_R32G32B32_UINT;
+		case KTX_TYPE_FLOAT: return VK_FORMAT_R32G32B32_SFLOAT;
+		case KTX_TYPE_DOUBLE: return VK_FORMAT_R64G64B64_SFLOAT;
+		case KTX_TYPE_HALF_FLOAT: return VK_FORMAT_R16G16B16_SFLOAT;
+		}
+	} break;
+	case KTX_FORMAT_RGBA: {
+		switch (type)
+		{
+		case KTX_TYPE_BYTE: return VK_FORMAT_R8G8B8A8_SINT;
+		case KTX_TYPE_UNSIGNED_BYTE: return VK_FORMAT_R8G8B8A8_UINT;
+		case KTX_TYPE_SHORT: return VK_FORMAT_R16G16B16A16_SINT;
+		case KTX_TYPE_UNSIGNED_SHORT: return VK_FORMAT_R16G16B16A16_UINT;
+		case KTX_TYPE_INT: return VK_FORMAT_R32G32B32A32_SINT;
+		case KTX_TYPE_UNSIGNED_INT: return VK_FORMAT_R32G32B32A32_UINT;
+		case KTX_TYPE_FLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case KTX_TYPE_DOUBLE: return VK_FORMAT_R64G64B64A64_SFLOAT;
+		case KTX_TYPE_HALF_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
+		}
+	} break;
+	}
+
+	Logger::Error("Unknown KTX Format!");
+	return VK_FORMAT_UNDEFINED;
 }
 
 String Resources::UploadModel(const String& path)

@@ -2,6 +2,7 @@
 
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
+#include "Resources\Settings.hpp"
 #include "Pipeline.hpp"
 
 void CommandBuffer::Create(VkQueueFlagBits type, bool baked)
@@ -56,6 +57,11 @@ VkResult CommandBuffer::Reset()
 	return vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 }
 
+void CommandBuffer::ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects)
+{
+	vkCmdClearAttachments(commandBuffer, attachmentCount, attachments, rectCount, rects);
+}
+
 void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 {
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -63,7 +69,7 @@ void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 	renderPassBegin.renderPass = renderpass->renderpass;
 
 	renderPassBegin.renderArea.offset = { 0, 0 };
-	renderPassBegin.renderArea.extent = { renderpass->width, renderpass->height };
+	renderPassBegin.renderArea.extent = { Settings::WindowWidth(), Settings::WindowHeight() };
 
 	renderPassBegin.clearValueCount = renderpass->clearCount;
 	renderPassBegin.pClearValues = renderpass->clears;

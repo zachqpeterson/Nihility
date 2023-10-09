@@ -9,17 +9,19 @@
 #include "Math\Math.hpp"
 
 Vector<Device> Input::devices;
+F32 Input::mouseSensitivity;
 I16 Input::mouseWheelDelta;
 I16 Input::mouseHWheelDelta;
-I32 Input::mousePosX;
-I32 Input::mousePosY;
-I32 Input::deltaMousePosX;
-I32 Input::deltaMousePosY;
+F32 Input::mousePosX;
+F32 Input::mousePosY;
+F32 Input::deltaMousePosX;
+F32 Input::deltaMousePosY;
 
 F32 Input::axisStates[AXIS_CODE_COUNT];
 Input::ButtonState Input::buttonStates[BUTTON_CODE_COUNT];
 bool Input::receiveInput;
 bool Input::anyButtonDown;
+bool Input::anyButtonChanged;
 
 #if defined PLATFORM_WINDOWS
 
@@ -76,8 +78,13 @@ bool Input::Initialize()
 	POINT p;
 	GetCursorPos(&p);
 
-	mousePosX = p.x;
-	mousePosY = p.y;
+	mousePosX = p.x - Settings::WindowPositionX();
+	mousePosY = p.y - Settings::WindowPositionY();
+
+	int sensitivity;
+	SystemParametersInfoA(SPI_GETMOUSESPEED, 0, &sensitivity, 0);
+
+	mouseSensitivity = sensitivity / 10.0f;
 
 	//U32 deviceCount = 0;
 	//RAWINPUTDEVICELIST* deviceList = nullptr;
@@ -105,13 +112,13 @@ void Input::Shutdown()
 
 void Input::Update()
 {
-	//TODO: Reset values
 	deltaMousePosX = 0;
 	deltaMousePosY = 0;
 	mouseWheelDelta = 0;
 	mouseHWheelDelta = 0;
 
 	anyButtonDown = false;
+	anyButtonChanged = false;
 	receiveInput = true;
 	for (ButtonState& state : buttonStates)
 	{
@@ -131,18 +138,12 @@ void Input::ReceiveInput(HRAWINPUT handle)
 	switch (input.header.dwType)
 	{
 	case RIM_TYPEMOUSE: {
-
 		RAWMOUSE mouse = input.data.mouse;
 
 		if (mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
 		{
-			bool isVirtualDesktop = mouse.usFlags & MOUSE_VIRTUAL_DESKTOP;
-
-			I32 width = GetSystemMetrics(isVirtualDesktop ? SM_CXVIRTUALSCREEN : SM_CXSCREEN);
-			I32 height = GetSystemMetrics(isVirtualDesktop ? SM_CYVIRTUALSCREEN : SM_CYSCREEN);
-
-			I32 absoluteX = I32((mouse.lLastX / 65535.0f) * width);
-			I32 absoluteY = I32((mouse.lLastY / 65535.0f) * height);
+			I32 absoluteX = I32((mouse.lLastX / 65535.0f) * Settings::VirtualScreenWidth());
+			I32 absoluteY = I32((mouse.lLastY / 65535.0f) * Settings::VirtualScreenHeight());
 
 			deltaMousePosX = absoluteX - mousePosX;
 			deltaMousePosY = absoluteY - mousePosY;
@@ -154,77 +155,128 @@ void Input::ReceiveInput(HRAWINPUT handle)
 			I32 relativeX = mouse.lLastX;
 			I32 relativeY = mouse.lLastY;
 
-			//TODO: Sensitivity from windows
 			//TODO: Pointer ballistics
-			deltaMousePosX = relativeX;
-			deltaMousePosY = relativeY;
+			deltaMousePosX = relativeX * mouseSensitivity;
+			deltaMousePosY = relativeY * mouseSensitivity;
 
 			if (Settings::ConstrainCursor())
 			{
-				mousePosX = Math::Clamp((U32)(mousePosX += deltaMousePosX), Settings::WindowPositionX(), Settings::WindowWidth() + Settings::WindowPositionX());
-				mousePosY = Math::Clamp((U32)(mousePosY += deltaMousePosY), Settings::WindowPositionY(), Settings::WindowHeight() + Settings::WindowPositionY());
+				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, (F32)Settings::WindowPositionX(), (F32)Settings::WindowWidth() + (F32)Settings::WindowPositionX());
+				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, (F32)Settings::WindowPositionY(), (F32)Settings::WindowHeight() + (F32)Settings::WindowPositionY());
 			}
 			else
 			{
-				mousePosX = Math::Clamp((U32)(mousePosX += deltaMousePosX), 0u, Settings::ScreenWidth());
-				mousePosY = Math::Clamp((U32)(mousePosY += deltaMousePosY), 0u, Settings::ScreenHeight());
+				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, (F32)-Settings::WindowPositionX(), (F32)Settings::VirtualScreenWidth() - (F32)Settings::WindowPositionX());
+				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
 			}
+
+			SetCursorPos(mousePosX + Settings::WindowPositionX(), mousePosY + Settings::WindowPositionY());
 		}
 
 		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
 		{
-			buttonStates[BUTTON_CODE_LEFT_MOUSE].changed = true;
-			buttonStates[BUTTON_CODE_LEFT_MOUSE].pressed = true;
-			anyButtonDown = true;
+			ButtonState& state = buttonStates[BUTTON_CODE_LEFT_MOUSE];
+
+			state.heldChanged = state.pressed && !state.held;
+			state.held = state.pressed;
+			state.changed = !state.pressed;
+			state.pressed = true;
+			anyButtonDown |= state.changed;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
 		{
-			buttonStates[BUTTON_CODE_LEFT_MOUSE].changed = true;
-			buttonStates[BUTTON_CODE_LEFT_MOUSE].pressed = false;
+			ButtonState& state = buttonStates[BUTTON_CODE_LEFT_MOUSE];
+
+			state.changed = true;
+			state.pressed = false;
+			state.heldChanged = state.held;
+			state.held = false;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
 		{
-			buttonStates[BUTTON_CODE_RIGHT_MOUSE].changed = true;
-			buttonStates[BUTTON_CODE_RIGHT_MOUSE].pressed = true;
-			anyButtonDown = true;
+			ButtonState& state = buttonStates[BUTTON_CODE_RIGHT_MOUSE];
+
+			state.heldChanged = state.pressed && !state.held;
+			state.held = state.pressed;
+			state.changed = !state.pressed;
+			state.pressed = true;
+			anyButtonDown |= state.changed;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
 		{
-			buttonStates[BUTTON_CODE_RIGHT_MOUSE].changed = true;
-			buttonStates[BUTTON_CODE_RIGHT_MOUSE].pressed = false;
+			ButtonState& state = buttonStates[BUTTON_CODE_RIGHT_MOUSE];
+
+			state.changed = true;
+			state.pressed = false;
+			state.heldChanged = state.held;
+			state.held = false;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
 		{
-			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].changed = true;
-			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].pressed = true;
-			anyButtonDown = true;
+			ButtonState& state = buttonStates[BUTTON_CODE_MIDDLE_MOUSE];
+
+			state.heldChanged = state.pressed && !state.held;
+			state.held = state.pressed;
+			state.changed = !state.pressed;
+			state.pressed = true;
+			anyButtonDown |= state.changed;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
 		{
-			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].changed = true;
-			buttonStates[BUTTON_CODE_MIDDLE_MOUSE].pressed = false;
+			ButtonState& state = buttonStates[BUTTON_CODE_MIDDLE_MOUSE];
+
+			state.changed = true;
+			state.pressed = false;
+			state.heldChanged = state.held;
+			state.held = false;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
 		{
-			buttonStates[BUTTON_CODE_X_MOUSE_ONE].changed = true;
-			buttonStates[BUTTON_CODE_X_MOUSE_ONE].pressed = true;
-			anyButtonDown = true;
+			ButtonState& state = buttonStates[BUTTON_CODE_X_MOUSE_ONE];
+
+			state.heldChanged = state.pressed && !state.held;
+			state.held = state.pressed;
+			state.changed = !state.pressed;
+			state.pressed = true;
+			anyButtonDown |= state.changed;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
 		{
-			buttonStates[BUTTON_CODE_X_MOUSE_ONE].changed = true;
-			buttonStates[BUTTON_CODE_X_MOUSE_ONE].pressed = false;
+			ButtonState& state = buttonStates[BUTTON_CODE_X_MOUSE_ONE];
+
+			state.changed = true;
+			state.pressed = false;
+			state.heldChanged = state.held;
+			state.held = false;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
 		{
-			buttonStates[BUTTON_CODE_X_MOUSE_TWO].changed = true;
-			buttonStates[BUTTON_CODE_X_MOUSE_TWO].pressed = true;
-			anyButtonDown = true;
+			ButtonState& state = buttonStates[BUTTON_CODE_X_MOUSE_TWO];
+
+			state.heldChanged = state.pressed && !state.held;
+			state.held = state.pressed;
+			state.changed = !state.pressed;
+			state.pressed = true;
+			anyButtonDown |= state.changed;
+			anyButtonChanged |= state.changed;
 		}
 		if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
 		{
-			buttonStates[BUTTON_CODE_X_MOUSE_TWO].changed = true;
-			buttonStates[BUTTON_CODE_X_MOUSE_TWO].pressed = false;
+			ButtonState& state = buttonStates[BUTTON_CODE_X_MOUSE_TWO];
+
+			state.changed = true;
+			state.pressed = false;
+			state.heldChanged = state.held;
+			state.held = false;
+			anyButtonChanged |= state.changed;
 		}
 
 		if (mouse.usButtonFlags & RI_MOUSE_WHEEL) { mouseWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
@@ -255,6 +307,7 @@ void Input::ReceiveInput(HRAWINPUT handle)
 			state.changed = !state.pressed;
 			state.pressed = true;
 			anyButtonDown |= state.changed;
+			anyButtonChanged |= state.changed;
 		} break;
 
 		case WM_KEYUP:
@@ -275,6 +328,7 @@ void Input::ReceiveInput(HRAWINPUT handle)
 			state.pressed = false;
 			state.heldChanged = state.held;
 			state.held = false;
+			anyButtonChanged |= state.changed;
 		} break;
 		}
 	} break;
@@ -302,8 +356,8 @@ void Input::InputSink(HRAWINPUT handle)
 		{
 			SetFocus(Platform::GetWindowData().window);
 
-			mousePosX = p.x;
-			mousePosY = p.y;
+			mousePosX = p.x - Settings::WindowPositionX();
+			mousePosY = p.y - Settings::WindowPositionY();
 		}
 	}
 }
@@ -320,6 +374,8 @@ void Input::RemoveDevice(void* handle)
 }
 
 bool Input::OnAnyButtonDown() { return anyButtonDown; }
+
+bool Input::OnAnyButtonChanged() { return anyButtonChanged; }
 
 bool Input::ButtonUp(ButtonCode code) { return receiveInput && !buttonStates[code].pressed; }
 

@@ -55,6 +55,7 @@ void Jobs::Shutdown()
 	Logger::Trace("Cleaning Up Jobs...");
 
 	running = false;
+	jobs.Destroy();
 	ReleaseSemaphore(semaphore, Settings::ThreadCount(), nullptr);
 	CloseHandle(semaphore);
 }

@@ -86,7 +86,8 @@ struct NH_API StringBase
 	StringBase(const StringBase& other) noexcept;
 	StringBase(StringBase&& other) noexcept;
 	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
-	template<typename First, typename... Args> StringBase(const C* fmt, const First& first, const Args& ... args) noexcept; //TODO: Take in any string literal type
+	template<typename... Args> StringBase& Format(const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
+	template<typename... Args> StringBase& Format(U64 start, const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
 
 	StringBase& operator=(const StringBase& other) noexcept;
 	StringBase& operator=(StringBase&& other) noexcept;
@@ -193,7 +194,7 @@ private:
 
 	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity() noexcept;
 
-	template<typename Arg> void Format(U64& start, const Arg& value) noexcept;
+	template<typename Arg> void FindFormat(U64& start, const Arg& value) noexcept;
 
 	static bool Compare(const C* a, const C* b, I64 length) noexcept;
 	static bool WhiteSpace(C c) noexcept;
@@ -253,15 +254,34 @@ inline StringBase<C>::StringBase(const First& first, const Args& ... args) noexc
 }
 
 template<Character C>
-template<typename First, typename... Args>
-inline StringBase<C>::StringBase(const C* fmt, const First& first, const Args& ... args) noexcept : size{ Length(fmt) }, capacity{ size }
+template<typename... Args>
+inline StringBase<C>& StringBase<C>::Format(const C* format, const Args& ... args) noexcept
 {
-	Memory::AllocateArray(&string, capacity, capacity);
+	U64 length = Length(format) + 1;
 
-	Memory::Copy(string, fmt, (size + 1) * sizeof(C));
+	if (capacity < length) { Memory::Reallocate(&string, length, capacity); }
+	size = length - 1;
+
+	Memory::Copy(string, format, length * sizeof(C));
 	U64 start = 0;
-	Format(start, first);
-	(Format(start, args), ...);
+	(FindFormat(start, args), ...);
+
+	return *this;
+}
+
+template<Character C>
+template<typename... Args>
+inline StringBase<C>& StringBase<C>::Format(U64 start, const C* format, const Args& ... args) noexcept
+{
+	U64 length = Length(format) + 1;
+
+	if (capacity < start + length) { Memory::Reallocate(&string, start + length, capacity); }
+	size = start + length - 1;
+
+	Memory::Copy(string + start, format, length * sizeof(C));
+	(FindFormat(start, args), ...);
+
+	return *this;
 }
 
 template<Character C>
@@ -1116,7 +1136,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount) n
 		size += addLength - Remove;
 
 		if constexpr (Insert) { Memory::Copy(str + neg, c, (addLength + excessSize - Remove) * sizeof(C)); }
-		else { Memory::Copy(str, c, addLength * sizeof(C)); }
+		else { Memory::Copy(str + neg, c, addLength * sizeof(C)); }
 
 		string[size] = StringLookup<C>::NULL_CHAR;
 		needHash = true;
@@ -1263,9 +1283,14 @@ template<Character C>
 template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove>
 inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
-	static_assert(ConvertibleTo<Arg, StringBaseType>, "Arg passed into a string formatter must be convertable to a String type!");
-
-	return ToString<StringBaseType, Hex, Insert, Remove>(str, value.operator StringBaseType());
+	if constexpr (ConvertibleTo<Arg, StringBaseType>)
+	{
+		return ToString<StringBaseType, Hex, Insert, Remove>(str, value.operator StringBaseType());
+	}
+	else
+	{
+		return ToString<U64, Hex, Insert, Remove>(str, (U64)&value);
+	}
 }
 
 template<Character C>
@@ -1491,7 +1516,7 @@ inline bool StringBase<C>::NotWhiteSpace(C c) noexcept
 
 template<Character C>
 template<typename Arg>
-inline void StringBase<C>::Format(U64& start, const Arg& value) noexcept
+inline void StringBase<C>::FindFormat(U64& start, const Arg& value) noexcept
 {
 	C* it = string + start;
 	C c = *it;

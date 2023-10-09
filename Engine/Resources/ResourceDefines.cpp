@@ -89,18 +89,17 @@ void Renderpass::Resize()
 	{
 		lastResize = Renderer::absoluteFrame;
 
-		width = Settings::WindowWidth();
-		height = Settings::WindowHeight();
+		Vector4 area = Renderer::RenderArea();
 
 		for (U32 i = 0; i < renderTargetCount; ++i)
 		{
-			Resources::RecreateTexture(outputTextures[i], width, height, 1);
+			Resources::RecreateTexture(outputTextures[i], Settings::WindowWidth(), Settings::WindowHeight(), 1);
 			vkDestroyFramebuffer(Renderer::device, frameBuffers[i], Renderer::allocationCallbacks);
 		}
 
 		if (outputDepth)
 		{
-			Resources::RecreateTexture(outputDepth, width, height, 1);
+			Resources::RecreateTexture(outputDepth, Settings::WindowWidth(), Settings::WindowHeight(), 1);
 		}
 
 		vkDestroyRenderPass(Renderer::device, renderpass, Renderer::allocationCallbacks);
@@ -113,8 +112,6 @@ void Renderpass::Resize()
 
 RenderpassInfo& RenderpassInfo::Reset()
 {
-	width = 0;
-	height = 0;
 	renderTargetCount = 0;
 
 	depthStencilTexture = {};

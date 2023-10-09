@@ -16,6 +16,8 @@ struct CommandBuffer
 	VkResult Submit(VkQueue queue, const VkPipelineStageFlags* stageMasks, U32 waitCount, const VkSemaphore* waits, U32 signalCount, const VkSemaphore* signals);
 	VkResult Reset();
 
+	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
+
 	void BeginRenderpass(Renderpass* renderpass);
 	void EndRenderpass();
 

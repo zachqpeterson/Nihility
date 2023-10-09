@@ -28,7 +28,6 @@ private:
 	static ShutdownFn GameShutdown;
 
 	static bool running;
-	static bool suspended;
 
 	STATIC_CLASS(Engine);
 };

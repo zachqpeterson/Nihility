@@ -1439,7 +1439,7 @@ void Matrix4::SetPerspective(F32 fov, F32 aspect, F32 near, F32 far)
 	a.w = 0.0f;
 
 	b.x = 0.0f;
-	b.y = yScale;
+	b.y = -yScale;
 	b.z = 0.0f;
 	b.w = 0.0f;
 

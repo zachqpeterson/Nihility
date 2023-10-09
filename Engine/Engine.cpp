@@ -23,7 +23,6 @@ UpdateFn Engine::GameUpdate;
 ShutdownFn Engine::GameShutdown;
 
 bool Engine::running;
-bool Engine::suspended;
 
 void Engine::Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
@@ -32,32 +31,12 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	GameShutdown = shutdown;
 
 	running = true;
-	suspended = false;
 
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
 	ASSERT(Logger::Initialize());
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
-
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-	Jobs::Execute([] { Logger::Debug("Just doin' my job!"); });
-
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Input::Initialize());
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
@@ -95,7 +74,6 @@ void Engine::UpdateLoop()
 {
 	while (running)
 	{
-		//ZoneScoped;
 		Time::Update();
 		Input::Update();
 
@@ -116,7 +94,7 @@ void Engine::UpdateLoop()
 
 		if (!Settings::Minimised())
 		{
-			//UI::Update();
+			UI::Update();
 
 			Renderer::EndFrame();
 			Settings::resized = false;
@@ -130,8 +108,6 @@ void Engine::UpdateLoop()
 		U64 remainingUS = (U64)(remainingFrameTime * 1090000.0);
 
 		if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }
-
-		//FrameMark;
 	}
 }
 

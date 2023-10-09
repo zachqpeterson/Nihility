@@ -22,6 +22,7 @@ struct DataReader
 	void Seek(U32 length);
 
 	U64 Size() const;
+	U64 Position() const;
 	U8* Data();
 	U8* Data() const;
 	U8* Pointer();

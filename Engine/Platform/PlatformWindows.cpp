@@ -89,8 +89,10 @@ bool Platform::Initialize(CSTR applicationName)
 
 	Settings::data.dpi = GetDpiForSystem();
 
-	Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
-	Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+	Settings::screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+	Settings::screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+	Settings::virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::Dpi());
+	Settings::virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::Dpi());
 
 	if (dpi)
 	{
@@ -129,7 +131,7 @@ bool Platform::Initialize(CSTR applicationName)
 	DEVMODEA monitorInfo{};
 	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &monitorInfo);
 	if (Settings::TargetFrametime() == 0.0) { Settings::data.targetFrametime = 1.0 / monitorInfo.dmDisplayFrequency; }
-	Settings::data.monitorHz = monitorInfo.dmDisplayFrequency;
+	Settings::monitorHz = monitorInfo.dmDisplayFrequency;
 	
 	RegisterClipboardFormatA("NihilityClipboard");
 	HRESULT result = RegisterDragDrop(windowData.window, &dropTarget);
@@ -275,16 +277,36 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	switch (msg)
 	{
 	case WM_CREATE: { } return 0;
-	case WM_SETFOCUS: { Settings::focused = true; Audio::Focus(); } return 0;
-	case WM_KILLFOCUS: { Settings::focused = false; Audio::Unfocus(); } return 0;
-	case WM_QUIT: { Settings::focused = false; running = false; } return 0;
-	case WM_CLOSE: { Settings::focused = false; running = false; } return 0;
-	case WM_DESTROY: { Settings::focused = false; running = false; } return 0;
+	case WM_SETFOCUS: { 
+		Settings::focused = true;
+		Audio::Focus(); 
+	} return 0;
+	case WM_KILLFOCUS: {
+		Settings::focused = false;
+		Audio::Unfocus();
+	} return 0;
+	case WM_QUIT: {
+		Settings::focused = false;
+		running = false;
+	} return 0;
+	case WM_CLOSE: {
+		Settings::focused = false;
+		running = false;
+	} return 0;
+	case WM_DESTROY: {
+		Settings::focused = false;
+		running = false;
+	} return 0;
 	case WM_ERASEBKGND: {} return 1;
 	case WM_DPICHANGED: {
 		Settings::data.dpi = HIWORD(wParam);
 		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
 		RECT* rect = (RECT*)lParam;
+
+		Settings::screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+		Settings::screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+		Settings::virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::Dpi());
+		Settings::virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::Dpi());
 
 		Settings::data.windowPositionXSmall = rect->left - border.left;
 		Settings::data.windowPositionYSmall = rect->top - border.top;
@@ -305,8 +327,18 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_SIZE: {
 		switch (wParam)
 		{
-		case SIZE_MINIMIZED: { Settings::focused = false; Settings::minimised = true; Audio::Unfocus(); } break;
-		case SIZE_RESTORED: {  Settings::focused = true; Settings::minimised = false; Audio::Focus(); } break;
+		case SIZE_MINIMIZED: {
+			Settings::focused = false; 
+			Settings::minimised = true;
+			Audio::Unfocus();
+		} break;
+		case SIZE_RESTORED: {
+			Settings::focused = true;
+			Settings::minimised = false;
+			Audio::Focus();
+
+			//TODO: Fix cursor teleport
+		} break;
 		}
 
 		RECT rect{};
@@ -325,8 +357,10 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 			Settings::data.windowHeightSmall = Settings::WindowHeight();
 		}
 
-		Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
-		Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+		Settings::screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+		Settings::screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+		Settings::virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::Dpi());
+		Settings::virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::Dpi());
 
 		Settings::resized = true;
 	} return 0;
@@ -340,8 +374,10 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 			Settings::data.windowPositionYSmall = Settings::WindowPositionY();
 		}
 
-		Settings::data.screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
-		Settings::data.screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+		Settings::screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
+		Settings::screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::Dpi());
+		Settings::virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::Dpi());
+		Settings::virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::Dpi());
 	} return 0;
 
 	case WM_INPUT_DEVICE_CHANGE: {

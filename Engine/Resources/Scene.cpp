@@ -33,10 +33,9 @@ void Scene::AddModel(Model* model)
 	models.Push(model);
 }
 
-void Scene::SetSkybox(const String& name)
+void Scene::SetSkybox(Skybox* newSkybox)
 {
-	skybox = Resources::LoadSkybox(name);
-	drawSkybox = true;
+	skybox = newSkybox;
 
-	//TODO: Upload skybox
+	Resources::UseSkybox(skybox);
 }

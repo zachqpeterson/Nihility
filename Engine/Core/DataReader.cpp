@@ -65,6 +65,11 @@ U64 DataReader::Size() const
 	return size;
 }
 
+U64 DataReader::Position() const
+{
+	return dataPtr - data;
+}
+
 U8* DataReader::Data()
 {
 	return data;

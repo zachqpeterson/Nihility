@@ -153,6 +153,8 @@ bool Swapchain::Create()
 		}
 	}
 
+	Renderer::SetRenderArea();
+
 	return true;
 }
 

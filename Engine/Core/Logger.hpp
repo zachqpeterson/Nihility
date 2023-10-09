@@ -15,6 +15,14 @@
 #	define LOG_TRACE_ENABLED 0
 #endif
 
+#define FATAL_TAG "\033[0;41m[FATAL]:\033[0m "
+#define ERROR_TAG "\033[0;31m[ERROR]:\033[0m "
+#define WARN_TAG "\033[1;33m[WARN]:\033[0m  "
+#define INFO_TAG "\033[1;32m[INFO]:\033[0m  "
+#define DEBUG_TAG "\033[0;36m[DEBUG]:\033[0m "
+#define TRACE_TAG "\033[1;30m[TRACE]:\033[0m "
+#define END_LINE "\n"
+
 struct File;
 
 class NH_API Logger
@@ -38,14 +46,6 @@ private:
 	static void Shutdown();
 	static void Write(const String& message);
 
-	static String fatalTag;
-	static String errorTag;
-	static String warnTag;
-	static String infoTag;
-	static String debugTag;
-	static String traceTag;
-	static String endLine;
-
 	static File log;
 	static File console;
 
@@ -55,76 +55,100 @@ private:
 
 template<Character T, typename... Types> inline void Logger::Fatal(const T* message, const Types&... args)
 {
-	String str(message, args...);
-	Write(str.Surround(fatalTag, endLine));
+	String str{ FATAL_TAG };
+
+	str.Format(CountOf(FATAL_TAG), message, args...);
+	
+	Write(str.Append(END_LINE));
 }
 
 template<Character T, typename... Types> inline void Logger::Error(const T* message, const Types&... args)
 {
-	String str(message, args...);
-	Write(str.Surround(errorTag, endLine));
+	String str{ ERROR_TAG };
+
+	str.Format(CountOf(ERROR_TAG), message, args...);
+
+	Write(str.Append(END_LINE));
 }
 
 template<Character T, typename... Types> inline void Logger::Warn(const T* message, const Types&... args)
 {
 #if LOG_WARN_ENABLED
-	String str(message, args...);
-	Write(str.Surround(warnTag, endLine));
+	String str{ WARN_TAG };
+
+	str.Format(CountOf(WARN_TAG), message, args...);
+
+	Write(str.Append(END_LINE));
 #endif
 }
 
 template<Character T, typename... Types> inline void Logger::Info(const T* message, const Types&... args)
 {
 #if LOG_INFO_ENABLED
-	String str(message, args...);
-	Write(str.Surround(infoTag, endLine));
+	String str{ INFO_TAG };
+
+	str.Format(CountOf(INFO_TAG), message, args...);
+
+	Write(str.Append(END_LINE));
 #endif
 }
 
 template<Character T, typename... Types> inline void Logger::Debug(const T* message, const Types&... args)
 {
 #if LOG_DEBUG_ENABLED
-	String str(message, args...);
-	Write(str.Surround(debugTag, endLine));
+	String str{ DEBUG_TAG };
+
+	str.Format(CountOf(DEBUG_TAG), message, args...);
+
+	Write(str.Append(END_LINE));
 #endif
 }
 
 template<Character T, typename... Types> inline void Logger::Trace(const T* message, const Types&... args)
 {
 #if LOG_TRACE_ENABLED
-	String str(message, args...);
-	Write(str.Surround(traceTag, endLine));
+	String str{ TRACE_TAG };
+
+	str.Format(CountOf(TRACE_TAG), message, args...);
+
+	Write(str.Append(END_LINE));
 #endif
 }
 
-template<typename Type> inline void Logger::Fatal(const Type& arg) { Write(String(fatalTag, arg, endLine)); }
+template<typename Type> inline void Logger::Fatal(const Type& arg)
+{
+	Write(String(FATAL_TAG, arg, END_LINE));
+}
 
-template<typename Type> inline void Logger::Error(const Type& arg) { Write(String(errorTag, arg, endLine)); }
+template<typename Type> inline void Logger::Error(const Type& arg)
+{
+	Write(String(ERROR_TAG, arg, END_LINE));
+}
 
 template<typename Type> inline void Logger::Warn(const Type& arg)
 {
 #if LOG_WARN_ENABLED
-	Write(String(warnTag, arg, endLine));
+	Write(String(WARN_TAG, arg, END_LINE));
 #endif
 }
 
 template<typename Type> inline void Logger::Info(const Type& arg)
 {
 #if LOG_INFO_ENABLED
-	Write(String(infoTag, arg, endLine));
+	Write(String(INFO_TAG, arg, END_LINE));
 #endif
 }
 
 template<typename Type> inline void Logger::Debug(const Type& arg)
 {
 #if LOG_DEBUG_ENABLED
-	Write(String(debugTag, arg, endLine));
+	Write(String(DEBUG_TAG, arg, END_LINE));
 #endif
 }
 
 template<typename Type> inline void Logger::Trace(const Type& arg)
 {
 #if LOG_TRACE_ENABLED
-	Write(String(traceTag, arg, endLine));
+	Write(String(TRACE_TAG, arg, END_LINE));
 #endif
 }

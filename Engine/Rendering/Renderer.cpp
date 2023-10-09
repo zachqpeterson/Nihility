@@ -104,6 +104,7 @@ bool								Renderer::pushDescriptorsSupported{ false };
 bool								Renderer::meshShadingSupported{ false };
 
 // WINDOW
+Vector4								Renderer::renderArea;
 U32									Renderer::frameIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
@@ -121,6 +122,7 @@ Buffer								Renderer::indexBuffer;
 Buffer								Renderer::materialBuffer;
 Buffer								Renderer::drawCommandsBuffer;
 U32									Renderer::shaderUploadOffset;
+GlobalData							Renderer::globalData;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -515,12 +517,6 @@ void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
 {
 	if (pipeline->drawCount)
 	{
-		Camera& camera = currentScene->camera;
-
-		GlobalData globalData{};
-		globalData.vp = camera.ViewProjection();
-		globalData.eye = camera.Eye();
-
 		bool taskSubmit = false;
 
 		if (taskSubmit)
@@ -566,14 +562,19 @@ void Renderer::EndFrame()
 		return; //TODO: Default scene?
 	}
 
+	Camera& camera = currentScene->camera;
+
+	globalData.vp = camera.ViewProjection();
+	globalData.eye = camera.Eye();
+
 	Resources::Update();
 
 	commandBuffer->BeginRenderpass(Resources::meshPipeline->renderpass);
 
 	Render(commandBuffer, Resources::meshPipeline);
+	Render(commandBuffer, Resources::skyboxPipeline);
 
 	//Post Processing
-	//TODO: Skybox
 	//TODO: Bloom
 	//TODO: Fog
 	//TODO: Exposure
@@ -639,9 +640,38 @@ void Renderer::Resize()
 	Resources::Resize();
 	currentScene->updatePostProcess = true;
 
+	UI::Resize();
+
 	vkDeviceWaitIdle(device);
 
 	//TODO: Update camera here
+}
+
+void Renderer::SetRenderArea()
+{
+	F32 aspectHeight = Settings::WindowHeight() * 1.77777777778f;
+	F32 aspectWidth = Settings::WindowWidth() * 0.5625f;
+
+	F32 offset;
+
+	if (Settings::WindowWidth() > aspectHeight)
+	{
+		offset = (Settings::WindowWidth() - aspectHeight) * 0.5f;
+
+		renderArea.x = offset;
+		renderArea.y = 0.0f;
+		renderArea.z = Settings::WindowWidth() - (offset * 2.0f);
+		renderArea.w = (F32)Settings::WindowHeight();
+	}
+	else
+	{
+		offset = (Settings::WindowHeight() - aspectWidth) * 0.5f;
+
+		renderArea.x = 0.0f;
+		renderArea.y = offset;
+		renderArea.z = (F32)Settings::WindowWidth();
+		renderArea.w = Settings::WindowHeight() - (offset * 2.0f);
+	}
 }
 
 void Renderer::LoadScene(const String& name)
@@ -689,6 +719,11 @@ void Renderer::FrameCountersAdvance()
 	currentFrame = (currentFrame + 1) % swapchain.imageCount;
 
 	++absoluteFrame;
+}
+
+const Vector4& Renderer::RenderArea()
+{
+	return renderArea;
 }
 
 U32 Renderer::FrameIndex()
@@ -747,7 +782,7 @@ VkBufferMemoryBarrier2 Renderer::BufferBarrier(VkBuffer buffer, VkPipelineStageF
 	return result;
 }
 
-Buffer Renderer::CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags)
+Buffer Renderer::CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags)
 {
 	Buffer buffer{};
 	buffer.size = size;
@@ -790,7 +825,7 @@ Buffer Renderer::CreateBuffer(U64 size, VkBufferUsageFlags usageFlags, VkMemoryP
 	return Move(buffer);
 }
 
-void Renderer::FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset)
+void Renderer::FillBuffer(Buffer& buffer, const void* data, U32 size, U32 offset)
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
 	commandBuffer->Begin();
@@ -807,17 +842,17 @@ void Renderer::FillBuffer(Buffer& buffer, const void* data, U64 size, U64 offset
 	commandBuffer->Reset();
 }
 
-U64 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U64 size)
+U32 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U32 size)
 {
 	FillBuffer(buffer, data, size, buffer.allocationOffset);
 
-	U64 offset = buffer.allocationOffset;
+	U32 offset = buffer.allocationOffset;
 	buffer.allocationOffset += size;
 
 	return offset;
 }
 
-U32 Renderer::UploadIndices(Pipeline* pipeline, const void* data, U64 size)
+U32 Renderer::UploadIndices(Pipeline* pipeline, const void* data, U32 size)
 {
 	FillBuffer(indexBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->indexOffset);
 
@@ -827,7 +862,7 @@ U32 Renderer::UploadIndices(Pipeline* pipeline, const void* data, U64 size)
 	return offset;
 }
 
-U32 Renderer::UploadVertices(Pipeline* pipeline, const void* data, U64 size)
+U32 Renderer::UploadVertices(Pipeline* pipeline, const void* data, U32 size)
 {
 	FillBuffer(vertexBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->vertexOffset);
 
@@ -837,7 +872,7 @@ U32 Renderer::UploadVertices(Pipeline* pipeline, const void* data, U64 size)
 	return offset;
 }
 
-U32 Renderer::UploadInstances(Pipeline* pipeline, const void* data, U64 size)
+U32 Renderer::UploadInstances(Pipeline* pipeline, const void* data, U32 size)
 {
 	FillBuffer(instanceBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->instanceOffset);
 
@@ -845,6 +880,27 @@ U32 Renderer::UploadInstances(Pipeline* pipeline, const void* data, U64 size)
 	pipeline->shader->instanceOffset += (U32)size;
 
 	return offset;
+}
+
+void Renderer::UpdateInstances(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions)
+{
+	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
+	commandBuffer->Begin();
+
+	Memory::Copy(stagingBuffer.data, data, dataSize);
+
+	for (U32 i = 0; i < regionCount; ++i)
+	{
+		regions[i].dstOffset += pipeline->shader->uploadOffset;
+	}
+
+	commandBuffer->BufferToBuffer(stagingBuffer, instanceBuffer, regionCount, regions);
+	commandBuffer->End();
+	commandBuffer->Submit(deviceQueue);
+
+	vkQueueWaitIdle(deviceQueue);
+
+	commandBuffer->Reset();
 }
 
 void Renderer::UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset)
@@ -1099,10 +1155,10 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	return true;
 }
 
-bool Renderer::CreateCubeMap(Texture* texture, void* data, U32* layerSizes)
+bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.imageType = texture->type;
 	imageInfo.format = texture->format;
 	imageInfo.mipLevels = texture->mipmapCount;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1357,28 +1413,28 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 
 	//TODO: Pass in Viewport info
 	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.width = renderpass->width;
-	viewport.y = renderpass->height;
-	viewport.height = (F32)-renderpass->height;
+	viewport.x = renderArea.x;
+	viewport.y = renderArea.y;
+	viewport.width = renderArea.z;
+	viewport.height = renderArea.w;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	renderpass->viewport.viewports[0] = viewport;
 	++renderpass->viewport.viewportCount;
 
 	VkRect2D scissor{};
-	scissor.offset.x = 0;
-	scissor.offset.y = 0;
-	scissor.extent.width = renderpass->width;
-	scissor.extent.height = renderpass->height;
+	scissor.offset.x = (I32)renderArea.x;
+	scissor.offset.y = (I32)renderArea.y;
+	scissor.extent.width = (U32)renderArea.z;
+	scissor.extent.height = (U32)renderArea.w;
 	renderpass->viewport.scissors[0] = scissor;
 	++renderpass->viewport.scissorCount;
 
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderpass->renderpass;
 	framebufferInfo.attachmentCount = attachmentCount;
-	framebufferInfo.width = renderpass->width;
-	framebufferInfo.height = renderpass->height;
+	framebufferInfo.width = Settings::WindowWidth();
+	framebufferInfo.height = Settings::WindowHeight();
 	framebufferInfo.layers = 1;
 
 	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];

@@ -12,7 +12,7 @@ public:
 	void Update();
 
 	void AddModel(Model* model);
-	void SetSkybox(const String& name);
+	void SetSkybox(Skybox* newSkybox);
 
 public:
 	String				name{};
@@ -20,8 +20,7 @@ public:
 
 	Camera				camera{};
 
-	Skybox* skybox{ nullptr };
-	bool drawSkybox{ true };
+	Skybox*				skybox{ nullptr };
 
 	PostProcessData		postProcessData{};
 	bool				updatePostProcess{ false };

@@ -2,9 +2,13 @@
 
 #include "Renderer.hpp"
 #include "Pipeline.hpp"
+#include "Platform\Input.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Font.hpp"
+
+constexpr F32 WIDTH_RATIO = 0.00911458332F;//0.00455729166F;
+constexpr F32 HEIGHT_RATIO = 0.0162037037F;//0.00810185185F;
 
 UIElement::UIElement() {}
 
@@ -95,7 +99,7 @@ struct UIVertex
 struct UIInstance
 {
 	U32 textureIndex{ U16_MAX };
-	Matrix4 model{};
+	Matrix3 model{};
 };
 
 struct TextVertex
@@ -120,6 +124,7 @@ Vector<UIElement> UI::elements;
 Pipeline* UI::uiPipeline;
 Pipeline* UI::textPipeline;
 
+U32 UI::textInstanceCount{ 0 };
 U32 UI::textVertexOffset;
 F32 UI::textWidth;
 F32 UI::textHeight;
@@ -130,33 +135,33 @@ bool UI::Initialize()
 {
 	PipelineInfo info{};
 	info.name = "ui_pipeline";
-	info.shader = Resources::CreateShader("shaders/UI.shader");
+	info.shader = Resources::CreateShader("shaders/UI.nhshd");
 	info.renderpass = Resources::meshPipeline->renderpass;
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 	uiPipeline = Resources::CreatePipeline(info);
 
 	info.name = "text_pipeline";
-	info.shader = Resources::CreateShader("shaders/Text.shader");
+	info.shader = Resources::CreateShader("shaders/Text.nhshd");
 	textPipeline = Resources::CreatePipeline(info);
 
-	U32 indices[]{ 0, 1, 2, 2, 3, 1 };
+	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
-	Renderer::UploadIndices(uiPipeline, indices, sizeof(U32) * CountOf(indices));
-	Renderer::UploadIndices(textPipeline, indices, sizeof(U32) * CountOf(indices));
+	Renderer::UploadIndices(uiPipeline, indices, (U32)sizeof(U32) * CountOf32(indices));
+	Renderer::UploadIndices(textPipeline, indices, (U32)sizeof(U32) * 6);
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
 	
-	textWidth = 48.0f / (F32)Settings::WindowWidth();
-	textHeight = 48.0f / (F32)Settings::WindowHeight();
+	textWidth = 48.0f / 1920.0f;
+	textHeight = 48.0f / 1080.0f;
 	
 	textPosistion = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	textPadding = Vector2::One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	
 	TextVertex vertices[4]{
-		{ { 0.0f, 0.0f }, { 0.0f, textPosistion.y } },
-		{ { textWidth, 0.0f }, { textPosistion.x, textPosistion.y } },
-		{ { 0.0f, textHeight }, { 0.0f, 0.0f } },
-		{ { textWidth, textHeight }, { textPosistion.x, 0.0f } }
+		{ { 0.0f, textHeight }, { 0.0f, textPosistion.y } },
+		{ { textWidth, textHeight }, { textPosistion.x, textPosistion.y } },
+		{ { 0.0f, 0.0f }, { 0.0f, 0.0f } },
+		{ { textWidth, 0.0f }, { textPosistion.x, 0.0f } }
 	};
 	
 	textVertexOffset = Renderer::UploadVertices(textPipeline, vertices, sizeof(TextVertex) * 4) / sizeof(TextVertex);
@@ -170,6 +175,75 @@ void UI::Shutdown()
 }
 
 void UI::Update()
+{
+	I32 deltaX, deltaY;
+	Input::MouseDelta(deltaX, deltaY);
+
+	if (deltaX || deltaY || Input::OnAnyButtonChanged() || Input::MouseWheelDelta())
+	{
+		I32 x, y;
+		Input::MousePos(x, y);
+
+		Vector4 area = Renderer::RenderArea();
+
+		F32 mouseX = ((x - area.x) / area.z) * 2.0f - 1.0f;
+		F32 mouseY = ((y - area.y) / area.w) * 2.0f - 1.0f;
+
+		for (UIElement& element : elements)
+		{
+			if (mouseX >= element.area.x && mouseX <= element.area.z &&
+				mouseY >= element.area.y && mouseY <= element.area.w &&
+				element.enabled && !element.ignore)
+			{
+				F32 elementX = (2.0f * mouseX - element.area.z - element.area.x) / (element.area.z - element.area.x);
+				F32 elementY = (2.0f * mouseY - element.area.w - element.area.y) / (element.area.w - element.area.y);
+
+				bool prevHovered = element.hovered;
+				element.hovered = true;
+
+				if (!prevHovered)
+				{
+					if (element.OnHover) { element.OnHover(&element, { elementX, elementY }); }
+				}
+				else if (deltaX || deltaY)
+				{
+					if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE) && !Input::OnButtonChange(BUTTON_CODE_LEFT_MOUSE))
+					{
+						if (element.OnDrag) { element.OnDrag(&element, { elementX, elementY }); }
+					}
+					else
+					{
+						if (element.OnMove) { element.OnMove(&element, { elementX, elementY }); }
+					}
+				}
+
+				if (Input::OnButtonDown(BUTTON_CODE_LEFT_MOUSE))
+				{
+					if (element.OnClick) { element.OnClick(&element, { elementX, elementY }); }
+				}
+				else if (Input::OnButtonUp(BUTTON_CODE_LEFT_MOUSE))
+				{
+					if (element.OnRelease) { element.OnRelease(&element, { elementX, elementY }); }
+				}
+
+				if (Input::MouseWheelDelta())
+				{
+					if (element.OnScroll) { element.OnScroll(&element, { elementX, elementY }); }
+				}
+			}
+			else if (element.hovered)
+			{
+				F32 elementX = (2.0f * mouseX - element.area.z - element.area.x) / (element.area.z - element.area.x);
+				F32 elementY = (2.0f * mouseY - element.area.w - element.area.y) / (element.area.w - element.area.y);
+				element.hovered = false;
+
+				if (element.OnExit) { element.OnExit(&element, { elementX, elementY }); }
+			}
+		}
+	}
+}
+
+void UI::Resize()
 {
 
 }
@@ -190,6 +264,14 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 
 	if (info.parent) { info.parent->children.Push(element); }
 
+	element->OnClick = info.OnClick;
+	element->OnDrag = info.OnDrag;
+	element->OnRelease = info.OnRelease;
+	element->OnHover = info.OnHover;
+	element->OnMove = info.OnMove;
+	element->OnExit = info.OnExit;
+	element->OnScroll = info.OnScroll;
+
 	return element;
 }
 
@@ -208,7 +290,7 @@ UIElement* UI::CreateElement(const UIElementInfo& info)
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
-	instance.model = Matrix4::Identity;
+	instance.model = Matrix3::Identity;
 
 	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
 
@@ -217,9 +299,60 @@ UIElement* UI::CreateElement(const UIElementInfo& info)
 	return element;
 }
 
-UIElement* UI::CreatePanel(const UIElementInfo& info)
+UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
 {
 	UIElement* element = SetupElement(info);
+
+	element->type = UI_ELEMENT_PANEL;
+	element->panel.borderSize = borderSize;
+	element->panel.borderColor = borderColor;
+	element->panel.background = background;
+	element->panel.border = border;
+
+	F32 borderWidth = WIDTH_RATIO * borderSize;
+	F32 borderHeight = HEIGHT_RATIO * borderSize;
+
+	UIVertex vertices[20]{
+		//BODY
+		{ { element->area.x + borderWidth,	element->area.y + borderHeight	}, {}, element->color },
+		{ { element->area.z - borderWidth,	element->area.y + borderHeight	}, {}, element->color },
+		{ { element->area.x + borderWidth,	element->area.w - borderHeight	}, {}, element->color },
+		{ { element->area.z - borderWidth,	element->area.w - borderHeight	}, {}, element->color },
+
+		//BOTTOM
+		{ { element->area.x + borderWidth,	element->area.w - borderHeight	}, {}, borderColor },
+		{ { element->area.z,				element->area.w - borderHeight	}, {}, borderColor },
+		{ { element->area.x + borderWidth,	element->area.w					}, {}, borderColor },
+		{ { element->area.z,				element->area.w					}, {}, borderColor },
+
+		//RIGHT
+		{ { element->area.z - borderWidth,	element->area.y					}, {}, borderColor },
+		{ { element->area.z,				element->area.y					}, {}, borderColor },
+		{ { element->area.z - borderWidth,	element->area.w - borderHeight	}, {}, borderColor },
+		{ { element->area.z,				element->area.w - borderHeight	}, {}, borderColor },
+
+		//TOP
+		{ { element->area.x,				element->area.y					}, {}, borderColor },
+		{ { element->area.z - borderWidth,	element->area.y					}, {}, borderColor },
+		{ { element->area.x,				element->area.y + borderHeight	}, {}, borderColor },
+		{ { element->area.z - borderWidth,	element->area.y + borderHeight	}, {}, borderColor },
+
+		//LEFT
+		{ { element->area.x,				element->area.y + borderHeight	}, {}, borderColor },
+		{ { element->area.x + borderWidth,	element->area.y + borderHeight	}, {}, borderColor },
+		{ { element->area.x,				element->area.w					}, {}, borderColor },
+		{ { element->area.x + borderWidth,	element->area.w					}, {}, borderColor },
+	};
+
+	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, (U32)sizeof(UIVertex) * CountOf32(vertices)) / sizeof(UIVertex);
+
+	UIInstance instance{};
+	instance.textureIndex = U16_MAX;
+	instance.model = Matrix3::Identity;
+
+	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
+
+	Renderer::UploadDrawCall(uiPipeline, 30, 0, element->vertexOffset, 1, element->instanceOffset);
 
 	return element;
 }
@@ -227,6 +360,10 @@ UIElement* UI::CreatePanel(const UIElementInfo& info)
 UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Vector4& uvs)
 {
 	UIElement* element = SetupElement(info);
+
+	element->type = UI_ELEMENT_IMAGE;
+	element->image.texture = texture;
+	element->image.uvs = uvs;
 
 	UIVertex vertices[4]{
 		{ { element->area.x, element->area.y }, { uvs.x, uvs.w }, element->color },
@@ -239,7 +376,7 @@ UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Ve
 
 	UIInstance instance{};
 	instance.textureIndex = (U32)texture->handle;
-	instance.model = Matrix4::Identity;
+	instance.model = Matrix3::Identity;
 
 	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
 
@@ -273,9 +410,14 @@ UIElement* UI::CreateDropdown(const UIElementInfo& info)
 	return nullptr;
 }
 
+//TODO: Text alignment
 UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 scale)
 {
 	UIElement* element = SetupElement(info);
+
+	element->type = UI_ELEMENT_TEXT;
+	element->text.size = scale;
+	element->text.text = string;
 
 	element->vertexOffset = textVertexOffset;
 
@@ -287,19 +429,27 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 
 	U8 prev = 255;
 
+	F32 yOffset = textHeight * scale / 2.0f;
+
 	U32 i = 0;
 	for (C8 c : string)
 	{
 		Glyph& glyph = font->glyphs[c - 32];
 
-		if (c != ' ')
+		if(c == '\n')
 		{
+			position.x = startPosition.x;
+			position.y += (font->ascent + font->lineGap) * textHeight * scale;
+		}
+		else if (c != ' ')
+		{
+			++textInstanceCount;
 			TextInstance& instance = instances[i];
 
 			Vector2 texPos = Font::atlasPositions[c - 32];
 
 			instance.textureIndex = (U32)font->texture->handle;
-			instance.position = position - Vector2{ glyph.x * textWidth * scale, glyph.y * textHeight * scale };
+			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
 			instance.texcoord = texPos * textPosistion + (texPos + Vector2::One) * textPadding;
 			instance.color = info.color;
 			instance.scale = scale;
@@ -318,6 +468,8 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 	}
 
 	element->instanceOffset = Renderer::UploadInstances(textPipeline, instances, sizeof(TextInstance) * i) / sizeof(TextInstance);
+
+	Memory::Free(&instances);
 
 	Renderer::UploadDrawCall(textPipeline, 6, 0, element->vertexOffset, i, element->instanceOffset);
 

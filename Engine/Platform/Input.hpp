@@ -271,6 +271,7 @@ class NH_API Input
 
 public:
 	static bool OnAnyButtonDown();
+	static bool OnAnyButtonChanged();
 	static bool ButtonUp(ButtonCode code);
 	static bool ButtonDown(ButtonCode code);
 	static bool ButtonHeld(ButtonCode code);
@@ -303,12 +304,13 @@ private:
 	static Vector<Device> devices;
 
 	//MOUSE
+	static F32 mouseSensitivity;
 	static I16 mouseWheelDelta;
 	static I16 mouseHWheelDelta;
-	static I32 mousePosX;
-	static I32 mousePosY;
-	static I32 deltaMousePosX;
-	static I32 deltaMousePosY;
+	static F32 mousePosX;
+	static F32 mousePosY;
+	static F32 deltaMousePosX;
+	static F32 deltaMousePosY;
 
 	//CONTROLLER
 	static F32 axisStates[];
@@ -317,6 +319,7 @@ private:
 	static ButtonState buttonStates[];
 	static bool receiveInput;
 	static bool anyButtonDown;
+	static bool anyButtonChanged;
 
 	STATIC_CLASS(Input);
 	friend class Engine;

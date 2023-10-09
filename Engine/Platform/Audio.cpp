@@ -6,7 +6,6 @@
 
 #include <xaudio2.h>
 
-
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;
 U32 Audio::sampleRate;

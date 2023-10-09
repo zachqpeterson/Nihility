@@ -6,6 +6,12 @@
 
 Settings::Data Settings::data{};
 
+I32 Settings::screenWidth{ 0 };
+I32 Settings::screenHeight{ 0 };
+I32 Settings::virtualScreenWidth{ 0 };
+I32 Settings::virtualScreenHeight{ 0 };
+F64 Settings::monitorHz{ 0.0 };
+
 bool Settings::focused{ true };
 bool Settings::minimised{ true };
 bool Settings::lockCursor{ false };
@@ -56,10 +62,10 @@ const U32& Settings::WindowWidth() { return data.windowWidth; }
 const U32& Settings::WindowHeight() { return data.windowHeight; }
 const U32& Settings::WindowWidthSmall() { return data.windowWidthSmall; }
 const U32& Settings::WindowHeightSmall() { return data.windowHeightSmall; }
-const U32& Settings::WindowPositionX() { return data.windowPositionX; }
-const U32& Settings::WindowPositionY() { return data.windowPositionY; }
-const U32& Settings::WindowPositionXSmall() { return data.windowPositionXSmall; }
-const U32& Settings::WindowPositionYSmall() { return data.windowPositionYSmall; }
+const I32& Settings::WindowPositionX() { return data.windowPositionX; }
+const I32& Settings::WindowPositionY() { return data.windowPositionY; }
+const I32& Settings::WindowPositionXSmall() { return data.windowPositionXSmall; }
+const I32& Settings::WindowPositionYSmall() { return data.windowPositionYSmall; }
 const F64& Settings::TargetFrametime() { return data.targetFrametime; }
 const F64& Settings::TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
 const U8& Settings::MsaaCount() { return data.msaaCount; }
@@ -69,9 +75,11 @@ const bool& Settings::Bloom() { return data.bloom; }
 //PLATFORM
 const U32& Settings::Dpi() { return data.dpi; }
 const U32& Settings::ThreadCount() { return data.threadCount; }
-const U32& Settings::ScreenWidth() { return data.screenWidth; }
-const U32& Settings::ScreenHeight() { return data.screenHeight; }
-const F64& Settings::MonitorHz() { return data.monitorHz; }
+const I32& Settings::ScreenWidth() { return screenWidth; }
+const I32& Settings::ScreenHeight() { return screenHeight; }
+const I32& Settings::VirtualScreenWidth() { return virtualScreenWidth; }
+const I32& Settings::VirtualScreenHeight() { return virtualScreenHeight; }
+const F64& Settings::MonitorHz() { return monitorHz; }
 const bool& Settings::Fullscreen() { return data.fullscreen; }
 const bool& Settings::ConstrainCursor() { return data.constrainCursor; }
 const bool& Settings::Focused() { return focused; }

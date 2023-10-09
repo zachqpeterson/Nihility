@@ -17,8 +17,8 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 	renderPassInfo.depthOperation = info.depthLoadOp;
 	renderPassInfo.stencilOperation = info.stencilLoadOp;
 	renderPassInfo.attachmentFinalLayout = info.attachmentFinalLayout;
-	renderPassInfo.width = Settings::WindowWidth();
-	renderPassInfo.height = Settings::WindowHeight();
+
+	Vector4 area = Renderer::RenderArea();
 
 	if (!renderpass && shader->bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
@@ -33,15 +33,15 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 				TextureInfo textureInfo{};
 				textureInfo.name = textureName + i;
 				textureInfo.format = shader->outputs[i];
-				textureInfo.width = renderPassInfo.width;
-				textureInfo.height = renderPassInfo.height;
+				textureInfo.width = Settings::WindowWidth();
+				textureInfo.height = Settings::WindowHeight();
 				textureInfo.depth = 1;
 				textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 				textureInfo.type = VK_IMAGE_TYPE_2D;
 
 				Texture* texture = Resources::CreateTexture(textureInfo);
 				renderPassInfo.AddRenderTarget(texture);
-				renderPassInfo.AddClearColor({ 1.0f, 0.0f, 1.0f, 1.0f });
+				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f }); //TODO: Pass in
 			}
 		}
 
@@ -52,8 +52,8 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 			TextureInfo textureInfo{};
 			textureInfo.name = textureName + "depth";
 			textureInfo.format = VK_FORMAT_D32_SFLOAT;
-			textureInfo.width = renderPassInfo.width;
-			textureInfo.height = renderPassInfo.height;
+			textureInfo.width = Settings::WindowWidth();
+			textureInfo.height = Settings::WindowHeight();
 			textureInfo.depth = 1;
 			textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 			textureInfo.type = VK_IMAGE_TYPE_2D;

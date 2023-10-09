@@ -60,6 +60,8 @@ bool Memory::Initialize()
 
 void Memory::Shutdown()
 {
+	initialized = false;
+
 	free1kbIndices.Destroy();
 	free16kbIndices.Destroy();
 	free256kbIndices.Destroy();

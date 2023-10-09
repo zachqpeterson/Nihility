@@ -3,6 +3,10 @@
 #include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Containers\String.hpp"
+#include "Platform\Function.hpp"
+
+struct UIElement;
+using UIEvent = Function<void(UIElement*, const Vector2&)>;
 
 struct Scene;
 
@@ -48,32 +52,34 @@ private:
 	U32 vertexOffset{ U32_MAX };
 	U32 instanceOffset{ U32_MAX };
 
-	//OnMouse OnClick;
-	//OnMouse OnDrag;
-	//OnMouse OnRelease;
-	//OnMouse OnHover;
-	//OnMouse OnMove;
-	//UIEvent OnExit;
-	//OnScroll OnScroll;
+	UIEvent OnClick;
+	UIEvent OnDrag;
+	UIEvent OnRelease;
+	UIEvent OnHover;
+	UIEvent OnMove;
+	UIEvent OnExit;
+	UIEvent OnScroll;
 
 	UIElementType type{ UI_ELEMENT_NONE };
 	union
 	{
 		struct Panel
 		{
-			Panel& operator=(Panel&& other) noexcept { bordered = other.bordered; borderWidth = other.borderWidth; return *this; }
+			Panel& operator=(Panel&& other) noexcept { borderSize = other.borderSize; borderColor = other.borderColor; background = other.background; border = other.border; return *this; }
 			void Destroy() {}
 
-			bool bordered;
-			F32 borderWidth;
+			F32 borderSize;
+			Vector4 borderColor;
+			Texture* background;
+			Texture* border;
 		} panel;
 
 		struct Image //TODO: Animated Images
 		{
-			Image& operator=(Image&& other) noexcept { textureIndex = other.textureIndex; uvs = other.uvs; return *this; }
+			Image& operator=(Image&& other) noexcept { texture = other.texture; uvs = other.uvs; return *this; }
 			void Destroy() {}
 
-			U32 textureIndex;
+			Texture* texture;
 			Vector4 uvs;
 		} image;
 
@@ -148,6 +154,14 @@ struct UIElementInfo
 
 	Scene* scene{ nullptr };
 	UIElement* parent{ nullptr };
+
+	UIEvent OnClick;
+	UIEvent OnDrag;
+	UIEvent OnRelease;
+	UIEvent OnHover;
+	UIEvent OnMove;
+	UIEvent OnExit;
+	UIEvent OnScroll;
 };
 
 struct Pipeline;
@@ -155,13 +169,8 @@ struct Pipeline;
 class NH_API UI
 {
 public:
-	static bool Initialize();
-	static void Shutdown();
-
-	static void Update();
-
 	static UIElement* CreateElement(const UIElementInfo& info);
-	static UIElement* CreatePanel(const UIElementInfo& info);
+	static UIElement* CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background = nullptr, Texture* border = nullptr);
 	static UIElement* CreateImage(const UIElementInfo& info, Texture* texture, const Vector4& uvs);
 	static UIElement* CreateFillbar(const UIElementInfo& info);
 	static UIElement* CreateSlider(const UIElementInfo& info);
@@ -174,6 +183,12 @@ public:
 	//TODO: Edit elements
 
 private:
+	static bool Initialize();
+	static void Shutdown();
+
+	static void Update();
+	static void Resize();
+
 	static UIElement* SetupElement(const UIElementInfo& info);
 
 	static Vector<UIElement> elements;
@@ -181,6 +196,7 @@ private:
 	static Pipeline* uiPipeline;
 	static Pipeline* textPipeline;
 
+	static U32 textInstanceCount;
 	static U32 textVertexOffset;
 	static F32 textWidth;
 	static F32 textHeight;
@@ -188,5 +204,6 @@ private:
 	static Vector2 textPadding;
 
 	STATIC_CLASS(UI);
+	friend class Engine;
 	friend class Renderer;
 };

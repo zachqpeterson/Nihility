@@ -8,6 +8,7 @@
 #include "Platform\Audio.hpp"
 #include "Math\Math.hpp"
 #include "Core\Time.hpp"
+#include "Core\Logger.hpp"
 
 AudioClip* music;
 AudioClip* sfx;
@@ -19,6 +20,7 @@ bool Init()
 	//String path = Resources::UploadModel("models/Hilichurl/Hilichurl.pmx");
 
 	//String path = Resources::UploadFont("arial.ttf");
+	//String path = Resources::UploadSkybox("UffiziCube.ktx");
 
 	UIElementInfo info{};
 	info.area = { -0.5f, -0.5f, 0.5f, 0.5f };
@@ -29,20 +31,28 @@ bool Init()
 
 	info.parent = nullptr;
 	info.scene = nullptr;
+	//info.OnClick = Click;
+	//info.OnDrag = Drag;
+	//info.OnRelease = Release;
+	//info.OnHover = Hover;
+	//info.OnMove = Moved;
+	//info.OnExit = Exit;
+	//info.OnScroll = Scroll;
 
-	UI::CreateImage(info, Resources::LoadTexture("textures/Collie.nhtex"), { 0.0f, 0.0f, 1.0f, 1.0f });
+	UI::CreatePanel(info, 1.0f, {0.5f, 0.5f, 0.5f, 0.75f});
 
-	info.area = { -0.95f, -0.9f, -0.5f, -0.5f };
+	info.area = { -1.0f, -1.0f, -0.5f, -0.5f };
 	info.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	UI::CreateText(info, "Hello, World!", 10.0f);
-
-	Model* model = Resources::LoadModel("models/Chess.nhmdl");
+	UI::CreateText(info, "Hgj,|_\nHello", 10.0f);
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn");
 
+	Model* model = Resources::LoadModel("models/Chess.nhmdl");
 	scene->AddModel(model);
-	//scene->SetSkybox("textures/UffiziCube.ktx");
+
+	Skybox* skybox = Resources::LoadSkybox("textures/UffiziCube.nhskb");
+	scene->SetSkybox(skybox);
 
 	Renderer::LoadScene("scenes/Chess.nhscn");
 

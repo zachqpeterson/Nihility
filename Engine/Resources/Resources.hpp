@@ -17,6 +17,7 @@ struct aiTexture;
 struct aiMaterial;
 struct aiMesh;
 struct aiScene;
+struct DataReader;
 
 class NH_API Resources
 {
@@ -88,10 +89,12 @@ private:
 
 	static void Update();
 	static void Resize();
+	static void UseSkybox(Skybox* skybox);
 
 	//Texture Loading
-	static bool LoadKTX(File& file);
+	static U8* LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& width, U32& height, VkFormat& format);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
+	static VkFormat GetKTXFormat(KTXType type, KTXFormat format);
 
 	//Assimp Utilities
 	static Material ParseAssimpMaterial(ModelUpload& model, const aiMaterial* materialInfo, const aiScene* scene);
@@ -102,6 +105,7 @@ private:
 	static Texture*								dummyTexture;
 	static Sampler*								defaultSampler;
 	static Pipeline*							meshPipeline;
+	static Pipeline*							skyboxPipeline;
 
 	static Hashmap<String, Sampler>				samplers;
 	static Hashmap<String, Texture>				textures;
