@@ -20,7 +20,8 @@ bool Init()
 	//String path = Resources::UploadModel("models/Hilichurl/Hilichurl.pmx");
 
 	//String path = Resources::UploadFont("arial.ttf");
-	//String path = Resources::UploadSkybox("UffiziCube.ktx");
+	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");
+	//String path1 = Resources::UploadSkybox("CoriolisNight.hdr");
 
 	UIElementInfo info{};
 	info.area = { -0.5f, -0.5f, 0.5f, 0.5f };
@@ -58,7 +59,7 @@ bool Init()
 
 	music = Resources::LoadAudio("audio/TPOM.nhaud");
 	sfx = Resources::LoadAudio("audio/Mine.nhaud");
-	Audio::PlayMusic(music);
+	//Audio::PlayMusic(music);
 
 	return true;
 }

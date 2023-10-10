@@ -34,6 +34,12 @@ enum TextureFlag
 	TEXTURE_FLAG_FORCE_GENERATE_MIPMAPS = 0x04,
 };
 
+enum SamplerType
+{
+	SAMPLER_TYPE_POINT,
+	SAMPLER_TYPE_LINEAR,
+};
+
 enum KTXType
 {
 	KTX_TYPE_COMPRESSED = 0x0,
@@ -415,12 +421,12 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T* allocation{ nullptr };
+	VmaAllocation_T*	allocation{ nullptr };
 
 	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
-	Sampler* sampler{ nullptr };
+	Sampler*			sampler{ nullptr };
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };

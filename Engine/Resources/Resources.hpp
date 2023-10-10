@@ -46,9 +46,8 @@ public:
 	static void SaveScene(const Scene* scene);
 	static void SaveBinary(const String& path, U32 size, void* data);
 
-	static Sampler* AccessDummySampler();
 	static Texture* AccessDummyTexture();
-	static Sampler* AccessDefaultSampler();
+	static Sampler* AccessDefaultSampler(SamplerType type);
 
 	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
@@ -92,41 +91,42 @@ private:
 	static void UseSkybox(Skybox* skybox);
 
 	//Texture Loading
-	static U8* LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& width, U32& height, VkFormat& format);
+	static U8* LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& resolution, VkFormat& format);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 	static VkFormat GetKTXFormat(KTXType type, KTXFormat format);
+	static U8* LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution, VkFormat& format);
 
 	//Assimp Utilities
 	static Material ParseAssimpMaterial(ModelUpload& model, const aiMaterial* materialInfo, const aiScene* scene);
 	static MeshUpload ParseAssimpMesh(const aiMesh* meshInfo);
 	static void ParseAssimpModel(ModelUpload& model, const aiScene* scene);
 
-	static Sampler*								dummySampler;
-	static Texture*								dummyTexture;
-	static Sampler*								defaultSampler;
-	static Pipeline*							meshPipeline;
-	static Pipeline*							skyboxPipeline;
+	static Texture*							dummyTexture;
+	static Sampler*							defaultPointSampler;
+	static Sampler*							defaultLinearSampler;
+	static Pipeline*						meshPipeline;
+	static Pipeline*						skyboxPipeline;
 
-	static Hashmap<String, Sampler>				samplers;
-	static Hashmap<String, Texture>				textures;
-	static Hashmap<String, Font>				fonts;
-	static Hashmap<String, AudioClip>			audioClips;
-	static Hashmap<String, Renderpass>			renderpasses;
-	static Hashmap<String, Shader>				shaders;
-	static Hashmap<String, Pipeline>			pipelines;
-	static Hashmap<String, Model>				models;
-	static Hashmap<String, Skybox>				skyboxes;
-	static Hashmap<String, Scene>				scenes;
+	static Hashmap<String, Sampler>			samplers;
+	static Hashmap<String, Texture>			textures;
+	static Hashmap<String, Font>			fonts;
+	static Hashmap<String, AudioClip>		audioClips;
+	static Hashmap<String, Renderpass>		renderpasses;
+	static Hashmap<String, Shader>			shaders;
+	static Hashmap<String, Pipeline>		pipelines;
+	static Hashmap<String, Model>			models;
+	static Hashmap<String, Skybox>			skyboxes;
+	static Hashmap<String, Scene>			scenes;
 
-	static Queue<ResourceUpdate>				resourceDeletionQueue;
-	static Queue<ResourceUpdate>				bindlessTexturesToUpdate;
+	static Queue<ResourceUpdate>			resourceDeletionQueue;
+	static Queue<ResourceUpdate>			bindlessTexturesToUpdate;
 
-	static Pool<DescriptorSetLayout, 256>		descriptorSetLayouts;
-	static VkDescriptorPool						bindlessDescriptorPool;
-	static VkDescriptorSet						bindlessDescriptorSet;
-	static DescriptorSetLayout					bindlessDescriptorSetLayout;
-	static constexpr U32						maxBindlessResources{ 1024 };
-	static constexpr U32						bindlessTextureBinding{ 10 };
+	static Pool<DescriptorSetLayout, 256>	descriptorSetLayouts;
+	static VkDescriptorPool					bindlessDescriptorPool;
+	static VkDescriptorSet					bindlessDescriptorSet;
+	static DescriptorSetLayout				bindlessDescriptorSetLayout;
+	static constexpr U32					maxBindlessResources{ 1024 };
+	static constexpr U32					bindlessTextureBinding{ 10 };
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;

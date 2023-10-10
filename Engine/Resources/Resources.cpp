@@ -122,9 +122,9 @@ U32 skyboxIndices[]{
 	3, 7, 6, 6, 2, 3, //Front
 };
 
-Sampler* Resources::dummySampler;
 Texture* Resources::dummyTexture;
-Sampler* Resources::defaultSampler;
+Sampler* Resources::defaultPointSampler;
+Sampler* Resources::defaultLinearSampler;
 Pipeline* Resources::meshPipeline;
 Pipeline* Resources::skyboxPipeline;
 
@@ -163,12 +163,6 @@ bool Resources::Initialize()
 	dummyTextureInfo.SetData(&zero);
 	dummyTexture = CreateTexture(dummyTextureInfo);
 
-	SamplerInfo dummySamplerInfo{};
-	dummySamplerInfo.SetName("dummy_sampler");
-	dummySamplerInfo.SetAddressModeUV(VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	dummySamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
-	dummySampler = CreateSampler(dummySamplerInfo);
-
 	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
 	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
 	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
@@ -196,10 +190,14 @@ bool Resources::Initialize()
 void Resources::CreateDefaults()
 {
 	SamplerInfo defaultSamplerInfo{};
-	defaultSamplerInfo.SetName("default_sampler");
+	defaultSamplerInfo.SetName("default_point_sampler");
 	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_NEAREST);
-	defaultSampler = Resources::CreateSampler(defaultSamplerInfo);
+	defaultSamplerInfo.SetMinMagMip(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST);
+	defaultPointSampler = Resources::CreateSampler(defaultSamplerInfo);
+
+	defaultSamplerInfo.SetName("default_linear_sampler");
+	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR);
+	defaultLinearSampler = Resources::CreateSampler(defaultSamplerInfo);
 }
 
 bool Resources::CreateBindless()
@@ -369,7 +367,7 @@ void Resources::Update()
 				descriptorWrite.dstSet = bindlessDescriptorSet;
 				descriptorWrite.dstBinding = bindlessTextureBinding;
 
-				Sampler* defaultSampler = Resources::AccessDefaultSampler();
+				Sampler* defaultSampler = Resources::AccessDefaultSampler(SAMPLER_TYPE_LINEAR);
 				VkDescriptorImageInfo& descriptorImageInfo = bindlessImageInfo[currentWriteIndex];
 
 				if (texture->sampler != nullptr) { descriptorImageInfo.sampler = texture->sampler->sampler; }
@@ -991,7 +989,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 		*texture = {};
 
 		reader.Read((U32&)texture->width);
-		reader.Read((U32&)texture->height);
+		texture->height = texture->width;
 		reader.Read(texture->format);
 
 		texture->name = Move(textureName);
@@ -1393,19 +1391,16 @@ void Resources::SaveBinary(const String& path, U32 size, void* data)
 	Logger::Error("Failed To Find Or Open File: {}", path);
 }
 
-Sampler* Resources::AccessDummySampler()
-{
-	return dummySampler;
-}
-
 Texture* Resources::AccessDummyTexture()
 {
 	return dummyTexture;
 }
 
-Sampler* Resources::AccessDefaultSampler()
+Sampler* Resources::AccessDefaultSampler(SamplerType type)
 {
-	return defaultSampler;
+	if (type == SAMPLER_TYPE_LINEAR) { return defaultLinearSampler; }
+
+	return defaultPointSampler;
 }
 
 Sampler* Resources::AccessSampler(const String& name)
@@ -1758,13 +1753,13 @@ String Resources::UploadSkybox(const String& path)
 		U8* imageData = nullptr;
 		U32 faceCount;
 		U32 faceSize;
-		U32 width;
-		U32 height;
+		U32 resolution;
 		VkFormat format;
 
-		if (path.CompareN("ktx", extIndex) || path.CompareN("ktx2", extIndex) || path.CompareN("ktx1", extIndex)) { imageData = LoadKTX(reader, faceCount, faceSize, width, height, format); }
+		if (path.CompareN("ktx", extIndex) || path.CompareN("ktx2", extIndex) || path.CompareN("ktx1", extIndex)) { imageData = LoadKTX(reader, faceCount, faceSize, resolution, format); }
+		else { imageData = LoadHDRToCube(reader, faceSize, resolution, format); faceCount = 6; }
 
-		if(imageData == nullptr) { return {}; }
+		if (imageData == nullptr) { return {}; }
 
 		String newPath = path.GetFileName().Surround("textures/", ".nhskb");
 
@@ -1774,8 +1769,7 @@ String Resources::UploadSkybox(const String& path)
 		file.Write(SKYBOX_VERSION);
 		file.Write(faceCount);
 		file.Write(faceSize);
-		file.Write(width);
-		file.Write(height);
+		file.Write(resolution);
 		file.Write(format);
 		file.WriteCount(imageData, faceSize * faceCount);
 
@@ -1788,7 +1782,7 @@ String Resources::UploadSkybox(const String& path)
 	return {};
 }
 
-U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& width, U32& height, VkFormat& format)
+U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& resolution, VkFormat& format)
 {
 	static constexpr U8 FileIdentifier11[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 	static constexpr U8 FileIdentifier20[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -1858,8 +1852,7 @@ U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& w
 
 		faceCount = header.faceCount;
 		faceSize = faceLodSize;
-		width = header.pixelWidth;
-		height = header.pixelHeight;
+		resolution = header.pixelWidth;
 		format = GetKTXFormat(header.type, header.format);
 
 		if (format == VK_FORMAT_UNDEFINED) { return nullptr; }
@@ -1891,8 +1884,7 @@ U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& w
 
 		faceCount = header.faceCount;
 		faceSize = dataSize / header.faceCount;
-		width = header.pixelWidth;
-		height = header.pixelHeight;
+		resolution = header.pixelWidth;
 		format = header.format;
 
 		return reader.Pointer();
@@ -2286,6 +2278,68 @@ VkFormat Resources::GetKTXFormat(KTXType type, KTXFormat format)
 
 	Logger::Error("Unknown KTX Format!");
 	return VK_FORMAT_UNDEFINED;
+}
+
+U8* Resources::LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution, VkFormat& format)
+{
+	U32 resultChannelCount = 4;
+
+	I32 x, y, channelCount;
+	U8* data = stbi_load_from_memory(reader.Data(), reader.Size(), &x, &y, &channelCount, 0);
+
+	resolution = x / 4;
+	format = VK_FORMAT_R8G8B8A8_UINT;
+	faceSize = resolution * resolution * resultChannelCount;
+
+	U8* result;
+	Memory::AllocateSize(&result, faceSize * 6);
+
+	Vector3 startRightUp[6][3]{
+		{ { 1.0f, -1.0f, -1.0f }, { 0.0f,  0.0f,  1.0f }, { 0.0f,  1.0f,  0.0f } },	// right
+		{ {-1.0f, -1.0f,  1.0f }, { 0.0f,  0.0f, -1.0f }, { 0.0f,  1.0f,  0.0f } },	// left
+		{ {-1.0f,  1.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f,  0.0f,  1.0f } },	// up
+		{ {-1.0f, -1.0f,  1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f,  0.0f, -1.0f } },	// down
+		{ {-1.0f, -1.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f } },	// front
+		{ { 1.0f, -1.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f } },	// back
+	};
+
+	for (U32 i = 0; i < 6; ++i)
+	{
+		Vector3& start = startRightUp[i][0];
+		Vector3& right = startRightUp[i][1];
+		Vector3& up = startRightUp[i][2];
+
+		U8* face = result + faceSize * i;
+		Vector3 pixelDirection3d;
+		for (U32 row = 0; row < resolution; ++row)
+		{
+			for (U32 col = 0; col < resolution; ++col)
+			{
+				F32 colDir = (F32)col * 2.0f + 0.5f;
+				F32 rowDir = (F32)row * 2.0f + 0.5f;
+
+				pixelDirection3d.x = start.x + colDir / (F32)resolution * right.x + rowDir / (F32)resolution * up.x;
+				pixelDirection3d.y = start.y + colDir / (F32)resolution * right.y + rowDir / (F32)resolution * up.y;
+				pixelDirection3d.z = start.z + colDir / (F32)resolution * right.z + rowDir / (F32)resolution * up.z;
+
+				F32 azimuth = Math::Atan2(pixelDirection3d.x, -pixelDirection3d.z) + PI_F;
+				F32 elevation = Math::Atan(pixelDirection3d.y / Math::Sqrt(pixelDirection3d.x * pixelDirection3d.x + pixelDirection3d.z * pixelDirection3d.z)) + HALF_PI_F;
+
+				F32 colHdri = (azimuth / HALF_PI_F) * x;
+				F32 rowHdri = (elevation / PI_F) * y;
+
+				U32 colNearest = Math::Clamp((I32)colHdri, 0, x - 1);
+				U32 rowNearest = Math::Clamp((I32)rowHdri, 0, x - 1);
+
+				face[(col + resolution * row) * resultChannelCount] = data[colNearest * channelCount + x * rowNearest * channelCount];
+				face[(col + resolution * row) * resultChannelCount + 1] = data[colNearest * channelCount + x * rowNearest * channelCount + 1];
+				face[(col + resolution * row) * resultChannelCount + 2] = data[colNearest * channelCount + x * rowNearest * channelCount + 2];
+				face[(col + resolution * row) * resultChannelCount + 3] = 1.0f;
+			}
+		}
+	}
+
+	return result;
 }
 
 String Resources::UploadModel(const String& path)

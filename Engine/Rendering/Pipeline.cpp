@@ -150,6 +150,8 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		depthStencilInfo.stencilTestEnable = shader->depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
 		depthStencilInfo.depthTestEnable = shader->depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
 		depthStencilInfo.depthCompareOp = shader->depthStencil.depthComparison;
+		depthStencilInfo.minDepthBounds = 0.0f;
+		depthStencilInfo.maxDepthBounds = 1.0f;
 		if (shader->depthStencil.stencilEnable) { Logger::Error("Stencil Buffers Not Yet Supported!"); }
 
 		VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };

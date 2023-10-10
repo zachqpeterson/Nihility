@@ -6,7 +6,7 @@
 
 void Scene::Create()
 {
-	camera.SetPerspective(0.0001f, 1000.0f, 45.0f, (F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
+	camera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
 }
 
 Scene::~Scene() { Destroy(); }
@@ -20,11 +20,6 @@ void Scene::Destroy()
 
 void Scene::Update()
 {
-	if (Settings::Resized())
-	{
-		camera.SetAspectRatio((F32)Settings::WindowWidth() / (F32)Settings::WindowHeight());
-	}
-
 	camera.Update();
 }
 
