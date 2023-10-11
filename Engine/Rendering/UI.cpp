@@ -136,12 +136,17 @@ bool UI::Initialize()
 	PipelineInfo info{};
 	info.name = "ui_pipeline";
 	info.shader = Resources::CreateShader("shaders/UI.nhshd");
-	info.renderpass = Resources::meshPipeline->renderpass;
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	info.outputDepth = Resources::meshPipeline->renderpass->outputDepth;
+	info.outputTextures[0] = Resources::meshPipeline->renderpass->outputTextures[0];
+	info.outputCount = 1;
+	info.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	info.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	uiPipeline = Resources::CreatePipeline(info);
 
 	info.name = "text_pipeline";
 	info.shader = Resources::CreateShader("shaders/Text.nhshd");
+	info.renderpass = uiPipeline->renderpass;
 	textPipeline = Resources::CreatePipeline(info);
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };

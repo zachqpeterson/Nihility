@@ -586,6 +586,9 @@ void Renderer::EndFrame()
 	//TODO: Tonemapping
 	//TODO: Gamma
 
+	commandBuffer->EndRenderpass();
+	commandBuffer->BeginRenderpass(UI::uiPipeline->renderpass);
+
 	Render(commandBuffer, UI::uiPipeline);
 	Render(commandBuffer, UI::textPipeline);
 
