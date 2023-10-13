@@ -30,6 +30,8 @@ bool Input::anyButtonChanged;
 #include <SetupAPI.h>
 #pragma comment(lib ,"setupapi.lib")
 
+constexpr I32 ANY_MOUSE_DOWN = RI_MOUSE_LEFT_BUTTON_DOWN | RI_MOUSE_RIGHT_BUTTON_DOWN | RI_MOUSE_MIDDLE_BUTTON_DOWN | RI_MOUSE_BUTTON_4_DOWN | RI_MOUSE_BUTTON_5_DOWN;
+
 bool Input::Initialize()
 {
 	Logger::Trace("Initializing Input...");
@@ -345,7 +347,7 @@ void Input::InputSink(HRAWINPUT handle)
 	if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0) { return; }
 	if (GetRawInputData(handle, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) < 1) { return; }
 
-	if (input.header.dwType == RIM_TYPEMOUSE && input.data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
+	if (input.header.dwType == RIM_TYPEMOUSE && input.data.mouse.usButtonFlags & ANY_MOUSE_DOWN)
 	{
 		POINT p;
 		GetCursorPos(&p);

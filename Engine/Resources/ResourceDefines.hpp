@@ -533,15 +533,11 @@ struct RenderpassInfo
 
 struct PostProcessData
 {
-	F32 contrast = 1.0f;
-	F32 brightness = 0.0f;
-	F32 saturation = 1.0f;
-	F32 gammaCorrection = 1.0f;
-	Vector4 directionalLight;
-	Vector4 directionalLightColor;
-	Vector4 ambientLight;
-	F32		lightIntensity;
-	U32		skyboxIndex{ U16_MAX };
+	U16 textureIndex;
+	F32 contrast{ 1.0f };
+	F32 brightness{ 0.0f };
+	F32 saturation{ 1.0f };
+	F32 gammaCorrection{ 1.0f };
 };
 
 struct GlobalData

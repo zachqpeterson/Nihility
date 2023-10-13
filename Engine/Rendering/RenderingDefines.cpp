@@ -7,6 +7,13 @@
 
 Descriptor::Descriptor() {}
 
+Descriptor::Descriptor(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
+{
+	bufferInfo.buffer = buffer;
+	bufferInfo.offset = offset;
+	bufferInfo.range = range;
+}
+
 Descriptor::Descriptor(VkImageView imageView, VkImageLayout imageLayout, VkSampler sampler)
 {
 	imageInfo.imageView = imageView;
@@ -14,11 +21,11 @@ Descriptor::Descriptor(VkImageView imageView, VkImageLayout imageLayout, VkSampl
 	imageInfo.sampler = sampler;
 }
 
-Descriptor::Descriptor(VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
+Descriptor::Descriptor(Texture* texture)
 {
-	bufferInfo.buffer = buffer;
-	bufferInfo.offset = offset;
-	bufferInfo.range = range;
+	imageInfo.imageView = texture->imageView;
+	imageInfo.imageLayout = texture->imageLayout;
+	if (texture->sampler) { imageInfo.sampler = texture->sampler->sampler; }
 }
 
 // CAMERA

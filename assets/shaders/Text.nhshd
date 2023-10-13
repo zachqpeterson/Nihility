@@ -42,7 +42,6 @@ void main()
 const uint INVALID_TEXTURE_INDEX = 65535;
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
-layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
 
 layout (location = 0) in vec2 texcoord;
 layout (location = 1) in vec4 color;

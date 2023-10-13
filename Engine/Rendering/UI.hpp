@@ -4,6 +4,7 @@
 #include "Resources\ResourceDefines.hpp"
 #include "Containers\String.hpp"
 #include "Platform\Function.hpp"
+#include "Math/Math.hpp"
 
 struct UIElement;
 using UIEvent = Function<void(UIElement*, const Vector2&)>;
@@ -15,7 +16,6 @@ enum UIElementType
 	UI_ELEMENT_NONE,
 	UI_ELEMENT_PANEL,
 	UI_ELEMENT_IMAGE,
-	UI_ELEMENT_FILL_BAR,
 	UI_ELEMENT_SLIDER,
 	UI_ELEMENT_COLOR_PICKER,
 	UI_ELEMENT_SCROLL_WINDOW,
@@ -24,6 +24,19 @@ enum UIElementType
 	UI_ELEMENT_TEXT_BOX,
 
 	UI_ELEMENT_COUNT
+};
+
+enum SliderType
+{
+	SLIDER_TYPE_HORIZONTAL_LEFT,
+	SLIDER_TYPE_HORIZONTAL_RIGHT,
+	SLIDER_TYPE_HORIZONTAL_CENTER,
+	SLIDER_TYPE_VERTICAL_BOTTOM,
+	SLIDER_TYPE_VERTICAL_TOP,
+	SLIDER_TYPE_VERTICAL_CENTER,
+	SLIDER_TYPE_RADIAL_COUNTER,
+	SLIDER_TYPE_RADIAL_CLOCKWISE,
+	SLIDER_TYPE_EXPAND,
 };
 
 struct NH_API UIElement
@@ -83,22 +96,14 @@ private:
 			Vector4 uvs;
 		} image;
 
-		struct FillBar
-		{
-			FillBar& operator=(FillBar&& other) noexcept { percent = other.percent; fillColor = other.fillColor; return *this; }
-			void Destroy() {}
-
-			F32 percent;
-			Vector4 fillColor;
-		} fillBar;
-
 		struct Slider
 		{
-			Slider& operator=(Slider&& other) noexcept { percent = other.percent; fillColor = other.fillColor; return *this; }
+			Slider& operator=(Slider&& other) noexcept { fillColor = other.fillColor; type = other.type; percent = other.percent; return *this; }
 			void Destroy() {}
 
-			F32 percent;
 			Vector4 fillColor;
+			SliderType type;
+			F32 percent;
 		} slider;
 
 		struct ColorPicker
@@ -172,8 +177,7 @@ public:
 	static UIElement* CreateElement(const UIElementInfo& info);
 	static UIElement* CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background = nullptr, Texture* border = nullptr);
 	static UIElement* CreateImage(const UIElementInfo& info, Texture* texture, const Vector4& uvs);
-	static UIElement* CreateFillbar(const UIElementInfo& info);
-	static UIElement* CreateSlider(const UIElementInfo& info);
+	static UIElement* CreateSlider(const UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent);
 	static UIElement* CreateColorPicker(const UIElementInfo& info);
 	static UIElement* CreateScrollWindow(const UIElementInfo& info);
 	static UIElement* CreateDropdown(const UIElementInfo& info);
@@ -181,6 +185,7 @@ public:
 	static UIElement* CreateTextBox(const UIElementInfo& info);
 
 	//TODO: Edit elements
+	static void ChangeSliderPercent(UIElement* element, F32 percent);
 
 private:
 	static bool Initialize();

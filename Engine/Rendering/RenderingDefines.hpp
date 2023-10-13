@@ -313,6 +313,7 @@ struct Descriptor
 	Descriptor();
 	Descriptor(VkBuffer buffer, VkDeviceSize offset = 0, VkDeviceSize range = VK_WHOLE_SIZE);
 	Descriptor(VkImageView imageView, VkImageLayout imageLayout, VkSampler sampler = nullptr);
+	Descriptor(Texture* texture);
 };
 
 struct DescriptorSetLayout

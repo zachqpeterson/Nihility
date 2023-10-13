@@ -1,4 +1,4 @@
-#include "Renderer.hpp"
+﻿#include "Renderer.hpp"
 
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
@@ -121,6 +121,7 @@ Buffer								Renderer::instanceBuffer;
 Buffer								Renderer::indexBuffer;
 Buffer								Renderer::materialBuffer;
 Buffer								Renderer::drawCommandsBuffer;
+Buffer								Renderer::postProcessBuffer;
 U32									Renderer::shaderUploadOffset;
 GlobalData							Renderer::globalData;
 
@@ -478,6 +479,7 @@ bool Renderer::CreateResources()
 	indexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	postProcessBuffer = CreateBuffer(sizeof(PostProcessData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	shaderUploadOffset = 0;
 
@@ -513,38 +515,51 @@ bool Renderer::BeginFrame()
 	return true;
 }
 
-void Renderer::Render(CommandBuffer* commandBuffer, Pipeline* pipeline)
+void Renderer::RunPipeline(CommandBuffer* commandBuffer, Pipeline* pipeline)
 {
-	if (pipeline->drawCount)
+	//TODO: Task Submitting
+	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
+	//
+	//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
+	//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
+	//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
+	//pushDescriptors(meshProgramMS, descriptors);
+	//
+	//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
+	//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
+
+	if (pipeline->drawCount || pipeline->shader->bindPoint != VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
-		bool taskSubmit = false;
+		commandBuffer->BindPipeline(pipeline);
 
-		if (taskSubmit)
+		PushDescriptors(pipeline->shader);
+		if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
+
+		switch (pipeline->shader->bindPoint)
 		{
-			//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
-			//
-			//// TODO: double-check synchronization
-			//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
-			//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
-			//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
-			//pushDescriptors(meshProgramMS, descriptors);
-			//
-			//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
-			//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
-		}
-		else
-		{
-			commandBuffer->BindPipeline(pipeline);
-
-			PushDescriptors(pipeline->shader);
-			if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
-
+		case VK_PIPELINE_BIND_POINT_GRAPHICS: {
 			commandBuffer->BindIndexBuffer(pipeline->shader, indexBuffer);
 			if (pipeline->shader->instanceOffset) { commandBuffer->BindVertexBuffer(pipeline->shader, vertexBuffer); }
 			if (pipeline->shader->instanceOffset != U8_MAX) { commandBuffer->BindInstanceBuffer(pipeline->shader, instanceBuffer); }
 
 			commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, pipeline->drawCount, pipeline->shader->uploadOffset);
+		} break;
+		case VK_PIPELINE_BIND_POINT_COMPUTE: {
+			commandBuffer->Dispatch(swapchain.width, swapchain.height, 1);
+		} break;
+		case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: {
+			//TODO:
+		} break;
 		}
+	}
+	else if (pipeline->shader->drawType == DRAW_TYPE_FULLSCREEN)
+	{
+		commandBuffer->BindPipeline(pipeline);
+
+		PushDescriptors(pipeline->shader);
+		if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
+
+		commandBuffer->Draw(0, 3, 0, 1);
 	}
 }
 
@@ -571,31 +586,36 @@ void Renderer::EndFrame()
 
 	commandBuffer->BeginRenderpass(Resources::meshPipeline->renderpass);
 
-	Render(commandBuffer, Resources::meshPipeline);
-	Render(commandBuffer, Resources::skyboxPipeline);
+	RunPipeline(commandBuffer, Resources::meshPipeline);
+	RunPipeline(commandBuffer, Resources::skyboxPipeline);
 
-	//Post Processing
-	//TODO: Bloom
-	//TODO: Fog
-	//TODO: Exposure
-	//TODO: White Balancing
-	//TODO: Contrast
-	//TODO: Brightness
-	//TODO: Color Filtering
-	//TODO: Saturation
-	//TODO: Tonemapping
-	//TODO: Gamma
+	commandBuffer->EndRenderpass();
+	commandBuffer->BeginRenderpass(Resources::postProcessPipeline->renderpass);
+
+	RunPipeline(commandBuffer, Resources::postProcessPipeline);
+
+	//Post Processing		
+	//TODO: Bloom			
+	//TODO: Fog				
+	//TODO: Exposure 		
+	//TODO: White Balancing	
+	//TODO: Contrast		✓
+	//TODO: Brightness		✓
+	//TODO: Color Filtering	
+	//TODO: Saturation		✓
+	//TODO: Tonemapping		✓
+	//TODO: Gamma			✓
 
 	commandBuffer->EndRenderpass();
 	commandBuffer->BeginRenderpass(UI::uiPipeline->renderpass);
 
-	Render(commandBuffer, UI::uiPipeline);
-	Render(commandBuffer, UI::textPipeline);
+	RunPipeline(commandBuffer, UI::uiPipeline);
+	RunPipeline(commandBuffer, UI::textPipeline);
 
 	commandBuffer->EndRenderpass();
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(Resources::meshPipeline->renderpass->outputTextures[0]->image,
+		ImageBarrier(Resources::postProcessPipeline->renderpass->outputTextures[0]->image,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
 		ImageBarrier(swapchain.renderTargets[frameIndex]->image, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -604,14 +624,19 @@ void Renderer::EndFrame()
 
 	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 2, copyBarriers);
 
-	VkImageCopy copyRegion{};
-	copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	copyRegion.srcSubresource.layerCount = 1;
-	copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	copyRegion.dstSubresource.layerCount = 1;
-	copyRegion.extent = { Settings::WindowWidth(), Settings::WindowHeight(), 1 };
+	VkImageBlit blitRegion{};
+	blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blitRegion.srcSubresource.layerCount = 1;
+	blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blitRegion.dstSubresource.layerCount = 1;
+	blitRegion.srcOffsets[1].x = swapchain.width;
+	blitRegion.srcOffsets[1].y = swapchain.height;
+	blitRegion.srcOffsets[1].z = 1;
+	blitRegion.dstOffsets[1].x = swapchain.width;
+	blitRegion.dstOffsets[1].y = swapchain.height;
+	blitRegion.dstOffsets[1].z = 1;
 
-	commandBuffer->ImageToImage(Resources::meshPipeline->renderpass->outputTextures[0], swapchain.renderTargets[frameIndex], 1, &copyRegion);
+	commandBuffer->Blit(Resources::postProcessPipeline->renderpass->outputTextures[0], swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
 
 	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -873,6 +898,27 @@ U32 Renderer::UploadVertices(Pipeline* pipeline, const void* data, U32 size)
 	pipeline->shader->vertexOffset += (U32)size;
 
 	return offset;
+}
+
+void Renderer::UpdateVertices(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions)
+{
+	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
+	commandBuffer->Begin();
+
+	Memory::Copy(stagingBuffer.data, data, dataSize);
+
+	for (U32 i = 0; i < regionCount; ++i)
+	{
+		regions[i].dstOffset += pipeline->shader->uploadOffset;
+	}
+
+	commandBuffer->BufferToBuffer(stagingBuffer, vertexBuffer, regionCount, regions);
+	commandBuffer->End();
+	commandBuffer->Submit(deviceQueue);
+
+	vkQueueWaitIdle(deviceQueue);
+
+	commandBuffer->Reset();
 }
 
 U32 Renderer::UploadInstances(Pipeline* pipeline, const void* data, U32 size)
@@ -1312,7 +1358,7 @@ void Renderer::PushDescriptors(Shader* shader)
 		}
 		else { firstSet = 1; }
 
-		commandBuffer->BindDescriptorSets(shader, firstSet, shader->descriptorCount + shader->useBindless, sets + firstSet);
+		commandBuffer->BindDescriptorSets(shader, firstSet, (shader->descriptorCount > 0) + shader->useBindless, sets + firstSet);
 	}
 };
 

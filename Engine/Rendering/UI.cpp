@@ -23,7 +23,6 @@ clicked{ other.clicked }, enabled{ other.enabled }, scene{ other.scene }, parent
 	case UI_ELEMENT_NONE: {} break;
 	case UI_ELEMENT_PANEL: { panel = Move(other.panel); } break;
 	case UI_ELEMENT_IMAGE: { image = Move(other.image); } break;
-	case UI_ELEMENT_FILL_BAR: { fillBar = Move(other.fillBar); } break;
 	case UI_ELEMENT_SLIDER: { slider = Move(other.slider); } break;
 	case UI_ELEMENT_COLOR_PICKER: { colorPicker = Move(other.colorPicker); } break;
 	case UI_ELEMENT_SCROLL_WINDOW: { scrollWindow = Move(other.scrollWindow); } break;
@@ -55,7 +54,6 @@ UIElement& UIElement::operator=(UIElement&& other) noexcept
 	case UI_ELEMENT_NONE: {} break;
 	case UI_ELEMENT_PANEL: { panel = Move(other.panel); } break;
 	case UI_ELEMENT_IMAGE: { image = Move(other.image); } break;
-	case UI_ELEMENT_FILL_BAR: { fillBar = Move(other.fillBar); } break;
 	case UI_ELEMENT_SLIDER: { slider = Move(other.slider); } break;
 	case UI_ELEMENT_COLOR_PICKER: { colorPicker = Move(other.colorPicker); } break;
 	case UI_ELEMENT_SCROLL_WINDOW: { scrollWindow = Move(other.scrollWindow); } break;
@@ -74,7 +72,6 @@ void UIElement::Destroy()
 	case UI_ELEMENT_NONE: {} break;
 	case UI_ELEMENT_PANEL: { panel.Destroy(); } break;
 	case UI_ELEMENT_IMAGE: { image.Destroy(); } break;
-	case UI_ELEMENT_FILL_BAR: { fillBar.Destroy(); } break;
 	case UI_ELEMENT_SLIDER: { slider.Destroy(); } break;
 	case UI_ELEMENT_COLOR_PICKER: { colorPicker.Destroy(); } break;
 	case UI_ELEMENT_SCROLL_WINDOW: { scrollWindow.Destroy(); } break;
@@ -91,7 +88,7 @@ UIElement::~UIElement()
 
 struct UIVertex
 {
-	Vector2 position;
+	Vector3 position;
 	Vector2 texcoord;
 	Vector4 color;
 };
@@ -137,8 +134,7 @@ bool UI::Initialize()
 	info.name = "ui_pipeline";
 	info.shader = Resources::CreateShader("shaders/UI.nhshd");
 	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	info.outputDepth = Resources::meshPipeline->renderpass->outputDepth;
-	info.outputTextures[0] = Resources::meshPipeline->renderpass->outputTextures[0];
+	info.outputTextures[0] = Resources::postProcessPipeline->renderpass->outputTextures[0];
 	info.outputCount = 1;
 	info.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 	info.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -212,7 +208,7 @@ void UI::Update()
 				}
 				else if (deltaX || deltaY)
 				{
-					if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE) && !Input::OnButtonChange(BUTTON_CODE_LEFT_MOUSE))
+					if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE) && !Input::OnButtonChange(BUTTON_CODE_LEFT_MOUSE)) //TODO: Handle dragging outside of element
 					{
 						if (element.OnDrag) { element.OnDrag(&element, { elementX, elementY }); }
 					}
@@ -285,10 +281,10 @@ UIElement* UI::CreateElement(const UIElementInfo& info)
 	UIElement* element = SetupElement(info);
 
 	UIVertex vertices[4]{
-		{ { element->area.x, element->area.y }, {}, element->color },
-		{ { element->area.z, element->area.y }, {}, element->color },
-		{ { element->area.x, element->area.w }, {}, element->color },
-		{ { element->area.z, element->area.w }, {}, element->color }
+		{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
+		{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
+		{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
+		{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
 	};
 
 	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, sizeof(UIVertex) * 4) / sizeof(UIVertex);
@@ -319,34 +315,34 @@ UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vect
 
 	UIVertex vertices[20]{
 		//BODY
-		{ { element->area.x + borderWidth,	element->area.y + borderHeight	}, {}, element->color },
-		{ { element->area.z - borderWidth,	element->area.y + borderHeight	}, {}, element->color },
-		{ { element->area.x + borderWidth,	element->area.w - borderHeight	}, {}, element->color },
-		{ { element->area.z - borderWidth,	element->area.w - borderHeight	}, {}, element->color },
+		{ { info.area.x + borderWidth,	info.area.y + borderHeight,	0.9f }, {}, info.color },
+		{ { info.area.z - borderWidth,	info.area.y + borderHeight,	0.9f }, {}, info.color },
+		{ { info.area.x + borderWidth,	info.area.w - borderHeight,	0.9f }, {}, info.color },
+		{ { info.area.z - borderWidth,	info.area.w - borderHeight,	0.9f }, {}, info.color },
 
 		//BOTTOM
-		{ { element->area.x + borderWidth,	element->area.w - borderHeight	}, {}, borderColor },
-		{ { element->area.z,				element->area.w - borderHeight	}, {}, borderColor },
-		{ { element->area.x + borderWidth,	element->area.w					}, {}, borderColor },
-		{ { element->area.z,				element->area.w					}, {}, borderColor },
+		{ { info.area.x + borderWidth,	info.area.w - borderHeight,	0.9f }, {}, borderColor },
+		{ { info.area.z,				info.area.w - borderHeight,	0.9f }, {}, borderColor },
+		{ { info.area.x + borderWidth,	info.area.w,				0.9f }, {}, borderColor },
+		{ { info.area.z,				info.area.w,				0.9f }, {}, borderColor },
 
 		//RIGHT
-		{ { element->area.z - borderWidth,	element->area.y					}, {}, borderColor },
-		{ { element->area.z,				element->area.y					}, {}, borderColor },
-		{ { element->area.z - borderWidth,	element->area.w - borderHeight	}, {}, borderColor },
-		{ { element->area.z,				element->area.w - borderHeight	}, {}, borderColor },
+		{ { info.area.z - borderWidth,	info.area.y,				0.9f }, {}, borderColor },
+		{ { info.area.z,				info.area.y,				0.9f }, {}, borderColor },
+		{ { info.area.z - borderWidth,	info.area.w - borderHeight,	0.9f }, {}, borderColor },
+		{ { info.area.z,				info.area.w - borderHeight,	0.9f }, {}, borderColor },
 
 		//TOP
-		{ { element->area.x,				element->area.y					}, {}, borderColor },
-		{ { element->area.z - borderWidth,	element->area.y					}, {}, borderColor },
-		{ { element->area.x,				element->area.y + borderHeight	}, {}, borderColor },
-		{ { element->area.z - borderWidth,	element->area.y + borderHeight	}, {}, borderColor },
+		{ { info.area.x,				info.area.y,				0.9f }, {}, borderColor },
+		{ { info.area.z - borderWidth,	info.area.y,				0.9f }, {}, borderColor },
+		{ { info.area.x,				info.area.y + borderHeight,	0.9f }, {}, borderColor },
+		{ { info.area.z - borderWidth,	info.area.y + borderHeight,	0.9f }, {}, borderColor },
 
 		//LEFT
-		{ { element->area.x,				element->area.y + borderHeight	}, {}, borderColor },
-		{ { element->area.x + borderWidth,	element->area.y + borderHeight	}, {}, borderColor },
-		{ { element->area.x,				element->area.w					}, {}, borderColor },
-		{ { element->area.x + borderWidth,	element->area.w					}, {}, borderColor },
+		{ { info.area.x,				info.area.y + borderHeight,	0.9f }, {}, borderColor },
+		{ { info.area.x + borderWidth,	info.area.y + borderHeight,	0.9f }, {}, borderColor },
+		{ { info.area.x,				info.area.w,				0.9f }, {}, borderColor },
+		{ { info.area.x + borderWidth,	info.area.w,				0.9f }, {}, borderColor },
 	};
 
 	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, (U32)sizeof(UIVertex) * CountOf32(vertices)) / sizeof(UIVertex);
@@ -371,10 +367,10 @@ UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Ve
 	element->image.uvs = uvs;
 
 	UIVertex vertices[4]{
-		{ { element->area.x, element->area.y }, { uvs.x, uvs.w }, element->color },
-		{ { element->area.z, element->area.y }, { uvs.z, uvs.w }, element->color },
-		{ { element->area.x, element->area.w }, { uvs.x, uvs.y }, element->color },
-		{ { element->area.z, element->area.w }, { uvs.z, uvs.y }, element->color }
+		{ { info.area.x, info.area.y, 0.9f }, { uvs.x, uvs.w }, info.color },
+		{ { info.area.z, info.area.y, 0.9f }, { uvs.z, uvs.w }, info.color },
+		{ { info.area.x, info.area.w, 0.9f }, { uvs.x, uvs.y }, info.color },
+		{ { info.area.z, info.area.w, 0.9f }, { uvs.z, uvs.y }, info.color }
 	};
 
 	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, sizeof(UIVertex) * 4) / sizeof(UIVertex);
@@ -390,14 +386,94 @@ UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Ve
 	return element;
 }
 
-UIElement* UI::CreateFillbar(const UIElementInfo& info)
+//TODO: Option for knob
+UIElement* UI::CreateSlider(const UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent)
 {
-	return nullptr;
-}
+	UIElement* element = SetupElement(info);
 
-UIElement* UI::CreateSlider(const UIElementInfo& info)
-{
-	return nullptr;
+	element->type = UI_ELEMENT_SLIDER;
+	element->slider.fillColor = fillColor;
+	element->slider.type = type;
+	element->slider.percent = percent;
+
+	F32 width = info.area.z - info.area.x;
+	F32 height = info.area.w - info.area.y;
+
+	UIVertex vertices[]{
+		{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
+		{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
+		{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
+		{ { info.area.z, info.area.w, 0.9f }, {}, info.color },
+		{ { info.area.x, info.area.y, 0.8f }, {}, fillColor },
+		{ { info.area.z, info.area.y, 0.8f }, {}, fillColor },
+		{ { info.area.x, info.area.w, 0.8f }, {}, fillColor },
+		{ { info.area.z, info.area.w, 0.8f }, {}, fillColor }
+	};
+
+	switch(type)
+	{
+	case SLIDER_TYPE_HORIZONTAL_LEFT: {
+		vertices[5].position.x = info.area.x + width * percent;
+		vertices[7].position.x = info.area.x + width * percent;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
+		F32 p = 1.0f - percent;
+		vertices[4].position.x = info.area.x + width * p;
+		vertices[6].position.x = info.area.x + width * p;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+		vertices[4].position.x = info.area.x + width * p;
+		vertices[5].position.x = info.area.z - width * p;
+		vertices[6].position.x = info.area.x + width * p;
+		vertices[7].position.x = info.area.z - width * p;
+	} break;
+	case SLIDER_TYPE_VERTICAL_BOTTOM: {
+		F32 p = 1.0f - percent;
+		vertices[4].position.y = info.area.y + height * p;
+		vertices[5].position.y = info.area.y + height * p;
+	} break;
+	case SLIDER_TYPE_VERTICAL_TOP: {
+		vertices[6].position.y = info.area.y + height * percent;
+		vertices[7].position.y = info.area.y + height * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+		vertices[4].position.y = info.area.y + height * p;
+		vertices[5].position.y = info.area.y + height * p;
+		vertices[6].position.y = info.area.w - height * p;
+		vertices[7].position.y = info.area.w - height * p;
+	} break;
+	case SLIDER_TYPE_RADIAL_COUNTER: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_EXPAND: {
+		F32 p = (1.0f - percent) * 0.5f;
+		vertices[4].position.x = info.area.x + width * p;
+		vertices[5].position.x = info.area.z - width * p;
+		vertices[6].position.x = info.area.x + width * p;
+		vertices[7].position.x = info.area.z - width * p;
+		vertices[4].position.y = info.area.y + height * p;
+		vertices[5].position.y = info.area.y + height * p;
+		vertices[6].position.y = info.area.w - height * p;
+		vertices[7].position.y = info.area.w - height * p;
+	} break;
+	}
+
+	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, sizeof(UIVertex) * CountOf32(vertices)) / sizeof(UIVertex);
+
+	UIInstance instance{};
+	instance.textureIndex = U16_MAX;
+	instance.model = Matrix3::Identity;
+
+	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
+
+	Renderer::UploadDrawCall(uiPipeline, 12, 0, element->vertexOffset, 1, element->instanceOffset);
+
+	return element;
 }
 
 UIElement* UI::CreateColorPicker(const UIElementInfo& info)
@@ -484,4 +560,85 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 UIElement* UI::CreateTextBox(const UIElementInfo& info)
 {
 	return nullptr;
+}
+
+
+
+void UI::ChangeSliderPercent(UIElement* element, F32 percent)
+{
+	if (element == nullptr || element->type != UI_ELEMENT_SLIDER) { return; }
+
+	element->slider.percent = percent;
+
+	UIVertex vertices[4]{
+		{ { element->area.x, element->area.y, 0.8f }, {}, element->slider.fillColor },
+		{ { element->area.z, element->area.y, 0.8f }, {}, element->slider.fillColor },
+		{ { element->area.x, element->area.w, 0.8f }, {}, element->slider.fillColor },
+		{ { element->area.z, element->area.w, 0.8f }, {}, element->slider.fillColor }
+	};
+
+	F32 width = element->area.z - element->area.x;
+	F32 height = element->area.w - element->area.y;
+
+	switch (element->slider.type)
+	{
+	case SLIDER_TYPE_HORIZONTAL_LEFT: {
+		vertices[1].position.x = element->area.x + width * percent;
+		vertices[3].position.x = element->area.x + width * percent;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
+		F32 p = 1.0f - percent;
+		vertices[0].position.x = element->area.x + width * p;
+		vertices[2].position.x = element->area.x + width * p;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+		vertices[0].position.x = element->area.x + width * p;
+		vertices[1].position.x = element->area.z - width * p;
+		vertices[2].position.x = element->area.x + width * p;
+		vertices[3].position.x = element->area.z - width * p;
+	} break;
+	case SLIDER_TYPE_VERTICAL_BOTTOM: {
+		F32 p = 1.0f - percent;
+		vertices[0].position.y = element->area.y + height * p;
+		vertices[1].position.y = element->area.y + height * p;
+	} break;
+	case SLIDER_TYPE_VERTICAL_TOP: {
+		vertices[2].position.y = element->area.y + height * percent;
+		vertices[3].position.y = element->area.y + height * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+		vertices[0].position.y = element->area.y + height * p;
+		vertices[1].position.y = element->area.y + height * p;
+		vertices[2].position.y = element->area.w - height * p;
+		vertices[3].position.y = element->area.w - height * p;
+	} break;
+	case SLIDER_TYPE_RADIAL_COUNTER: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_EXPAND: {
+		F32 p = (1.0f - percent) * 0.5f;
+		vertices[0].position.x = element->area.x + width * p;
+		vertices[1].position.x = element->area.z - width * p;
+		vertices[2].position.x = element->area.x + width * p;
+		vertices[3].position.x = element->area.z - width * p;
+		vertices[0].position.y = element->area.y + height * p;
+		vertices[1].position.y = element->area.y + height * p;
+		vertices[2].position.y = element->area.w - height * p;
+		vertices[3].position.y = element->area.w - height * p;
+	} break;
+	}
+
+	element->vertexOffset;
+
+	VkBufferCopy region{};
+	region.dstOffset = element->vertexOffset + sizeof(UIVertex) * 4;
+	region.size = sizeof(UIVertex) * CountOf32(vertices);
+	region.srcOffset = 0;
+
+	Renderer::UpdateVertices(uiPipeline, sizeof(UIVertex) * CountOf32(vertices), vertices, 1, &region);
 }

@@ -106,6 +106,7 @@ private:
 	static Sampler*							defaultLinearSampler;
 	static Pipeline*						meshPipeline;
 	static Pipeline*						skyboxPipeline;
+	static Pipeline*						postProcessPipeline;
 
 	static Hashmap<String, Sampler>			samplers;
 	static Hashmap<String, Texture>			textures;

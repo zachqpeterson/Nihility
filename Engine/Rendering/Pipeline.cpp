@@ -40,7 +40,7 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 				textureInfo.width = Settings::WindowWidth();
 				textureInfo.height = Settings::WindowHeight();
 				textureInfo.depth = 1;
-				textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+				textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET | TEXTURE_FLAG_COMPUTE;
 				textureInfo.type = VK_IMAGE_TYPE_2D;
 
 				Texture* texture = Resources::CreateTexture(textureInfo);

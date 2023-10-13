@@ -13,6 +13,8 @@
 AudioClip* music;
 AudioClip* sfx;
 F32 volume = 1.0f;
+UIElement* slider;
+F32 percent = 1.0f;
 
 bool Init()
 {
@@ -24,8 +26,8 @@ bool Init()
 	//String path1 = Resources::UploadSkybox("CoriolisNight.hdr");
 
 	UIElementInfo info{};
-	info.area = { -0.5f, -0.5f, 0.5f, 0.5f };
-	info.color = { 1.0f, 1.0f, 1.0f, 0.75f };
+	info.area = { -0.25f, -0.95f, 0.25f, -0.9f };
+	info.color = { 0.5f, 0.5f, 0.5f, 1.0f };
 
 	info.enabled = true;
 	info.ignore = false;
@@ -40,12 +42,12 @@ bool Init()
 	//info.OnExit = Exit;
 	//info.OnScroll = Scroll;
 
-	UI::CreatePanel(info, 1.0f, {0.5f, 0.5f, 0.5f, 0.75f});
+	slider = UI::CreateSlider(info, {0.75f, 0.0f, 0.0f, 1.0f}, SLIDER_TYPE_HORIZONTAL_LEFT, percent);
 
 	info.area = { -1.0f, -1.0f, -0.5f, -0.5f };
 	info.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	UI::CreateText(info, "Hgj,|_\nHello", 10.0f);
+	UI::CreateText(info, "Hello, World!", 2.0f);
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn");
 
@@ -80,6 +82,18 @@ void Update()
 	{
 		volume += 0.1f * Input::MouseWheelDelta();
 		Audio::ChangeMusicVolume(volume);
+	}
+
+	if (Input::ButtonDown(BUTTON_CODE_N))
+	{
+		percent -= Time::DeltaTime() * 0.2f;
+		UI::ChangeSliderPercent(slider, percent);
+	}
+
+	if (Input::ButtonDown(BUTTON_CODE_M))
+	{
+		percent += Time::DeltaTime() * 0.2f;
+		UI::ChangeSliderPercent(slider, percent);
 	}
 }
 

@@ -32,7 +32,7 @@ private:
 	static bool							CreateResources();
 
 	static bool							BeginFrame();
-	static void							Render(CommandBuffer* commandBuffer, Pipeline* pipeline);
+	static void							RunPipeline(CommandBuffer* commandBuffer, Pipeline* pipeline);
 	static void							EndFrame();
 	static void							Resize();
 	static void							SetRenderArea();
@@ -55,6 +55,7 @@ private:
 	static U32							UploadToBuffer(Buffer& buffer, const void* data, U32 size);
 	static U32							UploadIndices(Pipeline* pipeline, const void* data, U32 size);
 	static U32							UploadVertices(Pipeline* pipeline, const void* data, U32 size);
+	static void							UpdateVertices(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions);
 	static U32							UploadInstances(Pipeline* pipeline, const void* data, U32 size);
 	static void							UpdateInstances(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions);
 	static void							UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
@@ -129,6 +130,7 @@ private:
 	static Buffer								indexBuffer;
 	static Buffer								materialBuffer;
 	static Buffer								drawCommandsBuffer;
+	static Buffer								postProcessBuffer;
 	static U32									shaderUploadOffset;
 	static GlobalData							globalData;
 

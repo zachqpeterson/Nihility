@@ -127,6 +127,7 @@ Sampler* Resources::defaultPointSampler;
 Sampler* Resources::defaultLinearSampler;
 Pipeline* Resources::meshPipeline;
 Pipeline* Resources::skyboxPipeline;
+Pipeline* Resources::postProcessPipeline;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -175,14 +176,24 @@ bool Resources::Initialize()
 
 	pushConstant.stageFlags &= ~VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	Shader* skyboxProgram = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
-
 	info.name = "skybox_pipeline";
-	info.shader = skyboxProgram;
+	info.shader = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);;
 	skyboxPipeline = CreatePipeline(info);
 
 	Renderer::UploadVertices(skyboxPipeline, skyboxVertices, sizeof(F32) * CountOf32(skyboxVertices));
 	Renderer::UploadIndices(skyboxPipeline, skyboxIndices, sizeof(U32) * CountOf32(skyboxIndices));
+
+	Shader* postProcessProgram = CreateShader("shaders/PostProcess.nhshd");
+	postProcessProgram->AddDescriptor({ Renderer::postProcessBuffer.vkBuffer });
+	
+	info.name = "post-process_pipeline";
+	info.shader = postProcessProgram;
+	postProcessPipeline = CreatePipeline(info);
+
+	PostProcessData data{};
+	data.textureIndex = meshPipeline->renderpass->outputTextures[0]->handle;
+
+	Renderer::UploadToBuffer(Renderer::postProcessBuffer, &data, sizeof(PostProcessData));
 
 	return true;
 }
@@ -412,7 +423,8 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Texture* texture = &textures.Request(info.name);
+	HashHandle handle;
+	Texture* texture = &textures.Request(info.name, handle);
 
 	if (!texture->name.Blank()) { return texture; }
 
@@ -427,7 +439,7 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 	texture->format = info.format;
 	texture->mipmapCount = info.mipmapCount;
 	texture->type = info.type;
-	texture->handle = textures.GetHandle(info.name);
+	texture->handle = handle;
 
 	Renderer::CreateTexture(texture, info.initialData);
 
@@ -438,7 +450,8 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 {
 	String name{ "SwapchainTexture{}", index };
 
-	Texture* texture = &textures.Request(name);
+	HashHandle handle;
+	Texture* texture = &textures.Request(name, handle);
 
 	*texture = {};
 
@@ -446,7 +459,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	texture->swapchainImage = true;
 	texture->format = format;
 	texture->image = image;
-	texture->handle = textures.GetHandle(name);
+	texture->handle = handle;
 
 	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewInfo.pNext = nullptr;
@@ -464,7 +477,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { return nullptr; }
+	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { textures.Remove(handle); return nullptr; }
 
 	texture->mipmaps[0] = texture->imageView;
 
@@ -477,9 +490,12 @@ Sampler* Resources::CreateSampler(const SamplerInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Sampler* sampler = &samplers.Request(info.name);
+	HashHandle handle;
+	Sampler* sampler = &samplers.Request(info.name, handle);
 
 	if (!sampler->name.Blank()) { return sampler; }
+
+	*sampler = {};
 
 	sampler->addressModeU = info.addressModeU;
 	sampler->addressModeV = info.addressModeV;
@@ -488,7 +504,7 @@ Sampler* Resources::CreateSampler(const SamplerInfo& info)
 	sampler->magFilter = info.magFilter;
 	sampler->mipFilter = info.mipFilter;
 	sampler->name = info.name;
-	sampler->handle = samplers.GetHandle(info.name);
+	sampler->handle = handle;
 
 	Renderer::CreateSampler(sampler);
 
@@ -515,15 +531,18 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Renderpass* renderpass = &renderpasses.Request(info.name);
+	HashHandle handle;
+	Renderpass* renderpass = &renderpasses.Request(info.name, handle);
 
 	if (!renderpass->name.Blank()) { return renderpass; }
+
+	*renderpass = {};
 
 	renderpass->name = info.name;
 	renderpass->renderpass = nullptr;
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->outputDepth = info.depthStencilTexture;
-	renderpass->handle = renderpasses.GetHandle(info.name);
+	renderpass->handle = handle;
 	renderpass->colorOperation = info.colorOperation;
 	renderpass->depthOperation = info.depthOperation;
 	renderpass->stencilOperation = info.stencilOperation;
@@ -570,16 +589,19 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Pipeline* pipeline = &pipelines.Request(info.name);
+	HashHandle handle;
+	Pipeline* pipeline = &pipelines.Request(info.name, handle);
 
 	if (!pipeline->name.Blank()) { return pipeline; }
 
+	*pipeline = {};
+
 	pipeline->name = info.name;
-	pipeline->handle = pipelines.GetHandle(info.name);
+	pipeline->handle = handle;
 
 	if (!pipeline->Create(info, specializationInfo))
 	{
-		pipelines.Remove(pipeline->handle);
+		pipelines.Remove(handle);
 		pipeline->handle = U64_MAX;
 	}
 

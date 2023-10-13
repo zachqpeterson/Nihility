@@ -353,6 +353,14 @@ bool Shader::ParseConfig(const String& data, I64& index)
 			index = data.IndexOf('=', index + 1);
 			instanceLocation = data.ToType<U8>(index + 1);
 		}
+		else if (data.CompareN("draw", index + 1))
+		{
+			index = data.IndexOf('=', index + 1);
+
+			if (data.CompareN("INDEX", index + 1)) { drawType = DRAW_TYPE_INDEX; }
+			else if (data.CompareN("VERTEX", index + 1)) { drawType = DRAW_TYPE_VERTEX; }
+			else if (data.CompareN("FULLSCREEN", index + 1)) { drawType = DRAW_TYPE_FULLSCREEN; }
+		}
 
 		index = data.IndexOf('\n', index + 1);
 	}
@@ -888,7 +896,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 			case SpvStorageClassOutput: {
 				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
 				{
-					outputs[outputCount++] = Renderer::swapchain.renderTargets[0]->format;
+					outputs[outputCount++] = VK_FORMAT_R32G32B32A32_SFLOAT;
 				}
 			}
 			}

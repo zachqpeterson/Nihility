@@ -2,6 +2,13 @@
 
 #include "RenderingDefines.hpp"
 
+enum DrawType
+{
+	DRAW_TYPE_INDEX,
+	DRAW_TYPE_VERTEX,
+	DRAW_TYPE_FULLSCREEN,
+};
+
 struct Rasterization
 {
 	VkCullModeFlagBits	cullMode{ VK_CULL_MODE_NONE };
@@ -59,6 +66,7 @@ struct Shader
 	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
 	U32									stageCount{ 0 };
 	U32									language{ 0 };
+	DrawType							drawType{ DRAW_TYPE_INDEX };
 
 	U8									descriptorCount{ 0 };
 	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET];

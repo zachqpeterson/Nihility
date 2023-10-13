@@ -111,7 +111,6 @@ layout(std140, binding = 0) readonly buffer Materials
 };
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
-layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
