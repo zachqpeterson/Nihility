@@ -120,6 +120,8 @@ Vector<UIElement> UI::elements;
 
 Pipeline* UI::uiPipeline;
 Pipeline* UI::textPipeline;
+Renderpass* UI::uiRenderpass;
+RenderGraph UI::uiRenderGraph;
 
 U32 UI::textInstanceCount{ 0 };
 U32 UI::textVertexOffset;
@@ -130,25 +132,35 @@ Vector2 UI::textPadding;
 
 bool UI::Initialize()
 {
+	RenderpassInfo renderpassInfo{};
+	renderpassInfo.name = "ui_pass";
+	renderpassInfo.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	renderpassInfo.AddRenderTarget(Resources::geometryBuffer);
+	renderpassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+	renderpassInfo.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	renderpassInfo.SetDepthStencilTarget(Resources::geometryDepth);
+	renderpassInfo.AddClearDepth(1.0f);
+
+	uiRenderpass = Resources::CreateRenderpass(renderpassInfo);
+
 	PipelineInfo info{};
 	info.name = "ui_pipeline";
+	info.renderpass = uiRenderpass;
 	info.shader = Resources::CreateShader("shaders/UI.nhshd");
-	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	info.outputTextures[0] = Resources::postProcessPipeline->renderpass->outputTextures[0];
-	info.outputCount = 1;
-	info.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	info.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	uiPipeline = Resources::CreatePipeline(info);
 
 	info.name = "text_pipeline";
 	info.shader = Resources::CreateShader("shaders/Text.nhshd");
-	info.renderpass = uiPipeline->renderpass;
 	textPipeline = Resources::CreatePipeline(info);
+
+	uiRenderGraph.AddPipeline(textPipeline);
+	uiRenderGraph.AddPipeline(uiPipeline);
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
-	Renderer::UploadIndices(uiPipeline, indices, (U32)sizeof(U32) * CountOf32(indices));
-	Renderer::UploadIndices(textPipeline, indices, (U32)sizeof(U32) * 6);
+	uiPipeline->UploadIndices(sizeof(U32) * CountOf32(indices), indices);
+	textPipeline->UploadIndices(sizeof(U32) * 6, indices);
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
 	
@@ -165,7 +177,7 @@ bool UI::Initialize()
 		{ { textWidth, 0.0f }, { textPosistion.x, 0.0f } }
 	};
 	
-	textVertexOffset = Renderer::UploadVertices(textPipeline, vertices, sizeof(TextVertex) * 4) / sizeof(TextVertex);
+	textVertexOffset = textPipeline->UploadVertices(sizeof(TextVertex) * 4, vertices) / sizeof(TextVertex);
 
 	return true;
 }
@@ -244,11 +256,6 @@ void UI::Update()
 	}
 }
 
-void UI::Resize()
-{
-
-}
-
 UIElement* UI::SetupElement(const UIElementInfo& info)
 {
 	elements.Push({});
@@ -287,15 +294,15 @@ UIElement* UI::CreateElement(const UIElementInfo& info)
 		{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
 	};
 
-	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, sizeof(UIVertex) * 4) / sizeof(UIVertex);
+	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
 	instance.model = Matrix3::Identity;
 
-	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
+	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
-	Renderer::UploadDrawCall(uiPipeline, 6, 0, element->vertexOffset, 1, element->instanceOffset);
+	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
 
 	return element;
 }
@@ -345,15 +352,15 @@ UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vect
 		{ { info.area.x + borderWidth,	info.area.w,				0.9f }, {}, borderColor },
 	};
 
-	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, (U32)sizeof(UIVertex) * CountOf32(vertices)) / sizeof(UIVertex);
+	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * CountOf32(vertices), vertices) / sizeof(UIVertex);
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
 	instance.model = Matrix3::Identity;
 
-	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
+	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
-	Renderer::UploadDrawCall(uiPipeline, 30, 0, element->vertexOffset, 1, element->instanceOffset);
+	uiPipeline->UploadDrawCall(30, 0, element->vertexOffset, 1, element->instanceOffset);
 
 	return element;
 }
@@ -373,15 +380,15 @@ UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Ve
 		{ { info.area.z, info.area.w, 0.9f }, { uvs.z, uvs.y }, info.color }
 	};
 
-	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, sizeof(UIVertex) * 4) / sizeof(UIVertex);
+	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
 
 	UIInstance instance{};
 	instance.textureIndex = (U32)texture->handle;
 	instance.model = Matrix3::Identity;
 
-	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
+	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance) , &instance) / sizeof(UIInstance);
 
-	Renderer::UploadDrawCall(uiPipeline, 6, 0, element->vertexOffset, 1, element->instanceOffset);
+	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
 
 	return element;
 }
@@ -463,15 +470,15 @@ UIElement* UI::CreateSlider(const UIElementInfo& info, const Vector4& fillColor,
 	} break;
 	}
 
-	element->vertexOffset = Renderer::UploadVertices(uiPipeline, vertices, sizeof(UIVertex) * CountOf32(vertices)) / sizeof(UIVertex);
+	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * CountOf32(vertices), vertices) / sizeof(UIVertex);
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
 	instance.model = Matrix3::Identity;
 
-	element->instanceOffset = Renderer::UploadInstances(uiPipeline, &instance, sizeof(UIInstance)) / sizeof(UIInstance);
+	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
-	Renderer::UploadDrawCall(uiPipeline, 12, 0, element->vertexOffset, 1, element->instanceOffset);
+	uiPipeline->UploadDrawCall(2, 0, element->vertexOffset, 1, element->instanceOffset);
 
 	return element;
 }
@@ -548,11 +555,11 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 		prev = c;
 	}
 
-	element->instanceOffset = Renderer::UploadInstances(textPipeline, instances, sizeof(TextInstance) * i) / sizeof(TextInstance);
+	element->instanceOffset = textPipeline->UploadInstances(sizeof(TextInstance) * i, instances) / sizeof(TextInstance);
 
 	Memory::Free(&instances);
 
-	Renderer::UploadDrawCall(textPipeline, 6, 0, element->vertexOffset, i, element->instanceOffset);
+	textPipeline->UploadDrawCall(6, 0, element->vertexOffset, i, element->instanceOffset);
 
 	return nullptr;
 }
@@ -640,5 +647,60 @@ void UI::ChangeSliderPercent(UIElement* element, F32 percent)
 	region.size = sizeof(UIVertex) * CountOf32(vertices);
 	region.srcOffset = 0;
 
-	Renderer::UpdateVertices(uiPipeline, sizeof(UIVertex) * CountOf32(vertices), vertices, 1, &region);
+	uiPipeline->UpdateVertices(sizeof(UIVertex) * CountOf32(vertices), vertices, 1, &region);
+}
+
+void UI::ChangeText(UIElement* element, const String& string)
+{
+	TextInstance* instances;
+	Memory::AllocateArray(&instances, string.Size());
+
+	Vector2 startPosition = { element->area.x, element->area.y };
+	Vector2 position = startPosition;
+
+	U8 prev = 255;
+
+	F32 yOffset = textHeight * element->text.size / 2.0f;
+
+	U32 i = 0;
+	for (C8 c : string)
+	{
+		Glyph& glyph = font->glyphs[c - 32];
+
+		if (c == '\n')
+		{
+			position.x = startPosition.x;
+			position.y += (font->ascent + font->lineGap) * textHeight * element->text.size;
+		}
+		else if (c != ' ')
+		{
+			++textInstanceCount;
+			TextInstance& instance = instances[i];
+
+			Vector2 texPos = Font::atlasPositions[c - 32];
+
+			instance.textureIndex = (U32)font->texture->handle;
+			instance.position = position - Vector2{ glyph.x * textWidth * element->text.size, -glyph.y * textHeight * element->text.size + yOffset };
+			instance.texcoord = texPos * textPosistion + (texPos + Vector2::One) * textPadding;
+			instance.color = element->color;
+			instance.scale = element->text.size;
+
+			++i;
+		}
+
+		position.x += glyph.advance * textWidth * element->text.size;
+
+		if (prev != 255)
+		{
+			position.x += font->glyphs[prev - 32].kerning[c - 32] * textWidth * element->text.size;
+		}
+
+		prev = c;
+	}
+
+	element->instanceOffset = textPipeline->UploadInstances(sizeof(TextInstance) * i, instances) / sizeof(TextInstance);
+
+	Memory::Free(&instances);
+
+	textPipeline->UploadDrawCall(6, 0, element->vertexOffset, i, element->instanceOffset);
 }

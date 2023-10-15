@@ -65,7 +65,7 @@ void CommandBuffer::ClearAttachments(U32 attachmentCount, VkClearAttachment* att
 void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 {
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderPassBegin.framebuffer = renderpass->frameBuffers[renderpass->tiedToFrame ? Renderer::frameIndex : 0];
+	renderPassBegin.framebuffer = renderpass->frameBuffer;
 	renderPassBegin.renderPass = renderpass->renderpass;
 
 	renderPassBegin.renderArea.offset = { 0, 0 };
@@ -84,25 +84,25 @@ void CommandBuffer::EndRenderpass()
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-void CommandBuffer::BindPipeline(Pipeline* pipeline)
+void CommandBuffer::BindPipeline(const Pipeline* pipeline)
 {
 	vkCmdBindPipeline(commandBuffer, pipeline->shader->bindPoint, pipeline->pipeline);
 }
 
 void CommandBuffer::BindIndexBuffer(Shader* shader, const Buffer& buffer)
 {
-	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, shader->uploadOffset, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, buffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
 void CommandBuffer::BindVertexBuffer(Shader* shader, const Buffer& buffer)
 {
-	VkDeviceSize offset = shader->uploadOffset;
+	VkDeviceSize offset = 0;
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer.vkBuffer, &offset);
 }
 
 void CommandBuffer::BindInstanceBuffer(Shader* shader, const Buffer& buffer)
 {
-	VkDeviceSize offset = shader->uploadOffset;
+	VkDeviceSize offset = 0;
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
 }
 

@@ -6,6 +6,8 @@ fill=SOLID
 depth=LESS_EQUAL
 blend=ADD
 instanceOffset=1
+push=CAMERA
+order=1
 #CONFIG_END
 
 #VERTEX
@@ -19,7 +21,7 @@ struct Globals
 
 layout (location = 0) in vec3 position;
 
-layout (location = 1) in int skyboxIndex;
+layout (location = 1) in uint skyboxIndex;
 
 layout(push_constant) uniform block
 {
@@ -27,7 +29,7 @@ layout(push_constant) uniform block
 };
 
 layout (location = 0) out vec3 outTexCoord;
-layout (location = 1) flat out int outSkyboxIndex;
+layout (location = 1) flat out uint outSkyboxIndex;
 
 void main()
 {
@@ -45,7 +47,7 @@ void main()
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout (location = 0) in vec3 texCoord;
-layout (location = 1) flat in int skyboxIndex;
+layout (location = 1) flat in uint skyboxIndex;
 
 layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
 

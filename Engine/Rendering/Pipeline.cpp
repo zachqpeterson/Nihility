@@ -13,30 +13,28 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 	subpass = info.subpass;
 
 	RenderpassInfo renderPassInfo{};
-	renderPassInfo.colorOperation = info.colorLoadOp;
-	renderPassInfo.depthOperation = info.depthLoadOp;
-	renderPassInfo.stencilOperation = info.stencilLoadOp;
+	renderPassInfo.colorLoadOp = info.colorLoadOp;
+	renderPassInfo.depthLoadOp = info.depthLoadOp;
+	renderPassInfo.stencilLoadOp = info.stencilLoadOp;
 	renderPassInfo.attachmentFinalLayout = info.attachmentFinalLayout;
-
-	Vector4 area = Renderer::RenderArea();
 
 	if (!renderpass && shader->bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
 		String textureName = name + "_output_";
-		renderPassInfo.SetName(name + "_pass");
+		renderPassInfo.name = name + "_pass";
 
 		for (U32 i = 0; i < shader->outputCount; ++i)
 		{
 			if(i < info.outputCount)
 			{
-				renderPassInfo.AddRenderTarget(info.outputTextures[i]);
+				renderPassInfo.AddRenderTarget(info.renderTargets[i]);
 				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f }); //TODO: Pass in
 			}
 			else
 			{
 				TextureInfo textureInfo{};
 				textureInfo.name = textureName + i;
-				textureInfo.format = shader->outputs[i];
+				textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 				textureInfo.width = Settings::WindowWidth();
 				textureInfo.height = Settings::WindowHeight();
 				textureInfo.depth = 1;
@@ -51,9 +49,9 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 
 		if (shader->depthStencil.depthEnable)
 		{
-			if(info.outputDepth)
+			if(info.depthStencilTarget)
 			{
-				renderPassInfo.SetDepthStencilTexture(info.outputDepth);
+				renderPassInfo.SetDepthStencilTarget(info.depthStencilTarget);
 				renderPassInfo.AddClearDepth(1.0f);
 			}
 			else
@@ -68,7 +66,7 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 				textureInfo.type = VK_IMAGE_TYPE_2D;
 
 				Texture* texture = Resources::CreateTexture(textureInfo);
-				renderPassInfo.SetDepthStencilTexture(texture);
+				renderPassInfo.SetDepthStencilTarget(texture);
 				renderPassInfo.AddClearDepth(1.0f);
 			}
 		}
@@ -78,14 +76,21 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 
 	if (!CreatePipeline(specializationInfo)) { return false; }
 
+	U32 vertexBufferSize = info.vertexBufferSize;
+	U32 instanceBufferSize = info.instanceBufferSize;
+	U32 indexBufferSize = info.indexBufferSize;
+	U32 drawBufferSize = info.drawBufferSize;
+	if (vertexBufferSize == U32_MAX) { vertexBufferSize = MEGABYTES(32); }
+	if (instanceBufferSize == U32_MAX) { instanceBufferSize = MEGABYTES(32); }
+	if (indexBufferSize == U32_MAX) { indexBufferSize = MEGABYTES(32); }
+	if (drawBufferSize == U32_MAX) { drawBufferSize = MEGABYTES(32); }
+
+	if (vertexBufferSize) { vertexBuffer = Renderer::CreateBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
+	if (instanceBufferSize) { instanceBuffer = Renderer::CreateBuffer(instanceBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
+	if (indexBufferSize) { indexBuffer = Renderer::CreateBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
+	if (drawBufferSize) { drawBuffer = Renderer::CreateBuffer(drawBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
+
 	return true;
-}
-
-void Pipeline::Destroy()
-{
-	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
-
-	name.Destroy();
 }
 
 bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
@@ -253,4 +258,160 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 	vkDestroyPipelineCache(Renderer::device, pipelineCache, Renderer::allocationCallbacks);
 
 	return true;
+}
+
+void Pipeline::Destroy()
+{
+	Renderer::DestroyBuffer(vertexBuffer);
+	Renderer::DestroyBuffer(instanceBuffer);
+	Renderer::DestroyBuffer(indexBuffer);
+	Renderer::DestroyBuffer(drawBuffer);
+
+	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
+
+	name.Destroy();
+}
+
+void Pipeline::Run(CommandBuffer* commandBuffer) const
+{
+	//TODO: Task Submitting
+	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
+	//
+	//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
+	//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
+	//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
+	//pushDescriptors(meshProgramMS, descriptors);
+	//
+	//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
+	//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
+
+	if (drawCount || shader->bindPoint != VK_PIPELINE_BIND_POINT_GRAPHICS)
+	{
+		commandBuffer->BindPipeline(this);
+
+		Renderer::PushDescriptors(commandBuffer, shader);
+		if (shader->pushConstantStages) { Renderer::PushConstants(commandBuffer, shader); }
+
+		switch (shader->bindPoint)
+		{
+		case VK_PIPELINE_BIND_POINT_GRAPHICS: {
+			commandBuffer->BindIndexBuffer(shader, indexBuffer);
+			if (shader->instanceLocation) { commandBuffer->BindVertexBuffer(shader, vertexBuffer); }
+			if (shader->instanceLocation != U8_MAX) { commandBuffer->BindInstanceBuffer(shader, instanceBuffer); }
+
+			commandBuffer->DrawIndexedIndirect(drawBuffer, drawCount, 0);
+		} break;
+		case VK_PIPELINE_BIND_POINT_COMPUTE: {
+			commandBuffer->Dispatch((U32)Renderer::renderArea.z, (U32)Renderer::renderArea.w, 1);
+		} break;
+		case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: {
+			//TODO:
+		} break;
+		}
+	}
+	else if (shader->drawType == DRAW_TYPE_FULLSCREEN)
+	{
+		commandBuffer->BindPipeline(this);
+
+		Renderer::PushDescriptors(commandBuffer, shader);
+		if (shader->pushConstantStages) { Renderer::PushConstants(commandBuffer, shader); }
+
+		commandBuffer->Draw(0, 3, 0, 1);
+	}
+}
+
+U32 Pipeline::UploadIndices(U32 size, const void* data)
+{
+	VkBufferCopy region{};
+	region.dstOffset = indexOffset;
+	region.size = size;
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(indexBuffer, size, data, 1, &region);
+
+	U32 offset = indexOffset;
+	indexOffset += (U32)size;
+
+	return offset;
+}
+
+U32 Pipeline::UploadVertices(U32 size, const void* data)
+{
+	VkBufferCopy region{};
+	region.dstOffset = vertexOffset;
+	region.size = size;
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(vertexBuffer, size, data, 1, &region);
+
+	U32 offset = vertexOffset;
+	vertexOffset += (U32)size;
+
+	return offset;
+}
+
+void Pipeline::UpdateVertices(U32 size, const void* data, U32 regionCount, VkBufferCopy* regions)
+{
+	Renderer::FillBuffer(vertexBuffer, size, data, regionCount, regions);
+}
+
+U32 Pipeline::UploadInstances(U32 size, const void* data)
+{
+	VkBufferCopy region{};
+	region.dstOffset = instanceOffset;
+	region.size = size;
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(instanceBuffer, size, data, 1, &region);
+
+	U32 offset = instanceOffset;
+	instanceOffset += (U32)size;
+
+	return offset;
+}
+
+void Pipeline::UpdateInstances(U32 size, const void* data, U32 regionCount, VkBufferCopy* regions)
+{
+	Renderer::FillBuffer(instanceBuffer, size, data, regionCount, regions);
+}
+
+void Pipeline::UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset)
+{
+	VkDrawIndexedIndirectCommand drawCommand{};
+	drawCommand.indexCount = indexCount;
+	drawCommand.instanceCount = instanceCount;
+	drawCommand.firstIndex = indexOffset;
+	drawCommand.vertexOffset = vertexOffset;
+	drawCommand.firstInstance = instanceOffset;
+
+	VkBufferCopy region{};
+	region.dstOffset = drawCount * sizeof(VkDrawIndexedIndirectCommand);
+	region.size = sizeof(VkDrawIndexedIndirectCommand);
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(drawBuffer, sizeof(VkDrawIndexedIndirectCommand), &drawCommand, 1, &region);
+
+	++drawCount;
+}
+
+void Pipeline::UpdateDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 drawOffset)
+{
+	VkDrawIndexedIndirectCommand drawCommand{};
+	drawCommand.indexCount = indexCount;
+	drawCommand.instanceCount = instanceCount;
+	drawCommand.firstIndex = indexOffset;
+	drawCommand.vertexOffset = vertexOffset;
+	drawCommand.firstInstance = instanceOffset;
+
+	VkBufferCopy region{};
+	region.dstOffset = drawOffset;
+	region.size = sizeof(VkDrawIndexedIndirectCommand);
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(drawBuffer, sizeof(VkDrawIndexedIndirectCommand), &drawCommand, 1, &region);
+}
+
+const String& Pipeline::Name() const
+{
+	return name;
 }

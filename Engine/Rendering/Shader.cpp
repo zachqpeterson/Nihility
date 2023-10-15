@@ -189,8 +189,6 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConsta
 
 	if (setLayoutInfo.bindingCount) { Renderer::CreateDescriptorUpdateTemplate(setLayouts[0], this); }
 
-	uploadOffset = Renderer::GetShaderUploadOffset();
-
 	return true;
 }
 
@@ -360,6 +358,19 @@ bool Shader::ParseConfig(const String& data, I64& index)
 			if (data.CompareN("INDEX", index + 1)) { drawType = DRAW_TYPE_INDEX; }
 			else if (data.CompareN("VERTEX", index + 1)) { drawType = DRAW_TYPE_VERTEX; }
 			else if (data.CompareN("FULLSCREEN", index + 1)) { drawType = DRAW_TYPE_FULLSCREEN; }
+		}
+		else if (data.CompareN("push", index + 1))
+		{
+			index = data.IndexOf('=', index + 1);
+
+			if (data.CompareN("NONE", index + 1)) { pushConstantType = PUSH_CONSTANT_TYPE_NONE; }
+			else if (data.CompareN("CAMERA", index + 1)) { pushConstantType = PUSH_CONSTANT_TYPE_CAMERA; }
+			else if (data.CompareN("POST_PROCESS", index + 1)) { pushConstantType = PUSH_CONSTANT_TYPE_POST_PROCESS; }
+		}
+		else if (data.CompareN("order", index + 1))
+		{
+			index = data.IndexOf('=', index + 1);
+			renderOrder = data.ToType<U32>(index + 1);
 		}
 
 		index = data.IndexOf('\n', index + 1);
@@ -648,7 +659,7 @@ static U32 FormatStride(VkFormat format)
 {
 	switch (format)
 	{
-	case VK_FORMAT_R8_UINT: 
+	case VK_FORMAT_R8_UINT:
 	case VK_FORMAT_R8_SINT:	return 1;
 	case VK_FORMAT_R16_UINT:
 	case VK_FORMAT_R16_SINT: return 2;
@@ -669,7 +680,7 @@ static U32 FormatStride(VkFormat format)
 		BreakPoint;
 		return 0;
 	}
-	}		
+	}
 }
 
 bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorSetLayoutInfo& setLayoutInfo)
@@ -804,7 +815,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 					if (type.opcode == SpvOpTypeMatrix)
 					{
 						const Id& component = ids[type.typeId];
-						
+
 						switch (type.count)
 						{
 						case 2: {
@@ -894,11 +905,8 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage, DescriptorS
 				setCount = Math::Max(setCount, id.set + 1);
 			} break;
 			case SpvStorageClassOutput: {
-				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-				{
-					outputs[outputCount++] = VK_FORMAT_R32G32B32A32_SFLOAT;
-				}
-			}
+				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT) { ++outputCount; }
+			} break;
 			}
 		}
 		else if (id.opcode == SpvDecorationSpecId)

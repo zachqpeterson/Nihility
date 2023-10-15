@@ -94,7 +94,7 @@ Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
 PFN_vkCmdPushDescriptorSetWithTemplateKHR Renderer::vkCmdPushDescriptorSetWithTemplateKHR;
 
-VkAllocationCallbacks* Renderer::allocationCallbacks;
+VkAllocationCallbacks*				Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPool;
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -104,7 +104,7 @@ bool								Renderer::pushDescriptorsSupported{ false };
 bool								Renderer::meshShadingSupported{ false };
 
 // WINDOW
-Vector4								Renderer::renderArea;
+Vector4								Renderer::renderArea{};
 U32									Renderer::frameIndex{ 0 };
 U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
@@ -112,18 +112,14 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene* Renderer::currentScene;
-VmaAllocator_T* Renderer::allocator;
+Scene*								Renderer::currentScene;
+VmaAllocator_T*						Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Buffer								Renderer::stagingBuffer;
-Buffer								Renderer::vertexBuffer;
-Buffer								Renderer::instanceBuffer;
-Buffer								Renderer::indexBuffer;
 Buffer								Renderer::materialBuffer;
-Buffer								Renderer::drawCommandsBuffer;
-Buffer								Renderer::postProcessBuffer;
-U32									Renderer::shaderUploadOffset;
-GlobalData							Renderer::globalData;
+CameraData							Renderer::cameraData;
+PostProcessData						Renderer::postProcessData;
+RenderGraph*						Renderer::renderGraph;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -174,11 +170,7 @@ void Renderer::Shutdown()
 	vkDestroySemaphore(device, queueSubmitted, allocationCallbacks);
 
 	DestroyBuffer(stagingBuffer);
-	DestroyBuffer(vertexBuffer);
-	DestroyBuffer(instanceBuffer);
-	DestroyBuffer(indexBuffer);
 	DestroyBuffer(materialBuffer);
-	DestroyBuffer(drawCommandsBuffer);
 
 	swapchain.Destroy();
 
@@ -474,16 +466,7 @@ bool Renderer::CreateResources()
 	commandBufferRing.Create();
 
 	stagingBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	vertexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	instanceBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	indexBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	drawCommandsBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	postProcessBuffer = CreateBuffer(sizeof(PostProcessData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	shaderUploadOffset = 0;
-
-	Resources::CreateDefaults();
 
 	return true;
 }
@@ -515,54 +498,6 @@ bool Renderer::BeginFrame()
 	return true;
 }
 
-void Renderer::RunPipeline(CommandBuffer* commandBuffer, Pipeline* pipeline)
-{
-	//TODO: Task Submitting
-	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
-	//
-	//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
-	//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
-	//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
-	//pushDescriptors(meshProgramMS, descriptors);
-	//
-	//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
-	//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
-
-	if (pipeline->drawCount || pipeline->shader->bindPoint != VK_PIPELINE_BIND_POINT_GRAPHICS)
-	{
-		commandBuffer->BindPipeline(pipeline);
-
-		PushDescriptors(pipeline->shader);
-		if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
-
-		switch (pipeline->shader->bindPoint)
-		{
-		case VK_PIPELINE_BIND_POINT_GRAPHICS: {
-			commandBuffer->BindIndexBuffer(pipeline->shader, indexBuffer);
-			if (pipeline->shader->instanceOffset) { commandBuffer->BindVertexBuffer(pipeline->shader, vertexBuffer); }
-			if (pipeline->shader->instanceOffset != U8_MAX) { commandBuffer->BindInstanceBuffer(pipeline->shader, instanceBuffer); }
-
-			commandBuffer->DrawIndexedIndirect(drawCommandsBuffer, pipeline->drawCount, pipeline->shader->uploadOffset);
-		} break;
-		case VK_PIPELINE_BIND_POINT_COMPUTE: {
-			commandBuffer->Dispatch(swapchain.width, swapchain.height, 1);
-		} break;
-		case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: {
-			//TODO:
-		} break;
-		}
-	}
-	else if (pipeline->shader->drawType == DRAW_TYPE_FULLSCREEN)
-	{
-		commandBuffer->BindPipeline(pipeline);
-
-		PushDescriptors(pipeline->shader);
-		if (pipeline->shader->pushConstantStages) { commandBuffer->PushConstants(pipeline->shader, 0, sizeof(GlobalData), &globalData); }
-
-		commandBuffer->Draw(0, 3, 0, 1);
-	}
-}
-
 void Renderer::EndFrame()
 {
 	CommandBuffer* commandBuffer = GetCommandBuffer();
@@ -578,44 +513,16 @@ void Renderer::EndFrame()
 	}
 
 	Camera& camera = currentScene->camera;
-
-	globalData.vp = camera.ViewProjection();
-	globalData.eye = camera.Eye();
+	cameraData.vp = camera.ViewProjection();
+	cameraData.eye = camera.Eye();
 
 	Resources::Update();
 
-	commandBuffer->BeginRenderpass(Resources::meshPipeline->renderpass);
-
-	RunPipeline(commandBuffer, Resources::meshPipeline);
-	RunPipeline(commandBuffer, Resources::skyboxPipeline);
-
-	commandBuffer->EndRenderpass();
-	commandBuffer->BeginRenderpass(Resources::postProcessPipeline->renderpass);
-
-	RunPipeline(commandBuffer, Resources::postProcessPipeline);
-
-	//Post Processing		
-	//TODO: Bloom			
-	//TODO: Fog				
-	//TODO: Exposure 		
-	//TODO: White Balancing	
-	//TODO: Contrast		✓
-	//TODO: Brightness		✓
-	//TODO: Color Filtering	
-	//TODO: Saturation		✓
-	//TODO: Tonemapping		✓
-	//TODO: Gamma			✓
-
-	commandBuffer->EndRenderpass();
-	commandBuffer->BeginRenderpass(UI::uiPipeline->renderpass);
-
-	RunPipeline(commandBuffer, UI::uiPipeline);
-	RunPipeline(commandBuffer, UI::textPipeline);
-
-	commandBuffer->EndRenderpass();
+	renderGraph->Run(commandBuffer);
+	UI::uiRenderGraph.Run(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(Resources::postProcessPipeline->renderpass->outputTextures[0]->image,
+		ImageBarrier(Resources::geometryBuffer->image,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
 		ImageBarrier(swapchain.renderTargets[frameIndex]->image, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -636,7 +543,7 @@ void Renderer::EndFrame()
 	blitRegion.dstOffsets[1].y = swapchain.height;
 	blitRegion.dstOffsets[1].z = 1;
 
-	commandBuffer->Blit(Resources::postProcessPipeline->renderpass->outputTextures[0], swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
+	commandBuffer->Blit(Resources::geometryBuffer, swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
 
 	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -666,13 +573,8 @@ void Renderer::Resize()
 	swapchain.Create();
 
 	Resources::Resize();
-	currentScene->updatePostProcess = true;
-
-	UI::Resize();
 
 	vkDeviceWaitIdle(device);
-
-	//TODO: Update camera here
 }
 
 void Renderer::SetRenderArea()
@@ -711,7 +613,11 @@ void Renderer::LoadScene(const String& name)
 	}
 
 	currentScene = Resources::LoadScene(name);
-	currentScene->updatePostProcess = true;
+}
+
+void Renderer::SetRenderGraph(RenderGraph* graph)
+{
+	renderGraph = graph;
 }
 
 void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
@@ -853,15 +759,14 @@ Buffer Renderer::CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryP
 	return Move(buffer);
 }
 
-void Renderer::FillBuffer(Buffer& buffer, const void* data, U32 size, U32 offset)
+void Renderer::FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions)
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
 	commandBuffer->Begin();
 
 	Memory::Copy(stagingBuffer.data, data, size);
 
-	VkBufferCopy region = { 0, offset, size };
-	commandBuffer->BufferToBuffer(stagingBuffer, buffer, 1, &region);
+	commandBuffer->BufferToBuffer(stagingBuffer, buffer, regionCount, regions);
 	commandBuffer->End();
 	commandBuffer->Submit(deviceQueue);
 
@@ -870,100 +775,19 @@ void Renderer::FillBuffer(Buffer& buffer, const void* data, U32 size, U32 offset
 	commandBuffer->Reset();
 }
 
-U32 Renderer::UploadToBuffer(Buffer& buffer, const void* data, U32 size)
+U32 Renderer::UploadToBuffer(Buffer& buffer, U32 size, const void* data)
 {
-	FillBuffer(buffer, data, size, buffer.allocationOffset);
+	VkBufferCopy region{};
+	region.dstOffset = buffer.allocationOffset;
+	region.size = size;
+	region.srcOffset = 0;
+
+	FillBuffer(buffer, size, data, 1, &region);
 
 	U32 offset = buffer.allocationOffset;
 	buffer.allocationOffset += size;
 
 	return offset;
-}
-
-U32 Renderer::UploadIndices(Pipeline* pipeline, const void* data, U32 size)
-{
-	FillBuffer(indexBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->indexOffset);
-
-	U32 offset = pipeline->shader->indexOffset;
-	pipeline->shader->indexOffset += (U32)size;
-
-	return offset;
-}
-
-U32 Renderer::UploadVertices(Pipeline* pipeline, const void* data, U32 size)
-{
-	FillBuffer(vertexBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->vertexOffset);
-
-	U32 offset = pipeline->shader->vertexOffset;
-	pipeline->shader->vertexOffset += (U32)size;
-
-	return offset;
-}
-
-void Renderer::UpdateVertices(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions)
-{
-	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
-	commandBuffer->Begin();
-
-	Memory::Copy(stagingBuffer.data, data, dataSize);
-
-	for (U32 i = 0; i < regionCount; ++i)
-	{
-		regions[i].dstOffset += pipeline->shader->uploadOffset;
-	}
-
-	commandBuffer->BufferToBuffer(stagingBuffer, vertexBuffer, regionCount, regions);
-	commandBuffer->End();
-	commandBuffer->Submit(deviceQueue);
-
-	vkQueueWaitIdle(deviceQueue);
-
-	commandBuffer->Reset();
-}
-
-U32 Renderer::UploadInstances(Pipeline* pipeline, const void* data, U32 size)
-{
-	FillBuffer(instanceBuffer, data, size, pipeline->shader->uploadOffset + pipeline->shader->instanceOffset);
-
-	U32 offset = pipeline->shader->instanceOffset;
-	pipeline->shader->instanceOffset += (U32)size;
-
-	return offset;
-}
-
-void Renderer::UpdateInstances(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions)
-{
-	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
-	commandBuffer->Begin();
-
-	Memory::Copy(stagingBuffer.data, data, dataSize);
-
-	for (U32 i = 0; i < regionCount; ++i)
-	{
-		regions[i].dstOffset += pipeline->shader->uploadOffset;
-	}
-
-	commandBuffer->BufferToBuffer(stagingBuffer, instanceBuffer, regionCount, regions);
-	commandBuffer->End();
-	commandBuffer->Submit(deviceQueue);
-
-	vkQueueWaitIdle(deviceQueue);
-
-	commandBuffer->Reset();
-}
-
-void Renderer::UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset)
-{
-	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = indexCount;
-	drawCommand.instanceCount = instanceCount;
-	drawCommand.firstIndex = indexOffset;
-	drawCommand.vertexOffset = vertexOffset;
-	drawCommand.firstInstance = instanceOffset;
-
-	FillBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand), pipeline->shader->uploadOffset + pipeline->drawCount * sizeof(VkDrawIndexedIndirectCommand));
-
-	++pipeline->drawCount;
 }
 
 void Renderer::MapBuffer(Buffer& buffer)
@@ -998,13 +822,6 @@ void Renderer::DestroyBuffer(Buffer& buffer)
 
 		vmaDestroyBuffer(allocator, buffer.vkBuffer, buffer.allocation);
 	}
-}
-
-U32 Renderer::GetShaderUploadOffset()
-{
-	U32 offset = shaderUploadOffset;
-	shaderUploadOffset += MEGABYTES(4);
-	return offset;
 }
 
 bool Renderer::CreateSampler(Sampler* sampler)
@@ -1331,10 +1148,8 @@ bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSet
 	return true;
 }
 
-void Renderer::PushDescriptors(Shader* shader)
+void Renderer::PushDescriptors(CommandBuffer* commandBuffer, Shader* shader)
 {
-	CommandBuffer* commandBuffer = GetCommandBuffer();
-
 	if (pushDescriptorsSupported)
 	{
 		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, shader->setLayouts[0]->updateTemplate, shader->pipelineLayout, 0, shader->descriptors);
@@ -1362,6 +1177,15 @@ void Renderer::PushDescriptors(Shader* shader)
 	}
 };
 
+void Renderer::PushConstants(CommandBuffer* commandBuffer, Shader* shader)
+{
+	switch (shader->pushConstantType)
+	{
+	case PUSH_CONSTANT_TYPE_CAMERA: { commandBuffer->PushConstants(shader, 0, sizeof(CameraData), &cameraData); } break;
+	case PUSH_CONSTANT_TYPE_POST_PROCESS: { commandBuffer->PushConstants(shader, 0, sizeof(PostProcessData), &postProcessData); } break;
+	}
+};
+
 bool Renderer::CreateRenderpass(Renderpass* renderpass)
 {
 	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
@@ -1372,18 +1196,18 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-	VkImageLayout initialColorLayout = renderpass->colorOperation == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
-	VkImageLayout initialDepthLayout = renderpass->depthOperation == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	VkImageLayout initialColorLayout = renderpass->colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	VkImageLayout initialDepthLayout = renderpass->depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 
 	U32 attachmentCount = 0;
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 	{
 		attachments[attachmentCount].flags = 0;
-		attachments[attachmentCount].format = renderpass->outputTextures[i]->format;
+		attachments[attachmentCount].format = renderpass->renderTargets[i]->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = renderpass->colorOperation;
+		attachments[attachmentCount].loadOp = renderpass->colorLoadOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = renderpass->stencilOperation;
+		attachments[attachmentCount].stencilLoadOp = renderpass->stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = initialColorLayout;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1397,14 +1221,14 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	subpass.colorAttachmentCount = attachmentCount;
 	subpass.pColorAttachments = colorAttachments;
 
-	if (renderpass->outputDepth)
+	if (renderpass->depthStencilTarget)
 	{
 		attachments[attachmentCount].flags = 0;
-		attachments[attachmentCount].format = renderpass->outputDepth->format;
+		attachments[attachmentCount].format = renderpass->depthStencilTarget->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = renderpass->depthOperation;
+		attachments[attachmentCount].loadOp = renderpass->depthLoadOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = renderpass->stencilOperation;
+		attachments[attachmentCount].stencilLoadOp = renderpass->stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = initialDepthLayout;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1491,18 +1315,18 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	attachmentCount = 0;
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 	{
-		framebufferAttachments[attachmentCount++] = renderpass->outputTextures[i]->imageView;
+		framebufferAttachments[attachmentCount++] = renderpass->renderTargets[i]->imageView;
 	}
 
-	if (renderpass->outputDepth)
+	if (renderpass->depthStencilTarget)
 	{
-		framebufferAttachments[attachmentCount++] = renderpass->outputDepth->imageView;
+		framebufferAttachments[attachmentCount++] = renderpass->depthStencilTarget->imageView;
 	}
 
 	framebufferInfo.pAttachments = framebufferAttachments;
 
-	vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffers[0]);
-	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderpass->frameBuffers[0], renderpass->name);
+	vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer);
+	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderpass->frameBuffer, renderpass->name);
 
 	return true;
 }
@@ -1536,19 +1360,16 @@ void Renderer::DestroyRenderPassInstant(Renderpass* renderpass)
 {
 	if (renderpass)
 	{
-		for (U32 i = 0; i < swapchain.imageCount; ++i)
-		{
-			vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffers[i], Renderer::allocationCallbacks);
-		}
+		vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffer, Renderer::allocationCallbacks);
 
 		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
-			Resources::DestroyTexture(renderpass->outputTextures[i]);
+			Resources::DestroyTexture(renderpass->renderTargets[i]);
 		}
 
-		if (renderpass->outputDepth)
+		if (renderpass->depthStencilTarget)
 		{
-			Resources::DestroyTexture(renderpass->outputDepth);
+			Resources::DestroyTexture(renderpass->depthStencilTarget);
 		}
 
 		vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks);

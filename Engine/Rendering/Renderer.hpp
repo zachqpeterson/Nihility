@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RenderingDefines.hpp"
 
@@ -12,10 +12,22 @@ struct Timestamp;
 struct TimestampManager;
 struct Scene;
 
+//Post Processing		
+//TODO: Bloom			
+//TODO: Fog				
+//TODO: Exposure 		
+//TODO: White Balancing	
+//TODO: Contrast		✓
+//TODO: Brightness		✓
+//TODO: Color Filtering	
+//TODO: Saturation		✓
+//TODO: Tonemapping		✓
+//TODO: Gamma			✓
 class NH_API Renderer
 {
 public:
 	static void							LoadScene(const String& name);
+	static void							SetRenderGraph(RenderGraph* graph);
 
 	static const Vector4&				RenderArea();
 	static U32							FrameIndex();
@@ -32,7 +44,6 @@ private:
 	static bool							CreateResources();
 
 	static bool							BeginFrame();
-	static void							RunPipeline(CommandBuffer* commandBuffer, Pipeline* pipeline);
 	static void							EndFrame();
 	static void							Resize();
 	static void							SetRenderArea();
@@ -51,22 +62,16 @@ private:
 		VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
 
 	static Buffer						CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
-	static void							FillBuffer(Buffer& buffer, const void* data, U32 size, U32 offset);
-	static U32							UploadToBuffer(Buffer& buffer, const void* data, U32 size);
-	static U32							UploadIndices(Pipeline* pipeline, const void* data, U32 size);
-	static U32							UploadVertices(Pipeline* pipeline, const void* data, U32 size);
-	static void							UpdateVertices(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions);
-	static U32							UploadInstances(Pipeline* pipeline, const void* data, U32 size);
-	static void							UpdateInstances(Pipeline* pipeline, U32 dataSize, const void* data, U32 regionCount, VkBufferCopy* regions);
-	static void							UploadDrawCall(Pipeline* pipeline, U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
+	static void							FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
+	static U32							UploadToBuffer(Buffer& buffer, U32 size, const void* data);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
 	static void							DestroyBuffer(Buffer& buffer);
-	static U32							GetShaderUploadOffset();
 
 	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
 	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
-	static void							PushDescriptors(Shader* shader);
+	static void							PushDescriptors(CommandBuffer* commandBuffer, Shader* shader);
+	static void							PushConstants(CommandBuffer* commandBuffer, Shader* shader);
 
 	static bool							CreateSampler(Sampler* sampler);
 	static bool							CreateTexture(Texture* texture, void* data);
@@ -125,14 +130,10 @@ private:
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
 	static Buffer								stagingBuffer;
-	static Buffer								vertexBuffer;
-	static Buffer								instanceBuffer;
-	static Buffer								indexBuffer;
 	static Buffer								materialBuffer;
-	static Buffer								drawCommandsBuffer;
-	static Buffer								postProcessBuffer;
-	static U32									shaderUploadOffset;
-	static GlobalData							globalData;
+	static CameraData							cameraData;
+	static PostProcessData						postProcessData;
+	static RenderGraph*							renderGraph;
 
 	// SYNCRONIZATION
 	static VkSemaphore							imageAcquired;

@@ -6,6 +6,7 @@ fill=SOLID
 depth=LESS
 blend=ADD
 instanceOffset=3
+order=0
 #CONFIG_END
 
 #VERTEX

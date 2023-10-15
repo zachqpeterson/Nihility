@@ -408,3 +408,25 @@ private:
 
 	friend class Resources;
 };
+
+struct CommandBuffer;
+struct Renderpass;
+struct Pipeline;
+
+struct Pass
+{
+	Renderpass* renderpass;
+	Vector<Pipeline*> pipelines;
+};
+
+struct RenderGraph
+{
+	void AddPipeline(Pipeline* pipeline);
+
+private:
+	void Run(CommandBuffer* commandBuffer);
+
+	Vector<Pass> passes;
+
+	friend class Renderer;
+};

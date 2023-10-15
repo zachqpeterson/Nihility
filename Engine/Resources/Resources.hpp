@@ -107,6 +107,12 @@ private:
 	static Pipeline*						meshPipeline;
 	static Pipeline*						skyboxPipeline;
 	static Pipeline*						postProcessPipeline;
+	static Renderpass*						geometryRenderpass;
+	static Renderpass*						postProcessRenderpass;
+	static Renderpass*						uiRenderpass;
+	static Texture*							geometryBuffer;
+	static Texture*							geometryDepth;
+	static RenderGraph						defaultRenderGraph;
 
 	static Hashmap<String, Sampler>			samplers;
 	static Hashmap<String, Texture>			textures;

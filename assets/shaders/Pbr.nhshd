@@ -6,6 +6,8 @@ fill=SOLID
 depth=LESS
 blend=ADD
 instanceOffset=5
+push=CAMERA
+order=0
 #CONFIG_END
 
 #VERTEX

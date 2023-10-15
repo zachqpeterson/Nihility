@@ -21,7 +21,7 @@ struct CommandBuffer
 	void BeginRenderpass(Renderpass* renderpass);
 	void EndRenderpass();
 
-	void BindPipeline(Pipeline* pipeline);
+	void BindPipeline(const Pipeline* pipeline);
 	void BindIndexBuffer(Shader* shader, const Buffer& buffer);
 	void BindVertexBuffer(Shader* shader, const Buffer& buffer);
 	void BindInstanceBuffer(Shader* shader, const Buffer& buffer);

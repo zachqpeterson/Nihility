@@ -224,3 +224,49 @@ void Camera::Update()
 	const F32 tweenPositionSpeed = movementSpeed * (F32)Time::DeltaTime();
 	position = Math::Lerp(position, targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime())); //TODO: Abstract
 }
+
+void RenderGraph::AddPipeline(Pipeline* pipeline)
+{
+	U32 bestIndex = 0;
+	bool found = false;
+
+	U32 i = 0;
+	for (Pass& pass : passes)
+	{
+		if (pipeline->renderpass == pass.renderpass)
+		{
+			found = true;
+			i = 0;
+
+			for (Pipeline* pl : pass.pipelines)
+			{
+				if (pipeline->shader->renderOrder < pl->shader->renderOrder)
+				{
+					pass.pipelines.Insert(i, pipeline);
+				}
+			}
+		}
+		else if (pipeline->renderpass->renderOrder < pass.renderpass->renderOrder) { bestIndex = i; }
+	}
+
+	if (!found)
+	{
+		passes.Insert(bestIndex, { pipeline->renderpass });
+		passes[bestIndex].pipelines.Push(pipeline);
+	}
+}
+
+void RenderGraph::Run(CommandBuffer* commandBuffer)
+{
+	for (Pass& pass : passes)
+	{
+		commandBuffer->BeginRenderpass(pass.renderpass);
+
+		for (Pipeline* pipeline : pass.pipelines)
+		{
+			pipeline->Run(commandBuffer);
+		}
+
+		commandBuffer->EndRenderpass();
+	}
+}

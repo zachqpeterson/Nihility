@@ -186,13 +186,13 @@ public:
 
 	//TODO: Edit elements
 	static void ChangeSliderPercent(UIElement* element, F32 percent);
+	static void ChangeText(UIElement* element, const String& string);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
 	static void Update();
-	static void Resize();
 
 	static UIElement* SetupElement(const UIElementInfo& info);
 
@@ -200,6 +200,8 @@ private:
 
 	static Pipeline* uiPipeline;
 	static Pipeline* textPipeline;
+	static Renderpass* uiRenderpass;
+	static RenderGraph uiRenderGraph;
 
 	static U32 textInstanceCount;
 	static U32 textVertexOffset;

@@ -79,8 +79,6 @@ struct MP3Header
 	U8 emphasis : 2;
 };
 
-constexpr U64 size = sizeof(MP3Header);
-
 //nhtex
 //nhskb
 //nhaud
@@ -128,6 +126,11 @@ Sampler* Resources::defaultLinearSampler;
 Pipeline* Resources::meshPipeline;
 Pipeline* Resources::skyboxPipeline;
 Pipeline* Resources::postProcessPipeline;
+Renderpass* Resources::geometryRenderpass;
+Renderpass* Resources::postProcessRenderpass;
+Texture* Resources::geometryBuffer;
+Texture* Resources::geometryDepth;
+RenderGraph Resources::defaultRenderGraph;
 
 Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
 Hashmap<String, Texture>		Resources::textures{ 512, {} };
@@ -164,42 +167,6 @@ bool Resources::Initialize()
 	dummyTextureInfo.SetData(&zero);
 	dummyTexture = CreateTexture(dummyTextureInfo);
 
-	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GlobalData) };
-	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
-	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
-
-	PipelineInfo info{};
-	info.name = "mesh_pipeline";
-	info.shader = meshProgram;
-	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	meshPipeline = CreatePipeline(info);
-
-	pushConstant.stageFlags &= ~VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	info.name = "skybox_pipeline";
-	info.shader = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);;
-	skyboxPipeline = CreatePipeline(info);
-
-	Renderer::UploadVertices(skyboxPipeline, skyboxVertices, sizeof(F32) * CountOf32(skyboxVertices));
-	Renderer::UploadIndices(skyboxPipeline, skyboxIndices, sizeof(U32) * CountOf32(skyboxIndices));
-
-	Shader* postProcessProgram = CreateShader("shaders/PostProcess.nhshd");
-	postProcessProgram->AddDescriptor({ Renderer::postProcessBuffer.vkBuffer });
-	
-	info.name = "post-process_pipeline";
-	info.shader = postProcessProgram;
-	postProcessPipeline = CreatePipeline(info);
-
-	PostProcessData data{};
-	data.textureIndex = meshPipeline->renderpass->outputTextures[0]->handle;
-
-	Renderer::UploadToBuffer(Renderer::postProcessBuffer, &data, sizeof(PostProcessData));
-
-	return true;
-}
-
-void Resources::CreateDefaults()
-{
 	SamplerInfo defaultSamplerInfo{};
 	defaultSamplerInfo.SetName("default_point_sampler");
 	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
@@ -209,6 +176,74 @@ void Resources::CreateDefaults()
 	defaultSamplerInfo.SetName("default_linear_sampler");
 	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR);
 	defaultLinearSampler = Resources::CreateSampler(defaultSamplerInfo);
+
+	TextureInfo textureInfo{};
+	textureInfo.name = "geometry_buffer";
+	textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	textureInfo.width = Settings::WindowWidth();
+	textureInfo.height = Settings::WindowHeight();
+	textureInfo.depth = 1;
+	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+	textureInfo.type = VK_IMAGE_TYPE_2D;
+	geometryBuffer = Resources::CreateTexture(textureInfo);
+
+	textureInfo.name = "geometry_depth";
+	textureInfo.format = VK_FORMAT_D32_SFLOAT;
+	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+	geometryDepth = Resources::CreateTexture(textureInfo);
+
+	RenderpassInfo renderPassInfo{};
+	renderPassInfo.name = "geometry_pass";
+	renderPassInfo.AddRenderTarget(geometryBuffer);
+	renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+	renderPassInfo.SetDepthStencilTarget(geometryDepth);
+	renderPassInfo.AddClearDepth(1.0f);
+
+	geometryRenderpass = Resources::CreateRenderpass(renderPassInfo);
+
+	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraData) };
+	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
+	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+
+	PipelineInfo info{};
+	info.name = "mesh_pipeline";
+	info.shader = meshProgram;
+	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+	info.renderpass = geometryRenderpass;
+	meshPipeline = CreatePipeline(info);
+
+	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	info.name = "skybox_pipeline";
+	info.shader = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
+	info.vertexBufferSize = sizeof(F32) * CountOf32(skyboxVertices);
+	info.instanceBufferSize = sizeof(I32) * 128;
+	info.indexBufferSize = sizeof(U32) * CountOf32(skyboxIndices);
+	info.drawBufferSize = sizeof(VkDrawIndexedIndirectCommand);
+	skyboxPipeline = CreatePipeline(info);
+
+	skyboxPipeline->UploadVertices(sizeof(F32) * CountOf32(skyboxVertices), skyboxVertices);
+	skyboxPipeline->UploadIndices(sizeof(U32) * CountOf32(skyboxIndices), skyboxIndices);
+
+	pushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pushConstant.size = sizeof(PostProcessData);
+	info.shader = CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
+	info.name = "postprocess_pipeline";
+	info.vertexBufferSize = 0;
+	info.instanceBufferSize = 0;
+	info.indexBufferSize = 0;
+	info.drawBufferSize = 0;
+	postProcessPipeline = CreatePipeline(info);
+
+	Renderer::postProcessData.textureIndex = (U32)geometryBuffer->handle;
+
+	defaultRenderGraph.AddPipeline(postProcessPipeline);
+	defaultRenderGraph.AddPipeline(skyboxPipeline);
+	defaultRenderGraph.AddPipeline(meshPipeline);
+
+	Renderer::renderGraph = &defaultRenderGraph;
+
+	return true;
 }
 
 bool Resources::CreateBindless()
@@ -414,8 +449,7 @@ void Resources::UseSkybox(Skybox* skybox)
 	drawCommand.vertexOffset = 0;
 	drawCommand.firstInstance = 0;
 
-	Renderer::FillBuffer(Renderer::drawCommandsBuffer, &drawCommand, sizeof(VkDrawIndexedIndirectCommand), skyboxPipeline->shader->uploadOffset);
-
+	skyboxPipeline->UpdateDrawCall(CountOf32(skyboxIndices), 0, 0, 1, 0, 0);
 	skyboxPipeline->drawCount = 1;
 }
 
@@ -539,14 +573,14 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	*renderpass = {};
 
 	renderpass->name = info.name;
-	renderpass->renderpass = nullptr;
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
-	renderpass->outputDepth = info.depthStencilTexture;
+	renderpass->depthStencilTarget = info.depthStencilTarget;
 	renderpass->handle = handle;
-	renderpass->colorOperation = info.colorOperation;
-	renderpass->depthOperation = info.depthOperation;
-	renderpass->stencilOperation = info.stencilOperation;
+	renderpass->colorLoadOp = info.colorLoadOp;
+	renderpass->depthLoadOp = info.depthLoadOp;
+	renderpass->stencilLoadOp = info.stencilLoadOp;
 	renderpass->clearCount = info.clearCount;
+	renderpass->renderOrder = info.renderOrder;
 
 	for (U32 i = 0; i < info.clearCount; ++i)
 	{
@@ -555,7 +589,7 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
-		renderpass->outputTextures[i] = info.outputTextures[i];
+		renderpass->renderTargets[i] = info.renderTargets[i];
 	}
 
 	Renderer::CreateRenderpass(renderpass);
@@ -923,7 +957,7 @@ Model* Resources::LoadModel(const String& path)
 			if (material.metalRoughOcclTextureIndex != U16_MAX) { material.metalRoughOcclTextureIndex = textureIndices[material.metalRoughOcclTextureIndex]; }
 			if (material.emissivityTextureIndex != U16_MAX) { material.emissivityTextureIndex = textureIndices[material.emissivityTextureIndex]; }
 
-			materialIndices[i] = (U32)(Renderer::UploadToBuffer(Renderer::materialBuffer, &material, sizeof(Material)) / sizeof(Material));
+			materialIndices[i] = (U32)(Renderer::UploadToBuffer(Renderer::materialBuffer, sizeof(Material), &material) / sizeof(Material));
 		}
 
 		U32 meshCount;
@@ -937,13 +971,13 @@ Model* Resources::LoadModel(const String& path)
 
 			U32 verticesSize;
 			reader.Read(verticesSize);
-			draw.vertexOffset = (U32)((Renderer::UploadVertices(meshPipeline, reader.Pointer(), verticesSize) / sizeof(Vertex)));
+			draw.vertexOffset = (U32)((meshPipeline->UploadVertices(verticesSize, reader.Pointer()) / sizeof(Vertex)));
 			reader.Seek(verticesSize);
 
 			U32 indicesSize;
 			reader.Read(indicesSize);
 			draw.indexCount = indicesSize / sizeof(U32);
-			draw.indexOffset = (U32)(Renderer::UploadIndices(meshPipeline, reader.Pointer(), indicesSize) / sizeof(U32));
+			draw.indexOffset = (U32)(meshPipeline->UploadIndices(indicesSize, reader.Pointer()) / sizeof(U32));
 			reader.Seek(indicesSize);
 
 			U32 instanceCount;
@@ -958,8 +992,8 @@ Model* Resources::LoadModel(const String& path)
 				reader.Read(draw.instances[j].model);
 			}
 
-			U32 instanceOffset = (U32)(Renderer::UploadInstances(meshPipeline, draw.instances.Data(), (U32)sizeof(MeshInstance) * (U32)draw.instances.Size()) / sizeof(MeshInstance));
-			Renderer::UploadDrawCall(meshPipeline, draw.indexCount, draw.indexOffset, draw.vertexOffset, (U32)draw.instances.Size(), instanceOffset);
+			U32 instanceOffset = (U32)(meshPipeline->UploadInstances((U32)sizeof(MeshInstance) * (U32)draw.instances.Size(), draw.instances.Data()) / sizeof(MeshInstance));
+			meshPipeline->UploadDrawCall(draw.indexCount, draw.indexOffset, draw.vertexOffset, (U32)draw.instances.Size(), instanceOffset);
 		}
 
 		return model;
@@ -1032,7 +1066,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 
 		skybox->texture = texture;
 
-		skybox->instance = Renderer::UploadInstances(skyboxPipeline, (U16*)&texture->handle, sizeof(U16));
+		skybox->instance = skyboxPipeline->UploadInstances(sizeof(U32), (U32*)&texture->handle);
 
 		return skybox;
 	}
@@ -1051,7 +1085,6 @@ Scene* Resources::LoadScene(const String& path)
 	if (!scene->name.Blank()) { return scene; }
 
 	scene->name = path;
-	scene->updatePostProcess = true;
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -2307,7 +2340,7 @@ U8* Resources::LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution,
 	U32 resultChannelCount = 4;
 
 	I32 x, y, channelCount;
-	U8* data = stbi_load_from_memory(reader.Data(), reader.Size(), &x, &y, &channelCount, 0);
+	U8* data = stbi_load_from_memory(reader.Data(), (I32)reader.Size(), &x, &y, &channelCount, 0);
 
 	resolution = x / 4;
 	format = VK_FORMAT_R8G8B8A8_UINT;
@@ -2356,7 +2389,7 @@ U8* Resources::LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution,
 				face[(col + resolution * row) * resultChannelCount] = data[colNearest * channelCount + x * rowNearest * channelCount];
 				face[(col + resolution * row) * resultChannelCount + 1] = data[colNearest * channelCount + x * rowNearest * channelCount + 1];
 				face[(col + resolution * row) * resultChannelCount + 2] = data[colNearest * channelCount + x * rowNearest * channelCount + 2];
-				face[(col + resolution * row) * resultChannelCount + 3] = 1.0f;
+				face[(col + resolution * row) * resultChannelCount + 3] = 255;
 			}
 		}
 	}

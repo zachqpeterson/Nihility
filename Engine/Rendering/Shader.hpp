@@ -9,6 +9,13 @@ enum DrawType
 	DRAW_TYPE_FULLSCREEN,
 };
 
+enum PushConstantType
+{
+	PUSH_CONSTANT_TYPE_NONE,
+	PUSH_CONSTANT_TYPE_CAMERA,
+	PUSH_CONSTANT_TYPE_POST_PROCESS,
+};
+
 struct Rasterization
 {
 	VkCullModeFlagBits	cullMode{ VK_CULL_MODE_NONE };
@@ -61,11 +68,12 @@ struct Shader
 
 	VkPipelineBindPoint					bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
 	VkPipelineLayout					pipelineLayout{ nullptr };
-	VkShaderStageFlags					pushConstantStages{};
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
 	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
 	U32									stageCount{ 0 };
 	U32									language{ 0 };
+	VkShaderStageFlags					pushConstantStages{};
+	PushConstantType					pushConstantType{ PUSH_CONSTANT_TYPE_NONE };
 	DrawType							drawType{ DRAW_TYPE_INDEX };
 
 	U8									descriptorCount{ 0 };
@@ -84,17 +92,12 @@ struct Shader
 	VkVertexInputBindingDescription		vertexStreams[MAX_VERTEX_STREAMS]{};
 	VkVertexInputAttributeDescription	vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
 	U32									vertexSize{ 0 };
-
-	VkFormat							outputs[MAX_IMAGE_OUTPUTS]{};
 	U32									outputCount{ 0 };
 
 	bool								useBindless{ false };
 	U8									instanceLocation{ U8_MAX };
 
-	U32									uploadOffset{ 0 };
-	U32									indexOffset{ 0 };
-	U32									vertexOffset{ 0 };
-	U32									instanceOffset{ 0 };
+	U32									renderOrder{ 0 };
 
 private:
 	bool ParseConfig(const String& data, I64& index);

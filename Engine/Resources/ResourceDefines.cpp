@@ -93,15 +93,15 @@ void Renderpass::Resize()
 
 		for (U32 i = 0; i < renderTargetCount; ++i)
 		{
-			Resources::RecreateTexture(outputTextures[i], Settings::WindowWidth(), Settings::WindowHeight(), 1);
-			vkDestroyFramebuffer(Renderer::device, frameBuffers[i], Renderer::allocationCallbacks);
+			Resources::RecreateTexture(renderTargets[i], Settings::WindowWidth(), Settings::WindowHeight(), 1);
 		}
 
-		if (outputDepth)
+		if (depthStencilTarget)
 		{
-			Resources::RecreateTexture(outputDepth, Settings::WindowWidth(), Settings::WindowHeight(), 1);
+			Resources::RecreateTexture(depthStencilTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
 		}
 
+		vkDestroyFramebuffer(Renderer::device, frameBuffer, Renderer::allocationCallbacks);
 		vkDestroyRenderPass(Renderer::device, renderpass, Renderer::allocationCallbacks);
 
 		Renderer::CreateRenderpass(this);
@@ -114,11 +114,11 @@ RenderpassInfo& RenderpassInfo::Reset()
 {
 	renderTargetCount = 0;
 
-	depthStencilTexture = {};
+	depthStencilTarget = {};
 
-	colorOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	stencilOperation = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
 	name.Clear();
 
@@ -127,30 +127,14 @@ RenderpassInfo& RenderpassInfo::Reset()
 
 RenderpassInfo& RenderpassInfo::AddRenderTarget(Texture* texture)
 {
-	outputTextures[renderTargetCount++] = texture;
+	renderTargets[renderTargetCount++] = texture;
 
 	return *this;
 }
 
-RenderpassInfo& RenderpassInfo::SetDepthStencilTexture(Texture* texture)
+RenderpassInfo& RenderpassInfo::SetDepthStencilTarget(Texture* texture)
 {
-	depthStencilTexture = texture;
-
-	return *this;
-}
-
-RenderpassInfo& RenderpassInfo::SetName(const String& name)
-{
-	this->name = name;
-
-	return *this;
-}
-
-RenderpassInfo& RenderpassInfo::SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil)
-{
-	colorOperation = color;
-	depthOperation = depth;
-	stencilOperation = stencil;
+	depthStencilTarget = texture;
 
 	return *this;
 }

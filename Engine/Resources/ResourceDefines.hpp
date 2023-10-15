@@ -421,12 +421,12 @@ struct Texture
 	VkImageView			imageView{ nullptr };
 	VkFormat			format{ VK_FORMAT_UNDEFINED };
 	VkImageLayout		imageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
 	VkImageView			mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
-	Sampler*			sampler{ nullptr };
+	Sampler* sampler{ nullptr };
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };
@@ -485,21 +485,20 @@ struct Renderpass
 	HashHandle			handle;
 
 	VkRenderPass		renderpass{ nullptr };
-	VkFramebuffer		frameBuffers[MAX_IMAGE_OUTPUTS]{ nullptr };
-	bool				tiedToFrame{ false };
-
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* outputDepth{ nullptr };
-	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
-	U8					clearCount{ 0 };
+	VkFramebuffer		frameBuffer{ nullptr };
 	Viewport			viewport{};
 
-	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-
+	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	U8					renderTargetCount{ 0 };
+	Texture* depthStencilTarget{ nullptr };
+	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
+	U8					clearCount{ 0 };
 
+	VkAttachmentLoadOp	colorLoadOp{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	stencilLoadOp{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+
+	U32					renderOrder{ 0 };
 	U32					lastResize{ 0 };
 };
 
@@ -509,9 +508,7 @@ struct RenderpassInfo
 
 	RenderpassInfo& Reset();
 	RenderpassInfo& AddRenderTarget(Texture* texture);
-	RenderpassInfo& SetDepthStencilTexture(Texture* texture);
-	RenderpassInfo& SetName(const String& name);
-	RenderpassInfo& SetOperations(VkAttachmentLoadOp color, VkAttachmentLoadOp depth, VkAttachmentLoadOp stencil);
+	RenderpassInfo& SetDepthStencilTarget(Texture* texture);
 	RenderpassInfo& AddClearColor(const Vector4& color);
 	RenderpassInfo& AddClearDepth(F32 depth);
 
@@ -520,31 +517,35 @@ struct RenderpassInfo
 	VkClearValue		clears[MAX_IMAGE_OUTPUTS + 1]{};
 	U8					clearCount{ 0 };
 
-	Texture* outputTextures[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* depthStencilTexture{ nullptr };
+	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* depthStencilTarget{ nullptr };
 
-	VkAttachmentLoadOp	colorOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	depthOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
-	VkAttachmentLoadOp	stencilOperation{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
+	VkAttachmentLoadOp	colorLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
+	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
+	VkAttachmentLoadOp	stencilLoadOp{ VK_ATTACHMENT_LOAD_OP_DONT_CARE };
 	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
 
+	U32					renderOrder{ 0 };
 	String				name{};
+};
+
+struct CameraData
+{
+	Matrix4 vp;
+	Vector4 eye;
 };
 
 struct PostProcessData
 {
-	U16 textureIndex;
+	U32 textureIndex;
 	F32 contrast{ 1.0f };
 	F32 brightness{ 0.0f };
 	F32 saturation{ 1.0f };
 	F32 gammaCorrection{ 1.0f };
 };
 
-struct GlobalData
-{
-	Matrix4 vp;
-	Vector4 eye;
-};
+static_assert(sizeof(CameraData) <= 128, "The Size Of 'CameraData' Is Too Large!");
+static_assert(sizeof(PostProcessData) <= 128, "The Size Of 'PostProcessData' Is Too Large!");
 
 struct Vertex
 {

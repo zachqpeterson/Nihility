@@ -22,8 +22,5 @@ public:
 
 	Skybox*				skybox{ nullptr };
 
-	PostProcessData		postProcessData{};
-	bool				updatePostProcess{ false };
-
 	Vector<Model*>		models{}; //TODO: Objects
 };

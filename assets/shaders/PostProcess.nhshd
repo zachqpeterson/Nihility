@@ -5,6 +5,8 @@ front=CLOCKWISE
 fill=SOLID
 blend=ADD
 draw=FULLSCREEN
+push=POST_PROCESS
+order=2
 #CONFIG_END
 
 #VERTEX
@@ -34,7 +36,7 @@ struct PostProcessing
 
 layout (location = 0) in vec2 inUV;
 
-layout(std140, binding = 0) readonly buffer PostProcessingBuffer
+layout(push_constant) uniform block
 {
 	PostProcessing postProcessing;
 };
