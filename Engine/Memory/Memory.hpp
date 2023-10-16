@@ -64,14 +64,18 @@ private:
 	static void Allocate16kb(void** pointer, U64 size);
 	static void Allocate256kb(void** pointer, U64 size);
 	static void Allocate4mb(void** pointer, U64 size);
+	static void* LargeAllocate(U64 size);
+
+	static void* LargeReallocate(void** pointer, U64 size);
 
 	static void FreeChunk(void** pointer);
 	static void CopyFree(void** pointer, void* copy, U64 size);
 
-	static void Free1kb(void** ptr);
-	static void Free16kb(void** ptr);
-	static void Free256kb(void** ptr);
-	static void Free4mb(void** ptr);
+	static void Free1kb(void** pointer);
+	static void Free16kb(void** pointer);
+	static void Free256kb(void** pointer);
+	static void Free4mb(void** pointer);
+	static void LargeFree(void** pointer);
 
 	static U8* memory;
 	static U64 totalSize;
@@ -109,7 +113,7 @@ inline void Memory::Allocate(Type* pointer)
 	else if constexpr (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer, size); return; }
 	else if constexpr (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer, size); return; }
 
-	*pointer = (Type)calloc(1, size);
+	*pointer = (Type)LargeAllocate(size);
 }
 
 template<Pointer Type>
@@ -122,7 +126,7 @@ inline void Memory::AllocateSize(Type* pointer, const U64& size)
 	else if (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer, size); return; }
 	else if (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer, size); return; }
 
-	*pointer = (Type)calloc(1, size);
+	*pointer = (Type)LargeAllocate(size);
 }
 
 template<Pointer Type, Unsigned Int>
@@ -135,7 +139,7 @@ inline void Memory::AllocateSize(Type* pointer, const U64& size, Int& newSize)
 	else if (size <= sizeof(Region256kb)) { Allocate256kb((void**)pointer, size); newSize = sizeof(Region256kb); return; }
 	else if (size <= sizeof(Region4mb)) { Allocate4mb((void**)pointer, size); newSize = sizeof(Region4mb); return; }
 
-	*pointer = (Type)calloc(1, size);
+	*pointer = (Type)LargeAllocate(size);
 	newSize = (Int)size;
 }
 
@@ -152,7 +156,7 @@ inline void Memory::AllocateArray(Type* pointer, const U64& count)
 	else if (arraySize <= sizeof(Region256kb)) { Allocate256kb((void**)pointer, arraySize); return; }
 	else if (arraySize <= sizeof(Region4mb)) { Allocate4mb((void**)pointer, arraySize); return; }
 
-	*pointer = (Type)calloc(1, arraySize);
+	*pointer = (Type)LargeAllocate(arraySize);
 }
 
 template<Pointer Type, Unsigned Int>
@@ -168,7 +172,7 @@ inline void Memory::AllocateArray(Type* pointer, const U64& count, Int& newCount
 	else if (arraySize <= sizeof(Region256kb)) { Allocate256kb((void**)pointer, arraySize); newCount = sizeof(Region256kb) / size; return; }
 	else if (arraySize <= sizeof(Region4mb)) { Allocate4mb((void**)pointer, arraySize); newCount = sizeof(Region4mb) / size; return; }
 
-	*pointer = (Type)calloc(1, arraySize);
+	*pointer = (Type)LargeAllocate(arraySize);
 	newCount = (Int)count;
 }
 
@@ -183,7 +187,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 	{
 		if (IsStaticallyAllocated(*pointer)) { return; }
 
-		realloc(*pointer, size * count);
+		*pointer = (Type)LargeReallocate((void**)pointer, size * count);
 		return;
 	}
 
@@ -215,7 +219,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 	{
 		if (IsStaticallyAllocated(*pointer)) { return; }
 
-		realloc(*pointer, size * count);
+		*pointer = (Type)LargeReallocate((void**)pointer, size * count);
 		newCount = (Int)count;
 		return;
 	}
@@ -250,7 +254,7 @@ inline void Memory::Free(Type* pointer)
 	if (!IsDynamicallyAllocated(*pointer))
 	{
 		if (IsStaticallyAllocated(*pointer)) { return; }
-		free((void*)*pointer);
+		LargeFree((void**)pointer);
 		return;
 	}
 

@@ -180,9 +180,10 @@ enum ISAAvailability
 
 /*---------ASSERTIONS---------*/
 
+#include <intrin.h>
+
 #ifdef ASSERTIONS_ENABLED
 #	if _MSC_VER
-#		include <intrin.h>
 #		define BreakPoint __debugbreak()	// Halts the execution of the program when reached
 #	else
 #		define BreakPoint __builtin_trap()	// Halts the execution of the program when reached

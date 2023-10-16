@@ -1,6 +1,7 @@
 #include "Memory.hpp"
 
 #include "Platform\ThreadSafety.hpp"
+#include <corecrt_malloc.h>
 
 U8* Memory::memory{ nullptr };
 U64 Memory::totalSize{ 0 };
@@ -92,9 +93,19 @@ void Memory::Allocate256kb(void** pointer, U64 size)
 
 void Memory::Allocate4mb(void** pointer, U64 size)
 {
-	if (free4mbIndices.Full()) { *pointer = calloc(1, size); return; }
+	if (free4mbIndices.Full()) { *pointer = LargeAllocate(size); return; }
 
 	*pointer = pool4mbPointer + free4mbIndices.GetFree();
+}
+
+void* Memory::LargeAllocate(U64 size)
+{
+	return calloc(1, size);
+}
+
+void* Memory::LargeReallocate(void** pointer, U64 size)
+{
+	return realloc(*pointer, size);
 }
 
 void Memory::FreeChunk(void** pointer)
@@ -142,6 +153,12 @@ void Memory::Free4mb(void** pointer)
 {
 	Zero(*pointer, sizeof(Region4mb));
 	free4mbIndices.Release((U32)((Region4mb*)*pointer - pool4mbPointer));
+	*pointer = nullptr;
+}
+
+void Memory::LargeFree(void** pointer)
+{
+	free(*pointer);
 	*pointer = nullptr;
 }
 

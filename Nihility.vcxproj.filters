@@ -684,6 +684,9 @@
     <ClCompile Include="Engine\Containers\Freelist.cpp">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Math\Hash.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Engine\External\LunarG\glslang\SPIRV\CMakeLists.txt">

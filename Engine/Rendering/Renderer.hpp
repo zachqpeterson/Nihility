@@ -148,6 +148,10 @@ private:
 	static PFN_vkCmdEndDebugUtilsLabelEXT		vkCmdEndDebugUtilsLabelEXT;
 	static bool									debugUtilsExtensionPresent;
 
+#ifdef NH_DEBUG
+	static FlyCamera							flyCamera;
+#endif
+
 	STATIC_CLASS(Renderer);
 	friend class Engine;
 	friend class Profiler;

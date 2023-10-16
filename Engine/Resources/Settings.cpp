@@ -18,6 +18,10 @@ bool Settings::lockCursor{ false };
 bool Settings::hideCursor{ false };
 bool Settings::resized{ false };
 
+#ifdef NH_DEBUG
+bool Settings::inEditor{ true };
+#endif
+
 bool Settings::Initialize()
 {
 	Logger::Trace("Loading Settings...");
@@ -87,6 +91,9 @@ const bool& Settings::Minimised() { return minimised; }
 const bool& Settings::LockCursor() { return lockCursor; }
 const bool& Settings::HideCursor() { return hideCursor; }
 const bool& Settings::Resized() { return resized; }
+#ifdef NH_DEBUG
+const bool& Settings::InEditor() { return inEditor; }
+#endif
 
 #if defined PLATFORM_WINDOWS
 

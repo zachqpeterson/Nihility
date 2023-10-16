@@ -345,7 +345,6 @@ struct DescriptorSet
 
 struct NH_API Camera
 {
-	void Reset();
 	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom);
 	void SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRatio);
 	void SetAspectRatio(F32 aspectRatio);
@@ -358,6 +357,9 @@ struct NH_API Camera
 	const Vector3& Position() const;
 	Quaternion3 Rotation() const;
 	Vector3 Euler() const;
+	const Vector3& Right() const;
+	const Vector3& Up() const;
+	const Vector3& Forward() const;
 
 	bool Perspective() const;
 
@@ -365,20 +367,9 @@ struct NH_API Camera
 	void SetRotation(const Quaternion3& rotation);
 	void SetRotation(const Vector3& rotation);
 
-	void Update();
+	bool Update();
 
 private:
-	F32		mouseSensitivity{ 1.0f };
-	F32		movementDelta{ 0.1f };
-	U32		ignoreDraggingFrames{ 3 };
-
-	Vector3	targetMovement{ Vector3::Zero };
-
-	bool	mouseDragging{ false };
-
-	F32		rotationSpeed{ 20.0f };
-	F32		movementSpeed{ 5.0f };
-
 	Matrix4	view{ Matrix4::Identity };
 	Matrix4	projection{ Matrix4::Identity };
 	Matrix4	viewProjection{ Matrix4::Identity };
@@ -388,10 +379,9 @@ private:
 	Vector3	forward{ Vector3::Forward };
 	Vector3	up{ Vector3::Up };
 
-	F32		yaw{ 0.0f };
 	F32		pitch{ 0.0f };
-	F32		targetYaw{ 0.0f };
-	F32		targetPitch{ 0.0f };
+	F32		yaw{ 0.0f };
+	F32		roll{ 0.0f };
 
 	F32		nearPlane{ 0.0f };
 	F32		farPlane{ 0.0f };
@@ -405,8 +395,36 @@ private:
 
 	bool	perspective{ false };
 	bool	updateProjection{ false };
+	bool	updateView{ false };
 
 	friend class Resources;
+};
+
+struct NH_API FlyCamera
+{
+	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom);
+	void SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRatio);
+
+	const Matrix4& ViewProjection() const;
+	Vector4 Eye() const;
+
+	bool Update();
+
+private:
+	F32		mouseSensitivity{ 1.0f };
+	F32		movementDelta{ 0.1f };
+	U32		ignoreDraggingFrames{ 3 };
+
+	Vector3	targetMovement{ Vector3::Zero };
+	F32		targetYaw{ 0.0f };
+	F32		targetPitch{ 0.0f };
+
+	bool	mouseDragging{ false };
+
+	F32		rotationSpeed{ 20.0f };
+	F32		movementSpeed{ 5.0f };
+
+	Camera camera;
 };
 
 struct CommandBuffer;
@@ -419,7 +437,7 @@ struct Pass
 	Vector<Pipeline*> pipelines;
 };
 
-struct RenderGraph
+struct NH_API RenderGraph
 {
 	void AddPipeline(Pipeline* pipeline);
 

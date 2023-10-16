@@ -80,8 +80,8 @@ bool Input::Initialize()
 	POINT p;
 	GetCursorPos(&p);
 
-	mousePosX = p.x - Settings::WindowPositionX();
-	mousePosY = p.y - Settings::WindowPositionY();
+	mousePosX = (F32)(p.x - Settings::WindowPositionX());
+	mousePosY = (F32)(p.y - Settings::WindowPositionY());
 
 	int sensitivity;
 	SystemParametersInfoA(SPI_GETMOUSESPEED, 0, &sensitivity, 0);
@@ -149,8 +149,8 @@ void Input::ReceiveInput(HRAWINPUT handle)
 
 			deltaMousePosX = absoluteX - mousePosX;
 			deltaMousePosY = absoluteY - mousePosY;
-			mousePosX = absoluteX;
-			mousePosY = absoluteY;
+			mousePosX = (F32)absoluteX;
+			mousePosY = (F32)absoluteY;
 		}
 		else if (mouse.lLastX != 0 || mouse.lLastY != 0)
 		{
@@ -172,7 +172,7 @@ void Input::ReceiveInput(HRAWINPUT handle)
 				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
 			}
 
-			SetCursorPos(mousePosX + Settings::WindowPositionX(), mousePosY + Settings::WindowPositionY());
+			SetCursorPos((I32)(mousePosX + Settings::WindowPositionX()), (I32)(mousePosY + Settings::WindowPositionY()));
 		}
 
 		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
@@ -358,8 +358,8 @@ void Input::InputSink(HRAWINPUT handle)
 		{
 			SetFocus(Platform::GetWindowData().window);
 
-			mousePosX = p.x - Settings::WindowPositionX();
-			mousePosY = p.y - Settings::WindowPositionY();
+			mousePosX = (F32)(p.x - Settings::WindowPositionX());
+			mousePosY = (F32)(p.y - Settings::WindowPositionY());
 		}
 	}
 }
@@ -399,11 +399,11 @@ bool Input::OnButtonHold(ButtonCode code) { return buttonStates[code].held && bu
 
 bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[code].held && buttonStates[code].heldChanged && receiveInput; }
 
-void Input::MousePos(I32& x, I32& y) { x = mousePosX; y = mousePosY; }
+void Input::MousePos(I32& x, I32& y) { x = (I32)mousePosX; y = (I32)mousePosY; }
 
-void Input::MouseDelta(I32& x, I32& y) { x = deltaMousePosX; y = deltaMousePosY; }
+void Input::MouseDelta(I32& x, I32& y) { x = (I32)deltaMousePosX; y = (I32)deltaMousePosY; }
 
-void Input::PreviousMousePos(I32& x, I32& y) { x = mousePosX - deltaMousePosX; y = mousePosY - deltaMousePosY; }
+void Input::PreviousMousePos(I32& x, I32& y) { x = (I32)(mousePosX - deltaMousePosX); y = (I32)(mousePosY - deltaMousePosY); }
 
 void Input::ConsumeInput() { receiveInput = false; }
 

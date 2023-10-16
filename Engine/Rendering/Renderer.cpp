@@ -46,16 +46,16 @@ static constexpr CSTR extensions[]{
 #endif
 };
 
-static constexpr CSTR layers[]{
 #ifdef NH_DEBUG
+static constexpr CSTR layers[]{
 	"VK_LAYER_KHRONOS_validation",
 	//"VK_LAYER_LUNARG_core_validation",
 	//"VK_LAYER_LUNARG_image",
 	//"VK_LAYER_LUNARG_parameter_validation",
 	//"VK_LAYER_LUNARG_object_tracker",
+};
 #else
 #endif
-};
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -134,6 +134,10 @@ PFN_vkCmdBeginDebugUtilsLabelEXT	Renderer::vkCmdBeginDebugUtilsLabelEXT;
 PFN_vkCmdEndDebugUtilsLabelEXT		Renderer::vkCmdEndDebugUtilsLabelEXT;
 bool								Renderer::debugUtilsExtensionPresent{ false };
 
+#ifdef NH_DEBUG
+FlyCamera							Renderer::flyCamera{};
+#endif
+
 bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 {
 	Logger::Trace("Initializing Vulkan Renderer...");
@@ -149,6 +153,10 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!CreateResources()) { return false; }
 	if (!swapchain.GetFormat()) { return false; }
 	if (!swapchain.Create()) { return false; }
+
+#ifdef NH_DEBUG
+	flyCamera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
+#endif
 
 	return true;
 }
@@ -503,18 +511,23 @@ void Renderer::EndFrame()
 	CommandBuffer* commandBuffer = GetCommandBuffer();
 	commandBuffer->Begin();
 
-	if (currentScene)
+#ifdef NH_DEBUG
+	if(Settings::InEditor())
 	{
-		currentScene->Update();
+		if (flyCamera.Update())
+		{
+			cameraData.vp = flyCamera.ViewProjection();
+			cameraData.eye = flyCamera.Eye();
+		}
 	}
 	else
+#endif
+	if (currentScene->Update()) //TODO: Default scene
 	{
-		return; //TODO: Default scene?
+		Camera& camera = currentScene->camera;
+		cameraData.vp = camera.ViewProjection();
+		cameraData.eye = camera.Eye();
 	}
-
-	Camera& camera = currentScene->camera;
-	cameraData.vp = camera.ViewProjection();
-	cameraData.eye = camera.Eye();
 
 	Resources::Update();
 

@@ -9,7 +9,7 @@ public:
 	~Scene();
 	void Destroy();
 
-	void Update();
+	bool Update();
 
 	void AddModel(Model* model);
 	void SetSkybox(Skybox* newSkybox);

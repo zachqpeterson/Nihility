@@ -51,6 +51,7 @@ public:
 	static const bool& LockCursor();
 	static const bool& HideCursor();
 	static const bool& Resized();
+	static const bool& InEditor();
 
 	static bool GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize = false);
 
@@ -100,6 +101,10 @@ private:
 	static bool lockCursor;
 	static bool hideCursor;
 	static bool resized;
+
+#ifdef NH_DEBUG
+	static bool inEditor;
+#endif
 
 	STATIC_CLASS(Settings);
 	friend class Platform;

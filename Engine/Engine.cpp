@@ -84,6 +84,13 @@ void Engine::UpdateLoop()
 			Platform::SetFullscreen(!Settings::Fullscreen());
 		}
 
+#ifdef NH_DEBUG
+		if (Input::OnButtonDown(BUTTON_CODE_F5))
+		{
+			Settings::inEditor = !Settings::inEditor;
+		}
+#endif
+
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
 		//Physics::Update();

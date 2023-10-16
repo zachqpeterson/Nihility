@@ -296,6 +296,7 @@
     <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\SpvTools.cpp" />
     <ClCompile Include="Engine\External\LunarG\spirv_cross\spirv_reflect.c" />
     <ClCompile Include="Engine\Math\Color.cpp" />
+    <ClCompile Include="Engine\Math\Hash.cpp" />
     <ClCompile Include="Engine\Math\Math.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />

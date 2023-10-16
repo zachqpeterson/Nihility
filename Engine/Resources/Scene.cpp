@@ -18,9 +18,9 @@ void Scene::Destroy()
 	models.Destroy();
 }
 
-void Scene::Update()
+bool Scene::Update()
 {
-	camera.Update();
+	return camera.Update();
 }
 
 void Scene::AddModel(Model* model)
