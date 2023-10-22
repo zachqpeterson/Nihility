@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
 
 struct Swapchain
@@ -15,7 +16,7 @@ public:
 	VkResult Present(VkQueue queue, U32 imageIndex, U32 waitCount, const VkSemaphore* waits);
 
 public:
-	VkSwapchainKHR		swapchain{ nullptr };
+	VkSwapchainKHR	swapchain{ nullptr };
 	VkSurfaceKHR		surface{ nullptr };
 	VkSurfaceFormatKHR	surfaceFormat{};
 	U32					imageCount{ MAX_SWAPCHAIN_IMAGES };

@@ -22,12 +22,14 @@ struct Stack
 	void Push(T&& value) noexcept;
 
 	const T& Peek() const;
+	T& Peek();
 
 	T Pop();
 
 	void Resize(U32 size, const T& value);
 	void Reserve(U32 capacity);
 
+	bool Empty() const;
 	U32 Size() const;
 	U32 Capacity() const;
 
@@ -54,14 +56,14 @@ template <class T>
 inline Stack<T>::Stack(U32 size, T* arr) : size{ size }, capacity{ size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	memcpy(array, arr, sizeof(T) * size);
+	Memory::Copy(array, arr, sizeof(T) * size);
 }
 
 template <class T>
 inline Stack<T>::Stack(const Stack& other) : size{ other.size }, capacity{ other.size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	memcpy(array, other.array, sizeof(T) * size);
+	Memory::Copy(array, other.array, sizeof(T) * size);
 }
 
 template <class T>
@@ -78,7 +80,7 @@ inline Stack<T>& Stack<T>::operator=(const Stack& other)
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
-	memcpy(array, other.array, size * sizeof(T));
+	Memory::Copy(array, other.array, size * sizeof(T));
 
 	return *this;
 }
@@ -131,7 +133,15 @@ inline const T& Stack<T>::Peek() const
 {
 	if (size) { return array[size - 1]; }
 
-	return {};
+	return array[size];
+}
+
+template <class T>
+inline T& Stack<T>::Peek()
+{
+	if (size) { return array[size - 1]; }
+
+	return array[size];
 }
 
 template <class T>
@@ -155,6 +165,12 @@ template <class T>
 inline void Stack<T>::Reserve(U32 cap)
 {
 	Memory::Reallocate(&array, cap, capacity);
+}
+
+template <class T>
+inline bool Stack<T>::Empty() const
+{
+	return size == 0;
 }
 
 template <class T>

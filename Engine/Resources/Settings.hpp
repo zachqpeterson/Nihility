@@ -11,7 +11,7 @@ struct RegistryValue
 
 //TODO: Store settings in the registry
 
-class NH_API Settings
+class Settings
 {
 public:
 	//AUDIO

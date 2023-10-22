@@ -75,7 +75,7 @@ static inline bool Compare(const C* a, const C* b) noexcept
 * TODO: Option to add 0x prefix to {h}
 */
 template<Character C>
-struct NH_API StringBase
+struct StringBase
 {
 	using CharType = C;
 	using StringBaseType = StringBase<C>;
@@ -89,6 +89,7 @@ struct NH_API StringBase
 	template<typename... Args> StringBase& Format(const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
 	template<typename... Args> StringBase& Format(U64 start, const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
 
+	StringBase& operator=(NullPointer) noexcept;
 	StringBase& operator=(const StringBase& other) noexcept;
 	StringBase& operator=(StringBase&& other) noexcept;
 	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
@@ -139,8 +140,14 @@ struct NH_API StringBase
 	template<U64 Count> bool EndsWith(const C(&other)[Count]) const noexcept;
 
 	bool Blank() const noexcept;
-	I64 IndexOf(const C& c, U64 start = 0) const noexcept;
-	I64 LastIndexOf(const C& c, U64 start = 0) const noexcept;
+	I64 IndexOf(C* find, U64 start = 0) const noexcept;
+	I64 IndexOf(const C& find, U64 start = 0) const noexcept;
+	I64 IndexOf(const StringBase& find, U64 start = 0) const noexcept;
+	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
+	I64 LastIndexOf(C* find, U64 start = 0) const noexcept;
+	I64 LastIndexOf(const C& find, U64 start = 0) const noexcept;
+	I64 LastIndexOf(const StringBase& find, U64 start = 0) const noexcept;
+	template<U64 Count> I64 LastIndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
 
 	StringBase& Trim() noexcept;
 	template<typename Arg> StringBase& Append(const Arg& append) noexcept;
@@ -170,6 +177,10 @@ struct NH_API StringBase
 	const C* Data() const noexcept;
 	operator C* () noexcept;
 	operator const C* () const noexcept;
+
+	C Front() const noexcept;
+	C Back() const noexcept;
+	C PopBack() noexcept;
 
 	C* begin() noexcept;
 	C* end() noexcept;
@@ -282,6 +293,12 @@ inline StringBase<C>& StringBase<C>::Format(U64 start, const C* format, const Ar
 	(FindFormat(start, args), ...);
 
 	return *this;
+}
+
+template<Character C>
+inline StringBase<C>& StringBase<C>::operator=(NullPointer) noexcept
+{
+	Destroy();
 }
 
 template<Character C>
@@ -596,6 +613,15 @@ template<Character C>
 inline StringBase<C>::operator const C* () const noexcept { return string; }
 
 template<Character C>
+inline C StringBase<C>::Front() const noexcept { return *string; }
+
+template<Character C>
+inline C StringBase<C>::Back() const noexcept { return string[size - 1]; }
+
+template<Character C>
+inline C StringBase<C>::PopBack() noexcept { return string[size-- - 1]; }
+
+template<Character C>
 inline bool StringBase<C>::Blank() const noexcept
 {
 	if (size == 0) { return true; }
@@ -608,24 +634,97 @@ inline bool StringBase<C>::Blank() const noexcept
 }
 
 template<Character C>
-inline I64 StringBase<C>::IndexOf(const C& ch, U64 start) const noexcept
+inline I64 StringBase<C>::IndexOf(C* find, U64 start) const noexcept
 {
+	U64 findSize = Length(find);
 	C* it = string + start;
-	C c;
 
-	while ((c = *it) != ch && c != StringLookup<C>::NULL_CHAR) { ++it; }
+	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find, findSize)) { ++it; }
 
 	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
 	return (I64)(it - string);
 }
 
 template<Character C>
-inline I64 StringBase<C>::LastIndexOf(const C& c, U64 start) const noexcept
+inline I64 StringBase<C>::IndexOf(const C& find, U64 start) const noexcept
+{
+	C* it = string + start;
+	C c;
+
+	while ((c = *it) != StringLookup<C>::NULL_CHAR && c != find) { ++it; }
+
+	if (c == StringLookup<C>::NULL_CHAR) { return -1; }
+	return (I64)(it - string);
+}
+
+template<Character C>
+inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const noexcept
+{
+	C* it = string + start;
+
+	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find.string, find.size)) { ++it; }
+
+	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
+	return (I64)(it - string);
+}
+
+template<Character C>
+template<U64 Count> 
+inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const noexcept
+{
+	C* it = string + start;
+
+	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find, Count)) { ++it; }
+
+	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
+	return (I64)(it - string);
+}
+
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const noexcept
+{
+	U64 findSize = Length(find);
+	C* it = string + size - start - findSize - 1;
+
+	U64 len = size;
+	while (len && Compare(it, find, findSize)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const noexcept
 {
 	C* it = string + size - start - 1;
 
 	U64 len = size;
-	while (*it != c && len > 0) { --it; --len; }
+	while (len && *it != find) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const noexcept
+{
+	C* it = string + size - start - find.size - 1;
+
+	U64 len = size;
+	while (len && Compare(it, find.string, find.size)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<Character C>
+template<U64 Count> 
+inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const noexcept
+{
+	C* it = string + size - start - Count - 1;
+
+	U64 len = size;
+	while (len && Compare(it, find, Count)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -745,7 +844,7 @@ inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, 
 	C* it = string + start;
 	C c;
 
-	while ((c = *it) != StringLookup<C>::NULL_CHAR && Compare(it, find, findSize)) { ++c; }
+	while ((c = *it) != StringLookup<C>::NULL_CHAR && Compare(it, find, findSize)) { ++it; }
 
 	if (c != StringLookup<C>::NULL_CHAR) { ToString<Arg, false, true>(c, replace); }
 
@@ -1347,7 +1446,7 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 	}
 
-	return Move(value);
+	return value;
 }
 
 template<Character C>
@@ -1360,7 +1459,7 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 
 	while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 
-	return Move(value);
+	return value;
 }
 
 template<Character C>
@@ -1374,6 +1473,8 @@ template<Character C>
 template<FloatingPoint Arg>
 inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
+	//TODO: Handle NaN, +-INF
+
 	C* it = string + start;
 	C c;
 	Arg value = 0.0f;
@@ -1387,19 +1488,20 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 	}
 	else
 	{
+		if (*it == StringLookup<C>::POSITIVE_CHAR) { ++it; }
+
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR && c != StringLookup<C>::DECIMAL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value += (c - StringLookup<C>::ZERO_CHAR) * mul; mul *= 0.1f; }
 	}
 
-	return Move(value);
+	return value;
 }
 
 template<Character C>
 template<NonStringPointer Arg>
 inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
-	U64 value = ToType(start);
-	return Move(value);
+	return Move(ToType<U64>(start));
 }
 
 template<Character C>

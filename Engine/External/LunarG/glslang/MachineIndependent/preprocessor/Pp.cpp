@@ -382,7 +382,7 @@ namespace {
 
 struct TBinop {
     int token, precedence, (*op)(int, int);
-} binop[] = {
+} binaryOps[] = {
     { PpAtomOr, LOGOR, op_logor },
     { PpAtomAnd, LOGAND, op_logand },
     { '|', OR, op_or },
@@ -405,7 +405,7 @@ struct TBinop {
 
 struct TUnop {
     int token, (*op)(int);
-} unop[] = {
+} unaryOps[] = {
     { '+', op_pos },
     { '-', op_neg },
     { '~', op_cmpl },
@@ -476,15 +476,15 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
             token = scanToken(ppToken);
         }
     } else {
-        int op = NUM_ELEMENTS(unop) - 1;
+        int op = NUM_ELEMENTS(unaryOps) - 1;
         for (; op >= 0; op--) {
-            if (unop[op].token == token)
+            if (unaryOps[op].token == token)
                 break;
         }
         if (op >= 0) {
             token = scanToken(ppToken);
             token = eval(token, UNARY, shortCircuit, res, err, ppToken);
-            res = unop[op].op(res);
+            res = unaryOps[op].op(res);
         } else {
             parseContext.ppError(loc, "bad expression", "preprocessor evaluation", "");
             err = true;
@@ -501,11 +501,11 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         if (token == ')' || token == '\n')
             break;
         int op;
-        for (op = NUM_ELEMENTS(binop) - 1; op >= 0; op--) {
-            if (binop[op].token == token)
+        for (op = NUM_ELEMENTS(binaryOps) - 1; op >= 0; op--) {
+            if (binaryOps[op].token == token)
                 break;
         }
-        if (op < 0 || binop[op].precedence <= precedence)
+        if (op < 0 || binaryOps[op].precedence <= precedence)
             break;
         int leftSide = res;
 
@@ -518,15 +518,15 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         }
 
         token = scanToken(ppToken);
-        token = eval(token, binop[op].precedence, shortCircuit, res, err, ppToken);
+        token = eval(token, binaryOps[op].precedence, shortCircuit, res, err, ppToken);
 
-        if (binop[op].op == op_div || binop[op].op == op_mod) {
+        if (binaryOps[op].op == op_div || binaryOps[op].op == op_mod) {
             if (res == 0) {
                 parseContext.ppError(loc, "division by 0", "preprocessor evaluation", "");
                 res = 1;
             }
         }
-        res = binop[op].op(leftSide, res);
+        res = binaryOps[op].op(leftSide, res);
     }
 
     return token;

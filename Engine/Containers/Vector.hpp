@@ -28,7 +28,7 @@
 *	Search, remove all non-unique values
 */
 template<typename T>
-struct NH_API Vector
+struct Vector
 {
 public:
 	/// <summary>
@@ -393,6 +393,24 @@ public:
 	/// <returns>The value at the back of array (const)</returns>
 	const T& Back() const { return array[size - 1]; }
 
+
+
+	/// <summary>
+	/// Compares the values stored in both vectors
+	/// </summary>
+	/// <param name="other: ">The other vector to compare against</param>
+	/// <returns>True if the two vectors have the same values</returns>
+	bool operator==(const Vector& other) const;
+
+	/// <summary>
+	/// Compares the values stored in both vectors
+	/// </summary>
+	/// <param name="other: ">The other vector to compare against</param>
+	/// <returns>True if the two vectors have different values</returns>
+	bool operator!=(const Vector& other) const;
+
+
+
 	/// <summary></summary>
 	/// <returns>The beginning of array as an iterator</returns>
 	T* begin() { return array; }
@@ -440,7 +458,7 @@ template<typename T> inline Vector<T>::Vector(U64 size, const T& value) : size{ 
 template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	memcpy(array, other.array, sizeof(T) * size);
+	Memory::Copy(array, other.array, sizeof(T) * size);
 }
 
 template<typename T> inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
@@ -455,7 +473,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator=(const Vector<T>& oth
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
-	memcpy(array, other.array, size * sizeof(T));
+	Memory::Copy(array, other.array, size * sizeof(T));
 
 	return *this;
 }
@@ -511,7 +529,7 @@ template<typename T> inline void Vector<T>::Insert(U64 index, const T& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	memcpy(array + index + 1, array + index, (size - index) * sizeof(T));
+	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(T));
 	array[index] = value;
 	++size;
 }
@@ -520,7 +538,7 @@ template<typename T> inline void Vector<T>::Insert(U64 index, T&& value) noexcep
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	memcpy(array + index + 1, array + index, (size - index) * sizeof(T));
+	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(T));
 	array[index] = Move(value);
 	++size;
 }
@@ -529,8 +547,8 @@ template<typename T> inline void Vector<T>::Insert(U64 index, const Vector<T>& o
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + index + other.size, array + index, (size - index) * sizeof(T));
-	memcpy(array + index, other.array, other.size * sizeof(T));
+	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(T));
+	Memory::Copy(array + index, other.array, other.size * sizeof(T));
 
 	size += other.size;
 }
@@ -539,8 +557,8 @@ template<typename T> inline void Vector<T>::Insert(U64 index, Vector<T>&& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + index + other.size, array + index, (size - index) * sizeof(T));
-	memcpy(array + index, other.array, other.size * sizeof(T));
+	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(T));
+	Memory::Copy(array + index, other.array, other.size * sizeof(T));
 	size += other.size;
 
 	other.Destroy();
@@ -548,7 +566,7 @@ template<typename T> inline void Vector<T>::Insert(U64 index, Vector<T>&& other)
 
 template<typename T> inline void Vector<T>::Remove(U64 index)
 {
-	memcpy(array + index, array + index + 1, (size - index) * sizeof(T));
+	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(T));
 
 	--size;
 }
@@ -556,7 +574,7 @@ template<typename T> inline void Vector<T>::Remove(U64 index)
 template<typename T> inline void Vector<T>::Remove(U64 index, T& value)
 {
 	value = array[index];
-	memcpy(array + index, array + index + 1, (size - index) * sizeof(T));
+	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(T));
 
 	--size;
 }
@@ -564,7 +582,7 @@ template<typename T> inline void Vector<T>::Remove(U64 index, T& value)
 template<typename T> inline void Vector<T>::Remove(U64 index, T&& value) noexcept
 {
 	value = Move(array[index]);
-	memcpy(array + index, array + index + 1, (size - index) * sizeof(T));
+	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(T));
 
 	--size;
 }
@@ -588,7 +606,7 @@ template<typename T> inline void Vector<T>::RemoveSwap(U64 index, T&& value) noe
 
 template<typename T> inline void Vector<T>::Erase(U64 index0, U64 index1)
 {
-	memcpy(array + index0, array + index1, (size - index1) * sizeof(T));
+	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(T));
 
 	size -= index1 - index0;
 }
@@ -598,8 +616,8 @@ template<typename T> inline void Vector<T>::Erase(U64 index0, U64 index1, Vector
 	other.Reserve(index1 - index0);
 	other.size = other.capacity;
 
-	memcpy(other.array, array + index0, (index1 - index0) * sizeof(T));
-	memcpy(array + index0, array + index1, (size - index1) * sizeof(T));
+	Memory::Copy(other.array, array + index0, (index1 - index0) * sizeof(T));
+	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(T));
 
 	size -= index1 - index0;
 }
@@ -609,7 +627,7 @@ template<typename T> inline void Vector<T>::Split(U64 index, Vector<T>& other)
 	other.Reserve(size - index);
 	other.size = other.capacity;
 
-	memcpy(other.array, array + index, other.size * sizeof(T));
+	Memory::Copy(other.array, array + index, other.size * sizeof(T));
 
 	size -= index;
 }
@@ -618,7 +636,7 @@ template<typename T> inline void Vector<T>::Merge(const Vector<T>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(T));
 	size += other.size;
 }
 
@@ -626,7 +644,7 @@ template<typename T> inline void Vector<T>::Merge(Vector<T>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(T));
 	size += other.size;
 
 	other.Destroy();
@@ -636,7 +654,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator+=(const Vector<T>& ot
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(T));
 	size += other.size;
 
 	return *this;
@@ -646,7 +664,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator+=(Vector<T>&& other) 
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(T));
 	size += other.size;
 
 	other.Destroy();
@@ -706,7 +724,7 @@ inline U64 Vector<T>::RemoveAll(Predicate predicate)
 		if (predicate(*t))
 		{
 			++i;
-			memcpy(t, t + 1, sizeof(T) * (last - t - 1));
+			Memory::Copy(t, t + 1, sizeof(T) * (last - t - 1));
 			--size;
 		}
 		else { ++t; }
@@ -729,7 +747,7 @@ inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 		if (predicate(*t))
 		{
 			other.Push(*t);
-			memcpy(t, t + 1, sizeof(T) * (last - t - 1));
+			Memory::Copy(t, t + 1, sizeof(T) * (last - t - 1));
 
 			--size;
 		}
@@ -804,4 +822,30 @@ inline U64 Vector<T>::Find(const T& value) const
 	}
 
 	return -1;
+}
+
+template<typename T>
+inline bool Vector<T>::operator==(const Vector& other) const
+{
+	if (size != other.size) { return false; }
+
+	for (T* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
+	{
+		if (*it0 != *it0) { return false; }
+	}
+
+	return true;
+}
+
+template<typename T>
+inline bool Vector<T>::operator!=(const Vector& other) const
+{
+	if (size != other.size) { return true; }
+
+	for (T* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
+	{
+		if (*it0 != *it0) { return true; }
+	}
+
+	return false;
 }

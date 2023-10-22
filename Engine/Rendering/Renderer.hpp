@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "RenderingDefines.hpp"
+#include "Defines.hpp"
 
 #include "Containers\Hashmap.hpp"
 #include "Containers\Queue.hpp"
@@ -8,9 +8,8 @@
 #include "Swapchain.hpp"
 #include "Pipeline.hpp"
 
-struct Timestamp;
-struct TimestampManager;
 struct Scene;
+struct VmaAllocator_T;
 
 //Post Processing		
 //TODO: Bloom			
@@ -26,7 +25,7 @@ struct Scene;
 class NH_API Renderer
 {
 public:
-	static void							LoadScene(const String& name);
+	static void							LoadScene(Scene* scene);
 	static void							SetRenderGraph(RenderGraph* graph);
 
 	static const Vector4&				RenderArea();
@@ -49,8 +48,6 @@ private:
 	static void							SetRenderArea();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
-	static void							PushMarker(VkCommandBuffer commandBuffer, CSTR name);
-	static void							PopMarker(VkCommandBuffer commandBuffer);
 	static void							FrameCountersAdvance();
 	
 	static CommandBuffer*				GetCommandBuffer();
@@ -68,9 +65,6 @@ private:
 	static void							UnmapBuffer(Buffer& buffer);
 	static void							DestroyBuffer(Buffer& buffer);
 
-	static bool							CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout);
-	static bool							CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader);
-	static void							PushDescriptors(CommandBuffer* commandBuffer, Shader* shader);
 	static void							PushConstants(CommandBuffer* commandBuffer, Shader* shader);
 
 	static bool							CreateSampler(Sampler* sampler);

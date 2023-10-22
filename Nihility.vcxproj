@@ -111,6 +111,8 @@
     <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
     <ClInclude Include="Engine\Containers\Freelist.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
+    <ClInclude Include="Engine\Containers\Hashset.hpp" />
+    <ClInclude Include="Engine\Containers\Pair.hpp" />
     <ClInclude Include="Engine\Containers\Pool.hpp" />
     <ClInclude Include="Engine\Containers\Queue.hpp" />
     <ClInclude Include="Engine\Containers\SafeQueue.hpp" />
@@ -239,6 +241,8 @@
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
     <ClInclude Include="Engine\Resources\Settings.hpp" />
+    <ClInclude Include="Engine\Resources\ShaderCompiler.hpp" />
+    <ClInclude Include="Engine\Resources\ShaderDefines.hpp" />
     <ClInclude Include="Engine\SIMD.hpp" />
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
@@ -309,7 +313,6 @@
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
     <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
-    <ClCompile Include="Engine\Rendering\RenderingDefines.cpp" />
     <ClCompile Include="Engine\Rendering\Shader.cpp" />
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
     <ClCompile Include="Engine\Rendering\UI.cpp" />
@@ -318,6 +321,8 @@
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Scene.cpp" />
     <ClCompile Include="Engine\Resources\Settings.cpp" />
+    <ClCompile Include="Engine\Resources\ShaderCompiler.cpp" />
+    <ClCompile Include="Engine\Resources\ShaderDefines.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Engine\External\LunarG\glslang\SPIRV\CMakeLists.txt" />

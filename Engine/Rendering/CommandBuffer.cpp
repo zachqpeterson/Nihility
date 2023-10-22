@@ -1,13 +1,14 @@
 #include "CommandBuffer.hpp"
 
+#include "RenderingDefines.hpp"
+
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Settings.hpp"
 #include "Pipeline.hpp"
 
-void CommandBuffer::Create(VkQueueFlagBits type, bool baked)
+void CommandBuffer::Create(bool baked)
 {
-	this->type = type;
 	this->baked = baked;
 }
 
@@ -38,12 +39,12 @@ VkResult CommandBuffer::Submit(VkQueue queue)
 	return vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 }
 
-VkResult CommandBuffer::Submit(VkQueue queue, const VkPipelineStageFlags* stageMasks, U32 waitCount, const VkSemaphore* waits, U32 signalCount, const VkSemaphore* signals)
+VkResult CommandBuffer::Submit(VkQueue queue, VkPipelineStageFlags* stageMasks, U32 waitCount, VkSemaphore* waits, U32 signalCount, VkSemaphore* signals)
 {
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.waitSemaphoreCount = waitCount;
 	submitInfo.pWaitSemaphores = waits;
-	submitInfo.pWaitDstStageMask = stageMasks;
+	submitInfo.pWaitDstStageMask = (const VkPipelineStageFlags*)stageMasks;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 	submitInfo.signalSemaphoreCount = signalCount;
@@ -62,6 +63,12 @@ void CommandBuffer::ClearAttachments(U32 attachmentCount, VkClearAttachment* att
 	vkCmdClearAttachments(commandBuffer, attachmentCount, attachments, rectCount, rects);
 }
 
+void CommandBuffer::SetViewport(const VkViewport& viewport, const VkRect2D& scissor)
+{
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+
 void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 {
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -71,12 +78,15 @@ void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 	renderPassBegin.renderArea.offset = { 0, 0 };
 	renderPassBegin.renderArea.extent = { Settings::WindowWidth(), Settings::WindowHeight() };
 
-	renderPassBegin.clearValueCount = renderpass->clearCount;
-	renderPassBegin.pClearValues = renderpass->clears;
+	VkClearValue clears[]{
+		{ 0.0f, 0.0f,0.0f, 1.0f },
+		{ 1.0f, 0 }
+	};
+
+	renderPassBegin.clearValueCount = 1 + (renderpass->depthStencilTarget != nullptr);
+	renderPassBegin.pClearValues = clears;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdSetViewport(commandBuffer, 0, renderpass->viewport.viewportCount, renderpass->viewport.viewports);
-	vkCmdSetScissor(commandBuffer, 0, renderpass->viewport.scissorCount, renderpass->viewport.scissors);
 }
 
 void CommandBuffer::EndRenderpass()
@@ -86,7 +96,7 @@ void CommandBuffer::EndRenderpass()
 
 void CommandBuffer::BindPipeline(const Pipeline* pipeline)
 {
-	vkCmdBindPipeline(commandBuffer, pipeline->shader->bindPoint, pipeline->pipeline);
+	vkCmdBindPipeline(commandBuffer, (VkPipelineBindPoint)pipeline->shader->bindPoint, pipeline->pipeline);
 }
 
 void CommandBuffer::BindIndexBuffer(Shader* shader, const Buffer& buffer)
@@ -106,9 +116,9 @@ void CommandBuffer::BindInstanceBuffer(Shader* shader, const Buffer& buffer)
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &buffer.vkBuffer, &offset);
 }
 
-void CommandBuffer::BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, const VkDescriptorSet* sets)
+void CommandBuffer::BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets)
 {
-	vkCmdBindDescriptorSets(commandBuffer, shader->bindPoint, shader->pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, (VkPipelineBindPoint)shader->bindPoint, shader->pipelineLayout, setOffset, setCount, sets, 0, nullptr);
 }
 
 void CommandBuffer::PushConstants(Shader* shader, U32 offset, U32 size, const void* data)
@@ -173,7 +183,7 @@ void CommandBuffer::Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCo
 	vkCmdBlitImage(commandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, blitCount, blits, filter);
 }
 
-void CommandBuffer::PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers)
+void CommandBuffer::PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers)
 {
 	VkDependencyInfo dependencyInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
 	dependencyInfo.dependencyFlags = dependencyFlags;
@@ -209,7 +219,7 @@ void CommandBufferRing::Create()
 
 		//TODO: Have a ring per queue per thread
 		commandBuffers[i].handle = i;
-		commandBuffers[i].Create(VK_QUEUE_GRAPHICS_BIT, false);
+		commandBuffers[i].Create(false);
 	}
 }
 

@@ -19,7 +19,7 @@ namespace Details
 }
 
 template<Integer Type>
-inline Type NH_API SafeIncrement(volatile Type* t)
+inline Type SafeIncrement(volatile Type* t)
 {
 	if constexpr (sizeof(Type) == 8)
 	{
@@ -32,7 +32,7 @@ inline Type NH_API SafeIncrement(volatile Type* t)
 }
 
 template<Integer Type>
-inline Type NH_API SafeAdd(volatile Type* t, Type value)
+inline Type SafeAdd(volatile Type* t, Type value)
 {
 	if constexpr (sizeof(Type) == 8)
 	{
@@ -45,7 +45,7 @@ inline Type NH_API SafeAdd(volatile Type* t, Type value)
 }
 
 template<Integer Type>
-inline Type NH_API SafeDecrement(volatile Type* t)
+inline Type SafeDecrement(volatile Type* t)
 {
 	if constexpr (sizeof(Type) == 8)
 	{
@@ -58,7 +58,7 @@ inline Type NH_API SafeDecrement(volatile Type* t)
 }
 
 template<Integer Type>
-inline Type NH_API SafeSubtract(volatile Type* t, Type value)
+inline Type SafeSubtract(volatile Type* t, Type value)
 {
 	if constexpr (sizeof(Type) == 8)
 	{
@@ -71,7 +71,7 @@ inline Type NH_API SafeSubtract(volatile Type* t, Type value)
 }
 
 template<class Type, Integer Pos>
-inline Type NH_API SafeCheckAndSet(volatile Type* t, Pos pos)
+inline Type SafeCheckAndSet(volatile Type* t, Pos pos)
 {
 	if constexpr (sizeof(Type) == 8)
 	{
@@ -84,7 +84,7 @@ inline Type NH_API SafeCheckAndSet(volatile Type* t, Pos pos)
 }
 
 template<class Type, Integer Pos>
-inline Type NH_API SafeCheckAndReset(volatile Type* t, Pos pos)
+inline Type SafeCheckAndReset(volatile Type* t, Pos pos)
 {
 	if constexpr (sizeof(Type) == 8)
 	{
@@ -97,7 +97,7 @@ inline Type NH_API SafeCheckAndReset(volatile Type* t, Pos pos)
 }
 
 template<class Type>
-inline Type NH_API SafeCompareAndExchange(volatile Type* t, Type exchange, Type comperand)
+inline Type SafeCompareAndExchange(volatile Type* t, Type exchange, Type comperand)
 {
 	if constexpr (sizeof(Type) == 8)
 	{

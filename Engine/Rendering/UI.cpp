@@ -136,11 +136,9 @@ bool UI::Initialize()
 	renderpassInfo.name = "ui_pass";
 	renderpassInfo.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 	renderpassInfo.AddRenderTarget(Resources::geometryBuffer);
-	renderpassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 
 	renderpassInfo.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	renderpassInfo.SetDepthStencilTarget(Resources::geometryDepth);
-	renderpassInfo.AddClearDepth(1.0f);
 
 	uiRenderpass = Resources::CreateRenderpass(renderpassInfo);
 

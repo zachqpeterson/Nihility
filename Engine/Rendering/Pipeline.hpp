@@ -1,19 +1,24 @@
 #pragma once
 
-#include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Shader.hpp"
 
 struct Renderpass;
 
-union SpecializationData {
-	U32 u;
-	I32 i;
-	F32 f;
-	bool b;
+struct SpecializationEntry
+{
+	U32 constantID;
+	U32 offset;
+	U64 size;
 };
 
-struct CommandBuffer;
+struct Specialization
+{
+	U32							mapEntryCount;
+	const SpecializationEntry* mapEntries;
+	U64							dataSize;
+	const void* data;
+};
 
 struct SpecializationInfo
 {
@@ -31,20 +36,21 @@ struct SpecializationInfo
 
 		for (U64 j = 0; j < count; ++j)
 		{
-			specializationConstants[j].constantID = (U32)j;
-			specializationConstants[j].offset = (U32)(j * SIZE);
-			specializationConstants[j].size = 4;
+			specializationEntries[j].constantID = (U32)j;
+			specializationEntries[j].offset = (U32)(j * SIZE);
+			specializationEntries[j].size = 4;
 		}
 
 		specializationInfo.dataSize = i * SIZE;
 		specializationInfo.mapEntryCount = (U32)i;
-		specializationInfo.pData = specializationBuffer;
-		specializationInfo.pMapEntries = specializationConstants;
+		specializationInfo.data = specializationBuffer;
+		specializationInfo.mapEntries = specializationEntries;
 	}
 
-	VkSpecializationMapEntry	specializationConstants[MAX_SPECIALIZATION_CONSTANTS]{};
-	VkSpecializationInfo		specializationInfo{};
-	SizeType					specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * SIZE]{};
+	SpecializationEntry specializationEntries[MAX_SPECIALIZATION_CONSTANTS]{};
+	Specialization specializationInfo{};
+
+	SizeType specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * SIZE]{};
 };
 
 struct PipelineInfo
@@ -56,10 +62,10 @@ struct PipelineInfo
 	U32					indexBufferSize{ U32_MAX };
 	U32					drawBufferSize{ U32_MAX };
 
-	VkAttachmentLoadOp	colorLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
-	VkAttachmentLoadOp	depthLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
-	VkAttachmentLoadOp	stencilLoadOp{ VK_ATTACHMENT_LOAD_OP_CLEAR };
-	VkImageLayout		attachmentFinalLayout{ VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL };
+	I32					colorLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
+	I32					depthLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
+	I32					stencilLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
+	I32					attachmentFinalLayout{ IMAGE_LAYOUT_ATTACHMENT_OPTIMAL }; //VkImageLayout
 	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture*			depthStencilTarget{ nullptr };
 	U8					outputCount{ 0 };
@@ -75,9 +81,13 @@ struct PipelineInfo
 };
 
 struct CommandBuffer;
+struct VkBufferCopy;
+struct VkPipeline_T;
 
 struct Pipeline
 {
+	void Destroy();
+
 	U32 UploadIndices(U32 size, const void* data);
 	U32 UploadVertices(U32 size, const void* data);
 	void UpdateVertices(U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
@@ -91,27 +101,26 @@ struct Pipeline
 private:
 	bool Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo);
 	bool CreatePipeline(const SpecializationInfo& specializationInfo);
-	void Destroy();
 
 	void Run(CommandBuffer* commandBuffer) const;
 
-	String		name{};
-	U64			handle{ U64_MAX };
+	String			name{};
+	U64				handle{ U64_MAX };
 
-	Shader*		shader{};
-	VkPipeline	pipeline{ nullptr };
-	Renderpass* renderpass{ nullptr };
-	U32			subpass{ 0 };
+	Shader*			shader{};
+	VkPipeline_T*	pipeline{ nullptr };
+	Renderpass*		renderpass{ nullptr };
+	U32				subpass{ 0 };
 
-	Buffer		vertexBuffer;
-	Buffer		instanceBuffer;
-	Buffer		indexBuffer;
-	Buffer		drawBuffer;
+	Buffer			vertexBuffer;
+	Buffer			instanceBuffer;
+	Buffer			indexBuffer;
+	Buffer			drawBuffer;
 
-	U32			drawCount{ 0 };
-	U32			indexOffset{ 0 };
-	U32			vertexOffset{ 0 };
-	U32			instanceOffset{ 0 };
+	U32				drawCount{ 0 };
+	U32				indexOffset{ 0 };
+	U32				vertexOffset{ 0 };
+	U32				instanceOffset{ 0 };
 
 	friend class Resources;
 	friend class Renderer;

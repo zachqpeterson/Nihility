@@ -54,7 +54,7 @@ static constexpr I32 READ_WRITE_MASK = 0x0003;
 //TODO: Make thread safe, use mutex
 //TODO: Documentation
 //TODO: Read and Write at same time
-struct NH_API File
+struct File
 {
 public:
 	File();

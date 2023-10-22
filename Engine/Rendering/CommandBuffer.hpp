@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
 
 struct Shader;
@@ -7,13 +8,13 @@ struct Pipeline;
 
 struct CommandBuffer
 {
-	void Create(VkQueueFlagBits type, bool baked);
+	void Create(bool baked);
 	void Destroy();
 
 	VkResult Begin();
 	VkResult End();
 	VkResult Submit(VkQueue queue);
-	VkResult Submit(VkQueue queue, const VkPipelineStageFlags* stageMasks, U32 waitCount, const VkSemaphore* waits, U32 signalCount, const VkSemaphore* signals);
+	VkResult Submit(VkQueue queue, VkPipelineStageFlags* stageMasks, U32 waitCount, VkSemaphore* waits, U32 signalCount, VkSemaphore* signals);
 	VkResult Reset();
 
 	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
@@ -21,11 +22,12 @@ struct CommandBuffer
 	void BeginRenderpass(Renderpass* renderpass);
 	void EndRenderpass();
 
+	void SetViewport(const VkViewport& viewport, const VkRect2D& scissor);
 	void BindPipeline(const Pipeline* pipeline);
 	void BindIndexBuffer(Shader* shader, const Buffer& buffer);
 	void BindVertexBuffer(Shader* shader, const Buffer& buffer);
 	void BindInstanceBuffer(Shader* shader, const Buffer& buffer);
-	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, const VkDescriptorSet* sets);
+	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet* sets);
 
 	void PushDescriptors();
 	void PushConstants(Shader* shader, U32 offset, U32 size, const void* data);
@@ -44,10 +46,9 @@ struct CommandBuffer
 	void ImageToImage(Texture* src, Texture* dst, U32 regionCount, const VkImageCopy* regions);
 	void Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
 
-	void PipelineBarrier(VkDependencyFlags dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
+	void PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 
 	U32							handle{ U32_MAX };
-	VkQueueFlagBits				type{ VK_QUEUE_GRAPHICS_BIT };
 	bool						baked{ false };
 
 private:

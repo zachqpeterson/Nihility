@@ -821,16 +821,12 @@ public:
 	static const Quaternion3 Identity;
 };
 
-struct HermiteSpline
+struct NH_API HermiteSpline
 {
 
 };
 
-
-
-
-
-
+#ifdef NH_EXPORT
 inline const Vector2 Vector2::Zero{ 0.0f };
 inline const Vector2 Vector2::One{ 1.0f };
 inline const Vector2 Vector2::Left{ -1.0f, 0.0f };
@@ -890,3 +886,4 @@ inline const Matrix4 Matrix4::Identity{};
 
 inline const Quaternion2 Quaternion2::Identity{};
 inline const Quaternion3 Quaternion3::Identity{};
+#endif

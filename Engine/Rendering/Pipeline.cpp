@@ -1,5 +1,7 @@
 #include "Pipeline.hpp"
 
+#include "RenderingDefines.hpp"
+
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
 #include "Platform\Platform.hpp"
@@ -25,10 +27,9 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 
 		for (U32 i = 0; i < shader->outputCount; ++i)
 		{
-			if(i < info.outputCount)
+			if (i < info.outputCount)
 			{
 				renderPassInfo.AddRenderTarget(info.renderTargets[i]);
-				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f }); //TODO: Pass in
 			}
 			else
 			{
@@ -43,16 +44,14 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 
 				Texture* texture = Resources::CreateTexture(textureInfo);
 				renderPassInfo.AddRenderTarget(texture);
-				renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f }); //TODO: Pass in
 			}
 		}
 
 		if (shader->depthStencil.depthEnable)
 		{
-			if(info.depthStencilTarget)
+			if (info.depthStencilTarget)
 			{
 				renderPassInfo.SetDepthStencilTarget(info.depthStencilTarget);
-				renderPassInfo.AddClearDepth(1.0f);
 			}
 			else
 			{
@@ -67,7 +66,6 @@ bool Pipeline::Create(const PipelineInfo& info, const SpecializationInfo& specia
 
 				Texture* texture = Resources::CreateTexture(textureInfo);
 				renderPassInfo.SetDepthStencilTarget(texture);
-				renderPassInfo.AddClearDepth(1.0f);
 			}
 		}
 
@@ -131,10 +129,6 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 	if (shader->bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-		vertexInputInfo.vertexAttributeDescriptionCount = shader->vertexAttributeCount;
-		vertexInputInfo.pVertexAttributeDescriptions = shader->vertexAttributes;
-		vertexInputInfo.vertexBindingDescriptionCount = shader->vertexStreamCount;
-		vertexInputInfo.pVertexBindingDescriptions = shader->vertexStreams;
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 		inputAssembly.pNext = nullptr;
@@ -142,18 +136,9 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-		if (shader->blendStateCount == 0)
-		{
-			shader->blendStates[0].blendEnable = VK_FALSE;
-			shader->blendStates[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-			++shader->blendStateCount;
-		}
-
 		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = shader->blendStateCount;
-		colorBlending.pAttachments = shader->blendStates;
 		colorBlending.blendConstants[0] = 0.0f;
 		colorBlending.blendConstants[1] = 0.0f;
 		colorBlending.blendConstants[2] = 0.0f;
@@ -164,7 +149,7 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		depthStencilInfo.depthWriteEnable = shader->depthStencil.depthWriteEnable ? VK_TRUE : VK_FALSE;
 		depthStencilInfo.stencilTestEnable = shader->depthStencil.stencilEnable ? VK_TRUE : VK_FALSE;
 		depthStencilInfo.depthTestEnable = shader->depthStencil.depthEnable ? VK_TRUE : VK_FALSE;
-		depthStencilInfo.depthCompareOp = shader->depthStencil.depthComparison;
+		depthStencilInfo.depthCompareOp = (VkCompareOp)shader->depthStencil.depthComparison;
 		depthStencilInfo.minDepthBounds = 0.0f;
 		depthStencilInfo.maxDepthBounds = 1.0f;
 		if (shader->depthStencil.stencilEnable) { Logger::Error("Stencil Buffers Not Yet Supported!"); }
@@ -182,8 +167,8 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = shader->rasterization.cullMode;
-		rasterizer.frontFace = shader->rasterization.front;
+		rasterizer.cullMode = (VkCullModeFlags)shader->rasterization.cullMode;
+		rasterizer.frontFace = (VkFrontFace)shader->rasterization.front;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f;
 		rasterizer.depthBiasClamp = 0.0f;
@@ -202,15 +187,8 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 		dynamicState.dynamicStateCount = CountOf32(dynamicStates);
 		dynamicState.pDynamicStates = dynamicStates;
-		
-		for (U32 i = 0; i < shader->stageCount; ++i)
-		{
-			shader->stageInfos[i].pSpecializationInfo = &specializationInfo.specializationInfo;
-		}
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-		pipelineInfo.pStages = shader->stageInfos;
-		pipelineInfo.stageCount = shader->stageCount;
 		pipelineInfo.layout = shader->pipelineLayout;
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
@@ -224,16 +202,17 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 		pipelineInfo.renderPass = renderpass->renderpass;
 		pipelineInfo.subpass = subpass;
 
+		shader->FillOutShaderInfo(pipelineInfo, vertexInputInfo, colorBlending, &specializationInfo.specializationInfo);
+
 		vkCreateGraphicsPipelines(Renderer::device, pipelineCache, 1, &pipelineInfo, Renderer::allocationCallbacks, &pipeline);
 	}
 	else
 	{
 		VkComputePipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
 
-		shader->stageInfos[0].pSpecializationInfo = &specializationInfo.specializationInfo;
-
-		pipelineInfo.stage = shader->stageInfos[0];
 		pipelineInfo.layout = shader->pipelineLayout;
+
+		shader->FillOutShaderInfo(pipelineInfo, &specializationInfo.specializationInfo);
 
 		vkCreateComputePipelines(Renderer::device, pipelineCache, 1, &pipelineInfo, Renderer::allocationCallbacks, &pipeline);
 	}
@@ -270,6 +249,7 @@ void Pipeline::Destroy()
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
 
 	name.Destroy();
+	handle = U64_MAX;
 }
 
 void Pipeline::Run(CommandBuffer* commandBuffer) const
@@ -289,34 +269,32 @@ void Pipeline::Run(CommandBuffer* commandBuffer) const
 	{
 		commandBuffer->BindPipeline(this);
 
-		Renderer::PushDescriptors(commandBuffer, shader);
+		shader->PushDescriptors(commandBuffer);
 		if (shader->pushConstantStages) { Renderer::PushConstants(commandBuffer, shader); }
 
-		switch (shader->bindPoint)
+		if (shader->drawType == DRAW_TYPE_FULLSCREEN)
 		{
-		case VK_PIPELINE_BIND_POINT_GRAPHICS: {
-			commandBuffer->BindIndexBuffer(shader, indexBuffer);
-			if (shader->instanceLocation) { commandBuffer->BindVertexBuffer(shader, vertexBuffer); }
-			if (shader->instanceLocation != U8_MAX) { commandBuffer->BindInstanceBuffer(shader, instanceBuffer); }
-
-			commandBuffer->DrawIndexedIndirect(drawBuffer, drawCount, 0);
-		} break;
-		case VK_PIPELINE_BIND_POINT_COMPUTE: {
-			commandBuffer->Dispatch((U32)Renderer::renderArea.z, (U32)Renderer::renderArea.w, 1);
-		} break;
-		case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: {
-			//TODO:
-		} break;
+			commandBuffer->Draw(0, 3, 0, 1);
 		}
-	}
-	else if (shader->drawType == DRAW_TYPE_FULLSCREEN)
-	{
-		commandBuffer->BindPipeline(this);
+		else
+		{
+			switch (shader->bindPoint)
+			{
+			case VK_PIPELINE_BIND_POINT_GRAPHICS: {
+				commandBuffer->BindIndexBuffer(shader, indexBuffer);
+				if (shader->instanceLocation) { commandBuffer->BindVertexBuffer(shader, vertexBuffer); }
+				if (shader->instanceLocation != U8_MAX) { commandBuffer->BindInstanceBuffer(shader, instanceBuffer); }
 
-		Renderer::PushDescriptors(commandBuffer, shader);
-		if (shader->pushConstantStages) { Renderer::PushConstants(commandBuffer, shader); }
-
-		commandBuffer->Draw(0, 3, 0, 1);
+				commandBuffer->DrawIndexedIndirect(drawBuffer, drawCount, 0);
+			} break;
+			case VK_PIPELINE_BIND_POINT_COMPUTE: {
+				commandBuffer->Dispatch((U32)Renderer::renderArea.z, (U32)Renderer::renderArea.w, 1);
+			} break;
+			case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: {
+				//TODO:
+			} break;
+			}
+		}
 	}
 }
 

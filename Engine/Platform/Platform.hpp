@@ -21,7 +21,7 @@ struct _POINTL;
 * TODO: Handle drag and drop: https://learn.microsoft.com/en-us/windows/win32/com/drag-and-drop
 * TODO: Custom file icons for nihility assets: https://learn.microsoft.com/en-us/windows/win32/shell/how-to-assign-a-custom-icon-to-a-file-type
 */
-class NH_API Platform
+class Platform
 {
 public:
 	static void SetFullscreen(bool fullscreen);

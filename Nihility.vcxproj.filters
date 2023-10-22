@@ -59,6 +59,9 @@
     <Filter Include="Source Files\Platform\Audio">
       <UniqueIdentifier>{aeb6384d-a089-44d2-b2cc-9bc52c467d0a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Resources\Shader">
+      <UniqueIdentifier>{00aa8a7e-6909-49ce-b2fb-f60037ebbcc9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -460,6 +463,18 @@
     <ClInclude Include="Engine\Containers\SafeQueue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Resources\ShaderCompiler.hpp">
+      <Filter>Source Files\Resources\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\ShaderDefines.hpp">
+      <Filter>Source Files\Resources\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Pair.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Hashset.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -503,9 +518,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Platform\Jobs.cpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rendering\RenderingDefines.cpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp">
       <Filter>Source Files\Rendering</Filter>
@@ -686,6 +698,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Math\Hash.cpp">
       <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\ShaderCompiler.cpp">
+      <Filter>Source Files\Resources\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\ShaderDefines.cpp">
+      <Filter>Source Files\Resources\Shader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

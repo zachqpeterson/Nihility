@@ -18,21 +18,25 @@ struct aiMaterial;
 struct aiMesh;
 struct aiScene;
 struct DataReader;
+struct KTXInfo;
+struct VkImage_T;
+enum KTXType;
+enum KTXFormat;
+enum VkFormat;
 
 class NH_API Resources
 {
 public:
 	static Texture* CreateTexture(const TextureInfo& info);
-	static Texture* CreateSwapchainTexture(VkImage image, VkFormat format, U8 index);
+	static Texture* CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
 	static Sampler* CreateSampler(const SamplerInfo& info);
-	static DescriptorSetLayout* CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info);
 	static Renderpass* CreateRenderpass(const RenderpassInfo& info);
 	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, VkPushConstantRange* pushConstants = nullptr);
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
 	static Scene* CreateScene(const String& name);
 
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
-	static bool RecreateSwapchainTexture(Texture* texture, VkImage image);
+	static bool RecreateSwapchainTexture(Texture* texture, VkImage_T* image);
 
 	static Font* LoadFont(const String& path);
 	static AudioClip* LoadAudio(const String& path);
@@ -61,8 +65,6 @@ public:
 
 	static void	DestroySampler(Sampler* sampler);
 	static void	DestroyTexture(Texture* texture);
-	static void	DestroyDescriptorSetLayout(DescriptorSetLayout* layout);
-	static void	DestroyDescriptorSet(DescriptorSet* set);
 	static void	DestroyRenderpass(Renderpass* renderpass);
 	static void DestroyBinary(Binary& binary);
 
@@ -78,8 +80,6 @@ public:
 
 private:
 	static bool Initialize();
-	static void CreateDefaults();
-	static bool CreateBindless();
 	static void Shutdown();
 
 	template<typename Type> using DestroyFn = void(*)(Type);
@@ -128,13 +128,6 @@ private:
 	static Queue<ResourceUpdate>			resourceDeletionQueue;
 	static Queue<ResourceUpdate>			bindlessTexturesToUpdate;
 
-	static Pool<DescriptorSetLayout, 256>	descriptorSetLayouts;
-	static VkDescriptorPool					bindlessDescriptorPool;
-	static VkDescriptorSet					bindlessDescriptorSet;
-	static DescriptorSetLayout				bindlessDescriptorSetLayout;
-	static constexpr U32					maxBindlessResources{ 1024 };
-	static constexpr U32					bindlessTextureBinding{ 10 };
-
 	STATIC_CLASS(Resources);
 	friend class Renderer;
 	friend class UI;
@@ -153,7 +146,7 @@ inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<
 	{
 		if (it.Valid() && !it->name.Blank())
 		{
-			destroy(&hashmap.Obtain(it->handle));
+			destroy(hashmap.Obtain(it->handle));
 			if constexpr (IsDestroyable<Type>) { it->Destroy(); }
 			hashmap.Remove(it->handle);
 		}

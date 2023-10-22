@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-struct NH_API Timer
+struct Timer
 {
 	Timer();
 
@@ -27,6 +27,7 @@ public:
 	static F64 UpTime();
 	static F64 FrameUpTime();
 	static F64 AbsoluteTime();
+	static I64 CoreCounter();
 
 private:
 	static bool Initialize();

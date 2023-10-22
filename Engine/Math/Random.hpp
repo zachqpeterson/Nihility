@@ -29,10 +29,9 @@ private:
 /// <returns>The random number</returns>
 inline U64 Random::TrueRandomInt()
 {
-	F64 time = Time::AbsoluteTime();
-	U64 timeSeed = *reinterpret_cast<U64*>(&time);
-	timeSeed = Hash::Mix(timeSeed ^ Hash::secret0, seed ^ Hash::secret1);
-	seed = Hash::Mix(timeSeed ^ Hash::secret0, Hash::secret2);
+	I64 time = Time::CoreCounter();
+	time = Hash::Mix(time ^ Hash::secret0, seed ^ Hash::secret1);
+	seed = Hash::Mix(time ^ Hash::secret0, Hash::secret2);
 	return Hash::Mix(seed, seed ^ Hash::secret3);
 }
 

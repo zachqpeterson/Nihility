@@ -14,9 +14,6 @@
 #include "External\Assimp\scene.h"
 #include "External\Assimp\postprocess.h"
 
-#include "External\LunarG\glslang\Public\ShaderLang.h"
-#include "External\LunarG\glslang\Include\intermediate.h"
-
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
 #include "External\stb_image.h"
@@ -58,6 +55,323 @@
 #define WAV_DPDS 'sdpd'
 #define WAV_LIST 'TSIL'
 #endif
+
+enum KTXType
+{
+	KTX_TYPE_COMPRESSED = 0x0,
+	KTX_TYPE_BYTE = 0x1400,
+	KTX_TYPE_UNSIGNED_BYTE = 0x1401,
+	KTX_TYPE_SHORT = 0x1402,
+	KTX_TYPE_UNSIGNED_SHORT = 0x1403,
+	KTX_TYPE_INT = 0x1404,
+	KTX_TYPE_UNSIGNED_INT = 0x1405,
+	KTX_TYPE_FLOAT = 0x1406,
+	KTX_TYPE_DOUBLE = 0x140A,
+	KTX_TYPE_HALF_FLOAT = 0x140B,
+	KTX_TYPE_UNSIGNED_BYTE_3_3_2 = 0x8032,
+	KTX_TYPE_UNSIGNED_SHORT_4_4_4_4 = 0x8033,
+	KTX_TYPE_UNSIGNED_SHORT_5_5_5_1 = 0x8034,
+	KTX_TYPE_UNSIGNED_INT_8_8_8_8 = 0x8035,
+	KTX_TYPE_UNSIGNED_INT_10_10_10_2 = 0x8036,
+	KTX_TYPE_UNSIGNED_BYTE_2_3_3_REV = 0x8362,
+	KTX_TYPE_UNSIGNED_SHORT_5_6_5 = 0x8363,
+	KTX_TYPE_UNSIGNED_SHORT_5_6_5_REV = 0x8364,
+	KTX_TYPE_UNSIGNED_SHORT_4_4_4_4_REV = 0x8365,
+	KTX_TYPE_UNSIGNED_SHORT_1_5_5_5_REV = 0x8366,
+	KTX_TYPE_UNSIGNED_INT_8_8_8_8_REV = 0x8367,
+	KTX_TYPE_UNSIGNED_INT_2_10_10_10_REV = 0x8368,
+	KTX_TYPE_UNSIGNED_INT_24_8 = 0x84FA,
+	KTX_TYPE_UNSIGNED_INT_5_9_9_9_REV = 0x8C3E,
+	KTX_TYPE_UNSIGNED_INT_10F_11F_11F_REV = 0x8C3B,
+	KTX_TYPE_FLOAT_32_UNSIGNED_INT_24_8_REV = 0x8DAD
+};
+
+enum KTXFormat
+{
+	KTX_FORMAT_RED = 0x1903,
+	KTX_FORMAT_GREEN = 0x1904,
+	KTX_FORMAT_BLUE = 0x1905,
+	KTX_FORMAT_ALPHA = 0x1906,
+	KTX_FORMAT_RGB = 0x1907,
+	KTX_FORMAT_RGBA = 0x1908,
+	KTX_FORMAT_LUMINANCE = 0x1909,
+	KTX_FORMAT_LUMINANCE_ALPHA = 0x190A,
+	KTX_FORMAT_ABGR = 0x8000,
+	KTX_FORMAT_INTENSITY = 0x8049,
+	KTX_FORMAT_BGR = 0x80E0,
+	KTX_FORMAT_BGRA = 0x80E1,
+	KTX_FORMAT_RG = 0x8227,
+	KTX_FORMAT_RG_INTEGER = 0x8228,
+	KTX_FORMAT_SRGB = 0x8C40,
+	KTX_FORMAT_SRGB_ALPHA = 0x8C42,
+	KTX_FORMAT_SLUMINANCE_ALPHA = 0x8C44,
+	KTX_FORMAT_SLUMINANCE = 0x8C46,
+	KTX_FORMAT_RED_INTEGER = 0x8D94,
+	KTX_FORMAT_GREEN_INTEGER = 0x8D95,
+	KTX_FORMAT_BLUE_INTEGER = 0x8D96,
+	KTX_FORMAT_ALPHA_INTEGER = 0x8D97,
+	KTX_FORMAT_RGB_INTEGER = 0x8D98,
+	KTX_FORMAT_RGBA_INTEGER = 0x8D99,
+	KTX_FORMAT_BGR_INTEGER = 0x8D9A,
+	KTX_FORMAT_BGRA_INTEGER = 0x8D9B,
+	KTX_FORMAT_RED_SNORM = 0x8F90,
+	KTX_FORMAT_RG_SNORM = 0x8F91,
+	KTX_FORMAT_RGB_SNORM = 0x8F92,
+	KTX_FORMAT_RGBA_SNORM = 0x8F93,
+
+	KTX_FORMAT_ALPHA4 = 0x803B,
+	KTX_FORMAT_ALPHA8 = 0x803C,
+	KTX_FORMAT_ALPHA12 = 0x803D,
+	KTX_FORMAT_ALPHA16 = 0x803E,
+	KTX_FORMAT_LUMINANCE4 = 0x803F,
+	KTX_FORMAT_LUMINANCE8 = 0x8040,
+	KTX_FORMAT_LUMINANCE12 = 0x8041,
+	KTX_FORMAT_LUMINANCE16 = 0x8042,
+	KTX_FORMAT_LUMINANCE4_ALPHA4 = 0x8043,
+	KTX_FORMAT_LUMINANCE6_ALPHA2 = 0x8044,
+	KTX_FORMAT_LUMINANCE8_ALPHA8 = 0x8045,
+	KTX_FORMAT_LUMINANCE12_ALPHA4 = 0x8046,
+	KTX_FORMAT_LUMINANCE12_ALPHA12 = 0x8047,
+	KTX_FORMAT_LUMINANCE16_ALPHA16 = 0x8048,
+	KTX_FORMAT_INTENSITY4 = 0x804A,
+	KTX_FORMAT_INTENSITY8 = 0x804B,
+	KTX_FORMAT_INTENSITY12 = 0x804C,
+	KTX_FORMAT_INTENSITY16 = 0x804D,
+	KTX_FORMAT_R3_G3_B2 = 0x2A10,
+	KTX_FORMAT_RGB2 = 0x804E,
+	KTX_FORMAT_RGB4 = 0x804F,
+	KTX_FORMAT_RGB5 = 0x8050,
+	KTX_FORMAT_RGB8 = 0x8051,
+	KTX_FORMAT_RGB10 = 0x8052,
+	KTX_FORMAT_RGB12 = 0x8053,
+	KTX_FORMAT_RGB16 = 0x8054,
+	KTX_FORMAT_RGBA2 = 0x8055,
+	KTX_FORMAT_RGBA4 = 0x8056,
+	KTX_FORMAT_RGB5_A1 = 0x8057,
+	KTX_FORMAT_RGBA8 = 0x8058,
+	KTX_FORMAT_RGB10_A2 = 0x8059,
+	KTX_FORMAT_RGB10_A2UI = 0x906F,
+	KTX_FORMAT_RGBA12 = 0x805A,
+	KTX_FORMAT_RGBA16 = 0x805B,
+	KTX_FORMAT_R8 = 0x8229,
+	KTX_FORMAT_R16 = 0x822A,
+	KTX_FORMAT_RG8 = 0x822B,
+	KTX_FORMAT_RG16 = 0x822C,
+	KTX_FORMAT_R16F = 0x822D,
+	KTX_FORMAT_R32F = 0x822E,
+	KTX_FORMAT_RG16F = 0x822F,
+	KTX_FORMAT_RG32F = 0x8230,
+	KTX_FORMAT_R8I = 0x8231,
+	KTX_FORMAT_R8UI = 0x8232,
+	KTX_FORMAT_R16I = 0x8233,
+	KTX_FORMAT_R16UI = 0x8234,
+	KTX_FORMAT_R32I = 0x8235,
+	KTX_FORMAT_R32UI = 0x8236,
+	KTX_FORMAT_RG8I = 0x8237,
+	KTX_FORMAT_RG8UI = 0x8238,
+	KTX_FORMAT_RG16I = 0x8239,
+	KTX_FORMAT_RG16UI = 0x823A,
+	KTX_FORMAT_RG32I = 0x823B,
+	KTX_FORMAT_RG32UI = 0x823C,
+	KTX_FORMAT_RGBA32F = 0x8814,
+	KTX_FORMAT_RGB32F = 0x8815,
+	KTX_FORMAT_RGBA16F = 0x881A,
+	KTX_FORMAT_RGB16F = 0x881B,
+	KTX_FORMAT_R11F_G11F_B10F = 0x8C3A,
+	KTX_FORMAT_UNSIGNED_INT_10F_11F_11F_REV = 0x8C3B,
+	KTX_FORMAT_RGB9_E5 = 0x8C3D,
+	KTX_FORMAT_SLUMINANCE8_ALPHA8 = 0x8C45,
+	KTX_FORMAT_SLUMINANCE8 = 0x8C47,
+	KTX_FORMAT_RGB565 = 0x8D62,
+	KTX_FORMAT_RGBA32UI = 0x8D70,
+	KTX_FORMAT_RGB32UI = 0x8D71,
+	KTX_FORMAT_RGBA16UI = 0x8D76,
+	KTX_FORMAT_RGB16UI = 0x8D77,
+	KTX_FORMAT_RGBA8UI = 0x8D7C,
+	KTX_FORMAT_RGB8UI = 0x8D7D,
+	KTX_FORMAT_RGBA32I = 0x8D82,
+	KTX_FORMAT_RGB32I = 0x8D83,
+	KTX_FORMAT_RGBA16I = 0x8D88,
+	KTX_FORMAT_RGB16I = 0x8D89,
+	KTX_FORMAT_RGBA8I = 0x8D8E,
+	KTX_FORMAT_RGB8I = 0x8D8F,
+	KTX_FORMAT_FLOAT_32_UNSIGNED_INT_24_8_REV = 0x8DAD,
+	KTX_FORMAT_R8_SNORM = 0x8F94,
+	KTX_FORMAT_RG8_SNORM = 0x8F95,
+	KTX_FORMAT_RGB8_SNORM = 0x8F96,
+	KTX_FORMAT_RGBA8_SNORM = 0x8F97,
+	KTX_FORMAT_R16_SNORM = 0x8F98,
+	KTX_FORMAT_RG16_SNORM = 0x8F99,
+	KTX_FORMAT_RGB16_SNORM = 0x8F9A,
+	KTX_FORMAT_RGBA16_SNORM = 0x8F9B,
+	KTX_FORMAT_SR8 = 0x8FBD,
+	KTX_FORMAT_SRG8 = 0x8FBE,
+	KTX_FORMAT_SRGB8 = 0x8C41,
+	KTX_FORMAT_SRGB8_ALPHA8 = 0x8C43,
+	KTX_FORMAT_ALPHA8_SNORM = 0x9014,
+	KTX_FORMAT_LUMINANCE8_SNORM = 0x9015,
+	KTX_FORMAT_LUMINANCE8_ALPHA8_SNORM = 0x9016,
+	KTX_FORMAT_INTENSITY8_SNORM = 0x9017,
+	KTX_FORMAT_ALPHA16_SNORM = 0x9018,
+	KTX_FORMAT_LUMINANCE16_SNORM = 0x9019,
+	KTX_FORMAT_LUMINANCE16_ALPHA16_SNORM = 0x901A,
+	KTX_FORMAT_INTENSITY16_SNORM = 0x901B,
+
+	KTX_FORMAT_PALETTE4_RGB8_OES = 0x8B90,
+	KTX_FORMAT_PALETTE4_RGBA8_OES = 0x8B91,
+	KTX_FORMAT_PALETTE4_R5_G6_B5_OES = 0x8B92,
+	KTX_FORMAT_PALETTE4_RGBA4_OES = 0x8B93,
+	KTX_FORMAT_PALETTE4_RGB5_A1_OES = 0x8B94,
+	KTX_FORMAT_PALETTE8_RGB8_OES = 0x8B95,
+	KTX_FORMAT_PALETTE8_RGBA8_OES = 0x8B96,
+	KTX_FORMAT_PALETTE8_R5_G6_B5_OES = 0x8B97,
+	KTX_FORMAT_PALETTE8_RGBA4_OES = 0x8B98,
+	KTX_FORMAT_PALETTE8_RGB5_A1_OES = 0x8B99
+};
+
+enum KTXCompression
+{
+	KTX_COMPRESSION_RGB_S3TC_DXT1 = 0x83F0,
+	KTX_COMPRESSION_RGBA_S3TC_DXT1 = 0x83F1,
+	KTX_COMPRESSION_RGBA_S3TC_DXT3 = 0x83F2,
+	KTX_COMPRESSION_RGBA_S3TC_DXT5 = 0x83F3,
+	KTX_COMPRESSION_3DC_X_AMD = 0x87F9,
+	KTX_COMPRESSION_3DC_XY_AMD = 0x87FA,
+	KTX_COMPRESSION_ATC_RGBA_INTERPOLATED_ALPHA = 0x87EE,
+	KTX_COMPRESSION_SRGB_PVRTC_2BPPV1 = 0x8A54,
+	KTX_COMPRESSION_SRGB_PVRTC_4BPPV1 = 0x8A55,
+	KTX_COMPRESSION_SRGB_ALPHA_PVRTC_2BPPV1 = 0x8A56,
+	KTX_COMPRESSION_SRGB_ALPHA_PVRTC_4BPPV1 = 0x8A57,
+	KTX_COMPRESSION_RGB_PVRTC_4BPPV1 = 0x8C00,
+	KTX_COMPRESSION_RGB_PVRTC_2BPPV1 = 0x8C01,
+	KTX_COMPRESSION_RGBA_PVRTC_4BPPV1 = 0x8C02,
+	KTX_COMPRESSION_RGBA_PVRTC_2BPPV1 = 0x8C03,
+	KTX_COMPRESSION_SRGB_S3TC_DXT1 = 0x8C4C,
+	KTX_COMPRESSION_SRGB_ALPHA_S3TC_DXT1 = 0x8C4D,
+	KTX_COMPRESSION_SRGB_ALPHA_S3TC_DXT3 = 0x8C4E,
+	KTX_COMPRESSION_SRGB_ALPHA_S3TC_DXT5 = 0x8C4F,
+	KTX_COMPRESSION_LUMINANCE_LATC1 = 0x8C70,
+	KTX_COMPRESSION_SIGNED_LUMINANCE_LATC1 = 0x8C71,
+	KTX_COMPRESSION_LUMINANCE_ALPHA_LATC2 = 0x8C72,
+	KTX_COMPRESSION_SIGNED_LUMINANCE_ALPHA_LATC2 = 0x8C73,
+	KTX_COMPRESSION_ATC_RGB = 0x8C92,
+	KTX_COMPRESSION_ATC_RGBA_EXPLICIT_ALPHA = 0x8C93,
+	KTX_COMPRESSION_RED_RGTC1 = 0x8DBB,
+	KTX_COMPRESSION_SIGNED_RED_RGTC1 = 0x8DBC,
+	KTX_COMPRESSION_RED_GREEN_RGTC2 = 0x8DBD,
+	KTX_COMPRESSION_SIGNED_RED_GREEN_RGTC2 = 0x8DBE,
+	KTX_COMPRESSION_ETC1_RGB8_OES = 0x8D64,
+	KTX_COMPRESSION_RGBA_BPTC_UNORM = 0x8E8C,
+	KTX_COMPRESSION_SRGB_ALPHA_BPTC_UNORM = 0x8E8D,
+	KTX_COMPRESSION_RGB_BPTC_SIGNED_FLOAT = 0x8E8E,
+	KTX_COMPRESSION_RGB_BPTC_UNSIGNED_FLOAT = 0x8E8F,
+	KTX_COMPRESSION_R11_EAC = 0x9270,
+	KTX_COMPRESSION_SIGNED_R11_EAC = 0x9271,
+	KTX_COMPRESSION_RG11_EAC = 0x9272,
+	KTX_COMPRESSION_SIGNED_RG11_EAC = 0x9273,
+	KTX_COMPRESSION_RGB8_ETC2 = 0x9274,
+	KTX_COMPRESSION_SRGB8_ETC2 = 0x9275,
+	KTX_COMPRESSION_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9276,
+	KTX_COMPRESSION_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9277,
+	KTX_COMPRESSION_RGBA8_ETC2_EAC = 0x9278,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ETC2_EAC = 0x9279,
+	KTX_COMPRESSION_SRGB_ALPHA_PVRTC_2BPPV2 = 0x93F0,
+	KTX_COMPRESSION_SRGB_ALPHA_PVRTC_4BPPV2 = 0x93F1,
+	KTX_COMPRESSION_RGBA_ASTC_4x4 = 0x93B0,
+	KTX_COMPRESSION_RGBA_ASTC_5x4 = 0x93B1,
+	KTX_COMPRESSION_RGBA_ASTC_5x5 = 0x93B2,
+	KTX_COMPRESSION_RGBA_ASTC_6x5 = 0x93B3,
+	KTX_COMPRESSION_RGBA_ASTC_6x6 = 0x93B4,
+	KTX_COMPRESSION_RGBA_ASTC_8x5 = 0x93B5,
+	KTX_COMPRESSION_RGBA_ASTC_8x6 = 0x93B6,
+	KTX_COMPRESSION_RGBA_ASTC_8x8 = 0x93B7,
+	KTX_COMPRESSION_RGBA_ASTC_10x5 = 0x93B8,
+	KTX_COMPRESSION_RGBA_ASTC_10x6 = 0x93B9,
+	KTX_COMPRESSION_RGBA_ASTC_10x8 = 0x93BA,
+	KTX_COMPRESSION_RGBA_ASTC_10x10 = 0x93BB,
+	KTX_COMPRESSION_RGBA_ASTC_12x10 = 0x93BC,
+	KTX_COMPRESSION_RGBA_ASTC_12x12 = 0x93BD,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_4x4 = 0x93D0,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_5x4 = 0x93D1,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_5x5 = 0x93D2,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_6x5 = 0x93D3,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_6x6 = 0x93D4,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_8x5 = 0x93D5,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_8x6 = 0x93D6,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_8x8 = 0x93D7,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_10x5 = 0x93D8,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_10x6 = 0x93D9,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_10x8 = 0x93DA,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_10x10 = 0x93DB,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_12x10 = 0x93DC,
+	KTX_COMPRESSION_SRGB8_ALPHA8_ASTC_12x12 = 0x93DD
+};
+
+enum KTXFormatType
+{
+	KTX_FORMAT_TYPE_NONE = 0x00000000,
+	KTX_FORMAT_TYPE_PACKED = 0x00000001,
+	KTX_FORMAT_TYPE_COMPRESSED = 0x00000002,
+	KTX_FORMAT_TYPE_PALETTIZED = 0x00000004,
+	KTX_FORMAT_TYPE_DEPTH = 0x00000008,
+	KTX_FORMAT_TYPE_STENCIL = 0x00000010,
+};
+
+#pragma pack(push, 1)
+
+struct KTXHeader11
+{
+	KTXType	type;
+	U32	typeSize;
+	KTXFormat format;
+	KTXCompression internalFormat;
+	KTXFormat baseInternalFormat;
+	U32	pixelWidth;
+	U32	pixelHeight;
+	U32	pixelDepth;
+	U32 arrayElementCount;
+	U32	faceCount;
+	U32	mipmapLevelCount;
+	U32	keyValueDataSize;
+};
+
+struct KTXHeader20
+{
+	VkFormat format;
+	U32 typeSize;
+	U32 pixelWidth;
+	U32 pixelHeight;
+	U32 pixelDepth;
+	U32 layerCount;
+	U32 faceCount;
+	U32 levelCount;
+	U32 superCompressionScheme;
+	U32 dfdByteOffset;
+	U32 dfdByteLength;
+	U32 kvdByteOffset;
+	U32 kvdByteLength;
+	U64 sgdByteOffset;
+	U64 sgdByteLength;
+};
+
+struct KTXLevel
+{
+	U64 byteOffset;
+	U64 byteLength;
+	U64 uncompressedByteLength;
+};
+
+struct KTXInfo
+{
+	U32 flags;
+	U32 paletteSizeInBits;
+	U32 blockSizeInBits;
+	U32 blockWidth;			// in texels
+	U32 blockHeight;		// in texels
+	U32 blockDepth;			// in texels
+};
+
+#pragma pack(pop)
 
 struct MP3Header
 {
@@ -132,36 +446,27 @@ Texture* Resources::geometryBuffer;
 Texture* Resources::geometryDepth;
 RenderGraph Resources::defaultRenderGraph;
 
-Hashmap<String, Sampler>		Resources::samplers{ 32, {} };
-Hashmap<String, Texture>		Resources::textures{ 512, {} };
-Hashmap<String, Font>			Resources::fonts{ 32, {} };
-Hashmap<String, AudioClip>		Resources::audioClips{ 512, {} };
-Hashmap<String, Renderpass>		Resources::renderpasses{ 32, {} };
-Hashmap<String, Shader>			Resources::shaders{ 128, {} };
-Hashmap<String, Pipeline>		Resources::pipelines{ 128, {} };
-Hashmap<String, Model>			Resources::models{ 128, {} };
-Hashmap<String, Skybox>			Resources::skyboxes{ 32, {} };
-Hashmap<String, Scene>			Resources::scenes{ 128, {} };
+Hashmap<String, Sampler>		Resources::samplers{ 32 };
+Hashmap<String, Texture>		Resources::textures{ 512 };
+Hashmap<String, Font>			Resources::fonts{ 32 };
+Hashmap<String, AudioClip>		Resources::audioClips{ 512 };
+Hashmap<String, Renderpass>		Resources::renderpasses{ 32 };
+Hashmap<String, Shader>			Resources::shaders{ 128 };
+Hashmap<String, Pipeline>		Resources::pipelines{ 128 };
+Hashmap<String, Model>			Resources::models{ 128 };
+Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
+Hashmap<String, Scene>			Resources::scenes{ 128 };
 
 Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
-
-Pool<DescriptorSetLayout, 256>	Resources::descriptorSetLayouts;
-VkDescriptorPool				Resources::bindlessDescriptorPool;
-VkDescriptorSet					Resources::bindlessDescriptorSet;
-DescriptorSetLayout				Resources::bindlessDescriptorSetLayout;
 
 bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
-	glslang::InitializeProcess();
-
-	descriptorSetLayouts.Create();
-
 	TextureInfo dummyTextureInfo{};
 	dummyTextureInfo.SetName("dummy_texture");
-	dummyTextureInfo.SetFormatType(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D);
+	dummyTextureInfo.SetFormatType(FORMAT_TYPE_R8G8B8A8_UNORM, IMAGE_TYPE_2D);
 	dummyTextureInfo.SetSize(1, 1, 1);
 	U32 zero = 0;
 	dummyTextureInfo.SetData(&zero);
@@ -169,12 +474,12 @@ bool Resources::Initialize()
 
 	SamplerInfo defaultSamplerInfo{};
 	defaultSamplerInfo.SetName("default_point_sampler");
-	defaultSamplerInfo.SetAddressModeUVW(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-	defaultSamplerInfo.SetMinMagMip(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST);
+	defaultSamplerInfo.SetAddressModeUVW(SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+	defaultSamplerInfo.SetMinMagMip(FILTER_TYPE_NEAREST, FILTER_TYPE_NEAREST, SAMPLER_MIPMAP_MODE_NEAREST);
 	defaultPointSampler = Resources::CreateSampler(defaultSamplerInfo);
 
 	defaultSamplerInfo.SetName("default_linear_sampler");
-	defaultSamplerInfo.SetMinMagMip(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR);
+	defaultSamplerInfo.SetMinMagMip(FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, SAMPLER_MIPMAP_MODE_LINEAR);
 	defaultLinearSampler = Resources::CreateSampler(defaultSamplerInfo);
 
 	TextureInfo textureInfo{};
@@ -195,10 +500,8 @@ bool Resources::Initialize()
 	RenderpassInfo renderPassInfo{};
 	renderPassInfo.name = "geometry_pass";
 	renderPassInfo.AddRenderTarget(geometryBuffer);
-	renderPassInfo.AddClearColor({ 0.0f, 0.0f, 0.0f, 1.0f });
 
 	renderPassInfo.SetDepthStencilTarget(geometryDepth);
-	renderPassInfo.AddClearDepth(1.0f);
 
 	geometryRenderpass = Resources::CreateRenderpass(renderPassInfo);
 
@@ -246,78 +549,6 @@ bool Resources::Initialize()
 	return true;
 }
 
-bool Resources::CreateBindless()
-{
-	VkDescriptorPoolSize bindlessPoolSizes[]
-	{
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxBindlessResources },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, maxBindlessResources },
-	};
-
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-	poolInfo.maxSets = maxBindlessResources * CountOf32(bindlessPoolSizes);
-	poolInfo.poolSizeCount = CountOf32(bindlessPoolSizes);
-	poolInfo.pPoolSizes = bindlessPoolSizes;
-
-	VkValidateFR(vkCreateDescriptorPool(Renderer::device, &poolInfo, Renderer::allocationCallbacks, &bindlessDescriptorPool));
-
-	const U32 poolCount = CountOf32(bindlessPoolSizes);
-	VkDescriptorSetLayoutBinding vkBinding[4];
-
-	// Actual descriptor set layout
-	VkDescriptorSetLayoutBinding& imageSamplerBinding = vkBinding[0];
-	imageSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	imageSamplerBinding.descriptorCount = maxBindlessResources;
-	imageSamplerBinding.binding = bindlessTextureBinding;
-	imageSamplerBinding.stageFlags = VK_SHADER_STAGE_ALL;
-	imageSamplerBinding.pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutBinding& storageImageBinding = vkBinding[1];
-	storageImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	storageImageBinding.descriptorCount = maxBindlessResources;
-	storageImageBinding.binding = bindlessTextureBinding + 1;
-	storageImageBinding.stageFlags = VK_SHADER_STAGE_ALL;
-	storageImageBinding.pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layoutInfo.bindingCount = poolCount;
-	layoutInfo.pBindings = vkBinding;
-	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
-
-	// TODO: reenable variable descriptor count
-	// Binding flags
-	VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
-	VkDescriptorBindingFlags bindingFlags[4];
-
-	bindingFlags[0] = bindlessFlags;
-	bindingFlags[1] = bindlessFlags;
-
-	VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-	extendedInfo.bindingCount = poolCount;
-	extendedInfo.pBindingFlags = bindingFlags;
-
-	layoutInfo.pNext = &extendedInfo;
-
-	VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout.descriptorSetLayout));
-
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = bindlessDescriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &bindlessDescriptorSetLayout.descriptorSetLayout;
-
-	VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
-	U32 maxBinding = maxBindlessResources - 1;
-	countInfo.descriptorSetCount = 1;
-	// This number is the max allocatable count
-	countInfo.pDescriptorCounts = &maxBinding;
-	//allocInfo.pNext = &countInfo;
-
-	VkValidateFR(vkAllocateDescriptorSets(Renderer::device, &allocInfo, &bindlessDescriptorSet));
-
-	return true;
-}
-
 void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
@@ -331,10 +562,10 @@ void Resources::Shutdown()
 
 		switch (resourceDeletion.type)
 		{
-		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
+		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle)->Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 		}
 	}
 
@@ -351,7 +582,6 @@ void Resources::Shutdown()
 
 	samplers.Destroy();
 	textures.Destroy();
-	descriptorSetLayouts.Destroy();
 	renderpasses.Destroy();
 	fonts.Destroy();
 	audioClips.Destroy();
@@ -363,9 +593,6 @@ void Resources::Shutdown()
 
 	resourceDeletionQueue.Destroy();
 	bindlessTexturesToUpdate.Destroy();
-
-	vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout.descriptorSetLayout, Renderer::allocationCallbacks);
-	vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
 }
 
 void Resources::Update()
@@ -379,18 +606,22 @@ void Resources::Update()
 		{
 			switch (resourceDeletion.type)
 			{
-			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(&samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(&textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(&renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle).Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
+			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle)->Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
 			}
 		}
 	}
 
 	if (bindlessTexturesToUpdate.Size())
 	{
-		VkWriteDescriptorSet bindlessDescriptorWrites[maxBindlessResources];
-		VkDescriptorImageInfo bindlessImageInfo[maxBindlessResources];
+		VkWriteDescriptorSet* bindlessDescriptorWrites;
+		Memory::AllocateArray(&bindlessDescriptorWrites, bindlessTexturesToUpdate.Size());
+
+		VkDescriptorImageInfo* bindlessImageInfo;
+		Memory::AllocateArray(&bindlessImageInfo, bindlessTexturesToUpdate.Size());
+
 
 		Texture* dummyTexture = Resources::AccessDummyTexture();
 
@@ -410,8 +641,8 @@ void Resources::Update()
 				descriptorWrite.descriptorCount = 1;
 				descriptorWrite.dstArrayElement = (U32)textureToUpdate.handle;
 				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descriptorWrite.dstSet = bindlessDescriptorSet;
-				descriptorWrite.dstBinding = bindlessTextureBinding;
+				descriptorWrite.dstSet = Shader::bindlessDescriptorSet;
+				descriptorWrite.dstBinding = Shader::bindlessTextureBinding;
 
 				Sampler* defaultSampler = Resources::AccessDefaultSampler(SAMPLER_TYPE_LINEAR);
 				VkDescriptorImageInfo& descriptorImageInfo = bindlessImageInfo[currentWriteIndex];
@@ -458,7 +689,7 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Texture* texture = &textures.Request(info.name, handle);
+	Texture* texture = textures.Request(info.name, handle);
 
 	if (!texture->name.Blank()) { return texture; }
 
@@ -475,7 +706,13 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 	texture->type = info.type;
 	texture->handle = handle;
 
-	Renderer::CreateTexture(texture, info.initialData);
+	if (!Renderer::CreateTexture(texture, info.initialData))
+	{
+		Logger::Error("Failed To Create Texture!");
+		textures.Remove(texture->handle);
+		texture->Destroy();
+		return nullptr;
+	}
 
 	return texture;
 }
@@ -485,7 +722,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	String name{ "SwapchainTexture{}", index };
 
 	HashHandle handle;
-	Texture* texture = &textures.Request(name, handle);
+	Texture* texture = textures.Request(name, handle);
 
 	*texture = {};
 
@@ -511,7 +748,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { textures.Remove(handle); return nullptr; }
+	if (vkCreateImageView(Renderer::device, &viewInfo, Renderer::allocationCallbacks, &texture->imageView) != VK_SUCCESS) { textures.Remove(handle); texture->Destroy(); return nullptr; }
 
 	texture->mipmaps[0] = texture->imageView;
 
@@ -525,7 +762,7 @@ Sampler* Resources::CreateSampler(const SamplerInfo& info)
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Sampler* sampler = &samplers.Request(info.name, handle);
+	Sampler* sampler = samplers.Request(info.name, handle);
 
 	if (!sampler->name.Blank()) { return sampler; }
 
@@ -540,25 +777,15 @@ Sampler* Resources::CreateSampler(const SamplerInfo& info)
 	sampler->name = info.name;
 	sampler->handle = handle;
 
-	Renderer::CreateSampler(sampler);
+	if (!Renderer::CreateSampler(sampler))
+	{
+		Logger::Error("Failed To Create Sampler!");
+		samplers.Remove(sampler->handle);
+		sampler->Destroy();
+		return nullptr;
+	}
 
 	return sampler;
-}
-
-DescriptorSetLayout* Resources::CreateDescriptorSetLayout(const DescriptorSetLayoutInfo& info)
-{
-	U64 handle;
-	DescriptorSetLayout* descriptorSetLayout = descriptorSetLayouts.Request(handle);
-
-	descriptorSetLayout->bindingCount = info.bindingCount;
-	descriptorSetLayout->setIndex = info.setIndex;
-	descriptorSetLayout->handle = handle;
-
-	Memory::Copy(descriptorSetLayout->bindings, info.bindings, info.bindingCount * sizeof(VkDescriptorSetLayoutBinding));
-
-	Renderer::CreateDescriptorSetLayout(descriptorSetLayout);
-
-	return descriptorSetLayout;
 }
 
 Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
@@ -566,7 +793,7 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Renderpass* renderpass = &renderpasses.Request(info.name, handle);
+	Renderpass* renderpass = renderpasses.Request(info.name, handle);
 
 	if (!renderpass->name.Blank()) { return renderpass; }
 
@@ -579,20 +806,20 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	renderpass->colorLoadOp = info.colorLoadOp;
 	renderpass->depthLoadOp = info.depthLoadOp;
 	renderpass->stencilLoadOp = info.stencilLoadOp;
-	renderpass->clearCount = info.clearCount;
 	renderpass->renderOrder = info.renderOrder;
-
-	for (U32 i = 0; i < info.clearCount; ++i)
-	{
-		renderpass->clears[i] = info.clears[i];
-	}
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
 		renderpass->renderTargets[i] = info.renderTargets[i];
 	}
 
-	Renderer::CreateRenderpass(renderpass);
+	if (!Renderer::CreateRenderpass(renderpass))
+	{
+		Logger::Error("Failed To Create Renderpass!");
+		renderpasses.Remove(renderpass->handle);
+		renderpass->Destroy();
+		return nullptr;
+	}
 
 	return renderpass;
 }
@@ -601,19 +828,22 @@ Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, VkPush
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Shader* shader = &shaders.Request(name);
+	HashHandle handle;
+	Shader* shader = shaders.Request(name, handle);
 
 	if (!shader->name.Blank()) { return shader; }
 
 	*shader = {};
 
 	shader->name = name;
-	shader->handle = shaders.GetHandle(name);
+	shader->handle = handle;
 
 	if (!shader->Create(name, pushConstantCount, pushConstants))
 	{
+		Logger::Error("Failed To Create Shader!");
 		shaders.Remove(shader->handle);
-		shader->handle = U64_MAX;
+		shader->Destroy();
+		return nullptr;
 	}
 
 	return shader;
@@ -624,7 +854,7 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Pipeline* pipeline = &pipelines.Request(info.name, handle);
+	Pipeline* pipeline = pipelines.Request(info.name, handle);
 
 	if (!pipeline->name.Blank()) { return pipeline; }
 
@@ -635,8 +865,10 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 
 	if (!pipeline->Create(info, specializationInfo))
 	{
+		Logger::Error("Failed To Create Pipeline!");
 		pipelines.Remove(handle);
-		pipeline->handle = U64_MAX;
+		pipeline->Destroy();
+		return nullptr;
 	}
 
 	return pipeline;
@@ -646,13 +878,15 @@ Scene* Resources::CreateScene(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Scene* scene = &scenes.Request(name);
+	HashHandle handle;
+	Scene* scene = scenes.Request(name, handle);
 
 	if (!scene->name.Blank()) { return scene; }
 
 	*scene = {};
 
 	scene->name = name;
+	scene->handle = handle;
 
 	scene->Create();
 
@@ -670,7 +904,7 @@ bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
 	viewInfo.flags = 0;
 	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = texture->format;
+	viewInfo.format = (VkFormat)texture->format;
 	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
 	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
 	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -696,12 +930,23 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 	deleteTexture.imageView = texture->imageView;
 	deleteTexture.image = texture->image;
 	deleteTexture.allocation = texture->allocation;
+	deleteTexture.width = texture->width;
+	deleteTexture.height = texture->height;
+	deleteTexture.depth = texture->depth;
 
 	texture->width = width;
 	texture->height = height;
 	texture->depth = depth;
 
-	Renderer::CreateTexture(texture, nullptr);
+	if (!Renderer::CreateTexture(texture, nullptr))
+	{
+		Logger::Error("Failed To Recreate Pipeline!");
+		texture->width = deleteTexture.width;
+		texture->height = deleteTexture.height;
+		texture->depth = deleteTexture.depth;
+
+		return false;
+	}
 
 	Renderer::DestroyTextureInstant(&deleteTexture);
 
@@ -731,7 +976,7 @@ Font* Resources::LoadFont(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Font* font = &fonts.Request(path, handle);
+	Font* font = fonts.Request(path, handle);
 
 	if (!font->name.Blank()) { return font; }
 
@@ -750,6 +995,7 @@ Font* Resources::LoadFont(const String& path)
 		{
 			Logger::Error("Asset '{}' Is Not A Nihility Font!", path);
 			fonts.Remove(handle);
+			fonts.Destroy();
 			return nullptr;
 		}
 
@@ -766,7 +1012,7 @@ Font* Resources::LoadFont(const String& path)
 
 		String textureName = path.GetFileName().Appended("_texture");
 
-		Texture* texture = &textures.Request(textureName, handle);
+		Texture* texture = textures.Request(textureName, handle);
 		*texture = {};
 
 		reader.Read(texture->width);
@@ -786,6 +1032,8 @@ Font* Resources::LoadFont(const String& path)
 			Logger::Error("Failed To Create Texture: {}!", texture->name);
 			fonts.Remove(font->handle);
 			textures.Remove(handle);
+			textures.Destroy();
+			fonts.Destroy();
 			return nullptr;
 		}
 
@@ -805,7 +1053,7 @@ AudioClip* Resources::LoadAudio(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	AudioClip* audioClip = &audioClips.Request(path, handle);
+	AudioClip* audioClip = audioClips.Request(path, handle);
 
 	if (!audioClip->name.Blank()) { return audioClip; }
 
@@ -824,6 +1072,7 @@ AudioClip* Resources::LoadAudio(const String& path)
 		{
 			Logger::Error("Asset '{}' Is Not A Nihility Audio!", path);
 			audioClips.Remove(handle);
+			audioClip->Destroy();
 			return nullptr;
 		}
 
@@ -850,7 +1099,7 @@ Texture* Resources::LoadTexture(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Texture* texture = &textures.Request(path, handle);
+	Texture* texture = textures.Request(path, handle);
 
 	if (!texture->name.Blank()) { return texture; }
 
@@ -872,6 +1121,7 @@ Texture* Resources::LoadTexture(const String& path)
 		{
 			Logger::Error("Asset '{}' Is Not A Nihility Texture!", path);
 			textures.Remove(handle);
+			texture->Destroy();
 			return nullptr;
 		}
 
@@ -887,6 +1137,7 @@ Texture* Resources::LoadTexture(const String& path)
 		{
 			Logger::Error("Failed To Create Texture: {}!", path);
 			textures.Remove(handle);
+			texture->Destroy();
 			return nullptr;
 		}
 
@@ -904,7 +1155,7 @@ Model* Resources::LoadModel(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Model* model = &models.Request(path, handle);
+	Model* model = models.Request(path, handle);
 
 	if (!model->name.Blank()) { return model; }
 
@@ -923,6 +1174,7 @@ Model* Resources::LoadModel(const String& path)
 		{
 			Logger::Error("Asset '{}' Is Not A Nihility Model!", path);
 			models.Remove(handle);
+			model->Destroy();
 			return nullptr;
 		}
 
@@ -1009,7 +1261,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Skybox* skybox = &skyboxes.Request(path, handle);
+	Skybox* skybox = skyboxes.Request(path, handle);
 
 	if (!skybox->name.Blank()) { return skybox; }
 
@@ -1028,6 +1280,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 		{
 			Logger::Error("Asset '{}' Is Not A Nihility Skybox!", path);
 			skyboxes.Remove(handle);
+			skybox->Destroy();
 			return nullptr;
 		}
 
@@ -1041,7 +1294,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 
 		String textureName = path.GetFileName().Appended("_texture");
 
-		Texture* texture = &textures.Request(textureName, handle);
+		Texture* texture = textures.Request(textureName, handle);
 		*texture = {};
 
 		reader.Read((U32&)texture->width);
@@ -1061,6 +1314,8 @@ Skybox* Resources::LoadSkybox(const String& path)
 			Logger::Error("Failed To Create Cubemap!", path);
 			textures.Remove(handle);
 			skyboxes.Remove(skybox->handle);
+			texture->Destroy();
+			skybox->Destroy();
 			return {};
 		}
 
@@ -1080,11 +1335,12 @@ Scene* Resources::LoadScene(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
-	Scene* scene = &scenes.Request(path);
+	HashHandle handle;
+	Scene* scene = scenes.Request(path, handle);
 
 	if (!scene->name.Blank()) { return scene; }
 
-	scene->name = path;
+	*scene = {};
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1092,6 +1348,9 @@ Scene* Resources::LoadScene(const String& path)
 		I64 extIndex = path.LastIndexOf('.') + 1;
 
 		bool success = false;
+
+		scene->name = path;
+		scene->handle = handle;
 
 		//U32 bufferCount;
 		//U32 textureCount;
@@ -1282,6 +1541,7 @@ Scene* Resources::LoadScene(const String& path)
 		if (!success)
 		{
 			scenes.Remove(path);
+			scene->Destroy();
 			file.Close();
 			return nullptr;
 		}
@@ -1460,58 +1720,42 @@ Sampler* Resources::AccessDefaultSampler(SamplerType type)
 
 Sampler* Resources::AccessSampler(const String& name)
 {
-	Sampler* sampler = &samplers.Request(name);
-
-	if (!sampler->name.Blank()) { return sampler; }
-
-	return nullptr;
+	return samplers.Get(name);
 }
 
 Texture* Resources::AccessTexture(const String& name)
 {
-	Texture* texture = &textures.Request(name);
-
-	if (!texture->name.Blank()) { return texture; }
-
-	return nullptr;
+	return textures.Get(name);
 }
 
 Renderpass* Resources::AccessRenderpass(const String& name)
 {
-	Renderpass* renderpass = &renderpasses.Request(name);
-
-	if (!renderpass->name.Blank()) { return renderpass; }
-
-	return nullptr;
+	return renderpasses.Get(name);
 }
 
 Pipeline* Resources::AccessPipeline(const String& name)
 {
-	Pipeline* pipeline = &pipelines.Request(name);
-
-	if (!pipeline->name.Blank()) { return pipeline; }
-
-	return nullptr;
+	return pipelines.Get(name);
 }
 
 Sampler* Resources::AccessSampler(HashHandle handle)
 {
-	return &samplers.Obtain(handle);
+	return samplers.Obtain(handle);
 }
 
 Texture* Resources::AccessTexture(HashHandle handle)
 {
-	return &textures.Obtain(handle);
+	return textures.Obtain(handle);
 }
 
 Renderpass* Resources::AccessRenderpass(HashHandle handle)
 {
-	return &renderpasses.Obtain(handle);
+	return renderpasses.Obtain(handle);
 }
 
 Pipeline* Resources::AccessPipeline(HashHandle handle)
 {
-	return &pipelines.Obtain(handle);
+	return pipelines.Obtain(handle);
 }
 
 void Resources::DestroySampler(Sampler* sampler)
@@ -1537,30 +1781,6 @@ void Resources::DestroyTexture(Texture* texture)
 		ResourceUpdate deletion{};
 		deletion.handle = handle;
 		deletion.type = RESOURCE_UPDATE_TYPE_TEXTURE;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
-	}
-}
-
-void Resources::DestroyDescriptorSetLayout(DescriptorSetLayout* layout)
-{
-	if (layout)
-	{
-		vkDestroyDescriptorSetLayout(Renderer::device, layout->descriptorSetLayout, Renderer::allocationCallbacks);
-
-		if (layout->updateTemplate) { vkDestroyDescriptorUpdateTemplate(Renderer::device, layout->updateTemplate, Renderer::allocationCallbacks); layout->updateTemplate = nullptr; }
-	}
-}
-
-void Resources::DestroyDescriptorSet(DescriptorSet* set)
-{
-	HashHandle handle = set->handle;
-
-	if (handle != U64_MAX)
-	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET;
 		deletion.currentFrame = Renderer::currentFrame;
 		resourceDeletionQueue.Push(deletion);
 	}

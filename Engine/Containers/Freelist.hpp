@@ -3,7 +3,7 @@
 #include "ContainerDefines.hpp"
 
 //TODO: Resizing
-struct NH_API Freelist
+struct Freelist
 {
 public:
 	Freelist();

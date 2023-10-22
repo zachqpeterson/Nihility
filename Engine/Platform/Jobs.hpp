@@ -26,7 +26,7 @@ struct JobDispatchArgs
 * TODO: Wait for semaphore/fence
 * TODO: This syntax would be ideal: StartJob<func>(param, param, ...);
 */
-class NH_API Jobs
+class Jobs
 {
 public:
 	static bool Execute(const Function<void()>& job);

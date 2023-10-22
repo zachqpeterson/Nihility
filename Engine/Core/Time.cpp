@@ -90,6 +90,16 @@ F64 Time::AbsoluteTime()
 #endif
 }
 
+I64 Time::CoreCounter()
+{
+#if defined PLATFORM_WINDOWS
+	LARGE_INTEGER nowTime;
+	QueryPerformanceCounter(&nowTime);
+
+	return nowTime.QuadPart;
+#endif
+}
+
 Timer::Timer() : start{ Time::AbsoluteTime() }, elapsedTime{ 0.0 }, running{ false } {}
 
 void Timer::Start()

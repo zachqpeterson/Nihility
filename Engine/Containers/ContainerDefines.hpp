@@ -155,6 +155,7 @@ struct StringLookup<char>
 	static inline const char* FALSE_STR = "false";
 	static inline const char NULL_CHAR = '\0';
 	static inline const char NEGATIVE_CHAR = '-';
+	static inline const char POSITIVE_CHAR = '+';
 	static inline const char DECIMAL_CHAR = '.';
 	static inline const char ZERO_CHAR = '0';
 	static inline const char BACK_SLASH = '\\';
@@ -253,6 +254,7 @@ struct StringLookup<char8_t>
 	static inline const char8_t* FALSE_STR = u8"false";
 	static inline const char8_t NULL_CHAR = u8'\0';
 	static inline const char8_t NEGATIVE_CHAR = u8'-';
+	static inline const char8_t POSITIVE_CHAR = u8'+';
 	static inline const char8_t DECIMAL_CHAR = u8'.';
 	static inline const char8_t ZERO_CHAR = u8'0';
 	static inline const char8_t BACK_SLASH = u8'\\';
@@ -351,6 +353,7 @@ struct StringLookup<char16_t>
 	static inline const char16_t* FALSE_STR = u"false";
 	static inline const char16_t NULL_CHAR = u'\0';
 	static inline const char16_t NEGATIVE_CHAR = u'-';
+	static inline const char16_t POSITIVE_CHAR = u'+';
 	static inline const char16_t DECIMAL_CHAR = u'.';
 	static inline const char16_t ZERO_CHAR = u'0';
 	static inline const char16_t BACK_SLASH = u'\\';
@@ -449,6 +452,7 @@ struct StringLookup<char32_t>
 	static inline const char32_t* FALSE_STR = U"false";
 	static inline const char32_t NULL_CHAR = U'\0';
 	static inline const char32_t NEGATIVE_CHAR = U'-';
+	static inline const char32_t POSITIVE_CHAR = U'+';
 	static inline const char32_t DECIMAL_CHAR = U'.';
 	static inline const char32_t ZERO_CHAR = U'0';
 	static inline const char32_t BACK_SLASH = U'\\';
@@ -547,6 +551,7 @@ struct StringLookup<wchar_t>
 	static inline const wchar_t* FALSE_STR = L"false";
 	static inline const wchar_t NULL_CHAR = L'\0';
 	static inline const wchar_t NEGATIVE_CHAR = L'-';
+	static inline const wchar_t POSITIVE_CHAR = L'+';
 	static inline const wchar_t DECIMAL_CHAR = L'.';
 	static inline const wchar_t ZERO_CHAR = L'0';
 	static inline const wchar_t BACK_SLASH = L'\\';

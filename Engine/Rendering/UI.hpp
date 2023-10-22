@@ -26,7 +26,7 @@ enum UIElementType
 	UI_ELEMENT_COUNT
 };
 
-enum SliderType
+enum NH_API SliderType
 {
 	SLIDER_TYPE_HORIZONTAL_LEFT,
 	SLIDER_TYPE_HORIZONTAL_RIGHT,
@@ -149,7 +149,7 @@ private:
 	friend class UI;
 };
 
-struct UIElementInfo
+struct NH_API UIElementInfo
 {
 	Vector4 area{};
 	Vector4 color{};

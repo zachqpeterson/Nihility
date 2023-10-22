@@ -652,10 +652,10 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 		if (entry.glyph1 != lastGlyph)
 		{
 			lastGlyph = entry.glyph1;
-			codepoint = glyphToCodepoint.Get(lastGlyph);
+			codepoint = *glyphToCodepoint.Get(lastGlyph);
 		}
 
-		font.glyphs[codepoint].kerning[glyphToCodepoint.Get(entry.glyph2)] = (F32)(entry.advance * font.scale) / (F32)width;
+		font.glyphs[codepoint].kerning[*glyphToCodepoint.Get(entry.glyph2)] = (F32)(entry.advance * font.scale) / (F32)width;
 	}
 
 	return atlas;
@@ -860,7 +860,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 				for (I32 j = 0; parts[j]; ++j)
 				{
-					memcpy(contourData[i].edges + j, parts + j, sizeof(EdgeSegment));
+					Memory::Copy(contourData[i].edges + j, parts + j, sizeof(EdgeSegment));
 					++contourData[i].edgeCount;
 				}
 			}
@@ -900,7 +900,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 			Memory::Reallocate(&contourData[i].edges, 3);
 			contourData[i].edgeCount = 3;
 
-			memcpy(contourData[i].edges, parts, sizeof(EdgeSegment) * 3);
+			Memory::Copy(contourData[i].edges, parts, sizeof(EdgeSegment) * 3);
 		}
 	}
 

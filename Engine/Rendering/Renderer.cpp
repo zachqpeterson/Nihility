@@ -1,5 +1,7 @@
 ﻿#include "Renderer.hpp"
 
+#include "RenderingDefines.hpp"
+
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Core\Logger.hpp"
@@ -94,7 +96,7 @@ Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
 PFN_vkCmdPushDescriptorSetWithTemplateKHR Renderer::vkCmdPushDescriptorSetWithTemplateKHR;
 
-VkAllocationCallbacks*				Renderer::allocationCallbacks;
+VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPool;
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -112,14 +114,14 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene*								Renderer::currentScene;
-VmaAllocator_T*						Renderer::allocator;
+Scene* Renderer::currentScene;
+VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 CameraData							Renderer::cameraData;
 PostProcessData						Renderer::postProcessData;
-RenderGraph*						Renderer::renderGraph;
+RenderGraph* Renderer::renderGraph;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -183,6 +185,7 @@ void Renderer::Shutdown()
 	swapchain.Destroy();
 
 	Resources::Shutdown();
+	Shader::Shutdown();
 
 	vmaDestroyAllocator(allocator);
 
@@ -462,7 +465,7 @@ bool Renderer::CreateResources()
 
 	VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &descriptorPool));
 
-	if (bindlessSupported) { Resources::CreateBindless(); }
+	if (!Shader::Initialize()) { return false; }
 
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
@@ -511,8 +514,22 @@ void Renderer::EndFrame()
 	CommandBuffer* commandBuffer = GetCommandBuffer();
 	commandBuffer->Begin();
 
+	VkViewport viewport{};
+	viewport.x = renderArea.x;
+	viewport.y = renderArea.y;
+	viewport.width = renderArea.z;
+	viewport.height = renderArea.w;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	VkRect2D scissor{};
+	scissor.offset.x = (I32)renderArea.x;
+	scissor.offset.y = (I32)renderArea.y;
+	scissor.extent.width = (U32)renderArea.z;
+	scissor.extent.height = (U32)renderArea.w;
+
 #ifdef NH_DEBUG
-	if(Settings::InEditor())
+	if (Settings::InEditor())
 	{
 		if (flyCamera.Update())
 		{
@@ -522,14 +539,16 @@ void Renderer::EndFrame()
 	}
 	else
 #endif
-	if (currentScene->Update()) //TODO: Default scene
-	{
-		Camera& camera = currentScene->camera;
-		cameraData.vp = camera.ViewProjection();
-		cameraData.eye = camera.Eye();
-	}
+		if (currentScene->Update()) //TODO: Default scene
+		{
+			Camera& camera = currentScene->camera;
+			cameraData.vp = camera.ViewProjection();
+			cameraData.eye = camera.Eye();
+		}
 
 	Resources::Update();
+
+	commandBuffer->SetViewport(viewport, scissor);
 
 	renderGraph->Run(commandBuffer);
 	UI::uiRenderGraph.Run(commandBuffer);
@@ -617,7 +636,7 @@ void Renderer::SetRenderArea()
 	}
 }
 
-void Renderer::LoadScene(const String& name)
+void Renderer::LoadScene(Scene* scene)
 {
 	if (currentScene)
 	{
@@ -625,7 +644,7 @@ void Renderer::LoadScene(const String& name)
 		//TODO: Unload scene
 	}
 
-	currentScene = Resources::LoadScene(name);
+	currentScene = scene;
 }
 
 void Renderer::SetRenderGraph(RenderGraph* graph)
@@ -642,22 +661,6 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 	nameInfo.objectHandle = handle;
 	nameInfo.pObjectName = name;
 	vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
-}
-
-void Renderer::PushMarker(VkCommandBuffer commandBuffer, CSTR name)
-{
-	VkDebugUtilsLabelEXT label{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-	label.pLabelName = name;
-	label.color[0] = 1.0f;
-	label.color[1] = 1.0f;
-	label.color[2] = 1.0f;
-	label.color[3] = 1.0f;
-	vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label);
-}
-
-void Renderer::PopMarker(VkCommandBuffer commandBuffer)
-{
-	vkCmdEndDebugUtilsLabelEXT(commandBuffer);
 }
 
 void Renderer::FrameCountersAdvance()
@@ -840,16 +843,16 @@ void Renderer::DestroyBuffer(Buffer& buffer)
 bool Renderer::CreateSampler(Sampler* sampler)
 {
 	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	createInfo.addressModeU = sampler->addressModeU;
-	createInfo.addressModeV = sampler->addressModeV;
-	createInfo.addressModeW = sampler->addressModeW;
-	createInfo.minFilter = sampler->minFilter;
-	createInfo.magFilter = sampler->magFilter;
-	createInfo.mipmapMode = sampler->mipFilter;
+	createInfo.addressModeU = (VkSamplerAddressMode)sampler->addressModeU;
+	createInfo.addressModeV = (VkSamplerAddressMode)sampler->addressModeV;
+	createInfo.addressModeW = (VkSamplerAddressMode)sampler->addressModeW;
+	createInfo.minFilter = (VkFilter)sampler->minFilter;
+	createInfo.magFilter = (VkFilter)sampler->magFilter;
+	createInfo.mipmapMode = (VkSamplerMipmapMode)sampler->mipFilter;
 	createInfo.anisotropyEnable = VK_FALSE;
 	createInfo.compareEnable = VK_FALSE;
 	createInfo.unnormalizedCoordinates = VK_FALSE;
-	createInfo.borderColor = sampler->border;
+	createInfo.borderColor = (VkBorderColor)sampler->border;
 	// TODO:
 	//float                   mipLodBias;
 	//float                   maxAnisotropy;
@@ -869,9 +872,9 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	//TODO: Check for blit feature
 
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	imageInfo.format = texture->format;
+	imageInfo.format = (VkFormat)texture->format;
 	imageInfo.flags = 0;
-	imageInfo.imageType = texture->type;
+	imageInfo.imageType = (VkImageType)texture->type;
 	imageInfo.extent.width = texture->width;
 	imageInfo.extent.height = texture->height;
 	imageInfo.extent.depth = texture->depth;
@@ -886,7 +889,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	if (texture->flags & TEXTURE_FLAG_COMPUTE) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
 	if (texture->flags & TEXTURE_FLAG_RENDER_TARGET)
 	{
-		if (HasDepthOrStencil(texture->format)) { imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; }
+		if (HasDepthOrStencil((VkFormat)texture->format)) { imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; }
 		else { imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; }
 	}
 
@@ -907,10 +910,10 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	info.subresourceRange.layerCount = 1;
 	info.subresourceRange.baseMipLevel = 0;
 
-	if (HasDepthOrStencil(texture->format))
+	if (HasDepthOrStencil((VkFormat)texture->format))
 	{
-		info.subresourceRange.aspectMask = HasDepth(texture->format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
-		info.subresourceRange.aspectMask |= HasStencil(texture->format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+		info.subresourceRange.aspectMask = HasDepth((VkFormat)texture->format) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+		info.subresourceRange.aspectMask |= HasStencil((VkFormat)texture->format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
 	}
 	else
 	{
@@ -1001,8 +1004,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		if (texture->flags & TEXTURE_FLAG_RENDER_TARGET)
 		{
 			finalBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, HasDepthOrStencil(texture->format) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				HasDepthOrStencil(texture->format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount);
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, HasDepthOrStencil((VkFormat)texture->format) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				HasDepthOrStencil((VkFormat)texture->format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount);
 		}
 		else
 		{
@@ -1037,8 +1040,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	imageInfo.imageType = texture->type;
-	imageInfo.format = texture->format;
+	imageInfo.imageType = (VkImageType)texture->type;
+	imageInfo.format = (VkFormat)texture->format;
 	imageInfo.mipLevels = texture->mipmapCount;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -1103,7 +1106,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	VkImageViewCreateInfo view{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	view.format = texture->format;
+	view.format = (VkFormat)texture->format;
 	view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	view.subresourceRange.layerCount = 6;
 	view.subresourceRange.levelCount = texture->mipmapCount;
@@ -1114,81 +1117,6 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	return true;
 }
-
-bool Renderer::CreateDescriptorSetLayout(DescriptorSetLayout* descriptorSetLayout)
-{
-	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layoutInfo.pNext = nullptr;
-	layoutInfo.flags = pushDescriptorsSupported ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR : 0;
-	layoutInfo.bindingCount = descriptorSetLayout->bindingCount;
-	layoutInfo.pBindings = descriptorSetLayout->bindings;
-
-	VkValidateR(vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &descriptorSetLayout->descriptorSetLayout));
-
-	return true;
-}
-
-bool Renderer::CreateDescriptorUpdateTemplate(DescriptorSetLayout* descriptorSetLayout, Shader* shader)
-{
-	VkDescriptorUpdateTemplateEntry entries[MAX_DESCRIPTORS_PER_SET]{};
-
-	for (U32 i = 0; i < descriptorSetLayout->bindingCount; ++i)
-	{
-		VkDescriptorSetLayoutBinding& binding = descriptorSetLayout->bindings[i];
-		VkDescriptorUpdateTemplateEntry& entry = entries[i];
-
-		entry.dstBinding = binding.binding;
-		entry.dstArrayElement = 0;
-		entry.descriptorCount = binding.descriptorCount;
-		entry.descriptorType = binding.descriptorType;
-		entry.offset = sizeof(Descriptor) * i;
-		entry.stride = sizeof(Descriptor);
-	}
-
-	VkDescriptorUpdateTemplateCreateInfo descriptorTemplateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO };
-	descriptorTemplateInfo.pNext = nullptr;
-	descriptorTemplateInfo.flags = 0;
-	descriptorTemplateInfo.templateType = pushDescriptorsSupported ? VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR : VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET;
-	descriptorTemplateInfo.descriptorSetLayout = pushDescriptorsSupported ? 0 : descriptorSetLayout->descriptorSetLayout;
-	descriptorTemplateInfo.pipelineBindPoint = shader->bindPoint;
-	descriptorTemplateInfo.pipelineLayout = shader->pipelineLayout;
-	descriptorTemplateInfo.descriptorUpdateEntryCount = descriptorSetLayout->bindingCount;
-	descriptorTemplateInfo.pDescriptorUpdateEntries = entries;
-	descriptorTemplateInfo.set = descriptorSetLayout->setIndex;
-
-	VkValidateR(vkCreateDescriptorUpdateTemplate(device, &descriptorTemplateInfo, allocationCallbacks, &descriptorSetLayout->updateTemplate));
-
-	return true;
-}
-
-void Renderer::PushDescriptors(CommandBuffer* commandBuffer, Shader* shader)
-{
-	if (pushDescriptorsSupported)
-	{
-		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, shader->setLayouts[0]->updateTemplate, shader->pipelineLayout, 0, shader->descriptors);
-	}
-	else
-	{
-		VkDescriptorSet sets[]{ nullptr, Resources::bindlessDescriptorSet };
-		U32 firstSet = 0;
-
-		if (shader->descriptorCount)
-		{
-			VkDescriptorSetAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-
-			allocateInfo.descriptorPool = descriptorPool;
-			allocateInfo.descriptorSetCount = 1;
-			allocateInfo.pSetLayouts = &shader->setLayouts[0]->descriptorSetLayout;
-
-			VkValidate(vkAllocateDescriptorSets(device, &allocateInfo, sets));
-
-			vkUpdateDescriptorSetWithTemplate(device, sets[0], shader->setLayouts[0]->updateTemplate, shader->descriptors);
-		}
-		else { firstSet = 1; }
-
-		commandBuffer->BindDescriptorSets(shader, firstSet, (shader->descriptorCount > 0) + shader->useBindless, sets + firstSet);
-	}
-};
 
 void Renderer::PushConstants(CommandBuffer* commandBuffer, Shader* shader)
 {
@@ -1216,11 +1144,11 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 	{
 		attachments[attachmentCount].flags = 0;
-		attachments[attachmentCount].format = renderpass->renderTargets[i]->format;
+		attachments[attachmentCount].format = (VkFormat)renderpass->renderTargets[i]->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = renderpass->colorLoadOp;
+		attachments[attachmentCount].loadOp = (VkAttachmentLoadOp)renderpass->colorLoadOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = renderpass->stencilLoadOp;
+		attachments[attachmentCount].stencilLoadOp = (VkAttachmentLoadOp)renderpass->stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = initialColorLayout;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1237,11 +1165,11 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	if (renderpass->depthStencilTarget)
 	{
 		attachments[attachmentCount].flags = 0;
-		attachments[attachmentCount].format = renderpass->depthStencilTarget->format;
+		attachments[attachmentCount].format = (VkFormat)renderpass->depthStencilTarget->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = renderpass->depthLoadOp;
+		attachments[attachmentCount].loadOp = (VkAttachmentLoadOp)renderpass->depthLoadOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = renderpass->stencilLoadOp;
+		attachments[attachmentCount].stencilLoadOp = (VkAttachmentLoadOp)renderpass->stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = initialDepthLayout;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1293,28 +1221,6 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	renderpass->lastResize = absoluteFrame;
 
 	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderpass->renderpass, renderpass->name);
-
-	renderpass->viewport.viewportCount = 0;
-	renderpass->viewport.scissorCount = 0;
-
-	//TODO: Pass in Viewport info
-	VkViewport viewport{};
-	viewport.x = renderArea.x;
-	viewport.y = renderArea.y;
-	viewport.width = renderArea.z;
-	viewport.height = renderArea.w;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	renderpass->viewport.viewports[0] = viewport;
-	++renderpass->viewport.viewportCount;
-
-	VkRect2D scissor{};
-	scissor.offset.x = (I32)renderArea.x;
-	scissor.offset.y = (I32)renderArea.y;
-	scissor.extent.width = (U32)renderArea.z;
-	scissor.extent.height = (U32)renderArea.w;
-	renderpass->viewport.scissors[0] = scissor;
-	++renderpass->viewport.scissorCount;
 
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderpass->renderpass;

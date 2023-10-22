@@ -6,7 +6,7 @@
 #include "Platform\ThreadSafety.hpp"
 
 template<class Type>
-struct NH_API SafeQueue
+struct SafeQueue
 {
 public:
 	SafeQueue();

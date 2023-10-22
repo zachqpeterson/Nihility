@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 #include "Containers\Vector.hpp"
 
-enum NH_API ButtonCode
+enum ButtonCode
 {
 	/*Mouse Buttons*/
 	BUTTON_CODE_LEFT_MOUSE = 0x01,
@@ -242,7 +242,7 @@ enum NH_API ButtonCode
 	BUTTON_CODE_COUNT
 };
 
-enum NH_API AxisCode
+enum AxisCode
 {
 	AXIS_CODE_LEFT_JOYSTICK_X,
 	AXIS_CODE_LEFT_JOYSTICK_Y,
