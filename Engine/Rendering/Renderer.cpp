@@ -82,11 +82,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 CSTR								Renderer::appName;
 U32									Renderer::appVersion;
 
-// CAPABILITIES
-VkPhysicalDeviceFeatures			Renderer::physicalDeviceFeatures;
-VkPhysicalDeviceProperties			Renderer::physicalDeviceProperties;
-VkPhysicalDeviceMemoryProperties	Renderer::physicalDeviceMemoryProperties;
-
 // DEVICE
 VkInstance							Renderer::instance;
 VkPhysicalDevice					Renderer::physicalDevice;
@@ -94,9 +89,8 @@ VkDevice							Renderer::device;
 VkQueue								Renderer::deviceQueue;
 Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
-PFN_vkCmdPushDescriptorSetWithTemplateKHR Renderer::vkCmdPushDescriptorSetWithTemplateKHR;
 
-VkAllocationCallbacks* Renderer::allocationCallbacks;
+VkAllocationCallbacks*				Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPool;
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -114,14 +108,14 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene* Renderer::currentScene;
-VmaAllocator_T* Renderer::allocator;
+Scene*								Renderer::currentScene;
+VmaAllocator_T*						Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 CameraData							Renderer::cameraData;
 PostProcessData						Renderer::postProcessData;
-RenderGraph* Renderer::renderGraph;
+RenderGraph*						Renderer::renderGraph;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -129,16 +123,25 @@ VkSemaphore							Renderer::queueSubmitted{ nullptr };
 
 // DEBUG
 VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
-PFN_vkCreateDebugUtilsMessengerEXT	Renderer::vkCreateDebugUtilsMessengerEXT;
-PFN_vkDestroyDebugUtilsMessengerEXT	Renderer::vkDestroyDebugUtilsMessengerEXT;
-PFN_vkSetDebugUtilsObjectNameEXT	Renderer::vkSetDebugUtilsObjectNameEXT;
-PFN_vkCmdBeginDebugUtilsLabelEXT	Renderer::vkCmdBeginDebugUtilsLabelEXT;
-PFN_vkCmdEndDebugUtilsLabelEXT		Renderer::vkCmdEndDebugUtilsLabelEXT;
 bool								Renderer::debugUtilsExtensionPresent{ false };
 
 #ifdef NH_DEBUG
 FlyCamera							Renderer::flyCamera{};
 #endif
+
+struct VulkanInfo
+{
+	// CAPABILITIES
+	VkPhysicalDeviceFeatures				physicalDeviceFeatures;
+	VkPhysicalDeviceProperties				physicalDeviceProperties;
+	VkPhysicalDeviceMemoryProperties		physicalDeviceMemoryProperties;
+
+
+} vulkanInfo;
+
+PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT;
+PFN_vkCreateDebugUtilsMessengerEXT CreateDebugUtilsMessengerEXT;
+PFN_vkSetDebugUtilsObjectNameEXT SetDebugUtilsObjectNameEXT;
 
 bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 {
@@ -190,7 +193,7 @@ void Renderer::Shutdown()
 	vmaDestroyAllocator(allocator);
 
 #ifdef NH_DEBUG
-	vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
+	DestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
 #endif
 
 	vkDestroyDescriptorPool(device, descriptorPool, allocationCallbacks);
@@ -260,16 +263,12 @@ bool Renderer::CreateInstance()
 
 	VkValidateFR(vkCreateInstance(&instanceInfo, allocationCallbacks, &instance));
 
-	vkCmdPushDescriptorSetWithTemplateKHR = (PFN_vkCmdPushDescriptorSetWithTemplateKHR)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-
 #ifdef NH_DEBUG
-	vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	vkSetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
-	vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT");
-	vkCmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT");
+	DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
 
-	VkValidateFR(vkCreateDebugUtilsMessengerEXT(instance, &debugInfo, allocationCallbacks, &debugMessenger));
+	VkValidateFR(CreateDebugUtilsMessengerEXT(instance, &debugInfo, allocationCallbacks, &debugMessenger));
 #endif
 
 	return true;
@@ -287,24 +286,24 @@ bool Renderer::SelectGPU()
 
 	for (VkPhysicalDevice gpu : gpus)
 	{
-		vkGetPhysicalDeviceProperties(gpu, &physicalDeviceProperties);
+		vkGetPhysicalDeviceProperties(gpu, &vulkanInfo.physicalDeviceProperties);
 
-		if (physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) { if (GetFamilyQueue(gpu)) { discreteGpu = gpu; break; } }
-		else if (physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) { if (GetFamilyQueue(gpu)) { integratedGpu = gpu; } }
+		if (vulkanInfo.physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) { if (GetFamilyQueue(gpu)) { discreteGpu = gpu; break; } }
+		else if (vulkanInfo.physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) { if (GetFamilyQueue(gpu)) { integratedGpu = gpu; } }
 	}
 
 	if (discreteGpu != VK_NULL_HANDLE) { physicalDevice = discreteGpu; }
 	else if (integratedGpu != VK_NULL_HANDLE) { physicalDevice = integratedGpu; }
 	else { Logger::Fatal("No Suitable GPU Found!"); return false; }
 
-	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+	vkGetPhysicalDeviceProperties(physicalDevice, &vulkanInfo.physicalDeviceProperties);
 
-	Logger::Trace("Best GPU Found: {}", physicalDeviceProperties.deviceName);
+	Logger::Trace("Best GPU Found: {}", vulkanInfo.physicalDeviceProperties.deviceName);
 
-	uboAlignment = physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-	sboAlignemnt = physicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+	uboAlignment = vulkanInfo.physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+	sboAlignemnt = vulkanInfo.physicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
 
-	vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
+	vkGetPhysicalDeviceFeatures(physicalDevice, &vulkanInfo.physicalDeviceFeatures);
 
 	return true;
 }
@@ -550,11 +549,11 @@ void Renderer::EndFrame()
 
 	commandBuffer->SetViewport(viewport, scissor);
 
-	renderGraph->Run(commandBuffer);
+	Texture* finalRender = renderGraph->Run(commandBuffer);
 	UI::uiRenderGraph.Run(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(Resources::geometryBuffer->image,
+		ImageBarrier(finalRender->image,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
 		ImageBarrier(swapchain.renderTargets[frameIndex]->image, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -575,7 +574,7 @@ void Renderer::EndFrame()
 	blitRegion.dstOffsets[1].y = swapchain.height;
 	blitRegion.dstOffsets[1].z = 1;
 
-	commandBuffer->Blit(Resources::geometryBuffer, swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
+	commandBuffer->Blit(finalRender, swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
 
 	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -650,6 +649,7 @@ void Renderer::LoadScene(Scene* scene)
 void Renderer::SetRenderGraph(RenderGraph* graph)
 {
 	renderGraph = graph;
+	UI::UpdateRenderpass(graph->passes.Back().renderpass);
 }
 
 void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
@@ -660,7 +660,7 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 	nameInfo.objectType = type;
 	nameInfo.objectHandle = handle;
 	nameInfo.pObjectName = name;
-	vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
+	SetDebugUtilsObjectNameEXT(device, &nameInfo);
 }
 
 void Renderer::FrameCountersAdvance()
@@ -684,6 +684,21 @@ U32 Renderer::FrameIndex()
 U32 Renderer::CurrentFrame()
 {
 	return currentFrame;
+}
+
+const VkPhysicalDeviceFeatures& Renderer::GetDeviceFeatures()
+{
+	return vulkanInfo.physicalDeviceFeatures;
+}
+
+const VkPhysicalDeviceProperties& Renderer::GetDeviceProperties()
+{
+	return vulkanInfo.physicalDeviceProperties;
+}
+
+const VkPhysicalDeviceMemoryProperties& Renderer::GetDeviceMemoryProperties()
+{
+	return vulkanInfo.physicalDeviceMemoryProperties;
 }
 
 CommandBuffer* Renderer::GetCommandBuffer()
@@ -837,6 +852,8 @@ void Renderer::DestroyBuffer(Buffer& buffer)
 		}
 
 		vmaDestroyBuffer(allocator, buffer.vkBuffer, buffer.allocation);
+
+		buffer.vkBuffer = nullptr;
 	}
 }
 
@@ -925,7 +942,6 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
 
-
 	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	if (data)
@@ -995,6 +1011,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 			blitCmd->PipelineBarrier(0, 0, nullptr, 1, &mipBarrier);
 
 			VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->mipmaps[i]));
+
+			SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name + "_mip1");
 		}
 
 		texture->mipmapsGenerated = texture->mipmapCount > 1;
@@ -1113,6 +1131,10 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 	view.image = texture->image;
 	VkValidateR(vkCreateImageView(device, &view, allocationCallbacks, &texture->imageView));
 
+	texture->mipmaps[0] = texture->imageView;
+
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
+
 	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	return true;
@@ -1120,10 +1142,9 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 void Renderer::PushConstants(CommandBuffer* commandBuffer, Shader* shader)
 {
-	switch (shader->pushConstantType)
+	for (U32 i = 0; i < shader->pushConstantCount; ++i)
 	{
-	case PUSH_CONSTANT_TYPE_CAMERA: { commandBuffer->PushConstants(shader, 0, sizeof(CameraData), &cameraData); } break;
-	case PUSH_CONSTANT_TYPE_POST_PROCESS: { commandBuffer->PushConstants(shader, 0, sizeof(PostProcessData), &postProcessData); } break;
+		commandBuffer->PushConstants(shader, shader->pushConstants[i].offset, shader->pushConstants[i].size, shader->pushConstants[i].data);
 	}
 };
 

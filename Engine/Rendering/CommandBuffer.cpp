@@ -140,7 +140,7 @@ void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 off
 {
 	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount and physicalDeviceFeatures.drawIndirectFirstInstance;
 
-	if (Renderer::physicalDeviceFeatures.multiDrawIndirect)
+	if (Renderer::GetDeviceFeatures().multiDrawIndirect)
 	{
 		vkCmdDrawIndexedIndirect(commandBuffer, buffer.vkBuffer, offset, count, sizeof(VkDrawIndexedIndirectCommand));
 	}

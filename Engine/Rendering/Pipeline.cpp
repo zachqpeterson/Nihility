@@ -108,9 +108,11 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 
 		VkPipelineCacheHeaderVersionOne* cacheHeader = (VkPipelineCacheHeaderVersionOne*)data;
 
-		if (cacheHeader->deviceID == Renderer::physicalDeviceProperties.deviceID &&
-			cacheHeader->vendorID == Renderer::physicalDeviceProperties.vendorID &&
-			memcmp(cacheHeader->pipelineCacheUUID, Renderer::physicalDeviceProperties.pipelineCacheUUID, VK_UUID_SIZE) == 0)
+		const VkPhysicalDeviceProperties& deviceProperties = Renderer::GetDeviceProperties();
+
+		if (cacheHeader->deviceID == deviceProperties.deviceID &&
+			cacheHeader->vendorID == deviceProperties.vendorID &&
+			memcmp(cacheHeader->pipelineCacheUUID, deviceProperties.pipelineCacheUUID, VK_UUID_SIZE) == 0)
 		{
 			pipelineCacheCreateInfo.initialDataSize = size;
 			pipelineCacheCreateInfo.pInitialData = data;
@@ -237,6 +239,11 @@ bool Pipeline::CreatePipeline(const SpecializationInfo& specializationInfo)
 	vkDestroyPipelineCache(Renderer::device, pipelineCache, Renderer::allocationCallbacks);
 
 	return true;
+}
+
+void Pipeline::ChangeRenderpass(Renderpass* renderpass)
+{
+	this->renderpass = renderpass;
 }
 
 void Pipeline::Destroy()

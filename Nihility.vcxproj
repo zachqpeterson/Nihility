@@ -108,6 +108,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Containers\Array.hpp" />
     <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
     <ClInclude Include="Engine\Containers\Freelist.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />

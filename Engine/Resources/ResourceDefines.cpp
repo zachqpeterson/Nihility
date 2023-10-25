@@ -1,5 +1,6 @@
 #include "ResourceDefines.hpp"
 
+#include "Rendering\RenderingDefines.hpp"
 #include "Rendering\CommandBuffer.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
@@ -257,9 +258,9 @@ bool Camera::Update()
 {
 	if (updateView)
 	{
-		const Quaternion3 pitchRotation{ Vector3::Right, pitch };
-		const Quaternion3 yawRotation{ Vector3::Up, yaw };
-		const Quaternion3 rollRotation{ Vector3::Forward, roll };
+		const Quaternion3 pitchRotation{ Vector3Right, pitch };
+		const Quaternion3 yawRotation{ Vector3Up, yaw };
+		const Quaternion3 rollRotation{ Vector3Forward, roll };
 		const Quaternion3 rotation = (pitchRotation * yawRotation * rollRotation).Normalize();
 
 		const Matrix4 translation{ position };
@@ -362,10 +363,56 @@ bool FlyCamera::Update()
 	}
 	else
 	{
+		Vector3 cameraMovement{ 0, 0, 0 };
 
+		if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
+		{
+			if (ignoreDraggingFrames == 0)
+			{
+				I32 x, y;
+				Input::MouseDelta(x, y);
+
+				cameraMovement.x -= x * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+				cameraMovement.y -= y * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+			}
+			else
+			{
+				--ignoreDraggingFrames;
+			}
+
+			mouseDragging = true;
+		}
+		else
+		{
+			mouseDragging = false;
+			ignoreDraggingFrames = 3;
+		}
+
+		F32 cameraMovementDelta = movementDelta;
+
+		if (Input::ButtonDown(BUTTON_CODE_SHIFT)) { cameraMovementDelta *= 10.0f; }
+		if (Input::ButtonDown(BUTTON_CODE_ALT)) { cameraMovementDelta *= 100.0f; }
+		if (Input::ButtonDown(BUTTON_CODE_CTRL)) { cameraMovementDelta *= 0.1f; }
+
+		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += Vector3Right * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += Vector3Right * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += Vector3Up * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += Vector3Up * cameraMovementDelta; }
+
+		camera.SetPosition(Math::Lerp(camera.Position(), targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime()))); //TODO: Abstract
 	}
 
 	return camera.Update();
+}
+
+void RenderGraph::Destroy()
+{
+	for (Pass& p : passes)
+	{
+		p.pipelines.Destroy();
+	}
+
+	passes.Destroy();
 }
 
 void RenderGraph::AddPipeline(Pipeline* pipeline)
@@ -399,7 +446,7 @@ void RenderGraph::AddPipeline(Pipeline* pipeline)
 	}
 }
 
-void RenderGraph::Run(CommandBuffer* commandBuffer)
+Texture* RenderGraph::Run(CommandBuffer* commandBuffer)
 {
 	for (Pass& pass : passes)
 	{
@@ -412,4 +459,6 @@ void RenderGraph::Run(CommandBuffer* commandBuffer)
 
 		commandBuffer->EndRenderpass();
 	}
+
+	return passes.Back().renderpass->renderTargets[0];
 }

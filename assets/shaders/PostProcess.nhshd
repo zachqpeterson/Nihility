@@ -5,7 +5,6 @@ front=CLOCKWISE
 fill=SOLID
 blend=ADD
 draw=FULLSCREEN
-push=POST_PROCESS
 order=2
 #CONFIG_END
 

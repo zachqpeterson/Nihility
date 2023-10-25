@@ -72,9 +72,9 @@ F32 Median(F32 a, F32 b, F32 c)
 
 I32 SolveQuadratic(F32 x[2], F32 a, F32 b, F32 c)
 {
-	if (Math::Abs(a) < F32_EPSILON)
+	if (Math::Abs(a) < Traits<F32>::Epsilon)
 	{
-		if (Math::Abs(b) < F32_EPSILON)
+		if (Math::Abs(b) < Traits<F32>::Epsilon)
 		{
 			if (c == 0) { return -1; }
 
@@ -136,14 +136,14 @@ I32 SolveCubicNormed(F32* x, F32 a, F32 b, F32 c)
 		x[1] = -0.5f * (A + B) - a;
 		x[2] = 0.86602540378f * (A - B);
 
-		if (Math::Abs(x[2]) < F32_EPSILON) { return 2; }
+		if (Math::Abs(x[2]) < Traits<F32>::Epsilon) { return 2; }
 		return 1;
 	}
 }
 
 I32 SolveCubic(F32 x[3], F32 a, F32 b, F32 c, F32 d)
 {
-	if (Math::Abs(a) < F32_EPSILON) { return SolveQuadratic(x, b, c, d); }
+	if (Math::Abs(a) < Traits<F32>::Epsilon) { return SolveQuadratic(x, b, c, d); }
 
 	return SolveCubicNormed(x, b / a, c / a, d / a);
 }

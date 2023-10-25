@@ -1,5 +1,7 @@
 #include "Swapchain.hpp"
 
+#include "RenderingDefines.hpp"
+
 #include "Renderer.hpp"
 #include "Platform\Platform.hpp"
 #include "Resources\Settings.hpp"
@@ -24,6 +26,8 @@ bool Swapchain::CreateSurface()
 
 	return true;
 }
+
+VkSurfaceFormatKHR surfaceFormat{};
 
 bool Swapchain::GetFormat()
 {
@@ -56,6 +60,8 @@ bool Swapchain::GetFormat()
 bool Swapchain::Create()
 {
 	VkSwapchainKHR oldSwapchain = swapchain;
+
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
 	VkValidateFR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Renderer::physicalDevice, surface, &surfaceCapabilities));
 
@@ -182,7 +188,7 @@ VkResult Swapchain::NextImage(U32& frameIndex, VkSemaphore semaphore, VkFence fe
 	return vkAcquireNextImageKHR(Renderer::device, swapchain, U64_MAX, semaphore, fence, &frameIndex);
 }
 
-VkResult Swapchain::Present(VkQueue queue, U32 imageIndex, U32 waitCount, const VkSemaphore* waits)
+VkResult Swapchain::Present(VkQueue queue, U32 imageIndex, U32 waitCount, VkSemaphore* waits)
 {
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.waitSemaphoreCount = waitCount;

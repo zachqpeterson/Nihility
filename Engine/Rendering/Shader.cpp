@@ -214,6 +214,8 @@ bool Shader::Initialize()
 		return false;
 	}
 
+	Renderer::SetResourceName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (U64)dummyDescriptorSetLayout, "dummy_dsl");
+
 	if (Renderer::bindlessSupported)
 	{
 		VkDescriptorPoolSize bindlessPoolSizes[]
@@ -273,6 +275,8 @@ bool Shader::Initialize()
 
 		VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout->descriptorSetLayout));
 
+		Renderer::SetResourceName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (U64)bindlessDescriptorSetLayout->descriptorSetLayout, "bindless_dsl");
+
 		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		allocInfo.descriptorPool = bindlessDescriptorPool;
 		allocInfo.descriptorSetCount = 1;
@@ -295,6 +299,8 @@ void Shader::Shutdown()
 {
 	descriptorSetLayouts.Destroy();
 
+	vkDestroyDescriptorSetLayout(Renderer::device, dummyDescriptorSetLayout, Renderer::allocationCallbacks);
+
 	if (Renderer::bindlessSupported)
 	{
 		vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout->descriptorSetLayout, Renderer::allocationCallbacks);
@@ -302,7 +308,7 @@ void Shader::Shutdown()
 	}
 }
 
-bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants)
+bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstant* pushConstants_)
 {
 	String data = Resources::LoadBinaryString(shaderPath);
 
@@ -379,6 +385,8 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConsta
 			return false;
 		}
 
+		Renderer::SetResourceName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (U64)setLayout->descriptorSetLayout, name + "_dsl");
+
 		vkLayouts[0] = setLayout->descriptorSetLayout;
 	}
 	else
@@ -391,13 +399,37 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount, VkPushConsta
 		vkLayouts[1] = bindlessDescriptorSetLayout->descriptorSetLayout;
 	}
 
+	VkPushConstantRange pushRanges[MAX_PUSH_CONSTANTS]{};
+
+	U32 pushContantSize = 0;
+
+	pushConstantCount = pushConstantCount_;
+
+	for (U32 i = 0; i < pushConstantCount; ++i)
+	{
+		pushRanges[i].stageFlags = pushConstantStages;
+		pushRanges[i].offset = pushConstants_[i].offset;
+		pushRanges[i].size = pushConstants_[i].size;
+
+		pushConstants[i] = pushConstants_[i];
+
+		pushContantSize += pushConstants_[i].size;
+	}
+
+	if (pushContantSize > MAX_PUSH_CONSTANT_SIZE)
+	{
+		Logger::Error("Total Push Constant Size Exceeds Limit Of 128 Bytes!");
+		Destroy();
+		return false;
+	}
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.flags = 0;
 	pipelineLayoutInfo.pNext = nullptr;
 	pipelineLayoutInfo.pSetLayouts = vkLayouts;
 	pipelineLayoutInfo.setLayoutCount = useBindless ? 2 : useSet0;
 	pipelineLayoutInfo.pushConstantRangeCount = pushConstantCount;
-	pipelineLayoutInfo.pPushConstantRanges = pushConstants;
+	pipelineLayoutInfo.pPushConstantRanges = pushRanges;
 
 	VkValidate(vkCreatePipelineLayout(Renderer::device, &pipelineLayoutInfo, Renderer::allocationCallbacks, &pipelineLayout));
 
@@ -610,14 +642,6 @@ bool Shader::ParseConfig(const String& data, I64& index)
 			if (data.CompareN("INDEX", index + 1)) { drawType = DRAW_TYPE_INDEX; }
 			else if (data.CompareN("VERTEX", index + 1)) { drawType = DRAW_TYPE_VERTEX; }
 			else if (data.CompareN("FULLSCREEN", index + 1)) { drawType = DRAW_TYPE_FULLSCREEN; }
-		}
-		else if (data.CompareN("push", index + 1))
-		{
-			index = data.IndexOf('=', index + 1);
-
-			if (data.CompareN("NONE", index + 1)) { pushConstantType = PUSH_CONSTANT_TYPE_NONE; }
-			else if (data.CompareN("CAMERA", index + 1)) { pushConstantType = PUSH_CONSTANT_TYPE_CAMERA; }
-			else if (data.CompareN("POST_PROCESS", index + 1)) { pushConstantType = PUSH_CONSTANT_TYPE_POST_PROCESS; }
 		}
 		else if (data.CompareN("order", index + 1))
 		{

@@ -1,10 +1,26 @@
 #pragma once
 
-#include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
 
 struct Shader;
 struct Pipeline;
+struct VkQueue_T;
+struct VkSemaphore_T;
+struct VkDescriptorSet_T;
+struct VkCommandBuffer_T;
+struct VkCommandPool_T;
+struct VkClearAttachment;
+struct VkClearRect;
+struct VkViewport;
+struct VkRect2D;
+struct VkBufferImageCopy;
+struct VkBufferCopy;
+struct VkImageCopy;
+struct VkImageBlit;
+struct VkBufferMemoryBarrier2;
+struct VkImageMemoryBarrier2;
+enum VkFilter;
+enum VkResult;
 
 struct CommandBuffer
 {
@@ -13,8 +29,8 @@ struct CommandBuffer
 
 	VkResult Begin();
 	VkResult End();
-	VkResult Submit(VkQueue queue);
-	VkResult Submit(VkQueue queue, VkPipelineStageFlags* stageMasks, U32 waitCount, VkSemaphore* waits, U32 signalCount, VkSemaphore* signals);
+	VkResult Submit(VkQueue_T* queue);
+	VkResult Submit(VkQueue_T* queue, U32* stageMasks, U32 waitCount, VkSemaphore_T** waits, U32 signalCount, VkSemaphore_T** signals);
 	VkResult Reset();
 
 	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
@@ -27,7 +43,7 @@ struct CommandBuffer
 	void BindIndexBuffer(Shader* shader, const Buffer& buffer);
 	void BindVertexBuffer(Shader* shader, const Buffer& buffer);
 	void BindInstanceBuffer(Shader* shader, const Buffer& buffer);
-	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet* sets);
+	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
 
 	void PushDescriptors();
 	void PushConstants(Shader* shader, U32 offset, U32 size, const void* data);
@@ -52,7 +68,7 @@ struct CommandBuffer
 	bool						baked{ false };
 
 private:
-	VkCommandBuffer				commandBuffer{ nullptr };
+	VkCommandBuffer_T*			commandBuffer{ nullptr };
 
 	friend struct CommandBufferRing;
 };
@@ -74,7 +90,7 @@ struct CommandBufferRing
 	static constexpr U16			bufferPerPool = 4;
 	static constexpr U16			maxBuffers = bufferPerPool * maxPools;
 
-	VkCommandPool					commandPools[maxPools];
+	VkCommandPool_T*				commandPools[maxPools];
 	CommandBuffer					commandBuffers[maxBuffers];
 	U8								nextFreePerThreadFrame[maxPools];
 };

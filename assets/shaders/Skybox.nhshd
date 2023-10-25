@@ -6,7 +6,6 @@ fill=SOLID
 depth=LESS_EQUAL
 blend=ADD
 instanceOffset=1
-push=CAMERA
 order=1
 #CONFIG_END
 

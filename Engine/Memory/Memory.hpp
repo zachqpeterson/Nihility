@@ -44,6 +44,8 @@ public:
 	template<Pointer Type> static void Free(Type* pointer);
 
 	template<Pointer Type> static void AllocateStatic(Type* pointer);
+	template<Pointer Type> static void AllocateStaticSize(Type* pointer, const U64& size);
+	template<Pointer Type> static void AllocateStaticArray(Type* pointer, const U64& count);
 
 	static bool IsDynamicallyAllocated(void* pointer);
 	static bool IsStaticallyAllocated(void* pointer);
@@ -267,6 +269,40 @@ inline void Memory::AllocateStatic(Type* pointer)
 	if (!initialized) { Initialize(); }
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
+
+	if (staticPointer + size <= memory + totalSize)
+	{
+		*pointer = staticPointer;
+		staticPointer += size;
+
+		return;
+	}
+
+	BreakPoint;
+}
+
+template<Pointer Type> 
+inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
+{
+	if (!initialized) { Initialize(); }
+
+	if (staticPointer + size <= memory + totalSize)
+	{
+		*pointer = staticPointer;
+		staticPointer += size;
+
+		return;
+	}
+
+	BreakPoint;
+}
+
+template<Pointer Type> 
+inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
+{
+	if (!initialized) { Initialize(); }
+
+	U64 size = sizeof(RemovedPointer<Type>) * count;
 
 	if (staticPointer + size <= memory + totalSize)
 	{

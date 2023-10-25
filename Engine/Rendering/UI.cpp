@@ -166,7 +166,7 @@ bool UI::Initialize()
 	textHeight = 48.0f / 1080.0f;
 	
 	textPosistion = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
-	textPadding = Vector2::One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
+	textPadding = Vector2One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	
 	TextVertex vertices[4]{
 		{ { 0.0f, textHeight }, { 0.0f, textPosistion.y } },
@@ -180,8 +180,32 @@ bool UI::Initialize()
 	return true;
 }
 
+void UI::UpdateRenderpass(Renderpass* renderpass)
+{
+	Resources::DestroyRenderpass(uiRenderpass);
+
+	RenderpassInfo renderpassInfo{};
+	renderpassInfo.name = "ui_pass";
+	renderpassInfo.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	renderpassInfo.AddRenderTarget(renderpass->renderTargets[0]);
+
+	renderpassInfo.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	renderpassInfo.SetDepthStencilTarget(renderpass->depthStencilTarget);
+
+	uiRenderpass = Resources::CreateRenderpass(renderpassInfo);
+
+	uiPipeline->ChangeRenderpass(uiRenderpass);
+	textPipeline->ChangeRenderpass(uiRenderpass);
+
+	uiRenderGraph.Destroy();
+
+	uiRenderGraph.AddPipeline(textPipeline);
+	uiRenderGraph.AddPipeline(uiPipeline);
+}
+
 void UI::Shutdown()
 {
+	uiRenderGraph.Destroy();
 	elements.Destroy();
 }
 
@@ -296,7 +320,7 @@ UIElement* UI::CreateElement(const UIElementInfo& info)
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
-	instance.model = Matrix3::Identity;
+	instance.model = Matrix3Identity;
 
 	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
@@ -354,7 +378,7 @@ UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vect
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
-	instance.model = Matrix3::Identity;
+	instance.model = Matrix3Identity;
 
 	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
@@ -382,9 +406,9 @@ UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Ve
 
 	UIInstance instance{};
 	instance.textureIndex = (U32)texture->handle;
-	instance.model = Matrix3::Identity;
+	instance.model = Matrix3Identity;
 
-	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance) , &instance) / sizeof(UIInstance);
+	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
 	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
 
@@ -472,11 +496,11 @@ UIElement* UI::CreateSlider(const UIElementInfo& info, const Vector4& fillColor,
 
 	UIInstance instance{};
 	instance.textureIndex = U16_MAX;
-	instance.model = Matrix3::Identity;
+	instance.model = Matrix3Identity;
 
 	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
 
-	uiPipeline->UploadDrawCall(2, 0, element->vertexOffset, 1, element->instanceOffset);
+	uiPipeline->UploadDrawCall(12, 0, element->vertexOffset, 1, element->instanceOffset);
 
 	return element;
 }
@@ -536,7 +560,7 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 
 			instance.textureIndex = (U32)font->texture->handle;
 			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
-			instance.texcoord = texPos * textPosistion + (texPos + Vector2::One) * textPadding;
+			instance.texcoord = texPos * textPosistion + (texPos + Vector2One) * textPadding;
 			instance.color = info.color;
 			instance.scale = scale;
 
@@ -679,7 +703,7 @@ void UI::ChangeText(UIElement* element, const String& string)
 
 			instance.textureIndex = (U32)font->texture->handle;
 			instance.position = position - Vector2{ glyph.x * textWidth * element->text.size, -glyph.y * textHeight * element->text.size + yOffset };
-			instance.texcoord = texPos * textPosistion + (texPos + Vector2::One) * textPadding;
+			instance.texcoord = texPos * textPosistion + (texPos + Vector2One) * textPadding;
 			instance.color = element->color;
 			instance.scale = element->text.size;
 

@@ -4,9 +4,13 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 
-void Scene::Create()
+void Scene::Create(CameraType cameraType)
 {
-	camera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
+	switch (cameraType)
+	{
+	case CAMERA_TYPE_PERSPECTIVE: { camera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f); } break;
+	case CAMERA_TYPE_ORTHOGRAPHIC: { camera.SetOrthograpic(0.01f, 1000.0f, 1920.0f, 1080.0f, 0.0f); } break;
+	}
 }
 
 Scene::~Scene() { Destroy(); }

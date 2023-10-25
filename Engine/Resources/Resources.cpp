@@ -3,11 +3,12 @@
 #include "Font.hpp"
 #include "Platform\Audio.hpp"
 #include "Settings.hpp"
+#include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
+#include "Rendering\Pipeline.hpp"
 #include "Core\Logger.hpp"
 #include "Core\DataReader.hpp"
 #include "Math\Color.hpp"
-#include "Rendering\Pipeline.hpp"
 #include "Containers\Stack.hpp"
 
 #include "External\Assimp\cimport.h"
@@ -505,7 +506,7 @@ bool Resources::Initialize()
 
 	geometryRenderpass = Resources::CreateRenderpass(renderPassInfo);
 
-	VkPushConstantRange pushConstant{ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraData) };
+	PushConstant pushConstant{ 0, sizeof(CameraData), &Renderer::cameraData };
 	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
 	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 
@@ -516,7 +517,6 @@ bool Resources::Initialize()
 	info.renderpass = geometryRenderpass;
 	meshPipeline = CreatePipeline(info);
 
-	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	info.name = "skybox_pipeline";
 	info.shader = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
 	info.vertexBufferSize = sizeof(F32) * CountOf32(skyboxVertices);
@@ -528,8 +528,7 @@ bool Resources::Initialize()
 	skyboxPipeline->UploadVertices(sizeof(F32) * CountOf32(skyboxVertices), skyboxVertices);
 	skyboxPipeline->UploadIndices(sizeof(U32) * CountOf32(skyboxIndices), skyboxIndices);
 
-	pushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	pushConstant.size = sizeof(PostProcessData);
+	pushConstant = { 0, sizeof(PostProcessData), &Renderer::postProcessData };
 	info.shader = CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
 	info.name = "postprocess_pipeline";
 	info.vertexBufferSize = 0;
@@ -572,13 +571,6 @@ void Resources::Shutdown()
 	CleanupHashmap(samplers, Renderer::DestroySamplerInstant);
 	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
 	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
-	CleanupHashmap(fonts, nullptr);
-	CleanupHashmap(audioClips, nullptr);
-	CleanupHashmap(shaders, nullptr);
-	CleanupHashmap(pipelines, nullptr);
-	CleanupHashmap(models, nullptr);
-	CleanupHashmap(skyboxes, nullptr);
-	CleanupHashmap(scenes, nullptr);
 
 	samplers.Destroy();
 	textures.Destroy();
@@ -593,6 +585,8 @@ void Resources::Shutdown()
 
 	resourceDeletionQueue.Destroy();
 	bindlessTexturesToUpdate.Destroy();
+
+	defaultRenderGraph.Destroy();
 }
 
 void Resources::Update()
@@ -719,7 +713,7 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 
 Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 index)
 {
-	String name{ "SwapchainTexture{}", index };
+	String name{ "SwapchainTexture", index };
 
 	HashHandle handle;
 	Texture* texture = textures.Request(name, handle);
@@ -824,7 +818,7 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	return renderpass;
 }
 
-Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, VkPushConstantRange* pushConstants)
+Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushConstant* pushConstants)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -874,7 +868,7 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 	return pipeline;
 }
 
-Scene* Resources::CreateScene(const String& name)
+Scene* Resources::CreateScene(const String& name, CameraType cameraType)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -888,7 +882,7 @@ Scene* Resources::CreateScene(const String& name)
 	scene->name = name;
 	scene->handle = handle;
 
-	scene->Create();
+	scene->Create(cameraType);
 
 	return scene;
 }
@@ -1788,15 +1782,12 @@ void Resources::DestroyTexture(Texture* texture)
 
 void Resources::DestroyRenderpass(Renderpass* renderpass)
 {
-	HashHandle handle = renderpass->handle;
-
-	if (handle != U64_MAX)
+	if (renderpass->handle != U64_MAX)
 	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_RENDER_PASS;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
+		Renderer::DestroyRenderPassInstant(renderpasses.Obtain(renderpass->handle));
+		renderpasses.Remove(renderpass->handle);
+
+		renderpass->handle = U64_MAX;
 	}
 }
 

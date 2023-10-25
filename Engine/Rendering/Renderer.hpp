@@ -9,7 +9,41 @@
 #include "Pipeline.hpp"
 
 struct Scene;
+struct VkImage_T;
+struct VkQueue_T;
+struct VkBuffer_T;
+struct VkDevice_T;
+struct VkInstance_T;
+struct VkSemaphore_T;
 struct VmaAllocator_T;
+struct VkPhysicalDevice_T;
+struct VkDescriptorPool_T;
+struct VkDebugUtilsMessengerEXT_T;
+struct VkBufferCopy;
+struct VkAllocationCallbacks;
+struct VkImageMemoryBarrier2;
+struct VkBufferMemoryBarrier2;
+struct VkPhysicalDeviceFeatures;
+struct VkPhysicalDeviceProperties;
+struct VkPhysicalDeviceMemoryProperties;
+enum VkFormat;
+enum VkObjectType;
+enum VkImageLayout;
+
+struct CameraData
+{
+	Matrix4 vp;
+	Vector4 eye;
+};
+
+struct PostProcessData
+{
+	U32 textureIndex;
+	F32 contrast{ 1.0f };
+	F32 brightness{ 0.0f };
+	F32 saturation{ 1.0f };
+	F32 gammaCorrection{ 1.0f };
+};
 
 //Post Processing		
 //TODO: Bloom			
@@ -32,13 +66,17 @@ public:
 	static U32							FrameIndex();
 	static U32							CurrentFrame();
 
+	static const VkPhysicalDeviceFeatures&			GetDeviceFeatures();
+	static const VkPhysicalDeviceProperties&		GetDeviceProperties();
+	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
+
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
 	static void							Shutdown();
 
 	static bool							CreateInstance();
 	static bool							SelectGPU();
-	static bool							GetFamilyQueue(VkPhysicalDevice gpu);
+	static bool							GetFamilyQueue(VkPhysicalDevice_T* gpu);
 	static bool							CreateDevice();
 	static bool							CreateResources();
 
@@ -52,13 +90,13 @@ private:
 	
 	static CommandBuffer*				GetCommandBuffer();
 	
-	static VkImageMemoryBarrier2		ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask, 
-		VkImageLayout oldLayout, VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask, 
-		VkImageLayout newLayout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, U32 baseMipLevel = 0, U32 levelCount = VK_REMAINING_MIP_LEVELS, U32 layerCount = VK_REMAINING_ARRAY_LAYERS);
-	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer buffer, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
-		VkPipelineStageFlags2 dstStageMask, VkAccessFlags2 dstAccessMask);
+	static VkImageMemoryBarrier2		ImageBarrier(VkImage_T* image, U64 srcStageMask, U64 srcAccessMask,
+		VkImageLayout oldLayout, U64 dstStageMask, U64 dstAccessMask,
+		VkImageLayout newLayout, U32 aspectMask = 1, U32 baseMipLevel = 0, U32 levelCount = ~0, U32 layerCount = ~0);
+	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer_T* buffer, U64 srcStageMask, U64 srcAccessMask,
+		U64 dstStageMask, U64 dstAccessMask);
 
-	static Buffer						CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags);
+	static Buffer						CreateBuffer(U32 size, U32 usageFlags, U32 memoryFlags);
 	static void							FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
 	static U32							UploadToBuffer(Buffer& buffer, U32 size, const void* data);
 	static void							MapBuffer(Buffer& buffer);
@@ -88,22 +126,16 @@ private:
 	static CSTR									appName;
 	static U32									appVersion;
 
-	// CAPABILITIES
-	static VkPhysicalDeviceFeatures				physicalDeviceFeatures;
-	static VkPhysicalDeviceProperties			physicalDeviceProperties;
-	static VkPhysicalDeviceMemoryProperties		physicalDeviceMemoryProperties;
-
 	// DEVICE
-	static VkInstance							instance;
-	static VkPhysicalDevice						physicalDevice;
-	static VkDevice								device;
-	static VkQueue								deviceQueue;
+	static VkInstance_T*						instance;
+	static VkPhysicalDevice_T*					physicalDevice;
+	static VkDevice_T*							device;
+	static VkQueue_T*							deviceQueue;
 	static Swapchain							swapchain;
 	static U32									queueFamilyIndex;
-	static PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTemplateKHR;
 
 	static VkAllocationCallbacks*				allocationCallbacks;
-	static VkDescriptorPool						descriptorPool;
+	static VkDescriptorPool_T*					descriptorPool;
 	static U64									uboAlignment;
 	static U64									sboAlignemnt;
 
@@ -130,16 +162,12 @@ private:
 	static RenderGraph*							renderGraph;
 
 	// SYNCRONIZATION
-	static VkSemaphore							imageAcquired;
-	static VkSemaphore							queueSubmitted;
+	static VkSemaphore_T*						imageAcquired;
+	static VkSemaphore_T*						queueSubmitted;
 
 	// DEBUG
-	static VkDebugUtilsMessengerEXT				debugMessenger;
-	static PFN_vkCreateDebugUtilsMessengerEXT	vkCreateDebugUtilsMessengerEXT;
-	static PFN_vkDestroyDebugUtilsMessengerEXT	vkDestroyDebugUtilsMessengerEXT;
-	static PFN_vkSetDebugUtilsObjectNameEXT		vkSetDebugUtilsObjectNameEXT;
-	static PFN_vkCmdBeginDebugUtilsLabelEXT		vkCmdBeginDebugUtilsLabelEXT;
-	static PFN_vkCmdEndDebugUtilsLabelEXT		vkCmdEndDebugUtilsLabelEXT;
+	static VkDebugUtilsMessengerEXT_T*			debugMessenger;
+
 	static bool									debugUtilsExtensionPresent;
 
 #ifdef NH_DEBUG

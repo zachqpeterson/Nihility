@@ -10,14 +10,13 @@
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
 
+#include <type_traits>
+
 AudioClip* music;
 AudioClip* sfx;
 F32 volume = 1.0f;
 UIElement* slider;
 F32 percent = 1.0f;
-
-constexpr bool d = IsDestroyable<Pipeline>;
-constexpr bool d1 = IsDestroyable<String>;
 
 bool Init()
 {
@@ -52,7 +51,7 @@ bool Init()
 	
 	UI::CreateText(info, "Hello, World!", 2.0f);
 	
-	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn");
+	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
 	
 	Model* model = Resources::LoadModel("models/Chess.nhmdl");
 	scene->AddModel(model);

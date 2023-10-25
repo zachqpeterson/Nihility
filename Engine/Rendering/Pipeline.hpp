@@ -88,6 +88,8 @@ struct Pipeline
 {
 	void Destroy();
 
+	void ChangeRenderpass(Renderpass* renderpass);
+
 	U32 UploadIndices(U32 size, const void* data);
 	U32 UploadVertices(U32 size, const void* data);
 	void UpdateVertices(U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);

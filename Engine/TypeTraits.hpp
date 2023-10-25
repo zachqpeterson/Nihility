@@ -35,6 +35,9 @@ using BoolConstant = TypeConstant<bool, Value>;
 using TrueConstant = BoolConstant<true>;
 using FalseConstant = BoolConstant<false>;
 
+template <class> inline constexpr bool True = false;
+template <class> inline constexpr bool False = false;
+
 template <class... Types> using Void = void;
 
 template <class, class> inline constexpr bool IsSame = false;
@@ -57,10 +60,10 @@ namespace TypeTraits
 	template <class Type> struct RemoveVolatile { using type = Type; };
 	template <class Type> struct RemoveVolatile<volatile Type> { using type = Type; };
 
-	template <class Type> struct RemoveQuals { using type = Type; };
-	template <class Type> struct RemoveQuals<const Type> { using type = Type; };
-	template <class Type> struct RemoveQuals<volatile Type> { using type = Type; };
-	template <class Type> struct RemoveQuals<const volatile Type> { using type = Type; };
+	template <class Type> struct RemoveQuals { using type = Type; template <template <class> class Fn> using Apply = Fn<Type>; };
+	template <class Type> struct RemoveQuals<const Type> { using type = Type; template <template <class> class Fn> using Apply = const Fn<Type>; };
+	template <class Type> struct RemoveQuals<volatile Type> { using type = Type; template <template <class> class Fn> using Apply = volatile Fn<Type>; };
+	template <class Type> struct RemoveQuals<const volatile Type> { using type = Type; template <template <class> class Fn> using Apply = const volatile Fn<Type>; };
 
 	template <class Type> struct RemoveReference { using type = Type; };
 	template <class Type> struct RemoveReference<Type&> { using type = Type; };
@@ -69,7 +72,8 @@ namespace TypeTraits
 	template <class Type> struct RemovePointer { using type = Type; };
 	template <class Type> struct RemovePointer<Type*> { using type = Type; };
 
-	template <class Type> struct AddPointer { using type = Type*; };
+	template <class Type, class = void> struct AddPointer { using type = Type; };
+	template <class Type> struct AddPointer<Type, Void<typename RemoveReference<Type>::type*>> { using type = typename RemoveReference<Type>::type*; };
 
 	template <class Type> struct RemovePointerAll { using type = Type; };
 	template <class Type> struct RemovePointerAll<Type*> : public RemovePointerAll<Type> { };
@@ -269,6 +273,101 @@ template <class Type> concept StringLiteral = IsStringLiteral<Type>;
 template <class Type> inline constexpr bool IsFunctionPtr = !IsConst<const Type> && !IsReference<Type>;
 template <class Type> concept FunctionPtr = IsFunctionPtr<Type>;
 
+/// <summary>
+/// Forwards arg as movable
+/// </summary>
+/// <param name="arg:">The value to forward</param>
+/// <returns>The forwarded value</returns>
+template<class Type> constexpr RemovedReference<Type>&& Move(Type&& arg) noexcept { return static_cast<RemovedReference<Type>&&>(arg); }
+
+/// <summary>
+/// Forwards an lValue as an rValue
+/// </summary>
+/// <param name="arg:">The value to forward</param>
+/// <returns>The forwarded value</returns>
+template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noexcept { return static_cast<Type&&>(arg); }
+
+/// <summary>
+/// Forwards an lValue as an rValue
+/// </summary>
+/// <param name="arg:">The value to forward</param>
+/// <returns>The forwarded value</returns>
+template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
+
+template<class Type> inline constexpr void Swap(Type& a, Type& b) noexcept
+{
+	Type tmp = Move(a);
+	a = Move(b);
+	b = Move(tmp);
+}
+
+template<typename T> typename AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
+
+namespace TypeTraits
+{
+	template <bool> struct Select { template <class Type1, class> using Apply = Type1; };
+	template <> struct Select<false> { template <class, class Type2> using Apply = Type2; };
+
+	template <class Type> struct GetDecay
+	{
+		using Type1 = RemovedReference<Type>;
+		using Type2 = typename Select<IsFunctionPtr<Type1>>::template Apply<AddedPointer<Type1>, RemovedQuals<Type1>>;
+		using type = typename Select<IsArray<Type1>>::template Apply<AddedPointer<RemovedArray<Type1>>, Type2>::type;
+	};
+}
+
+template <class Type> using Decay = typename TypeTraits::GetDecay<Type>::type;
+
+template <class Type1, class Type2> using ConditionalType = decltype(false ? DeclValue<Type1>() : DeclValue<Type2>());
+
+template <class Type1, class Type2, class = void> struct ConstLValueCondition {};
+
+template <class Type1, class Type2>
+struct ConstLValueCondition<Type1, Type2, Void<ConditionalType<const Type1&, const Type2&>>> {
+	using type = RemovedQualsReference<ConditionalType<const Type1&, const Type2&>>;
+};
+
+template <class Type1, class Type2, class = void>
+struct DecayedCondition : ConstLValueCondition<Type1, Type2> {};
+
+template <class Type1, class Type2>
+struct DecayedCondition<Type1, Type2, Void<ConditionalType<Type1, Type2>>> {
+	using type = Decay<ConditionalType<Type1, Type2>>;
+};
+
+namespace TypeTraits
+{
+	template <class... Types> struct GetCommonType;
+}
+
+template <class... Types> using CommonType = typename TypeTraits::GetCommonType<Types...>::type;
+
+namespace TypeTraits
+{
+	template <> struct GetCommonType<> {};
+
+	template <class Type1>
+	struct GetCommonType<Type1> : GetCommonType<Type1, Type1> {};
+
+	template <class Type1, class Type2, class Decayed1 = Decay<Type1>, class Decayed2 = Decay<Type2>>
+	struct GetCommonType2 : GetCommonType<Decayed1, Decayed2> {};
+
+	template <class Type1, class Type2>
+	struct GetCommonType2<Type1, Type2, Type1, Type2> : DecayedCondition<Type1, Type2> {};
+
+	template <class Type1, class Type2>
+	struct GetCommonType<Type1, Type2> : GetCommonType2<Type1, Type2> {};
+
+	template <class Void, class Type1, class Type2, class... Rest>
+	struct GetCommonType3 {};
+
+	template <class Type1, class Type2, class... Rest>
+	struct GetCommonType3<Void<CommonType<Type1, Type2>>, Type1, Type2, Rest...> : GetCommonType<CommonType<Type1, Type2>, Rest...> {};
+
+	template <class Type1, class Type2, class... Rest>
+	struct GetCommonType<Type1, Type2, Rest...> : GetCommonType3<void, Type1, Type2, Rest...> {};
+}
+
 template <Integer I, I... Indices>
 struct IntegerSequence
 {
@@ -295,36 +394,6 @@ constexpr Dest CharCast(Src x)
 {
 	return static_cast<Dest>(x);
 }
-
-/// <summary>
-/// Forwards arg as movable
-/// </summary>
-/// <param name="arg:">The value to forward</param>
-/// <returns>The forwarded value</returns>
-template<class Type> constexpr RemovedReference<Type>&& Move(Type&& arg) noexcept { return static_cast<RemovedReference<Type>&&>(arg); }
-
-/// <summary>
-/// Forwards an lValue as an rValue
-/// </summary>
-/// <param name="arg:">The value to forward</param>
-/// <returns>The forwarded value</returns>
-template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noexcept { return static_cast<Type&&>(arg); }
-
-/// <summary>
-/// Forwards an lValue as an rValue
-/// </summary>
-/// <param name="arg:">The value to forward</param>
-/// <returns>The forwarded value</returns>
-template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
-
-template<class Type> inline constexpr void Swap(Type& a, Type& b)
-{
-	Type tmp = Move(a);
-	a = Move(b);
-	b = Move(tmp);
-}
-
-template<typename T> typename AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
 
 //template <class Func, class Type> inline constexpr bool Returns = ReturnType<Func> == Type;
 //template <class Func> concept VoidFunction = Returns<Func, void>;
@@ -444,11 +513,29 @@ private:
 		return 0;
 	}
 
+	static constexpr Base GetNaN()
+	{
+		if constexpr (IsSame<Base, float>) { return __builtin_nanf("0"); }
+		if constexpr (IsSame<Base, double>) { return __builtin_nan("0"); }
+
+		return 0;
+	}
+
+	static constexpr Base GetEpsilon()
+	{
+		if constexpr (IsSame<Base, float>) { return 1.192092896e-06F; }
+		if constexpr (IsSame<Base, double>) { return 2.22045e-16; }
+
+		return 0;
+	}
+
 public:
 	static constexpr Base MaxValue = GetMaxValue();
 	static constexpr Base MinValue = GetMinValue();
 	static constexpr U64 NumericalBits = GetNumericalBits();
 	static constexpr Base Infinity = GetInfinity();
+	static constexpr Base NaN = GetNaN();
+	static constexpr Base Epsilon = GetEpsilon();
 };
 
 namespace TypeTraits

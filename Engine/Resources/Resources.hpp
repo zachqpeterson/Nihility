@@ -4,6 +4,7 @@
 
 #include "Scene.hpp"
 
+#include "ResourceDefines.hpp"
 #include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
 #include "Containers\Queue.hpp"
@@ -31,9 +32,9 @@ public:
 	static Texture* CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
 	static Sampler* CreateSampler(const SamplerInfo& info);
 	static Renderpass* CreateRenderpass(const RenderpassInfo& info);
-	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, VkPushConstantRange* pushConstants = nullptr);
+	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
 	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
-	static Scene* CreateScene(const String& name);
+	static Scene* CreateScene(const String& name, CameraType cameraType);
 
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 	static bool RecreateSwapchainTexture(Texture* texture, VkImage_T* image);
@@ -84,7 +85,6 @@ private:
 
 	template<typename Type> using DestroyFn = void(*)(Type);
 	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy);
-	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer);
 
 	static void Update();
 	static void Resize();
@@ -147,22 +147,6 @@ inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<
 		if (it.Valid() && !it->name.Blank())
 		{
 			destroy(hashmap.Obtain(it->handle));
-			if constexpr (IsDestroyable<Type>) { it->Destroy(); }
-			hashmap.Remove(it->handle);
-		}
-	}
-}
-
-template<typename Type>
-inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, NullPointer)
-{
-	typename Hashmap<String, Type>::Iterator end = hashmap.end();
-	for (auto it = hashmap.begin(); it != end; ++it)
-	{
-		if (it.Valid() && !it->name.Blank())
-		{
-			if constexpr (IsDestroyable<Type>) { it->Destroy(); }
-			hashmap.Remove(it->handle);
 		}
 	}
 }

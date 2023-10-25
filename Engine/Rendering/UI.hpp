@@ -193,6 +193,7 @@ private:
 	static void Shutdown();
 
 	static void Update();
+	static void UpdateRenderpass(Renderpass* renderpass);
 
 	static UIElement* SetupElement(const UIElementInfo& info);
 

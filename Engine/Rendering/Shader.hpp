@@ -9,19 +9,14 @@ static constexpr U8 MAX_DESCRIPTOR_SETS = 8;
 static constexpr U8	MAX_DESCRIPTORS_PER_SET = 16;		// Maximum list elements for both descriptor set layout and descriptor sets
 static constexpr U8	MAX_VERTEX_STREAMS = 16;			// Maximum vertex streams a shader can have
 static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;			// Maximum vertex attributes a shader can have
+static constexpr U8	MAX_PUSH_CONSTANTS = 8;				// Maximum number of push constants a shader can have
+static constexpr U8	MAX_PUSH_CONSTANT_SIZE = 128;		// Maximum size of all push constants a shader can have
 
 enum DrawType
 {
 	DRAW_TYPE_INDEX,
 	DRAW_TYPE_VERTEX,
 	DRAW_TYPE_FULLSCREEN,
-};
-
-enum PushConstantType
-{
-	PUSH_CONSTANT_TYPE_NONE,
-	PUSH_CONSTANT_TYPE_CAMERA,
-	PUSH_CONSTANT_TYPE_POST_PROCESS,
 };
 
 enum CullMode
@@ -213,7 +208,7 @@ struct ShaderInfo;
 
 struct Shader
 {
-	bool Create(const String& shaderPath, U8 pushConstantCount, VkPushConstantRange* pushConstants);
+	bool Create(const String& shaderPath, U8 pushConstantCount, PushConstant* pushConstants);
 	void Destroy();
 
 	void FillOutShaderInfo(VkGraphicsPipelineCreateInfo& pipelineInfo, VkPipelineVertexInputStateCreateInfo& vertexInput,
@@ -231,7 +226,8 @@ struct Shader
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
 	U32									language{ 0 };
 	U32									pushConstantStages{}; //VkShaderStageFlags
-	PushConstantType					pushConstantType{ PUSH_CONSTANT_TYPE_NONE };
+	PushConstant						pushConstants[MAX_PUSH_CONSTANTS]{};
+	U8									pushConstantCount{ 0 };
 	DrawType							drawType{ DRAW_TYPE_INDEX };
 
 	U8									descriptorCount{ 0 };
