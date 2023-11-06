@@ -64,8 +64,8 @@ public:
 	void operator()(U64 capacity);
 	void Clear();
 
-	const U64& Size() const;
-	const U64& Capacity() const;
+	U64 Size() const;
+	U64 Capacity() const;
 
 	Iterator begin() { return { cells }; }
 	const Iterator begin() const { return { cells }; }
@@ -271,9 +271,9 @@ inline void Hashset<Value>::Clear()
 }
 
 template<class Value> 
-inline const U64& Hashset<Value>::Size() const { return size; }
+inline U64 Hashset<Value>::Size() const { return size; }
 template<class Value> 
-inline const U64& Hashset<Value>::Capacity() const { return size; }
+inline U64 Hashset<Value>::Capacity() const { return size; }
 
 /*------ITERATOR------*/
 

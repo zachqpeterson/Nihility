@@ -170,6 +170,7 @@ struct NH_API UIElementInfo
 };
 
 struct Pipeline;
+struct CommandBuffer;
 
 class NH_API UI
 {
@@ -193,16 +194,18 @@ private:
 	static void Shutdown();
 
 	static void Update();
-	static void UpdateRenderpass(Renderpass* renderpass);
+	static void Resize();
+	static Texture* Run(CommandBuffer* commandBuffer);
+	static void UpdateRenderpass(Texture* renderTarget, Texture* depthTarget);
 
 	static UIElement* SetupElement(const UIElementInfo& info);
 
 	static Vector<UIElement> elements;
 
+	static Vector<PipelineInfo> pipelineInfos;
 	static Pipeline* uiPipeline;
 	static Pipeline* textPipeline;
 	static Renderpass* uiRenderpass;
-	static RenderGraph uiRenderGraph;
 
 	static U32 textInstanceCount;
 	static U32 textVertexOffset;

@@ -204,7 +204,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, count);
+		CopyFree((void**)pointer, (void*)temp, totalSize);
 	}
 
 	*pointer = (Type)temp;
@@ -242,7 +242,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, count);
+		CopyFree((void**)pointer, (void*)temp, totalSize);
 	}
 
 	*pointer = (Type)temp;
@@ -272,7 +272,7 @@ inline void Memory::AllocateStatic(Type* pointer)
 
 	if (staticPointer + size <= memory + totalSize)
 	{
-		*pointer = staticPointer;
+		*pointer = (Type)staticPointer;
 		staticPointer += size;
 
 		return;
@@ -288,7 +288,7 @@ inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
 
 	if (staticPointer + size <= memory + totalSize)
 	{
-		*pointer = staticPointer;
+		*pointer = (Type)staticPointer;
 		staticPointer += size;
 
 		return;
@@ -306,7 +306,7 @@ inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
 
 	if (staticPointer + size <= memory + totalSize)
 	{
-		*pointer = staticPointer;
+		*pointer = (Type)staticPointer;
 		staticPointer += size;
 
 		return;

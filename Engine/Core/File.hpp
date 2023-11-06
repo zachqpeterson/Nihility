@@ -4,7 +4,7 @@
 #include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
 
-enum FileOpenMode
+enum NH_API FileOpenMode
 {
 	FILE_OPEN_BINARY = 0x8000,
 	FILE_OPEN_TEXT = 0x4000,
@@ -54,7 +54,7 @@ static constexpr I32 READ_WRITE_MASK = 0x0003;
 //TODO: Make thread safe, use mutex
 //TODO: Documentation
 //TODO: Read and Write at same time
-struct File
+struct NH_API File
 {
 public:
 	File();

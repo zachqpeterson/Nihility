@@ -34,7 +34,7 @@ Descriptor::Descriptor(Texture* texture)
 {
 	imageInfo.imageView = texture->imageView;
 	imageInfo.imageLayout = (ImageLayout)texture->imageLayout;
-	if (texture->sampler) { imageInfo.sampler = texture->sampler->sampler; }
+	imageInfo.sampler = texture->sampler.vkSampler;
 }
 
 TBuiltInResource resources{
@@ -153,6 +153,8 @@ struct Id
 	U32 set;
 	U32 binding;
 	U32 location;
+	U32 inputIndex;
+	bool inputAttachment;
 
 	U32 width;
 	U32 sign;
@@ -297,8 +299,6 @@ bool Shader::Initialize()
 
 void Shader::Shutdown()
 {
-	descriptorSetLayouts.Destroy();
-
 	vkDestroyDescriptorSetLayout(Renderer::device, dummyDescriptorSetLayout, Renderer::allocationCallbacks);
 
 	if (Renderer::bindlessSupported)
@@ -306,6 +306,8 @@ void Shader::Shutdown()
 		vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout->descriptorSetLayout, Renderer::allocationCallbacks);
 		vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
 	}
+
+	descriptorSetLayouts.Destroy();
 }
 
 bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstant* pushConstants_)
@@ -319,6 +321,7 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstan
 	bindlessDescriptorSetLayout->handle = handle;
 
 	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
+	VkPushConstantRange pushRange{};
 
 	I64 index = -1;
 	bool result = false;
@@ -399,17 +402,16 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstan
 		vkLayouts[1] = bindlessDescriptorSetLayout->descriptorSetLayout;
 	}
 
-	VkPushConstantRange pushRanges[MAX_PUSH_CONSTANTS]{};
-
 	U32 pushContantSize = 0;
 
 	pushConstantCount = pushConstantCount_;
 
+	pushRange.stageFlags = pushConstantStages;
+	pushRange.offset = 0;
+
 	for (U32 i = 0; i < pushConstantCount; ++i)
 	{
-		pushRanges[i].stageFlags = pushConstantStages;
-		pushRanges[i].offset = pushConstants_[i].offset;
-		pushRanges[i].size = pushConstants_[i].size;
+		pushRange.size += pushConstants_[i].size;
 
 		pushConstants[i] = pushConstants_[i];
 
@@ -428,8 +430,8 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstan
 	pipelineLayoutInfo.pNext = nullptr;
 	pipelineLayoutInfo.pSetLayouts = vkLayouts;
 	pipelineLayoutInfo.setLayoutCount = useBindless ? 2 : useSet0;
-	pipelineLayoutInfo.pushConstantRangeCount = pushConstantCount;
-	pipelineLayoutInfo.pPushConstantRanges = pushRanges;
+	pipelineLayoutInfo.pushConstantRangeCount = pushConstantStages > 0; //TODO: Support multiple ranges
+	pipelineLayoutInfo.pPushConstantRanges = &pushRange;
 
 	VkValidate(vkCreatePipelineLayout(Renderer::device, &pipelineLayoutInfo, Renderer::allocationCallbacks, &pipelineLayout));
 
@@ -1039,6 +1041,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 			case SpvDecorationBinding: { ids[id].binding = it[3]; } break;
 			case SpvDecorationDescriptorSet: { ids[id].set = it[3]; } break;
 			case SpvDecorationLocation: { ids[id].location = it[3]; } break;
+			case SpvDecorationInputAttachmentIndex: { ids[id].inputIndex = it[3]; ids[id].inputAttachment = true; } break;
 			}
 		} break;
 		case SpvOpTypeInt: {
@@ -1191,7 +1194,13 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 			case SpvStorageClassUniformConstant:
 			case SpvStorageClassStorageBuffer: {
 				U32 type = ids[ids[id.typeId].typeId].opcode;
-				VkDescriptorType descriptorType = GetDescriptorType(SpvOp(type));
+				VkDescriptorType descriptorType;
+				if (id.inputAttachment)
+				{
+					subpass.inputAttachments[subpass.inputAttachmentCount++] = id.inputIndex;
+					descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+				}
+				else { descriptorType = GetDescriptorType(SpvOp(type)); }
 				VkDescriptorSetLayoutBinding& binding = setLayout->bindings[id.binding];
 				binding.descriptorType = descriptorType;
 				binding.stageFlags |= stage.stage;

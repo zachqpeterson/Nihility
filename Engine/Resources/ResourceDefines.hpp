@@ -17,20 +17,6 @@ static constexpr U8	MAX_VIEWPORTS = 8;					// Maximum viewports a renderpass can
 static constexpr U8	MAX_BLOOM_PASSES = 8;				// Maximum renderpasses to calculate bloom
 static constexpr U8	MAX_SCISSORS = 8;					// Maximum scissors a renderpass can have
 
-enum ResourceUpdateType
-{
-	RESOURCE_UPDATE_TYPE_BUFFER,
-	RESOURCE_UPDATE_TYPE_TEXTURE,
-	RESOURCE_UPDATE_TYPE_PIPELINE,
-	RESOURCE_UPDATE_TYPE_SAMPLER,
-	RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET_LAYOUT,
-	RESOURCE_UPDATE_TYPE_DESCRIPTOR_SET,
-	RESOURCE_UPDATE_TYPE_RENDER_PASS,
-	RESOURCE_UPDATE_TYPE_SHADER_STATE,
-
-	RESOURCE_UPDATE_TYPE_COUNT
-};
-
 enum NH_API MaterialFlag
 {
 	MATERIAL_FLAG_NONE = 0x00,
@@ -43,12 +29,6 @@ enum NH_API TextureFlag
 	TEXTURE_FLAG_RENDER_TARGET = 0x01,
 	TEXTURE_FLAG_COMPUTE = 0x02,
 	TEXTURE_FLAG_FORCE_GENERATE_MIPMAPS = 0x04,
-};
-
-enum NH_API SamplerType
-{
-	SAMPLER_TYPE_POINT,
-	SAMPLER_TYPE_LINEAR,
 };
 
 enum NH_API CameraType
@@ -83,15 +63,14 @@ enum NH_API SamplerMipmapMode
 	SAMPLER_MIPMAP_MODE_MAX_ENUM = 0x7FFFFFFF
 };
 
-enum NH_API SamplerAddressMode
+enum NH_API SamplerBoundsMode
 {
-	SAMPLER_ADDRESS_MODE_REPEAT = 0,
-	SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT = 1,
-	SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE = 2,
-	SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER = 3,
-	SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE = 4,
-	SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE_KHR = SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE,
-	SAMPLER_ADDRESS_MODE_MAX_ENUM = 0x7FFFFFFF
+	SAMPLER_BOUNDS_MODE_REPEAT = 0,
+	SAMPLER_BOUNDS_MODE_MIRRORED_REPEAT = 1,
+	SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE = 2,
+	SAMPLER_BOUNDS_MODE_CLAMP_TO_BORDER = 3,
+	SAMPLER_BOUNDS_MODE_MIRROR_CLAMP_TO_EDGE = 4,
+	SAMPLER_BOUNDS_MODE_MAX_ENUM = 0x7FFFFFFF
 };
 
 enum NH_API BorderColor
@@ -491,51 +470,42 @@ struct VmaAllocation_T;
 
 struct NH_API Sampler
 {
-	void Destroy() { name.Destroy(); handle = U64_MAX; }
+	I32				minFilter{ FILTER_TYPE_LINEAR }; //VkFilter
+	I32				magFilter{ FILTER_TYPE_LINEAR }; //VkFilter
+	I32				mipFilter{ SAMPLER_MIPMAP_MODE_LINEAR }; //VkSamplerMipmapMode
 
-	String			name{};
-	HashHandle		handle{ U64_MAX };
-
-	I32				minFilter{ FILTER_TYPE_NEAREST }; //VkFilter
-	I32				magFilter{ FILTER_TYPE_NEAREST }; //VkFilter
-	I32				mipFilter{ SAMPLER_MIPMAP_MODE_NEAREST }; //VkSamplerMipmapMode
-
-	I32				addressModeU{ SAMPLER_ADDRESS_MODE_REPEAT }; //VkSamplerAddressMode
-	I32				addressModeV{ SAMPLER_ADDRESS_MODE_REPEAT }; //VkSamplerAddressMode
-	I32				addressModeW{ SAMPLER_ADDRESS_MODE_REPEAT }; //VkSamplerAddressMode
+	I32				boundsModeU{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
+	I32				boundsModeV{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
+	I32				boundsModeW{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
 
 	I32				border{ BORDER_COLOR_FLOAT_OPAQUE_WHITE }; //VkBorderColor
 
 	I32				reductionMode{ SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE }; //VkSamplerReductionMode
 
-	VkSampler_T* sampler{ nullptr };
+	VkSampler_T*	vkSampler{ nullptr };
 };
 
 struct NH_API SamplerInfo
 {
-	void Destroy() { name.Destroy(); }
-
 	SamplerInfo& SetMinMagMip(FilterType min, FilterType mag, SamplerMipmapMode mip);
-	SamplerInfo& SetAddressModeU(SamplerAddressMode u);
-	SamplerInfo& SetAddressModeUV(SamplerAddressMode u, SamplerAddressMode v);
-	SamplerInfo& SetAddressModeUVW(SamplerAddressMode u, SamplerAddressMode v, SamplerAddressMode w);
-	SamplerInfo& SetName(const String& name);
+	SamplerInfo& SetBoundsModeU(SamplerBoundsMode u);
+	SamplerInfo& SetBoundsModeUV(SamplerBoundsMode u, SamplerBoundsMode v);
+	SamplerInfo& SetBoundsModeUVW(SamplerBoundsMode u, SamplerBoundsMode v, SamplerBoundsMode w);
 
-	I32		minFilter{ FILTER_TYPE_NEAREST }; //VkFilter
-	I32		magFilter{ FILTER_TYPE_NEAREST }; //VkFilter
-	I32		mipFilter{ SAMPLER_MIPMAP_MODE_NEAREST }; //VkSamplerMipmapMode
+	I32		minFilter{ FILTER_TYPE_LINEAR }; //VkFilter
+	I32		magFilter{ FILTER_TYPE_LINEAR }; //VkFilter
+	I32		mipFilter{ SAMPLER_MIPMAP_MODE_LINEAR }; //VkSamplerMipmapMode
 
-	I32		addressModeU{ SAMPLER_ADDRESS_MODE_REPEAT }; //VkSamplerAddressMode
-	I32		addressModeV{ SAMPLER_ADDRESS_MODE_REPEAT }; //VkSamplerAddressMode
-	I32		addressModeW{ SAMPLER_ADDRESS_MODE_REPEAT }; //VkSamplerAddressMode
+	I32		boundsModeU{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
+	I32		boundsModeV{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
+	I32		boundsModeW{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
 
 	I32		border{ BORDER_COLOR_FLOAT_OPAQUE_WHITE }; //VkBorderColor
 
 	I32		reductionMode{ SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE }; //VkSamplerReductionMode
-
-	String	name{};
 };
 
+//TODO: NEED a way to keep track of if this texture is being used
 struct NH_API Texture
 {
 	void Destroy() { name.Destroy(); handle = U64_MAX; }
@@ -551,16 +521,16 @@ struct NH_API Texture
 
 	I32					type{ IMAGE_TYPE_2D }; //VkImageType
 
-	VkImage_T* image{ nullptr };
-	VkImageView_T* imageView{ nullptr };
+	VkImage_T*			image{ nullptr };
+	VkImageView_T*		imageView{ nullptr };
 	I32					format{ FORMAT_TYPE_UNDEFINED }; //VkFormat
 	I32					imageLayout{ IMAGE_LAYOUT_UNDEFINED }; //VkImageLayout
-	VmaAllocation_T* allocation{ nullptr };
+	VmaAllocation_T*	allocation{ nullptr };
 
-	VkImageView_T* mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
+	VkImageView_T*		mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
-	Sampler* sampler{ nullptr };
+	Sampler				sampler{};
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };
@@ -609,6 +579,12 @@ struct NH_API Binary
 	void* data{ nullptr };
 };
 
+struct Subpass
+{
+	U32 inputAttachments[8]{};
+	U8 inputAttachmentCount{ 0 };
+};
+
 struct NH_API Renderpass
 {
 	void Destroy() { name.Destroy(); handle = U64_MAX; }
@@ -618,18 +594,19 @@ struct NH_API Renderpass
 	String				name{};
 	HashHandle			handle;
 
-	VkRenderPass_T* renderpass{ nullptr };
-	VkFramebuffer_T* frameBuffer{ nullptr };
+	VkRenderPass_T*		renderpass{ nullptr };
+	VkFramebuffer_T*	frameBuffer{ nullptr };
 
-	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	U8					renderTargetCount{ 0 };
-	Texture* depthStencilTarget{ nullptr };
+	Texture*			depthStencilTarget{ nullptr };
+
+	Subpass				subpasses[8]{};
+	U32					subpassCount{ 1 };
 
 	I32					colorLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
 	I32					depthLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
 	I32					stencilLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
-
-	U32					renderOrder{ 0 };
 	U32					lastResize{ 0 };
 };
 
@@ -642,16 +619,14 @@ struct NH_API RenderpassInfo
 	RenderpassInfo& SetDepthStencilTarget(Texture* texture);
 
 	U8				renderTargetCount{ 0 };
-
-	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* depthStencilTarget{ nullptr };
+	Texture*		renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture*		depthStencilTarget{ nullptr };
 
 	I32				colorLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
 	I32				depthLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
 	I32				stencilLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
 	I32 	        attachmentFinalLayout{ IMAGE_LAYOUT_ATTACHMENT_OPTIMAL }; //VkImageLayout
 
-	U32				renderOrder{ 0 };
 	String			name{};
 };
 
@@ -738,7 +713,6 @@ struct NH_API Transform
 
 struct ResourceUpdate
 {
-	ResourceUpdateType	type;
 	HashHandle			handle;
 	U32					currentFrame;
 };
@@ -778,6 +752,8 @@ struct NH_API Camera
 	const Matrix4& ViewProjection() const;
 	Vector4 Eye() const;
 	const Vector3& Position() const;
+	const F32& Zoom();
+	const F32& FOV();
 	Quaternion3 Rotation() const;
 	Vector3 Euler() const;
 	const Vector3& Right() const;
@@ -789,6 +765,8 @@ struct NH_API Camera
 	void SetPosition(const Vector3& position);
 	void SetRotation(const Quaternion3& rotation);
 	void SetRotation(const Vector3& rotation);
+	void SetZoom(F32 zoom);
+	void SetFOV(F32 fov);
 
 	bool Update();
 
@@ -833,6 +811,12 @@ struct NH_API FlyCamera
 
 	bool Update();
 
+	void SetPosition(const Vector3& position);
+	void SetRotation(const Quaternion3& rotation);
+	void SetRotation(const Vector3& rotation);
+
+	Camera* GetCamera();
+
 private:
 	F32		mouseSensitivity{ 1.0f };
 	F32		movementDelta{ 0.1f };
@@ -853,6 +837,7 @@ private:
 struct CommandBuffer;
 struct Renderpass;
 struct Pipeline;
+struct PipelineInfo;
 
 struct Pass
 {
@@ -860,16 +845,31 @@ struct Pass
 	Vector<Pipeline*> pipelines;
 };
 
-struct NH_API RenderGraph
+//TODO: Create a RenderGraph struct that holds multiple PipelineGraphs
+
+struct NH_API PipelineGraph
 {
 	void Destroy();
+	void Create(const String& name);
 
-	void AddPipeline(Pipeline* pipeline);
+	void AddPipeline(const PipelineInfo& info);
+
+	Texture* RenderTarget();
+	Texture* DepthTarget();
+
+	Pipeline* GetPipeline(U32 pass, U32 index);
 
 private:
-	Texture* Run(CommandBuffer* commandBuffer);
+	void Run(CommandBuffer* commandBuffer);
+	void Resize();
 
 	Vector<Pass> passes;
+	Vector<Vector<PipelineInfo>> infos;
+
+	Texture* renderTarget;
+	Texture* depthTarget;
+
+	bool ready{ false };
 
 	friend class Renderer;
 };

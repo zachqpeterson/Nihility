@@ -22,6 +22,7 @@ bool Init()
 {
 	//TODO: Doesn't work because textures are referenced with wide chars, assimp only uses chars
 	//String path = Resources::UploadModel("models/Hilichurl/Hilichurl.pmx");
+	//String path = Resources::UploadModel("models/Chess/Chess.fbx");
 	
 	//String path = Resources::UploadFont("arial.ttf");
 	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");

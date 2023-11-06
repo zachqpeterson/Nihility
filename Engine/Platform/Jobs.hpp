@@ -6,7 +6,7 @@
 #include "Containers\SafeQueue.hpp"
 #include "Platform\Function.hpp"
 
-enum JobPriority
+enum NH_API JobPriority
 {
 	JOB_PRIORITY_LOW,
 	JOB_PRIORITY_MEDIUM,
@@ -15,7 +15,7 @@ enum JobPriority
 	JOB_PRIORITY_COUNT
 };
 
-struct JobDispatchArgs
+struct NH_API JobDispatchArgs
 {
 	U32 jobIndex;
 	U32 groupIndex;
@@ -26,7 +26,7 @@ struct JobDispatchArgs
 * TODO: Wait for semaphore/fence
 * TODO: This syntax would be ideal: StartJob<func>(param, param, ...);
 */
-class Jobs
+class NH_API Jobs
 {
 public:
 	static bool Execute(const Function<void()>& job);

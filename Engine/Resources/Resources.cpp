@@ -436,18 +436,11 @@ U32 skyboxIndices[]{
 };
 
 Texture* Resources::dummyTexture;
-Sampler* Resources::defaultPointSampler;
-Sampler* Resources::defaultLinearSampler;
+PipelineGraph Resources::defaultPipelineGraph;
 Pipeline* Resources::meshPipeline;
-Pipeline* Resources::skyboxPipeline;
 Pipeline* Resources::postProcessPipeline;
-Renderpass* Resources::geometryRenderpass;
-Renderpass* Resources::postProcessRenderpass;
-Texture* Resources::geometryBuffer;
-Texture* Resources::geometryDepth;
-RenderGraph Resources::defaultRenderGraph;
+Pipeline* Resources::skyboxPipeline;
 
-Hashmap<String, Sampler>		Resources::samplers{ 32 };
 Hashmap<String, Texture>		Resources::textures{ 512 };
 Hashmap<String, Font>			Resources::fonts{ 32 };
 Hashmap<String, AudioClip>		Resources::audioClips{ 512 };
@@ -458,7 +451,6 @@ Hashmap<String, Model>			Resources::models{ 128 };
 Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
 Hashmap<String, Scene>			Resources::scenes{ 128 };
 
-Queue<ResourceUpdate>			Resources::resourceDeletionQueue{};
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
 
 bool Resources::Initialize()
@@ -473,39 +465,6 @@ bool Resources::Initialize()
 	dummyTextureInfo.SetData(&zero);
 	dummyTexture = CreateTexture(dummyTextureInfo);
 
-	SamplerInfo defaultSamplerInfo{};
-	defaultSamplerInfo.SetName("default_point_sampler");
-	defaultSamplerInfo.SetAddressModeUVW(SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-	defaultSamplerInfo.SetMinMagMip(FILTER_TYPE_NEAREST, FILTER_TYPE_NEAREST, SAMPLER_MIPMAP_MODE_NEAREST);
-	defaultPointSampler = Resources::CreateSampler(defaultSamplerInfo);
-
-	defaultSamplerInfo.SetName("default_linear_sampler");
-	defaultSamplerInfo.SetMinMagMip(FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, SAMPLER_MIPMAP_MODE_LINEAR);
-	defaultLinearSampler = Resources::CreateSampler(defaultSamplerInfo);
-
-	TextureInfo textureInfo{};
-	textureInfo.name = "geometry_buffer";
-	textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	textureInfo.width = Settings::WindowWidth();
-	textureInfo.height = Settings::WindowHeight();
-	textureInfo.depth = 1;
-	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-	textureInfo.type = VK_IMAGE_TYPE_2D;
-	geometryBuffer = Resources::CreateTexture(textureInfo);
-
-	textureInfo.name = "geometry_depth";
-	textureInfo.format = VK_FORMAT_D32_SFLOAT;
-	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-	geometryDepth = Resources::CreateTexture(textureInfo);
-
-	RenderpassInfo renderPassInfo{};
-	renderPassInfo.name = "geometry_pass";
-	renderPassInfo.AddRenderTarget(geometryBuffer);
-
-	renderPassInfo.SetDepthStencilTarget(geometryDepth);
-
-	geometryRenderpass = Resources::CreateRenderpass(renderPassInfo);
-
 	PushConstant pushConstant{ 0, sizeof(CameraData), &Renderer::cameraData };
 	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
 	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
@@ -513,9 +472,7 @@ bool Resources::Initialize()
 	PipelineInfo info{};
 	info.name = "mesh_pipeline";
 	info.shader = meshProgram;
-	info.attachmentFinalLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-	info.renderpass = geometryRenderpass;
-	meshPipeline = CreatePipeline(info);
+	defaultPipelineGraph.AddPipeline(info);
 
 	info.name = "skybox_pipeline";
 	info.shader = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
@@ -523,10 +480,7 @@ bool Resources::Initialize()
 	info.instanceBufferSize = sizeof(I32) * 128;
 	info.indexBufferSize = sizeof(U32) * CountOf32(skyboxIndices);
 	info.drawBufferSize = sizeof(VkDrawIndexedIndirectCommand);
-	skyboxPipeline = CreatePipeline(info);
-
-	skyboxPipeline->UploadVertices(sizeof(F32) * CountOf32(skyboxVertices), skyboxVertices);
-	skyboxPipeline->UploadIndices(sizeof(U32) * CountOf32(skyboxIndices), skyboxIndices);
+	defaultPipelineGraph.AddPipeline(info);
 
 	pushConstant = { 0, sizeof(PostProcessData), &Renderer::postProcessData };
 	info.shader = CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
@@ -535,15 +489,18 @@ bool Resources::Initialize()
 	info.instanceBufferSize = 0;
 	info.indexBufferSize = 0;
 	info.drawBufferSize = 0;
-	postProcessPipeline = CreatePipeline(info);
+	defaultPipelineGraph.AddPipeline(info);
 
-	Renderer::postProcessData.textureIndex = (U32)geometryBuffer->handle;
+	defaultPipelineGraph.Create("default");
 
-	defaultRenderGraph.AddPipeline(postProcessPipeline);
-	defaultRenderGraph.AddPipeline(skyboxPipeline);
-	defaultRenderGraph.AddPipeline(meshPipeline);
+	meshPipeline = defaultPipelineGraph.GetPipeline(0, 0);
+	skyboxPipeline = defaultPipelineGraph.GetPipeline(0, 1);
+	postProcessPipeline = defaultPipelineGraph.GetPipeline(0, 2);
 
-	Renderer::renderGraph = &defaultRenderGraph;
+	skyboxPipeline->UploadVertices(sizeof(F32) * CountOf32(skyboxVertices), skyboxVertices);
+	skyboxPipeline->UploadIndices(sizeof(U32) * CountOf32(skyboxIndices), skyboxIndices);
+
+	Renderer::pipelineGraph = &defaultPipelineGraph;
 
 	return true;
 }
@@ -552,27 +509,9 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
-	while (resourceDeletionQueue.Size())
-	{
-		ResourceUpdate resourceDeletion;
-		resourceDeletionQueue.Pop(resourceDeletion);
-
-		if (resourceDeletion.currentFrame == -1) { continue; }
-
-		switch (resourceDeletion.type)
-		{
-		case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
-		case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle)->Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
-		}
-	}
-
-	CleanupHashmap(samplers, Renderer::DestroySamplerInstant);
 	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
 	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
 
-	samplers.Destroy();
 	textures.Destroy();
 	renderpasses.Destroy();
 	fonts.Destroy();
@@ -583,31 +522,13 @@ void Resources::Shutdown()
 	skyboxes.Destroy();
 	scenes.Destroy();
 
-	resourceDeletionQueue.Destroy();
 	bindlessTexturesToUpdate.Destroy();
 
-	defaultRenderGraph.Destroy();
+	defaultPipelineGraph.Destroy();
 }
 
 void Resources::Update()
 {
-	while (resourceDeletionQueue.Size())
-	{
-		ResourceUpdate resourceDeletion;
-		resourceDeletionQueue.Pop(resourceDeletion);
-
-		if (resourceDeletion.currentFrame == Renderer::currentFrame)
-		{
-			switch (resourceDeletion.type)
-			{
-			case RESOURCE_UPDATE_TYPE_SAMPLER: { Renderer::DestroySamplerInstant(samplers.Obtain(resourceDeletion.handle)); samplers.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_TEXTURE: { Renderer::DestroyTextureInstant(textures.Obtain(resourceDeletion.handle)); textures.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_RENDER_PASS: { Renderer::DestroyRenderPassInstant(renderpasses.Obtain(resourceDeletion.handle)); renderpasses.Remove(resourceDeletion.handle); } break;
-			case RESOURCE_UPDATE_TYPE_PIPELINE: { pipelines.Obtain(resourceDeletion.handle)->Destroy(); pipelines.Remove(resourceDeletion.handle); } break;
-			}
-		}
-	}
-
 	if (bindlessTexturesToUpdate.Size())
 	{
 		VkWriteDescriptorSet* bindlessDescriptorWrites;
@@ -615,7 +536,6 @@ void Resources::Update()
 
 		VkDescriptorImageInfo* bindlessImageInfo;
 		Memory::AllocateArray(&bindlessImageInfo, bindlessTexturesToUpdate.Size());
-
 
 		Texture* dummyTexture = Resources::AccessDummyTexture();
 
@@ -629,6 +549,7 @@ void Resources::Update()
 			//TODO: Maybe check frame
 			{
 				Texture* texture = Resources::AccessTexture(textureToUpdate.handle);
+				if (texture->image == nullptr) { continue; }
 
 				VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
 				descriptorWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -638,12 +559,9 @@ void Resources::Update()
 				descriptorWrite.dstSet = Shader::bindlessDescriptorSet;
 				descriptorWrite.dstBinding = Shader::bindlessTextureBinding;
 
-				Sampler* defaultSampler = Resources::AccessDefaultSampler(SAMPLER_TYPE_LINEAR);
 				VkDescriptorImageInfo& descriptorImageInfo = bindlessImageInfo[currentWriteIndex];
 
-				if (texture->sampler != nullptr) { descriptorImageInfo.sampler = texture->sampler->sampler; }
-				else { descriptorImageInfo.sampler = defaultSampler->sampler; }
-
+				descriptorImageInfo.sampler = texture->sampler.vkSampler;
 				descriptorImageInfo.imageView = texture->format != VK_FORMAT_UNDEFINED ? texture->imageView : dummyTexture->imageView;
 				descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				descriptorWrite.pImageInfo = &descriptorImageInfo;
@@ -653,15 +571,9 @@ void Resources::Update()
 		}
 
 		if (currentWriteIndex) { vkUpdateDescriptorSets(Renderer::device, currentWriteIndex, bindlessDescriptorWrites, 0, nullptr); }
-	}
-}
 
-void Resources::Resize()
-{
-	typename Hashmap<String, Renderpass>::Iterator end = renderpasses.end();
-	for (auto it = renderpasses.begin(); it != end; ++it)
-	{
-		if (it.Valid() && !it->name.Blank()) { it->Resize(); }
+		Memory::Free(&bindlessDescriptorWrites);
+		Memory::Free(&bindlessImageInfo);
 	}
 }
 
@@ -678,7 +590,7 @@ void Resources::UseSkybox(Skybox* skybox)
 	skyboxPipeline->drawCount = 1;
 }
 
-Texture* Resources::CreateTexture(const TextureInfo& info)
+Texture* Resources::CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -707,6 +619,18 @@ Texture* Resources::CreateTexture(const TextureInfo& info)
 		texture->Destroy();
 		return nullptr;
 	}
+
+	texture->sampler.minFilter = samplerInfo.minFilter;
+	texture->sampler.magFilter = samplerInfo.magFilter;
+	texture->sampler.mipFilter = samplerInfo.mipFilter;
+
+	texture->sampler.boundsModeU = samplerInfo.boundsModeU;
+	texture->sampler.boundsModeV = samplerInfo.boundsModeV;
+	texture->sampler.boundsModeW = samplerInfo.boundsModeW;
+
+	texture->sampler.border = samplerInfo.border;
+
+	texture->sampler.reductionMode = samplerInfo.reductionMode;
 
 	return texture;
 }
@@ -751,38 +675,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	return texture;
 }
 
-Sampler* Resources::CreateSampler(const SamplerInfo& info)
-{
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	HashHandle handle;
-	Sampler* sampler = samplers.Request(info.name, handle);
-
-	if (!sampler->name.Blank()) { return sampler; }
-
-	*sampler = {};
-
-	sampler->addressModeU = info.addressModeU;
-	sampler->addressModeV = info.addressModeV;
-	sampler->addressModeW = info.addressModeW;
-	sampler->minFilter = info.minFilter;
-	sampler->magFilter = info.magFilter;
-	sampler->mipFilter = info.mipFilter;
-	sampler->name = info.name;
-	sampler->handle = handle;
-
-	if (!Renderer::CreateSampler(sampler))
-	{
-		Logger::Error("Failed To Create Sampler!");
-		samplers.Remove(sampler->handle);
-		sampler->Destroy();
-		return nullptr;
-	}
-
-	return sampler;
-}
-
-Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
+Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info, const Vector<PipelineInfo>& pipelines)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -794,13 +687,31 @@ Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info)
 	*renderpass = {};
 
 	renderpass->name = info.name;
+	renderpass->handle = handle;
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->depthStencilTarget = info.depthStencilTarget;
-	renderpass->handle = handle;
 	renderpass->colorLoadOp = info.colorLoadOp;
 	renderpass->depthLoadOp = info.depthLoadOp;
 	renderpass->stencilLoadOp = info.stencilLoadOp;
-	renderpass->renderOrder = info.renderOrder;
+
+	bool first = true;
+	for (const PipelineInfo& pipeline : pipelines)
+	{
+		if (pipeline.shader->subpass.inputAttachmentCount)
+		{
+			if (first)
+			{
+				Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!");
+				renderpasses.Remove(renderpass->handle);
+				renderpass->Destroy();
+				return nullptr;
+			}
+
+			renderpass->subpasses[renderpass->subpassCount++] = pipeline.shader->subpass;
+		}
+
+		first = false;
+	}
 
 	for (U32 i = 0; i < info.renderTargetCount; ++i)
 	{
@@ -843,7 +754,7 @@ Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushCo
 	return shader;
 }
 
-Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo)
+Pipeline* Resources::CreatePipeline(const PipelineInfo& info, Renderpass* renderpass)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -856,8 +767,9 @@ Pipeline* Resources::CreatePipeline(const PipelineInfo& info, const Specializati
 
 	pipeline->name = info.name;
 	pipeline->handle = handle;
+	pipeline->subpass = info.subpass;
 
-	if (!pipeline->Create(info, specializationInfo))
+	if (!pipeline->Create(info, renderpass))
 	{
 		Logger::Error("Failed To Create Pipeline!");
 		pipelines.Remove(handle);
@@ -947,6 +859,11 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 	return true;
 }
 
+void Resources::RecreateRenderpass(Renderpass* renderpass)
+{
+	Renderer::RecreateRenderpass(renderpass);
+}
+
 bool SetAtlasPositions()
 {
 	U8 x = 0;
@@ -1020,6 +937,10 @@ Font* Resources::LoadFont(const String& path)
 		texture->format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		texture->mipmapCount = 1;
 		texture->size = texture->width * texture->height * 4 * sizeof(F32);
+
+		texture->sampler.minFilter = FILTER_TYPE_NEAREST;
+		texture->sampler.magFilter = FILTER_TYPE_NEAREST;
+		texture->sampler.mipFilter = SAMPLER_MIPMAP_MODE_NEAREST;
 
 		if (!Renderer::CreateTexture(texture, reader.Pointer()))
 		{
@@ -1120,6 +1041,8 @@ Texture* Resources::LoadTexture(const String& path)
 		}
 
 		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.ReadSize(&texture->sampler, sizeof(SamplerInfo));
 
 		reader.Read(texture->width);
 		reader.Read(texture->height);
@@ -1705,18 +1628,6 @@ Texture* Resources::AccessDummyTexture()
 	return dummyTexture;
 }
 
-Sampler* Resources::AccessDefaultSampler(SamplerType type)
-{
-	if (type == SAMPLER_TYPE_LINEAR) { return defaultLinearSampler; }
-
-	return defaultPointSampler;
-}
-
-Sampler* Resources::AccessSampler(const String& name)
-{
-	return samplers.Get(name);
-}
-
 Texture* Resources::AccessTexture(const String& name)
 {
 	return textures.Get(name);
@@ -1730,11 +1641,6 @@ Renderpass* Resources::AccessRenderpass(const String& name)
 Pipeline* Resources::AccessPipeline(const String& name)
 {
 	return pipelines.Get(name);
-}
-
-Sampler* Resources::AccessSampler(HashHandle handle)
-{
-	return samplers.Obtain(handle);
 }
 
 Texture* Resources::AccessTexture(HashHandle handle)
@@ -1752,31 +1658,14 @@ Pipeline* Resources::AccessPipeline(HashHandle handle)
 	return pipelines.Obtain(handle);
 }
 
-void Resources::DestroySampler(Sampler* sampler)
-{
-	HashHandle handle = sampler->handle;
-
-	if (handle != U64_MAX)
-	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_SAMPLER;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
-	}
-}
-
 void Resources::DestroyTexture(Texture* texture)
 {
-	HashHandle handle = texture->handle;
-
-	if (handle != U64_MAX)
+	if (texture->handle != U64_MAX)
 	{
-		ResourceUpdate deletion{};
-		deletion.handle = handle;
-		deletion.type = RESOURCE_UPDATE_TYPE_TEXTURE;
-		deletion.currentFrame = Renderer::currentFrame;
-		resourceDeletionQueue.Push(deletion);
+		Renderer::DestroyTextureInstant(textures.Obtain(texture->handle));
+		textures.Remove(texture->handle);
+
+		texture->handle = U64_MAX;
 	}
 }
 
@@ -1923,7 +1812,7 @@ String Resources::UploadAudio(const String& path)
 	return {};
 }
 
-String Resources::UploadTexture(const String& path)
+String Resources::UploadTexture(const String& path, const SamplerInfo& samplerInfo)
 {
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1952,6 +1841,8 @@ String Resources::UploadTexture(const String& path)
 
 		file.Write("NH Texture");
 		file.Write(TEXTURE_VERSION);
+
+		file.Write(samplerInfo);
 
 		file.Write((U16)width);
 		file.Write((U16)height);
@@ -1991,6 +1882,9 @@ String Resources::UploadTexture(const aiTexture* textureInfo)
 	{
 		file.Write("NH Texture");
 		file.Write(TEXTURE_VERSION);
+
+		SamplerInfo sampler = {};
+		file.Write(sampler);
 
 		file.Write((U16)width);
 		file.Write((U16)height);

@@ -90,7 +90,7 @@ VkQueue								Renderer::deviceQueue;
 Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
 
-VkAllocationCallbacks*				Renderer::allocationCallbacks;
+VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPool;
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -108,14 +108,14 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene*								Renderer::currentScene;
-VmaAllocator_T*						Renderer::allocator;
+Scene* Renderer::currentScene;
+VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 CameraData							Renderer::cameraData;
 PostProcessData						Renderer::postProcessData;
-RenderGraph*						Renderer::renderGraph;
+PipelineGraph* Renderer::pipelineGraph;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -234,7 +234,7 @@ bool Renderer::CreateInstance()
 
 #	ifdef VK_ADDITIONAL_VALIDATION
 	const VkValidationFeatureEnableEXT featuresRequested[]{
-		VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,							//Addition diagnostic data
+		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,						//Addition diagnostic data
 		VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
 		VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
 		//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
@@ -371,6 +371,7 @@ bool Renderer::CreateDevice()
 
 	VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	features.features.multiDrawIndirect = true;
+	features.features.drawIndirectFirstInstance = true;
 	features.features.pipelineStatisticsQuery = true;
 	features.features.shaderInt16 = true;
 	features.features.shaderInt64 = true;
@@ -530,37 +531,48 @@ void Renderer::EndFrame()
 #ifdef NH_DEBUG
 	if (Settings::InEditor())
 	{
-		if (flyCamera.Update())
-		{
-			cameraData.vp = flyCamera.ViewProjection();
-			cameraData.eye = flyCamera.Eye();
-		}
+		flyCamera.Update();
+		cameraData.vp = flyCamera.ViewProjection();
+		cameraData.eye = flyCamera.Eye();
 	}
 	else
+	{
 #endif
-		if (currentScene->Update()) //TODO: Default scene
-		{
-			Camera& camera = currentScene->camera;
-			cameraData.vp = camera.ViewProjection();
-			cameraData.eye = camera.Eye();
-		}
+		currentScene->Update(); //TODO: default scene
+		cameraData.vp = currentScene->camera.ViewProjection();
+		cameraData.eye = currentScene->camera.Eye();
+#ifdef NH_DEBUG
+	}
+#endif
 
 	Resources::Update();
 
 	commandBuffer->SetViewport(viewport, scissor);
 
-	Texture* finalRender = renderGraph->Run(commandBuffer);
-	UI::uiRenderGraph.Run(commandBuffer);
+	pipelineGraph->Run(commandBuffer);
+
+	VkImageMemoryBarrier2 renderpassBarriers[]{
+		ImageBarrier(pipelineGraph->RenderTarget()->image,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
+		ImageBarrier(pipelineGraph->DepthTarget()->image, 
+		VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT),
+	};
+
+	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(renderpassBarriers), renderpassBarriers);
+
+	UI::Run(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(finalRender->image,
+		ImageBarrier(pipelineGraph->RenderTarget()->image,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
 		ImageBarrier(swapchain.renderTargets[frameIndex]->image, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL),
 	};
 
-	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 2, copyBarriers);
+	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(copyBarriers), copyBarriers);
 
 	VkImageBlit blitRegion{};
 	blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -574,7 +586,7 @@ void Renderer::EndFrame()
 	blitRegion.dstOffsets[1].y = swapchain.height;
 	blitRegion.dstOffsets[1].z = 1;
 
-	commandBuffer->Blit(finalRender, swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
+	commandBuffer->Blit(pipelineGraph->RenderTarget(), swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
 
 	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -603,7 +615,8 @@ void Renderer::Resize()
 
 	swapchain.Create();
 
-	Resources::Resize();
+	pipelineGraph->Resize();
+	UI::Resize();
 
 	vkDeviceWaitIdle(device);
 }
@@ -644,12 +657,25 @@ void Renderer::LoadScene(Scene* scene)
 	}
 
 	currentScene = scene;
+
+#ifdef NH_DEBUG
+	if (currentScene->camera.Perspective()) { flyCamera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f); }
+	else { flyCamera.SetOrthograpic(0.01f, 10.0f, 240.0f, 135.0f, 1.0f); }
+	flyCamera.SetPosition(Vector3Zero);
+	flyCamera.SetRotation(Vector3Zero);
+#endif
 }
 
-void Renderer::SetRenderGraph(RenderGraph* graph)
+void Renderer::SetRenderGraph(PipelineGraph* graph)
 {
-	renderGraph = graph;
-	UI::UpdateRenderpass(graph->passes.Back().renderpass);
+	pipelineGraph = graph;
+	Renderpass* renderpass = graph->passes.Back().renderpass;
+	UI::UpdateRenderpass(renderpass->renderTargets[0], renderpass->depthStencilTarget);
+}
+
+CameraData* Renderer::GetCameraData()
+{
+	return &cameraData;
 }
 
 void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
@@ -684,6 +710,11 @@ U32 Renderer::FrameIndex()
 U32 Renderer::CurrentFrame()
 {
 	return currentFrame;
+}
+
+U32 Renderer::AbsoluteFrame()
+{
+	return absoluteFrame;
 }
 
 const VkPhysicalDeviceFeatures& Renderer::GetDeviceFeatures()
@@ -857,33 +888,6 @@ void Renderer::DestroyBuffer(Buffer& buffer)
 	}
 }
 
-bool Renderer::CreateSampler(Sampler* sampler)
-{
-	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	createInfo.addressModeU = (VkSamplerAddressMode)sampler->addressModeU;
-	createInfo.addressModeV = (VkSamplerAddressMode)sampler->addressModeV;
-	createInfo.addressModeW = (VkSamplerAddressMode)sampler->addressModeW;
-	createInfo.minFilter = (VkFilter)sampler->minFilter;
-	createInfo.magFilter = (VkFilter)sampler->magFilter;
-	createInfo.mipmapMode = (VkSamplerMipmapMode)sampler->mipFilter;
-	createInfo.anisotropyEnable = VK_FALSE;
-	createInfo.compareEnable = VK_FALSE;
-	createInfo.unnormalizedCoordinates = VK_FALSE;
-	createInfo.borderColor = (VkBorderColor)sampler->border;
-	// TODO:
-	//float                   mipLodBias;
-	//float                   maxAnisotropy;
-	//float                   minLod;
-	//float                   maxLod;
-	//VkCompareOp             compareOp;
-
-	vkCreateSampler(device, &createInfo, allocationCallbacks, &sampler->sampler);
-
-	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)sampler->sampler, sampler->name);
-
-	return true;
-}
-
 bool Renderer::CreateTexture(Texture* texture, void* data)
 {
 	//TODO: Check for blit feature
@@ -906,6 +910,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	if (texture->flags & TEXTURE_FLAG_COMPUTE) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
 	if (texture->flags & TEXTURE_FLAG_RENDER_TARGET)
 	{
+		imageInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 		if (HasDepthOrStencil((VkFormat)texture->format)) { imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT; }
 		else { imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; }
 	}
@@ -941,8 +946,6 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	texture->mipmaps[0] = texture->imageView;
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
-
-	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
 
 	if (data)
 	{
@@ -1021,9 +1024,18 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 		if (texture->flags & TEXTURE_FLAG_RENDER_TARGET)
 		{
-			finalBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, HasDepthOrStencil((VkFormat)texture->format) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				HasDepthOrStencil((VkFormat)texture->format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount);
+			if (HasDepthOrStencil((VkFormat)texture->format))
+			{
+				finalBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+					VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT, 0, texture->mipmapCount);
+			}
+			else
+			{
+				finalBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount);
+			}
 		}
 		else
 		{
@@ -1051,6 +1063,31 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 			VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->mipmaps[i]));
 		}
 	}
+
+	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.magFilter = (VkFilter)texture->sampler.magFilter;
+	createInfo.minFilter = (VkFilter)texture->sampler.minFilter;
+	createInfo.mipmapMode = (VkSamplerMipmapMode)texture->sampler.mipFilter;
+	createInfo.addressModeU = (VkSamplerAddressMode)texture->sampler.boundsModeU;
+	createInfo.addressModeV = (VkSamplerAddressMode)texture->sampler.boundsModeV;
+	createInfo.addressModeW = (VkSamplerAddressMode)texture->sampler.boundsModeW;
+	//float                   mipLodBias;
+	createInfo.anisotropyEnable = VK_FALSE;
+	//float                   maxAnisotropy;
+	createInfo.compareEnable = VK_FALSE;
+	//VkCompareOp             compareOp;
+	//float                   minLod;
+	//float                   maxLod;
+	createInfo.borderColor = (VkBorderColor)texture->sampler.border;
+	createInfo.unnormalizedCoordinates = VK_FALSE;
+
+	vkCreateSampler(Renderer::device, &createInfo, Renderer::allocationCallbacks, &texture->sampler.vkSampler);
+
+	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
+
+	if (bindlessSupported && (texture->flags & TEXTURE_FLAG_RENDER_TARGET) == 0) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, currentFrame }); }
 
 	return true;
 }
@@ -1135,7 +1172,30 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
 
-	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ RESOURCE_UPDATE_TYPE_TEXTURE, texture->handle, currentFrame }); }
+	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.magFilter = (VkFilter)texture->sampler.magFilter;
+	createInfo.minFilter = (VkFilter)texture->sampler.minFilter;
+	createInfo.mipmapMode = (VkSamplerMipmapMode)texture->sampler.mipFilter;
+	createInfo.addressModeU = (VkSamplerAddressMode)texture->sampler.boundsModeU;
+	createInfo.addressModeV = (VkSamplerAddressMode)texture->sampler.boundsModeV;
+	createInfo.addressModeW = (VkSamplerAddressMode)texture->sampler.boundsModeW;
+	//float                   mipLodBias;
+	createInfo.anisotropyEnable = VK_FALSE;
+	//float                   maxAnisotropy;
+	createInfo.compareEnable = VK_FALSE;
+	//VkCompareOp             compareOp;
+	//float                   minLod;
+	//float                   maxLod;
+	createInfo.borderColor = (VkBorderColor)texture->sampler.border;
+	createInfo.unnormalizedCoordinates = VK_FALSE;
+
+	vkCreateSampler(Renderer::device, &createInfo, Renderer::allocationCallbacks, &texture->sampler.vkSampler);
+
+	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
+
+	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, currentFrame }); }
 
 	return true;
 }
@@ -1154,12 +1214,9 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	VkAttachmentReference colorAttachments[MAX_IMAGE_OUTPUTS]{};
 	VkAttachmentReference depthAttachment{};
 
-	//TODO: Support multiple subpasses
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-	VkImageLayout initialColorLayout = renderpass->colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
-	VkImageLayout initialDepthLayout = renderpass->depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+	VkAttachmentLoadOp colorLoadOp = (VkAttachmentLoadOp)renderpass->colorLoadOp;
+	VkAttachmentLoadOp depthLoadOp = (VkAttachmentLoadOp)renderpass->depthLoadOp;
+	VkAttachmentLoadOp stencilLoadOp = (VkAttachmentLoadOp)renderpass->stencilLoadOp;
 
 	U32 attachmentCount = 0;
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
@@ -1167,11 +1224,11 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		attachments[attachmentCount].flags = 0;
 		attachments[attachmentCount].format = (VkFormat)renderpass->renderTargets[i]->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = (VkAttachmentLoadOp)renderpass->colorLoadOp;
+		attachments[attachmentCount].loadOp = colorLoadOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = (VkAttachmentLoadOp)renderpass->stencilLoadOp;
+		attachments[attachmentCount].stencilLoadOp = stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[attachmentCount].initialLayout = initialColorLayout;
+		attachments[attachmentCount].initialLayout = renderpass->colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		colorAttachments[attachmentCount].attachment = attachmentCount;
@@ -1180,63 +1237,82 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		++attachmentCount;
 	}
 
-	subpass.colorAttachmentCount = attachmentCount;
-	subpass.pColorAttachments = colorAttachments;
-
+	bool hasDepth = false;
 	if (renderpass->depthStencilTarget)
 	{
 		attachments[attachmentCount].flags = 0;
 		attachments[attachmentCount].format = (VkFormat)renderpass->depthStencilTarget->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[attachmentCount].loadOp = (VkAttachmentLoadOp)renderpass->depthLoadOp;
+		attachments[attachmentCount].loadOp = depthLoadOp;
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[attachmentCount].stencilLoadOp = (VkAttachmentLoadOp)renderpass->stencilLoadOp;
+		attachments[attachmentCount].stencilLoadOp = stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[attachmentCount].initialLayout = initialDepthLayout;
+		attachments[attachmentCount].initialLayout = renderpass->depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		depthAttachment.attachment = attachmentCount;
 		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		subpass.pDepthStencilAttachment = &depthAttachment;
+		hasDepth = true;
+	}
 
-		++attachmentCount;
+	Vector<VkSubpassDependency> dependencies;
+	Vector<VkSubpassDescription> subpasses{ renderpass->subpassCount, {} };
+	Vector<VkAttachmentReference> inputReferences{};
+	U32 inputOffset = 0;
+
+	for (U32 i = 0; i < renderpass->subpassCount; ++i)
+	{
+		for (U32 j = 0; j < renderpass->subpasses[i].inputAttachmentCount; ++j)
+		{
+			VkAttachmentReference inpputAttachment{};
+			inpputAttachment.attachment = renderpass->subpasses[i].inputAttachments[j];
+			inpputAttachment.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			inputReferences.Push(inpputAttachment);
+		}
+
+		VkSubpassDescription& subpass = subpasses[i];
+		subpass.flags = 0;
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.inputAttachmentCount = renderpass->subpasses[i].inputAttachmentCount;
+		subpass.pInputAttachments = inputReferences.Data() + inputOffset;
+		subpass.colorAttachmentCount = attachmentCount;
+		subpass.pColorAttachments = colorAttachments;
+		subpass.pResolveAttachments = nullptr;
+		subpass.pDepthStencilAttachment = &depthAttachment;
+		subpass.preserveAttachmentCount = 0;
+		subpass.pPreserveAttachments = nullptr;
+
+		inputOffset += renderpass->subpasses[i].inputAttachmentCount;
+
+		dependencies.Push({
+			.srcSubpass = i - 1,
+			.dstSubpass = i,
+			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			.dependencyFlags = 0
+		});
+		dependencies.Push({
+			.srcSubpass = i - 1,
+			.dstSubpass = i,
+			.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
+		});
 	}
 
 	VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	renderPassInfo.attachmentCount = attachmentCount;
+	renderPassInfo.attachmentCount = attachmentCount + hasDepth;
 	renderPassInfo.pAttachments = attachments;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-
-	VkSubpassDependency dependencies[3]{};
-
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[2].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[2].dstSubpass = 0;
-	dependencies[2].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-	dependencies[2].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependencies[2].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	dependencies[2].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-	dependencies[2].dependencyFlags = 0;
-
-	renderPassInfo.dependencyCount = 3;
-	renderPassInfo.pDependencies = dependencies;
+	renderPassInfo.subpassCount = (U32)subpasses.Size();
+	renderPassInfo.pSubpasses = subpasses.Data();
+	renderPassInfo.dependencyCount = (U32)dependencies.Size();
+	renderPassInfo.pDependencies = dependencies.Data();
 
 	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
 	renderpass->lastResize = absoluteFrame;
@@ -1245,7 +1321,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderpass->renderpass;
-	framebufferInfo.attachmentCount = attachmentCount;
+	framebufferInfo.attachmentCount = attachmentCount + hasDepth;
 	framebufferInfo.width = Settings::WindowWidth();
 	framebufferInfo.height = Settings::WindowHeight();
 	framebufferInfo.layers = 1;
@@ -1271,12 +1347,12 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	return true;
 }
 
-void Renderer::DestroySamplerInstant(Sampler* sampler)
+bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 {
-	if (sampler)
-	{
-		vkDestroySampler(device, sampler->sampler, allocationCallbacks);
-	}
+	vkDestroyFramebuffer(device, renderpass->frameBuffer, allocationCallbacks);
+	vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks);
+
+	return CreateRenderpass(renderpass);
 }
 
 void Renderer::DestroyTextureInstant(Texture* texture)
@@ -1292,7 +1368,9 @@ void Renderer::DestroyTextureInstant(Texture* texture)
 
 		texture->imageView = nullptr;
 
-		if (!texture->swapchainImage) { vmaDestroyImage(allocator, texture->image, texture->allocation); }
+		if (!texture->swapchainImage && texture->image) { vmaDestroyImage(allocator, texture->image, texture->allocation); texture->image = nullptr; }
+
+		if (texture->sampler.vkSampler) { vkDestroySampler(device, texture->sampler.vkSampler, allocationCallbacks); texture->sampler.vkSampler = nullptr; }
 	}
 }
 
@@ -1300,8 +1378,6 @@ void Renderer::DestroyRenderPassInstant(Renderpass* renderpass)
 {
 	if (renderpass)
 	{
-		vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffer, Renderer::allocationCallbacks);
-
 		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
 			Resources::DestroyTexture(renderpass->renderTargets[i]);
@@ -1312,7 +1388,8 @@ void Renderer::DestroyRenderPassInstant(Renderpass* renderpass)
 			Resources::DestroyTexture(renderpass->depthStencilTarget);
 		}
 
-		vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks);
+		if (renderpass->frameBuffer) { vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffer, Renderer::allocationCallbacks); }
+		if (renderpass->renderpass) { vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks); }
 	}
 }
 

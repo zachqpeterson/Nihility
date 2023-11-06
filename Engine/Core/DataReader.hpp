@@ -2,7 +2,7 @@
 
 #include "File.hpp"
 
-struct DataReader
+struct NH_API DataReader
 {
 	DataReader();
 	DataReader(void* data, U32 size);

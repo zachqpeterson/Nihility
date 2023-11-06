@@ -3,7 +3,7 @@
 #include "Defines.hpp"
 #include "Containers\Vector.hpp"
 
-enum ButtonCode
+enum NH_API ButtonCode
 {
 	/*Mouse Buttons*/
 	BUTTON_CODE_LEFT_MOUSE = 0x01,
@@ -242,7 +242,7 @@ enum ButtonCode
 	BUTTON_CODE_COUNT
 };
 
-enum AxisCode
+enum NH_API AxisCode
 {
 	AXIS_CODE_LEFT_JOYSTICK_X,
 	AXIS_CODE_LEFT_JOYSTICK_Y,
@@ -282,8 +282,10 @@ public:
 	static bool OnButtonDoubleClick(ButtonCode code);
 	static bool OnButtonHold(ButtonCode code);
 	static bool OnButtonRelease(ButtonCode code);
-	static void MousePos(I32& x, I32& y);
+	static void MousePosition(I32& x, I32& y);
+	static void MousePositionPrecise(F32& x, F32& y);
 	static void MouseDelta(I32& x, I32& y);
+	static void MouseDeltaPrecise(F32& x, F32& y);
 	static void PreviousMousePos(I32& x, I32& y);
 	static void ConsumeInput();
 	static I16 MouseWheelDelta();

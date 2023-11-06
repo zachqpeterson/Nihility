@@ -118,10 +118,10 @@ Font* font;
 
 Vector<UIElement> UI::elements;
 
+Vector<PipelineInfo> UI::pipelineInfos{ 2, {} };
 Pipeline* UI::uiPipeline;
 Pipeline* UI::textPipeline;
 Renderpass* UI::uiRenderpass;
-RenderGraph UI::uiRenderGraph;
 
 U32 UI::textInstanceCount{ 0 };
 U32 UI::textVertexOffset;
@@ -135,25 +135,23 @@ bool UI::Initialize()
 	RenderpassInfo renderpassInfo{};
 	renderpassInfo.name = "ui_pass";
 	renderpassInfo.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	renderpassInfo.AddRenderTarget(Resources::geometryBuffer);
+	renderpassInfo.AddRenderTarget(Resources::defaultPipelineGraph.RenderTarget());
 
 	renderpassInfo.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	renderpassInfo.SetDepthStencilTarget(Resources::geometryDepth);
+	renderpassInfo.SetDepthStencilTarget(Resources::defaultPipelineGraph.DepthTarget());
 
-	uiRenderpass = Resources::CreateRenderpass(renderpassInfo);
+	pipelineInfos[0].name = "ui_pipeline";
+	pipelineInfos[0].shader = Resources::CreateShader("shaders/UI.nhshd");
+	pipelineInfos[0].subpass = 0;
 
-	PipelineInfo info{};
-	info.name = "ui_pipeline";
-	info.renderpass = uiRenderpass;
-	info.shader = Resources::CreateShader("shaders/UI.nhshd");
-	uiPipeline = Resources::CreatePipeline(info);
+	pipelineInfos[1].name = "text_pipeline";
+	pipelineInfos[1].shader = Resources::CreateShader("shaders/Text.nhshd");
+	pipelineInfos[1].subpass = 0;
 
-	info.name = "text_pipeline";
-	info.shader = Resources::CreateShader("shaders/Text.nhshd");
-	textPipeline = Resources::CreatePipeline(info);
+	uiRenderpass = Resources::CreateRenderpass(renderpassInfo, pipelineInfos);
 
-	uiRenderGraph.AddPipeline(textPipeline);
-	uiRenderGraph.AddPipeline(uiPipeline);
+	uiPipeline = Resources::CreatePipeline(pipelineInfos[0], uiRenderpass);
+	textPipeline = Resources::CreatePipeline(pipelineInfos[1], uiRenderpass);
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
@@ -180,33 +178,48 @@ bool UI::Initialize()
 	return true;
 }
 
-void UI::UpdateRenderpass(Renderpass* renderpass)
+void UI::Shutdown()
+{
+	for (PipelineInfo& info : pipelineInfos) { info.Destroy(); }
+	pipelineInfos.Destroy();
+
+	elements.Destroy();
+}
+
+void UI::Resize()
+{
+	if (uiRenderpass->lastResize < Renderer::AbsoluteFrame())
+	{
+		uiRenderpass->lastResize = Renderer::AbsoluteFrame();
+		Resources::RecreateRenderpass(uiRenderpass);
+	}
+}
+
+Texture* UI::Run(CommandBuffer* commandBuffer)
+{
+	commandBuffer->BeginRenderpass(uiRenderpass);
+	
+	uiPipeline->Run(commandBuffer);
+	textPipeline->Run(commandBuffer);
+	
+	commandBuffer->EndRenderpass();
+
+	return uiRenderpass->renderTargets[0];
+}
+
+void UI::UpdateRenderpass(Texture* renderTarget, Texture* depthTarget)
 {
 	Resources::DestroyRenderpass(uiRenderpass);
 
 	RenderpassInfo renderpassInfo{};
 	renderpassInfo.name = "ui_pass";
 	renderpassInfo.colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	renderpassInfo.AddRenderTarget(renderpass->renderTargets[0]);
+	renderpassInfo.AddRenderTarget(renderTarget);
 
 	renderpassInfo.depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	renderpassInfo.SetDepthStencilTarget(renderpass->depthStencilTarget);
+	renderpassInfo.SetDepthStencilTarget(depthTarget);
 
-	uiRenderpass = Resources::CreateRenderpass(renderpassInfo);
-
-	uiPipeline->ChangeRenderpass(uiRenderpass);
-	textPipeline->ChangeRenderpass(uiRenderpass);
-
-	uiRenderGraph.Destroy();
-
-	uiRenderGraph.AddPipeline(textPipeline);
-	uiRenderGraph.AddPipeline(uiPipeline);
-}
-
-void UI::Shutdown()
-{
-	uiRenderGraph.Destroy();
-	elements.Destroy();
+	uiRenderpass = Resources::CreateRenderpass(renderpassInfo, pipelineInfos);
 }
 
 void UI::Update()
@@ -217,7 +230,7 @@ void UI::Update()
 	if (deltaX || deltaY || Input::OnAnyButtonChanged() || Input::MouseWheelDelta())
 	{
 		I32 x, y;
-		Input::MousePos(x, y);
+		Input::MousePosition(x, y);
 
 		Vector4 area = Renderer::RenderArea();
 
@@ -664,7 +677,7 @@ void UI::ChangeSliderPercent(UIElement* element, F32 percent)
 
 	element->vertexOffset;
 
-	VkBufferCopy region{};
+	BufferCopy region{};
 	region.dstOffset = element->vertexOffset + sizeof(UIVertex) * 4;
 	region.size = sizeof(UIVertex) * CountOf32(vertices);
 	region.srcOffset = 0;

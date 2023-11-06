@@ -28,16 +28,17 @@ enum VkFormat;
 class NH_API Resources
 {
 public:
-	static Texture* CreateTexture(const TextureInfo& info);
+	static Texture* CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo = {});
 	static Texture* CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
-	static Sampler* CreateSampler(const SamplerInfo& info);
-	static Renderpass* CreateRenderpass(const RenderpassInfo& info);
+	static Renderpass* CreateRenderpass(const RenderpassInfo& info, const Vector<PipelineInfo>& pipelines);
 	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
-	static Pipeline* CreatePipeline(const PipelineInfo& info, const SpecializationInfo& specializationInfo = {});
+	static Pipeline* CreatePipeline(const PipelineInfo& info, Renderpass* renderpass);
 	static Scene* CreateScene(const String& name, CameraType cameraType);
 
 	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
 	static bool RecreateSwapchainTexture(Texture* texture, VkImage_T* image);
+
+	static void RecreateRenderpass(Renderpass* renderpass);
 
 	static Font* LoadFont(const String& path);
 	static AudioClip* LoadAudio(const String& path);
@@ -52,19 +53,15 @@ public:
 	static void SaveBinary(const String& path, U32 size, void* data);
 
 	static Texture* AccessDummyTexture();
-	static Sampler* AccessDefaultSampler(SamplerType type);
 
-	static Sampler* AccessSampler(const String& name);
 	static Texture* AccessTexture(const String& name);
 	static Renderpass* AccessRenderpass(const String& name);
 	static Pipeline* AccessPipeline(const String& name);
 
-	static Sampler* AccessSampler(HashHandle handle);
 	static Texture* AccessTexture(HashHandle handle);
 	static Renderpass* AccessRenderpass(HashHandle handle);
 	static Pipeline* AccessPipeline(HashHandle handle);
 
-	static void	DestroySampler(Sampler* sampler);
 	static void	DestroyTexture(Texture* texture);
 	static void	DestroyRenderpass(Renderpass* renderpass);
 	static void DestroyBinary(Binary& binary);
@@ -74,7 +71,7 @@ public:
 	//Convert 3rd party asset formats to nh formats
 	static String UploadFont(const String& path);
 	static String UploadAudio(const String& path);
-	static String UploadTexture(const String& path);
+	static String UploadTexture(const String& path, const SamplerInfo& samplerInfo = {});
 	static String UploadTexture(const aiTexture* textureInfo);
 	static String UploadSkybox(const String& path);
 	static String UploadModel(const String& path);
@@ -87,7 +84,6 @@ private:
 	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy);
 
 	static void Update();
-	static void Resize();
 	static void UseSkybox(Skybox* skybox);
 
 	//Texture Loading
@@ -102,19 +98,11 @@ private:
 	static void ParseAssimpModel(ModelUpload& model, const aiScene* scene);
 
 	static Texture*							dummyTexture;
-	static Sampler*							defaultPointSampler;
-	static Sampler*							defaultLinearSampler;
+	static PipelineGraph					defaultPipelineGraph;
 	static Pipeline*						meshPipeline;
-	static Pipeline*						skyboxPipeline;
 	static Pipeline*						postProcessPipeline;
-	static Renderpass*						geometryRenderpass;
-	static Renderpass*						postProcessRenderpass;
-	static Renderpass*						uiRenderpass;
-	static Texture*							geometryBuffer;
-	static Texture*							geometryDepth;
-	static RenderGraph						defaultRenderGraph;
+	static Pipeline*						skyboxPipeline;
 
-	static Hashmap<String, Sampler>			samplers;
 	static Hashmap<String, Texture>			textures;
 	static Hashmap<String, Font>			fonts;
 	static Hashmap<String, AudioClip>		audioClips;
@@ -125,7 +113,6 @@ private:
 	static Hashmap<String, Skybox>			skyboxes;
 	static Hashmap<String, Scene>			scenes;
 
-	static Queue<ResourceUpdate>			resourceDeletionQueue;
 	static Queue<ResourceUpdate>			bindlessTexturesToUpdate;
 
 	STATIC_CLASS(Resources);

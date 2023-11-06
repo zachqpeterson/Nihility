@@ -27,8 +27,8 @@ public:
 
 	void Reserve(U64 capacity);
 
-	const U64& Capacity() const;
-	const U64& Size() const;
+	U64 Capacity() const;
+	U64 Size() const;
 
 private:
 
@@ -140,6 +140,6 @@ template<typename T> inline void Queue<T>::Reserve(U64 capacity)
 	Memory::Reallocate(&array, capacity, this->capacity);
 }
 
-template<typename T> inline const U64& Queue<T>::Capacity() const { return capacity; }
+template<typename T> inline U64 Queue<T>::Capacity() const { return capacity; }
 
-template<typename T> inline const U64& Queue<T>::Size() const { return size; }
+template<typename T> inline U64 Queue<T>::Size() const { return size; }

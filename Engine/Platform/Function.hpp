@@ -208,7 +208,7 @@ namespace detail
 }
 
 template<typename Result, typename... Arguments>
-struct Function<Result(Arguments...)>
+struct NH_API Function<Result(Arguments...)>
 {
 public:
 	Function() { InitializeEmpty(); }

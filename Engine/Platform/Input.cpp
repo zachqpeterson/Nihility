@@ -399,9 +399,13 @@ bool Input::OnButtonHold(ButtonCode code) { return buttonStates[code].held && bu
 
 bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[code].held && buttonStates[code].heldChanged && receiveInput; }
 
-void Input::MousePos(I32& x, I32& y) { x = (I32)mousePosX; y = (I32)mousePosY; }
+void Input::MousePosition(I32& x, I32& y) { x = (I32)mousePosX; y = (I32)mousePosY; }
+
+void Input::MousePositionPrecise(F32& x, F32& y) { x = mousePosX; y = mousePosY; }
 
 void Input::MouseDelta(I32& x, I32& y) { x = (I32)deltaMousePosX; y = (I32)deltaMousePosY; }
+
+void Input::MouseDeltaPrecise(F32& x, F32& y) { x = deltaMousePosX; y = deltaMousePosY; }
 
 void Input::PreviousMousePos(I32& x, I32& y) { x = (I32)(mousePosX - deltaMousePosX); y = (I32)(mousePosY - deltaMousePosY); }
 

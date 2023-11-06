@@ -4,7 +4,7 @@
 
 #include "Defines.hpp"
 
-class Hash
+class NH_API Hash
 {
 public:
 	template<class Type> requires(!IsPointer<Type>) static U64 Calculate(const Type& value, U64 seed = 0);

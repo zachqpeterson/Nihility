@@ -6,7 +6,7 @@
 #include "Core\Time.hpp"
 
 //TODO: floats
-class Random
+class NH_API Random
 {
 public:
 	static U64 TrueRandomInt();

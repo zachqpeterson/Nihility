@@ -159,7 +159,7 @@ private:
 public:
 	template <FloatingPoint Type> static constexpr Type Sin(Type f) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			f = NormalizeAngle(f);
 
@@ -197,7 +197,7 @@ public:
 	}
 	template <FloatingPoint Type> static constexpr Type Cos(Type f) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			f = NormalizeAngle(f);
 
@@ -235,7 +235,7 @@ public:
 	}
 	template <FloatingPoint Type> static constexpr Type Tan(Type f) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			return Sin(f) / Cos(f);
 		}
@@ -260,7 +260,7 @@ public:
 
 	template <FloatingPoint Type> static constexpr Type Sqrt(Type f) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			if (f < 0.0) { return Traits<Type>::NaN; }
 
@@ -288,7 +288,7 @@ public:
 	template <FloatingPoint Type> static constexpr Type InvSqrt(Type f) noexcept { return (Type)1.0 / Sqrt(f); }
 	template <FloatingPoint Type> static constexpr Type LogE(Type f) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			if (IsNaN(f)) { return Traits<Type>::NaN; }
 			else if (f < 0) { return Traits<Type>::NaN; }
@@ -321,7 +321,7 @@ public:
 	template <FloatingPoint Type> static Type LogN(Type f, const Type b) noexcept { if constexpr (IsSame<Type, F32>) { return log2f(f) / log2f(b); } else { return log2(f) / log2(b); } }
 	template <FloatingPoint Type> static constexpr Type Exp(Type f) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			if (IsNaN(f)) { return Traits<Type>::NaN; }
 			else if (IsNegInf(f)) { return (Type)0; }
@@ -338,7 +338,7 @@ public:
 	}
 	template <Number Base, Integer Exp> static constexpr Base Pow(Base b, Exp e) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			if (e == 3) { return b * b * b; }
 			else if (e == 2) { return b * b; }
@@ -350,26 +350,29 @@ public:
 		}
 		else
 		{
-			return pow(b, e);
+			if constexpr (IsInteger<Base>) { return (Base)pow((F64)b, (F64)e); }
+			else if constexpr (IsSame<Base, F32>) { return powf(b, (F32)e); }
+			else { return pow(b, (F64)e); }
 		}
 	}
 	template <Number Base, FloatingPoint Ex> static constexpr Ex Pow(Base b, Ex e) noexcept
 	{
-		if constexpr (ConstantEvaluation())
+		if (ConstantEvaluation())
 		{
 			if (b < 0.0) { return Traits<Ex>::NaN; }
 			else { return Exp(e * LogE(b)); }
 		}
 		else
 		{
-			if constexpr (IsSame<Ex, F32>) { return powf(b, e); }
-			else { return pow(b, e); }
+			if constexpr (IsSame<Ex, F32>) { return powf((F32)b, e); }
+			else { return pow((F64)b, e); }
 		}
 	}
 
 	//INTERPOLATION
 	template <FloatingPoint Type> static constexpr Type Lerp(Type a, Type b, Type t) noexcept { return a + (b - a) * t; }
 	template <FloatingPoint Type> static constexpr Type InvLerp(Type a, Type b, Type t) noexcept { return (t - a) / (b - a); }
+	template <FloatingPoint Type> static constexpr Type Remap(Type iMin, Type iMax, Type oMin, Type oMax, Type t) noexcept { return Lerp(oMin, oMax, InvLerp(iMin, iMax, t)); } //TODO: Vector for output
 	template <VectorType Type> static constexpr Type Lerp(const Type& a, const Type& b, F32 t) noexcept;
 	template <FloatingPoint Type> static constexpr Type MoveTowards(Type a, Type b, Type t) noexcept { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
 
@@ -637,6 +640,8 @@ struct NH_API Vector3
 	constexpr Vector3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f } {}
 	constexpr Vector3(F32 f) : x{ f }, y{ f }, z{ f } {}
 	constexpr Vector3(F32 x, F32 y, F32 z) : x{ x }, y{ y }, z{ z } {}
+	constexpr Vector3(const Vector2& v, F32 z) : x{ v.x }, y{ v.y }, z{ z } {}
+	constexpr Vector3(F32 x, const Vector2& v) : x{ x }, y{ v.x }, z{ v.y } {}
 	constexpr Vector3(const Vector3& v) : x{ v.x }, y{ v.y }, z{ v.z } {}
 	constexpr Vector3(Vector3&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z } {}
 
@@ -1687,8 +1692,8 @@ struct NH_API Matrix4
 	constexpr void SetOrthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
 	{
 		F32 rightLeft = 1.0f / (right - left);
-		F32 topBottom = 1.0f / (top - bottom);
-		F32 farNear = -1.0f / (far - near);
+		F32 bottomTop = 1.0f / (bottom - top);
+		F32 farNear = 1.0f / (far - near);
 
 		a.x = 2.0f * rightLeft;
 		a.y = 0.0f;
@@ -1696,14 +1701,14 @@ struct NH_API Matrix4
 		a.w = -(right + left) * rightLeft;
 
 		b.x = 0.0f;
-		b.y = 2.0f * topBottom;
+		b.y = 2.0f * bottomTop;
 		b.z = 0.0f;
-		b.w = -(top + bottom) * topBottom;
+		b.w = -(bottom + top) * bottomTop;
 
 		c.x = 0.0f;
 		c.y = 0.0f;
-		c.z = 2.0f * farNear;
-		c.w = (far + near) * farNear;
+		c.z = 1.0f * farNear;
+		c.w = near * farNear;
 
 		d.x = 0.0f;
 		d.y = 0.0f;

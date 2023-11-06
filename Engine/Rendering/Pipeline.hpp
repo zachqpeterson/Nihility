@@ -20,7 +20,7 @@ struct Specialization
 	const void* data;
 };
 
-struct SpecializationInfo
+struct NH_API SpecializationInfo
 {
 	using SizeType = U32;
 	static constexpr U64 SIZE = sizeof(SizeType);
@@ -53,8 +53,10 @@ struct SpecializationInfo
 	SizeType specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * SIZE]{};
 };
 
-struct PipelineInfo
+struct NH_API PipelineInfo
 {
+	void Destroy() { name.Destroy(); }
+
 	String				name{};
 
 	U32					vertexBufferSize{ U32_MAX };
@@ -62,47 +64,44 @@ struct PipelineInfo
 	U32					indexBufferSize{ U32_MAX };
 	U32					drawBufferSize{ U32_MAX };
 
-	I32					colorLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
-	I32					depthLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
-	I32					stencilLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
-	I32					attachmentFinalLayout{ IMAGE_LAYOUT_ATTACHMENT_OPTIMAL }; //VkImageLayout
-	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*			depthStencilTarget{ nullptr };
-	U8					outputCount{ 0 };
-
 	Shader*				shader{ nullptr };
-	Renderpass*			renderpass{ nullptr };
-	U32					subpass{ 0 };
 
 	SpecializationInfo	specialization{};
+
+	U32					renderpass{ 0 };
+	U32					subpass{ 0 };
 
 	Descriptor			descriptors[MAX_DESCRIPTORS_PER_SET]{};
 	U8					descriptorCount;
 };
 
-struct CommandBuffer;
-struct VkBufferCopy;
-struct VkPipeline_T;
+struct BufferCopy
+{
+	U64 srcOffset;
+	U64 dstOffset;
+	U64 size;
+};
 
-struct Pipeline
+struct CommandBuffer;
+struct VkPipeline_T;
+struct Renderpass;
+
+struct NH_API Pipeline
 {
 	void Destroy();
 
-	void ChangeRenderpass(Renderpass* renderpass);
-
 	U32 UploadIndices(U32 size, const void* data);
 	U32 UploadVertices(U32 size, const void* data);
-	void UpdateVertices(U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
+	void UpdateVertices(U32 size, const void* data, U32 regionCount, BufferCopy* regions);
 	U32 UploadInstances(U32 size, const void* data);
-	void UpdateInstances(U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
+	void UpdateInstances(U32 size, const void* data, U32 regionCount, BufferCopy* regions);
 	void UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
 	void UpdateDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 drawOffset);
 
 	const String& Name() const;
 
 private:
-	bool Create(const PipelineInfo& info, const SpecializationInfo& specializationInfo);
-	bool CreatePipeline(const SpecializationInfo& specializationInfo);
+	bool Create(const PipelineInfo& info, Renderpass* renderpass);
 
 	void Run(CommandBuffer* commandBuffer) const;
 
@@ -111,21 +110,21 @@ private:
 
 	Shader*			shader{};
 	VkPipeline_T*	pipeline{ nullptr };
-	Renderpass*		renderpass{ nullptr };
 	U32				subpass{ 0 };
 
 	Buffer			vertexBuffer;
 	Buffer			instanceBuffer;
 	Buffer			indexBuffer;
 	Buffer			drawBuffer;
+	Buffer			countsBuffer;
 
-	U32				drawCount{ 0 };
-	U32				indexOffset{ 0 };
 	U32				vertexOffset{ 0 };
 	U32				instanceOffset{ 0 };
+	U32				indexOffset{ 0 };
+	U32				drawCount{ 0 };
 
+	friend class UI;
 	friend class Resources;
-	friend class Renderer;
 	friend struct CommandBuffer;
-	friend struct RenderGraph;
+	friend struct PipelineGraph;
 };

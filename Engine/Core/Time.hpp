@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-struct Timer
+struct NH_API Timer
 {
 	Timer();
 

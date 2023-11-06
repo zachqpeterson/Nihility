@@ -89,6 +89,11 @@ void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 }
 
+void CommandBuffer::NextSubpass()
+{
+	vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+}
+
 void CommandBuffer::EndRenderpass()
 {
 	vkCmdEndRenderPass(commandBuffer);

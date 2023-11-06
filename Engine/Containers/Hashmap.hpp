@@ -75,8 +75,8 @@ public:
 	void operator()(U64 capacity);
 	void Clear();
 
-	const U64& Size() const;
-	const U64& Capacity() const;
+	U64 Size() const;
+	U64 Capacity() const;
 
 	Iterator begin() { return { cells }; }
 	const Iterator begin() const { return { cells }; }
@@ -415,8 +415,8 @@ template<class Key, class Value> inline void Hashmap<Key, Value>::Clear()
 	size = 0;
 }
 
-template<class Key, class Value> inline const U64& Hashmap<Key, Value>::Size() const { return size; }
-template<class Key, class Value> inline const U64& Hashmap<Key, Value>::Capacity() const { return size; }
+template<class Key, class Value> inline U64 Hashmap<Key, Value>::Size() const { return size; }
+template<class Key, class Value> inline U64 Hashmap<Key, Value>::Capacity() const { return size; }
 
 /*------ITERATOR------*/
 

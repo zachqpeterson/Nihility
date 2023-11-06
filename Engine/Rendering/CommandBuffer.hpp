@@ -36,6 +36,7 @@ struct CommandBuffer
 	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
 
 	void BeginRenderpass(Renderpass* renderpass);
+	void NextSubpass();
 	void EndRenderpass();
 
 	void SetViewport(const VkViewport& viewport, const VkRect2D& scissor);

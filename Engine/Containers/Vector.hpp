@@ -343,11 +343,11 @@ public:
 
 	/// <summary></summary>
 	/// <returns>size</returns>
-	const U64& Size() const { return size; }
+	U64 Size() const { return size; }
 
 	/// <summary></summary>
 	/// <returns>capacity</returns>
-	const U64& Capacity() const { return capacity; }
+	U64 Capacity() const { return capacity; }
 
 	/// <summary></summary>
 	/// <returns>array (const)</returns>

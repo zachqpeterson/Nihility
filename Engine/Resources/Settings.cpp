@@ -30,7 +30,13 @@ bool Settings::Initialize()
 
 	if (config.Opened())
 	{
-		config.Read(data);
+		U32 read = config.Read(data);
+
+		if (read != sizeof(Settings::Data) || config.Size() != sizeof(Settings::Data))
+		{
+			Logger::Error("Corrupted Settings.cnf, Restoring To Default Settings!");
+		}
+
 		config.Close();
 	}
 

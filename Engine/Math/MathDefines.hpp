@@ -2,20 +2,20 @@
 
 #include "Defines.hpp"
 
-template<FloatingPoint Type> static inline constexpr Type E_T = 2.718281828459045;
-template<FloatingPoint Type> static inline constexpr Type PI_T = 3.141592653589793;
-template<FloatingPoint Type> static inline constexpr Type LOG_TWO_T = 0.693147180559945;
-template<FloatingPoint Type> static inline constexpr Type LOG_TEN_T = 2.302585092994046;
-template<FloatingPoint Type> static inline constexpr Type TWO_PI_T = PI_T<Type> * 2.0;
-template<FloatingPoint Type> static inline constexpr Type HALF_PI_T = PI_T<Type> * 0.5;
-template<FloatingPoint Type> static inline constexpr Type QUARTER_PI_T = PI_T<Type> * 0.25;
-template<FloatingPoint Type> static inline constexpr Type PI_REC_T = 1.0 / PI_T<Type>;
-template<FloatingPoint Type> static inline constexpr Type TWO_PI_REC_T = 1.0 / TWO_PI_T<Type>;
-template<FloatingPoint Type> static inline constexpr Type SQRT_TWO_T = 1.414213562373095;
-template<FloatingPoint Type> static inline constexpr Type DEG_TO_RAD_T = PI_T<Type> / 180.0;
-template<FloatingPoint Type> static inline constexpr Type RAD_TO_DEG_T = 180.0 / PI_T<Type>;
-template<FloatingPoint Type> static inline constexpr Type ONE_THIRD_T = 1.0 / 3.0;
-template<FloatingPoint Type> static inline constexpr Type TWO_THIRDS_T = 2.0 / 3.0;
+template<FloatingPoint Type> static inline constexpr Type E_T = (Type)2.718281828459045;
+template<FloatingPoint Type> static inline constexpr Type PI_T = (Type)3.141592653589793;
+template<FloatingPoint Type> static inline constexpr Type LOG_TWO_T = (Type)0.693147180559945;
+template<FloatingPoint Type> static inline constexpr Type LOG_TEN_T = (Type)2.302585092994046;
+template<FloatingPoint Type> static inline constexpr Type TWO_PI_T = PI_T<Type> * (Type)2.0;
+template<FloatingPoint Type> static inline constexpr Type HALF_PI_T = PI_T<Type> * (Type)0.5;
+template<FloatingPoint Type> static inline constexpr Type QUARTER_PI_T = PI_T<Type> * (Type)0.25;
+template<FloatingPoint Type> static inline constexpr Type PI_REC_T = (Type)1.0 / PI_T<Type>;
+template<FloatingPoint Type> static inline constexpr Type TWO_PI_REC_T = (Type)1.0 / TWO_PI_T<Type>;
+template<FloatingPoint Type> static inline constexpr Type SQRT_TWO_T = (Type)1.414213562373095;
+template<FloatingPoint Type> static inline constexpr Type DEG_TO_RAD_T = PI_T<Type> / (Type)180.0;
+template<FloatingPoint Type> static inline constexpr Type RAD_TO_DEG_T = (Type)180.0 / PI_T<Type>;
+template<FloatingPoint Type> static inline constexpr Type ONE_THIRD_T = (Type)1.0 / (Type)3.0;
+template<FloatingPoint Type> static inline constexpr Type TWO_THIRDS_T = (Type)2.0 / (Type)3.0;
 
 static inline constexpr F32 E_F = E_T<F32>;
 static inline constexpr F64 E = E_T<F64>;
