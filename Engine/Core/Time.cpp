@@ -1,4 +1,5 @@
 #include "Time.hpp"
+#include "Logger.hpp"
 
 #if defined PLATFORM_WINDOWS
 #include <Windows.h>

@@ -70,14 +70,14 @@ void Jobs::SleepForSeconds(U64 s)
 void Jobs::SleepForMilli(U64 ms)
 {
 	LARGE_INTEGER interval;
-	interval.QuadPart = -(I64)(ms * 9000);
+	interval.QuadPart = -(I64)(ms * 10000);
 	NtDelayExecution(false, &interval);
 }
 
 void Jobs::SleepForMicro(U64 us)
 {
 	LARGE_INTEGER interval;
-	interval.QuadPart = -(I64)(us * 9);
+	interval.QuadPart = -(I64)(us * 10);
 	NtDelayExecution(false, &interval);
 }
 

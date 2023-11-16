@@ -171,6 +171,7 @@ bool Pipeline::Create(const PipelineInfo& info, Renderpass* renderpass)
 	if (instanceBufferSize) { instanceBuffer = Renderer::CreateBuffer(instanceBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
 	if (indexBufferSize) { indexBuffer = Renderer::CreateBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
 	if (drawBufferSize) { drawBuffer = Renderer::CreateBuffer(drawBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT); }
+	countsBuffer = Renderer::CreateBuffer(sizeof(U32), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	return true;
 }
@@ -221,7 +222,7 @@ void Pipeline::Run(CommandBuffer* commandBuffer) const
 				if (shader->instanceLocation) { commandBuffer->BindVertexBuffer(shader, vertexBuffer); }
 				if (shader->instanceLocation != U8_MAX) { commandBuffer->BindInstanceBuffer(shader, instanceBuffer); }
 
-				commandBuffer->DrawIndexedIndirect(drawBuffer, drawCount, 0);
+				commandBuffer->DrawIndexedIndirectCount(drawBuffer, countsBuffer, 0, 0);
 			} break;
 			case VK_PIPELINE_BIND_POINT_COMPUTE: {
 				commandBuffer->Dispatch((U32)Renderer::renderArea.z, (U32)Renderer::renderArea.w, 1);
@@ -306,6 +307,12 @@ void Pipeline::UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset,
 	Renderer::FillBuffer(drawBuffer, sizeof(VkDrawIndexedIndirectCommand), &drawCommand, 1, &region);
 
 	++drawCount;
+
+	region.dstOffset = 0;
+	region.size = sizeof(U32);
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(countsBuffer, sizeof(U32), &drawCount, 1, &region);
 }
 
 void Pipeline::UpdateDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 drawOffset)

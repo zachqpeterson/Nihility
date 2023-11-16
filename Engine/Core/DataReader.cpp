@@ -26,7 +26,7 @@ void DataReader::Destroy()
 
 void DataReader::ReadSize(void* data, U32 size)
 {
-	data = dataPtr;
+	Memory::Copy(data, dataPtr, size);
 	dataPtr += size;
 	remaining -= size;
 }

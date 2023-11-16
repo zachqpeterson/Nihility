@@ -428,8 +428,8 @@ bool FlyCamera::Update()
 		if (Input::ButtonDown(BUTTON_CODE_CTRL)) { cameraMovementDelta *= 0.1f; }
 
 		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += Vector3Right * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += Vector3Right * -cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += Vector3Up * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += Vector3Left * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += Vector3Down * cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += Vector3Up * cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += Vector3Forward * -cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_Q)) { cameraMovement += Vector3Forward * cameraMovementDelta; }
@@ -466,7 +466,7 @@ void PipelineGraph::Create(const String& name)
 	if (!renderTarget)
 	{
 		TextureInfo textureInfo{};
-		textureInfo.name = "geometry_buffer";
+		textureInfo.name = name + "_render_target";
 		textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		textureInfo.width = Settings::WindowWidth();
 		textureInfo.height = Settings::WindowHeight();
@@ -483,7 +483,7 @@ void PipelineGraph::Create(const String& name)
 	if (!depthTarget)
 	{
 		TextureInfo textureInfo{};
-		textureInfo.name = "geometry_depth";
+		textureInfo.name = name + "_depth_target";
 		textureInfo.format = VK_FORMAT_D32_SFLOAT;
 		textureInfo.width = Settings::WindowWidth();
 		textureInfo.height = Settings::WindowHeight();
@@ -536,6 +536,7 @@ void PipelineGraph::Create(const String& name)
 void PipelineGraph::AddPipeline(const PipelineInfo& info)
 {
 	ready = false;
+	needsRecord = true;
 	U32 bestIndex = 0;
 	bool found = false;
 
@@ -591,6 +592,8 @@ void PipelineGraph::Run(CommandBuffer* commandBuffer)
 
 		commandBuffer->EndRenderpass();
 	}
+
+	needsRecord = false;
 }
 
 void PipelineGraph::Resize()
@@ -607,4 +610,6 @@ void PipelineGraph::Resize()
 			Resources::RecreateRenderpass(pass.renderpass);
 		}
 	}
+
+	needsRecord = true;
 }

@@ -224,4 +224,24 @@ inline constexpr U32 MakeVersionNumber(U32 major, U32 minor, U32 patch)
 	return (major << 22) | (minor << 12) | patch;
 }
 
+inline constexpr U64 NextMultipleOf(U64 value, U64 n)
+{
+	if (n == 0) { return value; }
+
+	U64 remainder = value % n;
+	if (remainder == 0) { return value; }
+
+	return value + n - remainder;
+}
+
+inline constexpr U32 NextMultipleOf32(U32 value, U32 n)
+{
+	if (n == 0) { return value; }
+
+	U32 remainder = value % n;
+	if (remainder == 0) { return value; }
+
+	return value + n - remainder;
+}
+
 #include "TypeTraits.hpp"

@@ -48,6 +48,8 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Audio::Initialize());
 	ASSERT(GameInit());
 
+	ASSERT(Renderer::InitialSubmit());
+
 	UpdateLoop();
 
 	Shutdown();
@@ -112,7 +114,7 @@ void Engine::UpdateLoop()
 		if (Settings::Focused()) { remainingFrameTime = Settings::TargetFrametime() - Time::FrameUpTime(); }
 		else { remainingFrameTime = Settings::TargetFrametimeSuspended() - Time::FrameUpTime(); }
 
-		U64 remainingUS = (U64)(remainingFrameTime * 1090000.0);
+		U64 remainingUS = (U64)(remainingFrameTime * 990000.0);
 
 		if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }
 	}

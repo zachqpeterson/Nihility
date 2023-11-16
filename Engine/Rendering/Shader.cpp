@@ -1325,7 +1325,7 @@ void Shader::PushDescriptors(CommandBuffer* commandBuffer)
 		{
 			VkDescriptorSetAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 
-			allocateInfo.descriptorPool = Renderer::descriptorPool;
+			allocateInfo.descriptorPool = Renderer::descriptorPools[Renderer::frameIndex];
 			allocateInfo.descriptorSetCount = 1;
 			allocateInfo.pSetLayouts = &setLayout->descriptorSetLayout;
 

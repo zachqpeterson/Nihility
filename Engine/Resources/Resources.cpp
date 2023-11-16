@@ -586,8 +586,8 @@ void Resources::UseSkybox(Skybox* skybox)
 	drawCommand.vertexOffset = 0;
 	drawCommand.firstInstance = 0;
 
-	skyboxPipeline->UpdateDrawCall(CountOf32(skyboxIndices), 0, 0, 1, 0, 0);
-	skyboxPipeline->drawCount = 1;
+	if (skyboxPipeline->drawCount) { skyboxPipeline->UpdateDrawCall(CountOf32(skyboxIndices), 0, 0, 1, 0, 0); }
+	else { skyboxPipeline->UploadDrawCall(CountOf32(skyboxIndices), 0, 0, 1, 0); }
 }
 
 Texture* Resources::CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo)

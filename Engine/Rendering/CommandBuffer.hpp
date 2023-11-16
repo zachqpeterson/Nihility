@@ -24,14 +24,8 @@ enum VkResult;
 
 struct CommandBuffer
 {
-	void Create(bool baked);
-	void Destroy();
-
 	VkResult Begin();
 	VkResult End();
-	VkResult Submit(VkQueue_T* queue);
-	VkResult Submit(VkQueue_T* queue, U32* stageMasks, U32 waitCount, VkSemaphore_T** waits, U32 signalCount, VkSemaphore_T** signals);
-	VkResult Reset();
 
 	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
 
@@ -53,6 +47,7 @@ struct CommandBuffer
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
 	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
 	void DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset = 0);
+	void DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
 
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(Buffer* buffer, U32 offset);
@@ -65,33 +60,9 @@ struct CommandBuffer
 
 	void PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 
-	U32							handle{ U32_MAX };
-	bool						baked{ false };
-
 private:
-	VkCommandBuffer_T*			commandBuffer{ nullptr };
+	VkCommandBuffer_T* vkCommandBuffer{ nullptr };
 
+	friend class Renderer;
 	friend struct CommandBufferRing;
-};
-
-struct CommandBufferRing
-{
-	void							Create();
-	void							Destroy();
-
-	void							ResetPools(U32 frameIndex);
-
-	CommandBuffer*					GetCommandBuffer(U32 frame);
-	CommandBuffer*					GetCommandBufferInstant(U32 frame);
-
-	static U16						PoolFromIndex(U32 index) { return (U16)index / bufferPerPool; }
-
-	static constexpr U16			maxThreads = 1;
-	static constexpr U16			maxPools = MAX_SWAPCHAIN_IMAGES * maxThreads;
-	static constexpr U16			bufferPerPool = 4;
-	static constexpr U16			maxBuffers = bufferPerPool * maxPools;
-
-	VkCommandPool_T*				commandPools[maxPools];
-	CommandBuffer					commandBuffers[maxBuffers];
-	U8								nextFreePerThreadFrame[maxPools];
 };

@@ -93,6 +93,7 @@ Quaternion3 Math::Slerp(const Quaternion3& a, const Quaternion3& b, F32 t) noexc
 }
 
 //NOISE
+
 static U8 simplexPerm[512]{
 	151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,
 	69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,
@@ -152,7 +153,7 @@ NH_INLINE F64 Dot(F64 x0, F64 y0, F64 z0, F64 x1, F64 y1, F64 z1)
 
 F64 Math::Simplex1(F64 x) noexcept
 {
-	I64 i0 = Floor(x);
+	F64 i0 = FloorF(x);
 	F64 x0 = x - i0;
 	F64 x1 = x0 - 1.0;
 
@@ -162,7 +163,7 @@ F64 Math::Simplex1(F64 x) noexcept
 	F64 t1 = 1.0 - x1 * x1;
 	t1 *= t1;
 
-	return 0.395 * ((t0 * t0 * Grad(simplexPerm[i0 & 0xff], x0)) + (t1 * t1 * Grad(simplexPerm[(i0 + 1) & 0xff], x1)));
+	return 0.395 * ((t0 * t0 * Grad(simplexPerm[(I64)Math::Mod(i0, 256.0)], x0)) + (t1 * t1 * Grad(simplexPerm[(I64)Math::Mod(i0 + 1, 256.0)], x1)));
 }
 
 F64 Math::Simplex2(F64 x, F64 y) noexcept
@@ -173,8 +174,8 @@ F64 Math::Simplex2(F64 x, F64 y) noexcept
 	F64 n0, n1, n2;
 
 	F64 g = (x + y) * F2;
-	I64 i = Floor(x + g);
-	I64 j = Floor(y + g);
+	F64 i = FloorF(x + g);
+	F64 j = FloorF(y + g);
 
 	F64 t = (i + j) * G2;
 	F64 X0 = i - t;
@@ -191,8 +192,8 @@ F64 Math::Simplex2(F64 x, F64 y) noexcept
 	F64 x2 = x0 - 1.0 + 2.0 * G2;
 	F64 y2 = y0 - 1.0 + 2.0 * G2;
 
-	I64 ii = i & 255;
-	I64 jj = j & 255;
+	I64 ii = (I64)Math::Mod(i, 256.0);
+	I64 jj = (I64)Math::Mod(j, 256.0);
 	I64 gi0 = simplexPerm[ii + simplexPerm[jj]] % 12;
 	I64 gi1 = simplexPerm[ii + i1 + simplexPerm[jj + j1]] % 12;
 	I64 gi2 = simplexPerm[ii + 1 + simplexPerm[jj + 1]] % 12;

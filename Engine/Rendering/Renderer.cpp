@@ -21,6 +21,73 @@
 #define VMA_IMPLEMENTATION
 #include "External\LunarG\vma\vk_mem_alloc.h"
 
+void CommandBufferRing::Create()
+{
+	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+	commandPoolInfo.pNext = nullptr;
+	commandPoolInfo.flags = 0;
+	commandPoolInfo.queueFamilyIndex = Renderer::queueFamilyIndex;
+
+	VkValidate(vkCreateCommandPool(Renderer::device, &commandPoolInfo, Renderer::allocationCallbacks, &drawCommandPool));
+
+	//TODO: separate queue index for writes
+
+	for (U32 i = 0; i < maxPools; ++i)
+	{
+		VkValidate(vkCreateCommandPool(Renderer::device, &commandPoolInfo, Renderer::allocationCallbacks, &commandPools[i]));
+	}
+
+	VkCommandBufferAllocateInfo commandBufferInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+	commandBufferInfo.pNext = nullptr;
+	commandBufferInfo.commandPool = nullptr;
+	commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferInfo.commandBufferCount = 1;
+
+	for (U32 i = 0; i < maxPools; ++i)
+	{
+		commandBufferInfo.commandPool = drawCommandPool;
+		VkValidate(vkAllocateCommandBuffers(Renderer::device, &commandBufferInfo, &drawCommandBuffers[i].vkCommandBuffer));
+
+		commandBufferInfo.commandPool = commandPools[i];
+
+		for (U32 j = 0; j < bufferPerPool; ++j)
+		{
+			VkValidate(vkAllocateCommandBuffers(Renderer::device, &commandBufferInfo, &commandBuffers[bufferPerPool * i + j].vkCommandBuffer));
+		}
+	}
+}
+
+void CommandBufferRing::Destroy()
+{
+	for (U32 i = 0; i < maxPools; ++i)
+	{
+		vkDestroyCommandPool(Renderer::device, commandPools[i], Renderer::allocationCallbacks);
+	}
+}
+
+void CommandBufferRing::ResetDrawPool()
+{
+	vkResetCommandPool(Renderer::device, drawCommandPool, 0);
+}
+
+void CommandBufferRing::ResetPool(U32 frameIndex)
+{
+	freeCommandBuffers.Reset();
+
+	vkResetCommandPool(Renderer::device, commandPools[frameIndex], 0);
+}
+
+CommandBuffer* CommandBufferRing::GetDrawCommandBuffer(U32 frame)
+{
+	return &commandBuffers[frame];
+}
+
+CommandBuffer* CommandBufferRing::GetWriteCommandBuffer(U32 frame)
+{
+	I32 index = freeCommandBuffers.GetFree();
+	return &commandBuffers[frame * bufferPerPool + index];
+}
+
 static constexpr CSTR extensions[]{
 	VK_KHR_SURFACE_EXTENSION_NAME,
 	//VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
@@ -56,7 +123,6 @@ static constexpr CSTR layers[]{
 	//"VK_LAYER_LUNARG_parameter_validation",
 	//"VK_LAYER_LUNARG_object_tracker",
 };
-#else
 #endif
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
@@ -91,7 +157,7 @@ Swapchain							Renderer::swapchain{};
 U32									Renderer::queueFamilyIndex;
 
 VkAllocationCallbacks* Renderer::allocationCallbacks;
-VkDescriptorPool					Renderer::descriptorPool;
+VkDescriptorPool					Renderer::descriptorPools[MAX_SWAPCHAIN_IMAGES];
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
 
@@ -102,7 +168,6 @@ bool								Renderer::meshShadingSupported{ false };
 // WINDOW
 Vector4								Renderer::renderArea{};
 U32									Renderer::frameIndex{ 0 };
-U32									Renderer::currentFrame{ 1 };
 U32									Renderer::previousFrame{ 0 };
 U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
@@ -111,6 +176,7 @@ bool								Renderer::resized{ false };
 Scene* Renderer::currentScene;
 VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
+Vector<VkCommandBuffer_T*>			Renderer::commandBuffers;
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 CameraData							Renderer::cameraData;
@@ -119,7 +185,9 @@ PipelineGraph* Renderer::pipelineGraph;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
-VkSemaphore							Renderer::queueSubmitted{ nullptr };
+VkSemaphore							Renderer::queueSubmitted[MAX_SWAPCHAIN_IMAGES];
+VkSemaphore							Renderer::frameReady[MAX_SWAPCHAIN_IMAGES];
+U64									Renderer::waitValues[MAX_SWAPCHAIN_IMAGES];
 
 // DEBUG
 VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
@@ -135,8 +203,6 @@ struct VulkanInfo
 	VkPhysicalDeviceFeatures				physicalDeviceFeatures;
 	VkPhysicalDeviceProperties				physicalDeviceProperties;
 	VkPhysicalDeviceMemoryProperties		physicalDeviceMemoryProperties;
-
-
 } vulkanInfo;
 
 PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT;
@@ -180,7 +246,8 @@ void Renderer::Shutdown()
 	commandBufferRing.Destroy();
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
-	vkDestroySemaphore(device, queueSubmitted, allocationCallbacks);
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, queueSubmitted[i], allocationCallbacks); }
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, frameReady[i], allocationCallbacks); }
 
 	DestroyBuffer(stagingBuffer);
 	DestroyBuffer(materialBuffer);
@@ -196,7 +263,7 @@ void Renderer::Shutdown()
 	DestroyDebugUtilsMessengerEXT(instance, debugMessenger, allocationCallbacks);
 #endif
 
-	vkDestroyDescriptorPool(device, descriptorPool, allocationCallbacks);
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroyDescriptorPool(device, descriptorPools[i], allocationCallbacks); }
 
 	vkDestroyDevice(device, allocationCallbacks);
 
@@ -388,6 +455,7 @@ bool Renderer::CreateDevice()
 	features12.shaderInt8 = true;
 	features12.samplerFilterMinmax = true;
 	features12.scalarBlockLayout = true;
+	features12.timelineSemaphore = true;
 
 	if (bindlessSupported)
 	{
@@ -463,21 +531,72 @@ bool Renderer::CreateResources()
 	poolInfo.poolSizeCount = CountOf32(poolSizes);
 	poolInfo.pPoolSizes = poolSizes;
 
-	VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &descriptorPool));
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	{
+		VkValidateFR(vkCreateDescriptorPool(device, &poolInfo, allocationCallbacks, &descriptorPools[i]));
+	}
 
 	if (!Shader::Initialize()) { return false; }
 
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+	semaphoreInfo.pNext = nullptr;
+	semaphoreInfo.flags = 0;
+
 	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAcquired);
 	SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)imageAcquired, "image_aquired_semaphore");
 
-	vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &queueSubmitted);
-	SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)queueSubmitted, "queue_submitted_semaphore");
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	{
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &queueSubmitted[i]);
+		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)queueSubmitted[i], "queue_submitted_semaphore");
+	}
+
+	VkSemaphoreTypeCreateInfo semaphoreType{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
+	semaphoreType.pNext = nullptr;
+	semaphoreType.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+	semaphoreType.initialValue = 0;
+
+	semaphoreInfo.pNext = &semaphoreType;
+
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
+	{
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &frameReady[i]);
+		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)frameReady[i], "frame_ready_semaphore");
+	}
 
 	commandBufferRing.Create();
 
 	stagingBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	return true;
+}
+
+bool Renderer::InitialSubmit()
+{
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { waitValues[i] = 1; }
+
+	VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+	timelineInfo.pNext = nullptr;
+	timelineInfo.waitSemaphoreValueCount = 0;
+	timelineInfo.pWaitSemaphoreValues = nullptr;
+	timelineInfo.signalSemaphoreValueCount = 1;
+	timelineInfo.pSignalSemaphoreValues = &waitValues[0];
+
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.pNext = &timelineInfo;
+	submitInfo.waitSemaphoreCount = 0;
+	submitInfo.pWaitSemaphores = nullptr;
+	submitInfo.pWaitDstStageMask = nullptr;
+	submitInfo.commandBufferCount = (U32)commandBuffers.Size();
+	submitInfo.pCommandBuffers = commandBuffers.Data();
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &frameReady[frameIndex];
+
+	VkValidateFR(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
+
+	commandBuffers.Clear();
+	stagingBuffer.allocationOffset = 0;
 
 	return true;
 }
@@ -491,7 +610,6 @@ bool Renderer::BeginFrame()
 	}
 	else if (result == VK_NOT_READY)
 	{
-		FrameCountersAdvance();
 		return false;
 	}
 
@@ -499,35 +617,28 @@ bool Renderer::BeginFrame()
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		Resize();
-		FrameCountersAdvance();
 		return false;
 	}
 
-	commandBufferRing.ResetPools(frameIndex);
-	VkValidateF(vkResetDescriptorPool(device, descriptorPool, 0));
+	VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
+	waitInfo.pNext = nullptr;
+	waitInfo.flags = 0;
+	waitInfo.semaphoreCount = 1;
+	waitInfo.pSemaphores = &frameReady[previousFrame];
+	waitInfo.pValues = &waitValues[previousFrame];
+
+	vkWaitSemaphores(device, &waitInfo, U64_MAX);
+
+	++waitValues[previousFrame];
+
+	commandBufferRing.ResetPool(frameIndex);
+	VkValidateF(vkResetDescriptorPool(device, descriptorPools[frameIndex], 0)); //TODO: One descriptor pool per frame
 
 	return true;
 }
 
 void Renderer::EndFrame()
 {
-	CommandBuffer* commandBuffer = GetCommandBuffer();
-	commandBuffer->Begin();
-
-	VkViewport viewport{};
-	viewport.x = renderArea.x;
-	viewport.y = renderArea.y;
-	viewport.width = renderArea.z;
-	viewport.height = renderArea.w;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-
-	VkRect2D scissor{};
-	scissor.offset.x = (I32)renderArea.x;
-	scissor.offset.y = (I32)renderArea.y;
-	scissor.extent.width = (U32)renderArea.z;
-	scissor.extent.height = (U32)renderArea.w;
-
 #ifdef NH_DEBUG
 	if (Settings::InEditor())
 	{
@@ -547,20 +658,78 @@ void Renderer::EndFrame()
 
 	Resources::Update();
 
+	//TODO: Check if a record is needed
+	Record();
+
+	U64 signalValues[]{ waitValues[frameIndex], 1 };
+
+	VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+	timelineInfo.pNext = nullptr;
+	timelineInfo.waitSemaphoreValueCount = 0;
+	timelineInfo.pWaitSemaphoreValues = nullptr;
+	timelineInfo.signalSemaphoreValueCount = CountOf32(signalValues);
+	timelineInfo.pSignalSemaphoreValues = signalValues;
+
+	VkSemaphore signalSemaphores[]{ frameReady[frameIndex], queueSubmitted[frameIndex] };
+
+	VkPipelineStageFlags submitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.pNext = &timelineInfo;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &imageAcquired;
+	submitInfo.pWaitDstStageMask = &submitStageMask;
+	submitInfo.commandBufferCount = (U32)commandBuffers.Size();
+	submitInfo.pCommandBuffers = commandBuffers.Data();
+	submitInfo.signalSemaphoreCount = CountOf32(signalSemaphores);
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	VkValidate(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
+	previousFrame = frameIndex;
+	VkResult result = swapchain.Present(deviceQueue, frameIndex, 1, &queueSubmitted[frameIndex]);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) { Resize(); }
+
+	commandBuffers.Clear();
+	++absoluteFrame;
+}
+
+void Renderer::Record()
+{
+	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
+	commandBuffer->Begin();
+
+	VkViewport viewport{};
+	viewport.x = renderArea.x;
+	viewport.y = renderArea.y;
+	viewport.width = renderArea.z;
+	viewport.height = renderArea.w;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	VkRect2D scissor{};
+	scissor.offset.x = (I32)renderArea.x;
+	scissor.offset.y = (I32)renderArea.y;
+	scissor.extent.width = (U32)renderArea.z;
+	scissor.extent.height = (U32)renderArea.w;
+
 	commandBuffer->SetViewport(viewport, scissor);
 
 	pipelineGraph->Run(commandBuffer);
 
-	VkImageMemoryBarrier2 renderpassBarriers[]{
+	if (pipelineGraph->passes[0].renderpass->subpassCount > 1)
+	{
+		//TODO: Check what attachments were used is input attachments, then use these barriers based on that
+		VkImageMemoryBarrier2 renderpassBarriers[]{
 		ImageBarrier(pipelineGraph->RenderTarget()->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-		ImageBarrier(pipelineGraph->DepthTarget()->image, 
-		VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT),
-	};
+		//ImageBarrier(pipelineGraph->DepthTarget()->image,
+		//VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+		//VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT),
+		};
 
-	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(renderpassBarriers), renderpassBarriers);
+		commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(renderpassBarriers), renderpassBarriers);
+	}
 
 	UI::Run(commandBuffer);
 
@@ -595,18 +764,7 @@ void Renderer::EndFrame()
 	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
 	commandBuffer->End();
 
-	//Submit Frame
-	VkPipelineStageFlags submitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
-	VkValidate(commandBuffer->Submit(deviceQueue, &submitStageMask, 1, &imageAcquired, 1, &queueSubmitted));
-
-	VkResult result = swapchain.Present(deviceQueue, frameIndex, 1, &queueSubmitted);
-
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) { Resize(); }
-
-	FrameCountersAdvance();
-
-	vkQueueWaitIdle(deviceQueue);
+	commandBuffers.Push(commandBuffer->vkCommandBuffer);
 }
 
 void Renderer::Resize()
@@ -660,7 +818,7 @@ void Renderer::LoadScene(Scene* scene)
 
 #ifdef NH_DEBUG
 	if (currentScene->camera.Perspective()) { flyCamera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f); }
-	else { flyCamera.SetOrthograpic(0.01f, 10.0f, 240.0f, 135.0f, 1.0f); }
+	else { flyCamera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f); }
 	flyCamera.SetPosition(Vector3Zero);
 	flyCamera.SetRotation(Vector3Zero);
 #endif
@@ -668,6 +826,8 @@ void Renderer::LoadScene(Scene* scene)
 
 void Renderer::SetRenderGraph(PipelineGraph* graph)
 {
+	if (!graph->ready) { Logger::Error("Failed To Set RenderGraph; The RenderGraph Has Not Been Created!"); return; }
+
 	pipelineGraph = graph;
 	Renderpass* renderpass = graph->passes.Back().renderpass;
 	UI::UpdateRenderpass(renderpass->renderTargets[0], renderpass->depthStencilTarget);
@@ -689,14 +849,6 @@ void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
 	SetDebugUtilsObjectNameEXT(device, &nameInfo);
 }
 
-void Renderer::FrameCountersAdvance()
-{
-	previousFrame = currentFrame;
-	currentFrame = (currentFrame + 1) % swapchain.imageCount;
-
-	++absoluteFrame;
-}
-
 const Vector4& Renderer::RenderArea()
 {
 	return renderArea;
@@ -705,11 +857,6 @@ const Vector4& Renderer::RenderArea()
 U32 Renderer::FrameIndex()
 {
 	return frameIndex;
-}
-
-U32 Renderer::CurrentFrame()
-{
-	return currentFrame;
 }
 
 U32 Renderer::AbsoluteFrame()
@@ -730,11 +877,6 @@ const VkPhysicalDeviceProperties& Renderer::GetDeviceProperties()
 const VkPhysicalDeviceMemoryProperties& Renderer::GetDeviceMemoryProperties()
 {
 	return vulkanInfo.physicalDeviceMemoryProperties;
-}
-
-CommandBuffer* Renderer::GetCommandBuffer()
-{
-	return commandBufferRing.GetCommandBuffer(frameIndex);
 }
 
 VkImageMemoryBarrier2 Renderer::ImageBarrier(VkImage image, VkPipelineStageFlags2 srcStageMask, VkAccessFlags2 srcAccessMask,
@@ -809,32 +951,27 @@ Buffer Renderer::CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryP
 		buffer.mapped = true;
 	}
 
-	//TODO: CreateBufferWithData
-	//if (data)
-	//{
-	//	void* mappedData;
-	//	vmaMapMemory(allocator, buffer->allocation, &mappedData);
-	//	Memory::Copy(mappedData, data, (U64)buffer->size);
-	//	vmaUnmapMemory(allocator, buffer->allocation);
-	//}
-
 	return Move(buffer);
 }
 
 void Renderer::FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions)
 {
-	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(currentFrame);
+	VkBufferMemoryBarrier2 memoryBarrier = BufferBarrier(buffer.vkBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
+
+	if (stagingBuffer.allocationOffset + size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
+
+	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, size);
+	for (U32 i = 0; i < regionCount; ++i) { regions[i].srcOffset += stagingBuffer.allocationOffset; }
+
+	stagingBuffer.allocationOffset += size;
+
+	CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
 	commandBuffer->Begin();
-
-	Memory::Copy(stagingBuffer.data, data, size);
-
 	commandBuffer->BufferToBuffer(stagingBuffer, buffer, regionCount, regions);
+	commandBuffer->PipelineBarrier(0, 1, &memoryBarrier, 0, nullptr);
 	commandBuffer->End();
-	commandBuffer->Submit(deviceQueue);
 
-	vkQueueWaitIdle(deviceQueue);
-
-	commandBuffer->Reset();
+	commandBuffers.Push(commandBuffer->vkCommandBuffer);
 }
 
 U32 Renderer::UploadToBuffer(Buffer& buffer, U32 size, const void* data)
@@ -949,13 +1086,13 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	if (data)
 	{
-		CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(frameIndex);
-		commandBuffer->Begin();
+		stagingBuffer.allocationOffset = NextMultipleOf32(stagingBuffer.allocationOffset, 16);
+		if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
 
-		Memory::Copy(stagingBuffer.data, data, texture->size);
+		Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, texture->size);
 
 		VkBufferImageCopy region{};
-		region.bufferOffset = 0;
+		region.bufferOffset = stagingBuffer.allocationOffset;
 		region.bufferRowLength = 0;
 		region.bufferImageHeight = 0;
 
@@ -967,23 +1104,18 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		region.imageOffset = { 0, 0, 0 };
 		region.imageExtent = { texture->width, texture->height, texture->depth };
 
+		stagingBuffer.allocationOffset += texture->size;
+
 		VkImageMemoryBarrier2 copyBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1);
 		VkImageMemoryBarrier2 mipBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1);
 
+		CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
+		commandBuffer->Begin();
 		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
 		commandBuffer->BufferToImage(stagingBuffer, texture, 1, &region);
 		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &mipBarrier);
-		commandBuffer->End();
-		commandBuffer->Submit(deviceQueue);
-
-		vkQueueWaitIdle(deviceQueue);
-
-		commandBuffer->Reset();
-
-		CommandBuffer* blitCmd = commandBufferRing.GetCommandBufferInstant(frameIndex);
-		blitCmd->Begin();
 
 		info.subresourceRange.levelCount = 1;
 
@@ -1009,9 +1141,9 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 			mipBarrier.subresourceRange.baseMipLevel = i;
 			info.subresourceRange.baseMipLevel = i;
 
-			blitCmd->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
-			blitCmd->Blit(texture, texture, VK_FILTER_LINEAR, 1, &blitRegion);
-			blitCmd->PipelineBarrier(0, 0, nullptr, 1, &mipBarrier);
+			commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
+			commandBuffer->Blit(texture, texture, VK_FILTER_LINEAR, 1, &blitRegion);
+			commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &mipBarrier);
 
 			VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->mipmaps[i]));
 
@@ -1043,14 +1175,12 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount);
 		}
 
-		blitCmd->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
-		blitCmd->End();
-		blitCmd->Submit(deviceQueue);
+		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
+		commandBuffer->End();
 
-		vkQueueWaitIdle(deviceQueue);
+		commandBuffers.Push(commandBuffer->vkCommandBuffer);
+
 		texture->imageLayout = finalBarrier.newLayout;
-
-		blitCmd->Reset();
 	}
 	else if (texture->flags & TEXTURE_FLAG_FORCE_GENERATE_MIPMAPS)
 	{
@@ -1087,7 +1217,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
 
-	if (bindlessSupported && (texture->flags & TEXTURE_FLAG_RENDER_TARGET) == 0) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, currentFrame }); }
+	if (bindlessSupported && (texture->flags & TEXTURE_FLAG_RENDER_TARGET) == 0) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, frameIndex }); }
 
 	return true;
 }
@@ -1116,9 +1246,15 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
 
+	stagingBuffer.allocationOffset = NextMultipleOf32(stagingBuffer.allocationOffset, 16);
+	if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
+
+	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, texture->size);
+
 	VkBufferImageCopy bufferCopyRegions[6 * 14];
 	U32 regionCount = 0;
-	U32 offset = 0;
+	U32 offset = stagingBuffer.allocationOffset;
+	stagingBuffer.allocationOffset += texture->size;
 
 	for (U32 level = 0; level < texture->mipmapCount; ++level)
 	{
@@ -1138,26 +1274,21 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 		}
 	}
 
-	CommandBuffer* commandBuffer = commandBufferRing.GetCommandBufferInstant(frameIndex);
-	commandBuffer->Begin();
-
-	Memory::Copy(stagingBuffer.data, data, texture->size);
-
 	VkImageMemoryBarrier2 copyBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1);
 	VkImageMemoryBarrier2 finalBarrier = ImageBarrier(texture->image, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount, 6);
 
+	CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
+	commandBuffer->Begin();
 	commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
 	commandBuffer->BufferToImage(stagingBuffer, texture, regionCount, bufferCopyRegions);
 	commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &finalBarrier);
 	commandBuffer->End();
-	commandBuffer->Submit(deviceQueue);
 
-	vkQueueWaitIdle(deviceQueue);
+	commandBuffers.Push(commandBuffer->vkCommandBuffer);
+
 	texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	commandBuffer->Reset();
 
 	VkImageViewCreateInfo view{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
@@ -1195,7 +1326,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
 
-	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, currentFrame }); }
+	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, frameIndex }); }
 
 	return true;
 }
@@ -1286,6 +1417,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 
 		inputOffset += renderpass->subpasses[i].inputAttachmentCount;
 
+		//TODO: Use Sync2
+		//TODO: Add transitions to VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR for input attachments
 		dependencies.Push({
 			.srcSubpass = i - 1,
 			.dstSubpass = i,
@@ -1294,16 +1427,16 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 			.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 			.dependencyFlags = 0
-		});
+			});
 		dependencies.Push({
 			.srcSubpass = i - 1,
 			.dstSubpass = i,
 			.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 			.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-			.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
 			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
 			.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-		});
+			});
 	}
 
 	VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };

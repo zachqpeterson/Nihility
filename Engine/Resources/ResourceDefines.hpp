@@ -860,7 +860,7 @@ struct NH_API PipelineGraph
 	Pipeline* GetPipeline(U32 pass, U32 index);
 
 private:
-	void Run(CommandBuffer* commandBuffer);
+	void Run(CommandBuffer* commandBuffer); //TODO: Change to record
 	void Resize();
 
 	Vector<Pass> passes;
@@ -870,6 +870,7 @@ private:
 	Texture* depthTarget;
 
 	bool ready{ false };
+	bool needsRecord{ false };
 
 	friend class Renderer;
 };

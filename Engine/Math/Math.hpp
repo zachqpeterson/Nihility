@@ -45,16 +45,16 @@ template <class Type> concept QuaternionType = AnyOf<RemovedQuals<Type>, Quatern
 class NH_API Math
 {
 public:
-	template <typename Type> static constexpr Type Abs(const Type& n) noexcept { return n < 0 ? -n : n; }
+	template <typename Type> static constexpr Type Abs(const Type& n) noexcept { return n < (Type)0 ? -n : n; }
 	template <typename Type> static constexpr Type Min(const Type& a, const Type& b) noexcept { return a > b ? b : a; }
 	template <typename Type> static constexpr Type Max(const Type& a, const Type& b) noexcept { return a < b ? b : a; }
 	template <typename Type> static constexpr Type Clamp(const Type& n, const Type& min, const Type& max) noexcept { return n < min ? min : n > max ? max : n; }
-	template <typename Type> static constexpr Type Sign(const Type& n) noexcept { return (Type)((n > 0) - (n < 0)); }
-	template <typename Type> static constexpr Type NonZeroSign(const Type& n) noexcept { return (Type)(2 * (n > 0) - 1); }
-	template <FloatingPoint Type> static constexpr I64 Floor(const Type& n) noexcept { return n >= 0.0 ? (I64)n : (I64)n - 1; }
-	template <FloatingPoint Type> static constexpr Type FloorF(const Type& n) noexcept { return n >= 0.0 ? (Type)(I64)n : (Type)(I64)n - 1; }
-	template <FloatingPoint Type> static constexpr I64 Ceiling(const Type& n) noexcept { return (n - (I64)n) < 0.0 ? (I64)n : (I64)n + 1; }
-	template <FloatingPoint Type> static constexpr Type CeilingF(const Type& n) noexcept { return (n - (I64)n) < 0.0 ? (Type)(I64)n : (Type)(I64)n + 1; }
+	template <typename Type> static constexpr Type Sign(const Type& n) noexcept { return (Type)((n > (Type)0) - (n < (Type)0)); }
+	template <typename Type> static constexpr Type NonZeroSign(const Type& n) noexcept { return (Type)(2 * (n > (Type)0) - (Type)1); }
+	template <FloatingPoint Type> static constexpr I64 Floor(const Type& n) noexcept { return n >= (Type)0 ? (I64)n : (I64)n - 1; }
+	template <FloatingPoint Type> static constexpr Type FloorF(const Type& n) noexcept { return n > Traits<Type>::MaxPrecision ? n : n >= (Type)0 ? (Type)(I64)n : (Type)(I64)n - (Type)1; }
+	template <FloatingPoint Type> static constexpr I64 Ceiling(const Type& n) noexcept { return (n - (I64)n) < (Type)0 ? (I64)n : (I64)n + 1; }
+	template <FloatingPoint Type> static constexpr Type CeilingF(const Type& n) noexcept { return n > Traits<Type>::MaxPrecision ? n : (n - (I64)n) < (Type)0 ? (Type)(I64)n : (Type)(I64)n + (Type)1; }
 	template <FloatingPoint Type> static constexpr Type Round(const Type& n) noexcept { return (Type)(I64)(n + 0.5); }
 	template <FloatingPoint Type> static constexpr Type RoundI(const Type& n) noexcept { return (I64)(n + 0.5); }
 	template <FloatingPoint Type> static constexpr Type Mod(const Type& n, const Type& d) noexcept { return n - d * FloorF(n / d); }
@@ -1698,21 +1698,21 @@ struct NH_API Matrix4
 		a.x = 2.0f * rightLeft;
 		a.y = 0.0f;
 		a.z = 0.0f;
-		a.w = -(right + left) * rightLeft;
+		a.w = 0.0f;
 
 		b.x = 0.0f;
 		b.y = 2.0f * bottomTop;
 		b.z = 0.0f;
-		b.w = -(bottom + top) * bottomTop;
+		b.w = 0.0f;
 
 		c.x = 0.0f;
 		c.y = 0.0f;
-		c.z = 1.0f * farNear;
-		c.w = near * farNear;
+		c.z = 2.0f * farNear;
+		c.w = 0.0f;
 
-		d.x = 0.0f;
-		d.y = 0.0f;
-		d.z = 0.0f;
+		d.x = -(right + left) * rightLeft;
+		d.y = -(bottom + top) * bottomTop;
+		d.z = -(far + near) * farNear;
 		d.w = 1.0f;
 	}
 

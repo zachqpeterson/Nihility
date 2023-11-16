@@ -5,13 +5,13 @@
 
 Freelist::Freelist() {}
 
-Freelist::Freelist(U32 count) : size{ count }
+Freelist::Freelist(U32 count) : capacity{ count }
 {
 	freeCount = 0;
 	lastFree = 0;
 	outsideAllocated = false;
 
-	Memory::AllocateArray(&freeIndices, count, capacity);
+	Memory::AllocateArray(&freeIndices, count);
 }
 
 Freelist& Freelist::operator()(U32 count)
@@ -25,8 +25,8 @@ Freelist& Freelist::operator()(U32 count)
 
 	freeCount = 0;
 	lastFree = 0;
-	size = count;
-	Memory::AllocateArray(&freeIndices, count, capacity);
+	capacity = count;
+	Memory::AllocateArray(&freeIndices, count);
 	outsideAllocated = false;
 
 	return *this;
@@ -43,7 +43,6 @@ Freelist& Freelist::operator()(U32* memory, U32 count)
 
 	freeCount = 0;
 	lastFree = 0;
-	size = count;
 	capacity = count;
 	freeIndices = memory;
 	outsideAllocated = true;
@@ -53,7 +52,6 @@ Freelist& Freelist::operator()(U32* memory, U32 count)
 
 void Freelist::Destroy()
 {
-	size = 0;
 	capacity = 0;
 	freeCount = 0;
 	lastFree = 0;
@@ -69,11 +67,18 @@ Freelist::~Freelist()
 	Destroy();
 }
 
+void Freelist::Reset()
+{
+	freeCount = 0;
+	lastFree = 0;
+	Memory::Zero(freeIndices, sizeof(U32) * capacity);
+}
+
 U32 Freelist::GetFree()
 {
 	U32 index = SafeDecrement(&freeCount);
 
-	if (index < size) { return freeIndices[index]; }
+	if (index < capacity) { return freeIndices[index]; }
 
 	++freeCount;
 	return SafeIncrement(&lastFree) - 1;
@@ -86,5 +91,5 @@ void Freelist::Release(U32 index)
 
 bool Freelist::Full() const
 {
-	return lastFree >= size && freeCount == 0;
+	return lastFree >= capacity && freeCount == 0;
 }

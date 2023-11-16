@@ -1047,7 +1047,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	size += addLength - Remove;
 
 	if constexpr (Insert && !Hex) { Memory::Copy(str + neg, c, (addLength + excessSize - Remove) * sizeof(C)); }
-	else { Memory::Copy(str, c, addLength * sizeof(C)); }
+	else { Memory::Copy(str + neg, c, addLength * sizeof(C)); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
 	needHash = true;

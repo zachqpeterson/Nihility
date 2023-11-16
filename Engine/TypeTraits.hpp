@@ -529,6 +529,14 @@ private:
 		return 0;
 	}
 
+	static constexpr Base GetMaxPrecision()
+	{
+		if constexpr (IsSame<Base, float>) { return (float)(1i64 << 23); }
+		if constexpr (IsSame<Base, double>) { return (double)(1i64 << 52); }
+
+		return 0;
+	}
+
 public:
 	static constexpr Base MaxValue = GetMaxValue();
 	static constexpr Base MinValue = GetMinValue();
@@ -536,6 +544,7 @@ public:
 	static constexpr Base Infinity = GetInfinity();
 	static constexpr Base NaN = GetNaN();
 	static constexpr Base Epsilon = GetEpsilon();
+	static constexpr Base MaxPrecision = GetMaxPrecision();
 };
 
 namespace TypeTraits
