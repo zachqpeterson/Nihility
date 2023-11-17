@@ -52,20 +52,21 @@ struct CommandBufferRing
 	void							Destroy();
 
 	void							ResetDrawPool();
+	void							ResetDraw(U32 frameIndex);
 	void							ResetPool(U32 frameIndex);
 
 	CommandBuffer*					GetDrawCommandBuffer(U32 frameIndex);
 	CommandBuffer*					GetWriteCommandBuffer(U32 frameIndex);
 
 	static constexpr U16			maxPools = MAX_SWAPCHAIN_IMAGES;
-	static constexpr U16			bufferPerPool = 128;
-	static constexpr U16			maxBuffers = bufferPerPool * maxPools;
+	static constexpr U16			buffersPerPool = 128;
+	static constexpr U16			maxBuffers = buffersPerPool * maxPools;
 
 	VkCommandPool_T*				drawCommandPool;
 	VkCommandPool_T*				commandPools[maxPools];
 	CommandBuffer					drawCommandBuffers[maxPools];
 	CommandBuffer					commandBuffers[maxBuffers];
-	Freelist						freeCommandBuffers;
+	Freelist						freeCommandBuffers[maxPools];
 };
 
 //Post Processing		
@@ -182,7 +183,7 @@ private:
 	static Scene*								currentScene;
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
-	static Vector<VkCommandBuffer_T*>			commandBuffers;
+	static Vector<VkCommandBuffer_T*>			commandBuffers[MAX_SWAPCHAIN_IMAGES];
 	static Buffer								stagingBuffer;
 	static Buffer								materialBuffer;
 	static CameraData							cameraData;

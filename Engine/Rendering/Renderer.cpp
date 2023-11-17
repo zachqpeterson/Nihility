@@ -23,14 +23,17 @@
 
 void CommandBufferRing::Create()
 {
+	for (U32 i = 0; i < maxPools; ++i) { freeCommandBuffers[i](buffersPerPool); }
+
 	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	commandPoolInfo.pNext = nullptr;
-	commandPoolInfo.flags = 0;
+	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	commandPoolInfo.queueFamilyIndex = Renderer::queueFamilyIndex;
 
 	VkValidate(vkCreateCommandPool(Renderer::device, &commandPoolInfo, Renderer::allocationCallbacks, &drawCommandPool));
 
 	//TODO: separate queue index for writes
+	commandPoolInfo.flags = 0;
 
 	for (U32 i = 0; i < maxPools; ++i)
 	{
@@ -50,15 +53,19 @@ void CommandBufferRing::Create()
 
 		commandBufferInfo.commandPool = commandPools[i];
 
-		for (U32 j = 0; j < bufferPerPool; ++j)
+		for (U32 j = 0; j < buffersPerPool; ++j)
 		{
-			VkValidate(vkAllocateCommandBuffers(Renderer::device, &commandBufferInfo, &commandBuffers[bufferPerPool * i + j].vkCommandBuffer));
+			VkValidate(vkAllocateCommandBuffers(Renderer::device, &commandBufferInfo, &commandBuffers[buffersPerPool * i + j].vkCommandBuffer));
 		}
 	}
 }
 
 void CommandBufferRing::Destroy()
 {
+	for (U32 i = 0; i < maxPools; ++i) { freeCommandBuffers[i].Destroy(); }
+
+	vkDestroyCommandPool(Renderer::device, drawCommandPool, Renderer::allocationCallbacks);
+
 	for (U32 i = 0; i < maxPools; ++i)
 	{
 		vkDestroyCommandPool(Renderer::device, commandPools[i], Renderer::allocationCallbacks);
@@ -70,22 +77,33 @@ void CommandBufferRing::ResetDrawPool()
 	vkResetCommandPool(Renderer::device, drawCommandPool, 0);
 }
 
+void CommandBufferRing::ResetDraw(U32 frameIndex)
+{
+	vkResetCommandBuffer(drawCommandBuffers[frameIndex].vkCommandBuffer, 0);
+}
+
 void CommandBufferRing::ResetPool(U32 frameIndex)
 {
-	freeCommandBuffers.Reset();
+	freeCommandBuffers[frameIndex].Reset();
 
 	vkResetCommandPool(Renderer::device, commandPools[frameIndex], 0);
+
+	for (U32 i = 0; i < buffersPerPool; ++i)
+	{
+		commandBuffers[frameIndex * buffersPerPool + i].recorded = false;
+	}
 }
 
-CommandBuffer* CommandBufferRing::GetDrawCommandBuffer(U32 frame)
+CommandBuffer* CommandBufferRing::GetDrawCommandBuffer(U32 frameIndex)
 {
-	return &commandBuffers[frame];
+	return &drawCommandBuffers[frameIndex];
 }
 
-CommandBuffer* CommandBufferRing::GetWriteCommandBuffer(U32 frame)
+CommandBuffer* CommandBufferRing::GetWriteCommandBuffer(U32 frameIndex)
 {
-	I32 index = freeCommandBuffers.GetFree();
-	return &commandBuffers[frame * bufferPerPool + index];
+	I32 index = freeCommandBuffers[frameIndex].GetFree();
+
+	return &commandBuffers[frameIndex * buffersPerPool + index];
 }
 
 static constexpr CSTR extensions[]{
@@ -176,7 +194,7 @@ bool								Renderer::resized{ false };
 Scene* Renderer::currentScene;
 VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
-Vector<VkCommandBuffer_T*>			Renderer::commandBuffers;
+Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 CameraData							Renderer::cameraData;
@@ -588,14 +606,14 @@ bool Renderer::InitialSubmit()
 	submitInfo.waitSemaphoreCount = 0;
 	submitInfo.pWaitSemaphores = nullptr;
 	submitInfo.pWaitDstStageMask = nullptr;
-	submitInfo.commandBufferCount = (U32)commandBuffers.Size();
-	submitInfo.pCommandBuffers = commandBuffers.Data();
+	submitInfo.commandBufferCount = (U32)commandBuffers[frameIndex].Size();
+	submitInfo.pCommandBuffers = commandBuffers[frameIndex].Data();
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &frameReady[frameIndex];
 
 	VkValidateFR(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
+	commandBuffers[frameIndex].Clear();
 
-	commandBuffers.Clear();
 	stagingBuffer.allocationOffset = 0;
 
 	return true;
@@ -631,8 +649,9 @@ bool Renderer::BeginFrame()
 
 	++waitValues[previousFrame];
 
-	commandBufferRing.ResetPool(frameIndex);
-	VkValidateF(vkResetDescriptorPool(device, descriptorPools[frameIndex], 0)); //TODO: One descriptor pool per frame
+	commandBufferRing.ResetDraw(previousFrame);
+	commandBufferRing.ResetPool(previousFrame);
+	VkValidateF(vkResetDescriptorPool(device, descriptorPools[previousFrame], 0));
 
 	return true;
 }
@@ -658,7 +677,6 @@ void Renderer::EndFrame()
 
 	Resources::Update();
 
-	//TODO: Check if a record is needed
 	Record();
 
 	U64 signalValues[]{ waitValues[frameIndex], 1 };
@@ -678,18 +696,19 @@ void Renderer::EndFrame()
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = &imageAcquired;
 	submitInfo.pWaitDstStageMask = &submitStageMask;
-	submitInfo.commandBufferCount = (U32)commandBuffers.Size();
-	submitInfo.pCommandBuffers = commandBuffers.Data();
+	submitInfo.commandBufferCount = (U32)commandBuffers[frameIndex].Size();
+	submitInfo.pCommandBuffers = commandBuffers[frameIndex].Data();
 	submitInfo.signalSemaphoreCount = CountOf32(signalSemaphores);
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	VkValidate(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
+	commandBuffers[frameIndex].Clear();
+
 	previousFrame = frameIndex;
 	VkResult result = swapchain.Present(deviceQueue, frameIndex, 1, &queueSubmitted[frameIndex]);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) { Resize(); }
 
-	commandBuffers.Clear();
 	++absoluteFrame;
 }
 
@@ -764,7 +783,7 @@ void Renderer::Record()
 	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
 	commandBuffer->End();
 
-	commandBuffers.Push(commandBuffer->vkCommandBuffer);
+	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
 }
 
 void Renderer::Resize()
@@ -966,12 +985,15 @@ void Renderer::FillBuffer(Buffer& buffer, U32 size, const void* data, U32 region
 	stagingBuffer.allocationOffset += size;
 
 	CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
+
+	if (commandBuffer->recorded) { BreakPoint; }
+
 	commandBuffer->Begin();
 	commandBuffer->BufferToBuffer(stagingBuffer, buffer, regionCount, regions);
 	commandBuffer->PipelineBarrier(0, 1, &memoryBarrier, 0, nullptr);
 	commandBuffer->End();
 
-	commandBuffers.Push(commandBuffer->vkCommandBuffer);
+	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
 }
 
 U32 Renderer::UploadToBuffer(Buffer& buffer, U32 size, const void* data)
@@ -1178,7 +1200,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
 		commandBuffer->End();
 
-		commandBuffers.Push(commandBuffer->vkCommandBuffer);
+		commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
 
 		texture->imageLayout = finalBarrier.newLayout;
 	}
@@ -1286,7 +1308,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 	commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &finalBarrier);
 	commandBuffer->End();
 
-	commandBuffers.Push(commandBuffer->vkCommandBuffer);
+	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
 
 	texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 

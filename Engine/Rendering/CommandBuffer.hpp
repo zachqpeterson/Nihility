@@ -62,6 +62,7 @@ struct CommandBuffer
 
 private:
 	VkCommandBuffer_T* vkCommandBuffer{ nullptr };
+	bool recorded{ false };
 
 	friend class Renderer;
 	friend struct CommandBufferRing;

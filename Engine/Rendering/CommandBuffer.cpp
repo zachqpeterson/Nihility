@@ -14,6 +14,8 @@ VkResult CommandBuffer::Begin()
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	beginInfo.pInheritanceInfo = nullptr;
 
+	recorded = true;
+
 	return vkBeginCommandBuffer(vkCommandBuffer, &beginInfo);
 }
 
