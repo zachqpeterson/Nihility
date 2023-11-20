@@ -5,4 +5,4 @@ bin/
 *.spv
 *.log
 *.cfg
-console.log
+*.cache

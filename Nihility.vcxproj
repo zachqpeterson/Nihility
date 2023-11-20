@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -38,16 +38,24 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Baseline.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Baseline.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
+    <IncludePath>C:\Development\Nihility\Engine;$(IncludePath)</IncludePath>
+    <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
+    <IncludePath>C:\Development\Nihility\Engine;$(IncludePath)</IncludePath>
+    <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -57,20 +65,23 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)/Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
+      <NoEntryPoint>false</NoEntryPoint>
     </Link>
     <PostBuildEvent>
-      <Command>call "$(SolutionDir)post-build.bat"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Compiling shaders...</Message>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -81,109 +92,241 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)/Include; $(SolutionDir)/Engine/src;$(SolutionDir)/Containers</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812; 26451; 4251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)/Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
+      <NoEntryPoint>false</NoEntryPoint>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\src\Audio\Audio.hpp" />
-    <ClInclude Include="Engine\src\Containers\BoolTable.hpp" />
-    <ClInclude Include="Engine\src\Containers\Freelist.hpp" />
-    <ClInclude Include="Engine\src\Containers\Heap.hpp" />
-    <ClInclude Include="Engine\src\Containers\String.hpp" />
-    <ClInclude Include="Engine\src\Core\Events.hpp" />
-    <ClInclude Include="Engine\src\Core\File.hpp" />
-    <ClInclude Include="Engine\src\Core\Input.hpp" />
-    <ClInclude Include="Engine\src\Core\Logger.hpp" />
-    <ClInclude Include="Engine\src\Core\Settings.hpp" />
-    <ClInclude Include="Engine\src\Core\Time.hpp" />
-    <ClInclude Include="Engine\src\Defines.hpp" />
-    <ClInclude Include="Engine\src\Engine.hpp" />
-    <ClInclude Include="Engine\src\Math\Math.hpp" />
-    <ClInclude Include="Engine\src\Memory\DynamicAllocator.hpp" />
-    <ClInclude Include="Engine\src\Memory\Memory.hpp" />
-    <ClInclude Include="Engine\src\Physics\BoxTree.hpp" />
-    <ClInclude Include="Engine\src\Physics\Broadphase.hpp" />
-    <ClInclude Include="Engine\src\Physics\Physics.hpp" />
-    <ClInclude Include="Engine\src\Platform\Platform.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Camera.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Material.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Renderer.hpp" />
-    <ClInclude Include="Engine\src\Renderer\RendererDefines.hpp" />
-    <ClInclude Include="Engine\src\Renderer\RendererFrontend.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Scene.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Shader.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanBuffer.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanCommandBuffer.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanDefines.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\Device.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanImage.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanPipeline.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanRenderer.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\VulkanShader.hpp" />
-    <ClInclude Include="Engine\src\Renderer\Vulkan\Swapchain.hpp" />
-    <ClInclude Include="Engine\src\Resources\Animations.hpp" />
-    <ClInclude Include="Engine\src\Resources\Resources.hpp" />
-    <ClInclude Include="Engine\src\Resources\UI.hpp" />
-    <ClInclude Include="Engine\src\SIMD.h" />
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="Engine\Containers\Array.hpp" />
+    <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
+    <ClInclude Include="Engine\Containers\Freelist.hpp" />
+    <ClInclude Include="Engine\Containers\Hashmap.hpp" />
+    <ClInclude Include="Engine\Containers\Hashset.hpp" />
+    <ClInclude Include="Engine\Containers\Pair.hpp" />
+    <ClInclude Include="Engine\Containers\Pool.hpp" />
+    <ClInclude Include="Engine\Containers\Queue.hpp" />
+    <ClInclude Include="Engine\Containers\SafeQueue.hpp" />
+    <ClInclude Include="Engine\Containers\Stack.hpp" />
+    <ClInclude Include="Engine\Containers\String.hpp" />
+    <ClInclude Include="Engine\Containers\Tuple.hpp" />
+    <ClInclude Include="Engine\Containers\Vector.hpp" />
+    <ClInclude Include="Engine\Core\DataReader.hpp" />
+    <ClInclude Include="Engine\Core\File.hpp" />
+    <ClInclude Include="Engine\Core\Logger.hpp" />
+    <ClInclude Include="Engine\Core\Time.hpp" />
+    <ClInclude Include="Engine\Defines.hpp" />
+    <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\Entities\EntityDefines.hpp" />
+    <ClInclude Include="Engine\External\LunarG\glslang\build_info.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslAttributes.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslGrammar.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslOpMap.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslParseables.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslParseHelper.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslScanContext.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslTokens.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslTokenStream.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\HLSL\pch.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\arrays.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\BaseTypes.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\Common.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\ConstantUnion.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\glslang_c_interface.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\glslang_c_shader_types.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\InfoSink.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\InitializeGlobals.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\intermediate.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\PoolAlloc.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\ResourceLimits.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\ShHandle.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\SpirvIntrinsics.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Include\Types.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\attribute.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\glslang_tab.cpp.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\gl_types.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\Initialize.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\iomapper.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\LiveTraverser.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\localintermediate.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\ParseHelper.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\parseVersions.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\pch.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\PpContext.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\PpTokens.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\propagateNoContraction.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\reflection.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\RemoveTree.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\Scan.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\ScanContext.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\SymbolTable.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\MachineIndependent\Versions.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\OSDependent\osinclude.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Public\ResourceLimits.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Public\resource_limits_c.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\Public\ShaderLang.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\bitutils.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\disassemble.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\doc.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GLSL.ext.AMD.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GLSL.ext.ARM.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GLSL.ext.EXT.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GLSL.ext.KHR.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GLSL.ext.NV.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GLSL.std.450.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\GlslangToSpv.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\hex_float.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\NonSemanticDebugPrintf.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\NonSemanticShaderDebugInfo100.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\spirv.hpp" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\SpvBuilder.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\spvIR.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\SpvLogger.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\SPVRemapper.h" />
+    <ClInclude Include="Engine\External\LunarG\glslang\SPIRV\SpvTools.h" />
+    <ClInclude Include="Engine\External\LunarG\spirv-tools\libspirv.h" />
+    <ClInclude Include="Engine\External\LunarG\spirv-tools\libspirv.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv-tools\linker.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv-tools\optimizer.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\GLSL.std.450.h" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv.h" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_cfg.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_common.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_cross.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_cross_c.h" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_cross_containers.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_cross_error_handling.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_cross_parsed_ir.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_glsl.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_hlsl.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_msl.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_parser.hpp" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_reflect.h" />
+    <ClInclude Include="Engine\External\LunarG\spirv_cross\spirv_reflect.hpp" />
+    <ClInclude Include="Engine\External\stb_image.h" />
+    <ClInclude Include="Engine\External\stb_truetype.h" />
+    <ClInclude Include="Engine\Math\Color.hpp" />
+    <ClInclude Include="Engine\Math\Hash.hpp" />
+    <ClInclude Include="Engine\Math\Math.hpp" />
+    <ClInclude Include="Engine\Math\MathDefines.hpp" />
+    <ClInclude Include="Engine\Math\Random.hpp" />
+    <ClInclude Include="Engine\Memory\Memory.hpp" />
+    <ClInclude Include="Engine\Platform\Audio.hpp" />
+    <ClInclude Include="Engine\Platform\Controller.hpp" />
+    <ClInclude Include="Engine\Platform\Device.hpp" />
+    <ClInclude Include="Engine\Platform\Function.hpp" />
+    <ClInclude Include="Engine\Platform\Input.hpp" />
+    <ClInclude Include="Engine\Platform\Jobs.hpp" />
+    <ClInclude Include="Engine\Platform\Platform.hpp" />
+    <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
+    <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
+    <ClInclude Include="Engine\Rendering\Renderer.hpp" />
+    <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
+    <ClInclude Include="Engine\Rendering\Shader.hpp" />
+    <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
+    <ClInclude Include="Engine\Rendering\UI.hpp" />
+    <ClInclude Include="Engine\Resources\Font.hpp" />
+    <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
+    <ClInclude Include="Engine\Resources\Resources.hpp" />
+    <ClInclude Include="Engine\Resources\Scene.hpp" />
+    <ClInclude Include="Engine\Resources\Settings.hpp" />
+    <ClInclude Include="Engine\Resources\ShaderCompiler.hpp" />
+    <ClInclude Include="Engine\Resources\ShaderDefines.hpp" />
+    <ClInclude Include="Engine\SIMD.hpp" />
+    <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\src\Audio\Audio.cpp" />
-    <ClCompile Include="Engine\src\Containers\Freelist.cpp" />
-    <ClCompile Include="Engine\src\Containers\String.cpp" />
-    <ClCompile Include="Engine\src\Core\Events.cpp" />
-    <ClCompile Include="Engine\src\Core\File.cpp" />
-    <ClCompile Include="Engine\src\Core\Input.cpp" />
-    <ClCompile Include="Engine\src\Core\Logger.cpp" />
-    <ClCompile Include="Engine\src\Core\Time.cpp" />
-    <ClCompile Include="Engine\src\Engine.cpp" />
-    <ClCompile Include="Engine\src\Math\Math.cpp" />
-    <ClCompile Include="Engine\src\Memory\DynamicAllocator.cpp" />
-    <ClCompile Include="Engine\src\Memory\Memory.cpp" />
-    <ClCompile Include="Engine\src\Physics\BoxTree.cpp" />
-    <ClCompile Include="Engine\src\Physics\Physics.cpp" />
-    <ClCompile Include="Engine\src\Platform\PlatformWin32.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Camera.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Material.cpp" />
-    <ClCompile Include="Engine\src\Renderer\RendererFrontend.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Scene.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Shader.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanBuffer.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanCommandBuffer.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\Device.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanImage.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanPipeline.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanRenderer.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\VulkanShader.cpp" />
-    <ClCompile Include="Engine\src\Renderer\Vulkan\Swapchain.cpp" />
-    <ClCompile Include="Engine\src\Resources\Animations.cpp" />
-    <ClCompile Include="Engine\src\Resources\Resources.cpp" />
-    <ClCompile Include="Engine\src\Resources\UI.cpp" />
+    <ClCompile Include="Engine\Containers\Freelist.cpp" />
+    <ClCompile Include="Engine\Core\DataReader.cpp" />
+    <ClCompile Include="Engine\Core\File.cpp" />
+    <ClCompile Include="Engine\Core\Logger.cpp" />
+    <ClCompile Include="Engine\Core\Time.cpp" />
+    <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\GenericCodeGen\CodeGen.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\GenericCodeGen\Link.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\Include\glslang_c_interface.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\attribute.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\Constant.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\glslang_tab.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\InfoSink.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\Initialize.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\Intermediate.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\intermOut.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\IntermTraverse.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\iomapper.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\limits.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\linkValidate.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\parseConst.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\ParseContextBase.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\ParseHelper.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\PoolAlloc.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\Pp.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\propagateNoContraction.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\reflection.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\RemoveTree.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\Scan.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\ShaderLang.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\SpirvIntrinsics.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\SymbolTable.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\MachineIndependent\Versions.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\OSDependent\Web\glslang.js.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\OSDependent\Windows\ossource.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\ResourceLimits\ResourceLimits.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\ResourceLimits\resource_limits_c.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\CInterface\spirv_c_interface.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\disassemble.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\doc.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\GlslangToSpv.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\InReadableOrder.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\SpvBuilder.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\SpvLogger.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\SpvPostProcess.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\SPVRemapper.cpp" />
+    <ClCompile Include="Engine\External\LunarG\glslang\SPIRV\SpvTools.cpp" />
+    <ClCompile Include="Engine\External\LunarG\spirv_cross\spirv_reflect.c" />
+    <ClCompile Include="Engine\Math\Color.cpp" />
+    <ClCompile Include="Engine\Math\Hash.cpp" />
+    <ClCompile Include="Engine\Math\Math.cpp" />
+    <ClCompile Include="Engine\Memory\Memory.cpp" />
+    <ClCompile Include="Engine\Platform\Audio.cpp" />
+    <ClCompile Include="Engine\Platform\Controller.cpp" />
+    <ClCompile Include="Engine\Platform\Device.cpp" />
+    <ClCompile Include="Engine\Platform\Input.cpp" />
+    <ClCompile Include="Engine\Platform\Jobs.cpp" />
+    <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
+    <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
+    <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
+    <ClCompile Include="Engine\Rendering\Renderer.cpp" />
+    <ClCompile Include="Engine\Rendering\Shader.cpp" />
+    <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
+    <ClCompile Include="Engine\Rendering\UI.cpp" />
+    <ClCompile Include="Engine\Resources\Font.cpp" />
+    <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
+    <ClCompile Include="Engine\Resources\Resources.cpp" />
+    <ClCompile Include="Engine\Resources\Scene.cpp" />
+    <ClCompile Include="Engine\Resources\Settings.cpp" />
+    <ClCompile Include="Engine\Resources\ShaderCompiler.cpp" />
+    <ClCompile Include="Engine\Resources\ShaderDefines.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Containers\Containers.vcxproj">
-      <Project>{56a07b6a-b13e-49eb-9580-f12a3144e6f2}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Icons.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cursor.cur" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="icon.ico" />
+    <Text Include="Engine\External\LunarG\glslang\SPIRV\CMakeLists.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

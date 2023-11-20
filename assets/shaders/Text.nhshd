@@ -1,0 +1,67 @@
+#CONFIG
+language=GLSL
+cull=NONE
+front=COUNTER
+fill=SOLID
+depth=NONE
+blend=ADD
+instanceOffset=2
+order=1
+#CONFIG_END
+
+#VERTEX
+#version 450
+
+layout (location = 0) in vec2 basePosition;
+layout (location = 1) in vec2 baseTexcoord;
+
+layout (location = 2) in uint textureIndex;
+layout (location = 3) in vec2 position;
+layout (location = 4) in vec2 texcoord;
+layout (location = 5) in vec4 color;
+layout (location = 6) in float scale;
+
+layout (location = 0) out vec2 outTexcoord;
+layout (location = 1) out vec4 outColor;
+layout (location = 2) out float outScale;
+layout (location = 3) out flat uint outTextureIndex;
+
+void main()
+{
+	gl_Position = vec4(basePosition * scale + position, 0.99, 1.0);
+    outTexcoord = baseTexcoord + texcoord;
+	outColor = color;
+	outScale = scale;
+    outTextureIndex = textureIndex;
+}
+#VERTEX_END
+
+#FRAGMENT
+#version 450
+#extension GL_EXT_nonuniform_qualifier : require
+
+const uint INVALID_TEXTURE_INDEX = 65535;
+
+layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
+
+layout (location = 0) in vec2 texcoord;
+layout (location = 1) in vec4 color;
+layout (location = 2) in float scale;
+layout (location = 3) in flat uint textureIndex;
+
+layout (location = 0) out vec4 outColor;
+
+float median(float r, float g, float b)
+{
+    return max(min(r, g), min(max(r, g), b));
+}
+
+void main()
+{
+    float s = scale * 0.4;
+    vec3 samp = texture(globalTextures[textureIndex], texcoord).rgb;
+    float dist = (median(samp.r, samp.g, samp.b) - 0.5) * s;
+    float alpha = clamp(dist + 0.5, 0.0, 1.0);
+    outColor = vec4(color.rgb, color.a * alpha);
+}
+#FRAGMENT_END

@@ -1,0 +1,59 @@
+#CONFIG
+language=GLSL
+cull=NONE
+front=COUNTER
+fill=SOLID
+depth=LESS_EQUAL
+blend=ADD
+instanceOffset=1
+order=1
+#CONFIG_END
+
+#VERTEX
+#version 450
+
+struct Globals
+{
+	mat4 viewProjection;
+	vec4 eye;
+};
+
+layout (location = 0) in vec3 position;
+
+layout (location = 1) in uint skyboxIndex;
+
+layout(push_constant) uniform block
+{
+	Globals globals;
+};
+
+layout (location = 0) out vec3 outTexCoord;
+layout (location = 1) flat out uint outSkyboxIndex;
+
+void main()
+{
+	mat4 noTranslate = mat4(globals.viewProjection[0], globals.viewProjection[1], globals.viewProjection[2], vec4(0.0));
+
+    vec4 pos = noTranslate * vec4(position, 1.0);
+	outTexCoord = vec3(position.x, -position.y, position.z);
+	gl_Position = pos.xyww;
+	outSkyboxIndex = skyboxIndex;
+}
+#VERTEX_END
+
+#FRAGMENT
+#version 450
+#extension GL_EXT_nonuniform_qualifier : require
+
+layout (location = 0) in vec3 texCoord;
+layout (location = 1) flat in uint skyboxIndex;
+
+layout (set = 1, binding = 10) uniform samplerCube globalTexturesCubes[];
+
+layout (location = 0) out vec4 fragColor;
+
+void main()
+{
+	fragColor = texture(globalTexturesCubes[skyboxIndex], texCoord);
+}
+#FRAGMENT_END
