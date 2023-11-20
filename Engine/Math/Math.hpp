@@ -297,12 +297,12 @@ public:
 			else if (f == Traits<Type>::Infinity) { return Traits<Type>::Infinity; }
 			else
 			{
-				if (f < (Type)0.5 || f > (Type)1.5)
+				if (f < (Type)0.5 || f >(Type)1.5)
 				{
 					Type mantissa = FindMantissa(f);
 					Type logMantissa = LogMain(mantissa / FloorF(mantissa)) + LogMantissa<Type>((I32)mantissa);
 
-					return logMantissa + LOG_TEN_T<Type> * FindExponent(f, 0);
+					return logMantissa + LOG_TEN_T<Type> *FindExponent(f, 0);
 				}
 				else
 				{
@@ -378,6 +378,17 @@ public:
 
 	static Quaternion2 Slerp(const Quaternion2& a, const Quaternion2& b, F32 t) noexcept;
 	static Quaternion3 Slerp(const Quaternion3& a, const Quaternion3& b, F32 t) noexcept;
+
+	static constexpr Vector2 Trajectory(Vector2 start, Vector2 velocity, Vector2 acceleration, Vector2 jerk, F32 t) noexcept
+	{
+		F32 t2 = t * t;
+		F32 t3 = t2 * t;
+
+		F32 f3 = t2 * 0.5f;
+		F32 f4 = t3 * 0.166666667f;
+
+		return start + velocity * t + acceleration * f3 + jerk * f4;
+	}
 
 	//NOISE
 	static F64 Simplex1(F64 x) noexcept;
@@ -836,6 +847,10 @@ struct NH_API Vector4
 
 	F32* Data() { return &x; }
 	const F32* Data() const { return &x; }
+
+	constexpr Vector2 xy() const { return { x, y }; }
+	constexpr Vector2 yz() const { return { y, z }; }
+	constexpr Vector2 zw() const { return { z, w }; }
 
 	operator String() const;
 	operator String16() const;
@@ -2143,15 +2158,167 @@ public:
 	F32 x, y, z, w;
 };
 
+constexpr U64 MAX_SPLINE_POINTS = 128;
+
+//TODO: Edit at runtime
 struct NH_API BezierSpline
 {
-	//template<Vector2... Points>
-	//BezierSpline(const Points&... points) {}
+	static constexpr U64 MinPoints = 4;
 
-	Vector2 operator[](F32 t) const { return Vector2{ 0.0f }; }
+	template<typename... Points>
+	constexpr BezierSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	{
+		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
+	}
+
+	constexpr Vector2 operator[](F32 t) const noexcept
+	{
+		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
+
+		t -= (F32)index;
+		F32 t2 = t * t;
+		F32 t3 = t2 * t;
+
+		F32 f1 = -t3 + 3.0f * t2 - 3.0f * t + 1.0f;
+		F32 f2 = 3.0f * t3 - 6.0f * t2 + 3.0f * t;
+		F32 f3 = -3.0f * t3 + 3.0f * t2;
+		F32 f4 = t3;
+
+		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4);
+	}
 
 private:
-	Vector<Vector2> points;
+	Vector2 points[MAX_SPLINE_POINTS];
+	U32 pointCount;
+};
+
+//TODO: Edit at runtime
+struct NH_API CatmullRomSpline
+{
+	static constexpr U64 MinPoints = 4;
+
+	template<typename... Points>
+	constexpr CatmullRomSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	{
+		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
+	}
+
+	constexpr Vector2 operator[](F32 t) const noexcept
+	{
+		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
+
+		t -= (F32)index;
+		F32 t2 = t * t;
+		F32 t3 = t2 * t;
+
+		F32 f1 = -t3 + 2.0f * t2 - t;
+		F32 f2 = 3.0f * t3 - 5.0f * t2 + 2.0f;
+		F32 f3 = -3.0f * t3 + 4.0f * t2 + t;
+		F32 f4 = t3 - t2;
+
+		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * 0.5f;
+	}
+
+private:
+	Vector2 points[MAX_SPLINE_POINTS];
+	U32 pointCount;
+};
+
+//TODO: Edit at runtime
+struct NH_API CardinalSpline
+{
+	static constexpr U64 MinPoints = 4;
+
+	template<typename... Points>
+	constexpr CardinalSpline(F32 scale, Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }, scale{ scale }
+	{
+		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
+	}
+
+	constexpr Vector2 operator[](F32 t) const noexcept
+	{
+		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
+
+		t -= (F32)index;
+		F32 t2 = t * t;
+		F32 t3 = t2 * t;
+
+		F32 f1 = -scale * t3 + 2.0f * scale * t2 - scale * t;
+		F32 f2 = (2.0f - scale) * t3 + (scale - 3.0f) * t2 + 1.0f;
+		F32 f3 = (scale - 2.0f) * t3 + (3.0f - 2.0f * scale) * t2 + scale * t;
+		F32 f4 = scale * t3 - scale * t2;
+
+		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4);
+	}
+
+private:
+	Vector2 points[MAX_SPLINE_POINTS];
+	U32 pointCount;
+	F32 scale;
+};
+
+//TODO: Edit at runtime
+struct NH_API BSpline
+{
+	static constexpr U64 MinPoints = 4;
+
+	template<typename... Points>
+	constexpr BSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	{
+		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
+	}
+
+	constexpr Vector2 operator[](F32 t) const noexcept
+	{
+		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
+
+		t -= (F32)index;
+		F32 t2 = t * t;
+		F32 t3 = t2 * t;
+
+		F32 f1 = -t3 + 3.0f * t2 - 3.0f * t + 1.0f;
+		F32 f2 = 3.0f * t3 - 6.0f * t2 + 4.0f;
+		F32 f3 = -3.0f * t3 + 3.0f * t2 + 3.0f * t + 1.0f;
+		F32 f4 = t3;
+
+		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * 0.166666667f;
+	}
+
+private:
+	Vector2 points[MAX_SPLINE_POINTS];
+	U32 pointCount;
+};
+
+//TODO: Edit at runtime
+struct NH_API HermiteSpline
+{
+	static constexpr U64 MinPoints = 2;
+
+	template<typename... Points>
+	constexpr HermiteSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	{
+		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
+	}
+
+	constexpr Vector2 operator[](F32 t) const noexcept
+	{
+		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 1);
+
+		t -= (F32)index;
+		F32 t2 = t * t;
+		F32 t3 = t2 * t;
+
+		F32 f1 = 2.0f * t3 - 3.0f * t2 + 1.0f;
+		F32 f2 = t3 - 2.0f * t2 + t;
+		F32 f3 = -2.0f * t3 + 3.0f * t2;
+		F32 f4 = t3 - t2;
+
+		return (points[index].xy() * f1 + points[index].zw() * f2 + points[index + 1].xy() * f3 + points[index + 1].zw() * f4);
+	}
+
+private:
+	Vector4 points[MAX_SPLINE_POINTS];
+	U32 pointCount;
 };
 
 inline constexpr Vector2 Vector2Zero{ 0.0f };
