@@ -38,10 +38,17 @@ struct Matrix4;
 struct Quaternion2;
 struct Quaternion3;
 
-template <class Type> concept FloatVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4>;
-template <class Type> concept VectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
-template <class Type> concept MatrixType = AnyOf<RemovedQuals<Type>, Matrix2, Matrix3, Matrix4>;
-template <class Type> concept QuaternionType = AnyOf<RemovedQuals<Type>, Quaternion2, Quaternion3>;
+template <class Type> inline constexpr bool IsFloatVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4>;
+template <class Type> inline constexpr bool IsIntVectorType = AnyOf<RemovedQuals<Type>, Vector2Int, Vector3Int, Vector4Int>;
+template <class Type> inline constexpr bool IsVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
+template <class Type> inline constexpr bool IsMatrixType = AnyOf<RemovedQuals<Type>, Matrix2, Matrix3, Matrix4>;
+template <class Type> inline constexpr bool IsQuaternionType = AnyOf<RemovedQuals<Type>, Quaternion2, Quaternion3>;
+template <class Type> concept FloatVectorType = IsFloatVectorType<Type>;
+template <class Type> concept FloatOrVector = IsFloatVectorType<Type> || IsFloatingPoint<Type>;
+template <class Type> concept IntVectorType = IsIntVectorType<Type>;
+template <class Type> concept VectorType = IsVectorType<Type>;
+template <class Type> concept MatrixType = IsMatrixType<Type>;
+template <class Type> concept QuaternionType = IsQuaternionType<Type>;
 
 class NH_API Math
 {
@@ -2165,17 +2172,45 @@ public:
 constexpr U64 MAX_SPLINE_POINTS = 128;
 
 //TODO: Edit at runtime
-struct NH_API BezierSpline
+template<FloatOrVector Type>
+struct LinearSpline
+{
+	static constexpr U64 MinPoints = 2;
+
+	template<class... Points>
+	constexpr LinearSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	{
+		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
+	}
+
+	constexpr Type operator[](F32 t) const noexcept
+	{
+		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 1);
+		t -= (F32)index;
+
+		return Math::Lerp(points[index], points[index + 1], t);
+	}
+
+	constexpr U32 Count() const { return pointCount; }
+
+private:
+	Type points[MAX_SPLINE_POINTS];
+	U32 pointCount;
+};
+
+//TODO: Edit at runtime
+template<FloatOrVector Type>
+struct BezierSpline
 {
 	static constexpr U64 MinPoints = 4;
 
-	template<typename... Points>
+	template<class... Points>
 	constexpr BezierSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Vector2 operator[](F32 t) const noexcept
+	constexpr Type operator[](F32 t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
@@ -2191,23 +2226,26 @@ struct NH_API BezierSpline
 		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4);
 	}
 
+	constexpr U32 Count() const { return pointCount; }
+
 private:
-	Vector2 points[MAX_SPLINE_POINTS];
+	Type points[MAX_SPLINE_POINTS];
 	U32 pointCount;
 };
 
 //TODO: Edit at runtime
-struct NH_API CatmullRomSpline
+template<FloatOrVector Type>
+struct CatmullRomSpline
 {
 	static constexpr U64 MinPoints = 4;
 
-	template<typename... Points>
+	template<class... Points>
 	constexpr CatmullRomSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Vector2 operator[](F32 t) const noexcept
+	constexpr Type operator[](F32 t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
@@ -2223,23 +2261,26 @@ struct NH_API CatmullRomSpline
 		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * 0.5f;
 	}
 
+	constexpr U32 Count() const { return pointCount; }
+
 private:
-	Vector2 points[MAX_SPLINE_POINTS];
+	Type points[MAX_SPLINE_POINTS];
 	U32 pointCount;
 };
 
 //TODO: Edit at runtime
-struct NH_API CardinalSpline
+template<FloatOrVector Type>
+struct CardinalSpline
 {
 	static constexpr U64 MinPoints = 4;
 
-	template<typename... Points>
+	template<class... Points>
 	constexpr CardinalSpline(F32 scale, Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }, scale{ scale }
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Vector2 operator[](F32 t) const noexcept
+	constexpr Type operator[](F32 t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
@@ -2255,24 +2296,27 @@ struct NH_API CardinalSpline
 		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4);
 	}
 
+	constexpr U32 Count() const { return pointCount; }
+
 private:
-	Vector2 points[MAX_SPLINE_POINTS];
+	Type points[MAX_SPLINE_POINTS];
 	U32 pointCount;
 	F32 scale;
 };
 
 //TODO: Edit at runtime
-struct NH_API BSpline
+template<FloatOrVector Type>
+struct BSpline
 {
 	static constexpr U64 MinPoints = 4;
 
-	template<typename... Points>
+	template<class... Points>
 	constexpr BSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Vector2 operator[](F32 t) const noexcept
+	constexpr Type operator[](F32 t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
@@ -2288,13 +2332,16 @@ struct NH_API BSpline
 		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * 0.166666667f;
 	}
 
+	constexpr U32 Count() const { return pointCount; }
+
 private:
-	Vector2 points[MAX_SPLINE_POINTS];
+	Type points[MAX_SPLINE_POINTS];
 	U32 pointCount;
 };
 
 //TODO: Edit at runtime
-struct NH_API HermiteSpline
+template<FloatOrVector Type>
+struct HermiteSpline
 {
 	static constexpr U64 MinPoints = 2;
 
@@ -2319,6 +2366,8 @@ struct NH_API HermiteSpline
 
 		return (points[index].xy() * f1 + points[index].zw() * f2 + points[index + 1].xy() * f3 + points[index + 1].zw() * f4);
 	}
+
+	constexpr U32 Count() const { return pointCount; }
 
 private:
 	Vector4 points[MAX_SPLINE_POINTS];

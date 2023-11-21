@@ -38,7 +38,6 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
 	ASSERT(Platform::Initialize(applicationName));
-	ASSERT(Input::Initialize());
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
@@ -50,6 +49,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 
 	ASSERT(Renderer::InitialSubmit());
 
+	ASSERT(Input::Initialize());
 	UpdateLoop();
 
 	Shutdown();

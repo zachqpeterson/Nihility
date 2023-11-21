@@ -403,22 +403,30 @@ bool FlyCamera::Update()
 
 		if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
 		{
-			F32 x, y;
-			Input::MouseDeltaPrecise(x, y);
+			if (ignoreDraggingFrames == 0)
+			{
+				F32 x, y;
+				Input::MouseDeltaPrecise(x, y);
 
-			cameraMovement.x += x * camera.Zoom();
-			cameraMovement.y -= y * camera.Zoom();
+				cameraMovement.x += x * camera.Zoom();
+				cameraMovement.y -= y * camera.Zoom();
 
-			SetPosition(camera.Position() + cameraMovement);
+				SetPosition(camera.Position() + cameraMovement);
 
-			targetMovement = camera.Position();
-			cameraMovement = Vector3Zero;
+				targetMovement = camera.Position();
+				cameraMovement = Vector3Zero;
+			}
+			else
+			{
+				--ignoreDraggingFrames;
+			}
 
 			mouseDragging = true;
 		}
 		else
 		{
 			mouseDragging = false;
+			ignoreDraggingFrames = 3;
 		}
 
 		F32 cameraMovementDelta = movementDelta;
@@ -434,7 +442,7 @@ bool FlyCamera::Update()
 		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += Vector3Forward * -cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_Q)) { cameraMovement += Vector3Forward * cameraMovementDelta; }
 
-		if (Input::MouseWheelDelta()) { camera.SetZoom(camera.Zoom() - Input::MouseWheelDelta() * 0.05f); }
+		if (Input::MouseWheelDelta()) { camera.SetZoom(camera.Zoom() - Input::MouseWheelDelta() * 0.5f * cameraMovementDelta); }
 
 		targetMovement += cameraMovement;
 

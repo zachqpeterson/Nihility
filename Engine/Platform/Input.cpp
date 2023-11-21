@@ -357,11 +357,27 @@ void Input::InputSink(HRAWINPUT handle)
 		if (handle == Platform::GetWindowData().window)
 		{
 			SetFocus(Platform::GetWindowData().window);
-
-			mousePosX = (F32)(p.x - Settings::WindowPositionX());
-			mousePosY = (F32)(p.y - Settings::WindowPositionY());
 		}
 	}
+}
+
+void Input::Focus()
+{
+	POINT p;
+	GetCursorPos(&p);
+
+	if (Settings::ConstrainCursor())
+	{
+		mousePosX = Math::Clamp((F32)p.x - Settings::WindowPositionX(), (F32)Settings::WindowPositionX(), (F32)Settings::WindowWidth() + (F32)Settings::WindowPositionX());
+		mousePosY = Math::Clamp((F32)p.y - Settings::WindowPositionY(), (F32)Settings::WindowPositionY(), (F32)Settings::WindowHeight() + (F32)Settings::WindowPositionY());
+	}
+	else
+	{
+		mousePosX = Math::Clamp((F32)p.x - Settings::WindowPositionX(), (F32)-Settings::WindowPositionX(), (F32)Settings::VirtualScreenWidth() - (F32)Settings::WindowPositionX());
+		mousePosY = Math::Clamp((F32)p.y - Settings::WindowPositionY(), (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
+	}
+
+	SetCursorPos((I32)(mousePosX + Settings::WindowPositionX()), (I32)(mousePosY + Settings::WindowPositionY()));
 }
 
 void Input::AddDevice(void* handle)

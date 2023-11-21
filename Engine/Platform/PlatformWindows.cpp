@@ -279,7 +279,8 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_CREATE: { } return 0;
 	case WM_SETFOCUS: { 
 		Settings::focused = true;
-		Audio::Focus(); 
+		Audio::Focus();
+		Input::Focus();
 	} return 0;
 	case WM_KILLFOCUS: {
 		Settings::focused = false;

@@ -653,6 +653,8 @@ bool Renderer::BeginFrame()
 	commandBufferRing.ResetPool(previousFrame);
 	VkValidateF(vkResetDescriptorPool(device, descriptorPools[previousFrame], 0));
 
+	stagingBuffer.allocationOffset = 0;
+
 	return true;
 }
 

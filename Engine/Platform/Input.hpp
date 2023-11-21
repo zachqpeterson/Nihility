@@ -300,6 +300,7 @@ private:
 	static void Update();
 	static void ReceiveInput(HRAWINPUT__* handle);
 	static void InputSink(HRAWINPUT__* handle);
+	static void Focus();
 	static void AddDevice(void* handle);
 	static void RemoveDevice(void* handle);
 
