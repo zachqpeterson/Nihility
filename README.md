@@ -1,6 +1,13 @@
-# NihilityEngine
+# Nihility
 
-This is a game engine made from scratch, winner of my college's capstone invitational. I've made my own data structures, memory allocator, job system, and math library. I try to get as low level as possible by making my own file stream and using Raw Input.
+This is a game engine made from scratch, winner of Neumont College of Computer Science's capstone invitational 2023. I've made my own data structures, memory allocator, job system, and math library. I try to get as low level as possible by making my own file stream and using Raw Input. This is still an ongoing project that I plan to make games in.
+
+## Future Plan
+- [ ] Networking
+- [ ] Physics System
+- [ ] Particle System
+- [ ] Animation System
+- [ ] Multithreaded Rendering
 
 ## Current 3rd party libraries
 assimp - https://github.com/assimp/assimp, used to convert models to Nihility assets
