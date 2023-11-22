@@ -1,6 +1,14 @@
 # Nihility
 
-This is a game engine made from scratch, winner of Neumont College of Computer Science's capstone invitational 2023. I've made my own data structures, memory allocator, job system, and math library. I try to get as low level as possible by making my own file stream and using Raw Input. This is still an ongoing project that I plan to make games in.
+This is a game engine made from scratch, winner of Neumont College of Computer Science's Capstone Invitational 2023. I've made my own data structures, memory allocator, job system, and math library. I try to get as low level as possible by making my own file stream and using Raw Input. This is still an ongoing project that I plan to make games in.
+
+## Current Features
+### Compile-Time Math Library
+My math library includes general use math, vectors, matrices, quaternions, and splines, all available at compile-time because why not.
+### Fast Memory Allocator
+My memory allocator is both thread-safe (without locks/mutexes) and much faster than malloc, it has chunk/region-styled allocations and linear allocations.
+### Custom String Type
+My string implementation supports easy formating and can convert any type into a string, you can also define string conversion operators for any class which will be used by the string parser.
 
 ## Future Plans
 - [ ] Networking
@@ -8,7 +16,9 @@ This is a game engine made from scratch, winner of Neumont College of Computer S
 - [ ] Particle System
 - [ ] Animation System
 - [ ] Multithreaded Rendering
-More...
+- [ ] Project Creation/Management System
+
+And more...
 
 ## Current 3rd party libraries
 assimp - https://github.com/assimp/assimp, used to convert models to Nihility assets
