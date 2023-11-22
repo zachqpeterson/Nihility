@@ -1,8 +1,55 @@
-x64/
-Debug/
-.vs/
-bin/
+# Builds
+x64/*
+!x64/Debug/
+!x64/Release/
+x64/Debug/*
+x64/Release/*
+
+Demo/x64/
+UnitTests/x64/
+*.exe
+
+# Keep 3rd Party dlls
+!x64/Debug/assimp-vc143-mt.dll
+
+# Visual Studo
+.vs/*
+*.user
+
+# Compiled Shaders
 *.spv
+
+# Engine Resources
 *.log
 *.cfg
 *.cache
+
+# Unimported Assets
+*.[bB][mM][pP]
+*.[tT][gG][aA]
+*.[pP][nN][gG]
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[jJ][fF][iI][fF]
+*.[tT][iI][fF][fF]
+*.[kK][tT][xX]
+*.[hH][dD][rR]
+*.[pP][sS][dD]
+*.[pP][iI][cC]
+*.[pP][nN][mM]
+*.[pP][pP][mM]
+*.[pP][gG][mM]
+
+*.[fF][bB][xX]
+*.[oO][bB][jJ]
+*.[gG][lL][tT][fF]
+*.[bB][lL][eE][nN][dD]
+*.[pP][mM][xX]
+
+*.[tT][tT][fF]
+*.[oO][tT][fF]
+
+*.[wW][aA][vV]
+*.[mM][pP]3
+*.[oO][gG][gG]
+*.[fF][lL][aA][cC]

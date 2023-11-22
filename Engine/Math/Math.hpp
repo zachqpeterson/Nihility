@@ -2183,10 +2183,11 @@ struct LinearSpline
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Type operator[](F32 t) const noexcept
+	template<FloatingPoint Float>
+	constexpr Type operator[](Float t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 1);
-		t -= (F32)index;
+		t -= (Float)index;
 
 		return Math::Lerp(points[index], points[index + 1], t);
 	}
@@ -2210,18 +2211,19 @@ struct BezierSpline
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Type operator[](F32 t) const noexcept
+	template<FloatingPoint Float>
+	constexpr Type operator[](Float t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
-		t -= (F32)index;
-		F32 t2 = t * t;
-		F32 t3 = t2 * t;
+		t -= (Float)index;
+		Float t2 = t * t;
+		Float t3 = t2 * t;
 
-		F32 f1 = -t3 + 3.0f * t2 - 3.0f * t + 1.0f;
-		F32 f2 = 3.0f * t3 - 6.0f * t2 + 3.0f * t;
-		F32 f3 = -3.0f * t3 + 3.0f * t2;
-		F32 f4 = t3;
+		Float f1 = -t3 + (Float)3.0 * t2 - (Float)3.0 * t + (Float)1.0;
+		Float f2 = (Float)3.0 * t3 - (Float)6.0 * t2 + (Float)3.0 * t;
+		Float f3 = -(Float)3.0 * t3 + (Float)3.0 * t2;
+		Float f4 = t3;
 
 		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4);
 	}
@@ -2245,20 +2247,21 @@ struct CatmullRomSpline
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Type operator[](F32 t) const noexcept
+	template<FloatingPoint Float>
+	constexpr Type operator[](Float t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
-		t -= (F32)index;
-		F32 t2 = t * t;
-		F32 t3 = t2 * t;
+		t -= (Float)index;
+		Float t2 = t * t;
+		Float t3 = t2 * t;
 
-		F32 f1 = -t3 + 2.0f * t2 - t;
-		F32 f2 = 3.0f * t3 - 5.0f * t2 + 2.0f;
-		F32 f3 = -3.0f * t3 + 4.0f * t2 + t;
-		F32 f4 = t3 - t2;
+		Float f1 = -t3 + (Float)2.0 * t2 - t;
+		Float f2 = (Float)3.0 * t3 - (Float)5.0 * t2 + (Float)2.0;
+		Float f3 = -(Float)3.0 * t3 + (Float)4.0 * t2 + t;
+		Float f4 = t3 - t2;
 
-		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * 0.5f;
+		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * (Float)0.5;
 	}
 
 	constexpr U32 Count() const { return pointCount; }
@@ -2275,23 +2278,24 @@ struct CardinalSpline
 	static constexpr U64 MinPoints = 4;
 
 	template<class... Points>
-	constexpr CardinalSpline(F32 scale, Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }, scale{ scale }
+	constexpr CardinalSpline(F64 scale, Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }, scale{ scale }
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Type operator[](F32 t) const noexcept
+	template<FloatingPoint Float>
+	constexpr Type operator[](Float t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
-		t -= (F32)index;
-		F32 t2 = t * t;
-		F32 t3 = t2 * t;
+		t -= (Float)index;
+		Float t2 = t * t;
+		Float t3 = t2 * t;
 
-		F32 f1 = -scale * t3 + 2.0f * scale * t2 - scale * t;
-		F32 f2 = (2.0f - scale) * t3 + (scale - 3.0f) * t2 + 1.0f;
-		F32 f3 = (scale - 2.0f) * t3 + (3.0f - 2.0f * scale) * t2 + scale * t;
-		F32 f4 = scale * t3 - scale * t2;
+		Float f1 = -scale * t3 + (Float)2.0 * scale * t2 - scale * t;
+		Float f2 = ((Float)2.0 - scale) * t3 + (scale - (Float)3.0) * t2 + (Float)1.0;
+		Float f3 = (scale - (Float)2.0) * t3 + ((Float)3.0 - (Float)2.0 * scale) * t2 + scale * t;
+		Float f4 = scale * t3 - scale * t2;
 
 		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4);
 	}
@@ -2301,7 +2305,7 @@ struct CardinalSpline
 private:
 	Type points[MAX_SPLINE_POINTS];
 	U32 pointCount;
-	F32 scale;
+	F64 scale;
 };
 
 //TODO: Edit at runtime
@@ -2316,20 +2320,21 @@ struct BSpline
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Type operator[](F32 t) const noexcept
+	template<FloatingPoint Float>
+	constexpr Type operator[](Float t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 3);
 
-		t -= (F32)index;
-		F32 t2 = t * t;
-		F32 t3 = t2 * t;
+		t -= (Float)index;
+		Float t2 = t * t;
+		Float t3 = t2 * t;
 
-		F32 f1 = -t3 + 3.0f * t2 - 3.0f * t + 1.0f;
-		F32 f2 = 3.0f * t3 - 6.0f * t2 + 4.0f;
-		F32 f3 = -3.0f * t3 + 3.0f * t2 + 3.0f * t + 1.0f;
-		F32 f4 = t3;
+		Float f1 = -t3 + (Float)3.0 * t2 - (Float)3.0 * t + (Float)1.0;
+		Float f2 = (Float)3.0 * t3 - (Float)6.0 * t2 + (Float)4.0;
+		Float f3 = -(Float)3.0 * t3 + (Float)3.0 * t2 + (Float)3.0 * t + (Float)1.0;
+		Float f4 = t3;
 
-		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * 0.166666667f;
+		return (points[index] * f1 + points[index + 1] * f2 + points[index + 2] * f3 + points[index + 3] * f4) * (Float)0.166666667;
 	}
 
 	constexpr U32 Count() const { return pointCount; }
@@ -2351,18 +2356,19 @@ struct HermiteSpline
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
 
-	constexpr Vector2 operator[](F32 t) const noexcept
+	template<FloatingPoint Float>
+	constexpr Vector2 operator[](Float t) const noexcept
 	{
 		I32 index = Math::Clamp((I32)t, 0, (I32)pointCount - 1);
 
-		t -= (F32)index;
-		F32 t2 = t * t;
-		F32 t3 = t2 * t;
+		t -= (Float)index;
+		Float t2 = t * t;
+		Float t3 = t2 * t;
 
-		F32 f1 = 2.0f * t3 - 3.0f * t2 + 1.0f;
-		F32 f2 = t3 - 2.0f * t2 + t;
-		F32 f3 = -2.0f * t3 + 3.0f * t2;
-		F32 f4 = t3 - t2;
+		Float f1 = (Float)2.0 * t3 - (Float)3.0 * t2 + (Float)1.0;
+		Float f2 = t3 - (Float)2.0 * t2 + t;
+		Float f3 = -(Float)2.0 * t3 + (Float)3.0 * t2;
+		Float f4 = t3 - t2;
 
 		return (points[index].xy() * f1 + points[index].zw() * f2 + points[index + 1].xy() * f3 + points[index + 1].zw() * f4);
 	}

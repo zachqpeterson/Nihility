@@ -982,7 +982,12 @@ void Renderer::FillBuffer(Buffer& buffer, U32 size, const void* data, U32 region
 	if (stagingBuffer.allocationOffset + size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
 
 	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, size);
-	for (U32 i = 0; i < regionCount; ++i) { regions[i].srcOffset += stagingBuffer.allocationOffset; }
+	for (U32 i = 0; i < regionCount; ++i)
+	{
+		if(regions[i].srcOffset + regions[i].size > size) { Logger::Error("Trying To Upload Data Outside Of Source Buffer Range!"); BreakPoint; }
+		if(regions[i].dstOffset + regions[i].size > buffer.size) { Logger::Error("Trying To Upload Data Outside Of Destination Buffer Range!"); BreakPoint; }
+		regions[i].srcOffset += stagingBuffer.allocationOffset;
+	}
 
 	stagingBuffer.allocationOffset += size;
 
