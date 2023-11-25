@@ -31,6 +31,13 @@ enum NH_API TextureFlag
 	TEXTURE_FLAG_FORCE_GENERATE_MIPMAPS = 0x04,
 };
 
+enum NH_API TextureUsage
+{
+	TEXTURE_USAGE_COLOR,
+	TEXTURE_USAGE_CALCULATION,
+	TEXTURE_USAGE_MASK,
+};
+
 enum NH_API CameraType
 {
 	CAMERA_TYPE_PERSPECTIVE,
@@ -454,6 +461,49 @@ enum NH_API FormatType
 	FORMAT_TYPE_MAX_ENUM = 0x7FFFFFFF
 };
 
+enum NH_API BufferUsage
+{
+	BUFFER_USAGE_TRANSFER_SRC = 0x00000001,
+	BUFFER_USAGE_TRANSFER_DST = 0x00000002,
+	BUFFER_USAGE_UNIFORM_TEXEL_BUFFER = 0x00000004,
+	BUFFER_USAGE_STORAGE_TEXEL_BUFFER = 0x00000008,
+	BUFFER_USAGE_UNIFORM_BUFFER = 0x00000010,
+	BUFFER_USAGE_STORAGE_BUFFER = 0x00000020,
+	BUFFER_USAGE_INDEX_BUFFER = 0x00000040,
+	BUFFER_USAGE_VERTEX_BUFFER = 0x00000080,
+	BUFFER_USAGE_INDIRECT_BUFFER = 0x00000100,
+	BUFFER_USAGE_SHADER_DEVICE_ADDRESS = 0x00020000,
+	BUFFER_USAGE_VIDEO_DECODE_SRC = 0x00002000,
+	BUFFER_USAGE_VIDEO_DECODE_DST = 0x00004000,
+	BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER = 0x00000800,
+	BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER = 0x00001000,
+	BUFFER_USAGE_CONDITIONAL_RENDERING = 0x00000200,
+	BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY = 0x00080000,
+	BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE = 0x00100000,
+	BUFFER_USAGE_SHADER_BINDING_TABLE = 0x00000400,
+	BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER = 0x00200000,
+	BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER = 0x00400000,
+	BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER = 0x04000000,
+	BUFFER_USAGE_MICROMAP_BUILD_INPUT_READ_ONLY = 0x00800000,
+	BUFFER_USAGE_MICROMAP_STORAGE = 0x01000000,
+};
+
+enum NH_API BufferMemoryType
+{
+	BUFFER_MEMORY_TYPE_GPU_LOCAL = 0x00000001,
+	BUFFER_MEMORY_TYPE_CPU_VISIBLE = 0x00000002,
+	BUFFER_MEMORY_TYPE_CPU_COHERENT = 0x00000004,
+	BUFFER_MEMORY_TYPE_CPU_CACHED = 0x00000008,
+	BUFFER_MEMORY_TYPE_LAZILY_ALLOCATED = 0x00000010,
+	BUFFER_MEMORY_TYPE_PROTECTED = 0x00000020,
+	BUFFER_MEMORY_TYPE_GPU_COHERENT = 0x00000040,
+	BUFFER_MEMORY_TYPE_GPU_UNCACHED = 0x00000080,
+	BUFFER_MEMORY_TYPE_RDMA_CAPABLE = 0x00000100,
+};
+
+typedef I32 BufferUsageBits;
+typedef I32 BufferMemoryTypeBits;
+
 #pragma endregion
 
 struct VkBuffer_T;
@@ -482,7 +532,7 @@ struct NH_API Sampler
 
 	I32				reductionMode{ SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE }; //VkSamplerReductionMode
 
-	VkSampler_T*	vkSampler{ nullptr };
+	VkSampler_T* vkSampler{ nullptr };
 };
 
 struct NH_API SamplerInfo
@@ -530,6 +580,7 @@ struct NH_API Texture
 	VkImageView_T*		mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
+	TextureUsage		usage{ TEXTURE_USAGE_COLOR };
 	Sampler				sampler{};
 
 	bool				swapchainImage{ false };
@@ -556,6 +607,12 @@ struct NH_API TextureInfo
 	I32		type{ IMAGE_TYPE_2D }; //VkImageType
 
 	String	name{};
+};
+
+struct NH_API TextureUpload
+{
+	TextureUsage usage{ TEXTURE_USAGE_COLOR };
+	SamplerInfo samplerInfo{};
 };
 
 struct NH_API Buffer
@@ -594,12 +651,12 @@ struct NH_API Renderpass
 	String				name{};
 	HashHandle			handle;
 
-	VkRenderPass_T*		renderpass{ nullptr };
-	VkFramebuffer_T*	frameBuffer{ nullptr };
+	VkRenderPass_T* renderpass{ nullptr };
+	VkFramebuffer_T* frameBuffer{ nullptr };
 
-	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	U8					renderTargetCount{ 0 };
-	Texture*			depthStencilTarget{ nullptr };
+	Texture* depthStencilTarget{ nullptr };
 
 	Subpass				subpasses[8]{};
 	U32					subpassCount{ 1 };
@@ -619,8 +676,8 @@ struct NH_API RenderpassInfo
 	RenderpassInfo& SetDepthStencilTarget(Texture* texture);
 
 	U8				renderTargetCount{ 0 };
-	Texture*		renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*		depthStencilTarget{ nullptr };
+	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* depthStencilTarget{ nullptr };
 
 	I32				colorLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
 	I32				depthLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp

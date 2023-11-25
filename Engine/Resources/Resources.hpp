@@ -71,8 +71,8 @@ public:
 	//Convert 3rd party asset formats to nh formats
 	static String UploadFont(const String& path);
 	static String UploadAudio(const String& path);
-	static String UploadTexture(const String& path, const SamplerInfo& samplerInfo = {});
-	static String UploadTexture(const aiTexture* textureInfo);
+	static String UploadTexture(const String& path, const TextureUpload& upload = {});
+	static String UploadTexture(const aiTexture* textureInfo, TextureUsage usage);
 	static String UploadSkybox(const String& path);
 	static String UploadModel(const String& path);
 

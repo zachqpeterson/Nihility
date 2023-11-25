@@ -88,6 +88,10 @@ struct CommandBufferRing
 class NH_API Renderer
 {
 public:
+	static const VkPhysicalDeviceFeatures&			GetDeviceFeatures();
+	static const VkPhysicalDeviceProperties&		GetDeviceProperties();
+	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
+
 	static void							LoadScene(Scene* scene);
 	static void							SetRenderGraph(PipelineGraph* graph);
 	static CameraData*					GetCameraData();
@@ -97,15 +101,13 @@ public:
 	static U32							CurrentFrame();
 	static U32							AbsoluteFrame();
 
-	static const VkPhysicalDeviceFeatures&			GetDeviceFeatures();
-	static const VkPhysicalDeviceProperties&		GetDeviceProperties();
-	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
-
 	static VkImageMemoryBarrier2		ImageBarrier(VkImage_T* image, U64 srcStageMask, U64 srcAccessMask,
 		VkImageLayout oldLayout, U64 dstStageMask, U64 dstAccessMask,
 		VkImageLayout newLayout, U32 aspectMask = 1, U32 baseMipLevel = 0, U32 levelCount = ~0, U32 layerCount = ~0);
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer_T* buffer, U64 srcStageMask, U64 srcAccessMask,
 		U64 dstStageMask, U64 dstAccessMask);
+
+	static Buffer						CreateBuffer(U32 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType);
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -126,8 +128,8 @@ private:
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 
-	static Buffer						CreateBuffer(U32 size, U32 usageFlags, U32 memoryFlags);
 	static void							FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
+	static void							FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions);
 	static U32							UploadToBuffer(Buffer& buffer, U32 size, const void* data);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);

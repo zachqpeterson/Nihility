@@ -458,6 +458,7 @@ bool Renderer::CreateDevice()
 	features.features.multiDrawIndirect = true;
 	features.features.drawIndirectFirstInstance = true;
 	features.features.pipelineStatisticsQuery = true;
+	features.features.shaderFloat64 = true;
 	features.features.shaderInt16 = true;
 	features.features.shaderInt64 = true;
 
@@ -584,8 +585,8 @@ bool Renderer::CreateResources()
 
 	commandBufferRing.Create();
 
-	stagingBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	materialBuffer = CreateBuffer(MEGABYTES(128), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	stagingBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
+	materialBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
 	return true;
 }
@@ -941,22 +942,22 @@ VkBufferMemoryBarrier2 Renderer::BufferBarrier(VkBuffer buffer, VkPipelineStageF
 	return result;
 }
 
-Buffer Renderer::CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags)
+Buffer Renderer::CreateBuffer(U32 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType)
 {
 	Buffer buffer{};
 	buffer.size = size;
-	buffer.usage = usageFlags;
-	buffer.memoryProperties = memoryFlags;
+	buffer.usage = bufferUsage;
+	buffer.memoryProperties = memoryType;
 
 	VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	info.size = size;
-	info.usage = usageFlags;
+	info.usage = bufferUsage;
 
 	VmaAllocationCreateInfo memoryInfo{};
 	memoryInfo.flags = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT;
-	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { memoryInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; }
+	if (memoryType & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) { memoryInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; }
 	memoryInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	memoryInfo.requiredFlags = memoryFlags;
+	memoryInfo.requiredFlags = memoryType;
 
 	VmaAllocationInfo allocationInfo{};
 	allocationInfo.pName = "buffer";
@@ -966,7 +967,7 @@ Buffer Renderer::CreateBuffer(U32 size, VkBufferUsageFlags usageFlags, VkMemoryP
 
 	buffer.deviceMemory = allocationInfo.deviceMemory;
 
-	if (memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+	if (memoryType & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 	{
 		buffer.data = allocationInfo.pMappedData;
 		buffer.mapped = true;
@@ -993,7 +994,19 @@ void Renderer::FillBuffer(Buffer& buffer, U32 size, const void* data, U32 region
 
 	CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
 
-	if (commandBuffer->recorded) { BreakPoint; }
+	commandBuffer->Begin();
+	commandBuffer->BufferToBuffer(stagingBuffer, buffer, regionCount, regions);
+	commandBuffer->PipelineBarrier(0, 1, &memoryBarrier, 0, nullptr);
+	commandBuffer->End();
+
+	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
+}
+
+void Renderer::FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions)
+{
+	VkBufferMemoryBarrier2 memoryBarrier = BufferBarrier(buffer.vkBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
+
+	CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
 
 	commandBuffer->Begin();
 	commandBuffer->BufferToBuffer(stagingBuffer, buffer, regionCount, regions);
@@ -1237,8 +1250,8 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	//float                   maxAnisotropy;
 	createInfo.compareEnable = VK_FALSE;
 	//VkCompareOp             compareOp;
-	//float                   minLod;
-	//float                   maxLod;
+	createInfo.minLod = 0.0f;
+	createInfo.maxLod = VK_LOD_CLAMP_NONE;
 	createInfo.borderColor = (VkBorderColor)texture->sampler.border;
 	createInfo.unnormalizedCoordinates = VK_FALSE;
 

@@ -93,8 +93,10 @@ struct NH_API Pipeline
 	U32 UploadIndices(U32 size, const void* data);
 	U32 UploadVertices(U32 size, const void* data);
 	void UpdateVertices(U32 size, const void* data, U32 regionCount, BufferCopy* regions);
+	void UpdateVertices(const Buffer& stagingBuffer, U32 regionCount, BufferCopy* regions);
 	U32 UploadInstances(U32 size, const void* data);
 	void UpdateInstances(U32 size, const void* data, U32 regionCount, BufferCopy* regions);
+	void UpdateInstances(const Buffer& stagingBuffer, U32 regionCount, BufferCopy* regions);
 	void UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
 	void UpdateDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 drawOffset);
 

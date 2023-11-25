@@ -270,6 +270,11 @@ void Pipeline::UpdateVertices(U32 size, const void* data, U32 regionCount, Buffe
 	Renderer::FillBuffer(vertexBuffer, size, data, regionCount, (VkBufferCopy*)regions);
 }
 
+void Pipeline::UpdateVertices(const Buffer& stagingBuffer, U32 regionCount, BufferCopy* regions)
+{
+	Renderer::FillBuffer(vertexBuffer, stagingBuffer, regionCount, (VkBufferCopy*)regions);
+}
+
 U32 Pipeline::UploadInstances(U32 size, const void* data)
 {
 	VkBufferCopy region{};
@@ -288,6 +293,11 @@ U32 Pipeline::UploadInstances(U32 size, const void* data)
 void Pipeline::UpdateInstances(U32 size, const void* data, U32 regionCount, BufferCopy* regions)
 {
 	Renderer::FillBuffer(instanceBuffer, size, data, regionCount, (VkBufferCopy*)regions);
+}
+
+void Pipeline::UpdateInstances(const Buffer& stagingBuffer, U32 regionCount, BufferCopy* regions)
+{
+	Renderer::FillBuffer(instanceBuffer, stagingBuffer, regionCount, (VkBufferCopy*)regions);
 }
 
 void Pipeline::UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset)
