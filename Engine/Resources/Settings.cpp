@@ -2,6 +2,7 @@
 
 #include "Core\File.hpp"
 #include "Core\Logger.hpp"
+#include "Core\Events.hpp"
 #include "Containers\String.hpp"
 
 Settings::Data Settings::data{};
@@ -61,44 +62,46 @@ void Settings::Shutdown()
 }
 
 //AUDIO
-const U8& Settings::ChannelCount() { return data.channelCount; }
-const F32& Settings::MasterVolume() { return data.masterVolume; }
-const F32& Settings::MusicVolume() { return data.musicVolume; }
-const F32& Settings::SfxVolume() { return data.sfxVolume; }
-const bool& Settings::UnfocusedAudio() { return data.unfocusedAudio; }
+U8 Settings::ChannelCount() { return data.channelCount; }
+F32 Settings::MasterVolume() { return data.masterVolume; }
+F32 Settings::MusicVolume() { return data.musicVolume; }
+F32 Settings::SfxVolume() { return data.sfxVolume; }
+bool Settings::UnfocusedAudio() { return data.unfocusedAudio; }
 
 //GRAPHICS
-const U32& Settings::WindowWidth() { return data.windowWidth; }
-const U32& Settings::WindowHeight() { return data.windowHeight; }
-const U32& Settings::WindowWidthSmall() { return data.windowWidthSmall; }
-const U32& Settings::WindowHeightSmall() { return data.windowHeightSmall; }
-const I32& Settings::WindowPositionX() { return data.windowPositionX; }
-const I32& Settings::WindowPositionY() { return data.windowPositionY; }
-const I32& Settings::WindowPositionXSmall() { return data.windowPositionXSmall; }
-const I32& Settings::WindowPositionYSmall() { return data.windowPositionYSmall; }
-const F64& Settings::TargetFrametime() { return data.targetFrametime; }
-const F64& Settings::TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
-const U8& Settings::MsaaCount() { return data.msaaCount; }
-const bool& Settings::VSync() { return data.vSync; }
-const bool& Settings::Bloom() { return data.bloom; }
+U32 Settings::WindowWidth() { return data.windowWidth; }
+U32 Settings::WindowHeight() { return data.windowHeight; }
+U32 Settings::WindowWidthSmall() { return data.windowWidthSmall; }
+U32 Settings::WindowHeightSmall() { return data.windowHeightSmall; }
+I32 Settings::WindowPositionX() { return data.windowPositionX; }
+I32 Settings::WindowPositionY() { return data.windowPositionY; }
+I32 Settings::WindowPositionXSmall() { return data.windowPositionXSmall; }
+I32 Settings::WindowPositionYSmall() { return data.windowPositionYSmall; }
+F64 Settings::TargetFrametime() { return data.targetFrametime; }
+F64 Settings::TargetFrametimeSuspended() { return data.targetFrametimeSuspended; }
+U8 Settings::MsaaCount() { return data.msaaCount; }
+bool Settings::VSync() { return data.vSync; }
+bool Settings::Bloom() { return data.bloom; }
+
+void Settings::SetVSync(bool value) { data.vSync = value; }
 
 //PLATFORM
-const U32& Settings::Dpi() { return data.dpi; }
-const U32& Settings::ThreadCount() { return data.threadCount; }
-const I32& Settings::ScreenWidth() { return screenWidth; }
-const I32& Settings::ScreenHeight() { return screenHeight; }
-const I32& Settings::VirtualScreenWidth() { return virtualScreenWidth; }
-const I32& Settings::VirtualScreenHeight() { return virtualScreenHeight; }
-const F64& Settings::MonitorHz() { return monitorHz; }
-const bool& Settings::Fullscreen() { return data.fullscreen; }
-const bool& Settings::ConstrainCursor() { return data.constrainCursor; }
-const bool& Settings::Focused() { return focused; }
-const bool& Settings::Minimised() { return minimised; }
-const bool& Settings::LockCursor() { return lockCursor; }
-const bool& Settings::HideCursor() { return hideCursor; }
-const bool& Settings::Resized() { return resized; }
+U32 Settings::Dpi() { return data.dpi; }
+U32 Settings::ThreadCount() { return data.threadCount; }
+I32 Settings::ScreenWidth() { return screenWidth; }
+I32 Settings::ScreenHeight() { return screenHeight; }
+I32 Settings::VirtualScreenWidth() { return virtualScreenWidth; }
+I32 Settings::VirtualScreenHeight() { return virtualScreenHeight; }
+F64 Settings::MonitorHz() { return monitorHz; }
+bool Settings::Fullscreen() { return data.fullscreen; }
+bool Settings::ConstrainCursor() { return data.constrainCursor; }
+bool Settings::Focused() { return focused; }
+bool Settings::Minimised() { return minimised; }
+bool Settings::LockCursor() { return lockCursor; }
+bool Settings::HideCursor() { return hideCursor; }
+bool Settings::Resized() { return resized; }
 #ifdef NH_DEBUG
-const bool& Settings::InEditor() { return inEditor; }
+bool Settings::InEditor() { return inEditor; }
 #endif
 
 #if defined PLATFORM_WINDOWS

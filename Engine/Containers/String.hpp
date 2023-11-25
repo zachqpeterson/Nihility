@@ -126,6 +126,9 @@ struct StringBase
 	bool operator!=(const StringBase& other) const noexcept;
 	template<U64 Count> bool operator!=(const C(&other)[Count]) const noexcept;
 
+	bool operator<(const StringBase& other) const noexcept;
+	bool operator>(const StringBase& other) const noexcept;
+
 	bool Compare(C* other) const noexcept;
 	bool Compare(const StringBase& other) const noexcept;
 	template<U64 Count> bool Compare(const C(&other)[Count]) const noexcept;
@@ -482,6 +485,38 @@ inline bool StringBase<C>::operator!=(const C(&other)[Count]) const noexcept
 	if (Count - 1 != size) { return true; }
 
 	return !Compare(string, other, Count - 1);
+}
+
+//TODO: Better comparison than ascii
+template<Character C>
+inline bool StringBase<C>::operator<(const StringBase<C>& other) const noexcept
+{
+	const C* it0 = string;
+	const C* it1 = other.string;
+
+	U64 length = size > other.size ? other.size : size;
+
+	while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+	if (length == U64_MAX) { return size < other.size; }
+
+	return *it0 < *it1;
+}
+
+//TODO: Better comparison than ascii
+template<Character C>
+inline bool StringBase<C>::operator>(const StringBase<C>& other) const noexcept
+{
+	const C* it0 = string;
+	const C* it1 = other.string;
+
+	U64 length = size > other.size ? other.size : size;
+
+	while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+	if (length == U64_MAX) { return size > other.size; }
+
+	return *it0 > *it1;
 }
 
 template<Character C>
@@ -1134,7 +1169,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 		if constexpr (Insert) { Copy(str + 4, str, size - strIndex); }
 
-		Copy(str, StringLookup<C>::TRUE_STR, 4);
+		Memory::Copy(str, StringLookup<C>::TRUE_STR, 4);
 		size += 4;
 
 		if constexpr (!Insert) { string[size] = StringLookup<C>::NULL_CHAR; }
@@ -1146,9 +1181,9 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	{
 		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, size + falseSize, capacity); str = string + strIndex; }
 
-		if constexpr (Insert) { Copy(str + 5, str, size - strIndex); }
+		if constexpr (Insert) { Memory::Copy(str + 5, str, size - strIndex); }
 
-		Copy(str + size, StringLookup<C>::FALSE_STR, 5);
+		Memory::Copy(str, StringLookup<C>::FALSE_STR, 5);
 		size += 5;
 
 		if constexpr (!Insert) { string[size] = StringLookup<C>::NULL_CHAR; }

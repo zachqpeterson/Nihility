@@ -4,7 +4,7 @@
 
 #include "Containers\Freelist.hpp"
 #include "Containers\SafeQueue.hpp"
-#include "Platform\Function.hpp"
+#include "Core\Function.hpp"
 
 enum NH_API JobPriority
 {

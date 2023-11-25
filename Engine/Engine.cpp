@@ -5,7 +5,8 @@
 #include "Platform\Audio.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Jobs.hpp"
-#include "Platform\Function.hpp"
+#include "Core\Events.hpp"
+#include "Core\Function.hpp"
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
 #include "Core\File.hpp"
@@ -34,6 +35,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 
 	ASSERT(Time::Initialize());
 	ASSERT(Memory::Initialize());
+	ASSERT(Events::Initialize());
 	ASSERT(Logger::Initialize());
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
