@@ -29,4 +29,5 @@ public:
 
 	U32							width;
 	U32							height;
+	bool						vsync;
 };

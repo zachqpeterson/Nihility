@@ -142,9 +142,6 @@
     <ClInclude Include="Engine\Platform\Jobs.hpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Function.hpp">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
@@ -472,11 +469,14 @@
     <ClInclude Include="Engine\Containers\Pair.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Hashset.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Array.hpp">
       <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Events.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Function.hpp">
+      <Filter>Source Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -707,6 +707,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Resources\ShaderDefines.cpp">
       <Filter>Source Files\Resources\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Events.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

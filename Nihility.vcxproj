@@ -112,7 +112,6 @@
     <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
     <ClInclude Include="Engine\Containers\Freelist.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
-    <ClInclude Include="Engine\Containers\Hashset.hpp" />
     <ClInclude Include="Engine\Containers\Pair.hpp" />
     <ClInclude Include="Engine\Containers\Pool.hpp" />
     <ClInclude Include="Engine\Containers\Queue.hpp" />
@@ -122,7 +121,9 @@
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\Vector.hpp" />
     <ClInclude Include="Engine\Core\DataReader.hpp" />
+    <ClInclude Include="Engine\Core\Events.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
+    <ClInclude Include="Engine\Core\Function.hpp" />
     <ClInclude Include="Engine\Core\Logger.hpp" />
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
@@ -225,7 +226,6 @@
     <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
-    <ClInclude Include="Engine\Platform\Function.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
@@ -250,6 +250,7 @@
   <ItemGroup>
     <ClCompile Include="Engine\Containers\Freelist.cpp" />
     <ClCompile Include="Engine\Core\DataReader.cpp" />
+    <ClCompile Include="Engine\Core\Events.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />

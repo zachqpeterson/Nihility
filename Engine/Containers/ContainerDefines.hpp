@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+typedef U64 HashHandle;
+
 #define UPPER_CHAR		0x01
 #define LOWER_CHAR		0x02
 #define DIGIT_CHAR		0x04

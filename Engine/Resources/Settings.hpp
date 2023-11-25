@@ -15,43 +15,45 @@ class NH_API Settings
 {
 public:
 	//AUDIO
-	static const U8& ChannelCount();
-	static const F32& MasterVolume();
-	static const F32& MusicVolume();
-	static const F32& SfxVolume();
-	static const bool& UnfocusedAudio();
+	static U8 ChannelCount();
+	static F32 MasterVolume();
+	static F32 MusicVolume();
+	static F32 SfxVolume();
+	static bool UnfocusedAudio();
 
 	//GRAPHICS
-	static const U32& WindowWidth();
-	static const U32& WindowHeight();
-	static const U32& WindowWidthSmall();
-	static const U32& WindowHeightSmall();
-	static const I32& WindowPositionX();
-	static const I32& WindowPositionY();
-	static const I32& WindowPositionXSmall();
-	static const I32& WindowPositionYSmall();
-	static const F64& TargetFrametime();
-	static const F64& TargetFrametimeSuspended();
-	static const U8& MsaaCount();
-	static const bool& VSync();
-	static const bool& Bloom();
+	static U32 WindowWidth();
+	static U32 WindowHeight();
+	static U32 WindowWidthSmall();
+	static U32 WindowHeightSmall();
+	static I32 WindowPositionX();
+	static I32 WindowPositionY();
+	static I32 WindowPositionXSmall();
+	static I32 WindowPositionYSmall();
+	static F64 TargetFrametime();
+	static F64 TargetFrametimeSuspended();
+	static U8 MsaaCount();
+	static bool VSync();
+	static bool Bloom();
+
+	static void SetVSync(bool value);
 
 	//PLATFORM
-	static const U32& Dpi();
-	static const U32& ThreadCount();
-	static const I32& ScreenWidth();
-	static const I32& ScreenHeight();
-	static const I32& VirtualScreenWidth();
-	static const I32& VirtualScreenHeight();
-	static const F64& MonitorHz();
-	static const bool& Fullscreen();
-	static const bool& ConstrainCursor();
-	static const bool& Focused();
-	static const bool& Minimised();
-	static const bool& LockCursor();
-	static const bool& HideCursor();
-	static const bool& Resized();
-	static const bool& InEditor();
+	static U32 Dpi();
+	static U32 ThreadCount();
+	static I32 ScreenWidth();
+	static I32 ScreenHeight();
+	static I32 VirtualScreenWidth();
+	static I32 VirtualScreenHeight();
+	static F64 MonitorHz();
+	static bool Fullscreen();
+	static bool ConstrainCursor();
+	static bool Focused();
+	static bool Minimised();
+	static bool LockCursor();
+	static bool HideCursor();
+	static bool Resized();
+	static bool InEditor();
 
 	static bool GetRegistryValue(void* hKey, const String& path, const String& name, U8* value, bool fixedSize = false);
 

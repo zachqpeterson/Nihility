@@ -3,8 +3,8 @@
 #include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Containers\String.hpp"
-#include "Platform\Function.hpp"
-#include "Math/Math.hpp"
+#include "Core\Function.hpp"
+#include "Math\Math.hpp"
 
 struct UIElement;
 using UIEvent = Function<void(UIElement*, const Vector2&)>;
