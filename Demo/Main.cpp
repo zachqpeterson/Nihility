@@ -98,6 +98,11 @@ void Update()
 		percent += (F32)(Time::DeltaTime() * 0.2);
 		UI::ChangeSliderPercent(slider, percent);
 	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_V))
+	{
+		Settings::SetVSync(!Settings::VSync());
+	}
 }
 
 void Shutdown()

@@ -16,8 +16,9 @@
 #include "Pipeline.hpp"
 #include "Resources\Scene.hpp"
 
-#define VMA_VULKAN_VERSION 1003000
 #define VMA_DEBUG_LOG
+//#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")
+#define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
 #include "External\LunarG\vma\vk_mem_alloc.h"
 
@@ -108,7 +109,6 @@ CommandBuffer* CommandBufferRing::GetWriteCommandBuffer(U32 frameIndex)
 
 static constexpr CSTR extensions[]{
 	VK_KHR_SURFACE_EXTENSION_NAME,
-	//VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
 
 #if defined PLATFORM_WINDOWS
 	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
@@ -262,6 +262,8 @@ void Renderer::Shutdown()
 	vkDeviceWaitIdle(device);
 
 	commandBufferRing.Destroy();
+
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { commandBuffers[i].Destroy(); }
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, queueSubmitted[i], allocationCallbacks); }
@@ -623,14 +625,8 @@ bool Renderer::InitialSubmit()
 bool Renderer::BeginFrame()
 {
 	VkResult result = swapchain.Update();
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
-	{
-		Resize();
-	}
-	else if (result == VK_NOT_READY)
-	{
-		return false;
-	}
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) { Resize(); }
+	else if (result == VK_NOT_READY) { return false; }
 
 	result = swapchain.NextImage(frameIndex, imageAcquired);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)

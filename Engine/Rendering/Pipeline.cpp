@@ -182,6 +182,7 @@ void Pipeline::Destroy()
 	Renderer::DestroyBuffer(instanceBuffer);
 	Renderer::DestroyBuffer(indexBuffer);
 	Renderer::DestroyBuffer(drawBuffer);
+	Renderer::DestroyBuffer(countsBuffer);
 
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
 

@@ -84,12 +84,18 @@ bool Swapchain::Create()
 
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-	if (!vsync)
+	if (vsync)
 	{
 		for (U64 i = 0; i < presentModeCount; ++i)
 		{
 			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) { presentMode = VK_PRESENT_MODE_MAILBOX_KHR; break; }
-			else if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) { presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
+		}
+	}
+	else
+	{
+		for (U64 i = 0; i < presentModeCount; ++i)
+		{
+			if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) { presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; break; }
 		}
 	}
 
@@ -178,9 +184,12 @@ void Swapchain::Destroy()
 
 VkResult Swapchain::Update()
 {
-	if (width != Settings::WindowWidth() || height != Settings::WindowHeight() || vsync != Settings::VSync()) { return VK_ERROR_OUT_OF_DATE_KHR; }
-	if (width == 0 || height == 0) { return VK_NOT_READY; }
-
+	if (Renderer::absoluteFrame)
+	{
+		if (width != Settings::WindowWidth() || height != Settings::WindowHeight() || vsync != Settings::VSync()) { return VK_ERROR_OUT_OF_DATE_KHR; }
+		if (width == 0 || height == 0) { return VK_NOT_READY; }
+	}
+	
 	return VK_SUCCESS;
 }
 

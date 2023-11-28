@@ -839,6 +839,9 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 	deleteTexture.width = texture->width;
 	deleteTexture.height = texture->height;
 	deleteTexture.depth = texture->depth;
+	deleteTexture.sampler = texture->sampler;
+	deleteTexture.mipmapCount = texture->mipmapCount;
+	Memory::Copy(deleteTexture.mipmaps, texture->mipmaps, sizeof(VkImageView) * deleteTexture.mipmapCount);
 
 	texture->width = width;
 	texture->height = height;
