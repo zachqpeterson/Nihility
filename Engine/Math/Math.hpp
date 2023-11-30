@@ -54,8 +54,12 @@ class NH_API Math
 {
 public:
 	template <typename Type> static constexpr Type Abs(const Type& n) noexcept { return n < (Type)0 ? -n : n; }
+	template <typename Type> static constexpr Type Min(const Type& a) noexcept { return a; }
 	template <typename Type> static constexpr Type Min(const Type& a, const Type& b) noexcept { return a > b ? b : a; }
+	template <typename Type, typename... Args> static constexpr Type Min(const Type& a, const Type& b, Args&&... args) noexcept { return a < b ? Min(a, args...) : Min(b, args...); }
+	template <typename Type> static constexpr Type Max(const Type& a) noexcept { return a; }
 	template <typename Type> static constexpr Type Max(const Type& a, const Type& b) noexcept { return a < b ? b : a; }
+	template <typename Type, typename... Args> static constexpr Type Max(const Type& a, const Type& b, Args&&... args) noexcept { return a > b ? Max(a, args...) : Max(b, args...); }
 	template <typename Type> static constexpr Type Clamp(const Type& n, const Type& min, const Type& max) noexcept { return n < min ? min : n > max ? max : n; }
 	template <typename Type> static constexpr Type Sign(const Type& n) noexcept { return (Type)((n > (Type)0) - (n < (Type)0)); }
 	template <typename Type> static constexpr Type NonZeroSign(const Type& n) noexcept { return (Type)(2 * (n > (Type)0) - (Type)1); }

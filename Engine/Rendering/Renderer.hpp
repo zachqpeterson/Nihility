@@ -108,6 +108,7 @@ public:
 		U64 dstStageMask, U64 dstAccessMask);
 
 	static Buffer						CreateBuffer(U32 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType);
+	static void							DestroyBuffer(Buffer& buffer);
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -133,7 +134,6 @@ private:
 	static U32							UploadToBuffer(Buffer& buffer, U32 size, const void* data);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
-	static void							DestroyBuffer(Buffer& buffer);
 
 	static void							PushConstants(CommandBuffer* commandBuffer, Shader* shader);
 
