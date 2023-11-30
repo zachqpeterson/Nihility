@@ -104,9 +104,7 @@ private:
 	static bool hideCursor;
 	static bool resized;
 
-#ifdef NH_DEBUG
 	static bool inEditor;
-#endif
 
 	STATIC_CLASS(Settings);
 	friend class Platform;

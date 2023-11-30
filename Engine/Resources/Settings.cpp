@@ -21,6 +21,8 @@ bool Settings::resized{ false };
 
 #ifdef NH_DEBUG
 bool Settings::inEditor{ true };
+#else
+bool Settings::inEditor{ false };
 #endif
 
 bool Settings::Initialize()
@@ -100,9 +102,8 @@ bool Settings::Minimised() { return minimised; }
 bool Settings::LockCursor() { return lockCursor; }
 bool Settings::HideCursor() { return hideCursor; }
 bool Settings::Resized() { return resized; }
-#ifdef NH_DEBUG
+
 bool Settings::InEditor() { return inEditor; }
-#endif
 
 #if defined PLATFORM_WINDOWS
 

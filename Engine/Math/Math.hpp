@@ -641,6 +641,17 @@ struct NH_API Vector2
 	F32* Data() { return &x; }
 	const F32* Data() const { return &x; }
 
+	constexpr Vector2 xx() const { return { x, x }; }
+	constexpr Vector2 xy() const { return { x, y }; }
+	constexpr Vector2 yx() const { return { y, x }; }
+	constexpr Vector2 yy() const { return { y, y }; }
+
+	constexpr explicit operator Vector3() const;
+	constexpr explicit operator Vector4() const;
+	constexpr explicit operator Vector2Int() const;
+	constexpr explicit operator Vector3Int() const;
+	constexpr explicit operator Vector4Int() const;
+
 	operator String() const;
 	operator String16() const;
 	operator String32() const;
@@ -748,6 +759,51 @@ struct NH_API Vector3
 	F32* Data() { return &x; }
 	const F32* Data() const { return &x; }
 
+#pragma region SwizzleFunctions
+	constexpr Vector2 xx() const { return { x, x }; }
+	constexpr Vector2 xy() const { return { x, y }; }
+	constexpr Vector2 xz() const { return { x, z }; }
+	constexpr Vector2 yx() const { return { y, x }; }
+	constexpr Vector2 yy() const { return { y, y }; }
+	constexpr Vector2 yz() const { return { y, z }; }
+	constexpr Vector2 zx() const { return { z, x }; }
+	constexpr Vector2 zy() const { return { z, y }; }
+	constexpr Vector2 zz() const { return { z, z }; }
+	constexpr Vector3 xxx() const { return { x, x, x }; }
+	constexpr Vector3 xxy() const { return { x, x, y }; }
+	constexpr Vector3 xxz() const { return { x, x, z }; }
+	constexpr Vector3 xyx() const { return { x, y, x }; }
+	constexpr Vector3 xyy() const { return { x, y, y }; }
+	constexpr Vector3 xyz() const { return { x, y, z }; }
+	constexpr Vector3 xzx() const { return { x, z, x }; }
+	constexpr Vector3 xzy() const { return { x, z, y }; }
+	constexpr Vector3 xzz() const { return { x, z, z }; }
+	constexpr Vector3 yxx() const { return { y, x, x }; }
+	constexpr Vector3 yxy() const { return { y, x, y }; }
+	constexpr Vector3 yxz() const { return { y, x, z }; }
+	constexpr Vector3 yyx() const { return { y, y, x }; }
+	constexpr Vector3 yyy() const { return { y, y, y }; }
+	constexpr Vector3 yyz() const { return { y, y, z }; }
+	constexpr Vector3 yzx() const { return { y, z, x }; }
+	constexpr Vector3 yzy() const { return { y, z, y }; }
+	constexpr Vector3 yzz() const { return { y, z, z }; }
+	constexpr Vector3 zxx() const { return { z, x, x }; }
+	constexpr Vector3 zxy() const { return { z, x, y }; }
+	constexpr Vector3 zxz() const { return { z, x, z }; }
+	constexpr Vector3 zyx() const { return { z, y, x }; }
+	constexpr Vector3 zyy() const { return { z, y, y }; }
+	constexpr Vector3 zyz() const { return { z, y, z }; }
+	constexpr Vector3 zzx() const { return { z, z, x }; }
+	constexpr Vector3 zzy() const { return { z, z, y }; }
+	constexpr Vector3 zzz() const { return { z, z, z }; }
+#pragma endregion
+
+	constexpr explicit operator Vector2() const;
+	constexpr explicit operator Vector4() const;
+	constexpr explicit operator Vector2Int() const;
+	constexpr explicit operator Vector3Int() const;
+	constexpr explicit operator Vector4Int() const;
+
 	operator String() const;
 	operator String16() const;
 	operator String32() const;
@@ -761,6 +817,8 @@ struct NH_API Vector4
 	constexpr Vector4() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 0.0f } {}
 	constexpr Vector4(F32 f) : x{ f }, y{ f }, z{ f }, w{ f } {}
 	constexpr Vector4(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
+	constexpr Vector4(const Vector2& a, const Vector2& b) : x{ a.x }, y{ a.y }, z{ b.x }, w{ b.y } {}
+	constexpr Vector4(F32 x, const Vector2& a, F32 w) : x{ x }, y{ a.x }, z{ a.y }, w{ w } {}
 	constexpr Vector4(const Vector4& v) : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
 	constexpr Vector4(Vector4&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
 
@@ -851,9 +909,350 @@ struct NH_API Vector4
 	F32* Data() { return &x; }
 	const F32* Data() const { return &x; }
 
+#pragma region SwizzleFunctions
+	constexpr Vector2 xx() const { return { x, x }; }
 	constexpr Vector2 xy() const { return { x, y }; }
+	constexpr Vector2 xz() const { return { x, z }; }
+	constexpr Vector2 xw() const { return { x, w }; }
+	constexpr Vector2 yx() const { return { y, x }; }
+	constexpr Vector2 yy() const { return { y, y }; }
 	constexpr Vector2 yz() const { return { y, z }; }
+	constexpr Vector2 yw() const { return { y, w }; }
+	constexpr Vector2 zx() const { return { z, x }; }
+	constexpr Vector2 zy() const { return { z, y }; }
+	constexpr Vector2 zz() const { return { z, z }; }
 	constexpr Vector2 zw() const { return { z, w }; }
+	constexpr Vector2 wx() const { return { w, x }; }
+	constexpr Vector2 wy() const { return { w, y }; }
+	constexpr Vector2 wz() const { return { w, z }; }
+	constexpr Vector2 ww() const { return { w, w }; }
+	constexpr Vector3 xxx() const { return { x, x, x }; }
+	constexpr Vector3 xxy() const { return { x, x, y }; }
+	constexpr Vector3 xxz() const { return { x, x, z }; }
+	constexpr Vector3 xxw() const { return { x, x, w }; }
+	constexpr Vector3 xyx() const { return { x, y, x }; }
+	constexpr Vector3 xyy() const { return { x, y, y }; }
+	constexpr Vector3 xyz() const { return { x, y, z }; }
+	constexpr Vector3 xyw() const { return { x, y, w }; }
+	constexpr Vector3 xzx() const { return { x, z, x }; }
+	constexpr Vector3 xzy() const { return { x, z, y }; }
+	constexpr Vector3 xzz() const { return { x, z, z }; }
+	constexpr Vector3 xzw() const { return { x, z, w }; }
+	constexpr Vector3 xwx() const { return { x, w, x }; }
+	constexpr Vector3 xwy() const { return { x, w, y }; }
+	constexpr Vector3 xwz() const { return { x, w, z }; }
+	constexpr Vector3 xww() const { return { x, w, w }; }
+	constexpr Vector3 yxx() const { return { y, x, x }; }
+	constexpr Vector3 yxy() const { return { y, x, y }; }
+	constexpr Vector3 yxz() const { return { y, x, z }; }
+	constexpr Vector3 yxw() const { return { y, x, w }; }
+	constexpr Vector3 yyx() const { return { y, y, x }; }
+	constexpr Vector3 yyy() const { return { y, y, y }; }
+	constexpr Vector3 yyz() const { return { y, y, z }; }
+	constexpr Vector3 yyw() const { return { y, y, w }; }
+	constexpr Vector3 yzx() const { return { y, z, x }; }
+	constexpr Vector3 yzy() const { return { y, z, y }; }
+	constexpr Vector3 yzz() const { return { y, z, z }; }
+	constexpr Vector3 yzw() const { return { y, z, w }; }
+	constexpr Vector3 ywx() const { return { y, w, x }; }
+	constexpr Vector3 ywy() const { return { y, w, y }; }
+	constexpr Vector3 ywz() const { return { y, w, z }; }
+	constexpr Vector3 yww() const { return { y, w, w }; }
+	constexpr Vector3 zxx() const { return { z, x, x }; }
+	constexpr Vector3 zxy() const { return { z, x, y }; }
+	constexpr Vector3 zxz() const { return { z, x, z }; }
+	constexpr Vector3 zxw() const { return { z, x, w }; }
+	constexpr Vector3 zyx() const { return { z, y, x }; }
+	constexpr Vector3 zyy() const { return { z, y, y }; }
+	constexpr Vector3 zyz() const { return { z, y, z }; }
+	constexpr Vector3 zyw() const { return { z, y, w }; }
+	constexpr Vector3 zzx() const { return { z, z, x }; }
+	constexpr Vector3 zzy() const { return { z, z, y }; }
+	constexpr Vector3 zzz() const { return { z, z, z }; }
+	constexpr Vector3 zzw() const { return { z, z, w }; }
+	constexpr Vector3 zwx() const { return { z, w, x }; }
+	constexpr Vector3 zwy() const { return { z, w, y }; }
+	constexpr Vector3 zwz() const { return { z, w, z }; }
+	constexpr Vector3 zww() const { return { z, w, w }; }
+	constexpr Vector3 wxx() const { return { w, x, x }; }
+	constexpr Vector3 wxy() const { return { w, x, y }; }
+	constexpr Vector3 wxz() const { return { w, x, z }; }
+	constexpr Vector3 wxw() const { return { w, x, w }; }
+	constexpr Vector3 wyx() const { return { w, y, x }; }
+	constexpr Vector3 wyy() const { return { w, y, y }; }
+	constexpr Vector3 wyz() const { return { w, y, z }; }
+	constexpr Vector3 wyw() const { return { w, y, w }; }
+	constexpr Vector3 wzx() const { return { w, z, x }; }
+	constexpr Vector3 wzy() const { return { w, z, y }; }
+	constexpr Vector3 wzz() const { return { w, z, z }; }
+	constexpr Vector3 wzw() const { return { w, z, w }; }
+	constexpr Vector3 wwx() const { return { w, w, x }; }
+	constexpr Vector3 wwy() const { return { w, w, y }; }
+	constexpr Vector3 wwz() const { return { w, w, z }; }
+	constexpr Vector3 www() const { return { w, w, w }; }
+	constexpr Vector4 xxxx() const { return { x, x, x, x }; }
+	constexpr Vector4 xxxy() const { return { x, x, x, y }; }
+	constexpr Vector4 xxxz() const { return { x, x, x, z }; }
+	constexpr Vector4 xxxw() const { return { x, x, x, w }; }
+	constexpr Vector4 xxyx() const { return { x, x, y, x }; }
+	constexpr Vector4 xxyy() const { return { x, x, y, y }; }
+	constexpr Vector4 xxyz() const { return { x, x, y, z }; }
+	constexpr Vector4 xxyw() const { return { x, x, y, w }; }
+	constexpr Vector4 xxzx() const { return { x, x, z, x }; }
+	constexpr Vector4 xxzy() const { return { x, x, z, y }; }
+	constexpr Vector4 xxzz() const { return { x, x, z, z }; }
+	constexpr Vector4 xxzw() const { return { x, x, z, w }; }
+	constexpr Vector4 xxwx() const { return { x, x, w, x }; }
+	constexpr Vector4 xxwy() const { return { x, x, w, y }; }
+	constexpr Vector4 xxwz() const { return { x, x, w, z }; }
+	constexpr Vector4 xxww() const { return { x, x, w, w }; }
+	constexpr Vector4 xyxx() const { return { x, y, x, x }; }
+	constexpr Vector4 xyxy() const { return { x, y, x, y }; }
+	constexpr Vector4 xyxz() const { return { x, y, x, z }; }
+	constexpr Vector4 xyxw() const { return { x, y, x, w }; }
+	constexpr Vector4 xyyx() const { return { x, y, y, x }; }
+	constexpr Vector4 xyyy() const { return { x, y, y, y }; }
+	constexpr Vector4 xyyz() const { return { x, y, y, z }; }
+	constexpr Vector4 xyyw() const { return { x, y, y, w }; }
+	constexpr Vector4 xyzx() const { return { x, y, z, x }; }
+	constexpr Vector4 xyzy() const { return { x, y, z, y }; }
+	constexpr Vector4 xyzz() const { return { x, y, z, z }; }
+	constexpr Vector4 xyzw() const { return { x, y, z, w }; }
+	constexpr Vector4 xywx() const { return { x, y, w, x }; }
+	constexpr Vector4 xywy() const { return { x, y, w, y }; }
+	constexpr Vector4 xywz() const { return { x, y, w, z }; }
+	constexpr Vector4 xyww() const { return { x, y, w, w }; }
+	constexpr Vector4 xzxx() const { return { x, z, x, x }; }
+	constexpr Vector4 xzxy() const { return { x, z, x, y }; }
+	constexpr Vector4 xzxz() const { return { x, z, x, z }; }
+	constexpr Vector4 xzxw() const { return { x, z, x, w }; }
+	constexpr Vector4 xzyx() const { return { x, z, y, x }; }
+	constexpr Vector4 xzyy() const { return { x, z, y, y }; }
+	constexpr Vector4 xzyz() const { return { x, z, y, z }; }
+	constexpr Vector4 xzyw() const { return { x, z, y, w }; }
+	constexpr Vector4 xzzx() const { return { x, z, z, x }; }
+	constexpr Vector4 xzzy() const { return { x, z, z, y }; }
+	constexpr Vector4 xzzz() const { return { x, z, z, z }; }
+	constexpr Vector4 xzzw() const { return { x, z, z, w }; }
+	constexpr Vector4 xzwx() const { return { x, z, w, x }; }
+	constexpr Vector4 xzwy() const { return { x, z, w, y }; }
+	constexpr Vector4 xzwz() const { return { x, z, w, z }; }
+	constexpr Vector4 xzww() const { return { x, z, w, w }; }
+	constexpr Vector4 xwxx() const { return { x, w, x, x }; }
+	constexpr Vector4 xwxy() const { return { x, w, x, y }; }
+	constexpr Vector4 xwxz() const { return { x, w, x, z }; }
+	constexpr Vector4 xwxw() const { return { x, w, x, w }; }
+	constexpr Vector4 xwyx() const { return { x, w, y, x }; }
+	constexpr Vector4 xwyy() const { return { x, w, y, y }; }
+	constexpr Vector4 xwyz() const { return { x, w, y, z }; }
+	constexpr Vector4 xwyw() const { return { x, w, y, w }; }
+	constexpr Vector4 xwzx() const { return { x, w, z, x }; }
+	constexpr Vector4 xwzy() const { return { x, w, z, y }; }
+	constexpr Vector4 xwzz() const { return { x, w, z, z }; }
+	constexpr Vector4 xwzw() const { return { x, w, z, w }; }
+	constexpr Vector4 xwwx() const { return { x, w, w, x }; }
+	constexpr Vector4 xwwy() const { return { x, w, w, y }; }
+	constexpr Vector4 xwwz() const { return { x, w, w, z }; }
+	constexpr Vector4 xwww() const { return { x, w, w, w }; }
+	constexpr Vector4 yxxx() const { return { y, x, x, x }; }
+	constexpr Vector4 yxxy() const { return { y, x, x, y }; }
+	constexpr Vector4 yxxz() const { return { y, x, x, z }; }
+	constexpr Vector4 yxxw() const { return { y, x, x, w }; }
+	constexpr Vector4 yxyx() const { return { y, x, y, x }; }
+	constexpr Vector4 yxyy() const { return { y, x, y, y }; }
+	constexpr Vector4 yxyz() const { return { y, x, y, z }; }
+	constexpr Vector4 yxyw() const { return { y, x, y, w }; }
+	constexpr Vector4 yxzx() const { return { y, x, z, x }; }
+	constexpr Vector4 yxzy() const { return { y, x, z, y }; }
+	constexpr Vector4 yxzz() const { return { y, x, z, z }; }
+	constexpr Vector4 yxzw() const { return { y, x, z, w }; }
+	constexpr Vector4 yxwx() const { return { y, x, w, x }; }
+	constexpr Vector4 yxwy() const { return { y, x, w, y }; }
+	constexpr Vector4 yxwz() const { return { y, x, w, z }; }
+	constexpr Vector4 yxww() const { return { y, x, w, w }; }
+	constexpr Vector4 yyxx() const { return { y, y, x, x }; }
+	constexpr Vector4 yyxy() const { return { y, y, x, y }; }
+	constexpr Vector4 yyxz() const { return { y, y, x, z }; }
+	constexpr Vector4 yyxw() const { return { y, y, x, w }; }
+	constexpr Vector4 yyyx() const { return { y, y, y, x }; }
+	constexpr Vector4 yyyy() const { return { y, y, y, y }; }
+	constexpr Vector4 yyyz() const { return { y, y, y, z }; }
+	constexpr Vector4 yyyw() const { return { y, y, y, w }; }
+	constexpr Vector4 yyzx() const { return { y, y, z, x }; }
+	constexpr Vector4 yyzy() const { return { y, y, z, y }; }
+	constexpr Vector4 yyzz() const { return { y, y, z, z }; }
+	constexpr Vector4 yyzw() const { return { y, y, z, w }; }
+	constexpr Vector4 yywx() const { return { y, y, w, x }; }
+	constexpr Vector4 yywy() const { return { y, y, w, y }; }
+	constexpr Vector4 yywz() const { return { y, y, w, z }; }
+	constexpr Vector4 yyww() const { return { y, y, w, w }; }
+	constexpr Vector4 yzxx() const { return { y, z, x, x }; }
+	constexpr Vector4 yzxy() const { return { y, z, x, y }; }
+	constexpr Vector4 yzxz() const { return { y, z, x, z }; }
+	constexpr Vector4 yzxw() const { return { y, z, x, w }; }
+	constexpr Vector4 yzyx() const { return { y, z, y, x }; }
+	constexpr Vector4 yzyy() const { return { y, z, y, y }; }
+	constexpr Vector4 yzyz() const { return { y, z, y, z }; }
+	constexpr Vector4 yzyw() const { return { y, z, y, w }; }
+	constexpr Vector4 yzzx() const { return { y, z, z, x }; }
+	constexpr Vector4 yzzy() const { return { y, z, z, y }; }
+	constexpr Vector4 yzzz() const { return { y, z, z, z }; }
+	constexpr Vector4 yzzw() const { return { y, z, z, w }; }
+	constexpr Vector4 yzwx() const { return { y, z, w, x }; }
+	constexpr Vector4 yzwy() const { return { y, z, w, y }; }
+	constexpr Vector4 yzwz() const { return { y, z, w, z }; }
+	constexpr Vector4 yzww() const { return { y, z, w, w }; }
+	constexpr Vector4 ywxx() const { return { y, w, x, x }; }
+	constexpr Vector4 ywxy() const { return { y, w, x, y }; }
+	constexpr Vector4 ywxz() const { return { y, w, x, z }; }
+	constexpr Vector4 ywxw() const { return { y, w, x, w }; }
+	constexpr Vector4 ywyx() const { return { y, w, y, x }; }
+	constexpr Vector4 ywyy() const { return { y, w, y, y }; }
+	constexpr Vector4 ywyz() const { return { y, w, y, z }; }
+	constexpr Vector4 ywyw() const { return { y, w, y, w }; }
+	constexpr Vector4 ywzx() const { return { y, w, z, x }; }
+	constexpr Vector4 ywzy() const { return { y, w, z, y }; }
+	constexpr Vector4 ywzz() const { return { y, w, z, z }; }
+	constexpr Vector4 ywzw() const { return { y, w, z, w }; }
+	constexpr Vector4 ywwx() const { return { y, w, w, x }; }
+	constexpr Vector4 ywwy() const { return { y, w, w, y }; }
+	constexpr Vector4 ywwz() const { return { y, w, w, z }; }
+	constexpr Vector4 ywww() const { return { y, w, w, w }; }
+	constexpr Vector4 zxxx() const { return { z, x, x, x }; }
+	constexpr Vector4 zxxy() const { return { z, x, x, y }; }
+	constexpr Vector4 zxxz() const { return { z, x, x, z }; }
+	constexpr Vector4 zxxw() const { return { z, x, x, w }; }
+	constexpr Vector4 zxyx() const { return { z, x, y, x }; }
+	constexpr Vector4 zxyy() const { return { z, x, y, y }; }
+	constexpr Vector4 zxyz() const { return { z, x, y, z }; }
+	constexpr Vector4 zxyw() const { return { z, x, y, w }; }
+	constexpr Vector4 zxzx() const { return { z, x, z, x }; }
+	constexpr Vector4 zxzy() const { return { z, x, z, y }; }
+	constexpr Vector4 zxzz() const { return { z, x, z, z }; }
+	constexpr Vector4 zxzw() const { return { z, x, z, w }; }
+	constexpr Vector4 zxwx() const { return { z, x, w, x }; }
+	constexpr Vector4 zxwy() const { return { z, x, w, y }; }
+	constexpr Vector4 zxwz() const { return { z, x, w, z }; }
+	constexpr Vector4 zxww() const { return { z, x, w, w }; }
+	constexpr Vector4 zyxx() const { return { z, y, x, x }; }
+	constexpr Vector4 zyxy() const { return { z, y, x, y }; }
+	constexpr Vector4 zyxz() const { return { z, y, x, z }; }
+	constexpr Vector4 zyxw() const { return { z, y, x, w }; }
+	constexpr Vector4 zyyx() const { return { z, y, y, x }; }
+	constexpr Vector4 zyyy() const { return { z, y, y, y }; }
+	constexpr Vector4 zyyz() const { return { z, y, y, z }; }
+	constexpr Vector4 zyyw() const { return { z, y, y, w }; }
+	constexpr Vector4 zyzx() const { return { z, y, z, x }; }
+	constexpr Vector4 zyzy() const { return { z, y, z, y }; }
+	constexpr Vector4 zyzz() const { return { z, y, z, z }; }
+	constexpr Vector4 zyzw() const { return { z, y, z, w }; }
+	constexpr Vector4 zywx() const { return { z, y, w, x }; }
+	constexpr Vector4 zywy() const { return { z, y, w, y }; }
+	constexpr Vector4 zywz() const { return { z, y, w, z }; }
+	constexpr Vector4 zyww() const { return { z, y, w, w }; }
+	constexpr Vector4 zzxx() const { return { z, z, x, x }; }
+	constexpr Vector4 zzxy() const { return { z, z, x, y }; }
+	constexpr Vector4 zzxz() const { return { z, z, x, z }; }
+	constexpr Vector4 zzxw() const { return { z, z, x, w }; }
+	constexpr Vector4 zzyx() const { return { z, z, y, x }; }
+	constexpr Vector4 zzyy() const { return { z, z, y, y }; }
+	constexpr Vector4 zzyz() const { return { z, z, y, z }; }
+	constexpr Vector4 zzyw() const { return { z, z, y, w }; }
+	constexpr Vector4 zzzx() const { return { z, z, z, x }; }
+	constexpr Vector4 zzzy() const { return { z, z, z, y }; }
+	constexpr Vector4 zzzz() const { return { z, z, z, z }; }
+	constexpr Vector4 zzzw() const { return { z, z, z, w }; }
+	constexpr Vector4 zzwx() const { return { z, z, w, x }; }
+	constexpr Vector4 zzwy() const { return { z, z, w, y }; }
+	constexpr Vector4 zzwz() const { return { z, z, w, z }; }
+	constexpr Vector4 zzww() const { return { z, z, w, w }; }
+	constexpr Vector4 zwxx() const { return { z, w, x, x }; }
+	constexpr Vector4 zwxy() const { return { z, w, x, y }; }
+	constexpr Vector4 zwxz() const { return { z, w, x, z }; }
+	constexpr Vector4 zwxw() const { return { z, w, x, w }; }
+	constexpr Vector4 zwyx() const { return { z, w, y, x }; }
+	constexpr Vector4 zwyy() const { return { z, w, y, y }; }
+	constexpr Vector4 zwyz() const { return { z, w, y, z }; }
+	constexpr Vector4 zwyw() const { return { z, w, y, w }; }
+	constexpr Vector4 zwzx() const { return { z, w, z, x }; }
+	constexpr Vector4 zwzy() const { return { z, w, z, y }; }
+	constexpr Vector4 zwzz() const { return { z, w, z, z }; }
+	constexpr Vector4 zwzw() const { return { z, w, z, w }; }
+	constexpr Vector4 zwwx() const { return { z, w, w, x }; }
+	constexpr Vector4 zwwy() const { return { z, w, w, y }; }
+	constexpr Vector4 zwwz() const { return { z, w, w, z }; }
+	constexpr Vector4 zwww() const { return { z, w, w, w }; }
+	constexpr Vector4 wxxx() const { return { w, x, x, x }; }
+	constexpr Vector4 wxxy() const { return { w, x, x, y }; }
+	constexpr Vector4 wxxz() const { return { w, x, x, z }; }
+	constexpr Vector4 wxxw() const { return { w, x, x, w }; }
+	constexpr Vector4 wxyx() const { return { w, x, y, x }; }
+	constexpr Vector4 wxyy() const { return { w, x, y, y }; }
+	constexpr Vector4 wxyz() const { return { w, x, y, z }; }
+	constexpr Vector4 wxyw() const { return { w, x, y, w }; }
+	constexpr Vector4 wxzx() const { return { w, x, z, x }; }
+	constexpr Vector4 wxzy() const { return { w, x, z, y }; }
+	constexpr Vector4 wxzz() const { return { w, x, z, z }; }
+	constexpr Vector4 wxzw() const { return { w, x, z, w }; }
+	constexpr Vector4 wxwx() const { return { w, x, w, x }; }
+	constexpr Vector4 wxwy() const { return { w, x, w, y }; }
+	constexpr Vector4 wxwz() const { return { w, x, w, z }; }
+	constexpr Vector4 wxww() const { return { w, x, w, w }; }
+	constexpr Vector4 wyxx() const { return { w, y, x, x }; }
+	constexpr Vector4 wyxy() const { return { w, y, x, y }; }
+	constexpr Vector4 wyxz() const { return { w, y, x, z }; }
+	constexpr Vector4 wyxw() const { return { w, y, x, w }; }
+	constexpr Vector4 wyyx() const { return { w, y, y, x }; }
+	constexpr Vector4 wyyy() const { return { w, y, y, y }; }
+	constexpr Vector4 wyyz() const { return { w, y, y, z }; }
+	constexpr Vector4 wyyw() const { return { w, y, y, w }; }
+	constexpr Vector4 wyzx() const { return { w, y, z, x }; }
+	constexpr Vector4 wyzy() const { return { w, y, z, y }; }
+	constexpr Vector4 wyzz() const { return { w, y, z, z }; }
+	constexpr Vector4 wyzw() const { return { w, y, z, w }; }
+	constexpr Vector4 wywx() const { return { w, y, w, x }; }
+	constexpr Vector4 wywy() const { return { w, y, w, y }; }
+	constexpr Vector4 wywz() const { return { w, y, w, z }; }
+	constexpr Vector4 wyww() const { return { w, y, w, w }; }
+	constexpr Vector4 wzxx() const { return { w, z, x, x }; }
+	constexpr Vector4 wzxy() const { return { w, z, x, y }; }
+	constexpr Vector4 wzxz() const { return { w, z, x, z }; }
+	constexpr Vector4 wzxw() const { return { w, z, x, w }; }
+	constexpr Vector4 wzyx() const { return { w, z, y, x }; }
+	constexpr Vector4 wzyy() const { return { w, z, y, y }; }
+	constexpr Vector4 wzyz() const { return { w, z, y, z }; }
+	constexpr Vector4 wzyw() const { return { w, z, y, w }; }
+	constexpr Vector4 wzzx() const { return { w, z, z, x }; }
+	constexpr Vector4 wzzy() const { return { w, z, z, y }; }
+	constexpr Vector4 wzzz() const { return { w, z, z, z }; }
+	constexpr Vector4 wzzw() const { return { w, z, z, w }; }
+	constexpr Vector4 wzwx() const { return { w, z, w, x }; }
+	constexpr Vector4 wzwy() const { return { w, z, w, y }; }
+	constexpr Vector4 wzwz() const { return { w, z, w, z }; }
+	constexpr Vector4 wzww() const { return { w, z, w, w }; }
+	constexpr Vector4 wwxx() const { return { w, w, x, x }; }
+	constexpr Vector4 wwxy() const { return { w, w, x, y }; }
+	constexpr Vector4 wwxz() const { return { w, w, x, z }; }
+	constexpr Vector4 wwxw() const { return { w, w, x, w }; }
+	constexpr Vector4 wwyx() const { return { w, w, y, x }; }
+	constexpr Vector4 wwyy() const { return { w, w, y, y }; }
+	constexpr Vector4 wwyz() const { return { w, w, y, z }; }
+	constexpr Vector4 wwyw() const { return { w, w, y, w }; }
+	constexpr Vector4 wwzx() const { return { w, w, z, x }; }
+	constexpr Vector4 wwzy() const { return { w, w, z, y }; }
+	constexpr Vector4 wwzz() const { return { w, w, z, z }; }
+	constexpr Vector4 wwzw() const { return { w, w, z, w }; }
+	constexpr Vector4 wwwx() const { return { w, w, w, x }; }
+	constexpr Vector4 wwwy() const { return { w, w, w, y }; }
+	constexpr Vector4 wwwz() const { return { w, w, w, z }; }
+	constexpr Vector4 wwww() const { return { w, w, w, w }; }
+#pragma endregion
+
+	constexpr explicit operator Vector2() const;
+	constexpr explicit operator Vector3() const;
+	constexpr explicit operator Vector2Int() const;
+	constexpr explicit operator Vector3Int() const;
+	constexpr explicit operator Vector4Int() const;
 
 	operator String() const;
 	operator String16() const;
@@ -951,7 +1350,16 @@ struct NH_API Vector2Int
 	I32* Data() { return &x; }
 	const I32* Data() const { return &x; }
 
-	operator Vector2() const { return { (F32)x, (F32)y }; }
+	constexpr Vector2Int xx() const { return { x, x }; }
+	constexpr Vector2Int xy() const { return { x, y }; }
+	constexpr Vector2Int yx() const { return { y, x }; }
+	constexpr Vector2Int yy() const { return { y, y }; }
+
+	constexpr explicit operator Vector2() const;
+	constexpr explicit operator Vector3() const;
+	constexpr explicit operator Vector4() const;
+	constexpr explicit operator Vector3Int() const;
+	constexpr explicit operator Vector4Int() const;
 
 	operator String() const;
 	operator String16() const;
@@ -1048,6 +1456,51 @@ struct NH_API Vector3Int
 
 	I32* Data() { return &x; }
 	const I32* Data() const { return &x; }
+
+#pragma region SwizzleFunctions
+	constexpr Vector2Int xx() const { return { x, x }; }
+	constexpr Vector2Int xy() const { return { x, y }; }
+	constexpr Vector2Int xz() const { return { x, z }; }
+	constexpr Vector2Int yx() const { return { y, x }; }
+	constexpr Vector2Int yy() const { return { y, y }; }
+	constexpr Vector2Int yz() const { return { y, z }; }
+	constexpr Vector2Int zx() const { return { z, x }; }
+	constexpr Vector2Int zy() const { return { z, y }; }
+	constexpr Vector2Int zz() const { return { z, z }; }
+	constexpr Vector3Int xxx() const { return { x, x, x }; }
+	constexpr Vector3Int xxy() const { return { x, x, y }; }
+	constexpr Vector3Int xxz() const { return { x, x, z }; }
+	constexpr Vector3Int xyx() const { return { x, y, x }; }
+	constexpr Vector3Int xyy() const { return { x, y, y }; }
+	constexpr Vector3Int xyz() const { return { x, y, z }; }
+	constexpr Vector3Int xzx() const { return { x, z, x }; }
+	constexpr Vector3Int xzy() const { return { x, z, y }; }
+	constexpr Vector3Int xzz() const { return { x, z, z }; }
+	constexpr Vector3Int yxx() const { return { y, x, x }; }
+	constexpr Vector3Int yxy() const { return { y, x, y }; }
+	constexpr Vector3Int yxz() const { return { y, x, z }; }
+	constexpr Vector3Int yyx() const { return { y, y, x }; }
+	constexpr Vector3Int yyy() const { return { y, y, y }; }
+	constexpr Vector3Int yyz() const { return { y, y, z }; }
+	constexpr Vector3Int yzx() const { return { y, z, x }; }
+	constexpr Vector3Int yzy() const { return { y, z, y }; }
+	constexpr Vector3Int yzz() const { return { y, z, z }; }
+	constexpr Vector3Int zxx() const { return { z, x, x }; }
+	constexpr Vector3Int zxy() const { return { z, x, y }; }
+	constexpr Vector3Int zxz() const { return { z, x, z }; }
+	constexpr Vector3Int zyx() const { return { z, y, x }; }
+	constexpr Vector3Int zyy() const { return { z, y, y }; }
+	constexpr Vector3Int zyz() const { return { z, y, z }; }
+	constexpr Vector3Int zzx() const { return { z, z, x }; }
+	constexpr Vector3Int zzy() const { return { z, z, y }; }
+	constexpr Vector3Int zzz() const { return { z, z, z }; }
+#pragma endregion
+
+	constexpr explicit operator Vector2() const;
+	constexpr explicit operator Vector3() const;
+	constexpr explicit operator Vector4() const;
+	constexpr explicit operator Vector2Int() const;
+	constexpr explicit operator Vector4Int() const;
 
 	operator String() const;
 	operator String16() const;
@@ -1156,6 +1609,351 @@ struct NH_API Vector4Int
 	I32* Data() { return &x; }
 	const I32* Data() const { return &x; }
 
+#pragma region SwizzleFunctions
+	constexpr Vector2Int xx() const { return { x, x }; }
+	constexpr Vector2Int xy() const { return { x, y }; }
+	constexpr Vector2Int xz() const { return { x, z }; }
+	constexpr Vector2Int xw() const { return { x, w }; }
+	constexpr Vector2Int yx() const { return { y, x }; }
+	constexpr Vector2Int yy() const { return { y, y }; }
+	constexpr Vector2Int yz() const { return { y, z }; }
+	constexpr Vector2Int yw() const { return { y, w }; }
+	constexpr Vector2Int zx() const { return { z, x }; }
+	constexpr Vector2Int zy() const { return { z, y }; }
+	constexpr Vector2Int zz() const { return { z, z }; }
+	constexpr Vector2Int zw() const { return { z, w }; }
+	constexpr Vector2Int wx() const { return { w, x }; }
+	constexpr Vector2Int wy() const { return { w, y }; }
+	constexpr Vector2Int wz() const { return { w, z }; }
+	constexpr Vector2Int ww() const { return { w, w }; }
+	constexpr Vector3Int xxx() const { return { x, x, x }; }
+	constexpr Vector3Int xxy() const { return { x, x, y }; }
+	constexpr Vector3Int xxz() const { return { x, x, z }; }
+	constexpr Vector3Int xxw() const { return { x, x, w }; }
+	constexpr Vector3Int xyx() const { return { x, y, x }; }
+	constexpr Vector3Int xyy() const { return { x, y, y }; }
+	constexpr Vector3Int xyz() const { return { x, y, z }; }
+	constexpr Vector3Int xyw() const { return { x, y, w }; }
+	constexpr Vector3Int xzx() const { return { x, z, x }; }
+	constexpr Vector3Int xzy() const { return { x, z, y }; }
+	constexpr Vector3Int xzz() const { return { x, z, z }; }
+	constexpr Vector3Int xzw() const { return { x, z, w }; }
+	constexpr Vector3Int xwx() const { return { x, w, x }; }
+	constexpr Vector3Int xwy() const { return { x, w, y }; }
+	constexpr Vector3Int xwz() const { return { x, w, z }; }
+	constexpr Vector3Int xww() const { return { x, w, w }; }
+	constexpr Vector3Int yxx() const { return { y, x, x }; }
+	constexpr Vector3Int yxy() const { return { y, x, y }; }
+	constexpr Vector3Int yxz() const { return { y, x, z }; }
+	constexpr Vector3Int yxw() const { return { y, x, w }; }
+	constexpr Vector3Int yyx() const { return { y, y, x }; }
+	constexpr Vector3Int yyy() const { return { y, y, y }; }
+	constexpr Vector3Int yyz() const { return { y, y, z }; }
+	constexpr Vector3Int yyw() const { return { y, y, w }; }
+	constexpr Vector3Int yzx() const { return { y, z, x }; }
+	constexpr Vector3Int yzy() const { return { y, z, y }; }
+	constexpr Vector3Int yzz() const { return { y, z, z }; }
+	constexpr Vector3Int yzw() const { return { y, z, w }; }
+	constexpr Vector3Int ywx() const { return { y, w, x }; }
+	constexpr Vector3Int ywy() const { return { y, w, y }; }
+	constexpr Vector3Int ywz() const { return { y, w, z }; }
+	constexpr Vector3Int yww() const { return { y, w, w }; }
+	constexpr Vector3Int zxx() const { return { z, x, x }; }
+	constexpr Vector3Int zxy() const { return { z, x, y }; }
+	constexpr Vector3Int zxz() const { return { z, x, z }; }
+	constexpr Vector3Int zxw() const { return { z, x, w }; }
+	constexpr Vector3Int zyx() const { return { z, y, x }; }
+	constexpr Vector3Int zyy() const { return { z, y, y }; }
+	constexpr Vector3Int zyz() const { return { z, y, z }; }
+	constexpr Vector3Int zyw() const { return { z, y, w }; }
+	constexpr Vector3Int zzx() const { return { z, z, x }; }
+	constexpr Vector3Int zzy() const { return { z, z, y }; }
+	constexpr Vector3Int zzz() const { return { z, z, z }; }
+	constexpr Vector3Int zzw() const { return { z, z, w }; }
+	constexpr Vector3Int zwx() const { return { z, w, x }; }
+	constexpr Vector3Int zwy() const { return { z, w, y }; }
+	constexpr Vector3Int zwz() const { return { z, w, z }; }
+	constexpr Vector3Int zww() const { return { z, w, w }; }
+	constexpr Vector3Int wxx() const { return { w, x, x }; }
+	constexpr Vector3Int wxy() const { return { w, x, y }; }
+	constexpr Vector3Int wxz() const { return { w, x, z }; }
+	constexpr Vector3Int wxw() const { return { w, x, w }; }
+	constexpr Vector3Int wyx() const { return { w, y, x }; }
+	constexpr Vector3Int wyy() const { return { w, y, y }; }
+	constexpr Vector3Int wyz() const { return { w, y, z }; }
+	constexpr Vector3Int wyw() const { return { w, y, w }; }
+	constexpr Vector3Int wzx() const { return { w, z, x }; }
+	constexpr Vector3Int wzy() const { return { w, z, y }; }
+	constexpr Vector3Int wzz() const { return { w, z, z }; }
+	constexpr Vector3Int wzw() const { return { w, z, w }; }
+	constexpr Vector3Int wwx() const { return { w, w, x }; }
+	constexpr Vector3Int wwy() const { return { w, w, y }; }
+	constexpr Vector3Int wwz() const { return { w, w, z }; }
+	constexpr Vector3Int www() const { return { w, w, w }; }
+	constexpr Vector4Int xxxx() const { return { x, x, x, x }; }
+	constexpr Vector4Int xxxy() const { return { x, x, x, y }; }
+	constexpr Vector4Int xxxz() const { return { x, x, x, z }; }
+	constexpr Vector4Int xxxw() const { return { x, x, x, w }; }
+	constexpr Vector4Int xxyx() const { return { x, x, y, x }; }
+	constexpr Vector4Int xxyy() const { return { x, x, y, y }; }
+	constexpr Vector4Int xxyz() const { return { x, x, y, z }; }
+	constexpr Vector4Int xxyw() const { return { x, x, y, w }; }
+	constexpr Vector4Int xxzx() const { return { x, x, z, x }; }
+	constexpr Vector4Int xxzy() const { return { x, x, z, y }; }
+	constexpr Vector4Int xxzz() const { return { x, x, z, z }; }
+	constexpr Vector4Int xxzw() const { return { x, x, z, w }; }
+	constexpr Vector4Int xxwx() const { return { x, x, w, x }; }
+	constexpr Vector4Int xxwy() const { return { x, x, w, y }; }
+	constexpr Vector4Int xxwz() const { return { x, x, w, z }; }
+	constexpr Vector4Int xxww() const { return { x, x, w, w }; }
+	constexpr Vector4Int xyxx() const { return { x, y, x, x }; }
+	constexpr Vector4Int xyxy() const { return { x, y, x, y }; }
+	constexpr Vector4Int xyxz() const { return { x, y, x, z }; }
+	constexpr Vector4Int xyxw() const { return { x, y, x, w }; }
+	constexpr Vector4Int xyyx() const { return { x, y, y, x }; }
+	constexpr Vector4Int xyyy() const { return { x, y, y, y }; }
+	constexpr Vector4Int xyyz() const { return { x, y, y, z }; }
+	constexpr Vector4Int xyyw() const { return { x, y, y, w }; }
+	constexpr Vector4Int xyzx() const { return { x, y, z, x }; }
+	constexpr Vector4Int xyzy() const { return { x, y, z, y }; }
+	constexpr Vector4Int xyzz() const { return { x, y, z, z }; }
+	constexpr Vector4Int xyzw() const { return { x, y, z, w }; }
+	constexpr Vector4Int xywx() const { return { x, y, w, x }; }
+	constexpr Vector4Int xywy() const { return { x, y, w, y }; }
+	constexpr Vector4Int xywz() const { return { x, y, w, z }; }
+	constexpr Vector4Int xyww() const { return { x, y, w, w }; }
+	constexpr Vector4Int xzxx() const { return { x, z, x, x }; }
+	constexpr Vector4Int xzxy() const { return { x, z, x, y }; }
+	constexpr Vector4Int xzxz() const { return { x, z, x, z }; }
+	constexpr Vector4Int xzxw() const { return { x, z, x, w }; }
+	constexpr Vector4Int xzyx() const { return { x, z, y, x }; }
+	constexpr Vector4Int xzyy() const { return { x, z, y, y }; }
+	constexpr Vector4Int xzyz() const { return { x, z, y, z }; }
+	constexpr Vector4Int xzyw() const { return { x, z, y, w }; }
+	constexpr Vector4Int xzzx() const { return { x, z, z, x }; }
+	constexpr Vector4Int xzzy() const { return { x, z, z, y }; }
+	constexpr Vector4Int xzzz() const { return { x, z, z, z }; }
+	constexpr Vector4Int xzzw() const { return { x, z, z, w }; }
+	constexpr Vector4Int xzwx() const { return { x, z, w, x }; }
+	constexpr Vector4Int xzwy() const { return { x, z, w, y }; }
+	constexpr Vector4Int xzwz() const { return { x, z, w, z }; }
+	constexpr Vector4Int xzww() const { return { x, z, w, w }; }
+	constexpr Vector4Int xwxx() const { return { x, w, x, x }; }
+	constexpr Vector4Int xwxy() const { return { x, w, x, y }; }
+	constexpr Vector4Int xwxz() const { return { x, w, x, z }; }
+	constexpr Vector4Int xwxw() const { return { x, w, x, w }; }
+	constexpr Vector4Int xwyx() const { return { x, w, y, x }; }
+	constexpr Vector4Int xwyy() const { return { x, w, y, y }; }
+	constexpr Vector4Int xwyz() const { return { x, w, y, z }; }
+	constexpr Vector4Int xwyw() const { return { x, w, y, w }; }
+	constexpr Vector4Int xwzx() const { return { x, w, z, x }; }
+	constexpr Vector4Int xwzy() const { return { x, w, z, y }; }
+	constexpr Vector4Int xwzz() const { return { x, w, z, z }; }
+	constexpr Vector4Int xwzw() const { return { x, w, z, w }; }
+	constexpr Vector4Int xwwx() const { return { x, w, w, x }; }
+	constexpr Vector4Int xwwy() const { return { x, w, w, y }; }
+	constexpr Vector4Int xwwz() const { return { x, w, w, z }; }
+	constexpr Vector4Int xwww() const { return { x, w, w, w }; }
+	constexpr Vector4Int yxxx() const { return { y, x, x, x }; }
+	constexpr Vector4Int yxxy() const { return { y, x, x, y }; }
+	constexpr Vector4Int yxxz() const { return { y, x, x, z }; }
+	constexpr Vector4Int yxxw() const { return { y, x, x, w }; }
+	constexpr Vector4Int yxyx() const { return { y, x, y, x }; }
+	constexpr Vector4Int yxyy() const { return { y, x, y, y }; }
+	constexpr Vector4Int yxyz() const { return { y, x, y, z }; }
+	constexpr Vector4Int yxyw() const { return { y, x, y, w }; }
+	constexpr Vector4Int yxzx() const { return { y, x, z, x }; }
+	constexpr Vector4Int yxzy() const { return { y, x, z, y }; }
+	constexpr Vector4Int yxzz() const { return { y, x, z, z }; }
+	constexpr Vector4Int yxzw() const { return { y, x, z, w }; }
+	constexpr Vector4Int yxwx() const { return { y, x, w, x }; }
+	constexpr Vector4Int yxwy() const { return { y, x, w, y }; }
+	constexpr Vector4Int yxwz() const { return { y, x, w, z }; }
+	constexpr Vector4Int yxww() const { return { y, x, w, w }; }
+	constexpr Vector4Int yyxx() const { return { y, y, x, x }; }
+	constexpr Vector4Int yyxy() const { return { y, y, x, y }; }
+	constexpr Vector4Int yyxz() const { return { y, y, x, z }; }
+	constexpr Vector4Int yyxw() const { return { y, y, x, w }; }
+	constexpr Vector4Int yyyx() const { return { y, y, y, x }; }
+	constexpr Vector4Int yyyy() const { return { y, y, y, y }; }
+	constexpr Vector4Int yyyz() const { return { y, y, y, z }; }
+	constexpr Vector4Int yyyw() const { return { y, y, y, w }; }
+	constexpr Vector4Int yyzx() const { return { y, y, z, x }; }
+	constexpr Vector4Int yyzy() const { return { y, y, z, y }; }
+	constexpr Vector4Int yyzz() const { return { y, y, z, z }; }
+	constexpr Vector4Int yyzw() const { return { y, y, z, w }; }
+	constexpr Vector4Int yywx() const { return { y, y, w, x }; }
+	constexpr Vector4Int yywy() const { return { y, y, w, y }; }
+	constexpr Vector4Int yywz() const { return { y, y, w, z }; }
+	constexpr Vector4Int yyww() const { return { y, y, w, w }; }
+	constexpr Vector4Int yzxx() const { return { y, z, x, x }; }
+	constexpr Vector4Int yzxy() const { return { y, z, x, y }; }
+	constexpr Vector4Int yzxz() const { return { y, z, x, z }; }
+	constexpr Vector4Int yzxw() const { return { y, z, x, w }; }
+	constexpr Vector4Int yzyx() const { return { y, z, y, x }; }
+	constexpr Vector4Int yzyy() const { return { y, z, y, y }; }
+	constexpr Vector4Int yzyz() const { return { y, z, y, z }; }
+	constexpr Vector4Int yzyw() const { return { y, z, y, w }; }
+	constexpr Vector4Int yzzx() const { return { y, z, z, x }; }
+	constexpr Vector4Int yzzy() const { return { y, z, z, y }; }
+	constexpr Vector4Int yzzz() const { return { y, z, z, z }; }
+	constexpr Vector4Int yzzw() const { return { y, z, z, w }; }
+	constexpr Vector4Int yzwx() const { return { y, z, w, x }; }
+	constexpr Vector4Int yzwy() const { return { y, z, w, y }; }
+	constexpr Vector4Int yzwz() const { return { y, z, w, z }; }
+	constexpr Vector4Int yzww() const { return { y, z, w, w }; }
+	constexpr Vector4Int ywxx() const { return { y, w, x, x }; }
+	constexpr Vector4Int ywxy() const { return { y, w, x, y }; }
+	constexpr Vector4Int ywxz() const { return { y, w, x, z }; }
+	constexpr Vector4Int ywxw() const { return { y, w, x, w }; }
+	constexpr Vector4Int ywyx() const { return { y, w, y, x }; }
+	constexpr Vector4Int ywyy() const { return { y, w, y, y }; }
+	constexpr Vector4Int ywyz() const { return { y, w, y, z }; }
+	constexpr Vector4Int ywyw() const { return { y, w, y, w }; }
+	constexpr Vector4Int ywzx() const { return { y, w, z, x }; }
+	constexpr Vector4Int ywzy() const { return { y, w, z, y }; }
+	constexpr Vector4Int ywzz() const { return { y, w, z, z }; }
+	constexpr Vector4Int ywzw() const { return { y, w, z, w }; }
+	constexpr Vector4Int ywwx() const { return { y, w, w, x }; }
+	constexpr Vector4Int ywwy() const { return { y, w, w, y }; }
+	constexpr Vector4Int ywwz() const { return { y, w, w, z }; }
+	constexpr Vector4Int ywww() const { return { y, w, w, w }; }
+	constexpr Vector4Int zxxx() const { return { z, x, x, x }; }
+	constexpr Vector4Int zxxy() const { return { z, x, x, y }; }
+	constexpr Vector4Int zxxz() const { return { z, x, x, z }; }
+	constexpr Vector4Int zxxw() const { return { z, x, x, w }; }
+	constexpr Vector4Int zxyx() const { return { z, x, y, x }; }
+	constexpr Vector4Int zxyy() const { return { z, x, y, y }; }
+	constexpr Vector4Int zxyz() const { return { z, x, y, z }; }
+	constexpr Vector4Int zxyw() const { return { z, x, y, w }; }
+	constexpr Vector4Int zxzx() const { return { z, x, z, x }; }
+	constexpr Vector4Int zxzy() const { return { z, x, z, y }; }
+	constexpr Vector4Int zxzz() const { return { z, x, z, z }; }
+	constexpr Vector4Int zxzw() const { return { z, x, z, w }; }
+	constexpr Vector4Int zxwx() const { return { z, x, w, x }; }
+	constexpr Vector4Int zxwy() const { return { z, x, w, y }; }
+	constexpr Vector4Int zxwz() const { return { z, x, w, z }; }
+	constexpr Vector4Int zxww() const { return { z, x, w, w }; }
+	constexpr Vector4Int zyxx() const { return { z, y, x, x }; }
+	constexpr Vector4Int zyxy() const { return { z, y, x, y }; }
+	constexpr Vector4Int zyxz() const { return { z, y, x, z }; }
+	constexpr Vector4Int zyxw() const { return { z, y, x, w }; }
+	constexpr Vector4Int zyyx() const { return { z, y, y, x }; }
+	constexpr Vector4Int zyyy() const { return { z, y, y, y }; }
+	constexpr Vector4Int zyyz() const { return { z, y, y, z }; }
+	constexpr Vector4Int zyyw() const { return { z, y, y, w }; }
+	constexpr Vector4Int zyzx() const { return { z, y, z, x }; }
+	constexpr Vector4Int zyzy() const { return { z, y, z, y }; }
+	constexpr Vector4Int zyzz() const { return { z, y, z, z }; }
+	constexpr Vector4Int zyzw() const { return { z, y, z, w }; }
+	constexpr Vector4Int zywx() const { return { z, y, w, x }; }
+	constexpr Vector4Int zywy() const { return { z, y, w, y }; }
+	constexpr Vector4Int zywz() const { return { z, y, w, z }; }
+	constexpr Vector4Int zyww() const { return { z, y, w, w }; }
+	constexpr Vector4Int zzxx() const { return { z, z, x, x }; }
+	constexpr Vector4Int zzxy() const { return { z, z, x, y }; }
+	constexpr Vector4Int zzxz() const { return { z, z, x, z }; }
+	constexpr Vector4Int zzxw() const { return { z, z, x, w }; }
+	constexpr Vector4Int zzyx() const { return { z, z, y, x }; }
+	constexpr Vector4Int zzyy() const { return { z, z, y, y }; }
+	constexpr Vector4Int zzyz() const { return { z, z, y, z }; }
+	constexpr Vector4Int zzyw() const { return { z, z, y, w }; }
+	constexpr Vector4Int zzzx() const { return { z, z, z, x }; }
+	constexpr Vector4Int zzzy() const { return { z, z, z, y }; }
+	constexpr Vector4Int zzzz() const { return { z, z, z, z }; }
+	constexpr Vector4Int zzzw() const { return { z, z, z, w }; }
+	constexpr Vector4Int zzwx() const { return { z, z, w, x }; }
+	constexpr Vector4Int zzwy() const { return { z, z, w, y }; }
+	constexpr Vector4Int zzwz() const { return { z, z, w, z }; }
+	constexpr Vector4Int zzww() const { return { z, z, w, w }; }
+	constexpr Vector4Int zwxx() const { return { z, w, x, x }; }
+	constexpr Vector4Int zwxy() const { return { z, w, x, y }; }
+	constexpr Vector4Int zwxz() const { return { z, w, x, z }; }
+	constexpr Vector4Int zwxw() const { return { z, w, x, w }; }
+	constexpr Vector4Int zwyx() const { return { z, w, y, x }; }
+	constexpr Vector4Int zwyy() const { return { z, w, y, y }; }
+	constexpr Vector4Int zwyz() const { return { z, w, y, z }; }
+	constexpr Vector4Int zwyw() const { return { z, w, y, w }; }
+	constexpr Vector4Int zwzx() const { return { z, w, z, x }; }
+	constexpr Vector4Int zwzy() const { return { z, w, z, y }; }
+	constexpr Vector4Int zwzz() const { return { z, w, z, z }; }
+	constexpr Vector4Int zwzw() const { return { z, w, z, w }; }
+	constexpr Vector4Int zwwx() const { return { z, w, w, x }; }
+	constexpr Vector4Int zwwy() const { return { z, w, w, y }; }
+	constexpr Vector4Int zwwz() const { return { z, w, w, z }; }
+	constexpr Vector4Int zwww() const { return { z, w, w, w }; }
+	constexpr Vector4Int wxxx() const { return { w, x, x, x }; }
+	constexpr Vector4Int wxxy() const { return { w, x, x, y }; }
+	constexpr Vector4Int wxxz() const { return { w, x, x, z }; }
+	constexpr Vector4Int wxxw() const { return { w, x, x, w }; }
+	constexpr Vector4Int wxyx() const { return { w, x, y, x }; }
+	constexpr Vector4Int wxyy() const { return { w, x, y, y }; }
+	constexpr Vector4Int wxyz() const { return { w, x, y, z }; }
+	constexpr Vector4Int wxyw() const { return { w, x, y, w }; }
+	constexpr Vector4Int wxzx() const { return { w, x, z, x }; }
+	constexpr Vector4Int wxzy() const { return { w, x, z, y }; }
+	constexpr Vector4Int wxzz() const { return { w, x, z, z }; }
+	constexpr Vector4Int wxzw() const { return { w, x, z, w }; }
+	constexpr Vector4Int wxwx() const { return { w, x, w, x }; }
+	constexpr Vector4Int wxwy() const { return { w, x, w, y }; }
+	constexpr Vector4Int wxwz() const { return { w, x, w, z }; }
+	constexpr Vector4Int wxww() const { return { w, x, w, w }; }
+	constexpr Vector4Int wyxx() const { return { w, y, x, x }; }
+	constexpr Vector4Int wyxy() const { return { w, y, x, y }; }
+	constexpr Vector4Int wyxz() const { return { w, y, x, z }; }
+	constexpr Vector4Int wyxw() const { return { w, y, x, w }; }
+	constexpr Vector4Int wyyx() const { return { w, y, y, x }; }
+	constexpr Vector4Int wyyy() const { return { w, y, y, y }; }
+	constexpr Vector4Int wyyz() const { return { w, y, y, z }; }
+	constexpr Vector4Int wyyw() const { return { w, y, y, w }; }
+	constexpr Vector4Int wyzx() const { return { w, y, z, x }; }
+	constexpr Vector4Int wyzy() const { return { w, y, z, y }; }
+	constexpr Vector4Int wyzz() const { return { w, y, z, z }; }
+	constexpr Vector4Int wyzw() const { return { w, y, z, w }; }
+	constexpr Vector4Int wywx() const { return { w, y, w, x }; }
+	constexpr Vector4Int wywy() const { return { w, y, w, y }; }
+	constexpr Vector4Int wywz() const { return { w, y, w, z }; }
+	constexpr Vector4Int wyww() const { return { w, y, w, w }; }
+	constexpr Vector4Int wzxx() const { return { w, z, x, x }; }
+	constexpr Vector4Int wzxy() const { return { w, z, x, y }; }
+	constexpr Vector4Int wzxz() const { return { w, z, x, z }; }
+	constexpr Vector4Int wzxw() const { return { w, z, x, w }; }
+	constexpr Vector4Int wzyx() const { return { w, z, y, x }; }
+	constexpr Vector4Int wzyy() const { return { w, z, y, y }; }
+	constexpr Vector4Int wzyz() const { return { w, z, y, z }; }
+	constexpr Vector4Int wzyw() const { return { w, z, y, w }; }
+	constexpr Vector4Int wzzx() const { return { w, z, z, x }; }
+	constexpr Vector4Int wzzy() const { return { w, z, z, y }; }
+	constexpr Vector4Int wzzz() const { return { w, z, z, z }; }
+	constexpr Vector4Int wzzw() const { return { w, z, z, w }; }
+	constexpr Vector4Int wzwx() const { return { w, z, w, x }; }
+	constexpr Vector4Int wzwy() const { return { w, z, w, y }; }
+	constexpr Vector4Int wzwz() const { return { w, z, w, z }; }
+	constexpr Vector4Int wzww() const { return { w, z, w, w }; }
+	constexpr Vector4Int wwxx() const { return { w, w, x, x }; }
+	constexpr Vector4Int wwxy() const { return { w, w, x, y }; }
+	constexpr Vector4Int wwxz() const { return { w, w, x, z }; }
+	constexpr Vector4Int wwxw() const { return { w, w, x, w }; }
+	constexpr Vector4Int wwyx() const { return { w, w, y, x }; }
+	constexpr Vector4Int wwyy() const { return { w, w, y, y }; }
+	constexpr Vector4Int wwyz() const { return { w, w, y, z }; }
+	constexpr Vector4Int wwyw() const { return { w, w, y, w }; }
+	constexpr Vector4Int wwzx() const { return { w, w, z, x }; }
+	constexpr Vector4Int wwzy() const { return { w, w, z, y }; }
+	constexpr Vector4Int wwzz() const { return { w, w, z, z }; }
+	constexpr Vector4Int wwzw() const { return { w, w, z, w }; }
+	constexpr Vector4Int wwwx() const { return { w, w, w, x }; }
+	constexpr Vector4Int wwwy() const { return { w, w, w, y }; }
+	constexpr Vector4Int wwwz() const { return { w, w, w, z }; }
+	constexpr Vector4Int wwww() const { return { w, w, w, w }; }
+#pragma endregion
+
+	constexpr explicit operator Vector2() const;
+	constexpr explicit operator Vector3() const;
+	constexpr explicit operator Vector4() const;
+	constexpr explicit operator Vector2Int() const;
+	constexpr explicit operator Vector3Int() const;
+
 	operator String() const;
 	operator String16() const;
 	operator String32() const;
@@ -1164,13 +1962,49 @@ public:
 	I32 x, y, z, w;
 };
 
+inline constexpr Vector2::operator Vector3() const { return Vector3{ x, y, 0.0f }; }
+inline constexpr Vector2::operator Vector4() const { return Vector4{ x, y, 0.0f, 0.0f }; }
+inline constexpr Vector2::operator Vector2Int() const { return Vector2Int{ (I32)x, (I32)y }; }
+inline constexpr Vector2::operator Vector3Int() const { return Vector3Int{ (I32)x, (I32)y, 0 }; }
+inline constexpr Vector2::operator Vector4Int() const { return Vector4Int{ (I32)x, (I32)y, 0, 0 }; }
+
+inline constexpr Vector3::operator Vector2() const { return Vector2{ x, y }; }
+inline constexpr Vector3::operator Vector4() const { return Vector4{ x, y, z, 0.0f }; }
+inline constexpr Vector3::operator Vector2Int() const { return Vector2Int{ (I32)x, (I32)y }; }
+inline constexpr Vector3::operator Vector3Int() const { return Vector3Int{ (I32)x, (I32)y, (I32)z }; }
+inline constexpr Vector3::operator Vector4Int() const { return Vector4Int{ (I32)x, (I32)y, (I32)z, 0 }; }
+
+inline constexpr Vector4::operator Vector2() const { return Vector2{ x, y }; }
+inline constexpr Vector4::operator Vector3() const { return Vector3{ x, y, z }; }
+inline constexpr Vector4::operator Vector2Int() const { return Vector2Int{ (I32)x, (I32)y }; }
+inline constexpr Vector4::operator Vector3Int() const { return Vector3Int{ (I32)x, (I32)y, (I32)z }; }
+inline constexpr Vector4::operator Vector4Int() const { return Vector4Int{ (I32)x, (I32)y, (I32)z, (I32)w }; }
+
+inline constexpr Vector2Int::operator Vector2() const { return Vector2{ (F32)x, (F32)y }; }
+inline constexpr Vector2Int::operator Vector3() const { return Vector3{ (F32)x, (F32)y, 0.0f }; }
+inline constexpr Vector2Int::operator Vector4() const { return Vector4{ (F32)x, (F32)y, 0.0f, 0.0f }; }
+inline constexpr Vector2Int::operator Vector3Int() const { return Vector3Int{ x, y, 0 }; }
+inline constexpr Vector2Int::operator Vector4Int() const { return Vector4Int{ x, y, 0, 0 }; }
+
+inline constexpr Vector3Int::operator Vector2() const { return Vector2{ (F32)x, (F32)y }; }
+inline constexpr Vector3Int::operator Vector3() const { return Vector3{ (F32)x, (F32)y, (F32)z }; }
+inline constexpr Vector3Int::operator Vector4() const { return Vector4{ (F32)x, (F32)y, (F32)z, 0 }; }
+inline constexpr Vector3Int::operator Vector2Int() const { return Vector2Int{ x, y }; }
+inline constexpr Vector3Int::operator Vector4Int() const { return Vector4Int{ x, y, z, 0 }; }
+
+inline constexpr Vector4Int::operator Vector2() const { return Vector2{ (F32)x, (F32)y }; }
+inline constexpr Vector4Int::operator Vector3() const { return Vector3{ (F32)x, (F32)y, (F32)z }; }
+inline constexpr Vector4Int::operator Vector4() const { return Vector4{ (F32)x, (F32)y, (F32)z, (F32)w }; }
+inline constexpr Vector4Int::operator Vector2Int() const { return Vector2Int{ x, y }; }
+inline constexpr Vector4Int::operator Vector3Int() const { return Vector3Int{ x, y, z }; }
+
 template <VectorType Type>
 inline constexpr Type Math::Lerp(const Type& a, const Type& b, F32 t) noexcept
 {
 	return a + (b - a) * t;
 }
 
-template <FloatVectorType Type> 
+template <FloatVectorType Type>
 inline constexpr Type Trajectory(Type start, Type velocity, Type acceleration, Type jerk, F32 t) noexcept
 {
 	F32 t2 = t * t;

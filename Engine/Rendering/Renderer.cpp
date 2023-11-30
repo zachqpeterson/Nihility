@@ -665,14 +665,12 @@ void Renderer::EndFrame()
 		cameraData.eye = flyCamera.Eye();
 	}
 	else
-	{
 #endif
+	{
 		currentScene->Update(); //TODO: default scene
 		cameraData.vp = currentScene->camera.ViewProjection();
 		cameraData.eye = currentScene->camera.Eye();
-#ifdef NH_DEBUG
 	}
-#endif
 
 	Resources::Update();
 

@@ -569,7 +569,7 @@ UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 s
 			++textInstanceCount;
 			TextInstance& instance = instances[i];
 
-			Vector2 texPos = Font::atlasPositions[c - 32];
+			Vector2 texPos = (Vector2)Font::atlasPositions[c - 32];
 
 			instance.textureIndex = (U32)font->texture->handle;
 			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
@@ -712,7 +712,7 @@ void UI::ChangeText(UIElement* element, const String& string)
 			++textInstanceCount;
 			TextInstance& instance = instances[i];
 
-			Vector2 texPos = Font::atlasPositions[c - 32];
+			Vector2 texPos = (Vector2)Font::atlasPositions[c - 32];
 
 			instance.textureIndex = (U32)font->texture->handle;
 			instance.position = position - Vector2{ glyph.x * textWidth * element->text.size, -glyph.y * textHeight * element->text.size + yOffset };
