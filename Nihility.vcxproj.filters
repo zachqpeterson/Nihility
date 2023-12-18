@@ -38,9 +38,6 @@
     <Filter Include="Source Files\External">
       <UniqueIdentifier>{55a9f224-ea4f-4eb7-a619-62a6a3ab505f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Entities">
-      <UniqueIdentifier>{daf9083b-3e48-4820-ae94-64d4c479ff6e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\External\LunarG">
       <UniqueIdentifier>{a4c7f3ee-b177-4662-adb2-7cfcf01fe006}</UniqueIdentifier>
     </Filter>
@@ -61,6 +58,9 @@
     </Filter>
     <Filter Include="Source Files\Resources\Shader">
       <UniqueIdentifier>{00aa8a7e-6909-49ce-b2fb-f60037ebbcc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Resources\Entities">
+      <UniqueIdentifier>{d687f639-2dc7-4e3e-86d2-c39c7aca3486}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -162,9 +162,6 @@
     </ClInclude>
     <ClInclude Include="Engine\SIMD.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Entities\EntityDefines.hpp">
-      <Filter>Source Files\Entities</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Rendering\Swapchain.hpp">
       <Filter>Source Files\Rendering</Filter>
@@ -478,6 +475,15 @@
     <ClInclude Include="Engine\Core\Function.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Resources\Material.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\Mesh.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\Entity.hpp">
+      <Filter>Source Files\Resources\Entities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -710,6 +716,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Core\Events.cpp">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Material.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Entity.cpp">
+      <Filter>Source Files\Resources\Entities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

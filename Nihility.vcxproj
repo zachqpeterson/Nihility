@@ -63,7 +63,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
     </ClCompile>
@@ -92,7 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
     </ClCompile>
@@ -128,7 +128,6 @@
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
-    <ClInclude Include="Engine\Entities\EntityDefines.hpp" />
     <ClInclude Include="Engine\External\LunarG\glslang\build_info.h" />
     <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslAttributes.h" />
     <ClInclude Include="Engine\External\LunarG\glslang\HLSL\hlslGrammar.h" />
@@ -237,7 +236,10 @@
     <ClInclude Include="Engine\Rendering\Shader.hpp" />
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
     <ClInclude Include="Engine\Rendering\UI.hpp" />
+    <ClInclude Include="Engine\Resources\Entity.hpp" />
     <ClInclude Include="Engine\Resources\Font.hpp" />
+    <ClInclude Include="Engine\Resources\Material.hpp" />
+    <ClInclude Include="Engine\Resources\Mesh.hpp" />
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
@@ -318,7 +320,9 @@
     <ClCompile Include="Engine\Rendering\Shader.cpp" />
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
     <ClCompile Include="Engine\Rendering\UI.cpp" />
+    <ClCompile Include="Engine\Resources\Entity.cpp" />
     <ClCompile Include="Engine\Resources\Font.cpp" />
+    <ClCompile Include="Engine\Resources\Material.cpp" />
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Scene.cpp" />

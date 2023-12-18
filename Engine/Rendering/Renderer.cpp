@@ -29,11 +29,11 @@ void CommandBufferRing::Create()
 	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	commandPoolInfo.pNext = nullptr;
 	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	commandPoolInfo.queueFamilyIndex = Renderer::queueFamilyIndex;
+	commandPoolInfo.queueFamilyIndex = Renderer::renderQueueIndex;
 
 	VkValidate(vkCreateCommandPool(Renderer::device, &commandPoolInfo, Renderer::allocationCallbacks, &drawCommandPool));
 
-	//TODO: separate queue index for writes
+	commandPoolInfo.queueFamilyIndex = Renderer::renderQueueIndex; //Renderer::transferQueueIndex;
 	commandPoolInfo.flags = 0;
 
 	for (U32 i = 0; i < maxPools; ++i)
@@ -170,9 +170,11 @@ U32									Renderer::appVersion;
 VkInstance							Renderer::instance;
 VkPhysicalDevice					Renderer::physicalDevice;
 VkDevice							Renderer::device;
-VkQueue								Renderer::deviceQueue;
 Swapchain							Renderer::swapchain{};
-U32									Renderer::queueFamilyIndex;
+VkQueue								Renderer::renderQueue;
+VkQueue								Renderer::transferQueue;
+U32									Renderer::renderQueueIndex;
+U32									Renderer::transferQueueIndex;
 
 VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPools[MAX_SWAPCHAIN_IMAGES];
@@ -199,21 +201,21 @@ Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 CameraData							Renderer::cameraData;
 PostProcessData						Renderer::postProcessData;
-PipelineGraph* Renderer::pipelineGraph;
+Texture*							Renderer::defaultRenderTarget;
+Texture*							Renderer::defaultDepthTarget;
+Rendergraph*						Renderer::defaultRendergraph;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
-VkSemaphore							Renderer::queueSubmitted[MAX_SWAPCHAIN_IMAGES];
-VkSemaphore							Renderer::frameReady[MAX_SWAPCHAIN_IMAGES];
-U64									Renderer::waitValues[MAX_SWAPCHAIN_IMAGES];
+VkSemaphore							Renderer::presentReady[MAX_SWAPCHAIN_IMAGES];
+VkSemaphore							Renderer::renderCompleted[MAX_SWAPCHAIN_IMAGES];
+VkSemaphore							Renderer::transferCompleted[MAX_SWAPCHAIN_IMAGES];
+U64									Renderer::renderWaitValues[MAX_SWAPCHAIN_IMAGES];
+U64									Renderer::transferWaitValues[MAX_SWAPCHAIN_IMAGES];
 
 // DEBUG
 VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
 bool								Renderer::debugUtilsExtensionPresent{ false };
-
-#ifdef NH_DEBUG
-FlyCamera							Renderer::flyCamera{};
-#endif
 
 struct VulkanInfo
 {
@@ -243,10 +245,6 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 	if (!swapchain.GetFormat()) { return false; }
 	if (!swapchain.Create()) { return false; }
 
-#ifdef NH_DEBUG
-	flyCamera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
-#endif
-
 	return true;
 }
 
@@ -266,8 +264,8 @@ void Renderer::Shutdown()
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { commandBuffers[i].Destroy(); }
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
-	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, queueSubmitted[i], allocationCallbacks); }
-	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, frameReady[i], allocationCallbacks); }
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, renderCompleted[i], allocationCallbacks); }
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, transferCompleted[i], allocationCallbacks); }
 
 	DestroyBuffer(stagingBuffer);
 	DestroyBuffer(materialBuffer);
@@ -315,50 +313,50 @@ bool Renderer::CreateInstance()
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
 	debugInfo.messageType =
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	debugInfo.pfnUserCallback = VkDebugCallback;
-	debugInfo.pUserData = nullptr;
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		debugInfo.pfnUserCallback = VkDebugCallback;
+		debugInfo.pUserData = nullptr;
 
 #	ifdef VK_ADDITIONAL_VALIDATION
-	const VkValidationFeatureEnableEXT featuresRequested[]{
-		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,						//Addition diagnostic data
-		VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
-		VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
-		//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
-		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
-	};
+		const VkValidationFeatureEnableEXT featuresRequested[]{
+			//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,						//Addition diagnostic data
+			VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
+			VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
+			//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
+			//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
+		};
 
-	VkValidationFeaturesEXT features{ VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
-	features.pNext = &debugInfo;
-	features.enabledValidationFeatureCount = CountOf32(featuresRequested);
-	features.pEnabledValidationFeatures = featuresRequested;
-	instanceInfo.pNext = &features;
+		VkValidationFeaturesEXT features{ VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
+		features.pNext = &debugInfo;
+		features.enabledValidationFeatureCount = CountOf32(featuresRequested);
+		features.pEnabledValidationFeatures = featuresRequested;
+		instanceInfo.pNext = &features;
 #	else
-	instanceInfo.pNext = &debugInfo;
+		instanceInfo.pNext = &debugInfo;
 #	endif
 
-	instanceInfo.enabledLayerCount = CountOf32(layers);
-	instanceInfo.ppEnabledLayerNames = layers;
+		instanceInfo.enabledLayerCount = CountOf32(layers);
+		instanceInfo.ppEnabledLayerNames = layers;
 #else 
-	instanceInfo.pNext = nullptr;
-	instanceInfo.enabledLayerCount = 0;
-	instanceInfo.ppEnabledLayerNames = nullptr;
+instanceInfo.pNext = nullptr;
+instanceInfo.enabledLayerCount = 0;
+instanceInfo.ppEnabledLayerNames = nullptr;
 #endif
 
-	instanceInfo.enabledExtensionCount = CountOf32(extensions);
-	instanceInfo.ppEnabledExtensionNames = extensions;
+instanceInfo.enabledExtensionCount = CountOf32(extensions);
+instanceInfo.ppEnabledExtensionNames = extensions;
 
-	VkValidateFR(vkCreateInstance(&instanceInfo, allocationCallbacks, &instance));
+VkValidateFR(vkCreateInstance(&instanceInfo, allocationCallbacks, &instance));
 
 #ifdef NH_DEBUG
-	DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
 
-	VkValidateFR(CreateDebugUtilsMessengerEXT(instance, &debugInfo, allocationCallbacks, &debugMessenger));
+VkValidateFR(CreateDebugUtilsMessengerEXT(instance, &debugInfo, allocationCallbacks, &debugMessenger));
 #endif
 
-	return true;
+return true;
 }
 
 bool Renderer::SelectGPU()
@@ -405,12 +403,17 @@ bool Renderer::GetFamilyQueue(VkPhysicalDevice gpu)
 	VkBool32 surfaceSupported = VK_FALSE;
 	for (U32 familyIndex = 0; familyIndex < queueFamilyCount; ++familyIndex)
 	{
-		VkQueueFamilyProperties queue_family = queueFamilies[familyIndex];
-		if (queue_family.queueCount > 0 && queue_family.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+		VkQueueFamilyProperties queueFamily = queueFamilies[familyIndex];
+		if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT))
 		{
 			VkValidateFR(vkGetPhysicalDeviceSurfaceSupportKHR(gpu, familyIndex, swapchain.surface, &surfaceSupported));
 
-			if (surfaceSupported) { queueFamilyIndex = familyIndex; break; }
+			if (surfaceSupported) { renderQueueIndex = familyIndex; }
+		}
+
+		if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) == 0 && (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT))
+		{
+			transferQueueIndex = familyIndex;
 		}
 	}
 
@@ -419,13 +422,27 @@ bool Renderer::GetFamilyQueue(VkPhysicalDevice gpu)
 
 bool Renderer::CreateDevice()
 {
+	U32 queueCount = 1;
 	const F32 queuePriorities[]{ 1.0f };
-	VkDeviceQueueCreateInfo queueInfo[1]{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-	queueInfo[0].queueFamilyIndex = queueFamilyIndex;
+	VkDeviceQueueCreateInfo queueInfo[2];
+	queueInfo[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueInfo[0].pNext = nullptr;
+	queueInfo[0].flags = 0;
+	queueInfo[0].queueFamilyIndex = renderQueueIndex;
 	queueInfo[0].queueCount = 1;
 	queueInfo[0].pQueuePriorities = queuePriorities;
-	queueInfo[0].flags = 0;
-	queueInfo[0].pNext = nullptr;
+
+	if (transferQueueIndex != renderQueueIndex)
+	{
+		queueCount = 2;
+
+		queueInfo[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueInfo[1].pNext = nullptr;
+		queueInfo[1].flags = 0;
+		queueInfo[1].queueFamilyIndex = transferQueueIndex;
+		queueInfo[1].queueCount = 1;
+		queueInfo[1].pQueuePriorities = queuePriorities;
+	}
 
 	U32 extensionCount = 0;
 	VkValidateFR(vkEnumerateDeviceExtensionProperties(physicalDevice, 0, &extensionCount, 0));
@@ -503,7 +520,7 @@ bool Renderer::CreateDevice()
 	if (meshShadingSupported) { *next = &featuresMesh; next = &featuresMesh.pNext; }
 
 	VkDeviceCreateInfo deviceInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	deviceInfo.queueCreateInfoCount = CountOf32(queueInfo);
+	deviceInfo.queueCreateInfoCount = queueCount;
 	deviceInfo.pQueueCreateInfos = queueInfo;
 	deviceInfo.enabledExtensionCount = deviceExtensionCount;
 	deviceInfo.ppEnabledExtensionNames = deviceExtensions;
@@ -513,9 +530,18 @@ bool Renderer::CreateDevice()
 
 	VkValidateFR(vkCreateDevice(physicalDevice, &deviceInfo, allocationCallbacks, &device));
 
-	vkGetDeviceQueue(device, queueFamilyIndex, 0, &deviceQueue);
+	vkGetDeviceQueue(device, renderQueueIndex, 0, &renderQueue);
+	SetResourceName(VK_OBJECT_TYPE_QUEUE, (U64)renderQueue, "render_queue");
 
-	SetResourceName(VK_OBJECT_TYPE_QUEUE, (U64)deviceQueue, "device_queue");
+	if (transferQueueIndex != renderQueueIndex)
+	{
+		vkGetDeviceQueue(device, transferQueueIndex, 0, &transferQueue);
+		SetResourceName(VK_OBJECT_TYPE_QUEUE, (U64)renderQueue, "transfer_queue");
+	}
+	else
+	{
+		transferQueue = renderQueue;
+	}
 
 	return true;
 }
@@ -568,8 +594,8 @@ bool Renderer::CreateResources()
 
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
 	{
-		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &queueSubmitted[i]);
-		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)queueSubmitted[i], "queue_submitted_semaphore");
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &presentReady[i]);
+		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)presentReady[i], "present_ready_semaphore");
 	}
 
 	VkSemaphoreTypeCreateInfo semaphoreType{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
@@ -581,8 +607,11 @@ bool Renderer::CreateResources()
 
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i)
 	{
-		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &frameReady[i]);
-		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)frameReady[i], "frame_ready_semaphore");
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &renderCompleted[i]);
+		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)renderCompleted[i], "render_completed_semaphore");
+
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &transferCompleted[i]);
+		SetResourceName(VK_OBJECT_TYPE_SEMAPHORE, (U64)transferCompleted[i], "transfer_complete_semaphore");
 	}
 
 	commandBufferRing.Create();
@@ -590,36 +619,31 @@ bool Renderer::CreateResources()
 	stagingBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
 	materialBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
+	TextureInfo textureInfo{};
+	textureInfo.name = "default_render_target";
+	textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	textureInfo.width = Settings::WindowWidth();
+	textureInfo.height = Settings::WindowHeight();
+	textureInfo.depth = 1;
+	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+	textureInfo.type = VK_IMAGE_TYPE_2D;
+	defaultRenderTarget = Resources::CreateTexture(textureInfo);
+
+	textureInfo.name = "default_depth_target";
+	textureInfo.format = VK_FORMAT_D32_SFLOAT;
+	textureInfo.width = Settings::WindowWidth();
+	textureInfo.height = Settings::WindowHeight();
+	textureInfo.depth = 1;
+	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+	textureInfo.type = VK_IMAGE_TYPE_2D;
+	defaultDepthTarget = Resources::CreateTexture(textureInfo);
+
 	return true;
 }
 
-bool Renderer::InitialSubmit()
+void Renderer::InitialSubmit()
 {
-	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { waitValues[i] = 1; }
-
-	VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
-	timelineInfo.pNext = nullptr;
-	timelineInfo.waitSemaphoreValueCount = 0;
-	timelineInfo.pWaitSemaphoreValues = nullptr;
-	timelineInfo.signalSemaphoreValueCount = 1;
-	timelineInfo.pSignalSemaphoreValues = &waitValues[0];
-
-	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.pNext = &timelineInfo;
-	submitInfo.waitSemaphoreCount = 0;
-	submitInfo.pWaitSemaphores = nullptr;
-	submitInfo.pWaitDstStageMask = nullptr;
-	submitInfo.commandBufferCount = (U32)commandBuffers[frameIndex].Size();
-	submitInfo.pCommandBuffers = commandBuffers[frameIndex].Data();
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &frameReady[frameIndex];
-
-	VkValidateFR(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
-	commandBuffers[frameIndex].Clear();
-
-	stagingBuffer.allocationOffset = 0;
-
-	return true;
+	SubmitTransfer();
 }
 
 bool Renderer::BeginFrame()
@@ -635,16 +659,17 @@ bool Renderer::BeginFrame()
 		return false;
 	}
 
+	VkSemaphore waits[]{ renderCompleted[previousFrame], transferCompleted[previousFrame] };
+	U64 waitValues[]{ renderWaitValues[previousFrame], transferWaitValues[previousFrame] };
+
 	VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
 	waitInfo.pNext = nullptr;
 	waitInfo.flags = 0;
-	waitInfo.semaphoreCount = 1;
-	waitInfo.pSemaphores = &frameReady[previousFrame];
-	waitInfo.pValues = &waitValues[previousFrame];
+	waitInfo.semaphoreCount = CountOf32(waits);
+	waitInfo.pSemaphores = waits;
+	waitInfo.pValues = waitValues;
 
 	vkWaitSemaphores(device, &waitInfo, U64_MAX);
-
-	++waitValues[previousFrame];
 
 	commandBufferRing.ResetDraw(previousFrame);
 	commandBufferRing.ResetPool(previousFrame);
@@ -657,59 +682,78 @@ bool Renderer::BeginFrame()
 
 void Renderer::EndFrame()
 {
-#ifdef NH_DEBUG
-	if (Settings::InEditor())
-	{
-		flyCamera.Update();
-		cameraData.vp = flyCamera.ViewProjection();
-		cameraData.eye = flyCamera.Eye();
-	}
-	else
-#endif
-	{
-		currentScene->Update(); //TODO: default scene
-		cameraData.vp = currentScene->camera.ViewProjection();
-		cameraData.eye = currentScene->camera.Eye();
-	}
-
 	Resources::Update();
+	SubmitTransfer();
+	VkCommandBuffer frameCB = Record();
 
-	Record();
+	++renderWaitValues[frameIndex];
 
-	U64 signalValues[]{ waitValues[frameIndex], 1 };
+	VkSemaphore waits[]{ transferCompleted[frameIndex], imageAcquired };
+	U64 waitValues[]{ transferWaitValues[frameIndex], 1 };
+
+	VkSemaphore signals[]{ renderCompleted[frameIndex], presentReady[frameIndex] };
+	U64 signalValues[]{ renderWaitValues[frameIndex], 1 };
 
 	VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
 	timelineInfo.pNext = nullptr;
-	timelineInfo.waitSemaphoreValueCount = 0;
-	timelineInfo.pWaitSemaphoreValues = nullptr;
+	timelineInfo.waitSemaphoreValueCount = CountOf32(waitValues);
+	timelineInfo.pWaitSemaphoreValues = waitValues;
 	timelineInfo.signalSemaphoreValueCount = CountOf32(signalValues);
 	timelineInfo.pSignalSemaphoreValues = signalValues;
 
-	VkSemaphore signalSemaphores[]{ frameReady[frameIndex], queueSubmitted[frameIndex] };
-
-	VkPipelineStageFlags submitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	VkPipelineStageFlags submitStageMasks[]{ VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_NONE };
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.pNext = &timelineInfo;
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &imageAcquired;
-	submitInfo.pWaitDstStageMask = &submitStageMask;
-	submitInfo.commandBufferCount = (U32)commandBuffers[frameIndex].Size();
-	submitInfo.pCommandBuffers = commandBuffers[frameIndex].Data();
-	submitInfo.signalSemaphoreCount = CountOf32(signalSemaphores);
-	submitInfo.pSignalSemaphores = signalSemaphores;
+	submitInfo.waitSemaphoreCount = CountOf32(waits);
+	submitInfo.pWaitSemaphores = waits;
+	submitInfo.pWaitDstStageMask = submitStageMasks;
+	submitInfo.commandBufferCount = 1u;
+	submitInfo.pCommandBuffers = &frameCB;
+	submitInfo.signalSemaphoreCount = CountOf32(signals);
+	submitInfo.pSignalSemaphores = signals;
 
-	VkValidate(vkQueueSubmit(deviceQueue, 1, &submitInfo, nullptr));
+	VkValidate(vkQueueSubmit(renderQueue, 1u, &submitInfo, nullptr));
 	commandBuffers[frameIndex].Clear();
 
 	previousFrame = frameIndex;
-	VkResult result = swapchain.Present(deviceQueue, frameIndex, 1, &queueSubmitted[frameIndex]);
+	VkResult result = swapchain.Present(renderQueue, frameIndex, 1, &presentReady[frameIndex]);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) { Resize(); }
 
 	++absoluteFrame;
 }
 
-void Renderer::Record()
+void Renderer::SubmitTransfer()
+{
+	if (commandBuffers[frameIndex].Size())
+	{
+		++transferWaitValues[frameIndex];
+
+		VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+		timelineInfo.pNext = nullptr;
+		timelineInfo.waitSemaphoreValueCount = 0;
+		timelineInfo.pWaitSemaphoreValues = nullptr;
+		timelineInfo.signalSemaphoreValueCount = 1;
+		timelineInfo.pSignalSemaphoreValues = &transferWaitValues[frameIndex];
+
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.pNext = &timelineInfo;
+		submitInfo.waitSemaphoreCount = 0;
+		submitInfo.pWaitSemaphores = nullptr;
+		submitInfo.pWaitDstStageMask = nullptr;
+		submitInfo.commandBufferCount = (U32)commandBuffers[frameIndex].Size();
+		submitInfo.pCommandBuffers = commandBuffers[frameIndex].Data();
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &transferCompleted[frameIndex];
+
+		VkValidateF(vkQueueSubmit(renderQueue, 1, &submitInfo, nullptr)); //TODO: use transfer queue
+		commandBuffers[frameIndex].Clear();
+
+		stagingBuffer.allocationOffset = 0;
+	}
+}
+
+VkCommandBuffer Renderer::Record()
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
 	commandBuffer->Begin();
@@ -730,27 +774,10 @@ void Renderer::Record()
 
 	commandBuffer->SetViewport(viewport, scissor);
 
-	pipelineGraph->Run(commandBuffer);
-
-	if (pipelineGraph->passes[0].renderpass->subpassCount > 1)
-	{
-		//TODO: Check what attachments were used is input attachments, then use these barriers based on that
-		VkImageMemoryBarrier2 renderpassBarriers[]{
-		ImageBarrier(pipelineGraph->RenderTarget()->image,
-		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
-		//ImageBarrier(pipelineGraph->DepthTarget()->image,
-		//VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-		//VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT),
-		};
-
-		commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, CountOf32(renderpassBarriers), renderpassBarriers);
-	}
-
-	UI::Run(commandBuffer);
+	currentScene->Render(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
-		ImageBarrier(pipelineGraph->RenderTarget()->image,
+		ImageBarrier(defaultRenderTarget->image,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
 		ImageBarrier(swapchain.renderTargets[frameIndex]->image, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -771,7 +798,7 @@ void Renderer::Record()
 	blitRegion.dstOffsets[1].y = swapchain.height;
 	blitRegion.dstOffsets[1].z = 1;
 
-	commandBuffer->Blit(pipelineGraph->RenderTarget(), swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
+	commandBuffer->Blit(defaultRenderTarget, swapchain.renderTargets[frameIndex], VK_FILTER_NEAREST, 1, &blitRegion);
 
 	VkImageMemoryBarrier2 presentBarrier = ImageBarrier(swapchain.renderTargets[frameIndex]->image,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -780,7 +807,7 @@ void Renderer::Record()
 	commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 1, &presentBarrier);
 	commandBuffer->End();
 
-	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
+	return commandBuffer->vkCommandBuffer;
 }
 
 void Renderer::Resize()
@@ -788,9 +815,7 @@ void Renderer::Resize()
 	vkDeviceWaitIdle(device);
 
 	swapchain.Create();
-
-	pipelineGraph->Resize();
-	UI::Resize();
+	currentScene->Resize();
 
 	vkDeviceWaitIdle(device);
 }
@@ -831,27 +856,92 @@ void Renderer::LoadScene(Scene* scene)
 	}
 
 	currentScene = scene;
-
-#ifdef NH_DEBUG
-	if (currentScene->camera.Perspective()) { flyCamera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f); }
-	else { flyCamera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f); }
-	flyCamera.SetPosition(Vector3Zero);
-	flyCamera.SetRotation(Vector3Zero);
-#endif
-}
-
-void Renderer::SetRenderGraph(PipelineGraph* graph)
-{
-	if (!graph->ready) { Logger::Error("Failed To Set RenderGraph; The RenderGraph Has Not Been Created!"); return; }
-
-	pipelineGraph = graph;
-	Renderpass* renderpass = graph->passes.Back().renderpass;
-	UI::UpdateRenderpass(renderpass->renderTargets[0], renderpass->depthStencilTarget);
 }
 
 CameraData* Renderer::GetCameraData()
 {
 	return &cameraData;
+}
+
+PostProcessData* Renderer::GetPostProcessData()
+{
+	return &postProcessData;
+}
+
+Rendergraph* Renderer::GetDefaultRendergraph()
+{
+	if (defaultRendergraph) { return defaultRendergraph; }
+
+	//RENDER_STAGE_CULLING,
+	//
+	//RENDER_STAGE_GEOMETRY_OPAQUE,
+	//RENDER_STAGE_GEOMETRY_TRANSPARENT,
+	//RENDER_STAGE_PARTICLES,
+	//RENDER_STAGE_UI_WORLD,
+	//
+	//RENDER_STAGE_POST_PROCESSING,
+	//RENDER_STAGE_UI_OVERLAY,
+
+	RendergraphInfo info{};
+	info.name = "default_rendergraph";
+
+	//TODO: Culling piplines
+
+	PushConstant pushConstant{ 0, sizeof(CameraData), Renderer::GetCameraData() };
+	Shader* meshProgram = Resources::CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
+	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+
+	PipelineInfo pipelineInfo{};
+	pipelineInfo.name = "default_mesh_opaque_pipeline";
+	pipelineInfo.shader = meshProgram;
+
+	RenderStage pbrOpaqueStage{};
+	pbrOpaqueStage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
+	pbrOpaqueStage.index = 0;
+	pbrOpaqueStage.info = pipelineInfo;
+
+	info.AddPipeline(pbrOpaqueStage);
+
+	//pipelineInfo.name = "default_skybox_pipeline";
+	//pipelineInfo.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
+	//
+	//RenderStage skyboxStage{};
+	//skyboxStage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
+	//skyboxStage.index = 1;
+	//skyboxStage.info = pipelineInfo;
+	//
+	//info.AddPipeline(skyboxStage);
+
+	//TODO: Transparent mesh pipeline
+
+	//pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
+	//pipelineInfo.name = "default_postprocess_pipeline";
+	//pipelineInfo.shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
+	//
+	//RenderStage postProcessStage{};
+	//postProcessStage.type = RENDER_STAGE_POST_PROCESSING;
+	//postProcessStage.index = 0;
+	//postProcessStage.info = pipelineInfo;
+	//
+	//info.AddPipeline(postProcessStage);
+	
+	//RenderStage uiStage{};
+	//uiStage.type = RENDER_STAGE_UI_OVERLAY;
+	//uiStage.index = 0;
+	//uiStage.info = UI::GetUIPipeline();
+	//
+	//info.AddPipeline(uiStage);
+	//
+	//RenderStage textStage{};
+	//textStage.type = RENDER_STAGE_UI_OVERLAY;
+	//textStage.index = 1;
+	//textStage.info = UI::GetTextPipeline();
+	//
+	//info.AddPipeline(textStage);
+
+	defaultRendergraph = Resources::CreateRendergraph(info);
+
+	return defaultRendergraph;
 }
 
 void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
@@ -936,7 +1026,7 @@ VkBufferMemoryBarrier2 Renderer::BufferBarrier(VkBuffer buffer, VkPipelineStageF
 	return result;
 }
 
-Buffer Renderer::CreateBuffer(U32 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType)
+Buffer Renderer::CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType)
 {
 	Buffer buffer{};
 	buffer.size = size;
@@ -970,11 +1060,24 @@ Buffer Renderer::CreateBuffer(U32 size, BufferUsageBits bufferUsage, BufferMemor
 	return Move(buffer);
 }
 
-void Renderer::FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions)
+void Renderer::FillBuffer(Buffer& buffer, U64 size, const void* data, U32 regionCount, VkBufferCopy* regions)
 {
 	VkBufferMemoryBarrier2 memoryBarrier = BufferBarrier(buffer.vkBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
 
-	if (stagingBuffer.allocationOffset + size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
+	if (stagingBuffer.allocationOffset + size > stagingBuffer.size)
+	{
+		Logger::Warn("Out Of Staging Memory!");
+		Renderer::SubmitTransfer();
+
+		VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
+		waitInfo.pNext = nullptr;
+		waitInfo.flags = 0;
+		waitInfo.semaphoreCount = 1;
+		waitInfo.pSemaphores = &transferCompleted[frameIndex];
+		waitInfo.pValues = &transferWaitValues[previousFrame];
+
+		vkWaitSemaphores(device, &waitInfo, U64_MAX);
+	}
 
 	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, size);
 	for (U32 i = 0; i < regionCount; ++i)
@@ -1010,7 +1113,7 @@ void Renderer::FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regio
 	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
 }
 
-U32 Renderer::UploadToBuffer(Buffer& buffer, U32 size, const void* data)
+U64 Renderer::UploadToBuffer(Buffer& buffer, U64 size, const void* data)
 {
 	VkBufferCopy region{};
 	region.dstOffset = buffer.allocationOffset;
@@ -1019,7 +1122,7 @@ U32 Renderer::UploadToBuffer(Buffer& buffer, U32 size, const void* data)
 
 	FillBuffer(buffer, size, data, 1, &region);
 
-	U32 offset = buffer.allocationOffset;
+	U64 offset = buffer.allocationOffset;
 	buffer.allocationOffset += size;
 
 	return offset;
@@ -1122,8 +1225,21 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	if (data)
 	{
-		stagingBuffer.allocationOffset = NextMultipleOf32(stagingBuffer.allocationOffset, 16);
-		if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
+		stagingBuffer.allocationOffset = NextMultipleOf(stagingBuffer.allocationOffset, 16);
+		if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size)
+		{
+			Logger::Warn("Out Of Staging Memory!");
+			Renderer::SubmitTransfer();
+
+			VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
+			waitInfo.pNext = nullptr;
+			waitInfo.flags = 0;
+			waitInfo.semaphoreCount = 1;
+			waitInfo.pSemaphores = &transferCompleted[frameIndex];
+			waitInfo.pValues = &transferWaitValues[previousFrame];
+
+			vkWaitSemaphores(device, &waitInfo, U64_MAX);
+		}
 
 		Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, texture->size);
 
@@ -1282,14 +1398,27 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
 
-	stagingBuffer.allocationOffset = NextMultipleOf32(stagingBuffer.allocationOffset, 16);
-	if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size) { Logger::Error("Out Of Staging Memory!"); BreakPoint; }
+	stagingBuffer.allocationOffset = NextMultipleOf(stagingBuffer.allocationOffset, 16);
+	if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size)
+	{
+		Logger::Warn("Out Of Staging Memory!");
+		Renderer::SubmitTransfer();
+
+		VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
+		waitInfo.pNext = nullptr;
+		waitInfo.flags = 0;
+		waitInfo.semaphoreCount = 1;
+		waitInfo.pSemaphores = &transferCompleted[frameIndex];
+		waitInfo.pValues = &transferWaitValues[previousFrame];
+
+		vkWaitSemaphores(device, &waitInfo, U64_MAX);
+	}
 
 	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, texture->size);
 
 	VkBufferImageCopy bufferCopyRegions[6 * 14];
 	U32 regionCount = 0;
-	U32 offset = stagingBuffer.allocationOffset;
+	U64 offset = stagingBuffer.allocationOffset;
 	stagingBuffer.allocationOffset += texture->size;
 
 	for (U32 level = 0; level < texture->mipmapCount; ++level)
@@ -1375,15 +1504,19 @@ void Renderer::PushConstants(CommandBuffer* commandBuffer, Shader* shader)
 	}
 };
 
-bool Renderer::CreateRenderpass(Renderpass* renderpass)
+bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info)
 {
+	renderpass->renderTargetCount = (U8)info.renderTargetCount;
+	renderpass->depthStencilTarget = info.depthStencilTarget;
+	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
+
 	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
 	VkAttachmentReference colorAttachments[MAX_IMAGE_OUTPUTS]{};
 	VkAttachmentReference depthAttachment{};
 
-	VkAttachmentLoadOp colorLoadOp = (VkAttachmentLoadOp)renderpass->colorLoadOp;
-	VkAttachmentLoadOp depthLoadOp = (VkAttachmentLoadOp)renderpass->depthLoadOp;
-	VkAttachmentLoadOp stencilLoadOp = (VkAttachmentLoadOp)renderpass->stencilLoadOp;
+	VkAttachmentLoadOp colorLoadOp = (VkAttachmentLoadOp)info.colorLoadOp;
+	VkAttachmentLoadOp depthLoadOp = (VkAttachmentLoadOp)info.depthLoadOp;
+	VkAttachmentLoadOp stencilLoadOp = (VkAttachmentLoadOp)info.stencilLoadOp;
 
 	U32 attachmentCount = 0;
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
@@ -1395,7 +1528,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[attachmentCount].stencilLoadOp = stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[attachmentCount].initialLayout = renderpass->colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[attachmentCount].initialLayout = colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		colorAttachments[attachmentCount].attachment = attachmentCount;
@@ -1414,7 +1547,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[attachmentCount].stencilLoadOp = stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[attachmentCount].initialLayout = renderpass->depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[attachmentCount].initialLayout = depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		depthAttachment.attachment = attachmentCount;
@@ -1424,25 +1557,36 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	}
 
 	Vector<VkSubpassDependency> dependencies;
-	Vector<VkSubpassDescription> subpasses{ renderpass->subpassCount, {} };
+	Vector<VkSubpassDescription> subpasses{ info.subpassCount, {} };
 	Vector<VkAttachmentReference> inputReferences{};
 	U32 inputOffset = 0;
 
-	for (U32 i = 0; i < renderpass->subpassCount; ++i)
+	for (U32 i = 0; i < info.subpassCount; ++i)
 	{
-		for (U32 j = 0; j < renderpass->subpasses[i].inputAttachmentCount; ++j)
+		for (U32 j = 0; j < info.subpasses[i].inputAttachmentCount; ++j)
 		{
-			VkAttachmentReference inpputAttachment{};
-			inpputAttachment.attachment = renderpass->subpasses[i].inputAttachments[j];
-			inpputAttachment.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			VkAttachmentReference inputAttachment{};
+			inputAttachment.attachment = info.subpasses[i].inputAttachments[j];
+			inputAttachment.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			inputReferences.Push(inpputAttachment);
+			bool found = false;
+			for (U32 k = 0; k < renderpass->subpassIndexCount; ++k)
+			{
+				if (renderpass->subpassIndices[k] == info.subpasses[i].inputAttachments[j]) { found = true; break; }
+			}
+
+			if (!found)
+			{
+				renderpass->subpassIndices[renderpass->subpassIndexCount++] = info.subpasses[i].inputAttachments[j];
+			}
+
+			inputReferences.Push(inputAttachment);
 		}
 
 		VkSubpassDescription& subpass = subpasses[i];
 		subpass.flags = 0;
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.inputAttachmentCount = renderpass->subpasses[i].inputAttachmentCount;
+		subpass.inputAttachmentCount = info.subpasses[i].inputAttachmentCount;
 		subpass.pInputAttachments = inputReferences.Data() + inputOffset;
 		subpass.colorAttachmentCount = attachmentCount;
 		subpass.pColorAttachments = colorAttachments;
@@ -1451,7 +1595,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 		subpass.preserveAttachmentCount = 0;
 		subpass.pPreserveAttachments = nullptr;
 
-		inputOffset += renderpass->subpasses[i].inputAttachmentCount;
+		inputOffset += info.subpasses[i].inputAttachmentCount;
 
 		//TODO: Use Sync2
 		//TODO: Add transitions to VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR for input attachments
@@ -1483,10 +1627,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 	renderPassInfo.dependencyCount = (U32)dependencies.Size();
 	renderPassInfo.pDependencies = dependencies.Data();
 
-	VkValidate(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
-	renderpass->lastResize = absoluteFrame;
-
-	SetResourceName(VK_OBJECT_TYPE_RENDER_PASS, (U64)renderpass->renderpass, renderpass->name);
+	VkValidateFR(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
 
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderpass->renderpass;
@@ -1510,8 +1651,9 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 
 	framebufferInfo.pAttachments = framebufferAttachments;
 
-	vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer);
-	SetResourceName(VK_OBJECT_TYPE_FRAMEBUFFER, (U64)renderpass->frameBuffer, renderpass->name);
+	VkValidateFR(vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer));
+
+	renderpass->lastResize = absoluteFrame;
 
 	return true;
 }
@@ -1519,9 +1661,34 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass)
 bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 {
 	vkDestroyFramebuffer(device, renderpass->frameBuffer, allocationCallbacks);
-	vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks);
 
-	return CreateRenderpass(renderpass);
+	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+	framebufferInfo.renderPass = renderpass->renderpass;
+	framebufferInfo.attachmentCount = renderpass->renderTargetCount + (bool)renderpass->depthStencilTarget;
+	framebufferInfo.width = Settings::WindowWidth();
+	framebufferInfo.height = Settings::WindowHeight();
+	framebufferInfo.layers = 1;
+
+	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
+
+	U32 attachmentCount = 0;
+	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
+	{
+		framebufferAttachments[attachmentCount++] = renderpass->renderTargets[i]->imageView;
+	}
+
+	if (renderpass->depthStencilTarget)
+	{
+		framebufferAttachments[attachmentCount++] = renderpass->depthStencilTarget->imageView;
+	}
+
+	framebufferInfo.pAttachments = framebufferAttachments;
+
+	VkValidateFR(vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer));
+
+	renderpass->lastResize = absoluteFrame;
+
+	return true;
 }
 
 void Renderer::DestroyTextureInstant(Texture* texture)

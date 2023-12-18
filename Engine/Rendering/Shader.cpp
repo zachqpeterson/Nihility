@@ -495,6 +495,7 @@ void Shader::Destroy()
 	}
 
 	shaderInfo->stageCount = 0;
+	Memory::Free(&shaderInfo);
 
 	if (pipelineLayout) { vkDestroyPipelineLayout(Renderer::device, pipelineLayout, Renderer::allocationCallbacks); pipelineLayout = nullptr; }
 
@@ -518,83 +519,76 @@ bool Shader::ParseConfig(const String& data, I64& index)
 			++index;
 			return true;
 		}
-		else if (data.CompareN("language", index + 1))
-		{
-			index = data.IndexOf('=', index + 1);
-
-			if (data.CompareN("GLSL", index + 1)) { language = glslang::EShSourceGlsl; }
-			else if (data.CompareN("HLSL", index + 1)) { language = glslang::EShSourceHlsl; }
-		}
 		else if (data.CompareN("cull", index + 1))
 		{
-			index = data.IndexOf('=', index + 1);
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-			if (data.CompareN("NONE", index + 1)) { rasterization.cullMode = CULL_MODE_NONE; }
-			else if (data.CompareN("FRONT", index + 1)) { rasterization.cullMode = CULL_MODE_FRONT_BIT; }
-			else if (data.CompareN("BACK", index + 1)) { rasterization.cullMode = CULL_MODE_BACK_BIT; }
-			else if (data.CompareN("BOTH", index + 1)) { rasterization.cullMode = CULL_MODE_FRONT_AND_BACK; }
+			if (data.CompareN("NONE", index)) { cullMode = CULL_MODE_NONE; }
+			else if (data.CompareN("FRONT", index)) { cullMode = CULL_MODE_FRONT_BIT; }
+			else if (data.CompareN("BACK", index)) { cullMode = CULL_MODE_BACK_BIT; }
+			else if (data.CompareN("BOTH", index)) { cullMode = CULL_MODE_FRONT_AND_BACK; }
 		}
 		else if (data.CompareN("front", index + 1))
 		{
-			index = data.IndexOf('=', index + 1);
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-			if (data.CompareN("CLOCKWISE", index + 1)) { rasterization.front = FRONT_FACE_TYPE_CLOCKWISE; }
-			else if (data.CompareN("COUNTER", index + 1)) { rasterization.front = FRONT_FACE_TYPE_COUNTER_CLOCKWISE; }
+			if (data.CompareN("CLOCKWISE", index)) { frontMode = FRONT_FACE_MODE_CLOCKWISE; }
+			else if (data.CompareN("COUNTER", index)) { frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE; }
 		}
 		else if (data.CompareN("fill", index + 1))
 		{
-			index = data.IndexOf('=', index + 1);
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-			if (data.CompareN("SOLID", index + 1)) { rasterization.fill = POLYGON_MODE_FILL; }
-			else if (data.CompareN("LINE", index + 1)) { rasterization.fill = POLYGON_MODE_LINE; }
-			else if (data.CompareN("POINT", index + 1)) { rasterization.fill = POLYGON_MODE_POINT; }
+			if (data.CompareN("SOLID", index)) { fillMode = POLYGON_MODE_FILL; }
+			else if (data.CompareN("LINE", index)) { fillMode = POLYGON_MODE_LINE; }
+			else if (data.CompareN("POINT", index)) { fillMode = POLYGON_MODE_POINT; }
 		}
 		else if (data.CompareN("depth", index + 1))
 		{
-			index = data.IndexOf('=', index + 1);
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-			if (data.CompareN("NONE", index + 1))
+			if (data.CompareN("NONE", index))
 			{
-				depthStencil.depthEnable = false;
-				depthStencil.depthWriteEnable = false;
-				depthStencil.depthComparison = COMPARE_OP_ALWAYS;
+				depthEnable = false;
+				depthWriteEnable = false;
+				depthComparison = COMPARE_OP_ALWAYS;
 			}
-			else if (data.CompareN("LESS_EQUAL", index + 1))
+			else if (data.CompareN("LESS_EQUAL", index))
 			{
-				depthStencil.depthEnable = true;
-				depthStencil.depthWriteEnable = true;
-				depthStencil.depthComparison = COMPARE_OP_LESS_OR_EQUAL;
+				depthEnable = true;
+				depthWriteEnable = true;
+				depthComparison = COMPARE_OP_LESS_OR_EQUAL;
 			}
-			else if (data.CompareN("LESS", index + 1))
+			else if (data.CompareN("LESS", index))
 			{
-				depthStencil.depthEnable = true;
-				depthStencil.depthWriteEnable = true;
-				depthStencil.depthComparison = COMPARE_OP_LESS;
+				depthEnable = true;
+				depthWriteEnable = true;
+				depthComparison = COMPARE_OP_LESS;
 			}
-			else if (data.CompareN("GREATER_EQUAL", index + 1))
+			else if (data.CompareN("GREATER_EQUAL", index))
 			{
-				depthStencil.depthEnable = true;
-				depthStencil.depthWriteEnable = true;
-				depthStencil.depthComparison = COMPARE_OP_GREATER_OR_EQUAL;
+				depthEnable = true;
+				depthWriteEnable = true;
+				depthComparison = COMPARE_OP_GREATER_OR_EQUAL;
 			}
-			else if (data.CompareN("GREATER", index + 1))
+			else if (data.CompareN("GREATER", index))
 			{
-				depthStencil.depthEnable = true;
-				depthStencil.depthWriteEnable = true;
-				depthStencil.depthComparison = COMPARE_OP_GREATER;
+				depthEnable = true;
+				depthWriteEnable = true;
+				depthComparison = COMPARE_OP_GREATER;
 			}
-			else if (data.CompareN("EQUAL", index + 1))
+			else if (data.CompareN("EQUAL", index))
 			{
-				depthStencil.depthEnable = true;
-				depthStencil.depthWriteEnable = true;
-				depthStencil.depthComparison = COMPARE_OP_EQUAL;
+				depthEnable = true;
+				depthWriteEnable = true;
+				depthComparison = COMPARE_OP_EQUAL;
 			}
 		}
 		else if (data.CompareN("blend", index + 1))
 		{
-			index = data.IndexOf('=', index + 1);
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-			if (data.CompareN("ADD", index + 1))
+			if (data.CompareN("ADD", index))
 			{
 				VkPipelineColorBlendAttachmentState& blendState = shaderInfo->blendStates[shaderInfo->blendStateCount];
 
@@ -612,7 +606,7 @@ bool Shader::ParseConfig(const String& data, I64& index)
 
 				++shaderInfo->blendStateCount;
 			}
-			else if (data.CompareN("SUB", index + 1))
+			else if (data.CompareN("SUB", index))
 			{
 				VkPipelineColorBlendAttachmentState& blendState = shaderInfo->blendStates[shaderInfo->blendStateCount];
 
@@ -632,23 +626,41 @@ bool Shader::ParseConfig(const String& data, I64& index)
 				++shaderInfo->blendStateCount;
 			}
 		}
+		else if (data.CompareN("topology", index + 1))
+		{
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+
+			if (data.CompareN("POINTS", index)) { topologyMode = TOPOLOGY_MODE_POINT_LIST; }
+			else if (data.CompareN("LINES", index)) { topologyMode = TOPOLOGY_MODE_LINE_LIST; }
+			else if (data.CompareN("LINE_STRIP", index)) { topologyMode = TOPOLOGY_MODE_LINE_STRIP; }
+			else if (data.CompareN("TRIANGLES", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST; }
+			else if (data.CompareN("TRIANGLE_STRIP", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP; }
+			else if (data.CompareN("TRIANGLE_FAN", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_FAN; }
+			else if (data.CompareN("LINES_ADJ", index)) { topologyMode = TOPOLOGY_MODE_LINE_LIST_WITH_ADJACENCY; }
+			else if (data.CompareN("LINE_STRIP_ADJ", index)) { topologyMode = TOPOLOGY_MODE_LINE_STRIP_WITH_ADJACENCY; }
+			else if (data.CompareN("TRIANGLES_ADJ", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST_WITH_ADJACENCY; }
+			else if (data.CompareN("TRIANGLE_STRIP_ADJ", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP_WITH_ADJACENCY; }
+			else if (data.CompareN("PATCHS", index)) { topologyMode = TOPOLOGY_MODE_PATCH_LIST; }
+		}
+		else if (data.CompareN("clear", index + 1))
+		{
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+
+			if (data.CompareN("COLOR", index)) { clearTypes |= CLEAR_TYPE_COLOR; }
+			else if (data.CompareN("DEPTH", index)) { clearTypes |= CLEAR_TYPE_DEPTH; }
+			else if (data.CompareN("STENCIL", index)) { clearTypes |= CLEAR_TYPE_STENCIL; }
+			}
+		else if (data.CompareN("useIndices", index + 1))
+		{
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+
+			if (data.CompareN("FALSE", index)) { useIndexing = false; }
+		}
 		else if (data.CompareN("instanceOffset", index + 1))
 		{
-			index = data.IndexOf('=', index + 1);
-			instanceLocation = data.ToType<U8>(index + 1);
-		}
-		else if (data.CompareN("draw", index + 1))
-		{
-			index = data.IndexOf('=', index + 1);
-
-			if (data.CompareN("INDEX", index + 1)) { drawType = DRAW_TYPE_INDEX; }
-			else if (data.CompareN("VERTEX", index + 1)) { drawType = DRAW_TYPE_VERTEX; }
-			else if (data.CompareN("FULLSCREEN", index + 1)) { drawType = DRAW_TYPE_FULLSCREEN; }
-		}
-		else if (data.CompareN("order", index + 1))
-		{
-			index = data.IndexOf('=', index + 1);
-			renderOrder = data.ToType<U32>(index + 1);
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+			instanceLocation = data.ToType<U8>(index);
+			useInstancing = true;
 		}
 
 		index = data.IndexOf('\n', index + 1);
@@ -785,7 +797,7 @@ VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, 
 	TShader tShader(stage);
 	C8* c = code.Data();
 	tShader.setStrings(&c, 1);
-	tShader.setEnvInput((EShSource)language, stage, EShClientVulkan, 450);
+	tShader.setEnvInput(EShSourceGlsl, stage, EShClientVulkan, 450);
 	tShader.setEnvClient(EShClientVulkan, EShTargetVulkan_1_3);
 	tShader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_6);
 	if (!tShader.parse(&resources, 450, false, EShMsgDefault)) { Logger::Error(tShader.getInfoLog()); }
@@ -799,24 +811,7 @@ VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, 
 	std::vector<U32> spv;
 	GlslangToSpv(*tProgram.getIntermediate(stage), spv);
 
-	VkShaderModuleCreateInfo shaderInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-	shaderInfo.codeSize = spv.size() * 4;
-	shaderInfo.pCode = spv.data();
-
-	ParseSPIRV((U32*)shaderInfo.pCode, spv.size(), shaderStage);
-
-	VkShaderModule module;
-	vkCreateShaderModule(Renderer::device, &shaderInfo, Renderer::allocationCallbacks, &module);
-
-	VkPipelineShaderStageCreateInfo shaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-	shaderStageInfo.pNext = nullptr;
-	shaderStageInfo.flags = 0;
-	shaderStageInfo.module = module;
-	shaderStageInfo.stage = (VkShaderStageFlagBits)shaderStage.stage;
-	shaderStageInfo.pName = shaderStage.entryPoint.Data();
-
-
-	return shaderStageInfo;
+	return ParseSPIRV(&spv[0], (U32)spv.size(), shaderStage);
 }
 
 static VkShaderStageFlagBits GetShaderStage(SpvExecutionModel executionModel)
@@ -982,7 +977,7 @@ static U32 FormatStride(VkFormat format)
 	}
 }
 
-bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
+VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, ShaderStage& stage)
 {
 	uint32_t idBound = code[3];
 
@@ -1004,7 +999,7 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 		case SpvOpEntryPoint:
 		{
 			stage.stage = (ShaderStageType)GetShaderStage((SpvExecutionModel)it[1]);
-			stage.entryPoint = (C8*)(it + 3);
+			entryPoint = (C8*)(it + 3);
 		} break;
 		case SpvOpExecutionMode:
 		{
@@ -1013,9 +1008,9 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 			switch (mode)
 			{
 			case SpvExecutionModeLocalSize: {
-				stage.localSizeX = it[3];
-				stage.localSizeY = it[4];
-				stage.localSizeZ = it[5];
+				localSizeX = it[3];
+				localSizeY = it[4];
+				localSizeZ = it[5];
 			} break;
 			}
 		} break;
@@ -1110,6 +1105,8 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 			case SpvStorageClassInput: {
 				if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT)
 				{
+					useVertices = true;
+
 					Id& type = ids[ids[id.typeId].typeId];
 
 					if (type.opcode == SpvOpTypeMatrix)
@@ -1239,6 +1236,8 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 
 			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = binding;
 
+			vertexSize = binding.stride;
+
 			for (U32 i = instanceLocation + 1; i < shaderInfo->vertexAttributeCount; ++i)
 			{
 				shaderInfo->vertexAttributes[i].offset = shaderInfo->vertexAttributes[i - 1].offset + FormatStride(shaderInfo->vertexAttributes[i - 1].format);
@@ -1247,6 +1246,8 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 			binding.binding = 1;
 			binding.stride = shaderInfo->vertexAttributes[shaderInfo->vertexAttributeCount - 1].offset + FormatStride(shaderInfo->vertexAttributes[shaderInfo->vertexAttributeCount - 1].format);
 			binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+			instanceStride = binding.stride;
 
 			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = binding;
 		}
@@ -1268,14 +1269,28 @@ bool Shader::ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage)
 
 	if (stage.stage == VK_SHADER_STAGE_COMPUTE_BIT)
 	{
-		if (localSizeIdX >= 0) { stage.localSizeX = ids[localSizeIdX].constant; }
-		if (localSizeIdY >= 0) { stage.localSizeY = ids[localSizeIdY].constant; }
-		if (localSizeIdZ >= 0) { stage.localSizeZ = ids[localSizeIdZ].constant; }
+		if (localSizeIdX >= 0) { localSizeX = ids[localSizeIdX].constant; }
+		if (localSizeIdY >= 0) { localSizeY = ids[localSizeIdY].constant; }
+		if (localSizeIdZ >= 0) { localSizeZ = ids[localSizeIdZ].constant; }
 	}
 
 	//TODO: Push Constants
 
-	return true;
+	VkShaderModuleCreateInfo moduleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+	moduleInfo.codeSize = codeSize * sizeof(U32);
+	moduleInfo.pCode = code;
+
+	VkShaderModule module;
+	vkCreateShaderModule(Renderer::device, &moduleInfo, Renderer::allocationCallbacks, &module);
+
+	VkPipelineShaderStageCreateInfo shaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+	shaderStageInfo.pNext = nullptr;
+	shaderStageInfo.flags = 0;
+	shaderStageInfo.module = module;
+	shaderStageInfo.stage = (VkShaderStageFlagBits)stage.stage;
+	shaderStageInfo.pName = entryPoint.Data();
+
+	return shaderStageInfo;
 }
 
 void Shader::FillOutShaderInfo(VkGraphicsPipelineCreateInfo& pipelineInfo, VkPipelineVertexInputStateCreateInfo& vertexInput, 

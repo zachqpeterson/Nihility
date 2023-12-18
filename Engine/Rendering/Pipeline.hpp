@@ -59,20 +59,12 @@ struct NH_API PipelineInfo
 
 	String				name{};
 
-	U32					vertexBufferSize{ U32_MAX };
-	U32					instanceBufferSize{ U32_MAX };
-	U32					indexBufferSize{ U32_MAX };
-	U32					drawBufferSize{ U32_MAX };
-
 	Shader*				shader{ nullptr };
 
 	SpecializationInfo	specialization{};
 
 	U32					renderpass{ 0 };
 	U32					subpass{ 0 };
-
-	Descriptor			descriptors[MAX_DESCRIPTORS_PER_SET]{};
-	U8					descriptorCount;
 };
 
 struct BufferCopy
@@ -88,45 +80,42 @@ struct Renderpass;
 
 struct NH_API Pipeline
 {
-	void Destroy();
+	Pipeline() {}
+	Pipeline(Pipeline&& other) noexcept;
+	Pipeline& operator=(Pipeline&& other) noexcept;
 
-	U32 UploadIndices(U32 size, const void* data);
-	U32 UploadVertices(U32 size, const void* data);
-	void UpdateVertices(U32 size, const void* data, U32 regionCount, BufferCopy* regions);
-	void UpdateVertices(const Buffer& stagingBuffer, U32 regionCount, BufferCopy* regions);
-	U32 UploadInstances(U32 size, const void* data);
-	void UpdateInstances(U32 size, const void* data, U32 regionCount, BufferCopy* regions);
-	void UpdateInstances(const Buffer& stagingBuffer, U32 regionCount, BufferCopy* regions);
-	void UploadDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset);
-	void UpdateDrawCall(U32 indexCount, U32 indexOffset, U32 vertexOffset, U32 instanceCount, U32 instanceOffset, U32 drawOffset);
+	void Destroy();
 
 	const String& Name() const;
 
 private:
 	bool Create(const PipelineInfo& info, Renderpass* renderpass);
 
-	void Run(CommandBuffer* commandBuffer) const;
+	void Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, const Buffer& instanceBuffer, const Buffer& indexBuffer, const Buffer& drawBuffer, const Buffer& countsBuffer) const;
 
 	String			name{};
-	U64				handle{ U64_MAX };
 
 	Shader*			shader{};
 	VkPipeline_T*	pipeline{ nullptr };
+	U32				renderpass{ 0 };
 	U32				subpass{ 0 };
 
-	Buffer			vertexBuffer;
-	Buffer			instanceBuffer;
-	Buffer			indexBuffer;
-	Buffer			drawBuffer;
-	Buffer			countsBuffer;
-
-	U32				vertexOffset{ 0 };
-	U32				instanceOffset{ 0 };
-	U32				indexOffset{ 0 };
+	U32				countOffset{ 0 };
+	U32				drawOffset{ 0 };
 	U32				drawCount{ 0 };
+	U32				vertexOffset{ 0 };
+	U32				vertexCount{ 0 };
+	U32				instanceOffset{ 0 };
+	U32				instanceCount{ 0 };
+	U32				indexOffset{ 0 };
+	U32				indexCount{ 0 };
+
+	Pipeline(const Pipeline&) = delete;
+	Pipeline& operator=(const Pipeline&) = delete;
 
 	friend class UI;
 	friend class Resources;
 	friend struct CommandBuffer;
-	friend struct PipelineGraph;
+	friend struct Rendergraph;
+	friend struct Scene;
 };

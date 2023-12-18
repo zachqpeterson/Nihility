@@ -129,6 +129,8 @@ struct StringBase
 	bool operator<(const StringBase& other) const noexcept;
 	bool operator>(const StringBase& other) const noexcept;
 
+	operator bool() const noexcept;
+
 	bool Compare(C* other) const noexcept;
 	bool Compare(const StringBase& other) const noexcept;
 	template<U64 Count> bool Compare(const C(&other)[Count]) const noexcept;
@@ -146,6 +148,7 @@ struct StringBase
 	I64 IndexOf(C* find, U64 start = 0) const noexcept;
 	I64 IndexOf(const C& find, U64 start = 0) const noexcept;
 	I64 IndexOf(const StringBase& find, U64 start = 0) const noexcept;
+	I64 IndexOfNot(const C& find, U64 start = 0) const noexcept;
 	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
 	I64 LastIndexOf(C* find, U64 start = 0) const noexcept;
 	I64 LastIndexOf(const C& find, U64 start = 0) const noexcept;
@@ -520,6 +523,12 @@ inline bool StringBase<C>::operator>(const StringBase<C>& other) const noexcept
 }
 
 template<Character C>
+inline StringBase<C>::operator bool() const noexcept
+{
+	return size;
+}
+
+template<Character C>
 inline bool StringBase<C>::Compare(C* other) const noexcept
 {
 	U64 len = Length(other);
@@ -700,6 +709,18 @@ inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const noexc
 	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find.string, find.size)) { ++it; }
 
 	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
+	return (I64)(it - string);
+}
+
+template<Character C>
+inline I64 StringBase<C>::IndexOfNot(const C& find, U64 start) const noexcept
+{
+	C* it = string + start;
+	C c;
+
+	while ((c = *it) != StringLookup<C>::NULL_CHAR && c == find) { ++it; }
+
+	if (c == StringLookup<C>::NULL_CHAR) { return -1; }
 	return (I64)(it - string);
 }
 

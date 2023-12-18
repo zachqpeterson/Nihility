@@ -77,36 +77,12 @@ TextureInfo& TextureInfo::SetData(void* data)
 	return *this;
 }
 
-// RENDER PASS
-
-void Renderpass::Resize()
-{
-	if (lastResize < Renderer::absoluteFrame)
-	{
-		lastResize = Renderer::absoluteFrame;
-
-		for (U32 i = 0; i < renderTargetCount; ++i)
-		{
-			Resources::RecreateTexture(renderTargets[i], Settings::WindowWidth(), Settings::WindowHeight(), 1);
-		}
-
-		if (depthStencilTarget)
-		{
-			Resources::RecreateTexture(depthStencilTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
-		}
-
-		vkDestroyFramebuffer(Renderer::device, frameBuffer, Renderer::allocationCallbacks);
-		vkDestroyRenderPass(Renderer::device, renderpass, Renderer::allocationCallbacks);
-
-		Renderer::CreateRenderpass(this);
-	}
-}
-
 // RENDER PASS CREATION
 
 RenderpassInfo& RenderpassInfo::Reset()
 {
 	renderTargetCount = 0;
+	subpassCount = 0;
 
 	depthStencilTarget = nullptr;
 
@@ -116,6 +92,13 @@ RenderpassInfo& RenderpassInfo::Reset()
 	attachmentFinalLayout = IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
 	name.Clear();
+
+	return *this;
+}
+
+RenderpassInfo& RenderpassInfo::AddSubpass(const Subpass& subpass)
+{
+	subpasses[subpassCount++] = subpass;
 
 	return *this;
 }
@@ -277,14 +260,16 @@ bool Camera::Update()
 		const Quaternion3 pitchRotation{ Vector3Right, pitch };
 		const Quaternion3 yawRotation{ Vector3Up, yaw };
 		const Quaternion3 rollRotation{ Vector3Forward, roll };
-		const Quaternion3 rotation = (pitchRotation * yawRotation * rollRotation).Normalize();
+		const Quaternion3 rotation = (yawRotation * pitchRotation * rollRotation).Normalize();
+
+		//Logger::Debug(roll);
 
 		const Matrix4 translation{ position };
-		view = rotation.ToMatrix4() * translation;
+		view = translation * rotation.ToMatrix4();
 
-		right = { view[0][0], view[1][0], view[2][0] };
-		up = { view[0][1], view[1][1], view[2][1] };
-		forward = { view[0][2], view[1][2], view[2][2] };
+		right = (Vector3)view[0];
+		up = (Vector3)view[1];
+		forward = (Vector3)view[2];
 	}
 
 	if (updateProjection)
@@ -295,7 +280,7 @@ bool Camera::Update()
 
 	if (updateProjection || updateView)
 	{
-		viewProjection = projection * view;
+		viewProjection = projection * view.Inverse();
 		updateProjection = false;
 		updateView = false;
 
@@ -356,8 +341,8 @@ bool FlyCamera::Update()
 				F32 x, y;
 				Input::MouseDeltaPrecise(x, y);
 
-				targetYaw -= x * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
-				targetPitch -= y * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+				targetYaw += x * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+				targetPitch += y * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
 			}
 			else
 			{
@@ -379,12 +364,12 @@ bool FlyCamera::Update()
 		if (Input::ButtonDown(BUTTON_CODE_ALT)) { cameraMovementDelta *= 100.0f; }
 		if (Input::ButtonDown(BUTTON_CODE_CTRL)) { cameraMovementDelta *= 0.1f; }
 
-		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += camera.Right() * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += camera.Right() * -cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += camera.Forward() * -cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += camera.Forward() * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += camera.Up() * -cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_Q)) { cameraMovement += camera.Up() * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += camera.Right() * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += camera.Right() * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += camera.Forward() * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += camera.Forward() * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += camera.Up() * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_Q)) { cameraMovement += camera.Up() * -cameraMovementDelta; }
 
 		targetMovement += cameraMovement;
 
@@ -450,174 +435,4 @@ bool FlyCamera::Update()
 	}
 
 	return camera.Update();
-}
-
-void PipelineGraph::Destroy()
-{
-	for (Vector<PipelineInfo>& pipelineInfos : infos)
-	{
-		for (PipelineInfo& info : pipelineInfos) { info.Destroy(); }
-
-		pipelineInfos.Destroy();
-	}
-	for (Pass& p : passes) { p.pipelines.Destroy(); }
-
-	infos.Destroy();
-	passes.Destroy();
-}
-
-void PipelineGraph::Create(const String& name)
-{
-	passes.Resize(infos.Size());
-	bool first = true;
-
-	if (!renderTarget)
-	{
-		TextureInfo textureInfo{};
-		textureInfo.name = name + "_render_target";
-		textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		textureInfo.width = Settings::WindowWidth();
-		textureInfo.height = Settings::WindowHeight();
-		textureInfo.depth = 1;
-		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-		textureInfo.type = VK_IMAGE_TYPE_2D;
-		renderTarget = Resources::CreateTexture(textureInfo);
-	}
-	else
-	{
-		Resources::RecreateTexture(renderTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
-	}
-
-	if (!depthTarget)
-	{
-		TextureInfo textureInfo{};
-		textureInfo.name = name + "_depth_target";
-		textureInfo.format = VK_FORMAT_D32_SFLOAT;
-		textureInfo.width = Settings::WindowWidth();
-		textureInfo.height = Settings::WindowHeight();
-		textureInfo.depth = 1;
-		textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-		textureInfo.type = VK_IMAGE_TYPE_2D;
-		depthTarget = Resources::CreateTexture(textureInfo);
-	}
-	else
-	{
-		Resources::RecreateTexture(depthTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
-	}
-
-	String passName = name + "pass";
-
-	//TODO: Only create new renderpasses/pipelines in this is a recreation
-	U32 subpass = 0;
-	U32 i = 0;
-	for (Vector<PipelineInfo>& info : infos)
-	{
-		passes[i].pipelines.Resize(info.Size());
-
-		RenderpassInfo renderPassInfo{};
-
-		renderPassInfo.name = passName + i;
-		renderPassInfo.colorLoadOp = first ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD; //TODO: Load previous renderpass target
-		renderPassInfo.depthLoadOp = first ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-
-		renderPassInfo.AddRenderTarget(renderTarget);
-		renderPassInfo.SetDepthStencilTarget(depthTarget);
-
-		passes[i].renderpass = Resources::CreateRenderpass(renderPassInfo, info);
-		first = false;
-
-		U32 j = 0;
-		for (PipelineInfo& pipeline : info)
-		{
-			if(pipeline.shader->subpass.inputAttachmentCount) { ++subpass; }
-			pipeline.subpass = subpass;
-			passes[i].pipelines[j] = Resources::CreatePipeline(pipeline, passes[i].renderpass);
-			++j;
-		}
-
-		++i;
-	}
-
-	ready = true;
-}
-
-void PipelineGraph::AddPipeline(const PipelineInfo& info)
-{
-	ready = false;
-	needsRecord = true;
-	U32 bestIndex = 0;
-	bool found = false;
-
-	U32 i = 0;
-
-	if (info.renderpass >= infos.Size()) { infos.Resize(info.renderpass + 1); }
-
-	for (PipelineInfo& pipeline : infos[info.renderpass])
-	{
-		if (info.shader->renderOrder < pipeline.shader->renderOrder)
-		{
-			infos[info.renderpass].Insert(i, info);
-			found = true;
-			break;
-		}
-
-		++i;
-	}
-
-	if (!found) { infos[info.renderpass].Push(info); }
-}
-
-Texture* PipelineGraph::RenderTarget()
-{
-	return renderTarget;
-}
-
-Texture* PipelineGraph::DepthTarget()
-{
-	return depthTarget;
-}
-
-Pipeline* PipelineGraph::GetPipeline(U32 pass, U32 index)
-{
-	return passes[pass].pipelines[index];
-}
-
-void PipelineGraph::Run(CommandBuffer* commandBuffer)
-{
-	if (!ready) { Logger::Error("A Rendergraph Must Be Created Before Use!"); return; }
-
-	for (Pass& pass : passes)
-	{
-		commandBuffer->BeginRenderpass(pass.renderpass);
-
-		U32 subpass = 0;
-		U32 i = 0;
-		for (Pipeline* pipeline : pass.pipelines)
-		{
-			if (pipeline->subpass != subpass) { ++subpass; commandBuffer->NextSubpass(); }
-			pipeline->Run(commandBuffer);
-		}
-
-		commandBuffer->EndRenderpass();
-	}
-
-	needsRecord = false;
-}
-
-void PipelineGraph::Resize()
-{
-	Resources::RecreateTexture(renderTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
-	Resources::RecreateTexture(depthTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
-
-	for (Pass& pass : passes)
-	{
-		if (pass.renderpass->lastResize < Renderer::AbsoluteFrame())
-		{
-			pass.renderpass->lastResize = Renderer::AbsoluteFrame();
-
-			Resources::RecreateRenderpass(pass.renderpass);
-		}
-	}
-
-	needsRecord = true;
 }

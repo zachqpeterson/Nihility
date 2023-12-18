@@ -35,9 +35,9 @@ struct CommandBuffer
 
 	void SetViewport(const VkViewport& viewport, const VkRect2D& scissor);
 	void BindPipeline(const Pipeline* pipeline);
-	void BindIndexBuffer(Shader* shader, const Buffer& buffer);
-	void BindVertexBuffer(Shader* shader, const Buffer& buffer);
-	void BindInstanceBuffer(Shader* shader, const Buffer& buffer);
+	void BindIndexBuffer(Shader* shader, const Buffer& buffer, U64 offset);
+	void BindVertexBuffer(Shader* shader, const Buffer& buffer, U64 offset);
+	void BindInstanceBuffer(Shader* shader, const Buffer& buffer, U64 offset);
 	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
 
 	void PushDescriptors();
@@ -48,6 +48,7 @@ struct CommandBuffer
 	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
 	void DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset = 0);
 	void DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
+	void DrawIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
 
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(Buffer* buffer, U32 offset);

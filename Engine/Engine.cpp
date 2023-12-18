@@ -49,9 +49,10 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Audio::Initialize());
 	ASSERT(GameInit());
 
-	ASSERT(Renderer::InitialSubmit());
-
 	ASSERT(Input::Initialize());
+
+	Renderer::InitialSubmit();
+
 	UpdateLoop();
 
 	Shutdown();
@@ -98,6 +99,7 @@ void Engine::UpdateLoop()
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
 		//Physics::Update();
+		Components::Update();
 		GameUpdate();
 		//Animations::Update();
 

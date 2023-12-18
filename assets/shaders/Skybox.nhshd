@@ -1,12 +1,10 @@
 #CONFIG
-language=GLSL
 cull=NONE
 front=COUNTER
 fill=SOLID
 depth=LESS_EQUAL
 blend=ADD
 instanceOffset=1
-order=1
 #CONFIG_END
 
 #VERTEX

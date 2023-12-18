@@ -55,6 +55,7 @@ public:
 	static void Set(void* pointer, U8 value, U64 size);
 	static void Zero(void* pointer, U64 size);
 	static void Copy(void* dst, const void* src, U64 size);
+	static void CopyGap(void* dst, const void* src, U64 size, U64 gap);
 	template<class T>
 	static bool Compare(const T* a, const T* b, U64 length);
 

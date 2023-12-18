@@ -10,6 +10,7 @@
 #include "Pipeline.hpp"
 
 struct Scene;
+struct Rendergraph;
 struct VkImage_T;
 struct VkQueue_T;
 struct VkBuffer_T;
@@ -31,20 +32,6 @@ struct VkPhysicalDeviceMemoryProperties;
 enum VkFormat;
 enum VkObjectType;
 enum VkImageLayout;
-
-struct CameraData
-{
-	Matrix4 vp;
-	Vector4 eye;
-};
-
-struct PostProcessData
-{
-	F32 contrast{ 1.0f };
-	F32 brightness{ 0.0f };
-	F32 saturation{ 1.0f };
-	F32 gammaCorrection{ 1.0f };
-};
 
 struct CommandBufferRing
 {
@@ -83,8 +70,6 @@ struct CommandBufferRing
 
 //General
 //TODO: Switch to Sync2
-//TODO: Aggregate all buffer writes into one queue submit
-//TODO: One frame command buffer per swapchain image
 class NH_API Renderer
 {
 public:
@@ -93,12 +78,12 @@ public:
 	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
 
 	static void							LoadScene(Scene* scene);
-	static void							SetRenderGraph(PipelineGraph* graph);
 	static CameraData*					GetCameraData();
+	static PostProcessData*				GetPostProcessData();
+	static Rendergraph*					GetDefaultRendergraph();
 
 	static const Vector4&				RenderArea();
 	static U32							FrameIndex();
-	static U32							CurrentFrame();
 	static U32							AbsoluteFrame();
 
 	static VkImageMemoryBarrier2		ImageBarrier(VkImage_T* image, U64 srcStageMask, U64 srcAccessMask,
@@ -107,7 +92,7 @@ public:
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer_T* buffer, U64 srcStageMask, U64 srcAccessMask,
 		U64 dstStageMask, U64 dstAccessMask);
 
-	static Buffer						CreateBuffer(U32 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType);
+	static Buffer						CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType);
 	static void							DestroyBuffer(Buffer& buffer);
 
 private:
@@ -119,19 +104,20 @@ private:
 	static bool							GetFamilyQueue(VkPhysicalDevice_T* gpu);
 	static bool							CreateDevice();
 	static bool							CreateResources();
-	static bool							InitialSubmit();
 
+	static void							InitialSubmit();
 	static bool							BeginFrame();
 	static void							EndFrame();
-	static void							Record();
+	static void							SubmitTransfer();
+	static VkCommandBuffer_T*			Record();
 	static void							Resize();
 	static void							SetRenderArea();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
 
-	static void							FillBuffer(Buffer& buffer, U32 size, const void* data, U32 regionCount, VkBufferCopy* regions);
+	static void							FillBuffer(Buffer& buffer, U64 size, const void* data, U32 regionCount, VkBufferCopy* regions);
 	static void							FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions);
-	static U32							UploadToBuffer(Buffer& buffer, U32 size, const void* data);
+	static U64							UploadToBuffer(Buffer& buffer, U64 size, const void* data);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
 
@@ -139,7 +125,7 @@ private:
 
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
-	static bool							CreateRenderpass(Renderpass* renderpass);
+	static bool							CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info);
 	static bool							RecreateRenderpass(Renderpass* renderpass);
 
 	static void							DestroyTextureInstant(Texture* texture);
@@ -161,9 +147,11 @@ private:
 	static VkInstance_T*						instance;
 	static VkPhysicalDevice_T*					physicalDevice;
 	static VkDevice_T*							device;
-	static VkQueue_T*							deviceQueue;
 	static Swapchain							swapchain;
-	static U32									queueFamilyIndex;
+	static VkQueue_T*							renderQueue;
+	static VkQueue_T*							transferQueue;
+	static U32									renderQueueIndex;
+	static U32									transferQueueIndex;
 
 	static VkAllocationCallbacks*				allocationCallbacks;
 	static VkDescriptorPool_T*					descriptorPools[MAX_SWAPCHAIN_IMAGES];
@@ -190,32 +178,37 @@ private:
 	static Buffer								materialBuffer;
 	static CameraData							cameraData;
 	static PostProcessData						postProcessData;
-	static PipelineGraph*						pipelineGraph;
+	static Texture*								defaultRenderTarget;
+	static Texture*								defaultDepthTarget;
+	static Rendergraph*							defaultRendergraph;
+
+	// PIPELINES
+	static PipelineInfo							defaultCulling;
+	static PipelineInfo							defaultGeometryOpaque;
+	static PipelineInfo							defaultGeometryTransparent;
+	static PipelineInfo							defaultPostProcessing;
 
 	// SYNCRONIZATION
 	static VkSemaphore_T*						imageAcquired;
-	static VkSemaphore_T*						queueSubmitted[MAX_SWAPCHAIN_IMAGES];
-	static VkSemaphore_T*						frameReady[MAX_SWAPCHAIN_IMAGES];
-	static U64									waitValues[MAX_SWAPCHAIN_IMAGES];
+	static VkSemaphore_T*						presentReady[MAX_SWAPCHAIN_IMAGES];
+	static VkSemaphore_T*						renderCompleted[MAX_SWAPCHAIN_IMAGES];
+	static VkSemaphore_T*						transferCompleted[MAX_SWAPCHAIN_IMAGES];
+	static U64									renderWaitValues[MAX_SWAPCHAIN_IMAGES];
+	static U64									transferWaitValues[MAX_SWAPCHAIN_IMAGES];
 
 	// DEBUG
 	static VkDebugUtilsMessengerEXT_T*			debugMessenger;
 
 	static bool									debugUtilsExtensionPresent;
 
-#ifdef NH_DEBUG
-	static FlyCamera							flyCamera;
-#endif
-
 	STATIC_CLASS(Renderer);
 	friend class Engine;
-	friend class Profiler;
 	friend class Resources;
 	friend class UI;
 	friend struct CommandBufferRing;
 	friend struct CommandBuffer;
 	friend struct Swapchain;
-	friend struct Renderpass;
+	friend struct Rendergraph;
 	friend struct Shader;
 	friend struct Pipeline;
 	friend struct Scene;

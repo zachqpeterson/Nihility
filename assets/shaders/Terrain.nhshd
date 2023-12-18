@@ -1,0 +1,12 @@
+#CONFIG
+cull=BACK
+front=COUNTER
+fill=SOLID
+depth=LESS
+blend=ADD
+topology=TRIANGLES
+useIndices=TRUE
+//instanceOffset=0
+clear=DEPTH
+clear=COLOR
+#CONFIG_END

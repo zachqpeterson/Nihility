@@ -82,6 +82,11 @@ bool Swapchain::Create()
 	width = swapchainExtent.width;
 	height = swapchainExtent.height;
 
+	//Mailbox - vsync on, no framerate limit
+	//FIFO - vsync on, limit framerate
+	//Immediate - vsync off, no framerate limit
+	//FIFO_relaxed - fps > vsync, vsync on | fps < vsync, vsync off
+
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
 	if (vsync)

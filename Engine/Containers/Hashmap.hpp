@@ -61,6 +61,7 @@ public:
 	Value* Get(const Key& key) const;
 	Value* Request(const Key& key);
 	Value* Request(const Key& key, HashHandle& handle);
+	Value* GetRequest(const Key& key, const Value& value);
 	HashHandle GetHandle(const Key& key) const;
 	Value* Obtain(HashHandle handle) const;
 	bool Remove(HashHandle handle);
@@ -301,6 +302,27 @@ inline Value* Hashmap<Key, Value, AllowDuplicates>::Request(const Key& key, Hash
 	hnd = handle;
 	cell->filled = true;
 	cell->key = key;
+	return &cell->value;
+}
+
+template<class Key, class Value, bool AllowDuplicates>
+inline Value* Hashmap<Key, Value, AllowDuplicates>::GetRequest(const Key& key, const Value& value)
+{
+	U64 hash = Hash(key);
+
+	U64 i = 0;
+	HashHandle handle = hash & capMinusOne;
+	Cell* cell = cells + handle;
+	while (cell->filled && cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
+
+	if (!cell->filled)
+	{
+		++size;
+		cell->filled = true;
+		cell->value = value;
+		cell->key = key;
+	}
+
 	return &cell->value;
 }
 

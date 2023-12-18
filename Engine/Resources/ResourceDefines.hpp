@@ -571,13 +571,13 @@ struct NH_API Texture
 
 	I32					type{ IMAGE_TYPE_2D }; //VkImageType
 
-	VkImage_T*			image{ nullptr };
-	VkImageView_T*		imageView{ nullptr };
+	VkImage_T* image{ nullptr };
+	VkImageView_T* imageView{ nullptr };
 	I32					format{ FORMAT_TYPE_UNDEFINED }; //VkFormat
 	I32					imageLayout{ IMAGE_LAYOUT_UNDEFINED }; //VkImageLayout
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
-	VkImageView_T*		mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
+	VkImageView_T* mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
 	TextureUsage		usage{ TEXTURE_USAGE_COLOR };
@@ -623,8 +623,8 @@ struct NH_API Buffer
 	VkBuffer_T* vkBuffer{ nullptr };
 	VkDeviceMemory_T* deviceMemory{ nullptr };
 	VmaAllocation_T* allocation{ nullptr };
-	U32					size{ 0 };
-	U32					allocationOffset{ 0 };
+	U64					size{ 0 };
+	U64					allocationOffset{ 0 };
 
 	void* data{ nullptr };
 	bool mapped{ false };
@@ -644,26 +644,27 @@ struct Subpass
 
 struct NH_API Renderpass
 {
-	void Destroy() { name.Destroy(); handle = U64_MAX; }
+	Renderpass() {}
 
-	void Resize();
+	Renderpass(Renderpass&& other) noexcept : renderpass{ other.renderpass }, frameBuffer{ other.frameBuffer },
+		renderTargetCount{ other.renderTargetCount }, depthStencilTarget{ other.depthStencilTarget }
+	{
+		Memory::Copy(renderTargets, other.renderTargets, sizeof(Texture*) * renderTargetCount);
 
-	String				name{};
-	HashHandle			handle;
+		other.renderpass = nullptr;
+		other.frameBuffer = nullptr;
+	}
 
 	VkRenderPass_T* renderpass{ nullptr };
 	VkFramebuffer_T* frameBuffer{ nullptr };
 
-	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	U8					renderTargetCount{ 0 };
+	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTarget{ nullptr };
 
-	Subpass				subpasses[8]{};
-	U32					subpassCount{ 1 };
+	U8					subpassIndexCount{ 0 };
+	U8					subpassIndices[8]{};
 
-	I32					colorLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
-	I32					depthLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
-	I32					stencilLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
 	U32					lastResize{ 0 };
 };
 
@@ -672,12 +673,16 @@ struct NH_API RenderpassInfo
 	void Destroy() { name.Destroy(); }
 
 	RenderpassInfo& Reset();
+	RenderpassInfo& AddSubpass(const Subpass& subpass);
 	RenderpassInfo& AddRenderTarget(Texture* texture);
 	RenderpassInfo& SetDepthStencilTarget(Texture* texture);
 
 	U8				renderTargetCount{ 0 };
 	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTarget{ nullptr };
+
+	Subpass			subpasses[8]{};
+	U32				subpassCount{ 1 };
 
 	I32				colorLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
 	I32				depthLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
@@ -694,57 +699,7 @@ struct NH_API PushConstant
 	void* data;
 };
 
-struct Vertex
-{
-	Vector3 position;
-	Vector3 normal;
-	Vector3 tangent;
-	Vector3 bitangent;
-	Vector2 texcoord;
-};
-
-struct NH_API Material
-{
-	U32			diffuseTextureIndex{ U16_MAX };
-	U32			metalRoughOcclTextureIndex{ U16_MAX };
-	U32			normalTextureIndex{ U16_MAX };
-	U32			emissivityTextureIndex{ U16_MAX };
-
-	Vector4		baseColorFactor{ Vector4One };
-	Vector4		metalRoughFactor{ Vector4One };
-	Vector4		emissiveFactor{ Vector4Zero };
-
-	F32			alphaCutoff{ 0.0f };
-	U32			flags{ MATERIAL_FLAG_NONE };
-
-	U32			unused[2];
-};
-
-struct MeshInstance
-{
-	U32 materialIndex;
-	Matrix4 model{ };
-};
-
-struct DrawCall
-{
-	U32 indexCount;
-	U32 indexOffset;
-	U32 vertexOffset;
-
-	Vector<MeshInstance> instances;
-};
-
-struct NH_API Model
-{
-	void Destroy() { name.Destroy(); meshes.Destroy(); handle = U64_MAX; }
-
-	String		name{};
-	HashHandle	handle;
-
-	Vector<DrawCall> meshes;
-};
-
+//TODO: Get rid of this, just use model system
 struct NH_API Skybox
 {
 	void Destroy() { name.Destroy(); handle = U64_MAX; }
@@ -756,45 +711,24 @@ struct NH_API Skybox
 	Texture* texture{ nullptr };
 };
 
-struct NH_API Transform
-{
-	Vector3 position;
-	Vector3 scale;
-	Quaternion3 rotation;
-
-	void CalculateMatrix(Matrix4& matrix)
-	{
-		matrix.Set(position, rotation, scale);
-	}
-};
-
 struct ResourceUpdate
 {
 	HashHandle			handle;
 	U32					currentFrame;
 };
 
-struct MeshUpload
+struct NH_API PostProcessData
 {
-	U16 materialIndex{ U16_MAX };
-
-	U32 verticesSize{ 0 };
-	Vertex* vertices{ nullptr };
-	U32 indicesSize{ 0 };
-	U32* indices{ nullptr };
-
-	U32 instanceCount{ 0 };
-	Matrix4 instances[32];
+	F32 contrast{ 1.0f };
+	F32 brightness{ 0.0f };
+	F32 saturation{ 1.0f };
+	F32 gammaCorrection{ 1.0f };
 };
 
-struct ModelUpload
+struct NH_API CameraData
 {
-	U32 textureCount{ 0 };
-	String textures[32]{};
-	U32 materialCount{ 0 };
-	Material materials[32];
-	U32 meshCount{ 0 };
-	MeshUpload meshes[32];
+	Matrix4 vp;
+	Vector4 eye;
 };
 
 struct NH_API Camera
@@ -875,7 +809,7 @@ struct NH_API FlyCamera
 	Camera* GetCamera();
 
 private:
-	F32		mouseSensitivity{ 1.0f };
+	F32		mouseSensitivity{ 1.5f };
 	F32		movementDelta{ 0.1f };
 	U32		ignoreDraggingFrames{ 3 };
 
@@ -889,45 +823,4 @@ private:
 	F32		movementSpeed{ 5.0f };
 
 	Camera camera;
-};
-
-struct CommandBuffer;
-struct Renderpass;
-struct Pipeline;
-struct PipelineInfo;
-
-struct Pass
-{
-	Renderpass* renderpass;
-	Vector<Pipeline*> pipelines;
-};
-
-//TODO: Create a RenderGraph struct that holds multiple PipelineGraphs
-
-struct NH_API PipelineGraph
-{
-	void Destroy();
-	void Create(const String& name);
-
-	void AddPipeline(const PipelineInfo& info);
-
-	Texture* RenderTarget();
-	Texture* DepthTarget();
-
-	Pipeline* GetPipeline(U32 pass, U32 index);
-
-private:
-	void Run(CommandBuffer* commandBuffer); //TODO: Change to record
-	void Resize();
-
-	Vector<Pass> passes;
-	Vector<Vector<PipelineInfo>> infos;
-
-	Texture* renderTarget;
-	Texture* depthTarget;
-
-	bool ready{ false };
-	bool needsRecord{ false };
-
-	friend class Renderer;
 };

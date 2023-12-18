@@ -1,19 +1,13 @@
 #CONFIG
-language=GLSL
 cull=NONE
 front=CLOCKWISE
 fill=SOLID
 blend=ADD
-draw=FULLSCREEN
-order=2
+useIndices=FALSE
 #CONFIG_END
 
 #VERTEX
 #version 450
-
-out gl_PerVertex {
-	vec4 gl_Position;
-};
 
 void main()
 {

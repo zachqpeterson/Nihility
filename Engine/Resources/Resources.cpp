@@ -1,15 +1,20 @@
 #include "Resources.hpp"
 
 #include "Font.hpp"
-#include "Platform\Audio.hpp"
+#include "Scene.hpp"
 #include "Settings.hpp"
+#include "Material.hpp"
+#include "Core\Logger.hpp"
+#include "Core\DataReader.hpp"
+#include "Platform\Audio.hpp"
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
-#include "Core\Logger.hpp"
-#include "Core\DataReader.hpp"
-#include "Math\Color.hpp"
+#include "Containers\String.hpp"
 #include "Containers\Stack.hpp"
+#include "Containers\Pool.hpp"
+#include "Math\Color.hpp"
+#include "Math\Math.hpp"
 
 #include "External\Assimp\cimport.h"
 #include "External\Assimp\scene.h"
@@ -395,7 +400,6 @@ struct MP3Header
 };
 
 //nhtex
-//nhskb
 //nhaud
 //nhmat
 //nhmsh
@@ -436,19 +440,15 @@ U32 skyboxIndices[]{
 };
 
 Texture* Resources::dummyTexture;
-PipelineGraph Resources::defaultPipelineGraph;
-Pipeline* Resources::meshPipeline;
-Pipeline* Resources::postProcessPipeline;
-Pipeline* Resources::skyboxPipeline;
 
 Hashmap<String, Texture>		Resources::textures{ 512 };
 Hashmap<String, Font>			Resources::fonts{ 32 };
 Hashmap<String, AudioClip>		Resources::audioClips{ 512 };
-Hashmap<String, Renderpass>		Resources::renderpasses{ 32 };
 Hashmap<String, Shader>			Resources::shaders{ 128 };
-Hashmap<String, Pipeline>		Resources::pipelines{ 128 };
-Hashmap<String, Model>			Resources::models{ 128 };
-Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
+Hashmap<String, Rendergraph>	Resources::rendergraphs{ 16 };
+Hashmap<String, Material>		Resources::materials{ 256 };
+Hashmap<String, Mesh>			Resources::meshes{ 512 };
+Hashmap<String, Model>			Resources::models{ 256 };
 Hashmap<String, Scene>			Resources::scenes{ 128 };
 
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
@@ -465,43 +465,6 @@ bool Resources::Initialize()
 	dummyTextureInfo.SetData(&zero);
 	dummyTexture = CreateTexture(dummyTextureInfo);
 
-	PushConstant pushConstant{ 0, sizeof(CameraData), &Renderer::cameraData };
-	Shader* meshProgram = CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
-	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
-
-	PipelineInfo info{};
-	info.name = "mesh_pipeline";
-	info.shader = meshProgram;
-	defaultPipelineGraph.AddPipeline(info);
-
-	info.name = "skybox_pipeline";
-	info.shader = CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
-	info.vertexBufferSize = sizeof(F32) * CountOf32(skyboxVertices);
-	info.instanceBufferSize = sizeof(I32) * 128;
-	info.indexBufferSize = sizeof(U32) * CountOf32(skyboxIndices);
-	info.drawBufferSize = sizeof(VkDrawIndexedIndirectCommand);
-	defaultPipelineGraph.AddPipeline(info);
-
-	pushConstant = { 0, sizeof(PostProcessData), &Renderer::postProcessData };
-	info.shader = CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
-	info.name = "postprocess_pipeline";
-	info.vertexBufferSize = 0;
-	info.instanceBufferSize = 0;
-	info.indexBufferSize = 0;
-	info.drawBufferSize = 0;
-	defaultPipelineGraph.AddPipeline(info);
-
-	defaultPipelineGraph.Create("default");
-
-	meshPipeline = defaultPipelineGraph.GetPipeline(0, 0);
-	skyboxPipeline = defaultPipelineGraph.GetPipeline(0, 1);
-	postProcessPipeline = defaultPipelineGraph.GetPipeline(0, 2);
-
-	skyboxPipeline->UploadVertices(sizeof(F32) * CountOf32(skyboxVertices), skyboxVertices);
-	skyboxPipeline->UploadIndices(sizeof(U32) * CountOf32(skyboxIndices), skyboxIndices);
-
-	Renderer::pipelineGraph = &defaultPipelineGraph;
-
 	return true;
 }
 
@@ -510,21 +473,16 @@ void Resources::Shutdown()
 	Logger::Trace("Cleaning Up Resources...");
 
 	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
-	CleanupHashmap(renderpasses, Renderer::DestroyRenderPassInstant);
 
 	textures.Destroy();
-	renderpasses.Destroy();
 	fonts.Destroy();
 	audioClips.Destroy();
 	shaders.Destroy();
-	pipelines.Destroy();
+	rendergraphs.Destroy();
 	models.Destroy();
-	skyboxes.Destroy();
 	scenes.Destroy();
 
 	bindlessTexturesToUpdate.Destroy();
-
-	defaultPipelineGraph.Destroy();
 }
 
 void Resources::Update()
@@ -575,19 +533,6 @@ void Resources::Update()
 		Memory::Free(&bindlessDescriptorWrites);
 		Memory::Free(&bindlessImageInfo);
 	}
-}
-
-void Resources::UseSkybox(Skybox* skybox)
-{
-	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = CountOf32(skyboxIndices);
-	drawCommand.instanceCount = 1;
-	drawCommand.firstIndex = 0;
-	drawCommand.vertexOffset = 0;
-	drawCommand.firstInstance = 0;
-
-	if (skyboxPipeline->drawCount) { skyboxPipeline->UpdateDrawCall(CountOf32(skyboxIndices), 0, 0, 1, 0, 0); }
-	else { skyboxPipeline->UploadDrawCall(CountOf32(skyboxIndices), 0, 0, 1, 0); }
 }
 
 Texture* Resources::CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo)
@@ -675,60 +620,6 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	return texture;
 }
 
-Renderpass* Resources::CreateRenderpass(const RenderpassInfo& info, const Vector<PipelineInfo>& pipelines)
-{
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	HashHandle handle;
-	Renderpass* renderpass = renderpasses.Request(info.name, handle);
-
-	if (!renderpass->name.Blank()) { return renderpass; }
-
-	*renderpass = {};
-
-	renderpass->name = info.name;
-	renderpass->handle = handle;
-	renderpass->renderTargetCount = (U8)info.renderTargetCount;
-	renderpass->depthStencilTarget = info.depthStencilTarget;
-	renderpass->colorLoadOp = info.colorLoadOp;
-	renderpass->depthLoadOp = info.depthLoadOp;
-	renderpass->stencilLoadOp = info.stencilLoadOp;
-
-	bool first = true;
-	for (const PipelineInfo& pipeline : pipelines)
-	{
-		if (pipeline.shader->subpass.inputAttachmentCount)
-		{
-			if (first)
-			{
-				Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!");
-				renderpasses.Remove(renderpass->handle);
-				renderpass->Destroy();
-				return nullptr;
-			}
-
-			renderpass->subpasses[renderpass->subpassCount++] = pipeline.shader->subpass;
-		}
-
-		first = false;
-	}
-
-	for (U32 i = 0; i < info.renderTargetCount; ++i)
-	{
-		renderpass->renderTargets[i] = info.renderTargets[i];
-	}
-
-	if (!Renderer::CreateRenderpass(renderpass))
-	{
-		Logger::Error("Failed To Create Renderpass!");
-		renderpasses.Remove(renderpass->handle);
-		renderpass->Destroy();
-		return nullptr;
-	}
-
-	return renderpass;
-}
-
 Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushConstant* pushConstants)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -754,33 +645,30 @@ Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushCo
 	return shader;
 }
 
-Pipeline* Resources::CreatePipeline(const PipelineInfo& info, Renderpass* renderpass)
+Rendergraph* Resources::CreateRendergraph(RendergraphInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Pipeline* pipeline = pipelines.Request(info.name, handle);
+	Rendergraph* rendergraph = rendergraphs.Request(info.name, handle);
 
-	if (!pipeline->name.Blank()) { return pipeline; }
+	if (!rendergraph->Name().Blank()) { return rendergraph; }
 
-	*pipeline = {};
+	rendergraph->handle = handle;
 
-	pipeline->name = info.name;
-	pipeline->handle = handle;
-	pipeline->subpass = info.subpass;
-
-	if (!pipeline->Create(info, renderpass))
+	if (!rendergraph->Create(info))
 	{
-		Logger::Error("Failed To Create Pipeline!");
-		pipelines.Remove(handle);
-		pipeline->Destroy();
+		Logger::Error("Failed To Create Rendergraph!");
+		rendergraphs.Remove(rendergraph->handle);
+		rendergraph->handle = U64_MAX;
+		rendergraph->Destroy();
 		return nullptr;
 	}
 
-	return pipeline;
+	return rendergraph;
 }
 
-Scene* Resources::CreateScene(const String& name, CameraType cameraType)
+Scene* Resources::CreateScene(const String& name, CameraType cameraType, Rendergraph* rendergraph)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -794,7 +682,7 @@ Scene* Resources::CreateScene(const String& name, CameraType cameraType)
 	scene->name = name;
 	scene->handle = handle;
 
-	scene->Create(cameraType);
+	scene->Create(cameraType, rendergraph);
 
 	return scene;
 }
@@ -860,11 +748,6 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 	Renderer::DestroyTextureInstant(&deleteTexture);
 
 	return true;
-}
-
-void Resources::RecreateRenderpass(Renderpass* renderpass)
-{
-	Renderer::RecreateRenderpass(renderpass);
 }
 
 bool SetAtlasPositions()
@@ -1329,6 +1212,117 @@ Texture* Resources::LoadTexture(const String& path)
 	return nullptr;
 }
 
+Material* Resources::LoadMaterial(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Material* material = materials.Request(path, handle);
+
+	if (!material->name.Blank()) { return material; }
+
+	*material = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		material->name = path;
+		material->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Material"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Material!", path);
+			materials.Remove(handle);
+			material->Destroy();
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.Read(material->type);
+		reader.Read(material->stageIndex);
+
+		String texturePath = reader.ReadString();
+		if (!texturePath.Compare("NULL")) { material->data.diffuseTextureIndex = (U32)LoadTexture(texturePath)->handle; }
+
+		texturePath = reader.ReadString();
+		if (!texturePath.Compare("NULL")) { material->data.metalRoughOcclTextureIndex = (U32)LoadTexture(texturePath)->handle; }
+
+		texturePath = reader.ReadString();
+		if (!texturePath.Compare("NULL")) { material->data.normalTextureIndex = (U32)LoadTexture(texturePath)->handle; }
+
+		texturePath = reader.ReadString();
+		if (!texturePath.Compare("NULL")) { material->data.emissivityTextureIndex = (U32)LoadTexture(texturePath)->handle; }
+
+		reader.Read(material->data.baseColorFactor);
+		reader.Read(material->data.metalRoughFactor);
+
+		VkBufferCopy region{};
+		region.dstOffset = sizeof(MaterialData) * handle;
+		region.size = sizeof(MaterialData);
+		region.srcOffset = 0;
+
+		Renderer::FillBuffer(Renderer::materialBuffer, sizeof(MaterialData), &material->data, 1, &region);
+
+		return material;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", path);
+	materials.Remove(handle);
+	return nullptr;
+}
+
+Mesh* Resources::LoadMesh(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Mesh* mesh = meshes.Request(path, handle);
+
+	if (!mesh->name.Blank()) { return mesh; }
+
+	*mesh = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		mesh->name = path;
+		mesh->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Mesh"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Mesh!", path);
+			meshes.Remove(handle);
+			mesh->Destroy();
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		reader.Read(mesh->verticesSize);
+		Memory::AllocateSize(&mesh->vertices, mesh->verticesSize);
+		Memory::Copy(mesh->vertices, reader.Pointer(), mesh->verticesSize);
+
+		reader.Seek(mesh->verticesSize);
+
+		reader.Read(mesh->indicesSize);
+		Memory::AllocateSize(&mesh->indices, mesh->indicesSize);
+		Memory::Copy(mesh->indices, reader.Pointer(), mesh->indicesSize);
+
+		return mesh;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", path);
+	meshes.Remove(handle);
+	return nullptr;
+}
+
 Model* Resources::LoadModel(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
@@ -1359,72 +1353,37 @@ Model* Resources::LoadModel(const String& path)
 
 		reader.Seek(4); //Skip version number for now, there is only one
 
-		U32 textureCount;
-		reader.Read(textureCount);
-
-		U32 textureIndices[32]{};
-
-		TextureInfo info{};
-		info.depth = 1;
-		info.format = VK_FORMAT_R8G8B8A8_UNORM;
-
-		for (U32 i = 0; i < textureCount; ++i)
-		{
-			textureIndices[i] = (U32)LoadTexture(reader.ReadString())->handle;
-		}
-
-		U32 materialCount;
-		reader.Read(materialCount);
-
-		U32 materialIndices[32]{};
-
-		for (U32 i = 0; i < materialCount; ++i)
-		{
-			Material material;
-			reader.Read(material);
-
-			if (material.diffuseTextureIndex != U16_MAX) { material.diffuseTextureIndex = textureIndices[material.diffuseTextureIndex]; }
-			if (material.normalTextureIndex != U16_MAX) { material.normalTextureIndex = textureIndices[material.normalTextureIndex]; }
-			if (material.metalRoughOcclTextureIndex != U16_MAX) { material.metalRoughOcclTextureIndex = textureIndices[material.metalRoughOcclTextureIndex]; }
-			if (material.emissivityTextureIndex != U16_MAX) { material.emissivityTextureIndex = textureIndices[material.emissivityTextureIndex]; }
-
-			materialIndices[i] = (U32)(Renderer::UploadToBuffer(Renderer::materialBuffer, sizeof(Material), &material) / sizeof(Material));
-		}
-
 		U32 meshCount;
 		reader.Read(meshCount);
 
-		model->meshes.Resize(meshCount);
-
 		for (U32 i = 0; i < meshCount; ++i)
 		{
-			DrawCall& draw = model->meshes[i];
+			String path = reader.ReadString();
 
-			U32 verticesSize;
-			reader.Read(verticesSize);
-			draw.vertexOffset = (U32)((meshPipeline->UploadVertices(verticesSize, reader.Pointer()) / sizeof(Vertex)));
-			reader.Seek(verticesSize);
-
-			U32 indicesSize;
-			reader.Read(indicesSize);
-			draw.indexCount = indicesSize / sizeof(U32);
-			draw.indexOffset = (U32)(meshPipeline->UploadIndices(indicesSize, reader.Pointer()) / sizeof(U32));
-			reader.Seek(indicesSize);
+			Mesh* mesh = LoadMesh(path);
 
 			U32 instanceCount;
 			reader.Read(instanceCount);
-			draw.instances.Resize(instanceCount);
 
 			for (U32 j = 0; j < instanceCount; ++j)
 			{
-				U16 index;
-				reader.Read(index);
-				draw.instances[j].materialIndex = materialIndices[index];
-				reader.Read(draw.instances[j].model);
-			}
+				MeshInstance instance{};
 
-			U32 instanceOffset = (U32)(meshPipeline->UploadInstances((U32)sizeof(MeshInstance) * (U32)draw.instances.Size(), draw.instances.Data()) / sizeof(MeshInstance));
-			meshPipeline->UploadDrawCall(draw.indexCount, draw.indexOffset, draw.vertexOffset, (U32)draw.instances.Size(), instanceOffset);
+				instance.mesh = mesh;
+
+				path = reader.ReadString();
+				instance.material = LoadMaterial(path);
+
+				Matrix4 modelMatrix;
+				reader.Read(modelMatrix);
+
+				U32 materialIndex = (U32)instance.material->handle;
+
+				Memory::Copy(&instance.instanceData, &materialIndex, sizeof(U32));
+				Memory::Copy((U8*)&instance.instanceData + sizeof(U32), &modelMatrix, sizeof(Matrix4));
+
+				model->meshes.Push(Move(instance));
+			}
 		}
 
 		return model;
@@ -1432,81 +1391,6 @@ Model* Resources::LoadModel(const String& path)
 
 	Logger::Error("Failed To Find Or Open File: {}", path);
 	models.Remove(handle);
-	return nullptr;
-}
-
-Skybox* Resources::LoadSkybox(const String& path)
-{
-	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
-
-	HashHandle handle;
-	Skybox* skybox = skyboxes.Request(path, handle);
-
-	if (!skybox->name.Blank()) { return skybox; }
-
-	*skybox = {};
-
-	File file(path, FILE_OPEN_RESOURCE_READ);
-	if (file.Opened())
-	{
-		skybox->name = path;
-		skybox->handle = handle;
-
-		DataReader reader{ file };
-		file.Close();
-
-		if (!reader.Compare("NH Skybox"))
-		{
-			Logger::Error("Asset '{}' Is Not A Nihility Skybox!", path);
-			skyboxes.Remove(handle);
-			skybox->Destroy();
-			return nullptr;
-		}
-
-		reader.Seek(4); //Skip version number for now, there is only one
-
-		U32 faceCount;
-		U32 faceSize;
-
-		reader.Read(faceCount);
-		reader.Read(faceSize);
-
-		String textureName = path.GetFileName().Appended("_texture");
-
-		Texture* texture = textures.Request(textureName, handle);
-		*texture = {};
-
-		reader.Read((U32&)texture->width);
-		texture->height = texture->width;
-		reader.Read(texture->format);
-
-		texture->name = Move(textureName);
-		texture->handle = handle;
-		texture->type = VK_IMAGE_TYPE_2D;
-		texture->flags = 0;
-		texture->depth = 1;
-		texture->mipmapCount = 1;
-		texture->size = faceSize * faceCount;
-
-		if (!Renderer::CreateCubemap(texture, reader.Pointer(), &faceSize))
-		{
-			Logger::Error("Failed To Create Cubemap!", path);
-			textures.Remove(handle);
-			skyboxes.Remove(skybox->handle);
-			texture->Destroy();
-			skybox->Destroy();
-			return {};
-		}
-
-		skybox->texture = texture;
-
-		skybox->instance = skyboxPipeline->UploadInstances(sizeof(U32), (U32*)&texture->handle);
-
-		return skybox;
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}!", path);
-	skyboxes.Remove(skybox->handle);
 	return nullptr;
 }
 
@@ -1895,29 +1779,9 @@ Texture* Resources::AccessTexture(const String& name)
 	return textures.Get(name);
 }
 
-Renderpass* Resources::AccessRenderpass(const String& name)
-{
-	return renderpasses.Get(name);
-}
-
-Pipeline* Resources::AccessPipeline(const String& name)
-{
-	return pipelines.Get(name);
-}
-
 Texture* Resources::AccessTexture(HashHandle handle)
 {
 	return textures.Obtain(handle);
-}
-
-Renderpass* Resources::AccessRenderpass(HashHandle handle)
-{
-	return renderpasses.Obtain(handle);
-}
-
-Pipeline* Resources::AccessPipeline(HashHandle handle)
-{
-	return pipelines.Obtain(handle);
 }
 
 void Resources::DestroyTexture(Texture* texture)
@@ -1928,17 +1792,6 @@ void Resources::DestroyTexture(Texture* texture)
 		textures.Remove(texture->handle);
 
 		texture->handle = U64_MAX;
-	}
-}
-
-void Resources::DestroyRenderpass(Renderpass* renderpass)
-{
-	if (renderpass->handle != U64_MAX)
-	{
-		Renderer::DestroyRenderPassInstant(renderpasses.Obtain(renderpass->handle));
-		renderpasses.Remove(renderpass->handle);
-
-		renderpass->handle = U64_MAX;
 	}
 }
 
@@ -2144,8 +1997,17 @@ String Resources::UploadTexture(const String& path, const TextureUpload& upload)
 	return {};
 }
 
-String Resources::UploadTexture(const aiTexture* textureInfo, TextureUsage usage)
+String Resources::UploadTexture(const String& name, U32 index, const aiTexture* textureInfo, TextureUsage usage)
 {
+	VkFormat format;
+
+	switch (usage)
+	{
+	case TEXTURE_USAGE_COLOR: { format = VK_FORMAT_R8G8B8A8_UNORM; } break;
+	case TEXTURE_USAGE_CALCULATION: { format = VK_FORMAT_R8G8B8A8_UNORM; } break;
+	case TEXTURE_USAGE_MASK: { format = VK_FORMAT_R8_UNORM; } break;
+	}
+
 	I32 width;
 	I32 height;
 	U8* textureData = stbi_load_from_memory((U8*)textureInfo->pcData, textureInfo->mWidth, &width, &height, nullptr, 4);
@@ -2156,12 +2018,12 @@ String Resources::UploadTexture(const aiTexture* textureInfo, TextureUsage usage
 		return {};
 	}
 
-	String name = textureInfo->mFilename.C_Str();
+	String path = textureInfo->mFilename.C_Str();
 
-	if (name.Blank()) { name = String::RandomString(16).Surround("textures/", ".nhtex"); }
-	else { name = name.GetFileName().Surround("textures/", ".nhtex"); }
+	if (path.Blank()) { path = { "textures/", name, index, ".nhtex" }; }
+	else { path = path.GetFileName().Surround("textures/", ".nhtex"); }
 
-	File file(name, FILE_OPEN_RESOURCE_WRITE);
+	File file(path, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
 	{
 		file.Write("NH Texture");
@@ -2170,15 +2032,6 @@ String Resources::UploadTexture(const aiTexture* textureInfo, TextureUsage usage
 		file.Write(usage);
 		SamplerInfo sampler = {};
 		file.Write(sampler);
-
-		VkFormat format;
-
-		switch (usage)
-		{
-		case TEXTURE_USAGE_COLOR: { format = VK_FORMAT_R8G8B8A8_UNORM; } break;
-		case TEXTURE_USAGE_CALCULATION: { format = VK_FORMAT_R8G8B8A8_UNORM; } break;
-		case TEXTURE_USAGE_MASK: { format = VK_FORMAT_R8_UNORM; } break;
-		}
 
 		file.Write((U16)width);
 		file.Write((U16)height);
@@ -2201,50 +2054,154 @@ String Resources::UploadTexture(const aiTexture* textureInfo, TextureUsage usage
 
 		file.Close();
 
-		return Move(name);
+		return Move(path);
 	}
 
+	Logger::Error("Failed To Create File: {}!", path);
 	return {};
 }
 
-String Resources::UploadSkybox(const String& path)
+String Resources::UploadTextures(const String& name, U32 index, const aiTexture* textureInfo0, const aiTexture* textureInfo1, const aiTexture* textureInfo2, U8 def0, U8 def1, U8 def2, TextureUsage usage)
 {
-	File file(path, FILE_OPEN_RESOURCE_READ);
-	if (file.Opened())
+	VkFormat format;
+
+	switch (usage)
 	{
-		I64 extIndex = path.LastIndexOf('.') + 1;
-		DataReader reader{ file };
-		file.Close();
-
-		U8* imageData = nullptr;
-		U32 faceCount;
-		U32 faceSize;
-		U32 resolution;
-		VkFormat format;
-
-		if (path.CompareN("ktx", extIndex) || path.CompareN("ktx2", extIndex) || path.CompareN("ktx1", extIndex)) { imageData = LoadKTX(reader, faceCount, faceSize, resolution, format); }
-		else { imageData = LoadHDRToCube(reader, faceSize, resolution, format); faceCount = 6; }
-
-		if (imageData == nullptr) { return {}; }
-
-		String newPath = path.GetFileName().Surround("textures/", ".nhskb");
-
-		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
-
-		file.Write("NH Skybox");
-		file.Write(SKYBOX_VERSION);
-		file.Write(faceCount);
-		file.Write(faceSize);
-		file.Write(resolution);
-		file.Write(format);
-		file.WriteCount(imageData, faceSize * faceCount);
-
-		file.Close();
-
-		return Move(newPath);
+	case TEXTURE_USAGE_COLOR: { format = VK_FORMAT_R8G8B8A8_UNORM; } break;
+	case TEXTURE_USAGE_CALCULATION: { format = VK_FORMAT_R8G8B8A8_UNORM; } break;
+	case TEXTURE_USAGE_MASK: { Logger::Error("Can't Combine Textures Into A Mask!"); return {}; } break;
 	}
 
-	Logger::Error("Failed To Find Or Open File: {}!", path);
+	I32 width0 = 0;
+	I32 height0 = 0;
+	U8* textureData0 = nullptr;
+	if (textureInfo0) { textureData0 = stbi_load_from_memory((U8*)textureInfo0->pcData, textureInfo0->mWidth, &width0, &height0, nullptr, 3); }
+
+	I32 width1 = 0;
+	I32 height1 = 0;
+	U8* textureData1 = nullptr;
+	if (textureInfo1) { textureData1 = stbi_load_from_memory((U8*)textureInfo1->pcData, textureInfo1->mWidth, &width1, &height1, nullptr, 3); }
+
+	I32 width2 = 0;
+	I32 height2 = 0;
+	U8* textureData2 = nullptr;
+	if (textureInfo2) { textureData2 = stbi_load_from_memory((U8*)textureInfo2->pcData, textureInfo2->mWidth, &width2, &height2, nullptr, 3); }
+
+	String path = { "textures/", name, index, ".nhtex"};
+
+	U32 width = 0;
+	U32 height = 0;
+
+	if (textureData0) { width = width0; height = height0; }
+	else if (textureData1) { width = width1; height = height1; }
+	else if (textureData2) { width = width2; height = height2; }
+	else { Logger::Error("Failed To Load All Textures For Combined Texture!"); return {}; }
+
+	File file(path, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
+	{
+		file.Write("NH Texture");
+		file.Write(TEXTURE_VERSION);
+
+		file.Write(usage);
+		SamplerInfo sampler = {};
+		file.Write(sampler);
+
+		file.Write((U16)width);
+		file.Write((U16)height);
+		file.Write(format);
+		file.Write(MipmapCount(width, height));
+
+		if (textureData0)
+		{
+			if (textureData1)
+			{
+				if (textureData2)
+				{
+					for (U32 i = 0; i < width * height; ++i)
+					{
+						file.Write(textureData0[i * 3]);
+						file.Write(textureData1[i * 3 + 1]);
+						file.Write(textureData2[i * 3 + 2]);
+						file.Write(255ui8);
+					}
+				}
+				else
+				{
+					for (U32 i = 0; i < width * height; ++i)
+					{
+						file.Write(textureData0[i * 3]);
+						file.Write(textureData1[i * 3 + 1]);
+						file.Write(def2);
+						file.Write(255ui8);
+					}
+				}
+			}
+			else if (textureData2)
+			{
+				for (U32 i = 0; i < width * height; ++i)
+				{
+					file.Write(textureData0[i * 3]);
+					file.Write(def1);
+					file.Write(textureData2[i * 3 + 2]);
+					file.Write(255ui8);
+				}
+			}
+			else
+			{
+				for (U32 i = 0; i < width * height; ++i)
+				{
+					file.Write(textureData0[i * 3]);
+					file.Write(def1);
+					file.Write(def2);
+					file.Write(255ui8);
+				}
+			}
+		}
+		else if (textureData1)
+		{
+			if (textureData2)
+			{
+				for (U32 i = 0; i < width * height; ++i)
+				{
+					file.Write(def0);
+					file.Write(textureData1[i * 3 + 1]);
+					file.Write(textureData2[i * 3 + 2]);
+					file.Write(255ui8);
+				}
+			}
+			else
+			{
+				for (U32 i = 0; i < width * height; ++i)
+				{
+					file.Write(def0);
+					file.Write(textureData1[i * 3 + 1]);
+					file.Write(def2);
+					file.Write(255ui8);
+				}
+			}
+		}
+		else
+		{
+			for (U32 i = 0; i < width * height; ++i)
+			{
+				file.Write(def0);
+				file.Write(def1);
+				file.Write(textureData2[i * 3 + 2]);
+				file.Write(255ui8);
+			}
+		}
+
+		if (textureData0) { Memory::Free(&textureData0); }
+		if (textureData1) { Memory::Free(&textureData1); }
+		if (textureData2) { Memory::Free(&textureData2); }
+
+		file.Close();
+
+		return Move(path);
+	}
+
+	Logger::Error("Failed To Create File: {}!", path);
 	return {};
 }
 
@@ -2808,6 +2765,29 @@ U8* Resources::LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution,
 	return result;
 }
 
+struct InstanceUpload
+{
+	Matrix4 model;
+	String material;
+};
+
+struct MeshUpload
+{
+	String path;
+
+	U32 instanceCount{ 0 };
+	InstanceUpload instances[32];
+};
+
+struct ModelUpload
+{
+	U32 materialCount{ 0 };
+	String materials[32];
+
+	U32 meshCount{ 0 };
+	MeshUpload meshes[32];
+};
+
 String Resources::UploadModel(const String& path)
 {
 	const aiScene* scene = aiImportFile(path.Data(), ASSIMP_IMPORT_FLAGS);
@@ -2823,22 +2803,20 @@ String Resources::UploadModel(const String& path)
 	for (U32 i = 0; i < scene->mNumMaterials; ++i)
 	{
 		aiMaterial* materialInfo = scene->mMaterials[i];
-		model.materials[model.materialCount++] = ParseAssimpMaterial(model, materialInfo, scene);
+		model.materials[model.materialCount++] = Move(ParseAssimpMaterial(name + i, materialInfo, scene));
 	}
 
 	for (U32 i = 0; i < scene->mNumMeshes; ++i)
 	{
 		aiMesh* meshInfo = scene->mMeshes[i];
-		model.meshes[model.meshCount] = ParseAssimpMesh(meshInfo);
-		model.meshes[model.meshCount++].materialIndex = meshInfo->mMaterialIndex;
+		model.meshes[model.meshCount++].path = ParseAssimpMesh(name + i, meshInfo);
 	}
 
 	ParseAssimpModel(model, scene);
 
 	aiReleaseImport(scene);
 
-	String newPath = name;
-	newPath.Surround("models/", ".nhmdl");
+	String newPath{ "models/", name, ".nhmdl" };
 
 	File file(newPath, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
@@ -2846,30 +2824,19 @@ String Resources::UploadModel(const String& path)
 		file.Write("NH Model");
 		file.Write(MODEL_VERSION);
 
-		file.Write(model.textureCount);
-
-		for (U32 i = 0; i < model.textureCount; ++i) { file.Write(model.textures[i]); }
-
-		file.Write(model.materialCount);
-
-		for (U32 i = 0; i < model.materialCount; ++i) { file.Write(model.materials[i]); }
-
 		file.Write(model.meshCount);
 
 		for (U32 i = 0; i < model.meshCount; ++i)
 		{
 			MeshUpload& mesh = model.meshes[i];
 
-			file.Write(mesh.verticesSize);
-			file.Write(mesh.vertices, mesh.verticesSize);
-			file.Write(mesh.indicesSize);
-			file.Write(mesh.indices, mesh.indicesSize);
+			file.Write(mesh.path);
 			file.Write(mesh.instanceCount);
 
 			for (U32 j = 0; j < mesh.instanceCount; ++j)
 			{
-				file.Write(mesh.materialIndex);
-				file.Write(mesh.instances[j]);
+				file.Write(mesh.instances[j].material);
+				file.Write(mesh.instances[j].model);
 			}
 		}
 
@@ -2881,151 +2848,150 @@ String Resources::UploadModel(const String& path)
 	return {};
 }
 
-Material Resources::ParseAssimpMaterial(ModelUpload& model, const aiMaterial* materialInfo, const aiScene* scene)
+String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* materialInfo, const aiScene* scene)
 {
-	Material material{};
+	String path = { "materials/", name, ".nhmat" };
 
-	aiReturn ret;
-
-	for (U32 i = 0; i <= AI_TEXTURE_TYPE_MAX; ++i)
+	File file(path, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
 	{
+		file.Write("NH Material");
+		file.Write(MATERIAL_VERSION);
+
+		file.Write(RENDER_STAGE_GEOMETRY_OPAQUE);	//TODO: Determine stage
+		file.Write(0u);								//TODO: Determine index
+
+		aiReturn ret;
+
 		aiString texturePath;
-		ret = materialInfo->GetTexture((aiTextureType)i, 0, &texturePath, nullptr, nullptr, nullptr, nullptr, nullptr);
-		if (ret == aiReturn_SUCCESS)
-		{
-			U16 index = model.textureCount;
+		U32 textureIndex = 0;
+
+		auto WriteTexture = [&](TextureUsage usage) {
 			const aiTexture* texture = scene->GetEmbeddedTexture(texturePath.C_Str());
-			if (texture) { model.textures[model.textureCount++] = UploadTexture(texture, TEXTURE_USAGE_COLOR); }
-			else { model.textures[model.textureCount++] = UploadTexture(texturePath.C_Str()); }
+			if (texture) { file.Write(UploadTexture(name, textureIndex++, texture, usage)); }
+			else { file.Write(UploadTexture(texturePath.C_Str())); }
+		};
 
-			//TODO: Assign texture usage
-			switch (i)
-			{
-			case aiTextureType_DIFFUSE: { material.diffuseTextureIndex = index; } break;
-			case aiTextureType_EMISSIVE: { material.emissivityTextureIndex = index; } break;
-			case aiTextureType_NORMALS: { material.normalTextureIndex = index; } break;
-			case aiTextureType_SHININESS: {} break;
-			case aiTextureType_BASE_COLOR: { material.diffuseTextureIndex = index; } break;
-			case aiTextureType_EMISSION_COLOR: { material.emissivityTextureIndex = index; } break;
-			case aiTextureType_METALNESS: {} break;			//TODO: Combine these textures
-			case aiTextureType_DIFFUSE_ROUGHNESS: {} break;
-			case aiTextureType_AMBIENT_OCCLUSION: {} break;
+		//Diffuse Color
+		if ((ret = materialInfo->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)) == aiReturn_SUCCESS) { WriteTexture(TEXTURE_USAGE_COLOR); }
+		else if ((ret = materialInfo->GetTexture(aiTextureType_BASE_COLOR, 0, &texturePath)) == aiReturn_SUCCESS) { WriteTexture(TEXTURE_USAGE_COLOR); }
+		else { file.Write("NULL"); }
 
-			case aiTextureType_NONE:
-			case aiTextureType_SPECULAR:
-			case aiTextureType_AMBIENT:
-			case aiTextureType_HEIGHT:
-			case aiTextureType_OPACITY:
-			case aiTextureType_DISPLACEMENT:
-			case aiTextureType_LIGHTMAP:
-			case aiTextureType_REFLECTION:
-			case aiTextureType_NORMAL_CAMERA:
-			case aiTextureType_UNKNOWN:
-			case aiTextureType_SHEEN:
-			case aiTextureType_CLEARCOAT:
-			case aiTextureType_TRANSMISSION:
-			default: { Logger::Warn("Unknown Texture Usage '{}'!", i); }
-			}
-		}
+		//Metalic Roughness AO
+		const aiTexture* texture0 = nullptr;
+		const aiTexture* texture1 = nullptr;
+		const aiTexture* texture2 = nullptr;
+		if ((ret = materialInfo->GetTexture(aiTextureType_METALNESS, 0, &texturePath)) == aiReturn_SUCCESS) { texture0 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
+		if ((ret = materialInfo->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath)) == aiReturn_SUCCESS) { texture1 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
+		if ((ret = materialInfo->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &texturePath)) == aiReturn_SUCCESS) { texture2 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
+
+		if (texture0 || texture1 || texture2) { file.Write(UploadTextures(name, textureIndex++, texture0, texture1, texture2, 127ui8, 127ui8, 0ui8, TEXTURE_USAGE_CALCULATION)); }
+		else { file.Write("NULL"); }
+
+		//Normal
+		if ((ret = materialInfo->GetTexture(aiTextureType_NORMALS, 0, &texturePath)) == aiReturn_SUCCESS) { WriteTexture(TEXTURE_USAGE_CALCULATION); }
+		else { file.Write("NULL"); }
+
+		//Emissive Color
+		if ((ret = materialInfo->GetTexture(aiTextureType_EMISSIVE, 0, &texturePath)) == aiReturn_SUCCESS) { WriteTexture(TEXTURE_USAGE_COLOR); }
+		else if ((ret = materialInfo->GetTexture(aiTextureType_EMISSION_COLOR, 0, &texturePath)) == aiReturn_SUCCESS) { WriteTexture(TEXTURE_USAGE_COLOR); }
+		else { file.Write("NULL"); }
+
+		aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+		ai_real metallic{ 0.5f };
+		ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
+		ai_real roughness{ 0.5f };
+		ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+
+		file.Write(color);
+		file.Write(metallic);
+		file.Write(roughness);
+
+		file.Close();
 	}
 
-	aiColor4D color{ 1.0f, 1.0f, 1.0f, 1.0f };
-	ret = materialInfo->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-	ai_real roughness{ 0.5f };
-	ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
-	ai_real metallic{ 0.5f };
-	ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
-
-	material.baseColorFactor.x = color.r;
-	material.baseColorFactor.y = color.g;
-	material.baseColorFactor.z = color.b;
-	material.baseColorFactor.w = color.a;
-
-	material.metalRoughFactor.x = metallic;
-	material.metalRoughFactor.y = roughness;
-
-	return material;
+	return Move(path);
 }
 
-MeshUpload Resources::ParseAssimpMesh(const aiMesh* meshInfo)
+String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 {
-	MeshUpload mesh{};
+	String path = { "meshes/", name, ".nhmsh" };
 
-	U32 vertexCount = meshInfo->mNumVertices;
-	mesh.verticesSize = vertexCount * sizeof(Vertex);
-	Memory::AllocateSize(&mesh.vertices, mesh.verticesSize);
-
-	if (meshInfo->HasTangentsAndBitangents())
+	File file(path, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
 	{
-		if (meshInfo->HasTextureCoords(0))
-		{
-			for (U32 i = 0; i < vertexCount; ++i)
-			{
-				Vertex& vertex = mesh.vertices[i];
+		file.Write("NH Mesh");
+		file.Write(MESH_VERSION);
 
-				vertex.position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
-				vertex.normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
-				vertex.tangent = *reinterpret_cast<Vector3*>(&meshInfo->mTangents[i]);
-				vertex.bitangent = *reinterpret_cast<Vector3*>(&meshInfo->mBitangents[i]);
-				vertex.texcoord = *reinterpret_cast<Vector2*>(&meshInfo->mTextureCoords[0][i]);
+		U32 vertexCount = meshInfo->mNumVertices;
+
+		file.Write((U32)(vertexCount * sizeof(Vertex)));
+
+		if (meshInfo->HasTangentsAndBitangents())
+		{
+			if (meshInfo->HasTextureCoords(0))
+			{
+				for (U32 i = 0; i < vertexCount; ++i)
+				{
+					file.Write(meshInfo->mVertices[i]);
+					file.Write(meshInfo->mNormals[i]);
+					file.Write(meshInfo->mTangents[i]);
+					file.Write(meshInfo->mBitangents[i]);
+					file.Write(&meshInfo->mTextureCoords[0][i], sizeof(Vector2));
+				}
+			}
+			else
+			{
+				for (U32 i = 0; i < vertexCount; ++i)
+				{
+					file.Write(meshInfo->mVertices[i]);
+					file.Write(meshInfo->mNormals[i]);
+					file.Write(meshInfo->mTangents[i]);
+					file.Write(meshInfo->mBitangents[i]);
+					file.Write(Vector2Zero);
+				}
 			}
 		}
 		else
 		{
-			for (U32 i = 0; i < vertexCount; ++i)
+			if (meshInfo->HasTextureCoords(0))
 			{
-				Vertex& vertex = mesh.vertices[i];
-
-				vertex.position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
-				vertex.normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
-				vertex.tangent = *reinterpret_cast<Vector3*>(&meshInfo->mTangents[i]);
-				vertex.bitangent = *reinterpret_cast<Vector3*>(&meshInfo->mBitangents[i]);
+				for (U32 i = 0; i < vertexCount; ++i)
+				{
+					file.Write(meshInfo->mVertices[i]);
+					file.Write(meshInfo->mNormals[i]);
+					file.Write(Vector3Zero);
+					file.Write(Vector3Zero);
+					file.Write(&meshInfo->mTextureCoords[0][i], sizeof(Vector2));
+				}
+			}
+			else
+			{
+				for (U32 i = 0; i < vertexCount; ++i)
+				{
+					file.Write(meshInfo->mVertices[i]);
+					file.Write(meshInfo->mNormals[i]);
+					file.Write(Vector3Zero);
+					file.Write(Vector3Zero);
+					file.Write(Vector2Zero);
+				}
 			}
 		}
-	}
-	else
-	{
-		if (meshInfo->HasTextureCoords(0))
+
+		U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
+
+		file.Write(meshInfo->mNumFaces * faceSize);
+
+		for (U32 i = 0; i < meshInfo->mNumFaces; ++i)
 		{
-			for (U32 i = 0; i < vertexCount; ++i)
-			{
-				Vertex& vertex = mesh.vertices[i];
-
-				vertex.position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
-				vertex.normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
-				vertex.texcoord = *reinterpret_cast<Vector2*>(&meshInfo->mTextureCoords[0][i]);
-				vertex.tangent = {};
-				vertex.bitangent = {};
-			}
+			file.Write(meshInfo->mFaces[i].mIndices, faceSize);
 		}
-		else
-		{
-			for (U32 i = 0; i < vertexCount; ++i)
-			{
-				Vertex& vertex = mesh.vertices[i];
 
-				vertex.position = *reinterpret_cast<Vector3*>(&meshInfo->mVertices[i]);
-				vertex.normal = *reinterpret_cast<Vector3*>(&meshInfo->mNormals[i]);
-				vertex.tangent = {};
-				vertex.bitangent = {};
-			}
-		}
+		file.Close();
 	}
 
-	U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
-
-	mesh.indicesSize = meshInfo->mNumFaces * faceSize;
-	Memory::AllocateSize(&mesh.indices, mesh.indicesSize);
-
-	U8* it = (U8*)mesh.indices;
-
-	for (U32 i = 0; i < meshInfo->mNumFaces; ++i)
-	{
-		Memory::Copy(it, meshInfo->mFaces[i].mIndices, faceSize);
-		it += faceSize;
-	}
-
-	return mesh;
+	return Move(path);
 }
 
 void Resources::ParseAssimpModel(ModelUpload& model, const aiScene* scene)
@@ -3042,7 +3008,8 @@ void Resources::ParseAssimpModel(ModelUpload& model, const aiScene* scene)
 		{
 			MeshUpload& draw = model.meshes[node->mMeshes[i]];
 
-			draw.instances[draw.instanceCount++] = *reinterpret_cast<Matrix4*>(&node->mTransformation.Transpose());
+			draw.instances[draw.instanceCount].material = model.materials[scene->mMeshes[node->mMeshes[i]]->mMaterialIndex];
+			draw.instances[draw.instanceCount++].model = *reinterpret_cast<Matrix4*>(&node->mTransformation.Transpose()); //TODO: It seems this is broken sometimes
 		}
 
 		for (U32 i = 0; i < node->mNumChildren; ++i)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Resources\Entity.hpp"
 
 typedef bool(*InitializeFn)();
 typedef void(*UpdateFn)();
@@ -26,6 +27,7 @@ private:
 	static InitializeFn GameInit;
 	static UpdateFn GameUpdate;
 	static ShutdownFn GameShutdown;
+
 
 	static bool running;
 

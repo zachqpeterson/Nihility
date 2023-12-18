@@ -12,11 +12,11 @@ static constexpr U8	MAX_VERTEX_ATTRIBUTES = 16;			// Maximum vertex attributes a
 static constexpr U8	MAX_PUSH_CONSTANTS = 8;				// Maximum number of push constants a shader can have
 static constexpr U8	MAX_PUSH_CONSTANT_SIZE = 128;		// Maximum size of all push constants a shader can have
 
-enum DrawType
+enum ClearType
 {
-	DRAW_TYPE_INDEX,
-	DRAW_TYPE_VERTEX,
-	DRAW_TYPE_FULLSCREEN,
+	CLEAR_TYPE_COLOR = 1,
+	CLEAR_TYPE_DEPTH = 2,
+	CLEAR_TYPE_STENCIL = 4,
 };
 
 enum CullMode
@@ -28,11 +28,10 @@ enum CullMode
 	CULL_MODE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 };
 
-enum FrontFaceType
+enum FrontFaceMode
 {
-	FRONT_FACE_TYPE_COUNTER_CLOCKWISE = 0,
-	FRONT_FACE_TYPE_CLOCKWISE = 1,
-	FRONT_FACE_TYPE_MAX_ENUM = 0x7FFFFFFF
+	FRONT_FACE_MODE_COUNTER_CLOCKWISE = 0,
+	FRONT_FACE_MODE_CLOCKWISE = 1,
 };
 
 enum PolygonMode
@@ -41,7 +40,21 @@ enum PolygonMode
 	POLYGON_MODE_LINE = 1,
 	POLYGON_MODE_POINT = 2,
 	POLYGON_MODE_FILL_RECTANGLE_NV = 1000153000,
-	POLYGON_MODE_MAX_ENUM = 0x7FFFFFFF
+};
+
+enum TopologyMode
+{
+	TOPOLOGY_MODE_POINT_LIST = 0,
+	TOPOLOGY_MODE_LINE_LIST = 1,
+	TOPOLOGY_MODE_LINE_STRIP = 2,
+	TOPOLOGY_MODE_TRIANGLE_LIST = 3,
+	TOPOLOGY_MODE_TRIANGLE_STRIP = 4,
+	TOPOLOGY_MODE_TRIANGLE_FAN = 5,
+	TOPOLOGY_MODE_LINE_LIST_WITH_ADJACENCY = 6,
+	TOPOLOGY_MODE_LINE_STRIP_WITH_ADJACENCY = 7,
+	TOPOLOGY_MODE_TRIANGLE_LIST_WITH_ADJACENCY = 8,
+	TOPOLOGY_MODE_TRIANGLE_STRIP_WITH_ADJACENCY = 9,
+	TOPOLOGY_MODE_PATCH_LIST = 10
 };
 
 enum StencilOp
@@ -150,13 +163,6 @@ struct NH_API Descriptor
 	Descriptor(Texture* texture);
 };
 
-struct Rasterization
-{
-	CullMode		cullMode{ CULL_MODE_NONE };
-	FrontFaceType	front{ FRONT_FACE_TYPE_COUNTER_CLOCKWISE };
-	PolygonMode		fill{ POLYGON_MODE_FILL };
-};
-
 struct StencilOperationState
 {
 	StencilOp	fail{ STENCIL_OP_KEEP };
@@ -168,31 +174,17 @@ struct StencilOperationState
 	U32			reference{ 0xff };
 };
 
-struct DepthStencil
-{
-	StencilOperationState	front{};
-	StencilOperationState	back{};
-	CompareOp				depthComparison{ COMPARE_OP_ALWAYS };
-
-	bool					depthEnable{ false };
-	bool					depthWriteEnable{ false };
-	bool					stencilEnable{ false };
-};
-
 struct ShaderStage
 {
 	String			entryPoint{};
 	ShaderStageType	stage{ SHADER_STAGE_TYPE_FLAG_BITS_MAX_ENUM };
-
-	U32				localSizeX{ 1 };
-	U32				localSizeY{ 1 };
-	U32				localSizeZ{ 1 };
 
 	bool			usePushConstants{ false };
 };
 
 struct DescriptorSetLayout;
 struct Descriptor;
+struct CommandBuffer;
 struct VkPipelineLayout_T;
 struct VkDescriptorPool_T;
 struct VkDescriptorSet_T;
@@ -221,52 +213,70 @@ struct NH_API Shader
 	String								name{};
 	U64									handle{ U64_MAX };
 
+	String								entryPoint;
 	PipelineBindPoint					bindPoint{ PIPELINE_BIND_POINT_MAX_ENUM };
 	VkPipelineLayout_T*					pipelineLayout{ nullptr };
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
-	U32									language{ 0 };
+
 	U32									pushConstantStages{ 0 }; //VkShaderStageFlags
 	PushConstant						pushConstants[MAX_PUSH_CONSTANTS]{};
 	U8									pushConstantCount{ 0 };
-	DrawType							drawType{ DRAW_TYPE_INDEX };
-	Subpass								subpass{};
-	U8									descriptorCount{ 0 };
-	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET];
-
-	Rasterization						rasterization{};
-	DepthStencil						depthStencil{};
 
 	DescriptorSetLayout*				setLayout{};
+	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET]; //TODO: Descriptors should probably be per-pipeline
+	U8									descriptorCount{ 0 };
 	bool								useSet0{ false };
 	bool								useBindless{ false };
 
-	U32									vertexSize{ 0 };
-	U32									outputCount{ 0 };
+	//Graphics
+	StencilOperationState				front{};
+	StencilOperationState				back{};
+	CompareOp							depthComparison{ COMPARE_OP_ALWAYS };
+	bool								depthEnable{ false };
+	bool								depthWriteEnable{ false };
+	bool								stencilEnable{ false };
 
+	I32									clearTypes{ 0 };
+	TopologyMode						topologyMode{ TOPOLOGY_MODE_TRIANGLE_LIST };
+	CullMode							cullMode{ CULL_MODE_NONE };
+	FrontFaceMode						frontMode{ FRONT_FACE_MODE_COUNTER_CLOCKWISE };
+	PolygonMode							fillMode{ POLYGON_MODE_FILL };
+
+	bool								useVertices{ false };
+	bool								useInstancing{ false };
+	bool								useIndexing{ true };
 	U8									instanceLocation{ U8_MAX };
+	U32									instanceStride{ 0 };
 
-	U32									renderOrder{ 0 };
+	U32									vertexSize{ 0 };
+	U8									outputCount{ 0 };
+	Subpass								subpass{};
+
+	//Compute
+	U32									localSizeX{ 1 };
+	U32									localSizeY{ 1 };
+	U32									localSizeZ{ 1 };
 
 private:
 	bool ParseConfig(const String& data, I64& index);
 	bool ParseStage(const String& data, I64& index, VkShaderStageFlagBits stage);
 	VkPipelineShaderStageCreateInfo CompileShader(ShaderStage& shaderStage, String& code, const String& name);
-	bool ParseSPIRV(U32* code, U64 codeSize, ShaderStage& stage);
+	VkPipelineShaderStageCreateInfo ParseSPIRV(U32* code, U32 codeSize, ShaderStage& stage);
 
 	static const String& ToStageDefines(VkShaderStageFlagBits value);
 	static const String& ToCompilerExtension(VkShaderStageFlagBits value);
 
-	ShaderInfo*							shaderInfo{};
+	ShaderInfo* shaderInfo{};
 
 	static bool Initialize();
 	static void Shutdown();
 
-	static VkDescriptorSetLayout_T*			dummyDescriptorSetLayout;
+	static VkDescriptorSetLayout_T* dummyDescriptorSetLayout;
 
 	static Pool<DescriptorSetLayout, 256>	descriptorSetLayouts;
-	static VkDescriptorPool_T*				bindlessDescriptorPool;
-	static VkDescriptorSet_T*				bindlessDescriptorSet;
-	static DescriptorSetLayout*				bindlessDescriptorSetLayout;
+	static VkDescriptorPool_T* bindlessDescriptorPool;
+	static VkDescriptorSet_T* bindlessDescriptorSet;
+	static DescriptorSetLayout* bindlessDescriptorSetLayout;
 	static constexpr U32					maxBindlessResources{ 1024 };
 	static constexpr U32					bindlessTextureBinding{ 10 };
 

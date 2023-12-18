@@ -2,7 +2,6 @@
 
 #include "MathDefines.hpp"
 
-#include "Containers\String.hpp"
 #include <math.h>
 
 #ifdef abs
@@ -542,6 +541,8 @@ public:
 	F32 x, y; //sin, cos
 };
 
+template<Character C> struct StringBase;
+
 struct NH_API Vector2
 {
 	constexpr Vector2() : x{ 0.0f }, y{ 0.0f } {}
@@ -652,9 +653,9 @@ struct NH_API Vector2
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator String() const;
-	operator String16() const;
-	operator String32() const;
+	operator StringBase<C8>() const;
+	operator StringBase<C16>() const;
+	operator StringBase<C32>() const;
 
 public:
 	F32 x, y;
@@ -804,9 +805,9 @@ struct NH_API Vector3
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator String() const;
-	operator String16() const;
-	operator String32() const;
+	operator StringBase<C8>() const;
+	operator StringBase<C16>() const;
+	operator StringBase<C32>() const;
 
 public:
 	F32 x, y, z;
@@ -1254,9 +1255,9 @@ struct NH_API Vector4
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator String() const;
-	operator String16() const;
-	operator String32() const;
+	operator StringBase<C8>() const;
+	operator StringBase<C16>() const;
+	operator StringBase<C32>() const;
 
 public:
 	F32 x, y, z, w;
@@ -1361,9 +1362,9 @@ struct NH_API Vector2Int
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator String() const;
-	operator String16() const;
-	operator String32() const;
+	operator StringBase<C8>() const;
+	operator StringBase<C16>() const;
+	operator StringBase<C32>() const;
 
 public:
 	I32 x, y;
@@ -1502,9 +1503,9 @@ struct NH_API Vector3Int
 	constexpr explicit operator Vector2Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator String() const;
-	operator String16() const;
-	operator String32() const;
+	operator StringBase<C8>() const;
+	operator StringBase<C16>() const;
+	operator StringBase<C32>() const;
 
 public:
 	I32 x, y, z;
@@ -1954,9 +1955,9 @@ struct NH_API Vector4Int
 	constexpr explicit operator Vector2Int() const;
 	constexpr explicit operator Vector3Int() const;
 
-	operator String() const;
-	operator String16() const;
-	operator String32() const;
+	operator StringBase<C8>() const;
+	operator StringBase<C16>() const;
+	operator StringBase<C32>() const;
 
 public:
 	I32 x, y, z, w;
@@ -2579,6 +2580,12 @@ struct NH_API Matrix4
 		d.z = -(far + near) * farNear;
 		d.w = 1.0f;
 	}
+	constexpr void SetPosition(const Vector3& position)
+	{
+		d.x = position.x;
+		d.y = position.y;
+		d.z = position.z;
+	}
 
 	constexpr void LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
 	{
@@ -2636,6 +2643,7 @@ public:
 };
 
 //TODO: Cache euler angles
+//W is real part
 struct NH_API Quaternion3
 {
 	constexpr Quaternion3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
@@ -2986,6 +2994,7 @@ struct NH_API Quaternion3
 	constexpr F32 Dot(const Quaternion3& q) const { return x * q.x + y * q.y + z * q.z + w * q.w; }
 	constexpr F32 SqrNormal() const { return x * x + y * y + z * z + w * w; }
 	constexpr F32 Normal() const { return Math::Sqrt(x * x + y * y + z * z + w * w); }
+	constexpr Quaternion3 Cross(const Quaternion3& q) const { Vector3 v = Vector3{ x, y, z }.Cross({ q.x, q.y, q.z }); return { v.x, v.y, v.z, -w * q.w }; }
 	constexpr Quaternion3 Normalize() const { F32 n = 1.0f / Normal(); return { x * n, y * n, z * n, w * n }; }
 	constexpr Quaternion3& Normalized() { F32 n = 1.0f / Normal(); x *= n; y *= n; z *= n; w *= n; return *this; }
 	constexpr Quaternion3 Conjugate() const { return { -x, -y, -z, w }; }

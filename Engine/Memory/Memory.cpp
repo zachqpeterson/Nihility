@@ -212,6 +212,24 @@ void Memory::Copy(void* dst, const void* src, U64 size)
 	}
 }
 
+void Memory::CopyGap(void* dst, const void* src, U64 size, U64 gap)
+{
+	if (src > dst)
+	{
+		U8* it0 = (U8*)dst;
+		const U8* it1 = (const U8*)src;
+
+		while (size--) { *it0 = *it1++; it0 += gap; }
+	}
+	else
+	{
+		U8* it0 = (U8*)dst + size - (size % gap);
+		const U8* it1 = (const U8*)src + size - 1;
+
+		while (size--) { *it0 = *it1--; it0 -= gap; }
+	}
+}
+
 /*---------GLOBAL NEW/DELETE---------*/
 
 NH_NODISCARD void* operator new (U64 size)

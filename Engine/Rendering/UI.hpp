@@ -10,6 +10,7 @@ struct UIElement;
 using UIEvent = Function<void(UIElement*, const Vector2&)>;
 
 struct Scene;
+struct PipelineInfo;
 
 enum UIElementType
 {
@@ -175,6 +176,9 @@ struct CommandBuffer;
 class NH_API UI
 {
 public:
+	static const PipelineInfo& GetUIPipeline();
+	static const PipelineInfo& GetTextPipeline();
+
 	static UIElement* CreateElement(const UIElementInfo& info);
 	static UIElement* CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background = nullptr, Texture* border = nullptr);
 	static UIElement* CreateImage(const UIElementInfo& info, Texture* texture, const Vector4& uvs);
@@ -194,18 +198,13 @@ private:
 	static void Shutdown();
 
 	static void Update();
-	static void Resize();
-	static Texture* Run(CommandBuffer* commandBuffer);
-	static void UpdateRenderpass(Texture* renderTarget, Texture* depthTarget);
 
 	static UIElement* SetupElement(const UIElementInfo& info);
 
 	static Vector<UIElement> elements;
 
-	static Vector<PipelineInfo> pipelineInfos;
-	static Pipeline* uiPipeline;
-	static Pipeline* textPipeline;
-	static Renderpass* uiRenderpass;
+	static PipelineInfo uiPipeline;
+	static PipelineInfo textPipeline;
 
 	static U32 textInstanceCount;
 	static U32 textVertexOffset;
@@ -216,5 +215,5 @@ private:
 
 	STATIC_CLASS(UI);
 	friend class Engine;
-	friend class Renderer;
+	friend struct Rendergraph;
 };
