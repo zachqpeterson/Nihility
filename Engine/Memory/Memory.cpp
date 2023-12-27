@@ -200,7 +200,7 @@ void Memory::Copy(void* dst, const void* src, U64 size)
 	{
 		U8* it0 = (U8*)dst;
 		const U8* it1 = (const U8*)src;
-	
+
 		while (size--) { *it0++ = *it1++; }
 	}
 	else
@@ -212,21 +212,71 @@ void Memory::Copy(void* dst, const void* src, U64 size)
 	}
 }
 
-void Memory::CopyGap(void* dst, const void* src, U64 size, U64 gap)
+void Memory::CopyRepeated(void* dst, const void* src, U64 size, U64 count)
 {
 	if (src > dst)
 	{
 		U8* it0 = (U8*)dst;
-		const U8* it1 = (const U8*)src;
+		const U8* start = (const U8*)src;
+		const U8* it1;
+		U64 s;
 
-		while (size--) { *it0 = *it1++; it0 += gap; }
+		for (U64 i = 0; i < count; ++i)
+		{
+			it1 = start;
+			s = size;
+
+			while (s--) { *it0++ = *it1++; }
+		}
+	}
+	else
+	{
+		U8* it0 = (U8*)dst + size - 1;
+		const U8* start = (const U8*)src + size - 1;
+		const U8* it1;
+		U64 s;
+
+		for (U64 i = 0; i < count; ++i)
+		{
+			it1 = start;
+			s = size;
+
+			while (s--) { *it0-- = *it1--; }
+		}
+	}
+}
+
+void Memory::CopyRepeatedGap(void* dst, const void* src, U64 size, U64 count, U64 gap)
+{
+	if (src > dst)
+	{
+		U8* it0 = (U8*)dst;
+		const U8* start = (const U8*)src;
+		const U8* it1;
+		U64 s;
+
+		for (U64 i = 0; i < count; ++i)
+		{
+			it1 = start;
+			s = size;
+
+			while (s--) { *it0 = *it1++; it0 += gap; }
+		}
 	}
 	else
 	{
 		U8* it0 = (U8*)dst + size - (size % gap);
-		const U8* it1 = (const U8*)src + size - 1;
+		const U8* start = (const U8*)src + size - 1;
+		const U8* it1;
+		U64 s;
 
-		while (size--) { *it0 = *it1--; it0 -= gap; }
+		for (U64 i = 0; i < count; ++i)
+		{
+			it1 = start;
+			s = size;
+
+			while (s--) { *it0 = *it1--; it0 -= gap; }
+		}
 	}
 }
 

@@ -3,9 +3,8 @@
 #include "ContainerDefines.hpp"
 #include "String.hpp"
 #include "Memory\Memory.hpp"
-#include "Math\Hash.hpp"
 
-template<class Key, class Value, bool AllowDuplicates = true>
+template<class Key, class Value>
 struct Hashmap
 {
 	struct Cell
@@ -56,12 +55,13 @@ public:
 
 	bool Insert(const Key& key, const Value& value);
 	bool Insert(const Key& key, Value&& value) noexcept;
+	Value* GetInsert(const Key& key, const Value& value);
+	Value* GetInsert(const Key& key, Value&& value) noexcept;
 	bool Remove(const Key& key);
 
 	Value* Get(const Key& key) const;
 	Value* Request(const Key& key);
 	Value* Request(const Key& key, HashHandle& handle);
-	Value* GetRequest(const Key& key, const Value& value);
 	HashHandle GetHandle(const Key& key) const;
 	Value* Obtain(HashHandle handle) const;
 	bool Remove(HashHandle handle);
@@ -93,19 +93,19 @@ private:
 	Hashmap& operator=(const Hashmap&) = delete;
 };
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Hashmap() {}
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Hashmap() {}
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Hashmap(U64 cap)
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Hashmap(U64 cap)
 {
 	Memory::AllocateArray(&cells, cap, capacity);
 	capacity = BitFloor(capacity);
 	capMinusOne = capacity - 1;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Hashmap(Hashmap&& other) noexcept :
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
 	cells{ other.cells }, size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
 {
 	other.cells = nullptr;
@@ -114,8 +114,8 @@ inline Hashmap<Key, Value, AllowDuplicates>::Hashmap(Hashmap&& other) noexcept :
 	other.capMinusOne = 0;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>& Hashmap<Key, Value, AllowDuplicates>::operator=(Hashmap&& other) noexcept
+template<class Key, class Value>
+inline Hashmap<Key, Value>& Hashmap<Key, Value>::operator=(Hashmap&& other) noexcept
 {
 	cells = other.cells;
 	size = other.size;
@@ -130,14 +130,14 @@ inline Hashmap<Key, Value, AllowDuplicates>& Hashmap<Key, Value, AllowDuplicates
 	return *this;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::~Hashmap()
+template<class Key, class Value>
+inline Hashmap<Key, Value>::~Hashmap()
 {
 	Destroy();
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline void Hashmap<Key, Value, AllowDuplicates>::Destroy()
+template<class Key, class Value>
+inline void Hashmap<Key, Value>::Destroy()
 {
 	if (cells)
 	{
@@ -170,8 +170,8 @@ inline void Hashmap<Key, Value, AllowDuplicates>::Destroy()
 	}
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Insert(const Key& key, const Value& value)
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Insert(const Key& key, const Value& value)
 {
 	if (size == capacity) { return false; }
 
@@ -180,14 +180,7 @@ inline bool Hashmap<Key, Value, AllowDuplicates>::Insert(const Key& key, const V
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 
-	if constexpr (AllowDuplicates)
-	{
-		while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
-	}
-	else
-	{
-		while (cell->filled) { if (cell->value == value) { return false; } ++i; cell = cells + ((hash + i * i) & capMinusOne); }
-	}
+	while (cell->filled) { if (cell->key == key) { return false; } ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	++size;
 	cell->filled = true;
@@ -197,8 +190,8 @@ inline bool Hashmap<Key, Value, AllowDuplicates>::Insert(const Key& key, const V
 	return true;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Insert(const Key& key, Value&& value) noexcept
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Insert(const Key& key, Value&& value) noexcept
 {
 	if (size == capacity) { return false; }
 
@@ -207,14 +200,7 @@ inline bool Hashmap<Key, Value, AllowDuplicates>::Insert(const Key& key, Value&&
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
 
-	if constexpr (AllowDuplicates)
-	{
-		while (cell->filled) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
-	}
-	else
-	{
-		while (cell->filled) { if (cell->value == value) { return false; } ++i; cell = cells + ((hash + i * i) & capMinusOne); }
-	}
+	while (cell->filled) { if (cell->key == key) { return false; } ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
 	++size;
 	cell->filled = true;
@@ -224,8 +210,46 @@ inline bool Hashmap<Key, Value, AllowDuplicates>::Insert(const Key& key, Value&&
 	return true;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Remove(const Key& key)
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::GetInsert(const Key& key, const Value& value)
+{
+	U64 hash = Hash(key);
+
+	U64 i = 0;
+	Cell* cell = cells + (hash & capMinusOne);
+	while (cell->filled && cell->key != key) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
+
+	if (cell->filled) { return &cell->value; }
+
+	++size;
+
+	cell->filled = true;
+	cell->key = key;
+	cell->value = value;
+	return &cell->value;
+}
+
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::GetInsert(const Key& key, Value&& value) noexcept
+{
+	U64 hash = Hash(key);
+
+	U64 i = 0;
+	Cell* cell = cells + (hash & capMinusOne);
+	while (cell->filled && cell->key != key) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
+
+	if (cell->filled) { return &cell->value; }
+
+	++size;
+
+	cell->filled = true;
+	cell->key = key;
+	cell->value = Move(value);
+	return &cell->value;
+}
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Remove(const Key& key)
 {
 	if (size == 0) { return false; }
 
@@ -256,8 +280,8 @@ inline bool Hashmap<Key, Value, AllowDuplicates>::Remove(const Key& key)
 	return false;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::Get(const Key& key) const
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::Get(const Key& key) const
 {
 	if (size == 0) { return nullptr; }
 
@@ -271,31 +295,33 @@ inline Value* Hashmap<Key, Value, AllowDuplicates>::Get(const Key& key) const
 	return nullptr;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::Request(const Key& key)
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::Request(const Key& key)
 {
 	U64 hash = Hash(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
-	while (cell->filled && cell->key != key) { ++i; cell = cells + ((hash + i * i) & capMinusOne); }
 
-	size += !cell->filled;
+	while (cell->filled) { if (cell->key == key) { return &cell->value; } ++i; cell = cells + ((hash + i * i) & capMinusOne); }
+
+	++size;
 
 	cell->filled = true;
 	cell->key = key;
 	return &cell->value;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::Request(const Key& key, HashHandle& hnd)
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::Request(const Key& key, HashHandle& hnd)
 {
 	U64 hash = Hash(key);
 
 	U64 i = 0;
 	HashHandle handle = hash & capMinusOne;
 	Cell* cell = cells + handle;
-	while (cell->filled && cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
+
+	while (cell->filled) { if (cell->key == key) { return &cell->value; } ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
 
 	size += !cell->filled;
 
@@ -305,29 +331,8 @@ inline Value* Hashmap<Key, Value, AllowDuplicates>::Request(const Key& key, Hash
 	return &cell->value;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::GetRequest(const Key& key, const Value& value)
-{
-	U64 hash = Hash(key);
-
-	U64 i = 0;
-	HashHandle handle = hash & capMinusOne;
-	Cell* cell = cells + handle;
-	while (cell->filled && cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
-
-	if (!cell->filled)
-	{
-		++size;
-		cell->filled = true;
-		cell->value = value;
-		cell->key = key;
-	}
-
-	return &cell->value;
-}
-
-template<class Key, class Value, bool AllowDuplicates>
-inline HashHandle Hashmap<Key, Value, AllowDuplicates>::GetHandle(const Key& key) const
+template<class Key, class Value>
+inline HashHandle Hashmap<Key, Value>::GetHandle(const Key& key) const
 {
 	U64 hash = Hash(key);
 
@@ -340,14 +345,14 @@ inline HashHandle Hashmap<Key, Value, AllowDuplicates>::GetHandle(const Key& key
 	else { return U64_MAX; }
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::Obtain(HashHandle handle) const
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::Obtain(HashHandle handle) const
 {
 	return &cells[handle].value;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Remove(HashHandle handle)
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Remove(HashHandle handle)
 {
 	Cell& cell = cells[handle];
 
@@ -373,8 +378,8 @@ inline bool Hashmap<Key, Value, AllowDuplicates>::Remove(HashHandle handle)
 	return false;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::operator[](const Key& key)
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::operator[](const Key& key)
 {
 	if (size == 0) { return nullptr; }
 
@@ -388,8 +393,8 @@ inline Value* Hashmap<Key, Value, AllowDuplicates>::operator[](const Key& key)
 	else { return nullptr; }
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline const Value* Hashmap<Key, Value, AllowDuplicates>::operator[](const Key& key) const
+template<class Key, class Value>
+inline const Value* Hashmap<Key, Value>::operator[](const Key& key) const
 {
 	if (size == 0) { return nullptr; }
 
@@ -403,8 +408,8 @@ inline const Value* Hashmap<Key, Value, AllowDuplicates>::operator[](const Key& 
 	else { return nullptr; }
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline void Hashmap<Key, Value, AllowDuplicates>::Reserve(U64 cap)
+template<class Key, class Value>
+inline void Hashmap<Key, Value>::Reserve(U64 cap)
 {
 	if (cap < capacity) { return; }
 
@@ -415,11 +420,11 @@ inline void Hashmap<Key, Value, AllowDuplicates>::Reserve(U64 cap)
 	Clear();
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline void Hashmap<Key, Value, AllowDuplicates>::operator()(U64 capacity) { Reserve(capacity); }
+template<class Key, class Value>
+inline void Hashmap<Key, Value>::operator()(U64 capacity) { Reserve(capacity); }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline void Hashmap<Key, Value, AllowDuplicates>::Clear()
+template<class Key, class Value>
+inline void Hashmap<Key, Value>::Clear()
 {
 	if constexpr (IsDestroyable<Key> || IsDestroyable<Value>)
 	{
@@ -446,34 +451,34 @@ inline void Hashmap<Key, Value, AllowDuplicates>::Clear()
 	size = 0;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline U64 Hashmap<Key, Value, AllowDuplicates>::Size() const { return size; }
+template<class Key, class Value>
+inline U64 Hashmap<Key, Value>::Size() const { return size; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline U64 Hashmap<Key, Value, AllowDuplicates>::Capacity() const { return size; }
+template<class Key, class Value>
+inline U64 Hashmap<Key, Value>::Capacity() const { return size; }
 
 /*------ITERATOR------*/
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator::Iterator(Cell* cell) : cell{ cell } {}
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::Iterator(Cell* cell) : cell{ cell } {}
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator::Iterator(const Iterator& other) : cell{ cell } {}
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::Iterator(const Iterator& other) : cell{ cell } {}
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator::Iterator(Iterator&& other) : cell{ cell } {}
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::Iterator(Iterator&& other) : cell{ cell } {}
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::Valid() const { return cell->filled; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::Valid() const { return cell->filled; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value& Hashmap<Key, Value, AllowDuplicates>::Iterator::operator* () { return cell->value; }
+template<class Key, class Value>
+inline Value& Hashmap<Key, Value>::Iterator::operator* () { return cell->value; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Value* Hashmap<Key, Value, AllowDuplicates>::Iterator::operator-> () { return &cell->value; }
+template<class Key, class Value>
+inline Value* Hashmap<Key, Value>::Iterator::operator-> () { return &cell->value; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator Hashmap<Key, Value, AllowDuplicates>::Iterator::operator++()
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator++()
 {
 	Cell* temp = cell;
 	++cell;
@@ -481,16 +486,16 @@ inline Hashmap<Key, Value, AllowDuplicates>::Iterator Hashmap<Key, Value, AllowD
 	return { temp };
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator& Hashmap<Key, Value, AllowDuplicates>::Iterator::operator++(int)
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator++(int)
 {
 	++cell;
 
 	return *this;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator Hashmap<Key, Value, AllowDuplicates>::Iterator::operator--()
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator Hashmap<Key, Value>::Iterator::operator--()
 {
 	Cell* temp = cell;
 	--cell;
@@ -498,39 +503,39 @@ inline Hashmap<Key, Value, AllowDuplicates>::Iterator Hashmap<Key, Value, AllowD
 	return { temp };
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator& Hashmap<Key, Value, AllowDuplicates>::Iterator::operator--(int)
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator& Hashmap<Key, Value>::Iterator::operator--(int)
 {
 	--cell;
 
 	return *this;
 }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline Hashmap<Key, Value, AllowDuplicates>::Iterator::operator bool() const { return cell; }
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Iterator::operator bool() const { return cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::operator== (const Iterator& other) const { return cell == other.cell; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator== (const Iterator& other) const { return cell == other.cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::operator!= (const Iterator& other) const { return cell != other.cell; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator!= (const Iterator& other) const { return cell != other.cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::operator< (const Iterator& other) const { return cell < other.cell; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator< (const Iterator& other) const { return cell < other.cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::operator> (const Iterator& other) const { return cell > other.cell; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator> (const Iterator& other) const { return cell > other.cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::operator<= (const Iterator& other) const { return cell <= other.cell; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator<= (const Iterator& other) const { return cell <= other.cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline bool Hashmap<Key, Value, AllowDuplicates>::Iterator::operator>= (const Iterator& other) const { return cell >= other.cell; }
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Iterator::operator>= (const Iterator& other) const { return cell >= other.cell; }
 
-template<class Key, class Value, bool AllowDuplicates>
-inline U64 Hashmap<Key, Value, AllowDuplicates>::Hash(const Key& key)
+template<class Key, class Value>
+inline U64 Hashmap<Key, Value>::Hash(const Key& key)
 {
 	if constexpr (IsStringType<Key>) { return key.Hash(); }
-	else if constexpr (IsPointer<Key>) { return Hash::Calculate(static_cast<U64>(key)); }
-	else { return Hash::Calculate(key); }
+	else if constexpr (IsPointer<Key>) { return Math::Hash(static_cast<U64>(key)); }
+	else { return Math::Hash(key); }
 }

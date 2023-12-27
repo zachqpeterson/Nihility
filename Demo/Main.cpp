@@ -1,5 +1,6 @@
 #include "Engine.hpp"
 
+#include "Introspection.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Resources\Resources.hpp"
@@ -12,31 +13,17 @@
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
 
-#include <type_traits>
-
 AudioClip* music;
 AudioClip* sfx;
 F32 volume = 1.0f;
 F32 percent = 1.0f;
 
-Entity entity0{};
-Entity entity1{};
-
-struct EpicComponent : public Component
-{
-	void Update() override
-	{
-		Logger::Debug("Bing Bong");
-	}
-};
+Entity* entity{};
 
 bool Init()
 {
-	//Components::RegisterComponent<EpicComponent>();
-	//Components::CreateComponent<EpicComponent>();
-
 	//String path0 = Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
-	entity0.model = Resources::LoadModel("models/ABeautifulGame.nhmdl");
+	//entity0.model = Resources::LoadModel("models/ABeautifulGame.nhmdl");
 
 	//String path = Resources::UploadFont("arial.ttf");
 	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");
@@ -44,8 +31,8 @@ bool Init()
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE, Renderer::GetDefaultRendergraph());
 	
-	scene->AddEntity(&entity0);
-	//scene->AddEntity(&entity1);
+	entity = scene->AddEntity();
+	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
 	
 	Renderer::LoadScene(scene);
 	

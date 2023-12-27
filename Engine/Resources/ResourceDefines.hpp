@@ -16,6 +16,7 @@ static constexpr U8	MAX_SWAPCHAIN_IMAGES = 3;			// Maximum images a swapchain ca
 static constexpr U8	MAX_VIEWPORTS = 8;					// Maximum viewports a renderpass can have
 static constexpr U8	MAX_BLOOM_PASSES = 8;				// Maximum renderpasses to calculate bloom
 static constexpr U8	MAX_SCISSORS = 8;					// Maximum scissors a renderpass can have
+static constexpr U8 MAX_PIPELINES_PER_STAGE = 8;
 
 enum NH_API MaterialFlag
 {
@@ -655,15 +656,15 @@ struct NH_API Renderpass
 		other.frameBuffer = nullptr;
 	}
 
-	VkRenderPass_T* renderpass{ nullptr };
-	VkFramebuffer_T* frameBuffer{ nullptr };
+	VkRenderPass_T*		renderpass{ nullptr };
+	VkFramebuffer_T*	frameBuffer{ nullptr };
 
 	U8					renderTargetCount{ 0 };
-	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* depthStencilTarget{ nullptr };
+	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture*			depthStencilTarget{ nullptr };
 
-	U8					subpassIndexCount{ 0 };
-	U8					subpassIndices[8]{};
+	Subpass				subpasses[8]{};
+	U32					subpassCount{ 1 };
 
 	U32					lastResize{ 0 };
 };

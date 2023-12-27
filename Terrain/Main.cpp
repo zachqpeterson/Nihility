@@ -2,7 +2,7 @@
 
 bool Init()
 {
-
+	return true;
 }
 
 void Update()

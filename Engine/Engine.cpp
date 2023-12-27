@@ -1,5 +1,6 @@
 #include "Engine.hpp"
 
+#include "Introspection.hpp"
 #include "Memory\Memory.hpp"
 #include "Platform\Platform.hpp"
 #include "Platform\Audio.hpp"
@@ -18,6 +19,8 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
+
+#include "Containers\TypeList.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -99,7 +102,6 @@ void Engine::UpdateLoop()
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
 		//Physics::Update();
-		Components::Update();
 		GameUpdate();
 		//Animations::Update();
 

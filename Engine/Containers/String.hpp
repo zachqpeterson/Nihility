@@ -4,25 +4,10 @@
 
 #include "Vector.hpp"
 #include "Memory\Memory.hpp"
-#include "Math\Hash.hpp"
-#include "Math\Random.hpp"
-
-template<Character C> struct StringBase;
-
-using String = StringBase<C8>;
-using String8 = StringBase<C8>;
-using String16 = StringBase<C16>;
-using String32 = StringBase<C32>;
-
-template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-template <class Type> concept StringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-template <class Type> concept NonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-template <class Type> concept NonStringClass = IsClass<Type> && !IsStringType<Type>;
+#include "Math\Math.hpp"
 
 template<Character C>
-constexpr inline U64 Length(const C* str) noexcept
+inline constexpr U64 Length(const C* str) noexcept
 {
 	if (!str) { return 0; }
 
@@ -32,13 +17,13 @@ constexpr inline U64 Length(const C* str) noexcept
 	return it - str;
 }
 
-constexpr inline U64 Length(NullPointer) noexcept
+inline constexpr U64 Length(NullPointer) noexcept
 {
 	return 0;
 }
 
 template<Character C>
-static inline bool Compare(const C* a, const C* b, I64 length) noexcept
+inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -51,7 +36,7 @@ static inline bool Compare(const C* a, const C* b, I64 length) noexcept
 }
 
 template<Character C>
-static inline bool Compare(const C* a, const C* b) noexcept
+inline constexpr bool Compare(const C* a, const C* b) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -62,6 +47,98 @@ static inline bool Compare(const C* a, const C* b) noexcept
 
 	return !(c0 || c1);
 }
+
+struct StringView
+{
+	template<U64 Length>
+	constexpr StringView(const C8(&str)[Length]) : string{ str }, length{ Length } {}
+
+	constexpr StringView(const C8* str, U64 length) : string{ str }, length{ length } {}
+
+	constexpr StringView SubString(U64 offset = 0, U64 count = U64_MAX) const
+	{
+		offset = Math::Min(offset, length);
+		count = Math::Min(count, length - offset);
+		return { string + offset, count };
+	}
+
+	template<U64 Length>
+	constexpr I64 IndexOf(const C8(&find)[Length], U64 start = 0) const
+	{
+		const C8* it = string + start;
+
+		while (!(*it == 0 || Compare(it, find, Length - 1))) { ++it; }
+		
+		if (*it == 0) { return -1; }
+		return (I64)(it - string);
+	}
+
+	constexpr I64 IndexOf(C8 find, U64 start = 0) const
+	{
+		const C8* it = string + start;
+		C8 c;
+
+		while ((c = *it) != 0 && c != find) { ++it; }
+
+		if (c == 0) { return -1; }
+		return (I64)(it - string);
+	}
+
+	template<U64 Length>
+	constexpr I64 LastIndexOf(const C8(&find)[Length], U64 start = 0) const
+	{
+		const C8* it = string + length - start - Length;
+
+		U64 len = length - Length + 1;
+		while (!Compare(it, find, Length - 1))
+		{
+			if(--len) { --it; }
+			else { return -1; }
+		}
+
+		if (len) { return (I64)(it - string); }
+	}
+
+	constexpr I64 LastIndexOf(C8 find, U64 start = 0) const
+	{
+		const C8* it = string + length - start - 1;
+
+		U64 len = length;
+		while (len && *it != find) { --it; --len; }
+
+		if (len) { return (I64)(it - string); }
+		return -1;
+	}
+
+	constexpr U64 Size() const { return length; }
+	constexpr const C8* Data() const { return string; }
+	constexpr U64 Hash() const { return Math::Hash(string, length); }
+
+private:
+	const C8* string;
+	U64 length;
+};
+
+constexpr StringView operator""_SV(const C8* str, U64 length)
+{
+	return { str, length };
+}
+
+template<Character C> struct StringBase;
+
+using String = StringBase<C8>;
+using String8 = StringBase<C8>;
+using String16 = StringBase<C16>;
+using String32 = StringBase<C32>;
+
+template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
+template <class Type> concept StringViewType = IsStringViewType<Type>;
+template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
+template <class Type> concept StringType = IsStringType<Type>;
+template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
+template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
+template <class Type> concept NonStringClass = IsNonStringClass<Type>;
 
 /*
 * TODO: Documentation
@@ -148,12 +225,12 @@ struct StringBase
 	I64 IndexOf(C* find, U64 start = 0) const noexcept;
 	I64 IndexOf(const C& find, U64 start = 0) const noexcept;
 	I64 IndexOf(const StringBase& find, U64 start = 0) const noexcept;
-	I64 IndexOfNot(const C& find, U64 start = 0) const noexcept;
 	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
 	I64 LastIndexOf(C* find, U64 start = 0) const noexcept;
 	I64 LastIndexOf(const C& find, U64 start = 0) const noexcept;
 	I64 LastIndexOf(const StringBase& find, U64 start = 0) const noexcept;
 	template<U64 Count> I64 LastIndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
+	I64 IndexOfNot(const C& find, U64 start = 0) const noexcept;
 
 	StringBase& Trim() noexcept;
 	template<typename Arg> StringBase& Append(const Arg& append) noexcept;
@@ -207,7 +284,8 @@ private:
 	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
 	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(C* str, const Arg& value) noexcept;
 	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<StringViewType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
+	template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove = 0> requires(!IsStringViewType<Arg>) U64 ToString(C* str, const Arg& value) noexcept;
 
 	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity() noexcept;
 
@@ -234,7 +312,7 @@ inline StringBase<C> StringBase<C>::RandomString(U32 length) noexcept
 
 	for (U32 i = 0; i < length; ++i)
 	{
-		*it++ = StringLookup<C>::ALPHANUM_LOOKUP[Random::RandomRange(0, Length(StringLookup<C>::ALPHANUM_LOOKUP))];
+		*it++ = StringLookup<C>::ALPHANUM_LOOKUP[Math::RandomRange(0, Length(StringLookup<C>::ALPHANUM_LOOKUP))];
 	}
 
 	return str;
@@ -324,7 +402,7 @@ inline StringBase<C>& StringBase<C>::operator=(const StringBase& other) noexcept
 template<Character C>
 inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
 {
-	if(string) { Memory::Free(&string); }
+	if (string) { Memory::Free(&string); }
 
 	hash = other.hash;
 	size = other.size;
@@ -629,7 +707,7 @@ inline U64 StringBase<C>::Hash() noexcept
 	if (needHash)
 	{
 		needHash = false;
-		hash = Hash::Calculate(string);
+		hash = Math::Hash(string);
 	}
 	else
 	{
@@ -640,7 +718,7 @@ inline U64 StringBase<C>::Hash() noexcept
 template<Character C>
 inline U64 StringBase<C>::Hash() const noexcept
 {
-	if (needHash) { return Hash::Calculate(string, size); }
+	if (needHash) { return Math::Hash(string, size); }
 	else { return hash; }
 }
 
@@ -683,7 +761,7 @@ inline I64 StringBase<C>::IndexOf(C* find, U64 start) const noexcept
 	U64 findSize = Length(find);
 	C* it = string + start;
 
-	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find, findSize)) { ++it; }
+	while (*it != StringLookup<C>::NULL_CHAR && !Compare(it, find, findSize)) { ++it; }
 
 	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
 	return (I64)(it - string);
@@ -706,10 +784,72 @@ inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const noexc
 {
 	C* it = string + start;
 
-	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find.string, find.size)) { ++it; }
+	while (*it != StringLookup<C>::NULL_CHAR && !Compare(it, find.string, find.size)) { ++it; }
 
 	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
 	return (I64)(it - string);
+}
+
+template<Character C>
+template<U64 Count>
+inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const noexcept
+{
+	C* it = string + start;
+
+	while (*it != StringLookup<C>::NULL_CHAR && !Compare(it, find, Count - 1)) { ++it; }
+
+	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
+	return (I64)(it - string);
+}
+
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const noexcept
+{
+	U64 findSize = Length(find);
+	C* it = string + (size - start - findSize);
+
+	U64 len = size;
+	while (len && !Compare(it, find, findSize)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const noexcept
+{
+	C* it = string + (size - start - 1);
+
+	U64 len = size;
+	while (len && *it != find) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<Character C>
+inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const noexcept
+{
+	C* it = string + (size - start - find.size);
+
+	U64 len = size;
+	while (len && !Compare(it, find.string, find.size)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<Character C>
+template<U64 Count>
+inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const noexcept
+{
+	C* it = string + (size - start - Count + 1);
+
+	U64 len = size;
+	while (len && !Compare(it, find, Count - 1)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
 }
 
 template<Character C>
@@ -722,68 +862,6 @@ inline I64 StringBase<C>::IndexOfNot(const C& find, U64 start) const noexcept
 
 	if (c == StringLookup<C>::NULL_CHAR) { return -1; }
 	return (I64)(it - string);
-}
-
-template<Character C>
-template<U64 Count> 
-inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const noexcept
-{
-	C* it = string + start;
-
-	while (*it != StringLookup<C>::NULL_CHAR && Compare(it, find, Count)) { ++it; }
-
-	if (*it == StringLookup<C>::NULL_CHAR) { return -1; }
-	return (I64)(it - string);
-}
-
-template<Character C>
-inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const noexcept
-{
-	U64 findSize = Length(find);
-	C* it = string + size - start - findSize - 1;
-
-	U64 len = size;
-	while (len && Compare(it, find, findSize)) { --it; --len; }
-
-	if (len) { return (I64)(it - string); }
-	return -1;
-}
-
-template<Character C>
-inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const noexcept
-{
-	C* it = string + size - start - 1;
-
-	U64 len = size;
-	while (len && *it != find) { --it; --len; }
-
-	if (len) { return (I64)(it - string); }
-	return -1;
-}
-
-template<Character C>
-inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const noexcept
-{
-	C* it = string + size - start - find.size - 1;
-
-	U64 len = size;
-	while (len && Compare(it, find.string, find.size)) { --it; --len; }
-
-	if (len) { return (I64)(it - string); }
-	return -1;
-}
-
-template<Character C>
-template<U64 Count> 
-inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const noexcept
-{
-	C* it = string + size - start - Count - 1;
-
-	U64 len = size;
-	while (len && Compare(it, find, Count)) { --it; --len; }
-
-	if (len) { return (I64)(it - string); }
-	return -1;
 }
 
 template<Character C>
@@ -1420,6 +1498,43 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 }
 
 template<Character C>
+template<StringViewType Arg, bool Hex, bool Insert, U64 Remove>
+inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+{
+	U64 strSize = value.Size();
+
+	bool replace = false;
+	U64 moveSize = strSize;
+	if constexpr (Remove == U64_MAX) { replace = true; }
+	else { moveSize -= Remove; }
+
+	const U64 strIndex = str - string;
+	const U64 excessSize = size - strIndex;
+
+	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
+
+	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(C)); }
+
+	if constexpr (IsSame<CharType, C>) { Memory::Copy(str, value.Data(), strSize * sizeof(C)); }
+	else if constexpr (IsSame<C, C16>)
+	{
+		//TODO
+	}
+	else //C32
+	{
+		//TODO
+	}
+
+	if (replace) { size = moveSize; }
+	else { size += moveSize; }
+
+	string[size] = StringLookup<C>::NULL_CHAR;
+	needHash = true;
+
+	return strIndex + strSize;
+}
+
+template<Character C>
 template<StringType Arg, bool Hex, bool Insert, U64 Remove>
 inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
@@ -1436,6 +1551,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 template<Character C>
 template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove>
+	requires(!IsStringViewType<Arg>)
 inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 {
 	if constexpr (ConvertibleTo<Arg, StringBaseType>)

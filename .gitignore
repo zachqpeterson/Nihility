@@ -7,6 +7,7 @@ x64/Release/*
 
 Demo/x64/
 UnitTests/x64/
+Terrain/x64/
 *.exe
 
 # Keep 3rd Party dlls

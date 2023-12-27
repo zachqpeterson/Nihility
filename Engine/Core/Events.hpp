@@ -36,7 +36,7 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static Hashmap<String, Event, false> events;
+	static Hashmap<String, Event> events;
 
 	STATIC_CLASS(Events);
 	friend class Engine;

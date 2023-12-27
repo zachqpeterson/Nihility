@@ -3,8 +3,6 @@
 #include "ResourceDefines.hpp"
 #include "Rendering\Pipeline.hpp"
 
-static constexpr inline U8 MAX_PIPELINES_PER_STAGE = 8;
-
 struct MeshInstance;
 struct Renderpass;
 struct Pipeline;
@@ -72,10 +70,10 @@ private:
 	friend struct Material;
 };
 
-struct NH_API MaterialData
+struct alignas(16) NH_API MaterialData
 {
 	U32			diffuseTextureIndex{ U16_MAX };
-	U32			metalRoughOcclTextureIndex{ U16_MAX };
+	U32			armTextureIndex{ U16_MAX };
 	U32			normalTextureIndex{ U16_MAX };
 	U32			emissivityTextureIndex{ U16_MAX };
 
@@ -83,10 +81,9 @@ struct NH_API MaterialData
 	Vector4		metalRoughFactor{ Vector4One };
 	Vector4		emissiveFactor{ Vector4Zero };
 
+	F32			transparency{ 0.0f };
 	F32			alphaCutoff{ 0.0f };
 	U32			flags{ MATERIAL_FLAG_NONE };
-
-	U32			unused[2];
 };
 
 struct NH_API Material

@@ -26,8 +26,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **/
 
-#include "../Public/resource_limits_c.h"
-#include "../Public/ResourceLimits.h"
+#include "LunarG\glslang/Public/resource_limits_c.h"
+#include "LunarG\glslang/Public/ResourceLimits.h"
 #include <stdlib.h>
 #include <string.h>
 #include <string>
@@ -42,27 +42,13 @@ const glslang_resource_t* glslang_default_resource(void)
     return reinterpret_cast<const glslang_resource_t*>(GetDefaultResources());
 }
 
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
-
 const char* glslang_default_resource_string()
 {
     std::string cpp_str = GetDefaultTBuiltInResourceString();
     char* c_str = (char*)malloc(cpp_str.length() + 1);
-    strcpy(c_str, cpp_str.c_str());
+    strncpy_s(c_str, cpp_str.length() + 1, cpp_str.c_str(), cpp_str.length() + 1);
     return c_str;
 }
-
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif
 
 void glslang_decode_resource_limits(glslang_resource_t* resources, char* config)
 {

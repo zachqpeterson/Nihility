@@ -378,11 +378,9 @@ namespace {
     int op_cmpl(int a) { return ~a; }
     int op_not(int a) { return !a; }
 
-};
-
 struct TBinop {
     int token, precedence, (*op)(int, int);
-} binaryOps[] = {
+} binop[] = {
     { PpAtomOr, LOGOR, op_logor },
     { PpAtomAnd, LOGAND, op_logand },
     { '|', OR, op_or },
@@ -405,12 +403,14 @@ struct TBinop {
 
 struct TUnop {
     int token, (*op)(int);
-} unaryOps[] = {
+} unop[] = {
     { '+', op_pos },
     { '-', op_neg },
     { '~', op_cmpl },
     { '!', op_not },
 };
+
+} // anonymous namespace
 
 #define NUM_ELEMENTS(A) (sizeof(A) / sizeof(A[0]))
 
@@ -476,15 +476,15 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
             token = scanToken(ppToken);
         }
     } else {
-        int op = NUM_ELEMENTS(unaryOps) - 1;
+        int op = NUM_ELEMENTS(unop) - 1;
         for (; op >= 0; op--) {
-            if (unaryOps[op].token == token)
+            if (unop[op].token == token)
                 break;
         }
         if (op >= 0) {
             token = scanToken(ppToken);
             token = eval(token, UNARY, shortCircuit, res, err, ppToken);
-            res = unaryOps[op].op(res);
+            res = unop[op].op(res);
         } else {
             parseContext.ppError(loc, "bad expression", "preprocessor evaluation", "");
             err = true;
@@ -501,11 +501,11 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         if (token == ')' || token == '\n')
             break;
         int op;
-        for (op = NUM_ELEMENTS(binaryOps) - 1; op >= 0; op--) {
-            if (binaryOps[op].token == token)
+        for (op = NUM_ELEMENTS(binop) - 1; op >= 0; op--) {
+            if (binop[op].token == token)
                 break;
         }
-        if (op < 0 || binaryOps[op].precedence <= precedence)
+        if (op < 0 || binop[op].precedence <= precedence)
             break;
         int leftSide = res;
 
@@ -518,15 +518,15 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         }
 
         token = scanToken(ppToken);
-        token = eval(token, binaryOps[op].precedence, shortCircuit, res, err, ppToken);
+        token = eval(token, binop[op].precedence, shortCircuit, res, err, ppToken);
 
-        if (binaryOps[op].op == op_div || binaryOps[op].op == op_mod) {
+        if (binop[op].op == op_div || binop[op].op == op_mod) {
             if (res == 0) {
                 parseContext.ppError(loc, "division by 0", "preprocessor evaluation", "");
                 res = 1;
             }
         }
-        res = binaryOps[op].op(leftSide, res);
+        res = binop[op].op(leftSide, res);
     }
 
     return token;
@@ -736,7 +736,6 @@ int TPpContext::CPPline(TPpToken* ppToken)
         parseContext.setCurrentLine(lineRes);
 
         if (token != '\n') {
-#ifndef GLSLANG_WEB
             if (token == PpAtomConstString) {
                 parseContext.ppRequireExtensions(directiveLoc, 1, &E_GL_GOOGLE_cpp_style_line_directive, "filename-based #line");
                 // We need to save a copy of the string instead of pointing
@@ -746,9 +745,7 @@ int TPpContext::CPPline(TPpToken* ppToken)
                 parseContext.setCurrentSourceName(sourceName);
                 hasFile = true;
                 token = scanToken(ppToken);
-            } else
-#endif
-            {
+            } else {
                 token = eval(token, MIN_PRECEDENCE, false, fileRes, fileErr, ppToken);
                 if (! fileErr) {
                     parseContext.setCurrentString(fileRes);
@@ -974,7 +971,6 @@ int TPpContext::readCPPline(TPpToken* ppToken)
         case PpAtomLine:
             token = CPPline(ppToken);
             break;
-#ifndef GLSLANG_WEB
         case PpAtomInclude:
             if(!parseContext.isReadingHLSL()) {
                 parseContext.ppRequireExtensions(ppToken->loc, 1, &E_GL_GOOGLE_include_directive, "#include");
@@ -984,7 +980,6 @@ int TPpContext::readCPPline(TPpToken* ppToken)
         case PpAtomPragma:
             token = CPPpragma(ppToken);
             break;
-#endif
         case PpAtomUndef:
             token = CPPundef(ppToken);
             break;

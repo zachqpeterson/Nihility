@@ -1,8 +1,10 @@
 #include "Math.hpp"
 
+#include "SIMD.hpp"
+#include "Core\Time.hpp"
 #include "Containers\String.hpp"
 
-#include "SIMD.hpp"
+U64 Math::seed{ 0 };
 
 //Math
 
@@ -313,6 +315,113 @@ F64 Math::Simplex3(F64 x, F64 y, F64 z) noexcept
 
 	return 32.0 * (n0 + n1 + n2 + n3);
 }
+
+//HASH
+void Math::Multiply(U64& a, U64& b)
+{
+#if defined __SIZEOF_INT128__
+	__uint128_t r = a;
+	r *= b;
+	a = (U64)r;
+	b = (U64)(r >> 64);
+#elif defined _MSC_VER
+	a = _umul128(a, b, &b);
+#else
+	U64 ha = a >> 32, hb = b >> 32, la = (U32)A, lb = (U32)B, hi, lo;
+	U64 rh = ha * hb, rm0 = ha * lb, rm1 = hb * la, rl = la * lb, t = rl + (rm0 << 32), c = t < rl;
+	lo = t + (rm1 << 32);
+	c += lo < t;
+	hi = rh + (rm0 >> 32) + (rm1 >> 32) + c;
+	a = lo;
+	b = hi;
+#endif
+}
+
+U64 Math::Mix(U64 a, U64 b) { Multiply(a, b); return a ^ b; }
+
+U64 Math::Read8(const U8* p)
+{
+#if defined NH_LITTLE_ENDIAN
+	U64 v;
+	Memory::Copy(&v, p, 8);
+	return v;
+#elif defined __GNUC__ || defined __INTEL_COMPILER || defined __clang__
+	U64 v;
+	Memory::Copy(&v, p, 8);
+	return __builtin_bswap64(v);
+#elif defined _MSC_VER
+	U64 v;
+	Memory::Copy(&v, p, 8);
+	return _byteswap_uint64(v);
+#else
+	U64 v;
+	Memory::Copy(&v, p, 8);
+	return (((v >> 56) & 0xff) | ((v >> 40) & 0xff00) | ((v >> 24) & 0xff0000) | ((v >> 8) & 0xff000000) |
+		((v << 8) & 0xff00000000) | ((v << 24) & 0xff0000000000) | ((v << 40) & 0xff000000000000) | ((v << 56) & 0xff00000000000000));
+#endif
+}
+
+U64 Math::Read4(const U8* p)
+{
+#if defined NH_LITTLE_ENDIAN
+	U32 v;
+	Memory::Copy(&v, p, 4);
+	return v;
+#elif defined __GNUC__ || defined __INTEL_COMPILER || defined __clang__
+	U32 v;
+	Memory::Copy(&v, p, 4);
+	return __builtin_bswap32(v);
+#elif defined _MSC_VER
+	U32 v;
+	Memory::Copy(&v, p, 4);
+	return _byteswap_ulong(v);
+#else
+	U32 v;
+	Memory::Copy(&v, p, 4);
+	return (((v >> 24) & 0xff) | ((v >> 8) & 0xff00) | ((v << 8) & 0xff0000) | ((v << 24) & 0xff000000));
+#endif
+}
+
+U64 Math::Read3(const U8* p, U64 k) { return (((U64)p[0]) << 16) | (((U64)p[k >> 1]) << 8) | p[k - 1]; }
+
+//RANDOM
+U64 Math::TrueRandomInt()
+{
+	I64 time = Time::CoreCounter();
+	time = Mix(time ^ secret0, seed ^ secret1);
+	seed = Mix(time ^ secret0, secret2);
+	return Mix(seed, seed ^ secret3);
+}
+
+U64 Math::RandomInt()
+{
+	seed += secret0;
+	return Mix(seed, seed ^ secret1);
+}
+
+U64 Math::RandomRange(U64 lower, U64 upper)
+{
+	U64 num = upper + lower;
+	U64 rand = RandomInt();
+	Multiply(rand, num);
+	return num - lower;
+}
+
+F64 Math::RandomUniform()
+{
+	constexpr F64 norm = 1.0 / (1ull << 52);
+	U64 rand = RandomInt();
+	return (rand >> 12) * norm;
+}
+
+F64 Math::RandomGausian()
+{
+	constexpr F64 norm = 1.0 / (1ull << 20);
+	U64 rand = RandomInt();
+	return ((rand & 0x1fffff) + ((rand >> 21) & 0x1fffff) + ((rand >> 42) & 0x1fffff)) * norm - 3.0;
+}
+
+void Math::SeedRandom(U64 s) { seed = s; }
 
 //Vector2
 

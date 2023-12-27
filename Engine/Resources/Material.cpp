@@ -123,37 +123,7 @@ void Rendergraph::Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, 
 
 			if (pipeline.renderpass != renderpass)
 			{
-				if (renderpass != U32_MAX)
-				{
-					commandBuffer->EndRenderpass();
-
-					Renderpass& rp = renderpasses[renderpass];
-
-					if (rp.subpassIndexCount)
-					{
-						U32 barrierCount = 0;
-						VkImageMemoryBarrier2 renderpassBarriers[8]{};
-
-						for (U32 i = 0; i < rp.subpassIndexCount; ++i)
-						{
-							if (rp.subpassIndices[i] >= rp.renderTargetCount)
-							{
-								renderpassBarriers[barrierCount++] = Renderer::ImageBarrier(rp.depthStencilTarget->image,
-									VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-									VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-									VK_IMAGE_ASPECT_DEPTH_BIT);
-							}
-							else
-							{
-								renderpassBarriers[barrierCount++] = Renderer::ImageBarrier(rp.renderTargets[rp.subpassIndices[i]]->image,
-									VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-									VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-							}
-						}
-					
-						commandBuffer->PipelineBarrier(VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, barrierCount, renderpassBarriers);
-					}
-				}
+				if (renderpass != U32_MAX) { commandBuffer->EndRenderpass(); }
 
 				commandBuffer->BeginRenderpass(&renderpasses[pipeline.renderpass]);
 				renderpass = pipeline.renderpass;

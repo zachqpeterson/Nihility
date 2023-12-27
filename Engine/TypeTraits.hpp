@@ -1,17 +1,17 @@
 #pragma once
 
-template <class Derived, class Base> inline constexpr bool InheritsFrom = __is_base_of(Base, Derived) && __is_convertible_to(const volatile Derived*, const volatile Base*);
+template <class Derived, class Base> constexpr const bool InheritsFrom = __is_base_of(Base, Derived) && __is_convertible_to(const volatile Derived*, const volatile Base*);
 
-template <class Type> inline constexpr bool IsClass = __is_class(Type);
+template <class Type> constexpr const bool IsClass = __is_class(Type);
 template <class Type> concept Class = IsClass<Type>;
 
-template <class Type> inline constexpr bool IsUnion = __is_union(Type);
+template <class Type> constexpr const bool IsUnion = __is_union(Type);
 template <class Type> concept Union = IsUnion<Type>;
 
-template <class Type> inline constexpr bool IsNothrowMoveConstructible = __is_nothrow_constructible(Type, Type);
+template <class Type> constexpr const bool IsNothrowMoveConstructible = __is_nothrow_constructible(Type, Type);
 template <class Type> concept NothrowMoveConstructible = IsNothrowMoveConstructible<Type>;
 
-template <class Type> inline constexpr unsigned long long Alignment = alignof(Type);
+template <class Type> constexpr const unsigned long long Alignment = alignof(Type);
 
 NH_NODISCARD constexpr bool ConstantEvaluation() noexcept
 {
@@ -35,22 +35,22 @@ using BoolConstant = TypeConstant<bool, Value>;
 using TrueConstant = BoolConstant<true>;
 using FalseConstant = BoolConstant<false>;
 
-template <class> inline constexpr bool True = false;
-template <class> inline constexpr bool False = false;
+template <class> constexpr const bool True = false;
+template <class> constexpr const bool False = false;
 
 template <class... Types> using Void = void;
 
-template <class, class> inline constexpr bool IsSame = false;
-template <class Type> inline constexpr bool IsSame<Type, Type> = true;
+template <class, class> constexpr const bool IsSame = false;
+template <class Type> constexpr const bool IsSame<Type, Type> = true;
 
-template <class> inline constexpr bool IsConst = false;
-template <class Type> inline constexpr bool IsConst<const Type> = true;
+template <class> constexpr const bool IsConst = false;
+template <class Type> constexpr const bool IsConst<const Type> = true;
 
-template <class> inline constexpr bool IsVolatile = false;
-template <class Type> inline constexpr bool IsVolatile<volatile Type> = true;
+template <class> constexpr const bool IsVolatile = false;
+template <class Type> constexpr const bool IsVolatile<volatile Type> = true;
 
-template <class> inline constexpr bool IsConstVolatile = false;
-template <class Type> inline constexpr bool IsConstVolatile<const volatile Type> = true;
+template <class> constexpr const bool IsConstVolatile = false;
+template <class Type> constexpr const bool IsConstVolatile<const volatile Type> = true;
 
 namespace TypeTraits
 {
@@ -159,7 +159,7 @@ namespace TypeTraits
 		template<class C> static constexpr TrueConstant Test(decltype(&C::Destroy));
 		template<class> static constexpr FalseConstant Test(...);
 
-		static constexpr bool value = decltype(Test<Type>(0))::value;
+		static constexpr inline bool value = decltype(Test<Type>(0))::value;
 	};
 
 	template<class From, class To>
@@ -168,7 +168,7 @@ namespace TypeTraits
 		template<class C> static constexpr TrueConstant Test(decltype(&C::operator To));
 		template<class> static constexpr FalseConstant Test(...);
 
-		static constexpr bool value = decltype(Test<From>(0))::value;
+		static constexpr inline bool value = decltype(Test<From>(0))::value;
 	};
 }
 
@@ -176,7 +176,7 @@ template <bool Test, class Type = void>
 using Enable = typename TypeTraits::EnableIf<Test, Type>::type;
 
 template<class Type, class... Rest>
-inline constexpr bool AnyOf = TypeTraits::IsAnyOf<Type, Rest...>::value;
+constexpr const bool AnyOf = TypeTraits::IsAnyOf<Type, Rest...>::value;
 
 template <class Type> using RemovedConst = typename TypeTraits::RemoveConst<Type>::type;
 template <class Type> using RemovedVolatile = typename TypeTraits::RemoveVolatile<Type>::type;
@@ -193,84 +193,84 @@ template <class Type> using AddRvalReference = typename TypeTraits::AddReference
 template <class Type> using BaseType = typename TypeTraits::RemoveQuals<RemovedPointers<RemovedArrays<RemovedReference<Type>>>>::type;
 template <class Type> using UnsignedOf = typename TypeTraits::GetUnsigned<Type>::type;
 template <class Type> using SignedOf = typename TypeTraits::GetSigned<Type>::type;
-template <class Type> inline constexpr U64 PointerCount = TypeTraits::GetPointerCount<Type, 0>::count;
+template <class Type> constexpr const U64 PointerCount = TypeTraits::GetPointerCount<Type, 0>::count;
 template <class Type, U64 Count> using ApplyPointers = typename TypeTraits::ApplyPointers<Type, Count>::type;
 
-template <class Type> inline constexpr bool IsDestroyable = TypeTraits::IsDestroyable<Type>::value;
+template <class Type> constexpr const bool IsDestroyable = TypeTraits::IsDestroyable<Type>::value;
 template <class Type> concept Destroyable = IsDestroyable<Type>;
 
-template <class From, class To> inline constexpr bool ConvertibleTo = TypeTraits::IsConvertableTo<From, To>::value;
+template <class From, class To> constexpr const bool ConvertibleTo = TypeTraits::IsConvertableTo<From, To>::value;
 
-template <class Type> inline constexpr bool IsVoid = IsSame<RemovedQuals<Type>, void>;
+template <class Type> constexpr const bool IsVoid = IsSame<RemovedQuals<Type>, void>;
 
-template <class> inline constexpr bool IsPointer = false;
-template <class Type> inline constexpr bool IsPointer<Type*> = true;
-template <class Type> inline constexpr bool IsPointer<const Type*> = true;
-template <class Type> inline constexpr bool IsPointer<volatile Type*> = true;
-template <class Type> inline constexpr bool IsPointer<const volatile Type*> = true;
+template <class> constexpr const bool IsPointer = false;
+template <class Type> constexpr const bool IsPointer<Type*> = true;
+template <class Type> constexpr const bool IsPointer<const Type*> = true;
+template <class Type> constexpr const bool IsPointer<volatile Type*> = true;
+template <class Type> constexpr const bool IsPointer<const volatile Type*> = true;
 template <class Type> concept Pointer = IsPointer<Type>;
 template <class Type> concept NonPointer = !IsPointer<Type>;
 
-template <class Type> inline constexpr bool IsSinglePointer = IsPointer<Type> && !IsPointer<RemovedPointer<Type>>;
+template <class Type> constexpr const bool IsSinglePointer = IsPointer<Type> && !IsPointer<RemovedPointer<Type>>;
 template <class Type> concept SinglePointer = IsSinglePointer<Type>;
 
-template <class> inline constexpr bool IsLReference = false;
-template <class Type> inline constexpr bool IsLReference<Type&> = true;
-template <class Type> inline constexpr bool IsLReference<const Type&> = true;
-template <class Type> inline constexpr bool IsLReference<volatile Type&> = true;
-template <class Type> inline constexpr bool IsLReference<const volatile Type&> = true;
+template <class> constexpr const bool IsLReference = false;
+template <class Type> constexpr const bool IsLReference<Type&> = true;
+template <class Type> constexpr const bool IsLReference<const Type&> = true;
+template <class Type> constexpr const bool IsLReference<volatile Type&> = true;
+template <class Type> constexpr const bool IsLReference<const volatile Type&> = true;
 template <class Type> concept LvalReference = IsLReference<Type>;
 
-template <class> inline constexpr bool IsRReference = false;
-template <class Type> inline constexpr bool IsRReference<Type&&> = true;
-template <class Type> inline constexpr bool IsRReference<const Type&&> = true;
-template <class Type> inline constexpr bool IsRReference<volatile Type&&> = true;
-template <class Type> inline constexpr bool IsRReference<const volatile Type&&> = true;
+template <class> constexpr const bool IsRReference = false;
+template <class Type> constexpr const bool IsRReference<Type&&> = true;
+template <class Type> constexpr const bool IsRReference<const Type&&> = true;
+template <class Type> constexpr const bool IsRReference<volatile Type&&> = true;
+template <class Type> constexpr const bool IsRReference<const volatile Type&&> = true;
 template <class Type> concept RvalReference = IsRReference<Type>;
 
-template <class Type> inline constexpr bool IsReference = IsLReference<Type> || IsRReference<Type>;
+template <class Type> constexpr const bool IsReference = IsLReference<Type> || IsRReference<Type>;
 template <class Type> concept Reference = IsReference<Type>;
 
-template <class> inline constexpr bool IsArray = false;
-template <class Type> inline constexpr bool IsArray<Type[]> = true;
-template <class Type> inline constexpr bool IsArray<const Type[]> = true;
-template <class Type> inline constexpr bool IsArray<volatile Type[]> = true;
-template <class Type> inline constexpr bool IsArray<const volatile Type[]> = true;
-template <class Type, unsigned long long N> inline constexpr bool IsArray<Type[N]> = true;
-template <class Type, unsigned long long N> inline constexpr bool IsArray<const Type[N]> = true;
-template <class Type, unsigned long long N> inline constexpr bool IsArray<volatile Type[N]> = true;
-template <class Type, unsigned long long N> inline constexpr bool IsArray<const volatile Type[N]> = true;
+template <class> constexpr const bool IsArray = false;
+template <class Type> constexpr const bool IsArray<Type[]> = true;
+template <class Type> constexpr const bool IsArray<const Type[]> = true;
+template <class Type> constexpr const bool IsArray<volatile Type[]> = true;
+template <class Type> constexpr const bool IsArray<const volatile Type[]> = true;
+template <class Type, unsigned long long N> constexpr const bool IsArray<Type[N]> = true;
+template <class Type, unsigned long long N> constexpr const bool IsArray<const Type[N]> = true;
+template <class Type, unsigned long long N> constexpr const bool IsArray<volatile Type[N]> = true;
+template <class Type, unsigned long long N> constexpr const bool IsArray<const volatile Type[N]> = true;
 template <class Type> concept Array = IsArray<Type>;
 
-template <class Type> inline constexpr bool IsSingleArray = IsArray<Type> && !IsArray<RemovedArray<Type>>;
+template <class Type> constexpr const bool IsSingleArray = IsArray<Type> && !IsArray<RemovedArray<Type>>;
 template <class Type> concept SingleArray = IsSingleArray<Type>;
 
-template <class Type> inline constexpr bool IsCharacter = AnyOf<RemovedQuals<Type>, char, wchar_t, char8_t, char16_t, char32_t>;
+template <class Type> constexpr const bool IsCharacter = AnyOf<RemovedQuals<Type>, char, wchar_t, char8_t, char16_t, char32_t>;
 template <class Type> concept Character = IsCharacter<Type>;
 
-template <class Type> inline constexpr bool IsBoolean = AnyOf<RemovedQuals<Type>, bool>;
+template <class Type> constexpr const bool IsBoolean = AnyOf<RemovedQuals<Type>, bool>;
 template <class Type> concept Boolean = IsBoolean<Type>;
 
-template <class Type> inline constexpr bool IsInteger = AnyOf<RemovedQuals<Type>, signed char, unsigned char, short, signed short, unsigned short, int, signed int, unsigned int,
+template <class Type> constexpr const bool IsInteger = AnyOf<RemovedQuals<Type>, signed char, unsigned char, short, signed short, unsigned short, int, signed int, unsigned int,
 	long, signed long, unsigned long, long long, signed long long, unsigned long long>;
 template <class Type> concept Integer = IsInteger<Type>;
 
-template <class Type> inline constexpr bool IsSigned = AnyOf<RemovedQuals<Type>, signed char, short, signed short, int, signed int, long, signed long, long long, signed long long>;
+template <class Type> constexpr const bool IsSigned = AnyOf<RemovedQuals<Type>, signed char, short, signed short, int, signed int, long, signed long, long long, signed long long>;
 template <class Type> concept Signed = IsSigned<Type>;
 
-template <class Type> inline constexpr bool IsUnsigned = AnyOf<RemovedQuals<Type>, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long>;
+template <class Type> constexpr const bool IsUnsigned = AnyOf<RemovedQuals<Type>, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long>;
 template <class Type> concept Unsigned = IsUnsigned<Type>;
 
-template <class Type> inline constexpr bool IsFloatingPoint = AnyOf<RemovedQuals<Type>, float, double, long double>;
+template <class Type> constexpr const bool IsFloatingPoint = AnyOf<RemovedQuals<Type>, float, double, long double>;
 template <class Type> concept FloatingPoint = IsFloatingPoint<Type>;
 
-template <class Type> inline constexpr bool IsNumber = IsInteger<Type> || IsFloatingPoint<Type>;
+template <class Type> constexpr const bool IsNumber = IsInteger<Type> || IsFloatingPoint<Type>;
 template <class Type> concept Number = IsNumber<Type>;
 
-template <class Type> inline constexpr bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
+template <class Type> constexpr const bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = IsStringLiteral<Type>;
 
-template <class Type> inline constexpr bool IsFunctionPtr = !IsConst<const Type> && !IsReference<Type>;
+template <class Type> constexpr const bool IsFunctionPtr = !IsConst<const Type> && !IsReference<Type>;
 template <class Type> concept FunctionPtr = IsFunctionPtr<Type>;
 
 /// <summary>
@@ -294,7 +294,7 @@ template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noex
 /// <returns>The forwarded value</returns>
 template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
 
-template<class Type> inline constexpr void Swap(Type& a, Type& b) noexcept
+template<class Type> constexpr void Swap(Type& a, Type& b) noexcept
 {
 	Type tmp = Move(a);
 	a = Move(b);
@@ -386,7 +386,7 @@ template <U64 Size> using CreateIndexSequence = CreateIntegerSequence<U64, Size>
 template <Character C, C... Chars>
 struct CharPack
 {
-	static constexpr C pack[sizeof...(Chars)] = { Chars... };
+	static constexpr inline C pack[sizeof...(Chars)] = { Chars... };
 };
 
 template<class Dest, class Src>
@@ -404,7 +404,7 @@ template <class Type> struct Traits
 	using Base = RemovedQuals<Type>;
 
 private:
-	static inline constexpr Base GetMaxValue()
+	static constexpr Base GetMaxValue()
 	{
 		if constexpr (IsSame<Base, char>) { return U8_MAX; }
 		if constexpr (IsSame<Base, unsigned char>) { return U8_MAX; }
@@ -437,7 +437,7 @@ private:
 		if constexpr (IsSame<Base, double>) { return F64_MAX; }
 	}
 
-	static inline constexpr Base GetMinValue()
+	static constexpr Base GetMinValue()
 	{
 		if constexpr (IsSame<Base, char>) { return U8_MIN; }
 		if constexpr (IsSame<Base, unsigned char>) { return U8_MIN; }
@@ -538,13 +538,13 @@ private:
 	}
 
 public:
-	static constexpr Base MaxValue = GetMaxValue();
-	static constexpr Base MinValue = GetMinValue();
-	static constexpr U64 NumericalBits = GetNumericalBits();
-	static constexpr Base Infinity = GetInfinity();
-	static constexpr Base NaN = GetNaN();
-	static constexpr Base Epsilon = GetEpsilon();
-	static constexpr Base MaxPrecision = GetMaxPrecision();
+	static constexpr inline Base MaxValue = GetMaxValue();
+	static constexpr inline Base MinValue = GetMinValue();
+	static constexpr inline U64 NumericalBits = GetNumericalBits();
+	static constexpr inline Base Infinity = GetInfinity();
+	static constexpr inline Base NaN = GetNaN();
+	static constexpr inline Base Epsilon = GetEpsilon();
+	static constexpr inline Base MaxPrecision = GetMaxPrecision();
 };
 
 namespace TypeTraits
@@ -615,7 +615,7 @@ namespace TypeTraits
 	extern "C" { extern int __isa_available; }
 
 	template <Unsigned T>
-	U64 LeftZeroBitsLzcnt(const T val) noexcept
+	constexpr U64 LeftZeroBitsLzcnt(const T val) noexcept
 	{
 		constexpr U64 bits = Traits<T>::NumericalBits;
 
@@ -636,7 +636,7 @@ namespace TypeTraits
 	}
 
 	template <Unsigned T>
-	U64 LeftZeroBitsBsr(const T val) noexcept
+	constexpr U64 LeftZeroBitsBsr(const T val) noexcept
 	{
 		constexpr U64 bits = Traits<T>::NumericalBits;
 
@@ -661,7 +661,7 @@ namespace TypeTraits
 	}
 
 	template <Unsigned T>
-	U64 LeftZeroBitsx64x86(const T val) noexcept
+	constexpr U64 LeftZeroBitsx64x86(const T val) noexcept
 	{
 #ifdef __AVX2__
 		return LeftZeroBitsLzcnt(val);

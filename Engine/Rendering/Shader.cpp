@@ -6,7 +6,7 @@
 #include "Resources\Resources.hpp"
 
 //TODO: #define ENABLE_OPT for optimised shaders
-#include "External\LunarG\glslang\SPIRV\GlslangToSpv.h"
+#include "External\LunarG\SPIRV\GlslangToSpv.h"
 #include "External\LunarG\glslang\Public\ShaderLang.h"
 #include "External\LunarG\spirv_cross\spirv_reflect.h"
 

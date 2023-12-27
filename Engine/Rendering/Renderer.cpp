@@ -9,7 +9,6 @@
 #include "Containers\Vector.hpp"
 #include "Platform\Platform.hpp"
 #include "Math\Math.hpp"
-#include "Math\Hash.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Memory\Memory.hpp"
@@ -616,7 +615,7 @@ bool Renderer::CreateResources()
 
 	commandBufferRing.Create();
 
-	stagingBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
+	stagingBuffer = CreateBuffer(MEGABYTES(512), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
 	materialBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
 	TextureInfo textureInfo{};
@@ -631,11 +630,6 @@ bool Renderer::CreateResources()
 
 	textureInfo.name = "default_depth_target";
 	textureInfo.format = VK_FORMAT_D32_SFLOAT;
-	textureInfo.width = Settings::WindowWidth();
-	textureInfo.height = Settings::WindowHeight();
-	textureInfo.depth = 1;
-	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-	textureInfo.type = VK_IMAGE_TYPE_2D;
 	defaultDepthTarget = Resources::CreateTexture(textureInfo);
 
 	return true;
@@ -682,6 +676,7 @@ bool Renderer::BeginFrame()
 
 void Renderer::EndFrame()
 {
+	currentScene->Update();
 	Resources::Update();
 	SubmitTransfer();
 	VkCommandBuffer frameCB = Record();
@@ -856,6 +851,7 @@ void Renderer::LoadScene(Scene* scene)
 	}
 
 	currentScene = scene;
+	currentScene->Load();
 }
 
 CameraData* Renderer::GetCameraData()
@@ -888,7 +884,7 @@ Rendergraph* Renderer::GetDefaultRendergraph()
 	//TODO: Culling piplines
 
 	PushConstant pushConstant{ 0, sizeof(CameraData), Renderer::GetCameraData() };
-	Shader* meshProgram = Resources::CreateShader("shaders/Pbr.nhshd", 1, &pushConstant);
+	Shader* meshProgram = Resources::CreateShader("shaders/PbrOpaque.nhshd", 1, &pushConstant);
 	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 
 	PipelineInfo pipelineInfo{};
@@ -912,18 +908,29 @@ Rendergraph* Renderer::GetDefaultRendergraph()
 	//
 	//info.AddPipeline(skyboxStage);
 
-	//TODO: Transparent mesh pipeline
+	meshProgram = Resources::CreateShader("shaders/PbrTransparent.nhshd", 1, &pushConstant);
+	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 
-	//pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
-	//pipelineInfo.name = "default_postprocess_pipeline";
-	//pipelineInfo.shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
-	//
-	//RenderStage postProcessStage{};
-	//postProcessStage.type = RENDER_STAGE_POST_PROCESSING;
-	//postProcessStage.index = 0;
-	//postProcessStage.info = pipelineInfo;
-	//
-	//info.AddPipeline(postProcessStage);
+	pipelineInfo.name = "default_mesh_transparent_pipeline";
+	pipelineInfo.shader = meshProgram;
+
+	RenderStage pbrTransparentStage{};
+	pbrTransparentStage.type = RENDER_STAGE_GEOMETRY_TRANSPARENT;
+	pbrTransparentStage.index = 0;
+	pbrTransparentStage.info = pipelineInfo;
+
+	info.AddPipeline(pbrTransparentStage);
+
+	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
+	pipelineInfo.name = "default_postprocess_pipeline";
+	pipelineInfo.shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
+	
+	RenderStage postProcessStage{};
+	postProcessStage.type = RENDER_STAGE_POST_PROCESSING;
+	postProcessStage.index = 0;
+	postProcessStage.info = pipelineInfo;
+	
+	info.AddPipeline(postProcessStage);
 	
 	//RenderStage uiStage{};
 	//uiStage.type = RENDER_STAGE_UI_OVERLAY;
@@ -1369,7 +1376,10 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
 
-	if (bindlessSupported && (texture->flags & TEXTURE_FLAG_RENDER_TARGET) == 0) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, frameIndex }); }
+	if (bindlessSupported && !(texture->flags & TEXTURE_FLAG_RENDER_TARGET))
+	{
+		Resources::bindlessTexturesToUpdate.Push({ texture->handle, frameIndex });
+	}
 
 	return true;
 }
@@ -1504,15 +1514,17 @@ void Renderer::PushConstants(CommandBuffer* commandBuffer, Shader* shader)
 	}
 };
 
-bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info)
+bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info, Renderpass* prevRenderpass)
 {
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->depthStencilTarget = info.depthStencilTarget;
+	renderpass->subpassCount = info.subpassCount;
+	Memory::Copy(renderpass->subpasses, info.subpasses, sizeof(Subpass) * info.subpassCount);
 	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
 
-	VkAttachmentDescription attachments[MAX_IMAGE_OUTPUTS + 1]{};
-	VkAttachmentReference colorAttachments[MAX_IMAGE_OUTPUTS]{};
-	VkAttachmentReference depthAttachment{};
+	VkAttachmentDescription2 attachments[MAX_IMAGE_OUTPUTS + 1]{};
+	VkAttachmentReference2 colorAttachments[MAX_IMAGE_OUTPUTS]{};
+	VkAttachmentReference2 depthAttachment{};
 
 	VkAttachmentLoadOp colorLoadOp = (VkAttachmentLoadOp)info.colorLoadOp;
 	VkAttachmentLoadOp depthLoadOp = (VkAttachmentLoadOp)info.depthLoadOp;
@@ -1521,6 +1533,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	U32 attachmentCount = 0;
 	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 	{
+		attachments[attachmentCount].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+		attachments[attachmentCount].pNext = nullptr;
 		attachments[attachmentCount].flags = 0;
 		attachments[attachmentCount].format = (VkFormat)renderpass->renderTargets[i]->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1531,8 +1545,11 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		attachments[attachmentCount].initialLayout = colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		colorAttachments[attachmentCount].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+		colorAttachments[attachmentCount].pNext = nullptr;
 		colorAttachments[attachmentCount].attachment = attachmentCount;
 		colorAttachments[attachmentCount].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachments[attachmentCount].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
 		++attachmentCount;
 	}
@@ -1540,6 +1557,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	bool hasDepth = false;
 	if (renderpass->depthStencilTarget)
 	{
+		attachments[attachmentCount].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+		attachments[attachmentCount].pNext = nullptr;
 		attachments[attachmentCount].flags = 0;
 		attachments[attachmentCount].format = (VkFormat)renderpass->depthStencilTarget->format;
 		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1550,43 +1569,69 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		attachments[attachmentCount].initialLayout = depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		depthAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+		depthAttachment.pNext = nullptr;
 		depthAttachment.attachment = attachmentCount;
 		depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
 		hasDepth = true;
 	}
 
-	Vector<VkSubpassDependency> dependencies;
-	Vector<VkSubpassDescription> subpasses{ info.subpassCount, {} };
-	Vector<VkAttachmentReference> inputReferences{};
+	Vector<VkSubpassDependency2> dependencies;
+	Vector<VkSubpassDescription2> subpasses{ info.subpassCount, {} };
+	Vector<VkAttachmentReference2> inputReferences{};
 	U32 inputOffset = 0;
+
+	VkMemoryBarrier2KHR depthBarrier{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
+		.srcAccessMask = 0,
+		.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
+		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+	};
+	
+	VkMemoryBarrier2KHR renderBarrier{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = 0,
+		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+	};
+
+	VkMemoryBarrier2KHR inputBarrier{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+		.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
+	};
 
 	for (U32 i = 0; i < info.subpassCount; ++i)
 	{
 		for (U32 j = 0; j < info.subpasses[i].inputAttachmentCount; ++j)
 		{
-			VkAttachmentReference inputAttachment{};
+			VkAttachmentReference2 inputAttachment{ VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2 };
+			inputAttachment.pNext = nullptr;
 			inputAttachment.attachment = info.subpasses[i].inputAttachments[j];
 			inputAttachment.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			bool found = false;
-			for (U32 k = 0; k < renderpass->subpassIndexCount; ++k)
-			{
-				if (renderpass->subpassIndices[k] == info.subpasses[i].inputAttachments[j]) { found = true; break; }
-			}
-
-			if (!found)
-			{
-				renderpass->subpassIndices[renderpass->subpassIndexCount++] = info.subpasses[i].inputAttachments[j];
-			}
+			if (inputAttachment.attachment >= attachmentCount) { inputAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; }
+			else { inputAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; }
 
 			inputReferences.Push(inputAttachment);
 		}
 
-		VkSubpassDescription& subpass = subpasses[i];
+		VkSubpassDescription2& subpass = subpasses[i];
+		subpass.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
+		subpass.pNext = nullptr;
 		subpass.flags = 0;
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.inputAttachmentCount = info.subpasses[i].inputAttachmentCount;
+		subpass.viewMask = 0;
+		subpass.inputAttachmentCount = (U32)inputReferences.Size() - inputOffset;
 		subpass.pInputAttachments = inputReferences.Data() + inputOffset;
 		subpass.colorAttachmentCount = attachmentCount;
 		subpass.pColorAttachments = colorAttachments;
@@ -1595,39 +1640,80 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		subpass.preserveAttachmentCount = 0;
 		subpass.pPreserveAttachments = nullptr;
 
-		inputOffset += info.subpasses[i].inputAttachmentCount;
+		inputOffset = (U32)inputReferences.Size();
 
-		//TODO: Use Sync2
+		if (i == 0) //First Subpass
+		{
+			if ((!prevRenderpass || prevRenderpass->depthStencilTarget) && hasDepth)
+			{
+				dependencies.Push({
+					.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+					.pNext = &depthBarrier,
+					.srcSubpass = VK_SUBPASS_EXTERNAL,
+					.dstSubpass = i,
+					.dependencyFlags = 0,
+					.viewOffset = 0
+				});
+			}
+
+			dependencies.Push({
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+				.pNext = &renderBarrier,
+				.srcSubpass = VK_SUBPASS_EXTERNAL,
+				.dstSubpass = i,
+				.dependencyFlags = 0,
+				.viewOffset = 0
+			});
+		}
+		else //Later Subpass
+		{
+			if (hasDepth)
+			{
+				dependencies.Push({
+					.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+					.pNext = &depthBarrier,
+					.srcSubpass = i - 1,
+					.dstSubpass = i,
+					.dependencyFlags = 0,
+					.viewOffset = 0
+				});
+			}
+
+			dependencies.Push({
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+				.pNext = &renderBarrier,
+				.srcSubpass = i - 1,
+				.dstSubpass = i,
+				.dependencyFlags = 0,
+				.viewOffset = 0
+			});
+
+			dependencies.Push({
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+				.pNext = &inputBarrier,
+				.srcSubpass = i - 1,
+				.dstSubpass = i,
+				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
+				.viewOffset = 0
+			});
+		}
+
 		//TODO: Add transitions to VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR for input attachments
-		dependencies.Push({
-			.srcSubpass = i - 1,
-			.dstSubpass = i,
-			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-			.dependencyFlags = 0
-			});
-		dependencies.Push({
-			.srcSubpass = i - 1,
-			.dstSubpass = i,
-			.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-			.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-			.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-			});
 	}
 
-	VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	VkRenderPassCreateInfo2 renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2 };
+	renderPassInfo.pNext = nullptr;
+	renderPassInfo.flags = 0;
 	renderPassInfo.attachmentCount = attachmentCount + hasDepth;
 	renderPassInfo.pAttachments = attachments;
 	renderPassInfo.subpassCount = (U32)subpasses.Size();
 	renderPassInfo.pSubpasses = subpasses.Data();
 	renderPassInfo.dependencyCount = (U32)dependencies.Size();
 	renderPassInfo.pDependencies = dependencies.Data();
+	renderPassInfo.correlatedViewMaskCount = 0;
+	renderPassInfo.pCorrelatedViewMasks = nullptr;
 
-	VkValidateFR(vkCreateRenderPass(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
+	VkValidateFR(vkCreateRenderPass2(device, &renderPassInfo, allocationCallbacks, &renderpass->renderpass));
 
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderpass->renderpass;

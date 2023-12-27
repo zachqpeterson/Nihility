@@ -1,6 +1,6 @@
 #include "Events.hpp"
 
-Hashmap<String, Events::Event, false> Events::events{ 128 };
+Hashmap<String, Events::Event> Events::events{ 128 };
 
 bool Events::Initialize()
 {

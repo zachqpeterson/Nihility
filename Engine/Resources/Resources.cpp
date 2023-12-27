@@ -4,6 +4,8 @@
 #include "Scene.hpp"
 #include "Settings.hpp"
 #include "Material.hpp"
+#include "Mesh.hpp"
+#include "Core\Time.hpp"
 #include "Core\Logger.hpp"
 #include "Core\DataReader.hpp"
 #include "Platform\Audio.hpp"
@@ -451,7 +453,7 @@ Hashmap<String, Mesh>			Resources::meshes{ 512 };
 Hashmap<String, Model>			Resources::models{ 256 };
 Hashmap<String, Scene>			Resources::scenes{ 128 };
 
-Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
+Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate{};
 
 bool Resources::Initialize()
 {
@@ -1242,14 +1244,11 @@ Material* Resources::LoadMaterial(const String& path)
 
 		reader.Seek(4); //Skip version number for now, there is only one
 
-		reader.Read(material->type);
-		reader.Read(material->stageIndex);
-
 		String texturePath = reader.ReadString();
 		if (!texturePath.Compare("NULL")) { material->data.diffuseTextureIndex = (U32)LoadTexture(texturePath)->handle; }
 
 		texturePath = reader.ReadString();
-		if (!texturePath.Compare("NULL")) { material->data.metalRoughOcclTextureIndex = (U32)LoadTexture(texturePath)->handle; }
+		if (!texturePath.Compare("NULL")) { material->data.armTextureIndex = (U32)LoadTexture(texturePath)->handle; }
 
 		texturePath = reader.ReadString();
 		if (!texturePath.Compare("NULL")) { material->data.normalTextureIndex = (U32)LoadTexture(texturePath)->handle; }
@@ -1257,8 +1256,12 @@ Material* Resources::LoadMaterial(const String& path)
 		texturePath = reader.ReadString();
 		if (!texturePath.Compare("NULL")) { material->data.emissivityTextureIndex = (U32)LoadTexture(texturePath)->handle; }
 
+		reader.Read(material->type);
+		reader.Read(material->stageIndex);
+
 		reader.Read(material->data.baseColorFactor);
 		reader.Read(material->data.metalRoughFactor);
+		reader.Read(material->data.transparency);
 
 		VkBufferCopy region{};
 		region.dstOffset = sizeof(MaterialData) * handle;
@@ -2097,6 +2100,9 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 	else if (textureData2) { width = width2; height = height2; }
 	else { Logger::Error("Failed To Load All Textures For Combined Texture!"); return {}; }
 
+	U8* buffer;
+	Memory::AllocateSize(&buffer, width * height * 4);
+
 	File file(path, FILE_OPEN_RESOURCE_WRITE);
 	if (file.Opened())
 	{
@@ -2120,20 +2126,18 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 				{
 					for (U32 i = 0; i < width * height; ++i)
 					{
-						file.Write(textureData0[i * 3]);
-						file.Write(textureData1[i * 3 + 1]);
-						file.Write(textureData2[i * 3 + 2]);
-						file.Write(255ui8);
+						Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
+						Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
+						Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
 					}
 				}
 				else
 				{
 					for (U32 i = 0; i < width * height; ++i)
 					{
-						file.Write(textureData0[i * 3]);
-						file.Write(textureData1[i * 3 + 1]);
-						file.Write(def2);
-						file.Write(255ui8);
+						Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
+						Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
+						Memory::Copy(buffer + i * 4 + 2, &def2, sizeof(U8));
 					}
 				}
 			}
@@ -2141,20 +2145,18 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					file.Write(textureData0[i * 3]);
-					file.Write(def1);
-					file.Write(textureData2[i * 3 + 2]);
-					file.Write(255ui8);
+					Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 1, &def1, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
 				}
 			}
 			else
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					file.Write(textureData0[i * 3]);
-					file.Write(def1);
-					file.Write(def2);
-					file.Write(255ui8);
+					Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 1, &def1, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 2, &def2, sizeof(U8));
 				}
 			}
 		}
@@ -2164,20 +2166,18 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					file.Write(def0);
-					file.Write(textureData1[i * 3 + 1]);
-					file.Write(textureData2[i * 3 + 2]);
-					file.Write(255ui8);
+					Memory::Copy(buffer + i * 4, &def0, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
 				}
 			}
 			else
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					file.Write(def0);
-					file.Write(textureData1[i * 3 + 1]);
-					file.Write(def2);
-					file.Write(255ui8);
+					Memory::Copy(buffer + i * 4, &def0, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
+					Memory::Copy(buffer + i * 4 + 2, &def2, sizeof(U8));
 				}
 			}
 		}
@@ -2185,18 +2185,20 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 		{
 			for (U32 i = 0; i < width * height; ++i)
 			{
-				file.Write(def0);
-				file.Write(def1);
-				file.Write(textureData2[i * 3 + 2]);
-				file.Write(255ui8);
+				Memory::Copy(buffer + i * 4, &def0, sizeof(U8));
+				Memory::Copy(buffer + i * 4 + 1, &def1, sizeof(U8));
+				Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
 			}
 		}
+
+		file.Write(buffer, width * height * 4);
+		file.Close();
 
 		if (textureData0) { Memory::Free(&textureData0); }
 		if (textureData1) { Memory::Free(&textureData1); }
 		if (textureData2) { Memory::Free(&textureData2); }
-
-		file.Close();
+			
+		Memory::Free(&buffer);
 
 		return Move(path);
 	}
@@ -2858,9 +2860,6 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 		file.Write("NH Material");
 		file.Write(MATERIAL_VERSION);
 
-		file.Write(RENDER_STAGE_GEOMETRY_OPAQUE);	//TODO: Determine stage
-		file.Write(0u);								//TODO: Determine index
-
 		aiReturn ret;
 
 		aiString texturePath;
@@ -2881,9 +2880,9 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 		const aiTexture* texture0 = nullptr;
 		const aiTexture* texture1 = nullptr;
 		const aiTexture* texture2 = nullptr;
-		if ((ret = materialInfo->GetTexture(aiTextureType_METALNESS, 0, &texturePath)) == aiReturn_SUCCESS) { texture0 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
+		if ((ret = materialInfo->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &texturePath)) == aiReturn_SUCCESS) { texture0 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
 		if ((ret = materialInfo->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath)) == aiReturn_SUCCESS) { texture1 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
-		if ((ret = materialInfo->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &texturePath)) == aiReturn_SUCCESS) { texture2 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
+		if ((ret = materialInfo->GetTexture(aiTextureType_METALNESS, 0, &texturePath)) == aiReturn_SUCCESS) { texture2 = scene->GetEmbeddedTexture(texturePath.C_Str()); }
 
 		if (texture0 || texture1 || texture2) { file.Write(UploadTextures(name, textureIndex++, texture0, texture1, texture2, 127ui8, 127ui8, 0ui8, TEXTURE_USAGE_CALCULATION)); }
 		else { file.Write("NULL"); }
@@ -2903,10 +2902,20 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 		ret = materialInfo->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
 		ai_real roughness{ 0.5f };
 		ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+		ai_real transparency{ 0.0f };
+		ret = materialInfo->Get(AI_MATKEY_TRANSMISSION_FACTOR, transparency);
+
+		if (transparency > 0.0f) { file.Write(RENDER_STAGE_GEOMETRY_TRANSPARENT); }
+		else { file.Write(RENDER_STAGE_GEOMETRY_OPAQUE); }
+
+		file.Write(0u);								//TODO: Determine index
 
 		file.Write(color);
 		file.Write(metallic);
 		file.Write(roughness);
+		file.Write(0.0f);
+		file.Write(0.0f);
+		file.Write(transparency);
 
 		file.Close();
 	}

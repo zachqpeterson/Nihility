@@ -124,13 +124,12 @@ void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 off
 
 void CommandBuffer::DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
 {
-	//TODO: Max draw count
-	vkCmdDrawIndexedIndirectCount(vkCommandBuffer, drawBuffer.vkBuffer, drawOffset, countBuffer.vkBuffer, countOffset, (U32)(drawBuffer.size / sizeof(VkDrawIndexedIndirectCommand)), sizeof(VkDrawIndexedIndirectCommand));
+	vkCmdDrawIndexedIndirectCount(vkCommandBuffer, drawBuffer.vkBuffer, drawOffset, countBuffer.vkBuffer, countOffset, (U32)(drawBuffer.size / sizeof(VkDrawIndexedIndirectCommand)) - drawOffset, sizeof(VkDrawIndexedIndirectCommand));
 }
 
 void CommandBuffer::DrawIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
 {
-	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer.vkBuffer, drawOffset, countBuffer.vkBuffer, countOffset, (U32)(drawBuffer.size / sizeof(VkDrawIndexedIndirectCommand)), sizeof(VkDrawIndexedIndirectCommand));
+	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer.vkBuffer, drawOffset, countBuffer.vkBuffer, countOffset, (U32)(drawBuffer.size / sizeof(VkDrawIndexedIndirectCommand)) - drawOffset, sizeof(VkDrawIndexedIndirectCommand));
 }
 
 void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
