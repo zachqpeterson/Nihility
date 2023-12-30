@@ -48,6 +48,7 @@ void Scene::Destroy()
 bool Scene::Render(CommandBuffer* commandBuffer)
 {
 	CameraData* cameraData = Renderer::GetCameraData();
+	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 
 #ifdef NH_DEBUG
 	if (Settings::InEditor())
@@ -55,6 +56,8 @@ bool Scene::Render(CommandBuffer* commandBuffer)
 		flyCamera.Update();
 		cameraData->vp = flyCamera.ViewProjection();
 		cameraData->eye = flyCamera.Eye();
+
+		skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse();
 	}
 	else
 #endif
@@ -62,6 +65,8 @@ bool Scene::Render(CommandBuffer* commandBuffer)
 		camera.Update();
 		cameraData->vp = camera.ViewProjection();
 		cameraData->eye = camera.Eye();
+
+		skyboxData->invViewProjection = camera.ViewProjection().Inverse();
 	}
 
 	rendergraph->Run(commandBuffer, vertexBuffer, instanceBuffer, indexBuffer, drawBuffer, countsBuffer);
@@ -178,6 +183,15 @@ void Scene::AddMesh(MeshInstance& instance)
 
 		++location.instanceCount;
 	}
+}
+
+void Scene::SetSkybox(Skybox* skybox)
+{
+	SkyboxData* skyboxData = Renderer::GetSkyboxData();
+	CameraData* cameraData = Renderer::GetCameraData();
+
+	skyboxData->skyboxIndex = skybox->texture->handle;
+	cameraData->skyboxIndex = skybox->texture->handle;
 }
 
 void Scene::Load()

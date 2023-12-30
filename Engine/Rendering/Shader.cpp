@@ -33,7 +33,7 @@ Descriptor::Descriptor(VkImageView imageView, ImageLayout imageLayout, VkSampler
 Descriptor::Descriptor(Texture* texture)
 {
 	imageInfo.imageView = texture->imageView;
-	imageInfo.imageLayout = (ImageLayout)texture->imageLayout;
+	imageInfo.imageLayout = IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.sampler = texture->sampler.vkSampler;
 }
 
@@ -364,6 +364,20 @@ bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstan
 		return false;
 	}
 
+	if (vertexCount && useVertices)
+	{
+		Logger::Error("Shaders That Use A Vertex Buffer Can't Specify A Vertex Count!");
+		Destroy();
+		return false;
+	}
+
+	if (vertexCount == 0 && !useVertices)
+	{
+		Logger::Error("Shaders That Don't Use A Vertex Buffer Must Specify A Vertex Count!");
+		Destroy();
+		return false;
+	}
+
 	if (shaderInfo->stageCount == 0) { Logger::Error("Shader '{}' Has No Stages!", shaderPath); return false; }
 
 	if (shaderInfo->blendStateCount == 0)
@@ -649,18 +663,29 @@ bool Shader::ParseConfig(const String& data, I64& index)
 			if (data.CompareN("COLOR", index)) { clearTypes |= CLEAR_TYPE_COLOR; }
 			else if (data.CompareN("DEPTH", index)) { clearTypes |= CLEAR_TYPE_DEPTH; }
 			else if (data.CompareN("STENCIL", index)) { clearTypes |= CLEAR_TYPE_STENCIL; }
-			}
+		}
 		else if (data.CompareN("useIndices", index + 1))
 		{
 			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
 			if (data.CompareN("FALSE", index)) { useIndexing = false; }
 		}
+		else if (data.CompareN("useVertices", index + 1))
+		{
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+
+			if (data.CompareN("FALSE", index)) { useVertices = false; }
+		}
 		else if (data.CompareN("instanceOffset", index + 1))
 		{
 			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 			instanceLocation = data.ToType<U8>(index);
 			useInstancing = true;
+		}
+		else if (data.CompareN("vertexCount", index + 1))
+		{
+			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+			vertexCount = data.ToType<U8>(index);
 		}
 
 		index = data.IndexOf('\n', index + 1);
@@ -773,7 +798,6 @@ const String& Shader::ToCompilerExtension(VkShaderStageFlagBits value)
 	}
 }
 
-//TODO: Support HLSL
 //TODO: Cache compiled shaders
 VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, String& code, const String& name)
 {
@@ -1103,10 +1127,8 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 			switch (id.storageClass)
 			{
 			case SpvStorageClassInput: {
-				if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT)
+				if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && useVertices)
 				{
-					useVertices = true;
-
 					Id& type = ids[ids[id.typeId].typeId];
 
 					if (type.opcode == SpvOpTypeMatrix)
@@ -1198,6 +1220,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 					descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 				}
 				else { descriptorType = GetDescriptorType(SpvOp(type)); }
+
 				VkDescriptorSetLayoutBinding& binding = setLayout->bindings[id.binding];
 				binding.descriptorType = descriptorType;
 				binding.stageFlags |= stage.stage;

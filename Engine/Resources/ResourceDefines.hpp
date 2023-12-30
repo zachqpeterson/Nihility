@@ -656,12 +656,12 @@ struct NH_API Renderpass
 		other.frameBuffer = nullptr;
 	}
 
-	VkRenderPass_T*		renderpass{ nullptr };
-	VkFramebuffer_T*	frameBuffer{ nullptr };
+	VkRenderPass_T* renderpass{ nullptr };
+	VkFramebuffer_T* frameBuffer{ nullptr };
 
 	U8					renderTargetCount{ 0 };
-	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*			depthStencilTarget{ nullptr };
+	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture* depthStencilTarget{ nullptr };
 
 	Subpass				subpasses[8]{};
 	U32					subpassCount{ 1 };
@@ -700,7 +700,6 @@ struct NH_API PushConstant
 	void* data;
 };
 
-//TODO: Get rid of this, just use model system
 struct NH_API Skybox
 {
 	void Destroy() { name.Destroy(); handle = U64_MAX; }
@@ -708,7 +707,6 @@ struct NH_API Skybox
 	String      name{};
 	HashHandle	handle;
 
-	U32         instance;
 	Texture* texture{ nullptr };
 };
 
@@ -730,6 +728,13 @@ struct NH_API CameraData
 {
 	Matrix4 vp;
 	Vector4 eye;
+	U32		skyboxIndex{ U16_MAX };
+};
+
+struct NH_API SkyboxData
+{
+	Matrix4 invViewProjection;
+	U32 skyboxIndex{ U16_MAX };
 };
 
 struct NH_API Camera

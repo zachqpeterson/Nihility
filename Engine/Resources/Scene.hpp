@@ -77,6 +77,7 @@ struct NH_API Scene
 	Camera* GetCamera() { return &camera; }
 
 	void AddMesh(MeshInstance& instance);
+	void SetSkybox(Skybox* skybox);
 
 private:
 	void Create(CameraType cameraType, Rendergraph* rendergraph);

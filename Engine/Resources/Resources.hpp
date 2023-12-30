@@ -43,6 +43,7 @@ public:
 	static Font* LoadFont(const String& path);
 	static AudioClip* LoadAudio(const String& path);
 	static Texture* LoadTexture(const String& path);
+	static Skybox* LoadSkybox(const String& path);
 	static Material* LoadMaterial(const String& path);
 	static Mesh* LoadMesh(const String& path);
 	static Model* LoadModel(const String& path);
@@ -65,6 +66,7 @@ public:
 	//Convert 3rd party asset formats to nh formats
 	static String UploadFont(const String& path);
 	static String UploadAudio(const String& path);
+	static String UploadSkybox(const String& path);
 	static String UploadTexture(const String& path, const TextureUpload& upload = {});
 	static String UploadTexture(const String& name, U32 index, const aiTexture* textureInfo, TextureUsage usage);
 	static String UploadTextures(const String& name, U32 index, const aiTexture* textureInfo0, const aiTexture* textureInfo1, const aiTexture* textureInfo2, U8 def0, U8 def1, U8 def2, TextureUsage usage);
@@ -93,6 +95,7 @@ private:
 	static Texture*							dummyTexture;
 
 	static Hashmap<String, Texture>			textures;
+	static Hashmap<String, Skybox>			skyboxes;
 	static Hashmap<String, Font>			fonts;
 	static Hashmap<String, AudioClip>		audioClips;
 	static Hashmap<String, Shader>			shaders;

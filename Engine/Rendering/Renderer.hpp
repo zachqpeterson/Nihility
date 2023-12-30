@@ -68,8 +68,6 @@ struct CommandBufferRing
 //TODO: Tonemapping		✓
 //TODO: Gamma			✓
 
-//General
-//TODO: Switch to Sync2
 class NH_API Renderer
 {
 public:
@@ -79,6 +77,7 @@ public:
 
 	static void							LoadScene(Scene* scene);
 	static CameraData*					GetCameraData();
+	static SkyboxData*					GetSkyboxData();
 	static PostProcessData*				GetPostProcessData();
 	static Rendergraph*					GetDefaultRendergraph();
 
@@ -177,14 +176,18 @@ private:
 	static Buffer								stagingBuffer;
 	static Buffer								materialBuffer;
 	static CameraData							cameraData;
+	static SkyboxData							skyboxData;
 	static PostProcessData						postProcessData;
 	static Texture*								defaultRenderTarget;
 	static Texture*								defaultDepthTarget;
+	static Texture*								defaultShadowMap;
 	static Rendergraph*							defaultRendergraph;
 
 	// PIPELINES
 	static PipelineInfo							defaultCulling;
+	static PipelineInfo							defaultShadows;
 	static PipelineInfo							defaultGeometryOpaque;
+	static PipelineInfo							defaultSkybox;
 	static PipelineInfo							defaultGeometryTransparent;
 	static PipelineInfo							defaultPostProcessing;
 

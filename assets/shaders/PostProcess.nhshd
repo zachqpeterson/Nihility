@@ -4,6 +4,8 @@ front=CLOCKWISE
 fill=SOLID
 blend=ADD
 useIndices=FALSE
+useVertices=FALSE
+vertexCount=3
 #CONFIG_END
 
 #VERTEX

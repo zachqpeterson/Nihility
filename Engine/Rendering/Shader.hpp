@@ -215,14 +215,14 @@ struct NH_API Shader
 
 	String								entryPoint;
 	PipelineBindPoint					bindPoint{ PIPELINE_BIND_POINT_MAX_ENUM };
-	VkPipelineLayout_T*					pipelineLayout{ nullptr };
+	VkPipelineLayout_T* pipelineLayout{ nullptr };
 	ShaderStage							stages[MAX_SHADER_STAGES]{};
 
 	U32									pushConstantStages{ 0 }; //VkShaderStageFlags
 	PushConstant						pushConstants[MAX_PUSH_CONSTANTS]{};
 	U8									pushConstantCount{ 0 };
 
-	DescriptorSetLayout*				setLayout{};
+	DescriptorSetLayout* setLayout{};
 	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET]; //TODO: Descriptors should probably be per-pipeline
 	U8									descriptorCount{ 0 };
 	bool								useSet0{ false };
@@ -242,11 +242,12 @@ struct NH_API Shader
 	FrontFaceMode						frontMode{ FRONT_FACE_MODE_COUNTER_CLOCKWISE };
 	PolygonMode							fillMode{ POLYGON_MODE_FILL };
 
-	bool								useVertices{ false };
+	bool								useVertices{ true };
 	bool								useInstancing{ false };
 	bool								useIndexing{ true };
 	U8									instanceLocation{ U8_MAX };
 	U32									instanceStride{ 0 };
+	U32									vertexCount{ 0 };
 
 	U32									vertexSize{ 0 };
 	U8									outputCount{ 0 };

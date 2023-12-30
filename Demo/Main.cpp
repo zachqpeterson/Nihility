@@ -22,18 +22,16 @@ Entity* entity{};
 
 bool Init()
 {
-	//String path0 = Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
-	//entity0.model = Resources::LoadModel("models/ABeautifulGame.nhmdl");
-
 	//String path = Resources::UploadFont("arial.ttf");
 	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");
-	//String path1 = Resources::UploadSkybox("CoriolisNight.hdr");
+	//String path = Resources::UploadSkybox("Room.hdr");
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE, Renderer::GetDefaultRendergraph());
 	
 	entity = scene->AddEntity();
 	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
-	
+	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
+
 	Renderer::LoadScene(scene);
 	
 	music = Resources::LoadAudio("audio/TPOM.nhaud");

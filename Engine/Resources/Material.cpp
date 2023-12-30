@@ -88,9 +88,12 @@ bool Rendergraph::Create(RendergraphInfo& info)
 		}
 	}
 
+	Renderpass* prevRenderpass = nullptr;
+
 	for (U32 i = 0; i <= renderpass; ++i)
 	{
-		Renderer::CreateRenderpass(&renderpasses[i], renderpassInfos[i]);
+		Renderer::CreateRenderpass(&renderpasses[i], renderpassInfos[i], prevRenderpass);
+		prevRenderpass = &renderpasses[i];
 	}
 
 	for (U32 i = 0; i < RENDER_STAGE_COUNT; ++i)

@@ -13,6 +13,7 @@ bool Pipeline::Create(const PipelineInfo& info, Renderpass* renderpass)
 	name = info.name;
 	shader = info.shader;
 	subpass = info.subpass;
+	vertexCount = shader->vertexCount;
 	this->renderpass = info.renderpass;
 
 	VkPipelineCache pipelineCache = nullptr;
@@ -57,7 +58,7 @@ bool Pipeline::Create(const PipelineInfo& info, Renderpass* renderpass)
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 		inputAssembly.pNext = nullptr;
 		inputAssembly.flags = 0;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssembly.topology = (VkPrimitiveTopology)shader->topologyMode;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
@@ -224,7 +225,7 @@ void Pipeline::Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, con
 				else { commandBuffer->DrawIndirectCount(drawBuffer, countsBuffer); }
 			}
 		}
-		else { commandBuffer->Draw(0, 3, 0, 1); } //TODO: Specify in shader how many vertices
+		else { commandBuffer->Draw(0, vertexCount, 0, 1); }
 	} break;
 	case VK_PIPELINE_BIND_POINT_COMPUTE: {
 		commandBuffer->Dispatch(shader->localSizeX, shader->localSizeY, shader->localSizeZ);

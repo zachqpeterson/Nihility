@@ -1,0 +1,34 @@
+#CONFIG
+cull=NONE
+front=COUNTER
+fill=SOLID
+depth=LESS
+clear=DEPTH
+#CONFIG_END
+
+#VERTEX
+#version 450
+
+layout(location = 0) in vec3 pos;
+
+layout(push_constant) uniform block
+{
+	mat4 depthMVP;
+};
+
+void main()
+{
+    gl_Position = depthMVP * vec4(pos, 1.0);
+}
+#VERTEX_END
+
+#FRAGMENT
+#version 450
+
+layout(location = 0) out vec4 color;
+
+void main()
+{
+    color = vec4(1.0, 0.0, 0.0, 1.0);
+}
+#FRAGMENT_END

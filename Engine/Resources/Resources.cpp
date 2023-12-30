@@ -402,6 +402,7 @@ struct MP3Header
 };
 
 //nhtex
+//nhsky
 //nhaud
 //nhmat
 //nhmsh
@@ -409,7 +410,6 @@ struct MP3Header
 //nhshd
 //nhscn
 //nhfnt
-//nhbin
 
 constexpr U32 TEXTURE_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 SKYBOX_VERSION = MakeVersionNumber(0, 1, 0);
@@ -421,29 +421,10 @@ constexpr U32 SHADER_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 SCENE_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 FONT_VERSION = MakeVersionNumber(0, 1, 0);
 
-F32 skyboxVertices[]{
-	-1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-};
-
-U32 skyboxIndices[]{
-	1, 2, 6, 6, 5, 1, //Right
-	0, 4, 7, 7, 3, 0, //Left
-	4, 5, 6, 6, 7, 4, //Top
-	0, 3, 2, 2, 1, 0, //Bottom
-	0, 1, 5, 5, 4, 0, //Back
-	3, 7, 6, 6, 2, 3, //Front
-};
-
 Texture* Resources::dummyTexture;
 
 Hashmap<String, Texture>		Resources::textures{ 512 };
+Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
 Hashmap<String, Font>			Resources::fonts{ 32 };
 Hashmap<String, AudioClip>		Resources::audioClips{ 512 };
 Hashmap<String, Shader>			Resources::shaders{ 128 };
@@ -640,7 +621,6 @@ Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushCo
 	{
 		Logger::Error("Failed To Create Shader!");
 		shaders.Remove(shader->handle);
-		shader->Destroy();
 		return nullptr;
 	}
 
@@ -1211,6 +1191,79 @@ Texture* Resources::LoadTexture(const String& path)
 	Logger::Error("Failed To Find Or Open File: {}!", path);
 
 	textures.Remove(handle);
+	return nullptr;
+}
+
+Skybox* Resources::LoadSkybox(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Skybox* skybox = skyboxes.Request(path, handle);
+
+	if (!skybox->name.Blank()) { return skybox; }
+
+	*skybox = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		skybox->name = path;
+		skybox->handle = handle;
+
+		DataReader reader{ file };
+		file.Close();
+
+		if (!reader.Compare("NH Skybox"))
+		{
+			Logger::Error("Asset '{}' Is Not A Nihility Skybox!", path);
+			skyboxes.Remove(handle);
+			skybox->Destroy();
+			return nullptr;
+		}
+
+		reader.Seek(4); //Skip version number for now, there is only one
+
+		U16 resolution;
+		VkFormat format;
+
+		reader.Read(resolution);
+		reader.Read(format);
+		U32 faceSize = resolution * resolution * GetFormatSize(format);
+
+		String textureName = path.GetFileName().Appended("_texture");
+
+		skybox->texture = textures.Request(textureName, handle);
+
+		*(skybox->texture) = {};
+
+		skybox->texture->name = Move(textureName);
+		skybox->texture->handle = handle;
+		skybox->texture->width = resolution;
+		skybox->texture->height = resolution;
+		skybox->texture->type = VK_IMAGE_TYPE_2D;
+		skybox->texture->format = format;
+		skybox->texture->flags = 0;
+		skybox->texture->depth = 1;
+		skybox->texture->mipmapCount = 1;
+		skybox->texture->size = faceSize * 6;
+
+		if (!Renderer::CreateCubemap(skybox->texture, reader.Pointer(), &faceSize))
+		{
+			Logger::Error("Failed To Create Cubemap: {}!", path);
+			skyboxes.Remove(skybox->handle);
+			textures.Remove(handle);
+			skybox->Destroy();
+			skybox->texture->Destroy();
+			return nullptr;
+		}
+
+		return skybox;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+
+	skyboxes.Remove(handle);
 	return nullptr;
 }
 
@@ -1930,6 +1983,89 @@ String Resources::UploadAudio(const String& path)
 	return {};
 }
 
+String Resources::UploadSkybox(const String& path)
+{
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		DataReader reader{ file };
+		file.Close();
+
+		I32 width, height;
+		U8* textureData = stbi_load_from_memory(reader.Data(), (I32)reader.Size(), &width, &height, nullptr, 4);
+
+		U32 resolution = width / 4;
+		U32 faceSize = resolution * resolution * 4;
+		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+
+		U8* result;
+		Memory::AllocateSize(&result, faceSize * 6);
+		U32 coordX = 0;
+		U32 coordY = 0;
+
+		for (U32 i = 0; i < 6; ++i)
+		{
+			U8* face = result + faceSize * i;
+
+			for (U32 y = 0; y < resolution; ++y)
+			{
+				for (U32 x = 0; x < resolution; ++x)
+				{
+					U8* pixel = face + (y * resolution + x) * 4;
+
+					F32 u = ((F32)x / resolution) * 2.0f - 1.0f;
+					F32 v = ((F32)y / resolution) * 2.0f - 1.0f;
+
+					Vector3 dir;
+
+					switch (i)
+					{
+					case 0: { dir = { 1.0f, -v, -u }; } break;	//right +x
+					case 1: { dir = { -1.0f, -v, u }; } break;	//left -x
+					case 2: { dir = { u, 1.0f, v }; } break;	//top +y
+					case 3: { dir = { u, -1.0f, -v }; } break;	//bottom -y
+					case 4: { dir = { u, -v, 1.0f }; } break;	//front +z
+					case 5: { dir = { -u, -v, -1.0f }; } break;	//back -z
+					}
+
+					dir.Normalize();
+
+					F32 lon = -Math::Atan2(dir.z, dir.x);
+					F32 lat = Math::Atan(dir.y / dir.xz().Magnitude());
+					Vector2 uv{ (lon + PI_F) / TWO_PI_F, 1.0f - (lat + HALF_PI_F) / PI_F };
+
+					coordX = uv.x * (width - 1);
+					coordY = uv.y * (height - 1);
+
+					Memory::Copy(pixel, textureData + (coordY * width + coordX) * 4, 4);
+				}
+			}
+		}
+
+		String newPath = path.GetFileName().Surround("textures/", ".nhsky");
+
+		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+
+		file.Write("NH Skybox");
+		file.Write(SKYBOX_VERSION);
+
+		file.Write((U16)resolution);
+		file.Write(format);
+
+		file.Write(result, faceSize * 6);
+
+		Memory::Free(&textureData);
+		Memory::Free(&result);
+
+		file.Close();
+
+		return Move(newPath);
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+	return {};
+}
+
 String Resources::UploadTexture(const String& path, const TextureUpload& upload)
 {
 	File file(path, FILE_OPEN_RESOURCE_READ);
@@ -2090,7 +2226,7 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 	U8* textureData2 = nullptr;
 	if (textureInfo2) { textureData2 = stbi_load_from_memory((U8*)textureInfo2->pcData, textureInfo2->mWidth, &width2, &height2, nullptr, 3); }
 
-	String path = { "textures/", name, index, ".nhtex"};
+	String path = { "textures/", name, index, ".nhtex" };
 
 	U32 width = 0;
 	U32 height = 0;
@@ -2197,7 +2333,7 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 		if (textureData0) { Memory::Free(&textureData0); }
 		if (textureData1) { Memory::Free(&textureData1); }
 		if (textureData2) { Memory::Free(&textureData2); }
-			
+
 		Memory::Free(&buffer);
 
 		return Move(path);
@@ -2703,68 +2839,6 @@ VkFormat Resources::GetKTXFormat(KTXType type, KTXFormat format)
 
 	Logger::Error("Unknown KTX Format!");
 	return VK_FORMAT_UNDEFINED;
-}
-
-U8* Resources::LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution, VkFormat& format)
-{
-	U32 resultChannelCount = 4;
-
-	I32 x, y, channelCount;
-	U8* data = stbi_load_from_memory(reader.Data(), (I32)reader.Size(), &x, &y, &channelCount, 0);
-
-	resolution = x / 4;
-	format = VK_FORMAT_R8G8B8A8_UINT;
-	faceSize = resolution * resolution * resultChannelCount;
-
-	U8* result;
-	Memory::AllocateSize(&result, faceSize * 6);
-
-	Vector3 startRightUp[6][3]{
-		{ { 1.0f, -1.0f, -1.0f }, { 0.0f,  0.0f,  1.0f }, { 0.0f,  1.0f,  0.0f } },	// right
-		{ {-1.0f, -1.0f,  1.0f }, { 0.0f,  0.0f, -1.0f }, { 0.0f,  1.0f,  0.0f } },	// left
-		{ {-1.0f,  1.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f,  0.0f,  1.0f } },	// up
-		{ {-1.0f, -1.0f,  1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f,  0.0f, -1.0f } },	// down
-		{ {-1.0f, -1.0f, -1.0f }, { 1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f } },	// front
-		{ { 1.0f, -1.0f,  1.0f }, {-1.0f,  0.0f,  0.0f }, { 0.0f,  1.0f,  0.0f } },	// back
-	};
-
-	for (U32 i = 0; i < 6; ++i)
-	{
-		Vector3& start = startRightUp[i][0];
-		Vector3& right = startRightUp[i][1];
-		Vector3& up = startRightUp[i][2];
-
-		U8* face = result + faceSize * i;
-		Vector3 pixelDirection3d;
-		for (U32 row = 0; row < resolution; ++row)
-		{
-			for (U32 col = 0; col < resolution; ++col)
-			{
-				F32 colDir = (F32)col * 2.0f + 0.5f;
-				F32 rowDir = (F32)row * 2.0f + 0.5f;
-
-				pixelDirection3d.x = start.x + colDir / (F32)resolution * right.x + rowDir / (F32)resolution * up.x;
-				pixelDirection3d.y = start.y + colDir / (F32)resolution * right.y + rowDir / (F32)resolution * up.y;
-				pixelDirection3d.z = start.z + colDir / (F32)resolution * right.z + rowDir / (F32)resolution * up.z;
-
-				F32 azimuth = Math::Atan2(pixelDirection3d.x, -pixelDirection3d.z) + PI_F;
-				F32 elevation = Math::Atan(pixelDirection3d.y / Math::Sqrt(pixelDirection3d.x * pixelDirection3d.x + pixelDirection3d.z * pixelDirection3d.z)) + HALF_PI_F;
-
-				F32 colHdri = (azimuth / HALF_PI_F) * x;
-				F32 rowHdri = (elevation / PI_F) * y;
-
-				U32 colNearest = Math::Clamp((I32)colHdri, 0, x - 1);
-				U32 rowNearest = Math::Clamp((I32)rowHdri, 0, x - 1);
-
-				face[(col + resolution * row) * resultChannelCount] = data[colNearest * channelCount + x * rowNearest * channelCount];
-				face[(col + resolution * row) * resultChannelCount + 1] = data[colNearest * channelCount + x * rowNearest * channelCount + 1];
-				face[(col + resolution * row) * resultChannelCount + 2] = data[colNearest * channelCount + x * rowNearest * channelCount + 2];
-				face[(col + resolution * row) * resultChannelCount + 3] = 255;
-			}
-		}
-	}
-
-	return result;
 }
 
 struct InstanceUpload

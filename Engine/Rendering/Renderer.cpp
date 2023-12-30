@@ -175,7 +175,7 @@ VkQueue								Renderer::transferQueue;
 U32									Renderer::renderQueueIndex;
 U32									Renderer::transferQueueIndex;
 
-VkAllocationCallbacks* Renderer::allocationCallbacks;
+VkAllocationCallbacks*				Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPools[MAX_SWAPCHAIN_IMAGES];
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -192,17 +192,26 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene* Renderer::currentScene;
-VmaAllocator_T* Renderer::allocator;
+Scene*								Renderer::currentScene;
+VmaAllocator_T*						Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
-CameraData							Renderer::cameraData;
-PostProcessData						Renderer::postProcessData;
+CameraData							Renderer::cameraData{};
+SkyboxData							Renderer::skyboxData{};
+PostProcessData						Renderer::postProcessData{};
 Texture*							Renderer::defaultRenderTarget;
 Texture*							Renderer::defaultDepthTarget;
+Texture*							Renderer::defaultShadowMap;
 Rendergraph*						Renderer::defaultRendergraph;
+
+PipelineInfo						Renderer::defaultCulling;
+PipelineInfo						Renderer::defaultShadows;
+PipelineInfo						Renderer::defaultGeometryOpaque;
+PipelineInfo						Renderer::defaultSkybox;
+PipelineInfo						Renderer::defaultGeometryTransparent;
+PipelineInfo						Renderer::defaultPostProcessing;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -632,6 +641,37 @@ bool Renderer::CreateResources()
 	textureInfo.format = VK_FORMAT_D32_SFLOAT;
 	defaultDepthTarget = Resources::CreateTexture(textureInfo);
 
+	//TODO: Default culling
+
+	textureInfo.name = "default_shadow_map";
+	textureInfo.format = VK_FORMAT_D16_UNORM;
+	defaultDepthTarget = Resources::CreateTexture(textureInfo);
+
+	Shader* shader = Resources::CreateShader("shaders/ShadowMap.nhshd");
+	defaultShadows.name = "default_shadows_pipeline";
+	defaultShadows.shader = shader;
+
+	PushConstant pushConstant{ 0, sizeof(CameraData), Renderer::GetCameraData() };
+	shader = Resources::CreateShader("shaders/PbrOpaque.nhshd", 1, &pushConstant);
+	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	defaultGeometryOpaque.name = "default_mesh_opaque_pipeline";
+	defaultGeometryOpaque.shader = shader;
+
+	shader = Resources::CreateShader("shaders/PbrTransparent.nhshd", 1, &pushConstant);
+	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	defaultGeometryTransparent.name = "default_mesh_transparent_pipeline";
+	defaultGeometryTransparent.shader = shader;
+
+	pushConstant = { 0, sizeof(SkyboxData), Renderer::GetSkyboxData() };
+	defaultSkybox.name = "default_skybox_pipeline";
+	defaultSkybox.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
+
+	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
+	shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
+	shader->AddDescriptor({ Renderer::defaultRenderTarget });
+	defaultPostProcessing.name = "default_postprocess_pipeline";
+	defaultPostProcessing.shader = shader;
+
 	return true;
 }
 
@@ -846,8 +886,7 @@ void Renderer::LoadScene(Scene* scene)
 {
 	if (currentScene)
 	{
-		//Resources::SaveScene(currentScene);
-		//TODO: Unload scene
+		currentScene->Unload();
 	}
 
 	currentScene = scene;
@@ -859,6 +898,11 @@ CameraData* Renderer::GetCameraData()
 	return &cameraData;
 }
 
+SkyboxData* Renderer::GetSkyboxData()
+{
+	return &skyboxData;
+}
+
 PostProcessData* Renderer::GetPostProcessData()
 {
 	return &postProcessData;
@@ -868,7 +912,7 @@ Rendergraph* Renderer::GetDefaultRendergraph()
 {
 	if (defaultRendergraph) { return defaultRendergraph; }
 
-	//RENDER_STAGE_CULLING,
+	//RENDER_STAGE_PRE_PROCESSING,
 	//
 	//RENDER_STAGE_GEOMETRY_OPAQUE,
 	//RENDER_STAGE_GEOMETRY_TRANSPARENT,
@@ -883,68 +927,38 @@ Rendergraph* Renderer::GetDefaultRendergraph()
 
 	//TODO: Culling piplines
 
-	PushConstant pushConstant{ 0, sizeof(CameraData), Renderer::GetCameraData() };
-	Shader* meshProgram = Resources::CreateShader("shaders/PbrOpaque.nhshd", 1, &pushConstant);
-	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	RenderStage stage{};
+	stage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
+	stage.index = 0;
+	stage.info = defaultGeometryOpaque;
+	info.AddPipeline(stage);
 
-	PipelineInfo pipelineInfo{};
-	pipelineInfo.name = "default_mesh_opaque_pipeline";
-	pipelineInfo.shader = meshProgram;
+	stage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
+	stage.index = 1;
+	stage.info = defaultSkybox;
+	info.AddPipeline(stage);
 
-	RenderStage pbrOpaqueStage{};
-	pbrOpaqueStage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
-	pbrOpaqueStage.index = 0;
-	pbrOpaqueStage.info = pipelineInfo;
+	stage.type = RENDER_STAGE_GEOMETRY_TRANSPARENT;
+	stage.index = 0;
+	stage.info = defaultGeometryTransparent;
+	info.AddPipeline(stage);
 
-	info.AddPipeline(pbrOpaqueStage);
-
-	//pipelineInfo.name = "default_skybox_pipeline";
-	//pipelineInfo.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
-	//
-	//RenderStage skyboxStage{};
-	//skyboxStage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
-	//skyboxStage.index = 1;
-	//skyboxStage.info = pipelineInfo;
-	//
-	//info.AddPipeline(skyboxStage);
-
-	meshProgram = Resources::CreateShader("shaders/PbrTransparent.nhshd", 1, &pushConstant);
-	meshProgram->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
-
-	pipelineInfo.name = "default_mesh_transparent_pipeline";
-	pipelineInfo.shader = meshProgram;
-
-	RenderStage pbrTransparentStage{};
-	pbrTransparentStage.type = RENDER_STAGE_GEOMETRY_TRANSPARENT;
-	pbrTransparentStage.index = 0;
-	pbrTransparentStage.info = pipelineInfo;
-
-	info.AddPipeline(pbrTransparentStage);
-
-	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
-	pipelineInfo.name = "default_postprocess_pipeline";
-	pipelineInfo.shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
+	stage.type = RENDER_STAGE_POST_PROCESSING;
+	stage.index = 0;
+	stage.info = defaultPostProcessing;
+	//info.AddPipeline(stage);
 	
-	RenderStage postProcessStage{};
-	postProcessStage.type = RENDER_STAGE_POST_PROCESSING;
-	postProcessStage.index = 0;
-	postProcessStage.info = pipelineInfo;
-	
-	info.AddPipeline(postProcessStage);
-	
-	//RenderStage uiStage{};
-	//uiStage.type = RENDER_STAGE_UI_OVERLAY;
-	//uiStage.index = 0;
-	//uiStage.info = UI::GetUIPipeline();
+	//stage.type = RENDER_STAGE_UI_OVERLAY;
+	//stage.index = 0;
+	//stage.info = UI::GetUIPipeline();
 	//
-	//info.AddPipeline(uiStage);
+	//info.AddPipeline(stage);
 	//
-	//RenderStage textStage{};
-	//textStage.type = RENDER_STAGE_UI_OVERLAY;
-	//textStage.index = 1;
-	//textStage.info = UI::GetTextPipeline();
+	//stage.type = RENDER_STAGE_UI_OVERLAY;
+	//stage.index = 1;
+	//stage.info = UI::GetTextPipeline();
 	//
-	//info.AddPipeline(textStage);
+	//info.AddPipeline(stage);
 
 	defaultRendergraph = Resources::CreateRendergraph(info);
 
@@ -1583,7 +1597,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	Vector<VkAttachmentReference2> inputReferences{};
 	U32 inputOffset = 0;
 
-	VkMemoryBarrier2KHR depthBarrier{
+	VkMemoryBarrier2 depthBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
 		.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
@@ -1592,7 +1606,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
 	};
 	
-	VkMemoryBarrier2KHR renderBarrier{
+	VkMemoryBarrier2 renderBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
 		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -1601,7 +1615,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
 	};
 
-	VkMemoryBarrier2KHR inputBarrier{
+	VkMemoryBarrier2 inputBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
 		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -1665,7 +1679,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 				.viewOffset = 0
 			});
 		}
-		else //Later Subpass
+		else //Later Subpasses
 		{
 			if (hasDepth)
 			{
@@ -1697,8 +1711,6 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 				.viewOffset = 0
 			});
 		}
-
-		//TODO: Add transitions to VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR for input attachments
 	}
 
 	VkRenderPassCreateInfo2 renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2 };

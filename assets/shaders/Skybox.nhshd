@@ -1,28 +1,27 @@
 #CONFIG
 cull=NONE
-front=COUNTER
+front=CLOCKWISE
 fill=SOLID
 depth=LESS_EQUAL
 blend=ADD
-instanceOffset=1
+useIndices=FALSE
+useVertices=FALSE
+topology=TRIANGLE_STRIP
+vertexCount=4
 #CONFIG_END
 
 #VERTEX
 #version 450
 
-struct Globals
+struct SkyboxData
 {
-	mat4 viewProjection;
-	vec4 eye;
+	mat4 invViewProjection;
+	uint skyboxIndex;
 };
-
-layout (location = 0) in vec3 position;
-
-layout (location = 1) in uint skyboxIndex;
 
 layout(push_constant) uniform block
 {
-	Globals globals;
+	SkyboxData skyboxData;
 };
 
 layout (location = 0) out vec3 outTexCoord;
@@ -30,18 +29,25 @@ layout (location = 1) flat out uint outSkyboxIndex;
 
 void main()
 {
-	mat4 noTranslate = mat4(globals.viewProjection[0], globals.viewProjection[1], globals.viewProjection[2], vec4(0.0));
+	vec2 pos = vec2((gl_VertexIndex & 2) >> 1, 1 - (gl_VertexIndex & 1)) * 2 - 1;
 
-    vec4 pos = noTranslate * vec4(position, 1.0);
-	outTexCoord = vec3(position.x, -position.y, position.z);
-	gl_Position = pos.xyww;
-	outSkyboxIndex = skyboxIndex;
+	vec4 clipSpaceNear = skyboxData.invViewProjection * vec4(pos, -1.0, 1.0);
+	vec4 clipSpaceFar = skyboxData.invViewProjection * vec4(pos, 1.0, 1.0);
+
+	vec3 nearPlaneVert = clipSpaceNear.xyz / clipSpaceNear.w;
+	vec3 farPlaneVert = clipSpaceFar.xyz / clipSpaceFar.w;
+
+	outTexCoord = farPlaneVert - nearPlaneVert;
+	outSkyboxIndex = skyboxData.skyboxIndex;
+	gl_Position = vec4(pos, 1.0, 1.0);
 }
 #VERTEX_END
 
 #FRAGMENT
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
+
+const uint INVALID_TEXTURE_INDEX = 65535;
 
 layout (location = 0) in vec3 texCoord;
 layout (location = 1) flat in uint skyboxIndex;
@@ -52,6 +58,9 @@ layout (location = 0) out vec4 fragColor;
 
 void main()
 {
-	fragColor = texture(globalTexturesCubes[skyboxIndex], texCoord);
+	if(skyboxIndex != INVALID_TEXTURE_INDEX)
+	{
+		fragColor = texture(globalTexturesCubes[skyboxIndex], texCoord);
+	}
 }
 #FRAGMENT_END

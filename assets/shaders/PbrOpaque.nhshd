@@ -62,6 +62,7 @@ struct Globals
 {
 	mat4 viewProjection;
 	vec4 eye;
+    uint skyboxIndex;
 };
 
 struct Material
