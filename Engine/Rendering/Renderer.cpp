@@ -175,7 +175,7 @@ VkQueue								Renderer::transferQueue;
 U32									Renderer::renderQueueIndex;
 U32									Renderer::transferQueueIndex;
 
-VkAllocationCallbacks*				Renderer::allocationCallbacks;
+VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool					Renderer::descriptorPools[MAX_SWAPCHAIN_IMAGES];
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
@@ -192,19 +192,20 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene*								Renderer::currentScene;
-VmaAllocator_T*						Renderer::allocator;
+Scene* Renderer::currentScene;
+VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
+ShadowData							Renderer::shadowData{};
 CameraData							Renderer::cameraData{};
 SkyboxData							Renderer::skyboxData{};
 PostProcessData						Renderer::postProcessData{};
-Texture*							Renderer::defaultRenderTarget;
-Texture*							Renderer::defaultDepthTarget;
-Texture*							Renderer::defaultShadowMap;
-Rendergraph*						Renderer::defaultRendergraph;
+Texture* Renderer::defaultRenderTarget;
+Texture* Renderer::defaultDepthTarget;
+Texture* Renderer::defaultShadowMap;
+Rendergraph* Renderer::defaultRendergraph;
 
 PipelineInfo						Renderer::defaultCulling;
 PipelineInfo						Renderer::defaultShadows;
@@ -321,50 +322,50 @@ bool Renderer::CreateInstance()
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
 	debugInfo.messageType =
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-		debugInfo.pfnUserCallback = VkDebugCallback;
-		debugInfo.pUserData = nullptr;
+		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	debugInfo.pfnUserCallback = VkDebugCallback;
+	debugInfo.pUserData = nullptr;
 
 #	ifdef VK_ADDITIONAL_VALIDATION
-		const VkValidationFeatureEnableEXT featuresRequested[]{
-			//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,						//Addition diagnostic data
-			VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
-			VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
-			//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
-			//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
-		};
+	const VkValidationFeatureEnableEXT featuresRequested[]{
+		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,						//Addition diagnostic data
+		VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,			//Resource access conflicts due to missing or incorrect synchronization operations
+		VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,						//Warnings related to common misuse of the API
+		//VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,						//Logging in shaders
+		//VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,	//Validation layers reserve a descriptor set binding slot for their own use
+	};
 
-		VkValidationFeaturesEXT features{ VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
-		features.pNext = &debugInfo;
-		features.enabledValidationFeatureCount = CountOf32(featuresRequested);
-		features.pEnabledValidationFeatures = featuresRequested;
-		instanceInfo.pNext = &features;
+	VkValidationFeaturesEXT features{ VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
+	features.pNext = &debugInfo;
+	features.enabledValidationFeatureCount = CountOf32(featuresRequested);
+	features.pEnabledValidationFeatures = featuresRequested;
+	instanceInfo.pNext = &features;
 #	else
-		instanceInfo.pNext = &debugInfo;
+	instanceInfo.pNext = &debugInfo;
 #	endif
 
-		instanceInfo.enabledLayerCount = CountOf32(layers);
-		instanceInfo.ppEnabledLayerNames = layers;
+	instanceInfo.enabledLayerCount = CountOf32(layers);
+	instanceInfo.ppEnabledLayerNames = layers;
 #else 
-instanceInfo.pNext = nullptr;
-instanceInfo.enabledLayerCount = 0;
-instanceInfo.ppEnabledLayerNames = nullptr;
+	instanceInfo.pNext = nullptr;
+	instanceInfo.enabledLayerCount = 0;
+	instanceInfo.ppEnabledLayerNames = nullptr;
 #endif
 
-instanceInfo.enabledExtensionCount = CountOf32(extensions);
-instanceInfo.ppEnabledExtensionNames = extensions;
+	instanceInfo.enabledExtensionCount = CountOf32(extensions);
+	instanceInfo.ppEnabledExtensionNames = extensions;
 
-VkValidateFR(vkCreateInstance(&instanceInfo, allocationCallbacks, &instance));
+	VkValidateFR(vkCreateInstance(&instanceInfo, allocationCallbacks, &instance));
 
 #ifdef NH_DEBUG
-DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+	DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
 
-VkValidateFR(CreateDebugUtilsMessengerEXT(instance, &debugInfo, allocationCallbacks, &debugMessenger));
+	VkValidateFR(CreateDebugUtilsMessengerEXT(instance, &debugInfo, allocationCallbacks, &debugMessenger));
 #endif
 
-return true;
+	return true;
 }
 
 bool Renderer::SelectGPU()
@@ -645,32 +646,44 @@ bool Renderer::CreateResources()
 
 	textureInfo.name = "default_shadow_map";
 	textureInfo.format = VK_FORMAT_D16_UNORM;
-	defaultDepthTarget = Resources::CreateTexture(textureInfo);
+	defaultShadowMap = Resources::CreateTexture(textureInfo);
 
-	Shader* shader = Resources::CreateShader("shaders/ShadowMap.nhshd");
+	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
+	Shader* shader = Resources::CreateShader("shaders/ShadowMap.nhshd", 1, &pushConstant);
 	defaultShadows.name = "default_shadows_pipeline";
 	defaultShadows.shader = shader;
+	defaultShadows.type = MATERIAL_TYPE_GEOMETRY_OPAQUE;
+	defaultShadows.depthStencilTarget = defaultShadowMap;
+	defaultShadows.renderOrder = -10;
 
-	PushConstant pushConstant{ 0, sizeof(CameraData), Renderer::GetCameraData() };
+	pushConstant = { 0, sizeof(CameraData), Renderer::GetCameraData() };
 	shader = Resources::CreateShader("shaders/PbrOpaque.nhshd", 1, &pushConstant);
 	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 	defaultGeometryOpaque.name = "default_mesh_opaque_pipeline";
 	defaultGeometryOpaque.shader = shader;
+	defaultGeometryOpaque.type = MATERIAL_TYPE_GEOMETRY_OPAQUE;
+	defaultGeometryOpaque.renderOrder = 0;
 
 	shader = Resources::CreateShader("shaders/PbrTransparent.nhshd", 1, &pushConstant);
 	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 	defaultGeometryTransparent.name = "default_mesh_transparent_pipeline";
 	defaultGeometryTransparent.shader = shader;
+	defaultGeometryTransparent.type = MATERIAL_TYPE_GEOMETRY_TRANSPARENT;
+	defaultGeometryTransparent.renderOrder = 20;
 
 	pushConstant = { 0, sizeof(SkyboxData), Renderer::GetSkyboxData() };
 	defaultSkybox.name = "default_skybox_pipeline";
 	defaultSkybox.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
+	defaultSkybox.type = MATERIAL_TYPE_INVALID;
+	defaultSkybox.renderOrder = 10;
 
 	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
 	shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
 	shader->AddDescriptor({ Renderer::defaultRenderTarget });
 	defaultPostProcessing.name = "default_postprocess_pipeline";
 	defaultPostProcessing.shader = shader;
+	defaultPostProcessing.type = MATERIAL_TYPE_INVALID;
+	defaultPostProcessing.renderOrder = 30;
 
 	return true;
 }
@@ -893,6 +906,11 @@ void Renderer::LoadScene(Scene* scene)
 	currentScene->Load();
 }
 
+ShadowData* Renderer::GetShadowData()
+{
+	return &shadowData;
+}
+
 CameraData* Renderer::GetCameraData()
 {
 	return &cameraData;
@@ -912,53 +930,18 @@ Rendergraph* Renderer::GetDefaultRendergraph()
 {
 	if (defaultRendergraph) { return defaultRendergraph; }
 
-	//RENDER_STAGE_PRE_PROCESSING,
-	//
-	//RENDER_STAGE_GEOMETRY_OPAQUE,
-	//RENDER_STAGE_GEOMETRY_TRANSPARENT,
-	//RENDER_STAGE_PARTICLES,
-	//RENDER_STAGE_UI_WORLD,
-	//
-	//RENDER_STAGE_POST_PROCESSING,
-	//RENDER_STAGE_UI_OVERLAY,
-
 	RendergraphInfo info{};
 	info.name = "default_rendergraph";
 
 	//TODO: Culling piplines
 
-	RenderStage stage{};
-	stage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
-	stage.index = 0;
-	stage.info = defaultGeometryOpaque;
-	info.AddPipeline(stage);
-
-	stage.type = RENDER_STAGE_GEOMETRY_OPAQUE;
-	stage.index = 1;
-	stage.info = defaultSkybox;
-	info.AddPipeline(stage);
-
-	stage.type = RENDER_STAGE_GEOMETRY_TRANSPARENT;
-	stage.index = 0;
-	stage.info = defaultGeometryTransparent;
-	info.AddPipeline(stage);
-
-	stage.type = RENDER_STAGE_POST_PROCESSING;
-	stage.index = 0;
-	stage.info = defaultPostProcessing;
-	//info.AddPipeline(stage);
-	
-	//stage.type = RENDER_STAGE_UI_OVERLAY;
-	//stage.index = 0;
-	//stage.info = UI::GetUIPipeline();
-	//
-	//info.AddPipeline(stage);
-	//
-	//stage.type = RENDER_STAGE_UI_OVERLAY;
-	//stage.index = 1;
-	//stage.info = UI::GetTextPipeline();
-	//
-	//info.AddPipeline(stage);
+	info.AddPipeline(defaultShadows);
+	info.AddPipeline(defaultGeometryOpaque);
+	info.AddPipeline(defaultSkybox);
+	info.AddPipeline(defaultGeometryTransparent);
+	//info.AddPipeline(defaultPostProcessing);
+	//info.AddPipeline(UI::GetUIPipeline());
+	//info.AddPipeline(UI::GetTextPipeline());
 
 	defaultRendergraph = Resources::CreateRendergraph(info);
 
@@ -1103,8 +1086,8 @@ void Renderer::FillBuffer(Buffer& buffer, U64 size, const void* data, U32 region
 	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, size);
 	for (U32 i = 0; i < regionCount; ++i)
 	{
-		if(regions[i].srcOffset + regions[i].size > size) { Logger::Error("Trying To Upload Data Outside Of Source Buffer Range!"); BreakPoint; }
-		if(regions[i].dstOffset + regions[i].size > buffer.size) { Logger::Error("Trying To Upload Data Outside Of Destination Buffer Range!"); BreakPoint; }
+		if (regions[i].srcOffset + regions[i].size > size) { Logger::Error("Trying To Upload Data Outside Of Source Buffer Range!"); BreakPoint; }
+		if (regions[i].dstOffset + regions[i].size > buffer.size) { Logger::Error("Trying To Upload Data Outside Of Destination Buffer Range!"); BreakPoint; }
 		regions[i].srcOffset += stagingBuffer.allocationOffset;
 	}
 
@@ -1536,6 +1519,16 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	Memory::Copy(renderpass->subpasses, info.subpasses, sizeof(Subpass) * info.subpassCount);
 	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
 
+	for (U32 i = 0; i < info.renderTargetCount; ++i)
+	{
+		renderpass->clearValues[renderpass->clearCount++].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	}
+
+	if (renderpass->depthStencilTarget)
+	{
+		renderpass->clearValues[renderpass->clearCount++].depthStencil = { 1.0f, 0 };
+	}
+
 	VkAttachmentDescription2 attachments[MAX_IMAGE_OUTPUTS + 1]{};
 	VkAttachmentReference2 colorAttachments[MAX_IMAGE_OUTPUTS]{};
 	VkAttachmentReference2 depthAttachment{};
@@ -1605,7 +1598,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
 	};
-	
+
 	VkMemoryBarrier2 renderBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
@@ -1658,7 +1651,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 
 		if (i == 0) //First Subpass
 		{
-			if ((!prevRenderpass || prevRenderpass->depthStencilTarget) && hasDepth)
+			if (hasDepth)
 			{
 				dependencies.Push({
 					.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
@@ -1758,33 +1751,38 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 
 bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 {
-	vkDestroyFramebuffer(device, renderpass->frameBuffer, allocationCallbacks);
-
-	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-	framebufferInfo.renderPass = renderpass->renderpass;
-	framebufferInfo.attachmentCount = renderpass->renderTargetCount + (bool)renderpass->depthStencilTarget;
-	framebufferInfo.width = Settings::WindowWidth();
-	framebufferInfo.height = Settings::WindowHeight();
-	framebufferInfo.layers = 1;
-
-	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
-
-	U32 attachmentCount = 0;
-	for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
+	if (renderpass->lastResize < absoluteFrame)
 	{
-		framebufferAttachments[attachmentCount++] = renderpass->renderTargets[i]->imageView;
+		vkDestroyFramebuffer(device, renderpass->frameBuffer, allocationCallbacks);
+
+		VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+		framebufferInfo.renderPass = renderpass->renderpass;
+		framebufferInfo.attachmentCount = renderpass->renderTargetCount + (bool)renderpass->depthStencilTarget;
+		framebufferInfo.width = Settings::WindowWidth();
+		framebufferInfo.height = Settings::WindowHeight();
+		framebufferInfo.layers = 1;
+
+		VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
+
+		U32 attachmentCount = 0;
+		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
+		{
+			Resources::RecreateTexture(renderpass->renderTargets[i], Settings::WindowWidth(), Settings::WindowHeight(), 1);
+			framebufferAttachments[attachmentCount++] = renderpass->renderTargets[i]->imageView;
+		}
+
+		if (renderpass->depthStencilTarget)
+		{
+			Resources::RecreateTexture(renderpass->depthStencilTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
+			framebufferAttachments[attachmentCount++] = renderpass->depthStencilTarget->imageView;
+		}
+
+		framebufferInfo.pAttachments = framebufferAttachments;
+
+		VkValidateFR(vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer));
+
+		renderpass->lastResize = absoluteFrame;
 	}
-
-	if (renderpass->depthStencilTarget)
-	{
-		framebufferAttachments[attachmentCount++] = renderpass->depthStencilTarget->imageView;
-	}
-
-	framebufferInfo.pAttachments = framebufferAttachments;
-
-	VkValidateFR(vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer));
-
-	renderpass->lastResize = absoluteFrame;
 
 	return true;
 }

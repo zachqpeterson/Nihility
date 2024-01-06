@@ -11,6 +11,7 @@
 bool Pipeline::Create(const PipelineInfo& info, Renderpass* renderpass)
 {
 	name = info.name;
+	type = info.type;
 	shader = info.shader;
 	subpass = info.subpass;
 	vertexCount = shader->vertexCount;
@@ -91,7 +92,7 @@ bool Pipeline::Create(const PipelineInfo& info, Renderpass* renderpass)
 		VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.polygonMode = (VkPolygonMode)shader->fillMode;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = (VkCullModeFlags)shader->cullMode;
 		rasterizer.frontFace = (VkFrontFace)shader->frontMode;
@@ -188,18 +189,22 @@ void Pipeline::Destroy()
 	if (pipeline) { vkDestroyPipeline(Renderer::device, pipeline, Renderer::allocationCallbacks); }
 }
 
-void Pipeline::Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, const Buffer& instanceBuffer, const Buffer& indexBuffer, const Buffer& drawBuffer, const Buffer& countsBuffer) const
+void Pipeline::SetBuffers(const BufferData& buffers)
+{
+	for (U32 i = 0; i < shader->vertexBindingCount; ++i)
+	{
+		if(shader->vertexTypes[i] == VERTEX_TYPE_INSTANCE) { vertexBuffers[bufferCount++] = buffers.instanceBuffer.vkBuffer; }
+		else { vertexBuffers[bufferCount++] = buffers.vertexBuffers[shader->vertexTypes[i]].vkBuffer; }
+	}
+
+	indexBuffer = buffers.indexBuffer.vkBuffer;
+	drawsBuffer = buffers.drawBuffer.vkBuffer;
+	countsBuffer = buffers.countsBuffer.vkBuffer;
+}
+
+void Pipeline::Run(CommandBuffer* commandBuffer, PipelineGroup* group) const
 {
 	//TODO: Task Submitting
-	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, late ? meshlatePipelineMS : meshPipelineMS);
-	//
-	//DescriptorInfo pyramidDesc(depthSampler, depthPyramid.imageView, VK_IMAGE_LAYOUT_GENERAL);
-	//DescriptorInfo descriptors[] = { dcb.buffer, db.buffer, mlb.buffer, mdb.buffer, vb.buffer, mvb.buffer, pyramidDesc };
-	//// vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer, meshProgramMS.updateTemplate, meshProgramMS.layout, 0, descriptors);
-	//pushDescriptors(meshProgramMS, descriptors);
-	//
-	//vkCmdPushConstants(commandBuffer, meshProgramMS.layout, meshProgramMS.pushConstantStages, 0, sizeof(globals), &globals);
-	//vkCmdDrawMeshTasksIndirectEXT(commandBuffer, dccb.buffer, 4, 1, 0);
 
 	commandBuffer->BindPipeline(this);
 
@@ -212,17 +217,16 @@ void Pipeline::Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, con
 
 		if (shader->useVertices)
 		{
-			if (drawCount)
+			if (group->drawCount)
 			{
-				commandBuffer->BindVertexBuffer(shader, vertexBuffer, vertexOffset);
-				if (shader->useInstancing) { commandBuffer->BindInstanceBuffer(shader, instanceBuffer, instanceOffset); }
+				commandBuffer->BindVertexBuffers(shader, bufferCount, vertexBuffers);
 
 				if (shader->useIndexing)
 				{
-					commandBuffer->BindIndexBuffer(shader, indexBuffer, indexOffset);
-					commandBuffer->DrawIndexedIndirectCount(drawBuffer, countsBuffer, drawOffset, countOffset);
+					commandBuffer->BindIndexBuffer(shader, indexBuffer, 0);
+					commandBuffer->DrawIndexedIndirectCount(drawsBuffer, countsBuffer, group->drawOffset, group->countOffset);
 				}
-				else { commandBuffer->DrawIndirectCount(drawBuffer, countsBuffer); }
+				else { commandBuffer->DrawIndirectCount(drawsBuffer, countsBuffer, group->drawOffset, group->countOffset); }
 			}
 		}
 		else { commandBuffer->Draw(0, vertexCount, 0, 1); }

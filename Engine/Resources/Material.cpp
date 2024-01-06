@@ -5,27 +5,26 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 
-void RendergraphInfo::AddPipeline(const RenderStage& stage)
+void RendergraphInfo::AddPipeline(const PipelineInfo& pipeline)
 {
-	if (stage.type >= RENDER_STAGE_COUNT)
+	bool found = false;
+	for (U32 i = 0; i < pipelines.Size(); ++i)
 	{
-		Logger::Error("Invalid Render Stage Supplied To RendergraphInfo!");
-		return;
+		if (pipeline.renderOrder < pipelines[i].renderOrder)
+		{
+			pipelines.Insert(i, pipeline);
+			found = true;
+			break;
+		}
 	}
 
-	if (stages[stage.type][stage.index].type != RENDER_STAGE_INVALID)
-	{
-		Logger::Warn("Overriding Render Stage!"); //TODO: Better warning message
-	}
-
-	stages[stage.type][stage.index] = stage;
+	if (!found) { pipelines.Push(pipeline); }
 }
 
-U32 Rendergraph::InstanceSize(RenderStageType type, U32 index) const { if (pipelines[type][index].shader) { return pipelines[type][index].shader->instanceStride; } return 0; }
-
-U32 Rendergraph::VertexSize(RenderStageType type, U32 index) const { if (pipelines[type][index].shader) { return pipelines[type][index].shader->vertexSize; } return 0; }
-
-Pipeline* Rendergraph::GetPipeline(RenderStageType type, U32 index) { return &(pipelines[type][index]); }
+void Rendergraph::SetBuffers(const BufferData& buffers)
+{
+	for (Pipeline& pipeline : pipelines) { pipeline.SetBuffers(buffers); }
+}
 
 bool Rendergraph::Create(RendergraphInfo& info)
 {
@@ -39,107 +38,106 @@ bool Rendergraph::Create(RendergraphInfo& info)
 	U32 subpass = 0;
 	bool first = true;
 
-	RenderpassInfo renderpassInfos[RENDER_STAGE_COUNT];
+	RenderpassInfo renderpassInfos[8];
 
-	for (U32 i = 0; i < RENDER_STAGE_COUNT; ++i)
+	for (PipelineInfo& pipeline : info.pipelines)
 	{
-		for (U32 j = 0; j < MAX_PIPELINES_PER_STAGE; ++j)
+		useVertices |= pipeline.shader->useVertices;
+		useInstances |= pipeline.shader->useInstancing;
+		useIndices |= pipeline.shader->useIndexing;
+
+		if (pipeline.shader->clearTypes || first) //TODO: Check for different render/depth targets
 		{
-			RenderStage& stage = info.stages[i][j];
+			if (!first) { ++renderpass; }
 
-			if (stage.type == RENDER_STAGE_INVALID) { break; }
+			subpass = 0;
 
-			useVertices |= stage.info.shader->useVertices;
-			useInstances |= stage.info.shader->useInstancing;
-			useIndices |= stage.info.shader->useIndexing;
+			RenderpassInfo& renderpassInfo = renderpassInfos[renderpass];
 
-			if (stage.info.shader->clearTypes || first)
+			renderpassInfo.Reset();
+			renderpassInfo.name = info.name + renderpass;
+
+			if (pipeline.renderTargetCount || pipeline.depthStencilTarget)
 			{
-				if(!first){ ++renderpass; }
+				for (U32 i = 0; i < pipeline.renderTargetCount; ++i)
+				{
+					renderpassInfo.AddRenderTarget(pipeline.renderTargets[i]);
+				}
 
-				subpass = 0;
+				renderpassInfo.SetDepthStencilTarget(pipeline.depthStencilTarget);
+			}
+			else
+			{
+				renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
 
-				renderpassInfos[renderpass].Reset();
-				renderpassInfos[renderpass].name = info.name + renderpass;
-				renderpassInfos[renderpass].AddRenderTarget(Renderer::defaultRenderTarget);
-
-				if (stage.info.shader->depthEnable) { renderpassInfos[renderpass].SetDepthStencilTarget(Renderer::defaultDepthTarget); }
-
-				renderpassInfos[renderpass].colorLoadOp = stage.info.shader->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
-				renderpassInfos[renderpass].depthLoadOp = stage.info.shader->clearTypes & CLEAR_TYPE_DEPTH ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
-
-				renderpassInfos[renderpass].subpassCount = 1;
-
-				if (stage.info.shader->subpass.inputAttachmentCount) { Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!"); return false; }
+				if (pipeline.shader->depthEnable) { renderpassInfo.SetDepthStencilTarget(Renderer::defaultDepthTarget); }
 			}
 
-			stage.info.renderpass = renderpass;
+			renderpassInfo.colorLoadOp = pipeline.shader->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
+			renderpassInfo.depthLoadOp = pipeline.shader->clearTypes & CLEAR_TYPE_DEPTH ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
 
-			if (stage.info.shader->subpass.inputAttachmentCount)
-			{
-				++subpass;
+			renderpassInfo.subpassCount = 1;
 
-				renderpassInfos[renderpass].AddSubpass(stage.info.shader->subpass);
-			}
-
-			stage.info.subpass = subpass;
-
-			first = false;
+			if (pipeline.shader->subpass.inputAttachmentCount) { Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!"); return false; }
 		}
+
+		pipeline.renderpass = renderpass;
+
+		if (pipeline.shader->subpass.inputAttachmentCount)
+		{
+			++subpass;
+
+			renderpassInfos[renderpass].AddSubpass(pipeline.shader->subpass);
+		}
+
+		pipeline.subpass = subpass;
+
+		first = false;
 	}
 
 	Renderpass* prevRenderpass = nullptr;
 
 	for (U32 i = 0; i <= renderpass; ++i)
 	{
-		Renderer::CreateRenderpass(&renderpasses[i], renderpassInfos[i], prevRenderpass);
-		prevRenderpass = &renderpasses[i];
+		renderpasses.Push({});
+		Renderer::CreateRenderpass(&renderpasses.Back(), renderpassInfos[i], prevRenderpass);
+		prevRenderpass = &renderpasses.Back();
 	}
 
-	for (U32 i = 0; i < RENDER_STAGE_COUNT; ++i)
+	for (PipelineInfo& pipeline : info.pipelines)
 	{
-		for (U32 j = 0; j < MAX_PIPELINES_PER_STAGE; ++j)
-		{
-			RenderStage& stage = info.stages[i][j];
-
-			if (stage.type == RENDER_STAGE_INVALID) { break; }
-
-			pipelines[i][j].Create(stage.info, &renderpasses[stage.info.renderpass]);
-		}
+		pipelines.Push({});
+		pipelines.Back().Create(pipeline, &renderpasses[pipeline.renderpass]);
 	}
 
 	return true;
 }
 
-void Rendergraph::Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, const Buffer& instanceBuffers, const Buffer& indexBuffer, const Buffer& drawBuffer, const Buffer& countsBuffer)
+void Rendergraph::Run(CommandBuffer* commandBuffer, PipelineGroup* groups)
 {
 	U32 renderpass = U32_MAX;
 	U32 subpass = 0;
 
-	for (U32 i = 0; i < RENDER_STAGE_COUNT; ++i)
+	for (Pipeline& pipeline : pipelines)
 	{
-		for (U32 j = 0; j < MAX_PIPELINES_PER_STAGE; ++j)
+		if (!pipeline.pipeline) { break; }
+
+		if (pipeline.renderpass != renderpass)
 		{
-			Pipeline& pipeline = pipelines[i][j];
+			if (renderpass != U32_MAX) { commandBuffer->EndRenderpass(); }
 
-			if (!pipeline.pipeline) { break; }
-
-			if (pipeline.renderpass != renderpass)
-			{
-				if (renderpass != U32_MAX) { commandBuffer->EndRenderpass(); }
-
-				commandBuffer->BeginRenderpass(&renderpasses[pipeline.renderpass]);
-				renderpass = pipeline.renderpass;
-				subpass = 0;
-			}
-			else if (pipeline.subpass != subpass)
-			{
-				commandBuffer->NextSubpass();
-				subpass = pipeline.subpass;
-			}
-
-			pipeline.Run(commandBuffer, vertexBuffer, instanceBuffers, indexBuffer, drawBuffer, countsBuffer);
+			commandBuffer->BeginRenderpass(&renderpasses[pipeline.renderpass]);
+			renderpass = pipeline.renderpass;
+			subpass = 0;
 		}
+		else if (pipeline.subpass != subpass)
+		{
+			commandBuffer->NextSubpass();
+			subpass = pipeline.subpass;
+		}
+
+		if (pipeline.type == MATERIAL_TYPE_INVALID) { pipeline.Run(commandBuffer, nullptr); }
+		else { pipeline.Run(commandBuffer, groups + pipeline.type); }
 	}
 
 	commandBuffer->EndRenderpass();

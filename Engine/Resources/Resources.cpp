@@ -633,7 +633,7 @@ Rendergraph* Resources::CreateRendergraph(RendergraphInfo& info)
 
 	HashHandle handle;
 	Rendergraph* rendergraph = rendergraphs.Request(info.name, handle);
-
+	
 	if (!rendergraph->Name().Blank()) { return rendergraph; }
 
 	rendergraph->handle = handle;
@@ -702,34 +702,40 @@ bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
 
 bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
 {
-	Texture deleteTexture;
-	deleteTexture.imageView = texture->imageView;
-	deleteTexture.image = texture->image;
-	deleteTexture.allocation = texture->allocation;
-	deleteTexture.width = texture->width;
-	deleteTexture.height = texture->height;
-	deleteTexture.depth = texture->depth;
-	deleteTexture.sampler = texture->sampler;
-	deleteTexture.mipmapCount = texture->mipmapCount;
-	Memory::Copy(deleteTexture.mipmaps, texture->mipmaps, sizeof(VkImageView) * deleteTexture.mipmapCount);
-
-	texture->width = width;
-	texture->height = height;
-	texture->depth = depth;
-
-	if (!Renderer::CreateTexture(texture, nullptr))
+	if (texture->lastResize < Renderer::AbsoluteFrame())
 	{
-		Logger::Error("Failed To Recreate Pipeline!");
-		texture->width = deleteTexture.width;
-		texture->height = deleteTexture.height;
-		texture->depth = deleteTexture.depth;
+		Texture deleteTexture;
+		deleteTexture.imageView = texture->imageView;
+		deleteTexture.image = texture->image;
+		deleteTexture.allocation = texture->allocation;
+		deleteTexture.width = texture->width;
+		deleteTexture.height = texture->height;
+		deleteTexture.depth = texture->depth;
+		deleteTexture.sampler = texture->sampler;
+		deleteTexture.mipmapCount = texture->mipmapCount;
+		Memory::Copy(deleteTexture.mipmaps, texture->mipmaps, sizeof(VkImageView) * deleteTexture.mipmapCount);
 
-		return false;
+		texture->width = width;
+		texture->height = height;
+		texture->depth = depth;
+
+		if (!Renderer::CreateTexture(texture, nullptr))
+		{
+			Logger::Error("Failed To Recreate Pipeline!");
+			texture->width = deleteTexture.width;
+			texture->height = deleteTexture.height;
+			texture->depth = deleteTexture.depth;
+
+			return false;
+		}
+
+		Renderer::DestroyTextureInstant(&deleteTexture);
+		texture->lastResize = Renderer::AbsoluteFrame();
+
+		return true;
 	}
 
-	Renderer::DestroyTextureInstant(&deleteTexture);
-
-	return true;
+	return false;
 }
 
 bool SetAtlasPositions()
@@ -1310,7 +1316,6 @@ Material* Resources::LoadMaterial(const String& path)
 		if (!texturePath.Compare("NULL")) { material->data.emissivityTextureIndex = (U32)LoadTexture(texturePath)->handle; }
 
 		reader.Read(material->type);
-		reader.Read(material->stageIndex);
 
 		reader.Read(material->data.baseColorFactor);
 		reader.Read(material->data.metalRoughFactor);
@@ -1361,13 +1366,56 @@ Mesh* Resources::LoadMesh(const String& path)
 
 		reader.Seek(4); //Skip version number for now, there is only one
 
-		reader.Read(mesh->verticesSize);
-		Memory::AllocateSize(&mesh->vertices, mesh->verticesSize);
-		Memory::Copy(mesh->vertices, reader.Pointer(), mesh->verticesSize);
-
-		reader.Seek(mesh->verticesSize);
-
+		reader.Read(mesh->vertexCount);
 		reader.Read(mesh->indicesSize);
+		bool hasTangents, hasTexcoords;
+		reader.Read(hasTangents);
+		reader.Read(hasTexcoords);
+
+		U32 verticesSize = sizeof(Vector3) * mesh->vertexCount;
+
+		VertexBuffer positionBuffer;
+		positionBuffer.type = VERTEX_TYPE_POSITION;
+		positionBuffer.size = verticesSize;
+		positionBuffer.stride = sizeof(Vector3);
+		Memory::AllocateSize(&positionBuffer.buffer, verticesSize);
+		Memory::Copy(positionBuffer.buffer, reader.Pointer(), verticesSize);
+		mesh->buffers.Push(positionBuffer);
+		reader.Seek(verticesSize);
+
+		VertexBuffer normalBuffer;
+		normalBuffer.type = VERTEX_TYPE_NORMAL;
+		normalBuffer.size = verticesSize;
+		normalBuffer.stride = sizeof(Vector3);
+		Memory::AllocateSize(&normalBuffer.buffer, verticesSize);
+		Memory::Copy(normalBuffer.buffer, reader.Pointer(), verticesSize);
+		mesh->buffers.Push(normalBuffer);
+		reader.Seek(verticesSize);
+
+		if (hasTangents)
+		{
+			VertexBuffer tangentBuffer;
+			tangentBuffer.type = VERTEX_TYPE_TANGENT;
+			tangentBuffer.size = verticesSize;
+			tangentBuffer.stride = sizeof(Vector3);
+			Memory::AllocateSize(&tangentBuffer.buffer, verticesSize);
+			Memory::Copy(tangentBuffer.buffer, reader.Pointer(), verticesSize);
+			mesh->buffers.Push(tangentBuffer);
+			reader.Seek(verticesSize);
+		}
+
+		if (hasTexcoords)
+		{
+			VertexBuffer texcoordBuffer;
+			texcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
+			texcoordBuffer.size = verticesSize;
+			texcoordBuffer.stride = sizeof(Vector3);
+			Memory::AllocateSize(&texcoordBuffer.buffer, verticesSize);
+			Memory::Copy(texcoordBuffer.buffer, reader.Pointer(), verticesSize);
+			mesh->buffers.Push(texcoordBuffer);
+			reader.Seek(verticesSize);
+		}
+
 		Memory::AllocateSize(&mesh->indices, mesh->indicesSize);
 		Memory::Copy(mesh->indices, reader.Pointer(), mesh->indicesSize);
 
@@ -2034,8 +2082,8 @@ String Resources::UploadSkybox(const String& path)
 					F32 lat = Math::Atan(dir.y / dir.xz().Magnitude());
 					Vector2 uv{ (lon + PI_F) / TWO_PI_F, 1.0f - (lat + HALF_PI_F) / PI_F };
 
-					coordX = uv.x * (width - 1);
-					coordY = uv.y * (height - 1);
+					coordX = (U32)(uv.x * (width - 1));
+					coordY = (U32)(uv.y * (height - 1));
 
 					Memory::Copy(pixel, textureData + (coordY * width + coordX) * 4, 4);
 				}
@@ -2979,10 +3027,8 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 		ai_real transparency{ 0.0f };
 		ret = materialInfo->Get(AI_MATKEY_TRANSMISSION_FACTOR, transparency);
 
-		if (transparency > 0.0f) { file.Write(RENDER_STAGE_GEOMETRY_TRANSPARENT); }
-		else { file.Write(RENDER_STAGE_GEOMETRY_OPAQUE); }
-
-		file.Write(0u);								//TODO: Determine index
+		if (transparency > 0.0f) { file.Write(MATERIAL_TYPE_GEOMETRY_TRANSPARENT); }
+		else { file.Write(MATERIAL_TYPE_GEOMETRY_OPAQUE); }
 
 		file.Write(color);
 		file.Write(metallic);
@@ -3009,67 +3055,48 @@ String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 
 		U32 vertexCount = meshInfo->mNumVertices;
 
-		file.Write((U32)(vertexCount * sizeof(Vertex)));
-
-		if (meshInfo->HasTangentsAndBitangents())
-		{
-			if (meshInfo->HasTextureCoords(0))
-			{
-				for (U32 i = 0; i < vertexCount; ++i)
-				{
-					file.Write(meshInfo->mVertices[i]);
-					file.Write(meshInfo->mNormals[i]);
-					file.Write(meshInfo->mTangents[i]);
-					file.Write(meshInfo->mBitangents[i]);
-					file.Write(&meshInfo->mTextureCoords[0][i], sizeof(Vector2));
-				}
-			}
-			else
-			{
-				for (U32 i = 0; i < vertexCount; ++i)
-				{
-					file.Write(meshInfo->mVertices[i]);
-					file.Write(meshInfo->mNormals[i]);
-					file.Write(meshInfo->mTangents[i]);
-					file.Write(meshInfo->mBitangents[i]);
-					file.Write(Vector2Zero);
-				}
-			}
-		}
-		else
-		{
-			if (meshInfo->HasTextureCoords(0))
-			{
-				for (U32 i = 0; i < vertexCount; ++i)
-				{
-					file.Write(meshInfo->mVertices[i]);
-					file.Write(meshInfo->mNormals[i]);
-					file.Write(Vector3Zero);
-					file.Write(Vector3Zero);
-					file.Write(&meshInfo->mTextureCoords[0][i], sizeof(Vector2));
-				}
-			}
-			else
-			{
-				for (U32 i = 0; i < vertexCount; ++i)
-				{
-					file.Write(meshInfo->mVertices[i]);
-					file.Write(meshInfo->mNormals[i]);
-					file.Write(Vector3Zero);
-					file.Write(Vector3Zero);
-					file.Write(Vector2Zero);
-				}
-			}
-		}
-
 		U32 faceSize = meshInfo->mFaces[0].mNumIndices * sizeof(U32);
 
+		file.Write(vertexCount);
 		file.Write(meshInfo->mNumFaces * faceSize);
+		file.Write(meshInfo->HasTangentsAndBitangents());
+		file.Write(meshInfo->HasTextureCoords(0));
+
+		U32 totalSize = (sizeof(Vector3) * 4 + sizeof(Vector2)) * vertexCount + meshInfo->mNumFaces * faceSize;
+		U8* buffer;
+		Memory::AllocateSize(&buffer, totalSize);
+		U8* it = buffer;
+
+		Memory::Copy(it, meshInfo->mVertices, sizeof(Vector3) * vertexCount);
+		it += sizeof(Vector3) * vertexCount;
+		Memory::Copy(it, meshInfo->mNormals, sizeof(Vector3) * vertexCount);
+		it += sizeof(Vector3) * vertexCount;
+
+		if(meshInfo->HasTangentsAndBitangents())
+		{
+			Memory::Copy(it, meshInfo->mTangents, sizeof(Vector3) * vertexCount);
+			it += sizeof(Vector3) * vertexCount;
+		}
+
+		if (meshInfo->HasTextureCoords(0))
+		{
+			Memory::Copy(it, meshInfo->mTextureCoords[0], sizeof(Vector3) * vertexCount);
+			it += sizeof(Vector3) * vertexCount;
+
+			//for (U32 i = 0; i < vertexCount; ++i)
+			//{
+			//	Memory::Copy(it, meshInfo->mTextureCoords[0] + i, sizeof(Vector2));
+			//	it += sizeof(Vector2);
+			//}
+		}
 
 		for (U32 i = 0; i < meshInfo->mNumFaces; ++i)
 		{
-			file.Write(meshInfo->mFaces[i].mIndices, faceSize);
+			Memory::Copy(it, meshInfo->mFaces[i].mIndices, faceSize);
+			it += faceSize;
 		}
+
+		file.Write(buffer, totalSize);
 
 		file.Close();
 	}

@@ -24,6 +24,17 @@ enum NH_API MaterialFlag
 	MATERIAL_FLAG_ALPHA_MASK = 0x01,
 };
 
+enum NH_API MaterialType
+{
+	MATERIAL_TYPE_GEOMETRY_OPAQUE,
+	MATERIAL_TYPE_GEOMETRY_TRANSPARENT,
+	MATERIAL_TYPE_UI,
+	MATERIAL_TYPE_TEXT,
+
+	MATERIAL_TYPE_COUNT,
+	MATERIAL_TYPE_INVALID = MATERIAL_TYPE_COUNT
+};
+
 enum NH_API TextureFlag
 {
 	TEXTURE_FLAG_NONE = 0x00,
@@ -43,6 +54,19 @@ enum NH_API CameraType
 {
 	CAMERA_TYPE_PERSPECTIVE,
 	CAMERA_TYPE_ORTHOGRAPHIC
+};
+
+enum VertexType
+{
+	VERTEX_TYPE_POSITION,
+	VERTEX_TYPE_NORMAL,
+	VERTEX_TYPE_TANGENT,
+	VERTEX_TYPE_TEXCOORD,
+	VERTEX_TYPE_COLOR,
+
+	VERTEX_TYPE_INSTANCE,
+
+	VERTEX_TYPE_COUNT
 };
 
 #pragma region VulkanEnums
@@ -502,6 +526,15 @@ enum NH_API BufferMemoryType
 	BUFFER_MEMORY_TYPE_RDMA_CAPABLE = 0x00000100,
 };
 
+union NH_API ClearValue
+{
+	Vector4 color;
+	struct {
+		F32 depth;
+		U32 stencil;
+	} depthStencil;
+};
+
 typedef I32 BufferUsageBits;
 typedef I32 BufferMemoryTypeBits;
 
@@ -569,16 +602,17 @@ struct NH_API Texture
 	U16					height{ 1 };
 	U16					depth{ 1 };
 	U32					flags{ 0 };
+	U32					lastResize{ 0 };
 
 	I32					type{ IMAGE_TYPE_2D }; //VkImageType
 
-	VkImage_T* image{ nullptr };
-	VkImageView_T* imageView{ nullptr };
+	VkImage_T*			image{ nullptr };
+	VkImageView_T*		imageView{ nullptr };
 	I32					format{ FORMAT_TYPE_UNDEFINED }; //VkFormat
 	I32					imageLayout{ IMAGE_LAYOUT_UNDEFINED }; //VkImageLayout
-	VmaAllocation_T* allocation{ nullptr };
+	VmaAllocation_T*	allocation{ nullptr };
 
-	VkImageView_T* mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
+	VkImageView_T*		mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
 	TextureUsage		usage{ TEXTURE_USAGE_COLOR };
@@ -646,15 +680,8 @@ struct Subpass
 struct NH_API Renderpass
 {
 	Renderpass() {}
-
-	Renderpass(Renderpass&& other) noexcept : renderpass{ other.renderpass }, frameBuffer{ other.frameBuffer },
-		renderTargetCount{ other.renderTargetCount }, depthStencilTarget{ other.depthStencilTarget }
-	{
-		Memory::Copy(renderTargets, other.renderTargets, sizeof(Texture*) * renderTargetCount);
-
-		other.renderpass = nullptr;
-		other.frameBuffer = nullptr;
-	}
+	Renderpass(Renderpass&& other) noexcept;
+	Renderpass& operator=(Renderpass&& other) noexcept;
 
 	VkRenderPass_T* renderpass{ nullptr };
 	VkFramebuffer_T* frameBuffer{ nullptr };
@@ -662,6 +689,9 @@ struct NH_API Renderpass
 	U8					renderTargetCount{ 0 };
 	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTarget{ nullptr };
+
+	U8					clearCount{ 0 };
+	ClearValue			clearValues[MAX_IMAGE_OUTPUTS + 1]{};
 
 	Subpass				subpasses[8]{};
 	U32					subpassCount{ 1 };
@@ -735,6 +765,28 @@ struct NH_API SkyboxData
 {
 	Matrix4 invViewProjection;
 	U32 skyboxIndex{ U16_MAX };
+};
+
+struct NH_API ShadowData
+{
+	Matrix4 depthMVP;
+};
+
+struct BufferData
+{
+	Vector<Buffer>					vertexBuffers;
+	Buffer							instanceBuffer;
+	Buffer							indexBuffer;
+	Buffer							drawBuffer;
+	Buffer							countsBuffer;
+};
+
+struct PipelineGroup
+{
+	U32 instanceOffset{ 0 };
+	U32 countOffset{ 0 };
+	U32 drawOffset{ 0 };
+	U32 drawCount{ 0 };
 };
 
 struct NH_API Camera

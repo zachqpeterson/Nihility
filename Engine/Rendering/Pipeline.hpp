@@ -50,18 +50,25 @@ struct NH_API SpecializationInfo
 	SpecializationEntry specializationEntries[MAX_SPECIALIZATION_CONSTANTS]{};
 	Specialization specializationInfo{};
 
-	SizeType specializationBuffer[MAX_SPECIALIZATION_CONSTANTS * SIZE]{};
+	SizeType specializationBuffer[MAX_SPECIALIZATION_CONSTANTS]{};
 };
 
 struct NH_API PipelineInfo
 {
 	void Destroy() { name.Destroy(); }
+	void AddRenderTarget(Texture* renderTarget) { renderTargets[renderTargetCount++] = renderTarget; }
 
 	String				name{};
 
 	Shader*				shader{ nullptr };
+	MaterialType		type;
+	I32					renderOrder;
 
 	SpecializationInfo	specialization{};
+
+	U8					renderTargetCount{ 0 };
+	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	Texture*			depthStencilTarget{ nullptr };
 
 	U32					renderpass{ 0 };
 	U32					subpass{ 0 };
@@ -74,9 +81,10 @@ struct BufferCopy
 	U64 size;
 };
 
+struct BufferData;
+struct Renderpass;
 struct CommandBuffer;
 struct VkPipeline_T;
-struct Renderpass;
 
 struct NH_API Pipeline
 {
@@ -91,24 +99,26 @@ struct NH_API Pipeline
 private:
 	bool Create(const PipelineInfo& info, Renderpass* renderpass);
 
-	void Run(CommandBuffer* commandBuffer, const Buffer& vertexBuffer, const Buffer& instanceBuffer, const Buffer& indexBuffer, const Buffer& drawBuffer, const Buffer& countsBuffer) const;
+	void SetBuffers(const BufferData& buffers);
+
+	void Run(CommandBuffer* commandBuffer, PipelineGroup* group) const;
 
 	String			name{};
+	MaterialType	type;
 
 	Shader*			shader{};
 	VkPipeline_T*	pipeline{ nullptr };
 	U32				renderpass{ 0 };
 	U32				subpass{ 0 };
 
-	U32				countOffset{ 0 };
-	U32				drawOffset{ 0 };
-	U32				drawCount{ 0 };
-	U32				vertexOffset{ 0 };
 	U32				vertexCount{ 0 };
-	U32				instanceOffset{ 0 };
-	U32				instanceCount{ 0 };
-	U32				indexOffset{ 0 };
-	U32				indexCount{ 0 };
+
+	U32				bufferCount{ 0 };
+	VkBuffer_T*		vertexBuffers[8]{};
+
+	VkBuffer_T*		indexBuffer;
+	VkBuffer_T*		drawsBuffer;
+	VkBuffer_T*		countsBuffer;
 
 	Pipeline(const Pipeline&) = delete;
 	Pipeline& operator=(const Pipeline&) = delete;

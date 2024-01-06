@@ -22,6 +22,7 @@
 #define LINE_NUMBER
 
 #define STATIC_CLASS(class)
+#define COMPONENT(class)
 
 #define NH_INLINE
 #define NH_NOINLINE

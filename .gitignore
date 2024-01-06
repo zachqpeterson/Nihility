@@ -34,15 +34,18 @@ Terrain/x64/
 *.[jJ][fF][iI][fF]
 *.[tT][iI][fF][fF]
 *.[kK][tT][xX]
+*.[kK][tT][xX]2
 *.[hH][dD][rR]
 *.[pP][sS][dD]
 *.[pP][iI][cC]
 *.[pP][nN][mM]
 *.[pP][pP][mM]
 *.[pP][gG][mM]
+*.[sS][bB][sS][aA][rR]
 
 *.[fF][bB][xX]
 *.[oO][bB][jJ]
+*.[gG][lL][bB]
 *.[gG][lL][tT][fF]
 *.[bB][lL][eE][nN][dD]
 *.[pP][mM][xX]
@@ -54,3 +57,5 @@ Terrain/x64/
 *.[mM][pP]3
 *.[oO][gG][gG]
 *.[fF][lL][aA][cC]
+
+*.[zZ][iI][pP]

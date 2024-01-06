@@ -6,13 +6,13 @@
 
 struct ComponentPool
 {
-	virtual void Update() = 0;
+	virtual void Update(Scene* scene) = 0;
 	virtual void Load(Scene* scene) = 0;
 
 	virtual U64 Count() = 0;
 };
 
-template <ComponentType Type>
+template <class Type>
 struct ComponentPoolInternal : public ComponentPool
 {
 	Type* AddComponent(Type&& component)
@@ -21,11 +21,11 @@ struct ComponentPoolInternal : public ComponentPool
 		return &components.Back();
 	}
 
-	virtual void Update() final
+	virtual void Update(Scene* scene) final
 	{
 		for (Type& component : components)
 		{
-			component.Update();
+			component.Update(scene);
 		}
 	}
 
@@ -48,20 +48,15 @@ struct ComponentReference
 	U64 id;
 };
 
-struct MeshLocation
-{
-	U32 instanceOffset{ 0 };
-	U32 instanceCount{ 0 };
-	U32 drawOffset{ 0 };
-};
-
 struct MeshDraw
 {
 	U32 indexOffset{ 0 };
 	U32 indexCount{ 0 };
 	I32 vertexOffset{ 0 };
 
-	MeshLocation locations[RENDER_STAGE_COUNT][MAX_PIPELINES_PER_STAGE]{ };
+	U32 instanceOffset{ 0 };
+	U32 instanceCount{ 0 };
+	U32 drawOffset{ 0 };
 };
 
 struct Entity;
@@ -72,11 +67,13 @@ struct CommandBuffer;
 struct NH_API Scene
 {
 	Entity* AddEntity();
+	Entity* GetEntity(U32 id);
 
 	const String& Name() { return name; }
 	Camera* GetCamera() { return &camera; }
 
 	void AddMesh(MeshInstance& instance);
+	void UpdateMesh(MeshInstance& instance);
 	void SetSkybox(Skybox* skybox);
 
 private:
@@ -110,17 +107,14 @@ private:
 
 	Camera							camera{};
 
-	Buffer							vertexBuffer;
-	Buffer							instanceBuffer;
-	Buffer							indexBuffer;
-	Buffer							drawBuffer;
-	Buffer							countsBuffer;
+	BufferData						buffers;
+	PipelineGroup					groups[MATERIAL_TYPE_COUNT];
 
 	U32								vertexOffset{ 0 };
 	U32								instanceOffset{ 0 };
 	U32								indexOffset{ 0 };
-	U32								countsOffset{ 0 };
 	U32								drawOffset{ 0 };
+	U32								countsOffset{ 0 };
 
 	Rendergraph*					rendergraph{ nullptr };
 

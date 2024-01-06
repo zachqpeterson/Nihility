@@ -161,6 +161,8 @@ struct Id
 	U32 count;
 
 	U32 constant;
+
+	String name;
 };
 
 struct DescriptorSetLayout
@@ -197,7 +199,7 @@ VkDescriptorSetLayout			Shader::dummyDescriptorSetLayout;
 Pool<DescriptorSetLayout, 256>	Shader::descriptorSetLayouts;
 VkDescriptorPool				Shader::bindlessDescriptorPool;
 VkDescriptorSet					Shader::bindlessDescriptorSet;
-DescriptorSetLayout*			Shader::bindlessDescriptorSetLayout;
+DescriptorSetLayout* Shader::bindlessDescriptorSetLayout;
 
 bool Shader::Initialize()
 {
@@ -1020,6 +1022,11 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 
 		switch (opcode)
 		{
+		case SpvOpName:
+		{
+			U32 id = it[1];
+			ids[id].name = (C8*)(it + 2);
+		} break;
 		case SpvOpEntryPoint:
 		{
 			stage.stage = (ShaderStageType)GetShaderStage((SpvExecutionModel)it[1]);
@@ -1133,6 +1140,14 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 
 					if (type.opcode == SpvOpTypeMatrix)
 					{
+						if (id.location < instanceLocation) { Logger::Error("Matrix Vertex Attributes Must Be Instanced!"); }
+
+						if (instanceBinding == U8_MAX)
+						{
+							instanceBinding = vertexBindingCount++;
+							vertexTypes[instanceBinding] = VERTEX_TYPE_INSTANCE;
+						}
+
 						const Id& component = ids[type.typeId];
 
 						switch (type.count)
@@ -1140,7 +1155,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 						case 2: {
 							VkVertexInputAttributeDescription attribute{};
 							attribute.location = id.location;
-							attribute.binding = id.location >= instanceLocation;
+							attribute.binding = instanceBinding;
 							attribute.format = GetFormat(ids, component);
 							attribute.offset = 0;
 
@@ -1154,7 +1169,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 						case 3: {
 							VkVertexInputAttributeDescription attribute{};
 							attribute.location = id.location;
-							attribute.binding = id.location >= instanceLocation;
+							attribute.binding = instanceBinding;
 							attribute.format = GetFormat(ids, component);
 							attribute.offset = 0;
 
@@ -1171,7 +1186,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 						case 4: {
 							VkVertexInputAttributeDescription attribute{};
 							attribute.location = id.location;
-							attribute.binding = id.location >= instanceLocation;
+							attribute.binding = instanceBinding;
 							attribute.format = GetFormat(ids, component);
 							attribute.offset = 0;
 
@@ -1194,9 +1209,32 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 					{
 						VkVertexInputAttributeDescription attribute{};
 						attribute.location = id.location;
-						attribute.binding = id.location >= instanceLocation;
 						attribute.format = GetFormat(ids, type);
 						attribute.offset = 0;
+
+						if (id.location >= instanceLocation)
+						{
+							if (instanceBinding == U8_MAX)
+							{
+								instanceBinding = vertexBindingCount++;
+								vertexTypes[instanceBinding] = VERTEX_TYPE_INSTANCE;
+							}
+
+							attribute.binding = instanceBinding;
+						}
+						else
+						{
+							attribute.binding = vertexBindingCount++;
+
+							switch (Math::Hash(id.name.Data(), id.name.Size()))
+							{
+							case "position"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_POSITION; } break;
+							case "normal"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_NORMAL; } break;
+							case "tangent"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_TANGENT; } break;
+							case "texcoord"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_TEXCOORD; } break;
+							case "color"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_COLOR; } break;
+							}
+						}
 
 						shaderInfo->vertexAttributes[id.location] = attribute;
 
@@ -1245,48 +1283,34 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 
 	if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && shaderInfo->vertexAttributeCount)
 	{
-		if (instanceLocation != U8_MAX)
+		VkVertexInputBindingDescription instanceInput{};
+		instanceInput.binding = instanceBinding;
+		instanceInput.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+		for (U32 i = 0; i < shaderInfo->vertexAttributeCount; ++i)
 		{
-			for (U32 i = 1; i < instanceLocation; ++i)
+			VkVertexInputAttributeDescription& attribute = shaderInfo->vertexAttributes[i];
+
+			if (attribute.binding == instanceBinding)
 			{
-				shaderInfo->vertexAttributes[i].offset = shaderInfo->vertexAttributes[i - 1].offset + FormatStride(shaderInfo->vertexAttributes[i - 1].format);
+				attribute.offset = instanceInput.stride;
+				instanceInput.stride += FormatStride(attribute.format);
 			}
-
-			VkVertexInputBindingDescription binding{};
-			binding.binding = 0;
-			binding.stride = shaderInfo->vertexAttributes[instanceLocation - 1].offset + FormatStride(shaderInfo->vertexAttributes[instanceLocation - 1].format);
-			binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = binding;
-
-			vertexSize = binding.stride;
-
-			for (U32 i = instanceLocation + 1; i < shaderInfo->vertexAttributeCount; ++i)
+			else
 			{
-				shaderInfo->vertexAttributes[i].offset = shaderInfo->vertexAttributes[i - 1].offset + FormatStride(shaderInfo->vertexAttributes[i - 1].format);
+				VkVertexInputBindingDescription binding{};
+				binding.binding = attribute.binding;
+				binding.stride = FormatStride(attribute.format);
+				binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+				shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = binding;
 			}
-
-			binding.binding = 1;
-			binding.stride = shaderInfo->vertexAttributes[shaderInfo->vertexAttributeCount - 1].offset + FormatStride(shaderInfo->vertexAttributes[shaderInfo->vertexAttributeCount - 1].format);
-			binding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-
-			instanceStride = binding.stride;
-
-			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = binding;
 		}
-		else
+
+		if (instanceBinding != U8_MAX)
 		{
-			for (U32 i = 1; i < shaderInfo->vertexAttributeCount; ++i)
-			{
-				shaderInfo->vertexAttributes[i].offset = shaderInfo->vertexAttributes[i - 1].offset + FormatStride(shaderInfo->vertexAttributes[i - 1].format);
-			}
-
-			VkVertexInputBindingDescription binding{};
-			binding.binding = 0;
-			binding.stride = shaderInfo->vertexAttributes[shaderInfo->vertexAttributeCount - 1].offset + FormatStride(shaderInfo->vertexAttributes[shaderInfo->vertexAttributeCount - 1].format);
-			binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = binding;
+			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = instanceInput;
+			instanceStride = instanceInput.stride;
 		}
 	}
 
@@ -1316,7 +1340,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 	return shaderStageInfo;
 }
 
-void Shader::FillOutShaderInfo(VkGraphicsPipelineCreateInfo& pipelineInfo, VkPipelineVertexInputStateCreateInfo& vertexInput, 
+void Shader::FillOutShaderInfo(VkGraphicsPipelineCreateInfo& pipelineInfo, VkPipelineVertexInputStateCreateInfo& vertexInput,
 	VkPipelineColorBlendStateCreateInfo& colorBlending, const Specialization* specialization)
 {
 	vertexInput.vertexAttributeDescriptionCount = shaderInfo->vertexAttributeCount;

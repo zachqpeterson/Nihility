@@ -399,7 +399,12 @@ public:
 	static F64 Simplex2(F64 x, F64 y) noexcept;
 	static F64 Simplex3(F64 x, F64 y, F64 z) noexcept;
 
-	//HASH | Based on wyhash - https://github.com/wangyi-fudan/wyhash
+	//LINEAR ALGEBRA
+	static Matrix4 Perspective(F32 fov, F32 aspect, F32 near, F32 far);
+	static Matrix4 Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
+	static Matrix4 LookAt(const Vector3& eye, const Vector3& center, const Vector3& up);
+
+	//HASH constexpr
 	static constexpr U64 Hash(const C8* str, U64 length)
 	{
 		U64 hash = 5381;
@@ -413,6 +418,7 @@ public:
 		return hash;
 	}
 
+	//HASH | Based on wyhash - https://github.com/wangyi-fudan/wyhash
 	template<class Type> requires(!IsPointer<Type>)
 	static U64 Hash(const Type& value, U64 seed = 0)
 	{

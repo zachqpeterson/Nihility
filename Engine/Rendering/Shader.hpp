@@ -245,11 +245,13 @@ struct NH_API Shader
 	bool								useVertices{ true };
 	bool								useInstancing{ false };
 	bool								useIndexing{ true };
+	U8									vertexBindingCount{ 0 };
+	VertexType							vertexTypes[8];
+	U8									instanceBinding{ U8_MAX };
 	U8									instanceLocation{ U8_MAX };
 	U32									instanceStride{ 0 };
 	U32									vertexCount{ 0 };
 
-	U32									vertexSize{ 0 };
 	U8									outputCount{ 0 };
 	Subpass								subpass{};
 

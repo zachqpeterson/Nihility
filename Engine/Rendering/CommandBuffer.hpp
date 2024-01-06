@@ -35,9 +35,8 @@ struct CommandBuffer
 
 	void SetViewport(const VkViewport& viewport, const VkRect2D& scissor);
 	void BindPipeline(const Pipeline* pipeline);
-	void BindIndexBuffer(Shader* shader, const Buffer& buffer, U64 offset);
-	void BindVertexBuffer(Shader* shader, const Buffer& buffer, U64 offset);
-	void BindInstanceBuffer(Shader* shader, const Buffer& buffer, U64 offset);
+	void BindIndexBuffer(Shader* shader, VkBuffer_T* buffer, U64 offset);
+	void BindVertexBuffers(Shader* shader, U32 bufferCount, VkBuffer_T* const* buffers);
 	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
 
 	void PushDescriptors();
@@ -45,13 +44,13 @@ struct CommandBuffer
 
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
-	void DrawIndirect(Buffer* buffer, U32 offset, U32 stride);
-	void DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset = 0);
-	void DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
-	void DrawIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
+	void DrawIndirect(VkBuffer_T* buffer, U32 offset, U32 stride);
+	void DrawIndexedIndirect(VkBuffer_T* buffer, U32 count, U32 offset = 0);
+	void DrawIndexedIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
+	void DrawIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset = 0, U32 countOffset = 0);
 
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
-	void DispatchIndirect(Buffer* buffer, U32 offset);
+	void DispatchIndirect(const Buffer& buffer, U32 offset);
 
 	void BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions);
 	void ImageToBuffer(Texture* texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions);

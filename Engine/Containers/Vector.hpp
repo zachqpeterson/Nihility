@@ -288,7 +288,7 @@ public:
 	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
 	/// <param name="value:">A reference to return the found value</param>
 	/// <returns>true if a value exists, false otherwise</returns>
-	template<typename Predicate> bool Find(Predicate predicate, T& value);
+	template<typename Predicate> T* Find(Predicate predicate);
 
 
 
@@ -757,14 +757,14 @@ inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 
 template<typename T>
 template<typename Predicate> 
-inline bool Vector<T>::Find(Predicate predicate, T& value)
+inline T* Vector<T>::Find(Predicate predicate)
 {
 	for (T* t = array, *end = array + size; t != end; ++t)
 	{
-		if (predicate(*t)) { value = *t; return true; }
+		if (predicate(t)) { return t; }
 	}
 
-	return false;
+	return nullptr;
 }
 
 template<typename T> 

@@ -94,6 +94,31 @@ Quaternion3 Math::Slerp(const Quaternion3& a, const Quaternion3& b, F32 t) noexc
 	};
 }
 
+//Linear Algebra
+Matrix4 Math::Perspective(F32 fov, F32 aspect, F32 near, F32 far)
+{
+	Matrix4 result;
+	result.SetPerspective(fov, aspect, near, far);
+
+	return result;
+}
+
+Matrix4 Math::Orthographic(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
+{
+	Matrix4 result;
+	result.SetOrthographic(left, right, bottom, top, near, far);
+
+	return result;
+}
+
+Matrix4 Math::LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
+{
+	Matrix4 result;
+	result.LookAt(eye, center, up);
+
+	return result;
+}
+
 //NOISE
 
 static U8 simplexPerm[512]{

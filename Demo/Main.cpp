@@ -25,10 +25,13 @@ bool Init()
 	//String path = Resources::UploadFont("arial.ttf");
 	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");
 	//String path = Resources::UploadSkybox("Room.hdr");
+	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
+	//Resources::UploadModel("AnisotropyBarnLamp/glTF/AnisotropyBarnLamp.gltf");
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE, Renderer::GetDefaultRendergraph());
 	
 	entity = scene->AddEntity();
+	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
 	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
 
@@ -62,6 +65,26 @@ void Update()
 	if (Input::OnButtonDown(BUTTON_CODE_V))
 	{
 		Settings::SetVSync(!Settings::VSync());
+	}
+
+	if (Input::ButtonDown(BUTTON_CODE_LEFT))
+	{
+		entity->transform.Translate(Vector3Left * Time::DeltaTime() * 10.0f);
+	}
+
+	if (Input::ButtonDown(BUTTON_CODE_RIGHT))
+	{
+		entity->transform.Translate(Vector3Right * Time::DeltaTime() * 10.0f);
+	}
+
+	if (Input::ButtonDown(BUTTON_CODE_UP))
+	{
+		entity->transform.Translate(Vector3Up * Time::DeltaTime() * 10.0f);
+	}
+
+	if (Input::ButtonDown(BUTTON_CODE_DOWN))
+	{
+		entity->transform.Translate(Vector3Down * Time::DeltaTime() * 10.0f);
 	}
 }
 

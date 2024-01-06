@@ -44,13 +44,8 @@ void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 	renderPassBegin.renderArea.offset = { 0, 0 };
 	renderPassBegin.renderArea.extent = { Settings::WindowWidth(), Settings::WindowHeight() };
 
-	VkClearValue clears[]{
-		{ 0.0f, 0.0f, 0.0f, 1.0f },
-		{ 1.0f, 0 }
-	};
-
-	renderPassBegin.clearValueCount = 1 + (renderpass->depthStencilTarget != nullptr);
-	renderPassBegin.pClearValues = clears;
+	renderPassBegin.clearValueCount = renderpass->clearCount;
+	renderPassBegin.pClearValues = (VkClearValue*)renderpass->clearValues;
 
 	vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -70,24 +65,24 @@ void CommandBuffer::BindPipeline(const Pipeline* pipeline)
 	vkCmdBindPipeline(vkCommandBuffer, (VkPipelineBindPoint)pipeline->shader->bindPoint, pipeline->pipeline);
 }
 
-void CommandBuffer::BindIndexBuffer(Shader* shader, const Buffer& buffer, U64 offset)
+void CommandBuffer::BindIndexBuffer(Shader* shader, VkBuffer_T* buffer, U64 offset)
 {
-	vkCmdBindIndexBuffer(vkCommandBuffer, buffer.vkBuffer, offset, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(vkCommandBuffer, buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
-void CommandBuffer::BindVertexBuffer(Shader* shader, const Buffer& buffer, U64 offset)
+void CommandBuffer::BindVertexBuffers(Shader* shader, U32 bufferCount, VkBuffer_T* const* buffers)
 {
-	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &buffer.vkBuffer, &offset);
-}
+	U64 offsets[8]{};
 
-void CommandBuffer::BindInstanceBuffer(Shader* shader, const Buffer& buffer, U64 offset)
-{
-	vkCmdBindVertexBuffers(vkCommandBuffer, 1, 1, &buffer.vkBuffer, &offset);
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, bufferCount, buffers, offsets);
 }
 
 void CommandBuffer::BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets)
 {
-	vkCmdBindDescriptorSets(vkCommandBuffer, (VkPipelineBindPoint)shader->bindPoint, shader->pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+	if (setCount)
+	{
+		vkCmdBindDescriptorSets(vkCommandBuffer, (VkPipelineBindPoint)shader->bindPoint, shader->pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+	}
 }
 
 void CommandBuffer::PushConstants(Shader* shader, U32 offset, U32 size, const void* data)
@@ -105,31 +100,31 @@ void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstInde
 	vkCmdDrawIndexed(vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset)
+void CommandBuffer::DrawIndexedIndirect(VkBuffer_T* buffer, U32 count, U32 offset)
 {
 	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount and physicalDeviceFeatures.drawIndirectFirstInstance;
 
 	if (Renderer::GetDeviceFeatures().multiDrawIndirect)
 	{
-		vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer.vkBuffer, offset, count, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer, offset, count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 	else
 	{
 		for (U32 i = 0; i < count; ++i)
 		{
-			vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer.vkBuffer, sizeof(VkDrawIndexedIndirectCommand) * i + offset, 1, sizeof(VkDrawIndexedIndirectCommand));
+			vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer, sizeof(VkDrawIndexedIndirectCommand) * i + offset, 1, sizeof(VkDrawIndexedIndirectCommand));
 		}
 	}
 }
 
-void CommandBuffer::DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
+void CommandBuffer::DrawIndexedIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset, U32 countOffset)
 {
-	vkCmdDrawIndexedIndirectCount(vkCommandBuffer, drawBuffer.vkBuffer, drawOffset, countBuffer.vkBuffer, countOffset, (U32)(drawBuffer.size / sizeof(VkDrawIndexedIndirectCommand)) - drawOffset, sizeof(VkDrawIndexedIndirectCommand));
+	vkCmdDrawIndexedIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndexedIndirectCommand));
 }
 
-void CommandBuffer::DrawIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
+void CommandBuffer::DrawIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset, U32 countOffset)
 {
-	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer.vkBuffer, drawOffset, countBuffer.vkBuffer, countOffset, (U32)(drawBuffer.size / sizeof(VkDrawIndexedIndirectCommand)) - drawOffset, sizeof(VkDrawIndexedIndirectCommand));
+	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndexedIndirectCommand));
 }
 
 void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)

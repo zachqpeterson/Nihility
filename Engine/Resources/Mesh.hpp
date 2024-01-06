@@ -8,13 +8,12 @@
 struct Entity;
 struct Scene;
 
-struct Vertex
+struct VertexBuffer
 {
-	Vector3 position;
-	Vector3 normal;
-	Vector3 tangent;
-	Vector3 bitangent;
-	Vector2 texcoord;
+	VertexType type{ VERTEX_TYPE_COUNT };
+	U32 stride{ 0 };
+	U32 size{ 0 };
+	U8* buffer{ nullptr };
 };
 
 struct NH_API Mesh
@@ -26,13 +25,16 @@ struct NH_API Mesh
 
 	U8* indices;
 	U32 indicesSize;
-	U8* vertices;
-	U32 verticesSize;
+
+	U32 vertexCount;
+
+	Vector<VertexBuffer> buffers;
 };
 
 struct InstanceData
 {
-	U8 data[256];
+	U32 materialID;
+	Matrix4 model;
 };
 
 struct NH_API MeshInstance
@@ -51,13 +53,13 @@ struct NH_API MeshInstance
 		return *this;
 	}
 
-	Material*		material;
-	Mesh*			mesh;
+	Material* material;
+	Mesh* mesh;
 
 	InstanceData	instanceData;
 
 private:
-	HashHandle		handle;
+	HashHandle		handle{ U64_MAX };
 	U32				instanceOffset;
 
 	friend struct Scene;
@@ -75,18 +77,18 @@ struct NH_API Model //TODO: model instance
 
 struct NH_API MeshComponent : public Component
 {
+	COMPONENT(MeshComponent);
+
 	MeshComponent(Mesh* mesh, Material* material)
 	{
 		meshInstance.mesh = mesh;
 		meshInstance.material = material;
 	}
-
 	MeshComponent(MeshComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
 
 	MeshComponent& operator=(MeshComponent&& other) noexcept { meshInstance = Move(other.meshInstance); return *this; }
 
-	virtual void Update() final {}
-
+	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
 
 	MeshInstance meshInstance;
@@ -94,14 +96,14 @@ struct NH_API MeshComponent : public Component
 
 struct NH_API ModelComponent : public Component
 {
-	ModelComponent(Model* model) : model{ model } {}
+	COMPONENT(ModelComponent);
 
+	ModelComponent(Model* model) : model{ model } {}
 	ModelComponent(ModelComponent&& other) noexcept : model{ other.model } {}
 
 	ModelComponent& operator=(ModelComponent&& other) noexcept { model = other.model; return *this; }
 
-	virtual void Update() final {}
-
+	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
 
 	Model* model; //TODO: Use an instance of a model

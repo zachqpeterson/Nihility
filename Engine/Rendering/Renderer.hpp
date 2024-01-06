@@ -76,6 +76,7 @@ public:
 	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
 
 	static void							LoadScene(Scene* scene);
+	static ShadowData*					GetShadowData();
 	static CameraData*					GetCameraData();
 	static SkyboxData*					GetSkyboxData();
 	static PostProcessData*				GetPostProcessData();
@@ -175,6 +176,7 @@ private:
 	static Vector<VkCommandBuffer_T*>			commandBuffers[MAX_SWAPCHAIN_IMAGES];
 	static Buffer								stagingBuffer;
 	static Buffer								materialBuffer;
+	static ShadowData							shadowData;
 	static CameraData							cameraData;
 	static SkyboxData							skyboxData;
 	static PostProcessData						postProcessData;
