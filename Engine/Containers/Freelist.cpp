@@ -76,6 +76,8 @@ void Freelist::Reset()
 
 U32 Freelist::GetFree()
 {
+	if (Full()) { return U32_MAX; }
+
 	U32 index = SafeDecrement(&freeCount);
 
 	if (index < capacity) { return freeIndices[index]; }

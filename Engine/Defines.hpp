@@ -204,13 +204,13 @@ enum ISAAvailability
 /// Gets the element count of a static array
 /// </summary>
 /// <returns>The count of elements</returns>
-template<class Type, U64 Count> inline constexpr U64 CountOf(Type(&)[Count]) { return Count; }
+template<class Type, U64 Count> constexpr U64 CountOf(Type(&)[Count]) { return Count; }
 
 /// <summary>
 /// Gets the element count of a static array
 /// </summary>
 /// <returns>The count of elements</returns>
-template<class Type, U32 Count> inline constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
+template<class Type, U32 Count> constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
 
 /// <summary>
 /// Creates a number that represents a version
@@ -219,12 +219,12 @@ template<class Type, U32 Count> inline constexpr U32 CountOf32(Type(&)[Count]) {
 /// <param name="minor:">The minor version</param>
 /// <param name="patch:">The patch version</param>
 /// <returns>The version number</returns>
-inline constexpr U32 MakeVersionNumber(U32 major, U32 minor, U32 patch)
+constexpr U32 MakeVersionNumber(U32 major, U32 minor, U32 patch)
 {
 	return (major << 22) | (minor << 12) | patch;
 }
 
-inline constexpr U64 NextMultipleOf(U64 value, U64 n)
+constexpr U64 NextMultipleOf(U64 value, U64 n)
 {
 	if (n == 0) { return value; }
 
@@ -232,6 +232,12 @@ inline constexpr U64 NextMultipleOf(U64 value, U64 n)
 	if (remainder == 0) { return value; }
 
 	return value + n - remainder;
+}
+
+template<class To, class From> requires (sizeof(From) == sizeof(To))
+NH_NODISCARD To TypePun(const From& val) noexcept
+{
+	return __builtin_bit_cast(To, val);
 }
 
 #include "TypeTraits.hpp"

@@ -77,7 +77,7 @@ public:
 
 	static void							LoadScene(Scene* scene);
 	static ShadowData*					GetShadowData();
-	static CameraData*					GetCameraData();
+	static GlobalData*					GetGlobalData();
 	static SkyboxData*					GetSkyboxData();
 	static PostProcessData*				GetPostProcessData();
 	static Rendergraph*					GetDefaultRendergraph();
@@ -176,8 +176,9 @@ private:
 	static Vector<VkCommandBuffer_T*>			commandBuffers[MAX_SWAPCHAIN_IMAGES];
 	static Buffer								stagingBuffer;
 	static Buffer								materialBuffer;
+	static Buffer								globalsBuffer;
 	static ShadowData							shadowData;
-	static CameraData							cameraData;
+	static GlobalData							globalData;
 	static SkyboxData							skyboxData;
 	static PostProcessData						postProcessData;
 	static Texture*								defaultRenderTarget;

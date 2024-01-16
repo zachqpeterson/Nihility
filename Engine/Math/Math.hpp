@@ -2823,32 +2823,28 @@ struct NH_API Matrix4
 
 	constexpr void LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
 	{
-		Vector3 f = center - eye;
-		f.Normalize();
+		Vector3 zAxis = (center - eye).Normalized();
+		Vector3 xAxis = (up.Cross(zAxis)).Normalized();
+		Vector3 yAxis = zAxis.Cross(xAxis);
 
-		Vector3 s = f.Cross(up);
-		s.Normalize();
-
-		Vector3 u = s.Cross(f);
-
-		a.x = s.x;
-		a.y = u.x;
-		a.z = f.x;
+		a.x = xAxis.x;
+		a.y = yAxis.x;
+		a.z = zAxis.x;
 		a.w = 0.0f;
 
-		b.x = s.y;
-		b.y = u.y;
-		b.z = f.y;
+		b.x = xAxis.y;
+		b.y = yAxis.y;
+		b.z = zAxis.y;
 		b.w = 0.0f;
 
-		c.x = s.z;
-		c.y = u.z;
-		c.z = f.z;
+		c.x = xAxis.z;
+		c.y = yAxis.z;
+		c.z = zAxis.z;
 		c.w = 0.0f;
 
-		d.x = -s.Dot(eye);
-		d.y = -u.Dot(eye);
-		d.z = -f.Dot(eye);
+		d.x = -xAxis.Dot(eye);
+		d.y = -yAxis.Dot(eye);
+		d.z = -zAxis.Dot(eye);
 		d.w = 1.0f;
 	}
 

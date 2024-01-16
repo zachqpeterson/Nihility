@@ -32,6 +32,7 @@ struct DropTarget : public IDropTarget
 	UL32 referenceCount;
 } dropTarget;
 
+bool cursorShowing = true;
 U32 style;
 RECT border;
 
@@ -119,7 +120,7 @@ bool Platform::Initialize(CSTR applicationName)
 
 	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
 
-	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top, 
+	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
 		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, nullptr, nullptr, windowData.instance, nullptr);
 
 	if (!windowData.window)
@@ -132,7 +133,7 @@ bool Platform::Initialize(CSTR applicationName)
 	EnumDisplaySettingsA(NULL, ENUM_CURRENT_SETTINGS, &monitorInfo);
 	if (Settings::TargetFrametime() == 0.0) { Settings::data.targetFrametime = 1.0 / monitorInfo.dmDisplayFrequency; }
 	Settings::monitorHz = monitorInfo.dmDisplayFrequency;
-	
+
 	RegisterClipboardFormatA("NihilityClipboard");
 	HRESULT result = RegisterDragDrop(windowData.window, &dropTarget);
 
@@ -204,22 +205,6 @@ void Platform::SetWindowPosition(I32 x, I32 y)
 	}
 }
 
-void Platform::SetMousePosition(I32 x, I32 y)
-{
-	SetCursorPos(x, y);
-}
-
-void Platform::HideCursor(bool hide)
-{
-	//ShowCursor(hide);
-	Settings::hideCursor = hide;
-}
-
-void Platform::LockCursor(bool lock)
-{
-	Settings::lockCursor = lock;
-}
-
 void Platform::SetConsoleWindowTitle(CSTR name)
 {
 	SetConsoleTitleA(name);
@@ -232,44 +217,12 @@ const WindowData& Platform::GetWindowData()
 
 void Platform::UpdateMouse()
 {
-	if (Settings::Focused())
+	if (Settings::Focused() && cursorShowing != Settings::CursorShowing())
 	{
-		if (Settings::LockCursor())
-		{
-			RECT clip{};
-			clip.left = Settings::WindowPositionX() + Settings::WindowWidth() / 2;
-			clip.right = clip.left;
-			clip.top = Settings::WindowPositionY() + Settings::WindowHeight() / 2;
-			clip.bottom = clip.top;
-
-			ClipCursor(&clip);
-		}
-		else if (Settings::ConstrainCursor())
-		{
-			RECT clip{};
-			if (Settings::Fullscreen())
-			{
-				clip.left = Settings::WindowPositionX();
-				clip.top = Settings::WindowPositionY();
-				clip.right = Settings::WindowPositionX() + Settings::WindowWidth();
-				clip.bottom = Settings::WindowPositionY() + Settings::WindowHeight();
-				ClipCursor(&clip);
-			}
-			else
-			{
-				GetWindowRect(windowData.window, &clip);
-				ClipCursor(&clip);
-			}
-		}
-
-		//int i = ShowCursor(!Settings::HideCursor()); //TODO: Doesn't work after unfocusing and focusing the window
-		//TODO: Log the return to see the display count
+		cursorShowing = Settings::CursorShowing();
+		ShowCursor(Settings::CursorShowing());
 	}
-	else
-	{
-		ShowCursor(true);
-		ClipCursor(nullptr);
-	}
+	else if (!cursorShowing) { ShowCursor(true); cursorShowing = true; }
 }
 
 I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam)
@@ -277,7 +230,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	switch (msg)
 	{
 	case WM_CREATE: { } return 0;
-	case WM_SETFOCUS: { 
+	case WM_SETFOCUS: {
 		Settings::focused = true;
 		Audio::Focus();
 		Input::Focus();
@@ -329,7 +282,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		switch (wParam)
 		{
 		case SIZE_MINIMIZED: {
-			Settings::focused = false; 
+			Settings::focused = false;
 			Settings::minimised = true;
 			Audio::Unfocus();
 		} break;

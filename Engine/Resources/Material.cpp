@@ -62,15 +62,22 @@ bool Rendergraph::Create(RendergraphInfo& info)
 				for (U32 i = 0; i < pipeline.renderTargetCount; ++i)
 				{
 					renderpassInfo.AddRenderTarget(pipeline.renderTargets[i]);
+					renderpassInfo.renderArea = { { 0, 0 }, { pipeline.renderTargets[i]->width, pipeline.renderTargets[i]->height } };
 				}
 
-				renderpassInfo.SetDepthStencilTarget(pipeline.depthStencilTarget);
+				if (pipeline.depthStencilTarget)
+				{
+					renderpassInfo.SetDepthStencilTarget(pipeline.depthStencilTarget);
+					renderpassInfo.renderArea = { { 0, 0 }, { pipeline.depthStencilTarget->width, pipeline.depthStencilTarget->height } };
+				}
 			}
 			else
 			{
 				renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
 
 				if (pipeline.shader->depthEnable) { renderpassInfo.SetDepthStencilTarget(Renderer::defaultDepthTarget); }
+
+				renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
 			}
 
 			renderpassInfo.colorLoadOp = pipeline.shader->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;

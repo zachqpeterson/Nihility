@@ -103,6 +103,8 @@ CommandBuffer* CommandBufferRing::GetWriteCommandBuffer(U32 frameIndex)
 {
 	I32 index = freeCommandBuffers[frameIndex].GetFree();
 
+	if (index == U32_MAX) { BreakPoint; }
+
 	return &commandBuffers[frameIndex * buffersPerPool + index];
 }
 
@@ -198,8 +200,9 @@ CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
+Buffer								Renderer::globalsBuffer;
 ShadowData							Renderer::shadowData{};
-CameraData							Renderer::cameraData{};
+GlobalData							Renderer::globalData{};
 SkyboxData							Renderer::skyboxData{};
 PostProcessData						Renderer::postProcessData{};
 Texture* Renderer::defaultRenderTarget;
@@ -278,6 +281,7 @@ void Renderer::Shutdown()
 
 	DestroyBuffer(stagingBuffer);
 	DestroyBuffer(materialBuffer);
+	DestroyBuffer(globalsBuffer);
 
 	swapchain.Destroy();
 
@@ -627,6 +631,7 @@ bool Renderer::CreateResources()
 
 	stagingBuffer = CreateBuffer(MEGABYTES(512), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
 	materialBuffer = CreateBuffer(MEGABYTES(128), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	globalsBuffer = CreateBuffer(sizeof(GlobalData), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
 	TextureInfo textureInfo{};
 	textureInfo.name = "default_render_target";
@@ -646,6 +651,9 @@ bool Renderer::CreateResources()
 
 	textureInfo.name = "default_shadow_map";
 	textureInfo.format = VK_FORMAT_D16_UNORM;
+	textureInfo.flags |= TEXTURE_FLAG_RENDER_SAMPLED;
+	textureInfo.width = 2048;
+	textureInfo.height = 2048;
 	defaultShadowMap = Resources::CreateTexture(textureInfo);
 
 	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
@@ -656,26 +664,28 @@ bool Renderer::CreateResources()
 	defaultShadows.depthStencilTarget = defaultShadowMap;
 	defaultShadows.renderOrder = -10;
 
-	pushConstant = { 0, sizeof(CameraData), Renderer::GetCameraData() };
-	shader = Resources::CreateShader("shaders/PbrOpaque.nhshd", 1, &pushConstant);
+	shader = Resources::CreateShader("shaders/PbrOpaque.nhshd");
+	shader->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
 	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	shader->AddDescriptor({ defaultShadowMap->imageView, IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, defaultShadowMap->sampler.vkSampler });
 	defaultGeometryOpaque.name = "default_mesh_opaque_pipeline";
 	defaultGeometryOpaque.shader = shader;
 	defaultGeometryOpaque.type = MATERIAL_TYPE_GEOMETRY_OPAQUE;
 	defaultGeometryOpaque.renderOrder = 0;
-
-	shader = Resources::CreateShader("shaders/PbrTransparent.nhshd", 1, &pushConstant);
-	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
-	defaultGeometryTransparent.name = "default_mesh_transparent_pipeline";
-	defaultGeometryTransparent.shader = shader;
-	defaultGeometryTransparent.type = MATERIAL_TYPE_GEOMETRY_TRANSPARENT;
-	defaultGeometryTransparent.renderOrder = 20;
 
 	pushConstant = { 0, sizeof(SkyboxData), Renderer::GetSkyboxData() };
 	defaultSkybox.name = "default_skybox_pipeline";
 	defaultSkybox.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
 	defaultSkybox.type = MATERIAL_TYPE_INVALID;
 	defaultSkybox.renderOrder = 10;
+
+	shader = Resources::CreateShader("shaders/PbrTransparent.nhshd");
+	shader->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
+	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	defaultGeometryTransparent.name = "default_mesh_transparent_pipeline";
+	defaultGeometryTransparent.shader = shader;
+	defaultGeometryTransparent.type = MATERIAL_TYPE_GEOMETRY_TRANSPARENT;
+	defaultGeometryTransparent.renderOrder = 20;
 
 	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
 	shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
@@ -805,23 +815,6 @@ VkCommandBuffer Renderer::Record()
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
 	commandBuffer->Begin();
-
-	VkViewport viewport{};
-	viewport.x = renderArea.x;
-	viewport.y = renderArea.y;
-	viewport.width = renderArea.z;
-	viewport.height = renderArea.w;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-
-	VkRect2D scissor{};
-	scissor.offset.x = (I32)renderArea.x;
-	scissor.offset.y = (I32)renderArea.y;
-	scissor.extent.width = (U32)renderArea.z;
-	scissor.extent.height = (U32)renderArea.w;
-
-	commandBuffer->SetViewport(viewport, scissor);
-
 	currentScene->Render(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
@@ -911,9 +904,9 @@ ShadowData* Renderer::GetShadowData()
 	return &shadowData;
 }
 
-CameraData* Renderer::GetCameraData()
+GlobalData* Renderer::GetGlobalData()
 {
-	return &cameraData;
+	return &globalData;
 }
 
 SkyboxData* Renderer::GetSkyboxData()
@@ -1515,6 +1508,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 {
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->depthStencilTarget = info.depthStencilTarget;
+	renderpass->renderArea = info.renderArea;
 	renderpass->subpassCount = info.subpassCount;
 	Memory::Copy(renderpass->subpasses, info.subpasses, sizeof(Subpass) * info.subpassCount);
 	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
@@ -1551,6 +1545,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (renderpass->renderTargets[i]->flags & TEXTURE_FLAG_RENDER_SAMPLED) { attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL; }
+		else { attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; }
 
 		colorAttachments[attachmentCount].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 		colorAttachments[attachmentCount].pNext = nullptr;
@@ -1574,7 +1570,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		attachments[attachmentCount].stencilLoadOp = stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		if (renderpass->depthStencilTarget->flags & TEXTURE_FLAG_RENDER_SAMPLED) { attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL; }
+		else { attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; }
 
 		depthAttachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
 		depthAttachment.pNext = nullptr;
@@ -1660,7 +1657,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 					.dstSubpass = i,
 					.dependencyFlags = 0,
 					.viewOffset = 0
-				});
+					});
 			}
 
 			dependencies.Push({
@@ -1670,7 +1667,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 				.dstSubpass = i,
 				.dependencyFlags = 0,
 				.viewOffset = 0
-			});
+				});
 		}
 		else //Later Subpasses
 		{
@@ -1683,7 +1680,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 					.dstSubpass = i,
 					.dependencyFlags = 0,
 					.viewOffset = 0
-				});
+					});
 			}
 
 			dependencies.Push({
@@ -1693,7 +1690,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 				.dstSubpass = i,
 				.dependencyFlags = 0,
 				.viewOffset = 0
-			});
+				});
 
 			dependencies.Push({
 				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
@@ -1702,8 +1699,29 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 				.dstSubpass = i,
 				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
 				.viewOffset = 0
-			});
+				});
 		}
+	}
+
+	VkMemoryBarrier2 depthSampleBarrier{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+	};
+
+	if (renderpass->depthStencilTarget && renderpass->depthStencilTarget->flags & TEXTURE_FLAG_RENDER_SAMPLED)
+	{
+		dependencies.Push({
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+				.pNext = &depthSampleBarrier,
+				.srcSubpass = info.subpassCount - 1,
+				.dstSubpass = VK_SUBPASS_EXTERNAL,
+				.dependencyFlags = 0,
+				.viewOffset = 0
+			});
 	}
 
 	VkRenderPassCreateInfo2 renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2 };
@@ -1723,8 +1741,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	framebufferInfo.renderPass = renderpass->renderpass;
 	framebufferInfo.attachmentCount = attachmentCount + hasDepth;
-	framebufferInfo.width = Settings::WindowWidth();
-	framebufferInfo.height = Settings::WindowHeight();
+	framebufferInfo.width = renderpass->renderArea.extent.x;
+	framebufferInfo.height = renderpass->renderArea.extent.y;
 	framebufferInfo.layers = 1;
 
 	VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];

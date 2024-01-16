@@ -40,12 +40,14 @@ struct InstanceData
 struct NH_API MeshInstance
 {
 	MeshInstance() = default;
-	MeshInstance(MeshInstance&& other) noexcept : material{ other.material }, mesh{ other.mesh }, instanceData{ other.instanceData }, handle{ other.handle }, instanceOffset{ other.instanceOffset } {}
+	MeshInstance(MeshInstance&& other) noexcept : material{ other.material }, mesh{ other.mesh }, model{ other.model }, instanceData{ other.instanceData }, 
+		handle{ other.handle }, instanceOffset{ other.instanceOffset } {}
 
 	MeshInstance& operator=(MeshInstance&& other) noexcept
 	{
 		material = other.material;
 		mesh = other.mesh;
+		model = other.model;
 		instanceData = other.instanceData;
 		handle = other.handle;
 		instanceOffset = other.instanceOffset;
@@ -53,9 +55,10 @@ struct NH_API MeshInstance
 		return *this;
 	}
 
-	Material* material;
-	Mesh* mesh;
+	Material*		material;
+	Mesh*			mesh;
 
+	Matrix4			model;
 	InstanceData	instanceData;
 
 private:
@@ -83,6 +86,8 @@ struct NH_API MeshComponent : public Component
 	{
 		meshInstance.mesh = mesh;
 		meshInstance.material = material;
+		meshInstance.model = Matrix4Identity;
+		meshInstance.instanceData.materialID = (U32)material->handle;
 	}
 	MeshComponent(MeshComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
 

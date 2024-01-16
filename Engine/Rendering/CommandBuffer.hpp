@@ -33,7 +33,6 @@ struct CommandBuffer
 	void NextSubpass();
 	void EndRenderpass();
 
-	void SetViewport(const VkViewport& viewport, const VkRect2D& scissor);
 	void BindPipeline(const Pipeline* pipeline);
 	void BindIndexBuffer(Shader* shader, VkBuffer_T* buffer, U64 offset);
 	void BindVertexBuffers(Shader* shader, U32 bufferCount, VkBuffer_T* const* buffers);

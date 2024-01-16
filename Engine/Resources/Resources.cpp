@@ -1478,13 +1478,11 @@ Model* Resources::LoadModel(const String& path)
 				path = reader.ReadString();
 				instance.material = LoadMaterial(path);
 
-				Matrix4 modelMatrix;
-				reader.Read(modelMatrix);
+				reader.Read(instance.model);
 
 				U32 materialIndex = (U32)instance.material->handle;
 
 				Memory::Copy(&instance.instanceData, &materialIndex, sizeof(U32));
-				Memory::Copy((U8*)&instance.instanceData + sizeof(U32), &modelMatrix, sizeof(Matrix4));
 
 				model->meshes.Push(Move(instance));
 			}

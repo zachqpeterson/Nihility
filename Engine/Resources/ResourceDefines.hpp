@@ -39,8 +39,9 @@ enum NH_API TextureFlag
 {
 	TEXTURE_FLAG_NONE = 0x00,
 	TEXTURE_FLAG_RENDER_TARGET = 0x01,
-	TEXTURE_FLAG_COMPUTE = 0x02,
-	TEXTURE_FLAG_FORCE_GENERATE_MIPMAPS = 0x04,
+	TEXTURE_FLAG_RENDER_SAMPLED = 0x02,
+	TEXTURE_FLAG_COMPUTE = 0x04,
+	TEXTURE_FLAG_FORCE_GENERATE_MIPMAPS = 0x08,
 };
 
 enum NH_API TextureUsage
@@ -535,6 +536,19 @@ union NH_API ClearValue
 	} depthStencil;
 };
 
+struct NH_API Rect2D
+{
+	struct {
+		I32 x;
+		I32 y;
+	} offset;
+
+	struct {
+		U32 x;
+		U32 y;
+	} extent;
+};
+
 typedef I32 BufferUsageBits;
 typedef I32 BufferMemoryTypeBits;
 
@@ -690,6 +704,8 @@ struct NH_API Renderpass
 	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTarget{ nullptr };
 
+	Rect2D				renderArea;
+
 	U8					clearCount{ 0 };
 	ClearValue			clearValues[MAX_IMAGE_OUTPUTS + 1]{};
 
@@ -711,6 +727,8 @@ struct NH_API RenderpassInfo
 	U8				renderTargetCount{ 0 };
 	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
 	Texture* depthStencilTarget{ nullptr };
+
+	Rect2D			renderArea;
 
 	Subpass			subpasses[8]{};
 	U32				subpassCount{ 1 };
@@ -754,11 +772,13 @@ struct NH_API PostProcessData
 	F32 gammaCorrection{ 1.0f };
 };
 
-struct NH_API CameraData
+struct alignas(16) NH_API GlobalData
 {
-	Matrix4 vp;
+	Matrix4 viewProjection;
+	Matrix4 lightSpace;
 	Vector4 eye;
-	U32		skyboxIndex{ U16_MAX };
+	Vector3 lightPos;
+	U32 skyboxIndex;
 };
 
 struct NH_API SkyboxData
@@ -769,16 +789,16 @@ struct NH_API SkyboxData
 
 struct NH_API ShadowData
 {
-	Matrix4 depthMVP;
+	Matrix4 depthViewProjection;
 };
 
 struct BufferData
 {
-	Vector<Buffer>					vertexBuffers;
-	Buffer							instanceBuffer;
-	Buffer							indexBuffer;
-	Buffer							drawBuffer;
-	Buffer							countsBuffer;
+	Buffer vertexBuffers[VERTEX_TYPE_COUNT - 1];
+	Buffer instanceBuffer;
+	Buffer indexBuffer;
+	Buffer drawBuffer;
+	Buffer countsBuffer;
 };
 
 struct PipelineGroup

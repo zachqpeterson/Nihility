@@ -29,25 +29,34 @@ void CommandBuffer::ClearAttachments(U32 attachmentCount, VkClearAttachment* att
 	vkCmdClearAttachments(vkCommandBuffer, attachmentCount, attachments, rectCount, rects);
 }
 
-void CommandBuffer::SetViewport(const VkViewport& viewport, const VkRect2D& scissor)
-{
-	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
-	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
-}
-
 void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 {
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderPassBegin.framebuffer = renderpass->frameBuffer;
+	renderPassBegin.pNext = nullptr;
 	renderPassBegin.renderPass = renderpass->renderpass;
-
-	renderPassBegin.renderArea.offset = { 0, 0 };
-	renderPassBegin.renderArea.extent = { Settings::WindowWidth(), Settings::WindowHeight() };
-
+	renderPassBegin.framebuffer = renderpass->frameBuffer;
+	renderPassBegin.renderArea = TypePun<VkRect2D>(renderpass->renderArea);
 	renderPassBegin.clearValueCount = renderpass->clearCount;
 	renderPassBegin.pClearValues = (VkClearValue*)renderpass->clearValues;
 
 	vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport{};
+	viewport.x = (F32)renderpass->renderArea.offset.x;
+	viewport.y = (F32)renderpass->renderArea.offset.y;
+	viewport.width = (F32)renderpass->renderArea.extent.x;
+	viewport.height = (F32)renderpass->renderArea.extent.y;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	VkRect2D scissor{};
+	scissor.offset.x = (I32)renderpass->renderArea.offset.x;
+	scissor.offset.y = (I32)renderpass->renderArea.offset.y;
+	scissor.extent.width = (U32)renderpass->renderArea.extent.x;
+	scissor.extent.height = (U32)renderpass->renderArea.extent.y;
+
+	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
 }
 
 void CommandBuffer::NextSubpass()

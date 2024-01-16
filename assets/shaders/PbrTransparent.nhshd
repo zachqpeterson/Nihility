@@ -10,15 +10,13 @@ instanceOffset=4
 #VERTEX
 #version 450
 
-struct Globals
+layout(std140, binding = 0) readonly buffer Globals
 {
 	mat4 viewProjection;
+    mat4 lightSpace;
 	vec4 eye;
-};
-
-layout(push_constant) uniform block
-{
-	Globals globals;
+    vec3 lightPos;
+    uint skyboxIndex;
 };
 
 layout (location = 0) in vec3 position;
@@ -38,7 +36,7 @@ layout (location = 4) flat out uint outMaterialIndex;
 void main()
 {
     vec4 worldPosition = model * vec4(position, 1.0);
-    gl_Position = globals.viewProjection * worldPosition;
+    gl_Position = viewProjection * worldPosition;
     outPosition = worldPosition.xyz;
     outNormal = normal;
     outTexcoord = texcoord;
@@ -53,10 +51,12 @@ void main()
 
 const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
 
-struct Globals
+layout(std140, binding = 0) readonly buffer Globals
 {
 	mat4 viewProjection;
+    mat4 lightSpace;
 	vec4 eye;
+    vec3 lightPos;
     uint skyboxIndex;
 };
 
@@ -76,12 +76,7 @@ struct Material
 	uint		flags;
 };
 
-layout(push_constant) uniform block
-{
-	Globals globals;
-};
-
-layout(std140, binding = 0) readonly buffer Materials
+layout(std140, binding = 1) readonly buffer Materials
 {
 	Material materials[];
 };
@@ -152,7 +147,7 @@ void main()
 
     if ((material.flags & MATERIAL_FLAG_ALPHA_MASK) != 0 && baseColor.a < material.alphaCutoff) { discard; }
 
-    vec3 I = normalize(position - globals.eye.xyz);
+    vec3 I = normalize(position - eye.xyz);
     vec3 R = reflect(I, normalize(normal));
     R.y = -R.y;
 
@@ -185,7 +180,7 @@ void main()
     //vec3 lightDirection = position - lightPos;
     //float lightDistance = length(lightDirection);
     
-	vec3 V = normalize(globals.eye.xyz - position);
+	vec3 V = normalize(eye.xyz - position);
     vec3 L = normalize(lightDirection);
 	vec3 H = normalize(V + L); //half way vector
 
@@ -227,7 +222,7 @@ void main()
     vec3 materialColor = vec3(0.0, 0.0, 0.0);
 
     float intensity = (lightIntensity * clamp(1.0 - pow(lightDistance / lightRange, 4), 0.0, 1.0) / (lightDistance * lightDistance)) * NdotL;
-    //float intensity = (globals.lightIntensity / (lightDistance * lightDistance)) * NdotL;
+    //float intensity = (lightIntensity / (lightDistance * lightDistance)) * NdotL;
 
     float denominator = (abs(NdotL) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotL * NdotL))) *
         (abs(NdotV) + sqrt(alphaSqr + (1.0 - alphaSqr) * (NdotV * NdotV)));

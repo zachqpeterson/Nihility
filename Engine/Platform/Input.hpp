@@ -293,6 +293,10 @@ public:
 
 	static F32 GetAxis(AxisCode code);
 
+	static void SetMousePosition(I32 x, I32 y);
+	static void ShowCursor(bool show);
+	static void LockCursor(bool lock);
+
 private:
 	static bool Initialize();
 	static void Shutdown();

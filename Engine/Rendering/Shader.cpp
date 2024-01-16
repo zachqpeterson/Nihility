@@ -1377,7 +1377,7 @@ void Shader::PushDescriptors(CommandBuffer* commandBuffer)
 {
 	if (Renderer::pushDescriptorsSupported)
 	{
-		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, shader->setLayouts[0]->updateTemplate, shader->pipelineLayout, 0, shader->descriptors);
+		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, setLayouts[0]->updateTemplate, pipelineLayout, 0, descriptors);
 	}
 	else
 	{

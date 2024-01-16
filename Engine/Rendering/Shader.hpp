@@ -142,18 +142,18 @@ struct NH_API Descriptor
 {
 	union
 	{
-		struct
+		struct Buffer
 		{
 			VkBuffer_T* buffer;
 			U64 offset;
 			U64 range;
 		} bufferInfo;
 
-		struct
+		struct Image
 		{
+			VkSampler_T* sampler;
 			VkImageView_T* imageView;
 			ImageLayout imageLayout;
-			VkSampler_T* sampler;
 		} imageInfo;
 	};
 

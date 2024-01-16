@@ -19,6 +19,7 @@ F32 volume = 1.0f;
 F32 percent = 1.0f;
 
 Entity* entity{};
+Entity* light{};
 
 bool Init()
 {
@@ -26,13 +27,16 @@ bool Init()
 	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");
 	//String path = Resources::UploadSkybox("Room.hdr");
 	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
-	//Resources::UploadModel("AnisotropyBarnLamp/glTF/AnisotropyBarnLamp.gltf");
+	//Resources::UploadModel("AnisotropyBarnLamp/AnisotropyBarnLamp.gltf");
 
 	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE, Renderer::GetDefaultRendergraph());
 	
 	entity = scene->AddEntity();
+	light = scene->AddEntity();
 	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
 	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
+	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default.nhmat"));
+	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
 
 	Renderer::LoadScene(scene);
@@ -69,23 +73,56 @@ void Update()
 
 	if (Input::ButtonDown(BUTTON_CODE_LEFT))
 	{
-		entity->transform.Translate(Vector3Left * Time::DeltaTime() * 10.0f);
+		entity->transform.Translate(Vector3Left * (F32)Time::DeltaTime());
 	}
 
 	if (Input::ButtonDown(BUTTON_CODE_RIGHT))
 	{
-		entity->transform.Translate(Vector3Right * Time::DeltaTime() * 10.0f);
+		entity->transform.Translate(Vector3Right * (F32)Time::DeltaTime());
 	}
 
 	if (Input::ButtonDown(BUTTON_CODE_UP))
 	{
-		entity->transform.Translate(Vector3Up * Time::DeltaTime() * 10.0f);
+		entity->transform.Translate(Vector3Forward * (F32)Time::DeltaTime());
 	}
 
 	if (Input::ButtonDown(BUTTON_CODE_DOWN))
 	{
-		entity->transform.Translate(Vector3Down * Time::DeltaTime() * 10.0f);
+		entity->transform.Translate(Vector3Back * (F32)Time::DeltaTime());
 	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_P))
+	{
+		Input::SetMousePosition(0, 0);
+	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_K))
+	{
+		Input::ShowCursor(false);
+	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_L))
+	{
+		Input::ShowCursor(true);
+	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_I))
+	{
+		Input::LockCursor(true);
+	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_O))
+	{
+		Input::LockCursor(false);
+	}
+
+	Vector3 lightPos;
+
+	lightPos.x = Math::Cos((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+	lightPos.y = 0.3f;
+	lightPos.z = Math::Sin((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+
+	light->transform.SetPosition(lightPos);
 }
 
 void Shutdown()

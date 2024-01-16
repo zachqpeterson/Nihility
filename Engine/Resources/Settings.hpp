@@ -47,11 +47,11 @@ public:
 	static I32 VirtualScreenHeight();
 	static F64 MonitorHz();
 	static bool Fullscreen();
-	static bool ConstrainCursor();
+	static bool CursorConstrained();
 	static bool Focused();
 	static bool Minimised();
-	static bool LockCursor();
-	static bool HideCursor();
+	static bool CursorLocked();
+	static bool CursorShowing();
 	static bool Resized();
 	static bool InEditor();
 
@@ -101,7 +101,7 @@ private:
 	static bool focused;
 	static bool minimised;
 	static bool lockCursor;
-	static bool hideCursor;
+	static bool showCursor;
 	static bool resized;
 
 	static bool inEditor;
@@ -109,6 +109,7 @@ private:
 	STATIC_CLASS(Settings);
 	friend class Platform;
 	friend class Engine;
+	friend class Input;
 	friend class Audio;
 	friend class Jobs;
 	friend class Renderer;

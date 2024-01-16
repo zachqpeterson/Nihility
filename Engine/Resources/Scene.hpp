@@ -63,6 +63,7 @@ struct Entity;
 struct MeshInstance;
 struct Rendergraph;
 struct CommandBuffer;
+struct VkBufferCopy;
 
 struct NH_API Scene
 {
@@ -101,13 +102,23 @@ private:
 	bool Render(CommandBuffer* commandBuffer);
 	void Resize();
 
+	VkBufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
+
 	String							name{};
 	HashHandle						handle;
 	bool							loaded{ false };
 
 	Camera							camera{};
 
+	Buffer							stagingBuffer;
 	BufferData						buffers;
+
+	Vector<VkBufferCopy>			vertexWrites[VERTEX_TYPE_COUNT - 1];
+	Vector<VkBufferCopy>			instanceWrites;
+	Vector<VkBufferCopy>			indexWrites;
+	Vector<VkBufferCopy>			drawWrites;
+	Vector<VkBufferCopy>			countsWrites;
+
 	PipelineGroup					groups[MATERIAL_TYPE_COUNT];
 
 	U32								vertexOffset{ 0 };

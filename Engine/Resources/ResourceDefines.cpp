@@ -388,10 +388,10 @@ bool FlyCamera::Update()
 		if (Input::ButtonDown(BUTTON_CODE_ALT)) { cameraMovementDelta *= 100.0f; }
 		if (Input::ButtonDown(BUTTON_CODE_CTRL)) { cameraMovementDelta *= 0.1f; }
 
-		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += camera.Right() * -cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += camera.Right() * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += camera.Forward() * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += camera.Forward() * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += camera.Right() * -cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += camera.Right() * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += camera.Forward() * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += camera.Forward() * -cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += camera.Up() * cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_Q)) { cameraMovement += camera.Up() * -cameraMovementDelta; }
 

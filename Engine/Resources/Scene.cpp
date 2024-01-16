@@ -8,6 +8,8 @@
 #include "Rendering\RenderingDefines.hpp"
 #include "Core\Time.hpp"
 
+#define INSTANCE_BUFFER_SIZE sizeof(InstanceData) * MEGABYTES(1)
+
 void Scene::Create(CameraType cameraType, Rendergraph* rendergraph)
 {
 	this->rendergraph = rendergraph;
@@ -30,11 +32,12 @@ void Scene::Create(CameraType cameraType, Rendergraph* rendergraph)
 
 	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
 	{
-		buffers.vertexBuffers.Push(Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL));
+		buffers.vertexBuffers[i] = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	}
 
-	buffers.instanceBuffer = Renderer::CreateBuffer(MEGABYTES(128), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	buffers.indexBuffer = Renderer::CreateBuffer(MEGABYTES(128), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	stagingBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
+	buffers.instanceBuffer = Renderer::CreateBuffer(INSTANCE_BUFFER_SIZE, BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	buffers.indexBuffer = Renderer::CreateBuffer(MEGABYTES(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	buffers.drawBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	buffers.countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
@@ -52,37 +55,6 @@ void Scene::Destroy()
 
 bool Scene::Render(CommandBuffer* commandBuffer)
 {
-	ShadowData* shadowData = Renderer::GetShadowData();
-	CameraData* cameraData = Renderer::GetCameraData();
-	SkyboxData* skyboxData = Renderer::GetSkyboxData();
-
-	Vector3 lightPos;
-
-	lightPos.x = Math::Cos(Time::AbsoluteTime() * 360.0f * DEG_TO_RAD_F) * 40.0f;
-	lightPos.y = -50.0f + Math::Sin(Time::AbsoluteTime() * 360.0f * DEG_TO_RAD_F) * 20.0f;
-	lightPos.z = 25.0f + Math::Sin(Time::AbsoluteTime() * 360.0f * DEG_TO_RAD_F) * 5.0f;
-
-	shadowData->depthMVP = Math::Perspective(45.0f * DEG_TO_RAD_F, 1.0f, 0.01f, 1000.0f) * Math::LookAt(lightPos, Vector3Zero, Vector3Up);
-
-#ifdef NH_DEBUG
-	if (Settings::InEditor())
-	{
-		flyCamera.Update();
-		cameraData->vp = flyCamera.ViewProjection();
-		cameraData->eye = flyCamera.Eye();
-
-		skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse();
-	}
-	else
-#endif
-	{
-		camera.Update();
-		cameraData->vp = camera.ViewProjection();
-		cameraData->eye = camera.Eye();
-
-		skyboxData->invViewProjection = camera.ViewProjection().Inverse();
-	}
-
 	rendergraph->Run(commandBuffer, groups);
 
 	return true;
@@ -111,7 +83,9 @@ void Scene::AddMesh(MeshInstance& instance)
 	{
 		U64 handle = *handles.GetInsert(instance.mesh->handle, meshDraws.Size());
 
-		if (handle >= meshDraws.Size()) { meshDraws.Push({}); instance.handle = handle; }
+		instance.handle = handle;
+
+		if (handle >= meshDraws.Size()) { meshDraws.Push({}); }
 
 		MeshDraw& draw = meshDraws[handle];
 
@@ -123,17 +97,14 @@ void Scene::AddMesh(MeshInstance& instance)
 			drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
 			group.countOffset = countsOffset;
 			countsOffset += sizeof(U32);
+			group.instanceOffset = instanceOffset;
+			instanceOffset += INSTANCE_BUFFER_SIZE / MATERIAL_TYPE_COUNT;
 		}
 
 		if (!draw.indexCount)
 		{
 			//Indices
-			VkBufferCopy region{};
-			region.dstOffset = indexOffset * sizeof(U32);
-			region.size = instance.mesh->indicesSize;
-			region.srcOffset = 0;
-
-			Renderer::FillBuffer(buffers.indexBuffer, instance.mesh->indicesSize, instance.mesh->indices, 1, &region);
+			indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, instance.mesh->indicesSize, instance.mesh->indices));
 
 			draw.indexCount = instance.mesh->indicesSize / sizeof(U32);
 			draw.indexOffset = indexOffset;
@@ -146,11 +117,7 @@ void Scene::AddMesh(MeshInstance& instance)
 			for (VertexBuffer& buffer : instance.mesh->buffers)
 			{
 				verticesSize = Math::Max(verticesSize, buffer.size);
-				region.dstOffset = vertexOffset;
-				region.size = buffer.size;
-				region.srcOffset = 0;
-
-				Renderer::FillBuffer(buffers.vertexBuffers[buffer.type], region.size, buffer.buffer, 1, &region);
+				vertexWrites[buffer.type].Push(CreateWrite(vertexOffset, 0, buffer.size, buffer.buffer));
 			}
 
 			vertexOffset += verticesSize;
@@ -159,22 +126,14 @@ void Scene::AddMesh(MeshInstance& instance)
 		if (!draw.instanceCount)
 		{
 			draw.drawOffset = group.drawOffset + sizeof(VkDrawIndexedIndirectCommand) * group.drawCount;
-			group.instanceOffset = instanceOffset;
-			draw.instanceOffset = 0;
-			instanceOffset += sizeof(InstanceData) * 1024;
+			draw.instanceOffset = group.drawCount * sizeof(InstanceData) * 1024;
 
 			//Count
-			VkBufferCopy region{};
-			region.dstOffset = group.countOffset;
-			region.size = sizeof(U32);
-			region.srcOffset = 0;
-
 			++group.drawCount;
 
-			Renderer::FillBuffer(buffers.countsBuffer, sizeof(U32), &group.drawCount, 1, &region);
+			countsWrites.Push(CreateWrite(group.countOffset, 0, sizeof(U32), &group.drawCount));
 		}
 
-		//TODO: Write drawcall 
 		//Draw
 		VkDrawIndexedIndirectCommand drawCommand{};
 		drawCommand.indexCount = draw.indexCount;
@@ -183,21 +142,12 @@ void Scene::AddMesh(MeshInstance& instance)
 		drawCommand.vertexOffset = draw.vertexOffset;
 		drawCommand.firstInstance = (group.instanceOffset + draw.instanceOffset) / sizeof(InstanceData);
 
-		VkBufferCopy region{};
-		region.dstOffset = draw.drawOffset;
-		region.size = sizeof(VkDrawIndexedIndirectCommand);
-		region.srcOffset = 0;
-
-		Renderer::FillBuffer(buffers.drawBuffer, sizeof(VkDrawIndexedIndirectCommand), &drawCommand, 1, &region);
+		drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
 
 		//Instance
 		instance.instanceOffset = draw.instanceCount * sizeof(InstanceData);
 
-		region.dstOffset = group.instanceOffset + draw.instanceOffset + instance.instanceOffset;
-		region.size = sizeof(InstanceData);
-		region.srcOffset = 0;
-
-		Renderer::FillBuffer(buffers.instanceBuffer, sizeof(InstanceData), &instance.instanceData, 1, &region);
+		instanceWrites.Push(CreateWrite(group.instanceOffset + draw.instanceOffset + instance.instanceOffset, 0, sizeof(InstanceData), &instance.instanceData));
 
 		++draw.instanceCount;
 	}
@@ -209,21 +159,18 @@ void Scene::UpdateMesh(MeshInstance& instance)
 
 	PipelineGroup& group = groups[instance.material->type];
 
-	VkBufferCopy region{};
-	region.dstOffset = group.instanceOffset + draw.instanceOffset + instance.instanceOffset;
-	region.size = sizeof(InstanceData);
-	region.srcOffset = 0;
+	U64 offset = group.instanceOffset + draw.instanceOffset + instance.instanceOffset;
 
-	Renderer::FillBuffer(buffers.instanceBuffer, sizeof(InstanceData), &instance.instanceData, 1, &region);
+	instanceWrites.Push(CreateWrite(offset, 0, sizeof(InstanceData), &instance.instanceData));
 }
 
 void Scene::SetSkybox(Skybox* skybox)
 {
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
-	CameraData* cameraData = Renderer::GetCameraData();
+	GlobalData* globalData = Renderer::GetGlobalData();
 
 	skyboxData->skyboxIndex = (U32)skybox->texture->handle;
-	cameraData->skyboxIndex = (U32)skybox->texture->handle;
+	globalData->skyboxIndex = (U32)skybox->texture->handle;
 }
 
 void Scene::Load()
@@ -255,4 +202,92 @@ void Scene::Update()
 	{
 		pool->Update(this);
 	}
+
+	ShadowData* shadowData = Renderer::GetShadowData();
+	SkyboxData* skyboxData = Renderer::GetSkyboxData();
+	GlobalData* globalData = Renderer::GetGlobalData();
+
+	globalData->lightPos.x = Math::Cos((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+	globalData->lightPos.y = 0.3f;// -50.0f + Math::Sin((F32)Time::AbsoluteTime() * 360.0f * DEG_TO_RAD_F) * 2.0f;
+	globalData->lightPos.z = Math::Sin((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+
+	shadowData->depthViewProjection = Math::Perspective(45.0f, 1.0f, 0.01f, 1000.0f) * Math::LookAt(globalData->lightPos, Vector3Zero, Vector3Up);
+
+	globalData->lightSpace = shadowData->depthViewProjection;
+
+#ifdef NH_DEBUG
+	if (Settings::InEditor())
+	{
+		flyCamera.Update();
+		globalData->viewProjection = flyCamera.ViewProjection();
+		globalData->eye = flyCamera.Eye();
+
+		skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse();
+	}
+	else
+#endif
+	{
+		camera.Update();
+		globalData->viewProjection = camera.ViewProjection();
+		globalData->eye = camera.Eye();
+
+		skyboxData->invViewProjection = camera.ViewProjection().Inverse();
+	}
+
+	VkBufferCopy region{};
+	region.dstOffset = 0;
+	region.size = sizeof(GlobalData);
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(Renderer::globalsBuffer, sizeof(GlobalData), globalData, 1, &region);
+
+	if (indexWrites.Size())
+	{
+		Renderer::FillBuffer(buffers.indexBuffer, stagingBuffer, (U32)indexWrites.Size(), indexWrites.Data());
+		indexWrites.Clear();
+	}
+
+	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
+	{
+		Vector<VkBufferCopy>& writes = vertexWrites[i];
+
+		if (writes.Size())
+		{
+			Renderer::FillBuffer(buffers.vertexBuffers[i], stagingBuffer, (U32)writes.Size(), writes.Data());
+			writes.Clear();
+		}
+	}
+
+	if (countsWrites.Size())
+	{
+		Renderer::FillBuffer(buffers.countsBuffer, stagingBuffer, (U32)countsWrites.Size(), countsWrites.Data());
+		countsWrites.Clear();
+	}
+
+	if (drawWrites.Size())
+	{
+		Renderer::FillBuffer(buffers.drawBuffer, stagingBuffer, (U32)drawWrites.Size(), drawWrites.Data());
+		drawWrites.Clear();
+	}
+
+	if (instanceWrites.Size())
+	{
+		Renderer::FillBuffer(buffers.instanceBuffer, stagingBuffer, (U32)instanceWrites.Size(), instanceWrites.Data());
+		instanceWrites.Clear();
+	}
+
+	stagingBuffer.allocationOffset = 0;
+}
+
+VkBufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data)
+{
+	VkBufferCopy region{};
+	region.dstOffset = dstOffset;
+	region.size = size;
+	region.srcOffset = stagingBuffer.allocationOffset;
+	stagingBuffer.allocationOffset += size;
+
+	Memory::Copy((U8*)stagingBuffer.data + region.srcOffset, (U8*)data + srcOffset, size);
+
+	return region;
 }

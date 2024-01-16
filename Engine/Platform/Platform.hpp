@@ -27,9 +27,6 @@ public:
 	static void SetFullscreen(bool fullscreen);
 	static void SetWindowSize(U32 width, U32 height);
 	static void SetWindowPosition(I32 x, I32 y);
-	static void SetMousePosition(I32 x, I32 y);
-	static void HideCursor(bool hide);
-	static void LockCursor(bool lock);
 	static void SetConsoleWindowTitle(CSTR name);
 
 	static const WindowData& GetWindowData();

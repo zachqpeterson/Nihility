@@ -96,8 +96,6 @@ public:
 	bool valid{ false };
 
 private:
-	bool SetupMouse();
-	bool SetupKeyboard();
 	bool SetupController();
 
 	void* riHandle;				//HRAWINPUT
