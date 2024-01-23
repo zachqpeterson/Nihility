@@ -127,14 +127,14 @@ RenderpassInfo& RenderpassInfo::AddSubpass(const Subpass& subpass)
 	return *this;
 }
 
-RenderpassInfo& RenderpassInfo::AddRenderTarget(Texture* texture)
+RenderpassInfo& RenderpassInfo::AddRenderTarget(const ResourceRef<Texture>& texture)
 {
 	renderTargets[renderTargetCount++] = texture;
 
 	return *this;
 }
 
-RenderpassInfo& RenderpassInfo::SetDepthStencilTarget(Texture* texture)
+RenderpassInfo& RenderpassInfo::SetDepthStencilTarget(const ResourceRef<Texture>& texture)
 {
 	depthStencilTarget = texture;
 
@@ -151,7 +151,7 @@ void Camera::SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 
 	this->viewportHeight = viewportHeight;
 	this->zoom = zoom;
 
-	perspective = false;
+	type = CAMERA_TYPE_ORTHOGRAPHIC;
 	updateProjection = true;
 }
 
@@ -163,7 +163,7 @@ void Camera::SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRati
 	this->fov = fov;
 	this->aspectRatio = aspectRatio;
 
-	perspective = true;
+	type = CAMERA_TYPE_PERSPECTIVE;
 	updateProjection = true;
 }
 
@@ -239,7 +239,7 @@ const Vector3& Camera::Forward() const
 	return forward;
 }
 
-bool Camera::Perspective() const { return perspective; }
+CameraType Camera::Type() const { return type; }
 
 void Camera::SetPosition(const Vector3& p)
 {
@@ -298,8 +298,15 @@ bool Camera::Update()
 
 	if (updateProjection)
 	{
-		if (perspective) { projection.SetPerspective(fov, aspectRatio, nearPlane, farPlane); }
-		else { projection.SetOrthographic(zoom * -viewportWidth / 2.0f, zoom * viewportWidth / 2.0f, zoom * -viewportHeight / 2.0f, zoom * viewportHeight / 2.0f, nearPlane, farPlane); }
+		switch (type)
+		{
+		case CAMERA_TYPE_PERSPECTIVE: {
+			projection.SetPerspective(fov, aspectRatio, nearPlane, farPlane);
+		} break;
+		case CAMERA_TYPE_ORTHOGRAPHIC: {
+			projection.SetOrthographic(zoom * -viewportWidth / 2.0f, zoom * viewportWidth / 2.0f, zoom * -viewportHeight / 2.0f, zoom * viewportHeight / 2.0f, nearPlane, farPlane);
+		} break;
+		}
 	}
 
 	if (updateProjection || updateView)
@@ -356,8 +363,9 @@ Camera* FlyCamera::GetCamera()
 
 bool FlyCamera::Update()
 {
-	if (camera.Perspective())
+	switch (camera.Type())
 	{
+	case CAMERA_TYPE_PERSPECTIVE: {
 		if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
 		{
 			if (ignoreDraggingFrames == 0)
@@ -405,9 +413,8 @@ bool FlyCamera::Update()
 		camera.SetRotation(rotation);
 
 		camera.SetPosition(Math::Lerp(camera.Position(), targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime()))); //TODO: Abstract
-	}
-	else
-	{
+	} break;
+	case CAMERA_TYPE_ORTHOGRAPHIC: {
 		Vector3 cameraMovement = Vector3Zero;
 
 		if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
@@ -456,6 +463,7 @@ bool FlyCamera::Update()
 		targetMovement += cameraMovement;
 
 		camera.SetPosition(Math::Lerp(camera.Position(), targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime()))); //TODO: Abstract
+	} break;
 	}
 
 	return camera.Update();

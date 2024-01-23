@@ -5,37 +5,42 @@
 
 void MeshComponent::Update(Scene* scene)
 {
-	meshInstance.instanceData.model = meshInstance.model * scene->GetEntity(entityID)->transform.WorldMatrix();
+	Matrix4 mat = modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
+
+	meshInstance.instanceData.model = mat;
 
 	scene->UpdateMesh(meshInstance);
 }
 
 void MeshComponent::Load(Scene* scene)
 {
-	meshInstance.instanceData.model = meshInstance.model *scene->GetEntity(entityID)->transform.WorldMatrix();
+	Matrix4 mat = modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
+
+	meshInstance.instanceData.model = mat;
 
 	scene->AddMesh(meshInstance);
 }
 
 void ModelComponent::Update(Scene* scene)
 {
-	for (MeshInstance& instance : model->meshes)
+	for (U32 i = 0; i < model->meshes.Size(); ++i)
 	{
-		Entity* entity = scene->GetEntity(entityID);
-		const Matrix4& mat = entity->transform.WorldMatrix();
+		Matrix4 mat = model->matrices[i] * modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
 
-		instance.instanceData.model = instance.model * mat;
+		model->meshes[i].instanceData.model = mat;
 
-		scene->UpdateMesh(instance);
+		scene->UpdateMesh(model->meshes[i]);
 	}
 }
 
 void ModelComponent::Load(Scene* scene)
 {
-	for (MeshInstance& instance : model->meshes)
+	for (U32 i = 0; i < model->meshes.Size(); ++i)
 	{
-		instance.instanceData.model = instance.model *scene->GetEntity(entityID)->transform.WorldMatrix();
+		Matrix4 mat = model->matrices[i] * modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
 
-		scene->AddMesh(instance);
+		model->meshes[i].instanceData.model = mat;
+
+		scene->AddMesh(model->meshes[i]);
 	}
 }

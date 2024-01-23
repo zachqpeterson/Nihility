@@ -12,8 +12,8 @@ U32 Audio::sampleRate;
 
 IXAudio2SourceVoice* Audio::musicSource;
 IXAudio2SubmixVoice* Audio::musicVoice;
-AudioClip* Audio::currentMusic;
-AudioClip* Audio::nextMusic;
+ResourceRef<AudioClip> Audio::currentMusic;
+ResourceRef<AudioClip> Audio::nextMusic;
 F32 Audio::fadeTimer;
 bool Audio::fadingIn;
 bool Audio::fadingOut;
@@ -145,7 +145,7 @@ void Audio::EndSFX(U32 index)
 	freeSFX.Release(index);
 }
 
-void Audio::PlayMusic(AudioClip* clip)
+void Audio::PlayMusic(const ResourceRef<AudioClip>& clip)
 {
 	if (currentMusic)
 	{
@@ -181,7 +181,7 @@ void Audio::PlayMusic(AudioClip* clip)
 	}
 }
 
-void Audio::PlaySfx(AudioClip* clip, const SfxParameters& parameters)
+void Audio::PlaySfx(const ResourceRef<AudioClip>& clip, const SfxParameters& parameters)
 {
 	//TODO: Resizing
 	if (!freeSFX.Full())

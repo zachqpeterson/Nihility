@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RenderingDefines.hpp"
 #include "Resources\ResourceDefines.hpp"
+#include "Resources\Component.hpp"
 #include "Containers\String.hpp"
 #include "Core\Function.hpp"
 #include "Math\Math.hpp"
@@ -9,6 +9,7 @@
 struct UIElement;
 using UIEvent = Function<void(UIElement*, const Vector2&)>;
 
+struct Font;
 struct Scene;
 struct PipelineInfo;
 
@@ -39,6 +40,27 @@ enum NH_API SliderType
 	SLIDER_TYPE_RADIAL_CLOCKWISE,
 	SLIDER_TYPE_EXPAND,
 };
+
+//struct NH_API UIComponent : public Component
+//{
+//	COMPONENT(UIComponent);
+//
+//	UIComponent(Mesh* mesh, Material* material)
+//	{
+//		meshInstance.mesh = mesh;
+//		meshInstance.material = material;
+//		meshInstance.model = Matrix4Identity;
+//		meshInstance.instanceData.materialID = (U32)material->handle;
+//	}
+//	UIComponent(UIComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
+//
+//	UIComponent& operator=(UIComponent&& other) noexcept { meshInstance = Move(other.meshInstance); return *this; }
+//
+//	virtual void Update(Scene* scene) final;
+//	virtual void Load(Scene* scene) final;
+//
+//	MeshInstance meshInstance;
+//};
 
 struct NH_API UIElement
 {
@@ -205,12 +227,13 @@ private:
 
 	static PipelineInfo uiPipeline;
 	static PipelineInfo textPipeline;
+	static ResourceRef<Font> font; //TODO: This should be default font, support per-text font
 
 	static U32 textInstanceCount;
 	static U32 textVertexOffset;
 	static F32 textWidth;
 	static F32 textHeight;
-	static Vector2 textPosistion;
+	static Vector2 textPosition;
 	static Vector2 textPadding;
 
 	STATIC_CLASS(UI);

@@ -10,10 +10,8 @@
 
 #define INSTANCE_BUFFER_SIZE sizeof(InstanceData) * MEGABYTES(1)
 
-void Scene::Create(CameraType cameraType, Rendergraph* rendergraph)
+void Scene::Create(CameraType cameraType)
 {
-	this->rendergraph = rendergraph;
-
 	switch (cameraType)
 	{
 	case CAMERA_TYPE_PERSPECTIVE: {
@@ -41,7 +39,7 @@ void Scene::Create(CameraType cameraType, Rendergraph* rendergraph)
 	buffers.drawBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	buffers.countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
-	ForEach<RegisteredComponents>([this]<ComponentType Type>() { CreatePool<Type>(); });
+	ForEach<RegisteredComponents>([this]<ComponentType Type>() { CreatePool<Type>(); }); //TODO: Create runtime typelist
 }
 
 void Scene::Destroy()
@@ -51,18 +49,6 @@ void Scene::Destroy()
 	entities.Destroy();
 
 	meshDraws.Destroy();
-}
-
-bool Scene::Render(CommandBuffer* commandBuffer)
-{
-	rendergraph->Run(commandBuffer, groups);
-
-	return true;
-}
-
-void Scene::Resize()
-{
-	rendergraph->Resize();
 }
 
 Entity* Scene::AddEntity()
@@ -88,17 +74,17 @@ void Scene::AddMesh(MeshInstance& instance)
 		if (handle >= meshDraws.Size()) { meshDraws.Push({}); }
 
 		MeshDraw& draw = meshDraws[handle];
+		Pipeline* pipeline = instance.material->meshPipeline;
 
-		PipelineGroup& group = groups[instance.material->type];
-
-		if (!group.drawCount) //TODO: This doesn't get reset with a new scene
+		if (!pipeline->drawCount) //TODO: This doesn't get reset with a new scene
 		{
-			group.drawOffset = drawOffset;
+			pipeline->drawSets.Push({ drawOffset, countsOffset });
 			drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
-			group.countOffset = countsOffset;
 			countsOffset += sizeof(U32);
-			group.instanceOffset = instanceOffset;
-			instanceOffset += INSTANCE_BUFFER_SIZE / MATERIAL_TYPE_COUNT;
+			pipeline->instanceOffset = instanceOffset;
+			instanceOffset += INSTANCE_BUFFER_SIZE / 32;
+
+			Renderer::currentRendergraph->AddPreprocessing(pipeline);
 		}
 
 		if (!draw.indexCount)
@@ -125,13 +111,13 @@ void Scene::AddMesh(MeshInstance& instance)
 
 		if (!draw.instanceCount)
 		{
-			draw.drawOffset = group.drawOffset + sizeof(VkDrawIndexedIndirectCommand) * group.drawCount;
-			draw.instanceOffset = group.drawCount * sizeof(InstanceData) * 1024;
+			draw.drawOffset = pipeline->drawSets.Front().drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount;
+			draw.instanceOffset = pipeline->drawCount * sizeof(InstanceData) * 1024;
 
 			//Count
-			++group.drawCount;
+			++pipeline->drawCount;
 
-			countsWrites.Push(CreateWrite(group.countOffset, 0, sizeof(U32), &group.drawCount));
+			countsWrites.Push(CreateWrite(pipeline->drawSets.Front().countOffset, 0, sizeof(U32), &pipeline->drawCount));
 		}
 
 		//Draw
@@ -140,14 +126,14 @@ void Scene::AddMesh(MeshInstance& instance)
 		drawCommand.instanceCount = draw.instanceCount + 1;
 		drawCommand.firstIndex = draw.indexOffset;
 		drawCommand.vertexOffset = draw.vertexOffset;
-		drawCommand.firstInstance = (group.instanceOffset + draw.instanceOffset) / sizeof(InstanceData);
+		drawCommand.firstInstance = (pipeline->instanceOffset + draw.instanceOffset) / sizeof(InstanceData);
 
 		drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
 
 		//Instance
 		instance.instanceOffset = draw.instanceCount * sizeof(InstanceData);
 
-		instanceWrites.Push(CreateWrite(group.instanceOffset + draw.instanceOffset + instance.instanceOffset, 0, sizeof(InstanceData), &instance.instanceData));
+		instanceWrites.Push(CreateWrite(pipeline->instanceOffset + draw.instanceOffset + instance.instanceOffset, 0, sizeof(InstanceData), &instance.instanceData));
 
 		++draw.instanceCount;
 	}
@@ -156,15 +142,14 @@ void Scene::AddMesh(MeshInstance& instance)
 void Scene::UpdateMesh(MeshInstance& instance)
 {
 	MeshDraw& draw = meshDraws[instance.handle];
+	Pipeline* pipeline = instance.material->meshPipeline;
 
-	PipelineGroup& group = groups[instance.material->type];
-
-	U64 offset = group.instanceOffset + draw.instanceOffset + instance.instanceOffset;
+	U64 offset = pipeline->instanceOffset + draw.instanceOffset + instance.instanceOffset;
 
 	instanceWrites.Push(CreateWrite(offset, 0, sizeof(InstanceData), &instance.instanceData));
 }
 
-void Scene::SetSkybox(Skybox* skybox)
+void Scene::SetSkybox(const ResourceRef<Skybox>& skybox)
 {
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
@@ -173,7 +158,7 @@ void Scene::SetSkybox(Skybox* skybox)
 	globalData->skyboxIndex = (U32)skybox->texture->handle;
 }
 
-void Scene::Load()
+void Scene::Load(ResourceRef<Rendergraph>& rendergraph)
 {
 	if (!loaded)
 	{
@@ -196,6 +181,8 @@ void Scene::Unload()
 	}
 }
 
+F32 lightVal = 0.0f;
+
 void Scene::Update()
 {
 	for (ComponentPool* pool : componentPools)
@@ -207,9 +194,11 @@ void Scene::Update()
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
 
-	globalData->lightPos.x = Math::Cos((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
-	globalData->lightPos.y = 0.3f;// -50.0f + Math::Sin((F32)Time::AbsoluteTime() * 360.0f * DEG_TO_RAD_F) * 2.0f;
-	globalData->lightPos.z = Math::Sin((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+	lightVal += Time::DeltaTime();
+
+	globalData->lightPos.x = Math::Cos(lightVal) * 0.2f;
+	globalData->lightPos.y = 0.3f;
+	globalData->lightPos.z = Math::Sin(lightVal) * 0.2f;
 
 	shadowData->depthViewProjection = Math::Perspective(45.0f, 1.0f, 0.01f, 1000.0f) * Math::LookAt(globalData->lightPos, Vector3Zero, Vector3Up);
 

@@ -99,6 +99,7 @@ public:
 
 	static const String& WorkingDirectory();
 	static bool Delete(const String& path);
+	static bool Exists(const String& path);
 
 private:
 	bool Flush();

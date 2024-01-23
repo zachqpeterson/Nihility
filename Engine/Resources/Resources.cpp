@@ -421,8 +421,6 @@ constexpr U32 SHADER_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 SCENE_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 FONT_VERSION = MakeVersionNumber(0, 1, 0);
 
-Texture* Resources::dummyTexture;
-
 Hashmap<String, Texture>		Resources::textures{ 512 };
 Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
 Hashmap<String, Font>			Resources::fonts{ 32 };
@@ -439,14 +437,6 @@ Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate{};
 bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
-
-	TextureInfo dummyTextureInfo{};
-	dummyTextureInfo.SetName("dummy_texture");
-	dummyTextureInfo.SetFormatType(FORMAT_TYPE_R8G8B8A8_UNORM, IMAGE_TYPE_2D);
-	dummyTextureInfo.SetSize(1, 1, 1);
-	U32 zero = 0;
-	dummyTextureInfo.SetData(&zero);
-	dummyTexture = CreateTexture(dummyTextureInfo);
 
 	return true;
 }
@@ -478,8 +468,6 @@ void Resources::Update()
 		VkDescriptorImageInfo* bindlessImageInfo;
 		Memory::AllocateArray(&bindlessImageInfo, bindlessTexturesToUpdate.Size());
 
-		Texture* dummyTexture = Resources::AccessDummyTexture();
-
 		U32 currentWriteIndex = 0;
 
 		while (bindlessTexturesToUpdate.Size())
@@ -489,7 +477,7 @@ void Resources::Update()
 
 			//TODO: Maybe check frame
 			{
-				Texture* texture = Resources::AccessTexture(textureToUpdate.handle);
+				ResourceRef<Texture> texture = Resources::GetTexture(textureToUpdate.handle);
 				if (texture->image == nullptr) { continue; }
 
 				VkWriteDescriptorSet& descriptorWrite = bindlessDescriptorWrites[currentWriteIndex];
@@ -503,7 +491,7 @@ void Resources::Update()
 				VkDescriptorImageInfo& descriptorImageInfo = bindlessImageInfo[currentWriteIndex];
 
 				descriptorImageInfo.sampler = texture->sampler.vkSampler;
-				descriptorImageInfo.imageView = texture->format != VK_FORMAT_UNDEFINED ? texture->imageView : dummyTexture->imageView;
+				descriptorImageInfo.imageView = texture->imageView;
 				descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				descriptorWrite.pImageInfo = &descriptorImageInfo;
 
@@ -518,7 +506,7 @@ void Resources::Update()
 	}
 }
 
-Texture* Resources::CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo)
+ResourceRef<Texture> Resources::CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -563,7 +551,7 @@ Texture* Resources::CreateTexture(const TextureInfo& info, const SamplerInfo& sa
 	return texture;
 }
 
-Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 index)
+ResourceRef<Texture> Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 index)
 {
 	String name{ "SwapchainTexture", index };
 
@@ -603,7 +591,7 @@ Texture* Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 in
 	return texture;
 }
 
-Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushConstant* pushConstants)
+ResourceRef<Shader> Resources::CreateShader(const String& name, U8 pushConstantCount, PushConstant* pushConstants)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -627,7 +615,7 @@ Shader* Resources::CreateShader(const String& name, U8 pushConstantCount, PushCo
 	return shader;
 }
 
-Rendergraph* Resources::CreateRendergraph(RendergraphInfo& info)
+ResourceRef<Rendergraph> Resources::CreateRendergraph(RendergraphInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -650,7 +638,72 @@ Rendergraph* Resources::CreateRendergraph(RendergraphInfo& info)
 	return rendergraph;
 }
 
-Scene* Resources::CreateScene(const String& name, CameraType cameraType, Rendergraph* rendergraph)
+ResourceRef<Material> Resources::CreateMaterial(MaterialInfo& info)
+{
+	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Material* material = materials.Request(info.name, handle);
+
+	if (!material->name.Blank()) { return material; }
+
+	*material = {};
+
+	File file(info.name, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
+	{
+		material->name = info.name;
+		material->handle = handle;
+
+		file.Write("NH Material");
+		file.Write(MATERIAL_VERSION);
+
+		if (info.diffuseTexture) { file.Write(info.diffuseTexture->name); material->data.diffuseTextureIndex = (U32)info.diffuseTexture->handle; }
+		else { file.Write("NULL"); }
+		if (info.armTexture) { file.Write(info.armTexture->name); material->data.armTextureIndex = (U32)info.armTexture->handle; }
+		else { file.Write("NULL"); }
+		if (info.normalTexture) { file.Write(info.normalTexture->name); material->data.normalTextureIndex = (U32)info.normalTexture->handle; }
+		else { file.Write("NULL"); }
+		if (info.emissivityTexture) { file.Write(info.emissivityTexture->name); material->data.emissivityTextureIndex = (U32)info.emissivityTexture->handle; }
+		else { file.Write("NULL"); }
+
+		file.Write(Renderer::currentRendergraph->Handle());
+
+		if (info.baseColorFactor.w < 1.0f) { file.Write(Renderer::currentRendergraph->DefaultTransparentMeshPipelineID()); material->meshPipeline = Renderer::currentRendergraph->DefaultOpaqueMeshPipeline(); }
+		else { file.Write(Renderer::currentRendergraph->DefaultOpaqueMeshPipelineID()); material->meshPipeline = Renderer::currentRendergraph->DefaultTransparentMeshPipeline(); }
+
+		file.Write(info.baseColorFactor);
+		file.Write(info.metalRoughFactor);
+		file.Write(info.emissiveFactor);
+		file.Write(info.alphaCutoff);
+		file.Write(info.flags);
+
+		material->data.baseColorFactor = info.baseColorFactor;
+		material->data.metalRoughFactor = info.metalRoughFactor;
+		material->data.emissiveFactor = info.emissiveFactor;
+		material->data.alphaCutoff = info.alphaCutoff;
+		material->data.flags = info.flags;
+
+		file.Close();
+
+		VkBufferCopy region{};
+		region.dstOffset = sizeof(MaterialData) * handle;
+		region.size = sizeof(MaterialData);
+		region.srcOffset = 0;
+
+		Renderer::FillBuffer(Renderer::materialBuffer, sizeof(MaterialData), &material->data, 1, &region);
+
+		return material;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}", info.name);
+
+	materials.Remove(handle);
+
+	return nullptr;
+}
+
+ResourceRef<Scene> Resources::CreateScene(const String& name, CameraType cameraType)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -664,12 +717,12 @@ Scene* Resources::CreateScene(const String& name, CameraType cameraType, Renderg
 	scene->name = name;
 	scene->handle = handle;
 
-	scene->Create(cameraType, rendergraph);
+	scene->Create(cameraType);
 
 	return scene;
 }
 
-bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
+bool Resources::RecreateSwapchainTexture(ResourceRef<Texture>& texture, VkImage image)
 {
 	vkDestroyImageView(Renderer::device, texture->imageView, Renderer::allocationCallbacks);
 
@@ -700,7 +753,7 @@ bool Resources::RecreateSwapchainTexture(Texture* texture, VkImage image)
 	return true;
 }
 
-bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth)
+bool Resources::RecreateTexture(ResourceRef<Texture>& texture, U16 width, U16 height, U16 depth)
 {
 	if (texture->lastResize < Renderer::AbsoluteFrame())
 	{
@@ -719,7 +772,7 @@ bool Resources::RecreateTexture(Texture* texture, U16 width, U16 height, U16 dep
 		texture->height = height;
 		texture->depth = depth;
 
-		if (!Renderer::CreateTexture(texture, nullptr))
+		if (!Renderer::CreateTexture((Texture*)texture, nullptr))
 		{
 			Logger::Error("Failed To Recreate Pipeline!");
 			texture->width = deleteTexture.width;
@@ -754,7 +807,7 @@ bool SetAtlasPositions()
 	return true;
 }
 
-Font* Resources::LoadFont(const String& path)
+ResourceRef<Font> Resources::LoadFont(const String& path)
 {
 	static bool b = SetAtlasPositions();
 
@@ -837,7 +890,7 @@ Font* Resources::LoadFont(const String& path)
 	return nullptr;
 }
 
-AudioClip* Resources::LoadAudio(const String& path)
+ResourceRef<AudioClip> Resources::LoadAudio(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1141,7 +1194,7 @@ U8 GetFormatSize(VkFormat format)
 	}
 }
 
-Texture* Resources::LoadTexture(const String& path)
+ResourceRef<Texture> Resources::LoadTexture(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1200,7 +1253,7 @@ Texture* Resources::LoadTexture(const String& path)
 	return nullptr;
 }
 
-Skybox* Resources::LoadSkybox(const String& path)
+ResourceRef<Skybox> Resources::LoadSkybox(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1208,8 +1261,6 @@ Skybox* Resources::LoadSkybox(const String& path)
 	Skybox* skybox = skyboxes.Request(path, handle);
 
 	if (!skybox->name.Blank()) { return skybox; }
-
-	*skybox = {};
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1254,7 +1305,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 		skybox->texture->mipmapCount = 1;
 		skybox->texture->size = faceSize * 6;
 
-		if (!Renderer::CreateCubemap(skybox->texture, reader.Pointer(), &faceSize))
+		if (!Renderer::CreateCubemap((Texture*)skybox->texture, reader.Pointer(), &faceSize))
 		{
 			Logger::Error("Failed To Create Cubemap: {}!", path);
 			skyboxes.Remove(skybox->handle);
@@ -1273,7 +1324,7 @@ Skybox* Resources::LoadSkybox(const String& path)
 	return nullptr;
 }
 
-Material* Resources::LoadMaterial(const String& path)
+ResourceRef<Material> Resources::LoadMaterial(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1315,11 +1366,19 @@ Material* Resources::LoadMaterial(const String& path)
 		texturePath = reader.ReadString();
 		if (!texturePath.Compare("NULL")) { material->data.emissivityTextureIndex = (U32)LoadTexture(texturePath)->handle; }
 
-		reader.Read(material->type);
+		U64 hash;
+		reader.Read(hash);
+
+		U8 pipelineID;
+		reader.Read(pipelineID);
+
+		material->meshPipeline = Renderer::currentRendergraph->GetPipeline(pipelineID);
 
 		reader.Read(material->data.baseColorFactor);
 		reader.Read(material->data.metalRoughFactor);
-		reader.Read(material->data.transparency);
+		reader.Read(material->data.emissiveFactor);
+		reader.Read(material->data.alphaCutoff);
+		reader.Read(material->data.flags);
 
 		VkBufferCopy region{};
 		region.dstOffset = sizeof(MaterialData) * handle;
@@ -1336,7 +1395,7 @@ Material* Resources::LoadMaterial(const String& path)
 	return nullptr;
 }
 
-Mesh* Resources::LoadMesh(const String& path)
+ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1427,7 +1486,7 @@ Mesh* Resources::LoadMesh(const String& path)
 	return nullptr;
 }
 
-Model* Resources::LoadModel(const String& path)
+ResourceRef<Model> Resources::LoadModel(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1464,7 +1523,7 @@ Model* Resources::LoadModel(const String& path)
 		{
 			String path = reader.ReadString();
 
-			Mesh* mesh = LoadMesh(path);
+			ResourceRef<Mesh> mesh = LoadMesh(path);
 
 			U32 instanceCount;
 			reader.Read(instanceCount);
@@ -1478,10 +1537,11 @@ Model* Resources::LoadModel(const String& path)
 				path = reader.ReadString();
 				instance.material = LoadMaterial(path);
 
-				reader.Read(instance.model);
+				Matrix4 matrix;
+				reader.Read(matrix);
+				model->matrices.Push(matrix);
 
 				U32 materialIndex = (U32)instance.material->handle;
-
 				Memory::Copy(&instance.instanceData, &materialIndex, sizeof(U32));
 
 				model->meshes.Push(Move(instance));
@@ -1496,7 +1556,7 @@ Model* Resources::LoadModel(const String& path)
 	return nullptr;
 }
 
-Scene* Resources::LoadScene(const String& path)
+ResourceRef<Scene> Resources::LoadScene(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1759,7 +1819,7 @@ String Resources::LoadBinaryString(const String& path)
 	return {};
 }
 
-void Resources::SaveScene(const Scene* scene)
+void Resources::SaveScene(const ResourceRef<Scene>& scene)
 {
 	//File file(scene->name, FILE_OPEN_RESOURCE_WRITE);
 	//if (file.Opened())
@@ -1871,30 +1931,14 @@ void Resources::SaveBinary(const String& path, U32 size, void* data)
 	Logger::Error("Failed To Find Or Open File: {}", path);
 }
 
-Texture* Resources::AccessDummyTexture()
-{
-	return dummyTexture;
-}
-
-Texture* Resources::AccessTexture(const String& name)
+ResourceRef<Texture> Resources::GetTexture(const String& name)
 {
 	return textures.Get(name);
 }
 
-Texture* Resources::AccessTexture(HashHandle handle)
+ResourceRef<Texture> Resources::GetTexture(HashHandle handle)
 {
 	return textures.Obtain(handle);
-}
-
-void Resources::DestroyTexture(Texture* texture)
-{
-	if (texture->handle != U64_MAX)
-	{
-		Renderer::DestroyTextureInstant(textures.Obtain(texture->handle));
-		textures.Remove(texture->handle);
-
-		texture->handle = U64_MAX;
-	}
 }
 
 void Resources::DestroyBinary(Binary& binary)
@@ -3025,15 +3069,22 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 		ai_real transparency{ 0.0f };
 		ret = materialInfo->Get(AI_MATKEY_TRANSMISSION_FACTOR, transparency);
 
-		if (transparency > 0.0f) { file.Write(MATERIAL_TYPE_GEOMETRY_TRANSPARENT); }
-		else { file.Write(MATERIAL_TYPE_GEOMETRY_OPAQUE); }
+		file.Write(Renderer::currentRendergraph->Handle());
 
-		file.Write(color);
+		if (transparency > 0.0f) { file.Write(Renderer::currentRendergraph->DefaultTransparentMeshPipelineID()); }
+		else { file.Write(Renderer::currentRendergraph->DefaultOpaqueMeshPipelineID()); }
+
+		file.Write(color.r);
+		file.Write(color.g);
+		file.Write(color.b);
+		file.Write(1.0f - transparency);
 		file.Write(metallic);
 		file.Write(roughness);
 		file.Write(0.0f);
 		file.Write(0.0f);
-		file.Write(transparency);
+		file.Write(Vector4Zero);
+		file.Write(0.0f);
+		file.Write(0u);
 
 		file.Close();
 	}

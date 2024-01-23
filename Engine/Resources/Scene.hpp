@@ -65,7 +65,7 @@ struct Rendergraph;
 struct CommandBuffer;
 struct VkBufferCopy;
 
-struct NH_API Scene
+struct NH_API Scene : public Resource
 {
 	Entity* AddEntity();
 	Entity* GetEntity(U32 id);
@@ -75,10 +75,10 @@ struct NH_API Scene
 
 	void AddMesh(MeshInstance& instance);
 	void UpdateMesh(MeshInstance& instance);
-	void SetSkybox(Skybox* skybox);
+	void SetSkybox(const ResourceRef<Skybox>& skybox);
 
 private:
-	void Create(CameraType cameraType, Rendergraph* rendergraph);
+	void Create(CameraType cameraType);
 	void Destroy();
 
 	template<ComponentType Type, typename... Args>
@@ -96,11 +96,9 @@ private:
 		componentPools[IndexOf<RegisteredComponents, Type>] = new ComponentPoolInternal<Type>();
 	}
 
-	void Load();
+	void Load(ResourceRef<Rendergraph>& rendergraph);
 	void Unload();
 	void Update();
-	bool Render(CommandBuffer* commandBuffer);
-	void Resize();
 
 	VkBufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
 
@@ -119,15 +117,11 @@ private:
 	Vector<VkBufferCopy>			drawWrites;
 	Vector<VkBufferCopy>			countsWrites;
 
-	PipelineGroup					groups[MATERIAL_TYPE_COUNT];
-
 	U32								vertexOffset{ 0 };
 	U32								instanceOffset{ 0 };
 	U32								indexOffset{ 0 };
 	U32								drawOffset{ 0 };
 	U32								countsOffset{ 0 };
-
-	Rendergraph*					rendergraph{ nullptr };
 
 	Hashmap<HashHandle, HashHandle>	handles{ 1024 };
 	Vector<MeshDraw>				meshDraws{};

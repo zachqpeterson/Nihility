@@ -13,8 +13,8 @@
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
 
-AudioClip* music;
-AudioClip* sfx;
+ResourceRef<AudioClip> music;
+ResourceRef<AudioClip> sfx;
 F32 volume = 1.0f;
 F32 percent = 1.0f;
 
@@ -29,7 +29,7 @@ bool Init()
 	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
 	//Resources::UploadModel("AnisotropyBarnLamp/AnisotropyBarnLamp.gltf");
 
-	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE, Renderer::GetDefaultRendergraph());
+	ResourceRef<Scene> scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
@@ -47,6 +47,8 @@ bool Init()
 
 	return true;
 }
+
+F32 lightVal = 0;
 
 void Update()
 {
@@ -118,9 +120,11 @@ void Update()
 
 	Vector3 lightPos;
 
-	lightPos.x = Math::Cos((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+	lightVal += Time::DeltaTime();
+
+	lightPos.x = Math::Cos(lightVal) * 0.2f;
 	lightPos.y = 0.3f;
-	lightPos.z = Math::Sin((F32)Time::AbsoluteTime() * 36.0f * DEG_TO_RAD_F) * 0.2f;
+	lightPos.z = Math::Sin(lightVal) * 0.2f;
 
 	light->transform.SetPosition(lightPos);
 }

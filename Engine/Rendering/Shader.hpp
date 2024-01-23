@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 
 #include "Resources\ResourceDefines.hpp"
 #include "Containers\String.hpp"
@@ -160,7 +161,7 @@ struct NH_API Descriptor
 	Descriptor() {}
 	Descriptor(VkBuffer_T* buffer, U64 offset = 0, U64 range = ~0ULL);
 	Descriptor(VkImageView_T* imageView, ImageLayout imageLayout, VkSampler_T* sampler = nullptr);
-	Descriptor(Texture* texture);
+	Descriptor(const ResourceRef<Texture>& texture);
 };
 
 struct StencilOperationState
@@ -198,7 +199,7 @@ struct VkComputePipelineCreateInfo;
 struct Specialization;
 struct ShaderInfo;
 
-struct NH_API Shader
+struct NH_API Shader : public Resource
 {
 	bool Create(const String& shaderPath, U8 pushConstantCount, PushConstant* pushConstants);
 	void Destroy();
@@ -235,6 +236,10 @@ struct NH_API Shader
 	bool								depthEnable{ false };
 	bool								depthWriteEnable{ false };
 	bool								stencilEnable{ false };
+	bool								depthBiasEnable{ false };
+	F32									depthBiasConstant{ 0.0f };
+	F32									depthBiasSlope{ 0.0f };
+	F32									depthBiasClamp{ 0.0f };
 
 	I32									clearTypes{ 0 };
 	TopologyMode						topologyMode{ TOPOLOGY_MODE_TRIANGLE_LIST };

@@ -7,8 +7,13 @@
 #define MEGABYTES(c) c * 1024Ui64 * 1024Ui64
 #define GIGABYTES(c) c * 1024Ui64 * 1024Ui64 * 1024Ui64
 
-#define STATIC_SIZE 1073741824Ui64
-#define DYNAMIC_SIZE 1073741824Ui64
+#ifndef STATIC_MEMORY_SIZE
+#	define STATIC_MEMORY_SIZE 1073741824Ui64
+#endif
+
+#ifndef DYNAMIC_MEMORY_SIZE
+#	define DYNAMIC_MEMORY_SIZE 1073741824Ui64
+#endif
 
 /*
 * TODO: Debug Memory stats
@@ -99,7 +104,7 @@ private:
 	static Region4mb* pool4mbPointer;
 	static Freelist free4mbIndices;
 
-	static inline bool initialized{ false };
+	static bool initialized;
 
 	STATIC_CLASS(Memory);
 	friend class Engine;
@@ -108,7 +113,7 @@ private:
 template<Pointer Type>
 inline void Memory::Allocate(Type* pointer)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -123,7 +128,7 @@ inline void Memory::Allocate(Type* pointer)
 template<Pointer Type>
 inline void Memory::AllocateSize(Type* pointer, const U64& size)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer, size); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer, size); return; }
@@ -136,7 +141,7 @@ inline void Memory::AllocateSize(Type* pointer, const U64& size)
 template<Pointer Type, Unsigned Int>
 inline void Memory::AllocateSize(Type* pointer, const U64& size, Int& newSize)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	if (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer, size); newSize = sizeof(Region1kb); return; }
 	else if (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer, size); newSize = sizeof(Region16kb); return; }
@@ -150,7 +155,7 @@ inline void Memory::AllocateSize(Type* pointer, const U64& size, Int& newSize)
 template<Pointer Type>
 inline void Memory::AllocateArray(Type* pointer, const U64& count)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 	const U64 arraySize = size * count;
@@ -166,7 +171,7 @@ inline void Memory::AllocateArray(Type* pointer, const U64& count)
 template<Pointer Type, Unsigned Int>
 inline void Memory::AllocateArray(Type* pointer, const U64& count, Int& newCount)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 	const U64 arraySize = size * count;
@@ -183,7 +188,7 @@ inline void Memory::AllocateArray(Type* pointer, const U64& count, Int& newCount
 template<Pointer Type>
 inline void Memory::Reallocate(Type* pointer, const U64& count)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -215,7 +220,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 template<Pointer Type, Unsigned Int>
 inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -253,7 +258,9 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 template<Pointer Type>
 inline void Memory::Free(Type* pointer)
 {
-	if (!initialized && *pointer == nullptr) { return; }
+	static bool b = Initialize();
+
+	if (*pointer == nullptr) { return; }
 
 	if (!IsDynamicallyAllocated(*pointer))
 	{
@@ -268,7 +275,7 @@ inline void Memory::Free(Type* pointer)
 template<Pointer Type>
 inline void Memory::AllocateStatic(Type* pointer)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	constexpr U64 size = sizeof(RemovedPointer<Type>);
 
@@ -286,7 +293,7 @@ inline void Memory::AllocateStatic(Type* pointer)
 template<Pointer Type> 
 inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	if (staticPointer + size <= memory + totalSize)
 	{
@@ -302,7 +309,7 @@ inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
 template<Pointer Type> 
 inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
 {
-	if (!initialized) { Initialize(); }
+	static bool b = Initialize();
 
 	U64 size = sizeof(RemovedPointer<Type>) * count;
 

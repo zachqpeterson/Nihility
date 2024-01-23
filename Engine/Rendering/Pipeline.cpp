@@ -91,15 +91,15 @@ bool Pipeline::Create(const PipelineInfo& info, Renderpass* renderpass)
 
 		VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE; //TODO: look into this
 		rasterizer.polygonMode = (VkPolygonMode)shader->fillMode;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = (VkCullModeFlags)shader->cullMode;
 		rasterizer.frontFace = (VkFrontFace)shader->frontMode;
-		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f;
-		rasterizer.depthBiasClamp = 0.0f;
-		rasterizer.depthBiasSlopeFactor = 0.0f;
+		rasterizer.depthBiasEnable = shader->depthBiasEnable;
+		rasterizer.depthBiasConstantFactor = shader->depthBiasConstant;
+		rasterizer.depthBiasClamp = shader->depthBiasClamp;
+		rasterizer.depthBiasSlopeFactor = shader->depthBiasSlope;
 
 		VkViewport viewport{};
 		VkRect2D scissor{};
@@ -202,7 +202,7 @@ void Pipeline::SetBuffers(const BufferData& buffers)
 	countsBuffer = buffers.countsBuffer.vkBuffer;
 }
 
-void Pipeline::Run(CommandBuffer* commandBuffer, PipelineGroup* group) const
+void Pipeline::Run(CommandBuffer* commandBuffer)
 {
 	//TODO: Task Submitting
 
@@ -214,19 +214,28 @@ void Pipeline::Run(CommandBuffer* commandBuffer, PipelineGroup* group) const
 	switch (shader->bindPoint)
 	{
 	case VK_PIPELINE_BIND_POINT_GRAPHICS: {
-
 		if (shader->useVertices)
 		{
-			if (group->drawCount)
+			if (drawSets.Size())
 			{
 				commandBuffer->BindVertexBuffers(shader, bufferCount, vertexBuffers);
 
 				if (shader->useIndexing)
 				{
 					commandBuffer->BindIndexBuffer(shader, indexBuffer, 0);
-					commandBuffer->DrawIndexedIndirectCount(drawsBuffer, countsBuffer, group->drawOffset, group->countOffset);
+
+					for (DrawSet& set : drawSets)
+					{
+						commandBuffer->DrawIndexedIndirectCount(drawsBuffer, countsBuffer, set.drawOffset, set.countOffset);
+					}
 				}
-				else { commandBuffer->DrawIndirectCount(drawsBuffer, countsBuffer, group->drawOffset, group->countOffset); }
+				else
+				{
+					for (DrawSet& set : drawSets)
+					{
+						commandBuffer->DrawIndirectCount(drawsBuffer, countsBuffer, set.drawOffset, set.countOffset);
+					}
+				}
 			}
 		}
 		else { commandBuffer->Draw(0, vertexCount, 0, 1); }

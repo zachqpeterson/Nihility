@@ -30,7 +30,7 @@ Descriptor::Descriptor(VkImageView imageView, ImageLayout imageLayout, VkSampler
 	imageInfo.sampler = sampler;
 }
 
-Descriptor::Descriptor(Texture* texture)
+Descriptor::Descriptor(const ResourceRef<Texture>& texture)
 {
 	imageInfo.imageView = texture->imageView;
 	imageInfo.imageLayout = IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -526,43 +526,39 @@ void Shader::Destroy()
 
 bool Shader::ParseConfig(const String& data, I64& index)
 {
+	index = data.IndexOf('\n', index + 1);
+
 	//TODO: Blend Masks
 	//TODO: Add Stencils
 	while (index != -1)
 	{
-		if (data.CompareN("#CONFIG_END", index + 1))
+		if (data[(U64)(index + 1)] == '#')
 		{
 			++index;
 			return true;
 		}
-		else if (data.CompareN("cull", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
+		String field = data.SubString(index, data.IndexOf('=', index) - index).Trim(); //TODO: Don't make separate string
+		index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+
+		switch (Math::Hash(field.Data(), field.Size()))
+		{
+		case "cull"_Hash: {
 			if (data.CompareN("NONE", index)) { cullMode = CULL_MODE_NONE; }
 			else if (data.CompareN("FRONT", index)) { cullMode = CULL_MODE_FRONT_BIT; }
 			else if (data.CompareN("BACK", index)) { cullMode = CULL_MODE_BACK_BIT; }
 			else if (data.CompareN("BOTH", index)) { cullMode = CULL_MODE_FRONT_AND_BACK; }
-		}
-		else if (data.CompareN("front", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "front"_Hash: {
 			if (data.CompareN("CLOCKWISE", index)) { frontMode = FRONT_FACE_MODE_CLOCKWISE; }
 			else if (data.CompareN("COUNTER", index)) { frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE; }
-		}
-		else if (data.CompareN("fill", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "fill"_Hash: {
 			if (data.CompareN("SOLID", index)) { fillMode = POLYGON_MODE_FILL; }
 			else if (data.CompareN("LINE", index)) { fillMode = POLYGON_MODE_LINE; }
 			else if (data.CompareN("POINT", index)) { fillMode = POLYGON_MODE_POINT; }
-		}
-		else if (data.CompareN("depth", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "depth"_Hash: {
 			if (data.CompareN("NONE", index))
 			{
 				depthEnable = false;
@@ -599,11 +595,8 @@ bool Shader::ParseConfig(const String& data, I64& index)
 				depthWriteEnable = true;
 				depthComparison = COMPARE_OP_EQUAL;
 			}
-		}
-		else if (data.CompareN("blend", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "blend"_Hash: {
 			if (data.CompareN("ADD", index))
 			{
 				VkPipelineColorBlendAttachmentState& blendState = shaderInfo->blendStates[shaderInfo->blendStateCount];
@@ -641,11 +634,9 @@ bool Shader::ParseConfig(const String& data, I64& index)
 
 				++shaderInfo->blendStateCount;
 			}
-		}
-		else if (data.CompareN("topology", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "topology"_Hash: {
+			//TODO: Make switch for this
 			if (data.CompareN("POINTS", index)) { topologyMode = TOPOLOGY_MODE_POINT_LIST; }
 			else if (data.CompareN("LINES", index)) { topologyMode = TOPOLOGY_MODE_LINE_LIST; }
 			else if (data.CompareN("LINE_STRIP", index)) { topologyMode = TOPOLOGY_MODE_LINE_STRIP; }
@@ -656,38 +647,38 @@ bool Shader::ParseConfig(const String& data, I64& index)
 			else if (data.CompareN("LINE_STRIP_ADJ", index)) { topologyMode = TOPOLOGY_MODE_LINE_STRIP_WITH_ADJACENCY; }
 			else if (data.CompareN("TRIANGLES_ADJ", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST_WITH_ADJACENCY; }
 			else if (data.CompareN("TRIANGLE_STRIP_ADJ", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP_WITH_ADJACENCY; }
-			else if (data.CompareN("PATCHS", index)) { topologyMode = TOPOLOGY_MODE_PATCH_LIST; }
-		}
-		else if (data.CompareN("clear", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+			else if (data.CompareN("PATCHES", index)) { topologyMode = TOPOLOGY_MODE_PATCH_LIST; }
+		} break;
+		case "clear"_Hash: {
 			if (data.CompareN("COLOR", index)) { clearTypes |= CLEAR_TYPE_COLOR; }
 			else if (data.CompareN("DEPTH", index)) { clearTypes |= CLEAR_TYPE_DEPTH; }
 			else if (data.CompareN("STENCIL", index)) { clearTypes |= CLEAR_TYPE_STENCIL; }
-		}
-		else if (data.CompareN("useIndices", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "useIndices"_Hash: {
 			if (data.CompareN("FALSE", index)) { useIndexing = false; }
-		}
-		else if (data.CompareN("useVertices", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
+		} break;
+		case "useVertices"_Hash: {
 			if (data.CompareN("FALSE", index)) { useVertices = false; }
-		}
-		else if (data.CompareN("instanceOffset", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+		} break;
+		case "instanceOffset"_Hash: {
 			instanceLocation = data.ToType<U8>(index);
 			useInstancing = true;
-		}
-		else if (data.CompareN("vertexCount", index + 1))
-		{
-			index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+		} break;
+		case "vertexCount"_Hash: {
 			vertexCount = data.ToType<U8>(index);
+		} break;
+		case "depthBiasConstant"_Hash: {
+			depthBiasConstant = data.ToType<F32>(index);
+			depthBiasEnable = true;
+		} break;
+		case "depthBiasClamp"_Hash: {
+			depthBiasClamp = data.ToType<F32>(index);
+			depthBiasEnable = true;
+		} break;
+		case "depthBiasSlope"_Hash: {
+			depthBiasSlope = data.ToType<F32>(index);
+			depthBiasEnable = true;
+		} break;
 		}
 
 		index = data.IndexOf('\n', index + 1);

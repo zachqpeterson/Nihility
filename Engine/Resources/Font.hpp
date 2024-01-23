@@ -15,7 +15,7 @@ struct Glyph
 	F32 kerning[96]{ 0.0f };
 };
 
-struct Font
+struct Font : public Resource
 {
 	void Destroy() { name.Destroy(); }
 

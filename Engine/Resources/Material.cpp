@@ -7,6 +7,20 @@
 
 void RendergraphInfo::AddPipeline(const PipelineInfo& pipeline)
 {
+	if (pipeline.type & PIPELINE_TYPE_DEFAULT)
+	{
+		if (pipeline.type & PIPELINE_TYPE_MESH_OPAQUE)
+		{
+			if (hasDefaultOpaque) { Logger::Warn("Rendergraphs Cannot Have Multiple Default Pipelines Of The Same Type, Ignoring Duplicates..."); }
+			hasDefaultOpaque = true;
+		}
+		if (pipeline.type & PIPELINE_TYPE_MESH_TRANSPARENT)
+		{
+			if (hasDefaultTransparent) { Logger::Warn("Rendergraphs Cannot Have Multiple Default Pipelines Of The Same Type, Ignoring Duplicates..."); }
+			hasDefaultTransparent = true;
+		}
+	}
+
 	bool found = false;
 	for (U32 i = 0; i < pipelines.Size(); ++i)
 	{
@@ -25,6 +39,24 @@ void Rendergraph::SetBuffers(const BufferData& buffers)
 {
 	for (Pipeline& pipeline : pipelines) { pipeline.SetBuffers(buffers); }
 }
+
+void Rendergraph::AddPreprocessing(Pipeline* pipeline)
+{
+	for (Pipeline& p : pipelines)
+	{
+		if (((pipeline->type & PIPELINE_TYPE_MESH_OPAQUE) && (p.type & PIPELINE_TYPE_PRE_PROCESSING_OPAQUE)) ||
+			((pipeline->type & PIPELINE_TYPE_MESH_TRANSPARENT) && (p.type & PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT)))
+		{
+			p.drawSets.Push(pipeline->drawSets.Front());
+		}
+	}
+}
+
+Pipeline* Rendergraph::GetPipeline(U8 id) { return &pipelines[id]; }
+Pipeline* Rendergraph::DefaultOpaqueMeshPipeline() { if (defaultOpaque != U8_MAX) { return &(pipelines[defaultOpaque]); } return nullptr; }
+Pipeline* Rendergraph::DefaultTransparentMeshPipeline() { if (defaultTransparent != U8_MAX) { return &(pipelines[defaultTransparent]); } return nullptr; }
+U8 Rendergraph::DefaultOpaqueMeshPipelineID() const { return defaultOpaque; }
+U8 Rendergraph::DefaultTransparentMeshPipelineID() const { return defaultTransparent; }
 
 bool Rendergraph::Create(RendergraphInfo& info)
 {
@@ -111,16 +143,25 @@ bool Rendergraph::Create(RendergraphInfo& info)
 		prevRenderpass = &renderpasses.Back();
 	}
 
+	U8 i = 0;
 	for (PipelineInfo& pipeline : info.pipelines)
 	{
 		pipelines.Push({});
 		pipelines.Back().Create(pipeline, &renderpasses[pipeline.renderpass]);
+
+		if (pipelines.Back().type & PIPELINE_TYPE_DEFAULT)
+		{
+			if (pipelines.Back().type & PIPELINE_TYPE_MESH_OPAQUE) { defaultOpaque = i; }
+			if (pipelines.Back().type & PIPELINE_TYPE_MESH_TRANSPARENT) { defaultTransparent = i; }
+		}
+
+		++i;
 	}
 
 	return true;
 }
 
-void Rendergraph::Run(CommandBuffer* commandBuffer, PipelineGroup* groups)
+void Rendergraph::Run(CommandBuffer* commandBuffer)
 {
 	U32 renderpass = U32_MAX;
 	U32 subpass = 0;
@@ -143,8 +184,7 @@ void Rendergraph::Run(CommandBuffer* commandBuffer, PipelineGroup* groups)
 			subpass = pipeline.subpass;
 		}
 
-		if (pipeline.type == MATERIAL_TYPE_INVALID) { pipeline.Run(commandBuffer, nullptr); }
-		else { pipeline.Run(commandBuffer, groups + pipeline.type); }
+		pipeline.Run(commandBuffer);
 	}
 
 	commandBuffer->EndRenderpass();

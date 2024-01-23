@@ -58,20 +58,20 @@ struct NH_API PipelineInfo
 	void Destroy() { name.Destroy(); }
 	void AddRenderTarget(Texture* renderTarget) { renderTargets[renderTargetCount++] = renderTarget; }
 
-	String				name{};
+	String					name{};
 
-	Shader*				shader{ nullptr };
-	MaterialType		type;
-	I32					renderOrder;
+	ResourceRef<Shader>		shader{ nullptr };
+	U32						type; //PipelineType
+	I32						renderOrder;
 
-	SpecializationInfo	specialization{};
+	SpecializationInfo		specialization{};
 
-	U8					renderTargetCount{ 0 };
-	Texture*			renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture*			depthStencilTarget{ nullptr };
+	U8						renderTargetCount{ 0 };
+	ResourceRef<Texture>	renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
+	ResourceRef<Texture>	depthStencilTarget{ nullptr };
 
-	U32					renderpass{ 0 };
-	U32					subpass{ 0 };
+	U32						renderpass{ 0 };
+	U32						subpass{ 0 };
 };
 
 struct BufferCopy
@@ -79,6 +79,12 @@ struct BufferCopy
 	U64 srcOffset;
 	U64 dstOffset;
 	U64 size;
+};
+
+struct DrawSet
+{
+	U32 drawOffset{ 0 };
+	U32 countOffset{ 0 };
 };
 
 struct BufferData;
@@ -101,24 +107,28 @@ private:
 
 	void SetBuffers(const BufferData& buffers);
 
-	void Run(CommandBuffer* commandBuffer, PipelineGroup* group) const;
+	void Run(CommandBuffer* commandBuffer);
 
-	String			name{};
-	MaterialType	type;
+	String				name{};
+	U32					type;
 
-	Shader*			shader{};
-	VkPipeline_T*	pipeline{ nullptr };
-	U32				renderpass{ 0 };
-	U32				subpass{ 0 };
+	ResourceRef<Shader>	shader{};
+	VkPipeline_T*		pipeline{ nullptr };
+	U32					renderpass{ 0 };
+	U32					subpass{ 0 };
 
-	U32				vertexCount{ 0 };
+	U32					vertexCount{ 0 };
 
-	U32				bufferCount{ 0 };
-	VkBuffer_T*		vertexBuffers[8]{};
+	U32					bufferCount{ 0 };
+	VkBuffer_T*			vertexBuffers[8]{};
 
-	VkBuffer_T*		indexBuffer;
-	VkBuffer_T*		drawsBuffer;
-	VkBuffer_T*		countsBuffer;
+	VkBuffer_T*			indexBuffer;
+	VkBuffer_T*			drawsBuffer;
+	VkBuffer_T*			countsBuffer;
+
+	U32 instanceOffset{ 0 };
+	Vector<DrawSet> drawSets{ 1 };
+	U32 drawCount{ 0 };
 
 	Pipeline(const Pipeline&) = delete;
 	Pipeline& operator=(const Pipeline&) = delete;

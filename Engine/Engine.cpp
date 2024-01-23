@@ -83,9 +83,9 @@ void Engine::UpdateLoop()
 	while (running)
 	{
 		Time::Update();
-		Input::Update();
+		Input::Update(); //TODO: Handle Input Here
 
-		if (!Platform::Update() || Input::OnButtonDown(BUTTON_CODE_ESCAPE)) { break; }
+		if (!Platform::Update() || Input::OnButtonDown(BUTTON_CODE_ESCAPE)) { break; } //TODO: Separate Thread
 
 		if (Input::OnButtonDown(BUTTON_CODE_F11))
 		{

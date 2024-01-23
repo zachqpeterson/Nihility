@@ -75,7 +75,7 @@ public:
 	static const VkPhysicalDeviceProperties&		GetDeviceProperties();
 	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
 
-	static void							LoadScene(Scene* scene);
+	static void							LoadScene(const ResourceRef<Scene>& scene);
 	static ShadowData*					GetShadowData();
 	static GlobalData*					GetGlobalData();
 	static SkyboxData*					GetSkyboxData();
@@ -121,7 +121,7 @@ private:
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
 
-	static void							PushConstants(CommandBuffer* commandBuffer, Shader* shader);
+	static void							PushConstants(CommandBuffer* commandBuffer, const ResourceRef<Shader>& shader);
 
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
@@ -170,7 +170,7 @@ private:
 	static bool									resized;
 
 	// RESOURCES
-	static Scene*								currentScene;
+	static ResourceRef<Scene>					currentScene;
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
 	static Vector<VkCommandBuffer_T*>			commandBuffers[MAX_SWAPCHAIN_IMAGES];
@@ -181,10 +181,11 @@ private:
 	static GlobalData							globalData;
 	static SkyboxData							skyboxData;
 	static PostProcessData						postProcessData;
-	static Texture*								defaultRenderTarget;
-	static Texture*								defaultDepthTarget;
-	static Texture*								defaultShadowMap;
-	static Rendergraph*							defaultRendergraph;
+	static ResourceRef<Texture>					defaultRenderTarget;
+	static ResourceRef<Texture>					defaultDepthTarget;
+	static ResourceRef<Texture>					defaultShadowMap;
+	static ResourceRef<Rendergraph>				defaultRendergraph;
+	static ResourceRef<Rendergraph>				currentRendergraph;
 
 	// PIPELINES
 	static PipelineInfo							defaultCulling;

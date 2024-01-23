@@ -24,6 +24,7 @@ struct Scene;
 struct Shader;
 struct Material;
 struct MaterialData;
+struct MaterialInfo;
 enum KTXType;
 enum KTXFormat;
 enum VkFormat;
@@ -31,34 +32,33 @@ enum VkFormat;
 class NH_API Resources
 {
 public:
-	static Texture* CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo = {});
-	static Texture* CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
-	static Shader* CreateShader(const String& name, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
-	static Rendergraph* CreateRendergraph(RendergraphInfo& info);
-	static Scene* CreateScene(const String& name, CameraType cameraType, Rendergraph* rendergraph);
+	static ResourceRef<Texture> CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo = {});
+	static ResourceRef<Texture> CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
+	static ResourceRef<Shader> CreateShader(const String& name, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
+	static ResourceRef<Rendergraph> CreateRendergraph(RendergraphInfo& info);
+	static ResourceRef<Material> CreateMaterial(MaterialInfo& info);
+	static ResourceRef<Scene> CreateScene(const String& name, CameraType cameraType);
 
-	static bool RecreateTexture(Texture* texture, U16 width, U16 height, U16 depth);
-	static bool RecreateSwapchainTexture(Texture* texture, VkImage_T* image);
+	static bool RecreateTexture(ResourceRef<Texture>& texture, U16 width, U16 height, U16 depth);
+	static bool RecreateSwapchainTexture(ResourceRef<Texture>& texture, VkImage_T* image);
 
-	static Font* LoadFont(const String& path);
-	static AudioClip* LoadAudio(const String& path);
-	static Texture* LoadTexture(const String& path);
-	static Skybox* LoadSkybox(const String& path);
-	static Material* LoadMaterial(const String& path);
-	static Mesh* LoadMesh(const String& path);
-	static Model* LoadModel(const String& path);
-	static Scene* LoadScene(const String& path);
+	static ResourceRef<Font> LoadFont(const String& path);
+	static ResourceRef<AudioClip> LoadAudio(const String& path);
+	static ResourceRef<Texture> LoadTexture(const String& path);
+	static ResourceRef<Skybox> LoadSkybox(const String& path);
+	static ResourceRef<Material> LoadMaterial(const String& path);
+	static ResourceRef<Mesh> LoadMesh(const String& path);
+	static ResourceRef<Model> LoadModel(const String& path);
+	static ResourceRef<Scene> LoadScene(const String& path);
 	static Binary LoadBinary(const String& path);
 	static String LoadBinaryString(const String& path);
 
-	static void SaveScene(const Scene* scene);
+	static void SaveScene(const ResourceRef<Scene>& scene);
 	static void SaveBinary(const String& path, U32 size, void* data);
 
-	static Texture* AccessDummyTexture();
-	static Texture* AccessTexture(const String& name);
-	static Texture* AccessTexture(HashHandle handle);
+	static ResourceRef<Texture> GetTexture(const String& name);
+	static ResourceRef<Texture> GetTexture(HashHandle handle);
 
-	static void	DestroyTexture(Texture* texture);
 	static void DestroyBinary(Binary& binary);
 
 	static U8 MipmapCount(U16 width, U16 height);
@@ -85,14 +85,11 @@ private:
 	static U8* LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& resolution, VkFormat& format);
 	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
 	static VkFormat GetKTXFormat(KTXType type, KTXFormat format);
-	static U8* LoadHDRToCube(DataReader& reader, U32& faceSize, U32& resolution, VkFormat& format);
 
 	//Assimp Utilities
 	static String ParseAssimpMaterial(const String& name, const aiMaterial* materialInfo, const aiScene* scene);
 	static String ParseAssimpMesh(const String& name, const aiMesh* meshInfo);
 	static void ParseAssimpModel(ModelUpload& model, const aiScene* scene);
-
-	static Texture*							dummyTexture;
 
 	static Hashmap<String, Texture>			textures;
 	static Hashmap<String, Skybox>			skyboxes;

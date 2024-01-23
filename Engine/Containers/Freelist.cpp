@@ -3,14 +3,12 @@
 #include "Memory\Memory.hpp"
 #include "Platform\ThreadSafety.hpp"
 
+Freelist::Freelist(NullPointer) : capacity{ capacity }, outsideAllocated{ outsideAllocated }, freeCount{ freeCount }, freeIndices{ freeIndices }, lastFree{ lastFree } {}
+
 Freelist::Freelist() {}
 
 Freelist::Freelist(U32 count) : capacity{ count }
 {
-	freeCount = 0;
-	lastFree = 0;
-	outsideAllocated = false;
-
 	Memory::AllocateArray(&freeIndices, count);
 }
 

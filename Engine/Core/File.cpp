@@ -283,7 +283,13 @@ bool File::GetWorkingDirectory(String& str)
 	return i;
 }
 
-#endif 
+#endif
 
 //TODO: Check if file is open
 bool File::Delete(const String& path) { return remove(path.Data()) == 0; }
+
+bool File::Exists(const String& path)
+{
+	FileStats stats;
+	return _stat64(path.Data(), (struct _stat64*)&stats) == 0;
+}

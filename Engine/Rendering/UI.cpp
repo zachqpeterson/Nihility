@@ -115,18 +115,17 @@ struct TextInstance
 	F32 scale;
 };
 
-Font* font;
-
 Vector<UIElement> UI::elements;
 
 PipelineInfo UI::uiPipeline;
 PipelineInfo UI::textPipeline;
+ResourceRef<Font> UI::font;
 
 U32 UI::textInstanceCount{ 0 };
 U32 UI::textVertexOffset;
 F32 UI::textWidth;
 F32 UI::textHeight;
-Vector2 UI::textPosistion;
+Vector2 UI::textPosition;
 Vector2 UI::textPadding;
 
 bool UI::Initialize()
@@ -144,14 +143,14 @@ bool UI::Initialize()
 	textWidth = 48.0f / 1920.0f;
 	textHeight = 48.0f / 1080.0f;
 	
-	textPosistion = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
+	textPosition = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	textPadding = Vector2One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	
 	TextVertex vertices[4]{
-		{ { 0.0f, textHeight }, { 0.0f, textPosistion.y } },
-		{ { textWidth, textHeight }, { textPosistion.x, textPosistion.y } },
+		{ { 0.0f, textHeight }, { 0.0f, textPosition.y } },
+		{ { textWidth, textHeight }, { textPosition.x, textPosition.y } },
 		{ { 0.0f, 0.0f }, { 0.0f, 0.0f } },
-		{ { textWidth, 0.0f }, { textPosistion.x, 0.0f } }
+		{ { textWidth, 0.0f }, { textPosition.x, 0.0f } }
 	};
 	
 	return true;
@@ -294,7 +293,7 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 //
 //	return element;
 //}
-//
+
 //UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
 //{
 //	UIElement* element = SetupElement(info);
@@ -526,7 +525,7 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 //
 //			instance.textureIndex = (U32)font->texture->handle;
 //			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
-//			instance.texcoord = texPos * textPosistion + (texPos + Vector2One) * textPadding;
+//			instance.texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
 //			instance.color = info.color;
 //			instance.scale = scale;
 //
@@ -669,7 +668,7 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 //
 //			instance.textureIndex = (U32)font->texture->handle;
 //			instance.position = position - Vector2{ glyph.x * textWidth * element->text.size, -glyph.y * textHeight * element->text.size + yOffset };
-//			instance.texcoord = texPos * textPosistion + (texPos + Vector2One) * textPadding;
+//			instance.texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
 //			instance.color = element->color;
 //			instance.scale = element->text.size;
 //

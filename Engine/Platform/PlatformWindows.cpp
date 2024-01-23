@@ -120,6 +120,7 @@ bool Platform::Initialize(CSTR applicationName)
 
 	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
 
+	//TODO: StyleEx - https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
 	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
 		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, nullptr, nullptr, windowData.instance, nullptr);
 
@@ -158,6 +159,8 @@ void Platform::Shutdown()
 
 bool Platform::Update()
 {
+	UpdateMouse();
+
 	MSG message;
 
 	while (PeekMessageA(&message, windowData.window, 0, 0, PM_REMOVE))
@@ -165,8 +168,6 @@ bool Platform::Update()
 		TranslateMessage(&message);
 		DispatchMessageA(&message);
 	}
-
-	UpdateMouse();
 
 	return running;
 }
@@ -318,6 +319,9 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 
 		Settings::resized = true;
 	} return 0;
+	case WM_SIZING: {
+		//TODO:
+	} return 1;
 	case WM_MOVE: {
 		Settings::data.windowPositionX = LOWORD(lParam);
 		Settings::data.windowPositionY = HIWORD(lParam);

@@ -16,7 +16,7 @@ struct VertexBuffer
 	U8* buffer{ nullptr };
 };
 
-struct NH_API Mesh
+struct NH_API Mesh : public Resource
 {
 	void Destroy() { name.Destroy(); }
 
@@ -33,83 +33,83 @@ struct NH_API Mesh
 
 struct InstanceData
 {
-	U32 materialID;
+	U32 materialId;
 	Matrix4 model;
 };
 
 struct NH_API MeshInstance
 {
 	MeshInstance() = default;
-	MeshInstance(MeshInstance&& other) noexcept : material{ other.material }, mesh{ other.mesh }, model{ other.model }, instanceData{ other.instanceData }, 
-		handle{ other.handle }, instanceOffset{ other.instanceOffset } {}
+	MeshInstance(MeshInstance&& other) noexcept : mesh{ other.mesh }, material{ other.material },
+		handle{ other.handle }, instanceOffset{ other.instanceOffset }
+	{
+		Memory::Copy(&instanceData, &other.instanceData, sizeof(InstanceData));
+	}
 
 	MeshInstance& operator=(MeshInstance&& other) noexcept
 	{
-		material = other.material;
 		mesh = other.mesh;
-		model = other.model;
-		instanceData = other.instanceData;
+		material = other.material;
+		Memory::Copy(&instanceData, &other.instanceData, sizeof(InstanceData));
 		handle = other.handle;
 		instanceOffset = other.instanceOffset;
 
 		return *this;
 	}
 
-	Material*		material;
-	Mesh*			mesh;
+	ResourceRef<Mesh>		mesh{ nullptr };
+	ResourceRef<Material>	material{ nullptr };
 
-	Matrix4			model;
-	InstanceData	instanceData;
+	InstanceData			instanceData{};
 
 private:
-	HashHandle		handle{ U64_MAX };
-	U32				instanceOffset;
+	HashHandle				handle{ U64_MAX };
+	U32						instanceOffset{ 0 };
 
 	friend struct Scene;
 };
 
-struct NH_API Model //TODO: model instance
+struct NH_API Model : public Resource //TODO: model instance
 {
 	void Destroy() { name.Destroy(); meshes.Destroy(); handle = U64_MAX; }
 
 	String		name{};
 	HashHandle	handle;
 
+	Vector<Matrix4> matrices;
 	Vector<MeshInstance> meshes;
 };
 
 struct NH_API MeshComponent : public Component
 {
-	COMPONENT(MeshComponent);
-
-	MeshComponent(Mesh* mesh, Material* material)
+	MeshComponent(const ResourceRef<Mesh>& mesh, const ResourceRef<Material>& material)
 	{
+		modelMatrix = Matrix4Identity;
 		meshInstance.mesh = mesh;
 		meshInstance.material = material;
-		meshInstance.model = Matrix4Identity;
-		meshInstance.instanceData.materialID = (U32)material->handle;
+		meshInstance.instanceData.materialId = (U32)material->Handle();
 	}
-	MeshComponent(MeshComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
+	MeshComponent(MeshComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) }, modelMatrix{ other.modelMatrix } {}
 
-	MeshComponent& operator=(MeshComponent&& other) noexcept { meshInstance = Move(other.meshInstance); return *this; }
+	MeshComponent& operator=(MeshComponent&& other) noexcept { meshInstance = Move(other.meshInstance); modelMatrix = other.modelMatrix; return *this; }
 
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
 
+	Matrix4		 modelMatrix{};
 	MeshInstance meshInstance;
 };
 
 struct NH_API ModelComponent : public Component
 {
-	COMPONENT(ModelComponent);
+	ModelComponent(const ResourceRef<Model>& model) : model{ model } {}
+	ModelComponent(ModelComponent&& other) noexcept : model{ other.model }, modelMatrix{ other.modelMatrix } {}
 
-	ModelComponent(Model* model) : model{ model } {}
-	ModelComponent(ModelComponent&& other) noexcept : model{ other.model } {}
-
-	ModelComponent& operator=(ModelComponent&& other) noexcept { model = other.model; return *this; }
+	ModelComponent& operator=(ModelComponent&& other) noexcept { model = other.model; modelMatrix = other.modelMatrix; return *this; }
 
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
 
-	Model* model; //TODO: Use an instance of a model
+	Matrix4 modelMatrix{};
+	ResourceRef<Model> model;
 };

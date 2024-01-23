@@ -2,17 +2,6 @@
 
 #include "Defines.hpp"
 
-template<typename>
-struct ComponentPoolInternal;
-template<typename>
-struct Vector;
-
-#define COMPONENT(class) \
-friend struct Scene; \
-friend struct ComponentPoolInternal<class>; \
-friend struct Vector<class>; \
-private:
-
 struct Scene;
 
 struct NH_API Component
@@ -23,6 +12,8 @@ protected:
 
 	U32 entityID;
 
+	template<typename>
+	friend struct ComponentPoolInternal;
 	friend struct Scene;
 	friend struct Entity;
 };

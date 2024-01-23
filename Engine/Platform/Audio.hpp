@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Defines.hpp"
+#include "Resources\ResourceDefines.hpp"
 
 #include "Containers\String.hpp"
 #include "Containers\Vector.hpp"
@@ -17,7 +17,7 @@ struct AudioFormat
 	U16    extraSize;
 };
 
-struct NH_API AudioClip
+struct NH_API AudioClip : public Resource
 {
 	void Destroy() { name.Destroy(); }
 
@@ -59,8 +59,8 @@ private:
 class NH_API Audio
 {
 public:
-	static void PlayMusic(AudioClip* clip);
-	static void PlaySfx(AudioClip* clip, const SfxParameters& parameters = {});
+	static void PlayMusic(const ResourceRef<AudioClip>& clip);
+	static void PlaySfx(const ResourceRef<AudioClip>& clip, const SfxParameters& parameters = {});
 
 	static void ChangeMasterVolume(F32 volume);
 	static void ChangeMusicVolume(F32 volume);
@@ -86,8 +86,8 @@ private:
 
 	static IXAudio2SourceVoice* musicSource;
 	static IXAudio2SubmixVoice* musicVoice;
-	static AudioClip* currentMusic;
-	static AudioClip* nextMusic;
+	static ResourceRef<AudioClip> currentMusic;
+	static ResourceRef<AudioClip> nextMusic;
 	static F32 fadeTimer;
 	static bool fadingIn;
 	static bool fadingOut;

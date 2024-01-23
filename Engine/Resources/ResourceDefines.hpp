@@ -24,15 +24,17 @@ enum NH_API MaterialFlag
 	MATERIAL_FLAG_ALPHA_MASK = 0x01,
 };
 
-enum NH_API MaterialType
+enum NH_API PipelineType
 {
-	MATERIAL_TYPE_GEOMETRY_OPAQUE,
-	MATERIAL_TYPE_GEOMETRY_TRANSPARENT,
-	MATERIAL_TYPE_UI,
-	MATERIAL_TYPE_TEXT,
+	PIPELINE_TYPE_PRE_PROCESSING_OPAQUE = 0x01,
+	PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT = 0x02,
+	PIPELINE_TYPE_MESH_OPAQUE = 0x04,
+	PIPELINE_TYPE_MESH_TRANSPARENT = 0x08,
+	PIPELINE_TYPE_POST_PROCESSING_MESH = 0x10,
+	PIPELINE_TYPE_POST_PROCESSING_RENDER = 0x20,
 
-	MATERIAL_TYPE_COUNT,
-	MATERIAL_TYPE_INVALID = MATERIAL_TYPE_COUNT
+	PIPELINE_TYPE_COUNT,
+	PIPELINE_TYPE_DEFAULT = 0x8000,
 };
 
 enum NH_API TextureFlag
@@ -566,6 +568,62 @@ struct VkFramebuffer_T;
 struct VkDeviceMemory_T;
 struct VmaAllocation_T;
 
+struct NH_API Resource
+{
+private:
+	U64 refCount{ 0 };
+
+	template<class Type>
+	friend struct ResourceRef;
+};
+
+template<class Type>
+struct ResourceRef
+{
+	ResourceRef() {}
+	ResourceRef(NullPointer) {}
+	ResourceRef(Type* value) : value{ value } { ++value->refCount; }
+	ResourceRef(const ResourceRef& other) : value{ other.value } { if (value) { ++value->refCount; } }
+	~ResourceRef()
+	{
+		if (value && --value->refCount == 0)
+		{
+			//TODO: Free Resource
+		}
+	}
+
+	ResourceRef& operator=(NullPointer)
+	{
+		if (value) { --value->refCount; }
+		value = nullptr;
+
+		return *this;
+	}
+
+	ResourceRef& operator=(const ResourceRef& other)
+	{
+		if (value) { --value->refCount; }
+		value = other.value;
+		if (value) { ++value->refCount; }
+
+		return *this;
+	}
+
+	Type& operator*() { return *value; }
+	Type* operator->() { return value; }
+	const Type& operator*() const { return *value; }
+	const Type* operator->() const { return value; }
+	operator bool() const { return value; }
+
+private:
+	explicit operator Type* () { return value; }
+	explicit operator const Type* () const { return value; }
+
+	Type* value{ nullptr };
+
+	friend class Resources;
+};
+
 struct NH_API Sampler
 {
 	I32				minFilter{ FILTER_TYPE_LINEAR }; //VkFilter
@@ -603,8 +661,7 @@ struct NH_API SamplerInfo
 	I32		reductionMode{ SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE }; //VkSamplerReductionMode
 };
 
-//TODO: NEED a way to keep track of if this texture is being used
-struct NH_API Texture
+struct NH_API Texture : public Resource
 {
 	void Destroy() { name.Destroy(); handle = U64_MAX; }
 
@@ -620,13 +677,13 @@ struct NH_API Texture
 
 	I32					type{ IMAGE_TYPE_2D }; //VkImageType
 
-	VkImage_T*			image{ nullptr };
-	VkImageView_T*		imageView{ nullptr };
+	VkImage_T* image{ nullptr };
+	VkImageView_T* imageView{ nullptr };
 	I32					format{ FORMAT_TYPE_UNDEFINED }; //VkFormat
 	I32					imageLayout{ IMAGE_LAYOUT_UNDEFINED }; //VkImageLayout
-	VmaAllocation_T*	allocation{ nullptr };
+	VmaAllocation_T* allocation{ nullptr };
 
-	VkImageView_T*		mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
+	VkImageView_T* mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
 	U8					mipmapCount{ 1 };
 
 	TextureUsage		usage{ TEXTURE_USAGE_COLOR };
@@ -634,6 +691,8 @@ struct NH_API Texture
 
 	bool				swapchainImage{ false };
 	bool				mipmapsGenerated{ false };
+
+	friend struct ResourceRef<Texture>;
 };
 
 struct NH_API TextureInfo
@@ -701,8 +760,8 @@ struct NH_API Renderpass
 	VkFramebuffer_T* frameBuffer{ nullptr };
 
 	U8					renderTargetCount{ 0 };
-	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* depthStencilTarget{ nullptr };
+	ResourceRef<Texture> renderTargets[MAX_IMAGE_OUTPUTS]{ };
+	ResourceRef<Texture> depthStencilTarget{ };
 
 	Rect2D				renderArea;
 
@@ -721,12 +780,12 @@ struct NH_API RenderpassInfo
 
 	RenderpassInfo& Reset();
 	RenderpassInfo& AddSubpass(const Subpass& subpass);
-	RenderpassInfo& AddRenderTarget(Texture* texture);
-	RenderpassInfo& SetDepthStencilTarget(Texture* texture);
+	RenderpassInfo& AddRenderTarget(const ResourceRef<Texture>& texture);
+	RenderpassInfo& SetDepthStencilTarget(const ResourceRef<Texture>& texture);
 
 	U8				renderTargetCount{ 0 };
-	Texture* renderTargets[MAX_IMAGE_OUTPUTS]{ nullptr };
-	Texture* depthStencilTarget{ nullptr };
+	ResourceRef<Texture> renderTargets[MAX_IMAGE_OUTPUTS]{ };
+	ResourceRef<Texture> depthStencilTarget{ };
 
 	Rect2D			renderArea;
 
@@ -748,14 +807,16 @@ struct NH_API PushConstant
 	void* data;
 };
 
-struct NH_API Skybox
+struct NH_API Skybox : public Resource
 {
 	void Destroy() { name.Destroy(); handle = U64_MAX; }
 
 	String      name{};
 	HashHandle	handle;
 
-	Texture* texture{ nullptr };
+	ResourceRef<Texture> texture;
+
+	friend struct ResourceRef<Skybox>;
 };
 
 struct ResourceUpdate
@@ -801,14 +862,6 @@ struct BufferData
 	Buffer countsBuffer;
 };
 
-struct PipelineGroup
-{
-	U32 instanceOffset{ 0 };
-	U32 countOffset{ 0 };
-	U32 drawOffset{ 0 };
-	U32 drawCount{ 0 };
-};
-
 struct NH_API Camera
 {
 	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom);
@@ -829,7 +882,7 @@ struct NH_API Camera
 	const Vector3& Up() const;
 	const Vector3& Forward() const;
 
-	bool Perspective() const;
+	CameraType Type() const;
 
 	void SetPosition(const Vector3& position);
 	void SetRotation(const Quaternion3& rotation);
@@ -840,32 +893,32 @@ struct NH_API Camera
 	bool Update();
 
 private:
-	Matrix4	view{ Matrix4Identity };
-	Matrix4	projection{ Matrix4Identity };
-	Matrix4	viewProjection{ Matrix4Identity };
+	Matrix4		view{ Matrix4Identity };
+	Matrix4		projection{ Matrix4Identity };
+	Matrix4		viewProjection{ Matrix4Identity };
 
-	Vector3	position{ Vector3Zero };
-	Vector3	right{ Vector3Right };
-	Vector3	forward{ Vector3Forward };
-	Vector3	up{ Vector3Up };
+	Vector3		position{ Vector3Zero };
+	Vector3		right{ Vector3Right };
+	Vector3		forward{ Vector3Forward };
+	Vector3		up{ Vector3Up };
 
-	F32		pitch{ 0.0f };
-	F32		yaw{ 0.0f };
-	F32		roll{ 0.0f };
+	F32			pitch{ 0.0f };
+	F32			yaw{ 0.0f };
+	F32			roll{ 0.0f };
 
-	F32		nearPlane{ 0.0f };
-	F32		farPlane{ 0.0f };
+	F32			nearPlane{ 0.0f };
+	F32			farPlane{ 0.0f };
 
-	F32		fov{ 0.0f };
-	F32		aspectRatio{ 0.0f };
+	F32			fov{ 0.0f };
+	F32			aspectRatio{ 0.0f };
 
-	F32		zoom{ 0.0f };
-	F32		viewportWidth{ 0.0f };
-	F32		viewportHeight{ 0.0f };
+	F32			zoom{ 0.0f };
+	F32			viewportWidth{ 0.0f };
+	F32			viewportHeight{ 0.0f };
 
-	bool	perspective{ false };
-	bool	updateProjection{ false };
-	bool	updateView{ false };
+	CameraType	type{};
+	bool		updateProjection{ false };
+	bool		updateView{ false };
 
 	friend class Resources;
 };

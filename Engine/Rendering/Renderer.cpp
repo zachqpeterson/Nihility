@@ -194,8 +194,8 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene* Renderer::currentScene;
-VmaAllocator_T* Renderer::allocator;
+ResourceRef<Scene>					Renderer::currentScene;
+VmaAllocator_T*						Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
@@ -205,10 +205,11 @@ ShadowData							Renderer::shadowData{};
 GlobalData							Renderer::globalData{};
 SkyboxData							Renderer::skyboxData{};
 PostProcessData						Renderer::postProcessData{};
-Texture* Renderer::defaultRenderTarget;
-Texture* Renderer::defaultDepthTarget;
-Texture* Renderer::defaultShadowMap;
-Rendergraph* Renderer::defaultRendergraph;
+ResourceRef<Texture>				Renderer::defaultRenderTarget;
+ResourceRef<Texture>				Renderer::defaultDepthTarget;
+ResourceRef<Texture>				Renderer::defaultShadowMap;
+ResourceRef<Rendergraph>			Renderer::defaultRendergraph;
+ResourceRef<Rendergraph>			Renderer::currentRendergraph;
 
 PipelineInfo						Renderer::defaultCulling;
 PipelineInfo						Renderer::defaultShadows;
@@ -657,10 +658,10 @@ bool Renderer::CreateResources()
 	defaultShadowMap = Resources::CreateTexture(textureInfo);
 
 	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
-	Shader* shader = Resources::CreateShader("shaders/ShadowMap.nhshd", 1, &pushConstant);
+	ResourceRef<Shader> shader = Resources::CreateShader("shaders/ShadowMap.nhshd", 1, &pushConstant);
 	defaultShadows.name = "default_shadows_pipeline";
 	defaultShadows.shader = shader;
-	defaultShadows.type = MATERIAL_TYPE_GEOMETRY_OPAQUE;
+	defaultShadows.type = PIPELINE_TYPE_PRE_PROCESSING_OPAQUE;
 	defaultShadows.depthStencilTarget = defaultShadowMap;
 	defaultShadows.renderOrder = -10;
 
@@ -670,13 +671,13 @@ bool Renderer::CreateResources()
 	shader->AddDescriptor({ defaultShadowMap->imageView, IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, defaultShadowMap->sampler.vkSampler });
 	defaultGeometryOpaque.name = "default_mesh_opaque_pipeline";
 	defaultGeometryOpaque.shader = shader;
-	defaultGeometryOpaque.type = MATERIAL_TYPE_GEOMETRY_OPAQUE;
+	defaultGeometryOpaque.type = PIPELINE_TYPE_MESH_OPAQUE | PIPELINE_TYPE_DEFAULT;
 	defaultGeometryOpaque.renderOrder = 0;
 
 	pushConstant = { 0, sizeof(SkyboxData), Renderer::GetSkyboxData() };
 	defaultSkybox.name = "default_skybox_pipeline";
 	defaultSkybox.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
-	defaultSkybox.type = MATERIAL_TYPE_INVALID;
+	defaultSkybox.type = PIPELINE_TYPE_POST_PROCESSING_RENDER;
 	defaultSkybox.renderOrder = 10;
 
 	shader = Resources::CreateShader("shaders/PbrTransparent.nhshd");
@@ -684,7 +685,7 @@ bool Renderer::CreateResources()
 	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 	defaultGeometryTransparent.name = "default_mesh_transparent_pipeline";
 	defaultGeometryTransparent.shader = shader;
-	defaultGeometryTransparent.type = MATERIAL_TYPE_GEOMETRY_TRANSPARENT;
+	defaultGeometryTransparent.type = PIPELINE_TYPE_MESH_TRANSPARENT | PIPELINE_TYPE_DEFAULT;
 	defaultGeometryTransparent.renderOrder = 20;
 
 	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
@@ -692,8 +693,32 @@ bool Renderer::CreateResources()
 	shader->AddDescriptor({ Renderer::defaultRenderTarget });
 	defaultPostProcessing.name = "default_postprocess_pipeline";
 	defaultPostProcessing.shader = shader;
-	defaultPostProcessing.type = MATERIAL_TYPE_INVALID;
+	defaultPostProcessing.type = PIPELINE_TYPE_POST_PROCESSING_RENDER;
 	defaultPostProcessing.renderOrder = 30;
+
+	RendergraphInfo info{};
+	info.name = "default_rendergraph";
+
+	//TODO: Culling piplines
+
+	info.AddPipeline(defaultShadows);
+	info.AddPipeline(defaultGeometryOpaque);
+	info.AddPipeline(defaultSkybox);
+	info.AddPipeline(defaultGeometryTransparent);
+	//info.AddPipeline(defaultPostProcessing);
+	//info.AddPipeline(UI::GetUIPipeline());
+	//info.AddPipeline(UI::GetTextPipeline());
+
+	defaultRendergraph = Resources::CreateRendergraph(info);
+	currentRendergraph = defaultRendergraph;
+
+	if (!File::Exists("materials/default.nhmat"))
+	{
+		MaterialInfo info{};
+		info.name = "materials/default.nhmat";
+
+		Resources::CreateMaterial(info);
+	}
 
 	return true;
 }
@@ -815,7 +840,7 @@ VkCommandBuffer Renderer::Record()
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
 	commandBuffer->Begin();
-	currentScene->Render(commandBuffer);
+	currentRendergraph->Run(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
 		ImageBarrier(defaultRenderTarget->image,
@@ -856,7 +881,7 @@ void Renderer::Resize()
 	vkDeviceWaitIdle(device);
 
 	swapchain.Create();
-	currentScene->Resize();
+	if (currentRendergraph) { currentRendergraph->Resize(); }
 
 	vkDeviceWaitIdle(device);
 }
@@ -888,15 +913,17 @@ void Renderer::SetRenderArea()
 	}
 }
 
-void Renderer::LoadScene(Scene* scene)
+void Renderer::LoadScene(const ResourceRef<Scene>& scene)
 {
+	if (!currentRendergraph) { Logger::Error("Cannot Load A Scene Without A Rendergraph Set!"); }
+
 	if (currentScene)
 	{
 		currentScene->Unload();
 	}
 
 	currentScene = scene;
-	currentScene->Load();
+	currentScene->Load(currentRendergraph);
 }
 
 ShadowData* Renderer::GetShadowData()
@@ -917,28 +944,6 @@ SkyboxData* Renderer::GetSkyboxData()
 PostProcessData* Renderer::GetPostProcessData()
 {
 	return &postProcessData;
-}
-
-Rendergraph* Renderer::GetDefaultRendergraph()
-{
-	if (defaultRendergraph) { return defaultRendergraph; }
-
-	RendergraphInfo info{};
-	info.name = "default_rendergraph";
-
-	//TODO: Culling piplines
-
-	info.AddPipeline(defaultShadows);
-	info.AddPipeline(defaultGeometryOpaque);
-	info.AddPipeline(defaultSkybox);
-	info.AddPipeline(defaultGeometryTransparent);
-	//info.AddPipeline(defaultPostProcessing);
-	//info.AddPipeline(UI::GetUIPipeline());
-	//info.AddPipeline(UI::GetTextPipeline());
-
-	defaultRendergraph = Resources::CreateRendergraph(info);
-
-	return defaultRendergraph;
 }
 
 void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
@@ -1496,7 +1501,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 	return true;
 }
 
-void Renderer::PushConstants(CommandBuffer* commandBuffer, Shader* shader)
+void Renderer::PushConstants(CommandBuffer* commandBuffer, const ResourceRef<Shader>& shader)
 {
 	for (U32 i = 0; i < shader->pushConstantCount; ++i)
 	{
@@ -1828,16 +1833,6 @@ void Renderer::DestroyRenderPassInstant(Renderpass* renderpass)
 {
 	if (renderpass)
 	{
-		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
-		{
-			Resources::DestroyTexture(renderpass->renderTargets[i]);
-		}
-
-		if (renderpass->depthStencilTarget)
-		{
-			Resources::DestroyTexture(renderpass->depthStencilTarget);
-		}
-
 		if (renderpass->frameBuffer) { vkDestroyFramebuffer(Renderer::device, renderpass->frameBuffer, Renderer::allocationCallbacks); }
 		if (renderpass->renderpass) { vkDestroyRenderPass(device, renderpass->renderpass, allocationCallbacks); }
 	}

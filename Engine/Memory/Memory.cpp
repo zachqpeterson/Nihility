@@ -10,22 +10,24 @@ U8* Memory::dynamicPointer{ nullptr };
 U8* Memory::staticPointer{ nullptr };
 
 Memory::Region1kb* Memory::pool1kbPointer{ nullptr };
-Freelist Memory::free1kbIndices;
+Freelist Memory::free1kbIndices{ nullptr };
 
 Memory::Region16kb* Memory::pool16kbPointer{ nullptr };
-Freelist Memory::free16kbIndices;
+Freelist Memory::free16kbIndices{ nullptr };
 
 Memory::Region256kb* Memory::pool256kbPointer{ nullptr };
-Freelist Memory::free256kbIndices;
+Freelist Memory::free256kbIndices{ nullptr };
 
 Memory::Region4mb* Memory::pool4mbPointer{ nullptr };
-Freelist Memory::free4mbIndices;
+Freelist Memory::free4mbIndices{ nullptr };
+
+bool Memory::initialized{ false };
 
 bool Memory::Initialize()
 {
 	if (!SafeCheckAndSet(&initialized, 0L))
 	{
-		U64 maxKilobytes = DYNAMIC_SIZE / 1024;
+		U64 maxKilobytes = DYNAMIC_MEMORY_SIZE / 1024;
 
 		U32 region4mbCount = U32(maxKilobytes / 81920);
 		U32 region256kbCount = U32(maxKilobytes * 0.15f) / 256;
@@ -34,14 +36,14 @@ bool Memory::Initialize()
 
 		U32 freeListMemory = (region4mbCount + region256kbCount + region16kbCount + region1kbCount) * sizeof(U32);
 
-		totalSize = DYNAMIC_SIZE + STATIC_SIZE;
+		totalSize = DYNAMIC_MEMORY_SIZE + STATIC_MEMORY_SIZE;
 
 		memory = (U8*)calloc(1, totalSize + freeListMemory);
 
 		if (!memory) { return false; }
 
 		staticPointer = memory;
-		dynamicPointer = memory + STATIC_SIZE;
+		dynamicPointer = memory + STATIC_MEMORY_SIZE;
 
 		pool1kbPointer = (Region1kb*)(dynamicPointer);
 		pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);

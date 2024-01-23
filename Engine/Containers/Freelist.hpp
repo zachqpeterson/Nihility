@@ -6,6 +6,7 @@
 struct NH_API Freelist
 {
 public:
+	Freelist(NullPointer);
 	Freelist();
 	Freelist(U32 count);
 
@@ -23,10 +24,10 @@ public:
 	bool Full() const;
 
 private:
-	U32 capacity;
-	bool outsideAllocated;
+	U32 capacity{ 0 };
+	bool outsideAllocated{ false };
 
-	U32 freeCount;
-	U32* freeIndices;
-	U32 lastFree;
+	U32 freeCount{ 0 };
+	U32* freeIndices{ nullptr };
+	U32 lastFree{ 0 };
 };

@@ -128,6 +128,8 @@ void Input::Update()
 		state.doubleClicked = false;
 		state.heldChanged = false;
 	}
+
+	if (Settings::Focused()) { SetCursorPos((I32)(Input::mousePosX + Settings::WindowPositionX()), (I32)(Input::mousePosY + Settings::WindowPositionY())); }
 }
 
 void Input::ReceiveInput(HRAWINPUT handle)
@@ -144,13 +146,13 @@ void Input::ReceiveInput(HRAWINPUT handle)
 
 		if (mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
 		{
-			I32 absoluteX = I32((mouse.lLastX / 65535.0f) * Settings::VirtualScreenWidth());
-			I32 absoluteY = I32((mouse.lLastY / 65535.0f) * Settings::VirtualScreenHeight());
+			F32 absoluteX = (mouse.lLastX / 65535.0f) * Settings::VirtualScreenWidth();
+			F32 absoluteY = (mouse.lLastY / 65535.0f) * Settings::VirtualScreenHeight();
 
 			deltaMousePosX = absoluteX - mousePosX;
 			deltaMousePosY = absoluteY - mousePosY;
-			mousePosX = (F32)absoluteX;
-			mousePosY = (F32)absoluteY;
+			mousePosX = absoluteX;
+			mousePosY = absoluteY;
 		}
 		else if (mouse.lLastX != 0 || mouse.lLastY != 0)
 		{
@@ -176,8 +178,6 @@ void Input::ReceiveInput(HRAWINPUT handle)
 				mousePosX = Math::Clamp(mousePosX += deltaMousePosX, (F32)-Settings::WindowPositionX(), (F32)Settings::VirtualScreenWidth() - (F32)Settings::WindowPositionX());
 				mousePosY = Math::Clamp(mousePosY += deltaMousePosY, (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
 			}
-
-			SetCursorPos((I32)(mousePosX + Settings::WindowPositionX()), (I32)(mousePosY + Settings::WindowPositionY()));
 		}
 
 		if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
@@ -371,7 +371,6 @@ void Input::Focus()
 	POINT p;
 	GetCursorPos(&p);
 
-
 	if (Settings::CursorLocked())
 	{
 		mousePosX = Settings::WindowWidth() / 2.0f;
@@ -387,8 +386,6 @@ void Input::Focus()
 		mousePosX = Math::Clamp((F32)p.x - Settings::WindowPositionX(), (F32)-Settings::WindowPositionX(), (F32)Settings::VirtualScreenWidth() - (F32)Settings::WindowPositionX());
 		mousePosY = Math::Clamp((F32)p.y - Settings::WindowPositionY(), (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
 	}
-
-	SetCursorPos((I32)(mousePosX + Settings::WindowPositionX()), (I32)(mousePosY + Settings::WindowPositionY()));
 }
 
 void Input::AddDevice(void* handle)
@@ -459,8 +456,6 @@ void Input::SetMousePosition(I32 x, I32 y)
 		mousePosX = Math::Clamp((F32)x, (F32)-Settings::WindowPositionX(), (F32)Settings::VirtualScreenWidth() - (F32)Settings::WindowPositionX());
 		mousePosY = Math::Clamp((F32)y, (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
 	}
-
-	SetCursorPos((I32)(x + Settings::WindowPositionX()), (I32)(mousePosY + Settings::WindowPositionY()));
 }
 
 void Input::ShowCursor(bool show)

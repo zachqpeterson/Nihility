@@ -34,12 +34,12 @@ struct CommandBuffer
 	void EndRenderpass();
 
 	void BindPipeline(const Pipeline* pipeline);
-	void BindIndexBuffer(Shader* shader, VkBuffer_T* buffer, U64 offset);
-	void BindVertexBuffers(Shader* shader, U32 bufferCount, VkBuffer_T* const* buffers);
-	void BindDescriptorSets(Shader* shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
+	void BindIndexBuffer(const ResourceRef<Shader>& shader, VkBuffer_T* buffer, U64 offset);
+	void BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers);
+	void BindDescriptorSets(const ResourceRef<Shader>& shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
 
 	void PushDescriptors();
-	void PushConstants(Shader* shader, U32 offset, U32 size, const void* data);
+	void PushConstants(const ResourceRef<Shader>& shader, U32 offset, U32 size, const void* data);
 
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);
@@ -51,11 +51,11 @@ struct CommandBuffer
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(const Buffer& buffer, U32 offset);
 
-	void BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions);
-	void ImageToBuffer(Texture* texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions);
+	void BufferToImage(const Buffer& buffer, const ResourceRef<Texture>& texture, U32 regionCount, const VkBufferImageCopy* regions);
+	void ImageToBuffer(const ResourceRef<Texture>& texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions);
 	void BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions);
-	void ImageToImage(Texture* src, Texture* dst, U32 regionCount, const VkImageCopy* regions);
-	void Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
+	void ImageToImage(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, U32 regionCount, const VkImageCopy* regions);
+	void Blit(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
 
 	void PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 

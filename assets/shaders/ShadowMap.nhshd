@@ -5,6 +5,9 @@ fill=SOLID
 depth=LESS
 clear=DEPTH
 instanceOffset=1
+depthBiasConstant=1.25
+depthBiasClamp=0.0
+depthBiasSlope=1.75
 #CONFIG_END
 
 #VERTEX
