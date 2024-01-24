@@ -772,6 +772,7 @@ struct NH_API Renderpass
 	U32					subpassCount{ 1 };
 
 	U32					lastResize{ 0 };
+	bool				resize{ true };
 };
 
 struct NH_API RenderpassInfo
@@ -798,6 +799,7 @@ struct NH_API RenderpassInfo
 	I32 	        attachmentFinalLayout{ IMAGE_LAYOUT_ATTACHMENT_OPTIMAL }; //VkImageLayout
 
 	String			name{};
+	bool			resize{ true };
 };
 
 struct NH_API PushConstant
@@ -940,7 +942,7 @@ struct NH_API FlyCamera
 	Camera* GetCamera();
 
 private:
-	F32		mouseSensitivity{ 1.5f };
+	F32		mouseSensitivity{ 1.0f };
 	F32		movementDelta{ 0.1f };
 	U32		ignoreDraggingFrames{ 3 };
 

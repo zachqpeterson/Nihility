@@ -15,8 +15,9 @@ F64 Settings::monitorHz{ 0.0 };
 
 bool Settings::focused{ true };
 bool Settings::minimised{ true };
-bool Settings::lockCursor{ false };
 bool Settings::showCursor{ true };
+bool Settings::constrainCursor{ false };
+bool Settings::lockCursor{ false };
 bool Settings::resized{ false };
 
 #ifdef NH_DEBUG
@@ -96,11 +97,11 @@ I32 Settings::VirtualScreenWidth() { return virtualScreenWidth; }
 I32 Settings::VirtualScreenHeight() { return virtualScreenHeight; }
 F64 Settings::MonitorHz() { return monitorHz; }
 bool Settings::Fullscreen() { return data.fullscreen; }
-bool Settings::CursorConstrained() { return data.constrainCursor; }
 bool Settings::Focused() { return focused; }
 bool Settings::Minimised() { return minimised; }
-bool Settings::CursorLocked() { return lockCursor; }
 bool Settings::CursorShowing() { return showCursor; }
+bool Settings::CursorConstrained() { return constrainCursor; }
+bool Settings::CursorLocked() { return lockCursor; }
 bool Settings::Resized() { return resized; }
 
 bool Settings::InEditor() { return inEditor; }

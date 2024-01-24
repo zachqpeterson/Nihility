@@ -41,22 +41,44 @@ void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
 
 	vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 
-	VkViewport viewport{};
-	viewport.x = (F32)renderpass->renderArea.offset.x;
-	viewport.y = (F32)renderpass->renderArea.offset.y;
-	viewport.width = (F32)renderpass->renderArea.extent.x;
-	viewport.height = (F32)renderpass->renderArea.extent.y;
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
+	if (renderpass->resize)
+	{
+		VkViewport viewport{};
+		viewport.x = Renderer::renderArea.x;
+		viewport.y = Renderer::renderArea.y;
+		viewport.width = Renderer::renderArea.z;
+		viewport.height = Renderer::renderArea.w;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
 
-	VkRect2D scissor{};
-	scissor.offset.x = (I32)renderpass->renderArea.offset.x;
-	scissor.offset.y = (I32)renderpass->renderArea.offset.y;
-	scissor.extent.width = (U32)renderpass->renderArea.extent.x;
-	scissor.extent.height = (U32)renderpass->renderArea.extent.y;
+		VkRect2D scissor{};
+		scissor.offset.x = (I32)Renderer::renderArea.x;
+		scissor.offset.y = (I32)Renderer::renderArea.y;
+		scissor.extent.width = (U32)Renderer::renderArea.z;
+		scissor.extent.height = (U32)Renderer::renderArea.w;
 
-	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
-	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
+		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
+	}
+	else
+	{
+		VkViewport viewport{};
+		viewport.x = (F32)renderpass->renderArea.offset.x;
+		viewport.y = (F32)renderpass->renderArea.offset.y;
+		viewport.width = (F32)renderpass->renderArea.extent.x;
+		viewport.height = (F32)renderpass->renderArea.extent.y;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		VkRect2D scissor{};
+		scissor.offset.x = (I32)renderpass->renderArea.offset.x;
+		scissor.offset.y = (I32)renderpass->renderArea.offset.y;
+		scissor.extent.width = (U32)renderpass->renderArea.extent.x;
+		scissor.extent.height = (U32)renderpass->renderArea.extent.y;
+
+		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
+	}
 }
 
 void CommandBuffer::NextSubpass()

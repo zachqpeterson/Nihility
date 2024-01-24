@@ -45,11 +45,6 @@ private:
 
 #if defined PLATFORM_WINDOWS
 	static I64 __stdcall WindowsMessageProc(struct HWND__* hwnd, U32 msg, U64 wParam, I64 lParam);
-
-	static L32 DragEnter(IDataObject* pDataObj, UL32 grfKeyState, _POINTL pt, UL32* pdwEffect);
-	static L32 DragOver(UL32 grfKeyState, _POINTL pt, UL32* pdwEffect);
-	static L32 DragLeave();
-	static L32 Drop(IDataObject* pDataObj, UL32 grfKeyState, _POINTL pt, UL32* pdwEffect);
 #endif
 
 	STATIC_CLASS(Platform);

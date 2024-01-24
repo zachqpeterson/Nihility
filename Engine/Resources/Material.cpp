@@ -88,6 +88,7 @@ bool Rendergraph::Create(RendergraphInfo& info)
 
 			renderpassInfo.Reset();
 			renderpassInfo.name = info.name + renderpass;
+			renderpassInfo.resize = pipeline.resize;
 
 			if (pipeline.renderTargetCount || pipeline.depthStencilTarget)
 			{

@@ -89,7 +89,6 @@ private:
 		U32 dpi{ 0 };
 		U32 threadCount{ 1 };
 		bool fullscreen{ false };
-		bool constrainCursor{ false };
 	} data;
 
 	static I32 screenWidth;
@@ -100,8 +99,9 @@ private:
 
 	static bool focused;
 	static bool minimised;
-	static bool lockCursor;
 	static bool showCursor;
+	static bool constrainCursor;
+	static bool lockCursor;
 	static bool resized;
 
 	static bool inEditor;

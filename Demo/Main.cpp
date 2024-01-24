@@ -24,7 +24,6 @@ Entity* light{};
 bool Init()
 {
 	//String path = Resources::UploadFont("arial.ttf");
-	//String path0 = Resources::UploadSkybox("UffiziCube.ktx");
 	//String path = Resources::UploadSkybox("Room.hdr");
 	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
 	//Resources::UploadModel("AnisotropyBarnLamp/AnisotropyBarnLamp.gltf");
@@ -33,8 +32,8 @@ bool Init()
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
-	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
+	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
 	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
@@ -98,24 +97,25 @@ void Update()
 		Input::SetMousePosition(0, 0);
 	}
 
-	if (Input::OnButtonDown(BUTTON_CODE_K))
+	if (Input::OnButtonDown(BUTTON_CODE_O))
 	{
-		Input::ShowCursor(false);
-	}
-
-	if (Input::OnButtonDown(BUTTON_CODE_L))
-	{
-		Input::ShowCursor(true);
+		Input::LockCursor(!Settings::CursorLocked());
 	}
 
 	if (Input::OnButtonDown(BUTTON_CODE_I))
 	{
-		Input::LockCursor(true);
+		Input::ConstrainCursor(!Settings::CursorConstrained());
 	}
 
-	if (Input::OnButtonDown(BUTTON_CODE_O))
+	if (Input::OnButtonDown(BUTTON_CODE_U))
 	{
-		Input::LockCursor(false);
+		Input::ShowCursor(!Settings::CursorShowing());
+	}
+
+	if (Input::OnButtonDown(BUTTON_CODE_H))
+	{
+		//TODO: Fix runtime model loading
+		entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
 	}
 
 	Vector3 lightPos;

@@ -286,8 +286,6 @@ bool Camera::Update()
 		const Quaternion3 rollRotation{ Vector3Forward, roll };
 		const Quaternion3 rotation = (yawRotation * pitchRotation * rollRotation).Normalize();
 
-		//Logger::Debug(roll);
-
 		const Matrix4 translation{ position };
 		view = translation * rotation.ToMatrix4();
 

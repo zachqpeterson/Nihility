@@ -295,6 +295,7 @@ public:
 
 	static void SetMousePosition(I32 x, I32 y);
 	static void ShowCursor(bool show);
+	static void ConstrainCursor(bool constrain);
 	static void LockCursor(bool lock);
 
 private:
@@ -318,6 +319,8 @@ private:
 	static F32 mousePosY;
 	static F32 deltaMousePosX;
 	static F32 deltaMousePosY;
+	static F32 deltaRawMousePosX;
+	static F32 deltaRawMousePosY;
 
 	//CONTROLLER
 	static F32 axisStates[];

@@ -650,12 +650,17 @@ bool Renderer::CreateResources()
 
 	//TODO: Default culling
 
+	SamplerInfo shadowMapSampler{};
+	shadowMapSampler.boundsModeU = SAMPLER_BOUNDS_MODE_CLAMP_TO_BORDER;
+	shadowMapSampler.boundsModeV = SAMPLER_BOUNDS_MODE_CLAMP_TO_BORDER;
+	shadowMapSampler.border = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
 	textureInfo.name = "default_shadow_map";
 	textureInfo.format = VK_FORMAT_D16_UNORM;
 	textureInfo.flags |= TEXTURE_FLAG_RENDER_SAMPLED;
 	textureInfo.width = 2048;
 	textureInfo.height = 2048;
-	defaultShadowMap = Resources::CreateTexture(textureInfo);
+	defaultShadowMap = Resources::CreateTexture(textureInfo, shadowMapSampler);
 
 	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
 	ResourceRef<Shader> shader = Resources::CreateShader("shaders/ShadowMap.nhshd", 1, &pushConstant);
@@ -664,6 +669,7 @@ bool Renderer::CreateResources()
 	defaultShadows.type = PIPELINE_TYPE_PRE_PROCESSING_OPAQUE;
 	defaultShadows.depthStencilTarget = defaultShadowMap;
 	defaultShadows.renderOrder = -10;
+	defaultShadows.resize = false;
 
 	shader = Resources::CreateShader("shaders/PbrOpaque.nhshd");
 	shader->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
@@ -1515,6 +1521,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	renderpass->depthStencilTarget = info.depthStencilTarget;
 	renderpass->renderArea = info.renderArea;
 	renderpass->subpassCount = info.subpassCount;
+	renderpass->resize = info.resize;
 	Memory::Copy(renderpass->subpasses, info.subpasses, sizeof(Subpass) * info.subpassCount);
 	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
 
@@ -1774,8 +1781,11 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 
 bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 {
-	if (renderpass->lastResize < absoluteFrame)
+	if (renderpass->lastResize < absoluteFrame && renderpass->resize)
 	{
+		renderpass->renderArea.extent.x = Settings::WindowWidth();
+		renderpass->renderArea.extent.y = Settings::WindowHeight();
+
 		vkDestroyFramebuffer(device, renderpass->frameBuffer, allocationCallbacks);
 
 		VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };

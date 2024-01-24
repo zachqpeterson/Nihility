@@ -63,6 +63,7 @@ struct NH_API PipelineInfo
 	ResourceRef<Shader>		shader{ nullptr };
 	U32						type; //PipelineType
 	I32						renderOrder;
+	bool					resize{ true };
 
 	SpecializationInfo		specialization{};
 

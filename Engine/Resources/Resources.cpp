@@ -621,7 +621,7 @@ ResourceRef<Rendergraph> Resources::CreateRendergraph(RendergraphInfo& info)
 
 	HashHandle handle;
 	Rendergraph* rendergraph = rendergraphs.Request(info.name, handle);
-	
+
 	if (!rendergraph->Name().Blank()) { return rendergraph; }
 
 	rendergraph->handle = handle;
@@ -1953,6 +1953,72 @@ U8 Resources::MipmapCount(U16 width, U16 height)
 	return (U8)DegreeOfTwo(Math::Min(width, height));
 }
 
+String Resources::UploadFile(const String& path)
+{
+	I64 fileExtension = path.LastIndexOf('.');
+
+	if (fileExtension++ == -1)
+	{
+		//TODO: No file extension
+		Logger::Error("Can't Upload File That Has No Extension!");
+		return {};
+	}
+
+	switch (Math::HashI(path.Data() + fileExtension, path.Size() - fileExtension))
+	{
+		//Images
+	case "jpg"_Hash:
+	case "jpeg"_Hash:
+	case "png"_Hash:
+	case "bmp"_Hash:
+	case "tga"_Hash:
+	case "jfif"_Hash:
+	case "tiff"_Hash:
+	case "ktx"_Hash:
+	case "ktx2"_Hash:
+	case "pnm"_Hash:
+	case "ppm"_Hash:
+	case "pgm"_Hash:
+	case "sbsar"_Hash: {
+		return Move(UploadTexture(path));
+	} break;
+
+		//Skyboxes
+	case "hdr"_Hash: {
+		return Move(UploadSkybox(path));
+	} break;
+
+		//Fonts
+	case "ttf"_Hash:
+	case "otf"_Hash: {
+		return Move(UploadFont(path));
+	} break;
+
+		//Models
+	case "obj"_Hash:
+	case "gltf"_Hash:
+	case "glb"_Hash:
+	case "fbx"_Hash:
+	case "blend"_Hash:
+	case "pmx"_Hash: {
+		return Move(UploadModel(path));
+	} break;
+
+		//Audio
+	case "wav"_Hash:
+	case "mp3"_Hash:
+	case "ogg"_Hash:
+	case "flac"_Hash: {
+		return Move(UploadAudio(path));
+	} break;
+
+	default: {
+		Logger::Error("Unknown File Extension: !");
+		return {};
+	}
+	}
+}
+
 String Resources::UploadFont(const String& path)
 {
 	File file(path, FILE_OPEN_RESOURCE_READ);
@@ -3121,7 +3187,7 @@ String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 		Memory::Copy(it, meshInfo->mNormals, sizeof(Vector3) * vertexCount);
 		it += sizeof(Vector3) * vertexCount;
 
-		if(meshInfo->HasTangentsAndBitangents())
+		if (meshInfo->HasTangentsAndBitangents())
 		{
 			Memory::Copy(it, meshInfo->mTangents, sizeof(Vector3) * vertexCount);
 			it += sizeof(Vector3) * vertexCount;

@@ -64,6 +64,7 @@ public:
 	static U8 MipmapCount(U16 width, U16 height);
 
 	//Convert 3rd party asset formats to nh formats
+	static String UploadFile(const String& path);
 	static String UploadFont(const String& path);
 	static String UploadAudio(const String& path);
 	static String UploadSkybox(const String& path);

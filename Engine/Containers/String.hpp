@@ -991,13 +991,19 @@ inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, 
 template<Character C>
 inline StringBase<C> StringBase<C>::GetFileName() const noexcept
 {
-	I64 index;
 	I64 extIndex = LastIndexOf(StringLookup<C>::DECIMAL_CHAR);
+	I64 nameIndex = Math::Max(LastIndexOf(StringLookup<C>::FORWARD_SLASH), LastIndexOf(StringLookup<C>::BACK_SLASH));
 
-	if ((index = LastIndexOf(StringLookup<C>::FORWARD_SLASH) + 1) != -1) { return Move(SubString(index, extIndex - index)); }
-	if ((index = LastIndexOf(StringLookup<C>::BACK_SLASH) + 1) != -1) { return Move(SubString(index, extIndex - index)); }
+	if (nameIndex++ == -1)
+	{
+		if (extIndex == -1) { return *this; }
 
-	return Move(SubString(0, extIndex));
+		return Move(SubString(0, extIndex));
+	}
+
+	if (extIndex == -1) { Move(SubString(nameIndex)); }
+
+	return Move(SubString(nameIndex, extIndex - nameIndex));
 }
 
 template<Character C>
@@ -1649,21 +1655,21 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 
 	C* it = string + start;
 	C c;
-	Arg value = 0.0f;
-	F64 mul = 0.1f;
+	Arg value = (Arg)0.0;
+	F64 mul = 0.1;
 
 	if (*it == StringLookup<C>::NEGATIVE_CHAR)
 	{
 		++it;
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR && c != StringLookup<C>::DECIMAL_CHAR) { value *= 10; value -= c - StringLookup<C>::ZERO_CHAR; }
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value -= (c - StringLookup<C>::ZERO_CHAR) * mul; mul *= 0.1f; }
+		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value -= (Arg)((c - StringLookup<C>::ZERO_CHAR) * mul); mul *= 0.1; }
 	}
 	else
 	{
 		if (*it == StringLookup<C>::POSITIVE_CHAR) { ++it; }
 
 		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR && c != StringLookup<C>::DECIMAL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value += (c - StringLookup<C>::ZERO_CHAR) * mul; mul *= 0.1f; }
+		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value += (Arg)((c - StringLookup<C>::ZERO_CHAR) * mul); mul *= 0.1; }
 	}
 
 	return value;

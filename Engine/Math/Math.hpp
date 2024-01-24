@@ -418,6 +418,22 @@ public:
 		return hash;
 	}
 
+	static constexpr U64 HashI(const C8* str, U64 length)
+	{
+		U64 hash = 5381;
+		U64 i = 0;
+
+		for (i = 0; i < length; ++str, ++i)
+		{
+			C8 c = *str;
+			if (c < 97) { c += 32; }
+
+			hash = ((hash << 5) + hash) + c;
+		}
+
+		return hash;
+	}
+
 	//HASH | Based on wyhash - https://github.com/wangyi-fudan/wyhash
 	template<class Type> requires(!IsPointer<Type>)
 	static U64 Hash(const Type& value, U64 seed = 0)
@@ -635,6 +651,7 @@ private:
 };
 
 static constexpr inline U64 operator""_Hash(const C8 * str, U64 length) { return Math::Hash(str, length); }
+static constexpr inline U64 operator""_HashI(const C8 * str, U64 length) { return Math::Hash(str, length); }
 
 struct NH_API Quaternion2
 {

@@ -3,12 +3,14 @@
 #include "Input.hpp"
 #include "Audio.hpp"
 #include "Resources\Settings.hpp"
+#include "Resources\Resources.hpp"
 #include "Core\Logger.hpp"
 
 #ifdef PLATFORM_WINDOWS
 
 #include <Windows.h>
 #include <shlwapi.h>
+#include <shellapi.h>
 #include <strsafe.h>
 #include <shlobj.h>
 #include <ole2.h>
@@ -16,24 +18,9 @@
 bool Platform::running;
 WindowData Platform::windowData;
 
-struct DropTarget : public IDropTarget
-{
-	DropTarget() : referenceCount{ 1 } {}
-
-	HRESULT __stdcall DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::DragEnter(pDataObj, grfKeyState, pt, pdwEffect); }
-	HRESULT __stdcall DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::DragOver(grfKeyState, pt, pdwEffect); }
-	HRESULT __stdcall DragLeave() final { return Platform::DragLeave(); }
-	HRESULT __stdcall Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) final { return Platform::Drop(pDataObj, grfKeyState, pt, pdwEffect); }
-
-	HRESULT __stdcall QueryInterface(const IID& riid, void** ppv) final { return E_NOINTERFACE; }
-	ULONG __stdcall AddRef() final { return InterlockedIncrement(&referenceCount); }
-	ULONG __stdcall Release() final { return InterlockedDecrement(&referenceCount); }
-
-	UL32 referenceCount;
-} dropTarget;
-
 bool cursorShowing = true;
 U32 style;
+U32 styleEx;
 RECT border;
 
 HICON arrow;
@@ -51,8 +38,8 @@ bool Platform::Initialize(CSTR applicationName)
 	Logger::Trace("Initializing Platform...");
 
 	if (OleInitialize(nullptr) < 0) { return false; }
-	windowData.instance = GetModuleHandleA(0);
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+	windowData.instance = GetModuleHandleA(0);
 	running = true;
 
 	//Load cursor images
@@ -66,7 +53,7 @@ bool Platform::Initialize(CSTR applicationName)
 	//Setup and register window class.
 	WNDCLASSEXA wc{};
 	wc.cbSize = sizeof(WNDCLASSEXA);
-	wc.style = CS_DBLCLKS;
+	wc.style = CS_OWNDC;
 	wc.lpfnWndProc = WindowsMessageProc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
@@ -85,6 +72,7 @@ bool Platform::Initialize(CSTR applicationName)
 	}
 
 	style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_VISIBLE;
+	styleEx = WS_EX_ACCEPTFILES;
 
 	U32 dpi = Settings::Dpi();
 
@@ -118,10 +106,9 @@ bool Platform::Initialize(CSTR applicationName)
 		Settings::data.windowHeight = Settings::WindowHeightSmall();
 	}
 
-	AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
+	AdjustWindowRectExForDpi(&border, style, 0, styleEx, Settings::Dpi());
 
-	//TODO: StyleEx - https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
-	windowData.window = CreateWindowExA(0, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
+	windowData.window = CreateWindowExA(styleEx, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
 		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, nullptr, nullptr, windowData.instance, nullptr);
 
 	if (!windowData.window)
@@ -136,7 +123,7 @@ bool Platform::Initialize(CSTR applicationName)
 	Settings::monitorHz = monitorInfo.dmDisplayFrequency;
 
 	RegisterClipboardFormatA("NihilityClipboard");
-	HRESULT result = RegisterDragDrop(windowData.window, &dropTarget);
+	DragAcceptFiles(windowData.window, TRUE);
 
 	ShowWindow(windowData.window, Settings::Fullscreen() ? SW_SHOWMAXIMIZED : SW_SHOW);
 
@@ -218,12 +205,55 @@ const WindowData& Platform::GetWindowData()
 
 void Platform::UpdateMouse()
 {
-	if (Settings::Focused() && cursorShowing != Settings::CursorShowing())
+	if (Settings::Focused())
 	{
-		cursorShowing = Settings::CursorShowing();
-		ShowCursor(Settings::CursorShowing());
+		if (Settings::CursorLocked())
+		{
+			RECT clip{};
+			clip.left = Settings::WindowPositionX() + Settings::WindowWidth() / 2;
+			clip.right = clip.left;
+			clip.top = Settings::WindowPositionY() + Settings::WindowHeight() / 2;
+			clip.bottom = clip.top;
+
+			ClipCursor(&clip);
+		}
+		else if (Settings::CursorConstrained())
+		{
+			RECT clip{};
+			if (Settings::Fullscreen())
+			{
+				clip.left = Settings::WindowPositionX();
+				clip.top = Settings::WindowPositionY();
+				clip.right = Settings::WindowPositionX() + Settings::WindowWidth();
+				clip.bottom = Settings::WindowPositionY() + Settings::WindowHeight();
+				ClipCursor(&clip);
+			}
+			else
+			{
+				GetWindowRect(windowData.window, &clip);
+				ClipCursor(&clip);
+			}
+		}
+		else
+		{
+			ClipCursor(nullptr);
+		}
+
+		if (cursorShowing != Settings::CursorShowing())
+		{
+			cursorShowing = Settings::CursorShowing();
+			ShowCursor(Settings::CursorShowing());
+		}
+
+		if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE) || Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE) || Input::ButtonDown(BUTTON_CODE_MIDDLE_MOUSE)) { SetCapture(windowData.window); }
+		else { ReleaseCapture(); }
 	}
-	else if (!cursorShowing) { ShowCursor(true); cursorShowing = true; }
+	else
+	{
+		if (!cursorShowing) { ShowCursor(true); cursorShowing = true; }
+
+		ClipCursor(nullptr);
+	}
 }
 
 I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam)
@@ -255,7 +285,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_ERASEBKGND: {} return 1;
 	case WM_DPICHANGED: {
 		Settings::data.dpi = HIWORD(wParam);
-		AdjustWindowRectExForDpi(&border, style, 0, 0, Settings::Dpi());
+		AdjustWindowRectExForDpi(&border, style, 0, styleEx, Settings::Dpi());
 		RECT* rect = (RECT*)lParam;
 
 		Settings::screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::Dpi());
@@ -345,7 +375,33 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_INPUT: {
 		if (GET_RAWINPUT_CODE_WPARAM(wParam) == 0) { Input::ReceiveInput((HRAWINPUT)lParam); }
 		else { Input::InputSink((HRAWINPUT)lParam); }
-	}
+	} return 0;
+	case WM_MOUSEMOVE: {
+		U16 x = LOWORD(lParam);
+		U16 y = HIWORD(lParam);
+
+		Input::deltaMousePosX = x - Input::mousePosX;
+		Input::deltaMousePosY = y - Input::mousePosY;
+
+		Input::mousePosX = x;
+		Input::mousePosY = y;
+	} return 0;
+	case WM_DROPFILES: {
+		HDROP dropInfo = (HDROP)wParam;
+		U32 count = DragQueryFileA(dropInfo, 0xFFFFFFFF, nullptr, 0);
+
+		U32 nameSize = 0;
+		C8 name[256];
+
+		for (U32 i = 0; i < count; ++i)
+		{
+			nameSize = DragQueryFileA(dropInfo, i, name, 256);
+
+			Resources::UploadFile(StringView{ name, nameSize });
+		}
+
+		DragFinish(dropInfo);
+	} return 0;
 	}
 
 	return DefWindowProcA(hwnd, msg, wParam, lParam);
@@ -421,30 +477,6 @@ bool Platform::ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR 
 	GetExitCodeProcess(processInfo.hProcess, &processExitCode);
 
 	return executionSuccess;
-}
-
-HRESULT Platform::DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-{
-	BreakPoint;
-	return 0;
-}
-
-HRESULT Platform::DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-{
-	BreakPoint;
-	return 0;
-}
-
-HRESULT Platform::DragLeave()
-{
-	BreakPoint;
-	return 0;
-}
-
-HRESULT Platform::Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect)
-{
-	BreakPoint;
-	return 0;
 }
 
 #endif

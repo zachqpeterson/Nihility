@@ -194,7 +194,7 @@ void Scene::Update()
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
 
-	lightVal += Time::DeltaTime();
+	lightVal += (F32)Time::DeltaTime();
 
 	globalData->lightPos.x = Math::Cos(lightVal) * 0.2f;
 	globalData->lightPos.y = 0.3f;
