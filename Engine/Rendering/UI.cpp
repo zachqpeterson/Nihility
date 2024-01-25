@@ -132,9 +132,13 @@ bool UI::Initialize()
 {
 	uiPipeline.name = "ui_pipeline";
 	uiPipeline.shader = Resources::CreateShader("shaders/UI.nhshd");
+	uiPipeline.type = PIPELINE_TYPE_UI;
+	uiPipeline.renderOrder = 100;
 
 	textPipeline.name = "text_pipeline";
 	textPipeline.shader = Resources::CreateShader("shaders/Text.nhshd");
+	textPipeline.type = PIPELINE_TYPE_UI;
+	textPipeline.renderOrder = 110;
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
@@ -270,29 +274,34 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 	return element;
 }
 
-//UIElement* UI::CreateElement(const UIElementInfo& info)
-//{
-//	UIElement* element = SetupElement(info);
-//
-//	UIVertex vertices[4]{
-//		{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
-//		{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
-//		{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
-//		{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
-//	};
-//
-//	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
-//
-//	UIInstance instance{};
-//	instance.textureIndex = U16_MAX;
-//	instance.model = Matrix3Identity;
-//
-//	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
-//
-//	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
-//
-//	return element;
-//}
+UIElement* UI::CreateElement(const UIElementInfo& info)
+{
+	//if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
+	//
+	//UIElement* element = SetupElement(info);
+	//
+	//ResourceRef<Mesh> mesh = Resources::CreateMesh("");
+	//
+	//UIVertex vertices[4]{
+	//	{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
+	//	{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
+	//	{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
+	//	{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
+	//};
+	//
+	//element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
+	//
+	//UIInstance instance{};
+	//instance.textureIndex = U16_MAX;
+	//instance.model = Matrix3Identity;
+	//
+	//element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
+	//
+	//uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
+	//
+	//return element;
+	return nullptr;
+}
 
 //UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
 //{

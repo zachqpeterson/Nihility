@@ -37,6 +37,7 @@ public:
 	static ResourceRef<Shader> CreateShader(const String& name, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
 	static ResourceRef<Rendergraph> CreateRendergraph(RendergraphInfo& info);
 	static ResourceRef<Material> CreateMaterial(MaterialInfo& info);
+	static ResourceRef<Mesh> CreateMesh(const String& name);
 	static ResourceRef<Scene> CreateScene(const String& name, CameraType cameraType);
 
 	static bool RecreateTexture(ResourceRef<Texture>& texture, U16 width, U16 height, U16 depth);

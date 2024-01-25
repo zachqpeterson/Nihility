@@ -32,8 +32,8 @@ bool Init()
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
-	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
+	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
 	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
@@ -122,9 +122,9 @@ void Update()
 
 	lightVal += Time::DeltaTime();
 
-	lightPos.x = Math::Cos(lightVal) * 0.2f;
-	lightPos.y = 0.3f;
-	lightPos.z = Math::Sin(lightVal) * 0.2f;
+	lightPos.x = 0.0f;//Math::Cos(lightVal) * 0.2f;
+	lightPos.y = 0.2f + Math::Sin(lightVal) * 0.1f;//0.3f;
+	lightPos.z = 0.6f;//Math::Sin(lightVal) * 0.2f;
 
 	light->transform.SetPosition(lightPos);
 }

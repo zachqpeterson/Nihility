@@ -195,7 +195,7 @@ bool								Renderer::resized{ false };
 
 // RESOURCES
 ResourceRef<Scene>					Renderer::currentScene;
-VmaAllocator_T*						Renderer::allocator;
+VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
@@ -696,7 +696,7 @@ bool Renderer::CreateResources()
 
 	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
 	shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
-	shader->AddDescriptor({ Renderer::defaultRenderTarget });
+	shader->AddDescriptor({ Renderer::defaultRenderTarget->imageView, IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, Renderer::defaultRenderTarget->sampler.vkSampler });
 	defaultPostProcessing.name = "default_postprocess_pipeline";
 	defaultPostProcessing.shader = shader;
 	defaultPostProcessing.type = PIPELINE_TYPE_POST_PROCESSING_RENDER;
@@ -711,10 +711,11 @@ bool Renderer::CreateResources()
 	info.AddPipeline(defaultGeometryOpaque);
 	info.AddPipeline(defaultSkybox);
 	info.AddPipeline(defaultGeometryTransparent);
-	//info.AddPipeline(defaultPostProcessing);
+	info.AddPipeline(defaultPostProcessing);
 	//info.AddPipeline(UI::GetUIPipeline());
 	//info.AddPipeline(UI::GetTextPipeline());
 
+	//TODO: Save rendergraph to file
 	defaultRendergraph = Resources::CreateRendergraph(info);
 	currentRendergraph = defaultRendergraph;
 

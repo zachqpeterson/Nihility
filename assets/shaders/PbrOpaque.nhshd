@@ -155,7 +155,7 @@ vec3 textureProj(vec4 sc, vec2 off)
 	if (sc.z > -1.0 && sc.z < 1.0) 
 	{
 		float dist = texture(shadowMap, sc.st + off).r;
-		if (sc.w > 0.0 && dist < sc.z) 
+		if ((sc.w > 0.0 && dist < sc.z) || (sc.x + off.x < 0.0 || sc.x + off.x > 1.0) || (sc.y + off.y < 0.0 || sc.y + off.y > 1.0)) 
 		{
 			shadow = ambientLight;
 		}

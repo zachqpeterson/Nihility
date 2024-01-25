@@ -703,6 +703,23 @@ ResourceRef<Material> Resources::CreateMaterial(MaterialInfo& info)
 	return nullptr;
 }
 
+ResourceRef<Mesh> Resources::CreateMesh(const String& name)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Mesh* mesh = meshes.Request(name, handle);
+
+	if (!mesh->name.Blank()) { return mesh; }
+
+	*mesh = {};
+
+	mesh->name = name;
+	mesh->handle = handle;
+
+	return mesh;
+}
+
 ResourceRef<Scene> Resources::CreateScene(const String& name, CameraType cameraType)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }

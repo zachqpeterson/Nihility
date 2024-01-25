@@ -193,12 +193,14 @@ void Scene::Update()
 	ShadowData* shadowData = Renderer::GetShadowData();
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
+	PostProcessData* postProcessData = Renderer::GetPostProcessData();
+	postProcessData->saturation = 1.0f;
 
 	lightVal += (F32)Time::DeltaTime();
 
-	globalData->lightPos.x = Math::Cos(lightVal) * 0.2f;
-	globalData->lightPos.y = 0.3f;
-	globalData->lightPos.z = Math::Sin(lightVal) * 0.2f;
+	globalData->lightPos.x = 0.0f;//Math::Cos(lightVal) * 0.2f;
+	globalData->lightPos.y = 0.2f + Math::Sin(lightVal) * 0.1f;//0.3f;
+	globalData->lightPos.z = 0.6f;//Math::Sin(lightVal) * 0.2f;
 
 	shadowData->depthViewProjection = Math::Perspective(45.0f, 1.0f, 0.01f, 1000.0f) * Math::LookAt(globalData->lightPos, Vector3Zero, Vector3Up);
 

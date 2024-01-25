@@ -2,6 +2,7 @@
 
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Component.hpp"
+#include "Resources\Mesh.hpp"
 #include "Containers\String.hpp"
 #include "Core\Function.hpp"
 #include "Math\Math.hpp"
@@ -40,27 +41,6 @@ enum NH_API SliderType
 	SLIDER_TYPE_RADIAL_CLOCKWISE,
 	SLIDER_TYPE_EXPAND,
 };
-
-//struct NH_API UIComponent : public Component
-//{
-//	COMPONENT(UIComponent);
-//
-//	UIComponent(Mesh* mesh, Material* material)
-//	{
-//		meshInstance.mesh = mesh;
-//		meshInstance.material = material;
-//		meshInstance.model = Matrix4Identity;
-//		meshInstance.instanceData.materialID = (U32)material->handle;
-//	}
-//	UIComponent(UIComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
-//
-//	UIComponent& operator=(UIComponent&& other) noexcept { meshInstance = Move(other.meshInstance); return *this; }
-//
-//	virtual void Update(Scene* scene) final;
-//	virtual void Load(Scene* scene) final;
-//
-//	MeshInstance meshInstance;
-//};
 
 struct NH_API UIElement
 {
@@ -170,6 +150,24 @@ private:
 	UIElement& operator=(const UIElement&) = delete;
 
 	friend class UI;
+};
+
+struct NH_API UIComponent : public Component
+{
+	UIComponent(const ResourceRef<Mesh>& mesh, const ResourceRef<Material>& material)
+	{
+		meshInstance.mesh = mesh;
+		meshInstance.material = material;
+	}
+	UIComponent(UIComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
+
+	UIComponent& operator=(UIComponent&& other) noexcept { meshInstance = Move(other.meshInstance); return *this; }
+
+	virtual void Update(Scene* scene) final {}
+	virtual void Load(Scene* scene) final {}
+
+	MeshInstance meshInstance;
+	UIElement element;
 };
 
 struct NH_API UIElementInfo
