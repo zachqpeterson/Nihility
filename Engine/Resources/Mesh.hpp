@@ -33,8 +33,7 @@ struct NH_API Mesh : public Resource
 
 struct InstanceData
 {
-	U32 materialId;
-	Matrix4 model;
+	U8 data[128];
 };
 
 struct NH_API MeshInstance
@@ -69,6 +68,37 @@ private:
 	friend struct Scene;
 };
 
+struct NH_API MeshInstanceCluster
+{
+	MeshInstanceCluster() = default;
+	MeshInstanceCluster(MeshInstanceCluster&& other) noexcept : mesh{ other.mesh }, material{ other.material },
+		handle{ other.handle }, instanceOffset{ other.instanceOffset }, instances{ Move(other.instances) }
+	{
+	}
+
+	MeshInstanceCluster& operator=(MeshInstanceCluster&& other) noexcept
+	{
+		mesh = other.mesh;
+		material = other.material;
+		instances = Move(other.instances);
+		handle = other.handle;
+		instanceOffset = other.instanceOffset;
+
+		return *this;
+	}
+
+	ResourceRef<Mesh>		mesh{ nullptr };
+	ResourceRef<Material>	material{ nullptr };
+
+	Vector<InstanceData>	instances{};
+
+private:
+	HashHandle				handle{ U64_MAX };
+	U32						instanceOffset{ 0 };
+
+	friend struct Scene;
+};
+
 struct NH_API Model : public Resource //TODO: model instance
 {
 	void Destroy() { name.Destroy(); meshes.Destroy(); handle = U64_MAX; }
@@ -87,7 +117,7 @@ struct NH_API MeshComponent : public Component
 		modelMatrix = Matrix4Identity;
 		meshInstance.mesh = mesh;
 		meshInstance.material = material;
-		meshInstance.instanceData.materialId = (U32)material->Handle();
+		Memory::Copy(&meshInstance.instanceData, &material->Handle(), sizeof(U32));
 	}
 	MeshComponent(MeshComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) }, modelMatrix{ other.modelMatrix } {}
 

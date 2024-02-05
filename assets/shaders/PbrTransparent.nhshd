@@ -244,6 +244,6 @@ void main()
 
     vec3 ambientLight = vec3(0.2, 0.2, 0.2);
 
-    fragColor = vec4(emissivity + ambientLight * baseColor.rgb + EncodeSRGB(materialColor) * lightColor, clamp(baseColor.a, 0.1, 1.0));
+    fragColor = vec4(emissivity + ambientLight * baseColor.rgb + EncodeSRGB(materialColor) * lightColor, clamp(baseColor.a, 0.2, 1.0));
 }
 #FRAGMENT_END

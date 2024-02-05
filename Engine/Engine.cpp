@@ -19,8 +19,7 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
-
-#include "Containers\TypeList.hpp"
+#include "Networking\Discord.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -45,14 +44,15 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
-	ASSERT(UI::Initialize());
+	//ASSERT(UI::Initialize());
 
 	//Physics
 	//Particles
 	ASSERT(Audio::Initialize());
-	ASSERT(GameInit());
-
 	ASSERT(Input::Initialize());
+	Discord::Initialize(applicationName);
+
+	ASSERT(GameInit());
 
 	Renderer::InitialSubmit();
 
@@ -114,6 +114,8 @@ void Engine::UpdateLoop()
 			Renderer::EndFrame();
 			Settings::resized = false;
 		}
+
+		Discord::Update();
 
 		F64 remainingFrameTime;
 

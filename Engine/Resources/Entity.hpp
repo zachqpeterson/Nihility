@@ -68,7 +68,7 @@ struct Scene;
 struct NH_API Entity
 {
 public:
-	Entity(Entity&& other) noexcept : transform{ other.transform }, scene{ other.scene }, entityID{ other.entityID }, references{Move(references)} {}
+	Entity(Entity&& other) noexcept : transform{ other.transform }, scene{ other.scene }, entityID{ other.entityID }, references{ Move(references) } {}
 	Entity& operator=(Entity&& other) noexcept
 	{
 		transform = other.transform;
@@ -80,7 +80,7 @@ public:
 	}
 
 	template<ComponentType Type, typename... Args>
-	Type* AddComponent(const Args&... args)
+	Type* AddComponent(Args&&... args) noexcept
 	{
 		ComponentReference reference;
 		Type* component = scene->AddComponent<Type>(reference, args...);

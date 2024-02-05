@@ -26,6 +26,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "External\stb_image.h"
 
+#define STB_VORBIS_NO_STDIO
+#include "External\stb_vorbis.h"
+
 #undef near
 #undef far
 
@@ -649,58 +652,31 @@ ResourceRef<Material> Resources::CreateMaterial(MaterialInfo& info)
 
 	*material = {};
 
-	File file(info.name, FILE_OPEN_RESOURCE_WRITE);
-	if (file.Opened())
-	{
-		material->name = info.name;
-		material->handle = handle;
+	material->name = info.name;
+	material->handle = handle;
 
-		file.Write("NH Material");
-		file.Write(MATERIAL_VERSION);
+	if (info.diffuseTexture) { material->data.diffuseTextureIndex = (U32)info.diffuseTexture->handle; }
+	if (info.armTexture) { material->data.armTextureIndex = (U32)info.armTexture->handle; }
+	if (info.normalTexture) { material->data.normalTextureIndex = (U32)info.normalTexture->handle; }
+	if (info.emissivityTexture) { material->data.emissivityTextureIndex = (U32)info.emissivityTexture->handle; }
 
-		if (info.diffuseTexture) { file.Write(info.diffuseTexture->name); material->data.diffuseTextureIndex = (U32)info.diffuseTexture->handle; }
-		else { file.Write("NULL"); }
-		if (info.armTexture) { file.Write(info.armTexture->name); material->data.armTextureIndex = (U32)info.armTexture->handle; }
-		else { file.Write("NULL"); }
-		if (info.normalTexture) { file.Write(info.normalTexture->name); material->data.normalTextureIndex = (U32)info.normalTexture->handle; }
-		else { file.Write("NULL"); }
-		if (info.emissivityTexture) { file.Write(info.emissivityTexture->name); material->data.emissivityTextureIndex = (U32)info.emissivityTexture->handle; }
-		else { file.Write("NULL"); }
+	if (info.baseColorFactor.w < 1.0f) { material->meshPipeline = Renderer::currentRendergraph->DefaultOpaqueMeshPipeline(); } //TODO: Can't directly reference rendergraph
+	else { material->meshPipeline = Renderer::currentRendergraph->DefaultTransparentMeshPipeline(); }
 
-		file.Write(Renderer::currentRendergraph->Handle());
+	material->data.baseColorFactor = info.baseColorFactor;
+	material->data.metalRoughFactor = info.metalRoughFactor;
+	material->data.emissiveFactor = info.emissiveFactor;
+	material->data.alphaCutoff = info.alphaCutoff;
+	material->data.flags = info.flags;
 
-		if (info.baseColorFactor.w < 1.0f) { file.Write(Renderer::currentRendergraph->DefaultTransparentMeshPipelineID()); material->meshPipeline = Renderer::currentRendergraph->DefaultOpaqueMeshPipeline(); }
-		else { file.Write(Renderer::currentRendergraph->DefaultOpaqueMeshPipelineID()); material->meshPipeline = Renderer::currentRendergraph->DefaultTransparentMeshPipeline(); }
+	VkBufferCopy region{};
+	region.dstOffset = sizeof(MaterialData) * handle;
+	region.size = sizeof(MaterialData);
+	region.srcOffset = 0;
 
-		file.Write(info.baseColorFactor);
-		file.Write(info.metalRoughFactor);
-		file.Write(info.emissiveFactor);
-		file.Write(info.alphaCutoff);
-		file.Write(info.flags);
+	Renderer::FillBuffer(Renderer::materialBuffer, sizeof(MaterialData), &material->data, 1, &region);
 
-		material->data.baseColorFactor = info.baseColorFactor;
-		material->data.metalRoughFactor = info.metalRoughFactor;
-		material->data.emissiveFactor = info.emissiveFactor;
-		material->data.alphaCutoff = info.alphaCutoff;
-		material->data.flags = info.flags;
-
-		file.Close();
-
-		VkBufferCopy region{};
-		region.dstOffset = sizeof(MaterialData) * handle;
-		region.size = sizeof(MaterialData);
-		region.srcOffset = 0;
-
-		Renderer::FillBuffer(Renderer::materialBuffer, sizeof(MaterialData), &material->data, 1, &region);
-
-		return material;
-	}
-
-	Logger::Error("Failed To Find Or Open File: {}", info.name);
-
-	materials.Remove(handle);
-
-	return nullptr;
+	return material;
 }
 
 ResourceRef<Mesh> Resources::CreateMesh(const String& name)
@@ -720,7 +696,7 @@ ResourceRef<Mesh> Resources::CreateMesh(const String& name)
 	return mesh;
 }
 
-ResourceRef<Scene> Resources::CreateScene(const String& name, CameraType cameraType)
+Scene* Resources::CreateScene(const String& name, CameraType cameraType)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1573,7 +1549,7 @@ ResourceRef<Model> Resources::LoadModel(const String& path)
 	return nullptr;
 }
 
-ResourceRef<Scene> Resources::LoadScene(const String& path)
+Scene* Resources::LoadScene(const String& path)
 {
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1836,7 +1812,39 @@ String Resources::LoadBinaryString(const String& path)
 	return {};
 }
 
-void Resources::SaveScene(const ResourceRef<Scene>& scene)
+void Resources::SaveMaterial(const ResourceRef<Material>& material)
+{
+	File file(material->name, FILE_OPEN_RESOURCE_WRITE);
+	if (file.Opened())
+	{
+		file.Write("NH Material");
+		file.Write(MATERIAL_VERSION);
+
+		if (material->data.diffuseTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.diffuseTextureIndex)->name); }
+		else { file.Write("NULL"); }
+		if (material->data.armTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.armTextureIndex)->name); }
+		else { file.Write("NULL"); }
+		if (material->data.normalTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.normalTextureIndex)->name); }
+		else { file.Write("NULL"); }
+		if (material->data.emissivityTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.emissivityTextureIndex)->name); }
+		else { file.Write("NULL"); }
+
+		file.Write(Renderer::currentRendergraph->Handle());
+
+		if (material->data.baseColorFactor.w < 1.0f) { file.Write(Renderer::currentRendergraph->DefaultTransparentMeshPipelineID()); }
+		else { file.Write(Renderer::currentRendergraph->DefaultOpaqueMeshPipelineID()); }
+
+		file.Write(material->data.baseColorFactor);
+		file.Write(material->data.metalRoughFactor);
+		file.Write(material->data.emissiveFactor);
+		file.Write(material->data.alphaCutoff);
+		file.Write(material->data.flags);
+
+		file.Close();
+	}
+}
+
+void Resources::SaveScene(Scene* scene)
 {
 	//File file(scene->name, FILE_OPEN_RESOURCE_WRITE);
 	//if (file.Opened())
@@ -2025,6 +2033,7 @@ String Resources::UploadFile(const String& path)
 	case "wav"_Hash:
 	case "mp3"_Hash:
 	case "ogg"_Hash:
+	case "opus"_Hash:
 	case "flac"_Hash: {
 		return Move(UploadAudio(path));
 	} break;
@@ -2136,6 +2145,42 @@ String Resources::UploadAudio(const String& path)
 				} break;
 				}
 			}
+
+			file.Close();
+			return Move(newPath);
+		}
+		else if (Memory::Compare(path.Data() + extension + 1, "ogg", 3))
+		{
+			DataReader reader{ file };
+			file.Close();
+
+			String newPath = path.GetFileName().Surround("audio/", ".nhaud");
+			file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+			
+			file.Write("NH Audio");
+			file.Write(AUDIO_VERSION);
+
+			I32 channelCount;
+			I32 sampleRate;
+			I16* data;
+			I32 samples = stb_vorbis_decode_memory(reader.Pointer(), reader.Size(), &channelCount, &sampleRate, &data);
+
+			AudioFormat format{};
+			format.formatTag = 1;
+			format.channelCount = channelCount;
+			format.samplesPerSec = sampleRate;
+			format.avgBytesPerSec = sampleRate * 2 * channelCount;
+			format.blockAlign = channelCount * 2;
+			format.bitsPerSample = 16;
+			format.extraSize = 0;
+
+			file.Write(format);
+
+			U32 size = samples * 2 * channelCount;
+			file.Write(size);
+			file.Write(data, size);
+
+			free(data);
 
 			file.Close();
 			return Move(newPath);

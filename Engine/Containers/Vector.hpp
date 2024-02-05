@@ -94,13 +94,13 @@ public:
 	/// Increases size by one and puts value onto the back of array, reallocates array if it's too small
 	/// </summary>
 	/// <param name="value:">The value to put into array</param>
-	void Push(const T& value);
+	T& Push(const T& value);
 
 	/// <summary>
 	/// Increases size by one and moves value onto the back of array, reallocates array if it's too small
 	/// </summary>
 	/// <param name="value:">The value to move into array</param>
-	void Push(T&& value) noexcept;
+	T& Push(T&& value) noexcept;
 
 	/// <summary>
 	/// Decreases the size by one
@@ -496,18 +496,22 @@ template<typename T> inline Vector<T>::~Vector() { Destroy(); }
 
 template<typename T> inline void Vector<T>::Destroy() { size = 0; capacity = 0; Memory::Free(&array); }
 
-template<typename T> inline void Vector<T>::Push(const T& value)
+template<typename T> inline T& Vector<T>::Push(const T& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size++] = value;
+	T& result = array[size++] = value;
+
+	return result;
 }
 
-template<typename T> inline void Vector<T>::Push(T&& value) noexcept
+template<typename T> inline T& Vector<T>::Push(T&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size++] = Move(value);
+	T& result = array[size++] = Move(value);
+
+	return result;
 }
 
 template<typename T> inline void Vector<T>::Pop()

@@ -28,19 +28,26 @@ bool Init()
 	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
 	//Resources::UploadModel("AnisotropyBarnLamp/AnisotropyBarnLamp.gltf");
 
-	ResourceRef<Scene> scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
+	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
-	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
+	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
 	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
 
+	UIElementInfo info{};
+	info.area = { 0.1f, 0.1f, 0.2f, 0.2f };
+	info.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	info.scene = scene;
+
+	//UIElement* element = UI::CreateText(info, "Hello, World!", 10);
+
 	Renderer::LoadScene(scene);
 	
-	music = Resources::LoadAudio("audio/TPOM.nhaud");
+	music = Resources::LoadAudio("audio/TheEquable.nhaud");
 	sfx = Resources::LoadAudio("audio/Mine.nhaud");
 	//Audio::PlayMusic(music);
 
@@ -120,11 +127,11 @@ void Update()
 
 	Vector3 lightPos;
 
-	lightVal += Time::DeltaTime();
+	lightVal += (F32)Time::DeltaTime();
 
-	lightPos.x = 0.0f;//Math::Cos(lightVal) * 0.2f;
-	lightPos.y = 0.2f + Math::Sin(lightVal) * 0.1f;//0.3f;
-	lightPos.z = 0.6f;//Math::Sin(lightVal) * 0.2f;
+	lightPos.x = Math::Cos(lightVal) * 0.2f;
+	lightPos.y = 1.0f;
+	lightPos.z = Math::Sin(lightVal) * 0.2f;
 
 	light->transform.SetPosition(lightPos);
 }

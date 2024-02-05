@@ -35,7 +35,7 @@ struct CommandBuffer
 
 	void BindPipeline(const Pipeline* pipeline);
 	void BindIndexBuffer(const ResourceRef<Shader>& shader, VkBuffer_T* buffer, U64 offset);
-	void BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers);
+	void BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets);
 	void BindDescriptorSets(const ResourceRef<Shader>& shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
 
 	void PushDescriptors();

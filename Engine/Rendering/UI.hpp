@@ -65,9 +65,6 @@ private:
 	UIElement* parent{ nullptr };
 	Vector<UIElement*> children{};
 
-	U32 vertexOffset{ U32_MAX };
-	U32 instanceOffset{ U32_MAX };
-
 	UIEvent OnClick;
 	UIEvent OnDrag;
 	UIEvent OnRelease;
@@ -152,24 +149,6 @@ private:
 	friend class UI;
 };
 
-struct NH_API UIComponent : public Component
-{
-	UIComponent(const ResourceRef<Mesh>& mesh, const ResourceRef<Material>& material)
-	{
-		meshInstance.mesh = mesh;
-		meshInstance.material = material;
-	}
-	UIComponent(UIComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) } {}
-
-	UIComponent& operator=(UIComponent&& other) noexcept { meshInstance = Move(other.meshInstance); return *this; }
-
-	virtual void Update(Scene* scene) final {}
-	virtual void Load(Scene* scene) final {}
-
-	MeshInstance meshInstance;
-	UIElement element;
-};
-
 struct NH_API UIElementInfo
 {
 	Vector4 area{};
@@ -199,15 +178,15 @@ public:
 	static const PipelineInfo& GetUIPipeline();
 	static const PipelineInfo& GetTextPipeline();
 
-	static UIElement* CreateElement(const UIElementInfo& info);
-	static UIElement* CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background = nullptr, Texture* border = nullptr);
-	static UIElement* CreateImage(const UIElementInfo& info, Texture* texture, const Vector4& uvs);
-	static UIElement* CreateSlider(const UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent);
-	static UIElement* CreateColorPicker(const UIElementInfo& info);
-	static UIElement* CreateScrollWindow(const UIElementInfo& info);
-	static UIElement* CreateDropdown(const UIElementInfo& info);
-	static UIElement* CreateText(const UIElementInfo& info, const String& string, F32 scale);
-	static UIElement* CreateTextBox(const UIElementInfo& info);
+	static UIElement* CreateElement(UIElementInfo& info);
+	static UIElement* CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background = nullptr, Texture* border = nullptr);
+	static UIElement* CreateImage(UIElementInfo& info, Texture* texture, const Vector4& uvs);
+	static UIElement* CreateSlider(UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent);
+	static UIElement* CreateColorPicker(UIElementInfo& info);
+	static UIElement* CreateScrollWindow(UIElementInfo& info);
+	static UIElement* CreateDropdown(UIElementInfo& info);
+	static UIElement* CreateText(UIElementInfo& info, const String& string, F32 scale);
+	static UIElement* CreateTextBox(UIElementInfo& info);
 
 	//TODO: Edit elements
 	static void ChangeSliderPercent(UIElement* element, F32 percent);
@@ -218,14 +197,24 @@ private:
 	static void Shutdown();
 
 	static void Update();
+	static void Render(CommandBuffer* commandBuffer);
 
 	static UIElement* SetupElement(const UIElementInfo& info);
 
 	static Vector<UIElement> elements;
 
-	static PipelineInfo uiPipeline;
-	static PipelineInfo textPipeline;
+	static Renderpass renderpass;
+	static Pipeline uiPipeline;
+	static Pipeline textPipeline;
 	static ResourceRef<Font> font; //TODO: This should be default font, support per-text font
+	static Buffer vertexBuffer;
+	static Buffer instanceBuffer;
+	static Buffer indexBuffer;
+	static Buffer drawsBuffer;
+	static Buffer countsBuffer;
+	static U32 vertexOffset;
+	static U32 instanceOffset;
+	static U32 drawsOffset;
 
 	static U32 textInstanceCount;
 	static U32 textVertexOffset;

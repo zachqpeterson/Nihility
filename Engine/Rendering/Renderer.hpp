@@ -75,7 +75,7 @@ public:
 	static const VkPhysicalDeviceProperties&		GetDeviceProperties();
 	static const VkPhysicalDeviceMemoryProperties&	GetDeviceMemoryProperties();
 
-	static void							LoadScene(const ResourceRef<Scene>& scene);
+	static void							LoadScene(Scene* scene);
 	static ShadowData*					GetShadowData();
 	static GlobalData*					GetGlobalData();
 	static SkyboxData*					GetSkyboxData();
@@ -170,7 +170,7 @@ private:
 	static bool									resized;
 
 	// RESOURCES
-	static ResourceRef<Scene>					currentScene;
+	static Scene*								currentScene;
 	static VmaAllocator_T*						allocator;
 	static CommandBufferRing					commandBufferRing;
 	static Vector<VkCommandBuffer_T*>			commandBuffers[MAX_SWAPCHAIN_IMAGES];

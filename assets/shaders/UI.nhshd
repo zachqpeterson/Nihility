@@ -2,10 +2,9 @@
 cull=NONE
 front=COUNTER
 fill=SOLID
-depth=LESS
+depth=NONE
 blend=ADD
 instanceOffset=3
-clear=DEPTH
 #CONFIG_END
 
 #VERTEX

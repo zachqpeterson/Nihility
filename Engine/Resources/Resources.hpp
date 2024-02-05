@@ -38,7 +38,7 @@ public:
 	static ResourceRef<Rendergraph> CreateRendergraph(RendergraphInfo& info);
 	static ResourceRef<Material> CreateMaterial(MaterialInfo& info);
 	static ResourceRef<Mesh> CreateMesh(const String& name);
-	static ResourceRef<Scene> CreateScene(const String& name, CameraType cameraType);
+	static Scene* CreateScene(const String& name, CameraType cameraType);
 
 	static bool RecreateTexture(ResourceRef<Texture>& texture, U16 width, U16 height, U16 depth);
 	static bool RecreateSwapchainTexture(ResourceRef<Texture>& texture, VkImage_T* image);
@@ -50,11 +50,12 @@ public:
 	static ResourceRef<Material> LoadMaterial(const String& path);
 	static ResourceRef<Mesh> LoadMesh(const String& path);
 	static ResourceRef<Model> LoadModel(const String& path);
-	static ResourceRef<Scene> LoadScene(const String& path);
+	static Scene* LoadScene(const String& path);
 	static Binary LoadBinary(const String& path);
 	static String LoadBinaryString(const String& path);
 
-	static void SaveScene(const ResourceRef<Scene>& scene);
+	static void SaveMaterial(const ResourceRef<Material>& material);
+	static void SaveScene(Scene* scene);
 	static void SaveBinary(const String& path, U32 size, void* data);
 
 	static ResourceRef<Texture> GetTexture(const String& name);

@@ -101,10 +101,8 @@ void CommandBuffer::BindIndexBuffer(const ResourceRef<Shader>& shader, VkBuffer_
 	vkCmdBindIndexBuffer(vkCommandBuffer, buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
-void CommandBuffer::BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers)
+void CommandBuffer::BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets)
 {
-	U64 offsets[8]{};
-
 	vkCmdBindVertexBuffers(vkCommandBuffer, 0, bufferCount, buffers, offsets);
 }
 

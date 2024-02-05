@@ -943,7 +943,7 @@ struct NH_API FlyCamera
 	Camera* GetCamera();
 
 private:
-	F32		mouseSensitivity{ 1.0f };
+	F32		mouseSensitivity{ 0.75f };
 	F32		movementDelta{ 0.1f };
 	U32		ignoreDraggingFrames{ 3 };
 

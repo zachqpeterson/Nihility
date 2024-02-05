@@ -65,7 +65,7 @@ struct Rendergraph;
 struct CommandBuffer;
 struct VkBufferCopy;
 
-struct NH_API Scene : public Resource
+struct NH_API Scene
 {
 	Entity* AddEntity();
 	Entity* GetEntity(U32 id);
@@ -75,6 +75,7 @@ struct NH_API Scene : public Resource
 
 	void AddMesh(MeshInstance& instance);
 	void UpdateMesh(MeshInstance& instance);
+	void UploadInstances(MeshInstanceCluster& instances);
 	void SetSkybox(const ResourceRef<Skybox>& skybox);
 
 private:
@@ -82,7 +83,7 @@ private:
 	void Destroy();
 
 	template<ComponentType Type, typename... Args>
-	Type* AddComponent(ComponentReference& reference, const Args&... args)
+	Type* AddComponent(ComponentReference& reference, Args&&... args) noexcept
 	{
 		reference.type = IndexOf<RegisteredComponents, Type>;
 		reference.id = componentPools[reference.type]->Count();
@@ -99,7 +100,9 @@ private:
 	void Load(ResourceRef<Rendergraph>& rendergraph);
 	void Unload();
 	void Update();
-
+	
+	HashHandle UploadMesh(ResourceRef<Mesh>& mesh);
+	void SetupDraw(Pipeline* pipeline, MeshDraw& draw);
 	VkBufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
 
 	String							name{};

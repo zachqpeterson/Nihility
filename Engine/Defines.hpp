@@ -55,6 +55,7 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #if defined WIN32 || defined _WIN32 || defined __WIN32__ || defined _WIN64 //---WINDOWS
 #	define PLATFORM_WINDOWS
 #	define WIN32_LEAN_AND_MEAN
+#	define NOMINMAX
 #	ifndef _WIN64
 #		error "64-bit is required on Windows!"
 #	endif

@@ -2,11 +2,13 @@
 
 #include "Renderer.hpp"
 #include "Pipeline.hpp"
+#include "RenderingDefines.hpp"
 #include "Platform\Input.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Font.hpp"
-#include "Rendering\Pipeline.hpp"
+#include "Resources\Scene.hpp"
+#include "Resources\Entity.hpp"
 
 constexpr F32 WIDTH_RATIO = 0.00911458332F;//0.00455729166F;
 constexpr F32 HEIGHT_RATIO = 0.0162037037F;//0.00810185185F;
@@ -14,7 +16,7 @@ constexpr F32 HEIGHT_RATIO = 0.0162037037F;//0.00810185185F;
 UIElement::UIElement() {}
 
 UIElement::UIElement(UIElement&& other) noexcept : area{ other.area }, color{ other.color }, ignore{ other.ignore }, hovered{ other.hovered },
-clicked{ other.clicked }, enabled{ other.enabled }, scene{ other.scene }, parent{ other.parent }, children{ Move(children) }, vertexOffset{ other.vertexOffset }
+clicked{ other.clicked }, enabled{ other.enabled }, scene{ other.scene }, parent{ other.parent }, children{ Move(children) }
 {
 	other.scene = nullptr;
 	other.parent = nullptr;
@@ -44,11 +46,9 @@ UIElement& UIElement::operator=(UIElement&& other) noexcept
 	scene = other.scene;
 	parent = other.parent;
 	children = Move(children);
-	vertexOffset = other.vertexOffset;
 
 	other.scene = nullptr;
 	other.parent = nullptr;
-	other.vertexOffset = U32_MAX;
 
 	switch (other.type)
 	{
@@ -117,9 +117,18 @@ struct TextInstance
 
 Vector<UIElement> UI::elements;
 
-PipelineInfo UI::uiPipeline;
-PipelineInfo UI::textPipeline;
+Renderpass UI::renderpass;
+Pipeline UI::uiPipeline;
+Pipeline UI::textPipeline;
 ResourceRef<Font> UI::font;
+Buffer UI::vertexBuffer;
+Buffer UI::instanceBuffer;
+Buffer UI::indexBuffer;
+Buffer UI::drawsBuffer;
+Buffer UI::countsBuffer;
+U32 UI::vertexOffset{ 0 };
+U32 UI::instanceOffset{ 0 };
+U32 UI::drawsOffset{ 0 };
 
 U32 UI::textInstanceCount{ 0 };
 U32 UI::textVertexOffset;
@@ -130,17 +139,39 @@ Vector2 UI::textPadding;
 
 bool UI::Initialize()
 {
-	uiPipeline.name = "ui_pipeline";
-	uiPipeline.shader = Resources::CreateShader("shaders/UI.nhshd");
-	uiPipeline.type = PIPELINE_TYPE_UI;
-	uiPipeline.renderOrder = 100;
+	RenderpassInfo renderpassInfo{};
+	renderpassInfo.name = "ui_renderpass";
+	renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
+	renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
+	renderpassInfo.colorLoadOp = ATTACHMENT_LOAD_OP_LOAD;
+	renderpassInfo.subpassCount = 1;
 
-	textPipeline.name = "text_pipeline";
-	textPipeline.shader = Resources::CreateShader("shaders/Text.nhshd");
-	textPipeline.type = PIPELINE_TYPE_UI;
-	textPipeline.renderOrder = 110;
+	Renderer::CreateRenderpass(&renderpass, renderpassInfo, nullptr);
+
+	PipelineInfo uiPipelineInfo{};
+	uiPipelineInfo.name = "ui_pipeline";
+	uiPipelineInfo.shader = Resources::CreateShader("shaders/UI.nhshd");
+	uiPipelineInfo.type = PIPELINE_TYPE_UI;
+	uiPipelineInfo.renderOrder = 100;
+
+	uiPipeline.Create(uiPipelineInfo, &renderpass);
+
+	PipelineInfo textPipelineInfo{};
+	textPipelineInfo.name = "text_pipeline";
+	textPipelineInfo.shader = Resources::CreateShader("shaders/Text.nhshd");
+	textPipelineInfo.type = PIPELINE_TYPE_UI;
+	textPipelineInfo.renderOrder = 110;
+
+	textPipeline.Create(uiPipelineInfo, &renderpass);
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
+
+	//stagingBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
+	vertexBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	instanceBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	indexBuffer = Renderer::CreateBuffer(sizeof(U32) * CountOf(indices), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	drawsBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 2, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
 	
@@ -156,7 +187,41 @@ bool UI::Initialize()
 		{ { 0.0f, 0.0f }, { 0.0f, 0.0f } },
 		{ { textWidth, 0.0f }, { textPosition.x, 0.0f } }
 	};
-	
+
+	VkBufferCopy copy{};
+	copy.dstOffset = 0;
+	copy.srcOffset = 0;
+	copy.size = sizeof(U32) * CountOf(indices);
+
+	Renderer::FillBuffer(indexBuffer, copy.size, indices, 1, &copy);
+
+	copy.size = sizeof(TextVertex) * CountOf(vertices);
+
+	Renderer::FillBuffer(vertexBuffer, copy.size, vertices, 1, &copy);
+
+	vertexOffset += copy.size;
+
+	VkDrawIndexedIndirectCommand drawCommand{};
+	drawCommand.indexCount = 6;
+	drawCommand.instanceCount = 0;
+	drawCommand.firstIndex = 0;
+	drawCommand.vertexOffset = 0;
+	drawCommand.firstInstance = 0;
+
+	copy.size = sizeof(VkDrawIndexedIndirectCommand);
+
+	Renderer::FillBuffer(drawsBuffer, copy.size, &drawCommand, 1, &copy);
+
+	drawsOffset += copy.size;
+
+	copy.size = sizeof(U32);
+
+	U32 count = 1;
+
+	Renderer::FillBuffer(countsBuffer, copy.size, &count, 1, &copy);
+
+	//TODO: Set offsets in pipelines
+
 	return true;
 }
 
@@ -164,6 +229,12 @@ void UI::Shutdown()
 {
 	uiPipeline.Destroy();
 	textPipeline.Destroy();
+
+	Renderer::DestroyBuffer(vertexBuffer);
+	Renderer::DestroyBuffer(instanceBuffer);
+	Renderer::DestroyBuffer(indexBuffer);
+	Renderer::DestroyBuffer(drawsBuffer);
+	Renderer::DestroyBuffer(countsBuffer);
 
 	elements.Destroy();
 }
@@ -237,14 +308,14 @@ void UI::Update()
 	}
 }
 
-const PipelineInfo& UI::GetUIPipeline()
+void UI::Render(CommandBuffer* commandBuffer)
 {
-	return uiPipeline;
-}
+	commandBuffer->BeginRenderpass(&renderpass);
 
-const PipelineInfo& UI::GetTextPipeline()
-{
-	return textPipeline;
+	uiPipeline.Run(commandBuffer);
+	textPipeline.Run(commandBuffer);
+
+	commandBuffer->EndRenderpass();
 }
 
 UIElement* UI::SetupElement(const UIElementInfo& info)
@@ -274,34 +345,33 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 	return element;
 }
 
-UIElement* UI::CreateElement(const UIElementInfo& info)
-{
-	//if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
-	//
-	//UIElement* element = SetupElement(info);
-	//
-	//ResourceRef<Mesh> mesh = Resources::CreateMesh("");
-	//
-	//UIVertex vertices[4]{
-	//	{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
-	//	{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
-	//	{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
-	//	{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
-	//};
-	//
-	//element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
-	//
-	//UIInstance instance{};
-	//instance.textureIndex = U16_MAX;
-	//instance.model = Matrix3Identity;
-	//
-	//element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
-	//
-	//uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
-	//
-	//return element;
-	return nullptr;
-}
+//UIElement* UI::CreateElement(const UIElementInfo& info)
+//{
+//	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
+//	
+//	UIElement* element = SetupElement(info);
+//	
+//	
+//	
+//	UIVertex vertices[4]{
+//		{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
+//		{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
+//		{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
+//		{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
+//	};
+//	
+//	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
+//	
+//	UIInstance instance{};
+//	instance.textureIndex = U16_MAX;
+//	instance.model = Matrix3Identity;
+//	
+//	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
+//	
+//	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
+//	
+//	return element;
+//}
 
 //UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
 //{
@@ -493,72 +563,62 @@ UIElement* UI::CreateElement(const UIElementInfo& info)
 //{
 //	return nullptr;
 //}
-//
+
 ////TODO: Text alignment
-//UIElement* UI::CreateText(const UIElementInfo& info, const String& string, F32 scale)
-//{
-//	UIElement* element = SetupElement(info);
-//
-//	element->type = UI_ELEMENT_TEXT;
-//	element->text.size = scale;
-//	element->text.text = string;
-//
-//	element->vertexOffset = textVertexOffset;
-//
-//	TextInstance* instances;
-//	Memory::AllocateArray(&instances, string.Size());
-//
-//	Vector2 startPosition = { info.area.x, info.area.y };
-//	Vector2 position = startPosition;
-//
-//	U8 prev = 255;
-//
-//	F32 yOffset = textHeight * scale / 2.0f;
-//
-//	U32 i = 0;
-//	for (C8 c : string)
-//	{
-//		Glyph& glyph = font->glyphs[c - 32];
-//
-//		if(c == '\n')
-//		{
-//			position.x = startPosition.x;
-//			position.y += (font->ascent + font->lineGap) * textHeight * scale;
-//		}
-//		else if (c != ' ')
-//		{
-//			++textInstanceCount;
-//			TextInstance& instance = instances[i];
-//
-//			Vector2 texPos = (Vector2)Font::atlasPositions[c - 32];
-//
-//			instance.textureIndex = (U32)font->texture->handle;
-//			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
-//			instance.texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
-//			instance.color = info.color;
-//			instance.scale = scale;
-//
-//			++i;
-//		}
-//
-//		position.x += glyph.advance * textWidth * scale;
-//
-//		if (prev != 255)
-//		{
-//			position.x += font->glyphs[prev - 32].kerning[c - 32] * textWidth * scale;
-//		}
-//
-//		prev = c;
-//	}
-//
-//	element->instanceOffset = textPipeline->UploadInstances(sizeof(TextInstance) * i, instances) / sizeof(TextInstance);
-//
-//	Memory::Free(&instances);
-//
-//	textPipeline->UploadDrawCall(6, 0, element->vertexOffset, i, element->instanceOffset);
-//
-//	return nullptr;
-//}
+UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
+{
+	UIElement* element = SetupElement(info);
+
+	element->type = UI_ELEMENT_TEXT;
+	element->text.size = scale;
+	element->text.text = string;
+
+	Vector2 startPosition = { info.area.x, info.area.y };
+	Vector2 position = startPosition;
+
+	U8 prev = 255;
+
+	F32 yOffset = textHeight * scale / 2.0f;
+
+	U32 i = 0;
+	for (C8 c : string)
+	{
+		Glyph& glyph = font->glyphs[c - 32];
+
+		if(c == '\n')
+		{
+			position.x = startPosition.x;
+			position.y += (font->ascent + font->lineGap) * textHeight * scale;
+		}
+		else if (c != ' ')
+		{
+			TextInstance instance{};
+
+			Vector2 texPos = (Vector2)Font::atlasPositions[c - 32];
+
+			instance.textureIndex = (U32)font->texture->handle;
+			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
+			instance.texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
+			instance.color = info.color;
+			instance.scale = scale;
+
+			//Memory::Copy(&instances.instances.Back(), &instance, sizeof(TextInstance));
+
+			++i;
+		}
+
+		position.x += glyph.advance * textWidth * scale;
+
+		if (prev != 255)
+		{
+			position.x += font->glyphs[prev - 32].kerning[c - 32] * textWidth * scale;
+		}
+
+		prev = c;
+	}
+
+	return element;
+}
 //
 //UIElement* UI::CreateTextBox(const UIElementInfo& info)
 //{

@@ -6,6 +6,5 @@
 #include "Component.hpp"
 
 #include "Mesh.hpp"
-#include "Rendering\UI.hpp"
 
-using RegisteredComponents = TypeList<MeshComponent, ModelComponent, UIComponent>;
+using RegisteredComponents = TypeList<MeshComponent, ModelComponent>;

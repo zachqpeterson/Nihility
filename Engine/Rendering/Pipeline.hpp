@@ -121,15 +121,17 @@ private:
 	U32					vertexCount{ 0 };
 
 	U32					bufferCount{ 0 };
+	U8					instanceBuffer{ U8_MAX };
 	VkBuffer_T*			vertexBuffers[8]{};
+	U64					bufferOffsets[8]{};
 
 	VkBuffer_T*			indexBuffer;
 	VkBuffer_T*			drawsBuffer;
 	VkBuffer_T*			countsBuffer;
 
-	U32 instanceOffset{ 0 };
-	Vector<DrawSet> drawSets{ 1 };
-	U32 drawCount{ 0 };
+	U32					instanceOffset{ 0 };
+	Vector<DrawSet>		drawSets{ 1 };
+	U32					drawCount{ 0 };
 
 	Pipeline(const Pipeline&) = delete;
 	Pipeline& operator=(const Pipeline&) = delete;

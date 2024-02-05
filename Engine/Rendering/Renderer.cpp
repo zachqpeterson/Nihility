@@ -194,7 +194,7 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-ResourceRef<Scene>					Renderer::currentScene;
+Scene*								Renderer::currentScene;
 VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
@@ -712,8 +712,6 @@ bool Renderer::CreateResources()
 	info.AddPipeline(defaultSkybox);
 	info.AddPipeline(defaultGeometryTransparent);
 	info.AddPipeline(defaultPostProcessing);
-	//info.AddPipeline(UI::GetUIPipeline());
-	//info.AddPipeline(UI::GetTextPipeline());
 
 	//TODO: Save rendergraph to file
 	defaultRendergraph = Resources::CreateRendergraph(info);
@@ -724,7 +722,7 @@ bool Renderer::CreateResources()
 		MaterialInfo info{};
 		info.name = "materials/default.nhmat";
 
-		Resources::CreateMaterial(info);
+		Resources::SaveMaterial(Resources::CreateMaterial(info));
 	}
 
 	return true;
@@ -920,7 +918,7 @@ void Renderer::SetRenderArea()
 	}
 }
 
-void Renderer::LoadScene(const ResourceRef<Scene>& scene)
+void Renderer::LoadScene(Scene* scene)
 {
 	if (!currentRendergraph) { Logger::Error("Cannot Load A Scene Without A Rendergraph Set!"); }
 

@@ -191,10 +191,10 @@ void Pipeline::Destroy()
 
 void Pipeline::SetBuffers(const BufferData& buffers)
 {
-	for (U32 i = 0; i < shader->vertexBindingCount; ++i)
+	for (; bufferCount < shader->vertexBindingCount; ++bufferCount)
 	{
-		if(shader->vertexTypes[i] == VERTEX_TYPE_INSTANCE) { vertexBuffers[bufferCount++] = buffers.instanceBuffer.vkBuffer; }
-		else { vertexBuffers[bufferCount++] = buffers.vertexBuffers[shader->vertexTypes[i]].vkBuffer; }
+		if (shader->vertexTypes[bufferCount] == VERTEX_TYPE_INSTANCE) { instanceBuffer = bufferCount; vertexBuffers[bufferCount] = buffers.instanceBuffer.vkBuffer; }
+		else { vertexBuffers[bufferCount] = buffers.vertexBuffers[shader->vertexTypes[bufferCount]].vkBuffer; }
 	}
 
 	indexBuffer = buffers.indexBuffer.vkBuffer;
@@ -218,7 +218,7 @@ void Pipeline::Run(CommandBuffer* commandBuffer)
 		{
 			if (drawSets.Size())
 			{
-				commandBuffer->BindVertexBuffers(shader, bufferCount, vertexBuffers);
+				commandBuffer->BindVertexBuffers(shader, bufferCount, vertexBuffers, bufferOffsets);
 
 				if (shader->useIndexing)
 				{

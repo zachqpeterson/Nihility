@@ -71,7 +71,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
@@ -129,6 +129,23 @@
     <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\External\Discord\achievement_manager.h" />
+    <ClInclude Include="Engine\External\Discord\activity_manager.h" />
+    <ClInclude Include="Engine\External\Discord\application_manager.h" />
+    <ClInclude Include="Engine\External\Discord\core.h" />
+    <ClInclude Include="Engine\External\Discord\discord.h" />
+    <ClInclude Include="Engine\External\Discord\event.h" />
+    <ClInclude Include="Engine\External\Discord\ffi.h" />
+    <ClInclude Include="Engine\External\Discord\image_manager.h" />
+    <ClInclude Include="Engine\External\Discord\lobby_manager.h" />
+    <ClInclude Include="Engine\External\Discord\network_manager.h" />
+    <ClInclude Include="Engine\External\Discord\overlay_manager.h" />
+    <ClInclude Include="Engine\External\Discord\relationship_manager.h" />
+    <ClInclude Include="Engine\External\Discord\storage_manager.h" />
+    <ClInclude Include="Engine\External\Discord\store_manager.h" />
+    <ClInclude Include="Engine\External\Discord\types.h" />
+    <ClInclude Include="Engine\External\Discord\user_manager.h" />
+    <ClInclude Include="Engine\External\Discord\voice_manager.h" />
     <ClInclude Include="Engine\External\LunarG\glslang\build_info.h" />
     <ClInclude Include="Engine\External\LunarG\glslang\HLSL\pch.h" />
     <ClInclude Include="Engine\External\LunarG\glslang\Include\arrays.h" />
@@ -192,11 +209,13 @@
     <ClInclude Include="Engine\External\LunarG\StandAlone\Worklist.h" />
     <ClInclude Include="Engine\External\stb_image.h" />
     <ClInclude Include="Engine\External\stb_truetype.h" />
+    <ClInclude Include="Engine\External\stb_vorbis.h" />
     <ClInclude Include="Engine\Introspection.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
+    <ClInclude Include="Engine\Networking\Discord.hpp" />
     <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
@@ -234,6 +253,20 @@
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\External\Discord\achievement_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\activity_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\application_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\core.cpp" />
+    <ClCompile Include="Engine\External\Discord\image_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\lobby_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\network_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\overlay_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\relationship_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\storage_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\store_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\types.cpp" />
+    <ClCompile Include="Engine\External\Discord\user_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\voice_manager.cpp" />
     <ClCompile Include="Engine\External\LunarG\glslang\CInterface\glslang_c_interface.cpp" />
     <ClCompile Include="Engine\External\LunarG\glslang\GenericCodeGen\CodeGen.cpp" />
     <ClCompile Include="Engine\External\LunarG\glslang\GenericCodeGen\Link.cpp" />
@@ -283,6 +316,7 @@
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Math.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
+    <ClCompile Include="Engine\Networking\Discord.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />

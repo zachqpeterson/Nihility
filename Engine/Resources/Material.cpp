@@ -139,21 +139,21 @@ bool Rendergraph::Create(RendergraphInfo& info)
 
 	for (U32 i = 0; i <= renderpass; ++i)
 	{
-		renderpasses.Push({});
-		Renderer::CreateRenderpass(&renderpasses.Back(), renderpassInfos[i], prevRenderpass);
-		prevRenderpass = &renderpasses.Back();
+		Renderpass* renderpass = &renderpasses.Push({});
+		Renderer::CreateRenderpass(renderpass, renderpassInfos[i], prevRenderpass);
+		prevRenderpass = renderpass;
 	}
 
 	U8 i = 0;
-	for (PipelineInfo& pipeline : info.pipelines)
+	for (PipelineInfo& pipelineInfo : info.pipelines)
 	{
-		pipelines.Push({});
-		pipelines.Back().Create(pipeline, &renderpasses[pipeline.renderpass]);
+		Pipeline& pipeline = pipelines.Push({});
+		pipeline.Create(pipelineInfo, &renderpasses[pipelineInfo.renderpass]);
 
-		if (pipelines.Back().type & PIPELINE_TYPE_DEFAULT)
+		if (pipeline.type & PIPELINE_TYPE_DEFAULT)
 		{
-			if (pipelines.Back().type & PIPELINE_TYPE_MESH_OPAQUE) { defaultOpaque = i; }
-			if (pipelines.Back().type & PIPELINE_TYPE_MESH_TRANSPARENT) { defaultTransparent = i; }
+			if (pipeline.type & PIPELINE_TYPE_MESH_OPAQUE) { defaultOpaque = i; }
+			if (pipeline.type & PIPELINE_TYPE_MESH_TRANSPARENT) { defaultTransparent = i; }
 		}
 
 		++i;

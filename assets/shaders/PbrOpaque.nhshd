@@ -291,12 +291,12 @@ void main()
     
     vec3 F = f0 + (1.0 - f0) * pow(1.0 - abs(HdotV), 5);
     
-    vec3 specularBRDF = F * visibility * distribution;
+    vec3 shadow = filterPCF(shadowCoord / shadowCoord.w);
+
+    vec3 specularBRDF = F * visibility * distribution * shadow;
     vec3 diffuseBRDF = (1.0 - F) * RecPI * colorDifference;
     
     materialColor = (diffuseBRDF + specularBRDF) * intensity;
-
-    vec3 shadow = filterPCF(shadowCoord / shadowCoord.w);
 
     fragColor = vec4(emissivity + ambientLight * baseColor.rgb + EncodeSRGB(materialColor) * lightColor * shadow, 1.0);
 }

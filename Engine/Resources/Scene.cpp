@@ -63,72 +63,16 @@ Entity* Scene::GetEntity(U32 id)
 	return &entities[id];
 }
 
-void Scene::AddMesh(MeshInstance& instance)
+void Scene::AddMesh(MeshInstance& instance) //TODO: version that take a struct that contains multiple instances of one mesh
 {
 	if (loaded)
 	{
-		U64 handle = *handles.GetInsert(instance.mesh->handle, meshDraws.Size());
+		instance.handle = UploadMesh(instance.mesh);
 
-		instance.handle = handle;
-
-		if (handle >= meshDraws.Size()) { meshDraws.Push({}); }
-
-		MeshDraw& draw = meshDraws[handle];
+		MeshDraw& draw = meshDraws[instance.handle];
 		Pipeline* pipeline = instance.material->meshPipeline;
 
-		if (!pipeline->drawCount) //TODO: This doesn't get reset with a new scene
-		{
-			pipeline->drawSets.Push({ drawOffset, countsOffset });
-			drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
-			countsOffset += sizeof(U32);
-			pipeline->instanceOffset = instanceOffset;
-			instanceOffset += INSTANCE_BUFFER_SIZE / 32;
-
-			Renderer::currentRendergraph->AddPreprocessing(pipeline);
-		}
-
-		if (!draw.indexCount)
-		{
-			//Indices
-			indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, instance.mesh->indicesSize, instance.mesh->indices));
-
-			draw.indexCount = instance.mesh->indicesSize / sizeof(U32);
-			draw.indexOffset = indexOffset;
-			indexOffset += draw.indexCount;
-
-			//Vertices
-			draw.vertexOffset = vertexOffset / sizeof(Vector3);
-
-			U32 verticesSize = 0;
-			for (VertexBuffer& buffer : instance.mesh->buffers)
-			{
-				verticesSize = Math::Max(verticesSize, buffer.size);
-				vertexWrites[buffer.type].Push(CreateWrite(vertexOffset, 0, buffer.size, buffer.buffer));
-			}
-
-			vertexOffset += verticesSize;
-		}
-
-		if (!draw.instanceCount)
-		{
-			draw.drawOffset = pipeline->drawSets.Front().drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount;
-			draw.instanceOffset = pipeline->drawCount * sizeof(InstanceData) * 1024;
-
-			//Count
-			++pipeline->drawCount;
-
-			countsWrites.Push(CreateWrite(pipeline->drawSets.Front().countOffset, 0, sizeof(U32), &pipeline->drawCount));
-		}
-
-		//Draw
-		VkDrawIndexedIndirectCommand drawCommand{};
-		drawCommand.indexCount = draw.indexCount;
-		drawCommand.instanceCount = draw.instanceCount + 1;
-		drawCommand.firstIndex = draw.indexOffset;
-		drawCommand.vertexOffset = draw.vertexOffset;
-		drawCommand.firstInstance = (pipeline->instanceOffset + draw.instanceOffset) / sizeof(InstanceData);
-
-		drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
+		SetupDraw(pipeline, draw);
 
 		//Instance
 		instance.instanceOffset = draw.instanceCount * sizeof(InstanceData);
@@ -139,6 +83,93 @@ void Scene::AddMesh(MeshInstance& instance)
 	}
 }
 
+void Scene::UploadInstances(MeshInstanceCluster& instances)
+{
+	if (loaded)
+	{
+		instances.handle = UploadMesh(instances.mesh);
+
+		MeshDraw& draw = meshDraws[instances.handle];
+		Pipeline* pipeline = instances.material->meshPipeline;
+
+		SetupDraw(pipeline, draw);
+
+		//Instance
+		instances.instanceOffset = draw.instanceCount * pipeline->shader->instanceStride;
+
+		instanceWrites.Push(CreateWrite(pipeline->instanceOffset + draw.instanceOffset + instances.instanceOffset, 0, pipeline->shader->instanceStride * instances.instances.Size(), instances.instances.Data()));
+
+		draw.instanceCount += (U32)instances.instances.Size();
+	}
+}
+
+HashHandle Scene::UploadMesh(ResourceRef<Mesh>& mesh)
+{
+	U64 handle = *handles.GetInsert(mesh->handle, meshDraws.Size());
+
+	if (handle < meshDraws.Size()) { return handle; }
+
+	MeshDraw& draw = meshDraws.Push({});
+
+	if (!draw.indexCount)
+	{
+		//Indices
+		indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, mesh->indicesSize, mesh->indices));
+
+		draw.indexCount = mesh->indicesSize / sizeof(U32);
+		draw.indexOffset = indexOffset;
+		indexOffset += draw.indexCount;
+
+		//Vertices
+		draw.vertexOffset = vertexOffset / sizeof(Vector3);
+
+		U32 verticesSize = 0;
+		for (VertexBuffer& buffer : mesh->buffers)
+		{
+			verticesSize = Math::Max(verticesSize, buffer.size);
+			vertexWrites[buffer.type].Push(CreateWrite(vertexOffset, 0, buffer.size, buffer.buffer));
+		}
+
+		vertexOffset += verticesSize;
+	}
+
+	return handle;
+}
+
+void Scene::SetupDraw(Pipeline* pipeline, MeshDraw& draw)
+{
+	if (!pipeline->drawCount) //TODO: This doesn't get reset with a new scene
+	{
+		pipeline->drawSets.Push({ drawOffset, countsOffset });
+		drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
+		countsOffset += sizeof(U32);
+		pipeline->instanceOffset = instanceOffset;
+		pipeline->bufferOffsets[pipeline->instanceBuffer] = instanceOffset;
+		instanceOffset += INSTANCE_BUFFER_SIZE / 32;
+
+		Renderer::currentRendergraph->AddPreprocessing(pipeline);
+	}
+
+	if (!draw.instanceCount)
+	{
+		draw.drawOffset = pipeline->drawSets.Front().drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount;
+		draw.instanceOffset = pipeline->drawCount * pipeline->shader->instanceStride * 1024;
+
+		++pipeline->drawCount;
+
+		countsWrites.Push(CreateWrite(pipeline->drawSets.Front().countOffset, 0, sizeof(U32), &pipeline->drawCount));
+	}
+
+	VkDrawIndexedIndirectCommand drawCommand{};
+	drawCommand.indexCount = draw.indexCount;
+	drawCommand.instanceCount = draw.instanceCount + 1;
+	drawCommand.firstIndex = draw.indexOffset;
+	drawCommand.vertexOffset = draw.vertexOffset;
+	drawCommand.firstInstance = draw.instanceOffset / pipeline->shader->instanceStride;
+
+	drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
+}
+
 void Scene::UpdateMesh(MeshInstance& instance)
 {
 	MeshDraw& draw = meshDraws[instance.handle];
@@ -146,7 +177,7 @@ void Scene::UpdateMesh(MeshInstance& instance)
 
 	U64 offset = pipeline->instanceOffset + draw.instanceOffset + instance.instanceOffset;
 
-	instanceWrites.Push(CreateWrite(offset, 0, sizeof(InstanceData), &instance.instanceData));
+	instanceWrites.Push(CreateWrite(offset, 0, pipeline->shader->instanceStride, &instance.instanceData));
 }
 
 void Scene::SetSkybox(const ResourceRef<Skybox>& skybox)
@@ -198,9 +229,9 @@ void Scene::Update()
 
 	lightVal += (F32)Time::DeltaTime();
 
-	globalData->lightPos.x = 0.0f;//Math::Cos(lightVal) * 0.2f;
-	globalData->lightPos.y = 0.2f + Math::Sin(lightVal) * 0.1f;//0.3f;
-	globalData->lightPos.z = 0.6f;//Math::Sin(lightVal) * 0.2f;
+	globalData->lightPos.x = Math::Cos(lightVal) * 0.2f;
+	globalData->lightPos.y = 1.0f;
+	globalData->lightPos.z = Math::Sin(lightVal) * 0.2f;
 
 	shadowData->depthViewProjection = Math::Perspective(45.0f, 1.0f, 0.01f, 1000.0f) * Math::LookAt(globalData->lightPos, Vector3Zero, Vector3Up);
 

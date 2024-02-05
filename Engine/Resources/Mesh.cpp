@@ -9,7 +9,7 @@ void MeshComponent::Update(Scene* scene)
 	{
 		Matrix4 mat = modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
 
-		meshInstance.instanceData.model = mat;
+		Memory::Copy(meshInstance.instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
 		scene->UpdateMesh(meshInstance);
 	}
@@ -21,7 +21,7 @@ void MeshComponent::Load(Scene* scene)
 	{
 		Matrix4 mat = modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
 
-		meshInstance.instanceData.model = mat;
+		Memory::Copy(meshInstance.instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
 		scene->AddMesh(meshInstance);
 	}
@@ -35,7 +35,7 @@ void ModelComponent::Update(Scene* scene)
 		{
 			Matrix4 mat = model->matrices[i] * modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
 
-			model->meshes[i].instanceData.model = mat;
+			Memory::Copy(model->meshes[i].instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
 			scene->UpdateMesh(model->meshes[i]);
 		}
@@ -50,7 +50,7 @@ void ModelComponent::Load(Scene* scene)
 		{
 			Matrix4 mat = model->matrices[i] * modelMatrix * scene->GetEntity(entityID)->transform.WorldMatrix();
 
-			model->meshes[i].instanceData.model = mat;
+			Memory::Copy(model->meshes[i].instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
 			scene->AddMesh(model->meshes[i]);
 		}
