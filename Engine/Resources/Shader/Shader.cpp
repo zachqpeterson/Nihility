@@ -1,19 +1,19 @@
 #include "Shader.hpp"
 
-#include "RenderingDefines.hpp"
-
-#include "Renderer.hpp"
 #include "Resources\Resources.hpp"
 
+#include "Rendering\RenderingDefines.hpp"
+#include "Rendering\Renderer.hpp"
+
 //TODO: #define ENABLE_OPT for optimised shaders
-#include "External\LunarG\SPIRV\GlslangToSpv.h"
-#include "External\LunarG\glslang\Public\ShaderLang.h"
-#include "External\LunarG\spirv_cross\spirv_reflect.h"
+#include "SPIRV\GlslangToSpv.h"
+#include "glslang\Public\ShaderLang.h"
+#include "spirv_cross\spirv_reflect.h"
 
 #if defined(_MSC_VER)
-#include "External\LunarG\spirv-headers\spirv.h"
+#include "spirv-headers\spirv.h"
 #else
-#include "External\LunarG\spirv_cross\spirv.h"
+#include "spirv_cross\spirv.h"
 #endif
 
 Descriptor::Descriptor(VkBuffer buffer, U64 offset, U64 range)
@@ -1115,6 +1115,8 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 		it += wordCount;
 	}
 
+	U8 combinedBinding = U8_MAX;
+
 	for (const Id& id : ids)
 	{
 		if (id.set == 1 && id.binding == 10) { useBindless = true; continue; }
@@ -1215,15 +1217,14 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 						}
 						else
 						{
-							attribute.binding = vertexBindingCount++;
-
 							switch (Math::Hash(id.name.Data(), id.name.Size()))
 							{
-							case "position"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_POSITION; } break;
-							case "normal"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_NORMAL; } break;
-							case "tangent"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_TANGENT; } break;
-							case "texcoord"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_TEXCOORD; } break;
-							case "color"_Hash: { vertexTypes[attribute.binding] = VERTEX_TYPE_COLOR; } break;
+							case "position"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_POSITION; } break;
+							case "normal"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_NORMAL; } break;
+							case "tangent"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_TANGENT; } break;
+							case "texcoord"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_TEXCOORD; } break;
+							case "color"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_COLOR; } break;
+							default: { if (combinedBinding == U8_MAX) { combinedBinding = vertexBindingCount++; vertexTypes[combinedBinding] = VERTEX_TYPE_COMBINED; } attribute.binding = combinedBinding; } break;
 							}
 						}
 
@@ -1274,9 +1275,15 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 
 	if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && shaderInfo->vertexAttributeCount)
 	{
+		U8 combinedStream = U8_MAX;
+
 		VkVertexInputBindingDescription instanceInput{};
 		instanceInput.binding = instanceBinding;
 		instanceInput.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+		VkVertexInputBindingDescription combinedInput{};
+		combinedInput.binding = combinedBinding;
+		combinedInput.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		for (U32 i = 0; i < shaderInfo->vertexAttributeCount; ++i)
 		{
@@ -1286,6 +1293,11 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 			{
 				attribute.offset = instanceInput.stride;
 				instanceInput.stride += FormatStride(attribute.format);
+			}
+			else if(attribute.binding == combinedBinding)
+			{
+				attribute.offset = combinedInput.stride;
+				combinedInput.stride += FormatStride(attribute.format);
 			}
 			else
 			{
@@ -1302,6 +1314,11 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 		{
 			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = instanceInput;
 			instanceStride = instanceInput.stride;
+		}
+
+		if (combinedBinding != U8_MAX)
+		{
+			shaderInfo->vertexStreams[shaderInfo->vertexStreamCount++] = combinedInput;
 		}
 	}
 

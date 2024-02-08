@@ -41,11 +41,11 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "LunarG/glslang/Public/ResourceLimits.h"
+#include "../glslang/Public/ResourceLimits.h"
 #include "Worklist.h"
 #include "DirStackFileIncluder.h"
-#include "./../glslang/Include/ShHandle.h"
-#include "./../glslang/Public/ShaderLang.h"
+#include "../glslang/Include/ShHandle.h"
+#include "../glslang/Public/ShaderLang.h"
 #include "../glslang/MachineIndependent/localintermediate.h"
 #include "../SPIRV/GlslangToSpv.h"
 #include "../SPIRV/GLSL.std.450.h"
@@ -66,9 +66,9 @@
 #include "../glslang/OSDependent/osinclude.h"
 
 // Build-time generated includes
-#include "LunarG/glslang/build_info.h"
+#include "../glslang/build_info.h"
 
-//#include "LunarG/glslang/glsl_intrinsic_header.h"
+//#include "../glslang/glsl_intrinsic_header.h"
 
 extern "C" {
     GLSLANG_EXPORT void ShOutputHtml();

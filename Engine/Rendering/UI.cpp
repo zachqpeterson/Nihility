@@ -162,7 +162,7 @@ bool UI::Initialize()
 	textPipelineInfo.type = PIPELINE_TYPE_UI;
 	textPipelineInfo.renderOrder = 110;
 
-	textPipeline.Create(uiPipelineInfo, &renderpass);
+	textPipeline.Create(textPipelineInfo, &renderpass);
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
@@ -172,6 +172,16 @@ bool UI::Initialize()
 	indexBuffer = Renderer::CreateBuffer(sizeof(U32) * CountOf(indices), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	drawsBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 2, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+
+	BufferData buffers{};
+	buffers.vertexBuffers[VERTEX_TYPE_COMBINED] = vertexBuffer;
+	buffers.instanceBuffer = instanceBuffer;
+	buffers.indexBuffer = indexBuffer;
+	buffers.drawBuffer = drawsBuffer;
+	buffers.countsBuffer = countsBuffer;
+
+	uiPipeline.SetBuffers(buffers);
+	textPipeline.SetBuffers(buffers);
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
 	
@@ -199,7 +209,7 @@ bool UI::Initialize()
 
 	Renderer::FillBuffer(vertexBuffer, copy.size, vertices, 1, &copy);
 
-	vertexOffset += copy.size;
+	vertexOffset += (U32)copy.size;
 
 	VkDrawIndexedIndirectCommand drawCommand{};
 	drawCommand.indexCount = 6;
@@ -212,13 +222,15 @@ bool UI::Initialize()
 
 	Renderer::FillBuffer(drawsBuffer, copy.size, &drawCommand, 1, &copy);
 
-	drawsOffset += copy.size;
+	drawsOffset += (U32)copy.size;
 
 	copy.size = sizeof(U32);
 
 	U32 count = 1;
 
 	Renderer::FillBuffer(countsBuffer, copy.size, &count, 1, &copy);
+
+	textPipeline.drawSets.Push({});
 
 	//TODO: Set offsets in pipelines
 
@@ -580,7 +592,6 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 
 	F32 yOffset = textHeight * scale / 2.0f;
 
-	U32 i = 0;
 	for (C8 c : string)
 	{
 		Glyph& glyph = font->glyphs[c - 32];
@@ -602,9 +613,16 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 			instance.color = info.color;
 			instance.scale = scale;
 
-			//Memory::Copy(&instances.instances.Back(), &instance, sizeof(TextInstance));
+			VkBufferCopy copy{};
+			copy.dstOffset = instanceOffset;
+			copy.srcOffset = 0;
+			copy.size = sizeof(TextInstance);
 
-			++i;
+			instanceOffset += sizeof(TextInstance);
+
+			Renderer::FillBuffer(instanceBuffer, sizeof(TextInstance), &instance, 1, &copy);
+
+			++textInstanceCount;
 		}
 
 		position.x += glyph.advance * textWidth * scale;
@@ -616,6 +634,20 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 
 		prev = c;
 	}
+
+	VkDrawIndexedIndirectCommand drawCommand{};
+	drawCommand.indexCount = 6;
+	drawCommand.instanceCount = textInstanceCount;
+	drawCommand.firstIndex = 0;
+	drawCommand.vertexOffset = 0;
+	drawCommand.firstInstance = 0;
+
+	VkBufferCopy copy{};
+	copy.dstOffset = 0;
+	copy.srcOffset = 0;
+	copy.size = sizeof(VkDrawIndexedIndirectCommand);
+
+	Renderer::FillBuffer(drawsBuffer, copy.size, &drawCommand, 1, &copy);
 
 	return element;
 }

@@ -61,7 +61,7 @@ namespace spv {
 #include "../glslang/Include/Common.h"
 
 // Build-time generated includes
-#include "LunarG/glslang/build_info.h"
+#include "../glslang/build_info.h"
 
 #include <fstream>
 #include <iomanip>

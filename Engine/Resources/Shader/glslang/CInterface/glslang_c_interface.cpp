@@ -30,15 +30,15 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **/
 
-#include "LunarG/glslang/Include/glslang_c_interface.h"
+#include "../Include/glslang_c_interface.h"
 
-#include "LunarG/StandAlone/DirStackFileIncluder.h"
-#include "LunarG/glslang/Public/ResourceLimits.h"
-#include "LunarG/glslang/Include/ShHandle.h"
+#include "../../StandAlone/DirStackFileIncluder.h"
+#include "../Public/ResourceLimits.h"
+#include "../Include/ShHandle.h"
 
-#include "LunarG/glslang/Include/ResourceLimits.h"
-#include "LunarG/glslang/MachineIndependent/Versions.h"
-#include "LunarG/glslang/MachineIndependent/localintermediate.h"
+#include "../Include/ResourceLimits.h"
+#include "../MachineIndependent/Versions.h"
+#include "../MachineIndependent/localintermediate.h"
 
 static_assert(int(GLSLANG_STAGE_COUNT) == EShLangCount, "");
 static_assert(int(GLSLANG_STAGE_MASK_COUNT) == EShLanguageMaskCount, "");

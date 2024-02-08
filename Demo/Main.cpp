@@ -39,11 +39,11 @@ bool Init()
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
 
 	UIElementInfo info{};
-	info.area = { 0.1f, 0.1f, 0.2f, 0.2f };
+	info.area = { -0.9f, -0.9f, -0.8f, -0.8f };
 	info.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	info.scene = scene;
 
-	//UIElement* element = UI::CreateText(info, "Hello, World!", 10);
+	UIElement* element = UI::CreateText(info, "Hello, World!", 5);
 
 	Renderer::LoadScene(scene);
 	

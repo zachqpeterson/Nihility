@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Resources\ResourceDefines.hpp"
-#include "Shader.hpp"
+#include "Resources\Shader\Shader.hpp"
 
 struct Renderpass;
 

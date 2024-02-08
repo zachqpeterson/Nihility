@@ -194,7 +194,7 @@ U32									Renderer::absoluteFrame{ 0 };
 bool								Renderer::resized{ false };
 
 // RESOURCES
-Scene*								Renderer::currentScene;
+Scene* Renderer::currentScene;
 VmaAllocator_T* Renderer::allocator;
 CommandBufferRing					Renderer::commandBufferRing;
 Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
@@ -846,6 +846,7 @@ VkCommandBuffer Renderer::Record()
 	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
 	commandBuffer->Begin();
 	currentRendergraph->Run(commandBuffer);
+	UI::Render(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
 		ImageBarrier(defaultRenderTarget->image,
@@ -1094,8 +1095,6 @@ void Renderer::FillBuffer(Buffer& buffer, U64 size, const void* data, U32 region
 		regions[i].srcOffset += stagingBuffer.allocationOffset;
 	}
 
-	stagingBuffer.allocationOffset += size;
-
 	CommandBuffer* commandBuffer = commandBufferRing.GetWriteCommandBuffer(frameIndex);
 
 	commandBuffer->Begin();
@@ -1104,6 +1103,13 @@ void Renderer::FillBuffer(Buffer& buffer, U64 size, const void* data, U32 region
 	commandBuffer->End();
 
 	commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
+
+	for (U32 i = 0; i < regionCount; ++i)
+	{
+		regions[i].srcOffset -= stagingBuffer.allocationOffset; //TODO: Better way to do this
+	}
+
+	stagingBuffer.allocationOffset += size;
 }
 
 void Renderer::FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions)
@@ -1524,12 +1530,15 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	Memory::Copy(renderpass->subpasses, info.subpasses, sizeof(Subpass) * info.subpassCount);
 	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
 
-	for (U32 i = 0; i < info.renderTargetCount; ++i)
+	if (info.colorLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
 	{
-		renderpass->clearValues[renderpass->clearCount++].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		for (U32 i = 0; i < info.renderTargetCount; ++i)
+		{
+			renderpass->clearValues[renderpass->clearCount++].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		}
 	}
 
-	if (renderpass->depthStencilTarget)
+	if (info.depthLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR && renderpass->depthStencilTarget)
 	{
 		renderpass->clearValues[renderpass->clearCount++].depthStencil = { 1.0f, 0 };
 	}
@@ -1555,7 +1564,6 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		attachments[attachmentCount].stencilLoadOp = stencilLoadOp;
 		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[attachmentCount].initialLayout = colorLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		if (renderpass->renderTargets[i]->flags & TEXTURE_FLAG_RENDER_SAMPLED) { attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL; }
 		else { attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; }
 
@@ -1598,7 +1606,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	Vector<VkAttachmentReference2> inputReferences{};
 	U32 inputOffset = 0;
 
-	VkMemoryBarrier2 depthBarrier{
+	static VkMemoryBarrier2 depthBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
 		.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
@@ -1607,7 +1615,16 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
 	};
 
-	VkMemoryBarrier2 renderBarrier{
+	static VkMemoryBarrier2 depthSampleBarrier{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+	};
+
+	static VkMemoryBarrier2 renderBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
 		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -1616,7 +1633,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
 	};
 
-	VkMemoryBarrier2 inputBarrier{
+	static VkMemoryBarrier2 inputBarrier{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
 		.pNext = nullptr,
 		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -1651,7 +1668,7 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		subpass.colorAttachmentCount = attachmentCount;
 		subpass.pColorAttachments = colorAttachments;
 		subpass.pResolveAttachments = nullptr;
-		subpass.pDepthStencilAttachment = &depthAttachment;
+		subpass.pDepthStencilAttachment = hasDepth ? &depthAttachment : nullptr;
 		subpass.preserveAttachmentCount = 0;
 		subpass.pPreserveAttachments = nullptr;
 
@@ -1714,24 +1731,15 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		}
 	}
 
-	VkMemoryBarrier2 depthSampleBarrier{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
-		.pNext = nullptr,
-		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-	};
-
 	if (renderpass->depthStencilTarget && renderpass->depthStencilTarget->flags & TEXTURE_FLAG_RENDER_SAMPLED)
 	{
 		dependencies.Push({
-				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
-				.pNext = &depthSampleBarrier,
-				.srcSubpass = info.subpassCount - 1,
-				.dstSubpass = VK_SUBPASS_EXTERNAL,
-				.dependencyFlags = 0,
-				.viewOffset = 0
+			.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+			.pNext = &depthSampleBarrier,
+			.srcSubpass = info.subpassCount - 1,
+			.dstSubpass = VK_SUBPASS_EXTERNAL,
+			.dependencyFlags = 0,
+			.viewOffset = 0
 			});
 	}
 

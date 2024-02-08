@@ -47,7 +47,7 @@
 #include "spirv-tools/libspirv.h"
 #endif
 
-#include "LunarG/glslang/MachineIndependent/localintermediate.h"
+#include "../glslang/MachineIndependent/localintermediate.h"
 #include "GlslangToSpv.h"
 #include "SPIRVLogger.h"
 

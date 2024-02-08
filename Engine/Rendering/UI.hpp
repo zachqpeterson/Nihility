@@ -225,5 +225,5 @@ private:
 
 	STATIC_CLASS(UI);
 	friend class Engine;
-	friend struct Rendergraph;
+	friend class Renderer;
 };

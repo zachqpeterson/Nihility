@@ -44,7 +44,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
-	//ASSERT(UI::Initialize());
+	ASSERT(UI::Initialize());
 
 	//Physics
 	//Particles
