@@ -207,16 +207,6 @@ SkyboxData							Renderer::skyboxData{};
 PostProcessData						Renderer::postProcessData{};
 ResourceRef<Texture>				Renderer::defaultRenderTarget;
 ResourceRef<Texture>				Renderer::defaultDepthTarget;
-ResourceRef<Texture>				Renderer::defaultShadowMap;
-ResourceRef<Rendergraph>			Renderer::defaultRendergraph;
-ResourceRef<Rendergraph>			Renderer::currentRendergraph;
-
-PipelineInfo						Renderer::defaultCulling;
-PipelineInfo						Renderer::defaultShadows;
-PipelineInfo						Renderer::defaultGeometryOpaque;
-PipelineInfo						Renderer::defaultSkybox;
-PipelineInfo						Renderer::defaultGeometryTransparent;
-PipelineInfo						Renderer::defaultPostProcessing;
 
 // TIMING
 VkSemaphore							Renderer::imageAcquired{ nullptr };
@@ -650,80 +640,24 @@ bool Renderer::CreateResources()
 
 	//TODO: Default culling
 
-	SamplerInfo shadowMapSampler{};
-	shadowMapSampler.boundsModeU = SAMPLER_BOUNDS_MODE_CLAMP_TO_BORDER;
-	shadowMapSampler.boundsModeV = SAMPLER_BOUNDS_MODE_CLAMP_TO_BORDER;
-	shadowMapSampler.border = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-
-	textureInfo.name = "default_shadow_map";
-	textureInfo.format = VK_FORMAT_D16_UNORM;
-	textureInfo.flags |= TEXTURE_FLAG_RENDER_SAMPLED;
-	textureInfo.width = 2048;
-	textureInfo.height = 2048;
-	defaultShadowMap = Resources::CreateTexture(textureInfo, shadowMapSampler);
+	Vector<ResourceRef<Pipeline>> pipelines{ 2, {} };
 
 	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
-	ResourceRef<Shader> shader = Resources::CreateShader("shaders/ShadowMap.nhshd", 1, &pushConstant);
-	defaultShadows.name = "default_shadows_pipeline";
-	defaultShadows.shader = shader;
-	defaultShadows.type = PIPELINE_TYPE_PRE_PROCESSING_OPAQUE;
-	defaultShadows.depthStencilTarget = defaultShadowMap;
-	defaultShadows.renderOrder = -10;
-	defaultShadows.resize = false;
+	pipelines[0] = Resources::LoadPipeline("pipelines/shadowMap.nhpln", 1, &pushConstant);
 
-	shader = Resources::CreateShader("shaders/PbrOpaque.nhshd");
-	shader->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
-	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
-	shader->AddDescriptor({ defaultShadowMap->imageView, IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, defaultShadowMap->sampler.vkSampler });
-	defaultGeometryOpaque.name = "default_mesh_opaque_pipeline";
-	defaultGeometryOpaque.shader = shader;
-	defaultGeometryOpaque.type = PIPELINE_TYPE_MESH_OPAQUE | PIPELINE_TYPE_DEFAULT;
-	defaultGeometryOpaque.renderOrder = 0;
+	pipelines[1] = Resources::LoadPipeline("pipelines/pbrOpaque.nhpln");
+	pipelines[1]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
+	pipelines[1]->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	pipelines[1]->AddDependancy({ pipelines[0], DEPENDANCY_DEPTH_TARGET });
 
-	pushConstant = { 0, sizeof(SkyboxData), Renderer::GetSkyboxData() };
-	defaultSkybox.name = "default_skybox_pipeline";
-	defaultSkybox.shader = Resources::CreateShader("shaders/Skybox.nhshd", 1, &pushConstant);
-	defaultSkybox.type = PIPELINE_TYPE_POST_PROCESSING_RENDER;
-	defaultSkybox.renderOrder = 10;
+	Resources::CreateMaterialEffect("pbrOpaqueEffect", pipelines);
 
-	shader = Resources::CreateShader("shaders/PbrTransparent.nhshd");
-	shader->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
-	shader->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
-	defaultGeometryTransparent.name = "default_mesh_transparent_pipeline";
-	defaultGeometryTransparent.shader = shader;
-	defaultGeometryTransparent.type = PIPELINE_TYPE_MESH_TRANSPARENT | PIPELINE_TYPE_DEFAULT;
-	defaultGeometryTransparent.renderOrder = 20;
+	pipelines[1] = Resources::LoadPipeline("pipelines/pbrTransparent.nhpln");
+	pipelines[1]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
+	pipelines[1]->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	pipelines[1]->AddDependancy({ pipelines[0], DEPENDANCY_DEPTH_TARGET });
 
-	pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
-	shader = Resources::CreateShader("shaders/PostProcess.nhshd", 1, &pushConstant);
-	shader->AddDescriptor({ Renderer::defaultRenderTarget->imageView, IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, Renderer::defaultRenderTarget->sampler.vkSampler });
-	defaultPostProcessing.name = "default_postprocess_pipeline";
-	defaultPostProcessing.shader = shader;
-	defaultPostProcessing.type = PIPELINE_TYPE_POST_PROCESSING_RENDER;
-	defaultPostProcessing.renderOrder = 30;
-
-	RendergraphInfo info{};
-	info.name = "default_rendergraph";
-
-	//TODO: Culling piplines
-
-	info.AddPipeline(defaultShadows);
-	info.AddPipeline(defaultGeometryOpaque);
-	info.AddPipeline(defaultSkybox);
-	info.AddPipeline(defaultGeometryTransparent);
-	info.AddPipeline(defaultPostProcessing);
-
-	//TODO: Save rendergraph to file
-	defaultRendergraph = Resources::CreateRendergraph(info);
-	currentRendergraph = defaultRendergraph;
-
-	if (!File::Exists("materials/default.nhmat"))
-	{
-		MaterialInfo info{};
-		info.name = "materials/default.nhmat";
-
-		Resources::SaveMaterial(Resources::CreateMaterial(info));
-	}
+	Resources::CreateMaterialEffect("pbrTransparentEffect", Move(pipelines));
 
 	return true;
 }
@@ -845,8 +779,7 @@ VkCommandBuffer Renderer::Record()
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
 	commandBuffer->Begin();
-	currentRendergraph->Run(commandBuffer);
-	UI::Render(commandBuffer);
+	currentScene->Render(commandBuffer); //TODO: validate scene
 
 	VkImageMemoryBarrier2 copyBarriers[]{
 		ImageBarrier(defaultRenderTarget->image,
@@ -887,7 +820,7 @@ void Renderer::Resize()
 	vkDeviceWaitIdle(device);
 
 	swapchain.Create();
-	if (currentRendergraph) { currentRendergraph->Resize(); }
+	if (currentScene) { currentScene->Resize(); }
 
 	vkDeviceWaitIdle(device);
 }
@@ -921,15 +854,13 @@ void Renderer::SetRenderArea()
 
 void Renderer::LoadScene(Scene* scene)
 {
-	if (!currentRendergraph) { Logger::Error("Cannot Load A Scene Without A Rendergraph Set!"); }
-
 	if (currentScene)
 	{
 		currentScene->Unload();
 	}
 
 	currentScene = scene;
-	currentScene->Load(currentRendergraph);
+	currentScene->Load();
 }
 
 ShadowData* Renderer::GetShadowData()
@@ -1211,7 +1142,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	allocInfo.pName = "texture";
 	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &texture->image, &texture->allocation, &allocInfo));
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->Name());
 
 	VkImageViewCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	info.image = texture->image;
@@ -1234,7 +1165,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 	VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->imageView));
 	texture->mipmaps[0] = texture->imageView;
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->Name());
 
 	if (data)
 	{
@@ -1312,7 +1243,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 			VkValidate(vkCreateImageView(device, &info, allocationCallbacks, &texture->mipmaps[i]));
 
-			SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name + "_mip1");
+			SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->Name() + "_mip1");
 		}
 
 		texture->mipmapsGenerated = texture->mipmapCount > 1;
@@ -1380,11 +1311,11 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	vkCreateSampler(Renderer::device, &createInfo, Renderer::allocationCallbacks, &texture->sampler.vkSampler);
 
-	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
+	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->Name());
 
 	if (bindlessSupported && !(texture->flags & TEXTURE_FLAG_RENDER_TARGET))
 	{
-		Resources::bindlessTexturesToUpdate.Push({ texture->handle, frameIndex });
+		Resources::bindlessTexturesToUpdate.Push({ texture->Handle(), frameIndex });
 	}
 
 	return true;
@@ -1409,10 +1340,10 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 	memoryInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
 	VmaAllocationInfo allocInfo{};
-	allocInfo.pName = texture->name;
+	allocInfo.pName = texture->Name();
 	VkValidate(vmaCreateImage(allocator, &imageInfo, &memoryInfo, &texture->image, &texture->allocation, &allocInfo));
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->name);
+	SetResourceName(VK_OBJECT_TYPE_IMAGE, (U64)texture->image, texture->Name());
 
 	stagingBuffer.allocationOffset = NextMultipleOf(stagingBuffer.allocationOffset, 16);
 	if (stagingBuffer.allocationOffset + texture->size > stagingBuffer.size)
@@ -1482,7 +1413,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	texture->mipmaps[0] = texture->imageView;
 
-	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->name);
+	SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, texture->Name());
 
 	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 	createInfo.pNext = nullptr;
@@ -1505,20 +1436,12 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	vkCreateSampler(Renderer::device, &createInfo, Renderer::allocationCallbacks, &texture->sampler.vkSampler);
 
-	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->name);
+	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->Name());
 
-	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ texture->handle, frameIndex }); }
+	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ texture->Handle(), frameIndex }); }
 
 	return true;
 }
-
-void Renderer::PushConstants(CommandBuffer* commandBuffer, const ResourceRef<Shader>& shader)
-{
-	for (U32 i = 0; i < shader->pushConstantCount; ++i)
-	{
-		commandBuffer->PushConstants(shader, shader->pushConstants[i].offset, shader->pushConstants[i].size, shader->pushConstants[i].data);
-	}
-};
 
 bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info, Renderpass* prevRenderpass)
 {
@@ -1613,15 +1536,6 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 		.srcAccessMask = 0,
 		.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-	};
-
-	static VkMemoryBarrier2 depthSampleBarrier{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR,
-		.pNext = nullptr,
-		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
 	};
 
 	static VkMemoryBarrier2 renderBarrier{
@@ -1729,18 +1643,6 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 				.viewOffset = 0
 				});
 		}
-	}
-
-	if (renderpass->depthStencilTarget && renderpass->depthStencilTarget->flags & TEXTURE_FLAG_RENDER_SAMPLED)
-	{
-		dependencies.Push({
-			.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
-			.pNext = &depthSampleBarrier,
-			.srcSubpass = info.subpassCount - 1,
-			.dstSubpass = VK_SUBPASS_EXTERNAL,
-			.dependencyFlags = 0,
-			.viewOffset = 0
-			});
 	}
 
 	VkRenderPassCreateInfo2 renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2 };

@@ -2,7 +2,8 @@
 
 #include "ResourceDefines.hpp"
 
-#include "ComponentRegistry.hpp"
+#include "Component.hpp"
+#include "Entity.hpp"
 
 struct ComponentPool
 {
@@ -42,12 +43,6 @@ struct ComponentPoolInternal : public ComponentPool
 	Vector<Type> components;
 };
 
-struct ComponentReference
-{
-	U64 type;
-	U64 id;
-};
-
 struct MeshDraw
 {
 	U32 indexOffset{ 0 };
@@ -59,9 +54,16 @@ struct MeshDraw
 	U32 drawOffset{ 0 };
 };
 
+struct ComponentReference
+{
+	U64 type;
+	U64 id;
+};
+
+struct Mesh;
 struct Entity;
+struct Pipeline;
 struct MeshInstance;
-struct Rendergraph;
 struct CommandBuffer;
 struct VkBufferCopy;
 
@@ -73,10 +75,11 @@ struct NH_API Scene
 	const String& Name() { return name; }
 	Camera* GetCamera() { return &camera; }
 
-	void AddMesh(MeshInstance& instance);
-	void UpdateMesh(MeshInstance& instance);
-	void UploadInstances(MeshInstanceCluster& instances);
 	void SetSkybox(const ResourceRef<Skybox>& skybox);
+	void SetPostProcessing(const PostProcessData& data);
+
+	void AddInstance(MeshInstance& instance);
+	void UpdateInstance(MeshInstance& instance);
 
 private:
 	void Create(CameraType cameraType);
@@ -85,40 +88,44 @@ private:
 	template<ComponentType Type, typename... Args>
 	Type* AddComponent(ComponentReference& reference, Args&&... args) noexcept
 	{
-		reference.type = IndexOf<RegisteredComponents, Type>;
+		U32* id = componentRegistry.Request(NameOf<Type>);
+
+		if (*id == 0)
+		{
+			*id = currentId++;
+			componentPools.Push(new ComponentPoolInternal<Type>());
+		}
+
+		reference.type = *id - 1;
 		reference.id = componentPools[reference.type]->Count();
 
 		return ((ComponentPoolInternal<Type>*)componentPools[reference.type])->AddComponent(Move(Type{ args... }));
 	}
 
-	template<ComponentType Type>
-	void CreatePool()
-	{
-		componentPools[IndexOf<RegisteredComponents, Type>] = new ComponentPoolInternal<Type>();
-	}
-
-	void Load(ResourceRef<Rendergraph>& rendergraph);
+	void Load();
 	void Unload();
 	void Update();
-	
-	HashHandle UploadMesh(ResourceRef<Mesh>& mesh);
-	void SetupDraw(Pipeline* pipeline, MeshDraw& draw);
+	void Render(CommandBuffer* commandBuffer);
+	void Resize();
+
+	void AddMesh(ResourceRef<Mesh>& mesh);
+	void AddPipeline(ResourceRef<Pipeline>& pipeline);
 	VkBufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
 
 	String							name{};
 	HashHandle						handle;
 	bool							loaded{ false };
+	bool							hasSkybox{ false };
+	bool							hasPostProcessing{ false };
 
 	Camera							camera{};
 
 	Buffer							stagingBuffer;
-	BufferData						buffers;
-
-	Vector<VkBufferCopy>			vertexWrites[VERTEX_TYPE_COUNT - 1];
-	Vector<VkBufferCopy>			instanceWrites;
-	Vector<VkBufferCopy>			indexWrites;
-	Vector<VkBufferCopy>			drawWrites;
-	Vector<VkBufferCopy>			countsWrites;
+	Buffer							vertexBuffers[VERTEX_TYPE_COUNT - 1];
+	Buffer							instanceBuffer;
+	Buffer							indexBuffer;
+	Buffer							drawBuffer;
+	Buffer							countsBuffer;
 
 	U32								vertexOffset{ 0 };
 	U32								instanceOffset{ 0 };
@@ -126,11 +133,14 @@ private:
 	U32								drawOffset{ 0 };
 	U32								countsOffset{ 0 };
 
-	Hashmap<HashHandle, HashHandle>	handles{ 1024 };
 	Vector<MeshDraw>				meshDraws{};
 	Vector<Entity>					entities{};
 
-	ComponentPool*					componentPools[RegisteredComponents::Size];
+	U32								currentId{ 1 };
+	Hashmap<StringView, U32>		componentRegistry{ 32 };
+	Vector<ComponentPool*>			componentPools{};
+	Vector<ResourceRef<Pipeline>>	pipelines{};
+	Vector<Renderpass>				renderpasses{};
 
 #ifdef NH_DEBUG
 	FlyCamera						flyCamera{};
@@ -139,4 +149,44 @@ private:
 	friend class Renderer;
 	friend class Resources;
 	friend struct Entity;
+};
+
+struct NH_API Entity
+{
+public:
+	Entity(Entity&& other) noexcept : transform{ other.transform }, scene{ other.scene }, entityID{ other.entityID }, references{ Move(references) } {}
+	Entity& operator=(Entity&& other) noexcept
+	{
+		transform = other.transform;
+		scene = other.scene;
+		entityID = other.entityID;
+		references = Move(references);
+
+		return *this;
+	}
+
+	template<ComponentType Type, typename... Args>
+	Type* AddComponent(Args&&... args) noexcept
+	{
+		ComponentReference reference;
+		Type* component = scene->AddComponent<Type>(reference, args...);
+		component->entityID = entityID;
+		references.Push(reference);
+
+		return component;
+	}
+
+	Transform transform{};
+
+private:
+	Entity(Scene* scene, U32 id) : scene{ scene }, entityID{ id } {}
+
+	Scene* scene;
+	U32 entityID;
+	Vector<ComponentReference> references{};
+
+	Entity(const Entity&) = delete;
+	Entity& operator=(const Entity&) = delete;
+
+	friend struct Scene;
 };

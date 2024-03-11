@@ -10,13 +10,13 @@
 #include "Pipeline.hpp"
 
 struct Scene;
-struct Rendergraph;
 struct VkImage_T;
 struct VkQueue_T;
 struct VkBuffer_T;
 struct VkDevice_T;
 struct VkInstance_T;
 struct VkSemaphore_T;
+struct VkRenderPass_T;
 struct VmaAllocator_T;
 struct VkCommandBuffer_T;
 struct VkPhysicalDevice_T;
@@ -80,7 +80,6 @@ public:
 	static GlobalData*					GetGlobalData();
 	static SkyboxData*					GetSkyboxData();
 	static PostProcessData*				GetPostProcessData();
-	static Rendergraph*					GetDefaultRendergraph();
 
 	static const Vector4&				RenderArea();
 	static U32							FrameIndex();
@@ -120,8 +119,6 @@ private:
 	static U64							UploadToBuffer(Buffer& buffer, U64 size, const void* data);
 	static void							MapBuffer(Buffer& buffer);
 	static void							UnmapBuffer(Buffer& buffer);
-
-	static void							PushConstants(CommandBuffer* commandBuffer, const ResourceRef<Shader>& shader);
 
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
@@ -183,17 +180,6 @@ private:
 	static PostProcessData						postProcessData;
 	static ResourceRef<Texture>					defaultRenderTarget;
 	static ResourceRef<Texture>					defaultDepthTarget;
-	static ResourceRef<Texture>					defaultShadowMap;
-	static ResourceRef<Rendergraph>				defaultRendergraph;
-	static ResourceRef<Rendergraph>				currentRendergraph;
-
-	// PIPELINES
-	static PipelineInfo							defaultCulling;
-	static PipelineInfo							defaultShadows;
-	static PipelineInfo							defaultGeometryOpaque;
-	static PipelineInfo							defaultSkybox;
-	static PipelineInfo							defaultGeometryTransparent;
-	static PipelineInfo							defaultPostProcessing;
 
 	// SYNCRONIZATION
 	static VkSemaphore_T*						imageAcquired;

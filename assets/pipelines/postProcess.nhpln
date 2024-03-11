@@ -1,0 +1,10 @@
+vertex=shaders/PostProcessVert.nhshd
+fragment=shaders/PostProcessFrag.nhshd
+cull=NONE
+front=CLOCKWISE
+fill=SOLID
+blend=ADD
+useIndices=FALSE
+vertexCount=3
+type=POST_RENDER
+renderOrder=30

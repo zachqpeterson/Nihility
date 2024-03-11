@@ -93,30 +93,30 @@ void CommandBuffer::EndRenderpass()
 
 void CommandBuffer::BindPipeline(const Pipeline* pipeline)
 {
-	vkCmdBindPipeline(vkCommandBuffer, (VkPipelineBindPoint)pipeline->shader->bindPoint, pipeline->pipeline);
+	vkCmdBindPipeline(vkCommandBuffer, (VkPipelineBindPoint)pipeline->bindPoint, pipeline->pipeline);
 }
 
-void CommandBuffer::BindIndexBuffer(const ResourceRef<Shader>& shader, VkBuffer_T* buffer, U64 offset)
+void CommandBuffer::BindIndexBuffer(VkBuffer_T* buffer, U64 offset)
 {
 	vkCmdBindIndexBuffer(vkCommandBuffer, buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
-void CommandBuffer::BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets)
+void CommandBuffer::BindVertexBuffers(U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets)
 {
 	vkCmdBindVertexBuffers(vkCommandBuffer, 0, bufferCount, buffers, offsets);
 }
 
-void CommandBuffer::BindDescriptorSets(const ResourceRef<Shader>& shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets)
+void CommandBuffer::BindDescriptorSets(VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets)
 {
 	if (setCount)
 	{
-		vkCmdBindDescriptorSets(vkCommandBuffer, (VkPipelineBindPoint)shader->bindPoint, shader->pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+		vkCmdBindDescriptorSets(vkCommandBuffer, bindPoint, pipelineLayout, setOffset, setCount, sets, 0, nullptr);
 	}
 }
 
-void CommandBuffer::PushConstants(const ResourceRef<Shader>& shader, U32 offset, U32 size, const void* data)
+void CommandBuffer::PushConstants(VkPipelineLayout pipelineLayout, U32 stages, U32 offset, U32 size, const void* data)
 {
-	vkCmdPushConstants(vkCommandBuffer, shader->pipelineLayout, shader->pushConstantStages, offset, size, data);
+	vkCmdPushConstants(vkCommandBuffer, pipelineLayout, stages, offset, size, data);
 }
 
 void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)

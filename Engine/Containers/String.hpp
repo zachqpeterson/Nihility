@@ -6,6 +6,15 @@
 #include "Memory\Memory.hpp"
 #include "Math\Math.hpp"
 
+enum CharacterType
+{
+	CHARACTER_TYPE_ALPHABETIC,
+	CHARACTER_TYPE_NUMERIC,
+	CHARACTER_TYPE_ALPHANUMERIC,
+	CHARACTER_TYPE_WHITE_SPACE,
+	CHARACTER_TYPE_PUNCTUATION,
+};
+
 template<Character C>
 inline constexpr U64 Length(const C* str) noexcept
 {
@@ -55,6 +64,30 @@ struct StringView
 
 	constexpr StringView(const C8* str, U64 length) : string{ str }, length{ length } {}
 
+	constexpr bool operator==(const StringView& other) const
+	{
+		if (other.length != length) { return false; }
+
+		U64 size = length;
+		const C8* p0 = string, * p1 = other.string;
+
+		while (size--) { if (*p0++ != *p1++) { return false; } }
+
+		return true;
+	}
+
+	constexpr bool operator!=(const StringView& other) const
+	{
+		if (other.length != length) { return true; }
+
+		U64 size = length;
+		const C8* p0 = string, * p1 = other.string;
+
+		while (size--) { if (*p0++ != *p1++) { return true; } }
+
+		return false;
+	}
+
 	constexpr StringView SubString(U64 offset = 0, U64 count = U64_MAX) const
 	{
 		offset = Math::Min(offset, length);
@@ -68,7 +101,7 @@ struct StringView
 		const C8* it = string + start;
 
 		while (!(*it == 0 || Compare(it, find, Length - 1))) { ++it; }
-		
+
 		if (*it == 0) { return -1; }
 		return (I64)(it - string);
 	}
@@ -92,7 +125,7 @@ struct StringView
 		U64 len = length - Length + 1;
 		while (!Compare(it, find, Length - 1))
 		{
-			if(--len) { --it; }
+			if (--len) { --it; }
 			else { return -1; }
 		}
 
@@ -119,7 +152,7 @@ private:
 	U64 length;
 };
 
-constexpr StringView operator""_SV(const C8* str, U64 length)
+constexpr StringView operator""_SV(const C8 * str, U64 length)
 {
 	return { str, length };
 }
@@ -195,6 +228,8 @@ struct StringBase
 	const C* operator*() const noexcept;
 	C& operator[](U64 i) noexcept;
 	const C& operator[](U64 i) const noexcept;
+	C& operator[](I64 i) noexcept;
+	const C& operator[](I64 i) const noexcept;
 
 	bool operator==(C* other) const noexcept;
 	bool operator==(const StringBase& other) const noexcept;
@@ -294,6 +329,7 @@ private:
 	static bool Compare(const C* a, const C* b, I64 length) noexcept;
 	static bool WhiteSpace(C c) noexcept;
 	static bool NotWhiteSpace(C c) noexcept;
+	static bool Numerical(C c) noexcept;
 
 	bool needHash{ true };
 	U64 hash{ 0 };
@@ -515,6 +551,12 @@ inline C& StringBase<C>::operator[](U64 i) noexcept { return string[i]; }
 
 template<Character C>
 inline const C& StringBase<C>::operator[](U64 i) const noexcept { return string[i]; }
+
+template<Character C>
+inline C& StringBase<C>::operator[](I64 i) noexcept { return string[i]; }
+
+template<Character C>
+inline const C& StringBase<C>::operator[](I64 i) const noexcept { return string[i]; }
 
 template<Character C>
 inline bool StringBase<C>::operator==(C* other) const noexcept
@@ -1617,11 +1659,11 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 	if (*it == StringLookup<C>::NEGATIVE_CHAR)
 	{
 		++it;
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value -= c - StringLookup<C>::ZERO_CHAR; }
+		while (Numerical(c = *it++)) { value *= 10; value -= c - StringLookup<C>::ZERO_CHAR; }
 	}
 	else
 	{
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
+		while (Numerical(c = *it++)) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 	}
 
 	return value;
@@ -1635,7 +1677,7 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 	C c;
 	Arg value = 0;
 
-	while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
+	while (Numerical(c = *it++)) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
 
 	return value;
 }
@@ -1661,15 +1703,15 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 	if (*it == StringLookup<C>::NEGATIVE_CHAR)
 	{
 		++it;
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR && c != StringLookup<C>::DECIMAL_CHAR) { value *= 10; value -= c - StringLookup<C>::ZERO_CHAR; }
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value -= (Arg)((c - StringLookup<C>::ZERO_CHAR) * mul); mul *= 0.1; }
+		while (Numerical(c = *it++)) { value *= 10; value -= c - StringLookup<C>::ZERO_CHAR; }
+		if (c == StringLookup<C>::DECIMAL_CHAR) { while (Numerical(c = *it++)) { value -= (Arg)((c - StringLookup<C>::ZERO_CHAR) * mul); mul *= 0.1; } }
 	}
 	else
 	{
 		if (*it == StringLookup<C>::POSITIVE_CHAR) { ++it; }
 
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR && c != StringLookup<C>::DECIMAL_CHAR) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
-		while (NotWhiteSpace(c = *it++) && c != StringLookup<C>::NULL_CHAR) { value += (Arg)((c - StringLookup<C>::ZERO_CHAR) * mul); mul *= 0.1; }
+		while (Numerical(c = *it++)) { value *= 10; value += c - StringLookup<C>::ZERO_CHAR; }
+		if (c == StringLookup<C>::DECIMAL_CHAR) { while (Numerical(c = *it++)) { value += (Arg)((c - StringLookup<C>::ZERO_CHAR) * mul); mul *= 0.1; } }
 	}
 
 	return value;
@@ -1792,6 +1834,12 @@ inline bool StringBase<C>::NotWhiteSpace(C c) noexcept
 {
 	return c != StringLookup<C>::SPACE && c != StringLookup<C>::HTAB && c != StringLookup<C>::VTAB &&
 		c != StringLookup<C>::NEW_LINE && c != StringLookup<C>::RETURN && c != StringLookup<C>::FEED;
+}
+
+template<Character C>
+inline bool StringBase<C>::Numerical(C c) noexcept
+{
+	return c > 47 && c < 58;
 }
 
 template<Character C>

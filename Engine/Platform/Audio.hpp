@@ -19,11 +19,6 @@ struct AudioFormat
 
 struct NH_API AudioClip : public Resource
 {
-	void Destroy() { name.Destroy(); }
-
-	String	name{};
-	U64		handle{ U64_MAX };
-
 	AudioFormat format;
 	U32			size{ 0 };
 	U8* buffer{ nullptr };
@@ -84,6 +79,7 @@ private:
 	static IXAudio2MasteringVoice* masterVoice;
 	static U32 sampleRate;
 
+	//TODO: Don't hardcode channels
 	static IXAudio2SourceVoice* musicSource;
 	static IXAudio2SubmixVoice* musicVoice;
 	static ResourceRef<AudioClip> currentMusic;

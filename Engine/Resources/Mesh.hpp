@@ -18,17 +18,17 @@ struct VertexBuffer
 
 struct NH_API Mesh : public Resource
 {
-	void Destroy() { name.Destroy(); }
-
-	String		name{};
-	HashHandle	handle;
-
 	U8* indices;
 	U32 indicesSize;
 
 	U32 vertexCount;
 
 	Vector<VertexBuffer> buffers;
+
+private:
+	U32 index{ U32_MAX };
+
+	friend struct Scene;
 };
 
 struct InstanceData
@@ -102,9 +102,6 @@ private:
 struct NH_API Model : public Resource //TODO: model instance
 {
 	void Destroy() { name.Destroy(); meshes.Destroy(); handle = U64_MAX; }
-
-	String		name{};
-	HashHandle	handle;
 
 	Vector<Matrix4> matrices;
 	Vector<MeshInstance> meshes;

@@ -17,11 +17,6 @@ struct Glyph
 
 struct Font : public Resource
 {
-	void Destroy() { name.Destroy(); }
-
-	String name{};
-	HashHandle handle;
-
 	Texture* texture{ nullptr };
 
 	F32 ascent{ 0 };

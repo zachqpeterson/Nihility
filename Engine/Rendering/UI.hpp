@@ -63,8 +63,10 @@ private:
 
 	Scene* scene{ nullptr };
 	UIElement* parent{ nullptr };
+	MeshInstanceCluster instances;
 	Vector<UIElement*> children{};
 
+	//TODO: Use function pointers
 	UIEvent OnClick;
 	UIEvent OnDrag;
 	UIEvent OnRelease;
@@ -175,8 +177,8 @@ struct CommandBuffer;
 class NH_API UI
 {
 public:
-	static const PipelineInfo& GetUIPipeline();
-	static const PipelineInfo& GetTextPipeline();
+	static PipelineInfo GetUIPipeline();
+	static PipelineInfo GetTextPipeline();
 
 	static UIElement* CreateElement(UIElementInfo& info);
 	static UIElement* CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background = nullptr, Texture* border = nullptr);
@@ -197,7 +199,6 @@ private:
 	static void Shutdown();
 
 	static void Update();
-	static void Render(CommandBuffer* commandBuffer);
 
 	static UIElement* SetupElement(const UIElementInfo& info);
 
@@ -207,14 +208,11 @@ private:
 	static Pipeline uiPipeline;
 	static Pipeline textPipeline;
 	static ResourceRef<Font> font; //TODO: This should be default font, support per-text font
-	static Buffer vertexBuffer;
-	static Buffer instanceBuffer;
-	static Buffer indexBuffer;
-	static Buffer drawsBuffer;
-	static Buffer countsBuffer;
-	static U32 vertexOffset;
-	static U32 instanceOffset;
-	static U32 drawsOffset;
+	static ResourceRef<Mesh> textMesh;
+	static ResourceRef<MaterialEffect> uiEffect;
+	static ResourceRef<MaterialEffect> textEffect;
+	static ResourceRef<Material> uiMaterial;
+	static ResourceRef<Material> textMaterial;
 
 	static U32 textInstanceCount;
 	static U32 textVertexOffset;

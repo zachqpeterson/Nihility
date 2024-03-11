@@ -1,14 +1,19 @@
 #include "Scene.hpp"
+#include "Scene.hpp"
 
 #include "Entity.hpp"
 #include "Resources.hpp"
 #include "Settings.hpp"
+#include "Mesh.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 #include "Rendering\RenderingDefines.hpp"
 #include "Core\Time.hpp"
 
-#define INSTANCE_BUFFER_SIZE sizeof(InstanceData) * MEGABYTES(1)
+Vector<VkBufferCopy>			vertexWrites[VERTEX_TYPE_COUNT - 1];
+Vector<VkBufferCopy>			indexWrites;
+Vector<VkBufferCopy>			drawWrites;
+Vector<VkBufferCopy>			countsWrites;
 
 void Scene::Create(CameraType cameraType)
 {
@@ -30,16 +35,14 @@ void Scene::Create(CameraType cameraType)
 
 	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
 	{
-		buffers.vertexBuffers[i] = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+		vertexBuffers[i] = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	}
 
 	stagingBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
-	buffers.instanceBuffer = Renderer::CreateBuffer(INSTANCE_BUFFER_SIZE, BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	buffers.indexBuffer = Renderer::CreateBuffer(MEGABYTES(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	buffers.drawBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	buffers.countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-
-	ForEach<RegisteredComponents>([this]<ComponentType Type>() { CreatePool<Type>(); }); //TODO: Create runtime typelist
+	instanceBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	indexBuffer = Renderer::CreateBuffer(MEGABYTES(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	drawBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 }
 
 void Scene::Destroy()
@@ -63,143 +66,306 @@ Entity* Scene::GetEntity(U32 id)
 	return &entities[id];
 }
 
-void Scene::AddMesh(MeshInstance& instance) //TODO: version that take a struct that contains multiple instances of one mesh
-{
-	if (loaded)
-	{
-		instance.handle = UploadMesh(instance.mesh);
-
-		MeshDraw& draw = meshDraws[instance.handle];
-		Pipeline* pipeline = instance.material->meshPipeline;
-
-		SetupDraw(pipeline, draw);
-
-		//Instance
-		instance.instanceOffset = draw.instanceCount * sizeof(InstanceData);
-
-		instanceWrites.Push(CreateWrite(pipeline->instanceOffset + draw.instanceOffset + instance.instanceOffset, 0, sizeof(InstanceData), &instance.instanceData));
-
-		++draw.instanceCount;
-	}
-}
-
-void Scene::UploadInstances(MeshInstanceCluster& instances)
-{
-	if (loaded)
-	{
-		instances.handle = UploadMesh(instances.mesh);
-
-		MeshDraw& draw = meshDraws[instances.handle];
-		Pipeline* pipeline = instances.material->meshPipeline;
-
-		SetupDraw(pipeline, draw);
-
-		//Instance
-		instances.instanceOffset = draw.instanceCount * pipeline->shader->instanceStride;
-
-		instanceWrites.Push(CreateWrite(pipeline->instanceOffset + draw.instanceOffset + instances.instanceOffset, 0, pipeline->shader->instanceStride * instances.instances.Size(), instances.instances.Data()));
-
-		draw.instanceCount += (U32)instances.instances.Size();
-	}
-}
-
-HashHandle Scene::UploadMesh(ResourceRef<Mesh>& mesh)
-{
-	U64 handle = *handles.GetInsert(mesh->handle, meshDraws.Size());
-
-	if (handle < meshDraws.Size()) { return handle; }
-
-	MeshDraw& draw = meshDraws.Push({});
-
-	if (!draw.indexCount)
-	{
-		//Indices
-		indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, mesh->indicesSize, mesh->indices));
-
-		draw.indexCount = mesh->indicesSize / sizeof(U32);
-		draw.indexOffset = indexOffset;
-		indexOffset += draw.indexCount;
-
-		//Vertices
-		draw.vertexOffset = vertexOffset / sizeof(Vector3);
-
-		U32 verticesSize = 0;
-		for (VertexBuffer& buffer : mesh->buffers)
-		{
-			verticesSize = Math::Max(verticesSize, buffer.size);
-			vertexWrites[buffer.type].Push(CreateWrite(vertexOffset, 0, buffer.size, buffer.buffer));
-		}
-
-		vertexOffset += verticesSize;
-	}
-
-	return handle;
-}
-
-void Scene::SetupDraw(Pipeline* pipeline, MeshDraw& draw)
-{
-	if (!pipeline->drawCount) //TODO: This doesn't get reset with a new scene
-	{
-		pipeline->drawSets.Push({ drawOffset, countsOffset });
-		drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
-		countsOffset += sizeof(U32);
-		pipeline->instanceOffset = instanceOffset;
-		pipeline->bufferOffsets[pipeline->instanceBuffer] = instanceOffset;
-		instanceOffset += INSTANCE_BUFFER_SIZE / 32;
-
-		Renderer::currentRendergraph->AddPreprocessing(pipeline);
-	}
-
-	if (!draw.instanceCount)
-	{
-		draw.drawOffset = pipeline->drawSets.Front().drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount;
-		draw.instanceOffset = pipeline->drawCount * pipeline->shader->instanceStride * 1024;
-
-		++pipeline->drawCount;
-
-		countsWrites.Push(CreateWrite(pipeline->drawSets.Front().countOffset, 0, sizeof(U32), &pipeline->drawCount));
-	}
-
-	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = draw.indexCount;
-	drawCommand.instanceCount = draw.instanceCount + 1;
-	drawCommand.firstIndex = draw.indexOffset;
-	drawCommand.vertexOffset = draw.vertexOffset;
-	drawCommand.firstInstance = draw.instanceOffset / pipeline->shader->instanceStride;
-
-	drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
-}
-
-void Scene::UpdateMesh(MeshInstance& instance)
-{
-	MeshDraw& draw = meshDraws[instance.handle];
-	Pipeline* pipeline = instance.material->meshPipeline;
-
-	U64 offset = pipeline->instanceOffset + draw.instanceOffset + instance.instanceOffset;
-
-	instanceWrites.Push(CreateWrite(offset, 0, pipeline->shader->instanceStride, &instance.instanceData));
-}
-
 void Scene::SetSkybox(const ResourceRef<Skybox>& skybox)
 {
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
 
-	skyboxData->skyboxIndex = (U32)skybox->texture->handle;
-	globalData->skyboxIndex = (U32)skybox->texture->handle;
+	skyboxData->skyboxIndex = (U32)skybox->texture->Handle();
+	globalData->skyboxIndex = (U32)skybox->texture->Handle();
+
+	if (!hasSkybox)
+	{
+		hasSkybox = true;
+		PushConstant pushConstant = { 0, sizeof(SkyboxData), Renderer::GetSkyboxData() };
+		ResourceRef<Pipeline> pipeline = Resources::LoadPipeline("pipelines/skybox.nhpln", 1, &pushConstant);
+
+		AddPipeline(pipeline);
+	}
 }
 
-void Scene::Load(ResourceRef<Rendergraph>& rendergraph)
+void Scene::SetPostProcessing(const PostProcessData& data)
+{
+	Memory::Copy(Renderer::GetPostProcessData(), &data, sizeof(PostProcessData));
+
+	if (!hasPostProcessing)
+	{
+		hasPostProcessing = true;
+		PushConstant pushConstant = { 0, sizeof(PostProcessData), Renderer::GetPostProcessData() };
+		ResourceRef<Pipeline> pipeline = Resources::LoadPipeline("pipelines/postProcess.nhpln", 1, &pushConstant);
+		pipeline->AddDescriptor({ Renderer::defaultRenderTarget->imageView, IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, Renderer::defaultRenderTarget->sampler.vkSampler });
+
+		AddPipeline(pipeline);
+	}
+}
+
+void Scene::AddMesh(ResourceRef<Mesh>& mesh)
+{
+	if (mesh->index != U32_MAX) { return; }
+
+	mesh->index = (U32)meshDraws.Size();
+	MeshDraw& draw = meshDraws.Push({});
+
+	//Indices
+	indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, mesh->indicesSize, mesh->indices));
+
+	draw.indexCount = mesh->indicesSize / sizeof(U32);
+	draw.indexOffset = indexOffset;
+	indexOffset += draw.indexCount;
+
+	//Vertices
+	draw.vertexOffset = vertexOffset / sizeof(Vector3);
+
+	U32 verticesSize = 0;
+	for (VertexBuffer& buffer : mesh->buffers)
+	{
+		verticesSize = Math::Max(verticesSize, buffer.size);
+		vertexWrites[buffer.type].Push(CreateWrite(vertexOffset, 0, buffer.size, buffer.buffer));
+	}
+
+	vertexOffset += verticesSize;
+}
+
+void Scene::AddInstance(MeshInstance& instance)
+{
+	AddMesh(instance.mesh);
+
+	MeshDraw& draw = meshDraws[instance.mesh->index];
+
+	bool first = true;
+
+	for (ResourceRef<Pipeline>& pipeline : instance.material->effect->processing)
+	{
+		AddPipeline(pipeline);
+
+		if (!pipeline->drawCount)
+		{
+			pipeline->drawOffset = drawOffset;
+			pipeline->countOffset = countsOffset;
+			drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
+			countsOffset += sizeof(U32);
+		}
+
+		if (!draw.instanceCount)
+		{
+			draw.drawOffset = pipeline->drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount;
+			++pipeline->drawCount;
+
+			countsWrites.Push(CreateWrite(pipeline->countOffset, 0, sizeof(U32), &pipeline->drawCount));
+
+			if (first)
+			{
+				first = false;
+				draw.instanceOffset = (U32)NextMultipleOf(instanceOffset, pipeline->instanceStride);
+				instanceOffset += pipeline->instanceStride * 1024;
+			}
+		}
+
+		VkDrawIndexedIndirectCommand drawCommand{};
+		drawCommand.indexCount = draw.indexCount;
+		drawCommand.instanceCount = draw.instanceCount + 1;
+		drawCommand.firstIndex = draw.indexOffset;
+		drawCommand.vertexOffset = draw.vertexOffset;
+		drawCommand.firstInstance = draw.instanceOffset / pipeline->instanceStride;
+
+		drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
+	}
+
+	ResourceRef<Pipeline>& pipeline = instance.material->effect->processing[0];
+
+	instance.instanceOffset = draw.instanceOffset + draw.instanceCount * pipeline->instanceStride;
+
+	VkBufferCopy region{};
+	region.dstOffset = instance.instanceOffset;
+	region.size = pipeline->instanceStride;
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(instanceBuffer, region.size, instance.instanceData.data, 1, &region);
+
+	++draw.instanceCount;
+}
+
+void Scene::UpdateInstance(MeshInstance& instance)
+{
+	ResourceRef<Pipeline>& pipeline = instance.material->effect->processing[0];
+
+	VkBufferCopy region{};
+	region.dstOffset = instance.instanceOffset;
+	region.size = pipeline->instanceStride;
+	region.srcOffset = 0;
+
+	Renderer::FillBuffer(instanceBuffer, region.size, instance.instanceData.data, 1, &region);
+}
+
+void Scene::AddPipeline(ResourceRef<Pipeline>& pipeline)
+{
+	if (!pipeline->loaded)
+	{
+		pipeline->loaded = true;
+		U32 i = 0;
+		for (const ResourceRef<Pipeline>& p : pipelines)
+		{
+			if (p == pipeline) { return; }
+
+			if (pipeline->renderOrder <= p->renderOrder) { break; }
+
+			++i;
+		}
+
+		pipeline->SetBuffers(vertexBuffers, instanceBuffer);
+
+		if (loaded) { BreakPoint; } //TODO: runtime renderpass edits
+
+		pipelines.Insert(i, pipeline);
+	}
+}
+
+void Scene::Load()
 {
 	if (!loaded)
 	{
-		loaded = true;
-
-		rendergraph->SetBuffers(buffers);
-
 		for (ComponentPool* pool : componentPools)
 		{
 			pool->Load(this);
+		}
+
+		loaded = true;
+
+		U32 renderpass = 0;
+		U32 subpass = 0;
+		bool first = true;
+		
+		RenderpassInfo renderpassInfos[8];
+		
+		for (ResourceRef<Pipeline>& pipeline : pipelines)
+		{
+			//TODO: Maybe only need to check if we need MORE rendertargets, not if the count doesn't match
+			if (first || pipeline->clearTypes || (pipeline->sizeX && (pipeline->sizeX != renderpassInfos[renderpass].renderArea.extent.x || pipeline->sizeY != renderpassInfos[renderpass].renderArea.extent.y)) ||
+				pipeline->outputCount != renderpassInfos[renderpass].renderTargetCount || (pipeline->depthEnable && !renderpassInfos[renderpass].depthStencilTarget))
+			{
+				if (!first) { ++renderpass; }
+		
+				subpass = 0;
+		
+				RenderpassInfo& renderpassInfo = renderpassInfos[renderpass];
+		
+				renderpassInfo.Reset();
+				renderpassInfo.name = name + "_renderpass" + renderpass;
+				renderpassInfo.resize = pipeline->sizeX;
+		
+				if (renderpassInfo.resize)
+				{
+					TextureInfo textureInfo{};
+					textureInfo.width = pipeline->sizeX;
+					textureInfo.height = pipeline->sizeY;
+					textureInfo.depth = 1;
+					textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+					textureInfo.type = VK_IMAGE_TYPE_2D;
+
+					String n = renderpassInfo.name + "_render_target";
+					renderpassInfo.renderArea = { { 0, 0 }, { pipeline->sizeX, pipeline->sizeY } };
+
+					for (U32 i = 0; i < pipeline->outputCount; ++i)
+					{
+						textureInfo.name = n + i;
+						textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+						renderpassInfo.AddRenderTarget(Resources::CreateTexture(textureInfo));
+					}
+
+					if (pipeline->depthEnable)
+					{
+						textureInfo.name = renderpassInfo.name + "_depth_target";
+						textureInfo.format = VK_FORMAT_D32_SFLOAT;
+
+						renderpassInfo.SetDepthStencilTarget(Resources::CreateTexture(textureInfo));
+					}
+				}
+				else
+				{
+					if (pipeline->outputCount)
+					{
+						renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
+
+						TextureInfo textureInfo{};
+						textureInfo.width = Settings::WindowWidth();
+						textureInfo.height = Settings::WindowHeight();
+						textureInfo.depth = 1;
+						textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+						textureInfo.type = VK_IMAGE_TYPE_2D;
+						textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+						String n = "default_render_target";
+
+						for (U32 i = 1; i < pipeline->outputCount; ++i)
+						{
+							textureInfo.name = n + i;
+
+							renderpassInfo.AddRenderTarget(Resources::CreateTexture(textureInfo));
+						}
+					}
+		
+					if (pipeline->depthEnable) { renderpassInfo.SetDepthStencilTarget(Renderer::defaultDepthTarget); }
+		
+					renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
+				}
+		
+				renderpassInfo.colorLoadOp = pipeline->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
+				renderpassInfo.depthLoadOp = pipeline->clearTypes & CLEAR_TYPE_DEPTH ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
+		
+				renderpassInfo.subpassCount = 1;
+		
+				//if (pipeline->subpass.inputAttachmentCount) { Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!"); } //TODO
+			}
+		
+			pipeline->renderpassIndex = renderpass;
+		
+			if (pipeline->subpass.inputAttachmentCount)
+			{
+				++subpass;
+		
+				renderpassInfos[renderpass].AddSubpass(pipeline->subpass);
+			}
+		
+			pipeline->subpassIndex = subpass;
+		
+			first = false;
+		}
+		
+		Renderpass* prevRenderpass = nullptr;
+
+		for (ResourceRef<Pipeline>& pipeline : pipelines)
+		{
+			for (U8 i = 0; i < pipeline->dependancyCount; ++i)
+			{
+				Dependancy& dependancy = pipeline->dependancies[i];
+				dependancy.descriptor = pipeline->descriptorCount;
+
+				switch (dependancy.type)
+				{
+				case DEPENDANCY_RENDER_TARGET: {
+					ResourceRef<Texture>& target = renderpassInfos[dependancy.pipeline->renderpassIndex].renderTargets[dependancy.index];
+					target->flags |= TEXTURE_FLAG_RENDER_SAMPLED;
+					pipeline->AddDescriptor({ target });
+				} break;
+				case DEPENDANCY_DEPTH_TARGET: {
+					ResourceRef<Texture>& target = renderpassInfos[dependancy.pipeline->renderpassIndex].depthStencilTarget;
+					target->flags |= TEXTURE_FLAG_RENDER_SAMPLED;
+					pipeline->AddDescriptor({ target });
+				} break;
+				}
+			}
+		}
+		
+		for (U32 i = 0; i <= renderpass; ++i)
+		{
+			Renderpass* renderpass = &renderpasses.Push({});
+			Renderer::CreateRenderpass(renderpass, renderpassInfos[i], prevRenderpass);
+			prevRenderpass = renderpass;
+		}
+
+		for (ResourceRef<Pipeline>& pipeline : pipelines)
+		{
+			pipeline->Build(&renderpasses[pipeline->renderpassIndex]);
 		}
 	}
 }
@@ -212,10 +378,10 @@ void Scene::Unload()
 	}
 }
 
-F32 lightVal = 0.0f;
-
 void Scene::Update()
 {
+	static F32 lightVal = 0.0f;
+
 	for (ComponentPool* pool : componentPools)
 	{
 		pool->Update(this);
@@ -224,8 +390,6 @@ void Scene::Update()
 	ShadowData* shadowData = Renderer::GetShadowData();
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
-	PostProcessData* postProcessData = Renderer::GetPostProcessData();
-	postProcessData->saturation = 1.0f;
 
 	lightVal += (F32)Time::DeltaTime();
 
@@ -265,7 +429,7 @@ void Scene::Update()
 
 	if (indexWrites.Size())
 	{
-		Renderer::FillBuffer(buffers.indexBuffer, stagingBuffer, (U32)indexWrites.Size(), indexWrites.Data());
+		Renderer::FillBuffer(indexBuffer, stagingBuffer, (U32)indexWrites.Size(), indexWrites.Data());
 		indexWrites.Clear();
 	}
 
@@ -275,30 +439,71 @@ void Scene::Update()
 
 		if (writes.Size())
 		{
-			Renderer::FillBuffer(buffers.vertexBuffers[i], stagingBuffer, (U32)writes.Size(), writes.Data());
+			Renderer::FillBuffer(vertexBuffers[i], stagingBuffer, (U32)writes.Size(), writes.Data());
 			writes.Clear();
 		}
 	}
 
 	if (countsWrites.Size())
 	{
-		Renderer::FillBuffer(buffers.countsBuffer, stagingBuffer, (U32)countsWrites.Size(), countsWrites.Data());
+		Renderer::FillBuffer(countsBuffer, stagingBuffer, (U32)countsWrites.Size(), countsWrites.Data());
 		countsWrites.Clear();
 	}
 
 	if (drawWrites.Size())
 	{
-		Renderer::FillBuffer(buffers.drawBuffer, stagingBuffer, (U32)drawWrites.Size(), drawWrites.Data());
+		Renderer::FillBuffer(drawBuffer, stagingBuffer, (U32)drawWrites.Size(), drawWrites.Data());
 		drawWrites.Clear();
 	}
 
-	if (instanceWrites.Size())
+	stagingBuffer.allocationOffset = 0;
+}
+
+void Scene::Render(CommandBuffer* commandBuffer)
+{
+	U32 renderpass = U32_MAX;
+	U32 subpass = 0;
+
+	for (ResourceRef<Pipeline>& pipeline : pipelines)
 	{
-		Renderer::FillBuffer(buffers.instanceBuffer, stagingBuffer, (U32)instanceWrites.Size(), instanceWrites.Data());
-		instanceWrites.Clear();
+		if (pipeline->renderpassIndex != renderpass)
+		{
+			if (renderpass != U32_MAX)
+			{
+				commandBuffer->EndRenderpass();
+
+				if (renderpasses[renderpass].depthStencilTarget && renderpasses[renderpass].depthStencilTarget->flags & TEXTURE_FLAG_RENDER_SAMPLED)
+				{
+					VkImageMemoryBarrier2 barrier = Renderer::ImageBarrier(renderpasses[renderpass].depthStencilTarget->image, 
+						VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+				
+					commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &barrier);
+				}
+			}
+
+			commandBuffer->BeginRenderpass(&renderpasses[pipeline->renderpassIndex]);
+			renderpass = pipeline->renderpassIndex;
+			subpass = 0;
+		}
+		else if (pipeline->subpassIndex != subpass)
+		{
+			commandBuffer->NextSubpass();
+			subpass = pipeline->subpassIndex;
+		}
+
+		pipeline->Run(commandBuffer, indexBuffer, drawBuffer, countsBuffer);
 	}
 
-	stagingBuffer.allocationOffset = 0;
+	commandBuffer->EndRenderpass();
+}
+
+void Scene::Resize()
+{
+	for (Renderpass& renderpass : renderpasses)
+	{
+		Renderer::RecreateRenderpass(&renderpass);
+	}
 }
 
 VkBufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data)

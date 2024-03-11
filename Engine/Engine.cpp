@@ -68,6 +68,7 @@ void Engine::Shutdown()
 	//Particles
 	//Physics
 	UI::Shutdown();
+	Resources::Shutdown();
 	Renderer::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();

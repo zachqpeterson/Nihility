@@ -88,6 +88,11 @@ public:
 	/// </summary>
 	void Destroy();
 
+	/// <summary>
+	/// Checks if T is Destroyable, if it is, this will call Destroy on all objects inside
+	/// </summary>
+	void Cleanup();
+
 
 
 	/// <summary>
@@ -495,6 +500,17 @@ template<typename T> inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) n
 template<typename T> inline Vector<T>::~Vector() { Destroy(); }
 
 template<typename T> inline void Vector<T>::Destroy() { size = 0; capacity = 0; Memory::Free(&array); }
+
+template<typename T> inline void Vector<T>::Cleanup()
+{
+	if constexpr (IsDestroyable<T>)
+	{
+		for (T* t = array, *end = array + size; t != end; ++t)
+		{
+			t->Destroy();
+		}
+	}
+} 
 
 template<typename T> inline T& Vector<T>::Push(const T& value)
 {

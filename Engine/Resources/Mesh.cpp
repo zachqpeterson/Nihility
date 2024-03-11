@@ -11,7 +11,7 @@ void MeshComponent::Update(Scene* scene)
 
 		Memory::Copy(meshInstance.instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
-		scene->UpdateMesh(meshInstance);
+		scene->UpdateInstance(meshInstance);
 	}
 }
 
@@ -23,7 +23,7 @@ void MeshComponent::Load(Scene* scene)
 
 		Memory::Copy(meshInstance.instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
-		scene->AddMesh(meshInstance);
+		scene->AddInstance(meshInstance);
 	}
 }
 
@@ -37,7 +37,7 @@ void ModelComponent::Update(Scene* scene)
 
 			Memory::Copy(model->meshes[i].instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
-			scene->UpdateMesh(model->meshes[i]);
+			scene->UpdateInstance(model->meshes[i]);
 		}
 	}
 }
@@ -52,7 +52,7 @@ void ModelComponent::Load(Scene* scene)
 
 			Memory::Copy(model->meshes[i].instanceData.data + sizeof(U32), &mat, sizeof(Matrix4));
 
-			scene->AddMesh(model->meshes[i]);
+			scene->AddInstance(model->meshes[i]);
 		}
 	}
 }

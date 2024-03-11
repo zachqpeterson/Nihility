@@ -35,7 +35,6 @@ enum NH_API PipelineType
 	PIPELINE_TYPE_UI = 0x40,
 
 	PIPELINE_TYPE_COUNT,
-	PIPELINE_TYPE_DEFAULT = 0x8000,
 };
 
 enum NH_API TextureFlag
@@ -69,9 +68,9 @@ enum VertexType
 	VERTEX_TYPE_COLOR,
 	VERTEX_TYPE_COMBINED,
 
-	VERTEX_TYPE_INSTANCE,
+	VERTEX_TYPE_COUNT,
 
-	VERTEX_TYPE_COUNT
+	VERTEX_TYPE_INSTANCE
 };
 
 #pragma region VulkanEnums
@@ -572,11 +571,22 @@ struct VmaAllocation_T;
 
 struct NH_API Resource
 {
+public:
+	void Destroy() { name.Destroy(); handle = U64_MAX; }
+
+	const String& Name() const { return name; }
+	const HashHandle& Handle() const { return handle; }
+
+protected:
+	String				name{};
+	HashHandle			handle{ U64_MAX };
+
 private:
 	U64 refCount{ 0 };
 
 	template<class Type>
 	friend struct ResourceRef;
+	friend class Resources;
 };
 
 template<class Type>
@@ -610,6 +620,9 @@ struct ResourceRef
 
 		return *this;
 	}
+
+	bool operator==(const ResourceRef& other) const { return value == other.value; }
+	bool operator!=(const ResourceRef& other) const { return value != other.value; }
 
 	Type& operator*() { return *value; }
 	Type* operator->() { return value; }
@@ -665,11 +678,6 @@ struct NH_API SamplerInfo
 
 struct NH_API Texture : public Resource
 {
-	void Destroy() { name.Destroy(); handle = U64_MAX; }
-
-	String				name{ };
-	HashHandle			handle{ U64_MAX };
-
 	U32					size{ 0 };
 	U16					width{ 1 };
 	U16					height{ 1 };
@@ -813,11 +821,6 @@ struct NH_API PushConstant
 
 struct NH_API Skybox : public Resource
 {
-	void Destroy() { name.Destroy(); handle = U64_MAX; }
-
-	String      name{};
-	HashHandle	handle;
-
 	ResourceRef<Texture> texture;
 
 	friend struct ResourceRef<Skybox>;
@@ -855,15 +858,6 @@ struct NH_API SkyboxData
 struct NH_API ShadowData
 {
 	Matrix4 depthViewProjection;
-};
-
-struct BufferData
-{
-	Buffer vertexBuffers[VERTEX_TYPE_COUNT - 1];
-	Buffer instanceBuffer;
-	Buffer indexBuffer;
-	Buffer drawBuffer;
-	Buffer countsBuffer;
 };
 
 struct NH_API Camera

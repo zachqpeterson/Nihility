@@ -3,7 +3,6 @@
 #include "ResourceDefines.hpp"
 
 #include "Component.hpp"
-#include "Scene.hpp"
 #include "Math\Math.hpp"
 
 struct NH_API Transform
@@ -63,44 +62,3 @@ private:
 	Matrix4 worldMatrix{ Matrix4Identity };
 };
 
-struct Scene;
-
-struct NH_API Entity
-{
-public:
-	Entity(Entity&& other) noexcept : transform{ other.transform }, scene{ other.scene }, entityID{ other.entityID }, references{ Move(references) } {}
-	Entity& operator=(Entity&& other) noexcept
-	{
-		transform = other.transform;
-		scene = other.scene;
-		entityID = other.entityID;
-		references = Move(references);
-
-		return *this;
-	}
-
-	template<ComponentType Type, typename... Args>
-	Type* AddComponent(Args&&... args) noexcept
-	{
-		ComponentReference reference;
-		Type* component = scene->AddComponent<Type>(reference, args...);
-		component->entityID = entityID;
-		references.Push(reference);
-
-		return component;
-	}
-
-	Transform transform{};
-
-private:
-	Entity(Scene* scene, U32 id) : scene{ scene }, entityID{ id } {}
-
-	Scene* scene;
-	U32 entityID;
-	Vector<ComponentReference> references{};
-
-	Entity(const Entity&) = delete;
-	Entity& operator=(const Entity&) = delete;
-
-	friend struct Scene;
-};

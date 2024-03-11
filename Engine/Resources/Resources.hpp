@@ -4,6 +4,7 @@
 
 #include "Containers\Hashmap.hpp"
 #include "Containers\Queue.hpp"
+#include "Material.hpp"
 
 struct Font;
 struct AudioClip;
@@ -22,6 +23,7 @@ struct Model;
 struct Mesh;
 struct Scene;
 struct Shader;
+struct Pipeline;
 struct Material;
 struct MaterialData;
 struct MaterialInfo;
@@ -34,8 +36,9 @@ class NH_API Resources
 public:
 	static ResourceRef<Texture> CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo = {});
 	static ResourceRef<Texture> CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
-	static ResourceRef<Shader> CreateShader(const String& name, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
-	static ResourceRef<Rendergraph> CreateRendergraph(RendergraphInfo& info);
+	static ResourceRef<Shader> CreateShader(const String& name); //TODO: Load instead of create
+	static ResourceRef<MaterialEffect> CreateMaterialEffect(const String& name, Vector<ResourceRef<Pipeline>>&& pipelines);
+	static ResourceRef<MaterialEffect> CreateMaterialEffect(const String& name, const Vector<ResourceRef<Pipeline>>& pipelines);
 	static ResourceRef<Material> CreateMaterial(MaterialInfo& info);
 	static ResourceRef<Mesh> CreateMesh(const String& name);
 	static Scene* CreateScene(const String& name, CameraType cameraType);
@@ -47,6 +50,8 @@ public:
 	static ResourceRef<AudioClip> LoadAudio(const String& path);
 	static ResourceRef<Texture> LoadTexture(const String& path);
 	static ResourceRef<Skybox> LoadSkybox(const String& path);
+	static ResourceRef<Shader> LoadShader(const String& path, ShaderStageType stage);
+	static ResourceRef<Pipeline> LoadPipeline(const String& path, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
 	static ResourceRef<Material> LoadMaterial(const String& path);
 	static ResourceRef<Mesh> LoadMesh(const String& path);
 	static ResourceRef<Model> LoadModel(const String& path);
@@ -60,6 +65,8 @@ public:
 
 	static ResourceRef<Texture> GetTexture(const String& name);
 	static ResourceRef<Texture> GetTexture(HashHandle handle);
+	static ResourceRef<MaterialEffect> GetMaterialEffect(const String& name);
+	static ResourceRef<MaterialEffect> GetMaterialEffect(HashHandle handle);
 
 	static void DestroyBinary(Binary& binary);
 
@@ -99,13 +106,17 @@ private:
 	static Hashmap<String, Font>			fonts;
 	static Hashmap<String, AudioClip>		audioClips;
 	static Hashmap<String, Shader>			shaders;
-	static Hashmap<String, Rendergraph>		rendergraphs;
+	static Hashmap<String, Pipeline>		pipelines;
+	static Hashmap<String, MaterialEffect>	materialEffects;
 	static Hashmap<String, Material>		materials;
 	static Hashmap<String, Mesh>			meshes;
 	static Hashmap<String, Model>			models;
 	static Hashmap<String, Scene>			scenes;
 
 	static Queue<ResourceUpdate>			bindlessTexturesToUpdate;
+
+	static MaterialEffect					pbrOpaque;
+	static MaterialEffect					pbrTransparent;
 
 	STATIC_CLASS(Resources);
 	friend class Renderer;

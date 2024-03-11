@@ -1,0 +1,9 @@
+vertex=shaders/PbrVert.nhshd
+fragment=shaders/PbrFrag.nhshd
+cull=NONE
+front=COUNTER
+fill=SOLID
+depth=LESS
+blend=ADD
+type=MESH_TRANSPARENT
+renderOrder=20

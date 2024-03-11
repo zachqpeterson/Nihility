@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Defines.hpp"
+#include "Introspection.hpp"
+#include "Containers\Hashmap.hpp"
+#include "Containers\String.hpp"
 
 struct Scene;
 

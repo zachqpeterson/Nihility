@@ -232,9 +232,6 @@
     <ClInclude Include="Engine\Resources\Component.hpp">
       <Filter>Source Files\Resources\Entities\Components</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Resources\ComponentRegistry.hpp">
-      <Filter>Source Files\Resources\Entities\Components</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\External\Discord\voice_manager.h">
       <Filter>Source Files\External\Discord</Filter>
     </ClInclude>

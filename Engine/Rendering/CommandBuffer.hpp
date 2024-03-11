@@ -17,10 +17,12 @@ struct VkBufferImageCopy;
 struct VkBufferCopy;
 struct VkImageCopy;
 struct VkImageBlit;
+struct VkPipelineLayout_T;
 struct VkBufferMemoryBarrier2;
 struct VkImageMemoryBarrier2;
 enum VkFilter;
 enum VkResult;
+enum VkPipelineBindPoint;
 
 struct CommandBuffer
 {
@@ -34,12 +36,12 @@ struct CommandBuffer
 	void EndRenderpass();
 
 	void BindPipeline(const Pipeline* pipeline);
-	void BindIndexBuffer(const ResourceRef<Shader>& shader, VkBuffer_T* buffer, U64 offset);
-	void BindVertexBuffers(const ResourceRef<Shader>& shader, U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets);
-	void BindDescriptorSets(const ResourceRef<Shader>& shader, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
+	void BindIndexBuffer(VkBuffer_T* buffer, U64 offset);
+	void BindVertexBuffers(U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets);
+	void BindDescriptorSets(VkPipelineBindPoint bindPoint, VkPipelineLayout_T* pipelineLayout, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets);
 
 	void PushDescriptors();
-	void PushConstants(const ResourceRef<Shader>& shader, U32 offset, U32 size, const void* data);
+	void PushConstants(VkPipelineLayout_T* pipelineLayout, U32 stages, U32 offset, U32 size, const void* data);
 
 	void Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount);
 	void DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance);

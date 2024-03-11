@@ -86,33 +86,33 @@ enum CompareOp
 
 enum ShaderStageType
 {
-	SHADER_STAGE_TYPE_VERTEX_BIT = 0x00000001,
-	SHADER_STAGE_TYPE_TESSELLATION_CONTROL_BIT = 0x00000002,
-	SHADER_STAGE_TYPE_TESSELLATION_EVALUATION_BIT = 0x00000004,
-	SHADER_STAGE_TYPE_GEOMETRY_BIT = 0x00000008,
-	SHADER_STAGE_TYPE_FRAGMENT_BIT = 0x00000010,
-	SHADER_STAGE_TYPE_COMPUTE_BIT = 0x00000020,
-	SHADER_STAGE_TYPE_ALL_GRAPHICS = 0x0000001F,
-	SHADER_STAGE_TYPE_ALL = 0x7FFFFFFF,
-	SHADER_STAGE_TYPE_RAYGEN_BIT_KHR = 0x00000100,
-	SHADER_STAGE_TYPE_ANY_HIT_BIT_KHR = 0x00000200,
-	SHADER_STAGE_TYPE_CLOSEST_HIT_BIT_KHR = 0x00000400,
-	SHADER_STAGE_TYPE_MISS_BIT_KHR = 0x00000800,
-	SHADER_STAGE_TYPE_INTERSECTION_BIT_KHR = 0x00001000,
-	SHADER_STAGE_TYPE_CALLABLE_BIT_KHR = 0x00002000,
-	SHADER_STAGE_TYPE_TASK_BIT_EXT = 0x00000040,
-	SHADER_STAGE_TYPE_MESH_BIT_EXT = 0x00000080,
-	SHADER_STAGE_TYPE_SUBPASS_SHADING_BIT_HUAWEI = 0x00004000,
-	SHADER_STAGE_TYPE_CLUSTER_CULLING_BIT_HUAWEI = 0x00080000,
-	SHADER_STAGE_TYPE_RAYGEN_BIT_NV = SHADER_STAGE_TYPE_RAYGEN_BIT_KHR,
-	SHADER_STAGE_TYPE_ANY_HIT_BIT_NV = SHADER_STAGE_TYPE_ANY_HIT_BIT_KHR,
-	SHADER_STAGE_TYPE_CLOSEST_HIT_BIT_NV = SHADER_STAGE_TYPE_CLOSEST_HIT_BIT_KHR,
-	SHADER_STAGE_TYPE_MISS_BIT_NV = SHADER_STAGE_TYPE_MISS_BIT_KHR,
-	SHADER_STAGE_TYPE_INTERSECTION_BIT_NV = SHADER_STAGE_TYPE_INTERSECTION_BIT_KHR,
-	SHADER_STAGE_TYPE_CALLABLE_BIT_NV = SHADER_STAGE_TYPE_CALLABLE_BIT_KHR,
-	SHADER_STAGE_TYPE_TASK_BIT_NV = SHADER_STAGE_TYPE_TASK_BIT_EXT,
-	SHADER_STAGE_TYPE_MESH_BIT_NV = SHADER_STAGE_TYPE_MESH_BIT_EXT,
-	SHADER_STAGE_TYPE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+	SHADER_STAGE_VERTEX_BIT = 0x00000001,
+	SHADER_STAGE_TESSELLATION_CONTROL_BIT = 0x00000002,
+	SHADER_STAGE_TESSELLATION_EVALUATION_BIT = 0x00000004,
+	SHADER_STAGE_GEOMETRY_BIT = 0x00000008,
+	SHADER_STAGE_FRAGMENT_BIT = 0x00000010,
+	SHADER_STAGE_COMPUTE_BIT = 0x00000020,
+	SHADER_STAGE_ALL_GRAPHICS = 0x0000001F,
+	SHADER_STAGE_ALL = 0x7FFFFFFF,
+	SHADER_STAGE_RAYGEN_BIT_KHR = 0x00000100,
+	SHADER_STAGE_ANY_HIT_BIT_KHR = 0x00000200,
+	SHADER_STAGE_CLOSEST_HIT_BIT_KHR = 0x00000400,
+	SHADER_STAGE_MISS_BIT_KHR = 0x00000800,
+	SHADER_STAGE_INTERSECTION_BIT_KHR = 0x00001000,
+	SHADER_STAGE_CALLABLE_BIT_KHR = 0x00002000,
+	SHADER_STAGE_TASK_BIT_EXT = 0x00000040,
+	SHADER_STAGE_MESH_BIT_EXT = 0x00000080,
+	SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI = 0x00004000,
+	SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI = 0x00080000,
+	SHADER_STAGE_RAYGEN_BIT_NV = SHADER_STAGE_RAYGEN_BIT_KHR,
+	SHADER_STAGE_ANY_HIT_BIT_NV = SHADER_STAGE_ANY_HIT_BIT_KHR,
+	SHADER_STAGE_CLOSEST_HIT_BIT_NV = SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	SHADER_STAGE_MISS_BIT_NV = SHADER_STAGE_MISS_BIT_KHR,
+	SHADER_STAGE_INTERSECTION_BIT_NV = SHADER_STAGE_INTERSECTION_BIT_KHR,
+	SHADER_STAGE_CALLABLE_BIT_NV = SHADER_STAGE_CALLABLE_BIT_KHR,
+	SHADER_STAGE_TASK_BIT_NV = SHADER_STAGE_TASK_BIT_EXT,
+	SHADER_STAGE_MESH_BIT_NV = SHADER_STAGE_MESH_BIT_EXT,
+	SHADER_STAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 };
 
 enum PipelineBindPoint
@@ -137,6 +137,7 @@ struct VkSampler_T;
 struct VkImageView_T;
 struct VkDescriptorSetLayout_T;
 struct VkDescriptorUpdateTemplate_T;
+struct VkDescriptorSetLayoutBinding;
 enum VkShaderStageFlagBits;
 
 struct NH_API Descriptor
@@ -175,87 +176,33 @@ struct StencilOperationState
 	U32			reference{ 0xff };
 };
 
-struct ShaderStage
-{
-	String			entryPoint{};
-	ShaderStageType	stage{ SHADER_STAGE_TYPE_FLAG_BITS_MAX_ENUM };
-
-	bool			usePushConstants{ false };
-};
-
-struct DescriptorSetLayout;
-struct Descriptor;
-struct CommandBuffer;
-struct VkPipelineLayout_T;
 struct VkDescriptorPool_T;
 struct VkDescriptorSet_T;
 struct VkDescriptorSetLayout_T;
 struct VkPushConstantRange;
 struct VkPipelineShaderStageCreateInfo;
-struct VkGraphicsPipelineCreateInfo;
 struct VkPipelineVertexInputStateCreateInfo;
-struct VkPipelineColorBlendStateCreateInfo;
-struct VkComputePipelineCreateInfo;
-struct Specialization;
 struct ShaderInfo;
 
 struct NH_API Shader : public Resource
 {
-	bool Create(const String& shaderPath, U8 pushConstantCount, PushConstant* pushConstants);
+	bool Create(const String& shaderPath);
 	void Destroy();
 
-	void FillOutShaderInfo(VkGraphicsPipelineCreateInfo& pipelineInfo, VkPipelineVertexInputStateCreateInfo& vertexInput,
-		VkPipelineColorBlendStateCreateInfo& colorBlending, const Specialization* specialization);
-	void FillOutShaderInfo(VkComputePipelineCreateInfo& pipelineInfo, const Specialization* specialization);
-
-	void AddDescriptor(const Descriptor& descriptor);
-	void PushDescriptors(CommandBuffer* commandBuffer);
-
-	String								name{};
-	U64									handle{ U64_MAX };
-
 	String								entryPoint;
-	PipelineBindPoint					bindPoint{ PIPELINE_BIND_POINT_MAX_ENUM };
-	VkPipelineLayout_T* pipelineLayout{ nullptr };
-	ShaderStage							stages[MAX_SHADER_STAGES]{};
+	ShaderStageType						stage{ SHADER_STAGE_FLAG_BITS_MAX_ENUM };
 
-	U32									pushConstantStages{ 0 }; //VkShaderStageFlags
-	PushConstant						pushConstants[MAX_PUSH_CONSTANTS]{};
-	U8									pushConstantCount{ 0 };
-
-	DescriptorSetLayout* setLayout{};
-	Descriptor							descriptors[MAX_DESCRIPTORS_PER_SET]; //TODO: Descriptors should probably be per-pipeline
-	U8									descriptorCount{ 0 };
-	bool								useSet0{ false };
 	bool								useBindless{ false };
+	bool								useVertices{ false };
+	bool								useInstancing{ false };
+	bool								usePushConstants{ false };
 
 	//Graphics
-	StencilOperationState				front{};
-	StencilOperationState				back{};
-	CompareOp							depthComparison{ COMPARE_OP_ALWAYS };
-	bool								depthEnable{ false };
-	bool								depthWriteEnable{ false };
-	bool								stencilEnable{ false };
-	bool								depthBiasEnable{ false };
-	F32									depthBiasConstant{ 0.0f };
-	F32									depthBiasSlope{ 0.0f };
-	F32									depthBiasClamp{ 0.0f };
-
-	I32									clearTypes{ 0 };
-	TopologyMode						topologyMode{ TOPOLOGY_MODE_TRIANGLE_LIST };
-	CullMode							cullMode{ CULL_MODE_NONE };
-	FrontFaceMode						frontMode{ FRONT_FACE_MODE_COUNTER_CLOCKWISE };
-	PolygonMode							fillMode{ POLYGON_MODE_FILL };
-
-	bool								useVertices{ true };
-	bool								useInstancing{ false };
-	bool								useIndexing{ true };
 	U8									vertexBindingCount{ 0 };
 	VertexType							vertexTypes[8];
 	U8									instanceBinding{ U8_MAX };
 	U8									instanceLocation{ U8_MAX };
 	U32									instanceStride{ 0 };
-	U32									vertexCount{ 0 };
 
 	U8									outputCount{ 0 };
 	Subpass								subpass{};
@@ -266,10 +213,12 @@ struct NH_API Shader : public Resource
 	U32									localSizeZ{ 1 };
 
 private:
-	bool ParseConfig(const String& data, I64& index);
-	bool ParseStage(const String& data, I64& index, VkShaderStageFlagBits stage);
-	VkPipelineShaderStageCreateInfo CompileShader(ShaderStage& shaderStage, String& code, const String& name);
-	VkPipelineShaderStageCreateInfo ParseSPIRV(U32* code, U32 codeSize, ShaderStage& stage);
+	void CompileShader(String& code);
+	void ParseSPIRV(U32* code, U32 codeSize);
+	VkPipelineShaderStageCreateInfo& GetShaderInfo();
+	void FillOutVertexInfo(VkPipelineVertexInputStateCreateInfo& info);
+	U8 GetBindingCount() const;
+	VkDescriptorSetLayoutBinding GetBinding(U8 i) const;
 
 	static const String& ToStageDefines(VkShaderStageFlagBits value);
 	static const String& ToCompilerExtension(VkShaderStageFlagBits value);
@@ -279,15 +228,15 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static VkDescriptorSetLayout_T* dummyDescriptorSetLayout;
+	static VkDescriptorSetLayout_T*			dummyDescriptorSetLayout;
 
-	static Pool<DescriptorSetLayout, 256>	descriptorSetLayouts;
-	static VkDescriptorPool_T* bindlessDescriptorPool;
-	static VkDescriptorSet_T* bindlessDescriptorSet;
-	static DescriptorSetLayout* bindlessDescriptorSetLayout;
+	static VkDescriptorPool_T*				bindlessDescriptorPool;
+	static VkDescriptorSet_T*				bindlessDescriptorSet;
+	static VkDescriptorSetLayout_T*			bindlessDescriptorLayout;
 	static constexpr U32					maxBindlessResources{ 1024 };
 	static constexpr U32					bindlessTextureBinding{ 10 };
 
 	friend class Resources;
 	friend class Renderer;
+	friend struct Pipeline;
 };

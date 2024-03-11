@@ -10,12 +10,12 @@ instanceOffset=2
 #VERTEX
 #version 450
 
-layout (location = 0) in vec2 basePosition;
-layout (location = 1) in vec2 baseTexcoord;
+layout (location = 0) in vec2 position;
+layout (location = 1) in vec2 texcoord;
 
 layout (location = 2) in uint textureIndex;
-layout (location = 3) in vec2 position;
-layout (location = 4) in vec2 texcoord;
+layout (location = 3) in vec2 instPosition;
+layout (location = 4) in vec2 instTexcoord;
 layout (location = 5) in vec4 color;
 layout (location = 6) in float scale;
 
@@ -26,8 +26,8 @@ layout (location = 3) out flat uint outTextureIndex;
 
 void main()
 {
-	gl_Position = vec4(basePosition * scale + position, 0.99, 1.0);
-    outTexcoord = baseTexcoord + texcoord;
+	gl_Position = vec4(position * scale + instPosition, 0.99, 1.0);
+    outTexcoord = texcoord + instTexcoord;
 	outColor = color;
 	outScale = scale;
     outTextureIndex = textureIndex;

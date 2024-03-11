@@ -32,11 +32,19 @@ bool Init()
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
-	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
-	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default.nhmat"));
+	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
+	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default_material.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
+
+	PostProcessData ppd{};
+	ppd.contrast = 1.0f;
+	ppd.brightness = 0.0f;
+	ppd.saturation = 1.0f;
+	ppd.gammaCorrection = 1.0f;
+
+	scene->SetPostProcessing(ppd);
 
 	UIElementInfo info{};
 	info.area = { -0.9f, -0.9f, -0.8f, -0.8f };

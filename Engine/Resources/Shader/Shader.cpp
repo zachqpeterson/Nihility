@@ -33,7 +33,7 @@ Descriptor::Descriptor(VkImageView imageView, ImageLayout imageLayout, VkSampler
 Descriptor::Descriptor(const ResourceRef<Texture>& texture)
 {
 	imageInfo.imageView = texture->imageView;
-	imageInfo.imageLayout = IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageLayout = texture->format == VK_FORMAT_D32_SFLOAT ? IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.sampler = texture->sampler.vkSampler;
 }
 
@@ -165,25 +165,9 @@ struct Id
 	String name;
 };
 
-struct DescriptorSetLayout
-{
-	U64								handle{ U64_MAX };
-
-	VkDescriptorSetLayout_T* descriptorSetLayout{ nullptr };
-	VkDescriptorUpdateTemplate_T* updateTemplate{ nullptr };
-
-	VkDescriptorSetLayoutBinding	bindings[MAX_DESCRIPTORS_PER_SET]{};
-	U8								bindingCount{ 0 };
-	U8								setIndex{ 0 };
-};
-
 struct ShaderInfo
 {
-	VkPipelineColorBlendAttachmentState blendStates[MAX_IMAGE_OUTPUTS]{};
-	U8									blendStateCount{ 0 };
-
-	VkPipelineShaderStageCreateInfo		stageInfos[MAX_SHADER_STAGES]{};
-	U32									stageCount{ 0 };
+	VkPipelineShaderStageCreateInfo		stageInfo;
 
 	VkVertexInputBindingDescription		vertexStreams[MAX_VERTEX_STREAMS]{};
 	U32									vertexStreamCount{ 0 };
@@ -191,20 +175,19 @@ struct ShaderInfo
 	VkVertexInputAttributeDescription	vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
 	U32									vertexAttributeCount{ 0 };
 
-	I32									stages{ 0 };
+	VkDescriptorSetLayoutBinding		bindings[MAX_DESCRIPTORS_PER_SET]{};
+	U8									bindingCount{ 0 };
 };
 
 VkDescriptorSetLayout			Shader::dummyDescriptorSetLayout;
 
-Pool<DescriptorSetLayout, 256>	Shader::descriptorSetLayouts;
 VkDescriptorPool				Shader::bindlessDescriptorPool;
 VkDescriptorSet					Shader::bindlessDescriptorSet;
-DescriptorSetLayout* Shader::bindlessDescriptorSetLayout;
+VkDescriptorSetLayout_T*		Shader::bindlessDescriptorLayout;
 
 bool Shader::Initialize()
 {
 	if (!glslang::InitializeProcess()) { return false; }
-	descriptorSetLayouts.Create();
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 	layoutInfo.pNext = nullptr;
@@ -273,18 +256,14 @@ bool Shader::Initialize()
 
 		layoutInfo.pNext = &extendedInfo;
 
-		U64 handle;
-		bindlessDescriptorSetLayout = descriptorSetLayouts.Request(handle);
-		bindlessDescriptorSetLayout->handle = handle;
+		VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorLayout));
 
-		VkValidateFR(vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &bindlessDescriptorSetLayout->descriptorSetLayout));
-
-		Renderer::SetResourceName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (U64)bindlessDescriptorSetLayout->descriptorSetLayout, "bindless_dsl");
+		Renderer::SetResourceName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (U64)bindlessDescriptorLayout, "bindless_dsl");
 
 		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		allocInfo.descriptorPool = bindlessDescriptorPool;
 		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = &bindlessDescriptorSetLayout->descriptorSetLayout;
+		allocInfo.pSetLayouts = &bindlessDescriptorLayout;
 
 		VkDescriptorSetVariableDescriptorCountAllocateInfoEXT countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
 		U32 maxBinding = maxBindlessResources - 1;
@@ -305,438 +284,51 @@ void Shader::Shutdown()
 
 	if (Renderer::bindlessSupported)
 	{
-		vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorSetLayout->descriptorSetLayout, Renderer::allocationCallbacks);
+		vkDestroyDescriptorSetLayout(Renderer::device, bindlessDescriptorLayout, Renderer::allocationCallbacks);
 		vkDestroyDescriptorPool(Renderer::device, bindlessDescriptorPool, Renderer::allocationCallbacks);
 	}
-
-	descriptorSetLayouts.Destroy();
 }
 
-bool Shader::Create(const String& shaderPath, U8 pushConstantCount_, PushConstant* pushConstants_)
+bool Shader::Create(const String& shaderPath)
 {
 	String data = Resources::LoadBinaryString(shaderPath);
 
 	Memory::Allocate(&shaderInfo);
 
-	U64 handle;
-	setLayout = descriptorSetLayouts.Request(handle);
-	bindlessDescriptorSetLayout->handle = handle;
+	I64 index = 0;
 
-	VkDescriptorSetLayout vkLayouts[MAX_DESCRIPTOR_SET_LAYOUTS];
-	VkPushConstantRange pushRange{};
-
-	I64 index = -1;
-	bool result = false;
-
-	do
+	while (data[index] != '#')
 	{
-		index = data.IndexOf('#', index + 1);
+		I64 value = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-		if (data.CompareN("#CONFIG", index)) { result = ParseConfig(data, index); }
-		else if (data.CompareN("#VERTEX", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_VERTEX_BIT); }
-		else if (data.CompareN("#CONTROL", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT); }
-		else if (data.CompareN("#EVALUATION", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT); }
-		else if (data.CompareN("#GEOMETRY", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_GEOMETRY_BIT); }
-		else if (data.CompareN("#FRAGMENT", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_FRAGMENT_BIT); }
-		else if (data.CompareN("#COMPUTE", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_COMPUTE_BIT); }
-		else if (data.CompareN("#TASK", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_TASK_BIT_EXT); }
-		else if (data.CompareN("#MESH", index)) { result = ParseStage(data, index, VK_SHADER_STAGE_MESH_BIT_EXT); }
-
-		if (!result)
+		switch (Math::Hash(data.Data() + index, data.IndexOf('=', index) - index))
 		{
-			Logger::Error("Failed To Create Shader!");
-			Destroy();
-			return false;
-		}
-	} while (index != -1);
-
-	U32 tessellation = (shaderInfo->stages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) + (shaderInfo->stages & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
-
-	if (tessellation != 6 && tessellation != 0)
-	{
-		Logger::Error("Shaders With Tessellation Must Have Both Tessellation Stages!");
-		Destroy();
-		return false;
-	}
-
-	if (bindPoint == PIPELINE_BIND_POINT_GRAPHICS && ((shaderInfo->stages & VK_SHADER_STAGE_VERTEX_BIT) == 0 || (shaderInfo->stages & VK_SHADER_STAGE_FRAGMENT_BIT) == 0))
-	{
-		Logger::Error("Shaders With Graphics Must Have Both A Vertex And Fragment Stage!");
-		Destroy();
-		return false;
-	}
-
-	if (vertexCount && useVertices)
-	{
-		Logger::Error("Shaders That Use A Vertex Buffer Can't Specify A Vertex Count!");
-		Destroy();
-		return false;
-	}
-
-	if (vertexCount == 0 && !useVertices)
-	{
-		Logger::Error("Shaders That Don't Use A Vertex Buffer Must Specify A Vertex Count!");
-		Destroy();
-		return false;
-	}
-
-	if (shaderInfo->stageCount == 0) { Logger::Error("Shader '{}' Has No Stages!", shaderPath); return false; }
-
-	if (shaderInfo->blendStateCount == 0)
-	{
-		shaderInfo->blendStates[0].blendEnable = VK_FALSE;
-		shaderInfo->blendStates[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		++shaderInfo->blendStateCount;
-	}
-
-	if (useSet0)
-	{
-		VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		layoutInfo.pNext = nullptr;
-		layoutInfo.flags = Renderer::pushDescriptorsSupported ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR : 0;
-		layoutInfo.bindingCount = setLayout->bindingCount;
-		layoutInfo.pBindings = setLayout->bindings;
-
-		if (vkCreateDescriptorSetLayout(Renderer::device, &layoutInfo, Renderer::allocationCallbacks, &setLayout->descriptorSetLayout) != VK_SUCCESS)
-		{
-			Logger::Error("Failed To Create Descriptor Set Layout!");
-			Destroy();
-			return false;
+		case "instanceLocation"_Hash: { instanceLocation = data.ToType<U8>(value); } break;
 		}
 
-		Renderer::SetResourceName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, (U64)setLayout->descriptorSetLayout, name + "_dsl");
-
-		vkLayouts[0] = setLayout->descriptorSetLayout;
-	}
-	else
-	{
-		vkLayouts[0] = dummyDescriptorSetLayout;
+		index = data.IndexOf('\n', value + 1) + 1;
 	}
 
-	if (Renderer::bindlessSupported && useBindless)
-	{
-		vkLayouts[1] = bindlessDescriptorSetLayout->descriptorSetLayout;
-	}
-
-	U32 pushContantSize = 0;
-
-	pushConstantCount = pushConstantCount_;
-
-	pushRange.stageFlags = pushConstantStages;
-	pushRange.offset = 0;
-
-	for (U32 i = 0; i < pushConstantCount; ++i)
-	{
-		pushRange.size += pushConstants_[i].size;
-
-		pushConstants[i] = pushConstants_[i];
-
-		pushContantSize += pushConstants_[i].size;
-	}
-
-	if (pushContantSize > MAX_PUSH_CONSTANT_SIZE)
-	{
-		Logger::Error("Total Push Constant Size Exceeds Limit Of 128 Bytes!");
-		Destroy();
-		return false;
-	}
-
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.flags = 0;
-	pipelineLayoutInfo.pNext = nullptr;
-	pipelineLayoutInfo.pSetLayouts = vkLayouts;
-	pipelineLayoutInfo.setLayoutCount = useBindless ? 2 : useSet0;
-	pipelineLayoutInfo.pushConstantRangeCount = pushConstantStages > 0; //TODO: Support multiple ranges
-	pipelineLayoutInfo.pPushConstantRanges = &pushRange;
-
-	VkValidate(vkCreatePipelineLayout(Renderer::device, &pipelineLayoutInfo, Renderer::allocationCallbacks, &pipelineLayout));
-
-	if (useSet0)
-	{
-		VkDescriptorUpdateTemplateEntry entries[MAX_DESCRIPTORS_PER_SET]{};
-
-		for (U32 i = 0; i < setLayout->bindingCount; ++i)
-		{
-			VkDescriptorSetLayoutBinding& binding = setLayout->bindings[i];
-			VkDescriptorUpdateTemplateEntry& entry = entries[i];
-
-			entry.dstBinding = binding.binding;
-			entry.dstArrayElement = 0;
-			entry.descriptorCount = binding.descriptorCount;
-			entry.descriptorType = binding.descriptorType;
-			entry.offset = sizeof(Descriptor) * i;
-			entry.stride = sizeof(Descriptor);
-		}
-
-		VkDescriptorUpdateTemplateCreateInfo descriptorTemplateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO };
-		descriptorTemplateInfo.pNext = nullptr;
-		descriptorTemplateInfo.flags = 0;
-		descriptorTemplateInfo.templateType = Renderer::pushDescriptorsSupported ? VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR : VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET;
-		descriptorTemplateInfo.descriptorSetLayout = Renderer::pushDescriptorsSupported ? 0 : setLayout->descriptorSetLayout;
-		descriptorTemplateInfo.pipelineBindPoint = (VkPipelineBindPoint)bindPoint;
-		descriptorTemplateInfo.pipelineLayout = pipelineLayout;
-		descriptorTemplateInfo.descriptorUpdateEntryCount = setLayout->bindingCount;
-		descriptorTemplateInfo.pDescriptorUpdateEntries = entries;
-		descriptorTemplateInfo.set = setLayout->setIndex;
-
-		if (vkCreateDescriptorUpdateTemplate(Renderer::device, &descriptorTemplateInfo, Renderer::allocationCallbacks, &setLayout->updateTemplate) != VK_SUCCESS)
-		{
-			Logger::Error("Failed To Create Descriptor Update Template!");
-			Destroy();
-			return false;
-		}
-	}
+	String code = data.SubString(index);
+	CompileShader(code);
 
 	return true;
 }
 
 void Shader::Destroy()
 {
-	for (U8 i = 0; i < shaderInfo->stageCount; ++i)
+	if (shaderInfo)
 	{
-		vkDestroyShaderModule(Renderer::device, shaderInfo->stageInfos[i].module, Renderer::allocationCallbacks);
+		if (shaderInfo->stageInfo.module) { vkDestroyShaderModule(Renderer::device, shaderInfo->stageInfo.module, Renderer::allocationCallbacks); }
+
+		shaderInfo->stageInfo.module = nullptr;
+
+		Memory::Free(&shaderInfo);
 	}
 
-	if (setLayout)
-	{
-		if (useSet0)
-		{
-			vkDestroyDescriptorSetLayout(Renderer::device, setLayout->descriptorSetLayout, Renderer::allocationCallbacks);
-			vkDestroyDescriptorUpdateTemplate(Renderer::device, setLayout->updateTemplate, Renderer::allocationCallbacks);
-			useSet0 = false;
-		}
-
-		descriptorSetLayouts.Release(setLayout->handle);
-		setLayout = nullptr;
-	}
-
-	shaderInfo->stageCount = 0;
-	Memory::Free(&shaderInfo);
-
-	if (pipelineLayout) { vkDestroyPipelineLayout(Renderer::device, pipelineLayout, Renderer::allocationCallbacks); pipelineLayout = nullptr; }
-
-	for (U32 i = 0; i < MAX_SHADER_STAGES; ++i)
-	{
-		stages[i].entryPoint.Destroy();
-	}
-
+	entryPoint.Destroy();
 	name.Destroy();
 	handle = U64_MAX;
-}
-
-bool Shader::ParseConfig(const String& data, I64& index)
-{
-	index = data.IndexOf('\n', index + 1);
-
-	//TODO: Blend Masks
-	//TODO: Add Stencils
-	while (index != -1)
-	{
-		if (data[(U64)(index + 1)] == '#')
-		{
-			++index;
-			return true;
-		}
-
-		String field = data.SubString(index, data.IndexOf('=', index) - index).Trim(); //TODO: Don't make separate string
-		index = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
-
-		switch (Math::Hash(field.Data(), field.Size()))
-		{
-		case "cull"_Hash: {
-			if (data.CompareN("NONE", index)) { cullMode = CULL_MODE_NONE; }
-			else if (data.CompareN("FRONT", index)) { cullMode = CULL_MODE_FRONT_BIT; }
-			else if (data.CompareN("BACK", index)) { cullMode = CULL_MODE_BACK_BIT; }
-			else if (data.CompareN("BOTH", index)) { cullMode = CULL_MODE_FRONT_AND_BACK; }
-		} break;
-		case "front"_Hash: {
-			if (data.CompareN("CLOCKWISE", index)) { frontMode = FRONT_FACE_MODE_CLOCKWISE; }
-			else if (data.CompareN("COUNTER", index)) { frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE; }
-		} break;
-		case "fill"_Hash: {
-			if (data.CompareN("SOLID", index)) { fillMode = POLYGON_MODE_FILL; }
-			else if (data.CompareN("LINE", index)) { fillMode = POLYGON_MODE_LINE; }
-			else if (data.CompareN("POINT", index)) { fillMode = POLYGON_MODE_POINT; }
-		} break;
-		case "depth"_Hash: {
-			if (data.CompareN("NONE", index))
-			{
-				depthEnable = false;
-				depthWriteEnable = false;
-				depthComparison = COMPARE_OP_ALWAYS;
-			}
-			else if (data.CompareN("LESS_EQUAL", index))
-			{
-				depthEnable = true;
-				depthWriteEnable = true;
-				depthComparison = COMPARE_OP_LESS_OR_EQUAL;
-			}
-			else if (data.CompareN("LESS", index))
-			{
-				depthEnable = true;
-				depthWriteEnable = true;
-				depthComparison = COMPARE_OP_LESS;
-			}
-			else if (data.CompareN("GREATER_EQUAL", index))
-			{
-				depthEnable = true;
-				depthWriteEnable = true;
-				depthComparison = COMPARE_OP_GREATER_OR_EQUAL;
-			}
-			else if (data.CompareN("GREATER", index))
-			{
-				depthEnable = true;
-				depthWriteEnable = true;
-				depthComparison = COMPARE_OP_GREATER;
-			}
-			else if (data.CompareN("EQUAL", index))
-			{
-				depthEnable = true;
-				depthWriteEnable = true;
-				depthComparison = COMPARE_OP_EQUAL;
-			}
-		} break;
-		case "blend"_Hash: {
-			if (data.CompareN("ADD", index))
-			{
-				VkPipelineColorBlendAttachmentState& blendState = shaderInfo->blendStates[shaderInfo->blendStateCount];
-
-				blendState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-				blendState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-				blendState.colorBlendOp = VK_BLEND_OP_ADD;
-
-				blendState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-				blendState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-				blendState.alphaBlendOp = VK_BLEND_OP_ADD;
-
-				blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-				blendState.blendEnable = VK_TRUE;
-
-				++shaderInfo->blendStateCount;
-			}
-			else if (data.CompareN("SUB", index))
-			{
-				VkPipelineColorBlendAttachmentState& blendState = shaderInfo->blendStates[shaderInfo->blendStateCount];
-
-				//TODO: Not sure how to use subtractive blending
-				blendState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-				blendState.colorBlendOp = VK_BLEND_OP_SUBTRACT;
-
-				blendState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-				blendState.alphaBlendOp = VK_BLEND_OP_SUBTRACT;
-
-				blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-				blendState.blendEnable = VK_TRUE;
-
-				++shaderInfo->blendStateCount;
-			}
-		} break;
-		case "topology"_Hash: {
-			//TODO: Make switch for this
-			if (data.CompareN("POINTS", index)) { topologyMode = TOPOLOGY_MODE_POINT_LIST; }
-			else if (data.CompareN("LINES", index)) { topologyMode = TOPOLOGY_MODE_LINE_LIST; }
-			else if (data.CompareN("LINE_STRIP", index)) { topologyMode = TOPOLOGY_MODE_LINE_STRIP; }
-			else if (data.CompareN("TRIANGLES", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST; }
-			else if (data.CompareN("TRIANGLE_STRIP", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP; }
-			else if (data.CompareN("TRIANGLE_FAN", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_FAN; }
-			else if (data.CompareN("LINES_ADJ", index)) { topologyMode = TOPOLOGY_MODE_LINE_LIST_WITH_ADJACENCY; }
-			else if (data.CompareN("LINE_STRIP_ADJ", index)) { topologyMode = TOPOLOGY_MODE_LINE_STRIP_WITH_ADJACENCY; }
-			else if (data.CompareN("TRIANGLES_ADJ", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST_WITH_ADJACENCY; }
-			else if (data.CompareN("TRIANGLE_STRIP_ADJ", index)) { topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP_WITH_ADJACENCY; }
-			else if (data.CompareN("PATCHES", index)) { topologyMode = TOPOLOGY_MODE_PATCH_LIST; }
-		} break;
-		case "clear"_Hash: {
-			if (data.CompareN("COLOR", index)) { clearTypes |= CLEAR_TYPE_COLOR; }
-			else if (data.CompareN("DEPTH", index)) { clearTypes |= CLEAR_TYPE_DEPTH; }
-			else if (data.CompareN("STENCIL", index)) { clearTypes |= CLEAR_TYPE_STENCIL; }
-		} break;
-		case "useIndices"_Hash: {
-			if (data.CompareN("FALSE", index)) { useIndexing = false; }
-		} break;
-		case "useVertices"_Hash: {
-			if (data.CompareN("FALSE", index)) { useVertices = false; }
-		} break;
-		case "instanceOffset"_Hash: {
-			instanceLocation = data.ToType<U8>(index);
-			useInstancing = true;
-		} break;
-		case "vertexCount"_Hash: {
-			vertexCount = data.ToType<U8>(index);
-		} break;
-		case "depthBiasConstant"_Hash: {
-			depthBiasConstant = data.ToType<F32>(index);
-			depthBiasEnable = true;
-		} break;
-		case "depthBiasClamp"_Hash: {
-			depthBiasClamp = data.ToType<F32>(index);
-			depthBiasEnable = true;
-		} break;
-		case "depthBiasSlope"_Hash: {
-			depthBiasSlope = data.ToType<F32>(index);
-			depthBiasEnable = true;
-		} break;
-		}
-
-		index = data.IndexOf('\n', index + 1);
-	}
-
-	return true;
-}
-
-bool Shader::ParseStage(const String& data, I64& index, VkShaderStageFlagBits stage)
-{
-	if (stage == VK_SHADER_STAGE_COMPUTE_BIT)
-	{
-		if (bindPoint == PIPELINE_BIND_POINT_GRAPHICS)
-		{
-			Logger::Error("Compute Shaders Cannot Have Graphics Stages!");
-			return false;
-		}
-
-		bindPoint = PIPELINE_BIND_POINT_COMPUTE;
-	}
-	else if (stage != VK_SHADER_STAGE_COMPUTE_BIT)
-	{
-		if (bindPoint == PIPELINE_BIND_POINT_COMPUTE)
-		{
-			Logger::Error("Graphics Shaders Cannot Have A Compute Stage!");
-			return false;
-		}
-
-		bindPoint = PIPELINE_BIND_POINT_GRAPHICS;
-	}
-
-	shaderInfo->stages |= stage;
-
-	I64 begin = data.IndexOf('\n', index + 1) + 1;
-	I64 end = begin;
-
-	switch (stage)
-	{
-	case VK_SHADER_STAGE_VERTEX_BIT: { while (end != -1) { if (data.CompareN("#VERTEX_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { while (end != -1) { if (data.CompareN("#CONTROL_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { while (end != -1) { if (data.CompareN("#EVALUATION_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_GEOMETRY_BIT: { while (end != -1) { if (data.CompareN("#GEOMETRY_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_FRAGMENT_BIT: { while (end != -1) { if (data.CompareN("#FRAGMENT_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_COMPUTE_BIT: { while (end != -1) { if (data.CompareN("#COMPUTE_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_TASK_BIT_EXT: { while (end != -1) { if (data.CompareN("#TASK_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	case VK_SHADER_STAGE_MESH_BIT_EXT: { while (end != -1) { if (data.CompareN("#MESH_END", end = data.IndexOf('#', end + 1))) { break; } } } break;
-	default: return false;
-	}
-
-	String code = data.SubString(begin, end - begin - 1);
-
-	stages[shaderInfo->stageCount].stage = (ShaderStageType)stage;
-	shaderInfo->stageInfos[shaderInfo->stageCount] = CompileShader(stages[shaderInfo->stageCount], code, name);
-	++shaderInfo->stageCount;
-
-	index = data.IndexOf('\n', end + 1);
-
-	return true;
 }
 
 const String& Shader::ToStageDefines(VkShaderStageFlagBits value)
@@ -792,29 +384,28 @@ const String& Shader::ToCompilerExtension(VkShaderStageFlagBits value)
 }
 
 //TODO: Cache compiled shaders
-VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, String& code, const String& name)
+void Shader::CompileShader(String& code)
 {
 	using namespace glslang;
 
-	EShLanguage stage = EShLangCount;
-	U8 stageIndex = U8_MAX;
+	EShLanguage language = EShLangCount;
 
-	switch (shaderStage.stage)
+	switch (stage)
 	{
-	case VK_SHADER_STAGE_VERTEX_BIT: { stage = EShLangVertex; stageIndex = 0; } break;
-	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: { stage = EShLangTessControl; stageIndex = 1; } break;
-	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { stage = EShLangTessEvaluation; stageIndex = 2; } break;
-	case VK_SHADER_STAGE_GEOMETRY_BIT: { stage = EShLangGeometry; stageIndex = 3; } break;
-	case VK_SHADER_STAGE_FRAGMENT_BIT: { stage = EShLangFragment; stageIndex = 4; } break;
-	case VK_SHADER_STAGE_COMPUTE_BIT: { stage = EShLangCompute; stageIndex = 5; } break;
-	case VK_SHADER_STAGE_TASK_BIT_EXT: { stage = EShLangTask; stageIndex = 6; } break;
-	case VK_SHADER_STAGE_MESH_BIT_EXT: { stage = EShLangMesh; stageIndex = 7; } break;
+	case SHADER_STAGE_VERTEX_BIT: { language = EShLangVertex; } break;
+	case SHADER_STAGE_TESSELLATION_CONTROL_BIT: { language = EShLangTessControl; } break;
+	case SHADER_STAGE_TESSELLATION_EVALUATION_BIT: { language = EShLangTessEvaluation; } break;
+	case SHADER_STAGE_GEOMETRY_BIT: { language = EShLangGeometry; } break;
+	case SHADER_STAGE_FRAGMENT_BIT: { language = EShLangFragment; } break;
+	case SHADER_STAGE_COMPUTE_BIT: { language = EShLangCompute; } break;
+	case SHADER_STAGE_TASK_BIT_EXT: { language = EShLangTask; } break;
+	case SHADER_STAGE_MESH_BIT_EXT: { language = EShLangMesh; } break;
 	}
 
-	TShader tShader(stage);
+	TShader tShader(language);
 	C8* c = code.Data();
 	tShader.setStrings(&c, 1);
-	tShader.setEnvInput(EShSourceGlsl, stage, EShClientVulkan, 450);
+	tShader.setEnvInput(EShSourceGlsl, language, EShClientVulkan, 450);
 	tShader.setEnvClient(EShClientVulkan, EShTargetVulkan_1_3);
 	tShader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_6);
 	if (!tShader.parse(&resources, 450, false, EShMsgDefault)) { Logger::Error(tShader.getInfoLog()); }
@@ -823,12 +414,10 @@ VkPipelineShaderStageCreateInfo Shader::CompileShader(ShaderStage& shaderStage, 
 	tProgram.addShader(&tShader);
 	if (!tProgram.link(EShMsgDefault)) { Logger::Error(tProgram.getInfoLog()); }
 
-	tProgram.getIntermediate(stage);
-
 	std::vector<U32> spv;
-	GlslangToSpv(*tProgram.getIntermediate(stage), spv);
+	GlslangToSpv(*tProgram.getIntermediate(language), spv);
 
-	return ParseSPIRV(&spv[0], (U32)spv.size(), shaderStage);
+	ParseSPIRV(&spv[0], (U32)spv.size());
 }
 
 static VkShaderStageFlagBits GetShaderStage(SpvExecutionModel executionModel)
@@ -994,7 +583,7 @@ static U32 FormatStride(VkFormat format)
 	}
 }
 
-VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, ShaderStage& stage)
+void Shader::ParseSPIRV(U32* code, U32 codeSize)
 {
 	uint32_t idBound = code[3];
 
@@ -1020,7 +609,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 		} break;
 		case SpvOpEntryPoint:
 		{
-			stage.stage = (ShaderStageType)GetShaderStage((SpvExecutionModel)it[1]);
+			stage = (ShaderStageType)GetShaderStage((SpvExecutionModel)it[1]);
 			entryPoint = (C8*)(it + 3);
 		} break;
 		case SpvOpExecutionMode:
@@ -1127,13 +716,15 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 			switch (id.storageClass)
 			{
 			case SpvStorageClassInput: {
-				if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && useVertices)
+				if (stage == VK_SHADER_STAGE_VERTEX_BIT)
 				{
 					Id& type = ids[ids[id.typeId].typeId];
 
 					if (type.opcode == SpvOpTypeMatrix)
 					{
 						if (id.location < instanceLocation) { Logger::Error("Matrix Vertex Attributes Must Be Instanced!"); }
+
+						useInstancing = true;
 
 						if (instanceBinding == U8_MAX)
 						{
@@ -1207,6 +798,8 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 
 						if (id.location >= instanceLocation)
 						{
+							useInstancing = true;
+
 							if (instanceBinding == U8_MAX)
 							{
 								instanceBinding = vertexBindingCount++;
@@ -1219,6 +812,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 						{
 							switch (Math::Hash(id.name.Data(), id.name.Size()))
 							{
+							case "gl_VertexIndex"_Hash: continue;
 							case "position"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_POSITION; } break;
 							case "normal"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_NORMAL; } break;
 							case "tangent"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_TANGENT; } break;
@@ -1226,6 +820,8 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 							case "color"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_COLOR; } break;
 							default: { if (combinedBinding == U8_MAX) { combinedBinding = vertexBindingCount++; vertexTypes[combinedBinding] = VERTEX_TYPE_COMBINED; } attribute.binding = combinedBinding; } break;
 							}
+
+							useVertices = true;
 						}
 
 						shaderInfo->vertexAttributes[id.location] = attribute;
@@ -1234,11 +830,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 					}
 				}
 			} break;
-			case SpvStorageClassPushConstant:
-			{
-				stage.usePushConstants = true;
-				pushConstantStages |= stage.stage;
-			} break;
+			case SpvStorageClassPushConstant: { usePushConstants = true; } break;
 			case SpvStorageClassUniform:
 			case SpvStorageClassUniformConstant:
 			case SpvStorageClassStorageBuffer: {
@@ -1251,17 +843,16 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 				}
 				else { descriptorType = GetDescriptorType(SpvOp(type)); }
 
-				VkDescriptorSetLayoutBinding& binding = setLayout->bindings[id.binding];
+				VkDescriptorSetLayoutBinding& binding = shaderInfo->bindings[id.binding];
 				binding.descriptorType = descriptorType;
-				binding.stageFlags |= stage.stage;
+				binding.stageFlags = stage;
 				binding.binding = id.binding;
 				binding.descriptorCount = 1;
 
-				setLayout->bindingCount = Math::Max(setLayout->bindingCount, (U8)(id.binding + 1));
-				useSet0 = true;
+				shaderInfo->bindingCount = Math::Max(shaderInfo->bindingCount, (U8)(id.binding + 1));
 			} break;
 			case SpvStorageClassOutput: {
-				if (stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT) { ++outputCount; }
+				if (stage == VK_SHADER_STAGE_FRAGMENT_BIT) { ++outputCount; }
 			} break;
 			}
 		}
@@ -1273,7 +864,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 		}
 	}
 
-	if (stage.stage == VK_SHADER_STAGE_VERTEX_BIT && shaderInfo->vertexAttributeCount)
+	if (stage == VK_SHADER_STAGE_VERTEX_BIT && shaderInfo->vertexAttributeCount)
 	{
 		U8 combinedStream = U8_MAX;
 
@@ -1294,7 +885,7 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 				attribute.offset = instanceInput.stride;
 				instanceInput.stride += FormatStride(attribute.format);
 			}
-			else if(attribute.binding == combinedBinding)
+			else if (attribute.binding == combinedBinding)
 			{
 				attribute.offset = combinedInput.stride;
 				combinedInput.stride += FormatStride(attribute.format);
@@ -1322,14 +913,12 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 		}
 	}
 
-	if (stage.stage == VK_SHADER_STAGE_COMPUTE_BIT)
+	if (stage == VK_SHADER_STAGE_COMPUTE_BIT)
 	{
 		if (localSizeIdX >= 0) { localSizeX = ids[localSizeIdX].constant; }
 		if (localSizeIdY >= 0) { localSizeY = ids[localSizeIdY].constant; }
 		if (localSizeIdZ >= 0) { localSizeZ = ids[localSizeIdZ].constant; }
 	}
-
-	//TODO: Push Constants
 
 	VkShaderModuleCreateInfo moduleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 	moduleInfo.codeSize = codeSize * sizeof(U32);
@@ -1338,72 +927,33 @@ VkPipelineShaderStageCreateInfo Shader::ParseSPIRV(U32* code, U32 codeSize, Shad
 	VkShaderModule module;
 	vkCreateShaderModule(Renderer::device, &moduleInfo, Renderer::allocationCallbacks, &module);
 
-	VkPipelineShaderStageCreateInfo shaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-	shaderStageInfo.pNext = nullptr;
-	shaderStageInfo.flags = 0;
-	shaderStageInfo.module = module;
-	shaderStageInfo.stage = (VkShaderStageFlagBits)stage.stage;
-	shaderStageInfo.pName = entryPoint.Data();
-
-	return shaderStageInfo;
+	shaderInfo->stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderInfo->stageInfo.pNext = nullptr;
+	shaderInfo->stageInfo.flags = 0;
+	shaderInfo->stageInfo.module = module;
+	shaderInfo->stageInfo.stage = (VkShaderStageFlagBits)stage;
+	shaderInfo->stageInfo.pName = entryPoint.Data();
 }
 
-void Shader::FillOutShaderInfo(VkGraphicsPipelineCreateInfo& pipelineInfo, VkPipelineVertexInputStateCreateInfo& vertexInput,
-	VkPipelineColorBlendStateCreateInfo& colorBlending, const Specialization* specialization)
+VkPipelineShaderStageCreateInfo& Shader::GetShaderInfo()
 {
-	vertexInput.vertexAttributeDescriptionCount = shaderInfo->vertexAttributeCount;
-	vertexInput.pVertexAttributeDescriptions = shaderInfo->vertexAttributes;
-	vertexInput.vertexBindingDescriptionCount = shaderInfo->vertexStreamCount;
-	vertexInput.pVertexBindingDescriptions = shaderInfo->vertexStreams;
-
-	colorBlending.attachmentCount = shaderInfo->blendStateCount;
-	colorBlending.pAttachments = shaderInfo->blendStates;
-
-	for (U32 i = 0; i < shaderInfo->stageCount; ++i)
-	{
-		shaderInfo->stageInfos[i].pSpecializationInfo = reinterpret_cast<const VkSpecializationInfo*>(specialization);
-	}
-
-	pipelineInfo.stageCount = shaderInfo->stageCount;
-
-	pipelineInfo.pStages = shaderInfo->stageInfos;
+	return shaderInfo->stageInfo;
 }
 
-void Shader::FillOutShaderInfo(VkComputePipelineCreateInfo& pipelineInfo, const Specialization* specialization)
+void Shader::FillOutVertexInfo(VkPipelineVertexInputStateCreateInfo& info)
 {
-	shaderInfo->stageInfos[0].pSpecializationInfo = reinterpret_cast<const VkSpecializationInfo*>(specialization);
-
-	pipelineInfo.stage = shaderInfo->stageInfos[0];
+	info.vertexAttributeDescriptionCount = shaderInfo->vertexAttributeCount;
+	info.pVertexAttributeDescriptions = shaderInfo->vertexAttributes;
+	info.vertexBindingDescriptionCount = shaderInfo->vertexStreamCount;
+	info.pVertexBindingDescriptions = shaderInfo->vertexStreams;
 }
 
-void Shader::AddDescriptor(const Descriptor& descriptor)
+U8 Shader::GetBindingCount() const
 {
-	descriptors[descriptorCount++] = descriptor;
+	return shaderInfo->bindingCount;
 }
 
-void Shader::PushDescriptors(CommandBuffer* commandBuffer)
+VkDescriptorSetLayoutBinding Shader::GetBinding(U8 i) const
 {
-	if (Renderer::pushDescriptorsSupported)
-	{
-		//vkCmdPushDescriptorSetWithTemplateKHR(commandBuffer->commandBuffer, setLayouts[0]->updateTemplate, pipelineLayout, 0, descriptors);
-	}
-	else
-	{
-		VkDescriptorSet sets[]{ nullptr, bindlessDescriptorSet };
-
-		if (useSet0)
-		{
-			VkDescriptorSetAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-
-			allocateInfo.descriptorPool = Renderer::descriptorPools[Renderer::frameIndex];
-			allocateInfo.descriptorSetCount = 1;
-			allocateInfo.pSetLayouts = &setLayout->descriptorSetLayout;
-
-			VkValidate(vkAllocateDescriptorSets(Renderer::device, &allocateInfo, sets));
-
-			vkUpdateDescriptorSetWithTemplate(Renderer::device, sets[0], setLayout->updateTemplate, descriptors);
-		}
-
-		commandBuffer->BindDescriptorSets(this, !useSet0, useSet0 + useBindless, sets + !useSet0);
-	}
+	return shaderInfo->bindings[i];
 }

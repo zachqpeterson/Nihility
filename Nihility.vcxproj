@@ -169,7 +169,6 @@
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
     <ClInclude Include="Engine\Rendering\UI.hpp" />
     <ClInclude Include="Engine\Resources\Component.hpp" />
-    <ClInclude Include="Engine\Resources\ComponentRegistry.hpp" />
     <ClInclude Include="Engine\Resources\Entity.hpp" />
     <ClInclude Include="Engine\Resources\Font.hpp" />
     <ClInclude Include="Engine\Resources\Material.hpp" />

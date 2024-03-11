@@ -429,7 +429,8 @@ Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
 Hashmap<String, Font>			Resources::fonts{ 32 };
 Hashmap<String, AudioClip>		Resources::audioClips{ 512 };
 Hashmap<String, Shader>			Resources::shaders{ 128 };
-Hashmap<String, Rendergraph>	Resources::rendergraphs{ 16 };
+Hashmap<String, Pipeline>		Resources::pipelines{ 256 };
+Hashmap<String, MaterialEffect>	Resources::materialEffects{ 256 };
 Hashmap<String, Material>		Resources::materials{ 256 };
 Hashmap<String, Mesh>			Resources::meshes{ 512 };
 Hashmap<String, Model>			Resources::models{ 256 };
@@ -440,6 +441,14 @@ Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate{};
 bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
+
+	if (!File::Exists("materials/default_material.nhmat"))
+	{
+		MaterialInfo info{};
+		info.name = "materials/default_material.nhmat";
+		ResourceRef<Material> mat = CreateMaterial(info);
+		SaveMaterial(mat);
+	}
 
 	return true;
 }
@@ -454,7 +463,7 @@ void Resources::Shutdown()
 	fonts.Destroy();
 	audioClips.Destroy();
 	shaders.Destroy();
-	rendergraphs.Destroy();
+	pipelines.Destroy();
 	models.Destroy();
 	scenes.Destroy();
 
@@ -516,11 +525,12 @@ ResourceRef<Texture> Resources::CreateTexture(const TextureInfo& info, const Sam
 	HashHandle handle;
 	Texture* texture = textures.Request(info.name, handle);
 
-	if (!texture->name.Blank()) { return texture; }
+	if (!texture->Name().Blank()) { return texture; }
 
 	*texture = {};
 
 	texture->name = info.name;
+	texture->handle = handle;
 	texture->width = info.width;
 	texture->height = info.height;
 	texture->size = info.width * info.height * 4;
@@ -529,12 +539,11 @@ ResourceRef<Texture> Resources::CreateTexture(const TextureInfo& info, const Sam
 	texture->format = info.format;
 	texture->mipmapCount = info.mipmapCount;
 	texture->type = info.type;
-	texture->handle = handle;
 
 	if (!Renderer::CreateTexture(texture, info.initialData))
 	{
 		Logger::Error("Failed To Create Texture!");
-		textures.Remove(texture->handle);
+		textures.Remove(texture->Handle());
 		texture->Destroy();
 		return nullptr;
 	}
@@ -564,10 +573,10 @@ ResourceRef<Texture> Resources::CreateSwapchainTexture(VkImage image, VkFormat f
 	*texture = {};
 
 	texture->name = name;
+	texture->handle = handle;
 	texture->swapchainImage = true;
 	texture->format = format;
 	texture->image = image;
-	texture->handle = handle;
 
 	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewInfo.pNext = nullptr;
@@ -594,51 +603,64 @@ ResourceRef<Texture> Resources::CreateSwapchainTexture(VkImage image, VkFormat f
 	return texture;
 }
 
-ResourceRef<Shader> Resources::CreateShader(const String& name, U8 pushConstantCount, PushConstant* pushConstants)
+ResourceRef<Shader> Resources::CreateShader(const String& name)
 {
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
 	Shader* shader = shaders.Request(name, handle);
 
-	if (!shader->name.Blank()) { return shader; }
+	if (!shader->Name().Blank()) { return shader; }
 
 	*shader = {};
 
 	shader->name = name;
 	shader->handle = handle;
 
-	if (!shader->Create(name, pushConstantCount, pushConstants))
+	if (!shader->Create(name))
 	{
 		Logger::Error("Failed To Create Shader!");
-		shaders.Remove(shader->handle);
+		shaders.Remove(shader->Handle());
 		return nullptr;
 	}
 
 	return shader;
 }
 
-ResourceRef<Rendergraph> Resources::CreateRendergraph(RendergraphInfo& info)
+ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, Vector<ResourceRef<Pipeline>>&& pipelines)
 {
-	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Rendergraph* rendergraph = rendergraphs.Request(info.name, handle);
+	MaterialEffect* materialEffect = materialEffects.Request(name, handle);
 
-	if (!rendergraph->Name().Blank()) { return rendergraph; }
+	if (!materialEffect->Name().Blank()) { return materialEffect; }
 
-	rendergraph->handle = handle;
+	*materialEffect = {};
 
-	if (!rendergraph->Create(info))
-	{
-		Logger::Error("Failed To Create Rendergraph!");
-		rendergraphs.Remove(rendergraph->handle);
-		rendergraph->handle = U64_MAX;
-		rendergraph->Destroy();
-		return nullptr;
-	}
+	materialEffect->name = name;
+	materialEffect->handle = handle;
+	materialEffect->processing = Move(pipelines);
 
-	return rendergraph;
+	return materialEffect;
+}
+
+ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, const Vector<ResourceRef<Pipeline>>& pipelines)
+{
+	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	MaterialEffect* materialEffect = materialEffects.Request(name, handle);
+
+	if (!materialEffect->Name().Blank()) { return materialEffect; }
+
+	*materialEffect = {};
+
+	materialEffect->name = name;
+	materialEffect->handle = handle;
+	materialEffect->processing = pipelines;
+
+	return materialEffect;
 }
 
 ResourceRef<Material> Resources::CreateMaterial(MaterialInfo& info)
@@ -660,14 +682,20 @@ ResourceRef<Material> Resources::CreateMaterial(MaterialInfo& info)
 	if (info.normalTexture) { material->data.normalTextureIndex = (U32)info.normalTexture->handle; }
 	if (info.emissivityTexture) { material->data.emissivityTextureIndex = (U32)info.emissivityTexture->handle; }
 
-	if (info.baseColorFactor.w < 1.0f) { material->meshPipeline = Renderer::currentRendergraph->DefaultOpaqueMeshPipeline(); } //TODO: Can't directly reference rendergraph
-	else { material->meshPipeline = Renderer::currentRendergraph->DefaultTransparentMeshPipeline(); }
-
+	material->effect = info.effect;
 	material->data.baseColorFactor = info.baseColorFactor;
 	material->data.metalRoughFactor = info.metalRoughFactor;
 	material->data.emissiveFactor = info.emissiveFactor;
 	material->data.alphaCutoff = info.alphaCutoff;
 	material->data.flags = info.flags;
+
+	if (info.effect) { material->effect = info.effect; }
+	else
+	{
+		if (material->data.baseColorFactor.w < 1.0f) { material->effect = GetMaterialEffect("pbrTransparentEffect"); }
+		else { material->effect = GetMaterialEffect("pbrOpaqueEffect"); }
+	}
+	
 
 	VkBufferCopy region{};
 	region.dstOffset = sizeof(MaterialData) * handle;
@@ -686,7 +714,7 @@ ResourceRef<Mesh> Resources::CreateMesh(const String& name)
 	HashHandle handle;
 	Mesh* mesh = meshes.Request(name, handle);
 
-	if (!mesh->name.Blank()) { return mesh; }
+	if (!mesh->Name().Blank()) { return mesh; }
 
 	*mesh = {};
 
@@ -809,7 +837,7 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 	HashHandle handle;
 	Font* font = fonts.Request(path, handle);
 
-	if (!font->name.Blank()) { return font; }
+	if (!font->Name().Blank()) { return font; }
 
 	*font = {};
 
@@ -864,8 +892,8 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 
 		if (!Renderer::CreateTexture(texture, reader.Pointer()))
 		{
-			Logger::Error("Failed To Create Texture: {}!", texture->name);
-			fonts.Remove(font->handle);
+			Logger::Error("Failed To Create Texture: {}!", texture->Name());
+			fonts.Remove(font->Handle());
 			textures.Remove(handle);
 			textures.Destroy();
 			fonts.Destroy();
@@ -890,7 +918,7 @@ ResourceRef<AudioClip> Resources::LoadAudio(const String& path)
 	HashHandle handle;
 	AudioClip* audioClip = audioClips.Request(path, handle);
 
-	if (!audioClip->name.Blank()) { return audioClip; }
+	if (!audioClip->Name().Blank()) { return audioClip; }
 
 	*audioClip = {};
 
@@ -1194,7 +1222,7 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path)
 	HashHandle handle;
 	Texture* texture = textures.Request(path, handle);
 
-	if (!texture->name.Blank()) { return texture; }
+	if (!texture->Name().Blank()) { return texture; }
 
 	*texture = {};
 
@@ -1202,10 +1230,10 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path)
 	if (file.Opened())
 	{
 		texture->name = path;
+		texture->handle = handle;
 		texture->type = VK_IMAGE_TYPE_2D;
 		texture->flags = 0;
 		texture->depth = 1;
-		texture->handle = handle;
 
 		DataReader reader{ file };
 		file.Close();
@@ -1253,7 +1281,7 @@ ResourceRef<Skybox> Resources::LoadSkybox(const String& path)
 	HashHandle handle;
 	Skybox* skybox = skyboxes.Request(path, handle);
 
-	if (!skybox->name.Blank()) { return skybox; }
+	if (!skybox->Name().Blank()) { return skybox; }
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1301,7 +1329,7 @@ ResourceRef<Skybox> Resources::LoadSkybox(const String& path)
 		if (!Renderer::CreateCubemap((Texture*)skybox->texture, reader.Pointer(), &faceSize))
 		{
 			Logger::Error("Failed To Create Cubemap: {}!", path);
-			skyboxes.Remove(skybox->handle);
+			skyboxes.Remove(skybox->Handle());
 			textures.Remove(handle);
 			skybox->Destroy();
 			skybox->texture->Destroy();
@@ -1314,6 +1342,252 @@ ResourceRef<Skybox> Resources::LoadSkybox(const String& path)
 	Logger::Error("Failed To Find Or Open File: {}!", path);
 
 	skyboxes.Remove(handle);
+	return nullptr;
+}
+
+ResourceRef<Shader> Resources::LoadShader(const String& path, ShaderStageType stage)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Shader* shader = shaders.Request(path, handle);
+
+	if (!shader->name.Blank()) { return shader; }
+
+	*shader = {};
+
+	shader->name = path;
+	shader->handle = handle;
+	shader->stage = stage;
+
+	if (!shader->Create(path))
+	{
+		Logger::Error("Failed To Create Shader!");
+		shaders.Remove(shader->Handle());
+		return nullptr;
+	}
+
+	return shader;
+}
+
+ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstantCount, PushConstant* pushConstants)
+{
+	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
+
+	HashHandle handle;
+	Pipeline* pipeline = pipelines.Request(path, handle);
+
+	if (!pipeline->name.Blank()) { return pipeline; }
+
+	*pipeline = {};
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		pipeline->name = path;
+		pipeline->handle = handle;
+
+		String data;
+		file.ReadAll(data);
+		file.Close();
+
+		I64 index = 0;
+
+		do
+		{
+			I64 value = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
+
+			switch (Math::Hash(data.Data() + index, data.IndexOf('=', index) - index))
+			{
+			case "cull"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "NONE"_Hash: { pipeline->cullMode = CULL_MODE_NONE; } break;
+				case "FRONT"_Hash: { pipeline->cullMode = CULL_MODE_FRONT_BIT; } break;
+				case "BACK"_Hash: { pipeline->cullMode = CULL_MODE_BACK_BIT; } break;
+				case "BOTH"_Hash: { pipeline->cullMode = CULL_MODE_FRONT_AND_BACK; } break;
+				default: { Logger::Warn("Unknown Cull Mode, Defaulting To NONE!"); pipeline->cullMode = CULL_MODE_NONE; }
+				}
+			} break;
+			case "front"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "CLOCKWISE"_Hash: { pipeline->frontMode = FRONT_FACE_MODE_CLOCKWISE; } break;
+				case "COUNTER"_Hash: { pipeline->frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE; } break;
+				default: { Logger::Warn("Unknown Front Mode, Defaulting To COUNTER!"); pipeline->frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE; }
+				}
+			} break;
+			case "fill"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "SOLID"_Hash: { pipeline->fillMode = POLYGON_MODE_FILL; } break;
+				case "LINE"_Hash: { pipeline->fillMode = POLYGON_MODE_LINE; } break;
+				case "POINT"_Hash: { pipeline->fillMode = POLYGON_MODE_POINT; } break;
+				default: { Logger::Warn("Unknown Fill Mode, Defaulting To SOLID!"); pipeline->fillMode = POLYGON_MODE_FILL; }
+				}
+			} break;
+			case "depth"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "NONE"_Hash: {
+					pipeline->depthEnable = false;
+					pipeline->depthWriteEnable = false;
+					pipeline->depthComparison = COMPARE_OP_ALWAYS;
+				} break;
+				case "LESS_EQUAL"_Hash: {
+					pipeline->depthEnable = true;
+					pipeline->depthWriteEnable = true;
+					pipeline->depthComparison = COMPARE_OP_LESS_OR_EQUAL;
+				} break;
+				case "LESS"_Hash: {
+					pipeline->depthEnable = true;
+					pipeline->depthWriteEnable = true;
+					pipeline->depthComparison = COMPARE_OP_LESS;
+				} break;
+				case "GREATER_EQUAL"_Hash: {
+					pipeline->depthEnable = true;
+					pipeline->depthWriteEnable = true;
+					pipeline->depthComparison = COMPARE_OP_GREATER_OR_EQUAL;
+				} break;
+				case "GREATER"_Hash: {
+					pipeline->depthEnable = true;
+					pipeline->depthWriteEnable = true;
+					pipeline->depthComparison = COMPARE_OP_GREATER;
+				} break;
+				case "EQUAL"_Hash: {
+					pipeline->depthEnable = true;
+					pipeline->depthWriteEnable = true;
+					pipeline->depthComparison = COMPARE_OP_EQUAL;
+				} break;
+				default: {
+					Logger::Warn("Unknown Depth Compare, Defaulting To LESS!");
+					pipeline->depthEnable = true;
+					pipeline->depthWriteEnable = true;
+					pipeline->depthComparison = COMPARE_OP_LESS;
+				} break;
+				}
+			} break;
+			case "blend"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "ADD"_Hash: { pipeline->blendMode = BLEND_MODE_ADD; } break;
+				case "SUB"_Hash: { pipeline->blendMode = BLEND_MODE_SUB; } break;
+				case "NONE"_Hash: { pipeline->blendMode = BLEND_MODE_NONE; } break;
+				default: { Logger::Warn("Unknown Blend Mode, Defaulting To ADD!"); pipeline->blendMode = BLEND_MODE_ADD; } break;
+				}
+			} break;
+			case "topology"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "POINTS"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_POINT_LIST; } break;
+				case "LINES"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_LINE_LIST; } break;
+				case "LINE_STRIP"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_LINE_STRIP; } break;
+				case "TRIANGLES"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST; } break;
+				case "TRIANGLE_STRIP"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP; } break;
+				case "TRIANGLE_FAN"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_TRIANGLE_FAN; } break;
+				case "LINES_ADJ"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_LINE_LIST_WITH_ADJACENCY; } break;
+				case "LINE_STRIP_ADJ"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_LINE_STRIP_WITH_ADJACENCY; } break;
+				case "TRIANGLES_ADJ"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST_WITH_ADJACENCY; } break;
+				case "TRIANGLE_STRIP_ADJ"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_TRIANGLE_STRIP_WITH_ADJACENCY; } break;
+				case "PATCHES"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_PATCH_LIST; } break;
+				default: { Logger::Warn("Unknown Topology Mode, Defaulting To LINES!"); pipeline->topologyMode = TOPOLOGY_MODE_LINE_LIST; } break;
+				}
+			} break;
+			case "clear"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "COLOR"_Hash: { pipeline->clearTypes |= CLEAR_TYPE_COLOR; } break;
+				case "DEPTH"_Hash: { pipeline->clearTypes |= CLEAR_TYPE_DEPTH; } break;
+				case "STENCIL"_Hash: { pipeline->clearTypes |= CLEAR_TYPE_STENCIL; } break;
+				default: { Logger::Warn("Unknown Blend Mode, Ignoring!"); } break;
+				}
+			} break;
+			case "useIndices"_Hash: {
+				if (data.CompareN("FALSE", value)) { pipeline->useInstances = false; }
+			} break;
+			case "vertexCount"_Hash: {
+				pipeline->vertexCount = data.ToType<U8>(value);
+			} break;
+			case "depthBiasConstant"_Hash: {
+				pipeline->depthBiasConstant = data.ToType<F32>(value);
+				pipeline->depthBiasEnable = true;
+			} break;
+			case "depthBiasClamp"_Hash: {
+				pipeline->depthBiasClamp = data.ToType<F32>(value);
+				pipeline->depthBiasEnable = true;
+			} break;
+			case "depthBiasSlope"_Hash: {
+				pipeline->depthBiasSlope = data.ToType<F32>(value);
+				pipeline->depthBiasEnable = true;
+			} break;
+			case "type"_Hash: {
+				I64 size = data.IndexOf('\n', value) - value - 1;
+
+				switch (Math::Hash(data.Data() + value, size))
+				{
+				case "PRE_OPAQUE"_Hash: { pipeline->type |= PIPELINE_TYPE_PRE_PROCESSING_OPAQUE; } break;
+				case "PRE_TRANSPARENT"_Hash: { pipeline->type |= PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT; } break;
+				case "PRE"_Hash: { pipeline->type |= PIPELINE_TYPE_PRE_PROCESSING_OPAQUE | PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT; } break;
+				case "MESH_OPAQUE"_Hash: { pipeline->type |= PIPELINE_TYPE_MESH_OPAQUE; } break;
+				case "MESH_TRANSPARENT"_Hash: { pipeline->type |= PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT; } break;
+				case "MESH"_Hash: { pipeline->type |= PIPELINE_TYPE_MESH_OPAQUE | PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT; } break;
+				case "POST_MESH"_Hash: { pipeline->type |= PIPELINE_TYPE_POST_PROCESSING_MESH; } break;
+				case "POST_RENDER"_Hash: { pipeline->type |= PIPELINE_TYPE_POST_PROCESSING_RENDER; } break;
+				case "UI"_Hash: { pipeline->type |= PIPELINE_TYPE_UI; } break;
+				default: { Logger::Warn("Unknown Pipeline Type, Ignoring!"); } break;
+				}
+			} break;
+			case "renderOrder"_Hash: {
+				pipeline->renderOrder = data.ToType<I32>(value);
+			} break;
+			case "size"_Hash: {
+				pipeline->sizeX = data.ToType<U32>(value);
+				I64 next = data.IndexOfNot(' ', data.IndexOf(',', value)) + 1;
+				pipeline->sizeY = data.ToType<U32>(next);
+
+				value = next;
+			} break;
+			case "vertex"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_VERTEX_BIT)); } break;
+			case "control"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_TESSELLATION_CONTROL_BIT)); } break;
+			case "evaluation"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_TESSELLATION_EVALUATION_BIT)); } break;
+			case "geometry"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_GEOMETRY_BIT)); } break;
+			case "fragment"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_FRAGMENT_BIT)); } break;
+			case "compute"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_COMPUTE_BIT)); } break;
+			case "task"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_TASK_BIT_EXT)); } break;
+			case "mesh"_Hash: { pipeline->shaders.Push(LoadShader(data.SubString(value, data.IndexOf('\n', value) - value - 1), SHADER_STAGE_MESH_BIT_EXT)); } break;
+			default: { Logger::Warn("Unknown Setting, Ignoring!"); }
+			}
+
+			index = data.IndexOf('\n', value + 1);
+		} while (index++ != -1);
+
+		if (!pipeline->Create(pushConstantCount, pushConstants))
+		{
+			Logger::Error("Failed To Create Shader!");
+			shaders.Remove(pipeline->Handle());
+			return nullptr;
+		}
+
+		return pipeline;
+	}
+
+	Logger::Error("Failed To Find Or Open File: {}!", path);
+
+	pipelines.Remove(handle);
 	return nullptr;
 }
 
@@ -1359,19 +1633,14 @@ ResourceRef<Material> Resources::LoadMaterial(const String& path)
 		texturePath = reader.ReadString();
 		if (!texturePath.Compare("NULL")) { material->data.emissivityTextureIndex = (U32)LoadTexture(texturePath)->handle; }
 
-		U64 hash;
-		reader.Read(hash);
-
-		U8 pipelineID;
-		reader.Read(pipelineID);
-
-		material->meshPipeline = Renderer::currentRendergraph->GetPipeline(pipelineID);
-
 		reader.Read(material->data.baseColorFactor);
 		reader.Read(material->data.metalRoughFactor);
 		reader.Read(material->data.emissiveFactor);
 		reader.Read(material->data.alphaCutoff);
 		reader.Read(material->data.flags);
+
+		if (material->data.baseColorFactor.w < 1.0f) { material->effect = GetMaterialEffect("pbrTransparentEffect"); }
+		else { material->effect = GetMaterialEffect("pbrOpaqueEffect"); }
 
 		VkBufferCopy region{};
 		region.dstOffset = sizeof(MaterialData) * handle;
@@ -1395,7 +1664,7 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 	HashHandle handle;
 	Mesh* mesh = meshes.Request(path, handle);
 
-	if (!mesh->name.Blank()) { return mesh; }
+	if (!mesh->Name().Blank()) { return mesh; }
 
 	*mesh = {};
 
@@ -1486,7 +1755,7 @@ ResourceRef<Model> Resources::LoadModel(const String& path)
 	HashHandle handle;
 	Model* model = models.Request(path, handle);
 
-	if (!model->name.Blank()) { return model; }
+	if (!model->Name().Blank()) { return model; }
 
 	*model = {};
 
@@ -1820,19 +2089,14 @@ void Resources::SaveMaterial(const ResourceRef<Material>& material)
 		file.Write("NH Material");
 		file.Write(MATERIAL_VERSION);
 
-		if (material->data.diffuseTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.diffuseTextureIndex)->name); }
+		if (material->data.diffuseTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.diffuseTextureIndex)->Name()); }
 		else { file.Write("NULL"); }
-		if (material->data.armTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.armTextureIndex)->name); }
+		if (material->data.armTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.armTextureIndex)->Name()); }
 		else { file.Write("NULL"); }
-		if (material->data.normalTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.normalTextureIndex)->name); }
+		if (material->data.normalTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.normalTextureIndex)->Name()); }
 		else { file.Write("NULL"); }
-		if (material->data.emissivityTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.emissivityTextureIndex)->name); }
+		if (material->data.emissivityTextureIndex != U16_MAX) { file.Write(GetTexture(material->data.emissivityTextureIndex)->Name()); }
 		else { file.Write("NULL"); }
-
-		file.Write(Renderer::currentRendergraph->Handle());
-
-		if (material->data.baseColorFactor.w < 1.0f) { file.Write(Renderer::currentRendergraph->DefaultTransparentMeshPipelineID()); }
-		else { file.Write(Renderer::currentRendergraph->DefaultOpaqueMeshPipelineID()); }
 
 		file.Write(material->data.baseColorFactor);
 		file.Write(material->data.metalRoughFactor);
@@ -1964,6 +2228,16 @@ ResourceRef<Texture> Resources::GetTexture(const String& name)
 ResourceRef<Texture> Resources::GetTexture(HashHandle handle)
 {
 	return textures.Obtain(handle);
+}
+
+ResourceRef<MaterialEffect> Resources::GetMaterialEffect(const String& name)
+{
+	return materialEffects.Get(name);
+}
+
+ResourceRef<MaterialEffect> Resources::GetMaterialEffect(HashHandle handle)
+{
+	return materialEffects.Obtain(handle);
 }
 
 void Resources::DestroyBinary(Binary& binary)
@@ -2163,7 +2437,7 @@ String Resources::UploadAudio(const String& path)
 			I32 channelCount;
 			I32 sampleRate;
 			I16* data;
-			I32 samples = stb_vorbis_decode_memory(reader.Pointer(), reader.Size(), &channelCount, &sampleRate, &data);
+			I32 samples = stb_vorbis_decode_memory(reader.Pointer(), (I32)reader.Size(), &channelCount, &sampleRate, &data);
 
 			AudioFormat format{};
 			format.formatTag = 1;
@@ -3196,11 +3470,6 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 		ret = materialInfo->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
 		ai_real transparency{ 0.0f };
 		ret = materialInfo->Get(AI_MATKEY_TRANSMISSION_FACTOR, transparency);
-
-		file.Write(Renderer::currentRendergraph->Handle());
-
-		if (transparency > 0.0f) { file.Write(Renderer::currentRendergraph->DefaultTransparentMeshPipelineID()); }
-		else { file.Write(Renderer::currentRendergraph->DefaultOpaqueMeshPipelineID()); }
 
 		file.Write(color.r);
 		file.Write(color.g);

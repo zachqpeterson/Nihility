@@ -100,12 +100,6 @@ struct UIInstance
 	Matrix3 model{};
 };
 
-struct TextVertex
-{
-	Vector2 position;
-	Vector2 texcoord;
-};
-
 struct TextInstance
 {
 	U32 textureIndex{ U16_MAX };
@@ -121,14 +115,11 @@ Renderpass UI::renderpass;
 Pipeline UI::uiPipeline;
 Pipeline UI::textPipeline;
 ResourceRef<Font> UI::font;
-Buffer UI::vertexBuffer;
-Buffer UI::instanceBuffer;
-Buffer UI::indexBuffer;
-Buffer UI::drawsBuffer;
-Buffer UI::countsBuffer;
-U32 UI::vertexOffset{ 0 };
-U32 UI::instanceOffset{ 0 };
-U32 UI::drawsOffset{ 0 };
+ResourceRef<Mesh> UI::textMesh;
+ResourceRef<MaterialEffect> UI::uiEffect;
+ResourceRef<MaterialEffect> UI::textEffect;
+ResourceRef<Material> UI::uiMaterial;
+ResourceRef<Material> UI::textMaterial;
 
 U32 UI::textInstanceCount{ 0 };
 U32 UI::textVertexOffset;
@@ -139,49 +130,7 @@ Vector2 UI::textPadding;
 
 bool UI::Initialize()
 {
-	RenderpassInfo renderpassInfo{};
-	renderpassInfo.name = "ui_renderpass";
-	renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
-	renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
-	renderpassInfo.colorLoadOp = ATTACHMENT_LOAD_OP_LOAD;
-	renderpassInfo.subpassCount = 1;
-
-	Renderer::CreateRenderpass(&renderpass, renderpassInfo, nullptr);
-
-	PipelineInfo uiPipelineInfo{};
-	uiPipelineInfo.name = "ui_pipeline";
-	uiPipelineInfo.shader = Resources::CreateShader("shaders/UI.nhshd");
-	uiPipelineInfo.type = PIPELINE_TYPE_UI;
-	uiPipelineInfo.renderOrder = 100;
-
-	uiPipeline.Create(uiPipelineInfo, &renderpass);
-
-	PipelineInfo textPipelineInfo{};
-	textPipelineInfo.name = "text_pipeline";
-	textPipelineInfo.shader = Resources::CreateShader("shaders/Text.nhshd");
-	textPipelineInfo.type = PIPELINE_TYPE_UI;
-	textPipelineInfo.renderOrder = 110;
-
-	textPipeline.Create(textPipelineInfo, &renderpass);
-
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
-
-	//stagingBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
-	vertexBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	instanceBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	indexBuffer = Renderer::CreateBuffer(sizeof(U32) * CountOf(indices), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	drawsBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 2, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-
-	BufferData buffers{};
-	buffers.vertexBuffers[VERTEX_TYPE_COMBINED] = vertexBuffer;
-	buffers.instanceBuffer = instanceBuffer;
-	buffers.indexBuffer = indexBuffer;
-	buffers.drawBuffer = drawsBuffer;
-	buffers.countsBuffer = countsBuffer;
-
-	uiPipeline.SetBuffers(buffers);
-	textPipeline.SetBuffers(buffers);
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
 	
@@ -191,48 +140,53 @@ bool UI::Initialize()
 	textPosition = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	textPadding = Vector2One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	
-	TextVertex vertices[4]{
-		{ { 0.0f, textHeight }, { 0.0f, textPosition.y } },
-		{ { textWidth, textHeight }, { textPosition.x, textPosition.y } },
-		{ { 0.0f, 0.0f }, { 0.0f, 0.0f } },
-		{ { textWidth, 0.0f }, { textPosition.x, 0.0f } }
+	Vector2 textPositions[4]{
+		{ 0.0f, textHeight },
+		{ textWidth, textHeight },
+		{ 0.0f, 0.0f },
+		{ textWidth, 0.0f }
 	};
 
-	VkBufferCopy copy{};
-	copy.dstOffset = 0;
-	copy.srcOffset = 0;
-	copy.size = sizeof(U32) * CountOf(indices);
+	Vector2 textTexcoords[4]{
+		{ 0.0f, textPosition.y },
+		{ textPosition.x, textPosition.y },
+		{ 0.0f, 0.0f },
+		{ textPosition.x, 0.0f }
+	};
 
-	Renderer::FillBuffer(indexBuffer, copy.size, indices, 1, &copy);
+	textMesh = Resources::CreateMesh("text_mesh");
+	textMesh->vertexCount = 4;
+	textMesh->indicesSize = sizeof(U32) * 6;
+	Memory::AllocateSize(&textMesh->indices, sizeof(U32) * 6);
+	Memory::Copy(textMesh->indices, indices, sizeof(U32) * 6);
 
-	copy.size = sizeof(TextVertex) * CountOf(vertices);
+	VertexBuffer positionBuffer{};
+	positionBuffer.type = VERTEX_TYPE_POSITION;
+	positionBuffer.size = sizeof(Vector2) * 4;
+	positionBuffer.stride = sizeof(Vector2);
+	Memory::AllocateSize(&positionBuffer.buffer, sizeof(Vector2) * 4);
+	Memory::Copy(positionBuffer.buffer, textPositions, sizeof(Vector2) * CountOf(textPositions));
 
-	Renderer::FillBuffer(vertexBuffer, copy.size, vertices, 1, &copy);
+	VertexBuffer texcoordBuffer{};
+	texcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
+	texcoordBuffer.size = sizeof(Vector2) * 4;
+	texcoordBuffer.stride = sizeof(Vector2);
+	Memory::AllocateSize(&texcoordBuffer.buffer, sizeof(Vector2) * 4);
+	Memory::Copy(texcoordBuffer.buffer, textTexcoords, sizeof(Vector2) * CountOf(textTexcoords));
 
-	vertexOffset += (U32)copy.size;
+	textMesh->buffers.Push(positionBuffer);
+	textMesh->buffers.Push(texcoordBuffer);
 
-	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = 6;
-	drawCommand.instanceCount = 0;
-	drawCommand.firstIndex = 0;
-	drawCommand.vertexOffset = 0;
-	drawCommand.firstInstance = 0;
+	//TODO: Create MaterialEffects
 
-	copy.size = sizeof(VkDrawIndexedIndirectCommand);
+	MaterialInfo matInfo{};
+	matInfo.name = "ui_material";
+	matInfo.effect = uiEffect;
+	uiMaterial = Resources::CreateMaterial(matInfo);
 
-	Renderer::FillBuffer(drawsBuffer, copy.size, &drawCommand, 1, &copy);
-
-	drawsOffset += (U32)copy.size;
-
-	copy.size = sizeof(U32);
-
-	U32 count = 1;
-
-	Renderer::FillBuffer(countsBuffer, copy.size, &count, 1, &copy);
-
-	textPipeline.drawSets.Push({});
-
-	//TODO: Set offsets in pipelines
+	matInfo.name = "text_material";
+	matInfo.effect = textEffect;
+	textMaterial = Resources::CreateMaterial(matInfo);
 
 	return true;
 }
@@ -241,12 +195,6 @@ void UI::Shutdown()
 {
 	uiPipeline.Destroy();
 	textPipeline.Destroy();
-
-	Renderer::DestroyBuffer(vertexBuffer);
-	Renderer::DestroyBuffer(instanceBuffer);
-	Renderer::DestroyBuffer(indexBuffer);
-	Renderer::DestroyBuffer(drawsBuffer);
-	Renderer::DestroyBuffer(countsBuffer);
 
 	elements.Destroy();
 }
@@ -320,16 +268,6 @@ void UI::Update()
 	}
 }
 
-void UI::Render(CommandBuffer* commandBuffer)
-{
-	commandBuffer->BeginRenderpass(&renderpass);
-
-	uiPipeline.Run(commandBuffer);
-	textPipeline.Run(commandBuffer);
-
-	commandBuffer->EndRenderpass();
-}
-
 UIElement* UI::SetupElement(const UIElementInfo& info)
 {
 	elements.Push({});
@@ -384,7 +322,7 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 //	
 //	return element;
 //}
-
+//
 //UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
 //{
 //	UIElement* element = SetupElement(info);
@@ -576,7 +514,7 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 //	return nullptr;
 //}
 
-////TODO: Text alignment
+//TODO: Text alignment
 UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 {
 	UIElement* element = SetupElement(info);
@@ -591,6 +529,9 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 	U8 prev = 255;
 
 	F32 yOffset = textHeight * scale / 2.0f;
+
+	element->instances.mesh = textMesh;
+	element->instances.material = textMaterial;
 
 	for (C8 c : string)
 	{
@@ -607,20 +548,18 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 
 			Vector2 texPos = (Vector2)Font::atlasPositions[c - 32];
 
-			instance.textureIndex = (U32)font->texture->handle;
+			instance.textureIndex = (U32)font->texture->Handle();
 			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
 			instance.texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
 			instance.color = info.color;
 			instance.scale = scale;
 
-			VkBufferCopy copy{};
-			copy.dstOffset = instanceOffset;
-			copy.srcOffset = 0;
-			copy.size = sizeof(TextInstance);
-
-			instanceOffset += sizeof(TextInstance);
-
-			Renderer::FillBuffer(instanceBuffer, sizeof(TextInstance), &instance, 1, &copy);
+			//VkBufferCopy copy{};
+			//copy.dstOffset = instanceOffset;
+			//copy.srcOffset = 0;
+			//copy.size = sizeof(TextInstance);
+			//
+			//instanceOffset += sizeof(TextInstance);
 
 			++textInstanceCount;
 		}
@@ -635,23 +574,9 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 		prev = c;
 	}
 
-	VkDrawIndexedIndirectCommand drawCommand{};
-	drawCommand.indexCount = 6;
-	drawCommand.instanceCount = textInstanceCount;
-	drawCommand.firstIndex = 0;
-	drawCommand.vertexOffset = 0;
-	drawCommand.firstInstance = 0;
-
-	VkBufferCopy copy{};
-	copy.dstOffset = 0;
-	copy.srcOffset = 0;
-	copy.size = sizeof(VkDrawIndexedIndirectCommand);
-
-	Renderer::FillBuffer(drawsBuffer, copy.size, &drawCommand, 1, &copy);
-
 	return element;
 }
-//
+
 //UIElement* UI::CreateTextBox(const UIElementInfo& info)
 //{
 //	return nullptr;

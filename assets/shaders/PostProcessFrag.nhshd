@@ -1,0 +1,133 @@
+#version 450
+
+struct PostProcessing
+{
+    float contrast;
+    float brightness;
+    float saturation;
+    float gammaCorrection;
+};
+
+layout(push_constant) uniform block
+{
+	PostProcessing postProcessing;
+};
+
+layout (input_attachment_index = 0, binding = 0) uniform subpassInput inputColor;
+
+layout (location = 0) out vec4 outColor;
+
+const vec3 greyscale = vec3(0.299, 0.587, 0.114);
+
+vec3 Uncharted2TonemapPartial(vec3 x)
+{
+    const float A = 0.15;
+    const float B = 0.50;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.02;
+    const float F = 0.30;
+	const float CB = C * B;
+	const float DE = D * E;
+	const float DF = D * F;
+	const float EF = E / F;
+    return ((x * (A * x + CB) + DE) / (x * (A * x + B) + DF)) - EF;
+}
+
+vec3 Uncharted2Filmic(vec3 v)
+{
+    float exposure_bias = 2.0f;
+    vec3 curr = Uncharted2TonemapPartial(v * exposure_bias);
+
+    vec3 W = vec3(11.2f);
+    vec3 white_scale = vec3(1.0f) / Uncharted2TonemapPartial(W);
+    return clamp(curr * white_scale, 0.0, 1.0);
+}
+
+vec3 AcesApprox(vec3 v)
+{
+    v *= 0.6;
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((v * (a * v + b)) / (v * (c * v + d) + e), 0.0, 1.0);
+}
+
+vec3 Reinhard(vec3 v)
+{
+    return v / (1.0f + v);
+}
+
+//
+vec3 ReinhardExtended(vec3 v, float maxWhite)
+{
+    float maxW = maxWhite * maxWhite;
+
+    vec3 numerator = v * (1.0f + (v / vec3(maxW)));
+    return numerator / (1.0f + v);
+}
+
+float Luminance(vec3 v)
+{
+    return dot(v, vec3(0.2126f, 0.7152f, 0.0722f));
+}
+
+vec3 ChangeLuminance(vec3 c, float l)
+{
+    float lum = Luminance(c);
+    return c * (l / lum);
+}
+
+vec3 ReinhardExtendedLuminance(vec3 v, float maxWhite)
+{
+    float lOld = Luminance(v);
+    float numerator = lOld * (1.0f + (lOld / (maxWhite * maxWhite)));
+    float lNew = numerator / (1.0f + lOld);
+    return ChangeLuminance(v, lNew);
+}
+
+vec3 ReinhardJodie(vec3 v)
+{
+    float l = Luminance(v);
+    vec3 tv = v / (1.0f + v);
+    return mix(v / (1.0f + l), tv, tv);
+}
+
+float CameraResponse(float irradiance)
+{
+    return 0.22 * log(2.11 * irradiance + 0.022656) + 0.833;
+}
+
+float CameraIntensity(float f, float iso)
+{
+    float irradiance = clamp(f, 0.0, iso) / iso;
+
+    return CameraResponse(irradiance);
+}
+
+vec3 CameraTonemap(vec3 v, float iso)
+{
+    float r = CameraIntensity(v.r, iso);
+    float g = CameraIntensity(v.g, iso);
+    float b = CameraIntensity(v.b, iso);
+    return vec3(r, g, b);
+}
+
+void main()
+{
+    outColor = subpassLoad(inputColor);
+
+    //contrast and brightness
+	outColor.rgb = clamp(postProcessing.contrast * (outColor.rgb - 0.5) + 0.5 + postProcessing.brightness, 0.0, 1.0);
+
+	//saturation
+	outColor.rgb = clamp(mix(vec3(dot(outColor.rgb, greyscale)), outColor.rgb, postProcessing.saturation), 0.0, 1.0);
+
+	//tonemap
+	outColor.rgb = AcesApprox(outColor.rgb);
+
+	//gamma correction
+	outColor.rgb = clamp(pow(outColor.rgb, vec3(postProcessing.gammaCorrection)), 0.0, 1.0);
+}
