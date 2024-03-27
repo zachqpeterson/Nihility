@@ -28,6 +28,10 @@ public:
 		return localMatrix;
 	}
 
+	const Vector3& Position() const { return position; }
+	const Vector3& Scale() const { return scale; }
+	const Quaternion3& Rotation() const { return rotation; }
+
 	void Translate(const Vector3& translation)
 	{
 		position += translation;

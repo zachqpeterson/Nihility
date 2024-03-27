@@ -1,0 +1,9 @@
+vertex=shaders/UIVert.nhshd
+fragment=shaders/UIFrag.nhshd
+cull=NONE
+front=COUNTER
+fill=SOLID
+depth=NONE
+blend=ADD
+type=UI
+renderOrder=100

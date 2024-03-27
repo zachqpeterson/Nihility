@@ -1,0 +1,22 @@
+instanceLocation=2
+#version 450
+
+layout (location = 0) in vec2 position;
+layout (location = 1) in vec2 texcoord;
+
+layout (location = 2) in uint textureIndex;
+layout (location = 3) in vec2 scale;
+layout (location = 4) in vec2 instPosition;
+layout (location = 5) in vec4 color;
+
+layout (location = 0) out vec2 outTexcoord;
+layout (location = 1) out vec4 outColor;
+layout (location = 2) out flat uint outTextureIndex;
+
+void main()
+{
+	gl_Position = vec4(position * scale + instPosition, 0.0, 1.0);
+    outTexcoord = texcoord;
+	outColor = color;
+    outTextureIndex = textureIndex;
+}

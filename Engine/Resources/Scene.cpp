@@ -35,13 +35,13 @@ void Scene::Create(CameraType cameraType)
 
 	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
 	{
-		vertexBuffers[i] = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+		vertexBuffers[i] = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	}
 
-	stagingBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
-	instanceBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	indexBuffer = Renderer::CreateBuffer(MEGABYTES(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	drawBuffer = Renderer::CreateBuffer(MEGABYTES(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	stagingBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
+	instanceBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	indexBuffer = Renderer::CreateBuffer(Megabytes(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	drawBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 }
 
@@ -113,9 +113,9 @@ void Scene::AddMesh(ResourceRef<Mesh>& mesh)
 	draw.indexOffset = indexOffset;
 	indexOffset += draw.indexCount;
 
-	//Vertices
-	draw.vertexOffset = vertexOffset / sizeof(Vector3);
-
+	vertexOffset = NextMultipleOf(vertexOffset, mesh->buffers[0].stride);
+	draw.vertexOffset = vertexOffset / mesh->buffers[0].stride;
+	
 	U32 verticesSize = 0;
 	for (VertexBuffer& buffer : mesh->buffers)
 	{
@@ -408,7 +408,7 @@ void Scene::Update()
 		globalData->viewProjection = flyCamera.ViewProjection();
 		globalData->eye = flyCamera.Eye();
 
-		skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse();
+		skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse(); //TODO: fix floating point inaccuracy with position
 	}
 	else
 #endif

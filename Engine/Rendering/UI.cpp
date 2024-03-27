@@ -87,17 +87,25 @@ UIElement::~UIElement()
 	Destroy();
 }
 
-struct UIVertex
+void UIComponent::Update(Scene* scene)
 {
-	Vector3 position;
-	Vector2 texcoord;
-	Vector4 color;
-};
+
+}
+
+void UIComponent::Load(Scene* scene)
+{
+	for (MeshInstance& mesh : meshes)
+	{
+		scene->AddInstance(mesh);
+	}
+}
 
 struct UIInstance
 {
 	U32 textureIndex{ U16_MAX };
-	Matrix3 model{};
+	Vector2 scale{ Vector2One };
+	Vector2 position{ Vector2Zero };
+	Vector4 color{ Vector3One };
 };
 
 struct TextInstance
@@ -115,14 +123,13 @@ Renderpass UI::renderpass;
 Pipeline UI::uiPipeline;
 Pipeline UI::textPipeline;
 ResourceRef<Font> UI::font;
+ResourceRef<Mesh> UI::uiMesh;
 ResourceRef<Mesh> UI::textMesh;
 ResourceRef<MaterialEffect> UI::uiEffect;
 ResourceRef<MaterialEffect> UI::textEffect;
 ResourceRef<Material> UI::uiMaterial;
 ResourceRef<Material> UI::textMaterial;
 
-U32 UI::textInstanceCount{ 0 };
-U32 UI::textVertexOffset;
 F32 UI::textWidth;
 F32 UI::textHeight;
 Vector2 UI::textPosition;
@@ -133,13 +140,27 @@ bool UI::Initialize()
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
-	
+
 	textWidth = 48.0f / 1920.0f;
 	textHeight = 48.0f / 1080.0f;
-	
+
 	textPosition = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	textPadding = Vector2One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
-	
+
+	Vector2 uiPositions[4]{
+		{ 0.0f, 1.0f },
+		{ 1.0f, 1.0f },
+		{ 0.0f, 0.0f },
+		{ 1.0f, 0.0f }
+	};
+
+	Vector2 uiTexcoords[4]{
+		{ 0.0f, 1.0f },
+		{ 1.0f, 1.0f },
+		{ 0.0f, 0.0f },
+		{ 1.0f, 0.0f }
+	};
+
 	Vector2 textPositions[4]{
 		{ 0.0f, textHeight },
 		{ textWidth, textHeight },
@@ -154,30 +175,59 @@ bool UI::Initialize()
 		{ textPosition.x, 0.0f }
 	};
 
+	uiMesh = Resources::CreateMesh("ui_mesh");
+	uiMesh->vertexCount = 4;
+	uiMesh->indicesSize = sizeof(U32) * 6;
+	Memory::AllocateSize(&uiMesh->indices, sizeof(U32) * 6);
+	Memory::Copy(uiMesh->indices, indices, sizeof(U32) * 6);
+
+	VertexBuffer uiPositionBuffer{};
+	uiPositionBuffer.type = VERTEX_TYPE_POSITION;
+	uiPositionBuffer.size = (U32)(sizeof(Vector2) * CountOf(uiPositions));
+	uiPositionBuffer.stride = sizeof(Vector2);
+	Memory::AllocateSize(&uiPositionBuffer.buffer, sizeof(Vector2) * CountOf(uiPositions));
+	Memory::Copy(uiPositionBuffer.buffer, uiPositions, sizeof(Vector2) * CountOf(uiPositions));
+
+	VertexBuffer uiTexcoordBuffer{};
+	uiTexcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
+	uiTexcoordBuffer.size = (U32)(sizeof(Vector2) * CountOf(uiPositions));
+	uiTexcoordBuffer.stride = sizeof(Vector2);
+	Memory::AllocateSize(&uiTexcoordBuffer.buffer, sizeof(Vector2) * CountOf(uiPositions));
+	Memory::Copy(uiTexcoordBuffer.buffer, uiTexcoords, sizeof(Vector2) * CountOf(uiPositions));
+
+	uiMesh->buffers.Push(uiPositionBuffer);
+	uiMesh->buffers.Push(uiTexcoordBuffer);
+
 	textMesh = Resources::CreateMesh("text_mesh");
 	textMesh->vertexCount = 4;
 	textMesh->indicesSize = sizeof(U32) * 6;
 	Memory::AllocateSize(&textMesh->indices, sizeof(U32) * 6);
 	Memory::Copy(textMesh->indices, indices, sizeof(U32) * 6);
 
-	VertexBuffer positionBuffer{};
-	positionBuffer.type = VERTEX_TYPE_POSITION;
-	positionBuffer.size = sizeof(Vector2) * 4;
-	positionBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&positionBuffer.buffer, sizeof(Vector2) * 4);
-	Memory::Copy(positionBuffer.buffer, textPositions, sizeof(Vector2) * CountOf(textPositions));
+	VertexBuffer textPositionBuffer{};
+	textPositionBuffer.type = VERTEX_TYPE_POSITION;
+	textPositionBuffer.size = (U32)(sizeof(Vector2) * CountOf(textPositions));
+	textPositionBuffer.stride = sizeof(Vector2);
+	Memory::AllocateSize(&textPositionBuffer.buffer, sizeof(Vector2) * CountOf(textPositions));
+	Memory::Copy(textPositionBuffer.buffer, textPositions, sizeof(Vector2) * CountOf(textPositions));
 
-	VertexBuffer texcoordBuffer{};
-	texcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
-	texcoordBuffer.size = sizeof(Vector2) * 4;
-	texcoordBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&texcoordBuffer.buffer, sizeof(Vector2) * 4);
-	Memory::Copy(texcoordBuffer.buffer, textTexcoords, sizeof(Vector2) * CountOf(textTexcoords));
+	VertexBuffer textTexcoordBuffer{};
+	textTexcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
+	textTexcoordBuffer.size = (U32)(sizeof(Vector2) * CountOf(textPositions));
+	textTexcoordBuffer.stride = sizeof(Vector2);
+	Memory::AllocateSize(&textTexcoordBuffer.buffer, sizeof(Vector2) * CountOf(textPositions));
+	Memory::Copy(textTexcoordBuffer.buffer, textTexcoords, sizeof(Vector2) * CountOf(textTexcoords));
 
-	textMesh->buffers.Push(positionBuffer);
-	textMesh->buffers.Push(texcoordBuffer);
+	textMesh->buffers.Push(textPositionBuffer);
+	textMesh->buffers.Push(textTexcoordBuffer);
 
-	//TODO: Create MaterialEffects
+	Vector<ResourceRef<Pipeline>> pipelines{ 1, {} };
+
+	pipelines[0] = Resources::LoadPipeline("pipelines/ui.nhpln");
+	uiEffect = Resources::CreateMaterialEffect("uiEffect", pipelines);
+
+	pipelines[0] = Resources::LoadPipeline("pipelines/text.nhpln");
+	textEffect = Resources::CreateMaterialEffect("textEffect", Move(pipelines));
 
 	MaterialInfo matInfo{};
 	matInfo.name = "ui_material";
@@ -295,34 +345,30 @@ UIElement* UI::SetupElement(const UIElementInfo& info)
 	return element;
 }
 
-//UIElement* UI::CreateElement(const UIElementInfo& info)
-//{
-//	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
-//	
-//	UIElement* element = SetupElement(info);
-//	
-//	
-//	
-//	UIVertex vertices[4]{
-//		{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
-//		{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
-//		{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
-//		{ { info.area.z, info.area.w, 0.9f }, {}, info.color }
-//	};
-//	
-//	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
-//	
-//	UIInstance instance{};
-//	instance.textureIndex = U16_MAX;
-//	instance.model = Matrix3Identity;
-//	
-//	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
-//	
-//	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
-//	
-//	return element;
-//}
-//
+UIElement* UI::CreateElement(UIElementInfo& info)
+{
+	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
+
+	UIElement* element = SetupElement(info);
+
+	Vector<MeshInstance> instances{ };
+
+	MeshInstance& instance = instances.Push({});
+	instance.material = uiMaterial;
+	instance.mesh = uiMesh;
+
+	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
+
+	instanceData->textureIndex = U16_MAX;
+	instanceData->scale = info.area.zw() - info.area.xy();
+	instanceData->position = info.area.xy();
+	instanceData->color = info.color;
+
+	info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+
+	return element;
+}
+
 //UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
 //{
 //	UIElement* element = SetupElement(info);
@@ -530,38 +576,34 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 
 	F32 yOffset = textHeight * scale / 2.0f;
 
-	element->instances.mesh = textMesh;
-	element->instances.material = textMaterial;
+	Vector<MeshInstance> instances;
+
+	U32 i = 0;
 
 	for (C8 c : string)
 	{
 		Glyph& glyph = font->glyphs[c - 32];
 
-		if(c == '\n')
+		if (c == '\n')
 		{
 			position.x = startPosition.x;
 			position.y += (font->ascent + font->lineGap) * textHeight * scale;
 		}
 		else if (c != ' ')
 		{
-			TextInstance instance{};
+			MeshInstance& instance = instances.Push({});
+			instance.material = textMaterial;
+			instance.mesh = textMesh;
+
+			TextInstance* instanceData = (TextInstance*)instance.instanceData.data;
 
 			Vector2 texPos = (Vector2)Font::atlasPositions[c - 32];
 
-			instance.textureIndex = (U32)font->texture->Handle();
-			instance.position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
-			instance.texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
-			instance.color = info.color;
-			instance.scale = scale;
-
-			//VkBufferCopy copy{};
-			//copy.dstOffset = instanceOffset;
-			//copy.srcOffset = 0;
-			//copy.size = sizeof(TextInstance);
-			//
-			//instanceOffset += sizeof(TextInstance);
-
-			++textInstanceCount;
+			instanceData->textureIndex = (U32)font->texture->Handle();
+			instanceData->position = position - Vector2{ glyph.x * textWidth * scale, -glyph.y * textHeight * scale + yOffset };
+			instanceData->texcoord = texPos * textPosition + (texPos + Vector2One) * textPadding;
+			instanceData->color = info.color;
+			instanceData->scale = scale;
 		}
 
 		position.x += glyph.advance * textWidth * scale;
@@ -573,6 +615,8 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 
 		prev = c;
 	}
+
+	info.scene->AddEntity()->AddComponent<UIComponent>(instances); //TODO: Don't create new entity per text
 
 	return element;
 }

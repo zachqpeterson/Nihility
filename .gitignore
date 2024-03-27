@@ -1,14 +1,8 @@
 # Builds
-x64/*
-!x64/Debug/
-!x64/Release/
-x64/Debug/*
-x64/Release/*
-
+x64/
 Demo/x64/
 UnitTests/x64/
 Terrain/x64/
-*.exe
 
 # Keep 3rd Party dlls
 !x64/Debug/assimp-vc143-mt.dll

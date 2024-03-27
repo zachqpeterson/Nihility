@@ -28,7 +28,12 @@ struct NH_API Mesh : public Resource
 private:
 	U32 index{ U32_MAX };
 
+	F32 mass;
+	Vector3 centerOfMass;
+	Matrix3 invInertiaMatrix;
+
 	friend struct Scene;
+	friend class Resources;
 };
 
 struct InstanceData

@@ -5,6 +5,7 @@
 #include "Resources\Settings.hpp"
 
 #include <xaudio2.h>
+#include <x3daudio.h>
 
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;
@@ -47,6 +48,12 @@ bool Audio::Initialize()
 
 	if (audioHandle->CreateSubmixVoice(&sfxVoice, 2, sampleRate, 0, 0, nullptr, nullptr) < 0) { return false; }
 	if (audioHandle->CreateSubmixVoice(&musicVoice, 2, sampleRate, 0, 0, nullptr, nullptr) < 0) { return false; }
+
+	UL32 channelMask;
+	masterVoice->GetChannelMask(&channelMask);
+
+	//X3DAUDIO_HANDLE X3DInstance;
+	//X3DAudioInitialize(channelMask, X3DAUDIO_SPEED_OF_SOUND, X3DInstance);
 
 	return true;
 }

@@ -2,8 +2,6 @@
 
 #include "MathDefines.hpp"
 
-#include "Memory\Memory.hpp"
-
 #include <math.h>
 
 #ifdef abs
@@ -1063,6 +1061,9 @@ struct NH_API Vector3
 public:
 	F32 x, y, z;
 };
+
+constexpr Vector3 operator*(F32 f, const Vector3& v) { return { f * v.x, f * v.y, f * v.z }; }
+constexpr Vector3 operator/(F32 f, const Vector3& v) { return { f / v.x, f / v.y, f / v.z }; }
 
 struct NH_API Vector4
 {
@@ -2272,6 +2273,7 @@ struct NH_API Matrix3
 {
 	constexpr Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
 	constexpr Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a{ ax, ay, az }, b{ bx, by, bz }, c{ cx, cy, cz } {}
+	constexpr Matrix3(const Vector3& v) : a{ v.x, 0.0f, 0.0f }, b{ 0.0f, v.y, 0.0f }, c{ 0.0f, 0.0f, v.z } {}
 	constexpr Matrix3(const Vector3& a, const Vector3& b, const Vector3& c) : a{ a }, b{ b }, c{ c } {}
 	constexpr Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) noexcept : a{ v1 }, b{ v2 }, c{ v3 } {}
 	constexpr Matrix3(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
@@ -2354,9 +2356,81 @@ struct NH_API Matrix3
 		};
 	}
 
+	constexpr Matrix3 Inverse() const
+	{
+		F32 determinant = a.x * b.y * c.z - c.y * b.z -
+						  a.y * b.x * c.z - b.z * c.x +
+						  a.z * b.x * c.y - b.y * c.x;
+
+		if (Math::IsZero(determinant)) { return Matrix3{ }; }
+		F32 f = 1.0f / determinant;
+
+		return {
+			(b.y * c.z - c.y * b.z) * f, (a.z * c.y - a.y * c.z) * f, (a.y * b.z - a.z * b.y) * f,
+			(b.z * c.x - b.x * c.z) * f, (a.x * c.z - a.z * c.x) * f, (b.x * a.z - a.x * b.z) * f,
+			(b.x * c.y - c.x * b.y) * f, (c.x * a.y - a.x * c.y) * f, (a.x * b.y - b.x * a.y) * f
+		};
+	}
+	constexpr Matrix3& Inversed()
+	{
+		F32 determinant = a.x * b.y * c.z - c.y * b.z -
+			a.y * b.x * c.z - b.z * c.x +
+			a.z * b.x * c.y - b.y * c.x;
+
+		if (Math::IsZero(determinant)) { return *this = Matrix3{}; }
+		F32 f = 1.0f / determinant;
+
+		F32 ax = (b.y * c.z - c.y * b.z) * f;
+		F32 ay = (a.z * c.y - a.y * c.z) * f;
+		F32 az = (a.y * b.z - a.z * b.y) * f;
+		F32 bx = (b.z * c.x - b.x * c.z) * f;
+		F32 by = (a.x * c.z - a.z * c.x) * f;
+		F32 bz = (b.x * a.z - a.x * b.z) * f;
+		F32 cx = (b.x * c.y - c.x * b.y) * f;
+		F32 cy = (c.x * a.y - a.x * c.y) * f;
+		F32 cz = (a.x * b.y - b.x * a.y) * f;
+
+		a.x = ax;
+		a.y = ay;
+		a.z = az;
+		b.x = bx;
+		b.y = by;
+		b.z = bz;
+		c.x = cx;
+		c.y = cy;
+		c.z = cz;
+
+		return *this;
+	}
+	constexpr Matrix3 Transpose() const
+	{
+		return {
+			a.x, b.x, c.x,
+			a.y, b.y, c.y,
+			a.z, b.z, c.z
+		};
+	}
+	constexpr Matrix3& Transposed()
+	{
+		F32 bx = a.y;
+		F32 cx = a.z;
+		F32 cy = b.z;
+
+		a.y = b.x;
+		a.z = c.x;
+		b.z = c.y;
+
+		b.x = bx;
+		c.x = cx;
+		c.y = cy;
+
+		return *this;
+	}
+
 	constexpr Matrix3 operator-() const { return { -a, -b, -c }; }
 	constexpr Matrix3 operator~() const { return { -a, -b, -c }; }
 	constexpr Matrix3 operator!() const { return { -a, -b, -c }; }
+
 	constexpr bool operator==(const Matrix3& m) const { return a == m.a && b == m.b && c == m.c; }
 	constexpr bool operator!=(const Matrix3& m) const { return a != m.a || b != m.b || c != m.c; }
 
@@ -2506,8 +2580,6 @@ struct NH_API Matrix4
 
 	constexpr Matrix4 Inverse() const
 	{
-		Matrix4 m;
-
 		F32 t0 = c.z * d.w;
 		F32 t1 = d.z * c.w;
 		F32 t2 = b.z * d.w;
@@ -2532,6 +2604,8 @@ struct NH_API Matrix4
 		F32 t21 = c.x * a.y;
 		F32 t22 = a.x * b.y;
 		F32 t23 = b.x * a.y;
+
+		Matrix4 m;
 
 		m.a.x = (t0 * b.y + t3 * c.y + t4 * d.y) - (t1 * b.y + t2 * c.y + t5 * d.y);
 		m.a.y = (t1 * a.y + t6 * c.y + t9 * d.y) - (t0 * a.y + t7 * c.y + t8 * d.y);
@@ -2748,7 +2822,7 @@ struct NH_API Matrix4
 			a.x, b.x, c.x, d.x,
 			a.y, b.y, c.y, d.y,
 			a.z, b.z, c.z, d.z,
-			a.w, b.w, c.w, c.z
+			a.w, b.w, c.w, d.w
 		};
 	}
 	constexpr Matrix4& Transposed()

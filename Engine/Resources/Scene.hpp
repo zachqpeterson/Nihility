@@ -99,7 +99,11 @@ private:
 		reference.type = *id - 1;
 		reference.id = componentPools[reference.type]->Count();
 
-		return ((ComponentPoolInternal<Type>*)componentPools[reference.type])->AddComponent(Move(Type{ args... }));
+		Type* component = ((ComponentPoolInternal<Type>*)componentPools[reference.type])->AddComponent(Move(Type{ args... }));
+
+		if (loaded) { component->Load(this); }
+
+		return component;
 	}
 
 	void Load();

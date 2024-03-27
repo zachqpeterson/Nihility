@@ -2,17 +2,18 @@
 
 #include "Defines.hpp"
 #include "Containers\Freelist.hpp"
+#include "Math\Math.hpp"
 
-#define KILOBYTES(c) c * 1024Ui64
-#define MEGABYTES(c) c * 1024Ui64 * 1024Ui64
-#define GIGABYTES(c) c * 1024Ui64 * 1024Ui64 * 1024Ui64
+constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
+constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
+constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
 
 #ifndef STATIC_MEMORY_SIZE
-#	define STATIC_MEMORY_SIZE 1073741824Ui64
+#	define STATIC_MEMORY_SIZE 1024Ui64 * 1024Ui64 * 1024Ui64
 #endif
 
 #ifndef DYNAMIC_MEMORY_SIZE
-#	define DYNAMIC_MEMORY_SIZE 1073741824Ui64
+#	define DYNAMIC_MEMORY_SIZE 1024Ui64 * 1024Ui64 * 1024Ui64
 #endif
 
 /*
@@ -27,15 +28,24 @@ NH_NODISCARD void* operator new[](U64 size);
 void operator delete (void* ptr);
 void operator delete[](void* ptr);
 
+enum Region
+{
+	REGION_NONE = 0,
+	REGION_1KB = Kilobytes(1),
+	REGION_16KB = Kilobytes(16),
+	REGION_256KB = Kilobytes(256),
+	REGION_4MB = Megabytes(4),
+};
+
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, with NO garbage collection
 /// </summary>
 class NH_API Memory
 {
-struct Region1kb { private: U64 unused[128]; };
-struct Region16kb { private: Region1kb unused[16]; };
-struct Region256kb { private: Region16kb unused[16]; };
-struct Region4mb { private: Region256kb unused[16]; };
+struct Region1kb { private: U8 memory[REGION_1KB]; };
+struct Region16kb { private: U8 memory[REGION_16KB]; };
+struct Region256kb { private: U8 memory[REGION_256KB]; };
+struct Region4mb { private: U8 memory[REGION_4MB]; };
 
 public:
 	template<Pointer Type> static void Allocate(Type* pointer);
@@ -68,6 +78,9 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
+
+	static Region GetRegion(void* pointer);
+	static Region GetRegion(U64 size);
 
 	static void Allocate1kb(void** pointer, U64 size);
 	static void Allocate16kb(void** pointer, U64 size);
@@ -211,7 +224,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, totalSize);
+		CopyFree((void**)pointer, (void*)temp, Math::Min(totalSize, (U64)GetRegion(*pointer)));
 	}
 
 	*pointer = (Type)temp;
@@ -249,7 +262,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, totalSize);
+		CopyFree((void**)pointer, (void*)temp, Math::Min(totalSize, (U64)GetRegion(*pointer)));
 	}
 
 	*pointer = (Type)temp;

@@ -30,11 +30,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **/
 
-#include "LunarG/glslang/Include/glslang_c_interface.h"
+#include "Resources\Shader\glslang\Include\glslang_c_interface.h"
 
-#include "LunarG/SPIRV/GlslangToSpv.h"
-#include "LunarG/SPIRV/SPIRVLogger.h"
-#include "LunarG/SPIRV/SpvTools.h"
+#include "Resources\Shader\SPIRV/GlslangToSpv.h"
+#include "Resources\Shader\SPIRV/SPIRVLogger.h"
+#include "Resources\Shader\SPIRV/SpvTools.h"
 
 static_assert(sizeof(glslang_spv_options_t) == sizeof(glslang::SpvOptions), "");
 

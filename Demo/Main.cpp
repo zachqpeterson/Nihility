@@ -32,8 +32,8 @@ bool Init()
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
-	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
+	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
 	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default_material.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
@@ -51,13 +51,19 @@ bool Init()
 	info.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	info.scene = scene;
 
-	UIElement* element = UI::CreateText(info, "Hello, World!", 5);
+	UIElement* textElement = UI::CreateText(info, "Hello, World!", 5);
+
+	UIElementInfo info1{};
+	info.area = { -0.25f, -0.25f, 0.25f, 0.25f };
+	info.color = { 0.0f, 1.0f, 0.0f, 0.5f };
+	info.scene = scene;
+
+	UIElement* uiElement = UI::CreateElement(info);
 
 	Renderer::LoadScene(scene);
 	
 	music = Resources::LoadAudio("audio/TheEquable.nhaud");
 	sfx = Resources::LoadAudio("audio/Mine.nhaud");
-	//Audio::PlayMusic(music);
 
 	return true;
 }
@@ -129,7 +135,6 @@ void Update()
 
 	if (Input::OnButtonDown(BUTTON_CODE_H))
 	{
-		//TODO: Fix runtime model loading
 		entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
 	}
 
@@ -142,6 +147,11 @@ void Update()
 	lightPos.z = Math::Sin(lightVal) * 0.2f;
 
 	light->transform.SetPosition(lightPos);
+
+	Quaternion3 rotation(Vector3{1.0f, 5.0f, -3.2f} * 5.0f * (F32)(Time::DeltaTime() / 2.0));
+
+	//entity->transform.SetPosition();
+	entity->transform.SetRotation(rotation * entity->transform.Rotation());
 }
 
 void Shutdown()

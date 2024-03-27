@@ -72,6 +72,29 @@ void Memory::Shutdown()
 	free(memory);
 }
 
+Region Memory::GetRegion(void* pointer)
+{
+	static const void* upperBound = memory + totalSize;
+
+	if (pointer >= upperBound) { return REGION_NONE; }
+	else if (pointer >= pool4mbPointer) { return REGION_4MB; }
+	else if (pointer >= pool256kbPointer) { return REGION_256KB; }
+	else if (pointer >= pool16kbPointer) { return REGION_16KB; }
+	else if (pointer >= pool1kbPointer) { return REGION_1KB; }
+
+	return REGION_NONE;
+}
+
+Region Memory::GetRegion(U64 size)
+{
+	if (size <= REGION_1KB) { return REGION_1KB; }
+	else if (size <= REGION_16KB) { return REGION_16KB; }
+	else if (size <= REGION_256KB) { return REGION_256KB; }
+	else if (size <= REGION_4MB) { return REGION_4MB; }
+
+	return REGION_NONE;
+}
+
 void Memory::Allocate1kb(void** pointer, U64 size)
 {
 	if (free1kbIndices.Full()) { Allocate16kb(pointer, size); return; }

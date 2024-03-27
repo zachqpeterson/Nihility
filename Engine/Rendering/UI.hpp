@@ -8,7 +8,7 @@
 #include "Math\Math.hpp"
 
 struct UIElement;
-using UIEvent = Function<void(UIElement*, const Vector2&)>;
+typedef void(*UIEvent)(UIElement*, const Vector2&);
 
 struct Font;
 struct Scene;
@@ -63,10 +63,8 @@ private:
 
 	Scene* scene{ nullptr };
 	UIElement* parent{ nullptr };
-	MeshInstanceCluster instances;
 	Vector<UIElement*> children{};
 
-	//TODO: Use function pointers
 	UIEvent OnClick;
 	UIEvent OnDrag;
 	UIEvent OnRelease;
@@ -149,6 +147,7 @@ private:
 	UIElement& operator=(const UIElement&) = delete;
 
 	friend class UI;
+	friend struct Scene;
 };
 
 struct NH_API UIElementInfo
@@ -169,6 +168,19 @@ struct NH_API UIElementInfo
 	UIEvent OnMove;
 	UIEvent OnExit;
 	UIEvent OnScroll;
+};
+
+struct NH_API UIComponent : Component
+{
+	UIComponent(const Vector<MeshInstance>& meshes) : meshes{ meshes } {}
+	UIComponent(UIComponent&& other) noexcept : meshes{ Move(other.meshes) } {}
+
+	UIComponent& operator=(UIComponent&& other) noexcept { meshes = Move(other.meshes); return *this; }
+
+	virtual void Update(Scene* scene) final;
+	virtual void Load(Scene* scene) final;
+
+	Vector<MeshInstance> meshes;
 };
 
 struct Pipeline;
@@ -208,14 +220,13 @@ private:
 	static Pipeline uiPipeline;
 	static Pipeline textPipeline;
 	static ResourceRef<Font> font; //TODO: This should be default font, support per-text font
+	static ResourceRef<Mesh> uiMesh;
 	static ResourceRef<Mesh> textMesh;
 	static ResourceRef<MaterialEffect> uiEffect;
 	static ResourceRef<MaterialEffect> textEffect;
 	static ResourceRef<Material> uiMaterial;
 	static ResourceRef<Material> textMaterial;
 
-	static U32 textInstanceCount;
-	static U32 textVertexOffset;
 	static F32 textWidth;
 	static F32 textHeight;
 	static Vector2 textPosition;

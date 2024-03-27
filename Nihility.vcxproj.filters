@@ -547,6 +547,9 @@
     <ClInclude Include="Engine\Resources\Shader\spirv-tools\optimizer.hpp">
       <Filter>Source Files\Resources\Shader\spirv-tools</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Math\Physics.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -860,6 +863,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Resources\Shader\StandAlone\StandAlone.cpp">
       <Filter>Source Files\Resources\Shader\StandAlone</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Physics.cpp">
+      <Filter>Source Files\Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

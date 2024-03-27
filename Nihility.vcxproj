@@ -153,6 +153,7 @@
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\MathDefines.hpp" />
+    <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Networking\Discord.hpp" />
     <ClInclude Include="Engine\Platform\Audio.hpp" />
@@ -290,6 +291,7 @@
     <ClCompile Include="Engine\External\Discord\voice_manager.cpp" />
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Math.cpp" />
+    <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Networking\Discord.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />

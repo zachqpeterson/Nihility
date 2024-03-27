@@ -37,7 +37,7 @@
 #include <sstream>
 #include <cctype>
 
-#include "LunarG/glslang/Public/ResourceLimits.h"
+#include "Resources\Shader\glslang/Public/ResourceLimits.h"
 
 TBuiltInResource Resources;
 

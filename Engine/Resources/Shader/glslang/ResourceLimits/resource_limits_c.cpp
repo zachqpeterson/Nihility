@@ -26,8 +26,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **/
 
-#include "LunarG\glslang/Public/resource_limits_c.h"
-#include "LunarG\glslang/Public/ResourceLimits.h"
+#include "Resources\Shader\glslang\Public\resource_limits_c.h"
+#include "Resources\Shader\glslang\Public\ResourceLimits.h"
 #include <stdlib.h>
 #include <string.h>
 #include <string>

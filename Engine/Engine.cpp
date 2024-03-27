@@ -19,6 +19,7 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
+#include "Math\Physics.hpp"
 #include "Networking\Discord.hpp"
 
 InitializeFn Engine::GameInit;
@@ -41,12 +42,12 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Logger::Initialize());
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
+	ASSERT(Physics::Initialize());
 	ASSERT(Platform::Initialize(applicationName));
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
 
-	//Physics
 	//Particles
 	ASSERT(Audio::Initialize());
 	ASSERT(Input::Initialize());
@@ -66,12 +67,12 @@ void Engine::Shutdown()
 	GameShutdown();
 	Audio::Shutdown();
 	//Particles
-	//Physics
 	UI::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
+	Physics::Shutdown();
 	Jobs::Shutdown();
 	Settings::Shutdown();
 	Logger::Shutdown();
@@ -81,10 +82,12 @@ void Engine::Shutdown()
 
 void Engine::UpdateLoop()
 {
+	F64 timeAccumulation = 0.0;
+	F64 step = 0.001;
 	while (running)
 	{
 		Time::Update();
-		Input::Update(); //TODO: Handle Input Here
+		Input::Update();
 
 		if (!Platform::Update() || Input::OnButtonDown(BUTTON_CODE_ESCAPE)) { break; } //TODO: Separate Thread
 
@@ -102,7 +105,13 @@ void Engine::UpdateLoop()
 
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
-		//Physics::Update();
+		timeAccumulation += Time::DeltaTime();
+		while (timeAccumulation >= step)
+		{
+			Physics::Update(step);
+			timeAccumulation -= step;
+		}
+		
 		GameUpdate();
 		//Animations::Update();
 

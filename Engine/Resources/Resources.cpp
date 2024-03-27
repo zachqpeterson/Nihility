@@ -1740,6 +1740,12 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 		Memory::AllocateSize(&mesh->indices, mesh->indicesSize);
 		Memory::Copy(mesh->indices, reader.Pointer(), mesh->indicesSize);
 
+		reader.Seek(mesh->indicesSize);
+
+		reader.Read(mesh->mass);
+		reader.Read(mesh->centerOfMass);
+		reader.Read(mesh->invInertiaMatrix);
+
 		return mesh;
 	}
 
@@ -3489,6 +3495,20 @@ String Resources::ParseAssimpMaterial(const String& name, const aiMaterial* mate
 	return Move(path);
 }
 
+F32 ComputeInertiaProduct(const Vector3& p0, const Vector3& p1, const Vector3& p2, U32 i, U32 j)
+{
+	return 2.0f * p0[i] * p0[j] + p1[i] * p2[j] + p2[i] * p1[j] +
+		2.0f * p1[i] * p1[j] + p0[i] * p2[j] + p2[i] * p0[j] +
+		2.0f * p2[i] * p2[j] + p0[i] * p1[j] + p1[i] * p0[j];
+}
+
+F32 ComputeInertiaMoment(const Vector3& p0, const Vector3& p1, const Vector3& p2, U32 i)
+{
+	return p0[i] * p0[i] + p1[i] * p2[i] +
+		p1[i] * p1[i] + p0[i] * p2[i] +
+		p2[i] * p2[i] + p0[i] * p1[i];
+}
+
 String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 {
 	String path = { "meshes/", name, ".nhmsh" };
@@ -3536,13 +3556,56 @@ String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 			//}
 		}
 
+		const F32 density = 1.0f; //TODO: pass in density
+
+		F32 mass = 0.0f;
+		Vector3 centerOfMass = Vector3Zero;
+		F32 Ia = 0.0f, Ib = 0.0f, Ic = 0.0f, Iap = 0.0f, Ibp = 0.0f, Icp = 0.0f;
+
 		for (U32 i = 0; i < meshInfo->mNumFaces; ++i)
 		{
+			Vector3 p0 = TypePun<Vector3>(meshInfo->mVertices[meshInfo->mFaces[i].mIndices[0]]);
+			Vector3 p1 = TypePun<Vector3>(meshInfo->mVertices[meshInfo->mFaces[i].mIndices[1]]);
+			Vector3 p2 = TypePun<Vector3>(meshInfo->mVertices[meshInfo->mFaces[i].mIndices[2]]);
+
+			F32 det = p0.Dot(p1.Cross(p2));
+			F32 tetVolume = det / 6.0f;
+			F32 tetMass = density * tetVolume;
+			Vector3 tetCenterOfMass = (p0 + p1 + p2) / 4.0f;
+
+			Ia += det * (ComputeInertiaMoment(p0, p1, p2, 1) + ComputeInertiaMoment(p0, p1, p2, 2));
+			Ib += det * (ComputeInertiaMoment(p0, p1, p2, 0) + ComputeInertiaMoment(p0, p1, p2, 2));
+			Ic += det * (ComputeInertiaMoment(p0, p1, p2, 0) + ComputeInertiaMoment(p0, p1, p2, 1));
+			Iap += det * ComputeInertiaProduct(p0, p1, p2, 1, 2);
+			Ibp += det * ComputeInertiaProduct(p0, p1, p2, 0, 1);
+			Icp += det * ComputeInertiaProduct(p0, p1, p2, 0, 2);
+
+			centerOfMass += tetMass * tetCenterOfMass;
+			mass += tetMass;
+
 			Memory::Copy(it, meshInfo->mFaces[i].mIndices, faceSize);
 			it += faceSize;
 		}
 
+		centerOfMass /= mass;
+		Ia = density * Ia / 60.0f - mass * (centerOfMass.y * centerOfMass.y + centerOfMass.z * centerOfMass.z);
+		Ib = density * Ib / 60.0f - mass * (centerOfMass.x * centerOfMass.x + centerOfMass.z * centerOfMass.z);
+		Ic = density * Ic / 60.0f - mass * (centerOfMass.x * centerOfMass.x + centerOfMass.y * centerOfMass.y);
+		Iap = density * Iap / 120.0f - mass * (centerOfMass.y * centerOfMass.z);
+		Ibp = density * Ibp / 120.0f - mass * (centerOfMass.x * centerOfMass.y);
+		Icp = density * Icp / 120.0f - mass * (centerOfMass.x * centerOfMass.z);
+
+		Matrix3 inertiaMatrix{
+			Ia, -Ibp, -Icp,
+			-Ibp, Ib, -Iap,
+			-Icp, -Iap, Ic
+		};
+
 		file.Write(buffer, totalSize);
+
+		file.Write(mass);
+		file.Write(centerOfMass);
+		file.Write(inertiaMatrix.Inverse());
 
 		file.Close();
 	}
