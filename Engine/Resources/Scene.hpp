@@ -13,6 +13,13 @@ struct ComponentPool
 	virtual U64 Count() = 0;
 };
 
+struct BufferCopy
+{
+	U64 srcOffset;
+	U64 dstOffset;
+	U64 size;
+};
+
 template <class Type>
 struct ComponentPoolInternal : public ComponentPool
 {
@@ -65,7 +72,6 @@ struct Entity;
 struct Pipeline;
 struct MeshInstance;
 struct CommandBuffer;
-struct VkBufferCopy;
 
 struct NH_API Scene
 {
@@ -81,9 +87,10 @@ struct NH_API Scene
 	void AddInstance(MeshInstance& instance);
 	void UpdateInstance(MeshInstance& instance);
 
+	void Destroy();
+
 private:
 	void Create(CameraType cameraType);
-	void Destroy();
 
 	template<ComponentType Type, typename... Args>
 	Type* AddComponent(ComponentReference& reference, Args&&... args) noexcept
@@ -114,7 +121,7 @@ private:
 
 	void AddMesh(ResourceRef<Mesh>& mesh);
 	void AddPipeline(ResourceRef<Pipeline>& pipeline);
-	VkBufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
+	BufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
 
 	String							name{};
 	HashHandle						handle;
@@ -130,6 +137,11 @@ private:
 	Buffer							indexBuffer;
 	Buffer							drawBuffer;
 	Buffer							countsBuffer;
+
+	Vector<BufferCopy>				vertexWrites[VERTEX_TYPE_COUNT - 1];
+	Vector<BufferCopy>				indexWrites;
+	Vector<BufferCopy>				drawWrites;
+	Vector<BufferCopy>				countsWrites;
 
 	U32								vertexOffset{ 0 };
 	U32								instanceOffset{ 0 };

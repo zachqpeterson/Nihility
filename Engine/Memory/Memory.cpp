@@ -3,6 +3,7 @@
 #include "Platform\ThreadSafety.hpp"
 #include <corecrt_malloc.h>
 
+U32 Memory::allocations{ 0 };
 U8* Memory::memory{ nullptr };
 U64 Memory::totalSize{ 0 };
 
@@ -65,11 +66,14 @@ void Memory::Shutdown()
 {
 	initialized = false;
 
-	free1kbIndices.Destroy();
-	free16kbIndices.Destroy();
-	free256kbIndices.Destroy();
-	free4mbIndices.Destroy();
-	free(memory);
+	if (allocations == 0)
+	{
+		free1kbIndices.Destroy();
+		free16kbIndices.Destroy();
+		free256kbIndices.Destroy();
+		free4mbIndices.Destroy();
+		free(memory);
+	}
 }
 
 Region Memory::GetRegion(void* pointer)
@@ -99,6 +103,7 @@ void Memory::Allocate1kb(void** pointer, U64 size)
 {
 	if (free1kbIndices.Full()) { Allocate16kb(pointer, size); return; }
 
+	++allocations;
 	*pointer = pool1kbPointer + free1kbIndices.GetFree();
 }
 
@@ -106,6 +111,7 @@ void Memory::Allocate16kb(void** pointer, U64 size)
 {
 	if (free16kbIndices.Full()) { Allocate256kb(pointer, size); return; }
 
+	++allocations;
 	*pointer = pool16kbPointer + free16kbIndices.GetFree();
 }
 
@@ -113,6 +119,7 @@ void Memory::Allocate256kb(void** pointer, U64 size)
 {
 	if (free256kbIndices.Full()) { Allocate4mb(pointer, size); return; }
 
+	++allocations;
 	*pointer = pool256kbPointer + free256kbIndices.GetFree();
 }
 
@@ -120,6 +127,7 @@ void Memory::Allocate4mb(void** pointer, U64 size)
 {
 	if (free4mbIndices.Full()) { *pointer = LargeAllocate(size); return; }
 
+	++allocations;
 	*pointer = pool4mbPointer + free4mbIndices.GetFree();
 }
 
@@ -155,6 +163,7 @@ void Memory::CopyFree(void** pointer, void* copy, U64 size)
 
 void Memory::Free1kb(void** pointer)
 {
+	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
 	Zero(*pointer, sizeof(Region1kb));
 	free1kbIndices.Release((U32)((Region1kb*)*pointer - pool1kbPointer));
 	*pointer = nullptr;
@@ -162,6 +171,7 @@ void Memory::Free1kb(void** pointer)
 
 void Memory::Free16kb(void** pointer)
 {
+	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
 	Zero(*pointer, sizeof(Region16kb));
 	free16kbIndices.Release((U32)((Region16kb*)*pointer - pool16kbPointer));
 	*pointer = nullptr;
@@ -169,6 +179,7 @@ void Memory::Free16kb(void** pointer)
 
 void Memory::Free256kb(void** pointer)
 {
+	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
 	Zero(*pointer, sizeof(Region256kb));
 	free256kbIndices.Release((U32)((Region256kb*)*pointer - pool256kbPointer));
 	*pointer = nullptr;
@@ -176,6 +187,7 @@ void Memory::Free256kb(void** pointer)
 
 void Memory::Free4mb(void** pointer)
 {
+	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
 	Zero(*pointer, sizeof(Region4mb));
 	free4mbIndices.Release((U32)((Region4mb*)*pointer - pool4mbPointer));
 	*pointer = nullptr;

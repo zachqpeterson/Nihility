@@ -598,9 +598,15 @@ struct ResourceRef
 	ResourceRef(const ResourceRef& other) : value{ other.value } { if (value) { ++value->refCount; } }
 	~ResourceRef()
 	{
+		Destroy();
+	}
+
+	void Destroy()
+	{
 		if (value && --value->refCount == 0)
 		{
-			//TODO: Free Resource
+			//TODO: Free
+			value = nullptr;
 		}
 	}
 

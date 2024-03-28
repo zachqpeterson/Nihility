@@ -84,13 +84,6 @@ private:
 	friend struct Scene;
 };
 
-struct BufferCopy
-{
-	U64 srcOffset;
-	U64 dstOffset;
-	U64 size;
-};
-
 struct DrawSet
 {
 	U32 drawOffset{ 0 };
@@ -105,14 +98,14 @@ struct VkPipelineLayout_T;
 
 struct NH_API Pipeline : Resource
 {
-
 	void AddDescriptor(const Descriptor& descriptor);
 	void AddDependancy(const Dependancy& dependancy);
+
+	void Destroy();
 
 private:
 	bool Create(U8 pushConstantCount, PushConstant* pushConstants);
 	void Build(Renderpass* renderpass);
-	void Destroy();
 
 	void SetBuffers(Buffer* buffers, Buffer instanceBuffer);
 

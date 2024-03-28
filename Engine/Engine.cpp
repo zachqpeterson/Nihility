@@ -76,6 +76,7 @@ void Engine::Shutdown()
 	Jobs::Shutdown();
 	Settings::Shutdown();
 	Logger::Shutdown();
+	Events::Shutdown();
 	Memory::Shutdown();
 	Time::Shutdown();
 }

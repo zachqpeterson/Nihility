@@ -267,6 +267,7 @@ void Renderer::Shutdown()
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { commandBuffers[i].Destroy(); }
 
 	vkDestroySemaphore(device, imageAcquired, allocationCallbacks);
+	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, presentReady[i], allocationCallbacks); }
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, renderCompleted[i], allocationCallbacks); }
 	for (U32 i = 0; i < MAX_SWAPCHAIN_IMAGES; ++i) { vkDestroySemaphore(device, transferCompleted[i], allocationCallbacks); }
 

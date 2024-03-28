@@ -457,13 +457,19 @@ void Resources::Shutdown()
 {
 	Logger::Trace("Cleaning Up Resources...");
 
+	vkDeviceWaitIdle(Renderer::device);
+
 	CleanupHashmap(textures, Renderer::DestroyTextureInstant);
 
 	textures.Destroy();
+	skyboxes.Destroy();
 	fonts.Destroy();
 	audioClips.Destroy();
 	shaders.Destroy();
 	pipelines.Destroy();
+	materialEffects.Destroy();
+	materials.Destroy();
+	meshes.Destroy();
 	models.Destroy();
 	scenes.Destroy();
 

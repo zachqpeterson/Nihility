@@ -18,6 +18,7 @@ ResourceRef<AudioClip> sfx;
 F32 volume = 1.0f;
 F32 percent = 1.0f;
 
+Scene* scene;
 Entity* entity{};
 Entity* light{};
 
@@ -28,7 +29,7 @@ bool Init()
 	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
 	//Resources::UploadModel("AnisotropyBarnLamp/AnisotropyBarnLamp.gltf");
 
-	Scene* scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
+	scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
 	
 	entity = scene->AddEntity();
 	light = scene->AddEntity();
@@ -156,7 +157,8 @@ void Update()
 
 void Shutdown()
 {
-
+	music.Destroy();
+	sfx.Destroy();
 }
 
 int main()

@@ -99,6 +99,7 @@ private:
 	static void Free4mb(void** pointer);
 	static void LargeFree(void** pointer);
 
+	static U32 allocations;
 	static U8* memory;
 	static U64 totalSize;
 

@@ -10,11 +10,6 @@
 #include "Rendering\RenderingDefines.hpp"
 #include "Core\Time.hpp"
 
-Vector<VkBufferCopy>			vertexWrites[VERTEX_TYPE_COUNT - 1];
-Vector<VkBufferCopy>			indexWrites;
-Vector<VkBufferCopy>			drawWrites;
-Vector<VkBufferCopy>			countsWrites;
-
 void Scene::Create(CameraType cameraType)
 {
 	switch (cameraType)
@@ -49,9 +44,30 @@ void Scene::Destroy()
 {
 	name.Destroy();
 
-	entities.Destroy();
+	indexWrites.Destroy();
+	drawWrites.Destroy();
+	countsWrites.Destroy();
 
 	meshDraws.Destroy();
+	entities.Destroy();
+
+	componentPools.Destroy();
+	pipelines.Destroy();
+
+	for (Renderpass& renderpass : renderpasses) { Renderer::DestroyRenderPassInstant(&renderpass); }
+	renderpasses.Destroy();
+
+	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
+	{
+		vertexWrites[i].Destroy();
+		Renderer::DestroyBuffer(vertexBuffers[i]);
+	}
+
+	Renderer::DestroyBuffer(stagingBuffer);
+	Renderer::DestroyBuffer(instanceBuffer);
+	Renderer::DestroyBuffer(indexBuffer);
+	Renderer::DestroyBuffer(drawBuffer);
+	Renderer::DestroyBuffer(countsBuffer);
 }
 
 Entity* Scene::AddEntity()
@@ -113,7 +129,7 @@ void Scene::AddMesh(ResourceRef<Mesh>& mesh)
 	draw.indexOffset = indexOffset;
 	indexOffset += draw.indexCount;
 
-	vertexOffset = NextMultipleOf(vertexOffset, mesh->buffers[0].stride);
+	vertexOffset = (U32)NextMultipleOf(vertexOffset, mesh->buffers[0].stride);
 	draw.vertexOffset = vertexOffset / mesh->buffers[0].stride;
 	
 	U32 verticesSize = 0;
@@ -429,30 +445,30 @@ void Scene::Update()
 
 	if (indexWrites.Size())
 	{
-		Renderer::FillBuffer(indexBuffer, stagingBuffer, (U32)indexWrites.Size(), indexWrites.Data());
+		Renderer::FillBuffer(indexBuffer, stagingBuffer, (U32)indexWrites.Size(), (VkBufferCopy*)indexWrites.Data());
 		indexWrites.Clear();
 	}
 
 	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
 	{
-		Vector<VkBufferCopy>& writes = vertexWrites[i];
+		Vector<BufferCopy>& writes = vertexWrites[i];
 
 		if (writes.Size())
 		{
-			Renderer::FillBuffer(vertexBuffers[i], stagingBuffer, (U32)writes.Size(), writes.Data());
+			Renderer::FillBuffer(vertexBuffers[i], stagingBuffer, (U32)writes.Size(), (VkBufferCopy*)writes.Data());
 			writes.Clear();
 		}
 	}
 
 	if (countsWrites.Size())
 	{
-		Renderer::FillBuffer(countsBuffer, stagingBuffer, (U32)countsWrites.Size(), countsWrites.Data());
+		Renderer::FillBuffer(countsBuffer, stagingBuffer, (U32)countsWrites.Size(), (VkBufferCopy*)countsWrites.Data());
 		countsWrites.Clear();
 	}
 
 	if (drawWrites.Size())
 	{
-		Renderer::FillBuffer(drawBuffer, stagingBuffer, (U32)drawWrites.Size(), drawWrites.Data());
+		Renderer::FillBuffer(drawBuffer, stagingBuffer, (U32)drawWrites.Size(), (VkBufferCopy*)drawWrites.Data());
 		drawWrites.Clear();
 	}
 
@@ -506,9 +522,9 @@ void Scene::Resize()
 	}
 }
 
-VkBufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data)
+BufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data)
 {
-	VkBufferCopy region{};
+	BufferCopy region{};
 	region.dstOffset = dstOffset;
 	region.size = size;
 	region.srcOffset = stagingBuffer.allocationOffset;

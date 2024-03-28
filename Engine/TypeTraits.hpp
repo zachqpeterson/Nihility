@@ -294,14 +294,14 @@ template <class Type> constexpr Type&& Forward(RemovedReference<Type>& arg) noex
 /// <returns>The forwarded value</returns>
 template <class Type> constexpr Type&& Forward(RemovedReference<Type>&& arg) noexcept { static_assert(!IsLReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
 
+template<typename T> typename AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
+
 template<class Type> constexpr void Swap(Type& a, Type& b) noexcept
 {
 	Type tmp = Move(a);
 	a = Move(b);
 	b = Move(tmp);
 }
-
-template<typename T> typename AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
 
 namespace TypeTraits
 {
