@@ -132,7 +132,7 @@ bool Platform::Initialize(CSTR applicationName)
 
 void Platform::Shutdown()
 {
-	Logger::Trace("Cleaning Up Platform...");
+	Logger::Trace("Shutting Down Platform...");
 
 	if (windowData.window)
 	{

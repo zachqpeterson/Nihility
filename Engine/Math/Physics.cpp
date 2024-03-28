@@ -1,15 +1,18 @@
 #include "Physics.hpp"
 
 #include "Core\Time.hpp"
+#include "Core\Logger.hpp"
 
 bool Physics::Initialize()
 {
+	Logger::Trace("Initializing Physics...");
+
 	return true;
 }
 
 void Physics::Shutdown()
 {
-
+	Logger::Trace("Shutting Down Physics...");
 }
 
 void Physics::Update(F64 step)

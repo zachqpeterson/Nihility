@@ -109,7 +109,7 @@ bool Input::Initialize()
 
 void Input::Shutdown()
 {
-	Logger::Trace("Cleaning Up Input...");
+	Logger::Trace("Shutting Down Input...");
 
 	devices.Destroy();
 }

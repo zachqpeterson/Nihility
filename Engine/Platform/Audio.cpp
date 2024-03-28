@@ -38,6 +38,8 @@ struct AudioCallbacks : public IXAudio2VoiceCallback
 
 bool Audio::Initialize()
 {
+	Logger::Trace("Initializing Audio...");
+
 	if (XAudio2Create(&audioHandle) < 0) { return false; }
 	if (audioHandle->CreateMasteringVoice(&masterVoice) < 0) { return false; }
 
@@ -90,6 +92,8 @@ void Audio::Update()
 
 void Audio::Shutdown()
 {
+	Logger::Trace("Shutting Down Audio...");
+
 	freeSFX.Destroy();
 	sfxSources.Destroy();
 

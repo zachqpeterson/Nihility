@@ -137,6 +137,8 @@ Vector2 UI::textPadding;
 
 bool UI::Initialize()
 {
+	Logger::Trace("Initializing UI...");
+
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
 	font = Resources::LoadFont("fonts/arial.nhfnt");
@@ -243,6 +245,8 @@ bool UI::Initialize()
 
 void UI::Shutdown()
 {
+	Logger::Trace("Shutting Down UI...");
+
 	uiPipeline.Destroy();
 	textPipeline.Destroy();
 

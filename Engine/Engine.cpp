@@ -53,6 +53,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	ASSERT(Input::Initialize());
 	Discord::Initialize(applicationName);
 
+	Logger::Trace("Initializing Game...");
 	ASSERT(GameInit());
 
 	Renderer::InitialSubmit();
@@ -64,6 +65,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 
 void Engine::Shutdown()
 {
+	Logger::Trace("Shutting Down Game...");
 	GameShutdown();
 	Audio::Shutdown();
 	//Particles

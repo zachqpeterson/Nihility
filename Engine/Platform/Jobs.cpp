@@ -52,7 +52,7 @@ bool Jobs::Initialize()
 
 void Jobs::Shutdown()
 {
-	Logger::Trace("Cleaning Up Jobs...");
+	Logger::Trace("Shutting Down Jobs...");
 
 	running = false;
 	jobs.Destroy();

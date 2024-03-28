@@ -234,7 +234,7 @@ PFN_vkSetDebugUtilsObjectNameEXT SetDebugUtilsObjectNameEXT;
 
 bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 {
-	Logger::Trace("Initializing Vulkan Renderer...");
+	Logger::Trace("Initializing Renderer...");
 
 	appName = applicationName;
 	appVersion = applicationVersion;
@@ -253,7 +253,7 @@ bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
 
 void Renderer::Shutdown()
 {
-	Logger::Trace("Cleaning Up Vulkan Renderer...");
+	Logger::Trace("Shutting Down Renderer...");
 
 	if (currentScene)
 	{
@@ -277,7 +277,6 @@ void Renderer::Shutdown()
 
 	swapchain.Destroy();
 
-	Resources::Shutdown();
 	Shader::Shutdown();
 
 	vmaDestroyAllocator(allocator);

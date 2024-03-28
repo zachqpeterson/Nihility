@@ -10,6 +10,8 @@ discord::Activity Discord::activity;
 
 bool Discord::Initialize(CSTR applicationName)
 {
+	Logger::Trace("Initializing Discord...");
+
 	discord::Result result = discord::Core::Create(1200965397206274118, DiscordCreateFlags_Default, &core);
 	if (result != discord::Result::Ok)
 	{
