@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "UnitTests\Unit
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Terrain", "Terrain\Terrain.vcxproj", "{D7F35211-A468-4DE2-94B0-B3E49924A43C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tilemap", "..\Tilemap\Tilemap.vcxproj", "{658F119E-AC42-464C-B8DD-C91A30CD4029}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,14 @@ Global
 		{D7F35211-A468-4DE2-94B0-B3E49924A43C}.Release|x64.Build.0 = Release|x64
 		{D7F35211-A468-4DE2-94B0-B3E49924A43C}.Release|x86.ActiveCfg = Release|Win32
 		{D7F35211-A468-4DE2-94B0-B3E49924A43C}.Release|x86.Build.0 = Release|Win32
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Debug|x64.ActiveCfg = Debug|x64
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Debug|x64.Build.0 = Debug|x64
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Debug|x86.ActiveCfg = Debug|Win32
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Debug|x86.Build.0 = Debug|Win32
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Release|x64.ActiveCfg = Release|x64
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Release|x64.Build.0 = Release|x64
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Release|x86.ActiveCfg = Release|Win32
+		{658F119E-AC42-464C-B8DD-C91A30CD4029}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

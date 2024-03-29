@@ -103,8 +103,10 @@ void UIComponent::Load(Scene* scene)
 struct UIInstance
 {
 	U32 textureIndex{ U16_MAX };
-	Vector2 scale{ Vector2One };
 	Vector2 position{ Vector2Zero };
+	Vector2 scale{ Vector2One };
+	Vector2 texcoord{ Vector2Zero };
+	Vector2 texcoordScale{ Vector2One };
 	Vector4 color{ Vector3One };
 };
 
@@ -362,193 +364,220 @@ UIElement* UI::CreateElement(UIElementInfo& info)
 	instance.mesh = uiMesh;
 
 	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
-
 	instanceData->textureIndex = U16_MAX;
-	instanceData->scale = info.area.zw() - info.area.xy();
 	instanceData->position = info.area.xy();
+	instanceData->scale = info.area.zw() - info.area.xy();
 	instanceData->color = info.color;
 
-	info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
 
 	return element;
 }
 
-//UIElement* UI::CreatePanel(const UIElementInfo& info, F32 borderSize, const Vector4& borderColor, Texture* background, Texture* border)
-//{
-//	UIElement* element = SetupElement(info);
-//
-//	element->type = UI_ELEMENT_PANEL;
-//	element->panel.borderSize = borderSize;
-//	element->panel.borderColor = borderColor;
-//	element->panel.background = background;
-//	element->panel.border = border;
-//
-//	F32 borderWidth = WIDTH_RATIO * borderSize;
-//	F32 borderHeight = HEIGHT_RATIO * borderSize;
-//
-//	UIVertex vertices[20]{
-//		//BODY
-//		{ { info.area.x + borderWidth,	info.area.y + borderHeight,	0.9f }, {}, info.color },
-//		{ { info.area.z - borderWidth,	info.area.y + borderHeight,	0.9f }, {}, info.color },
-//		{ { info.area.x + borderWidth,	info.area.w - borderHeight,	0.9f }, {}, info.color },
-//		{ { info.area.z - borderWidth,	info.area.w - borderHeight,	0.9f }, {}, info.color },
-//
-//		//BOTTOM
-//		{ { info.area.x + borderWidth,	info.area.w - borderHeight,	0.9f }, {}, borderColor },
-//		{ { info.area.z,				info.area.w - borderHeight,	0.9f }, {}, borderColor },
-//		{ { info.area.x + borderWidth,	info.area.w,				0.9f }, {}, borderColor },
-//		{ { info.area.z,				info.area.w,				0.9f }, {}, borderColor },
-//
-//		//RIGHT
-//		{ { info.area.z - borderWidth,	info.area.y,				0.9f }, {}, borderColor },
-//		{ { info.area.z,				info.area.y,				0.9f }, {}, borderColor },
-//		{ { info.area.z - borderWidth,	info.area.w - borderHeight,	0.9f }, {}, borderColor },
-//		{ { info.area.z,				info.area.w - borderHeight,	0.9f }, {}, borderColor },
-//
-//		//TOP
-//		{ { info.area.x,				info.area.y,				0.9f }, {}, borderColor },
-//		{ { info.area.z - borderWidth,	info.area.y,				0.9f }, {}, borderColor },
-//		{ { info.area.x,				info.area.y + borderHeight,	0.9f }, {}, borderColor },
-//		{ { info.area.z - borderWidth,	info.area.y + borderHeight,	0.9f }, {}, borderColor },
-//
-//		//LEFT
-//		{ { info.area.x,				info.area.y + borderHeight,	0.9f }, {}, borderColor },
-//		{ { info.area.x + borderWidth,	info.area.y + borderHeight,	0.9f }, {}, borderColor },
-//		{ { info.area.x,				info.area.w,				0.9f }, {}, borderColor },
-//		{ { info.area.x + borderWidth,	info.area.w,				0.9f }, {}, borderColor },
-//	};
-//
-//	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * CountOf32(vertices), vertices) / sizeof(UIVertex);
-//
-//	UIInstance instance{};
-//	instance.textureIndex = U16_MAX;
-//	instance.model = Matrix3Identity;
-//
-//	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
-//
-//	uiPipeline->UploadDrawCall(30, 0, element->vertexOffset, 1, element->instanceOffset);
-//
-//	return element;
-//}
-//
-//UIElement* UI::CreateImage(const UIElementInfo& info, Texture* texture, const Vector4& uvs)
-//{
-//	UIElement* element = SetupElement(info);
-//
-//	element->type = UI_ELEMENT_IMAGE;
-//	element->image.texture = texture;
-//	element->image.uvs = uvs;
-//
-//	UIVertex vertices[4]{
-//		{ { info.area.x, info.area.y, 0.9f }, { uvs.x, uvs.w }, info.color },
-//		{ { info.area.z, info.area.y, 0.9f }, { uvs.z, uvs.w }, info.color },
-//		{ { info.area.x, info.area.w, 0.9f }, { uvs.x, uvs.y }, info.color },
-//		{ { info.area.z, info.area.w, 0.9f }, { uvs.z, uvs.y }, info.color }
-//	};
-//
-//	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * 4, vertices) / sizeof(UIVertex);
-//
-//	UIInstance instance{};
-//	instance.textureIndex = (U32)texture->handle;
-//	instance.model = Matrix3Identity;
-//
-//	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
-//
-//	uiPipeline->UploadDrawCall(6, 0, element->vertexOffset, 1, element->instanceOffset);
-//
-//	return element;
-//}
-//
+UIElement* UI::CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& borderColor, const ResourceRef<Texture>& background, const ResourceRef<Texture>& border)
+{
+	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
+
+	UIElement* element = SetupElement(info);
+
+	element->type = UI_ELEMENT_PANEL;
+	element->panel.borderSize = borderSize;
+	element->panel.borderColor = borderColor;
+	element->panel.background = background;
+	element->panel.border = border;
+
+	F32 borderWidth = WIDTH_RATIO * borderSize;
+	F32 borderHeight = HEIGHT_RATIO * borderSize;
+
+	Vector<MeshInstance> instances{ };
+
+	//BODY
+	MeshInstance& instance0 = instances.Push({});
+	instance0.material = uiMaterial;
+	instance0.mesh = uiMesh;
+
+	UIInstance* instanceData = (UIInstance*)instance0.instanceData.data;
+	instanceData->textureIndex = (U32)background->Handle();
+	instanceData->position = info.area.xy() + Vector2{ borderWidth, borderHeight };
+	instanceData->scale = info.area.zw() - info.area.xy() - Vector2{ borderWidth * 2.0f, borderHeight * 2.0f };
+	instanceData->color = info.color;
+
+	//BOTTOM
+	MeshInstance& instance1 = instances.Push({});
+	instance1.material = uiMaterial;
+	instance1.mesh = uiMesh;
+
+	instanceData = (UIInstance*)instance1.instanceData.data;
+	instanceData->textureIndex = (U32)border->Handle();
+	instanceData->position = Vector2{ info.area.x + borderWidth, info.area.w - borderHeight };
+	instanceData->scale = Vector2{ info.area.z - info.area.x - borderWidth, borderHeight };
+	instanceData->color = borderColor;
+
+	//RIGHT
+	MeshInstance& instance2 = instances.Push({});
+	instance2.material = uiMaterial;
+	instance2.mesh = uiMesh;
+
+	instanceData = (UIInstance*)instance2.instanceData.data;
+	instanceData->textureIndex = (U32)border->Handle();
+	instanceData->position = Vector2{ info.area.z - borderWidth, info.area.y };
+	instanceData->scale = Vector2{ borderWidth, info.area.w - info.area.y - borderHeight };
+	instanceData->color = borderColor;
+
+	//TOP
+	MeshInstance& instance3 = instances.Push({});
+	instance3.material = uiMaterial;
+	instance3.mesh = uiMesh;
+
+	instanceData = (UIInstance*)instance3.instanceData.data;
+	instanceData->textureIndex = (U32)border->Handle();
+	instanceData->position = Vector2{ info.area.x, info.area.y };
+	instanceData->scale = Vector2{ info.area.z - info.area.x - borderWidth, borderHeight };
+	instanceData->color = borderColor;
+
+	//LEFT
+	MeshInstance& instance4 = instances.Push({});
+	instance4.material = uiMaterial;
+	instance4.mesh = uiMesh;
+
+	instanceData = (UIInstance*)instance4.instanceData.data;
+	instanceData->textureIndex = (U32)border->Handle();
+	instanceData->position = Vector2{ info.area.x, info.area.y + borderHeight };
+	instanceData->scale = Vector2{ borderWidth, info.area.w - info.area.y - borderHeight };
+	instanceData->color = borderColor;
+
+	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+
+	return element;
+}
+
+UIElement* UI::CreateImage(UIElementInfo& info, const ResourceRef<Texture>& texture, const Vector4& uvs)
+{
+	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
+
+	UIElement* element = SetupElement(info);
+	element->type = UI_ELEMENT_IMAGE;
+	element->image.texture = texture;
+	element->image.uvs = uvs;
+
+	Vector<MeshInstance> instances{ };
+
+	MeshInstance& instance = instances.Push({});
+	instance.material = uiMaterial;
+	instance.mesh = uiMesh;
+
+	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
+	instanceData->textureIndex = (U32)texture->Handle();
+	instanceData->position = info.area.xy();
+	instanceData->scale = info.area.zw() - info.area.xy();
+	instanceData->texcoord = uvs.xy();
+	instanceData->texcoordScale = uvs.zw() - uvs.xy();
+	instanceData->color = info.color;
+
+	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+
+	return element;
+}
+
 ////TODO: Option for knob
-//UIElement* UI::CreateSlider(const UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent)
-//{
-//	UIElement* element = SetupElement(info);
-//
-//	element->type = UI_ELEMENT_SLIDER;
-//	element->slider.fillColor = fillColor;
-//	element->slider.type = type;
-//	element->slider.percent = percent;
-//
-//	F32 width = info.area.z - info.area.x;
-//	F32 height = info.area.w - info.area.y;
-//
-//	UIVertex vertices[]{
-//		{ { info.area.x, info.area.y, 0.9f }, {}, info.color },
-//		{ { info.area.z, info.area.y, 0.9f }, {}, info.color },
-//		{ { info.area.x, info.area.w, 0.9f }, {}, info.color },
-//		{ { info.area.z, info.area.w, 0.9f }, {}, info.color },
-//		{ { info.area.x, info.area.y, 0.8f }, {}, fillColor },
-//		{ { info.area.z, info.area.y, 0.8f }, {}, fillColor },
-//		{ { info.area.x, info.area.w, 0.8f }, {}, fillColor },
-//		{ { info.area.z, info.area.w, 0.8f }, {}, fillColor }
-//	};
-//
-//	switch(type)
-//	{
-//	case SLIDER_TYPE_HORIZONTAL_LEFT: {
-//		vertices[5].position.x = info.area.x + width * percent;
-//		vertices[7].position.x = info.area.x + width * percent;
-//	} break;
-//	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
-//		F32 p = 1.0f - percent;
-//		vertices[4].position.x = info.area.x + width * p;
-//		vertices[6].position.x = info.area.x + width * p;
-//	} break;
-//	case SLIDER_TYPE_HORIZONTAL_CENTER: {
-//		F32 p = (1.0f - percent) * 0.5f;
-//		vertices[4].position.x = info.area.x + width * p;
-//		vertices[5].position.x = info.area.z - width * p;
-//		vertices[6].position.x = info.area.x + width * p;
-//		vertices[7].position.x = info.area.z - width * p;
-//	} break;
-//	case SLIDER_TYPE_VERTICAL_BOTTOM: {
-//		F32 p = 1.0f - percent;
-//		vertices[4].position.y = info.area.y + height * p;
-//		vertices[5].position.y = info.area.y + height * p;
-//	} break;
-//	case SLIDER_TYPE_VERTICAL_TOP: {
-//		vertices[6].position.y = info.area.y + height * percent;
-//		vertices[7].position.y = info.area.y + height * percent;
-//	} break;
-//	case SLIDER_TYPE_VERTICAL_CENTER: {
-//		F32 p = (1.0f - percent) * 0.5f;
-//		vertices[4].position.y = info.area.y + height * p;
-//		vertices[5].position.y = info.area.y + height * p;
-//		vertices[6].position.y = info.area.w - height * p;
-//		vertices[7].position.y = info.area.w - height * p;
-//	} break;
-//	case SLIDER_TYPE_RADIAL_COUNTER: {
-//		//TODO:
-//	} break;
-//	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
-//		//TODO:
-//	} break;
-//	case SLIDER_TYPE_EXPAND: {
-//		F32 p = (1.0f - percent) * 0.5f;
-//		vertices[4].position.x = info.area.x + width * p;
-//		vertices[5].position.x = info.area.z - width * p;
-//		vertices[6].position.x = info.area.x + width * p;
-//		vertices[7].position.x = info.area.z - width * p;
-//		vertices[4].position.y = info.area.y + height * p;
-//		vertices[5].position.y = info.area.y + height * p;
-//		vertices[6].position.y = info.area.w - height * p;
-//		vertices[7].position.y = info.area.w - height * p;
-//	} break;
-//	}
-//
-//	element->vertexOffset = uiPipeline->UploadVertices(sizeof(UIVertex) * CountOf32(vertices), vertices) / sizeof(UIVertex);
-//
-//	UIInstance instance{};
-//	instance.textureIndex = U16_MAX;
-//	instance.model = Matrix3Identity;
-//
-//	element->instanceOffset = uiPipeline->UploadInstances(sizeof(UIInstance), &instance) / sizeof(UIInstance);
-//
-//	uiPipeline->UploadDrawCall(12, 0, element->vertexOffset, 1, element->instanceOffset);
-//
-//	return element;
-//}
-//
+UIElement* UI::CreateSlider(UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent)
+{
+	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }
+
+	UIElement* element = SetupElement(info);
+	element->type = UI_ELEMENT_SLIDER;
+	element->slider.fillColor = fillColor;
+	element->slider.type = type;
+	element->slider.percent = percent;
+
+	Vector<MeshInstance> instances{ };
+
+	//Background
+	MeshInstance& instance0 = instances.Push({});
+	instance0.material = uiMaterial;
+	instance0.mesh = uiMesh;
+
+	UIInstance* instanceData = (UIInstance*)instance0.instanceData.data;
+	instanceData->textureIndex = U16_MAX;
+	instanceData->position = info.area.xy();
+	instanceData->scale = info.area.zw() - info.area.xy();
+	instanceData->color = info.color;
+
+	F32 width = info.area.z - info.area.x;
+	F32 height = info.area.w - info.area.y;
+
+	//Fill
+	MeshInstance& instance1 = instances.Push({});
+	instance1.material = uiMaterial;
+	instance1.mesh = uiMesh;
+
+	instanceData = (UIInstance*)instance1.instanceData.data;
+	instanceData->textureIndex = U16_MAX;
+	instanceData->color = fillColor;
+
+	switch (type)
+	{
+	case SLIDER_TYPE_HORIZONTAL_LEFT: {
+		instanceData->position = info.area.xy();
+		instanceData->scale.x = width * percent;
+		instanceData->scale.y = height;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
+		instanceData->position.y = info.area.y;
+		instanceData->position.x = info.area.x + width * (1.0f - percent);
+		instanceData->scale.x = width * percent;
+		instanceData->scale.y = height;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+
+		instanceData->position.x = info.area.x + width * ((1.0f - percent) * 0.5f);
+		instanceData->position.y = info.area.y;
+		instanceData->scale.x = width * percent;
+		instanceData->scale.y = height;
+	} break;
+	case SLIDER_TYPE_VERTICAL_BOTTOM: {
+		F32 p = 1.0f - percent;
+
+		instanceData->position.y = info.area.y + height * (1.0f - percent);
+		instanceData->position.x = info.area.x;
+		instanceData->scale.x = width;
+		instanceData->scale.y = height * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_TOP: {
+		instanceData->position = info.area.xy();
+		instanceData->scale.x = width;
+		instanceData->scale.y = height * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+
+		instanceData->position.x = info.area.x;
+		instanceData->position.y = info.area.y + height * ((1.0f - percent) * 0.5f);
+		instanceData->scale.x = width;
+		instanceData->scale.y = height * percent;
+	} break;
+	case SLIDER_TYPE_RADIAL_COUNTER: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_EXPAND: {
+		F32 p = (1.0f - percent) * 0.5f;
+
+		instanceData->position.x = info.area.x + width * p;
+		instanceData->position.y = info.area.y + height * p;
+		instanceData->scale.x = width * percent;
+		instanceData->scale.y = height * percent;
+	} break;
+	}
+
+	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+
+	return element;
+}
+
 //UIElement* UI::CreateColorPicker(const UIElementInfo& info)
 //{
 //	return nullptr;
@@ -620,7 +649,7 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 		prev = c;
 	}
 
-	info.scene->AddEntity()->AddComponent<UIComponent>(instances); //TODO: Don't create new entity per text
+	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances); //TODO: Don't create new entity per text
 
 	return element;
 }
@@ -629,88 +658,85 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 //{
 //	return nullptr;
 //}
-//
-//
-//
-//void UI::ChangeSliderPercent(UIElement* element, F32 percent)
-//{
-//	if (element == nullptr || element->type != UI_ELEMENT_SLIDER) { return; }
-//
-//	element->slider.percent = percent;
-//
-//	UIVertex vertices[4]{
-//		{ { element->area.x, element->area.y, 0.8f }, {}, element->slider.fillColor },
-//		{ { element->area.z, element->area.y, 0.8f }, {}, element->slider.fillColor },
-//		{ { element->area.x, element->area.w, 0.8f }, {}, element->slider.fillColor },
-//		{ { element->area.z, element->area.w, 0.8f }, {}, element->slider.fillColor }
-//	};
-//
-//	F32 width = element->area.z - element->area.x;
-//	F32 height = element->area.w - element->area.y;
-//
-//	switch (element->slider.type)
-//	{
-//	case SLIDER_TYPE_HORIZONTAL_LEFT: {
-//		vertices[1].position.x = element->area.x + width * percent;
-//		vertices[3].position.x = element->area.x + width * percent;
-//	} break;
-//	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
-//		F32 p = 1.0f - percent;
-//		vertices[0].position.x = element->area.x + width * p;
-//		vertices[2].position.x = element->area.x + width * p;
-//	} break;
-//	case SLIDER_TYPE_HORIZONTAL_CENTER: {
-//		F32 p = (1.0f - percent) * 0.5f;
-//		vertices[0].position.x = element->area.x + width * p;
-//		vertices[1].position.x = element->area.z - width * p;
-//		vertices[2].position.x = element->area.x + width * p;
-//		vertices[3].position.x = element->area.z - width * p;
-//	} break;
-//	case SLIDER_TYPE_VERTICAL_BOTTOM: {
-//		F32 p = 1.0f - percent;
-//		vertices[0].position.y = element->area.y + height * p;
-//		vertices[1].position.y = element->area.y + height * p;
-//	} break;
-//	case SLIDER_TYPE_VERTICAL_TOP: {
-//		vertices[2].position.y = element->area.y + height * percent;
-//		vertices[3].position.y = element->area.y + height * percent;
-//	} break;
-//	case SLIDER_TYPE_VERTICAL_CENTER: {
-//		F32 p = (1.0f - percent) * 0.5f;
-//		vertices[0].position.y = element->area.y + height * p;
-//		vertices[1].position.y = element->area.y + height * p;
-//		vertices[2].position.y = element->area.w - height * p;
-//		vertices[3].position.y = element->area.w - height * p;
-//	} break;
-//	case SLIDER_TYPE_RADIAL_COUNTER: {
-//		//TODO:
-//	} break;
-//	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
-//		//TODO:
-//	} break;
-//	case SLIDER_TYPE_EXPAND: {
-//		F32 p = (1.0f - percent) * 0.5f;
-//		vertices[0].position.x = element->area.x + width * p;
-//		vertices[1].position.x = element->area.z - width * p;
-//		vertices[2].position.x = element->area.x + width * p;
-//		vertices[3].position.x = element->area.z - width * p;
-//		vertices[0].position.y = element->area.y + height * p;
-//		vertices[1].position.y = element->area.y + height * p;
-//		vertices[2].position.y = element->area.w - height * p;
-//		vertices[3].position.y = element->area.w - height * p;
-//	} break;
-//	}
-//
-//	element->vertexOffset;
-//
-//	BufferCopy region{};
-//	region.dstOffset = element->vertexOffset + sizeof(UIVertex) * 4;
-//	region.size = sizeof(UIVertex) * CountOf32(vertices);
-//	region.srcOffset = 0;
-//
-//	uiPipeline->UpdateVertices(sizeof(UIVertex) * CountOf32(vertices), vertices, 1, &region);
-//}
-//
+
+
+
+void UI::ChangeSliderPercent(UIElement* element, F32 percent)
+{
+	if (element == nullptr || element->type != UI_ELEMENT_SLIDER) { return; }
+
+	element->slider.percent = percent;
+
+	MeshInstance& instance = element->component->meshes[1];
+	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
+
+	F32 width = element->area.z - element->area.x;
+	F32 height = element->area.w - element->area.y;
+
+	switch (element->slider.type)
+	{
+	case SLIDER_TYPE_HORIZONTAL_LEFT: {
+		instanceData->scale.x = width * percent;
+		instanceData->scale.y = height;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
+		instanceData->position.x = element->area.x + width * (1.0f - percent);
+		instanceData->scale.x = width * percent;
+	} break;
+	case SLIDER_TYPE_HORIZONTAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+
+		instanceData->position.x = element->area.x + width * ((1.0f - percent) * 0.5f);
+		instanceData->scale.x = width * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_BOTTOM: {
+		F32 p = 1.0f - percent;
+
+		instanceData->position.y = element->area.y + height * (1.0f - percent);
+		instanceData->scale.y = height * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_TOP: {
+		instanceData->scale.y = height * percent;
+	} break;
+	case SLIDER_TYPE_VERTICAL_CENTER: {
+		F32 p = (1.0f - percent) * 0.5f;
+
+		instanceData->position.y = element->area.y + height * ((1.0f - percent) * 0.5f);
+		instanceData->scale.y = height * percent;
+	} break;
+	case SLIDER_TYPE_RADIAL_COUNTER: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
+		//TODO:
+	} break;
+	case SLIDER_TYPE_EXPAND: {
+		F32 p = (1.0f - percent) * 0.5f;
+
+		instanceData->position.x = element->area.x + width * p;
+		instanceData->position.y = element->area.y + height * p;
+		instanceData->scale.x = width * percent;
+		instanceData->scale.y = height * percent;
+	} break;
+	}
+
+	element->scene->UpdateInstance(instance);
+}
+
+void UI::ChangeSliderColor(UIElement* element, const Vector4& fillColor)
+{
+	if (element == nullptr || element->type != UI_ELEMENT_SLIDER) { return; }
+
+	element->slider.fillColor = fillColor;
+
+	MeshInstance& instance = element->component->meshes[1];
+	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
+
+	instanceData->color = fillColor;
+
+	element->scene->UpdateInstance(instance);
+}
+
 //void UI::ChangeText(UIElement* element, const String& string)
 //{
 //	TextInstance* instances;

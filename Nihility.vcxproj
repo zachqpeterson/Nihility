@@ -168,6 +168,7 @@
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
+    <ClInclude Include="Engine\Rendering\Tilemap.hpp" />
     <ClInclude Include="Engine\Rendering\UI.hpp" />
     <ClInclude Include="Engine\Resources\Component.hpp" />
     <ClInclude Include="Engine\Resources\Entity.hpp" />
