@@ -1,0 +1,49 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+#extension GL_EXT_shader_8bit_storage : require
+#extension GL_EXT_shader_16bit_storage : require
+
+layout(push_constant) uniform block
+{
+	vec2 eye;
+    uint width;
+    uint height;
+};
+
+layout (set = 0, binding = 0) readonly buffer legend
+{
+    uint16_t textureIndices[];
+};
+
+layout (set = 0, binding = 1) readonly buffer tilemap
+{
+    uint8_t tiles[];
+};
+
+layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
+
+layout (location = 0) out vec4 fragColor;
+
+const uint INVALID_TEXTURE_INDEX = 65535;
+
+const float tileSize = 100.0;
+
+void main()
+{
+    vec2 position = vec2(gl_FragCoord.x - eye.x, gl_FragCoord.y + eye.y);
+    ivec2 tilePos = ivec2(position / tileSize);
+
+    if(tilePos.x < 0 || tilePos.x >= width || tilePos.y < 0 || tilePos.y >= height) { discard; }
+
+    vec2 texcoord = mod(position, tileSize) / tileSize;
+
+    uint index = tilePos.x + tilePos.y * width;
+
+    uint16_t textureIndex = textureIndices[tiles[index]];
+
+    if(textureIndex == INVALID_TEXTURE_INDEX) { discard; }
+
+    fragColor = texture(globalTextures[textureIndex], texcoord);
+}

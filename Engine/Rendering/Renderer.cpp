@@ -1271,7 +1271,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->mipmapCount);
 		}
 
-		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &copyBarrier);
+		commandBuffer->PipelineBarrier(0, 0, nullptr, 1, &finalBarrier);
 		commandBuffer->End();
 
 		commandBuffers[frameIndex].Push(commandBuffer->vkCommandBuffer);
@@ -1313,7 +1313,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 
 	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->Name());
 
-	if (bindlessSupported && !(texture->flags & TEXTURE_FLAG_RENDER_TARGET))
+	if (bindlessSupported && !(texture->flags & TEXTURE_FLAG_RENDER_TARGET || texture->flags & TEXTURE_FLAG_NO_BINDLESS))
 	{
 		Resources::bindlessTexturesToUpdate.Push({ texture->Handle(), frameIndex });
 	}
@@ -1438,7 +1438,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 
 	SetResourceName(VK_OBJECT_TYPE_SAMPLER, (U64)texture->sampler.vkSampler, texture->Name());
 
-	if (bindlessSupported) { Resources::bindlessTexturesToUpdate.Push({ texture->Handle(), frameIndex }); }
+	if (bindlessSupported && !(texture->flags & TEXTURE_FLAG_NO_BINDLESS)) { Resources::bindlessTexturesToUpdate.Push({ texture->Handle(), frameIndex }); }
 
 	return true;
 }

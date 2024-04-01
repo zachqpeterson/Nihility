@@ -11,7 +11,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "UnitTests\Unit
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Terrain", "Terrain\Terrain.vcxproj", "{D7F35211-A468-4DE2-94B0-B3E49924A43C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tilemap", "..\Tilemap\Tilemap.vcxproj", "{658F119E-AC42-464C-B8DD-C91A30CD4029}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tilemap", "Tilemap\Tilemap.vcxproj", "{658F119E-AC42-464C-B8DD-C91A30CD4029}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

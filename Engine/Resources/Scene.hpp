@@ -79,10 +79,15 @@ struct NH_API Scene
 	Entity* GetEntity(U32 id);
 
 	const String& Name() { return name; }
+#ifdef NH_DEBUG
+	FlyCamera* GetCamera() { return &flyCamera; }
+#else
 	Camera* GetCamera() { return &camera; }
+#endif
 
 	void SetSkybox(const ResourceRef<Skybox>& skybox);
 	void SetPostProcessing(const PostProcessData& data);
+	void AddPipeline(ResourceRef<Pipeline>& pipeline);
 
 	void AddInstance(MeshInstance& instance);
 	void UpdateInstance(MeshInstance& instance);
@@ -120,7 +125,6 @@ private:
 	void Resize();
 
 	void AddMesh(ResourceRef<Mesh>& mesh);
-	void AddPipeline(ResourceRef<Pipeline>& pipeline);
 	BufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
 
 	String							name{};
@@ -128,8 +132,6 @@ private:
 	bool							loaded{ false };
 	bool							hasSkybox{ false };
 	bool							hasPostProcessing{ false };
-
-	Camera							camera{};
 
 	Buffer							stagingBuffer;
 	Buffer							vertexBuffers[VERTEX_TYPE_COUNT - 1];
@@ -160,6 +162,8 @@ private:
 
 #ifdef NH_DEBUG
 	FlyCamera						flyCamera{};
+#else
+	Camera							camera{};
 #endif
 
 	friend class Renderer;

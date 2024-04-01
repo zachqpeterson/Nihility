@@ -450,7 +450,10 @@ bool FlyCamera::Update()
 		if (Input::ButtonDown(BUTTON_CODE_CTRL)) { cameraMovementDelta *= 0.1f; }
 
 		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += Vector3Right * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += Vector3Left * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) 
+		{ 
+			cameraMovement += Vector3Left * cameraMovementDelta; 
+		}
 		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += Vector3Down * cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += Vector3Up * cameraMovementDelta; }
 		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += Vector3Forward * -cameraMovementDelta; }

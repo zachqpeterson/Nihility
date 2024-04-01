@@ -15,15 +15,18 @@ void Scene::Create(CameraType cameraType)
 	switch (cameraType)
 	{
 	case CAMERA_TYPE_PERSPECTIVE: {
-		camera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
 #ifdef NH_DEBUG
 		flyCamera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
+#else
+		camera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
 #endif
+
 	} break;
 	case CAMERA_TYPE_ORTHOGRAPHIC: {
-		camera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f);
 #ifdef NH_DEBUG
 		flyCamera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f);
+#else
+		camera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f);
 #endif
 	} break;
 	}
@@ -418,23 +421,20 @@ void Scene::Update()
 	globalData->lightSpace = shadowData->depthViewProjection;
 
 #ifdef NH_DEBUG
-	if (Settings::InEditor())
-	{
-		flyCamera.Update();
-		globalData->viewProjection = flyCamera.ViewProjection();
-		globalData->eye = flyCamera.Eye();
+	if (Settings::InEditor()) { flyCamera.Update(); }
+	else { flyCamera.GetCamera()->Update(); }
 
-		skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse(); //TODO: fix floating point inaccuracy with position
-	}
-	else
+	globalData->viewProjection = flyCamera.ViewProjection();
+	globalData->eye = flyCamera.Eye();
+
+	skyboxData->invViewProjection = flyCamera.ViewProjection().Inverse(); //TODO: fix floating point inaccuracy with position
+#else
+	camera.Update();
+	globalData->viewProjection = camera.ViewProjection();
+	globalData->eye = camera.Eye();
+
+	skyboxData->invViewProjection = camera.ViewProjection().Inverse();
 #endif
-	{
-		camera.Update();
-		globalData->viewProjection = camera.ViewProjection();
-		globalData->eye = camera.Eye();
-
-		skyboxData->invViewProjection = camera.ViewProjection().Inverse();
-	}
 
 	VkBufferCopy region{};
 	region.dstOffset = 0;

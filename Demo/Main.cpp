@@ -60,7 +60,7 @@ bool Init()
 	info.color = { 0.3f, 0.3f, 0.3f, 1.0f };
 	info.scene = scene;
 
-	uiElement = UI::CreateSlider(info, { 1.0f - percent, percent, 0.0f, 1.0f }, SLIDER_TYPE_HORIZONTAL_LEFT, percent);
+	uiElement = UI::CreateSlider(info, { 1.0f - percent, percent, 0.0f, 1.0f }, SLIDER_TYPE_HORIZONTAL_CENTER, percent);
 
 	Renderer::LoadScene(scene);
 

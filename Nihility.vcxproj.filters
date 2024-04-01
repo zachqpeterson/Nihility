@@ -517,9 +517,6 @@
     <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.h">
       <Filter>Source Files\Resources\Shader\spirv_cross</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.hpp">
-      <Filter>Source Files\Resources\Shader\spirv_cross</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Resources\Shader\spirv-headers\GLSL.std.450.h">
       <Filter>Source Files\Resources\Shader\spirv-headers</Filter>
     </ClInclude>
@@ -858,9 +855,6 @@
     <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.c">
       <Filter>Source Files\Resources\Shader\spirv_cross</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.cpp">
-      <Filter>Source Files\Resources\Shader\spirv_cross</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Resources\Shader\StandAlone\spirv-remap.cpp">
       <Filter>Source Files\Resources\Shader\StandAlone</Filter>
     </ClCompile>
@@ -869,6 +863,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Math\Physics.cpp">
       <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rendering\Tilemap.cpp">
+      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

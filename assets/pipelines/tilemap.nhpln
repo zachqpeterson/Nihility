@@ -1,0 +1,12 @@
+vertex=shaders/TilemapVert.nhshd
+fragment=shaders/TilemapFrag.nhshd
+cull=NONE
+front=CLOCKWISE
+fill=SOLID
+depth=NONE
+blend=ADD
+clear=COLOR
+useIndices=FALSE
+vertexCount=3
+type=POST_RENDER
+renderOrder=0

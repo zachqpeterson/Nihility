@@ -102,7 +102,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
@@ -262,7 +262,6 @@
     <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_msl.hpp" />
     <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_parser.hpp" />
     <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.hpp" />
     <ClInclude Include="Engine\Resources\Shader\StandAlone\DirStackFileIncluder.h" />
     <ClInclude Include="Engine\Resources\Shader\StandAlone\Worklist.h" />
     <ClInclude Include="Engine\SIMD.hpp" />
@@ -306,6 +305,7 @@
     <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
+    <ClCompile Include="Engine\Rendering\Tilemap.cpp" />
     <ClCompile Include="Engine\Rendering\UI.cpp" />
     <ClCompile Include="Engine\Resources\Entity.cpp" />
     <ClCompile Include="Engine\Resources\Font.cpp" />
@@ -371,7 +371,6 @@
     <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_msl.cpp" />
     <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_parser.cpp" />
     <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.c" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.cpp" />
     <ClCompile Include="Engine\Resources\Shader\StandAlone\spirv-remap.cpp" />
     <ClCompile Include="Engine\Resources\Shader\StandAlone\StandAlone.cpp" />
   </ItemGroup>

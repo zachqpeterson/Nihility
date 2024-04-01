@@ -93,6 +93,11 @@ public:
 
 	static Buffer						CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType);
 	static void							DestroyBuffer(Buffer& buffer);
+	static void							FillBuffer(Buffer& buffer, U64 size, const void* data, U32 regionCount, VkBufferCopy* regions);
+	static void							FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions);
+	static U64							UploadToBuffer(Buffer& buffer, U64 size, const void* data);
+	static void							MapBuffer(Buffer& buffer);
+	static void							UnmapBuffer(Buffer& buffer);
 
 private:
 	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
@@ -113,12 +118,6 @@ private:
 	static void							SetRenderArea();
 
 	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
-
-	static void							FillBuffer(Buffer& buffer, U64 size, const void* data, U32 regionCount, VkBufferCopy* regions);
-	static void							FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions);
-	static U64							UploadToBuffer(Buffer& buffer, U64 size, const void* data);
-	static void							MapBuffer(Buffer& buffer);
-	static void							UnmapBuffer(Buffer& buffer);
 
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
