@@ -36,40 +36,20 @@ bool Init()
 
 void Update()
 {
-	if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE))
+	Vector2 eye = scene->GetCamera()->Eye().xy();
+
+	I32 x, y;
+	Input::MousePosition(x, y);
+
+	Vector2 worldPos{ x - eye.x, y + eye.y };
+
+	if (worldPos.x >= 0.0f && worldPos.y >= 0.0f)
 	{
-		Vector2 eye = scene->GetCamera()->Eye().xy();
+		Vector2Int tilePos = (Vector2Int)(worldPos / 100.0f);
 
-		I32 x, y;
-		Input::MousePosition(x, y);
-
-		Vector2Int position = (Vector2Int)(Vector2{ x - eye.x, y + eye.y } / 100.0f);
-
-		tilemap->ChangeTile(position.x, position.y, id0);
-	}
-
-	if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE))
-	{
-		Vector2 eye = scene->GetCamera()->Eye().xy();
-
-		I32 x, y;
-		Input::MousePosition(x, y);
-
-		Vector2Int position = (Vector2Int)(Vector2{ x - eye.x, y + eye.y } / 100.0f);
-
-		tilemap->ChangeTile(position.x, position.y, id1);
-	}
-
-	if (Input::ButtonDown(BUTTON_CODE_MIDDLE_MOUSE))
-	{
-		Vector2 eye = scene->GetCamera()->Eye().xy();
-
-		I32 x, y;
-		Input::MousePosition(x, y);
-
-		Vector2Int position = (Vector2Int)(Vector2{ x - eye.x, y + eye.y } / 100.0f);
-
-		tilemap->ChangeTile(position.x, position.y, U16_MAX);
+		if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE)) { tilemap->ChangeTile(tilePos.x, tilePos.y, id0); }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE)) { tilemap->ChangeTile(tilePos.x, tilePos.y, id1); }
+		if (Input::ButtonDown(BUTTON_CODE_MIDDLE_MOUSE)) { tilemap->ChangeTile(tilePos.x, tilePos.y, U16_MAX); }
 	}
 }
 

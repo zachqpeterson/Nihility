@@ -67,6 +67,8 @@ U8 TilemapComponent::AddTile(const ResourceRef<Texture>& texture)
 
 void TilemapComponent::ChangeTile(U32 x, U32 y, U8 id)
 {
+	if (x < 0 || x >= width || y < 0 || y >= height) { return; }
+
 	*((U8*)staging.data + staging.allocationOffset) = id;
 
 	VkBufferCopy copy{};

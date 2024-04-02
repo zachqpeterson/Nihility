@@ -35,15 +35,14 @@ void main()
     vec2 position = vec2(gl_FragCoord.x - eye.x, gl_FragCoord.y + eye.y);
     ivec2 tilePos = ivec2(position / tileSize);
 
-    if(tilePos.x < 0 || tilePos.x >= width || tilePos.y < 0 || tilePos.y >= height) { discard; }
-
-    vec2 texcoord = mod(position, tileSize) / tileSize;
-
     uint index = tilePos.x + tilePos.y * width;
+
+    if(position.x < 0 || position.y < 0 || index >= height * width) { discard; }
 
     uint16_t textureIndex = textureIndices[tiles[index]];
 
     if(textureIndex == INVALID_TEXTURE_INDEX) { discard; }
 
+    vec2 texcoord = mod(position, tileSize) / tileSize;
     fragColor = texture(globalTextures[textureIndex], texcoord);
 }
