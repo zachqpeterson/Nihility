@@ -26,23 +26,28 @@ layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 
 layout (location = 0) out vec4 fragColor;
 
-const uint INVALID_TEXTURE_INDEX = 65535;
+const uint INVALID_TEXTURE_INDEX = 255;
 
 const float tileSize = 100.0;
 
 void main()
 {
     vec2 position = vec2(gl_FragCoord.x - eye.x, gl_FragCoord.y + eye.y);
-    ivec2 tilePos = ivec2(position / tileSize);
+    vec2 tilePos = position / tileSize;
 
-    uint index = tilePos.x + tilePos.y * width;
+    uint index = uint(tilePos.x) + uint(tilePos.y) * width;
 
     if(position.x < 0 || position.y < 0 || index >= height * width) { discard; }
 
-    uint16_t textureIndex = textureIndices[tiles[index]];
+    uint8_t tileType = tiles[index];
 
-    if(textureIndex == INVALID_TEXTURE_INDEX) { discard; }
+    if(tileType == INVALID_TEXTURE_INDEX) { discard; }
 
-    vec2 texcoord = mod(position, tileSize) / tileSize;
+    uint16_t textureIndex = textureIndices[tileType];
+
+    vec2 texcoord = mod(tilePos, 1.0);
+
     fragColor = texture(globalTextures[textureIndex], texcoord);
+
+    if(texcoord.x < 0.01 || texcoord.y < 0.01) { fragColor = vec4(1.0, 0.0, 0.0, 1.0); }
 }

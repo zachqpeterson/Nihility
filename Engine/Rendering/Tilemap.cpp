@@ -16,7 +16,7 @@ TilemapComponent::TilemapComponent(U16 width, U16 height) : width{ width }, heig
 
 	for (U32 i = 0; i < width * height; ++i)
 	{
-		data[i] = U16_MAX;
+		data[i] = U8_MAX;
 	}
 
 	VkBufferCopy copy{};
