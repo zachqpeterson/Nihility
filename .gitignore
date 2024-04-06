@@ -3,12 +3,7 @@ x64/
 Demo/x64/
 UnitTests/x64/
 Terrain/x64/
-
-# Keep 3rd Party dlls
-!x64/Debug/assimp-vc143-mt.dll
-!x64/Debug/discord_game_sdk.dll
-!x64/Release/assimp-vc143-mt.dll
-!x64/Release/discord_game_sdk.dll
+Tilemap/x64/
 
 # Visual Studo
 .vs/*
