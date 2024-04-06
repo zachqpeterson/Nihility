@@ -12,6 +12,7 @@ struct NH_API Component
 protected:
 	virtual void Update(Scene* scene) = 0;
 	virtual void Load(Scene* scene) = 0;
+	virtual void Cleanup(Scene* scene) {}
 
 	U32 entityID;
 

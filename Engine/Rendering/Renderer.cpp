@@ -1724,6 +1724,7 @@ bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 		VkValidateFR(vkCreateFramebuffer(device, &framebufferInfo, allocationCallbacks, &renderpass->frameBuffer));
 
 		renderpass->lastResize = absoluteFrame;
+		renderpass->renderArea = { { 0, 0 }, { framebufferInfo.width, framebufferInfo.height } };
 	}
 
 	return true;

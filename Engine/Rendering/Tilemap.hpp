@@ -13,9 +13,11 @@ struct alignas(16) NH_API TilemapData
 struct NH_API TilemapComponent : Component
 {
 	TilemapComponent(U16 width, U16 height);
+	//TODO: Cleanup on exit
 
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
+	virtual void Cleanup(Scene* scene) final;
 
 	U8 AddTile(const ResourceRef<Texture>& texture);
 	void ChangeTile(U32 x, U32 y, U8 id);
@@ -23,8 +25,8 @@ struct NH_API TilemapComponent : Component
 private:
 	TilemapData data;
 	Buffer tiles;
-	Buffer staging;
 	Buffer legend;
+	Buffer staging;
 	U8 tileCount{ 0 };
 	U32 width;
 	U32 height;

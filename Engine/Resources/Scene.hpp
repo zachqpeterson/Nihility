@@ -9,6 +9,7 @@ struct ComponentPool
 {
 	virtual void Update(Scene* scene) = 0;
 	virtual void Load(Scene* scene) = 0;
+	virtual void Cleanup(Scene* scene) = 0;
 
 	virtual U64 Count() = 0;
 };
@@ -42,6 +43,14 @@ struct ComponentPoolInternal : public ComponentPool
 		for (Type& component : components)
 		{
 			component.Load(scene);
+		}
+	}
+
+	virtual void Cleanup(Scene* scene) final
+	{
+		for (Type& component : components)
+		{
+			component.Cleanup(scene);
 		}
 	}
 

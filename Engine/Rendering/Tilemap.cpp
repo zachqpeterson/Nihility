@@ -49,6 +49,13 @@ void TilemapComponent::Load(Scene* scene)
 	scene->AddPipeline(pipeline);
 }
 
+void TilemapComponent::Cleanup(Scene* scene)
+{
+	Renderer::DestroyBuffer(tiles);
+	Renderer::DestroyBuffer(legend);
+	Renderer::DestroyBuffer(staging);
+}
+
 U8 TilemapComponent::AddTile(const ResourceRef<Texture>& texture)
 {
 	*(U16*)((U8*)staging.data + staging.allocationOffset) = (U16)texture->Handle();

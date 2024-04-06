@@ -6,7 +6,7 @@ Terrain/x64/
 Tilemap/x64/
 
 # Visual Studo
-.vs/*
+.vs/
 
 # Compiled Shaders
 *.spv

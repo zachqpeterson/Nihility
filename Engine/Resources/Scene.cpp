@@ -45,6 +45,11 @@ void Scene::Create(CameraType cameraType)
 
 void Scene::Destroy()
 {
+	for (ComponentPool* pool : componentPools)
+	{
+		pool->Cleanup(this);
+	}
+
 	name.Destroy();
 
 	indexWrites.Destroy();
@@ -270,9 +275,36 @@ void Scene::Load()
 		
 				renderpassInfo.Reset();
 				renderpassInfo.name = name + "_renderpass" + renderpass;
-				renderpassInfo.resize = pipeline->sizeX;
+				renderpassInfo.resize = pipeline->sizeX == 0;
 		
 				if (renderpassInfo.resize)
+				{
+					if (pipeline->outputCount)
+					{
+						renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
+
+						TextureInfo textureInfo{};
+						textureInfo.width = Settings::WindowWidth();
+						textureInfo.height = Settings::WindowHeight();
+						textureInfo.depth = 1;
+						textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
+						textureInfo.type = VK_IMAGE_TYPE_2D;
+						textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+						String n = "default_render_target";
+
+						for (U32 i = 1; i < pipeline->outputCount; ++i)
+						{
+							textureInfo.name = n + i;
+
+							renderpassInfo.AddRenderTarget(Resources::CreateTexture(textureInfo));
+						}
+					}
+
+					if (pipeline->depthEnable) { renderpassInfo.SetDepthStencilTarget(Renderer::defaultDepthTarget); }
+
+					renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
+				}
+				else
 				{
 					TextureInfo textureInfo{};
 					textureInfo.width = pipeline->sizeX;
@@ -299,33 +331,6 @@ void Scene::Load()
 
 						renderpassInfo.SetDepthStencilTarget(Resources::CreateTexture(textureInfo));
 					}
-				}
-				else
-				{
-					if (pipeline->outputCount)
-					{
-						renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
-
-						TextureInfo textureInfo{};
-						textureInfo.width = Settings::WindowWidth();
-						textureInfo.height = Settings::WindowHeight();
-						textureInfo.depth = 1;
-						textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
-						textureInfo.type = VK_IMAGE_TYPE_2D;
-						textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-						String n = "default_render_target";
-
-						for (U32 i = 1; i < pipeline->outputCount; ++i)
-						{
-							textureInfo.name = n + i;
-
-							renderpassInfo.AddRenderTarget(Resources::CreateTexture(textureInfo));
-						}
-					}
-		
-					if (pipeline->depthEnable) { renderpassInfo.SetDepthStencilTarget(Renderer::defaultDepthTarget); }
-		
-					renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
 				}
 		
 				renderpassInfo.colorLoadOp = pipeline->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
