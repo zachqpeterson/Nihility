@@ -7,7 +7,6 @@ Tilemap/x64/
 
 # Visual Studo
 .vs/*
-*.user
 
 # Compiled Shaders
 *.spv
