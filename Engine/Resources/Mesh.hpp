@@ -47,14 +47,14 @@ struct NH_API MeshInstance
 	MeshInstance(MeshInstance&& other) noexcept : mesh{ other.mesh }, material{ other.material },
 		handle{ other.handle }, instanceOffset{ other.instanceOffset }
 	{
-		Memory::Copy(&instanceData, &other.instanceData, sizeof(InstanceData));
+		Memory::Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
 	}
 
 	MeshInstance& operator=(MeshInstance&& other) noexcept
 	{
 		mesh = other.mesh;
 		material = other.material;
-		Memory::Copy(&instanceData, &other.instanceData, sizeof(InstanceData));
+		Memory::Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
 		handle = other.handle;
 		instanceOffset = other.instanceOffset;
 
@@ -119,7 +119,7 @@ struct NH_API MeshComponent : public Component
 		modelMatrix = Matrix4Identity;
 		meshInstance.mesh = mesh;
 		meshInstance.material = material;
-		Memory::Copy(&meshInstance.instanceData, &material->Handle(), sizeof(U32));
+		Memory::Copy(meshInstance.instanceData.data, &material->Handle(), sizeof(U32));
 	}
 	MeshComponent(MeshComponent&& other) noexcept : meshInstance{ Move(other.meshInstance) }, modelMatrix{ other.modelMatrix } {}
 
@@ -127,6 +127,7 @@ struct NH_API MeshComponent : public Component
 
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
+	virtual void Cleanup(Scene* scene) final {}
 
 	Matrix4		 modelMatrix{};
 	MeshInstance meshInstance;
@@ -141,6 +142,7 @@ struct NH_API ModelComponent : public Component
 
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
+	virtual void Cleanup(Scene* scene) final {}
 
 	Matrix4 modelMatrix{};
 	ResourceRef<Model> model;

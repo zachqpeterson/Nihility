@@ -71,6 +71,7 @@ struct RigidBody2D : public Component
 {
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
+	virtual void Cleanup(Scene* scene) final {}
 
 	Vector2 position;
 	Vector2 velocity;
@@ -99,22 +100,27 @@ struct Manifold2D
 	Vector2 normal;
 };
 
+struct Scene;
+
 class NH_API Physics
 {
 private:
 	static bool Initialize();
 	static void Shutdown();
 
+	static void SetScene(Scene* scene);
 	static void Update(F64 step);
 
 	static bool DetectCollision(Manifold2D& manifold);
 	static void ResolveCollision(Manifold2D& manifold);
 	static void CorrectPosition(Manifold2D& manifold);
 
-	static Vector<RigidBody2D> bodies;
+	static Scene* scene;
+	static Vector<RigidBody2D>* bodies;
 	static Vector<Manifold2D> manifolds;
 	static Vector3 gravity;
 
 	STATIC_CLASS(Physics);
 	friend class Engine;
+	friend struct Scene;
 };

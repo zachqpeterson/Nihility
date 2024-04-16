@@ -181,6 +181,7 @@ struct NH_API UIComponent : Component
 
 	virtual void Update(Scene* scene) final;
 	virtual void Load(Scene* scene) final;
+	virtual void Cleanup(Scene* scene) final {}
 
 	Vector<MeshInstance> meshes;
 };

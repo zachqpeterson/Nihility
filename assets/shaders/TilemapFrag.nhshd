@@ -5,9 +5,12 @@
 #extension GL_EXT_shader_8bit_storage : require
 #extension GL_EXT_shader_16bit_storage : require
 
+#define DEBUG 1
+
 layout(push_constant) uniform block
 {
 	vec2 eye;
+    vec2 tileSize;
     uint width;
     uint height;
 };
@@ -28,16 +31,19 @@ layout (location = 0) out vec4 fragColor;
 
 const uint INVALID_TEXTURE_INDEX = 255;
 
-const float tileSize = 100.0;
-
 void main()
 {
     vec2 position = vec2(gl_FragCoord.x - eye.x, gl_FragCoord.y + eye.y);
-    vec2 tilePos = position / tileSize;
+    ivec2 tilePos = ivec2(uint(position.x * tileSize.x), uint(position.y * tileSize.y));
+    vec2 texcoord = fract(position * tileSize);
 
-    uint index = uint(tilePos.x) + uint(tilePos.y) * width;
+    uint index = tilePos.x + tilePos.y * width;
 
-    if(position.x < 0 || position.y < 0 || index >= height * width) { discard; }
+    if(position.x < 0 || position.y < 0 || tilePos.x >= width || tilePos.y >= height) { discard; }
+
+#if DEBUG == 1
+    if(texcoord.x < 0.01 || texcoord.y < 0.01 || texcoord.x > 0.99 || texcoord.y > 0.99) { fragColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
+#endif
 
     uint8_t tileType = tiles[index];
 
@@ -45,9 +51,5 @@ void main()
 
     uint16_t textureIndex = textureIndices[tileType];
 
-    vec2 texcoord = mod(tilePos, 1.0);
-
     fragColor = texture(globalTextures[textureIndex], texcoord);
-
-    if(texcoord.x < 0.01 || texcoord.y < 0.01) { fragColor = vec4(1.0, 0.0, 0.0, 1.0); }
 }

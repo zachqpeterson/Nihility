@@ -107,6 +107,18 @@ private:
 	void Create(CameraType cameraType);
 
 	template<ComponentType Type, typename... Args>
+	void RegisterComponent() noexcept
+	{
+		U32* id = componentRegistry.Request(NameOf<Type>);
+
+		if (*id == 0)
+		{
+			*id = currentId++;
+			componentPools.Push(new ComponentPoolInternal<Type>());
+		}
+	}
+
+	template<ComponentType Type, typename... Args>
 	Type* AddComponent(ComponentReference& reference, Args&&... args) noexcept
 	{
 		U32* id = componentRegistry.Request(NameOf<Type>);
@@ -127,6 +139,16 @@ private:
 		return component;
 	}
 
+	template<ComponentType Type>
+	Vector<Type>* GetComponentPool() noexcept
+	{
+		U32* id = componentRegistry.Request(NameOf<Type>);
+
+		if (*id == 0) { return nullptr; }
+
+		return &((ComponentPoolInternal<Type>*)componentPools[*id - 1])->components;
+	}
+
 	void Load();
 	void Unload();
 	void Update();
@@ -134,7 +156,7 @@ private:
 	void Resize();
 
 	void AddMesh(ResourceRef<Mesh>& mesh);
-	BufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data);
+	BufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, const void* data);
 
 	String							name{};
 	HashHandle						handle;
@@ -143,12 +165,14 @@ private:
 	bool							hasPostProcessing{ false };
 
 	Buffer							stagingBuffer;
+	Buffer							entitiesBuffer;
 	Buffer							vertexBuffers[VERTEX_TYPE_COUNT - 1];
 	Buffer							instanceBuffer;
 	Buffer							indexBuffer;
 	Buffer							drawBuffer;
 	Buffer							countsBuffer;
 
+	Vector<BufferCopy>				entityWrites;
 	Vector<BufferCopy>				vertexWrites[VERTEX_TYPE_COUNT - 1];
 	Vector<BufferCopy>				indexWrites;
 	Vector<BufferCopy>				drawWrites;
@@ -161,7 +185,7 @@ private:
 	U32								countsOffset{ 0 };
 
 	Vector<MeshDraw>				meshDraws{};
-	Vector<Entity>					entities{};
+	Vector<Entity>					entities{}; //TODO: Maybe store all transforms in a separate array for faster buffer copy
 
 	U32								currentId{ 1 };
 	Hashmap<StringView, U32>		componentRegistry{ 32 };
@@ -177,6 +201,7 @@ private:
 
 	friend class Renderer;
 	friend class Resources;
+	friend class Physics;
 	friend struct Entity;
 };
 

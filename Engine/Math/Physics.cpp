@@ -2,6 +2,7 @@
 
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
+#include "Resources\Scene.hpp"
 
 void RigidBody2D::Update(Scene* scene)
 {
@@ -13,7 +14,8 @@ void RigidBody2D::Load(Scene* scene)
 
 }
 
-Vector<RigidBody2D> Physics::bodies;
+Scene* Physics::scene;
+Vector<RigidBody2D>* Physics::bodies;
 Vector<Manifold2D> Physics::manifolds;
 Vector3 Physics::gravity;
 
@@ -29,11 +31,19 @@ void Physics::Shutdown()
 	Logger::Trace("Shutting Down Physics...");
 }
 
+void Physics::SetScene(Scene* scene_)
+{
+	scene = scene_;
+
+	scene->RegisterComponent<RigidBody2D>();
+	bodies = scene->GetComponentPool<RigidBody2D>();
+}
+
 void Physics::Update(F64 step)
 {
 	manifolds.Clear();
 
-	for (RigidBody2D& rb : bodies)
+	for (RigidBody2D& rb : *bodies)
 	{
 		if (rb.simulated)
 		{
@@ -48,9 +58,9 @@ void Physics::Update(F64 step)
 
 	//TODO: Broadphase Culling
 
-	for (RigidBody2D* it0 = bodies.begin(); it0 != bodies.end(); ++it0)
+	for (RigidBody2D* it0 = bodies->begin(); it0 != bodies->end(); ++it0)
 	{
-		for (RigidBody2D* it1 = it0 + 1; it1 != bodies.end(); ++it1)
+		for (RigidBody2D* it1 = it0 + 1; it1 != bodies->end(); ++it1)
 		{
 			Manifold2D manifold{};
 			manifold.rb0 = it0;

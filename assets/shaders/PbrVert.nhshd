@@ -1,13 +1,18 @@
 instanceLocation=4
 #version 450
 
-layout(std140, binding = 0) readonly buffer Globals
+layout(std140, set = 0, binding = 0) readonly buffer Globals
 {
 	mat4 viewProjection;
     mat4 lightSpace;
 	vec4 eye;
     vec3 lightPos;
     uint skyboxIndex;
+};
+
+layout(std140, set = 0, binding = 2) readonly buffer Entities
+{
+	mat4[] entityMatrices;
 };
 
 const mat4 biasMat = mat4( 
@@ -23,7 +28,8 @@ layout (location = 2) in vec3 tangent;
 layout (location = 3) in vec3 texcoord;
 
 layout (location = 4) in uint materialIndex;
-layout (location = 5) in mat4 model;
+layout (location = 5) in uint entityIndex;
+layout (location = 6) in mat4 model;
 
 layout (location = 0) out vec3 outPosition;
 layout (location = 1) out vec3 outNormal;
@@ -34,12 +40,13 @@ layout (location = 5) flat out uint outMaterialIndex;
 
 void main()
 {
-    vec4 worldPosition = model * vec4(position, 1.0);
+    mat4 matrix = entityMatrices[entityIndex] * model;
+    vec4 worldPosition = matrix * vec4(position, 1.0);
     gl_Position = viewProjection * worldPosition;
     outPosition = worldPosition.xyz;
     outNormal = normal;
     outTexcoord = texcoord;
     outTangent = tangent;
-    outShadowCoord = biasMat * lightSpace * model * vec4(position, 1.0);
+    outShadowCoord = biasMat * lightSpace * matrix * vec4(position, 1.0);
     outMaterialIndex = materialIndex;
 }

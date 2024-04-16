@@ -62,15 +62,17 @@ struct NH_API SpecializationInfo
 
 enum DependancyType
 {
+	DEPENDANCY_NONE = 0,
 	DEPENDANCY_RENDER_TARGET,
 	DEPENDANCY_DEPTH_TARGET,
+	DEPENDANCY_ENTITY_BUFFER,
 };
 
 struct Pipeline;
 
 struct NH_API Dependancy
 {
-	Dependancy();
+	Dependancy(DependancyType type = DEPENDANCY_NONE);
 	Dependancy(const ResourceRef<Pipeline>& pipeline, DependancyType type, U8 index = 0);
 
 	ResourceRef<Pipeline> pipeline;

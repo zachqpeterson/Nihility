@@ -8,7 +8,7 @@
 #include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 
-Dependancy::Dependancy() {}
+Dependancy::Dependancy(DependancyType type) : type{ type } {}
 Dependancy::Dependancy(const ResourceRef<Pipeline>& pipeline, DependancyType type, U8 index) : pipeline{ pipeline }, type{ type }, index{ index } {}
 
 bool Pipeline::Create(U8 pushConstantCount, PushConstant* pushConstants)
@@ -79,10 +79,15 @@ bool Pipeline::Create(U8 pushConstantCount, PushConstant* pushConstants)
 
 		for (U32 i = 0; i < shader->GetBindingCount(); ++i)
 		{
-			U32 stages = bindings[i].stageFlags;
+			VkDescriptorSetLayoutBinding binding = shader->GetBinding(i);
 
-			bindings[i] = shader->GetBinding(i);
-			bindings[i].stageFlags |= stages;
+			if (binding.stageFlags)
+			{
+				U32 stages = bindings[i].stageFlags;
+
+				bindings[i] = binding;
+				bindings[i].stageFlags |= stages;
+			}
 		}
 
 		bindingCount = Math::Max(bindingCount, shader->GetBindingCount());

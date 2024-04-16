@@ -620,9 +620,9 @@ bool Renderer::CreateResources()
 
 	commandBufferRing.Create();
 
-	stagingBuffer = CreateBuffer(Megabytes(512), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
-	materialBuffer = CreateBuffer(Megabytes(128), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	globalsBuffer = CreateBuffer(sizeof(GlobalData), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	stagingBuffer = CreateBuffer(Megabytes(512), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT, "renderer_staging_buffer");
+	materialBuffer = CreateBuffer(Megabytes(128), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, "renderer_material_buffer");
+	globalsBuffer = CreateBuffer(sizeof(GlobalData), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, "renderer_globals_buffer");
 
 	TextureInfo textureInfo{};
 	textureInfo.name = "default_render_target";
@@ -644,10 +644,12 @@ bool Renderer::CreateResources()
 
 	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
 	pipelines[0] = Resources::LoadPipeline("pipelines/shadowMap.nhpln", 1, &pushConstant);
+	pipelines[0]->AddDependancy({ DEPENDANCY_ENTITY_BUFFER });
 
 	pipelines[1] = Resources::LoadPipeline("pipelines/pbrOpaque.nhpln");
-	pipelines[1]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
+	pipelines[1]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer }); //TODO: specify binding
 	pipelines[1]->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	pipelines[1]->AddDependancy({ DEPENDANCY_ENTITY_BUFFER });
 	pipelines[1]->AddDependancy({ pipelines[0], DEPENDANCY_DEPTH_TARGET });
 
 	Resources::CreateMaterialEffect("pbrOpaqueEffect", pipelines);
@@ -655,6 +657,7 @@ bool Renderer::CreateResources()
 	pipelines[1] = Resources::LoadPipeline("pipelines/pbrTransparent.nhpln");
 	pipelines[1]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
 	pipelines[1]->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
+	pipelines[1]->AddDependancy({ DEPENDANCY_ENTITY_BUFFER });
 	pipelines[1]->AddDependancy({ pipelines[0], DEPENDANCY_DEPTH_TARGET });
 
 	Resources::CreateMaterialEffect("pbrTransparentEffect", Move(pipelines));
@@ -965,7 +968,7 @@ VkBufferMemoryBarrier2 Renderer::BufferBarrier(VkBuffer buffer, VkPipelineStageF
 	return result;
 }
 
-Buffer Renderer::CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType)
+Buffer Renderer::CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType, const String& name)
 {
 	Buffer buffer{};
 	buffer.size = size;
@@ -986,7 +989,7 @@ Buffer Renderer::CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemor
 	allocationInfo.pName = "buffer";
 	VkValidate(vmaCreateBuffer(allocator, &info, &memoryInfo, &buffer.vkBuffer, &buffer.allocation, &allocationInfo));
 
-	//TODO: Generate resource name?
+	SetResourceName(VK_OBJECT_TYPE_BUFFER, (U64)buffer.vkBuffer, name);
 
 	buffer.deviceMemory = allocationInfo.deviceMemory;
 

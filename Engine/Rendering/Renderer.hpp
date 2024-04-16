@@ -91,7 +91,7 @@ public:
 	static VkBufferMemoryBarrier2		BufferBarrier(VkBuffer_T* buffer, U64 srcStageMask, U64 srcAccessMask,
 		U64 dstStageMask, U64 dstAccessMask);
 
-	static Buffer						CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType);
+	static Buffer						CreateBuffer(U64 size, BufferUsageBits bufferUsage, BufferMemoryTypeBits memoryType, const String& name = "buffer");
 	static void							DestroyBuffer(Buffer& buffer);
 	static void							FillBuffer(Buffer& buffer, U64 size, const void* data, U32 regionCount, VkBufferCopy* regions);
 	static void							FillBuffer(Buffer& buffer, const Buffer& stagingBuffer, U32 regionCount, VkBufferCopy* regions);

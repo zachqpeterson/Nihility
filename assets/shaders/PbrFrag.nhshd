@@ -3,7 +3,7 @@
 
 const uint MATERIAL_FLAG_ALPHA_MASK = 1 << 0;
 
-layout(std140, binding = 0) readonly buffer Globals
+layout(std140, set = 0, binding = 0) readonly buffer Globals
 {
 	mat4 viewProjection;
     mat4 lightSpace;
@@ -27,12 +27,12 @@ struct Material
 	uint		flags;
 };
 
-layout(std140, binding = 1) readonly buffer Materials
+layout(std140, set = 0, binding = 1) readonly buffer Materials
 {
 	Material materials[];
 };
 
-layout (binding = 2) uniform sampler2D shadowMap;
+layout (set = 0, binding = 3) uniform sampler2D shadowMap;
 
 layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 

@@ -9,6 +9,7 @@
 #include "Rendering\Pipeline.hpp"
 #include "Rendering\RenderingDefines.hpp"
 #include "Core\Time.hpp"
+#include "Math\Physics.hpp"
 
 void Scene::Create(CameraType cameraType)
 {
@@ -20,7 +21,6 @@ void Scene::Create(CameraType cameraType)
 #else
 		camera.SetPerspective(0.01f, 1000.0f, 45.0f, 1.7777778f);
 #endif
-
 	} break;
 	case CAMERA_TYPE_ORTHOGRAPHIC: {
 #ifdef NH_DEBUG
@@ -33,14 +33,15 @@ void Scene::Create(CameraType cameraType)
 
 	for (U32 i = 0; i < VERTEX_TYPE_COUNT - 1; ++i)
 	{
-		vertexBuffers[i] = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+		vertexBuffers[i] = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, name + "_vertex_buffer_" + i);
 	}
 
-	stagingBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT);
-	instanceBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	indexBuffer = Renderer::CreateBuffer(Megabytes(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	drawBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
-	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
+	stagingBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_TRANSFER_SRC, BUFFER_MEMORY_TYPE_CPU_VISIBLE | BUFFER_MEMORY_TYPE_CPU_COHERENT, name + "_staging_buffer");
+	entitiesBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, name + "_entities_buffer");
+	instanceBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_VERTEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, name + "_instance_buffer");
+	indexBuffer = Renderer::CreateBuffer(Megabytes(64), BUFFER_USAGE_INDEX_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, name + "_index_buffer");
+	drawBuffer = Renderer::CreateBuffer(Megabytes(32), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, name + "_draw_buffer");
+	countsBuffer = Renderer::CreateBuffer(sizeof(U32) * 32, BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_INDIRECT_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL, name + "_counts_buffer");
 }
 
 void Scene::Destroy()
@@ -72,6 +73,7 @@ void Scene::Destroy()
 	}
 
 	Renderer::DestroyBuffer(stagingBuffer);
+	Renderer::DestroyBuffer(entitiesBuffer);
 	Renderer::DestroyBuffer(instanceBuffer);
 	Renderer::DestroyBuffer(indexBuffer);
 	Renderer::DestroyBuffer(drawBuffer);
@@ -338,7 +340,7 @@ void Scene::Load()
 		
 				renderpassInfo.subpassCount = 1;
 		
-				//if (pipeline->subpass.inputAttachmentCount) { Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!"); } //TODO
+				if (pipeline->subpass.inputAttachmentCount) { Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!"); }
 			}
 		
 			pipeline->renderpassIndex = renderpass;
@@ -376,6 +378,9 @@ void Scene::Load()
 					target->flags |= TEXTURE_FLAG_RENDER_SAMPLED;
 					pipeline->AddDescriptor({ target });
 				} break;
+				case DEPENDANCY_ENTITY_BUFFER: {
+					pipeline->AddDescriptor({ entitiesBuffer.vkBuffer });
+				} break;
 				}
 			}
 		}
@@ -391,6 +396,8 @@ void Scene::Load()
 		{
 			pipeline->Build(&renderpasses[pipeline->renderpassIndex]);
 		}
+
+		Physics::SetScene(this);
 	}
 }
 
@@ -409,6 +416,11 @@ void Scene::Update()
 	for (ComponentPool* pool : componentPools)
 	{
 		pool->Update(this);
+	}
+
+	for (Entity& entity : entities)
+	{
+		entityWrites.Push(CreateWrite(entity.entityID * sizeof(Matrix4), 0, sizeof(Matrix4), &entity.transform.WorldMatrix()));
 	}
 
 	ShadowData* shadowData = Renderer::GetShadowData();
@@ -447,6 +459,12 @@ void Scene::Update()
 	region.srcOffset = 0;
 
 	Renderer::FillBuffer(Renderer::globalsBuffer, sizeof(GlobalData), globalData, 1, &region);
+
+	if (entityWrites.Size())
+	{
+		Renderer::FillBuffer(entitiesBuffer, stagingBuffer, (U32)entityWrites.Size(), (VkBufferCopy*)entityWrites.Data());
+		entityWrites.Clear();
+	}
 
 	if (indexWrites.Size())
 	{
@@ -527,12 +545,12 @@ void Scene::Resize()
 	}
 }
 
-BufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, void* data)
+BufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, const void* data)
 {
 	BufferCopy region{};
+	region.srcOffset = stagingBuffer.allocationOffset;
 	region.dstOffset = dstOffset;
 	region.size = size;
-	region.srcOffset = stagingBuffer.allocationOffset;
 	stagingBuffer.allocationOffset += size;
 
 	Memory::Copy((U8*)stagingBuffer.data + region.srcOffset, (U8*)data + srcOffset, size);

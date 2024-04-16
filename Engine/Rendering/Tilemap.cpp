@@ -6,7 +6,7 @@
 #include "Renderer.hpp"
 #include "Platform\Input.hpp"
 
-TilemapComponent::TilemapComponent(U16 width, U16 height) : width{ width }, height{ height }
+TilemapComponent::TilemapComponent(U16 width, U16 height, Vector2 tileSize) : width{ width }, height{ height }, tileSize{ tileSize }
 {
 	tiles = Renderer::CreateBuffer(width * height * sizeof(U8), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
 	legend = Renderer::CreateBuffer(256 * sizeof(U16), BUFFER_USAGE_STORAGE_BUFFER | BUFFER_USAGE_TRANSFER_DST, BUFFER_MEMORY_TYPE_GPU_LOCAL);
@@ -14,7 +14,7 @@ TilemapComponent::TilemapComponent(U16 width, U16 height) : width{ width }, heig
 
 	U8* data = (U8*)staging.data;
 
-	for (U32 i = 0; i < width * height; ++i)
+	for (U32 i = 0; i < (U32)(width * height); ++i)
 	{
 		data[i] = U8_MAX;
 	}
@@ -32,6 +32,7 @@ TilemapComponent::TilemapComponent(U16 width, U16 height) : width{ width }, heig
 void TilemapComponent::Update(Scene* scene)
 {
 	data.eye = scene->GetCamera()->Eye().xy();
+	data.tileSize = { 1.0f / tileSize.x * (1920.0f / Renderer::RenderArea().z), 1.0f / tileSize.y * (1080.0f / Renderer::RenderArea().w) };
 
 	staging.allocationOffset = 0;
 }
@@ -39,6 +40,7 @@ void TilemapComponent::Update(Scene* scene)
 void TilemapComponent::Load(Scene* scene)
 {
 	data.eye = scene->GetCamera()->Eye().xy();
+	data.tileSize = { 1.0f / tileSize.x * (1920.0f / Renderer::RenderArea().z), 1.0f / tileSize.y * (1080.0f / Renderer::RenderArea().w) };
 	data.width = width;
 	data.height = height;
 
@@ -54,6 +56,11 @@ void TilemapComponent::Cleanup(Scene* scene)
 	Renderer::DestroyBuffer(tiles);
 	Renderer::DestroyBuffer(legend);
 	Renderer::DestroyBuffer(staging);
+}
+
+Vector2Int TilemapComponent::WorldToTilemap(const Vector2& worldPos) const
+{
+	return Vector2Int{ worldPos * data.tileSize };
 }
 
 U8 TilemapComponent::AddTile(const ResourceRef<Texture>& texture)
@@ -72,14 +79,14 @@ U8 TilemapComponent::AddTile(const ResourceRef<Texture>& texture)
 	return tileCount++;
 }
 
-void TilemapComponent::ChangeTile(U32 x, U32 y, U8 id)
+void TilemapComponent::ChangeTile(const Vector2Int& pos, U8 id)
 {
-	if (x < 0 || x >= width || y < 0 || y >= height) { return; }
+	if ((U32)pos.x >= width || (U32)pos.y >= height) { return; }
 
 	*((U8*)staging.data + staging.allocationOffset) = id;
 
 	VkBufferCopy copy{};
-	copy.dstOffset = x + y * width;
+	copy.dstOffset = pos.x + pos.y * width;
 	copy.size = sizeof(U8);
 	copy.srcOffset = staging.allocationOffset;
 

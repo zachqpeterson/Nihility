@@ -24,7 +24,7 @@ bool Init()
 	scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_ORTHOGRAPHIC);
 
 	entity = scene->AddEntity();
-	tilemap = entity->AddComponent<TilemapComponent>(101ui16, 101ui16);
+	tilemap = entity->AddComponent<TilemapComponent>(100ui16, 100ui16, Vector2{ 100.0f, 100.0f });
 
 	id0 = tilemap->AddTile(Resources::LoadTexture("textures/Collie.nhtex"));
 	id1 = tilemap->AddTile(Resources::LoadTexture("textures/trichotomy.nhtex"));
@@ -45,11 +45,9 @@ void Update()
 
 	if (worldPos.x >= 0.0f && worldPos.y >= 0.0f)
 	{
-		Vector2Int tilePos = (Vector2Int)(worldPos / 100.0f);
-
-		if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE)) { tilemap->ChangeTile(tilePos.x, tilePos.y, id0); }
-		if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE)) { tilemap->ChangeTile(tilePos.x, tilePos.y, id1); }
-		if (Input::ButtonDown(BUTTON_CODE_MIDDLE_MOUSE)) { tilemap->ChangeTile(tilePos.x, tilePos.y, U16_MAX); }
+		if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE)) { tilemap->ChangeTile(tilemap->WorldToTilemap(worldPos), id0); }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE)) { tilemap->ChangeTile(tilemap->WorldToTilemap(worldPos), id1); }
+		if (Input::ButtonDown(BUTTON_CODE_MIDDLE_MOUSE)) { tilemap->ChangeTile(tilemap->WorldToTilemap(worldPos), U16_MAX); }
 	}
 }
 
