@@ -2,6 +2,8 @@
 
 #include "MathDefines.hpp"
 
+#include "Core\Time.hpp"
+
 #include <math.h>
 
 #ifdef abs
@@ -386,6 +388,8 @@ public:
 	template <FloatingPoint Type> static constexpr Type Remap(Type iMin, Type iMax, Type oMin, Type oMax, Type t) noexcept { return Lerp(oMin, oMax, InvLerp(iMin, iMax, t)); } //TODO: Vector for output
 	template <VectorType Type> static constexpr Type Lerp(const Type& a, const Type& b, F32 t) noexcept;
 	template <FloatingPoint Type> static constexpr Type MoveTowards(Type a, Type b, Type t) noexcept { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
+	template <FloatOrVector Type> static constexpr Type Tween(const Type& a, const Type& b) noexcept { return Lerp(a, b, 1.0f - Math::Pow(0.1f, Time::DeltaTime())); }
+	template <FloatOrVector Type, FloatingPoint F> static constexpr Type Tween(const Type& a, const Type& b, F power) noexcept { return Lerp(a, b, (F)1.0 - Math::Pow(power, (F)Time::DeltaTime())); }
 
 	static Quaternion2 Slerp(const Quaternion2& a, const Quaternion2& b, F32 t) noexcept;
 	static Quaternion3 Slerp(const Quaternion3& a, const Quaternion3& b, F32 t) noexcept;
@@ -785,6 +789,8 @@ struct NH_API Quaternion2
 
 	F32* Data() { return &x; }
 	const F32* Data() const { return &x; }
+
+	constexpr explicit operator Quaternion3() const;
 
 public:
 	F32 x, y; //sin, cos
@@ -3333,9 +3339,14 @@ struct NH_API Quaternion3
 	F32* Data() { return &x; }
 	const F32* Data() const { return &x; }
 
+	constexpr explicit operator Quaternion2() const;
+
 public:
 	F32 x, y, z, w;
 };
+
+inline constexpr Quaternion2::operator Quaternion3() const { return Quaternion3{ x, 0.0f, 0.0f, y }; }
+inline constexpr Quaternion3::operator Quaternion2() const { return Quaternion2{ x, w }; }
 
 constexpr U64 MAX_SPLINE_POINTS = 128;
 

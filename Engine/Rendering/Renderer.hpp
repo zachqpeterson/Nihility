@@ -121,7 +121,7 @@ private:
 
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
-	static bool							CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info, Renderpass* prevRenderpass = nullptr);
+	static bool							CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info);
 	static bool							RecreateRenderpass(Renderpass* renderpass);
 
 	static void							DestroyTextureInstant(Texture* texture);

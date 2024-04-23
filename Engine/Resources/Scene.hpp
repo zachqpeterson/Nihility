@@ -88,11 +88,14 @@ struct NH_API Scene
 	Entity* GetEntity(U32 id);
 
 	const String& Name() { return name; }
+	const Camera& GetCamera() 
+	{
 #ifdef NH_DEBUG
-	FlyCamera* GetCamera() { return &flyCamera; }
+		return flyCamera.GetCamera();
 #else
-	Camera* GetCamera() { return &camera; }
+		return &camera;
 #endif
+	}
 
 	void SetSkybox(const ResourceRef<Skybox>& skybox);
 	void SetPostProcessing(const PostProcessData& data);
@@ -103,13 +106,12 @@ struct NH_API Scene
 
 	void Destroy();
 
-private:
-	void Create(CameraType cameraType);
-
 	template<ComponentType Type, typename... Args>
 	void RegisterComponent() noexcept
 	{
-		U32* id = componentRegistry.Request(NameOf<Type>);
+		StringView sv = NameOf<Type>;
+
+		U32* id = componentRegistry.Request(sv);
 
 		if (*id == 0)
 		{
@@ -118,10 +120,15 @@ private:
 		}
 	}
 
+private:
+	void Create(CameraType cameraType);
+
 	template<ComponentType Type, typename... Args>
-	Type* AddComponent(ComponentReference& reference, Args&&... args) noexcept
+	Type* AddComponent(U32 entityID, ComponentReference& reference, Args&&... args) noexcept
 	{
-		U32* id = componentRegistry.Request(NameOf<Type>);
+		StringView sv = NameOf<Type>;
+
+		U32* id = componentRegistry.Request(sv);
 
 		if (*id == 0)
 		{
@@ -133,10 +140,45 @@ private:
 		reference.id = componentPools[reference.type]->Count();
 
 		Type* component = ((ComponentPoolInternal<Type>*)componentPools[reference.type])->AddComponent(Move(Type{ args... }));
-
+		component->entityID = entityID;
 		if (loaded) { component->Load(this); }
 
 		return component;
+	}
+
+	template<ComponentType Type>
+	Type* GetComponent(const Vector<ComponentReference>& references) noexcept
+	{
+		U32* id = componentRegistry.Request(NameOf<Type>);
+		if (*id == 0) { return nullptr; }
+
+		U32 i = *id - 1;
+
+		for (ComponentReference& ref : references)
+		{
+			if (ref.id == i) { return ((ComponentPoolInternal<Type>*)componentPools[i])->components[ref.id]; }
+		}
+
+		return nullptr;
+	}
+
+	template<ComponentType Type>
+	Vector<Type*> GetComponents(const Vector<ComponentReference>& references) noexcept
+	{
+		U32* id = componentRegistry.Request(NameOf<Type>);
+		if (*id == 0) { return Move(Vector<Type*>{}); }
+
+		U32 i = *id - 1;
+		Vector<Type*> types;
+
+		ComponentPoolInternal<Type>* pool = ((ComponentPoolInternal<Type>*)componentPools[i]);
+
+		for (ComponentReference& ref : references)
+		{
+			if (ref.id == i) { types.Push(pool->components[ref.id]); }
+		}
+
+		return Move(types);
 	}
 
 	template<ComponentType Type>
@@ -174,6 +216,7 @@ private:
 
 	Vector<BufferCopy>				entityWrites;
 	Vector<BufferCopy>				vertexWrites[VERTEX_TYPE_COUNT - 1];
+	Vector<BufferCopy>				instanceWrites;
 	Vector<BufferCopy>				indexWrites;
 	Vector<BufferCopy>				drawWrites;
 	Vector<BufferCopy>				countsWrites;
@@ -223,11 +266,22 @@ public:
 	Type* AddComponent(Args&&... args) noexcept
 	{
 		ComponentReference reference;
-		Type* component = scene->AddComponent<Type>(reference, args...);
-		component->entityID = entityID;
+		Type* component = scene->AddComponent<Type>(entityID, reference, args...);
 		references.Push(reference);
 
 		return component;
+	}
+
+	template<ComponentType Type>
+	Type* GetComponent() noexcept
+	{
+		return scene->GetComponent<Type>(references);
+	}
+
+	template<ComponentType Type>
+	Vector<Type*> GetComponents() noexcept
+	{
+		return Move(scene->GetComponents<Type>(references));
 	}
 
 	Transform transform{};

@@ -39,7 +39,7 @@ public:
 	static ResourceRef<Shader> CreateShader(const String& name); //TODO: Load instead of create
 	static ResourceRef<MaterialEffect> CreateMaterialEffect(const String& name, Vector<ResourceRef<Pipeline>>&& pipelines);
 	static ResourceRef<MaterialEffect> CreateMaterialEffect(const String& name, const Vector<ResourceRef<Pipeline>>& pipelines);
-	static ResourceRef<Material> CreateMaterial(MaterialInfo& info);
+	static ResourceRef<Material> CreateMaterial(const MaterialInfo& info);
 	static ResourceRef<Mesh> CreateMesh(const String& name);
 	static Scene* CreateScene(const String& name, CameraType cameraType);
 

@@ -133,8 +133,8 @@ void Scene::AddMesh(ResourceRef<Mesh>& mesh)
 	MeshDraw& draw = meshDraws.Push({});
 
 	//Indices
-	indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, mesh->indicesSize, mesh->indices));
-
+	if (mesh->indicesSize) { indexWrites.Push(CreateWrite(indexOffset * sizeof(U32), 0, mesh->indicesSize, mesh->indices)); }
+	
 	draw.indexCount = mesh->indicesSize / sizeof(U32);
 	draw.indexOffset = indexOffset;
 	indexOffset += draw.indexCount;
@@ -168,13 +168,15 @@ void Scene::AddInstance(MeshInstance& instance)
 		{
 			pipeline->drawOffset = drawOffset;
 			pipeline->countOffset = countsOffset;
-			drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128;
+			if(pipeline->useIndices) { drawOffset += sizeof(VkDrawIndexedIndirectCommand) * 128; }
+			else { drawOffset += sizeof(VkDrawIndirectCommand) * 128; }
 			countsOffset += sizeof(U32);
 		}
 
 		if (!draw.instanceCount)
 		{
-			draw.drawOffset = pipeline->drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount;
+			if (pipeline->useIndices) { draw.drawOffset = pipeline->drawOffset + sizeof(VkDrawIndexedIndirectCommand) * pipeline->drawCount; }
+			else { draw.drawOffset = pipeline->drawOffset + sizeof(VkDrawIndirectCommand) * pipeline->drawCount; }
 			++pipeline->drawCount;
 
 			countsWrites.Push(CreateWrite(pipeline->countOffset, 0, sizeof(U32), &pipeline->drawCount));
@@ -187,26 +189,34 @@ void Scene::AddInstance(MeshInstance& instance)
 			}
 		}
 
-		VkDrawIndexedIndirectCommand drawCommand{};
-		drawCommand.indexCount = draw.indexCount;
-		drawCommand.instanceCount = draw.instanceCount + 1;
-		drawCommand.firstIndex = draw.indexOffset;
-		drawCommand.vertexOffset = draw.vertexOffset;
-		drawCommand.firstInstance = draw.instanceOffset / pipeline->instanceStride;
+		if (pipeline->useIndices)
+		{
+			VkDrawIndexedIndirectCommand drawCommand{};
+			drawCommand.indexCount = draw.indexCount;
+			drawCommand.instanceCount = draw.instanceCount + 1;
+			drawCommand.firstIndex = draw.indexOffset;
+			drawCommand.vertexOffset = draw.vertexOffset;
+			drawCommand.firstInstance = draw.instanceOffset / pipeline->instanceStride;
 
-		drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
+			drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndexedIndirectCommand), &drawCommand));
+		}
+		else
+		{
+			VkDrawIndirectCommand drawCommand{};
+			drawCommand.vertexCount = instance.mesh->vertexCount;
+			drawCommand.instanceCount = draw.instanceCount + 1;
+			drawCommand.firstVertex = draw.vertexOffset;
+			drawCommand.firstInstance = draw.instanceOffset / pipeline->instanceStride;
+
+			drawWrites.Push(CreateWrite(draw.drawOffset, 0, sizeof(VkDrawIndirectCommand), &drawCommand));
+		}
 	}
 
 	ResourceRef<Pipeline>& pipeline = instance.material->effect->processing[0];
 
 	instance.instanceOffset = draw.instanceOffset + draw.instanceCount * pipeline->instanceStride;
 
-	VkBufferCopy region{};
-	region.dstOffset = instance.instanceOffset;
-	region.size = pipeline->instanceStride;
-	region.srcOffset = 0;
-
-	Renderer::FillBuffer(instanceBuffer, region.size, instance.instanceData.data, 1, &region);
+	instanceWrites.Push(CreateWrite(instance.instanceOffset, 0, pipeline->instanceStride, instance.instanceData.data));
 
 	++draw.instanceCount;
 }
@@ -215,12 +225,7 @@ void Scene::UpdateInstance(MeshInstance& instance)
 {
 	ResourceRef<Pipeline>& pipeline = instance.material->effect->processing[0];
 
-	VkBufferCopy region{};
-	region.dstOffset = instance.instanceOffset;
-	region.size = pipeline->instanceStride;
-	region.srcOffset = 0;
-
-	Renderer::FillBuffer(instanceBuffer, region.size, instance.instanceData.data, 1, &region);
+	instanceWrites.Push(CreateWrite(instance.instanceOffset, 0, pipeline->instanceStride, instance.instanceData.data));
 }
 
 void Scene::AddPipeline(ResourceRef<Pipeline>& pipeline)
@@ -260,7 +265,9 @@ void Scene::Load()
 		U32 renderpass = 0;
 		U32 subpass = 0;
 		bool first = true;
-		
+		bool firstColor = true;
+		bool firstDepth = true;
+
 		RenderpassInfo renderpassInfos[8];
 		
 		for (ResourceRef<Pipeline>& pipeline : pipelines)
@@ -270,7 +277,7 @@ void Scene::Load()
 				pipeline->outputCount != renderpassInfos[renderpass].renderTargetCount || (pipeline->depthEnable && !renderpassInfos[renderpass].depthStencilTarget))
 			{
 				if (!first) { ++renderpass; }
-		
+
 				subpass = 0;
 		
 				RenderpassInfo& renderpassInfo = renderpassInfos[renderpass];
@@ -335,8 +342,19 @@ void Scene::Load()
 					}
 				}
 		
-				renderpassInfo.colorLoadOp = pipeline->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
-				renderpassInfo.depthLoadOp = pipeline->clearTypes & CLEAR_TYPE_DEPTH ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
+				if ((firstColor || (pipeline->clearTypes & CLEAR_TYPE_COLOR)) && pipeline->outputCount)
+				{
+					firstColor = false;
+					renderpassInfo.colorLoadOp = ATTACHMENT_LOAD_OP_CLEAR;
+				}
+				else { renderpassInfo.colorLoadOp = ATTACHMENT_LOAD_OP_LOAD; }
+
+				if ((firstDepth || (pipeline->clearTypes & CLEAR_TYPE_DEPTH)) && pipeline->depthEnable)
+				{
+					firstDepth = false;
+					renderpassInfo.depthLoadOp = ATTACHMENT_LOAD_OP_CLEAR;
+				}
+				else { renderpassInfo.depthLoadOp = ATTACHMENT_LOAD_OP_LOAD; }
 		
 				renderpassInfo.subpassCount = 1;
 		
@@ -388,7 +406,7 @@ void Scene::Load()
 		for (U32 i = 0; i <= renderpass; ++i)
 		{
 			Renderpass* renderpass = &renderpasses.Push({});
-			Renderer::CreateRenderpass(renderpass, renderpassInfos[i], prevRenderpass);
+			Renderer::CreateRenderpass(renderpass, renderpassInfos[i]);
 			prevRenderpass = renderpass;
 		}
 
@@ -439,7 +457,7 @@ void Scene::Update()
 
 #ifdef NH_DEBUG
 	if (Settings::InEditor()) { flyCamera.Update(); }
-	else { flyCamera.GetCamera()->Update(); }
+	else { flyCamera.GetCamera().Update(); }
 
 	globalData->viewProjection = flyCamera.ViewProjection();
 	globalData->eye = flyCamera.Eye();
@@ -481,6 +499,12 @@ void Scene::Update()
 			Renderer::FillBuffer(vertexBuffers[i], stagingBuffer, (U32)writes.Size(), (VkBufferCopy*)writes.Data());
 			writes.Clear();
 		}
+	}
+
+	if (instanceWrites.Size())
+	{
+		Renderer::FillBuffer(instanceBuffer, stagingBuffer, (U32)instanceWrites.Size(), (VkBufferCopy*)instanceWrites.Data());
+		instanceWrites.Clear();
 	}
 
 	if (countsWrites.Size())

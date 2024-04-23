@@ -2,22 +2,11 @@
 
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
-#include "Resources\Scene.hpp"
-
-void RigidBody2D::Update(Scene* scene)
-{
-
-}
-
-void RigidBody2D::Load(Scene* scene)
-{
-
-}
 
 Scene* Physics::scene;
 Vector<RigidBody2D>* Physics::bodies;
 Vector<Manifold2D> Physics::manifolds;
-Vector3 Physics::gravity;
+Vector3 Physics::gravity = Vector3Down * 9.8f;
 
 bool Physics::Initialize()
 {
@@ -47,12 +36,12 @@ void Physics::Update(F64 step)
 	{
 		if (rb.simulated)
 		{
-			rb.acceleration = 0.0f;
+			rb.acceleration += gravity.xy(); //TODO: drag
 
-			rb.acceleration += gravity.xy(); //TODO: * step?
-
-			rb.velocity += rb.acceleration * (F32)step;
+			rb.velocity += rb.acceleration * rb.invMass * (F32)step;
 			rb.position += rb.velocity * (F32)step;
+
+			rb.acceleration = 0.0f;
 		}
 	}
 
@@ -65,6 +54,7 @@ void Physics::Update(F64 step)
 			Manifold2D manifold{};
 			manifold.rb0 = it0;
 			manifold.rb1 = it1;
+
 			if (DetectCollision(manifold))
 			{
 				bool handled = false;
@@ -89,6 +79,7 @@ void Physics::Update(F64 step)
 	for (Manifold2D& manifold : manifolds)
 	{
 		ResolveCollision(manifold);
+		CorrectPosition(manifold);
 	}
 
 
@@ -114,7 +105,7 @@ bool Physics::DetectCollision(Manifold2D& manifold)
 	const RigidBody2D& rb0 = *manifold.rb0;
 	const RigidBody2D& rb1 = *manifold.rb1;
 	
-	if ((rb0.layers & rb1.layers) == 0) { return false; }
+	if ((rb0.layers & rb1.layers) == 0 || !(rb0.simulated || rb1.simulated)) { return false; }
 
 	Vector2 n = rb1.position - rb0.position;
 
@@ -135,7 +126,7 @@ bool Physics::DetectCollision(Manifold2D& manifold)
 
 				if (overlapY > 0.0f)
 				{
-					if (overlapX > overlapY)
+					if (overlapX < overlapY)
 					{
 						if (n.x < 0.0f) { manifold.normal = Vector2Left; }
 						else { manifold.normal = Vector2Right; }
@@ -143,8 +134,8 @@ bool Physics::DetectCollision(Manifold2D& manifold)
 					}
 					else
 					{
-						if (n.y < 0.0f) { manifold.normal = Vector2Down; }
-						else { manifold.normal = Vector2Up; }
+						if (n.y < 0.0f) { manifold.normal = Vector2Up; }
+						else { manifold.normal = Vector2Down; }
 						manifold.penetration = overlapY;
 					}
 
@@ -291,8 +282,8 @@ void Physics::ResolveCollision(Manifold2D& manifold)
 	// Apply impulse
 	Vector2 impulse = manifold.normal * j;
 
-	manifold.rb0->velocity -= impulse * manifold.rb0->invMass;
-	manifold.rb1->velocity += impulse * manifold.rb1->invMass;
+	manifold.rb0->velocity += impulse * manifold.rb0->invMass;
+	manifold.rb1->velocity -= impulse * manifold.rb1->invMass;
 }
 
 void Physics::CorrectPosition(Manifold2D& manifold)
@@ -302,6 +293,6 @@ void Physics::CorrectPosition(Manifold2D& manifold)
 
 	Vector2 correction = manifold.normal * (Math::Max(manifold.penetration - slop, 0.0f) / (manifold.rb0->invMass + manifold.rb1->invMass)) * percent;
 
-	manifold.rb0->position -= correction * manifold.rb0->invMass;
-	manifold.rb1->position += correction * manifold.rb1->invMass;
+	manifold.rb0->position += correction * manifold.rb0->invMass;
+	manifold.rb1->position -= correction * manifold.rb1->invMass;
 }

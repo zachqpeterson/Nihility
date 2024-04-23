@@ -6,6 +6,8 @@
 #include "Containers\Vector.hpp"
 #include "Containers\String.hpp"
 #include "Resources\Settings.hpp"
+#include "Resources\ResourceDefines.hpp"
+#include "Rendering\Renderer.hpp"
 #include "Math\Math.hpp"
 
 Vector<Device> Input::devices;
@@ -396,15 +398,17 @@ bool Input::OnButtonHold(ButtonCode code) { return buttonStates[code].held && bu
 
 bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[code].held && buttonStates[code].heldChanged && receiveInput; }
 
-void Input::MousePosition(I32& x, I32& y) { x = (I32)mousePosX; y = (I32)mousePosY; }
+Vector2 Input::MousePosition() { return { mousePosX, mousePosY }; }
 
-void Input::MousePositionPrecise(F32& x, F32& y) { x = mousePosX; y = mousePosY; }
+Vector2 Input::PreviousMousePos() { return { mousePosX - deltaMousePosX, mousePosY - deltaMousePosY }; }
 
-void Input::MouseDelta(I32& x, I32& y) { x = (I32)deltaMousePosX; y = (I32)deltaMousePosY; }
+Vector2 Input::MouseDelta() { return { deltaMousePosX, deltaMousePosY }; }
 
-void Input::MouseDeltaPrecise(F32& x, F32& y) { x = deltaMousePosX; y = deltaMousePosY; }
-
-void Input::PreviousMousePos(I32& x, I32& y) { x = (I32)(mousePosX - deltaMousePosX); y = (I32)(mousePosY - deltaMousePosY); }
+Vector2 Input::MouseToWorld(const Camera& camera)
+{
+	Vector4 area = Renderer::RenderArea();
+	return { (mousePosX - area.x - area.z / 2.0f) * 0.1875f + camera.Eye().x, ((Settings::WindowHeight() - mousePosY) - area.y - area.w / 2.0f) * 0.1875f + camera.Eye().y };
+}
 
 void Input::ConsumeInput() { receiveInput = false; }
 

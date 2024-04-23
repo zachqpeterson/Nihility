@@ -1,0 +1,38 @@
+instanceLocation=2
+#version 450
+
+layout(std140, set = 0, binding = 0) readonly buffer Globals
+{
+	mat4 viewProjection;
+    mat4 lightSpace;
+	vec4 eye;
+    vec3 lightPos;
+    uint skyboxIndex;
+};
+
+layout(std140, set = 0, binding = 1) readonly buffer Entities
+{
+	mat4[] entityMatrices;
+};
+
+layout (location = 0) in vec2 position;
+layout (location = 1) in vec2 texcoord;
+
+layout (location = 2) in uint textureIndex;
+layout (location = 3) in uint entityIndex;
+layout (location = 4) in vec2 instTexcoord;
+layout (location = 5) in vec2 texcoordScale;
+layout (location = 6) in vec4 color;
+
+layout (location = 0) out vec2 outTexcoord;
+layout (location = 1) out vec4 outColor;
+layout (location = 2) out flat uint outTextureIndex;
+
+void main()
+{
+    vec4 worldPosition = entityMatrices[entityIndex] * vec4(position, 0.0, 1.0);
+    gl_Position = viewProjection * worldPosition;
+    outTexcoord = texcoord * texcoordScale + instTexcoord;
+    outColor = color;
+    outTextureIndex = textureIndex;
+}

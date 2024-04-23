@@ -516,18 +516,16 @@ template<typename T> inline T& Vector<T>::Push(const T& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	T& result = array[size++] = value;
-
-	return result;
+	Memory::Copy(array + size, &value, sizeof(T));
+	return array[size++];
 }
 
 template<typename T> inline T& Vector<T>::Push(T&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	T& result = array[size++] = Move(value);
-
-	return result;
+	Memory::Copy(array + size, &value, sizeof(T));
+	return array[size++];
 }
 
 template<typename T> inline void Vector<T>::Pop()

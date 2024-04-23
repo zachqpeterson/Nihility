@@ -31,7 +31,7 @@ TilemapComponent::TilemapComponent(U16 width, U16 height, Vector2 tileSize) : wi
 
 void TilemapComponent::Update(Scene* scene)
 {
-	data.eye = scene->GetCamera()->Eye().xy();
+	data.eye = scene->GetCamera().Eye().xy();
 	data.tileSize = { 1.0f / tileSize.x * (1920.0f / Renderer::RenderArea().z), 1.0f / tileSize.y * (1080.0f / Renderer::RenderArea().w) };
 
 	staging.allocationOffset = 0;
@@ -39,7 +39,7 @@ void TilemapComponent::Update(Scene* scene)
 
 void TilemapComponent::Load(Scene* scene)
 {
-	data.eye = scene->GetCamera()->Eye().xy();
+	data.eye = scene->GetCamera().Eye().xy();
 	data.tileSize = { 1.0f / tileSize.x * (1920.0f / Renderer::RenderArea().z), 1.0f / tileSize.y * (1080.0f / Renderer::RenderArea().w) };
 	data.width = width;
 	data.height = height;

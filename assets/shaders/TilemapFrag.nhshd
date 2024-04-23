@@ -5,7 +5,7 @@
 #extension GL_EXT_shader_8bit_storage : require
 #extension GL_EXT_shader_16bit_storage : require
 
-#define DEBUG 1
+#define DEBUG 0
 
 layout(push_constant) uniform block
 {
@@ -33,7 +33,7 @@ const uint INVALID_TEXTURE_INDEX = 255;
 
 void main()
 {
-    vec2 position = vec2(gl_FragCoord.x - eye.x, gl_FragCoord.y + eye.y);
+    vec2 position = vec2(gl_FragCoord.x + eye.x * 10.0f, gl_FragCoord.y - eye.y * 10.0f); //TODO: standardized unit size
     ivec2 tilePos = ivec2(uint(position.x * tileSize.x), uint(position.y * tileSize.y));
     vec2 texcoord = fract(position * tileSize);
 

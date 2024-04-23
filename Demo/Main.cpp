@@ -12,6 +12,7 @@
 #include "Math\Math.hpp"
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
+#include "Rendering\Sprite.hpp"
 
 ResourceRef<AudioClip> music;
 ResourceRef<AudioClip> sfx;
@@ -19,6 +20,7 @@ F32 volume = 1.0f;
 
 Scene* scene;
 Entity* entity{};
+Entity* entity1{};
 Entity* light{};
 UIElement* uiElement;
 F32 percent = 0.5f;
@@ -39,6 +41,9 @@ bool Init()
 	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default_material.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
+
+	entity1 = scene->AddEntity();
+	entity1->AddComponent<SpriteComponent>();
 
 	PostProcessData ppd{};
 	ppd.contrast = 1.0f;
@@ -150,7 +155,6 @@ void Update()
 
 	Quaternion3 rotation(Vector3{ 1.0f, 5.0f, -3.2f } * 5.0f * (F32)(Time::DeltaTime() / 2.0));
 
-	//entity->transform.SetPosition();
 	entity->transform.SetRotation(rotation * entity->transform.Rotation());
 }
 

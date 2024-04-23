@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 #include "Containers\Vector.hpp"
+#include "Math\Math.hpp"
 
 enum NH_API ButtonCode
 {
@@ -256,6 +257,7 @@ enum NH_API AxisCode
 
 struct Device;
 struct HRAWINPUT__;
+struct Camera;
 
 class NH_API Input
 {
@@ -282,11 +284,10 @@ public:
 	static bool OnButtonDoubleClick(ButtonCode code);
 	static bool OnButtonHold(ButtonCode code);
 	static bool OnButtonRelease(ButtonCode code);
-	static void MousePosition(I32& x, I32& y);
-	static void MousePositionPrecise(F32& x, F32& y);
-	static void MouseDelta(I32& x, I32& y);
-	static void MouseDeltaPrecise(F32& x, F32& y);
-	static void PreviousMousePos(I32& x, I32& y);
+	static Vector2 MousePosition();
+	static Vector2 PreviousMousePos();
+	static Vector2 MouseDelta();
+	static Vector2 MouseToWorld(const Camera& camera);
 	static void ConsumeInput();
 	static I16 MouseWheelDelta();
 	static I16 MouseHWheelDelta();

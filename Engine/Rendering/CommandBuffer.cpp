@@ -153,7 +153,7 @@ void CommandBuffer::DrawIndexedIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T*
 
 void CommandBuffer::DrawIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset, U32 countOffset)
 {
-	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndexedIndirectCommand));
+	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndirectCommand));
 }
 
 void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)

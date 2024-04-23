@@ -669,7 +669,7 @@ ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, 
 	return materialEffect;
 }
 
-ResourceRef<Material> Resources::CreateMaterial(MaterialInfo& info)
+ResourceRef<Material> Resources::CreateMaterial(const MaterialInfo& info)
 {
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
@@ -1523,7 +1523,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 				}
 			} break;
 			case "useIndices"_Hash: {
-				if (data.CompareN("FALSE", value)) { pipeline->useInstances = false; }
+				if (data.CompareN("FALSE", value)) { pipeline->useIndices = false; }
 			} break;
 			case "vertexCount"_Hash: {
 				pipeline->vertexCount = data.ToType<U8>(value);

@@ -109,7 +109,7 @@ void Engine::UpdateLoop()
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
 		timeAccumulation += Time::DeltaTime();
-		while (timeAccumulation >= step)
+		while (timeAccumulation >= step) //TODO: limit steps per frame
 		{
 			Physics::Update(step);
 			timeAccumulation -= step;

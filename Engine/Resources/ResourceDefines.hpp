@@ -942,12 +942,13 @@ struct NH_API FlyCamera
 	void SetRotation(const Quaternion3& rotation);
 	void SetRotation(const Vector3& rotation);
 
-	Camera* GetCamera();
+	Camera& GetCamera();
 
 private:
 	F32		mouseSensitivity{ 0.75f };
 	F32		movementDelta{ 0.1f };
 	U32		ignoreDraggingFrames{ 3 };
+	I8		zoom{ 0 };
 
 	Vector3	targetMovement{ Vector3Zero };
 	F32		targetYaw{ 0.0f };

@@ -74,6 +74,9 @@
     <Filter Include="Source Files\Resources\Shader\spirv-tools">
       <UniqueIdentifier>{75fb2611-471b-4428-b1bc-f63f471ab7cc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Rendering\2D">
+      <UniqueIdentifier>{6781dba1-f0df-4140-98e4-25a913abce18}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -183,9 +186,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Core\DataReader.hpp">
       <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Rendering\UI.hpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Engine\External\stb_truetype.h">
       <Filter>Source Files\External</Filter>
@@ -547,8 +547,14 @@
     <ClInclude Include="Engine\Math\Physics.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Rendering\UI.hpp">
+      <Filter>Source Files\Rendering\2D</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Rendering\Tilemap.hpp">
-      <Filter>Source Files\Rendering</Filter>
+      <Filter>Source Files\Rendering\2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rendering\Sprite.hpp">
+      <Filter>Source Files\Rendering\2D</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -617,9 +623,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Core\DataReader.cpp">
       <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rendering\UI.cpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Resources\Font.cpp">
       <Filter>Source Files\Resources</Filter>
@@ -865,7 +868,13 @@
       <Filter>Source Files\Math</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Tilemap.cpp">
-      <Filter>Source Files\Rendering</Filter>
+      <Filter>Source Files\Rendering\2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rendering\UI.cpp">
+      <Filter>Source Files\Rendering\2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rendering\Sprite.cpp">
+      <Filter>Source Files\Rendering\2D</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

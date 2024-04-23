@@ -257,18 +257,16 @@ void UI::Shutdown()
 
 void UI::Update()
 {
-	I32 deltaX, deltaY;
-	Input::MouseDelta(deltaX, deltaY);
+	Vector2 delta = Input::MouseDelta();
 
-	if (deltaX || deltaY || Input::OnAnyButtonChanged() || Input::MouseWheelDelta())
+	if (delta.x || delta.y || Input::OnAnyButtonChanged() || Input::MouseWheelDelta())
 	{
-		I32 x, y;
-		Input::MousePosition(x, y);
+		Vector2 pos = Input::MousePosition();
 
 		Vector4 area = Renderer::RenderArea();
 
-		F32 mouseX = ((x - area.x) / area.z) * 2.0f - 1.0f;
-		F32 mouseY = ((y - area.y) / area.w) * 2.0f - 1.0f;
+		F32 mouseX = ((pos.x - area.x) / area.z) * 2.0f - 1.0f;
+		F32 mouseY = ((pos.y - area.y) / area.w) * 2.0f - 1.0f;
 
 		for (UIElement& element : elements)
 		{
@@ -286,7 +284,7 @@ void UI::Update()
 				{
 					if (element.OnHover) { element.OnHover(&element, { elementX, elementY }); }
 				}
-				else if (deltaX || deltaY)
+				else if (delta.x || delta.y)
 				{
 					if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE) && !Input::OnButtonChange(BUTTON_CODE_LEFT_MOUSE)) //TODO: Handle dragging outside of element
 					{

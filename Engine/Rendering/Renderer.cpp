@@ -640,13 +640,19 @@ bool Renderer::CreateResources()
 
 	//TODO: Default culling
 
-	Vector<ResourceRef<Pipeline>> pipelines{ 2, {} };
+	Vector<ResourceRef<Pipeline>> pipelines;
+
+	pipelines.Push(Resources::LoadPipeline("pipelines/sprite.nhpln"));
+	pipelines[0]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer });
+	pipelines[0]->AddDependancy({ DEPENDANCY_ENTITY_BUFFER });
+
+	Resources::CreateMaterialEffect("spriteEffect", pipelines);
 
 	PushConstant pushConstant{ 0, sizeof(ShadowData), Renderer::GetShadowData() };
 	pipelines[0] = Resources::LoadPipeline("pipelines/shadowMap.nhpln", 1, &pushConstant);
 	pipelines[0]->AddDependancy({ DEPENDANCY_ENTITY_BUFFER });
 
-	pipelines[1] = Resources::LoadPipeline("pipelines/pbrOpaque.nhpln");
+	pipelines.Push(Resources::LoadPipeline("pipelines/pbrOpaque.nhpln"));
 	pipelines[1]->AddDescriptor({ Renderer::globalsBuffer.vkBuffer }); //TODO: specify binding
 	pipelines[1]->AddDescriptor({ Renderer::materialBuffer.vkBuffer });
 	pipelines[1]->AddDependancy({ DEPENDANCY_ENTITY_BUFFER });
@@ -1446,7 +1452,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 	return true;
 }
 
-bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info, Renderpass* prevRenderpass)
+bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& info)
 {
 	renderpass->renderTargetCount = (U8)info.renderTargetCount;
 	renderpass->depthStencilTarget = info.depthStencilTarget;

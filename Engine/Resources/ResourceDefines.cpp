@@ -354,9 +354,9 @@ void FlyCamera::SetRotation(const Vector3& rotation)
 	camera.SetRotation(rotation);
 }
 
-Camera* FlyCamera::GetCamera()
+Camera& FlyCamera::GetCamera()
 {
-	return &camera;
+	return camera;
 }
 
 bool FlyCamera::Update()
@@ -368,11 +368,10 @@ bool FlyCamera::Update()
 		{
 			if (ignoreDraggingFrames == 0)
 			{
-				F32 x, y;
-				Input::MouseDeltaPrecise(x, y);
+				Vector2 delta = Input::MouseDelta();
 
-				targetYaw += x * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
-				targetPitch += y * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+				targetYaw += delta.x * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
+				targetPitch += delta.y * mouseSensitivity * (F32)Time::DeltaTime() * RAD_TO_DEG_F;
 			}
 			else
 			{
@@ -419,11 +418,10 @@ bool FlyCamera::Update()
 		{
 			if (ignoreDraggingFrames == 0)
 			{
-				F32 x, y;
-				Input::MouseDeltaPrecise(x, y);
+				Vector2 delta = Input::MouseDelta();
 
-				cameraMovement.x += x * camera.Zoom();
-				cameraMovement.y -= y * camera.Zoom();
+				cameraMovement.x += delta.x * camera.Zoom();
+				cameraMovement.y -= delta.y * camera.Zoom();
 
 				SetPosition(camera.Position() + cameraMovement);
 
@@ -449,21 +447,23 @@ bool FlyCamera::Update()
 		if (Input::ButtonDown(BUTTON_CODE_ALT)) { cameraMovementDelta *= 100.0f; }
 		if (Input::ButtonDown(BUTTON_CODE_CTRL)) { cameraMovementDelta *= 0.1f; }
 
-		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += Vector3Right * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) 
-		{ 
-			cameraMovement += Vector3Left * cameraMovementDelta; 
-		}
-		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += Vector3Down * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += Vector3Up * cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_E)) { cameraMovement += Vector3Forward * -cameraMovementDelta; }
-		if (Input::ButtonDown(BUTTON_CODE_Q)) { cameraMovement += Vector3Forward * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_LEFT) || Input::ButtonDown(BUTTON_CODE_A)) { cameraMovement += Vector3Left * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT) || Input::ButtonDown(BUTTON_CODE_D)) { cameraMovement += Vector3Right * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_UP) || Input::ButtonDown(BUTTON_CODE_W)) { cameraMovement += Vector3Up * cameraMovementDelta; }
+		if (Input::ButtonDown(BUTTON_CODE_DOWN) || Input::ButtonDown(BUTTON_CODE_S)) { cameraMovement += Vector3Down * cameraMovementDelta; }
 
-		if (Input::MouseWheelDelta()) { camera.SetZoom(camera.Zoom() - Input::MouseWheelDelta() * 0.5f * cameraMovementDelta); }
+		if (Input::MouseWheelDelta())
+		{
+			zoom = (I8)Math::Clamp(zoom - Input::MouseWheelDelta(), -10, 10);
+			camera.SetZoom(Math::Pow(1.1f, zoom));
+		}
 
 		targetMovement += cameraMovement;
 
-		camera.SetPosition(Math::Lerp(camera.Position(), targetMovement, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime()))); //TODO: Abstract
+		camera.SetPosition(Math::Tween(camera.Position(), targetMovement));
+
+		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_R)) { zoom = 0; camera.SetZoom(1.0f); } //TODO: Standardized and changable hotkeys
+		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_T)) { camera.SetPosition(Vector3Zero); targetMovement = 0.0f; } //TODO: Standardized and changable hotkeys
 	} break;
 	}
 

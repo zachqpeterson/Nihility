@@ -167,6 +167,7 @@
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp" />
+    <ClInclude Include="Engine\Rendering\Sprite.hpp" />
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
     <ClInclude Include="Engine\Rendering\Tilemap.hpp" />
     <ClInclude Include="Engine\Rendering\UI.hpp" />
@@ -304,6 +305,7 @@
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
     <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />
+    <ClCompile Include="Engine\Rendering\Sprite.cpp" />
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
     <ClCompile Include="Engine\Rendering\Tilemap.cpp" />
     <ClCompile Include="Engine\Rendering\UI.cpp" />
