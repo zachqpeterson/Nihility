@@ -105,6 +105,8 @@ struct NH_API Pipeline : Resource
 
 	void Destroy();
 
+	U8 DescriptorCount() const { return descriptorCount; }
+
 private:
 	bool Create(U8 pushConstantCount, PushConstant* pushConstants);
 	void Build(Renderpass* renderpass);

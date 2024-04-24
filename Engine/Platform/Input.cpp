@@ -407,7 +407,9 @@ Vector2 Input::MouseDelta() { return { deltaMousePosX, deltaMousePosY }; }
 Vector2 Input::MouseToWorld(const Camera& camera)
 {
 	Vector4 area = Renderer::RenderArea();
-	return { (mousePosX - area.x - area.z / 2.0f) * 0.1875f + camera.Eye().x, ((Settings::WindowHeight() - mousePosY) - area.y - area.w / 2.0f) * 0.1875f + camera.Eye().y };
+	F32 scale = 0.125f * (1920.0f / area.z);
+
+	return { (mousePosX - area.x - area.z * 0.5f) * scale + camera.Eye().x, ((Settings::WindowHeight() - mousePosY) - area.y - area.w * 0.5f) * scale + camera.Eye().y };
 }
 
 void Input::ConsumeInput() { receiveInput = false; }

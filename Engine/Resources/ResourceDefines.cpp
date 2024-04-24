@@ -420,8 +420,8 @@ bool FlyCamera::Update()
 			{
 				Vector2 delta = Input::MouseDelta();
 
-				cameraMovement.x += delta.x * camera.Zoom();
-				cameraMovement.y -= delta.y * camera.Zoom();
+				cameraMovement.x -= delta.x * camera.Zoom(); //TODO: Better Dragging
+				cameraMovement.y += delta.y * camera.Zoom();
 
 				SetPosition(camera.Position() + cameraMovement);
 

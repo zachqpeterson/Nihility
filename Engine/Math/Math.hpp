@@ -388,7 +388,7 @@ public:
 	template <FloatingPoint Type> static constexpr Type Remap(Type iMin, Type iMax, Type oMin, Type oMax, Type t) noexcept { return Lerp(oMin, oMax, InvLerp(iMin, iMax, t)); } //TODO: Vector for output
 	template <VectorType Type> static constexpr Type Lerp(const Type& a, const Type& b, F32 t) noexcept;
 	template <FloatingPoint Type> static constexpr Type MoveTowards(Type a, Type b, Type t) noexcept { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
-	template <FloatOrVector Type> static constexpr Type Tween(const Type& a, const Type& b) noexcept { return Lerp(a, b, 1.0f - Math::Pow(0.1f, Time::DeltaTime())); }
+	template <FloatOrVector Type> static constexpr Type Tween(const Type& a, const Type& b) noexcept { return Lerp(a, b, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime())); }
 	template <FloatOrVector Type, FloatingPoint F> static constexpr Type Tween(const Type& a, const Type& b, F power) noexcept { return Lerp(a, b, (F)1.0 - Math::Pow(power, (F)Time::DeltaTime())); }
 
 	static Quaternion2 Slerp(const Quaternion2& a, const Quaternion2& b, F32 t) noexcept;
@@ -915,6 +915,9 @@ struct NH_API Vector2
 public:
 	F32 x, y;
 };
+
+constexpr Vector2 operator*(F32 f, const Vector2& v) { return { f * v.x, f * v.y }; }
+constexpr Vector2 operator/(F32 f, const Vector2& v) { return { f / v.x, f / v.y }; }
 
 struct NH_API Vector3
 {
@@ -1521,6 +1524,9 @@ public:
 	F32 x, y, z, w;
 };
 
+constexpr Vector4 operator*(F32 f, const Vector4& v) { return { f * v.x, f * v.y, f * v.z, f * v.w }; }
+constexpr Vector4 operator/(F32 f, const Vector4& v) { return { f / v.x, f / v.y, f / v.z, f / v.w }; }
+
 struct NH_API Vector2Int
 {
 	constexpr Vector2Int() : x{ 0 }, y{ 0 } {}
@@ -1627,6 +1633,11 @@ struct NH_API Vector2Int
 public:
 	I32 x, y;
 };
+
+constexpr Vector2Int operator*(F32 f, const Vector2Int& v) { return { (I32)(f * v.x), (I32)(f * v.y) }; }
+constexpr Vector2Int operator/(F32 f, const Vector2Int& v) { return { (I32)(f / v.x), (I32)(f / v.y) }; }
+constexpr Vector2Int operator*(I32 i, const Vector2Int& v) { return { i * v.x, i * v.y }; }
+constexpr Vector2Int operator/(I32 i, const Vector2Int& v) { return { i / v.x, i / v.y }; }
 
 struct NH_API Vector3Int
 {
@@ -1768,6 +1779,11 @@ struct NH_API Vector3Int
 public:
 	I32 x, y, z;
 };
+
+constexpr Vector3Int operator*(F32 f, const Vector3Int& v) { return { (I32)(f * v.x), (I32)(f * v.y), (I32)(f * v.z) }; }
+constexpr Vector3Int operator/(F32 f, const Vector3Int& v) { return { (I32)(f / v.x), (I32)(f / v.y), (I32)(f / v.z) }; }
+constexpr Vector3Int operator*(I32 i, const Vector3Int& v) { return { i * v.x, i * v.y, i * v.z }; }
+constexpr Vector3Int operator/(I32 i, const Vector3Int& v) { return { i / v.x, i / v.y, i / v.z }; }
 
 struct NH_API Vector4Int
 {
@@ -2220,6 +2236,11 @@ struct NH_API Vector4Int
 public:
 	I32 x, y, z, w;
 };
+
+constexpr Vector4Int operator*(F32 f, const Vector4Int& v) { return { (I32)(f * v.x), (I32)(f * v.y), (I32)(f * v.z), (I32)(f * v.w) }; }
+constexpr Vector4Int operator/(F32 f, const Vector4Int& v) { return { (I32)(f / v.x), (I32)(f / v.y), (I32)(f / v.z), (I32)(f / v.w) }; }
+constexpr Vector4Int operator*(I32 i, const Vector4Int& v) { return { i * v.x, i * v.y, i * v.z, i * v.w }; }
+constexpr Vector4Int operator/(I32 i, const Vector4Int& v) { return { i / v.x, i / v.y, i / v.z, i / v.w }; }
 
 inline constexpr Vector2::operator Vector3() const { return Vector3{ x, y, 0.0f }; }
 inline constexpr Vector2::operator Vector4() const { return Vector4{ x, y, 0.0f, 0.0f }; }

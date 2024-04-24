@@ -233,19 +233,47 @@ void Memory::Zero(void* pointer, U64 size)
 
 void Memory::Copy(void* dst, const void* src, U64 size)
 {
+	if (!dst || !src) { return; }
+
 	if (src > dst)
 	{
 		U8* it0 = (U8*)dst;
 		const U8* it1 = (const U8*)src;
 
-		while (size--) { *it0++ = *it1++; }
+		//TODO: Research better approaches?
+		//Duff's Device
+		int n = (size + 7) / 8;
+		switch (size % 8)
+		{
+		case 0: do { *it0++ = *it1++;
+		case 7:      *it0++ = *it1++;
+		case 6:      *it0++ = *it1++;
+		case 5:      *it0++ = *it1++;
+		case 4:      *it0++ = *it1++;
+		case 3:      *it0++ = *it1++;
+		case 2:      *it0++ = *it1++;
+		case 1:      *it0++ = *it1++;
+				} while (--n > 0);
+		}
 	}
 	else
 	{
 		U8* it0 = (U8*)dst + size - 1;
 		const U8* it1 = (const U8*)src + size - 1;
 
-		while (size--) { *it0-- = *it1--; }
+		int n = (size + 7) / 8;
+		switch (size % 8)
+		{
+		case 0: do { *it0-- = *it1--;
+		case 7:      *it0-- = *it1--;
+		case 6:      *it0-- = *it1--;
+		case 5:      *it0-- = *it1--;
+		case 4:      *it0-- = *it1--;
+		case 3:      *it0-- = *it1--;
+		case 2:      *it0-- = *it1--;
+		case 1:      *it0-- = *it1--;
+				} while (--n > 0);
+		}
 	}
 }
 

@@ -431,16 +431,6 @@ void Scene::Update()
 {
 	static F32 lightVal = 0.0f;
 
-	for (ComponentPool* pool : componentPools)
-	{
-		pool->Update(this);
-	}
-
-	for (Entity& entity : entities)
-	{
-		entityWrites.Push(CreateWrite(entity.entityID * sizeof(Matrix4), 0, sizeof(Matrix4), &entity.transform.WorldMatrix()));
-	}
-
 	ShadowData* shadowData = Renderer::GetShadowData();
 	SkyboxData* skyboxData = Renderer::GetSkyboxData();
 	GlobalData* globalData = Renderer::GetGlobalData();
@@ -477,6 +467,16 @@ void Scene::Update()
 	region.srcOffset = 0;
 
 	Renderer::FillBuffer(Renderer::globalsBuffer, sizeof(GlobalData), globalData, 1, &region);
+
+	for (ComponentPool* pool : componentPools)
+	{
+		pool->Update(this);
+	}
+
+	for (Entity& entity : entities)
+	{
+		entityWrites.Push(CreateWrite(entity.entityID * sizeof(Matrix4), 0, sizeof(Matrix4), &entity.transform.WorldMatrix()));
+	}
 
 	if (entityWrites.Size())
 	{
