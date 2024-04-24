@@ -69,16 +69,16 @@ void Update()
 		Entity* entity = scene->AddEntity();
 		entity->AddComponent<SpriteComponent>(Vector4One);
 		RigidBody2D* rb = entity->AddComponent<RigidBody2D>();
-
+	
 		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-
+	
 		rb->SetPosition(pos);
 		rb->SetCollider(collider);
 		rb->SetSimulated(false);
 	}
 
 	if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE)) { tilemap->ChangeTile(tilemap->MouseToTilemap(scene->GetCamera()), id0); }
-	//if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE)) { tilemap->ChangeTile(tilemap->WorldToTilemap(worldPos), id1); }
+	//if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE)) { tilemap->ChangeTile(tilemap->MouseToTilemap(scene->GetCamera()), id1); }
 	if (Input::ButtonDown(BUTTON_CODE_MIDDLE_MOUSE)) { tilemap->ChangeTile(tilemap->MouseToTilemap(scene->GetCamera()), U8_MAX); }
 }
 

@@ -34,8 +34,8 @@ void TilemapComponent::Update(Scene* scene)
 {
 	Vector4 area = Renderer::RenderArea();
 
-	F32 scale = 0.8f * (area.z / 1920);
-	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x * 0.1f, area.y * 0.1f };
+	F32 scale = 8.0f * (area.z / 1920);
+	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x , area.y };
 	data.tileSize = { 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) };
 
 	staging.allocationOffset = 0;
@@ -45,8 +45,8 @@ void TilemapComponent::Load(Scene* scene)
 {
 	Vector4 area = Renderer::RenderArea();
 
-	F32 scale = 0.8f * (area.z / 1920);
-	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x * 0.1f, area.y * 0.1f };
+	F32 scale = 8.0f * (area.z / 1920);
+	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x, area.y };
 	data.tileSize = { 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) };
 	data.width = width;
 	data.height = height;
@@ -71,7 +71,7 @@ void TilemapComponent::Cleanup(Scene* scene)
 Vector2Int TilemapComponent::MouseToTilemap(const Camera& camera) const
 {
 	Vector4 area = Renderer::RenderArea();
-	Vector2 cameraPos = camera.Eye().xy() * 5.0f;
+	Vector2 cameraPos = camera.Eye().xy() * 5.333333333f;
 	cameraPos.y = -cameraPos.y;
 
 	return Vector2Int{ (((Input::MousePosition() - area.xy()) + cameraPos) / tileSize) * (1920.0f / area.z)};
