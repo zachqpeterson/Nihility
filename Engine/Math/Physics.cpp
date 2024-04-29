@@ -7,6 +7,8 @@ Scene* Physics::scene;
 Vector<RigidBody2D>* Physics::bodies;
 Vector<Manifold2D> Physics::manifolds;
 Vector3 Physics::gravity = Vector3Down * 9.8f;
+Vector2 Physics::wind = Vector2Zero;
+F32 Physics::fluidDensity = 1.3; //density of air 1.293 kg m-3
 
 bool Physics::Initialize()
 {
@@ -28,27 +30,55 @@ void Physics::SetScene(Scene* scene_)
 	bodies = scene->GetComponentPool<RigidBody2D>();
 }
 
-void Physics::Update(F64 step)
+Collider2D Physics::CreateAABBCollider(F32 halfWidth, F32 halfHeight)
 {
-	manifolds.Clear();
+	return { COLLIDER_TYPE_AABB, halfWidth, halfHeight };
+}
 
+Collider2D Physics::CreateCircleCollider(F32 radius)
+{
+	return { COLLIDER_TYPE_CIRCLE, radius };
+}
+
+void Physics::IntegrateForces(F32 step)
+{
 	for (RigidBody2D& rb : *bodies)
 	{
 		if (rb.simulated)
 		{
-			rb.acceleration += gravity.xy(); //TODO: drag
+			rb.acceleration += gravity.xy();
 
-			rb.velocity += rb.acceleration * rb.invMass * (F32)step;
-			rb.position += rb.velocity * (F32)step;
-
-			rb.acceleration = 0.0f;
+			rb.velocity += rb.acceleration * rb.invMass * step * 0.5f;
+			rb.angularMomentum += rb.torque * rb.invInertia * step * 0.5f;
+			//rb.velocity -= 0.5f * fluidDensity * (rb.velocity + wind) * rb.dragCoefficient * step;
 		}
 	}
+}
+
+void Physics::IntegrateVelocity(F32 step)
+{
+	for (RigidBody2D& rb : *bodies)
+	{
+		if (rb.simulated)
+		{
+			rb.position += rb.velocity * step;
+			rb.rotation += rb.angularMomentum * step;
+		}
+	}
+
+	IntegrateForces(step);
+}
+
+void Physics::Update(F32 step)
+{
+	manifolds.Clear();
 
 	//TODO: Broadphase Culling
 
 	for (RigidBody2D* it0 = bodies->begin(); it0 != bodies->end(); ++it0)
 	{
+		if (it0->simulated) { it0->acceleration = Vector2Zero; it0->torque = 0.0f; }
+
 		for (RigidBody2D* it1 = it0 + 1; it1 != bodies->end(); ++it1)
 		{
 			Manifold2D manifold{};
@@ -76,35 +106,26 @@ void Physics::Update(F64 step)
 		}
 	}
 
+	IntegrateForces(step);
+
 	for (Manifold2D& manifold : manifolds)
 	{
-		ResolveCollision(manifold);
-		CorrectPosition(manifold);
+		ResolveCollision(manifold, step);
 	}
 
+	IntegrateVelocity(step);
 
-	//F64 a = 1.4;
-	//F64 b = 0.7;
-	//F64 c = 2.1;
-	//F32 v = a * b * c;
-	//Vector3 i0 = v * Vector3{ b * b + c * c, a * a + c * c, a * a + b * b } / 12.0f;
-	//
-	//RigidBody rb;
-	//rb.invI0 = 1.0 / i0;
-	//
-	//Matrix3 r = rb.rotation.ToMatrix3();
-	//
-	//Vector3 omega = r * rb.invI0 * r.Transpose() * rb.angularMomentum;
-	//
-	//rb.position += rb.velocity * (F32)Time::DeltaTime();
-	//rb.rotation = Quaternion3{ omega * (F32)(step / 2.0) } * rb.rotation;
+	for (Manifold2D& manifold : manifolds)
+	{
+		CorrectPosition(manifold);
+	}
 }
 
 bool Physics::DetectCollision(Manifold2D& manifold)
 {
 	const RigidBody2D& rb0 = *manifold.rb0;
 	const RigidBody2D& rb1 = *manifold.rb1;
-	
+
 	if ((rb0.layers & rb1.layers) == 0 || !(rb0.simulated || rb1.simulated)) { return false; }
 
 	Vector2 n = rb1.position - rb0.position;
@@ -126,18 +147,44 @@ bool Physics::DetectCollision(Manifold2D& manifold)
 
 				if (overlapY > 0.0f)
 				{
+					manifold.contactCount = 1;
+
 					if (overlapX < overlapY)
 					{
-						if (n.x < 0.0f) { manifold.normal = Vector2Left; }
-						else { manifold.normal = Vector2Right; }
+						if (n.x < 0.0f)
+						{
+							manifold.normal = Vector2Left;
+							manifold.contacts[0] = Vector2{ aabb0.halfWidth, 0.0f };
+						}
+						else
+						{
+							manifold.normal = Vector2Right;
+							manifold.contacts[0] = Vector2{ -aabb0.halfWidth, 0.0f };
+						}
+
 						manifold.penetration = overlapX;
 					}
 					else
 					{
-						if (n.y < 0.0f) { manifold.normal = Vector2Up; }
-						else { manifold.normal = Vector2Down; }
+						if (n.y < 0.0f)
+						{
+							manifold.normal = Vector2Down;
+							manifold.contacts[0] = Vector2{ 0.0f, aabb1.halfHeight };
+						}
+						else
+						{
+							manifold.normal = Vector2Up;
+							manifold.contacts[0] = Vector2{ 0.0f, -aabb1.halfHeight };
+						}
+
 						manifold.penetration = overlapY;
 					}
+
+					Vector2 ra = manifold.contacts[0] - rb0.position;
+					Vector2 rb = manifold.contacts[0] - rb1.position;
+					manifold.relativeVelocity = rb1.velocity + Math::Cross(rb1.angularMomentum, rb) - rb0.velocity - Math::Cross(rb0.angularMomentum, ra);
+
+					if (manifold.relativeVelocity.Dot(manifold.normal) > 0.0f && manifold.penetration < 0.01f) { return false; }
 
 					return true;
 				}
@@ -233,24 +280,40 @@ bool Physics::DetectCollision(Manifold2D& manifold)
 			return true;
 		} break;
 		case COLLIDER_TYPE_CIRCLE: {
-			F32 r = rb0.collider.circle.radius + rb1.collider.circle.radius;
-			r *= r;
+			Collider2D::Circle c0 = rb0.collider.circle;
+			Collider2D::Circle c1 = rb1.collider.circle;
 
-			F32 lengthSqr = (rb0.position + rb1.position).SqrMagnitude();
+			Vector2 normal = rb1.position - rb0.position;
 
-			if (lengthSqr > r) { return false; }
+			F32 distSqr = normal.SqrMagnitude();
 
-			F32 d = Math::Sqrt(lengthSqr);
+			F32 radius = c0.radius + c1.radius;
 
-			if (!Math::IsZero(d))
+			if (distSqr > radius * radius) { return false; }
+
+			F32 dist = Math::Sqrt(distSqr);
+
+			if (Math::IsZero(dist))
 			{
-				manifold.penetration = r - d;
-				manifold.normal = n / d;
-				return true;
+				manifold.penetration = c0.radius;
+				manifold.normal = Vector2Left;
+				manifold.contacts[0] = rb0.position;
+				manifold.contactCount = 1;
+			}
+			else
+			{
+				manifold.penetration = radius - dist;
+				manifold.normal = normal / dist;
+				manifold.contacts[0] = manifold.normal * c0.radius + rb0.position;
+				manifold.contactCount = 1;
 			}
 
-			manifold.penetration = rb0.collider.circle.radius;
-			manifold.normal = Vector2Right;
+			Vector2 ra = manifold.contacts[0] - rb0.position;
+			Vector2 rb = manifold.contacts[0] - rb1.position;
+			manifold.relativeVelocity = rb1.velocity + Math::Cross(rb1.angularMomentum, rb) - rb0.velocity - Math::Cross(rb0.angularMomentum, ra);
+
+			if (manifold.relativeVelocity.Dot(manifold.normal) > 0.0f && manifold.penetration < 0.01f) { return false; }
+
 			return true;
 		} break;
 		}
@@ -260,30 +323,59 @@ bool Physics::DetectCollision(Manifold2D& manifold)
 	return false;
 }
 
-void Physics::ResolveCollision(Manifold2D& manifold)
+void Physics::ResolveCollision(Manifold2D& manifold, F32 step)
 {
-	// Calculate relative velocity
-	Vector2 rv = manifold.rb0->velocity - manifold.rb1->velocity;
+	RigidBody2D& rb0 = *manifold.rb0;
+	RigidBody2D& rb1 = *manifold.rb1;
 
-	// Calculate relative velocity in terms of the normal direction
-	F32 velAlongNormal = rv.Dot(manifold.normal);
+	F32 restitution = Math::Min(rb0.restitution, rb1.restitution);
+	F32 dynamicFriction = Math::Sqrt(rb0.dynamicFriction * rb1.dynamicFriction);
+	F32 staticFriction = Math::Sqrt(rb0.staticFriction * rb1.staticFriction);
 
-	// Do not resolve if velocities are separating
-	if (velAlongNormal > 0.0f) { return; }
+	for (U8 i = 0; i < manifold.contactCount; ++i)
+	{
+		Vector2 ra = manifold.contacts[i] - rb0.position;
+		Vector2 rb = manifold.contacts[i] - rb1.position;
 
-	// Calculate restitution
-	F32 e = Math::Min(manifold.rb0->restitution, manifold.rb1->restitution);
+		if (manifold.relativeVelocity.SqrMagnitude() < (gravity * step).SqrMagnitude() + Traits<F32>::Epsilon) { restitution = 0.0f; }
 
-	// Calculate impulse scalar
-	F32 j = -(1.0f + e) * velAlongNormal;
+		// Relative velocity along the normal
+		F32 contactVel = manifold.relativeVelocity.Dot(manifold.normal);
 
-	j /= manifold.rb0->invMass + manifold.rb1->invMass;
+		F32 raCrossN = ra.Cross(manifold.normal);
+		F32 rbCrossN = rb.Cross(manifold.normal);
+		F32 invMassSum = rb0.invMass + rb1.invMass + raCrossN * raCrossN * rb0.invInertia + rbCrossN * rbCrossN * rb1.invInertia;
 
-	// Apply impulse
-	Vector2 impulse = manifold.normal * j;
+		// Calculate impulse scalar
+		F32 j = -(1.0f + restitution) * contactVel;
+		j /= invMassSum;
+		j /= (F32)manifold.contactCount;
 
-	manifold.rb0->velocity += impulse * manifold.rb0->invMass;
-	manifold.rb1->velocity -= impulse * manifold.rb1->invMass;
+		// Apply impulse
+		Vector2 impulse = manifold.normal * j;
+		rb0.ApplyImpulse(-impulse, ra);
+		rb1.ApplyImpulse(impulse, rb);
+
+		Vector2 t = manifold.relativeVelocity - (manifold.normal * manifold.relativeVelocity.Dot(manifold.normal));
+		t.Normalize();
+
+		// j tangent magnitude
+		F32 jt = -manifold.relativeVelocity.Dot(t);
+		jt /= invMassSum;
+		jt /= (F32)manifold.contactCount;
+
+		// Don't apply tiny friction impulses
+		if (Math::IsZero(jt)) { break; }
+
+		// Coulumb's law
+		Vector2 tangentImpulse;
+		if (Math::Abs(jt) < j * staticFriction) { tangentImpulse = t * jt; }
+		else { tangentImpulse = t * -j * dynamicFriction; }
+
+		// Apply friction impulse
+		rb0.ApplyImpulse(-tangentImpulse, ra);
+		rb1.ApplyImpulse(tangentImpulse, rb);
+	}
 }
 
 void Physics::CorrectPosition(Manifold2D& manifold)
@@ -293,6 +385,6 @@ void Physics::CorrectPosition(Manifold2D& manifold)
 
 	Vector2 correction = manifold.normal * (Math::Max(manifold.penetration - slop, 0.0f) / (manifold.rb0->invMass + manifold.rb1->invMass)) * percent;
 
-	manifold.rb0->position += correction * manifold.rb0->invMass;
-	manifold.rb1->position -= correction * manifold.rb1->invMass;
+	manifold.rb0->position -= correction * manifold.rb0->invMass;
+	manifold.rb1->position += correction * manifold.rb1->invMass;
 }

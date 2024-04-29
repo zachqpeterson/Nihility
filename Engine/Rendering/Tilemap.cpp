@@ -26,7 +26,7 @@ TilemapComponent::TilemapComponent(U16 width, U16 height, Vector2 tileSize) : wi
 	copy.srcOffset = 0;
 
 	staging.allocationOffset += width * height * sizeof(U8);
-
+	
 	Renderer::FillBuffer(tiles, staging, 1, &copy);
 }
 
@@ -34,9 +34,14 @@ void TilemapComponent::Update(Scene* scene)
 {
 	Vector4 area = Renderer::RenderArea();
 
-	F32 scale = 8.0f * (area.z / 1920);
-	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x , area.y };
-	data.tileSize = { 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) };
+	F32 ratio = 1920.0f / area.z;
+	
+	data.tileSize = Vector2{ 1.0f / tileSize.x * ratio, 1.0f / tileSize.y * ratio } * scene->GetCamera().Zoom();
+
+	F32 offsetX = (tileSize.x / ratio) * -scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom();
+	F32 offsetY = (tileSize.y / ratio) * scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom() * (1080.0f / 1920.0f);
+	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
+	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x , area.y } + Vector2{ offsetX, offsetY };
 
 	staging.allocationOffset = 0;
 }
@@ -45,9 +50,9 @@ void TilemapComponent::Load(Scene* scene)
 {
 	Vector4 area = Renderer::RenderArea();
 
-	F32 scale = 8.0f * (area.z / 1920);
+	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
 	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x, area.y };
-	data.tileSize = { 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) };
+	data.tileSize = Vector2{ 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) } * scene->GetCamera().Zoom();
 	data.width = width;
 	data.height = height;
 
@@ -71,10 +76,10 @@ void TilemapComponent::Cleanup(Scene* scene)
 Vector2Int TilemapComponent::MouseToTilemap(const Camera& camera) const
 {
 	Vector4 area = Renderer::RenderArea();
-	Vector2 cameraPos = camera.Eye().xy() * 5.333333333f;
+	Vector2 cameraPos = camera.Eye().xy() * 5.33333333333f * camera.Zoom();
 	cameraPos.y = -cameraPos.y;
 
-	return Vector2Int{ (((Input::MousePosition() - area.xy()) + cameraPos) / tileSize) * (1920.0f / area.z)};
+	return Vector2Int{ (((Input::MousePosition() - area.xy()) * camera.Zoom() + cameraPos) / tileSize) * (1920.0f / area.z)};
 }
 
 U8 TilemapComponent::AddTile(const ResourceRef<Texture>& texture)

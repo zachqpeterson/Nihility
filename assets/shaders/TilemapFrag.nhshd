@@ -42,7 +42,7 @@ void main()
     if(position.x < 0 || position.y < 0 || tilePos.x >= width || tilePos.y >= height) { discard; }
 
 #if DEBUG == 1
-    if(texcoord.x < 0.01 || texcoord.y < 0.01 || texcoord.x > 0.99 || texcoord.y > 0.99) { fragColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
+    if(texcoord.x < 0.02 || texcoord.y < 0.02 || texcoord.x > 0.98 || texcoord.y > 0.98) { fragColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
 #endif
 
     uint8_t tileType = tiles[index];

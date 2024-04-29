@@ -24,9 +24,9 @@ void Scene::Create(CameraType cameraType)
 	} break;
 	case CAMERA_TYPE_ORTHOGRAPHIC: {
 #ifdef NH_DEBUG
-		flyCamera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f);
+		flyCamera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 0.0f);
 #else
-		camera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 1.0f);
+		camera.SetOrthograpic(-100.0f, 100.0f, 240.0f, 135.0f, 0.0f);
 #endif
 	} break;
 	}

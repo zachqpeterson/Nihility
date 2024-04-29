@@ -149,7 +149,7 @@ void Camera::SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 
 	this->farPlane = farPlane;
 	this->viewportWidth = viewportWidth;
 	this->viewportHeight = viewportHeight;
-	this->zoom = zoom;
+	SetZoom(zoom);
 
 	type = CAMERA_TYPE_ORTHOGRAPHIC;
 	updateProjection = true;
@@ -204,12 +204,22 @@ const Vector3& Camera::Position() const
 	return position;
 }
 
-const F32& Camera::Zoom()
+const F32& Camera::ZoomVal() const
+{
+	return zoomVal;
+}
+
+const F32& Camera::Zoom() const
 {
 	return zoom;
 }
 
-const F32& Camera::FOV()
+const F32& Camera::InvZoom() const
+{
+	return invZoom;
+}
+
+const F32& Camera::FOV() const
 {
 	return fov;
 }
@@ -267,7 +277,9 @@ void Camera::SetRotation(const Vector3& rotation)
 
 void Camera::SetZoom(F32 zoom)
 {
-	this->zoom = zoom;
+	zoomVal = zoom;
+	this->zoom = Math::Pow(1.1f, zoom);
+	invZoom = Math::Pow(1.1f, -zoom);
 	updateProjection = true;
 }
 
@@ -416,29 +428,23 @@ bool FlyCamera::Update()
 
 		if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
 		{
-			if (ignoreDraggingFrames == 0)
-			{
-				Vector2 delta = Input::MouseDelta();
+			//TODO: dragging off screen to the left or top moves the camera super far
+			Vector2 delta = Input::MouseDelta();
+			Vector4 area = Renderer::RenderArea();
 
-				cameraMovement.x -= delta.x * camera.Zoom(); //TODO: Better Dragging
-				cameraMovement.y += delta.y * camera.Zoom();
+			cameraMovement.x -= delta.x * 0.125f * (1920 / area.z) * camera.Zoom();
+			cameraMovement.y += delta.y * 0.125f * (1080 / area.w) * camera.Zoom();
 
-				SetPosition(camera.Position() + cameraMovement);
+			SetPosition(camera.Position() + cameraMovement);
 
-				targetMovement = camera.Position();
-				cameraMovement = Vector3Zero;
-			}
-			else
-			{
-				--ignoreDraggingFrames;
-			}
+			targetMovement = camera.Position();
+			cameraMovement = Vector3Zero;
 
 			mouseDragging = true;
 		}
 		else
 		{
 			mouseDragging = false;
-			ignoreDraggingFrames = 3;
 		}
 
 		F32 cameraMovementDelta = movementDelta;
@@ -454,15 +460,15 @@ bool FlyCamera::Update()
 
 		if (Input::MouseWheelDelta())
 		{
-			zoom = (I8)Math::Clamp(zoom - Input::MouseWheelDelta(), -10, 10);
-			camera.SetZoom(Math::Pow(1.1f, zoom));
+			zoom -= Input::MouseWheelDelta();
+			camera.SetZoom(zoom);
 		}
 
 		targetMovement += cameraMovement;
 
 		camera.SetPosition(Math::Tween(camera.Position(), targetMovement));
 
-		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_R)) { zoom = 0; camera.SetZoom(1.0f); } //TODO: Standardized and changable hotkeys
+		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_R)) { zoom = 0; camera.SetZoom(0.0f); } //TODO: Standardized and changable hotkeys
 		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_T)) { camera.SetPosition(Vector3Zero); targetMovement = 0.0f; } //TODO: Standardized and changable hotkeys
 	} break;
 	}

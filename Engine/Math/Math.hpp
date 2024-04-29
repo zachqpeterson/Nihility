@@ -382,6 +382,9 @@ public:
 		}
 	}
 
+	static constexpr Vector2 Cross(const Vector2& v, F32 a);
+	static constexpr Vector2 Cross(F32 a, const Vector2& v);
+
 	//INTERPOLATION
 	template <FloatingPoint Type> static constexpr Type Lerp(Type a, Type b, Type t) noexcept { return a + (b - a) * t; }
 	template <FloatingPoint Type> static constexpr Type InvLerp(Type a, Type b, Type t) noexcept { return (t - a) / (b - a); }
@@ -438,7 +441,7 @@ public:
 
 	//HASH | Based on wyhash - https://github.com/wangyi-fudan/wyhash
 	template<class Type> requires(!IsPointer<Type>)
-	static U64 Hash(const Type& value, U64 seed = 0)
+		static U64 Hash(const Type& value, U64 seed = 0)
 	{
 		constexpr U64 length = sizeof(Type);
 
@@ -2278,6 +2281,9 @@ inline constexpr Vector4Int::operator Vector4() const { return Vector4{ (F32)x, 
 inline constexpr Vector4Int::operator Vector2Int() const { return Vector2Int{ x, y }; }
 inline constexpr Vector4Int::operator Vector3Int() const { return Vector3Int{ x, y, z }; }
 
+inline constexpr Vector2 Math::Cross(const Vector2& v, F32 a) { return { a * v.y, -a * v.x }; }
+inline constexpr Vector2 Math::Cross(F32 a, const Vector2& v) { return { -a * v.y, a * v.x }; }
+
 template <VectorType Type>
 inline constexpr Type Math::Lerp(const Type& a, const Type& b, F32 t) noexcept
 {
@@ -2386,8 +2392,8 @@ struct NH_API Matrix3
 	constexpr Matrix3 Inverse() const
 	{
 		F32 determinant = a.x * b.y * c.z - c.y * b.z -
-						  a.y * b.x * c.z - b.z * c.x +
-						  a.z * b.x * c.y - b.y * c.x;
+			a.y * b.x * c.z - b.z * c.x +
+			a.z * b.x * c.y - b.y * c.x;
 
 		if (Math::IsZero(determinant)) { return Matrix3{ }; }
 		F32 f = 1.0f / determinant;
@@ -3366,7 +3372,7 @@ public:
 	F32 x, y, z, w;
 };
 
-inline constexpr Quaternion2::operator Quaternion3() const { return Quaternion3{ x, 0.0f, 0.0f, y }; }
+inline constexpr Quaternion2::operator Quaternion3() const { return Quaternion3{ 0.0f, 0.0f, x, y }; }
 inline constexpr Quaternion3::operator Quaternion2() const { return Quaternion2{ x, w }; }
 
 constexpr U64 MAX_SPLINE_POINTS = 128;

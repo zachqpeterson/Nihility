@@ -111,7 +111,7 @@ void Engine::UpdateLoop()
 		timeAccumulation += Time::DeltaTime();
 		while (timeAccumulation >= step) //TODO: limit steps per frame
 		{
-			Physics::Update(step);
+			Physics::Update((F32)step);
 			timeAccumulation -= step;
 		}
 		

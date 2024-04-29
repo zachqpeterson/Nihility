@@ -879,8 +879,10 @@ struct NH_API Camera
 	const Matrix4& ViewProjection() const;
 	Vector4 Eye() const;
 	const Vector3& Position() const;
-	const F32& Zoom();
-	const F32& FOV();
+	const F32& ZoomVal() const;
+	const F32& Zoom() const;
+	const F32& InvZoom() const;
+	const F32& FOV() const;
 	Quaternion3 Rotation() const;
 	Vector3 Euler() const;
 	const Vector3& Right() const;
@@ -917,7 +919,9 @@ private:
 	F32			fov{ 0.0f };
 	F32			aspectRatio{ 0.0f };
 
-	F32			zoom{ 0.0f };
+	F32			zoomVal{ 1.0f };
+	F32			zoom{ 1.0f };
+	F32			invZoom{ 1.0f };
 	F32			viewportWidth{ 0.0f };
 	F32			viewportHeight{ 0.0f };
 
@@ -930,7 +934,7 @@ private:
 
 struct NH_API FlyCamera
 {
-	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom);
+	void SetOrthograpic(F32 nearPlane, F32 farPlane, F32 viewportWidth, F32 viewportHeight, F32 zoom = 0.0f);
 	void SetPerspective(F32 nearPlane, F32 farPlane, F32 fov, F32 aspectRatio);
 
 	const Matrix4& ViewProjection() const;
@@ -948,7 +952,7 @@ private:
 	F32		mouseSensitivity{ 0.75f };
 	F32		movementDelta{ 0.1f };
 	U32		ignoreDraggingFrames{ 3 };
-	I8		zoom{ 0 };
+	F32		zoom{ 0.0f };
 
 	Vector3	targetMovement{ Vector3Zero };
 	F32		targetYaw{ 0.0f };
