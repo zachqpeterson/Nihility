@@ -30,10 +30,10 @@ bool SpriteComponent::Initialize()
 	};
 
 	Vector2 texcoords[4]{
-		{ 0.0f, 1.0f },
-		{ 1.0f, 1.0f },
 		{ 0.0f, 0.0f },
-		{ 1.0f, 0.0f }
+		{ 1.0f, 0.0f },
+		{ 0.0f, 1.0f },
+		{ 1.0f, 1.0f }
 	};
 
 	mesh = Resources::CreateMesh("ui_mesh");

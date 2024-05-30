@@ -1,7 +1,5 @@
 #include "Scene.hpp"
-#include "Scene.hpp"
 
-#include "Entity.hpp"
 #include "Resources.hpp"
 #include "Settings.hpp"
 #include "Mesh.hpp"

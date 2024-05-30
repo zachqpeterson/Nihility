@@ -129,21 +129,21 @@ public:
 	/// </summary>
 	/// <param name="index:">The index to put value</param>
 	/// <param name="value:">The value to copy</param>
-	void Insert(U64 index, const T& value);
+	template<Unsigned Type> void Insert(Type index, const T& value);
 
 	/// <summary>
 	/// Inserts value into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to put value</param>
 	/// <param name="value:">The value to move</param>
-	void Insert(U64 index, T&& value) noexcept;
+	template<Unsigned Type> void Insert(Type index, T&& value) noexcept;
 
 	/// <summary>
 	/// Copies other and inserts it into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to copy other into</param>
 	/// <param name="other:">The Vector to copy</param>
-	void Insert(U64 index, const Vector& other);
+	template<Unsigned Type> void Insert(Type index, const Vector& other);
 
 	/// <summary>
 	/// Moves other and inserts it into index, moves values at and past index over, reallocates array if it's too small
@@ -151,7 +151,7 @@ public:
 	/// </summary>
 	/// <param name="index:">The index to move other into</param>
 	/// <param name="other:">The Vector to move</param>
-	void Insert(U64 index, Vector&& other) noexcept;
+	template<Unsigned Type> void Insert(Type index, Vector&& other) noexcept;
 
 	/// <summary>
 	/// Moves values past index to index
@@ -253,47 +253,65 @@ public:
 	/// Searches array, finds all values that satisfy predicate, fill other with those values
 	/// WARNING: any previous data in other will be lost
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
 	/// <param name="other:">A Vector to fill with values</param>
-	template<typename Predicate> void SearchFor(Predicate predicate, Vector& other);
+	template<FunctionPtr Predicate> void SearchFor(Predicate predicate, Vector& other);
 
 	/// <summary>
 	/// Searches array, finds indices of all values that satisfy predicate, fill other with those indices
 	/// WARNING: any previous data in other will be lost
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
 	/// <param name="other:">A Vector to fill with indices</param>
-	template<typename Predicate> void SearchForIndices(Predicate predicate, Vector<U64>& other);
+	template<FunctionPtr Predicate> void SearchForIndices(Predicate predicate, Vector<U64>& other);
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
 	/// <returns>The count of values that satisfy predicate</returns>
-	template<typename Predicate> U64 SearchCount(Predicate predicate);
+	template<FunctionPtr Predicate> U64 SearchCount(Predicate predicate);
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate, removes them from array
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
 	/// <returns>The count of values that satisfy predicate</returns>
-	template<typename Predicate> U64 RemoveAll(Predicate predicate);
+	template<FunctionPtr Predicate> U64 RemoveAll(Predicate predicate);
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate, removes them from array and puts them into other
 	/// WARNING: any previous data in other will be lost
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
 	/// <param name="other:">A Vector to fill with values</param>
-	template<typename Predicate> void RemoveAll(Predicate predicate, Vector& other);
+	template<FunctionPtr Predicate> void RemoveAll(Predicate predicate, Vector& other);
 
 	/// <summary>
 	/// Finds the first value that satisfies the predicate, return true if one exists
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T& value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
 	/// <param name="value:">A reference to return the found value</param>
 	/// <returns>true if a value exists, false otherwise</returns>
-	template<typename Predicate> T* Find(Predicate predicate);
+	template<FunctionPtr Predicate> T* Find(Predicate predicate);
+
+
+
+	/// <summary>
+	/// Inserts a value based on a predicate
+	/// </summary>
+	/// <param name="predicate:">A function to compare values: bool pred(const T&amp; a, const T&amp; b)</param>
+	/// <param name="value:">The value to insert</param>
+	/// <returns>The index the value was inserted at</returns>
+	template<FunctionPtr Predicate> U64 SortedInsert(Predicate predicate, const T& value);
+
+	/// <summary>
+	/// Inserts a value based on a predicate
+	/// </summary>
+	/// <param name="predicate:">A function to compare values: bool pred(const T&amp; a, const T&amp; b)</param>
+	/// <param name="value:">The value to insert</param>
+	/// <returns>The index the value was inserted at</returns>
+	template<FunctionPtr Predicate> U64 SortedInsert(Predicate predicate, T&& value) noexcept;
 
 
 
@@ -346,13 +364,17 @@ public:
 
 
 
-	/// <summary></summary>
-	/// <returns>size</returns>
+	/// <returns>The current amount of elements</returns>
 	U64 Size() const { return size; }
 
-	/// <summary></summary>
-	/// <returns>capacity</returns>
+	/// <returns>The current maximum allowed elements</returns>
 	U64 Capacity() const { return capacity; }
+
+	/// <returns>Whether or not this is empty</returns>
+	bool Empty() const { return size == 0; }
+
+	/// <returns>Whether or not this is full</returns>
+	bool Full() const { return size == capacity; }
 
 	/// <summary></summary>
 	/// <returns>array (const)</returns>
@@ -543,7 +565,9 @@ template<typename T> inline void Vector<T>::Pop(T&& value) noexcept
 	if (size) { value = Move(array[--size]); }
 }
 
-template<typename T> inline void Vector<T>::Insert(U64 index, const T& value)
+template<typename T>
+template<Unsigned Type>
+inline void Vector<T>::Insert(Type index, const T& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
@@ -552,7 +576,9 @@ template<typename T> inline void Vector<T>::Insert(U64 index, const T& value)
 	++size;
 }
 
-template<typename T> inline void Vector<T>::Insert(U64 index, T&& value) noexcept
+template<typename T>
+template<Unsigned Type>
+inline void Vector<T>::Insert(Type index, T&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
@@ -561,7 +587,9 @@ template<typename T> inline void Vector<T>::Insert(U64 index, T&& value) noexcep
 	++size;
 }
 
-template<typename T> inline void Vector<T>::Insert(U64 index, const Vector<T>& other)
+template<typename T>
+template<Unsigned Type>
+inline void Vector<T>::Insert(Type index, const Vector<T>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
@@ -571,7 +599,9 @@ template<typename T> inline void Vector<T>::Insert(U64 index, const Vector<T>& o
 	size += other.size;
 }
 
-template<typename T> inline void Vector<T>::Insert(U64 index, Vector<T>&& other) noexcept
+template<typename T>
+template<Unsigned Type>
+inline void Vector<T>::Insert(Type index, Vector<T>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
@@ -691,7 +721,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator+=(Vector<T>&& other) 
 }
 
 template<typename T> 
-template<typename Predicate> 
+template<FunctionPtr Predicate>
 inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
 {
 	other.Reserve(size);
@@ -704,7 +734,7 @@ inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
 }
 
 template<typename T> 
-template<typename Predicate> 
+template<FunctionPtr Predicate>
 inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
 {
 	other.Reserve(size);
@@ -718,20 +748,20 @@ inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
 }
 
 template<typename T> 
-template<typename Predicate> 
+template<FunctionPtr Predicate>
 inline U64 Vector<T>::SearchCount(Predicate predicate)
 {
 	U64 i = 0;
 	for (T* t = array, *end = array + size; t != end; ++t)
 	{
-		if (predicate(*t)) { ++i; } //TODO: test i += predicate(*t);
+		if (predicate(*t)) { ++i; }
 	}
 
 	return i;
 }
 
 template<typename T> 
-template<typename Predicate> 
+template<FunctionPtr Predicate>
 inline U64 Vector<T>::RemoveAll(Predicate predicate)
 {
 	T* last = array + size;
@@ -752,7 +782,7 @@ inline U64 Vector<T>::RemoveAll(Predicate predicate)
 }
 
 template<typename T> 
-template<typename Predicate> 
+template<FunctionPtr Predicate>
 inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 {
 	T* last = array + size;
@@ -774,7 +804,7 @@ inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 }
 
 template<typename T>
-template<typename Predicate> 
+template<FunctionPtr Predicate>
 inline T* Vector<T>::Find(Predicate predicate)
 {
 	for (T* t = array, *end = array + size; t != end; ++t)
@@ -783,6 +813,58 @@ inline T* Vector<T>::Find(Predicate predicate)
 	}
 
 	return nullptr;
+}
+
+template<typename T>
+template<FunctionPtr Predicate>
+U64 Vector<T>::SortedInsert(Predicate predicate, const T& value)
+{
+	U64 i = 0;
+	for (T* t = array, *end = array + size; t != end; ++t, ++i)
+	{
+		if (predicate(value, *t))
+		{
+			if (size == capacity) { Reserve(capacity + 1); }
+
+			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(T));
+			array[i] = value;
+			++size;
+
+			return i;
+		}
+	}
+
+	U64 index = size;
+
+	Push(value);
+
+	return index;
+}
+
+template<typename T>
+template<FunctionPtr Predicate>
+U64 Vector<T>::SortedInsert(Predicate predicate, T&& value) noexcept
+{
+	U64 i = 0;
+	for (T* t = array, *end = array + size; t != end; ++t, ++i)
+	{
+		if (predicate(value, *t))
+		{
+			if (size == capacity) { Reserve(capacity + 1); }
+
+			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(T));
+			array[i] = Move(value);
+			++size;
+
+			return i;
+		}
+	}
+
+	U64 index = size;
+
+	Push(Move(value));
+
+	return index;
 }
 
 template<typename T> 

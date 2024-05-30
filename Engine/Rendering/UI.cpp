@@ -8,7 +8,6 @@
 #include "Resources\Settings.hpp"
 #include "Resources\Font.hpp"
 #include "Resources\Scene.hpp"
-#include "Resources\Entity.hpp"
 
 constexpr F32 WIDTH_RATIO = 0.00911458332F;//0.00455729166F;
 constexpr F32 HEIGHT_RATIO = 0.0162037037F;//0.00810185185F;

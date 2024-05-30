@@ -77,6 +77,9 @@
     <Filter Include="Source Files\Rendering\2D">
       <UniqueIdentifier>{6781dba1-f0df-4140-98e4-25a913abce18}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Math\Physics">
+      <UniqueIdentifier>{235fa868-c4c7-454e-9674-291dbb09f339}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -219,9 +222,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Resources\Mesh.hpp">
       <Filter>Source Files\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Resources\Entity.hpp">
-      <Filter>Source Files\Resources\Entities</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Introspection.hpp">
       <Filter>Source Files</Filter>
@@ -544,9 +544,6 @@
     <ClInclude Include="Engine\Resources\Shader\spirv-tools\optimizer.hpp">
       <Filter>Source Files\Resources\Shader\spirv-tools</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Math\Physics.hpp">
-      <Filter>Source Files\Math</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Rendering\UI.hpp">
       <Filter>Source Files\Rendering\2D</Filter>
     </ClInclude>
@@ -555,6 +552,18 @@
     </ClInclude>
     <ClInclude Include="Engine\Rendering\Sprite.hpp">
       <Filter>Source Files\Rendering\2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\PhysicsDefines.hpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Physics.hpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Island.hpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Broadphase.hpp">
+      <Filter>Source Files\Math\Physics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -638,9 +647,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Resources\Material.cpp">
       <Filter>Source Files\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Resources\Entity.cpp">
-      <Filter>Source Files\Resources\Entities</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Resources\Mesh.cpp">
       <Filter>Source Files\Resources</Filter>
@@ -864,9 +870,6 @@
     <ClCompile Include="Engine\Resources\Shader\StandAlone\StandAlone.cpp">
       <Filter>Source Files\Resources\Shader\StandAlone</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Math\Physics.cpp">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Rendering\Tilemap.cpp">
       <Filter>Source Files\Rendering\2D</Filter>
     </ClCompile>
@@ -875,6 +878,18 @@
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Sprite.cpp">
       <Filter>Source Files\Rendering\2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Physics.cpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Island.cpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\PhysicsDefines.cpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Broadphase.cpp">
+      <Filter>Source Files\Math\Physics</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

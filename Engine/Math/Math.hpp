@@ -54,13 +54,16 @@ template <class Type> concept QuaternionType = IsQuaternionType<Type>;
 class NH_API Math
 {
 public:
-	template <typename Type> static constexpr Type Abs(const Type& n) noexcept { return n < (Type)0 ? -n : n; }
+
 	template <typename Type> static constexpr Type Min(const Type& a) noexcept { return a; }
 	template <typename Type> static constexpr Type Min(const Type& a, const Type& b) noexcept { return a > b ? b : a; }
 	template <typename Type, typename... Args> static constexpr Type Min(const Type& a, const Type& b, Args&&... args) noexcept { return a < b ? Min(a, args...) : Min(b, args...); }
+
 	template <typename Type> static constexpr Type Max(const Type& a) noexcept { return a; }
 	template <typename Type> static constexpr Type Max(const Type& a, const Type& b) noexcept { return a < b ? b : a; }
 	template <typename Type, typename... Args> static constexpr Type Max(const Type& a, const Type& b, Args&&... args) noexcept { return a > b ? Max(a, args...) : Max(b, args...); }
+
+	template <typename Type> static constexpr Type Abs(const Type& n) noexcept { return n < (Type)0 ? -n : n; }
 	template <typename Type> static constexpr Type Clamp(const Type& n, const Type& min, const Type& max) noexcept { return n < min ? min : n > max ? max : n; }
 	template <typename Type> static constexpr Type Sign(const Type& n) noexcept { return (Type)((n > (Type)0) - (n < (Type)0)); }
 	template <typename Type> static constexpr Type NonZeroSign(const Type& n) noexcept { return (Type)(2 * (n > (Type)0) - (Type)1); }
@@ -73,7 +76,7 @@ public:
 	template <FloatingPoint Type> static constexpr Type Mod(const Type& n, const Type& d) noexcept { return n - d * FloorF(n / d); }
 	template <FloatingPoint Type> static constexpr Type Closest(Type n, Type a, Type b) noexcept { return n < (b + a) * 0.5f ? a : b; }
 	template <Integer Type> static constexpr Type Closest(Type n, Type a, Type b) noexcept { return n < (b + a) >> 1 ? a : b; }
-
+	\
 	template <FloatingPoint Type> static constexpr Type DegToRad(Type deg) noexcept { return deg * DEG_TO_RAD_T<Type>; }
 	template <FloatingPoint Type> static constexpr Type RadToDeg(Type rad) noexcept { return rad * RAD_TO_DEG_T<Type>; }
 	template <FloatingPoint Type> static constexpr Type NormalizeAngle(Type f) noexcept { return (Type)(f - (TWO_PI * FloorF((f + PI) / TWO_PI))); }
@@ -662,11 +665,12 @@ struct NH_API Quaternion2
 {
 	constexpr Quaternion2() : x{ 0.0f }, y{ 1.0f } {}
 	constexpr Quaternion2(F32 x, F32 y) : x{ x }, y{ y } {}
-	constexpr Quaternion2(F32 angle) { F32 a = angle * DEG_TO_RAD_F; x = Math::Sin(a); y = Math::Cos(a); }
+	constexpr Quaternion2(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x = Math::Sin(a); y = Math::Cos(a); }
+	constexpr Quaternion2(const Matrix2& mat);
 	constexpr Quaternion2(const Quaternion2& q) : x{ q.x }, y{ q.y } {}
 	constexpr Quaternion2(Quaternion2&& q) noexcept : x{ q.x }, y{ q.y } {}
 
-	constexpr Quaternion2& operator=(F32 angle) { F32 a = angle * DEG_TO_RAD_F; x = Math::Sin(a); y = Math::Cos(a); return *this; }
+	constexpr Quaternion2& operator=(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x = Math::Sin(a); y = Math::Cos(a); return *this; }
 	constexpr Quaternion2& operator=(const Quaternion2& q) { x = q.y; y = q.y; return *this; }
 	constexpr Quaternion2& operator=(Quaternion2&& q) noexcept { x = q.y; y = q.y; return *this; }
 
@@ -685,7 +689,8 @@ struct NH_API Quaternion2
 
 	constexpr Quaternion2 operator+(const Quaternion2& q) const { return { x + q.x, y + q.y }; }
 	constexpr Quaternion2 operator-(const Quaternion2& q) const { return { x - q.x, y - q.y }; }
-	constexpr Quaternion2 operator*(const Quaternion2& q) const { return { y * q.x + x * q.y, y * q.y - x * q.x, }; }
+	constexpr Quaternion2 operator*(const Quaternion2& q) const { return { x * q.y + y * q.x, y * q.y - x * q.x, }; }
+	constexpr Quaternion2 operator^(const Quaternion2& q) const { return { y * q.x - x * q.y, y * q.y + x * q.x, }; }
 	constexpr Quaternion2 operator/(const Quaternion2& q) const
 	{
 		F32 n2 = 1.0f / q.SqrNormal();
@@ -696,9 +701,13 @@ struct NH_API Quaternion2
 		};
 	}
 
-	constexpr void Set(F32 angle) { F32 a = angle * DEG_TO_RAD_F; x = Math::Sin(a); y = Math::Cos(a); }
-	constexpr void Rotate(F32 angle) { F32 a = angle * DEG_TO_RAD_F; x += Math::Sin(a); y += Math::Cos(a); }
-	F32 Angle() const { return Math::Asin(x); }
+	constexpr void Set(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x = Math::Sin(a); y = Math::Cos(a); }
+	constexpr void Rotate(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x += Math::Sin(a); y += Math::Cos(a); }
+	F32 Angle() const { return Math::Asin(x) * RAD_TO_DEG_F * 2.0f; }
+
+	constexpr Matrix2 ToMatrix2() const;
+	constexpr Matrix3 ToMatrix3() const;
+	constexpr Matrix4 RotationMatrix(Vector2 center) const;
 
 	constexpr Quaternion2 Slerp(const Quaternion2& q, F32 t) const
 	{
@@ -836,6 +845,7 @@ struct NH_API Vector2
 	constexpr Vector2 operator/(const Vector2& v) const { return { x / v.x, y / v.y }; }
 	constexpr Vector2 operator%(const Vector2& v) const { return { Math::Mod(x, v.x), Math::Mod(y, v.y) }; }
 	constexpr Vector2 operator*(const Quaternion2& q) const { return Vector2{ q.y * x - q.x * y, q.x * x + q.y * y }; }
+	constexpr Vector2 operator^(const Quaternion2& q) const { return Vector2{ q.y * x + q.x * y, q.y * y - q.x * x }; }
 
 	constexpr bool operator==(const Vector2& v) const { return Math::IsZero(x - v.x) && Math::IsZero(y - v.y); }
 	constexpr bool operator!=(const Vector2& v) const { return !Math::IsZero(x - v.x) || !Math::IsZero(y - v.y); }
@@ -855,11 +865,14 @@ struct NH_API Vector2
 	constexpr F32 Dot(F32 vx, F32 vy) const { return x * vx + y * vy; }
 	constexpr Vector2& Normalize() { Vector2 v = Normalized(); x = v.x; y = v.y; return *this; }
 	constexpr Vector2 Normalized() const { return IsZero() ? Vector2{ 0.0f } : (*this) / Magnitude(); }
+	constexpr Vector2& Normalize(F32& magnitude) { Vector2 v = Normalized(magnitude); x = v.x; y = v.y; return *this; }
+	constexpr Vector2 Normalized(F32& magnitude) { magnitude = Magnitude(); return IsZero() ? Vector2{ 0.0f } : (*this) / magnitude; }
 	F32 AngleBetween(const Vector2& v) const { return Math::Acos(Dot(v) * Math::InvSqrt(Dot(*this) * v.Dot(v))); }
 	constexpr Vector2 Projection(const Vector2& v) const { return v * (Dot(v) / v.Dot(v)); }
 	constexpr Vector2 OrthoProjection(const Vector2& v) const { return *this - Projection(v); }
 	constexpr F32 Cross(const Vector2& v) const { return x * v.y - y * v.x; }
 	constexpr Vector2 Cross(const F32 f) const { return { y * f, x * -f }; }
+	constexpr Vector2 Cross() const { return { -y, x }; }
 	constexpr Vector2 Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x - x).Normalized(); }
 	constexpr Vector2& Rotate(const Vector2& center, F32 angle)
 	{
@@ -893,6 +906,9 @@ struct NH_API Vector2
 	constexpr Vector2 Clamped(const Vector2& min, const Vector2& max) const { return { Math::Clamp(x, min.x, max.x), Math::Clamp(y, min.y, max.y) }; }
 	constexpr Vector2& SetClosest(const Vector2& min, const Vector2& max) { x = Math::Closest(x, min.x, max.x); y = Math::Closest(y, min.y, max.y); return *this; }
 	constexpr Vector2 Closest(const Vector2& min, const Vector2& max) const { return { Math::Closest(x, min.x, max.x), Math::Closest(y, min.y, max.y) }; }
+
+	constexpr Vector2 Min(const Vector2& other) { return { Math::Min(x, other.x), Math::Min(y, other.y) }; }
+	constexpr Vector2 Max(const Vector2& other) { return { Math::Max(x, other.x), Math::Max(y, other.y) }; }
 
 	F32& operator[] (U64 i) { return (&x)[i]; }
 	const F32& operator[] (U64 i) const { return (&x)[i]; }
@@ -1014,6 +1030,9 @@ struct NH_API Vector3
 			Math::Closest(z, min.z, max.z)
 		};
 	}
+
+	constexpr Vector3 Min(const Vector3& other) { return { Math::Min(x, other.x), Math::Min(y, other.y), Math::Min(z, other.z) }; }
+	constexpr Vector3 Max(const Vector3& other) { return { Math::Max(x, other.x), Math::Max(y, other.y), Math::Max(z, other.z) }; }
 
 	F32& operator[] (U64 i) { return (&x)[i]; }
 	const F32& operator[] (U64 i) const { return (&x)[i]; }
@@ -1167,6 +1186,9 @@ struct NH_API Vector4
 			Math::Closest(w, min.w, max.w)
 		};
 	}
+
+	constexpr Vector4 Min(const Vector4& other) { return { Math::Min(x, other.x), Math::Min(y, other.y), Math::Min(z, other.z), Math::Min(w, other.w) }; }
+	constexpr Vector4 Max(const Vector4& other) { return { Math::Max(x, other.x), Math::Max(y, other.y), Math::Max(z, other.z), Math::Max(w, other.w) }; }
 
 	F32& operator[] (U64 i) { return (&x)[i]; }
 	const F32& operator[] (U64 i) const { return (&x)[i]; }
@@ -2302,6 +2324,112 @@ inline constexpr Type Trajectory(Type start, Type velocity, Type acceleration, T
 	return start + velocity * t + acceleration * f3 + jerk * f4;
 }
 
+struct NH_API Matrix2
+{
+	constexpr Matrix2() : a{ 1.0f, 0.0f }, b{ 0.0f, 1.0f } {}
+	constexpr Matrix2(F32 ax, F32 ay, F32 bx, F32 by) : a{ ax, ay }, b{ bx, by } {}
+	constexpr Matrix2(const Vector2& v) : a{ v.x, 0.0f }, b{ 0.0f, v.y } {}
+	constexpr Matrix2(const Vector2& a, const Vector2& b) : a{ a }, b{ b } {}
+	constexpr Matrix2(Vector2&& a, Vector2&& b) noexcept : a{ a }, b{ b } {}
+	constexpr Matrix2(const Matrix2& m) : a{ m.a }, b{ m.b } {}
+	constexpr Matrix2(Matrix2&& m) noexcept : a{ m.a }, b{ m.b } {}
+
+	constexpr Matrix2& operator= (const Matrix2& m) { a = m.a; b = m.b; return *this; }
+	constexpr Matrix2& operator= (Matrix2&& m) noexcept { a = m.a; b = m.b; return *this; }
+
+	constexpr Matrix2& operator+= (const Matrix2& m) { a += m.a; b += m.b; return *this; }
+	constexpr Matrix2& operator-= (const Matrix2& m) { a -= m.a; b -= m.b; return *this; }
+	constexpr Matrix2& operator*= (const Matrix2& m)
+	{
+		a.x = a.x * m.a.x + b.x * m.a.y;
+		a.y = a.y * m.a.x + b.y * m.a.y;
+		b.x = a.x * m.b.x + b.x * m.b.y;
+		b.y = a.y * m.b.x + b.y * m.b.y;
+
+		return *this;
+	}
+
+	constexpr Matrix2 operator+(const Matrix2& m) const { return { a + m.a, b + m.b }; }
+	constexpr Matrix2 operator-(const Matrix2& m) const { return { a - m.a, b - m.b }; }
+	constexpr Matrix2 operator*(const Matrix2& m) const
+	{
+		return {
+			a.x * m.a.x + b.x * m.a.y,
+			a.y * m.a.x + b.y * m.a.y,
+			a.x * m.b.x + b.x * m.b.y,
+			a.y * m.b.x + b.y * m.b.y,
+		};
+	}
+	constexpr Vector2 operator*(const Vector2& v) const
+	{
+		return {
+			a.x * v.x + b.x * v.y,
+			a.y * v.x + b.y * v.y,
+		};
+	}
+
+	constexpr Matrix2 Inverse() const
+	{
+		F32 determinant = a.x * b.y - b.x * a.y;
+
+		if (Math::IsZero(determinant)) { return Matrix2{ }; }
+		F32 f = 1.0f / determinant;
+
+		return {
+			 b.y * f, -a.y * f,
+			-b.x * f,  a.x * f
+		};
+	}
+	constexpr Matrix2& Inversed()
+	{
+		F32 determinant = a.x * b.y - b.x * a.y;
+
+		if (Math::IsZero(determinant)) { return *this = Matrix2{}; }
+		F32 f = 1.0f / determinant;
+
+		F32 ax = b.y * f;
+
+		a.x = ax;
+		a.y = -a.y * f;
+		b.x = -b.x * f;
+		b.y = a.x * f;
+
+		return *this;
+	}
+	constexpr Matrix2 Transpose() const
+	{
+		return {
+			a.x, b.x,
+			a.y, b.y
+		};
+	}
+	constexpr Matrix2& Transposed()
+	{
+		F32 bx = a.y;
+
+		a.y = b.x;
+		b.x = bx;
+
+		return *this;
+	}
+
+	constexpr Matrix2 operator-() const { return { -a, -b }; }
+	constexpr Matrix2 operator~() const { return { -a, -b }; }
+	constexpr Matrix2 operator!() const { return { -a, -b }; }
+
+	constexpr bool operator==(const Matrix2& m) const { return a == m.a && b == m.b; }
+	constexpr bool operator!=(const Matrix2& m) const { return a != m.a || b != m.b; }
+
+	const Vector2& operator[] (U8 i) const { return (&a)[i]; }
+	Vector2& operator[] (U8 i) { return (&a)[i]; }
+
+	F32* Data() { return a.Data(); }
+	const F32* Data() const { return a.Data(); }
+
+public:
+	Vector2 a, b; //Columns
+};
+
 struct NH_API Matrix3
 {
 	constexpr Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
@@ -2996,6 +3124,60 @@ public:
 	Vector4 a, b, c, d; //Columns
 };
 
+inline constexpr Quaternion2::Quaternion2(const Matrix2& mat) : x{ Math::Sqrt((mat.a.x - 1.0f) * -0.5f) }, y{ Math::Sqrt(mat.a.y * 0.5f) } {}
+
+inline constexpr Matrix2 Quaternion2::ToMatrix2() const
+{
+	Quaternion2 q = Normalize();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.y * q.y;
+
+	return {
+		1.0f - xx, xy,
+		-xy, 1.0f - xx
+	};
+}
+
+inline constexpr Matrix3 Quaternion2::ToMatrix3() const
+{
+	Quaternion2 q = Normalize();
+
+	F32 xx = 2.0f * q.x * q.x;
+	F32 xy = 2.0f * q.y * q.y;
+
+	return {
+		1.0f - xx, xy, 0.0f,
+		-xy, 1.0f - xx, 0.0f,
+		0.0f, 0.0f, 1.0f
+	};
+}
+
+inline constexpr Matrix4 Quaternion2::RotationMatrix(Vector2 center) const
+{
+	Matrix4 matrix{};
+
+	F32 zz = x * x;
+	F32 ww = y * y;
+
+	matrix.a.x = -zz + ww;
+	matrix.b.x = 0.0f;
+	matrix.c.x = 0.0f;
+	matrix.d.x = center.x - center.x * matrix.a.x - center.y * matrix.b.x;
+
+	matrix.a.y = 0.0f;
+	matrix.b.y = -zz + ww;
+	matrix.c.y = 0.0f;
+	matrix.d.y = center.y - center.x * matrix.a.y - center.y * matrix.b.y;
+
+	matrix.a.z = 0.0f;
+	matrix.b.z = 0.0f;
+	matrix.c.z = zz + ww;
+	matrix.d.z = -center.x * matrix.a.z - center.y * matrix.b.z;
+
+	return matrix;
+}
+
 //TODO: Cache euler angles
 //W is real part
 struct NH_API Quaternion3
@@ -3640,8 +3822,73 @@ inline constexpr Vector4Int Vector4IntBack{ 0, 0, -1, 0 };
 inline constexpr Vector4Int Vector4IntIn{ 0, 0, 0, 1 };
 inline constexpr Vector4Int Vector4IntOut{ 0, 0, 0, -1 };
 
+inline constexpr Matrix2 Matrix2Identity{};
+inline constexpr Matrix2 Matrix2Zero{ 0.0f, 0.0f, 0.0f, 0.0f };
 inline constexpr Matrix3 Matrix3Identity{};
+inline constexpr Matrix3 Matrix3Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 inline constexpr Matrix4 Matrix4Identity{};
+inline constexpr Matrix4 Matrix4Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
 inline constexpr Quaternion2 Quaternion2Identity{};
 inline constexpr Quaternion3 Quaternion3Identity{};
+
+struct NH_API Transform
+{
+public:
+	const Matrix4& LocalMatrix()
+	{
+		if (dirty) { dirty = false; localMatrix.Set(position, rotation, scale); }
+
+		return localMatrix;
+	}
+
+	const Matrix4& WorldMatrix()
+	{
+		if (dirty) { dirty = false; localMatrix.Set(position, rotation, scale); }
+
+		if (parent)
+		{
+			worldMatrix = localMatrix * parent->WorldMatrix();
+			return worldMatrix;
+		}
+
+		return localMatrix;
+	}
+
+	const Vector3& Position() const { return position; }
+	const Vector3& Scale() const { return scale; }
+	const Quaternion3& Rotation() const { return rotation; }
+
+	void Translate(const Vector3& translation)
+	{
+		position += translation;
+		localMatrix.SetPosition(position);
+	}
+
+	void SetPosition(const Vector3& position)
+	{
+		this->position = position;
+		localMatrix.SetPosition(position);
+	}
+
+	void SetRotation(const Quaternion3& rotation)
+	{
+		dirty = true;
+		this->rotation = rotation;
+	}
+
+	void SetScale(const Vector3& scale)
+	{
+		dirty = true;
+		this->scale = scale;
+	}
+
+private:
+	bool dirty{ false };
+	Transform* parent{ nullptr };
+	Vector3 position{ Vector3Zero };
+	Vector3 scale{ Vector3One };
+	Quaternion3 rotation{ Quaternion3Identity };
+	Matrix4 localMatrix{ Matrix4Identity };
+	Matrix4 worldMatrix{ Matrix4Identity };
+};

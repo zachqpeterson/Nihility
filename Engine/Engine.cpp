@@ -86,7 +86,6 @@ void Engine::Shutdown()
 void Engine::UpdateLoop()
 {
 	F64 timeAccumulation = 0.0;
-	F64 step = 0.001;
 	while (running)
 	{
 		Time::Update();
@@ -108,12 +107,7 @@ void Engine::UpdateLoop()
 
 		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
 
-		timeAccumulation += Time::DeltaTime();
-		while (timeAccumulation >= step) //TODO: limit steps per frame
-		{
-			Physics::Update((F32)step);
-			timeAccumulation -= step;
-		}
+		Physics::Update(Time::DeltaTime()); //TODO: constant step
 		
 		GameUpdate();
 		//Animations::Update();

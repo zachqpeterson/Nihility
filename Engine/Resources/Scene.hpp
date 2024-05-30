@@ -3,7 +3,6 @@
 #include "ResourceDefines.hpp"
 
 #include "Component.hpp"
-#include "Entity.hpp"
 
 struct ComponentPool
 {

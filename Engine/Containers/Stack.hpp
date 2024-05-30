@@ -17,6 +17,7 @@ struct Stack
 
 	~Stack();
 	void Destroy();
+	void Clear();
 
 	void Push(const T& value);
 	void Push(T&& value) noexcept;
@@ -110,6 +111,12 @@ template <class T>
 inline void Stack<T>::Destroy()
 {
 	size = 0; capacity = 0; Memory::Free(&array);
+}
+
+template <class T>
+inline void Stack<T>::Clear()
+{
+	size = 0;
 }
 
 template <class T>

@@ -270,8 +270,8 @@ template <class Type> concept Number = IsNumber<Type>;
 template <class Type> constexpr const bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = IsStringLiteral<Type>;
 
-template <class Type> constexpr const bool IsFunctionPtr = !IsConst<const Type> && !IsReference<Type>;
-template <class Type> concept FunctionPtr = IsFunctionPtr<Type>;
+template <class Type> constexpr const bool IsFunction = !IsConst<const Type> && !IsReference<Type>;
+template <class Type> concept FunctionPtr = requires (Type t) { IsFunction<decltype(t)>; };
 
 /// <summary>
 /// Forwards arg as movable
@@ -311,7 +311,7 @@ namespace TypeTraits
 	template <class Type> struct GetDecay
 	{
 		using Type1 = RemovedReference<Type>;
-		using Type2 = typename Select<IsFunctionPtr<Type1>>::template Apply<AddedPointer<Type1>, RemovedQuals<Type1>>;
+		using Type2 = typename Select<IsFunction<Type1>>::template Apply<AddedPointer<Type1>, RemovedQuals<Type1>>;
 		using type = typename Select<IsArray<Type1>>::template Apply<AddedPointer<RemovedArray<Type1>>, Type2>::type;
 	};
 }
