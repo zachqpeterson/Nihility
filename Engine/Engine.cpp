@@ -105,21 +105,20 @@ void Engine::UpdateLoop()
 		}
 #endif
 
-		if (!Settings::Minimised()) { Renderer::BeginFrame(); }
+		bool runFrame = false;
+		if (!Settings::Minimised()) { runFrame = Renderer::BeginFrame(); }
 
-		Physics::Update(Time::DeltaTime()); //TODO: constant step
+		Physics::Update((F32)Time::DeltaTime()); //TODO: constant step
 		
 		GameUpdate();
 		//Animations::Update();
 
 		Audio::Update();
 
-		if (!Settings::Minimised())
+		if (runFrame)
 		{
 			UI::Update();
-
 			Renderer::EndFrame();
-			Settings::resized = false;
 		}
 
 		Discord::Update();

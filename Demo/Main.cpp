@@ -5,7 +5,6 @@
 #include "Rendering\UI.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Settings.hpp"
-#include "Resources\Entity.hpp"
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"

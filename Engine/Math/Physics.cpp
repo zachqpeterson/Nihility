@@ -51,6 +51,9 @@ void Physics::Shutdown()
 	Logger::Trace("Shutting Down Physics...");
 
 	Broadphase::Shutdown();
+
+	Memory::Free(&contacts);
+	contactFreelist.Destroy();
 }
 
 void Physics::SetScene(Scene* scene)
@@ -130,6 +133,8 @@ const Vector3& Physics::Gravity()
 
 void Physics::Update(F32 step)
 {
+	if (!bodies || bodies->Empty()) { return; }
+
 	if (flags & FLAG_NEW_FIXTURE)
 	{
 		Broadphase::UpdatePairs(); //ContactManager

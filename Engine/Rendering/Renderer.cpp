@@ -678,6 +678,8 @@ void Renderer::InitialSubmit()
 
 bool Renderer::BeginFrame()
 {
+	if (!currentScene) { return false; }
+
 	VkResult result = swapchain.Update();
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) { Resize(); }
 	else if (result == VK_NOT_READY) { return false; }
@@ -788,7 +790,7 @@ VkCommandBuffer Renderer::Record()
 {
 	CommandBuffer* commandBuffer = commandBufferRing.GetDrawCommandBuffer(frameIndex);
 	commandBuffer->Begin();
-	currentScene->Render(commandBuffer); //TODO: validate scene
+	currentScene->Render(commandBuffer);
 
 	VkImageMemoryBarrier2 copyBarriers[]{
 		ImageBarrier(defaultRenderTarget->image,
@@ -832,6 +834,8 @@ void Renderer::Resize()
 	if (currentScene) { currentScene->Resize(); }
 
 	vkDeviceWaitIdle(device);
+
+	Settings::resized = false;
 }
 
 void Renderer::SetRenderArea()

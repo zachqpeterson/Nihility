@@ -538,7 +538,7 @@ template<typename T> inline T& Vector<T>::Push(const T& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Memory::Copy(array + size, &value, sizeof(T));
+	array[size] = value;
 	return array[size++];
 }
 
@@ -546,7 +546,7 @@ template<typename T> inline T& Vector<T>::Push(T&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Memory::Copy(array + size, &value, sizeof(T));
+	array[size] = Move(value);
 	return array[size++];
 }
 
