@@ -43,12 +43,12 @@ bool Platform::Initialize(CSTR applicationName)
 	running = true;
 
 	//Load cursor images
-	//arrow = LoadCursorW(nullptr, IDC_ARROW);
-	//hand = LoadCursorW(nullptr, IDC_HAND);
-	//sizeNS = LoadCursorW(nullptr, IDC_SIZENS);
-	//sizeWE = LoadCursorW(nullptr, IDC_SIZEWE);
-	//sizeNESW = LoadCursorW(nullptr, IDC_SIZENESW);
-	//sizeNWSE = LoadCursorW(nullptr, IDC_SIZENWSE);
+	arrow = LoadCursorW(nullptr, IDC_ARROW);
+	hand = LoadCursorW(nullptr, IDC_HAND);
+	sizeNS = LoadCursorW(nullptr, IDC_SIZENS);
+	sizeWE = LoadCursorW(nullptr, IDC_SIZEWE);
+	sizeNESW = LoadCursorW(nullptr, IDC_SIZENESW);
+	sizeNWSE = LoadCursorW(nullptr, IDC_SIZENWSE);
 
 	//Setup and register window class.
 	WNDCLASSEXA wc{};
@@ -386,6 +386,33 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		Input::mousePosX = x;
 		Input::mousePosY = y;
 	} return 0;
+	case WM_SETCURSOR: {
+		switch (LOWORD(lParam))
+		{
+		case HTCLIENT: { SetCursor(arrow); } return 1; //Client Area
+		case HTCAPTION: {SetCursor(arrow); } return 1; //Title Bar
+		case HTSYSMENU: { SetCursor(hand); } return 1; //Window Menu
+		case HTGROWBOX: { SetCursor(arrow); } return 1; //Size Box?
+		case HTMENU: { SetCursor(hand); } return 1; //Menu
+		case HTHSCROLL: { SetCursor(hand); } return 1; //Horizontal Scroll Bar
+		case HTVSCROLL: { SetCursor(hand); } return 1; //Vertical Scroll Bar
+		case HTMINBUTTON: { SetCursor(hand); } return 1; //Minimize Button
+		case HTMAXBUTTON: { SetCursor(hand); } return 1; //Maximize Button
+		case HTLEFT: { SetCursor(sizeWE); } return 1; //Border Left
+		case HTRIGHT: { SetCursor(sizeWE); } return 1; //Border Right
+		case HTTOP: { SetCursor(sizeNS); } return 1; //Border Top
+		case HTTOPLEFT: { SetCursor(sizeNWSE); } return 1; //Border Top Left
+		case HTTOPRIGHT: { SetCursor(sizeNWSE); } return 1; //Border Top Right
+		case HTBOTTOM: { SetCursor(sizeNS); } return 1; //Border Bottom
+		case HTBOTTOMLEFT: { SetCursor(sizeNWSE); } return 1; //Border Bottom Left
+		case HTBOTTOMRIGHT: { SetCursor(sizeNWSE); } return 1; //Border Bottom Right
+		case HTBORDER: { SetCursor(arrow); } return 1; //Any Border (Not Resizable)
+		//case HTOBJECT: { SetCursor(); } return 1;
+		//case HTCLOSE: { SetCursor(); } return 1;
+		//case HTHELP: { SetCursor(); } return 1;
+		default: break;
+		}
+	} break;
 	case WM_DROPFILES: {
 		HDROP dropInfo = (HDROP)wParam;
 		U32 count = DragQueryFileA(dropInfo, 0xFFFFFFFF, nullptr, 0);
