@@ -80,6 +80,9 @@
     <Filter Include="Source Files\Math\Physics">
       <UniqueIdentifier>{235fa868-c4c7-454e-9674-291dbb09f339}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\External\Steam">
+      <UniqueIdentifier>{ec11c1c2-a912-406f-9132-ab3976946cd8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp">
@@ -565,6 +568,141 @@
     <ClInclude Include="Engine\Math\Broadphase.hpp">
       <Filter>Source Files\Math\Physics</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamapps.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamappticket.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamclient.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamcontroller.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamdualsense.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamfriends.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamgamecoordinator.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamgameserver.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamgameserverstats.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamhtmlsurface.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamhttp.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteaminput.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteaminventory.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteammatchmaking.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteammusic.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteammusicremote.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamnetworking.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamnetworkingmessages.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamnetworkingsockets.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamnetworkingutils.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamparentalsettings.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamps3overlayrenderer.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamremoteplay.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamremotestorage.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamscreenshots.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamugc.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamuser.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamuserstats.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamutils.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\isteamvideo.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\matchmakingtypes.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamclientpublic.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamencryptedappticket.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamhttpenums.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamnetworkingfakeip.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamnetworkingtypes.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamps3params.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamtypes.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steamuniverse.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steam_api.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steam_api_common.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steam_api_flat.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steam_api_internal.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Steam\steam_gameserver.h">
+      <Filter>Source Files\External\Steam</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Networking\Steam.hpp">
+      <Filter>Source Files\Networking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -890,6 +1028,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Math\Broadphase.cpp">
       <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Networking\Steam.cpp">
+      <Filter>Source Files\Networking</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

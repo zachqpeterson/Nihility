@@ -71,7 +71,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;steam_api64.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
@@ -102,7 +102,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;steam_api64.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
@@ -149,6 +149,50 @@
     <ClInclude Include="Engine\External\stb_image.h" />
     <ClInclude Include="Engine\External\stb_truetype.h" />
     <ClInclude Include="Engine\External\stb_vorbis.h" />
+    <ClInclude Include="Engine\External\Steam\isteamapps.h" />
+    <ClInclude Include="Engine\External\Steam\isteamappticket.h" />
+    <ClInclude Include="Engine\External\Steam\isteamclient.h" />
+    <ClInclude Include="Engine\External\Steam\isteamcontroller.h" />
+    <ClInclude Include="Engine\External\Steam\isteamdualsense.h" />
+    <ClInclude Include="Engine\External\Steam\isteamfriends.h" />
+    <ClInclude Include="Engine\External\Steam\isteamgamecoordinator.h" />
+    <ClInclude Include="Engine\External\Steam\isteamgameserver.h" />
+    <ClInclude Include="Engine\External\Steam\isteamgameserverstats.h" />
+    <ClInclude Include="Engine\External\Steam\isteamhtmlsurface.h" />
+    <ClInclude Include="Engine\External\Steam\isteamhttp.h" />
+    <ClInclude Include="Engine\External\Steam\isteaminput.h" />
+    <ClInclude Include="Engine\External\Steam\isteaminventory.h" />
+    <ClInclude Include="Engine\External\Steam\isteammatchmaking.h" />
+    <ClInclude Include="Engine\External\Steam\isteammusic.h" />
+    <ClInclude Include="Engine\External\Steam\isteammusicremote.h" />
+    <ClInclude Include="Engine\External\Steam\isteamnetworking.h" />
+    <ClInclude Include="Engine\External\Steam\isteamnetworkingmessages.h" />
+    <ClInclude Include="Engine\External\Steam\isteamnetworkingsockets.h" />
+    <ClInclude Include="Engine\External\Steam\isteamnetworkingutils.h" />
+    <ClInclude Include="Engine\External\Steam\isteamparentalsettings.h" />
+    <ClInclude Include="Engine\External\Steam\isteamps3overlayrenderer.h" />
+    <ClInclude Include="Engine\External\Steam\isteamremoteplay.h" />
+    <ClInclude Include="Engine\External\Steam\isteamremotestorage.h" />
+    <ClInclude Include="Engine\External\Steam\isteamscreenshots.h" />
+    <ClInclude Include="Engine\External\Steam\isteamugc.h" />
+    <ClInclude Include="Engine\External\Steam\isteamuser.h" />
+    <ClInclude Include="Engine\External\Steam\isteamuserstats.h" />
+    <ClInclude Include="Engine\External\Steam\isteamutils.h" />
+    <ClInclude Include="Engine\External\Steam\isteamvideo.h" />
+    <ClInclude Include="Engine\External\Steam\matchmakingtypes.h" />
+    <ClInclude Include="Engine\External\Steam\steamclientpublic.h" />
+    <ClInclude Include="Engine\External\Steam\steamencryptedappticket.h" />
+    <ClInclude Include="Engine\External\Steam\steamhttpenums.h" />
+    <ClInclude Include="Engine\External\Steam\steamnetworkingfakeip.h" />
+    <ClInclude Include="Engine\External\Steam\steamnetworkingtypes.h" />
+    <ClInclude Include="Engine\External\Steam\steamps3params.h" />
+    <ClInclude Include="Engine\External\Steam\steamtypes.h" />
+    <ClInclude Include="Engine\External\Steam\steamuniverse.h" />
+    <ClInclude Include="Engine\External\Steam\steam_api.h" />
+    <ClInclude Include="Engine\External\Steam\steam_api_common.h" />
+    <ClInclude Include="Engine\External\Steam\steam_api_flat.h" />
+    <ClInclude Include="Engine\External\Steam\steam_api_internal.h" />
+    <ClInclude Include="Engine\External\Steam\steam_gameserver.h" />
     <ClInclude Include="Engine\Introspection.hpp" />
     <ClInclude Include="Engine\Math\Broadphase.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
@@ -159,6 +203,7 @@
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Networking\Discord.hpp" />
+    <ClInclude Include="Engine\Networking\Steam.hpp" />
     <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
@@ -300,6 +345,7 @@
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
     <ClCompile Include="Engine\Networking\Discord.cpp" />
+    <ClCompile Include="Engine\Networking\Steam.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />

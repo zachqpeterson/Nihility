@@ -21,6 +21,7 @@
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
 #include "Networking\Discord.hpp"
+#include "Networking\Steam.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -51,6 +52,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	//Particles
 	ASSERT(Audio::Initialize());
 	ASSERT(Input::Initialize());
+	ASSERT(Steam::Initialize());
 	Discord::Initialize(applicationName);
 
 	Logger::Trace("Initializing Game...");
