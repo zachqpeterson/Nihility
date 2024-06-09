@@ -5,10 +5,13 @@
 class Steam
 {
 public:
-	static bool Initialize();
+	static bool Initialize(U32 appID);
 	static void Shutdown();
 
+	static void Update();
+
 private:
+	static U32 appID;
 
 	STATIC_CLASS(Steam);
 };

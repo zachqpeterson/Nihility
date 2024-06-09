@@ -165,7 +165,7 @@ void Shutdown()
 
 int main()
 {
-	Engine::Initialize("Nihility Demo", MakeVersionNumber(0, 1, 0), Init, Update, Shutdown);
+	Engine::Initialize("Nihility Demo", MakeVersionNumber(0, 1, 0), Engine::DefaultSteamAppId, Init, Update, Shutdown);
 
 	return 0;
 }

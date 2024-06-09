@@ -10,7 +10,7 @@ discord::Activity Discord::activity;
 
 bool Discord::Initialize(CSTR applicationName)
 {
-	Logger::Trace("Initializing Discord...");
+	Logger::Trace("Initializing Discord Integration...");
 
 	discord::Result result = discord::Core::Create(1200965397206274118, DiscordCreateFlags_Default, &core);
 	if (result != discord::Result::Ok)
@@ -37,7 +37,7 @@ bool Discord::Initialize(CSTR applicationName)
 
 void Discord::Shutdown()
 {
-
+	Logger::Trace("Shutting Down Discord Integration...");
 }
 
 void Discord::Update()

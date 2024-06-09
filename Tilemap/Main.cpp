@@ -98,7 +98,7 @@ void Shutdown()
 
 int main()
 {
-	Engine::Initialize("Tilemap Demo", MakeVersionNumber(0, 1, 0), Init, Update, Shutdown);
+	Engine::Initialize("Tilemap Demo", MakeVersionNumber(0, 1, 0), Engine::DefaultSteamAppId, Init, Update, Shutdown);
 
 	return 0;
 }

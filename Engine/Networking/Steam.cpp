@@ -4,17 +4,20 @@
 
 #include "Steam\steam_api.h"
 
-bool Steam::Initialize()
+U32 Steam::appID;
+
+bool Steam::Initialize(U32 appID_)
 {
-	Logger::Trace("Initializing Steam...");
+	Logger::Trace("Initializing Steam Integration...");
+
+	appID = appID_;
+
+	if (SteamAPI_RestartAppIfNecessary(appID)) { return false; }
 
 #ifdef NH_DEBUG
-	ESteamAPIInitResult result;
-
 	SteamErrMsg msg;
-	result = SteamAPI_InitEx(&msg);
 
-	switch (result)
+	switch (SteamAPI_InitEx(&msg))
 	{
 	case k_ESteamAPIInitResult_OK: break;
 	case k_ESteamAPIInitResult_FailedGeneric:
@@ -30,5 +33,12 @@ bool Steam::Initialize()
 
 void Steam::Shutdown()
 {
+	Logger::Trace("Shutting Down Steam Integration...");
 
+	SteamAPI_Shutdown();
+}
+
+void Steam::Update()
+{
+	SteamAPI_RunCallbacks();
 }
