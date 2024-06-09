@@ -41,8 +41,8 @@ bool Init()
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
 
-	entity1 = scene->AddEntity();
-	entity1->AddComponent<SpriteComponent>();
+	//entity1 = scene->AddEntity();
+	//entity1->AddComponent<SpriteComponent>();
 
 	PostProcessData ppd{};
 	ppd.contrast = 1.0f;
@@ -54,7 +54,7 @@ bool Init()
 
 	UIElementInfo info{};
 	info.area = { -0.9f, -0.9f, -0.8f, -0.8f };
-	info.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	info.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	info.scene = scene;
 
 	UIElement* textElement = UI::CreateText(info, "Hello, World!", 5);
