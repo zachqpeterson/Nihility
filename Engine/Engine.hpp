@@ -17,7 +17,9 @@ public:
 	/// <param name="init:">Function pointer to your application initialization, called after engine initialization</param>
 	/// <param name="update:">Function pointer to your application update, called once per frame</param>
 	/// <param name="shutdown:">Function pointer to your application shutdown, called before engine shudown</param>
-	static void Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown);
+	static void Initialize(CSTR applicationName, U32 applicationVersion, U32 steamAppId, InitializeFn init, UpdateFn update, ShutdownFn shutdown);
+
+	static constexpr U32 DefaultSteamAppId = 0;
 
 private:
 	static void UpdateLoop();

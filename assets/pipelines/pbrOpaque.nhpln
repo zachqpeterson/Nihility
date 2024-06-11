@@ -4,6 +4,7 @@ cull=NONE
 front=COUNTER
 fill=SOLID
 depth=LESS
+clear=DEPTH
 blend=ADD
 type=MESH_OPAQUE
 renderOrder=0

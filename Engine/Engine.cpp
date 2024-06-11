@@ -21,6 +21,7 @@
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
 #include "Networking\Discord.hpp"
+#include "Networking\Steam.hpp"
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
@@ -28,7 +29,7 @@ ShutdownFn Engine::GameShutdown;
 
 bool Engine::running;
 
-void Engine::Initialize(CSTR applicationName, U32 applicationVersion, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
+void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamAppId, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
 	GameUpdate = update;
@@ -51,6 +52,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, Initialize
 	//Particles
 	ASSERT(Audio::Initialize());
 	ASSERT(Input::Initialize());
+	ASSERT(Steam::Initialize(steamAppId));
 	Discord::Initialize(applicationName);
 
 	Logger::Trace("Initializing Game...");
@@ -67,6 +69,8 @@ void Engine::Shutdown()
 {
 	Logger::Trace("Shutting Down Game...");
 	GameShutdown();
+	Discord::Shutdown();
+	Steam::Shutdown();
 	Audio::Shutdown();
 	//Particles
 	UI::Shutdown();
@@ -121,6 +125,7 @@ void Engine::UpdateLoop()
 			Renderer::EndFrame();
 		}
 
+		Steam::Update();
 		Discord::Update();
 
 		F64 remainingFrameTime;
