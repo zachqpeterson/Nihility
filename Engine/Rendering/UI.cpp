@@ -224,7 +224,7 @@ bool UI::Initialize()
 	textMesh->buffers.Push(textPositionBuffer);
 	textMesh->buffers.Push(textTexcoordBuffer);
 
-	Vector<ResourceRef<Pipeline>> pipelines{ 1, {} };
+	Vector<ResourceRef<Pipeline>> pipelines(1, {});
 
 	pipelines[0] = Resources::LoadPipeline("pipelines/ui.nhpln");
 	uiEffect = Resources::CreateMaterialEffect("uiEffect", pipelines);
@@ -354,7 +354,7 @@ UIElement* UI::CreateElement(UIElementInfo& info)
 
 	UIElement* element = SetupElement(info);
 
-	Vector<MeshInstance> instances{ };
+	Vector<MeshInstance> instances;
 
 	MeshInstance& instance = instances.Push({});
 	instance.material = uiMaterial;
@@ -386,7 +386,7 @@ UIElement* UI::CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& b
 	F32 borderWidth = WIDTH_RATIO * borderSize;
 	F32 borderHeight = HEIGHT_RATIO * borderSize;
 
-	Vector<MeshInstance> instances{ };
+	Vector<MeshInstance> instances;
 
 	//BODY
 	MeshInstance& instance0 = instances.Push({});
@@ -457,7 +457,7 @@ UIElement* UI::CreateImage(UIElementInfo& info, const ResourceRef<Texture>& text
 	element->image.texture = texture;
 	element->image.uvs = uvs;
 
-	Vector<MeshInstance> instances{ };
+	Vector<MeshInstance> instances;
 
 	MeshInstance& instance = instances.Push({});
 	instance.material = uiMaterial;
@@ -487,7 +487,7 @@ UIElement* UI::CreateSlider(UIElementInfo& info, const Vector4& fillColor, Slide
 	element->slider.type = type;
 	element->slider.percent = percent;
 
-	Vector<MeshInstance> instances{ };
+	Vector<MeshInstance> instances;
 
 	//Background
 	MeshInstance& instance0 = instances.Push({});

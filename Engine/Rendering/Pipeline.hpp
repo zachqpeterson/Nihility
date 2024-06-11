@@ -123,7 +123,7 @@ private:
 	U32								sizeY{ 0 };
 	bool							loaded{ false };
 
-	Vector<ResourceRef<Shader>>		shaders{};
+	Vector<ResourceRef<Shader>>		shaders;
 	VkPipeline_T*					pipeline{ nullptr };
 	VkPipelineLayout_T*				pipelineLayout{ nullptr };
 	VkDescriptorSetLayout_T*		descriptorSetLayout{ nullptr };

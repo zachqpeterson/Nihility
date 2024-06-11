@@ -1538,8 +1538,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	}
 
 	Vector<VkSubpassDependency2> dependencies;
-	Vector<VkSubpassDescription2> subpasses{ info.subpassCount, {} };
-	Vector<VkAttachmentReference2> inputReferences{};
+	Vector<VkSubpassDescription2> subpasses(info.subpassCount, {});
+	Vector<VkAttachmentReference2> inputReferences;
 	U32 inputOffset = 0;
 
 	static VkMemoryBarrier2 depthBarrier{

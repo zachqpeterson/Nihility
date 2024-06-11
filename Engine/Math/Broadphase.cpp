@@ -26,8 +26,8 @@
 
 U32 Broadphase::proxyCount;
 
-Vector<U32> Broadphase::moveBuffer{ 16 };
-Vector<Pair> Broadphase::pairBuffer{ 16 };
+Vector<U32> Broadphase::moveBuffer(16);
+Vector<Pair> Broadphase::pairBuffer(16);
 
 //Tree
 TreeNode* Broadphase::nodes;

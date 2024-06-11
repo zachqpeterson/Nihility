@@ -37,17 +37,23 @@ public:
 	Vector();
 
 	/// <summary>
-	/// Creates a new Vector instance, size will be zero, creates an array of size sizeof(T) * capacity
+	/// Creates a new Vector instance, size will be zero, creates an array of size greater than or equal to sizeof(T) * capacity
 	/// </summary>
 	/// <param name="capacity:">The capacity the array will be at</param>
 	Vector(U64 capacity);
 
 	/// <summary>
-	/// Creates a new Vector instance, capacity will be size, creates an array of size sizeof(T) * size and fills it with value
+	/// Creates a new Vector instance, capacity will be greater than or equal to size, creates an array of size sizeof(T) * capacity and fills it with value
 	/// </summary>
-	/// <param name="size:">The size the array will be at</param>
+	/// <param name="size:">The size the array will be</param>
 	/// <param name="value:">The value that the array will be filled with</param>
 	Vector(U64 size, const T& value);
+
+	/// <summary>
+	/// Create a new Vector instance using an initializer list, size will equal the list size, capacity with be greater than or equal to size, creates an array of size sizeof(T) * capacity and fills it with the values in list
+	/// </summary>
+	/// <param name="list:">The initializer list</param>
+	Vector(Initializer<T> list);
 
 	/// <summary>
 	/// Creates a new Vector instance, capacity and size will be other's, creates an array of the same size and copies other's data into it
@@ -482,6 +488,17 @@ template<typename T> inline Vector<T>::Vector(U64 size, const T& value) : size{ 
 	for (T* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
+template<typename T> inline Vector<T>::Vector(Initializer<T> list) : size{ list.size() }, capacity{ size }
+{
+	Memory::AllocateArray(&array, capacity, capacity);
+
+	T* it1 = array;
+	for (const T* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
+	{
+		*it1 = *it0;
+	}
+}
+
 template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
@@ -532,7 +549,7 @@ template<typename T> inline void Vector<T>::Cleanup()
 			t->Destroy();
 		}
 	}
-} 
+}
 
 template<typename T> inline T& Vector<T>::Push(const T& value)
 {
@@ -720,7 +737,7 @@ template<typename T> inline Vector<T>& Vector<T>::operator+=(Vector<T>&& other) 
 	return *this;
 }
 
-template<typename T> 
+template<typename T>
 template<FunctionPtr Predicate>
 inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
 {
@@ -733,7 +750,7 @@ inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
 	}
 }
 
-template<typename T> 
+template<typename T>
 template<FunctionPtr Predicate>
 inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
 {
@@ -747,7 +764,7 @@ inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
 	}
 }
 
-template<typename T> 
+template<typename T>
 template<FunctionPtr Predicate>
 inline U64 Vector<T>::SearchCount(Predicate predicate)
 {
@@ -760,7 +777,7 @@ inline U64 Vector<T>::SearchCount(Predicate predicate)
 	return i;
 }
 
-template<typename T> 
+template<typename T>
 template<FunctionPtr Predicate>
 inline U64 Vector<T>::RemoveAll(Predicate predicate)
 {
@@ -781,7 +798,7 @@ inline U64 Vector<T>::RemoveAll(Predicate predicate)
 	return i;
 }
 
-template<typename T> 
+template<typename T>
 template<FunctionPtr Predicate>
 inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 {
@@ -867,20 +884,20 @@ U64 Vector<T>::SortedInsert(Predicate predicate, T&& value) noexcept
 	return index;
 }
 
-template<typename T> 
+template<typename T>
 inline void Vector<T>::Reserve(U64 capacity)
 {
 	Memory::Reallocate(&array, capacity, this->capacity);
 }
 
-template<typename T> 
+template<typename T>
 inline void Vector<T>::Resize(U64 size)
 {
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
 }
 
-template<typename T> 
+template<typename T>
 inline void Vector<T>::Resize(U64 size, const T& value)
 {
 	if (size > capacity) { Reserve(size); }
@@ -889,7 +906,7 @@ inline void Vector<T>::Resize(U64 size, const T& value)
 	for (U64 i = 0; i < size; ++i) { array[i] = value; }
 }
 
-template<typename T> 
+template<typename T>
 inline bool Vector<T>::Contains(const T& value) const
 {
 	for (T* t = array, *end = array + size; t != end; ++t)
@@ -900,7 +917,7 @@ inline bool Vector<T>::Contains(const T& value) const
 	return false;
 }
 
-template<typename T> 
+template<typename T>
 inline U64 Vector<T>::Count(const T& value) const
 {
 	U64 count = 0;
@@ -912,7 +929,7 @@ inline U64 Vector<T>::Count(const T& value) const
 	return count;
 }
 
-template<typename T> 
+template<typename T>
 inline U64 Vector<T>::Find(const T& value) const
 {
 	U64 index = 0;

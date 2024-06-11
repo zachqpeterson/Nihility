@@ -34,7 +34,6 @@ private:
 	static void Update();
 	static void Shutdown();
 
-	static F64 clockFrequency;
 	static F64 programStart;
 	static F64 frameEndTime;
 	static F64 delta;

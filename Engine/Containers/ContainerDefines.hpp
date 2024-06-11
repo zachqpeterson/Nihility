@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Defines.hpp"
+#include <initializer_list>
+
+template<class Type>
+using Initializer = std::initializer_list<Type>;
 
 typedef U64 HashHandle;
 

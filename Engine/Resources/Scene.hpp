@@ -165,7 +165,7 @@ private:
 	Vector<Type*> GetComponents(const Vector<ComponentReference>& references) noexcept
 	{
 		U32* id = componentRegistry.Request(NameOf<Type>);
-		if (*id == 0) { return Move(Vector<Type*>{}); }
+		if (*id == 0) { return Move(Vector<Type*>()); }
 
 		U32 i = *id - 1;
 		Vector<Type*> types;
@@ -226,14 +226,14 @@ private:
 	U32								drawOffset{ 0 };
 	U32								countsOffset{ 0 };
 
-	Vector<MeshDraw>				meshDraws{};
-	Vector<Entity>					entities{}; //TODO: Maybe store all transforms in a separate array for faster buffer copy
+	Vector<MeshDraw>				meshDraws;
+	Vector<Entity>					entities; //TODO: Maybe store all transforms in a separate array for faster buffer copy
 
 	U32								currentId{ 1 };
 	Hashmap<StringView, U32>		componentRegistry{ 32 };
-	Vector<ComponentPool*>			componentPools{};
-	Vector<ResourceRef<Pipeline>>	pipelines{};
-	Vector<Renderpass>				renderpasses{};
+	Vector<ComponentPool*>			componentPools;
+	Vector<ResourceRef<Pipeline>>	pipelines;
+	Vector<Renderpass>				renderpasses;
 
 #ifdef NH_DEBUG
 	FlyCamera						flyCamera{};
@@ -290,7 +290,7 @@ private:
 
 	Scene* scene;
 	U32 entityID;
-	Vector<ComponentReference> references{};
+	Vector<ComponentReference> references;
 
 	Entity(const Entity&) = delete;
 	Entity& operator=(const Entity&) = delete;

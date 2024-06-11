@@ -20,7 +20,7 @@ bool Audio::fadingIn;
 bool Audio::fadingOut;
 
 IXAudio2SubmixVoice* Audio::sfxVoice;
-Vector<SoundEffect> Audio::sfxSources{ 128, {} };
+Vector<SoundEffect> Audio::sfxSources(128, {});
 Freelist Audio::freeSFX{ 128 };
 
 struct AudioCallbacks : public IXAudio2VoiceCallback

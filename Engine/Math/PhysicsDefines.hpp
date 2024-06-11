@@ -654,8 +654,8 @@ private:
 
 	BodyType type{ BODY_TYPE_DYNAMIC };
 
-	Vector<Collider2D> colliders{};
-	Vector<ContactEdge2D> contacts{};
+	Vector<Collider2D> colliders;
+	Vector<ContactEdge2D> contacts;
 	Transform2D transform{};
 	Sweep2D sweep{};
 

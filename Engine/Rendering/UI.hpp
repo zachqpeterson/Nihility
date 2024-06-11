@@ -65,7 +65,7 @@ private:
 	Scene* scene{ nullptr };
 	UIComponent* component{ nullptr };
 	UIElement* parent{ nullptr };
-	Vector<UIElement*> children{};
+	Vector<UIElement*> children;
 
 	UIEvent OnClick;
 	UIEvent OnDrag;
@@ -174,8 +174,8 @@ struct NH_API UIElementInfo
 
 struct NH_API UIComponent : Component
 {
-	UIComponent(const Vector<MeshInstance>& meshes) : meshes{ meshes } {}
-	UIComponent(UIComponent&& other) noexcept : meshes{ Move(other.meshes) } {}
+	UIComponent(const Vector<MeshInstance>& meshes) : meshes(meshes) {}
+	UIComponent(UIComponent&& other) noexcept : meshes(Move(other.meshes)) {}
 
 	UIComponent& operator=(UIComponent&& other) noexcept { meshes = Move(other.meshes); return *this; }
 

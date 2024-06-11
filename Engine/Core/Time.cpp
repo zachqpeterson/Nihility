@@ -3,10 +3,28 @@
 
 #if defined PLATFORM_WINDOWS
 #include <Windows.h>
+
+F64 ClockFrequency()
+{
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	return 1.0 / (F64)frequency.QuadPart;
+}
+
+F64 clockFrequency = ClockFrequency();
 #endif
 
-F64 Time::clockFrequency;
-F64 Time::programStart;
+F64 ProgramStart()
+{
+#if defined PLATFORM_WINDOWS
+	LARGE_INTEGER startTime;
+	QueryPerformanceCounter(&startTime);
+
+	return (F64)startTime.QuadPart * clockFrequency;
+#endif
+}
+
+F64 Time::programStart = ProgramStart();
 F64 Time::frameEndTime;
 F64 Time::delta;
 F64 Time::frameTimer;
@@ -15,16 +33,6 @@ U32 Time::frameCounter;
 
 bool Time::Initialize()
 {
-#if defined PLATFORM_WINDOWS
-	LARGE_INTEGER startTime;
-	QueryPerformanceCounter(&startTime);
-	LARGE_INTEGER frequency;
-	QueryPerformanceFrequency(&frequency);
-	clockFrequency = 1.0 / (F64)frequency.QuadPart;
-
-	programStart = (F64)startTime.QuadPart * clockFrequency;
-#endif
-
 	frameEndTime = programStart;
 	delta = 0.0;
 	frameTimer = 0.0;
@@ -101,17 +109,17 @@ I64 Time::CoreCounter()
 #endif
 }
 
-Timer::Timer() : start{ Time::AbsoluteTime() }, elapsedTime{ 0.0 }, running{ false } {}
+Timer::Timer() : start{ 0.0 }, elapsedTime{ 0.0 }, running{ false } {}
 
 void Timer::Start()
 {
-	start += !running * (Time::AbsoluteTime() - start);
+	if (!running) { start = Time::AbsoluteTime(); }
 	running = true;
 }
 
 void Timer::Stop()
 {
-	elapsedTime += running * (Time::AbsoluteTime() - start);
+	if (running) { elapsedTime += Time::AbsoluteTime() - start; }
 	running = false;
 }
 
@@ -131,5 +139,7 @@ void Timer::Restart()
 
 F64 Timer::CurrentTime() const
 {
-	return elapsedTime + running * (Time::AbsoluteTime() - start);
+	if (running) { return elapsedTime + Time::AbsoluteTime() - start; }
+
+	return elapsedTime;
 }

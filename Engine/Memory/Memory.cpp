@@ -65,16 +65,7 @@ bool Memory::Initialize()
 
 void Memory::Shutdown()
 {
-	initialized = false;
 
-	if (allocations == 0)
-	{
-		free1kbIndices.Destroy();
-		free16kbIndices.Destroy();
-		free256kbIndices.Destroy();
-		free4mbIndices.Destroy();
-		free(memory);
-	}
 }
 
 Region Memory::GetRegion(void* pointer)

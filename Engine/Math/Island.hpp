@@ -151,10 +151,10 @@ private:
 	bool SolvePositionConstraints();
 	bool SolveTOIPositionConstraints(U32 toiIndexA, U32 toiIndexB);
 
-	Vector<RigidBody2D*> bodies{};
-	Vector<Contact2D*> contacts{};
-	Vector<Position> positions{};
-	Vector<Velocity> velocities{};
+	Vector<RigidBody2D*> bodies;
+	Vector<Contact2D*> contacts;
+	Vector<Position> positions;
+	Vector<Velocity> velocities;
 	Vector<ContactPositionConstraint> positionConstraints;
 	Vector<ContactVelocityConstraint> velocityConstraints;
 

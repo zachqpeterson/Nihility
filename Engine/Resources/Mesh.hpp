@@ -95,7 +95,7 @@ struct NH_API MeshInstanceCluster
 	ResourceRef<Mesh>		mesh{ nullptr };
 	ResourceRef<Material>	material{ nullptr };
 
-	Vector<InstanceData>	instances{};
+	Vector<InstanceData>	instances;
 
 private:
 	HashHandle				handle{ U64_MAX };
