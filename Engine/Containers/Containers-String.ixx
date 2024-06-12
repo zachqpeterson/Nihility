@@ -1,21 +1,15 @@
-#pragma once
+module;
 
 #include "ContainerDefines.hpp"
 
-#include "Vector.hpp"
 #include "Memory\Memory.hpp"
-#include "Math\Math.hpp"
 
-enum CharacterType
-{
-	CHARACTER_TYPE_ALPHABETIC,
-	CHARACTER_TYPE_NUMERIC,
-	CHARACTER_TYPE_ALPHANUMERIC,
-	CHARACTER_TYPE_WHITE_SPACE,
-	CHARACTER_TYPE_PUNCTUATION,
-};
+export module Containers:String;
 
-template<Character C>
+import Math;
+import :Vector;
+
+export template<Character C>
 inline constexpr U64 Length(const C* str) noexcept
 {
 	if (!str) { return 0; }
@@ -26,12 +20,12 @@ inline constexpr U64 Length(const C* str) noexcept
 	return it - str;
 }
 
-inline constexpr U64 Length(NullPointer) noexcept
+export inline constexpr U64 Length(NullPointer) noexcept
 {
 	return 0;
 }
 
-template<Character C>
+export template<Character C>
 inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
 {
 	const C* it0 = a;
@@ -44,7 +38,7 @@ inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
 	return (length + 1) == 0;
 }
 
-template<Character C>
+export template<Character C>
 inline constexpr bool Compare(const C* a, const C* b) noexcept
 {
 	const C* it0 = a;
@@ -57,7 +51,7 @@ inline constexpr bool Compare(const C* a, const C* b) noexcept
 	return !(c0 || c1);
 }
 
-struct StringView
+export struct StringView
 {
 	template<U64 Length>
 	constexpr StringView(const C8(&str)[Length]) : string{ str }, length{ Length } {}
@@ -152,26 +146,26 @@ private:
 	U64 length;
 };
 
-constexpr StringView operator""_SV(const C8 * str, U64 length)
+export constexpr StringView operator""_SV(const C8 * str, U64 length)
 {
 	return { str, length };
 }
 
-template<Character C> struct StringBase;
+export template<Character C> struct StringBase;
 
-using String = StringBase<C8>;
-using String8 = StringBase<C8>;
-using String16 = StringBase<C16>;
-using String32 = StringBase<C32>;
+export using String = StringBase<C8>;
+export using String8 = StringBase<C8>;
+export using String16 = StringBase<C16>;
+export using String32 = StringBase<C32>;
 
-template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
-template <class Type> concept StringViewType = IsStringViewType<Type>;
-template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-template <class Type> concept StringType = IsStringType<Type>;
-template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
-template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-template <class Type> concept NonStringClass = IsNonStringClass<Type>;
+export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
+export template <class Type> concept StringViewType = IsStringViewType<Type>;
+export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
+export template <class Type> concept StringType = IsStringType<Type>;
+export template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+export template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
+export template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
+export template <class Type> concept NonStringClass = IsNonStringClass<Type>;
 
 /*
 * TODO: Documentation
@@ -184,7 +178,7 @@ template <class Type> concept NonStringClass = IsNonStringClass<Type>;
 *
 * TODO: Option to add 0x prefix to {h}
 */
-template<Character C>
+export template<Character C>
 struct StringBase
 {
 	using CharType = C;

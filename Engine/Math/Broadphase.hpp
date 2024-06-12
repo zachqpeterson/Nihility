@@ -20,10 +20,11 @@
 
 #pragma once
 
+import Containers;
+
 #include "PhysicsDefines.hpp"
 
 #include "Memory\Memory.hpp"
-#include "Containers\Vector.hpp"
 
 static constexpr inline U32 NullNode = U32_MAX;
 

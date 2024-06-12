@@ -1,7 +1,6 @@
-#pragma once
+module;
 
-#include "MathDefines.hpp"
-
+#include "Defines.hpp"
 #include "Core\Time.hpp"
 
 #include <math.h>
@@ -25,6 +24,59 @@
 #	undef near
 #endif
 
+export module Math;
+
+//export import :Color
+
+#include "Defines.hpp"
+
+export template<FloatingPoint Type> constexpr inline const Type E_T = Type(2.718281828459045L);
+export template<FloatingPoint Type> constexpr inline const Type PI_T = Type(3.1415926535897932385L);
+export template<FloatingPoint Type> constexpr inline const Type LOG_TWO_T = Type(0.693147180559945L);
+export template<FloatingPoint Type> constexpr inline const Type LOG_TEN_T = Type(2.302585092994046L);
+export template<FloatingPoint Type> constexpr inline const Type TWO_PI_T = PI_T<Type> *Type(2.0L);
+export template<FloatingPoint Type> constexpr inline const Type HALF_PI_T = PI_T<Type> *Type(0.5L);
+export template<FloatingPoint Type> constexpr inline const Type QUARTER_PI_T = PI_T<Type> *Type(0.25L);
+export template<FloatingPoint Type> constexpr inline const Type PI_REC_T = Type(1.0L) / PI_T<Type>;
+export template<FloatingPoint Type> constexpr inline const Type TWO_PI_REC_T = Type(1.0L) / TWO_PI_T<Type>;
+export template<FloatingPoint Type> constexpr inline const Type SQRT_TWO_T = Type(1.414213562373095L);
+export template<FloatingPoint Type> constexpr inline const Type SQRT_TWO_REC_T = Type(1.0L) / SQRT_TWO_T<Type>;
+export template<FloatingPoint Type> constexpr inline const Type DEG_TO_RAD_T = PI_T<Type> / Type(180.0L);
+export template<FloatingPoint Type> constexpr inline const Type RAD_TO_DEG_T = Type(180.0L) / PI_T<Type>;
+export template<FloatingPoint Type> constexpr inline const Type ONE_THIRD_T = Type(1.0L) / Type(3.0L);
+export template<FloatingPoint Type> constexpr inline const Type TWO_THIRDS_T = Type(2.0L) / Type(3.0L);
+
+export constexpr F32 E_F = E_T<F32>;
+export constexpr F64 E = E_T<F64>;
+export constexpr F32 PI_F = PI_T<F32>;
+export constexpr F64 PI = PI_T<F64>;
+export constexpr F32 LOG_TWO_F = LOG_TWO_T<F32>;
+export constexpr F64 LOG_TWO = LOG_TWO_T<F64>;
+export constexpr F32 LOG_TEN_F = LOG_TEN_T<F32>;
+export constexpr F64 LOG_TEN = LOG_TEN_T<F64>;
+export constexpr F32 TWO_PI_F = TWO_PI_T<F32>;
+export constexpr F64 TWO_PI = TWO_PI_T<F64>;
+export constexpr F32 HALF_PI_F = HALF_PI_T<F32>;
+export constexpr F64 HALF_PI = HALF_PI_T<F64>;
+export constexpr F32 QUARTER_PI_F = QUARTER_PI_T<F32>;
+export constexpr F64 QUARTER_PI = QUARTER_PI_T<F64>;
+export constexpr F32 PI_REC_F = PI_REC_T<F32>;
+export constexpr F64 PI_REC = PI_REC_T<F64>;
+export constexpr F32 TWO_PI_REC_F = TWO_PI_REC_T<F32>;
+export constexpr F64 TWO_PI_REC = TWO_PI_REC_T<F64>;
+export constexpr F64 SQRT_TWO_F = SQRT_TWO_T<F32>;
+export constexpr F64 SQRT_TWO = SQRT_TWO_T<F64>;
+export constexpr F64 SQRT_TWO_REC_F = SQRT_TWO_REC_T<F32>;
+export constexpr F64 SQRT_TWO_REC = SQRT_TWO_REC_T<F64>;
+export constexpr F32 DEG_TO_RAD_F = DEG_TO_RAD_T<F32>;
+export constexpr F64 DEG_TO_RAD = DEG_TO_RAD_T<F64>;
+export constexpr F32 RAD_TO_DEG_F = RAD_TO_DEG_T<F32>;
+export constexpr F64 RAD_TO_DEG = RAD_TO_DEG_T<F64>;
+export constexpr F32 ONE_THIRD_F = ONE_THIRD_T<F32>;
+export constexpr F64 ONE_THIRD = ONE_THIRD_T<F64>;
+export constexpr F32 TWO_THIRDS_F = TWO_THIRDS_T<F32>;
+export constexpr F64 TWO_THIRDS = TWO_THIRDS_T<F64>;
+
 struct Vector2;
 struct Vector3;
 struct Vector4;
@@ -39,19 +91,19 @@ struct Matrix4;
 struct Quaternion2;
 struct Quaternion3;
 
-template <class Type> inline constexpr bool IsFloatVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4>;
-template <class Type> inline constexpr bool IsIntVectorType = AnyOf<RemovedQuals<Type>, Vector2Int, Vector3Int, Vector4Int>;
-template <class Type> inline constexpr bool IsVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
-template <class Type> inline constexpr bool IsMatrixType = AnyOf<RemovedQuals<Type>, Matrix2, Matrix3, Matrix4>;
-template <class Type> inline constexpr bool IsQuaternionType = AnyOf<RemovedQuals<Type>, Quaternion2, Quaternion3>;
-template <class Type> concept FloatVectorType = IsFloatVectorType<Type>;
-template <class Type> concept FloatOrVector = IsFloatVectorType<Type> || IsFloatingPoint<Type>;
-template <class Type> concept IntVectorType = IsIntVectorType<Type>;
-template <class Type> concept VectorType = IsVectorType<Type>;
-template <class Type> concept MatrixType = IsMatrixType<Type>;
-template <class Type> concept QuaternionType = IsQuaternionType<Type>;
+export template <class Type> inline constexpr bool IsFloatVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4>;
+export template <class Type> inline constexpr bool IsIntVectorType = AnyOf<RemovedQuals<Type>, Vector2Int, Vector3Int, Vector4Int>;
+export template <class Type> inline constexpr bool IsVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
+export template <class Type> inline constexpr bool IsMatrixType = AnyOf<RemovedQuals<Type>, Matrix2, Matrix3, Matrix4>;
+export template <class Type> inline constexpr bool IsQuaternionType = AnyOf<RemovedQuals<Type>, Quaternion2, Quaternion3>;
+export template <class Type> concept FloatVectorType = IsFloatVectorType<Type>;
+export template <class Type> concept FloatOrVector = IsFloatVectorType<Type> || IsFloatingPoint<Type>;
+export template <class Type> concept IntVectorType = IsIntVectorType<Type>;
+export template <class Type> concept VectorType = IsVectorType<Type>;
+export template <class Type> concept MatrixType = IsMatrixType<Type>;
+export template <class Type> concept QuaternionType = IsQuaternionType<Type>;
 
-class NH_API Math
+export class NH_API Math
 {
 public:
 
@@ -76,7 +128,7 @@ public:
 	template <FloatingPoint Type> static constexpr Type Mod(const Type& n, const Type& d) noexcept { return n - d * FloorF(n / d); }
 	template <FloatingPoint Type> static constexpr Type Closest(Type n, Type a, Type b) noexcept { return n < (b + a) * 0.5f ? a : b; }
 	template <Integer Type> static constexpr Type Closest(Type n, Type a, Type b) noexcept { return n < (b + a) >> 1 ? a : b; }
-	\
+
 	template <FloatingPoint Type> static constexpr Type DegToRad(Type deg) noexcept { return deg * DEG_TO_RAD_T<Type>; }
 	template <FloatingPoint Type> static constexpr Type RadToDeg(Type rad) noexcept { return rad * RAD_TO_DEG_T<Type>; }
 	template <FloatingPoint Type> static constexpr Type NormalizeAngle(Type f) noexcept { return (Type)(f - (TWO_PI * FloorF((f + PI) / TWO_PI))); }
@@ -658,10 +710,10 @@ private:
 	STATIC_CLASS(Math);
 };
 
-static constexpr inline U64 operator""_Hash(const C8 * str, U64 length) { return Math::Hash(str, length); }
-static constexpr inline U64 operator""_HashI(const C8 * str, U64 length) { return Math::Hash(str, length); }
+export constexpr inline U64 operator""_Hash(const C8 * str, U64 length) { return Math::Hash(str, length); }
+export constexpr inline U64 operator""_HashI(const C8 * str, U64 length) { return Math::Hash(str, length); }
 
-struct NH_API Quaternion2
+export struct NH_API Quaternion2
 {
 	constexpr Quaternion2() : x{ 0.0f }, y{ 1.0f } {}
 	constexpr Quaternion2(F32 x, F32 y) : x{ x }, y{ y } {}
@@ -808,9 +860,7 @@ public:
 	F32 x, y; //sin, cos
 };
 
-template<Character C> struct StringBase;
-
-struct NH_API Vector2
+export struct NH_API Vector2
 {
 	constexpr Vector2() : x{ 0.0f }, y{ 0.0f } {}
 	constexpr Vector2(F32 f) : x{ f }, y{ f } {}
@@ -927,18 +977,18 @@ struct NH_API Vector2
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator StringBase<C8>() const;
-	operator StringBase<C16>() const;
-	operator StringBase<C32>() const;
+	operator struct String8() const;
+	operator struct String16() const;
+	operator struct String32() const;
 
 public:
 	F32 x, y;
 };
 
-constexpr Vector2 operator*(F32 f, const Vector2& v) { return { f * v.x, f * v.y }; }
-constexpr Vector2 operator/(F32 f, const Vector2& v) { return { f / v.x, f / v.y }; }
+export constexpr Vector2 operator*(F32 f, const Vector2& v) { return { f * v.x, f * v.y }; }
+export constexpr Vector2 operator/(F32 f, const Vector2& v) { return { f / v.x, f / v.y }; }
 
-struct NH_API Vector3
+export struct NH_API Vector3
 {
 	constexpr Vector3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f } {}
 	constexpr Vector3(F32 f) : x{ f }, y{ f }, z{ f } {}
@@ -1085,18 +1135,18 @@ struct NH_API Vector3
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator StringBase<C8>() const;
-	operator StringBase<C16>() const;
-	operator StringBase<C32>() const;
+	operator struct String8() const;
+	operator struct String16() const;
+	operator struct String32() const;
 
 public:
 	F32 x, y, z;
 };
 
-constexpr Vector3 operator*(F32 f, const Vector3& v) { return { f * v.x, f * v.y, f * v.z }; }
-constexpr Vector3 operator/(F32 f, const Vector3& v) { return { f / v.x, f / v.y, f / v.z }; }
+export constexpr Vector3 operator*(F32 f, const Vector3& v) { return { f * v.x, f * v.y, f * v.z }; }
+export constexpr Vector3 operator/(F32 f, const Vector3& v) { return { f / v.x, f / v.y, f / v.z }; }
 
-struct NH_API Vector4
+export struct NH_API Vector4
 {
 	constexpr Vector4() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 0.0f } {}
 	constexpr Vector4(F32 f) : x{ f }, y{ f }, z{ f }, w{ f } {}
@@ -1541,18 +1591,18 @@ struct NH_API Vector4
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator StringBase<C8>() const;
-	operator StringBase<C16>() const;
-	operator StringBase<C32>() const;
+	operator struct String8() const;
+	operator struct String16() const;
+	operator struct String32() const;
 
 public:
 	F32 x, y, z, w;
 };
 
-constexpr Vector4 operator*(F32 f, const Vector4& v) { return { f * v.x, f * v.y, f * v.z, f * v.w }; }
-constexpr Vector4 operator/(F32 f, const Vector4& v) { return { f / v.x, f / v.y, f / v.z, f / v.w }; }
+export constexpr Vector4 operator*(F32 f, const Vector4& v) { return { f * v.x, f * v.y, f * v.z, f * v.w }; }
+export constexpr Vector4 operator/(F32 f, const Vector4& v) { return { f / v.x, f / v.y, f / v.z, f / v.w }; }
 
-struct NH_API Vector2Int
+export struct NH_API Vector2Int
 {
 	constexpr Vector2Int() : x{ 0 }, y{ 0 } {}
 	constexpr Vector2Int(I32 i) : x{ i }, y{ i } {}
@@ -1651,20 +1701,20 @@ struct NH_API Vector2Int
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator StringBase<C8>() const;
-	operator StringBase<C16>() const;
-	operator StringBase<C32>() const;
+	operator struct String8() const;
+	operator struct String16() const;
+	operator struct String32() const;
 
 public:
 	I32 x, y;
 };
 
-constexpr Vector2Int operator*(F32 f, const Vector2Int& v) { return { (I32)(f * v.x), (I32)(f * v.y) }; }
-constexpr Vector2Int operator/(F32 f, const Vector2Int& v) { return { (I32)(f / v.x), (I32)(f / v.y) }; }
-constexpr Vector2Int operator*(I32 i, const Vector2Int& v) { return { i * v.x, i * v.y }; }
-constexpr Vector2Int operator/(I32 i, const Vector2Int& v) { return { i / v.x, i / v.y }; }
+export constexpr Vector2Int operator*(F32 f, const Vector2Int& v) { return { (I32)(f * v.x), (I32)(f * v.y) }; }
+export constexpr Vector2Int operator/(F32 f, const Vector2Int& v) { return { (I32)(f / v.x), (I32)(f / v.y) }; }
+export constexpr Vector2Int operator*(I32 i, const Vector2Int& v) { return { i * v.x, i * v.y }; }
+export constexpr Vector2Int operator/(I32 i, const Vector2Int& v) { return { i / v.x, i / v.y }; }
 
-struct NH_API Vector3Int
+export struct NH_API Vector3Int
 {
 	constexpr Vector3Int() : x{ 0 }, y{ 0 }, z{ 0 } {}
 	constexpr Vector3Int(I32 i) : x{ i }, y{ i }, z{ i } {}
@@ -1797,20 +1847,20 @@ struct NH_API Vector3Int
 	constexpr explicit operator Vector2Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator StringBase<C8>() const;
-	operator StringBase<C16>() const;
-	operator StringBase<C32>() const;
+	operator struct String8() const;
+	operator struct String16() const;
+	operator struct String32() const;
 
 public:
 	I32 x, y, z;
 };
 
-constexpr Vector3Int operator*(F32 f, const Vector3Int& v) { return { (I32)(f * v.x), (I32)(f * v.y), (I32)(f * v.z) }; }
-constexpr Vector3Int operator/(F32 f, const Vector3Int& v) { return { (I32)(f / v.x), (I32)(f / v.y), (I32)(f / v.z) }; }
-constexpr Vector3Int operator*(I32 i, const Vector3Int& v) { return { i * v.x, i * v.y, i * v.z }; }
-constexpr Vector3Int operator/(I32 i, const Vector3Int& v) { return { i / v.x, i / v.y, i / v.z }; }
+export constexpr Vector3Int operator*(F32 f, const Vector3Int& v) { return { (I32)(f * v.x), (I32)(f * v.y), (I32)(f * v.z) }; }
+export constexpr Vector3Int operator/(F32 f, const Vector3Int& v) { return { (I32)(f / v.x), (I32)(f / v.y), (I32)(f / v.z) }; }
+export constexpr Vector3Int operator*(I32 i, const Vector3Int& v) { return { i * v.x, i * v.y, i * v.z }; }
+export constexpr Vector3Int operator/(I32 i, const Vector3Int& v) { return { i / v.x, i / v.y, i / v.z }; }
 
-struct NH_API Vector4Int
+export struct NH_API Vector4Int
 {
 	constexpr Vector4Int() : x{ 0 }, y{ 0 }, z{ 0 }, w{ 0 } {}
 	constexpr Vector4Int(I32 i) : x{ i }, y{ i }, z{ i }, w{ i } {}
@@ -2254,18 +2304,18 @@ struct NH_API Vector4Int
 	constexpr explicit operator Vector2Int() const;
 	constexpr explicit operator Vector3Int() const;
 
-	operator StringBase<C8>() const;
-	operator StringBase<C16>() const;
-	operator StringBase<C32>() const;
+	operator struct String8() const;
+	operator struct String16() const;
+	operator struct String32() const;
 
 public:
 	I32 x, y, z, w;
 };
 
-constexpr Vector4Int operator*(F32 f, const Vector4Int& v) { return { (I32)(f * v.x), (I32)(f * v.y), (I32)(f * v.z), (I32)(f * v.w) }; }
-constexpr Vector4Int operator/(F32 f, const Vector4Int& v) { return { (I32)(f / v.x), (I32)(f / v.y), (I32)(f / v.z), (I32)(f / v.w) }; }
-constexpr Vector4Int operator*(I32 i, const Vector4Int& v) { return { i * v.x, i * v.y, i * v.z, i * v.w }; }
-constexpr Vector4Int operator/(I32 i, const Vector4Int& v) { return { i / v.x, i / v.y, i / v.z, i / v.w }; }
+export constexpr Vector4Int operator*(F32 f, const Vector4Int& v) { return { (I32)(f * v.x), (I32)(f * v.y), (I32)(f * v.z), (I32)(f * v.w) }; }
+export constexpr Vector4Int operator/(F32 f, const Vector4Int& v) { return { (I32)(f / v.x), (I32)(f / v.y), (I32)(f / v.z), (I32)(f / v.w) }; }
+export constexpr Vector4Int operator*(I32 i, const Vector4Int& v) { return { i * v.x, i * v.y, i * v.z, i * v.w }; }
+export constexpr Vector4Int operator/(I32 i, const Vector4Int& v) { return { i / v.x, i / v.y, i / v.z, i / v.w }; }
 
 inline constexpr Vector2::operator Vector3() const { return Vector3{ x, y, 0.0f }; }
 inline constexpr Vector2::operator Vector4() const { return Vector4{ x, y, 0.0f, 0.0f }; }
@@ -2312,7 +2362,7 @@ inline constexpr Type Math::Lerp(const Type& a, const Type& b, F32 t) noexcept
 	return a + (b - a) * t;
 }
 
-template <FloatVectorType Type>
+export template <FloatVectorType Type>
 inline constexpr Type Trajectory(Type start, Type velocity, Type acceleration, Type jerk, F32 t) noexcept
 {
 	F32 t2 = t * t;
@@ -2324,7 +2374,7 @@ inline constexpr Type Trajectory(Type start, Type velocity, Type acceleration, T
 	return start + velocity * t + acceleration * f3 + jerk * f4;
 }
 
-struct NH_API Matrix2
+export struct NH_API Matrix2
 {
 	constexpr Matrix2() : a{ 1.0f, 0.0f }, b{ 0.0f, 1.0f } {}
 	constexpr Matrix2(F32 ax, F32 ay, F32 bx, F32 by) : a{ ax, ay }, b{ bx, by } {}
@@ -2430,7 +2480,7 @@ public:
 	Vector2 a, b; //Columns
 };
 
-struct NH_API Matrix3
+export struct NH_API Matrix3
 {
 	constexpr Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
 	constexpr Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a{ ax, ay, az }, b{ bx, by, bz }, c{ cx, cy, cz } {}
@@ -2605,7 +2655,7 @@ public:
 	Vector3 a, b, c; //Columns
 };
 
-struct NH_API Matrix4
+export struct NH_API Matrix4
 {
 	constexpr Matrix4() : a{ 1.0f, 0.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f, 0.0f }, d{ 0.0f, 0.0f, 0.0f, 1.0f } {}
 	constexpr Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw) :
@@ -3180,7 +3230,7 @@ inline constexpr Matrix4 Quaternion2::RotationMatrix(Vector2 center) const
 
 //TODO: Cache euler angles
 //W is real part
-struct NH_API Quaternion3
+export struct NH_API Quaternion3
 {
 	constexpr Quaternion3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
 	constexpr Quaternion3(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
@@ -3560,7 +3610,7 @@ inline constexpr Quaternion3::operator Quaternion2() const { return Quaternion2{
 constexpr U64 MAX_SPLINE_POINTS = 128;
 
 //TODO: Edit at runtime
-template<FloatOrVector Type>
+export template<FloatOrVector Type>
 struct LinearSpline
 {
 	static constexpr U64 MinPoints = 2;
@@ -3588,7 +3638,7 @@ private:
 };
 
 //TODO: Edit at runtime
-template<FloatOrVector Type>
+export template<FloatOrVector Type>
 struct BezierSpline
 {
 	static constexpr U64 MinPoints = 4;
@@ -3624,7 +3674,7 @@ private:
 };
 
 //TODO: Edit at runtime
-template<FloatOrVector Type>
+export template<FloatOrVector Type>
 struct CatmullRomSpline
 {
 	static constexpr U64 MinPoints = 4;
@@ -3660,7 +3710,7 @@ private:
 };
 
 //TODO: Edit at runtime
-template<FloatOrVector Type>
+export template<FloatOrVector Type>
 struct CardinalSpline
 {
 	static constexpr U64 MinPoints = 4;
@@ -3697,7 +3747,7 @@ private:
 };
 
 //TODO: Edit at runtime
-template<FloatOrVector Type>
+export template<FloatOrVector Type>
 struct BSpline
 {
 	static constexpr U64 MinPoints = 4;
@@ -3733,7 +3783,7 @@ private:
 };
 
 //TODO: Edit at runtime
-template<FloatOrVector Type>
+export template<FloatOrVector Type>
 struct HermiteSpline
 {
 	static constexpr U64 MinPoints = 2;
@@ -3768,71 +3818,71 @@ private:
 	U32 pointCount;
 };
 
-inline constexpr Vector2 Vector2Zero{ 0.0f };
-inline constexpr Vector2 Vector2One{ 1.0f };
-inline constexpr Vector2 Vector2Left{ -1.0f, 0.0f };
-inline constexpr Vector2 Vector2Right{ 1.0f, 0.0f };
-inline constexpr Vector2 Vector2Up{ 0.0f, 1.0f };
-inline constexpr Vector2 Vector2Down{ 0.0f, -1.0f };
+export inline constexpr Vector2 Vector2Zero{ 0.0f };
+export inline constexpr Vector2 Vector2One{ 1.0f };
+export inline constexpr Vector2 Vector2Left{ -1.0f, 0.0f };
+export inline constexpr Vector2 Vector2Right{ 1.0f, 0.0f };
+export inline constexpr Vector2 Vector2Up{ 0.0f, 1.0f };
+export inline constexpr Vector2 Vector2Down{ 0.0f, -1.0f };
 
-inline constexpr Vector3 Vector3Zero{ 0.0f };
-inline constexpr Vector3 Vector3One{ 1.0f };
-inline constexpr Vector3 Vector3Left{ -1.0f, 0.0f, 0.0f };
-inline constexpr Vector3 Vector3Right{ 1.0f, 0.0f, 0.0f };
-inline constexpr Vector3 Vector3Up{ 0.0f, 1.0f, 0.0f };
-inline constexpr Vector3 Vector3Down{ 0.0f, -1.0f, 0.0f };
-inline constexpr Vector3 Vector3Forward{ 0.0f, 0.0f, 1.0f };
-inline constexpr Vector3 Vector3Back{ 0.0f, 0.0f, -1.0f };
+export inline constexpr Vector3 Vector3Zero{ 0.0f };
+export inline constexpr Vector3 Vector3One{ 1.0f };
+export inline constexpr Vector3 Vector3Left{ -1.0f, 0.0f, 0.0f };
+export inline constexpr Vector3 Vector3Right{ 1.0f, 0.0f, 0.0f };
+export inline constexpr Vector3 Vector3Up{ 0.0f, 1.0f, 0.0f };
+export inline constexpr Vector3 Vector3Down{ 0.0f, -1.0f, 0.0f };
+export inline constexpr Vector3 Vector3Forward{ 0.0f, 0.0f, 1.0f };
+export inline constexpr Vector3 Vector3Back{ 0.0f, 0.0f, -1.0f };
 
-inline constexpr Vector4 Vector4Zero{ 0.0f };
-inline constexpr Vector4 Vector4One{ 1.0f };
-inline constexpr Vector4 Vector4Left{ -1.0f, 0.0f, 0.0f, 0.0f };
-inline constexpr Vector4 Vector4Right{ 1.0f, 0.0f, 0.0f, 0.0f };
-inline constexpr Vector4 Vector4Up{ 0.0f, 1.0f, 0.0f, 0.0f };
-inline constexpr Vector4 Vector4Down{ 0.0f, -1.0f, 0.0f, 0.0f };
-inline constexpr Vector4 Vector4Forward{ 0.0f, 0.0f, 1.0f, 0.0f };
-inline constexpr Vector4 Vector4Back{ 0.0f, 0.0f, -1.0f, 0.0f };
-inline constexpr Vector4 Vector4In{ 0.0f, 0.0f, 0.0f, 1.0f };
-inline constexpr Vector4 Vector4Out{ 0.0f, 0.0f, 0.0f, -1.0f };
+export inline constexpr Vector4 Vector4Zero{ 0.0f };
+export inline constexpr Vector4 Vector4One{ 1.0f };
+export inline constexpr Vector4 Vector4Left{ -1.0f, 0.0f, 0.0f, 0.0f };
+export inline constexpr Vector4 Vector4Right{ 1.0f, 0.0f, 0.0f, 0.0f };
+export inline constexpr Vector4 Vector4Up{ 0.0f, 1.0f, 0.0f, 0.0f };
+export inline constexpr Vector4 Vector4Down{ 0.0f, -1.0f, 0.0f, 0.0f };
+export inline constexpr Vector4 Vector4Forward{ 0.0f, 0.0f, 1.0f, 0.0f };
+export inline constexpr Vector4 Vector4Back{ 0.0f, 0.0f, -1.0f, 0.0f };
+export inline constexpr Vector4 Vector4In{ 0.0f, 0.0f, 0.0f, 1.0f };
+export inline constexpr Vector4 Vector4Out{ 0.0f, 0.0f, 0.0f, -1.0f };
 
-inline constexpr Vector2Int Vector2IntZero{ 0 };
-inline constexpr Vector2Int Vector2IntOne{ 1 };
-inline constexpr Vector2Int Vector2IntLeft{ -1, 0 };
-inline constexpr Vector2Int Vector2IntRight{ 1, 0 };
-inline constexpr Vector2Int Vector2IntUp{ 0, 1 };
-inline constexpr Vector2Int Vector2IntDown{ 0, -1 };
+export inline constexpr Vector2Int Vector2IntZero{ 0 };
+export inline constexpr Vector2Int Vector2IntOne{ 1 };
+export inline constexpr Vector2Int Vector2IntLeft{ -1, 0 };
+export inline constexpr Vector2Int Vector2IntRight{ 1, 0 };
+export inline constexpr Vector2Int Vector2IntUp{ 0, 1 };
+export inline constexpr Vector2Int Vector2IntDown{ 0, -1 };
 
-inline constexpr Vector3Int Vector3IntZero{ 0 };
-inline constexpr Vector3Int Vector3IntOne{ 1 };
-inline constexpr Vector3Int Vector3IntLeft{ -1, 0, 0 };
-inline constexpr Vector3Int Vector3IntRight{ 1, 0, 0 };
-inline constexpr Vector3Int Vector3IntUp{ 0, 1, 0 };
-inline constexpr Vector3Int Vector3IntDown{ 0, -1, 0 };
-inline constexpr Vector3Int Vector3IntForward{ 0, 0, 1 };
-inline constexpr Vector3Int Vector3IntBack{ 0, 0, -1 };
+export inline constexpr Vector3Int Vector3IntZero{ 0 };
+export inline constexpr Vector3Int Vector3IntOne{ 1 };
+export inline constexpr Vector3Int Vector3IntLeft{ -1, 0, 0 };
+export inline constexpr Vector3Int Vector3IntRight{ 1, 0, 0 };
+export inline constexpr Vector3Int Vector3IntUp{ 0, 1, 0 };
+export inline constexpr Vector3Int Vector3IntDown{ 0, -1, 0 };
+export inline constexpr Vector3Int Vector3IntForward{ 0, 0, 1 };
+export inline constexpr Vector3Int Vector3IntBack{ 0, 0, -1 };
 
-inline constexpr Vector4Int Vector4IntZero{ 0 };
-inline constexpr Vector4Int Vector4IntOne{ 1 };
-inline constexpr Vector4Int Vector4IntLeft{ -1, 0, 0, 0 };
-inline constexpr Vector4Int Vector4IntRight{ 1, 0, 0, 0 };
-inline constexpr Vector4Int Vector4IntUp{ 0, 1, 0, 0 };
-inline constexpr Vector4Int Vector4IntDown{ 0, -1, 0, 0 };
-inline constexpr Vector4Int Vector4IntForward{ 0, 0, 1, 0 };
-inline constexpr Vector4Int Vector4IntBack{ 0, 0, -1, 0 };
-inline constexpr Vector4Int Vector4IntIn{ 0, 0, 0, 1 };
-inline constexpr Vector4Int Vector4IntOut{ 0, 0, 0, -1 };
+export inline constexpr Vector4Int Vector4IntZero{ 0 };
+export inline constexpr Vector4Int Vector4IntOne{ 1 };
+export inline constexpr Vector4Int Vector4IntLeft{ -1, 0, 0, 0 };
+export inline constexpr Vector4Int Vector4IntRight{ 1, 0, 0, 0 };
+export inline constexpr Vector4Int Vector4IntUp{ 0, 1, 0, 0 };
+export inline constexpr Vector4Int Vector4IntDown{ 0, -1, 0, 0 };
+export inline constexpr Vector4Int Vector4IntForward{ 0, 0, 1, 0 };
+export inline constexpr Vector4Int Vector4IntBack{ 0, 0, -1, 0 };
+export inline constexpr Vector4Int Vector4IntIn{ 0, 0, 0, 1 };
+export inline constexpr Vector4Int Vector4IntOut{ 0, 0, 0, -1 };
 
-inline constexpr Matrix2 Matrix2Identity{};
-inline constexpr Matrix2 Matrix2Zero{ 0.0f, 0.0f, 0.0f, 0.0f };
-inline constexpr Matrix3 Matrix3Identity{};
-inline constexpr Matrix3 Matrix3Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-inline constexpr Matrix4 Matrix4Identity{};
-inline constexpr Matrix4 Matrix4Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+export inline constexpr Matrix2 Matrix2Identity{};
+export inline constexpr Matrix2 Matrix2Zero{ 0.0f, 0.0f, 0.0f, 0.0f };
+export inline constexpr Matrix3 Matrix3Identity{};
+export inline constexpr Matrix3 Matrix3Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+export inline constexpr Matrix4 Matrix4Identity{};
+export inline constexpr Matrix4 Matrix4Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-inline constexpr Quaternion2 Quaternion2Identity{};
-inline constexpr Quaternion3 Quaternion3Identity{};
+export inline constexpr Quaternion2 Quaternion2Identity{};
+export inline constexpr Quaternion3 Quaternion3Identity{};
 
-struct NH_API Transform
+export struct NH_API Transform
 {
 public:
 	const Matrix4& LocalMatrix()

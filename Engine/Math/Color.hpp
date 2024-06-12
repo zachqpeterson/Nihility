@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MathDefines.hpp"
+#include "Defines.hpp"
 
 struct ColorRGB
 {

@@ -1,8 +1,9 @@
 #pragma once
 
+import Math;
+
 #include "Defines.hpp"
 #include "Containers\Freelist.hpp"
-#include "Math\Math.hpp"
 
 constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
 constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }

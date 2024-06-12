@@ -20,8 +20,9 @@
 
 #pragma once
 
+import Math;
+
 #include "Resources\Component.hpp"
-#include "Math.hpp"
 
 enum NH_API PhysicsEventType
 {

@@ -1,5 +1,5 @@
-#include "Containers\String.hpp"
-#include "Containers\Vector.hpp"
+import Containers;
+
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
 
@@ -14,7 +14,7 @@ struct SimpleData
 	F32 f{ 3.14f };
 	bool b{ true };
 
-	bool operator==(const SimpleData& other) { return i == other.i && f == other.f && b == other.b; }
+	bool operator==(const SimpleData& other) const { return i == other.i && f == other.f && b == other.b; }
 };
 
 struct ComplexData
@@ -22,7 +22,7 @@ struct ComplexData
 	ComplexData() : data{ new SimpleData() } {}
 	~ComplexData() { delete data; }
 
-	bool operator==(const ComplexData& other) { return data == other.data; }
+	bool operator==(const ComplexData& other) const { return data == other.data; }
 
 	SimpleData* data;
 };
@@ -31,7 +31,7 @@ struct NoDefaultData
 {
 	NoDefaultData(I32 i) : i{ i } {}
 
-	bool operator==(const NoDefaultData& other) { return i == other.i; }
+	bool operator==(const NoDefaultData& other) const { return i == other.i; }
 
 	I32 i;
 };

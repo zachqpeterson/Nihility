@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Defines.hpp"
+import Containers;
 
-#include "Containers\String.hpp"
+#include "Defines.hpp"
 
 namespace Introspection
 {

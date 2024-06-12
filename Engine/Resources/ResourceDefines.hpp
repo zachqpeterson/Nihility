@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Math\Math.hpp"
-#include "Containers\String.hpp"
-#include "Containers\Vector.hpp"
+import Containers;
+import Math;
+
 #include "Containers\Hashmap.hpp"
 
 static constexpr U8 MAX_MIPMAP_COUNT = 16;

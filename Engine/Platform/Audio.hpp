@@ -1,9 +1,9 @@
 #pragma once
 
+import Containers;
+
 #include "Resources\ResourceDefines.hpp"
 
-#include "Containers\String.hpp"
-#include "Containers\Vector.hpp"
 #include "Containers\Freelist.hpp"
 
 struct AudioFormat

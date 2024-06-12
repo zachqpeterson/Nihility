@@ -1,5 +1,8 @@
 #include "Resources.hpp"
 
+import Containers;
+import Math;
+
 #include "Font.hpp"
 #include "Scene.hpp"
 #include "Settings.hpp"
@@ -12,11 +15,9 @@
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
-#include "Containers\String.hpp"
 #include "Containers\Stack.hpp"
 #include "Containers\Pool.hpp"
 #include "Math\Color.hpp"
-#include "Math\Math.hpp"
 
 #include "External\Assimp\cimport.h"
 #include "External\Assimp\scene.h"

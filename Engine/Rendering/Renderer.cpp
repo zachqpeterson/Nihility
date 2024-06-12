@@ -1,14 +1,15 @@
 ﻿#include "Renderer.hpp"
 
+import Containers;
+import Math;
+
 #include "RenderingDefines.hpp"
 
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
-#include "Containers\Vector.hpp"
 #include "Platform\Platform.hpp"
-#include "Math\Math.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Memory\Memory.hpp"

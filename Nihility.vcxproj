@@ -50,12 +50,14 @@
     <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <IncludePath>C:\Development\Nihility\Engine;$(IncludePath)</IncludePath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <IncludePath>C:\Development\Nihility\Engine;$(IncludePath)</IncludePath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -117,10 +119,8 @@
     <ClInclude Include="Engine\Containers\Queue.hpp" />
     <ClInclude Include="Engine\Containers\SafeQueue.hpp" />
     <ClInclude Include="Engine\Containers\Stack.hpp" />
-    <ClInclude Include="Engine\Containers\String.hpp" />
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\TypeList.hpp" />
-    <ClInclude Include="Engine\Containers\Vector.hpp" />
     <ClInclude Include="Engine\Core\DataReader.hpp" />
     <ClInclude Include="Engine\Core\Events.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
@@ -197,8 +197,6 @@
     <ClInclude Include="Engine\Math\Broadphase.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Island.hpp" />
-    <ClInclude Include="Engine\Math\Math.hpp" />
-    <ClInclude Include="Engine\Math\MathDefines.hpp" />
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
@@ -316,6 +314,9 @@
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Containers\Containers-String.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
+    <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Containers\Freelist.cpp" />
     <ClCompile Include="Engine\Core\DataReader.cpp" />
     <ClCompile Include="Engine\Core\Events.cpp" />
@@ -341,6 +342,7 @@
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Island.cpp" />
     <ClCompile Include="Engine\Math\Math.cpp" />
+    <ClCompile Include="Engine\Math\Math.ixx" />
     <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />

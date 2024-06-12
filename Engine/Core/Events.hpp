@@ -1,9 +1,10 @@
 #pragma once
 
+import Containers;
+
 #include "Defines.hpp"
 
 #include "Function.hpp"
-#include "Containers\String.hpp"
 #include "Containers\Hashmap.hpp"
 
 class NH_API Events

@@ -1,8 +1,12 @@
-#include "Math.hpp"
+module;
 
 #include "SIMD.hpp"
+#include "Memory\Memory.hpp"
 #include "Core\Time.hpp"
-#include "Containers\String.hpp"
+
+module Math;
+
+import Containers;
 
 U64 Math::seed{ 0 };
 
@@ -450,7 +454,7 @@ void Math::SeedRandom(U64 s) { seed = s; }
 
 //Vector2
 
-Vector2::operator String() const { return String(x, ", ", y); }
+Vector2::operator String8() const { return String8(x, ", ", y); }
 Vector2::operator String16() const { return String16(x, u", ", y); }
 Vector2::operator String32() const { return String32(x, U", ", y); }
 
@@ -499,31 +503,31 @@ Vector3 Vector3::operator*(const Quaternion3& q) const
 	};
 }
 
-Vector3::operator String() const { return String(x, ", ", y, ", ", z); }
+Vector3::operator String8() const { return String8(x, ", ", y, ", ", z); }
 Vector3::operator String16() const { return String16(x, u", ", y, u", ", z); }
 Vector3::operator String32() const { return String32(x, U", ", y, U", ", z); }
 
 //Vector4
 
-Vector4::operator String() const { return String(x, ", ", y, ", ", z, ", ", w); }
+Vector4::operator String8() const { return String8(x, ", ", y, ", ", z, ", ", w); }
 Vector4::operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
 Vector4::operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
 
 //Vector2Int
 
-Vector2Int::operator String() const { return String(x, ", ", y); }
+Vector2Int::operator String8() const { return String8(x, ", ", y); }
 Vector2Int::operator String16() const { return String16(x, u", ", y); }
 Vector2Int::operator String32() const { return String32(x, U", ", y); }
 
 //Vector3Int
 
-Vector3Int::operator String() const { return String(x, ", ", y, ", ", z); }
+Vector3Int::operator String8() const { return String8(x, ", ", y, ", ", z); }
 Vector3Int::operator String16() const { return String16(x, u", ", y, u", ", z); }
 Vector3Int::operator String32() const { return String32(x, U", ", y, U", ", z); }
 
 //Vector4Int
 
-Vector4Int::operator String() const { return String(x, ", ", y, ", ", z, ", ", w); }
+Vector4Int::operator String8() const { return String8(x, ", ", y, ", ", z, ", ", w); }
 Vector4Int::operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
 Vector4Int::operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
 

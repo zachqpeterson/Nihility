@@ -1,8 +1,10 @@
 #pragma once
 
+import Containers;
+
 #include "Defines.hpp"
-#include "Containers\String.hpp"
-#include "Containers\Vector.hpp"
+
+#include "Memory\Memory.hpp"
 
 enum NH_API FileOpenMode
 {

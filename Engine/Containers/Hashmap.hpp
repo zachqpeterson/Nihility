@@ -1,7 +1,8 @@
 #pragma once
 
+import Containers;
+
 #include "ContainerDefines.hpp"
-#include "String.hpp"
 #include "Memory\Memory.hpp"
 
 template<class Key, class Value>

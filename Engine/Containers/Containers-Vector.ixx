@@ -1,8 +1,9 @@
-#pragma once
+module;
 
 #include "ContainerDefines.hpp"
-
 #include "Memory\Memory.hpp"
+
+export module Containers:Vector;
 
 /*
 * TODO: Variatic Templates
@@ -16,7 +17,7 @@
 * TODO: Comparison
 *	Compare two Vectors, return true if matching
 *	Compare two Vectors, return count of matching
-*	Compare two Vectors, return Vector<T> of matching
+*	Compare two Vectors, return Vector<Type> of matching
 *	Compare two Vectors, remove matching, return count
 *	Compare two Vectors, merge all unique values
 *
@@ -27,7 +28,7 @@
 * TODO: Remove
 *	Search, remove all non-unique values
 */
-template<typename T>
+export template<class Type>
 struct Vector
 {
 public:
@@ -47,13 +48,13 @@ public:
 	/// </summary>
 	/// <param name="size:">The size the array will be</param>
 	/// <param name="value:">The value that the array will be filled with</param>
-	Vector(U64 size, const T& value);
+	Vector(U64 size, const Type& value);
 
 	/// <summary>
 	/// Create a new Vector instance using an initializer list, size will equal the list size, capacity with be greater than or equal to size, creates an array of size sizeof(T) * capacity and fills it with the values in list
 	/// </summary>
 	/// <param name="list:">The initializer list</param>
-	Vector(Initializer<T> list);
+	Vector(Initializer<Type> list);
 
 	/// <summary>
 	/// Creates a new Vector instance, capacity and size will be other's, creates an array of the same size and copies other's data into it
@@ -105,13 +106,13 @@ public:
 	/// Increases size by one and puts value onto the back of array, reallocates array if it's too small
 	/// </summary>
 	/// <param name="value:">The value to put into array</param>
-	T& Push(const T& value);
+	Type& Push(const Type& value);
 
 	/// <summary>
 	/// Increases size by one and moves value onto the back of array, reallocates array if it's too small
 	/// </summary>
 	/// <param name="value:">The value to move into array</param>
-	T& Push(T&& value) noexcept;
+	Type& Push(Type&& value) noexcept;
 
 	/// <summary>
 	/// Decreases the size by one
@@ -122,34 +123,34 @@ public:
 	/// Decreases the size by one and copies what was in the back of array to value
 	/// </summary>
 	/// <param name="value:">The value to copy to</param>
-	void Pop(T& value);
+	void Pop(Type& value);
 
 	/// <summary>
 	/// Decreases the size by one and moves what was in the back of array to value
 	/// </summary>
 	/// <param name="value:">The value to move to</param>
-	void Pop(T&& value) noexcept;
+	void Pop(Type&& value) noexcept;
 
 	/// <summary>
 	/// Inserts value into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to put value</param>
 	/// <param name="value:">The value to copy</param>
-	template<Unsigned Type> void Insert(Type index, const T& value);
+	template<Unsigned Index> void Insert(Index index, const Type& value);
 
 	/// <summary>
 	/// Inserts value into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to put value</param>
 	/// <param name="value:">The value to move</param>
-	template<Unsigned Type> void Insert(Type index, T&& value) noexcept;
+	template<Unsigned Index> void Insert(Index index, Type&& value) noexcept;
 
 	/// <summary>
 	/// Copies other and inserts it into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to copy other into</param>
 	/// <param name="other:">The Vector to copy</param>
-	template<Unsigned Type> void Insert(Type index, const Vector& other);
+	template<Unsigned Index> void Insert(Index index, const Vector& other);
 
 	/// <summary>
 	/// Moves other and inserts it into index, moves values at and past index over, reallocates array if it's too small
@@ -157,7 +158,7 @@ public:
 	/// </summary>
 	/// <param name="index:">The index to move other into</param>
 	/// <param name="other:">The Vector to move</param>
-	template<Unsigned Type> void Insert(Type index, Vector&& other) noexcept;
+	template<Unsigned Index> void Insert(Index index, Vector&& other) noexcept;
 
 	/// <summary>
 	/// Moves values past index to index
@@ -170,14 +171,14 @@ public:
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
 	/// <param name="value:">The value to copy to</param>
-	void Remove(U64 index, T& value);
+	void Remove(U64 index, Type& value);
 
 	/// <summary>
 	/// Moves value at index into value, moves values past index to index
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
 	/// <param name="value:">The value to move to</param>
-	void Remove(U64 index, T&& value) noexcept;
+	void Remove(U64 index, Type&& value) noexcept;
 
 	/// <summary>
 	/// Removes the value at index by swaping it with the last index
@@ -190,14 +191,14 @@ public:
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
 	/// <param name="value:">The value to copy to</param>
-	void RemoveSwap(U64 index, T& value);
+	void RemoveSwap(U64 index, Type& value);
 
 	/// <summary>
 	/// Moves value at index into value, removes the value at index by swaping it with the last index
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
 	/// <param name="value:">The value to move to</param>
-	void RemoveSwap(U64 index, T&& value) noexcept;
+	void RemoveSwap(U64 index, Type&& value) noexcept;
 
 	/// <summary>
 	/// Moves values at and past index1 to index0
@@ -259,7 +260,7 @@ public:
 	/// Searches array, finds all values that satisfy predicate, fill other with those values
 	/// WARNING: any previous data in other will be lost
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="other:">A Vector to fill with values</param>
 	template<FunctionPtr Predicate> void SearchFor(Predicate predicate, Vector& other);
 
@@ -267,21 +268,21 @@ public:
 	/// Searches array, finds indices of all values that satisfy predicate, fill other with those indices
 	/// WARNING: any previous data in other will be lost
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="other:">A Vector to fill with indices</param>
 	template<FunctionPtr Predicate> void SearchForIndices(Predicate predicate, Vector<U64>& other);
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <returns>The count of values that satisfy predicate</returns>
 	template<FunctionPtr Predicate> U64 SearchCount(Predicate predicate);
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate, removes them from array
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <returns>The count of values that satisfy predicate</returns>
 	template<FunctionPtr Predicate> U64 RemoveAll(Predicate predicate);
 
@@ -289,35 +290,35 @@ public:
 	/// Searches array, finds all values that satisfy predicate, removes them from array and puts them into other
 	/// WARNING: any previous data in other will be lost
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="other:">A Vector to fill with values</param>
 	template<FunctionPtr Predicate> void RemoveAll(Predicate predicate, Vector& other);
 
 	/// <summary>
 	/// Finds the first value that satisfies the predicate, return true if one exists
 	/// </summary>
-	/// <param name="predicate:">A function to evaluate values: bool pred(const T&amp; value)</param>
+	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="value:">A reference to return the found value</param>
 	/// <returns>true if a value exists, false otherwise</returns>
-	template<FunctionPtr Predicate> T* Find(Predicate predicate);
+	template<FunctionPtr Predicate> Type* Find(Predicate predicate);
 
 
 
 	/// <summary>
 	/// Inserts a value based on a predicate
 	/// </summary>
-	/// <param name="predicate:">A function to compare values: bool pred(const T&amp; a, const T&amp; b)</param>
+	/// <param name="predicate:">A function to compare values: bool pred(const Type&amp; a, const Type&amp; b)</param>
 	/// <param name="value:">The value to insert</param>
 	/// <returns>The index the value was inserted at</returns>
-	template<FunctionPtr Predicate> U64 SortedInsert(Predicate predicate, const T& value);
+	template<FunctionPtr Predicate> U64 SortedInsert(Predicate predicate, const Type& value);
 
 	/// <summary>
 	/// Inserts a value based on a predicate
 	/// </summary>
-	/// <param name="predicate:">A function to compare values: bool pred(const T&amp; a, const T&amp; b)</param>
+	/// <param name="predicate:">A function to compare values: bool pred(const Type&amp; a, const Type&amp; b)</param>
 	/// <param name="value:">The value to insert</param>
 	/// <returns>The index the value was inserted at</returns>
-	template<FunctionPtr Predicate> U64 SortedInsert(Predicate predicate, T&& value) noexcept;
+	template<FunctionPtr Predicate> U64 SortedInsert(Predicate predicate, Type&& value) noexcept;
 
 
 
@@ -338,7 +339,7 @@ public:
 	/// </summary>
 	/// <param name="size:">The size to set to</param>
 	/// <param name="value:">The value to fill the array with</param>
-	void Resize(U64 size, const T& value);
+	void Resize(U64 size, const Type& value);
 
 	/// <summary>
 	/// Sets size to zero
@@ -352,21 +353,21 @@ public:
 	/// </summary>
 	/// <param name="value:">The value to search for</param>
 	/// <returns>true if value is contained within array, false otherwise</returns>
-	bool Contains(const T& value) const;
+	bool Contains(const Type& value) const;
 
 	/// <summary>
 	/// Counts the reoccurrences of value in array
 	/// </summary>
 	/// <param name="value:">The value to search for</param>
 	/// <returns>The number of reoccurrences of value</returns>
-	U64 Count(const T& value) const;
+	U64 Count(const Type& value) const;
 
 	/// <summary>
 	/// Finds the first index of value
 	/// </summary>
 	/// <param name="value:">The value to search for</param>
 	/// <returns>The index of value, if it doesn't find value, U64_MAX</returns>
-	U64 Find(const T& value) const;
+	U64 Find(const Type& value) const;
 
 
 
@@ -384,47 +385,47 @@ public:
 
 	/// <summary></summary>
 	/// <returns>array (const)</returns>
-	const T* Data() const { return array; }
+	const Type* Data() const { return array; }
 
 	/// <summary></summary>
 	/// <returns>array</returns>
-	T* Data() { return array; }
+	Type* Data() { return array; }
 
 
 
 	/// <summary></summary>
 	/// <param name="i:">Index</param>
 	/// <returns>The value at index (const)</returns>
-	const T& operator[](U64 i) const { return array[i]; }
+	const Type& operator[](U64 i) const { return array[i]; }
 
 	/// <summary></summary>
 	/// <param name="i:">Index</param>
 	/// <returns>The value at index</returns>
-	T& operator[](U64 i) { return array[i]; }
+	Type& operator[](U64 i) { return array[i]; }
 
 	/// <summary>
 	/// Gets the value at the front of array (index 0)
 	/// </summary>
 	/// <returns>The value at the front of array</returns>
-	T& Front() { return *array; }
+	Type& Front() { return *array; }
 
 	/// <summary>
 	/// Gets the value at the front of array (index 0)
 	/// </summary>
 	/// <returns>The value at the front of array (const)</returns>
-	const T& Front() const { return *array; }
+	const Type& Front() const { return *array; }
 
 	/// <summary>
 	/// Gets the value at the back of array (index size - 1)
 	/// </summary>
 	/// <returns>The value at the back of array</returns>
-	T& Back() { return array[size - 1]; }
+	Type& Back() { return array[size - 1]; }
 
 	/// <summary>
 	/// Gets the value at the back of array (index size - 1)
 	/// </summary>
 	/// <returns>The value at the back of array (const)</returns>
-	const T& Back() const { return array[size - 1]; }
+	const Type& Back() const { return array[size - 1]; }
 
 
 
@@ -446,19 +447,19 @@ public:
 
 	/// <summary></summary>
 	/// <returns>The beginning of array as an iterator</returns>
-	T* begin() { return array; }
+	Type* begin() { return array; }
 
 	/// <summary></summary>
 	/// <returns>The end of array as an iterator</returns>
-	T* end() { return array + size; }
+	Type* end() { return array + size; }
 
 	/// <summary></summary>
 	/// <returns>The beginning of array as an iterator (const)</returns>
-	const T* begin() const { return array; }
+	const Type* begin() const { return array; }
 
 	/// <summary></summary>
 	/// <returns>The end of array as an iterator (const)</returns>
-	const T* end() const { return array + size; }
+	const Type* end() const { return array + size; }
 
 private:
 
@@ -475,54 +476,54 @@ private:
 	/// <summary>
 	/// A dynamically allocated array to store data
 	/// </summary>
-	T* array{ nullptr };
+	Type* array{ nullptr };
 };
 
-template<typename T> inline Vector<T>::Vector() {}
+template<class Type> inline Vector<Type>::Vector() {}
 
-template<typename T> inline Vector<T>::Vector(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
+template<class Type> inline Vector<Type>::Vector(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
 
-template<typename T> inline Vector<T>::Vector(U64 size, const T& value) : size{ size }, capacity{ size }
+template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : size{ size }, capacity{ size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	for (T* t = array, *end = array + size; t != end; ++t) { *t = value; }
+	for (Type* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
-template<typename T> inline Vector<T>::Vector(Initializer<T> list) : size{ list.size() }, capacity{ size }
+template<class Type> inline Vector<Type>::Vector(Initializer<Type> list) : size{ list.size() }, capacity{ size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
 
-	T* it1 = array;
-	for (const T* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
+	Type* it1 = array;
+	for (const Type* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
 	{
 		*it1 = *it0;
 	}
 }
 
-template<typename T> inline Vector<T>::Vector(const Vector<T>& other) : size{ other.size }, capacity{ other.size }
+template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size{ other.size }, capacity{ other.size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	Memory::Copy(array, other.array, sizeof(T) * size);
+	Memory::Copy(array, other.array, sizeof(Type) * size);
 }
 
-template<typename T> inline Vector<T>::Vector(Vector<T>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
+template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
 {
 	other.size = 0;
 	other.capacity = 0;
 	other.array = nullptr;
 }
 
-template<typename T> inline Vector<T>& Vector<T>::operator=(const Vector<T>& other)
+template<class Type> inline Vector<Type>& Vector<Type>::operator=(const Vector<Type>& other)
 {
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
-	Memory::Copy(array, other.array, size * sizeof(T));
+	Memory::Copy(array, other.array, size * sizeof(Type));
 
 	return *this;
 }
 
-template<typename T> inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
+template<class Type> inline Vector<Type>& Vector<Type>::operator=(Vector<Type>&& other) noexcept
 {
 	if (array) { Memory::Free(&array); }
 	size = other.size;
@@ -536,22 +537,22 @@ template<typename T> inline Vector<T>& Vector<T>::operator=(Vector<T>&& other) n
 	return *this;
 }
 
-template<typename T> inline Vector<T>::~Vector() { Destroy(); }
+template<class Type> inline Vector<Type>::~Vector() { Destroy(); }
 
-template<typename T> inline void Vector<T>::Destroy() { size = 0; capacity = 0; Memory::Free(&array); }
+template<class Type> inline void Vector<Type>::Destroy() { size = 0; capacity = 0; Memory::Free(&array); }
 
-template<typename T> inline void Vector<T>::Cleanup()
+template<class Type> inline void Vector<Type>::Cleanup()
 {
-	if constexpr (IsDestroyable<T>)
+	if constexpr (IsDestroyable<Type>)
 	{
-		for (T* t = array, *end = array + size; t != end; ++t)
+		for (Type* t = array, *end = array + size; t != end; ++t)
 		{
 			t->Destroy();
 		}
 	}
 }
 
-template<typename T> inline T& Vector<T>::Push(const T& value)
+template<class Type> inline Type& Vector<Type>::Push(const Type& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
@@ -559,7 +560,7 @@ template<typename T> inline T& Vector<T>::Push(const T& value)
 	return array[size++];
 }
 
-template<typename T> inline T& Vector<T>::Push(T&& value) noexcept
+template<class Type> inline Type& Vector<Type>::Push(Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
@@ -567,169 +568,169 @@ template<typename T> inline T& Vector<T>::Push(T&& value) noexcept
 	return array[size++];
 }
 
-template<typename T> inline void Vector<T>::Pop()
+template<class Type> inline void Vector<Type>::Pop()
 {
 	if (size) { --size; }
 }
 
-template<typename T> inline void Vector<T>::Pop(T& value)
+template<class Type> inline void Vector<Type>::Pop(Type& value)
 {
 	if (size) { value = array[--size]; }
 }
 
-template<typename T> inline void Vector<T>::Pop(T&& value) noexcept
+template<class Type> inline void Vector<Type>::Pop(Type&& value) noexcept
 {
 	if (size) { value = Move(array[--size]); }
 }
 
-template<typename T>
-template<Unsigned Type>
-inline void Vector<T>::Insert(Type index, const T& value)
+template<class Type>
+template<Unsigned Index>
+inline void Vector<Type>::Insert(Index index, const Type& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(T));
+	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(Type));
 	array[index] = value;
 	++size;
 }
 
-template<typename T>
-template<Unsigned Type>
-inline void Vector<T>::Insert(Type index, T&& value) noexcept
+template<class Type>
+template<Unsigned Index>
+inline void Vector<Type>::Insert(Index index, Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(T));
+	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(Type));
 	array[index] = Move(value);
 	++size;
 }
 
-template<typename T>
-template<Unsigned Type>
-inline void Vector<T>::Insert(Type index, const Vector<T>& other)
+template<class Type>
+template<Unsigned Index>
+inline void Vector<Type>::Insert(Index index, const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(T));
-	Memory::Copy(array + index, other.array, other.size * sizeof(T));
+	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(Type));
+	Memory::Copy(array + index, other.array, other.size * sizeof(Type));
 
 	size += other.size;
 }
 
-template<typename T>
-template<Unsigned Type>
-inline void Vector<T>::Insert(Type index, Vector<T>&& other) noexcept
+template<class Type>
+template<Unsigned Index>
+inline void Vector<Type>::Insert(Index index, Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(T));
-	Memory::Copy(array + index, other.array, other.size * sizeof(T));
+	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(Type));
+	Memory::Copy(array + index, other.array, other.size * sizeof(Type));
 	size += other.size;
 
 	other.Destroy();
 }
 
-template<typename T> inline void Vector<T>::Remove(U64 index)
+template<class Type> inline void Vector<Type>::Remove(U64 index)
 {
-	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(T));
+	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(Type));
 
 	--size;
 }
 
-template<typename T> inline void Vector<T>::Remove(U64 index, T& value)
+template<class Type> inline void Vector<Type>::Remove(U64 index, Type& value)
 {
 	value = array[index];
-	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(T));
+	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(Type));
 
 	--size;
 }
 
-template<typename T> inline void Vector<T>::Remove(U64 index, T&& value) noexcept
+template<class Type> inline void Vector<Type>::Remove(U64 index, Type&& value) noexcept
 {
 	value = Move(array[index]);
-	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(T));
+	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(Type));
 
 	--size;
 }
 
-template<typename T> inline void Vector<T>::RemoveSwap(U64 index)
+template<class Type> inline void Vector<Type>::RemoveSwap(U64 index)
 {
 	array[index] = array[--size];
 }
 
-template<typename T> inline void Vector<T>::RemoveSwap(U64 index, T& value)
+template<class Type> inline void Vector<Type>::RemoveSwap(U64 index, Type& value)
 {
 	value = array[index];
 	array[index] = array[--size];
 }
 
-template<typename T> inline void Vector<T>::RemoveSwap(U64 index, T&& value) noexcept
+template<class Type> inline void Vector<Type>::RemoveSwap(U64 index, Type&& value) noexcept
 {
 	value = Move(array[index]);
 	array[index] = array[--size];
 }
 
-template<typename T> inline void Vector<T>::Erase(U64 index0, U64 index1)
+template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1)
 {
-	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(T));
+	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(Type));
 
 	size -= index1 - index0;
 }
 
-template<typename T> inline void Vector<T>::Erase(U64 index0, U64 index1, Vector<T>& other)
+template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1, Vector<Type>& other)
 {
 	other.Reserve(index1 - index0);
 	other.size = other.capacity;
 
-	Memory::Copy(other.array, array + index0, (index1 - index0) * sizeof(T));
-	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(T));
+	Memory::Copy(other.array, array + index0, (index1 - index0) * sizeof(Type));
+	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(Type));
 
 	size -= index1 - index0;
 }
 
-template<typename T> inline void Vector<T>::Split(U64 index, Vector<T>& other)
+template<class Type> inline void Vector<Type>::Split(U64 index, Vector<Type>& other)
 {
 	other.Reserve(size - index);
 	other.size = other.capacity;
 
-	Memory::Copy(other.array, array + index, other.size * sizeof(T));
+	Memory::Copy(other.array, array + index, other.size * sizeof(Type));
 
 	size -= index;
 }
 
-template<typename T> inline void Vector<T>::Merge(const Vector<T>& other)
+template<class Type> inline void Vector<Type>::Merge(const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
 	size += other.size;
 }
 
-template<typename T> inline void Vector<T>::Merge(Vector<T>&& other) noexcept
+template<class Type> inline void Vector<Type>::Merge(Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
 	size += other.size;
 
 	other.Destroy();
 }
 
-template<typename T> inline Vector<T>& Vector<T>::operator+=(const Vector<T>& other)
+template<class Type> inline Vector<Type>& Vector<Type>::operator+=(const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
 	size += other.size;
 
 	return *this;
 }
 
-template<typename T> inline Vector<T>& Vector<T>::operator+=(Vector<T>&& other) noexcept
+template<class Type> inline Vector<Type>& Vector<Type>::operator+=(Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(T));
+	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
 	size += other.size;
 
 	other.Destroy();
@@ -737,39 +738,39 @@ template<typename T> inline Vector<T>& Vector<T>::operator+=(Vector<T>&& other) 
 	return *this;
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-inline void Vector<T>::SearchFor(Predicate predicate, Vector<T>& other)
+inline void Vector<Type>::SearchFor(Predicate predicate, Vector<Type>& other)
 {
 	other.Reserve(size);
 	other.size = 0;
 
-	for (T* t = array, *end = array + size; t != end; ++t)
+	for (Type* t = array, *end = array + size; t != end; ++t)
 	{
 		if (predicate(*t)) { other.Push(*t); }
 	}
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-inline void Vector<T>::SearchForIndices(Predicate predicate, Vector<U64>& other)
+inline void Vector<Type>::SearchForIndices(Predicate predicate, Vector<U64>& other)
 {
 	other.Reserve(size);
 	other.size = 0;
 
 	U64 i = 0;
-	for (T* t = array, *end = array + size; t != end; ++t, ++i)
+	for (Type* t = array, *end = array + size; t != end; ++t, ++i)
 	{
 		if (predicate(*t)) { other.Push(i); }
 	}
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-inline U64 Vector<T>::SearchCount(Predicate predicate)
+inline U64 Vector<Type>::SearchCount(Predicate predicate)
 {
 	U64 i = 0;
-	for (T* t = array, *end = array + size; t != end; ++t)
+	for (Type* t = array, *end = array + size; t != end; ++t)
 	{
 		if (predicate(*t)) { ++i; }
 	}
@@ -777,19 +778,19 @@ inline U64 Vector<T>::SearchCount(Predicate predicate)
 	return i;
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-inline U64 Vector<T>::RemoveAll(Predicate predicate)
+inline U64 Vector<Type>::RemoveAll(Predicate predicate)
 {
-	T* last = array + size;
+	Type* last = array + size;
 
 	U64 i = 0;
-	for (T* t = array, *end = array + size; t != end;)
+	for (Type* t = array, *end = array + size; t != end;)
 	{
 		if (predicate(*t))
 		{
 			++i;
-			Memory::Copy(t, t + 1, sizeof(T) * (last - t - 1));
+			Memory::Copy(t, t + 1, sizeof(Type) * (last - t - 1));
 			--size;
 		}
 		else { ++t; }
@@ -798,21 +799,21 @@ inline U64 Vector<T>::RemoveAll(Predicate predicate)
 	return i;
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
+inline void Vector<Type>::RemoveAll(Predicate predicate, Vector<Type>& other)
 {
-	T* last = array + size;
+	Type* last = array + size;
 
 	other.Reserve(size);
 	other.size = 0;
 
-	for (T* t = array, *end = array + size; t != end;)
+	for (Type* t = array, *end = array + size; t != end;)
 	{
 		if (predicate(*t))
 		{
 			other.Push(*t);
-			Memory::Copy(t, t + 1, sizeof(T) * (last - t - 1));
+			Memory::Copy(t, t + 1, sizeof(Type) * (last - t - 1));
 
 			--size;
 		}
@@ -820,11 +821,11 @@ inline void Vector<T>::RemoveAll(Predicate predicate, Vector<T>& other)
 	}
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-inline T* Vector<T>::Find(Predicate predicate)
+inline Type* Vector<Type>::Find(Predicate predicate)
 {
-	for (T* t = array, *end = array + size; t != end; ++t)
+	for (Type* t = array, *end = array + size; t != end; ++t)
 	{
 		if (predicate(t)) { return t; }
 	}
@@ -832,18 +833,18 @@ inline T* Vector<T>::Find(Predicate predicate)
 	return nullptr;
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-U64 Vector<T>::SortedInsert(Predicate predicate, const T& value)
+U64 Vector<Type>::SortedInsert(Predicate predicate, const Type& value)
 {
 	U64 i = 0;
-	for (T* t = array, *end = array + size; t != end; ++t, ++i)
+	for (Type* t = array, *end = array + size; t != end; ++t, ++i)
 	{
 		if (predicate(value, *t))
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(T));
+			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(Type));
 			array[i] = value;
 			++size;
 
@@ -858,18 +859,18 @@ U64 Vector<T>::SortedInsert(Predicate predicate, const T& value)
 	return index;
 }
 
-template<typename T>
+template<class Type>
 template<FunctionPtr Predicate>
-U64 Vector<T>::SortedInsert(Predicate predicate, T&& value) noexcept
+U64 Vector<Type>::SortedInsert(Predicate predicate, Type&& value) noexcept
 {
 	U64 i = 0;
-	for (T* t = array, *end = array + size; t != end; ++t, ++i)
+	for (Type* t = array, *end = array + size; t != end; ++t, ++i)
 	{
 		if (predicate(value, *t))
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(T));
+			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(Type));
 			array[i] = Move(value);
 			++size;
 
@@ -884,21 +885,21 @@ U64 Vector<T>::SortedInsert(Predicate predicate, T&& value) noexcept
 	return index;
 }
 
-template<typename T>
-inline void Vector<T>::Reserve(U64 capacity)
+template<class Type>
+inline void Vector<Type>::Reserve(U64 capacity)
 {
 	Memory::Reallocate(&array, capacity, this->capacity);
 }
 
-template<typename T>
-inline void Vector<T>::Resize(U64 size)
+template<class Type>
+inline void Vector<Type>::Resize(U64 size)
 {
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
 }
 
-template<typename T>
-inline void Vector<T>::Resize(U64 size, const T& value)
+template<class Type>
+inline void Vector<Type>::Resize(U64 size, const Type& value)
 {
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
@@ -906,10 +907,10 @@ inline void Vector<T>::Resize(U64 size, const T& value)
 	for (U64 i = 0; i < size; ++i) { array[i] = value; }
 }
 
-template<typename T>
-inline bool Vector<T>::Contains(const T& value) const
+template<class Type>
+inline bool Vector<Type>::Contains(const Type& value) const
 {
-	for (T* t = array, *end = array + size; t != end; ++t)
+	for (Type* t = array, *end = array + size; t != end; ++t)
 	{
 		if (*t == value) { return true; }
 	}
@@ -917,11 +918,11 @@ inline bool Vector<T>::Contains(const T& value) const
 	return false;
 }
 
-template<typename T>
-inline U64 Vector<T>::Count(const T& value) const
+template<class Type>
+inline U64 Vector<Type>::Count(const Type& value) const
 {
 	U64 count = 0;
-	for (T* t = array, *end = array + size; t != end; ++t)
+	for (Type* t = array, *end = array + size; t != end; ++t)
 	{
 		if (*t == value) { ++count; }
 	}
@@ -929,11 +930,11 @@ inline U64 Vector<T>::Count(const T& value) const
 	return count;
 }
 
-template<typename T>
-inline U64 Vector<T>::Find(const T& value) const
+template<class Type>
+inline U64 Vector<Type>::Find(const Type& value) const
 {
 	U64 index = 0;
-	for (T* t = array; index < size; ++index, ++t)
+	for (Type* t = array; index < size; ++index, ++t)
 	{
 		if (*t == value) { return index; }
 	}
@@ -941,12 +942,12 @@ inline U64 Vector<T>::Find(const T& value) const
 	return -1;
 }
 
-template<typename T>
-inline bool Vector<T>::operator==(const Vector& other) const
+template<class Type>
+inline bool Vector<Type>::operator==(const Vector& other) const
 {
 	if (size != other.size) { return false; }
 
-	for (T* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
+	for (Type* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
 	{
 		if (*it0 != *it0) { return false; }
 	}
@@ -954,12 +955,12 @@ inline bool Vector<T>::operator==(const Vector& other) const
 	return true;
 }
 
-template<typename T>
-inline bool Vector<T>::operator!=(const Vector& other) const
+template<class Type>
+inline bool Vector<Type>::operator!=(const Vector& other) const
 {
 	if (size != other.size) { return true; }
 
-	for (T* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
+	for (Type* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
 	{
 		if (*it0 != *it0) { return true; }
 	}

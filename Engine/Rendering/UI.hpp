@@ -1,11 +1,12 @@
 #pragma once
 
+import Containers;
+import Math;
+
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Component.hpp"
 #include "Resources\Mesh.hpp"
-#include "Containers\String.hpp"
 #include "Core\Function.hpp"
-#include "Math\Math.hpp"
 
 struct UIElement;
 typedef void(*UIEvent)(UIElement*, const Vector2&);

@@ -1,8 +1,8 @@
 #pragma once
 
+import Containers;
+
 #include "Device.hpp"
-#include "Containers\String.hpp"
-#include "Containers\Vector.hpp"
 
 struct _HIDP_PREPARSED_DATA;
 struct _HIDP_DATA;

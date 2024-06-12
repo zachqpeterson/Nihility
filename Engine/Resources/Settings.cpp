@@ -3,7 +3,6 @@
 #include "Core\File.hpp"
 #include "Core\Logger.hpp"
 #include "Core\Events.hpp"
-#include "Containers\String.hpp"
 
 Settings::Data Settings::data{};
 

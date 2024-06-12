@@ -106,12 +106,6 @@
     <ClInclude Include="Engine\Core\File.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Vector.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Containers\String.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Queue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -147,12 +141,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Rendering\RenderingDefines.hpp">
       <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Math\Math.hpp">
-      <Filter>Source Files\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Math\MathDefines.hpp">
-      <Filter>Source Files\Math</Filter>
     </ClInclude>
     <ClInclude Include="Engine\TypeTraits.hpp">
       <Filter>Source Files</Filter>
@@ -1031,6 +1019,18 @@
     </ClCompile>
     <ClCompile Include="Engine\Networking\Steam.cpp">
       <Filter>Source Files\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-String.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Math.ixx">
+      <Filter>Source Files\Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

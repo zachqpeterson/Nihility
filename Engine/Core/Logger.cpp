@@ -1,7 +1,8 @@
 #include "Logger.hpp"
 
+import Containers;
+
 #include "File.hpp"
-#include "Containers\String.hpp"
 #include "Platform\Platform.hpp"
 
 File Logger::log{ "Log.log", FILE_OPEN_LOG };
