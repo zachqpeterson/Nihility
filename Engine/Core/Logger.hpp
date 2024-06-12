@@ -3,6 +3,7 @@
 import Containers;
 
 #include "Defines.hpp"
+#include "Containers\String.hpp"
 
 #define LOG_WARN_ENABLED 1
 #define LOG_INFO_ENABLED 1

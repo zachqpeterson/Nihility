@@ -4,6 +4,7 @@ import Containers;
 import Math;
 
 #include "Containers\Hashmap.hpp"
+#include "Containers\String.hpp"
 
 static constexpr U8 MAX_MIPMAP_COUNT = 16;
 static constexpr U8	MAX_IMAGE_OUTPUTS = 8;				// Maximum number of images/render targets/fbo attachments usable

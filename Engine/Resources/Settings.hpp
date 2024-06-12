@@ -3,6 +3,7 @@
 import Containers;
 
 #include "Defines.hpp"
+#include "Containers\String.hpp"
 
 struct RegistryValue
 {

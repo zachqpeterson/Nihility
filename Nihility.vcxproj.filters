@@ -1026,7 +1026,7 @@
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-String.ixx">
+    <ClCompile Include="Engine\Containers\String.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Math.ixx">

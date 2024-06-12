@@ -28,7 +28,7 @@ export module Math;
 
 //export import :Color
 
-#include "Defines.hpp"
+//import Containers;
 
 export template<FloatingPoint Type> constexpr inline const Type E_T = Type(2.718281828459045L);
 export template<FloatingPoint Type> constexpr inline const Type PI_T = Type(3.1415926535897932385L);
@@ -977,9 +977,9 @@ export struct NH_API Vector2
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator struct String8() const;
-	operator struct String16() const;
-	operator struct String32() const;
+	//operator String8() const { return String8(x, ", ", y); }
+	//operator String16() const { return String16(x, u", ", y); }
+	//operator String32() const { return String32(x, U", ", y); }
 
 public:
 	F32 x, y;
@@ -1135,9 +1135,9 @@ export struct NH_API Vector3
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator struct String8() const;
-	operator struct String16() const;
-	operator struct String32() const;
+	//operator String8() const { return String8(x, ", ", y, ", ", z); }
+	//operator String16() const { return String16(x, u", ", y, u", ", z); }
+	//operator String32() const { return String32(x, U", ", y, U", ", z); }
 
 public:
 	F32 x, y, z;
@@ -1591,9 +1591,9 @@ export struct NH_API Vector4
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator struct String8() const;
-	operator struct String16() const;
-	operator struct String32() const;
+	//operator String8() const { return String8(x, ", ", y, ", ", z, ", ", w); }
+	//operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
+	//operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
 
 public:
 	F32 x, y, z, w;
@@ -1701,9 +1701,9 @@ export struct NH_API Vector2Int
 	constexpr explicit operator Vector3Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator struct String8() const;
-	operator struct String16() const;
-	operator struct String32() const;
+	//operator String8() const { return String8(x, ", ", y); }
+	//operator String16() const { return String16(x, u", ", y); }
+	//operator String32() const { return String32(x, U", ", y); }
 
 public:
 	I32 x, y;
@@ -1847,9 +1847,9 @@ export struct NH_API Vector3Int
 	constexpr explicit operator Vector2Int() const;
 	constexpr explicit operator Vector4Int() const;
 
-	operator struct String8() const;
-	operator struct String16() const;
-	operator struct String32() const;
+	//operator String8() const { return String8(x, ", ", y, ", ", z); }
+	//operator String16() const { return String16(x, u", ", y, u", ", z); }
+	//operator String32() const { return String32(x, U", ", y, U", ", z); }
 
 public:
 	I32 x, y, z;
@@ -2304,9 +2304,9 @@ export struct NH_API Vector4Int
 	constexpr explicit operator Vector2Int() const;
 	constexpr explicit operator Vector3Int() const;
 
-	operator struct String8() const;
-	operator struct String16() const;
-	operator struct String32() const;
+	//operator String8() const { return String8(x, ", ", y, ", ", z, ", ", w); }
+	//operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
+	//operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
 
 public:
 	I32 x, y, z, w;

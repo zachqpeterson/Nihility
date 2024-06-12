@@ -68,6 +68,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -97,6 +98,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -314,7 +316,7 @@
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Containers\Containers-String.ixx" />
+    <ClCompile Include="Engine\Containers\String.hpp" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Containers\Freelist.cpp" />

@@ -5,8 +5,8 @@ import Containers;
 #include "File.hpp"
 #include "Platform\Platform.hpp"
 
-File Logger::log{ "Log.log", FILE_OPEN_LOG };
-File Logger::console{ "CONOUT$", FILE_OPEN_CONSOLE };
+File Logger::log("Log.log", FILE_OPEN_LOG);
+File Logger::console("CONOUT$", FILE_OPEN_CONSOLE);
 
 bool Logger::Initialize()
 {

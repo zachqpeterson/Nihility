@@ -5,6 +5,7 @@ import Containers;
 #include "Defines.hpp"
 
 #include "Memory\Memory.hpp"
+#include "Containers\String.hpp"
 
 enum NH_API FileOpenMode
 {
@@ -60,12 +61,12 @@ struct NH_API File
 {
 public:
 	File();
-	template <typename Str> File(const Str& path, I32 mode);
+	File(const String& path, I32 mode);
 	~File();
 	void Destroy();
 	void Close();
 
-	template <StringType Str> bool Open(const Str& path, I32 mode);
+	template<StringType Str> bool Open(const Str& path, I32 mode);
 	bool Open(const C8* path, I32 mode);
 	bool Opened() const;
 
@@ -123,8 +124,7 @@ private:
 	FileStats stats{};
 };
 
-template <typename Str>
-inline File::File(const Str& path, I32 mode) { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; Open(path, mode); }
+inline File::File(const String& path, I32 mode) { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; Open(path, mode); }
 
 template <StringType Str>
 inline bool File::Open(const Str& path, I32 mode)

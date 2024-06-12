@@ -19,7 +19,7 @@ typedef U64 HashHandle;
 #define ALPHA_CHAR		UPPER_CHAR | LOWER_CHAR
 #define ALPHANUM_CHAR	ALPHA_CHAR | DIGIT_CHAR
 
-static inline constexpr C8 TYPE_LOOKUP[]{
+static constexpr inline C8 TYPE_LOOKUP[]{
 	0,							// -1 EOF
 	CONTROL_CHAR,				// 00 (NUL)
 	CONTROL_CHAR,				// 01 (SOH)

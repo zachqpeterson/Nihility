@@ -6,6 +6,7 @@ import Containers;
 
 #include "Function.hpp"
 #include "Containers\Hashmap.hpp"
+#include "Containers\String.hpp"
 
 class NH_API Events
 {

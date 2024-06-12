@@ -452,12 +452,6 @@ F64 Math::RandomGausian()
 
 void Math::SeedRandom(U64 s) { seed = s; }
 
-//Vector2
-
-Vector2::operator String8() const { return String8(x, ", ", y); }
-Vector2::operator String16() const { return String16(x, u", ", y); }
-Vector2::operator String32() const { return String32(x, U", ", y); }
-
 //Vector3
 
 Vector3& Vector3::operator*=(const Quaternion3& q)
@@ -502,34 +496,6 @@ Vector3 Vector3::operator*(const Quaternion3& q) const
 		((x * (zzx - yyw)) + (y * (zzy + xxw))) + (z * ((1.0f - xxx) - yyy))
 	};
 }
-
-Vector3::operator String8() const { return String8(x, ", ", y, ", ", z); }
-Vector3::operator String16() const { return String16(x, u", ", y, u", ", z); }
-Vector3::operator String32() const { return String32(x, U", ", y, U", ", z); }
-
-//Vector4
-
-Vector4::operator String8() const { return String8(x, ", ", y, ", ", z, ", ", w); }
-Vector4::operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
-Vector4::operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
-
-//Vector2Int
-
-Vector2Int::operator String8() const { return String8(x, ", ", y); }
-Vector2Int::operator String16() const { return String16(x, u", ", y); }
-Vector2Int::operator String32() const { return String32(x, U", ", y); }
-
-//Vector3Int
-
-Vector3Int::operator String8() const { return String8(x, ", ", y, ", ", z); }
-Vector3Int::operator String16() const { return String16(x, u", ", y, u", ", z); }
-Vector3Int::operator String32() const { return String32(x, U", ", y, U", ", z); }
-
-//Vector4Int
-
-Vector4Int::operator String8() const { return String8(x, ", ", y, ", ", z, ", ", w); }
-Vector4Int::operator String16() const { return String16(x, u", ", y, u", ", z, u", ", w); }
-Vector4Int::operator String32() const { return String32(x, U", ", y, U", ", z, U", ", w); }
 
 //Matrix4
 

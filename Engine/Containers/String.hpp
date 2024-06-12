@@ -1,15 +1,12 @@
-module;
+#pragma once
 
 #include "ContainerDefines.hpp"
 
 #include "Memory\Memory.hpp"
 
-export module Containers:String;
-
 import Math;
-import :Vector;
 
-export template<Character C>
+template<Character C>
 inline constexpr U64 Length(const C* str) noexcept
 {
 	if (!str) { return 0; }
@@ -20,12 +17,12 @@ inline constexpr U64 Length(const C* str) noexcept
 	return it - str;
 }
 
-export inline constexpr U64 Length(NullPointer) noexcept
+inline constexpr U64 Length(NullPointer) noexcept
 {
 	return 0;
 }
 
-export template<Character C>
+template<Character C>
 inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
 {
 	const C* it0 = a;
@@ -38,7 +35,7 @@ inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
 	return (length + 1) == 0;
 }
 
-export template<Character C>
+template<Character C>
 inline constexpr bool Compare(const C* a, const C* b) noexcept
 {
 	const C* it0 = a;
@@ -51,7 +48,7 @@ inline constexpr bool Compare(const C* a, const C* b) noexcept
 	return !(c0 || c1);
 }
 
-export struct StringView
+struct StringView
 {
 	template<U64 Length>
 	constexpr StringView(const C8(&str)[Length]) : string{ str }, length{ Length } {}
@@ -146,26 +143,26 @@ private:
 	U64 length;
 };
 
-export constexpr StringView operator""_SV(const C8 * str, U64 length)
+constexpr StringView operator""_SV(const C8* str, U64 length)
 {
 	return { str, length };
 }
 
-export template<Character C> struct StringBase;
+template<Character C> struct StringBase;
 
-export using String = StringBase<C8>;
-export using String8 = StringBase<C8>;
-export using String16 = StringBase<C16>;
-export using String32 = StringBase<C32>;
+using String = StringBase<C8>;
+using String8 = StringBase<C8>;
+using String16 = StringBase<C16>;
+using String32 = StringBase<C32>;
 
-export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
-export template <class Type> concept StringViewType = IsStringViewType<Type>;
-export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-export template <class Type> concept StringType = IsStringType<Type>;
-export template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-export template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
-export template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-export template <class Type> concept NonStringClass = IsNonStringClass<Type>;
+template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
+template <class Type> concept StringViewType = IsStringViewType<Type>;
+template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
+template <class Type> concept StringType = IsStringType<Type>;
+template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
+template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
+template <class Type> concept NonStringClass = IsNonStringClass<Type>;
 
 /*
 * TODO: Documentation
@@ -178,7 +175,7 @@ export template <class Type> concept NonStringClass = IsNonStringClass<Type>;
 *
 * TODO: Option to add 0x prefix to {h}
 */
-export template<Character C>
+template<Character C>
 struct StringBase
 {
 	using CharType = C;
@@ -276,7 +273,6 @@ struct StringBase
 	template<typename Arg> StringBase Appended(const Arg& append) const noexcept;
 	template<typename Arg> StringBase Prepended(const Arg& prepend) const noexcept;
 	template<typename PreArg, typename PostArg> StringBase Surrounded(const PreArg& prepend, const PostArg& append) const noexcept;
-	Vector<StringBase> Split(C delimiter, bool trimEntries) const noexcept;
 
 	StringBase& ToUpper() noexcept;
 	StringBase& ToLower() noexcept;
@@ -611,7 +607,7 @@ inline bool StringBase<C>::operator<(const StringBase<C>& other) const noexcept
 	const C* it0 = string;
 	const C* it1 = other.string;
 
-	U64 length = size > other.size ? other.size : size;
+	U64 length = Math::Min(size, other.size);
 
 	while (length-- && *it0 == *it1) { ++it0; ++it1; }
 
@@ -627,7 +623,7 @@ inline bool StringBase<C>::operator>(const StringBase<C>& other) const noexcept
 	const C* it0 = string;
 	const C* it1 = other.string;
 
-	U64 length = size > other.size ? other.size : size;
+	U64 length = Math::Min(size, other.size);
 
 	while (length-- && *it0 == *it1) { ++it0; ++it1; }
 
@@ -1090,12 +1086,6 @@ inline StringBase<C> StringBase<C>::Surrounded(const PreArg& prepend, const Post
 	str.Surround(prepend, append);
 
 	return Move(str);
-}
-
-template<Character C>
-inline Vector<StringBase<C>> StringBase<C>::Split(C delimiter, bool trimEntries) const noexcept
-{
-	//TODO: this
 }
 
 template<Character C>
