@@ -8,7 +8,6 @@
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"
-#include "Math\Math.hpp"
 #include "Core\Time.hpp"
 #include "Core\Logger.hpp"
 #include "Rendering\Sprite.hpp"

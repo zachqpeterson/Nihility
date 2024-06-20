@@ -423,7 +423,7 @@ void Island2D::InitVelocityConstraints()
 
 			// Setup a velocity bias for restitution.
 			vcp.velocityBias = 0.0f;
-			F32 vRel = cvc.normal.Dot(vB + Math::Cross(wB, vcp.rB) - vA - Math::Cross(wA, vcp.rA));
+			F32 vRel = cvc.normal.Dot(vB + vcp.rB.CrossInv(wB) - vA - vcp.rA.CrossInv(wA));
 			if (vRel < -VelocityThreshold)
 			{
 				vcp.velocityBias = -cvc.restitution * vRel;
@@ -533,7 +533,7 @@ void Island2D::SolveVelocityConstraints()
 			VelocityConstraintPoint& vcp = cvc.points[j];
 
 			// Relative velocity at contact
-			Vector2 dv = vB + Math::Cross(wB, vcp.rB) - vA - Math::Cross(wA, vcp.rA);
+			Vector2 dv = vB + vcp.rB.CrossInv(wB) - vA - vcp.rA.CrossInv(wA);
 
 			// Compute tangent force
 			F32 vt = dv.Dot(tangent) - cvc.tangentSpeed;
@@ -563,7 +563,7 @@ void Island2D::SolveVelocityConstraints()
 				VelocityConstraintPoint& vcp = cvc.points[i];
 
 				// Relative velocity at contact
-				Vector2 dv = vB + Math::Cross(wB, vcp.rB) - vA - Math::Cross(wA, vcp.rA);
+				Vector2 dv = vB + vcp.rB.CrossInv(wB) - vA - vcp.rA.CrossInv(wA);
 
 				// Compute normal impulse
 				F32 vn = dv.Dot(normal);
@@ -591,8 +591,8 @@ void Island2D::SolveVelocityConstraints()
 			Vector2 a(cp1->normalImpulse, cp2->normalImpulse);
 
 			// Relative velocity at contact
-			Vector2 dv1 = vB + Math::Cross(wB, cp1->rB) - vA - Math::Cross(wA, cp1->rA);
-			Vector2 dv2 = vB + Math::Cross(wB, cp2->rB) - vA - Math::Cross(wA, cp2->rA);
+			Vector2 dv1 = vB + cp1->rB.CrossInv(wB) - vA - cp1->rA.CrossInv(wA);
+			Vector2 dv2 = vB + cp2->rB.CrossInv(wB) - vA - cp2->rA.CrossInv(wA);
 
 			// Compute normal velocity
 			F32 vn1 = dv1.Dot(normal);

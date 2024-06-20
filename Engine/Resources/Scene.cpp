@@ -439,7 +439,13 @@ void Scene::Update()
 	globalData->lightPos.y = 1.0f;
 	globalData->lightPos.z = Math::Sin(lightVal) * 0.2f;
 
-	shadowData->depthViewProjection = Math::Perspective(45.0f, 1.0f, 0.01f, 1000.0f) * Math::LookAt(globalData->lightPos, Vector3Zero, Vector3Up);
+	Matrix4 perspective;
+	perspective.SetPerspective(45.0f, 1.0f, 0.01f, 1000.0f);
+
+	Matrix4 look;
+	look.LookAt(globalData->lightPos, Vector3Zero, Vector3Up);
+
+	shadowData->depthViewProjection = perspective * look;
 
 	globalData->lightSpace = shadowData->depthViewProjection;
 

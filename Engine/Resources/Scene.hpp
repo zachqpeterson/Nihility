@@ -92,7 +92,7 @@ struct NH_API Scene
 #ifdef NH_DEBUG
 		return flyCamera.GetCamera();
 #else
-		return &camera;
+		return camera;
 #endif
 	}
 

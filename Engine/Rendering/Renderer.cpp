@@ -1,20 +1,18 @@
 ﻿#include "Renderer.hpp"
 
-import Containers;
-import Math;
-
 #include "RenderingDefines.hpp"
 
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
+#include "Pipeline.hpp"
 #include "Core\Logger.hpp"
 #include "Core\File.hpp"
 #include "Platform\Platform.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Memory\Memory.hpp"
-#include "Pipeline.hpp"
 #include "Resources\Scene.hpp"
+#include "Math\Math.hpp"
 
 #define VMA_DEBUG_LOG
 //#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")

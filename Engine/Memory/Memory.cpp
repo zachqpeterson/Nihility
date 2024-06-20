@@ -65,7 +65,7 @@ bool Memory::Initialize()
 
 void Memory::Shutdown()
 {
-
+	initialized = false;
 }
 
 Region Memory::GetRegion(void* pointer)
@@ -155,7 +155,7 @@ void Memory::CopyFree(void** pointer, void* copy, U64 size)
 
 void Memory::Free1kb(void** pointer)
 {
-	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
+	if (!initialized) { return; }
 	Zero(*pointer, sizeof(Region1kb));
 	free1kbIndices.Release((U32)((Region1kb*)*pointer - pool1kbPointer));
 	*pointer = nullptr;
@@ -163,7 +163,7 @@ void Memory::Free1kb(void** pointer)
 
 void Memory::Free16kb(void** pointer)
 {
-	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
+	if (!initialized) { return; }
 	Zero(*pointer, sizeof(Region16kb));
 	free16kbIndices.Release((U32)((Region16kb*)*pointer - pool16kbPointer));
 	*pointer = nullptr;
@@ -171,7 +171,7 @@ void Memory::Free16kb(void** pointer)
 
 void Memory::Free256kb(void** pointer)
 {
-	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
+	if (!initialized) { return; }
 	Zero(*pointer, sizeof(Region256kb));
 	free256kbIndices.Release((U32)((Region256kb*)*pointer - pool256kbPointer));
 	*pointer = nullptr;
@@ -179,7 +179,7 @@ void Memory::Free256kb(void** pointer)
 
 void Memory::Free4mb(void** pointer)
 {
-	if (!initialized && --allocations == 0) { Memory::Shutdown(); }
+	if (!initialized) { return; }
 	Zero(*pointer, sizeof(Region4mb));
 	free4mbIndices.Release((U32)((Region4mb*)*pointer - pool4mbPointer));
 	*pointer = nullptr;
@@ -298,8 +298,9 @@ void Memory::CopyRepeatedGap(void* dst, const void* src, U64 size, U64 count, U6
 
 /*---------GLOBAL NEW/DELETE---------*/
 
-NH_NODISCARD void* operator new (U64 size)
+NH_NODISCARD void* operator new(U64 size)
 {
+	if (size == 0) { return nullptr; }
 	U8* ptr;
 	Memory::AllocateSize(&ptr, size);
 	return ptr;
@@ -307,17 +308,33 @@ NH_NODISCARD void* operator new (U64 size)
 
 NH_NODISCARD void* operator new[](U64 size)
 {
+	if (size == 0) { return nullptr; }
 	U8* ptr;
 	Memory::AllocateSize(&ptr, size);
 	return ptr;
 }
 
-void operator delete (void* ptr)
+NH_NODISCARD void* operator new(U64 size, Align alignment)
 {
-	Memory::Free(&ptr);
+	if (size == 0) { return nullptr; }
+	U8* ptr;
+	Memory::AllocateSize(&ptr, size);
+	return ptr;
 }
 
-void operator delete[](void* ptr)
+NH_NODISCARD void* operator new[](U64 size, Align alignment)
 {
-	Memory::Free(&ptr);
+	if (size == 0) { return nullptr; }
+	U8* ptr;
+	Memory::AllocateSize(&ptr, size);
+	return ptr;
 }
+
+void operator delete(void* ptr) noexcept { Memory::Free(&ptr); }
+void operator delete[](void* ptr) noexcept { Memory::Free(&ptr); }
+void operator delete(void* ptr, Align alignment) noexcept { Memory::Free(&ptr); }
+void operator delete[](void* ptr, Align alignment) noexcept { Memory::Free(&ptr); }
+void operator delete(void* ptr, U64 size) noexcept { Memory::Free(&ptr); }
+void operator delete[](void* ptr, U64 size) noexcept { Memory::Free(&ptr); }
+void operator delete(void* ptr, U64 size, Align alignment) noexcept { Memory::Free(&ptr); }
+void operator delete[](void* ptr, U64 size, Align alignment) noexcept { Memory::Free(&ptr); }

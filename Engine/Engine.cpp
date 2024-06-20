@@ -1,7 +1,6 @@
 #include "Engine.hpp"
 
 import Containers;
-import Math;
 
 #include "Introspection.hpp"
 #include "Memory\Memory.hpp"
@@ -19,6 +18,7 @@ import Math;
 #include "Containers\Queue.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
+#include "Math\Math.hpp"
 #include "Math\Physics.hpp"
 #include "Networking\Discord.hpp"
 #include "Networking\Steam.hpp"

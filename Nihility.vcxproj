@@ -99,6 +99,8 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -199,6 +201,7 @@
     <ClInclude Include="Engine\Math\Broadphase.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Island.hpp" />
+    <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
     <ClInclude Include="Engine\Memory\Memory.hpp" />
@@ -343,7 +346,9 @@
     <ClCompile Include="Engine\Math\Broadphase.cpp" />
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Island.cpp" />
-    <ClCompile Include="Engine\Math\Math.cpp" />
+    <ClCompile Include="Engine\Math\Math-Constants.ixx" />
+    <ClCompile Include="Engine\Math\Math-Functions.ixx" />
+    <ClCompile Include="Engine\Math\Math-Types.ixx" />
     <ClCompile Include="Engine\Math\Math.ixx" />
     <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />

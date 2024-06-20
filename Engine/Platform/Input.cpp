@@ -1,14 +1,13 @@
 #include "Input.hpp"
 
 import Containers;
-import Math;
-
 #include "Device.hpp"
 #include "Platform.hpp"
 #include "Core\Logger.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Rendering\Renderer.hpp"
+#include "Math\Math.hpp"
 
 Vector<Device> Input::devices;
 F32 Input::mouseSensitivity;

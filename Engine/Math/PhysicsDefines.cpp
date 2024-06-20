@@ -225,7 +225,7 @@ Vector2 Simplex::GetSearchDirection() const
 	case 2: {
 		Vector2 e12 = v2.w - v1.w;
 		F32 sgn = e12.Cross(-v1.w);
-		if (sgn > 0.0f) { return Math::Cross(1.0f, e12); }
+		if (sgn > 0.0f) { return e12.CrossInv(1.0f); }
 		else { return e12.Cross(1.0f); }
 	} break;
 	default: return Vector2Zero;

@@ -3,6 +3,7 @@
 import Containers;
 
 #include "Defines.hpp"
+#include "File.hpp"
 #include "Containers\String.hpp"
 
 #define LOG_WARN_ENABLED 1
@@ -23,8 +24,6 @@ import Containers;
 #define DEBUG_TAG "\033[0;36m[DEBUG]:\033[0m "
 #define TRACE_TAG "\033[1;30m[TRACE]:\033[0m "
 #define END_LINE "\n"
-
-struct File;
 
 class NH_API Logger
 {

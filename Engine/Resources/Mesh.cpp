@@ -1,8 +1,7 @@
 #include "Mesh.hpp"
 
-import Math;
-
 #include "Scene.hpp"
+#include "Math\Math.hpp"
 
 void MeshComponent::Update(Scene* scene)
 {

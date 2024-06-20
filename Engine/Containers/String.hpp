@@ -3,8 +3,7 @@
 #include "ContainerDefines.hpp"
 
 #include "Memory\Memory.hpp"
-
-import Math;
+#include "Math\Math.hpp"
 
 template<Character C>
 inline constexpr U64 Length(const C* str) noexcept
@@ -136,7 +135,7 @@ struct StringView
 
 	constexpr U64 Size() const { return length; }
 	constexpr const C8* Data() const { return string; }
-	constexpr U64 Hash() const { return Math::Hash(string, length); }
+	constexpr U64 Hash() const { return Hash::StringHash(string, length); }
 
 private:
 	const C8* string;
@@ -750,7 +749,7 @@ inline U64 StringBase<C>::Hash() noexcept
 template<Character C>
 inline U64 StringBase<C>::Hash() const noexcept
 {
-	if (needHash) { return Math::Hash(string, size); }
+	if (needHash) { return Hash::SeededHash(string, size); }
 	else { return hash; }
 }
 

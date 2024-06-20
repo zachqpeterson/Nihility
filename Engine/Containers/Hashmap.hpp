@@ -537,7 +537,7 @@ template<class Key, class Value>
 inline U64 Hashmap<Key, Value>::Hash(const Key& key)
 {
 	if constexpr (IsStringType<Key>) { return key.Hash(); }
-	else if constexpr (IsPointer<Key>) { return Math::Hash(static_cast<U64>(key)); }
-	else if constexpr (IsStringViewType<Key>) { return Math::Hash(key.Data(), key.Size()); }
-	else { return Math::Hash(key); }
+	else if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
+	else if constexpr (IsStringViewType<Key>) { return Hash::SeededHash(key.Data(), key.Size()); }
+	else { return Hash::SeededHash(key); }
 }

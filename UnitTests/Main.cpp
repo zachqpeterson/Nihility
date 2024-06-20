@@ -2,6 +2,7 @@ import Containers;
 
 #include "Core\Logger.hpp"
 #include "Core\Time.hpp"
+#include "Math\Math.hpp"
 
 #define BEGIN_TEST Timer timer; timer.Start()
 #define END_TEST(b) timer.Stop(); if(b) {Logger::Info("{}	{}", __FUNCTION__, timer.CurrentTime());} else {Logger::Error("{}	{}", __FUNCTION__, timer.CurrentTime());}
@@ -131,6 +132,9 @@ void Vector_Push1000000()
 
 int main()
 {
+	Vector2 v;
+	Vector2 v1 = Vector2Zero;
+
 	Vector_ConstructorBlank();
 	Vector_ConstructorCapacity();
 	Vector_ConstructorSizePrimitive();

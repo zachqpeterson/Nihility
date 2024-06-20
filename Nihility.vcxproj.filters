@@ -691,6 +691,9 @@
     <ClInclude Include="Engine\Networking\Steam.hpp">
       <Filter>Source Files\Networking</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Math\Math.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -725,9 +728,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Renderer.cpp">
       <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Math\Math.cpp">
-      <Filter>Source Files\Math</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Platform\ThreadSafety.cpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
@@ -1030,6 +1030,15 @@
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Math.ixx">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Math-Types.ixx">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Math-Functions.ixx">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Math-Constants.ixx">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
   </ItemGroup>

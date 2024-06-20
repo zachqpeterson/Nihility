@@ -1,9 +1,8 @@
 #pragma once
 
 import Containers;
-import Math;
-
 #include "Defines.hpp"
+#include "Math\Math.hpp"
 
 enum NH_API ButtonCode
 {

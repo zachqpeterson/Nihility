@@ -20,9 +20,8 @@
 
 #pragma once
 
-import Math;
-
 #include "Resources\Component.hpp"
+#include "Math\Math.hpp"
 
 enum NH_API PhysicsEventType
 {
@@ -650,7 +649,7 @@ private:
 		sweep.c0 = sweep.c = sweep.localCenter * transform;
 
 		// Update center of mass velocity.
-		velocity += Math::Cross(angularVelocity, sweep.c - oldCenter);
+		velocity += (sweep.c - oldCenter).CrossInv(angularVelocity);
 	}
 
 	BodyType type{ BODY_TYPE_DYNAMIC };

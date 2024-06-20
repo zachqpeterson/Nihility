@@ -1,9 +1,8 @@
 #pragma once
 
-import Math;
-
 #include "Defines.hpp"
 #include "Containers\Freelist.hpp"
+#include "Math\Math.hpp"
 
 constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
 constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
@@ -24,10 +23,20 @@ constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
 
 /*---------GLOBAL NEW/DELETE---------*/
 
-NH_NODISCARD void* operator new (U64 size);
+enum class Align : U64 {};
+
+NH_NODISCARD void* operator new(U64 size);
 NH_NODISCARD void* operator new[](U64 size);
-void operator delete (void* ptr);
-void operator delete[](void* ptr);
+NH_NODISCARD void* operator new(U64 size, Align alignment);
+NH_NODISCARD void* operator new[](U64 size, Align alignment);
+void operator delete(void* ptr) noexcept;
+void operator delete[](void* ptr) noexcept;
+void operator delete(void* ptr, Align alignment) noexcept;
+void operator delete[](void* ptr, Align alignment) noexcept;
+void operator delete(void* ptr, U64 size) noexcept;
+void operator delete[](void* ptr, U64 size) noexcept;
+void operator delete(void* ptr, U64 size, Align alignment) noexcept;
+void operator delete[](void* ptr, U64 size, Align alignment) noexcept;
 
 enum Region
 {

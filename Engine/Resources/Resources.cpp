@@ -1,7 +1,6 @@
 #include "Resources.hpp"
 
 import Containers;
-import Math;
 
 #include "Font.hpp"
 #include "Scene.hpp"
@@ -17,7 +16,7 @@ import Math;
 #include "Rendering\Pipeline.hpp"
 #include "Containers\Stack.hpp"
 #include "Containers\Pool.hpp"
-#include "Math\Color.hpp"
+#include "Math\Math.hpp"
 
 #include "External\Assimp\cimport.h"
 #include "External\Assimp\scene.h"
@@ -1404,12 +1403,12 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 		{
 			I64 value = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-			switch (Math::Hash(data.Data() + index, data.IndexOf('=', index) - index))
+			switch (Hash::StringHash(data.Data() + index, data.IndexOf('=', index) - index))
 			{
 			case "cull"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "NONE"_Hash: { pipeline->cullMode = CULL_MODE_NONE; } break;
 				case "FRONT"_Hash: { pipeline->cullMode = CULL_MODE_FRONT_BIT; } break;
@@ -1421,7 +1420,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "front"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "CLOCKWISE"_Hash: { pipeline->frontMode = FRONT_FACE_MODE_CLOCKWISE; } break;
 				case "COUNTER"_Hash: { pipeline->frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE; } break;
@@ -1431,7 +1430,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "fill"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "SOLID"_Hash: { pipeline->fillMode = POLYGON_MODE_FILL; } break;
 				case "LINE"_Hash: { pipeline->fillMode = POLYGON_MODE_LINE; } break;
@@ -1442,7 +1441,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "depth"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "NONE"_Hash: {
 					pipeline->depthEnable = false;
@@ -1485,7 +1484,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "blend"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "ADD"_Hash: { pipeline->blendMode = BLEND_MODE_ADD; } break;
 				case "SUB"_Hash: { pipeline->blendMode = BLEND_MODE_SUB; } break;
@@ -1496,7 +1495,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "topology"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "POINTS"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_POINT_LIST; } break;
 				case "LINES"_Hash: { pipeline->topologyMode = TOPOLOGY_MODE_LINE_LIST; } break;
@@ -1515,7 +1514,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "clear"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "COLOR"_Hash: { pipeline->clearTypes |= CLEAR_TYPE_COLOR; } break;
 				case "DEPTH"_Hash: { pipeline->clearTypes |= CLEAR_TYPE_DEPTH; } break;
@@ -1544,7 +1543,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			case "type"_Hash: {
 				I64 size = data.IndexOf('\n', value) - value - 1;
 
-				switch (Math::Hash(data.Data() + value, size))
+				switch (Hash::StringHash(data.Data() + value, size))
 				{
 				case "PRE_OPAQUE"_Hash: { pipeline->type |= PIPELINE_TYPE_PRE_PROCESSING_OPAQUE; } break;
 				case "PRE_TRANSPARENT"_Hash: { pipeline->type |= PIPELINE_TYPE_PRE_PROCESSING_TRANSPARENT; } break;
@@ -2276,7 +2275,7 @@ String Resources::UploadFile(const String& path)
 		return {};
 	}
 
-	switch (Math::HashI(path.Data() + fileExtension, path.Size() - fileExtension))
+	switch (Hash::StringHashCI(path.Data() + fileExtension, path.Size() - fileExtension))
 	{
 		//Images
 	case "jpg"_Hash:

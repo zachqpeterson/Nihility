@@ -301,7 +301,7 @@ bool Shader::Create(const String& shaderPath)
 	{
 		I64 value = data.IndexOfNot(' ', data.IndexOf('=', index + 1) + 1);
 
-		switch (Math::Hash(data.Data() + index, data.IndexOf('=', index) - index))
+		switch (Hash::StringHash(data.Data() + index, data.IndexOf('=', index) - index))
 		{
 		case "instanceLocation"_Hash: { instanceLocation = data.ToType<U8>(value); } break;
 		}
@@ -810,7 +810,7 @@ void Shader::ParseSPIRV(U32* code, U32 codeSize)
 						}
 						else
 						{
-							switch (Math::Hash(id.name.Data(), id.name.Size()))
+							switch (Hash::StringHash(id.name.Data(), id.name.Size()))
 							{
 							case "gl_VertexIndex"_Hash: continue;
 							case "position"_Hash: { attribute.binding = vertexBindingCount++; vertexTypes[attribute.binding] = VERTEX_TYPE_POSITION; } break;
