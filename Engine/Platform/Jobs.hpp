@@ -6,21 +6,6 @@
 #include "Containers\SafeQueue.hpp"
 #include "Core\Function.hpp"
 
-enum NH_API JobPriority
-{
-	JOB_PRIORITY_LOW,
-	JOB_PRIORITY_MEDIUM,
-	JOB_PRIORITY_HIGH,
-
-	JOB_PRIORITY_COUNT
-};
-
-struct NH_API JobDispatchArgs
-{
-	U32 jobIndex;
-	U32 groupIndex;
-};
-
 /*
 * TODO: Limit jobs active at once, maybe add a queue system for low priority jobs
 * TODO: Wait for semaphore/fence
@@ -35,28 +20,8 @@ public:
 	static bool Busy();
 	static void Wait();
 
-	static void SleepForSeconds(U64 s);
-	static void SleepForMilli(U64 ms);
-	static void SleepForMicro(U64 us);
-
 private:
-	static bool Initialize();
-	static void Shutdown();
 
 	static void Poll();
 
-	static SafeQueue<Function<void()>> jobs;
-	static U32 runningJobs;
-	static void* semaphore;
-
-#if defined PLATFORM_WINDOWS
-	static U32 __stdcall RunThread(void*);
-
-	static UL32 sleepRes;
-#endif
-
-	static bool running;
-
-	STATIC_CLASS(Jobs);
-	friend class Engine;
 };

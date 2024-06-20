@@ -273,6 +273,10 @@ template <class Type> concept StringLiteral = IsStringLiteral<Type>;
 template <class Type> constexpr const bool IsFunction = !IsConst<const Type> && !IsReference<Type>;
 template <class Type> concept FunctionPtr = requires (Type t) { IsFunction<decltype(t)>; };
 
+template <class Type> constexpr const bool IsObject = IsConst<const Type> && !IsVoid<Type>;
+template <class Type> concept Object = IsObject<Type>;
+
+
 /// <summary>
 /// Forwards arg as movable
 /// </summary>
@@ -303,11 +307,11 @@ template<class Type> constexpr void Swap(Type& a, Type& b) noexcept
 	b = Move(tmp);
 }
 
+template <bool> struct Select { template <class Type1, class> using Apply = Type1; };
+template <> struct Select<false> { template <class, class Type2> using Apply = Type2; };
+
 namespace TypeTraits
 {
-	template <bool> struct Select { template <class Type1, class> using Apply = Type1; };
-	template <> struct Select<false> { template <class, class Type2> using Apply = Type2; };
-
 	template <class Type> struct GetDecay
 	{
 		using Type1 = RemovedReference<Type>;

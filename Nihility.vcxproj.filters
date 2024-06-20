@@ -1041,5 +1041,14 @@
     <ClCompile Include="Engine\Math\Math-Constants.ixx">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Platform\Multithreading.ixx">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
