@@ -1,9 +1,10 @@
 #pragma once
 
+import ThreadSafety;
+
 #include "ContainerDefines.hpp"
 
 #include "Memory\Memory.hpp"
-#include "Platform\ThreadSafety.hpp"
 
 template<class Type>
 struct SafeQueue
@@ -92,7 +93,11 @@ inline bool SafeQueue<Type>::Pop(Type& value)
 	{
 		U32 b = SafeCompareAndExchange(&back, 0U, capacity);
 
-		if (b == back) { value = Move(array[SafeIncrement(&back) - 1]); return true; }
+		if (b == back)
+		{
+			value = Move(array[SafeIncrement(&back) - 1]);
+			return true;
+		}
 
 		value = Move(array[0]);
 		return true;

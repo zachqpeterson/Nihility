@@ -145,12 +145,6 @@
     <ClInclude Include="Engine\TypeTraits.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\ThreadSafety.hpp">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Platform\Jobs.hpp">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
@@ -729,12 +723,6 @@
     <ClCompile Include="Engine\Rendering\Renderer.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Platform\ThreadSafety.cpp">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Jobs.cpp">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
@@ -1048,6 +1036,9 @@
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\ThreadSafety.ixx">
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClCompile>
   </ItemGroup>

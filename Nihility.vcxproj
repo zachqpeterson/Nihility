@@ -211,9 +211,7 @@
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
-    <ClInclude Include="Engine\Platform\Jobs.hpp" />
     <ClInclude Include="Engine\Platform\Platform.hpp" />
-    <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
@@ -359,12 +357,11 @@
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
-    <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx" />
+    <ClCompile Include="Engine\Platform\ThreadSafety.ixx" />
     <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx" />
     <ClCompile Include="Engine\Platform\Multithreading.ixx" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
-    <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
     <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
     <ClCompile Include="Engine\Rendering\Renderer.cpp" />

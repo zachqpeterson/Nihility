@@ -2,10 +2,17 @@ module;
 
 #include "Defines.hpp"
 
+#if defined(PLATFORM_WINDOWS)
+#include "Windows.h"
+#elif defined(PLATFORM_APPLE)
+#elif defined(PLATFORM_LINUX)
+#elif defined(PLATFORM_UNIX)
+#elif defined(PLATFORM_POSIX)
+#endif
+
 export module Multithreading:Semaphore;
 
 #if defined(PLATFORM_WINDOWS)
-#include "Windows.h"
 
 export struct NH_API Semaphore
 {
@@ -14,8 +21,8 @@ public:
 	~Semaphore() { Destroy(); }
 
 	void Destroy() { ReleaseSemaphore(handle, L32_MAX, nullptr); CloseHandle(handle); }
-	bool Wait() { return WaitForSingleObject(handle, INFINITE) != WAIT_FAILED; }
-	bool Signal(I32 signalCount) { return ReleaseSemaphore(handle, signalCount, nullptr); }
+	bool Wait() { return WaitForSingleObjectEx(handle, INFINITE, false) != WAIT_FAILED; }
+	bool Signal(I32 signalCount = 1) { return ReleaseSemaphore(handle, signalCount, nullptr); }
 
 private:
 	void* handle;

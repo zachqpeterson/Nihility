@@ -1,7 +1,8 @@
 #include "Freelist.hpp"
 
+import ThreadSafety;
+
 #include "Memory\Memory.hpp"
-#include "Platform\ThreadSafety.hpp"
 
 Freelist::Freelist(NullPointer) : capacity{ capacity }, used{ used }, outsideAllocated{ outsideAllocated }, freeCount{ freeCount }, freeIndices{ freeIndices }, lastFree{ lastFree } {}
 

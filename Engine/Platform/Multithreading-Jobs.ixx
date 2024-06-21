@@ -5,19 +5,20 @@ module;
 #include "Core\Function.hpp"
 #include "Containers\SafeQueue.hpp"
 
-#include <xthreads.h>
-
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
 #include <process.h>
-
-static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
-static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
 #endif
 
 export module Multithreading:Jobs;
 
 import :Semaphore;
+import ThreadSafety;
+
+#ifdef PLATFORM_WINDOWS
+static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
+static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
+#endif
 
 export enum NH_API JobPriority
 {
@@ -28,15 +29,28 @@ export enum NH_API JobPriority
 	JOB_PRIORITY_COUNT
 };
 
-struct NH_API DispatchArgs
+struct NH_API JobQueue
+{
+	SafeQueue<Function<void()>> jobs{ 256 };
+};
+
+export struct NH_API DispatchArgs
 {
 	U32 jobIndex;
 	U32 groupIndex;
 };
 
+/*
+* TODO: This syntax would be ideal: StartJob<func>(param, param, ...);
+*/
 export class NH_API Jobs
 {
 public:
+	static void Request(const Function<void()>& job, JobPriority priority = JOB_PRIORITY_MEDIUM);
+	static bool Dispatch(U32 jobCount, U32 groupSize, const Function<void(DispatchArgs)>& job, JobPriority priority = JOB_PRIORITY_MEDIUM);
+
+	static void Wait(JobPriority minPriority);
+
 	static void SleepForSeconds(U64 s);
 	static void SleepForMilli(U64 ms);
 	static void SleepForMicro(U64 us);
@@ -45,12 +59,13 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
+	static void Poll();
+
 	static inline bool running{ false };
 	static inline U64 threadCount{ 1 };
-	static inline U32 runningJobs{ 0 };
-	static inline Semaphore taskSemaphore{};
-	static inline Semaphore completionSemaphore{};
-	static inline SafeQueue<Function<void()>> jobs[JOB_PRIORITY_COUNT]{ 256, 256, 256 };
+	static inline U64 jobCount{ 0 };
+	//static inline Semaphore semaphore{};
+	static inline JobQueue jobQueues[JOB_PRIORITY_COUNT]{};
 
 #if defined PLATFORM_WINDOWS
 	static U32 __stdcall RunThread(void*);
@@ -141,6 +156,63 @@ void Jobs::Shutdown()
 	running = false;
 }
 
+void Jobs::Request(const Function<void()>& job, JobPriority priority)
+{
+	SafeIncrement(&jobCount);
+
+	while (!jobQueues[priority].jobs.Push(job)) { Poll(); }
+
+	//semaphore.Signal();
+}
+
+bool Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(DispatchArgs)>& job, JobPriority priority)
+{
+	if (jobCount == 0 || groupSize == 0) { return false; }
+
+	const U32 groupCount = (jobCount + groupSize - 1) / groupSize;
+
+	SafeAdd(&jobCount, groupCount);
+
+	for (U32 groupIndex = 0; groupIndex < groupCount; ++groupIndex)
+	{
+		const auto& jobGroup = [jobCount, groupSize, job, groupIndex]() {
+
+			const U32 groupJobOffset = groupIndex * groupSize;
+			U32 end = groupJobOffset + groupSize;
+			const U32 groupJobEnd = end < jobCount ? end : jobCount;
+
+			DispatchArgs args;
+			args.groupIndex = groupIndex;
+
+			for (U32 i = groupJobOffset; i < groupJobEnd; ++i)
+			{
+				args.jobIndex = i;
+				job(args);
+			}
+		};
+
+		while (!jobQueues[priority].jobs.Push(jobGroup)) { Poll(); }
+
+		//semaphore.Signal();
+	}
+
+	return true;
+}
+
+void Jobs::Wait(JobPriority minPriority)
+{
+	for (U32 i = minPriority; i < JOB_PRIORITY_COUNT; ++i)
+	{
+		if (!jobQueues[i].jobs.Empty()) { Poll(); }
+	}
+}
+
+void Jobs::Poll()
+{
+	//semaphore.Signal();
+	SwitchToThread();
+}
+
 void Jobs::SleepForSeconds(U64 s)
 {
 	LARGE_INTEGER interval;
@@ -160,4 +232,21 @@ void Jobs::SleepForMicro(U64 us)
 	LARGE_INTEGER interval;
 	interval.QuadPart = -(I64)(us * 10);
 	NtDelayExecution(false, &interval);
+}
+
+U32 __stdcall Jobs::RunThread(void*)
+{
+	Function<void()> job;
+
+	while (running)
+	{
+		for (U32 i = JOB_PRIORITY_COUNT - 1; i >= 0; --i)
+		{
+			if (jobQueues[i].jobs.Pop(job)) { job(); SafeDecrement(&jobCount); }
+			//else { semaphore.Wait(); }
+		}
+	}
+
+	_endthreadex(0);
+	return 0;
 }

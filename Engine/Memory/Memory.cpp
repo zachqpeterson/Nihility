@@ -1,6 +1,7 @@
 #include "Memory.hpp"
 
-#include "Platform\ThreadSafety.hpp"
+import ThreadSafety;
+
 #include <corecrt_malloc.h>
 #include <vcruntime_string.h>
 
