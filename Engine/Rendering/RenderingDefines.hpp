@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Core\Logger.hpp"
 #include "Memory\Memory.hpp"
 #include "Math\Math.hpp"
+
+import Core;
 
 /*---------DEFINES---------*/
 

@@ -1,8 +1,8 @@
 #include "Steam.hpp"
 
-#include "Core\Logger.hpp"
-
 #include "Steam\steam_api.h"
+
+import Core;
 
 U32 Steam::appID;
 

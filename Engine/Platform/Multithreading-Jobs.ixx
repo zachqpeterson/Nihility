@@ -1,7 +1,6 @@
 module;
 
 #include "Defines.hpp"
-#include "Core\Logger.hpp"
 #include "Core\Function.hpp"
 #include "Containers\SafeQueue.hpp"
 
@@ -14,6 +13,7 @@ export module Multithreading:Jobs;
 
 import :Semaphore;
 import ThreadSafety;
+import Core;
 
 #ifdef PLATFORM_WINDOWS
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
@@ -64,8 +64,8 @@ private:
 	static inline bool running{ false };
 	static inline U64 threadCount{ 1 };
 	static inline U64 jobCount{ 0 };
-	//static inline Semaphore semaphore{};
-	static inline JobQueue jobQueues[JOB_PRIORITY_COUNT]{};
+	static inline Semaphore semaphore{};
+	static inline JobQueue jobQueues[JOB_PRIORITY_COUNT];
 
 #if defined PLATFORM_WINDOWS
 	static U32 __stdcall RunThread(void*);
@@ -162,7 +162,7 @@ void Jobs::Request(const Function<void()>& job, JobPriority priority)
 
 	while (!jobQueues[priority].jobs.Push(job)) { Poll(); }
 
-	//semaphore.Signal();
+	semaphore.Signal();
 }
 
 bool Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(DispatchArgs)>& job, JobPriority priority)
@@ -193,7 +193,7 @@ bool Jobs::Dispatch(U32 jobCount, U32 groupSize, const Function<void(DispatchArg
 
 		while (!jobQueues[priority].jobs.Push(jobGroup)) { Poll(); }
 
-		//semaphore.Signal();
+		semaphore.Signal();
 	}
 
 	return true;
@@ -209,7 +209,7 @@ void Jobs::Wait(JobPriority minPriority)
 
 void Jobs::Poll()
 {
-	//semaphore.Signal();
+	semaphore.Signal();
 	SwitchToThread();
 }
 
@@ -243,7 +243,7 @@ U32 __stdcall Jobs::RunThread(void*)
 		for (U32 i = JOB_PRIORITY_COUNT - 1; i >= 0; --i)
 		{
 			if (jobQueues[i].jobs.Pop(job)) { job(); SafeDecrement(&jobCount); }
-			//else { semaphore.Wait(); }
+			else { semaphore.Wait(); }
 		}
 	}
 

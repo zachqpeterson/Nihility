@@ -1,5 +1,7 @@
 #include "Engine.hpp"
 
+import Core;
+
 #include "Introspection.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
@@ -8,7 +10,6 @@
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"
-#include "Core\Time.hpp"
 #include "Core\Logger.hpp"
 #include "Rendering\Sprite.hpp"
 

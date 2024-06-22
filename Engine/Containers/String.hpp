@@ -3,23 +3,6 @@
 #include "ContainerDefines.hpp"
 
 #include "Memory\Memory.hpp"
-#include "Math\Math.hpp"
-
-template<Character C>
-inline constexpr U64 Length(const C* str) noexcept
-{
-	if (!str) { return 0; }
-
-	const C* it = str;
-	while (*it) { ++it; }
-
-	return it - str;
-}
-
-inline constexpr U64 Length(NullPointer) noexcept
-{
-	return 0;
-}
 
 template<Character C>
 inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
@@ -80,8 +63,8 @@ struct StringView
 
 	constexpr StringView SubString(U64 offset = 0, U64 count = U64_MAX) const
 	{
-		offset = Math::Min(offset, length);
-		count = Math::Min(count, length - offset);
+		offset = offset < length ? offset : length;
+		count = count < length - offset ? count : length - offset;
 		return { string + offset, count };
 	}
 
@@ -135,7 +118,6 @@ struct StringView
 
 	constexpr U64 Size() const { return length; }
 	constexpr const C8* Data() const { return string; }
-	constexpr U64 Hash() const { return Hash::StringHash(string, length); }
 
 private:
 	const C8* string;
@@ -179,8 +161,6 @@ struct StringBase
 {
 	using CharType = C;
 	using StringBaseType = StringBase<C>;
-
-	static StringBase RandomString(U32 length) noexcept;
 
 	StringBase() noexcept;
 	StringBase(const StringBase& other) noexcept;
@@ -278,8 +258,6 @@ struct StringBase
 
 	U64 Size() const noexcept;
 	U64 Capacity() const noexcept;
-	U64 Hash() noexcept;
-	U64 Hash() const noexcept;
 	C* Data() noexcept;
 	const C* Data() const noexcept;
 	operator C* () noexcept;
@@ -320,34 +298,16 @@ private:
 	static bool NotWhiteSpace(C c) noexcept;
 	static bool Numerical(C c) noexcept;
 
-	bool needHash{ true };
-	U64 hash{ 0 };
 	U64 size{ 0 };
 	U64 capacity{ 0 };
 	C* string{ nullptr };
 };
 
 template<Character C>
-inline StringBase<C> StringBase<C>::RandomString(U32 length) noexcept
-{
-	String str{ };
-	str.Resize(16);
-
-	C* it = str.string;
-
-	for (U32 i = 0; i < length; ++i)
-	{
-		*it++ = StringLookup<C>::ALPHANUM_LOOKUP[Math::RandomRange(0, Length(StringLookup<C>::ALPHANUM_LOOKUP))];
-	}
-
-	return str;
-}
-
-template<Character C>
 inline StringBase<C>::StringBase() noexcept {}
 
 template<Character C>
-inline StringBase<C>::StringBase(const StringBase& other) noexcept : needHash{ other.needHash }, hash{ other.hash }, size{ other.size }
+inline StringBase<C>::StringBase(const StringBase& other) noexcept : size{ other.size }
 {
 	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
 
@@ -356,9 +316,8 @@ inline StringBase<C>::StringBase(const StringBase& other) noexcept : needHash{ o
 }
 
 template<Character C>
-inline StringBase<C>::StringBase(StringBase&& other) noexcept : needHash{ other.needHash }, hash{ other.hash }, size{ other.size }, capacity{ other.capacity }, string{ other.string }
+inline StringBase<C>::StringBase(StringBase&& other) noexcept : size{ other.size }, capacity{ other.capacity }, string{ other.string }
 {
-	other.hash = 0;
 	other.size = 0;
 	other.capacity = 0;
 	other.string = nullptr;
@@ -413,7 +372,6 @@ inline StringBase<C>& StringBase<C>::operator=(NullPointer) noexcept
 template<Character C>
 inline StringBase<C>& StringBase<C>::operator=(const StringBase& other) noexcept
 {
-	hash = other.hash;
 	size = other.size;
 
 	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
@@ -429,12 +387,10 @@ inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
 {
 	if (string) { Memory::Free(&string); }
 
-	hash = other.hash;
 	size = other.size;
 	capacity = other.capacity;
 	string = other.string;
 
-	other.hash = 0;
 	other.size = 0;
 	other.capacity = 0;
 	other.string = nullptr;
@@ -471,7 +427,6 @@ inline StringBase<C> StringBase<C>::operator+(const Arg& value) const noexcept
 template<Character C>
 inline StringBase<C>::~StringBase() noexcept
 {
-	hash = 0;
 	if (string)
 	{
 		size = 0;
@@ -483,7 +438,6 @@ inline StringBase<C>::~StringBase() noexcept
 template<Character C>
 inline void StringBase<C>::Destroy() noexcept
 {
-	hash = 0;
 	if (string)
 	{
 		size = 0;
@@ -499,8 +453,6 @@ inline void StringBase<C>::Clear() noexcept
 	{
 		string[0] = StringLookup<C>::NULL_CHAR;
 		size = 0;
-		hash = 0;
-		needHash = false;
 	}
 }
 
@@ -519,14 +471,12 @@ inline void StringBase<C>::Resize(U64 size) noexcept
 	if (size + 1 > this->capacity) { Reserve(size); }
 	this->size = size;
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 }
 
 template<Character C>
 inline void StringBase<C>::Resize() noexcept
 {
 	size = Length(string);
-	needHash = true;
 }
 
 template<Character C>
@@ -606,7 +556,7 @@ inline bool StringBase<C>::operator<(const StringBase<C>& other) const noexcept
 	const C* it0 = string;
 	const C* it1 = other.string;
 
-	U64 length = Math::Min(size, other.size);
+	U64 length = size < other.size ? size : other.size;
 
 	while (length-- && *it0 == *it1) { ++it0; ++it1; }
 
@@ -622,7 +572,7 @@ inline bool StringBase<C>::operator>(const StringBase<C>& other) const noexcept
 	const C* it0 = string;
 	const C* it1 = other.string;
 
-	U64 length = Math::Min(size, other.size);
+	U64 length = size < other.size ? size : other.size;
 
 	while (length-- && *it0 == *it1) { ++it0; ++it1; }
 
@@ -731,27 +681,6 @@ inline U64 StringBase<C>::Size() const noexcept { return size; }
 
 template<Character C>
 inline U64 StringBase<C>::Capacity() const noexcept { return capacity; }
-
-template<Character C>
-inline U64 StringBase<C>::Hash() noexcept
-{
-	if (needHash)
-	{
-		needHash = false;
-		hash = Math::Hash(string);
-	}
-	else
-	{
-		return hash;
-	}
-}
-
-template<Character C>
-inline U64 StringBase<C>::Hash() const noexcept
-{
-	if (needHash) { return Hash::SeededHash(string, size); }
-	else { return hash; }
-}
 
 template<Character C>
 inline C* StringBase<C>::Data() noexcept { return string; }
@@ -909,7 +838,6 @@ inline StringBase<C>& StringBase<C>::Trim() noexcept
 	size = end - start + 1;
 	Memory::Copy(string, start, size);
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return *this;
 }
@@ -971,7 +899,6 @@ inline StringBase<C>& StringBase<C>::ReplaceAll(const C* find, const Arg& replac
 	}
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return *this;
 }
@@ -996,7 +923,6 @@ inline StringBase<C>& StringBase<C>::ReplaceN(const C* find, const Arg& replace,
 	}
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return *this;
 }
@@ -1014,7 +940,6 @@ inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, 
 	if (c != StringLookup<C>::NULL_CHAR) { ToString<Arg, false, true>(c, replace); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return *this;
 }
@@ -1023,7 +948,11 @@ template<Character C>
 inline StringBase<C> StringBase<C>::GetFileName() const noexcept
 {
 	I64 extIndex = LastIndexOf(StringLookup<C>::DECIMAL_CHAR);
-	I64 nameIndex = Math::Max(LastIndexOf(StringLookup<C>::FORWARD_SLASH), LastIndexOf(StringLookup<C>::BACK_SLASH));
+
+	I64 fSlash = LastIndexOf(StringLookup<C>::FORWARD_SLASH);
+	I64 bSlash = LastIndexOf(StringLookup<C>::BACK_SLASH);
+
+	I64 nameIndex = bSlash > fSlash ? bSlash : fSlash;
 
 	if (nameIndex++ == -1)
 	{
@@ -1097,8 +1026,6 @@ inline StringBase<C>& StringBase<C>::ToUpper() noexcept
 		if (StringLookup<C>::TYPE_LOOKUP[c] & LOWER_CHAR) { c -= 32; }
 	}
 
-	needHash = true;
-
 	return *this;
 }
 
@@ -1111,8 +1038,6 @@ inline StringBase<C>& StringBase<C>::ToLower() noexcept
 	{
 		if (StringLookup<C>::TYPE_LOOKUP[c] & UPPER_CHAR) { c += 32; }
 	}
-
-	needHash = true;
 
 	return *this;
 }
@@ -1215,7 +1140,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	else { Memory::Copy(str + neg, c, addLength * sizeof(C)); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return strIndex + addLength;
 }
@@ -1280,7 +1204,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	else { Memory::Copy(str, c, addLength * sizeof(C)); }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return strIndex + addLength;
 }
@@ -1303,7 +1226,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 		size += 4;
 
 		if constexpr (!Insert) { string[size] = StringLookup<C>::NULL_CHAR; }
-		needHash = true;
 
 		return strIndex + 4;
 	}
@@ -1317,7 +1239,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 		size += 5;
 
 		if constexpr (!Insert) { string[size] = StringLookup<C>::NULL_CHAR; }
-		needHash = true;
 
 		return strIndex + 5;
 	}
@@ -1403,7 +1324,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount) n
 		else { Memory::Copy(str + neg, c, addLength * sizeof(C)); }
 
 		string[size] = StringLookup<C>::NULL_CHAR;
-		needHash = true;
 
 		return strIndex + addLength;
 	}
@@ -1523,7 +1443,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	else { size += moveSize; }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return strIndex + strSize;
 }
@@ -1560,7 +1479,6 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	else { size += moveSize; }
 
 	string[size] = StringLookup<C>::NULL_CHAR;
-	needHash = true;
 
 	return strIndex + strSize;
 }

@@ -242,3 +242,19 @@ NH_NODISCARD To TypePun(const From& val) noexcept
 }
 
 #include "TypeTraits.hpp"
+
+template<Character C>
+inline constexpr U64 Length(const C* str) noexcept
+{
+	if (!str) { return 0; }
+
+	const C* it = str;
+	while (*it) { ++it; }
+
+	return it - str;
+}
+
+inline constexpr U64 Length(NullPointer) noexcept
+{
+	return 0;
+}

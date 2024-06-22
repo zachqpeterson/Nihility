@@ -4,7 +4,8 @@
 #include "Audio.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
-#include "Core\Logger.hpp"
+
+import Core;
 
 #ifdef PLATFORM_WINDOWS
 

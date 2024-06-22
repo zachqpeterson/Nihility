@@ -97,12 +97,6 @@
     <ClInclude Include="Engine\Memory\Memory.hpp">
       <Filter>Source Files\Memory</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\Time.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Core\Logger.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Core\File.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
@@ -717,9 +711,6 @@
     <ClCompile Include="Engine\Core\File.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\Logger.cpp">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Rendering\Renderer.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
@@ -734,9 +725,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Resources\Scene.cpp">
       <Filter>Source Files\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Time.cpp">
-      <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Rendering\Swapchain.cpp">
       <Filter>Source Files\Rendering</Filter>
@@ -1040,6 +1028,15 @@
     </ClCompile>
     <ClCompile Include="Engine\Platform\ThreadSafety.ixx">
       <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core.ixx">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core-Time.ixx">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core-Logger.ixx">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

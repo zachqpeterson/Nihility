@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 #include "Containers\Freelist.hpp"
-#include "Math\Math.hpp"
 
 constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
 constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
@@ -235,7 +234,8 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, Math::Min(totalSize, (U64)GetRegion(*pointer)));
+		U64 region = (U64)GetRegion(*pointer);
+		CopyFree((void**)pointer, (void*)temp, totalSize < region ? totalSize : region);
 	}
 
 	*pointer = (Type)temp;
@@ -273,7 +273,8 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 
 	if (*pointer != nullptr)
 	{
-		CopyFree((void**)pointer, (void*)temp, Math::Min(totalSize, (U64)GetRegion(*pointer)));
+		U64 region = (U64)GetRegion(*pointer);
+		CopyFree((void**)pointer, (void*)temp, totalSize < region ? totalSize : region);
 	}
 
 	*pointer = (Type)temp;

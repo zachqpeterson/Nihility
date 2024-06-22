@@ -129,8 +129,6 @@
     <ClInclude Include="Engine\Core\Events.hpp" />
     <ClInclude Include="Engine\Core\File.hpp" />
     <ClInclude Include="Engine\Core\Function.hpp" />
-    <ClInclude Include="Engine\Core\Logger.hpp" />
-    <ClInclude Include="Engine\Core\Time.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\External\Discord\achievement_manager.h" />
@@ -321,11 +319,12 @@
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Containers\Freelist.cpp" />
+    <ClCompile Include="Engine\Core\Core-Logger.ixx" />
+    <ClCompile Include="Engine\Core\Core-Time.ixx" />
+    <ClCompile Include="Engine\Core\Core.ixx" />
     <ClCompile Include="Engine\Core\DataReader.cpp" />
     <ClCompile Include="Engine\Core\Events.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
-    <ClCompile Include="Engine\Core\Logger.cpp" />
-    <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\External\Discord\achievement_manager.cpp" />
     <ClCompile Include="Engine\External\Discord\activity_manager.cpp" />

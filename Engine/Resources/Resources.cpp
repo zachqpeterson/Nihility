@@ -1,5 +1,6 @@
 #include "Resources.hpp"
 
+import Core;
 import Containers;
 
 #include "Font.hpp"
@@ -7,8 +8,6 @@ import Containers;
 #include "Settings.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
-#include "Core\Time.hpp"
-#include "Core\Logger.hpp"
 #include "Core\DataReader.hpp"
 #include "Platform\Audio.hpp"
 #include "Rendering\RenderingDefines.hpp"

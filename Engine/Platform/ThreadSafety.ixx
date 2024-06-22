@@ -44,7 +44,9 @@ inline Type SafeDecrement(volatile Type* t)
 	}
 	else
 	{
-		return InterlockedDecrement((volatile L32*)t);
+		volatile L32* val = (volatile L32*)t;
+
+		return InterlockedDecrement(val);
 	}
 }
 

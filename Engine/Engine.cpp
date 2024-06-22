@@ -1,5 +1,6 @@
 #include "Engine.hpp"
 
+import Core;
 import Containers;
 import Multithreading;
 
@@ -10,8 +11,6 @@ import Multithreading;
 #include "Platform\Input.hpp"
 #include "Core\Events.hpp"
 #include "Core\Function.hpp"
-#include "Core\Logger.hpp"
-#include "Core\Time.hpp"
 #include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"

@@ -1,5 +1,7 @@
 #include "ResourceDefines.hpp"
 
+import Core;
+
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\CommandBuffer.hpp"
 #include "Rendering\Renderer.hpp"
@@ -7,7 +9,6 @@
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Platform\Input.hpp"
-#include "Core\Time.hpp"
 
 // SAMPLER CREATION
 

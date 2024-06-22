@@ -1,6 +1,7 @@
 #pragma once
 
 import Containers;
+import Math;
 
 #include "ContainerDefines.hpp"
 #include "Memory\Memory.hpp"
@@ -536,8 +537,7 @@ inline bool Hashmap<Key, Value>::Iterator::operator>= (const Iterator& other) co
 template<class Key, class Value>
 inline U64 Hashmap<Key, Value>::Hash(const Key& key)
 {
-	if constexpr (IsStringType<Key>) { return key.Hash(); }
-	else if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
+	if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
 	else if constexpr (IsStringViewType<Key>) { return Hash::SeededHash(key.Data(), key.Size()); }
 	else { return Hash::SeededHash(key); }
 }

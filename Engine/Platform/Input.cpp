@@ -1,9 +1,10 @@
 #include "Input.hpp"
 
 import Containers;
+import Core;
+
 #include "Device.hpp"
 #include "Platform.hpp"
-#include "Core\Logger.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Rendering\Renderer.hpp"

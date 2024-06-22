@@ -1,10 +1,13 @@
-#pragma once
-
-import Containers;
+module;
 
 #include "Defines.hpp"
 #include "File.hpp"
 #include "Containers\String.hpp"
+#include "Platform\Platform.hpp"
+
+export module Core:Logger;
+
+import Containers;
 
 #define LOG_WARN_ENABLED 1
 #define LOG_INFO_ENABLED 1
@@ -25,7 +28,7 @@ import Containers;
 #define TRACE_TAG "\033[1;30m[TRACE]:\033[0m "
 #define END_LINE "\n"
 
-class NH_API Logger
+export class NH_API Logger
 {
 public:
 	template<Character T, typename... Types> static void Fatal(const T* message, const Types&... args);
@@ -42,12 +45,26 @@ public:
 	template<typename Type> static void Trace(const Type& arg);
 
 private:
-	static bool Initialize();
-	static void Shutdown();
-	static void Write(const String& message);
+	static bool Initialize()
+	{
+		Platform::SetConsoleWindowTitle("Nihility Console");
+		return log.Opened() && console.Opened();
+	}
 
-	static File log;
-	static File console;
+	static void Shutdown()
+	{
+		console.Destroy();
+		log.Destroy();
+	}
+
+	static void Write(const String& message)
+	{
+		log.Write(message);
+		console.Write(message);
+	}
+
+	static inline File log{ File("Log.log", FILE_OPEN_LOG) };
+	static inline File console{ File("CONOUT$", FILE_OPEN_CONSOLE) };
 
 	STATIC_CLASS(Logger);
 	friend class Engine;
@@ -55,10 +72,11 @@ private:
 
 template<Character T, typename... Types> inline void Logger::Fatal(const T* message, const Types&... args)
 {
+	//Write({ FATAL_TAG, Format{ message, args... }, END_LINE }); TODO: Make this possible
 	String str{ FATAL_TAG };
 
 	str.Format(CountOf(FATAL_TAG), message, args...);
-	
+
 	Write(str.Append(END_LINE));
 }
 

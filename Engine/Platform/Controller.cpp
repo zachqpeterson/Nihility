@@ -1,6 +1,7 @@
 #include "Controller.hpp"
-#include "Core\Logger.hpp"
 #include "Resources\Settings.hpp"
+
+import Core;
 
 #if defined PLATFORM_WINDOWS
 

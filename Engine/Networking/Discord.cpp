@@ -1,6 +1,6 @@
 #include "Discord.hpp"
 
-#include "Core\Logger.hpp"
+import Core;
 
 #include <time.h>
 

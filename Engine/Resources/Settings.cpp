@@ -1,7 +1,8 @@
 #include "Settings.hpp"
 
+import Core;
+
 #include "Core\File.hpp"
-#include "Core\Logger.hpp"
 #include "Core\Events.hpp"
 
 Settings::Data Settings::data{};

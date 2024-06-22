@@ -1,7 +1,7 @@
 module;
 
-#include "Defines.hpp"
-#include "Core\Time.hpp"
+#include "Containers\ContainerDefines.hpp"
+#include "Containers\String.hpp"
 
 #include <math.h>
 #include <cstringt.h>
@@ -9,6 +9,7 @@ module;
 export module Math:Functions;
 
 export import :Constants;
+import Core;
 
 constexpr U64 secret0 = 0xa0761d6478bd642full;
 constexpr U64 secret1 = 0xe7037ed1a0b428dbull;
@@ -657,6 +658,22 @@ public:
 	/// <param name="newSeed:">The new seed value</param>
 	static void SeedRandom(U64 newSeed) { seed = newSeed; }
 
+	template<Character C = C8>
+	static StringBase<C> RandomString(U32 length) noexcept
+	{
+		String str{};
+		str.Resize(16);
+
+		C* it = str.Data();
+
+		for (U32 i = 0; i < length; ++i)
+		{
+			*it++ = StringLookup<C>::ALPHANUM_LOOKUP[RandomRange(0, Length(StringLookup<C>::ALPHANUM_LOOKUP))];
+		}
+
+		return str;
+	}
+
 private:
 	static inline U64 seed{ 0 };
 
@@ -772,6 +789,49 @@ public:
 	}
 
 	/// <summary>
+	/// Creates a hash for a string view at compile-time, faster but less unique
+	/// </summary>
+	/// <param name="string:">The string view</param>
+	/// <returns>The hash</returns>
+	static constexpr U64 StringHash(const StringView& string)
+	{
+		U64 hash = 5381;
+		U64 i = 0;
+
+		const C8* str = string.Data();
+
+		for (i = 0; i < string.Size(); ++str, ++i)
+		{
+			hash = ((hash << 5) + hash) + (*str);
+		}
+
+		return hash;
+	}
+
+	/// <summary>
+	/// Creates a hash for a string view at compile-time, case insensitive, faster but less unique
+	/// </summary>
+	/// <param name="string:">The string view</param>
+	/// <returns>The hash</returns>
+	static constexpr U64 StringHashCI(const StringView& string)
+	{
+		U64 hash = 5381;
+		U64 i = 0;
+
+		const C8* str = string.Data();
+
+		for (i = 0; i < string.Size(); ++str, ++i)
+		{
+			C8 c = *str;
+			if (c < 97) { c += 32; }
+
+			hash = ((hash << 5) + hash) + c;
+		}
+
+		return hash;
+	}
+
+	/// <summary>
 	/// Creates a hash for any type, slower but more unique
 	/// </summary>
 	/// <param name="value:">The value to hash</param>
@@ -829,6 +889,30 @@ public:
 		b ^= seed;
 		Multiply(a, b);
 		return Mix(a ^ secret0 ^ length, b ^ secret1);
+	}
+
+	template<>
+	static U64 SeededHash<StringBase<C8>>(const StringBase<C8>& value, U64 seed)
+	{
+		return SeededHash(value.Data(), seed);
+	}
+
+	template<>
+	static U64 SeededHash<StringBase<C16>>(const StringBase<C16>& value, U64 seed)
+	{
+		return SeededHash(value.Data(), seed);
+	}
+
+	template<>
+	static U64 SeededHash<StringBase<C32>>(const StringBase<C32>& value, U64 seed)
+	{
+		return SeededHash(value.Data(), seed);
+	}
+
+	template<>
+	static U64 SeededHash<StringBase<CW>>(const StringBase<CW>& value, U64 seed)
+	{
+		return SeededHash(value.Data(), seed);
 	}
 
 	/// <summary>

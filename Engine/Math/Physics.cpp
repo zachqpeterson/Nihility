@@ -23,8 +23,9 @@
 #include "Island.hpp"
 #include "Broadphase.hpp"
 #include "Containers\Stack.hpp"
-#include "Core\Logger.hpp"
 #include "Resources\Scene.hpp"
+
+import Core;
 
 Vector<RigidBody2D>* Physics::bodies;
 Contact2D* Physics::contacts;

@@ -1,6 +1,6 @@
 #include "Device.hpp"
 
-#include "Core\Logger.hpp"
+import Core;
 
 #if defined PLATFORM_WINDOWS
 

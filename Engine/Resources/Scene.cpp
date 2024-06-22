@@ -1,12 +1,13 @@
 #include "Scene.hpp"
 
+import Core;
+
 #include "Resources.hpp"
 #include "Settings.hpp"
 #include "Mesh.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 #include "Rendering\RenderingDefines.hpp"
-#include "Core\Time.hpp"
 #include "Math\Physics.hpp"
 
 void Scene::Create(CameraType cameraType)

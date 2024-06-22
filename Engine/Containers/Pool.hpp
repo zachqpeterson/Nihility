@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Memory\Memory.hpp"
-#include "Core\Logger.hpp"
+
+import Core;
 
 template<class Type, U64 Count>
 struct Pool

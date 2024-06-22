@@ -1,7 +1,7 @@
 #include "Audio.hpp"
 
-#include "Core\Logger.hpp"
-#include "Core\Time.hpp"
+import Core;
+
 #include "Resources\Settings.hpp"
 
 #include <xaudio2.h>
