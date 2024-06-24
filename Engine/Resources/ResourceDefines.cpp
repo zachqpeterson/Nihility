@@ -372,6 +372,8 @@ Camera& FlyCamera::GetCamera()
 	return camera;
 }
 
+Vector3 Tween(const Vector3& a, const Vector3& b, F32 power = 0.1f) noexcept { return Math::Lerp(a, b, 1.0f - Math::Pow(power, (F32)Time::DeltaTime())); }
+
 bool FlyCamera::Update()
 {
 	switch (camera.Type())
@@ -467,7 +469,7 @@ bool FlyCamera::Update()
 
 		targetMovement += cameraMovement;
 
-		camera.SetPosition(Math::Tween(camera.Position(), targetMovement));
+		camera.SetPosition(Tween(camera.Position(), targetMovement));
 
 		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_R)) { zoom = 0; camera.SetZoom(0.0f); } //TODO: Standardized and changable hotkeys
 		if (Input::ButtonDown(BUTTON_CODE_CTRL) && Input::ButtonDown(BUTTON_CODE_T)) { camera.SetPosition(Vector3Zero); targetMovement = 0.0f; } //TODO: Standardized and changable hotkeys

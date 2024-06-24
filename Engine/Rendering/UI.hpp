@@ -1,10 +1,10 @@
 #pragma once
 
+import Core;
 import Containers;
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Component.hpp"
 #include "Resources\Mesh.hpp"
-#include "Core\Function.hpp"
 #include "Math\Math.hpp"
 
 struct UIElement;

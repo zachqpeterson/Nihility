@@ -97,9 +97,6 @@
     <ClInclude Include="Engine\Memory\Memory.hpp">
       <Filter>Source Files\Memory</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\File.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Queue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -125,9 +122,6 @@
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Containers\Hashmap.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Containers\ContainerDefines.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Rendering\Renderer.hpp">
@@ -166,9 +160,6 @@
     <ClInclude Include="Engine\External\stb_image.h">
       <Filter>Source Files\External</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\DataReader.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\External\stb_truetype.h">
       <Filter>Source Files\External</Filter>
     </ClInclude>
@@ -189,12 +180,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Containers\Array.hpp">
       <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Core\Events.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Core\Function.hpp">
-      <Filter>Source Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Resources\Material.hpp">
       <Filter>Source Files\Resources</Filter>
@@ -732,9 +717,6 @@
     <ClCompile Include="Engine\Rendering\Pipeline.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\DataReader.cpp">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Resources\Font.cpp">
       <Filter>Source Files\Resources</Filter>
     </ClCompile>
@@ -1002,7 +984,7 @@
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\String.hpp">
+    <ClCompile Include="Engine\Containers\String.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Math.ixx">
@@ -1036,6 +1018,27 @@
       <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Core\Core-Logger.ixx">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Time.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Logger.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Math.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core-File.ixx">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core-DataReader.ixx">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core-Events.ixx">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\Core-Function.ixx">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>

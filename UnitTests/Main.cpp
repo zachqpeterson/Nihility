@@ -1,7 +1,6 @@
 import Containers;
+import Core;
 
-#include "Core\Logger.hpp"
-#include "Core\Time.hpp"
 #include "Math\Math.hpp"
 
 #define BEGIN_TEST Timer timer; timer.Start()
@@ -106,10 +105,12 @@ void Vector_ConstructorInitializer()
 {
 	BEGIN_TEST;
 
-	Vector<I32> v({ 10, 12, 6, 12, 67 });
+	//Vector<I32> v({ 10, 12, 6, 12, 67 });
+	//
+	//bool passed = v.Size() == 5 && v.Capacity() >= 5 && v.Data() != nullptr &&
+	//	v[0] == 10 && v[1] == 12 && v[2] == 6 && v[3] == 12 && v[4] == 67;
 
-	bool passed = v.Size() == 5 && v.Capacity() >= 5 && v.Data() != nullptr &&
-		v[0] == 10 && v[1] == 12 && v[2] == 6 && v[3] == 12 && v[4] == 67;
+	bool passed = false;
 
 	END_TEST(passed)
 }

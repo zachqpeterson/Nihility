@@ -8,7 +8,6 @@ import Containers;
 #include "Settings.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
-#include "Core\DataReader.hpp"
 #include "Platform\Audio.hpp"
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
@@ -31,22 +30,22 @@ import Containers;
 #undef near
 #undef far
 
-#define ASSIMP_IMPORT_FLAGS (					\
-	aiProcess_CalcTangentSpace				|	\
-    aiProcess_JoinIdenticalVertices			|	\
-    aiProcess_Triangulate					|	\
-	aiProcess_RemoveComponent				|	\
-    aiProcess_GenSmoothNormals				|	\
-    aiProcess_ValidateDataStructure			|	\
-    aiProcess_ImproveCacheLocality			|	\
-    aiProcess_RemoveRedundantMaterials		|	\
-    aiProcess_FindInvalidData				|	\
-    aiProcess_GenUVCoords					|	\
-	aiProcess_FindInstances					|	\
-    aiProcess_OptimizeMeshes				|	\
-    aiProcess_OptimizeGraph					|	\
-	aiProcess_FlipUVs						|   \
-    aiProcess_EmbedTextures)
+constexpr U32 ASSIMP_IMPORT_FLAGS = 
+aiProcess_CalcTangentSpace | 
+aiProcess_JoinIdenticalVertices | 
+aiProcess_Triangulate | 
+aiProcess_RemoveComponent | 
+aiProcess_GenSmoothNormals | 
+aiProcess_ValidateDataStructure | 
+aiProcess_ImproveCacheLocality | 
+aiProcess_RemoveRedundantMaterials | 
+aiProcess_FindInvalidData | 
+aiProcess_GenUVCoords | 
+aiProcess_FindInstances | 
+aiProcess_OptimizeMeshes | 
+aiProcess_OptimizeGraph | 
+aiProcess_FlipUVs | 
+aiProcess_EmbedTextures;
 
 #if NH_BIG_ENDIAN
 #define WAV_RIFF 'RIFF'

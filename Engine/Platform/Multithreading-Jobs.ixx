@@ -1,7 +1,6 @@
 module;
 
 #include "Defines.hpp"
-#include "Core\Function.hpp"
 #include "Containers\SafeQueue.hpp"
 
 #ifdef PLATFORM_WINDOWS

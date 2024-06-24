@@ -2,9 +2,6 @@
 
 import Core;
 
-#include "Core\File.hpp"
-#include "Core\Events.hpp"
-
 Settings::Data Settings::data{};
 
 I32 Settings::screenWidth{ 0 };

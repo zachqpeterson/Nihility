@@ -1,9 +1,9 @@
 #pragma once
 
 import Containers;
+import Core;
 
 #include "Defines.hpp"
-#include "Core\File.hpp"
 
 enum DeviceType
 {

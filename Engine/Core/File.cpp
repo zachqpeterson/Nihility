@@ -1,8 +1,21 @@
-#include "File.hpp"
+module;
+
+#include "Defines.hpp"
+#include "Memory\Memory.hpp"
 
 #include <io.h>
-#include <sys/stat.h>
+#include <sys\stat.h>
 #include <share.h>
+
+#if defined PLATFORM_WINDOWS
+#include <Windows.h>
+#endif
+
+module Core:File;
+
+static constexpr I32 READ_MODE = 0x0001;
+static constexpr I32 WRITE_MODE = 0x0002;
+static constexpr I32 READ_WRITE_MASK = 0x0003;
 
 File::File() { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; }
 
@@ -269,21 +282,17 @@ const String& File::WorkingDirectory()
 	return wd;
 }
 
-#if defined PLATFORM_WINDOWS
-
-#include <Windows.h>
-
 bool File::GetWorkingDirectory(String& str)
 {
+#if defined PLATFORM_WINDOWS
 	UL32 length = 1024;
 
 	UL32 i = GetCurrentDirectoryA(length, str.Data());
 	str.Resize();
 
 	return i;
-}
-
 #endif
+}
 
 //TODO: Check if file is open
 bool File::Delete(const String& path) { return remove(path.Data()) == 0; }

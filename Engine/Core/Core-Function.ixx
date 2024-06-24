@@ -1,9 +1,11 @@
-#pragma once
+module;
 
 #include "Defines.hpp"
 
 #include <functional>
 #include <memory>
+
+export module Core:Function;
 
 #define FUNC_MOVE(value) static_cast<RemovedReference<decltype(value)>&&>(value)
 #define FUNC_FORWARD(type, value) static_cast<type &&>(value)
@@ -207,7 +209,7 @@ namespace detail
 	}
 }
 
-template<typename Result, typename... Arguments>
+export template<typename Result, typename... Arguments>
 struct NH_API Function<Result(Arguments...)>
 {
 public:
@@ -311,7 +313,7 @@ private:
 	}
 };
 
-template<typename T> bool operator==(NullPointer, const Function<T>& rhs) { return !rhs; }
-template<typename T> bool operator==(const Function<T>& lhs, NullPointer) { return !lhs; }
-template<typename T> bool operator!=(NullPointer, const Function<T>& rhs) { return rhs; }
-template<typename T> bool operator!=(const Function<T>& lhs, NullPointer) { return lhs; }
+export template<typename T> bool operator==(NullPointer, const Function<T>& rhs) { return !rhs; }
+export template<typename T> bool operator==(const Function<T>& lhs, NullPointer) { return !lhs; }
+export template<typename T> bool operator!=(NullPointer, const Function<T>& rhs) { return rhs; }
+export template<typename T> bool operator!=(const Function<T>& lhs, NullPointer) { return lhs; }

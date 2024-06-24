@@ -7,7 +7,6 @@ import Core;
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Pipeline.hpp"
-#include "Core\File.hpp"
 #include "Platform\Platform.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"

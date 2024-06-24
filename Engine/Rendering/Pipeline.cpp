@@ -1,11 +1,12 @@
 #include "Pipeline.hpp"
 
+import Core;
+
 #include "RenderingDefines.hpp"
 
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
 #include "Platform\Platform.hpp"
-#include "Core\File.hpp"
 #include "Resources\Settings.hpp"
 
 Dependancy::Dependancy(DependancyType type) : type{ type } {}

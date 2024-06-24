@@ -1,13 +1,13 @@
-#pragma once
+module;
+
+#include "Defines.hpp"
+#include "Memory\Memory.hpp"
+
+export module Core:File;
 
 import Containers;
 
-#include "Defines.hpp"
-
-#include "Memory\Memory.hpp"
-#include "Containers\String.hpp"
-
-enum NH_API FileOpenMode
+export enum NH_API FileOpenMode
 {
 	FILE_OPEN_BINARY = 0x8000,
 	FILE_OPEN_TEXT = 0x4000,
@@ -50,14 +50,10 @@ struct FileStats
 	I64 creationTime;
 };
 
-static constexpr I32 READ_MODE = 0x0001;
-static constexpr I32 WRITE_MODE = 0x0002;
-static constexpr I32 READ_WRITE_MASK = 0x0003;
-
 //TODO: Make thread safe, use mutex
 //TODO: Documentation
 //TODO: Read and Write at same time
-struct NH_API File
+export struct NH_API File
 {
 public:
 	File();
@@ -147,7 +143,7 @@ inline U32 File::ReadAll(Vector<Type>& data)
 	return Read(data.Data(), (U32)stats.size);
 }
 
-template<typename Type> 
+template<typename Type>
 inline U32 File::ReadAll(Type** data)
 {
 	Memory::AllocateSize(data, (U32)stats.size);
@@ -168,7 +164,7 @@ inline U32 File::ReadCount(Vector<Type>& data, U32 count)
 	return Read(data.Data(), count);
 }
 
-template<typename Type> 
+template<typename Type>
 inline U32 File::ReadCount(Type* data, U32 count)
 {
 	return Read(data, count);

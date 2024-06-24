@@ -3,7 +3,6 @@
 import Containers;
 
 #include "Containers\Hashmap.hpp"
-#include "Containers\String.hpp"
 #include "Math\Math.hpp"
 
 static constexpr U8 MAX_MIPMAP_COUNT = 16;

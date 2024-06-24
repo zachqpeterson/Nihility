@@ -1,20 +1,22 @@
 module;
 
-#include "Containers\ContainerDefines.hpp"
-#include "Containers\String.hpp"
-
+#include "Defines.hpp"
 #include <math.h>
-#include <cstringt.h>
+#include <cstring>
 
 export module Math:Functions;
 
-export import :Constants;
-import Core;
+import :Constants;
+import Containers;
 
 constexpr U64 secret0 = 0xa0761d6478bd642full;
 constexpr U64 secret1 = 0xe7037ed1a0b428dbull;
 constexpr U64 secret2 = 0x8ebc6af09c88c6e3ull;
 constexpr U64 secret3 = 0x589965cc75374cc3ull;
+
+struct Vector2;
+struct Vector3;
+struct Vector4;
 
 export class NH_API Math
 {
@@ -353,8 +355,6 @@ public:
 	template <FloatingPoint Type> static constexpr Type MoveTowards(Type a, Type b, Type t) noexcept { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
 	template <class Type, FloatingPoint FP> static constexpr Type Lerp(Type a, Type b, FP t) noexcept { return a + (b - a) * t; }
 	template <class Type, FloatingPoint FP> static constexpr Type InvLerp(Type a, Type b, FP t) noexcept { return (t - a) / (b - a); }
-	template <class Type> static constexpr Type Tween(const Type& a, const Type& b) noexcept { return Lerp(a, b, 1.0f - Math::Pow(0.1f, (F32)Time::DeltaTime())); }
-	template <class Type, FloatingPoint F> static constexpr Type Tween(const Type& a, const Type& b, F power) noexcept { return Lerp(a, b, (F)1.0 - Math::Pow(power, (F)Time::DeltaTime())); }
 	template <class Type> static constexpr Type Trajectory(Type start, Type velocity, Type acceleration, Type jerk, F32 t) noexcept
 	{
 		F32 t2 = t * t;
@@ -598,13 +598,7 @@ public:
 	/// Creates a completely unpredictable random integer
 	/// </summary>
 	/// <returns>The random number</returns>
-	static U64 TrueRandomInt()
-	{
-		I64 time = Time::CoreCounter();
-		time = Mix(time ^ secret0, seed ^ secret1);
-		seed = Mix(time ^ secret0, secret2);
-		return Mix(seed, seed ^ secret3);
-	}
+	static U64 TrueRandomInt();
 
 	/// <summary>
 	/// Creates a deterministically random integer based on the current seed
@@ -658,21 +652,7 @@ public:
 	/// <param name="newSeed:">The new seed value</param>
 	static void SeedRandom(U64 newSeed) { seed = newSeed; }
 
-	template<Character C = C8>
-	static StringBase<C> RandomString(U32 length) noexcept
-	{
-		String str{};
-		str.Resize(16);
-
-		C* it = str.Data();
-
-		for (U32 i = 0; i < length; ++i)
-		{
-			*it++ = StringLookup<C>::ALPHANUM_LOOKUP[RandomRange(0, Length(StringLookup<C>::ALPHANUM_LOOKUP))];
-		}
-
-		return str;
-	}
+	static String RandomString(U32 length) noexcept;
 
 private:
 	static inline U64 seed{ 0 };

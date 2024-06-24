@@ -1,4 +1,11 @@
-#include "Events.hpp"
+module;
+
+#include "Defines.hpp"
+
+#include "Function.hpp"
+#include "Containers\Hashmap.hpp"
+
+module Core:Events;
 
 Hashmap<String, Events::Event> Events::events{ 128 };
 

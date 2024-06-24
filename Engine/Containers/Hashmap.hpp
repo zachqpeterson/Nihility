@@ -3,8 +3,10 @@
 import Containers;
 import Math;
 
-#include "ContainerDefines.hpp"
+#include "Defines.hpp"
 #include "Memory\Memory.hpp"
+
+typedef U64 HashHandle;
 
 template<class Key, class Value>
 struct Hashmap

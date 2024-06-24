@@ -10,7 +10,6 @@ import Core;
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"
-#include "Core\Logger.hpp"
 #include "Rendering\Sprite.hpp"
 
 ResourceRef<AudioClip> music;

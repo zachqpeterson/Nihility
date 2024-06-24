@@ -1,7 +1,8 @@
 module;
 
-#include "ContainerDefines.hpp"
+#include "Defines.hpp"
 #include "Memory\Memory.hpp"
+//#include <initializer_list>
 
 export module Containers:Vector;
 
@@ -54,7 +55,7 @@ public:
 	/// Create a new Vector instance using an initializer list, size will equal the list size, capacity with be greater than or equal to size, creates an array of size sizeof(T) * capacity and fills it with the values in list
 	/// </summary>
 	/// <param name="list:">The initializer list</param>
-	Vector(Initializer<Type> list);
+	//Vector(std::initializer_list<Type> list);
 
 	/// <summary>
 	/// Creates a new Vector instance, capacity and size will be other's, creates an array of the same size and copies other's data into it
@@ -489,16 +490,16 @@ template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : 
 	for (Type* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
-template<class Type> inline Vector<Type>::Vector(Initializer<Type> list) : size{ list.size() }, capacity{ size }
-{
-	Memory::AllocateArray(&array, capacity, capacity);
-
-	Type* it1 = array;
-	for (const Type* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
-	{
-		*it1 = *it0;
-	}
-}
+//template<class Type> inline Vector<Type>::Vector(std::initializer_list<Type> list) : size{ list.size() }, capacity{ size }
+//{
+//	Memory::AllocateArray(&array, capacity, capacity);
+//
+//	Type* it1 = array;
+//	for (const Type* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
+//	{
+//		*it1 = *it0;
+//	}
+//}
 
 template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size{ other.size }, capacity{ other.size }
 {

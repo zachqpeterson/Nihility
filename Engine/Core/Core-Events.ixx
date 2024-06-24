@@ -1,19 +1,20 @@
-#pragma once
-
-import Containers;
+module;
 
 #include "Defines.hpp"
 
-#include "Function.hpp"
 #include "Containers\Hashmap.hpp"
-#include "Containers\String.hpp"
 
-class NH_API Events
+export module Core:Events;
+
+import :Function;
+import Containers;
+
+export class NH_API Events
 {
 	struct Event
 	{
 		Event() {}
-		Event(Event&& other) noexcept : listeners( Move(other.listeners) ) {}
+		Event(Event&& other) noexcept : listeners(Move(other.listeners)) {}
 		Event& operator=(Event&& other) noexcept { listeners = Move(other.listeners); return *this; }
 
 		void Destroy() { listeners.Destroy(); }

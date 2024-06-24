@@ -1,9 +1,6 @@
 module;
 
 #include "Defines.hpp"
-#include "File.hpp"
-#include "Containers\String.hpp"
-#include "Platform\Platform.hpp"
 
 export module Core:Logger;
 
@@ -45,26 +42,9 @@ public:
 	template<typename Type> static void Trace(const Type& arg);
 
 private:
-	static bool Initialize()
-	{
-		Platform::SetConsoleWindowTitle("Nihility Console");
-		return log.Opened() && console.Opened();
-	}
-
-	static void Shutdown()
-	{
-		console.Destroy();
-		log.Destroy();
-	}
-
-	static void Write(const String& message)
-	{
-		log.Write(message);
-		console.Write(message);
-	}
-
-	static inline File log{ File("Log.log", FILE_OPEN_LOG) };
-	static inline File console{ File("CONOUT$", FILE_OPEN_CONSOLE) };
+	static bool Initialize();
+	static void Shutdown();
+	static void Write(const String& message);
 
 	STATIC_CLASS(Logger);
 	friend class Engine;

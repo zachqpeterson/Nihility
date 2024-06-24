@@ -2,7 +2,7 @@
 
 import ThreadSafety;
 
-#include "ContainerDefines.hpp"
+#include "Defines.hpp"
 
 #include "Memory\Memory.hpp"
 

@@ -115,7 +115,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Containers\Array.hpp" />
-    <ClInclude Include="Engine\Containers\ContainerDefines.hpp" />
     <ClInclude Include="Engine\Containers\Freelist.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
     <ClInclude Include="Engine\Containers\Pair.hpp" />
@@ -125,10 +124,6 @@
     <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\TypeList.hpp" />
-    <ClInclude Include="Engine\Core\DataReader.hpp" />
-    <ClInclude Include="Engine\Core\Events.hpp" />
-    <ClInclude Include="Engine\Core\File.hpp" />
-    <ClInclude Include="Engine\Core\Function.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\External\Discord\achievement_manager.h" />
@@ -315,16 +310,21 @@
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Containers\String.hpp" />
+    <ClCompile Include="Engine\Containers\String.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Containers\Freelist.cpp" />
+    <ClCompile Include="Engine\Core\Core-DataReader.ixx" />
+    <ClCompile Include="Engine\Core\Core-Events.ixx" />
+    <ClCompile Include="Engine\Core\Core-File.ixx" />
+    <ClCompile Include="Engine\Core\Core-Function.ixx" />
     <ClCompile Include="Engine\Core\Core-Logger.ixx" />
     <ClCompile Include="Engine\Core\Core-Time.ixx" />
     <ClCompile Include="Engine\Core\Core.ixx" />
-    <ClCompile Include="Engine\Core\DataReader.cpp" />
     <ClCompile Include="Engine\Core\Events.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
+    <ClCompile Include="Engine\Core\Logger.cpp" />
+    <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\External\Discord\achievement_manager.cpp" />
     <ClCompile Include="Engine\External\Discord\activity_manager.cpp" />
@@ -346,6 +346,7 @@
     <ClCompile Include="Engine\Math\Math-Constants.ixx" />
     <ClCompile Include="Engine\Math\Math-Functions.ixx" />
     <ClCompile Include="Engine\Math\Math-Types.ixx" />
+    <ClCompile Include="Engine\Math\Math.cpp" />
     <ClCompile Include="Engine\Math\Math.ixx" />
     <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />
