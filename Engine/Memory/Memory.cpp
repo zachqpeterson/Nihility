@@ -1,9 +1,14 @@
-#include "Memory.hpp"
+module;
 
-import ThreadSafety;
+#include "Defines.hpp"
 
 #include <corecrt_malloc.h>
 #include <vcruntime_string.h>
+
+module Memory:Allocator;
+
+import :Utilities;
+import ThreadSafety;
 
 U32 Memory::allocations = 0;
 U8* Memory::memory = nullptr;
@@ -30,7 +35,7 @@ bool Memory::Initialize()
 {
 	if (!SafeCheckAndSet(&initialized, 0L))
 	{
-		U64 maxKilobytes = DYNAMIC_MEMORY_SIZE / 1024;
+		U64 maxKilobytes = DynamicMemorySize / 1024;
 
 		U32 region4mbCount = U32(maxKilobytes / 81920);
 		U32 region256kbCount = U32(maxKilobytes * 0.15f) / 256;
@@ -39,14 +44,14 @@ bool Memory::Initialize()
 
 		U32 freeListMemory = (region4mbCount + region256kbCount + region16kbCount + region1kbCount) * sizeof(U32);
 
-		totalSize = DYNAMIC_MEMORY_SIZE + STATIC_MEMORY_SIZE;
+		totalSize = DynamicMemorySize + StaticMemorySize;
 
 		memory = (U8*)calloc(1, totalSize + freeListMemory);
 
 		if (!memory) { return false; }
 
 		staticPointer = memory;
-		dynamicPointer = memory + STATIC_MEMORY_SIZE;
+		dynamicPointer = memory + StaticMemorySize;
 
 		pool1kbPointer = (Region1kb*)(dynamicPointer);
 		pool16kbPointer = (Region16kb*)(pool1kbPointer + region1kbCount);
@@ -151,7 +156,7 @@ void Memory::FreeChunk(void** pointer)
 	else if (cmp >= pool1kbPointer) { Free1kb((void**)pointer); }
 }
 
-void Memory::CopyFree(void** pointer, void* copy, U64 size)
+void Memory::CopyFree(U8** pointer, U8* copy, U64 size)
 {
 	void* cmp = *pointer;
 
@@ -209,99 +214,6 @@ bool Memory::IsDynamicallyAllocated(void* pointer)
 bool Memory::IsStaticallyAllocated(void* pointer)
 {
 	return pointer != nullptr && pointer >= memory && pointer < pool1kbPointer;
-}
-
-U64 Memory::MemoryAlign(U64 size, U64 alignment)
-{
-	const U64 alignmentMask = alignment - 1;
-	return (size + alignmentMask) & ~alignmentMask;
-}
-
-void Memory::Set(void* pointer, U8 value, U64 size)
-{
-	U8* ptr = (U8*)pointer;
-	while (size--) { *ptr++ = value; }
-}
-
-void Memory::Zero(void* pointer, U64 size)
-{
-	static constexpr U8 ZERO = 0UI8;
-
-	U8* ptr = (U8*)pointer;
-	while (size--) { *ptr++ = ZERO; }
-}
-
-void Memory::Copy(void* dst, const void* src, U64 size)
-{
-	memcpy(dst, src, size);
-}
-
-void Memory::CopyRepeated(void* dst, const void* src, U64 size, U64 count)
-{
-	if (src > dst)
-	{
-		U8* it0 = (U8*)dst;
-		const U8* start = (const U8*)src;
-		const U8* it1;
-		U64 s;
-
-		for (U64 i = 0; i < count; ++i)
-		{
-			it1 = start;
-			s = size;
-
-			while (s--) { *it0++ = *it1++; }
-		}
-	}
-	else
-	{
-		U8* it0 = (U8*)dst + size - 1;
-		const U8* start = (const U8*)src + size - 1;
-		const U8* it1;
-		U64 s;
-
-		for (U64 i = 0; i < count; ++i)
-		{
-			it1 = start;
-			s = size;
-
-			while (s--) { *it0-- = *it1--; }
-		}
-	}
-}
-
-void Memory::CopyRepeatedGap(void* dst, const void* src, U64 size, U64 count, U64 gap)
-{
-	if (src > dst)
-	{
-		U8* it0 = (U8*)dst;
-		const U8* start = (const U8*)src;
-		const U8* it1;
-		U64 s;
-
-		for (U64 i = 0; i < count; ++i)
-		{
-			it1 = start;
-			s = size;
-
-			while (s--) { *it0 = *it1++; it0 += gap; }
-		}
-	}
-	else
-	{
-		U8* it0 = (U8*)dst + size - (size % gap);
-		const U8* start = (const U8*)src + size - 1;
-		const U8* it1;
-		U64 s;
-
-		for (U64 i = 0; i < count; ++i)
-		{
-			it1 = start;
-			s = size;
-
-			while (s--) { *it0 = *it1--; it0 -= gap; }
-		}
-	}
 }
 
 /*---------GLOBAL NEW/DELETE---------*/

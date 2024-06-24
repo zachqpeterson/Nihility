@@ -1,7 +1,6 @@
 module;
 
 #include "Defines.hpp"
-#include "Memory\Memory.hpp"
 
 #include <io.h>
 #include <sys\stat.h>
@@ -12,6 +11,8 @@ module;
 #endif
 
 module Core:File;
+
+import Memory;
 
 static constexpr I32 READ_MODE = 0x0001;
 static constexpr I32 WRITE_MODE = 0x0002;
@@ -77,7 +78,7 @@ U32 File::Read(void* buffer, U32 size)
 		if (bufferRemaining)
 		{
 			nBytes = size < bufferRemaining ? size : bufferRemaining;
-			Memory::Copy(data, streamPtr, nBytes);
+			Copy(data, streamPtr, nBytes);
 
 			size -= nBytes;
 			bufferRemaining -= nBytes;
@@ -169,7 +170,7 @@ U32 File::Write(const void* buffer, U32 size)
 			if (bufferRemaining)
 			{
 				nBytes = size < bufferRemaining ? size : bufferRemaining;
-				Memory::Copy(streamPtr, data, nBytes);
+				Copy(streamPtr, data, nBytes);
 
 				size -= nBytes;
 				bufferRemaining -= nBytes;

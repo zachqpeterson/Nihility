@@ -47,14 +47,14 @@ struct NH_API MeshInstance
 	MeshInstance(MeshInstance&& other) noexcept : mesh{ other.mesh }, material{ other.material },
 		handle{ other.handle }, instanceOffset{ other.instanceOffset }
 	{
-		Memory::Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
+		Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
 	}
 
 	MeshInstance& operator=(MeshInstance&& other) noexcept
 	{
 		mesh = other.mesh;
 		material = other.material;
-		Memory::Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
+		Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
 		handle = other.handle;
 		instanceOffset = other.instanceOffset;
 
@@ -119,7 +119,7 @@ struct NH_API MeshComponent : public Component
 		modelMatrix = Matrix4Identity;
 		meshInstance.mesh = mesh;
 		meshInstance.material = material;
-		Memory::Copy(meshInstance.instanceData.data, &material->Handle(), sizeof(U32));
+		Copy((U32*)meshInstance.instanceData.data, (U32*)&material->Handle(), 1);
 	}
 	MeshComponent(MeshComponent&& other) noexcept : Component(Move(other)), meshInstance{ Move(other.meshInstance) }, modelMatrix{ other.modelMatrix } {}
 	MeshComponent& operator=(MeshComponent&& other) noexcept

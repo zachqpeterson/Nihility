@@ -1,10 +1,9 @@
 #pragma once
 
-import ThreadSafety;
-
 #include "Defines.hpp"
 
-#include "Memory\Memory.hpp"
+import ThreadSafety;
+import Memory;
 
 template<class Type>
 struct SafeQueue

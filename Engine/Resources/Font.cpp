@@ -1,9 +1,9 @@
 #include "Font.hpp"
 
-#include "Memory\Memory.hpp"
-
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "External\stb_truetype.h"
+
+import Memory;
 
 Vector2Int Font::atlasPositions[96];
 
@@ -623,7 +623,7 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 
 			for (I32 j = 0; j < height; ++j)
 			{
-				Memory::Copy(atlas + start + j * rowWidth * 4, bitmap + j * width * 4, sizeof(F32) * width * 4);
+				Copy(atlas + start + j * rowWidth * 4, bitmap + j * width * 4, width * 4);
 			}
 		}
 
@@ -860,7 +860,7 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 				for (I32 j = 0; parts[j]; ++j)
 				{
-					Memory::Copy(contourData[i].edges + j, parts + j, sizeof(EdgeSegment));
+					Copy(contourData[i].edges + j, parts[j], 1);
 					++contourData[i].edgeCount;
 				}
 			}
@@ -895,12 +895,12 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 	{
 		if (contourData[i].edgeCount == 1)
 		{
-			EdgeSegment* parts[3] = { 0 };
-			EdgeSplit(&contourData[i].edges[0], parts[0], parts[1], parts[2]);
+			EdgeSegment parts[3] = { 0 };
+			EdgeSplit(&contourData[i].edges[0], parts, parts + 1, parts + 2);
 			Memory::Reallocate(&contourData[i].edges, 3);
 			contourData[i].edgeCount = 3;
 
-			Memory::Copy(contourData[i].edges, parts, sizeof(EdgeSegment) * 3);
+			Copy(contourData[i].edges, parts, 3);
 		}
 	}
 
@@ -958,8 +958,6 @@ bool FontLoader::LoadGlyph(stbtt_fontinfo* info, Font& font, Glyph& glyph, U32 c
 
 	MultiDistance* contourSd;
 	Memory::AllocateArray(&contourSd, contourCount);
-
-	Memory::Zero(bitmap, 4 * 32 * 32 * sizeof(F32));
 
 	for (I32 y = 0; y < height; ++y)
 	{

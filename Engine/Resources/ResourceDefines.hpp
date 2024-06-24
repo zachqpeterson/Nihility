@@ -595,7 +595,7 @@ struct ResourceRef
 {
 	ResourceRef() {}
 	ResourceRef(NullPointer) {}
-	ResourceRef(Type* value) : value{ value } { ++value->refCount; }
+	ResourceRef(Type* value) : value{ value } { if (value) { ++value->refCount; } }
 	ResourceRef(const ResourceRef& other) : value{ other.value } { if (value) { ++value->refCount; } }
 	~ResourceRef()
 	{

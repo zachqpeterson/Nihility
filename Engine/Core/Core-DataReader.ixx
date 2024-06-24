@@ -1,12 +1,12 @@
 module;
 
 #include "Defines.hpp"
-#include "Memory\Memory.hpp"
 
 export module Core:DataReader;
 
 import :File;
 import Containers;
+import Memory;
 
 export struct NH_API DataReader
 {
@@ -17,10 +17,10 @@ export struct NH_API DataReader
 	~DataReader();
 	void Destroy();
 
-	template<typename Type> void Read(Type& value);
-	template<typename Type> Type Read();
-	template<typename Type> void ReadSize(Type& value, U32 size);
-	void ReadSize(void* data, U32 size);
+	template<class Type> void Read(Type& value);
+	template<class Type> Type Read();
+	template<class Type> void ReadSize(Type* data, U32 size);
+	template<class Type> void ReadCount(Type* data, U32 count);
 	String ReadString();
 	String ReadLine();
 	template<Character C, U64 Count> bool Compare(const C(&str)[Count]);
@@ -42,7 +42,7 @@ private:
 	U8* dataPtr{ nullptr };
 };
 
-template<typename Type>
+template<class Type>
 inline void DataReader::Read(Type& value)
 {
 	value = *reinterpret_cast<Type*>(dataPtr);
@@ -50,7 +50,7 @@ inline void DataReader::Read(Type& value)
 	remaining -= sizeof(Type);
 }
 
-template<typename Type>
+template<class Type>
 inline Type DataReader::Read()
 {
 	Type value = *reinterpret_cast<Type*>(dataPtr);
@@ -59,10 +59,19 @@ inline Type DataReader::Read()
 	return Move(value);
 }
 
-template<typename Type>
-inline void DataReader::ReadSize(Type& value, U32 size)
+template<class Type>
+void DataReader::ReadSize(Type* data, U32 size)
 {
-	value = *reinterpret_cast<Type*>(dataPtr);
+	Copy((U8*)data, dataPtr, size);
+	dataPtr += size;
+	remaining -= size;
+}
+
+template<class Type>
+void DataReader::ReadCount(Type* data, U32 count)
+{
+	U64 size = sizeof(Type) * count;
+	Copy(data, (Type*)dataPtr, count);
 	dataPtr += size;
 	remaining -= size;
 }
@@ -70,7 +79,7 @@ inline void DataReader::ReadSize(Type& value, U32 size)
 template<Character C, U64 Count>
 inline bool DataReader::Compare(const C(&str)[Count])
 {
-	bool result = Memory::Compare((C*)dataPtr, str, Count - 1);
+	bool result = CompareString((C*)dataPtr, str, Count - 1);
 	dataPtr += Count;
 	remaining -= Count;
 
@@ -99,13 +108,6 @@ DataReader::~DataReader()
 void DataReader::Destroy()
 {
 	if (allocated) { Memory::Free(&data); }
-}
-
-void DataReader::ReadSize(void* data, U32 size)
-{
-	Memory::Copy(data, dataPtr, size);
-	dataPtr += size;
-	remaining -= size;
 }
 
 String DataReader::ReadString()

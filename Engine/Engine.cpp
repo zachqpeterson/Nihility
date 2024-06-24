@@ -1,11 +1,6 @@
 #include "Engine.hpp"
 
-import Core;
-import Containers;
-import Multithreading;
-
 #include "Introspection.hpp"
-#include "Memory\Memory.hpp"
 #include "Platform\Platform.hpp"
 #include "Platform\Audio.hpp"
 #include "Platform\Input.hpp"
@@ -18,6 +13,11 @@ import Multithreading;
 #include "Math\Physics.hpp"
 #include "Networking\Discord.hpp"
 #include "Networking\Steam.hpp"
+
+import Core;
+import Memory;
+import Containers;
+import Multithreading;
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;

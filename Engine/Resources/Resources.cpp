@@ -791,7 +791,7 @@ bool Resources::RecreateTexture(ResourceRef<Texture>& texture, U16 width, U16 he
 		deleteTexture.depth = texture->depth;
 		deleteTexture.sampler = texture->sampler;
 		deleteTexture.mipmapCount = texture->mipmapCount;
-		Memory::Copy(deleteTexture.mipmaps, texture->mipmaps, sizeof(VkImageView) * deleteTexture.mipmapCount);
+		Copy(deleteTexture.mipmaps, texture->mipmaps, deleteTexture.mipmapCount);
 
 		texture->width = width;
 		texture->height = height;
@@ -950,7 +950,7 @@ ResourceRef<AudioClip> Resources::LoadAudio(const String& path)
 
 		Memory::AllocateSize(&audioClip->buffer, audioClip->size);
 
-		Memory::Copy(audioClip->buffer, reader.Pointer(), audioClip->size);
+		Copy(audioClip->buffer, reader.Pointer(), audioClip->size);
 
 		return audioClip;
 	}
@@ -1253,7 +1253,7 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path)
 		reader.Seek(4); //Skip version number for now, there is only one
 
 		reader.Read(texture->usage);
-		reader.ReadSize(&texture->sampler, sizeof(SamplerInfo));
+		reader.ReadCount((U8*)&texture->sampler, sizeof(SamplerInfo));
 
 		reader.Read(texture->width);
 		reader.Read(texture->height);
@@ -1703,8 +1703,8 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 		positionBuffer.type = VERTEX_TYPE_POSITION;
 		positionBuffer.size = verticesSize;
 		positionBuffer.stride = sizeof(Vector3);
-		Memory::AllocateSize(&positionBuffer.buffer, verticesSize);
-		Memory::Copy(positionBuffer.buffer, reader.Pointer(), verticesSize);
+		Memory::AllocateArray(&positionBuffer.buffer, mesh->vertexCount);
+		Copy((Vector3*)positionBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 		mesh->buffers.Push(positionBuffer);
 		reader.Seek(verticesSize);
 
@@ -1712,8 +1712,8 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 		normalBuffer.type = VERTEX_TYPE_NORMAL;
 		normalBuffer.size = verticesSize;
 		normalBuffer.stride = sizeof(Vector3);
-		Memory::AllocateSize(&normalBuffer.buffer, verticesSize);
-		Memory::Copy(normalBuffer.buffer, reader.Pointer(), verticesSize);
+		Memory::AllocateArray(&normalBuffer.buffer, mesh->vertexCount);
+		Copy((Vector3*)normalBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 		mesh->buffers.Push(normalBuffer);
 		reader.Seek(verticesSize);
 
@@ -1723,8 +1723,8 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 			tangentBuffer.type = VERTEX_TYPE_TANGENT;
 			tangentBuffer.size = verticesSize;
 			tangentBuffer.stride = sizeof(Vector3);
-			Memory::AllocateSize(&tangentBuffer.buffer, verticesSize);
-			Memory::Copy(tangentBuffer.buffer, reader.Pointer(), verticesSize);
+			Memory::AllocateArray(&tangentBuffer.buffer, mesh->vertexCount);
+			Copy((Vector3*)tangentBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 			mesh->buffers.Push(tangentBuffer);
 			reader.Seek(verticesSize);
 		}
@@ -1735,14 +1735,15 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 			texcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
 			texcoordBuffer.size = verticesSize;
 			texcoordBuffer.stride = sizeof(Vector3);
-			Memory::AllocateSize(&texcoordBuffer.buffer, verticesSize);
-			Memory::Copy(texcoordBuffer.buffer, reader.Pointer(), verticesSize);
+			Memory::AllocateArray(&texcoordBuffer.buffer, mesh->vertexCount);
+			Copy((Vector3*)texcoordBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 			mesh->buffers.Push(texcoordBuffer);
 			reader.Seek(verticesSize);
 		}
 
-		Memory::AllocateSize(&mesh->indices, mesh->indicesSize);
-		Memory::Copy(mesh->indices, reader.Pointer(), mesh->indicesSize);
+		//TODO: Store index count instead of size
+		Memory::AllocateArray(&mesh->indices, mesh->indicesSize / sizeof(U32));
+		Copy((U32*)mesh->indices, (U32*)reader.Pointer(), mesh->indicesSize / sizeof(U32));
 
 		reader.Seek(mesh->indicesSize);
 
@@ -1814,7 +1815,7 @@ ResourceRef<Model> Resources::LoadModel(const String& path)
 				model->matrices.Push(matrix);
 
 				U32 materialIndex = (U32)instance.material->handle;
-				Memory::Copy(&instance.instanceData, &materialIndex, sizeof(U32));
+				Copy((U32*)&instance.instanceData, &materialIndex, 1);
 
 				model->meshes.Push(Move(instance));
 			}
@@ -2382,7 +2383,7 @@ String Resources::UploadAudio(const String& path)
 	{
 		I64 extension = path.LastIndexOf('.');
 
-		if (Memory::Compare(path.Data() + extension + 1, "wav", 3))
+		if (Compare(path.Data() + extension + 1, "wav", 3))
 		{
 			DataReader reader{ file };
 			file.Close();
@@ -2416,7 +2417,7 @@ String Resources::UploadAudio(const String& path)
 					}
 				} break;
 				case WAV_FMT: {
-					reader.ReadSize(format, chunkSize);
+					reader.ReadSize(&format, chunkSize);
 					file.Write(format);
 				} break;
 				case WAV_DATA: {
@@ -2433,7 +2434,7 @@ String Resources::UploadAudio(const String& path)
 			file.Close();
 			return Move(newPath);
 		}
-		else if (Memory::Compare(path.Data() + extension + 1, "ogg", 3))
+		else if (Compare(path.Data() + extension + 1, "ogg", 3))
 		{
 			DataReader reader{ file };
 			file.Close();
@@ -2469,7 +2470,7 @@ String Resources::UploadAudio(const String& path)
 			file.Close();
 			return Move(newPath);
 		}
-		else if (Memory::Compare(path.Data() + extension + 1, "mp3", 3))
+		else if (Compare(path.Data() + extension + 1, "mp3", 3))
 		{
 			DataReader reader{ file };
 			file.Close();
@@ -2539,7 +2540,7 @@ String Resources::UploadSkybox(const String& path)
 					coordX = (U32)(uv.x * (width - 1));
 					coordY = (U32)(uv.y * (height - 1));
 
-					Memory::Copy(pixel, textureData + (coordY * width + coordX) * 4, 4);
+					Copy((U32*)pixel, (U32*)textureData + (coordY * width + coordX), 1);
 				}
 			}
 		}
@@ -2764,18 +2765,18 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 				{
 					for (U32 i = 0; i < width * height; ++i)
 					{
-						Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
-						Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
-						Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
+						Copy(buffer + i * 4, textureData0 + i * 3, 1);
+						Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, 1);
+						Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, 1);
 					}
 				}
 				else
 				{
 					for (U32 i = 0; i < width * height; ++i)
 					{
-						Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
-						Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
-						Memory::Copy(buffer + i * 4 + 2, &def2, sizeof(U8));
+						Copy(buffer + i * 4, textureData0 + i * 3, 1);
+						Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, 1);
+						Copy(buffer + i * 4 + 2, &def2, 1);
 					}
 				}
 			}
@@ -2783,18 +2784,18 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 1, &def1, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
+					Copy(buffer + i * 4, textureData0 + i * 3, 1);
+					Copy(buffer + i * 4 + 1, &def1, 1);
+					Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, 1);
 				}
 			}
 			else
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					Memory::Copy(buffer + i * 4, textureData0 + i * 3, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 1, &def1, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 2, &def2, sizeof(U8));
+					Copy(buffer + i * 4, textureData0 + i * 3, 1);
+					Copy(buffer + i * 4 + 1, &def1, 1);
+					Copy(buffer + i * 4 + 2, &def2, 1);
 				}
 			}
 		}
@@ -2804,18 +2805,18 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					Memory::Copy(buffer + i * 4, &def0, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
+					Copy(buffer + i * 4, &def0, 1);
+					Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, 1);
+					Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, 1);
 				}
 			}
 			else
 			{
 				for (U32 i = 0; i < width * height; ++i)
 				{
-					Memory::Copy(buffer + i * 4, &def0, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, sizeof(U8));
-					Memory::Copy(buffer + i * 4 + 2, &def2, sizeof(U8));
+					Copy(buffer + i * 4, &def0, 1);
+					Copy(buffer + i * 4 + 1, textureData1 + i * 3 + 1, 1);
+					Copy(buffer + i * 4 + 2, &def2, 1);
 				}
 			}
 		}
@@ -2823,9 +2824,9 @@ String Resources::UploadTextures(const String& name, U32 index, const aiTexture*
 		{
 			for (U32 i = 0; i < width * height; ++i)
 			{
-				Memory::Copy(buffer + i * 4, &def0, sizeof(U8));
-				Memory::Copy(buffer + i * 4 + 1, &def1, sizeof(U8));
-				Memory::Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, sizeof(U8));
+				Copy(buffer + i * 4, &def0, 1);
+				Copy(buffer + i * 4 + 1, &def1, 1);
+				Copy(buffer + i * 4 + 2, textureData2 + i * 3 + 2, 1);
 			}
 		}
 
@@ -2854,7 +2855,7 @@ U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& r
 	U8* identifier = reader.Pointer();
 	reader.Seek(CountOf32(FileIdentifier11));
 
-	if (Memory::Compare(identifier, FileIdentifier11, 12))
+	if (Compare(identifier, FileIdentifier11, 12))
 	{
 		U32 endianness;
 		reader.Read(endianness);
@@ -2922,7 +2923,7 @@ U8* Resources::LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& r
 
 		return reader.Pointer();
 	}
-	else if (Memory::Compare(identifier, FileIdentifier20, 12))
+	else if (Compare(identifier, FileIdentifier20, 12))
 	{
 		KTXHeader20 header;
 		reader.Read(header);
@@ -3537,25 +3538,25 @@ String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 		Memory::AllocateSize(&buffer, totalSize);
 		U8* it = buffer;
 
-		Memory::Copy(it, meshInfo->mVertices, sizeof(Vector3) * vertexCount);
+		Copy((aiVector3D*)it, meshInfo->mVertices, vertexCount);
 		it += sizeof(Vector3) * vertexCount;
-		Memory::Copy(it, meshInfo->mNormals, sizeof(Vector3) * vertexCount);
+		Copy((aiVector3D*)it, meshInfo->mNormals, vertexCount);
 		it += sizeof(Vector3) * vertexCount;
 
 		if (meshInfo->HasTangentsAndBitangents())
 		{
-			Memory::Copy(it, meshInfo->mTangents, sizeof(Vector3) * vertexCount);
+			Copy((aiVector3D*)it, meshInfo->mTangents, vertexCount);
 			it += sizeof(Vector3) * vertexCount;
 		}
 
 		if (meshInfo->HasTextureCoords(0))
 		{
-			Memory::Copy(it, meshInfo->mTextureCoords[0], sizeof(Vector3) * vertexCount);
+			Copy((aiVector3D*)it, meshInfo->mTextureCoords[0], vertexCount);
 			it += sizeof(Vector3) * vertexCount;
 
 			//for (U32 i = 0; i < vertexCount; ++i)
 			//{
-			//	Memory::Copy(it, meshInfo->mTextureCoords[0] + i, sizeof(Vector2));
+			//	Copy((aiVector2D*)it, meshInfo->mTextureCoords[0] + i, 1);
 			//	it += sizeof(Vector2);
 			//}
 		}
@@ -3587,7 +3588,7 @@ String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 			centerOfMass += tetMass * tetCenterOfMass;
 			mass += tetMass;
 
-			Memory::Copy(it, meshInfo->mFaces[i].mIndices, faceSize);
+			Copy((U32*)it, meshInfo->mFaces[i].mIndices, meshInfo->mFaces[0].mNumIndices);
 			it += faceSize;
 		}
 

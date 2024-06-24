@@ -196,7 +196,6 @@
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
-    <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClInclude Include="Engine\Networking\Discord.hpp" />
     <ClInclude Include="Engine\Networking\Steam.hpp" />
     <ClInclude Include="Engine\Platform\Audio.hpp" />
@@ -349,7 +348,10 @@
     <ClCompile Include="Engine\Math\Math.ixx" />
     <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />
+    <ClCompile Include="Engine\Memory\Memory-Allocator.ixx" />
+    <ClCompile Include="Engine\Memory\Memory-Utilities.ixx" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
+    <ClCompile Include="Engine\Memory\Memory.ixx" />
     <ClCompile Include="Engine\Networking\Discord.cpp" />
     <ClCompile Include="Engine\Networking\Steam.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />

@@ -1,10 +1,11 @@
 module;
 
 #include "Defines.hpp"
-#include "Memory\Memory.hpp"
 //#include <initializer_list>
 
 export module Containers:Vector;
+
+import Memory;
 
 /*
 * TODO: Variatic Templates
@@ -504,7 +505,7 @@ template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : 
 template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size{ other.size }, capacity{ other.size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	Memory::Copy(array, other.array, sizeof(Type) * size);
+	Copy(array, other.array, size);
 }
 
 template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
@@ -519,7 +520,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator=(const Vector<T
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
-	Memory::Copy(array, other.array, size * sizeof(Type));
+	Copy(array, other.array, size);
 
 	return *this;
 }
@@ -590,7 +591,7 @@ inline void Vector<Type>::Insert(Index index, const Type& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(Type));
+	Copy(array + index + 1, array + index, (size - index));
 	array[index] = value;
 	++size;
 }
@@ -601,7 +602,7 @@ inline void Vector<Type>::Insert(Index index, Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Memory::Copy(array + index + 1, array + index, (size - index) * sizeof(Type));
+	Copy(array + index + 1, array + index, (size - index));
 	array[index] = Move(value);
 	++size;
 }
@@ -612,8 +613,8 @@ inline void Vector<Type>::Insert(Index index, const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(Type));
-	Memory::Copy(array + index, other.array, other.size * sizeof(Type));
+	Copy(array + index + other.size, array + index, (size - index));
+	Copy(array + index, other.array, other.size);
 
 	size += other.size;
 }
@@ -624,8 +625,8 @@ inline void Vector<Type>::Insert(Index index, Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + index + other.size, array + index, (size - index) * sizeof(Type));
-	Memory::Copy(array + index, other.array, other.size * sizeof(Type));
+	Copy(array + index + other.size, array + index, (size - index));
+	Copy(array + index, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -633,7 +634,7 @@ inline void Vector<Type>::Insert(Index index, Vector<Type>&& other) noexcept
 
 template<class Type> inline void Vector<Type>::Remove(U64 index)
 {
-	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(Type));
+	Copy(array + index, array + index + 1, (size - index));
 
 	--size;
 }
@@ -641,7 +642,7 @@ template<class Type> inline void Vector<Type>::Remove(U64 index)
 template<class Type> inline void Vector<Type>::Remove(U64 index, Type& value)
 {
 	value = array[index];
-	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(Type));
+	Copy(array + index, array + index + 1, (size - index));
 
 	--size;
 }
@@ -649,7 +650,7 @@ template<class Type> inline void Vector<Type>::Remove(U64 index, Type& value)
 template<class Type> inline void Vector<Type>::Remove(U64 index, Type&& value) noexcept
 {
 	value = Move(array[index]);
-	Memory::Copy(array + index, array + index + 1, (size - index) * sizeof(Type));
+	Copy(array + index, array + index + 1, (size - index));
 
 	--size;
 }
@@ -673,7 +674,7 @@ template<class Type> inline void Vector<Type>::RemoveSwap(U64 index, Type&& valu
 
 template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1)
 {
-	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(Type));
+	Copy(array + index0, array + index1, (size - index1));
 
 	size -= index1 - index0;
 }
@@ -683,8 +684,8 @@ template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1, Vec
 	other.Reserve(index1 - index0);
 	other.size = other.capacity;
 
-	Memory::Copy(other.array, array + index0, (index1 - index0) * sizeof(Type));
-	Memory::Copy(array + index0, array + index1, (size - index1) * sizeof(Type));
+	Copy(other.array, array + index0, (index1 - index0));
+	Copy(array + index0, array + index1, (size - index1));
 
 	size -= index1 - index0;
 }
@@ -694,7 +695,7 @@ template<class Type> inline void Vector<Type>::Split(U64 index, Vector<Type>& ot
 	other.Reserve(size - index);
 	other.size = other.capacity;
 
-	Memory::Copy(other.array, array + index, other.size * sizeof(Type));
+	Copy(other.array, array + index, other.size);
 
 	size -= index;
 }
@@ -703,7 +704,7 @@ template<class Type> inline void Vector<Type>::Merge(const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
+	Copy(array + size, other.array, other.size);
 	size += other.size;
 }
 
@@ -711,7 +712,7 @@ template<class Type> inline void Vector<Type>::Merge(Vector<Type>&& other) noexc
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
+	Copy(array + size, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -721,7 +722,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator+=(const Vector<
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
+	Copy(array + size, other.array, other.size);
 	size += other.size;
 
 	return *this;
@@ -731,7 +732,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator+=(Vector<Type>&
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Memory::Copy(array + size, other.array, other.size * sizeof(Type));
+	Copy(array + size, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -791,7 +792,7 @@ inline U64 Vector<Type>::RemoveAll(Predicate predicate)
 		if (predicate(*t))
 		{
 			++i;
-			Memory::Copy(t, t + 1, sizeof(Type) * (last - t - 1));
+			Copy(t, t + 1, (last - t - 1));
 			--size;
 		}
 		else { ++t; }
@@ -814,7 +815,7 @@ inline void Vector<Type>::RemoveAll(Predicate predicate, Vector<Type>& other)
 		if (predicate(*t))
 		{
 			other.Push(*t);
-			Memory::Copy(t, t + 1, sizeof(Type) * (last - t - 1));
+			Copy(t, t + 1, (last - t - 1));
 
 			--size;
 		}
@@ -845,7 +846,7 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, const Type& value)
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(Type));
+			Copy(array + i + 1, array + i, (size - i));
 			array[i] = value;
 			++size;
 
@@ -871,7 +872,7 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, Type&& value) noexcept
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			Memory::Copy(array + i + 1, array + i, (size - i) * sizeof(Type));
+			Copy(array + i + 1, array + i, (size - i));
 			array[i] = Move(value);
 			++size;
 

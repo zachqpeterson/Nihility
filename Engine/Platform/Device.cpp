@@ -1,8 +1,7 @@
 #include "Device.hpp"
 
-#include "Memory\Memory.hpp"
-
 import Core;
+import Memory;
 
 #if defined PLATFORM_WINDOWS
 

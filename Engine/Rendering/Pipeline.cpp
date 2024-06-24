@@ -33,7 +33,7 @@ bool Pipeline::Create(U8 pushConstantCount, PushConstant* pushConstants)
 		case SHADER_STAGE_VERTEX_BIT: {
 			instanceStride = shader->instanceStride;
 			vertexBindingCount = shader->vertexBindingCount;
-			Memory::Copy(vertexTypes, shader->vertexTypes, sizeof(VertexType) * vertexBindingCount);
+			Copy(vertexTypes, shader->vertexTypes, vertexBindingCount);
 
 			if (bindPoint != PIPELINE_BIND_POINT_MAX_ENUM && bindPoint != PIPELINE_BIND_POINT_GRAPHICS)
 			{

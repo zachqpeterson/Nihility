@@ -1,10 +1,10 @@
 module;
 
 #include "Defines.hpp"
-#include "Memory\Memory.hpp"
 
 export module Containers:Freelist;
 
+import Memory;
 import ThreadSafety;
 
 export struct NH_API Freelist
@@ -82,7 +82,7 @@ inline void Freelist::Reset()
 	freeCount = 0;
 	lastFree = 0;
 	used = 0;
-	Memory::Zero(freeIndices, sizeof(U32) * capacity);
+	Zero(freeIndices, sizeof(U32) * capacity);
 }
 
 inline U32 Freelist::GetFree()

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Defines.hpp"
+
 import Containers;
 import Math;
-
-#include "Defines.hpp"
-#include "Memory\Memory.hpp"
+import Memory;
 
 typedef U64 HashHandle;
 
@@ -276,7 +276,7 @@ inline bool Hashmap<Key, Value>::Remove(const Key& key)
 			if constexpr (IsPointer<Value>) { cell->value->Destroy(); }
 			else { cell->value.Destroy(); }
 		}
-		Memory::Zero(cell, sizeof(Cell));
+		Zero(cell, sizeof(Cell));
 
 		return true;
 	}
@@ -374,7 +374,7 @@ inline bool Hashmap<Key, Value>::Remove(HashHandle handle)
 			if constexpr (IsPointer<Value>) { cell.value->Destroy(); }
 			else { cell.value.Destroy(); }
 		}
-		Memory::Zero(&cell, sizeof(Cell));
+		Zero(&cell, sizeof(Cell));
 
 		return true;
 	}

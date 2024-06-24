@@ -111,7 +111,7 @@ void Scene::SetSkybox(const ResourceRef<Skybox>& skybox)
 
 void Scene::SetPostProcessing(const PostProcessData& data)
 {
-	Memory::Copy(Renderer::GetPostProcessData(), &data, sizeof(PostProcessData));
+	Copy(Renderer::GetPostProcessData(), &data, 1);
 
 	if (!hasPostProcessing)
 	{
@@ -582,7 +582,7 @@ BufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, const void
 	region.size = size;
 	stagingBuffer.allocationOffset += size;
 
-	Memory::Copy((U8*)stagingBuffer.data + region.srcOffset, (U8*)data + srcOffset, size);
+	Copy((U8*)stagingBuffer.data + region.srcOffset, (U8*)data + srcOffset, size);
 
 	return region;
 }

@@ -1,8 +1,10 @@
 module;
 
-#include "Memory\Memory.hpp"
+#include "Defines.hpp"
 
 export module Containers:String;
+
+import Memory;
 
 #pragma region Lookup
 constexpr inline U8 UPPER_CHAR = 0x01;
@@ -700,7 +702,7 @@ template<> constexpr inline const wchar_t* DECIMAL_LOOKUP<wchar_t> =
 #pragma endregion
 
 export template<Character C>
-inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
+inline constexpr bool CompareString(const C* a, const C* b, I64 length) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -713,7 +715,7 @@ inline constexpr bool Compare(const C* a, const C* b, I64 length) noexcept
 }
 
 export template<Character C>
-inline constexpr bool Compare(const C* a, const C* b) noexcept
+inline constexpr bool CompareString(const C* a, const C* b) noexcept
 {
 	const C* it0 = a;
 	const C* it1 = b;
@@ -768,7 +770,7 @@ export struct StringView
 	{
 		const C8* it = string + start;
 
-		while (!(*it == 0 || Compare(it, find, Length - 1))) { ++it; }
+		while (!(*it == 0 || CompareString(it, find, Length - 1))) { ++it; }
 
 		if (*it == 0) { return -1; }
 		return (I64)(it - string);
@@ -791,7 +793,7 @@ export struct StringView
 		const C8* it = string + length - start - Length;
 
 		U64 len = length - Length + 1;
-		while (!Compare(it, find, Length - 1))
+		while (!CompareString(it, find, Length - 1))
 		{
 			if (--len) { --it; }
 			else { return -1; }
@@ -988,7 +990,6 @@ private:
 
 	template<typename Arg> void FindFormat(U64& start, const Arg& value) noexcept;
 
-	static bool Compare(const C* a, const C* b, I64 length) noexcept;
 	static bool WhiteSpace(C c) noexcept;
 	static bool NotWhiteSpace(C c) noexcept;
 	static bool Numerical(C c) noexcept;
@@ -1006,7 +1007,7 @@ inline StringBase<C>::StringBase(const StringBase& other) noexcept : size{ other
 {
 	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
 
-	Memory::Copy(string, other.string, size * sizeof(C));
+	Copy(string, other.string, size);
 	string[size] = NULL_CHAR<C>;
 }
 
@@ -1036,7 +1037,7 @@ inline StringBase<C>& StringBase<C>::Format(const C* format, const Args& ... arg
 	if (capacity < length) { Memory::Reallocate(&string, length, capacity); }
 	size = length - 1;
 
-	Memory::Copy(string, format, length * sizeof(C));
+	Copy(string, format, length);
 	U64 start = 0;
 	(FindFormat(start, args), ...);
 
@@ -1052,7 +1053,7 @@ inline StringBase<C>& StringBase<C>::Format(U64 start, const C* format, const Ar
 	if (capacity < start + length) { Memory::Reallocate(&string, start + length, capacity); }
 	size = start + length - 1;
 
-	Memory::Copy(string + start, format, length * sizeof(C));
+	Copy(string + start, format, length);
 	(FindFormat(start, args), ...);
 
 	return *this;
@@ -1071,7 +1072,7 @@ inline StringBase<C>& StringBase<C>::operator=(const StringBase& other) noexcept
 
 	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
 
-	Memory::Copy(string, other.string, size * sizeof(C));
+	Copy(string, other.string, size);
 	string[size] = NULL_CHAR<C>;
 
 	return *this;
@@ -1198,7 +1199,7 @@ inline bool StringBase<C>::operator==(C* other) const noexcept
 	U64 len = Length(other);
 	if (len != size) { return false; }
 
-	return Compare(string, other, size);
+	return CompareString(string, other, size);
 }
 
 template<Character C>
@@ -1206,7 +1207,7 @@ inline bool StringBase<C>::operator==(const StringBase<C>& other) const noexcept
 {
 	if (other.size != size) { return false; }
 
-	return Compare(string, other.string, size);
+	return CompareString(string, other.string, size);
 }
 
 template<Character C>
@@ -1215,7 +1216,7 @@ inline bool StringBase<C>::operator==(const C(&other)[Count]) const noexcept
 {
 	if (Count - 1 != size) { return false; }
 
-	return Compare(string, other, Count - 1);
+	return CompareString(string, other, Count - 1);
 }
 
 template<Character C>
@@ -1224,7 +1225,7 @@ inline bool StringBase<C>::operator!=(C* other) const noexcept
 	U64 len = Length(other);
 	if (len != size) { return true; }
 
-	return !Compare(string, other, size);
+	return !CompareString(string, other, size);
 }
 
 template<Character C>
@@ -1232,7 +1233,7 @@ inline bool StringBase<C>::operator!=(const StringBase<C>& other) const noexcept
 {
 	if (other.size != size) { return true; }
 
-	return !Compare(string, other.string, size);
+	return !CompareString(string, other.string, size);
 }
 
 template<Character C>
@@ -1241,7 +1242,7 @@ inline bool StringBase<C>::operator!=(const C(&other)[Count]) const noexcept
 {
 	if (Count - 1 != size) { return true; }
 
-	return !Compare(string, other, Count - 1);
+	return !CompareString(string, other, Count - 1);
 }
 
 //TODO: Better comparison than ascii
@@ -1288,7 +1289,7 @@ inline bool StringBase<C>::Compare(C* other) const noexcept
 	U64 len = Length(other);
 	if (len != size) { return false; }
 
-	return Compare(string, other, size);
+	return CompareString(string, other, size);
 }
 
 template<Character C>
@@ -1296,7 +1297,7 @@ inline bool StringBase<C>::Compare(const StringBase<C>& other) const noexcept
 {
 	if (other.size != size) { return false; }
 
-	return Compare(string, other.string, size);
+	return CompareString(string, other.string, size);
 }
 
 template<Character C>
@@ -1305,7 +1306,7 @@ inline bool StringBase<C>::Compare(const C(&other)[Count]) const noexcept
 {
 	if (Count - 1 != size) { return false; }
 
-	return Compare(string, other, Count - 1);
+	return CompareString(string, other, Count - 1);
 }
 
 template<Character C>
@@ -1313,20 +1314,20 @@ inline bool StringBase<C>::CompareN(C* other, U64 start) const noexcept
 {
 	U64 len = Length(other);
 
-	return Compare(string + start, other, len);
+	return CompareString(string + start, other, len);
 }
 
 template<Character C>
 inline bool StringBase<C>::CompareN(const StringBase<C>& other, U64 start) const noexcept
 {
-	return Compare(string + start, other.string);
+	return CompareString(string + start, other.string);
 }
 
 template<Character C>
 template<U64 Count>
 inline bool StringBase<C>::CompareN(const C(&other)[Count], U64 start) const noexcept
 {
-	return Compare(string + start, other, Count - 1);
+	return CompareString(string + start, other, Count - 1);
 }
 
 template<Character C>
@@ -1334,20 +1335,20 @@ inline bool StringBase<C>::StartsWith(C* other) const noexcept
 {
 	U64 otherSize = Length(other);
 
-	return Compare(string, other, otherSize);
+	return CompareString(string, other, otherSize);
 }
 
 template<Character C>
 inline bool StringBase<C>::StartsWith(const StringBase& other) const noexcept
 {
-	return Compare(string, other.string, other.size);
+	return CompareString(string, other.string, other.size);
 }
 
 template<Character C>
 template<U64 Count>
 inline bool StringBase<C>::StartsWith(const C(&other)[Count]) const noexcept
 {
-	return Compare(string, other, Count - 1);
+	return CompareString(string, other, Count - 1);
 }
 
 template<Character C>
@@ -1355,20 +1356,20 @@ inline bool StringBase<C>::EndsWith(C* other) const noexcept
 {
 	U64 otherSize = Length(other);
 
-	return Compare(string + (size - otherSize), other, otherSize);
+	return CompareString(string + (size - otherSize), other, otherSize);
 }
 
 template<Character C>
 inline bool StringBase<C>::EndsWith(const StringBase& other) const noexcept
 {
-	return Compare(string + (size - other.size), other.string, other.size);
+	return CompareString(string + (size - other.size), other.string, other.size);
 }
 
 template<Character C>
 template<U64 Count>
 inline bool StringBase<C>::EndsWith(const C(&other)[Count]) const noexcept
 {
-	return Compare(string + (size - Count - 1), other, Count - 1);
+	return CompareString(string + (size - Count - 1), other, Count - 1);
 }
 
 template<Character C>
@@ -1416,7 +1417,7 @@ inline I64 StringBase<C>::IndexOf(C* find, U64 start) const noexcept
 	U64 findSize = Length(find);
 	C* it = string + start;
 
-	while (*it != NULL_CHAR<C> && !Compare(it, find, findSize)) { ++it; }
+	while (*it != NULL_CHAR<C> && !CompareString(it, find, findSize)) { ++it; }
 
 	if (*it == NULL_CHAR<C>) { return -1; }
 	return (I64)(it - string);
@@ -1439,7 +1440,7 @@ inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const noexc
 {
 	C* it = string + start;
 
-	while (*it != NULL_CHAR<C> && !Compare(it, find.string, find.size)) { ++it; }
+	while (*it != NULL_CHAR<C> && !CompareString(it, find.string, find.size)) { ++it; }
 
 	if (*it == NULL_CHAR<C>) { return -1; }
 	return (I64)(it - string);
@@ -1451,7 +1452,7 @@ inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const noexce
 {
 	C* it = string + start;
 
-	while (*it != NULL_CHAR<C> && !Compare(it, find, Count - 1)) { ++it; }
+	while (*it != NULL_CHAR<C> && !CompareString(it, find, Count - 1)) { ++it; }
 
 	if (*it == NULL_CHAR<C>) { return -1; }
 	return (I64)(it - string);
@@ -1464,7 +1465,7 @@ inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const noexcept
 	C* it = string + (size - start - findSize);
 
 	U64 len = size;
-	while (len && !Compare(it, find, findSize)) { --it; --len; }
+	while (len && !CompareString(it, find, findSize)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -1488,7 +1489,7 @@ inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const n
 	C* it = string + (size - start - find.size);
 
 	U64 len = size;
-	while (len && !Compare(it, find.string, find.size)) { --it; --len; }
+	while (len && !CompareString(it, find.string, find.size)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -1501,7 +1502,7 @@ inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const no
 	C* it = string + (size - start - Count + 1);
 
 	U64 len = size;
-	while (len && !Compare(it, find, Count - 1)) { --it; --len; }
+	while (len && !CompareString(it, find, Count - 1)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -1531,7 +1532,7 @@ inline StringBase<C>& StringBase<C>::Trim() noexcept
 	while (WhiteSpace(c = *end)) { --end; }
 
 	size = end - start + 1;
-	Memory::Copy(string, start, size);
+	Copy(string, start, size);
 	string[size] = NULL_CHAR<C>;
 
 	return *this;
@@ -1588,7 +1589,7 @@ inline StringBase<C>& StringBase<C>::ReplaceAll(const C* find, const Arg& replac
 
 	while (c != NULL_CHAR<C>)
 	{
-		while ((c = *it) != NULL_CHAR<C> && Compare(it, find, findSize)) { ++it; }
+		while ((c = *it) != NULL_CHAR<C> && CompareString(it, find, findSize)) { ++it; }
 
 		if (c != NULL_CHAR<C>) { ToString<Arg, false, true>(it, replace); }
 	}
@@ -1608,7 +1609,7 @@ inline StringBase<C>& StringBase<C>::ReplaceN(const C* find, const Arg& replace,
 
 	while (c != NULL_CHAR<C> && count)
 	{
-		while ((c = *it) != NULL_CHAR<C> && Compare(it, find, findSize)) { ++it; }
+		while ((c = *it) != NULL_CHAR<C> && CompareString(it, find, findSize)) { ++it; }
 
 		if (c != NULL_CHAR<C>)
 		{
@@ -1630,7 +1631,7 @@ inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, 
 	C* it = string + start;
 	C c;
 
-	while ((c = *it) != NULL_CHAR<C> && Compare(it, find, findSize)) { ++it; }
+	while ((c = *it) != NULL_CHAR<C> && CompareString(it, find, findSize)) { ++it; }
 
 	if (c != NULL_CHAR<C>) { ToString<Arg, false, true>(c, replace); }
 
@@ -1669,7 +1670,7 @@ inline StringBase<C> StringBase<C>::SubString(U64 start, U64 nLength) const noex
 	if (nLength < U64_MAX) { str.Resize(nLength); }
 	else { str.Resize(size - start); }
 
-	Memory::Copy(str.string, string + start, str.size);
+	Copy(str.string, string + start, str.size);
 	str.string[str.size] = NULL_CHAR<C>;
 
 	return Move(str);
@@ -1773,7 +1774,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	using UArg = Traits<UnsignedOf<Arg>>::Base;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(C)); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 	C* c = str + typeSize;
 	const C* digits;
@@ -1831,8 +1832,8 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 	size += addLength - Remove;
 
-	if constexpr (Insert && !Hex) { Memory::Copy(str + neg, c, (addLength + excessSize - Remove) * sizeof(C)); }
-	else { Memory::Copy(str + neg, c, addLength * sizeof(C)); }
+	if constexpr (Insert && !Hex) { Copy(str + neg, c, (addLength + excessSize - Remove)); }
+	else { Copy(str + neg, c, addLength); }
 
 	string[size] = NULL_CHAR<C>;
 
@@ -1849,7 +1850,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	const U64 excessSize = size - strIndex;
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(C)); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 	C* c = str + typeSize;
 	const C* digits;
@@ -1895,8 +1896,8 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 	size += addLength - Remove;
 
-	if constexpr (Insert && !Hex) { Memory::Copy(str, c, (addLength + excessSize - Remove) * sizeof(C)); }
-	else { Memory::Copy(str, c, addLength * sizeof(C)); }
+	if constexpr (Insert && !Hex) { Copy(str, c, (addLength + excessSize - Remove)); }
+	else { Copy(str, c, addLength); }
 
 	string[size] = NULL_CHAR<C>;
 
@@ -1917,7 +1918,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 		if constexpr (Insert) { Copy(str + 4, str, size - strIndex); }
 
-		Memory::Copy(str, TRUE_STR<C>, 4);
+		Copy(str, TRUE_STR<C>, 4);
 		size += 4;
 
 		if constexpr (!Insert) { string[size] = NULL_CHAR<C>; }
@@ -1928,9 +1929,9 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 	{
 		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, size + falseSize, capacity); str = string + strIndex; }
 
-		if constexpr (Insert) { Memory::Copy(str + 5, str, size - strIndex); }
+		if constexpr (Insert) { Copy(str + 5, str, size - strIndex); }
 
-		Memory::Copy(str, FALSE_STR<C>, 5);
+		Copy(str, FALSE_STR<C>, 5);
 		size += 5;
 
 		if constexpr (!Insert) { string[size] = NULL_CHAR<C>; }
@@ -1952,7 +1953,7 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount) n
 		const U64 excessSize = size - strIndex;
 
 		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-		if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(C)); }
+		if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
 		C* c = str + typeSize;
 		const C* digits;
@@ -2015,8 +2016,8 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount) n
 		I64 addLength = typeSize + neg - (c - str);
 		size += addLength - Remove;
 
-		if constexpr (Insert) { Memory::Copy(str + neg, c, (addLength + excessSize - Remove) * sizeof(C)); }
-		else { Memory::Copy(str + neg, c, addLength * sizeof(C)); }
+		if constexpr (Insert) { Copy(str + neg, c, (addLength + excessSize - Remove)); }
+		else { Copy(str + neg, c, addLength); }
 
 		string[size] = NULL_CHAR<C>;
 
@@ -2059,9 +2060,9 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
 
-	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(C)); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
-	if constexpr (IsSame<CharType, C>) { Memory::Copy(str, value, strSize * sizeof(C)); }
+	if constexpr (IsSame<CharType, C>) { Copy(str, value, strSize); }
 	else if constexpr (IsSame<CharType, C8>)
 	{
 		if constexpr (IsSame<C, C16>)
@@ -2158,9 +2159,9 @@ inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
 
 	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
 
-	if constexpr (Insert) { Memory::Copy(str + moveSize, str, excessSize * sizeof(C)); }
+	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
 
-	if constexpr (IsSame<CharType, C>) { Memory::Copy(str, value.Data(), strSize * sizeof(C)); }
+	if constexpr (IsSame<CharType, C>) { Copy(str, value.Data(), strSize); }
 	else if constexpr (IsSame<C, C16>)
 	{
 		//TODO
@@ -2282,7 +2283,7 @@ template<Character C>
 template<Boolean Arg>
 inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
-	return Compare(string + start, TRUE_STR<C>, 4);
+	return CompareString(string + start, TRUE_STR<C>, 4);
 }
 
 template<Character C>
@@ -2402,20 +2403,6 @@ inline Arg StringBase<C>::ToType(U64 start) const noexcept
 			//TODO
 		}
 	}
-}
-
-template<Character C>
-inline bool StringBase<C>::Compare(const C* a, const C* b, I64 length) noexcept
-{
-	const C* it0 = a;
-	const C* it1 = b;
-
-	C c0;
-	C c1;
-
-	while (length-- && (c0 = *it0++) == (c1 = *it1++)) {}
-
-	return (length + 1) == 0;
 }
 
 template<Character C>

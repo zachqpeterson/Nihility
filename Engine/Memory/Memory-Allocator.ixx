@@ -1,19 +1,25 @@
-#pragma once
+module;
 
 #include "Defines.hpp"
 
+export module Memory:Allocator;
+
 import ThreadSafety;
 
-constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
-constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
-constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
+export constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
+export constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
+export constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
 
 #ifndef STATIC_MEMORY_SIZE
-#	define STATIC_MEMORY_SIZE 1024Ui64 * 1024Ui64 * 1024Ui64
+export constexpr U64 StaticMemorySize = 1024Ui64 * 1024Ui64 * 1024Ui64;
+#else
+export constexpr U64 StaticMemorySize = STATIC_MEMORY_SIZE;
 #endif
 
 #ifndef DYNAMIC_MEMORY_SIZE
-#	define DYNAMIC_MEMORY_SIZE 1024Ui64 * 1024Ui64 * 1024Ui64
+export constexpr U64 DynamicMemorySize = 1024Ui64 * 1024Ui64 * 1024Ui64;
+#else
+export constexpr U64 DynamicMemorySize = DYNAMIC_MEMORY_SIZE;
 #endif
 
 /*
@@ -23,20 +29,20 @@ constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
 
 /*---------GLOBAL NEW/DELETE---------*/
 
-enum class Align : U64 {};
+export enum class Align : U64 {};
 
-NH_NODISCARD void* operator new(U64 size);
-NH_NODISCARD void* operator new[](U64 size);
-NH_NODISCARD void* operator new(U64 size, Align alignment);
-NH_NODISCARD void* operator new[](U64 size, Align alignment);
-void operator delete(void* ptr) noexcept;
-void operator delete[](void* ptr) noexcept;
-void operator delete(void* ptr, Align alignment) noexcept;
-void operator delete[](void* ptr, Align alignment) noexcept;
-void operator delete(void* ptr, U64 size) noexcept;
-void operator delete[](void* ptr, U64 size) noexcept;
-void operator delete(void* ptr, U64 size, Align alignment) noexcept;
-void operator delete[](void* ptr, U64 size, Align alignment) noexcept;
+export NH_NODISCARD void* operator new(U64 size);
+export NH_NODISCARD void* operator new[](U64 size);
+export NH_NODISCARD void* operator new(U64 size, Align alignment);
+export NH_NODISCARD void* operator new[](U64 size, Align alignment);
+export void operator delete(void* ptr) noexcept;
+export void operator delete[](void* ptr) noexcept;
+export void operator delete(void* ptr, Align alignment) noexcept;
+export void operator delete[](void* ptr, Align alignment) noexcept;
+export void operator delete(void* ptr, U64 size) noexcept;
+export void operator delete[](void* ptr, U64 size) noexcept;
+export void operator delete(void* ptr, U64 size, Align alignment) noexcept;
+export void operator delete[](void* ptr, U64 size, Align alignment) noexcept;
 
 enum Region
 {
@@ -80,7 +86,7 @@ struct AllocTracker
 /// <summary>
 /// This is a general purpose memory allocator, with linear and dynamic allocating, with NO garbage collection
 /// </summary>
-class NH_API Memory
+export class NH_API Memory
 {
 struct Region1kb { private: U8 memory[REGION_1KB]; };
 struct Region16kb { private: U8 memory[REGION_16KB]; };
@@ -105,16 +111,6 @@ public:
 	static bool IsDynamicallyAllocated(void* pointer);
 	static bool IsStaticallyAllocated(void* pointer);
 
-	static U64 MemoryAlign(U64 size, U64 alignment);
-
-	static void Set(void* pointer, U8 value, U64 size);
-	static void Zero(void* pointer, U64 size);
-	static void Copy(void* dst, const void* src, U64 size);
-	static void CopyRepeated(void* dst, const void* src, U64 size, U64 count);
-	static void CopyRepeatedGap(void* dst, const void* src, U64 size, U64 count, U64 gap);
-	template<class T>
-	static bool Compare(const T* a, const T* b, U64 length);
-
 private:
 	static bool Initialize();
 	static void Shutdown();
@@ -131,7 +127,7 @@ private:
 	static void* LargeReallocate(void** pointer, U64 size);
 
 	static void FreeChunk(void** pointer);
-	static void CopyFree(void** pointer, void* copy, U64 size);
+	static void CopyFree(U8** pointer, U8* copy, U64 size);
 
 	static void Free1kb(void** pointer);
 	static void Free16kb(void** pointer);
@@ -266,7 +262,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 	if (*pointer != nullptr)
 	{
 		U64 region = (U64)GetRegion(*pointer);
-		CopyFree((void**)pointer, (void*)temp, totalSize < region ? totalSize : region);
+		CopyFree((U8**)pointer, (U8*)temp, totalSize < region ? totalSize : region);
 	}
 
 	*pointer = (Type)temp;
@@ -305,7 +301,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 	if (*pointer != nullptr)
 	{
 		U64 region = (U64)GetRegion(*pointer);
-		CopyFree((void**)pointer, (void*)temp, totalSize < region ? totalSize : region);
+		CopyFree((U8**)pointer, (U8*)temp, totalSize < region ? totalSize : region);
 	}
 
 	*pointer = (Type)temp;
@@ -346,7 +342,7 @@ inline void Memory::AllocateStatic(Type* pointer)
 	BreakPoint;
 }
 
-template<Pointer Type> 
+template<Pointer Type>
 inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
 {
 	static bool b = Initialize();
@@ -362,7 +358,7 @@ inline void Memory::AllocateStaticSize(Type* pointer, const U64& size)
 	BreakPoint;
 }
 
-template<Pointer Type> 
+template<Pointer Type>
 inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
 {
 	static bool b = Initialize();
@@ -378,12 +374,4 @@ inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
 	}
 
 	BreakPoint;
-}
-
-template<class T>
-inline bool Memory::Compare(const T* a, const T* b, U64 length)
-{
-	while (length--) { if (*a++ != *b++) { return false; } }
-
-	return true;
 }

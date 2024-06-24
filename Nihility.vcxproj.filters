@@ -94,9 +94,6 @@
     <ClInclude Include="Engine\Engine.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Memory\Memory.hpp">
-      <Filter>Source Files\Memory</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Queue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -1037,6 +1034,15 @@
     </ClCompile>
     <ClCompile Include="Engine\Containers\Containers-Freelist.ixx">
       <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Memory\Memory.ixx">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Memory\Memory-Allocator.ixx">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Memory\Memory-Utilities.ixx">
+      <Filter>Source Files\Memory</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

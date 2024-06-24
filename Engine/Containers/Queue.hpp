@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-#include "Memory\Memory.hpp"
+import Memory;
 
 template<typename T>
 struct Queue
@@ -46,7 +46,7 @@ template<typename T> inline Queue<T>::Queue(U64 cap) { Memory::AllocateArray(&ar
 template<typename T> inline Queue<T>::Queue(const Queue<T>& other) : front{ other.front }, back{ other.back }, size{ other.size }, capacity{ other.capacity }
 {
 	Memory::AllocateArray(&array, capacity);
-	Memory::Copy(array, other.array, sizeof(T) * size);
+	Copy(array, other.array, size);
 }
 
 template<typename T> inline Queue<T>::Queue(Queue<T>&& other) : front{ other.front }, back{ other.back }, size{ other.size }, capacity{ other.capacity }, array{ other.array }
@@ -64,7 +64,7 @@ template<typename T> inline Queue<T>& Queue<T>::operator=(const Queue<T>& other)
 	size = other.size;
 	Memory::AllocateArray(&array, capacity);
 
-	Memory::Copy(array, other.array, size);
+	Copy(array, other.array, size);
 
 	return *this;
 }

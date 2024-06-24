@@ -38,8 +38,7 @@ struct NH_API SpecializationInfo
 		constexpr U64 count = sizeof...(Data);
 
 		U64 i = 0;
-
-		(Memory::Copy(specializationBuffer + i++, &data, sizeof(data)), ...);
+		((specializationBuffer[i++] = data),...);
 
 		for (U64 j = 0; j < count; ++j)
 		{

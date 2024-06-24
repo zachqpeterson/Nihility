@@ -57,14 +57,14 @@ template <class T>
 inline Stack<T>::Stack(U32 size, T* arr) : size{ size }, capacity{ size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	Memory::Copy(array, arr, sizeof(T) * size);
+	Copy(array, arr, size);
 }
 
 template <class T>
 inline Stack<T>::Stack(const Stack& other) : size{ other.size }, capacity{ other.size }
 {
 	Memory::AllocateArray(&array, capacity, capacity);
-	Memory::Copy(array, other.array, sizeof(T) * size);
+	Copy(array, other.array, size);
 }
 
 template <class T>
@@ -81,7 +81,7 @@ inline Stack<T>& Stack<T>::operator=(const Stack& other)
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
-	Memory::Copy(array, other.array, size * sizeof(T));
+	Copy(array, other.array, size);
 
 	return *this;
 }

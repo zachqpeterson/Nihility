@@ -83,7 +83,7 @@ TextureInfo& TextureInfo::SetData(void* data)
 Renderpass::Renderpass(Renderpass&& other) noexcept : renderpass{ other.renderpass }, frameBuffer{ other.frameBuffer },
 renderTargetCount{ other.renderTargetCount }, depthStencilTarget{ other.depthStencilTarget }
 {
-	Memory::Copy(renderTargets, other.renderTargets, sizeof(Texture*) * renderTargetCount);
+	Copy(renderTargets, other.renderTargets, renderTargetCount);
 
 	other.renderpass = nullptr;
 	other.frameBuffer = nullptr;
@@ -96,7 +96,7 @@ Renderpass& Renderpass::operator=(Renderpass&& other) noexcept
 	renderTargetCount = other.renderTargetCount;
 	depthStencilTarget = other.depthStencilTarget;
 
-	Memory::Copy(renderTargets, other.renderTargets, sizeof(Texture*) * renderTargetCount);
+	Copy(renderTargets, other.renderTargets, renderTargetCount);
 
 	other.renderpass = nullptr;
 	other.frameBuffer = nullptr;

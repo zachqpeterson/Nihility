@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Memory\Memory.hpp"
-
 import Core;
+import Memory;
 
 template<class Type, U64 Count>
 struct Pool

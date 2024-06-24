@@ -1,11 +1,11 @@
 module;
 
 #include "Defines.hpp"
-#include "Memory\Memory.hpp"
 
 export module Core:File;
 
 import Containers;
+import Memory;
 
 export enum NH_API FileOpenMode
 {

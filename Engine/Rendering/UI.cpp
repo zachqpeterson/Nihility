@@ -181,22 +181,22 @@ bool UI::Initialize()
 	uiMesh = Resources::CreateMesh("ui_mesh");
 	uiMesh->vertexCount = 4;
 	uiMesh->indicesSize = sizeof(U32) * 6;
-	Memory::AllocateSize(&uiMesh->indices, sizeof(U32) * 6);
-	Memory::Copy(uiMesh->indices, indices, sizeof(U32) * 6);
+	Memory::AllocateArray(&uiMesh->indices, 6);
+	Copy((U32*)uiMesh->indices, indices, 6);
 
 	VertexBuffer uiPositionBuffer{};
 	uiPositionBuffer.type = VERTEX_TYPE_POSITION;
 	uiPositionBuffer.size = (U32)(sizeof(Vector2) * CountOf(uiPositions));
 	uiPositionBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&uiPositionBuffer.buffer, sizeof(Vector2) * CountOf(uiPositions));
-	Memory::Copy(uiPositionBuffer.buffer, uiPositions, sizeof(Vector2) * CountOf(uiPositions));
+	Memory::AllocateArray(&uiPositionBuffer.buffer, CountOf(uiPositions));
+	Copy((Vector2*)uiPositionBuffer.buffer, uiPositions, CountOf(uiPositions));
 
 	VertexBuffer uiTexcoordBuffer{};
 	uiTexcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
 	uiTexcoordBuffer.size = (U32)(sizeof(Vector2) * CountOf(uiPositions));
 	uiTexcoordBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&uiTexcoordBuffer.buffer, sizeof(Vector2) * CountOf(uiPositions));
-	Memory::Copy(uiTexcoordBuffer.buffer, uiTexcoords, sizeof(Vector2) * CountOf(uiPositions));
+	Memory::AllocateArray(&uiTexcoordBuffer.buffer, CountOf(uiPositions));
+	Copy((Vector2*)uiTexcoordBuffer.buffer, uiTexcoords, CountOf(uiPositions));
 
 	uiMesh->buffers.Push(uiPositionBuffer);
 	uiMesh->buffers.Push(uiTexcoordBuffer);
@@ -204,22 +204,22 @@ bool UI::Initialize()
 	textMesh = Resources::CreateMesh("text_mesh");
 	textMesh->vertexCount = 4;
 	textMesh->indicesSize = sizeof(U32) * 6;
-	Memory::AllocateSize(&textMesh->indices, sizeof(U32) * 6);
-	Memory::Copy(textMesh->indices, indices, sizeof(U32) * 6);
+	Memory::AllocateArray(&textMesh->indices, 6);
+	Copy((U32*)textMesh->indices, indices, 6);
 
 	VertexBuffer textPositionBuffer{};
 	textPositionBuffer.type = VERTEX_TYPE_POSITION;
 	textPositionBuffer.size = (U32)(sizeof(Vector2) * CountOf(textPositions));
 	textPositionBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&textPositionBuffer.buffer, sizeof(Vector2) * CountOf(textPositions));
-	Memory::Copy(textPositionBuffer.buffer, textPositions, sizeof(Vector2) * CountOf(textPositions));
+	Memory::AllocateArray(&textPositionBuffer.buffer, CountOf(textPositions));
+	Copy((Vector2*)textPositionBuffer.buffer, textPositions, CountOf(textPositions));
 
 	VertexBuffer textTexcoordBuffer{};
 	textTexcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
 	textTexcoordBuffer.size = (U32)(sizeof(Vector2) * CountOf(textPositions));
 	textTexcoordBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&textTexcoordBuffer.buffer, sizeof(Vector2) * CountOf(textPositions));
-	Memory::Copy(textTexcoordBuffer.buffer, textTexcoords, sizeof(Vector2) * CountOf(textTexcoords));
+	Memory::AllocateArray(&textTexcoordBuffer.buffer, CountOf(textPositions));
+	Copy((Vector2*)textTexcoordBuffer.buffer, textTexcoords, CountOf(textTexcoords));
 
 	textMesh->buffers.Push(textPositionBuffer);
 	textMesh->buffers.Push(textTexcoordBuffer);

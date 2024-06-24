@@ -44,15 +44,15 @@ bool SpriteComponent::Initialize()
 	positionBuffer.type = VERTEX_TYPE_POSITION;
 	positionBuffer.size = (U32)(sizeof(Vector2) * CountOf(positions));
 	positionBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&positionBuffer.buffer, sizeof(Vector2) * CountOf(positions));
-	Memory::Copy(positionBuffer.buffer, positions, sizeof(Vector2) * CountOf(positions));
+	Memory::AllocateSize(&positionBuffer.buffer, CountOf(positions));
+	Copy((Vector2*)positionBuffer.buffer, positions, CountOf(positions));
 
 	VertexBuffer texcoordBuffer{};
 	texcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
 	texcoordBuffer.size = (U32)(sizeof(Vector2) * CountOf(texcoords));
 	texcoordBuffer.stride = sizeof(Vector2);
-	Memory::AllocateSize(&texcoordBuffer.buffer, sizeof(Vector2) * CountOf(texcoords));
-	Memory::Copy(texcoordBuffer.buffer, texcoords, sizeof(Vector2) * CountOf(texcoords));
+	Memory::AllocateSize(&texcoordBuffer.buffer, CountOf(texcoords));
+	Copy((Vector2*)texcoordBuffer.buffer, texcoords, CountOf(texcoords));
 
 	mesh->buffers.Push(positionBuffer);
 	mesh->buffers.Push(texcoordBuffer);
@@ -82,7 +82,7 @@ void SpriteComponent::Update(Scene* scene)
 
 void SpriteComponent::Load(Scene* scene)
 {
-	Memory::Copy(meshInstance.instanceData.data + sizeof(U32), &entityID, sizeof(U32));
+	Copy((U32*)meshInstance.instanceData.data + 1, &entityID, 1);
 
 	scene->AddInstance(meshInstance);
 }

@@ -2,17 +2,17 @@
 
 #include "RenderingDefines.hpp"
 
-import Core;
-
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Pipeline.hpp"
 #include "Platform\Platform.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
-#include "Memory\Memory.hpp"
 #include "Resources\Scene.hpp"
 #include "Math\Math.hpp"
+
+import Core;
+import Memory;
 
 #define VMA_DEBUG_LOG
 //#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")
@@ -454,8 +454,8 @@ bool Renderer::CreateDevice()
 
 	for (VkExtensionProperties& ext : extensions)
 	{
-		pushDescriptorsSupported |= Memory::Compare(ext.extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 22);
-		meshShadingSupported |= Memory::Compare(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME, 18);
+		pushDescriptorsSupported |= Compare(ext.extensionName, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME, 22);
+		meshShadingSupported |= Compare(ext.extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME, 18);
 	}
 
 	//TODO: Remove
@@ -1030,7 +1030,7 @@ void Renderer::FillBuffer(Buffer& buffer, U64 size, const void* data, U32 region
 		vkWaitSemaphores(device, &waitInfo, U64_MAX);
 	}
 
-	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, size);
+	Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, (U8*)data, size);
 	for (U32 i = 0; i < regionCount; ++i)
 	{
 		if (regions[i].srcOffset + regions[i].size > size) { Logger::Error("Trying To Upload Data Outside Of Source Buffer Range!"); BreakPoint; }
@@ -1197,7 +1197,7 @@ bool Renderer::CreateTexture(Texture* texture, void* data)
 			vkWaitSemaphores(device, &waitInfo, U64_MAX);
 		}
 
-		Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, texture->size);
+		Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, (U8*)data, texture->size);
 
 		VkBufferImageCopy region{};
 		region.bufferOffset = stagingBuffer.allocationOffset;
@@ -1373,7 +1373,7 @@ bool Renderer::CreateCubemap(Texture* texture, void* data, U32* layerSizes)
 		vkWaitSemaphores(device, &waitInfo, U64_MAX);
 	}
 
-	Memory::Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, data, texture->size);
+	Copy((U8*)stagingBuffer.data + stagingBuffer.allocationOffset, (U8*)data, texture->size);
 
 	VkBufferImageCopy bufferCopyRegions[6 * 14];
 	U32 regionCount = 0;
@@ -1462,8 +1462,8 @@ bool Renderer::CreateRenderpass(Renderpass* renderpass, const RenderpassInfo& in
 	renderpass->renderArea = info.renderArea;
 	renderpass->subpassCount = info.subpassCount;
 	renderpass->resize = info.resize;
-	Memory::Copy(renderpass->subpasses, info.subpasses, sizeof(Subpass) * info.subpassCount);
-	Memory::Copy(renderpass->renderTargets, info.renderTargets, sizeof(Texture*) * info.renderTargetCount);
+	Copy(renderpass->subpasses, info.subpasses, info.subpassCount);
+	Copy(renderpass->renderTargets, info.renderTargets, info.renderTargetCount);
 
 	if (info.colorLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
 	{

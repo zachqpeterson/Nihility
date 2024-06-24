@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Memory\Memory.hpp"
 #include "Math\Math.hpp"
 
 import Core;
+import Memory;
 
 /*---------DEFINES---------*/
 

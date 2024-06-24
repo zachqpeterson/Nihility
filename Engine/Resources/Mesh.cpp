@@ -18,8 +18,8 @@ void MeshComponent::Load(Scene* scene)
 {
 	if (meshInstance.mesh)
 	{
-		Memory::Copy(meshInstance.instanceData.data + sizeof(U32), &entityID, sizeof(U32));
-		Memory::Copy(meshInstance.instanceData.data + sizeof(U32) + sizeof(U32), &modelMatrix, sizeof(Matrix4));
+		Copy((U32*)meshInstance.instanceData.data + 1, &entityID, 1);
+		Copy((Matrix4*)(meshInstance.instanceData.data + sizeof(U64)), &modelMatrix, 1);
 
 		scene->AddInstance(meshInstance);
 	}
@@ -49,8 +49,8 @@ void ModelComponent::Load(Scene* scene)
 		{
 			Matrix4 mat = model->matrices[i] * modelMatrix;
 
-			Memory::Copy(model->meshes[i].instanceData.data + sizeof(U32), &entityID, sizeof(U32));
-			Memory::Copy(model->meshes[i].instanceData.data + sizeof(U32) + sizeof(U32), &mat, sizeof(Matrix4));
+			Copy((U32*)model->meshes[i].instanceData.data + 1, &entityID, 1);
+			Copy((Matrix4*)(model->meshes[i].instanceData.data + sizeof(U64)), &mat, 1);
 
 			scene->AddInstance(model->meshes[i]);
 		}

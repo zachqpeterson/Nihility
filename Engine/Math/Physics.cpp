@@ -108,7 +108,7 @@ Collider2D Physics::CreatePolygonCollider2D(const ColliderInfo& info, U8 vertexC
 	Collider2D collider{};
 	collider.type = COLLIDER_TYPE_POLYGON;
 	collider.polygon.vertexCount = vertexCount;
-	Memory::Copy(collider.polygon.vertices, vertices, sizeof(Vector2) * vertexCount);
+	Copy(collider.polygon.vertices, vertices, vertexCount);
 	collider.center = info.center;
 	collider.trigger = info.trigger;
 	collider.layers = info.layers;
