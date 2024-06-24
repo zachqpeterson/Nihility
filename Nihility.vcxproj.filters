@@ -169,9 +169,6 @@
     <ClInclude Include="Engine\Platform\Audio.hpp">
       <Filter>Source Files\Platform\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Freelist.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\SafeQueue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -723,9 +720,6 @@
     <ClCompile Include="Engine\Platform\Audio.cpp">
       <Filter>Source Files\Platform\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Freelist.cpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Core\Events.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
@@ -1040,6 +1034,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Core\Core-Function.ixx">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Freelist.ixx">
+      <Filter>Source Files\Containers</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

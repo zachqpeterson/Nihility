@@ -115,7 +115,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Containers\Array.hpp" />
-    <ClInclude Include="Engine\Containers\Freelist.hpp" />
     <ClInclude Include="Engine\Containers\Hashmap.hpp" />
     <ClInclude Include="Engine\Containers\Pair.hpp" />
     <ClInclude Include="Engine\Containers\Pool.hpp" />
@@ -310,10 +309,10 @@
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Containers\Containers-Freelist.ixx" />
     <ClCompile Include="Engine\Containers\String.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
-    <ClCompile Include="Engine\Containers\Freelist.cpp" />
     <ClCompile Include="Engine\Core\Core-DataReader.ixx" />
     <ClCompile Include="Engine\Core\Core-Events.ixx" />
     <ClCompile Include="Engine\Core\Core-File.ixx" />

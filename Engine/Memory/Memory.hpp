@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Containers\Freelist.hpp"
+
+import ThreadSafety;
 
 constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
 constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
@@ -44,6 +45,36 @@ enum Region
 	REGION_16KB = Kilobytes(16),
 	REGION_256KB = Kilobytes(256),
 	REGION_4MB = Megabytes(4),
+};
+
+struct AllocTracker
+{
+	U32 GetFree()
+	{
+		if (lastFree >= capacity && freeCount == 0) { return U32_MAX; }
+
+		U32 index = SafeDecrement(&freeCount);
+
+		if (index < capacity) { return freeIndices[index]; }
+
+		++freeCount;
+		return SafeIncrement(&lastFree) - 1;
+	}
+
+	void Release(U32 index)
+	{
+		freeIndices[SafeIncrement(&freeCount) - 1] = index;
+	}
+
+	bool Full()
+	{
+		return lastFree >= capacity && freeCount == 0;
+	}
+
+	U32 capacity{ 0 };
+	U32 freeCount{ 0 };
+	U32* freeIndices{ nullptr };
+	U32 lastFree{ 0 };
 };
 
 /// <summary>
@@ -116,16 +147,16 @@ private:
 	static U8* staticPointer;
 
 	static Region1kb* pool1kbPointer;
-	static Freelist free1kbIndices;
+	static AllocTracker free1kbAllocs;
 
 	static Region16kb* pool16kbPointer;
-	static Freelist free16kbIndices;
+	static AllocTracker free16kbAllocs;
 
 	static Region256kb* pool256kbPointer;
-	static Freelist free256kbIndices;
+	static AllocTracker free256kbAllocs;
 
 	static Region4mb* pool4mbPointer;
-	static Freelist free4mbIndices;
+	static AllocTracker free4mbAllocs;
 
 	static bool initialized;
 
