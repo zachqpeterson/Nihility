@@ -276,7 +276,6 @@ template <class Type> concept FunctionPtr = requires (Type t) { IsFunction<declt
 template <class Type> constexpr const bool IsObject = IsConst<const Type> && !IsVoid<Type>;
 template <class Type> concept Object = IsObject<Type>;
 
-
 /// <summary>
 /// Forwards arg as movable
 /// </summary>

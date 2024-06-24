@@ -3,6 +3,8 @@ module;
 #include "Defines.hpp"
 #include "Containers\SafeQueue.hpp"
 
+#include <xthreads.h>
+
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
 #include <process.h>

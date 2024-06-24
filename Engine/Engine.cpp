@@ -9,7 +9,6 @@ import Multithreading;
 #include "Platform\Platform.hpp"
 #include "Platform\Audio.hpp"
 #include "Platform\Input.hpp"
-#include "Core\Function.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Containers\Queue.hpp"
