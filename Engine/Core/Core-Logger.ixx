@@ -45,11 +45,7 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static void Update();
 	static void Write(String&& message) noexcept;
-
-	static SafeQueue<String, 64> messageQueue;
-	static bool writing;
 
 	STATIC_CLASS(Logger);
 	friend class Engine;

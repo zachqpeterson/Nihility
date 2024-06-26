@@ -64,7 +64,6 @@ private:
 
 	static inline bool running{ false };
 	static inline U64 threadCount{ 1 };
-	static inline U64 jobCount{ 0 };
 	static inline Semaphore semaphore{};
 	static inline JobQueue jobQueues[JOB_PRIORITY_COUNT];
 
@@ -161,8 +160,6 @@ void Jobs::Shutdown()
 
 void Jobs::Excecute(const Function<void()>& job, JobPriority priority)
 {
-	SafeIncrement(&jobCount);
-
 	while (!jobQueues[priority].jobs.Push(job)) { Poll(); }
 
 	semaphore.Signal();
@@ -245,7 +242,7 @@ U32 __stdcall Jobs::RunThread(void*)
 	{
 		for (I32 i = JOB_PRIORITY_COUNT - 1; i >= 0; --i)
 		{
-			if (jobQueues[i].jobs.Pop(job)) { job(); SafeDecrement(&jobCount); }
+			if (jobQueues[i].jobs.Pop(job)) { job(); }
 			else { semaphore.Wait(); }
 		}
 	}
