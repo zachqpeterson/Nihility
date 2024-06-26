@@ -1703,7 +1703,7 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 		positionBuffer.type = VERTEX_TYPE_POSITION;
 		positionBuffer.size = verticesSize;
 		positionBuffer.stride = sizeof(Vector3);
-		Memory::AllocateArray(&positionBuffer.buffer, mesh->vertexCount);
+		Memory::AllocateSize(&positionBuffer.buffer, verticesSize);
 		Copy((Vector3*)positionBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 		mesh->buffers.Push(positionBuffer);
 		reader.Seek(verticesSize);
@@ -1712,7 +1712,7 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 		normalBuffer.type = VERTEX_TYPE_NORMAL;
 		normalBuffer.size = verticesSize;
 		normalBuffer.stride = sizeof(Vector3);
-		Memory::AllocateArray(&normalBuffer.buffer, mesh->vertexCount);
+		Memory::AllocateSize(&normalBuffer.buffer, verticesSize);
 		Copy((Vector3*)normalBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 		mesh->buffers.Push(normalBuffer);
 		reader.Seek(verticesSize);
@@ -1723,7 +1723,7 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 			tangentBuffer.type = VERTEX_TYPE_TANGENT;
 			tangentBuffer.size = verticesSize;
 			tangentBuffer.stride = sizeof(Vector3);
-			Memory::AllocateArray(&tangentBuffer.buffer, mesh->vertexCount);
+			Memory::AllocateSize(&tangentBuffer.buffer, verticesSize);
 			Copy((Vector3*)tangentBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 			mesh->buffers.Push(tangentBuffer);
 			reader.Seek(verticesSize);
@@ -1735,14 +1735,14 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 			texcoordBuffer.type = VERTEX_TYPE_TEXCOORD;
 			texcoordBuffer.size = verticesSize;
 			texcoordBuffer.stride = sizeof(Vector3);
-			Memory::AllocateArray(&texcoordBuffer.buffer, mesh->vertexCount);
+			Memory::AllocateSize(&texcoordBuffer.buffer, verticesSize);
 			Copy((Vector3*)texcoordBuffer.buffer, (Vector3*)reader.Pointer(), mesh->vertexCount);
 			mesh->buffers.Push(texcoordBuffer);
 			reader.Seek(verticesSize);
 		}
 
 		//TODO: Store index count instead of size
-		Memory::AllocateArray(&mesh->indices, mesh->indicesSize / sizeof(U32));
+		Memory::AllocateSize(&mesh->indices, mesh->indicesSize);
 		Copy((U32*)mesh->indices, (U32*)reader.Pointer(), mesh->indicesSize / sizeof(U32));
 
 		reader.Seek(mesh->indicesSize);

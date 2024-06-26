@@ -92,6 +92,7 @@ inline bool SafeQueue<Type>::Pop(Type& value)
 	{
 		U32 b = SafeCompareAndExchange(&back, 0U, capacity);
 
+		//TODO: This is not thread safe
 		if (b == back)
 		{
 			value = Move(array[SafeIncrement(&back) - 1]);

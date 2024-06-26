@@ -43,14 +43,14 @@ export template<class Type>
 inline Type* Copy(Type* dst, const Type* src, U64 count)
 {
 	if (dst == src) { return dst; }
-
+	
 	if (dst > src && dst < src + count)
 	{
 		return (Type*)memmove(dst, src, count * sizeof(Type));
 	}
-
+	
 	//TODO: for copies of types large than 8 bytes, we could copy 8 bytes until the size left is less than 8, then regular byte copy
-
+	
 	if constexpr (sizeof(Type) % 8 == 0)
 	{
 		constexpr const U64 multi = sizeof(Type) / 8;
@@ -83,6 +83,6 @@ inline Type* Copy(Type* dst, const Type* src, U64 count)
 		U64 n = count * multi;
 		__movsb(d, s, n);
 	}
-
+	
 	return dst;
 }
