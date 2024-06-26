@@ -276,6 +276,27 @@ template <class Type> concept FunctionPtr = requires (Type t) { IsFunction<declt
 template <class Type> constexpr const bool IsObject = IsConst<const Type> && !IsVoid<Type>;
 template <class Type> concept Object = IsObject<Type>;
 
+template <class Type> constexpr const bool IsCopyConstructible = __is_constructible(Type, AddLvalReference<const Type>);
+template <class Type> concept CopyConstructible = IsCopyConstructible<Type>;
+
+template <class Type> constexpr const bool IsCopyAssignable = __is_assignable(AddLvalReference<Type>, AddLvalReference<const Type>);
+template <class Type> concept CopyAssignable = IsCopyAssignable<Type>;
+
+template <class Type> constexpr const bool IsMoveConstructible = __is_constructible(Type, Type);
+template <class Type> concept MoveConstructible = IsMoveConstructible<Type>;
+
+template <class Type> constexpr const bool IsMoveAssignable = __is_assignable(AddLvalReference<Type>, Type);
+template <class Type> concept MoveAssignable = IsMoveAssignable<Type>;
+
+template <class Type> constexpr const bool IsCopyable = IsCopyConstructible<Type> || IsCopyAssignable<Type>;
+template <class Type> concept Copyable = IsCopyable<Type>;
+
+template <class Type> constexpr const bool IsMoveable = IsMoveConstructible<Type> || IsMoveAssignable<Type>;
+template <class Type> concept Moveable = IsMoveable<Type>;
+
+template <class Type> constexpr const bool IsCopyOrMoveable = IsCopyable<Type> || IsMoveable<Type>;
+template <class Type> concept CopyOrMoveable = IsCopyOrMoveable<Type>;
+
 /// <summary>
 /// Forwards arg as movable
 /// </summary>

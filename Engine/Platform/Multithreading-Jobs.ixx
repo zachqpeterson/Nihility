@@ -1,7 +1,6 @@
 module;
 
 #include "Defines.hpp"
-#include "Containers\SafeQueue.hpp"
 
 #include <xthreads.h>
 
@@ -15,6 +14,7 @@ export module Multithreading:Jobs;
 import :Semaphore;
 import ThreadSafety;
 import Core;
+import Containers;
 
 #ifdef PLATFORM_WINDOWS
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
@@ -32,7 +32,7 @@ export enum NH_API JobPriority
 
 struct NH_API JobQueue
 {
-	SafeQueue<Function<void()>> jobs{ 256 };
+	SafeQueue<Function<void()>, 256> jobs;
 };
 
 export struct NH_API DispatchArgs
@@ -47,7 +47,7 @@ export struct NH_API DispatchArgs
 export class NH_API Jobs
 {
 public:
-	static void Request(const Function<void()>& job, JobPriority priority = JOB_PRIORITY_MEDIUM);
+	static void Excecute(const Function<void()>& job, JobPriority priority = JOB_PRIORITY_MEDIUM);
 	static bool Dispatch(U32 jobCount, U32 groupSize, const Function<void(DispatchArgs)>& job, JobPriority priority = JOB_PRIORITY_MEDIUM);
 
 	static void Wait(JobPriority minPriority);
@@ -115,8 +115,8 @@ bool Jobs::Initialize()
 				{
 					U32 address;
 					HANDLE handle = (HANDLE)_beginthreadex(nullptr, 0, RunThread, nullptr, 0, &address);
-					//UL32 affinityMask = 1ull << address;
-					//U64 affinityResult = SetThreadAffinityMask(handle, affinityMask);
+					UL32 affinityMask = 1ull << address;
+					U64 affinityResult = SetThreadAffinityMask(handle, affinityMask);
 					//BOOL priorityResult = SetThreadPriority(handle, THREAD_PRIORITY_HIGHEST);
 
 					GROUP_AFFINITY threadAffinity;
@@ -154,10 +154,12 @@ void Jobs::Shutdown()
 {
 	Logger::Trace("Shutting Down Jobs...");
 
+	semaphore.Destroy();
+
 	running = false;
 }
 
-void Jobs::Request(const Function<void()>& job, JobPriority priority)
+void Jobs::Excecute(const Function<void()>& job, JobPriority priority)
 {
 	SafeIncrement(&jobCount);
 
@@ -211,7 +213,7 @@ void Jobs::Wait(JobPriority minPriority)
 void Jobs::Poll()
 {
 	semaphore.Signal();
-	SwitchToThread();
+	YieldThread();
 }
 
 void Jobs::SleepForSeconds(U64 s)
@@ -241,7 +243,7 @@ U32 __stdcall Jobs::RunThread(void*)
 
 	while (running)
 	{
-		for (U32 i = JOB_PRIORITY_COUNT - 1; i >= 0; --i)
+		for (I32 i = JOB_PRIORITY_COUNT - 1; i >= 0; --i)
 		{
 			if (jobQueues[i].jobs.Pop(job)) { job(); SafeDecrement(&jobCount); }
 			else { semaphore.Wait(); }

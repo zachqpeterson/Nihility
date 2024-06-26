@@ -119,7 +119,6 @@
     <ClInclude Include="Engine\Containers\Pair.hpp" />
     <ClInclude Include="Engine\Containers\Pool.hpp" />
     <ClInclude Include="Engine\Containers\Queue.hpp" />
-    <ClInclude Include="Engine\Containers\SafeQueue.hpp" />
     <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\TypeList.hpp" />
@@ -309,7 +308,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Containers\Containers-Freelist.ixx" />
-    <ClCompile Include="Engine\Containers\String.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx" />
+    <ClCompile Include="Engine\Containers\Container-String.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Core\Core-DataReader.ixx" />

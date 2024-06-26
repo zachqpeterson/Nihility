@@ -44,7 +44,12 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
-	static void Write(const String& message);
+
+	static void Update();
+	static void Write(String&& message) noexcept;
+
+	static SafeQueue<String, 64> messageQueue;
+	static bool writing;
 
 	STATIC_CLASS(Logger);
 	friend class Engine;
@@ -57,7 +62,7 @@ template<Character T, typename... Types> inline void Logger::Fatal(const T* mess
 
 	str.Format(CountOf(FATAL_TAG), message, args...);
 
-	Write(str.Append(END_LINE));
+	Write(Move(str.Append(END_LINE)));
 }
 
 template<Character T, typename... Types> inline void Logger::Error(const T* message, const Types&... args)
@@ -66,7 +71,7 @@ template<Character T, typename... Types> inline void Logger::Error(const T* mess
 
 	str.Format(CountOf(ERROR_TAG), message, args...);
 
-	Write(str.Append(END_LINE));
+	Write(Move(str.Append(END_LINE)));
 }
 
 template<Character T, typename... Types> inline void Logger::Warn(const T* message, const Types&... args)
@@ -76,7 +81,7 @@ template<Character T, typename... Types> inline void Logger::Warn(const T* messa
 
 	str.Format(CountOf(WARN_TAG), message, args...);
 
-	Write(str.Append(END_LINE));
+	Write(Move(str.Append(END_LINE)));
 #endif
 }
 
@@ -87,7 +92,7 @@ template<Character T, typename... Types> inline void Logger::Info(const T* messa
 
 	str.Format(CountOf(INFO_TAG), message, args...);
 
-	Write(str.Append(END_LINE));
+	Write(Move(str.Append(END_LINE)));
 #endif
 }
 
@@ -98,7 +103,7 @@ template<Character T, typename... Types> inline void Logger::Debug(const T* mess
 
 	str.Format(CountOf(DEBUG_TAG), message, args...);
 
-	Write(str.Append(END_LINE));
+	Write(Move(str.Append(END_LINE)));
 #endif
 }
 
@@ -109,44 +114,44 @@ template<Character T, typename... Types> inline void Logger::Trace(const T* mess
 
 	str.Format(CountOf(TRACE_TAG), message, args...);
 
-	Write(str.Append(END_LINE));
+	Write(Move(str.Append(END_LINE)));
 #endif
 }
 
 template<typename Type> inline void Logger::Fatal(const Type& arg)
 {
-	Write(String(FATAL_TAG, arg, END_LINE));
+	Write(Move(String(FATAL_TAG, arg, END_LINE)));
 }
 
 template<typename Type> inline void Logger::Error(const Type& arg)
 {
-	Write(String(ERROR_TAG, arg, END_LINE));
+	Write(Move(String(ERROR_TAG, arg, END_LINE)));
 }
 
 template<typename Type> inline void Logger::Warn(const Type& arg)
 {
 #if LOG_WARN_ENABLED
-	Write(String(WARN_TAG, arg, END_LINE));
+	Write(Move(String(WARN_TAG, arg, END_LINE)));
 #endif
 }
 
 template<typename Type> inline void Logger::Info(const Type& arg)
 {
 #if LOG_INFO_ENABLED
-	Write(String(INFO_TAG, arg, END_LINE));
+	Write(Move(String(INFO_TAG, arg, END_LINE)));
 #endif
 }
 
 template<typename Type> inline void Logger::Debug(const Type& arg)
 {
 #if LOG_DEBUG_ENABLED
-	Write(String(DEBUG_TAG, arg, END_LINE));
+	Write(Move(String(DEBUG_TAG, arg, END_LINE)));
 #endif
 }
 
 template<typename Type> inline void Logger::Trace(const Type& arg)
 {
 #if LOG_TRACE_ENABLED
-	Write(String(TRACE_TAG, arg, END_LINE));
+	Write(Move(String(TRACE_TAG, arg, END_LINE)));
 #endif
 }

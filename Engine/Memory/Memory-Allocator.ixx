@@ -53,7 +53,7 @@ enum Region
 	REGION_4MB = Megabytes(4),
 };
 
-struct AllocTracker
+struct NH_API AllocTracker
 {
 	U32 GetFree()
 	{

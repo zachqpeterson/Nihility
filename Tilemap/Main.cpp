@@ -11,9 +11,9 @@
 #include "Platform\Audio.hpp"
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
-#include "Core\Time.hpp"
-#include "Core\Logger.hpp"
 #include "Rendering\Sprite.hpp"
+
+import Core;
 
 ResourceRef<Texture> squareCollie;
 ResourceRef<Texture> circleCollie;

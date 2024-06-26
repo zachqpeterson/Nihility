@@ -160,8 +160,10 @@ class& operator=(class&&) = delete;	\
 
 #if HAS_NODISCARD
 #	define NH_NODISCARD [[nodiscard]] // Issues a warning when the return value of a function isn't captured
+#	define NH_NODISCARD_MSG(message) [[nodiscard(message)]] // Issues a warning when the return value of a function isn't captured
 #else
 #	define NH_NODISCARD
+#	define NH_NODISCARD_MSG(message)
 #endif
 
 enum ISAAvailability

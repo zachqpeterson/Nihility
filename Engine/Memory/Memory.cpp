@@ -33,7 +33,7 @@ bool Memory::initialized = false;
 
 bool Memory::Initialize()
 {
-	if (!SafeCheckAndSet(&initialized, 0L))
+	if (!SafeCheckAndSet((U8*)&initialized, 0))
 	{
 		U64 maxKilobytes = DynamicMemorySize / 1024;
 
@@ -234,6 +234,7 @@ NH_NODISCARD void* operator new[](U64 size)
 	return ptr;
 }
 
+//TODO: properly implement alignment
 NH_NODISCARD void* operator new(U64 size, Align alignment)
 {
 	if (size == 0) { return nullptr; }

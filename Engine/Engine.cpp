@@ -45,6 +45,66 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamA
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
 
+	auto lowJob = [] { Logger::Info("I'm Working"); };
+	auto medJob = [] { Logger::Info("I'm Working Harder"); };
+	auto highJob = [] { Logger::Info("I'm Working The Hardest"); };
+	
+	Jobs::Excecute(highJob);
+	Jobs::Excecute(highJob);
+	Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//Jobs::Excecute(highJob);
+	//
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//Jobs::Excecute(medJob);
+	//
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+	//Jobs::Excecute(lowJob);
+
 	//Particles
 	ASSERT(Audio::Initialize());
 	ASSERT(Input::Initialize());

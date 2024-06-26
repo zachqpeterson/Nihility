@@ -166,9 +166,6 @@
     <ClInclude Include="Engine\Platform\Audio.hpp">
       <Filter>Source Files\Platform\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\SafeQueue.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Pair.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -975,7 +972,7 @@
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\String.ixx">
+    <ClCompile Include="Engine\Containers\Container-String.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Math.ixx">
@@ -1043,6 +1040,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Memory\Memory-Utilities.ixx">
       <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx">
+      <Filter>Source Files\Containers</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -2,11 +2,51 @@ module;
 
 #include "Defines.hpp"
 
+#include <xthreads.h>
+#include <atomic>
+
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
 
 export module ThreadSafety;
+
+export inline void YieldThread() noexcept { _Thrd_yield(); }
+
+export struct SpinLock
+{
+	std::atomic<bool> lockFlag{ false };
+
+public:
+	void Lock()
+	{
+		while (true)
+		{
+			if (!lockFlag.exchange(true, std::memory_order_acquire)) { break; }
+			while (lockFlag.load(std::memory_order_relaxed)) { YieldThread(); }
+		}
+	}
+
+	void Unlock()
+	{
+		lockFlag.store(false, std::memory_order_release);
+	}
+};
+
+export template <class Mutex> 
+struct NH_NODISCARD LockGuard
+{
+public:
+	explicit LockGuard(Mutex& mutex) : mutex(mutex) { mutex.Lock(); }
+
+	~LockGuard() noexcept { mutex.Unlock(); }
+
+private:
+	Mutex& mutex;
+
+	LockGuard(const LockGuard&) = delete;
+	LockGuard& operator=(const LockGuard&) = delete;
+};
 
 #if defined(PLATFORM_WINDOWS)
 export template<Integer Type>
@@ -63,7 +103,7 @@ inline Type SafeSubtract(volatile Type* t, Type value)
 	}
 }
 
-export template<class Type, Integer Pos>
+export template<Integer Type, Integer Pos>
 inline Type SafeCheckAndSet(volatile Type* t, Pos pos)
 {
 	if constexpr (sizeof(Type) == 8)
@@ -76,7 +116,7 @@ inline Type SafeCheckAndSet(volatile Type* t, Pos pos)
 	}
 }
 
-export template<class Type, Integer Pos>
+export template<Integer Type, Integer Pos>
 inline Type SafeCheckAndReset(volatile Type* t, Pos pos)
 {
 	if constexpr (sizeof(Type) == 8)
@@ -89,7 +129,7 @@ inline Type SafeCheckAndReset(volatile Type* t, Pos pos)
 	}
 }
 
-export template<class Type>
+export template<Integer Type>
 inline Type SafeCompareAndExchange(volatile Type* t, Type exchange, Type comperand)
 {
 	if constexpr (sizeof(Type) == 8)
