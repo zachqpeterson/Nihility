@@ -6,7 +6,7 @@ export module Containers:SafeQueue;
 
 import ThreadSafety;
 
-export template<CopyOrMoveable Type, U64 Capacity>
+export template<CopyOrMoveable Type, U64 Size>
 struct SafeQueue
 {
 	SafeQueue() {}
@@ -22,6 +22,7 @@ struct SafeQueue
 	bool Empty() const;
 
 private:
+	static constexpr inline U64 Capacity = BitCeiling(Size);
 	static constexpr inline U64 CapacityMask = Capacity - 1;
 
 	U64 front{ 0 };
@@ -30,15 +31,15 @@ private:
 	Type array[Capacity];
 };
 
-template<CopyOrMoveable Type, U64 Capacity>
-inline void SafeQueue<Type, Capacity>::Destroy()
+template<CopyOrMoveable Type, U64 Size>
+inline void SafeQueue<Type, Size>::Destroy()
 {
 	front = 0;
 	back = 0;
 }
 
-template<CopyOrMoveable Type, U64 Capacity>
-inline bool SafeQueue<Type, Capacity>::Push(const Type& value)
+template<CopyOrMoveable Type, U64 Size>
+inline bool SafeQueue<Type, Size>::Push(const Type& value)
 {
 	U64 index = SafeIncrement(&front) - 1;
 	if (Full())
@@ -52,8 +53,8 @@ inline bool SafeQueue<Type, Capacity>::Push(const Type& value)
 	return true;
 }
 
-template<CopyOrMoveable Type, U64 Capacity>
-inline bool SafeQueue<Type, Capacity>::Push(Type&& value) noexcept
+template<CopyOrMoveable Type, U64 Size>
+inline bool SafeQueue<Type, Size>::Push(Type&& value) noexcept
 {
 	U64 index = SafeIncrement(&front) - 1;
 	if (Full())
@@ -67,8 +68,8 @@ inline bool SafeQueue<Type, Capacity>::Push(Type&& value) noexcept
 	return true;
 }
 
-template<CopyOrMoveable Type, U64 Capacity>
-inline bool SafeQueue<Type, Capacity>::Pop(Type& value)
+template<CopyOrMoveable Type, U64 Size>
+inline bool SafeQueue<Type, Size>::Pop(Type& value)
 {
 	U64 index = SafeIncrement(&back) - 1;
 	if (Empty())
@@ -81,16 +82,16 @@ inline bool SafeQueue<Type, Capacity>::Pop(Type& value)
 	return true;
 }
 
-template<CopyOrMoveable Type, U64 Capacity>
-inline bool SafeQueue<Type, Capacity>::Full() const
+template<CopyOrMoveable Type, U64 Size>
+inline bool SafeQueue<Type, Size>::Full() const
 {
-	return ((front + 1) & CapacityMask) == (back & CapacityMask);
+	return front == back + Capacity;
 }
 
-template<CopyOrMoveable Type, U64 Capacity>
-inline bool SafeQueue<Type, Capacity>::Empty() const
+template<CopyOrMoveable Type, U64 Size>
+inline bool SafeQueue<Type, Size>::Empty() const
 {
-	return front <= back;
+	return front == back;
 }
 
 //#include "stdio.h"
