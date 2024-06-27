@@ -51,6 +51,7 @@
     <IncludePath>C:\Development\Nihility\Engine;$(IncludePath)</IncludePath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
     <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\Int\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -58,6 +59,7 @@
     <IncludePath>C:\Development\Nihility\Engine;$(IncludePath)</IncludePath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
     <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\Int\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -115,11 +117,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Containers\Array.hpp" />
-    <ClInclude Include="Engine\Containers\Hashmap.hpp" />
-    <ClInclude Include="Engine\Containers\Pair.hpp" />
-    <ClInclude Include="Engine\Containers\Pool.hpp" />
-    <ClInclude Include="Engine\Containers\Queue.hpp" />
-    <ClInclude Include="Engine\Containers\Stack.hpp" />
     <ClInclude Include="Engine\Containers\Tuple.hpp" />
     <ClInclude Include="Engine\Containers\TypeList.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
@@ -308,8 +305,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Containers\Containers-Freelist.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Hashmap.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Pair.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Pool.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Queue.ixx" />
     <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx" />
-    <ClCompile Include="Engine\Containers\Container-String.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-String.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Stack.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Core\Core-DataReader.ixx" />
@@ -358,6 +360,7 @@
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
+    <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx" />
     <ClCompile Include="Engine\Platform\ThreadSafety.ixx" />
     <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx" />

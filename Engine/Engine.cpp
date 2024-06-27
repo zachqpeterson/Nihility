@@ -6,7 +6,6 @@
 #include "Platform\Input.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
-#include "Containers\Queue.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
@@ -18,12 +17,15 @@ import Core;
 import Memory;
 import Containers;
 import Multithreading;
+import ThreadSafety;
 
 InitializeFn Engine::GameInit;
 UpdateFn Engine::GameUpdate;
 ShutdownFn Engine::GameShutdown;
 
 bool Engine::running;
+
+U64 runCount = 0;
 
 void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamAppId, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
@@ -45,65 +47,16 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamA
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
 
-	auto lowJob = [] { Logger::Info("I'm Working"); };
-	auto medJob = [] { Logger::Info("I'm Working Harder"); };
-	auto highJob = [] { Logger::Info("I'm Working The Hardest"); };
+	auto lowJob = [&] { SafeIncrement(&runCount); Logger::Info("I'm Working"); };
 	
-	Jobs::Excecute(highJob);
-	Jobs::Excecute(highJob);
-	Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//Jobs::Excecute(highJob);
-	//
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//Jobs::Excecute(medJob);
-	//
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
-	//Jobs::Excecute(lowJob);
+	for (U32 i = 0; i < 512; ++i)
+	{
+		Jobs::Excecute(lowJob, JOB_PRIORITY_LOW);
+	}
+
+	Jobs::Wait(JOB_PRIORITY_LOW);
+
+	Logger::Info(runCount);
 
 	//Particles
 	ASSERT(Audio::Initialize());

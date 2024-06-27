@@ -1,14 +1,15 @@
-#pragma once
+module;
 
 #include "Defines.hpp"
 
-import Containers;
+export module Containers:Hashmap;
+
 import Math;
 import Memory;
 
-typedef U64 HashHandle;
+export typedef U64 HashHandle;
 
-template<class Key, class Value>
+export template<class Key, class Value>
 struct Hashmap
 {
 	struct Cell
@@ -540,6 +541,5 @@ template<class Key, class Value>
 inline U64 Hashmap<Key, Value>::Hash(const Key& key)
 {
 	if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
-	else if constexpr (IsStringViewType<Key>) { return Hash::SeededHash(key.Data(), key.Size()); }
 	else { return Hash::SeededHash(key); }
 }

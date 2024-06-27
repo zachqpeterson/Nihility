@@ -4,7 +4,7 @@
 
 #include "ResourceDefines.hpp"
 
-#include "Containers\Hashmap.hpp"
+import Containers;
 
 struct Glyph
 {

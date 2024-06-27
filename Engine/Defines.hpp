@@ -166,6 +166,8 @@ class& operator=(class&&) = delete;	\
 #	define NH_NODISCARD_MSG(message)
 #endif
 
+extern "C" { extern int __isa_available; }
+
 enum ISAAvailability
 {
 	ISA_AVAILABLE_X86 = 0,

@@ -2,8 +2,6 @@ module;
 
 #include "Defines.hpp"
 
-#include "Containers\Hashmap.hpp"
-
 export module Core:Events;
 
 import :Function;

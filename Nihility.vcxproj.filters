@@ -94,12 +94,6 @@
     <ClInclude Include="Engine\Engine.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Queue.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Containers\Stack.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Containers\Tuple.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -117,9 +111,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Platform\Device.hpp">
       <Filter>Source Files\Platform\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Containers\Hashmap.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Rendering\Renderer.hpp">
       <Filter>Source Files\Rendering</Filter>
@@ -151,9 +142,6 @@
     <ClInclude Include="Engine\Rendering\Pipeline.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Pool.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\External\stb_image.h">
       <Filter>Source Files\External</Filter>
     </ClInclude>
@@ -165,9 +153,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Platform\Audio.hpp">
       <Filter>Source Files\Platform\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Containers\Pair.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Containers\Array.hpp">
       <Filter>Source Files\Containers</Filter>
@@ -972,7 +957,7 @@
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Container-String.ixx">
+    <ClCompile Include="Engine\Containers\Containers-String.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Math.ixx">
@@ -1042,6 +1027,24 @@
       <Filter>Source Files\Memory</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Queue.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Jobs.cpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Hashmap.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Stack.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Pair.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Pool.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
   </ItemGroup>

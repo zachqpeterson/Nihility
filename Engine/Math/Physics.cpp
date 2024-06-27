@@ -22,10 +22,10 @@
 
 #include "Island.hpp"
 #include "Broadphase.hpp"
-#include "Containers\Stack.hpp"
 #include "Resources\Scene.hpp"
 
 import Core;
+import Containers;
 
 Vector<RigidBody2D>* Physics::bodies;
 Contact2D* Physics::contacts;
@@ -167,7 +167,7 @@ void Physics::Solve(F32 step)
 	for (RigidBody2D& rb : *bodies) { rb.flags &= ~RigidBody2D::FLAG_ISLAND; }
 	for (U32 i = 0; i < contactFreelist.Last(); ++i) { contacts[i].flags &= ~Contact2D::FLAG_ISLAND; }
 
-	Stack<RigidBody2D*> stack{ (U32)bodies->Size() };
+	Stack<RigidBody2D*> stack((U32)bodies->Size());
 
 	for (RigidBody2D& seed : *bodies)
 	{
@@ -179,9 +179,9 @@ void Physics::Solve(F32 step)
 		seed.flags |= RigidBody2D::FLAG_ISLAND;
 
 		//Depth first search
-		while (stack.Size())
+		RigidBody2D* rb;
+		while (stack.Pop(rb))
 		{
-			RigidBody2D* rb = stack.Pop();
 			island.AddBody(rb);
 
 			rb->SetAwake(true);
@@ -418,7 +418,10 @@ void Physics::SolveTOI(F32 step)
 					// Only add static, kinematic, or bullet bodies.
 					RigidBody2D* other = ce.other;
 					if (other->type == BODY_TYPE_DYNAMIC && (body->flags & RigidBody2D::FLAG_BULLET) == 0 &&
-						(other->flags & RigidBody2D::FLAG_BULLET) == 0) { continue; }
+						(other->flags & RigidBody2D::FLAG_BULLET) == 0)
+					{
+						continue;
+					}
 
 					// Skip sensors.
 					if (contact->colliderA->trigger || contact->colliderB->trigger) { continue; }
@@ -908,7 +911,7 @@ void Physics::Distance(DistanceOutput* output, SimplexCache* cache, const Distan
 	}
 }
 
-bool Physics::TestOverlap(const Collider2D * shapeA, const Collider2D * shapeB,
+bool Physics::TestOverlap(const Collider2D* shapeA, const Collider2D* shapeB,
 	const Transform2D& xfA, const Transform2D& xfB)
 {
 	DistanceInput input;

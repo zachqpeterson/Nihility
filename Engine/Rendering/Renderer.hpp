@@ -2,13 +2,11 @@
 
 #include "Defines.hpp"
 
-import Containers;
-
-#include "Containers\Hashmap.hpp"
-#include "Containers\Queue.hpp"
 #include "CommandBuffer.hpp"
 #include "Swapchain.hpp"
 #include "Pipeline.hpp"
+
+import Containers;
 
 struct Scene;
 struct VkImage_T;

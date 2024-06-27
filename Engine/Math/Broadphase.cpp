@@ -21,8 +21,9 @@
 #include "Broadphase.hpp"
 
 #include "Physics.hpp"
-#include "Containers\Stack.hpp"
 #include <type_traits>
+
+import Containers;
 
 U32 Broadphase::proxyCount;
 
@@ -199,12 +200,12 @@ bool PairLessThan(const Pair& pair1, const Pair& pair2)
 
 void Broadphase::Query(const AABB& aabb, U32 id)
 {
-	Stack<U32> stack{256};
+	Stack<U32> stack(256);
 	stack.Push(root);
 
-	while (stack.Size())
+	U32 nodeId;
+	while (stack.Pop(nodeId))
 	{
-		U32 nodeId = stack.Pop();
 		if (nodeId == NullNode) { continue; }
 
 		const TreeNode* node = nodes + nodeId;

@@ -5,6 +5,8 @@
 #include "Material.hpp"
 #include "Component.hpp"
 
+import Memory;
+
 struct Entity;
 struct Scene;
 

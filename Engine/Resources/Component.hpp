@@ -1,10 +1,9 @@
 #pragma once
 
-import Containers;
-
 #include "Defines.hpp"
 #include "Introspection.hpp"
-#include "Containers\Hashmap.hpp"
+
+import Containers;
 
 struct Scene;
 

@@ -826,22 +826,6 @@ export constexpr StringView operator""_SV(const C8 * str, U64 length)
 	return { str, length };
 }
 
-export template<Character C> struct StringBase;
-
-export using String = StringBase<C8>;
-export using String8 = StringBase<C8>;
-export using String16 = StringBase<C16>;
-export using String32 = StringBase<C32>;
-
-export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
-export template <class Type> concept StringViewType = IsStringViewType<Type>;
-export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-export template <class Type> concept StringType = IsStringType<Type>;
-export template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-export template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
-export template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-export template <class Type> concept NonStringClass = IsNonStringClass<Type>;
-
 /*
 * TODO: Documentation
 *

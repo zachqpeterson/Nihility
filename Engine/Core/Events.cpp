@@ -2,10 +2,10 @@ module;
 
 #include "Defines.hpp"
 
-#include "Containers\Hashmap.hpp"
-
 module Core:Events;
+
 import :Function;
+import Containers;
 
 Hashmap<String, Events::Event> Events::events{ 128 };
 

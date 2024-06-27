@@ -2,9 +2,9 @@
 
 #include "ResourceDefines.hpp"
 
-#include "Containers\Hashmap.hpp"
-#include "Containers\Queue.hpp"
 #include "Material.hpp"
+
+import Containers;
 
 struct Font;
 struct AudioClip;

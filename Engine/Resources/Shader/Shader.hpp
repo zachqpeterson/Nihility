@@ -1,10 +1,9 @@
 #pragma once
 #pragma once
 
-import Containers;
-
 #include "Resources\ResourceDefines.hpp"
-#include "Containers\Pool.hpp"
+
+import Containers;
 
 static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader stages, applicable to all different type of pipelines
 static constexpr U8 MAX_DESCRIPTOR_SETS = 8;

@@ -1,8 +1,5 @@
 #include "Resources.hpp"
 
-import Core;
-import Containers;
-
 #include "Font.hpp"
 #include "Scene.hpp"
 #include "Settings.hpp"
@@ -12,8 +9,6 @@ import Containers;
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
-#include "Containers\Stack.hpp"
-#include "Containers\Pool.hpp"
 #include "Math\Math.hpp"
 
 #include "External\Assimp\cimport.h"
@@ -26,6 +21,9 @@ import Containers;
 
 #define STB_VORBIS_NO_STDIO
 #include "External\stb_vorbis.h"
+
+import Core;
+import Containers;
 
 #undef near
 #undef far
@@ -486,7 +484,7 @@ void Resources::Update()
 
 		U32 currentWriteIndex = 0;
 
-		while (bindlessTexturesToUpdate.Size())
+		while (!bindlessTexturesToUpdate.Empty())
 		{
 			ResourceUpdate textureToUpdate;
 			bindlessTexturesToUpdate.Pop(textureToUpdate);
@@ -3620,14 +3618,13 @@ String Resources::ParseAssimpMesh(const String& name, const aiMesh* meshInfo)
 
 void Resources::ParseAssimpModel(ModelUpload& model, const aiScene* scene)
 {
-	Stack<aiNode*> nodes{ 32 };
+	Stack<aiNode*> nodes(32);
 
 	nodes.Push(scene->mRootNode);
 
-	while (nodes.Size())
+	aiNode* node;
+	while (nodes.Pop(node))
 	{
-		aiNode* node = nodes.Pop();
-
 		for (U32 i = 0; i < node->mNumMeshes; ++i)
 		{
 			MeshUpload& draw = model.meshes[node->mMeshes[i]];
