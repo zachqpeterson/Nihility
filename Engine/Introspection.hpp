@@ -9,7 +9,7 @@ namespace Introspection
 	template<class Type>
 	struct TypeName
 	{
-		static constexpr StringView FullName()
+		static constexpr inline StringView FullName()
 		{
 #if defined(__clang__) || defined(__GNUC__)
 			return __PRETTY_FUNCTION__;
@@ -20,7 +20,7 @@ namespace Introspection
 #endif
 		}
 
-		static constexpr StringView Name()
+		static constexpr inline StringView Name()
 		{
 			constexpr StringView dummy = TypeName<void>::FullName();
 			constexpr U64 dummyLength = dummy.Size();
@@ -34,8 +34,8 @@ namespace Introspection
 			return rv.SubString(rv.LastIndexOf(' ') + 1);
 		}
 
-		constexpr static StringView value = Name();
+		constexpr static inline StringView value = Name();
 	};
 }
 
-template <class Type> inline constexpr StringView NameOf = Introspection::TypeName<Type>::value;
+template <class Type> constexpr inline const StringView NameOf = Introspection::TypeName<Type>::value;

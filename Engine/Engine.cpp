@@ -25,8 +25,6 @@ ShutdownFn Engine::GameShutdown;
 
 bool Engine::running;
 
-U64 runCount = 0;
-
 void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamAppId, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
 {
 	GameInit = init;
@@ -46,18 +44,6 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamA
 	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
-
-	auto lowJob = [&] { SafeIncrement(&runCount); Logger::Info("I'm Working"); };
-	
-	for (U32 i = 0; i < 512; ++i)
-	{
-		Jobs::Excecute(lowJob, JOB_PRIORITY_LOW);
-	}
-
-	Jobs::Wait(JOB_PRIORITY_LOW);
-
-	Logger::Info(runCount);
-
 	//Particles
 	ASSERT(Audio::Initialize());
 	ASSERT(Input::Initialize());

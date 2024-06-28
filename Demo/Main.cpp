@@ -1,7 +1,5 @@
 #include "Engine.hpp"
 
-import Core;
-
 #include "Introspection.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
@@ -11,6 +9,8 @@ import Core;
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"
 #include "Rendering\Sprite.hpp"
+
+import Core;
 
 ResourceRef<AudioClip> music;
 ResourceRef<AudioClip> sfx;

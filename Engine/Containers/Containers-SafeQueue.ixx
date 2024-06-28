@@ -11,7 +11,7 @@ import ThreadSafety;
 inline constexpr U64 CacheLineSize = 64;
 
 export template <CopyOrMoveable Type, U32 Capacity>
-struct SafeQueue
+struct NH_API SafeQueue
 {
 	struct Cursor
 	{

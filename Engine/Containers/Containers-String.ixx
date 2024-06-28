@@ -5,6 +5,7 @@ module;
 export module Containers:String;
 
 import Memory;
+import Math;
 
 #pragma region Lookup
 constexpr inline U8 UPPER_CHAR = 0x01;
@@ -701,6 +702,23 @@ L"000001002003004005006007008009010011012013014015016017018019"
 "980981982983984985986987988989990991992993994995996997998999";
 #pragma endregion
 
+export struct StringView;
+export template<Character C> struct StringBase;
+
+export using String = StringBase<C8>;
+export using String8 = StringBase<C8>;
+export using String16 = StringBase<C16>;
+export using String32 = StringBase<C32>;
+
+export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
+export template <class Type> concept StringViewType = IsStringViewType<Type>;
+export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
+export template <class Type> concept StringType = IsStringType<Type>;
+export template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+export template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
+export template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
+export template <class Type> concept NonStringClass = IsNonStringClass<Type>;
+
 export template<Character C>
 inline constexpr bool CompareString(const C* a, const C* b, I64 length) noexcept
 {
@@ -727,7 +745,7 @@ inline constexpr bool CompareString(const C* a, const C* b) noexcept
 	return !(c0 || c1);
 }
 
-export struct StringView
+export struct NH_API StringView
 {
 	template<U64 Length>
 	constexpr StringView(const C8(&str)[Length]) : string{ str }, length{ Length } {}
@@ -849,6 +867,8 @@ struct StringBase
 	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
 	template<typename... Args> StringBase& Format(const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
 	template<typename... Args> StringBase& Format(U64 start, const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
+
+	static StringBase<C> RandomString(U32 length) noexcept;
 
 	StringBase& operator=(NullPointer) noexcept;
 	StringBase& operator=(const StringBase& other) noexcept;
@@ -1041,6 +1061,22 @@ inline StringBase<C>& StringBase<C>::Format(U64 start, const C* format, const Ar
 	(FindFormat(start, args), ...);
 
 	return *this;
+}
+
+template<Character C>
+inline StringBase<C> StringBase<C>::RandomString(U32 length) noexcept
+{
+	StringBase<C> str{};
+	str.Resize(16);
+
+	C* it = str.Data();
+
+	for (U32 i = 0; i < length; ++i)
+	{
+		*it++ = ALPHANUM_LOOKUP<C>[Random::RandomRange(0, CountOf(ALPHANUM_LOOKUP<C>))];
+	}
+
+	return str;
 }
 
 template<Character C>

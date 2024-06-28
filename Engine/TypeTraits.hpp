@@ -297,23 +297,6 @@ template <class Type> concept Moveable = IsMoveable<Type>;
 template <class Type> constexpr const bool IsCopyOrMoveable = IsCopyable<Type> || IsMoveable<Type>;
 template <class Type> concept CopyOrMoveable = IsCopyOrMoveable<Type>;
 
-struct StringView;
-template<Character C> struct StringBase;
-
-using String = StringBase<C8>;
-using String8 = StringBase<C8>;
-using String16 = StringBase<C16>;
-using String32 = StringBase<C32>;
-
-template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
-template <class Type> concept StringViewType = IsStringViewType<Type>;
-template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-template <class Type> concept StringType = IsStringType<Type>;
-template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
-template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-template <class Type> concept NonStringClass = IsNonStringClass<Type>;
-
 /// <summary>
 /// Forwards arg as movable
 /// </summary>
