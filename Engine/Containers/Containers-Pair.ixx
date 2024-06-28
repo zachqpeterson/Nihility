@@ -2,7 +2,7 @@ module;
 
 export module Containers:Pair;
 
-template<class A, class B>
+export template<class A, class B>
 struct Pair
 {
 	using TypeA = A;

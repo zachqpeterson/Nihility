@@ -116,9 +116,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Containers\Array.hpp" />
-    <ClInclude Include="Engine\Containers\Tuple.hpp" />
-    <ClInclude Include="Engine\Containers\TypeList.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
     <ClInclude Include="Engine\External\Discord\achievement_manager.h" />
@@ -304,14 +301,16 @@
     <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Containers\Containers-Array.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Freelist.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Hashmap.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Pair.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Pool.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Queue.ixx" />
     <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-String.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Stack.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-String.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-TypeList.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Core\Core-DataReader.ixx" />

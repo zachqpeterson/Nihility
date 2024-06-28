@@ -94,9 +94,6 @@
     <ClInclude Include="Engine\Engine.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Tuple.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Resources\Resources.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
@@ -154,9 +151,6 @@
     <ClInclude Include="Engine\Platform\Audio.hpp">
       <Filter>Source Files\Platform\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Containers\Array.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Resources\Material.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
@@ -165,9 +159,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Introspection.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Containers\TypeList.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Resources\Component.hpp">
       <Filter>Source Files\Resources\Entities\Components</Filter>
@@ -957,9 +948,6 @@
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-String.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Math\Math.ixx">
       <Filter>Source Files\Math</Filter>
     </ClCompile>
@@ -1045,6 +1033,15 @@
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Containers\Containers-Pool.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-String.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-Array.ixx">
+      <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Containers-TypeList.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
   </ItemGroup>

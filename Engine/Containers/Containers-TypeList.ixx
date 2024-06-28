@@ -1,12 +1,11 @@
-#pragma once
+module;
 
 #include "Defines.hpp"
 
-#include "Introspection.hpp"
-#include "Core\Logger.hpp"
+export module Containers:TypeList;
 
 //TODO: Add static subscript operator with cpp23
-template<class... Types>
+export template<class... Types>
 struct TypeList
 {
 public:
@@ -74,36 +73,37 @@ namespace Details
 	struct IndexOf<Type, TypeList<Types...>> : TypeConstant<U64, GetIndex<Type, Types...>()> { };
 }
 
-template<class List>
+export template<class List>
 using Front = typename Details::Front<List>::Type;
 
-template<class List>
+export template<class List>
 using PopFront = typename Details::PopFront<List>::Type;
 
-template<class List, class Element>
+export template<class List, class Element>
 using PushFront = typename Details::PushFront<List, Element>::Type;
 
-template<class List, class Element>
+export template<class List, class Element>
 using PushBack = typename Details::PushBack<List, Element>::Type;
 
-template<class List, U64 Index>
+export template<class List, U64 Index>
 using TypeAt = typename Details::TypeAt<List, Index>::Type;
 
-template<class List, class Type>
+export template<class List, class Type>
 constexpr const U64 IndexOf = Details::IndexOf<Type, List>::value;
 
-template<class List, class Func>
+export template<class List, class Func>
 constexpr void ForEach(Func&& func)
 {
 	using Type = Front<List>;
 
-	if constexpr(!IsSame<Type, void>)
+	if constexpr (!IsSame<Type, void>)
 	{
 		func.template operator()<Type>();
 		ForEach<PopFront<List>>(func);
 	}
 }
 
+//Tests
 static_assert(IsSame<Front<TypeList<bool, char, int>>, bool>);
 static_assert(IsSame<Front<TypeList<>>, void>);
 static_assert(IsSame<TypeList<char, int>, PopFront<TypeList<bool, char, int>>>);

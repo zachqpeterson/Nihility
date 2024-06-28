@@ -28,7 +28,7 @@ import Containers;
 U32 Broadphase::proxyCount;
 
 Vector<U32> Broadphase::moveBuffer(16);
-Vector<Pair> Broadphase::pairBuffer(16);
+Vector<ProxyPair> Broadphase::pairBuffer(16);
 
 //Tree
 TreeNode* Broadphase::nodes;
@@ -177,19 +177,19 @@ void Broadphase::UpdatePairs()
 	moveBuffer.Clear();
 
 	// Send the pairs back to the client.
-	for (Pair* pair = pairBuffer.begin(); pair != pairBuffer.end(); ++pair)
+	for (ProxyPair* pair = pairBuffer.begin(); pair != pairBuffer.end(); ++pair)
 	{
 		Physics::AddPair(nodes[pair->proxyIdA].data, nodes[pair->proxyIdB].data);
 
 		//Skip duplicates
-		for (Pair* otherPair = pair; otherPair != pairBuffer.end(); ++otherPair)
+		for (ProxyPair* otherPair = pair; otherPair != pairBuffer.end(); ++otherPair)
 		{
 			if (otherPair->proxyIdA != pair->proxyIdA || otherPair->proxyIdB != pair->proxyIdB) { pair = otherPair; break; }
 		}
 	}
 }
 
-bool PairLessThan(const Pair& pair1, const Pair& pair2)
+bool PairLessThan(const ProxyPair& pair1, const ProxyPair& pair2)
 {
 	if (pair1.proxyIdA < pair2.proxyIdA) { return true; }
 

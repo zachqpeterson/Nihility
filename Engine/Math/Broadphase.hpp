@@ -44,7 +44,7 @@ struct TreeNode
 	};
 };
 
-struct Pair
+struct ProxyPair
 {
 	U32 proxyIdA;
 	U32 proxyIdB;
@@ -84,7 +84,7 @@ private:
 	static U32 proxyCount;
 
 	static Vector<U32> moveBuffer;
-	static Vector<Pair> pairBuffer;
+	static Vector<ProxyPair> pairBuffer;
 
 	//Tree
 	static TreeNode* nodes;
