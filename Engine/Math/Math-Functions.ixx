@@ -17,26 +17,6 @@ struct Vector2;
 struct Vector3;
 struct Vector4;
 
-namespace Details
-{
-	struct StringView;
-	template<Character C> struct StringBase;
-
-	using String = StringBase<C8>;
-	using String8 = StringBase<C8>;
-	using String16 = StringBase<C16>;
-	using String32 = StringBase<C32>;
-
-	template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
-	template <class Type> concept StringViewType = IsStringViewType<Type>;
-	template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
-	template <class Type> concept StringType = IsStringType<Type>;
-	template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-	template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
-	template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-	template <class Type> concept NonStringClass = IsNonStringClass<Type>;
-}
-
 export class NH_API Math
 {
 public:
@@ -791,7 +771,7 @@ public:
 	/// <param name="value:">The value to hash</param>
 	/// <param name="seed:">The seed to use</param>
 	/// <returns>The hash</returns>
-	template<class Type> requires(!Details::IsStringType<Type> && !Details::IsStringViewType<Type> && !IsPointer<Type>)
+	template<class Type> requires(!IsPointer<Type>)
 	static U64 SeededHash(const Type& value, U64 seed = 0)
 	{
 		constexpr U64 length = sizeof(Type);
@@ -843,30 +823,6 @@ public:
 		b ^= seed;
 		Multiply(a, b);
 		return Mix(a ^ secret0 ^ length, b ^ secret1);
-	}
-
-	/// <summary>
-	/// Creates a hash for any type, slower but more unique
-	/// </summary>
-	/// <param name="value:">The value to hash</param>
-	/// <param name="seed:">The seed to use</param>
-	/// <returns>The hash</returns>
-	template<Details::StringType Type>
-	static U64 SeededHash(const Type& value, U64 seed = 0)
-	{
-		return SeededHash(value.Data(), seed);
-	}
-
-	/// <summary>
-	/// Creates a hash for any type, slower but more unique
-	/// </summary>
-	/// <param name="value:">The value to hash</param>
-	/// <param name="seed:">The seed to use</param>
-	/// <returns>The hash</returns>
-	template <Details::StringViewType Type>
-	static U64 SeededHash(const Type& value, U64 seed = 0)
-	{
-		return SeededHash(value.Data(), value.Size());
 	}
 
 	/// <summary>

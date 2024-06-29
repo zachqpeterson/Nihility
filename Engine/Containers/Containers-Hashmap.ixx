@@ -4,6 +4,7 @@ module;
 
 export module Containers:Hashmap;
 
+import :String;
 import Math;
 import Memory;
 
@@ -540,6 +541,7 @@ inline bool Hashmap<Key, Value>::Iterator::operator>= (const Iterator& other) co
 template<class Key, class Value>
 inline U64 Hashmap<Key, Value>::Hash(const Key& key)
 {
-	if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
+	if constexpr (IsStringType<Key> || IsStringViewType<Key>) { return key.Hash(); }
+	else if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
 	else { return Hash::SeededHash(key); }
 }

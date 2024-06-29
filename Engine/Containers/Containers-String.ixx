@@ -709,10 +709,11 @@ export using String = StringBase<C8>;
 export using String8 = StringBase<C8>;
 export using String16 = StringBase<C16>;
 export using String32 = StringBase<C32>;
+export using StringW = StringBase<CW>;
 
 export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
 export template <class Type> concept StringViewType = IsStringViewType<Type>;
-export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>>;
+export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>, StringBase<CW>>;
 export template <class Type> concept StringType = IsStringType<Type>;
 export template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
 export template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
@@ -833,6 +834,8 @@ export struct NH_API StringView
 
 	constexpr U64 Size() const { return length; }
 	constexpr const C8* Data() const { return string; }
+	constexpr U64 Hash() const { return Hash::StringHash(string, length); }
+	constexpr U64 HashCI() const { return Hash::StringHashCI(string, length); }
 
 private:
 	const C8* string;
@@ -959,6 +962,7 @@ struct StringBase
 
 	U64 Size() const noexcept;
 	U64 Capacity() const noexcept;
+	U64 Hash(U64 seed = 0) const noexcept;
 	C* Data() noexcept;
 	const C* Data() const noexcept;
 	operator C* () noexcept;
@@ -1397,6 +1401,9 @@ inline U64 StringBase<C>::Size() const noexcept { return size; }
 
 template<Character C>
 inline U64 StringBase<C>::Capacity() const noexcept { return capacity; }
+
+template<Character C>
+inline U64 StringBase<C>::Hash(U64 seed) const noexcept { return Hash::SeededHash(string, size, seed); }
 
 template<Character C>
 inline C* StringBase<C>::Data() noexcept { return string; }
