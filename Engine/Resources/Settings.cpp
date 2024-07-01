@@ -64,8 +64,6 @@ void Settings::Shutdown()
 //AUDIO
 U8 Settings::ChannelCount() { return data.channelCount; }
 F32 Settings::MasterVolume() { return data.masterVolume; }
-F32 Settings::MusicVolume() { return data.musicVolume; }
-F32 Settings::SfxVolume() { return data.sfxVolume; }
 bool Settings::UnfocusedAudio() { return data.unfocusedAudio; }
 
 //GRAPHICS

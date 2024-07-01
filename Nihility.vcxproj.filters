@@ -148,9 +148,6 @@
     <ClInclude Include="Engine\Resources\Font.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Audio.hpp">
-      <Filter>Source Files\Platform\Audio</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Resources\Material.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>

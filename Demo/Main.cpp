@@ -7,11 +7,13 @@
 #include "Resources\Settings.hpp"
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
-#include "Platform\Audio.hpp"
 #include "Rendering\Sprite.hpp"
 
 import Core;
+import Audio;
 
+U32 musicChannel;
+U32 sfxChannel;
 ResourceRef<AudioClip> music;
 ResourceRef<AudioClip> sfx;
 F32 volume = 1.0f;
@@ -67,6 +69,9 @@ bool Init()
 
 	Renderer::LoadScene(scene);
 
+	musicChannel = Audio::CreateChannel();
+	sfxChannel = Audio::CreateChannel();
+	
 	music = Resources::LoadAudio("audio/TheEquable.nhaud");
 	sfx = Resources::LoadAudio("audio/Mine.nhaud");
 
@@ -79,18 +84,21 @@ void Update()
 {
 	if (Input::ButtonDown(BUTTON_CODE_SPACE))
 	{
-		Audio::PlaySfx(sfx);
+		Audio::PlayAudio(sfxChannel, sfx);
 	}
-
+	
 	if (Input::OnButtonDown(BUTTON_CODE_M))
 	{
-		Audio::PlayMusic(music);
+		AudioParameters params{};
+		params.looping = true;
+		
+		Audio::PlayAudio(musicChannel, music, params);
 	}
-
+	
 	if (Input::MouseWheelDelta())
 	{
 		volume += 0.1f * Input::MouseWheelDelta();
-		Audio::ChangeMusicVolume(volume);
+		Audio::ChangeChannelVolume(musicChannel, volume);
 	}
 
 	if (Input::OnButtonDown(BUTTON_CODE_V))

@@ -5,7 +5,6 @@
 #include "Settings.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
-#include "Platform\Audio.hpp"
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
@@ -24,6 +23,7 @@
 
 import Core;
 import Containers;
+import Audio;
 
 #undef near
 #undef far

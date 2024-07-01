@@ -191,7 +191,6 @@
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
     <ClInclude Include="Engine\Networking\Discord.hpp" />
     <ClInclude Include="Engine\Networking\Steam.hpp" />
-    <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
