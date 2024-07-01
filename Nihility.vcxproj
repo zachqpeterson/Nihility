@@ -356,6 +356,7 @@
     <ClCompile Include="Engine\Networking\Discord.cpp" />
     <ClCompile Include="Engine\Networking\Steam.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />
+    <ClCompile Include="Engine\Platform\Audio.ixx" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />

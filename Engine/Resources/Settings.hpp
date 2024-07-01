@@ -18,8 +18,6 @@ public:
 	//AUDIO
 	static U8 ChannelCount();
 	static F32 MasterVolume();
-	static F32 MusicVolume();
-	static F32 SfxVolume();
 	static bool UnfocusedAudio();
 
 	//GRAPHICS

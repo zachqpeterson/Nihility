@@ -4,10 +4,13 @@
 
 import Core;
 
+#define USE_STEAM 0
+
 U32 Steam::appID;
 
 bool Steam::Initialize(U32 appID_)
 {
+#if USE_STEAM
 	Logger::Trace("Initializing Steam Integration...");
 
 	appID = appID_;
@@ -27,18 +30,22 @@ bool Steam::Initialize(U32 appID_)
 #else
 	if (!SteamAPI_Init()) { return false; }
 #endif
-
+#endif
 	return true;
 }
 
 void Steam::Shutdown()
 {
+#if USE_STEAM
 	Logger::Trace("Shutting Down Steam Integration...");
 
 	SteamAPI_Shutdown();
+#endif
 }
 
 void Steam::Update()
 {
+#if USE_STEAM
 	SteamAPI_RunCallbacks();
+#endif
 }

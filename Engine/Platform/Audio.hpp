@@ -27,40 +27,49 @@ struct IXAudio2MasteringVoice;
 struct IXAudio2SourceVoice;
 struct IXAudio2SubmixVoice;
 
-struct NH_API SfxParameters
+struct NH_API AudioParameters
 {
-	F32 volume{ 1.0f };
-	F32 speed{ 1.0f };
-	F32 leftPan{ 1.0f };
-	F32 rightPan{ 1.0f };
+	F32 volume = 1.0f;
+	F32 speed = 1.0f;
+	F32 leftPan = 1.0f;
+	F32 rightPan = 1.0f;
 
 	//TODO: Effects
 };
 
-struct NH_API SoundEffect
+struct AudioPlayback
 {
-private:
-	IXAudio2SourceVoice* source{};
-	U32 index{ U32_MAX };
-
-	SfxParameters parameters{};
-
-	friend class Audio;
+	IXAudio2SourceVoice* voice;
+	AudioParameters parameters;
+	ResourceRef<AudioClip> clip;
 };
 
-//TODO: Better positional audio: https://github.com/microsoft/DirectXTK/wiki/Using-positional-audio
+struct NH_API AudioChannelParameters
+{
+	F32 volume = 1.0f;
+
+	//TODO: Effects
+};
+
+struct AudioChannel
+{
+	IXAudio2SubmixVoice* mixer;
+	AudioChannelParameters parameters;
+};
+
+//Samples: https://github.com/walbourn/directx-sdk-samples/tree/main/XAudio2
 class NH_API Audio
 {
 public:
-	static void PlayMusic(const ResourceRef<AudioClip>& clip);
-	static void PlaySfx(const ResourceRef<AudioClip>& clip, const SfxParameters& parameters = {});
+	static U64 CreateChannel(const AudioChannelParameters& parameters = {});
+	static U64 PlayAudio(U64 channelIndex, const ResourceRef<AudioClip>& clip, const AudioParameters& parameters = {});
+
+	//TODO: Edit audio playback with index
 
 	static void ChangeMasterVolume(F32 volume);
-	static void ChangeMusicVolume(F32 volume);
-	static void ChangeSfxVolume(F32 volume);
+	static void ChangeChannelVolume(U64 channelIndex, F32 volume);
 	static F32 GetMasterVolume();
-	static F32 GetMusicVolume();
-	static F32 GetSfxVolume();
+	static F32 GetChannelVolume(U64 channelIndex);
 
 private:
 	static bool Initialize();
@@ -70,25 +79,15 @@ private:
 	static void Unfocus();
 	static void Focus();
 
-	static void TransitionMusic();
-	static void EndSFX(U32 index);
+	static void EndAudio(U32 index);
 
 	static IXAudio2* audioHandle;
 	static IXAudio2MasteringVoice* masterVoice;
+	static Vector<AudioChannel> channels;
 	static U32 sampleRate;
 
-	//TODO: Don't hardcode channels
-	static IXAudio2SourceVoice* musicSource;
-	static IXAudio2SubmixVoice* musicVoice;
-	static ResourceRef<AudioClip> currentMusic;
-	static ResourceRef<AudioClip> nextMusic;
-	static F32 fadeTimer;
-	static bool fadingIn;
-	static bool fadingOut;
-
-	static IXAudio2SubmixVoice* sfxVoice;
-	static Vector<SoundEffect> sfxSources;
-	static Freelist freeSFX;
+	static AudioPlayback* audioPlaybacks;
+	static Freelist freePlaybacks;
 
 	STATIC_CLASS(Audio);
 	friend class Engine;

@@ -1044,5 +1044,8 @@
     <ClCompile Include="Engine\Containers\Containers-TypeList.ixx">
       <Filter>Source Files\Containers</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Platform\Audio.ixx">
+      <Filter>Source Files\Platform\Audio</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

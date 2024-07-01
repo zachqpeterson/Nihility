@@ -1,27 +1,24 @@
 #include "Audio.hpp"
 
-import Core;
-
 #include "Resources\Settings.hpp"
 
+#include <sdkddkver.h>
+
 #include <xaudio2.h>
+#include <xaudio2fx.h>
 #include <x3daudio.h>
+#include <xapofx.h>
+
+import Core;
+import Memory;
 
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;
+Vector<AudioChannel> Audio::channels;
 U32 Audio::sampleRate;
 
-IXAudio2SourceVoice* Audio::musicSource;
-IXAudio2SubmixVoice* Audio::musicVoice;
-ResourceRef<AudioClip> Audio::currentMusic;
-ResourceRef<AudioClip> Audio::nextMusic;
-F32 Audio::fadeTimer;
-bool Audio::fadingIn;
-bool Audio::fadingOut;
-
-IXAudio2SubmixVoice* Audio::sfxVoice;
-Vector<SoundEffect> Audio::sfxSources(128, {});
-Freelist Audio::freeSFX{ 128 };
+AudioPlayback* Audio::audioPlaybacks;
+Freelist Audio::freePlaybacks;
 
 struct AudioCallbacks : public IXAudio2VoiceCallback
 {
@@ -30,7 +27,7 @@ struct AudioCallbacks : public IXAudio2VoiceCallback
 	__declspec(nothrow) void __stdcall OnStreamEnd() final {}
 
 	__declspec(nothrow) void __stdcall OnBufferStart(void* pBufferContext) final {}
-	__declspec(nothrow) void __stdcall OnBufferEnd(void* pBufferContext) final { Audio::EndSFX(*(U32*)pBufferContext); }
+	__declspec(nothrow) void __stdcall OnBufferEnd(void* pBufferContext) final { Audio::EndAudio(*(U32*)pBufferContext); }
 	__declspec(nothrow) void __stdcall OnLoopEnd(void* pBufferContext) final {}
 
 	__declspec(nothrow) void __stdcall OnVoiceError(void* pBufferContext, HRESULT Error) final {}
@@ -43,13 +40,17 @@ bool Audio::Initialize()
 	if (XAudio2Create(&audioHandle) < 0) { return false; }
 	if (audioHandle->CreateMasteringVoice(&masterVoice) < 0) { return false; }
 
+	FXMASTERINGLIMITER_PARAMETERS params{};
+	params.Release = FXMASTERINGLIMITER_DEFAULT_RELEASE;
+	params.Loudness = FXMASTERINGLIMITER_DEFAULT_LOUDNESS;
+
+	IUnknown* pVolumeLimiter;
+	if (CreateFX(__uuidof(FXMasteringLimiter), &pVolumeLimiter, &params, sizeof(params)) < 0) { return false; }
+
 	XAUDIO2_VOICE_DETAILS details;
 	masterVoice->GetVoiceDetails(&details);
 	Settings::data.channelCount = details.InputChannels;
 	sampleRate = details.InputSampleRate;
-
-	if (audioHandle->CreateSubmixVoice(&sfxVoice, 2, sampleRate, 0, 0, nullptr, nullptr) < 0) { return false; }
-	if (audioHandle->CreateSubmixVoice(&musicVoice, 2, sampleRate, 0, 0, nullptr, nullptr) < 0) { return false; }
 
 	UL32 channelMask;
 	masterVoice->GetChannelMask(&channelMask);
@@ -57,52 +58,27 @@ bool Audio::Initialize()
 	//X3DAUDIO_HANDLE X3DInstance;
 	//X3DAudioInitialize(channelMask, X3DAUDIO_SPEED_OF_SOUND, X3DInstance);
 
+	freePlaybacks(256);
+	Memory::AllocateArray(&audioPlaybacks, freePlaybacks.Capacity());
+
 	return true;
 }
 
 void Audio::Update()
 {
-	if (fadingOut)
-	{
-		fadeTimer -= (F32)Time::DeltaTime();
 
-		if (fadeTimer <= 0.0f)
-		{
-			fadeTimer = 0.0f;
-			fadingOut = false;
-			fadingIn = true;
-
-			TransitionMusic();
-		}
-
-		musicSource->SetVolume(fadeTimer);
-	}
-	else if (fadingIn)
-	{
-		fadeTimer += (F32)Time::DeltaTime();
-		if (fadeTimer >= 1.0f)
-		{
-			fadeTimer = 1.0f;
-			fadingIn = false;
-		}
-
-		musicSource->SetVolume(fadeTimer);
-	}
 }
 
 void Audio::Shutdown()
 {
 	Logger::Trace("Shutting Down Audio...");
 
-	freeSFX.Destroy();
-	sfxSources.Destroy();
+	freePlaybacks.Destroy();
+	Memory::Free(&audioPlaybacks);
 
-	if (musicSource)
-	{
-		musicSource->Stop();
-		musicSource->DestroyVoice();
-		musicSource = nullptr;
-	}
+	//TODO: Clean up channels
+	//musicSource->Stop();
+	//musicSource->DestroyVoice();
 }
 
 void Audio::Unfocus()
@@ -121,108 +97,61 @@ void Audio::Focus()
 	}
 }
 
-void Audio::TransitionMusic()
+U64 Audio::CreateChannel(const AudioChannelParameters& parameters)
 {
-	musicSource->Stop();
-	musicSource->DestroyVoice();
+	U64 index = channels.Size();
+	AudioChannel& channel = channels.Push({});
+
+	if (audioHandle->CreateSubmixVoice(&channel.mixer, 2, sampleRate, 0, 0, nullptr, nullptr) < 0) { channels.Pop(); return U64_MAX; }
+
+	return index;
+}
+
+U64 Audio::PlayAudio(U64 channelIndex, const ResourceRef<AudioClip>& clip, const AudioParameters& parameters)
+{
+	if (freePlaybacks.Full())
+	{
+		freePlaybacks.Resize(freePlaybacks.Capacity() * 2);
+		Memory::Reallocate(&audioPlaybacks, freePlaybacks.Capacity());
+	}
+
+	U32 index = freePlaybacks.GetFree();
+	AudioPlayback& audio = audioPlaybacks[index];
+	audio.parameters = parameters;
+	audio.clip = clip;
 
 	XAUDIO2_BUFFER audioBuffer{};
-	audioBuffer.AudioBytes = nextMusic->size;
-	audioBuffer.pAudioData = nextMusic->buffer;
+	audioBuffer.AudioBytes = clip->size;
+	audioBuffer.pAudioData = clip->buffer;
 	audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
-	audioBuffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+	audioBuffer.pContext = &index;
 
-	XAUDIO2_SEND_DESCRIPTOR musicSend = { 0, musicVoice };
-	XAUDIO2_VOICE_SENDS musicSendList = { 1, &musicSend };
+	XAUDIO2_SEND_DESCRIPTOR sfxSend = { 0, channels[channelIndex].mixer };
+	XAUDIO2_VOICE_SENDS sfxSendList = { 1, &sfxSend };
 
-	if (audioHandle->CreateSourceVoice(&musicSource, (WAVEFORMATEX*)&nextMusic->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, nullptr, &musicSendList, nullptr) < 0) { return; }
+	IXAudio2SourceVoice* voice;
 
-	musicSource->SubmitSourceBuffer(&audioBuffer, NULL);
-	musicSource->Start(0, XAUDIO2_COMMIT_NOW);
+	if (audioHandle->CreateSourceVoice(&voice, (WAVEFORMATEX*)&clip->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &callbacks, &sfxSendList, nullptr) < 0) { freePlaybacks.Release(index); return; }
+	audio.voice = voice;
 
-	currentMusic = nextMusic;
-	nextMusic = nullptr;
+	F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
+
+	voice->SetChannelVolumes(2, volumes);
+	voice->SetFrequencyRatio(parameters.speed);
+	voice->SubmitSourceBuffer(&audioBuffer, NULL);
+	voice->Start(0, XAUDIO2_COMMIT_NOW);
 }
 
-void Audio::EndSFX(U32 index)
+void Audio::EndAudio(U32 index)
 {
-	SoundEffect& sfx = sfxSources[index];
+	AudioPlayback& audio = audioPlaybacks[index];
 
-	sfx.source->Stop();
-	sfx.source->DestroyVoice();
-	sfx.source = nullptr;
-	sfx.index = U32_MAX;
+	audio.clip = nullptr;
+	audio.voice->Stop();
+	audio.voice->DestroyVoice();
+	audio.voice = nullptr;
 
-	freeSFX.Release(index);
-}
-
-void Audio::PlayMusic(const ResourceRef<AudioClip>& clip)
-{
-	if (currentMusic)
-	{
-		nextMusic = clip;
-
-		if (fadingIn)
-		{
-			fadingOut = true;
-		}
-		else if (!fadingOut)
-		{
-			fadingOut = true;
-			fadeTimer = 1.0f;
-		}
-	}
-	else
-	{
-		currentMusic = clip;
-
-		XAUDIO2_BUFFER audioBuffer{};
-		audioBuffer.AudioBytes = clip->size;
-		audioBuffer.pAudioData = clip->buffer;
-		audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
-		audioBuffer.LoopCount = XAUDIO2_LOOP_INFINITE;
-
-		XAUDIO2_SEND_DESCRIPTOR musicSend = { 0, musicVoice };
-		XAUDIO2_VOICE_SENDS musicSendList = { 1, &musicSend };
-
-		if (audioHandle->CreateSourceVoice(&musicSource, (WAVEFORMATEX*)&clip->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, nullptr, &musicSendList, nullptr) < 0) { return; }
-
-		musicSource->SubmitSourceBuffer(&audioBuffer, NULL);
-		musicSource->Start(0, XAUDIO2_COMMIT_NOW);
-	}
-}
-
-void Audio::PlaySfx(const ResourceRef<AudioClip>& clip, const SfxParameters& parameters)
-{
-	//TODO: Resizing
-	if (!freeSFX.Full())
-	{
-		U32 index = freeSFX.GetFree();
-		SoundEffect& sfx = sfxSources[index];
-		sfx.index = index;
-		sfx.parameters = parameters;
-
-		XAUDIO2_BUFFER audioBuffer{};
-		audioBuffer.AudioBytes = clip->size;
-		audioBuffer.pAudioData = clip->buffer;
-		audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
-		audioBuffer.pContext = &sfx.index;
-
-		XAUDIO2_SEND_DESCRIPTOR sfxSend = { 0, sfxVoice };
-		XAUDIO2_VOICE_SENDS sfxSendList = { 1, &sfxSend };
-
-		IXAudio2SourceVoice* voice;
-
-		if (audioHandle->CreateSourceVoice(&voice, (WAVEFORMATEX*)&clip->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &callbacks, &sfxSendList, nullptr) < 0) { freeSFX.Release(index); return; }
-		sfx.source = voice;
-
-		F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
-
-		voice->SetChannelVolumes(2, volumes);
-		voice->SetFrequencyRatio(parameters.speed);
-		voice->SubmitSourceBuffer(&audioBuffer, NULL);
-		voice->Start(0, XAUDIO2_COMMIT_NOW);
-	}
+	freePlaybacks.Release(index);
 }
 
 void Audio::ChangeMasterVolume(F32 volume)
@@ -231,16 +160,10 @@ void Audio::ChangeMasterVolume(F32 volume)
 	masterVoice->SetVolume(volume);
 }
 
-void Audio::ChangeMusicVolume(F32 volume)
+void Audio::ChangeChannelVolume(U64 index, F32 volume)
 {
-	Settings::data.musicVolume = volume;
-	musicVoice->SetVolume(volume);
-}
-
-void Audio::ChangeSfxVolume(F32 volume)
-{
-	Settings::data.sfxVolume = volume;
-	sfxVoice->SetVolume(volume);
+	channels[index].parameters.volume = volume;
+	channels[index].mixer->SetVolume(volume);
 }
 
 F32 Audio::GetMasterVolume()
@@ -248,12 +171,7 @@ F32 Audio::GetMasterVolume()
 	return Settings::MasterVolume();
 }
 
-F32 Audio::GetMusicVolume()
+F32 Audio::GetChannelVolume(U64 index)
 {
-	return Settings::MusicVolume();
-}
-
-F32 Audio::GetSfxVolume()
-{
-	return Settings::SfxVolume();
+	return channels[index].parameters.volume;
 }
