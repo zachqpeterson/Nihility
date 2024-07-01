@@ -15,6 +15,7 @@ import Memory;
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;
 Vector<AudioChannel> Audio::channels;
+Vector<EffectChain> Audio::effectChains;
 U32 Audio::sampleRate;
 
 AudioPlayback* Audio::audioPlaybacks;
@@ -102,9 +103,106 @@ U64 Audio::CreateChannel(const AudioChannelParameters& parameters)
 	U64 index = channels.Size();
 	AudioChannel& channel = channels.Push({});
 
-	if (audioHandle->CreateSubmixVoice(&channel.mixer, 2, sampleRate, 0, 0, nullptr, nullptr) < 0) { channels.Pop(); return U64_MAX; }
+	XAUDIO2_EFFECT_CHAIN* chain = parameters.effectChainIndex == U64_MAX ? nullptr : (XAUDIO2_EFFECT_CHAIN*)&effectChains[parameters.effectChainIndex];
+
+	if (audioHandle->CreateSubmixVoice(&channel.mixer, 2, sampleRate, 0, 0, nullptr, chain) < 0) { channels.Pop(); return U64_MAX; }
 
 	return index;
+}
+
+U64 Audio::CreateEffectChain(const EffectsParameters& parameters)
+{
+	if (parameters.effectFlags == 0) { return U64_MAX; }
+
+	XAUDIO2_EFFECT_DESCRIPTOR effects[4];
+
+	U64 index = effectChains.Size();
+	EffectChain& chain = effectChains.Push({});
+
+	chain.effectCount = 0;
+	chain.effectDescriptors = effects;
+
+	if (parameters.effectFlags)
+	{
+		if (parameters.effectFlags & AUDIO_EFFECT_REVERB)
+		{
+			FXREVERB_PARAMETERS params{};
+			params.Diffusion = FXREVERB_DEFAULT_DIFFUSION;
+			params.RoomSize = FXREVERB_DEFAULT_ROOMSIZE;
+
+			IUnknown* reverb;
+			CreateFX(__uuidof(FXReverb), &reverb, &params, sizeof(params));
+
+			XAUDIO2_EFFECT_DESCRIPTOR effect{};
+			IUnknown* pEffect = reverb;
+			BOOL InitialState = true;
+			UINT32 OutputChannels = 2;
+
+			effects[chain.effectCount++] = effect;
+		}
+
+		if (parameters.effectFlags & AUDIO_EFFECT_ECHO)
+		{
+			FXECHO_PARAMETERS params{};
+			params.WetDryMix = FXECHO_DEFAULT_WETDRYMIX;
+			params.Feedback = FXECHO_DEFAULT_FEEDBACK;
+			params.Delay = FXECHO_DEFAULT_DELAY;
+
+			IUnknown* echo;
+			CreateFX(__uuidof(FXEcho), &echo, &params, sizeof(params));
+
+			XAUDIO2_EFFECT_DESCRIPTOR effect{};
+			IUnknown* pEffect = echo;
+			BOOL InitialState = true;
+			UINT32 OutputChannels = 2;
+
+			effects[chain.effectCount++] = effect;
+		}
+
+		if (parameters.effectFlags & AUDIO_EFFECT_LIMITER)
+		{
+			FXMASTERINGLIMITER_PARAMETERS params{};
+			params.Release = FXMASTERINGLIMITER_DEFAULT_RELEASE;
+			params.Loudness = FXMASTERINGLIMITER_DEFAULT_LOUDNESS;
+
+			IUnknown* volumeLimiter;
+			CreateFX(__uuidof(FXMasteringLimiter), &volumeLimiter, &params, sizeof(params));
+
+			XAUDIO2_EFFECT_DESCRIPTOR effect{};
+			IUnknown* pEffect = volumeLimiter;
+			BOOL InitialState = true;
+			UINT32 OutputChannels = 2;
+
+			effects[chain.effectCount++] = effect;
+		}
+
+		if (parameters.effectFlags & AUDIO_EFFECT_EQUALIZER)
+		{
+			FXEQ_PARAMETERS params{};
+			params.FrequencyCenter0 = FXEQ_DEFAULT_FREQUENCY_CENTER_0;
+			params.Gain0 = FXEQ_DEFAULT_GAIN;
+			params.Bandwidth0 = FXEQ_DEFAULT_BANDWIDTH;
+			params.FrequencyCenter1 = FXEQ_DEFAULT_FREQUENCY_CENTER_1;
+			params.Gain1 = FXEQ_DEFAULT_GAIN;
+			params.Bandwidth1 = FXEQ_DEFAULT_BANDWIDTH;
+			params.FrequencyCenter2 = FXEQ_DEFAULT_FREQUENCY_CENTER_2;
+			params.Gain2 = FXEQ_DEFAULT_GAIN;
+			params.Bandwidth2 = FXEQ_DEFAULT_BANDWIDTH;
+			params.FrequencyCenter3 = FXEQ_DEFAULT_FREQUENCY_CENTER_3;
+			params.Gain3 = FXEQ_DEFAULT_GAIN;
+			params.Bandwidth3 = FXEQ_DEFAULT_BANDWIDTH;
+
+			IUnknown* equalizer;
+			CreateFX(__uuidof(FXEQ), &equalizer, &params, sizeof(params));
+
+			XAUDIO2_EFFECT_DESCRIPTOR effect{};
+			IUnknown* pEffect = equalizer;
+			BOOL InitialState = true;
+			UINT32 OutputChannels = 2;
+
+			effects[chain.effectCount++] = effect;
+		}
+	}
 }
 
 U64 Audio::PlayAudio(U64 channelIndex, const ResourceRef<AudioClip>& clip, const AudioParameters& parameters)
@@ -121,9 +219,14 @@ U64 Audio::PlayAudio(U64 channelIndex, const ResourceRef<AudioClip>& clip, const
 	audio.clip = clip;
 
 	XAUDIO2_BUFFER audioBuffer{};
+	audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
 	audioBuffer.AudioBytes = clip->size;
 	audioBuffer.pAudioData = clip->buffer;
-	audioBuffer.Flags = XAUDIO2_END_OF_STREAM;
+	audioBuffer.PlayBegin = 0;
+	audioBuffer.PlayLength = 0;
+	audioBuffer.LoopBegin = 0;
+	audioBuffer.LoopLength = 0;
+	audioBuffer.LoopCount = parameters.looping ? XAUDIO2_LOOP_INFINITE : 0;
 	audioBuffer.pContext = &index;
 
 	XAUDIO2_SEND_DESCRIPTOR sfxSend = { 0, channels[channelIndex].mixer };
@@ -131,7 +234,9 @@ U64 Audio::PlayAudio(U64 channelIndex, const ResourceRef<AudioClip>& clip, const
 
 	IXAudio2SourceVoice* voice;
 
-	if (audioHandle->CreateSourceVoice(&voice, (WAVEFORMATEX*)&clip->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &callbacks, &sfxSendList, nullptr) < 0) { freePlaybacks.Release(index); return; }
+	XAUDIO2_EFFECT_CHAIN* chain = parameters.effectChainIndex == U64_MAX ? nullptr : (XAUDIO2_EFFECT_CHAIN*)&effectChains[parameters.effectChainIndex];
+
+	if (audioHandle->CreateSourceVoice(&voice, (WAVEFORMATEX*)&clip->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &callbacks, &sfxSendList, chain) < 0) { freePlaybacks.Release(index); return; }
 	audio.voice = voice;
 
 	F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
@@ -145,19 +250,71 @@ U64 Audio::PlayAudio(U64 channelIndex, const ResourceRef<AudioClip>& clip, const
 void Audio::EndAudio(U32 index)
 {
 	AudioPlayback& audio = audioPlaybacks[index];
+	if (!audio.parameters.looping)
+	{
+		audio.clip = nullptr;
+		audio.voice->Stop();
+		audio.voice->DestroyVoice();
+		audio.voice = nullptr;
 
-	audio.clip = nullptr;
-	audio.voice->Stop();
-	audio.voice->DestroyVoice();
-	audio.voice = nullptr;
-
-	freePlaybacks.Release(index);
+		freePlaybacks.Release(index);
+	}
 }
 
-void Audio::ChangeMasterVolume(F32 volume)
+void Audio::ChangeAudioVolume(U64 index, F32 volume)
 {
-	Settings::data.masterVolume = volume;
-	masterVoice->SetVolume(volume);
+	AudioPlayback& audio = audioPlaybacks[index];
+	AudioParameters& parameters = audio.parameters;
+
+	parameters.volume = volume;
+
+	F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
+
+	audio.voice->SetChannelVolumes(2, volumes);
+}
+
+F32 Audio::GetAudioVolume(U64 index)
+{
+	AudioPlayback& audio = audioPlaybacks[index];
+
+	return audio.parameters.volume;
+}
+
+void Audio::ChangeAudioPanning(U64 index, F32 leftPan, F32 rightPan)
+{
+	AudioPlayback& audio = audioPlaybacks[index];
+	AudioParameters& parameters = audio.parameters;
+
+	parameters.leftPan = leftPan;
+	parameters.rightPan = rightPan;
+
+	F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
+
+	audio.voice->SetChannelVolumes(2, volumes);
+}
+
+void Audio::ChangeAudioEffectChain(U64 index, U64 chainIndex)
+{
+	AudioPlayback& audio = audioPlaybacks[index];
+	AudioParameters& parameters = audio.parameters;
+
+	if (chainIndex == U64_MAX && parameters.effectChainIndex != U64_MAX)
+	{
+		audio.voice->SetEffectChain(nullptr);
+	}
+	else if (chainIndex != U64_MAX)
+	{
+		XAUDIO2_EFFECT_CHAIN* chain = (XAUDIO2_EFFECT_CHAIN*)&effectChains[chainIndex];
+
+		audio.voice->SetEffectChain(chain);
+	}
+
+	parameters.effectChainIndex = chainIndex;
+}
+
+U64 Audio::GetAudioEffectChain(U64 index)
+{
+	return audioPlaybacks[index].parameters.effectChainIndex;
 }
 
 void Audio::ChangeChannelVolume(U64 index, F32 volume)
@@ -166,12 +323,18 @@ void Audio::ChangeChannelVolume(U64 index, F32 volume)
 	channels[index].mixer->SetVolume(volume);
 }
 
-F32 Audio::GetMasterVolume()
-{
-	return Settings::MasterVolume();
-}
-
 F32 Audio::GetChannelVolume(U64 index)
 {
 	return channels[index].parameters.volume;
+}
+
+void Audio::ChangeMasterVolume(F32 volume)
+{
+	Settings::data.masterVolume = volume;
+	masterVoice->SetVolume(volume);
+}
+
+F32 Audio::GetMasterVolume()
+{
+	return Settings::MasterVolume();
 }
