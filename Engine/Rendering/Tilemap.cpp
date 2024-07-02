@@ -76,7 +76,7 @@ void TilemapComponent::Cleanup(Scene* scene)
 Vector2Int TilemapComponent::MouseToTilemap(const Camera& camera) const
 {
 	Vector4 area = Renderer::RenderArea();
-	Vector2 cameraPos = camera.Eye().xy() * 5.33333333333f * camera.Zoom();
+	Vector2 cameraPos = camera.Eye().xy() * 8.0f * (area.z / 1920.0f) * camera.Zoom();
 	cameraPos.y = -cameraPos.y;
 
 	return Vector2Int{ (((Input::MousePosition() - area.xy()) * camera.Zoom() + cameraPos) / tileSize) * (1920.0f / area.z)};
