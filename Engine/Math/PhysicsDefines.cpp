@@ -27,7 +27,7 @@
 void RigidBody2D::Update(Scene* scene)
 {
 	Entity* e = scene->GetEntity(entityID);
-	e->transform.SetRotation((Quaternion3)sweep.a);
+	e->transform.SetRotation(Vector3{ 0.0f, 0.0f, sweep.a });
 	e->transform.SetPosition((Vector3)(sweep.c - sweep.localCenter * Quaternion2{ sweep.a }));
 }
 

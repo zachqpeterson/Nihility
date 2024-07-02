@@ -92,7 +92,7 @@ Collider2D Physics::CreateBoxCollider2D(const ColliderInfo& info, F32 halfWidth,
 	collider.polygon.normals[1] = { 1.0f, 0.0f };
 	collider.polygon.normals[2] = { 0.0f, 1.0f };
 	collider.polygon.normals[3] = { -1.0f, 0.0f };
-	collider.radius = Math::Sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
+	collider.radius = Math::Max(halfWidth, halfHeight);
 	collider.center = info.center;
 	collider.trigger = info.trigger;
 	collider.layers = info.layers;
@@ -115,14 +115,18 @@ Collider2D Physics::CreatePolygonCollider2D(const ColliderInfo& info, U8 vertexC
 	collider.restitution = info.restitution;
 	collider.staticFriction = info.staticFriction;
 	collider.dynamicFriction = info.dynamicFriction;
+	collider.radius = 0.0f;
 
 	U32 prev = vertexCount - 1;
 	for (U32 i = 0; i < vertexCount; ++i)
 	{
+		collider.radius = Math::Max(collider.radius, (vertices[i] - collider.center).SqrMagnitude());
 		Vector2 edge = vertices[i] - vertices[prev];
 		collider.polygon.normals[i] = edge.Cross(1.0f).Normalized();
 		prev = i;
 	}
+
+	collider.radius = Math::Sqrt(collider.radius);
 
 	return Move(collider);
 }

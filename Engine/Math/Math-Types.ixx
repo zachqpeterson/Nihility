@@ -2302,8 +2302,8 @@ export struct NH_API Quaternion2
 	constexpr Quaternion2(Quaternion2&& q) noexcept : x{ q.x }, y{ q.y } {}
 
 	constexpr Quaternion2& operator=(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x = Math::Sin(a); y = Math::Cos(a); return *this; }
-	constexpr Quaternion2& operator=(const Quaternion2& q) { x = q.y; y = q.y; return *this; }
-	constexpr Quaternion2& operator=(Quaternion2&& q) noexcept { x = q.y; y = q.y; return *this; }
+	constexpr Quaternion2& operator=(const Quaternion2& q) { x = q.x; y = q.y; return *this; }
+	constexpr Quaternion2& operator=(Quaternion2&& q) noexcept { x = q.x; y = q.y; return *this; }
 
 	constexpr Quaternion2& operator+=(const Quaternion2& q) { x += q.x; y += q.y; return *this; }
 	constexpr Quaternion2& operator-=(const Quaternion2& q) { x -= q.x; y -= q.y; return *this; }
@@ -2497,22 +2497,22 @@ export struct NH_API Quaternion3
 		F32 hy = euler.y * DEG_TO_RAD_F * 0.5f;
 		F32 hz = euler.z * DEG_TO_RAD_F * 0.5f;
 
-		F32 c0 = Math::Cos(hx);
-		F32 c1 = Math::Cos(hy);
-		F32 c2 = Math::Cos(hz);
-		F32 s0 = Math::Sin(hx);
-		F32 s1 = Math::Sin(hy);
-		F32 s2 = Math::Sin(hz);
+		F32 cx = Math::Cos(hx);
+		F32 sx = Math::Sin(hx);
+		F32 cy = Math::Cos(hy);
+		F32 sy = Math::Sin(hy);
+		F32 cz = Math::Cos(hz);
+		F32 sz = Math::Sin(hz);
 
-		F32 c0c1 = c0 * c1;
-		F32 s0s1 = s0 * s1;
-		F32 s0c1 = s0 * c1;
-		F32 c0s1 = c0 * s1;
+		F32 cycx = cx * cy;
+		F32 sxcy = sx * cy;
+		F32 cxsy = cx * sy;
+		F32 sxsy = sx * sy;
 
-		x = s0c1 * c2 - c0c1 * s2;
-		y = c0s1 * c2 + s0c1 * s2;
-		z = c0c1 * s2 - s0s1 * c2;
-		w = c0c1 * c2 + s0s1 * s2;
+		w = cycx * cz + sxsy * sz;
+		x = sxcy * cz - cxsy * sz;
+		y = cxsy * cz + sxcy * sz;
+		z = cycx * sz - sxsy * cz;
 	}
 	constexpr Quaternion3(const Vector3& axis, F32 angle)
 	{
@@ -2536,22 +2536,22 @@ export struct NH_API Quaternion3
 		F32 hy = euler.y * DEG_TO_RAD_F * 0.5f;
 		F32 hz = euler.z * DEG_TO_RAD_F * 0.5f;
 
-		F32 c0 = Math::Cos(hx);
-		F32 c1 = Math::Cos(hy);
-		F32 c2 = Math::Cos(hz);
-		F32 s0 = Math::Sin(hx);
-		F32 s1 = Math::Sin(hy);
-		F32 s2 = Math::Sin(hz);
+		F32 cx = Math::Cos(hx);
+		F32 sx = Math::Sin(hx);
+		F32 cy = Math::Cos(hy);
+		F32 sy = Math::Sin(hy);
+		F32 cz = Math::Cos(hz);
+		F32 sz = Math::Sin(hz);
 
-		F32 c0c1 = c0 * c1;
-		F32 s0s1 = s0 * s1;
-		F32 s0c1 = s0 * c1;
-		F32 c0s1 = c0 * s1;
+		F32 cycx = cx * cy;
+		F32 sxcy = sx * cy;
+		F32 cxsy = cx * sy;
+		F32 sxsy = sx * sy;
 
-		x = c0c1 * c2 + s0s1 * s2;
-		y = s0c1 * c2 - c0c1 * s2;
-		z = c0s1 * c2 + s0c1 * s2;
-		w = c0c1 * s2 - s0s1 * c2;
+		w = cycx * cz + sxsy * sz;
+		x = sxcy * cz - cxsy * sz;
+		y = cxsy * cz + sxcy * sz;
+		z = cycx * sz - sxsy * cz;
 
 		return *this;
 	}
