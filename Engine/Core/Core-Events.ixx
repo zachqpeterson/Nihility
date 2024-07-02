@@ -27,9 +27,9 @@ export class NH_API Events
 	};
 
 public:
-	static void CreateEvent(const String& name);
-	static void ListenForEvent(const String& name, const Function<void()>& response);
-	static void ListenForEvent(const String& name, Function<void()>&& response) noexcept;
+	static void RegisterEvent(const String& name);
+	static void Listen(const String& name, const Function<void()>& response);
+	static void Listen(const String& name, Function<void()>&& response) noexcept;
 
 	static void Notify(const String& name);
 

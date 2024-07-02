@@ -41,6 +41,9 @@ bool Audio::Initialize()
 {
 	Logger::Trace("Initializing Audio...");
 
+	Events::Listen("Focused", Focus);
+	Events::Listen("Unfocused", Unfocus);
+
 	if (XAudio2Create(&audioHandle) < 0) { return false; }
 	if (audioHandle->CreateMasteringVoice(&masterVoice) < 0) { return false; }
 

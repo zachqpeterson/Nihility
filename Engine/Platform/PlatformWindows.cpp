@@ -38,6 +38,10 @@ bool Platform::Initialize(CSTR applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
+	//Register Events
+	Events::RegisterEvent("Unfocused");
+	Events::RegisterEvent("Focused");
+
 	if (OleInitialize(nullptr) < 0) { return false; }
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	windowData.instance = GetModuleHandleA(0);
@@ -264,12 +268,11 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_CREATE: { } return 0;
 	case WM_SETFOCUS: {
 		Settings::focused = true;
-		Audio::Focus(); //TODO: Do this through event system
-		Input::Focus();
+		Events::Notify("Focused");
 	} return 0;
 	case WM_KILLFOCUS: {
 		Settings::focused = false;
-		Audio::Unfocus();
+		Events::Notify("Unfocused");
 	} return 0;
 	case WM_QUIT: {
 		Settings::focused = false;

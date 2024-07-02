@@ -40,6 +40,8 @@ bool Input::Initialize()
 {
 	Logger::Trace("Initializing Input...");
 
+	Events::Listen("Focused", Focus);
+
 	const WindowData& wd = Platform::GetWindowData();
 
 	RAWINPUTDEVICE rid[7];

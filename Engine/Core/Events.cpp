@@ -19,19 +19,19 @@ void Events::Shutdown()
 	events.Destroy();
 }
 
-void Events::CreateEvent(const String& name)
+void Events::RegisterEvent(const String& name)
 {
 	events.Insert(name, {});
 }
 
-void Events::ListenForEvent(const String& name, const Function<void()>& response)
+void Events::Listen(const String& name, const Function<void()>& response)
 {
 	Event* event = events[name];
 
 	if (event) { event->listeners.Push(response); }
 }
 
-void Events::ListenForEvent(const String& name, Function<void()>&& response) noexcept
+void Events::Listen(const String& name, Function<void()>&& response) noexcept
 {
 	Event* event = events[name];
 
