@@ -631,6 +631,9 @@
     <ClInclude Include="Engine\Math\Math.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Platform\Audio.hpp">
+      <Filter>Source Files\Platform\Audio</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -1040,9 +1043,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Containers\Containers-TypeList.ixx">
       <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Audio.ixx">
-      <Filter>Source Files\Platform\Audio</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

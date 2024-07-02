@@ -1,14 +1,15 @@
-module;
-
 #include "Resources\ResourceDefines.hpp"
-
-#include <xaudio2.h>
-
-export module Audio;
 
 import Containers;
 
-export enum NH_API AudioEffect
+struct IXAudio2;
+struct IXAudio2SourceVoice;
+struct IXAudio2SubmixVoice;
+struct IXAudio2MasteringVoice;
+struct XAUDIO2_EFFECT_DESCRIPTOR;
+struct XAUDIO2_EFFECT_CHAIN;
+
+enum NH_API AudioEffect
 {
 	AUDIO_EFFECT_REVERB = 0x01,
 	AUDIO_EFFECT_ECHO = 0x02,
@@ -16,7 +17,7 @@ export enum NH_API AudioEffect
 	AUDIO_EFFECT_EQUALIZER = 0x08,
 };
 
-export struct AudioFormat
+struct AudioFormat
 {
 	U16    formatTag;
 	U16    channelCount;
@@ -27,25 +28,19 @@ export struct AudioFormat
 	U16    extraSize;
 };
 
-export struct NH_API AudioClip : public Resource
+struct NH_API AudioClip : public Resource
 {
 	AudioFormat format;
 	U32			size{ 0 };
 	U8* buffer{ nullptr };
 };
 
-export struct NH_API EffectsParameters
+struct NH_API EffectsParameters
 {
 	U32 effectFlags;
 };
 
-export struct EffectChain
-{
-	U32 effectCount;
-	XAUDIO2_EFFECT_DESCRIPTOR* effectDescriptors;
-};
-
-export struct NH_API AudioParameters
+struct NH_API AudioParameters
 {
 	F32 volume = 1.0f;
 	F32 speed = 1.0f;
@@ -56,28 +51,29 @@ export struct NH_API AudioParameters
 	U32 effectChainIndex = U32_MAX;
 };
 
-export struct AudioPlayback
+struct AudioPlayback
 {
+	U32 index;
 	IXAudio2SourceVoice* voice;
 	AudioParameters parameters;
 	ResourceRef<AudioClip> clip;
 };
 
-export struct NH_API AudioChannelParameters
+struct NH_API AudioChannelParameters
 {
 	F32 volume = 1.0f;
 
 	U32 effectChainIndex = U32_MAX;
 };
 
-export struct AudioChannel
+struct AudioChannel
 {
 	IXAudio2SubmixVoice* mixer;
 	AudioChannelParameters parameters;
 };
 
 //Samples: https://github.com/walbourn/directx-sdk-samples/tree/main/XAudio2
-export class NH_API Audio
+class NH_API Audio
 {
 public:
 	static U32 CreateChannel(const AudioChannelParameters& parameters = {});
@@ -112,7 +108,8 @@ private:
 	static IXAudio2* audioHandle;
 	static IXAudio2MasteringVoice* masterVoice;
 	static Vector<AudioChannel> channels;
-	static Vector<EffectChain> effectChains;
+	static Vector<XAUDIO2_EFFECT_CHAIN> effectChains;
+	static Vector<XAUDIO2_EFFECT_DESCRIPTOR> effectDescriptors;
 	static U32 sampleRate;
 
 	static AudioPlayback* audioPlaybacks;

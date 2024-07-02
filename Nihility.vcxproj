@@ -191,6 +191,7 @@
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
     <ClInclude Include="Engine\Networking\Discord.hpp" />
     <ClInclude Include="Engine\Networking\Steam.hpp" />
+    <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
@@ -355,7 +356,6 @@
     <ClCompile Include="Engine\Networking\Discord.cpp" />
     <ClCompile Include="Engine\Networking\Steam.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />
-    <ClCompile Include="Engine\Platform\Audio.ixx" />
     <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />

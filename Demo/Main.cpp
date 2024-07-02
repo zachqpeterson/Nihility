@@ -7,10 +7,10 @@
 #include "Resources\Settings.hpp"
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
+#include "Platform\Audio.hpp"
 #include "Rendering\Sprite.hpp"
 
 import Core;
-import Audio;
 
 U32 musicChannel;
 U32 sfxChannel;
@@ -69,7 +69,11 @@ bool Init()
 
 	Renderer::LoadScene(scene);
 
-	musicChannel = Audio::CreateChannel();
+	U32 chain = Audio::CreateEffectChain({ AUDIO_EFFECT_REVERB });
+
+	AudioChannelParameters params{};
+	params.effectChainIndex = chain;
+	musicChannel = Audio::CreateChannel(params);
 	sfxChannel = Audio::CreateChannel();
 	
 	music = Resources::LoadAudio("audio/TheEquable.nhaud");

@@ -1,11 +1,11 @@
 #include "Platform.hpp"
 
 #include "Input.hpp"
+#include "Audio.hpp"
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 
 import Core;
-import Audio;
 
 #ifdef PLATFORM_WINDOWS
 

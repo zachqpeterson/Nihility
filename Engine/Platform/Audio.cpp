@@ -1,4 +1,4 @@
-module;
+#include "Audio.hpp"
 
 #include "Resources\Settings.hpp"
 
@@ -11,15 +11,14 @@ module;
 
 #pragma comment(lib,"xaudio2.lib")
 
-module Audio;
-
 import Core;
 import Memory;
 
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;
 Vector<AudioChannel> Audio::channels;
-Vector<EffectChain> Audio::effectChains;
+Vector<XAUDIO2_EFFECT_CHAIN> Audio::effectChains;
+Vector<XAUDIO2_EFFECT_DESCRIPTOR> Audio::effectDescriptors(1);
 U32 Audio::sampleRate;
 
 AudioPlayback* Audio::audioPlaybacks;
@@ -107,9 +106,11 @@ U32 Audio::CreateChannel(const AudioChannelParameters& parameters)
 	U32 index = (U32)channels.Size();
 	AudioChannel& channel = channels.Push({});
 
-	XAUDIO2_EFFECT_CHAIN* chain = parameters.effectChainIndex == U32_MAX ? nullptr : (XAUDIO2_EFFECT_CHAIN*)&effectChains[parameters.effectChainIndex];
+	XAUDIO2_EFFECT_CHAIN* chain = parameters.effectChainIndex == U32_MAX ? nullptr : &effectChains[parameters.effectChainIndex];
 
-	if (audioHandle->CreateSubmixVoice(&channel.mixer, 2, sampleRate, 0, 0, nullptr, chain) < 0) { channels.Pop(); return U32_MAX; }
+	HRESULT result = audioHandle->CreateSubmixVoice(&channel.mixer, 2, sampleRate, 0, 0, nullptr, chain);
+
+	if (result < 0) { channels.Pop(); return U32_MAX; }
 
 	return index;
 }
@@ -118,94 +119,92 @@ U32 Audio::CreateEffectChain(const EffectsParameters& parameters)
 {
 	if (parameters.effectFlags == 0) { return U32_MAX; }
 
-	XAUDIO2_EFFECT_DESCRIPTOR effects[4];
-
 	U32 index = (U32)effectChains.Size();
-	EffectChain& chain = effectChains.Push({});
+	XAUDIO2_EFFECT_CHAIN& chain = effectChains.Push(XAUDIO2_EFFECT_CHAIN{});
+	chain.EffectCount = 0;
+	chain.pEffectDescriptors = effectDescriptors.end();
 
-	chain.effectCount = 0;
-	chain.effectDescriptors = effects;
-
-	if (parameters.effectFlags)
+	if (parameters.effectFlags & AUDIO_EFFECT_REVERB)
 	{
-		if (parameters.effectFlags & AUDIO_EFFECT_REVERB)
-		{
-			FXREVERB_PARAMETERS params{};
-			params.Diffusion = FXREVERB_DEFAULT_DIFFUSION;
-			params.RoomSize = FXREVERB_DEFAULT_ROOMSIZE;
+		FXREVERB_PARAMETERS params{};
+		params.Diffusion = FXREVERB_DEFAULT_DIFFUSION;
+		params.RoomSize = FXREVERB_DEFAULT_ROOMSIZE;
 
-			IUnknown* reverb;
-			CreateFX(__uuidof(FXReverb), &reverb, &params, sizeof(params));
+		IUnknown* reverb;
+		CreateFX(__uuidof(FXReverb), &reverb, &params, sizeof(params));
 
-			XAUDIO2_EFFECT_DESCRIPTOR effect{};
-			IUnknown* pEffect = reverb;
-			BOOL InitialState = true;
-			UINT32 OutputChannels = 2;
+		XAUDIO2_EFFECT_DESCRIPTOR effect{};
+		effect.pEffect = reverb;
+		effect.InitialState = true;
+		effect.OutputChannels = 2;
 
-			effects[chain.effectCount++] = effect;
-		}
+		++chain.EffectCount;
+		effectDescriptors.Push(effect);
+	}
 
-		if (parameters.effectFlags & AUDIO_EFFECT_ECHO)
-		{
-			FXECHO_PARAMETERS params{};
-			params.WetDryMix = FXECHO_DEFAULT_WETDRYMIX;
-			params.Feedback = FXECHO_DEFAULT_FEEDBACK;
-			params.Delay = FXECHO_DEFAULT_DELAY;
+	if (parameters.effectFlags & AUDIO_EFFECT_ECHO)
+	{
+		FXECHO_PARAMETERS params{};
+		params.WetDryMix = FXECHO_DEFAULT_WETDRYMIX;
+		params.Feedback = FXECHO_DEFAULT_FEEDBACK;
+		params.Delay = FXECHO_DEFAULT_DELAY;
 
-			IUnknown* echo;
-			CreateFX(__uuidof(FXEcho), &echo, &params, sizeof(params));
+		IUnknown* echo;
+		CreateFX(__uuidof(FXEcho), &echo, &params, sizeof(params));
 
-			XAUDIO2_EFFECT_DESCRIPTOR effect{};
-			IUnknown* pEffect = echo;
-			BOOL InitialState = true;
-			UINT32 OutputChannels = 2;
+		XAUDIO2_EFFECT_DESCRIPTOR effect{};
+		effect.pEffect = echo;
+		effect.InitialState = true;
+		effect.OutputChannels = 2;
 
-			effects[chain.effectCount++] = effect;
-		}
+		++chain.EffectCount;
+		effectDescriptors.Push(effect);
+	}
 
-		if (parameters.effectFlags & AUDIO_EFFECT_LIMITER)
-		{
-			FXMASTERINGLIMITER_PARAMETERS params{};
-			params.Release = FXMASTERINGLIMITER_DEFAULT_RELEASE;
-			params.Loudness = FXMASTERINGLIMITER_DEFAULT_LOUDNESS;
+	if (parameters.effectFlags & AUDIO_EFFECT_LIMITER)
+	{
+		FXMASTERINGLIMITER_PARAMETERS params{};
+		params.Release = FXMASTERINGLIMITER_DEFAULT_RELEASE;
+		params.Loudness = FXMASTERINGLIMITER_DEFAULT_LOUDNESS;
 
-			IUnknown* volumeLimiter;
-			CreateFX(__uuidof(FXMasteringLimiter), &volumeLimiter, &params, sizeof(params));
+		IUnknown* volumeLimiter;
+		CreateFX(__uuidof(FXMasteringLimiter), &volumeLimiter, &params, sizeof(params));
 
-			XAUDIO2_EFFECT_DESCRIPTOR effect{};
-			IUnknown* pEffect = volumeLimiter;
-			BOOL InitialState = true;
-			UINT32 OutputChannels = 2;
+		XAUDIO2_EFFECT_DESCRIPTOR effect{};
+		effect.pEffect = volumeLimiter;
+		effect.InitialState = true;
+		effect.OutputChannels = 2;
 
-			effects[chain.effectCount++] = effect;
-		}
+		++chain.EffectCount;
+		effectDescriptors.Push(effect);
+	}
 
-		if (parameters.effectFlags & AUDIO_EFFECT_EQUALIZER)
-		{
-			FXEQ_PARAMETERS params{};
-			params.FrequencyCenter0 = FXEQ_DEFAULT_FREQUENCY_CENTER_0;
-			params.Gain0 = FXEQ_DEFAULT_GAIN;
-			params.Bandwidth0 = FXEQ_DEFAULT_BANDWIDTH;
-			params.FrequencyCenter1 = FXEQ_DEFAULT_FREQUENCY_CENTER_1;
-			params.Gain1 = FXEQ_DEFAULT_GAIN;
-			params.Bandwidth1 = FXEQ_DEFAULT_BANDWIDTH;
-			params.FrequencyCenter2 = FXEQ_DEFAULT_FREQUENCY_CENTER_2;
-			params.Gain2 = FXEQ_DEFAULT_GAIN;
-			params.Bandwidth2 = FXEQ_DEFAULT_BANDWIDTH;
-			params.FrequencyCenter3 = FXEQ_DEFAULT_FREQUENCY_CENTER_3;
-			params.Gain3 = FXEQ_DEFAULT_GAIN;
-			params.Bandwidth3 = FXEQ_DEFAULT_BANDWIDTH;
+	if (parameters.effectFlags & AUDIO_EFFECT_EQUALIZER)
+	{
+		FXEQ_PARAMETERS params{};
+		params.FrequencyCenter0 = FXEQ_DEFAULT_FREQUENCY_CENTER_0;
+		params.Gain0 = FXEQ_DEFAULT_GAIN;
+		params.Bandwidth0 = FXEQ_DEFAULT_BANDWIDTH;
+		params.FrequencyCenter1 = FXEQ_DEFAULT_FREQUENCY_CENTER_1;
+		params.Gain1 = FXEQ_DEFAULT_GAIN;
+		params.Bandwidth1 = FXEQ_DEFAULT_BANDWIDTH;
+		params.FrequencyCenter2 = FXEQ_DEFAULT_FREQUENCY_CENTER_2;
+		params.Gain2 = FXEQ_DEFAULT_GAIN;
+		params.Bandwidth2 = FXEQ_DEFAULT_BANDWIDTH;
+		params.FrequencyCenter3 = FXEQ_DEFAULT_FREQUENCY_CENTER_3;
+		params.Gain3 = FXEQ_DEFAULT_GAIN;
+		params.Bandwidth3 = FXEQ_DEFAULT_BANDWIDTH;
 
-			IUnknown* equalizer;
-			CreateFX(__uuidof(FXEQ), &equalizer, &params, sizeof(params));
+		IUnknown* equalizer;
+		CreateFX(__uuidof(FXEQ), &equalizer, &params, sizeof(params));
 
-			XAUDIO2_EFFECT_DESCRIPTOR effect{};
-			IUnknown* pEffect = equalizer;
-			BOOL InitialState = true;
-			UINT32 OutputChannels = 2;
+		XAUDIO2_EFFECT_DESCRIPTOR effect{};
+		effect.pEffect = equalizer;
+		effect.InitialState = true;
+		effect.OutputChannels = 2;
 
-			effects[chain.effectCount++] = effect;
-		}
+		++chain.EffectCount;
+		effectDescriptors.Push(effect);
 	}
 
 	return index;
@@ -221,6 +220,7 @@ U32 Audio::PlayAudio(U32 channelIndex, const ResourceRef<AudioClip>& clip, const
 
 	U32 index = freePlaybacks.GetFree();
 	AudioPlayback& audio = audioPlaybacks[index];
+	audio.index = index;
 	audio.parameters = parameters;
 	audio.clip = clip;
 
@@ -233,14 +233,14 @@ U32 Audio::PlayAudio(U32 channelIndex, const ResourceRef<AudioClip>& clip, const
 	audioBuffer.LoopBegin = 0;
 	audioBuffer.LoopLength = 0;
 	audioBuffer.LoopCount = parameters.looping ? XAUDIO2_LOOP_INFINITE : 0;
-	audioBuffer.pContext = &index;
+	audioBuffer.pContext = &audio.index;
 
 	XAUDIO2_SEND_DESCRIPTOR sfxSend = { 0, channels[channelIndex].mixer };
 	XAUDIO2_VOICE_SENDS sfxSendList = { 1, &sfxSend };
 
 	IXAudio2SourceVoice* voice;
 
-	XAUDIO2_EFFECT_CHAIN* chain = parameters.effectChainIndex == U32_MAX ? nullptr : (XAUDIO2_EFFECT_CHAIN*)&effectChains[parameters.effectChainIndex];
+	XAUDIO2_EFFECT_CHAIN* chain = parameters.effectChainIndex == U32_MAX ? nullptr : &effectChains[parameters.effectChainIndex];
 
 	if (audioHandle->CreateSourceVoice(&voice, (WAVEFORMATEX*)&clip->format, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &callbacks, &sfxSendList, chain) < 0) { freePlaybacks.Release(index); return U32_MAX; }
 	audio.voice = voice;
