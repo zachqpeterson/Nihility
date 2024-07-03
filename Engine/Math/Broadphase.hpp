@@ -25,29 +25,30 @@
 import Containers;
 import Memory;
 
-static constexpr inline U32 NullNode = U32_MAX;
+static constexpr inline I32 NullNode = -1;
 
 struct TreeNode
 {
 	AABB aabb;
 
-	U32 child1;
-	U32 child2;
-	U32 height;
+	I32 child1;
+	I32 child2;
+	I32 height;
+	bool moved;
 
 	ColliderProxy* data;
 
 	union
 	{
-		U32 parent;
-		U32 next;
+		I32 parent;
+		I32 next;
 	};
 };
 
 struct ProxyPair
 {
-	U32 proxyIdA;
-	U32 proxyIdB;
+	I32 proxyIdA;
+	I32 proxyIdB;
 };
 
 class Broadphase
@@ -56,43 +57,43 @@ private:
 	static void Initialize();
 	static void Shutdown();
 
-	static U32 CreateProxy(const AABB& aabb, ColliderProxy* data);
-	static void DestroyProxy(U32 proxyId);
-	static void MoveProxy(U32 proxyId, const AABB& aabb, const Vector2& displacement);
-	static void TouchProxy(U32 proxyId);
-	static const AABB& GetFatAABB(U32 proxyId);
-	static bool TestOverlap(U32 proxyIdA, U32 proxyIdB);
-	static U32 GetProxyCount();
+	static I32 CreateProxy(const AABB& aabb, ColliderProxy* data);
+	static void DestroyProxy(I32 proxyId);
+	static void MoveProxy(I32 proxyId, const AABB& aabb, const Vector2& displacement);
+	static void TouchProxy(I32 proxyId);
+	static const AABB& GetFatAABB(I32 proxyId);
+	static bool TestOverlap(I32 proxyIdA, I32 proxyIdB);
+	static I32 GetProxyCount();
 	static void UpdatePairs();
-	static void Query(const AABB& aabb, U32 id);
+	static void Query(const AABB& aabb, I32 id);
 
-	static void BufferMove(U32 proxyId);
-	static void UnBufferMove(U32 proxyId);
+	static void BufferMove(I32 proxyId);
+	static void UnBufferMove(I32 proxyId);
 
 	//Tree
-	static U32 AllocateNode();
-	static void FreeNode(U32 nodeId);
+	static I32 AllocateNode();
+	static void FreeNode(I32 nodeId);
 
-	static void InsertLeaf(U32 leaf);
-	static void RemoveLeaf(U32 leaf);
+	static void InsertLeaf(I32 leaf);
+	static void RemoveLeaf(I32 leaf);
 
-	static U32 Balance(U32 index);
+	static I32 Balance(I32 index);
 
-	static U32 ComputeHeight();
-	static U32 ComputeHeight(U32 nodeId);
+	static I32 ComputeHeight();
+	static I32 ComputeHeight(I32 nodeId);
 
-	static U32 proxyCount;
+	static I32 proxyCount;
 
-	static Vector<U32> moveBuffer;
+	static Vector<I32> moveBuffer;
 	static Vector<ProxyPair> pairBuffer;
 
 	//Tree
 	static TreeNode* nodes;
-	static U32 root;
-	static U32 nodeCount;
+	static I32 root;
+	static I32 nodeCount;
 	static U32 nodeCapacity;
-	static U32 freeList;
-	static U32 path;
+	static I32 freeList;
+	static I32 path;
 
 	STATIC_CLASS(Broadphase);
 	friend class Physics;

@@ -25,18 +25,18 @@
 
 import Containers;
 
-U32 Broadphase::proxyCount;
+I32 Broadphase::proxyCount;
 
-Vector<U32> Broadphase::moveBuffer(16);
+Vector<I32> Broadphase::moveBuffer(16);
 Vector<ProxyPair> Broadphase::pairBuffer(16);
 
 //Tree
 TreeNode* Broadphase::nodes;
-U32 Broadphase::root;
-U32 Broadphase::nodeCount;
+I32 Broadphase::root;
+I32 Broadphase::nodeCount;
 U32 Broadphase::nodeCapacity;
-U32 Broadphase::freeList;
-U32 Broadphase::path;
+I32 Broadphase::freeList;
+I32 Broadphase::path;
 
 void Broadphase::Initialize()
 {
@@ -49,14 +49,14 @@ void Broadphase::Initialize()
 	// Build a linked list for the free list.
 	TreeNode* node = nodes;
 
-	for (U32 i = 0; i < nodeCapacity - 1; ++i, ++node)
+	for (I32 i = 0; i < nodeCapacity - 1; ++i, ++node)
 	{
 		node->next = i + 1;
-		node->height = U32_MAX;
+		node->height = -1;
 	}
 
 	node->next = NullNode;
-	node->height = U32_MAX;
+	node->height = -1;
 
 	freeList = 0;
 	path = 0;
@@ -69,9 +69,9 @@ void Broadphase::Shutdown()
 	Memory::Free(&nodes);
 }
 
-U32 Broadphase::CreateProxy(const AABB& aabb, ColliderProxy* data)
+I32 Broadphase::CreateProxy(const AABB& aabb, ColliderProxy* data)
 {
-	U32 proxyId = AllocateNode();
+	I32 proxyId = AllocateNode();
 
 	// Fatten the aabb.
 	Vector2 r{ AABBExtension, AABBExtension };
@@ -79,6 +79,7 @@ U32 Broadphase::CreateProxy(const AABB& aabb, ColliderProxy* data)
 	nodes[proxyId].aabb.upperBound = aabb.upperBound + r;
 	nodes[proxyId].data = data;
 	nodes[proxyId].height = 0;
+	nodes[proxyId].moved = true;
 
 	InsertLeaf(proxyId);
 
@@ -87,7 +88,7 @@ U32 Broadphase::CreateProxy(const AABB& aabb, ColliderProxy* data)
 	return proxyId;
 }
 
-void Broadphase::DestroyProxy(U32 proxyId)
+void Broadphase::DestroyProxy(I32 proxyId)
 {
 	UnBufferMove(proxyId);
 	--proxyCount;
@@ -95,39 +96,49 @@ void Broadphase::DestroyProxy(U32 proxyId)
 	FreeNode(proxyId);
 }
 
-void Broadphase::MoveProxy(U32 proxyId, const AABB& aabb, const Vector2& displacement)
+void Broadphase::MoveProxy(I32 proxyId, const AABB& aabb, const Vector2& displacement)
 {
-	if (nodes[proxyId].aabb.Contains(aabb)) { return; }
+	AABB fatAABB;
+	Vector2 r{ AABBExtension, AABBExtension };
+	fatAABB.lowerBound = fatAABB.lowerBound - r;
+	fatAABB.upperBound = fatAABB.upperBound + r;
+
+	Vector2 d = AABBMultiplier * displacement;
+
+	if (d.x < 0.0f) { fatAABB.lowerBound.x += d.x; }
+	else { fatAABB.upperBound.x += d.x; }
+
+	if (d.y < 0.0f) { fatAABB.lowerBound.y += d.y; }
+	else { fatAABB.upperBound.y += d.y; }
+
+	const AABB& treeAABB = nodes[proxyId].aabb;
+
+	if(treeAABB.Contains(aabb))
+	{
+		AABB hugeAABB;
+		hugeAABB.lowerBound = fatAABB.lowerBound - 4.0f * r;
+		hugeAABB.upperBound = fatAABB.upperBound + 4.0f * r;
+
+		if (hugeAABB.Contains(treeAABB)) { return; }
+	}
 
 	RemoveLeaf(proxyId);
 
-	// Extend AABB.
-	AABB b = aabb;
-	Vector2 r(AABBExtension, AABBExtension);
-	b.lowerBound = b.lowerBound - r;
-	b.upperBound = b.upperBound + r;
-
-	// Predict AABB displacement.
-	Vector2 d = AABBMultiplier * displacement;
-
-	if (d.x < 0.0f) { b.lowerBound.x += d.x; }
-	else { b.upperBound.x += d.x; }
-
-	if (d.y < 0.0f) { b.lowerBound.y += d.y; }
-	else { b.upperBound.y += d.y; }
-
-	nodes[proxyId].aabb = b;
+	nodes[proxyId].aabb = fatAABB;
 
 	InsertLeaf(proxyId);
+
+	nodes[proxyId].moved = true;
+
 	BufferMove(proxyId);
 }
 
-void Broadphase::TouchProxy(U32 proxyId)
+void Broadphase::TouchProxy(I32 proxyId)
 {
 	BufferMove(proxyId);
 }
 
-const AABB& Broadphase::GetFatAABB(U32 proxyId)
+const AABB& Broadphase::GetFatAABB(I32 proxyId)
 {
 	return nodes[proxyId].aabb;
 }
@@ -143,14 +154,14 @@ bool TestOverlapAABB(const AABB& a, const AABB& b)
 	return true;
 }
 
-bool Broadphase::TestOverlap(U32 proxyIdA, U32 proxyIdB)
+bool Broadphase::TestOverlap(I32 proxyIdA, I32 proxyIdB)
 {
 	const AABB& aabbA = GetFatAABB(proxyIdA);
 	const AABB& aabbB = GetFatAABB(proxyIdB);
 	return TestOverlapAABB(aabbA, aabbB);
 }
 
-U32 Broadphase::GetProxyCount()
+I32 Broadphase::GetProxyCount()
 {
 	return proxyCount;
 }
@@ -161,7 +172,7 @@ void Broadphase::UpdatePairs()
 	pairBuffer.Clear();
 
 	// Perform tree queries for all moving proxies.
-	for (U32 id : moveBuffer)
+	for (I32 id : moveBuffer)
 	{
 		if (id == NullNode) { continue; }
 
@@ -172,9 +183,6 @@ void Broadphase::UpdatePairs()
 		// Query tree, create pairs and add them pair buffer.
 		Query(fatAABB, id);
 	}
-
-	// Reset move buffer
-	moveBuffer.Clear();
 
 	// Send the pairs back to the client.
 	for (ProxyPair* pair = pairBuffer.begin(); pair != pairBuffer.end(); ++pair)
@@ -187,6 +195,16 @@ void Broadphase::UpdatePairs()
 			if (otherPair->proxyIdA != pair->proxyIdA || otherPair->proxyIdB != pair->proxyIdB) { pair = otherPair; break; }
 		}
 	}
+
+	for (I32 id : moveBuffer)
+	{
+		if (id == NullNode) { continue; }
+
+		nodes[id].moved = false;
+	}
+
+	// Reset move buffer
+	moveBuffer.Clear();
 }
 
 bool PairLessThan(const ProxyPair& pair1, const ProxyPair& pair2)
@@ -198,12 +216,12 @@ bool PairLessThan(const ProxyPair& pair1, const ProxyPair& pair2)
 	return false;
 }
 
-void Broadphase::Query(const AABB& aabb, U32 id)
+void Broadphase::Query(const AABB& aabb, I32 id)
 {
-	Stack<U32> stack(256);
+	Stack<I32> stack(256);
 	stack.Push(root);
 
-	U32 nodeId;
+	I32 nodeId;
 	while (stack.Pop(nodeId))
 	{
 		if (nodeId == NullNode) { continue; }
@@ -216,6 +234,10 @@ void Broadphase::Query(const AABB& aabb, U32 id)
 			{
 				if (nodeId == id) { continue; }
 
+				const bool moved = nodes[nodeId].moved;
+
+				if (moved && nodeId > id) { continue; }
+
 				pairBuffer.SortedInsert(PairLessThan, {Math::Min(nodeId, id), Math::Max(nodeId, id)});
 			}
 			else
@@ -227,14 +249,14 @@ void Broadphase::Query(const AABB& aabb, U32 id)
 	}
 }
 
-void Broadphase::BufferMove(U32 proxyId)
+void Broadphase::BufferMove(I32 proxyId)
 {
 	moveBuffer.Push(proxyId);
 }
 
-void Broadphase::UnBufferMove(U32 proxyId)
+void Broadphase::UnBufferMove(I32 proxyId)
 {
-	for (U32& id : moveBuffer)
+	for (I32& id : moveBuffer)
 	{
 		if (id == proxyId) { id = NullNode; }
 	}
@@ -242,7 +264,7 @@ void Broadphase::UnBufferMove(U32 proxyId)
 
 //Tree
 
-U32 Broadphase::AllocateNode()
+I32 Broadphase::AllocateNode()
 {
 	// Expand the node pool as needed.
 	if (freeList == NullNode)
@@ -254,38 +276,40 @@ U32 Broadphase::AllocateNode()
 		// pointer becomes the "next" pointer.
 		TreeNode* node = nodes;
 
-		for (U32 i = 0; i < nodeCapacity - 1; ++i, ++node)
+		for (I32 i = 0; i < nodeCapacity - 1; ++i, ++node)
 		{
 			node->next = i + 1;
-			node->height = U32_MAX;
+			node->height = -1;
 		}
 
 		node->next = NullNode;
-		node->height = U32_MAX;
+		node->height = -1;
 
 		freeList = nodeCount;
 	}
 
 	// Peel a node off the free list.
-	U32 nodeId = freeList;
+	I32 nodeId = freeList;
 	freeList = nodes[nodeId].next;
 	nodes[nodeId].parent = NullNode;
 	nodes[nodeId].child1 = NullNode;
 	nodes[nodeId].child2 = NullNode;
 	nodes[nodeId].height = 0;
+	nodes[nodeId].moved = false;
+	nodes[nodeId].data = nullptr;
 	++nodeCount;
 	return nodeId;
 }
 
-void Broadphase::FreeNode(U32 nodeId)
+void Broadphase::FreeNode(I32 nodeId)
 {
 	nodes[nodeId].next = freeList;
-	nodes[nodeId].height = U32_MAX;
+	nodes[nodeId].height = -1;
 	freeList = nodeId;
 	--nodeCount;
 }
 
-void Broadphase::InsertLeaf(U32 leaf)
+void Broadphase::InsertLeaf(I32 leaf)
 {
 	if (root == NullNode)
 	{
@@ -296,11 +320,11 @@ void Broadphase::InsertLeaf(U32 leaf)
 
 	// Find the best sibling for this node
 	AABB leafAABB = nodes[leaf].aabb;
-	U32 index = root;
+	I32 index = root;
 	while (nodes[index].child1 != NullNode)
 	{
-		U32 child1 = nodes[index].child1;
-		U32 child2 = nodes[index].child2;
+		I32 child1 = nodes[index].child1;
+		I32 child2 = nodes[index].child2;
 
 		F32 area = nodes[index].aabb.GetPerimeter();
 
@@ -356,11 +380,11 @@ void Broadphase::InsertLeaf(U32 leaf)
 		else { index = child2; }
 	}
 
-	U32 sibling = index;
+	I32 sibling = index;
 
 	// Create a new parent.
-	U32 oldParent = nodes[sibling].parent;
-	U32 newParent = AllocateNode();
+	I32 oldParent = nodes[sibling].parent;
+	I32 newParent = AllocateNode();
 	nodes[newParent].parent = oldParent;
 	nodes[newParent].aabb.Combine(leafAABB, nodes[sibling].aabb);
 	nodes[newParent].height = nodes[sibling].height + 1;
@@ -392,8 +416,8 @@ void Broadphase::InsertLeaf(U32 leaf)
 	{
 		index = Balance(index);
 
-		U32 child1 = nodes[index].child1;
-		U32 child2 = nodes[index].child2;
+		I32 child1 = nodes[index].child1;
+		I32 child2 = nodes[index].child2;
 
 		nodes[index].height = 1 + Math::Max(nodes[child1].height, nodes[child2].height);
 		nodes[index].aabb.Combine(nodes[child1].aabb, nodes[child2].aabb);
@@ -402,7 +426,7 @@ void Broadphase::InsertLeaf(U32 leaf)
 	}
 }
 
-void Broadphase::RemoveLeaf(U32 leaf)
+void Broadphase::RemoveLeaf(I32 leaf)
 {
 	if (leaf == root)
 	{
@@ -410,9 +434,9 @@ void Broadphase::RemoveLeaf(U32 leaf)
 		return;
 	}
 
-	U32 parent = nodes[leaf].parent;
-	U32 grandParent = nodes[parent].parent;
-	U32 sibling;
+	I32 parent = nodes[leaf].parent;
+	I32 grandParent = nodes[parent].parent;
+	I32 sibling;
 	if (nodes[parent].child1 == leaf) { sibling = nodes[parent].child2; }
 	else { sibling = nodes[parent].child1; }
 
@@ -425,13 +449,13 @@ void Broadphase::RemoveLeaf(U32 leaf)
 		FreeNode(parent);
 
 		// Adjust ancestor bounds.
-		U32 index = grandParent;
+		I32 index = grandParent;
 		while (index != NullNode)
 		{
 			index = Balance(index);
 
-			U32 child1 = nodes[index].child1;
-			U32 child2 = nodes[index].child2;
+			I32 child1 = nodes[index].child1;
+			I32 child2 = nodes[index].child2;
 
 			nodes[index].aabb.Combine(nodes[child1].aabb, nodes[child2].aabb);
 			nodes[index].height = 1 + Math::Max(nodes[child1].height, nodes[child2].height);
@@ -447,24 +471,24 @@ void Broadphase::RemoveLeaf(U32 leaf)
 	}
 }
 
-U32 Broadphase::Balance(U32 iA)
+I32 Broadphase::Balance(I32 iA)
 {
 	TreeNode* A = nodes + iA;
 	if (A->child1 == NullNode || A->height < 2) { return iA; }
 
-	U32 iB = A->child1;
-	U32 iC = A->child2;
+	I32 iB = A->child1;
+	I32 iC = A->child2;
 
 	TreeNode* B = nodes + iB;
 	TreeNode* C = nodes + iC;
 
-	U32 balance = C->height - B->height;
+	I32 balance = C->height - B->height;
 
 	// Rotate C up
 	if (balance > 1)
 	{
-		U32 iF = C->child1;
-		U32 iG = C->child2;
+		I32 iF = C->child1;
+		I32 iG = C->child2;
 		TreeNode* F = nodes + iF;
 		TreeNode* G = nodes + iG;
 
@@ -511,8 +535,8 @@ U32 Broadphase::Balance(U32 iA)
 	// Rotate B up
 	if (balance < U32_MAX)
 	{
-		U32 iD = B->child1;
-		U32 iE = B->child2;
+		I32 iD = B->child1;
+		I32 iE = B->child2;
 		TreeNode* D = nodes + iD;
 		TreeNode* E = nodes + iE;
 
@@ -568,19 +592,19 @@ U32 Broadphase::Balance(U32 iA)
 	return iA;
 }
 
-U32 Broadphase::ComputeHeight()
+I32 Broadphase::ComputeHeight()
 {
-	U32 height = ComputeHeight(root);
+	I32 height = ComputeHeight(root);
 	return height;
 }
 
-U32 Broadphase::ComputeHeight(U32 nodeId)
+I32 Broadphase::ComputeHeight(I32 nodeId)
 {
 	TreeNode* node = nodes + nodeId;
 
 	if (node->child1 == NullNode) { return 0; }
 
-	U32 height1 = ComputeHeight(node->child1);
-	U32 height2 = ComputeHeight(node->child2);
+	I32 height1 = ComputeHeight(node->child1);
+	I32 height2 = ComputeHeight(node->child2);
 	return 1 + Math::Max(height1, height2);
 }
