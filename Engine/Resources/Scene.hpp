@@ -55,7 +55,7 @@ struct ComponentPoolInternal : public ComponentPool
 
 	virtual U64 Count() final { return components.Size(); }
 
-	Vector<Type> components;
+	Vector<Type> components; //TODO: Use freelist and array
 };
 
 struct MeshDraw
@@ -119,6 +119,16 @@ struct NH_API Scene
 		}
 	}
 
+	template<ComponentType Type>
+	Vector<Type>* GetComponentPool() noexcept
+	{
+		U32* id = componentRegistry.Request(NameOf<Type>);
+
+		if (*id == 0) { return nullptr; }
+
+		return &((ComponentPoolInternal<Type>*)componentPools[*id - 1])->components;
+	}
+
 private:
 	void Create(CameraType cameraType);
 
@@ -180,16 +190,6 @@ private:
 		return Move(types);
 	}
 
-	template<ComponentType Type>
-	Vector<Type>* GetComponentPool() noexcept
-	{
-		U32* id = componentRegistry.Request(NameOf<Type>);
-
-		if (*id == 0) { return nullptr; }
-
-		return &((ComponentPoolInternal<Type>*)componentPools[*id - 1])->components;
-	}
-
 	void Load();
 	void Unload();
 	void Update();
@@ -243,7 +243,6 @@ private:
 
 	friend class Renderer;
 	friend class Resources;
-	friend class Physics;
 	friend struct Entity;
 };
 

@@ -160,10 +160,10 @@ void Memory::CopyFree(U8** pointer, U8* copy, U64 size)
 {
 	void* cmp = *pointer;
 
-	if (cmp >= pool4mbPointer) { Copy(copy, *pointer, size); Free4mb((void**)pointer); }
-	else if (cmp >= pool256kbPointer) { Copy(copy, *pointer, size); Free256kb((void**)pointer); }
-	else if (cmp >= pool16kbPointer) { Copy(copy, *pointer, size); Free16kb((void**)pointer); }
-	else if (cmp >= pool1kbPointer) { Copy(copy, *pointer, size); Free1kb((void**)pointer); }
+	if (cmp >= pool4mbPointer) { Move(copy, *pointer, size); Free4mb((void**)pointer); }
+	else if (cmp >= pool256kbPointer) { Move(copy, *pointer, size); Free256kb((void**)pointer); }
+	else if (cmp >= pool16kbPointer) { Move(copy, *pointer, size); Free16kb((void**)pointer); }
+	else if (cmp >= pool1kbPointer) { Move(copy, *pointer, size); Free1kb((void**)pointer); }
 }
 
 void Memory::Free1kb(void** pointer)

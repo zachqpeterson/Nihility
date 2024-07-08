@@ -71,4 +71,5 @@ private:
 	friend class Broadphase;
 	friend struct Scene;
 	friend struct RigidBody2D;
+	friend struct RigidBody2DRef;
 };

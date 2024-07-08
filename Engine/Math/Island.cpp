@@ -298,12 +298,12 @@ void Island2D::SetupConstraints()
 {
 	for (Contact2D* contact : contacts)
 	{
-		Collider2D* colliderA = contact->colliderA;
-		Collider2D* colliderB = contact->colliderB;
+		Collider2D* colliderA = contact->colliderA.Data();
+		Collider2D* colliderB = contact->colliderB.Data();
 		F32 radiusA = colliderA->radius;
 		F32 radiusB = colliderB->radius;
-		RigidBody2D* rbA = colliderA->body;
-		RigidBody2D* rbB = colliderB->body;
+		RigidBody2D* rbA = colliderA->body.Data();
+		RigidBody2D* rbB = colliderB->body.Data();
 		Manifold2D* manifold = &contact->manifold;
 
 		U32 pointCount = manifold->pointCount;

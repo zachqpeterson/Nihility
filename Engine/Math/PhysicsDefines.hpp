@@ -207,15 +207,6 @@ struct NH_API ColliderInfo
 	Vector2 center{ Vector2Zero };
 };
 
-struct Collider2D;
-
-struct ColliderProxy
-{
-	AABB aabb;
-	Collider2D* collider;
-	U32 proxyId;
-};
-
 struct MassData
 {
 	Vector2 center;
@@ -224,6 +215,45 @@ struct MassData
 };
 
 struct RigidBody2D;
+struct Collider2D;
+
+struct RigidBody2DRef
+{
+	RigidBody2DRef() {}
+	RigidBody2DRef(U64 index) : index(index) {}
+
+	RigidBody2D& operator*();
+	RigidBody2D* operator->();
+	RigidBody2D* Data();
+
+	bool operator==(const RigidBody2D* other) const;
+	bool operator==(const RigidBody2D& other) const;
+
+private:
+	U64 index = U64_MAX;
+};
+
+struct Collider2DRef
+{
+	Collider2DRef() {}
+	Collider2DRef(U64 index, RigidBody2DRef body) : index(index), body(body) {}
+	Collider2DRef(U64 colliderIndex, U64 bodyIndex) : index(colliderIndex), body({ bodyIndex }) {}
+
+	Collider2D& operator*();
+	Collider2D* operator->();
+	Collider2D* Data();
+
+private:
+	RigidBody2DRef body = { U64_MAX };
+	U64 index = U64_MAX;
+};
+
+struct ColliderProxy
+{
+	AABB aabb;
+	Collider2DRef collider;
+	U32 proxyId;
+};
 
 struct NH_API Collider2D
 {
@@ -343,7 +373,7 @@ struct NH_API Collider2D
 
 	ColliderProxy proxy;
 
-	RigidBody2D* body;
+	RigidBody2DRef body;
 };
 
 struct Contact2D
@@ -367,8 +397,8 @@ private:
 
 	Manifold2D manifold;
 
-	Collider2D* colliderA;
-	Collider2D* colliderB;
+	Collider2DRef colliderA;
+	Collider2DRef colliderB;
 
 	I32 toiCount;
 	F32 toi;
@@ -389,7 +419,7 @@ private:
 
 struct ContactEdge2D
 {
-	RigidBody2D* other;
+	RigidBody2DRef other;
 	Contact2D* contact;
 };
 
@@ -654,8 +684,9 @@ private:
 
 	BodyType type{ BODY_TYPE_DYNAMIC };
 
-	Vector<Collider2D> colliders;
-	Vector<ContactEdge2D> contacts;
+	U64 index;
+	Vector<Collider2D> colliders{};
+	Vector<ContactEdge2D> contacts{};
 	Transform2D transform{};
 	Sweep2D sweep{};
 
@@ -676,7 +707,9 @@ private:
 	U32 islandIndex{ U32_MAX };
 
 	friend class Physics;
+	friend class Broadphase; //TODO: temp
 	friend struct Island2D;
+	friend struct Collider2DRef;
 };
 
 struct DistanceProxy

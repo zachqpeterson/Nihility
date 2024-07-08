@@ -31,7 +31,10 @@ void RigidBody2D::Update(Scene* scene)
 	e->transform.SetPosition((Vector3)(sweep.c - sweep.localCenter * Quaternion2{ sweep.a }));
 }
 
-void RigidBody2D::Load(Scene* scene) {}
+void RigidBody2D::Load(Scene* scene)
+{
+	index = scene->GetComponentPool<RigidBody2D>()->Index(this);
+}
 
 void RigidBody2D::Cleanup(Scene* scene)
 {
@@ -67,14 +70,15 @@ void RigidBody2D::SynchronizeFixtures()
 
 void RigidBody2D::AddCollider(const Collider2D& collider)
 {
+	U64 index = colliders.Size();
 	Collider2D& c = colliders.Push(collider);
-	c.body = this;
+	c.body = index;
 
 	if (flags & FLAG_ACTIVE)
 	{
 		c.proxy.aabb = c.ComputeAABB(transform);
+		c.proxy.collider = { index, c.body };
 		c.proxy.proxyId = Broadphase::CreateProxy(c.proxy.aabb, &c.proxy);
-		c.proxy.collider = &c;
 	}
 
 	ResetMassData();
@@ -90,11 +94,14 @@ void RigidBody2D::SetActive(bool b)
 	{
 		flags |= FLAG_ACTIVE;
 
+		RigidBody2DRef bodyRef = index;
+
+		U64 i = 0;
 		for (Collider2D& c : colliders)
 		{
 			c.proxy.aabb = c.ComputeAABB(transform);
+			c.proxy.collider = { i++, bodyRef };
 			c.proxy.proxyId = Broadphase::CreateProxy(c.proxy.aabb, &c.proxy);
-			c.proxy.collider = &c;
 		}
 	}
 	else
@@ -955,22 +962,22 @@ void Contact2D::Update()
 
 	bool trigger = colliderA->trigger || colliderB->trigger;
 
-	RigidBody2D* bodyA = colliderA->body;
-	RigidBody2D* bodyB = colliderB->body;
+	RigidBody2D* bodyA = colliderA->body.Data();
+	RigidBody2D* bodyB = colliderB->body.Data();
 	const Transform2D& xfA = bodyA->Transform();
 	const Transform2D& xfB = bodyB->Transform();
 
 	// Is this contact a trigger?
 	if (trigger)
 	{
-		touching = Physics::TestOverlap(colliderA, colliderB, xfA, xfB);
+		touching = Physics::TestOverlap(colliderA.Data(), colliderB.Data(), xfA, xfB);
 
 		// triggers don't generate manifolds.
 		manifold.pointCount = 0;
 	}
 	else
 	{
-		Evaluate(&manifold, colliderA, xfA, colliderB, xfB);
+		Evaluate(&manifold, colliderA.Data(), xfA, colliderB.Data(), xfB);
 		touching = manifold.pointCount > 0;
 
 		// Match old contact ids to new contact ids and copy the
@@ -1021,3 +1028,19 @@ void Contact2D::Update()
 	//	listener->PreSolve(this, &oldManifold);
 	//}
 }
+
+RigidBody2D& RigidBody2DRef::operator*() { return (*Physics::bodies)[index]; }
+
+RigidBody2D* RigidBody2DRef::operator->() { return Physics::bodies->Data() + index; }
+
+RigidBody2D* RigidBody2DRef::Data() { return Physics::bodies->Data() + index; }
+
+bool RigidBody2DRef::operator==(const RigidBody2D* other) const { return Physics::bodies->Data() + index == other; }
+
+bool RigidBody2DRef::operator==(const RigidBody2D& other) const { return Physics::bodies->Data() + index == &other; }
+
+Collider2D& Collider2DRef::operator*() { return body->colliders[index]; }
+
+Collider2D* Collider2DRef::operator->() { return body->colliders.Data() + index; }
+
+Collider2D* Collider2DRef::Data() { return body->colliders.Data() + index; }

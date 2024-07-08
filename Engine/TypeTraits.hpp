@@ -8,6 +8,9 @@ template <class Type> concept Class = IsClass<Type>;
 template <class Type> constexpr const bool IsUnion = __is_union(Type);
 template <class Type> concept Union = IsUnion<Type>;
 
+template <class Type> constexpr const bool IsNonPrimitive = IsClass<Type> || IsUnion<Type>;
+template <class Type> concept NonPrimitive = IsNonPrimitive<Type>;
+
 template <class Type> constexpr const bool IsNothrowMoveConstructible = __is_nothrow_constructible(Type, Type);
 template <class Type> concept NothrowMoveConstructible = IsNothrowMoveConstructible<Type>;
 
@@ -278,6 +281,9 @@ template <class Type> concept Object = IsObject<Type>;
 
 template <class Type> constexpr const bool IsCopyConstructible = __is_constructible(Type, AddLvalReference<const Type>);
 template <class Type> concept CopyConstructible = IsCopyConstructible<Type>;
+
+template <class Type> constexpr const bool IsDestructible = __is_destructible(Type);
+template <class Type> concept Destructible = IsDestructible<Type>;
 
 template <class Type> constexpr const bool IsCopyAssignable = __is_assignable(AddLvalReference<Type>, AddLvalReference<const Type>);
 template <class Type> concept CopyAssignable = IsCopyAssignable<Type>;

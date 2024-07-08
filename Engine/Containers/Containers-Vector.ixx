@@ -371,6 +371,13 @@ public:
 	/// <returns>The index of value, if it doesn't find value, U64_MAX</returns>
 	U64 Find(const Type& value) const;
 
+	/// <summary>
+	/// Gets the index of value
+	/// </summary>
+	/// <param name="value:">The value to get the index of</param>
+	/// <returns>The index of value, if the value isn't in the array, U64_MAX</returns>
+	U64 Index(const Type* value) const;
+
 
 
 	/// <returns>The current amount of elements</returns>
@@ -586,8 +593,8 @@ template<class Type> inline void Vector<Type>::Pop(Type&& value) noexcept
 }
 
 template<class Type>
-template<Unsigned Index>
-inline void Vector<Type>::Insert(Index index, const Type& value)
+template<Unsigned I>
+inline void Vector<Type>::Insert(I index, const Type& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
@@ -597,8 +604,8 @@ inline void Vector<Type>::Insert(Index index, const Type& value)
 }
 
 template<class Type>
-template<Unsigned Index>
-inline void Vector<Type>::Insert(Index index, Type&& value) noexcept
+template<Unsigned I>
+inline void Vector<Type>::Insert(I index, Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
@@ -608,8 +615,8 @@ inline void Vector<Type>::Insert(Index index, Type&& value) noexcept
 }
 
 template<class Type>
-template<Unsigned Index>
-inline void Vector<Type>::Insert(Index index, const Vector<Type>& other)
+template<Unsigned I>
+inline void Vector<Type>::Insert(I index, const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
@@ -620,8 +627,8 @@ inline void Vector<Type>::Insert(Index index, const Vector<Type>& other)
 }
 
 template<class Type>
-template<Unsigned Index>
-inline void Vector<Type>::Insert(Index index, Vector<Type>&& other) noexcept
+template<Unsigned I>
+inline void Vector<Type>::Insert(I index, Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
@@ -941,7 +948,15 @@ inline U64 Vector<Type>::Find(const Type& value) const
 		if (*t == value) { return index; }
 	}
 
-	return -1;
+	return U64_MAX;
+}
+
+template<class Type>
+inline U64 Vector<Type>::Index(const Type* value) const
+{
+	if (value < array || value > array + capacity) { return U64_MAX; }
+
+	return value - array;
 }
 
 template<class Type>

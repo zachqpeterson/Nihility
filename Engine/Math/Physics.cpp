@@ -205,7 +205,7 @@ void Physics::Solve(F32 step)
 				island.AddContact(contact);
 				contact->flags |= Contact2D::FLAG_ISLAND;
 
-				RigidBody2D* other = ce.other;
+				RigidBody2D* other = ce.other.Data();
 
 				if (other->flags & RigidBody2D::FLAG_ISLAND) { continue; }
 
@@ -282,13 +282,13 @@ void Physics::SolveTOI(F32 step)
 			}
 			else
 			{
-				Collider2D* fA = contact->colliderA;
-				Collider2D* fB = contact->colliderB;
+				Collider2D* fA = contact->colliderA.Data();
+				Collider2D* fB = contact->colliderB.Data();
 
 				if (fA->trigger || fB->trigger) { continue; }
 
-				RigidBody2D* bA = fA->body;
-				RigidBody2D* bB = fB->body;
+				RigidBody2D* bA = fA->body.Data();
+				RigidBody2D* bB = fB->body.Data();
 
 				BodyType typeA = bA->type;
 				BodyType typeB = bB->type;
@@ -362,10 +362,10 @@ void Physics::SolveTOI(F32 step)
 		}
 
 		// Advance the bodies to the TOI.
-		Collider2D* cA = minContact->colliderA;
-		Collider2D* cB = minContact->colliderB;
-		RigidBody2D* bA = cA->body;
-		RigidBody2D* bB = cB->body;
+		Collider2D* cA = minContact->colliderA.Data();
+		Collider2D* cB = minContact->colliderB.Data();
+		RigidBody2D* bA = cA->body.Data();
+		RigidBody2D* bB = cB->body.Data();
 
 		Sweep2D backup1 = bA->sweep;
 		Sweep2D backup2 = bB->sweep;
@@ -420,7 +420,7 @@ void Physics::SolveTOI(F32 step)
 					if (contact->flags & Contact2D::FLAG_ISLAND) { continue; }
 
 					// Only add static, kinematic, or bullet bodies.
-					RigidBody2D* other = ce.other;
+					RigidBody2D* other = ce.other.Data();
 					if (other->type == BODY_TYPE_DYNAMIC && (body->flags & RigidBody2D::FLAG_BULLET) == 0 &&
 						(other->flags & RigidBody2D::FLAG_BULLET) == 0)
 					{
@@ -521,7 +521,7 @@ void Physics::TimeOfImpact(TOIOutput* output, const TOIInput* input)
 	F32 tolerance = 0.25f * LinearSlop;
 
 	F32 t1 = 0.0f;
-	const U32 k_maxIterations = 20;	// TODO_ERIN b2::Settings
+	const U32 k_maxIterations = 20;	//TODO: Settings
 	U32 iter = 0;
 
 	// Prepare input for distance query.
@@ -691,10 +691,10 @@ void Physics::DetectCollision()
 
 		if (contact.valid == false) { continue; }
 
-		Collider2D* colliderA = contact.colliderA;
-		Collider2D* colliderB = contact.colliderB;
-		RigidBody2D* rbA = colliderA->body;
-		RigidBody2D* rbB = colliderB->body;
+		Collider2D* colliderA = contact.colliderA.Data();
+		Collider2D* colliderB = contact.colliderB.Data();
+		RigidBody2D* rbA = colliderA->body.Data();
+		RigidBody2D* rbB = colliderB->body.Data();
 
 		if (!rbA->ShouldCollide(rbB) || (colliderA->layers & colliderB->layers) == 0)
 		{
@@ -742,11 +742,11 @@ void Physics::Synchronize(Collider2D& collider, const Transform2D& transformA, c
 
 void Physics::AddPair(ColliderProxy* proxyA, ColliderProxy* proxyB)
 {
-	Collider2D* colliderA = proxyA->collider;
-	Collider2D* colliderB = proxyB->collider;
+	Collider2D* colliderA = proxyA->collider.Data();
+	Collider2D* colliderB = proxyB->collider.Data();
 
-	RigidBody2D* bodyA = colliderA->body;
-	RigidBody2D* bodyB = colliderB->body;
+	RigidBody2D* bodyA = colliderA->body.Data();
+	RigidBody2D* bodyB = colliderB->body.Data();
 
 	if (bodyA == bodyB) { return; }
 
@@ -773,13 +773,13 @@ void Physics::AddPair(ColliderProxy* proxyA, ColliderProxy* proxyB)
 	U32 index = contactFreelist.GetFree();
 	Contact2D* c = &contacts[index];
 
-	c->colliderA = colliderA;
-	c->colliderB = colliderB;
+	c->colliderA = proxyA->collider;
+	c->colliderB = proxyB->collider;
 	c->index = index;
 	c->valid = true;
 
-	bodyA->contacts.Push({ bodyB, c });
-	bodyB->contacts.Push({ bodyA, c });
+	bodyA->contacts.Push({ colliderA->body, c });
+	bodyB->contacts.Push({ colliderB->body, c });
 
 	// Wake up the bodies
 	if (colliderA->trigger == false && colliderB->trigger == false)

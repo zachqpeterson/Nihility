@@ -39,7 +39,7 @@ bool Init()
 	playerRB = player->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
 	playerRB->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
 	//playerRB->SetRotation(45.0f);
-
+	
 	ground = scene->AddEntity();
 	ground->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 	RigidBody2D* rb = ground->AddComponent<RigidBody2D>(BODY_TYPE_STATIC);

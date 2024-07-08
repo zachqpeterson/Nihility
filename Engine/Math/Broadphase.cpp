@@ -49,7 +49,7 @@ void Broadphase::Initialize()
 	// Build a linked list for the free list.
 	TreeNode* node = nodes;
 
-	for (I32 i = 0; i < nodeCapacity - 1; ++i, ++node)
+	for (U32 i = 0; i < nodeCapacity - 1; ++i, ++node)
 	{
 		node->next = i + 1;
 		node->height = -1;
@@ -174,7 +174,7 @@ void Broadphase::UpdatePairs()
 	// Perform tree queries for all moving proxies.
 	for (I32 id : moveBuffer)
 	{
-		if (id == NullNode) { continue; }
+		if (id == NullNode || nodes[id].data == nullptr) { continue; }
 
 		// We have to query the tree with the fat AABB so that
 		// we don't fail to create a pair that may touch later.
@@ -236,7 +236,9 @@ void Broadphase::Query(const AABB& aabb, I32 id)
 
 				const bool moved = nodes[nodeId].moved;
 
-				if (moved && nodeId > id) { continue; }
+				if (moved && nodeId > id || node->data == nullptr) { continue; }
+
+				if (node->data->collider->body->colliders.Size() > 2) { BreakPoint; }
 
 				pairBuffer.SortedInsert(PairLessThan, {Math::Min(nodeId, id), Math::Max(nodeId, id)});
 			}
@@ -276,7 +278,7 @@ I32 Broadphase::AllocateNode()
 		// pointer becomes the "next" pointer.
 		TreeNode* node = nodes;
 
-		for (I32 i = 0; i < nodeCapacity - 1; ++i, ++node)
+		for (U32 i = 0; i < nodeCapacity - 1; ++i, ++node)
 		{
 			node->next = i + 1;
 			node->height = -1;
@@ -533,7 +535,7 @@ I32 Broadphase::Balance(I32 iA)
 	}
 
 	// Rotate B up
-	if (balance < U32_MAX)
+	if (balance < -1)
 	{
 		I32 iD = B->child1;
 		I32 iE = B->child2;

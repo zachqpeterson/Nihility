@@ -45,7 +45,7 @@ struct InstanceData
 
 struct NH_API MeshInstance
 {
-	MeshInstance() = default;
+	MeshInstance() {};
 	MeshInstance(MeshInstance&& other) noexcept : mesh{ other.mesh }, material{ other.material },
 		handle{ other.handle }, instanceOffset{ other.instanceOffset }
 	{
@@ -71,6 +71,9 @@ struct NH_API MeshInstance
 private:
 	HashHandle				handle{ U64_MAX };
 	U32						instanceOffset{ 0 };
+
+	MeshInstance(const MeshInstance& other) = delete;
+	MeshInstance& operator=(const MeshInstance& other) = delete;
 
 	friend struct Scene;
 };
