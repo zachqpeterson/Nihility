@@ -1,16 +1,17 @@
-#include "Steam.hpp"
+module;
+
+#include "Defines.hpp"
 
 #include "Steam\steam_api.h"
 
-import Core;
+module Networking:Steam;
 
-#define USE_STEAM 0
+import Core;
 
 U32 Steam::appID;
 
 bool Steam::Initialize(U32 appID_)
 {
-#if USE_STEAM
 	Logger::Trace("Initializing Steam Integration...");
 
 	appID = appID_;
@@ -20,16 +21,9 @@ bool Steam::Initialize(U32 appID_)
 #ifdef NH_DEBUG
 	SteamErrMsg msg;
 
-	switch (SteamAPI_InitEx(&msg))
-	{
-	case k_ESteamAPIInitResult_OK: break;
-	case k_ESteamAPIInitResult_FailedGeneric:
-	case k_ESteamAPIInitResult_NoSteamClient:
-	case k_ESteamAPIInitResult_VersionMismatch: { Logger::Fatal("Steam Init Failure: {}", msg); } return false;
-	}
+	if (SteamAPI_InitEx(&msg) != k_ESteamAPIInitResult_OK) { Logger::Fatal("Steam Init Failure: {}", msg); return false; }
 #else
 	if (!SteamAPI_Init()) { return false; }
-#endif
 #endif
 	return true;
 }

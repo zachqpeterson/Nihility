@@ -14,7 +14,7 @@ discord::Core* Discord::core;
 discord::Activity Discord::activity;
 U64 Discord::discordAppId;
 
-bool Discord::Initialize(U64 discordAppId_)
+void Discord::Initialize(U64 discordAppId_)
 {
 	Logger::Trace("Initializing Discord Integration...");
 
@@ -24,9 +24,7 @@ bool Discord::Initialize(U64 discordAppId_)
 	if (discordAppId == 0) { discordAppId = 1200965397206274118; }
 #endif
 	
-	if (discordAppId != 0) { return TryCreateCore(); }
-
-	return true;
+	if (discordAppId != 0) { TryCreateCore(); }
 }
 
 bool Discord::TryCreateCore()

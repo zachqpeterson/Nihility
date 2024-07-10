@@ -622,9 +622,6 @@
     <ClInclude Include="Engine\External\Steam\steam_gameserver.h">
       <Filter>Source Files\External\Steam</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Networking\Steam.hpp">
-      <Filter>Source Files\Networking</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Math\Math.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
@@ -1045,6 +1042,9 @@
       <Filter>Source Files\Networking</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Networking\Networking-Discord.ixx">
+      <Filter>Source Files\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Networking\Networking-Steam.ixx">
       <Filter>Source Files\Networking</Filter>
     </ClCompile>
   </ItemGroup>

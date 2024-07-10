@@ -1,8 +1,10 @@
-#pragma once
+module;
 
 #include "Defines.hpp"
 
-class Steam
+export module Networking:Steam;
+
+export class NH_API Steam
 {
 public:
 	static bool Initialize(U32 appID);

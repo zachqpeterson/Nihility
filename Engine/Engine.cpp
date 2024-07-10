@@ -11,7 +11,6 @@
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
-#include "Networking\Steam.hpp"
 
 import Core;
 import Memory;
@@ -31,21 +30,26 @@ void Engine::Initialize(const GameInfo& gameInfo_)
 
 	running = true;
 
-	ASSERT(Time::Initialize());
-	ASSERT(Memory::Initialize());
-	ASSERT(Events::Initialize());
-	ASSERT(Logger::Initialize());
-	ASSERT(Settings::Initialize());
-	ASSERT(Jobs::Initialize());
-	ASSERT(Physics::Initialize());
-	ASSERT(Platform::Initialize(gameInfo.gameName));
-	ASSERT(Renderer::Initialize(gameInfo.gameName, gameInfo.gameVersion));
-	ASSERT(Resources::Initialize());
-	ASSERT(UI::Initialize());
+	if (!Memory::Initialize()) { Logger::Fatal("Failed To Initialize Memory!"); return; }
+	if (!Jobs::Initialize()) { Logger::Fatal("Failed To Initialize Jobs!"); return; }
+	if (!Logger::Initialize()) { Logger::Fatal("Failed To Initialize Logger!"); return; }
+	if (!Time::Initialize()) { Logger::Fatal("Failed To Initialize Time!"); return; }
+	if (!Events::Initialize()) { Logger::Fatal("Failed To Initialize Events!"); return; }
+	if (!Settings::Initialize()) { Logger::Fatal("Failed To Initialize Settings!"); return; }
+	if (!Physics::Initialize()) { Logger::Fatal("Failed To Initialize Physics!"); return; }
+	if (!Platform::Initialize(gameInfo.gameName)) { Logger::Fatal("Failed To Initialize Platform!"); return; }
+	if (!Renderer::Initialize(gameInfo.gameName, gameInfo.gameVersion)) { Logger::Fatal("Failed To Initialize Renderer!"); return; }
+	if (!Resources::Initialize()) { Logger::Fatal("Failed To Initialize Resources!"); return; }
+	if (!UI::Initialize()) { Logger::Fatal("Failed To Initialize UI!"); return; }
 	//Particles
-	ASSERT(Audio::Initialize());
-	ASSERT(Input::Initialize());
-	ASSERT(Steam::Initialize(gameInfo.steamAppId));
+	if (!Audio::Initialize()) { Logger::Fatal("Failed To Initialize Audio!"); return; }
+	if (!Input::Initialize()) { Logger::Fatal("Failed To Initialize Input!"); return; }
+
+	if (gameInfo.steamAppId != 0)
+	{
+		if(!Steam::Initialize(gameInfo.steamAppId)) { Logger::Fatal("Failed To Initialize Steam!"); return; }
+	}
+
 	Discord::Initialize(gameInfo.discordAppId);
 
 #ifdef NH_DEBUG
@@ -57,7 +61,6 @@ void Engine::Initialize(const GameInfo& gameInfo_)
 
 	Discord::SetActivity(activity);
 #endif
-
 
 	Logger::Trace("Initializing Game...");
 	ASSERT(gameInfo.GameInit());

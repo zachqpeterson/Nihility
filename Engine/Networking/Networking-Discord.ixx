@@ -32,7 +32,7 @@ public:
 	static void ChangeActivitySmallImageText(const StringView& smallImageText);
 
 private:
-	static bool Initialize(U64 discordAppId);
+	static void Initialize(U64 discordAppId);
 	static void Shutdown();
 	static void Update();
 
