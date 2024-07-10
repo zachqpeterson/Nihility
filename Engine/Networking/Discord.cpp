@@ -1,36 +1,41 @@
-#include "Discord.hpp"
+module;
+
+#include "Defines.hpp"
+
+#include "External\Discord\discord.h"
+
+module Networking:Discord;
 
 import Core;
-
-#include <time.h>
+import Containers;
 
 discord::User Discord::currentUser;
 discord::Core* Discord::core;
 discord::Activity Discord::activity;
+U64 Discord::discordAppId;
 
-bool Discord::Initialize(CSTR applicationName)
+bool Discord::Initialize(U64 discordAppId_)
 {
 	Logger::Trace("Initializing Discord Integration...");
 
-	discord::Result result = discord::Core::Create(1200965397206274118, DiscordCreateFlags_Default, &core);
-	if (result != discord::Result::Ok)
-	{
-		Logger::Error("Failed To Instantiate Discord Core!");
-		return false;
-	}
+	discordAppId = discordAppId_;
 
-	core->SetLogHook(discord::LogLevel::Debug, Log);
+#ifdef NH_DEBUG
+	if (discordAppId == 0) { discordAppId = 1200965397206274118; }
+#endif
+	
+	if (discordAppId != 0) { return TryCreateCore(); }
 
-	activity.SetType(discord::ActivityType::Playing);
-	activity.SetName("Nihility");
-	activity.SetDetails(applicationName);
-	activity.GetTimestamps().SetStart(time(nullptr));
-	activity.SetInstance(false);
-	activity.SetApplicationId(1200965397206274118);
-	discord::ActivityAssets& assets = activity.GetAssets();
-	assets.SetLargeImage("nihility_logo_large");
+	return true;
+}
 
-	core->ActivityManager().UpdateActivity(activity, Callback);
+bool Discord::TryCreateCore()
+{
+	if (discord::Core::Create(discordAppId, DiscordCreateFlags_NoRequireDiscord, &core) != discord::Result::Ok) { return false; }
+
+#ifdef NH_DEBUG
+	core->SetLogHook(discord::LogLevel::Error, Log);
+#endif
 
 	return true;
 }
@@ -59,4 +64,75 @@ void Discord::Log(discord::LogLevel level, const char* message)
 void Discord::Callback(discord::Result result)
 {
 
+}
+
+void Discord::SetActivity(const Activity& newActivity)
+{
+	activity.SetType(discord::ActivityType::Playing);
+	activity.SetName(newActivity.name.Data());
+	activity.SetDetails(newActivity.details.Data());
+	activity.SetState(newActivity.state.Data());
+	activity.GetTimestamps().SetStart(Time::SecondsSinceEpoch());
+	activity.SetInstance(false);
+	activity.SetApplicationId(discordAppId);
+	discord::ActivityAssets& assets = activity.GetAssets();
+	assets.SetLargeImage(newActivity.largeImage.Data());
+	assets.SetLargeText(newActivity.largeImageText.Data());
+	assets.SetSmallImage(newActivity.smallImage.Data());
+	assets.SetSmallText(newActivity.smallImageText.Data());
+	
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivityName(const StringView& name)
+{
+	activity.SetName(name.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivityDetails(const StringView& details)
+{
+	activity.SetDetails(details.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivityState(const StringView& state)
+{
+	activity.SetState(state.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivityLargeImage(const StringView& largeImage)
+{
+	discord::ActivityAssets& assets = activity.GetAssets();
+	assets.SetLargeImage(largeImage.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivityLargeImageText(const StringView& largeImageText)
+{
+	discord::ActivityAssets& assets = activity.GetAssets();
+	assets.SetLargeText(largeImageText.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivitySmallImage(const StringView& smallImage)
+{
+	discord::ActivityAssets& assets = activity.GetAssets();
+	assets.SetSmallImage(smallImage.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
+}
+
+void Discord::ChangeActivitySmallImageText(const StringView& smallImageText)
+{
+	discord::ActivityAssets& assets = activity.GetAssets();
+	assets.SetSmallText(smallImageText.Data());
+
+	if (core || TryCreateCore()) { core->ActivityManager().UpdateActivity(activity, Callback); }
 }

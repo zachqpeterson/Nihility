@@ -211,9 +211,6 @@
     <ClInclude Include="Engine\External\Discord\user_manager.h">
       <Filter>Source Files\External\Discord</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Networking\Discord.hpp">
-      <Filter>Source Files\Networking</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\External\stb_vorbis.h">
       <Filter>Source Files\External</Filter>
     </ClInclude>
@@ -1043,6 +1040,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Containers\Containers-TypeList.ixx">
       <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Networking\Networking.ixx">
+      <Filter>Source Files\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Networking\Networking-Discord.ixx">
+      <Filter>Source Files\Networking</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

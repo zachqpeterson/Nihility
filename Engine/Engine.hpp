@@ -2,9 +2,49 @@
 
 #include "Defines.hpp"
 
+import Containers;
+
 typedef bool(*InitializeFn)();
 typedef void(*UpdateFn)();
 typedef void(*ShutdownFn)();
+
+struct NH_API GameInfo
+{
+	/// <summary>
+	/// A function pointer of the game's initialization function
+	/// </summary>
+	InitializeFn GameInit = nullptr;
+
+	/// <summary>
+	/// A function pointer of the game's update function
+	/// </summary>
+	UpdateFn GameUpdate = nullptr;
+
+	/// <summary>
+	/// A function pointer of the game's shutdown function
+	/// </summary>
+	ShutdownFn GameShutdown = nullptr;
+
+	/// <summary>
+	/// The name of the game
+	/// </summary>
+	StringView gameName = "My Game";
+
+	/// <summary>
+	/// The version of the game, use MakeVersionNumber
+	/// </summary>
+	U32 gameVersion = 0;
+
+	/// <summary>
+	/// The steam application ID for the game, used when publishing on steam
+	/// </summary>
+	U32 steamAppId = 0;
+
+	/// <summary>
+	/// The Discord application ID for the game, used when integrating with Discord
+	/// </summary>
+	U64 discordAppId = 0;
+};
 
 class NH_API Engine
 {
@@ -12,22 +52,14 @@ public:
 	/// <summary>
 	/// Initializes all parts of the engine, must be call before using ANY part of the engine
 	/// </summary>
-	/// <param name="applicationName:">The name of your application</param>
-	/// <param name="applicationVersion:">The version of your application (Use MakeVersionNumber)</param>
-	/// <param name="init:">Function pointer to your application initialization, called after engine initialization</param>
-	/// <param name="update:">Function pointer to your application update, called once per frame</param>
-	/// <param name="shutdown:">Function pointer to your application shutdown, called before engine shudown</param>
-	static void Initialize(CSTR applicationName, U32 applicationVersion, U32 steamAppId, InitializeFn init, UpdateFn update, ShutdownFn shutdown);
-
-	static constexpr U32 DefaultSteamAppId = 0;
+	/// <param name="gameInfo:">The information about your game</param>
+	static void Initialize(const GameInfo& gameInfo);
 
 private:
 	static void UpdateLoop();
 	static void Shutdown();
 
-	static InitializeFn GameInit;
-	static UpdateFn GameUpdate;
-	static ShutdownFn GameShutdown;
+	static GameInfo gameInfo;
 
 	static bool running;
 

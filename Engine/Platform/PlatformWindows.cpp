@@ -6,6 +6,7 @@
 #include "Resources\Resources.hpp"
 
 import Core;
+import Containers;
 
 #ifdef PLATFORM_WINDOWS
 
@@ -34,7 +35,7 @@ HICON sizeNWSE;
 static constexpr const C8* MENU_NAME = "Nihility Menu";
 static constexpr const C8* CLASS_NAME = "Nihility Class";
 
-bool Platform::Initialize(CSTR applicationName)
+bool Platform::Initialize(const StringView& applicationName)
 {
 	Logger::Trace("Initializing Platform...");
 
@@ -113,8 +114,10 @@ bool Platform::Initialize(CSTR applicationName)
 
 	AdjustWindowRectExForDpi(&border, style, 0, styleEx, Settings::Dpi());
 
-	windowData.window = CreateWindowExA(styleEx, CLASS_NAME, applicationName, style, Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
-		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, nullptr, nullptr, windowData.instance, nullptr);
+	windowData.window = CreateWindowExA(styleEx, CLASS_NAME, applicationName.Data(), style, 
+		Settings::WindowPositionX() + border.left, Settings::WindowPositionY() + border.top,
+		Settings::WindowWidth() + border.right - border.left, Settings::WindowHeight() + border.bottom - border.top, 
+		nullptr, nullptr, windowData.instance, nullptr);
 
 	if (!windowData.window)
 	{
@@ -198,9 +201,9 @@ void Platform::SetWindowPosition(I32 x, I32 y)
 	}
 }
 
-void Platform::SetConsoleWindowTitle(CSTR name)
+void Platform::SetConsoleWindowTitle(const StringView& name)
 {
-	SetConsoleTitleA(name);
+	SetConsoleTitleA(name.Data());
 }
 
 const WindowData& Platform::GetWindowData()
@@ -438,7 +441,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	return DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
-bool Platform::ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR arguments, CSTR searchErrorString)
+bool Platform::ExecuteProcess(const StringView& workingDirectory, const StringView& processFullpath, const StringView& arguments, const StringView& searchErrorString)
 {
 	static C8 processOutputBuffer[1025];
 
@@ -468,7 +471,7 @@ bool Platform::ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR 
 	// Execute the process
 	PROCESS_INFORMATION processInfo{};
 	BOOL inheritHandles = TRUE;
-	if (CreateProcessA(processFullpath, (char*)arguments, 0, 0, inheritHandles, 0, 0, workingDirectory, &startupInfo, &processInfo))
+	if (CreateProcessA(processFullpath.Data(), (C8*)arguments.Data(), 0, 0, inheritHandles, 0, 0, workingDirectory.Data(), &startupInfo, &processInfo))
 	{
 		CloseHandle(processInfo.hThread);
 		CloseHandle(processInfo.hProcess);
@@ -495,7 +498,7 @@ bool Platform::ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR 
 		ok = ReadFile(outPipeRead, processOutputBuffer, 1024, &bytesRead, nullptr);
 	}
 
-	if (strlen(searchErrorString) > 0 && strstr(processOutputBuffer, searchErrorString))
+	if (searchErrorString.Size() > 0 && strstr(processOutputBuffer, searchErrorString.Data()))
 	{
 		executionSuccess = false;
 	}

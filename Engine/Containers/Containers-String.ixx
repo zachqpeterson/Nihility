@@ -832,6 +832,7 @@ export struct NH_API StringView
 		return -1;
 	}
 
+	constexpr bool Empty() const { return length == 0; }
 	constexpr U64 Size() const { return length; }
 	constexpr const C8* Data() const { return string; }
 	constexpr U64 Hash() const { return Hash::StringHash(string, length); }

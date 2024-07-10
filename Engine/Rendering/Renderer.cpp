@@ -107,7 +107,7 @@ CommandBuffer* CommandBufferRing::GetWriteCommandBuffer(U32 frameIndex)
 	return &commandBuffers[frameIndex * buffersPerPool + index];
 }
 
-static constexpr CSTR extensions[]{
+static constexpr const C8* extensions[]{
 	VK_KHR_SURFACE_EXTENSION_NAME,
 
 #if defined PLATFORM_WINDOWS
@@ -134,7 +134,7 @@ static constexpr CSTR extensions[]{
 };
 
 #ifdef NH_DEBUG
-static constexpr CSTR layers[]{
+static constexpr const C8* layers[]{
 	"VK_LAYER_KHRONOS_validation",
 	//"VK_LAYER_LUNARG_core_validation",
 	//"VK_LAYER_LUNARG_image",
@@ -161,10 +161,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 
 	return VK_FALSE;
 }
-
-// INFO
-CSTR								Renderer::appName;
-U32									Renderer::appVersion;
 
 // DEVICE
 VkInstance							Renderer::instance;
@@ -231,15 +227,13 @@ PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT;
 PFN_vkCreateDebugUtilsMessengerEXT CreateDebugUtilsMessengerEXT;
 PFN_vkSetDebugUtilsObjectNameEXT SetDebugUtilsObjectNameEXT;
 
-bool Renderer::Initialize(CSTR applicationName, U32 applicationVersion)
+bool Renderer::Initialize(const StringView& applicationName, U32 applicationVersion)
 {
 	Logger::Trace("Initializing Renderer...");
 
-	appName = applicationName;
-	appVersion = applicationVersion;
 	allocationCallbacks = nullptr;
 
-	if (!CreateInstance()) { return false; }
+	if (!CreateInstance(applicationName, applicationVersion)) { return false; }
 	if (!swapchain.CreateSurface()) { return false; }
 	if (!SelectGPU()) { return false; }
 	if (!CreateDevice()) { return false; }
@@ -291,12 +285,12 @@ void Renderer::Shutdown()
 	vkDestroyInstance(instance, allocationCallbacks);
 }
 
-bool Renderer::CreateInstance()
+bool Renderer::CreateInstance(const StringView& applicationName, U32 applicationVersion)
 {
 	VkApplicationInfo applicationInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	applicationInfo.pNext = nullptr;
-	applicationInfo.pApplicationName = appName;
-	applicationInfo.applicationVersion = appVersion;
+	applicationInfo.pApplicationName = applicationName.Data();
+	applicationInfo.applicationVersion = applicationVersion;
 	applicationInfo.pEngineName = "Nihlity";
 	applicationInfo.engineVersion = VK_MAKE_VERSION(0, 3, 0);
 	applicationInfo.apiVersion = VK_API_VERSION_1_3;
@@ -463,7 +457,7 @@ bool Renderer::CreateDevice()
 	meshShadingSupported = false;
 
 	U32 deviceExtensionCount = 0;
-	CSTR deviceExtensions[4];
+	const C8* deviceExtensions[4];
 
 	deviceExtensions[deviceExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 	if (pushDescriptorsSupported) { deviceExtensions[deviceExtensionCount++] = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME; }
@@ -895,14 +889,14 @@ PostProcessData* Renderer::GetPostProcessData()
 	return &postProcessData;
 }
 
-void Renderer::SetResourceName(VkObjectType type, U64 handle, CSTR name)
+void Renderer::SetResourceName(VkObjectType type, U64 handle, const String& name)
 {
 	if (!debugUtilsExtensionPresent) { return; }
 
 	VkDebugUtilsObjectNameInfoEXT nameInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 	nameInfo.objectType = type;
 	nameInfo.objectHandle = handle;
-	nameInfo.pObjectName = name;
+	nameInfo.pObjectName = name.Data();
 	SetDebugUtilsObjectNameEXT(device, &nameInfo);
 }
 

@@ -99,10 +99,10 @@ public:
 	static void							UnmapBuffer(Buffer& buffer);
 
 private:
-	static bool							Initialize(CSTR applicationName, U32 applicationVersion);
+	static bool							Initialize(const StringView& applicationName, U32 applicationVersion);
 	static void							Shutdown();
 
-	static bool							CreateInstance();
+	static bool							CreateInstance(const StringView& applicationName, U32 applicationVersion);
 	static bool							SelectGPU();
 	static bool							GetFamilyQueue(VkPhysicalDevice_T* gpu);
 	static bool							CreateDevice();
@@ -116,7 +116,7 @@ private:
 	static void							Resize();
 	static void							SetRenderArea();
 
-	static void							SetResourceName(VkObjectType type, U64 handle, CSTR name);
+	static void							SetResourceName(VkObjectType type, U64 handle, const String& name);
 
 	static bool							CreateTexture(Texture* texture, void* data);
 	static bool							CreateCubemap(Texture* texture, void* data, U32* layerSize);
@@ -134,9 +134,6 @@ private:
 	static bool							HasDepthOrStencil(VkFormat value);
 
 private:
-	// INFO
-	static CSTR									appName;
-	static U32									appVersion;
 
 	// DEVICE
 	static VkInstance_T*						instance;

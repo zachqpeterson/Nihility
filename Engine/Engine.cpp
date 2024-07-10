@@ -11,25 +11,23 @@
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
-#include "Networking\Discord.hpp"
 #include "Networking\Steam.hpp"
 
 import Core;
 import Memory;
 import Multithreading;
 import ThreadSafety;
+import Networking;
 
-InitializeFn Engine::GameInit;
-UpdateFn Engine::GameUpdate;
-ShutdownFn Engine::GameShutdown;
+GameInfo Engine::gameInfo;
 
 bool Engine::running;
 
-void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamAppId, InitializeFn init, UpdateFn update, ShutdownFn shutdown)
+void Engine::Initialize(const GameInfo& gameInfo_)
 {
-	GameInit = init;
-	GameUpdate = update;
-	GameShutdown = shutdown;
+	gameInfo = gameInfo_;
+
+	//TODO: Validate gameInfo
 
 	running = true;
 
@@ -40,18 +38,29 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamA
 	ASSERT(Settings::Initialize());
 	ASSERT(Jobs::Initialize());
 	ASSERT(Physics::Initialize());
-	ASSERT(Platform::Initialize(applicationName));
-	ASSERT(Renderer::Initialize(applicationName, applicationVersion));
+	ASSERT(Platform::Initialize(gameInfo.gameName));
+	ASSERT(Renderer::Initialize(gameInfo.gameName, gameInfo.gameVersion));
 	ASSERT(Resources::Initialize());
 	ASSERT(UI::Initialize());
 	//Particles
 	ASSERT(Audio::Initialize());
 	ASSERT(Input::Initialize());
-	ASSERT(Steam::Initialize(steamAppId));
-	Discord::Initialize(applicationName);
+	ASSERT(Steam::Initialize(gameInfo.steamAppId));
+	Discord::Initialize(gameInfo.discordAppId);
+
+#ifdef NH_DEBUG
+	Activity activity{};
+	activity.name = "Nihility";
+	activity.details = "In Editor";
+	activity.state = gameInfo.gameName;
+	activity.largeImage = "nihility_logo_large";
+
+	Discord::SetActivity(activity);
+#endif
+
 
 	Logger::Trace("Initializing Game...");
-	ASSERT(GameInit());
+	ASSERT(gameInfo.GameInit());
 
 	Renderer::InitialSubmit();
 
@@ -63,7 +72,7 @@ void Engine::Initialize(CSTR applicationName, U32 applicationVersion, U32 steamA
 void Engine::Shutdown()
 {
 	Logger::Trace("Shutting Down Game...");
-	GameShutdown();
+	gameInfo.GameShutdown();
 	Discord::Shutdown();
 	Steam::Shutdown();
 	Audio::Shutdown();
@@ -109,7 +118,7 @@ void Engine::UpdateLoop()
 
 		Physics::Update((F32)Time::DeltaTime()); //TODO: constant step
 
-		GameUpdate();
+		gameInfo.GameUpdate();
 		//Animations::Update();
 
 		Audio::Update();

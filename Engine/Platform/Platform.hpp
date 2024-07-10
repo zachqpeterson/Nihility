@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+import Containers;
+
 struct WindowData
 {
 #if defined PLATFORM_WINDOWS
@@ -27,14 +29,14 @@ public:
 	static void SetFullscreen(bool fullscreen);
 	static void SetWindowSize(U32 width, U32 height);
 	static void SetWindowPosition(I32 x, I32 y);
-	static void SetConsoleWindowTitle(CSTR name);
+	static void SetConsoleWindowTitle(const StringView& name);
 
 	static const WindowData& GetWindowData();
 
-	static bool ExecuteProcess(CSTR workingDirectory, CSTR processFullpath, CSTR arguments, CSTR searchErrorString);
+	static bool ExecuteProcess(const StringView& workingDirectory, const StringView& processFullpath, const StringView& arguments, const StringView& searchErrorString);
 
 private:
-	static bool Initialize(CSTR applicationName);
+	static bool Initialize(const StringView& applicationName);
 	static void Shutdown();
 	static bool Update();
 

@@ -2,6 +2,8 @@ module;
 
 #include "Defines.hpp"
 
+#include <time.h>
+
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
@@ -30,6 +32,11 @@ F64 Time::AbsoluteTime()
 
 	return (F64)nowTime.QuadPart * clockFrequency;
 #endif
+}
+
+U64 Time::SecondsSinceEpoch()
+{
+	return _time64(nullptr);
 }
 
 I64 Time::CoreCounter()

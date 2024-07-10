@@ -30,7 +30,7 @@ import Memory;
 /// </summary>
 /// <param name="result:">A VkResult</param>
 /// <returns>The description of a VkResult</returns>
-inline CSTR ResultString(VkResult result)
+inline StringView ResultString(VkResult result)
 {
 #if LOG_TRACE_ENABLED
 	switch (result)

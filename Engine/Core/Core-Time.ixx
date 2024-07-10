@@ -14,6 +14,7 @@ public:
 	static F64 FrameUpTime();
 
 	static F64 AbsoluteTime();
+	static U64 SecondsSinceEpoch();
 
 	static I64 CoreCounter();
 
