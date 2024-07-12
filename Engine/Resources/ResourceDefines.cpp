@@ -1,14 +1,13 @@
 #include "ResourceDefines.hpp"
 
-import Core;
-
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\CommandBuffer.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Platform\Input.hpp"
+
+import Core;
 
 // SAMPLER CREATION
 

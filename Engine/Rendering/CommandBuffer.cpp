@@ -4,7 +4,6 @@
 
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
-#include "Resources\Settings.hpp"
 #include "Pipeline.hpp"
 
 VkResult CommandBuffer::Begin()

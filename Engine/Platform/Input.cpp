@@ -1,14 +1,20 @@
 #include "Input.hpp"
 
-import Containers;
-import Core;
-
 #include "Device.hpp"
 #include "Platform.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Math\Math.hpp"
+
+#if defined PLATFORM_WINDOWS
+#include <Windows.h>
+#include <hidsdi.h>
+#include <SetupAPI.h>
+#pragma comment(lib ,"setupapi.lib")
+#endif
+
+import Containers;
+import Core;
 
 Vector<Device> Input::devices;
 F32 Input::mouseSensitivity;
@@ -28,11 +34,6 @@ bool Input::anyButtonDown;
 bool Input::anyButtonChanged;
 
 #if defined PLATFORM_WINDOWS
-
-#include <Windows.h>
-#include <hidsdi.h>
-#include <SetupAPI.h>
-#pragma comment(lib ,"setupapi.lib")
 
 constexpr I32 ANY_MOUSE_DOWN = RI_MOUSE_LEFT_BUTTON_DOWN | RI_MOUSE_RIGHT_BUTTON_DOWN | RI_MOUSE_MIDDLE_BUTTON_DOWN | RI_MOUSE_BUTTON_4_DOWN | RI_MOUSE_BUTTON_5_DOWN;
 

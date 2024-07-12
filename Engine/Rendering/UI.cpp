@@ -5,7 +5,6 @@
 #include "RenderingDefines.hpp"
 #include "Platform\Input.hpp"
 #include "Resources\Resources.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Font.hpp"
 #include "Resources\Scene.hpp"
 

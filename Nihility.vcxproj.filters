@@ -97,9 +97,6 @@
     <ClInclude Include="Engine\Resources\Resources.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Resources\Settings.hpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Platform\Input.hpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>

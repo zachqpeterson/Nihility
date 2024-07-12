@@ -5,7 +5,6 @@
 #include "Rendering\UI.hpp"
 #include "Rendering\Tilemap.hpp"
 #include "Resources\Resources.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
 #include "Math\Math.hpp"

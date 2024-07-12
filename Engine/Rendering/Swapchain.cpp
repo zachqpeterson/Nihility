@@ -4,7 +4,6 @@
 
 #include "Renderer.hpp"
 #include "Platform\Platform.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 
 import Platform;

@@ -1,13 +1,12 @@
 #include "Controller.hpp"
-#include "Resources\Settings.hpp"
-
-import Core;
 
 #if defined PLATFORM_WINDOWS
 
 #include <Windows.h>
 #include <hidsdi.h>
 #pragma comment(lib ,"hid.lib")
+
+import Core;
 
 //HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Axes\\"
 //HKEY_CURRENT_USER: "System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\Joystick\\OEM\\VID_{h}&PID_{h}\\Buttons\\"

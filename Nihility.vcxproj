@@ -209,7 +209,6 @@
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
-    <ClInclude Include="Engine\Resources\Settings.hpp" />
     <ClInclude Include="Engine\Resources\Shader\glslang\build_info.h" />
     <ClInclude Include="Engine\Resources\Shader\glslang\Include\arrays.h" />
     <ClInclude Include="Engine\Resources\Shader\glslang\Include\BaseTypes.h" />

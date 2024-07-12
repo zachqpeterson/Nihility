@@ -6,20 +6,19 @@
 #include "CommandBuffer.hpp"
 #include "Pipeline.hpp"
 #include "Platform\Platform.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
 #include "Math\Math.hpp"
-
-import Core;
-import Memory;
-import Platform;
 
 #define VMA_DEBUG_LOG
 //#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
 #include "External\LunarG\vma\vk_mem_alloc.h"
+
+import Core;
+import Memory;
+import Platform;
 
 void CommandBufferRing::Create()
 {

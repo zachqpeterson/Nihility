@@ -2,7 +2,6 @@
 
 #include "Input.hpp"
 #include "Audio.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 
 #ifdef PLATFORM_WINDOWS

@@ -1,7 +1,5 @@
 #include "Audio.hpp"
 
-#include "Resources\Settings.hpp"
-
 #include <sdkddkver.h>
 
 #include <xaudio2.h>

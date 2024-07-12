@@ -3,7 +3,6 @@
 #include "RenderingDefines.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
-#include "Resources\Settings.hpp"
 #include "Renderer.hpp"
 #include "Platform\Input.hpp"
 
