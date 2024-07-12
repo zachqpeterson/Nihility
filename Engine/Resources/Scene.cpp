@@ -1,14 +1,15 @@
 #include "Scene.hpp"
 
-import Core;
-
+#include "Engine.hpp"
 #include "Resources.hpp"
-#include "Settings.hpp"
 #include "Mesh.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 #include "Rendering\RenderingDefines.hpp"
 #include "Math\Physics.hpp"
+
+import Core;
+import Platform;
 
 void Scene::Create(CameraType cameraType)
 {
@@ -292,8 +293,8 @@ void Scene::Load()
 						renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
 
 						TextureInfo textureInfo{};
-						textureInfo.width = Settings::WindowWidth();
-						textureInfo.height = Settings::WindowHeight();
+						Settings::GetSetting(WindowWidth, textureInfo.width);
+						Settings::GetSetting(WindowHeight, textureInfo.height);
 						textureInfo.depth = 1;
 						textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 						textureInfo.type = VK_IMAGE_TYPE_2D;
@@ -451,7 +452,7 @@ void Scene::Update()
 	globalData->lightSpace = shadowData->depthViewProjection;
 
 #ifdef NH_DEBUG
-	if (Settings::InEditor()) { flyCamera.Update(); }
+	if (Engine::InEditor()) { flyCamera.Update(); }
 	else { flyCamera.GetCamera().Update(); }
 
 	globalData->viewProjection = flyCamera.ViewProjection();

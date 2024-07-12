@@ -295,8 +295,9 @@ public:
 	static F32 GetAxis(AxisCode code);
 
 	static void SetMousePosition(I32 x, I32 y);
+	static bool CursorLocked();
+	static bool CursorShowing();
 	static void ShowCursor(bool show);
-	static void ConstrainCursor(bool constrain);
 	static void LockCursor(bool lock);
 
 private:

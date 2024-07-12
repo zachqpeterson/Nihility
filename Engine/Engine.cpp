@@ -17,9 +17,12 @@ import Memory;
 import Multithreading;
 import ThreadSafety;
 import Networking;
+import Platform;
 
 GameInfo Engine::gameInfo;
 
+F64 Engine::targetFrametime;
+bool Engine::inEditor;
 bool Engine::running;
 
 void Engine::Initialize(const GameInfo& gameInfo_)
@@ -67,6 +70,9 @@ void Engine::Initialize(const GameInfo& gameInfo_)
 
 	Renderer::InitialSubmit();
 
+	Events::Listen("Focused", Focus);
+	Events::Listen("Unfocused", Unfocus);
+
 	UpdateLoop();
 
 	Shutdown();
@@ -106,18 +112,18 @@ void Engine::UpdateLoop()
 
 		if (Input::OnButtonDown(BUTTON_CODE_F11))
 		{
-			Platform::SetFullscreen(!Settings::Fullscreen());
+			Platform::SetFullscreen(!Platform::fullscreen);
 		}
 
 #ifdef NH_DEBUG
 		if (Input::OnButtonDown(BUTTON_CODE_F5))
 		{
-			Settings::inEditor = !Settings::inEditor;
+			inEditor = !inEditor;
 		}
 #endif
 
 		bool runFrame = false;
-		if (!Settings::Minimised()) { runFrame = Renderer::BeginFrame(); }
+		if (!Platform::minimised) { runFrame = Renderer::BeginFrame(); }
 
 		Physics::Update((F32)Time::DeltaTime()); //TODO: constant step
 
@@ -135,14 +141,24 @@ void Engine::UpdateLoop()
 		Steam::Update();
 		Discord::Update();
 
-		F64 remainingFrameTime;
-
-		if (Settings::Focused()) { remainingFrameTime = Settings::TargetFrametime() - Time::FrameUpTime(); }
-		else { remainingFrameTime = Settings::TargetFrametimeSuspended() - Time::FrameUpTime(); }
-
+		F64 remainingFrameTime = targetFrametime - Time::FrameUpTime();
 		U64 remainingUS = (U64)(remainingFrameTime * 990000.0);
 
 		if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }
 	}
 }
 
+bool Engine::InEditor()
+{
+	return inEditor;
+}
+
+void Engine::Focus()
+{
+	Settings::GetSetting(TargetFrametime, targetFrametime);
+}
+
+void Engine::Unfocus()
+{
+	Settings::GetSetting(TargetFrametimeSuspended, targetFrametime);
+}

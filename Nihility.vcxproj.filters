@@ -639,9 +639,6 @@
     <ClCompile Include="Engine\Memory\Memory.cpp">
       <Filter>Source Files\Memory</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Resources\Settings.cpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Resources\Resources.cpp">
       <Filter>Source Files\Resources</Filter>
     </ClCompile>
@@ -1046,6 +1043,15 @@
     </ClCompile>
     <ClCompile Include="Engine\Networking\Networking-Steam.ixx">
       <Filter>Source Files\Networking</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Platform.ixx">
+      <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Platform-Settings.ixx">
+      <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Settings.cpp">
+      <Filter>Source Files\Platform</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

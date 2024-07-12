@@ -13,6 +13,7 @@
 
 import Core;
 import Memory;
+import Platform;
 
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;
@@ -23,6 +24,9 @@ U32 Audio::sampleRate;
 
 AudioPlayback* Audio::audioPlaybacks;
 Freelist Audio::freePlaybacks;
+
+bool Audio::unfocusedAudio;
+F32 Audio::masterVolume;
 
 struct AudioCallbacks : public IXAudio2VoiceCallback
 {
@@ -56,7 +60,7 @@ bool Audio::Initialize()
 
 	XAUDIO2_VOICE_DETAILS details;
 	masterVoice->GetVoiceDetails(&details);
-	Settings::data.channelCount = details.InputChannels;
+	Settings::SetSetting(ChannelCount, details.InputChannels);
 	sampleRate = details.InputSampleRate;
 
 	UL32 channelMask;
@@ -67,6 +71,9 @@ bool Audio::Initialize()
 
 	freePlaybacks(256);
 	Memory::AllocateArray(&audioPlaybacks, freePlaybacks.Capacity());
+
+	Settings::GetSetting(UnfocusedAudio, unfocusedAudio);
+	Settings::GetSetting(MasterVolume, masterVolume);
 
 	return true;
 }
@@ -90,7 +97,7 @@ void Audio::Shutdown()
 
 void Audio::Unfocus()
 {
-	if (masterVoice && !Settings::UnfocusedAudio())
+	if (masterVoice && !unfocusedAudio)
 	{
 		masterVoice->SetVolume(0.0f);
 	}
@@ -98,9 +105,9 @@ void Audio::Unfocus()
 
 void Audio::Focus()
 {
-	if (masterVoice && !Settings::UnfocusedAudio())
+	if (masterVoice && !unfocusedAudio)
 	{
-		masterVoice->SetVolume(Settings::MasterVolume());
+		masterVoice->SetVolume(masterVolume);
 	}
 }
 
@@ -363,13 +370,25 @@ U32 Audio::GetChannelEffectChain(U32 channelIndex)
 	return channels[channelIndex].parameters.effectChainIndex;
 }
 
-void Audio::ChangeMasterVolume(F32 volume)
+bool Audio::GetUnfocusedAudio()
 {
-	Settings::data.masterVolume = volume;
-	masterVoice->SetVolume(volume);
+	return unfocusedAudio;
+}
+
+void Audio::SetUnfocusedAudio(bool b)
+{
+	unfocusedAudio = b;
+	Settings::SetSetting(UnfocusedAudio, unfocusedAudio);
 }
 
 F32 Audio::GetMasterVolume()
 {
-	return Settings::MasterVolume();
+	return masterVolume;
+}
+
+void Audio::SetMasterVolume(F32 volume)
+{
+	masterVolume = volume;
+	Settings::SetSetting(MasterVolume, masterVolume);
+	masterVoice->SetVolume(volume);
 }

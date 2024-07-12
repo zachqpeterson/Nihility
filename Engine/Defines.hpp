@@ -52,7 +52,7 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 /*---------PLATFORM DETECTION---------*/
 
 #if defined WIN32 || defined _WIN32 || defined __WIN32__ || defined _WIN64 //---WINDOWS
-#	define PLATFORM_WINDOWS
+#	define PLATFORM_WINDOWS //Defined when on a Windows operating system
 #	define WIN32_LEAN_AND_MEAN
 #	define NOMINMAX
 #	ifndef _WIN64
@@ -60,25 +60,25 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #	endif
 
 #elif defined __linux__ || defined __gnu_linux__ //-----------------------------LINUX
-#	define PLATFORM_LINUX
+#	define PLATFORM_LINUX  //Defined when on a Liunx operating system
 #	if defined __ANDROID__ //---------------------------------------------------ANDROID
 #		define PLATFORM_ANDROID
 #	endif
 
 #elif defined __unix__ //-------------------------------------------------------UNIX
-#	define PLATFORM_UNIX
+#	define PLATFORM_UNIX  //Defined when on a Unix operating system
 
 #elif defined _POSIX_VERSION_ //------------------------------------------------POSIX
 #	define PLATFORM_POSIX
 
 #elif defined __APPLE__ || defined __MACH__ //----------------------------------APPLE
-#	define PLATFORM_APPLE
+#	define PLATFORM_APPLE  //Defined when on an Apple operating system
 #	include <TargetConditionals.h>
 #	if TARGET_IPHONE_SIMULATOR //-----------------------------------------------IOS SIMULATOR
-#		define PLATFORM_IOS
-#		define PLATFORM_IOS_SIMULATOR
+#		define PLATFORM_IOS  //Defined when on an IOS operating system
+#		define PLATFORM_IOS_SIMULATOR  //Defined when on an IOS Simulator
 #	elif TARGET_OS_IPHONE //----------------------------------------------------IOS
-#		define PLATFORM_IOS
+#		define PLATFORM_IOS  //Defined when on an IOS operating system
 #	elif TARGET_OS_MAC
 #	else
 #		error "Unknown Apple platform!"
@@ -89,12 +89,12 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #endif
 
 #if defined PLATFORM_WINDOWS || defined __LITTLE_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-#define NH_LITTLE_ENDIAN
+#	define NH_LITTLE_ENDIAN  //Defined when on a little endian operating system
 #elif defined __BIG_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#define NH_BIG_ENDIAN
+#	define NH_BIG_ENDIAN //Defined when on a big endian operating system
 #else
-#warning "could not determine endianness! Falling back to little endian..."
-#define NH_LITTLE_ENDIAN
+#	warning "could not determine endianness! Falling back to little endian..."
+#	define NH_LITTLE_ENDIAN //Defined when on a little endian operating system
 #endif
 
 /*---------PLATFORM MACROS---------*/
@@ -114,9 +114,9 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #	endif
 #else
 #	ifdef _MSC_VER
-#		define NH_API __declspec(dllimport)	// Marks a function or class to be imported
+#		define NH_API __declspec(dllimport)						// Marks a function or class to be imported
 #	else
-#		define NH_API						// Marks a function or class to be imported
+#		define NH_API											// Marks a function or class to be imported
 #	endif
 #endif
 
@@ -125,7 +125,7 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #define LINE_NUMBER __LINE__		// Replaced by the line number ex. 123
 
 /// <summary>
-/// Deletes a class's constructors, assignment operators, destructor
+/// Deletes a class's constructors, assignment operators, and destructor
 /// </summary>
 /// <param name="class:">The class to operate on</param>
 #define STATIC_CLASS(class)			\
@@ -143,8 +143,8 @@ class& operator=(class&&) = delete;	\
 #	define NH_INLINE __forceinline							// Tries to force the compiler to inline a function
 #	define NH_NOINLINE __declspec(noinline)					// Tries to force the compiler to not inline a function
 #else
-#	define NH_INLINE static inline							// Tries to force the compiler to inline a function
-#	define NH_NOINLINE										// Tries to force the compiler to not inline a function
+#	define NH_INLINE										// Tries to force the compiler to inline a function  (NOT AVAILABLE)
+#	define NH_NOINLINE										// Tries to force the compiler to not inline a function (NOT AVAILABLE)
 #endif
 
 #ifndef HAS_NODISCARD
@@ -161,8 +161,8 @@ class& operator=(class&&) = delete;	\
 #	define NH_NODISCARD [[nodiscard]] // Issues a warning when the return value of a function isn't captured
 #	define NH_NODISCARD_MSG(message) [[nodiscard(message)]] // Issues a warning when the return value of a function isn't captured
 #else
-#	define NH_NODISCARD
-#	define NH_NODISCARD_MSG(message)
+#	define NH_NODISCARD // Issues a warning when the return value of a function isn't captured (NOT AVAILABLE)
+#	define NH_NODISCARD_MSG(message) // Issues a warning when the return value of a function isn't captured (NOT AVAILABLE)
 #endif
 
 extern "C" { extern int __isa_available; }
@@ -261,6 +261,12 @@ constexpr U32 GetMajorVersion(U32 versionNumber)
 	return (versionNumber & MAJOR_MASK) >> 16;
 }
 
+/// <summary>
+/// Gets the next multiple of n greater than or equal to value
+/// </summary>
+/// <param name="value:">Initial value</param>
+/// <param name="n:">Multiple</param>
+/// <returns>The next multaple of n</returns>
 constexpr U64 NextMultipleOf(U64 value, U64 n)
 {
 	if (n == 0) { return value; }
@@ -271,10 +277,15 @@ constexpr U64 NextMultipleOf(U64 value, U64 n)
 	return value + n - remainder;
 }
 
+/// <summary>
+/// Bit casts from one type to another, From and To must have the same size
+/// </summary>
+/// <param name="value:">The value to be casted</param>
+/// <returns>The casted value</returns>
 template<class To, class From> requires (sizeof(From) == sizeof(To))
-NH_NODISCARD To TypePun(const From& val) noexcept
+NH_NODISCARD constexpr To TypePun(const From& value) noexcept
 {
-	return __builtin_bit_cast(To, val);
+	return __builtin_bit_cast(To, value);
 }
 
 #include "TypeTraits.hpp"

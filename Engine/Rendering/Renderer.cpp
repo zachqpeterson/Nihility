@@ -13,6 +13,7 @@
 
 import Core;
 import Memory;
+import Platform;
 
 #define VMA_DEBUG_LOG
 //#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")
@@ -620,8 +621,8 @@ bool Renderer::CreateResources()
 	TextureInfo textureInfo{};
 	textureInfo.name = "default_render_target";
 	textureInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	textureInfo.width = Settings::WindowWidth();
-	textureInfo.height = Settings::WindowHeight();
+	textureInfo.width = Platform::windowWidth;
+	textureInfo.height = Platform::windowHeight;
 	textureInfo.depth = 1;
 	textureInfo.flags = TEXTURE_FLAG_RENDER_TARGET;
 	textureInfo.type = VK_IMAGE_TYPE_2D;
@@ -828,33 +829,33 @@ void Renderer::Resize()
 
 	vkDeviceWaitIdle(device);
 
-	Settings::resized = false;
+	Platform::resized = false;
 }
 
 void Renderer::SetRenderArea()
 {
-	F32 aspectHeight = Settings::WindowHeight() * 1.77777777778f;
-	F32 aspectWidth = Settings::WindowWidth() * 0.5625f;
+	F32 aspectHeight = Platform::windowHeight * 1.77777777778f;
+	F32 aspectWidth = Platform::windowWidth * 0.5625f;
 
 	F32 offset;
 
-	if (Settings::WindowWidth() > aspectHeight)
+	if (Platform::windowWidth > aspectHeight)
 	{
-		offset = (Settings::WindowWidth() - aspectHeight) * 0.5f;
+		offset = (Platform::windowWidth - aspectHeight) * 0.5f;
 
 		renderArea.x = offset;
 		renderArea.y = 0.0f;
-		renderArea.z = Settings::WindowWidth() - (offset * 2.0f);
-		renderArea.w = (F32)Settings::WindowHeight();
+		renderArea.z = Platform::windowWidth - (offset * 2.0f);
+		renderArea.w = (F32)Platform::windowHeight;
 	}
 	else
 	{
-		offset = (Settings::WindowHeight() - aspectWidth) * 0.5f;
+		offset = (Platform::windowHeight - aspectWidth) * 0.5f;
 
 		renderArea.x = 0.0f;
 		renderArea.y = offset;
-		renderArea.z = (F32)Settings::WindowWidth();
-		renderArea.w = Settings::WindowHeight() - (offset * 2.0f);
+		renderArea.z = (F32)Platform::windowWidth;
+		renderArea.w = Platform::windowHeight - (offset * 2.0f);
 	}
 }
 
@@ -1698,16 +1699,16 @@ bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 {
 	if (renderpass->lastResize < absoluteFrame && renderpass->resize)
 	{
-		renderpass->renderArea.extent.x = Settings::WindowWidth();
-		renderpass->renderArea.extent.y = Settings::WindowHeight();
+		renderpass->renderArea.extent.x = Platform::windowWidth;
+		renderpass->renderArea.extent.y = Platform::windowHeight;
 
 		vkDestroyFramebuffer(device, renderpass->frameBuffer, allocationCallbacks);
 
 		VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		framebufferInfo.renderPass = renderpass->renderpass;
 		framebufferInfo.attachmentCount = renderpass->renderTargetCount + (bool)renderpass->depthStencilTarget;
-		framebufferInfo.width = Settings::WindowWidth();
-		framebufferInfo.height = Settings::WindowHeight();
+		framebufferInfo.width = Platform::windowWidth;
+		framebufferInfo.height = Platform::windowHeight;
 		framebufferInfo.layers = 1;
 
 		VkImageView framebufferAttachments[MAX_IMAGE_OUTPUTS + 1];
@@ -1715,13 +1716,13 @@ bool Renderer::RecreateRenderpass(Renderpass* renderpass)
 		U32 attachmentCount = 0;
 		for (U32 i = 0; i < renderpass->renderTargetCount; ++i)
 		{
-			Resources::RecreateTexture(renderpass->renderTargets[i], Settings::WindowWidth(), Settings::WindowHeight(), 1);
+			Resources::RecreateTexture(renderpass->renderTargets[i], Platform::windowWidth, Platform::windowHeight, 1);
 			framebufferAttachments[attachmentCount++] = renderpass->renderTargets[i]->imageView;
 		}
 
 		if (renderpass->depthStencilTarget)
 		{
-			Resources::RecreateTexture(renderpass->depthStencilTarget, Settings::WindowWidth(), Settings::WindowHeight(), 1);
+			Resources::RecreateTexture(renderpass->depthStencilTarget, Platform::windowWidth, Platform::windowHeight, 1);
 			framebufferAttachments[attachmentCount++] = renderpass->depthStencilTarget->imageView;
 		}
 

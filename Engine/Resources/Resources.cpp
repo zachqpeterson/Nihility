@@ -2,7 +2,6 @@
 
 #include "Font.hpp"
 #include "Scene.hpp"
-#include "Settings.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
 #include "Rendering\RenderingDefines.hpp"

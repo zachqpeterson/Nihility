@@ -86,8 +86,8 @@ bool Input::Initialize()
 	POINT p;
 	GetCursorPos(&p);
 
-	mousePosX = (F32)(p.x - Settings::WindowPositionX());
-	mousePosY = (F32)(p.y - Settings::WindowPositionY());
+	mousePosX = (F32)(p.x - Platform::windowPositionX);
+	mousePosY = (F32)(p.y - Platform::windowPositionY);
 
 	int sensitivity;
 	SystemParametersInfoA(SPI_GETMOUSESPEED, 0, &sensitivity, 0);
@@ -420,7 +420,7 @@ Vector2 Input::MouseToWorld(const Camera& camera)
 	Vector4 area = Renderer::RenderArea();
 	F32 scale = 0.125f * (1920.0f / area.z) * camera.Zoom();
 
-	return { (mousePosX - area.x - area.z * 0.5f) * scale + camera.Eye().x, ((Settings::WindowHeight() - mousePosY) - area.y - area.w * 0.5f) * scale + camera.Eye().y };
+	return { (mousePosX - area.x - area.z * 0.5f) * scale + camera.Eye().x, ((Platform::windowHeight - mousePosY) - area.y - area.w * 0.5f) * scale + camera.Eye().y };
 }
 
 void Input::ConsumeInput() { receiveInput = false; }
@@ -431,38 +431,43 @@ I16 Input::MouseHWheelDelta() { return mouseHWheelDelta; }
 
 void Input::SetMousePosition(I32 x, I32 y)
 {
-	if (Settings::CursorLocked())
+	if (Platform::cursorLocked)
 	{
-		mousePosX = Settings::WindowWidth() / 2.0f;
-		mousePosY = Settings::WindowHeight() / 2.0f;
+		mousePosX = Platform::windowWidth / 2.0f;
+		mousePosY = Platform::windowHeight / 2.0f;
 	}
-	else if (Settings::CursorConstrained())
+	else if (Platform::cursorConstrained)
 	{
-		mousePosX = Math::Clamp((F32)x, (F32)Settings::WindowPositionX(), (F32)Settings::WindowWidth() + (F32)Settings::WindowPositionX());
-		mousePosY = Math::Clamp((F32)y, (F32)Settings::WindowPositionY(), (F32)Settings::WindowHeight() + (F32)Settings::WindowPositionY());
+		mousePosX = Math::Clamp((F32)x, (F32)Platform::windowPositionX, (F32)Platform::windowWidth + (F32)Platform::windowPositionX);
+		mousePosY = Math::Clamp((F32)y, (F32)Platform::windowPositionY, (F32)Platform::windowHeight + (F32)Platform::windowPositionY);
 	}
 	else
 	{
-		mousePosX = Math::Clamp((F32)x, (F32)-Settings::WindowPositionX(), (F32)Settings::VirtualScreenWidth() - (F32)Settings::WindowPositionX());
-		mousePosY = Math::Clamp((F32)y, (F32)-Settings::WindowPositionY(), (F32)Settings::VirtualScreenHeight() - (F32)Settings::WindowPositionY());
+		mousePosX = Math::Clamp((F32)x, -(F32)Platform::windowPositionX, (F32)Platform::virtualScreenWidth - (F32)Platform::windowPositionX);
+		mousePosY = Math::Clamp((F32)y, -(F32)Platform::windowPositionY, (F32)Platform::virtualScreenHeight - (F32)Platform::windowPositionY);
 	}
 
-	SetCursorPos((I32)(Input::mousePosX + Settings::WindowPositionX()), (I32)(Input::mousePosY + Settings::WindowPositionY()));
+	SetCursorPos((I32)(Input::mousePosX + Platform::windowPositionX), (I32)(Input::mousePosY + Platform::windowPositionY));
+}
+
+bool Input::CursorLocked()
+{
+	return Platform::cursorLocked;
+}
+
+bool Input::CursorShowing()
+{
+	return Platform::cursorShowing;
 }
 
 void Input::ShowCursor(bool show)
 {
-	Settings::showCursor = show;
-}
-
-void Input::ConstrainCursor(bool constrain)
-{
-	Settings::constrainCursor = constrain;
+	Platform::cursorShowing = show;
 }
 
 void Input::LockCursor(bool lock)
 {
-	Settings::lockCursor = lock;
+	Platform::cursorLocked = lock;
 }
 
 #endif

@@ -362,6 +362,9 @@
     <ClCompile Include="Engine\Platform\Input.cpp" />
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx" />
+    <ClCompile Include="Engine\Platform\Platform-Settings.ixx" />
+    <ClCompile Include="Engine\Platform\Platform.ixx" />
+    <ClCompile Include="Engine\Platform\Settings.cpp" />
     <ClCompile Include="Engine\Platform\ThreadSafety.ixx" />
     <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx" />
     <ClCompile Include="Engine\Platform\Multithreading.ixx" />
@@ -379,7 +382,6 @@
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Scene.cpp" />
-    <ClCompile Include="Engine\Resources\Settings.cpp" />
     <ClCompile Include="Engine\Resources\Shader\glslang\CInterface\glslang_c_interface.cpp" />
     <ClCompile Include="Engine\Resources\Shader\glslang\GenericCodeGen\CodeGen.cpp" />
     <ClCompile Include="Engine\Resources\Shader\glslang\GenericCodeGen\Link.cpp" />

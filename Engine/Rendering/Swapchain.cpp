@@ -7,6 +7,8 @@
 #include "Resources\Settings.hpp"
 #include "Resources\Resources.hpp"
 
+import Platform;
+
 bool Swapchain::CreateSurface()
 {
 #ifdef PLATFORM_WINDOWS
@@ -78,7 +80,7 @@ bool Swapchain::Create()
 		swapchainExtent.height = Math::Clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
 	}
 
-	vsync = Settings::VSync();
+	Settings::GetSetting(VSync, vsync);
 	width = swapchainExtent.width;
 	height = swapchainExtent.height;
 
@@ -189,7 +191,15 @@ VkResult Swapchain::Update()
 {
 	if (Renderer::absoluteFrame)
 	{
-		if (width != Settings::WindowWidth() || height != Settings::WindowHeight() || vsync != Settings::VSync()) { return VK_ERROR_OUT_OF_DATE_KHR; }
+		bool vs;
+		Settings::GetSetting(VSync, vs);
+
+		U32 windowWidth;
+		U32 windowHeight;
+		Settings::GetSetting(WindowWidth, windowWidth);
+		Settings::GetSetting(WindowHeight, windowHeight);
+
+		if (width != windowWidth || height != windowHeight || vsync != vs) { return VK_ERROR_OUT_OF_DATE_KHR; }
 		if (width == 0 || height == 0) { return VK_NOT_READY; }
 	}
 	

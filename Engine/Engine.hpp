@@ -55,12 +55,19 @@ public:
 	/// <param name="gameInfo:">The information about your game</param>
 	static void Initialize(const GameInfo& gameInfo);
 
+	static bool InEditor();
+
 private:
 	static void UpdateLoop();
 	static void Shutdown();
 
+	static void Focus();
+	static void Unfocus();
+
 	static GameInfo gameInfo;
 
+	static F64 targetFrametime;
+	static bool inEditor;
 	static bool running;
 
 	STATIC_CLASS(Engine);

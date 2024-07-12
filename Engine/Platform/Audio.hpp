@@ -92,8 +92,10 @@ public:
 	static void ChangeChannelEffectChain(U32 channelIndex, U32 chainIndex);
 	static U32 GetChannelEffectChain(U32 channelIndex);
 
-	static void ChangeMasterVolume(F32 volume);
+	static bool GetUnfocusedAudio();
+	static void SetUnfocusedAudio(bool b);
 	static F32 GetMasterVolume();
+	static void SetMasterVolume(F32 volume);
 
 private:
 	static bool Initialize();
@@ -114,6 +116,9 @@ private:
 
 	static AudioPlayback* audioPlaybacks;
 	static Freelist freePlaybacks;
+
+	static bool unfocusedAudio;
+	static F32 masterVolume;
 
 	STATIC_CLASS(Audio);
 	friend class Engine;
