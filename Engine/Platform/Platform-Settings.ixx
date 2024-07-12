@@ -2,6 +2,8 @@ module;
 
 #include "Defines.hpp"
 
+#include <Windows.h>
+
 export module Platform:Settings;
 
 import Containers;
@@ -40,7 +42,6 @@ export constexpr StringView ChannelCount = "Nihility\\Audio\\ChannelCount";
 export constexpr StringView MasterVolume = "Nihility\\Audio\\MasterVolume";
 export constexpr StringView UnfocusedAudio = "Nihility\\Audio\\UnfocusedAudio";
 
-
 export class Settings
 {
 	enum SettingType
@@ -70,6 +71,8 @@ private:
 	static bool SetSetting(const StringView& path, const U8* data, UL32 size, I32 type);
 
 	static U32 GetSettingSize(const StringView& path);
+
+	static HKEY registryKey;
 
 	STATIC_CLASS(Settings);
 	friend class Engine;

@@ -9,9 +9,16 @@ module Platform:Settings;
 import Core;
 import Containers;
 
+HKEY Settings::registryKey;
+
 bool Settings::Initialize()
 {
 	Logger::Trace("Initializing Settings...");
+
+	if (RegCreateKeyExA(HKEY_CURRENT_USER, "Software", 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &registryKey, nullptr))
+	{
+		return false;
+	}
 
 	//General
 	CreateSetting(TargetFrametime, 0.0);
@@ -45,7 +52,7 @@ bool Settings::Initialize()
 
 void Settings::Shutdown()
 {
-
+	RegCloseKey(registryKey);
 }
 
 bool Settings::CreateSetting(const StringView& path, const U8* defaultValue, UL32 size, I32 type)
@@ -53,7 +60,7 @@ bool Settings::CreateSetting(const StringView& path, const U8* defaultValue, UL3
 	HKEY key{};
 	UL32 created = 0;
 
-	if (RegCreateKeyExA(HKEY_CURRENT_USER, path.Data(), 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &key, &created))
+	if (RegCreateKeyExA(registryKey, path.Data(), 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &key, &created))
 	{
 		Logger::Error("Failed To Creating Setting: {}", path);
 		return false;
@@ -63,7 +70,7 @@ bool Settings::CreateSetting(const StringView& path, const U8* defaultValue, UL3
 
 	if (created == REG_CREATED_NEW_KEY)
 	{
-		if (RegSetValueExA(HKEY_CURRENT_USER, path.Data(), 0, type, defaultValue, size))
+		if (RegSetValueExA(registryKey, path.Data(), 0, type, defaultValue, size))
 		{
 			Logger::Error("Failed To Set Setting: {}", path);
 			
@@ -76,12 +83,12 @@ bool Settings::CreateSetting(const StringView& path, const U8* defaultValue, UL3
 
 bool Settings::GetSetting(const StringView& path, U8* data, UL32 size)
 {
-	return RegQueryValueExA(HKEY_CURRENT_USER, path.Data(), 0, nullptr, data, &size) == 0;
+	return RegQueryValueExA(registryKey, path.Data(), 0, nullptr, data, &size) == 0;
 }
 
 bool Settings::SetSetting(const StringView& path, const U8* data, UL32 size, I32 type)
 {
-	if (RegSetValueExA(HKEY_CURRENT_USER, path.Data(), 0, type, data, size))
+	if (RegSetValueExA(registryKey, path.Data(), 0, type, data, size))
 	{
 		Logger::Error("Failed To Set Setting: {}", path);
 		return false;
@@ -93,6 +100,6 @@ bool Settings::SetSetting(const StringView& path, const U8* data, UL32 size, I32
 U32 Settings::GetSettingSize(const StringView& path)
 {
 	UL32 size;
-	RegQueryValueExA(HKEY_CURRENT_USER, path.Data(), 0, nullptr, nullptr, &size);
+	RegQueryValueExA(registryKey, path.Data(), 0, nullptr, nullptr, &size);
 	return size;
 }
