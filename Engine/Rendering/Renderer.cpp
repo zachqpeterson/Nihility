@@ -5,7 +5,6 @@
 #include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Pipeline.hpp"
-#include "Platform\Platform.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
 #include "Math\Math.hpp"

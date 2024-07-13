@@ -1,4 +1,4 @@
-#include "Platform.hpp"
+module;
 
 #include "Input.hpp"
 #include "Audio.hpp"
@@ -12,6 +12,10 @@
 #include <strsafe.h>
 #include <shlobj.h>
 #include <ole2.h>
+
+#endif
+
+module Platform;
 
 import Core;
 import Containers;
@@ -55,6 +59,8 @@ HICON sizeNWSE;
 
 static constexpr const C8* MENU_NAME = "Nihility Menu";
 static constexpr const C8* CLASS_NAME = "Nihility Class";
+
+#ifdef PLATFORM_WINDOWS
 
 bool Platform::Initialize(const StringView& applicationName)
 {

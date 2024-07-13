@@ -1,13 +1,13 @@
 module;
 
 #include "Defines.hpp"
-#include "Platform\Platform.hpp"
 
 module Core:Logger;
 
 import :File;
 import Containers;
 import Multithreading;
+import Platform;
 
 File log{ File("Log.log", FILE_OPEN_LOG) };
 File console{ File("CONOUT$", FILE_OPEN_CONSOLE) };

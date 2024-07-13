@@ -193,7 +193,6 @@
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
-    <ClInclude Include="Engine\Platform\Platform.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />

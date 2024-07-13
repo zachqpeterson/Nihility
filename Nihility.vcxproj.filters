@@ -88,9 +88,6 @@
     <ClInclude Include="Engine\Defines.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Platform.hpp">
-      <Filter>Source Files\Platform</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Engine.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>

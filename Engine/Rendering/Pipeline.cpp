@@ -4,9 +4,9 @@
 
 #include "Renderer.hpp"
 #include "Resources\Resources.hpp"
-#include "Platform\Platform.hpp"
 
 import Core;
+import Platform;
 
 Dependancy::Dependancy(DependancyType type) : type{ type } {}
 Dependancy::Dependancy(const ResourceRef<Pipeline>& pipeline, DependancyType type, U8 index) : pipeline{ pipeline }, type{ type }, index{ index } {}

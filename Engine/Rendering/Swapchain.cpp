@@ -3,7 +3,6 @@
 #include "RenderingDefines.hpp"
 
 #include "Renderer.hpp"
-#include "Platform\Platform.hpp"
 #include "Resources\Resources.hpp"
 
 import Platform;

@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 #include "Introspection.hpp"
-#include "Platform\Platform.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"
 #include "Resources\Resources.hpp"
