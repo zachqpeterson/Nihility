@@ -1,3 +1,5 @@
+module;
+
 #include "Audio.hpp"
 
 #include <sdkddkver.h>
@@ -8,6 +10,8 @@
 #include <xapofx.h>
 
 #pragma comment(lib,"xaudio2.lib")
+
+module Audio;
 
 import Core;
 import Memory;

@@ -44,6 +44,8 @@ public:
 	static bool Focused();
 	static bool Minimised();
 	static bool Resized();
+	static bool MouseConstrained();
+	static void ConstrainMouse(bool b);
 
 private:
 	static bool Initialize(const StringView& applicationName);

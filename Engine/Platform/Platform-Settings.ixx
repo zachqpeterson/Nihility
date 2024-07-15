@@ -12,37 +12,37 @@ import Containers;
 
 //General
 
-export constexpr StringView TargetFrametime = "Nihility\\TargetFrametime";
-export constexpr StringView TargetFrametimeSuspended = "Nihility\\TargetFrametimeSuspended";
+export inline constexpr StringView TargetFrametime = "Nihility\\TargetFrametime";
+export inline constexpr StringView TargetFrametimeSuspended = "Nihility\\TargetFrametimeSuspended";
 
 //Window
 
-export constexpr StringView WindowWidth = "Nihility\\Window\\Width";
-export constexpr StringView WindowHeight = "Nihility\\Window\\Height";
-export constexpr StringView WindowWidthSmall = "Nihility\\Window\\WidthSmall";
-export constexpr StringView WindowHeightSmall = "Nihility\\Window\\HeightSmall";
-export constexpr StringView WindowPositionX = "Nihility\\Window\\PositionX";
-export constexpr StringView WindowPositionY = "Nihility\\Window\\PositionY";
-export constexpr StringView WindowPositionXSmall = "Nihility\\Window\\PositionXSmall";
-export constexpr StringView WindowPositionYSmall = "Nihility\\Window\\PositionYSmall";
-export constexpr StringView Fullscreen = "Nihility\\Window\\Fullscreen";
-export constexpr StringView CursorConstrained = "Nihility\\Window\\CursorConstrained";
+export inline constexpr StringView WindowWidth = "Nihility\\Window\\Width";
+export inline constexpr StringView WindowHeight = "Nihility\\Window\\Height";
+export inline constexpr StringView WindowWidthSmall = "Nihility\\Window\\WidthSmall";
+export inline constexpr StringView WindowHeightSmall = "Nihility\\Window\\HeightSmall";
+export inline constexpr StringView WindowPositionX = "Nihility\\Window\\PositionX";
+export inline constexpr StringView WindowPositionY = "Nihility\\Window\\PositionY";
+export inline constexpr StringView WindowPositionXSmall = "Nihility\\Window\\PositionXSmall";
+export inline constexpr StringView WindowPositionYSmall = "Nihility\\Window\\PositionYSmall";
+export inline constexpr StringView Fullscreen = "Nihility\\Window\\Fullscreen";
+export inline constexpr StringView CursorConstrained = "Nihility\\Window\\CursorConstrained";
 
 //Graphics
 
-export constexpr StringView VSync = "Nihility\\Graphics\\VSync";
+export inline constexpr StringView VSync = "Nihility\\Graphics\\VSync";
 
 //Platform
 
-export constexpr StringView Dpi = "Nihility\\Platform\\Dpi";
+export inline constexpr StringView Dpi = "Nihility\\Platform\\Dpi";
 
 //Audio
 
-export constexpr StringView ChannelCount = "Nihility\\Audio\\ChannelCount";
-export constexpr StringView MasterVolume = "Nihility\\Audio\\MasterVolume";
-export constexpr StringView UnfocusedAudio = "Nihility\\Audio\\UnfocusedAudio";
+export inline constexpr StringView ChannelCount = "Nihility\\Audio\\ChannelCount";
+export inline constexpr StringView MasterVolume = "Nihility\\Audio\\MasterVolume";
+export inline constexpr StringView UnfocusedAudio = "Nihility\\Audio\\UnfocusedAudio";
 
-export class Settings
+export class NH_API Settings
 {
 	enum SettingType
 	{

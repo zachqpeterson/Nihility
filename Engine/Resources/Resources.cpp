@@ -7,7 +7,6 @@
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
-#include "Platform\Audio.hpp"
 #include "Math\Math.hpp"
 
 #include "External\Assimp\cimport.h"
@@ -23,6 +22,7 @@
 
 import Core;
 import Containers;
+import Audio;
 
 #undef near
 #undef far

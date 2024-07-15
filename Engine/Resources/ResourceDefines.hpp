@@ -964,3 +964,21 @@ private:
 
 	Camera camera;
 };
+
+struct AudioFormat
+{
+	U16    formatTag;
+	U16    channelCount;
+	UL32   samplesPerSec;
+	UL32   avgBytesPerSec;
+	U16    blockAlign;
+	U16    bitsPerSample;
+	U16    extraSize;
+};
+
+struct NH_API AudioClip : public Resource
+{
+	AudioFormat format;
+	U32			size{ 0 };
+	U8* buffer{ nullptr };
+};

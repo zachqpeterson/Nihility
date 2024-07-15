@@ -3,7 +3,6 @@
 #include "Defines.hpp"
 #include "Introspection.hpp"
 #include "Platform\Input.hpp"
-#include "Platform\Audio.hpp"
 #include "Resources\Resources.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
@@ -16,6 +15,7 @@ import Multithreading;
 import ThreadSafety;
 import Networking;
 import Platform;
+import Audio;
 
 GameInfo Engine::gameInfo;
 

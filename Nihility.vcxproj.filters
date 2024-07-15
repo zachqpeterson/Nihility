@@ -1047,5 +1047,8 @@
     <ClCompile Include="Engine\Platform\Settings.cpp">
       <Filter>Source Files\Platform</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Platform\Audio.ixx">
+      <Filter>Source Files\Platform\Audio</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

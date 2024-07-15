@@ -4,13 +4,14 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Resources\Resources.hpp"
-#include "Resources\Settings.hpp"
 #include "Resources\Scene.hpp"
 #include "Platform\Input.hpp"
 #include "Platform\Audio.hpp"
 #include "Rendering\Sprite.hpp"
 
 import Core;
+import Platform;
+import Audio;
 
 U32 musicChannel;
 U32 sfxChannel;
@@ -107,7 +108,9 @@ void Update()
 
 	if (Input::OnButtonDown(BUTTON_CODE_V))
 	{
-		Settings::SetVSync(!Settings::VSync());
+		bool b;
+		Settings::GetSetting(VSync, b);
+		Settings::SetSetting(VSync, !b);
 	}
 
 	if (Input::OnButtonDown(BUTTON_CODE_P))
@@ -117,17 +120,17 @@ void Update()
 
 	if (Input::OnButtonDown(BUTTON_CODE_O))
 	{
-		Input::LockCursor(!Settings::CursorLocked());
+		Input::LockCursor(!Input::CursorLocked());
 	}
 
 	if (Input::OnButtonDown(BUTTON_CODE_I))
 	{
-		Input::ConstrainCursor(!Settings::CursorConstrained());
+		Platform::ConstrainMouse(!Platform::MouseConstrained());
 	}
 
 	if (Input::OnButtonDown(BUTTON_CODE_U))
 	{
-		Input::ShowCursor(!Settings::CursorShowing());
+		Input::ShowCursor(!Input::CursorShowing());
 	}
 
 	if (Input::OnButtonDown(BUTTON_CODE_H))
@@ -176,7 +179,16 @@ void Shutdown()
 
 int main()
 {
-	Engine::Initialize("Nihility Demo", MakeVersionNumber(0, 1, 0), Engine::DefaultSteamAppId, Init, Update, Shutdown);
+	GameInfo info{};
+	info.GameInit = Init;
+	info.GameUpdate = Update;
+	info.GameShutdown = Shutdown;
+	info.gameName = "Nihility Demo";
+	info.gameVersion = MakeVersionNumber(0, 1, 0);
+	info.steamAppId = 0;
+	info.discordAppId = 0;
+
+	Engine::Initialize(info);
 
 	return 0;
 }

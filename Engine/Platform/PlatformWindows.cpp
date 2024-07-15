@@ -1,7 +1,6 @@
 module;
 
 #include "Input.hpp"
-#include "Audio.hpp"
 #include "Resources\Resources.hpp"
 
 #ifdef PLATFORM_WINDOWS
@@ -20,6 +19,7 @@ module Platform;
 import Core;
 import Containers;
 import Platform;
+import Audio;
 
 bool Platform::running;
 WindowData Platform::windowData;
@@ -635,6 +635,17 @@ bool Platform::Minimised()
 bool Platform::Resized()
 {
 	return resized;
+}
+
+bool Platform::MouseConstrained()
+{
+	return cursorConstrained;
+}
+
+void Platform::ConstrainMouse(bool b)
+{
+	cursorConstrained = b;
+	Settings::SetSetting(CursorConstrained, b);
 }
 
 #endif
