@@ -64,8 +64,8 @@ struct ContactVelocityConstraint
 {
 	VelocityConstraintPoint points[MaxManifoldPoints];
 	Vector2 normal;
-	Matrix2 normalMass{ Matrix2Zero };
-	Matrix2 K{ Matrix2Zero };
+	Matrix2 normalMass = Matrix2Zero;
+	Matrix2 K = Matrix2Zero;
 	U32 indexA;
 	U32 indexB;
 	F32 invMassA, invMassB;
@@ -133,7 +133,7 @@ struct PositionSolverManifold
 
 struct Island2D
 {
-	Island2D(U64 bodyCount, U64 contactCount) : bodies{ bodyCount }, contacts{ contactCount }, positions{ bodyCount, {} }, velocities{ bodyCount, {} } {}
+	Island2D(U64 bodyCount, U64 contactCount) : bodies(bodyCount), contacts(contactCount), positions(bodyCount, {}), velocities(bodyCount, {}) {}
 	~Island2D() { bodies.Cleanup(); contacts.Cleanup(); positions.Cleanup(); velocities.Cleanup(); }
 
 	void Clear() { bodies.Clear(); positions.Clear(); velocities.Clear(); }

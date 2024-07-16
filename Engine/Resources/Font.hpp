@@ -8,21 +8,21 @@ import Containers;
 
 struct Glyph
 {
-	F32 advance{ 1.0f };
-	F32 x{ 0.0f };
-	F32 y{ 0.0f };
+	F32 advance = 1.0f;
+	F32 x = 0.0f;
+	F32 y = 0.0f;
 
-	F32 kerning[96]{ 0.0f };
+	F32 kerning[96];
 };
 
 struct Font : public Resource
 {
-	Texture* texture{ nullptr };
+	Texture* texture = nullptr;
 
-	F32 ascent{ 0 };
-	F32 descent{ 0 };
-	F32 lineGap{ 0 };
-	F32 scale{ 0.0f };
+	F32 ascent = 0;
+	F32 descent = 0;
+	F32 lineGap = 0;
+	F32 scale = 0.0f;
 
 	Glyph glyphs[96];
 

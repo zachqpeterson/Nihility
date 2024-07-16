@@ -7,7 +7,7 @@ module Core:Events;
 import :Function;
 import Containers;
 
-Hashmap<String, Events::Event> Events::events{ 128 };
+Hashmap<String, Events::Event> Events::events(128);
 
 bool Events::Initialize()
 {

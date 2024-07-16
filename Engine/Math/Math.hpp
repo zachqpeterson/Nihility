@@ -58,12 +58,12 @@ constexpr inline Vector4Int Vector4IntBack{ 0, 0, -1, 0 };
 constexpr inline Vector4Int Vector4IntIn{ 0, 0, 0, 1 };
 constexpr inline Vector4Int Vector4IntOut{ 0, 0, 0, -1 };
 
-constexpr inline Matrix2 Matrix2Identity{};
+constexpr inline Matrix2 Matrix2Identity;
 constexpr inline Matrix2 Matrix2Zero{ 0.0f, 0.0f, 0.0f, 0.0f };
-constexpr inline Matrix3 Matrix3Identity{};
+constexpr inline Matrix3 Matrix3Identity;
 constexpr inline Matrix3 Matrix3Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-constexpr inline Matrix4 Matrix4Identity{};
+constexpr inline Matrix4 Matrix4Identity;
 constexpr inline Matrix4 Matrix4Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-constexpr inline Quaternion2 Quaternion2Identity{};
-constexpr inline Quaternion3 Quaternion3Identity{};
+constexpr inline Quaternion2 Quaternion2Identity;
+constexpr inline Quaternion3 Quaternion3Identity;

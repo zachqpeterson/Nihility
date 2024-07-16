@@ -31,12 +31,12 @@ public:
 	void Resize(U32 count);
 
 private:
-	U32 capacity{ 0 };
-	U32 used{ 0 };
+	U32 capacity = 0;
+	U32 used = 0;
 
-	U32 freeCount{ 0 };
-	U32* freeIndices{ nullptr };
-	U32 lastFree{ 0 };
+	U32 freeCount = 0;
+	U32* freeIndices = nullptr;
+	U32 lastFree = 0;
 };
 
 inline Freelist::Freelist() {}

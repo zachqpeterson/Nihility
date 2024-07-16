@@ -198,13 +198,13 @@ struct AABB
 
 struct NH_API ColliderInfo
 {
-	bool trigger{ false };
-	U64 layers{ 1 };
-	F32 restitution{ 0.0f };
-	F32 staticFriction{ 0.2f };
-	F32 dynamicFriction{ 0.2f };
-	F32 density{ 1.0f };
-	Vector2 center{ Vector2Zero };
+	bool trigger = false;
+	U64 layers = 1;
+	F32 restitution = 0.0f;
+	F32 staticFriction = 0.2f;
+	F32 dynamicFriction = 0.2f;
+	F32 density = 1.0f;
+	Vector2 center = Vector2Zero;
 };
 
 struct MassData
@@ -361,14 +361,14 @@ struct NH_API Collider2D
 	//TODO: Full event system
 	//PhysicsEvent2D event{ nullptr };
 
-	bool trigger{ false };
-	U64 layers{ 1 };
-	F32 restitution{ 0.0f };
-	F32 staticFriction{ 0.2f };
-	F32 dynamicFriction{ 0.2f };
-	F32 density{ 1.0f };
-	F32 radius{ 1.0f };
-	Vector2 center{ Vector2Zero };
+	bool trigger = false;
+	U64 layers = 1;
+	F32 restitution = 0.0f;
+	F32 staticFriction = 0.2f;
+	F32 dynamicFriction = 0.2f;
+	F32 density = 1.0f;
+	F32 radius = 1.0f;
+	Vector2 center = Vector2Zero;
 	Polygon polygon;
 
 	ColliderProxy proxy;
@@ -432,14 +432,14 @@ enum NH_API BodyType
 
 struct NH_API RigidBody2D : public Component
 {
-	RigidBody2D(BodyType type) : type{ type }, flags{ FLAG_ACTIVE | FLAG_AWAKE | FLAG_AUTO_SLEEP }
+	RigidBody2D(BodyType type) : type(type), flags(FLAG_ACTIVE | FLAG_AWAKE | FLAG_AUTO_SLEEP)
 	{
 		if (type == BODY_TYPE_DYNAMIC) { invMass = 1.0f; }
 		else { invMass = 0.0f; }
 	}
-	RigidBody2D(RigidBody2D&& other) noexcept : Component(Move(other)), type{ other.type }, colliders{ Move(other.colliders) }, transform{ other.transform }, sweep{ other.sweep },
-		velocity{ other.velocity }, force{ other.force }, angularVelocity{ other.angularVelocity }, torque{ other.torque }, invMass{ other.invMass }, invInertia{ other.invInertia },
-		linearDrag{ other.linearDrag }, angularDrag{ other.angularDrag }, gravityScale{ other.gravityScale }, flags{ other.flags }, sleepTime{ other.sleepTime }
+	RigidBody2D(RigidBody2D&& other) noexcept : Component(Move(other)), type(other.type), colliders(Move(other.colliders)), transform(other.transform), sweep(other.sweep),
+		velocity(other.velocity), force(other.force), angularVelocity(other.angularVelocity), torque(other.torque), invMass(other.invMass), invInertia(other.invInertia),
+		linearDrag(other.linearDrag), angularDrag(other.angularDrag), gravityScale(other.gravityScale), flags(other.flags), sleepTime(other.sleepTime)
 	{
 	}
 
@@ -685,26 +685,26 @@ private:
 	BodyType type{ BODY_TYPE_DYNAMIC };
 
 	U64 index;
-	Vector<Collider2D> colliders{};
-	Vector<ContactEdge2D> contacts{};
-	Transform2D transform{};
-	Sweep2D sweep{};
+	Vector<Collider2D> colliders;
+	Vector<ContactEdge2D> contacts;
+	Transform2D transform;
+	Sweep2D sweep;
 
-	Vector2 velocity{ Vector2Zero };
-	Vector2 force{ Vector2Zero };
+	Vector2 velocity = Vector2Zero;
+	Vector2 force = Vector2Zero;
 
-	F32 angularVelocity{ 0.0f };
-	F32 torque{ 0.0f };
+	F32 angularVelocity = 0.0f;
+	F32 torque = 0.0f;
 
-	F32 invMass{ 1.0f };
-	F32 invInertia{ 0.0f };
-	F32 linearDrag{ 0.0f };
-	F32 angularDrag{ 0.0f };
-	F32 gravityScale{ 1.0f };
+	F32 invMass = 1.0f;
+	F32 invInertia = 0.0f;
+	F32 linearDrag = 0.0f;
+	F32 angularDrag = 0.0f;
+	F32 gravityScale = 1.0f;
 
-	U8 flags{ 0 };
-	F32 sleepTime{ 0.0f };
-	U32 islandIndex{ U32_MAX };
+	U8 flags = 0;
+	F32 sleepTime = 0.0f;
+	U32 islandIndex = U32_MAX;
 
 	friend class Physics;
 	friend class Broadphase; //TODO: temp

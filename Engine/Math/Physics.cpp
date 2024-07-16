@@ -30,7 +30,7 @@ import Containers;
 Vector<RigidBody2D>* Physics::bodies;
 Contact2D* Physics::contacts;
 U64 Physics::contactCapacity;
-Freelist Physics::contactFreelist{};
+Freelist Physics::contactFreelist;
 Vector3 Physics::gravity = Vector3Down * 9.8f;
 U32 Physics::flags = 0;
 bool Physics::stepComplete = true;

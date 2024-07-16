@@ -168,13 +168,13 @@ struct NH_API Descriptor
 
 struct StencilOperationState
 {
-	StencilOp	fail{ STENCIL_OP_KEEP };
-	StencilOp	pass{ STENCIL_OP_KEEP };
-	StencilOp	depthFail{ STENCIL_OP_KEEP };
-	CompareOp	compare{ COMPARE_OP_ALWAYS };
-	U32			compareMask{ 0xff };
-	U32			writeMask{ 0xff };
-	U32			reference{ 0xff };
+	StencilOp	fail = STENCIL_OP_KEEP;
+	StencilOp	pass = STENCIL_OP_KEEP;
+	StencilOp	depthFail = STENCIL_OP_KEEP;
+	CompareOp	compare = COMPARE_OP_ALWAYS;
+	U32			compareMask = 0xff;
+	U32			writeMask = 0xff;
+	U32			reference = 0xff;
 };
 
 struct VkDescriptorPool_T;
@@ -191,27 +191,27 @@ struct NH_API Shader : public Resource
 	void Destroy();
 
 	String								entryPoint;
-	ShaderStageType						stage{ SHADER_STAGE_FLAG_BITS_MAX_ENUM };
+	ShaderStageType						stage = SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 
-	bool								useBindless{ false };
-	bool								useVertices{ false };
-	bool								useInstancing{ false };
-	bool								usePushConstants{ false };
+	bool								useBindless = false;
+	bool								useVertices = false;
+	bool								useInstancing = false;
+	bool								usePushConstants = false;
 
 	//Graphics
-	U8									vertexBindingCount{ 0 };
+	U8									vertexBindingCount = 0;
 	VertexType							vertexTypes[8];
-	U8									instanceBinding{ U8_MAX };
-	U8									instanceLocation{ U8_MAX };
-	U32									instanceStride{ 0 };
+	U8									instanceBinding = U8_MAX;
+	U8									instanceLocation = U8_MAX;
+	U32									instanceStride = 0;
 
-	U8									outputCount{ 0 };
-	Subpass								subpass{};
+	U8									outputCount = 0;
+	Subpass								subpass;
 
 	//Compute
-	U32									localSizeX{ 1 };
-	U32									localSizeY{ 1 };
-	U32									localSizeZ{ 1 };
+	U32									localSizeX = 1;
+	U32									localSizeY = 1;
+	U32									localSizeZ = 1;
 
 private:
 	void CompileShader(String& code);
@@ -229,13 +229,13 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static VkDescriptorSetLayout_T*			dummyDescriptorSetLayout;
+	static VkDescriptorSetLayout_T* dummyDescriptorSetLayout;
 
-	static VkDescriptorPool_T*				bindlessDescriptorPool;
-	static VkDescriptorSet_T*				bindlessDescriptorSet;
-	static VkDescriptorSetLayout_T*			bindlessDescriptorLayout;
-	static constexpr U32					maxBindlessResources{ 1024 };
-	static constexpr U32					bindlessTextureBinding{ 10 };
+	static VkDescriptorPool_T* bindlessDescriptorPool;
+	static VkDescriptorSet_T* bindlessDescriptorSet;
+	static VkDescriptorSetLayout_T* bindlessDescriptorLayout;
+	static constexpr U32					maxBindlessResources = 1024;
+	static constexpr U32					bindlessTextureBinding = 10;
 
 	friend class Resources;
 	friend class Renderer;

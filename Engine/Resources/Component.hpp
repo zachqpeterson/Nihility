@@ -11,14 +11,14 @@ struct NH_API Component
 {
 protected:
 	Component() {}
-	Component(Component&& other) noexcept : entityID{ other.entityID } {}
+	Component(Component&& other) noexcept : entityID(other.entityID) {}
 	Component& operator=(Component&& other) noexcept { entityID = other.entityID; return *this; }
 
 	virtual void Update(Scene* scene) = 0;
 	virtual void Load(Scene* scene) = 0;
 	virtual void Cleanup(Scene* scene) = 0;
 
-	U32 entityID{ U32_MAX };
+	U32 entityID = U32_MAX;
 
 	template<typename>
 	friend struct ComponentPoolInternal;

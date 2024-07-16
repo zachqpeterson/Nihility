@@ -1,7 +1,8 @@
 module;
 
 #include "Defines.hpp"
-//#include <initializer_list>
+
+#include <initializer_list>
 
 export module Containers:Vector;
 
@@ -56,7 +57,7 @@ public:
 	/// Create a new Vector instance using an initializer list, size will equal the list size, capacity with be greater than or equal to size, creates an array of size sizeof(T) * capacity and fills it with the values in list
 	/// </summary>
 	/// <param name="list:">The initializer list</param>
-	//Vector(std::initializer_list<Type> list);
+	Vector(std::initializer_list<Type> list);
 
 	/// <summary>
 	/// Creates a new Vector instance, capacity and size will be other's, creates an array of the same size and copies other's data into it
@@ -475,47 +476,47 @@ private:
 	/// <summary>
 	/// The count of values inside array
 	/// </summary>
-	U64 size{ 0 };
+	U64 size = 0;
 
 	/// <summary>
 	/// The actual size of array
 	/// </summary>
-	U64 capacity{ 0 };
+	U64 capacity = 0;
 
 	/// <summary>
 	/// A dynamically allocated array to store data
 	/// </summary>
-	Type* array{ nullptr };
+	Type* array = nullptr;
 };
 
 template<class Type> inline Vector<Type>::Vector() {}
 
 template<class Type> inline Vector<Type>::Vector(U64 cap) { Memory::AllocateArray(&array, cap, capacity); }
 
-template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : size{ size }, capacity{ size }
+template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : size(size), capacity(size)
 {
 	Memory::AllocateArray(&array, capacity, capacity);
 	for (Type* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
-//template<class Type> inline Vector<Type>::Vector(std::initializer_list<Type> list) : size{ list.size() }, capacity{ size }
-//{
-//	Memory::AllocateArray(&array, capacity, capacity);
-//
-//	Type* it1 = array;
-//	for (const Type* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
-//	{
-//		*it1 = *it0;
-//	}
-//}
+template<class Type> inline Vector<Type>::Vector(std::initializer_list<Type> list) : size(list.size()), capacity(size)
+{
+	Memory::AllocateArray(&array, capacity, capacity);
 
-template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size{ other.size }, capacity{ other.size }
+	Type* it1 = array;
+	for (const Type* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
+	{
+		*it1 = *it0;
+	}
+}
+
+template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size(other.size), capacity(other.size)
 {
 	Memory::AllocateArray(&array, capacity, capacity);
 	Copy(array, other.array, size);
 }
 
-template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
+template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept : size(other.size), capacity(other.capacity), array(other.array)
 {
 	other.size = 0;
 	other.capacity = 0;

@@ -18,16 +18,16 @@ U8* Memory::dynamicPointer = nullptr;
 U8* Memory::staticPointer = nullptr;
 
 Memory::Region1kb* Memory::pool1kbPointer = nullptr;
-AllocTracker Memory::free1kbAllocs{};
+AllocTracker Memory::free1kbAllocs;
 
 Memory::Region16kb* Memory::pool16kbPointer = nullptr;
-AllocTracker Memory::free16kbAllocs{};
+AllocTracker Memory::free16kbAllocs;
 
 Memory::Region256kb* Memory::pool256kbPointer = nullptr;
-AllocTracker Memory::free256kbAllocs{};
+AllocTracker Memory::free256kbAllocs;
 
 Memory::Region4mb* Memory::pool4mbPointer = nullptr;
-AllocTracker Memory::free4mbAllocs{};
+AllocTracker Memory::free4mbAllocs;
 
 bool Memory::initialized = false;
 

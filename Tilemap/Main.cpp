@@ -38,7 +38,7 @@ bool Init()
 	playerRB = player->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
 	playerRB->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
 	//playerRB->SetRotation(45.0f);
-	
+
 	ground = scene->AddEntity();
 	ground->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 	RigidBody2D* rb = ground->AddComponent<RigidBody2D>(BODY_TYPE_STATIC);
@@ -58,18 +58,18 @@ void Update()
 	if (Input::OnButtonDown(BUTTON_CODE_LEFT_MOUSE))
 	{
 		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-	
+
 		Entity* entity = scene->AddEntity();
 		entity->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 		RigidBody2D* rb = entity->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
 		rb->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
 		rb->SetPosition(pos);
 	}
-	
+
 	if (Input::OnButtonDown(BUTTON_CODE_RIGHT_MOUSE))
 	{
 		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-	
+
 		Entity* entity = scene->AddEntity();
 		entity->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 		RigidBody2D* rb = entity->AddComponent<RigidBody2D>(BODY_TYPE_STATIC);

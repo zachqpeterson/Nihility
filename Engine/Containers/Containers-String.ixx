@@ -1003,16 +1003,16 @@ private:
 	static bool NotWhiteSpace(C c) noexcept;
 	static bool Numerical(C c) noexcept;
 
-	U64 size{ 0 };
-	U64 capacity{ 0 };
-	C* string{ nullptr };
+	U64 size = 0;
+	U64 capacity = 0;
+	C* string = nullptr;
 };
 
 template<Character C>
 inline StringBase<C>::StringBase() noexcept {}
 
 template<Character C>
-inline StringBase<C>::StringBase(const StringBase& other) noexcept : size{ other.size }
+inline StringBase<C>::StringBase(const StringBase& other) noexcept : size(other.size)
 {
 	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
 
@@ -1021,7 +1021,7 @@ inline StringBase<C>::StringBase(const StringBase& other) noexcept : size{ other
 }
 
 template<Character C>
-inline StringBase<C>::StringBase(StringBase&& other) noexcept : size{ other.size }, capacity{ other.capacity }, string{ other.string }
+inline StringBase<C>::StringBase(StringBase&& other) noexcept : size(other.size), capacity(other.capacity), string(other.string)
 {
 	other.size = 0;
 	other.capacity = 0;

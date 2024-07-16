@@ -90,10 +90,10 @@ public:
 private:
 	static U64 Hash(const Key& key);
 
-	U64 size{ 0 };
-	U64 capacity{ 0 };
-	U64 capMinusOne{ 0 };
-	Cell* cells{ nullptr };
+	U64 size = 0;
+	U64 capacity = 0;
+	U64 capMinusOne = 0;
+	Cell* cells = nullptr;
 
 	Hashmap(const Hashmap&) = delete;
 	Hashmap& operator=(const Hashmap&) = delete;
@@ -112,7 +112,7 @@ inline Hashmap<Key, Value>::Hashmap(U64 cap)
 
 template<class Key, class Value>
 inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
-	cells{ other.cells }, size{ other.size }, capacity{ other.capacity }, capMinusOne{ other.capMinusOne }
+	cells(other.cells), size(other.size), capacity(other.capacity), capMinusOne(other.capMinusOne)
 {
 	other.cells = nullptr;
 	other.size = 0;

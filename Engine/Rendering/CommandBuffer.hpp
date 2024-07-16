@@ -62,8 +62,8 @@ struct CommandBuffer
 	void PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 
 private:
-	VkCommandBuffer_T* vkCommandBuffer{ nullptr };
-	bool recorded{ false };
+	VkCommandBuffer_T* vkCommandBuffer = nullptr;
+	bool recorded = false;
 
 	friend class Renderer;
 	friend struct CommandBufferRing;

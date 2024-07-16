@@ -10,8 +10,8 @@ module;
 
 module Core:Time;
 
-F64 Time::clockFrequency{ ClockFrequency() };
-F64 Time::programStart{ ProgramStart() };
+F64 Time::clockFrequency = ClockFrequency();
+F64 Time::programStart = ProgramStart();
 F64 Time::frameEndTime;
 F64 Time::delta;
 F64 Time::frameTimer;

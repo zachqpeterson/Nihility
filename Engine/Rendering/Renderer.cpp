@@ -165,7 +165,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(
 VkInstance							Renderer::instance;
 VkPhysicalDevice					Renderer::physicalDevice;
 VkDevice							Renderer::device;
-Swapchain							Renderer::swapchain{};
+Swapchain							Renderer::swapchain;
 VkQueue								Renderer::renderQueue;
 VkQueue								Renderer::transferQueue;
 U32									Renderer::renderQueueIndex;
@@ -176,16 +176,16 @@ VkDescriptorPool					Renderer::descriptorPools[MAX_SWAPCHAIN_IMAGES];
 U64									Renderer::uboAlignment;
 U64									Renderer::sboAlignemnt;
 
-bool								Renderer::bindlessSupported{ false };
-bool								Renderer::pushDescriptorsSupported{ false };
-bool								Renderer::meshShadingSupported{ false };
+bool								Renderer::bindlessSupported = false;
+bool								Renderer::pushDescriptorsSupported = false;
+bool								Renderer::meshShadingSupported = false;
 
 // WINDOW
-Vector4								Renderer::renderArea{};
-U32									Renderer::frameIndex{ 0 };
-U32									Renderer::previousFrame{ 0 };
-U32									Renderer::absoluteFrame{ 0 };
-bool								Renderer::resized{ false };
+Vector4								Renderer::renderArea;
+U32									Renderer::frameIndex = 0;
+U32									Renderer::previousFrame = 0;
+U32									Renderer::absoluteFrame = 0;
+bool								Renderer::resized = false;
 
 // RESOURCES
 Scene* Renderer::currentScene;
@@ -195,15 +195,15 @@ Vector<VkCommandBuffer_T*>			Renderer::commandBuffers[MAX_SWAPCHAIN_IMAGES];
 Buffer								Renderer::stagingBuffer;
 Buffer								Renderer::materialBuffer;
 Buffer								Renderer::globalsBuffer;
-ShadowData							Renderer::shadowData{};
-GlobalData							Renderer::globalData{};
-SkyboxData							Renderer::skyboxData{};
-PostProcessData						Renderer::postProcessData{};
+ShadowData							Renderer::shadowData;
+GlobalData							Renderer::globalData;
+SkyboxData							Renderer::skyboxData;
+PostProcessData						Renderer::postProcessData;
 ResourceRef<Texture>				Renderer::defaultRenderTarget;
 ResourceRef<Texture>				Renderer::defaultDepthTarget;
 
 // TIMING
-VkSemaphore							Renderer::imageAcquired{ nullptr };
+VkSemaphore							Renderer::imageAcquired = nullptr;
 VkSemaphore							Renderer::presentReady[MAX_SWAPCHAIN_IMAGES];
 VkSemaphore							Renderer::renderCompleted[MAX_SWAPCHAIN_IMAGES];
 VkSemaphore							Renderer::transferCompleted[MAX_SWAPCHAIN_IMAGES];
@@ -212,7 +212,7 @@ U64									Renderer::transferWaitValues[MAX_SWAPCHAIN_IMAGES];
 
 // DEBUG
 VkDebugUtilsMessengerEXT			Renderer::debugMessenger;
-bool								Renderer::debugUtilsExtensionPresent{ false };
+bool								Renderer::debugUtilsExtensionPresent = false;
 
 struct VulkanInfo
 {

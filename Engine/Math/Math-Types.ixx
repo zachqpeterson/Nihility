@@ -23,11 +23,11 @@ struct Quaternion3;
 
 export struct NH_API Vector2
 {
-	constexpr Vector2() : x{ 0.0f }, y{ 0.0f } {}
-	constexpr Vector2(F32 f) : x{ f }, y{ f } {}
-	constexpr Vector2(F32 x, F32 y) : x{ x }, y{ y } {}
-	constexpr Vector2(const Vector2& v) : x{ v.x }, y{ v.y } {}
-	constexpr Vector2(Vector2&& v) noexcept : x{ v.x }, y{ v.y } {}
+	constexpr Vector2() : x(0.0f), y(0.0f) {}
+	constexpr Vector2(F32 f) : x(f), y(f) {}
+	constexpr Vector2(F32 x, F32 y) : x(x), y(y) {}
+	constexpr Vector2(const Vector2& v) : x(v.x), y(v.y) {}
+	constexpr Vector2(Vector2&& v) noexcept : x(v.x), y(v.y) {}
 
 	constexpr Vector2& operator=(F32 f) { x = f; y = f; return *this; }
 	constexpr Vector2& operator=(const Vector2& v) { x = v.x; y = v.y; return *this; }
@@ -143,13 +143,13 @@ export constexpr Vector2 operator/(F32 f, const Vector2& v) { return { f / v.x, 
 
 export struct NH_API Vector3
 {
-	constexpr Vector3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f } {}
-	constexpr Vector3(F32 f) : x{ f }, y{ f }, z{ f } {}
-	constexpr Vector3(F32 x, F32 y, F32 z) : x{ x }, y{ y }, z{ z } {}
-	constexpr Vector3(const Vector2& v, F32 z) : x{ v.x }, y{ v.y }, z{ z } {}
-	constexpr Vector3(F32 x, const Vector2& v) : x{ x }, y{ v.x }, z{ v.y } {}
-	constexpr Vector3(const Vector3& v) : x{ v.x }, y{ v.y }, z{ v.z } {}
-	constexpr Vector3(Vector3&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z } {}
+	constexpr Vector3() : x(0.0f), y(0.0f), z(0.0f) {}
+	constexpr Vector3(F32 f) : x(f), y(f), z(f) {}
+	constexpr Vector3(F32 x, F32 y, F32 z) : x(x), y(y), z(z) {}
+	constexpr Vector3(const Vector2& v, F32 z) : x(v.x), y(v.y), z(z) {}
+	constexpr Vector3(F32 x, const Vector2& v) : x(x), y(v.x), z(v.y) {}
+	constexpr Vector3(const Vector3& v) : x(v.x), y(v.y), z(v.z) {}
+	constexpr Vector3(Vector3&& v) noexcept : x(v.x), y(v.y), z(v.z) {}
 
 	constexpr Vector3& operator=(F32 f) { x = f; y = f; z = f; return *this; }
 	constexpr Vector3& operator=(const Vector3& v) { x = v.x; y = v.y; z = v.z; return *this; }
@@ -301,13 +301,13 @@ export constexpr Vector3 operator/(F32 f, const Vector3& v) { return { f / v.x, 
 
 export struct NH_API Vector4
 {
-	constexpr Vector4() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 0.0f } {}
-	constexpr Vector4(F32 f) : x{ f }, y{ f }, z{ f }, w{ f } {}
-	constexpr Vector4(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
-	constexpr Vector4(const Vector2& a, const Vector2& b) : x{ a.x }, y{ a.y }, z{ b.x }, w{ b.y } {}
-	constexpr Vector4(F32 x, const Vector2& a, F32 w) : x{ x }, y{ a.x }, z{ a.y }, w{ w } {}
-	constexpr Vector4(const Vector4& v) : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
-	constexpr Vector4(Vector4&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
+	constexpr Vector4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+	constexpr Vector4(F32 f) : x(f), y(f), z(f), w(f) {}
+	constexpr Vector4(F32 x, F32 y, F32 z, F32 w) : x(x), y(y), z(z), w(w) {}
+	constexpr Vector4(const Vector2& a, const Vector2& b) : x(a.x), y(a.y), z(b.x), w(b.y) {}
+	constexpr Vector4(F32 x, const Vector2& a, F32 w) : x(x), y(a.x), z(a.y), w(w) {}
+	constexpr Vector4(const Vector4& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+	constexpr Vector4(Vector4&& v) noexcept : x(v.x), y(v.y), z(v.z), w(v.w) {}
 
 	constexpr Vector4& operator=(F32 f) { x = f; y = f; z = f; w = f; return *this; }
 	constexpr Vector4& operator=(const Vector4& v) { x = v.x; y = v.y; z = v.z; w = v.w; return *this; }
@@ -757,11 +757,11 @@ export constexpr Vector4 operator/(F32 f, const Vector4& v) { return { f / v.x, 
 
 export struct NH_API Vector2Int
 {
-	constexpr Vector2Int() : x{ 0 }, y{ 0 } {}
-	constexpr Vector2Int(I32 i) : x{ i }, y{ i } {}
-	constexpr Vector2Int(I32 x, I32 y) : x{ x }, y{ y } {}
-	constexpr Vector2Int(const Vector2Int& v) : x{ v.x }, y{ v.y } {}
-	constexpr Vector2Int(Vector2Int&& v) noexcept : x{ v.x }, y{ v.y } {}
+	constexpr Vector2Int() : x(0), y(0) {}
+	constexpr Vector2Int(I32 i) : x(i), y(i) {}
+	constexpr Vector2Int(I32 x, I32 y) : x(x), y(y) {}
+	constexpr Vector2Int(const Vector2Int& v) : x(v.x), y(v.y) {}
+	constexpr Vector2Int(Vector2Int&& v) noexcept : x(v.x), y(v.y) {}
 
 	constexpr Vector2Int& operator=(I32 i) { x = i; y = i; return *this; }
 	constexpr Vector2Int& operator=(const Vector2Int& v) { x = v.x; y = v.y; return *this; }
@@ -869,11 +869,11 @@ export constexpr Vector2Int operator/(I32 i, const Vector2Int& v) { return { i /
 
 export struct NH_API Vector3Int
 {
-	constexpr Vector3Int() : x{ 0 }, y{ 0 }, z{ 0 } {}
-	constexpr Vector3Int(I32 i) : x{ i }, y{ i }, z{ i } {}
-	constexpr Vector3Int(I32 x, I32 y, I32 z) : x{ x }, y{ y }, z{ z } {}
-	constexpr Vector3Int(const Vector3Int& v) : x{ v.x }, y{ v.y }, z{ v.z } {}
-	constexpr Vector3Int(Vector3Int&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z } {}
+	constexpr Vector3Int() : x(0), y(0), z(0) {}
+	constexpr Vector3Int(I32 i) : x(i), y(i), z(i) {}
+	constexpr Vector3Int(I32 x, I32 y, I32 z) : x(x), y(y), z(z) {}
+	constexpr Vector3Int(const Vector3Int& v) : x(v.x), y(v.y), z(v.z) {}
+	constexpr Vector3Int(Vector3Int&& v) noexcept : x(v.x), y(v.y), z(v.z) {}
 
 	constexpr Vector3Int& operator=(I32 i) { x = i; y = i; z = i; return *this; }
 	constexpr Vector3Int& operator=(const Vector3Int& v) { x = v.x; y = v.y; z = v.z; return *this; }
@@ -1015,11 +1015,11 @@ export constexpr Vector3Int operator/(I32 i, const Vector3Int& v) { return { i /
 
 export struct NH_API Vector4Int
 {
-	constexpr Vector4Int() : x{ 0 }, y{ 0 }, z{ 0 }, w{ 0 } {}
-	constexpr Vector4Int(I32 i) : x{ i }, y{ i }, z{ i }, w{ i } {}
-	constexpr Vector4Int(I32 x, I32 y, I32 z, I32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
-	constexpr Vector4Int(const Vector4Int& v) : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
-	constexpr Vector4Int(Vector4Int&& v) noexcept : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } {}
+	constexpr Vector4Int() : x(0), y(0), z(0), w(0) {}
+	constexpr Vector4Int(I32 i) : x(i), y(i), z(i), w(i) {}
+	constexpr Vector4Int(I32 x, I32 y, I32 z, I32 w) : x(x), y(y), z(z), w(w) {}
+	constexpr Vector4Int(const Vector4Int& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+	constexpr Vector4Int(Vector4Int&& v) noexcept : x(v.x), y(v.y), z(v.z), w(v.w) {}
 
 	constexpr Vector4Int& operator=(I32 i) { x = i; y = i; z = i; w = i; return *this; }
 	constexpr Vector4Int& operator=(const Vector4Int& v) { x = v.x; y = v.y; z = v.z; w = v.w; return *this; }
@@ -1508,13 +1508,13 @@ inline constexpr Vector4Int::operator Vector3Int() const { return Vector3Int{ x,
 
 export struct NH_API Matrix2
 {
-	constexpr Matrix2() : a{ 1.0f, 0.0f }, b{ 0.0f, 1.0f } {}
-	constexpr Matrix2(F32 ax, F32 ay, F32 bx, F32 by) : a{ ax, ay }, b{ bx, by } {}
-	constexpr Matrix2(const Vector2& v) : a{ v.x, 0.0f }, b{ 0.0f, v.y } {}
-	constexpr Matrix2(const Vector2& a, const Vector2& b) : a{ a }, b{ b } {}
-	constexpr Matrix2(Vector2&& a, Vector2&& b) noexcept : a{ a }, b{ b } {}
-	constexpr Matrix2(const Matrix2& m) : a{ m.a }, b{ m.b } {}
-	constexpr Matrix2(Matrix2&& m) noexcept : a{ m.a }, b{ m.b } {}
+	constexpr Matrix2() : a(1.0f, 0.0f), b(0.0f, 1.0f) {}
+	constexpr Matrix2(F32 ax, F32 ay, F32 bx, F32 by) : a(ax, ay), b(bx, by) {}
+	constexpr Matrix2(const Vector2& v) : a(v.x, 0.0f), b(0.0f, v.y) {}
+	constexpr Matrix2(const Vector2& a, const Vector2& b) : a(a), b(b) {}
+	constexpr Matrix2(Vector2&& a, Vector2&& b) noexcept : a(a), b(b) {}
+	constexpr Matrix2(const Matrix2& m) : a(m.a), b(m.b) {}
+	constexpr Matrix2(Matrix2&& m) noexcept : a(m.a), b(m.b) {}
 
 	constexpr Matrix2& operator= (const Matrix2& m) { a = m.a; b = m.b; return *this; }
 	constexpr Matrix2& operator= (Matrix2&& m) noexcept { a = m.a; b = m.b; return *this; }
@@ -1614,13 +1614,13 @@ public:
 
 export struct NH_API Matrix3
 {
-	constexpr Matrix3() : a{ 1.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f } {}
-	constexpr Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a{ ax, ay, az }, b{ bx, by, bz }, c{ cx, cy, cz } {}
-	constexpr Matrix3(const Vector3& v) : a{ v.x, 0.0f, 0.0f }, b{ 0.0f, v.y, 0.0f }, c{ 0.0f, 0.0f, v.z } {}
-	constexpr Matrix3(const Vector3& a, const Vector3& b, const Vector3& c) : a{ a }, b{ b }, c{ c } {}
-	constexpr Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) noexcept : a{ v1 }, b{ v2 }, c{ v3 } {}
-	constexpr Matrix3(const Matrix3& m) : a{ m.a }, b{ m.b }, c{ m.c } {}
-	constexpr Matrix3(Matrix3&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c } {}
+	constexpr Matrix3() : a(1.0f, 0.0f, 0.0f), b(0.0f, 1.0f, 0.0f), c(0.0f, 0.0f, 1.0f) {}
+	constexpr Matrix3(F32 ax, F32 ay, F32 az, F32 bx, F32 by, F32 bz, F32 cx, F32 cy, F32 cz) : a(ax, ay, az), b(bx, by, bz), c(cx, cy, cz) {}
+	constexpr Matrix3(const Vector3& v) : a(v.x, 0.0f, 0.0f), b(0.0f, v.y, 0.0f), c(0.0f, 0.0f, v.z) {}
+	constexpr Matrix3(const Vector3& a, const Vector3& b, const Vector3& c) : a(a), b(b), c(c) {}
+	constexpr Matrix3(Vector3&& v1, Vector3&& v2, Vector3&& v3) noexcept : a(v1), b(v2), c(v3) {}
+	constexpr Matrix3(const Matrix3& m) : a(m.a), b(m.b), c(m.c) {}
+	constexpr Matrix3(Matrix3&& m) noexcept : a(m.a), b(m.b), c(m.c) {}
 	constexpr Matrix3(const Vector2& position, const F32& rotation, const Vector2& scale)
 	{
 		F32 cos = Math::Cos(rotation * DEG_TO_RAD_F);
@@ -1775,18 +1775,18 @@ public:
 
 export struct NH_API Matrix4
 {
-	constexpr Matrix4() : a{ 1.0f, 0.0f, 0.0f, 0.0f }, b{ 0.0f, 1.0f, 0.0f, 0.0f }, c{ 0.0f, 0.0f, 1.0f, 0.0f }, d{ 0.0f, 0.0f, 0.0f, 1.0f } {}
+	constexpr Matrix4() : a(1.0f, 0.0f, 0.0f, 0.0f), b(0.0f, 1.0f, 0.0f, 0.0f), c(0.0f, 0.0f, 1.0f, 0.0f), d(0.0f, 0.0f, 0.0f, 1.0f) {}
 	constexpr Matrix4(F32 ax, F32 ay, F32 az, F32 aw, F32 bx, F32 by, F32 bz, F32 bw, F32 cx, F32 cy, F32 cz, F32 cw, F32 dx, F32 dy, F32 dz, F32 dw) :
-		a{ ax, ay, az, aw }, b{ bx, by, bz, bw }, c{ cx, cy, cz, cw }, d{ dx, dy, dz, dw }
+		a(ax, ay, az, aw), b(bx, by, bz, bw), c(cx, cy, cz, cw), d(dx, dy, dz, dw)
 	{
 	}
-	constexpr Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a{ a }, b{ b }, c{ c }, d{ d } {}
-	constexpr Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) noexcept : a{ a }, b{ b }, c{ c }, d{ d } {}
-	constexpr Matrix4(const Matrix4& m) : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
-	constexpr Matrix4(const Matrix3& m) : a{ m.a.x, m.a.y, 0.0f, m.a.z }, b{ m.b.x, m.b.y, 0.0f, m.b.z }, c{ 0.0f, 0.0f, 1.0f, m.b.z }, d{ m.c.x, m.c.y, 0.0f, 1.0f } {}
-	constexpr Matrix4(Matrix4&& m) noexcept : a{ m.a }, b{ m.b }, c{ m.c }, d{ m.d } {}
-	constexpr Matrix4(const Vector3& position, const Vector3& rotation = { 0.0f }, const Vector3& scale = { 1.0f });
-	constexpr Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale = { 1.0f });
+	constexpr Matrix4(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& d) : a(a), b(b), c(c), d(d) {}
+	constexpr Matrix4(Vector4&& a, Vector4&& b, Vector4&& c, Vector4&& d) noexcept : a(a), b(b), c(c), d(d) {}
+	constexpr Matrix4(const Matrix4& m) : a(m.a), b(m.b), c(m.c), d(m.d) {}
+	constexpr Matrix4(const Matrix3& m) : a(m.a.x, m.a.y, 0.0f, m.a.z), b(m.b.x, m.b.y, 0.0f, m.b.z), c(0.0f, 0.0f, 1.0f, m.b.z), d(m.c.x, m.c.y, 0.0f, 1.0f) {}
+	constexpr Matrix4(Matrix4&& m) noexcept : a(m.a), b(m.b), c(m.c), d(m.d) {}
+	constexpr Matrix4(const Vector3& position, const Vector3& rotation = (0.0f), const Vector3& scale = (1.0f));
+	constexpr Matrix4(const Vector3& position, const Quaternion3& rotation, const Vector3& scale = (1.0f));
 
 	constexpr Matrix4& operator= (const Matrix4& m) { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
 	constexpr Matrix4& operator= (Matrix4&& m) noexcept { a = m.a; b = m.b; c = m.c; d = m.d; return *this; }
@@ -2294,12 +2294,12 @@ public:
 
 export struct NH_API Quaternion2
 {
-	constexpr Quaternion2() : x{ 0.0f }, y{ 1.0f } {}
-	constexpr Quaternion2(F32 x, F32 y) : x{ x }, y{ y } {}
+	constexpr Quaternion2() : x(0.0f), y(1.0f) {}
+	constexpr Quaternion2(F32 x, F32 y) : x(x), y(y) {}
 	constexpr Quaternion2(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x = Math::Sin(a); y = Math::Cos(a); }
-	constexpr Quaternion2(const Matrix2& mat) : x{ Math::Sqrt((mat.a.x - 1.0f) * -0.5f) }, y{ Math::Sqrt(mat.a.y * 0.5f) } {}
-	constexpr Quaternion2(const Quaternion2& q) : x{ q.x }, y{ q.y } {}
-	constexpr Quaternion2(Quaternion2&& q) noexcept : x{ q.x }, y{ q.y } {}
+	constexpr Quaternion2(const Matrix2& mat) : x(Math::Sqrt((mat.a.x - 1.0f) * -0.5f)), y(Math::Sqrt(mat.a.y * 0.5f)) {}
+	constexpr Quaternion2(const Quaternion2& q) : x(q.x), y(q.y) {}
+	constexpr Quaternion2(Quaternion2&& q) noexcept : x(q.x), y(q.y) {}
 
 	constexpr Quaternion2& operator=(F32 angle) { F32 a = angle * DEG_TO_RAD_F * 0.5f; x = Math::Sin(a); y = Math::Cos(a); return *this; }
 	constexpr Quaternion2& operator=(const Quaternion2& q) { x = q.x; y = q.y; return *this; }
@@ -2489,8 +2489,8 @@ public:
 //W is real part
 export struct NH_API Quaternion3
 {
-	constexpr Quaternion3() : x{ 0.0f }, y{ 0.0f }, z{ 0.0f }, w{ 1.0f } {}
-	constexpr Quaternion3(F32 x, F32 y, F32 z, F32 w) : x{ x }, y{ y }, z{ z }, w{ w } {}
+	constexpr Quaternion3() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) {}
+	constexpr Quaternion3(F32 x, F32 y, F32 z, F32 w) : x(x), y(y), z(z), w(w) {}
 	constexpr Quaternion3(const Vector3& euler)
 	{
 		F32 hx = euler.x * DEG_TO_RAD_F * 0.5f;
@@ -2527,8 +2527,8 @@ export struct NH_API Quaternion3
 		z = s * axis.z;
 		w = c;
 	}
-	constexpr Quaternion3(const Quaternion3& q) : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
-	constexpr Quaternion3(Quaternion3&& q) noexcept : x{ q.x }, y{ q.y }, z{ q.z }, w{ q.w } {}
+	constexpr Quaternion3(const Quaternion3& q) : x(q.x), y(q.y), z(q.z), w(q.w) {}
+	constexpr Quaternion3(Quaternion3&& q) noexcept : x(q.x), y(q.y), z(q.z), w(q.w) {}
 
 	constexpr Quaternion3& operator=(const Vector3& euler)
 	{
@@ -3134,7 +3134,7 @@ private:
 	bool dirty{ false };
 	Transform* parent{ nullptr };
 	Vector3 position{};
-	Vector3 scale{1.0f};
+	Vector3 scale{ 1.0f };
 	Quaternion3 rotation{};
 	Matrix4 localMatrix{};
 	Matrix4 worldMatrix{};
@@ -3162,7 +3162,7 @@ struct LinearSpline
 	static constexpr U64 MinPoints = 2;
 
 	template<class... Points>
-	constexpr LinearSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	constexpr LinearSpline(Points&&... pointsArgs) noexcept : pointCount(sizeof...(pointsArgs)), points(pointsArgs...)
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
@@ -3190,7 +3190,7 @@ struct BezierSpline
 	static constexpr U64 MinPoints = 4;
 
 	template<class... Points>
-	constexpr BezierSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	constexpr BezierSpline(Points&&... pointsArgs) noexcept : pointCount(sizeof...(pointsArgs)), points(pointsArgs...)
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
@@ -3226,7 +3226,7 @@ struct CatmullRomSpline
 	static constexpr U64 MinPoints = 4;
 
 	template<class... Points>
-	constexpr CatmullRomSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	constexpr CatmullRomSpline(Points&&... pointsArgs) noexcept : pointCount(sizeof...(pointsArgs)), points(pointsArgs...)
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
@@ -3262,7 +3262,7 @@ struct CardinalSpline
 	static constexpr U64 MinPoints = 4;
 
 	template<class... Points>
-	constexpr CardinalSpline(F64 scale, Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }, scale{ scale }
+	constexpr CardinalSpline(F64 scale, Points&&... pointsArgs) noexcept : pointCount(sizeof...(pointsArgs)), points(pointsArgs...), scale(scale)
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
@@ -3299,7 +3299,7 @@ struct BSpline
 	static constexpr U64 MinPoints = 4;
 
 	template<class... Points>
-	constexpr BSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	constexpr BSpline(Points&&... pointsArgs) noexcept : pointCount(sizeof...(pointsArgs)), points(pointsArgs...)
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}
@@ -3335,7 +3335,7 @@ struct HermiteSpline
 	static constexpr U64 MinPoints = 2;
 
 	template<typename... Points>
-	constexpr HermiteSpline(Points&&... pointsArgs) noexcept : pointCount{ sizeof...(pointsArgs) }, points{ pointsArgs... }
+	constexpr HermiteSpline(Points&&... pointsArgs) noexcept : pointCount(sizeof...(pointsArgs)), points(pointsArgs...)
 	{
 		static_assert(sizeof...(pointsArgs) >= MinPoints && sizeof...(pointsArgs) < MAX_SPLINE_POINTS);
 	}

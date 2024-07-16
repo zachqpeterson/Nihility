@@ -27,21 +27,21 @@ import Audio;
 #undef near
 #undef far
 
-constexpr U32 ASSIMP_IMPORT_FLAGS = 
-aiProcess_CalcTangentSpace | 
-aiProcess_JoinIdenticalVertices | 
-aiProcess_Triangulate | 
-aiProcess_RemoveComponent | 
-aiProcess_GenSmoothNormals | 
-aiProcess_ValidateDataStructure | 
-aiProcess_ImproveCacheLocality | 
-aiProcess_RemoveRedundantMaterials | 
-aiProcess_FindInvalidData | 
-aiProcess_GenUVCoords | 
-aiProcess_FindInstances | 
-aiProcess_OptimizeMeshes | 
-aiProcess_OptimizeGraph | 
-aiProcess_FlipUVs | 
+constexpr U32 ASSIMP_IMPORT_FLAGS =
+aiProcess_CalcTangentSpace |
+aiProcess_JoinIdenticalVertices |
+aiProcess_Triangulate |
+aiProcess_RemoveComponent |
+aiProcess_GenSmoothNormals |
+aiProcess_ValidateDataStructure |
+aiProcess_ImproveCacheLocality |
+aiProcess_RemoveRedundantMaterials |
+aiProcess_FindInvalidData |
+aiProcess_GenUVCoords |
+aiProcess_FindInstances |
+aiProcess_OptimizeMeshes |
+aiProcess_OptimizeGraph |
+aiProcess_FlipUVs |
 aiProcess_EmbedTextures;
 
 #if NH_BIG_ENDIAN
@@ -419,19 +419,19 @@ constexpr U32 SHADER_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 SCENE_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 FONT_VERSION = MakeVersionNumber(0, 1, 0);
 
-Hashmap<String, Texture>		Resources::textures{ 512 };
-Hashmap<String, Skybox>			Resources::skyboxes{ 32 };
-Hashmap<String, Font>			Resources::fonts{ 32 };
-Hashmap<String, AudioClip>		Resources::audioClips{ 512 };
-Hashmap<String, Shader>			Resources::shaders{ 128 };
-Hashmap<String, Pipeline>		Resources::pipelines{ 256 };
-Hashmap<String, MaterialEffect>	Resources::materialEffects{ 256 };
-Hashmap<String, Material>		Resources::materials{ 256 };
-Hashmap<String, Mesh>			Resources::meshes{ 512 };
-Hashmap<String, Model>			Resources::models{ 256 };
-Hashmap<String, Scene>			Resources::scenes{ 128 };
+Hashmap<String, Texture>		Resources::textures(512);
+Hashmap<String, Skybox>			Resources::skyboxes(32);
+Hashmap<String, Font>			Resources::fonts(32);
+Hashmap<String, AudioClip>		Resources::audioClips(512);
+Hashmap<String, Shader>			Resources::shaders(128);
+Hashmap<String, Pipeline>		Resources::pipelines(256);
+Hashmap<String, MaterialEffect>	Resources::materialEffects(256);
+Hashmap<String, Material>		Resources::materials(256);
+Hashmap<String, Mesh>			Resources::meshes(512);
+Hashmap<String, Model>			Resources::models(256);
+Hashmap<String, Scene>			Resources::scenes(128);
 
-Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate{};
+Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
 
 bool Resources::Initialize()
 {
@@ -696,7 +696,7 @@ ResourceRef<Material> Resources::CreateMaterial(const MaterialInfo& info)
 		if (material->data.baseColorFactor.w < 1.0f) { material->effect = GetMaterialEffect("pbrTransparentEffect"); }
 		else { material->effect = GetMaterialEffect("pbrOpaqueEffect"); }
 	}
-	
+
 
 	VkBufferCopy region{};
 	region.dstOffset = sizeof(MaterialData) * handle;
@@ -2290,18 +2290,18 @@ String Resources::UploadFile(const String& path)
 		return Move(UploadTexture(path));
 	} break;
 
-		//Skyboxes
+					 //Skyboxes
 	case "hdr"_Hash: {
 		return Move(UploadSkybox(path));
 	} break;
 
-		//Fonts
+				   //Fonts
 	case "ttf"_Hash:
 	case "otf"_Hash: {
 		return Move(UploadFont(path));
 	} break;
 
-		//Models
+				   //Models
 	case "obj"_Hash:
 	case "gltf"_Hash:
 	case "glb"_Hash:
@@ -2311,7 +2311,7 @@ String Resources::UploadFile(const String& path)
 		return Move(UploadModel(path));
 	} break;
 
-		//Audio
+				   //Audio
 	case "wav"_Hash:
 	case "mp3"_Hash:
 	case "ogg"_Hash:
@@ -2438,7 +2438,7 @@ String Resources::UploadAudio(const String& path)
 
 			String newPath = path.GetFileName().Surround("audio/", ".nhaud");
 			file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
-			
+
 			file.Write("NH Audio");
 			file.Write(AUDIO_VERSION);
 

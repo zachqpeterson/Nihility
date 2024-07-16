@@ -9,8 +9,8 @@ import Containers;
 import Multithreading;
 import Platform;
 
-File log{ File("Log.log", FILE_OPEN_LOG) };
-File console{ File("CONOUT$", FILE_OPEN_CONSOLE) };
+File log = File("Log.log", FILE_OPEN_LOG);
+File console = File("CONOUT$", FILE_OPEN_CONSOLE);
 
 SafeQueue<String, 64> Logger::messageQueue;
 bool Logger::writing = false;

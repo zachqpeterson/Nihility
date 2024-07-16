@@ -33,26 +33,26 @@ struct Stack
 	bool Full() const;
 
 private:
-	U32 size{ 0 };
-	U32 capacity{ 0 };
-	Type* array{ nullptr };
+	U32 size = 0;
+	U32 capacity = 0;
+	Type* array = nullptr;
 };
 
 template <class Type>
 inline Stack<Type>::Stack() { Memory::AllocateArray(&array, capacity, capacity); }
 
 template <class Type>
-inline Stack<Type>::Stack(U32 cap) : capacity{ cap } { Memory::AllocateArray(&array, cap, capacity); }
+inline Stack<Type>::Stack(U32 cap) : capacity(cap) { Memory::AllocateArray(&array, cap, capacity); }
 
 template <class Type>
-inline Stack<Type>::Stack(const Stack& other) : size{ other.size }, capacity{ other.size }
+inline Stack<Type>::Stack(const Stack& other) : size(other.size), capacity(other.size)
 {
 	Memory::AllocateArray(&array, capacity, capacity);
 	Copy(array, other.array, size);
 }
 
 template <class Type>
-inline Stack<Type>::Stack(Stack&& other) noexcept : size{ other.size }, capacity{ other.capacity }, array{ other.array }
+inline Stack<Type>::Stack(Stack&& other) noexcept : size(other.size), capacity(other.capacity), array(other.array)
 {
 	other.size = 0;
 	other.capacity = 0;

@@ -54,17 +54,17 @@ struct NH_API UIElement
 	~UIElement();
 
 private:
-	Vector4 area{};
-	Vector4 color{};
+	Vector4 area;
+	Vector4 color;
 
-	bool ignore{ false };
-	bool hovered{ false };
-	bool clicked{ false };
-	bool enabled{ true };
+	bool ignore = false;
+	bool hovered = false;
+	bool clicked = false;
+	bool enabled = true;
 
-	Scene* scene{ nullptr };
-	UIComponent* component{ nullptr };
-	UIElement* parent{ nullptr };
+	Scene* scene = nullptr;
+	UIComponent* component = nullptr;
+	UIElement* parent = nullptr;
 	Vector<UIElement*> children;
 
 	UIEvent OnClick;
@@ -75,7 +75,7 @@ private:
 	UIEvent OnExit;
 	UIEvent OnScroll;
 
-	UIElementType type{ UI_ELEMENT_NONE };
+	UIElementType type = UI_ELEMENT_NONE;
 	union
 	{
 		struct Panel
@@ -154,14 +154,14 @@ private:
 
 struct NH_API UIElementInfo
 {
-	Vector4 area{};
-	Vector4 color{};
+	Vector4 area;
+	Vector4 color;
 
-	bool ignore{ false };
-	bool enabled{ true };
+	bool ignore = false;
+	bool enabled = true;
 
-	Scene* scene{ nullptr };
-	UIElement* parent{ nullptr };
+	Scene* scene = nullptr;
+	UIElement* parent = nullptr;
 
 	UIEvent OnClick;
 	UIEvent OnDrag;

@@ -8,8 +8,8 @@
 import Core;
 import Platform;
 
-Dependancy::Dependancy(DependancyType type) : type{ type } {}
-Dependancy::Dependancy(const ResourceRef<Pipeline>& pipeline, DependancyType type, U8 index) : pipeline{ pipeline }, type{ type }, index{ index } {}
+Dependancy::Dependancy(DependancyType type) : type(type) {}
+Dependancy::Dependancy(const ResourceRef<Pipeline>& pipeline, DependancyType type, U8 index) : pipeline(pipeline), type(type), index(index) {}
 
 bool Pipeline::Create(U8 pushConstantCount, PushConstant* pushConstants)
 {
@@ -532,7 +532,7 @@ void Pipeline::PushDescriptors(CommandBuffer* commandBuffer)
 				commandBuffer->BindDescriptorSets((VkPipelineBindPoint)bindPoint, pipelineLayout, 0, 1, &set);
 			}
 		}
-		else if(useBindless)
+		else if (useBindless)
 		{
 			commandBuffer->BindDescriptorSets((VkPipelineBindPoint)bindPoint, pipelineLayout, 1, 1, &Shader::bindlessDescriptorSet);
 		}

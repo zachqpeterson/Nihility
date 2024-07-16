@@ -76,7 +76,7 @@ struct NH_API Dependancy
 
 	ResourceRef<Pipeline> pipeline;
 	DependancyType type;
-	U8 index{ 0 };
+	U8 index = 0;
 
 private:
 	U8 descriptor;
@@ -87,8 +87,8 @@ private:
 
 struct DrawSet
 {
-	U32 drawOffset{ 0 };
-	U32 countOffset{ 0 };
+	U32 drawOffset = 0;
+	U32 countOffset = 0;
 };
 
 struct Renderpass;
@@ -116,70 +116,70 @@ private:
 	void PushDescriptors(CommandBuffer* commandBuffer);
 	void PushConstants(CommandBuffer* commandBuffer);
 
-	U32								type{ 0 }; //PipelineType
-	I32								renderOrder{ 0 };
-	U32								sizeX{ 0 };
-	U32								sizeY{ 0 };
-	bool							loaded{ false };
+	U32								type = 0; //PipelineType
+	I32								renderOrder = 0;
+	U32								sizeX = 0;
+	U32								sizeY = 0;
+	bool							loaded = false;
 
 	Vector<ResourceRef<Shader>>		shaders;
-	VkPipeline_T*					pipeline{ nullptr };
-	VkPipelineLayout_T*				pipelineLayout{ nullptr };
-	VkDescriptorSetLayout_T*		descriptorSetLayout{ nullptr };
-	VkDescriptorUpdateTemplate_T*	updateTemplate{ nullptr };
-	PipelineBindPoint				bindPoint{ PIPELINE_BIND_POINT_MAX_ENUM };
+	VkPipeline_T*					pipeline = nullptr;
+	VkPipelineLayout_T*				pipelineLayout = nullptr;
+	VkDescriptorSetLayout_T*		descriptorSetLayout = nullptr;
+	VkDescriptorUpdateTemplate_T*	updateTemplate = nullptr;
+	PipelineBindPoint				bindPoint = PIPELINE_BIND_POINT_MAX_ENUM;
 
-	PushConstant					pushConstants[MAX_PUSH_CONSTANTS]{};
-	U8								pushConstantCount{ 0 };
-	U32								pushConstantStages{ 0 };
-	Dependancy						dependancies[MAX_DESCRIPTORS_PER_SET]{};
-	U8								dependancyCount{ 0 };
-	Descriptor						descriptors[MAX_DESCRIPTORS_PER_SET]{};
-	U8								descriptorCount{ 0 };
-	U8								outputCount{ 0 };
+	PushConstant					pushConstants[MAX_PUSH_CONSTANTS];
+	U8								pushConstantCount = 0;
+	U32								pushConstantStages = 0;
+	Dependancy						dependancies[MAX_DESCRIPTORS_PER_SET];
+	U8								dependancyCount = 0;
+	Descriptor						descriptors[MAX_DESCRIPTORS_PER_SET];
+	U8								descriptorCount = 0;
+	U8								outputCount = 0;
 
 	//Graphics
-	U32								renderpassIndex{ 0 };
-	U32								subpassIndex{ 0 };
-	Subpass							subpass{};
-	I32								clearTypes{ 0 };
-	TopologyMode					topologyMode{ TOPOLOGY_MODE_TRIANGLE_LIST };
-	CullMode						cullMode{ CULL_MODE_NONE };
-	FrontFaceMode					frontMode{ FRONT_FACE_MODE_COUNTER_CLOCKWISE };
-	PolygonMode						fillMode{ POLYGON_MODE_FILL };
-	BlendMode						blendMode{ BLEND_MODE_ADD };
-	VertexType						vertexTypes[8]{};
-	U8								vertexBindingCount{ 0 };
+	U32								renderpassIndex = 0;
+	U32								subpassIndex = 0;
+	Subpass							subpass;
+	I32								clearTypes = 0;
+	TopologyMode					topologyMode = TOPOLOGY_MODE_TRIANGLE_LIST;
+	CullMode						cullMode = CULL_MODE_NONE;
+	FrontFaceMode					frontMode = FRONT_FACE_MODE_COUNTER_CLOCKWISE;
+	PolygonMode						fillMode = POLYGON_MODE_FILL;
+	BlendMode						blendMode = BLEND_MODE_ADD;
+	VertexType						vertexTypes[8];
+	U8								vertexBindingCount = 0;
 
-	StencilOperationState			front{};
-	StencilOperationState			back{};
-	CompareOp						depthComparison{ COMPARE_OP_ALWAYS };
-	bool							useVertices{ false };
-	bool							useIndices{ true };
-	bool							useInstances{ false };
-	bool							useBindless{ false };
-	bool							depthEnable{ false };
-	bool							depthWriteEnable{ false };
-	bool							stencilEnable{ false };
-	bool							depthBiasEnable{ false };
-	F32								depthBiasConstant{ 0.0f };
-	F32								depthBiasSlope{ 0.0f };
-	F32								depthBiasClamp{ 0.0f };
+	StencilOperationState			front;
+	StencilOperationState			back;
+	CompareOp						depthComparison = COMPARE_OP_ALWAYS;
+	bool							useVertices = false;
+	bool							useIndices = true;
+	bool							useInstances = false;
+	bool							useBindless = false;
+	bool							depthEnable = false;
+	bool							depthWriteEnable = false;
+	bool							stencilEnable = false;
+	bool							depthBiasEnable = false;
+	F32								depthBiasConstant = 0.0f;
+	F32								depthBiasSlope = 0.0f;
+	F32								depthBiasClamp = 0.0f;
 
-	U32								instanceStride{ 0 };
-	U32								vertexCount{ 0 };
+	U32								instanceStride = 0;
+	U32								vertexCount = 0;
 
-	U32								vertexBufferCount{ 0 };
-	VkBuffer_T*						vertexBuffers[8]{};
-	U64								vertexBufferOffsets[8]{};
-	U32								drawCount{ 0 };
-	U32								drawOffset{ 0 };
-	U32								countOffset{ 0 };
+	U32								vertexBufferCount = 0;
+	VkBuffer_T*						vertexBuffers[8];
+	U64								vertexBufferOffsets[8];
+	U32								drawCount = 0;
+	U32								drawOffset = 0;
+	U32								countOffset = 0;
 
 	//Compute
-	U32								localSizeX{ 1 };
-	U32								localSizeY{ 1 };
-	U32								localSizeZ{ 1 };
+	U32								localSizeX = 1;
+	U32								localSizeY = 1;
+	U32								localSizeZ = 1;
 
 	friend class UI;
 	friend class Resources;

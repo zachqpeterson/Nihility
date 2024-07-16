@@ -35,11 +35,11 @@ export struct NH_API DataReader
 	U8* Pointer() const;
 
 private:
-	bool allocated{ false };
-	U64 size{ 0 };
-	U64 remaining{ 0 };
-	U8* data{ nullptr };
-	U8* dataPtr{ nullptr };
+	bool allocated = false;
+	U64 size = 0;
+	U64 remaining = 0;
+	U8* data = nullptr;
+	U8* dataPtr = nullptr;
 };
 
 template<class Type>
@@ -88,9 +88,9 @@ inline bool DataReader::Compare(const C(&str)[Count])
 
 DataReader::DataReader() {}
 
-DataReader::DataReader(void* data, U32 size) : size{ size }, remaining{ size }, data{ (U8*)data }, dataPtr{ (U8*)data } {}
+DataReader::DataReader(void* data, U32 size) : size(size), remaining(size), data((U8*)data), dataPtr((U8*)data) {}
 
-DataReader::DataReader(File& file) : allocated{ true }, size{ (U64)file.Size() }, remaining{ size }
+DataReader::DataReader(File& file) : allocated(true), size((U64)file.Size()), remaining(size)
 {
 	Memory::AllocateSize(&data, size);
 	I64 ptr = file.Pointer();

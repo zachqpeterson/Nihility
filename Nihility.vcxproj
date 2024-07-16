@@ -189,7 +189,6 @@
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
-    <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Platform\Input.hpp" />
@@ -318,6 +317,7 @@
     <ClCompile Include="Engine\Core\Core.ixx" />
     <ClCompile Include="Engine\Core\Events.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
+    <ClCompile Include="Engine\Core\Core-Invocator.ixx" />
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />

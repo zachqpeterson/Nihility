@@ -534,7 +534,7 @@ union NH_API ClearValue
 {
 	Vector4 color;
 	struct {
-		F32 depth;
+		F32 depth = 0.0f;
 		U32 stencil;
 	} depthStencil;
 };
@@ -578,11 +578,11 @@ public:
 	const HashHandle& Handle() const { return handle; }
 
 protected:
-	String				name{};
-	HashHandle			handle{ U64_MAX };
+	String				name;
+	HashHandle			handle = U64_MAX;
 
 private:
-	U64 refCount{ 0 };
+	U64 refCount = 0;
 
 	template<class Type>
 	friend struct ResourceRef;
@@ -594,8 +594,8 @@ struct ResourceRef
 {
 	ResourceRef() {}
 	ResourceRef(NullPointer) {}
-	ResourceRef(Type* value) : value{ value } { if (value) { ++value->refCount; } }
-	ResourceRef(const ResourceRef& other) : value{ other.value } { if (value) { ++value->refCount; } }
+	ResourceRef(Type* value) : value(value) { if (value) { ++value->refCount; } }
+	ResourceRef(const ResourceRef& other) : value(other.value) { if (value) { ++value->refCount; } }
 	~ResourceRef()
 	{
 		Destroy();
@@ -640,26 +640,26 @@ private:
 	explicit operator Type* () { return value; }
 	explicit operator const Type* () const { return value; }
 
-	Type* value{ nullptr };
+	Type* value = nullptr;
 
 	friend class Resources;
 };
 
 struct NH_API Sampler
 {
-	I32				minFilter{ FILTER_TYPE_LINEAR }; //VkFilter
-	I32				magFilter{ FILTER_TYPE_LINEAR }; //VkFilter
-	I32				mipFilter{ SAMPLER_MIPMAP_MODE_LINEAR }; //VkSamplerMipmapMode
+	I32				minFilter = FILTER_TYPE_LINEAR; //VkFilter
+	I32				magFilter = FILTER_TYPE_LINEAR; //VkFilter
+	I32				mipFilter = SAMPLER_MIPMAP_MODE_LINEAR; //VkSamplerMipmapMode
 
-	I32				boundsModeU{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
-	I32				boundsModeV{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
-	I32				boundsModeW{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
+	I32				boundsModeU = SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE; //VkSamplerAddressMode
+	I32				boundsModeV = SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE; //VkSamplerAddressMode
+	I32				boundsModeW = SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE; //VkSamplerAddressMode
 
-	I32				border{ BORDER_COLOR_FLOAT_OPAQUE_WHITE }; //VkBorderColor
+	I32				border = BORDER_COLOR_FLOAT_OPAQUE_WHITE; //VkBorderColor
 
-	I32				reductionMode{ SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE }; //VkSamplerReductionMode
+	I32				reductionMode = SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE; //VkSamplerReductionMode
 
-	VkSampler_T* vkSampler{ nullptr };
+	VkSampler_T* vkSampler = nullptr;
 };
 
 struct NH_API SamplerInfo
@@ -669,44 +669,44 @@ struct NH_API SamplerInfo
 	SamplerInfo& SetBoundsModeUV(SamplerBoundsMode u, SamplerBoundsMode v);
 	SamplerInfo& SetBoundsModeUVW(SamplerBoundsMode u, SamplerBoundsMode v, SamplerBoundsMode w);
 
-	I32		minFilter{ FILTER_TYPE_LINEAR }; //VkFilter
-	I32		magFilter{ FILTER_TYPE_LINEAR }; //VkFilter
-	I32		mipFilter{ SAMPLER_MIPMAP_MODE_LINEAR }; //VkSamplerMipmapMode
+	I32 minFilter = FILTER_TYPE_LINEAR; //VkFilter
+	I32 magFilter = FILTER_TYPE_LINEAR; //VkFilter
+	I32 mipFilter = SAMPLER_MIPMAP_MODE_LINEAR; //VkSamplerMipmapMode
 
-	I32		boundsModeU{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
-	I32		boundsModeV{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
-	I32		boundsModeW{ SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE }; //VkSamplerAddressMode
+	I32 boundsModeU = SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE; //VkSamplerAddressMode
+	I32 boundsModeV = SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE; //VkSamplerAddressMode
+	I32 boundsModeW = SAMPLER_BOUNDS_MODE_CLAMP_TO_EDGE; //VkSamplerAddressMode
 
-	I32		border{ BORDER_COLOR_FLOAT_OPAQUE_WHITE }; //VkBorderColor
+	I32 border = BORDER_COLOR_FLOAT_OPAQUE_WHITE; //VkBorderColor
 
-	I32		reductionMode{ SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE }; //VkSamplerReductionMode
+	I32 reductionMode = SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE; //VkSamplerReductionMode
 };
 
 struct NH_API Texture : public Resource
 {
-	U32					size{ 0 };
-	U16					width{ 1 };
-	U16					height{ 1 };
-	U16					depth{ 1 };
-	U32					flags{ 0 };
-	U32					lastResize{ 0 };
+	U32					size = 0;
+	U16					width = 1;
+	U16					height = 1;
+	U16					depth = 1;
+	U32					flags = 0;
+	U32					lastResize = 0;
 
-	I32					type{ IMAGE_TYPE_2D }; //VkImageType
+	I32					type = IMAGE_TYPE_2D; //VkImageType
 
-	VkImage_T* image{ nullptr };
-	VkImageView_T* imageView{ nullptr };
-	I32					format{ FORMAT_TYPE_UNDEFINED }; //VkFormat
-	I32					imageLayout{ IMAGE_LAYOUT_UNDEFINED }; //VkImageLayout
-	VmaAllocation_T* allocation{ nullptr };
+	VkImage_T* image = nullptr;
+	VkImageView_T* imageView = nullptr;
+	I32					format = FORMAT_TYPE_UNDEFINED; //VkFormat
+	I32					imageLayout = IMAGE_LAYOUT_UNDEFINED; //VkImageLayout
+	VmaAllocation_T* allocation = nullptr;
 
-	VkImageView_T* mipmaps[MAX_MIPMAP_COUNT]{ nullptr };
-	U8					mipmapCount{ 1 };
+	VkImageView_T* mipmaps[MAX_MIPMAP_COUNT];
+	U8					mipmapCount = 1;
 
-	TextureUsage		usage{ TEXTURE_USAGE_COLOR };
-	Sampler				sampler{};
+	TextureUsage		usage = TEXTURE_USAGE_COLOR;
+	Sampler				sampler;
 
-	bool				swapchainImage{ false };
-	bool				mipmapsGenerated{ false };
+	bool				swapchainImage = false;
+	bool				mipmapsGenerated = false;
 
 	friend struct ResourceRef<Texture>;
 };
@@ -720,50 +720,50 @@ struct NH_API TextureInfo
 	TextureInfo& SetName(const String& name);
 	TextureInfo& SetData(void* data);
 
-	void* initialData{ nullptr };
-	U16		width{ 1 };
-	U16		height{ 1 };
-	U16		depth{ 1 };
-	U32		flags{ 0 };
-	U8		mipmapCount{ 1 };
+	void* initialData = nullptr;
+	U16		width = 1;
+	U16		height = 1;
+	U16		depth = 1;
+	U32		flags = 0;
+	U8		mipmapCount = 1;
 
-	I32		format{ FORMAT_TYPE_UNDEFINED }; //VkFormat
-	I32		type{ IMAGE_TYPE_2D }; //VkImageType
+	I32		format = FORMAT_TYPE_UNDEFINED; //VkFormat
+	I32		type = IMAGE_TYPE_2D; //VkImageType
 
-	String	name{};
+	String	name;
 };
 
 struct NH_API TextureUpload
 {
-	TextureUsage usage{ TEXTURE_USAGE_COLOR };
-	SamplerInfo samplerInfo{};
+	TextureUsage usage = TEXTURE_USAGE_COLOR;
+	SamplerInfo samplerInfo;
 };
 
 struct NH_API Buffer
 {
-	I32					usage{ 0 }; //VkBufferUsageFlags
-	I32					memoryProperties{ 0 }; //VkMemoryPropertyFlags
+	I32					usage = 0; //VkBufferUsageFlags
+	I32					memoryProperties = 0; //VkMemoryPropertyFlags
 
-	VkBuffer_T* vkBuffer{ nullptr };
-	VkDeviceMemory_T* deviceMemory{ nullptr };
-	VmaAllocation_T* allocation{ nullptr };
-	U64					size{ 0 };
-	U64					allocationOffset{ 0 };
+	VkBuffer_T* vkBuffer = nullptr;
+	VkDeviceMemory_T* deviceMemory = nullptr;
+	VmaAllocation_T* allocation = nullptr;
+	U64					size = 0;
+	U64					allocationOffset = 0;
 
-	void* data{ nullptr };
-	bool mapped{ false };
+	void* data = nullptr;
+	bool mapped = false;
 };
 
 struct NH_API Binary
 {
-	U32 size{ 0 };
-	void* data{ nullptr };
+	U32 size = 0;
+	void* data = nullptr;
 };
 
 struct Subpass
 {
-	U32 inputAttachments[8]{};
-	U8 inputAttachmentCount{ 0 };
+	U32 inputAttachments[8];
+	U8 inputAttachmentCount = 0;
 };
 
 struct NH_API Renderpass
@@ -772,23 +772,23 @@ struct NH_API Renderpass
 	Renderpass(Renderpass&& other) noexcept;
 	Renderpass& operator=(Renderpass&& other) noexcept;
 
-	VkRenderPass_T* renderpass{ nullptr };
-	VkFramebuffer_T* frameBuffer{ nullptr };
+	VkRenderPass_T* renderpass = nullptr;
+	VkFramebuffer_T* frameBuffer = nullptr;
 
-	U8					renderTargetCount{ 0 };
-	ResourceRef<Texture> renderTargets[MAX_IMAGE_OUTPUTS]{ };
-	ResourceRef<Texture> depthStencilTarget{ };
+	U8					renderTargetCount = 0;
+	ResourceRef<Texture> renderTargets[MAX_IMAGE_OUTPUTS];
+	ResourceRef<Texture> depthStencilTarget;
 
 	Rect2D				renderArea;
 
-	U8					clearCount{ 0 };
+	U8					clearCount = 0;
 	ClearValue			clearValues[MAX_IMAGE_OUTPUTS + 1]{};
 
-	Subpass				subpasses[8]{};
-	U32					subpassCount{ 1 };
+	Subpass				subpasses[8];
+	U32					subpassCount = 1;
 
-	U32					lastResize{ 0 };
-	bool				resize{ true };
+	U32					lastResize = 0;
+	bool				resize = true;
 };
 
 struct NH_API RenderpassInfo
@@ -800,22 +800,22 @@ struct NH_API RenderpassInfo
 	RenderpassInfo& AddRenderTarget(const ResourceRef<Texture>& texture);
 	RenderpassInfo& SetDepthStencilTarget(const ResourceRef<Texture>& texture);
 
-	U8				renderTargetCount{ 0 };
-	ResourceRef<Texture> renderTargets[MAX_IMAGE_OUTPUTS]{ };
-	ResourceRef<Texture> depthStencilTarget{ };
+	U8				renderTargetCount = 0;
+	ResourceRef<Texture> renderTargets[MAX_IMAGE_OUTPUTS];
+	ResourceRef<Texture> depthStencilTarget;
 
 	Rect2D			renderArea;
 
-	Subpass			subpasses[8]{};
-	U32				subpassCount{ 1 };
+	Subpass			subpasses[8];
+	U32				subpassCount = 1;
 
-	I32				colorLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
-	I32				depthLoadOp{ ATTACHMENT_LOAD_OP_CLEAR }; //VkAttachmentLoadOp
-	I32				stencilLoadOp{ ATTACHMENT_LOAD_OP_DONT_CARE }; //VkAttachmentLoadOp
-	I32 	        attachmentFinalLayout{ IMAGE_LAYOUT_ATTACHMENT_OPTIMAL }; //VkImageLayout
+	I32				colorLoadOp = ATTACHMENT_LOAD_OP_CLEAR; //VkAttachmentLoadOp
+	I32				depthLoadOp = ATTACHMENT_LOAD_OP_CLEAR; //VkAttachmentLoadOp
+	I32				stencilLoadOp = ATTACHMENT_LOAD_OP_DONT_CARE; //VkAttachmentLoadOp
+	I32 	        attachmentFinalLayout = IMAGE_LAYOUT_ATTACHMENT_OPTIMAL; //VkImageLayout
 
-	String			name{};
-	bool			resize{ true };
+	String			name;
+	bool			resize = true;
 };
 
 struct NH_API PushConstant
@@ -840,10 +840,10 @@ struct ResourceUpdate
 
 struct NH_API PostProcessData
 {
-	F32 contrast{ 1.0f };
-	F32 brightness{ 0.0f };
-	F32 saturation{ 1.0f };
-	F32 gammaCorrection{ 1.0f };
+	F32 contrast = 1.0f;
+	F32 brightness = 0.0f;
+	F32 saturation = 1.0f;
+	F32 gammaCorrection = 1.0f;
 };
 
 struct alignas(16) NH_API GlobalData
@@ -858,7 +858,7 @@ struct alignas(16) NH_API GlobalData
 struct NH_API SkyboxData
 {
 	Matrix4 invViewProjection;
-	U32 skyboxIndex{ U16_MAX };
+	U32 skyboxIndex = U16_MAX;
 };
 
 struct NH_API ShadowData
@@ -899,34 +899,34 @@ struct NH_API Camera
 	bool Update();
 
 private:
-	Matrix4		view{ Matrix4Identity };
-	Matrix4		projection{ Matrix4Identity };
-	Matrix4		viewProjection{ Matrix4Identity };
+	Matrix4		view = Matrix4Identity;
+	Matrix4		projection = Matrix4Identity;
+	Matrix4		viewProjection = Matrix4Identity;
 
-	Vector3		position{ Vector3Zero };
-	Vector3		right{ Vector3Right };
-	Vector3		forward{ Vector3Forward };
-	Vector3		up{ Vector3Up };
+	Vector3		position = Vector3Zero;
+	Vector3		right = Vector3Right;
+	Vector3		forward = Vector3Forward;
+	Vector3		up = Vector3Up;
 
-	F32			pitch{ 0.0f };
-	F32			yaw{ 0.0f };
-	F32			roll{ 0.0f };
+	F32			pitch = 0.0f;
+	F32			yaw = 0.0f;
+	F32			roll = 0.0f;
 
-	F32			nearPlane{ 0.0f };
-	F32			farPlane{ 0.0f };
+	F32			nearPlane = 0.0f;
+	F32			farPlane = 0.0f;
 
-	F32			fov{ 0.0f };
-	F32			aspectRatio{ 0.0f };
+	F32			fov = 0.0f;
+	F32			aspectRatio = 0.0f;
 
-	F32			zoomVal{ 1.0f };
-	F32			zoom{ 1.0f };
-	F32			invZoom{ 1.0f };
-	F32			viewportWidth{ 0.0f };
-	F32			viewportHeight{ 0.0f };
+	F32			zoomVal = 1.0f;
+	F32			zoom = 1.0f;
+	F32			invZoom = 1.0f;
+	F32			viewportWidth = 0.0f;
+	F32			viewportHeight = 0.0f;
 
-	CameraType	type{};
-	bool		updateProjection{ false };
-	bool		updateView{ false };
+	CameraType	type;
+	bool		updateProjection = false;
+	bool		updateView = false;
 
 	friend class Resources;
 };
@@ -948,19 +948,19 @@ struct NH_API FlyCamera
 	Camera& GetCamera();
 
 private:
-	F32		mouseSensitivity{ 0.75f };
-	F32		movementDelta{ 0.1f };
-	U32		ignoreDraggingFrames{ 3 };
-	F32		zoom{ 0.0f };
+	F32		mouseSensitivity = 0.75f;
+	F32		movementDelta = 0.1f;
+	U32		ignoreDraggingFrames = 3;
+	F32		zoom = 0.0f;
 
-	Vector3	targetMovement{ Vector3Zero };
-	F32		targetYaw{ 0.0f };
-	F32		targetPitch{ 0.0f };
+	Vector3	targetMovement = Vector3Zero;
+	F32		targetYaw = 0.0f;
+	F32		targetPitch = 0.0f;
 
-	bool	mouseDragging{ false };
+	bool	mouseDragging = false;
 
-	F32		rotationSpeed{ 20.0f };
-	F32		movementSpeed{ 5.0f };
+	F32		rotationSpeed = 20.0f;
+	F32		movementSpeed = 5.0f;
 
 	Camera camera;
 };
@@ -979,6 +979,6 @@ struct AudioFormat
 struct NH_API AudioClip : public Resource
 {
 	AudioFormat format;
-	U32			size{ 0 };
-	U8* buffer{ nullptr };
+	U32			size = 0;
+	U8* buffer = nullptr;
 };

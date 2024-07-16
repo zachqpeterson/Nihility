@@ -11,26 +11,26 @@ const ColorRGB ColorRGB::distinctColors[DISTINCT_COLOR_COUNT]{
 	0x005F39FF, 0x6B6882FF, 0x5FAD4EFF, 0xA75740FF, 0xA5FFD2FF, 0xFFB167FF, 0x009BFFFF, 0xE85EBEFF
 };
 
-const ColorRGB ColorRGB::Red{ 0xFF0000FF };
-const ColorRGB ColorRGB::Green{ 0x00FF00FF };
-const ColorRGB ColorRGB::Blue{ 0x0000FFFF };
-const ColorRGB ColorRGB::Yellow{ 0xFFFF00FF };
-const ColorRGB ColorRGB::Cyan{ 0x00FFFFFF };
-const ColorRGB ColorRGB::Magenta{ 0xFF00FFFF };
-const ColorRGB ColorRGB::Orange{ 0xFF8000FF };
-const ColorRGB ColorRGB::Lime{ 0x80FF00FF };
-const ColorRGB ColorRGB::Turquoise{ 0x00FF80FF };
-const ColorRGB ColorRGB::Purple{ 0x8000FFFF };
-const ColorRGB ColorRGB::White{ 0xFFFFFFFF };
-const ColorRGB ColorRGB::Grey{ 0x808080FF };
-const ColorRGB ColorRGB::Black{ 0x000000FF };
-const ColorRGB ColorRGB::Clear{ 0x00000000 };
+const ColorRGB ColorRGB::Red = 0xFF0000FF;
+const ColorRGB ColorRGB::Green = 0x00FF00FF;
+const ColorRGB ColorRGB::Blue = 0x0000FFFF;
+const ColorRGB ColorRGB::Yellow = 0xFFFF00FF;
+const ColorRGB ColorRGB::Cyan = 0x00FFFFFF;
+const ColorRGB ColorRGB::Magenta = 0xFF00FFFF;
+const ColorRGB ColorRGB::Orange = 0xFF8000FF;
+const ColorRGB ColorRGB::Lime = 0x80FF00FF;
+const ColorRGB ColorRGB::Turquoise = 0x00FF80FF;
+const ColorRGB ColorRGB::Purple = 0x8000FFFF;
+const ColorRGB ColorRGB::White = 0xFFFFFFFF;
+const ColorRGB ColorRGB::Grey = 0x808080FF;
+const ColorRGB ColorRGB::Black = 0x000000FF;
+const ColorRGB ColorRGB::Clear = 0x00000000;
 
-ColorRGB::ColorRGB(F32 r, F32 g, F32 b, F32 a) : rgba{ U32(U8(r * 255.0f) << 24 | U8(g * 255.0f) << 16 | U8(b * 255.0f) << 8 | U8(a * 255.0f)) } {}
-ColorRGB::ColorRGB(U8 r, U8 g, U8 b, U8 a) : rgba{ U32((r << 24) | (g << 16) | (b << 8) | a) } {}
+ColorRGB::ColorRGB(F32 r, F32 g, F32 b, F32 a) : rgba(U32(U8(r * 255.0f) << 24 | U8(g * 255.0f) << 16 | U8(b * 255.0f) << 8 | U8(a * 255.0f))) {}
+ColorRGB::ColorRGB(U8 r, U8 g, U8 b, U8 a) : rgba(U32((r << 24) | (g << 16) | (b << 8) | a)) {}
 ColorRGB::ColorRGB(U32 rgba) : rgba{ rgba } {}
-ColorRGB::ColorRGB(const ColorRGB& other) : rgba{ other.rgba } {}
-ColorRGB::ColorRGB(ColorRGB&& other) noexcept : rgba{ other.rgba } {}
+ColorRGB::ColorRGB(const ColorRGB& other) : rgba(other.rgba) {}
+ColorRGB::ColorRGB(ColorRGB&& other) noexcept : rgba(other.rgba) {}
 
 ColorRGB& ColorRGB::operator=(const ColorRGB& other) { rgba = other.rgba; return *this; }
 ColorRGB& ColorRGB::operator=(ColorRGB&& other) noexcept { rgba = other.rgba; return *this; }

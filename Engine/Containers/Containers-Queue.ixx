@@ -34,11 +34,11 @@ public:
 	bool Full() const;
 
 private:
-	U64 capacity{ 0 };
-	U64 capacityMask{ 0 };
-	U64 front{ 0 };
-	U64 back{ 0 };
-	Type* array{ nullptr };
+	U64 capacity = 0;
+	U64 capacityMask = 0;
+	U64 front = 0;
+	U64 back = 0;
+	Type* array = nullptr;
 };
 
 template<class Type> 

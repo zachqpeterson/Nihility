@@ -11,7 +11,7 @@ bool Swapchain::CreateSurface()
 {
 #ifdef PLATFORM_WINDOWS
 	const WindowData& wd = Platform::GetWindowData();
-	VkWin32SurfaceCreateInfoKHR surfaceInfo = { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+	VkWin32SurfaceCreateInfoKHR surfaceInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 	surfaceInfo.pNext = nullptr;
 	surfaceInfo.flags = 0;
 	surfaceInfo.hinstance = wd.instance;
@@ -27,7 +27,7 @@ bool Swapchain::CreateSurface()
 	return true;
 }
 
-VkSurfaceFormatKHR surfaceFormat{};
+VkSurfaceFormatKHR surfaceFormat;
 
 bool Swapchain::GetFormat()
 {

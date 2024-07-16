@@ -12,10 +12,10 @@ struct Scene;
 
 struct VertexBuffer
 {
-	VertexType type{ VERTEX_TYPE_COUNT };
-	U32 stride{ 0 };
-	U32 size{ 0 };
-	U8* buffer{ nullptr };
+	VertexType type = VERTEX_TYPE_COUNT;
+	U32 stride = 0;
+	U32 size = 0;
+	U8* buffer = nullptr;
 };
 
 struct NH_API Mesh : public Resource
@@ -28,7 +28,7 @@ struct NH_API Mesh : public Resource
 	Vector<VertexBuffer> buffers;
 
 private:
-	U32 index{ U32_MAX };
+	U32 index = U32_MAX;
 
 	F32 mass;
 	Vector3 centerOfMass;
@@ -46,8 +46,8 @@ struct InstanceData
 struct NH_API MeshInstance
 {
 	MeshInstance() {};
-	MeshInstance(MeshInstance&& other) noexcept : mesh{ other.mesh }, material{ other.material },
-		handle{ other.handle }, instanceOffset{ other.instanceOffset }
+	MeshInstance(MeshInstance&& other) noexcept : mesh(other.mesh), material(other.material),
+		handle(other.handle), instanceOffset(other.instanceOffset)
 	{
 		Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
 	}
@@ -63,14 +63,14 @@ struct NH_API MeshInstance
 		return *this;
 	}
 
-	ResourceRef<Mesh>		mesh{ nullptr };
-	ResourceRef<Material>	material{ nullptr };
+	ResourceRef<Mesh>		mesh = nullptr;
+	ResourceRef<Material>	material = nullptr;
 
-	InstanceData			instanceData{};
+	InstanceData			instanceData;
 
 private:
-	HashHandle				handle{ U64_MAX };
-	U32						instanceOffset{ 0 };
+	HashHandle				handle = U64_MAX;
+	U32						instanceOffset = 0;
 
 	MeshInstance(const MeshInstance& other) = delete;
 	MeshInstance& operator=(const MeshInstance& other) = delete;
@@ -81,8 +81,8 @@ private:
 struct NH_API MeshInstanceCluster
 {
 	MeshInstanceCluster() = default;
-	MeshInstanceCluster(MeshInstanceCluster&& other) noexcept : mesh{ other.mesh }, material{ other.material },
-		handle{ other.handle }, instanceOffset{ other.instanceOffset }, instances{ Move(other.instances) }
+	MeshInstanceCluster(MeshInstanceCluster&& other) noexcept : mesh(other.mesh), material(other.material),
+		handle(other.handle), instanceOffset(other.instanceOffset), instances(Move(other.instances))
 	{
 	}
 
@@ -97,14 +97,14 @@ struct NH_API MeshInstanceCluster
 		return *this;
 	}
 
-	ResourceRef<Mesh>		mesh{ nullptr };
-	ResourceRef<Material>	material{ nullptr };
+	ResourceRef<Mesh>		mesh = nullptr;
+	ResourceRef<Material>	material = nullptr;
 
 	Vector<InstanceData>	instances;
 
 private:
-	HashHandle				handle{ U64_MAX };
-	U32						instanceOffset{ 0 };
+	HashHandle				handle = U64_MAX;
+	U32						instanceOffset = 0;
 
 	friend struct Scene;
 };
@@ -126,7 +126,7 @@ struct NH_API MeshComponent : public Component
 		meshInstance.material = material;
 		Copy((U32*)meshInstance.instanceData.data, (U32*)&material->Handle(), 1);
 	}
-	MeshComponent(MeshComponent&& other) noexcept : Component(Move(other)), meshInstance{ Move(other.meshInstance) }, modelMatrix{ other.modelMatrix } {}
+	MeshComponent(MeshComponent&& other) noexcept : Component(Move(other)), meshInstance(Move(other.meshInstance)), modelMatrix(other.modelMatrix) {}
 	MeshComponent& operator=(MeshComponent&& other) noexcept
 	{
 		Component::operator=(Move(other));
@@ -139,14 +139,14 @@ struct NH_API MeshComponent : public Component
 	virtual void Load(Scene* scene) final;
 	virtual void Cleanup(Scene* scene) final {}
 
-	Matrix4		 modelMatrix{};
+	Matrix4		 modelMatrix;
 	MeshInstance meshInstance;
 };
 
 struct NH_API ModelComponent : public Component
 {
-	ModelComponent(const ResourceRef<Model>& model) : model{ model } {}
-	ModelComponent(ModelComponent&& other) noexcept : Component(Move(other)), model{ other.model }, modelMatrix{ other.modelMatrix } {}
+	ModelComponent(const ResourceRef<Model>& model) : model(model) {}
+	ModelComponent(ModelComponent&& other) noexcept : Component(Move(other)), model(other.model), modelMatrix(other.modelMatrix) {}
 	ModelComponent& operator=(ModelComponent&& other) noexcept
 	{
 		Component::operator=(Move(other));
@@ -159,6 +159,6 @@ struct NH_API ModelComponent : public Component
 	virtual void Load(Scene* scene) final;
 	virtual void Cleanup(Scene* scene) final {}
 
-	Matrix4 modelMatrix{};
+	Matrix4 modelMatrix;
 	ResourceRef<Model> model;
 };

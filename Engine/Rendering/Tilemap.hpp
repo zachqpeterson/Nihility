@@ -32,7 +32,7 @@ private:
 	Buffer tiles;
 	Buffer legend;
 	Buffer staging;
-	U8 tileCount{ 0 };
+	U8 tileCount = 0;
 	Vector2 tileSize;
 	U32 width;
 	U32 height;

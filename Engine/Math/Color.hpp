@@ -37,7 +37,7 @@ struct ColorRGB
 	static const ColorRGB Clear;
 
 private:
-	U32 rgba{ 0 };
+	U32 rgba = 0;
 
 	static constexpr U64 DISTINCT_COLOR_COUNT = 64;
 	static constexpr U64 DISTINCT_COLOR_MASK = DISTINCT_COLOR_COUNT - 1;
@@ -79,7 +79,7 @@ struct ColorHSV
 	static const ColorHSV Clear;
 
 private:
-	U32 hsva{ 0 };
+	U32 hsva = 0;
 
 	static constexpr U64 DISTINCT_COLOR_COUNT = 64;
 	static constexpr U64 DISTINCT_COLOR_MASK = DISTINCT_COLOR_COUNT - 1;

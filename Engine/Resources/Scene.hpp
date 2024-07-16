@@ -60,13 +60,13 @@ struct ComponentPoolInternal : public ComponentPool
 
 struct MeshDraw
 {
-	U32 indexOffset{ 0 };
-	U32 indexCount{ 0 };
-	I32 vertexOffset{ 0 };
+	U32 indexOffset = 0;
+	U32 indexCount = 0;
+	I32 vertexOffset = 0;
 
-	U32 instanceOffset{ 0 };
-	U32 instanceCount{ 0 };
-	U32 drawOffset{ 0 };
+	U32 instanceOffset = 0;
+	U32 instanceCount = 0;
+	U32 drawOffset = 0;
 };
 
 struct ComponentReference
@@ -87,7 +87,7 @@ struct NH_API Scene
 	Entity* GetEntity(U32 id);
 
 	const String& Name() { return name; }
-	const Camera& GetCamera() 
+	const Camera& GetCamera()
 	{
 #ifdef NH_DEBUG
 		return flyCamera.GetCamera();
@@ -199,11 +199,11 @@ private:
 	void AddMesh(ResourceRef<Mesh>& mesh);
 	BufferCopy CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, const void* data);
 
-	String							name{};
+	String							name;
 	HashHandle						handle;
-	bool							loaded{ false };
-	bool							hasSkybox{ false };
-	bool							hasPostProcessing{ false };
+	bool							loaded = false;
+	bool							hasSkybox = false;
+	bool							hasPostProcessing = false;
 
 	Buffer							stagingBuffer;
 	Buffer							entitiesBuffer;
@@ -220,25 +220,25 @@ private:
 	Vector<BufferCopy>				drawWrites;
 	Vector<BufferCopy>				countsWrites;
 
-	U32								vertexOffset{ 0 };
-	U32								instanceOffset{ 0 };
-	U32								indexOffset{ 0 };
-	U32								drawOffset{ 0 };
-	U32								countsOffset{ 0 };
+	U32								vertexOffset = 0;
+	U32								instanceOffset = 0;
+	U32								indexOffset = 0;
+	U32								drawOffset = 0;
+	U32								countsOffset = 0;
 
 	Vector<MeshDraw>				meshDraws;
 	Vector<Entity>					entities; //TODO: Maybe store all transforms in a separate array for faster buffer copy
 
-	U32								currentId{ 1 };
-	Hashmap<StringView, U32>		componentRegistry{ 32 };
+	U32								currentId = 1;
+	Hashmap<StringView, U32>		componentRegistry = 32;
 	Vector<ComponentPool*>			componentPools;
 	Vector<ResourceRef<Pipeline>>	pipelines;
 	Vector<Renderpass>				renderpasses;
 
 #ifdef NH_DEBUG
-	FlyCamera						flyCamera{};
+	FlyCamera						flyCamera;
 #else
-	Camera							camera{};
+	Camera							camera;
 #endif
 
 	friend class Renderer;
@@ -249,7 +249,7 @@ private:
 struct NH_API Entity
 {
 public:
-	Entity(Entity&& other) noexcept : transform{ other.transform }, scene{ other.scene }, entityID{ other.entityID }, references{ Move(references) } {}
+	Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
 	Entity& operator=(Entity&& other) noexcept
 	{
 		transform = other.transform;
@@ -282,10 +282,10 @@ public:
 		return Move(scene->GetComponents<Type>(references));
 	}
 
-	Transform transform{};
+	Transform transform;
 
 private:
-	Entity(Scene* scene, U32 id) : scene{ scene }, entityID{ id } {}
+	Entity(Scene* scene, U32 id) : scene(scene), entityID(id) {}
 
 	Scene* scene;
 	U32 entityID;

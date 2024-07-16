@@ -107,17 +107,17 @@ private:
 
 	static bool GetWorkingDirectory(String& str);
 
-	I32 handle{ -1 };
-	I64 pointer{ 0 };
+	I32 handle = -1;
+	I64 pointer = 0;
 	bool opened{ false };
 
-	U8* streamPtr{ nullptr };
-	U8* streamBuffer{ nullptr };
-	U32 bufferSize{ 0 };
-	U32 bufferRemaining{ 0 };
-	U64 streamFlag{ 0 };
+	U8* streamPtr = nullptr;
+	U8* streamBuffer = nullptr;
+	U32 bufferSize = 0;
+	U32 bufferRemaining = 0;
+	U64 streamFlag = 0;
 
-	FileStats stats{};
+	FileStats stats;
 };
 
 inline File::File(const String& path, I32 mode) { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; Open(path, mode); }

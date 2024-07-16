@@ -169,21 +169,21 @@ struct ShaderInfo
 {
 	VkPipelineShaderStageCreateInfo		stageInfo;
 
-	VkVertexInputBindingDescription		vertexStreams[MAX_VERTEX_STREAMS]{};
-	U32									vertexStreamCount{ 0 };
+	VkVertexInputBindingDescription		vertexStreams[MAX_VERTEX_STREAMS];
+	U32									vertexStreamCount = 0;
 
-	VkVertexInputAttributeDescription	vertexAttributes[MAX_VERTEX_ATTRIBUTES]{};
-	U32									vertexAttributeCount{ 0 };
+	VkVertexInputAttributeDescription	vertexAttributes[MAX_VERTEX_ATTRIBUTES];
+	U32									vertexAttributeCount = 0;
 
-	VkDescriptorSetLayoutBinding		bindings[MAX_DESCRIPTORS_PER_SET]{};
-	U8									bindingCount{ 0 };
+	VkDescriptorSetLayoutBinding		bindings[MAX_DESCRIPTORS_PER_SET];
+	U8									bindingCount = 0;
 };
 
 VkDescriptorSetLayout			Shader::dummyDescriptorSetLayout;
 
 VkDescriptorPool				Shader::bindlessDescriptorPool;
 VkDescriptorSet					Shader::bindlessDescriptorSet;
-VkDescriptorSetLayout_T*		Shader::bindlessDescriptorLayout;
+VkDescriptorSetLayout_T* Shader::bindlessDescriptorLayout;
 
 bool Shader::Initialize()
 {
@@ -379,7 +379,7 @@ const String& Shader::ToCompilerExtension(VkShaderStageFlagBits value)
 	case VK_SHADER_STAGE_COMPUTE_BIT: { return compute; }
 	case VK_SHADER_STAGE_TASK_BIT_EXT: { return task; }
 	case VK_SHADER_STAGE_MESH_BIT_EXT: { return mesh; }
-	default: {return def; }
+	default: { return def; }
 	}
 }
 

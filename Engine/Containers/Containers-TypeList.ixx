@@ -9,7 +9,7 @@ export template<class... Types>
 struct TypeList
 {
 public:
-	static constexpr U64 Size{ sizeof...(Types) };
+	static constexpr U64 Size = sizeof...(Types);
 
 private:
 	STATIC_CLASS(TypeList);
