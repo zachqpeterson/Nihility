@@ -5,9 +5,9 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 #include "Resources\Resources.hpp"
-#include "Platform\Input.hpp"
 
 import Core;
+import Input;
 
 // SAMPLER CREATION
 
@@ -378,7 +378,7 @@ bool FlyCamera::Update()
 	switch (camera.Type())
 	{
 	case CAMERA_TYPE_PERSPECTIVE: {
-		if (Input::ButtonDragging(BUTTON_CODE_RIGHT_MOUSE))
+		if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE))
 		{
 			if (ignoreDraggingFrames == 0)
 			{
@@ -391,12 +391,9 @@ bool FlyCamera::Update()
 			{
 				--ignoreDraggingFrames;
 			}
-
-			mouseDragging = true;
 		}
 		else
 		{
-			mouseDragging = false;
 			ignoreDraggingFrames = 3;
 		}
 
@@ -441,12 +438,6 @@ bool FlyCamera::Update()
 
 			targetMovement = camera.Position();
 			cameraMovement = Vector3Zero;
-
-			mouseDragging = true;
-		}
-		else
-		{
-			mouseDragging = false;
 		}
 
 		F32 cameraMovementDelta = movementDelta;

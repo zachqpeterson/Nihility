@@ -87,7 +87,7 @@ private:
 	static void Shutdown();
 
 	template<typename Type> using DestroyFn = void(*)(Type);
-	template<typename Type> static void CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy);
+	template<typename Type> static void CleanupHashmap(Hashmap<String, Pair<Type, U64>>& hashmap, DestroyFn<Type*> destroy);
 
 	static void Update();
 
@@ -101,17 +101,17 @@ private:
 	static String ParseAssimpMesh(const String& name, const aiMesh* meshInfo);
 	static void ParseAssimpModel(ModelUpload& model, const aiScene* scene);
 
-	static Hashmap<String, Texture>			textures;
-	static Hashmap<String, Skybox>			skyboxes;
-	static Hashmap<String, Font>			fonts;
-	static Hashmap<String, AudioClip>		audioClips;
-	static Hashmap<String, Shader>			shaders;
-	static Hashmap<String, Pipeline>		pipelines;
-	static Hashmap<String, MaterialEffect>	materialEffects;
-	static Hashmap<String, Material>		materials;
-	static Hashmap<String, Mesh>			meshes;
-	static Hashmap<String, Model>			models;
-	static Hashmap<String, Scene>			scenes;
+	static Hashmap<String, Pair<Texture, U64>>			textures;
+	static Hashmap<String, Pair<Skybox, U64>>			skyboxes;
+	static Hashmap<String, Pair<Font, U64>>				fonts;
+	static Hashmap<String, Pair<AudioClip, U64>>		audioClips;
+	static Hashmap<String, Pair<Shader, U64>>			shaders;
+	static Hashmap<String, Pair<Pipeline, U64>>			pipelines;
+	static Hashmap<String, Pair<MaterialEffect, U64>>	materialEffects;
+	static Hashmap<String, Pair<Material, U64>>			materials;
+	static Hashmap<String, Pair<Mesh, U64>>				meshes;
+	static Hashmap<String, Pair<Model, U64>>			models;
+	static Hashmap<String, Scene>						scenes;
 
 	static Queue<ResourceUpdate>			bindlessTexturesToUpdate;
 
@@ -129,14 +129,15 @@ private:
 };
 
 template<typename Type>
-inline void Resources::CleanupHashmap(Hashmap<String, Type>& hashmap, DestroyFn<Type*> destroy)
+inline void Resources::CleanupHashmap(Hashmap<String, Pair<Type, U64>>& hashmap, DestroyFn<Type*> destroy)
 {
-	typename Hashmap<String, Type>::Iterator end = hashmap.end();
-	for (auto it = hashmap.begin(); it != end; ++it)
+	using Iterator = typename Hashmap<String, Pair<Type, U64>>::Iterator;
+	Iterator end = hashmap.end();
+	for (Iterator it = hashmap.begin(); it != end; ++it)
 	{
-		if (it.Valid() && !it->name.Blank())
+		if (it.Valid() && !it->a.name.Blank())
 		{
-			destroy(hashmap.Obtain(it->handle));
+			destroy(&it->a);
 		}
 	}
 }

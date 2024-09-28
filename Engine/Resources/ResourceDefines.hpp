@@ -581,21 +581,20 @@ protected:
 	String				name;
 	HashHandle			handle = U64_MAX;
 
-private:
-	U64 refCount = 0;
-
 	template<class Type>
 	friend struct ResourceRef;
 	friend class Resources;
 };
+
+template <class Type> constexpr const bool IsResourceType = InheritsFrom<Type, Resource>;
+template<class Type> concept ResourceType = IsResourceType<Type>;
 
 template<class Type>
 struct ResourceRef
 {
 	ResourceRef() {}
 	ResourceRef(NullPointer) {}
-	ResourceRef(Type* value) : value(value) { if (value) { ++value->refCount; } }
-	ResourceRef(const ResourceRef& other) : value(other.value) { if (value) { ++value->refCount; } }
+	ResourceRef(const ResourceRef& other) : value(other.value), refCount(other.refCount) { if (value) { *++refCount; } }
 	~ResourceRef()
 	{
 		Destroy();
@@ -603,26 +602,29 @@ struct ResourceRef
 
 	void Destroy()
 	{
-		if (value && --value->refCount == 0)
+		if (value && *--refCount == 0)
 		{
 			//TODO: Free
 			value = nullptr;
+			refCount = nullptr;
 		}
 	}
 
 	ResourceRef& operator=(NullPointer)
 	{
-		if (value) { --value->refCount; }
+		if (value) { *--refCount; }
 		value = nullptr;
+		refCount = nullptr;
 
 		return *this;
 	}
 
 	ResourceRef& operator=(const ResourceRef& other)
 	{
-		if (value) { --value->refCount; }
+		if (value) { *--refCount; }
 		value = other.value;
-		if (value) { ++value->refCount; }
+		refCount = other.refCount;
+		if (value) { *++refCount; }
 
 		return *this;
 	}
@@ -637,10 +639,14 @@ struct ResourceRef
 	operator bool() const { return value; }
 
 private:
+	ResourceRef(Type* value, U64* refCount) : value(value), refCount(refCount) { if (value) { *++refCount; } }
+	ResourceRef(Pair<Type, U64>* pair) : value(&pair->a), refCount(&pair->b) { if (value) { *++refCount; } }
+
 	explicit operator Type* () { return value; }
 	explicit operator const Type* () const { return value; }
 
 	Type* value = nullptr;
+	U64* refCount = nullptr;
 
 	friend class Resources;
 };
@@ -707,8 +713,6 @@ struct NH_API Texture : public Resource
 
 	bool				swapchainImage = false;
 	bool				mipmapsGenerated = false;
-
-	friend struct ResourceRef<Texture>;
 };
 
 struct NH_API TextureInfo
@@ -828,8 +832,6 @@ struct NH_API PushConstant
 struct NH_API Skybox : public Resource
 {
 	ResourceRef<Texture> texture;
-
-	friend struct ResourceRef<Skybox>;
 };
 
 struct ResourceUpdate
@@ -956,8 +958,6 @@ private:
 	Vector3	targetMovement = Vector3Zero;
 	F32		targetYaw = 0.0f;
 	F32		targetPitch = 0.0f;
-
-	bool	mouseDragging = false;
 
 	F32		rotationSpeed = 20.0f;
 	F32		movementSpeed = 5.0f;

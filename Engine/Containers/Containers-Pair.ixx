@@ -11,7 +11,6 @@ struct Pair
 	constexpr Pair() {}
 	constexpr Pair(const A& a, const B& b) : a(a), b(b) {}
 
-private:
 	A a;
 	B b;
 };

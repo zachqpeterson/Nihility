@@ -7,7 +7,7 @@
 
 struct NH_API SpriteComponent : public Component
 {
-	SpriteComponent(const Vector4& color = Vector4One, const ResourceRef<Texture>& texture = nullptr, const Vector4& textureCoords = (0.0f, 0.0f, 1.0f, 1.0f));
+	SpriteComponent(const Vector4& color = Vector4One, const ResourceRef<Texture>& texture = nullptr, const Vector4& textureCoords = Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	SpriteComponent(SpriteComponent&& other) noexcept : Component(Move(other)), meshInstance(Move(other.meshInstance)) {}
 	SpriteComponent& operator=(SpriteComponent&& other) noexcept
 	{

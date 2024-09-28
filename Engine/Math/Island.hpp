@@ -134,7 +134,7 @@ struct PositionSolverManifold
 struct Island2D
 {
 	Island2D(U64 bodyCount, U64 contactCount) : bodies(bodyCount), contacts(contactCount), positions(bodyCount, {}), velocities(bodyCount, {}) {}
-	~Island2D() { bodies.Cleanup(); contacts.Cleanup(); positions.Cleanup(); velocities.Cleanup(); }
+	~Island2D() { bodies.Destroy(); contacts.Destroy(); positions.Destroy(); velocities.Destroy(); }
 
 	void Clear() { bodies.Clear(); positions.Clear(); velocities.Clear(); }
 	void AddBody(RigidBody2D* body) { body->islandIndex = (U32)bodies.Size(); bodies.Push(body); }

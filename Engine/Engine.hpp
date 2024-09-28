@@ -55,7 +55,9 @@ public:
 	/// <param name="gameInfo:">The information about your game</param>
 	static void Initialize(const GameInfo& gameInfo);
 
+#ifdef NH_DEBUG
 	static bool InEditor();
+#endif
 
 private:
 	static void UpdateLoop();
@@ -67,8 +69,10 @@ private:
 	static GameInfo gameInfo;
 
 	static F64 targetFrametime;
-	static bool inEditor;
 	static bool running;
+#ifdef NH_DEBUG
+	static bool inEditor;
+#endif
 
 	STATIC_CLASS(Engine);
 };

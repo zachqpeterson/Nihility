@@ -6,12 +6,12 @@
 #include "Rendering\Tilemap.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
-#include "Platform\Input.hpp"
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
 #include "Rendering\Sprite.hpp"
 
 import Core;
+import Input;
 
 ResourceRef<Texture> squareCollie;
 ResourceRef<Texture> circleCollie;
@@ -37,6 +37,7 @@ bool Init()
 	player->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 	playerRB = player->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
 	playerRB->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
+	playerRB->SetPosition({ 0.0f, 25.0f });
 	//playerRB->SetRotation(45.0f);
 
 	ground = scene->AddEntity();
@@ -58,18 +59,18 @@ void Update()
 	if (Input::OnButtonDown(BUTTON_CODE_LEFT_MOUSE))
 	{
 		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-
+	
 		Entity* entity = scene->AddEntity();
 		entity->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 		RigidBody2D* rb = entity->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
 		rb->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
 		rb->SetPosition(pos);
 	}
-
+	
 	if (Input::OnButtonDown(BUTTON_CODE_RIGHT_MOUSE))
 	{
 		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-
+	
 		Entity* entity = scene->AddEntity();
 		entity->AddComponent<SpriteComponent>(Vector4One, squareCollie);
 		RigidBody2D* rb = entity->AddComponent<RigidBody2D>(BODY_TYPE_STATIC);

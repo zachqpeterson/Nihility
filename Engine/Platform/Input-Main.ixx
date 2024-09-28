@@ -1,10 +1,21 @@
-#pragma once
+module;
 
-import Containers;
 #include "Defines.hpp"
 #include "Math\Math.hpp"
+#include "Resources\ResourceDefines.hpp"
 
-enum NH_API ButtonCode
+#if defined PLATFORM_WINDOWS
+#include <Windows.h>
+#include <hidsdi.h>
+#include <SetupAPI.h>
+#pragma comment(lib ,"setupapi.lib")
+#endif
+
+export module Input:Main;
+
+import Containers;
+
+export enum NH_API ButtonCode
 {
 	/*Mouse Buttons*/
 	BUTTON_CODE_LEFT_MOUSE = 0x01,
@@ -243,7 +254,7 @@ enum NH_API ButtonCode
 	BUTTON_CODE_COUNT
 };
 
-enum NH_API AxisCode
+export enum NH_API AxisCode
 {
 	AXIS_CODE_LEFT_JOYSTICK_X,
 	AXIS_CODE_LEFT_JOYSTICK_Y,
@@ -255,11 +266,25 @@ enum NH_API AxisCode
 	AXIS_CODE_COUNT
 };
 
-struct Device;
-struct HRAWINPUT__;
-struct Camera;
+export enum NH_API InputType
+{
+	INPUT_TYPE_PRESSED,
+	INPUT_TYPE_RELEASED,
+	INPUT_TYPE_DOUBLE_PRESSED,
+	INPUT_TYPE_HELD,
+};
 
-class NH_API Input
+typedef bool(*InputCallback)();
+
+export struct NH_API InputBinding
+{
+	I8 priority;
+	InputType inputType;
+	ButtonCode buttonCode;
+	InputCallback callback;
+};
+
+export class NH_API Input
 {
 	struct ButtonState
 	{
@@ -305,13 +330,11 @@ private:
 	static void Shutdown();
 
 	static void Update();
-	static void ReceiveInput(HRAWINPUT__* handle);
-	static void InputSink(HRAWINPUT__* handle);
+	static void ReceiveInput(HRAWINPUT handle);
+	static void InputSink(HRAWINPUT handle);
 	static void Focus();
 	static void AddDevice(void* handle);
 	static void RemoveDevice(void* handle);
-
-	static Vector<Device> devices;
 
 	//MOUSE
 	static F32 mouseSensitivity;

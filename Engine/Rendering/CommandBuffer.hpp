@@ -53,10 +53,11 @@ struct CommandBuffer
 	void Dispatch(U32 groupX, U32 groupY, U32 groupZ);
 	void DispatchIndirect(const Buffer& buffer, U32 offset);
 
-	void BufferToImage(const Buffer& buffer, const ResourceRef<Texture>& texture, U32 regionCount, const VkBufferImageCopy* regions);
+	void BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions);
 	void ImageToBuffer(const ResourceRef<Texture>& texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions);
 	void BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions);
 	void ImageToImage(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, U32 regionCount, const VkImageCopy* regions);
+	void Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
 	void Blit(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
 
 	void PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);

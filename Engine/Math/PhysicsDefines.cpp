@@ -38,8 +38,8 @@ void RigidBody2D::Load(Scene* scene)
 
 void RigidBody2D::Cleanup(Scene* scene)
 {
-	colliders.Cleanup();
-	contacts.Cleanup();
+	colliders.Destroy();
+	contacts.Destroy();
 }
 
 void RigidBody2D::UpdateTransform()

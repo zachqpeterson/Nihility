@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 #include "Introspection.hpp"
-#include "Platform\Input.hpp"
 #include "Resources\Resources.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
@@ -16,12 +15,15 @@ import ThreadSafety;
 import Networking;
 import Platform;
 import Audio;
+import Input;
 
 GameInfo Engine::gameInfo;
 
 F64 Engine::targetFrametime;
-bool Engine::inEditor;
 bool Engine::running;
+#ifdef NH_DEBUG
+bool Engine::inEditor = true;
+#endif
 
 void Engine::Initialize(const GameInfo& gameInfo_)
 {
@@ -56,9 +58,10 @@ void Engine::Initialize(const GameInfo& gameInfo_)
 #ifdef NH_DEBUG
 	Activity activity{};
 	activity.name = "Nihility";
-	activity.details = "In Editor";
-	activity.state = gameInfo.gameName;
-	activity.largeImage = "nihility_logo_large";
+	activity.details = gameInfo.gameName;
+	activity.largeImage = "nihility_logo";
+	activity.largeImageText = "Nihility";
+
 
 	Discord::SetActivity(activity);
 #endif
@@ -124,17 +127,14 @@ void Engine::UpdateLoop()
 		if (!Platform::minimised) { runFrame = Renderer::BeginFrame(); }
 
 		Physics::Update((F32)Time::DeltaTime()); //TODO: constant step
+		UI::Update();
 
 		gameInfo.GameUpdate();
 		//Animations::Update();
 
 		Audio::Update();
 
-		if (runFrame)
-		{
-			UI::Update();
-			Renderer::EndFrame();
-		}
+		if (runFrame) { Renderer::EndFrame(); }
 
 		Steam::Update();
 		Discord::Update();
@@ -146,10 +146,12 @@ void Engine::UpdateLoop()
 	}
 }
 
+#ifdef NH_DEBUG
 bool Engine::InEditor()
 {
 	return inEditor;
 }
+#endif
 
 void Engine::Focus()
 {

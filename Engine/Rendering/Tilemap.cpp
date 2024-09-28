@@ -4,7 +4,8 @@
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
 #include "Renderer.hpp"
-#include "Platform\Input.hpp"
+
+import Input;
 
 TilemapComponent::TilemapComponent(U16 width, U16 height, Vector2 tileSize) : width(width), height(height), tileSize(tileSize * 8.0f)
 {
@@ -35,7 +36,7 @@ void TilemapComponent::Update(Scene* scene)
 
 	F32 ratio = 1920.0f / area.z;
 
-	data.tileSize = Vector2{ 1.0f / tileSize.x * ratio, 1.0f / tileSize.y * ratio } *scene->GetCamera().Zoom();
+	data.tileSize = Vector2{ 1.0f / tileSize.x * ratio, 1.0f / tileSize.y * ratio } * scene->GetCamera().Zoom();
 
 	F32 offsetX = (tileSize.x / ratio) * -scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom();
 	F32 offsetY = (tileSize.y / ratio) * scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom() * (1080.0f / 1920.0f);
@@ -51,7 +52,7 @@ void TilemapComponent::Load(Scene* scene)
 
 	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
 	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x, area.y };
-	data.tileSize = Vector2{ 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) } *scene->GetCamera().Zoom();
+	data.tileSize = Vector2{ 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) } * scene->GetCamera().Zoom();
 	data.width = width;
 	data.height = height;
 

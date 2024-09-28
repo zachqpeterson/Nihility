@@ -5,13 +5,12 @@
 #include "Rendering\UI.hpp"
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
-#include "Platform\Input.hpp"
-#include "Platform\Audio.hpp"
 #include "Rendering\Sprite.hpp"
 
 import Core;
 import Platform;
 import Audio;
+import Input;
 
 U32 musicChannel;
 U32 sfxChannel;

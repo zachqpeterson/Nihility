@@ -1,6 +1,5 @@
 module;
 
-#include "Input.hpp"
 #include "Resources\Resources.hpp"
 
 #ifdef PLATFORM_WINDOWS
@@ -20,6 +19,7 @@ import Core;
 import Containers;
 import Platform;
 import Audio;
+import Input;
 
 bool Platform::running;
 WindowData Platform::windowData;

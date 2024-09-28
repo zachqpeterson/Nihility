@@ -94,12 +94,6 @@
     <ClInclude Include="Engine\Resources\Resources.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Platform\Input.hpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Platform\Controller.hpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Platform\Device.hpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClInclude>
@@ -636,9 +630,6 @@
     <ClCompile Include="Engine\Platform\Input.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Platform\Controller.cpp">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Platform\Device.cpp">
       <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
@@ -1049,6 +1040,12 @@
     </ClCompile>
     <ClCompile Include="Engine\Core\Core-Invocator.ixx">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Input.ixx">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Platform\Input-Main.ixx">
+      <Filter>Source Files\Platform\Input</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

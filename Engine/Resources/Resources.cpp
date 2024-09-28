@@ -419,17 +419,17 @@ constexpr U32 SHADER_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 SCENE_VERSION = MakeVersionNumber(0, 1, 0);
 constexpr U32 FONT_VERSION = MakeVersionNumber(0, 1, 0);
 
-Hashmap<String, Texture>		Resources::textures(512);
-Hashmap<String, Skybox>			Resources::skyboxes(32);
-Hashmap<String, Font>			Resources::fonts(32);
-Hashmap<String, AudioClip>		Resources::audioClips(512);
-Hashmap<String, Shader>			Resources::shaders(128);
-Hashmap<String, Pipeline>		Resources::pipelines(256);
-Hashmap<String, MaterialEffect>	Resources::materialEffects(256);
-Hashmap<String, Material>		Resources::materials(256);
-Hashmap<String, Mesh>			Resources::meshes(512);
-Hashmap<String, Model>			Resources::models(256);
-Hashmap<String, Scene>			Resources::scenes(128);
+Hashmap<String, Pair<Texture, U64>>			Resources::textures(512);
+Hashmap<String, Pair<Skybox, U64>>			Resources::skyboxes(32);
+Hashmap<String, Pair<Font, U64>>			Resources::fonts(32);
+Hashmap<String, Pair<AudioClip, U64>>		Resources::audioClips(512);
+Hashmap<String, Pair<Shader, U64>>			Resources::shaders(128);
+Hashmap<String, Pair<Pipeline, U64>>		Resources::pipelines(256);
+Hashmap<String, Pair<MaterialEffect, U64>>	Resources::materialEffects(256);
+Hashmap<String, Pair<Material, U64>>		Resources::materials(256);
+Hashmap<String, Pair<Mesh, U64>>			Resources::meshes(512);
+Hashmap<String, Pair<Model, U64>>			Resources::models(256);
+Hashmap<String, Scene>						Resources::scenes(128);
 
 Queue<ResourceUpdate>			Resources::bindlessTexturesToUpdate;
 
@@ -524,9 +524,10 @@ ResourceRef<Texture> Resources::CreateTexture(const TextureInfo& info, const Sam
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Texture* texture = textures.Request(info.name, handle);
+	Pair<Texture, U64>* pair = textures.Request(info.name, handle);
+	Texture* texture = &pair->a;
 
-	if (!texture->Name().Blank()) { return texture; }
+	if (!texture->Name().Blank()) { return pair; }
 
 	*texture = {};
 
@@ -561,7 +562,7 @@ ResourceRef<Texture> Resources::CreateTexture(const TextureInfo& info, const Sam
 
 	texture->sampler.reductionMode = samplerInfo.reductionMode;
 
-	return texture;
+	return pair;
 }
 
 ResourceRef<Texture> Resources::CreateSwapchainTexture(VkImage image, VkFormat format, U8 index)
@@ -569,7 +570,8 @@ ResourceRef<Texture> Resources::CreateSwapchainTexture(VkImage image, VkFormat f
 	String name{ "SwapchainTexture", index };
 
 	HashHandle handle;
-	Texture* texture = textures.Request(name, handle);
+	Pair<Texture, U64>* pair = textures.Request(name, handle);
+	Texture* texture = &pair->a;
 
 	*texture = {};
 
@@ -601,7 +603,7 @@ ResourceRef<Texture> Resources::CreateSwapchainTexture(VkImage image, VkFormat f
 
 	Renderer::SetResourceName(VK_OBJECT_TYPE_IMAGE_VIEW, (U64)texture->imageView, "Swapchain_ImageView");
 
-	return texture;
+	return pair;
 }
 
 ResourceRef<Shader> Resources::CreateShader(const String& name)
@@ -609,9 +611,10 @@ ResourceRef<Shader> Resources::CreateShader(const String& name)
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Shader* shader = shaders.Request(name, handle);
+	Pair<Shader, U64>* pair = shaders.Request(name, handle);
+	Shader* shader = &pair->a;
 
-	if (!shader->Name().Blank()) { return shader; }
+	if (!shader->Name().Blank()) { return pair; }
 
 	*shader = {};
 
@@ -625,7 +628,7 @@ ResourceRef<Shader> Resources::CreateShader(const String& name)
 		return nullptr;
 	}
 
-	return shader;
+	return pair;
 }
 
 ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, Vector<ResourceRef<Pipeline>>&& pipelines)
@@ -633,9 +636,10 @@ ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, 
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	MaterialEffect* materialEffect = materialEffects.Request(name, handle);
+	Pair<MaterialEffect, U64>* pair = materialEffects.Request(name, handle);
+	MaterialEffect* materialEffect = &pair->a;
 
-	if (!materialEffect->Name().Blank()) { return materialEffect; }
+	if (!materialEffect->Name().Blank()) { return pair; }
 
 	*materialEffect = {};
 
@@ -643,7 +647,7 @@ ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, 
 	materialEffect->handle = handle;
 	materialEffect->processing = Move(pipelines);
 
-	return materialEffect;
+	return pair;
 }
 
 ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, const Vector<ResourceRef<Pipeline>>& pipelines)
@@ -651,9 +655,10 @@ ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, 
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	MaterialEffect* materialEffect = materialEffects.Request(name, handle);
+	Pair<MaterialEffect, U64>* pair = materialEffects.Request(name, handle);
+	MaterialEffect* materialEffect = &pair->a;
 
-	if (!materialEffect->Name().Blank()) { return materialEffect; }
+	if (!materialEffect->Name().Blank()) { return pair; }
 
 	*materialEffect = {};
 
@@ -661,7 +666,7 @@ ResourceRef<MaterialEffect> Resources::CreateMaterialEffect(const String& name, 
 	materialEffect->handle = handle;
 	materialEffect->processing = pipelines;
 
-	return materialEffect;
+	return pair;
 }
 
 ResourceRef<Material> Resources::CreateMaterial(const MaterialInfo& info)
@@ -669,9 +674,10 @@ ResourceRef<Material> Resources::CreateMaterial(const MaterialInfo& info)
 	if (info.name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Material* material = materials.Request(info.name, handle);
+	Pair<Material, U64>* pair = materials.Request(info.name, handle);
+	Material* material = &pair->a;
 
-	if (!material->name.Blank()) { return material; }
+	if (!material->name.Blank()) { return pair; }
 
 	*material = {};
 
@@ -705,7 +711,7 @@ ResourceRef<Material> Resources::CreateMaterial(const MaterialInfo& info)
 
 	Renderer::FillBuffer(Renderer::materialBuffer, sizeof(MaterialData), &material->data, 1, &region);
 
-	return material;
+	return pair;
 }
 
 ResourceRef<Mesh> Resources::CreateMesh(const String& name)
@@ -713,16 +719,17 @@ ResourceRef<Mesh> Resources::CreateMesh(const String& name)
 	if (name.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Mesh* mesh = meshes.Request(name, handle);
+	Pair<Mesh, U64>* pair = meshes.Request(name, handle);
+	Mesh* mesh = &pair->a;
 
-	if (!mesh->Name().Blank()) { return mesh; }
+	if (!mesh->Name().Blank()) { return pair; }
 
 	*mesh = {};
 
 	mesh->name = name;
 	mesh->handle = handle;
 
-	return mesh;
+	return pair;
 }
 
 Scene* Resources::CreateScene(const String& name, CameraType cameraType)
@@ -836,9 +843,10 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Font* font = fonts.Request(path, handle);
+	Pair<Font, U64>* pair = fonts.Request(path, handle);
+	Font* font = &pair->a;
 
-	if (!font->Name().Blank()) { return font; }
+	if (!font->Name().Blank()) { return pair; }
 
 	*font = {};
 
@@ -872,7 +880,7 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 
 		String textureName = path.GetFileName().Appended("_texture");
 
-		Texture* texture = textures.Request(textureName, handle);
+		Texture* texture = &textures.Request(textureName, handle)->a;
 		*texture = {};
 
 		reader.Read(texture->width);
@@ -903,7 +911,7 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 
 		font->texture = texture;
 
-		return font;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
@@ -917,9 +925,10 @@ ResourceRef<AudioClip> Resources::LoadAudio(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	AudioClip* audioClip = audioClips.Request(path, handle);
+	Pair<AudioClip, U64>* pair = audioClips.Request(path, handle);
+	AudioClip* audioClip = &pair->a;
 
-	if (!audioClip->Name().Blank()) { return audioClip; }
+	if (!audioClip->Name().Blank()) { return pair; }
 
 	*audioClip = {};
 
@@ -949,7 +958,7 @@ ResourceRef<AudioClip> Resources::LoadAudio(const String& path)
 
 		Copy(audioClip->buffer, reader.Pointer(), audioClip->size);
 
-		return audioClip;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
@@ -1221,9 +1230,10 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Texture* texture = textures.Request(path, handle);
+	Pair<Texture, U64>* pair = textures.Request(path, handle);
+	Texture* texture = &pair->a;
 
-	if (!texture->Name().Blank()) { return texture; }
+	if (!texture->Name().Blank()) { return pair; }
 
 	*texture = {};
 
@@ -1266,7 +1276,7 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path)
 			return nullptr;
 		}
 
-		return texture;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
@@ -1280,9 +1290,10 @@ ResourceRef<Skybox> Resources::LoadSkybox(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Skybox* skybox = skyboxes.Request(path, handle);
+	Pair<Skybox, U64>* pair = skyboxes.Request(path, handle);
+	Skybox* skybox = &pair->a;
 
-	if (!skybox->Name().Blank()) { return skybox; }
+	if (!skybox->Name().Blank()) { return pair; }
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
@@ -1337,7 +1348,7 @@ ResourceRef<Skybox> Resources::LoadSkybox(const String& path)
 			return nullptr;
 		}
 
-		return skybox;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
@@ -1351,9 +1362,10 @@ ResourceRef<Shader> Resources::LoadShader(const String& path, ShaderStageType st
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Shader* shader = shaders.Request(path, handle);
+	Pair<Shader, U64>* pair = shaders.Request(path, handle);
+	Shader* shader = &pair->a;
 
-	if (!shader->name.Blank()) { return shader; }
+	if (!shader->name.Blank()) { return pair; }
 
 	*shader = {};
 
@@ -1368,7 +1380,7 @@ ResourceRef<Shader> Resources::LoadShader(const String& path, ShaderStageType st
 		return nullptr;
 	}
 
-	return shader;
+	return pair;
 }
 
 ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstantCount, PushConstant* pushConstants)
@@ -1376,9 +1388,10 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Pipeline* pipeline = pipelines.Request(path, handle);
+	Pair<Pipeline, U64>* pair = pipelines.Request(path, handle);
+	Pipeline* pipeline = &pair->a;
 
-	if (!pipeline->name.Blank()) { return pipeline; }
+	if (!pipeline->name.Blank()) { return pair; }
 
 	*pipeline = {};
 
@@ -1583,7 +1596,7 @@ ResourceRef<Pipeline> Resources::LoadPipeline(const String& path, U8 pushConstan
 			return nullptr;
 		}
 
-		return pipeline;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}!", path);
@@ -1597,9 +1610,10 @@ ResourceRef<Material> Resources::LoadMaterial(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Material* material = materials.Request(path, handle);
+	Pair<Material, U64>* pair = materials.Request(path, handle);
+	Material* material = &pair->a;
 
-	if (!material->name.Blank()) { return material; }
+	if (!material->name.Blank()) { return pair; }
 
 	*material = {};
 
@@ -1650,7 +1664,7 @@ ResourceRef<Material> Resources::LoadMaterial(const String& path)
 
 		Renderer::FillBuffer(Renderer::materialBuffer, sizeof(MaterialData), &material->data, 1, &region);
 
-		return material;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}", path);
@@ -1663,9 +1677,10 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Mesh* mesh = meshes.Request(path, handle);
+	Pair<Mesh, U64>* pair = meshes.Request(path, handle);
+	Mesh* mesh = &pair->a;
 
-	if (!mesh->Name().Blank()) { return mesh; }
+	if (!mesh->Name().Blank()) { return pair; }
 
 	*mesh = {};
 
@@ -1748,7 +1763,7 @@ ResourceRef<Mesh> Resources::LoadMesh(const String& path)
 		reader.Read(mesh->centerOfMass);
 		reader.Read(mesh->invInertiaMatrix);
 
-		return mesh;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}", path);
@@ -1761,9 +1776,10 @@ ResourceRef<Model> Resources::LoadModel(const String& path)
 	if (path.Blank()) { Logger::Error("Resources Must Have Names!"); return nullptr; }
 
 	HashHandle handle;
-	Model* model = models.Request(path, handle);
+	Pair<Model, U64>* pair = models.Request(path, handle);
+	Model* model = &pair->a;
 
-	if (!model->Name().Blank()) { return model; }
+	if (!model->Name().Blank()) { return pair; }
 
 	*model = {};
 
@@ -1818,7 +1834,7 @@ ResourceRef<Model> Resources::LoadModel(const String& path)
 			}
 		}
 
-		return model;
+		return pair;
 	}
 
 	Logger::Error("Failed To Find Or Open File: {}", path);

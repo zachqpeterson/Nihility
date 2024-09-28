@@ -1,6 +1,5 @@
-#include "Input.hpp"
+module;
 
-#include "Device.hpp"
 #include "Resources\ResourceDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Math\Math.hpp"
@@ -12,11 +11,13 @@
 #pragma comment(lib ,"setupapi.lib")
 #endif
 
+module Input:Main;
+
 import Containers;
 import Core;
 import Platform;
+import Memory;
 
-Vector<Device> Input::devices;
 F32 Input::mouseSensitivity;
 I16 Input::mouseWheelDelta;
 I16 Input::mouseHWheelDelta;
@@ -82,7 +83,7 @@ bool Input::Initialize()
 	rid[6].dwFlags = RIDEV_DEVNOTIFY | RIDEV_REMOVE;
 	rid[6].hwndTarget = nullptr;
 
-	if (!RegisterRawInputDevices(rid, 7, sizeof(RAWINPUTDEVICE))) { Logger::Error("Failed to register devices, {}!", GetLastError()); return false; }
+	if (!RegisterRawInputDevices(rid, 6, sizeof(RAWINPUTDEVICE))) { Logger::Error("Failed to register devices, {}!", GetLastError()); return false; }
 
 	POINT p;
 	GetCursorPos(&p);
@@ -93,7 +94,7 @@ bool Input::Initialize()
 	int sensitivity;
 	SystemParametersInfoA(SPI_GETMOUSESPEED, 0, &sensitivity, 0);
 
-	mouseSensitivity = sensitivity / 10.0f;
+	mouseSensitivity = (F32)sensitivity;
 
 	//U32 deviceCount = 0;
 	//RAWINPUTDEVICELIST* deviceList = nullptr;
@@ -115,8 +116,6 @@ bool Input::Initialize()
 void Input::Shutdown()
 {
 	Logger::Trace("Shutting Down Input...");
-
-	devices.Destroy();
 }
 
 void Input::Update()
@@ -141,21 +140,25 @@ void Input::ReceiveInput(HRAWINPUT handle)
 {
 	RAWINPUT input{};
 	U32 size = 0;
-	if (GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER)) != 0) { return; }
-	if (GetRawInputData(handle, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) < 1) { return; }
+	GetRawInputData(handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
+	GetRawInputData(handle, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
 
 	switch (input.header.dwType)
 	{
 	case RIM_TYPEMOUSE: {
 		RAWMOUSE mouse = input.data.mouse;
 
-		if (mouse.lLastX != 0 || mouse.lLastY != 0)
+		if (mouse.usFlags == MOUSE_MOVE_RELATIVE)
 		{
 			I32 relativeX = mouse.lLastX;
 			I32 relativeY = mouse.lLastY;
 
 			deltaRawMousePosX = relativeX * mouseSensitivity;
 			deltaRawMousePosY = relativeY * mouseSensitivity;
+		}
+		else if (mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+		{
+			DebugBreak;
 		}
 
 		POINT p;
@@ -280,49 +283,60 @@ void Input::ReceiveInput(HRAWINPUT handle)
 	case RIM_TYPEKEYBOARD: {
 		RAWKEYBOARD keyboard = input.data.keyboard;
 
+		ButtonState* state = buttonStates + keyboard.VKey;
+		ButtonState* otherState = nullptr;
+
+		if (keyboard.VKey == VK_CONTROL)
+		{
+			if (keyboard.Flags & RI_KEY_E0) { otherState = buttonStates + VK_RCONTROL; }
+			else { otherState = buttonStates + VK_LCONTROL; }
+		}
+		else if (keyboard.VKey == VK_SHIFT)
+		{
+			if (keyboard.MakeCode == 0x36) { otherState = buttonStates + VK_RSHIFT; }
+			else { otherState = buttonStates + VK_LSHIFT; }
+		}
+		else if (keyboard.VKey == VK_MENU)
+		{
+			if (keyboard.Flags & RI_KEY_E0) { otherState = buttonStates + VK_RMENU; }
+			else { otherState = buttonStates + VK_LMENU; }
+		}
+
 		switch (keyboard.Message)
 		{
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN: {
-			ButtonState& state = buttonStates[keyboard.VKey];
+			state->heldChanged = state->pressed && !state->held;
+			state->held = state->pressed;
+			state->changed = !state->pressed;
+			state->pressed = true;
+			anyButtonDown |= state->changed;
+			anyButtonChanged |= state->changed;
 
-			//if (HIWORD(lParam) & KF_EXTENDED)
-			//{
-			//	U8 code = (U8)LOWORD(MapVirtualKeyW(MAKEWORD(LOBYTE(HIWORD(lParam)), 0xE0), MAPVK_VSC_TO_VK_EX));
-			//
-			//	Input::buttonStates[code].heldChanged = Input::buttonStates[code].pressed && !Input::buttonStates[code].held;
-			//	Input::buttonStates[code].held = Input::buttonStates[code].pressed;
-			//	Input::buttonStates[code].changed = !Input::buttonStates[code].pressed;
-			//	Input::buttonStates[code].pressed = true;
-			//}
-
-			state.heldChanged = state.pressed && !state.held;
-			state.held = state.pressed;
-			state.changed = !state.pressed;
-			state.pressed = true;
-			anyButtonDown |= state.changed;
-			anyButtonChanged |= state.changed;
+			if (otherState)
+			{
+				otherState->heldChanged = otherState->pressed && !otherState->held;
+				otherState->held = otherState->pressed;
+				otherState->changed = !otherState->pressed;
+				otherState->pressed = true;
+			}
 		} break;
 
 		case WM_KEYUP:
 		case WM_SYSKEYUP: {
-			ButtonState& state = buttonStates[keyboard.VKey];
+			state->changed = true;
+			state->pressed = false;
+			state->heldChanged = state->held;
+			state->held = false;
+			anyButtonChanged |= state->changed;
 
-			//if (HIWORD(lParam) & KF_EXTENDED)
-			//{
-			//	U8 code = (U8)LOWORD(MapVirtualKeyW(MAKEWORD(LOBYTE(HIWORD(lParam)), 0xE0), MAPVK_VSC_TO_VK_EX));
-			//
-			//	Input::buttonStates[code].changed = true;
-			//	Input::buttonStates[code].pressed = false;
-			//	Input::buttonStates[code].heldChanged = Input::buttonStates[code].held;
-			//	Input::buttonStates[code].held = false;
-			//}
-
-			state.changed = true;
-			state.pressed = false;
-			state.heldChanged = state.held;
-			state.held = false;
-			anyButtonChanged |= state.changed;
+			if (otherState)
+			{
+				otherState->changed = true;
+				otherState->pressed = false;
+				otherState->heldChanged = otherState->held;
+				otherState->held = false;
+			}
 		} break;
 		}
 	} break;
@@ -377,8 +391,7 @@ void Input::Focus()
 
 void Input::AddDevice(void* handle)
 {
-	Device device(handle);
-	if (device.valid) { devices.Push(Move(device)); } //TODO: better data structure, probably HashMap
+
 }
 
 void Input::RemoveDevice(void* handle)

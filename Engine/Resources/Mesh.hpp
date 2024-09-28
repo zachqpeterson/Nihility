@@ -46,6 +46,10 @@ struct InstanceData
 struct NH_API MeshInstance
 {
 	MeshInstance() {};
+	MeshInstance(const MeshInstance& other) : mesh(other.mesh), material(other.material)
+	{
+		Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
+	}
 	MeshInstance(MeshInstance&& other) noexcept : mesh(other.mesh), material(other.material),
 		handle(other.handle), instanceOffset(other.instanceOffset)
 	{
@@ -62,6 +66,14 @@ struct NH_API MeshInstance
 
 		return *this;
 	}
+	MeshInstance& operator=(const MeshInstance& other)
+	{
+		mesh = other.mesh;
+		material = other.material;
+		Copy(instanceData.data, other.instanceData.data, sizeof(InstanceData));
+
+		return *this;
+	}
 
 	ResourceRef<Mesh>		mesh = nullptr;
 	ResourceRef<Material>	material = nullptr;
@@ -71,9 +83,6 @@ struct NH_API MeshInstance
 private:
 	HashHandle				handle = U64_MAX;
 	U32						instanceOffset = 0;
-
-	MeshInstance(const MeshInstance& other) = delete;
-	MeshInstance& operator=(const MeshInstance& other) = delete;
 
 	friend struct Scene;
 };

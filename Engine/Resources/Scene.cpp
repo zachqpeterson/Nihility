@@ -405,9 +405,9 @@ void Scene::Load()
 		
 		for (U32 i = 0; i <= renderpass; ++i)
 		{
-			Renderpass* renderpass = &renderpasses.Push({});
-			Renderer::CreateRenderpass(renderpass, renderpassInfos[i]);
-			prevRenderpass = renderpass;
+			Renderpass* rp = &renderpasses.Push({});
+			Renderer::CreateRenderpass(rp, renderpassInfos[i]);
+			prevRenderpass = rp;
 		}
 
 		for (ResourceRef<Pipeline>& pipeline : pipelines)

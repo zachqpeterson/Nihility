@@ -67,7 +67,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
@@ -97,7 +97,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
@@ -189,9 +189,7 @@
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
-    <ClInclude Include="Engine\Platform\Controller.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
-    <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
     <ClInclude Include="Engine\Rendering\Renderer.hpp" />
@@ -356,9 +354,10 @@
     <ClCompile Include="Engine\Networking\Steam.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />
     <ClCompile Include="Engine\Platform\Audio.ixx" />
-    <ClCompile Include="Engine\Platform\Controller.cpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />
+    <ClCompile Include="Engine\Platform\Input-Main.ixx" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
+    <ClCompile Include="Engine\Platform\Input.ixx" />
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
     <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx" />
     <ClCompile Include="Engine\Platform\Platform-Settings.ixx" />

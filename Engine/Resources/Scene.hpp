@@ -20,6 +20,53 @@ struct BufferCopy
 	U64 size;
 };
 
+struct MeshDraw
+{
+	U32 indexOffset = 0;
+	U32 indexCount = 0;
+	I32 vertexOffset = 0;
+
+	U32 instanceOffset = 0;
+	U32 instanceCount = 0;
+	U32 drawOffset = 0;
+};
+
+struct ComponentReference
+{
+	U64 type;
+	U64 id;
+};
+
+struct NH_API Entity
+{
+public:
+	Entity(Entity&& other) noexcept;
+	Entity& operator=(Entity&& other) noexcept;
+
+	template<ComponentType Type, typename... Args>
+	Type* AddComponent(Args&&... args) noexcept;
+
+	template<ComponentType Type>
+	Type* GetComponent() noexcept;
+
+	template<ComponentType Type>
+	Vector<Type*> GetComponents() noexcept;
+
+	Transform transform;
+
+private:
+	Entity(Scene* scene, U32 id) : scene(scene), entityID(id) {}
+
+	Scene* scene;
+	U32 entityID;
+	Vector<ComponentReference> references;
+
+	Entity(const Entity&) = delete;
+	Entity& operator=(const Entity&) = delete;
+
+	friend struct Scene;
+};
+
 template <class Type>
 struct ComponentPoolInternal : public ComponentPool
 {
@@ -56,23 +103,6 @@ struct ComponentPoolInternal : public ComponentPool
 	virtual U64 Count() final { return components.Size(); }
 
 	Vector<Type> components; //TODO: Use freelist and array
-};
-
-struct MeshDraw
-{
-	U32 indexOffset = 0;
-	U32 indexCount = 0;
-	I32 vertexOffset = 0;
-
-	U32 instanceOffset = 0;
-	U32 instanceCount = 0;
-	U32 drawOffset = 0;
-};
-
-struct ComponentReference
-{
-	U64 type;
-	U64 id;
 };
 
 struct Mesh;
@@ -246,53 +276,35 @@ private:
 	friend struct Entity;
 };
 
-struct NH_API Entity
+inline Entity::Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
+inline Entity& Entity::operator=(Entity&& other) noexcept
 {
-public:
-	Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
-	Entity& operator=(Entity&& other) noexcept
-	{
-		transform = other.transform;
-		scene = other.scene;
-		entityID = other.entityID;
-		references = Move(references);
+	transform = other.transform;
+	scene = other.scene;
+	entityID = other.entityID;
+	references = Move(references);
 
-		return *this;
-	}
+	return *this;
+}
 
-	template<ComponentType Type, typename... Args>
-	Type* AddComponent(Args&&... args) noexcept
-	{
-		ComponentReference reference;
-		Type* component = scene->AddComponent<Type>(entityID, reference, args...);
-		references.Push(reference);
+template<ComponentType Type, typename... Args>
+inline Type* Entity::AddComponent(Args&&... args) noexcept
+{
+	ComponentReference reference;
+	Type* component = scene->AddComponent<Type>(entityID, reference, args...);
+	references.Push(reference);
 
-		return component;
-	}
+	return component;
+}
 
-	template<ComponentType Type>
-	Type* GetComponent() noexcept
-	{
-		return scene->GetComponent<Type>(references);
-	}
+template<ComponentType Type>
+inline Type* Entity::GetComponent() noexcept
+{
+	return scene->GetComponent<Type>(references);
+}
 
-	template<ComponentType Type>
-	Vector<Type*> GetComponents() noexcept
-	{
-		return Move(scene->GetComponents<Type>(references));
-	}
-
-	Transform transform;
-
-private:
-	Entity(Scene* scene, U32 id) : scene(scene), entityID(id) {}
-
-	Scene* scene;
-	U32 entityID;
-	Vector<ComponentReference> references;
-
-	Entity(const Entity&) = delete;
-	Entity& operator=(const Entity&) = delete;
-
-	friend struct Scene;
-};
+template<ComponentType Type>
+inline Vector<Type*> Entity::GetComponents() noexcept
+{
+	return Move(scene->GetComponents<Type>(references));
+}

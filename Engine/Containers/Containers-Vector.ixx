@@ -3,6 +3,7 @@ module;
 #include "Defines.hpp"
 
 #include <initializer_list>
+#include <utility>
 
 export module Containers:Vector;
 
@@ -34,6 +35,8 @@ import Memory;
 export template<class Type>
 struct Vector
 {
+	static_assert(IsMoveConstructible<Type> || IsCopyConstructible<Type>, "Type Must Be Copyable Or Movable!");
+
 public:
 	/// <summary>
 	/// Creates a new Vector instance, size and capacity will be zero, array will be nullptr
@@ -67,14 +70,14 @@ public:
 
 	/// <summary>
 	/// Creates a new Vector instance, capacity and size will be other's, sets the array to other's 
-	/// WARNING: other will be destroyed
+	/// <para/>WARNING: other will be destroyed
 	/// </summary>
 	/// <param name="other:">The Vector to move</param>
 	Vector(Vector&& other) noexcept;
 
 	/// <summary>
 	/// Copies other's data into this, capacity and size will be other's, creates an array of the same size and copies other's data into it
-	/// WARNING: any previous data will be lost
+	/// <para/>WARNING: any previous data will be lost
 	/// </summary>
 	/// <param name="other:">The Vector to copy</param>
 	/// <returns>Reference to this</returns>
@@ -82,8 +85,8 @@ public:
 
 	/// <summary>
 	/// Moves other's data into this, capacity and size will be other's, sets the array to other's 
-	/// WARNING: any previous data will be lost
-	/// WARNING: other will be destroyed
+	/// <para/>WARNING: any previous data will be lost
+	/// <para/>WARNING: other will be destroyed
 	/// </summary>
 	/// <param name="other:">The Vector to move</param>
 	/// <returns>Reference to this</returns>
@@ -97,11 +100,6 @@ public:
 	/// Destroys data inside this, capacity and size will be zero, array will be nullptr
 	/// </summary>
 	void Destroy();
-
-	/// <summary>
-	/// Checks if T is Destroyable, if it is, this will call Destroy on all objects inside
-	/// </summary>
-	void Cleanup();
 
 
 
@@ -118,35 +116,39 @@ public:
 	Type& Push(Type&& value) noexcept;
 
 	/// <summary>
+	/// Increases size by one and constructs value into the back of array using the parameters, reallocates array if it's too small
+	/// </summary>
+	/// <param name="parameters:">The parameters to construct with</param>
+	/// <returns>A refernce to the value</returns>
+	template <class... Parameters>
+	Type& Emplace(Parameters&&... parameters) noexcept;
+
+	/// <summary>
 	/// Decreases the size by one
 	/// </summary>
 	void Pop();
 
 	/// <summary>
-	/// Decreases the size by one and copies what was in the back of array to value
-	/// </summary>
-	/// <param name="value:">The value to copy to</param>
-	void Pop(Type& value);
-
-	/// <summary>
 	/// Decreases the size by one and moves what was in the back of array to value
 	/// </summary>
 	/// <param name="value:">The value to move to</param>
-	void Pop(Type&& value) noexcept;
+	void Pop(Type& value);
 
 	/// <summary>
 	/// Inserts value into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to put value</param>
 	/// <param name="value:">The value to copy</param>
-	template<Unsigned Index> void Insert(Index index, const Type& value);
+	/// <returns>A refernce to the value</returns>
+	template<Unsigned Index> Type& Insert(Index index, const Type& value);
 
 	/// <summary>
 	/// Inserts value into index, moves values at and past index over, reallocates array if it's too small
 	/// </summary>
 	/// <param name="index:">The index to put value</param>
 	/// <param name="value:">The value to move</param>
-	template<Unsigned Index> void Insert(Index index, Type&& value) noexcept;
+	/// <returns>A refernce to the value</returns>
+	template<Unsigned Index> Type& Insert(Index index, Type&& value) noexcept;
 
 	/// <summary>
 	/// Copies other and inserts it into index, moves values at and past index over, reallocates array if it's too small
@@ -157,7 +159,7 @@ public:
 
 	/// <summary>
 	/// Moves other and inserts it into index, moves values at and past index over, reallocates array if it's too small
-	/// WARNING: other will be destroyed
+	/// <para/>WARNING: other will be destroyed
 	/// </summary>
 	/// <param name="index:">The index to move other into</param>
 	/// <param name="other:">The Vector to move</param>
@@ -177,13 +179,6 @@ public:
 	void Remove(U64 index, Type& value);
 
 	/// <summary>
-	/// Moves value at index into value, moves values past index to index
-	/// </summary>
-	/// <param name="index:">The index to remove</param>
-	/// <param name="value:">The value to move to</param>
-	void Remove(U64 index, Type&& value) noexcept;
-
-	/// <summary>
 	/// Removes the value at index by swaping it with the last index
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
@@ -197,13 +192,6 @@ public:
 	void RemoveSwap(U64 index, Type& value);
 
 	/// <summary>
-	/// Moves value at index into value, removes the value at index by swaping it with the last index
-	/// </summary>
-	/// <param name="index:">The index to remove</param>
-	/// <param name="value:">The value to move to</param>
-	void RemoveSwap(U64 index, Type&& value) noexcept;
-
-	/// <summary>
 	/// Moves values at and past index1 to index0
 	/// </summary>
 	/// <param name="index0:">The beginning of the erasure, inclusive</param>
@@ -212,7 +200,7 @@ public:
 
 	/// <summary>
 	/// Copies values to be erased into other, moves values at and past index1 to index0
-	/// WARNING: any previous data in other will be lost
+	/// <para/>WARNING: any previous data in other will be lost
 	/// </summary>
 	/// <param name="index0:">The beginning of the erasure, inclusive</param>
 	/// <param name="index1:">The end of the erasure, exclusive</param>
@@ -223,7 +211,7 @@ public:
 
 	/// <summary>
 	/// Splits the array at index, copies data at and past index into other
-	/// WARNING: any previous data in other will be lost
+	/// <para/>WARNING: any previous data in other will be lost
 	/// </summary>
 	/// <param name="index:">The index to split on, inclusive</param>
 	/// <param name="other:">The Vector to copy to</param>
@@ -237,7 +225,7 @@ public:
 
 	/// <summary>
 	/// Moves data in other to the end of the array, reallocates the array if it's too small
-	/// WARNING: other will be destroyed
+	/// <para/>WARNING: other will be destroyed
 	/// </summary>
 	/// <param name="other:">The Vector to move</param>
 	void Merge(Vector&& other) noexcept;
@@ -251,7 +239,7 @@ public:
 
 	/// <summary>
 	/// Moves data in other to the end of the array, reallocates the array if it's too small
-	/// WARNING: other will be destroyed
+	/// <para/>WARNING: other will be destroyed
 	/// </summary>
 	/// <param name="other:">The Vector to move</param>
 	/// <returns>Reference to this</returns>
@@ -261,7 +249,7 @@ public:
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate, fill other with those values
-	/// WARNING: any previous data in other will be lost
+	/// <para/>WARNING: any previous data in other will be lost
 	/// </summary>
 	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="other:">A Vector to fill with values</param>
@@ -269,7 +257,7 @@ public:
 
 	/// <summary>
 	/// Searches array, finds indices of all values that satisfy predicate, fill other with those indices
-	/// WARNING: any previous data in other will be lost
+	/// <para/>WARNING: any previous data in other will be lost
 	/// </summary>
 	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="other:">A Vector to fill with indices</param>
@@ -291,7 +279,7 @@ public:
 
 	/// <summary>
 	/// Searches array, finds all values that satisfy predicate, removes them from array and puts them into other
-	/// WARNING: any previous data in other will be lost
+	/// <para/>WARNING: any previous data in other will be lost
 	/// </summary>
 	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="other:">A Vector to fill with values</param>
@@ -347,7 +335,7 @@ public:
 	/// <summary>
 	/// Sets size to zero
 	/// </summary>
-	void Clear() { size = 0; }
+	void Clear();
 
 
 
@@ -495,23 +483,21 @@ template<class Type> inline Vector<Type>::Vector(U64 cap) { Memory::AllocateArra
 
 template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : size(size), capacity(size)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	Memory::AllocateArray(&array, capacity, capacity);
 	for (Type* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
 template<class Type> inline Vector<Type>::Vector(std::initializer_list<Type> list) : size(list.size()), capacity(size)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	Memory::AllocateArray(&array, capacity, capacity);
-
-	Type* it1 = array;
-	for (const Type* it0 = list.begin(), *end = list.end(); it0 != end; ++it0, ++it1)
-	{
-		*it1 = *it0;
-	}
+	Copy(array, list.begin(), size);
 }
 
 template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size(other.size), capacity(other.size)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	Memory::AllocateArray(&array, capacity, capacity);
 	Copy(array, other.array, size);
 }
@@ -525,6 +511,7 @@ template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept 
 
 template<class Type> inline Vector<Type>& Vector<Type>::operator=(const Vector<Type>& other)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
@@ -549,79 +536,91 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator=(Vector<Type>&&
 
 template<class Type> inline Vector<Type>::~Vector() { Destroy(); }
 
-template<class Type> inline void Vector<Type>::Destroy() { size = 0; capacity = 0; Memory::Free(&array); }
-
-template<class Type> inline void Vector<Type>::Cleanup()
+template<class Type> inline void Vector<Type>::Destroy()
 {
-	if constexpr (IsDestroyable<Type>)
+	if (array)
 	{
-		for (Type* t = array, *end = array + size; t != end; ++t)
+		if constexpr (IsDestructible<Type>)
 		{
-			t->Destroy();
+			for (Type* it = array, *end = array + size; it != end; ++it) { it->~Type(); }
 		}
+
+		Memory::Free(&array);
 	}
+
+	size = 0;
+	capacity = 0;
 }
 
 template<class Type> inline Type& Vector<Type>::Push(const Type& value)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size] = value;
-	return array[size++];
+	return Construct(array + size++, value);
 }
 
 template<class Type> inline Type& Vector<Type>::Push(Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size] = Move(value);
-	return array[size++];
+	return Construct(array + size++, Move(value));
+}
+
+template<class Type>
+template <class... Parameters>
+inline Type& Vector<Type>::Emplace(Parameters&&... parameters) noexcept
+{
+	if (size == capacity) { Reserve(capacity + 1); }
+
+	return Construct(array + size++, std::forward<Parameters>(parameters)...);
 }
 
 template<class Type> inline void Vector<Type>::Pop()
 {
-	if (size) { --size; }
+	if (size)
+	{
+		if constexpr (IsDestructible<Type>) { (array + size - 1)->~Type(); }
+		--size;
+	}
 }
 
 template<class Type> inline void Vector<Type>::Pop(Type& value)
 {
-	if (size) { value = array[--size]; }
-}
-
-template<class Type> inline void Vector<Type>::Pop(Type&& value) noexcept
-{
-	if (size) { value = Move(array[--size]); }
+	if (size) { Construct(&value, Move(array[--size])); }
 }
 
 template<class Type>
 template<Unsigned I>
-inline void Vector<Type>::Insert(I index, const Type& value)
+inline Type& Vector<Type>::Insert(I index, const Type& value)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Copy(array + index + 1, array + index, (size - index));
-	array[index] = value;
+	Move(array + index + 1, array + index, (size - index));
 	++size;
+	return Construct(array + index, value);
 }
 
 template<class Type>
 template<Unsigned I>
-inline void Vector<Type>::Insert(I index, Type&& value) noexcept
+inline Type& Vector<Type>::Insert(I index, Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	Copy(array + index + 1, array + index, (size - index));
-	array[index] = Move(value);
+	Move(array + index + 1, array + index, (size - index));
 	++size;
+	return Construct(array + index, Move(value));
 }
 
 template<class Type>
 template<Unsigned I>
 inline void Vector<Type>::Insert(I index, const Vector<Type>& other)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Copy(array + index + other.size, array + index, (size - index));
+	Move(array + index + other.size, array + index, (size - index));
 	Copy(array + index, other.array, other.size);
 
 	size += other.size;
@@ -633,8 +632,8 @@ inline void Vector<Type>::Insert(I index, Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Copy(array + index + other.size, array + index, (size - index));
-	Copy(array + index, other.array, other.size);
+	Move(array + index + other.size, array + index, (size - index));
+	Move(array + index, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -642,47 +641,33 @@ inline void Vector<Type>::Insert(I index, Vector<Type>&& other) noexcept
 
 template<class Type> inline void Vector<Type>::Remove(U64 index)
 {
-	Copy(array + index, array + index + 1, (size - index));
+	Move(array + index, array + index + 1, (size - index));
 
 	--size;
 }
 
 template<class Type> inline void Vector<Type>::Remove(U64 index, Type& value)
 {
-	value = array[index];
-	Copy(array + index, array + index + 1, (size - index));
-
-	--size;
-}
-
-template<class Type> inline void Vector<Type>::Remove(U64 index, Type&& value) noexcept
-{
-	value = Move(array[index]);
-	Copy(array + index, array + index + 1, (size - index));
+	return Construct(&value, Move(array[index]));
+	Move(array + index, array + index + 1, (size - index));
 
 	--size;
 }
 
 template<class Type> inline void Vector<Type>::RemoveSwap(U64 index)
 {
-	array[index] = array[--size];
+	Assign(array + index, Move(array[--size]));
 }
 
 template<class Type> inline void Vector<Type>::RemoveSwap(U64 index, Type& value)
 {
-	value = array[index];
-	array[index] = array[--size];
-}
-
-template<class Type> inline void Vector<Type>::RemoveSwap(U64 index, Type&& value) noexcept
-{
-	value = Move(array[index]);
-	array[index] = array[--size];
+	Construct(&value, Move(array[index]));
+	Construct(array + index, Move(array[--size]));
 }
 
 template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1)
 {
-	Copy(array + index0, array + index1, (size - index1));
+	Move(array + index0, array + index1, (size - index1));
 
 	size -= index1 - index0;
 }
@@ -692,8 +677,8 @@ template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1, Vec
 	other.Reserve(index1 - index0);
 	other.size = other.capacity;
 
-	Copy(other.array, array + index0, (index1 - index0));
-	Copy(array + index0, array + index1, (size - index1));
+	Move(other.array, array + index0, (index1 - index0));
+	Move(array + index0, array + index1, (size - index1));
 
 	size -= index1 - index0;
 }
@@ -703,13 +688,14 @@ template<class Type> inline void Vector<Type>::Split(U64 index, Vector<Type>& ot
 	other.Reserve(size - index);
 	other.size = other.capacity;
 
-	Copy(other.array, array + index, other.size);
+	Move(other.array, array + index, other.size);
 
 	size -= index;
 }
 
 template<class Type> inline void Vector<Type>::Merge(const Vector<Type>& other)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
 	Copy(array + size, other.array, other.size);
@@ -720,7 +706,7 @@ template<class Type> inline void Vector<Type>::Merge(Vector<Type>&& other) noexc
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Copy(array + size, other.array, other.size);
+	Move(array + size, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -728,6 +714,7 @@ template<class Type> inline void Vector<Type>::Merge(Vector<Type>&& other) noexc
 
 template<class Type> inline Vector<Type>& Vector<Type>::operator+=(const Vector<Type>& other)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
 	Copy(array + size, other.array, other.size);
@@ -740,7 +727,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator+=(Vector<Type>&
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	Copy(array + size, other.array, other.size);
+	Move(array + size, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -752,6 +739,7 @@ template<class Type>
 template<FunctionPtr Predicate>
 inline void Vector<Type>::SearchFor(Predicate predicate, Vector<Type>& other)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	other.Reserve(size);
 	other.size = 0;
 
@@ -822,10 +810,8 @@ inline void Vector<Type>::RemoveAll(Predicate predicate, Vector<Type>& other)
 	{
 		if (predicate(*t))
 		{
-			other.Push(*t);
-			Copy(t, t + 1, (last - t - 1));
-
-			--size;
+			other.Push(Move(*t));
+			Move(t, array + size-- - 1, 1);
 		}
 		else { ++t; }
 	}
@@ -847,6 +833,7 @@ template<class Type>
 template<FunctionPtr Predicate>
 U64 Vector<Type>::SortedInsert(Predicate predicate, const Type& value)
 {
+	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	U64 i = 0;
 	for (Type* t = array, *end = array + size; t != end; ++t, ++i)
 	{
@@ -854,8 +841,8 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, const Type& value)
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			Copy(array + i + 1, array + i, (size - i));
-			array[i] = value;
+			Move(array + i + 1, array + i, (size - i));
+			Construct(array + i, value);
 			++size;
 
 			return i;
@@ -880,8 +867,8 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, Type&& value) noexcept
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			Copy(array + i + 1, array + i, (size - i));
-			array[i] = Move(value);
+			Move(array + i + 1, array + i, (size - i));
+			Construct(array + i, Move(value));
 			++size;
 
 			return i;
@@ -898,7 +885,7 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, Type&& value) noexcept
 template<class Type>
 inline void Vector<Type>::Reserve(U64 capacity)
 {
-	Memory::Reallocate(&array, capacity, this->capacity);
+	Memory::Reallocate(&array, capacity, this->capacity); //TODO: this sucks
 }
 
 template<class Type>
@@ -911,10 +898,25 @@ inline void Vector<Type>::Resize(U64 size)
 template<class Type>
 inline void Vector<Type>::Resize(U64 size, const Type& value)
 {
+	static_assert(std::is_copy_constructible_v<Type>, "Type Must Be Copyable!");
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
 
-	for (U64 i = 0; i < size; ++i) { array[i] = value; }
+	for (U64 i = 0; i < size; ++i) { Construct(array + i, value); }
+}
+
+template<class Type>
+inline void Vector<Type>::Clear()
+{
+	if (array)
+	{
+		if constexpr (IsDestructible<Type>)
+		{
+			for (U64 i = 0; i < size; i++) { (array + i)->~Type(); }
+		}
+	}
+
+	size = 0;
 }
 
 template<class Type>
@@ -963,6 +965,8 @@ inline U64 Vector<Type>::Index(const Type* value) const
 template<class Type>
 inline bool Vector<Type>::operator==(const Vector& other) const
 {
+	if (this == &other) { return true; }
+
 	if (size != other.size) { return false; }
 
 	for (Type* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)
@@ -976,6 +980,8 @@ inline bool Vector<Type>::operator==(const Vector& other) const
 template<class Type>
 inline bool Vector<Type>::operator!=(const Vector& other) const
 {
+	if (this == &other) { return false; }
+
 	if (size != other.size) { return true; }
 
 	for (Type* it0 = array, *it1 = other.array, *end = array + size; it0 != end; ++it0, ++it1)

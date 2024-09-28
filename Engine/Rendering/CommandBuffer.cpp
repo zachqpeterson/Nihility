@@ -160,7 +160,7 @@ void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
 	vkCmdDispatch(vkCommandBuffer, groupX, groupY, groupZ);
 }
 
-void CommandBuffer::BufferToImage(const Buffer& buffer, const ResourceRef<Texture>& texture, U32 regionCount, const VkBufferImageCopy* regions)
+void CommandBuffer::BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions)
 {
 	vkCmdCopyBufferToImage(vkCommandBuffer, buffer.vkBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
 }
@@ -178,6 +178,11 @@ void CommandBuffer::BufferToBuffer(const Buffer& src, const Buffer& dst, U32 reg
 void CommandBuffer::ImageToImage(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, U32 regionCount, const VkImageCopy* regions)
 {
 	vkCmdCopyImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
+}
+
+void CommandBuffer::Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)
+{
+	vkCmdBlitImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, blitCount, blits, filter);
 }
 
 void CommandBuffer::Blit(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)

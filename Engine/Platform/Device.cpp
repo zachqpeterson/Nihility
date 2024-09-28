@@ -41,8 +41,10 @@ struct HIDButtonMapping
 Device::Device(void* handle) : riHandle{ handle }
 {
 	String path;
+	path.Reserve(1);
 	U32 len = (U32)path.Capacity();
 	GetRawInputDeviceInfoA(riHandle, RIDI_DEVICENAME, path.Data(), &len);
+	path.Resize();
 
 	RID_DEVICE_INFO info;
 	info.cbSize = sizeof(RID_DEVICE_INFO);
@@ -52,6 +54,7 @@ Device::Device(void* handle) : riHandle{ handle }
 
 	if ((ntHandle = CreateFileA(path.Data(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)) == INVALID_HANDLE_VALUE) { Logger::Trace("Failed to open device, {}", GetLastError()); return; }
 
+	name.Reserve(1);
 	if (!HidD_GetProductString(ntHandle, name.Data(), (UL32)name.Capacity())) { Logger::Trace("Failed to get name, {}", GetLastError()); }
 	name.Resize();
 
