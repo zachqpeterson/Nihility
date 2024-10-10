@@ -62,7 +62,6 @@ void Engine::Initialize(const GameInfo& gameInfo_)
 	activity.largeImage = "nihility_logo";
 	activity.largeImageText = "Nihility";
 
-
 	Discord::SetActivity(activity);
 #endif
 

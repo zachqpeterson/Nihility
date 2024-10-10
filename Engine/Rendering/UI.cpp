@@ -142,12 +142,17 @@ bool UI::Initialize()
 
 	U32 indices[]{ 0, 1, 2, 2, 3, 1,   4, 5, 6, 6, 7, 5,   8, 9, 10, 10, 11, 9,   12, 13, 14, 14, 15, 13,   16, 17, 18, 18, 19, 17 };
 
+	if (!File::Exists("fonts/arial.nhfnt"))
+	{
+		Resources::UploadFont("arial.ttf");
+	}
+
 	font = Resources::LoadFont("fonts/arial.nhfnt");
 
-	textWidth = 48.0f / 1920.0f;
-	textHeight = 48.0f / 1080.0f;
+	textWidth = font->glyphSize / 1920.0f;
+	textHeight = font->glyphSize / 1080.0f;
 
-	textPosition = Vector2{ 48.0f, 48.0f } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
+	textPosition = Vector2{ (F32)font->glyphSize, (F32)font->glyphSize } / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 	textPadding = Vector2One / Vector2{ (F32)font->texture->width, (F32)font->texture->height };
 
 	Vector2 uiPositions[4]{
@@ -476,7 +481,7 @@ UIElement* UI::CreateImage(UIElementInfo& info, const ResourceRef<Texture>& text
 	return element;
 }
 
-////TODO: Option for knob
+//TODO: Option for knob
 UIElement* UI::CreateSlider(UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent)
 {
 	if (!info.scene) { Logger::Error("Cannot Create UI Elements Outside Of A Scene!"); return nullptr; }

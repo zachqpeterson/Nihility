@@ -579,10 +579,9 @@ Vector3 Pixel(F32* array, I32 x, I32 y, I32 width)
 	return { *data++, *data++, *data };
 }
 
-F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
+F32* FontLoader::LoadFont(U8* data, Font& font)
 {
-	width = 48;
-	height = 48;
+	font.glyphSize = 96;
 	U32 padding = 1;
 
 	stbtt_fontinfo info{};
@@ -591,20 +590,20 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 	font.scale = stbtt_ScaleForMappingEmToPixels(&info, 32.0f);
 	I32 ascent, descent, lineGap;
 	stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
-	font.ascent = ascent * font.scale / (F32)height;
-	font.descent = descent * font.scale / (F32)height;
-	font.lineGap = lineGap * font.scale / (F32)height;
+	font.ascent = ascent * font.scale / (F32)font.glyphSize;
+	font.descent = descent * font.scale / (F32)font.glyphSize;
+	font.lineGap = lineGap * font.scale / (F32)font.glyphSize;
 
-	U32 rowWidth = (width + padding) * 8 + padding;
-	U32 columnHeight = (height + padding) * 12 + padding;
+	U32 rowWidth = (font.glyphSize + padding) * 8 + padding;
+	U32 columnHeight = (font.glyphSize + padding) * 12 + padding;
 
 	F32* atlas;
 	Memory::AllocateArray(&atlas, rowWidth * columnHeight * 4);
 
 	F32* bitmap;
-	Memory::AllocateArray(&bitmap, width * height * 4);
+	Memory::AllocateArray(&bitmap, font.glyphSize * font.glyphSize * 4);
 
-	U32 glyphRowSize = rowWidth * (height + padding) * 4;
+	U32 glyphRowSize = rowWidth * (font.glyphSize + padding) * 4;
 	U32 x = padding * 4;
 	U32 y = rowWidth * padding * 4;
 
@@ -615,24 +614,24 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 	{
 		C8 codepoint = i + 32;
 
-		bool glyph = LoadGlyph(&info, font, font.glyphs[i], UTF8(&codepoint), width, height, glyphToCodepoint, bitmap);
+		bool glyph = LoadGlyph(&info, font, font.glyphs[i], UTF8(&codepoint), font.glyphSize, font.glyphSize, glyphToCodepoint, bitmap);
 
 		if (glyph)
 		{
 			U32 start = x + y;
 
-			for (I32 j = 0; j < height; ++j)
+			for (I32 j = 0; j < font.glyphSize; ++j)
 			{
-				Copy(atlas + start + j * rowWidth * 4, bitmap + j * width * 4, width * 4);
+				Copy(atlas + start + j * rowWidth * 4, bitmap + j * font.glyphSize * 4, font.glyphSize * 4);
 			}
 		}
 
-		x += (width + padding) * 4;
+		x += (font.glyphSize + padding) * 4;
 		if (x == rowWidth * 4) { x = padding * 4; y += glyphRowSize; }
 	}
 
-	width = rowWidth;
-	height = columnHeight;
+	font.width = rowWidth;
+	font.height = columnHeight;
 
 	I32 length = stbtt_GetKerningTableLength(&info);
 
@@ -649,13 +648,14 @@ F32* FontLoader::LoadFont(U8* data, Font& font, U16& width, U16& height)
 	{
 		stbtt_kerningentry& entry = kerningTable[i];
 
-		if (entry.glyph1 != lastGlyph)
-		{
-			lastGlyph = entry.glyph1;
-			codepoint = *glyphToCodepoint.Get(lastGlyph);
-		}
+		C8* code = glyphToCodepoint.Get(entry.glyph1);
+		if (!code || *code < 32 || *code > 127) { continue; }
+		codepoint = *code - 32;
 
-		font.glyphs[codepoint].kerning[*glyphToCodepoint.Get(entry.glyph2)] = (F32)(entry.advance * font.scale) / (F32)width;
+		code = glyphToCodepoint.Get(entry.glyph2);
+		if (!code || *code < 32 || *code > 127) { continue; }
+
+		font.glyphs[codepoint].kerning[*code - 32] = (F32)(entry.advance * font.scale) / (F32)font.width;
 	}
 
 	return atlas;

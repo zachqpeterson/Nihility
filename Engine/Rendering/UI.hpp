@@ -192,9 +192,6 @@ struct CommandBuffer;
 class NH_API UI
 {
 public:
-	static PipelineInfo GetUIPipeline();
-	static PipelineInfo GetTextPipeline();
-
 	static UIElement* CreateElement(UIElementInfo& info);
 	static UIElement* CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& borderColor, const ResourceRef<Texture>& background = nullptr, const ResourceRef<Texture>& border = nullptr);
 	static UIElement* CreateImage(UIElementInfo& info, const ResourceRef<Texture>& texture, const Vector4& uvs);

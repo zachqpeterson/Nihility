@@ -883,8 +883,9 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 		Texture* texture = &textures.Request(textureName, handle)->a;
 		*texture = {};
 
-		reader.Read(texture->width);
-		reader.Read(texture->height);
+		reader.Read(font->glyphSize);
+		reader.Read(font->width);
+		reader.Read(font->height);
 
 		texture->name = Move(textureName);
 		texture->handle = handle;
@@ -893,6 +894,8 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 		texture->depth = 1;
 		texture->format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		texture->mipmapCount = 1;
+		texture->width = font->width;
+		texture->height = font->height;
 		texture->size = texture->width * texture->height * 4 * sizeof(F32);
 
 		texture->sampler.minFilter = FILTER_TYPE_NEAREST;
@@ -2354,9 +2357,7 @@ String Resources::UploadFont(const String& path)
 		file.Close();
 
 		Font font;
-		U16 width;
-		U16 height;
-		F32* atlas = FontLoader::LoadFont(data, font, width, height);
+		F32* atlas = FontLoader::LoadFont(data, font);
 
 		Memory::Free(&data);
 
@@ -2375,10 +2376,11 @@ String Resources::UploadFont(const String& path)
 			file.Write(font.glyphs[i]);
 		}
 
-		file.Write(width);
-		file.Write(height);
+		file.Write(font.glyphSize);
+		file.Write(font.width);
+		file.Write(font.height);
 
-		file.WriteCount(atlas, width * height * 4);
+		file.WriteCount(atlas, font.width * font.height * 4);
 
 		file.Close();
 
