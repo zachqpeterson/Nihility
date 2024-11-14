@@ -2,7 +2,7 @@ module;
 
 #include "Resources\Resources.hpp"
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 
 #include <Windows.h>
 #include <shlwapi.h>
@@ -60,7 +60,7 @@ HICON sizeNWSE;
 static constexpr const C8* MENU_NAME = "Nihility Menu";
 static constexpr const C8* CLASS_NAME = "Nihility Class";
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 
 bool Platform::Initialize(const StringView& applicationName)
 {

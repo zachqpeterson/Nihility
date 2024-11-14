@@ -4,7 +4,7 @@ module;
 
 #include <time.h>
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
 
@@ -26,7 +26,7 @@ F64 Time::FrameUpTime() { return AbsoluteTime() - frameEndTime; }
 
 F64 Time::AbsoluteTime()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 	LARGE_INTEGER nowTime;
 	QueryPerformanceCounter(&nowTime);
 
@@ -41,7 +41,7 @@ U64 Time::SecondsSinceEpoch()
 
 I64 Time::CoreCounter()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 	LARGE_INTEGER nowTime;
 	QueryPerformanceCounter(&nowTime);
 
@@ -81,7 +81,7 @@ void Time::Update()
 
 F64 Time::ClockFrequency()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
 	return 1.0 / (F64)frequency.QuadPart;
@@ -90,7 +90,7 @@ F64 Time::ClockFrequency()
 
 F64 Time::ProgramStart()
 {
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 	LARGE_INTEGER startTime;
 	QueryPerformanceCounter(&startTime);
 

@@ -10,7 +10,7 @@ import Containers;
 
 export struct WindowData
 {
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 	struct HINSTANCE__* instance;
 	struct HWND__* window;
 #endif
@@ -80,7 +80,7 @@ private:
 	static bool cursorConstrained;
 	static bool cursorShowing;
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 	static I64 __stdcall WindowsMessageProc(struct HWND__* hwnd, U32 msg, U64 wParam, I64 lParam);
 #endif
 

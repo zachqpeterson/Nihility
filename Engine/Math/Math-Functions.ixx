@@ -50,6 +50,8 @@ public:
 	template <FloatingPoint Type> static constexpr bool IsNaN(Type f) noexcept { return f != f; }
 	template <FloatingPoint Type> static constexpr bool IsInf(Type f) noexcept { return f == Traits<Type>::Infinity; }
 	template <FloatingPoint Type> static constexpr bool IsNegInf(Type f) noexcept { return f == -Traits<Type>::Infinity; }
+	template <FloatingPoint Type> static constexpr bool IsValid(Type f) noexcept { return !(IsNaN(f) || IsInf(f) || IsNegInf(f)); }
+
 
 private:
 	template<FloatingPoint Type> static constexpr I64 FindWhole(const Type f) noexcept
@@ -238,6 +240,8 @@ public:
 	template <FloatingPoint Type> static Type AcosH(Type f) noexcept { if constexpr (IsSame<Type, F32>) { return acosfh(f); } else { return acosh(f); } }
 	template <FloatingPoint Type> static Type AtanH(Type f) noexcept { if constexpr (IsSame<Type, F32>) { return atanfh(f); } else { return atanh(f); } }
 	template <FloatingPoint Type> static Type Atan2(Type x, const Type y) noexcept { if constexpr (IsSame<Type, F32>) { return atan2f(x, y); } else { return atan2(x, y); } }
+
+	template <FloatingPoint Type> static Type UnwindAngle(Type f) noexcept { if (f < -PI_T<Type>) { return f + TWO_PI_T<Type>; } else if (f > PI_T<Type>) { return f - TWO_PI_T<Type>; } return f; }
 
 	template <FloatingPoint Type> static constexpr Type Sqrt(Type f) noexcept
 	{

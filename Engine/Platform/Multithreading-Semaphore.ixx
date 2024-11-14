@@ -2,17 +2,17 @@ module;
 
 #include "Defines.hpp"
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 #include "Windows.h"
-#elif defined(PLATFORM_APPLE)
-#elif defined(PLATFORM_LINUX)
-#elif defined(PLATFORM_UNIX)
-#elif defined(PLATFORM_POSIX)
+#elif defined(NH_PLATFORM_APPLE)
+#elif defined(NH_PLATFORM_LINUX)
+#elif defined(NH_PLATFORM_UNIX)
+#elif defined(NH_PLATFORM_POSIX)
 #endif
 
 export module Multithreading:Semaphore;
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 
 export struct NH_API Semaphore
 {
@@ -28,8 +28,8 @@ private:
 	void* handle;
 };
 
-#elif defined(PLATFORM_APPLE)
-#elif defined(PLATFORM_LINUX)
-#elif defined(PLATFORM_UNIX)
-#elif defined(PLATFORM_POSIX)
+#elif defined(NH_PLATFORM_APPLE)
+#elif defined(NH_PLATFORM_LINUX)
+#elif defined(NH_PLATFORM_UNIX)
+#elif defined(NH_PLATFORM_POSIX)
 #endif

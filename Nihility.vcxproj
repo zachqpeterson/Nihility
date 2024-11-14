@@ -67,7 +67,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
@@ -97,7 +97,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
@@ -186,9 +186,11 @@
     <ClInclude Include="Engine\Math\Broadphase.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
     <ClInclude Include="Engine\Math\Island.hpp" />
+    <ClInclude Include="Engine\Math\Manifold.hpp" />
     <ClInclude Include="Engine\Math\Math.hpp" />
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
+    <ClInclude Include="Engine\Math\PhysicsEvents.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
@@ -295,8 +297,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Containers\Containers-Array.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Bitset.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Freelist.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Hashmap.ixx" />
+    <ClCompile Include="Engine\Containers\Containers-Hashset.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Pair.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Pool.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Queue.ixx" />
@@ -336,6 +340,7 @@
     <ClCompile Include="Engine\Math\Broadphase.cpp" />
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Island.cpp" />
+    <ClCompile Include="Engine\Math\Manifold.cpp" />
     <ClCompile Include="Engine\Math\Math-Constants.ixx" />
     <ClCompile Include="Engine\Math\Math-Functions.ixx" />
     <ClCompile Include="Engine\Math\Math-Types.ixx" />

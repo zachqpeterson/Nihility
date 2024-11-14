@@ -55,7 +55,7 @@ private:
 	static Semaphore semaphore;
 	static JobQueue jobQueues[JOB_PRIORITY_COUNT];
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 	static U32 __stdcall RunThread(void*);
 	static UL32 sleepRes;
 #endif

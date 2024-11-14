@@ -8,6 +8,8 @@ export import :SafeQueue;
 export import :Queue;
 export import :Stack;
 export import :Hashmap;
+export import :Hashset;
+export import :Bitset;
 export import :Pair;
 export import :Pool;
 export import :TypeList;

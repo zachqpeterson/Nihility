@@ -182,14 +182,14 @@ public:
 	/// Removes the value at index by swaping it with the last index
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
-	void RemoveSwap(U64 index);
+	I32 RemoveSwap(U64 index);
 
 	/// <summary>
 	/// Copies value at index into value, removes the value at index by swaping it with the last index
 	/// </summary>
 	/// <param name="index:">The index to remove</param>
 	/// <param name="value:">The value to copy to</param>
-	void RemoveSwap(U64 index, Type& value);
+	I32 RemoveSwap(U64 index, Type& value);
 
 	/// <summary>
 	/// Moves values at and past index1 to index0
@@ -391,12 +391,22 @@ public:
 
 
 
-	/// <summary></summary>
+	/// <summary>Retrieves the value at an index</summary>
+	/// <param name="i:">Index</param>
+	/// <returns>The value at index (const)</returns>
+	const Type& Get(U64 i) const { return array[i]; }
+
+	/// <summary>Retrieves the value at an index</summary>
+	/// <param name="i:">Index</param>
+	/// <returns>The value at index</returns>
+	Type& Get(U64 i) { return array[i]; }
+
+	/// <summary>Retrieves the value at an index</summary>
 	/// <param name="i:">Index</param>
 	/// <returns>The value at index (const)</returns>
 	const Type& operator[](U64 i) const { return array[i]; }
 
-	/// <summary></summary>
+	/// <summary>Retrieves the value at an index</summary>
 	/// <param name="i:">Index</param>
 	/// <returns>The value at index</returns>
 	Type& operator[](U64 i) { return array[i]; }
@@ -654,15 +664,30 @@ template<class Type> inline void Vector<Type>::Remove(U64 index, Type& value)
 	--size;
 }
 
-template<class Type> inline void Vector<Type>::RemoveSwap(U64 index)
+template<class Type> inline I32 Vector<Type>::RemoveSwap(U64 index)
 {
-	Assign(array + index, Move(array[--size]));
+	if (index < size - 1)
+	{
+		Assign(array + index, Move(array[--size]));
+		return (I32)size;
+	}
+
+	--size;
+	return -1;
 }
 
-template<class Type> inline void Vector<Type>::RemoveSwap(U64 index, Type& value)
+template<class Type> inline I32 Vector<Type>::RemoveSwap(U64 index, Type& value)
 {
 	Construct(&value, Move(array[index]));
-	Construct(array + index, Move(array[--size]));
+
+	if (index < size - 1)
+	{
+		Construct(array + index, Move(array[--size]));
+		return size;
+	}
+
+	--size;
+	return -1;
 }
 
 template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1)

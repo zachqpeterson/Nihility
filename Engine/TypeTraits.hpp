@@ -441,7 +441,7 @@ private:
 		if constexpr (IsSame<Base, signed char>) { return I8_MAX; }
 		if constexpr (IsSame<Base, char8_t>) { return U8_MAX; }
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 		if constexpr (IsSame<Base, wchar_t>) { return U16_MAX; }
 #else
 		if constexpr (IsSame<Base, wchar_t>) { return U32_MAX; }
@@ -474,7 +474,7 @@ private:
 		if constexpr (IsSame<Base, signed char>) { return I8_MIN; }
 		if constexpr (IsSame<Base, char8_t>) { return U8_MIN; }
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 		if constexpr (IsSame<Base, wchar_t>) { return U16_MIN; }
 #else
 		if constexpr (IsSame<Base, wchar_t>) { return U32_MIN; }
@@ -507,7 +507,7 @@ private:
 		if constexpr (IsSame<Base, signed char>) { return 7; }
 		if constexpr (IsSame<Base, char8_t>) { return 8; }
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 		if constexpr (IsSame<Base, wchar_t>) { return 16; }
 #else
 		if constexpr (IsSame<Base, wchar_t>) { return 32; }

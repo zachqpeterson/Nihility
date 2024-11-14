@@ -118,6 +118,7 @@ private:
 	static Region GetRegion(void* pointer);
 	static Region GetRegion(U64 size);
 
+	//TODO: Maybe check if pointer is already allocated
 	static void Allocate1kb(void** pointer, U64 size);
 	static void Allocate16kb(void** pointer, U64 size);
 	static void Allocate256kb(void** pointer, U64 size);

@@ -4,7 +4,7 @@ module;
 
 #include <xthreads.h>
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 #include <Windows.h>
 #include <process.h>
 #endif
@@ -15,7 +15,7 @@ import ThreadSafety;
 import Core;
 import Containers;
 
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
 static U32(__stdcall* NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (U32(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
 #endif
@@ -25,7 +25,7 @@ U64 Jobs::threadCount = 1;
 U64 Jobs::activeJobCount = 0;
 Semaphore Jobs::semaphore;
 JobQueue Jobs::jobQueues[JOB_PRIORITY_COUNT];
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 UL32 Jobs::sleepRes;
 #endif
 

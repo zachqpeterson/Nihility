@@ -4,7 +4,7 @@ module;
 #include "Math\Math.hpp"
 #include "Resources\ResourceDefines.hpp"
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 #include <Windows.h>
 #include <hidsdi.h>
 #include <SetupAPI.h>

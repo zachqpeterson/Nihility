@@ -5,7 +5,7 @@ module;
 #include <xthreads.h>
 #include <atomic>
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
 
@@ -48,7 +48,7 @@ private:
 	LockGuard& operator=(const LockGuard&) = delete;
 };
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(NH_PLATFORM_WINDOWS)
 export template<Integer Type>
 inline Type SafeIncrement(volatile Type* t)
 {
@@ -143,3 +143,8 @@ inline Type SafeCompareAndExchange(volatile Type* t, Type exchange, Type compera
 }
 
 #endif
+
+//TODO: Atomic Types
+
+export typedef std::atomic<I32> I32_Atomic;
+export typedef std::atomic<U32> U32_Atomic;

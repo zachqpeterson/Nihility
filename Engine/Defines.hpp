@@ -52,7 +52,7 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 /*---------PLATFORM DETECTION---------*/
 
 #if defined WIN32 || defined _WIN32 || defined __WIN32__ || defined _WIN64 //---WINDOWS
-#	define PLATFORM_WINDOWS //Defined when on a Windows operating system
+#	define NH_PLATFORM_WINDOWS //Defined when on a Windows operating system
 #	define WIN32_LEAN_AND_MEAN
 #	define NOMINMAX
 #	ifndef _WIN64
@@ -60,41 +60,90 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #	endif
 
 #elif defined __linux__ || defined __gnu_linux__ //-----------------------------LINUX
-#	define PLATFORM_LINUX  //Defined when on a Liunx operating system
+#	define NH_PLATFORM_LINUX  //Defined when on a Liunx operating system
 #	if defined __ANDROID__ //---------------------------------------------------ANDROID
-#		define PLATFORM_ANDROID
+#		define NH_PLATFORM_ANDROID
 #	endif
 
 #elif defined __unix__ //-------------------------------------------------------UNIX
-#	define PLATFORM_UNIX  //Defined when on a Unix operating system
+#	define NH_PLATFORM_UNIX  //Defined when on a Unix operating system
 
 #elif defined _POSIX_VERSION_ //------------------------------------------------POSIX
-#	define PLATFORM_POSIX
+#	define NH_PLATFORM_POSIX
 
 #elif defined __APPLE__ || defined __MACH__ //----------------------------------APPLE
-#	define PLATFORM_APPLE  //Defined when on an Apple operating system
+#	define NH_PLATFORM_APPLE  //Defined when on an Apple operating system
 #	include <TargetConditionals.h>
 #	if TARGET_IPHONE_SIMULATOR //-----------------------------------------------IOS SIMULATOR
-#		define PLATFORM_IOS  //Defined when on an IOS operating system
-#		define PLATFORM_IOS_SIMULATOR  //Defined when on an IOS Simulator
+#		define NH_PLATFORM_IOS  //Defined when on an IOS operating system
+#		define NH_PLATFORM_IOS_SIMULATOR  //Defined when on an IOS Simulator
 #	elif TARGET_OS_IPHONE //----------------------------------------------------IOS
-#		define PLATFORM_IOS  //Defined when on an IOS operating system
+#		define NH_PLATFORM_IOS  //Defined when on an IOS operating system
 #	elif TARGET_OS_MAC
 #	else
 #		error "Unknown Apple platform!"
 #	endif
-
+#elif defined __EMSCRIPTEN__
+#	define NH_PLATFORM_WASM
 #else //------------------------------------------------------------------------UNKOWN
 #	error "Unknown platform!"
 #endif
 
-#if defined PLATFORM_WINDOWS || defined __LITTLE_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+/*---------ENDIAN DETECTION---------*/
+
+#if defined NH_PLATFORM_WINDOWS || defined __LITTLE_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 #	define NH_LITTLE_ENDIAN  //Defined when on a little endian operating system
 #elif defined __BIG_ENDIAN__ || (defined __BYTE_ORDER__ && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #	define NH_BIG_ENDIAN //Defined when on a big endian operating system
 #else
 #	warning "could not determine endianness! Falling back to little endian..."
 #	define NH_LITTLE_ENDIAN //Defined when on a little endian operating system
+#endif
+
+/*---------CPU DETECTION---------*/
+
+#if defined( __x86_64__ ) || defined( _M_X64 ) || defined( __i386__ ) || defined( _M_IX86 )
+#	define NH_CPU_X86_X64
+#elif defined( __aarch64__ ) || defined( _M_ARM64 ) || defined( __arm__ ) || defined( _M_ARM )
+#	define NH_CPU_ARM
+#elif defined( __EMSCRIPTEN__ )
+#	define NH_CPU_WASM
+#else
+#	define NH_CPU_UNKNOWN
+#endif
+
+/*---------SIMD DETECTION---------*/
+
+#ifdef NH_CPU_X86_X64
+#	ifdef __AVX__
+#		define NH_SIMD_AVX
+#		define NH_SIMD_WIDTH 8
+#	elif (defined _M_AMD64 || defined _M_X64) || _M_IX86_FP == 2
+#		define NH_SIMD_SSE2
+#		define NH_SIMD_WIDTH 4
+#	elif _M_IX86_FP == 1
+#		define NH_SIMD_SSE
+#		define NH_SIMD_WIDTH 4
+#	endif
+#elif defined NH_CPU_ARM
+#	define NH_SIMD_NEON
+#	define NH_SIMD_WIDTH 4
+#elif defined NH_CPU_WASM
+#	define NH_SIMD_SSE2
+#	define NH_SIMD_WIDTH 4
+#else
+#	define NH_SIMD_NONE
+#	define NH_SIMD_WIDTH 4
+#endif
+
+/*---------COMPILER DETECTION---------*/
+
+#if defined __clang__
+#	define NH_COMPILER_CLANG
+#elif defined __GNUC__ || defined __gcc__
+#	define NH_COMPILER_GCC
+#elif defined _MSC_VER
+#	define NH_COMPILER_MSVC
 #endif
 
 /*---------PLATFORM MACROS---------*/
@@ -107,13 +156,13 @@ static inline constexpr F64 F64_MIN = 2.2250738585072014e-308;	//Minimum value o
 #endif
 
 #ifdef NH_EXPORT
-#	ifdef _MSC_VER
+#	ifdef NH_COMPILER_MSVC
 #		define NH_API __declspec(dllexport)						// Marks a function or class to be exported
 #	else
 #		define NH_API __attribute__((visibility("default")))	// Marks a function or class to be exported
 #	endif
 #else
-#	ifdef _MSC_VER
+#	ifdef NH_COMPILER_MSVC
 #		define NH_API __declspec(dllimport)						// Marks a function or class to be imported
 #	else
 #		define NH_API											// Marks a function or class to be imported
@@ -136,10 +185,10 @@ class(class&&) = delete;			\
 class& operator=(class&) = delete;	\
 class& operator=(class&&) = delete;	\
 
-#if defined __clang__ || defined __gcc__
+#if defined NH_COMPILER_CLANG || defined NH_COMPILER_GCC
 #	define NH_INLINE __attribute__((always_inline)) inline	// Tries to force the compiler to inline a function
 #	define NH_NOINLINE __attribute__((noinline))			// Tries to force the compiler to not inline a function
-#elif defined _MSC_VER
+#elif defined NH_COMPILER_MSVC
 #	define NH_INLINE __forceinline							// Tries to force the compiler to inline a function
 #	define NH_NOINLINE __declspec(noinline)					// Tries to force the compiler to not inline a function
 #else
@@ -147,14 +196,12 @@ class& operator=(class&&) = delete;	\
 #	define NH_NOINLINE										// Tries to force the compiler to not inline a function (NOT AVAILABLE)
 #endif
 
-#ifndef HAS_NODISCARD
-#	ifndef __has_cpp_attribute
-#		define HAS_NODISCARD 0
-#	elif __has_cpp_attribute(nodiscard) >= 201603L
-#		define HAS_NODISCARD 1
-#	else
-#		define HAS_NODISCARD 0
-#	endif
+#ifndef __has_cpp_attribute
+#	define HAS_NODISCARD 0
+#elif __has_cpp_attribute(nodiscard) >= 201603L
+#	define HAS_NODISCARD 1
+#else
+#	define HAS_NODISCARD 0
 #endif
 
 #if HAS_NODISCARD
@@ -187,10 +234,13 @@ enum ISAAvailability
 #include <intrin.h>
 
 #ifdef ASSERTIONS_ENABLED
-#	if _MSC_VER
+#	ifdef NH_COMPILER_MSVC
 #		define BreakPoint __debugbreak()	// Halts the execution of the program when reached
-#	else
+#	elif defined NH_COMPILER_GCC || defined NH_COMPILER_CLANG
 #		define BreakPoint __builtin_trap()	// Halts the execution of the program when reached
+#	else
+#		include <assert.h>
+#		define BreakPoint assert(0)
 #	endif
 
 	/// <summary>

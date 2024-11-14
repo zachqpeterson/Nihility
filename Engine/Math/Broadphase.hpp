@@ -22,33 +22,88 @@
 
 #include "PhysicsDefines.hpp"
 
+import ThreadSafety;
 import Containers;
 import Memory;
 
 static constexpr inline I32 NullNode = -1;
+static constexpr inline U64 DefaultLayerMask = U64_MAX;
+
+enum RotateType
+{
+	ROTATE_TYPE_NONE,
+	ROTATE_TYPE_BF,
+	ROTATE_TYPE_BG,
+	ROTATE_TYPE_CD,
+	ROTATE_TYPE_CE
+};
 
 struct TreeNode
 {
 	AABB aabb;
 
-	I32 child1;
-	I32 child2;
-	I32 height;
-	bool moved;
-
-	ColliderProxy* data;
+	U64 layers;
 
 	union
 	{
 		I32 parent;
 		I32 next;
 	};
+
+	I32 child1;
+	I32 child2;
+	I32 userData;
+	I32 height;
+	bool enlarged;
 };
 
-struct ProxyPair
+struct DynamicTree
 {
-	I32 proxyIdA;
-	I32 proxyIdB;
+public:
+	void Create();
+	void Destroy();
+
+	I32 AllocateNode();
+	void FreeNode(I32 nodeId);
+	I32 FindBestSibling(AABB box);
+	void RotateNodes(I32 iA);
+	void InsertLeaf(I32 leaf, bool shouldRotate);
+	void RemoveLeaf(I32 leaf);
+
+	I32 CreateProxy(const AABB& aabb, U64 layers, I32 userData);
+	void DestroyProxy(I32 proxyId);
+	void MoveProxy(I32 proxyId, const AABB& aabb);
+	void EnlargeProxy(I32 proxyId, const AABB& aabb);
+	bool AABBOverlaps(AABB a, AABB b);
+	void Query(const AABB& aabb, U64 layerMask, QueryPairContext& context);
+	void QueryContinuous(const AABB& aabb, U64 layerMask, ContinuousContext& context);
+	void Raycast(RaycastInput input, U64 layerMask);
+	void Shapecast(ShapeCastInput input, U64 layerMask);
+	I32 GetHeight();
+	I32 ComputeHeight(I32 nodeId);
+	I32 ComputeHeight();
+	I32 GetMaxBalance();
+	F32 GetAreaRatio();
+	I32 GetProxyCount();
+	I32 Rebuild(bool fullBuild);
+	I32 BuildTree(I32 leafCount);
+	I32 PartitionMid(I32* indices, Vector2* centers, I32 count);
+	void ShiftOrigin(Vector2 newOrigin);
+	I32 GetUserData(I32 proxyId) const;
+	AABB GetAABB(I32 proxyId) const;
+
+public:
+	TreeNode* nodes;
+	I32 root;
+	I32 nodeCount;
+	U32 nodeCapacity;
+	I32 freeList;
+	I32 proxyCount;
+	I32* leafIndices;
+	AABB* leafBoxes;
+	Vector2* leafCenters;
+	I32* binIndices;
+	I32 rebuildCapacity;
 };
 
 class Broadphase
@@ -57,45 +112,36 @@ private:
 	static void Initialize();
 	static void Shutdown();
 
-	static I32 CreateProxy(const AABB& aabb, ColliderProxy* data);
-	static void DestroyProxy(I32 proxyId);
-	static void MoveProxy(I32 proxyId, const AABB& aabb, const Vector2& displacement);
-	static void TouchProxy(I32 proxyId);
-	static const AABB& GetFatAABB(I32 proxyId);
-	static bool TestOverlap(I32 proxyIdA, I32 proxyIdB);
-	static I32 GetProxyCount();
-	static void UpdatePairs();
-	static void Query(const AABB& aabb, I32 id);
+	static void Update();
+	static void FindPairs(I32 startIndex, I32 endIndex);
+	static bool PairQueryCallback(I32 proxyId, I32 shapeId, QueryPairContext& context);
+	static bool ContinuousQueryCallback(I32 shapeId, ContinuousContext& context);
+	static DistanceProxy MakeProxy(const Vector2* vertices, I32 count, F32 radius);
 
-	static void BufferMove(I32 proxyId);
-	static void UnBufferMove(I32 proxyId);
+	static I32 CreateProxy(BodyType proxyType, AABB aabb, U64 categoryBits, I32 shapeIndex, bool forcePairCreation);
+	static void DestroyProxy(I32 proxyKey);
+	static void MoveProxy(I32 proxyKey, AABB aabb);
+	static void UnBufferMove(I32 proxyKey);
+	static void EnlargeProxy(I32 proxyKey, AABB aabb);
+	static void RebuildTrees();
+	static I32 GetShapeIndex(I32 proxyKey);
+	static bool TestOverlap(I32 proxyKeyA, I32 proxyKeyB);
+	static void BufferMove(I32 queryProxy);
 
-	//Tree
-	static I32 AllocateNode();
-	static void FreeNode(I32 nodeId);
-
-	static void InsertLeaf(I32 leaf);
-	static void RemoveLeaf(I32 leaf);
-
-	static I32 Balance(I32 index);
-
-	static I32 ComputeHeight();
-	static I32 ComputeHeight(I32 nodeId);
-
+	static DynamicTree trees[BODY_TYPE_COUNT];
 	static I32 proxyCount;
 
-	static Vector<I32> moveBuffer;
-	static Vector<ProxyPair> pairBuffer;
+	static Hashset<I32> moveSet;
+	static Vector<I32> moveArray;
 
-	//Tree
-	static TreeNode* nodes;
-	static I32 root;
-	static I32 nodeCount;
-	static U32 nodeCapacity;
-	static I32 freeList;
-	static I32 path;
+	static MoveResult* moveResults;
+	static MovePair* movePairs;
+	static I32 movePairCapacity;
+	static I32_Atomic movePairIndex;
+
+	static Hashset<U64> pairSet;
 
 	STATIC_CLASS(Broadphase);
 	friend class Physics;
-	friend struct RigidBody2D;
+	friend struct DynamicTree;
 };

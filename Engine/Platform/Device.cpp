@@ -3,7 +3,7 @@
 import Core;
 import Memory;
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 
 #include <Windows.h>
 #include <hidsdi.h>

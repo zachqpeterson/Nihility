@@ -6,7 +6,7 @@ module;
 #include <sys\stat.h>
 #include <share.h>
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
 
@@ -285,7 +285,7 @@ const String& File::WorkingDirectory()
 
 bool File::GetWorkingDirectory(String& str)
 {
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 	UL32 length = 1024;
 
 	UL32 i = GetCurrentDirectoryA(length, str.Data());

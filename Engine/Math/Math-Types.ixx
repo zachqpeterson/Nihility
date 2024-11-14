@@ -84,7 +84,8 @@ export struct NH_API Vector2
 	constexpr F32 Cross(const Vector2& v) const { return x * v.y - y * v.x; }
 	constexpr Vector2 Cross(F32 f) const { return { y * f, x * -f }; }
 	constexpr Vector2 CrossInv(F32 f) const { return { -f * y, f * x }; }
-	constexpr Vector2 Cross() const { return { -y, x }; }
+	constexpr Vector2 PerpendicularLeft() const { return { -y, x }; }
+	constexpr Vector2 PerpendicularRight() const { return { y, -x }; }
 	constexpr Vector2 Normal(const Vector2& v) const { return Vector2(-(v.y - y), v.x - x).Normalized(); }
 	constexpr Vector2& Rotate(const Vector2& center, F32 angle)
 	{
@@ -103,8 +104,25 @@ export struct NH_API Vector2
 		return Vector2{ cos * (x - center.x) - sin * (y - center.y) + center.x,
 		sin * (x - center.x) + cos * (y - center.y) + center.y };
 	}
+	constexpr Vector2& Rotate(F32 angle)
+	{
+		F32 cos = Math::Cos(angle * DEG_TO_RAD_F);
+		F32 sin = Math::Sin(angle * DEG_TO_RAD_F);
+		y = cos * x - sin * y;
+		x = sin * x + cos * y;
+
+		return *this;
+	}
+	constexpr Vector2 Rotated(F32 angle) const
+	{
+		F32 cos = Math::Cos(angle * DEG_TO_RAD_F);
+		F32 sin = Math::Sin(angle * DEG_TO_RAD_F);
+		return { cos * x - sin * y, sin * x + cos * y };
+	}
 	constexpr Vector2& Rotate(const Vector2& center, const Quaternion2& quat);
 	constexpr Vector2 Rotated(const Vector2& center, const Quaternion2& quat) const;
+	constexpr Vector2& Rotate(const Quaternion2& quat);
+	constexpr Vector2 Rotated(const Quaternion2& quat) const;
 	constexpr Vector2& Clamp(const Vector2& min, const Vector2& max) { x = Math::Clamp(x, min.x, max.x); y = Math::Clamp(y, min.y, max.y); return *this; }
 	constexpr Vector2 Clamped(const Vector2& min, const Vector2& max) const { return { Math::Clamp(x, min.x, max.x), Math::Clamp(y, min.y, max.y) }; }
 	constexpr Vector2& SetClosest(const Vector2& min, const Vector2& max) { x = Math::Closest(x, min.x, max.x); y = Math::Closest(y, min.y, max.y); return *this; }
@@ -112,6 +130,8 @@ export struct NH_API Vector2
 
 	constexpr Vector2 Min(const Vector2& other) { return { Math::Min(x, other.x), Math::Min(y, other.y) }; }
 	constexpr Vector2 Max(const Vector2& other) { return { Math::Max(x, other.x), Math::Max(y, other.y) }; }
+
+	constexpr bool Valid() { return !(Math::IsValid(x) || Math::IsValid(y)); }
 
 	F32& operator[] (U64 i) { return (&x)[i]; }
 	const F32& operator[] (U64 i) const { return (&x)[i]; }
@@ -236,6 +256,8 @@ export struct NH_API Vector3
 
 	constexpr Vector3 Min(const Vector3& other) { return { Math::Min(x, other.x), Math::Min(y, other.y), Math::Min(z, other.z) }; }
 	constexpr Vector3 Max(const Vector3& other) { return { Math::Max(x, other.x), Math::Max(y, other.y), Math::Max(z, other.z) }; }
+
+	constexpr bool Valid() { return !(Math::IsValid(x) || Math::IsValid(y) || Math::IsValid(z)); }
 
 	F32& operator[] (U64 i) { return (&x)[i]; }
 	const F32& operator[] (U64 i) const { return (&x)[i]; }
@@ -392,6 +414,8 @@ export struct NH_API Vector4
 
 	constexpr Vector4 Min(const Vector4& other) { return { Math::Min(x, other.x), Math::Min(y, other.y), Math::Min(z, other.z), Math::Min(w, other.w) }; }
 	constexpr Vector4 Max(const Vector4& other) { return { Math::Max(x, other.x), Math::Max(y, other.y), Math::Max(z, other.z), Math::Max(w, other.w) }; }
+
+	constexpr bool Valid() { return !(Math::IsValid(x) || Math::IsValid(y) || Math::IsValid(z) || Math::IsValid(w)); }
 
 	F32& operator[] (U64 i) { return (&x)[i]; }
 	const F32& operator[] (U64 i) const { return (&x)[i]; }
@@ -1550,6 +1574,13 @@ export struct NH_API Matrix2
 		};
 	}
 
+	constexpr Vector2 Solve(const Vector2& v) const
+	{
+		F32 det = a.x * b.y - b.x * a.y;
+		if (!Math::IsZero(det)) { det = 1.0f / det; }
+		return { det * (b.y * b.x - b.x * b.y), det * (a.x * b.y - a.y * b.x) };
+	}
+
 	constexpr Matrix2 Inverse() const
 	{
 		F32 determinant = a.x * b.y - b.x * a.y;
@@ -2318,6 +2349,9 @@ export struct NH_API Quaternion2
 		return *this;
 	}
 
+
+	constexpr Quaternion2 operator*(F32 f) const { return { x * f, y * f }; }
+	constexpr Quaternion2 operator/(F32 f) const { return { x / f, y / f }; }
 	constexpr Quaternion2 operator+(const Quaternion2& q) const { return { x + q.x, y + q.y }; }
 	constexpr Quaternion2 operator-(const Quaternion2& q) const { return { x - q.x, y - q.y }; }
 	constexpr Quaternion2 operator*(const Quaternion2& q) const { return { x * q.y + y * q.x, y * q.y - x * q.x, }; }
@@ -2462,7 +2496,26 @@ export struct NH_API Quaternion2
 
 		return *this;
 	}
+	constexpr Quaternion2 NLerp(const Quaternion2& q, F32 t) const
+	{
+		F32 omt = 1.0f - t;
+		Quaternion2 quat = {
+			omt * x + t * q.x,
+			omt * y + t * q.y
+		};
 
+		return quat.Normalize();
+	}
+	constexpr Quaternion2& NLerped(const Quaternion2& q, F32 t)
+	{
+		F32 omt = 1.0f - t;
+		x = omt * x + t * q.x;
+		y = omt * y + t * q.y;
+
+		return Normalized();
+	}
+
+	constexpr F32 RelativeAngle(const Quaternion2& q) const { return 0.0f; }
 	constexpr F32 Dot(const Quaternion2& q) const { return x * q.x + y * q.y; }
 	constexpr F32 SqrNormal() const { return x * x + y * y; }
 	constexpr F32 Normal() const { return Math::Sqrt(x * x + y * y); }
@@ -2472,6 +2525,24 @@ export struct NH_API Quaternion2
 	constexpr Quaternion2& Conjugated() { x = -x; return *this; }
 	constexpr Quaternion2 Inverse() const { F32 n = 1.0f / Math::Sqrt(x * x + y * y); return { -x * n, y * n }; }
 	constexpr Quaternion2& Inversed() { return Conjugated().Normalized(); }
+	constexpr Quaternion2 Integrate(F32 deltaAngle)
+	{
+		Quaternion2 q2 = { x + deltaAngle * y, y - deltaAngle * x };
+		F32 mag = q2.Normal();
+		F32 invMag = mag > 0.0 ? 1.0f / mag : 0.0f;
+		return { q2.x * invMag, q2.y * invMag };
+	}
+	constexpr Quaternion2& Integrated(F32 deltaAngle)
+	{
+		Quaternion2 q2 = { x + deltaAngle * y, y - deltaAngle * x };
+		F32 mag = q2.Normal();
+		F32 invMag = mag > 0.0 ? 1.0f / mag : 0.0f;
+		Quaternion2 qn = { q2.x * invMag, q2.y * invMag };
+		x = q2.x * invMag;
+		y = q2.y * invMag;
+
+		return *this;
+	}
 
 	F32& operator[] (U8 i) { return (&x)[i]; }
 	const F32& operator[] (U8 i) const { return (&x)[i]; }
@@ -2877,6 +2948,16 @@ constexpr Vector2& Vector2::Rotate(const Vector2& center, const Quaternion2& qua
 constexpr Vector2 Vector2::Rotated(const Vector2& center, const Quaternion2& quat) const
 {
 	return Vector2{ quat.y * (x - center.x) - quat.x * (y - center.y) + center.x, quat.x * (x - center.x) + quat.y * (y - center.y) + center.y };
+}
+constexpr Vector2& Vector2::Rotate(const Quaternion2& quat)
+{
+	y = quat.y * x - quat.x * y;
+	x = quat.x * x + quat.y * y;
+	return *this;
+}
+constexpr Vector2 Vector2::Rotated(const Quaternion2& quat) const
+{
+	return { quat.y * x - quat.x * y, quat.x * x + quat.y * y };
 }
 
 constexpr Vector3& Vector3::operator*=(const Quaternion3& q)

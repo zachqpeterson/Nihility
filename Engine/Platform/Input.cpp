@@ -4,7 +4,7 @@ module;
 #include "Rendering\Renderer.hpp"
 #include "Math\Math.hpp"
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 #include <Windows.h>
 #include <hidsdi.h>
 #include <SetupAPI.h>
@@ -34,7 +34,7 @@ bool Input::receiveInput;
 bool Input::anyButtonDown;
 bool Input::anyButtonChanged;
 
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 
 constexpr I32 ANY_MOUSE_DOWN = RI_MOUSE_LEFT_BUTTON_DOWN | RI_MOUSE_RIGHT_BUTTON_DOWN | RI_MOUSE_MIDDLE_BUTTON_DOWN | RI_MOUSE_BUTTON_4_DOWN | RI_MOUSE_BUTTON_5_DOWN;
 

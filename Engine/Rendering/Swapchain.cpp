@@ -9,7 +9,7 @@ import Platform;
 
 bool Swapchain::CreateSurface()
 {
-#ifdef PLATFORM_WINDOWS
+#ifdef NH_PLATFORM_WINDOWS
 	const WindowData& wd = Platform::GetWindowData();
 	VkWin32SurfaceCreateInfoKHR surfaceInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 	surfaceInfo.pNext = nullptr;
@@ -18,9 +18,9 @@ bool Swapchain::CreateSurface()
 	surfaceInfo.hwnd = wd.window;
 
 	VkValidateFR(vkCreateWin32SurfaceKHR(Renderer::instance, &surfaceInfo, Renderer::allocationCallbacks, &surface));
-#elif PLATFORM_LINUX
+#elif NH_PLATFORM_LINUX
 	//TODO:
-#elif PLATFORM_APPLE
+#elif NH_PLATFORM_APPLE
 	//TODO:
 #endif
 

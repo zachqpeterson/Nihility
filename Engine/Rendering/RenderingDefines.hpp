@@ -9,15 +9,15 @@ import Memory;
 /*---------DEFINES---------*/
 
 #ifdef NH_EXPORT
-#if defined PLATFORM_WINDOWS
+#if defined NH_PLATFORM_WINDOWS
 #define VK_USE_PLATFORM_WIN32_KHR
-#elif defined PLATFORM_LINUX
+#elif defined NH_PLATFORM_LINUX
 #define VK_USE_PLATFORM_XCB_KHR
-#elif defined PLATFORM_ANDROID
+#elif defined NH_PLATFORM_ANDROID
 #define VK_USE_PLATFORM_ANDROID_KHR
-#elif defined PLATFORM_APPLE
+#elif defined NH_PLATFORM_APPLE
 #define VK_USE_PLATFORM_METAL_EXT
-#elif defined PLATFORM_IOS
+#elif defined NH_PLATFORM_IOS
 #define VK_USE_PLATFORM_IOS_MVK
 #endif
 
