@@ -23,22 +23,8 @@ Entity* ground{};
 ComponentRef<TilemapComponent> tilemap;
 U8 id0, id1;
 
-constexpr StringView dummy = Introspection::TypeName<void>::FullName();
-constexpr StringView type = Introspection::TypeName<ComponentRef<TilemapComponent>>::FullName();
-
-constexpr U64 dummyLength = dummy.Size();
-constexpr U64 typeLength = type.Size();
-constexpr U64 prefixIndex = dummy.IndexOf("<") + 1;
-constexpr U64 suffixIndex = dummy.IndexOf(">");
-
-constexpr StringView name = type.SubString(prefixIndex, (suffixIndex - prefixIndex) + (typeLength - dummyLength));
-
 bool Init()
 {
-	Logger::Debug(dummy);
-	Logger::Debug(type);
-
-
 	squareCollie = Resources::LoadTexture("textures/Collie.nhtex");
 	circleCollie = Resources::LoadTexture("textures/CircleCollie.nhtex");
 

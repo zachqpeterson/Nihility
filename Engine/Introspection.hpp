@@ -6,6 +6,8 @@ import Containers;
 
 namespace Introspection
 {
+	struct DummyStruct{};
+
 	template<class Type>
 	struct TypeName
 	{
@@ -22,12 +24,12 @@ namespace Introspection
 
 		static constexpr inline StringView Name()
 		{
-			constexpr StringView dummy = TypeName<void>::FullName();
+			constexpr StringView dummy = TypeName<DummyStruct>::FullName();
 			constexpr StringView type = FullName();
 			constexpr U64 dummyLength = dummy.Size();
 			constexpr U64 typeLength = type.Size();
-			constexpr U64 prefixIndex = dummy.IndexOf("<") + 1;
-			constexpr U64 suffixIndex = dummy.IndexOf(">");
+			constexpr U64 prefixIndex = dummy.IndexOf(" ", dummy.IndexOf("<")) + 1;
+			constexpr U64 suffixIndex = dummy.IndexOf(">", prefixIndex);
 
 			return type.SubString(prefixIndex, (suffixIndex - prefixIndex) + (typeLength - dummyLength));
 		}
