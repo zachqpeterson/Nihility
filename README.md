@@ -20,6 +20,11 @@ My string implementation supports easy formating and can convert any type into a
 
 And more...
 
+## Setup
+- install the Vulkan SDK: https://vulkan.lunarg.com/sdk/home, leaving all setting default is sufficient
+- Clone the repository
+- Open the solution in Visual Studio and set the startup project to any of the demo projects
+
 ## Current 3rd party libraries
 assimp - https://github.com/assimp/assimp, used to convert models to Nihility assets
 
