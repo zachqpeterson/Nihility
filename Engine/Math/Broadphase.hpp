@@ -144,4 +144,5 @@ private:
 	STATIC_CLASS(Broadphase);
 	friend class Physics;
 	friend struct DynamicTree;
+	friend struct RigidBody2D;
 };

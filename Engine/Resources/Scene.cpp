@@ -11,6 +11,18 @@
 import Core;
 import Platform;
 
+Entity::Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
+
+Entity& Entity::operator=(Entity&& other) noexcept
+{
+	transform = other.transform;
+	scene = other.scene;
+	entityID = other.entityID;
+	references = Move(references);
+
+	return *this;
+}
+
 void Scene::Create(CameraType cameraType)
 {
 	switch (cameraType)
@@ -46,11 +58,6 @@ void Scene::Create(CameraType cameraType)
 
 void Scene::Destroy()
 {
-	for (ComponentPool* pool : componentPools)
-	{
-		pool->Cleanup(this);
-	}
-
 	name.Destroy();
 
 	indexWrites.Destroy();
@@ -60,7 +67,6 @@ void Scene::Destroy()
 	meshDraws.Destroy();
 	entities.Destroy();
 
-	componentPools.Destroy();
 	pipelines.Destroy();
 
 	for (Renderpass& renderpass : renderpasses) { Renderer::DestroyRenderPassInstant(&renderpass); }
@@ -80,7 +86,7 @@ void Scene::Destroy()
 	Renderer::DestroyBuffer(countsBuffer);
 }
 
-Entity* Scene::AddEntity()
+Entity* Scene::CreateEntity()
 {
 	entities.Push({ this, (U32)entities.Size() });
 
@@ -255,10 +261,7 @@ void Scene::Load()
 {
 	if (!loaded)
 	{
-		for (ComponentPool* pool : componentPools)
-		{
-			pool->Load(this);
-		}
+		//TODO: Load components
 
 		loaded = true;
 
@@ -414,8 +417,6 @@ void Scene::Load()
 		{
 			pipeline->Build(&renderpasses[pipeline->renderpassIndex]);
 		}
-
-		Physics::SetScene(this);
 	}
 }
 
@@ -474,10 +475,7 @@ void Scene::Update()
 
 	Renderer::FillBuffer(Renderer::globalsBuffer, sizeof(GlobalData), globalData, 1, &region);
 
-	for (ComponentPool* pool : componentPools)
-	{
-		pool->Update(this);
-	}
+	//TODO: Update components
 
 	for (Entity& entity : entities)
 	{

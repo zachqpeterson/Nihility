@@ -191,6 +191,8 @@
     <ClInclude Include="Engine\Math\Physics.hpp" />
     <ClInclude Include="Engine\Math\PhysicsDefines.hpp" />
     <ClInclude Include="Engine\Math\PhysicsEvents.hpp" />
+    <ClInclude Include="Engine\Math\RigidBody.hpp" />
+    <ClInclude Include="Engine\Math\Shape.hpp" />
     <ClInclude Include="Engine\Platform\Device.hpp" />
     <ClInclude Include="Engine\Rendering\CommandBuffer.hpp" />
     <ClInclude Include="Engine\Rendering\Pipeline.hpp" />
@@ -348,6 +350,8 @@
     <ClCompile Include="Engine\Math\Math.ixx" />
     <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />
+    <ClCompile Include="Engine\Math\RigidBody.cpp" />
+    <ClCompile Include="Engine\Math\Shape.cpp" />
     <ClCompile Include="Engine\Memory\Memory-Allocator.ixx" />
     <ClCompile Include="Engine\Memory\Memory-Utilities.ixx" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
@@ -379,6 +383,7 @@
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
     <ClCompile Include="Engine\Rendering\Tilemap.cpp" />
     <ClCompile Include="Engine\Rendering\UI.cpp" />
+    <ClCompile Include="Engine\Resources\Component.cpp" />
     <ClCompile Include="Engine\Resources\Font.cpp" />
     <ClCompile Include="Engine\Resources\Material.cpp" />
     <ClCompile Include="Engine\Resources\Mesh.cpp" />

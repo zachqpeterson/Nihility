@@ -116,6 +116,12 @@ public:
 	Type& Push(Type&& value) noexcept;
 
 	/// <summary>
+	/// Increases size by one without cunstructing an object at the new index, reallocates array if it's too small
+	/// </summary>
+	/// <returns>Pointer to the new spot in the array</returns>
+	Type* PushEmpty();
+
+	/// <summary>
 	/// Increases size by one and constructs value into the back of array using the parameters, reallocates array if it's too small
 	/// </summary>
 	/// <param name="parameters:">The parameters to construct with</param>
@@ -493,21 +499,18 @@ template<class Type> inline Vector<Type>::Vector(U64 cap) { Memory::AllocateArra
 
 template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : size(size), capacity(size)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	Memory::AllocateArray(&array, capacity, capacity);
 	for (Type* t = array, *end = array + size; t != end; ++t) { *t = value; }
 }
 
 template<class Type> inline Vector<Type>::Vector(std::initializer_list<Type> list) : size(list.size()), capacity(size)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	Memory::AllocateArray(&array, capacity, capacity);
 	Copy(array, list.begin(), size);
 }
 
 template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size(other.size), capacity(other.size)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	Memory::AllocateArray(&array, capacity, capacity);
 	Copy(array, other.array, size);
 }
@@ -521,7 +524,6 @@ template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept 
 
 template<class Type> inline Vector<Type>& Vector<Type>::operator=(const Vector<Type>& other)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	size = other.size;
 	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
 
@@ -564,7 +566,6 @@ template<class Type> inline void Vector<Type>::Destroy()
 
 template<class Type> inline Type& Vector<Type>::Push(const Type& value)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size == capacity) { Reserve(capacity + 1); }
 
 	return Construct(array + size++, value);
@@ -575,6 +576,13 @@ template<class Type> inline Type& Vector<Type>::Push(Type&& value) noexcept
 	if (size == capacity) { Reserve(capacity + 1); }
 
 	return Construct(array + size++, Move(value));
+}
+
+template<class Type> inline Type* Vector<Type>::PushEmpty()
+{
+	if (size == capacity) { Reserve(capacity + 1); }
+
+	return array + size++;
 }
 
 template<class Type>
@@ -604,7 +612,6 @@ template<class Type>
 template<Unsigned I>
 inline Type& Vector<Type>::Insert(I index, const Type& value)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size == capacity) { Reserve(capacity + 1); }
 
 	Move(array + index + 1, array + index, (size - index));
@@ -627,7 +634,6 @@ template<class Type>
 template<Unsigned I>
 inline void Vector<Type>::Insert(I index, const Vector<Type>& other)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
 	Move(array + index + other.size, array + index, (size - index));
@@ -720,7 +726,6 @@ template<class Type> inline void Vector<Type>::Split(U64 index, Vector<Type>& ot
 
 template<class Type> inline void Vector<Type>::Merge(const Vector<Type>& other)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
 	Copy(array + size, other.array, other.size);
@@ -739,7 +744,6 @@ template<class Type> inline void Vector<Type>::Merge(Vector<Type>&& other) noexc
 
 template<class Type> inline Vector<Type>& Vector<Type>::operator+=(const Vector<Type>& other)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
 	Copy(array + size, other.array, other.size);
@@ -764,7 +768,6 @@ template<class Type>
 template<FunctionPtr Predicate>
 inline void Vector<Type>::SearchFor(Predicate predicate, Vector<Type>& other)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	other.Reserve(size);
 	other.size = 0;
 
@@ -858,7 +861,6 @@ template<class Type>
 template<FunctionPtr Predicate>
 U64 Vector<Type>::SortedInsert(Predicate predicate, const Type& value)
 {
-	static_assert(IsCopyConstructible<Type>, "Type Must Be Copyable!");
 	U64 i = 0;
 	for (Type* t = array, *end = array + size; t != end; ++t, ++i)
 	{
@@ -923,7 +925,6 @@ inline void Vector<Type>::Resize(U64 size)
 template<class Type>
 inline void Vector<Type>::Resize(U64 size, const Type& value)
 {
-	static_assert(std::is_copy_constructible_v<Type>, "Type Must Be Copyable!");
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
 

@@ -4,15 +4,6 @@
 
 #include "Component.hpp"
 
-struct ComponentPool
-{
-	virtual void Update(Scene* scene) = 0;
-	virtual void Load(Scene* scene) = 0;
-	virtual void Cleanup(Scene* scene) = 0;
-
-	virtual U64 Count() = 0;
-};
-
 struct BufferCopy
 {
 	U64 srcOffset;
@@ -31,12 +22,6 @@ struct MeshDraw
 	U32 drawOffset = 0;
 };
 
-struct ComponentReference
-{
-	U64 type;
-	U64 id;
-};
-
 struct NH_API Entity
 {
 public:
@@ -44,13 +29,13 @@ public:
 	Entity& operator=(Entity&& other) noexcept;
 
 	template<ComponentType Type, typename... Args>
-	Type* AddComponent(Args&&... args) noexcept;
+	ComponentRef<Type> CreateComponent(Args&&... args) noexcept;
 
 	template<ComponentType Type>
-	Type* GetComponent() noexcept;
+	void DestroyComponent() noexcept;
 
 	template<ComponentType Type>
-	Vector<Type*> GetComponents() noexcept;
+	ComponentRef<Type> GetComponent() noexcept;
 
 	Transform transform;
 
@@ -59,50 +44,12 @@ private:
 
 	Scene* scene;
 	U32 entityID;
-	Vector<ComponentReference> references;
+	Vector<U32> references;
 
 	Entity(const Entity&) = delete;
 	Entity& operator=(const Entity&) = delete;
 
 	friend struct Scene;
-};
-
-template <class Type>
-struct ComponentPoolInternal : public ComponentPool
-{
-	Type* AddComponent(Type&& component)
-	{
-		components.Push(Move(component));
-		return &components.Back();
-	}
-
-	virtual void Update(Scene* scene) final
-	{
-		for (Type& component : components)
-		{
-			component.Update(scene);
-		}
-	}
-
-	virtual void Load(Scene* scene) final
-	{
-		for (Type& component : components)
-		{
-			component.Load(scene);
-		}
-	}
-
-	virtual void Cleanup(Scene* scene) final
-	{
-		for (Type& component : components)
-		{
-			component.Cleanup(scene);
-		}
-	}
-
-	virtual U64 Count() final { return components.Size(); }
-
-	Vector<Type> components; //TODO: Use freelist and array
 };
 
 struct Mesh;
@@ -113,7 +60,7 @@ struct CommandBuffer;
 
 struct NH_API Scene
 {
-	Entity* AddEntity();
+	Entity* CreateEntity();
 	Entity* GetEntity(U32 id);
 
 	const String& Name() { return name; }
@@ -135,90 +82,8 @@ struct NH_API Scene
 
 	void Destroy();
 
-	template<ComponentType Type, typename... Args>
-	void RegisterComponent() noexcept
-	{
-		StringView sv = NameOf<Type>;
-
-		U32* id = componentRegistry.Request(sv);
-
-		if (*id == 0)
-		{
-			*id = currentId++;
-			componentPools.Push(new ComponentPoolInternal<Type>());
-		}
-	}
-
-	template<ComponentType Type>
-	Vector<Type>* GetComponentPool() noexcept
-	{
-		U32* id = componentRegistry.Request(NameOf<Type>);
-
-		if (*id == 0) { return nullptr; }
-
-		return &((ComponentPoolInternal<Type>*)componentPools[*id - 1])->components;
-	}
-
 private:
 	void Create(CameraType cameraType);
-
-	template<ComponentType Type, typename... Args>
-	Type* AddComponent(U32 entityID, ComponentReference& reference, Args&&... args) noexcept
-	{
-		StringView sv = NameOf<Type>;
-
-		U32* id = componentRegistry.Request(sv);
-
-		if (*id == 0)
-		{
-			*id = currentId++;
-			componentPools.Push(new ComponentPoolInternal<Type>());
-		}
-
-		reference.type = *id - 1;
-		reference.id = componentPools[reference.type]->Count();
-
-		Type* component = ((ComponentPoolInternal<Type>*)componentPools[reference.type])->AddComponent(Move(Type{ args... }));
-		component->entityID = entityID;
-		if (loaded) { component->Load(this); }
-
-		return component;
-	}
-
-	template<ComponentType Type>
-	Type* GetComponent(const Vector<ComponentReference>& references) noexcept
-	{
-		U32* id = componentRegistry.Request(NameOf<Type>);
-		if (*id == 0) { return nullptr; }
-
-		U32 i = *id - 1;
-
-		for (ComponentReference& ref : references)
-		{
-			if (ref.id == i) { return ((ComponentPoolInternal<Type>*)componentPools[i])->components[ref.id]; }
-		}
-
-		return nullptr;
-	}
-
-	template<ComponentType Type>
-	Vector<Type*> GetComponents(const Vector<ComponentReference>& references) noexcept
-	{
-		U32* id = componentRegistry.Request(NameOf<Type>);
-		if (*id == 0) { return Move(Vector<Type*>()); }
-
-		U32 i = *id - 1;
-		Vector<Type*> types;
-
-		ComponentPoolInternal<Type>* pool = ((ComponentPoolInternal<Type>*)componentPools[i]);
-
-		for (ComponentReference& ref : references)
-		{
-			if (ref.id == i) { types.Push(pool->components[ref.id]); }
-		}
-
-		return Move(types);
-	}
 
 	void Load();
 	void Unload();
@@ -259,9 +124,6 @@ private:
 	Vector<MeshDraw>				meshDraws;
 	Vector<Entity>					entities; //TODO: Maybe store all transforms in a separate array for faster buffer copy
 
-	U32								currentId = 1;
-	Hashmap<StringView, U32>		componentRegistry = 32;
-	Vector<ComponentPool*>			componentPools;
 	Vector<ResourceRef<Pipeline>>	pipelines;
 	Vector<Renderpass>				renderpasses;
 
@@ -271,40 +133,33 @@ private:
 	Camera							camera;
 #endif
 
+	Scene(const Scene&) = delete;
+	Scene& operator=(const Scene&) = delete;
+
 	friend class Renderer;
 	friend class Resources;
 	friend struct Entity;
 };
 
-inline Entity::Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
-inline Entity& Entity::operator=(Entity&& other) noexcept
-{
-	transform = other.transform;
-	scene = other.scene;
-	entityID = other.entityID;
-	references = Move(references);
-
-	return *this;
-}
-
 template<ComponentType Type, typename... Args>
-inline Type* Entity::AddComponent(Args&&... args) noexcept
+inline ComponentRef<Type> Entity::CreateComponent(Args&&... args) noexcept
 {
-	ComponentReference reference;
-	Type* component = scene->AddComponent<Type>(entityID, reference, args...);
-	references.Push(reference);
+	Type* type;
+	ComponentRef<Type> ref = ComponentRegistry::CreateFunction<Type>()(scene, entityID, &type);
 
-	return component;
+	Construct(type, Type{ args... });
+	type->Load(scene);
+	return ref;
 }
 
 template<ComponentType Type>
-inline Type* Entity::GetComponent() noexcept
+void Entity::DestroyComponent() noexcept
 {
-	return scene->GetComponent<Type>(references);
+	ComponentRegistry::DestroyFunction<Type>()(scene, entityID);
 }
 
 template<ComponentType Type>
-inline Vector<Type*> Entity::GetComponents() noexcept
+inline ComponentRef<Type> Entity::GetComponent() noexcept
 {
-	return Move(scene->GetComponents<Type>(references));
+	return ComponentRegistry::GetFunction<Type>()(entityID);
 }

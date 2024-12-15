@@ -158,7 +158,7 @@ void Input::ReceiveInput(HRAWINPUT handle)
 		}
 		else if (mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
 		{
-			DebugBreak;
+			ASSERT(false);
 		}
 
 		POINT p;

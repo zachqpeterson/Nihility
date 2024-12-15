@@ -780,7 +780,7 @@ export struct NH_API StringView
 	constexpr StringView SubString(U64 offset = 0, U64 count = U64_MAX) const
 	{
 		offset = offset < length ? offset : length;
-		count = count < length - offset ? count : length - offset;
+		count = count < (length - offset) ? count : length - offset;
 		return { string + offset, count };
 	}
 

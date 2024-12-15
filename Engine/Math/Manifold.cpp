@@ -327,7 +327,7 @@ Manifold CollideCapsules(const Capsule& capsuleA, const Transform2D& xfA, const 
 	return manifold;
 }
 
-Manifold CollidePolygonAndCircle(const Polygon& polygonA, const Transform2D& xfA, const Circle& circleB, const Transform2D& xfB)
+Manifold CollidePolygonAndCircle(const ConvexPolygon& polygonA, const Transform2D& xfA, const Circle& circleB, const Transform2D& xfB)
 {
 	Manifold manifold = {};
 	const F32 speculativeDistance = SpeculativeDistance;
@@ -440,16 +440,16 @@ Manifold CollidePolygonAndCircle(const Polygon& polygonA, const Transform2D& xfA
 }
 
 // Polygon clipper used to compute contact points when there are potentially two contact points.
-static Manifold ClipPolygons(const Polygon& polyA, const Polygon& polyB, I32 edgeA, I32 edgeB, bool flip)
+Manifold ClipPolygons(const ConvexPolygon& polyA, const ConvexPolygon& polyB, I32 edgeA, I32 edgeB, bool flip)
 {
 	Manifold manifold = {};
 
 	// reference polygon
-	const Polygon* poly1;
+	const ConvexPolygon* poly1;
 	I32 i11, i12;
 
 	// incident polygon
-	const Polygon* poly2;
+	const ConvexPolygon* poly2;
 	I32 i21, i22;
 
 	if (flip)
@@ -578,7 +578,7 @@ static Manifold ClipPolygons(const Polygon& polyA, const Polygon& polyB, I32 edg
 }
 
 // Find the max separation between poly1 and poly2 using edge normals from poly1.
-static F32 FindMaxSeparation(I32* edgeIndex, const Polygon& poly1, const Polygon& poly2)
+F32 FindMaxSeparation(I32* edgeIndex, const ConvexPolygon& poly1, const ConvexPolygon& poly2)
 {
 	I32 count1 = poly1.count;
 	I32 count2 = poly2.count;
@@ -691,7 +691,7 @@ SegmentDistanceResult SegmentDistance(const Vector2& p1, const Vector2& q1, cons
 	return result;
 }
 
-Manifold CollidePolygons(const Polygon& polygonA, const Transform2D& xfA, const Polygon& polygonB, const Transform2D& xfB)
+Manifold CollidePolygons(const ConvexPolygon& polygonA, const Transform2D& xfA, const ConvexPolygon& polygonB, const Transform2D& xfB)
 {
 	Vector2 origin = polygonA.vertices[0];
 
@@ -702,7 +702,7 @@ Manifold CollidePolygons(const Polygon& polygonA, const Transform2D& xfA, const 
 	Transform2D sfA = { xfA.position + origin * xfA.rotation, xfA.rotation };
 	Transform2D xf = sfA ^ xfB;
 
-	Polygon localPolyA;
+	ConvexPolygon localPolyA;
 	localPolyA.count = polygonA.count;
 	localPolyA.radius = polygonA.radius;
 	localPolyA.vertices[0] = Vector2Zero;
@@ -714,7 +714,7 @@ Manifold CollidePolygons(const Polygon& polygonA, const Transform2D& xfA, const 
 	}
 
 	// Put polyB in polyA's frame to reduce round-off error
-	Polygon localPolyB;
+	ConvexPolygon localPolyB;
 	localPolyB.count = polygonB.count;
 	localPolyB.radius = polygonB.radius;
 	for (I32 i = 0; i < localPolyB.count; ++i)
@@ -893,7 +893,7 @@ Manifold CollidePolygons(const Polygon& polygonA, const Transform2D& xfA, const 
 	if (manifold.pointCount > 0)
 	{
 		manifold.normal = manifold.normal * xfA.rotation;
-		for (I32 i = 0; i < manifold.pointCount; ++i)
+		for (U32 i = 0; i < manifold.pointCount; ++i)
 		{
 			ManifoldPoint* mp = manifold.points + i;
 
@@ -981,7 +981,7 @@ Manifold CollideChainSegmentAndCircle(const ChainSegment& segmentA, const Transf
 	return manifold;
 }
 
-static Manifold ClipSegments(const Vector2& a1, const Vector2& a2, const Vector2& b1, const Vector2& b2, const Vector2& normal, F32 ra, F32 rb, U16 id1, U16 id2)
+Manifold ClipSegments(const Vector2& a1, const Vector2& a2, const Vector2& b1, const Vector2& b2, const Vector2& normal, F32 ra, F32 rb, U16 id1, U16 id2)
 {
 	Manifold manifold = { 0 };
 
@@ -1072,7 +1072,7 @@ struct ChainSegmentParams
 
 // Evaluate Gauss map
 // See https://box2d.org/posts/2020/06/ghost-collisions/
-static enum NormalType ClassifyNormal(ChainSegmentParams params, const Vector2& normal)
+enum NormalType ClassifyNormal(ChainSegmentParams params, const Vector2& normal)
 {
 	const F32 sinTol = 0.01f;
 
@@ -1113,7 +1113,7 @@ DistanceProxy MakeProxy(const Vector2* vertices, I32 count, F32 radius)
 	return proxy;
 }
 
-Manifold CollideChainSegmentAndPolygon(const ChainSegment& segmentA, const Transform2D& xfA, const Polygon& polygonB, const Transform2D& xfB, DistanceCache& cache)
+Manifold CollideChainSegmentAndPolygon(const ChainSegment& segmentA, const Transform2D& xfA, const ConvexPolygon& polygonB, const Transform2D& xfB, DistanceCache& cache)
 {
 	Manifold manifold = { 0 };
 
@@ -1472,9 +1472,9 @@ Manifold CollideChainSegmentAndPolygon(const ChainSegment& segmentA, const Trans
 	return manifold;
 }
 
-static Polygon MakeCapsule(const Vector2& p1, const Vector2& p2, float radius)
+ConvexPolygon MakeCapsule(const Vector2& p1, const Vector2& p2, float radius)
 {
-	Polygon shape = { 0 };
+	ConvexPolygon shape = { 0 };
 	shape.vertices[0] = p1;
 	shape.vertices[1] = p2;
 	shape.centroid = Math::Lerp(p1, p2, 0.5f);
@@ -1493,7 +1493,7 @@ static Polygon MakeCapsule(const Vector2& p1, const Vector2& p2, float radius)
 
 Manifold CollideChainSegmentAndCapsule(const ChainSegment& segmentA, const Transform2D& xfA, const Capsule& capsuleB, const Transform2D& xfB, DistanceCache& cache)
 {
-	Polygon polyB = MakeCapsule(capsuleB.center1, capsuleB.center2, capsuleB.radius);
+	ConvexPolygon polyB = MakeCapsule(capsuleB.center1, capsuleB.center2, capsuleB.radius);
 	return CollideChainSegmentAndPolygon(segmentA, xfA, polyB, xfB, cache);
 }
 
@@ -1503,9 +1503,9 @@ Manifold CollideSegmentAndCapsule(const Segment& segmentA, const Transform2D& xf
 	return CollideCapsules(capsuleA, xfA, capsuleB, xfB);
 }
 
-Manifold CollidePolygonAndCapsule(const Polygon& polygonA, const Transform2D& xfA, const Capsule& capsuleB, const Transform2D& xfB)
+Manifold CollidePolygonAndCapsule(const ConvexPolygon& polygonA, const Transform2D& xfA, const Capsule& capsuleB, const Transform2D& xfB)
 {
-	Polygon polyB = MakeCapsule(capsuleB.center1, capsuleB.center2, capsuleB.radius);
+	ConvexPolygon polyB = MakeCapsule(capsuleB.center1, capsuleB.center2, capsuleB.radius);
 	return CollidePolygons(polygonA, xfA, polyB, xfB);
 }
 
@@ -1515,68 +1515,68 @@ Manifold CollideSegmentAndCircle(const Segment& segmentA, const Transform2D& xfA
 	return CollideCapsuleAndCircle(capsuleA, xfA, circleB, xfB);
 }
 
-Manifold CollideSegmentAndPolygon(const Segment& segmentA, const Transform2D& xfA, const Polygon& polygonB, const Transform2D& xfB)
+Manifold CollideSegmentAndPolygon(const Segment& segmentA, const Transform2D& xfA, const ConvexPolygon& polygonB, const Transform2D& xfB)
 {
-	Polygon polygonA = MakeCapsule(segmentA.point1, segmentA.point2, 0.0f);
+	ConvexPolygon polygonA = MakeCapsule(segmentA.point1, segmentA.point2, 0.0f);
 	return CollidePolygons(polygonA, xfA, polygonB, xfB);
 }
 
-static Manifold CircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::CircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideCircles(shapeA.circle, xfA, shapeB.circle, xfB);
 }
 
-static Manifold CapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::CapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideCapsules(shapeA.capsule, xfA, shapeB.capsule, xfB);
 }
 
-static Manifold CapsuleAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::CapsuleAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideCapsuleAndCircle(shapeA.capsule, xfA, shapeB.circle, xfB);
 }
 
-static Manifold PolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::PolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollidePolygons(shapeA.polygon, xfA, shapeB.polygon, xfB);
 }
 
-static Manifold PolygonAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::PolygonAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollidePolygonAndCircle(shapeA.polygon, xfA, shapeB.circle, xfB);
 }
 
-static Manifold PolygonAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::PolygonAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollidePolygonAndCapsule(shapeA.polygon, xfA, shapeB.capsule, xfB);
 }
 
-static Manifold SegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::SegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideSegmentAndCircle(shapeA.segment, xfA, shapeB.circle, xfB);
 }
 
-static Manifold SegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::SegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideSegmentAndCapsule(shapeA.segment, xfA, shapeB.capsule, xfB);
 }
 
-static Manifold SegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::SegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideSegmentAndPolygon(shapeA.segment, xfA, shapeB.polygon, xfB);
 }
 
-static Manifold ChainSegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::ChainSegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideChainSegmentAndCircle(shapeA.chainSegment, xfA, shapeB.circle, xfB);
 }
 
-static Manifold ChainSegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::ChainSegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideChainSegmentAndCapsule(shapeA.chainSegment, xfA, shapeB.capsule, xfB, cache);
 }
 
-static Manifold ChainSegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
+Manifold Manifold::ChainSegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache)
 {
 	return CollideChainSegmentAndPolygon(shapeA.chainSegment, xfA, shapeB.polygon, xfB, cache);
 }

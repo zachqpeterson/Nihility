@@ -44,12 +44,6 @@
     <Filter Include="Source Files\Resources\Shader">
       <UniqueIdentifier>{00aa8a7e-6909-49ce-b2fb-f60037ebbcc9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Resources\Entities">
-      <UniqueIdentifier>{d687f639-2dc7-4e3e-86d2-c39c7aca3486}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Resources\Entities\Components">
-      <UniqueIdentifier>{a70574bd-046c-4eea-84bc-73dd8ab2a79d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\External\Discord">
       <UniqueIdentifier>{d3c3c18e-efc3-4882-a62c-21b2f3db31e1}</UniqueIdentifier>
     </Filter>
@@ -82,6 +76,9 @@
     </Filter>
     <Filter Include="Source Files\External\Steam">
       <UniqueIdentifier>{ec11c1c2-a912-406f-9132-ab3976946cd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Resources\ECS">
+      <UniqueIdentifier>{d687f639-2dc7-4e3e-86d2-c39c7aca3486}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -144,9 +141,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Introspection.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Resources\Component.hpp">
-      <Filter>Source Files\Resources\Entities\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\External\Discord\voice_manager.h">
       <Filter>Source Files\External\Discord</Filter>
@@ -619,6 +613,15 @@
     <ClInclude Include="Engine\Math\PhysicsEvents.hpp">
       <Filter>Source Files\Math\Physics</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Resources\Component.hpp">
+      <Filter>Source Files\Resources\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Shape.hpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\RigidBody.hpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -1061,6 +1064,15 @@
     </ClCompile>
     <ClCompile Include="Engine\Math\Manifold.cpp">
       <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\Shape.cpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Math\RigidBody.cpp">
+      <Filter>Source Files\Math\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Resources\Component.cpp">
+      <Filter>Source Files\Resources\ECS</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

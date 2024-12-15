@@ -44,6 +44,7 @@ export struct NH_API Vector2
 	constexpr Vector2& operator/=(const Vector2& v) { x /= v.x; y /= v.y; return *this; }
 	constexpr Vector2& operator%=(const Vector2& v) { x = Math::Mod(x, v.x); y = Math::Mod(y, v.y); return *this; }
 	constexpr Vector2& operator*=(const Quaternion2& q);
+	constexpr Vector2& operator^=(const Quaternion2& q);
 
 	constexpr Vector2 operator+(F32 f) const { return { x + f, y + f }; }
 	constexpr Vector2 operator-(F32 f) const { return { x - f, y - f }; }
@@ -166,6 +167,7 @@ export struct NH_API Vector3
 	constexpr Vector3() : x(0.0f), y(0.0f), z(0.0f) {}
 	constexpr Vector3(F32 f) : x(f), y(f), z(f) {}
 	constexpr Vector3(F32 x, F32 y, F32 z) : x(x), y(y), z(z) {}
+	constexpr Vector3(const Vector2& v) : x(v.x), y(v.y), z(0.0f) {}
 	constexpr Vector3(const Vector2& v, F32 z) : x(v.x), y(v.y), z(z) {}
 	constexpr Vector3(F32 x, const Vector2& v) : x(x), y(v.x), z(v.y) {}
 	constexpr Vector3(const Vector3& v) : x(v.x), y(v.y), z(v.z) {}
@@ -2349,7 +2351,6 @@ export struct NH_API Quaternion2
 		return *this;
 	}
 
-
 	constexpr Quaternion2 operator*(F32 f) const { return { x * f, y * f }; }
 	constexpr Quaternion2 operator/(F32 f) const { return { x / f, y / f }; }
 	constexpr Quaternion2 operator+(const Quaternion2& q) const { return { x + q.x, y + q.y }; }
@@ -2599,6 +2600,7 @@ export struct NH_API Quaternion3
 		w = c;
 	}
 	constexpr Quaternion3(const Quaternion3& q) : x(q.x), y(q.y), z(q.z), w(q.w) {}
+	constexpr Quaternion3(const Quaternion2& q) : x(0.0f), y(0.0f), z(q.x), w(q.y) {}
 	constexpr Quaternion3(Quaternion3&& q) noexcept : x(q.x), y(q.y), z(q.z), w(q.w) {}
 
 	constexpr Quaternion3& operator=(const Vector3& euler)
@@ -2937,6 +2939,7 @@ inline constexpr Quaternion3::operator Quaternion2() const { return Quaternion2{
 
 constexpr Vector2& Vector2::operator*=(const Quaternion2& q) { F32 temp = q.y * x - q.x * y; y = q.x * x + q.y * y; x = temp; return *this; }
 constexpr Vector2 Vector2::operator*(const Quaternion2& q) const { return Vector2{ q.y * x - q.x * y, q.x * x + q.y * y }; }
+constexpr Vector2& Vector2::operator^=(const Quaternion2& q) { F32 temp = q.y * x + q.x * y; y = q.y * y - q.x * x; x = temp; return *this; }
 constexpr Vector2 Vector2::operator^(const Quaternion2& q) const { return Vector2{ q.y * x + q.x * y, q.y * y - q.x * x }; }
 constexpr Vector2& Vector2::Rotate(const Vector2& center, const Quaternion2& quat)
 {
@@ -3220,6 +3223,27 @@ private:
 	Matrix4 localMatrix{};
 	Matrix4 worldMatrix{};
 };
+
+export struct NH_API Transform2D
+{
+	constexpr Transform2D operator*(const Transform2D& t) const
+	{
+		return { t.position * rotation + position, rotation * t.rotation };
+	}
+
+	constexpr Transform2D operator^(const Transform2D& t) const
+	{
+		return { (t.position - position) ^ rotation, rotation ^ t.rotation };
+	}
+
+	Vector2 position{};
+	Quaternion2 rotation{};
+};
+
+export constexpr Vector2 operator*(const Vector2& v, const Transform2D& t) { return v * t.rotation + t.position; }
+export constexpr Vector2 operator^(const Vector2& v, const Transform2D& t) { return (v ^ t.rotation) + t.position; }
+export constexpr Vector2& operator*=(Vector2& v, const Transform2D& t) { v *= t.rotation; v += t.position; return v; }
+export constexpr Vector2& operator^=(Vector2& v, const Transform2D& t) { (v ^= t.rotation); v += t.position; return v; }
 
 export template <class Type> inline constexpr bool IsFloatVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4>;
 export template <class Type> inline constexpr bool IsIntVectorType = AnyOf<RemovedQuals<Type>, Vector2Int, Vector3Int, Vector4Int>;

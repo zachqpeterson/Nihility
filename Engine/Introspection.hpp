@@ -23,15 +23,13 @@ namespace Introspection
 		static constexpr inline StringView Name()
 		{
 			constexpr StringView dummy = TypeName<void>::FullName();
+			constexpr StringView type = FullName();
 			constexpr U64 dummyLength = dummy.Size();
-			constexpr U64 prefixLength = dummy.IndexOf("void");
+			constexpr U64 typeLength = type.Size();
+			constexpr U64 prefixIndex = dummy.IndexOf("<") + 1;
+			constexpr U64 suffixIndex = dummy.IndexOf(">");
 
-			U64 multiple = dummyLength - TypeName<int>::FullName().Size();
-			U64 targetLength = (FullName().Size() - (dummyLength - 4 * multiple)) / multiple;
-			StringView rv = FullName().SubString(prefixLength, targetLength);
-
-			if (rv.LastIndexOf(' ') == U64_MAX) { return rv; }
-			return rv.SubString(rv.LastIndexOf(' ') + 1);
+			return type.SubString(prefixIndex, (suffixIndex - prefixIndex) + (typeLength - dummyLength));
 		}
 
 		constexpr static inline StringView value = Name();

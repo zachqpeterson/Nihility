@@ -741,8 +741,6 @@ Scene* Resources::CreateScene(const String& name, CameraType cameraType)
 
 	if (!scene->name.Blank()) { return scene; }
 
-	*scene = {};
-
 	scene->name = name;
 	scene->handle = handle;
 
@@ -1853,8 +1851,6 @@ Scene* Resources::LoadScene(const String& path)
 	Scene* scene = scenes.Request(path, handle);
 
 	if (!scene->name.Blank()) { return scene; }
-
-	*scene = {};
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())

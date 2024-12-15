@@ -21,8 +21,12 @@
 #pragma once
 
 #include "Resources\Component.hpp"
-#include "Math\Math.hpp"
+#include "Math.hpp"
 #include "SIMD.hpp"
+
+#include "Manifold.hpp"
+#include "Shape.hpp"
+#include "RigidBody.hpp"
 
 import ThreadSafety;
 
@@ -32,8 +36,7 @@ import ThreadSafety;
 #define SHAPE_PAIR_KEY(K1, K2) K1 < K2 ? (U64)K1 << 32 | (U64)K2 : (U64)K2 << 32 | (U64)K1
 
 static constexpr inline I32 NullIndex = -1;
-static constexpr inline U8 MaxPolygonVertices = 8;
-static constexpr inline U8 MaxManifoldPoints = 2;
+static constexpr inline F32 Huge = 100000.0f;
 static constexpr inline F32 VelocityThreshold = 1.0f;
 static constexpr inline U32 VelocityIterations = 6;
 static constexpr inline U32 PositionIterations = 2;
@@ -65,21 +68,13 @@ static constexpr inline F32 SpeculativeDistance = 4.0f * LinearSlop;
 
 enum NH_API ColliderType
 {
-	COLLIDER_TYPE_POLYGON,
 	COLLIDER_TYPE_CIRCLE,
+	COLLIDER_TYPE_CAPSULE,
+	COLLIDER_TYPE_SEGMENT,
+	COLLIDER_TYPE_POLYGON,
+	COLLIDER_TYPE_CHAIN_SEGMENT,
 
 	COLLIDER_TYPE_COUNT
-};
-
-enum NH_API ShapeType
-{
-	SHAPE_TYPE_CIRCLE,
-	SHAPE_TYPE_CAPSULE,
-	SHAPE_TYPE_SEGMENT,
-	SHAPE_TYPE_POLYGON,
-	SHAPE_TYPE_CHAIN_SEGMENT,
-
-	SHAPE_TYPE_COUNT
 };
 
 enum NH_API JointType
@@ -93,15 +88,6 @@ enum NH_API JointType
 	JOINT_TYPE_WHEEL,
 
 	JOINT_TYPE_COUNT
-};
-
-enum NH_API BodyType
-{
-	BODY_TYPE_STATIC,
-	BODY_TYPE_KINEMATIC,
-	BODY_TYPE_DYNAMIC,
-
-	BODY_TYPE_COUNT
 };
 
 enum TOIState
@@ -172,6 +158,20 @@ enum SeparationType
 	SEPARATION_TYPE_FACE_B
 };
 
+// Friction mixing law. The idea is to allow either shape to drive the friction to zero.
+// For example, anything slides on ice.
+static constexpr F32 MixFriction(F32 friction1, F32 friction2)
+{
+	return Math::Sqrt(friction1 * friction2);
+}
+
+// Restitution mixing law. The idea is allow for anything to bounce off an inelastic surface.
+// For example, a superball bounces on anything.
+static constexpr F32 MixRestitution(F32 restitution1, F32 restitution2)
+{
+	return restitution1 > restitution2 ? restitution1 : restitution2;
+}
+
 struct NH_API RaycastInput
 {
 	bool Valid()
@@ -209,233 +209,6 @@ struct MassData
 	F32 rotationalInertia;
 };
 
-struct Circle
-{
-	Vector2 center;
-	F32 radius;
-};
-
-struct Capsule
-{
-	Vector2 center1;
-	Vector2 center2;
-	F32 radius;
-};
-
-struct Polygon
-{
-	Vector2 vertices[MaxPolygonVertices];
-	Vector2 normals[MaxPolygonVertices];
-	Vector2 centroid;
-	F32 radius;
-	I32 count;
-};
-
-struct Segment
-{
-	Vector2 point1;
-	Vector2 point2;
-};
-
-struct ChainSegment
-{
-	Vector2 ghost1;
-	Segment segment;
-	Vector2 ghost2;
-	I32 chainId;
-};
-
-struct Hull
-{
-	Vector2 points[MaxPolygonVertices];
-	I32 count;
-};
-
-struct Filter
-{
-	bool ShouldShapesCollide(const Filter& other);
-
-	U64 layers;
-	U64 layerMask;
-	I32 groupIndex;
-};
-
-struct AABB
-{
-	static AABB Combine(const AABB& a, const AABB& b)
-	{
-		return { Math::Min(a.lowerBound, b.lowerBound), Math::Max(a.upperBound, b.upperBound) };
-	}
-
-	static bool Enlarge(AABB& a, const AABB& b)
-	{
-		bool changed = false;
-		if (b.lowerBound.x < a.lowerBound.x)
-		{
-			a.lowerBound.x = b.lowerBound.x;
-			changed = true;
-		}
-
-		if (b.lowerBound.y < a.lowerBound.y)
-		{
-			a.lowerBound.y = b.lowerBound.y;
-			changed = true;
-		}
-
-		if (a.upperBound.x < b.upperBound.x)
-		{
-			a.upperBound.x = b.upperBound.x;
-			changed = true;
-		}
-
-		if (a.upperBound.y < b.upperBound.y)
-		{
-			a.upperBound.y = b.upperBound.y;
-			changed = true;
-		}
-
-		return changed;
-	}
-
-	void Combine(const AABB& other)
-	{
-		lowerBound = Math::Min(lowerBound, other.lowerBound);
-		upperBound = Math::Max(upperBound, other.upperBound);
-	}
-
-	Vector2 Center() const
-	{
-		return { (lowerBound.x + upperBound.x) * 0.5f, (lowerBound.y + upperBound.y) * 0.5f };
-	}
-
-	F32 Perimeter() const
-	{
-		F32 wx = upperBound.x - lowerBound.x;
-		F32 wy = upperBound.y - lowerBound.y;
-		return (wx + wy) * 2.0f;
-	}
-
-	bool Contains(const AABB& aabb) const
-	{
-		bool result = true;
-		result = result && lowerBound.x <= aabb.lowerBound.x;
-		result = result && lowerBound.y <= aabb.lowerBound.y;
-		result = result && aabb.upperBound.x <= upperBound.x;
-		result = result && aabb.upperBound.y <= upperBound.y;
-		return result;
-	}
-
-	Vector2 lowerBound;
-	Vector2 upperBound;
-};
-
-struct ShapeDef
-{
-	/// Use this to store application specific shape data.
-	void* userData;
-
-	/// The Coulomb (dry) friction coefficient, usually in the range [0,1].
-	F32 friction;
-
-	/// The restitution (bounce) usually in the range [0,1].
-	F32 restitution;
-
-	/// The density, usually in kg/m^2.
-	F32 density;
-
-	/// Collision filtering data.
-	Filter filter;
-
-	/// Custom debug draw color.
-	U32 customColor;
-
-	/// A sensor shape generates overlap events but never generates a collision response.
-	///	Sensors do not collide with other sensors and do not have continuous collision.
-	///	Instead use a ray or shape cast for those scenarios.
-	bool isSensor;
-
-	/// Enable sensor events for this shape. Only applies to kinematic and dynamic bodies. Ignored for sensors.
-	bool enableSensorEvents;
-
-	/// Enable contact events for this shape. Only applies to kinematic and dynamic bodies. Ignored for sensors.
-	bool enableContactEvents;
-
-	/// Enable hit events for this shape. Only applies to kinematic and dynamic bodies. Ignored for sensors.
-	bool enableHitEvents;
-
-	/// Enable pre-solve contact events for this shape. Only applies to dynamic bodies. These are expensive
-	///	and must be carefully handled due to threading. Ignored for sensors.
-	bool enablePreSolveEvents;
-
-	/// Normally shapes on static bodies don't invoke contact creation when they are added to the world. This overrides
-	///	that behavior and causes contact creation. This significantly slows down static body creation which can be important
-	///	when there are many static shapes.
-	/// This is implicitly always true for sensors.
-	bool forceContactCreation;
-
-	/// Used internally to detect a valid definition. DO NOT SET.
-	I32 internalValue;
-};
-
-struct Shape
-{
-	Shape(const ShapeDef& def);
-
-	Shape(const Shape&);
-	Shape(Shape&&) noexcept;
-
-	Shape& operator=(const Shape&);
-	Shape& operator=(Shape&&) noexcept;
-
-	Vector2 GetShapeCentroid()
-	{
-		switch (type)
-		{
-		case SHAPE_TYPE_CAPSULE: return Math::Lerp(capsule.center1, capsule.center2, 0.5f);
-		case SHAPE_TYPE_CIRCLE: return circle.center;
-		case SHAPE_TYPE_POLYGON: return polygon.centroid;
-		case SHAPE_TYPE_SEGMENT: return Math::Lerp(segment.point1, segment.point2, 0.5f);
-		case SHAPE_TYPE_CHAIN_SEGMENT: return Math::Lerp(chainSegment.segment.point1, chainSegment.segment.point2, 0.5f);
-		default: return Vector2Zero;
-		}
-	}
-
-	I32 id;
-	I32 bodyId;
-	I32 prevShapeId;
-	I32 nextShapeId;
-	ShapeType type;
-	F32 density;
-	F32 friction;
-	F32 restitution;
-
-	AABB aabb;
-	AABB fatAABB;
-	Vector2 localCentroid;
-	I32 proxyKey;
-
-	Filter filter;
-	void* userData;
-	U32 customColor;
-
-	union
-	{
-		Capsule capsule;
-		Circle circle;
-		Polygon polygon;
-		Segment segment;
-		ChainSegment chainSegment;
-	};
-
-	bool isSensor;
-	bool enableSensorEvents;
-	bool enableContactEvents;
-	bool enableHitEvents;
-	bool enablePreSolveEvents;
-	bool enlargedAABB;
-	bool isFast;
-};
-
 struct SegmentDistanceResult
 {
 	Vector2 closest1;
@@ -467,35 +240,6 @@ struct DistanceProxy
 	I32 count;
 	F32 radius;
 };
-
-struct DistanceCache
-{
-	U16 count;
-	U8 indexA[3];
-	U8 indexB[3];
-};
-
-struct Transform2D
-{
-	Vector2 position{ Vector2Zero };
-	Quaternion2 rotation{ Quaternion2Identity };
-
-	constexpr Transform2D operator*(const Transform2D& t) const
-	{
-		return { t.position * rotation + position, rotation * t.rotation };
-	}
-
-	constexpr Transform2D operator^(const Transform2D& t) const
-	{
-		return { (t.position - position) ^ rotation, rotation ^ t.rotation };
-	}
-};
-
-static constexpr Vector2 operator*(const Vector2& v, const Transform2D& t) { return v * t.rotation + t.position; }
-
-static constexpr Vector2 operator^(const Vector2& v, const Transform2D& t) { return (v ^ t.rotation) + t.position; }
-
-static constexpr Transform2D Transform2DIdentity = { { 0.0f, 0.0f }, { 1.0f, 0.0f } };
 
 struct DistanceInput
 {
@@ -606,114 +350,6 @@ struct TOIOutput
 	F32 t;
 };
 
-struct RigidBody2DDef
-{
-	/// The body type: static, kinematic, or dynamic.
-	BodyType type;
-
-	/// The initial world position of the body. Bodies should be created with the desired position.
-	/// @note Creating bodies at the origin and then moving them nearly doubles the cost of body creation, especially
-	///	if the body is moved after shapes have been added.
-	Vector2 position;
-
-	/// The initial world rotation of the body. Use b2MakeRot() if you have an angle.
-	Quaternion2 rotation;
-
-	/// The initial linear velocity of the body's origin. Typically in meters per second.
-	Vector2 linearVelocity;
-
-	/// The initial angular velocity of the body. Radians per second.
-	F32 angularVelocity;
-
-	/// Linear damping is use to reduce the linear velocity. The damping parameter
-	/// can be larger than 1 but the damping effect becomes sensitive to the
-	/// time step when the damping parameter is large.
-	///	Generally linear damping is undesirable because it makes objects move slowly
-	///	as if they are floating.
-	F32 linearDamping;
-
-	/// Angular damping is use to reduce the angular velocity. The damping parameter
-	/// can be larger than 1.0f but the damping effect becomes sensitive to the
-	/// time step when the damping parameter is large.
-	///	Angular damping can be use slow down rotating bodies.
-	F32 angularDamping;
-
-	/// Scale the gravity applied to this body. Non-dimensional.
-	F32 gravityScale;
-
-	/// Sleep velocity threshold, default is 0.05 meter per second
-	F32 sleepThreshold;
-
-	/// Use this to store application specific body data.
-	void* userData;
-
-	/// Set this flag to false if this body should never fall asleep.
-	bool enableSleep;
-
-	/// Is this body initially awake or sleeping?
-	bool isAwake;
-
-	/// Should this body be prevented from rotating? Useful for characters.
-	bool fixedRotation;
-
-	/// Treat this body as high speed object that performs continuous collision detection
-	/// against dynamic and kinematic bodies, but not other bullet bodies.
-	///	@warning Bullets should be used sparingly. They are not a solution for general dynamic-versus-dynamic
-	///	continuous collision. They may interfere with joint constraints.
-	bool isBullet;
-
-	/// Used to disable a body. A disabled body does not move or collide.
-	bool isEnabled;
-
-	/// Automatically compute mass and related properties on this body from shapes.
-	/// Triggers whenever a shape is add/removed/changed. Default is true.
-	bool automaticMass;
-
-	/// This allows this body to bypass rotational speed limits. Should only be used
-	///	for circular objects, like wheels.
-	bool allowFastRotation;
-
-	/// Used internally to detect a valid definition. DO NOT SET.
-	I32 internalValue;
-};
-
-struct NH_API RigidBody2D : public Component
-{
-	RigidBody2D(const RigidBody2DDef& def);
-
-	void Update(Scene* scene);
-	void Load(Scene* scene);
-	void Cleanup(Scene* scene);
-
-	void* userData;
-	I32 setIndex;
-	I32 localIndex;
-	I32 headContactKey;
-	I32 contactCount;
-	I32 headShapeId;
-	I32 shapeCount;
-	I32 headChainId;
-	I32 headJointKey;
-	I32 jointCount;
-	I32 islandId;
-	I32 islandPrev;
-	I32 islandNext;
-	F32 sleepThreshold;
-	F32 sleepTime;
-	I32 bodyMoveIndex;
-	I32 id;
-
-	BodyType type{ BODY_TYPE_DYNAMIC };
-
-	U16 revision;
-
-	bool enableSleep;
-	bool fixedRotation;
-	bool isSpeedCapped;
-	bool isMarked;
-	bool automaticMass;
-};
-
 struct BodyState
 {
 	Vector2 linearVelocity;
@@ -755,26 +391,7 @@ struct Contact
 	bool isMarked;
 };
 
-struct ManifoldPoint
-{
-	Vector2 point;
-	Vector2 anchorA;
-	Vector2 anchorB;
-	F32 separation;
-	F32 normalImpulse;
-	F32 tangentImpulse;
-	F32 maxNormalImpulse;
-	F32 normalVelocity;
-	U16 id;
-	bool persisted;
-};
 
-struct Manifold
-{
-	ManifoldPoint points[MaxManifoldPoints];
-	Vector2 normal;
-	U32 pointCount;
-};
 
 struct ContactSim
 {

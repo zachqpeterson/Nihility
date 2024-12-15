@@ -1,20 +1,52 @@
 #pragma once
 
-#include "PhysicsDefines.hpp"
+#include "Defines.hpp"
+#include "Math.hpp"
 
-// Friction mixing law. The idea is to allow either shape to drive the friction to zero.
-// For example, anything slides on ice.
-static constexpr F32 MixFriction(F32 friction1, F32 friction2)
-{
-	return Math::Sqrt(friction1 * friction2);
-}
+#include "Shape.hpp"
 
-// Restitution mixing law. The idea is allow for anything to bounce off an inelastic surface.
-// For example, a superball bounces on anything.
-static constexpr F32 MixRestitution(F32 restitution1, F32 restitution2)
+static constexpr inline U8 MaxManifoldPoints = 2;
+
+struct ManifoldPoint
 {
-	return restitution1 > restitution2 ? restitution1 : restitution2;
-}
+	Vector2 point;
+	Vector2 anchorA;
+	Vector2 anchorB;
+	F32 separation;
+	F32 normalImpulse;
+	F32 tangentImpulse;
+	F32 maxNormalImpulse;
+	F32 normalVelocity;
+	U16 id;
+	bool persisted;
+};
+
+struct DistanceCache
+{
+	U16 count;
+	U8 indexA[3];
+	U8 indexB[3];
+};
+
+struct NH_API Manifold
+{
+	ManifoldPoint points[MaxManifoldPoints];
+	Vector2 normal;
+	U32 pointCount;
+
+	static Manifold CircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold CapsuleAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold CapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold PolygonAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold PolygonAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold PolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold SegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold SegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold SegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold ChainSegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold ChainSegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+	static Manifold ChainSegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
+};
 
 typedef Manifold ManifoldFn(const Shape&, const Transform2D&, const Shape&, const Transform2D&, DistanceCache&);
 
@@ -24,47 +56,34 @@ struct ContactRegister
 	bool primary;
 };
 
-static Manifold CircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold CapsuleAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold CapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold PolygonAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold PolygonAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold PolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold SegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold SegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold SegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold ChainSegmentAndCircleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold ChainSegmentAndCapsuleManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-static Manifold ChainSegmentAndPolygonManifold(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-
 static ContactRegister contactRegister[SHAPE_TYPE_COUNT][SHAPE_TYPE_COUNT]{
-{	{ CircleManifold, true },
-	{ CapsuleAndCircleManifold, false },
-	{ SegmentAndCircleManifold, false },
-	{ PolygonAndCircleManifold, false },
-	{ ChainSegmentAndCircleManifold, false } },
+{	{ Manifold::CircleManifold, true },
+	{ Manifold::CapsuleAndCircleManifold, false },
+	{ Manifold::SegmentAndCircleManifold, false },
+	{ Manifold::PolygonAndCircleManifold, false },
+	{ Manifold::ChainSegmentAndCircleManifold, false } },
 
-{	{ CapsuleAndCircleManifold, true },
-	{ CapsuleManifold, true },
-	{ SegmentAndCapsuleManifold, false },
-	{ PolygonAndCapsuleManifold, false },
-	{ ChainSegmentAndCapsuleManifold, false } },
+{	{ Manifold::CapsuleAndCircleManifold, true },
+	{ Manifold::CapsuleManifold, true },
+	{ Manifold::SegmentAndCapsuleManifold, false },
+	{ Manifold::PolygonAndCapsuleManifold, false },
+	{ Manifold::ChainSegmentAndCapsuleManifold, false } },
 
-{	{ SegmentAndCircleManifold, true },
-	{ SegmentAndCapsuleManifold, true },
+{	{ Manifold::SegmentAndCircleManifold, true },
+	{ Manifold::SegmentAndCapsuleManifold, true },
 	{ nullptr, true },
-	{ SegmentAndPolygonManifold, true },
+	{ Manifold::SegmentAndPolygonManifold, true },
 	{ nullptr, true } },
 
-{	{ PolygonAndCircleManifold, true },
-	{ PolygonAndCapsuleManifold, true },
-	{ SegmentAndPolygonManifold, false },
-	{ PolygonManifold, true },
-	{ ChainSegmentAndPolygonManifold, false } },
+{	{ Manifold::PolygonAndCircleManifold, true },
+	{ Manifold::PolygonAndCapsuleManifold, true },
+	{ Manifold::SegmentAndPolygonManifold, false },
+	{ Manifold::PolygonManifold, true },
+	{ Manifold::ChainSegmentAndPolygonManifold, false } },
 
-{	{ ChainSegmentAndCircleManifold, true },
-	{ ChainSegmentAndCapsuleManifold, true },
+{	{ Manifold::ChainSegmentAndCircleManifold, true },
+	{ Manifold::ChainSegmentAndCapsuleManifold, true },
 	{ nullptr, true },
-	{ ChainSegmentAndPolygonManifold, true },
+	{ Manifold::ChainSegmentAndPolygonManifold, true },
 	{ nullptr, true } }
 };

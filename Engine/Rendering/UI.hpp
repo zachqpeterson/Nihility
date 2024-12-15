@@ -13,7 +13,6 @@ typedef void(*UIEvent)(UIElement*, const Vector2&);
 struct Font;
 struct Scene;
 struct PipelineInfo;
-struct UIComponent;
 
 enum UIElementType
 {
@@ -43,6 +42,21 @@ enum NH_API SliderType
 	SLIDER_TYPE_EXPAND,
 };
 
+struct NH_API UIComponent : Component<UIComponent>
+{
+	UIComponent(const Vector<MeshInstance>& meshes) : meshes(meshes) {}
+	UIComponent(const UIComponent& other) noexcept : meshes(other.meshes) {}
+	UIComponent(UIComponent&& other) noexcept : meshes(Move(other.meshes)) {}
+
+	UIComponent& operator=(UIComponent&& other) noexcept { meshes = Move(other.meshes); return *this; }
+
+	virtual void Update(Scene* scene) final;
+	virtual void Load(Scene* scene) final;
+	virtual void Cleanup(Scene* scene) final {}
+
+	Vector<MeshInstance> meshes;
+};
+
 struct NH_API UIElement
 {
 	UIElement();
@@ -63,7 +77,7 @@ private:
 	bool enabled = true;
 
 	Scene* scene = nullptr;
-	UIComponent* component = nullptr;
+	ComponentRef<UIComponent> component = nullptr;
 	UIElement* parent = nullptr;
 	Vector<UIElement*> children;
 
@@ -170,20 +184,6 @@ struct NH_API UIElementInfo
 	UIEvent OnMove;
 	UIEvent OnExit;
 	UIEvent OnScroll;
-};
-
-struct NH_API UIComponent : Component
-{
-	UIComponent(const Vector<MeshInstance>& meshes) : meshes(meshes) {}
-	UIComponent(UIComponent&& other) noexcept : meshes(Move(other.meshes)) {}
-
-	UIComponent& operator=(UIComponent&& other) noexcept { meshes = Move(other.meshes); return *this; }
-
-	virtual void Update(Scene* scene) final;
-	virtual void Load(Scene* scene) final;
-	virtual void Cleanup(Scene* scene) final {}
-
-	Vector<MeshInstance> meshes;
 };
 
 struct Pipeline;

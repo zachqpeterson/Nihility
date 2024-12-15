@@ -15,7 +15,7 @@ struct Camera;
 
 //TODO: Paralax
 //TODO: Tilemap Collision
-struct NH_API TilemapComponent : Component
+struct NH_API TilemapComponent : Component<TilemapComponent>
 {
 	TilemapComponent(U16 width, U16 height, Vector2 tileSize);
 

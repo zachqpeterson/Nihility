@@ -18,36 +18,58 @@ ResourceRef<Texture> circleCollie;
 Scene* scene;
 Entity* entity0{};
 Entity* player{};
-RigidBody2D* playerRB{};
+ComponentRef<RigidBody2D> playerRB{};
 Entity* ground{};
-TilemapComponent* tilemap;
+ComponentRef<TilemapComponent> tilemap;
 U8 id0, id1;
+
+constexpr StringView dummy = Introspection::TypeName<void>::FullName();
+constexpr StringView type = Introspection::TypeName<ComponentRef<TilemapComponent>>::FullName();
+
+constexpr U64 dummyLength = dummy.Size();
+constexpr U64 typeLength = type.Size();
+constexpr U64 prefixIndex = dummy.IndexOf("<") + 1;
+constexpr U64 suffixIndex = dummy.IndexOf(">");
+
+constexpr StringView name = type.SubString(prefixIndex, (suffixIndex - prefixIndex) + (typeLength - dummyLength));
 
 bool Init()
 {
+	Logger::Debug(dummy);
+	Logger::Debug(type);
+
+
 	squareCollie = Resources::LoadTexture("textures/Collie.nhtex");
 	circleCollie = Resources::LoadTexture("textures/CircleCollie.nhtex");
 
 	scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_ORTHOGRAPHIC);
 
-	entity0 = scene->AddEntity();
-	tilemap = entity0->AddComponent<TilemapComponent>(100ui16, 100ui16, Vector2{ 10.0f, 10.0f });
+	entity0 = scene->CreateEntity();
+	//tilemap = entity0->CreateComponent<TilemapComponent>(100ui16, 100ui16, Vector2{ 10.0f, 10.0f });
 
-	player = scene->AddEntity();
-	player->AddComponent<SpriteComponent>(Vector4One, squareCollie);
-	playerRB = player->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
-	playerRB->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
-	playerRB->SetPosition({ 0.0f, 25.0f });
+	player = scene->CreateEntity();
+	player->CreateComponent<SpriteComponent>(Vector4One, squareCollie);
+
+	RigidBody2DDef playerDef{};
+	playerDef.type = BODY_TYPE_DYNAMIC;
+	playerDef.position.y = 25.0f;
+	RigidBody2DDef groundDef{};
+	groundDef.position.y = -25.0f;
+	ShapeDef shapeDef{};
+
+	playerRB = player->CreateComponent<RigidBody2D>(playerDef);
+	playerRB->AddCollider(shapeDef, Physics::CreateBox(5.0f, 5.0f));
+	//playerRB->SetPosition({ 0.0f, 25.0f });
 	//playerRB->SetRotation(45.0f);
 
-	ground = scene->AddEntity();
-	ground->AddComponent<SpriteComponent>(Vector4One, squareCollie);
-	RigidBody2D* rb = ground->AddComponent<RigidBody2D>(BODY_TYPE_STATIC);
-	rb->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
-	rb->SetPosition({ 0.0f, -25.0f });
+	ground = scene->CreateEntity();
+	ground->CreateComponent<SpriteComponent>(Vector4One, squareCollie);
+	ComponentRef<RigidBody2D> rb = ground->CreateComponent<RigidBody2D>(groundDef);
+	rb->AddCollider(shapeDef, Physics::CreateBox(5.0f, 5.0f));
+	//rb->SetPosition({ 0.0f, -25.0f });
 
-	id0 = tilemap->AddTile(squareCollie);
-	id1 = tilemap->AddTile(Resources::LoadTexture("textures/trichotomy.nhtex"));
+	//id0 = tilemap->AddTile(squareCollie);
+	//id1 = tilemap->AddTile(Resources::LoadTexture("textures/trichotomy.nhtex"));
 
 	Renderer::LoadScene(scene);
 
@@ -56,27 +78,29 @@ bool Init()
 
 void Update()
 {
-	if (Input::OnButtonDown(BUTTON_CODE_LEFT_MOUSE))
-	{
-		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-	
-		Entity* entity = scene->AddEntity();
-		entity->AddComponent<SpriteComponent>(Vector4One, squareCollie);
-		RigidBody2D* rb = entity->AddComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
-		rb->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
-		rb->SetPosition(pos);
-	}
-	
-	if (Input::OnButtonDown(BUTTON_CODE_RIGHT_MOUSE))
-	{
-		Vector2 pos = Input::MouseToWorld(scene->GetCamera());
-	
-		Entity* entity = scene->AddEntity();
-		entity->AddComponent<SpriteComponent>(Vector4One, squareCollie);
-		RigidBody2D* rb = entity->AddComponent<RigidBody2D>(BODY_TYPE_STATIC);
-		rb->AddCollider(Physics::CreateBoxCollider2D({}, 5.0f, 5.0f));
-		rb->SetPosition(pos);
-	}
+	ShapeDef shapeDef{};
+
+	//if (Input::OnButtonDown(BUTTON_CODE_LEFT_MOUSE))
+	//{
+	//	Vector2 pos = Input::MouseToWorld(scene->GetCamera());
+	//
+	//	Entity* entity = scene->CreateEntity();
+	//	entity->CreateComponent<SpriteComponent>(Vector4One, squareCollie);
+	//	ComponentRef<RigidBody2D> rb = entity->CreateComponent<RigidBody2D>(BODY_TYPE_DYNAMIC);
+	//	rb->AddCollider(shapeDef, Physics::CreateBox(5.0f, 5.0f));
+	//	rb->SetPosition(pos);
+	//}
+	//
+	//if (Input::OnButtonDown(BUTTON_CODE_RIGHT_MOUSE))
+	//{
+	//	Vector2 pos = Input::MouseToWorld(scene->GetCamera());
+	//
+	//	Entity* entity = scene->CreateEntity();
+	//	entity->CreateComponent<SpriteComponent>(Vector4One, squareCollie);
+	//	ComponentRef<RigidBody2D> rb = entity->CreateComponent<RigidBody2D>(BODY_TYPE_STATIC);
+	//	rb->AddCollider(shapeDef, Physics::CreateBox(5.0f, 5.0f));
+	//	rb->SetPosition(pos);
+	//}
 
 	//if (Input::ButtonDown(BUTTON_CODE_LEFT_MOUSE)) { tilemap->ChangeTile(tilemap->MouseToTilemap(scene->GetCamera()), id0); }
 	//if (Input::ButtonDown(BUTTON_CODE_RIGHT_MOUSE)) { tilemap->ChangeTile(tilemap->MouseToTilemap(scene->GetCamera()), id1); }

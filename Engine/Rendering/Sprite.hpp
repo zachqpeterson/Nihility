@@ -5,13 +5,14 @@
 #include "Resources\Component.hpp"
 #include "Resources\Mesh.hpp"
 
-struct NH_API SpriteComponent : public Component
+struct NH_API SpriteComponent : public Component<SpriteComponent>
 {
 	SpriteComponent(const Vector4& color = Vector4One, const ResourceRef<Texture>& texture = nullptr, const Vector4& textureCoords = Vector4(0.0f, 0.0f, 1.0f, 1.0f));
-	SpriteComponent(SpriteComponent&& other) noexcept : Component(Move(other)), meshInstance(Move(other.meshInstance)) {}
+	SpriteComponent(const SpriteComponent& other) noexcept : Component<SpriteComponent>(other), meshInstance(other.meshInstance) {}
+	SpriteComponent(SpriteComponent&& other) noexcept : Component<SpriteComponent>(Move(other)), meshInstance(Move(other.meshInstance)) {}
 	SpriteComponent& operator=(SpriteComponent&& other) noexcept
 	{
-		Component::operator=(Move(other));
+		Component<SpriteComponent>::operator=(Move(other));
 		meshInstance = Move(other.meshInstance);
 		return *this;
 	}

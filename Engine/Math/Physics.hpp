@@ -29,34 +29,34 @@ struct Scene;
 
 class NH_API Physics
 {
-	void b2SplitIsland(int baseId);
-	void b2SplitIslandTask(int startIndex, int endIndex, U32 threadIndex, void* context);
-
-	ContactSim* b2GetContactSim(Contact* contact);
-
-	void b2DestroySolverSet(int setIndex);
-
-	// Merge set 2 into set 1 then destroy set 2.
-	// Warning: any pointers into these sets will be orphaned.
-	void b2MergeSolverSets(int setIndex1, int setIndex2);
-
-	void b2TransferBody(SolverSet* targetSet, SolverSet* sourceSet, RigidBody2D* body);
-	void b2TransferJoint(SolverSet* targetSet, SolverSet* sourceSet, RigidBody2D* joint);
-
-	// Link a joint into the island graph when it is created
-	void b2LinkJoint(Joint* joint, bool mergeIslands);
-
-	// Unlink a joint from the island graph when it is destroyed
-	void b2UnlinkJoint(Joint* joint);
-
 public:
 	static DistanceOutput ShapeDistance(DistanceCache& cache, const DistanceInput& input, Simplex* simplexes, I32 simplexCapacity);
+
+	static ConvexPolygon CreatePolygon(const Hull& hull, F32 radius);
+	static ConvexPolygon CreateOffsetPolygon(const Hull& hull, F32 radius, const Transform2D& transform);
+	static ConvexPolygon CreateBox(F32 hx, F32 hy);
+	static ConvexPolygon CreateRoundedBox(F32 hx, F32 hy, F32 radius);
+	static ConvexPolygon CreateOffsetBox(F32 hx, F32 hy, const Transform2D& transform);
+
+	static Vector2 ComputePolygonCentroid(const Vector2* vertices, I32 count);
+	static MassData ComputeCircleMass(const Circle& shape, F32 density);
+	static MassData ComputeCapsuleMass(const Capsule& shape, F32 density);
+	static MassData ComputePolygonMass(const ConvexPolygon& shape, F32 density);
+	static AABB ComputeCircleAABB(const Circle& shape, const Transform2D& transform);
+	static AABB ComputeCapsuleAABB(const Capsule& shape, const Transform2D& transform);
+	static ShapeExtent ComputeShapeExtent(const Shape& shape, Vector2 localCenter);
+
+	static RigidBody2D& GetRigidBody(I32 id);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static void SetScene(Scene* scene);
+	static ComponentRef<RigidBody2D> CreateComponent(Scene* scene, U32 entityID, RigidBody2D** type);
+	static void DestroyComponent(Scene* scene, U32 entityID);
+	static ComponentRef<RigidBody2D> GetComponent(U32 entityID);
+	static I32 GetComponentID(RigidBody2D& component);
+
 	static void Update(F32 step);
 	static void Solve(StepContext& stepContext);
 
@@ -70,7 +70,12 @@ private:
 	static void Collide(StepContext& context);
 	static void CollideTask(int startIndex, int endIndex, int threadIndex, StepContext& stepContext);
 
-	static void CreateRigidBody2D();
+	static void CreateShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, Shape& shape);
+	static Shape& CreateCircleShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const Circle& geometry);
+	static Shape& CreateCapsuleShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const Capsule& geometry);
+	static Shape& CreateConvexPolygonShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const ConvexPolygon& geometry);
+	static Shape& CreateSegmentShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const Segment& geometry);
+	static Shape& CreateChainSegmentShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const ChainSegment& geometry);
 	static BodySim& GetBodySim(RigidBody2D& body);
 	
 	static void PrepareOverflowContacts(StepContext& context);
@@ -84,6 +89,11 @@ private:
 		Shape& shapeB, const Transform2D& transformB, const Vector2& centerOffsetB);
 	static void LinkContact(Contact& contact);
 	static void UnlinkContact(Contact& contact);
+
+	static void DestroyJointInternal(Joint& joint, bool wakeBodies);
+	static void UnlinkJoint(Joint& joint);
+	static void RemoveJointFromGraph(int bodyIdA, int bodyIdB, int colorIndex, int localIndex);
+	static bool WakeBody(RigidBody2D& body);
 
 	static void PrepareOverflowJoints(StepContext& context);
 	static void PrepareJointsTask(int startIndex, int endIndex, StepContext& context);
@@ -126,18 +136,11 @@ private:
 	static SimdBody GatherBodies(const BodyState* states, int* indices);
 	static void ScatterBodies(BodyState* states, int* indices, const SimdBody& simdBody);
 
-	static bool WakeBody(RigidBody2D& body);
-
 	static void RemoveNonTouchingContact(int setIndex, int localIndex);
 	static void AddNonTouchingContact(Contact& contact, ContactSim& contactSim);
 
 	static bool ShouldBodiesCollide(const RigidBody2D& bodyA, const RigidBody2D& bodyB);
 	static bool TestShapeOverlap(const Shape& shapeA, const Transform2D& xfA, const Shape& shapeB, const Transform2D& xfB, DistanceCache& cache);
-	static AABB ComputeShapeAABB(const Shape& shape, const Transform2D& xf);
-	static AABB ComputeCircleAABB(const Circle& shape, const Transform2D& xf);
-	static AABB ComputeCapsuleAABB(const Capsule& shape, const Transform2D& xf);
-	static AABB ComputePolygonAABB(const Polygon& shape, const Transform2D& xf);
-	static AABB ComputeSegmentAABB(const Segment& shape, const Transform2D& xf);
 
 	static DistanceProxy MakeShapeDistanceProxy(const Shape& shape);
 	static DistanceProxy MakeProxy(const Vector2* vertices, I32 count, F32 radius);
@@ -158,6 +161,9 @@ private:
 	static void MergeIsland(Island& island);
 	static void TrySleepIsland(int islandId);
 	static void SplitIsland(int baseId);
+	static void CreateIslandForBody(int setIndex, RigidBody2D& body);
+	static void RemoveBodyFromIsland(RigidBody2D& body);
+	static I32 GetBodyID(RigidBody2D& body);
 
 	static void SolverTask(WorkerContext& workerContext);
 	static void ExecuteStage(SolverStage& stage, StepContext* context, int previousSyncIndex, int syncIndex, int workerIndex);
@@ -182,8 +188,8 @@ private:
 
 	static ConstraintGraph constraintGraph;
 
-	static Freelist bodyFreelist;
-	static Vector<RigidBody2D>* bodies;
+	static Freelist rigidBodyFreelist;
+	static Vector<RigidBody2D> rigidBodies;
 
 	static Freelist solverSetFreelist;
 	static Vector<SolverSet> solverSets;
@@ -257,4 +263,5 @@ private:
 	friend class Broadphase;
 	friend struct ConstraintGraph;
 	friend struct Scene;
+	friend struct RigidBody2D;
 };

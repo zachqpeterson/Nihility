@@ -735,7 +735,6 @@ I32 DynamicTree::GetProxyCount()
 
 I32 DynamicTree::Rebuild(bool fullBuild)
 {
-	I32 proxyCount = proxyCount;
 	if (proxyCount == 0) { return 0; }
 
 	// Ensure capacity for rebuild space
@@ -757,14 +756,7 @@ I32 DynamicTree::Rebuild(bool fullBuild)
 	I32 stackCount = 0;
 
 	I32 nodeIndex = root;
-	TreeNode* nodes = nodes;
 	TreeNode* node = nodes + nodeIndex;
-
-	// These are the nodes that get sorted to rebuild the tree.
-	// I'm using indices because the node pool may grow during the build.
-	I32* leafIndices = leafIndices;
-
-	Vector2* leafCenters = leafCenters;
 
 	// Gather all proxy nodes that have grown and all internal nodes that haven't grown. Both are
 	// considered leaves in the tree rebuild.
@@ -1298,8 +1290,8 @@ bool Broadphase::PairQueryCallback(I32 proxyId, I32 shapeId, QueryPairContext& c
 	if (shapeA.isSensor && shapeB.isSensor) { return true; }
 
 	// Does a joint override collision?
-	RigidBody2D& bodyA = Physics::bodies->Get(bodyIdA);
-	RigidBody2D& bodyB = Physics::bodies->Get(bodyIdB);
+	RigidBody2D& bodyA = Physics::rigidBodies[bodyIdA];
+	RigidBody2D& bodyB = Physics::rigidBodies[bodyIdB];
 	if (!Physics::ShouldBodiesCollide(bodyA, bodyB)) { return true; }
 
 	//TODO: Custom filtering
@@ -1353,14 +1345,14 @@ bool Broadphase::ContinuousQueryCallback(int shapeId, ContinuousContext& context
 	// Skip sensors
 	if (shape.isSensor) { return true; }
 
-	RigidBody2D& body = Physics::bodies->Get(shape.bodyId);
+	RigidBody2D& body = Physics::rigidBodies[shape.bodyId];
 	BodySim& bodySim = Physics::GetBodySim(body);
 
 	// Skip bullets
 	if (bodySim.isBullet) { return true; }
 
 	// Skip filtered bodies
-	RigidBody2D& fastBody = Physics::bodies->Get(fastBodySim->bodyId);
+	RigidBody2D& fastBody = Physics::rigidBodies[fastBodySim->bodyId];
 	canCollide = Physics::ShouldBodiesCollide(fastBody, body);
 	if (canCollide == false) { return true; }
 

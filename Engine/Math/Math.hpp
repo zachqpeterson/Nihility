@@ -67,3 +67,5 @@ constexpr inline Matrix4 Matrix4Zero{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 
 
 constexpr inline Quaternion2 Quaternion2Identity;
 constexpr inline Quaternion3 Quaternion3Identity;
+
+constexpr inline Transform2D Transform2DIdentity = { { 0.0f, 0.0f }, { 1.0f, 0.0f } };

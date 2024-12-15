@@ -55,6 +55,13 @@ template <class Type> constexpr const bool IsVolatile<volatile Type> = true;
 template <class> constexpr const bool IsConstVolatile = false;
 template <class Type> constexpr const bool IsConstVolatile<const volatile Type> = true;
 
+struct None {
+	None() = delete;
+	~None() = delete;
+	None(None const&) = delete;
+	void operator=(None const&) = delete;
+};
+
 namespace TypeTraits
 {
 	template <class Type> struct RemoveConst { using type = Type; };
@@ -165,6 +172,33 @@ namespace TypeTraits
 		static constexpr inline bool value = decltype(Test<Type>(0))::value;
 	};
 
+	template<class Type>
+	struct HasCreateComponent
+	{
+		template<class C> static constexpr TrueConstant Test(decltype(&C::CreateComponent));
+		template<class> static constexpr FalseConstant Test(...);
+
+		static constexpr inline bool value = decltype(Test<Type>(0))::value;
+	};
+
+	template<class Type>
+	struct HasDestroyComponent
+	{
+		template<class C> static constexpr TrueConstant Test(decltype(&C::DestroyComponent));
+		template<class> static constexpr FalseConstant Test(...);
+
+		static constexpr inline bool value = decltype(Test<Type>(0))::value;
+	};
+
+	template<class Type>
+	struct HasUpdateComponents
+	{
+		template<class C> static constexpr TrueConstant Test(decltype(&C::UpdateComponents));
+		template<class> static constexpr FalseConstant Test(...);
+
+		static constexpr inline bool value = decltype(Test<Type>(0))::value;
+	};
+
 	template<class From, class To>
 	struct IsConvertableTo //TODO: Same as __is_convertible_to ?
 	{
@@ -201,6 +235,10 @@ template <class Type, U64 Count> using ApplyPointers = typename TypeTraits::Appl
 
 template <class Type> constexpr const bool IsDestroyable = TypeTraits::IsDestroyable<Type>::value;
 template <class Type> concept Destroyable = IsDestroyable<Type>;
+
+template <class Type> constexpr const bool HasCreateComponent = TypeTraits::HasCreateComponent<Type>::value;
+template <class Type> constexpr const bool HasDestroyComponent = TypeTraits::HasDestroyComponent<Type>::value;
+template <class Type> constexpr const bool HasUpdateComponents = TypeTraits::HasUpdateComponents<Type>::value;
 
 template <class From, class To> constexpr const bool ConvertibleTo = TypeTraits::IsConvertableTo<From, To>::value;
 

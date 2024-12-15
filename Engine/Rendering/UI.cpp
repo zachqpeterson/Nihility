@@ -371,7 +371,7 @@ UIElement* UI::CreateElement(UIElementInfo& info)
 	instanceData->scale = info.area.zw() - info.area.xy();
 	instanceData->color = info.color;
 
-	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -448,7 +448,7 @@ UIElement* UI::CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& b
 	instanceData->scale = Vector2{ borderWidth, info.area.w - info.area.y - borderHeight };
 	instanceData->color = borderColor;
 
-	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -476,7 +476,7 @@ UIElement* UI::CreateImage(UIElementInfo& info, const ResourceRef<Texture>& text
 	instanceData->texcoordScale = uvs.zw() - uvs.xy();
 	instanceData->color = info.color;
 
-	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -575,7 +575,7 @@ UIElement* UI::CreateSlider(UIElementInfo& info, const Vector4& fillColor, Slide
 	} break;
 	}
 
-	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances);
+	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -651,7 +651,7 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 		prev = c;
 	}
 
-	element->component = info.scene->AddEntity()->AddComponent<UIComponent>(instances); //TODO: Don't create new entity per text
+	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances); //TODO: Don't create new entity per text
 
 	return element;
 }

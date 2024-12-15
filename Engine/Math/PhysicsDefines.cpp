@@ -1,6 +1,7 @@
 #include "PhysicsDefines.hpp"
 
 #include "Physics.hpp"
+#include "Resources\Component.hpp"
 
 void ConstraintGraph::Create(I32 bodyCapacity)
 {
@@ -31,8 +32,8 @@ void ConstraintGraph::AddContact(ContactSim& contactSim, Contact& contact)
 
 	int bodyIdA = contact.edges[0].bodyId;
 	int bodyIdB = contact.edges[1].bodyId;
-	RigidBody2D& bodyA = Physics::bodies->Get(bodyIdA);
-	RigidBody2D& bodyB = Physics::bodies->Get(bodyIdB);
+	RigidBody2D& bodyA = Physics::rigidBodies[bodyIdA];
+	RigidBody2D& bodyB = Physics::rigidBodies[bodyIdB];
 	bool staticA = bodyA.setIndex == SET_TYPE_STATIC;
 	bool staticB = bodyB.setIndex == SET_TYPE_STATIC;
 
@@ -189,8 +190,8 @@ void ConstraintGraph::AddJoint(JointSim& jointSim, Joint& joint)
 {
 	int bodyIdA = joint.edges[0].bodyId;
 	int bodyIdB = joint.edges[1].bodyId;
-	RigidBody2D& bodyA = Physics::bodies->Get(bodyIdA);
-	RigidBody2D& bodyB = Physics::bodies->Get(bodyIdB);
+	RigidBody2D& bodyA = Physics::rigidBodies[bodyIdA];
+	RigidBody2D& bodyB = Physics::rigidBodies[bodyIdB];
 	bool staticA = bodyA.setIndex == SET_TYPE_STATIC;
 	bool staticB = bodyB.setIndex == SET_TYPE_STATIC;
 
@@ -221,14 +222,6 @@ void ConstraintGraph::RemoveJoint(I32 bodyIdA, I32 bodyIdB, I32 colorIndex, I32 
 		Joint& movedJoint = Physics::joints[movedId];
 		movedJoint.localIndex = localIndex;
 	}
-}
-
-//FILTER
-
-bool Filter::ShouldShapesCollide(const Filter& other)
-{
-	if (groupIndex == other.groupIndex && groupIndex != 0) { return groupIndex > 0; }
-	return (layerMask & other.layers) != 0 && (layers & other.layerMask) != 0;
 }
 
 //SOFTNESS
@@ -275,28 +268,6 @@ void SolverSet::Destroy()
 	jointSims.Destroy();
 	islandSims.Destroy();
 	setIndex = NullIndex;
-}
-
-//RIGIDBODY2D
-
-RigidBody2D::RigidBody2D(const RigidBody2DDef& def)
-{
-	//Physics::CreateRigidBody2D();
-}
-
-void RigidBody2D::Update(Scene* scene)
-{
-
-}
-
-void RigidBody2D::Load(Scene* scene)
-{
-
-}
-
-void RigidBody2D::Cleanup(Scene* scene)
-{
-
 }
 
 //JOINT SIM
@@ -387,31 +358,4 @@ JointSim& JointSim::operator=(JointSim&& other) noexcept
 	}
 
 	return *this;
-}
-
-//SHAPE
-
-Shape::Shape(const ShapeDef& def)
-{
-
-}
-
-Shape::Shape(const Shape& other)
-{
-
-}
-
-Shape::Shape(Shape&& other) noexcept
-{
-
-}
-
-Shape& Shape::operator=(const Shape& other)
-{
-
-}
-
-Shape& Shape::operator=(Shape&& other) noexcept
-{
-
 }

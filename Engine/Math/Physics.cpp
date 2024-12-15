@@ -34,19 +34,19 @@ import Containers;
 #endif
 
 ConstraintGraph Physics::constraintGraph;
-Freelist Physics::bodyFreelist(32);
-Vector<RigidBody2D>* Physics::bodies;
+Freelist Physics::rigidBodyFreelist(256);
+Vector<RigidBody2D> Physics::rigidBodies(16);
 Freelist Physics::solverSetFreelist(8);
 Vector<SolverSet> Physics::solverSets(8);
-Freelist Physics::jointFreelist(16);
+Freelist Physics::jointFreelist(256);
 Vector<Joint> Physics::joints(16);
-Freelist Physics::contactFreelist(16);
+Freelist Physics::contactFreelist(256);
 Vector<Contact> Physics::contacts(16);
-Freelist Physics::islandFreelist(8);
+Freelist Physics::islandFreelist(256);
 Vector<Island> Physics::islands(8);
-Freelist Physics::shapeFreelist(16);
+Freelist Physics::shapeFreelist(256);
 Vector<Shape> Physics::shapes(16);
-Freelist Physics::chainFreelist(4);
+Freelist Physics::chainFreelist(256);
 Vector<ChainShape> Physics::chains(4);
 Vector<TaskContext> Physics::taskContexts(1); //worker count
 Vector<BodyMoveEvent> Physics::bodyMoveEvents(4);
@@ -83,6 +83,8 @@ int Physics::subStepCount = 4;
 bool Physics::Initialize()
 {
 	Logger::Trace("Initializing Physics...");
+
+	ComponentRegistry::RegisterComponent<RigidBody2D>(CreateComponent, DestroyComponent, GetComponent);
 
 	Broadphase::Initialize();
 	constraintGraph.Create(16);
@@ -149,20 +151,12 @@ void Physics::Shutdown()
 
 	Broadphase::Shutdown();
 
-	bodyFreelist.Destroy();
 	solverSetFreelist.Destroy();
 	jointFreelist.Destroy();
 	contactFreelist.Destroy();
 	islandFreelist.Destroy();
 	shapeFreelist.Destroy();
 	chainFreelist.Destroy();
-}
-
-void Physics::SetScene(Scene* scene)
-{
-	//TODO: Setup
-	scene->RegisterComponent<RigidBody2D>();
-	bodies = scene->GetComponentPool<RigidBody2D>();
 }
 
 void Physics::Update(F32 step)
@@ -178,6 +172,535 @@ void Physics::Update(F32 step)
 	EnableContinuous(enableContinuous);
 
 	Step(step, subStepCount);
+}
+
+ComponentRef<RigidBody2D> Physics::CreateComponent(Scene* scene, U32 entityID, RigidBody2D** type)
+{
+	U32 index = rigidBodyFreelist.GetFree();
+
+	if (index == rigidBodies.Size()) { rigidBodies.PushEmpty(); }
+
+	*type = &rigidBodies[index];
+
+	return ComponentRef<RigidBody2D>(index, &rigidBodies);
+}
+
+void Physics::DestroyComponent(Scene* scene, U32 entityID)
+{
+	for (RigidBody2D* it = rigidBodies.begin(); it != rigidBodies.end(); ++it)
+	{
+		if (it->entityID == entityID)
+		{
+			rigidBodyFreelist.Release((U32)(it - rigidBodies.begin()));
+
+			it->Cleanup(scene);
+			it->entityID = U32_MAX;
+		}
+	}
+}
+
+ComponentRef<RigidBody2D> Physics::GetComponent(U32 entityID)
+{
+	for (RigidBody2D* it = rigidBodies.begin(); it != rigidBodies.end(); ++it)
+	{
+		if (it->entityID == entityID)
+		{
+			return ComponentRef<RigidBody2D>((U32)(it - rigidBodies.begin()), &rigidBodies);
+		}
+	}
+
+	return nullptr;
+}
+
+I32 Physics::GetComponentID(RigidBody2D& component)
+{
+	return (I32)rigidBodies.Index(&component);
+}
+
+ConvexPolygon Physics::CreatePolygon(const Hull& hull, F32 radius)
+{
+	if (hull.count < 3)
+	{
+		// Handle a bad hull when assertions are disabled
+		return CreateBox(0.5f, 0.5f);
+	}
+
+	ConvexPolygon shape;
+	shape.count = hull.count;
+	shape.radius = radius;
+
+	// Copy vertices
+	for (I32 i = 0; i < shape.count; ++i)
+	{
+		shape.vertices[i] = hull.points[i];
+	}
+
+	// Compute normals. Ensure the edges have non-zero length.
+	for (I32 i = 0; i < shape.count; ++i)
+	{
+		I32 i1 = i;
+		I32 i2 = i + 1 < shape.count ? i + 1 : 0;
+		Vector2 edge = shape.vertices[i2] - shape.vertices[i1];
+		shape.normals[i] = edge.Cross(1.0f).Normalized();
+	}
+
+	shape.centroid = ComputePolygonCentroid(shape.vertices, shape.count);
+
+	return shape;
+}
+
+ConvexPolygon Physics::CreateOffsetPolygon(const Hull& hull, F32 radius, const Transform2D& transform)
+{
+	if (hull.count < 3)
+	{
+		// Handle a bad hull when assertions are disabled
+		return CreateBox(0.5f, 0.5f);
+	}
+
+	ConvexPolygon shape;
+	shape.count = hull.count;
+	shape.radius = radius;
+
+	// Copy vertices
+	for (I32 i = 0; i < shape.count; ++i)
+	{
+		shape.vertices[i] = hull.points[i] * transform;
+	}
+
+	// Compute normals. Ensure the edges have non-zero length.
+	for (I32 i = 0; i < shape.count; ++i)
+	{
+		I32 i1 = i;
+		I32 i2 = i + 1 < shape.count ? i + 1 : 0;
+		Vector2 edge = shape.vertices[i2] - shape.vertices[i1];
+		shape.normals[i] = edge.Cross(1.0f).Normalized();
+	}
+
+	shape.centroid = ComputePolygonCentroid(shape.vertices, shape.count);
+
+	return shape;
+}
+
+ConvexPolygon Physics::CreateBox(F32 hx, F32 hy)
+{
+	ConvexPolygon shape;
+	shape.count = 4;
+	shape.vertices[0] = { -hx, -hy };
+	shape.vertices[1] = { hx, -hy };
+	shape.vertices[2] = { hx, hy };
+	shape.vertices[3] = { -hx, hy };
+	shape.normals[0] = { 0.0f, -1.0f };
+	shape.normals[1] = { 1.0f, 0.0f };
+	shape.normals[2] = { 0.0f, 1.0f };
+	shape.normals[3] = { -1.0f, 0.0f };
+	shape.radius = 0.0f;
+	shape.centroid = Vector2Zero;
+	return shape;
+}
+
+ConvexPolygon Physics::CreateRoundedBox(F32 hx, F32 hy, F32 radius)
+{
+	ConvexPolygon shape = CreateBox(hx, hy);
+	shape.radius = radius;
+	return shape;
+}
+
+ConvexPolygon Physics::CreateOffsetBox(F32 hx, F32 hy, const Transform2D& transform)
+{
+	ConvexPolygon shape;
+	shape.count = 4;
+	shape.vertices[0] = Vector2{ -hx, -hy } * transform;
+	shape.vertices[1] = Vector2{ hx, -hy } * transform;
+	shape.vertices[2] = Vector2{ hx, hy } * transform;
+	shape.vertices[3] = Vector2{ -hx, hy } * transform;
+	shape.normals[0] = Vector2{ 0.0f, -1.0f } * transform.rotation;
+	shape.normals[1] = Vector2{ 1.0f, 0.0f } * transform.rotation;
+	shape.normals[2] = Vector2{ 0.0f, 1.0f } * transform.rotation;
+	shape.normals[3] = Vector2{ -1.0f, 0.0f } * transform.rotation;
+	shape.radius = 0.0f;
+	shape.centroid = transform.position;
+	return shape;
+}
+
+Vector2 Physics::ComputePolygonCentroid(const Vector2* vertices, I32 count)
+{
+	Vector2 center = { 0.0f, 0.0f };
+	F32 area = 0.0f;
+
+	// Get a reference point for forming triangles.
+	// Use the first vertex to reduce round-off errors.
+	Vector2 origin = vertices[0];
+
+	const F32 inv3 = 1.0f / 3.0f;
+
+	for (I32 i = 1; i < count - 1; ++i)
+	{
+		// Triangle edges
+		Vector2 e1 = vertices[i] - origin;
+		Vector2 e2 = vertices[i + 1] - origin;
+		F32 a = 0.5f * e1.Cross(e2);
+
+		// Area weighted centroid
+		center = center + (e1 + e2) * a * inv3;
+		area += a;
+	}
+
+	F32 invArea = 1.0f / area;
+	center.x *= invArea;
+	center.y *= invArea;
+
+	// Restore offset
+	center = origin + center;
+
+	return center;
+}
+
+MassData Physics::ComputeCircleMass(const Circle& shape, F32 density)
+{
+	F32 rr = shape.radius * shape.radius;
+
+	MassData massData;
+	massData.mass = density * PI_F * rr;
+	massData.center = shape.center;
+
+	// inertia about the local origin
+	massData.rotationalInertia = massData.mass * (0.5f * rr + shape.center.Dot(shape.center));
+
+	return massData;
+}
+
+MassData Physics::ComputeCapsuleMass(const Capsule& shape, F32 density)
+{
+	float radius = shape.radius;
+	float rr = radius * radius;
+	Vector2 p1 = shape.center1;
+	Vector2 p2 = shape.center2;
+	float length = (p2 - p1).Magnitude();
+	float ll = length * length;
+
+	float circleMass = density * (PI_F * radius * radius);
+	float boxMass = density * (2.0f * radius * length);
+
+	MassData massData;
+	massData.mass = circleMass + boxMass;
+	massData.center.x = 0.5f * (p1.x + p2.x);
+	massData.center.y = 0.5f * (p1.y + p2.y);
+
+	// two offset half circles, both halves add up to full circle and each half is offset by half length
+	// semi-circle centroid = 4 r / 3 pi
+	// Need to apply parallel-axis theorem twice:
+	// 1. shift semi-circle centroid to origin
+	// 2. shift semi-circle to box end
+	// m * ((h + lc)^2 - lc^2) = m * (h^2 + 2 * h * lc)
+	// See: https://en.wikipedia.org/wiki/Parallel_axis_theorem
+	// I verified this formula by computing the convex hull of a 128 vertex capsule
+
+	// half circle centroid
+	float lc = 4.0f * radius / (3.0f * PI_F);
+
+	// half length of rectangular portion of capsule
+	float h = 0.5f * length;
+
+	float circleInertia = circleMass * (0.5f * rr + h * h + 2.0f * h * lc);
+	float boxInertia = boxMass * (4.0f * rr + ll) / 12.0f;
+	massData.rotationalInertia = circleInertia + boxInertia;
+
+	// inertia about the local origin
+	massData.rotationalInertia += massData.mass * massData.center.Dot(massData.center);
+
+	return massData;
+}
+
+MassData Physics::ComputePolygonMass(const ConvexPolygon& shape, F32 density)
+{
+	// Polygon mass, centroid, and inertia.
+	// Let rho be the polygon density in mass per unit area.
+	// Then:
+	// mass = rho * int(dA)
+	// centroid.x = (1/mass) * rho * int(x * dA)
+	// centroid.y = (1/mass) * rho * int(y * dA)
+	// I = rho * int((x*x + y*y) * dA)
+	//
+	// We can compute these integrals by summing all the integrals
+	// for each triangle of the polygon. To evaluate the integral
+	// for a single triangle, we make a change of variables to
+	// the (u,v) coordinates of the triangle:
+	// x = x0 + e1x * u + e2x * v
+	// y = y0 + e1y * u + e2y * v
+	// where 0 <= u && 0 <= v && u + v <= 1.
+	//
+	// We integrate u from [0,1-v] and then v from [0,1].
+	// We also need to use the Jacobian of the transformation:
+	// D = cross(e1, e2)
+	//
+	// Simplification: triangle centroid = (1/3) * (p1 + p2 + p3)
+	//
+	// The rest of the derivation is handled by computer algebra.
+
+	if (shape.count == 1)
+	{
+		Circle circle;
+		circle.center = shape.vertices[0];
+		circle.radius = shape.radius;
+		return ComputeCircleMass(circle, density);
+	}
+
+	if (shape.count == 2)
+	{
+		Capsule capsule;
+		capsule.center1 = shape.vertices[0];
+		capsule.center2 = shape.vertices[1];
+		capsule.radius = shape.radius;
+		return ComputeCapsuleMass(capsule, density);
+	}
+
+	Vector2 vertices[MaxPolygonVertices] = { 0 };
+	I32 count = shape.count;
+	float radius = shape.radius;
+
+	if (radius > 0.0f)
+	{
+		// Approximate mass of rounded polygons by pushing out the vertices.
+		float sqrt2 = 1.412f;
+		for (I32 i = 0; i < count; ++i)
+		{
+			I32 j = i == 0 ? count - 1 : i - 1;
+			Vector2 n1 = shape.normals[j];
+			Vector2 n2 = shape.normals[i];
+
+			Vector2 mid = (n1 + n2).Normalized();
+			vertices[i] = shape.vertices[i] + mid * sqrt2 * radius;
+		}
+	}
+	else
+	{
+		for (I32 i = 0; i < count; ++i)
+		{
+			vertices[i] = shape.vertices[i];
+		}
+	}
+
+	Vector2 center = { 0.0f, 0.0f };
+	float area = 0.0f;
+	float rotationalInertia = 0.0f;
+
+	// Get a reference point for forming triangles.
+	// Use the first vertex to reduce round-off errors.
+	Vector2 r = vertices[0];
+
+	const float inv3 = 1.0f / 3.0f;
+
+	for (I32 i = 1; i < count - 1; ++i)
+	{
+		// Triangle edges
+		Vector2 e1 = vertices[i] - r;
+		Vector2 e2 = vertices[i + 1] - r;
+
+		float D = e1.Cross(e2);
+
+		float triangleArea = 0.5f * D;
+		area += triangleArea;
+
+		// Area weighted centroid, r at origin
+		center = center + (e1 + e2) * triangleArea * inv3;
+
+		float ex1 = e1.x, ey1 = e1.y;
+		float ex2 = e2.x, ey2 = e2.y;
+
+		float intx2 = ex1 * ex1 + ex2 * ex1 + ex2 * ex2;
+		float inty2 = ey1 * ey1 + ey2 * ey1 + ey2 * ey2;
+
+		rotationalInertia += (0.25f * inv3 * D) * (intx2 + inty2);
+	}
+
+	MassData massData;
+
+	// Total mass
+	massData.mass = density * area;
+
+	// Center of mass, shift back from origin at r
+	float invArea = 1.0f / area;
+	center.x *= invArea;
+	center.y *= invArea;
+	massData.center = r + center;
+
+	// Inertia tensor relative to the local origin (point s).
+	massData.rotationalInertia = density * rotationalInertia;
+
+	// Shift to center of mass then to original body origin.
+	massData.rotationalInertia += massData.mass * (massData.center.Dot(massData.center) - center.Dot(center));
+
+	return massData;
+}
+
+Shape& Physics::CreateCircleShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const Circle& geometry)
+{
+	int shapeId = shapeFreelist.GetFree();
+
+	if (shapeId == shapes.Size()) { shapes.Push({ def }); }
+
+	Shape& shape = shapes[shapeId];
+
+	shape.id = shapeId;
+	shape.bodyId = body.id;
+	shape.type = SHAPE_TYPE_CIRCLE;
+	shape.circle = geometry;
+
+	CreateShape(body, transform, def, shape);
+
+	return shape;
+}
+
+Shape& Physics::CreateCapsuleShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const Capsule& geometry)
+{
+	int shapeId = shapeFreelist.GetFree();
+
+	if (shapeId == shapes.Size()) { shapes.Push({ def }); }
+
+	Shape& shape = shapes[shapeId];
+
+	shape.id = shapeId;
+	shape.bodyId = body.id;
+	shape.type = SHAPE_TYPE_CAPSULE;
+	shape.capsule = geometry;
+
+	CreateShape(body, transform, def, shape);
+
+	return shape;
+}
+
+Shape& Physics::CreateConvexPolygonShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const ConvexPolygon& geometry)
+{
+	int shapeId = shapeFreelist.GetFree();
+
+	if (shapeId == shapes.Size()) { shapes.Push({ def }); }
+
+	Shape& shape = shapes[shapeId];
+
+	shape.id = shapeId;
+	shape.bodyId = body.id;
+	shape.type = SHAPE_TYPE_POLYGON;
+	shape.polygon = geometry;
+
+	CreateShape(body, transform, def, shape);
+
+	return shape;
+}
+
+Shape& Physics::CreateSegmentShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const Segment& geometry)
+{
+	int shapeId = shapeFreelist.GetFree();
+
+	if (shapeId == shapes.Size()) { shapes.Push({ def }); }
+
+	Shape& shape = shapes[shapeId];
+
+	shape.id = shapeId;
+	shape.bodyId = body.id;
+	shape.type = SHAPE_TYPE_SEGMENT;
+	shape.segment = geometry;
+
+	CreateShape(body, transform, def, shape);
+
+	return shape;
+}
+
+Shape& Physics::CreateChainSegmentShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, const ChainSegment& geometry)
+{
+	int shapeId = shapeFreelist.GetFree();
+
+	if (shapeId == shapes.Size()) { shapes.Push({ def }); }
+
+	Shape& shape = shapes[shapeId];
+
+	shape.id = shapeId;
+	shape.bodyId = body.id;
+	shape.type = SHAPE_TYPE_CHAIN_SEGMENT;
+	shape.chainSegment = geometry;
+
+	CreateShape(body, transform, def, shape);
+
+	return shape;
+}
+
+void Physics::CreateShape(RigidBody2D& body, const Transform2D& transform, const ShapeDef& def, Shape& shape)
+{
+	if (body.setIndex != SET_TYPE_DISABLED)
+	{
+		shape.UpdateShapeAABBs(transform, body.type);
+		shape.proxyKey = Broadphase::CreateProxy(body.type, shape.fatAABB, shape.filter.layers, shape.id, def.forceContactCreation || def.isSensor);
+	}
+
+	// Add to shape doubly linked list
+	if (body.headShapeId != NullIndex)
+	{
+		Shape& headShape = shapes[body.headShapeId];
+		headShape.prevShapeId = shape.id;
+	}
+
+	shape.prevShapeId = NullIndex;
+	shape.nextShapeId = body.headShapeId;
+	body.headShapeId = shape.id;
+	body.shapeCount += 1;
+}
+
+ShapeExtent Physics::ComputeShapeExtent(const Shape& shape, Vector2 localCenter)
+{
+	ShapeExtent extent;
+
+	switch (shape.type)
+	{
+	case SHAPE_TYPE_CAPSULE: {
+		F32 radius = shape.capsule.radius;
+		extent.minExtent = radius;
+		Vector2 c1 = shape.capsule.center1 - localCenter;
+		Vector2 c2 = shape.capsule.center2 - localCenter;
+		extent.maxExtent = Math::Sqrt(Math::Max(c1.SqrMagnitude(), c2.SqrMagnitude())) + radius;
+	} break;
+	case SHAPE_TYPE_CIRCLE: {
+		F32 radius = shape.circle.radius;
+		extent.minExtent = radius;
+		extent.maxExtent = (shape.circle.center - localCenter).Magnitude() + radius;
+	} break;
+	case SHAPE_TYPE_POLYGON: {
+		const ConvexPolygon& poly = shape.polygon;
+		F32 minExtent = Huge;
+		F32 maxExtentSqr = 0.0f;
+		int count = poly.count;
+		for (int i = 0; i < count; ++i)
+		{
+			Vector2 v = poly.vertices[i];
+			F32 planeOffset = poly.normals[i].Dot(v - poly.centroid);
+			minExtent = Math::Min(minExtent, planeOffset);
+
+			F32 distanceSqr = (v - localCenter).SqrMagnitude();
+			maxExtentSqr = Math::Max(maxExtentSqr, distanceSqr);
+		}
+
+		extent.minExtent = minExtent + poly.radius;
+		extent.maxExtent = Math::Sqrt(maxExtentSqr) + poly.radius;
+	} break;
+	case SHAPE_TYPE_SEGMENT: {
+		extent.minExtent = 0.0f;
+		Vector2 c1 = shape.segment.point1 - localCenter;
+		Vector2 c2 = shape.segment.point2 - localCenter;
+		extent.maxExtent = Math::Sqrt(Math::Max(c1.SqrMagnitude(), c2.SqrMagnitude()));
+	} break;
+	case SHAPE_TYPE_CHAIN_SEGMENT: {
+		extent.minExtent = 0.0f;
+		Vector2 c1 = shape.chainSegment.segment.point1 - localCenter;
+		Vector2 c2 = shape.chainSegment.segment.point2 - localCenter;
+		extent.maxExtent = Math::Sqrt(Math::Max(c1.SqrMagnitude(), c2.SqrMagnitude()));
+	} break;
+	default: break;
+	}
+
+	return extent;
+}
+
+RigidBody2D& Physics::GetRigidBody(I32 id)
+{
+	return rigidBodies[id];
 }
 
 void Physics::EnableSleeping(bool flag)
@@ -219,22 +742,20 @@ void Physics::WakeSolverSet(int setIndex)
 	SolverSet& awakeSet = solverSets[SET_TYPE_AWAKE];
 	SolverSet& disabledSet = solverSets[SET_TYPE_DISABLED];
 
-	RigidBody2D* rigidBodies = bodies->Data();
-
 	for (BodySim& simSrc : set.bodySims)
 	{
-		RigidBody2D* body = rigidBodies + simSrc.bodyId;
-		body->setIndex = SET_TYPE_AWAKE;
-		body->localIndex = (I32)awakeSet.bodySims.Size();
+		RigidBody2D& body = rigidBodies[simSrc.bodyId];
+		body.setIndex = SET_TYPE_AWAKE;
+		body.localIndex = (I32)awakeSet.bodySims.Size();
 
 		// Reset sleep timer
-		body->sleepTime = 0.0f;
+		body.sleepTime = 0.0f;
 
 		awakeSet.bodySims.Push(simSrc);
 		awakeSet.bodyStates.Push(BodyStateIdentity);
 
 		// move non-touching contacts from disabled set to awake set
-		int contactKey = body->headContactKey;
+		int contactKey = body.headContactKey;
 		while (contactKey != NullIndex)
 		{
 			int edgeIndex = contactKey & 1;
@@ -265,7 +786,7 @@ void Physics::WakeSolverSet(int setIndex)
 	}
 
 	// transfer touching contacts from sleeping set to contact graph
-	for(ContactSim& contactSim : set.contactSims)
+	for (ContactSim& contactSim : set.contactSims)
 	{
 		Contact& contact = contacts[contactSim.contactId];
 		constraintGraph.AddContact(contactSim, contact);
@@ -273,7 +794,7 @@ void Physics::WakeSolverSet(int setIndex)
 	}
 
 	// transfer joints from sleeping set to awake set
-	for(JointSim& jointSim : set.jointSims)
+	for (JointSim& jointSim : set.jointSims)
 	{
 		Joint& joint = joints[jointSim.jointId];
 		constraintGraph.AddJoint(jointSim, joint);
@@ -284,7 +805,7 @@ void Physics::WakeSolverSet(int setIndex)
 	// Usually a sleeping set has only one island, but it is possible
 	// that joints are created between sleeping islands and they
 	// are moved to the same sleeping set.
-	for(IslandSim& islandSrc : set.islandSims)
+	for (IslandSim& islandSrc : set.islandSims)
 	{
 		Island& island = islands[islandSrc.islandId];
 		island.setIndex = SET_TYPE_AWAKE;
@@ -316,7 +837,7 @@ void Physics::Step(F32 timeStep, int subStepCount)
 
 	// Update collision pairs and create contacts
 	Broadphase::Update();
-	
+
 	StepContext context{};
 	context.dt = timeStep;
 	context.subStepCount = Math::Max(1, subStepCount);
@@ -606,8 +1127,8 @@ void Physics::CollideTask(int startIndex, int endIndex, int threadIndex, StepCon
 			bool wasTouching = (contactSim->simFlags & CONTACT_SIM_FLAG_TOUCHING);
 
 			// Update contact respecting shape/body order (A,B)
-			RigidBody2D& bodyA = bodies->Get(shapeA.bodyId);
-			RigidBody2D& bodyB = bodies->Get(shapeB.bodyId);
+			RigidBody2D& bodyA = rigidBodies[shapeA.bodyId];
+			RigidBody2D& bodyB = rigidBodies[shapeB.bodyId];
 			BodySim& bodySimA = solverSets[bodyA.setIndex].bodySims[bodyA.localIndex];
 			BodySim& bodySimB = solverSets[bodyB.setIndex].bodySims[bodyB.localIndex];
 
@@ -1206,7 +1727,6 @@ void Physics::Solve(StepContext& stepContext)
 		U64* bits = simBitset.bits;
 
 		// Fast array access is important here
-		RigidBody2D* bodyArray = bodies->Data();
 		BodySim* bodySimArray = awakeSet.bodySims.Data();
 		Shape* shapeArray = shapes.Data();
 
@@ -1219,9 +1739,9 @@ void Physics::Solve(StepContext& stepContext)
 				U32 bodySimIndex = 64 * k + ctz;
 
 				BodySim* bodySim = bodySimArray + bodySimIndex;
-				RigidBody2D* body = bodyArray + bodySim->bodyId;
+				RigidBody2D& body = rigidBodies[bodySim->bodyId];
 
-				int shapeId = body->headShapeId;
+				int shapeId = body.headShapeId;
 				while (shapeId != NullIndex)
 				{
 					Shape* shape = shapeArray + shapeId;
@@ -1261,7 +1781,6 @@ void Physics::Solve(StepContext& stepContext)
 		DynamicTree& dynamicTree = Broadphase::trees[BODY_TYPE_DYNAMIC];
 
 		// Fast array access is important here
-		RigidBody2D* bodyArray = bodies->Data();
 		BodySim* bodySimArray = awakeSet.bodySims.Data();
 		Shape* shapeArray = shapes.Data();
 
@@ -1279,9 +1798,9 @@ void Physics::Solve(StepContext& stepContext)
 
 			int bodyId = fastBodySim->bodyId;
 
-			RigidBody2D* fastBody = bodyArray + bodyId;
+			RigidBody2D& fastBody = rigidBodies[bodyId];
 
-			int shapeId = fastBody->headShapeId;
+			int shapeId = fastBody.headShapeId;
 			while (shapeId != NullIndex)
 			{
 				Shape* shape = shapeArray + shapeId;
@@ -1317,7 +1836,6 @@ void Physics::Solve(StepContext& stepContext)
 		DynamicTree& dynamicTree = Broadphase::trees[BODY_TYPE_DYNAMIC];
 
 		// Fast array access is important here
-		RigidBody2D* bodyArray = bodies->Data();
 		BodySim* bodySimArray = awakeSet.bodySims.Data();
 		Shape* shapeArray = shapes.Data();
 
@@ -1338,9 +1856,9 @@ void Physics::Solve(StepContext& stepContext)
 			bulletBodySim->enlargeAABB = false;
 
 			int bodyId = bulletBodySim->bodyId;
-			RigidBody2D* bulletBody = bodyArray + bodyId;
+			RigidBody2D& bulletBody = rigidBodies[bodyId];
 
-			int shapeId = bulletBody->headShapeId;
+			int shapeId = bulletBody.headShapeId;
 			while (shapeId != NullIndex)
 			{
 				Shape* shape = shapeArray + shapeId;
@@ -2602,8 +3120,8 @@ void Physics::CreateContact(Shape& shapeA, Shape& shapeB)
 		return;
 	}
 
-	RigidBody2D& bodyA = bodies->Get(shapeA.bodyId);
-	RigidBody2D& bodyB = bodies->Get(shapeB.bodyId);
+	RigidBody2D& bodyA = rigidBodies[shapeA.bodyId];
+	RigidBody2D& bodyB = rigidBodies[shapeB.bodyId];
 
 	I32 setIndex;
 	if (bodyA.setIndex == SET_TYPE_AWAKE || bodyB.setIndex == SET_TYPE_AWAKE)
@@ -2733,8 +3251,8 @@ void Physics::DestroyContact(Contact& contact, bool wakeBodies)
 
 	int bodyIdA = edgeA.bodyId;
 	int bodyIdB = edgeB.bodyId;
-	RigidBody2D& bodyA = bodies->Get(bodyIdA);
-	RigidBody2D& bodyB = bodies->Get(bodyIdB);
+	RigidBody2D& bodyA = rigidBodies[bodyIdA];
+	RigidBody2D& bodyB = rigidBodies[bodyIdB];
 
 	// if (contactListener && contact->IsTouching())
 	//{
@@ -2923,8 +3441,8 @@ void Physics::LinkContact(Contact& contact)
 	int bodyIdA = contact.edges[0].bodyId;
 	int bodyIdB = contact.edges[1].bodyId;
 
-	RigidBody2D& bodyA = bodies->Get(bodyIdA);
-	RigidBody2D& bodyB = bodies->Get(bodyIdB);
+	RigidBody2D& bodyA = rigidBodies[bodyIdA];
+	RigidBody2D& bodyB = rigidBodies[bodyIdB];
 
 	// Wake bodyB if bodyA is awake and bodyB is sleeping
 	if (bodyA.setIndex == SET_TYPE_AWAKE && bodyB.setIndex >= SET_TYPE_FIRST_SLEEPING)
@@ -3036,6 +3554,163 @@ void Physics::UnlinkContact(Contact& contact)
 	contact.islandNext = NullIndex;
 }
 
+void Physics::DestroyJointInternal(Joint& joint, bool wakeBodies)
+{
+	int jointId = joint.jointId;
+
+	JointEdge& edgeA = joint.edges[0];
+	JointEdge& edgeB = joint.edges[1];
+
+	int idA = edgeA.bodyId;
+	int idB = edgeB.bodyId;
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
+
+	// Remove from body A
+	if (edgeA.prevKey != NullIndex)
+	{
+		Joint& prevJoint = joints[edgeA.prevKey >> 1];
+		JointEdge& prevEdge = prevJoint.edges[edgeA.prevKey & 1];
+		prevEdge.nextKey = edgeA.nextKey;
+	}
+
+	if (edgeA.nextKey != NullIndex)
+	{
+		Joint& nextJoint = joints[edgeA.nextKey >> 1];
+		JointEdge& nextEdge = nextJoint.edges[edgeA.nextKey & 1];
+		nextEdge.prevKey = edgeA.prevKey;
+	}
+
+	int edgeKeyA = (jointId << 1) | 0;
+	if (bodyA.headJointKey == edgeKeyA)
+	{
+		bodyA.headJointKey = edgeA.nextKey;
+	}
+
+	bodyA.jointCount -= 1;
+
+	// Remove from body B
+	if (edgeB.prevKey != NullIndex)
+	{
+		Joint& prevJoint = joints[edgeB.prevKey >> 1];
+		JointEdge& prevEdge = prevJoint.edges[edgeB.prevKey & 1];
+		prevEdge.nextKey = edgeB.nextKey;
+	}
+
+	if (edgeB.nextKey != NullIndex)
+	{
+		Joint& nextJoint = joints[edgeB.nextKey >> 1];
+		JointEdge& nextEdge = nextJoint.edges[edgeB.nextKey & 1];
+		nextEdge.prevKey = edgeB.prevKey;
+	}
+
+	int edgeKeyB = (jointId << 1) | 1;
+	if (bodyB.headJointKey == edgeKeyB)
+	{
+		bodyB.headJointKey = edgeB.nextKey;
+	}
+
+	bodyB.jointCount -= 1;
+
+	if (joint.islandId != NullIndex)
+	{
+		UnlinkJoint(joint);
+	}
+
+	// Remove joint from solver set that owns it
+	int setIndex = joint.setIndex;
+	int localIndex = joint.localIndex;
+
+	if (setIndex == SET_TYPE_AWAKE)
+	{
+		RemoveJointFromGraph(joint.edges[0].bodyId, joint.edges[1].bodyId, joint.colorIndex, localIndex);
+	}
+	else
+	{
+		SolverSet& set = solverSets[setIndex];
+		int movedIndex = set.jointSims.RemoveSwap(localIndex);
+		if (movedIndex != NullIndex)
+		{
+			// Fix moved joint
+			JointSim& movedJointSim = set.jointSims[localIndex];
+			int movedId = movedJointSim.jointId;
+			Joint& movedJoint = joints[movedId];
+			movedJoint.localIndex = localIndex;
+		}
+	}
+
+	// Free joint and id (preserve joint revision)
+	joint.setIndex = NullIndex;
+	joint.localIndex = NullIndex;
+	joint.colorIndex = NullIndex;
+	joint.jointId = NullIndex;
+	jointFreelist.Release(jointId);
+
+	if (wakeBodies)
+	{
+		WakeBody(bodyA);
+		WakeBody(bodyB);
+	}
+}
+
+void Physics::UnlinkJoint(Joint& joint)
+{
+	// remove from island
+	int islandId = joint.islandId;
+	Island& island = islands[islandId];
+
+	if (joint.islandPrev != NullIndex)
+	{
+		Joint& prevJoint = joints[joint.islandPrev];
+		prevJoint.islandNext = joint.islandNext;
+	}
+
+	if (joint.islandNext != NullIndex)
+	{
+		Joint& nextJoint = joints[joint.islandNext];
+		nextJoint.islandPrev = joint.islandPrev;
+	}
+
+	if (island.headJoint == joint.jointId)
+	{
+		island.headJoint = joint.islandNext;
+	}
+
+	if (island.tailJoint == joint.jointId)
+	{
+		island.tailJoint = joint.islandPrev;
+	}
+
+	island.jointCount -= 1;
+	island.constraintRemoveCount += 1;
+
+	joint.islandId = NullIndex;
+	joint.islandPrev = NullIndex;
+	joint.islandNext = NullIndex;
+}
+
+void Physics::RemoveJointFromGraph(int bodyIdA, int bodyIdB, int colorIndex, int localIndex)
+{
+	GraphColor& color = constraintGraph.colors[colorIndex];
+
+	if (colorIndex != OverflowIndex)
+	{
+		// May clear static bodies, no effect
+		color.bodySet.ClearBit(bodyIdA);
+		color.bodySet.ClearBit(bodyIdB);
+	}
+
+	int movedIndex = color.jointSims.RemoveSwap(localIndex);
+	if (movedIndex != NullIndex)
+	{
+		// Fix moved joint
+		JointSim& movedJointSim = color.jointSims[localIndex];
+		int movedId = movedJointSim.jointId;
+		Joint& movedJoint = joints[movedId];
+		movedJoint.localIndex = localIndex;
+	}
+}
+
 void Physics::PrepareOverflowJoints(StepContext& context)
 {
 	ConstraintGraph* graph = context.graph;
@@ -3081,8 +3756,8 @@ void Physics::PrepareDistanceJoint(JointSim& base, StepContext& context)
 	int idA = base.bodyIdA;
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyA = bodies->Get(idA);
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setA = solverSets[bodyA.setIndex];
 	SolverSet& setB = solverSets[bodyB.setIndex];
@@ -3141,8 +3816,8 @@ void Physics::PrepareMotorJoint(JointSim& base, StepContext& context)
 	int idA = base.bodyIdA;
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyA = bodies->Get(idA);
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setA = solverSets[bodyA.setIndex];
 	SolverSet& setB = solverSets[bodyB.setIndex];
@@ -3198,7 +3873,7 @@ void Physics::PrepareMouseJoint(JointSim& base, StepContext& context)
 	// chase body id to the solver set where the body lives
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setB = solverSets[bodyB.setIndex];
 
@@ -3247,8 +3922,8 @@ void Physics::PreparePrismaticJoint(JointSim& base, StepContext& context)
 	int idA = base.bodyIdA;
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyA = bodies->Get(idA);
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setA = solverSets[bodyA.setIndex];
 	SolverSet& setB = solverSets[bodyB.setIndex];
@@ -3311,8 +3986,8 @@ void Physics::PrepareRevoluteJoint(JointSim& base, StepContext& context)
 	int idA = base.bodyIdA;
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyA = bodies->Get(idA);
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setA = solverSets[bodyA.setIndex];
 	SolverSet& setB = solverSets[bodyB.setIndex];
@@ -3366,8 +4041,8 @@ void Physics::PrepareWeldJoint(JointSim& base, StepContext& context)
 	int idA = base.bodyIdA;
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyA = bodies->Get(idA);
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setA = solverSets[bodyA.setIndex];
 	SolverSet& setB = solverSets[bodyB.setIndex];
@@ -3436,8 +4111,8 @@ void Physics::PrepareWheelJoint(JointSim& base, StepContext& context)
 	int idA = base.bodyIdA;
 	int idB = base.bodyIdB;
 
-	RigidBody2D& bodyA = bodies->Get(idA);
-	RigidBody2D& bodyB = bodies->Get(idB);
+	RigidBody2D& bodyA = rigidBodies[idA];
+	RigidBody2D& bodyB = rigidBodies[idB];
 
 	SolverSet& setA = solverSets[bodyA.setIndex];
 	SolverSet& setB = solverSets[bodyB.setIndex];
@@ -5444,7 +6119,6 @@ void Physics::FinalizeBodiesTask(int startIndex, int endIndex, U32 threadIndex, 
 {
 	BodyState* states = stepContext.states;
 	BodySim* sims = stepContext.sims;
-	RigidBody2D* rigidBodies = bodies->Data();
 	float timeStep = stepContext.dt;
 	float invTimeStep = stepContext.inv_dt;
 
@@ -5576,7 +6250,7 @@ void Physics::FinalizeBodiesTask(int startIndex, int endIndex, U32 threadIndex, 
 			}
 			else
 			{
-				AABB aabb = ComputeShapeAABB(shape, transform);
+				AABB aabb = shape.ComputeShapeAABB(transform);
 				aabb.lowerBound.x -= SpeculativeDistance;
 				aabb.lowerBound.y -= SpeculativeDistance;
 				aabb.upperBound.x += SpeculativeDistance;
@@ -5649,7 +6323,7 @@ void Physics::SolveContinuous(int bodySimIndex)
 
 	bool isBullet = fastBodySim.isBullet;
 
-	RigidBody2D& fastBody = bodies->Get(fastBodySim.bodyId);
+	RigidBody2D& fastBody = rigidBodies[fastBodySim.bodyId];
 	int shapeId = fastBody.headShapeId;
 	while (shapeId != NullIndex)
 	{
@@ -5665,7 +6339,7 @@ void Physics::SolveContinuous(int bodySimIndex)
 		context.centroid2 = fastShape.localCentroid * xf2;
 
 		AABB box1 = fastShape.aabb;
-		AABB box2 = ComputeShapeAABB(fastShape, xf2);
+		AABB box2 = fastShape.ComputeShapeAABB(xf2);
 		AABB box = AABB::Combine(box1, box2);
 
 		// Store this for later
@@ -5707,7 +6381,7 @@ void Physics::SolveContinuous(int bodySimIndex)
 			Shape& shape = shapes[shapeId];
 
 			// Must recompute aabb at the interpolated transform
-			AABB aabb = ComputeShapeAABB(shape, transform);
+			AABB aabb = shape.ComputeShapeAABB(transform);
 			aabb.lowerBound.x -= speculativeDistance;
 			aabb.lowerBound.y -= speculativeDistance;
 			aabb.upperBound.x += speculativeDistance;
@@ -5795,7 +6469,7 @@ TOIOutput Physics::TimeOfImpact(const TOIInput& input)
 
 	// The outer loop progressively attempts to compute new separating axes.
 	// This loop terminates when an axis is repeated (no progress is made).
-	while(true)
+	while (true)
 	{
 		Transform2D xfA = GetSweepTransform(sweepA, t1);
 		Transform2D xfB = GetSweepTransform(sweepB, t1);
@@ -6248,7 +6922,7 @@ void Physics::TrySleepIsland(int islandId)
 		int bodyId = island.headBody;
 		while (bodyId != NullIndex)
 		{
-			RigidBody2D& body = bodies->Get(bodyId);
+			RigidBody2D& body = rigidBodies[bodyId];
 
 			// Update the body move event to indicate this body fell asleep
 			// It could happen the body is forced asleep before it ever moves.
@@ -6272,7 +6946,7 @@ void Physics::TrySleepIsland(int islandId)
 				// fix local index on moved element
 				BodySim& movedSim = awakeSet.bodySims[awakeBodyIndex];
 				int movedId = movedSim.bodyId;
-				RigidBody2D& movedBody = bodies->Get(movedId);
+				RigidBody2D& movedBody = rigidBodies[movedId];
 				movedBody.localIndex = awakeBodyIndex;
 			}
 
@@ -6301,7 +6975,7 @@ void Physics::TrySleepIsland(int islandId)
 				// for moving this contact to the disabled set.
 				int otherEdgeIndex = edgeIndex ^ 1;
 				int otherBodyId = contact.edges[otherEdgeIndex].bodyId;
-				RigidBody2D& otherBody = bodies->Get(otherBodyId);
+				RigidBody2D& otherBody = rigidBodies[otherBodyId];
 				if (otherBody.setIndex == SET_TYPE_AWAKE) { continue; }
 
 				int localIndex = contact.localIndex;
@@ -6441,8 +7115,6 @@ void Physics::SplitIsland(int baseId)
 	if (baseIsland.constraintRemoveCount == 0) { return; }
 
 	int bodyCount = baseIsland.bodyCount;
-
-	RigidBody2D* rigidBodies = bodies->Data();
 
 	// No lock is needed because I ensure the allocator is not used while this task is active.
 	int* stack;
@@ -6643,6 +7315,65 @@ void Physics::SplitIsland(int baseId)
 	Memory::Free(&stack);
 }
 
+void Physics::CreateIslandForBody(int setIndex, RigidBody2D& body)
+{
+	Island& island = CreateIsland(setIndex);
+
+	body.islandId = island.islandId;
+	island.headBody = body.id;
+	island.tailBody = body.id;
+	island.bodyCount = 1;
+}
+
+void Physics::RemoveBodyFromIsland(RigidBody2D& body)
+{
+	if (body.islandId == NullIndex) { return; }
+
+	int islandId = body.islandId;
+	Island& island = islands[islandId];
+
+	// Fix the island's linked list of sims
+	if (body.islandPrev != NullIndex)
+	{
+		RigidBody2D& prevBody = rigidBodies[body.islandPrev];
+		prevBody.islandNext = body.islandNext;
+	}
+
+	if (body.islandNext != NullIndex)
+	{
+		RigidBody2D& nextBody = rigidBodies[body.islandNext];
+		nextBody.islandPrev = body.islandPrev;
+	}
+
+	island.bodyCount -= 1;
+	bool islandDestroyed = false;
+
+	if (island.headBody == body.id)
+	{
+		island.headBody = body.islandNext;
+
+		if (island.headBody == NullIndex)
+		{
+			// Free the island
+			DestroyIsland(island.islandId);
+			islandDestroyed = true;
+		}
+	}
+	else if (island.tailBody == body.id)
+	{
+		island.tailBody = body.islandPrev;
+	}
+
+	body.islandId = NullIndex;
+	body.islandPrev = NullIndex;
+	body.islandNext = NullIndex;
+}
+
+I32 Physics::GetBodyID(RigidBody2D& body)
+{
+	return (I32)rigidBodies.Index(&body);
+}
+
 bool Physics::WakeBody(RigidBody2D& body)
 {
 	if (body.setIndex >= SET_TYPE_FIRST_SLEEPING)
@@ -6698,73 +7429,6 @@ bool Physics::TestShapeOverlap(const Shape& shapeA, const Transform2D& xfA, cons
 	DistanceOutput output = ShapeDistance(cache, input, nullptr, 0);
 
 	return output.distance < 10.0f * Traits<F32>::Epsilon;
-}
-
-AABB Physics::ComputeShapeAABB(const Shape& shape, const Transform2D& xf)
-{
-	switch (shape.type)
-	{
-	case SHAPE_TYPE_CAPSULE: return ComputeCapsuleAABB(shape.capsule, xf);
-	case SHAPE_TYPE_CIRCLE: return ComputeCircleAABB(shape.circle, xf);
-	case SHAPE_TYPE_POLYGON: return ComputePolygonAABB(shape.polygon, xf);
-	case SHAPE_TYPE_SEGMENT: return ComputeSegmentAABB(shape.segment, xf);
-	case SHAPE_TYPE_CHAIN_SEGMENT: return ComputeSegmentAABB(shape.chainSegment.segment, xf);
-	default: return { xf.position, xf.position };
-	}
-}
-
-AABB Physics::ComputeCircleAABB(const Circle& shape, const Transform2D& xf)
-{
-	Vector2 p = shape.center * xf;
-	float r = shape.radius;
-
-	AABB aabb = { { p.x - r, p.y - r }, { p.x + r, p.y + r } };
-	return aabb;
-}
-
-AABB Physics::ComputeCapsuleAABB(const Capsule& shape, const Transform2D& xf)
-{
-	Vector2 v1 = shape.center1 * xf;
-	Vector2 v2 = shape.center2 * xf;
-
-	Vector2 r = { shape.radius, shape.radius };
-	Vector2 lower = Math::Min(v1, v2) - r;
-	Vector2 upper = Math::Max(v1, v2) + r;
-
-	AABB aabb = { lower, upper };
-	return aabb;
-}
-
-AABB Physics::ComputePolygonAABB(const Polygon& shape, const Transform2D& xf)
-{
-	Vector2 lower = shape.vertices[0] * xf;
-	Vector2 upper = lower;
-
-	for (I32 i = 1; i < shape.count; ++i)
-	{
-		Vector2 v = shape.vertices[i] * xf;
-		lower = Math::Min(lower, v);
-		upper = Math::Max(upper, v);
-	}
-
-	Vector2 r = { shape.radius, shape.radius };
-	lower = lower - r;
-	upper = upper + r;
-
-	AABB aabb = { lower, upper };
-	return aabb;
-}
-
-AABB Physics::ComputeSegmentAABB(const Segment& shape, const Transform2D& xf)
-{
-	Vector2 v1 = shape.point1 * xf;
-	Vector2 v2 = shape.point2 * xf;
-
-	Vector2 lower = Math::Min(v1, v2);
-	Vector2 upper = Math::Max(v1, v2);
-
-	AABB aabb = { lower, upper };
-	return aabb;
 }
 
 DistanceProxy Physics::MakeShapeDistanceProxy(const Shape& shape)
@@ -7242,7 +7906,7 @@ void Physics::MergeIsland(Island& island)
 	int bodyId = island.headBody;
 	while (bodyId != NullIndex)
 	{
-		RigidBody2D& body = bodies->Get(bodyId);
+		RigidBody2D& body = rigidBodies[bodyId];
 		body.islandId = rootId;
 		bodyId = body.islandNext;
 	}
@@ -7264,10 +7928,10 @@ void Physics::MergeIsland(Island& island)
 	}
 
 	// connect body lists
-	RigidBody2D& tailBody = bodies->Get(rootIsland.tailBody);
+	RigidBody2D& tailBody = rigidBodies[rootIsland.tailBody];
 	tailBody.islandNext = island.headBody;
 
-	RigidBody2D& headBody = bodies->Get(island.headBody);
+	RigidBody2D& headBody = rigidBodies[island.headBody];
 	headBody.islandPrev = rootIsland.tailBody;
 
 	rootIsland.tailBody = island.tailBody;
