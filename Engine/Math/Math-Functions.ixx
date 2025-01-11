@@ -1,6 +1,7 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 #include <math.h>
 #include <cstring>
 
@@ -838,7 +839,7 @@ public:
 	template<Pointer Type>
 	static U64 SeededHash(const Type value, U64 len, U64 seed = 0)
 	{
-		const U64 length = len * sizeof(RemovedPointer<Type>);
+		const U64 length = len * sizeof(RemovePointer<Type>);
 		const U8* p = (const U8*)value;
 		seed ^= Mix(seed ^ secret0, secret1);
 

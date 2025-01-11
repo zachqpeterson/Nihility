@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math\Math.hpp"
+#include "TypeTraits.hpp"
 
 import Containers;
 

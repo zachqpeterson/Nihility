@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{01de4924-2ced-4085-ad6f-a21ce70ffba9}</ProjectGuid>
+    <RootNamespace>External</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(ProjectDir)LunarG</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <AdditionalIncludeDirectories>$(ProjectDir)LunarG</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Discord\achievement_manager.cpp" />
+    <ClCompile Include="Discord\activity_manager.cpp" />
+    <ClCompile Include="Discord\application_manager.cpp" />
+    <ClCompile Include="Discord\core.cpp" />
+    <ClCompile Include="Discord\image_manager.cpp" />
+    <ClCompile Include="Discord\lobby_manager.cpp" />
+    <ClCompile Include="Discord\network_manager.cpp" />
+    <ClCompile Include="Discord\overlay_manager.cpp" />
+    <ClCompile Include="Discord\relationship_manager.cpp" />
+    <ClCompile Include="Discord\storage_manager.cpp" />
+    <ClCompile Include="Discord\store_manager.cpp" />
+    <ClCompile Include="Discord\types.cpp" />
+    <ClCompile Include="Discord\user_manager.cpp" />
+    <ClCompile Include="Discord\voice_manager.cpp" />
+    <ClCompile Include="LunarG\vulkan\vulkan.cppm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Discord\achievement_manager.h" />
+    <ClInclude Include="Discord\activity_manager.h" />
+    <ClInclude Include="Discord\application_manager.h" />
+    <ClInclude Include="Discord\core.h" />
+    <ClInclude Include="Discord\discord.h" />
+    <ClInclude Include="Discord\event.h" />
+    <ClInclude Include="Discord\ffi.h" />
+    <ClInclude Include="Discord\image_manager.h" />
+    <ClInclude Include="Discord\lobby_manager.h" />
+    <ClInclude Include="Discord\network_manager.h" />
+    <ClInclude Include="Discord\overlay_manager.h" />
+    <ClInclude Include="Discord\relationship_manager.h" />
+    <ClInclude Include="Discord\storage_manager.h" />
+    <ClInclude Include="Discord\store_manager.h" />
+    <ClInclude Include="Discord\types.h" />
+    <ClInclude Include="Discord\user_manager.h" />
+    <ClInclude Include="Discord\voice_manager.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codecs_common.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_av1std.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_av1std_decode.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_h264std.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_h264std_decode.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_h264std_encode.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_h265std.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_h265std_decode.h" />
+    <ClInclude Include="LunarG\vk_video\vulkan_video_codec_h265std_encode.h" />
+    <ClInclude Include="LunarG\vulkan\vk_enum_string_helper.h" />
+    <ClInclude Include="LunarG\vulkan\vk_icd.h" />
+    <ClInclude Include="LunarG\vulkan\vk_layer.h" />
+    <ClInclude Include="LunarG\vulkan\vk_platform.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_android.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_beta.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_core.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_directfb.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_enums.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_extension_inspection.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_format_traits.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_fuchsia.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_funcs.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_ggp.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_handles.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_hash.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_hpp_macros.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_ios.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_macos.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_metal.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_profiles.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_raii.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_screen.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_shared.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_static_assertions.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_structs.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_to_string.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_vi.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_video.hpp" />
+    <ClInclude Include="LunarG\vulkan\vulkan_wayland.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_win32.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_xcb.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_xlib.h" />
+    <ClInclude Include="LunarG\vulkan\vulkan_xlib_xrandr.h" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="stb_truetype.h" />
+    <ClInclude Include="stb_vorbis.h" />
+    <ClInclude Include="Steam\isteamapps.h" />
+    <ClInclude Include="Steam\isteamappticket.h" />
+    <ClInclude Include="Steam\isteamclient.h" />
+    <ClInclude Include="Steam\isteamcontroller.h" />
+    <ClInclude Include="Steam\isteamdualsense.h" />
+    <ClInclude Include="Steam\isteamfriends.h" />
+    <ClInclude Include="Steam\isteamgamecoordinator.h" />
+    <ClInclude Include="Steam\isteamgameserver.h" />
+    <ClInclude Include="Steam\isteamgameserverstats.h" />
+    <ClInclude Include="Steam\isteamhtmlsurface.h" />
+    <ClInclude Include="Steam\isteamhttp.h" />
+    <ClInclude Include="Steam\isteaminput.h" />
+    <ClInclude Include="Steam\isteaminventory.h" />
+    <ClInclude Include="Steam\isteammatchmaking.h" />
+    <ClInclude Include="Steam\isteammusic.h" />
+    <ClInclude Include="Steam\isteammusicremote.h" />
+    <ClInclude Include="Steam\isteamnetworking.h" />
+    <ClInclude Include="Steam\isteamnetworkingmessages.h" />
+    <ClInclude Include="Steam\isteamnetworkingsockets.h" />
+    <ClInclude Include="Steam\isteamnetworkingutils.h" />
+    <ClInclude Include="Steam\isteamparentalsettings.h" />
+    <ClInclude Include="Steam\isteamps3overlayrenderer.h" />
+    <ClInclude Include="Steam\isteamremoteplay.h" />
+    <ClInclude Include="Steam\isteamremotestorage.h" />
+    <ClInclude Include="Steam\isteamscreenshots.h" />
+    <ClInclude Include="Steam\isteamugc.h" />
+    <ClInclude Include="Steam\isteamuser.h" />
+    <ClInclude Include="Steam\isteamuserstats.h" />
+    <ClInclude Include="Steam\isteamutils.h" />
+    <ClInclude Include="Steam\isteamvideo.h" />
+    <ClInclude Include="Steam\matchmakingtypes.h" />
+    <ClInclude Include="Steam\steamclientpublic.h" />
+    <ClInclude Include="Steam\steamencryptedappticket.h" />
+    <ClInclude Include="Steam\steamhttpenums.h" />
+    <ClInclude Include="Steam\steamnetworkingfakeip.h" />
+    <ClInclude Include="Steam\steamnetworkingtypes.h" />
+    <ClInclude Include="Steam\steamps3params.h" />
+    <ClInclude Include="Steam\steamtypes.h" />
+    <ClInclude Include="Steam\steamuniverse.h" />
+    <ClInclude Include="Steam\steam_api.h" />
+    <ClInclude Include="Steam\steam_api_common.h" />
+    <ClInclude Include="Steam\steam_api_flat.h" />
+    <ClInclude Include="Steam\steam_api_internal.h" />
+    <ClInclude Include="Steam\steam_gameserver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Steam\steam_api.json" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

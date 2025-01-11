@@ -2,8 +2,8 @@
 
 #include "Resources\ResourceDefines.hpp"
 
-#include "Resources\Component.hpp"
 #include "Resources\Mesh.hpp"
+#include "Resources\Scene.hpp"
 
 struct NH_API SpriteComponent : public Component<SpriteComponent>
 {

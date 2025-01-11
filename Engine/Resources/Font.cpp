@@ -1,7 +1,7 @@
 #include "Font.hpp"
 
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "External\stb_truetype.h"
+#include "stb_truetype.h"
 
 import Memory;
 

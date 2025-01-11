@@ -13,7 +13,7 @@
 //#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
-#include "External\LunarG\vma\vk_mem_alloc.h"
+#include "LunarG\vma\vk_mem_alloc.h"
 
 import Core;
 import Memory;

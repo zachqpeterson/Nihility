@@ -1,6 +1,7 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 #include <io.h>
 #include <sys\stat.h>

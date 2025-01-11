@@ -1,6 +1,7 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 export module Containers:String;
 
@@ -711,9 +712,9 @@ export using String16 = StringBase<C16>;
 export using String32 = StringBase<C32>;
 export using StringW = StringBase<CW>;
 
-export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemovedQuals<Type>, StringView>;
+export template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemoveQuals<Type>, StringView>;
 export template <class Type> concept StringViewType = IsStringViewType<Type>;
-export template <class Type> inline constexpr bool IsStringType = AnyOf<RemovedQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>, StringBase<CW>>;
+export template <class Type> inline constexpr bool IsStringType = AnyOf<RemoveQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>, StringBase<CW>>;
 export template <class Type> concept StringType = IsStringType<Type>;
 export template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
 export template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
@@ -2346,7 +2347,7 @@ template<Character C>
 template<NonStringPointer Arg>
 inline Arg StringBase<C>::ToType(U64 start) const noexcept
 {
-	return Move(ToType<U64>(start));
+	return (Arg)ToType<U64>(start);
 }
 
 template<Character C>

@@ -1,6 +1,7 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 export module Math:Types;
 
@@ -3245,11 +3246,11 @@ export constexpr Vector2 operator^(const Vector2& v, const Transform2D& t) { ret
 export constexpr Vector2& operator*=(Vector2& v, const Transform2D& t) { v *= t.rotation; v += t.position; return v; }
 export constexpr Vector2& operator^=(Vector2& v, const Transform2D& t) { (v ^= t.rotation); v += t.position; return v; }
 
-export template <class Type> inline constexpr bool IsFloatVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4>;
-export template <class Type> inline constexpr bool IsIntVectorType = AnyOf<RemovedQuals<Type>, Vector2Int, Vector3Int, Vector4Int>;
-export template <class Type> inline constexpr bool IsVectorType = AnyOf<RemovedQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
-export template <class Type> inline constexpr bool IsMatrixType = AnyOf<RemovedQuals<Type>, Matrix2, Matrix3, Matrix4>;
-export template <class Type> inline constexpr bool IsQuaternionType = AnyOf<RemovedQuals<Type>, Quaternion2, Quaternion3>;
+export template <class Type> inline constexpr bool IsFloatVectorType = AnyOf<RemoveQuals<Type>, Vector2, Vector3, Vector4>;
+export template <class Type> inline constexpr bool IsIntVectorType = AnyOf<RemoveQuals<Type>, Vector2Int, Vector3Int, Vector4Int>;
+export template <class Type> inline constexpr bool IsVectorType = AnyOf<RemoveQuals<Type>, Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Vector4Int>;
+export template <class Type> inline constexpr bool IsMatrixType = AnyOf<RemoveQuals<Type>, Matrix2, Matrix3, Matrix4>;
+export template <class Type> inline constexpr bool IsQuaternionType = AnyOf<RemoveQuals<Type>, Quaternion2, Quaternion3>;
 
 export template <class Type> concept FloatVectorType = IsFloatVectorType<Type>;
 export template <class Type> concept FloatOrVector = IsFloatVectorType<Type> || IsFloatingPoint<Type>;
@@ -3469,5 +3470,5 @@ private:
 	U32 pointCount;
 };
 
-export template <class Type> inline constexpr bool IsSplineType = AnyOf<RemovedQuals<Type>, BezierSpline, CatmullRomSpline, CardinalSpline, BSpline, HermiteSpline>;
+export template <class Type> inline constexpr bool IsSplineType = AnyOf<RemoveQuals<Type>, BezierSpline, CatmullRomSpline, CardinalSpline, BSpline, HermiteSpline>;
 export template <class Type> concept SplineType = IsSplineType<Type>;

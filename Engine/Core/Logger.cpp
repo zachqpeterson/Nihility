@@ -1,6 +1,7 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 module Core:Logger;
 
@@ -9,7 +10,7 @@ import Containers;
 import Multithreading;
 import Platform;
 
-File log = File("Log.log", FILE_OPEN_LOG);
+File logFile = File("Log.log", FILE_OPEN_LOG);
 File console = File("CONOUT$", FILE_OPEN_CONSOLE);
 
 SafeQueue<String, 64> Logger::messageQueue;
@@ -18,18 +19,18 @@ bool Logger::writing = false;
 bool Logger::Initialize()
 {
 	Platform::SetConsoleWindowTitle("Nihility Console");
-	return log.Opened() && console.Opened();
+	return logFile.Opened() && console.Opened();
 }
 
 void Logger::Shutdown()
 {
 	console.Destroy();
-	log.Destroy();
+	logFile.Destroy();
 }
 
 void Logger::Write(String&& message) noexcept
 {
-	log.Write(message);
+	logFile.Write(message);
 	console.Write(message);
 }
 
@@ -48,7 +49,7 @@ void Logger::Output()
 	String message;
 	while (messageQueue.Pop(message))
 	{
-		log.Write(message);
+		logFile.Write(message);
 		console.Write(message);
 	}
 

@@ -1,6 +1,7 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 export module Memory:Allocator;
 
@@ -166,7 +167,7 @@ inline void Memory::Allocate(Type* pointer)
 {
 	static bool b = Initialize();
 
-	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 size = sizeof(RemovePointer<Type>);
 
 	if constexpr (size <= sizeof(Region1kb)) { Allocate1kb((void**)pointer, size); return; }
 	else if constexpr (size <= sizeof(Region16kb)) { Allocate16kb((void**)pointer, size); return; }
@@ -208,7 +209,7 @@ inline void Memory::AllocateArray(Type* pointer, const U64& count)
 {
 	static bool b = Initialize();
 
-	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 size = sizeof(RemovePointer<Type>);
 	const U64 arraySize = size * count;
 
 	if (arraySize <= sizeof(Region1kb)) { Allocate1kb((void**)pointer, arraySize); return; }
@@ -224,7 +225,7 @@ inline void Memory::AllocateArray(Type* pointer, const U64& count, Int& newCount
 {
 	static bool b = Initialize();
 
-	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 size = sizeof(RemovePointer<Type>);
 	const U64 arraySize = size * count;
 
 	if (arraySize <= sizeof(Region1kb)) { Allocate1kb((void**)pointer, arraySize); newCount = sizeof(Region1kb) / size; return; }
@@ -241,7 +242,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count)
 {
 	static bool b = Initialize();
 
-	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 size = sizeof(RemovePointer<Type>);
 
 	if (!IsDynamicallyAllocated(*pointer) && *pointer != nullptr)
 	{
@@ -274,7 +275,7 @@ inline void Memory::Reallocate(Type* pointer, const U64& count, Int& newCount)
 {
 	static bool b = Initialize();
 
-	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 size = sizeof(RemovePointer<Type>);
 
 	if (!IsDynamicallyAllocated(*pointer) && *pointer != nullptr)
 	{
@@ -330,7 +331,7 @@ inline void Memory::AllocateStatic(Type* pointer)
 {
 	static bool b = Initialize();
 
-	constexpr U64 size = sizeof(RemovedPointer<Type>);
+	constexpr U64 size = sizeof(RemovePointer<Type>);
 
 	if (staticPointer + size <= memory + totalSize)
 	{
@@ -364,7 +365,7 @@ inline void Memory::AllocateStaticArray(Type* pointer, const U64& count)
 {
 	static bool b = Initialize();
 
-	U64 size = sizeof(RemovedPointer<Type>) * count;
+	U64 size = sizeof(RemovePointer<Type>) * count;
 
 	if (staticPointer + size <= memory + totalSize)
 	{

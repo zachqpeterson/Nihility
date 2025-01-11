@@ -21,7 +21,7 @@ import Memory;
 #define VK_USE_PLATFORM_IOS_MVK
 #endif
 
-#include "External\LunarG\Vulkan\vulkan.h"
+#include "LunarG\vulkan\vulkan.hpp"
 
 #define VK_ADDITIONAL_VALIDATION
 

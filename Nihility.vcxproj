@@ -65,12 +65,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;NH_EXPORT;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)External;</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
+      <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -95,11 +96,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;NH_EXPORT;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)External;</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -118,70 +119,6 @@
   <ItemGroup>
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
-    <ClInclude Include="Engine\External\Discord\achievement_manager.h" />
-    <ClInclude Include="Engine\External\Discord\activity_manager.h" />
-    <ClInclude Include="Engine\External\Discord\application_manager.h" />
-    <ClInclude Include="Engine\External\Discord\core.h" />
-    <ClInclude Include="Engine\External\Discord\discord.h" />
-    <ClInclude Include="Engine\External\Discord\event.h" />
-    <ClInclude Include="Engine\External\Discord\ffi.h" />
-    <ClInclude Include="Engine\External\Discord\image_manager.h" />
-    <ClInclude Include="Engine\External\Discord\lobby_manager.h" />
-    <ClInclude Include="Engine\External\Discord\network_manager.h" />
-    <ClInclude Include="Engine\External\Discord\overlay_manager.h" />
-    <ClInclude Include="Engine\External\Discord\relationship_manager.h" />
-    <ClInclude Include="Engine\External\Discord\storage_manager.h" />
-    <ClInclude Include="Engine\External\Discord\store_manager.h" />
-    <ClInclude Include="Engine\External\Discord\types.h" />
-    <ClInclude Include="Engine\External\Discord\user_manager.h" />
-    <ClInclude Include="Engine\External\Discord\voice_manager.h" />
-    <ClInclude Include="Engine\External\stb_image.h" />
-    <ClInclude Include="Engine\External\stb_truetype.h" />
-    <ClInclude Include="Engine\External\stb_vorbis.h" />
-    <ClInclude Include="Engine\External\Steam\isteamapps.h" />
-    <ClInclude Include="Engine\External\Steam\isteamappticket.h" />
-    <ClInclude Include="Engine\External\Steam\isteamclient.h" />
-    <ClInclude Include="Engine\External\Steam\isteamcontroller.h" />
-    <ClInclude Include="Engine\External\Steam\isteamdualsense.h" />
-    <ClInclude Include="Engine\External\Steam\isteamfriends.h" />
-    <ClInclude Include="Engine\External\Steam\isteamgamecoordinator.h" />
-    <ClInclude Include="Engine\External\Steam\isteamgameserver.h" />
-    <ClInclude Include="Engine\External\Steam\isteamgameserverstats.h" />
-    <ClInclude Include="Engine\External\Steam\isteamhtmlsurface.h" />
-    <ClInclude Include="Engine\External\Steam\isteamhttp.h" />
-    <ClInclude Include="Engine\External\Steam\isteaminput.h" />
-    <ClInclude Include="Engine\External\Steam\isteaminventory.h" />
-    <ClInclude Include="Engine\External\Steam\isteammatchmaking.h" />
-    <ClInclude Include="Engine\External\Steam\isteammusic.h" />
-    <ClInclude Include="Engine\External\Steam\isteammusicremote.h" />
-    <ClInclude Include="Engine\External\Steam\isteamnetworking.h" />
-    <ClInclude Include="Engine\External\Steam\isteamnetworkingmessages.h" />
-    <ClInclude Include="Engine\External\Steam\isteamnetworkingsockets.h" />
-    <ClInclude Include="Engine\External\Steam\isteamnetworkingutils.h" />
-    <ClInclude Include="Engine\External\Steam\isteamparentalsettings.h" />
-    <ClInclude Include="Engine\External\Steam\isteamps3overlayrenderer.h" />
-    <ClInclude Include="Engine\External\Steam\isteamremoteplay.h" />
-    <ClInclude Include="Engine\External\Steam\isteamremotestorage.h" />
-    <ClInclude Include="Engine\External\Steam\isteamscreenshots.h" />
-    <ClInclude Include="Engine\External\Steam\isteamugc.h" />
-    <ClInclude Include="Engine\External\Steam\isteamuser.h" />
-    <ClInclude Include="Engine\External\Steam\isteamuserstats.h" />
-    <ClInclude Include="Engine\External\Steam\isteamutils.h" />
-    <ClInclude Include="Engine\External\Steam\isteamvideo.h" />
-    <ClInclude Include="Engine\External\Steam\matchmakingtypes.h" />
-    <ClInclude Include="Engine\External\Steam\steamclientpublic.h" />
-    <ClInclude Include="Engine\External\Steam\steamencryptedappticket.h" />
-    <ClInclude Include="Engine\External\Steam\steamhttpenums.h" />
-    <ClInclude Include="Engine\External\Steam\steamnetworkingfakeip.h" />
-    <ClInclude Include="Engine\External\Steam\steamnetworkingtypes.h" />
-    <ClInclude Include="Engine\External\Steam\steamps3params.h" />
-    <ClInclude Include="Engine\External\Steam\steamtypes.h" />
-    <ClInclude Include="Engine\External\Steam\steamuniverse.h" />
-    <ClInclude Include="Engine\External\Steam\steam_api.h" />
-    <ClInclude Include="Engine\External\Steam\steam_api_common.h" />
-    <ClInclude Include="Engine\External\Steam\steam_api_flat.h" />
-    <ClInclude Include="Engine\External\Steam\steam_api_internal.h" />
-    <ClInclude Include="Engine\External\Steam\steam_gameserver.h" />
     <ClInclude Include="Engine\Introspection.hpp" />
     <ClInclude Include="Engine\Math\Broadphase.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
@@ -202,100 +139,14 @@
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
     <ClInclude Include="Engine\Rendering\Tilemap.hpp" />
     <ClInclude Include="Engine\Rendering\UI.hpp" />
-    <ClInclude Include="Engine\Resources\Component.hpp" />
     <ClInclude Include="Engine\Resources\Font.hpp" />
     <ClInclude Include="Engine\Resources\Material.hpp" />
     <ClInclude Include="Engine\Resources\Mesh.hpp" />
     <ClInclude Include="Engine\Resources\ResourceDefines.hpp" />
     <ClInclude Include="Engine\Resources\Resources.hpp" />
     <ClInclude Include="Engine\Resources\Scene.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\build_info.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\arrays.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\BaseTypes.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\Common.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\ConstantUnion.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\glslang_c_interface.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\glslang_c_shader_types.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\InfoSink.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\InitializeGlobals.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\intermediate.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\PoolAlloc.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\ResourceLimits.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\ShHandle.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\SpirvIntrinsics.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Include\Types.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\attribute.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\glslang_tab.cpp.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\gl_types.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\Initialize.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\iomapper.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\LiveTraverser.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\localintermediate.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\ParseHelper.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\parseVersions.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\pch.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\PpContext.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\PpTokens.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\propagateNoContraction.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\reflection.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\RemoveTree.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\Scan.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\ScanContext.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\SymbolTable.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\MachineIndependent\Versions.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\OSDependent\osinclude.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Public\ResourceLimits.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Public\resource_limits_c.h" />
-    <ClInclude Include="Engine\Resources\Shader\glslang\Public\ShaderLang.h" />
     <ClInclude Include="Engine\Resources\Shader\Shader.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-headers\GLSL.std.450.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-headers\spirv.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-headers\spirv.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-tools\libspirv.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-tools\libspirv.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-tools\linker.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv-tools\optimizer.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\bitutils.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\disassemble.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\doc.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.ext.AMD.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.ext.ARM.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.ext.EXT.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.ext.KHR.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.ext.NV.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.ext.QCOM.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GLSL.std.450.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\GlslangToSpv.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\hex_float.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\NonSemanticDebugPrintf.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\NonSemanticShaderDebugInfo100.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\spirv.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\SPIRVLogger.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\SpvBuilder.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\spvIR.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\SPVRemapper.h" />
-    <ClInclude Include="Engine\Resources\Shader\SPIRV\SpvTools.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\GLSL.std.450.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cfg.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_common.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cpp.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cross.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cross_c.h" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cross_containers.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cross_error_handling.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cross_parsed_ir.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_cross_util.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_glsl.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_hlsl.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_msl.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_parser.hpp" />
-    <ClInclude Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.h" />
-    <ClInclude Include="Engine\Resources\Shader\StandAlone\DirStackFileIncluder.h" />
-    <ClInclude Include="Engine\Resources\Shader\StandAlone\Worklist.h" />
     <ClInclude Include="Engine\SIMD.hpp" />
-    <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Containers\Containers-Array.ixx" />
@@ -309,7 +160,6 @@
     <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Stack.ixx" />
     <ClCompile Include="Engine\Containers\Containers-String.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-TypeList.ixx" />
     <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
     <ClCompile Include="Engine\Containers\Containers.ixx" />
     <ClCompile Include="Engine\Core\Core-DataReader.ixx" />
@@ -325,20 +175,6 @@
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
-    <ClCompile Include="Engine\External\Discord\achievement_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\activity_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\application_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\core.cpp" />
-    <ClCompile Include="Engine\External\Discord\image_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\lobby_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\network_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\overlay_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\relationship_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\storage_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\store_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\types.cpp" />
-    <ClCompile Include="Engine\External\Discord\user_manager.cpp" />
-    <ClCompile Include="Engine\External\Discord\voice_manager.cpp" />
     <ClCompile Include="Engine\Math\Broadphase.cpp" />
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Island.cpp" />
@@ -383,71 +219,19 @@
     <ClCompile Include="Engine\Rendering\Swapchain.cpp" />
     <ClCompile Include="Engine\Rendering\Tilemap.cpp" />
     <ClCompile Include="Engine\Rendering\UI.cpp" />
-    <ClCompile Include="Engine\Resources\Component.cpp" />
     <ClCompile Include="Engine\Resources\Font.cpp" />
     <ClCompile Include="Engine\Resources\Material.cpp" />
     <ClCompile Include="Engine\Resources\Mesh.cpp" />
     <ClCompile Include="Engine\Resources\ResourceDefines.cpp" />
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Scene.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\CInterface\glslang_c_interface.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\GenericCodeGen\CodeGen.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\GenericCodeGen\Link.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\attribute.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\Constant.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\glslang_tab.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\InfoSink.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\Initialize.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\Intermediate.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\intermOut.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\IntermTraverse.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\iomapper.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\limits.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\linkValidate.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\parseConst.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\ParseContextBase.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\ParseHelper.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\PoolAlloc.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\Pp.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\PpAtom.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\PpContext.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\PpScanner.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\preprocessor\PpTokens.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\propagateNoContraction.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\reflection.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\RemoveTree.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\Scan.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\ShaderLang.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\SpirvIntrinsics.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\SymbolTable.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\MachineIndependent\Versions.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\OSDependent\Windows\ossource.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\ResourceLimits\ResourceLimits.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\glslang\ResourceLimits\resource_limits_c.cpp" />
     <ClCompile Include="Engine\Resources\Shader\Shader.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\CInterface\spirv_c_interface.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\disassemble.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\doc.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\GlslangToSpv.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\InReadableOrder.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\SPIRVLogger.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\SpvBuilder.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\SpvPostProcess.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\SPVRemapper.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\SPIRV\SpvTools.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_cfg.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_cpp.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_cross.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_cross_c.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_cross_parsed_ir.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_cross_util.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_glsl.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_hlsl.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_msl.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_parser.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\spirv_cross\spirv_reflect.c" />
-    <ClCompile Include="Engine\Resources\Shader\StandAlone\spirv-remap.cpp" />
-    <ClCompile Include="Engine\Resources\Shader\StandAlone\StandAlone.cpp" />
+    <ClCompile Include="Engine\TypeTraits.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="External\External.vcxproj">
+      <Project>{01de4924-2ced-4085-ad6f-a21ce70ffba9}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,7 +1,7 @@
 #include "PhysicsDefines.hpp"
 
 #include "Physics.hpp"
-#include "Resources\Component.hpp"
+#include "Resources\Scene.hpp"
 
 void ConstraintGraph::Create(I32 bodyCapacity)
 {

@@ -20,13 +20,13 @@
 
 #pragma once
 
-#include "Resources\Component.hpp"
 #include "Math.hpp"
 #include "SIMD.hpp"
 
 #include "Manifold.hpp"
 #include "Shape.hpp"
 #include "RigidBody.hpp"
+#include "Resources\Scene.hpp"
 
 import ThreadSafety;
 

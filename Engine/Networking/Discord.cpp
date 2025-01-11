@@ -2,7 +2,7 @@ module;
 
 #include "Defines.hpp"
 
-#include "External\Discord\discord.h"
+#include "Discord\discord.h"
 
 module Networking:Discord;
 

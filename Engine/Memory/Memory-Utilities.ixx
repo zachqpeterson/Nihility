@@ -1,10 +1,10 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
+#include <cstringt.h>
 #include <intrin.h>
-#include <string.h>
-#include <new>
 
 export module Memory:Utilities;
 

@@ -3,7 +3,7 @@
 #include "ResourceDefines.hpp"
 
 #include "Material.hpp"
-#include "Component.hpp"
+#include "Resources\Scene.hpp"
 
 import Memory;
 

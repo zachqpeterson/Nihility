@@ -34,11 +34,11 @@ bool Init()
 
 	scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
 
-	entity = scene->AddEntity();
-	light = scene->AddEntity();
-	entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+	entity = scene->CreateEntity();
+	light = scene->CreateEntity();
+	entity->CreateComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
 	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
-	light->AddComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default_material.nhmat"));
+	light->CreateComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default_material.nhmat"));
 	light->transform.SetScale({ 0.001f });
 	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
 
@@ -134,7 +134,7 @@ void Update()
 
 	if (Input::OnButtonDown(BUTTON_CODE_H))
 	{
-		entity->AddComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
+		entity->CreateComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
 	}
 
 	if (Input::ButtonDown(BUTTON_CODE_LEFT))

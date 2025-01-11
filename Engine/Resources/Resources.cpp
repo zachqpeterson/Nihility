@@ -9,16 +9,16 @@
 #include "Rendering\Pipeline.hpp"
 #include "Math\Math.hpp"
 
-#include "External\Assimp\cimport.h"
-#include "External\Assimp\scene.h"
-#include "External\Assimp\postprocess.h"
+#include "Assimp\cimport.h"
+#include "Assimp\scene.h"
+#include "Assimp\postprocess.h"
 
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
-#include "External\stb_image.h"
+#include "stb_image.h"
 
 #define STB_VORBIS_NO_STDIO
-#include "External\stb_vorbis.h"
+#include "stb_vorbis.h"
 
 import Core;
 import Containers;

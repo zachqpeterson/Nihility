@@ -10,6 +10,9 @@
 
 import Core;
 import Platform;
+import Containers;
+
+Vector<void*> ComponentRegistry::components{};
 
 Entity::Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
 

@@ -1,9 +1,9 @@
 module;
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 
 #include <initializer_list>
-#include <utility>
 
 export module Containers:Vector;
 
@@ -35,8 +35,6 @@ import Memory;
 export template<class Type>
 struct Vector
 {
-	static_assert(IsMoveConstructible<Type> || IsCopyConstructible<Type>, "Type Must Be Copyable Or Movable!");
-
 public:
 	/// <summary>
 	/// Creates a new Vector instance, size and capacity will be zero, array will be nullptr
@@ -591,7 +589,7 @@ inline Type& Vector<Type>::Emplace(Parameters&&... parameters) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	return Construct(array + size++, std::forward<Parameters>(parameters)...);
+	return Construct(array + size++, Forward<Parameters>(parameters)...);
 }
 
 template<class Type> inline void Vector<Type>::Pop()

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Resources\Component.hpp"
 #include "Resources\Mesh.hpp"
+#include "Resources\Scene.hpp"
 
 struct alignas(16) NH_API TilemapData
 {
