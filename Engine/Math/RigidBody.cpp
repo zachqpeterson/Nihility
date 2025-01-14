@@ -1,11 +1,11 @@
 #include "RigidBody.hpp"
 
 #include "Physics.hpp"
+
 #include "Broadphase.hpp"
 #include "Resources\Scene.hpp"
-
-import Memory;
-import Math;
+#include "Memory\Memory.hpp"
+#include "Math\Math.hpp"
 
 RigidBody2D::RigidBody2D(const RigidBody2DDef& def)
 {
@@ -154,95 +154,95 @@ RigidBody2D::RigidBody2D(RigidBody2D&& other) : userData(other.userData),
 
 }
 
-void RigidBody2D::Update(Scene* scene)
-{
-	BodySim& sim = Physics::GetBodySim(*this);
-	Entity* e = scene->GetEntity(entityID);
-	e->transform.SetRotation(sim.transform.rotation);
-	e->transform.SetPosition(sim.transform.position);
-}
-
-void RigidBody2D::Load(Scene* scene)
-{
-
-}
-
-void RigidBody2D::Cleanup(Scene* scene)
-{
-	bool wakeBodies = true;
-
-	// Destroy the attached joints
-	int edgeKey = headJointKey;
-	while (edgeKey != NullIndex)
-	{
-		int jointId = edgeKey >> 1;
-		int edgeIndex = edgeKey & 1;
-
-		Joint& joint = Physics::joints[jointId];
-		edgeKey = joint.edges[edgeIndex].nextKey;
-
-		// Careful because this modifies the list being traversed
-		Physics::DestroyJointInternal(joint, wakeBodies);
-	}
-
-	// Destroy all contacts attached to this body.
-	DestroyBodyContacts(wakeBodies);
-
-	// Destroy the attached shapes and their broad-phase proxies.
-	int shapeId = headShapeId;
-	while (shapeId != NullIndex)
-	{
-		Shape& shape = Physics::shapes[shapeId];
-
-		Broadphase::DestroyProxy(shape.proxyKey);
-
-		// Return shape to free list.
-		Physics::shapeFreelist.Release(shapeId);
-		shape.id = NullIndex;
-
-		shapeId = shape.nextShapeId;
-	}
-
-	// Destroy the attached chains. The associated shapes have already been destroyed above.
-	int chainId = headChainId;
-	while (chainId != NullIndex)
-	{
-		ChainShape& chain = Physics::chains[chainId];
-
-		Memory::Free(&chain.shapeIndices);
-		chain.shapeIndices = NULL;
-
-		// Return chain to free list.
-		Physics::chainFreelist.Release(chainId);
-		chain.id = NullIndex;
-
-		chainId = chain.nextChainId;
-	}
-
-	Physics::RemoveBodyFromIsland(*this);
-
-	// Remove body sim from solver set that owns it
-	SolverSet& set = Physics::solverSets[setIndex];
-	int movedIndex = set.bodySims.RemoveSwap(localIndex);
-	if (movedIndex != NullIndex)
-	{
-		// Fix moved body index
-		BodySim& movedSim = set.bodySims[localIndex];
-		int movedId = movedSim.bodyId;
-		RigidBody2D& movedBody = Physics::GetRigidBody(movedId);
-		movedBody.localIndex = localIndex;
-	}
-
-	// Remove body state from awake set
-	if (setIndex == SET_TYPE_AWAKE)
-	{
-		set.bodyStates.RemoveSwap(localIndex);
-	}
-
-	setIndex = NullIndex;
-	localIndex = NullIndex;
-	id = NullIndex;
-}
+//void RigidBody2D::Update(Scene* scene)
+//{
+//	BodySim& sim = Physics::GetBodySim(*this);
+//	Entity* e = scene->GetEntity(entityID);
+//	e->transform.SetRotation(sim.transform.rotation);
+//	e->transform.SetPosition(sim.transform.position);
+//}
+//
+//void RigidBody2D::Load(Scene* scene)
+//{
+//
+//}
+//
+//void RigidBody2D::Cleanup(Scene* scene)
+//{
+//	bool wakeBodies = true;
+//
+//	// Destroy the attached joints
+//	int edgeKey = headJointKey;
+//	while (edgeKey != NullIndex)
+//	{
+//		int jointId = edgeKey >> 1;
+//		int edgeIndex = edgeKey & 1;
+//
+//		Joint& joint = Physics::joints[jointId];
+//		edgeKey = joint.edges[edgeIndex].nextKey;
+//
+//		// Careful because this modifies the list being traversed
+//		Physics::DestroyJointInternal(joint, wakeBodies);
+//	}
+//
+//	// Destroy all contacts attached to this body.
+//	DestroyBodyContacts(wakeBodies);
+//
+//	// Destroy the attached shapes and their broad-phase proxies.
+//	int shapeId = headShapeId;
+//	while (shapeId != NullIndex)
+//	{
+//		Shape& shape = Physics::shapes[shapeId];
+//
+//		Broadphase::DestroyProxy(shape.proxyKey);
+//
+//		// Return shape to free list.
+//		Physics::shapeFreelist.Release(shapeId);
+//		shape.id = NullIndex;
+//
+//		shapeId = shape.nextShapeId;
+//	}
+//
+//	// Destroy the attached chains. The associated shapes have already been destroyed above.
+//	int chainId = headChainId;
+//	while (chainId != NullIndex)
+//	{
+//		ChainShape& chain = Physics::chains[chainId];
+//
+//		Memory::Free(&chain.shapeIndices);
+//		chain.shapeIndices = NULL;
+//
+//		// Return chain to free list.
+//		Physics::chainFreelist.Release(chainId);
+//		chain.id = NullIndex;
+//
+//		chainId = chain.nextChainId;
+//	}
+//
+//	Physics::RemoveBodyFromIsland(*this);
+//
+//	// Remove body sim from solver set that owns it
+//	SolverSet& set = Physics::solverSets[setIndex];
+//	int movedIndex = set.bodySims.RemoveSwap(localIndex);
+//	if (movedIndex != NullIndex)
+//	{
+//		// Fix moved body index
+//		BodySim& movedSim = set.bodySims[localIndex];
+//		int movedId = movedSim.bodyId;
+//		RigidBody2D& movedBody = Physics::GetRigidBody(movedId);
+//		movedBody.localIndex = localIndex;
+//	}
+//
+//	// Remove body state from awake set
+//	if (setIndex == SET_TYPE_AWAKE)
+//	{
+//		set.bodyStates.RemoveSwap(localIndex);
+//	}
+//
+//	setIndex = NullIndex;
+//	localIndex = NullIndex;
+//	id = NullIndex;
+//}
 
 void RigidBody2D::DestroyBodyContacts(bool wakeBodies)
 {

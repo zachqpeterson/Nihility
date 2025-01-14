@@ -75,12 +75,12 @@ SpriteComponent::SpriteComponent(const Vector4& color, const ResourceRef<Texture
 	instanceData->color = color;
 }
 
-void SpriteComponent::Update(Scene* scene)
+void SpriteComponent::Update(Scene* scene, U32 entityID)
 {
 
 }
 
-void SpriteComponent::Load(Scene* scene)
+void SpriteComponent::Load(Scene* scene, U32 entityID)
 {
 	Copy((U32*)meshInstance.instanceData.data + 1, &entityID, 1);
 

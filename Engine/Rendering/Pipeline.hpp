@@ -3,6 +3,8 @@
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Shader\Shader.hpp"
 
+#include "Containers\Vector.hpp"
+
 enum BlendMode
 {
 	BLEND_MODE_NONE,

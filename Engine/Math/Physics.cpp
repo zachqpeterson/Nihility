@@ -22,10 +22,11 @@
 
 #include "Island.hpp"
 #include "Broadphase.hpp"
-#include "Resources\Scene.hpp"
 
-import Core;
-import Containers;
+#include "Core\Logger.hpp"
+#include "Resources\Scene.hpp"
+#include "Containers\Vector.hpp"
+#include "Containers\Freelist.hpp"
 
 #if NH_SIMD_WIDTH == 8
 #define SIMD_SHIFT 3
@@ -83,8 +84,6 @@ int Physics::subStepCount = 4;
 bool Physics::Initialize()
 {
 	Logger::Trace("Initializing Physics...");
-
-	ComponentRegistry::RegisterComponent<RigidBody2D>(CreateComponent, DestroyComponent, GetComponent);
 
 	Broadphase::Initialize();
 	constraintGraph.Create(16);
@@ -172,49 +171,6 @@ void Physics::Update(F32 step)
 	EnableContinuous(enableContinuous);
 
 	Step(step, subStepCount);
-}
-
-ComponentRef<RigidBody2D> Physics::CreateComponent(Scene* scene, U32 entityID, RigidBody2D** type)
-{
-	U32 index = rigidBodyFreelist.GetFree();
-
-	if (index == rigidBodies.Size()) { rigidBodies.PushEmpty(); }
-
-	*type = &rigidBodies[index];
-
-	return ComponentRef<RigidBody2D>(index, &rigidBodies);
-}
-
-void Physics::DestroyComponent(Scene* scene, U32 entityID)
-{
-	for (RigidBody2D* it = rigidBodies.begin(); it != rigidBodies.end(); ++it)
-	{
-		if (it->entityID == entityID)
-		{
-			rigidBodyFreelist.Release((U32)(it - rigidBodies.begin()));
-
-			it->Cleanup(scene);
-			it->entityID = U32_MAX;
-		}
-	}
-}
-
-ComponentRef<RigidBody2D> Physics::GetComponent(U32 entityID)
-{
-	for (RigidBody2D* it = rigidBodies.begin(); it != rigidBodies.end(); ++it)
-	{
-		if (it->entityID == entityID)
-		{
-			return ComponentRef<RigidBody2D>((U32)(it - rigidBodies.begin()), &rigidBodies);
-		}
-	}
-
-	return nullptr;
-}
-
-I32 Physics::GetComponentID(RigidBody2D& component)
-{
-	return (I32)rigidBodies.Index(&component);
 }
 
 ConvexPolygon Physics::CreatePolygon(const Hull& hull, F32 radius)
@@ -1723,7 +1679,7 @@ void Physics::Solve(StepContext& stepContext)
 	// Apply shape AABB changes to broad-phase. This also create the move array which must be
 	// in deterministic order. I'm tracking sim bodies because the number of shape ids can be huge.
 	{
-		U32 wordCount = simBitset.blockCount;
+		U32 wordCount = (U32)simBitset.blockCount;
 		U64* bits = simBitset.bits;
 
 		// Fast array access is important here

@@ -1,11 +1,10 @@
 #pragma once
 
-import Core;
-import Containers;
 #include "Resources\ResourceDefines.hpp"
 #include "Resources\Mesh.hpp"
 #include "Resources\Scene.hpp"
 #include "Math\Math.hpp"
+#include "Containers\Vector.hpp"
 
 struct UIElement;
 typedef void(*UIEvent)(UIElement*, const Vector2&);
@@ -42,17 +41,14 @@ enum NH_API SliderType
 	SLIDER_TYPE_EXPAND,
 };
 
-struct NH_API UIComponent : Component<UIComponent>
+struct NH_API UIComponent
 {
+	UIComponent() {}
 	UIComponent(const Vector<MeshInstance>& meshes) : meshes(meshes) {}
 	UIComponent(const UIComponent& other) noexcept : meshes(other.meshes) {}
 	UIComponent(UIComponent&& other) noexcept : meshes(Move(other.meshes)) {}
 
 	UIComponent& operator=(UIComponent&& other) noexcept { meshes = Move(other.meshes); return *this; }
-
-	virtual void Update(Scene* scene) final;
-	virtual void Load(Scene* scene) final;
-	virtual void Cleanup(Scene* scene) final {}
 
 	Vector<MeshInstance> meshes;
 };
@@ -77,7 +73,7 @@ private:
 	bool enabled = true;
 
 	Scene* scene = nullptr;
-	ComponentRef<UIComponent> component = nullptr;
+	UIComponent component;
 	UIElement* parent = nullptr;
 	Vector<UIElement*> children;
 

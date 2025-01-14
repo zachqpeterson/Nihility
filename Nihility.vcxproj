@@ -69,15 +69,17 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)External;</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
-      <BuildStlModules>true</BuildStlModules>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External;</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812; 4251; 5050; 4099;</DisableSpecificWarnings>
+      <BuildStlModules>false</BuildStlModules>
+      <OpenMPSupport>false</OpenMPSupport>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;steam_api64.lib;glslangd.lib;GenericCodeGend.lib;MachineIndependentd.lib;OGLCompilerd.lib;OSDependentd.lib;glslang-default-resource-limitsd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-diffd.lib;SPIRV-Tools-linkd.lib;SPIRV-Tools-lintd.lib;SPIRV-Tools-reduced.lib;SPIRV-Tools-sharedd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Engine\External\Lib\vulkan-1.lib;$(SolutionDir)Engine\External\Lib\assimp-vc143-mt.lib;$(SolutionDir)Engine\External\Lib\steam_api64.lib;$(SolutionDir)Engine\External\Lib\glslangd.lib;$(SolutionDir)Engine\External\Lib\GenericCodeGend.lib;$(SolutionDir)Engine\External\Lib\MachineIndependentd.lib;$(SolutionDir)Engine\External\Lib\OSDependentd.lib;$(SolutionDir)Engine\External\Lib\glslang-default-resource-limitsd.lib;$(SolutionDir)Engine\External\Lib\SPIRVd.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Toolsd.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-diffd.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-linkd.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-lintd.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-optd.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-reduced.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-sharedd.lib;$(SolutionDir)Engine\External\Lib\discord_game_sdk.dll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
@@ -100,10 +102,12 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)External;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Engine\External;</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>26812; 4251; 5050;</DisableSpecificWarnings>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>false</OpenMPSupport>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -111,14 +115,43 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Engine\External\Lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;steam_api64.lib;glslang.lib;GenericCodeGen.lib;MachineIndependent.lib;OGLCompiler.lib;OSDependent.lib;glslang-default-resource-limits.lib;SPIRV.lib;SPIRV-Tools.lib;SPIRV-Tools-diff.lib;SPIRV-Tools-link.lib;SPIRV-Tools-lint.lib;SPIRV-Tools-reduce.lib;SPIRV-Tools-shared.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;discord_game_sdk.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Engine\External\Lib\vulkan-1.lib;$(SolutionDir)Engine\External\Lib\assimp-vc143-mt.lib;$(SolutionDir)Engine\External\Lib\steam_api64.lib;$(SolutionDir)Engine\External\Lib\glslang.lib;$(SolutionDir)Engine\External\Lib\GenericCodeGen.lib;$(SolutionDir)Engine\External\Lib\MachineIndependent.lib;$(SolutionDir)Engine\External\Lib\OGLCompiler.lib;$(SolutionDir)Engine\External\Lib\OSDependent.lib;$(SolutionDir)Engine\External\Lib\glslang-default-resource-limits.lib;$(SolutionDir)Engine\External\Lib\SPIRV.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-diff.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-link.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-lint.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-opt.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-reduce.lib;$(SolutionDir)Engine\External\Lib\SPIRV-Tools-shared.lib;$(SolutionDir)Engine\External\Lib\discord_game_sdk.dll.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <NoEntryPoint>false</NoEntryPoint>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Containers\Array.hpp" />
+    <ClInclude Include="Engine\Containers\Bitset.hpp" />
+    <ClInclude Include="Engine\Containers\Freelist.hpp" />
+    <ClInclude Include="Engine\Containers\Hashmap.hpp" />
+    <ClInclude Include="Engine\Containers\Hashset.hpp" />
+    <ClInclude Include="Engine\Containers\Pair.hpp" />
+    <ClInclude Include="Engine\Containers\Pool.hpp" />
+    <ClInclude Include="Engine\Containers\Queue.hpp" />
+    <ClInclude Include="Engine\Containers\SafeQueue.hpp" />
+    <ClInclude Include="Engine\Containers\Stack.hpp" />
+    <ClInclude Include="Engine\Containers\String.hpp" />
+    <ClInclude Include="Engine\Containers\Vector.hpp" />
     <ClInclude Include="Engine\Defines.hpp" />
     <ClInclude Include="Engine\Engine.hpp" />
+    <ClInclude Include="Engine\External\Discord\achievement_manager.h" />
+    <ClInclude Include="Engine\External\Discord\activity_manager.h" />
+    <ClInclude Include="Engine\External\Discord\application_manager.h" />
+    <ClInclude Include="Engine\External\Discord\core.h" />
+    <ClInclude Include="Engine\External\Discord\discord.h" />
+    <ClInclude Include="Engine\External\Discord\event.h" />
+    <ClInclude Include="Engine\External\Discord\ffi.h" />
+    <ClInclude Include="Engine\External\Discord\image_manager.h" />
+    <ClInclude Include="Engine\External\Discord\lobby_manager.h" />
+    <ClInclude Include="Engine\External\Discord\network_manager.h" />
+    <ClInclude Include="Engine\External\Discord\overlay_manager.h" />
+    <ClInclude Include="Engine\External\Discord\relationship_manager.h" />
+    <ClInclude Include="Engine\External\Discord\storage_manager.h" />
+    <ClInclude Include="Engine\External\Discord\store_manager.h" />
+    <ClInclude Include="Engine\External\Discord\types.h" />
+    <ClInclude Include="Engine\External\Discord\user_manager.h" />
+    <ClInclude Include="Engine\External\Discord\voice_manager.h" />
     <ClInclude Include="Engine\Introspection.hpp" />
     <ClInclude Include="Engine\Math\Broadphase.hpp" />
     <ClInclude Include="Engine\Math\Color.hpp" />
@@ -139,6 +172,7 @@
     <ClInclude Include="Engine\Rendering\Swapchain.hpp" />
     <ClInclude Include="Engine\Rendering\Tilemap.hpp" />
     <ClInclude Include="Engine\Rendering\UI.hpp" />
+    <ClInclude Include="Engine\Resources\Component.hpp" />
     <ClInclude Include="Engine\Resources\Font.hpp" />
     <ClInclude Include="Engine\Resources\Material.hpp" />
     <ClInclude Include="Engine\Resources\Mesh.hpp" />
@@ -149,68 +183,65 @@
     <ClInclude Include="Engine\SIMD.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Containers\Containers-Array.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Bitset.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Freelist.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Hashmap.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Hashset.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Pair.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Pool.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Queue.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Stack.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-String.ixx" />
-    <ClCompile Include="Engine\Containers\Containers-Vector.ixx" />
-    <ClCompile Include="Engine\Containers\Containers.ixx" />
-    <ClCompile Include="Engine\Core\Core-DataReader.ixx" />
-    <ClCompile Include="Engine\Core\Core-Events.ixx" />
-    <ClCompile Include="Engine\Core\Core-File.ixx" />
-    <ClCompile Include="Engine\Core\Core-Function.ixx" />
-    <ClCompile Include="Engine\Core\Core-Logger.ixx" />
-    <ClCompile Include="Engine\Core\Core-Time.ixx" />
-    <ClCompile Include="Engine\Core\Core.ixx" />
+    <ClCompile Include="Engine\Containers\Bitset.cpp" />
+    <ClCompile Include="Engine\Core\DataReader.cpp" />
+    <ClInclude Include="Engine\Core\DataReader.hpp" />
+    <ClInclude Include="Engine\Core\Events.hpp" />
+    <ClInclude Include="Engine\Core\File.hpp" />
+    <ClInclude Include="Engine\Core\Function.hpp" />
+    <ClInclude Include="Engine\Core\Logger.hpp" />
+    <ClInclude Include="Engine\Core\Time.hpp" />
     <ClCompile Include="Engine\Core\Events.cpp" />
     <ClCompile Include="Engine\Core\File.cpp" />
-    <ClCompile Include="Engine\Core\Core-Invocator.ixx" />
+    <ClInclude Include="Engine\Core\Invocator.hpp" />
     <ClCompile Include="Engine\Core\Logger.cpp" />
     <ClCompile Include="Engine\Core\Time.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Engine\External\Discord\achievement_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\activity_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\application_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\core.cpp" />
+    <ClCompile Include="Engine\External\Discord\image_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\lobby_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\network_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\overlay_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\relationship_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\storage_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\store_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\types.cpp" />
+    <ClCompile Include="Engine\External\Discord\user_manager.cpp" />
+    <ClCompile Include="Engine\External\Discord\voice_manager.cpp" />
     <ClCompile Include="Engine\Math\Broadphase.cpp" />
     <ClCompile Include="Engine\Math\Color.cpp" />
     <ClCompile Include="Engine\Math\Island.cpp" />
     <ClCompile Include="Engine\Math\Manifold.cpp" />
-    <ClCompile Include="Engine\Math\Math-Constants.ixx" />
-    <ClCompile Include="Engine\Math\Math-Functions.ixx" />
-    <ClCompile Include="Engine\Math\Math-Types.ixx" />
-    <ClCompile Include="Engine\Math\Math.cpp" />
-    <ClCompile Include="Engine\Math\Math.ixx" />
+    <ClInclude Include="Engine\Math\Constants.hpp" />
+    <ClInclude Include="Engine\Math\Functions.hpp" />
+    <ClInclude Include="Engine\Math\Types.hpp" />
     <ClCompile Include="Engine\Math\Physics.cpp" />
     <ClCompile Include="Engine\Math\PhysicsDefines.cpp" />
     <ClCompile Include="Engine\Math\RigidBody.cpp" />
     <ClCompile Include="Engine\Math\Shape.cpp" />
-    <ClCompile Include="Engine\Memory\Memory-Allocator.ixx" />
-    <ClCompile Include="Engine\Memory\Memory-Utilities.ixx" />
+    <ClInclude Include="Engine\Memory\Memory.hpp" />
     <ClCompile Include="Engine\Memory\Memory.cpp" />
-    <ClCompile Include="Engine\Memory\Memory.ixx" />
     <ClCompile Include="Engine\Networking\Discord.cpp" />
-    <ClCompile Include="Engine\Networking\Networking-Discord.ixx" />
-    <ClCompile Include="Engine\Networking\Networking-Steam.ixx" />
-    <ClCompile Include="Engine\Networking\Networking.ixx" />
+    <ClInclude Include="Engine\Networking\Discord.hpp" />
+    <ClInclude Include="Engine\Networking\Steam.hpp" />
     <ClCompile Include="Engine\Networking\Steam.cpp" />
     <ClCompile Include="Engine\Platform\Audio.cpp" />
-    <ClCompile Include="Engine\Platform\Audio.ixx" />
+    <ClInclude Include="Engine\Platform\Audio.hpp" />
     <ClCompile Include="Engine\Platform\Device.cpp" />
-    <ClCompile Include="Engine\Platform\Input-Main.ixx" />
+    <ClInclude Include="Engine\Platform\Input.hpp" />
     <ClCompile Include="Engine\Platform\Input.cpp" />
-    <ClCompile Include="Engine\Platform\Input.ixx" />
     <ClCompile Include="Engine\Platform\Jobs.cpp" />
-    <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx" />
-    <ClCompile Include="Engine\Platform\Platform-Settings.ixx" />
-    <ClCompile Include="Engine\Platform\Platform.ixx" />
+    <ClInclude Include="Engine\Platform\Jobs.hpp" />
+    <ClInclude Include="Engine\Platform\Settings.hpp" />
+    <ClInclude Include="Engine\Platform\Platform.hpp" />
+    <ClCompile Include="Engine\Platform\Semaphore.cpp" />
     <ClCompile Include="Engine\Platform\Settings.cpp" />
-    <ClCompile Include="Engine\Platform\ThreadSafety.ixx" />
-    <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx" />
-    <ClCompile Include="Engine\Platform\Multithreading.ixx" />
+    <ClCompile Include="Engine\Platform\ThreadSafety.cpp" />
+    <ClInclude Include="Engine\Platform\ThreadSafety.hpp" />
+    <ClInclude Include="Engine\Platform\Semaphore.hpp" />
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp" />
     <ClCompile Include="Engine\Rendering\CommandBuffer.cpp" />
     <ClCompile Include="Engine\Rendering\Pipeline.cpp" />
@@ -226,12 +257,7 @@
     <ClCompile Include="Engine\Resources\Resources.cpp" />
     <ClCompile Include="Engine\Resources\Scene.cpp" />
     <ClCompile Include="Engine\Resources\Shader\Shader.cpp" />
-    <ClCompile Include="Engine\TypeTraits.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="External\External.vcxproj">
-      <Project>{01de4924-2ced-4085-ad6f-a21ce70ffba9}</Project>
-    </ProjectReference>
+    <ClInclude Include="Engine\TypeTraits.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

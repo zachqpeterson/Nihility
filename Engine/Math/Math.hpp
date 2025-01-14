@@ -1,7 +1,8 @@
 #pragma once
 
-import Math;
-
+#include "Math\Constants.hpp"
+#include "Math\Functions.hpp"
+#include "Math\Types.hpp"
 #include "Math\Color.hpp"
 
 constexpr inline Vector2 Vector2Zero{ 0.0f };

@@ -1,9 +1,9 @@
 #include "Font.hpp"
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
+#include "Memory\Memory.hpp"
 
-import Memory;
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "External\stb_truetype.h"
 
 Vector2Int Font::atlasPositions[96];
 

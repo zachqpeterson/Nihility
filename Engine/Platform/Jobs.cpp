@@ -1,6 +1,8 @@
-module;
+#include "Jobs.hpp"
 
-#include "Defines.hpp"
+#include "ThreadSafety.hpp"
+
+#include "Core\Logger.hpp"
 
 #include <xthreads.h>
 
@@ -8,12 +10,6 @@ module;
 #include <Windows.h>
 #include <process.h>
 #endif
-
-module Multithreading:Jobs;
-
-import ThreadSafety;
-import Core;
-import Containers;
 
 #ifdef NH_PLATFORM_WINDOWS
 static U32(__stdcall* ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) = (U32(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");

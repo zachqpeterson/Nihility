@@ -1,11 +1,11 @@
 #include "Swapchain.hpp"
 
 #include "RenderingDefines.hpp"
-
 #include "Renderer.hpp"
-#include "Resources\Resources.hpp"
 
-import Platform;
+#include "Resources\Resources.hpp"
+#include "Platform\Platform.hpp"
+#include "Platform\Settings.hpp"
 
 bool Swapchain::CreateSurface()
 {

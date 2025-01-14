@@ -1,11 +1,11 @@
 #include "Tilemap.hpp"
 
+#include "Renderer.hpp"
 #include "RenderingDefines.hpp"
+
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
-#include "Renderer.hpp"
-
-import Input;
+#include "Platform\Input.hpp"
 
 TilemapComponent::TilemapComponent(U16 width, U16 height, Vector2 tileSize) : width(width), height(height), tileSize(tileSize * 8.0f)
 {
@@ -30,48 +30,48 @@ TilemapComponent::TilemapComponent(U16 width, U16 height, Vector2 tileSize) : wi
 	Renderer::FillBuffer(tiles, staging, 1, &copy);
 }
 
-void TilemapComponent::Update(Scene* scene)
-{
-	Vector4 area = Renderer::RenderArea();
-
-	F32 ratio = 1920.0f / area.z;
-
-	data.tileSize = Vector2{ 1.0f / tileSize.x * ratio, 1.0f / tileSize.y * ratio } * scene->GetCamera().Zoom();
-
-	F32 offsetX = (tileSize.x / ratio) * -scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom();
-	F32 offsetY = (tileSize.y / ratio) * scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom() * (1080.0f / 1920.0f);
-	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
-	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x , area.y } + Vector2{ offsetX, offsetY };
-
-	staging.allocationOffset = 0;
-}
-
-void TilemapComponent::Load(Scene* scene)
-{
-	Vector4 area = Renderer::RenderArea();
-
-	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
-	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x, area.y };
-	data.tileSize = Vector2{ 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) } * scene->GetCamera().Zoom();
-	data.width = width;
-	data.height = height;
-
-	PushConstant pc = { 0, sizeof(TilemapData), &data };
-	ResourceRef<Pipeline> pipeline = Resources::LoadPipeline("pipelines/tilemap.nhpln", 1, &pc);
-	if (!pipeline->DescriptorCount())
-	{
-		pipeline->AddDescriptor({ legend.vkBuffer });
-		pipeline->AddDescriptor({ tiles.vkBuffer });
-	}
-	scene->AddPipeline(pipeline);
-}
-
-void TilemapComponent::Cleanup(Scene* scene)
-{
-	Renderer::DestroyBuffer(tiles);
-	Renderer::DestroyBuffer(legend);
-	Renderer::DestroyBuffer(staging);
-}
+//void TilemapComponent::Update(Scene* scene)
+//{
+//	Vector4 area = Renderer::RenderArea();
+//
+//	F32 ratio = 1920.0f / area.z;
+//
+//	data.tileSize = Vector2{ 1.0f / tileSize.x * ratio, 1.0f / tileSize.y * ratio } * scene->GetCamera().Zoom();
+//
+//	F32 offsetX = (tileSize.x / ratio) * -scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom();
+//	F32 offsetY = (tileSize.y / ratio) * scene->GetCamera().ZoomVal() * scene->GetCamera().Zoom() * (1080.0f / 1920.0f);
+//	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
+//	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x , area.y } + Vector2{ offsetX, offsetY };
+//
+//	staging.allocationOffset = 0;
+//}
+//
+//void TilemapComponent::Load(Scene* scene)
+//{
+//	Vector4 area = Renderer::RenderArea();
+//
+//	F32 scale = 8.0f * (area.z / 1920.0f) / scene->GetCamera().Zoom();
+//	data.eye = scene->GetCamera().Eye().xy() * scale + Vector2{ -area.x, area.y };
+//	data.tileSize = Vector2{ 1.0f / tileSize.x * (1920.0f / area.z), 1.0f / tileSize.y * (1080.0f / area.w) } * scene->GetCamera().Zoom();
+//	data.width = width;
+//	data.height = height;
+//
+//	PushConstant pc = { 0, sizeof(TilemapData), &data };
+//	ResourceRef<Pipeline> pipeline = Resources::LoadPipeline("pipelines/tilemap.nhpln", 1, &pc);
+//	if (!pipeline->DescriptorCount())
+//	{
+//		pipeline->AddDescriptor({ legend.vkBuffer });
+//		pipeline->AddDescriptor({ tiles.vkBuffer });
+//	}
+//	scene->AddPipeline(pipeline);
+//}
+//
+//void TilemapComponent::Cleanup(Scene* scene)
+//{
+//	Renderer::DestroyBuffer(tiles);
+//	Renderer::DestroyBuffer(legend);
+//	Renderer::DestroyBuffer(staging);
+//}
 
 Vector2Int TilemapComponent::MouseToTilemap(const Camera& camera) const
 {

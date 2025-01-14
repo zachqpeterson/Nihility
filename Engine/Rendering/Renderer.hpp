@@ -6,7 +6,8 @@
 #include "Swapchain.hpp"
 #include "Pipeline.hpp"
 
-import Containers;
+#include "Containers\Vector.hpp"
+#include "Containers\Freelist.hpp"
 
 struct Scene;
 struct VkImage_T;

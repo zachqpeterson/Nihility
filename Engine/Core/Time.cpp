@@ -1,14 +1,10 @@
-module;
-
-#include "Defines.hpp"
+#include "Time.hpp"
 
 #include <time.h>
 
 #if defined(NH_PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
-
-module Core:Time;
 
 F64 Time::clockFrequency = ClockFrequency();
 F64 Time::programStart = ProgramStart();

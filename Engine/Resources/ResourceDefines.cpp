@@ -5,9 +5,7 @@
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 #include "Resources\Resources.hpp"
-
-import Core;
-import Input;
+#include "Platform\Input.hpp"
 
 // SAMPLER CREATION
 

@@ -1,21 +1,24 @@
 #include "Engine.hpp"
 
 #include "Defines.hpp"
+#include "TypeTraits.hpp"
 #include "Introspection.hpp"
+
+#include "Platform\Platform.hpp"
+#include "Platform\Settings.hpp"
+#include "Platform\Input.hpp"
+#include "Platform\Audio.hpp"
+#include "Platform\Jobs.hpp"
+#include "Networking\Discord.hpp"
+#include "Networking\Steam.hpp"
 #include "Resources\Resources.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\UI.hpp"
 #include "Math\Math.hpp"
 #include "Math\Physics.hpp"
-
-import Core;
-import Memory;
-import Multithreading;
-import ThreadSafety;
-import Networking;
-import Platform;
-import Audio;
-import Input;
+#include "Core\Logger.hpp"
+#include "Core\Events.hpp"
+#include "Core\Time.hpp"
 
 GameInfo Engine::gameInfo;
 

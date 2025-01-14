@@ -15,13 +15,9 @@ struct Camera;
 
 //TODO: Paralax
 //TODO: Tilemap Collision
-struct NH_API TilemapComponent : Component<TilemapComponent>
+struct NH_API TilemapComponent
 {
 	TilemapComponent(U16 width, U16 height, Vector2 tileSize);
-
-	virtual void Update(Scene* scene) final;
-	virtual void Load(Scene* scene) final;
-	virtual void Cleanup(Scene* scene) final;
 
 	Vector2Int MouseToTilemap(const Camera& camera) const;
 	U8 AddTile(const ResourceRef<Texture>& texture);

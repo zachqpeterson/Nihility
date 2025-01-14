@@ -1,13 +1,7 @@
-module;
+#include "Discord.hpp"
 
-#include "Defines.hpp"
-
-#include "Discord\discord.h"
-
-module Networking:Discord;
-
-import Core;
-import Containers;
+#include "Core\Logger.hpp"
+#include "Core\Time.hpp"
 
 discord::User Discord::currentUser;
 discord::Core* Discord::core;

@@ -1,8 +1,8 @@
 #pragma once
 
-import Containers;
-
 #include "Defines.hpp"
+
+#include "Containers\String.hpp"
 
 namespace Introspection
 {
@@ -28,10 +28,13 @@ namespace Introspection
 			constexpr StringView type = FullName();
 			constexpr U64 dummyLength = dummy.Size();
 			constexpr U64 typeLength = type.Size();
-			constexpr U64 prefixIndex = dummy.IndexOf(" ", dummy.IndexOf("<")) + 1;
-			constexpr U64 suffixIndex = dummy.IndexOf(">", prefixIndex);
 
-			return type.SubString(prefixIndex, (suffixIndex - prefixIndex) + (typeLength - dummyLength));
+			constexpr U64 prefixIndex = dummy.IndexOf('<') + 1;
+			constexpr U64 suffixIndex = dummy.IndexOf('>', prefixIndex);
+			constexpr U64 structIndex = type.IndexOf(' ', prefixIndex) + 1;
+
+			if constexpr (structIndex != 0) { return type.SubString(structIndex, (suffixIndex - structIndex) + (typeLength - dummyLength)); }
+			else { return type.SubString(prefixIndex, (suffixIndex - prefixIndex) + (typeLength - dummyLength)); }
 		}
 
 		constexpr static inline StringView value = Name();
@@ -39,3 +42,6 @@ namespace Introspection
 }
 
 template <class Type> constexpr inline const StringView NameOf = Introspection::TypeName<Type>::value;
+
+template <class Type>
+constexpr inline const StringView NameOfType(Type&) { return NameOf<Type>; }

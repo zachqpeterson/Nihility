@@ -2,8 +2,7 @@
 
 #include "Resources\ResourceDefines.hpp"
 
-import Containers;
-import Core;
+#include "Containers\String.hpp"
 
 static constexpr U8	MAX_SHADER_STAGES = 5;				// Maximum simultaneous shader stages, applicable to all different type of pipelines
 static constexpr U8 MAX_DESCRIPTOR_SETS = 8;

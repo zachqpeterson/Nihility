@@ -6,11 +6,9 @@
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
 #include "Rendering\Sprite.hpp"
-
-import Core;
-import Platform;
-import Audio;
-import Input;
+#include "Platform\Settings.hpp"
+#include "Platform\Input.hpp"
+#include "Platform\Audio.hpp"
 
 U32 musicChannel;
 U32 sfxChannel;

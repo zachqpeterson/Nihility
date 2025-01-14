@@ -4,25 +4,25 @@
 #include "Scene.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
+
 #include "Rendering\RenderingDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
+#include "Containers\Stack.hpp"
+#include "Platform\Audio.hpp"
 #include "Math\Math.hpp"
+#include "Core\DataReader.hpp"
 
-#include "Assimp\cimport.h"
-#include "Assimp\scene.h"
-#include "Assimp\postprocess.h"
+#include "External\Assimp\cimport.h"
+#include "External\Assimp\scene.h"
+#include "External\Assimp\postprocess.h"
 
 #define STBI_NO_STDIO
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "External\stb_image.h"
 
 #define STB_VORBIS_NO_STDIO
-#include "stb_vorbis.h"
-
-import Core;
-import Containers;
-import Audio;
+#include "External\stb_vorbis.h"
 
 #undef near
 #undef far

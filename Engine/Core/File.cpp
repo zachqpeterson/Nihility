@@ -1,7 +1,4 @@
-module;
-
-#include "Defines.hpp"
-#include "TypeTraits.hpp"
+#include "File.hpp"
 
 #include <io.h>
 #include <sys\stat.h>
@@ -10,10 +7,6 @@ module;
 #if defined NH_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
-
-module Core:File;
-
-import Memory;
 
 static constexpr I32 READ_MODE = 0x0001;
 static constexpr I32 WRITE_MODE = 0x0002;

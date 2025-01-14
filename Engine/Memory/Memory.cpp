@@ -1,14 +1,7 @@
-module;
-
-#include "Defines.hpp"
+#include "Memory.hpp"
 
 #include <corecrt_malloc.h>
 #include <vcruntime_string.h>
-
-module Memory:Allocator;
-
-import :Utilities;
-import ThreadSafety;
 
 U32 Memory::allocations = 0;
 U8* Memory::memory = nullptr;

@@ -1,9 +1,17 @@
 #pragma once
 
 #include "ResourceDefines.hpp"
+#include "Introspection.hpp"
 
-import Core;
-import Memory;
+#include "Component.hpp"
+
+#include "Containers\Bitset.hpp"
+#include "Containers\Array.hpp"
+#include "Containers\Vector.hpp"
+#include "Core\Function.hpp"
+#include "Core\Logger.hpp"
+
+#include <tuple>
 
 struct BufferCopy
 {
@@ -25,95 +33,128 @@ struct MeshDraw
 
 struct Scene;
 
-template<class Type>
-struct NH_API Component
+struct SparseSetBase
 {
-	U32 GetEntityID() const { return entityID; }
-
-protected:
-	Component() {}
-	Component(const Component& other) noexcept : entityID(other.entityID) {}
-	Component(Component&& other) noexcept : entityID(other.entityID) {}
-	Component& operator=(Component&& other) noexcept { entityID = other.entityID; return *this; }
-
-	virtual void Update(Scene* scene) = 0;
+	virtual ~SparseSetBase() = default;
+	virtual void Remove(U32) = 0;
+	virtual void Clear() = 0;
+	virtual U32 Size() = 0;
+	virtual bool ContainsIndex(U32) = 0;
+	virtual Vector<U32> IndexList() = 0;
 	virtual void Load(Scene* scene) = 0;
-	virtual void Cleanup(Scene* scene) = 0;
-
-	U32 entityID = U32_MAX;
-
-private:
-	static inline U32 index = U32_MAX;
-
-	friend struct Scene;
-	friend struct Entity;
-	friend struct ComponentRegistry;
-
-	template<class Type>
-	struct ComponentFactory;
-	friend struct ComponentFactory<Type>;
 };
 
-template <class Type> constexpr const bool IsComponent = InheritsFrom<Type, Component<Type>>;
-template <class Type> concept ComponentType = IsComponent<Type>;
-
-template<ComponentType Type>
-struct NH_API ComponentRef
+template<class Type>
+struct SparseSet : public SparseSetBase
 {
+private:
+	static constexpr U32 PageSize = 256;
+	static constexpr U32 Invalid = U32_MAX;
+
+	using Sparse = Array<U32, PageSize>;
+
 public:
-	ComponentRef() {}
-	ComponentRef(U32 index, Vector<Type>* array) : index(index), array(array) {}
-	ComponentRef(NullPointer) {}
-	ComponentRef(const ComponentRef& other) : index(other.index), array(other.array) {}
-	~ComponentRef() { index = U32_MAX; array = nullptr; }
+	SparseSet();
 
-	ComponentRef& operator=(NullPointer) { index = U32_MAX; array = nullptr; return *this; }
-	ComponentRef& operator=(const ComponentRef& other) { index = other.index; array = other.array; return *this; }
+	template<typename... Args>
+	Type* Emplace(U32 id, Args&&... args);
+	Type* Add(U32 id, Type&& obj);
+	Type* Get(U32 id);
+	Type& GetRef(U32 id);
+	void Remove(U32 id) override;
 
-	bool operator==(const ComponentRef<Type>& other) const { return index == other.index; }
-	bool operator!=(const ComponentRef<Type>& other) const { return index != other.index; }
-
-	Type* operator->();
-	const Type* operator->() const;
-
-	Type& operator*();
-	const Type& operator*() const;
-
-	operator bool() const { return index != U32_MAX; }
+	U32 Size() override;
+	Vector<U32> IndexList() override;
+	bool ContainsIndex(U32 id) override;
+	void Clear() override;
+	void Load(Scene* scene) override;
+	bool IsEmpty() const;
+	const Vector<Type>& Data() const;
 
 private:
-	U32 index = U32_MAX;
-	Vector<Type>* array = nullptr;
+	void SetDenseIndex(U32 id, U32 index);
+	U32 GetDenseIndex(U32 id);
+
+	Vector<Sparse> pages;
+	Vector<Type> dense;
+	Vector<U32> denseToEntity;
+
+	SparseSet(const SparseSet&) = delete;
+	SparseSet(SparseSet&&) = delete;
+	SparseSet& operator=(const SparseSet&) = delete;
+	SparseSet& operator=(SparseSet&&) = delete;
+};
+
+template <class... Types>
+struct TypeList {
+	using Tuple = std::tuple<Types...>;
+
+	template <U64 Index>
+	using Get = std::tuple_element_t<Index, Tuple>;
+
+	static constexpr U64 size = sizeof...(Types);
+};
+
+template<typename... Types>
+struct View
+{
+private:
+	using types = TypeList<Types...>;
+
+	bool AllContain(U32 id);
+
+	template <U64 Index>
+	auto GetPoolAt();
+
+	template <U64... Indices>
+	auto MakeComponentTuple(U32 id, IndexSequence<Indices...>);
+
+	template <typename Func>
+	void ForEachImpl(Func func);
+
+public:
+	using ForEachFunc = Function<void(Types&...)>;
+	using ForEachFuncWithID = Function<void(U32, Types&...)>;
+
+	View(Array<SparseSetBase*, sizeof...(Types)> pools);
+
+	void ForEach(ForEachFunc func);
+	void ForEach(ForEachFuncWithID func);
+
+	struct Pack {
+		U32 id;
+		std::tuple<Types&...> components;
+	};
+
+	Vector<Pack> GetPacked();
+
+private:
+	Array<SparseSetBase*, sizeof...(Types)> viewPools;
+
+	SparseSetBase* smallest = nullptr;
 };
 
 struct NH_API Entity
 {
 public:
-	Entity(Entity&& other) noexcept;
-	Entity& operator=(Entity&& other) noexcept;
+	Entity();
 
-	template<ComponentType Type, typename... Args>
-	ComponentRef<Type> CreateComponent(Args&&... args) noexcept;
+	template<class Type, typename... Args>
+	Type* AddComponent(Args&&... args) noexcept;
 
-	template<ComponentType Type>
-	void DestroyComponent() noexcept;
+	template<class Type>
+	Type* GetComponent();
 
-	template<ComponentType Type>
-	ComponentRef<Type> GetComponent() noexcept;
-
-	Transform transform;
+	template <class Type>
+	void RemoveComponent();
 
 private:
-	Entity(Scene* scene, U32 id) : scene(scene), entityID(id) {}
+	Entity(U32 id, Scene* scene);
 
+	U32 id;
 	Scene* scene;
-	U32 entityID;
-	Vector<U32> references;
 
-	Entity(const Entity&) = delete;
-	Entity& operator=(const Entity&) = delete;
-
-	friend struct Scene;
+	friend Scene;
 };
 
 struct Mesh;
@@ -124,8 +165,52 @@ struct CommandBuffer;
 
 struct NH_API Scene
 {
-	Entity* CreateEntity();
-	Entity* GetEntity(U32 id);
+private:
+	static constexpr U32 Invalid = U32_MAX;
+
+	static constexpr U64 MaxComponents = 64;
+
+	template<class Type>
+	U64 GetComponentBitPosition();
+
+	template<class Type>
+	SparseSetBase* GetComponentPoolPtr();
+
+	template <class Type>
+	SparseSet<Type>& GetComponentPool();
+
+	template <class Type>
+	void SetComponentBit(Bitset& mask, bool val);
+
+	template <class Type>
+	void AddComponentBit();
+
+	Bitset& GetEntityMask(U32 id);
+
+	template <class... Types>
+	Bitset GetMask();
+
+	template <class Type>
+	void RegisterComponent();
+
+	template <class Type, typename... Args>
+	Type* AddComponent(U32 id, Args&&... args);
+
+	template <class Type>
+	Type* GetComponent(U32 id);
+
+	template <class Type>
+	void DestroyComponent(U32 id);
+
+public:
+	Entity CreateEntity();
+	void DestroyEntity(Entity& id);
+
+	template<class Type>
+	void LoadComponents();
+
+	template <class... Types>
+	View<Types...> GetView();
 
 	const String& Name() { return name; }
 	const Camera& GetCamera()
@@ -191,6 +276,12 @@ private:
 	Vector<ResourceRef<Pipeline>>	pipelines;
 	Vector<Renderpass>				renderpasses;
 
+	Vector<U32> availableEntities;
+	SparseSet<Bitset> entityMasks;
+	Vector<SparseSetBase*> componentPools;
+	Hashmap<StringView, U64> componentBitPosition;
+	U32 maxEntityID = 0;
+
 #ifdef NH_DEBUG
 	FlyCamera						flyCamera;
 #else
@@ -205,171 +296,388 @@ private:
 	friend struct Entity;
 };
 
-template<ComponentType Type>
-struct NH_API ComponentFactory
+template <class Type, typename... Args>
+inline Type* Scene::AddComponent(U32 id, Args&&... args)
 {
-protected:
-	virtual ComponentRef<Type> CreateComponent(Scene* scene, U32 entityID, Type** type)
+	SparseSet<Type>& pool = GetComponentPool<Type>();
+
+	if (pool.Get(id)) { return pool.Emplace(id, Forward<Args>(args)...); }
+
+	Bitset& mask = GetEntityMask(id);
+
+	SetComponentBit<Type>(mask, 1);
+
+	Type* t = pool.Emplace(id, Forward<Args>(args)...);
+
+	if (loaded) { t->Load(this, id); }
+
+	return t;
+}
+
+template <class Type>
+inline Type* Scene::GetComponent(U32 id)
+{
+	SparseSet<Type>& pool = GetComponentPool<Type>();
+
+	return pool.Get(id);
+}
+
+template <class Type>
+inline void Scene::DestroyComponent(U32 id)
+{
+	SparseSet<Type>& pool = GetComponentPool<Type>();
+
+	if (!pool.Get(id)) { return; }
+
+	//TODO: call cleanup
+
+	Bitset& mask = GetEntityMask(id);
+	SetComponentBit<Type>(mask, 0);
+
+	pool.Remove(id);
+}
+
+template <class Type>
+inline void Scene::RegisterComponent()
+{
+	AddComponentBit<Type>();
+
+	componentPools.Push(new SparseSet<Type>());
+}
+
+template<class Type>
+inline U64 Scene::GetComponentBitPosition()
+{
+	U64* index = componentBitPosition.Get(NameOf<Type>);
+
+	if (index) { return *index; }
+
+	return Invalid;
+}
+
+template<class Type>
+inline SparseSetBase* Scene::GetComponentPoolPtr()
+{
+	U64 bitPos = GetComponentBitPosition<Type>();
+
+	if (bitPos == Invalid)
 	{
-		U32 index = freelist.GetFree();
-
-		if (index == components.Size()) { components.PushEmpty(); }
-
-		*type = &components[index];
-
-		return ComponentRef<Type>(index, &components);
+		RegisterComponent<Type>();
+		bitPos = GetComponentBitPosition<Type>();
 	}
 
-	virtual void DestroyComponent(Scene* scene, U32 entityID)
-	{
-		for (Type* it = components.begin(); it != components.end(); ++it)
-		{
-			if (it->GetEntityID() == entityID)
-			{
-				freelist.Release((U32)(it - components.begin()));
+	return componentPools[bitPos];
+}
 
-				it->Cleanup(scene);
+template <class Type>
+inline SparseSet<Type>& Scene::GetComponentPool()
+{
+	SparseSetBase* genericPtr = GetComponentPoolPtr<Type>();
+	SparseSet<Type>* pool = static_cast<SparseSet<Type>*>(genericPtr);
+
+	return *pool;
+}
+
+template <class Type>
+inline void Scene::SetComponentBit(Bitset& mask, bool val)
+{
+	U64 bitPos = GetComponentBitPosition<Type>();
+	if (val) { mask.SetBit(bitPos); }
+	else { mask.ClearBit(bitPos); }
+}
+
+template <class Type>
+inline void Scene::AddComponentBit()
+{
+	U64* index = componentBitPosition.Request(NameOf<Type>);
+	*index = componentPools.Size();
+}
+
+template <class... Types>
+inline Bitset Scene::GetMask()
+{
+	Bitset mask;
+	(SetComponentBit<Types>(mask, 1), ...);
+	return mask;
+}
+
+template<class Type>
+inline void Scene::LoadComponents()
+{
+	if constexpr (IsComponent<Type>)
+	{
+		View<Type> view = GetView<Type>();
+
+		view.ForEach([&](U32 id, Type& t)
+		{
+			t.Load(this, id);
+		});
+	}
+}
+
+template <class... Types>
+inline View<Types...> Scene::GetView()
+{
+	Array<SparseSetBase*, sizeof...(Types)> arr = { GetComponentPoolPtr<Types>()... };
+
+	return { arr };
+}
+
+template<class Type, typename... Args>
+inline Type* Entity::AddComponent(Args&&... args) noexcept
+{
+	return scene->AddComponent<Type>(id, Forward<Args>(args)...);
+}
+
+template<class Type>
+inline void Entity::RemoveComponent()
+{
+	scene->DestroyComponent<Type>(id);
+}
+
+template<class Type>
+inline Type* Entity::GetComponent()
+{
+	return scene->GetComponent<Type>(id);
+}
+
+template<class Type>
+SparseSet<Type>::SparseSet()
+{
+	dense.Reserve(256);
+	denseToEntity.Reserve(256);
+}
+
+template<class Type>
+template<typename... Args>
+inline Type* SparseSet<Type>::Emplace(U32 id, Args&&... args)
+{
+	U32 index = GetDenseIndex(id);
+	if (index != Invalid)
+	{
+		dense.EmplaceAt(index, Forward<Args>(args)...);
+		denseToEntity[index] = id;
+
+		return dense.Data() + index;
+	}
+
+	SetDenseIndex(id, (U32)dense.Size());
+
+	dense.Emplace(Forward<Args>(args)...);
+	denseToEntity.Push(id);
+
+	return &dense.Back();
+}
+
+template<class Type>
+inline Type* SparseSet<Type>::Add(U32 id, Type&& obj)
+{
+	U32 index = GetDenseIndex(id);
+	if (index != Invalid)
+	{
+		dense[index] = Move(obj);
+		denseToEntity[index] = id;
+
+		return dense.Data() + index;
+	}
+
+	SetDenseIndex(id, (U32)dense.Size());
+
+	dense.Push(obj);
+	denseToEntity.Push(id);
+
+	return &dense.Back();
+}
+
+template<class Type>
+inline Type* SparseSet<Type>::Get(U32 id)
+{
+	U32 index = GetDenseIndex(id);
+
+	if (index == Invalid) { return nullptr; }
+	else { return dense.Data() + index; }
+}
+
+template<class Type>
+inline Type& SparseSet<Type>::GetRef(U32 id)
+{
+	U32 index = GetDenseIndex(id);
+	if (index == Invalid) { BreakPoint; }
+	return dense[index];
+}
+
+template<class Type>
+inline void SparseSet<Type>::Remove(U32 id)
+{
+	U32 deletedIndex = GetDenseIndex(id);
+
+	if (dense.Empty() || deletedIndex == Invalid) { return; }
+
+	SetDenseIndex(denseToEntity.Back(), deletedIndex);
+	SetDenseIndex(id, Invalid);
+
+	Swap(dense.Back(), dense[deletedIndex]);
+	Swap(denseToEntity.Back(), denseToEntity[deletedIndex]);
+
+	dense.Pop();
+	denseToEntity.Pop();
+}
+
+template<class Type>
+inline void SparseSet<Type>::SetDenseIndex(U32 id, U32 index)
+{
+	U32 page = id / PageSize;
+	U32 sparseIndex = id % PageSize;
+
+	if (page >= pages.Size())
+	{
+		pages.Resize(page + 1);
+		for (U32& i : pages[page]) { i = Invalid; }
+	}
+
+	Sparse& sparse = pages[page];
+
+	sparse[sparseIndex] = index;
+}
+
+template<class Type>
+inline U32 SparseSet<Type>::GetDenseIndex(U32 id)
+{
+	U32 page = id / PageSize;
+	U32 sparseIndex = id % PageSize;
+
+	if (page < pages.Size())
+	{
+		Sparse& sparse = pages[page];
+		return sparse[sparseIndex];
+	}
+
+	return Invalid;
+}
+
+template<class Type>
+inline U32 SparseSet<Type>::Size()
+{
+	return (U32)dense.Size();
+}
+
+template<class Type>
+inline Vector<U32> SparseSet<Type>::IndexList()
+{
+	return denseToEntity;
+}
+
+template<class Type>
+inline bool SparseSet<Type>::ContainsIndex(U32 id)
+{
+	return GetDenseIndex(id) != Invalid;
+}
+
+template<class Type>
+inline void SparseSet<Type>::Clear()
+{
+	dense.Clear();
+	pages.Clear();
+	denseToEntity.Clear();
+}
+
+template<class Type>
+inline void SparseSet<Type>::Load(Scene* scene)
+{
+	scene->LoadComponents<Type>();
+}
+
+template<class Type>
+inline bool SparseSet<Type>::IsEmpty() const
+{
+	return dense.Empty();
+}
+
+template<class Type>
+inline const Vector<Type>& SparseSet<Type>::Data() const
+{
+	return dense;
+}
+
+template<typename... Types>
+inline View<Types...>::View(Array<SparseSetBase*, sizeof...(Types)> pools) : viewPools{ pools }
+{
+	smallest = viewPools[0];
+
+	for (SparseSetBase* base : viewPools)
+	{
+		if (base->Size() < smallest->Size()) { smallest = base; }
+	}
+}
+
+template<typename... Types>
+inline void View<Types...>::ForEach(ForEachFunc func)
+{
+	ForEachImpl(func);
+}
+
+template<typename... Types>
+inline void View<Types...>::ForEach(ForEachFuncWithID func)
+{
+	ForEachImpl(func);
+}
+
+template<typename... Types>
+inline Vector<typename View<Types...>::Pack> View<Types...>::GetPacked()
+{
+	auto inds = MakeIndexSequence<sizeof...(Types)>{};
+	Vector<Pack> result;
+
+	for (U32 id : smallest->IndexList())
+		if (AllContain(id))
+			result.Push({ id, MakeComponentTuple(id, inds) });
+	return result;
+}
+
+template<typename... Types>
+inline bool View<Types...>::AllContain(U32 id)
+{
+	for (SparseSetBase* pool : viewPools)
+	{
+		if (!pool->ContainsIndex(id)) { return false; }
+	}
+
+	return true;
+}
+
+template<typename... Types>
+template <U64 Index>
+inline auto View<Types...>::GetPoolAt()
+{
+	using componentType = typename types::template Get<Index>;
+	return static_cast<SparseSet<componentType>*>(viewPools[Index]);
+}
+
+template<typename... Types>
+template <U64... Indices>
+inline auto View<Types...>::MakeComponentTuple(U32 id, IndexSequence<Indices...>)
+{
+	return std::make_tuple((std::ref(GetPoolAt<Indices>()->GetRef(id)))...);
+}
+
+template<typename... Types>
+template <typename Func>
+inline void View<Types...>::ForEachImpl(Func func)
+{
+	auto inds = MakeIndexSequence<sizeof...(Types)>{};
+
+	for (U32 id : smallest->IndexList())
+	{
+		if (AllContain(id))
+		{
+			if constexpr (IsInvocable<Func, U32, Types&...>)
+			{
+				std::apply(func, std::tuple_cat(std::make_tuple(id), MakeComponentTuple(id, inds)));
+			}
+			else if constexpr (IsInvocable<Func, Types&...>)
+			{
+				std::apply(func, MakeComponentTuple(id, inds));
 			}
 		}
 	}
-
-	virtual ComponentRef<Type> GetComponent(U32 entityID)
-	{
-		for (Type* it = components.begin(); it != components.end(); ++it)
-		{
-			if (it->GetEntityID() == entityID)
-			{
-				return ComponentRef<Type>((U32)(it - components.begin()), &components);
-			}
-		}
-
-		return nullptr;
-	}
-
-public:
-	virtual I32 GetComponentID(Type& component)
-	{
-		return (I32)components.Index(&component);
-	}
-
-	Freelist freelist = 256;
-	Vector<Type> components;
-
-	friend struct Entity;
-	friend struct ComponentRef<Type>;
-	friend struct ComponentRegistry;
-};
-
-template<ComponentType Type>
-inline Type* ComponentRef<Type>::operator->() { return &array->Get(index); }
-
-template<ComponentType Type>
-inline const Type* ComponentRef<Type>::operator->() const { return &array->Get(index); }
-
-template<ComponentType Type>
-inline Type& ComponentRef<Type>::operator*() { return array->Get(index); }
-
-template<ComponentType Type>
-inline const Type& ComponentRef<Type>::operator*() const { return array->Get(index); }
-
-template <ComponentType Type>
-using ComponentCreateFn = Function<ComponentRef<Type>(Scene*, U32, Type**)>;
-template <ComponentType Type>
-using ComponentDestroyFn = Function<void(Scene*, U32)>;
-template <ComponentType Type>
-using ComponentGetFn = Function<ComponentRef<Type>(U32)>;
-
-struct NH_API ComponentRegistry
-{
-private:
-	template<ComponentType Type>
-	struct FactoryStorage
-	{
-		ComponentFactory<Type> factory;
-
-		ComponentCreateFn<Type> CreateFunction;
-		ComponentDestroyFn<Type> DestroyFunction;
-		ComponentGetFn<Type> GetFunction;
-	};
-
-public:
-	template<ComponentType Type>
-	static void RegisterComponent(const ComponentCreateFn<Type>& createFn, const ComponentDestroyFn<Type>& destroyFn, const ComponentGetFn<Type>& getFn)
-	{
-		if (Type::index == U32_MAX)
-		{
-			Type::index = (U32)components.Size();
-			FactoryStorage<Type>* storage = (FactoryStorage<Type>*)components.Push(nullptr);
-
-			Memory::Allocate(&storage);
-			storage->CreateFunction = createFn;
-			storage->DestroyFunction = destroyFn;
-			storage->GetFunction = getFn;
-		}
-	}
-
-	template<ComponentType Type>
-	static void RegisterComponent()
-	{
-		if (Type::index == U32_MAX)
-		{
-			Type::index = (U32)components.Size();
-			FactoryStorage<Type>* storage = (FactoryStorage<Type>*)components.Push(nullptr);
-
-			Memory::Allocate(&storage);
-			storage->factory = {};
-			storage->CreateFunction = Bind(&ComponentFactory<Type>::CreateComponent, &storage->factory, Placeholder1, Placeholder2, Placeholder3);
-			storage->DestroyFunction = Bind(&ComponentFactory<Type>::DestroyComponent, &storage->factory, Placeholder1, Placeholder2);
-			storage->GetFunction = Bind(&ComponentFactory<Type>::GetComponent, &storage->factory, Placeholder1);
-		}
-	}
-
-	template<ComponentType Type>
-	static ComponentCreateFn<Type>& CreateFunction()
-	{
-		if (Type::index == U32_MAX) { RegisterComponent<Type>(); }
-
-		return ((FactoryStorage<Type>*)components[Type::index])->CreateFunction;
-	}
-
-	template<ComponentType Type>
-	static ComponentDestroyFn<Type>& DestroyFunction()
-	{
-		if (Type::index == U32_MAX) { RegisterComponent<Type>(); }
-
-		return ((FactoryStorage<Type>*)components[Type::index])->DestroyFunction;
-	}
-
-	template<ComponentType Type>
-	static ComponentGetFn<Type>& GetFunction()
-	{
-		if (Type::index == U32_MAX) { RegisterComponent<Type>(); }
-
-		return ((FactoryStorage<Type>*)components[Type::index])->GetFunction;
-	}
-
-	static Vector<void*> components;
-};
-
-template<ComponentType Type, typename... Args>
-inline ComponentRef<Type> Entity::CreateComponent(Args&&... args) noexcept
-{
-	Type* type;
-	ComponentRef<Type> ref = ComponentRegistry::CreateFunction<Type>()(scene, entityID, &type);
-
-	Construct(type, Type{ args... });
-	type->Load(scene);
-	return ref;
-}
-
-template<ComponentType Type>
-void Entity::DestroyComponent() noexcept
-{
-	ComponentRegistry::DestroyFunction<Type>()(scene, entityID);
-}
-
-template<ComponentType Type>
-inline ComponentRef<Type> Entity::GetComponent() noexcept
-{
-	return ComponentRegistry::GetFunction<Type>()(entityID);
 }

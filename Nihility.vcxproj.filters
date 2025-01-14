@@ -35,9 +35,6 @@
     <Filter Include="Source Files\Platform\Multithreading">
       <UniqueIdentifier>{31a517af-19ea-4978-b274-99eab1d08649}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\External">
-      <UniqueIdentifier>{55a9f224-ea4f-4eb7-a619-62a6a3ab505f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Platform\Audio">
       <UniqueIdentifier>{aeb6384d-a089-44d2-b2cc-9bc52c467d0a}</UniqueIdentifier>
     </Filter>
@@ -53,8 +50,11 @@
     <Filter Include="Source Files\Math\Physics">
       <UniqueIdentifier>{235fa868-c4c7-454e-9674-291dbb09f339}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Resources\ECS">
-      <UniqueIdentifier>{d687f639-2dc7-4e3e-86d2-c39c7aca3486}</UniqueIdentifier>
+    <Filter Include="Source Files\External">
+      <UniqueIdentifier>{6cd83de0-c0ec-4757-a824-9ef0fdb37413}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\Discord">
+      <UniqueIdentifier>{4ac4fcab-18f4-4099-94f4-8f71c3d37f10}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +148,159 @@
     <ClInclude Include="Engine\Math\RigidBody.hpp">
       <Filter>Source Files\Math\Physics</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Containers\Array.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Bitset.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Freelist.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Hashmap.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Hashset.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Pair.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Pool.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Queue.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\SafeQueue.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Stack.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\String.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Containers\Vector.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\DataReader.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Events.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\File.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Function.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Invocator.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Logger.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\Time.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Memory\Memory.hpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Constants.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Functions.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Math\Types.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Networking\Discord.hpp">
+      <Filter>Source Files\Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Networking\Steam.hpp">
+      <Filter>Source Files\Networking</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Audio.hpp">
+      <Filter>Source Files\Platform\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Input.hpp">
+      <Filter>Source Files\Platform\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Jobs.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Semaphore.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\ThreadSafety.hpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Platform.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Settings.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\TypeTraits.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\user_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\voice_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\achievement_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\activity_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\application_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\core.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\discord.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\event.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\ffi.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\image_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\lobby_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\network_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\overlay_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\relationship_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\storage_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\store_manager.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\External\Discord\types.h">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Resources\Component.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Platform\PlatformWindows.cpp">
@@ -237,137 +390,17 @@
     <ClCompile Include="Engine\Networking\Steam.cpp">
       <Filter>Source Files\Networking</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Vector.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Math\Math.ixx">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Math\Math-Types.ixx">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Math\Math-Functions.ixx">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Math\Math-Constants.ixx">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Multithreading.ixx">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Multithreading-Jobs.ixx">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Multithreading-Semaphore.ixx">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\ThreadSafety.ixx">
-      <Filter>Source Files\Platform\Multithreading</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-Time.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-Logger.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Core\Time.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Core\Logger.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Math\Math.cpp">
-      <Filter>Source Files\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-File.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-DataReader.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-Events.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-Function.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Freelist.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Memory\Memory.ixx">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Memory\Memory-Allocator.ixx">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Memory\Memory-Utilities.ixx">
-      <Filter>Source Files\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-SafeQueue.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Queue.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Platform\Jobs.cpp">
       <Filter>Source Files\Platform\Multithreading</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Hashmap.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Stack.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Pair.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Pool.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-String.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Array.ixx">
-      <Filter>Source Files\Containers</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Networking\Networking.ixx">
-      <Filter>Source Files\Networking</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Networking\Networking-Discord.ixx">
-      <Filter>Source Files\Networking</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Networking\Networking-Steam.ixx">
-      <Filter>Source Files\Networking</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Platform.ixx">
-      <Filter>Source Files\Platform</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Platform-Settings.ixx">
-      <Filter>Source Files\Platform</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Platform\Settings.cpp">
       <Filter>Source Files\Platform</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Audio.ixx">
-      <Filter>Source Files\Platform\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Core\Core-Invocator.ixx">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Input.ixx">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Platform\Input-Main.ixx">
-      <Filter>Source Files\Platform\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Hashset.ixx">
-      <Filter>Source Files\Containers</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Math\Manifold.cpp">
       <Filter>Source Files\Math\Physics</Filter>
@@ -378,11 +411,59 @@
     <ClCompile Include="Engine\Math\RigidBody.cpp">
       <Filter>Source Files\Math\Physics</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\TypeTraits.hpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Engine\Platform\Semaphore.cpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Containers\Containers-Bitset.ixx">
+    <ClCompile Include="Engine\Platform\ThreadSafety.cpp">
+      <Filter>Source Files\Platform\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Containers\Bitset.cpp">
       <Filter>Source Files\Containers</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\DataReader.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\achievement_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\activity_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\application_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\core.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\image_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\lobby_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\network_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\overlay_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\relationship_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\storage_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\store_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\types.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\user_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\External\Discord\voice_manager.cpp">
+      <Filter>Source Files\External\Discord</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

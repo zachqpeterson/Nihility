@@ -1,8 +1,7 @@
 #include "Device.hpp"
 #include "TypeTraits.hpp"
 
-import Core;
-import Memory;
+#include "Core\Logger.hpp"
 
 #if defined NH_PLATFORM_WINDOWS
 

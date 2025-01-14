@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Math\Math.hpp"
 
-import Core;
-import Memory;
+#include "Math\Math.hpp"
+#include "Containers\String.hpp"
+#include "Core\Logger.hpp"
 
 /*---------DEFINES---------*/
 
@@ -21,7 +21,7 @@ import Memory;
 #define VK_USE_PLATFORM_IOS_MVK
 #endif
 
-#include "LunarG\vulkan\vulkan.hpp"
+#include "External\LunarG\vulkan\vulkan.h"
 
 #define VK_ADDITIONAL_VALIDATION
 

@@ -1,13 +1,8 @@
-module;
+#include "Settings.hpp"
 
-#include "Defines.hpp"
+#include "Core\Logger.hpp"
 
 #include <Windows.h>
-
-module Platform:Settings;
-
-import Core;
-import Containers;
 
 HKEY Settings::registryKey;
 

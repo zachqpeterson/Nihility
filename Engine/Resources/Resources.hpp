@@ -1,10 +1,13 @@
 #pragma once
 
 #include "ResourceDefines.hpp"
-
 #include "Material.hpp"
 
-import Containers;
+#include "Containers\String.hpp"
+#include "Containers\Vector.hpp"
+#include "Containers\Hashmap.hpp"
+#include "Containers\Queue.hpp"
+#include "Containers\Pair.hpp"
 
 struct Font;
 struct AudioClip;

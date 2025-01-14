@@ -23,7 +23,8 @@
 #include "PhysicsDefines.hpp"
 #include "PhysicsEvents.hpp"
 
-import Containers;
+#include "Containers\Vector.hpp"
+#include "Containers\Freelist.hpp"
 
 struct Scene;
 
@@ -51,11 +52,6 @@ public:
 private:
 	static bool Initialize();
 	static void Shutdown();
-
-	static ComponentRef<RigidBody2D> CreateComponent(Scene* scene, U32 entityID, RigidBody2D** type);
-	static void DestroyComponent(Scene* scene, U32 entityID);
-	static ComponentRef<RigidBody2D> GetComponent(U32 entityID);
-	static I32 GetComponentID(RigidBody2D& component);
 
 	static void Update(F32 step);
 	static void Solve(StepContext& stepContext);

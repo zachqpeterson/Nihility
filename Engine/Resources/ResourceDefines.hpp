@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Math\Math.hpp"
 #include "TypeTraits.hpp"
 
-import Containers;
+#include "Math\Math.hpp"
+#include "Containers\Pair.hpp"
+#include "Containers\String.hpp"
+#include "Containers\Hashmap.hpp"
 
 static constexpr U8 MAX_MIPMAP_COUNT = 16;
 static constexpr U8	MAX_IMAGE_OUTPUTS = 8;				// Maximum number of images/render targets/fbo attachments usable

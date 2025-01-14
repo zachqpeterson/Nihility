@@ -28,7 +28,7 @@
 #include "RigidBody.hpp"
 #include "Resources\Scene.hpp"
 
-import ThreadSafety;
+#include "Containers\Bitset.hpp"
 
 #define PROXY_TYPE(KEY) ((BodyType)((KEY) & 3))
 #define PROXY_ID(KEY) ((KEY) >> 2)

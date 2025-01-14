@@ -1,12 +1,10 @@
 #include "Pipeline.hpp"
 
 #include "RenderingDefines.hpp"
-
 #include "Renderer.hpp"
-#include "Resources\Resources.hpp"
 
-import Core;
-import Platform;
+#include "Resources\Resources.hpp"
+#include "Core\File.hpp"
 
 Dependancy::Dependancy(DependancyType type) : type(type) {}
 Dependancy::Dependancy(const ResourceRef<Pipeline>& pipeline, DependancyType type, U8 index) : pipeline(pipeline), type(type), index(index) {}

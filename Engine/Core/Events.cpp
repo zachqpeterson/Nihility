@@ -1,12 +1,4 @@
-module;
-
-#include "Defines.hpp"
-#include "TypeTraits.hpp"
-
-module Core:Events;
-
-import :Function;
-import Containers;
+#include "Events.hpp"
 
 Hashmap<String, Events::Event> Events::events(128);
 
@@ -22,7 +14,7 @@ void Events::Shutdown()
 
 void Events::RegisterEvent(const String& name)
 {
-	events.Insert(name, {});
+	*events.Request(name) = {};
 }
 
 void Events::Listen(const String& name, const Function<void()>& response)

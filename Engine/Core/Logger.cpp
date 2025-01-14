@@ -1,14 +1,9 @@
-module;
+#include "Logger.hpp"
 
-#include "Defines.hpp"
-#include "TypeTraits.hpp"
+#include "File.hpp"
 
-module Core:Logger;
-
-import :File;
-import Containers;
-import Multithreading;
-import Platform;
+#include "Platform\Jobs.hpp"
+#include "Platform\Platform.hpp"
 
 File logFile = File("Log.log", FILE_OPEN_LOG);
 File console = File("CONOUT$", FILE_OPEN_CONSOLE);

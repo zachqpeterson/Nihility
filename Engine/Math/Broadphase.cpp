@@ -22,7 +22,8 @@
 
 #include "Physics.hpp"
 
-import Containers;
+#include "Memory\Memory.hpp"
+#include "Containers\Stack.hpp"
 
 static constexpr TreeNode DefaultTreeNode = { { { 0.0f, 0.0f }, { 0.0f, 0.0f } }, 0, { NullNode }, NullNode, NullNode, -1, -2, false };
 static constexpr U64 TreeStackSize = 1024;

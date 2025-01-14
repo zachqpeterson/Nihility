@@ -1,11 +1,10 @@
 #pragma once
 
 #include "ResourceDefines.hpp"
-
 #include "Material.hpp"
-#include "Resources\Scene.hpp"
 
-import Memory;
+#include "Resources\Scene.hpp"
+#include "Memory\Memory.hpp"
 
 struct Entity;
 struct Scene;
@@ -126,7 +125,7 @@ struct NH_API Model : public Resource //TODO: model instance
 	Vector<MeshInstance> meshes;
 };
 
-struct NH_API MeshComponent : public Component<MeshComponent>
+struct NH_API MeshComponent
 {
 	MeshComponent(const ResourceRef<Mesh>& mesh, const ResourceRef<Material>& material)
 	{
@@ -135,38 +134,36 @@ struct NH_API MeshComponent : public Component<MeshComponent>
 		meshInstance.material = material;
 		Copy((U32*)meshInstance.instanceData.data, (U32*)&material->Handle(), 1);
 	}
-	MeshComponent(MeshComponent&& other) noexcept : Component<MeshComponent>(Move(other)), meshInstance(Move(other.meshInstance)), modelMatrix(other.modelMatrix) {}
+	MeshComponent(MeshComponent&& other) noexcept : meshInstance(Move(other.meshInstance)), modelMatrix(other.modelMatrix) {}
 	MeshComponent& operator=(MeshComponent&& other) noexcept
 	{
-		Component<MeshComponent>::operator=(Move(other));
 		meshInstance = Move(other.meshInstance);
 		modelMatrix = other.modelMatrix;
 		return *this;
 	}
 
-	virtual void Update(Scene* scene) final;
-	virtual void Load(Scene* scene) final;
-	virtual void Cleanup(Scene* scene) final {}
+	//virtual void Update(Scene* scene) final;
+	//virtual void Load(Scene* scene) final;
+	//virtual void Cleanup(Scene* scene) final {}
 
 	Matrix4		 modelMatrix;
 	MeshInstance meshInstance;
 };
 
-struct NH_API ModelComponent : public Component<ModelComponent>
+struct NH_API ModelComponent
 {
 	ModelComponent(const ResourceRef<Model>& model) : model(model) {}
-	ModelComponent(ModelComponent&& other) noexcept : Component<ModelComponent>(Move(other)), model(other.model), modelMatrix(other.modelMatrix) {}
+	ModelComponent(ModelComponent&& other) noexcept :  model(other.model), modelMatrix(other.modelMatrix) {}
 	ModelComponent& operator=(ModelComponent&& other) noexcept
 	{
-		Component<ModelComponent>::operator=(Move(other));
 		model = other.model;
 		modelMatrix = other.modelMatrix;
 		return *this;
 	}
 
-	virtual void Update(Scene* scene) final;
-	virtual void Load(Scene* scene) final;
-	virtual void Cleanup(Scene* scene) final {}
+	//virtual void Update(Scene* scene) final;
+	//virtual void Load(Scene* scene) final;
+	//virtual void Cleanup(Scene* scene) final {}
 
 	Matrix4 modelMatrix;
 	ResourceRef<Model> model;

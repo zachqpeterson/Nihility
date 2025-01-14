@@ -53,17 +53,35 @@ namespace TypeTraits
 
 		static constexpr inline bool value = decltype(Test<From>(0))::value;
 	};
+
+	template <class Type, Type... Values>
+	struct Sequence
+	{
+		using ValueType = Type;
+
+		[[nodiscard]] static constexpr unsigned long long Size() noexcept
+		{
+			return sizeof...(Values);
+		}
+	};
 }
+
+template <unsigned long long... Values> using IndexSequence = TypeTraits::Sequence<unsigned long long, Values...>;
+
+template <class Type, Type Size> using MakeSequence = __make_integer_seq<TypeTraits::Sequence, Type, Size>;
+template <unsigned long long Size> using MakeIndexSequence = __make_integer_seq<TypeTraits::Sequence, unsigned long long, Size>;
 
 template <class> constexpr const bool True = false;
 template <class> constexpr const bool False = false;
+
+template <class... Types> constexpr bool Conjunction = std::conjunction_v<Types...>;
 
 template <class Type> using RemoveConst = std::remove_const_t<Type>;
 template <class Type> using RemoveVolatile = std::remove_volatile_t<Type>;
 template <class Type> using RemoveQuals = std::remove_cv_t<Type>;
 template <class Type> using RemoveReference = std::remove_reference_t<Type>;
 template <class Type> using RemoveQualsReference = std::remove_cvref_t<Type>;
-template <class Type> using RemovePointer = std::remove_cvref_t<Type>;
+template <class Type> using RemovePointer = std::remove_pointer_t<Type>;
 template <class Type> using AddPointer = std::add_pointer_t<Type>;
 template <class Type> using RemovePointers = TypeTraits::RemovePointerAll<Type>::type;
 template <class Type> using RemoveArray = std::remove_extent_t<Type>;
@@ -94,7 +112,6 @@ template <class Type> constexpr const bool IsReference = IsLReference<Type> || I
 template <class Type> concept Reference = IsReference<Type>;
 
 template <class Type> constexpr const bool IsArray = std::is_array_v<Type>;
-template <class Type> concept Array = IsArray<Type>;
 
 template <class Type> constexpr const bool IsSingleArray = IsArray<Type> && !IsArray<RemoveArray<Type>>;
 template <class Type> concept SingleArray = IsSingleArray<Type>;
@@ -133,8 +150,14 @@ template <class Type> concept FunctionPtr = requires (Type t) { IsFunctionPtr<de
 template <class Type> constexpr const bool IsMemberFunctionPtr = std::is_member_function_pointer_v<Type>;
 template <class Type> concept MemberFunctionPtr = requires (Type t) { IsMemberFunctionPtr<decltype(t)>; };
 
+template <class Type, class... Args> constexpr bool IsInvocable = std::is_invocable_v<Type, Args...>;
+template <class Type, class... Args> concept Invocable = IsInvocable<Type, Args...>;
+
 template <class Type> constexpr const bool IsObject = std::is_object_v<Type>;
 template <class Type> concept Object = IsObject<Type>;
+
+template <class Type, class... Args> constexpr bool IsConstructible = __is_constructible(Type, Args...);
+template <class Type> concept Constructible = IsConstructible<Type>;
 
 template <class Type> constexpr const bool IsCopyConstructible = __is_constructible(Type, AddLvalReference<const Type>);
 template <class Type> concept CopyConstructible = IsCopyConstructible<Type>;

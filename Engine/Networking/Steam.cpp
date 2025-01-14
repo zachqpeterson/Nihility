@@ -1,12 +1,8 @@
-module;
+#include "Steam.hpp"
 
-#include "Defines.hpp"
+#include "Core\Logger.hpp"
 
 #include "Steam\steam_api.h"
-
-module Networking:Steam;
-
-import Core;
 
 U32 Steam::appID;
 

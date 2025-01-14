@@ -1,23 +1,20 @@
 ﻿#include "Renderer.hpp"
 
 #include "RenderingDefines.hpp"
-
-#include "UI.hpp"
 #include "CommandBuffer.hpp"
 #include "Pipeline.hpp"
+#include "UI.hpp"
+
 #include "Resources\Resources.hpp"
 #include "Resources\Scene.hpp"
+#include "Platform\Platform.hpp"
 #include "Math\Math.hpp"
 
 #define VMA_DEBUG_LOG
 //#define VMA_DEBUG_LOG(...) printf(__VA_ARGS__); printf("\n")
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
-#include "LunarG\vma\vk_mem_alloc.h"
-
-import Core;
-import Memory;
-import Platform;
+#include "External\LunarG\vma\vk_mem_alloc.h"
 
 void CommandBufferRing::Create()
 {

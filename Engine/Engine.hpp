@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-import Containers;
+#include "Containers\String.hpp"
 
 typedef bool(*InitializeFn)();
 typedef void(*UpdateFn)();

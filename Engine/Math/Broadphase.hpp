@@ -22,9 +22,9 @@
 
 #include "PhysicsDefines.hpp"
 
-import ThreadSafety;
-import Containers;
-import Memory;
+#include "Memory\Memory.hpp"
+#include "Containers\Vector.hpp"
+#include "Containers\Hashset.hpp"
 
 static constexpr inline I32 NullNode = -1;
 static constexpr inline U64 DefaultLayerMask = U64_MAX;

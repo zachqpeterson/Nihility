@@ -1,6 +1,12 @@
-module;
+#include "Platform.hpp"
+
+#include "Settings.hpp"
+#include "Audio.hpp"
+#include "Input.hpp"
 
 #include "Resources\Resources.hpp"
+#include "Core\Logger.hpp"
+#include "Core\Events.hpp"
 
 #ifdef NH_PLATFORM_WINDOWS
 
@@ -12,14 +18,6 @@ module;
 #include <ole2.h>
 
 #endif
-
-module Platform;
-
-import Core;
-import Containers;
-import Platform;
-import Audio;
-import Input;
 
 bool Platform::running;
 WindowData Platform::windowData;

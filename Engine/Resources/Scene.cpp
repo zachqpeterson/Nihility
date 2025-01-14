@@ -3,31 +3,22 @@
 #include "Engine.hpp"
 #include "Resources.hpp"
 #include "Mesh.hpp"
+
 #include "Rendering\Renderer.hpp"
 #include "Rendering\Pipeline.hpp"
 #include "Rendering\RenderingDefines.hpp"
+#include "Platform\Settings.hpp"
 #include "Math\Physics.hpp"
+#include "Core\Events.hpp"
 
-import Core;
-import Platform;
-import Containers;
+Entity::Entity() : id(Scene::Invalid), scene(nullptr) {}
 
-Vector<void*> ComponentRegistry::components{};
-
-Entity::Entity(Entity&& other) noexcept : transform(other.transform), scene(other.scene), entityID(other.entityID), references(Move(references)) {}
-
-Entity& Entity::operator=(Entity&& other) noexcept
-{
-	transform = other.transform;
-	scene = other.scene;
-	entityID = other.entityID;
-	references = Move(references);
-
-	return *this;
-}
+Entity::Entity(U32 id, Scene* scene) : id(id), scene(scene) {}
 
 void Scene::Create(CameraType cameraType)
 {
+	componentBitPosition.Reserve(128);
+
 	switch (cameraType)
 	{
 	case CAMERA_TYPE_PERSPECTIVE: {
@@ -89,16 +80,39 @@ void Scene::Destroy()
 	Renderer::DestroyBuffer(countsBuffer);
 }
 
-Entity* Scene::CreateEntity()
+Entity Scene::CreateEntity()
 {
-	entities.Push({ this, (U32)entities.Size() });
+	U32 id = Invalid;
 
-	return &entities.Back();
+	//TODO: Use freelist
+	if (availableEntities.Size() == 0)
+	{
+		id = maxEntityID++;
+	}
+	else
+	{
+		id = availableEntities.Back();
+		availableEntities.Pop();
+	}
+
+	entityMasks.Add(id, {});
+
+	return { id, this };
 }
 
-Entity* Scene::GetEntity(U32 id)
+void Scene::DestroyEntity(Entity& entity)
 {
-	return &entities[id];
+	Bitset& mask = GetEntityMask(entity.id);
+
+	for (int i = 0; i < MaxComponents; i++)
+	{
+		if (mask[i] == 1) { componentPools[i]->Remove(entity.id); }
+	}
+
+	entityMasks.Remove(entity.id);
+	availableEntities.Push(entity.id);
+
+	entity.id = Invalid;
 }
 
 void Scene::SetSkybox(const ResourceRef<Skybox>& skybox)
@@ -264,7 +278,10 @@ void Scene::Load()
 {
 	if (!loaded)
 	{
-		//TODO: Load components
+		for (SparseSetBase* pool : componentPools)
+		{
+			pool->Load(this);
+		}
 
 		loaded = true;
 
@@ -274,7 +291,7 @@ void Scene::Load()
 		bool firstColor = true;
 		bool firstDepth = true;
 
-		RenderpassInfo renderpassInfos[8];
+		RenderpassInfo renderpassInfos[8]{};
 		
 		for (ResourceRef<Pipeline>& pipeline : pipelines)
 		{
@@ -482,7 +499,7 @@ void Scene::Update()
 
 	for (Entity& entity : entities)
 	{
-		entityWrites.Push(CreateWrite(entity.entityID * sizeof(Matrix4), 0, sizeof(Matrix4), &entity.transform.WorldMatrix()));
+		//entityWrites.Push(CreateWrite(entity.id * sizeof(Matrix4), 0, sizeof(Matrix4), &entity.transform.WorldMatrix()));
 	}
 
 	if (entityWrites.Size())
@@ -587,4 +604,10 @@ BufferCopy Scene::CreateWrite(U64 dstOffset, U64 srcOffset, U64 size, const void
 	Copy((U8*)stagingBuffer.data + region.srcOffset, (U8*)data + srcOffset, size);
 
 	return region;
+}
+
+Bitset& Scene::GetEntityMask(U32 id)
+{
+	Bitset* mask = entityMasks.Get(id);
+	return *mask;
 }

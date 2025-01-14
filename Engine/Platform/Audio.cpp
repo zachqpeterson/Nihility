@@ -1,6 +1,9 @@
-module;
+#include "Audio.hpp"
 
-#include "Defines.hpp"
+#include "Settings.hpp"
+
+#include "Core\Logger.hpp"
+#include "Core\Events.hpp"
 
 #include <sdkddkver.h>
 
@@ -10,12 +13,6 @@ module;
 #include <xapofx.h>
 
 #pragma comment(lib,"xaudio2.lib")
-
-module Audio;
-
-import Core;
-import Memory;
-import Platform;
 
 IXAudio2* Audio::audioHandle;
 IXAudio2MasteringVoice* Audio::masterVoice;

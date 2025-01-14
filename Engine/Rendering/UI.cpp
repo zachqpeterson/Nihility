@@ -3,11 +3,13 @@
 #include "Renderer.hpp"
 #include "Pipeline.hpp"
 #include "RenderingDefines.hpp"
+
 #include "Resources\Resources.hpp"
 #include "Resources\Font.hpp"
 #include "Resources\Scene.hpp"
-
-import Input;
+#include "Containers\Vector.hpp"
+#include "Platform\Input.hpp"
+#include "Core\File.hpp"
 
 constexpr F32 WIDTH_RATIO = 0.00911458332F;//0.00455729166F;
 constexpr F32 HEIGHT_RATIO = 0.0162037037F;//0.00810185185F;
@@ -86,18 +88,18 @@ UIElement::~UIElement()
 	Destroy();
 }
 
-void UIComponent::Update(Scene* scene)
-{
-
-}
-
-void UIComponent::Load(Scene* scene)
-{
-	for (MeshInstance& mesh : meshes)
-	{
-		scene->AddInstance(mesh);
-	}
-}
+//void UIComponent::Update(Scene* scene)
+//{
+//
+//}
+//
+//void UIComponent::Load(Scene* scene)
+//{
+//	for (MeshInstance& mesh : meshes)
+//	{
+//		scene->AddInstance(mesh);
+//	}
+//}
 
 struct UIInstance
 {
@@ -328,8 +330,7 @@ void UI::Update()
 
 UIElement* UI::SetupElement(const UIElementInfo& info)
 {
-	elements.Push({});
-	UIElement* element = &elements.Back();
+	UIElement* element = &elements.Push({});
 
 	element->area = info.area;
 	element->color = info.color;
@@ -371,7 +372,7 @@ UIElement* UI::CreateElement(UIElementInfo& info)
 	instanceData->scale = info.area.zw() - info.area.xy();
 	instanceData->color = info.color;
 
-	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
+	//element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -448,7 +449,7 @@ UIElement* UI::CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& b
 	instanceData->scale = Vector2{ borderWidth, info.area.w - info.area.y - borderHeight };
 	instanceData->color = borderColor;
 
-	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
+	//element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -476,7 +477,7 @@ UIElement* UI::CreateImage(UIElementInfo& info, const ResourceRef<Texture>& text
 	instanceData->texcoordScale = uvs.zw() - uvs.xy();
 	instanceData->color = info.color;
 
-	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
+	//element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -575,7 +576,7 @@ UIElement* UI::CreateSlider(UIElementInfo& info, const Vector4& fillColor, Slide
 	} break;
 	}
 
-	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
+	//element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances);
 
 	return element;
 }
@@ -651,7 +652,7 @@ UIElement* UI::CreateText(UIElementInfo& info, const String& string, F32 scale)
 		prev = c;
 	}
 
-	element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances); //TODO: Don't create new entity per text
+	//element->component = info.scene->CreateEntity()->CreateComponent<UIComponent>(instances); //TODO: Don't create new entity per text
 
 	return element;
 }
@@ -669,60 +670,60 @@ void UI::ChangeSliderPercent(UIElement* element, F32 percent)
 
 	element->slider.percent = percent;
 
-	MeshInstance& instance = element->component->meshes[1];
-	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
+	//MeshInstance& instance = element->component->meshes[1];
+	//UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
 
-	F32 width = element->area.z - element->area.x;
-	F32 height = element->area.w - element->area.y;
-
-	switch (element->slider.type)
-	{
-	case SLIDER_TYPE_HORIZONTAL_LEFT: {
-		instanceData->scale.x = width * percent;
-		instanceData->scale.y = height;
-	} break;
-	case SLIDER_TYPE_HORIZONTAL_RIGHT: {
-		instanceData->position.x = element->area.x + width * (1.0f - percent);
-		instanceData->scale.x = width * percent;
-	} break;
-	case SLIDER_TYPE_HORIZONTAL_CENTER: {
-		F32 p = (1.0f - percent) * 0.5f;
-
-		instanceData->position.x = element->area.x + width * ((1.0f - percent) * 0.5f);
-		instanceData->scale.x = width * percent;
-	} break;
-	case SLIDER_TYPE_VERTICAL_BOTTOM: {
-		F32 p = 1.0f - percent;
-
-		instanceData->position.y = element->area.y + height * (1.0f - percent);
-		instanceData->scale.y = height * percent;
-	} break;
-	case SLIDER_TYPE_VERTICAL_TOP: {
-		instanceData->scale.y = height * percent;
-	} break;
-	case SLIDER_TYPE_VERTICAL_CENTER: {
-		F32 p = (1.0f - percent) * 0.5f;
-
-		instanceData->position.y = element->area.y + height * ((1.0f - percent) * 0.5f);
-		instanceData->scale.y = height * percent;
-	} break;
-	case SLIDER_TYPE_RADIAL_COUNTER: {
-		//TODO:
-	} break;
-	case SLIDER_TYPE_RADIAL_CLOCKWISE: {
-		//TODO:
-	} break;
-	case SLIDER_TYPE_EXPAND: {
-		F32 p = (1.0f - percent) * 0.5f;
-
-		instanceData->position.x = element->area.x + width * p;
-		instanceData->position.y = element->area.y + height * p;
-		instanceData->scale.x = width * percent;
-		instanceData->scale.y = height * percent;
-	} break;
-	}
-
-	element->scene->UpdateInstance(instance);
+	//F32 width = element->area.z - element->area.x;
+	//F32 height = element->area.w - element->area.y;
+	//
+	//switch (element->slider.type)
+	//{
+	//case SLIDER_TYPE_HORIZONTAL_LEFT: {
+	//	instanceData->scale.x = width * percent;
+	//	instanceData->scale.y = height;
+	//} break;
+	//case SLIDER_TYPE_HORIZONTAL_RIGHT: {
+	//	instanceData->position.x = element->area.x + width * (1.0f - percent);
+	//	instanceData->scale.x = width * percent;
+	//} break;
+	//case SLIDER_TYPE_HORIZONTAL_CENTER: {
+	//	F32 p = (1.0f - percent) * 0.5f;
+	//
+	//	instanceData->position.x = element->area.x + width * ((1.0f - percent) * 0.5f);
+	//	instanceData->scale.x = width * percent;
+	//} break;
+	//case SLIDER_TYPE_VERTICAL_BOTTOM: {
+	//	F32 p = 1.0f - percent;
+	//
+	//	instanceData->position.y = element->area.y + height * (1.0f - percent);
+	//	instanceData->scale.y = height * percent;
+	//} break;
+	//case SLIDER_TYPE_VERTICAL_TOP: {
+	//	instanceData->scale.y = height * percent;
+	//} break;
+	//case SLIDER_TYPE_VERTICAL_CENTER: {
+	//	F32 p = (1.0f - percent) * 0.5f;
+	//
+	//	instanceData->position.y = element->area.y + height * ((1.0f - percent) * 0.5f);
+	//	instanceData->scale.y = height * percent;
+	//} break;
+	//case SLIDER_TYPE_RADIAL_COUNTER: {
+	//	//TODO:
+	//} break;
+	//case SLIDER_TYPE_RADIAL_CLOCKWISE: {
+	//	//TODO:
+	//} break;
+	//case SLIDER_TYPE_EXPAND: {
+	//	F32 p = (1.0f - percent) * 0.5f;
+	//
+	//	instanceData->position.x = element->area.x + width * p;
+	//	instanceData->position.y = element->area.y + height * p;
+	//	instanceData->scale.x = width * percent;
+	//	instanceData->scale.y = height * percent;
+	//} break;
+	//}
+	//
+	//element->scene->UpdateInstance(instance);
 }
 
 void UI::ChangeSliderColor(UIElement* element, const Vector4& fillColor)
@@ -731,12 +732,12 @@ void UI::ChangeSliderColor(UIElement* element, const Vector4& fillColor)
 
 	element->slider.fillColor = fillColor;
 
-	MeshInstance& instance = element->component->meshes[1];
-	UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
-
-	instanceData->color = fillColor;
-
-	element->scene->UpdateInstance(instance);
+	//MeshInstance& instance = element->component->meshes[1];
+	//UIInstance* instanceData = (UIInstance*)instance.instanceData.data;
+	//
+	//instanceData->color = fillColor;
+	//
+	//element->scene->UpdateInstance(instance);
 }
 
 //void UI::ChangeText(UIElement* element, const String& string)

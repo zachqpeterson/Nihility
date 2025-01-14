@@ -1,8 +1,12 @@
-module;
+#include "Input.hpp"
+
+#include "Platform.hpp"
 
 #include "Resources\ResourceDefines.hpp"
 #include "Rendering\Renderer.hpp"
 #include "Math\Math.hpp"
+#include "Core\Logger.hpp"
+#include "Core\Events.hpp"
 
 #if defined NH_PLATFORM_WINDOWS
 #include <Windows.h>
@@ -10,13 +14,6 @@ module;
 #include <SetupAPI.h>
 #pragma comment(lib ,"setupapi.lib")
 #endif
-
-module Input:Main;
-
-import Containers;
-import Core;
-import Platform;
-import Memory;
 
 F32 Input::mouseSensitivity;
 I16 Input::mouseWheelDelta;

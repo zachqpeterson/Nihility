@@ -82,15 +82,11 @@ struct RigidBody2DDef
 	bool allowFastRotation = false;
 };
 
-struct NH_API RigidBody2D : public Component<RigidBody2D>
+struct NH_API RigidBody2D
 {
 	RigidBody2D(const RigidBody2DDef& def);
 	RigidBody2D(const RigidBody2D& other);
 	RigidBody2D(RigidBody2D&& other);
-
-	virtual void Update(Scene* scene) final;
-	virtual void Load(Scene* scene) final;
-	virtual void Cleanup(Scene* scene) final;
 
 	I32 AddCollider(const ShapeDef& shapeDef, const Capsule& capsule);
 	I32 AddCollider(const ShapeDef& shapeDef, const Circle& circle);
