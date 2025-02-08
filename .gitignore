@@ -16,36 +16,6 @@ Tilemap/x64/
 *.cfg
 *.cache
 
-Engine/External/Lib/GenericCodeGen.lib
-Engine/External/Lib/GenericCodeGend.lib
-Engine/External/Lib/glslang.lib
-Engine/External/Lib/glslangd.lib
-Engine/External/Lib/glslang-default-resource-limits.lib
-Engine/External/Lib/glslang-default-resource-limitsd.lib
-Engine/External/Lib/MachineIndependent.lib
-Engine/External/Lib/MachineIndependentd.lib
-Engine/External/Lib/OGLCompiler.lib
-Engine/External/Lib/OGLCompilerd.lib
-Engine/External/Lib/OSDependent.lib
-Engine/External/Lib/OSDependentd.lib
-Engine/External/Lib/SPIRV.lib
-Engine/External/Lib/SPIRVd.lib
-Engine/External/Lib/SPIRV-Tools.lib
-Engine/External/Lib/SPIRV-Toolsd.lib
-Engine/External/Lib/SPIRV-Tools-diff.lib
-Engine/External/Lib/SPIRV-Tools-diffd.lib
-Engine/External/Lib/SPIRV-Tools-link.lib
-Engine/External/Lib/SPIRV-Tools-linkd.lib
-Engine/External/Lib/SPIRV-Tools-lint.lib
-Engine/External/Lib/SPIRV-Tools-lintd.lib
-Engine/External/Lib/SPIRV-Tools-opt.lib
-Engine/External/Lib/SPIRV-Tools-optd.lib
-Engine/External/Lib/SPIRV-Tools-reduce.lib
-Engine/External/Lib/SPIRV-Tools-reduced.lib
-Engine/External/Lib/SPIRV-Tools-shared.lib
-Engine/External/Lib/SPIRV-Tools-sharedd.lib
-Engine/External/Lib/vulkan-1.lib
-
 # Unimported Assets
 *.[bB][mM][pP]
 *.[tT][gG][aA]
