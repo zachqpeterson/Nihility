@@ -1,9 +1,0 @@
-vertex=shaders/TextVert.nhshd
-fragment=shaders/TextFrag.nhshd
-cull=NONE
-front=COUNTER
-fill=SOLID
-depth=NONE
-blend=ADD
-type=UI
-renderOrder=110
