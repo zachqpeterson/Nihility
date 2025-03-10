@@ -84,14 +84,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Containers\String.hpp" />
     <ClInclude Include="Defines.hpp" />
     <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Multithreading\ThreadSafety.hpp" />
+    <ClInclude Include="Platform\Memory.hpp" />
     <ClInclude Include="Platform\Platform.hpp" />
     <ClInclude Include="Platform\WindowsInclude.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
+    <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Multithreading\ThreadSafety.cpp" />
+    <ClCompile Include="Platform\Memory.cpp" />
     <ClCompile Include="Platform\PlatformWindows.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />
   </ItemGroup>

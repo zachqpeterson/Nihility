@@ -141,7 +141,14 @@ bool Platform::Initialize()
 
 void Platform::Shutdown()
 {
+	if (window)
+	{
+		RevokeDragDrop(window);
+		DestroyWindow(window);
+		window = nullptr;
 
+		UnregisterClass(ClassName, instance);
+	}
 }
 
 bool Platform::Update()
@@ -181,9 +188,216 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		running = false;
 	} return 0;
 	case WM_ERASEBKGND: {} return 1;
+	case WM_DPICHANGED: {
+		Settings::dpi = HIWORD(wParam);
+		AdjustWindowRectExForDpi(&border, style, 0, styleEx, Settings::dpi);
+		RECT* rect = (RECT*)lParam;
+
+		screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::dpi);
+		screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::dpi);
+		virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::dpi);
+		virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::dpi);
+
+		Settings::windowPositionXSmall = rect->left - border.left;
+		Settings::windowPositionYSmall = rect->top - border.top;
+		Settings::windowWidthSmall = rect->right - rect->left - border.right + border.left;
+		Settings::windowHeightSmall = rect->bottom - rect->top - border.bottom + border.top;
+
+		if (!Settings::fullscreen)
+		{
+			Settings::windowPositionX = Settings::windowPositionXSmall;
+			Settings::windowPositionY = Settings::windowPositionYSmall;
+			Settings::windowWidth = Settings::windowWidthSmall;
+			Settings::windowHeight = Settings::windowHeightSmall;
+
+			SetWindowPos(window, nullptr, Settings::windowPositionX + border.left, Settings::windowPositionY + border.top,
+				Settings::windowWidth + border.right - border.left, Settings::windowHeight + border.bottom - border.top, SWP_NOZORDER | SWP_NOACTIVATE);
+		}
+	} return 0;
+	case WM_SIZE: {
+		switch (wParam)
+		{
+		case SIZE_MINIMIZED: {
+			focused = false;
+			minimised = true;
+		} break;
+		case SIZE_RESTORED: {
+			focused = true;
+			minimised = false;
+		} break;
+		}
+
+		RECT rect{};
+		GetWindowRect(hwnd, &rect);
+
+		Settings::windowPositionX = rect.left - border.left;
+		Settings::windowPositionY = rect.top - border.top;
+		Settings::windowWidth = rect.right - rect.left - border.right + border.left;
+		Settings::windowHeight = rect.bottom - rect.top - border.bottom + border.top;
+
+		if (!Settings::fullscreen)
+		{
+			Settings::windowPositionXSmall = Settings::windowPositionX;
+			Settings::windowPositionYSmall = Settings::windowPositionY;
+			Settings::windowWidthSmall = Settings::windowWidth;
+			Settings::windowHeightSmall = Settings::windowHeight;
+		}
+
+		screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::dpi);
+		screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::dpi);
+		virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::dpi);
+		virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::dpi);
+
+		resized = true;
+	} return 0;
+	case WM_SIZING: {
+		//TODO:
+	} return 1;
+	case WM_MOVE: {
+		Settings::windowPositionX = LOWORD(lParam);
+		Settings::windowPositionY = HIWORD(lParam);
+
+		if (!Settings::fullscreen)
+		{
+			Settings::windowPositionXSmall = Settings::windowPositionX;
+			Settings::windowPositionYSmall = Settings::windowPositionY;
+		}
+
+		screenWidth = GetSystemMetricsForDpi(SM_CXSCREEN, Settings::dpi);
+		screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, Settings::dpi);
+		virtualScreenWidth = GetSystemMetricsForDpi(SM_CXVIRTUALSCREEN, Settings::dpi);
+		virtualScreenHeight = GetSystemMetricsForDpi(SM_CYVIRTUALSCREEN, Settings::dpi);
+	} return 0;
+	case WM_SETCURSOR: {
+		switch (LOWORD(lParam))
+		{
+		case HTCLIENT: { SetCursor(arrow); } return 1; //Client Area
+		case HTCAPTION: { SetCursor(arrow); } return 1; //Title Bar
+		case HTSYSMENU: { SetCursor(hand); } return 1; //Window Menu
+		case HTGROWBOX: { SetCursor(arrow); } return 1; //Size Box?
+		case HTMENU: { SetCursor(hand); } return 1; //Menu
+		case HTHSCROLL: { SetCursor(hand); } return 1; //Horizontal Scroll Bar
+		case HTVSCROLL: { SetCursor(hand); } return 1; //Vertical Scroll Bar
+		case HTMINBUTTON: { SetCursor(hand); } return 1; //Minimize Button
+		case HTMAXBUTTON: { SetCursor(hand); } return 1; //Maximize Button
+		case HTLEFT: { SetCursor(sizeWE); } return 1; //Border Left
+		case HTRIGHT: { SetCursor(sizeWE); } return 1; //Border Right
+		case HTTOP: { SetCursor(sizeNS); } return 1; //Border Top
+		case HTTOPLEFT: { SetCursor(sizeNWSE); } return 1; //Border Top Left
+		case HTTOPRIGHT: { SetCursor(sizeNWSE); } return 1; //Border Top Right
+		case HTBOTTOM: { SetCursor(sizeNS); } return 1; //Border Bottom
+		case HTBOTTOMLEFT: { SetCursor(sizeNWSE); } return 1; //Border Bottom Left
+		case HTBOTTOMRIGHT: { SetCursor(sizeNWSE); } return 1; //Border Bottom Right
+		case HTBORDER: { SetCursor(arrow); } return 1; //Any Border (Not Resizable)
+			//case HTOBJECT: { SetCursor(); } return 1;
+			//case HTCLOSE: { SetCursor(); } return 1;
+			//case HTHELP: { SetCursor(); } return 1;
+		default: break;
+		}
+	} break;
+	case WM_DROPFILES: {
+		HDROP dropInfo = (HDROP)wParam;
+		U32 count = DragQueryFile(dropInfo, 0xFFFFFFFF, nullptr, 0);
+
+		U32 nameSize = 0;
+		CW name[256];
+
+		for (U32 i = 0; i < count; ++i)
+		{
+			nameSize = DragQueryFile(dropInfo, i, name, 256);
+
+			//File drop event
+		}
+
+		DragFinish(dropInfo);
+	} return 0;
 	}
 
 	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+void Platform::SetFullscreen(bool fullscreen)
+{
+	Settings::fullscreen = fullscreen;
+
+	if (Settings::fullscreen)
+	{
+		SetWindowPos(window, nullptr, border.left, border.top,
+			screenWidth + border.right - border.left, screenHeight + border.bottom - border.top, SWP_SHOWWINDOW);
+	}
+	else
+	{
+		SetWindowPos(window, nullptr, Settings::windowPositionXSmall + border.left, Settings::windowPositionYSmall + border.top,
+			Settings::windowWidthSmall + border.right - border.left, Settings::windowHeightSmall + border.bottom - border.top, SWP_SHOWWINDOW);
+	}
+}
+
+void Platform::SetWindowSize(U32 width, U32 height)
+{
+	if (!Settings::fullscreen)
+	{
+		SetWindowPos(window, nullptr, Settings::windowPositionX + border.left, Settings::windowPositionY + border.top,
+			width + border.right - border.left, height + border.bottom - border.top, SWP_SHOWWINDOW);
+	}
+}
+
+void Platform::SetWindowPosition(I32 x, I32 y)
+{
+	if (!Settings::fullscreen)
+	{
+		SetWindowPos(window, nullptr, x + border.left, y + border.top,
+			Settings::windowWidth + border.right - border.left, Settings::windowHeight + border.bottom - border.top, SWP_SHOWWINDOW);
+	}
+}
+
+void Platform::SetConsoleWindowTitle(const char* name)
+{
+	SetConsoleTitleA(name);
+}
+
+U32 Platform::ScreenWidth()
+{
+	return screenWidth;
+}
+
+U32 Platform::ScreenHeight()
+{
+	return screenHeight;
+}
+
+U32 Platform::VirtualScreenWidth()
+{
+	return virtualScreenWidth;
+}
+
+U32 Platform::VirtualScreenHeight()
+{
+	return virtualScreenHeight;
+}
+
+bool Platform::Focused()
+{
+	return focused;
+}
+
+bool Platform::Minimised()
+{
+	return minimised;
+}
+
+bool Platform::Resized()
+{
+	return resized;
+}
+
+bool Platform::MouseConstrained()
+{
+	return Settings::cursorConstrained;
+}
+
+void Platform::ConstrainMouse(bool b)
+{
+	Settings::cursorConstrained = b;
 }
 
 #endif

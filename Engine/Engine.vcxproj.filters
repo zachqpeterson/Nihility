@@ -11,6 +11,12 @@
     <Filter Include="Source Files\Resources">
       <UniqueIdentifier>{996f19d4-0587-4379-8e04-e5538df03e8c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Containers">
+      <UniqueIdentifier>{8b1623f8-9884-495d-ae92-48d121cf2cb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Multithreading">
+      <UniqueIdentifier>{6c26a9d2-6966-45be-aa79-943b27ef21a2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -28,6 +34,18 @@
     <ClInclude Include="Platform\WindowsInclude.hpp">
       <Filter>Source Files\Platform</Filter>
     </ClInclude>
+    <ClInclude Include="Containers\String.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Memory.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Multithreading\ThreadSafety.hpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeTraits.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -38,6 +56,12 @@
     </ClCompile>
     <ClCompile Include="Resources\Settings.cpp">
       <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Multithreading\ThreadSafety.cpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Memory.cpp">
+      <Filter>Source Files\Platform</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

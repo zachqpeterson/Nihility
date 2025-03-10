@@ -15,8 +15,6 @@ enum class SettingType
 };
 
 /* TODO:
-* Get Setting
-* Set Setting
 * Setting Caching w/ Hashmap
 */
 class NH_API Settings
