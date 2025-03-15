@@ -6,9 +6,9 @@ class NH_API Engine
 {
 public:
 	static bool Initialize();
-	static void Shutdown();
 
 private:
+	static void Shutdown();
 	static void MainLoop();
 
 	STATIC_CLASS(Engine);

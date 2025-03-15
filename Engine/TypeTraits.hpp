@@ -230,6 +230,17 @@ template <class Type> constexpr Type&& Forward(RemoveReference<Type>&& arg) noex
 
 template<class T> AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
 
+/// <summary>
+/// Bit casts from one type to another, From and To must have the same size
+/// </summary>
+/// <param name="value:">The value to be casted</param>
+/// <returns>The casted value</returns>
+template<class To, class From> requires (sizeof(From) == sizeof(To))
+NH_NODISCARD constexpr To TypePun(const From& value) noexcept
+{
+	return __builtin_bit_cast(To, value);
+}
+
 template<class Type> constexpr void Swap(Type& a, Type& b) noexcept
 {
 	Type tmp = Move(a);

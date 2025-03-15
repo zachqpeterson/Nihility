@@ -58,7 +58,7 @@
       <PreprocessorDefinitions>NH_EXPORT;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -74,7 +74,7 @@
       <PreprocessorDefinitions>NH_EXPORT;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -84,9 +84,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Containers\SafeQueue.hpp" />
     <ClInclude Include="Containers\String.hpp" />
+    <ClInclude Include="Core\Logger.hpp" />
+    <ClInclude Include="Core\Time.hpp" />
     <ClInclude Include="Defines.hpp" />
     <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Math\Math.hpp" />
+    <ClInclude Include="Multithreading\Jobs.hpp" />
     <ClInclude Include="Multithreading\ThreadSafety.hpp" />
     <ClInclude Include="Platform\Memory.hpp" />
     <ClInclude Include="Platform\Platform.hpp" />
@@ -95,7 +100,10 @@
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Logger.cpp" />
+    <ClCompile Include="Core\Time.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Multithreading\Jobs.cpp" />
     <ClCompile Include="Multithreading\ThreadSafety.cpp" />
     <ClCompile Include="Platform\Memory.cpp" />
     <ClCompile Include="Platform\PlatformWindows.cpp" />

@@ -136,6 +136,8 @@ bool Platform::Initialize()
 
 	ShowWindow(window, Settings::fullscreen ? SW_SHOWMAXIMIZED : SW_SHOW);
 
+	running = true;
+
 	return true;
 }
 
@@ -155,7 +157,7 @@ bool Platform::Update()
 {
 	MSG msg;
 	
-	while (PeekMessage(&msg, nullptr, 0, 0, 0))
+	while (PeekMessage(&msg, window, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
@@ -174,6 +176,7 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	} return 0;
 	case WM_KILLFOCUS: {
 		focused = false;
+		running = false;
 	} return 0;
 	case WM_QUIT: {
 		focused = false;

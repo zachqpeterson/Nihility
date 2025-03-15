@@ -17,6 +17,12 @@
     <Filter Include="Source Files\Multithreading">
       <UniqueIdentifier>{6c26a9d2-6966-45be-aa79-943b27ef21a2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Core">
+      <UniqueIdentifier>{17828fe8-5146-4e49-a934-44b02dec0081}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Math">
+      <UniqueIdentifier>{c69d48df-4491-4742-b8a2-41e5b4ccd2ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -46,6 +52,21 @@
     <ClInclude Include="TypeTraits.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Time.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Math.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Multithreading\Jobs.hpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\SafeQueue.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Logger.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -62,6 +83,15 @@
     </ClCompile>
     <ClCompile Include="Platform\Memory.cpp">
       <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Time.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Multithreading\Jobs.cpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Logger.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
