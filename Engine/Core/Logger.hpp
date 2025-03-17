@@ -39,45 +39,45 @@
 
 //TODO: Timestamps
 //TODO: Threadsafe
-class NH_API Logger
+class Logger
 {
 public:
-	template<typename... Args> static void Debug(Args&&... args)
+	template<typename... Args> NH_API static void Debug(Args&&... args)
 	{
 #if LOG_DEBUG_ENABLED == 1
 		fast_io::io::println(fast_io::out(), "\033[0;36m[DEBUG]:\033[0m ", args...);
 		fast_io::io::println(log, "[DEBUG]: ", args...);
 #endif
 	}
-	template<typename... Args> static void Trace(Args&&... args)
+	template<typename... Args> NH_API static void Trace(Args&&... args)
 	{
 #if LOG_TRACE_ENABLED == 1
 		fast_io::io::println(fast_io::out(), "\033[1;30m[TRACE]:\033[0m ", args...);
 		fast_io::io::println(log,  "[TRACE]: ", args...);
 #endif
 	}
-	template<typename... Args> static void Info(Args&&... args)
+	template<typename... Args> NH_API static void Info(Args&&... args)
 	{
 #if LOG_INFO_ENABLED == 1
 		fast_io::io::println(fast_io::out(), "\033[1;32m[INFO]:\033[0m  ", args...);
 		fast_io::io::println(log, "[INFO]:  ", args...);
 #endif
 	}
-	template<typename... Args> static void Warn(Args&&... args)
+	template<typename... Args> NH_API static void Warn(Args&&... args)
 	{
 #if LOG_WARN_ENABLED == 1
 		fast_io::io::println(fast_io::out(), "\033[1;33m[WARN]:\033[0m  ", args...);
 		fast_io::io::println(log, "[WARN]:  ", args...);
 #endif
 	}
-	template<typename... Args> static void Error(Args&&... args)
+	template<typename... Args> NH_API static void Error(Args&&... args)
 	{
 #if LOG_ERROR_ENABLED == 1
 		fast_io::io::println(fast_io::out(), "\033[0;31m[ERROR]:\033[0m ", args...);
 		fast_io::io::println(log, "[ERROR]: ", args...);
 #endif
 	}
-	template<typename... Args> static void Fatal(Args&&... args)
+	template<typename... Args> NH_API static void Fatal(Args&&... args)
 	{
 #if LOG_FATAL_ENABLED == 1
 		fast_io::io::println(fast_io::out(), "\033[0;41m[FATAL]:\033[0m ", args...);

@@ -1,5 +1,7 @@
 #include "Memory.hpp"
 
+#include "Core/Logger.hpp"
+
 U32 Memory::allocations = 0;
 U8* Memory::memory = nullptr;
 
@@ -47,6 +49,8 @@ bool Memory::Initialize()
 
 void Memory::Shutdown()
 {
+	Logger::Trace("Cleaning Up Memory...");
+
 	initialized = false;
 }
 

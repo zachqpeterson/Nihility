@@ -2,6 +2,9 @@
 
 #include "Defines.hpp"
 
+#include "Core/Events.hpp"
+#include "Containers/String.hpp"
+
 class NH_API Platform
 {
 public:
@@ -19,6 +22,9 @@ public:
 	static bool Resized();
 	static bool MouseConstrained();
 	static void ConstrainMouse(bool b);
+
+	static Event<bool> OnFocused;
+	static Event<String> OnDragDrop;
 
 private:
 	static bool Initialize();

@@ -1,5 +1,7 @@
 #include "Platform.hpp"
 
+#include "Core/Logger.hpp"
+#include "Core/Events.hpp"
 
 #ifdef NH_PLATFORM_WINDOWS
 
@@ -36,6 +38,9 @@ bool Platform::focused = false;
 
 bool Platform::running = false;
 
+Event<bool> Platform::OnFocused;
+Event<String> Platform::OnDragDrop;
+
 static constexpr const CW* MenuName = L"Nihility Menu";
 static constexpr const CW* ClassName = L"Nihility Class";
 
@@ -43,6 +48,8 @@ I64 __stdcall WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam);
 
 bool Platform::Initialize()
 {
+	Logger::Trace("Initializing Platform...");
+
 	if (OleInitialize(nullptr) < 0) { return false; }
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
@@ -143,6 +150,8 @@ bool Platform::Initialize()
 
 void Platform::Shutdown()
 {
+	Logger::Trace("Cleaning Up Platform...");
+
 	if (window)
 	{
 		RevokeDragDrop(window);
@@ -173,10 +182,11 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	case WM_CREATE: {} return 0;
 	case WM_SETFOCUS: {
 		focused = true;
+		OnFocused(true);
 	} return 0;
 	case WM_KILLFOCUS: {
 		focused = false;
-		running = false;
+		OnFocused(false);
 	} return 0;
 	case WM_QUIT: {
 		focused = false;
@@ -300,16 +310,18 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 	} break;
 	case WM_DROPFILES: {
 		HDROP dropInfo = (HDROP)wParam;
-		U32 count = DragQueryFile(dropInfo, 0xFFFFFFFF, nullptr, 0);
+		U32 count = DragQueryFileA(dropInfo, 0xFFFFFFFF, nullptr, 0);
 
-		U32 nameSize = 0;
-		CW name[256];
+		String path;
+		path.Reserve(256);
+		U32 pathSize;
 
 		for (U32 i = 0; i < count; ++i)
 		{
-			nameSize = DragQueryFile(dropInfo, i, name, 256);
+			pathSize = DragQueryFileA(dropInfo, i, path.Data(), 256);
+			path.Resize(pathSize);
 
-			//File drop event
+			OnDragDrop(path);
 		}
 
 		DragFinish(dropInfo);

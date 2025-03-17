@@ -10,12 +10,12 @@
 
 static inline void Yield() noexcept { _Thrd_yield(); }
 
-struct NH_API SpinLock
+struct SpinLock
 {
 	std::atomic<bool> lockFlag{ false };
 
 public:
-	void Lock()
+	NH_API void Lock()
 	{
 		while (true)
 		{
@@ -24,7 +24,7 @@ public:
 		}
 	}
 
-	void Unlock()
+	NH_API void Unlock()
 	{
 		lockFlag.store(false, std::memory_order_release);
 	}

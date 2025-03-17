@@ -11,9 +11,6 @@
     <Filter Include="Source Files\Resources">
       <UniqueIdentifier>{996f19d4-0587-4379-8e04-e5538df03e8c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Containers">
-      <UniqueIdentifier>{8b1623f8-9884-495d-ae92-48d121cf2cb1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Multithreading">
       <UniqueIdentifier>{6c26a9d2-6966-45be-aa79-943b27ef21a2}</UniqueIdentifier>
     </Filter>
@@ -22,6 +19,9 @@
     </Filter>
     <Filter Include="Source Files\Math">
       <UniqueIdentifier>{c69d48df-4491-4742-b8a2-41e5b4ccd2ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Containers">
+      <UniqueIdentifier>{c4c74431-4284-45a4-9df4-feb2254ba380}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -39,9 +39,6 @@
     </ClInclude>
     <ClInclude Include="Platform\WindowsInclude.hpp">
       <Filter>Source Files\Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Containers\String.hpp">
-      <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Platform\Memory.hpp">
       <Filter>Source Files\Platform</Filter>
@@ -61,11 +58,29 @@
     <ClInclude Include="Multithreading\Jobs.hpp">
       <Filter>Source Files\Multithreading</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Logger.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Hash.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Events.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Function.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Hashmap.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
     <ClInclude Include="Containers\SafeQueue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Logger.hpp">
-      <Filter>Source Files\Core</Filter>
+    <ClInclude Include="Containers\String.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Vector.hpp">
+      <Filter>Source Files\Containers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

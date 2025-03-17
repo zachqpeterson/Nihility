@@ -1,5 +1,7 @@
 #include "Time.hpp"
 
+#include "Logger.hpp"
+
 #include <time.h>
 
 #if defined(NH_PLATFORM_WINDOWS)
@@ -16,6 +18,8 @@ U32 Time::frameCounter;
 
 bool Time::Initialize()
 {
+	Logger::Trace("Initializing Time...");
+
 	frameEndTime = programStart;
 	delta = 0.0;
 	frameTimer = 0.0;
@@ -25,7 +29,10 @@ bool Time::Initialize()
 	return true;
 }
 
-void Time::Shutdown() {}
+void Time::Shutdown()
+{
+	Logger::Trace("Cleaning Up Time...");
+}
 
 void Time::Update()
 {

@@ -207,6 +207,9 @@ template <class Type> constexpr const bool IsVoid = IsSame<RemoveQuals<Type>, vo
 
 template <class... Types> using CommonType = std::common_type_t<Types...>;
 
+template<class Type, template<class...> class U> constexpr const bool IsSpecializationOf = false;
+template<template<class...> class U, class... Vs> constexpr const bool IsSpecializationOf<U<Vs...>, U> = true;
+
 /// <summary>
 /// Forwards arg as movable
 /// </summary>

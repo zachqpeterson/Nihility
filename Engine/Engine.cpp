@@ -9,6 +9,7 @@
 #include "Containers/String.hpp"
 #include "Core/Time.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Events.hpp"
 #include "Math/Math.hpp"
 #include "Multithreading/Jobs.hpp"
 

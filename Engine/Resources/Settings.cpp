@@ -1,5 +1,7 @@
 #include "Settings.hpp"
 
+#include "Core/Logger.hpp"
+
 F64 Settings::targetFrametime = 0.0;
 F64 Settings::targetSuspendedFrametime = 0.0;
 
@@ -32,6 +34,8 @@ static HKEY registryKey;
 
 bool Settings::Initialize()
 {
+	Logger::Trace("Initializing Settings...");
+
 	if (RegCreateKeyExA(HKEY_CURRENT_USER, "Software", 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &registryKey, nullptr))
 	{
 		return false;
@@ -90,6 +94,8 @@ bool Settings::Initialize()
 
 void Settings::Shutdown()
 {
+	Logger::Trace("Cleaning Up Settings...");
+
 	//General
 	SetSetting(TargetFrametime, &targetFrametime, sizeof(F64), SettingType::NUM64);
 	SetSetting(TargetFrametimeSuspended, &targetSuspendedFrametime, sizeof(F64), SettingType::NUM64);

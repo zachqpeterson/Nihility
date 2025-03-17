@@ -6,6 +6,18 @@
 #include "Multithreading/ThreadSafety.hpp"
 #include <cstringt.h>
 
+template<class Type, class... Parameters>
+NH_API inline Type& Construct(Type* dst, Parameters&&... parameters) noexcept
+{
+	return *(new (dst) Type(Forward<Parameters>(parameters)...));
+}
+
+template<class Type, class... Parameters>
+NH_API inline Type& Assign(Type* dst, Parameters&&... parameters) noexcept
+{
+	return dst->operator=(Forward<Parameters>(parameters)...);
+}
+
 NH_API constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
 NH_API constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
 NH_API constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
@@ -41,6 +53,8 @@ private:
 		Allocate(dst);
 		memmove(*dst, *src, sizeof(Region));
 		Free(src);
+
+		*src = *dst;
 
 		return true;
 	}
@@ -104,8 +118,8 @@ struct Region4mb { U8 memory[*RegionSize::MB4]; };
 
 public:
 	template<class Type> static void Allocate(Type* pointer);
-	template<class Type> static void Allocate(Type* pointer, U64 count);
-	template<class Type> static void Reallocate(Type* pointer, U64 count);
+	template<class Type> static U64 Allocate(Type* pointer, U64 count);
+	template<class Type> static U64 Reallocate(Type* pointer, U64 count);
 
 	template<class Type> static void Free(Type* pointer);
 
@@ -141,37 +155,39 @@ inline void Memory::Allocate(Type* pointer)
 }
 
 template<class Type>
-inline void Memory::Allocate(Type* pointer, U64 count)
+inline U64 Memory::Allocate(Type* pointer, U64 count)
 {
 	static bool b = Initialize();
 
-	if (IsAllocated(*pointer)) { Reallocate<Type>(pointer, count); }
+	if (IsAllocated(*pointer)) { return Reallocate<Type>(pointer, count); }
 
 	U64 size = sizeof(RemovePointer<Type>) * count;
 
-	if (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Allocate((void**)pointer); }
-	else if (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Allocate((void**)pointer); }
-	else if (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Allocate((void**)pointer); }
-	else if (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate((void**)pointer); }
+	if (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Allocate((void**)pointer); return sizeof(Region1kb) / sizeof(RemovePointer<Type>); }
+	else if (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Allocate((void**)pointer); return sizeof(Region16kb) / sizeof(RemovePointer<Type>); }
+	else if (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Allocate((void**)pointer); return sizeof(Region256kb) / sizeof(RemovePointer<Type>); }
+	else if (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate((void**)pointer); return sizeof(Region4mb) / sizeof(RemovePointer<Type>); }
+
+	return 0;
 }
 
 template<class Type>
-inline void Memory::Reallocate(Type* pointer, U64 count)
+inline U64 Memory::Reallocate(Type* pointer, U64 count)
 {
 	static bool b = Initialize();
 
-	if (!IsAllocated(*pointer)) { Allocate<Type>(pointer, count); }
+	if (!IsAllocated(*pointer)) { return Allocate<Type>(pointer, count); }
 
 	U64 size = sizeof(RemovePointer<Type>) * count;
 
 	Type temp = nullptr;
 
-	if (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Reallocate((void**)pointer, (void**)&temp); }
-	else if (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Reallocate((void**)pointer, (void**)&temp); }
-	else if (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Reallocate((void**)pointer, (void**)&temp); }
-	else if (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Reallocate((void**)pointer, (void**)&temp); }
+	if (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region1kb) / sizeof(RemovePointer<Type>); }
+	else if (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region16kb) / sizeof(RemovePointer<Type>); }
+	else if (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region256kb) / sizeof(RemovePointer<Type>); }
+	else if (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region4mb) / sizeof(RemovePointer<Type>); }
 
-	*pointer = (Type)temp;
+	return 0;
 }
 
 template<class Type>

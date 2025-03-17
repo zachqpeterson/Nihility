@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -84,12 +84,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Containers\Function.hpp" />
+    <ClInclude Include="Containers\Hashmap.hpp" />
     <ClInclude Include="Containers\SafeQueue.hpp" />
     <ClInclude Include="Containers\String.hpp" />
+    <ClInclude Include="Containers\Vector.hpp" />
+    <ClInclude Include="Core\Events.hpp" />
     <ClInclude Include="Core\Logger.hpp" />
     <ClInclude Include="Core\Time.hpp" />
     <ClInclude Include="Defines.hpp" />
     <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Math\Hash.hpp" />
     <ClInclude Include="Math\Math.hpp" />
     <ClInclude Include="Multithreading\Jobs.hpp" />
     <ClInclude Include="Multithreading\ThreadSafety.hpp" />

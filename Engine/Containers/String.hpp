@@ -104,8 +104,6 @@ struct NH_API StringView
 	constexpr bool Empty() const { return length == 0; }
 	constexpr U64 Size() const { return length; }
 	constexpr const C8* Data() const { return string; }
-	//constexpr U64 Hash() const { return Hash::StringHash(string, length); }
-	//constexpr U64 HashCI() const { return Hash::StringHashCI(string, length); }
 
 private:
 	const C8* string;
@@ -138,54 +136,58 @@ struct StringBase
 	C& operator[](U64 i);
 	const C& operator[](U64 i) const;
 
-	bool operator==(C* other) const noexcept;
-	bool operator==(const StringBase& other) const noexcept;
-	template<U64 Count> bool operator==(const C(&other)[Count]) const noexcept;
-	bool operator!=(C* other) const noexcept;
-	bool operator!=(const StringBase& other) const noexcept;
-	template<U64 Count> bool operator!=(const C(&other)[Count]) const noexcept;
+	bool operator==(C* other) const;
+	bool operator==(const StringBase& other) const;
+	template<U64 Count> bool operator==(const C(&other)[Count]) const;
+	bool operator!=(C* other) const;
+	bool operator!=(const StringBase& other) const;
+	template<U64 Count> bool operator!=(const C(&other)[Count]) const;
 
-	bool operator<(const StringBase& other) const noexcept;
-	bool operator>(const StringBase& other) const noexcept;
+	bool operator<(const StringBase& other) const;
+	bool operator>(const StringBase& other) const;
 
-	operator bool() const noexcept;
+	operator bool() const;
 
-	bool Compare(C* other) const noexcept;
-	bool Compare(const StringBase& other) const noexcept;
-	template<U64 Count> bool Compare(const C(&other)[Count]) const noexcept;
-	bool CompareN(C* other, U64 start = 0) const noexcept;
-	bool CompareN(const StringBase& other, U64 start = 0) const noexcept;
-	template<U64 Count> bool CompareN(const C(&other)[Count], U64 start = 0) const noexcept;
-	bool StartsWith(C* other) const noexcept;
-	bool StartsWith(const StringBase& other) const noexcept;
-	template<U64 Count> bool StartsWith(const C(&other)[Count]) const noexcept;
-	bool EndsWith(C* other) const noexcept;
-	bool EndsWith(const StringBase& other) const noexcept;
-	template<U64 Count> bool EndsWith(const C(&other)[Count]) const noexcept;
+	bool Compare(C* other) const;
+	bool Compare(const StringBase& other) const;
+	template<U64 Count> bool Compare(const C(&other)[Count]) const;
+	bool CompareN(C* other, U64 start = 0) const;
+	bool CompareN(const StringBase& other, U64 start = 0) const;
+	template<U64 Count> bool CompareN(const C(&other)[Count], U64 start = 0) const;
+	bool StartsWith(C* other) const;
+	bool StartsWith(const StringBase& other) const;
+	template<U64 Count> bool StartsWith(const C(&other)[Count]) const;
+	bool EndsWith(C* other) const;
+	bool EndsWith(const StringBase& other) const;
+	template<U64 Count> bool EndsWith(const C(&other)[Count]) const;
 
-	bool Blank() const noexcept;
-	I64 IndexOf(C* find, U64 start = 0) const noexcept;
-	I64 IndexOf(const C& find, U64 start = 0) const noexcept;
-	I64 IndexOf(const StringBase& find, U64 start = 0) const noexcept;
-	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
-	I64 LastIndexOf(C* find, U64 start = 0) const noexcept;
-	I64 LastIndexOf(const C& find, U64 start = 0) const noexcept;
-	I64 LastIndexOf(const StringBase& find, U64 start = 0) const noexcept;
-	template<U64 Count> I64 LastIndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
-	I64 IndexOfNot(const C& find, U64 start = 0) const noexcept;
+	bool Blank() const;
+	I64 IndexOf(C* find, U64 start = 0) const;
+	I64 IndexOf(const C& find, U64 start = 0) const;
+	I64 IndexOf(const StringBase& find, U64 start = 0) const;
+	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const;
+	I64 LastIndexOf(C* find, U64 start = 0) const;
+	I64 LastIndexOf(const C& find, U64 start = 0) const;
+	I64 LastIndexOf(const StringBase& find, U64 start = 0) const;
+	template<U64 Count> I64 LastIndexOf(const C(&find)[Count], U64 start = 0) const;
+	I64 IndexOfNot(const C& find, U64 start = 0) const;
 
-	StringBase& Trim() noexcept;
-	StringBase SubString(U64 start, U64 nLength = U64_MAX) const noexcept;
+	StringBase& Trim();
+	StringBase SubString(U64 start, U64 nLength = U64_MAX) const;
 
-	C* begin() noexcept;
-	C* end() noexcept;
-	const C* begin() const noexcept;
-	const C* end() const noexcept;
+	C* begin();
+	C* end();
+	const C* begin() const;
+	const C* end() const;
 
-	C* rbegin() noexcept;
-	C* rend() noexcept;
-	const C* rbegin() const noexcept;
-	const C* rend() const noexcept;
+	C* rbegin();
+	C* rend();
+	const C* rbegin() const;
+	const C* rend() const;
+
+	U64 Capacity() const;
+	U64 Size() const;
+	C* Data() const;
 
 private:
 	U64 size = 0;
@@ -199,13 +201,16 @@ using String16 = StringBase<C16>;
 using String32 = StringBase<C32>;
 using StringW = StringBase<CW>;
 
+template<class Type> static constexpr inline bool IsStringType = IsSpecializationOf<Type, StringBase>;
+template<class Type> concept StringType = IsStringType<Type>;
+
 template<class C>
 inline StringBase<C>::StringBase() {}
 
 template<class C>
 inline StringBase<C>::StringBase(const StringBase& other) : size(other.size)
 {
-	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
+	if (!string || capacity < other.size) { capacity = Memory::Reallocate(&string, size); }
 
 	memcpy(string, other.string, size);
 	string[size] = 0;
@@ -291,7 +296,7 @@ inline void StringBase<C>::Reserve(U64 size)
 {
 	if (size + 1 > capacity)
 	{
-		Memory::Reallocate(&string, size, capacity);
+		capacity = Memory::Reallocate(&string, size);
 	}
 }
 
@@ -307,4 +312,22 @@ template<class C>
 inline void StringBase<C>::Resize()
 {
 	size = Length(string);
+}
+
+template<class C>
+inline U64 StringBase<C>::Capacity() const
+{
+	return capacity;
+}
+
+template<class C>
+inline U64 StringBase<C>::Size() const
+{
+	return size;
+}
+
+template<class C>
+inline C* StringBase<C>::Data() const
+{
+	return string;
 }
