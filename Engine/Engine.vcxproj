@@ -98,6 +98,7 @@
     <ClInclude Include="Math\Math.hpp" />
     <ClInclude Include="Multithreading\Jobs.hpp" />
     <ClInclude Include="Multithreading\ThreadSafety.hpp" />
+    <ClInclude Include="Platform\Input.hpp" />
     <ClInclude Include="Platform\Memory.hpp" />
     <ClInclude Include="Platform\Platform.hpp" />
     <ClInclude Include="Platform\WindowsInclude.hpp" />
@@ -110,6 +111,7 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Multithreading\Jobs.cpp" />
     <ClCompile Include="Multithreading\ThreadSafety.cpp" />
+    <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\Memory.cpp" />
     <ClCompile Include="Platform\PlatformWindows.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />

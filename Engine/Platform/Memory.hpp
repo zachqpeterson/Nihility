@@ -117,11 +117,11 @@ struct Region256kb { U8 memory[*RegionSize::KB256]; };
 struct Region4mb { U8 memory[*RegionSize::MB4]; };
 
 public:
-	template<class Type> static void Allocate(Type* pointer);
-	template<class Type> static U64 Allocate(Type* pointer, U64 count);
-	template<class Type> static U64 Reallocate(Type* pointer, U64 count);
+	template<Pointer Type> static void Allocate(Type* pointer);
+	template<Pointer Type> static U64 Allocate(Type* pointer, U64 count);
+	template<Pointer Type> static U64 Reallocate(Type* pointer, U64 count);
 
-	template<class Type> static void Free(Type* pointer);
+	template<Pointer Type> static void Free(Type* pointer);
 
 	static bool IsAllocated(void* pointer);
 
@@ -139,7 +139,7 @@ private:
 	STATIC_CLASS(Memory);
 };
 
-template<class Type>
+template<Pointer Type>
 inline void Memory::Allocate(Type* pointer)
 {
 	static bool b = Initialize();
@@ -154,7 +154,7 @@ inline void Memory::Allocate(Type* pointer)
 	else if constexpr (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate(pointer); }
 }
 
-template<class Type>
+template<Pointer Type>
 inline U64 Memory::Allocate(Type* pointer, U64 count)
 {
 	static bool b = Initialize();
@@ -171,7 +171,7 @@ inline U64 Memory::Allocate(Type* pointer, U64 count)
 	return 0;
 }
 
-template<class Type>
+template<Pointer Type>
 inline U64 Memory::Reallocate(Type* pointer, U64 count)
 {
 	static bool b = Initialize();
@@ -190,7 +190,7 @@ inline U64 Memory::Reallocate(Type* pointer, U64 count)
 	return 0;
 }
 
-template<class Type>
+template<Pointer Type>
 inline void Memory::Free(Type* pointer)
 {
 	if (!IsAllocated(*pointer)) { return; }

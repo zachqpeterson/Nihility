@@ -1,5 +1,7 @@
 #include "Platform.hpp"
 
+#include "Input.hpp"
+
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
 
@@ -43,8 +45,6 @@ Event<String> Platform::OnDragDrop;
 
 static constexpr const CW* MenuName = L"Nihility Menu";
 static constexpr const CW* ClassName = L"Nihility Class";
-
-I64 __stdcall WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam);
 
 bool Platform::Initialize()
 {
@@ -173,6 +173,14 @@ bool Platform::Update()
 	}
 
 	return running;
+}
+
+WindowInfo Platform::GetWindowInfo()
+{
+	return {
+		instance,
+		window
+	};
 }
 
 I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 lParam)
@@ -325,6 +333,12 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		}
 
 		DragFinish(dropInfo);
+	} return 0;
+	case WM_INPUT: {
+		Input::UpdateRawInput(lParam);
+	} return 0;
+	case WM_INPUT_DEVICE_CHANGE: {
+		Input::UpdateConnectionStatus((HANDLE)lParam, wParam);
 	} return 0;
 	}
 

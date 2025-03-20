@@ -82,6 +82,9 @@
     <ClInclude Include="Containers\Vector.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
+    <ClInclude Include="Platform\Input.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -107,6 +110,9 @@
     </ClCompile>
     <ClCompile Include="Core\Logger.cpp">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Input.cpp">
+      <Filter>Source Files\Platform</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@
 
 #include "Platform/Platform.hpp"
 #include "Platform/Memory.hpp"
+#include "Platform/Input.hpp"
 #include "Resources/Settings.hpp"
 #include "Containers/String.hpp"
 #include "Core/Time.hpp"
@@ -19,6 +20,7 @@ bool Engine::Initialize()
 	Memory::Initialize();
 	Settings::Initialize();
 	Platform::Initialize();
+	Input::Initialize();
 	Time::Initialize();
 
 	MainLoop();
@@ -30,6 +32,7 @@ bool Engine::Initialize()
 void Engine::Shutdown()
 {
 	Time::Shutdown();
+	Input::Shutdown();
 	Platform::Shutdown();
 	Settings::Shutdown();
 	Memory::Shutdown();
@@ -42,9 +45,15 @@ void Engine::MainLoop()
 	while (Platform::running)
 	{
 		Time::Update();
+		Input::Reset();
 		Platform::Update();
+		Input::Update();
 
+		//game update
 
+		//physics update
+
+		//renderer update
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
 		I64 remainingUS = (I64)(remainingFrameTime * 1000000.0);

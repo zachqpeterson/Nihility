@@ -5,6 +5,16 @@
 #include "Core/Events.hpp"
 #include "Containers/String.hpp"
 
+#ifdef NH_PLATFORM_WINDOWS
+
+struct WindowInfo
+{
+	struct HINSTANCE__* instance;
+	struct HWND__* window;
+};
+
+#endif
+
 class NH_API Platform
 {
 public:
@@ -45,8 +55,10 @@ private:
 
 #ifdef NH_PLATFORM_WINDOWS
 	static I64 __stdcall WindowsMessageProc(struct HWND__* hwnd, U32 msg, U64 wParam, I64 lParam);
+	static WindowInfo GetWindowInfo();
 #endif
 
+	friend class Input;
 	friend class Engine;
 
 	STATIC_CLASS(Platform);
