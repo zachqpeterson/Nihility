@@ -7,20 +7,24 @@
 #include "Platform/Memory.hpp"
 #include "Platform/Input.hpp"
 #include "Resources/Settings.hpp"
+#include "Resources/Resources.hpp"
 #include "Containers/String.hpp"
 #include "Core/Time.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
 #include "Math/Math.hpp"
 #include "Multithreading/Jobs.hpp"
+#include "Rendering/Renderer.hpp"
 
 bool Engine::Initialize()
 {
 	Logger::Initialize();
 	Memory::Initialize();
 	Settings::Initialize();
-	Platform::Initialize();
+	Platform::Initialize("Nihility Demo");
 	Input::Initialize();
+	Resources::Initialize();
+	Renderer::Initialize();
 	Time::Initialize();
 
 	MainLoop();
@@ -32,6 +36,8 @@ bool Engine::Initialize()
 void Engine::Shutdown()
 {
 	Time::Shutdown();
+	Renderer::Shutdown();
+	Resources::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
 	Settings::Shutdown();

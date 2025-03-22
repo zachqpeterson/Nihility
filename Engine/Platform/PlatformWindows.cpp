@@ -43,10 +43,10 @@ bool Platform::running = false;
 Event<bool> Platform::OnFocused;
 Event<String> Platform::OnDragDrop;
 
-static constexpr const CW* MenuName = L"Nihility Menu";
-static constexpr const CW* ClassName = L"Nihility Class";
+static constexpr const C8* MenuName = "Nihility Menu";
+static constexpr const C8* ClassName = "Nihility Class";
 
-bool Platform::Initialize()
+bool Platform::Initialize(const StringView& title)
 {
 	Logger::Trace("Initializing Platform...");
 
@@ -62,7 +62,7 @@ bool Platform::Initialize()
 	sizeNESW = LoadCursor(nullptr, IDC_SIZENESW);
 	sizeNWSE = LoadCursor(nullptr, IDC_SIZENWSE);
 
-	WNDCLASSEX wc{};
+	WNDCLASSEXA wc{};
 	wc.cbSize = sizeof(WNDCLASSEXA);
 	wc.style = CS_OWNDC;
 	wc.lpfnWndProc = WindowsMessageProc;
@@ -76,7 +76,7 @@ bool Platform::Initialize()
 	wc.lpszClassName = ClassName;
 	wc.hIconSm = LoadIcon(nullptr, L""); //MAKEINTRESOURCEW(IDI_ICON)
 
-	if (!RegisterClassEx(&wc))
+	if (!RegisterClassExA(&wc))
 	{
 		MessageBox(nullptr, L"Window registration failed!", L"Error", MB_ICONEXCLAMATION | MB_OK);
 		return false;
@@ -120,7 +120,7 @@ bool Platform::Initialize()
 
 	AdjustWindowRectExForDpi(&border, style, 0, styleEx, dpi);
 
-	window = CreateWindowEx(styleEx, ClassName, L"Test", style,
+	window = CreateWindowExA(styleEx, ClassName, title.Data(), style,
 		Settings::windowPositionX + border.left, Settings::windowPositionY + border.top,
 		Settings::windowWidth + border.right - border.left, Settings::windowHeight + border.bottom - border.top,
 		nullptr, nullptr, instance, nullptr);
@@ -158,7 +158,7 @@ void Platform::Shutdown()
 		DestroyWindow(window);
 		window = nullptr;
 
-		UnregisterClass(ClassName, instance);
+		UnregisterClassA(ClassName, instance);
 	}
 }
 

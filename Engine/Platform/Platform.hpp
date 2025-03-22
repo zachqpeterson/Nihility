@@ -37,7 +37,7 @@ public:
 	static Event<String> OnDragDrop;
 
 private:
-	static bool Initialize();
+	static bool Initialize(const StringView& title);
 	static void Shutdown();
 
 	static bool Update();

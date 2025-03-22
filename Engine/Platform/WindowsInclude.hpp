@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#ifdef NH_EXPORT
 #ifdef NH_PLATFORM_WINDOWS
 
 #define VC_EXTRALEAN
@@ -9,4 +10,5 @@
 #define NOMINMAX
 #include "Windows.h"
 
+#endif
 #endif

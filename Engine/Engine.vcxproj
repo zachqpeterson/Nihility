@@ -57,12 +57,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NH_EXPORT;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;%VULKAN_SDK%/include;%VULKAN_SDK%/Source;</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,14 +75,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NH_EXPORT;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;%VULKAN_SDK%/include;%VULKAN_SDK%/Source;</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -102,6 +106,10 @@
     <ClInclude Include="Platform\Memory.hpp" />
     <ClInclude Include="Platform\Platform.hpp" />
     <ClInclude Include="Platform\WindowsInclude.hpp" />
+    <ClInclude Include="Rendering\Instance.hpp" />
+    <ClInclude Include="Rendering\Renderer.hpp" />
+    <ClInclude Include="Rendering\VulkanInclude.hpp" />
+    <ClInclude Include="Resources\Resources.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
@@ -114,6 +122,9 @@
     <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\Memory.cpp" />
     <ClCompile Include="Platform\PlatformWindows.cpp" />
+    <ClCompile Include="Rendering\Instance.cpp" />
+    <ClCompile Include="Rendering\Renderer.cpp" />
+    <ClCompile Include="Resources\Resources.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
