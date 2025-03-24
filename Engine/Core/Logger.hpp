@@ -2,8 +2,7 @@
 
 #include "Defines.hpp"
 
-#include "fast_io/fast_io.h"
-#include "fast_io/fast_io_device.h"
+#include "File.hpp"
 
 #ifndef LOG_DEBUG_ENABLED
 #	ifdef NH_DEBUG
@@ -45,43 +44,43 @@ public:
 	template<typename... Args> NH_API static void Debug(Args&&... args)
 	{
 #if LOG_DEBUG_ENABLED == 1
-		fast_io::io::println(fast_io::out(), "\033[0;36m[DEBUG]:\033[0m ", args...);
-		fast_io::io::println(log, "[DEBUG]: ", args...);
+		console.FormatedWrite("\033[0;36m[DEBUG]:\033[0m ", args..., '\n');
+		logFile.FormatedWrite("[DEBUG]: ", args..., '\n');
 #endif
 	}
 	template<typename... Args> NH_API static void Trace(Args&&... args)
 	{
 #if LOG_TRACE_ENABLED == 1
-		fast_io::io::println(fast_io::out(), "\033[1;30m[TRACE]:\033[0m ", args...);
-		fast_io::io::println(log,  "[TRACE]: ", args...);
+		console.FormatedWrite("\033[1;30m[TRACE]:\033[0m ", args..., '\n');
+		logFile.FormatedWrite("[TRACE]: ", args..., '\n');
 #endif
 	}
 	template<typename... Args> NH_API static void Info(Args&&... args)
 	{
 #if LOG_INFO_ENABLED == 1
-		fast_io::io::println(fast_io::out(), "\033[1;32m[INFO]:\033[0m  ", args...);
-		fast_io::io::println(log, "[INFO]:  ", args...);
+		console.FormatedWrite("\033[1;32m[INFO]:\033[0m  ", args..., '\n');
+		logFile.FormatedWrite("[INFO]:  ", args..., '\n');
 #endif
 	}
 	template<typename... Args> NH_API static void Warn(Args&&... args)
 	{
 #if LOG_WARN_ENABLED == 1
-		fast_io::io::println(fast_io::out(), "\033[1;33m[WARN]:\033[0m  ", args...);
-		fast_io::io::println(log, "[WARN]:  ", args...);
+		console.FormatedWrite("\033[1;33m[WARN]:\033[0m  ", args..., '\n');
+		logFile.FormatedWrite("[WARN]:  ", args..., '\n');
 #endif
 	}
 	template<typename... Args> NH_API static void Error(Args&&... args)
 	{
 #if LOG_ERROR_ENABLED == 1
-		fast_io::io::println(fast_io::out(), "\033[0;31m[ERROR]:\033[0m ", args...);
-		fast_io::io::println(log, "[ERROR]: ", args...);
+		console.FormatedWrite("\033[0;31m[ERROR]:\033[0m ", args..., '\n');
+		logFile.FormatedWrite("[ERROR]: ", args..., '\n');
 #endif
 	}
 	template<typename... Args> NH_API static void Fatal(Args&&... args)
 	{
 #if LOG_FATAL_ENABLED == 1
-		fast_io::io::println(fast_io::out(), "\033[0;41m[FATAL]:\033[0m ", args...);
-		fast_io::io::println(log, "[FATAL]: ", args...);
+		console.FormatedWrite("\033[0;41m[FATAL]:\033[0m ", args..., '\n');
+		logFile.FormatedWrite("[FATAL]: ", args..., '\n');
 #endif
 	}
 
@@ -89,7 +88,8 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static fast_io::obuf_file log;
+	static File logFile;
+	static File console;
 
 	friend class Engine;
 

@@ -92,6 +92,7 @@ template <class Type> using RemoveArrays = std::remove_all_extents_t<Type>;
 template <class Type> using AddLvalReference = std::add_lvalue_reference_t<Type>;
 template <class Type> using AddRvalReference = std::add_rvalue_reference_t<Type>;
 template <class Type> using BaseType = RemoveQualsReference<RemovePointers<RemoveArrays<Type>>>;
+template <class Type> using Decayed = std::decay_t<Type>;
 template <class Type> using UnsignedOf = std::make_unsigned_t<Type>;
 template <class Type> using SignedOf = std::make_signed_t<Type>;
 
@@ -146,6 +147,9 @@ template <class Type> concept Number = IsNumber<Type>;
 
 template <class Type> constexpr const bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = IsStringLiteral<Type>;
+
+template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
 
 template <class Type> constexpr const bool IsFunctionPtr = std::is_function_v<Type>;
 template <class Type> concept FunctionPtr = requires (Type t) { IsFunctionPtr<decltype(t)>; };
@@ -278,6 +282,8 @@ namespace TypeTraits
 	static inline constexpr double F64_MAX = 1.7976931348623158e+308;			//Maximum value of a 64-bit float
 	static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum value of a 64-bit float
 }
+
+//TODO: long double
 template <class Type> struct Traits
 {
 	using Base = RemoveQuals<Type>;

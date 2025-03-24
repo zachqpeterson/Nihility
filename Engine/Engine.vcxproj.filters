@@ -100,6 +100,12 @@
     <ClInclude Include="Rendering\VulkanInclude.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Core\File.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Formatting.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -137,6 +143,9 @@
     </ClCompile>
     <ClCompile Include="Rendering\Renderer.cpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\File.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

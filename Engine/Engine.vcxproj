@@ -94,6 +94,8 @@
     <ClInclude Include="Containers\String.hpp" />
     <ClInclude Include="Containers\Vector.hpp" />
     <ClInclude Include="Core\Events.hpp" />
+    <ClInclude Include="Core\File.hpp" />
+    <ClInclude Include="Core\Formatting.hpp" />
     <ClInclude Include="Core\Logger.hpp" />
     <ClInclude Include="Core\Time.hpp" />
     <ClInclude Include="Defines.hpp" />
@@ -114,6 +116,7 @@
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\File.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Time.cpp" />
     <ClCompile Include="Engine.cpp" />

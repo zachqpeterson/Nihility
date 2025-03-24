@@ -1,6 +1,7 @@
 #include "Logger.hpp"
 
-fast_io::obuf_file Logger::log("log.txt", fast_io::open_mode::out);
+File Logger::logFile("Log.txt", FILE_OPEN_LOG);
+File Logger::console("CONOUT$", FILE_OPEN_CONSOLE);
 
 bool Logger::Initialize()
 {
@@ -9,5 +10,6 @@ bool Logger::Initialize()
 
 void Logger::Shutdown()
 {
-	log.close();
+	logFile.Destroy();
+	console.Destroy();
 }
