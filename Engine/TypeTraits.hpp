@@ -145,6 +145,9 @@ template <class Type> concept FloatingPoint = IsFloatingPoint<Type>;
 template <class Type> constexpr const bool IsNumber = IsInteger<Type> || IsFloatingPoint<Type>;
 template <class Type> concept Number = IsNumber<Type>;
 
+template <class Type> constexpr const bool IsEnum = std::is_enum_v<Type>;
+template <class Type> concept Enum = IsEnum<Type>;
+
 template <class Type> constexpr const bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = IsStringLiteral<Type>;
 
@@ -457,7 +460,7 @@ template<Unsigned T>
 }
 
 template<class Type>
-NH_NODISCARD constexpr std::underlying_type_t<Type> operator*(Type value) noexcept
+[[nodiscard]] constexpr std::underlying_type_t<Type> operator*(Type value) noexcept
 {
 	static_assert(std::is_enum_v<Type>, "Type must be an enum");
 

@@ -511,6 +511,17 @@ NH_API constexpr U64 Format(C* buf, Type t) noexcept
 	return Format(buf, reinterpret_cast<U64>(t));
 }
 
+template<Character C, Enum Type>
+NH_API constexpr U64 Format(C* buf, Type t) noexcept
+{
+	if constexpr (std::is_scoped_enum_v<Type>)
+	{
+		return Format(buf, *t);
+	}
+
+	return Format(buf, t);
+}
+
 template<Character C, Character Type>
 NH_API constexpr U64 Format(C* buf, Type t) noexcept
 {

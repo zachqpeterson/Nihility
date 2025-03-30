@@ -54,9 +54,18 @@ void Engine::MainLoop()
 	while (Platform::running)
 	{
 		Time::Update();
-		Input::Reset();
-		Platform::Update();
 		Input::Update();
+		Platform::Update();
+
+		const Vector<ButtonEvent>& events = Input::GetInputEvents();
+
+		for (const ButtonEvent& event : events)
+		{
+			if (event.code == ButtonCode::Escape && event.type == InputType::Press)
+			{
+				Platform::running = false;
+			}
+		}
 
 		//game update
 

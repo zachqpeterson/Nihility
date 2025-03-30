@@ -3,7 +3,10 @@
 #include "Platform.hpp"
 #include "Memory.hpp"
 
+#include "Math/Math.hpp"
 #include "Core/Logger.hpp"
+#include "Core/Time.hpp"
+#include "Resources/Settings.hpp"
 
 #ifdef NH_PLATFORM_WINDOWS
 
@@ -15,21 +18,25 @@
 #pragma comment(lib ,"xinput.lib")
 #pragma comment(lib ,"hid.lib")
 
-enum class JoystickType
-{
-	Generic,
-	Xbox,
-	Dualshock4,
-	Dualsense,
-};
+bool Input::useController = false;
+U32 Input::activeController = -1;
 
-enum class TriggerEffectType
-{
-	None,
-	Resistance,
-	Weapon,
-	Vibration
-};
+Input::ButtonState Input::buttonStates[*ButtonCode::COUNT] = {};
+F32 Input::axisStates[*AxisCode::COUNT] = {};
+Vector<ButtonEvent> Input::events;
+F64 Input::currentTimestamp = Time::AbsoluteTime();
+F64 Input::holdThreshold = 0.5f;
+F64 Input::doublePressThreshold = 0.25f;
+
+F32 Input::mouseSensitivity;
+I16 Input::mouseWheelDelta;
+I16 Input::mouseHWheelDelta;
+F32 Input::mousePosX;
+F32 Input::mousePosY;
+F32 Input::deltaMousePosX;
+F32 Input::deltaMousePosY;
+F32 Input::deltaRawMousePosX;
+F32 Input::deltaRawMousePosY;
 
 struct TriggerEffect
 {
@@ -58,17 +65,14 @@ struct JoystickState
 
 	// Inputs
 	bool connected;
-	JoystickType type;
 	HANDLE deviceHandle;
-	F32 currentInputs[inputCount];
-	F32 previousInputs[inputCount];
 	CW deviceName[maxNameLength];
 	CW productName[maxNameLength];
 	CW manufacturerName[maxNameLength];
 
 	// Outputs
-	F32 lightRumble;
-	F32 heavyRumble;
+	F32 leftRumble;
+	F32 rightRumble;
 	F32 ledRed;
 	F32 ledGreen;
 	F32 ledBlue;
@@ -86,95 +90,6 @@ struct Joysticks
 	U32 count;
 	JoystickState* states;
 	HWND hwnd;
-};
-
-enum class XboxInputs
-{
-	A,
-	B,
-	X,
-	Y,
-	DpadLeft,
-	DpadRight,
-	DpadUp,
-	DpadDown,
-	LeftBumper,
-	RightBumper,
-	LeftStickButton,
-	RightStickButton,
-	Back,
-	Start,
-	LeftTrigger,
-	RightTrigger,
-	LeftStickLeft,
-	LeftStickRight,
-	LeftStickUp,
-	LeftStickDown,
-	RightStickLeft,
-	RightStickRight,
-	RightStickUp,
-	RightStickDown
-};
-
-enum class DS4Inputs
-{
-	Square,
-	X,
-	Circle,
-	Triangle,
-	L1,
-	R1,
-	L3,
-	R3,
-	Options,
-	Share,
-	PS,
-	TouchPadButton,
-	LeftStickLeft,
-	LeftStickRight,
-	LeftStickUp,
-	LeftStickDown,
-	RightStickLeft,
-	RightStickRight,
-	RightStickUp,
-	RightStickDown,
-	L2,
-	R2,
-	DpadLeft,
-	DpadRight,
-	DpadUp,
-	DpadDown
-};
-
-enum class DS5Inputs
-{
-	Square,
-	X,
-	Circle,
-	Triangle,
-	L1,
-	R1,
-	L3,
-	R3,
-	Options,
-	Share,
-	PS,
-	TouchPadButton,
-	LeftStickLeft,
-	LeftStickRight,
-	LeftStickUp,
-	LeftStickDown,
-	RightStickLeft,
-	RightStickRight,
-	RightStickUp,
-	RightStickDown,
-	L2,
-	R2,
-	DpadLeft,
-	DpadRight,
-	DpadUp,
-	DpadDown,
-	MicrophoneButton,
 };
 
 enum class GenericInputs
@@ -292,7 +207,381 @@ U32 MakeReflectedCRC32(BYTE* data, U32 byteCount)
 	return ~crc;
 }
 
-void UpdateDualshock4(JoystickState* state, U8 rawData[], UL32 byteCount)
+
+
+bool Input::Initialize()
+{
+	Logger::Trace("Initializing Input...");
+
+	WindowInfo info = Platform::GetWindowInfo();
+
+	RAWINPUTDEVICE deviceList[7];
+	deviceList[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[0].usUsage = HID_USAGE_GENERIC_POINTER;
+	deviceList[0].dwFlags = RIDEV_DEVNOTIFY;
+	deviceList[0].hwndTarget = nullptr;
+
+	deviceList[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[1].usUsage = HID_USAGE_GENERIC_MOUSE;
+	deviceList[1].dwFlags = RIDEV_DEVNOTIFY | RIDEV_INPUTSINK; //RIDEV_NOLEGACY
+	deviceList[1].hwndTarget = info.window;
+
+	deviceList[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[2].usUsage = HID_USAGE_GENERIC_KEYPAD;
+	deviceList[2].dwFlags = RIDEV_DEVNOTIFY;
+	deviceList[2].hwndTarget = nullptr;
+
+	deviceList[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+	deviceList[3].dwFlags = RIDEV_DEVNOTIFY | RIDEV_NOLEGACY | RIDEV_APPKEYS;
+	deviceList[3].hwndTarget = nullptr;
+
+	deviceList[4].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[4].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+	deviceList[4].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
+	deviceList[4].hwndTarget = info.window;
+
+	deviceList[5].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+	deviceList[5].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+	deviceList[5].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
+	deviceList[5].hwndTarget = info.window;
+
+	deviceList[6].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[6].usUsage = HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER;
+	deviceList[6].dwFlags = RIDEV_DEVNOTIFY;
+	deviceList[6].hwndTarget = nullptr;
+
+	if (!RegisterRawInputDevices(deviceList, 7, sizeof(RAWINPUTDEVICE))) { Logger::Error("Failed To Register Devices, Error Code: ", GetLastError(), "!"); return false; }
+
+	joysticks.hwnd = info.window;
+	joysticks.count = Joysticks::maxXinputControllers;
+	Memory::Allocate(&joysticks.states, joysticks.count);
+
+	POINT p;
+	GetCursorPos(&p);
+
+	mousePosX = (F32)(p.x - Settings::windowPositionX);
+	mousePosY = (F32)(p.y - Settings::windowPositionY);
+
+	I32 sensitivity;
+	SystemParametersInfoA(SPI_GETMOUSESPEED, 0, &sensitivity, 0);
+
+	mouseSensitivity = (F32)sensitivity;
+
+	return true;
+}
+
+void Input::Shutdown()
+{
+	Logger::Trace("Cleaning Up Input...");
+
+	SetControllerRumbleStrength(0.0f, 0.0f);
+	SetControllerLedColor(0.0f, 0.0f, 0.0f);
+	SetControllerTriggerEffect(TriggerEffectType::None);
+
+	//TODO: Update controllers to reset effects
+
+	Memory::Free(&joysticks.states);
+}
+
+void Input::Update()
+{
+	events.Clear();
+	
+	deltaMousePosX = 0;
+	deltaMousePosY = 0;
+	mouseWheelDelta = 0;
+	mouseHWheelDelta = 0;
+}
+
+void Input::SetControllerRumbleStrength(F32 left, F32 right)
+{
+	for (U32 joystickIndex = 0; joystickIndex < joysticks.count; ++joystickIndex)
+	{
+		JoystickState& state = joysticks.states[joystickIndex];
+
+		state.leftRumble = left;
+		state.rightRumble = right;
+	}
+}
+
+void Input::SetControllerLedColor(F32 red, F32 green, F32 blue)
+{
+	red = Math::Clamp(red, 0.0f, 1.0f);
+	green = Math::Clamp(green, 0.0f, 1.0f);
+	blue = Math::Clamp(blue, 0.0f, 1.0f);
+
+	for (U32 joystickIndex = 0; joystickIndex < joysticks.count; ++joystickIndex)
+	{
+		JoystickState& state = joysticks.states[joystickIndex];
+
+		state.ledRed = red;
+		state.ledGreen = green;
+		state.ledBlue = blue;
+	}
+}
+
+void Input::SetControllerLedColor(LedColor color, F32 strength)
+{
+	strength = Math::Clamp(strength, 0.0f, 1.0f);
+
+	F32 red = (color == LedColor::Red || color == LedColor::Magenta || color == LedColor::Yellow || color == LedColor::White) * strength;
+	F32 green = (color == LedColor::Green || color == LedColor::Yellow || color == LedColor::Cyan || color == LedColor::White) * strength;
+	F32 blue = (color == LedColor::Red || color == LedColor::Magenta || color == LedColor::Cyan || color == LedColor::White) * strength;
+
+	for (U32 joystickIndex = 0; joystickIndex < joysticks.count; ++joystickIndex)
+	{
+		JoystickState& state = joysticks.states[joystickIndex];
+
+		state.ledRed = red;
+		state.ledGreen = green;
+		state.ledBlue = blue;
+	}
+}
+
+void Input::SetControllerTriggerEffect(TriggerEffectType type, Trigger trigger)
+{
+	for (U32 joystickIndex = 0; joystickIndex < joysticks.count; ++joystickIndex)
+	{
+		JoystickState& state = joysticks.states[joystickIndex];
+
+		switch (type)
+		{
+		case TriggerEffectType::None: {
+			if(trigger == Trigger::Left || trigger == Trigger::Both) { state.leftTriggerEffect.type = TriggerEffectType::None; }
+			if(trigger == Trigger::Right || trigger == Trigger::Both) { state.rightTriggerEffect.type = TriggerEffectType::None; }
+		} break;
+		case TriggerEffectType::Resistance: {
+			if (trigger == Trigger::Left || trigger == Trigger::Both)
+			{
+				state.leftTriggerEffect = {
+				.type = TriggerEffectType::Resistance,
+				.resistance = {
+					.zoneStrengths = {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 1.0f}
+				}
+				};
+			}
+			
+			if (trigger == Trigger::Right || trigger == Trigger::Both)
+			{
+				state.rightTriggerEffect = {
+					.type = TriggerEffectType::Resistance,
+					.resistance = {
+						.zoneStrengths = {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 1.0f}
+					}
+				};
+			}
+		} break;
+		case TriggerEffectType::Vibration: {
+			if (trigger == Trigger::Left || trigger == Trigger::Both)
+			state.leftTriggerEffect = {
+				.type = TriggerEffectType::Vibration,
+				.vibration = {
+					.zoneStrengths = {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 1.0f},
+					.frequency = 0.3f
+				}
+			};
+
+			if (trigger == Trigger::Right || trigger == Trigger::Both)
+			{
+				state.rightTriggerEffect = {
+					.type = TriggerEffectType::Vibration,
+					.vibration = {
+						.zoneStrengths = {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 1.0f},
+						.frequency = 0.3f
+					}
+				};
+			}
+		} break;
+		case TriggerEffectType::Weapon: {
+			if (trigger == Trigger::Left || trigger == Trigger::Both)
+			{
+				state.leftTriggerEffect.type = TriggerEffectType::Weapon;
+				state.leftTriggerEffect.weapon.startPosition = 0.2f;
+				state.leftTriggerEffect.weapon.endPosition = 0.4f;
+				state.leftTriggerEffect.weapon.strength = 0.8f;
+			}
+
+			if (trigger == Trigger::Right || trigger == Trigger::Both)
+			{
+				state.rightTriggerEffect.type = TriggerEffectType::Weapon;
+				state.rightTriggerEffect.weapon.startPosition = 0.2f;
+				state.rightTriggerEffect.weapon.endPosition = 0.4f;
+				state.rightTriggerEffect.weapon.strength = 0.8f;
+			}
+		} break;
+		}
+	}
+}
+
+F32 Input::GetAxis(AxisCode code)
+{
+	return axisStates[*code];
+}
+
+const Vector<ButtonEvent>& Input::GetInputEvents()
+{
+	return events;
+}
+
+void Input::UpdateRawInput(I64 lParam)
+{
+	currentTimestamp = Time::AbsoluteTime();
+
+	U32 size = 0;
+	GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+	RAWINPUT* input;
+	Memory::Allocate(&input, size / sizeof(RAWINPUTHEADER));
+	if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, input, &size, sizeof(RAWINPUTHEADER)) > 0)
+	{
+		switch (input->header.dwType)
+		{
+		case RIM_TYPEMOUSE: {
+			RAWMOUSE mouse = input->data.mouse;
+
+			if (mouse.usFlags == MOUSE_MOVE_RELATIVE)
+			{
+				I32 relativeX = mouse.lLastX;
+				I32 relativeY = mouse.lLastY;
+
+				deltaRawMousePosX = relativeX * mouseSensitivity;
+				deltaRawMousePosY = relativeY * mouseSensitivity;
+			}
+			else if (mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+			{
+				BreakPoint;
+			}
+
+			POINT p;
+			GetCursorPos(&p);
+
+			HWND handle = WindowFromPoint(p);
+
+			if (handle == Platform::GetWindowInfo().window)
+			{
+				if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) { UpdateButtonState(ButtonCode::LeftMouse, true); }
+				if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) { UpdateButtonState(ButtonCode::RightMouse, true); }
+				if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) { UpdateButtonState(ButtonCode::MiddleMouse, true); }
+				if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) { UpdateButtonState(ButtonCode::XMouseOne, true); }
+				if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) { UpdateButtonState(ButtonCode::XMouseTwo, true); }
+
+				if (mouse.usButtonFlags & RI_MOUSE_WHEEL) { mouseWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
+				if (mouse.usButtonFlags & RI_MOUSE_HWHEEL) { mouseHWheelDelta = (I16)((F32)(I16)mouse.usButtonData / WHEEL_DELTA); }
+			}
+
+			if (mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) { UpdateButtonState(ButtonCode::LeftMouse, false); }
+			if (mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) { UpdateButtonState(ButtonCode::RightMouse, false); }
+			if (mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) { UpdateButtonState(ButtonCode::MiddleMouse, false); }
+			if (mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) { UpdateButtonState(ButtonCode::XMouseOne, false); }
+			if (mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) { UpdateButtonState(ButtonCode::XMouseTwo, false); }
+		} break;
+		case RIM_TYPEKEYBOARD: {
+			RAWKEYBOARD keyboard = input->data.keyboard;
+			UpdateButtonState((ButtonCode)keyboard.VKey, keyboard.Message == WM_KEYDOWN || keyboard.Message == WM_SYSKEYDOWN);
+		} break;
+		case RIM_TYPEHID: {
+			RID_DEVICE_INFO deviceInfo{};
+			UINT deviceInfoSize = sizeof(deviceInfo);
+			bool gotInfo = GetRawInputDeviceInfo(input->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) > 0;
+
+			GetRawInputDeviceInfo(input->header.hDevice, RIDI_PREPARSEDDATA, 0, &size);
+			PHIDP_PREPARSED_DATA data;
+			Memory::Allocate((U8**)&data, size);
+
+			bool gotPreparsedData = GetRawInputDeviceInfo(input->header.hDevice, RIDI_PREPARSEDDATA, data, &size) > 0;
+
+			if (gotInfo && gotPreparsedData)
+			{
+				for (UINT i = Joysticks::maxXinputControllers; i < joysticks.count; ++i)
+				{
+					if (input->header.hDevice == joysticks.states[i].deviceHandle)
+					{
+						if (IsDualshock4(deviceInfo.hid))
+						{
+							UpdateDualshock4(i, input->data.hid.bRawData, input->data.hid.dwSizeHid);
+						}
+						else if (IsDualsense(deviceInfo.hid))
+						{
+							UpdateDualsense(i, input->data.hid.bRawData, input->data.hid.dwSizeHid);
+						}
+						else
+						{
+							ParseGenericController(i, input->data.hid.bRawData, input->data.hid.dwSizeHid, data);
+						}
+					}
+				}
+			}
+			Memory::Free(&data);
+		} break;
+		}
+	}
+	Memory::Free(&input);
+
+	UpdateXboxControllers();
+}
+
+void Input::UpdateConnectionStatus(void* deviceHandle, U64 status)
+{
+	// Check all XInput devices
+	for (U32 playerIndex = 0; playerIndex < Joysticks::maxXinputControllers; ++playerIndex)
+	{
+		XINPUT_STATE state;
+		joysticks.states[playerIndex].connected = (XInputGetState(playerIndex, &state) == ERROR_SUCCESS);
+	}
+
+	if (status == GIDC_ARRIVAL) { ConnectHIDJoystick(deviceHandle); }
+	else if (status == GIDC_REMOVAL) { DisconnectHIDJoystick(deviceHandle); }
+}
+
+void Input::ConnectHIDJoystick(void* deviceHandle)
+{
+	WCHAR deviceName[1024] = {};
+	UINT deviceNameLength = sizeof(deviceName) / sizeof(*deviceName);
+	GetRawInputDeviceInfoW(deviceHandle, RIDI_DEVICENAME, deviceName, &deviceNameLength);
+	if (!IsXboxController(deviceName))
+	{
+		U32 joystickIndex = Joysticks::maxXinputControllers;
+		while (joystickIndex < joysticks.count && wcscmp(deviceName, joysticks.states[joystickIndex].deviceName) != 0)
+		{
+			++joystickIndex;
+		}
+		if (joystickIndex == joysticks.count)
+		{
+			joysticks.count += 1;
+			Memory::Reallocate(&joysticks.states, joysticks.count);
+			JoystickState newState = {};
+			joysticks.states[joystickIndex] = newState;
+		}
+
+		JoystickState* state = &joysticks.states[joystickIndex];
+		state->deviceHandle = deviceHandle;
+		wcscpy_s(state->deviceName, deviceName);
+		state->outputFile = CreateFileW(deviceName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+		HidD_GetProductString(state->outputFile, state->productName, JoystickState::maxNameLength);
+		HidD_GetManufacturerString(state->outputFile, state->manufacturerName, JoystickState::maxNameLength);
+		joysticks.states[joystickIndex].connected = true;
+	}
+}
+
+void Input::DisconnectHIDJoystick(void* deviceHandle)
+{
+	for (U32 i = Joysticks::maxXinputControllers; i < joysticks.count; ++i)
+	{
+		if (deviceHandle == joysticks.states[i].deviceHandle && !IsXboxController(joysticks.states[i].deviceName))
+		{
+			JoystickState* state = &joysticks.states[i];
+			state->connected = false;
+			if (state->outputFile != INVALID_HANDLE_VALUE)
+			{
+				DWORD bytesTransferred;
+				GetOverlappedResult(state->outputFile, &state->overlapped, &bytesTransferred, true);
+				CloseHandle(state->outputFile);
+			}
+		}
+	}
+}
+
+void Input::UpdateDualshock4(U32 index, U8 rawData[], UL32 byteCount)
 {
 	static const UL32 usbInputByteCount = 64;
 	static const UL32 bluetoothInputByteCount = 547;
@@ -301,81 +590,318 @@ void UpdateDualshock4(JoystickState* state, U8 rawData[], UL32 byteCount)
 	if (byteCount == bluetoothInputByteCount) { offset = 2; }
 	else if (byteCount != usbInputByteCount) { return; }
 
-	U8 leftStickX = *(rawData + offset + 1);
-	U8 leftStickY = *(rawData + offset + 2);
-	U8 rightStickX = *(rawData + offset + 3);
-	U8 rightStickY = *(rawData + offset + 4);
-	U8 leftTrigger = *(rawData + offset + 8);
-	U8 rightTrigger = *(rawData + offset + 9);
+	F32 leftStickX = *(rawData + offset + 1) / 255.0f * 2 - 1;
+	F32 leftStickY = *(rawData + offset + 2) / 255.0f * 2 - 1;
+	F32 rightStickX = *(rawData + offset + 3) / 255.0f * 2 - 1;
+	F32 rightStickY = *(rawData + offset + 4) / 255.0f * 2 - 1;
+	F32 leftTrigger = *(rawData + offset + 8) / 255.0f;
+	F32 rightTrigger = *(rawData + offset + 9) / 255.0f;
 	U8 dpad = 0b1111 & *(rawData + offset + 5);
 
-	state->currentInputs[*DS4Inputs::Square] = (F32)(1 & (*(rawData + offset + 5) >> 4));
-	state->currentInputs[*DS4Inputs::X] = (F32)(1 & (*(rawData + offset + 5) >> 5));
-	state->currentInputs[*DS4Inputs::Circle] = (F32)(1 & (*(rawData + offset + 5) >> 6));
-	state->currentInputs[*DS4Inputs::Triangle] = (F32)(1 & (*(rawData + offset + 5) >> 7));
-	state->currentInputs[*DS4Inputs::L1] = (F32)(1 & (*(rawData + offset + 6) >> 0));
-	state->currentInputs[*DS4Inputs::R1] = (F32)(1 & (*(rawData + offset + 6) >> 1));
-	state->currentInputs[*DS4Inputs::Share] = (F32)(1 & (*(rawData + offset + 6) >> 4));
-	state->currentInputs[*DS4Inputs::Options] = (F32)(1 & (*(rawData + offset + 6) >> 5));
-	state->currentInputs[*DS4Inputs::L3] = (F32)(1 & (*(rawData + offset + 6) >> 6));
-	state->currentInputs[*DS4Inputs::R3] = (F32)(1 & (*(rawData + offset + 6) >> 7));
-	state->currentInputs[*DS4Inputs::PS] = (F32)(1 & (*(rawData + offset + 7) >> 0));
-	state->currentInputs[*DS4Inputs::TouchPadButton] = (F32)(1 & (*(rawData + offset + 7) >> 1));
-	state->currentInputs[*DS4Inputs::LeftStickLeft] = -(leftStickX / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::LeftStickRight] = (leftStickX / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::LeftStickUp] = -(leftStickY / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::LeftStickDown] = (leftStickY / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::RightStickLeft] = -(rightStickX / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::RightStickRight] = (rightStickX / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::RightStickUp] = -(rightStickY / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::RightStickDown] = (rightStickY / 255.0f * 2 - 1);
-	state->currentInputs[*DS4Inputs::L2] = leftTrigger / 255.0f;
-	state->currentInputs[*DS4Inputs::R2] = rightTrigger / 255.0f;
-	state->currentInputs[*DS4Inputs::DpadUp] = (dpad == 0 || dpad == 1 || dpad == 7) ? 1.0f : 0.0f;
-	state->currentInputs[*DS4Inputs::DpadRight] = (dpad == 1 || dpad == 2 || dpad == 3) ? 1.0f : 0.0f;
-	state->currentInputs[*DS4Inputs::DpadDown] = (dpad == 3 || dpad == 4 || dpad == 5) ? 1.0f : 0.0f;
-	state->currentInputs[*DS4Inputs::DpadLeft] = (dpad == 5 || dpad == 6 || dpad == 7) ? 1.0f : 0.0f;
-	state->type = JoystickType::Dualshock4;
+	UpdateButtonState(ButtonCode::GamepadX, 1 & (*(rawData + offset + 5) >> 4)); //Square
+	UpdateButtonState(ButtonCode::GamepadA, 1 & (*(rawData + offset + 5) >> 5)); //X
+	UpdateButtonState(ButtonCode::GamepadB, 1 & (*(rawData + offset + 5) >> 6)); //Circle
+	UpdateButtonState(ButtonCode::GamepadY, 1 & (*(rawData + offset + 5) >> 7)); //Triangle
+	UpdateButtonState(ButtonCode::GamepadLeftShoulder, 1 & (*(rawData + offset + 6) >> 0)); //L1
+	UpdateButtonState(ButtonCode::GamepadRightShoulder, 1 & (*(rawData + offset + 6) >> 1)); //R1
+	UpdateButtonState(ButtonCode::GamepadView, 1 & (*(rawData + offset + 6) >> 4)); //Share
+	UpdateButtonState(ButtonCode::GamepadMenu, 1 & (*(rawData + offset + 6) >> 5)); //Options
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickButton, 1 & (*(rawData + offset + 6) >> 6)); //L3
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickButton, 1 & (*(rawData + offset + 6) >> 7)); //R3
+	//1 & (*(rawData + offset + 7) >> 0) PS button
+	//1 & (*(rawData + offset + 7) >> 1) Touch pad button
+
+	UpdateButtonState(ButtonCode::GamepadDPadUp, dpad == 0 || dpad == 1 || dpad == 7); //Dpad Up
+	UpdateButtonState(ButtonCode::GamepadDPadDown, dpad == 3 || dpad == 4 || dpad == 5); //Dpad Down
+	UpdateButtonState(ButtonCode::GamepadDPadLeft, dpad == 5 || dpad == 6 || dpad == 7); //Dpad Left
+	UpdateButtonState(ButtonCode::GamepadDPadRight, dpad == 1 || dpad == 2 || dpad == 3); //Dpad Right
+
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickUp, -leftStickY > 0.9f); //Left Thumbstick Up
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickDown, leftStickY > 0.9f); //Left Thumbstick Down
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickLeft, -leftStickX > 0.9f); //Left Thumbstick Left
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickRight, leftStickX > 0.9f); //Left Thumbstick Right
+
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickUp, -rightStickY > 0.9f); //Right Thumbstick Up
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickDown, rightStickY > 0.9f); //Right Thumbstick Down
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickLeft, -rightStickX > 0.9f); //Right Thumbstick Left
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickRight, rightStickX > 0.9f); //Right Thumbstick Right
+
+	UpdateButtonState(ButtonCode::GamepadLeftTrigger, leftTrigger > 0.9f); //L2
+	UpdateButtonState(ButtonCode::GamepadRightTrigger, rightTrigger > 0.9f); //R2
+
+	UpdateAxisState(AxisCode::LeftJoystickX, leftStickX);
+	UpdateAxisState(AxisCode::LeftJoystickY, -leftStickY);
+	UpdateAxisState(AxisCode::RightJoystickX, rightStickX);
+	UpdateAxisState(AxisCode::RightJoystickY, -rightStickY);
+	UpdateAxisState(AxisCode::LeftTrigger, leftTrigger);
+	UpdateAxisState(AxisCode::RightTrigger, rightTrigger);
+
+	JoystickState& state = joysticks.states[index];
 
 	I32 headerSize = 0;
 	I32 outputByteCount = 0;
 	if (byteCount == usbInputByteCount)
 	{
 		outputByteCount = 32;
-		state->outputBuffer[0] = 0x05;
-		state->outputBuffer[1] = 0xFF;
+		state.outputBuffer[0] = 0x05;
+		state.outputBuffer[1] = 0xFF;
 	}
 	if (byteCount == bluetoothInputByteCount)
 	{
 		outputByteCount = 78;
-		state->outputBuffer[0] = 0x11;
-		state->outputBuffer[1] = 0XC0;
-		state->outputBuffer[3] = 0x07;
+		state.outputBuffer[0] = 0x11;
+		state.outputBuffer[1] = 0XC0;
+		state.outputBuffer[3] = 0x07;
 		headerSize = 1;
 	}
-	state->outputBuffer[4 + offset + headerSize] = (U8)(state->lightRumble * 0xFF);
-	state->outputBuffer[5 + offset + headerSize] = (U8)(state->heavyRumble * 0xFF);
-	state->outputBuffer[6 + offset + headerSize] = (U8)(state->ledRed * 0xFF);
-	state->outputBuffer[7 + offset + headerSize] = (U8)(state->ledGreen * 0xFF);
-	state->outputBuffer[8 + offset + headerSize] = (U8)(state->ledBlue * 0xFF);
+	state.outputBuffer[5 + offset + headerSize] = (U8)(state.leftRumble * 0xFF);
+	state.outputBuffer[4 + offset + headerSize] = (U8)(state.rightRumble * 0xFF);
+	state.outputBuffer[6 + offset + headerSize] = (U8)(state.ledRed * 0xFF);
+	state.outputBuffer[7 + offset + headerSize] = (U8)(state.ledGreen * 0xFF);
+	state.outputBuffer[8 + offset + headerSize] = (U8)(state.ledBlue * 0xFF);
 
 	if (byteCount == bluetoothInputByteCount)
 	{
-		U32 crc = MakeReflectedCRC32(state->outputBuffer, 75);
-		memcpy(state->outputBuffer + 75, &crc, sizeof(crc));
+		U32 crc = MakeReflectedCRC32(state.outputBuffer, 75);
+		memcpy(state.outputBuffer + 75, &crc, sizeof(crc));
 	}
 
 	UL32 bytesTransferred;
-	if (GetOverlappedResult(state->outputFile, &state->overlapped, &bytesTransferred, false))
+	if (GetOverlappedResult(state.outputFile, &state.overlapped, &bytesTransferred, false))
 	{
-		if (state->outputFile != INVALID_HANDLE_VALUE)
+		if (state.outputFile != INVALID_HANDLE_VALUE)
 		{
-			WriteFile(state->outputFile, (void*)(state->outputBuffer + headerSize), outputByteCount, 0, &state->overlapped);
+			WriteFile(state.outputFile, (void*)(state.outputBuffer + headerSize), outputByteCount, 0, &state.overlapped);
 		}
 	}
 }
 
-void SetDualsenseTriggerEffect(BYTE* dst, TriggerEffect effect)
+void Input::UpdateDualsense(U32 index, U8 rawData[], UL32 byteCount)
+{
+	bool bluetooth = rawData[0] == 0x31;
+	if (rawData[0] != 0x01 && rawData[0] != 0x31) { return; }
+
+	U32 offset = (bluetooth ? 2 : 0);
+
+	F32 leftStickX = rawData[1 + offset] / 255.0f * 2 - 1;
+	F32 leftStickY = rawData[2 + offset] / 255.0f * 2 - 1;
+	F32 rightStickX = rawData[3 + offset] / 255.0f * 2 - 1;
+	F32 rightStickY = rawData[4 + offset] / 255.0f * 2 - 1;
+	F32 leftTrigger = rawData[5 + offset] / 255.0f;
+	F32 rightTrigger = rawData[6 + offset] / 255.0f;
+	I32 dpad = rawData[8 + offset] & 0x0F;
+
+	UpdateButtonState(ButtonCode::GamepadX, rawData[8 + offset] & 0x10); //Square
+	UpdateButtonState(ButtonCode::GamepadA, rawData[8 + offset] & 0x20); //X
+	UpdateButtonState(ButtonCode::GamepadB, rawData[8 + offset] & 0x40); //Circle
+	UpdateButtonState(ButtonCode::GamepadY, rawData[8 + offset] & 0x80); //Triangle
+	UpdateButtonState(ButtonCode::GamepadLeftShoulder, rawData[9 + offset] & 0x01); //L1
+	UpdateButtonState(ButtonCode::GamepadRightShoulder, rawData[9 + offset] & 0x02); //R1
+	UpdateButtonState(ButtonCode::GamepadView, rawData[9 + offset] & 0x10); //Share
+	UpdateButtonState(ButtonCode::GamepadMenu, rawData[9 + offset] & 0x20); //Options
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickButton, rawData[9 + offset] & 0x40); //L3
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickButton, rawData[9 + offset] & 0x80); //R3
+	//rawData[10 + offset] & 0x01 PS button
+	//rawData[10 + offset] & 0x02 Touch pad button
+	//rawData[10 + offset] & 0x04 Microphone button
+
+	UpdateButtonState(ButtonCode::GamepadDPadUp, dpad == 7 || dpad == 0 || dpad == 1); //Dpad Up
+	UpdateButtonState(ButtonCode::GamepadDPadDown, dpad == 3 || dpad == 4 || dpad == 5); //Dpad Down
+	UpdateButtonState(ButtonCode::GamepadDPadLeft, dpad == 5 || dpad == 6 || dpad == 7); //Dpad Left
+	UpdateButtonState(ButtonCode::GamepadDPadRight, dpad == 1 || dpad == 2 || dpad == 3); //Dpad Right
+
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickUp, -(rawData[2 + offset] / 255.0f * 2 - 1) > 0.9f); //Left Thumbstick Up
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickDown, (rawData[2 + offset] / 255.0f * 2 - 1) > 0.9f); //Left Thumbstick Down
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickLeft, -(leftStickX / 255.0f * 2 - 1) > 0.9f); //Left Thumbstick Left
+	UpdateButtonState(ButtonCode::GamepadLeftThumbstickRight, (leftStickX / 255.0f * 2 - 1) > 0.9f); //Left Thumbstick Right
+
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickUp, -(rightStickY / 255.0f * 2 - 1) > 0.9f); //Right Thumbstick Up
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickDown, (rightStickY / 255.0f * 2 - 1) > 0.9f); //Right Thumbstick Down
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickLeft, -(rightStickX / 255.0f * 2 - 1) > 0.9f); //Right Thumbstick Left
+	UpdateButtonState(ButtonCode::GamepadRightThumbstickRight, (rightStickX / 255.0f * 2 - 1) > 0.9f); //Right Thumbstick Right
+
+	UpdateButtonState(ButtonCode::GamepadLeftTrigger, leftTrigger > 0.9f); //L2
+	UpdateButtonState(ButtonCode::GamepadRightTrigger, rightTrigger > 0.9f); //R2
+
+	UpdateAxisState(AxisCode::LeftJoystickX, leftStickX);
+	UpdateAxisState(AxisCode::LeftJoystickY, -leftStickY);
+	UpdateAxisState(AxisCode::RightJoystickX, rightStickX);
+	UpdateAxisState(AxisCode::RightJoystickY, -rightStickY);
+	UpdateAxisState(AxisCode::LeftTrigger, leftTrigger);
+	UpdateAxisState(AxisCode::RightTrigger, rightTrigger);
+	
+	JoystickState& state = joysticks.states[index];
+	memset(state.outputBuffer, 0, sizeof(state.outputBuffer));
+
+	I32 headerSize = 0;
+	I32 outputByteCount = 0;
+	if (bluetooth)
+	{
+		offset = 2;
+		headerSize = 1;
+		outputByteCount = 78;
+		state.outputBuffer[0] = 0xA2;
+		state.outputBuffer[1] = 0x31;
+		state.outputBuffer[2] = 0x02;
+	}
+	else
+	{
+		offset = 1;
+		headerSize = 0;
+		outputByteCount = 48;
+		state.outputBuffer[0] = 0x02;
+	}
+
+	// Enable rumble, disable audio haptics, enable right and left trigger effect
+	state.outputBuffer[0 + offset + headerSize] |= 0x0F;
+	// Enable LED color
+	state.outputBuffer[1 + offset + headerSize] |= 0x04;
+	// Enable rumble low pass filter
+	state.outputBuffer[38 + offset + headerSize] |= 0x04;
+
+	state.outputBuffer[3 + offset + headerSize] = (BYTE)(state.leftRumble * 0xFF);
+	state.outputBuffer[2 + offset + headerSize] = (BYTE)(state.rightRumble * 0xFF);
+
+	SetDualsenseTriggerEffect(state.outputBuffer + 10 + offset + headerSize, state.rightTriggerEffect);
+	SetDualsenseTriggerEffect(state.outputBuffer + 21 + offset + headerSize, state.leftTriggerEffect);
+
+	state.outputBuffer[44 + offset + headerSize] = (BYTE)(state.ledRed * 0xFF);
+	state.outputBuffer[45 + offset + headerSize] = (BYTE)(state.ledGreen * 0xFF);
+	state.outputBuffer[46 + offset + headerSize] = (BYTE)(state.ledBlue * 0xFF);
+
+	if (bluetooth)
+	{
+		U32 crc = MakeReflectedCRC32(state.outputBuffer, 74);
+		memcpy(state.outputBuffer + 74, &crc, sizeof(crc));
+	}
+
+	UL32 bytesTransferred;
+	if (GetOverlappedResult(state.outputFile, &state.overlapped, &bytesTransferred, false))
+	{
+		if (state.outputFile != INVALID_HANDLE_VALUE)
+		{
+			WriteFile(state.outputFile, (void*)(state.outputBuffer + headerSize), outputByteCount, 0, &state.overlapped);
+		}
+	}
+}
+
+void Input::UpdateXboxControllers()
+{
+	// Xbox controllers
+	for (U32 playerIndex = 0; playerIndex < Joysticks::maxXinputControllers; ++playerIndex)
+	{
+		JoystickState* state = &joysticks.states[playerIndex];
+		XINPUT_STATE xinput;
+		if (state->connected && XInputGetState(playerIndex, &xinput) == ERROR_SUCCESS)
+		{
+			F32 leftStickX = xinput.Gamepad.sThumbLX / 32767.0f;
+			F32 leftStickY = xinput.Gamepad.sThumbLY / 32767.0f;
+			F32 rightStickX = xinput.Gamepad.sThumbRX / 32767.0f;
+			F32 rightStickY = xinput.Gamepad.sThumbRY / 32767.0f;
+			F32 leftTrigger = xinput.Gamepad.bLeftTrigger / 255.0f;
+			F32 rightTrigger = xinput.Gamepad.bRightTrigger / 255.0f;
+
+			UpdateButtonState(ButtonCode::GamepadX, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_X);
+			UpdateButtonState(ButtonCode::GamepadA, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_A);
+			UpdateButtonState(ButtonCode::GamepadB, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_B);
+			UpdateButtonState(ButtonCode::GamepadY, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_Y);
+			UpdateButtonState(ButtonCode::GamepadLeftShoulder, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+			UpdateButtonState(ButtonCode::GamepadRightShoulder, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+			UpdateButtonState(ButtonCode::GamepadView, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_BACK);
+			UpdateButtonState(ButtonCode::GamepadMenu, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_START);
+			UpdateButtonState(ButtonCode::GamepadLeftThumbstickButton, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB);
+			UpdateButtonState(ButtonCode::GamepadRightThumbstickButton, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB);
+
+			UpdateButtonState(ButtonCode::GamepadDPadUp, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
+			UpdateButtonState(ButtonCode::GamepadDPadDown, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+			UpdateButtonState(ButtonCode::GamepadDPadLeft, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+			UpdateButtonState(ButtonCode::GamepadDPadRight, xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+
+			UpdateButtonState(ButtonCode::GamepadLeftThumbstickUp, leftStickY > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadLeftThumbstickDown, -leftStickY > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadLeftThumbstickLeft, -leftStickX > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadLeftThumbstickRight, leftStickX > 0.9f);
+
+			UpdateButtonState(ButtonCode::GamepadRightThumbstickUp, rightStickY > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadRightThumbstickDown, -rightStickY > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadRightThumbstickLeft, -rightStickX > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadRightThumbstickRight, rightStickX > 0.9f);
+
+			UpdateButtonState(ButtonCode::GamepadLeftTrigger, leftTrigger > 0.9f);
+			UpdateButtonState(ButtonCode::GamepadRightTrigger, rightTrigger > 0.9f);
+
+			UpdateAxisState(AxisCode::LeftJoystickX, leftStickX);
+			UpdateAxisState(AxisCode::LeftJoystickY, leftStickY);
+			UpdateAxisState(AxisCode::RightJoystickX, rightStickX);
+			UpdateAxisState(AxisCode::RightJoystickY, rightStickY);
+			UpdateAxisState(AxisCode::LeftTrigger, leftTrigger);
+			UpdateAxisState(AxisCode::RightTrigger, rightTrigger);
+
+			XINPUT_VIBRATION vibration;
+			vibration.wLeftMotorSpeed = (WORD)(state->leftRumble * 0xFFFF);
+			vibration.wRightMotorSpeed = (WORD)(state->rightRumble * 0xFFFF);
+			XInputSetState(playerIndex, &vibration);
+		}
+		else
+		{
+			state->connected = false;
+		}
+	}
+}
+
+void Input::ParseGenericController(U32 index, U8 rawData[], UL32 dataSize, PHIDP_PREPARSED_DATA preparsedData)
+{
+	//HIDP_CAPS caps;
+	//HidP_GetCaps(preparsedData, &caps);
+	//
+	//HIDP_VALUE_CAPS* valueCaps;
+	//Memory::Allocate(&valueCaps, caps.NumberInputValueCaps);
+	//HidP_GetValueCaps(HidP_Input, valueCaps, &caps.NumberInputValueCaps, preparsedData);
+	//for (U32 i = 0; i < caps.NumberInputValueCaps; ++i)
+	//{
+	//	UL32 value;
+	//	NTSTATUS status = HidP_GetUsageValue(HidP_Input, valueCaps[i].UsagePage, 0, valueCaps[i].Range.UsageMin, &value, preparsedData, (PCHAR)rawData, dataSize);
+	//	F32 maxValue = (F32)(1 << (valueCaps[i].BitSize)) - 1;
+	//	F32 normalizedValue = (value / maxValue) * 2 - 1;
+	//	U32 usage = valueCaps[i].Range.UsageMin;
+	//	if (usage >= 0x30 && usage <= 0x37)
+	//	{
+	//		I32 axisIndex = usage - 0x30;
+	//		out->currentInputs[*GenericInputs::Axis0Positive + 2 * axisIndex] = normalizedValue;
+	//		out->currentInputs[*GenericInputs::Axis0Negative + 2 * axisIndex] = -normalizedValue;
+	//	}
+	//	if (usage == 0x39)
+	//	{
+	//		L32 hat = value - valueCaps[i].LogicalMin;
+	//		out->currentInputs[*GenericInputs::HatUp] = (hat == 0 || hat == 1 || hat == 7) ? 1.0f : 0.1f;
+	//		out->currentInputs[*GenericInputs::HatRight] = (hat == 1 || hat == 2 || hat == 3) ? 1.0f : 0.1f;
+	//		out->currentInputs[*GenericInputs::HatDown] = (hat == 3 || hat == 4 || hat == 5) ? 1.0f : 0.1f;
+	//		out->currentInputs[*GenericInputs::HatLeft] = (hat == 5 || hat == 6 || hat == 7) ? 1.0f : 0.1f;
+	//	}
+	//}
+	//Memory::Free(&valueCaps);
+	//
+	//HIDP_BUTTON_CAPS* buttonCaps;
+	//Memory::Allocate(&buttonCaps, caps.NumberInputButtonCaps);
+	//HidP_GetButtonCaps(HidP_Input, buttonCaps, &caps.NumberInputButtonCaps, preparsedData);
+	//for (U32 i = 0; i < caps.NumberInputButtonCaps; ++i)
+	//{
+	//	U32 buttonCount = buttonCaps->Range.UsageMax - buttonCaps->Range.UsageMin + 1;
+	//	USAGE* usages;
+	//	Memory::Allocate(&usages, buttonCount);
+	//	HidP_GetUsages(HidP_Input, buttonCaps[i].UsagePage, 0, usages, (PULONG)&buttonCount, preparsedData, (PCHAR)rawData, dataSize);
+	//	for (U32 usagesIndex = 0; usagesIndex < buttonCount; ++usagesIndex)
+	//	{
+	//		U32 buttonIndex = usages[usagesIndex] - 1;
+	//		if (buttonIndex < 32) { out->currentInputs[*GenericInputs::Button0 + buttonIndex] = 1.0f; }
+	//	}
+	//	Memory::Free(&usages);
+	//}
+	//
+	//Memory::Free(&buttonCaps);
+}
+
+void Input::SetDualsenseTriggerEffect(U8* dst, TriggerEffect effect)
 {
 	if (effect.type == TriggerEffectType::Weapon)
 	{
@@ -420,464 +946,51 @@ void SetDualsenseTriggerEffect(BYTE* dst, TriggerEffect effect)
 	}
 }
 
-void UpdateDualsense(JoystickState* state, U8 rawData[], UL32 byteCount)
+void Input::UpdateButtonState(ButtonCode code, bool value)
 {
-	bool bluetooth = rawData[0] == 0x31;
-	if (rawData[0] != 0x01 && rawData[0] != 0x31) { return; }
+	ButtonState& state = buttonStates[*code];
 
-	U32 offset = (bluetooth ? 2 : 0);
-	state->currentInputs[*DS5Inputs::LeftStickLeft] = -(rawData[1 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::LeftStickRight] = +(rawData[1 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::LeftStickUp] = -(rawData[2 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::LeftStickDown] = +(rawData[2 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::RightStickLeft] = -(rawData[3 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::RightStickRight] = +(rawData[3 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::RightStickUp] = -(rawData[4 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::RightStickDown] = +(rawData[4 + offset] / 255.0f * 2 - 1);
-	state->currentInputs[*DS5Inputs::L2] = rawData[5 + offset] / 255.0f;
-	state->currentInputs[*DS5Inputs::R2] = rawData[6 + offset] / 255.0f;
-	I32 hat = rawData[8 + offset] & 0x0F;
-	state->currentInputs[*DS5Inputs::DpadLeft] = hat == 5 || hat == 6 || hat == 7;
-	state->currentInputs[*DS5Inputs::DpadRight] = hat == 1 || hat == 2 || hat == 3;
-	state->currentInputs[*DS5Inputs::DpadUp] = hat == 7 || hat == 0 || hat == 1;
-	state->currentInputs[*DS5Inputs::DpadDown] = hat == 3 || hat == 4 || hat == 5;
-	state->currentInputs[*DS5Inputs::Square] = (F32)(rawData[8 + offset] & 0x10);
-	state->currentInputs[*DS5Inputs::X] = (F32)(rawData[8 + offset] & 0x20);
-	state->currentInputs[*DS5Inputs::Circle] = (F32)(rawData[8 + offset] & 0x40);
-	state->currentInputs[*DS5Inputs::Triangle] = (F32)(rawData[8 + offset] & 0x80);
-	state->currentInputs[*DS5Inputs::L1] = (F32)(rawData[9 + offset] & 0x01);
-	state->currentInputs[*DS5Inputs::R1] = (F32)(rawData[9 + offset] & 0x02);
-	state->currentInputs[*DS5Inputs::Share] = (F32)(rawData[9 + offset] & 0x10);
-	state->currentInputs[*DS5Inputs::Options] = (F32)(rawData[9 + offset] & 0x20);
-	state->currentInputs[*DS5Inputs::L3] = (F32)(rawData[9 + offset] & 0x40);
-	state->currentInputs[*DS5Inputs::R3] = (F32)(rawData[9 + offset] & 0x80);
-	state->currentInputs[*DS5Inputs::PS] = (F32)(rawData[10 + offset] & 0x01);
-	state->currentInputs[*DS5Inputs::TouchPadButton] = (F32)(rawData[10 + offset] & 0x02);
-	state->currentInputs[*DS5Inputs::MicrophoneButton] = (F32)(rawData[10 + offset] & 0x04);
-	state->type = JoystickType::Dualsense;
+	state.doubleClicked = false;
 
-	memset(state->outputBuffer, 0, sizeof(state->outputBuffer));
-	I32 headerSize = 0;
-	I32 outputByteCount = 0;
-	if (bluetooth)
+	if (value)
 	{
-		offset = 2;
-		headerSize = 1;
-		outputByteCount = 78;
-		state->outputBuffer[0] = 0xA2;
-		state->outputBuffer[1] = 0x31;
-		state->outputBuffer[2] = 0x02;
-	}
-	else
-	{
-		offset = 1;
-		headerSize = 0;
-		outputByteCount = 48;
-		state->outputBuffer[0] = 0x02;
-	}
-
-	// Enable rumble, disable audio haptics, enable right and left trigger effect
-	state->outputBuffer[0 + offset + headerSize] |= 0x0F;
-	// Enable LED color
-	state->outputBuffer[1 + offset + headerSize] |= 0x04;
-	// Enable rumble low pass filter
-	state->outputBuffer[38 + offset + headerSize] |= 0x04;
-
-	state->outputBuffer[2 + offset + headerSize] = (BYTE)(state->lightRumble * 0xFF);
-	state->outputBuffer[3 + offset + headerSize] = (BYTE)(state->heavyRumble * 0xFF);
-
-	SetDualsenseTriggerEffect(state->outputBuffer + 10 + offset + headerSize, state->rightTriggerEffect);
-	SetDualsenseTriggerEffect(state->outputBuffer + 21 + offset + headerSize, state->leftTriggerEffect);
-
-	state->outputBuffer[44 + offset + headerSize] = (BYTE)(state->ledRed * 0xFF);
-	state->outputBuffer[45 + offset + headerSize] = (BYTE)(state->ledGreen * 0xFF);
-	state->outputBuffer[46 + offset + headerSize] = (BYTE)(state->ledBlue * 0xFF);
-
-	if (bluetooth)
-	{
-		U32 crc = MakeReflectedCRC32(state->outputBuffer, 74);
-		memcpy(state->outputBuffer + 74, &crc, sizeof(crc));
-	}
-
-	UL32 bytesTransferred;
-	if (GetOverlappedResult(state->outputFile, &state->overlapped, &bytesTransferred, false))
-	{
-		if (state->outputFile != INVALID_HANDLE_VALUE)
+		if (state.pressed)
 		{
-			WriteFile(state->outputFile, (void*)(state->outputBuffer + headerSize), outputByteCount, 0, &state->overlapped);
-		}
-	}
-}
-
-void ParseGenericController(JoystickState* out, U8 rawData[], UL32 dataSize, _HIDP_PREPARSED_DATA* preparsedData)
-{
-	memset(out->currentInputs, 0, sizeof(out->currentInputs));
-
-	HIDP_CAPS caps;
-	HidP_GetCaps(preparsedData, &caps);
-
-	HIDP_VALUE_CAPS* valueCaps;
-	Memory::Allocate(&valueCaps, caps.NumberInputValueCaps);
-	HidP_GetValueCaps(HidP_Input, valueCaps, &caps.NumberInputValueCaps, preparsedData);
-	for (U32 i = 0; i < caps.NumberInputValueCaps; ++i)
-	{
-		UL32 value;
-		NTSTATUS status = HidP_GetUsageValue(HidP_Input, valueCaps[i].UsagePage, 0, valueCaps[i].Range.UsageMin, &value, preparsedData, (PCHAR)rawData, dataSize);
-		F32 maxValue = (F32)(1 << (valueCaps[i].BitSize)) - 1;
-		F32 normalizedValue = (value / maxValue) * 2 - 1;
-		U32 usage = valueCaps[i].Range.UsageMin;
-		if (usage >= 0x30 && usage <= 0x37)
-		{
-			int axisIndex = usage - 0x30;
-			out->currentInputs[*GenericInputs::Axis0Positive + 2 * axisIndex] = normalizedValue;
-			out->currentInputs[*GenericInputs::Axis0Negative + 2 * axisIndex] = -normalizedValue;
-		}
-		if (usage == 0x39)
-		{
-			L32 hat = value - valueCaps[i].LogicalMin;
-			out->currentInputs[*GenericInputs::HatUp] = (hat == 0 || hat == 1 || hat == 7) ? 1.0f : 0.1f;
-			out->currentInputs[*GenericInputs::HatRight] = (hat == 1 || hat == 2 || hat == 3) ? 1.0f : 0.1f;
-			out->currentInputs[*GenericInputs::HatDown] = (hat == 3 || hat == 4 || hat == 5) ? 1.0f : 0.1f;
-			out->currentInputs[*GenericInputs::HatLeft] = (hat == 5 || hat == 6 || hat == 7) ? 1.0f : 0.1f;
-		}
-	}
-	Memory::Free(&valueCaps);
-
-	HIDP_BUTTON_CAPS* buttonCaps;
-	Memory::Allocate(&buttonCaps, caps.NumberInputButtonCaps);
-	HidP_GetButtonCaps(HidP_Input, buttonCaps, &caps.NumberInputButtonCaps, preparsedData);
-	for (U32 i = 0; i < caps.NumberInputButtonCaps; ++i)
-	{
-		U32 buttonCount = buttonCaps->Range.UsageMax - buttonCaps->Range.UsageMin + 1;
-		USAGE* usages;
-		Memory::Allocate(&usages, buttonCount);
-		HidP_GetUsages(HidP_Input, buttonCaps[i].UsagePage, 0, usages, (PULONG)&buttonCount, preparsedData, (PCHAR)rawData, dataSize);
-		for (U32 usagesIndex = 0; usagesIndex < buttonCount; ++usagesIndex)
-		{
-			U32 buttonIndex = usages[usagesIndex] - 1;
-			if (buttonIndex < 32) out->currentInputs[*GenericInputs::Button0 + buttonIndex] = 1.0f;
-		}
-		Memory::Free(&usages);
-	}
-
-	Memory::Free(&buttonCaps);
-	out->type = JoystickType::Generic;
-}
-
-void ConnectHIDJoystick(HANDLE deviceHandle)
-{
-	WCHAR deviceName[1024] = { 0 };
-	UINT deviceNameLength = sizeof(deviceName) / sizeof(*deviceName);
-	GetRawInputDeviceInfoW(deviceHandle, RIDI_DEVICENAME, deviceName, &deviceNameLength);
-	if (!IsXboxController(deviceName))
-	{
-		U32 joystickIndex = Joysticks::maxXinputControllers;
-		while (joystickIndex < joysticks.count && wcscmp(deviceName, joysticks.states[joystickIndex].deviceName) != 0)
-		{
-			++joystickIndex;
-		}
-		if (joystickIndex == joysticks.count)
-		{
-			joysticks.count += 1;
-			Memory::Reallocate(&joysticks.states, joysticks.count);
-			JoystickState newState = { 0 };
-			joysticks.states[joystickIndex] = newState;
-		}
-
-		JoystickState* state = &joysticks.states[joystickIndex];
-		state->deviceHandle = deviceHandle;
-		wcscpy_s(state->deviceName, deviceName);
-		state->outputFile = CreateFileW(deviceName, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-		HidD_GetProductString(state->outputFile, state->productName, JoystickState::maxNameLength);
-		HidD_GetManufacturerString(state->outputFile, state->manufacturerName, JoystickState::maxNameLength);
-		joysticks.states[joystickIndex].connected = true;
-	}
-}
-
-void DisconnectHIDJoystick(HANDLE deviceHandle)
-{
-	for (uint32_t i = Joysticks::maxXinputControllers; i < joysticks.count; ++i)
-	{
-		if (deviceHandle == joysticks.states[i].deviceHandle && !IsXboxController(joysticks.states[i].deviceName))
-		{
-			JoystickState* state = &joysticks.states[i];
-			state->connected = false;
-			if (state->outputFile != INVALID_HANDLE_VALUE)
+			state.changed = false;
+			if (!state.held && currentTimestamp - state.lastPressed > holdThreshold)
 			{
-				DWORD bytesTransferred;
-				GetOverlappedResult(state->outputFile, &state->overlapped, &bytesTransferred, true);
-				CloseHandle(state->outputFile);
+				state.held = true;
+				events.Push(ButtonEvent{ code, InputType::Hold, currentTimestamp });
 			}
-		}
-	}
-}
-
-bool Input::Initialize()
-{
-	Logger::Trace("Initializing Input...");
-
-	WindowInfo info = Platform::GetWindowInfo();
-
-	RAWINPUTDEVICE deviceList[2];
-	deviceList[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-	deviceList[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-	deviceList[0].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-	deviceList[0].hwndTarget = info.window;
-	deviceList[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-	deviceList[1].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-	deviceList[1].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-	deviceList[1].hwndTarget = info.window;
-
-	if (!RegisterRawInputDevices(deviceList, 2, sizeof(RAWINPUTDEVICE))) { return false; }
-
-	joysticks.hwnd = info.window;
-	joysticks.count = Joysticks::maxXinputControllers;
-	Memory::Allocate(&joysticks.states, joysticks.count);
-	for (U32 i = 0; i < Joysticks::maxXinputControllers; ++i) { joysticks.states[i].type = JoystickType::Xbox; }
-
-	return true;
-}
-
-void Input::Shutdown()
-{
-	Logger::Trace("Cleaning Up Input...");
-
-	Memory::Free(&joysticks.states);
-}
-
-void Input::Reset()
-{
-	for (U32 i = 0; i < joysticks.count; ++i)
-	{
-		memcpy(joysticks.states[i].previousInputs, joysticks.states[i].currentInputs, sizeof(joysticks.states[i].previousInputs));
-	}
-}
-
-void Input::Update()
-{
-	// Xbox controllers
-	for (U32 playerIndex = 0; playerIndex < Joysticks::maxXinputControllers; ++playerIndex)
-	{
-		JoystickState* state = &joysticks.states[playerIndex];
-		XINPUT_STATE xinput;
-		if (state->connected && XInputGetState(playerIndex, &xinput) == ERROR_SUCCESS)
-		{
-			state->currentInputs[*XboxInputs::A] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_A) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::B] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_B) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::X] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_X) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::Y] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_Y) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::DpadLeft] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::DpadRight] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::DpadUp] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::DpadDown] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::LeftBumper] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::RightBumper] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::LeftStickButton] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::RightStickButton] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::Back] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_BACK) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::Start] = (xinput.Gamepad.wButtons & XINPUT_GAMEPAD_START) ? 1.0f : 0.0f;
-			state->currentInputs[*XboxInputs::LeftTrigger] = xinput.Gamepad.bLeftTrigger / 255.0f;
-			state->currentInputs[*XboxInputs::RightTrigger] = xinput.Gamepad.bRightTrigger / 255.0f;
-			state->currentInputs[*XboxInputs::LeftStickLeft] = -xinput.Gamepad.sThumbLX / 32767.0f;
-			state->currentInputs[*XboxInputs::LeftStickRight] = xinput.Gamepad.sThumbLX / 32767.0f;
-			state->currentInputs[*XboxInputs::LeftStickUp] = xinput.Gamepad.sThumbLY / 32767.0f;
-			state->currentInputs[*XboxInputs::LeftStickDown] = -xinput.Gamepad.sThumbLY / 32767.0f;
-			state->currentInputs[*XboxInputs::RightStickLeft] = -xinput.Gamepad.sThumbRX / 32767.0f;
-			state->currentInputs[*XboxInputs::RightStickRight] = xinput.Gamepad.sThumbRX / 32767.0f;
-			state->currentInputs[*XboxInputs::RightStickUp] = xinput.Gamepad.sThumbRY / 32767.0f;
-			state->currentInputs[*XboxInputs::RightStickDown] = -xinput.Gamepad.sThumbRY / 32767.0f;
-
-			XINPUT_VIBRATION vibration;
-			vibration.wLeftMotorSpeed = (WORD)(state->lightRumble * 0xFFFF);
-			vibration.wRightMotorSpeed = (WORD)(state->heavyRumble * 0xFFFF);
-			XInputSetState(playerIndex, &vibration);
 		}
 		else
 		{
-			state->connected = false;
+			state.pressed = true;
+			state.changed = true;
+
+			events.Push(ButtonEvent{ code, InputType::Press, currentTimestamp });
+
+			if (currentTimestamp - state.lastPressed < doublePressThreshold)
+			{
+				events.Push(ButtonEvent{ code, InputType::DoublePress, currentTimestamp });
+			}
+
+			state.lastPressed = currentTimestamp;
 		}
 	}
-
-	// Clamp negative inputs to 0
-	for (U32 joystickIndex = 0; joystickIndex < joysticks.count; ++joystickIndex)
+	else if(state.pressed)
 	{
-		for (U32 inputIndex = 0; inputIndex < JoystickState::inputCount; ++inputIndex)
-		{
-			float* input = &joysticks.states[joystickIndex].currentInputs[inputIndex];
-			if (*input < 0) *input = 0;
-		}
-	}
+		state.pressed = false;
+		state.changed = true;
+		state.held = false;
 
-	for (U32 joystickIndex = 0; joystickIndex < joysticks.count; ++joystickIndex)
-	{
-		JoystickState* state = &joysticks.states[joystickIndex];
-		for (U32 inputIndex = 0; inputIndex < state->inputCount; ++inputIndex)
-		{
-			//if (state->currentInputs[inputIndex] > 0.5 && state->previousInputs[inputIndex] <= 0.5f)
-			//{
-			//	//const C8* inputName = getInputName(joysticks, joystickIndex, inputIndex);
-			//
-			//	if (joystickIndex >= 0 && joystickIndex <= 3)
-			//	{
-			//		printf("XBox controller %d: ", joystickIndex);
-			//	}
-			//	else
-			//	{
-			//		wprintf(L"%s by %s: ", state->productName, state->manufacturerName);
-			//	}
-			//
-			//	//printf("%s\n", inputName);
-			//}
-
-			F32 rumbleLeft = 0;
-			F32 rumbleRight = 0;
-
-			if (state->type == JoystickType::Xbox)
-			{
-				state->lightRumble = state->currentInputs[*XboxInputs::LeftTrigger];
-				state->heavyRumble = state->currentInputs[*XboxInputs::RightTrigger];
-			}
-			else if (state->type == JoystickType::Dualshock4)
-			{
-				state->heavyRumble = state->currentInputs[*DS4Inputs::L2];
-				state->lightRumble = state->currentInputs[*DS4Inputs::R2];
-				state->ledRed = (state->currentInputs[*DS4Inputs::Circle] || state->currentInputs[*DS4Inputs::Square]) ? 1.0f : 0.0f;
-				state->ledGreen = state->currentInputs[*DS4Inputs::Triangle];
-				state->ledBlue = (state->currentInputs[*DS4Inputs::X] || state->currentInputs[*DS4Inputs::Square]) ? 1.0f : 0.0f;
-			}
-			else if (state->type == JoystickType::Dualsense)
-			{
-				state->heavyRumble = state->currentInputs[*DS5Inputs::LeftStickUp] + state->currentInputs[*DS5Inputs::LeftStickDown];
-				state->lightRumble = state->currentInputs[*DS5Inputs::LeftStickLeft] + state->currentInputs[*DS5Inputs::LeftStickRight];
-				state->ledRed = (state->currentInputs[*DS5Inputs::Circle] || state->currentInputs[*DS5Inputs::Square]) ? 1.0f : 0.0f;
-				state->ledGreen = state->currentInputs[*DS5Inputs::Triangle];
-				state->ledBlue = (state->currentInputs[*DS5Inputs::X] || state->currentInputs[*DS5Inputs::Square]) ? 1.0f : 0.0f;
-
-				if (state->currentInputs[*DS5Inputs::Square] > 0.5f)
-				{
-					state->rightTriggerEffect = {
-						.type = TriggerEffectType::Resistance,
-						.resistance = {
-							.zoneStrengths = {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 1.0f}
-						}
-					};
-				}
-				else if (state->currentInputs[*DS5Inputs::Triangle] > 0.5f)
-				{
-					state->rightTriggerEffect.type = TriggerEffectType::Weapon;
-					state->rightTriggerEffect.weapon.startPosition = 0.2f;
-					state->rightTriggerEffect.weapon.endPosition = 0.4f;
-					state->rightTriggerEffect.weapon.strength = 0.8f;
-				}
-				else if (state->currentInputs[*DS5Inputs::Circle] > 0.5f)
-				{
-					state->rightTriggerEffect = {
-						.type = TriggerEffectType::Vibration,
-						.vibration = {
-							.zoneStrengths = {0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 1.0f},
-							.frequency = 0.3f
-						}
-					};
-				}
-				else
-				{
-					state->rightTriggerEffect.type = TriggerEffectType::None;
-				}
-
-				if (state->currentInputs[*DS5Inputs::DpadLeft] > 0.5f)
-				{
-					state->leftTriggerEffect = {
-						.type = TriggerEffectType::Resistance,
-						.resistance = {
-							.zoneStrengths = {1.0f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f, 0.0f}
-						}
-					};
-				}
-				else if (state->currentInputs[*DS5Inputs::DpadUp] > 0.5f)
-				{
-					state->leftTriggerEffect.type = TriggerEffectType::Weapon;
-					state->leftTriggerEffect.weapon.startPosition = 0.7f;
-					state->leftTriggerEffect.weapon.endPosition = 0.9f;
-					state->leftTriggerEffect.weapon.strength = 0.2f;
-				}
-				else if (state->currentInputs[*DS5Inputs::DpadRight] > 0.5f)
-				{
-					state->leftTriggerEffect = {
-						.type = TriggerEffectType::Vibration,
-						.vibration = {
-							.zoneStrengths = {1.0f, 0.8f, 0.7f, 0.6f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f, 0.0f},
-							.frequency = 0.8f
-						}
-					};
-				}
-				else
-				{
-					state->leftTriggerEffect.type = TriggerEffectType::None;
-				}
-			}
-
-			if (state->lightRumble < 0.1) state->lightRumble = 0;
-			if (state->heavyRumble < 0.1) state->heavyRumble = 0;
-		}
+		events.Push(ButtonEvent{ code, InputType::Release, currentTimestamp });
 	}
 }
 
-void Input::UpdateRawInput(I64 lParam)
+void Input::UpdateAxisState(AxisCode code, F32 value)
 {
-	U32 size = 0;
-	GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-	RAWINPUT* input;
-	Memory::Allocate(&input, size / sizeof(RAWINPUTHEADER));
-	if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, input, &size, sizeof(RAWINPUTHEADER)) > 0)
-	{
-		RID_DEVICE_INFO deviceInfo;
-		UINT deviceInfoSize = sizeof(deviceInfo);
-		bool gotInfo = GetRawInputDeviceInfo(input->header.hDevice, RIDI_DEVICEINFO, &deviceInfo, &deviceInfoSize) > 0;
-
-		GetRawInputDeviceInfo(input->header.hDevice, RIDI_PREPARSEDDATA, 0, &size);
-		_HIDP_PREPARSED_DATA* data;
-		Memory::Allocate((U8**)&data, size);
-
-		bool gotPreparsedData = GetRawInputDeviceInfo(input->header.hDevice, RIDI_PREPARSEDDATA, data, &size) > 0;
-
-		if (gotInfo && gotPreparsedData)
-		{
-			for (UINT i = Joysticks::maxXinputControllers; i < joysticks.count; ++i)
-			{
-				if (input->header.hDevice == joysticks.states[i].deviceHandle)
-				{
-					JoystickState* state = &joysticks.states[i];
-					if (IsDualshock4(deviceInfo.hid))
-					{
-						UpdateDualshock4(state, input->data.hid.bRawData, input->data.hid.dwSizeHid);
-					}
-					else if (IsDualsense(deviceInfo.hid))
-					{
-						UpdateDualsense(state, input->data.hid.bRawData, input->data.hid.dwSizeHid);
-					}
-					else
-					{
-						ParseGenericController(state, input->data.hid.bRawData, input->data.hid.dwSizeHid, data);
-					}
-				}
-			}
-		}
-		Memory::Free(&data);
-	}
-	Memory::Free(&input);
-}
-
-void Input::UpdateConnectionStatus(void* deviceHandle, U64 status)
-{
-	// Check all XInput devices
-	for (U32 playerIndex = 0; playerIndex < Joysticks::maxXinputControllers; ++playerIndex)
-	{
-		XINPUT_STATE state;
-		joysticks.states[playerIndex].connected = (XInputGetState(playerIndex, &state) == ERROR_SUCCESS);
-	}
-
-	if (status == GIDC_ARRIVAL) { ConnectHIDJoystick(deviceHandle); }
-	else if (status == GIDC_REMOVAL) { DisconnectHIDJoystick(deviceHandle); }
+	axisStates[*code] = value;
 }
 
 #endif

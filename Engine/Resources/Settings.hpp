@@ -81,6 +81,7 @@ private:
 
 	friend class Engine;
 	friend class Platform;
+	friend class Input;
 
 	STATIC_CLASS(Settings);
 };
