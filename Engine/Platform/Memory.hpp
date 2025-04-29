@@ -18,6 +18,96 @@ NH_API inline Type& Assign(Type* dst, Parameters&&... parameters) noexcept
 	return dst->operator=(Forward<Parameters>(parameters)...);
 }
 
+template<class Type>
+NH_API inline Type* CopyData(Type* dst, const Type* src, U64 count)
+{
+	constexpr U64 size = IsVoid<Type> ? 1 : sizeof(Type);
+
+	if (dst == src) { return dst; }
+
+	Type* dest = dst;
+
+	if (dst > src && dst < src + count)
+	{
+		dst += count - 1;
+		src += count - 1;
+
+		if constexpr (IsNonPrimitive<Type>)
+		{
+			while (count--) { new (dst--) Type(*src--); }
+
+			return dest;
+		}
+		else
+		{
+			return (Type*)memmove(dst, src, count * size);
+		}
+	}
+	else
+	{
+		if constexpr (IsNonPrimitive<Type>)
+		{
+			while (count--) { new (dst++) Type(*src++); }
+
+			return dest;
+		}
+		else
+		{
+			return (Type*)memcpy(dst, src, count * size);
+		}
+	}
+}
+
+template<class Type>
+NH_API inline Type* MoveData(Type* dst, Type* src, U64 count)
+{
+	constexpr U64 size = IsVoid<Type> ? 1 : sizeof(Type);
+
+	if (dst == src) { return dst; }
+
+	Type* dest = dst;
+
+	if (dst > src && dst < src + count)
+	{
+		dst += count - 1;
+		src += count - 1;
+
+		if constexpr (IsNonPrimitive<Type> && IsMoveConstructible<Type>)
+		{
+			while (count--)
+			{
+				new (dst--) Type(Move(*src));
+				if (!std::is_move_constructible_v<Type> && std::is_destructible_v<Type>) { src->~Type(); }
+				--src;
+			}
+
+			return dest;
+		}
+		else
+		{
+			return (Type*)memmove(dst, src, count * size);
+		}
+	}
+	else
+	{
+		if constexpr (IsNonPrimitive<Type> && IsMoveConstructible<Type>)
+		{
+			while (count--)
+			{
+				new (dst++) Type(Move(*src));
+				if (!std::is_move_constructible_v<Type> && std::is_destructible_v<Type>) { src->~Type(); }
+				++src;
+			}
+
+			return dest;
+		}
+		else
+		{
+			return (Type*)memcpy(dst, src, sizeof(Type) * count);
+		}
+	}
+}
+
 NH_API constexpr U64 Kilobytes(U64 n) { return n * 1024Ui64; }
 NH_API constexpr U64 Megabytes(U64 n) { return n * 1024Ui64 * 1024Ui64; }
 NH_API constexpr U64 Gigabytes(U64 n) { return n * 1024Ui64 * 1024Ui64 * 1024Ui64; }
@@ -36,10 +126,24 @@ enum class RegionSize : U64
 	MB4 = Megabytes(4),
 };
 
-template <class Region>
+struct Region1kb { U8 memory[*RegionSize::KB1]; };
+struct Region16kb { U8 memory[*RegionSize::KB16]; };
+struct Region256kb { U8 memory[*RegionSize::KB256]; };
+struct Region4mb { U8 memory[*RegionSize::MB4]; };
+
+template<class Region>
 class MemoryRegion
 {
+	using RegionType = Region;
+
 private:
+	static void Create(void* pointer, U32 cap, U32* indices)
+	{
+		capacity = cap;
+		region = (Region*)pointer;
+		freeIndices = indices;
+	}
+
 	static bool Allocate(void** pointer)
 	{
 		if (Full()) { return false; }
@@ -48,16 +152,7 @@ private:
 		return true;
 	}
 
-	static bool Reallocate(void** src, void** dst)
-	{
-		Allocate(dst);
-		memmove(*dst, *src, sizeof(Region));
-		Free(src);
-
-		*src = *dst;
-
-		return true;
-	}
+	static bool Reallocate(void** src, void** dst);
 
 	static void Free(void** pointer)
 	{
@@ -69,7 +164,7 @@ private:
 
 	static bool WithinRegion(void* pointer)
 	{
-		return (Region*)pointer < region + capacity;
+		return pointer < region + capacity;
 	}
 
 	static U32 GetFree()
@@ -99,6 +194,10 @@ private:
 	static Region* region;
 
 	friend class Memory;
+	friend class MemoryRegion<Region1kb>;
+	friend class MemoryRegion<Region16kb>;
+	friend class MemoryRegion<Region256kb>;
+	friend class MemoryRegion<Region4mb>;
 
 	STATIC_CLASS(MemoryRegion);
 };
@@ -109,21 +208,16 @@ template <class Region> U32 MemoryRegion<Region>::lastFree = 0;
 template <class Region> U32* MemoryRegion<Region>::freeIndices = nullptr;
 template <class Region> Region* MemoryRegion<Region>::region = nullptr;
 
-class NH_API Memory
+class Memory
 {
-struct Region1kb { U8 memory[*RegionSize::KB1]; };
-struct Region16kb { U8 memory[*RegionSize::KB16]; };
-struct Region256kb { U8 memory[*RegionSize::KB256]; };
-struct Region4mb { U8 memory[*RegionSize::MB4]; };
-
 public:
-	template<Pointer Type> static void Allocate(Type* pointer);
-	template<Pointer Type> static U64 Allocate(Type* pointer, U64 count);
-	template<Pointer Type> static U64 Reallocate(Type* pointer, U64 count);
+	template<Pointer Type> static NH_API void Allocate(Type* pointer);
+	template<Pointer Type> static NH_API U64 Allocate(Type* pointer, U64 count);
+	template<Pointer Type> static NH_API U64 Reallocate(Type* pointer, U64 count);
 
-	template<Pointer Type> static void Free(Type* pointer);
+	template<Pointer Type> static NH_API void Free(Type* pointer);
 
-	static bool IsAllocated(void* pointer);
+	static NH_API bool IsAllocated(void* pointer);
 
 private:
 	static bool Initialize();
@@ -148,10 +242,10 @@ inline void Memory::Allocate(Type* pointer)
 
 	constexpr U64 size = sizeof(RemovePointer<Type>);
 
-	if constexpr (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Allocate(pointer); }
-	else if constexpr (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Allocate(pointer); }
-	else if constexpr (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Allocate(pointer); }
-	else if constexpr (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate(pointer); }
+	if constexpr (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Allocate((void**)pointer); }
+	else if constexpr (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Allocate((void**)pointer); }
+	else if constexpr (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Allocate((void**)pointer); }
+	else if constexpr (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate((void**)pointer); }
 }
 
 template<Pointer Type>
@@ -177,7 +271,7 @@ inline U64 Memory::Reallocate(Type* pointer, U64 count)
 	static bool b = Initialize();
 
 	if (!IsAllocated(*pointer)) { return Allocate<Type>(pointer, count); }
-
+	
 	U64 size = sizeof(RemovePointer<Type>) * count;
 
 	Type temp = nullptr;
@@ -204,6 +298,37 @@ inline void Memory::Free(Type* pointer)
 inline bool Memory::IsAllocated(void* pointer)
 {
 	return pointer != nullptr && pointer >= memory && pointer < memory + DynamicMemorySize;
+}
+
+template<class Region>
+inline bool MemoryRegion<Region>::Reallocate(void** src, void** dst)
+{
+	Allocate(dst);
+
+	if (MemoryRegion<Region1kb>::WithinRegion(*src))
+	{
+		memmove(*dst, *src, sizeof(Region1kb));
+		MemoryRegion<Region1kb>::Free(src);
+	}
+	else if (MemoryRegion<Region16kb>::WithinRegion(*src))
+	{
+		memmove(*dst, *src, sizeof(Region16kb));
+		MemoryRegion<Region16kb>::Free(src);
+	}
+	else if (MemoryRegion<Region256kb>::WithinRegion(*src))
+	{
+		memmove(*dst, *src, sizeof(Region256kb));
+		MemoryRegion<Region256kb>::Free(src);
+	}
+	else if (MemoryRegion<Region4mb>::WithinRegion(*src))
+	{
+		memmove(*dst, *src, sizeof(Region4mb));
+		MemoryRegion<Region4mb>::Free(src);
+	}
+
+	*src = *dst;
+
+	return true;
 }
 
 enum class Align : U64 {};

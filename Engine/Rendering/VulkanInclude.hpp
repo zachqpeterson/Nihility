@@ -2,8 +2,8 @@
 
 #include "Defines.hpp"
 
-#include "Containers\String.hpp"
-#include "Core\Logger.hpp"
+#include "Core/Logger.hpp"
+#include "Containers/String.hpp"
 
 #ifdef NH_EXPORT
 #if defined NH_PLATFORM_WINDOWS
@@ -18,7 +18,7 @@
 #define VK_USE_PLATFORM_IOS_MVK
 #endif
 
-#include <vulkan\vulkan.h>
+#include <vulkan/vulkan.h>
 
 /// <summary>
 /// Gets the description of a VkResult
@@ -247,6 +247,28 @@ inline bool ResultSuccess(VkResult result)
 	{											\
 		Logger::Fatal(ResultString(result));	\
 		return false;							\
+	}											\
+}
+
+/// <summary>
+/// Evaluate an expression that returns VkResult and returns if not successful
+/// </summary>
+#define VkValidateExit(expr)					\
+{												\
+    VkResult result = expr;						\
+	if (!ResultSuccess(result)) { return; }		\
+}
+
+/// <summary>
+/// Evaluate an expression that returns VkResult and returns if not successful
+/// </summary>
+#define VkValidateFExit(expr)					\
+{												\
+    VkResult result = expr;						\
+	if (!ResultSuccess(result))					\
+	{											\
+		Logger::Fatal(ResultString(result));	\
+		return;									\
 	}											\
 }
 

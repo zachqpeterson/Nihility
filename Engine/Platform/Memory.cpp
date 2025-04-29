@@ -24,24 +24,12 @@ bool Memory::Initialize()
 
 		if (!memory) { return initialized = false; }
 
-		MemoryRegion<Region1kb>::region = (Region1kb*)(memory);
-		MemoryRegion<Region16kb>::region = (Region16kb*)(memory + region1kbCount);
-		MemoryRegion<Region256kb>::region = (Region256kb*)(memory + region16kbCount);
-		MemoryRegion<Region4mb>::region = (Region4mb*)(memory + region256kbCount);
-
 		U32* freeLists = (U32*)(memory + DynamicMemorySize);
 
-		MemoryRegion<Region1kb>::capacity = region1kbCount;
-		MemoryRegion<Region1kb>::freeIndices = freeLists;
-
-		MemoryRegion<Region16kb>::capacity = region16kbCount;
-		MemoryRegion<Region16kb>::freeIndices = MemoryRegion<Region1kb>::freeIndices + MemoryRegion<Region1kb>::capacity;
-
-		MemoryRegion<Region256kb>::capacity = region256kbCount;
-		MemoryRegion<Region256kb>::freeIndices = MemoryRegion<Region16kb>::freeIndices + MemoryRegion<Region16kb>::capacity;
-
-		MemoryRegion<Region4mb>::capacity = region4mbCount;
-		MemoryRegion<Region4mb>::freeIndices = MemoryRegion<Region256kb>::freeIndices + MemoryRegion<Region256kb>::capacity;
+		MemoryRegion<Region1kb>::Create(memory, region1kbCount, freeLists);
+		MemoryRegion<Region16kb>::Create(MemoryRegion<Region1kb>::region + region1kbCount, region16kbCount, MemoryRegion<Region1kb>::freeIndices + MemoryRegion<Region1kb>::capacity);
+		MemoryRegion<Region256kb>::Create(MemoryRegion<Region16kb>::region + region16kbCount, region256kbCount, MemoryRegion<Region16kb>::freeIndices + MemoryRegion<Region16kb>::capacity);
+		MemoryRegion<Region4mb>::Create(MemoryRegion<Region256kb>::region + region256kbCount, region4mbCount, MemoryRegion<Region256kb>::freeIndices + MemoryRegion<Region256kb>::capacity);
 	}
 
 	return true;

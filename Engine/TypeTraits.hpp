@@ -30,6 +30,9 @@ using FalseConstant = std::bool_constant<false>;
 	return __builtin_is_constant_evaluated();
 }
 
+template<bool Condition, class TrueResult, class FalseResult>
+using Conditional = std::conditional_t<Condition, TrueResult, FalseResult>;
+
 namespace TypeTraits
 {
 	template <class Type> struct RemovePointerAll { using type = Type; };
@@ -37,7 +40,7 @@ namespace TypeTraits
 	template <class Type, unsigned long long Count> struct GetPointerCount { static constexpr unsigned long long count = Count; };
 	template <class Type, unsigned long long Count> struct GetPointerCount<Type*, Count> : public GetPointerCount<Type, Count + 1> {};
 	template<class Type> struct AppliedPointers { using type = Type; };
-	template<class Type, unsigned long long Count> struct ApplyPointers : std::conditional_t<Count == 0, AppliedPointers<Type>, ApplyPointers<Type*, Count - 1>> {};
+	template<class Type, unsigned long long Count> struct ApplyPointers : Conditional<Count == 0, AppliedPointers<Type>, ApplyPointers<Type*, Count - 1>> {};
 
 	template<class Type>
 	struct IsDestroyable

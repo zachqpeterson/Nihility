@@ -94,11 +94,11 @@ String File::ReadString()
 			streamPtr += string.Size() + 1;
 			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
-			return Move(string);
+			return string;
 		}
 		else if (!FillBuffer())
 		{
-			return Move(string);
+			return string;
 		}
 	}
 }
@@ -119,11 +119,11 @@ String File::ReadLine()
 			streamPtr += string.Size() + 1;
 			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
-			return Move(string);
+			return string;
 		}
 		else if (!FillBuffer())
 		{
-			return Move(string);
+			return string;
 		}
 	}
 }
@@ -133,7 +133,7 @@ String File::ReadAll()
 	String string;
 	string.Resize(stats.size);
 	Read(string.Data(), stats.size);
-	return Move(string);
+	return string;
 }
 
 U64 File::Write(const String& data)

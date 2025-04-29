@@ -97,16 +97,16 @@ bool Instance::Create()
 	instanceInfo.enabledExtensionCount = (U32)extensions.Size();
 	instanceInfo.ppEnabledExtensionNames = extensions.Data();
 
-	VkValidateFR(vkCreateInstance(&instanceInfo, Renderer::allocationCallbacks, &instance));
+	VkValidateFR(vkCreateInstance(&instanceInfo, Renderer::allocationCallbacks, &vkInstance));
 
 #ifdef NH_DEBUG
-	DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+	DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vkInstance, "vkDestroyDebugUtilsMessengerEXT");
+	CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vkInstance, "vkCreateDebugUtilsMessengerEXT");
+	SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(vkInstance, "vkSetDebugUtilsObjectNameEXT");
 
 	messengerInfo.pNext = nullptr;
 
-	VkValidateFR(CreateDebugUtilsMessengerEXT(instance, &messengerInfo, Renderer::allocationCallbacks, &debugMessenger));
+	VkValidateFR(CreateDebugUtilsMessengerEXT(vkInstance, &messengerInfo, Renderer::allocationCallbacks, &debugMessenger));
 #endif
 
 	return true;
@@ -115,13 +115,17 @@ bool Instance::Create()
 void Instance::Destroy()
 {
 #ifdef NH_DEBUG
-	DestroyDebugUtilsMessengerEXT(instance, debugMessenger, Renderer::allocationCallbacks);
+	if (debugMessenger) { DestroyDebugUtilsMessengerEXT(vkInstance, debugMessenger, Renderer::allocationCallbacks); }
+
+	debugMessenger = nullptr;
 #endif
 
-	vkDestroyInstance(instance, Renderer::allocationCallbacks);
+	if (vkInstance) { vkDestroyInstance(vkInstance, Renderer::allocationCallbacks); }
+
+	vkInstance = nullptr;
 }
 
-Instance::operator VkInstance_T*() const
+Instance::operator VkInstance() const
 {
-	return instance;
+	return vkInstance;
 }

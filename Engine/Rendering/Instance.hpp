@@ -2,11 +2,7 @@
 
 #include "Defines.hpp"
 
-struct VkInstance_T;
-struct VkDebugUtilsMessengerEXT_T;
-struct VkAllocationCallbacks_T;
-struct VkDebugUtilsMessengerCallbackDataEXT;
-enum VkDebugUtilsMessageSeverityFlagBitsEXT;
+#include "VulkanInclude.hpp"
 
 struct Instance
 {
@@ -14,8 +10,8 @@ public:
 	bool Create();
 	void Destroy();
 
-	VkInstance_T* instance = nullptr;
-	VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
+	VkInstance vkInstance = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-	operator VkInstance_T*() const;
+	operator VkInstance() const;
 };

@@ -12,6 +12,7 @@ public:
 	template<class FunctionObject>
 	Function(FunctionObject funcObj) : callable(new FunctionImpl<FunctionObject>(Move(funcObj))) {}
 
+	Function(const Function& other) : callable(other.callable) {}
 	Function(Function&& other) : callable(other.callable) { other.callable = nullptr; }
 
 	~Function() { delete callable; }

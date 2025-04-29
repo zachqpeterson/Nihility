@@ -26,9 +26,13 @@ bool Engine::Initialize()
 	Settings::Initialize();
 	Platform::Initialize("Nihility Demo");
 	Input::Initialize();
-	Resources::Initialize();
 	Renderer::Initialize();
+	Resources::Initialize();
 	Time::Initialize();
+
+	ResourceRef<Model> model = Resources::LoadModel("models/Woman.gltf");
+	ModelInstance instance = Resources::CreateModelInstance(model);
+	Renderer::AddModelInstance(instance);
 
 	MainLoop();
 	Shutdown();
@@ -39,8 +43,8 @@ bool Engine::Initialize()
 void Engine::Shutdown()
 {
 	Time::Shutdown();
-	Renderer::Shutdown();
 	Resources::Shutdown();
+	Renderer::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
 	Settings::Shutdown();
@@ -71,7 +75,7 @@ void Engine::MainLoop()
 
 		//physics update
 
-		//renderer update
+		Renderer::Update();
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
 		I64 remainingUS = (I64)(remainingFrameTime * 1000000.0);

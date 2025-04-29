@@ -277,7 +277,7 @@ struct NH_API Vector
 	/// <param name="predicate:">A function to evaluate values: bool pred(const Type&amp; value)</param>
 	/// <param name="value:">A reference to return the found value</param>
 	/// <returns>true if a value exists, false otherwise</returns>
-	template<FunctionPtr Predicate> Type* Find(Predicate predicate);
+	template<FunctionPtr Predicate> Type* Find(Predicate predicate) const;
 
 
 
@@ -390,12 +390,12 @@ struct NH_API Vector
 	/// <summary>Retrieves the value at an index</summary>
 	/// <param name="i:">Index</param>
 	/// <returns>The value at index (const)</returns>
-	const Type& operator[](U64 i) const { return array[i]; }
+	const Type& operator[](U64 i) const { if (i >= size) { BreakPoint; } return array[i]; }
 
 	/// <summary>Retrieves the value at an index</summary>
 	/// <param name="i:">Index</param>
 	/// <returns>The value at index</returns>
-	Type& operator[](U64 i) { return array[i]; }
+	Type& operator[](U64 i) { if (i >= size) { BreakPoint; } return array[i]; }
 
 	/// <summary>
 	/// Gets the value at the front of array (index 0)
@@ -486,13 +486,13 @@ template<class Type> inline Vector<Type>::Vector(U64 size, const Type& value) : 
 template<class Type> inline Vector<Type>::Vector(std::initializer_list<Type> list) : size(list.size()), capacity(size)
 {
 	capacity = Memory::Allocate(&array, capacity);
-	memcpy(array, list.begin(), size);
+	CopyData(array, list.begin(), size);
 }
 
 template<class Type> inline Vector<Type>::Vector(const Vector<Type>& other) : size(other.size), capacity(other.size)
 {
 	capacity = Memory::Allocate(&array, capacity);
-	memcpy(array, other.array, size);
+	CopyData(array, other.array, size);
 }
 
 template<class Type> inline Vector<Type>::Vector(Vector<Type>&& other) noexcept : size(other.size), capacity(other.capacity), array(other.array)
@@ -507,7 +507,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator=(const Vector<T
 	size = other.size;
 	if (capacity < other.size) { capacity = Memory::Reallocate(&array, size); }
 
-	memcpy(array, other.array, size);
+	CopyData(array, other.array, size);
 
 	return *this;
 }
@@ -548,14 +548,14 @@ template<class Type> inline Type& Vector<Type>::Push(const Type& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	return Construct(array + size++, value);
+	return Construct<Type>(array + size++, value);
 }
 
 template<class Type> inline Type& Vector<Type>::Push(Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	return Construct(array + size++, Move(value));
+	return Construct<Type>(array + size++, Move(value));
 }
 
 template<class Type> inline Type* Vector<Type>::PushEmpty()
@@ -571,7 +571,7 @@ inline Type& Vector<Type>::Emplace(Parameters&&... parameters) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	return Construct(array + size++, Forward<Parameters>(parameters)...);
+	return Construct<Type, Parameters...>(array + size++, Forward<Parameters>(parameters)...);
 }
 
 template<class Type>
@@ -580,7 +580,7 @@ inline Type& Vector<Type>::EmplaceAt(I index, Parameters&&... parameters) noexce
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	return Construct(array + index, Forward<Parameters>(parameters)...);
+	return Construct<Type, Parameters...>(array + index, Forward<Parameters>(parameters)...);
 }
 
 template<class Type> inline void Vector<Type>::Pop()
@@ -594,7 +594,7 @@ template<class Type> inline void Vector<Type>::Pop()
 
 template<class Type> inline void Vector<Type>::Pop(Type& value)
 {
-	if (size) { Construct(&value, Move(array[--size])); }
+	if (size) { Construct<Type>(&value, Move(array[--size])); }
 }
 
 template<class Type>
@@ -603,9 +603,9 @@ inline Type& Vector<Type>::Insert(I index, const Type& value)
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	memmove(array + index + 1, array + index, (size - index));
+	MoveData(array + index + 1, array + index, (size - index));
 	++size;
-	return Construct(array + index, value);
+	return Construct<Type>(array + index, value);
 }
 
 template<class Type>
@@ -614,9 +614,9 @@ inline Type& Vector<Type>::Insert(I index, Type&& value) noexcept
 {
 	if (size == capacity) { Reserve(capacity + 1); }
 
-	memmove(array + index + 1, array + index, (size - index));
+	MoveData(array + index + 1, array + index, (size - index));
 	++size;
-	return Construct(array + index, Move(value));
+	return Construct<Type>(array + index, Move(value));
 }
 
 template<class Type>
@@ -625,8 +625,8 @@ inline void Vector<Type>::Insert(I index, const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memmove(array + index + other.size, array + index, (size - index));
-	memcpy(array + index, other.array, other.size);
+	MoveData(array + index + other.size, array + index, (size - index));
+	CopyData(array + index, other.array, other.size);
 
 	size += other.size;
 }
@@ -637,8 +637,8 @@ inline void Vector<Type>::Insert(I index, Vector<Type>&& other) noexcept
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memmove(array + index + other.size, array + index, (size - index));
-	memcpy(array + index, other.array, other.size);
+	MoveData(array + index + other.size, array + index, (size - index));
+	MoveData(array + index, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -646,15 +646,15 @@ inline void Vector<Type>::Insert(I index, Vector<Type>&& other) noexcept
 
 template<class Type> inline void Vector<Type>::Remove(U64 index)
 {
-	memmove(array + index, array + index + 1, (size - index));
+	MoveData(array + index, array + index + 1, (size - index));
 
 	--size;
 }
 
 template<class Type> inline void Vector<Type>::Remove(U64 index, Type& value)
 {
-	return Construct(&value, Move(array[index]));
-	memmove(array + index, array + index + 1, (size - index));
+	return Construct<Type>(&value, Move(array[index]));
+	MoveData(array + index, array + index + 1, (size - index));
 
 	--size;
 }
@@ -673,11 +673,11 @@ template<class Type> inline I32 Vector<Type>::RemoveSwap(U64 index)
 
 template<class Type> inline I32 Vector<Type>::RemoveSwap(U64 index, Type& value)
 {
-	Construct(&value, Move(array[index]));
+	Construct<Type>(&value, Move(array[index]));
 
 	if (index < size - 1)
 	{
-		Construct(array + index, Move(array[--size]));
+		Construct<Type>(array + index, Move(array[--size]));
 		return size;
 	}
 
@@ -687,7 +687,7 @@ template<class Type> inline I32 Vector<Type>::RemoveSwap(U64 index, Type& value)
 
 template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1)
 {
-	memmove(array + index0, array + index1, (size - index1));
+	MoveData(array + index0, array + index1, (size - index1));
 
 	size -= index1 - index0;
 }
@@ -697,8 +697,8 @@ template<class Type> inline void Vector<Type>::Erase(U64 index0, U64 index1, Vec
 	other.Reserve(index1 - index0);
 	other.size = other.capacity;
 
-	memcpy(other.array, array + index0, (index1 - index0));
-	memmove(array + index0, array + index1, (size - index1));
+	MoveData(other.array, array + index0, (index1 - index0));
+	MoveData(array + index0, array + index1, (size - index1));
 
 	size -= index1 - index0;
 }
@@ -708,7 +708,7 @@ template<class Type> inline void Vector<Type>::Split(U64 index, Vector<Type>& ot
 	other.Reserve(size - index);
 	other.size = other.capacity;
 
-	memcpy(other.array, array + index, other.size);
+	MoveData(other.array, array + index, other.size);
 
 	size -= index;
 }
@@ -717,7 +717,7 @@ template<class Type> inline void Vector<Type>::Merge(const Vector<Type>& other)
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size);
+	CopyData(array + size, other.array, other.size);
 	size += other.size;
 }
 
@@ -725,7 +725,7 @@ template<class Type> inline void Vector<Type>::Merge(Vector<Type>&& other) noexc
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size);
+	MoveData(array + size, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -735,7 +735,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator+=(const Vector<
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size);
+	CopyData(array + size, other.array, other.size);
 	size += other.size;
 
 	return *this;
@@ -745,7 +745,7 @@ template<class Type> inline Vector<Type>& Vector<Type>::operator+=(Vector<Type>&
 {
 	if (size + other.size > capacity) { Reserve(size + other.size); }
 
-	memcpy(array + size, other.array, other.size);
+	MoveData(array + size, other.array, other.size);
 	size += other.size;
 
 	other.Destroy();
@@ -805,7 +805,7 @@ inline U64 Vector<Type>::RemoveAll(Predicate predicate)
 		if (predicate(*t))
 		{
 			++i;
-			memmove(t, t + 1, (last - t - 1));
+			MoveData(t, t + 1, (last - t - 1));
 			--size;
 		}
 		else { ++t; }
@@ -828,7 +828,7 @@ inline void Vector<Type>::RemoveAll(Predicate predicate, Vector<Type>& other)
 		if (predicate(*t))
 		{
 			other.Push(Move(*t));
-			memmove(t, array + size-- - 1, 1);
+			MoveData(t, array + size-- - 1, 1);
 		}
 		else { ++t; }
 	}
@@ -836,7 +836,7 @@ inline void Vector<Type>::RemoveAll(Predicate predicate, Vector<Type>& other)
 
 template<class Type>
 template<FunctionPtr Predicate>
-inline Type* Vector<Type>::Find(Predicate predicate)
+inline Type* Vector<Type>::Find(Predicate predicate) const
 {
 	for (Type* t = array, *end = array + size; t != end; ++t)
 	{
@@ -857,8 +857,8 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, const Type& value)
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			memmove(array + i + 1, array + i, (size - i));
-			Construct(array + i, value);
+			MoveData(array + i + 1, array + i, (size - i));
+			Construct<Type>(array + i, value);
 			++size;
 
 			return i;
@@ -883,8 +883,8 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, Type&& value) noexcept
 		{
 			if (size == capacity) { Reserve(capacity + 1); }
 
-			memmove(array + i + 1, array + i, (size - i));
-			Construct(array + i, Move(value));
+			MoveData(array + i + 1, array + i, (size - i));
+			Construct<Type>(array + i, Move(value));
 			++size;
 
 			return i;
@@ -899,9 +899,9 @@ U64 Vector<Type>::SortedInsert(Predicate predicate, Type&& value) noexcept
 }
 
 template<class Type>
-inline void Vector<Type>::Reserve(U64 capacity)
+inline void Vector<Type>::Reserve(U64 cap)
 {
-	capacity = Memory::Reallocate(&array, capacity);
+	capacity = Memory::Reallocate(&array, cap);
 }
 
 template<class Type>
@@ -917,7 +917,7 @@ inline void Vector<Type>::Resize(U64 size, const Type& value)
 	if (size > capacity) { Reserve(size); }
 	this->size = size;
 
-	for (U64 i = 0; i < size; ++i) { Construct(array + i, value); }
+	for (U64 i = 0; i < size; ++i) { Construct<Type>(array + i, value); }
 }
 
 template<class Type>
@@ -1006,3 +1006,4 @@ inline bool Vector<Type>::operator!=(const Vector& other) const
 
 	return false;
 }
+

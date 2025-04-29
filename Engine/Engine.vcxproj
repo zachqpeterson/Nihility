@@ -64,7 +64,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;$(SolutionDir)Lib/assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -84,13 +84,15 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;$(SolutionDir)Lib/assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Containers\Function.hpp" />
     <ClInclude Include="Containers\Hashmap.hpp" />
+    <ClInclude Include="Containers\Pair.hpp" />
     <ClInclude Include="Containers\SafeQueue.hpp" />
+    <ClInclude Include="Containers\Stack.hpp" />
     <ClInclude Include="Containers\String.hpp" />
     <ClInclude Include="Containers\Vector.hpp" />
     <ClInclude Include="Core\Events.hpp" />
@@ -108,11 +110,30 @@
     <ClInclude Include="Platform\Memory.hpp" />
     <ClInclude Include="Platform\Platform.hpp" />
     <ClInclude Include="Platform\WindowsInclude.hpp" />
+    <ClInclude Include="Rendering\Buffer.hpp" />
+    <ClInclude Include="Rendering\Camera.hpp" />
+    <ClInclude Include="Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Rendering\Device.hpp" />
+    <ClInclude Include="Rendering\FrameBuffer.hpp" />
     <ClInclude Include="Rendering\Instance.hpp" />
+    <ClInclude Include="Rendering\PhysicalDevice.hpp" />
+    <ClInclude Include="Rendering\Pipeline.hpp" />
+    <ClInclude Include="Rendering\PipelineLayout.hpp" />
     <ClInclude Include="Rendering\Renderer.hpp" />
+    <ClInclude Include="Rendering\Renderpass.hpp" />
+    <ClInclude Include="Rendering\Shader.hpp" />
+    <ClInclude Include="Rendering\Swapchain.hpp" />
     <ClInclude Include="Rendering\VulkanInclude.hpp" />
+    <ClInclude Include="Resources\Animation.hpp" />
+    <ClInclude Include="Resources\Bone.hpp" />
+    <ClInclude Include="Resources\Mesh.hpp" />
+    <ClInclude Include="Resources\Model.hpp" />
+    <ClInclude Include="Resources\ModelInstance.hpp" />
+    <ClInclude Include="Resources\Node.hpp" />
+    <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
+    <ClInclude Include="Resources\Texture.hpp" />
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -125,8 +146,19 @@
     <ClCompile Include="Platform\Input.cpp" />
     <ClCompile Include="Platform\Memory.cpp" />
     <ClCompile Include="Platform\PlatformWindows.cpp" />
+    <ClCompile Include="Rendering\Buffer.cpp" />
+    <ClCompile Include="Rendering\Camera.cpp" />
+    <ClCompile Include="Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Rendering\Device.cpp" />
+    <ClCompile Include="Rendering\FrameBuffer.cpp" />
     <ClCompile Include="Rendering\Instance.cpp" />
+    <ClCompile Include="Rendering\PhysicalDevice.cpp" />
+    <ClCompile Include="Rendering\Pipeline.cpp" />
+    <ClCompile Include="Rendering\PipelineLayout.cpp" />
     <ClCompile Include="Rendering\Renderer.cpp" />
+    <ClCompile Include="Rendering\Renderpass.cpp" />
+    <ClCompile Include="Rendering\Shader.cpp" />
+    <ClCompile Include="Rendering\Swapchain.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />
   </ItemGroup>

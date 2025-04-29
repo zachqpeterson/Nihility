@@ -364,6 +364,8 @@ NH_API constexpr U64 MaxFormatLength() noexcept
 	if constexpr (IsSame<Arg, bool>) { return 5; }
 	if constexpr (IsCharacter<Arg>) { return 1; }
 	if constexpr (IsPointer<Arg>) { return 20; }
+
+	return 100;
 }
 
 template<Character C, Integer Type>

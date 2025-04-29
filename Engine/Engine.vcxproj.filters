@@ -106,6 +106,69 @@
     <ClInclude Include="Core\Formatting.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Rendering\Device.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\PhysicalDevice.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Swapchain.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\CommandBuffer.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Renderpass.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\PipelineLayout.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Pipeline.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Shader.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\FrameBuffer.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Camera.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Model.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Texture.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ResourceDefines.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Buffer.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Mesh.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Bone.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Node.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Animation.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ModelInstance.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Stack.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Pair.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -146,6 +209,39 @@
     </ClCompile>
     <ClCompile Include="Core\File.cpp">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Device.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\PhysicalDevice.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Swapchain.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\CommandBuffer.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Renderpass.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\PipelineLayout.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Pipeline.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Shader.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\FrameBuffer.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Camera.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Buffer.cpp">
+      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

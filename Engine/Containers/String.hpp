@@ -2,10 +2,11 @@
 
 #include "Defines.hpp"
 
-#include "Platform\Memory.hpp"
+#include "Platform/Memory.hpp"
+#include "Core/Formatting.hpp"
 
 template<class T>
-NH_API constexpr U64 Length(const T* str) noexcept
+NH_API inline constexpr U64 Length(const T* str) noexcept
 {
 	if (!str) { return 0; }
 
@@ -13,6 +14,30 @@ NH_API constexpr U64 Length(const T* str) noexcept
 	while (*it) { ++it; }
 
 	return it - str;
+}
+
+template<Character C>
+NH_API inline bool WhiteSpace(C c) noexcept
+{
+	if constexpr (IsSame<C, C8>) { return c == ' ' || c == '\t' || c == '\v' || c == '\r' || c == '\n' || c == '\f'; }
+	if constexpr (IsSame<C, C16>) { return c == u' ' || c == u'\t' || c == u'\v' || c == u'\r' || c == u'\n' || c == u'\f'; }
+	if constexpr (IsSame<C, C32>) { return c == U' ' || c == U'\t' || c == U'\v' || c == U'\r' || c == U'\n' || c == U'\f'; }
+	if constexpr (IsSame<C, CW>) { return c == L' ' || c == L'\t' || c == L'\v' || c == L'\r' || c == L'\n' || c == L'\f'; }
+}
+
+template<Character C>
+NH_API inline bool NotWhiteSpace(C c) noexcept
+{
+	if constexpr (IsSame<C, C8>) { return c != ' ' && c != '\t' && c != '\v' && c != '\r' && c != '\n' && c != '\f'; }
+	if constexpr (IsSame<C, C16>) { return c != u' ' && c != u'\t' && c != u'\v' && c != u'\r' && c != u'\n' && c != u'\f'; }
+	if constexpr (IsSame<C, C32>) { return c != U' ' && c != U'\t' && c != U'\v' && c != U'\r' && c != U'\n' && c != U'\f'; }
+	if constexpr (IsSame<C, CW>) { return c != L' ' && c != L'\t' && c != L'\v' && c != L'\r' && c != L'\n' && c != L'\f'; }
+}
+
+template<Character C>
+NH_API inline bool Numerical(C c) noexcept
+{
+	return c > 47 && c < 58;
 }
 
 struct NH_API StringView
@@ -110,8 +135,10 @@ private:
 	U64 length;
 };
 
+struct FormatTag{} static inline constexpr FORMAT;
+
 template<class C>
-struct StringBase
+struct NH_API StringBase
 {
 	using CharType = C;
 
@@ -121,8 +148,10 @@ struct StringBase
 	StringBase(const StringBase& other);
 	StringBase(StringBase&& other) noexcept;
 	template<U64 Count> StringBase(const C(&other)[Count]);
+	template<typename... Args> StringBase(FormatTag, Args... args);
 
 	StringBase& operator=(NullPointer);
+	StringBase& operator=(const C* other);
 	StringBase& operator=(const StringBase& other);
 	StringBase& operator=(StringBase&& other) noexcept;
 
@@ -172,7 +201,7 @@ struct StringBase
 	I64 IndexOfNot(const C& find, U64 start = 0) const;
 
 	StringBase& Trim();
-	StringBase SubString(U64 start, U64 nLength = U64_MAX) const;
+	StringBase SubString(U64 start, U64 length = U64_MAX) const;
 
 	StringBase& Append(const C* other);
 	StringBase& Append(const StringBase& other);
@@ -204,6 +233,8 @@ struct StringBase
 	bool Empty() const;
 
 private:
+	template<class Type> U64 FormatWrite(C* str, Type type);
+
 	U64 size = 0;
 	U64 capacity = 0;
 	C* string = nullptr;
@@ -229,7 +260,7 @@ inline StringBase<C>::StringBase(const C* other)
 
 	capacity = Memory::Allocate(&string, size);
 
-	memcpy(string, other, size);
+	memcpy(string, other, size * sizeof(C));
 	string[size] = 0;
 }
 
@@ -240,7 +271,7 @@ inline StringBase<C>::StringBase(const C* other, U64 size)
 
 	capacity = Memory::Allocate(&string, size);
 
-	memcpy(string, other, size);
+	memcpy(string, other, size * sizeof(C));
 	string[size] = 0;
 }
 
@@ -249,7 +280,7 @@ inline StringBase<C>::StringBase(const StringBase& other) : size(other.size)
 {
 	capacity = Memory::Allocate(&string, size);
 
-	memcpy(string, other.string, size);
+	memcpy(string, other.string, size * sizeof(C));
 	string[size] = 0;
 }
 
@@ -265,12 +296,54 @@ template<class C>
 template<U64 Count>
 inline StringBase<C>::StringBase(const C(&other)[Count])
 {
-	size = Count;
+	size = Length(other);
 
 	capacity = Memory::Allocate(&string, size);
 
-	memcpy(string, other, size);
+	memcpy(string, other, size * sizeof(C));
 	string[size] = 0;
+}
+
+template<class C>
+template<typename... Args>
+inline StringBase<C>::StringBase(FormatTag, Args... args)
+{
+	constexpr U64 length = (MaxFormatLength<Args>() + ...);
+
+	capacity = Memory::Allocate(&string, length);
+
+	((size += FormatWrite(string + size, args)), ...);
+}
+
+template<class C>
+template<class Type>
+inline U64 StringBase<C>::FormatWrite(C* str, Type type)
+{
+	if constexpr (IsStringType<Type>)
+	{
+		U64 length = type.Size();
+		memcpy(str, type.Data(), length * sizeof(Type::CharType));
+
+		return length;
+	}
+	else if constexpr (IsSame<Type, StringView>)
+	{
+		U64 length = type.Size();
+		memcpy(str, type.Data(), length);
+
+		return length;
+	}
+	else if constexpr (IsStringLiteral<Type>)
+	{
+		U64 length = Length(type);
+		memcpy(str, type, length);
+
+		return length;
+	}
+	else
+	{
+		return Format(str, type);
+	}
 }
 
 template<class C>
@@ -280,13 +353,27 @@ inline StringBase<C>& StringBase<C>::operator=(NullPointer)
 }
 
 template<class C>
+inline StringBase<C>& StringBase<C>::operator=(const C* other)
+{
+	U64 otherSize = Length(other);
+	size = otherSize;
+
+	if (!string || capacity < otherSize) { capacity = Memory::Reallocate(&string, size); }
+
+	memcpy(string, other, size * sizeof(C));
+	string[size] = 0;
+
+	return *this;
+}
+
+template<class C>
 inline StringBase<C>& StringBase<C>::operator=(const StringBase<C>& other) 
 {
 	size = other.size;
 
 	if (!string || capacity < other.size) { capacity = Memory::Reallocate(&string, size); }
 
-	memcpy(string, other.string, size);
+	memcpy(string, other.string, size * sizeof(C));
 	string[size] = 0;
 
 	return *this;
@@ -366,13 +453,14 @@ inline void StringBase<C>::Resize()
 template<class C>
 inline bool StringBase<C>::operator==(C* other) const
 {
-	constexpr U64 otherSize = Length(other);
+	U64 otherSize = Length(other);
 
 	if (otherSize != size) { return false; }
 
 	const C8* p0 = string, * p1 = other;
 
-	while (size--) { if (*p0++ != *p1++) { return false; } }
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return false; } }
 
 	return true;
 }
@@ -384,7 +472,8 @@ inline bool StringBase<C>::operator==(const StringBase& other) const
 
 	const C8* p0 = string, * p1 = other.string;
 
-	while (size--) { if (*p0++ != *p1++) { return false; } }
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return false; } }
 
 	return true;
 }
@@ -393,11 +482,14 @@ template<class C>
 template<U64 Count>
 inline bool StringBase<C>::operator==(const C(&other)[Count]) const
 {
-	if (Count != size) { return false; }
+	U64 otherSize = Length(other);
+
+	if (otherSize != size) { return false; }
 
 	const C8* p0 = string, * p1 = other;
 
-	while (size--) { if (*p0++ != *p1++) { return false; } }
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return false; } }
 
 	return true;
 }
@@ -405,13 +497,14 @@ inline bool StringBase<C>::operator==(const C(&other)[Count]) const
 template<class C>
 inline bool StringBase<C>::operator!=(C* other) const
 {
-	constexpr U64 otherSize = Length(other);
+	U64 otherSize = Length(other);
 
 	if (otherSize != size) { return true; }
 
 	const C8* p0 = string, * p1 = other;
 
-	while (size--) { if (*p0++ != *p1++) { return true; } }
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return true; } }
 
 	return false;
 }
@@ -423,7 +516,8 @@ inline bool StringBase<C>::operator!=(const StringBase& other) const
 
 	const C8* p0 = string, * p1 = other.string;
 
-	while (size--) { if (*p0++ != *p1++) { return true; } }
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return true; } }
 
 	return false;
 }
@@ -432,11 +526,14 @@ template<class C>
 template<U64 Count>
 inline bool StringBase<C>::operator!=(const C(&other)[Count]) const
 {
-	if (Count != size) { return true; }
+	U64 otherSize = Length(other);
+
+	if (otherSize != size) { return true; }
 
 	const C8* p0 = string, * p1 = other;
 
-	while (size--) { if (*p0++ != *p1++) { return true; } }
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return true; } }
 
 	return false;
 }
@@ -448,7 +545,7 @@ inline bool StringBase<C>::operator<(C* other) const
 	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) < 0; }
 	else
 	{
-		constexpr U64 otherSize = Length(other);
+		U64 otherSize = Length(other);
 		const C* it0 = string;
 		const C* it1 = other;
 
@@ -486,6 +583,8 @@ template<class C>
 template<U64 Count>
 inline bool StringBase<C>::operator<(const C(&other)[Count]) const
 {
+	U64 otherSize = Length(other);
+
 	if constexpr (IsSame<C, C8>) { return strcmp(string, other) < 0; }
 	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) < 0; }
 	else
@@ -493,11 +592,11 @@ inline bool StringBase<C>::operator<(const C(&other)[Count]) const
 		const C* it0 = string;
 		const C* it1 = other;
 
-		U64 length = size < Count ? size : Count;
+		U64 length = size < otherSize ? size : otherSize;
 
 		while (length-- && *it0 == *it1) { ++it0; ++it1; }
 
-		if (length == U64_MAX) { return size < Count; }
+		if (length == U64_MAX) { return size < otherSize; }
 
 		return *it0 < *it1;
 	}
@@ -510,7 +609,7 @@ inline bool StringBase<C>::operator>(C* other) const
 	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) > 0; }
 	else
 	{
-		constexpr U64 otherSize = Length(other);
+		U64 otherSize = Length(other);
 		const C* it0 = string;
 		const C* it1 = other;
 
@@ -548,6 +647,8 @@ template<class C>
 template<U64 Count>
 inline bool StringBase<C>::operator>(const C(&other)[Count]) const
 {
+	U64 otherSize = Length(other);
+
 	if constexpr (IsSame<C, C8>) { return strcmp(string, other) > 0; }
 	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) > 0; }
 	else
@@ -555,11 +656,11 @@ inline bool StringBase<C>::operator>(const C(&other)[Count]) const
 		const C* it0 = string;
 		const C* it1 = other;
 
-		U64 length = size < Count ? size : Count;
+		U64 length = size < otherSize ? size : otherSize;
 
 		while (length-- && *it0 == *it1) { ++it0; ++it1; }
 
-		if (length == U64_MAX) { return size > Count; }
+		if (length == U64_MAX) { return size > otherSize; }
 
 		return *it0 > *it1;
 	}
@@ -568,6 +669,148 @@ inline bool StringBase<C>::operator>(const C(&other)[Count]) const
 
 
 
+
+template<class C>
+inline I64 StringBase<C>::IndexOf(C* find, U64 start) const
+{
+	U64 findSize = Length(find);
+	C* it = string + start;
+
+	while (*it != 0 && !CompareString(it, find, findSize)) { ++it; }
+
+	if (*it == 0) { return -1; }
+	return (I64)(it - string);
+}
+
+template<class C>
+inline I64 StringBase<C>::IndexOf(const C& find, U64 start) const
+{
+	C* it = string + start;
+	C c;
+
+	while ((c = *it) != 0 && c != find) { ++it; }
+
+	if (c == 0) { return -1; }
+	return (I64)(it - string);
+}
+
+template<class C>
+inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const
+{
+	C* it = string + start;
+
+	while (*it != 0 && !CompareString(it, find.string, find.size)) { ++it; }
+
+	if (*it == 0) { return -1; }
+	return (I64)(it - string);
+}
+
+template<class C>
+template<U64 Count>
+inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const
+{
+	C* it = string + start;
+
+	while (*it != 0 && !CompareString(it, find, Count - 1)) { ++it; }
+
+	if (*it == 0) { return -1; }
+	return (I64)(it - string);
+}
+
+template<class C>
+inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const
+{
+	U64 findSize = Length(find);
+	C* it = string + (size - start - findSize);
+
+	U64 len = size;
+	while (len && !CompareString(it, find, findSize)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<class C>
+inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const
+{
+	C* it = string + (size - start - 1);
+
+	U64 len = size;
+	while (len && *it != find) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<class C>
+inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const
+{
+	C* it = string + (size - start - find.size);
+
+	U64 len = size;
+	while (len && !CompareString(it, find.string, find.size)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<class C>
+template<U64 Count>
+inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const
+{
+	C* it = string + (size - start - Count + 1);
+
+	U64 len = size;
+	while (len && !CompareString(it, find, Count - 1)) { --it; --len; }
+
+	if (len) { return (I64)(it - string); }
+	return -1;
+}
+
+template<class C>
+inline I64 StringBase<C>::IndexOfNot(const C& find, U64 start) const
+{
+	C* it = string + start;
+	C c;
+
+	while ((c = *it) != 0 && c == find) { ++it; }
+
+	if (c == 0) { return -1; }
+	return (I64)(it - string);
+}
+
+template<class C>
+inline StringBase<C>& StringBase<C>::Trim()
+{
+	C* start = string;
+	C* end = string + size - 1;
+	C c;
+
+	//TODO: Verify this works
+	while (WhiteSpace(c = *start)) { ++start; }
+	while (WhiteSpace(c = *end)) { --end; }
+
+	size = end - start + 1;
+	memcpy(string, start, size * sizeof(C));
+	string[size] = 0;
+
+	return *this;
+}
+
+template<class C>
+inline StringBase<C> StringBase<C>::SubString(U64 start, U64 length) const
+{
+	StringBase<C> str;
+
+	if (length < U64_MAX) { str.Resize(length); }
+	else { str.Resize(size - start); }
+
+	memcpy(str.string, string + start, str.size * sizeof(C));
+	str.string[str.size] = 0;
+
+	return str;
+}
+
 template<class C>
 inline StringBase<C>& StringBase<C>::Append(const C* other)
 {
@@ -575,7 +818,7 @@ inline StringBase<C>& StringBase<C>::Append(const C* other)
 
 	if (capacity < size + otherSize) { capacity = Memory::Reallocate(&string, size + otherSize); }
 
-	memcpy(string + size, other, otherSize);
+	memcpy(string + size, other, otherSize * sizeof(C));
 	size += otherSize;
 
 	return *this;
@@ -586,7 +829,7 @@ inline StringBase<C>& StringBase<C>::Append(const StringBase<C>& other)
 {
 	if (capacity < size + other.size) { capacity = Memory::Reallocate(&string, size + other.size); }
 
-	memcpy(string + size, other.string, other.size);
+	memcpy(string + size, other.string, other.size * sizeof(C));
 	size += other.size;
 
 	return *this;
@@ -697,13 +940,19 @@ inline const C& StringBase<C>::operator[](U64 i) const
 template<class C>
 inline StringBase<C>::operator bool() const
 {
-
+	return size;
 }
 
 template<class C>
 inline bool StringBase<C>::Blank() const
 {
+	if (size == 0) { return true; }
+	C* it = string;
+	C c;
 
+	while (WhiteSpace(c = *it++));
+
+	return c == 0;
 }
 
 template<class C>

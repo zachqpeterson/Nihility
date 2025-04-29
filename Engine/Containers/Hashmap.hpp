@@ -49,6 +49,9 @@ struct NH_API Hashmap
 	Hashmap();
 	Hashmap(U64 capacity);
 	Hashmap(Hashmap&& other) noexcept;
+	Hashmap(const Hashmap&);
+
+	Hashmap& operator=(const Hashmap&);
 	Hashmap& operator=(Hashmap&& other) noexcept;
 
 	~Hashmap();
@@ -77,6 +80,7 @@ struct NH_API Hashmap
 
 	U64 Size() const;
 	U64 Capacity() const;
+	bool Empty() const;
 
 	Iterator begin() { return { cells }; }
 	const Iterator begin() const { return { cells }; }
@@ -88,9 +92,6 @@ private:
 	U64 capacity = 0;
 	U64 capMinusOne = 0;
 	Cell* cells = nullptr;
-
-	Hashmap(const Hashmap&) = delete;
-	Hashmap& operator=(const Hashmap&) = delete;
 };
 
 template<class Key, class Value>
@@ -105,6 +106,13 @@ inline Hashmap<Key, Value>::Hashmap(U64 cap)
 }
 
 template<class Key, class Value>
+inline Hashmap<Key, Value>::Hashmap(const Hashmap& other) : size(other.size), capacity(other.capacity), capMinusOne(other.capMinusOne)
+{
+	Memory::Allocate(&cells, capacity);
+	CopyData(cells, other.cells, capacity);
+}
+
+template<class Key, class Value>
 inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
 	cells(other.cells), size(other.size), capacity(other.capacity), capMinusOne(other.capMinusOne)
 {
@@ -112,6 +120,19 @@ inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
 	other.size = 0;
 	other.capacity = 0;
 	other.capMinusOne = 0;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>& Hashmap<Key, Value>::operator=(const Hashmap& other)
+{
+	size = other.size;
+	capacity = other.capacity;
+	capMinusOne = other.capMinusOne;
+
+	Memory::Allocate(&cells, capacity);
+	CopyData(cells, other.cells, capacity);
+
+	return *this;
 }
 
 template<class Key, class Value>
@@ -151,7 +172,7 @@ inline void Hashmap<Key, Value>::Destroy()
 					//TODO: Key or Value could be allocated
 					if constexpr (IsDestroyable<Key>)
 					{
-						if constexpr (IsPointer<Value>) { cell->key->Destroy(); }
+						if constexpr (IsPointer<Key>) { cell->key->Destroy(); }
 						else { cell->key.Destroy(); }
 					}
 					if constexpr (IsDestroyable<Value>)
@@ -450,7 +471,7 @@ inline void Hashmap<Key, Value>::Clear()
 			{
 				if constexpr (IsDestroyable<Key>)
 				{
-					if constexpr (IsPointer<Value>) { cell->key->Destroy(); }
+					if constexpr (IsPointer<Key>) { cell->key->Destroy(); }
 					else { cell->key.Destroy(); }
 				}
 				if constexpr (IsDestroyable<Value>)
@@ -471,6 +492,9 @@ inline U64 Hashmap<Key, Value>::Size() const { return size; }
 
 template<class Key, class Value>
 inline U64 Hashmap<Key, Value>::Capacity() const { return size; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Empty() const { return size == 0; }
 
 /*------ITERATOR------*/
 

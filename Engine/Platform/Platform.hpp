@@ -60,6 +60,7 @@ private:
 
 	friend class Input;
 	friend class Engine;
+	friend struct Device;
 
 	STATIC_CLASS(Platform);
 };

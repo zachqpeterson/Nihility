@@ -277,7 +277,7 @@ void Input::Shutdown()
 
 	SetControllerRumbleStrength(0.0f, 0.0f);
 	SetControllerLedColor(0.0f, 0.0f, 0.0f);
-	SetControllerTriggerEffect(TriggerEffectType::None);
+	SetControllerTriggerEffect(TriggerEffectType::None, Trigger::Both);
 
 	//TODO: Update controllers to reset effects
 

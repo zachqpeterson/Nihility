@@ -121,7 +121,7 @@ U64 File::FormatedWrite(const Args... args)
 
 	U64 count = 0;
 
-	((count += FormatedWrite(buffer, args)), ...);
+	((count += FormatedWrite(buffer + count, args)), ...);
 
 	return count;
 }
@@ -129,20 +129,8 @@ U64 File::FormatedWrite(const Args... args)
 template<class Type>
 U64 File::FormatedWrite(C8* buffer, Type type)
 {
-	if constexpr (IsStringType<Type>)
-	{
-		return Write(type.Data(), type.Size());
-	}
-	else if constexpr (IsSame<Type, StringView>)
-	{
-		return Write(type.Data(), type.Size());
-	}
-	else if constexpr (IsStringLiteral<Type>)
-	{
-		return Write(type, Length(type));
-	}
-	else
-	{
-		return Write(buffer, Format(buffer, type));
-	}
+	if constexpr (IsStringType<Type>) { return Write(type.Data(), type.Size()); }
+	else if constexpr (IsSame<Type, StringView>) { return Write(type.Data(), type.Size()); }
+	else if constexpr (IsStringLiteral<Type>) { return Write(type, Length(type)); }
+	else { return Write(buffer, Format(buffer, type)); }
 }
