@@ -100,8 +100,8 @@ inline Hashmap<Key, Value>::Hashmap() {}
 template<class Key, class Value>
 inline Hashmap<Key, Value>::Hashmap(U64 cap)
 {
-	capacity = Memory::Allocate(&cells, cap);
-	capacity = BitFloor(capacity);
+	capacity = BitCeiling(cap);
+	Memory::Allocate(&cells, capacity);
 	capMinusOne = capacity - 1;
 }
 
@@ -447,10 +447,10 @@ inline const Value* Hashmap<Key, Value>::operator[](const Key& key) const
 template<class Key, class Value>
 inline void Hashmap<Key, Value>::Reserve(U64 cap)
 {
-	if (cap < capacity) { return; }
+	if (cap <= capacity) { return; }
 
-	capacity = Memory::Reallocate(&cells, cap);
-	capacity = BitFloor(capacity);
+	capacity = BitFloor(cap);
+	Memory::Reallocate(&cells, cap);
 	capMinusOne = capacity - 1;
 
 	Clear();

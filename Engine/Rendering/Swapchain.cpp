@@ -12,7 +12,12 @@ bool Swapchain::Create(bool recreate)
 
         imageCount = Math::Min(surfaceSupport.capabilities.minImageCount + 1, surfaceSupport.capabilities.maxImageCount);
 
-        surfaceFormat = FindBestSurfaceFormat(surfaceSupport.formats, surfaceSupport.formats);
+        Vector<VkSurfaceFormatKHR> desiredFormats = {
+            { VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR },
+            { VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }
+        };
+
+        surfaceFormat = FindBestSurfaceFormat(surfaceSupport.formats, desiredFormats);
 
         extent = FindExtent(surfaceSupport.capabilities, 0, 0);
 
@@ -112,7 +117,7 @@ VkSurfaceFormatKHR Swapchain::FindDesiredSurfaceFormat(const Vector<VkSurfaceFor
 VkSurfaceFormatKHR Swapchain::FindBestSurfaceFormat(const Vector<VkSurfaceFormatKHR>& availableFormats, const Vector<VkSurfaceFormatKHR>& desiredFormats)
 {
     VkSurfaceFormatKHR surfaceFormat = FindDesiredSurfaceFormat(availableFormats, desiredFormats);
-    if (surfaceFormat.format == VK_FORMAT_UNDEFINED) return surfaceFormat;
+    if (surfaceFormat.format != VK_FORMAT_UNDEFINED) { return surfaceFormat; }
 
     return availableFormats[0];
 }

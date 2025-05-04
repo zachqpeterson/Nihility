@@ -38,6 +38,8 @@ F32 Input::deltaMousePosY;
 F32 Input::deltaRawMousePosX;
 F32 Input::deltaRawMousePosY;
 
+bool Input::inputConsumed;
+
 struct TriggerEffect
 {
 	TriggerEffectType type;
@@ -292,6 +294,7 @@ void Input::Update()
 	deltaMousePosY = 0;
 	mouseWheelDelta = 0;
 	mouseHWheelDelta = 0;
+	inputConsumed = false;
 }
 
 void Input::SetControllerRumbleStrength(F32 left, F32 right)
@@ -994,3 +997,35 @@ void Input::UpdateAxisState(AxisCode code, F32 value)
 }
 
 #endif
+
+bool Input::ButtonUp(ButtonCode code) { return !inputConsumed && !buttonStates[*code].pressed; }
+
+bool Input::ButtonDown(ButtonCode code) { return !inputConsumed && buttonStates[*code].pressed; }
+
+bool Input::ButtonHeld(ButtonCode code) { return !inputConsumed && buttonStates[*code].held; }
+
+bool Input::ButtonDragging(ButtonCode code) { return !inputConsumed && buttonStates[*code].pressed && (deltaMousePosX || deltaMousePosY); }
+
+bool Input::OnButtonUp(ButtonCode code) { return !buttonStates[*code].pressed && buttonStates[*code].changed && !inputConsumed; }
+
+bool Input::OnButtonDown(ButtonCode code) { return buttonStates[*code].pressed && buttonStates[*code].changed && !inputConsumed; }
+
+bool Input::OnButtonChange(ButtonCode code) { return buttonStates[*code].changed && !inputConsumed; }
+
+bool Input::OnButtonDoubleClick(ButtonCode code) { return buttonStates[*code].doubleClicked && !inputConsumed; }
+
+bool Input::OnButtonHold(ButtonCode code) { return buttonStates[*code].held && buttonStates[*code].heldChanged && !inputConsumed; }
+
+bool Input::OnButtonRelease(ButtonCode code) { return !buttonStates[*code].held && buttonStates[*code].heldChanged && !inputConsumed; }
+
+Vector2 Input::MousePosition() { return { mousePosX, mousePosY }; }
+
+Vector2 Input::PreviousMousePos() { return { mousePosX - deltaMousePosX, mousePosY - deltaMousePosY }; }
+
+Vector2 Input::MouseDelta() { return { deltaMousePosX, deltaMousePosY }; }
+
+void Input::ConsumeInput() { inputConsumed = true; }
+
+I16 Input::MouseWheelDelta() { return mouseWheelDelta; }
+
+I16 Input::MouseHWheelDelta() { return mouseHWheelDelta; }

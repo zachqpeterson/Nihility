@@ -81,6 +81,7 @@ public:
 	const Type& operator*() const;
 	operator Type* ();
 	operator const Type* () const;
+	U32 Handle() const;
 
 	bool operator==(const ResourceRef<Type>& other) const;
 
@@ -90,7 +91,7 @@ public:
 private:
 	Type* type = nullptr;
 	U32* refCount = nullptr;
-	U64 hash = U64_MAX;
+	U32 hash = U32_MAX;
 
 	friend class Resources;
 };
@@ -109,7 +110,7 @@ inline ResourceRef<Type>::ResourceRef(Resource<Type>& resource, U64 hash)
 {
 	type = &resource.type;
 	refCount = &resource.refCount;
-	this->hash = hash;
+	this->hash = (U32)hash;
 	++(*refCount);
 }
 
@@ -123,7 +124,7 @@ inline void ResourceRef<Type>::Destroy()
 
 	type = nullptr;
 	refCount = nullptr;
-	hash = U64_MAX;
+	hash = U32_MAX;
 }
 
 template<class Type>
@@ -134,7 +135,7 @@ inline ResourceRef<Type>::ResourceRef(ResourceRef&& other) noexcept : refCount(o
 {
 	other.refCount = nullptr;
 	other.type = nullptr;
-	other.hash = U64_MAX;
+	other.hash = U32_MAX;
 }
 
 template<class Type>
@@ -166,7 +167,7 @@ inline ResourceRef<Type>& ResourceRef<Type>::operator=(ResourceRef<Type>&& other
 
 	other.type = nullptr;
 	other.refCount = nullptr;
-	hash = U64_MAX;
+	other.hash = U32_MAX;
 
 	return *this;
 }
@@ -199,6 +200,9 @@ template<class Type>
 inline ResourceRef<Type>::operator const Type* () const { return type; }
 
 template<class Type>
+inline U32 ResourceRef<Type>::Handle() const { return hash; }
+
+template<class Type>
 inline bool ResourceRef<Type>::operator==(const ResourceRef<Type>& other) const { return type == other.type; }
 
 template<class Type>
@@ -210,26 +214,29 @@ inline ResourceRef<Type>::operator bool() const { return type; }
 struct VmaAllocation_T;
 struct VkBuffer_T;
 
-struct NH_API MatrixData
+struct NH_API SpriteVertex
 {
-	Matrix4 viewMatrix{};
-	Matrix4 projectionMatrix{};
+	Vector2 position = Vector2::Zero;
+	Vector2 texcoord = Vector2::Zero;
 };
 
-struct NH_API VertexData
+struct NH_API Transform
 {
-	Vector3 position = Vector3::Zero;
-	Vector4 color = Vector4::One;
-	Vector3 normal = Vector3::Zero;
-	Vector2 uv = Vector2::Zero;
-	Vector4Int boneNumber = Vector4Int::Zero;
-	Vector4 boneWeight = Vector4::Zero;
+	Vector2 position = Vector2::Zero;
+	Vector2 scale = Vector2::One;
+	Quaternion2 rotation = Quaternion2::Identity;
 };
 
-struct NH_API MeshData
+struct NH_API SpriteInstance
 {
-	Vector<VertexData> vertices{};
-	Vector<U32> indices{};
-	Hashmap<TextureType, String> textures{};
-	bool usesPBRColors = false;
+	Transform transform = {};
+	Vector4 instColor = Vector4::One;
+	Vector2 instTexcoord = Vector2::Zero;
+	Vector2 instTexcoordScale = Vector2::One;
+	U32 textureIndex = 0;
+};
+
+struct NH_API GlobalPushConstant
+{
+	Matrix4 viewProjection;
 };

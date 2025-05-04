@@ -2,7 +2,7 @@
 
 #include "Renderer.hpp"
 
-bool Shader::Create(const String& path, ShaderType type)
+bool Shader::Create(const String& path, ShaderStage type)
 {
 	this->type = type;
 

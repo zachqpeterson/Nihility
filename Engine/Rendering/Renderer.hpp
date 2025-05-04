@@ -10,13 +10,13 @@
 #include "Renderpass.hpp"
 #include "PipelineLayout.hpp"
 #include "Pipeline.hpp"
+#include "DescriptorSet.hpp"
 #include "Shader.hpp"
 #include "FrameBuffer.hpp"
 #include "Camera.hpp"
 
 #include "Resources/ResourceDefines.hpp"
-#include "Resources/Model.hpp"
-#include "Resources/ModelInstance.hpp"
+#include "Resources/Texture.hpp"
 
 struct VmaAllocator_T;
 struct VmaAllocation_T;
@@ -24,35 +24,26 @@ struct VmaAllocation_T;
 class Renderer
 {
 public:
-	//TODO: Scene Object
-	static void AddModelInstance(ModelInstance& instance);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
 	static void Update();
-	static void Draw(ResourceRef<Model> model);
-	static void DrawInstanced(ResourceRef<Model> model, U32 instanceCount);
 
 	static bool InitializeVma();
 	static bool GetQueues();
 	static bool CreateDepthBuffer();
 	static bool CreateDescriptorPool();
-	static bool CreateDescriptorSetLayouts();
-	static bool CreateDescriptorSets();
 	static bool CreateRenderpasses();
-	static bool CreatePipelineLayouts();
-	static bool CreatePipelines();
 	static bool CreateSynchronization();
 
 	static bool RecreateSwapchain();
-	static bool UpdateDescriptorSets();
 
 	static VkCommandPool CreateCommandPool(QueueType queueType);
 	static void DestroyCommandPool(VkCommandPool pool);
 
-	static bool UploadTexture(Resource<Texture>& texture, U8* data);
+	static bool UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler);
 	static void DestroyTexture(Resource<Texture>& texture);
 
 	static VmaAllocator_T* vmaAllocator;
@@ -64,25 +55,10 @@ private:
 	static Swapchain swapchain;
 	static VkCommandPool commandPool;
 	static CommandBuffer commandBuffer;
-	static Buffer perspectiveViewMatrixUBO;
-	static Buffer worldPosBuffer;
-	static Vector<Matrix4> worldPosMatrices;
-	static Buffer boneMatrixBuffer;
-	static Vector<Matrix4> modelBoneMatrices;
 	static VkDescriptorPool vkDescriptorPool;
-	static VkDescriptorSetLayout assimpDescriptorLayout;
-	static VkDescriptorSetLayout assimpTextureDescriptorLayout;
-	static VkDescriptorSet assimpDescriptorSet;
-	static VkDescriptorSet assimpSkinningDescriptorSet;
+	static VkDescriptorPool vkBindlessDescriptorPool;
+	static DescriptorSet descriptorSet;
 	static Renderpass renderpass;
-	static PipelineLayout assimpPipelineLayout;
-	static PipelineLayout assimpSkinningPipelineLayout;
-	static Pipeline assimpPipeline;
-	static Pipeline assimpSkinningPipeline;
-	static Shader assimpVertShader;
-	static Shader assimpFragShader;
-	static Shader assimpSkinningVertShader;
-	static Shader assimpSkinningFragShader;
 	static FrameBuffer frameBuffer;
 	static VkSemaphore presentSemaphore;
 	static VkSemaphore renderSemaphore;
@@ -94,8 +70,6 @@ private:
 	static VmaAllocation_T* depthBufferAllocation;
 
 	static Camera camera;
-
-	static Vector<Vector<ModelInstance>> instances;
 
 	friend class Engine;
 	friend class Resources;
@@ -110,6 +84,7 @@ private:
 	friend struct Pipeline;
 	friend struct Shader;
 	friend struct FrameBuffer;
+	friend struct DescriptorSet;
 
 	STATIC_CLASS(Renderer);
 };

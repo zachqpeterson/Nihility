@@ -9,14 +9,27 @@
 
 #include "Containers/Vector.hpp"
 
-struct Pipeline
+enum NH_API PolygonMode
 {
-private:
-	bool Create(const PipelineLayout& layout, Vector<Shader> shaders);
+	Fill = 0,
+	Line = 1,
+	Point = 2
+};
+
+struct NH_API PipelineSettings
+{
+	PolygonMode polygonMode = PolygonMode::Fill;
+};
+
+struct NH_API Pipeline
+{
+	bool Create(const PipelineLayout& layout, const PipelineSettings& settings, const Vector<Shader>& shaders,
+		const Vector<VkVertexInputBindingDescription>& bindings, const Vector<VkVertexInputAttributeDescription>& attributes);
 	void Destroy();
 
 	operator VkPipeline() const;
 
+private:
 	VkPipeline vkPipeline;
 
 	friend class Renderer;

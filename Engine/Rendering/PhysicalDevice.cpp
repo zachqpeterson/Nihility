@@ -54,7 +54,7 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR v
 
 PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept : 
 	vkPhysicalDevice(other.vkPhysicalDevice), queueFamilies(Move(other.queueFamilies)), availableExtensions(Move(other.availableExtensions)), surfaceFormats(Move(other.surfaceFormats)), presentModes(Move(other.presentModes)),
-	features(other.features), features2(other.features2), properties(other.properties), memoryProperties(other.memoryProperties),
+	features(other.features), features2(other.features2), indexingFeatures(other.indexingFeatures), properties(other.properties), memoryProperties(other.memoryProperties),
 	dedicatedComputeQueueIndex(other.dedicatedComputeQueueIndex), dedicatedTransferQueueIndex(other.dedicatedTransferQueueIndex),
 	separateComputeQueueIndex(other.separateComputeQueueIndex), separateTransferQueueIndex(other.separateTransferQueueIndex),
 	presentQueueIndex(other.presentQueueIndex), suitable(other.suitable), discrete(other.discrete) { }
@@ -68,6 +68,7 @@ PhysicalDevice& PhysicalDevice::operator=(PhysicalDevice&& other) noexcept
 	presentModes = Move(other.presentModes);
 	features = other.features;
 	features2 = other.features2;
+	indexingFeatures = other.indexingFeatures;
 	properties = other.properties;
 	memoryProperties = other.memoryProperties;
 	dedicatedComputeQueueIndex = other.dedicatedComputeQueueIndex;

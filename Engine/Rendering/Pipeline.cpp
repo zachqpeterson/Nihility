@@ -4,17 +4,8 @@
 
 #include "Math/Math.hpp"
 
-struct VkVertex
-{
-	Vector3 position = 0.0f;
-	Vector4 color = 1.0f;
-	Vector3 normal = 0.0f;
-	Vector2 uv = 0.0f;
-	Vector4Int boneNumber = 0;
-	Vector4 boneWeight = 0.0f;
-};
-
-bool Pipeline::Create(const PipelineLayout& layout, Vector<Shader> shaders)
+bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& settings, const Vector<Shader>& shaders,
+	const Vector<VkVertexInputBindingDescription>& bindings, const Vector<VkVertexInputAttributeDescription>& attributes)
 {
 	Vector<VkPipelineShaderStageCreateInfo> shaderInfos(shaders.Size());
 
@@ -31,58 +22,11 @@ bool Pipeline::Create(const PipelineLayout& layout, Vector<Shader> shaders)
 		shaderInfos.Push(shaderStage);
 	}
 
-	Vector<VkVertexInputBindingDescription> vertexBindings = { { 0, (U32)sizeof(VkVertex), VK_VERTEX_INPUT_RATE_VERTEX } };
-
-	VkVertexInputAttributeDescription positionAttribute{};
-	positionAttribute.binding = 0;
-	positionAttribute.location = 0;
-	positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-	positionAttribute.offset = (U32)offsetof(VkVertex, position);
-
-	VkVertexInputAttributeDescription colorAttribute{};
-	colorAttribute.binding = 0;
-	colorAttribute.location = 1;
-	colorAttribute.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	colorAttribute.offset = (U32)offsetof(VkVertex, color);
-
-	VkVertexInputAttributeDescription normalAttribute{};
-	normalAttribute.binding = 0;
-	normalAttribute.location = 2;
-	normalAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-	normalAttribute.offset = (U32)offsetof(VkVertex, normal);
-
-	VkVertexInputAttributeDescription uvAttribute{};
-	uvAttribute.binding = 0;
-	uvAttribute.location = 3;
-	uvAttribute.format = VK_FORMAT_R32G32_SFLOAT;
-	uvAttribute.offset = (U32)offsetof(VkVertex, uv);
-
-	VkVertexInputAttributeDescription jointsAttribute{};
-	jointsAttribute.binding = 0;
-	jointsAttribute.location = 4;
-	jointsAttribute.format = VK_FORMAT_R32G32B32A32_UINT;
-	jointsAttribute.offset = (U32)offsetof(VkVertex, boneNumber);
-
-	VkVertexInputAttributeDescription weightAttribute{};
-	weightAttribute.binding = 0;
-	weightAttribute.location = 5;
-	weightAttribute.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-	weightAttribute.offset = (U32)offsetof(VkVertex, boneWeight);
-
-	Vector<VkVertexInputAttributeDescription> attributes = {
-		positionAttribute,
-		colorAttribute,
-		normalAttribute,
-		uvAttribute,
-		jointsAttribute,
-		weightAttribute
-	};
-
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 	vertexInputInfo.pNext = nullptr;
 	vertexInputInfo.flags = 0;
-	vertexInputInfo.vertexBindingDescriptionCount = (U32)vertexBindings.Size();
-	vertexInputInfo.pVertexBindingDescriptions = vertexBindings.Data();
+	vertexInputInfo.vertexBindingDescriptionCount = (U32)bindings.Size();
+	vertexInputInfo.pVertexBindingDescriptions = bindings.Data();
 	vertexInputInfo.vertexAttributeDescriptionCount = (U32)attributes.Size();
 	vertexInputInfo.pVertexAttributeDescriptions = attributes.Data();
 
@@ -108,7 +52,7 @@ bool Pipeline::Create(const PipelineLayout& layout, Vector<Shader> shaders)
 	rasterizerInfo.flags = 0;
 	rasterizerInfo.depthClampEnable = VK_FALSE;
 	rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;
-	rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizerInfo.polygonMode = (VkPolygonMode)settings.polygonMode;
 	rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizerInfo.depthBiasEnable = VK_FALSE;

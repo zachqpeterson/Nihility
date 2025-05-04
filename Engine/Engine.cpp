@@ -14,6 +14,7 @@
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
 #include "Math/Math.hpp"
+#include "Math/Random.hpp"
 #include "Multithreading/Jobs.hpp"
 #include "Rendering/Renderer.hpp"
 
@@ -29,10 +30,6 @@ bool Engine::Initialize()
 	Renderer::Initialize();
 	Resources::Initialize();
 	Time::Initialize();
-
-	ResourceRef<Model> model = Resources::LoadModel("models/Woman.gltf");
-	ModelInstance instance = Resources::CreateModelInstance(model);
-	Renderer::AddModelInstance(instance);
 
 	MainLoop();
 	Shutdown();
@@ -54,6 +51,8 @@ void Engine::Shutdown()
 
 void Engine::MainLoop()
 {
+	ResourceRef<Texture> textureAtlas = Resources::LoadTexture("textures/atlas.png");
+
 	F64 timeAccumulation = 0.0;
 	while (Platform::running)
 	{
@@ -61,29 +60,35 @@ void Engine::MainLoop()
 		Input::Update();
 		Platform::Update();
 
-		const Vector<ButtonEvent>& events = Input::GetInputEvents();
+		if (Input::OnButtonDown(ButtonCode::Escape)) { Platform::running = false; }
 
-		for (const ButtonEvent& event : events)
+		if (Input::ButtonDown(ButtonCode::E))
 		{
-			if (event.code == ButtonCode::Escape && event.type == InputType::Press)
-			{
-				Platform::running = false;
-			}
+			Transform t{};
+			t.position.x = Random::RandomUniform() * 100.0f - 50.0f;
+			t.position.y = Random::RandomUniform() * 60.0f - 30.0f;
+			t.scale = Vector2::One * 5.0f;
+
+			F32 x = Random::RandomRange(0, 2) / 2.0f;
+			F32 y = Random::RandomRange(0, 2) / 2.0f;
+
+			Resources::CreateSprite(textureAtlas, t, Vector4::One, { x, y }, { 0.5f, 0.5f });
 		}
 
 		//game update
 
 		//physics update
 
+		Resources::Update();
 		Renderer::Update();
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
 		I64 remainingUS = (I64)(remainingFrameTime * 1000000.0);
-		
+
 		while (remainingUS > 0)
 		{
 			Jobs::Yield();
-		
+
 			remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
 			remainingUS = (I64)(remainingFrameTime * 1000000.0);
 		}

@@ -89,25 +89,23 @@ void Buffer::Destroy()
 	stagingBufferAllocation = nullptr;
 }
 
-bool Buffer::UploadVertexData(const MeshData& vertexData)
+bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset)
 {
-	U32 vertexDataSize = (U32)(vertexData.vertices.Size() * sizeof(VertexData));
-
-	if (bufferSize < vertexDataSize)
+	if (bufferSize < size)
 	{
 		Destroy();
 
-		if (!Create(type, vertexDataSize)) { return false; }
+		if (!Create(type, size)) { return false; }
 
-		bufferSize = vertexDataSize;
+		bufferSize = size;
 	}
 
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, stagingBufferAllocation, &data));
 
-	memcpy(data, vertexData.vertices.Data(), vertexDataSize);
+	memcpy((U8*)data + offset, vertexData, size);
 	vmaUnmapMemory(Renderer::vmaAllocator, stagingBufferAllocation);
-	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, vertexDataSize);
+	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, size);
 
 	VkBufferMemoryBarrier vertexBufferBarrier{};
 	vertexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -135,68 +133,22 @@ bool Buffer::UploadVertexData(const MeshData& vertexData)
 	return commandBuffer.SubmitSingleShotBuffer(Renderer::graphicsQueue);
 }
 
-bool Buffer::UploadVertexData(const Vector<Vector3>& vertexData)
+bool Buffer::UploadIndexData(const void* indexData, U64 size, U64 offset)
 {
-	U32 vertexDataSize = (U32)(vertexData.Size() * sizeof(Vector3));
-
-	if (bufferSize < vertexDataSize)
+	if (bufferSize < size)
 	{
 		Destroy();
+		if (!Create(type, size)) { return false; }
 
-		if (!Create(type, vertexDataSize)) { return false; }
-		bufferSize = vertexDataSize;
+		bufferSize = size;
 	}
 
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, stagingBufferAllocation, &data));
 
-	memcpy(data, vertexData.Data(), vertexDataSize);
+	memcpy((U8*)data + offset, indexData, size);
 	vmaUnmapMemory(Renderer::vmaAllocator, stagingBufferAllocation);
-	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, vertexDataSize);
-
-	VkBufferMemoryBarrier vertexBufferBarrier{};
-	vertexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-	vertexBufferBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
-	vertexBufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-	vertexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	vertexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	vertexBufferBarrier.buffer = vkBufferStaging;
-	vertexBufferBarrier.offset = 0;
-	vertexBufferBarrier.size = bufferSize;
-
-	VkBufferCopy stagingBufferCopy{};
-	stagingBufferCopy.srcOffset = 0;
-	stagingBufferCopy.dstOffset = 0;
-	stagingBufferCopy.size = bufferSize;
-
-	CommandBuffer commandBuffer;
-	commandBuffer.CreateSingleShotBuffer(Renderer::commandPool);
-
-	vkCmdCopyBuffer(commandBuffer, vkBufferStaging,
-		vkBuffer, 1, &stagingBufferCopy);
-	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-		VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &vertexBufferBarrier, 0, nullptr);
-
-	return commandBuffer.SubmitSingleShotBuffer(Renderer::graphicsQueue);
-}
-
-bool Buffer::UploadIndexData(const MeshData& indexData)
-{
-	U32 indexDataSize = (U32)(indexData.indices.Size() * sizeof(U32));
-	if (bufferSize < indexDataSize)
-	{
-		Destroy();
-		if (!Create(type, indexDataSize)) { return false; }
-
-		bufferSize = indexDataSize;
-	}
-
-	void* data;
-	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, stagingBufferAllocation, &data));
-
-	memcpy(data, indexData.indices.Data(), indexDataSize);
-	vmaUnmapMemory(Renderer::vmaAllocator, stagingBufferAllocation);
-	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, indexDataSize);
+	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, size);
 
 	VkBufferMemoryBarrier indexBufferBarrier{};
 	indexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -224,12 +176,9 @@ bool Buffer::UploadIndexData(const MeshData& indexData)
 	return commandBuffer.SubmitSingleShotBuffer(Renderer::graphicsQueue);
 }
 
-bool Buffer::UploadShaderData(const Vector<Matrix4>& bufferData)
+bool Buffer::UploadShaderData(const void* shaderData, U64 size, U64 offset)
 {
-	if (bufferData.Empty()) { return false; }
-
 	bool bufferResized = false;
-	U64 size = bufferData.Size() * sizeof(Matrix4);
 	if (size > bufferSize)
 	{
 		Destroy();
@@ -240,7 +189,7 @@ bool Buffer::UploadShaderData(const Vector<Matrix4>& bufferData)
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, bufferAllocation, &data));
 
-	memcpy(data, bufferData.Data(), size);
+	memcpy((U8*)data + offset, shaderData, size);
 	vmaUnmapMemory(Renderer::vmaAllocator, bufferAllocation);
 	vmaFlushAllocation(Renderer::vmaAllocator, bufferAllocation, 0, bufferSize);
 
@@ -259,14 +208,20 @@ bool Buffer::CheckForResize(U64 size)
 	return false;
 }
 
-bool Buffer::UploadUniformData(const MatrixData& matrixData)
+bool Buffer::UploadUniformData(const void* uniformData, U64 size, U64 offset)
 {
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, bufferAllocation, &data));
 
-	memcpy(data, &matrixData, sizeof(MatrixData));
+	memcpy((U8*)data + offset, uniformData, size);
 	vmaUnmapMemory(Renderer::vmaAllocator, bufferAllocation);
 	vmaFlushAllocation(Renderer::vmaAllocator, bufferAllocation, 0, bufferSize);
 
 	return true;
+}
+
+
+Buffer::operator VkBuffer() const
+{
+	return vkBuffer;
 }

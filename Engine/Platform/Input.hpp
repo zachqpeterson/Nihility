@@ -4,6 +4,7 @@
 #include "TypeTraits.hpp"
 
 #include "Containers/Vector.hpp"
+#include "Math/Math.hpp"
 
 enum class NH_API ButtonCode
 {
@@ -321,6 +322,23 @@ public:
 	static F32 GetAxis(AxisCode code);
 	static const Vector<ButtonEvent>& GetInputEvents();
 
+	static bool ButtonUp(ButtonCode code);
+	static bool ButtonDown(ButtonCode code);
+	static bool ButtonHeld(ButtonCode code);
+	static bool ButtonDragging(ButtonCode code);
+	static bool OnButtonUp(ButtonCode code);
+	static bool OnButtonDown(ButtonCode code);
+	static bool OnButtonChange(ButtonCode code);
+	static bool OnButtonDoubleClick(ButtonCode code);
+	static bool OnButtonHold(ButtonCode code);
+	static bool OnButtonRelease(ButtonCode code);
+	static Vector2 MousePosition();
+	static Vector2 PreviousMousePos();
+	static Vector2 MouseDelta();
+	static void ConsumeInput();
+	static I16 MouseWheelDelta();
+	static I16 MouseHWheelDelta();
+
 private:
 	static bool Initialize();
 	static void Shutdown();
@@ -344,7 +362,7 @@ private:
 
 	static ButtonState buttonStates[*ButtonCode::COUNT];
 	static F32 axisStates[*AxisCode::COUNT];
-	static Vector<ButtonEvent> events;
+	static Vector<ButtonEvent> events; //TODO: Clear events older than x frames
 	static F64 currentTimestamp;
 	static F64 holdThreshold;
 	static F64 doublePressThreshold;
@@ -358,6 +376,8 @@ private:
 	static F32 deltaMousePosY;
 	static F32 deltaRawMousePosX;
 	static F32 deltaRawMousePosY;
+
+	static bool inputConsumed;
 
 	friend class Engine;
 	friend class Platform;

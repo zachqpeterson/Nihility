@@ -13,21 +13,24 @@ enum class NH_API BufferType
 	Vertex,
 	Index,
 	Shader,
-	Uniform
+	Uniform,
+	DrawIndirect
 };
 
 struct NH_API Buffer
 {
-private:
+public:
 	bool Create(BufferType type, U64 size = 1024);
 	void Destroy();
 
-	bool UploadVertexData(const MeshData& vertexData);
-	bool UploadVertexData(const Vector<Vector3>& vertexData);
-	bool UploadIndexData(const MeshData& indexData);
-	bool UploadShaderData(const Vector<Matrix4>& bufferData);
-	bool UploadUniformData(const MatrixData& matrixData);
+	bool UploadVertexData(const void* vertexData, U64 size, U64 offset);
+	bool UploadIndexData(const void* indexData, U64 size, U64 offset);
+	bool UploadShaderData(const void* shaderData, U64 size, U64 offset);
+	bool UploadUniformData(const void* uniformData, U64 size, U64 offset);
 
+	operator VkBuffer() const;
+
+private:
 	bool CheckForResize(U64 bufferSize);
 
 	BufferType type;

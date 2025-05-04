@@ -3,12 +3,15 @@
 #include "ResourceDefines.hpp"
 
 #include "Texture.hpp"
-#include "Model.hpp"
-#include "Mesh.hpp"
-#include "ModelInstance.hpp"
 
+#include "Rendering/DescriptorSet.hpp"
+#include "Rendering/PipelineLayout.hpp"
+#include "Rendering/Shader.hpp"
+#include "Rendering/Pipeline.hpp"
+#include "Rendering/Buffer.hpp"
 #include "Containers/Hashmap.hpp"
 #include "Containers/String.hpp"
+#include "Containers/Queue.hpp"
 
 struct aiAnimation;
 struct aiNodeAnim;
@@ -20,36 +23,43 @@ struct aiMesh;
 class NH_API Resources
 {
 public:
-	static ResourceRef<Texture> LoadTexture(const aiTexture* texture, bool generateMipmaps = true, bool flipImage = false);
-	static ResourceRef<Texture> LoadTexture(const String& path, bool generateMipmaps = true, bool flipImage = false);
-	static ResourceRef<Model> LoadModel(const String& path);
+	static ResourceRef<Texture> LoadTexture(const String& path, const Sampler& sampler = {}, bool generateMipmaps = true, bool flipImage = false);
 
-	static ModelInstance CreateModelInstance(ResourceRef<Model> model, const Vector3& position = Vector3::Zero, const Vector3& rotation = Vector3::Zero, const Vector3& scale = Vector3::One);
+	static ResourceRef<Texture>& WhiteTexture();
+	static ResourceRef<Texture>& PlaceholderTexture();
 
-	static ResourceRef<Texture> WhiteTexture();
-	static ResourceRef<Texture> PlaceholderTexture();
+	static void CreateSprite(ResourceRef<Texture>& texture, const Transform& transform = {}, const Vector4& color = Vector4::One, const Vector2& textureCoord = Vector2::Zero, const Vector2& textureScale = Vector2::One);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
-
-	static void ProcessNode(Model& model, Node& node, aiNode* aNode, const aiScene* scene, String assetDirectory);
-	static bool ProcessMesh(Mesh& mesh, aiMesh* aiMesh, const aiScene* scene, String assetDirectory, Hashmap<String, ResourceRef<Texture>>& textures);
-	static void AddAnimationChannels(Animation3D& animation, aiAnimation* aiAnimation);
-	static AnimationChannel CreateAnimationChannel(aiNodeAnim* nodeAnim);
+	static void Update();
 
 	template<typename Type> using DestroyFn = void(*)(Type);
 	template<typename Type> static void DestroyResources(Hashmap<String, Type>& hashmap, DestroyFn<Type&> destroy);
 
-	static void DestroyModel(Resource<Model>& model);
+	static DescriptorSet dummySet;
+	static DescriptorSet bindlessTexturesSet;
+	static PipelineLayout spritePipelineLayout;
+	static Shader spriteVertexShader;
+	static Shader spriteFragmentShader;
+	static Pipeline spritePipeline;
+	static Buffer spriteVertexBuffer;
+	static Buffer spriteIndexBuffer;
+	static Buffer spriteInstanceBuffer;
+	static U32 instanceCount;
+	static U32 maxInstanceCount;
+	static U32 instancePointer;
 
 	static ResourceRef<Texture> whiteTexture;
 	static ResourceRef<Texture> placeholderTexture;
 
-	static Hashmap<String, Resource<Model>> models;
 	static Hashmap<String, Resource<Texture>> textures;
 
+	static Queue<ResourceRef<Texture>> bindlessTexturesToUpdate;
+
 	friend class Engine;
+	friend class Renderer;
 
 	STATIC_CLASS(Resources);
 };

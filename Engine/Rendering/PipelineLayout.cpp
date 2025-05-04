@@ -2,8 +2,15 @@
 
 #include "Renderer.hpp"
 
-bool PipelineLayout::Create(const Vector<VkDescriptorSetLayout>& layouts, const Vector<VkPushConstantRange>& pushConstants)
+bool PipelineLayout::Create(const Vector<DescriptorSet>& descriptorSets, const Vector<VkPushConstantRange>& pushConstants)
 {
+	Vector<VkDescriptorSetLayout> layouts(descriptorSets.Size());
+
+	for (const DescriptorSet& set : descriptorSets)
+	{
+		layouts.Push(set.vkDescriptorLayout);
+	}
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.pNext = nullptr;
 	pipelineLayoutInfo.flags = 0;

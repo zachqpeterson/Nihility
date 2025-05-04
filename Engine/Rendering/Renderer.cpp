@@ -18,25 +18,10 @@ VkQueue Renderer::presentQueue;
 Swapchain Renderer::swapchain;
 VkCommandPool Renderer::commandPool = VK_NULL_HANDLE;
 CommandBuffer Renderer::commandBuffer;
-Buffer Renderer::perspectiveViewMatrixUBO;
-Buffer Renderer::worldPosBuffer;
-Vector<Matrix4> Renderer::worldPosMatrices;
-Buffer Renderer::boneMatrixBuffer;
-Vector<Matrix4> Renderer::modelBoneMatrices;
 VkDescriptorPool Renderer::vkDescriptorPool = VK_NULL_HANDLE;
-VkDescriptorSetLayout Renderer::assimpDescriptorLayout = VK_NULL_HANDLE;
-VkDescriptorSetLayout Renderer::assimpTextureDescriptorLayout = VK_NULL_HANDLE;
-VkDescriptorSet Renderer::assimpDescriptorSet = VK_NULL_HANDLE;
-VkDescriptorSet Renderer::assimpSkinningDescriptorSet = VK_NULL_HANDLE;
+VkDescriptorPool Renderer::vkBindlessDescriptorPool = VK_NULL_HANDLE;
+DescriptorSet Renderer::descriptorSet;
 Renderpass Renderer::renderpass;
-PipelineLayout Renderer::assimpPipelineLayout;
-PipelineLayout Renderer::assimpSkinningPipelineLayout;
-Pipeline Renderer::assimpPipeline;
-Pipeline Renderer::assimpSkinningPipeline;
-Shader Renderer::assimpVertShader;
-Shader Renderer::assimpFragShader;
-Shader Renderer::assimpSkinningVertShader;
-Shader Renderer::assimpSkinningFragShader;
 FrameBuffer Renderer::frameBuffer;
 VkSemaphore Renderer::presentSemaphore = VK_NULL_HANDLE;
 VkSemaphore Renderer::renderSemaphore = VK_NULL_HANDLE;
@@ -48,14 +33,6 @@ VkImageView Renderer::depthBufferView;
 VmaAllocation_T* Renderer::depthBufferAllocation;
 
 Camera Renderer::camera;
-
-Vector<Vector<ModelInstance>> Renderer::instances;
-
-struct VkPushConstants
-{
-	I32 modelStride;
-	I32 worldPosOffset;
-} modelData;
 
 bool Renderer::Initialize()
 {
@@ -69,19 +46,12 @@ bool Renderer::Initialize()
 	if (!CreateDepthBuffer()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!(commandPool = CreateCommandPool(QueueType::Graphics))) { Logger::Fatal("Failed To Create Command Pool!"); return false; }
 	if (!commandBuffer.Create(commandPool)) { Logger::Fatal("Failed To Create Command Buffer!"); return false; }
-	if (!perspectiveViewMatrixUBO.Create(BufferType::Uniform)) { Logger::Fatal("Failed To Create Uniform Buffer!"); return false; }
-	if (!worldPosBuffer.Create(BufferType::Shader)) { Logger::Fatal("Failed To Create Shader Storage Buffer!"); return false; }
-	if (!boneMatrixBuffer.Create(BufferType::Shader)) { Logger::Fatal("Failed To Create Storage Buffer!"); return false; }
 	if (!CreateDescriptorPool()) { Logger::Fatal("Failed To Create Descriptor Pool!"); return false; }
-	if (!CreateDescriptorSetLayouts()) { Logger::Fatal("Failed To Create Descriptor Set Layouts!"); return false; }
-	if (!CreateDescriptorSets()) { Logger::Fatal("Failed To Create Descriptor Sets!"); return false; }
 	if (!CreateRenderpasses()) { Logger::Fatal("Failed To Create Renderpasses!"); return false; }
-	if (!CreatePipelineLayouts()) { Logger::Fatal("Failed To Create Pipeline Layouts!"); return false; }
-	if (!CreatePipelines()) { Logger::Fatal("Failed To Create Pipelines!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
 	if (!CreateSynchronization()) { Logger::Fatal("Failed To Create Synchronization Objects!"); return false; }
 
-	camera.Create(CameraType::Perspective);
+	camera.Create(CameraType::Orthographic);
 
 	return true;
 }
@@ -98,32 +68,10 @@ void Renderer::Shutdown()
 
 	frameBuffer.Destroy();
 
-	assimpSkinningPipeline.Destroy();
-	assimpPipeline.Destroy();
-
-	assimpVertShader.Destroy();
-	assimpFragShader.Destroy();
-	assimpSkinningVertShader.Destroy();
-	assimpSkinningFragShader.Destroy();
-
-	assimpSkinningPipelineLayout.Destroy();
-	assimpPipelineLayout.Destroy();
-
 	renderpass.Destroy();
 
-	vkFreeDescriptorSets(device, vkDescriptorPool, 1, &assimpSkinningDescriptorSet);
-	vkFreeDescriptorSets(device, vkDescriptorPool, 1, &assimpDescriptorSet);
-
-	vkDestroyDescriptorSetLayout(device, assimpDescriptorLayout, allocationCallbacks);
-	vkDestroyDescriptorSetLayout(device, assimpTextureDescriptorLayout, allocationCallbacks);
-
 	vkDestroyDescriptorPool(device, vkDescriptorPool, allocationCallbacks);
-
-	boneMatrixBuffer.Destroy();
-
-	worldPosBuffer.Destroy();
-
-	perspectiveViewMatrixUBO.Destroy();
+	vkDestroyDescriptorPool(device, vkBindlessDescriptorPool, allocationCallbacks);
 
 	commandBuffer.Destroy();
 
@@ -157,49 +105,8 @@ void Renderer::Update()
 
 	camera.Update();
 
-	MatrixData upload = {
-		camera.View(),
-		camera.Projection()
-	};
-
-	perspectiveViewMatrixUBO.UploadUniformData(upload);
-
-	worldPosMatrices.Clear();
-	modelBoneMatrices.Clear();
-
-	for (Vector<ModelInstance>& modelInstances : instances)
-	{
-		U32 numberOfInstances = (U32)modelInstances.Size();
-		if (numberOfInstances)
-		{
-			ResourceRef<Model> model = modelInstances[0].ModelRef();
-
-			if (model->Animated() && !modelInstances[0].BoneMatrices().Empty())
-			{
-				for (U32 i = 0; i < numberOfInstances; ++i)
-				{
-					modelInstances[i].UpdateAnimation();
-					Vector<Matrix4> instanceBoneMatrices = modelInstances[i].BoneMatrices();
-					modelBoneMatrices.Insert(modelBoneMatrices.Size(), instanceBoneMatrices);
-				}
-			}
-			else
-			{
-				for (const ModelInstance& instance : modelInstances)
-				{
-					worldPosMatrices.Emplace(instance.WorldTransformMatrix());
-				}
-			}
-		}
-	}
-
-	U64 bufferSize = worldPosMatrices.Size() * sizeof(Matrix4) + modelBoneMatrices.Size() * sizeof(Matrix4);
-
-	bool resize = false;
-	resize = boneMatrixBuffer.UploadShaderData(modelBoneMatrices);
-	resize |= worldPosBuffer.UploadShaderData(worldPosMatrices);
-
-	if (resize) { UpdateDescriptorSets(); }
+	GlobalPushConstant pc{};
+	pc.viewProjection = camera.ViewProjection();
 
 	commandBuffer.Reset();
 	commandBuffer.BeginSingleShot();
@@ -224,7 +131,6 @@ void Renderer::Update()
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	//Flip viewport
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -240,50 +146,24 @@ void Renderer::Update()
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	U32 worldPosOffset = 0;
-	U32 worldPosOffsetSkinned = 0;
-	for (Vector<ModelInstance>& modelInstances : instances)
+	if (Resources::instanceCount)
 	{
-		U32 numberOfInstances = (U32)modelInstances.Size();
-		if (numberOfInstances > 0)
-		{
-			ResourceRef<Model> model = modelInstances[0].ModelRef();
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipeline);
 
-			if (model->Animated() && !modelInstances[0].BoneMatrices().Empty())
-			{
-				U32 numberOfBones = (U32)model->BoneList().Size();
+		VkDescriptorSet sets[] = { Resources::dummySet, Resources::bindlessTexturesSet };
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipelineLayout, 0, 2, sets, 0, nullptr);
 
-				modelData.modelStride = (I32)numberOfBones;
-				modelData.worldPosOffset = worldPosOffsetSkinned;
-				vkCmdPushConstants(commandBuffer, assimpSkinningPipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT, 0, (U32)sizeof(VkPushConstants), &modelData);
+		vkCmdPushConstants(commandBuffer, Resources::spritePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &pc);
 
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, assimpSkinningPipeline);
+		VkBuffer vertexBuffers[] = { Resources::spriteVertexBuffer, Resources::spriteInstanceBuffer };
+		U64 offsets[] = { 0, 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, Resources::spriteIndexBuffer, 0, VK_INDEX_TYPE_UINT32); //TODO: use U8
 
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					assimpSkinningPipelineLayout, 1, 1, &assimpSkinningDescriptorSet, 0, nullptr);
-				DrawInstanced(model, numberOfInstances);
-				worldPosOffsetSkinned += numberOfInstances * numberOfBones;
-			}
-			else
-			{
-				modelData.worldPosOffset = worldPosOffset;
-				vkCmdPushConstants(commandBuffer, assimpPipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT, 0, (U32)sizeof(VkPushConstants), &modelData);
-
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, assimpPipeline);
-
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					assimpPipelineLayout, 1, 1, &assimpDescriptorSet, 0, nullptr);
-				DrawInstanced(model, numberOfInstances);
-				worldPosOffset += numberOfInstances;
-			}
-		}
+		vkCmdDrawIndexed(commandBuffer, 6, Resources::instanceCount, 0, 0, 0);
 	}
 
-
 	//TODO: Draw UI
-
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -315,96 +195,6 @@ void Renderer::Update()
 
 	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) { RecreateSwapchain(); }
 	else { VkValidateFExit(res); }
-}
-
-void Renderer::Draw(ResourceRef<Model> model)
-{
-	for (U32 i = 0; i < model->modelMeshes.Size(); ++i)
-	{
-		MeshData& mesh = model->modelMeshes[i];
-
-		// find diffuse texture by name
-		ResourceRef<Texture> diffuseTex;
-		String* diffuseTexName = mesh.textures.Get(TextureType::Diffuse);
-		if (diffuseTexName)
-		{
-			diffuseTex = *model->textures.Get(*diffuseTexName);
-		}
-
-		/* switch between animated and non-animated pipeline layout */
-		VkPipelineLayout renderLayout;
-		if (model->Animated()) { renderLayout = assimpSkinningPipelineLayout; }
-		else { renderLayout = assimpPipelineLayout; }
-
-		if (diffuseTex)
-		{
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				renderLayout, 0, 1, &diffuseTex->descriptorSet, 0, nullptr);
-		}
-		else
-		{
-			if (mesh.usesPBRColors)
-			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					renderLayout, 0, 1, &Resources::WhiteTexture()->descriptorSet, 0, nullptr);
-			}
-			else
-			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					renderLayout, 0, 1, &Resources::PlaceholderTexture()->descriptorSet, 0, nullptr);
-			}
-		}
-
-		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->vertexBuffers[i].vkBuffer, &offset);
-		vkCmdBindIndexBuffer(commandBuffer, model->indexBuffers[i].vkBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(commandBuffer, (U32)mesh.indices.Size(), 1, 0, 0, 0);
-	}
-}
-
-void Renderer::DrawInstanced(ResourceRef<Model> model, U32 instanceCount)
-{
-	for (U32 i = 0; i < model->modelMeshes.Size(); ++i)
-	{
-		MeshData& mesh = model->modelMeshes[i];
-
-		// find diffuse texture by name
-		ResourceRef<Texture> diffuseTex;
-		String* diffuseTexName = mesh.textures.Get(TextureType::Diffuse);
-		if (diffuseTexName)
-		{
-			diffuseTex = *model->textures.Get(*diffuseTexName);
-		}
-
-		/* switch between animated and non-animated pipeline layout */
-		VkPipelineLayout renderLayout;
-		if (model->Animated()) { renderLayout = assimpSkinningPipelineLayout; }
-		else { renderLayout = assimpPipelineLayout; }
-
-		if (diffuseTex)
-		{
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				renderLayout, 0, 1, &diffuseTex->descriptorSet, 0, nullptr);
-		}
-		else
-		{
-			if (mesh.usesPBRColors)
-			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					renderLayout, 0, 1, &Resources::WhiteTexture()->descriptorSet, 0, nullptr);
-			}
-			else
-			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					renderLayout, 0, 1, &Resources::PlaceholderTexture()->descriptorSet, 0, nullptr);
-			}
-		}
-
-		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->vertexBuffers[i].vkBuffer, &offset);
-		vkCmdBindIndexBuffer(commandBuffer, model->indexBuffers[i].vkBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(commandBuffer, (U32)mesh.indices.Size(), instanceCount, 0, 0, 0);
-	}
 }
 
 bool Renderer::InitializeVma()
@@ -445,7 +235,7 @@ bool Renderer::CreateDepthBuffer()
 		swapchain.extent.height,
 		1
 	};
-	
+
 	VkImageCreateInfo imageCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageCreateInfo.pNext = nullptr;
 	imageCreateInfo.flags = 0;
@@ -494,97 +284,37 @@ bool Renderer::CreateDepthBuffer()
 
 bool Renderer::CreateDescriptorPool()
 {
-	Vector<VkDescriptorPoolSize> poolSizes =
+	VkDescriptorPoolSize poolSizes[] =
 	{
-	  { VK_DESCRIPTOR_TYPE_SAMPLER, 10000 },
-	  { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10000 },
-	  { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
-	  { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-	  { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-	  { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1024 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1024 },
+	};
+
+	VkDescriptorPoolSize bindlessPoolSizes[]
+	{
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 },
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	descriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	descriptorPoolCreateInfo.maxSets = 10000;
-	descriptorPoolCreateInfo.poolSizeCount = (U32)poolSizes.Size();
-	descriptorPoolCreateInfo.pPoolSizes = poolSizes.Data();
+	descriptorPoolCreateInfo.maxSets = 6144;
+	descriptorPoolCreateInfo.poolSizeCount = 6;
+	descriptorPoolCreateInfo.pPoolSizes = poolSizes;
 
 	VkValidateFR(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, allocationCallbacks, &vkDescriptorPool));
 
-	return true;
-}
+	VkDescriptorPoolCreateInfo bindlessDescriptorPoolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	bindlessDescriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+	bindlessDescriptorPoolCreateInfo.maxSets = 2048;
+	bindlessDescriptorPoolCreateInfo.poolSizeCount = 2;
+	bindlessDescriptorPoolCreateInfo.pPoolSizes = bindlessPoolSizes;
 
-//TODO: Automate
-bool Renderer::CreateDescriptorSetLayouts()
-{
-	/* texture */
-	VkDescriptorSetLayoutBinding assimpTextureBind{};
-	assimpTextureBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	assimpTextureBind.binding = 0;
-	assimpTextureBind.descriptorCount = 1;
-	assimpTextureBind.pImmutableSamplers = nullptr;
-	assimpTextureBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	Vector<VkDescriptorSetLayoutBinding> assimpTexBindings = { assimpTextureBind };
-
-	VkDescriptorSetLayoutCreateInfo assimpTextureCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	assimpTextureCreateInfo.pNext = nullptr;
-	assimpTextureCreateInfo.flags = 0;
-	assimpTextureCreateInfo.bindingCount = (U32)assimpTexBindings.Size();
-	assimpTextureCreateInfo.pBindings = assimpTexBindings.Data();
-
-	VkValidateFR(vkCreateDescriptorSetLayout(device, &assimpTextureCreateInfo, allocationCallbacks, &assimpTextureDescriptorLayout));
-
-	/* UBO/SSBO in shader */
-	VkDescriptorSetLayoutBinding assimpUboBind{};
-	assimpUboBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	assimpUboBind.binding = 0;
-	assimpUboBind.descriptorCount = 1;
-	assimpUboBind.pImmutableSamplers = nullptr;
-	assimpUboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutBinding assimpSsboBind{};
-	assimpSsboBind.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	assimpSsboBind.binding = 1;
-	assimpSsboBind.descriptorCount = 1;
-	assimpSsboBind.pImmutableSamplers = nullptr;
-	assimpSsboBind.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	Vector<VkDescriptorSetLayoutBinding> assimpBindings = { assimpUboBind, assimpSsboBind };
-
-	VkDescriptorSetLayoutCreateInfo assimpCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	assimpTextureCreateInfo.pNext = nullptr;
-	assimpTextureCreateInfo.flags = 0;
-	assimpCreateInfo.bindingCount = (U32)assimpBindings.Size();
-	assimpCreateInfo.pBindings = assimpBindings.Data();
-
-	VkValidateFR(vkCreateDescriptorSetLayout(device, &assimpCreateInfo, allocationCallbacks, &assimpDescriptorLayout));
-
-	return true;
-}
-
-bool Renderer::CreateDescriptorSets()
-{
-	/* non-animated models */
-	VkDescriptorSetAllocateInfo descriptorAllocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	descriptorAllocateInfo.pNext = nullptr;
-	descriptorAllocateInfo.descriptorPool = vkDescriptorPool;
-	descriptorAllocateInfo.descriptorSetCount = 1;
-	descriptorAllocateInfo.pSetLayouts = &assimpDescriptorLayout;
-
-	VkValidateFR(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &assimpDescriptorSet));
-
-	/* animated models */
-	VkDescriptorSetAllocateInfo skinningDescriptorAllocateInfo{};
-	skinningDescriptorAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	skinningDescriptorAllocateInfo.descriptorPool = vkDescriptorPool;
-	skinningDescriptorAllocateInfo.descriptorSetCount = 1;
-	skinningDescriptorAllocateInfo.pSetLayouts = &assimpDescriptorLayout;
-
-	VkValidateFR(vkAllocateDescriptorSets(device, &skinningDescriptorAllocateInfo, &assimpSkinningDescriptorSet));
-
-	UpdateDescriptorSets();
+	VkValidateFR(vkCreateDescriptorPool(device, &bindlessDescriptorPoolCreateInfo, allocationCallbacks, &vkBindlessDescriptorPool));
 
 	return true;
 }
@@ -592,30 +322,6 @@ bool Renderer::CreateDescriptorSets()
 bool Renderer::CreateRenderpasses()
 {
 	return renderpass.Create();
-}
-
-bool Renderer::CreatePipelineLayouts()
-{
-	Vector<VkDescriptorSetLayout> layouts = { assimpTextureDescriptorLayout, assimpDescriptorLayout };
-	Vector<VkPushConstantRange> pushConstants = { { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VkPushConstants) } };
-
-	if (!assimpPipelineLayout.Create(layouts, pushConstants)) { return false; }
-	if (!assimpSkinningPipelineLayout.Create(layouts, pushConstants)) { return false; }
-
-	return true;
-}
-
-bool Renderer::CreatePipelines()
-{
-	assimpVertShader.Create("shaders/assimp.vert.spv", ShaderType::Vertex);
-	assimpFragShader.Create("shaders/assimp.frag.spv", ShaderType::Fragment);
-	assimpSkinningVertShader.Create("shaders/assimp_skinning.vert.spv", ShaderType::Vertex);
-	assimpSkinningFragShader.Create("shaders/assimp_skinning.frag.spv", ShaderType::Fragment);
-
-	if (!assimpPipeline.Create(assimpPipelineLayout, { assimpVertShader, assimpFragShader })) { return false; }
-	if (!assimpSkinningPipeline.Create(assimpSkinningPipelineLayout, { assimpSkinningVertShader, assimpSkinningFragShader })) { return false; }
-
-	return true;
 }
 
 bool Renderer::CreateSynchronization()
@@ -651,71 +357,6 @@ bool Renderer::RecreateSwapchain()
 	return true;
 }
 
-bool Renderer::UpdateDescriptorSets()
-{
-	/* non-animated shader */
-	VkDescriptorBufferInfo matrixInfo{};
-	matrixInfo.buffer = perspectiveViewMatrixUBO.vkBuffer;
-	matrixInfo.offset = 0;
-	matrixInfo.range = VK_WHOLE_SIZE;
-
-	VkDescriptorBufferInfo worldPosInfo{};
-	worldPosInfo.buffer = worldPosBuffer.vkBuffer;
-	worldPosInfo.offset = 0;
-	worldPosInfo.range = VK_WHOLE_SIZE;
-
-	VkWriteDescriptorSet matrixWriteDescriptorSet = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-	matrixWriteDescriptorSet.pNext = nullptr;
-	matrixWriteDescriptorSet.dstSet = assimpDescriptorSet;
-	matrixWriteDescriptorSet.dstBinding = 0;
-	matrixWriteDescriptorSet.dstArrayElement = 0;
-	matrixWriteDescriptorSet.descriptorCount = 1;
-	matrixWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	matrixWriteDescriptorSet.pImageInfo = nullptr;
-	matrixWriteDescriptorSet.pBufferInfo = &matrixInfo;
-	matrixWriteDescriptorSet.pTexelBufferView = nullptr;
-
-	VkWriteDescriptorSet posWriteDescriptorSet = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-	posWriteDescriptorSet.pNext = nullptr;
-	posWriteDescriptorSet.dstSet = assimpDescriptorSet;
-	posWriteDescriptorSet.dstBinding = 1;
-	posWriteDescriptorSet.dstArrayElement = 0;
-	posWriteDescriptorSet.descriptorCount = 1;
-	posWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	posWriteDescriptorSet.pImageInfo = nullptr;
-	posWriteDescriptorSet.pBufferInfo = &worldPosInfo;
-	posWriteDescriptorSet.pTexelBufferView = nullptr;
-
-	Vector<VkWriteDescriptorSet> writeDescriptorSets = { matrixWriteDescriptorSet, posWriteDescriptorSet };
-
-	vkUpdateDescriptorSets(device, (U32)writeDescriptorSets.Size(), writeDescriptorSets.Data(), 0, nullptr);
-
-	/* animated shader */
-	VkDescriptorBufferInfo boneMatrixInfo{};
-	boneMatrixInfo.buffer = boneMatrixBuffer.vkBuffer;
-	boneMatrixInfo.offset = 0;
-	boneMatrixInfo.range = VK_WHOLE_SIZE;
-
-	matrixWriteDescriptorSet.dstSet = assimpSkinningDescriptorSet;
-
-	VkWriteDescriptorSet boneMatrixWriteDescriptorSet = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-	boneMatrixWriteDescriptorSet.pNext = nullptr;
-	boneMatrixWriteDescriptorSet.dstSet = assimpSkinningDescriptorSet;
-	boneMatrixWriteDescriptorSet.dstBinding = 1;
-	boneMatrixWriteDescriptorSet.dstArrayElement = 0;
-	boneMatrixWriteDescriptorSet.descriptorCount = 1;
-	boneMatrixWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	boneMatrixWriteDescriptorSet.pImageInfo = nullptr;
-	boneMatrixWriteDescriptorSet.pBufferInfo = &boneMatrixInfo;
-	boneMatrixWriteDescriptorSet.pTexelBufferView = nullptr;
-
-	Vector<VkWriteDescriptorSet> skinningWriteDescriptorSets = { matrixWriteDescriptorSet, boneMatrixWriteDescriptorSet };
-
-	vkUpdateDescriptorSets(device, (U32)skinningWriteDescriptorSets.Size(), skinningWriteDescriptorSets.Data(), 0, nullptr);
-
-	return true;
-}
-
 VkCommandPool Renderer::CreateCommandPool(QueueType queueType)
 {
 	VkCommandPool pool;
@@ -734,7 +375,7 @@ void Renderer::DestroyCommandPool(VkCommandPool pool)
 	vkDestroyCommandPool(device, pool, allocationCallbacks);
 }
 
-bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data)
+bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler)
 {
 	VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	stagingBufferInfo.pNext = nullptr;
@@ -971,12 +612,12 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data)
 	VkSamplerCreateInfo texSamplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 	texSamplerInfo.pNext = nullptr;
 	texSamplerInfo.flags = 0;
-	texSamplerInfo.magFilter = VK_FILTER_LINEAR;
-	texSamplerInfo.minFilter = VK_FILTER_LINEAR;
-	texSamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	texSamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	texSamplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	texSamplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	texSamplerInfo.magFilter = (VkFilter)sampler.filterMode;
+	texSamplerInfo.minFilter = (VkFilter)sampler.filterMode;
+	texSamplerInfo.mipmapMode = (VkSamplerMipmapMode)sampler.mipMapSampleMode;
+	texSamplerInfo.addressModeU = (VkSamplerAddressMode)sampler.edgeSampleMode;
+	texSamplerInfo.addressModeV = (VkSamplerAddressMode)sampler.edgeSampleMode;
+	texSamplerInfo.addressModeW = (VkSamplerAddressMode)sampler.edgeSampleMode;
 	texSamplerInfo.mipLodBias = 0.0f;
 	texSamplerInfo.anisotropyEnable = anisotropyAvailable;
 	texSamplerInfo.maxAnisotropy = maxAnisotropy;
@@ -989,50 +630,12 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data)
 
 	VkValidateR(vkCreateSampler(device, &texSamplerInfo, allocationCallbacks, &texture->sampler));
 
-	VkDescriptorSetAllocateInfo descriptorAllocateInfo{};
-	descriptorAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descriptorAllocateInfo.pNext;
-	descriptorAllocateInfo.descriptorPool = vkDescriptorPool;
-	descriptorAllocateInfo.descriptorSetCount = 1;
-	descriptorAllocateInfo.pSetLayouts = &assimpTextureDescriptorLayout;
-
-	VkValidateR(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &texture->descriptorSet));
-
-	VkDescriptorImageInfo descriptorImageInfo{};
-	descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	descriptorImageInfo.imageView = texture->imageView;
-	descriptorImageInfo.sampler = texture->sampler;
-
-	VkWriteDescriptorSet writeDescriptorSet = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-	writeDescriptorSet.pNext = nullptr;
-	writeDescriptorSet.dstSet = texture->descriptorSet;
-	writeDescriptorSet.dstBinding = 0;
-	writeDescriptorSet.dstArrayElement = 0;
-	writeDescriptorSet.descriptorCount = 1;
-	writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	writeDescriptorSet.pImageInfo = &descriptorImageInfo;
-	writeDescriptorSet.pBufferInfo = nullptr;
-	writeDescriptorSet.pTexelBufferView = nullptr;
-
-	vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
-
 	return true;
 }
 
 void Renderer::DestroyTexture(Resource<Texture>& texture)
 {
-	vkFreeDescriptorSets(device, vkDescriptorPool, 1, &texture->descriptorSet);
 	vkDestroySampler(device, texture->sampler, allocationCallbacks);
 	vkDestroyImageView(device, texture->imageView, allocationCallbacks);
 	vmaDestroyImage(vmaAllocator, texture->image, texture->allocation);
-}
-
-
-
-void Renderer::AddModelInstance(ModelInstance& instance)
-{
-	Vector<ModelInstance>* instanceList = instances.Find([instance](Vector<ModelInstance>* instanceList) { return instanceList->Get(0).ModelRef() == instance.ModelRef(); });
-
-	if (instanceList) { instanceList->Emplace(instance); }
-	else { instances.Emplace(Vector<ModelInstance>{ instance }); }
 }

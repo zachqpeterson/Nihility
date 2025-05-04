@@ -15,6 +15,9 @@ enum class QueueType
 
 struct Device
 {
+public:
+	operator VkDevice() const;
+
 private:
 	struct CustomQueueDescription
 	{
@@ -35,8 +38,6 @@ private:
 	VkQueue GetQueue(QueueType type) const;
 	VkQueue GetDedicatedQueue(QueueType type) const;
 
-	operator VkDevice() const;
-
 	VkDevice vkDevice = VK_NULL_HANDLE;
 	PhysicalDevice physicalDevice;
 	VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
@@ -46,10 +47,4 @@ private:
 
 	friend class Renderer;
 	friend struct Swapchain;
-	friend struct CommandBuffer;
-	friend struct Renderpass;
-	friend struct PipelineLayout;
-	friend struct Pipeline;
-	friend struct Shader;
-	friend struct FrameBuffer;
 };

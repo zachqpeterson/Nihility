@@ -91,6 +91,7 @@
     <ClInclude Include="Containers\Function.hpp" />
     <ClInclude Include="Containers\Hashmap.hpp" />
     <ClInclude Include="Containers\Pair.hpp" />
+    <ClInclude Include="Containers\Queue.hpp" />
     <ClInclude Include="Containers\SafeQueue.hpp" />
     <ClInclude Include="Containers\Stack.hpp" />
     <ClInclude Include="Containers\String.hpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="Engine.hpp" />
     <ClInclude Include="Math\Hash.hpp" />
     <ClInclude Include="Math\Math.hpp" />
+    <ClInclude Include="Math\Random.hpp" />
     <ClInclude Include="Multithreading\Jobs.hpp" />
     <ClInclude Include="Multithreading\ThreadSafety.hpp" />
     <ClInclude Include="Platform\Input.hpp" />
@@ -113,6 +115,7 @@
     <ClInclude Include="Rendering\Buffer.hpp" />
     <ClInclude Include="Rendering\Camera.hpp" />
     <ClInclude Include="Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Rendering\DescriptorSet.hpp" />
     <ClInclude Include="Rendering\Device.hpp" />
     <ClInclude Include="Rendering\FrameBuffer.hpp" />
     <ClInclude Include="Rendering\Instance.hpp" />
@@ -124,14 +127,9 @@
     <ClInclude Include="Rendering\Shader.hpp" />
     <ClInclude Include="Rendering\Swapchain.hpp" />
     <ClInclude Include="Rendering\VulkanInclude.hpp" />
-    <ClInclude Include="Resources\Animation.hpp" />
-    <ClInclude Include="Resources\Bone.hpp" />
-    <ClInclude Include="Resources\Mesh.hpp" />
-    <ClInclude Include="Resources\Model.hpp" />
-    <ClInclude Include="Resources\ModelInstance.hpp" />
-    <ClInclude Include="Resources\Node.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
+    <ClInclude Include="Resources\Scene.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
     <ClInclude Include="Resources\Texture.hpp" />
     <ClInclude Include="TypeTraits.hpp" />
@@ -149,6 +147,7 @@
     <ClCompile Include="Rendering\Buffer.cpp" />
     <ClCompile Include="Rendering\Camera.cpp" />
     <ClCompile Include="Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Rendering\DescriptorSet.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
     <ClCompile Include="Rendering\FrameBuffer.cpp" />
     <ClCompile Include="Rendering\Instance.cpp" />

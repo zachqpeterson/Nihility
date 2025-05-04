@@ -11,8 +11,8 @@ bool Camera::Create(CameraType type)
 	case CameraType::Orthographic: {
 		nearPlane = -100.0f;
 		farPlane = 100.0f;
-		viewportWidth = 240.0f;
-		viewportHeight = 135.0f;
+		viewportWidth = 120.0f;
+		viewportHeight = 67.5f;
 		zoom = 0.0f;
 	} break;
 	case CameraType::Perspective: {

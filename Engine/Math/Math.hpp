@@ -1932,6 +1932,8 @@ struct NH_API Quaternion2
 
 public:
 	F32 x, y; //sin, cos
+
+	static const Quaternion2 Identity;
 };
 
 //W is real part
@@ -4468,12 +4470,12 @@ inline const Matrix4 Matrix4::Zero = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 #pragma region Quaternion2
 inline constexpr Quaternion2::Quaternion2() : x(0.0f), y(1.0f) {}
 inline constexpr Quaternion2::Quaternion2(F32 x, F32 y) : x(x), y(y) {}
-inline constexpr Quaternion2::Quaternion2(F32 angle) { F32 a = angle * (F32)DegToRad * 0.5f; x = Math::Sin(a); y = Math::Cos(a); }
+inline constexpr Quaternion2::Quaternion2(F32 angle) { F32 a = angle * (F32)DegToRad; x = Math::Sin(a); y = Math::Cos(a); }
 inline constexpr Quaternion2::Quaternion2(const Matrix2& mat) : x(Math::Sqrt((mat.a.x - 1.0f) * -0.5f)), y(Math::Sqrt(mat.a.y * 0.5f)) {}
 inline constexpr Quaternion2::Quaternion2(const Quaternion2& q) : x(q.x), y(q.y) {}
 inline constexpr Quaternion2::Quaternion2(Quaternion2&& q) noexcept : x(q.x), y(q.y) {}
 
-inline constexpr Quaternion2& Quaternion2::operator=(F32 angle) { F32 a = angle * (F32)DegToRad * 0.5f; x = Math::Sin(a); y = Math::Cos(a); return *this; }
+inline constexpr Quaternion2& Quaternion2::operator=(F32 angle) { F32 a = angle * (F32)DegToRad; x = Math::Sin(a); y = Math::Cos(a); return *this; }
 inline constexpr Quaternion2& Quaternion2::operator=(const Quaternion2& q) { x = q.x; y = q.y; return *this; }
 inline constexpr Quaternion2& Quaternion2::operator=(Quaternion2&& q) noexcept { x = q.x; y = q.y; return *this; }
 
@@ -4506,9 +4508,9 @@ inline constexpr Quaternion2 Quaternion2::operator/(const Quaternion2& q) const
 	};
 }
 
-inline constexpr void Quaternion2::Set(F32 angle) { F32 a = angle * (F32)DegToRad * 0.5f; x = Math::Sin(a); y = Math::Cos(a); }
-inline constexpr void Quaternion2::Rotate(F32 angle) { F32 a = angle * (F32)DegToRad * 0.5f; x += Math::Sin(a); y += Math::Cos(a); }
-inline constexpr F32 Quaternion2::Angle() const { return Math::ASin(x) * (F32)DegToRad * 2.0f; }
+inline constexpr void Quaternion2::Set(F32 angle) { F32 a = angle * (F32)DegToRad; x = Math::Sin(a); y = Math::Cos(a); }
+inline constexpr void Quaternion2::Rotate(F32 angle) { F32 a = angle * (F32)DegToRad; x += Math::Sin(a); y += Math::Cos(a); }
+inline constexpr F32 Quaternion2::Angle() const { return Math::ASin(x) * (F32)DegToRad; }
 
 inline constexpr Matrix2 Quaternion2::ToMatrix2() const
 {
@@ -4691,6 +4693,8 @@ inline F32* Quaternion2::Data() { return &x; }
 inline const F32* Quaternion2::Data() const { return &x; }
 
 inline constexpr Quaternion2::operator Quaternion3() const { return Quaternion3{ 0.0f, 0.0f, x, y }; }
+
+inline const Quaternion2 Quaternion2::Identity = {};
 #pragma endregion
 
 #pragma region Quaternion3
