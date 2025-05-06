@@ -10,7 +10,7 @@ bool Swapchain::Create(bool recreate)
     {
         surfaceSupport = QuerySurfaceSupportDetails();
 
-        imageCount = Math::Min(surfaceSupport.capabilities.minImageCount + 1, surfaceSupport.capabilities.maxImageCount);
+        imageCount = Math::Min(surfaceSupport.capabilities.minImageCount + 1, surfaceSupport.capabilities.maxImageCount, MaxSwapchainImages);
 
         Vector<VkSurfaceFormatKHR> desiredFormats = {
             { VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR },
@@ -26,9 +26,15 @@ bool Swapchain::Create(bool recreate)
         queueFamilyIndices[0] = Renderer::device.GetQueueIndex(QueueType::Graphics);
         queueFamilyIndices[1] = Renderer::device.GetQueueIndex(QueueType::Present);
 
-        Vector<VkPresentModeKHR> desiredPresentModes = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR };
+        presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-        presentMode = FindPresentMode(surfaceSupport.presentModes, desiredPresentModes);
+        if (imageCount >= 3)
+        {
+            for (const VkPresentModeKHR& mode : surfaceSupport.presentModes)
+            {
+                if (mode == VK_PRESENT_MODE_MAILBOX_KHR) { presentMode = mode; break; }
+            }
+        }
 
         preTransform = surfaceSupport.capabilities.currentTransform;
     }
@@ -137,20 +143,6 @@ VkExtent2D Swapchain::FindExtent(const VkSurfaceCapabilitiesKHR& capabilities, U
 
         return actualExtent;
     }
-}
-
-VkPresentModeKHR Swapchain::FindPresentMode(const Vector<VkPresentModeKHR>& availableResentModes,
-    const Vector<VkPresentModeKHR>& desiredPresentModes)
-{
-    for (const VkPresentModeKHR& desiredPm : desiredPresentModes)
-    {
-        for (const VkPresentModeKHR& availablePm : availableResentModes)
-        {
-            if (desiredPm == availablePm) { return desiredPm; }
-        }
-    }
-
-    return VK_PRESENT_MODE_FIFO_KHR;
 }
 
 Vector<VkImage> Swapchain::GetImages()

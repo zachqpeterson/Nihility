@@ -9,6 +9,7 @@
 #include "Rendering/Shader.hpp"
 #include "Rendering/Pipeline.hpp"
 #include "Rendering/Buffer.hpp"
+#include "Containers/Freelist.hpp"
 #include "Containers/Hashmap.hpp"
 #include "Containers/String.hpp"
 #include "Containers/Queue.hpp"
@@ -46,10 +47,8 @@ private:
 	static Pipeline spritePipeline;
 	static Buffer spriteVertexBuffer;
 	static Buffer spriteIndexBuffer;
-	static Buffer spriteInstanceBuffer;
-	static U32 instanceCount;
-	static U32 maxInstanceCount;
-	static U32 instancePointer;
+	static Buffer spriteInstanceBuffers[MaxSwapchainImages];
+	static Vector<SpriteInstance> instances;
 
 	static ResourceRef<Texture> whiteTexture;
 	static ResourceRef<Texture> placeholderTexture;

@@ -30,10 +30,12 @@ private:
 	static void Shutdown();
 
 	static void Update();
+	static void Synchronize();
+	static void Submit();
 
 	static bool InitializeVma();
 	static bool GetQueues();
-	static bool CreateDepthBuffer();
+	static bool CreateDepthTextures();
 	static bool CreateDescriptorPool();
 	static bool CreateRenderpasses();
 	static bool CreateSynchronization();
@@ -54,7 +56,7 @@ private:
 	static VkQueue presentQueue;
 	static Swapchain swapchain;
 	static VkCommandPool commandPool;
-	static CommandBuffer commandBuffer;
+	static CommandBuffer renderCommandBuffers[MaxSwapchainImages];
 	static VkDescriptorPool vkDescriptorPool;
 	static VkDescriptorPool vkBindlessDescriptorPool;
 	static DescriptorSet descriptorSet;
@@ -62,12 +64,15 @@ private:
 	static FrameBuffer frameBuffer;
 	static VkSemaphore presentSemaphore;
 	static VkSemaphore renderSemaphore;
-	static VkFence renderFence;
 
-	static VkFormat depthFormat;
-	static VkImage depthBuffer;
-	static VkImageView depthBufferView;
-	static VmaAllocation_T* depthBufferAllocation;
+	static U32 frameIndex;
+	static U32 imageIndex;
+	static U32 previousFrame;
+	static VkSemaphore_T* imageAvailable[MaxSwapchainImages];
+	static VkSemaphore_T* vertexInputFinished[MaxSwapchainImages];
+	static VkFence_T* inFlight[MaxSwapchainImages];
+
+	static Texture depthTextures[MaxSwapchainImages];
 
 	static Camera camera;
 

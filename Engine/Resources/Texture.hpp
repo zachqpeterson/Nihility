@@ -67,4 +67,5 @@ private:
 
 	friend class Renderer;
 	friend class Resources;
+	friend struct FrameBuffer;
 };

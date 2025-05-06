@@ -16,6 +16,9 @@ private:
 		Vector<VkPresentModeKHR> presentModes;
 	};
 
+	operator VkSwapchainKHR() const;
+	const VkSwapchainKHR* operator&() const;
+
 private:
 	bool Create(bool recreate);
 	void Destroy();
@@ -24,14 +27,9 @@ private:
 	VkSurfaceFormatKHR FindDesiredSurfaceFormat(const Vector<VkSurfaceFormatKHR>& availableFormats, const Vector<VkSurfaceFormatKHR>& desiredFormats);
 	VkSurfaceFormatKHR FindBestSurfaceFormat(const Vector<VkSurfaceFormatKHR>& availableFormats, const Vector<VkSurfaceFormatKHR>& desiredFormats);
 	VkExtent2D FindExtent(const VkSurfaceCapabilitiesKHR& capabilities, U32 desiredWidth, U32 desiredHeight);
-	VkPresentModeKHR FindPresentMode(const Vector<VkPresentModeKHR>& availableResentModes,
-		const Vector<VkPresentModeKHR>& desiredPresentModes);
 
 	Vector<VkImage> GetImages();
 	Vector<VkImageView> GetImageViews();
-
-	operator VkSwapchainKHR() const;
-	const VkSwapchainKHR* operator&() const;
 
 	VkSwapchainKHR vkSwapchain = VK_NULL_HANDLE;
 	SurfaceSupportDetails surfaceSupport;
@@ -45,6 +43,7 @@ private:
 	VkSurfaceTransformFlagBitsKHR preTransform;
 
 	friend class Renderer;
+	friend class Resources;
 	friend struct Renderpass;
 	friend struct FrameBuffer;
 };

@@ -79,7 +79,6 @@ void Engine::MainLoop()
 
 		//physics update
 
-		Resources::Update();
 		Renderer::Update();
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();

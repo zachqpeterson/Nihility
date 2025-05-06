@@ -137,3 +137,15 @@ class(class&) = delete;				\
 class(class&&) = delete;			\
 class& operator=(class&) = delete;	\
 class& operator=(class&&) = delete;	
+
+/// <summary>
+/// Gets the element count of a static array
+/// </summary>
+/// <returns>The count of elements</returns>
+template<class Type, U64 Count> constexpr U64 CountOf(Type(&)[Count]) { return Count; }
+
+/// <summary>
+/// Gets the element count of a static array
+/// </summary>
+/// <returns>The count of elements</returns>
+template<class Type, U32 Count> constexpr U32 CountOf32(Type(&)[Count]) { return Count; }

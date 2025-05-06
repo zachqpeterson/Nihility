@@ -19,10 +19,8 @@ Shader Resources::spriteFragmentShader;
 Pipeline Resources::spritePipeline;
 Buffer Resources::spriteVertexBuffer;
 Buffer Resources::spriteIndexBuffer;
-Buffer Resources::spriteInstanceBuffer;
-U32 Resources::instanceCount;
-U32 Resources::maxInstanceCount;
-U32 Resources::instancePointer;
+Buffer Resources::spriteInstanceBuffers[MaxSwapchainImages];
+Vector<SpriteInstance> Resources::instances(10000);
 
 ResourceRef<Texture> Resources::whiteTexture;
 ResourceRef<Texture> Resources::placeholderTexture;
@@ -84,10 +82,10 @@ bool Resources::Initialize()
 
 	spriteVertexBuffer.Create(BufferType::Vertex, sizeof(SpriteVertex) * 4);
 	spriteIndexBuffer.Create(BufferType::Index, sizeof(U32) * 6);
-	instanceCount = 0;
-	instancePointer = 0;
-	maxInstanceCount = 10000;
-	spriteInstanceBuffer.Create(BufferType::Vertex, sizeof(SpriteInstance) * maxInstanceCount);
+	for (U32 i = 0; i < Renderer::swapchain.imageCount; ++i)
+	{
+		spriteInstanceBuffers[i].Create(BufferType::Vertex, sizeof(SpriteInstance) * instances.Capacity());
+	}
 
 	Vector2 position = Vector2::Zero;
 	Vector2 uv = Vector2::Zero;
@@ -117,7 +115,10 @@ void Resources::Shutdown()
 
 	spriteVertexBuffer.Destroy();
 	spriteIndexBuffer.Destroy();
-	spriteInstanceBuffer.Destroy();
+	for (U32 i = 0; i < Renderer::swapchain.imageCount; ++i)
+	{
+		spriteInstanceBuffers[i].Destroy();
+	}
 
 	spritePipeline.Destroy();
 
@@ -161,6 +162,8 @@ void Resources::Update()
 
 		vkUpdateDescriptorSets(Renderer::device, (U32)writes.Size(), writes.Data(), 0, nullptr);
 	}
+
+	spriteInstanceBuffers[Renderer::frameIndex].UploadVertexData(instances.Data(), instances.Size() * sizeof(SpriteInstance), 0, Renderer::vertexInputFinished[Renderer::previousFrame]);
 }
 
 ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& sampler, bool generateMipmaps, bool flipImage)
@@ -226,29 +229,25 @@ ResourceRef<Texture>& Resources::PlaceholderTexture()
 
 void Resources::CreateSprite(ResourceRef<Texture>& texture, const Transform& transform, const Vector4& color, const Vector2& textureCoord, const Vector2& textureScale)
 {
-	if (instanceCount < maxInstanceCount)
-	{
-		SpriteInstance instance{};
-		instance.transform = transform;
-		instance.instColor = color;
-		instance.instTexcoord = textureCoord;
-		instance.instTexcoordScale = textureScale;
-		instance.textureIndex = texture.Handle();
-
-		spriteInstanceBuffer.UploadVertexData(&instance, sizeof(SpriteInstance), instancePointer);
-
-		instancePointer += sizeof(SpriteInstance);
-		++instanceCount;
-
-		if (!texture->inBindless)
-		{
-			texture->inBindless = true;
-
-			bindlessTexturesToUpdate.Push(texture);
-		}
-	}
-	else
+	if (instances.Full())
 	{
 		Logger::Error("Max Instances Reached!");
+		return;
+	}
+
+	SpriteInstance instance{};
+	instance.transform = transform;
+	instance.instColor = color;
+	instance.instTexcoord = textureCoord;
+	instance.instTexcoordScale = textureScale;
+	instance.textureIndex = texture.Handle();
+
+	instances.Push(instance);
+
+	if (!texture->inBindless)
+	{
+		texture->inBindless = true;
+
+		bindlessTexturesToUpdate.Push(texture);
 	}
 }

@@ -88,6 +88,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Containers\Freelist.hpp" />
     <ClInclude Include="Containers\Function.hpp" />
     <ClInclude Include="Containers\Hashmap.hpp" />
     <ClInclude Include="Containers\Pair.hpp" />

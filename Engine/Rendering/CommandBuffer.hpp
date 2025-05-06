@@ -15,7 +15,7 @@ private:
     bool BeginSingleShot();
     bool End();
 
-    bool SubmitSingleShotBuffer(VkQueue queue);
+    bool SubmitSingleShotBuffer(VkQueue queue, VkSemaphore waitSemaphore = nullptr);
 
     void Destroy();
 

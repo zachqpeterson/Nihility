@@ -17,7 +17,7 @@ VkQueue Renderer::graphicsQueue;
 VkQueue Renderer::presentQueue;
 Swapchain Renderer::swapchain;
 VkCommandPool Renderer::commandPool = VK_NULL_HANDLE;
-CommandBuffer Renderer::commandBuffer;
+CommandBuffer Renderer::renderCommandBuffers[MaxSwapchainImages];
 VkDescriptorPool Renderer::vkDescriptorPool = VK_NULL_HANDLE;
 VkDescriptorPool Renderer::vkBindlessDescriptorPool = VK_NULL_HANDLE;
 DescriptorSet Renderer::descriptorSet;
@@ -25,12 +25,15 @@ Renderpass Renderer::renderpass;
 FrameBuffer Renderer::frameBuffer;
 VkSemaphore Renderer::presentSemaphore = VK_NULL_HANDLE;
 VkSemaphore Renderer::renderSemaphore = VK_NULL_HANDLE;
-VkFence Renderer::renderFence = VK_NULL_HANDLE;
 
-VkFormat Renderer::depthFormat = VK_FORMAT_D32_SFLOAT;
-VkImage Renderer::depthBuffer;
-VkImageView Renderer::depthBufferView;
-VmaAllocation_T* Renderer::depthBufferAllocation;
+U32 Renderer::frameIndex;
+U32 Renderer::imageIndex;
+U32 Renderer::previousFrame;
+VkSemaphore Renderer::imageAvailable[MaxSwapchainImages];
+VkSemaphore Renderer::vertexInputFinished[MaxSwapchainImages];
+VkFence Renderer::inFlight[MaxSwapchainImages];
+
+Texture Renderer::depthTextures[MaxSwapchainImages];
 
 Camera Renderer::camera;
 
@@ -43,9 +46,11 @@ bool Renderer::Initialize()
 	if (!InitializeVma()) { Logger::Fatal("Failed To Initialize Vma!"); return false; }
 	if (!GetQueues()) { return false; }
 	if (!swapchain.Create(false)) { Logger::Fatal("Failed To Create Swapchain!"); return false; }
-	if (!CreateDepthBuffer()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
+	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffers!"); return false; }
 	if (!(commandPool = CreateCommandPool(QueueType::Graphics))) { Logger::Fatal("Failed To Create Command Pool!"); return false; }
-	if (!commandBuffer.Create(commandPool)) { Logger::Fatal("Failed To Create Command Buffer!"); return false; }
+	if (!renderCommandBuffers[0].Create(commandPool)) { Logger::Fatal("Failed To Create Command Buffer!"); return false; }
+	if (!renderCommandBuffers[1].Create(commandPool)) { Logger::Fatal("Failed To Create Command Buffer!"); return false; }
+	if (!renderCommandBuffers[2].Create(commandPool)) { Logger::Fatal("Failed To Create Command Buffer!"); return false; }
 	if (!CreateDescriptorPool()) { Logger::Fatal("Failed To Create Descriptor Pool!"); return false; }
 	if (!CreateRenderpasses()) { Logger::Fatal("Failed To Create Renderpasses!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
@@ -62,9 +67,12 @@ void Renderer::Shutdown()
 
 	vkDeviceWaitIdle(device);
 
-	vkDestroyFence(device, renderFence, allocationCallbacks);
-	vkDestroySemaphore(device, renderSemaphore, allocationCallbacks);
-	vkDestroySemaphore(device, presentSemaphore, allocationCallbacks);
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		vkDestroySemaphore(device, imageAvailable[i], allocationCallbacks);
+		vkDestroySemaphore(device, vertexInputFinished[i], allocationCallbacks);
+		vkDestroyFence(device, inFlight[i], allocationCallbacks);
+	}
 
 	frameBuffer.Destroy();
 
@@ -73,12 +81,17 @@ void Renderer::Shutdown()
 	vkDestroyDescriptorPool(device, vkDescriptorPool, allocationCallbacks);
 	vkDestroyDescriptorPool(device, vkBindlessDescriptorPool, allocationCallbacks);
 
-	commandBuffer.Destroy();
+	renderCommandBuffers[0].Destroy();
+	renderCommandBuffers[1].Destroy();
+	renderCommandBuffers[2].Destroy();
 
 	DestroyCommandPool(commandPool);
 
-	vkDestroyImageView(device, depthBufferView, allocationCallbacks);
-	vmaDestroyImage(vmaAllocator, depthBuffer, depthBufferAllocation);
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		vkDestroyImageView(device, depthTextures[i].imageView, allocationCallbacks);
+		vmaDestroyImage(vmaAllocator, depthTextures[i].image, depthTextures[i].allocation);
+	}
 
 	swapchain.Destroy();
 
@@ -91,25 +104,21 @@ void Renderer::Shutdown()
 
 void Renderer::Update()
 {
-	if (Math::IsZero(Time::DeltaTime())) { return; }
+	Synchronize();
 
-	VkValidateFExit(vkWaitForFences(device, 1, &renderFence, VK_TRUE, UINT64_MAX));
+	//TODO: Reset command buffer and descriptor pool
 
-	U32 imageIndex = 0;
-	VkResult res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, presentSemaphore, VK_NULL_HANDLE, &imageIndex);
+	camera.Update(); //TODO: Scene update
 
-	if (res == VK_ERROR_OUT_OF_DATE_KHR) { RecreateSwapchain(); }
-	else { VkValidateFExit(res); }
 
-	VkValidateFExit(vkResetFences(device, 1, &renderFence));
 
-	camera.Update();
+	Resources::Update();
 
 	GlobalPushConstant pc{};
 	pc.viewProjection = camera.ViewProjection();
 
-	commandBuffer.Reset();
-	commandBuffer.BeginSingleShot();
+	renderCommandBuffers[imageIndex].Reset();
+	renderCommandBuffers[imageIndex].BeginSingleShot();
 
 	VkClearValue colorClearValue;
 	colorClearValue.color = { { 0.25f, 0.25f, 0.25f, 1.0f } };
@@ -122,14 +131,14 @@ void Renderer::Update()
 	VkRenderPassBeginInfo renderPassBeginInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderPassBeginInfo.pNext = nullptr;
 	renderPassBeginInfo.renderPass = renderpass;
-	renderPassBeginInfo.framebuffer = frameBuffer.vkFramebuffers[imageIndex];
+	renderPassBeginInfo.framebuffer = frameBuffer.vkFramebuffers[frameIndex];
 	renderPassBeginInfo.renderArea.offset.x = 0;
 	renderPassBeginInfo.renderArea.offset.y = 0;
 	renderPassBeginInfo.renderArea.extent = swapchain.extent;
 	renderPassBeginInfo.clearValueCount = (U32)clearValues.Size();
 	renderPassBeginInfo.pClearValues = clearValues.Data();
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(renderCommandBuffers[imageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	VkViewport viewport{};
 	viewport.x = 0.0f;
@@ -143,58 +152,81 @@ void Renderer::Update()
 	scissor.offset = { 0, 0 };
 	scissor.extent = swapchain.extent;
 
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	vkCmdSetViewport(renderCommandBuffers[imageIndex], 0, 1, &viewport);
+	vkCmdSetScissor(renderCommandBuffers[imageIndex], 0, 1, &scissor);
 
-	if (Resources::instanceCount)
+	if (Resources::instances.Size())
 	{
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipeline);
+		vkCmdBindPipeline(renderCommandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipeline);
 
 		VkDescriptorSet sets[] = { Resources::dummySet, Resources::bindlessTexturesSet };
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipelineLayout, 0, 2, sets, 0, nullptr);
+		vkCmdBindDescriptorSets(renderCommandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipelineLayout, 0, 2, sets, 0, nullptr);
 
-		vkCmdPushConstants(commandBuffer, Resources::spritePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &pc);
+		vkCmdPushConstants(renderCommandBuffers[imageIndex], Resources::spritePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &pc);
 
-		VkBuffer vertexBuffers[] = { Resources::spriteVertexBuffer, Resources::spriteInstanceBuffer };
+		VkBuffer vertexBuffers[] = { Resources::spriteVertexBuffer, Resources::spriteInstanceBuffers[frameIndex] };
 		U64 offsets[] = { 0, 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, Resources::spriteIndexBuffer, 0, VK_INDEX_TYPE_UINT32); //TODO: use U8
+		vkCmdBindVertexBuffers(renderCommandBuffers[imageIndex], 0, 2, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(renderCommandBuffers[imageIndex], Resources::spriteIndexBuffer, 0, VK_INDEX_TYPE_UINT32); //TODO: use U8
 
-		vkCmdDrawIndexed(commandBuffer, 6, Resources::instanceCount, 0, 0, 0);
+		vkCmdDrawIndexed(renderCommandBuffers[imageIndex], 6, Resources::instances.Size(), 0, 0, 0);
 	}
 
 	//TODO: Draw UI
 
-	vkCmdEndRenderPass(commandBuffer);
+	vkCmdEndRenderPass(renderCommandBuffers[imageIndex]);
 
-	commandBuffer.End();
+	renderCommandBuffers[imageIndex].End();
 
-	VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	Submit();
+}
+
+void Renderer::Synchronize()
+{
+	vkWaitForFences(device, 1, &inFlight[frameIndex], VK_TRUE, UINT64_MAX);
+
+	VkResult res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAvailable[frameIndex], VK_NULL_HANDLE, &imageIndex);
+
+	if (res == VK_ERROR_OUT_OF_DATE_KHR) { RecreateSwapchain(); }
+	else { VkValidateFExit(res); }
+}
+
+void Renderer::Submit()
+{
+	vkResetFences(device, 1, &inFlight[frameIndex]);
+
+	VkSemaphore waits[]{ imageAvailable[frameIndex] };
+	VkSemaphore signals[]{ vertexInputFinished[frameIndex] };
+	VkPipelineStageFlags submitStageMasks[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.pNext = nullptr;
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &presentSemaphore;
-	submitInfo.pWaitDstStageMask = &waitStage;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &renderSemaphore;
+	submitInfo.waitSemaphoreCount = CountOf32(waits);
+	submitInfo.pWaitSemaphores = waits;
+	submitInfo.pWaitDstStageMask = submitStageMasks;
+	submitInfo.commandBufferCount = 1u;
+	submitInfo.pCommandBuffers = &renderCommandBuffers[imageIndex];
+	submitInfo.signalSemaphoreCount = CountOf32(signals);
+	submitInfo.pSignalSemaphores = signals;
 
-	VkValidateFExit(vkQueueSubmit(graphicsQueue, 1, &submitInfo, renderFence));
+	VkValidateFExit(vkQueueSubmit(graphicsQueue, 1u, &submitInfo, inFlight[frameIndex]));
 
 	VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.pNext = nullptr;
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &renderSemaphore;
+	presentInfo.waitSemaphoreCount = CountOf32(signals);
+	presentInfo.pWaitSemaphores = signals;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &swapchain;
-	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pImageIndices = &frameIndex;
 	presentInfo.pResults = nullptr;
 
-	res = vkQueuePresentKHR(presentQueue, &presentInfo);
+	VkResult res = vkQueuePresentKHR(presentQueue, &presentInfo);
 
 	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) { RecreateSwapchain(); }
-	else { VkValidateFExit(res); }
+
+	previousFrame = frameIndex;
+
+	++frameIndex %= swapchain.imageCount;
 }
 
 bool Renderer::InitializeVma()
@@ -228,7 +260,7 @@ bool Renderer::GetQueues()
 	return true;
 }
 
-bool Renderer::CreateDepthBuffer()
+bool Renderer::CreateDepthTextures()
 {
 	VkExtent3D depthImageExtent = {
 		swapchain.extent.width,
@@ -240,7 +272,7 @@ bool Renderer::CreateDepthBuffer()
 	imageCreateInfo.pNext = nullptr;
 	imageCreateInfo.flags = 0;
 	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageCreateInfo.format = depthFormat;
+	imageCreateInfo.format = VK_FORMAT_D32_SFLOAT;
 	imageCreateInfo.extent = depthImageExtent;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
@@ -262,12 +294,9 @@ bool Renderer::CreateDepthBuffer()
 	allocationInfo.pUserData = nullptr;
 	allocationInfo.priority = 0;
 
-	VkValidateFR(vmaCreateImage(vmaAllocator, &imageCreateInfo, &allocationInfo, &depthBuffer, &depthBufferAllocation, nullptr));
-
 	VkImageViewCreateInfo imageViewCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	imageViewCreateInfo.pNext = nullptr;
 	imageViewCreateInfo.flags = 0;
-	imageViewCreateInfo.image = depthBuffer;
 	imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	imageViewCreateInfo.format = imageCreateInfo.format;
 	imageViewCreateInfo.components = {};
@@ -277,7 +306,12 @@ bool Renderer::CreateDepthBuffer()
 	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-	VkValidateFR(vkCreateImageView(device, &imageViewCreateInfo, allocationCallbacks, &depthBufferView));
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		VkValidateFR(vmaCreateImage(vmaAllocator, &imageCreateInfo, &allocationInfo, &depthTextures[i].image, &depthTextures[i].allocation, nullptr));
+		imageViewCreateInfo.image = depthTextures[i].image;
+		VkValidateFR(vkCreateImageView(device, &imageViewCreateInfo, allocationCallbacks, &depthTextures[i].imageView));
+	}
 
 	return true;
 }
@@ -326,18 +360,20 @@ bool Renderer::CreateRenderpasses()
 
 bool Renderer::CreateSynchronization()
 {
-	VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.pNext = nullptr;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	VkSemaphoreCreateInfo semaphoreInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	semaphoreInfo.pNext = nullptr;
 	semaphoreInfo.flags = 0;
 
-	VkValidateFR(vkCreateSemaphore(device, &semaphoreInfo, Renderer::allocationCallbacks, &presentSemaphore));
-	VkValidateFR(vkCreateSemaphore(device, &semaphoreInfo, Renderer::allocationCallbacks, &renderSemaphore));
-	VkValidateFR(vkCreateFence(device, &fenceInfo, Renderer::allocationCallbacks, &renderFence));
+	VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+	fenceInfo.pNext = nullptr;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &imageAvailable[i]);
+		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &vertexInputFinished[i]);
+		vkCreateFence(device, &fenceInfo, allocationCallbacks, &inFlight[i]);
+	}
 
 	return true;
 }
@@ -347,11 +383,14 @@ bool Renderer::RecreateSwapchain()
 	vkDeviceWaitIdle(device);
 
 	frameBuffer.Destroy();
-	vkDestroyImageView(device, depthBufferView, allocationCallbacks);
-	vmaDestroyImage(vmaAllocator, depthBuffer, depthBufferAllocation);
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		vkDestroyImageView(device, depthTextures[i].imageView, allocationCallbacks);
+		vmaDestroyImage(vmaAllocator, depthTextures[i].image, depthTextures[i].allocation);
+	}
 
 	if (!swapchain.Create(true)) { Logger::Fatal("Failed To Create Swapchain!"); return false; }
-	if (!CreateDepthBuffer()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
+	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
 
 	return true;

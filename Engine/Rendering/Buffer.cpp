@@ -89,7 +89,7 @@ void Buffer::Destroy()
 	stagingBufferAllocation = nullptr;
 }
 
-bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset)
+bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset, VkSemaphore waitSemaphore)
 {
 	if (bufferSize < size)
 	{
@@ -130,7 +130,7 @@ bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset)
 	vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
 		VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &vertexBufferBarrier, 0, nullptr);
 
-	return commandBuffer.SubmitSingleShotBuffer(Renderer::graphicsQueue);
+	return commandBuffer.SubmitSingleShotBuffer(Renderer::graphicsQueue, waitSemaphore);
 }
 
 bool Buffer::UploadIndexData(const void* indexData, U64 size, U64 offset)

@@ -58,15 +58,21 @@ bool CommandBuffer::End()
 	return true;
 }
 
-bool CommandBuffer::SubmitSingleShotBuffer(VkQueue queue)
+bool CommandBuffer::SubmitSingleShotBuffer(VkQueue queue, VkSemaphore waitSemaphore)
 {
 	if (!End()) { return false; }
 
 	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.pNext = nullptr;
+	submitInfo.waitSemaphoreCount = 0;
+	submitInfo.pWaitSemaphores = nullptr;
+	submitInfo.pWaitDstStageMask = nullptr;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &vkCommandBuffer;
+	submitInfo.signalSemaphoreCount = 0;
+	submitInfo.pSignalSemaphores = nullptr;
 
-	VkFence bufferFence;
+	VkFence bufferFence; //TODO: Don't create and wait on this here
 
 	VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
