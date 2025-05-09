@@ -13,14 +13,6 @@
 
 DescriptorSet Resources::dummySet;
 DescriptorSet Resources::bindlessTexturesSet;
-PipelineLayout Resources::spritePipelineLayout;
-Shader Resources::spriteVertexShader;
-Shader Resources::spriteFragmentShader;
-Pipeline Resources::spritePipeline;
-Buffer Resources::spriteVertexBuffer;
-Buffer Resources::spriteIndexBuffer;
-Buffer Resources::spriteInstanceBuffers[MaxSwapchainImages];
-Vector<SpriteInstance> Resources::instances(10000);
 
 ResourceRef<Texture> Resources::whiteTexture;
 ResourceRef<Texture> Resources::placeholderTexture;
@@ -50,58 +42,6 @@ bool Resources::Initialize()
 
 	dummySet.Create({});
 
-	VkPushConstantRange pushConstant{};
-	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	pushConstant.offset = 0;
-	pushConstant.size = sizeof(GlobalPushConstant);
-
-	spritePipelineLayout.Create({ dummySet, bindlessTexturesSet }, { pushConstant });
-
-	spriteVertexShader.Create("shaders/sprite.vert.spv", ShaderStage::Vertex);
-	spriteFragmentShader.Create("shaders/sprite.frag.spv", ShaderStage::Fragment);
-
-	Vector<VkVertexInputBindingDescription> inputs = {
-		{ 0, sizeof(SpriteVertex), VK_VERTEX_INPUT_RATE_VERTEX },
-		{ 1, sizeof(SpriteInstance), VK_VERTEX_INPUT_RATE_INSTANCE}
-	};
-
-	Vector<VkVertexInputAttributeDescription> attributes = {
-		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteVertex, position) },
-		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteVertex, texcoord) },
-
-		{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Transform, position) },
-		{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Transform, scale) },
-		{ 4, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Transform, rotation) },
-		{ 5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SpriteInstance, instColor) },
-		{ 6, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, instTexcoord) },
-		{ 7, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, instTexcoordScale) },
-		{ 8, 1, VK_FORMAT_R32_UINT, offsetof(SpriteInstance, textureIndex) },
-	};
-
-	spritePipeline.Create(spritePipelineLayout, { PolygonMode::Fill }, { spriteVertexShader, spriteFragmentShader }, inputs, attributes);
-
-	spriteVertexBuffer.Create(BufferType::Vertex, sizeof(SpriteVertex) * 4);
-	spriteIndexBuffer.Create(BufferType::Index, sizeof(U32) * 6);
-	for (U32 i = 0; i < Renderer::swapchain.imageCount; ++i)
-	{
-		spriteInstanceBuffers[i].Create(BufferType::Vertex, sizeof(SpriteInstance) * instances.Capacity());
-	}
-
-	Vector2 position = Vector2::Zero;
-	Vector2 uv = Vector2::Zero;
-
-	SpriteVertex vertices[4] = {
-		{ { -0.5f, -0.5f }, { 0.0f, 1.0f } },
-		{ { -0.5f,  0.5f }, { 0.0f, 0.0f } },
-		{ {  0.5f,  0.5f }, { 1.0f, 0.0f } },
-		{ {  0.5f, -0.5f }, { 1.0f, 1.0f } }
-	};
-
-	U32 indices[6] = { 0, 1, 2, 2, 3, 0 };
-
-	spriteVertexBuffer.UploadVertexData(vertices, sizeof(SpriteVertex) * 4, 0);
-	spriteIndexBuffer.UploadIndexData(indices, sizeof(U32) * 6, 0);
-
 	return true;
 }
 
@@ -112,20 +52,6 @@ void Resources::Shutdown()
 	DestroyResources(textures, Renderer::DestroyTexture);
 
 	vkDeviceWaitIdle(Renderer::device);
-
-	spriteVertexBuffer.Destroy();
-	spriteIndexBuffer.Destroy();
-	for (U32 i = 0; i < Renderer::swapchain.imageCount; ++i)
-	{
-		spriteInstanceBuffers[i].Destroy();
-	}
-
-	spritePipeline.Destroy();
-
-	spriteVertexShader.Destroy();
-	spriteFragmentShader.Destroy();
-
-	spritePipelineLayout.Destroy();
 
 	bindlessTexturesSet.Destroy();
 	dummySet.Destroy();
@@ -162,8 +88,6 @@ void Resources::Update()
 
 		vkUpdateDescriptorSets(Renderer::device, (U32)writes.Size(), writes.Data(), 0, nullptr);
 	}
-
-	spriteInstanceBuffers[Renderer::frameIndex].UploadVertexData(instances.Data(), instances.Size() * sizeof(SpriteInstance), 0, Renderer::vertexInputFinished[Renderer::previousFrame]);
 }
 
 ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& sampler, bool generateMipmaps, bool flipImage)
@@ -210,7 +134,11 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& s
 
 		stbi_image_free(textureData);
 
-		return { texture, handle };
+		ResourceRef<Texture> textureRef = { texture, handle };
+
+		bindlessTexturesToUpdate.Push(textureRef);
+
+		return textureRef;
 	}
 
 	Logger::Error("Failed To Open File: ", path, '!');
@@ -227,27 +155,12 @@ ResourceRef<Texture>& Resources::PlaceholderTexture()
 	return placeholderTexture;
 }
 
-void Resources::CreateSprite(ResourceRef<Texture>& texture, const Transform& transform, const Vector4& color, const Vector2& textureCoord, const Vector2& textureScale)
+const DescriptorSet& Resources::DummyDescriptorSet()
 {
-	if (instances.Full())
-	{
-		Logger::Error("Max Instances Reached!");
-		return;
-	}
+	return dummySet;
+}
 
-	SpriteInstance instance{};
-	instance.transform = transform;
-	instance.instColor = color;
-	instance.instTexcoord = textureCoord;
-	instance.instTexcoordScale = textureScale;
-	instance.textureIndex = texture.Handle();
-
-	instances.Push(instance);
-
-	if (!texture->inBindless)
-	{
-		texture->inBindless = true;
-
-		bindlessTexturesToUpdate.Push(texture);
-	}
+const DescriptorSet& Resources::BindlessTexturesDescriptorSet()
+{
+	return bindlessTexturesSet;
 }

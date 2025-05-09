@@ -3,6 +3,7 @@
 #include "ResourceDefines.hpp"
 
 #include "Texture.hpp"
+#include "Material.hpp"
 
 #include "Rendering/DescriptorSet.hpp"
 #include "Rendering/PipelineLayout.hpp"
@@ -29,7 +30,8 @@ public:
 	static ResourceRef<Texture>& WhiteTexture();
 	static ResourceRef<Texture>& PlaceholderTexture();
 
-	static void CreateSprite(ResourceRef<Texture>& texture, const Transform& transform = {}, const Vector4& color = Vector4::One, const Vector2& textureCoord = Vector2::Zero, const Vector2& textureScale = Vector2::One);
+	static const DescriptorSet& DummyDescriptorSet();
+	static const DescriptorSet& BindlessTexturesDescriptorSet();
 
 private:
 	static bool Initialize();
@@ -41,14 +43,6 @@ private:
 
 	static DescriptorSet dummySet;
 	static DescriptorSet bindlessTexturesSet;
-	static PipelineLayout spritePipelineLayout;
-	static Shader spriteVertexShader;
-	static Shader spriteFragmentShader;
-	static Pipeline spritePipeline;
-	static Buffer spriteVertexBuffer;
-	static Buffer spriteIndexBuffer;
-	static Buffer spriteInstanceBuffers[MaxSwapchainImages];
-	static Vector<SpriteInstance> instances;
 
 	static ResourceRef<Texture> whiteTexture;
 	static ResourceRef<Texture> placeholderTexture;

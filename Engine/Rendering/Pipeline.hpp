@@ -19,6 +19,7 @@ enum NH_API PolygonMode
 struct NH_API PipelineSettings
 {
 	PolygonMode polygonMode = PolygonMode::Fill;
+	VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 };
 
 struct NH_API Pipeline
@@ -31,6 +32,8 @@ struct NH_API Pipeline
 
 private:
 	VkPipeline vkPipeline;
+	VkPipelineBindPoint bindPoint;
 
 	friend class Renderer;
+	friend struct CommandBuffer;
 };

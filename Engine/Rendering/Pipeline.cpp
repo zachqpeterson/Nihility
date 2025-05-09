@@ -7,6 +7,9 @@
 bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& settings, const Vector<Shader>& shaders,
 	const Vector<VkVertexInputBindingDescription>& bindings, const Vector<VkVertexInputAttributeDescription>& attributes)
 {
+	//TODO: bindPoint
+	bindPoint = settings.bindPoint;
+
 	Vector<VkPipelineShaderStageCreateInfo> shaderInfos(shaders.Size());
 
 	for (const Shader& shader : shaders)

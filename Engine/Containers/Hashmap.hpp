@@ -349,19 +349,18 @@ inline Value* Hashmap<Key, Value>::RequestWithHash(const Key& key, U64 hash)
 }
 
 template<class Key, class Value>
-inline Value* Hashmap<Key, Value>::Request(const Key& key, U64& hnd)
+inline Value* Hashmap<Key, Value>::Request(const Key& key, U64& handle)
 {
 	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
-	U64 handle = hash & capMinusOne;
+	handle = hash & capMinusOne;
 	Cell* cell = cells + handle;
 
 	while (cell->filled) { if (cell->key == key) { return &cell->value; } ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
 
 	size += !cell->filled;
 
-	hnd = handle;
 	cell->filled = true;
 	cell->key = key;
 	return &cell->value;

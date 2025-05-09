@@ -4,11 +4,17 @@
 
 #include "VulkanInclude.hpp"
 
+#include "Pipeline.hpp"
+
 struct CommandBuffer
 {
+    operator VkCommandBuffer() const;
+    const VkCommandBuffer* operator&() const;
+
 private:
     bool Create(VkCommandPool pool);
     bool CreateSingleShotBuffer(VkCommandPool pool);
+    void Destroy();
 
     bool Reset(VkCommandBufferResetFlags flags = 0);
     bool Begin(VkCommandBufferBeginInfo& beginInfo);
@@ -17,14 +23,13 @@ private:
 
     bool SubmitSingleShotBuffer(VkQueue queue, VkSemaphore waitSemaphore = nullptr);
 
-    void Destroy();
-
-    operator VkCommandBuffer() const;
-    const VkCommandBuffer* operator&() const;
+    void BindPipeline(const Pipeline& pipeline) const;
 
     VkCommandPool vkCommandPool;
     VkCommandBuffer vkCommandBuffer;
 
 	friend class Renderer;
 	friend struct Buffer;
+	friend struct Scene;
+    friend struct Material;
 };

@@ -25,6 +25,8 @@ Renderpass Renderer::renderpass;
 FrameBuffer Renderer::frameBuffer;
 VkSemaphore Renderer::presentSemaphore = VK_NULL_HANDLE;
 VkSemaphore Renderer::renderSemaphore = VK_NULL_HANDLE;
+GlobalPushConstant Renderer::globalPushConstant;
+Scene* Renderer::scene;
 
 U32 Renderer::frameIndex;
 U32 Renderer::imageIndex;
@@ -34,8 +36,6 @@ VkSemaphore Renderer::vertexInputFinished[MaxSwapchainImages];
 VkFence Renderer::inFlight[MaxSwapchainImages];
 
 Texture Renderer::depthTextures[MaxSwapchainImages];
-
-Camera Renderer::camera;
 
 bool Renderer::Initialize()
 {
@@ -55,8 +55,6 @@ bool Renderer::Initialize()
 	if (!CreateRenderpasses()) { Logger::Fatal("Failed To Create Renderpasses!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
 	if (!CreateSynchronization()) { Logger::Fatal("Failed To Create Synchronization Objects!"); return false; }
-
-	camera.Create(CameraType::Orthographic);
 
 	return true;
 }
@@ -108,14 +106,10 @@ void Renderer::Update()
 
 	//TODO: Reset command buffer and descriptor pool
 
-	camera.Update(); //TODO: Scene update
-
-
-
 	Resources::Update();
+	scene->Update();
 
-	GlobalPushConstant pc{};
-	pc.viewProjection = camera.ViewProjection();
+	globalPushConstant.viewProjection = scene->camera.ViewProjection();
 
 	renderCommandBuffers[imageIndex].Reset();
 	renderCommandBuffers[imageIndex].BeginSingleShot();
@@ -155,22 +149,7 @@ void Renderer::Update()
 	vkCmdSetViewport(renderCommandBuffers[imageIndex], 0, 1, &viewport);
 	vkCmdSetScissor(renderCommandBuffers[imageIndex], 0, 1, &scissor);
 
-	if (Resources::instances.Size())
-	{
-		vkCmdBindPipeline(renderCommandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipeline);
-
-		VkDescriptorSet sets[] = { Resources::dummySet, Resources::bindlessTexturesSet };
-		vkCmdBindDescriptorSets(renderCommandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, Resources::spritePipelineLayout, 0, 2, sets, 0, nullptr);
-
-		vkCmdPushConstants(renderCommandBuffers[imageIndex], Resources::spritePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &pc);
-
-		VkBuffer vertexBuffers[] = { Resources::spriteVertexBuffer, Resources::spriteInstanceBuffers[frameIndex] };
-		U64 offsets[] = { 0, 0 };
-		vkCmdBindVertexBuffers(renderCommandBuffers[imageIndex], 0, 2, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(renderCommandBuffers[imageIndex], Resources::spriteIndexBuffer, 0, VK_INDEX_TYPE_UINT32); //TODO: use U8
-
-		vkCmdDrawIndexed(renderCommandBuffers[imageIndex], 6, Resources::instances.Size(), 0, 0, 0);
-	}
+	scene->Render(renderCommandBuffers[imageIndex]);
 
 	//TODO: Draw UI
 
@@ -227,6 +206,11 @@ void Renderer::Submit()
 	previousFrame = frameIndex;
 
 	++frameIndex %= swapchain.imageCount;
+}
+
+void Renderer::SetScene(Scene* _scene)
+{
+	scene = _scene;
 }
 
 bool Renderer::InitializeVma()

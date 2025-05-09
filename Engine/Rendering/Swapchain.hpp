@@ -8,6 +8,11 @@
 
 struct Swapchain
 {
+	U32 ImageCount() const;
+
+	operator VkSwapchainKHR() const;
+	const VkSwapchainKHR* operator&() const;
+
 private:
 	struct SurfaceSupportDetails
 	{
@@ -15,9 +20,6 @@ private:
 		Vector<VkSurfaceFormatKHR> formats;
 		Vector<VkPresentModeKHR> presentModes;
 	};
-
-	operator VkSwapchainKHR() const;
-	const VkSwapchainKHR* operator&() const;
 
 private:
 	bool Create(bool recreate);

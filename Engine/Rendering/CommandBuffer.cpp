@@ -28,6 +28,11 @@ bool CommandBuffer::CreateSingleShotBuffer(VkCommandPool pool)
 	return true;
 }
 
+void CommandBuffer::Destroy()
+{
+	vkFreeCommandBuffers(Renderer::device, vkCommandPool, 1, &vkCommandBuffer);
+}
+
 bool CommandBuffer::Reset(VkCommandBufferResetFlags flags)
 {
 	VkValidateR(vkResetCommandBuffer(vkCommandBuffer, flags));
@@ -89,9 +94,9 @@ bool CommandBuffer::SubmitSingleShotBuffer(VkQueue queue, VkSemaphore waitSemaph
 	return true;
 }
 
-void CommandBuffer::Destroy()
+void CommandBuffer::BindPipeline(const Pipeline& pipeline) const
 {
-	vkFreeCommandBuffers(Renderer::device, vkCommandPool, 1, &vkCommandBuffer);
+	vkCmdBindPipeline(vkCommandBuffer, pipeline.bindPoint, pipeline);
 }
 
 CommandBuffer::operator VkCommandBuffer() const

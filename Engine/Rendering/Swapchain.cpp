@@ -189,6 +189,11 @@ Vector<VkImageView> Swapchain::GetImageViews()
     return views;
 }
 
+U32 Swapchain::ImageCount() const
+{
+    return imageCount;
+}
+
 Swapchain::operator VkSwapchainKHR() const
 {
 	return vkSwapchain;

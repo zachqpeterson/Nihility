@@ -58,7 +58,6 @@ private:
 	U32	depth;
 	U64	size;
 	U8 mipmapLevels;
-	bool inBindless = false;
 
 	VkImage image = VK_NULL_HANDLE;
 	VkImageView imageView = VK_NULL_HANDLE;

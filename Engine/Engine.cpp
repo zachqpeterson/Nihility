@@ -51,7 +51,16 @@ void Engine::Shutdown()
 
 void Engine::MainLoop()
 {
+	Scene scene;
+	scene.Create(CameraType::Orthographic);
 	ResourceRef<Texture> textureAtlas = Resources::LoadTexture("textures/atlas.png");
+	ResourceRef<Texture> playerTexture = Resources::LoadTexture("textures/missing_texture.png");
+
+	Renderer::SetScene(&scene);
+
+	SpriteInstance* player = scene.AddSprite(playerTexture, { Vector2::Zero, Vector2::One * 3.0f, Quaternion2::Identity });
+	F32 movespeed = 5.0f;
+	F32 sprintModifier = 2.0f;
 
 	F64 timeAccumulation = 0.0;
 	while (Platform::running)
@@ -72,7 +81,34 @@ void Engine::MainLoop()
 			F32 x = Random::RandomRange(0, 2) / 2.0f;
 			F32 y = Random::RandomRange(0, 2) / 2.0f;
 
-			Resources::CreateSprite(textureAtlas, t, Vector4::One, { x, y }, { 0.5f, 0.5f });
+			scene.AddSprite(textureAtlas, t, Vector4::One, { x, y }, { 0.5f, 0.5f });
+		}
+
+		F32 sprint = 1.0f;
+
+		if (Input::ButtonDown(ButtonCode::Shift))
+		{
+			sprint = sprintModifier;
+		}
+
+		if (Input::ButtonDown(ButtonCode::W))
+		{
+			player->transform.position += Vector2::Up * movespeed * sprint * Time::DeltaTime();
+		}
+
+		if (Input::ButtonDown(ButtonCode::S))
+		{
+			player->transform.position += Vector2::Down * movespeed * sprint * Time::DeltaTime();
+		}
+
+		if (Input::ButtonDown(ButtonCode::A))
+		{
+			player->transform.position += Vector2::Left * movespeed * sprint * Time::DeltaTime();
+		}
+
+		if (Input::ButtonDown(ButtonCode::D))
+		{
+			player->transform.position += Vector2::Right * movespeed * sprint * Time::DeltaTime();
 		}
 
 		//game update

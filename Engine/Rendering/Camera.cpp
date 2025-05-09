@@ -33,14 +33,6 @@ void Camera::Destroy()
 
 void Camera::Update()
 {
-	for (const ButtonEvent& event : Input::GetInputEvents())
-	{
-		if (event.code == ButtonCode::W && event.type == InputType::Press) { position += -forward * 0.1f; }
-		if (event.code == ButtonCode::A && event.type == InputType::Press) { position += right * 0.1f; }
-		if (event.code == ButtonCode::S && event.type == InputType::Press) { position += forward * 0.1f; }
-		if (event.code == ButtonCode::D && event.type == InputType::Press) { position += -right * 0.1f; }
-	}
-
 	const F32 zoomVal = Math::Pow(1.1f, zoom);
 
 	const Quaternion3 pitchRotation = { Vector3::Right, pitch };

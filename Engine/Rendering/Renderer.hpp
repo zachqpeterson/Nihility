@@ -17,6 +17,7 @@
 
 #include "Resources/ResourceDefines.hpp"
 #include "Resources/Texture.hpp"
+#include "Resources/Scene.hpp"
 
 struct VmaAllocator_T;
 struct VmaAllocation_T;
@@ -24,6 +25,7 @@ struct VmaAllocation_T;
 class Renderer
 {
 public:
+	static void SetScene(Scene* scene);
 
 private:
 	static bool Initialize();
@@ -64,6 +66,8 @@ private:
 	static FrameBuffer frameBuffer;
 	static VkSemaphore presentSemaphore;
 	static VkSemaphore renderSemaphore;
+	static GlobalPushConstant globalPushConstant;
+	static Scene* scene;
 
 	static U32 frameIndex;
 	static U32 imageIndex;
@@ -73,8 +77,6 @@ private:
 	static VkFence_T* inFlight[MaxSwapchainImages];
 
 	static Texture depthTextures[MaxSwapchainImages];
-
-	static Camera camera;
 
 	friend class Engine;
 	friend class Resources;
@@ -90,6 +92,8 @@ private:
 	friend struct Shader;
 	friend struct FrameBuffer;
 	friend struct DescriptorSet;
+	friend struct Material;
+	friend struct Scene;
 
 	STATIC_CLASS(Renderer);
 };
