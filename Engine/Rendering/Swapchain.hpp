@@ -48,4 +48,5 @@ private:
 	friend class Resources;
 	friend struct Renderpass;
 	friend struct FrameBuffer;
+	friend struct CommandBuffer;
 };

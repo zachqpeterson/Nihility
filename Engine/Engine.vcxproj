@@ -116,6 +116,7 @@
     <ClInclude Include="Rendering\Buffer.hpp" />
     <ClInclude Include="Rendering\Camera.hpp" />
     <ClInclude Include="Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Rendering\CommandBufferRing.hpp" />
     <ClInclude Include="Rendering\DescriptorSet.hpp" />
     <ClInclude Include="Rendering\Device.hpp" />
     <ClInclude Include="Rendering\FrameBuffer.hpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="Rendering\Buffer.cpp" />
     <ClCompile Include="Rendering\Camera.cpp" />
     <ClCompile Include="Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Rendering\CommandBufferRing.cpp" />
     <ClCompile Include="Rendering\DescriptorSet.cpp" />
     <ClCompile Include="Rendering\Device.cpp" />
     <ClCompile Include="Rendering\FrameBuffer.cpp" />

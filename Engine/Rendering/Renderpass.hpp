@@ -17,4 +17,5 @@ private:
 	friend class Renderer;
 	friend struct Pipeline;
 	friend struct FrameBuffer;
+	friend struct CommandBuffer;
 };

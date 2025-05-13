@@ -50,4 +50,5 @@ private:
 	friend class Renderer;
 	friend struct Device;
 	friend struct Swapchain;
+	friend struct CommandBuffer;
 };

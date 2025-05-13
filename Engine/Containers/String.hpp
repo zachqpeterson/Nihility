@@ -83,7 +83,7 @@ struct NH_API StringView
 	{
 		const C8* it = string + start;
 
-		while (!(*it == 0 || CompareString(it, find, Length - 1))) { ++it; }
+		while (!(*it == 0 || memcmp(it, find, Length - 1))) { ++it; }
 
 		if (*it == 0) { return -1; }
 		return (I64)(it - string);
@@ -106,7 +106,7 @@ struct NH_API StringView
 		const C8* it = string + length - start - Length;
 
 		U64 len = length - Length + 1;
-		while (!CompareString(it, find, Length - 1))
+		while (!memcmp(it, find, Length - 1))
 		{
 			if (--len) { --it; }
 			else { return -1; }
@@ -676,7 +676,7 @@ inline I64 StringBase<C>::IndexOf(C* find, U64 start) const
 	U64 findSize = Length(find);
 	C* it = string + start;
 
-	while (*it != 0 && !CompareString(it, find, findSize)) { ++it; }
+	while (*it != 0 && !memcmp(it, find, findSize)) { ++it; }
 
 	if (*it == 0) { return -1; }
 	return (I64)(it - string);
@@ -699,7 +699,7 @@ inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const
 {
 	C* it = string + start;
 
-	while (*it != 0 && !CompareString(it, find.string, find.size)) { ++it; }
+	while (*it != 0 && !memcmp(it, find.string, find.size)) { ++it; }
 
 	if (*it == 0) { return -1; }
 	return (I64)(it - string);
@@ -711,7 +711,7 @@ inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const
 {
 	C* it = string + start;
 
-	while (*it != 0 && !CompareString(it, find, Count - 1)) { ++it; }
+	while (*it != 0 && !memcmp(it, find, Count - 1)) { ++it; }
 
 	if (*it == 0) { return -1; }
 	return (I64)(it - string);
@@ -724,7 +724,7 @@ inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const
 	C* it = string + (size - start - findSize);
 
 	U64 len = size;
-	while (len && !CompareString(it, find, findSize)) { --it; --len; }
+	while (len && !memcmp(it, find, findSize)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -748,7 +748,7 @@ inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const
 	C* it = string + (size - start - find.size);
 
 	U64 len = size;
-	while (len && !CompareString(it, find.string, find.size)) { --it; --len; }
+	while (len && !memcmp(it, find.string, find.size)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -761,7 +761,7 @@ inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const
 	C* it = string + (size - start - Count + 1);
 
 	U64 len = size;
-	while (len && !CompareString(it, find, Count - 1)) { --it; --len; }
+	while (len && !memcmp(it, find, Count - 1)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;

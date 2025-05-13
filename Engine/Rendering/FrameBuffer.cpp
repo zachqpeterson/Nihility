@@ -41,3 +41,9 @@ void FrameBuffer::Destroy()
         vkDestroyImageView(Renderer::device, imageView, Renderer::allocationCallbacks);
     }
 }
+
+
+FrameBuffer::operator VkFramebuffer() const
+{
+    return vkFramebuffers[Renderer::frameIndex];
+}

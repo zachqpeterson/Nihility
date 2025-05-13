@@ -62,6 +62,9 @@ void Engine::MainLoop()
 	F32 movespeed = 5.0f;
 	F32 sprintModifier = 2.0f;
 
+	//Initial transfer
+	Renderer::SubmitTransfer();
+
 	F64 timeAccumulation = 0.0;
 	while (Platform::running)
 	{

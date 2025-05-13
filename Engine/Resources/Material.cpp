@@ -50,15 +50,12 @@ void Material::Destroy()
 void Material::Bind(CommandBuffer commandBuffer, U32 instanceCount) const
 {
 	commandBuffer.BindPipeline(pipeline);
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (U32)sets.Size(), sets.Data(), 0, nullptr);
-
-	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &Renderer::globalPushConstant);
+	commandBuffer.BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (U32)sets.Size(), sets.Data());
+	commandBuffer.PushConstants(pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &Renderer::globalPushConstant);
 
 	VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffers[Renderer::frameIndex] };
 	U64 offsets[] = { 0, 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32); //TODO: use U8
-
-	vkCmdDrawIndexed(commandBuffer, 6, instanceCount, 0, 0, 0);
+	commandBuffer.BindVertexBuffers(2, vertexBuffers, offsets);
+	commandBuffer.BindIndexBuffer(indexBuffer, 0);
+	commandBuffer.DrawIndexed(6, instanceCount, 0, 0, 0);
 }

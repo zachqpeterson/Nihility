@@ -33,7 +33,9 @@ private:
 
 	static void Update();
 	static void Synchronize();
+	static void SubmitTransfer();
 	static void Submit();
+
 
 	static bool InitializeVma();
 	static bool GetQueues();
@@ -43,9 +45,6 @@ private:
 	static bool CreateSynchronization();
 
 	static bool RecreateSwapchain();
-
-	static VkCommandPool CreateCommandPool(QueueType queueType);
-	static void DestroyCommandPool(VkCommandPool pool);
 
 	static bool UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler);
 	static void DestroyTexture(Resource<Texture>& texture);
@@ -57,8 +56,7 @@ private:
 	static VkQueue graphicsQueue;
 	static VkQueue presentQueue;
 	static Swapchain swapchain;
-	static VkCommandPool commandPool;
-	static CommandBuffer renderCommandBuffers[MaxSwapchainImages];
+	static Vector<VkCommandBuffer> commandBuffers[MaxSwapchainImages];
 	static VkDescriptorPool vkDescriptorPool;
 	static VkDescriptorPool vkBindlessDescriptorPool;
 	static DescriptorSet descriptorSet;
@@ -70,16 +68,20 @@ private:
 	static Scene* scene;
 
 	static U32 frameIndex;
-	static U32 imageIndex;
 	static U32 previousFrame;
-	static VkSemaphore_T* imageAvailable[MaxSwapchainImages];
-	static VkSemaphore_T* vertexInputFinished[MaxSwapchainImages];
-	static VkFence_T* inFlight[MaxSwapchainImages];
+	static U32 absoluteFrame;
+	static VkSemaphore imageAcquired[MaxSwapchainImages];
+	static VkSemaphore transferFinished[MaxSwapchainImages];
+	static VkSemaphore renderFinished[MaxSwapchainImages];
+	static VkSemaphore presentReady[MaxSwapchainImages];
+	static U64 renderWaitValues[MaxSwapchainImages];
+	static U64 transferWaitValues[MaxSwapchainImages];
 
 	static Texture depthTextures[MaxSwapchainImages];
 
 	friend class Engine;
 	friend class Resources;
+	friend class CommandBufferRing;
 	friend struct Instance;
 	friend struct PhysicalDevice;
 	friend struct Device;

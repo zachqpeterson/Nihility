@@ -58,7 +58,7 @@ void Scene::Update()
 	camera.Update();
 	if (dirtySprites)
 	{
-		spriteMaterial.instanceBuffers[Renderer::frameIndex].UploadVertexData(spriteInstances.Data(), spriteInstances.Size() * sizeof(SpriteInstance), 0, Renderer::vertexInputFinished[Renderer::previousFrame]);
+		spriteMaterial.instanceBuffers[Renderer::frameIndex].UploadVertexData(spriteInstances.Data(), spriteInstances.Size() * sizeof(SpriteInstance), 0, Renderer::renderFinished[Renderer::previousFrame]);
 	}
 }
 

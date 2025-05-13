@@ -46,5 +46,7 @@ private:
 	bool bindlessSupported;
 
 	friend class Renderer;
+	friend class CommandBufferRing;
 	friend struct Swapchain;
+	friend struct CommandBuffer;
 };

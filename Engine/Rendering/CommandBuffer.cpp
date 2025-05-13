@@ -2,101 +2,189 @@
 
 #include "Renderer.hpp"
 
-bool CommandBuffer::Create(VkCommandPool pool)
+VkResult CommandBuffer::Begin()
 {
-	vkCommandPool = pool;
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.pNext = nullptr;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	beginInfo.pInheritanceInfo = nullptr;
 
-	VkCommandBufferAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-	allocInfo.commandPool = vkCommandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = 1;
-
-	VkValidateFR(vkAllocateCommandBuffers(Renderer::device, &allocInfo, &vkCommandBuffer));
-
-	return true;
+	return vkBeginCommandBuffer(vkCommandBuffer, &beginInfo);
 }
 
-bool CommandBuffer::CreateSingleShotBuffer(VkCommandPool pool)
+VkResult CommandBuffer::End()
 {
-	if (!Create(pool)) { return false; }
-	if (!Reset()) { return false; }
-
-	VkCommandBufferBeginInfo cmdBeginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	if (!Begin(cmdBeginInfo)) { return false; }
-
-	return true;
+	return vkEndCommandBuffer(vkCommandBuffer);
 }
 
-void CommandBuffer::Destroy()
+void CommandBuffer::ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects)
 {
-	vkFreeCommandBuffers(Renderer::device, vkCommandPool, 1, &vkCommandBuffer);
+	vkCmdClearAttachments(vkCommandBuffer, attachmentCount, attachments, rectCount, rects);
 }
 
-bool CommandBuffer::Reset(VkCommandBufferResetFlags flags)
+void CommandBuffer::BeginRenderpass(const Renderpass& renderpass, const FrameBuffer& frameBuffer, const Swapchain& swapchain)
 {
-	VkValidateR(vkResetCommandBuffer(vkCommandBuffer, flags));
+	VkClearValue colorClearValue;
+	colorClearValue.color = { { 0.25f, 0.25f, 0.25f, 1.0f } };
 
-	return true;
+	VkClearValue depthValue;
+	depthValue.depthStencil.depth = 1.0f;
+
+	Vector<VkClearValue> clearValues = { colorClearValue, depthValue };
+
+	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	renderPassBegin.pNext = nullptr;
+	renderPassBegin.renderPass = renderpass;
+	renderPassBegin.framebuffer = frameBuffer;
+	renderPassBegin.renderArea.offset.x = 0;
+	renderPassBegin.renderArea.offset.y = 0;
+	renderPassBegin.renderArea.extent = swapchain.extent;
+	renderPassBegin.clearValueCount = (U32)clearValues.Size();
+	renderPassBegin.pClearValues = clearValues.Data();
+
+	vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (F32)swapchain.extent.width;
+	viewport.height = (F32)swapchain.extent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = swapchain.extent;
+
+	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
 }
 
-bool CommandBuffer::Begin(VkCommandBufferBeginInfo& beginInfo)
+void CommandBuffer::NextSubpass()
 {
-	VkValidateR(vkBeginCommandBuffer(vkCommandBuffer, &beginInfo));
-
-	return true;
+	vkCmdNextSubpass(vkCommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-bool CommandBuffer::BeginSingleShot()
+void CommandBuffer::EndRenderpass()
 {
-	VkCommandBufferBeginInfo cmdBeginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	if (!Begin(cmdBeginInfo)) { return false; }
-
-	return true;
+	vkCmdEndRenderPass(vkCommandBuffer);
 }
 
-bool CommandBuffer::End()
-{
-	VkValidateR(vkEndCommandBuffer(vkCommandBuffer));
-
-	return true;
-}
-
-bool CommandBuffer::SubmitSingleShotBuffer(VkQueue queue, VkSemaphore waitSemaphore)
-{
-	if (!End()) { return false; }
-
-	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.pNext = nullptr;
-	submitInfo.waitSemaphoreCount = 0;
-	submitInfo.pWaitSemaphores = nullptr;
-	submitInfo.pWaitDstStageMask = nullptr;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &vkCommandBuffer;
-	submitInfo.signalSemaphoreCount = 0;
-	submitInfo.pSignalSemaphores = nullptr;
-
-	VkFence bufferFence; //TODO: Don't create and wait on this here
-
-	VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	VkValidateR(vkCreateFence(Renderer::device, &fenceInfo, Renderer::allocationCallbacks, &bufferFence));
-	VkValidateR(vkResetFences(Renderer::device, 1, &bufferFence));
-	VkValidateR(vkQueueSubmit(queue, 1, &submitInfo, bufferFence));
-	VkValidateR(vkWaitForFences(Renderer::device, 1, &bufferFence, true, U64_MAX));
-
-	vkDestroyFence(Renderer::device, bufferFence, Renderer::allocationCallbacks);
-
-	Destroy();
-
-	return true;
-}
-
-void CommandBuffer::BindPipeline(const Pipeline& pipeline) const
+void CommandBuffer::BindPipeline(const Pipeline& pipeline)
 {
 	vkCmdBindPipeline(vkCommandBuffer, pipeline.bindPoint, pipeline);
+}
+
+void CommandBuffer::BindIndexBuffer(const Buffer& buffer, U32 offset)
+{
+	vkCmdBindIndexBuffer(vkCommandBuffer, buffer, offset, VK_INDEX_TYPE_UINT32); //TODO: Accept different index types
+}
+
+void CommandBuffer::BindVertexBuffers(U32 count, const VkBuffer* buffers, U64* offsets)
+{
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, count, buffers, offsets);
+}
+
+void CommandBuffer::BindDescriptorSets(VkPipelineBindPoint bindPoint, const PipelineLayout& pipelineLayout, U32 setOffset, U32 setCount, const VkDescriptorSet* sets)
+{
+	if (setCount)
+	{
+		vkCmdBindDescriptorSets(vkCommandBuffer, bindPoint, pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+	}
+}
+
+void CommandBuffer::PushConstants(const PipelineLayout& pipelineLayout, U32 stages, U32 offset, U32 size, const void* data)
+{
+	vkCmdPushConstants(vkCommandBuffer, pipelineLayout, stages, offset, size, data);
+}
+
+void CommandBuffer::Draw(U32 firstVertex, U32 vertexCount, U32 firstInstance, U32 instanceCount)
+{
+	vkCmdDraw(vkCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstIndex, I32 vertexOffset, U32 firstInstance)
+{
+	vkCmdDrawIndexed(vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset)
+{
+	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount and physicalDeviceFeatures.drawIndirectFirstInstance;
+
+	if (Renderer::device.physicalDevice.features.multiDrawIndirect)
+	{
+		vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer, offset, count, sizeof(VkDrawIndexedIndirectCommand));
+	}
+	else
+	{
+		for (U32 i = 0; i < count; ++i)
+		{
+			vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer, sizeof(VkDrawIndexedIndirectCommand) * i + offset, 1, sizeof(VkDrawIndexedIndirectCommand));
+		}
+	}
+}
+
+void CommandBuffer::DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
+{
+	vkCmdDrawIndexedIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndexedIndirectCommand));
+}
+
+void CommandBuffer::DrawIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
+{
+	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndirectCommand));
+}
+
+void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
+{
+	vkCmdDispatch(vkCommandBuffer, groupX, groupY, groupZ);
+}
+
+void CommandBuffer::BufferToImage(const Buffer& buffer, Resource<Texture>& texture, U32 regionCount, const VkBufferImageCopy* regions)
+{
+	vkCmdCopyBufferToImage(vkCommandBuffer, buffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
+}
+
+void CommandBuffer::ImageToBuffer(const ResourceRef<Texture>& texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions)
+{
+	vkCmdCopyImageToBuffer(vkCommandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, regionCount, regions);
+}
+
+void CommandBuffer::BufferToBuffer(const VkBuffer src, const VkBuffer dst, U32 regionCount, const VkBufferCopy* regions)
+{
+	vkCmdCopyBuffer(vkCommandBuffer, src, dst, regionCount, regions);
+}
+
+void CommandBuffer::BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions)
+{
+	vkCmdCopyBuffer(vkCommandBuffer, src, dst, regionCount, regions);
+}
+
+void CommandBuffer::ImageToImage(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, U32 regionCount, const VkImageCopy* regions)
+{
+	vkCmdCopyImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
+}
+
+void CommandBuffer::Blit(Resource<Texture>& src, Resource<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)
+{
+	vkCmdBlitImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, blitCount, blits, filter);
+}
+
+void CommandBuffer::Blit(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)
+{
+	vkCmdBlitImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, blitCount, blits, filter);
+}
+
+void CommandBuffer::PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers)
+{
+	VkDependencyInfo dependencyInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+	dependencyInfo.dependencyFlags = dependencyFlags;
+	dependencyInfo.bufferMemoryBarrierCount = bufferBarrierCount;
+	dependencyInfo.pBufferMemoryBarriers = bufferBarriers;
+	dependencyInfo.imageMemoryBarrierCount = imageBarrierCount;
+	dependencyInfo.pImageMemoryBarriers = imageBarriers;
+
+	vkCmdPipelineBarrier2(vkCommandBuffer, &dependencyInfo);
 }
 
 CommandBuffer::operator VkCommandBuffer() const
