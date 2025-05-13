@@ -9,23 +9,32 @@
 
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
+
+#ifdef NH_DEBUG
+#define VMA_DEBUG_LOG_ENABLED 1
+#define VMA_DEBUG_ALWAYS_DEDICATED_MEMORY 0
+#define VMA_RECORDING_ENABLED 1
+#endif
+
 #include "vma/vk_mem_alloc.h"
 
 VmaAllocator Renderer::vmaAllocator;
 VkAllocationCallbacks* Renderer::allocationCallbacks = VK_NULL_HANDLE;
+VkDescriptorPool Renderer::vkDescriptorPool = VK_NULL_HANDLE;
+VkDescriptorPool Renderer::vkBindlessDescriptorPool = VK_NULL_HANDLE;
+DescriptorSet Renderer::descriptorSet;
+Texture Renderer::depthTextures[MaxSwapchainImages];
+Buffer Renderer::stagingBuffers[MaxSwapchainImages];
+
 Instance Renderer::instance;
 Device Renderer::device;
 VkQueue Renderer::graphicsQueue;
 VkQueue Renderer::presentQueue;
 Swapchain Renderer::swapchain;
-Vector<VkCommandBuffer> Renderer::commandBuffers[MaxSwapchainImages];
-VkDescriptorPool Renderer::vkDescriptorPool = VK_NULL_HANDLE;
-VkDescriptorPool Renderer::vkBindlessDescriptorPool = VK_NULL_HANDLE;
-DescriptorSet Renderer::descriptorSet;
 Renderpass Renderer::renderpass;
 FrameBuffer Renderer::frameBuffer;
-VkSemaphore Renderer::presentSemaphore = VK_NULL_HANDLE;
-VkSemaphore Renderer::renderSemaphore = VK_NULL_HANDLE;
+
+Vector<VkCommandBuffer> Renderer::commandBuffers[MaxSwapchainImages];
 GlobalPushConstant Renderer::globalPushConstant;
 Scene* Renderer::scene;
 
@@ -38,8 +47,6 @@ VkSemaphore Renderer::renderFinished[MaxSwapchainImages];
 VkSemaphore Renderer::presentReady[MaxSwapchainImages];
 U64 Renderer::renderWaitValues[MaxSwapchainImages];
 U64 Renderer::transferWaitValues[MaxSwapchainImages];
-
-Texture Renderer::depthTextures[MaxSwapchainImages];
 
 bool Renderer::Initialize()
 {
@@ -56,6 +63,7 @@ bool Renderer::Initialize()
 	if (!CreateRenderpasses()) { Logger::Fatal("Failed To Create Renderpasses!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
 	if (!CreateSynchronization()) { Logger::Fatal("Failed To Create Synchronization Objects!"); return false; }
+	if (!CreateStagingBuffers()) { Logger::Fatal("Failed To Create Staging Buffers!"); return false; }
 
 	return true;
 }
@@ -65,6 +73,11 @@ void Renderer::Shutdown()
 	Logger::Trace("Cleaning Up Renderer...");
 
 	vkDeviceWaitIdle(device);
+
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		stagingBuffers[i].Destroy();
+	}
 
 	for (U32 i = 0; i < swapchain.imageCount; ++i)
 	{
@@ -90,6 +103,13 @@ void Renderer::Shutdown()
 	}
 
 	swapchain.Destroy();
+
+#if defined(NH_DEBUG) && 0
+	char* statsString = nullptr;
+	vmaBuildStatsString(vmaAllocator, &statsString, VK_TRUE);
+	printf("%s\n", statsString);
+	vmaFreeStatsString(vmaAllocator, statsString);
+#endif
 
 	vmaDestroyAllocator(vmaAllocator);
 
@@ -174,6 +194,7 @@ void Renderer::SubmitTransfer()
 
 		VkValidateF(vkQueueSubmit(graphicsQueue, 1, &submitInfo, nullptr));
 		commandBuffers[frameIndex].Clear();
+		stagingBuffers[frameIndex].stagingPointer = 0;
 	}
 }
 
@@ -417,6 +438,16 @@ bool Renderer::CreateSynchronization()
 	return true;
 }
 
+bool Renderer::CreateStagingBuffers()
+{
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		stagingBuffers[i].Create(BufferType::Staging, Gigabytes(1));
+	}
+
+	return true;
+}
+
 bool Renderer::RecreateSwapchain()
 {
 	vkDeviceWaitIdle(device);
@@ -437,9 +468,9 @@ bool Renderer::RecreateSwapchain()
 
 bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler)
 {
-	Buffer stagingBuffer;
-	stagingBuffer.Create(BufferType::Staging, texture->size);
-	stagingBuffer.UploadStagingData(data, texture->size);
+	U64 offset = stagingBuffers[frameIndex].StagingPointer();
+
+	stagingBuffers[frameIndex].UploadStagingData(data, texture->size, offset);
 
 	CommandBuffer& commandBuffer = CommandBufferRing::GetWriteCommandBuffer(frameIndex);
 	commandBuffer.Begin();
@@ -505,7 +536,7 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 	textureExtent.depth = texture->depth;
 
 	VkBufferImageCopy stagingBufferCopy{};
-	stagingBufferCopy.bufferOffset = 0;
+	stagingBufferCopy.bufferOffset = offset;
 	stagingBufferCopy.bufferRowLength = 0;
 	stagingBufferCopy.bufferImageHeight = 0;
 	stagingBufferCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -529,7 +560,7 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 	stagingBufferShaderBarrier.subresourceRange = stagingBufferRange;
 
 	commandBuffer.PipelineBarrier(0, 0, nullptr, 1, &stagingBufferTransferBarrier);
-	commandBuffer.BufferToImage(stagingBuffer, texture, 1, &stagingBufferCopy);
+	commandBuffer.BufferToImage(stagingBuffers[frameIndex], texture, 1, &stagingBufferCopy);
 	commandBuffer.PipelineBarrier(0, 0, nullptr, 1, &stagingBufferShaderBarrier);
 
 	if (texture->mipmapLevels > 1)

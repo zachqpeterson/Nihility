@@ -31,6 +31,8 @@ bool Engine::Initialize()
 	Resources::Initialize();
 	Time::Initialize();
 
+	//TODO: Initialize Game
+
 	MainLoop();
 	Shutdown();
 
@@ -39,6 +41,8 @@ bool Engine::Initialize()
 
 void Engine::Shutdown()
 {
+	//TODO: Shutdown Game
+
 	Time::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();
@@ -131,4 +135,6 @@ void Engine::MainLoop()
 			remainingUS = (I64)(remainingFrameTime * 1000000.0);
 		}
 	}
+
+	scene.Destroy();
 }

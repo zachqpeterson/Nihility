@@ -43,8 +43,7 @@ bool Instance::Create()
 
 	Vector<const C8*> extensions;
 	Vector<const C8*> layers;
-
-	extensions.Push(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+	
 	extensions.Push(VK_KHR_SURFACE_EXTENSION_NAME);
 #ifdef NH_PLATFORM_WINDOWS
 	extensions.Push(VK_KHR_WIN32_SURFACE_EXTENSION_NAME); //TODO: Other platforms

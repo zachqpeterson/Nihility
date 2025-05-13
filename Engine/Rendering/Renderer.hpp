@@ -36,37 +36,43 @@ private:
 	static void SubmitTransfer();
 	static void Submit();
 
-
 	static bool InitializeVma();
 	static bool GetQueues();
 	static bool CreateDepthTextures();
 	static bool CreateDescriptorPool();
 	static bool CreateRenderpasses();
 	static bool CreateSynchronization();
+	static bool CreateStagingBuffers();
 
 	static bool RecreateSwapchain();
 
 	static bool UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler);
 	static void DestroyTexture(Resource<Texture>& texture);
 
+	//Resources
 	static VmaAllocator_T* vmaAllocator;
 	static VkAllocationCallbacks* allocationCallbacks;
+	static VkDescriptorPool vkDescriptorPool;
+	static VkDescriptorPool vkBindlessDescriptorPool;
+	static DescriptorSet descriptorSet;
+	static Texture depthTextures[MaxSwapchainImages];
+	static Buffer stagingBuffers[MaxSwapchainImages];
+
+	//Vulkan Objects
 	static Instance instance;
 	static Device device;
 	static VkQueue graphicsQueue;
 	static VkQueue presentQueue;
 	static Swapchain swapchain;
-	static Vector<VkCommandBuffer> commandBuffers[MaxSwapchainImages];
-	static VkDescriptorPool vkDescriptorPool;
-	static VkDescriptorPool vkBindlessDescriptorPool;
-	static DescriptorSet descriptorSet;
 	static Renderpass renderpass;
 	static FrameBuffer frameBuffer;
-	static VkSemaphore presentSemaphore;
-	static VkSemaphore renderSemaphore;
+
+	//Recording
+	static Vector<VkCommandBuffer> commandBuffers[MaxSwapchainImages];
 	static GlobalPushConstant globalPushConstant;
 	static Scene* scene;
 
+	//Synchronization
 	static U32 frameIndex;
 	static U32 previousFrame;
 	static U32 absoluteFrame;
@@ -76,8 +82,6 @@ private:
 	static VkSemaphore presentReady[MaxSwapchainImages];
 	static U64 renderWaitValues[MaxSwapchainImages];
 	static U64 transferWaitValues[MaxSwapchainImages];
-
-	static Texture depthTextures[MaxSwapchainImages];
 
 	friend class Engine;
 	friend class Resources;

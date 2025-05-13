@@ -38,13 +38,8 @@ bool Device::Create()
 	features2.features.shaderInt64 = true; 
 	features2.features.samplerAnisotropy = true;
 
-	VkPhysicalDeviceVulkan11Features features11{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-	features11.pNext = &features2;
-	features11.storageBuffer16BitAccess = true;
-	features11.shaderDrawParameters = true;
-
 	VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-	features12.pNext = &features11;
+	features12.pNext = &features2;
 	features12.drawIndirectCount = true;
 	features12.storageBuffer8BitAccess = true;
 	features12.uniformAndStorageBuffer8BitAccess = true;

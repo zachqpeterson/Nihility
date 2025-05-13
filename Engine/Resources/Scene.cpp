@@ -48,6 +48,8 @@ bool Scene::Create(CameraType type)
 
 void Scene::Destroy()
 {
+	vkDeviceWaitIdle(Renderer::device);
+
 	spriteVertexShader.Destroy();
 	spriteFragmentShader.Destroy();
 	spriteMaterial.Destroy();

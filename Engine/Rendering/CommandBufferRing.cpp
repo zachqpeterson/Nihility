@@ -43,6 +43,8 @@ bool CommandBufferRing::Initialize()
 		commandBufferInfo.commandPool = commandPools[i];
 		VkValidateFR(vkAllocateCommandBuffers(Renderer::device, &commandBufferInfo, (VkCommandBuffer*)(commandBuffers + BuffersPerPool * i)));
 	}
+
+	return true;
 }
 
 void CommandBufferRing::Shutdown()

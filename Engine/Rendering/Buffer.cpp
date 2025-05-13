@@ -231,6 +231,8 @@ bool Buffer::UploadUniformData(const void* uniformData, U64 size, U64 offset)
 
 bool Buffer::UploadStagingData(const void* stagingData, U64 size, U64 offset)
 {
+	stagingPointer = Math::Max(offset + size, stagingPointer);
+
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, bufferAllocation, &data));
 
@@ -239,6 +241,11 @@ bool Buffer::UploadStagingData(const void* stagingData, U64 size, U64 offset)
 	vmaFlushAllocation(Renderer::vmaAllocator, bufferAllocation, 0, bufferSize);
 
 	return true;
+}
+
+U64 Buffer::StagingPointer() const
+{
+	return stagingPointer;
 }
 
 Buffer::operator VkBuffer() const
