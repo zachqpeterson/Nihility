@@ -7,6 +7,8 @@
 #include "Math/Math.hpp"
 #include "Resources/Resources.hpp"
 
+#include "tracy/Tracy.hpp"
+
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
 
@@ -120,6 +122,8 @@ void Renderer::Shutdown()
 
 void Renderer::Update()
 {
+	ZoneScopedN("RenderMain");
+
 	Synchronize();
 
 	Resources::Update();
@@ -147,6 +151,8 @@ void Renderer::Update()
 
 void Renderer::Synchronize()
 {
+	ZoneScopedN("RenderSynchronize");
+
 	U32 i = absoluteFrame % swapchain.imageCount;
 	VkResult res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAcquired[i], VK_NULL_HANDLE, &frameIndex);
 
@@ -171,6 +177,8 @@ void Renderer::Synchronize()
 
 void Renderer::SubmitTransfer()
 {
+	ZoneScopedN("RenderTransfer");
+
 	if (commandBuffers[frameIndex].Size())
 	{
 		++transferWaitValues[frameIndex];
@@ -200,6 +208,8 @@ void Renderer::SubmitTransfer()
 
 void Renderer::Submit()
 {
+	ZoneScopedN("RenderSubmit");
+
 	++renderWaitValues[frameIndex];
 
 	VkSemaphoreSubmitInfo waitSemaphores[] = {

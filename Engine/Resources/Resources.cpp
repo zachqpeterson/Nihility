@@ -5,6 +5,7 @@
 #include "Containers/Stack.hpp"
 #include "Containers/Pair.hpp"
 
+#include "tracy/Tracy.hpp"
 #include "vma/vk_mem_alloc.h"
 
 #define STBI_NO_STDIO
@@ -59,6 +60,8 @@ void Resources::Shutdown()
 
 void Resources::Update()
 {
+	ZoneScopedN("ResourcesUpdate");
+
 	if (bindlessTexturesToUpdate.Size())
 	{
 		Vector<VkWriteDescriptorSet> writes(bindlessTexturesToUpdate.Size());

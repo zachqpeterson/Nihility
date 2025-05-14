@@ -58,7 +58,7 @@ void Scene::Destroy()
 void Scene::Update()
 {
 	camera.Update();
-	if (dirtySprites)
+	if (spriteInstances.Size())
 	{
 		spriteMaterial.instanceBuffers[Renderer::frameIndex].UploadVertexData(spriteInstances.Data(), spriteInstances.Size() * sizeof(SpriteInstance), 0, Renderer::renderFinished[Renderer::previousFrame]);
 	}
@@ -79,8 +79,6 @@ SpriteInstance* Scene::AddSprite(const ResourceRef<Texture>& texture, const Tran
 		Logger::Error("Max Instances Reached!");
 		return nullptr;
 	}
-
-	dirtySprites = true;
 
 	SpriteInstance instance{};
 	instance.transform = transform;

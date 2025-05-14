@@ -20,6 +20,8 @@
 
 #include "Core/Formatting.hpp"
 
+#include "tracy/Tracy.hpp"
+
 bool Engine::Initialize()
 {
 	Logger::Initialize();
@@ -72,6 +74,7 @@ void Engine::MainLoop()
 	F64 timeAccumulation = 0.0;
 	while (Platform::running)
 	{
+		FrameMark;
 		Time::Update();
 		Input::Update();
 		Platform::Update();

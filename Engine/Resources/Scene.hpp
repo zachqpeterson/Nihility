@@ -26,7 +26,6 @@ private:
 	Shader spriteFragmentShader;
 	Vector<SpriteInstance> spriteInstances;
 	Camera camera;
-	bool dirtySprites = false;
 
 	friend class Renderer;
 };

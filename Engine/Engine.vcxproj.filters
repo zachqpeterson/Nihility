@@ -26,6 +26,9 @@
     <Filter Include="Source Files\Rendering">
       <UniqueIdentifier>{d762ae16-f95c-419b-a07d-f69318a32d3f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\External">
+      <UniqueIdentifier>{7d4b29a3-64d5-41f4-9ba7-0458fb355167}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -257,6 +260,9 @@
     </ClCompile>
     <ClCompile Include="Rendering\CommandBufferRing.cpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\tracy\TracyClient.cpp">
+      <Filter>Source Files\External</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
