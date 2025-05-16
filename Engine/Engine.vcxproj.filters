@@ -175,6 +175,9 @@
     <ClInclude Include="Rendering\CommandBufferRing.hpp">
       <Filter>Source Files\Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Math\Physics.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -263,6 +266,9 @@
     </ClCompile>
     <ClCompile Include="..\Lib\tracy\TracyClient.cpp">
       <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Physics.cpp">
+      <Filter>Source Files\Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

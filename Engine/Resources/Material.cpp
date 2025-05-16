@@ -19,10 +19,10 @@ bool Material::Create(const PipelineLayout& pipelineLayout, const Pipeline& pipe
 	}
 
 	SpriteVertex vertices[4] = {
-	{ { -0.5f, -0.5f }, { 0.0f, 1.0f } },
-	{ { -0.5f,  0.5f }, { 0.0f, 0.0f } },
-	{ {  0.5f,  0.5f }, { 1.0f, 0.0f } },
-	{ {  0.5f, -0.5f }, { 1.0f, 1.0f } }
+	{ { -1.0f, -1.0f }, { 0.0f, 1.0f } },
+	{ { -1.0f,  1.0f }, { 0.0f, 0.0f } },
+	{ {  1.0f,  1.0f }, { 1.0f, 0.0f } },
+	{ {  1.0f, -1.0f }, { 1.0f, 1.0f } }
 	};
 
 	U32 indices[6] = { 0, 1, 2, 2, 3, 0 };

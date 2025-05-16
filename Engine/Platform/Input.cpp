@@ -289,6 +289,11 @@ void Input::Shutdown()
 void Input::Update()
 {
 	events.Clear();
+
+	for (ButtonState& state : buttonStates)
+	{
+		state.changed = false;
+	}
 	
 	deltaMousePosX = 0;
 	deltaMousePosY = 0;

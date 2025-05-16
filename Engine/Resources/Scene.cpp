@@ -4,8 +4,14 @@
 
 #include "Rendering/Renderer.hpp"
 
+#include "box2d/box2d.h"
+
+U32 Scene::SceneID = 0;
+
 bool Scene::Create(CameraType type)
 {
+	sceneId = SceneID++;
+
 	spriteInstances.Reserve(10000);
 	camera.Create(type);
 
@@ -30,9 +36,9 @@ bool Scene::Create(CameraType type)
 		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteVertex, position) },
 		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteVertex, texcoord) },
 
-		{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Transform, position) },
-		{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Transform, scale) },
-		{ 4, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Transform, rotation) },
+		{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, position) },
+		{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, scale) },
+		{ 4, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, rotation) },
 		{ 5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SpriteInstance, instColor) },
 		{ 6, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, instTexcoord) },
 		{ 7, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, instTexcoordScale) },
@@ -57,6 +63,27 @@ void Scene::Destroy()
 
 void Scene::Update()
 {
+	for (Entity& entity : entities)
+	{
+		if (entity.bodyId.index != 0)
+		{
+			b2Transform transform = b2Body_GetTransform(TypePun<b2BodyId>(entity.bodyId));
+	
+			entity.position.x = transform.p.x;
+			entity.position.y = transform.p.y;
+			entity.rotation.x = transform.q.s;
+			entity.rotation.y = transform.q.c;
+		}
+	
+		if (entity.spriteId != U32_MAX)
+		{
+			SpriteInstance& instance = spriteInstances[entity.spriteId];
+	
+			instance.position = entity.position;
+			instance.rotation = entity.rotation;
+		}
+	}
+
 	camera.Update();
 	if (spriteInstances.Size())
 	{
@@ -72,20 +99,70 @@ void Scene::Render(CommandBuffer commandBuffer) const
 	}
 }
 
-SpriteInstance* Scene::AddSprite(const ResourceRef<Texture>& texture, const Transform& transform, const Vector4& color, const Vector2& textureCoord, const Vector2& textureScale)
+EntityId Scene::CreateEntity(Vector2 position, Quaternion2 rotation)
 {
+	Entity entity{};
+	entity.position = position;
+	entity.rotation = rotation;
+
+	EntityId id{};
+	id.entityId = entities.Size();
+	id.sceneId = sceneId;
+
+	entities.Push(entity);
+
+	return id;
+}
+
+void Scene::AddSprite(const EntityId& id, const ResourceRef<Texture>& texture, const Vector2& scale, const Vector4& color, const Vector2& textureCoord, const Vector2& textureScale)
+{
+	if (id.sceneId != sceneId)
+	{
+		Logger::Error("This Entity Is Not A Part Of This Scene!");
+		return;
+	}
+
 	if (spriteInstances.Full())
 	{
 		Logger::Error("Max Instances Reached!");
-		return nullptr;
+		return;
 	}
 
+	Entity& entity = entities[id.entityId];
+	entity.spriteId = spriteInstances.Size();
+
 	SpriteInstance instance{};
-	instance.transform = transform;
+	instance.position = entity.position;
+	instance.rotation = entity.rotation;
+	instance.scale = scale;
 	instance.instColor = color;
 	instance.instTexcoord = textureCoord;
 	instance.instTexcoordScale = textureScale;
 	instance.textureIndex = texture.Handle();
 
-	return &spriteInstances.Push(instance);
+	spriteInstances.Push(instance);
+}
+
+void Scene::AddRigidBody(const EntityId& id, BodyType type)
+{
+	Entity& entity = entities[id.entityId];
+
+	b2BodyDef bodyDef = b2DefaultBodyDef();
+	bodyDef.position.x = entity.position.x;
+	bodyDef.position.y = entity.position.y;
+	bodyDef.rotation.c = entity.rotation.y;
+	bodyDef.rotation.s = entity.rotation.x;
+	bodyDef.type = (b2BodyType)type;
+
+	entity.bodyId = TypePun<BodyId>(b2CreateBody(Physics::WorldID(), &bodyDef));
+}
+
+void Scene::AddCollider(const EntityId& id, const Vector2& scale)
+{
+	Entity& entity = entities[id.entityId];
+
+	b2Polygon box = b2MakeBox(scale.x, scale.y);
+
+	b2ShapeDef shapeDef = b2DefaultShapeDef();
+	b2CreatePolygonShape(TypePun<b2BodyId>(entity.bodyId), &shapeDef, &box);
 }

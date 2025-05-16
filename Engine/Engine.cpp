@@ -15,6 +15,7 @@
 #include "Core/Events.hpp"
 #include "Math/Math.hpp"
 #include "Math/Random.hpp"
+#include "Math/Physics.hpp"
 #include "Multithreading/Jobs.hpp"
 #include "Rendering/Renderer.hpp"
 
@@ -31,6 +32,7 @@ bool Engine::Initialize()
 	Input::Initialize();
 	Renderer::Initialize();
 	Resources::Initialize();
+	Physics::Initialize();
 	Time::Initialize();
 
 	//TODO: Initialize Game
@@ -46,6 +48,7 @@ void Engine::Shutdown()
 	//TODO: Shutdown Game
 
 	Time::Shutdown();
+	Physics::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();
 	Input::Shutdown();
@@ -64,9 +67,11 @@ void Engine::MainLoop()
 
 	Renderer::SetScene(&scene);
 
-	SpriteInstance* player = scene.AddSprite(playerTexture, { Vector2::Zero, Vector2::One * 3.0f, Quaternion2::Identity });
-	F32 movespeed = 5.0f;
-	F32 sprintModifier = 2.0f;
+	EntityId ground = scene.CreateEntity({ 0.0f, -10.0f });
+
+	scene.AddSprite(ground, playerTexture, { 100.0f, 3.0f });
+	scene.AddRigidBody(ground, BodyType::Static);
+	scene.AddCollider(ground, { 100.0f, 3.0f });
 
 	//Initial transfer
 	Renderer::SubmitTransfer();
@@ -83,47 +88,24 @@ void Engine::MainLoop()
 
 		if (Input::ButtonDown(ButtonCode::E))
 		{
-			Transform t{};
-			t.position.x = Random::RandomUniform() * 100.0f - 50.0f;
-			t.position.y = Random::RandomUniform() * 60.0f - 30.0f;
-			t.scale = Vector2::One * 5.0f;
+			Vector2 position;
+			position.x = Random::RandomUniform() * 100.0f - 50.0f;
+			position.y = Random::RandomUniform() * 60.0f - 30.0f;
+
+			EntityId id = scene.CreateEntity(position);
 
 			F32 x = Random::RandomRange(0, 2) / 2.0f;
 			F32 y = Random::RandomRange(0, 2) / 2.0f;
 
-			scene.AddSprite(textureAtlas, t, Vector4::One, { x, y }, { 0.5f, 0.5f });
-		}
-
-		F32 sprint = 1.0f;
-
-		if (Input::ButtonDown(ButtonCode::Shift))
-		{
-			sprint = sprintModifier;
-		}
-
-		if (Input::ButtonDown(ButtonCode::W))
-		{
-			player->transform.position += Vector2::Up * movespeed * sprint * Time::DeltaTime();
-		}
-
-		if (Input::ButtonDown(ButtonCode::S))
-		{
-			player->transform.position += Vector2::Down * movespeed * sprint * Time::DeltaTime();
-		}
-
-		if (Input::ButtonDown(ButtonCode::A))
-		{
-			player->transform.position += Vector2::Left * movespeed * sprint * Time::DeltaTime();
-		}
-
-		if (Input::ButtonDown(ButtonCode::D))
-		{
-			player->transform.position += Vector2::Right * movespeed * sprint * Time::DeltaTime();
+			scene.AddSprite(id, textureAtlas, Vector2::One, Vector4::One, { x, y }, { 0.5f, 0.5f });
+			scene.AddRigidBody(id, BodyType::Dynamic);
+			scene.AddCollider(id);
 		}
 
 		//game update
 
 		//physics update
+		Physics::Update();
 
 		Renderer::Update();
 

@@ -220,16 +220,11 @@ struct NH_API SpriteVertex
 	Vector2 texcoord = Vector2::Zero;
 };
 
-struct NH_API Transform
+struct NH_API SpriteInstance
 {
 	Vector2 position = Vector2::Zero;
 	Vector2 scale = Vector2::One;
 	Quaternion2 rotation = Quaternion2::Identity;
-};
-
-struct NH_API SpriteInstance
-{
-	Transform transform = {};
 	Vector4 instColor = Vector4::One;
 	Vector2 instTexcoord = Vector2::Zero;
 	Vector2 instTexcoordScale = Vector2::One;

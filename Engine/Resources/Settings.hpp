@@ -82,6 +82,7 @@ private:
 	friend class Engine;
 	friend class Platform;
 	friend class Input;
+	friend class Physics;
 
 	STATIC_CLASS(Settings);
 };

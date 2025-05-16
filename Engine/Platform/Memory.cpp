@@ -20,9 +20,10 @@ bool Memory::Initialize()
 
 		U32 freeListMemory = (region4mbCount + region256kbCount + region16kbCount + region1kbCount) * sizeof(U32);
 
-		memory = (U8*)calloc(1, DynamicMemorySize + freeListMemory);
-
+		memory = (U8*)_aligned_malloc(DynamicMemorySize + freeListMemory, 32);
 		if (!memory) { return initialized = false; }
+
+		memset(memory, 0, DynamicMemorySize + freeListMemory);
 
 		U32* freeLists = (U32*)(memory + DynamicMemorySize);
 
