@@ -25,6 +25,11 @@
 
 bool Engine::Initialize()
 {
+	U8* i = nullptr;
+	Memory::Allocate(&i, 8);
+	//fill up 8 slots
+	Memory::Reallocate(&i, 9);
+
 	Logger::Initialize();
 	Memory::Initialize();
 	Settings::Initialize();
@@ -62,12 +67,13 @@ void Engine::MainLoop()
 {
 	Scene scene;
 	scene.Create(CameraType::Orthographic);
+
 	ResourceRef<Texture> textureAtlas = Resources::LoadTexture("textures/atlas.png");
 	ResourceRef<Texture> playerTexture = Resources::LoadTexture("textures/missing_texture.png");
 
 	Renderer::SetScene(&scene);
 
-	EntityId ground = scene.CreateEntity({ 0.0f, -10.0f });
+	EntityId ground = scene.CreateEntity({ 0.0f, -30.0f });
 
 	scene.AddSprite(ground, playerTexture, { 100.0f, 3.0f });
 	scene.AddRigidBody(ground, BodyType::Static);

@@ -6,6 +6,8 @@
 
 #include "box2d/box2d.h"
 
+#include "tracy/Tracy.hpp"
+
 U32 Scene::SceneID = 0;
 
 bool Scene::Create(CameraType type)
@@ -63,6 +65,7 @@ void Scene::Destroy()
 
 void Scene::Update()
 {
+	ZoneScopedN("Scene");
 	for (Entity& entity : entities)
 	{
 		if (entity.bodyId.index != 0)

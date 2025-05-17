@@ -7,6 +7,8 @@
 
 #include "box2d/box2d.h"
 
+#include "tracy/Tracy.hpp"
+
 b2WorldId worldId;
 
 F64 Physics::timeStep;
@@ -14,7 +16,7 @@ F64 Physics::timeStep;
 void* AllocFcn(U32 size, I32 alignment)
 {
 	U8* buffer = nullptr;
-	Memory::Allocate(&buffer);
+	Memory::Allocate(&buffer, size);
 	return buffer;
 }
 
@@ -31,7 +33,7 @@ I32 AssertFcn(const C8* condition, const C8* fileName, I32 lineNumber)
 
 bool Physics::Initialize()
 {
-	//b2SetAllocator(AllocFcn, FreeFcn);
+	b2SetAllocator(AllocFcn, FreeFcn);
 	b2SetAssertFcn(AssertFcn);
 
 	b2WorldDef worldDef = b2DefaultWorldDef();
@@ -49,6 +51,7 @@ void Physics::Shutdown()
 
 void Physics::Update()
 {
+	ZoneScopedN("Physics");
 	b2World_Step(worldId, (F32)timeStep, 4);
 }
 

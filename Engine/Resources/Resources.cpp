@@ -26,8 +26,13 @@ bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
-	whiteTexture = LoadTexture("textures/white.png");
-	placeholderTexture = LoadTexture("textures/missing_texture.png");
+
+	Sampler pointSampler{};
+	pointSampler.filterMode = FilterMode::Point;
+	pointSampler.mipMapSampleMode = MipMapSampleMode::Single;
+
+	whiteTexture = LoadTexture("textures/white.png", pointSampler);
+	placeholderTexture = LoadTexture("textures/missing_texture.png", pointSampler);
 
 	DescriptorBinding textureBinding{};
 	textureBinding.type = BindingType::CombinedImageSampler;

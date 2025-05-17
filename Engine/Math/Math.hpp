@@ -5066,7 +5066,7 @@ inline const F32& Quaternion3::operator[] (U8 i) const { return (&x)[i]; }
 inline F32* Quaternion3::Data() { return &x; }
 inline const F32* Quaternion3::Data() const { return &x; }
 
-inline constexpr Quaternion3::operator Quaternion2() const { return { x, w }; }
+inline constexpr Quaternion3::operator Quaternion2() const { return { z, w }; }
 inline constexpr Quaternion3::operator Vector3() const { return { x, y, z }; }
 
 inline const Quaternion3 Quaternion3::Identity = {};

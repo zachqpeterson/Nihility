@@ -303,25 +303,35 @@ inline bool Memory::IsAllocated(void* pointer)
 template<class Region>
 inline bool MemoryRegion<Region>::Reallocate(void** src, void** dst)
 {
-	Allocate(dst);
-
 	if (MemoryRegion<Region1kb>::WithinRegion(*src))
 	{
+		if constexpr (IsSame<Region1kb, Region>) { return false; }
+
+		Allocate(dst);
 		memmove(*dst, *src, sizeof(Region1kb));
 		MemoryRegion<Region1kb>::Free(src);
 	}
 	else if (MemoryRegion<Region16kb>::WithinRegion(*src))
 	{
+		if constexpr (IsSame<Region16kb, Region>) { return false; }
+
+		Allocate(dst);
 		memmove(*dst, *src, sizeof(Region16kb));
 		MemoryRegion<Region16kb>::Free(src);
 	}
 	else if (MemoryRegion<Region256kb>::WithinRegion(*src))
 	{
+		if constexpr (IsSame<Region256kb, Region>) { return false; }
+
+		Allocate(dst);
 		memmove(*dst, *src, sizeof(Region256kb));
 		MemoryRegion<Region256kb>::Free(src);
 	}
 	else if (MemoryRegion<Region4mb>::WithinRegion(*src))
 	{
+		if constexpr (IsSame<Region4mb, Region>) { return false; }
+
+		Allocate(dst);
 		memmove(*dst, *src, sizeof(Region4mb));
 		MemoryRegion<Region4mb>::Free(src);
 	}
