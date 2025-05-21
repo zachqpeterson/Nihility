@@ -50,7 +50,7 @@ void Material::Destroy()
 void Material::Bind(CommandBuffer commandBuffer, U32 instanceCount) const
 {
 	commandBuffer.BindPipeline(pipeline);
-	commandBuffer.BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, (U32)sets.Size(), sets.Data());
+	commandBuffer.BindDescriptorSets(BindPoint::Graphics, pipelineLayout, 0, (U32)sets.Size(), sets.Data());
 	commandBuffer.PushConstants(pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GlobalPushConstant), &Renderer::globalPushConstant);
 
 	VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffers[Renderer::frameIndex] };

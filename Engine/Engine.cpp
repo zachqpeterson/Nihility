@@ -13,34 +13,40 @@
 #include "Core/File.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
+#include "Core/Formatting.hpp"
 #include "Math/Math.hpp"
 #include "Math/Random.hpp"
 #include "Math/Physics.hpp"
 #include "Multithreading/Jobs.hpp"
 #include "Rendering/Renderer.hpp"
 
-#include "Core/Formatting.hpp"
-
 #include "tracy/Tracy.hpp"
 
-bool Engine::Initialize()
+#include <crtdbg.h>
+
+GameInfo Engine::game;
+
+bool Engine::Initialize(const GameInfo& _info)
 {
-	U8* i = nullptr;
-	Memory::Allocate(&i, 8);
-	//fill up 8 slots
-	Memory::Reallocate(&i, 9);
+#ifdef NH_DEBUG
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG | _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
+#endif
 
-	Logger::Initialize();
-	Memory::Initialize();
-	Settings::Initialize();
-	Platform::Initialize("Nihility Demo");
-	Input::Initialize();
-	Renderer::Initialize();
-	Resources::Initialize();
-	Physics::Initialize();
-	Time::Initialize();
+	game = _info;
 
-	//TODO: Initialize Game
+	if (!Logger::Initialize()) { return false; }
+	if (!Memory::Initialize()) { return false; }
+	if (!Settings::Initialize()) { return false; }
+	if (!Platform::Initialize(game.name)) { return false; }
+	if (!Input::Initialize()) { return false; }
+	if (!Renderer::Initialize(game.name, game.version)) { return false; }
+	if (!Resources::Initialize()) { return false; }
+	if (!Physics::Initialize()) { return false; }
+	if (!game.initialize()) { return false; }
+	if (!Time::Initialize()) { return false; }
+
+	Renderer::SubmitTransfer();
 
 	MainLoop();
 	Shutdown();
@@ -50,8 +56,7 @@ bool Engine::Initialize()
 
 void Engine::Shutdown()
 {
-	//TODO: Shutdown Game
-
+	game.shutdown();
 	Time::Shutdown();
 	Physics::Shutdown();
 	Resources::Shutdown();
@@ -65,23 +70,6 @@ void Engine::Shutdown()
 
 void Engine::MainLoop()
 {
-	Scene scene;
-	scene.Create(CameraType::Orthographic);
-
-	ResourceRef<Texture> textureAtlas = Resources::LoadTexture("textures/atlas.png");
-	ResourceRef<Texture> playerTexture = Resources::LoadTexture("textures/missing_texture.png");
-
-	Renderer::SetScene(&scene);
-
-	EntityId ground = scene.CreateEntity({ 0.0f, -30.0f });
-
-	scene.AddSprite(ground, playerTexture, { 100.0f, 3.0f });
-	scene.AddRigidBody(ground, BodyType::Static);
-	scene.AddCollider(ground, { 100.0f, 3.0f });
-
-	//Initial transfer
-	Renderer::SubmitTransfer();
-
 	F64 timeAccumulation = 0.0;
 	while (Platform::running)
 	{
@@ -92,25 +80,8 @@ void Engine::MainLoop()
 
 		if (Input::OnButtonDown(ButtonCode::Escape)) { Platform::running = false; }
 
-		if (Input::ButtonDown(ButtonCode::E))
-		{
-			Vector2 position;
-			position.x = Random::RandomUniform() * 100.0f - 50.0f;
-			position.y = Random::RandomUniform() * 60.0f - 30.0f;
+		game.update();
 
-			EntityId id = scene.CreateEntity(position);
-
-			F32 x = Random::RandomRange(0, 2) / 2.0f;
-			F32 y = Random::RandomRange(0, 2) / 2.0f;
-
-			scene.AddSprite(id, textureAtlas, Vector2::One, Vector4::One, { x, y }, { 0.5f, 0.5f });
-			scene.AddRigidBody(id, BodyType::Dynamic);
-			scene.AddCollider(id);
-		}
-
-		//game update
-
-		//physics update
 		Physics::Update();
 
 		Renderer::Update();
@@ -126,6 +97,4 @@ void Engine::MainLoop()
 			remainingUS = (I64)(remainingFrameTime * 1000000.0);
 		}
 	}
-
-	scene.Destroy();
 }

@@ -18,17 +18,22 @@
 #include "Resources/ResourceDefines.hpp"
 #include "Resources/Texture.hpp"
 #include "Resources/Scene.hpp"
+#include "Containers/String.hpp"
 
 struct VmaAllocator_T;
 struct VmaAllocation_T;
+struct VkDescriptorPool_T;
+struct VkCommandBuffer_T;
+struct VkSemaphore_T;
+struct VkAllocationCallbacks;
 
-class Renderer
+class NH_API Renderer
 {
 public:
 	static void SetScene(Scene* scene);
 
 private:
-	static bool Initialize();
+	static bool Initialize(const StringView& name, U32 version);
 	static void Shutdown();
 
 	static void Update();
@@ -37,7 +42,6 @@ private:
 	static void Submit();
 
 	static bool InitializeVma();
-	static bool GetQueues();
 	static bool CreateDepthTextures();
 	static bool CreateDescriptorPool();
 	static bool CreateRenderpasses();
@@ -52,8 +56,8 @@ private:
 	//Resources
 	static VmaAllocator_T* vmaAllocator;
 	static VkAllocationCallbacks* allocationCallbacks;
-	static VkDescriptorPool vkDescriptorPool;
-	static VkDescriptorPool vkBindlessDescriptorPool;
+	static VkDescriptorPool_T* vkDescriptorPool;
+	static VkDescriptorPool_T* vkBindlessDescriptorPool;
 	static DescriptorSet descriptorSet;
 	static Texture depthTextures[MaxSwapchainImages];
 	static Buffer stagingBuffers[MaxSwapchainImages];
@@ -61,14 +65,12 @@ private:
 	//Vulkan Objects
 	static Instance instance;
 	static Device device;
-	static VkQueue graphicsQueue;
-	static VkQueue presentQueue;
 	static Swapchain swapchain;
 	static Renderpass renderpass;
 	static FrameBuffer frameBuffer;
 
 	//Recording
-	static Vector<VkCommandBuffer> commandBuffers[MaxSwapchainImages];
+	static Vector<VkCommandBuffer_T*> commandBuffers[MaxSwapchainImages];
 	static GlobalPushConstant globalPushConstant;
 	static Scene* scene;
 
@@ -76,10 +78,10 @@ private:
 	static U32 frameIndex;
 	static U32 previousFrame;
 	static U32 absoluteFrame;
-	static VkSemaphore imageAcquired[MaxSwapchainImages];
-	static VkSemaphore transferFinished[MaxSwapchainImages];
-	static VkSemaphore renderFinished[MaxSwapchainImages];
-	static VkSemaphore presentReady[MaxSwapchainImages];
+	static VkSemaphore_T* imageAcquired[MaxSwapchainImages];
+	static VkSemaphore_T* transferFinished[MaxSwapchainImages];
+	static VkSemaphore_T* renderFinished[MaxSwapchainImages];
+	static VkSemaphore_T* presentReady[MaxSwapchainImages];
 	static U64 renderWaitValues[MaxSwapchainImages];
 	static U64 transferWaitValues[MaxSwapchainImages];
 

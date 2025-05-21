@@ -2,10 +2,20 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
-
 #include "Containers/String.hpp"
 #include "Containers/Vector.hpp"
+
+struct VkPhysicalDevice_T;
+struct VkSurfaceKHR_T;
+struct VkQueueFamilyProperties;
+
+struct PhysicalDeviceFeature
+{
+	bool multiDrawIndirect;
+	bool samplerAnisotropy;
+
+	F32 maxSamplerAnisotropy;
+};
 
 struct PhysicalDevice
 {
@@ -15,39 +25,27 @@ public:
 	PhysicalDevice& operator=(PhysicalDevice&& other) noexcept;
 
 private:
-	PhysicalDevice(VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR vkSurface);
+	PhysicalDevice(VkPhysicalDevice_T* vkPhysicalDevice, VkSurfaceKHR_T* vkSurface);
 	~PhysicalDevice();
 
-	U32 GetFirstQueueIndex(VkQueueFlags desiredFlags) const;
-	U32 GetDedicatedQueueIndex(VkQueueFlags desiredFlags, VkQueueFlags undesiredFlags) const;
-	U32 GetSeparateQueueIndex(VkQueueFlags desiredFlags, VkQueueFlags undesiredFlags) const;
-	U32 GetPresentQueueIndex(VkSurfaceKHR vkSurface) const;
-	bool CheckDeviceExtensionSupport(const Vector<String>& requiredExtensions) const;
+	U32 FindPresentQueueIndex(VkSurfaceKHR_T* vkSurface, const Vector<VkQueueFamilyProperties>& queueFamilies) const;
+	U32 FindQueueIndex(U32 desiredFlags, U32 undesiredFlags, const Vector<VkQueueFamilyProperties>& queueFamilies) const;
 
-	operator VkPhysicalDevice() const;
+	operator VkPhysicalDevice_T* () const;
 
-	VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
-	Vector<VkQueueFamilyProperties> queueFamilies;
-	Vector<VkExtensionProperties> availableExtensions;
-	Vector<VkSurfaceFormatKHR> surfaceFormats;
-	Vector<VkPresentModeKHR> presentModes;
+	VkPhysicalDevice_T* vkPhysicalDevice = nullptr;
 
-	VkPhysicalDeviceFeatures features{};
-	VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES };
-	VkPhysicalDeviceProperties properties{};
-	VkPhysicalDeviceMemoryProperties memoryProperties{};
-
-	U32 dedicatedComputeQueueIndex;
-	U32 dedicatedTransferQueueIndex;
-	U32 separateComputeQueueIndex;
-	U32 separateTransferQueueIndex;
 	U32 presentQueueIndex;
+	U32 graphicsQueueIndex;
+	U32 computeQueueIndex;
+	U32 transferQueueIndex;
 
+	PhysicalDeviceFeature features;
 	bool suitable;
 	bool discrete;
 
 	friend class Renderer;
+	friend class CommandBufferRing;
 	friend struct Device;
 	friend struct Swapchain;
 	friend struct CommandBuffer;

@@ -7,7 +7,7 @@
 #include "Containers/Function.hpp"
 
 template<typename... Args>
-struct NH_API Event
+struct Event
 {
 public:
 	Event() {}

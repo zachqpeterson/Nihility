@@ -131,104 +131,58 @@ struct Region16kb { U8 memory[*RegionSize::KB16]; };
 struct Region256kb { U8 memory[*RegionSize::KB256]; };
 struct Region4mb { U8 memory[*RegionSize::MB4]; };
 
-template<class Region>
-class MemoryRegion
+struct NH_API MemoryRegion
 {
-	using RegionType = Region;
-
 private:
-	static void Create(void* pointer, U32 cap, U32* indices)
-	{
-		capacity = cap;
-		region = (Region*)pointer;
-		freeIndices = indices;
-	}
+	void Create(U8* pointer, U32 regionSize, U32 cap, U32* indices);
+	bool Allocate(void** pointer);
+	bool Reallocate(void** src, void** dst);
+	void Free(void** pointer);
+	bool WithinRegion(void* pointer);
+	U32 GetFree();
+	void Release(U32 index);
+	bool Full();
 
-	static bool Allocate(void** pointer)
-	{
-		if (Full()) { return false; }
-
-		*pointer = region + GetFree();
-		return true;
-	}
-
-	static bool Reallocate(void** src, void** dst);
-
-	static void Free(void** pointer)
-	{
-		memset(*pointer, 0, sizeof(Region));
-
-		Release((U32)((Region*)*pointer - region));
-		*pointer = nullptr;
-	}
-
-	static bool WithinRegion(void* pointer)
-	{
-		return pointer < region + capacity;
-	}
-
-	static U32 GetFree()
-	{
-		U32 index = ThreadSafety::SafeDecrement32((L32*)&freeCount);
-
-		if (index < capacity) { return freeIndices[index]; }
-
-		++freeCount;
-		return ThreadSafety::SafeIncrement32((L32*)&lastFree) - 1;
-	}
-
-	static void Release(U32 index)
-	{
-		freeIndices[ThreadSafety::SafeIncrement32((L32*)&freeCount) - 1] = index;
-	}
-
-	static NH_INLINE bool Full()
-	{
-		return lastFree >= capacity && freeCount == 0;
-	}
-
-	static U32 capacity;
-	static U32 freeCount;
-	static U32 lastFree;
-	static U32* freeIndices;
-	static Region* region;
+	U32 capacity = 0;
+	U32 freeCount = 0;
+	U32 lastFree = 0;
+	U32 regionSize = 0;
+	U32* freeIndices = nullptr;
+	U8* region = nullptr;
 
 	friend class Memory;
-	friend class MemoryRegion<Region1kb>;
-	friend class MemoryRegion<Region16kb>;
-	friend class MemoryRegion<Region256kb>;
-	friend class MemoryRegion<Region4mb>;
-
-	STATIC_CLASS(MemoryRegion);
 };
 
-template <class Region> U32 MemoryRegion<Region>::capacity = 0;
-template <class Region> U32 MemoryRegion<Region>::freeCount = 0;
-template <class Region> U32 MemoryRegion<Region>::lastFree = 0;
-template <class Region> U32* MemoryRegion<Region>::freeIndices = nullptr;
-template <class Region> Region* MemoryRegion<Region>::region = nullptr;
-
-class Memory
+class NH_API Memory
 {
 public:
-	template<Pointer Type> static NH_API void Allocate(Type* pointer);
-	template<Pointer Type> static NH_API U64 Allocate(Type* pointer, U64 count);
-	template<Pointer Type> static NH_API U64 Reallocate(Type* pointer, U64 count);
+	template<Pointer Type> static void Allocate(Type* pointer);
+	template<Pointer Type> static U64 Allocate(Type* pointer, U64 count);
+	template<Pointer Type> static U64 Reallocate(Type* pointer, U64 count);
+	template<Pointer Type> static void Free(Type* pointer);
 
-	template<Pointer Type> static NH_API void Free(Type* pointer);
-
-	static NH_API bool IsAllocated(void* pointer);
+	static bool IsAllocated(void* pointer);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
+	static U64 AllocateInternal(void** pointer, U64 size, U64 typeSize);
+	static U64 ReallocateInternal(void** src, void** dst, U64 size, U64 typeSize);
+	static void FreeInternal(void** pointer);
+
 	static U32 allocations;
 	static U8* memory;
+
+	static MemoryRegion region1kb;
+	static MemoryRegion region16kb;
+	static MemoryRegion region256kb;
+	static MemoryRegion region4mb;
 
 	static bool initialized;
 
 	friend class Engine;
+	friend struct MemoryRegion;
 
 	STATIC_CLASS(Memory);
 };
@@ -240,12 +194,7 @@ inline void Memory::Allocate(Type* pointer)
 
 	if (IsAllocated(*pointer)) { return; }
 
-	constexpr U64 size = sizeof(RemovePointer<Type>);
-
-	if constexpr (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Allocate((void**)pointer); }
-	else if constexpr (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Allocate((void**)pointer); }
-	else if constexpr (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Allocate((void**)pointer); }
-	else if constexpr (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate((void**)pointer); }
+	AllocateInternal((void**)pointer, sizeof(RemovePointer<Type>), sizeof(RemovePointer<Type>));
 }
 
 template<Pointer Type>
@@ -255,14 +204,7 @@ inline U64 Memory::Allocate(Type* pointer, U64 count)
 
 	if (IsAllocated(*pointer)) { return Reallocate<Type>(pointer, count); }
 
-	U64 size = sizeof(RemovePointer<Type>) * count;
-
-	if (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Allocate((void**)pointer); return sizeof(Region1kb) / sizeof(RemovePointer<Type>); }
-	else if (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Allocate((void**)pointer); return sizeof(Region16kb) / sizeof(RemovePointer<Type>); }
-	else if (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Allocate((void**)pointer); return sizeof(Region256kb) / sizeof(RemovePointer<Type>); }
-	else if (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Allocate((void**)pointer); return sizeof(Region4mb) / sizeof(RemovePointer<Type>); }
-
-	return 0;
+	return AllocateInternal((void**)pointer, sizeof(RemovePointer<Type>) * count, sizeof(RemovePointer<Type>));
 }
 
 template<Pointer Type>
@@ -276,12 +218,7 @@ inline U64 Memory::Reallocate(Type* pointer, U64 count)
 
 	Type temp = nullptr;
 
-	if (size <= sizeof(Region1kb)) { MemoryRegion<Region1kb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region1kb) / sizeof(RemovePointer<Type>); }
-	else if (size <= sizeof(Region16kb)) { MemoryRegion<Region16kb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region16kb) / sizeof(RemovePointer<Type>); }
-	else if (size <= sizeof(Region256kb)) { MemoryRegion<Region256kb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region256kb) / sizeof(RemovePointer<Type>); }
-	else if (size <= sizeof(Region4mb)) { MemoryRegion<Region4mb>::Reallocate((void**)pointer, (void**)&temp); return sizeof(Region4mb) / sizeof(RemovePointer<Type>); }
-
-	return 0;
+	return ReallocateInternal((void**)pointer, (void**)&temp, sizeof(RemovePointer<Type>) * count, sizeof(RemovePointer<Type>));
 }
 
 template<Pointer Type>
@@ -289,64 +226,15 @@ inline void Memory::Free(Type* pointer)
 {
 	if (!IsAllocated(*pointer)) { return; }
 
-	if (MemoryRegion<Region1kb>::WithinRegion(*pointer)) { MemoryRegion<Region1kb>::Free((void**)pointer); }
-	else if (MemoryRegion<Region16kb>::WithinRegion(*pointer)) { MemoryRegion<Region16kb>::Free((void**)pointer); }
-	else if (MemoryRegion<Region256kb>::WithinRegion(*pointer)) { MemoryRegion<Region256kb>::Free((void**)pointer); }
-	else if (MemoryRegion<Region4mb>::WithinRegion(*pointer)) { MemoryRegion<Region4mb>::Free((void**)pointer); }
-}
-
-inline bool Memory::IsAllocated(void* pointer)
-{
-	return pointer != nullptr && pointer >= memory && pointer < memory + DynamicMemorySize;
-}
-
-template<class Region>
-inline bool MemoryRegion<Region>::Reallocate(void** src, void** dst)
-{
-	if (MemoryRegion<Region1kb>::WithinRegion(*src))
-	{
-		if constexpr (IsSame<Region1kb, Region>) { return false; }
-
-		Allocate(dst);
-		memmove(*dst, *src, sizeof(Region1kb));
-		MemoryRegion<Region1kb>::Free(src);
-	}
-	else if (MemoryRegion<Region16kb>::WithinRegion(*src))
-	{
-		if constexpr (IsSame<Region16kb, Region>) { return false; }
-
-		Allocate(dst);
-		memmove(*dst, *src, sizeof(Region16kb));
-		MemoryRegion<Region16kb>::Free(src);
-	}
-	else if (MemoryRegion<Region256kb>::WithinRegion(*src))
-	{
-		if constexpr (IsSame<Region256kb, Region>) { return false; }
-
-		Allocate(dst);
-		memmove(*dst, *src, sizeof(Region256kb));
-		MemoryRegion<Region256kb>::Free(src);
-	}
-	else if (MemoryRegion<Region4mb>::WithinRegion(*src))
-	{
-		if constexpr (IsSame<Region4mb, Region>) { return false; }
-
-		Allocate(dst);
-		memmove(*dst, *src, sizeof(Region4mb));
-		MemoryRegion<Region4mb>::Free(src);
-	}
-
-	*src = *dst;
-
-	return true;
+	FreeInternal((void**)pointer);
 }
 
 enum class Align : U64 {};
 
-NH_NODISCARD void* operator new(U64 size);
-NH_NODISCARD void* operator new[](U64 size);
-NH_NODISCARD void* operator new(U64 size, Align alignment);
-NH_NODISCARD void* operator new[](U64 size, Align alignment);
+NH_NODISCARD __declspec(allocator) void* operator new(U64 size);
+NH_NODISCARD __declspec(allocator) void* operator new[](U64 size);
+NH_NODISCARD __declspec(allocator) void* operator new(U64 size, Align alignment);
+NH_NODISCARD __declspec(allocator) void* operator new[](U64 size, Align alignment);
 void operator delete(void* ptr) noexcept;
 void operator delete[](void* ptr) noexcept;
 void operator delete(void* ptr, Align alignment) noexcept;

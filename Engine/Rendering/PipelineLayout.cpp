@@ -11,13 +11,15 @@ bool PipelineLayout::Create(const Vector<DescriptorSet>& descriptorSets, const V
 		layouts.Push(set.vkDescriptorLayout);
 	}
 
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.pNext = nullptr;
-	pipelineLayoutInfo.flags = 0;
-	pipelineLayoutInfo.setLayoutCount = (U32)layouts.Size();
-	pipelineLayoutInfo.pSetLayouts = layouts.Data();
-	pipelineLayoutInfo.pushConstantRangeCount = (U32)pushConstants.Size();
-	pipelineLayoutInfo.pPushConstantRanges = pushConstants.Data();
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.setLayoutCount = (U32)layouts.Size(),
+		.pSetLayouts = layouts.Data(),
+		.pushConstantRangeCount = (U32)pushConstants.Size(),
+		.pPushConstantRanges = pushConstants.Data(),
+	};
 
 	VkValidateFR(vkCreatePipelineLayout(Renderer::device, &pipelineLayoutInfo, Renderer::allocationCallbacks, &vkPipelineLayout));
 
@@ -32,7 +34,7 @@ void PipelineLayout::Destroy()
 	}
 }
 
-PipelineLayout::operator VkPipelineLayout() const
+PipelineLayout::operator VkPipelineLayout_T* () const
 {
 	return vkPipelineLayout;
 }

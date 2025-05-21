@@ -109,7 +109,7 @@ EntityId Scene::CreateEntity(Vector2 position, Quaternion2 rotation)
 	entity.rotation = rotation;
 
 	EntityId id{};
-	id.entityId = entities.Size();
+	id.entityId = (U32)entities.Size();
 	id.sceneId = sceneId;
 
 	entities.Push(entity);
@@ -132,7 +132,7 @@ void Scene::AddSprite(const EntityId& id, const ResourceRef<Texture>& texture, c
 	}
 
 	Entity& entity = entities[id.entityId];
-	entity.spriteId = spriteInstances.Size();
+	entity.spriteId = (U32)spriteInstances.Size();
 
 	SpriteInstance instance{};
 	instance.position = entity.position;

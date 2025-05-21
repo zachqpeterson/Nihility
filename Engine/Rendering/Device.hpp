@@ -2,7 +2,6 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
 #include "PhysicalDevice.hpp"
 
 enum class QueueType
@@ -13,18 +12,14 @@ enum class QueueType
 	Transfer
 };
 
+struct VkQueue_T;
+struct VkDevice_T;
+struct VkSurfaceKHR_T;
+
 struct Device
 {
 public:
-	operator VkDevice() const;
-
-private:
-	struct CustomQueueDescription
-	{
-		explicit CustomQueueDescription(U32 index, Vector<F32> priorities);
-		U32 index;
-		Vector<F32> priorities;
-	};
+	operator VkDevice_T* () const;
 
 private:
 	bool Create();
@@ -33,17 +28,14 @@ private:
 	bool CreateSurface();
 	bool SelectPhysicalDevice();
 
-	U32 GetQueueIndex(QueueType type) const;
-	U32 GetDedicatedQueueIndex(QueueType type) const;
-	VkQueue GetQueue(QueueType type) const;
-	VkQueue GetDedicatedQueue(QueueType type) const;
-
-	VkDevice vkDevice = VK_NULL_HANDLE;
+	VkDevice_T* vkDevice = nullptr;
 	PhysicalDevice physicalDevice;
-	VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
-	Vector<VkQueueFamilyProperties> queueFamilies;
+	VkSurfaceKHR_T* vkSurface = nullptr;
 
-	bool bindlessSupported;
+	VkQueue_T* presentQueue;
+	VkQueue_T* graphicsQueue;
+	VkQueue_T* computeQueue;
+	VkQueue_T* transferQueue;
 
 	friend class Renderer;
 	friend class CommandBufferRing;

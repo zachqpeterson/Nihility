@@ -6,17 +6,17 @@
 
 #include "Containers/Vector.hpp"
 
+struct VkFramebuffer_T;
+
 struct FrameBuffer
 {
 private:
 	bool Create();
 	void Destroy();
 
-	operator VkFramebuffer() const;
+	operator VkFramebuffer_T*() const;
 
-	Vector<VkImage> vkImages;
-	Vector<VkImageView> vkImageViews;
-	Vector<VkFramebuffer> vkFramebuffers;
+	Vector<VkFramebuffer_T*> vkFramebuffers;
 
 	friend class Renderer;
 	friend struct CommandBuffer;

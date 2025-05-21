@@ -2,7 +2,7 @@
 
 #include "Renderer.hpp"
 
-VkResult CommandBuffer::Begin()
+U32 CommandBuffer::Begin()
 {
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.pNext = nullptr;
@@ -12,7 +12,7 @@ VkResult CommandBuffer::Begin()
 	return vkBeginCommandBuffer(vkCommandBuffer, &beginInfo);
 }
 
-VkResult CommandBuffer::End()
+U32 CommandBuffer::End()
 {
 	return vkEndCommandBuffer(vkCommandBuffer);
 }
@@ -38,7 +38,8 @@ void CommandBuffer::BeginRenderpass(const Renderpass& renderpass, const FrameBuf
 	renderPassBegin.framebuffer = frameBuffer;
 	renderPassBegin.renderArea.offset.x = 0;
 	renderPassBegin.renderArea.offset.y = 0;
-	renderPassBegin.renderArea.extent = swapchain.extent;
+	renderPassBegin.renderArea.extent.width = swapchain.width;
+	renderPassBegin.renderArea.extent.height = swapchain.height;
 	renderPassBegin.clearValueCount = (U32)clearValues.Size();
 	renderPassBegin.pClearValues = clearValues.Data();
 
@@ -47,14 +48,15 @@ void CommandBuffer::BeginRenderpass(const Renderpass& renderpass, const FrameBuf
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (F32)swapchain.extent.width;
-	viewport.height = (F32)swapchain.extent.height;
+	viewport.width = (F32)swapchain.width;
+	viewport.height = (F32)swapchain.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = swapchain.extent;
+	scissor.extent.width = swapchain.width;
+	scissor.extent.height = swapchain.height;
 
 	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
 	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
@@ -72,7 +74,7 @@ void CommandBuffer::EndRenderpass()
 
 void CommandBuffer::BindPipeline(const Pipeline& pipeline)
 {
-	vkCmdBindPipeline(vkCommandBuffer, pipeline.bindPoint, pipeline);
+	vkCmdBindPipeline(vkCommandBuffer, (VkPipelineBindPoint)pipeline.bindPoint, pipeline);
 }
 
 void CommandBuffer::BindIndexBuffer(const Buffer& buffer, U32 offset)
@@ -85,11 +87,11 @@ void CommandBuffer::BindVertexBuffers(U32 count, const VkBuffer* buffers, U64* o
 	vkCmdBindVertexBuffers(vkCommandBuffer, 0, count, buffers, offsets);
 }
 
-void CommandBuffer::BindDescriptorSets(VkPipelineBindPoint bindPoint, const PipelineLayout& pipelineLayout, U32 setOffset, U32 setCount, const VkDescriptorSet* sets)
+void CommandBuffer::BindDescriptorSets(BindPoint bindPoint, const PipelineLayout& pipelineLayout, U32 setOffset, U32 setCount, const VkDescriptorSet* sets)
 {
 	if (setCount)
 	{
-		vkCmdBindDescriptorSets(vkCommandBuffer, bindPoint, pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+		vkCmdBindDescriptorSets(vkCommandBuffer, (VkPipelineBindPoint)bindPoint, pipelineLayout, setOffset, setCount, sets, 0, nullptr);
 	}
 }
 
@@ -150,7 +152,7 @@ void CommandBuffer::ImageToBuffer(const ResourceRef<Texture>& texture, const Buf
 	vkCmdCopyImageToBuffer(vkCommandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, regionCount, regions);
 }
 
-void CommandBuffer::BufferToBuffer(const VkBuffer src, const VkBuffer dst, U32 regionCount, const VkBufferCopy* regions)
+void CommandBuffer::BufferToBuffer(VkBuffer src, VkBuffer dst, U32 regionCount, const VkBufferCopy* regions)
 {
 	vkCmdCopyBuffer(vkCommandBuffer, src, dst, regionCount, regions);
 }
@@ -187,12 +189,12 @@ void CommandBuffer::PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount,
 	vkCmdPipelineBarrier2(vkCommandBuffer, &dependencyInfo);
 }
 
-CommandBuffer::operator VkCommandBuffer() const
+CommandBuffer::operator VkCommandBuffer_T* () const
 {
 	return vkCommandBuffer;
 }
 
-const VkCommandBuffer* CommandBuffer::operator&() const
+VkCommandBuffer_T* const* CommandBuffer::operator&() const
 {
 	return &vkCommandBuffer;
 }

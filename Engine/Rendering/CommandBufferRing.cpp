@@ -1,5 +1,7 @@
 #include "CommandBufferRing.hpp"
 
+#include "VulkanInclude.hpp"
+
 #include "Renderer.hpp"
 #include "Device.hpp"
 
@@ -13,30 +15,35 @@ bool CommandBufferRing::Initialize()
 {
 	for (U32 i = 0; i < MaxPools; ++i) { freeCommandBuffers[i](BuffersPerPool); }
 
-	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-	commandPoolInfo.pNext = nullptr;
-	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	commandPoolInfo.queueFamilyIndex = Renderer::device.GetQueueIndex(QueueType::Graphics);
+	VkCommandPoolCreateInfo commandPoolInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = Renderer::device.physicalDevice.graphicsQueueIndex
+	};
 
 	VkValidateFR(vkCreateCommandPool(Renderer::device, &commandPoolInfo, Renderer::allocationCallbacks, &drawCommandPool));
 
-	commandPoolInfo.queueFamilyIndex = Renderer::device.GetQueueIndex(QueueType::Graphics);
 	commandPoolInfo.flags = 0;
+	commandPoolInfo.queueFamilyIndex = Renderer::device.physicalDevice.graphicsQueueIndex;
 
 	for (U32 i = 0; i < MaxPools; ++i)
 	{
 		VkValidateFR(vkCreateCommandPool(Renderer::device, &commandPoolInfo, Renderer::allocationCallbacks, &commandPools[i]));
 	}
 
-	VkCommandBufferAllocateInfo commandBufferInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-	commandBufferInfo.pNext = nullptr;
-	commandBufferInfo.commandPool = nullptr;
-	commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	VkCommandBufferAllocateInfo commandBufferInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.commandPool = nullptr,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1
+	};
 
 	for (U32 i = 0; i < MaxPools; ++i)
 	{
-		commandBufferInfo.commandBufferCount = 1;
 		commandBufferInfo.commandPool = drawCommandPool;
+		commandBufferInfo.commandBufferCount = 1;
 		VkValidateFR(vkAllocateCommandBuffers(Renderer::device, &commandBufferInfo, &drawCommandBuffers[i].vkCommandBuffer));
 
 		commandBufferInfo.commandBufferCount = BuffersPerPool;

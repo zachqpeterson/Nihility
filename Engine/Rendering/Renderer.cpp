@@ -30,8 +30,6 @@ Buffer Renderer::stagingBuffers[MaxSwapchainImages];
 
 Instance Renderer::instance;
 Device Renderer::device;
-VkQueue Renderer::graphicsQueue;
-VkQueue Renderer::presentQueue;
 Swapchain Renderer::swapchain;
 Renderpass Renderer::renderpass;
 FrameBuffer Renderer::frameBuffer;
@@ -50,14 +48,13 @@ VkSemaphore Renderer::presentReady[MaxSwapchainImages];
 U64 Renderer::renderWaitValues[MaxSwapchainImages];
 U64 Renderer::transferWaitValues[MaxSwapchainImages];
 
-bool Renderer::Initialize()
+bool Renderer::Initialize(const StringView& name, U32 version)
 {
 	Logger::Trace("Initializing Renderer...");
 
-	if (!instance.Create()) { Logger::Fatal("Failed To Create Vulkan Instance!"); return false; }
+	if (!instance.Create(name, version)) { Logger::Fatal("Failed To Create Vulkan Instance!"); return false; }
 	if (!device.Create()) { Logger::Fatal("Failed To Create Vulkan Device!"); return false; }
 	if (!InitializeVma()) { Logger::Fatal("Failed To Initialize Vma!"); return false; }
-	if (!GetQueues()) { return false; }
 	if (!swapchain.Create(false)) { Logger::Fatal("Failed To Create Swapchain!"); return false; }
 	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffers!"); return false; }
 	if (!CommandBufferRing::Initialize()) { Logger::Fatal("Failed To Create Command Buffers!"); return false; }
@@ -162,12 +159,14 @@ void Renderer::Synchronize()
 	VkSemaphore waits[]{ renderFinished[previousFrame], transferFinished[previousFrame] };
 	U64 waitValues[]{ renderWaitValues[previousFrame], transferWaitValues[previousFrame] };
 
-	VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
-	waitInfo.pNext = nullptr;
-	waitInfo.flags = 0;
-	waitInfo.semaphoreCount = CountOf32(waits);
-	waitInfo.pSemaphores = waits;
-	waitInfo.pValues = waitValues;
+	VkSemaphoreWaitInfo waitInfo{
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.semaphoreCount = CountOf32(waits),
+		.pSemaphores = waits,
+		.pValues = waitValues
+	};
 
 	vkWaitSemaphores(device, &waitInfo, U64_MAX);
 
@@ -183,24 +182,28 @@ void Renderer::SubmitTransfer()
 	{
 		++transferWaitValues[frameIndex];
 
-		VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
-		timelineInfo.pNext = nullptr;
-		timelineInfo.waitSemaphoreValueCount = 0;
-		timelineInfo.pWaitSemaphoreValues = nullptr;
-		timelineInfo.signalSemaphoreValueCount = 1;
-		timelineInfo.pSignalSemaphoreValues = &transferWaitValues[frameIndex];
+		VkTimelineSemaphoreSubmitInfo timelineInfo{
+			.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+			.pNext = nullptr,
+			.waitSemaphoreValueCount = 0,
+			.pWaitSemaphoreValues = nullptr,
+			.signalSemaphoreValueCount = 1,
+			.pSignalSemaphoreValues = &transferWaitValues[frameIndex]
+		};
 
-		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-		submitInfo.pNext = &timelineInfo;
-		submitInfo.waitSemaphoreCount = 0;
-		submitInfo.pWaitSemaphores = nullptr;
-		submitInfo.pWaitDstStageMask = nullptr;
-		submitInfo.commandBufferCount = (U32)commandBuffers[frameIndex].Size();
-		submitInfo.pCommandBuffers = commandBuffers[frameIndex].Data();
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &transferFinished[frameIndex];
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.pNext = &timelineInfo,
+			.waitSemaphoreCount = 0,
+			.pWaitSemaphores = nullptr,
+			.pWaitDstStageMask = nullptr,
+			.commandBufferCount = (U32)commandBuffers[frameIndex].Size(),
+			.pCommandBuffers = commandBuffers[frameIndex].Data(),
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = &transferFinished[frameIndex]
+		};
 
-		VkValidateF(vkQueueSubmit(graphicsQueue, 1, &submitInfo, nullptr));
+		VkValidateF(vkQueueSubmit(device.graphicsQueue, 1, &submitInfo, nullptr));
 		commandBuffers[frameIndex].Clear();
 		stagingBuffers[frameIndex].stagingPointer = 0;
 	}
@@ -250,33 +253,39 @@ void Renderer::Submit()
 	}
 	};
 
-	VkCommandBufferSubmitInfo commandBufferInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
-	commandBufferInfo.pNext = nullptr;
-	commandBufferInfo.commandBuffer = CommandBufferRing::GetDrawCommandBuffer(frameIndex);
-	commandBufferInfo.deviceMask = 0;
+	VkCommandBufferSubmitInfo commandBufferInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+		.pNext = nullptr,
+		.commandBuffer = CommandBufferRing::GetDrawCommandBuffer(frameIndex),
+		.deviceMask = 0
+	};
 
-	VkSubmitInfo2 submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
-	submitInfo.pNext = nullptr;
-	submitInfo.flags = 0;
-	submitInfo.waitSemaphoreInfoCount = CountOf32(waitSemaphores);
-	submitInfo.pWaitSemaphoreInfos = waitSemaphores;
-	submitInfo.commandBufferInfoCount = 1;
-	submitInfo.pCommandBufferInfos = &commandBufferInfo;
-	submitInfo.signalSemaphoreInfoCount = CountOf32(signalSemaphores);
-	submitInfo.pSignalSemaphoreInfos = signalSemaphores;
+	VkSubmitInfo2 submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+		.pNext = nullptr,
+		.flags = 0,
+		.waitSemaphoreInfoCount = CountOf32(waitSemaphores),
+		.pWaitSemaphoreInfos = waitSemaphores,
+		.commandBufferInfoCount = 1,
+		.pCommandBufferInfos = &commandBufferInfo,
+		.signalSemaphoreInfoCount = CountOf32(signalSemaphores),
+		.pSignalSemaphoreInfos = signalSemaphores
+	};
 
-	VkValidateFExit(vkQueueSubmit2(graphicsQueue, 1u, &submitInfo, nullptr));
+	VkValidateFExit(vkQueueSubmit2(device.graphicsQueue, 1u, &submitInfo, nullptr));
 
-	VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.pNext = nullptr;
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &presentReady[frameIndex];
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &swapchain;
-	presentInfo.pImageIndices = &frameIndex;
-	presentInfo.pResults = nullptr;
+	VkPresentInfoKHR presentInfo{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.pNext = nullptr,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &presentReady[frameIndex],
+		.swapchainCount = 1,
+		.pSwapchains = &swapchain,
+		.pImageIndices = &frameIndex,
+		.pResults = nullptr
+	};
 
-	VkResult res = vkQueuePresentKHR(presentQueue, &presentInfo);
+	VkResult res = vkQueuePresentKHR(device.presentQueue, &presentInfo);
 	commandBuffers[frameIndex].Clear();
 
 	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) { RecreateSwapchain(); }
@@ -293,80 +302,78 @@ void Renderer::SetScene(Scene* _scene)
 
 bool Renderer::InitializeVma()
 {
-	VmaAllocatorCreateInfo allocatorInfo{};
-	allocatorInfo.physicalDevice = device.physicalDevice;
-	allocatorInfo.device = device;
-	allocatorInfo.instance = instance;
+	VmaAllocatorCreateInfo allocatorInfo{
+		.flags = 0,
+		.physicalDevice = device.physicalDevice,
+		.device = device,
+		.preferredLargeHeapBlockSize = 0,
+		.pAllocationCallbacks = allocationCallbacks,
+		.pDeviceMemoryCallbacks = nullptr,
+		.pHeapSizeLimit = nullptr,
+		.pVulkanFunctions = nullptr,
+		.instance = instance,
+		.vulkanApiVersion = VK_API_VERSION_1_3,
+		.pTypeExternalMemoryHandleTypes = nullptr
+	};
 
 	VkValidateFR(vmaCreateAllocator(&allocatorInfo, &vmaAllocator));
 
 	return true;
 }
 
-bool Renderer::GetQueues()
-{
-	graphicsQueue = device.GetQueue(QueueType::Graphics);
-	if (graphicsQueue == nullptr)
-	{
-		Logger::Fatal("Failed To Get Graphics Queue!");
-		return false;
-	}
-
-	presentQueue = device.GetQueue(QueueType::Present);
-	if (presentQueue == nullptr)
-	{
-		Logger::Fatal("Failed To Get Present Queue!");
-		return false;
-	}
-
-	return true;
-}
-
 bool Renderer::CreateDepthTextures()
 {
-	VkExtent3D depthImageExtent = {
-		swapchain.extent.width,
-		swapchain.extent.height,
-		1
+	VkExtent3D depthImageExtent{
+		.width = swapchain.width,
+		.height = swapchain.height,
+		.depth = 1
 	};
 
-	VkImageCreateInfo imageCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	imageCreateInfo.pNext = nullptr;
-	imageCreateInfo.flags = 0;
-	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageCreateInfo.format = VK_FORMAT_D32_SFLOAT;
-	imageCreateInfo.extent = depthImageExtent;
-	imageCreateInfo.mipLevels = 1;
-	imageCreateInfo.arrayLayers = 1;
-	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageCreateInfo.queueFamilyIndexCount = 0;
-	imageCreateInfo.pQueueFamilyIndices = nullptr;
-	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	VkImageCreateInfo imageCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = VK_FORMAT_D32_SFLOAT,
+		.extent = depthImageExtent,
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.queueFamilyIndexCount = 0,
+		.pQueueFamilyIndices = nullptr,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+	};
 
-	VmaAllocationCreateInfo allocationInfo{};
-	allocationInfo.flags = 0;
-	allocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	allocationInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	allocationInfo.preferredFlags = 0;
-	allocationInfo.memoryTypeBits = 0;
-	allocationInfo.pool = nullptr;
-	allocationInfo.pUserData = nullptr;
-	allocationInfo.priority = 0;
+	VmaAllocationCreateInfo allocationInfo{
+		.flags = 0,
+		.usage = VMA_MEMORY_USAGE_GPU_ONLY,
+		.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		.preferredFlags = 0,
+		.memoryTypeBits = 0,
+		.pool = nullptr,
+		.pUserData = nullptr,
+		.priority = 0.0f
+	};
 
-	VkImageViewCreateInfo imageViewCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	imageViewCreateInfo.pNext = nullptr;
-	imageViewCreateInfo.flags = 0;
-	imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	imageViewCreateInfo.format = imageCreateInfo.format;
-	imageViewCreateInfo.components = {};
-	imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-	imageViewCreateInfo.subresourceRange.levelCount = 1;
-	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-	imageViewCreateInfo.subresourceRange.layerCount = 1;
+	VkImageViewCreateInfo imageViewCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.image = nullptr,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = imageCreateInfo.format,
+		.components = {},
+		.subresourceRange{
+			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		}
+	};
 
 	for (U32 i = 0; i < swapchain.imageCount; ++i)
 	{
@@ -396,19 +403,25 @@ bool Renderer::CreateDescriptorPool()
 		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 },
 	};
 
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	descriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	descriptorPoolCreateInfo.maxSets = 6144;
-	descriptorPoolCreateInfo.poolSizeCount = 6;
-	descriptorPoolCreateInfo.pPoolSizes = poolSizes;
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+		.maxSets = 6144,
+		.poolSizeCount = CountOf32(poolSizes),
+		.pPoolSizes = poolSizes
+	};
 
 	VkValidateFR(vkCreateDescriptorPool(device, &descriptorPoolCreateInfo, allocationCallbacks, &vkDescriptorPool));
 
-	VkDescriptorPoolCreateInfo bindlessDescriptorPoolCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	bindlessDescriptorPoolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-	bindlessDescriptorPoolCreateInfo.maxSets = 2048;
-	bindlessDescriptorPoolCreateInfo.poolSizeCount = 2;
-	bindlessDescriptorPoolCreateInfo.pPoolSizes = bindlessPoolSizes;
+	VkDescriptorPoolCreateInfo bindlessDescriptorPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT,
+		.maxSets = 2048,
+		.poolSizeCount = CountOf32(bindlessPoolSizes),
+		.pPoolSizes = bindlessPoolSizes
+	};
 
 	VkValidateFR(vkCreateDescriptorPool(device, &bindlessDescriptorPoolCreateInfo, allocationCallbacks, &vkBindlessDescriptorPool));
 
@@ -422,9 +435,11 @@ bool Renderer::CreateRenderpasses()
 
 bool Renderer::CreateSynchronization()
 {
-	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-	semaphoreInfo.pNext = nullptr;
-	semaphoreInfo.flags = 0;
+	VkSemaphoreCreateInfo semaphoreInfo{
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0
+	};
 
 	for (U32 i = 0; i < swapchain.imageCount; ++i)
 	{
@@ -432,10 +447,12 @@ bool Renderer::CreateSynchronization()
 		vkCreateSemaphore(device, &semaphoreInfo, allocationCallbacks, &presentReady[i]);
 	}
 
-	VkSemaphoreTypeCreateInfo semaphoreType{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
-	semaphoreType.pNext = nullptr;
-	semaphoreType.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-	semaphoreType.initialValue = 0;
+	VkSemaphoreTypeCreateInfo semaphoreType{
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+		.pNext = nullptr,
+		.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+		.initialValue = 0
+	};
 
 	semaphoreInfo.pNext = &semaphoreType;
 
@@ -485,89 +502,104 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 	CommandBuffer& commandBuffer = CommandBufferRing::GetWriteCommandBuffer(frameIndex);
 	commandBuffer.Begin();
 
-	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-	imageInfo.pNext = nullptr;
-	imageInfo.flags = 0;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-	imageInfo.extent.width = texture->width;
-	imageInfo.extent.height = texture->height;
-	imageInfo.extent.depth = texture->depth;
-	imageInfo.mipLevels = texture->mipmapLevels;
-	imageInfo.arrayLayers = 1;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.queueFamilyIndexCount = 0;
-	imageInfo.pQueueFamilyIndices = nullptr;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	VkImageCreateInfo imageInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.extent{
+			.width = texture->width,
+			.height = texture->height,
+			.depth = texture->depth
+		},
+		.mipLevels = texture->mipmapLevels,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.queueFamilyIndexCount = 0,
+		.pQueueFamilyIndices = nullptr,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+	};
 
-	VmaAllocationCreateInfo imageAllocInfo{};
-	imageAllocInfo.flags = 0;
-	imageAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	imageAllocInfo.requiredFlags = 0;
-	imageAllocInfo.preferredFlags = 0;
-	imageAllocInfo.memoryTypeBits = 0;
-	imageAllocInfo.pool = nullptr;
-	imageAllocInfo.pUserData = nullptr;
-	imageAllocInfo.priority = 0.0f;
+	VmaAllocationCreateInfo imageAllocInfo{
+		.flags = 0,
+		.usage = VMA_MEMORY_USAGE_GPU_ONLY,
+		.requiredFlags = 0,
+		.preferredFlags = 0,
+		.memoryTypeBits = 0,
+		.pool = nullptr,
+		.pUserData = nullptr,
+		.priority = 0.0f
+	};
 
 	VkValidateR(vmaCreateImage(vmaAllocator, &imageInfo, &imageAllocInfo, &texture->image, &texture->allocation, nullptr));
 
-	VkImageSubresourceRange stagingBufferRange{};
-	stagingBufferRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	stagingBufferRange.baseMipLevel = 0;
-	stagingBufferRange.levelCount = texture->mipmapLevels;
-	stagingBufferRange.baseArrayLayer = 0;
-	stagingBufferRange.layerCount = 1;
+	VkImageSubresourceRange stagingBufferRange{
+		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		.baseMipLevel = 0,
+		.levelCount = texture->mipmapLevels,
+		.baseArrayLayer = 0,
+		.layerCount = 1
+	};
 
-	VkImageMemoryBarrier2 stagingBufferTransferBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-	stagingBufferTransferBarrier.pNext = nullptr;
-	stagingBufferTransferBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-	stagingBufferTransferBarrier.srcAccessMask = VK_ACCESS_2_NONE;
-	stagingBufferTransferBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-	stagingBufferTransferBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-	stagingBufferTransferBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	stagingBufferTransferBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	stagingBufferTransferBarrier.srcQueueFamilyIndex = 0;
-	stagingBufferTransferBarrier.dstQueueFamilyIndex = 0;
-	stagingBufferTransferBarrier.image = texture->image;
-	stagingBufferTransferBarrier.subresourceRange = stagingBufferRange;
+	VkImageMemoryBarrier2 stagingBufferTransferBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+		.srcAccessMask = VK_ACCESS_2_NONE,
+		.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		.srcQueueFamilyIndex = 0,
+		.dstQueueFamilyIndex = 0,
+		.image = texture->image,
+		.subresourceRange = stagingBufferRange
+	};
 
-	VkOffset3D textureOffset{};
-	textureOffset.x = 0;
-	textureOffset.y = 0;
-	textureOffset.z = 0;
+	VkOffset3D textureOffset{
+		.x = 0,
+		.y = 0,
+		.z = 0
+	};
 
-	VkExtent3D textureExtent{};
-	textureExtent.width = texture->width;
-	textureExtent.height = texture->height;
-	textureExtent.depth = texture->depth;
+	VkExtent3D textureExtent{
+		.width = texture->width,
+		.height = texture->height,
+		.depth = texture->depth
+	};
 
-	VkBufferImageCopy stagingBufferCopy{};
-	stagingBufferCopy.bufferOffset = offset;
-	stagingBufferCopy.bufferRowLength = 0;
-	stagingBufferCopy.bufferImageHeight = 0;
-	stagingBufferCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	stagingBufferCopy.imageSubresource.mipLevel = 0;
-	stagingBufferCopy.imageSubresource.baseArrayLayer = 0;
-	stagingBufferCopy.imageSubresource.layerCount = 1;
-	stagingBufferCopy.imageOffset = textureOffset;
-	stagingBufferCopy.imageExtent = textureExtent;
+	VkBufferImageCopy stagingBufferCopy{
+		.bufferOffset = offset,
+		.bufferRowLength = 0,
+		.bufferImageHeight = 0,
+		.imageSubresource{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.mipLevel = 0,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
+		.imageOffset = textureOffset,
+		.imageExtent = textureExtent
+	};
 
-	VkImageMemoryBarrier2 stagingBufferShaderBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-	stagingBufferShaderBarrier.pNext = nullptr;
-	stagingBufferShaderBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-	stagingBufferShaderBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-	stagingBufferShaderBarrier.dstStageMask = texture->mipmapLevels > 1 ? VK_PIPELINE_STAGE_2_COPY_BIT : VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-	stagingBufferShaderBarrier.dstAccessMask = texture->mipmapLevels > 1 ? VK_ACCESS_2_TRANSFER_WRITE_BIT : VK_ACCESS_2_SHADER_READ_BIT;
-	stagingBufferShaderBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	stagingBufferShaderBarrier.newLayout = texture->mipmapLevels > 1 ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	stagingBufferShaderBarrier.srcQueueFamilyIndex = 0;
-	stagingBufferShaderBarrier.dstQueueFamilyIndex = 0;
-	stagingBufferShaderBarrier.image = texture->image;
-	stagingBufferShaderBarrier.subresourceRange = stagingBufferRange;
+	VkImageMemoryBarrier2 stagingBufferShaderBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+		.dstStageMask = texture->mipmapLevels > 1 ? VK_PIPELINE_STAGE_2_COPY_BIT : VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+		.dstAccessMask = texture->mipmapLevels > 1 ? VK_ACCESS_2_TRANSFER_WRITE_BIT : VK_ACCESS_2_SHADER_READ_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		.newLayout = texture->mipmapLevels > 1 ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		.srcQueueFamilyIndex = 0,
+		.dstQueueFamilyIndex = 0,
+		.image = texture->image,
+		.subresourceRange = stagingBufferRange
+	};
 
 	commandBuffer.PipelineBarrier(0, 0, nullptr, 1, &stagingBufferTransferBarrier);
 	commandBuffer.BufferToImage(stagingBuffers[frameIndex], texture, 1, &stagingBufferCopy);
@@ -575,50 +607,60 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 
 	if (texture->mipmapLevels > 1)
 	{
-		VkImageSubresourceRange blitRange{};
-		blitRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		blitRange.baseMipLevel = 0;
-		blitRange.levelCount = 1;
-		blitRange.baseArrayLayer = 0;
-		blitRange.layerCount = 1;
+		VkImageSubresourceRange blitRange{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		};
 
-		VkImageMemoryBarrier2 firstBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-		firstBarrier.pNext = nullptr;
-		firstBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		firstBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-		firstBarrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		firstBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-		firstBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		firstBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		firstBarrier.srcQueueFamilyIndex = 0;
-		firstBarrier.dstQueueFamilyIndex = 0;
-		firstBarrier.image = texture->image;
-		firstBarrier.subresourceRange = blitRange;
+		VkImageMemoryBarrier2 firstBarrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.pNext = nullptr,
+			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			.srcQueueFamilyIndex = 0,
+			.dstQueueFamilyIndex = 0,
+			.image = texture->image,
+			.subresourceRange = blitRange
+		};
 
-		VkImageMemoryBarrier2 secondBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-		secondBarrier.pNext = nullptr;
-		secondBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		secondBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-		secondBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-		secondBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-		secondBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		secondBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		secondBarrier.srcQueueFamilyIndex = 0;
-		secondBarrier.dstQueueFamilyIndex = 0;
-		secondBarrier.image = texture->image;
-		secondBarrier.subresourceRange = blitRange;
+		VkImageMemoryBarrier2 secondBarrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.pNext = nullptr,
+			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.srcQueueFamilyIndex = 0,
+			.dstQueueFamilyIndex = 0,
+			.image = texture->image,
+			.subresourceRange = blitRange
+		};
 
-		VkImageBlit mipBlit{};
-		mipBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		mipBlit.srcSubresource.mipLevel = 0;
-		mipBlit.srcSubresource.baseArrayLayer = 0;
-		mipBlit.srcSubresource.layerCount = 1;
-		mipBlit.srcOffsets[0] = { 0, 0, 0 };
-		mipBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		mipBlit.dstSubresource.mipLevel = 0;
-		mipBlit.dstSubresource.baseArrayLayer = 0;
-		mipBlit.dstSubresource.layerCount = 1;
-		mipBlit.dstOffsets[0] = { 0, 0, 0 };
+		VkImageBlit mipBlit{
+			.srcSubresource{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.mipLevel = 0,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+			.srcOffsets{},
+			.dstSubresource{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.mipLevel = 0,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+			.dstOffsets{}
+		};
 
 		I32 mipWidth = texture->width;
 		I32 mipHeight = texture->height;
@@ -642,19 +684,22 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 			if (mipHeight > 1) { mipHeight /= 2; }
 		}
 
-		VkImageMemoryBarrier2 lastBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-		lastBarrier.pNext = nullptr;
-		lastBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		lastBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-		lastBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-		lastBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-		lastBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		lastBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		lastBarrier.srcQueueFamilyIndex = 0;
-		lastBarrier.dstQueueFamilyIndex = 0;
-		lastBarrier.image = texture->image;
-		lastBarrier.subresourceRange = blitRange;
-		lastBarrier.subresourceRange.baseMipLevel = texture->mipmapLevels - 1;
+		blitRange.baseMipLevel = texture->mipmapLevels - 1;
+
+		VkImageMemoryBarrier2 lastBarrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.pNext = nullptr,
+			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.srcQueueFamilyIndex = 0,
+			.dstQueueFamilyIndex = 0,
+			.image = texture->image,
+			.subresourceRange = blitRange
+		};
 
 		commandBuffer.PipelineBarrier(0, 0, nullptr, 1, &lastBarrier);
 	}
@@ -663,45 +708,53 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 
 	commandBuffers[frameIndex].Push(commandBuffer);
 
-	VkImageViewCreateInfo texViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	texViewInfo.pNext = nullptr;
-	texViewInfo.flags = 0;
-	texViewInfo.image = texture->image;
-	texViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	texViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-	texViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-	texViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-	texViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-	texViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-	texViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	texViewInfo.subresourceRange.baseMipLevel = 0;
-	texViewInfo.subresourceRange.levelCount = texture->mipmapLevels;
-	texViewInfo.subresourceRange.baseArrayLayer = 0;
-	texViewInfo.subresourceRange.layerCount = 1;
+	VkImageViewCreateInfo texViewInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.image = texture->image,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.components{
+			.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+			.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+			.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+			.a = VK_COMPONENT_SWIZZLE_IDENTITY
+		},
+		.subresourceRange{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = texture->mipmapLevels,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		},
+	};
 
 	VkValidateR(vkCreateImageView(device, &texViewInfo, allocationCallbacks, &texture->imageView));
 
 	const VkBool32 anisotropyAvailable = device.physicalDevice.features.samplerAnisotropy;
-	const F32 maxAnisotropy = device.physicalDevice.properties.limits.maxSamplerAnisotropy;
+	const F32 maxAnisotropy = device.physicalDevice.features.maxSamplerAnisotropy;
 
-	VkSamplerCreateInfo texSamplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	texSamplerInfo.pNext = nullptr;
-	texSamplerInfo.flags = 0;
-	texSamplerInfo.magFilter = (VkFilter)sampler.filterMode;
-	texSamplerInfo.minFilter = (VkFilter)sampler.filterMode;
-	texSamplerInfo.mipmapMode = (VkSamplerMipmapMode)sampler.mipMapSampleMode;
-	texSamplerInfo.addressModeU = (VkSamplerAddressMode)sampler.edgeSampleMode;
-	texSamplerInfo.addressModeV = (VkSamplerAddressMode)sampler.edgeSampleMode;
-	texSamplerInfo.addressModeW = (VkSamplerAddressMode)sampler.edgeSampleMode;
-	texSamplerInfo.mipLodBias = 0.0f;
-	texSamplerInfo.anisotropyEnable = anisotropyAvailable;
-	texSamplerInfo.maxAnisotropy = maxAnisotropy;
-	texSamplerInfo.compareEnable = VK_FALSE;
-	texSamplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	texSamplerInfo.minLod = 0.0f;
-	texSamplerInfo.maxLod = (F32)texture->mipmapLevels;
-	texSamplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	texSamplerInfo.unnormalizedCoordinates = VK_FALSE;
+	VkSamplerCreateInfo texSamplerInfo{
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.magFilter = (VkFilter)sampler.filterMode,
+		.minFilter = (VkFilter)sampler.filterMode,
+		.mipmapMode = (VkSamplerMipmapMode)sampler.mipMapSampleMode,
+		.addressModeU = (VkSamplerAddressMode)sampler.edgeSampleMode,
+		.addressModeV = (VkSamplerAddressMode)sampler.edgeSampleMode,
+		.addressModeW = (VkSamplerAddressMode)sampler.edgeSampleMode,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = anisotropyAvailable,
+		.maxAnisotropy = maxAnisotropy,
+		.compareEnable = VK_FALSE,
+		.compareOp = VK_COMPARE_OP_ALWAYS,
+		.minLod = 0.0f,
+		.maxLod = (F32)texture->mipmapLevels,
+		.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+		.unnormalizedCoordinates = VK_FALSE
+	};
 
 	VkValidateR(vkCreateSampler(device, &texSamplerInfo, allocationCallbacks, &texture->sampler));
 

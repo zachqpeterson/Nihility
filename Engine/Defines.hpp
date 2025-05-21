@@ -149,3 +149,48 @@ template<class Type, U64 Count> constexpr U64 CountOf(Type(&)[Count]) { return C
 /// </summary>
 /// <returns>The count of elements</returns>
 template<class Type, U32 Count> constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
+
+/// <summary>
+/// Creates a number that represents a version
+/// </summary>
+/// <param name="major:">The major version</param>
+/// <param name="minor:">The minor version</param>
+/// <param name="patch:">The patch version</param>
+/// <returns>The version number</returns>
+constexpr U32 MakeVersionNumber(U8 major, U8 minor, U8 patch)
+{
+	return (major << 16) | (minor << 8) | patch;
+}
+
+/// <summary>
+/// Extracts the patch number from a version number
+/// </summary>
+/// <param name="versionNumber:">The version number to get the patch number from</param>
+/// <returns>The patch number</returns>
+constexpr U32 GetPatchVersion(U32 versionNumber)
+{
+	constexpr U32 PATCH_MASK = 0b11111111;
+	return versionNumber & PATCH_MASK;
+}
+
+/// <summary>
+/// Extracts the minor number from a version number
+/// </summary>
+/// <param name="versionNumber:">The version number to get the minor number from</param>
+/// <returns>The minor number</returns>
+constexpr U32 GetMinorVersion(U32 versionNumber)
+{
+	constexpr U32 MINOR_MASK = 0b1111111100000000;
+	return (versionNumber & MINOR_MASK) >> 8;
+}
+
+/// <summary>
+/// Extracts the major number from a version number
+/// </summary>
+/// <param name="versionNumber:">The version number to get the major number from</param>
+/// <returns>The major number</returns>
+constexpr U32 GetMajorVersion(U32 versionNumber)
+{
+	constexpr U32 MAJOR_MASK = 0b111111110000000000000000;
+	return (versionNumber & MAJOR_MASK) >> 16;
+}

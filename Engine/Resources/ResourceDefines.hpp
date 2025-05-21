@@ -47,7 +47,7 @@ enum class AnimationBehaviour : I32
 };
 
 template<class Type>
-struct NH_API Resource
+struct Resource
 {
 public:
 	Type* operator->();
@@ -59,7 +59,7 @@ public:
 };
 
 template<class Type>
-struct NH_API ResourceRef
+struct ResourceRef
 {
 public:
 	ResourceRef();

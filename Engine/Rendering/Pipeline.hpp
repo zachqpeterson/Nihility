@@ -2,25 +2,34 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
-
 #include "PipelineLayout.hpp"
 #include "Shader.hpp"
 
 #include "Containers/Vector.hpp"
 
-enum NH_API PolygonMode
+enum class NH_API PolygonMode
 {
 	Fill = 0,
 	Line = 1,
 	Point = 2
 };
 
+enum class NH_API BindPoint
+{
+	Graphics = 0,
+	Compute = 1,
+	RayTracing = 1000165000
+};
+
 struct NH_API PipelineSettings
 {
 	PolygonMode polygonMode = PolygonMode::Fill;
-	VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	BindPoint bindPoint = BindPoint::Graphics;
 };
+
+struct VkPipeline_T;
+struct VkVertexInputBindingDescription;
+struct VkVertexInputAttributeDescription;
 
 struct NH_API Pipeline
 {
@@ -28,11 +37,11 @@ struct NH_API Pipeline
 		const Vector<VkVertexInputBindingDescription>& bindings, const Vector<VkVertexInputAttributeDescription>& attributes);
 	void Destroy();
 
-	operator VkPipeline() const;
+	operator VkPipeline_T* () const;
 
 private:
-	VkPipeline vkPipeline;
-	VkPipelineBindPoint bindPoint;
+	VkPipeline_T* vkPipeline;
+	BindPoint bindPoint;
 
 	friend class Renderer;
 	friend struct CommandBuffer;

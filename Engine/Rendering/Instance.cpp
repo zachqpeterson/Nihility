@@ -27,27 +27,29 @@ VkBool32 __stdcall DebugCallback(
 	return VK_FALSE;
 }
 
-bool Instance::Create()
+bool Instance::Create(const StringView& name, U32 version)
 {
-	VkApplicationInfo applicationInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-	applicationInfo.pNext = nullptr;
-	applicationInfo.pApplicationName = "Demo";
-	applicationInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
-	applicationInfo.pEngineName = "Nihility";
-	applicationInfo.engineVersion = VK_MAKE_VERSION(0, 0, 4);
-	applicationInfo.apiVersion = VK_VERSION_1_3;
-
-	VkInstanceCreateInfo instanceInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+	VkApplicationInfo applicationInfo{
+		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+		.pNext = nullptr,
+		.pApplicationName = name.Data(),
+		.applicationVersion = version,
+		.pEngineName = "Nihility",
+		.engineVersion = VK_MAKE_VERSION(0, 0, 4),
+		.apiVersion = VK_VERSION_1_3
+	};
 
 	VkValidateFR(vkEnumerateInstanceVersion(&applicationInfo.apiVersion));
 
 	Vector<const C8*> extensions;
 	Vector<const C8*> layers;
-	
+
 	extensions.Push(VK_KHR_SURFACE_EXTENSION_NAME);
 #ifdef NH_PLATFORM_WINDOWS
 	extensions.Push(VK_KHR_WIN32_SURFACE_EXTENSION_NAME); //TODO: Other platforms
 #endif
+
+	void* pNext = nullptr;
 
 #ifdef NH_DEBUG
 	extensions.Push(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -56,18 +58,18 @@ bool Instance::Create()
 	VkDebugUtilsMessengerCreateInfoEXT messengerInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 	messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 	messengerInfo.flags = 0;
-	messengerInfo.messageSeverity = 
+	messengerInfo.messageSeverity =
 		//VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 		//VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	messengerInfo.messageType = 
+	messengerInfo.messageType =
 		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 	messengerInfo.pfnUserCallback = DebugCallback;
 	messengerInfo.pUserData = nullptr;
-	instanceInfo.pNext = &messengerInfo;
+	pNext = &messengerInfo;
 
 	Vector<VkValidationFeatureEnableEXT> validationFeatures;
 	validationFeatures.Push(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT);
@@ -80,21 +82,18 @@ bool Instance::Create()
 	features.disabledValidationFeatureCount = 0;
 	features.pDisabledValidationFeatures = nullptr;
 	messengerInfo.pNext = &features;
-
-	VkValidationFlagsEXT checks{};
-	checks.sType = VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT;
-	checks.pNext = nullptr;
-	checks.disabledValidationCheckCount = 0;
-	checks.pDisabledValidationChecks = nullptr;
-	//features.pNext = &checks;
 #endif
 
-	instanceInfo.flags = 0;
-	instanceInfo.pApplicationInfo = &applicationInfo;
-	instanceInfo.enabledLayerCount = (U32)layers.Size();
-	instanceInfo.ppEnabledLayerNames = layers.Data();
-	instanceInfo.enabledExtensionCount = (U32)extensions.Size();
-	instanceInfo.ppEnabledExtensionNames = extensions.Data();
+	VkInstanceCreateInfo instanceInfo{
+		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		.pNext = pNext,
+		.flags = 0,
+		.pApplicationInfo = &applicationInfo,
+		.enabledLayerCount = (U32)layers.Size(),
+		.ppEnabledLayerNames = layers.Data(),
+		.enabledExtensionCount = (U32)extensions.Size(),
+		.ppEnabledExtensionNames = extensions.Data()
+	};
 
 	VkValidateFR(vkCreateInstance(&instanceInfo, Renderer::allocationCallbacks, &vkInstance));
 
@@ -124,7 +123,7 @@ void Instance::Destroy()
 	vkInstance = nullptr;
 }
 
-Instance::operator VkInstance() const
+Instance::operator VkInstance_T* () const
 {
 	return vkInstance;
 }

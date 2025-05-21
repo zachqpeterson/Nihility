@@ -20,26 +20,6 @@
 
 #include <vulkan/vulkan.h>
 
-enum NH_API ShaderStage
-{
-	Vertex = 0x00000001,
-	TessellationControl = 0x00000002,
-	TessellationEvaluation = 0x00000004,
-	Geometry = 0x00000008,
-	Fragment = 0x00000010,
-	Compute = 0x00000020,
-	AllGraphics = 0x0000001F,
-	All = 0x7FFFFFFF,
-	Raygen = 0x00000100,
-	AnyHit = 0x00000200,
-	ClosestHit = 0x00000400,
-	Miss = 0x00000800,
-	Intersection = 0x00001000,
-	Callable = 0x00002000,
-	Task = 0x00000040,
-	Mesh = 0x00000080
-};
-
 /// <summary>
 /// Gets the description of a VkResult
 /// </summary>
@@ -224,7 +204,7 @@ inline bool ResultSuccess(VkResult result)
 /// </summary>
 #define VkValidate(expr)						\
 {												\
-    VkResult result = expr;						\
+    VkResult result = VkResult(expr);			\
 	if (!ResultSuccess(result))					\
 	{											\
 		Logger::Error(ResultString(result));	\
@@ -236,7 +216,7 @@ inline bool ResultSuccess(VkResult result)
 /// </summary>
 #define VkValidateF(expr)						\
 {												\
-    VkResult result = expr;						\
+    VkResult result = VkResult(expr);			\
 	if (!ResultSuccess(result))					\
 	{											\
 		Logger::Fatal(ResultString(result));	\
@@ -248,7 +228,7 @@ inline bool ResultSuccess(VkResult result)
 /// </summary>
 #define VkValidateR(expr)						\
 {												\
-    VkResult result = expr;						\
+    VkResult result = VkResult(expr);			\
 	if (!ResultSuccess(result))					\
 	{											\
 		Logger::Error(ResultString(result));	\
@@ -262,7 +242,7 @@ inline bool ResultSuccess(VkResult result)
 /// </summary>
 #define VkValidateFR(expr)						\
 {												\
-    VkResult result = expr;						\
+    VkResult result = VkResult(expr);			\
 	if (!ResultSuccess(result))					\
 	{											\
 		Logger::Fatal(ResultString(result));	\
@@ -275,7 +255,7 @@ inline bool ResultSuccess(VkResult result)
 /// </summary>
 #define VkValidateExit(expr)					\
 {												\
-    VkResult result = expr;						\
+    VkResult result = VkResult(expr);			\
 	if (!ResultSuccess(result)) { return; }		\
 }
 
@@ -284,7 +264,7 @@ inline bool ResultSuccess(VkResult result)
 /// </summary>
 #define VkValidateFExit(expr)					\
 {												\
-    VkResult result = expr;						\
+    VkResult result = VkResult(expr);			\
 	if (!ResultSuccess(result))					\
 	{											\
 		Logger::Fatal(ResultString(result));	\

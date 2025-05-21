@@ -42,10 +42,16 @@ NH_API inline bool Numerical(C c) noexcept
 
 struct NH_API StringView
 {
+	constexpr StringView() {}
+
 	template<U64 Length>
 	constexpr StringView(const C8(&str)[Length]) : string{ str }, length{ Length } {}
-
 	constexpr StringView(const C8* str, U64 length) : string{ str }, length{ length } {}
+	constexpr StringView(const StringView& other) : string{ other.string }, length{ other.length } {}
+	constexpr StringView(StringView&& other) noexcept : string{ other.string }, length{ other.length } {}
+
+	constexpr StringView& operator=(const StringView& other) { string = other.string; length = other.length; return *this; }
+	constexpr StringView& operator=(StringView&& other) noexcept { string = other.string; length = other.length; return *this; }
 
 	constexpr bool operator==(const StringView& other) const
 	{
@@ -131,14 +137,14 @@ struct NH_API StringView
 	constexpr const C8* Data() const { return string; }
 
 private:
-	const C8* string;
-	U64 length;
+	const C8* string = nullptr;
+	U64 length = 0;
 };
 
 struct FormatTag{} static inline constexpr FORMAT;
 
 template<class C>
-struct NH_API StringBase
+struct StringBase
 {
 	using CharType = C;
 

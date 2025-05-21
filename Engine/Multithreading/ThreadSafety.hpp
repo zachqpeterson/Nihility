@@ -71,49 +71,49 @@ public:
 };
 
 template<Integer Int>
-NH_API Int SafeIncrement(volatile Int* t)
+Int SafeIncrement(volatile Int* t)
 {
 	if constexpr (sizeof(Int) == 8) { return (Int)ThreadSafety::SafeIncrement64((volatile I64*)t); }
 	else { return (Int)ThreadSafety::SafeIncrement32((volatile L32*)t); }
 }
 
 template<Integer Int0, Integer Int1>
-NH_API Int0 SafeAdd(volatile Int0* t, Int1 value)
+Int0 SafeAdd(volatile Int0* t, Int1 value)
 {
 	if constexpr (sizeof(Int0) == 8) { return (Int0)ThreadSafety::SafeAdd64((volatile I64*)t, (I64)value); }
 	else { return (Int0)ThreadSafety::SafeAdd32((volatile L32*)t, (L32)value); }
 }
 
 template<Integer Int>
-NH_API Int SafeDecrement(volatile Int* t)
+Int SafeDecrement(volatile Int* t)
 {
 	if constexpr (sizeof(Int) == 8) { return (Int)ThreadSafety::SafeDecrement64((volatile I64*)t); }
 	else { return (Int)ThreadSafety::SafeDecrement32((volatile L32*)t); }
 }
 
 template<Integer Int0, Integer Int1>
-NH_API Int0 SafeSubtract(volatile Int0* t, Int1 value)
+Int0 SafeSubtract(volatile Int0* t, Int1 value)
 {
 	if constexpr (sizeof(Int0) == 8) { return (Int0)ThreadSafety::SafeSubtract64((volatile I64*)t, (I64)value); }
 	else { return (Int0)ThreadSafety::SafeSubtract32((volatile L32*)t, (L32)value); }
 }
 
 template<Integer Int0, Integer Int1>
-NH_API Int0 SafeCheckAndSet(volatile Int0* t, Int1 pos)
+Int0 SafeCheckAndSet(volatile Int0* t, Int1 pos)
 {
 	if constexpr (sizeof(Int0) == 8) { return (Int0)ThreadSafety::SafeCheckAndSet64((volatile I64*)t, (I64)pos); }
 	else { return (Int0)ThreadSafety::SafeCheckAndSet32((volatile L32*)t, (L32)pos); }
 }
 
 template<Integer Int0, Integer Int1>
-NH_API Int0 SafeCheckAndReset(volatile Int0* t, Int1 pos)
+Int0 SafeCheckAndReset(volatile Int0* t, Int1 pos)
 {
 	if constexpr (sizeof(Int0) == 8) { return (Int0)ThreadSafety::SafeCheckAndReset64((volatile I64*)t, (I64)pos); }
 	else { return (Int0)ThreadSafety::SafeCheckAndReset32((volatile L32*)t, (L32)pos); }
 }
 
 template<Integer Int0, Integer Int1, Integer Int2>
-NH_API Int0 SafeCompareAndExchange(volatile Int0* t, Int1 exchange, Int2 comperand)
+Int0 SafeCompareAndExchange(volatile Int0* t, Int1 exchange, Int2 comperand)
 {
 	if constexpr (sizeof(Int0) == 8) { return (Int0)ThreadSafety::SafeCompareAndExchange64((volatile I64*)t, (I64)exchange, (I64)comperand); }
 	else { return (Int0)ThreadSafety::SafeCompareAndExchange32((volatile L32*)t, (L32)exchange, (L32)comperand); }

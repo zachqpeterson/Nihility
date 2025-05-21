@@ -4,46 +4,38 @@
 
 bool FrameBuffer::Create()
 {
-	vkImages = Renderer::swapchain.GetImages();
-	vkImageViews = Renderer::swapchain.GetImageViews();
+	vkFramebuffers.Resize(Renderer::swapchain.imageCount);
 
-	vkFramebuffers.Resize(vkImages.Size());
+	for (U64 i = 0; i < vkFramebuffers.Size(); ++i)
+	{
+		Vector<VkImageView> attachments = { Renderer::swapchain.imageViews[i], Renderer::depthTextures[i].imageView };
 
-    for (U64 i = 0; i < vkFramebuffers.Size(); ++i)
-    {
-        Vector<VkImageView> attachments = { vkImageViews[i], Renderer::depthTextures[i].imageView };
+		VkFramebufferCreateInfo frameBufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+		frameBufferInfo.pNext = nullptr;
+		frameBufferInfo.flags = 0;
+		frameBufferInfo.renderPass = Renderer::renderpass;
+		frameBufferInfo.attachmentCount = (U32)attachments.Size();
+		frameBufferInfo.pAttachments = attachments.Data();
+		frameBufferInfo.width = Renderer::swapchain.width;
+		frameBufferInfo.height = Renderer::swapchain.height;
+		frameBufferInfo.layers = 1;
 
-        VkFramebufferCreateInfo frameBufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-        frameBufferInfo.pNext = nullptr;
-        frameBufferInfo.flags = 0;
-        frameBufferInfo.renderPass = Renderer::renderpass;
-        frameBufferInfo.attachmentCount = (U32)attachments.Size();
-        frameBufferInfo.pAttachments = attachments.Data();
-        frameBufferInfo.width = Renderer::swapchain.extent.width;
-        frameBufferInfo.height = Renderer::swapchain.extent.height;
-        frameBufferInfo.layers = 1;
+		VkValidateFR(vkCreateFramebuffer(Renderer::device, &frameBufferInfo, Renderer::allocationCallbacks, &vkFramebuffers[i]));
+	}
 
-        VkValidateFR(vkCreateFramebuffer(Renderer::device, &frameBufferInfo, Renderer::allocationCallbacks, &vkFramebuffers[i]));
-    }
-
-    return true;
+	return true;
 }
 
 void FrameBuffer::Destroy()
 {
-    for (VkFramebuffer frameBuffer : vkFramebuffers)
-    {
-        vkDestroyFramebuffer(Renderer::device, frameBuffer, Renderer::allocationCallbacks);
-    }
-
-    for (VkImageView imageView : vkImageViews)
-    {
-        vkDestroyImageView(Renderer::device, imageView, Renderer::allocationCallbacks);
-    }
+	for (VkFramebuffer frameBuffer : vkFramebuffers)
+	{
+		vkDestroyFramebuffer(Renderer::device, frameBuffer, Renderer::allocationCallbacks);
+	}
 }
 
 
-FrameBuffer::operator VkFramebuffer() const
+FrameBuffer::operator VkFramebuffer_T* () const
 {
-    return vkFramebuffers[Renderer::frameIndex];
+	return vkFramebuffers[Renderer::frameIndex];
 }

@@ -12,45 +12,44 @@ bool DescriptorSet::Create(const Vector<DescriptorBinding>& bs, U32 firstBinding
 	U32 i = firstBinding;
 	for (const DescriptorBinding& b : bindings)
 	{
-		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding{};
-		descriptorSetLayoutBinding.binding = i++;
-		descriptorSetLayoutBinding.descriptorType = (VkDescriptorType)b.type;
-		descriptorSetLayoutBinding.descriptorCount = b.count;
-		descriptorSetLayoutBinding.stageFlags = b.stages;
-		descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
+		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding{
+			.binding = i++,
+			.descriptorType = (VkDescriptorType)b.type,
+			.descriptorCount = b.count,
+			.stageFlags = b.stages,
+			.pImmutableSamplers = nullptr
+		};
 
 		layoutBindings.Push(descriptorSetLayoutBinding);
 	}
 
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	descriptorSetLayoutCreateInfo.pNext = nullptr;
-	descriptorSetLayoutCreateInfo.flags = 0;
-	descriptorSetLayoutCreateInfo.bindingCount = (U32)layoutBindings.Size();
-	descriptorSetLayoutCreateInfo.pBindings = layoutBindings.Data();
+	VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
+	VkDescriptorBindingFlags bindingFlags[2]{ bindlessFlags, bindlessFlags };
 
-	if (bindless)
-	{
-		VkDescriptorBindingFlags bindlessFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
-		VkDescriptorBindingFlags bindingFlags[2];
+	VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+		.pNext = nullptr,
+		.bindingCount = (U32)layoutBindings.Size(),
+		.pBindingFlags = bindingFlags
+	};
 
-		bindingFlags[0] = bindlessFlags;
-		bindingFlags[1] = bindlessFlags;
-
-		VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-		extendedInfo.bindingCount = (U32)layoutBindings.Size();
-		extendedInfo.pBindingFlags = bindingFlags;
-
-		descriptorSetLayoutCreateInfo.pNext = &extendedInfo;
-		descriptorSetLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
-	}
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.pNext = bindless ? &extendedInfo : nullptr,
+		.flags = bindless ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT : (VkDescriptorSetLayoutCreateFlags)0,
+		.bindingCount = (U32)layoutBindings.Size(),
+		.pBindings = layoutBindings.Data()
+	};
 
 	VkValidateR(vkCreateDescriptorSetLayout(Renderer::device, &descriptorSetLayoutCreateInfo, Renderer::allocationCallbacks, &vkDescriptorLayout));
 
-	VkDescriptorSetAllocateInfo descriptorAllocateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	descriptorAllocateInfo.pNext = nullptr;
-	descriptorAllocateInfo.descriptorPool = bindless ? Renderer::vkBindlessDescriptorPool : Renderer::vkDescriptorPool;
-	descriptorAllocateInfo.descriptorSetCount = 1;
-	descriptorAllocateInfo.pSetLayouts = &vkDescriptorLayout;
+	VkDescriptorSetAllocateInfo descriptorAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.descriptorPool = bindless ? Renderer::vkBindlessDescriptorPool : Renderer::vkDescriptorPool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &vkDescriptorLayout
+	};
 
 	VkValidateFR(vkAllocateDescriptorSets(Renderer::device, &descriptorAllocateInfo, &vkDescriptorSet));
 
@@ -59,13 +58,15 @@ bool DescriptorSet::Create(const Vector<DescriptorBinding>& bs, U32 firstBinding
 		i = firstBinding;
 		for (const DescriptorBinding& b : bindings)
 		{
-			VkWriteDescriptorSet matrixWriteDescriptorSet = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			matrixWriteDescriptorSet.pNext = nullptr;
-			matrixWriteDescriptorSet.dstSet = vkDescriptorSet;
-			matrixWriteDescriptorSet.dstBinding = i++;
-			matrixWriteDescriptorSet.dstArrayElement = 0;
-			matrixWriteDescriptorSet.descriptorCount = b.count;
-			matrixWriteDescriptorSet.descriptorType = (VkDescriptorType)b.type;
+			VkWriteDescriptorSet matrixWriteDescriptorSet{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.pNext = nullptr,
+				.dstSet = vkDescriptorSet,
+				.dstBinding = i++,
+				.dstArrayElement = 0,
+				.descriptorCount = b.count,
+				.descriptorType = (VkDescriptorType)b.type
+			};
 
 			switch (b.type)
 			{
@@ -73,14 +74,14 @@ bool DescriptorSet::Create(const Vector<DescriptorBinding>& bs, U32 firstBinding
 			case BindingType::CombinedImageSampler:
 			case BindingType::SampledImage:
 			case BindingType::StorageImage: {
-				matrixWriteDescriptorSet.pImageInfo = &b.imageInfo;
+				matrixWriteDescriptorSet.pImageInfo = (VkDescriptorImageInfo*)&b.imageInfo;
 			} break;
 			case BindingType::InputAttachment:
 			case BindingType::UniformBuffer:
 			case BindingType::StorageBuffer:
 			case BindingType::UniformBufferDynamic:
 			case BindingType::StorageBufferDynamic: {
-				matrixWriteDescriptorSet.pBufferInfo = &b.bufferInfo;
+				matrixWriteDescriptorSet.pBufferInfo = (VkDescriptorBufferInfo*)&b.bufferInfo;
 			} break;
 			case BindingType::UniformTexelBuffer:
 			case BindingType::StorageTexelBuffer: {
@@ -112,12 +113,12 @@ void DescriptorSet::Upload(const Vector<VkWriteDescriptorSet>& writes)
 	vkUpdateDescriptorSets(Renderer::device, (U32)writes.Size(), writes.Data(), 0, nullptr);
 }
 
-DescriptorSet::operator VkDescriptorSetLayout() const
+DescriptorSet::operator VkDescriptorSetLayout_T* () const
 {
 	return vkDescriptorLayout;
 }
 
-DescriptorSet::operator VkDescriptorSet() const
+DescriptorSet::operator VkDescriptorSet_T* () const
 {
 	return vkDescriptorSet;
 }

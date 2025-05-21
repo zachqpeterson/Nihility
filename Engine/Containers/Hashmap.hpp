@@ -7,7 +7,7 @@
 #include "Math/Hash.hpp"
 
 template<class Key, class Value>
-struct NH_API Hashmap
+struct Hashmap
 {
 	struct Cell
 	{

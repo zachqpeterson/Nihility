@@ -2,7 +2,7 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
+struct VkRenderPass_T;
 
 struct Renderpass
 {
@@ -10,9 +10,9 @@ private:
 	bool Create();
 	void Destroy();
 
-	operator VkRenderPass() const;
+	operator VkRenderPass_T* () const;
 
-	VkRenderPass vkRenderpass;
+	VkRenderPass_T* vkRenderpass;
 
 	friend class Renderer;
 	friend struct Pipeline;

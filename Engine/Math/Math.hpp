@@ -2136,13 +2136,6 @@ inline constexpr Vector2::operator Vector4() const { return { x, y, 0.0f, 0.0f }
 inline constexpr Vector2::operator Vector2Int() const { return { (I32)x, (I32)y }; }
 inline constexpr Vector2::operator Vector3Int() const { return { (I32)x, (I32)y, 0 }; }
 inline constexpr Vector2::operator Vector4Int() const { return { (I32)x, (I32)y, 0, 0 }; }
-
-inline const Vector2 Vector2::Zero = 0.0f;
-inline const Vector2 Vector2::One = 1.0f;
-inline const Vector2 Vector2::Up = { 0.0f, 1.0f };
-inline const Vector2 Vector2::Down = { 0.0f, -1.0f };
-inline const Vector2 Vector2::Left = { -1.0f, 0.0f };
-inline const Vector2 Vector2::Right = { 1.0f, 0.0f };
 #pragma endregion
 
 #pragma region Vector3
@@ -2355,15 +2348,6 @@ inline constexpr Vector3::operator Vector4() const { return { x, y, z, 0.0f }; }
 inline constexpr Vector3::operator Vector2Int() const { return { (I32)x, (I32)y }; }
 inline constexpr Vector3::operator Vector3Int() const { return { (I32)x, (I32)y, (I32)z }; }
 inline constexpr Vector3::operator Vector4Int() const { return { (I32)x, (I32)y, (I32)z, 0 }; }
-
-inline const Vector3 Vector3::Zero = 0.0f;
-inline const Vector3 Vector3::One = 1.0f;
-inline const Vector3 Vector3::Left = { -1.0f, 0.0f, 0.0f };
-inline const Vector3 Vector3::Right = { 1.0f, 0.0f, 0.0f };
-inline const Vector3 Vector3::Up = { 0.0f, 1.0f, 0.0f };
-inline const Vector3 Vector3::Down = { 0.0f, -1.0f, 0.0f };
-inline const Vector3 Vector3::Forward = { 0.0f, 0.0f, 1.0f };
-inline const Vector3 Vector3::Back = { 0.0f, 0.0f, -1.0f };
 #pragma endregion
 
 #pragma region Vector4
@@ -2811,17 +2795,6 @@ inline constexpr Vector4::operator Vector3() const { return { x, y, z }; }
 inline constexpr Vector4::operator Vector2Int() const { return { (I32)x, (I32)y }; }
 inline constexpr Vector4::operator Vector3Int() const { return { (I32)x, (I32)y, (I32)z }; }
 inline constexpr Vector4::operator Vector4Int() const { return { (I32)x, (I32)y, (I32)z, (I32)w }; }
-
-inline const Vector4 Vector4::Zero = 0.0f;
-inline const Vector4 Vector4::One = 1.0f;
-inline const Vector4 Vector4::Left = { -1.0f, 0.0f, 0.0f, 0.0f };
-inline const Vector4 Vector4::Right = { 1.0f, 0.0f, 0.0f, 0.0f };
-inline const Vector4 Vector4::Up = { 0.0f, 1.0f, 0.0f, 0.0f };
-inline const Vector4 Vector4::Down = { 0.0f, -1.0f, 0.0f, 0.0f };
-inline const Vector4 Vector4::Forward = { 0.0f, 0.0f, 1.0f, 0.0f };
-inline const Vector4 Vector4::Back = { 0.0f, 0.0f, -1.0f, 0.0f };
-inline const Vector4 Vector4::In = { 0.0f, 0.0f, 0.0f, -1.0f };
-inline const Vector4 Vector4::Out = { 0.0f, 0.0f, 0.0f, 1.0f };
 #pragma endregion
 
 #pragma region Vector2Int
@@ -2921,13 +2894,6 @@ inline constexpr Vector2Int::operator Vector3() const { return { (F32)x, (F32)y,
 inline constexpr Vector2Int::operator Vector4() const { return { (F32)x, (F32)y, 0.0f, 0.0f }; }
 inline constexpr Vector2Int::operator Vector3Int() const { return { x, y, 0 }; }
 inline constexpr Vector2Int::operator Vector4Int() const { return { x, y, 0, 0 }; }
-
-inline const Vector2Int Vector2Int::Zero = 0;
-inline const Vector2Int Vector2Int::One = 1;
-inline const Vector2Int Vector2Int::Left = { -1, 0 };
-inline const Vector2Int Vector2Int::Right = { 1, 0 };
-inline const Vector2Int Vector2Int::Up = { 0, 1 };
-inline const Vector2Int Vector2Int::Down = { 0, -1 };
 #pragma endregion
 
 #pragma region Vector3Int
@@ -3061,15 +3027,6 @@ inline constexpr Vector3Int::operator Vector3() const { return { (F32)x, (F32)y,
 inline constexpr Vector3Int::operator Vector4() const { return { (F32)x, (F32)y, (F32)z, 0.0f }; }
 inline constexpr Vector3Int::operator Vector2Int() const { return { x, y }; }
 inline constexpr Vector3Int::operator Vector4Int() const { return { x, y, z, 0 }; }
-
-inline const Vector3Int Vector3Int::Zero = 0;
-inline const Vector3Int Vector3Int::One = 1;
-inline const Vector3Int Vector3Int::Left = { -1, 0, 0 };
-inline const Vector3Int Vector3Int::Right = { 1, 0, 0 };
-inline const Vector3Int Vector3Int::Up = { 0, 1, 0 };
-inline const Vector3Int Vector3Int::Down = { 0, -1, 0 };
-inline const Vector3Int Vector3Int::Forward = { 0, 0, 1 };
-inline const Vector3Int Vector3Int::Back = { 0, 0, -1 };
 #pragma endregion
 
 #pragma region Vector4Int
@@ -3514,17 +3471,6 @@ inline constexpr Vector4Int::operator Vector3() const { return { (F32)x, (F32)y,
 inline constexpr Vector4Int::operator Vector4() const { return { (F32)x, (F32)y, (F32)z, (F32)w }; }
 inline constexpr Vector4Int::operator Vector2Int() const { return { x, y }; }
 inline constexpr Vector4Int::operator Vector3Int() const { return { x, y, z }; }
-
-inline const Vector4Int Vector4Int::Zero = 0;
-inline const Vector4Int Vector4Int::One = 1;
-inline const Vector4Int Vector4Int::Left = { -1, 0, 0, 0 };
-inline const Vector4Int Vector4Int::Right = { 1, 0, 0, 0 };
-inline const Vector4Int Vector4Int::Up = { 0, 1, 0, 0 };
-inline const Vector4Int Vector4Int::Down = { 0, -1, 0, 0 };
-inline const Vector4Int Vector4Int::Forward = { 0, 0, 1, 0 };
-inline const Vector4Int Vector4Int::Back = { 0, 0, -1, 0 };
-inline const Vector4Int Vector4Int::In = { 0, 0, 0, -1 };
-inline const Vector4Int Vector4Int::Out = { 0, 0, 0, 1 };
 #pragma endregion
 
 #pragma region Matrix2
@@ -4462,9 +4408,6 @@ inline const Vector4& Matrix4::operator[] (U8 i) const { return (&a)[i]; }
 
 inline F32* Matrix4::Data() { return a.Data(); }
 inline const F32* Matrix4::Data() const { return a.Data(); }
-
-inline const Matrix4 Matrix4::Identity = {};
-inline const Matrix4 Matrix4::Zero = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 #pragma endregion
 
 #pragma region Quaternion2
@@ -4693,8 +4636,6 @@ inline F32* Quaternion2::Data() { return &x; }
 inline const F32* Quaternion2::Data() const { return &x; }
 
 inline constexpr Quaternion2::operator Quaternion3() const { return Quaternion3{ 0.0f, 0.0f, x, y }; }
-
-inline const Quaternion2 Quaternion2::Identity = {};
 #pragma endregion
 
 #pragma region Quaternion3
@@ -5068,6 +5009,4 @@ inline const F32* Quaternion3::Data() const { return &x; }
 
 inline constexpr Quaternion3::operator Quaternion2() const { return { z, w }; }
 inline constexpr Quaternion3::operator Vector3() const { return { x, y, z }; }
-
-inline const Quaternion3 Quaternion3::Identity = {};
 #pragma endregion

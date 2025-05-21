@@ -7,7 +7,7 @@
 #include <initializer_list>
 
 template<class Type>
-struct NH_API Vector
+struct Vector
 {
 	/// <summary>
 	/// Creates a new Vector instance, size and capacity will be zero, array will be nullptr

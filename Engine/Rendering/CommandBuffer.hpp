@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanInclude.hpp"
+#include "Defines.hpp"
 
 #include "Pipeline.hpp"
 #include "Renderpass.hpp"
@@ -10,12 +10,25 @@
 
 #include "Resources/Texture.hpp"
 
+struct VkCommandBuffer_T;
+struct VkBuffer_T;
+struct VkDescriptorSet_T;
+struct VkBufferImageCopy;
+struct VkClearAttachment;
+struct VkClearRect;
+struct VkBufferCopy;
+struct VkImageCopy;
+struct VkImageBlit;
+struct VkBufferMemoryBarrier2;
+struct VkImageMemoryBarrier2;
+enum VkFilter;
+
 struct CommandBuffer
 {
-    VkResult Begin();
-    VkResult End();
+	U32 Begin();
+	U32 End();
 
-    void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
+	void ClearAttachments(U32 attachmentCount, VkClearAttachment* attachments, U32 rectCount, VkClearRect* rects);
 
 	void BeginRenderpass(const Renderpass& renderpass, const FrameBuffer& frameBuffer, const Swapchain& swapchain);
 	void NextSubpass();
@@ -23,8 +36,8 @@ struct CommandBuffer
 
 	void BindPipeline(const Pipeline& pipeline);
 	void BindIndexBuffer(const Buffer& buffer, U32 offset);
-	void BindVertexBuffers(U32 count, const VkBuffer* buffers, U64* offsets);
-	void BindDescriptorSets(VkPipelineBindPoint bindPoint, const PipelineLayout& pipelineLayout, U32 setOffset, U32 setCount, const VkDescriptorSet* sets);
+	void BindVertexBuffers(U32 count, VkBuffer_T* const* buffers, U64* offsets);
+	void BindDescriptorSets(BindPoint bindPoint, const PipelineLayout& pipelineLayout, U32 setOffset, U32 setCount, VkDescriptorSet_T* const* sets);
 
 	void PushConstants(const PipelineLayout& pipelineLayout, U32 stages, U32 offset, U32 size, const void* data);
 
@@ -40,7 +53,7 @@ struct CommandBuffer
 
 	void BufferToImage(const Buffer& buffer, Resource<Texture>& texture, U32 regionCount, const VkBufferImageCopy* regions);
 	void ImageToBuffer(const ResourceRef<Texture>& texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions);
-	void BufferToBuffer(const VkBuffer src, const VkBuffer dst, U32 regionCount, const VkBufferCopy* regions);
+	void BufferToBuffer(VkBuffer_T* src, VkBuffer_T* dst, U32 regionCount, const VkBufferCopy* regions);
 	void BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions);
 	void ImageToImage(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, U32 regionCount, const VkImageCopy* regions);
 	void Blit(Resource<Texture>& src, Resource<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits);
@@ -49,12 +62,12 @@ struct CommandBuffer
 	void PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount, const VkBufferMemoryBarrier2* bufferBarriers, U32 imageBarrierCount, const VkImageMemoryBarrier2* imageBarriers);
 
 private:
-    VkCommandBuffer vkCommandBuffer = VK_NULL_HANDLE;
+	VkCommandBuffer_T* vkCommandBuffer = nullptr;
 
-	operator VkCommandBuffer() const;
-	const VkCommandBuffer* operator&() const;
+	operator VkCommandBuffer_T*() const;
+	VkCommandBuffer_T* const* operator&() const;
 
-    friend class Renderer;
-    friend class CommandBufferRing;
-    friend struct Buffer;
+	friend class Renderer;
+	friend class CommandBufferRing;
+	friend struct Buffer;
 };

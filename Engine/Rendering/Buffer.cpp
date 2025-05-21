@@ -11,22 +11,27 @@ bool Buffer::Create(BufferType type, U64 size)
 {
 	this->type = type;
 
-	VkBufferCreateInfo bufferCreateInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	bufferCreateInfo.pNext = nullptr;
-	bufferCreateInfo.flags = 0;
-	bufferCreateInfo.size = size;
-	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	bufferCreateInfo.queueFamilyIndexCount = 0;
-	bufferCreateInfo.pQueueFamilyIndices = nullptr;
+	VkBufferCreateInfo bufferCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.size = size,
+		.usage = 0,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.queueFamilyIndexCount = 0,
+		.pQueueFamilyIndices = nullptr,
+	};
 
-	VmaAllocationCreateInfo allocationCreateInfo{};
-	allocationCreateInfo.flags = 0;
-	allocationCreateInfo.requiredFlags = 0;
-	allocationCreateInfo.preferredFlags = 0;
-	allocationCreateInfo.memoryTypeBits = 0;
-	allocationCreateInfo.pool = nullptr;
-	allocationCreateInfo.pUserData = nullptr;
-	allocationCreateInfo.priority = 0.0f;
+	VmaAllocationCreateInfo allocationCreateInfo{
+		.flags = 0,
+		.usage = VMA_MEMORY_USAGE_UNKNOWN,
+		.requiredFlags = 0,
+		.preferredFlags = 0,
+		.memoryTypeBits = 0,
+		.pool = nullptr,
+		.pUserData = nullptr,
+		.priority = 0.0f
+	};
 
 	switch (type)
 	{
@@ -96,7 +101,7 @@ void Buffer::Destroy()
 	stagingBufferAllocation = nullptr;
 }
 
-bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset, VkSemaphore waitSemaphore)
+bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset, VkSemaphore_T* waitSemaphore)
 {
 	if (bufferSize < size)
 	{
@@ -114,21 +119,25 @@ bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset, VkSe
 	vmaUnmapMemory(Renderer::vmaAllocator, stagingBufferAllocation);
 	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, size);
 
-	VkBufferMemoryBarrier2 vertexBufferBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-	vertexBufferBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-	vertexBufferBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-	vertexBufferBarrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
-	vertexBufferBarrier.dstAccessMask = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
-	vertexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	vertexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	vertexBufferBarrier.buffer = vkBufferStaging;
-	vertexBufferBarrier.offset = 0;
-	vertexBufferBarrier.size = bufferSize;
+	VkBufferMemoryBarrier2 vertexBufferBarrier{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
+		.dstAccessMask = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.buffer = vkBufferStaging,
+		.offset = 0,
+		.size = bufferSize
+	};
 
-	VkBufferCopy stagingBufferCopy{};
-	stagingBufferCopy.srcOffset = 0;
-	stagingBufferCopy.dstOffset = 0;
-	stagingBufferCopy.size = bufferSize;
+	VkBufferCopy stagingBufferCopy{
+		.srcOffset = 0,
+		.dstOffset = 0,
+		.size = bufferSize
+	};
 
 	CommandBuffer& commandBuffer = CommandBufferRing::GetWriteCommandBuffer(Renderer::frameIndex);
 
@@ -158,21 +167,25 @@ bool Buffer::UploadIndexData(const void* indexData, U64 size, U64 offset)
 	vmaUnmapMemory(Renderer::vmaAllocator, stagingBufferAllocation);
 	vmaFlushAllocation(Renderer::vmaAllocator, stagingBufferAllocation, 0, size);
 
-	VkBufferMemoryBarrier2 indexBufferBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-	indexBufferBarrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-	indexBufferBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-	indexBufferBarrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
-	indexBufferBarrier.dstAccessMask = VK_ACCESS_2_INDEX_READ_BIT;
-	indexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	indexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	indexBufferBarrier.buffer = vkBufferStaging;
-	indexBufferBarrier.offset = 0;
-	indexBufferBarrier.size = bufferSize;
+	VkBufferMemoryBarrier2 indexBufferBarrier{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+		.pNext = nullptr,
+		.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
+		.dstAccessMask = VK_ACCESS_2_INDEX_READ_BIT,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.buffer = vkBufferStaging,
+		.offset = 0,
+		.size = bufferSize
+	};
 
-	VkBufferCopy stagingBufferCopy{};
-	stagingBufferCopy.srcOffset = 0;
-	stagingBufferCopy.dstOffset = 0;
-	stagingBufferCopy.size = bufferSize;
+	VkBufferCopy stagingBufferCopy{
+		.srcOffset = 0,
+		.dstOffset = 0,
+		.size = bufferSize
+	};
 
 	CommandBuffer& commandBuffer = CommandBufferRing::GetWriteCommandBuffer(Renderer::frameIndex);
 
@@ -210,7 +223,7 @@ bool Buffer::CheckForResize(U64 size)
 	if (size > bufferSize)
 	{
 		Destroy();
-		
+
 		return Create(type, size);
 	}
 
@@ -248,7 +261,7 @@ U64 Buffer::StagingPointer() const
 	return stagingPointer;
 }
 
-Buffer::operator VkBuffer() const
+Buffer::operator VkBuffer_T* () const
 {
 	return vkBuffer;
 }

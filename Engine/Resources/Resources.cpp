@@ -26,23 +26,27 @@ bool Resources::Initialize()
 {
 	Logger::Trace("Initializing Resources...");
 
-
-	Sampler pointSampler{};
-	pointSampler.filterMode = FilterMode::Point;
-	pointSampler.mipMapSampleMode = MipMapSampleMode::Single;
+	Sampler pointSampler{
+		.filterMode = FilterMode::Point,
+		.mipMapSampleMode = MipMapSampleMode::Multiple,
+		.edgeSampleMode = EdgeSampleMode::ClampToEdge,
+		.borderColor = BorderColor::Clear,
+	};
 
 	whiteTexture = LoadTexture("textures/white.png", pointSampler);
 	placeholderTexture = LoadTexture("textures/missing_texture.png", pointSampler);
 
-	DescriptorBinding textureBinding{};
-	textureBinding.type = BindingType::CombinedImageSampler;
-	textureBinding.count = 1024;
-	textureBinding.stages = ShaderStage::All;
+	DescriptorBinding textureBinding {
+		.type = BindingType::CombinedImageSampler,
+		.stages = (U32)ShaderStage::All,
+		.count = 1024
+	};
 
-	DescriptorBinding texture3DBinding{};
-	texture3DBinding.type = BindingType::StorageImage;
-	texture3DBinding.count = 1024;
-	texture3DBinding.stages = ShaderStage::All;
+	DescriptorBinding texture3DBinding{
+		.type = BindingType::StorageImage,
+		.stages = (U32)ShaderStage::All,
+		.count = 1024
+	};
 
 	bindlessTexturesSet.Create({ textureBinding, texture3DBinding }, 10, true);
 
@@ -75,21 +79,24 @@ void Resources::Update()
 		ResourceRef<Texture> texture;
 		while (bindlessTexturesToUpdate.Pop(texture))
 		{
-			VkDescriptorImageInfo descriptorImageInfo{};
-			descriptorImageInfo.sampler = texture->sampler;
-			descriptorImageInfo.imageView = texture->imageView;
-			descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			VkDescriptorImageInfo descriptorImageInfo{
+				.sampler = texture->sampler,
+				.imageView = texture->imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
 
-			VkWriteDescriptorSet descriptorWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			descriptorWrite.pNext = nullptr;
-			descriptorWrite.dstSet = bindlessTexturesSet;
-			descriptorWrite.dstBinding = 10;
-			descriptorWrite.dstArrayElement = (U32)texture.Handle();
-			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrite.pImageInfo = &textureData.Push(descriptorImageInfo);
-			descriptorWrite.pBufferInfo = nullptr;
-			descriptorWrite.pTexelBufferView = nullptr;
+			VkWriteDescriptorSet descriptorWrite{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.pNext = nullptr,
+				.dstSet = bindlessTexturesSet,
+				.dstBinding = 10,
+				.dstArrayElement = (U32)texture.Handle(),
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.pImageInfo = &textureData.Push(descriptorImageInfo),
+				.pBufferInfo = nullptr,
+				.pTexelBufferView = nullptr
+			};
 
 			writes.Push(descriptorWrite);
 		}

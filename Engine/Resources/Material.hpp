@@ -9,9 +9,11 @@
 #include "Rendering/CommandBuffer.hpp"
 #include "Containers/Vector.hpp"
 
+struct VkDescriptorSet_T;
+
 struct NH_API Material
 {
-	bool Create(const PipelineLayout& pipelineLayout, const Pipeline& pipeline, const Vector<VkDescriptorSet>& descriptorSets);
+	bool Create(const PipelineLayout& pipelineLayout, const Pipeline& pipeline, const Vector<VkDescriptorSet_T*>& descriptorSets);
 	void Destroy();
 
 	void Bind(CommandBuffer commandBuffer, U32 instanceCount) const;
@@ -21,5 +23,5 @@ struct NH_API Material
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	Buffer instanceBuffers[MaxSwapchainImages];
-	Vector<VkDescriptorSet> sets;
+	Vector<VkDescriptorSet_T*> sets;
 };

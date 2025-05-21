@@ -41,42 +41,42 @@
 class Logger
 {
 public:
-	template<typename... Args> NH_API static void Debug(Args&&... args)
+	template<typename... Args> static void Debug(Args&&... args)
 	{
 #if LOG_DEBUG_ENABLED == 1
 		console.FormatedWrite("\033[0;36m[DEBUG]:\033[0m ", args..., '\n');
 		logFile.FormatedWrite("[DEBUG]: ", args..., '\n');
 #endif
 	}
-	template<typename... Args> NH_API static void Trace(Args&&... args)
+	template<typename... Args> static void Trace(Args&&... args)
 	{
 #if LOG_TRACE_ENABLED == 1
 		console.FormatedWrite("\033[1;30m[TRACE]:\033[0m ", args..., '\n');
 		logFile.FormatedWrite("[TRACE]: ", args..., '\n');
 #endif
 	}
-	template<typename... Args> NH_API static void Info(Args&&... args)
+	template<typename... Args> static void Info(Args&&... args)
 	{
 #if LOG_INFO_ENABLED == 1
 		console.FormatedWrite("\033[1;32m[INFO]:\033[0m  ", args..., '\n');
 		logFile.FormatedWrite("[INFO]:  ", args..., '\n');
 #endif
 	}
-	template<typename... Args> NH_API static void Warn(Args&&... args)
+	template<typename... Args> static void Warn(Args&&... args)
 	{
 #if LOG_WARN_ENABLED == 1
 		console.FormatedWrite("\033[1;33m[WARN]:\033[0m  ", args..., '\n');
 		logFile.FormatedWrite("[WARN]:  ", args..., '\n');
 #endif
 	}
-	template<typename... Args> NH_API static void Error(Args&&... args)
+	template<typename... Args> static void Error(Args&&... args)
 	{
 #if LOG_ERROR_ENABLED == 1
 		console.FormatedWrite("\033[0;31m[ERROR]:\033[0m ", args..., '\n');
 		logFile.FormatedWrite("[ERROR]: ", args..., '\n');
 #endif
 	}
-	template<typename... Args> NH_API static void Fatal(Args&&... args)
+	template<typename... Args> static void Fatal(Args&&... args)
 	{
 #if LOG_FATAL_ENABLED == 1
 		console.FormatedWrite("\033[0;41m[FATAL]:\033[0m ", args..., '\n');

@@ -60,6 +60,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/box2d/include;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4251</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -78,6 +79,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;%VULKAN_SDK%/include;%VULKAN_SDK%/Source;</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4251</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,6 +146,7 @@
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Time.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Math\Math.cpp" />
     <ClCompile Include="Math\Physics.cpp" />
     <ClCompile Include="Multithreading\Jobs.cpp" />
     <ClCompile Include="Multithreading\ThreadSafety.cpp" />

@@ -2,20 +2,22 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
 #include "DescriptorSet.hpp"
 
 #include "Containers/Vector.hpp"
+
+struct VkPushConstantRange;
+struct VkPipelineLayout_T;
 
 struct NH_API PipelineLayout
 {
 	bool Create(const Vector<DescriptorSet>& descriptorSets, const Vector<VkPushConstantRange>& pushConstants = {});
 	void Destroy();
 
-	operator VkPipelineLayout() const;
-	
+	operator VkPipelineLayout_T* () const;
+
 private:
-	VkPipelineLayout vkPipelineLayout;
+	VkPipelineLayout_T* vkPipelineLayout;
 
 	friend class Renderer;
 	friend struct Pipeline;

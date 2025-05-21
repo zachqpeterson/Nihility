@@ -2,16 +2,19 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
+#include "Containers/String.hpp"
+
+struct VkInstance_T;
+struct VkDebugUtilsMessengerEXT_T;
 
 struct Instance
 {
 public:
-	bool Create();
+	bool Create(const StringView& name, U32 version);
 	void Destroy();
 
-	VkInstance vkInstance = VK_NULL_HANDLE;
-	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+	VkInstance_T* vkInstance = nullptr;
+	VkDebugUtilsMessengerEXT_T* debugMessenger = nullptr;
 
-	operator VkInstance() const;
+	operator VkInstance_T* () const;
 };

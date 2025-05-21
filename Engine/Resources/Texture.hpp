@@ -5,6 +5,9 @@
 #include "Rendering/VulkanInclude.hpp"
 
 struct VmaAllocation_T;
+struct VkImage_T;
+struct VkImageView_T;
+struct VkSampler_T;
 
 enum class NH_API FilterMode
 {
@@ -59,9 +62,9 @@ private:
 	U64	size;
 	U8 mipmapLevels;
 
-	VkImage image = VK_NULL_HANDLE;
-	VkImageView imageView = VK_NULL_HANDLE;
-	VkSampler sampler = VK_NULL_HANDLE;
+	VkImage_T* image = nullptr;
+	VkImageView_T* imageView = nullptr;
+	VkSampler_T* sampler = nullptr;
 	VmaAllocation_T* allocation = nullptr;
 
 	friend class Renderer;

@@ -3,79 +3,219 @@
 #include "Renderer.hpp"
 #include "Platform/Platform.hpp"
 
-Device::CustomQueueDescription::CustomQueueDescription(U32 index, Vector<F32> priorities) : index(index), priorities(Move(priorities)) { }
-
 bool Device::Create()
 {
 	if (!CreateSurface()) { Logger::Fatal("Failed To Create Vulkan Surface!"); return false; }
 	if (!SelectPhysicalDevice()) { return false; }
 
-	Vector<CustomQueueDescription> queueDescriptions;
-
-	for (uint32_t i = 0; i < physicalDevice.queueFamilies.Size(); ++i)
-	{
-		queueDescriptions.Emplace(i, Vector<F32>{ 1.0f });
-	}
+	F32 priorities[]{ 1.0f };
 
 	Vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	for (auto& desc : queueDescriptions)
+
+	queueCreateInfos.Push({
+		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.queueFamilyIndex = physicalDevice.presentQueueIndex,
+		.queueCount = CountOf32(priorities),
+		.pQueuePriorities = priorities
+	});
+
+	if (physicalDevice.graphicsQueueIndex != U32_MAX && physicalDevice.graphicsQueueIndex != physicalDevice.presentQueueIndex)
 	{
-		VkDeviceQueueCreateInfo queueCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-		queueCreateInfo.queueFamilyIndex = desc.index;
-		queueCreateInfo.queueCount = (U32)desc.priorities.Size();
-		queueCreateInfo.pQueuePriorities = desc.priorities.Data();
-		queueCreateInfos.Push(queueCreateInfo);
+		queueCreateInfos.Push({
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.queueFamilyIndex = physicalDevice.graphicsQueueIndex,
+			.queueCount = CountOf32(priorities),
+			.pQueuePriorities = priorities
+		});
 	}
 
-	bindlessSupported = physicalDevice.indexingFeatures.descriptorBindingPartiallyBound && physicalDevice.indexingFeatures.runtimeDescriptorArray;
-
-	VkPhysicalDeviceFeatures2 features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-	features2.features.multiDrawIndirect = true;
-	features2.features.drawIndirectFirstInstance = true;
-	features2.features.pipelineStatisticsQuery = true;
-	features2.features.shaderFloat64 = true;
-	features2.features.shaderInt16 = true;
-	features2.features.shaderInt64 = true; 
-	features2.features.samplerAnisotropy = true;
-
-	VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-	features12.pNext = &features2;
-	features12.drawIndirectCount = true;
-	features12.storageBuffer8BitAccess = true;
-	features12.uniformAndStorageBuffer8BitAccess = true;
-	features12.shaderFloat16 = true;
-	features12.shaderInt8 = true;
-	features12.samplerFilterMinmax = true;
-	features12.scalarBlockLayout = true;
-	features12.timelineSemaphore = true;
-
-	if (bindlessSupported)
+	if (physicalDevice.computeQueueIndex != U32_MAX && physicalDevice.computeQueueIndex != physicalDevice.graphicsQueueIndex
+		&& physicalDevice.computeQueueIndex != physicalDevice.presentQueueIndex)
 	{
-		features12.descriptorBindingPartiallyBound = true;
-		features12.runtimeDescriptorArray = true;
-		features12.shaderSampledImageArrayNonUniformIndexing = true;
+		queueCreateInfos.Push({
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.queueFamilyIndex = physicalDevice.computeQueueIndex,
+			.queueCount = CountOf32(priorities),
+			.pQueuePriorities = priorities
+		});
 	}
 
-	VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
-	features13.pNext = &features12;
-	features13.dynamicRendering = true;
-	features13.synchronization2 = true;
-	features13.maintenance4 = true;
+	if (physicalDevice.transferQueueIndex != U32_MAX && physicalDevice.transferQueueIndex != physicalDevice.computeQueueIndex &&
+		physicalDevice.transferQueueIndex != physicalDevice.graphicsQueueIndex && physicalDevice.transferQueueIndex != physicalDevice.presentQueueIndex)
+	{
+		queueCreateInfos.Push({
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.queueFamilyIndex = physicalDevice.transferQueueIndex,
+			.queueCount = CountOf32(priorities),
+			.pQueuePriorities = priorities
+		});
+	}
+
+	VkPhysicalDeviceFeatures features{
+		.robustBufferAccess = VK_FALSE,
+		.fullDrawIndexUint32 = VK_FALSE,
+		.imageCubeArray = VK_FALSE,
+		.independentBlend = VK_FALSE,
+		.geometryShader = VK_FALSE,
+		.tessellationShader = VK_FALSE,
+		.sampleRateShading = VK_FALSE,
+		.dualSrcBlend = VK_FALSE,
+		.logicOp = VK_FALSE,
+		.multiDrawIndirect = VK_TRUE,
+		.drawIndirectFirstInstance = VK_TRUE,
+		.depthClamp = VK_FALSE,
+		.depthBiasClamp = VK_FALSE,
+		.fillModeNonSolid = VK_FALSE,
+		.depthBounds = VK_FALSE,
+		.wideLines = VK_FALSE,
+		.largePoints = VK_FALSE,
+		.alphaToOne = VK_FALSE,
+		.multiViewport = VK_FALSE,
+		.samplerAnisotropy = VK_TRUE,
+		.textureCompressionETC2 = VK_FALSE,
+		.textureCompressionASTC_LDR = VK_FALSE,
+		.textureCompressionBC = VK_FALSE,
+		.occlusionQueryPrecise = VK_FALSE,
+		.pipelineStatisticsQuery = VK_TRUE,
+		.vertexPipelineStoresAndAtomics = VK_FALSE,
+		.fragmentStoresAndAtomics = VK_FALSE,
+		.shaderTessellationAndGeometryPointSize = VK_FALSE,
+		.shaderImageGatherExtended = VK_FALSE,
+		.shaderStorageImageExtendedFormats = VK_FALSE,
+		.shaderStorageImageMultisample = VK_FALSE,
+		.shaderStorageImageReadWithoutFormat = VK_FALSE,
+		.shaderStorageImageWriteWithoutFormat = VK_FALSE,
+		.shaderUniformBufferArrayDynamicIndexing = VK_FALSE,
+		.shaderSampledImageArrayDynamicIndexing = VK_FALSE,
+		.shaderStorageBufferArrayDynamicIndexing = VK_FALSE,
+		.shaderStorageImageArrayDynamicIndexing = VK_FALSE,
+		.shaderClipDistance = VK_FALSE,
+		.shaderCullDistance = VK_FALSE,
+		.shaderFloat64 = VK_TRUE,
+		.shaderInt64 = VK_TRUE,
+		.shaderInt16 = VK_TRUE,
+		.shaderResourceResidency = VK_FALSE,
+		.shaderResourceMinLod = VK_FALSE,
+		.sparseBinding = VK_FALSE,
+		.sparseResidencyBuffer = VK_FALSE,
+		.sparseResidencyImage2D = VK_FALSE,
+		.sparseResidencyImage3D = VK_FALSE,
+		.sparseResidency2Samples = VK_FALSE,
+		.sparseResidency4Samples = VK_FALSE,
+		.sparseResidency8Samples = VK_FALSE,
+		.sparseResidency16Samples = VK_FALSE,
+		.sparseResidencyAliased = VK_FALSE,
+		.variableMultisampleRate = VK_FALSE,
+		.inheritedQueries = VK_FALSE
+	};
+
+	VkPhysicalDeviceFeatures2 features2 = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+		.pNext = nullptr,
+		.features = features
+	};
+
+	VkPhysicalDeviceVulkan12Features features12{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+		.pNext = &features2,
+		.samplerMirrorClampToEdge = VK_FALSE,
+		.drawIndirectCount = VK_TRUE,
+		.storageBuffer8BitAccess = VK_TRUE,
+		.uniformAndStorageBuffer8BitAccess = VK_TRUE,
+		.storagePushConstant8 = VK_FALSE,
+		.shaderBufferInt64Atomics = VK_FALSE,
+		.shaderSharedInt64Atomics = VK_FALSE,
+		.shaderFloat16 = VK_TRUE,
+		.shaderInt8 = VK_TRUE,
+		.descriptorIndexing = VK_FALSE,
+		.shaderInputAttachmentArrayDynamicIndexing = VK_FALSE,
+		.shaderUniformTexelBufferArrayDynamicIndexing = VK_FALSE,
+		.shaderStorageTexelBufferArrayDynamicIndexing = VK_FALSE,
+		.shaderUniformBufferArrayNonUniformIndexing = VK_FALSE,
+		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+		.shaderStorageBufferArrayNonUniformIndexing = VK_FALSE,
+		.shaderStorageImageArrayNonUniformIndexing = VK_FALSE,
+		.shaderInputAttachmentArrayNonUniformIndexing = VK_FALSE,
+		.shaderUniformTexelBufferArrayNonUniformIndexing = VK_FALSE,
+		.shaderStorageTexelBufferArrayNonUniformIndexing = VK_FALSE,
+		.descriptorBindingUniformBufferUpdateAfterBind = VK_FALSE,
+		.descriptorBindingSampledImageUpdateAfterBind = VK_FALSE,
+		.descriptorBindingStorageImageUpdateAfterBind = VK_FALSE,
+		.descriptorBindingStorageBufferUpdateAfterBind = VK_FALSE,
+		.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_FALSE,
+		.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_FALSE,
+		.descriptorBindingUpdateUnusedWhilePending = VK_FALSE,
+		.descriptorBindingPartiallyBound = VK_TRUE,
+		.descriptorBindingVariableDescriptorCount = VK_FALSE,
+		.runtimeDescriptorArray = VK_TRUE,
+		.samplerFilterMinmax = VK_TRUE,
+		.scalarBlockLayout = VK_TRUE,
+		.imagelessFramebuffer = VK_FALSE,
+		.uniformBufferStandardLayout = VK_FALSE,
+		.shaderSubgroupExtendedTypes = VK_FALSE,
+		.separateDepthStencilLayouts = VK_FALSE,
+		.hostQueryReset = VK_FALSE,
+		.timelineSemaphore = VK_TRUE,
+		.bufferDeviceAddress = VK_FALSE,
+		.bufferDeviceAddressCaptureReplay = VK_FALSE,
+		.bufferDeviceAddressMultiDevice = VK_FALSE,
+		.vulkanMemoryModel = VK_FALSE,
+		.vulkanMemoryModelDeviceScope = VK_FALSE,
+		.vulkanMemoryModelAvailabilityVisibilityChains = VK_FALSE,
+		.shaderOutputViewportIndex = VK_FALSE,
+		.shaderOutputLayer = VK_FALSE,
+		.subgroupBroadcastDynamicId = VK_FALSE
+	};
+
+	VkPhysicalDeviceVulkan13Features features13{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+		.pNext = &features12,
+		.robustImageAccess = VK_FALSE,
+		.inlineUniformBlock = VK_FALSE,
+		.descriptorBindingInlineUniformBlockUpdateAfterBind = VK_FALSE,
+		.pipelineCreationCacheControl = VK_FALSE,
+		.privateData = VK_FALSE,
+		.shaderDemoteToHelperInvocation = VK_FALSE,
+		.shaderTerminateInvocation = VK_FALSE,
+		.subgroupSizeControl = VK_FALSE,
+		.computeFullSubgroups = VK_FALSE,
+		.synchronization2 = VK_TRUE,
+		.textureCompressionASTC_HDR = VK_FALSE,
+		.shaderZeroInitializeWorkgroupMemory = VK_FALSE,
+		.dynamicRendering = VK_TRUE,
+		.shaderIntegerDotProduct = VK_FALSE,
+		.maintenance4 = VK_TRUE
+	};
 
 	Vector<const C8*> extensionsToEnable{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-	VkDeviceCreateInfo deviceCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	deviceCreateInfo.pNext = &features13;
-	deviceCreateInfo.flags = 0;
-	deviceCreateInfo.queueCreateInfoCount = (U32)queueCreateInfos.Size();
-	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.Data();
-	deviceCreateInfo.enabledLayerCount = 0;
-	deviceCreateInfo.ppEnabledLayerNames = nullptr;
-	deviceCreateInfo.enabledExtensionCount = (U32)extensionsToEnable.Size();
-	deviceCreateInfo.ppEnabledExtensionNames = extensionsToEnable.Data();
-	deviceCreateInfo.pEnabledFeatures = nullptr;
+	VkDeviceCreateInfo deviceCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		.pNext = &features13,
+		.flags = 0,
+		.queueCreateInfoCount = (U32)queueCreateInfos.Size(),
+		.pQueueCreateInfos = queueCreateInfos.Data(),
+		.enabledLayerCount = 0,
+		.ppEnabledLayerNames = nullptr,
+		.enabledExtensionCount = (U32)extensionsToEnable.Size(),
+		.ppEnabledExtensionNames = extensionsToEnable.Data(),
+		.pEnabledFeatures = nullptr
+	};
 
 	VkValidateFR(vkCreateDevice(physicalDevice, &deviceCreateInfo, Renderer::allocationCallbacks, &vkDevice));
+
+	vkGetDeviceQueue(vkDevice, physicalDevice.presentQueueIndex, 0, &presentQueue);
+	vkGetDeviceQueue(vkDevice, physicalDevice.graphicsQueueIndex, 0, &graphicsQueue);
+	vkGetDeviceQueue(vkDevice, physicalDevice.computeQueueIndex, 0, &computeQueue);
+	vkGetDeviceQueue(vkDevice, physicalDevice.transferQueueIndex, 0, &transferQueue);
 
 	return true;
 }
@@ -93,11 +233,14 @@ bool Device::CreateSurface()
 {
 #ifdef NH_PLATFORM_WINDOWS
 	WindowInfo wd = Platform::GetWindowInfo();
-	VkWin32SurfaceCreateInfoKHR surfaceInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-	surfaceInfo.pNext = nullptr;
-	surfaceInfo.flags = 0;
-	surfaceInfo.hinstance = wd.instance;
-	surfaceInfo.hwnd = wd.window;
+
+	VkWin32SurfaceCreateInfoKHR surfaceInfo{
+		.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+		.pNext = nullptr,
+		.flags = 0,
+		.hinstance = wd.instance,
+		.hwnd = wd.window
+	};
 
 	VkValidateFR(vkCreateWin32SurfaceKHR(Renderer::instance, &surfaceInfo, Renderer::allocationCallbacks, &vkSurface));
 #elif NH_PLATFORM_LINUX
@@ -146,53 +289,7 @@ bool Device::SelectPhysicalDevice()
 	return true;
 }
 
-U32 Device::GetQueueIndex(QueueType type) const
-{
-	switch (type)
-	{
-	case QueueType::Present: return physicalDevice.GetPresentQueueIndex(vkSurface);
-	case QueueType::Graphics: return physicalDevice.GetFirstQueueIndex(VK_QUEUE_GRAPHICS_BIT);
-	case QueueType::Compute: return physicalDevice.GetSeparateQueueIndex(VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT);
-	case QueueType::Transfer: return physicalDevice.GetSeparateQueueIndex(VK_QUEUE_TRANSFER_BIT, VK_QUEUE_COMPUTE_BIT);
-	}
-
-	return U32_MAX;
-}
-
-U32 Device::GetDedicatedQueueIndex(QueueType type) const
-{
-	switch (type)
-	{
-	case QueueType::Compute: return physicalDevice.GetDedicatedQueueIndex(VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT);
-	case QueueType::Transfer: return physicalDevice.GetDedicatedQueueIndex(VK_QUEUE_TRANSFER_BIT, VK_QUEUE_COMPUTE_BIT);
-	}
-
-	return U32_MAX;
-}
-
-VkQueue Device::GetQueue(QueueType type) const
-{
-	U32 index = GetQueueIndex(type);
-	if (index == U32_MAX) { return nullptr; }
-
-	VkQueue outQueue;
-	vkGetDeviceQueue(vkDevice, index, 0, &outQueue);
-
-	return outQueue;
-}
-
-VkQueue Device::GetDedicatedQueue(QueueType type) const
-{
-	U32 index = GetDedicatedQueueIndex(type);
-	if (index == U32_MAX) { return nullptr; }
-
-	VkQueue outQueue;
-	vkGetDeviceQueue(vkDevice, index, 0, &outQueue);
-
-	return outQueue;
-}
-
-Device::operator VkDevice() const
+Device::operator VkDevice_T* () const
 {
 	return vkDevice;
 }
