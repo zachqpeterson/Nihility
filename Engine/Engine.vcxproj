@@ -132,11 +132,13 @@
     <ClInclude Include="Rendering\Shader.hpp" />
     <ClInclude Include="Rendering\Swapchain.hpp" />
     <ClInclude Include="Rendering\VulkanInclude.hpp" />
+    <ClInclude Include="Resources\Entity.hpp" />
     <ClInclude Include="Resources\Material.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
     <ClInclude Include="Resources\Scene.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
+    <ClInclude Include="Resources\SpriteComponent.hpp" />
     <ClInclude Include="Resources\Texture.hpp" />
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
@@ -171,6 +173,7 @@
     <ClCompile Include="Resources\Material.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
     <ClCompile Include="Resources\Scene.cpp" />
+    <ClCompile Include="Resources\SpriteComponent.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

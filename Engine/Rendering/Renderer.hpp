@@ -32,6 +32,12 @@ class NH_API Renderer
 public:
 	static void SetScene(Scene* scene);
 
+	static U32 FrameIndex();
+	static U32 PreviousFrame();
+	static U32 AbsoluteFrame();
+
+	static VkSemaphore_T* RenderFinished();
+
 private:
 	static bool Initialize(const StringView& name, U32 version);
 	static void Shutdown();

@@ -178,6 +178,12 @@
     <ClInclude Include="Math\Physics.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\SpriteComponent.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Entity.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -272,6 +278,9 @@
     </ClCompile>
     <ClCompile Include="Math\Math.cpp">
       <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\SpriteComponent.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

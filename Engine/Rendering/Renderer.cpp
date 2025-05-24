@@ -300,6 +300,26 @@ void Renderer::SetScene(Scene* _scene)
 	scene = _scene;
 }
 
+U32 Renderer::FrameIndex()
+{
+	return frameIndex;
+}
+
+U32 Renderer::PreviousFrame()
+{
+	return previousFrame;
+}
+
+U32 Renderer::AbsoluteFrame()
+{
+	return absoluteFrame;
+}
+
+VkSemaphore_T* Renderer::RenderFinished()
+{
+	return renderFinished[previousFrame];
+}
+
 bool Renderer::InitializeVma()
 {
 	VmaAllocatorCreateInfo allocatorInfo{

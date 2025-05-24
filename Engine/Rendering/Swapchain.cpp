@@ -6,6 +6,17 @@
 
 bool Swapchain::Create(bool recreate)
 {
+	if (recreate)
+	{
+		for (VkImageView view : imageViews)
+		{
+			if (view)
+			{
+				vkDestroyImageView(Renderer::device, view, Renderer::allocationCallbacks);
+			}
+		}
+	}
+
 	VkSurfaceCapabilitiesKHR capabilities;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &capabilities);
 
@@ -116,6 +127,14 @@ bool Swapchain::Create(bool recreate)
 
 void Swapchain::Destroy()
 {
+	for (VkImageView view : imageViews)
+	{
+		if (view)
+		{
+			vkDestroyImageView(Renderer::device, view, Renderer::allocationCallbacks);
+		}
+	}
+
 	if (vkSwapchain) { vkDestroySwapchainKHR(Renderer::device, vkSwapchain, Renderer::allocationCallbacks); }
 
 	vkSwapchain = nullptr;
