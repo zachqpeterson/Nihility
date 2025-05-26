@@ -29,6 +29,9 @@
     <Filter Include="Source Files\External">
       <UniqueIdentifier>{7d4b29a3-64d5-41f4-9ba7-0458fb355167}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Resources\Components">
+      <UniqueIdentifier>{0c8b6a91-0d79-4e3a-a518-9a19bac47ff1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -178,11 +181,20 @@
     <ClInclude Include="Math\Physics.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
-    <ClInclude Include="Resources\SpriteComponent.hpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Resources\Entity.hpp">
       <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\SpriteComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\RigidBodyComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ColliderComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\TilemapComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -280,7 +292,16 @@
       <Filter>Source Files\Math</Filter>
     </ClCompile>
     <ClCompile Include="Resources\SpriteComponent.cpp">
-      <Filter>Source Files\Resources</Filter>
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\RigidBodyComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\ColliderComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\TilemapComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

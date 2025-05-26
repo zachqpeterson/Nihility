@@ -195,11 +195,20 @@ bool Device::Create()
 		.maintenance4 = VK_TRUE
 	};
 
+	VkPhysicalDevice16BitStorageFeatures features16BitStorage{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
+		.pNext = &features13,
+		.storageBuffer16BitAccess = VK_TRUE,
+		.uniformAndStorageBuffer16BitAccess = VK_TRUE,
+		.storagePushConstant16 = VK_FALSE,
+		.storageInputOutput16 = VK_FALSE
+	};
+
 	Vector<const C8*> extensionsToEnable{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 	VkDeviceCreateInfo deviceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		.pNext = &features13,
+		.pNext = &features16BitStorage,
 		.flags = 0,
 		.queueCreateInfoCount = (U32)queueCreateInfos.Size(),
 		.pQueueCreateInfos = queueCreateInfos.Data(),

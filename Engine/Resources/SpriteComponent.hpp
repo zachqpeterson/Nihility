@@ -10,7 +10,7 @@ class NH_API SpriteComponent
 private:
 	static bool Initialize();
 	static void Shutdown();
-	static void Update(U32 sceneId, const Vector<Entity>& entities);
+	static void Update(U32 sceneId, Vector<Entity>& entities);
 	static void Render(U32 sceneId, CommandBuffer commandBuffer);
 
 	static void AddScene(U32 sceneId);

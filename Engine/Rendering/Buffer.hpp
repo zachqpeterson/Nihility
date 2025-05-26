@@ -15,7 +15,7 @@ enum class NH_API BufferType
 {
 	Vertex,
 	Index,
-	Shader,
+	Storage,
 	Uniform,
 	Staging,
 	DrawIndirect
@@ -27,13 +27,15 @@ public:
 	bool Create(BufferType type, U64 size = 1024);
 	void Destroy();
 
-	bool UploadVertexData(const void* vertexData, U64 size, U64 offset = 0, VkSemaphore_T* waitSemaphore = nullptr);
+	bool UploadVertexData(const void* vertexData, U64 size, U64 offset = 0);
 	bool UploadIndexData(const void* indexData, U64 size, U64 offset = 0);
-	bool UploadShaderData(const void* shaderData, U64 size, U64 offset = 0);
+	bool UploadStorageData(const void* storageData, U64 size, U64 offset = 0);
 	bool UploadUniformData(const void* uniformData, U64 size, U64 offset = 0);
 	bool UploadStagingData(const void* stagingData, U64 size, U64 offset = 0);
 
 	U64 StagingPointer() const;
+	U64 Size() const;
+	U64 Offset() const;
 
 	operator VkBuffer_T*() const;
 
@@ -43,6 +45,8 @@ private:
 	BufferType type;
 	U64 bufferSize = 0;
 	U64 stagingPointer = 0;
+	U64 dataStart = U64_MAX;
+	U64 dataEnd = 0;
 	VkBuffer_T* vkBuffer = nullptr;
 	VmaAllocation_T* bufferAllocation = nullptr;
 	VkBuffer_T* vkBufferStaging = nullptr;

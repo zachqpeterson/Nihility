@@ -2,8 +2,6 @@
 
 #include "Defines.hpp"
 
-#include "VulkanInclude.hpp"
-
 #include "Math/Math.hpp"
 
 enum class CameraType

@@ -121,7 +121,7 @@ void Renderer::Update()
 {
 	ZoneScopedN("RenderMain");
 
-	Synchronize();
+	if (!Synchronize()) { return; }
 
 	Resources::Update();
 	scene->Update();
@@ -146,15 +146,15 @@ void Renderer::Update()
 	Submit();
 }
 
-void Renderer::Synchronize()
+bool Renderer::Synchronize()
 {
 	ZoneScopedN("RenderSynchronize");
 
 	U32 i = absoluteFrame % swapchain.imageCount;
 	VkResult res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAcquired[i], VK_NULL_HANDLE, &frameIndex);
 
-	if (res == VK_ERROR_OUT_OF_DATE_KHR) { RecreateSwapchain(); }
-	else { VkValidateFExit(res); }
+	if (res == VK_ERROR_OUT_OF_DATE_KHR) { RecreateSwapchain(); return false; }
+	else { VkValidateFR(res); }
 
 	VkSemaphore waits[]{ renderFinished[previousFrame], transferFinished[previousFrame] };
 	U64 waitValues[]{ renderWaitValues[previousFrame], transferWaitValues[previousFrame] };
@@ -172,6 +172,8 @@ void Renderer::Synchronize()
 
 	CommandBufferRing::ResetDraw(frameIndex);
 	CommandBufferRing::ResetPool(frameIndex);
+
+	return true;
 }
 
 void Renderer::SubmitTransfer()
@@ -315,9 +317,24 @@ U32 Renderer::AbsoluteFrame()
 	return absoluteFrame;
 }
 
+Vector2Int Renderer::RenderSize()
+{
+	return { (I32)swapchain.width, (I32)swapchain.height };
+}
+
+const GlobalPushConstant* Renderer::GetGlobalPushConstant()
+{
+	return &globalPushConstant;
+}
+
 VkSemaphore_T* Renderer::RenderFinished()
 {
 	return renderFinished[previousFrame];
+}
+
+const Device& Renderer::GetDevice()
+{
+	return device;
 }
 
 bool Renderer::InitializeVma()
@@ -509,6 +526,8 @@ bool Renderer::RecreateSwapchain()
 	if (!swapchain.Create(true)) { Logger::Fatal("Failed To Create Swapchain!"); return false; }
 	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
+
+	vkDeviceWaitIdle(device);
 
 	return true;
 }

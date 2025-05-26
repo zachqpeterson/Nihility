@@ -3,6 +3,7 @@
 #include "Renderer.hpp"
 
 #include "Math/Math.hpp"
+#include "Core/Logger.hpp"
 
 bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& settings, const Vector<Shader>& shaders,
 	const Vector<VkVertexInputBindingDescription>& bindings, const Vector<VkVertexInputAttributeDescription>& attributes)
@@ -29,6 +30,13 @@ bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& sett
 	switch (bindPoint)
 	{
 	case BindPoint::Graphics: {
+		for (const VkVertexInputBindingDescription& binding : bindings)
+		{
+			if (binding.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE) { instanceSize += binding.stride; }
+			else if(binding.inputRate == VK_VERTEX_INPUT_RATE_VERTEX) { vertexSize += binding.stride; }
+			else { Logger::Error("Invalid Vertex Binding Description!"); return false; }
+		}
+
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 			.pNext = nullptr,
@@ -185,4 +193,14 @@ void Pipeline::Destroy()
 Pipeline::operator VkPipeline_T* () const
 {
 	return vkPipeline;
+}
+
+U8 Pipeline::VertexSize() const
+{
+	return vertexSize;
+}
+
+U8 Pipeline::InstanceSize() const
+{
+	return instanceSize;
 }

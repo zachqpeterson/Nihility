@@ -36,14 +36,18 @@ public:
 	static U32 PreviousFrame();
 	static U32 AbsoluteFrame();
 
+	static Vector2Int RenderSize();
+
+	static const GlobalPushConstant* GetGlobalPushConstant();
 	static VkSemaphore_T* RenderFinished();
+	static const Device& GetDevice();
 
 private:
 	static bool Initialize(const StringView& name, U32 version);
 	static void Shutdown();
 
 	static void Update();
-	static void Synchronize();
+	static bool Synchronize();
 	static void SubmitTransfer();
 	static void Submit();
 

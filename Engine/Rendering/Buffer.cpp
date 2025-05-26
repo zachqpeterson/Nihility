@@ -62,7 +62,7 @@ bool Buffer::Create(BufferType type, U64 size)
 
 		bufferSize = size;
 	} return true;
-	case BufferType::Shader: {
+	case BufferType::Storage: {
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
@@ -101,8 +101,11 @@ void Buffer::Destroy()
 	stagingBufferAllocation = nullptr;
 }
 
-bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset, VkSemaphore_T* waitSemaphore)
+bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset)
 {
+	dataStart = Math::Min(dataStart, offset);
+	dataEnd = Math::Max(dataEnd, size + offset);
+
 	if (bufferSize < size)
 	{
 		Destroy();
@@ -152,6 +155,9 @@ bool Buffer::UploadVertexData(const void* vertexData, U64 size, U64 offset, VkSe
 
 bool Buffer::UploadIndexData(const void* indexData, U64 size, U64 offset)
 {
+	dataStart = Math::Min(dataStart, offset);
+	dataEnd = Math::Max(dataEnd, size + offset);
+
 	if (bufferSize < size)
 	{
 		Destroy();
@@ -198,8 +204,11 @@ bool Buffer::UploadIndexData(const void* indexData, U64 size, U64 offset)
 	return true;
 }
 
-bool Buffer::UploadShaderData(const void* shaderData, U64 size, U64 offset)
+bool Buffer::UploadStorageData(const void* storageData, U64 size, U64 offset)
 {
+	dataStart = Math::Min(dataStart, offset);
+	dataEnd = Math::Max(dataEnd, size + offset);
+
 	bool bufferResized = false;
 	if (size > bufferSize)
 	{
@@ -211,7 +220,7 @@ bool Buffer::UploadShaderData(const void* shaderData, U64 size, U64 offset)
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, bufferAllocation, &data));
 
-	memcpy((U8*)data + offset, shaderData, size);
+	memcpy((U8*)data + offset, storageData, size);
 	vmaUnmapMemory(Renderer::vmaAllocator, bufferAllocation);
 	vmaFlushAllocation(Renderer::vmaAllocator, bufferAllocation, 0, bufferSize);
 
@@ -232,6 +241,9 @@ bool Buffer::CheckForResize(U64 size)
 
 bool Buffer::UploadUniformData(const void* uniformData, U64 size, U64 offset)
 {
+	dataStart = Math::Min(dataStart, offset);
+	dataEnd = Math::Max(dataEnd, size + offset);
+
 	void* data;
 	VkValidateR(vmaMapMemory(Renderer::vmaAllocator, bufferAllocation, &data));
 
@@ -244,6 +256,9 @@ bool Buffer::UploadUniformData(const void* uniformData, U64 size, U64 offset)
 
 bool Buffer::UploadStagingData(const void* stagingData, U64 size, U64 offset)
 {
+	dataStart = Math::Min(dataStart, offset);
+	dataEnd = Math::Max(dataEnd, size + offset);
+
 	stagingPointer = Math::Max(offset + size, stagingPointer);
 
 	void* data;
@@ -259,6 +274,16 @@ bool Buffer::UploadStagingData(const void* stagingData, U64 size, U64 offset)
 U64 Buffer::StagingPointer() const
 {
 	return stagingPointer;
+}
+
+U64 Buffer::Size() const
+{
+	return dataEnd - dataStart;
+}
+
+U64 Buffer::Offset() const
+{
+	return dataStart;
 }
 
 Buffer::operator VkBuffer_T* () const

@@ -15,7 +15,6 @@ class NH_API Physics
 {
 public:
 
-
 private:
 	static bool Initialize();
 	static void Shutdown();
@@ -29,5 +28,6 @@ private:
 	STATIC_CLASS(Physics);
 
 	friend class Engine;
+	friend class RigidBodyComponent;
 	friend struct Scene;
 };

@@ -43,7 +43,20 @@ bool SpriteComponent::Initialize()
 
 	Pipeline spritePipeline;
 	spritePipeline.Create(spritePipelineLayout, { PolygonMode::Fill }, { spriteVertexShader, spriteFragmentShader }, inputs, attributes);
-	spriteMaterial.Create(spritePipelineLayout, spritePipeline, { Resources::DummyDescriptorSet(), Resources::BindlessTexturesDescriptorSet() });
+	spriteMaterial.Create(spritePipelineLayout, spritePipeline, { Resources::DummyDescriptorSet(), Resources::BindlessTexturesDescriptorSet() },
+		{ PushConstant{ Renderer::GetGlobalPushConstant(), sizeof(GlobalPushConstant), 0, VK_SHADER_STAGE_VERTEX_BIT } });
+
+	SpriteVertex vertices[4] = {
+		{ { -1.0f, -1.0f }, { 0.0f, 1.0f } },
+		{ { -1.0f,  1.0f }, { 0.0f, 0.0f } },
+		{ {  1.0f,  1.0f }, { 1.0f, 0.0f } },
+		{ {  1.0f, -1.0f }, { 1.0f, 1.0f } }
+	};
+
+	U32 indices[6] = { 0, 1, 2, 2, 3, 0 };
+
+	spriteMaterial.UploadVertices(vertices, sizeof(SpriteVertex) * 4, 0);
+	spriteMaterial.UploadIndices(indices, sizeof(U32) * 6, 0);
 
 	return true;
 }
@@ -55,11 +68,11 @@ void SpriteComponent::Shutdown()
 	spriteMaterial.Destroy();
 }
 
-void SpriteComponent::Update(U32 sceneId, const Vector<Entity>& entities)
+void SpriteComponent::Update(U32 sceneId, Vector<Entity>& entities)
 {
 	Vector<SpriteInstance>& instances = spriteInstances[sceneId];
 
-	for (const Entity& entity : entities)
+	for (Entity& entity : entities)
 	{
 		if (entity.spriteId != U32_MAX)
 		{
@@ -72,7 +85,7 @@ void SpriteComponent::Update(U32 sceneId, const Vector<Entity>& entities)
 
 	if (instances.Size())
 	{
-		spriteMaterial.instanceBuffers[Renderer::FrameIndex()].UploadVertexData(instances.Data(), instances.Size() * sizeof(SpriteInstance), 0, Renderer::RenderFinished());
+		spriteMaterial.UploadInstances(instances.Data(), instances.Size() * sizeof(SpriteInstance), 0);
 	}
 }
 
@@ -80,10 +93,7 @@ void SpriteComponent::Render(U32 sceneId, CommandBuffer commandBuffer)
 {
 	Vector<SpriteInstance>& instances = spriteInstances[sceneId];
 
-	if (instances.Size())
-	{
-		spriteMaterial.Bind(commandBuffer, (U32)instances.Size());
-	}
+	spriteMaterial.Bind(commandBuffer);
 }
 
 void SpriteComponent::AddScene(U32 sceneId)

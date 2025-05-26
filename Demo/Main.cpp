@@ -7,6 +7,9 @@
 #include "Platform/Input.hpp"
 #include "Math/Random.hpp"
 #include "Resources/SpriteComponent.hpp"
+#include "Resources/RigidBodyComponent.hpp"
+#include "Resources/ColliderComponent.hpp"
+#include "Resources/TilemapComponent.hpp"
 
 Scene scene;
 ResourceRef<Texture> textureAtlas;
@@ -23,10 +26,14 @@ bool Initialize()
 
 	EntityRef ground = scene.CreateEntity({ 0.0f, -30.0f });
 
-	ground.AddComponent<SpriteComponent>(groundTexture, Vector2{ 100.0f, 3.0f });
+	ground.AddComponent<RigidBodyComponent>(BodyType::Static);
+	ground.AddComponent<ColliderComponent>(Vector2{ 100.0f, 3.0f });
+	ground.AddComponent<TilemapComponent>(100, 100, Vector2{ 1.0f, 1.0f });
 
-	scene.AddRigidBody(ground, BodyType::Static);
-	scene.AddCollider(ground, { 100.0f, 3.0f });
+	for (I32 i = 0; i < 60; ++i)
+	{
+		TilemapComponent::SetTile(groundTexture, { i, 31 });
+	}
 
 	return true;
 }
@@ -50,9 +57,8 @@ void Update()
 		F32 y = Random::RandomRange(0, 2) / 2.0f;
 
 		id.AddComponent<SpriteComponent>(textureAtlas, Vector2::One, Vector4::One, Vector2{ x, y }, Vector2{ 0.5f, 0.5f });
-
-		scene.AddRigidBody(id, BodyType::Dynamic);
-		scene.AddCollider(id);
+		id.AddComponent<RigidBodyComponent>(BodyType::Dynamic);
+		id.AddComponent<ColliderComponent>();
 	}
 }
 

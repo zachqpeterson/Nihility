@@ -6,6 +6,9 @@
 #include "Texture.hpp"
 #include "Material.hpp"
 #include "SpriteComponent.hpp"
+#include "RigidBodyComponent.hpp"
+#include "ColliderComponent.hpp"
+#include "TilemapComponent.hpp"
 
 #include "Rendering/Camera.hpp"
 #include "Rendering/CommandBuffer.hpp"
@@ -34,8 +37,6 @@ public:
 	void Destroy();
 
 	EntityRef CreateEntity(Vector2 position = Vector2::Zero, Quaternion2 rotation = Quaternion2::Identity);
-	void AddRigidBody(const EntityRef& id, BodyType type);
-	void AddCollider(const EntityRef& id, const Vector2& scale = Vector2::One);
 
 private:
 	void Update();
@@ -55,8 +56,22 @@ private:
 template<class Component, typename... Args>
 inline void EntityRef::AddComponent(Args... args)
 {
+	Entity& entity = scene->entities[entityId];
+
 	if constexpr (IsSame<Component, SpriteComponent>)
 	{
-		scene->entities[entityId].spriteId = SpriteComponent::AddComponent(sceneId, args...);
+		entity.spriteId = SpriteComponent::AddComponent(sceneId, args...);
+	}
+	else if constexpr (IsSame<Component, RigidBodyComponent>)
+	{
+		entity.bodyId = RigidBodyComponent::AddComponent(entity.position, entity.rotation, args...);
+	}
+	else if constexpr (IsSame<Component, ColliderComponent>)
+	{
+		ColliderComponent::AddComponent(entity.bodyId, args...);
+	}
+	else if constexpr (IsSame<Component, TilemapComponent>)
+	{
+		TilemapComponent::AddComponent(sceneId, args...);
 	}
 }

@@ -37,11 +37,16 @@ struct NH_API Pipeline
 		const Vector<VkVertexInputBindingDescription>& bindings, const Vector<VkVertexInputAttributeDescription>& attributes);
 	void Destroy();
 
+	U8 VertexSize() const;
+	U8 InstanceSize() const;
+
 	operator VkPipeline_T* () const;
 
 private:
 	VkPipeline_T* vkPipeline;
 	BindPoint bindPoint;
+	U8 vertexSize = 0;
+	U8 instanceSize = 0;
 
 	friend class Renderer;
 	friend struct CommandBuffer;
