@@ -25,3 +25,4 @@
 #define BreakPoint
 #define ASSERT(expr)
 #define STATIC_CLASS(class)
+#define COMPONENT(Type)

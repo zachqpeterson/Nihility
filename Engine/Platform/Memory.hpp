@@ -7,19 +7,19 @@
 #include <cstringt.h>
 
 template<class Type, class... Parameters>
-NH_API inline Type& Construct(Type* dst, Parameters&&... parameters) noexcept
+inline Type& Construct(Type* dst, Parameters&&... parameters) noexcept
 {
 	return *(new (dst) Type(Forward<Parameters>(parameters)...));
 }
 
 template<class Type, class... Parameters>
-NH_API inline Type& Assign(Type* dst, Parameters&&... parameters) noexcept
+inline Type& Assign(Type* dst, Parameters&&... parameters) noexcept
 {
 	return dst->operator=(Forward<Parameters>(parameters)...);
 }
 
 template<class Type>
-NH_API inline Type* CopyData(Type* dst, const Type* src, U64 count)
+inline Type* CopyData(Type* dst, const Type* src, U64 count)
 {
 	constexpr U64 size = IsVoid<Type> ? 1 : sizeof(Type);
 
@@ -59,7 +59,7 @@ NH_API inline Type* CopyData(Type* dst, const Type* src, U64 count)
 }
 
 template<class Type>
-NH_API inline Type* MoveData(Type* dst, Type* src, U64 count)
+inline Type* MoveData(Type* dst, Type* src, U64 count)
 {
 	constexpr U64 size = IsVoid<Type> ? 1 : sizeof(Type);
 

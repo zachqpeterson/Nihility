@@ -4,7 +4,7 @@
 
 #include "Containers/Hashmap.hpp"
 #include "Containers/Vector.hpp"
-#include "Containers/Function.hpp"
+#include "Core/Function.hpp"
 
 template<typename... Args>
 struct Event

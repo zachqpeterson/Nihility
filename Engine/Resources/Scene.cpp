@@ -6,30 +6,46 @@
 
 #include "tracy/Tracy.hpp"
 
-U32 Scene::SceneID = 0;
+Vector<Scene> Scene::scenes(16, {});
+Freelist Scene::freeScenes(16);
 
-bool Scene::Create(CameraType type)
+Event<U32, Camera&, Vector<Entity>&> Scene::UpdateFns;
+Event<U32, CommandBuffer> Scene::RenderFns;
+Event<> Scene::InitializeFns;
+Event<> Scene::ShutdownFns;
+
+bool Scene::Initialize()
 {
-	static bool spriteInit = SpriteComponent::Initialize();
-	static bool tilemapInit = TilemapComponent::Initialize();
-
-	sceneId = SceneID++; //TODO: Use freelist
-
-	camera.Create(type);
-	SpriteComponent::AddScene(sceneId);
-	TilemapComponent::AddScene(sceneId);
+	InitializeFns();
 
 	return true;
+}
+
+void Scene::Shutdown()
+{
+	vkDeviceWaitIdle(Renderer::device);
+
+	ShutdownFns();
+}
+
+SceneRef Scene::CreateScene(CameraType type)
+{
+	U32 sceneId = freeScenes.GetFree();
+	Scene& scene = scenes[sceneId];
+	scene.camera.Create(type);
+	scene.sceneId = sceneId;
+
+	return sceneId;
+}
+
+Entity* Scene::GetEntity(U32 sceneId, U32 entityId)
+{
+	return &scenes[sceneId].entities[entityId];
 }
 
 void Scene::Destroy()
 {
 	vkDeviceWaitIdle(Renderer::device);
-
-	SpriteComponent::RemoveScene(sceneId);
-	SpriteComponent::Shutdown();
-	TilemapComponent::RemoveScene(sceneId);
-	TilemapComponent::Shutdown();
 }
 
 void Scene::Update()
@@ -37,26 +53,29 @@ void Scene::Update()
 	ZoneScopedN("Scene");
 
 	camera.Update();
-
-	RigidBodyComponent::Update(entities);
-	TilemapComponent::Update(sceneId, camera, entities);
-	SpriteComponent::Update(sceneId, entities);
+	UpdateFns(sceneId, camera, entities);
 }
 
 void Scene::Render(CommandBuffer commandBuffer) const
 {
-	TilemapComponent::Render(sceneId, commandBuffer);
-	SpriteComponent::Render(sceneId, commandBuffer);
+	RenderFns(sceneId, commandBuffer);
 }
 
-EntityRef Scene::CreateEntity(Vector2 position, Quaternion2 rotation)
+bool Scene::LoadScene()
+{
+	Renderer::SetScene(this);
+
+	return true;
+}
+
+EntityRef Scene::CreateEntity(Vector2 position, Vector2 scale, Quaternion2 rotation)
 {
 	Entity entity{};
 	entity.position = position;
+	entity.scale = scale;
 	entity.rotation = rotation;
 
 	EntityRef id{};
-	id.scene = this;
 	id.entityId = (U32)entities.Size();
 	id.sceneId = sceneId;
 

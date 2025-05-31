@@ -66,25 +66,25 @@ void Material::Bind(CommandBuffer commandBuffer) const
 		U64 offsets[] = { vertexBuffer.Offset(), instanceBuffers[Renderer::frameIndex].Offset() };
 		commandBuffer.BindVertexBuffers(CountOf32(vertexBuffers), vertexBuffers, offsets);
 
-		commandBuffer.BindIndexBuffer(indexBuffer, indexBuffer.Offset());
+		commandBuffer.BindIndexBuffer(indexBuffer, (U32)indexBuffer.Offset());
 
-		commandBuffer.DrawIndexed(indexBuffer.Size() / sizeof(U32), instanceBuffers[Renderer::frameIndex].Size() / pipeline.InstanceSize(), 0, 0, 0);
+		commandBuffer.DrawIndexed((U32)(indexBuffer.Size() / sizeof(U32)), (U32)(instanceBuffers[Renderer::frameIndex].Size() / pipeline.InstanceSize()), 0, 0, 0);
 	} break;
 	case VertexUsage::Vertices: {
 		VkBuffer vertexBuffers[] = { vertexBuffer };
 		U64 offsets[] = { vertexBuffer.Offset() };
 		commandBuffer.BindVertexBuffers(CountOf32(vertexBuffers), vertexBuffers, offsets);
 
-		commandBuffer.BindIndexBuffer(indexBuffer, indexBuffer.Offset());
+		commandBuffer.BindIndexBuffer(indexBuffer, (U32)indexBuffer.Offset());
 
-		commandBuffer.DrawIndexed(indexBuffer.Size() / sizeof(U32), 1, 0, 0, 0);
+		commandBuffer.DrawIndexed((U32)(indexBuffer.Size() / sizeof(U32)), 1, 0, 0, 0);
 	} break;
 	case VertexUsage::Instances: {
 		VkBuffer vertexBuffers[] = { instanceBuffers[Renderer::frameIndex] };
 		U64 offsets[] = { instanceBuffers[Renderer::frameIndex].Offset() };
 		commandBuffer.BindVertexBuffers(CountOf32(vertexBuffers), vertexBuffers, offsets);
 
-		commandBuffer.Draw(0, 3, 0, instanceBuffers[Renderer::frameIndex].Size() / pipeline.InstanceSize());
+		commandBuffer.Draw(0, 3, 0, (U32)(instanceBuffers[Renderer::frameIndex].Size() / pipeline.InstanceSize()));
 	} break;
 	case VertexUsage::None: {
 		commandBuffer.Draw(0, 3, 0, 1);

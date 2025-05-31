@@ -1,16 +1,24 @@
 #pragma once
 
-#include "ResourceDefines.hpp"
+#include "Component.hpp"
 
-#include "Entity.hpp"
-#include "Math/Physics.hpp"
+class RigidBody;
 
-class NH_API ColliderComponent
+class NH_API Collider
 {
-private:
-	static void AddComponent(BodyId bodyId, const Vector2& scale = Vector2::One);
+public:
+	static bool Initialize();
+	static bool Shutdown();
 
-	STATIC_CLASS(ColliderComponent);
+	static ComponentRef<Collider> AddTo(EntityRef entity, const ComponentRef<RigidBody>& rigidBody);
+
+private:
+	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
+	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
+
+	static bool initialized;
+
+	COMPONENT(Collider, 10000);
 	friend struct Scene;
 	friend struct EntityRef;
 };

@@ -76,9 +76,6 @@
     <ClInclude Include="Core\Events.hpp">
       <Filter>Source Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Containers\Function.hpp">
-      <Filter>Source Files\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="Containers\Hashmap.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
@@ -196,6 +193,15 @@
     <ClInclude Include="Resources\TilemapComponent.hpp">
       <Filter>Source Files\Resources\Components</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\CharacterComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Component.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Function.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -302,6 +308,12 @@
     </ClCompile>
     <ClCompile Include="Resources\TilemapComponent.cpp">
       <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\CharacterComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Entity.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

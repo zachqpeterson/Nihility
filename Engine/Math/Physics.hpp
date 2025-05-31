@@ -14,14 +14,13 @@ struct b2WorldId;
 class NH_API Physics
 {
 public:
+	static b2WorldId WorldID();
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
 	static void Update();
-
-	static b2WorldId WorldID();
 
 	static F64 timeStep;
 

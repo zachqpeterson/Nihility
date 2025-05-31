@@ -15,6 +15,7 @@ layout (location = 5) in vec4 instColor;
 layout (location = 6) in vec2 instTexcoord;
 layout (location = 7) in vec2 instTexcoordScale;
 layout (location = 8) in uint textureIndex;
+layout (location = 9) in uint entityIndex;
 
 layout (location = 0) out vec2 outTexcoord;
 layout (location = 1) out vec4 outColor;

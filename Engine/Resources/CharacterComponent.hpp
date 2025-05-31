@@ -4,32 +4,24 @@
 
 #include "Math/Physics.hpp"
 
-struct BodyId
-{
-	I32 index;
-	U16 world;
-	U16 generation;
-};
-
-class NH_API RigidBody
+class NH_API Character
 {
 public:
-	const BodyId& GetBodyId() const;
+	F32 movespeed;
+	F32 jumpForce;
 
 	static bool Initialize();
 	static bool Shutdown();
 
-	static ComponentRef<RigidBody> AddTo(const EntityRef& entity, BodyType type = BodyType::Dynamic);
+	static ComponentRef<Character> AddTo(const EntityRef& entity);
 
 private:
-	BodyId bodyId;
-
 	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
 	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
 
 	static bool initialized;
 
-	COMPONENT(RigidBody, 10000);
+	COMPONENT(Character, 1);
 	friend struct Scene;
 	friend struct EntityRef;
 };

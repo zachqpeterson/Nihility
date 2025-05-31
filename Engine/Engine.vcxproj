@@ -91,7 +91,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Containers\Freelist.hpp" />
-    <ClInclude Include="Containers\Function.hpp" />
     <ClInclude Include="Containers\Hashmap.hpp" />
     <ClInclude Include="Containers\Pair.hpp" />
     <ClInclude Include="Containers\Queue.hpp" />
@@ -102,6 +101,7 @@
     <ClInclude Include="Core\Events.hpp" />
     <ClInclude Include="Core\File.hpp" />
     <ClInclude Include="Core\Formatting.hpp" />
+    <ClInclude Include="Core\Function.hpp" />
     <ClInclude Include="Core\Logger.hpp" />
     <ClInclude Include="Core\Time.hpp" />
     <ClInclude Include="Defines.hpp" />
@@ -132,7 +132,9 @@
     <ClInclude Include="Rendering\Shader.hpp" />
     <ClInclude Include="Rendering\Swapchain.hpp" />
     <ClInclude Include="Rendering\VulkanInclude.hpp" />
+    <ClInclude Include="Resources\CharacterComponent.hpp" />
     <ClInclude Include="Resources\ColliderComponent.hpp" />
+    <ClInclude Include="Resources\Component.hpp" />
     <ClInclude Include="Resources\Entity.hpp" />
     <ClInclude Include="Resources\Material.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
@@ -173,7 +175,9 @@
     <ClCompile Include="Rendering\Renderpass.cpp" />
     <ClCompile Include="Rendering\Shader.cpp" />
     <ClCompile Include="Rendering\Swapchain.cpp" />
+    <ClCompile Include="Resources\CharacterComponent.cpp" />
     <ClCompile Include="Resources\ColliderComponent.cpp" />
+    <ClCompile Include="Resources\Entity.cpp" />
     <ClCompile Include="Resources\Material.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
     <ClCompile Include="Resources\RigidBodyComponent.cpp" />

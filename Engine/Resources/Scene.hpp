@@ -3,29 +3,45 @@
 #include "ResourceDefines.hpp"
 
 #include "Entity.hpp"
-#include "Texture.hpp"
-#include "Material.hpp"
-#include "SpriteComponent.hpp"
-#include "RigidBodyComponent.hpp"
-#include "ColliderComponent.hpp"
-#include "TilemapComponent.hpp"
 
 #include "Rendering/Camera.hpp"
 #include "Rendering/CommandBuffer.hpp"
 #include "Containers/Vector.hpp"
-#include "Math/Physics.hpp"
+#include "Containers/Freelist.hpp"
+#include "Core/Events.hpp"
 
-struct Scene;
-
-struct NH_API EntityRef
+struct NH_API SceneRef
 {
-	template<class Component, typename... Args>
-	void AddComponent(Args... args);
+	SceneRef();
+	SceneRef(NullPointer);
+	SceneRef(U32 sceneId);
+	void Destroy();
+
+	SceneRef(const SceneRef& other);
+	SceneRef(SceneRef&& other) noexcept;
+	SceneRef& operator=(NullPointer);
+	SceneRef& operator=(const SceneRef& other);
+	SceneRef& operator=(SceneRef&& other) noexcept;
+	~SceneRef();
+
+	Scene* Get();
+	const Scene* Get() const;
+	Scene* operator->();
+	const Scene* operator->() const;
+	Scene& operator*();
+	const Scene& operator*() const;
+	operator Scene* ();
+	operator const Scene* () const;
+
+	bool operator==(const SceneRef& other) const;
+
+	bool Valid() const;
+	operator bool() const;
+
+	U32 SceneId() const;
 
 private:
-	Scene* scene;
-	U32 entityId;
-	U32 sceneId;
+	U32 sceneId = U32_MAX;
 
 	friend struct Scene;
 };
@@ -33,12 +49,25 @@ private:
 struct NH_API Scene
 {
 public:
-	bool Create(CameraType type);
-	void Destroy();
+	static SceneRef CreateScene(CameraType type);
 
-	EntityRef CreateEntity(Vector2 position = Vector2::Zero, Quaternion2 rotation = Quaternion2::Identity);
+	static Entity* GetEntity(U32 sceneId, U32 entityId);
+
+	bool LoadScene();
+
+	EntityRef CreateEntity(Vector2 position = Vector2::Zero, Vector2 scale = Vector2::One, Quaternion2 rotation = Quaternion2::Identity);
+
+	static Event<U32, Camera&, Vector<Entity>&> UpdateFns;
+	static Event<U32, CommandBuffer> RenderFns;
+	static Event<> InitializeFns;
+	static Event<> ShutdownFns;
 
 private:
+	static bool Initialize();
+	static void Shutdown();
+
+	void Destroy();
+
 	void Update();
 	void Render(CommandBuffer commandBuffer) const;
 
@@ -47,31 +76,117 @@ private:
 
 	U32 sceneId;
 
-	static U32 SceneID;
+	static Vector<Scene> scenes;
+	static Freelist freeScenes;
 
 	friend class Renderer;
+	friend class Engine;
 	friend struct EntityRef;
+	friend struct SceneRef;
 };
 
-template<class Component, typename... Args>
-inline void EntityRef::AddComponent(Args... args)
-{
-	Entity& entity = scene->entities[entityId];
+inline SceneRef::SceneRef() {}
 
-	if constexpr (IsSame<Component, SpriteComponent>)
-	{
-		entity.spriteId = SpriteComponent::AddComponent(sceneId, args...);
-	}
-	else if constexpr (IsSame<Component, RigidBodyComponent>)
-	{
-		entity.bodyId = RigidBodyComponent::AddComponent(entity.position, entity.rotation, args...);
-	}
-	else if constexpr (IsSame<Component, ColliderComponent>)
-	{
-		ColliderComponent::AddComponent(entity.bodyId, args...);
-	}
-	else if constexpr (IsSame<Component, TilemapComponent>)
-	{
-		TilemapComponent::AddComponent(sceneId, args...);
-	}
+inline SceneRef::SceneRef(NullPointer) {}
+
+inline SceneRef::SceneRef(U32 sceneId) : sceneId(sceneId) {}
+
+inline void SceneRef::Destroy()
+{
+	sceneId = U32_MAX;
+}
+
+inline SceneRef::SceneRef(const SceneRef& other) : sceneId(other.sceneId) {}
+
+inline SceneRef::SceneRef(SceneRef&& other) noexcept : sceneId(other.sceneId)
+{
+	other.sceneId = U32_MAX;
+}
+
+inline SceneRef& SceneRef::operator=(NullPointer)
+{
+	sceneId = U32_MAX;
+
+	return *this;
+}
+
+inline SceneRef& SceneRef::operator=(const SceneRef& other)
+{
+	sceneId = other.sceneId;
+
+	return *this;
+}
+
+inline SceneRef& SceneRef::operator=(SceneRef&& other) noexcept
+{
+	sceneId = other.sceneId;
+
+	other.sceneId = U32_MAX;
+
+	return *this;
+}
+
+inline SceneRef::~SceneRef()
+{
+	sceneId = U32_MAX;
+}
+
+inline Scene* SceneRef::Get()
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline const Scene* SceneRef::Get() const
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline Scene* SceneRef::operator->()
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline const Scene* SceneRef::operator->() const
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline Scene& SceneRef::operator*()
+{
+	return Scene::scenes[sceneId];
+}
+
+inline const Scene& SceneRef::operator*() const
+{
+	return Scene::scenes[sceneId];
+}
+
+inline SceneRef::operator Scene* ()
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline SceneRef::operator const Scene* () const
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline bool SceneRef::operator==(const SceneRef& other) const
+{
+	return sceneId == other.sceneId;
+}
+
+inline bool SceneRef::Valid() const
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline SceneRef::operator bool() const
+{
+	return &Scene::scenes[sceneId];
+}
+
+inline U32 SceneRef::SceneId() const
+{
+	return sceneId;
 }

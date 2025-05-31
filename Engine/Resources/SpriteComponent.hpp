@@ -1,28 +1,41 @@
 #pragma once
 
-#include "ResourceDefines.hpp"
-
-#include "Entity.hpp"
+#include "Component.hpp"
 #include "Material.hpp"
 
-class NH_API SpriteComponent
+struct SpriteVertex
 {
-private:
-	static bool Initialize();
-	static void Shutdown();
-	static void Update(U32 sceneId, Vector<Entity>& entities);
-	static void Render(U32 sceneId, CommandBuffer commandBuffer);
+	Vector2 position = Vector2::Zero;
+	Vector2 texcoord = Vector2::Zero;
+};
 
-	static void AddScene(U32 sceneId);
-	static void RemoveScene(U32 sceneId);
-	static U32 AddComponent(U32 sceneId, const ResourceRef<Texture>& texture, const Vector2& scale = Vector2::One, const Vector4& color = Vector4::One, const Vector2& textureCoord = Vector2::Zero, const Vector2& textureScale = Vector2::One);
+class NH_API Sprite
+{
+public:
+	static bool Initialize();
+	static bool Shutdown();
+
+	static ComponentRef<Sprite> AddTo(const EntityRef& entity, const ResourceRef<Texture>& texture = nullptr, const Vector4& color = Vector4::One, const Vector2& textureCoord = Vector2::Zero, const Vector2& textureScale = Vector2::One);
+
+private:
+	Vector2 position = Vector2::Zero;
+	Vector2 scale = Vector2::One;
+	Quaternion2 rotation = Quaternion2::Identity;
+	Vector4 instColor = Vector4::One;
+	Vector2 instTexcoord = Vector2::Zero;
+	Vector2 instTexcoordScale = Vector2::One;
+	U32 textureIndex = 0;
+
+	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
+	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
 
 	static Material spriteMaterial;
 	static Shader spriteVertexShader;
 	static Shader spriteFragmentShader;
-	static Vector<Vector<SpriteInstance>> spriteInstances;
+	static bool initialized;
 
-	STATIC_CLASS(SpriteComponent);
+	COMPONENT(Sprite, 10000);
+
 	friend struct Scene;
 	friend struct EntityRef;
 };

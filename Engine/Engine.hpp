@@ -4,6 +4,7 @@
 
 #include "Containers/String.hpp"
 
+using ComponentsInitFn = void(*)();
 using InitializeFn = bool(*)();
 using ShutdownFn = void(*)();
 using UpdateFn = void(*)();
@@ -13,6 +14,7 @@ struct NH_API GameInfo
 	StringView name;
 	U32 version;
 
+	ComponentsInitFn componentsInit;
 	InitializeFn initialize;
 	ShutdownFn shutdown;
 	UpdateFn update;

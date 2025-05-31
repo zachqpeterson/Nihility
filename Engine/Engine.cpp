@@ -43,6 +43,8 @@ bool Engine::Initialize(const GameInfo& _info)
 	if (!Renderer::Initialize(game.name, game.version)) { return false; }
 	if (!Resources::Initialize()) { return false; }
 	if (!Physics::Initialize()) { return false; }
+	game.componentsInit();
+	if (!Scene::Initialize()) { return false; }
 	if (!game.initialize()) { return false; }
 	if (!Time::Initialize()) { return false; }
 
@@ -56,8 +58,9 @@ bool Engine::Initialize(const GameInfo& _info)
 
 void Engine::Shutdown()
 {
-	game.shutdown();
 	Time::Shutdown();
+	game.shutdown();
+	Scene::Shutdown();
 	Physics::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();

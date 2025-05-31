@@ -124,18 +124,18 @@ void Renderer::Update()
 	if (!Synchronize()) { return; }
 
 	Resources::Update();
-	scene->Update();
+	if (scene) { scene->Update(); }
 
 	SubmitTransfer();
 
-	globalPushConstant.viewProjection = scene->camera.ViewProjection();
-
+	if (scene) { globalPushConstant.viewProjection = scene->camera.ViewProjection(); }
+	
 	CommandBuffer& commandBuffer = CommandBufferRing::GetDrawCommandBuffer(frameIndex);
 
 	commandBuffer.Begin();
 	commandBuffer.BeginRenderpass(renderpass, frameBuffer, swapchain);
 
-	scene->Render(commandBuffer);
+	if (scene) { scene->Render(commandBuffer); }
 
 	//TODO: Draw UI
 
