@@ -32,6 +32,7 @@ public:
 	const Vector3& Forward() const;
 	CameraType Type() const;
 
+	void Follow(const Vector3& position);
 	void SetCameraType(CameraType type);
 	void SetPosition(const Vector3& position);
 	void SetRotation(const Quaternion3& rotation);

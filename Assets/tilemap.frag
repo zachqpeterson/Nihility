@@ -3,7 +3,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_16bit_storage : require
 
-#define DEBUG 0
+#define DEBUG 1
 
 layout(push_constant) uniform block
 {

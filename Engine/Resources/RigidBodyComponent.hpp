@@ -4,13 +4,6 @@
 
 #include "Math/Physics.hpp"
 
-struct BodyId
-{
-	I32 index;
-	U16 world;
-	U16 generation;
-};
-
 class NH_API RigidBody
 {
 public:

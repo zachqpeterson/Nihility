@@ -19,8 +19,8 @@ ResourceRef<Texture> groundTexture;
 
 void ComponentsInit()
 {
-	Scene::InitializeFns += Character::Initialize;
 	Scene::InitializeFns += RigidBody::Initialize;
+	Scene::InitializeFns += Character::Initialize;
 	Scene::InitializeFns += Collider::Initialize;
 	Scene::InitializeFns += Tilemap::Initialize;
 	Scene::InitializeFns += Sprite::Initialize;
@@ -28,8 +28,8 @@ void ComponentsInit()
 	Scene::ShutdownFns += Sprite::Shutdown;
 	Scene::ShutdownFns += Tilemap::Shutdown;
 	Scene::ShutdownFns += Collider::Shutdown;
-	Scene::ShutdownFns += RigidBody::Shutdown;
 	Scene::ShutdownFns += Character::Shutdown;
+	Scene::ShutdownFns += RigidBody::Shutdown;
 }
 
 bool Initialize()
@@ -45,15 +45,20 @@ bool Initialize()
 
 	ComponentRef<RigidBody> rb = RigidBody::AddTo(ground, BodyType::Static);
 	Collider::AddTo(ground, rb);
-	ComponentRef<Tilemap> tm = Tilemap::AddTo(ground);
+	Sprite::AddTo(ground, groundTexture);
+	//ComponentRef<Tilemap> tm = Tilemap::AddTo(ground);
+	//
+	//for (I32 x = 0; x < 61; ++x)
+	//{
+	//	//for (I32 y = 0; y < 60; ++y)
+	//	{
+	//		tm->SetTile(groundTexture, { x, 31 });
+	//	}
+	//}
 
-	for (I32 x = 0; x < 60; ++x)
-	{
-		//for (I32 y = 0; y < 60; ++y)
-		{
-			tm->SetTile(groundTexture, { x, 31 });
-		}
-	}
+	EntityRef player = scene->CreateEntity();
+	Sprite::AddTo(player, groundTexture);
+	Character::AddTo(player);
 
 	return true;
 }

@@ -140,6 +140,11 @@ void Camera::SetCameraType(CameraType type)
 	Create(type);
 }
 
+void Camera::Follow(const Vector3& position)
+{
+	this->position = Math::Tween(this->position, position);
+}
+
 void Camera::SetPosition(const Vector3& position)
 {
 	this->position = position;

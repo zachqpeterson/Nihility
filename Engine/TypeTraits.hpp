@@ -249,7 +249,7 @@ template<class T> AddRvalReference<T> DeclValue() noexcept { static_assert(False
 /// <param name="value:">The value to be casted</param>
 /// <returns>The casted value</returns>
 template<class To, class From> requires (sizeof(From) == sizeof(To))
-NH_NODISCARD constexpr To TypePun(const From& value) noexcept
+NH_NODISCARD NH_INLINE constexpr To TypePun(const From& value) noexcept
 {
 	return __builtin_bit_cast(To, value);
 }

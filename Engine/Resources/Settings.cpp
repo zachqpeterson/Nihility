@@ -7,8 +7,8 @@ F64 Settings::targetSuspendedFrametime = 0.0;
 
 U32 Settings::windowWidth = 0;
 U32 Settings::windowHeight = 0;
-U32 Settings::windowWidthSmall = 1280;
-U32 Settings::windowHeightSmall = 720;
+U32 Settings::windowWidthSmall = 1920;
+U32 Settings::windowHeightSmall = 1080;
 U32 Settings::windowPositionX = 0;
 U32 Settings::windowPositionY = 0;
 U32 Settings::windowPositionXSmall = 320;

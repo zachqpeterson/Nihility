@@ -55,7 +55,46 @@ void Physics::Update()
 	b2World_Step(worldId, (F32)timeStep, 4);
 }
 
+CastResult Physics::ShapeCast(ShapeProxy proxy, Vector2 translation, QueryFilter filter)
+{
+	CastResult castResult{};
+
+	b2World_CastShape(worldId, (b2ShapeProxy*)&proxy, TypePun<b2Vec2>(translation), TypePun<b2QueryFilter>(filter), CastCallback, &castResult);
+
+	return castResult;
+}
+
+void Physics::CollideMover(const Capsule& mover, QueryFilter filter, PlaneResultFn fn, void* context)
+{
+	b2World_CollideMover(worldId, (b2Capsule*)&mover, TypePun<b2QueryFilter>(filter), fn, context);
+}
+
+PlaneSolverResult Physics::SolvePlanes(Vector2 position, CollisionPlane* planes, I32 count)
+{
+	return TypePun<PlaneSolverResult>(b2SolvePlanes(TypePun<b2Vec2>(position), (b2CollisionPlane*)planes, count));
+}
+
+F32 Physics::CastMover(const Capsule& mover, Vector2 translation, QueryFilter filter)
+{
+	return b2World_CastMover(worldId, (b2Capsule*)&mover, TypePun<b2Vec2>(translation), TypePun<b2QueryFilter>(filter));
+}
+
+Vector2 Physics::ClipVector(Vector2 vector, const CollisionPlane* planes, I32 count)
+{
+	return TypePun<Vector2>(b2ClipVector(TypePun<b2Vec2>(vector), (b2CollisionPlane*)planes, count));
+}
+
 b2WorldId Physics::WorldID()
 {
 	return worldId;
+}
+
+float Physics::CastCallback(b2ShapeId shapeId, b2Vec2 point, b2Vec2 normal, float fraction, void* context)
+{
+	CastResult* result = (CastResult*)context;
+	result->point = TypePun<Vector2>(point);
+	result->bodyId = TypePun<BodyId>(b2Shape_GetBody(shapeId));
+	result->fraction = fraction;
+	result->hit = true;
+	return fraction;
 }

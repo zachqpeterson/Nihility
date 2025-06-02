@@ -3,6 +3,8 @@
 #include "Defines.hpp"
 #include "TypeTraits.hpp"
 
+#include "Core/Time.hpp"
+
 #include "gcem/gcem.hpp"
 
 static constexpr inline F64 E = 2.718281828459045;
@@ -63,6 +65,7 @@ public:
 	template <class Type, FloatingPoint FP> static constexpr Type Lerp(Type a, Type b, FP t) noexcept { return a + (b - a) * t; }
 	template <class Type, FloatingPoint FP> static constexpr Type InvLerp(Type a, Type b, FP t) noexcept { return (t - a) / (b - a); }
 	template <class Type, FloatingPoint FP> static constexpr Type Mix(Type a, Type b, FP t) noexcept { return a * (FP(1) - t) + b * t; }
+	template <class Type> static constexpr Type Tween(Type a, Type b) noexcept { return Lerp(a, b, 1.0 - Pow(0.01, Time::DeltaTime())); }
 
 	template <class Type> static constexpr Type Sqrt(Type n)
 	{
