@@ -32,6 +32,12 @@
     <Filter Include="Source Files\Resources\Components">
       <UniqueIdentifier>{0c8b6a91-0d79-4e3a-a518-9a19bac47ff1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Rendering\Vulkan">
+      <UniqueIdentifier>{d528f2f7-7c43-465e-8d91-c4ba0256a40a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\msdfgen">
+      <UniqueIdentifier>{bd8e0eac-1e22-467a-989b-ff69d01b5b35}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -94,47 +100,8 @@
     <ClInclude Include="Resources\Resources.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Rendering\Renderer.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Instance.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\VulkanInclude.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Core\File.hpp">
       <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Formatting.hpp">
-      <Filter>Source Files\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Device.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\PhysicalDevice.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Swapchain.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\CommandBuffer.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Renderpass.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\PipelineLayout.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Pipeline.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Shader.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\FrameBuffer.hpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\Camera.hpp">
       <Filter>Source Files\Rendering</Filter>
@@ -145,17 +112,11 @@
     <ClInclude Include="Resources\ResourceDefines.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Rendering\Buffer.hpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="Containers\Stack.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Containers\Pair.hpp">
       <Filter>Source Files\Containers</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\DescriptorSet.hpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Containers\Queue.hpp">
       <Filter>Source Files\Containers</Filter>
@@ -171,9 +132,6 @@
     </ClInclude>
     <ClInclude Include="Resources\Material.hpp">
       <Filter>Source Files\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\CommandBufferRing.hpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Math\Physics.hpp">
       <Filter>Source Files\Math</Filter>
@@ -199,8 +157,56 @@
     <ClInclude Include="Resources\Component.hpp">
       <Filter>Source Files\Resources\Components</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Function.hpp">
-      <Filter>Source Files\Core</Filter>
+    <ClInclude Include="Rendering\CommandBuffer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\CommandBufferRing.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\DescriptorSet.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Device.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\FrameBuffer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Instance.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\PhysicalDevice.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Pipeline.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\PipelineLayout.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Renderer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Renderpass.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Shader.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Swapchain.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\VulkanInclude.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Buffer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\UI.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Font.hpp">
+      <Filter>Source Files\Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -234,49 +240,10 @@
     <ClCompile Include="Resources\Resources.cpp">
       <Filter>Source Files\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="Rendering\Instance.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\Renderer.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Core\File.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Rendering\Device.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\PhysicalDevice.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\Swapchain.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\CommandBuffer.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\Renderpass.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\PipelineLayout.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\Pipeline.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\Shader.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\FrameBuffer.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Rendering\Camera.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\Buffer.cpp">
-      <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\DescriptorSet.cpp">
       <Filter>Source Files\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Resources\Scene.cpp">
@@ -284,9 +251,6 @@
     </ClCompile>
     <ClCompile Include="Resources\Material.cpp">
       <Filter>Source Files\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Rendering\CommandBufferRing.cpp">
-      <Filter>Source Files\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="..\Lib\tracy\TracyClient.cpp">
       <Filter>Source Files\External</Filter>
@@ -314,6 +278,108 @@
     </ClCompile>
     <ClCompile Include="Resources\Entity.cpp">
       <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\CommandBuffer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\CommandBufferRing.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\DescriptorSet.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Device.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\FrameBuffer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Instance.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\PhysicalDevice.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Pipeline.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\PipelineLayout.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Renderer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Renderpass.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Shader.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Swapchain.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Buffer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\UI.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Font.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\contour-combiners.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Contour.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\DistanceMapping.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\edge-coloring.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\edge-segments.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\edge-selectors.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\EdgeHolder.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\equation-solver.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\msdf-error-correction.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\MSDFErrorCorrection.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\msdfgen.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Projection.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\rasterization.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\render-sdf.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Scanline.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\sdf-error-estimation.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\shape-description.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Shape.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

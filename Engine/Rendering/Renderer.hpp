@@ -60,7 +60,7 @@ private:
 
 	static bool RecreateSwapchain();
 
-	static bool UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler);
+	static bool UploadTexture(Resource<Texture>& texture, void* data, const Sampler& sampler);
 	static void DestroyTexture(Resource<Texture>& texture);
 
 	//Resources

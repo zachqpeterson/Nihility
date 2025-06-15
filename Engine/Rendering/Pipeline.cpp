@@ -20,7 +20,7 @@ bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& sett
 			.flags = 0,
 			.stage = (VkShaderStageFlagBits)shader.type,
 			.module = shader,
-			.pName = "main",
+			.pName = shader.entryPoint.Data(),
 			.pSpecializationInfo = nullptr //TODO
 		};
 
@@ -97,13 +97,13 @@ bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& sett
 		};
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = VK_FALSE,
-			.srcColorBlendFactor = {},
-			.dstColorBlendFactor = {},
-			.colorBlendOp = {},
-			.srcAlphaBlendFactor = {},
-			.dstAlphaBlendFactor = {},
-			.alphaBlendOp = {},
+			.blendEnable = VK_TRUE,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.colorBlendOp = VK_BLEND_OP_ADD,
+			.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.alphaBlendOp = VK_BLEND_OP_ADD,
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
@@ -123,8 +123,8 @@ bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& sett
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.depthTestEnable = VK_TRUE,
-			.depthWriteEnable = VK_TRUE,
+			.depthTestEnable = settings.useDepth,
+			.depthWriteEnable = settings.useDepth,
 			.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
 			.depthBoundsTestEnable = VK_FALSE,
 			.stencilTestEnable = VK_FALSE,

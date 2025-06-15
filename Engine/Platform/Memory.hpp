@@ -224,8 +224,6 @@ inline U64 Memory::Reallocate(Type* pointer, U64 count)
 template<Pointer Type>
 inline void Memory::Free(Type* pointer)
 {
-	if (!IsAllocated(*pointer)) { return; }
-
 	FreeInternal((void**)pointer);
 }
 

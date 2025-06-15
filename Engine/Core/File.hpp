@@ -3,7 +3,6 @@
 #include "Defines.hpp"
 
 #include "Containers/String.hpp"
-#include "Core/Formatting.hpp"
 
 enum NH_API FileOpenMode
 {
@@ -62,6 +61,7 @@ public:
 	void Close();
 
 	template<class Type> U64 Read(Type& value);
+	U64 Read(void* buffer, U64 size);
 	String ReadString();
 	String ReadLine();
 	String ReadAll();
@@ -69,6 +69,7 @@ public:
 	template<class Type> U64 Write(const Type& value);
 	template<typename... Args> U64 FormatedWrite(const Args... args);
 	U64 Write(const String& data);
+	U64 Write(const void* buffer, U64 size);
 
 	void Reset();
 	void Seek(I64 offset);
@@ -83,8 +84,6 @@ public:
 	static bool Exists(const String& path);
 
 private:
-	U64 Read(void* buffer, U64 size);
-	U64 Write(const void* buffer, U64 size);
 	template<class Type> U64 FormatedWrite(C8* buffer, Type type);
 
 	bool Flush();
@@ -132,5 +131,5 @@ U64 File::FormatedWrite(C8* buffer, Type type)
 	if constexpr (IsStringType<Type>) { return Write(type.Data(), type.Size()); }
 	else if constexpr (IsSame<Type, StringView>) { return Write(type.Data(), type.Size()); }
 	else if constexpr (IsStringLiteral<Type>) { return Write(type, Length(type)); }
-	else { return Write(buffer, Format(buffer, type)); }
+	else { return Write(buffer, String::Format(buffer, type)); }
 }

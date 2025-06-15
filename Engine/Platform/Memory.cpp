@@ -146,6 +146,7 @@ U64 Memory::AllocateInternal(void** pointer, U64 size, U64 typeSize)
 	else if (size <= sizeof(Region16kb)) { region16kb.Allocate((void**)pointer); return sizeof(Region16kb) / typeSize; }
 	else if (size <= sizeof(Region256kb)) { region256kb.Allocate((void**)pointer); return sizeof(Region256kb) / typeSize; }
 	else if (size <= sizeof(Region4mb)) { region4mb.Allocate((void**)pointer); return sizeof(Region4mb) / typeSize; }
+	else { *pointer = malloc(size); return size / typeSize; }
 
 	return 0;
 }
@@ -156,12 +157,15 @@ U64 Memory::ReallocateInternal(void** src, void** dst, U64 size, U64 typeSize)
 	else if (size <= sizeof(Region16kb)) { region16kb.Reallocate(src, dst); return sizeof(Region16kb) / typeSize; }
 	else if (size <= sizeof(Region256kb)) { region256kb.Reallocate(src, dst); return sizeof(Region256kb) / typeSize; }
 	else if (size <= sizeof(Region4mb)) { region4mb.Reallocate(src, dst); return sizeof(Region4mb) / typeSize; }
+	else { *dst = realloc(*src, size); return size / typeSize; }
 
 	return 0;
 }
 
 void Memory::FreeInternal(void** pointer)
 {
+	if (!IsAllocated(*pointer)) { free(*pointer); return; }
+
 	if (region1kb.WithinRegion(*pointer)) { region1kb.Free(pointer); }
 	else if (region16kb.WithinRegion(*pointer)) { region16kb.Free(pointer); }
 	else if (region256kb.WithinRegion(*pointer)) { region256kb.Free(pointer); }

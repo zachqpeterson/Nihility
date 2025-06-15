@@ -194,3 +194,19 @@ constexpr U32 GetMajorVersion(U32 versionNumber)
 	constexpr U32 MAJOR_MASK = 0b111111110000000000000000;
 	return (versionNumber & MAJOR_MASK) >> 16;
 }
+
+/// <summary>
+/// Gets the next multiple of n greater than or equal to value
+/// </summary>
+/// <param name="value:">Initial value</param>
+/// <param name="n:">Multiple</param>
+/// <returns>The next multaple of n</returns>
+constexpr U64 NextMultipleOf(U64 value, U64 n)
+{
+	if (n == 0) { return value; }
+
+	U64 remainder = value % n;
+	if (remainder == 0) { return value; }
+
+	return value + n - remainder;
+}

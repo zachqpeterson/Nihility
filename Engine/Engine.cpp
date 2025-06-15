@@ -13,12 +13,12 @@
 #include "Core/File.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Events.hpp"
-#include "Core/Formatting.hpp"
 #include "Math/Math.hpp"
 #include "Math/Random.hpp"
 #include "Math/Physics.hpp"
 #include "Multithreading/Jobs.hpp"
 #include "Rendering/Renderer.hpp"
+#include "Rendering/UI.hpp"
 
 #include "tracy/Tracy.hpp"
 
@@ -42,6 +42,7 @@ bool Engine::Initialize(const GameInfo& _info)
 	if (!Input::Initialize()) { return false; }
 	if (!Renderer::Initialize(game.name, game.version)) { return false; }
 	if (!Resources::Initialize()) { return false; }
+	if (!UI::Initialize()) { return false; }
 	if (!Physics::Initialize()) { return false; }
 	game.componentsInit();
 	if (!Scene::Initialize()) { return false; }
@@ -62,6 +63,7 @@ void Engine::Shutdown()
 	game.shutdown();
 	Scene::Shutdown();
 	Physics::Shutdown();
+	UI::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();
 	Input::Shutdown();

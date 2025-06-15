@@ -227,33 +227,28 @@ bool Input::Initialize()
 	deviceList[1].usUsage = HID_USAGE_GENERIC_MOUSE;
 	deviceList[1].dwFlags = RIDEV_DEVNOTIFY | RIDEV_INPUTSINK; //RIDEV_NOLEGACY
 	deviceList[1].hwndTarget = info.window;
-
+	
 	deviceList[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	deviceList[2].usUsage = HID_USAGE_GENERIC_KEYPAD;
 	deviceList[2].dwFlags = RIDEV_DEVNOTIFY;
 	deviceList[2].hwndTarget = nullptr;
-
+	
 	deviceList[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	deviceList[3].usUsage = HID_USAGE_GENERIC_KEYBOARD;
 	deviceList[3].dwFlags = RIDEV_DEVNOTIFY | RIDEV_NOLEGACY | RIDEV_APPKEYS;
 	deviceList[3].hwndTarget = nullptr;
-
+	
 	deviceList[4].usUsagePage = HID_USAGE_PAGE_GENERIC;
 	deviceList[4].usUsage = HID_USAGE_GENERIC_GAMEPAD;
 	deviceList[4].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
 	deviceList[4].hwndTarget = info.window;
+	
+	deviceList[5].usUsagePage = HID_USAGE_PAGE_GENERIC;
+	deviceList[5].usUsage = HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER;
+	deviceList[5].dwFlags = RIDEV_DEVNOTIFY;
+	deviceList[5].hwndTarget = nullptr;
 
-	deviceList[5].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-	deviceList[5].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-	deviceList[5].dwFlags = RIDEV_INPUTSINK | RIDEV_DEVNOTIFY;
-	deviceList[5].hwndTarget = info.window;
-
-	deviceList[6].usUsagePage = HID_USAGE_PAGE_GENERIC;
-	deviceList[6].usUsage = HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER;
-	deviceList[6].dwFlags = RIDEV_DEVNOTIFY;
-	deviceList[6].hwndTarget = nullptr;
-
-	if (!RegisterRawInputDevices(deviceList, 7, sizeof(RAWINPUTDEVICE))) { Logger::Error("Failed To Register Devices, Error Code: ", GetLastError(), "!"); return false; }
+	if (!RegisterRawInputDevices(deviceList, 6, sizeof(RAWINPUTDEVICE))) { Logger::Error("Failed To Register Devices, Error Code: ", GetLastError(), "!"); return false; }
 
 	joysticks.hwnd = info.window;
 	joysticks.count = Joysticks::maxXinputControllers;
@@ -294,9 +289,19 @@ void Input::Update()
 	{
 		state.changed = false;
 	}
-	
-	deltaMousePosX = 0;
-	deltaMousePosY = 0;
+
+	POINT p;
+	GetCursorPos(&p);
+
+	F32 newX = (F32)(p.x - (I32)Settings::windowPositionX);
+	F32 newY = (F32)(p.y - (I32)Settings::windowPositionY);
+
+	deltaMousePosX = newX - mousePosX;
+	deltaMousePosY = newY - mousePosY;
+
+	mousePosX = newX;
+	mousePosY = newY;
+
 	mouseWheelDelta = 0;
 	mouseHWheelDelta = 0;
 	inputConsumed = false;

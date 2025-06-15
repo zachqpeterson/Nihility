@@ -25,6 +25,7 @@ struct NH_API PipelineSettings
 {
 	PolygonMode polygonMode = PolygonMode::Fill;
 	BindPoint bindPoint = BindPoint::Graphics;
+	bool useDepth = true;
 };
 
 struct VkPipeline_T;

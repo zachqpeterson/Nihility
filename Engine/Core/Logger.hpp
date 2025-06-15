@@ -88,8 +88,8 @@ private:
 	static bool Initialize();
 	static void Shutdown();
 
-	static File logFile;
-	static File console;
+	static NH_API File logFile;
+	static NH_API File console;
 
 	friend class Engine;
 

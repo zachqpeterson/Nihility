@@ -91,7 +91,7 @@ public:
 private:
 	Type* type = nullptr;
 	U32* refCount = nullptr;
-	U32 hash = U32_MAX;
+	U32 hash = U16_MAX;
 
 	friend class Resources;
 };
@@ -124,7 +124,7 @@ inline void ResourceRef<Type>::Destroy()
 
 	type = nullptr;
 	refCount = nullptr;
-	hash = U32_MAX;
+	hash = U16_MAX;
 }
 
 template<class Type>
@@ -135,7 +135,7 @@ inline ResourceRef<Type>::ResourceRef(ResourceRef&& other) noexcept : refCount(o
 {
 	other.refCount = nullptr;
 	other.type = nullptr;
-	other.hash = U32_MAX;
+	other.hash = U16_MAX;
 }
 
 template<class Type>
@@ -167,7 +167,7 @@ inline ResourceRef<Type>& ResourceRef<Type>::operator=(ResourceRef<Type>&& other
 
 	other.type = nullptr;
 	other.refCount = nullptr;
-	other.hash = U32_MAX;
+	other.hash = U16_MAX;
 
 	return *this;
 }

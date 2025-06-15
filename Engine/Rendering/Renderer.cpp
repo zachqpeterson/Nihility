@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 
 #include "CommandBufferRing.hpp"
+#include "UI.hpp"
 
 #include "Platform/Platform.hpp"
 #include "Core/Time.hpp"
@@ -125,6 +126,7 @@ void Renderer::Update()
 
 	Resources::Update();
 	if (scene) { scene->Update(); }
+	UI::Update();
 
 	SubmitTransfer();
 
@@ -137,7 +139,7 @@ void Renderer::Update()
 
 	if (scene) { scene->Render(commandBuffer); }
 
-	//TODO: Draw UI
+	UI::Render(commandBuffer);
 
 	commandBuffer.EndRenderpass();
 
@@ -532,9 +534,9 @@ bool Renderer::RecreateSwapchain()
 	return true;
 }
 
-bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler& sampler)
+bool Renderer::UploadTexture(Resource<Texture>& texture, void* data, const Sampler& sampler)
 {
-	U64 offset = stagingBuffers[frameIndex].StagingPointer();
+	U64 offset = NextMultipleOf(stagingBuffers[frameIndex].StagingPointer(), 16);
 
 	stagingBuffers[frameIndex].UploadStagingData(data, texture->size, offset);
 
@@ -546,7 +548,7 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 		.pNext = nullptr,
 		.flags = 0,
 		.imageType = VK_IMAGE_TYPE_2D,
-		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.format = (VkFormat)texture->format,
 		.extent{
 			.width = texture->width,
 			.height = texture->height,
@@ -753,7 +755,7 @@ bool Renderer::UploadTexture(Resource<Texture>& texture, U8* data, const Sampler
 		.flags = 0,
 		.image = texture->image,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.format = (VkFormat)texture->format,
 		.components{
 			.r = VK_COMPONENT_SWIZZLE_IDENTITY,
 			.g = VK_COMPONENT_SWIZZLE_IDENTITY,

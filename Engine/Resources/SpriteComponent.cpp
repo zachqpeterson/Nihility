@@ -111,8 +111,6 @@ bool Sprite::Render(U32 sceneId, CommandBuffer commandBuffer)
 {
 	if (sceneId >= components.Size()) { return false; }
 
-	Vector<Sprite>& instances = components[sceneId];
-
 	spriteMaterial.Bind(commandBuffer);
 
 	return false;

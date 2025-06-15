@@ -28,13 +28,14 @@ enum class NH_API ShaderStage
 
 struct NH_API Shader
 {
-	bool Create(const String& path, ShaderStage type);
+	bool Create(const String& path, ShaderStage type, const StringView& entryPoint = "main");
 	void Destroy();
 
 	operator VkShaderModule_T* () const;
 
 private:
 	ShaderStage type;
+	StringView entryPoint;
 	VkShaderModule_T* vkShaderModule;
 
 	friend class Renderer;

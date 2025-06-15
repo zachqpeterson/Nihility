@@ -4,7 +4,8 @@
 
 #include "Containers/Hashmap.hpp"
 #include "Containers/Vector.hpp"
-#include "Core/Function.hpp"
+
+#include <functional>
 
 template<typename... Args>
 struct Event
@@ -13,33 +14,43 @@ public:
 	Event() {}
 	~Event() { invocationList.Destroy(); }
 
-	Event& operator+=(Function<bool(Args...)>&& func)
+	Event& operator+=(std::function<bool(Args...)>&& func)
 	{
 		invocationList.Push(Move(func));
 		return *this;
 	}
 
-	//Event& operator-=(Function<bool(Args...)>&& func)
-	//{
-	//	U32 i = 0;
-	//	for (const Function<bool(Args...)>& f : invocationList)
-	//	{
-	//		if (func == f) { invocationList.RemoveSwap(i); return *this; }
-	//		++i;
-	//	}
-	//
-	//	return *this;
-	//}
+	Event& operator-=(std::function<bool(Args...)>&& func)
+	{
+		U32 i = 0;
+		for (const std::function<bool(Args...)>& f : invocationList)
+		{
+			if (func == f) { invocationList.Remove(i); return *this; }
+			++i;
+		}
+	
+		return *this;
+	}
 
 	void operator()(Args... args) const
 	{
-		for (const Function<bool(Args...)>& func : invocationList)
+		for (const std::function<bool(Args...)>& func : invocationList)
 		{
 			if (func(args...)) { return; }
 		}
 	}
 
+	operator bool() const
+	{
+		return invocationList.Size();
+	}
+
+	void Destroy()
+	{
+		invocationList.Destroy();
+	}
+
 private:
 
-	Vector<Function<bool(Args...)>> invocationList;
+	Vector<std::function<bool(Args...)>> invocationList;
 };

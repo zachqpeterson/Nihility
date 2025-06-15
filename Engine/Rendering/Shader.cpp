@@ -2,9 +2,10 @@
 
 #include "Renderer.hpp"
 
-bool Shader::Create(const String& path, ShaderStage type)
+bool Shader::Create(const String& path, ShaderStage type, const StringView& entryPoint)
 {
 	this->type = type;
+	this->entryPoint = entryPoint;
 
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	String data = file.ReadAll();

@@ -55,7 +55,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NH_EXPORT;_DEBUG;_CONSOLE;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NH_EXPORT;_DEBUG;_CONSOLE;TRACY_ENABLE;MSDFGEN_PUBLIC=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/box2d/include;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
@@ -74,10 +74,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NH_EXPORT;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NH_EXPORT;NDEBUG;_CONSOLE;MSDFGEN_PUBLIC=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;%VULKAN_SDK%/include;%VULKAN_SDK%/Source;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/box2d/include;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4251</DisableSpecificWarnings>
     </ClCompile>
@@ -100,8 +100,6 @@
     <ClInclude Include="Containers\Vector.hpp" />
     <ClInclude Include="Core\Events.hpp" />
     <ClInclude Include="Core\File.hpp" />
-    <ClInclude Include="Core\Formatting.hpp" />
-    <ClInclude Include="Core\Function.hpp" />
     <ClInclude Include="Core\Logger.hpp" />
     <ClInclude Include="Core\Time.hpp" />
     <ClInclude Include="Defines.hpp" />
@@ -131,11 +129,13 @@
     <ClInclude Include="Rendering\Renderpass.hpp" />
     <ClInclude Include="Rendering\Shader.hpp" />
     <ClInclude Include="Rendering\Swapchain.hpp" />
+    <ClInclude Include="Rendering\UI.hpp" />
     <ClInclude Include="Rendering\VulkanInclude.hpp" />
     <ClInclude Include="Resources\CharacterComponent.hpp" />
     <ClInclude Include="Resources\ColliderComponent.hpp" />
     <ClInclude Include="Resources\Component.hpp" />
     <ClInclude Include="Resources\Entity.hpp" />
+    <ClInclude Include="Resources\Font.hpp" />
     <ClInclude Include="Resources\Material.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
@@ -148,6 +148,24 @@
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Lib\msdfgen\core\contour-combiners.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Contour.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\DistanceMapping.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\edge-coloring.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\edge-segments.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\edge-selectors.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\EdgeHolder.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\equation-solver.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\msdf-error-correction.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\MSDFErrorCorrection.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\msdfgen.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Projection.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\rasterization.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\render-sdf.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Scanline.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\sdf-error-estimation.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\shape-description.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Shape.cpp" />
     <ClCompile Include="..\Lib\tracy\TracyClient.cpp" />
     <ClCompile Include="Core\File.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
@@ -175,9 +193,11 @@
     <ClCompile Include="Rendering\Renderpass.cpp" />
     <ClCompile Include="Rendering\Shader.cpp" />
     <ClCompile Include="Rendering\Swapchain.cpp" />
+    <ClCompile Include="Rendering\UI.cpp" />
     <ClCompile Include="Resources\CharacterComponent.cpp" />
     <ClCompile Include="Resources\ColliderComponent.cpp" />
     <ClCompile Include="Resources\Entity.cpp" />
+    <ClCompile Include="Resources\Font.cpp" />
     <ClCompile Include="Resources\Material.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
     <ClCompile Include="Resources\RigidBodyComponent.cpp" />

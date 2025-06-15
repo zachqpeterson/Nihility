@@ -159,7 +159,7 @@ void Character::Simulate()
 
 		F32 zeta = pogoDampingRatio;
 		F32 hertz = pogoHertz;
-		F32 omega = 2.0f * Pi * hertz;
+		F32 omega = 2.0f * (F32)Pi * hertz;
 		F32 omegaH = omega * dt;
 
 		pogoVelocity = (pogoVelocity - omega * omegaH * (pogoCurrentLength - pogoRestLength)) /

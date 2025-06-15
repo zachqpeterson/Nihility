@@ -3,6 +3,7 @@
 #include "Engine.hpp"
 
 #include "Rendering/Renderer.hpp"
+#include "Rendering/UI.hpp"
 #include "Resources/Resources.hpp"
 #include "Platform/Input.hpp"
 #include "Math/Random.hpp"
@@ -32,12 +33,58 @@ void ComponentsInit()
 	Scene::ShutdownFns += RigidBody::Shutdown;
 }
 
+bool hover(Element& element)
+{
+	element.SetColor({ 1.0f, 1.0f, 1.0f, 0.50f });
+
+	return true;
+}
+
+bool unhover(Element& element)
+{
+	element.SetColor({ 1.0f, 1.0f, 1.0f, 0.25f });
+
+	return true;
+}
+
+bool click(Element& element)
+{
+	if (Input::OnButtonDown(ButtonCode::LeftMouse))
+	{
+		Logger::Debug("Left Click");
+	}
+
+	if (Input::OnButtonDown(ButtonCode::RightMouse))
+	{
+		Logger::Debug("Right Click");
+	}
+
+	return true;
+}
+
 bool Initialize()
 {
 	scene = Scene::CreateScene(CameraType::Orthographic);
 
 	textureAtlas = Resources::LoadTexture("textures/atlas.png");
 	groundTexture = Resources::LoadTexture("textures/missing_texture.png");
+
+	ElementInfo info{};
+	info.area = { 0.25f, 0.25f, 0.75f, 0.75f };
+	info.color = { 1.0f, 1.0f, 1.0f, 0.25f };
+	info.texture = groundTexture;
+
+	ElementRef element = UI::CreateElement(info);
+
+	element->OnHover += hover;
+	element->OnExit += unhover;
+	element->OnClick += click;
+
+	ElementInfo textInfo{};
+	textInfo.area = { 0.0f, 0.5f, 1.0f, 1.0f };
+
+	UI::CreateText({}, "SPHINX OF BLACK QUARTZ,\nJUDGE MY VOW!", 10.0f);
+	UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.", 10.0f);
 
 	scene->LoadScene();
 
@@ -46,15 +93,6 @@ bool Initialize()
 	ComponentRef<RigidBody> rb = RigidBody::AddTo(ground, BodyType::Static);
 	Collider::AddTo(ground, rb);
 	Sprite::AddTo(ground, groundTexture);
-	//ComponentRef<Tilemap> tm = Tilemap::AddTo(ground);
-	//
-	//for (I32 x = 0; x < 61; ++x)
-	//{
-	//	//for (I32 y = 0; y < 60; ++y)
-	//	{
-	//		tm->SetTile(groundTexture, { x, 31 });
-	//	}
-	//}
 
 	EntityRef player = scene->CreateEntity();
 	Sprite::AddTo(player, groundTexture);
