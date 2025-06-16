@@ -56,6 +56,7 @@ bool File::Open(const String& path, I32 mode)
 
 	if (mode & FILE_OPEN_FLUSH_IMMEDIATE) { streamFlag |= FILE_OPEN_FLUSH_IMMEDIATE; }
 
+	streamPtr = streamBuffer;
 	opened = true;
 
 	return true;
@@ -138,7 +139,12 @@ String File::ReadAll()
 
 U64 File::Write(const String& data)
 {
-	return Write(data.Data(), data.Size() + 1);
+	if (!data.Empty())
+	{
+		return Write(data.Data(), data.Size() + 1);
+	}
+
+	return 0;
 }
 
 U64 File::Read(void* buffer, U64 size)

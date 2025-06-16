@@ -54,8 +54,8 @@ bool Resources::Initialize()
 		.borderColor = BorderColor::Clear,
 	};
 
-	whiteTexture = LoadTexture("textures/white.png", pointSampler);
-	placeholderTexture = LoadTexture("textures/missing_texture.png", pointSampler);
+	whiteTexture = LoadTexture("textures/white.nht", pointSampler);
+	placeholderTexture = LoadTexture("textures/missing_texture.nht", pointSampler);
 
 	DescriptorBinding textureBinding{
 		.type = BindingType::CombinedImageSampler,
@@ -126,7 +126,7 @@ void Resources::Update()
 	}
 }
 
-ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& sampler, bool generateMipmaps, bool flipImage)
+ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& sampler, bool generateMipmaps)
 {
 	if (path.Blank()) { Logger::Error("Blank Path Passed To LoadTexture!"); return nullptr; }
 
@@ -134,42 +134,42 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& s
 	Resource<Texture>& texture = *textures.Request(path, handle);
 
 	if (!texture->name.Blank()) { return { texture, handle }; }
-
-	I32 texWidth;
-	I32 texHeight;
-	I32 numberOfChannels;
-
+	
 	File file{ path, FILE_OPEN_RESOURCE_READ };
 	if (file.Opened())
 	{
-		String data = file.ReadAll();
+		texture->name = path.FileName();
 
-		stbi_set_flip_vertically_on_load(flipImage);
-		U8* textureData = stbi_load_from_memory((U8*)data.Data(), (I32)data.Size(), &texWidth, &texHeight, &numberOfChannels, STBI_rgb_alpha);
-
-		if (!textureData)
+		if (!file.ReadString().Compare("NHT"))
 		{
-			Logger::Error("Failed To Load Texture Data!");
-			stbi_image_free(textureData);
+			Logger::Error("Asset '", path, "' Is Not A Nihility Texture!");
+			textures.Remove(handle);
+			file.Close();
 			return nullptr;
 		}
 
-		texture->name = path.FileName();
-		texture->width = texWidth;
-		texture->height = texHeight;
-		texture->depth = 1;
-		texture->size = texWidth * texHeight * 4;
-		texture->mipmapLevels = generateMipmaps ? (U32)Math::Floor(Math::Log2((F32)Math::Max(texWidth, texHeight))) + 1 : 1;
-		texture->format = TextureFormat::R8G8B8A8Srgb;
+		file.Seek(4); //Skip version number for now, there is only one
 
-		if (!Renderer::UploadTexture(texture, textureData, sampler))
+		texture->name = file.ReadString();
+		file.Read(texture->width);
+		file.Read(texture->height);
+		file.Read(texture->depth);
+		file.Read(texture->format);
+		texture->size = texture->width * texture->height * 4; //TODO: use format to get size
+		texture->mipmapLevels = generateMipmaps ? (U32)Math::Floor(Math::Log2((F32)Math::Max(texture->width, texture->height))) + 1 : 1;
+
+		U8* data;
+		Memory::Allocate(&data, texture->size);
+		file.Read(data, texture->size);
+
+		if (!Renderer::UploadTexture(texture, data, sampler))
 		{
-			stbi_image_free(textureData);
+			Memory::Free(&data);
 			Logger::Error("Failed To Upload Texture Data!");
 			return nullptr;
 		}
 
-		stbi_image_free(textureData);
+		Memory::Free(&data);
 
 		ResourceRef<Texture> textureRef = { texture, handle };
 
@@ -207,6 +207,7 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 		file.Seek(4); //Skip version number for now, there is only one
 
 		U32 width, height;
+		font->name = file.ReadString();
 		file.Read(font->ascent);
 		file.Read(font->descent);
 		file.Read(font->lineGap);
@@ -302,12 +303,59 @@ String Resources::UploadResource(const String& path)
 
 String Resources::UploadTexture(const String& path)
 {
+	if (path.Blank()) { Logger::Error("Blank Path Passed To UploadTexture!"); return {}; }
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		String data = file.ReadAll();
+		file.Close();
+
+		I32 texWidth, texHeight;
+		U8* textureData = stbi_load_from_memory((U8*)data.Data(), (I32)data.Size(), &texWidth, &texHeight, nullptr, STBI_rgb_alpha);
+
+		if (!textureData)
+		{
+			Logger::Error("Failed To Load Texture Data!");
+			stbi_image_free(textureData);
+			return {};
+		}
+
+		Texture texture{};
+		texture.name = path.FileName();
+		texture.width = texWidth;
+		texture.height = texHeight;
+		texture.depth = 1;
+		texture.format = TextureFormat::R8G8B8A8Srgb;
+
+		String newPath = path.FileName().Prepend("textures/").Append(".nht");
+		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+
+		file.Write("NHT");
+		file.Write(TextureVersion);
+		file.Write(texture.name);
+		file.Write(texture.width);
+		file.Write(texture.height);
+		file.Write(texture.depth);
+		file.Write(texture.format);
+		file.Write(textureData, texWidth * texHeight * 4);
+
+		file.Close();
+
+		stbi_image_free(textureData);
+
+		return newPath;
+	}
+
+	Logger::Error("Failed To Open File: ", path, '!');
 	return {};
 }
 
 String Resources::UploadFont(const String& path)
 {
 	using namespace msdfgen;
+
+	if (path.Blank()) { Logger::Error("Blank Path Passed To UploadFont!"); return {}; }
 
 	Range pxRange(4);
 	MSDFGeneratorConfig generatorConfig;
@@ -327,6 +375,7 @@ String Resources::UploadFont(const String& path)
 
 		Font* font;
 		Memory::Allocate(&font);
+		font->name = path.FileName();
 
 		const U8* fontData = (const U8*)data.Data();
 
@@ -381,13 +430,12 @@ String Resources::UploadFont(const String& path)
 
 		font->CreateKerning(&info, glyphSize, glyphToCodepoint);
 
-		F32 kern = font->glyphs['v' - 32].kerning['o' - 32];
-
 		String newPath = path.FileName().Prepend("fonts/").Append(".nhf");
 		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
 
 		file.Write("NHF");
 		file.Write(FontVersion);
+		file.Write(font->name);
 		file.Write(font->ascent);
 		file.Write(font->descent);
 		file.Write(font->lineGap);

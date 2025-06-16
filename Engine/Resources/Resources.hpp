@@ -26,7 +26,7 @@ struct aiMesh;
 class NH_API Resources
 {
 public:
-	static ResourceRef<Texture> LoadTexture(const String& path, const Sampler& sampler = {}, bool generateMipmaps = true, bool flipImage = false);
+	static ResourceRef<Texture> LoadTexture(const String& path, const Sampler& sampler = {}, bool generateMipmaps = true);
 	static ResourceRef<Font> LoadFont(const String& path);
 
 	static String UploadResource(const String& path);

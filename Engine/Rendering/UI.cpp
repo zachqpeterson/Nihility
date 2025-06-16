@@ -204,23 +204,23 @@ bool UI::Initialize()
 	uiMaterial.UploadIndices(indices, sizeof(U32) * 6, 0);
 
 	font = Resources::LoadFont("fonts/arial.nhf");
-
+	
 	PipelineLayout textPipelineLayout;
-
+	
 	textPipelineLayout.Create({ Resources::DummyDescriptorSet(), Resources::BindlessTexturesDescriptorSet() });
-
+	
 	textVertexShader.Create("shaders/text.vert.spv", ShaderStage::Vertex);
 	textFragmentShader.Create("shaders/text.frag.spv", ShaderStage::Fragment);
-
+	
 	Vector<VkVertexInputBindingDescription> textInputs = {
 		{ 0, sizeof(TextVertex), VK_VERTEX_INPUT_RATE_VERTEX },
 		{ 1, sizeof(TextInstance), VK_VERTEX_INPUT_RATE_INSTANCE}
 	};
-
+	
 	Vector<VkVertexInputAttributeDescription> textAttributes = {
 		{ 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(TextVertex, position) },
 		{ 1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(TextVertex, texcoord) },
-
+	
 		{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(TextInstance, position) },
 		{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(TextInstance, texcoord) },
 		{ 4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(TextInstance, fgColor) },
@@ -228,24 +228,24 @@ bool UI::Initialize()
 		{ 6, 1, VK_FORMAT_R32_SFLOAT, offsetof(TextInstance, scale) },
 		{ 7, 1, VK_FORMAT_R32_UINT, offsetof(TextInstance, textureIndex) },
 	};
-
+	
 	Pipeline textPipeline;
 	textPipeline.Create(textPipelineLayout, { PolygonMode::Fill, BindPoint::Graphics, false }, { textVertexShader, textFragmentShader }, textInputs, textAttributes);
 	textMaterial.Create(textPipelineLayout, textPipeline, { Resources::DummyDescriptorSet(), Resources::BindlessTexturesDescriptorSet() });
-
+	
 	textWidth = font->glyphSize / 1920.0f;
 	textHeight = font->glyphSize / 1080.0f;
-
+	
 	textPosition = Vector2{ (F32)font->glyphSize, (F32)font->glyphSize } / Vector2{ (F32)font->texture->Width(), (F32)font->texture->Height() };
 	textPadding = Vector2::One / Vector2{ (F32)font->texture->Width(), (F32)font->texture->Height() };
-
+	
 	TextVertex textVertices[4] = {
 		{ { 0.0f,		textHeight },	{ 0.0f,				textPosition.y } },
 		{ { 0.0f,		0.0f },			{ 0.0f,				0.0f } },
 		{ { textWidth,	textHeight },	{ textPosition.x,	textPosition.y } },
 		{ { textWidth,	0.0f },			{ textPosition.x,	0.0f } }
 	};
-
+	
 	textMaterial.UploadVertices(textVertices, sizeof(TextVertex) * 4, 0);
 	textMaterial.UploadIndices(indices, sizeof(U32) * 6, 0);
 
