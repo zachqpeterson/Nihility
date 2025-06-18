@@ -41,7 +41,7 @@ public:
 		for (i = 0; i < length; ++str, ++i)
 		{
 			C8 c = *str;
-			if (c < 97) { c += 32; }
+			if (c > 64 && c < 91) { c += 32; }
 
 			hash = ((hash << 5) + hash) + c;
 		}

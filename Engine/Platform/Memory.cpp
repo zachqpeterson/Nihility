@@ -175,8 +175,6 @@ void Memory::FreeInternal(void** pointer)
 bool Memory::IsAllocated(void* pointer)
 {
 	return pointer != nullptr && pointer >= memory && pointer < memory + DynamicMemorySize;
-
-	new int();
 }
 
 NH_NODISCARD __declspec(allocator) void* operator new(U64 size) { if (size == 0) { return nullptr; } U8* ptr; Memory::Allocate(&ptr, size); return ptr; }

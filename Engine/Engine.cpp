@@ -19,6 +19,7 @@
 #include "Multithreading/Jobs.hpp"
 #include "Rendering/Renderer.hpp"
 #include "Rendering/UI.hpp"
+#include "Audio/Audio.hpp"
 
 #include "tracy/Tracy.hpp"
 
@@ -40,6 +41,7 @@ bool Engine::Initialize(const GameInfo& _info)
 	if (!Settings::Initialize()) { return false; }
 	if (!Platform::Initialize(game.name)) { return false; }
 	if (!Input::Initialize()) { return false; }
+	if (!Audio::Initialize()) { return false; }
 	if (!Renderer::Initialize(game.name, game.version)) { return false; }
 	if (!Resources::Initialize()) { return false; }
 	if (!UI::Initialize()) { return false; }
@@ -66,6 +68,7 @@ void Engine::Shutdown()
 	UI::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();
+	Audio::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
 	Settings::Shutdown();
@@ -87,8 +90,8 @@ void Engine::MainLoop()
 
 		game.update();
 
+		Audio::Update();
 		Physics::Update();
-
 		Renderer::Update();
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();

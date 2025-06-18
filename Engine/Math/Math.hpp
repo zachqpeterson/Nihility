@@ -62,7 +62,7 @@ public:
 
 	template <FloatingPoint Type> static constexpr Type Remap(Type iMin, Type iMax, Type oMin, Type oMax, Type t) noexcept { return Lerp(oMin, oMax, InvLerp(iMin, iMax, t)); } //TODO: Vector for output
 	template <FloatingPoint Type> static constexpr Type MoveTowards(Type a, Type b, Type t) noexcept { return Abs(b - a) <= t ? b : a + Sin(b - a) * t; }
-	template <class Type, FloatingPoint FP> static constexpr Type Lerp(Type a, Type b, FP t) noexcept { return a + (b - a) * t; }
+	template <class Type, FloatingPoint FP> static constexpr Type Lerp(Type a, Type b, FP t) noexcept { return (Type)(a + (b - a) * t); }
 	template <class Type, FloatingPoint FP> static constexpr Type InvLerp(Type a, Type b, FP t) noexcept { return (t - a) / (b - a); }
 	template <class Type, FloatingPoint FP> static constexpr Type Mix(Type a, Type b, FP t) noexcept { return a * (FP(1) - t) + b * t; }
 	template <class Type> static constexpr Type Tween(Type a, Type b) noexcept { return Lerp(a, b, 1.0 - Pow(0.01, Time::DeltaTime())); }

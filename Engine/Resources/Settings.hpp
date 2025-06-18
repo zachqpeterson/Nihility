@@ -83,6 +83,7 @@ private:
 	friend class Platform;
 	friend class Input;
 	friend class Physics;
+	friend class Audio;
 
 	STATIC_CLASS(Settings);
 };

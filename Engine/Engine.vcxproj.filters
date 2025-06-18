@@ -38,6 +38,9 @@
     <Filter Include="Source Files\External\msdfgen">
       <UniqueIdentifier>{bd8e0eac-1e22-467a-989b-ff69d01b5b35}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Audio">
+      <UniqueIdentifier>{8e93acc8-c37b-4189-9d66-7b2fd821bbb8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -207,6 +210,9 @@
     </ClInclude>
     <ClInclude Include="Resources\Font.hpp">
       <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\Audio.hpp">
+      <Filter>Source Files\Audio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -380,6 +386,9 @@
     </ClCompile>
     <ClCompile Include="..\Lib\msdfgen\core\Shape.cpp">
       <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\Audio.cpp">
+      <Filter>Source Files\Audio</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

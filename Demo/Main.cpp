@@ -98,6 +98,11 @@ bool Initialize()
 	Sprite::AddTo(player, groundTexture);
 	Character::AddTo(player);
 
+	ResourceRef<AudioClip> clip = Resources::LoadAudio("audio/Electric Zoo.nha");
+
+	Audio::CreateChannel();
+	Audio::PlayAudioClip(0, clip);
+
 	return true;
 }
 

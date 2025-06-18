@@ -90,6 +90,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Audio\Audio.hpp" />
     <ClInclude Include="Containers\Freelist.hpp" />
     <ClInclude Include="Containers\Hashmap.hpp" />
     <ClInclude Include="Containers\Pair.hpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="..\Lib\msdfgen\core\shape-description.cpp" />
     <ClCompile Include="..\Lib\msdfgen\core\Shape.cpp" />
     <ClCompile Include="..\Lib\tracy\TracyClient.cpp" />
+    <ClCompile Include="Audio\Audio.cpp" />
     <ClCompile Include="Core\File.cpp" />
     <ClCompile Include="Core\Logger.cpp" />
     <ClCompile Include="Core\Time.cpp" />

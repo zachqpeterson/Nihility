@@ -36,7 +36,7 @@ bool Instance::Create(const StringView& name, U32 version)
 		.applicationVersion = version,
 		.pEngineName = "Nihility",
 		.engineVersion = VK_MAKE_VERSION(0, 0, 4),
-		.apiVersion = VK_VERSION_1_3
+		.apiVersion = VK_API_VERSION_1_3
 	};
 
 	VkValidateFR(vkEnumerateInstanceVersion(&applicationInfo.apiVersion));
@@ -95,7 +95,7 @@ bool Instance::Create(const StringView& name, U32 version)
 		.ppEnabledExtensionNames = extensions.Data()
 	};
 
-	VkValidateFR(vkCreateInstance(&instanceInfo, Renderer::allocationCallbacks, &vkInstance));
+	VkValidateFR(vkCreateInstance(&instanceInfo, nullptr, &vkInstance));
 
 #ifdef NH_DEBUG
 	DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vkInstance, "vkDestroyDebugUtilsMessengerEXT");
@@ -112,11 +112,11 @@ bool Instance::Create(const StringView& name, U32 version)
 
 void Instance::Destroy()
 {
-#ifdef NH_DEBUG
+//#ifdef NH_DEBUG
 	if (debugMessenger) { DestroyDebugUtilsMessengerEXT(vkInstance, debugMessenger, Renderer::allocationCallbacks); }
 
 	debugMessenger = nullptr;
-#endif
+//#endif
 
 	if (vkInstance) { vkDestroyInstance(vkInstance, Renderer::allocationCallbacks); }
 

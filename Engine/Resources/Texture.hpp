@@ -2,6 +2,8 @@
 
 #include "Defines.hpp"
 
+#include "Containers/String.hpp"
+
 struct VmaAllocation_T;
 struct VkImage_T;
 struct VkImageView_T;

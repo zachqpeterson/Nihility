@@ -22,7 +22,7 @@
 #include "vma/vk_mem_alloc.h"
 
 VmaAllocator Renderer::vmaAllocator;
-VkAllocationCallbacks* Renderer::allocationCallbacks = VK_NULL_HANDLE;
+VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool Renderer::vkDescriptorPool = VK_NULL_HANDLE;
 VkDescriptorPool Renderer::vkBindlessDescriptorPool = VK_NULL_HANDLE;
 DescriptorSet Renderer::descriptorSet;

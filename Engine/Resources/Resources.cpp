@@ -16,6 +16,20 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
 
+#define STB_VORBIS_IMPLEMENTATION
+#define STB_VORBIS_NO_PUSHDATA_API
+#define STB_VORBIS_NO_STDIO
+#include "stb/stb_vorbis.c"
+
+#define DR_WAV_IMPLEMENTATION
+#include "dr_libs/dr_wav.h"
+
+#define DR_MP3_IMPLEMENTATION
+#include "dr_libs/dr_mp3.h"
+
+#define DR_FLAC_IMPLEMENTATION
+#include "dr_libs/dr_flac.h"
+
 #include "msdfgen/msdfgen.h"
 
 //nht texture
@@ -38,6 +52,7 @@ ResourceRef<Texture> Resources::placeholderTexture;
 
 Hashmap<String, Resource<Texture>> Resources::textures(1024);
 Hashmap<String, Resource<Font>> Resources::fonts(16);
+Hashmap<String, Resource<AudioClip>> Resources::audioClips(1024);
 
 Queue<ResourceRef<Texture>> Resources::bindlessTexturesToUpdate(128);
 
@@ -138,8 +153,6 @@ ResourceRef<Texture> Resources::LoadTexture(const String& path, const Sampler& s
 	File file{ path, FILE_OPEN_RESOURCE_READ };
 	if (file.Opened())
 	{
-		texture->name = path.FileName();
-
 		if (!file.ReadString().Compare("NHT"))
 		{
 			Logger::Error("Asset '", path, "' Is Not A Nihility Texture!");
@@ -194,8 +207,6 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 	File file(path, FILE_OPEN_RESOURCE_READ);
 	if (file.Opened())
 	{
-		font->name = path.FileName();
-
 		if (!file.ReadString().Compare("NHF"))
 		{
 			Logger::Error("Asset '", path, "' Is Not A Nihility Font!");
@@ -258,6 +269,46 @@ ResourceRef<Font> Resources::LoadFont(const String& path)
 	return nullptr;
 }
 
+ResourceRef<AudioClip> Resources::LoadAudio(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Blank Path Passed To LoadAudio!"); return nullptr; }
+
+	U64 handle;
+	Resource<AudioClip>& audioClip = *audioClips.Request(path, handle);
+
+	if (!audioClip->name.Blank()) { return { audioClip, handle }; }
+
+	File file{ path, FILE_OPEN_RESOURCE_READ };
+	if (file.Opened())
+	{
+		if (!file.ReadString().Compare("NHA"))
+		{
+			Logger::Error("Asset '", path, "' Is Not A Nihility Audio Clip!");
+			audioClips.Remove(handle);
+			file.Close();
+			return nullptr;
+		}
+
+		file.Seek(4); //Skip version number for now, there is only one
+
+		audioClip->name = file.ReadString();
+		file.Read(audioClip->format);
+		file.Read(audioClip->size);
+
+		Memory::Allocate(&audioClip->buffer, audioClip->size);
+
+		file.Read(audioClip->buffer, audioClip->size);
+
+		file.Close();
+		return { audioClip, handle };
+	}
+
+	Logger::Error("Failed To Find Or Open File: ", path, "!");
+
+	audioClips.Remove(handle);
+	return nullptr;
+}
+
 String Resources::UploadResource(const String& path)
 {
 	String extension = path.FileExtension();
@@ -271,7 +322,7 @@ String Resources::UploadResource(const String& path)
 
 	switch (Hash::StringCI(extension.Data(), extension.Size()))
 	{
-		//Images
+	//Images
 	case "jpg"_Hash:
 	case "jpeg"_Hash:
 	case "png"_Hash:
@@ -288,10 +339,18 @@ String Resources::UploadResource(const String& path)
 		return Move(UploadTexture(path));
 	} break;
 
-					 //Fonts
+	//Fonts
 	case "ttf"_Hash:
 	case "otf"_Hash: {
 		return Move(UploadFont(path));
+	} break;
+
+	//Audio
+	case "ogg"_Hash:
+	case "wav"_Hash:
+	case "flac"_Hash:
+	case "mp3"_Hash: {
+		return Move(UploadAudio(path));
 	} break;
 
 	default: {
@@ -447,6 +506,115 @@ String Resources::UploadFont(const String& path)
 		file.Write(atlas, rowWidth * columnHeight * 4 * sizeof(F32));
 
 		file.Close();
+
+		return newPath;
+	}
+
+	Logger::Error("Failed To Find Or Open File: ", path, "!");
+	return {};
+}
+
+String Resources::UploadAudio(const String& path)
+{
+	if (path.Blank()) { Logger::Error("Blank Path Passed To UploadAudio!"); return {}; }
+
+	File file(path, FILE_OPEN_RESOURCE_READ);
+	if (file.Opened())
+	{
+		String data = file.ReadAll();
+		file.Close();
+
+		AudioClip clip{};
+		clip.name = path.FileName();
+
+		String extension = path.FileExtension();
+
+		switch (Hash::StringCI(extension.Data(), extension.Size()))
+		{
+		case "wav"_Hash: {
+			drwav wav;
+			drwav_init_memory(&wav, data.Data(), data.Size(), nullptr);
+
+			clip.format.formatTag = wav.fmt.formatTag;
+			clip.format.channelCount = wav.fmt.channels;
+			clip.format.samplesPerSec = wav.fmt.sampleRate;
+			clip.format.avgBytesPerSec = wav.fmt.avgBytesPerSec;
+			clip.format.blockAlign = wav.fmt.blockAlign;
+			clip.format.bitsPerSample = wav.fmt.bitsPerSample;
+			clip.format.extraSize = wav.fmt.extendedSize;
+			clip.size = (U32)(clip.format.channelCount * wav.totalPCMFrameCount * sizeof(I16));
+			Memory::Allocate(&clip.buffer, clip.size);
+
+			drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, (I16*)clip.buffer);
+			drwav_uninit(&wav);
+		} break;
+		case "flac"_Hash: {
+			drflac* flac = drflac_open_memory(data.Data(), data.Size(), nullptr);
+			
+			clip.format.formatTag = 1;
+			clip.format.channelCount = flac->channels;
+			clip.format.samplesPerSec = flac->sampleRate;
+			clip.format.bitsPerSample = flac->bitsPerSample;
+			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
+			clip.format.blockAlign = 4;
+			clip.format.extraSize = 0;
+			clip.size = clip.format.channelCount * flac->totalPCMFrameCount * sizeof(I16);
+			Memory::Allocate(&clip.buffer, clip.size);
+
+			drflac_read_pcm_frames_s16(flac, flac->totalPCMFrameCount, (I16*)clip.buffer);
+			drflac_close(flac);
+		} break;
+		case "mp3"_Hash: {
+			drmp3 mp3;
+			drmp3_init_memory(&mp3, data.Data(), data.Size(), nullptr);
+
+			clip.format.formatTag = 1;
+			clip.format.channelCount = mp3.channels;
+			clip.format.samplesPerSec = mp3.sampleRate;
+			clip.format.bitsPerSample = 16;
+			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
+			clip.format.blockAlign = 4;
+			clip.format.extraSize = 0;
+			clip.size = clip.format.channelCount * mp3.totalPCMFrameCount * sizeof(I16);
+			Memory::Allocate(&clip.buffer, clip.size);
+
+			drmp3_read_pcm_frames_s16(&mp3, mp3.totalPCMFrameCount, (I16*)clip.buffer);
+			drmp3_uninit(&mp3);
+		} break;
+		case "ogg"_Hash: {
+			I32 channelCount;
+			I32 sampleRate;
+			I16* samples;
+			I32 sampleCount = stb_vorbis_decode_memory((U8*)data.Data(), data.Size(), &channelCount, &sampleRate, &samples);
+
+			clip.format.formatTag = 1;
+			clip.format.channelCount = channelCount;
+			clip.format.samplesPerSec = sampleRate;
+			clip.format.bitsPerSample = 16;
+			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
+			clip.format.blockAlign = 4;
+			clip.format.extraSize = 0;
+			clip.size = clip.format.channelCount * sampleCount * sizeof(I16);
+			Memory::Allocate(&clip.buffer, clip.size);
+			memcpy(clip.buffer, samples, clip.size);
+
+			free(samples);
+		} break;
+		}
+
+		String newPath = path.FileName().Prepend("audio/").Append(".nha");
+		file.Open(newPath, FILE_OPEN_RESOURCE_WRITE);
+
+		file.Write("NHA");
+		file.Write(AudioVersion);
+		file.Write(clip.name);
+		file.Write(clip.format);
+		file.Write(clip.size);
+		file.Write(clip.buffer, clip.size);
+
+		file.Close();
+
+		Memory::Free(&clip.buffer);
 
 		return newPath;
 	}

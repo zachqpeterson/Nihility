@@ -6,6 +6,7 @@
 #include "Material.hpp"
 #include "Font.hpp"
 
+#include "Audio/Audio.hpp"
 #include "Rendering/DescriptorSet.hpp"
 #include "Rendering/PipelineLayout.hpp"
 #include "Rendering/Shader.hpp"
@@ -28,10 +29,12 @@ class NH_API Resources
 public:
 	static ResourceRef<Texture> LoadTexture(const String& path, const Sampler& sampler = {}, bool generateMipmaps = true);
 	static ResourceRef<Font> LoadFont(const String& path);
+	static ResourceRef<AudioClip> LoadAudio(const String& path);
 
 	static String UploadResource(const String& path);
 	static String UploadTexture(const String& path);
 	static String UploadFont(const String& path);
+	static String UploadAudio(const String& path);
 
 	static ResourceRef<Texture>& WhiteTexture();
 	static ResourceRef<Texture>& PlaceholderTexture();
@@ -55,6 +58,7 @@ private:
 
 	static Hashmap<String, Resource<Texture>> textures;
 	static Hashmap<String, Resource<Font>> fonts;
+	static Hashmap<String, Resource<AudioClip>> audioClips;
 
 	static Queue<ResourceRef<Texture>> bindlessTexturesToUpdate;
 
