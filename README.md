@@ -11,4 +11,6 @@ msdfgen - https://github.com/Chlumsky/msdfgen, Font MSDF generation
 
 stb - https://github.com/nothings/stb, Texture, audio, and font loading
 
+dr_libs - https://github.com/mackron/dr_libs, Audio loading
+
 tracy - https://github.com/wolfpld/tracy, Profiling
