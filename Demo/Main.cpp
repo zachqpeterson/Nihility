@@ -99,9 +99,15 @@ bool Initialize()
 	Character::AddTo(player);
 
 	ResourceRef<AudioClip> clip = Resources::LoadAudio("audio/Electric Zoo.nha");
-
-	Audio::CreateChannel();
-	Audio::PlayAudioClip(0, clip);
+	
+	U32 effectChain = Audio::CreateEffectChain();
+	//Audio::AddReverb(effectChain);
+	//Audio::AddEcho(effectChain);
+	//Audio::AddLimiter(effectChain);
+	//Audio::AddEqualizer(effectChain);
+	U32 channel = Audio::CreateChannel(effectChain);
+	
+	Audio::PlayAudioClip(channel, clip);
 
 	return true;
 }

@@ -10,9 +10,9 @@ struct IXAudio2;
 struct IXAudio2SourceVoice;
 struct IXAudio2SubmixVoice;
 struct IXAudio2MasteringVoice;
-struct XAUDIO2_EFFECT_DESCRIPTOR;
+struct IUnknown;
 
-enum NH_API AudioEffect
+enum class NH_API AudioEffect
 {
 	Reverb = 0x01,
 	Echo = 0x02,
@@ -47,7 +47,7 @@ struct NH_API AudioParameters
 	F32 rightPan = 1.0f;
 	bool looping = false;
 
-	//TODO: effect chain
+	U32 effectChain = U32_MAX;
 };
 
 struct AudioPlayback
@@ -58,10 +58,16 @@ struct AudioPlayback
 	ResourceRef<AudioClip> clip;
 };
 
+struct Effect
+{
+	IUnknown* pEffect;
+	int InitialState;
+	U32 OutputChannels;
+};
+
 struct EffectChain
 {
-	U32 effectCount = 0;
-	XAUDIO2_EFFECT_DESCRIPTOR* effectDescriptors = nullptr;
+	Vector<Effect> effectDescriptors;
 };
 
 struct AudioChannel
@@ -74,7 +80,14 @@ class NH_API Audio
 {
 public:
 	static U32 CreateEffectChain();
-	static U32 CreateChannel(const EffectChain& effectChain = {});
+	static void AddReverb(U32 index, F32 diffusion = 0.9f, F32 roomSize = 0.6f);
+	static void AddEcho(U32 index, F32 wetDryMix = 0.5f, F32 feedback = 0.5f, F32 delay = 500.0f);
+	static void AddLimiter(U32 index, U32 release = 6, U32 loudness = 1000);
+	static void AddEqualizer(U32 index, F32 frequencyCenter0 = 100.0f, F32 gain0 = 1.0f, F32 bandwidth0 = 1.0f, 
+		F32 frequencyCenter1 = 800.0f, F32 gain1 = 1.0f, F32 bandwidth1 = 1.0f, 
+		F32 frequencyCenter2 = 2000.0f, F32 gain2 = 1.0f, F32 bandwidth2 = 1.0f,
+		F32 frequencyCenter3 = 10000.0f, F32 gain3 = 1.0f, F32 bandwidth3 = 1.0f);
+	static U32 CreateChannel(U32 effectChainIndex = U32_MAX);
 	static U32 PlayAudioClip(U32 channelIndex, const ResourceRef<AudioClip>& clip, const AudioParameters& parameters = {});
 	static void EndAudioClip(U32 index);
 
@@ -103,6 +116,7 @@ private:
 	static bool unfocusedAudio;
 	static F32 masterVolume;
 
+	static Vector<EffectChain> effectChains;
 	static Vector<AudioChannel> channels;
 	static AudioPlayback* audioPlaybacks;
 	static Freelist freePlaybacks;

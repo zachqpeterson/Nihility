@@ -845,7 +845,7 @@ inline void StringBase<C>::Reserve(U64 size)
 {
 	if (size + 1 > capacity)
 	{
-		capacity = Memory::Reallocate(&string, size);
+		capacity = Memory::Reallocate(&string, size + 1);
 	}
 }
 

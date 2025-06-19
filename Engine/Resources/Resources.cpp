@@ -535,50 +535,50 @@ String Resources::UploadAudio(const String& path)
 			drwav wav;
 			drwav_init_memory(&wav, data.Data(), data.Size(), nullptr);
 
-			clip.format.formatTag = wav.fmt.formatTag;
+			clip.format.formatTag = 3;
 			clip.format.channelCount = wav.fmt.channels;
 			clip.format.samplesPerSec = wav.fmt.sampleRate;
-			clip.format.avgBytesPerSec = wav.fmt.avgBytesPerSec;
-			clip.format.blockAlign = wav.fmt.blockAlign;
-			clip.format.bitsPerSample = wav.fmt.bitsPerSample;
-			clip.format.extraSize = wav.fmt.extendedSize;
-			clip.size = (U32)(clip.format.channelCount * wav.totalPCMFrameCount * sizeof(I16));
+			clip.format.bitsPerSample = 32;
+			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
+			clip.format.blockAlign = (clip.format.channelCount * clip.format.bitsPerSample) >> 3;
+			clip.format.extraSize = 0;
+			clip.size = (U32)(clip.format.channelCount * wav.totalPCMFrameCount * sizeof(F32));
 			Memory::Allocate(&clip.buffer, clip.size);
 
-			drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, (I16*)clip.buffer);
+			drwav_read_pcm_frames_f32(&wav, wav.totalPCMFrameCount, (F32*)clip.buffer);
 			drwav_uninit(&wav);
 		} break;
 		case "flac"_Hash: {
 			drflac* flac = drflac_open_memory(data.Data(), data.Size(), nullptr);
 			
-			clip.format.formatTag = 1;
+			clip.format.formatTag = 3;
 			clip.format.channelCount = flac->channels;
 			clip.format.samplesPerSec = flac->sampleRate;
-			clip.format.bitsPerSample = flac->bitsPerSample;
+			clip.format.bitsPerSample = 32;
 			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
-			clip.format.blockAlign = 4;
+			clip.format.blockAlign = (clip.format.channelCount * clip.format.bitsPerSample) >> 3;
 			clip.format.extraSize = 0;
-			clip.size = clip.format.channelCount * flac->totalPCMFrameCount * sizeof(I16);
+			clip.size = clip.format.channelCount * flac->totalPCMFrameCount * sizeof(F32);
 			Memory::Allocate(&clip.buffer, clip.size);
 
-			drflac_read_pcm_frames_s16(flac, flac->totalPCMFrameCount, (I16*)clip.buffer);
+			drflac_read_pcm_frames_f32(flac, flac->totalPCMFrameCount, (F32*)clip.buffer);
 			drflac_close(flac);
 		} break;
 		case "mp3"_Hash: {
 			drmp3 mp3;
 			drmp3_init_memory(&mp3, data.Data(), data.Size(), nullptr);
 
-			clip.format.formatTag = 1;
+			clip.format.formatTag = 3;
 			clip.format.channelCount = mp3.channels;
 			clip.format.samplesPerSec = mp3.sampleRate;
-			clip.format.bitsPerSample = 16;
+			clip.format.bitsPerSample = 32;
 			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
-			clip.format.blockAlign = 4;
+			clip.format.blockAlign = (clip.format.channelCount * clip.format.bitsPerSample) >> 3;
 			clip.format.extraSize = 0;
-			clip.size = clip.format.channelCount * mp3.totalPCMFrameCount * sizeof(I16);
+			clip.size = clip.format.channelCount * mp3.totalPCMFrameCount * sizeof(F32);
 			Memory::Allocate(&clip.buffer, clip.size);
 
-			drmp3_read_pcm_frames_s16(&mp3, mp3.totalPCMFrameCount, (I16*)clip.buffer);
+			drmp3_read_pcm_frames_f32(&mp3, mp3.totalPCMFrameCount, (F32*)clip.buffer);
 			drmp3_uninit(&mp3);
 		} break;
 		case "ogg"_Hash: {
@@ -592,7 +592,7 @@ String Resources::UploadAudio(const String& path)
 			clip.format.samplesPerSec = sampleRate;
 			clip.format.bitsPerSample = 16;
 			clip.format.avgBytesPerSec = clip.format.samplesPerSec * clip.format.channelCount * (clip.format.bitsPerSample >> 3);
-			clip.format.blockAlign = 4;
+			clip.format.blockAlign = (clip.format.channelCount * clip.format.bitsPerSample) >> 3;
 			clip.format.extraSize = 0;
 			clip.size = clip.format.channelCount * sampleCount * sizeof(I16);
 			Memory::Allocate(&clip.buffer, clip.size);
@@ -615,7 +615,6 @@ String Resources::UploadAudio(const String& path)
 		file.Close();
 
 		Memory::Free(&clip.buffer);
-
 		return newPath;
 	}
 
