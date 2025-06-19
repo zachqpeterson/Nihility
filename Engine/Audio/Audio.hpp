@@ -94,18 +94,16 @@ public:
 	static void ChangeAudioVolume(U32 index, F32 volume);
 	static F32 GetAudioVolume(U32 index);
 	static void ChangeAudioPanning(U32 index, F32 leftPan, F32 rightPan);
-	static void ChangeAudioEffectChain(U32 index, U32 chainIndex);
-	static U32 GetAudioEffectChain(U32 index);
 
 	static void ChangeChannelVolume(U32 channelIndex, F32 volume);
 	static F32 GetChannelVolume(U32 channelIndex);
-	static void ChangeChannelEffectChain(U32 channelIndex, U32 chainIndex);
-	static U32 GetChannelEffectChain(U32 channelIndex);
+
+	static F32 GetMasterVolume();
+	static void SetMasterVolume(F32 volume);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
-	static void Update();
 
 	static bool Focus(bool value);
 

@@ -90,7 +90,6 @@ void Engine::MainLoop()
 
 		game.update();
 
-		Audio::Update();
 		Physics::Update();
 		Renderer::Update();
 

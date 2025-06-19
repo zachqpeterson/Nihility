@@ -77,11 +77,6 @@ void Audio::Shutdown()
 	Memory::Free(&audioPlaybacks);
 }
 
-void Audio::Update()
-{
-
-}
-
 bool Audio::Focus(bool value)
 {
 	if (masterVoice && !unfocusedAudio)
@@ -281,4 +276,59 @@ void Audio::EndAudioClip(U32 index)
 
 		freePlaybacks.Release(index);
 	}
+}
+
+void Audio::ChangeAudioVolume(U32 index, F32 volume)
+{
+	AudioPlayback& audio = audioPlaybacks[index];
+	AudioParameters& parameters = audio.parameters;
+
+	parameters.volume = volume;
+
+	F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
+
+	audio.voice->SetChannelVolumes(2, volumes);
+}
+
+F32 Audio::GetAudioVolume(U32 index)
+{
+	AudioPlayback& audio = audioPlaybacks[index];
+
+	return audio.parameters.volume;
+}
+
+void Audio::ChangeAudioPanning(U32 index, F32 leftPan, F32 rightPan)
+{
+	AudioPlayback& audio = audioPlaybacks[index];
+	AudioParameters& parameters = audio.parameters;
+
+	parameters.leftPan = leftPan;
+	parameters.rightPan = rightPan;
+
+	F32 volumes[]{ parameters.leftPan * parameters.volume, parameters.rightPan * parameters.volume };
+
+	audio.voice->SetChannelVolumes(2, volumes);
+}
+
+void Audio::ChangeChannelVolume(U32 index, F32 volume)
+{
+	channels[index].volume = volume;
+	channels[index].mixer->SetVolume(volume);
+}
+
+F32 Audio::GetChannelVolume(U32 index)
+{
+	return channels[index].volume;
+}
+
+F32 Audio::GetMasterVolume()
+{
+	return masterVolume;
+}
+
+void Audio::SetMasterVolume(F32 volume)
+{
+	masterVolume = volume;
+	Settings::SetSetting(Settings::MasterVolume, &masterVolume, sizeof(F32), SettingType::NUM32);
+	masterVoice->SetVolume(volume);
 }
