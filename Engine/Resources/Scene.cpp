@@ -74,6 +74,8 @@ EntityRef Scene::CreateEntity(Vector2 position, Vector2 scale, Quaternion2 rotat
 	entity.position = position;
 	entity.scale = scale;
 	entity.rotation = rotation;
+	entity.prevPosition = position;
+	entity.prevRotation = rotation;
 
 	EntityRef id{};
 	id.entityId = (U32)entities.Size();

@@ -84,7 +84,7 @@ bool Initialize()
 	textInfo.area = { 0.0f, 0.5f, 1.0f, 1.0f };
 	
 	UI::CreateText({}, "SPHINX OF BLACK QUARTZ,\nJUDGE MY VOW!", 10.0f);
-	UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.", 10.0f);
+	UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.\n!@#$%^&*()[]{}\\|;:'\",<.>/?`~\n1234567890", 10.0f);
 	
 	scene->LoadScene();
 	

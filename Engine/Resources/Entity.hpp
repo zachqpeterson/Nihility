@@ -11,6 +11,9 @@ struct NH_API Entity
 	Vector2 position;
 	Vector2 scale;
 	Quaternion2 rotation;
+
+	Vector2 prevPosition;
+	Quaternion2 prevRotation;
 };
 
 struct Scene;

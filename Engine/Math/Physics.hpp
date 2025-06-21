@@ -102,11 +102,14 @@ private:
 
 	static F32 CastCallback(b2ShapeId shapeId, b2Vec2 point, b2Vec2 normal, float fraction, void* context);
 
-	static F64 timeStep;
+	static bool updated;
+
+	static F32 interpolation;
+	static constexpr F32 Timestep = 0.033333335f;
 
 	STATIC_CLASS(Physics);
 
 	friend class Engine;
-	friend class RigidBodyComponent;
+	friend class RigidBody;
 	friend struct Scene;
 };

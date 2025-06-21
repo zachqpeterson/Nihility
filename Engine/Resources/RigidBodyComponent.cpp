@@ -66,16 +66,40 @@ bool RigidBody::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
 
 	Vector<RigidBody>& instances = components[sceneId];
 
-	for (RigidBody& rigidBody : instances)
+	if (Physics::updated)
 	{
-		Entity& entity = entities[rigidBody.entityIndex];
+		for (RigidBody& rigidBody : instances)
+		{
+			Entity& entity = entities[rigidBody.entityIndex];
 
-		b2Transform transform = b2Body_GetTransform(TypePun<b2BodyId>(rigidBody.bodyId));
+			b2Transform transform = b2Body_GetTransform(TypePun<b2BodyId>(rigidBody.bodyId));
 
-		entity.position.x = transform.p.x;
-		entity.position.y = transform.p.y;
-		entity.rotation.x = transform.q.s;
-		entity.rotation.y = transform.q.c;
+			entity.prevPosition = entity.position;
+			entity.prevRotation = entity.rotation;
+
+			Vector2 targetPosition = { transform.p.x, transform.p.y };
+			Quaternion2 targetRotation = { transform.q.s, transform.q.c };
+
+			entity.position = Math::Lerp(entity.prevPosition, targetPosition, Physics::interpolation);
+			entity.rotation = entity.prevRotation.Slerp(targetRotation, Physics::interpolation);
+		}
+
+		Physics::updated = false;
+	}
+	else
+	{
+		for (RigidBody& rigidBody : instances)
+		{
+			Entity& entity = entities[rigidBody.entityIndex];
+
+			b2Transform transform = b2Body_GetTransform(TypePun<b2BodyId>(rigidBody.bodyId));
+
+			Vector2 targetPosition = { transform.p.x, transform.p.y };
+			Quaternion2 targetRotation = { transform.q.s, transform.q.c };
+
+			entity.position = Math::Lerp(entity.prevPosition, targetPosition, Physics::interpolation);
+			entity.rotation = entity.prevRotation.Slerp(targetRotation, Physics::interpolation);
+		}
 	}
 
 	return false;

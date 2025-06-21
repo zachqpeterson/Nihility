@@ -11,7 +11,8 @@
 
 b2WorldId worldId;
 
-F64 Physics::timeStep;
+F32 Physics::interpolation = 0.0f;
+bool Physics::updated = true;
 
 void* AllocFcn(U32 size, I32 alignment)
 {
@@ -39,8 +40,6 @@ bool Physics::Initialize()
 	b2WorldDef worldDef = b2DefaultWorldDef();
 	worldId = b2CreateWorld(&worldDef);
 
-	timeStep = Settings::targetFrametime;
-
 	return true;
 }
 
@@ -52,7 +51,8 @@ void Physics::Shutdown()
 void Physics::Update()
 {
 	ZoneScopedN("Physics");
-	b2World_Step(worldId, (F32)timeStep, 4);
+	b2World_Step(worldId, Timestep, 4);
+	updated = true;
 }
 
 CastResult Physics::ShapeCast(ShapeProxy proxy, Vector2 translation, QueryFilter filter)
