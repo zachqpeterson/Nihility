@@ -14,6 +14,16 @@ enum class NH_API PolygonMode
 	Point = 2
 };
 
+enum class NH_API TopologyMode
+{
+	PointList = 0,
+	LineList = 1,
+	LineStrip = 2,
+	TriangleList = 3,
+	TriangleStrip = 4,
+	TriangleFan = 5
+};
+
 enum class NH_API BindPoint
 {
 	Graphics = 0,
@@ -24,6 +34,7 @@ enum class NH_API BindPoint
 struct NH_API PipelineSettings
 {
 	PolygonMode polygonMode = PolygonMode::Fill;
+	TopologyMode topologyMode = TopologyMode::TriangleList;
 	BindPoint bindPoint = BindPoint::Graphics;
 	bool useDepth = true;
 };

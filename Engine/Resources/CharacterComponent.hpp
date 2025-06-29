@@ -14,21 +14,21 @@ class NH_API Character
 public:
 	Vector2 capsuleCenter1 = { 0.0f, -0.5f };
 	Vector2 capsuleCenter2 = { 0.0f, 0.5f };
-	F32 capsuleRadius = 0.3f;
+	F32 capsuleRadius = 1.0f;
 
 	Vector2 position = Vector2::Zero;
 	Vector2 velocity = Vector2::Zero;
-	F32 jumpForce = 15.0f;
+	F32 jumpForce = 37.0f;
 	F32 minSpeed = 0.1f;
 	F32 maxSpeed = 10.0f;
 	F32 stopSpeed = 3.0f;
 	F32 throttle = 0.0f;
 	F32 acceleration = 20.0f;
 	F32 friction = 8.0f;
-	F32 gravity = 30.0f;
+	F32 gravity = 50.0f;
 	F32 airSteering = 0.2f;
 	F32 pogoHertz = 10.0f;
-	F32 pogoDamping = 0.8f;
+	F32 pogoDamping = 0.0f;
 	F32 pogoVelocity = 0.0f;
 	F32 pogoDampingRatio = 0.8f;
 	I32 totalIterations = 0;

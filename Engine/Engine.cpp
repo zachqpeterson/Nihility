@@ -23,17 +23,10 @@
 
 #include "tracy/Tracy.hpp"
 
-#include <crtdbg.h>
-
 GameInfo Engine::game;
 
 bool Engine::Initialize(const GameInfo& _info)
 {
-#ifdef NH_DEBUG
-	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG | _CRTDBG_MODE_FILE);
-	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
-#endif
-
 	game = _info;
 
 	if (!Logger::Initialize()) { return false; }

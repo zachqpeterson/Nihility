@@ -85,3 +85,8 @@ EntityRef Scene::CreateEntity(Vector2 position, Vector2 scale, Quaternion2 rotat
 
 	return id;
 }
+
+const Camera& Scene::GetCamera() const
+{
+	return camera;
+}

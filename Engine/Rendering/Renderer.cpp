@@ -2,6 +2,7 @@
 
 #include "CommandBufferRing.hpp"
 #include "UI.hpp"
+#include "LineRenderer.hpp"
 
 #include "Platform/Platform.hpp"
 #include "Core/Time.hpp"
@@ -65,6 +66,10 @@ bool Renderer::Initialize(const StringView& name, U32 version)
 	if (!CreateSynchronization()) { Logger::Fatal("Failed To Create Synchronization Objects!"); return false; }
 	if (!CreateStagingBuffers()) { Logger::Fatal("Failed To Create Staging Buffers!"); return false; }
 
+#ifdef NH_DEBUG
+	if (!LineRenderer::Initialize()) { Logger::Fatal("Failed To Create Line Renderer!"); return false; }
+#endif
+
 	return true;
 }
 
@@ -73,6 +78,10 @@ void Renderer::Shutdown()
 	Logger::Trace("Cleaning Up Renderer...");
 
 	vkDeviceWaitIdle(device);
+
+#ifdef NH_DEBUG
+	LineRenderer::Shutdown();
+#endif
 
 	for (U32 i = 0; i < swapchain.imageCount; ++i)
 	{
@@ -126,6 +135,9 @@ void Renderer::Update()
 
 	Resources::Update();
 	if (scene) { scene->Update(); }
+#ifdef NH_DEBUG
+	LineRenderer::Update();
+#endif
 	UI::Update();
 
 	SubmitTransfer();
@@ -138,6 +150,10 @@ void Renderer::Update()
 	commandBuffer.BeginRenderpass(renderpass, frameBuffer, swapchain);
 
 	if (scene) { scene->Render(commandBuffer); }
+
+#ifdef NH_DEBUG
+	LineRenderer::Render(commandBuffer);
+#endif
 
 	UI::Render(commandBuffer);
 
@@ -319,9 +335,9 @@ U32 Renderer::AbsoluteFrame()
 	return absoluteFrame;
 }
 
-Vector2Int Renderer::RenderSize()
+Vector4Int Renderer::RenderSize()
 {
-	return { (I32)swapchain.width, (I32)swapchain.height };
+	return { 0, 0, (I32)swapchain.width, (I32)swapchain.height };
 }
 
 const GlobalPushConstant* Renderer::GetGlobalPushConstant()

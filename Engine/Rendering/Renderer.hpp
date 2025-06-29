@@ -36,7 +36,7 @@ public:
 	static U32 PreviousFrame();
 	static U32 AbsoluteFrame();
 
-	static Vector2Int RenderSize();
+	static Vector4Int RenderSize();
 
 	static const GlobalPushConstant* GetGlobalPushConstant();
 	static VkSemaphore_T* RenderFinished();

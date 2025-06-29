@@ -13,7 +13,7 @@ bool Camera::Create(CameraType type)
 		farPlane = 100.0f;
 		viewportWidth = 120.0f;
 		viewportHeight = 67.5f;
-		zoom = 0.0f;
+		zoom = 1.0f;
 	} break;
 	case CameraType::Perspective: {
 		nearPlane = 0.01f;
@@ -143,6 +143,14 @@ void Camera::SetCameraType(CameraType type)
 void Camera::Follow(const Vector3& position)
 {
 	this->position = Math::Tween(this->position, position);
+
+	this->position *= 300.0f;
+
+	this->position.x = Math::Round(this->position.x);
+	this->position.y = Math::Round(this->position.y);
+	this->position.z = Math::Round(this->position.z);
+
+	this->position /= 300.0f;
 }
 
 void Camera::SetPosition(const Vector3& position)

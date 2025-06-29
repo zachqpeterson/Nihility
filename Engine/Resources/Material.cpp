@@ -49,8 +49,8 @@ void Material::Destroy()
 
 void Material::Bind(CommandBuffer commandBuffer) const
 {
-	if ((vertexUsage == VertexUsage::VerticesAndInstances || vertexUsage == VertexUsage::Instances) && 
-		instanceBuffers[Renderer::frameIndex].Offset() == U64_MAX) { return; }
+	if ((vertexUsage == VertexUsage::VerticesAndInstances || vertexUsage == VertexUsage::Instances) && instanceBuffers[Renderer::frameIndex].Offset() == U64_MAX) { return; }
+	if ((vertexUsage == VertexUsage::VerticesAndInstances || vertexUsage == VertexUsage::Vertices) && vertexBuffer.Offset() == U64_MAX) { return; }
 
 	commandBuffer.BindPipeline(pipeline);
 	if (sets.Size()) { commandBuffer.BindDescriptorSets(BindPoint::Graphics, pipelineLayout, 0, (U32)sets.Size(), sets.Data()); }
@@ -92,22 +92,52 @@ void Material::Bind(CommandBuffer commandBuffer) const
 	}
 }
 
-void Material::UploadVertices(void* data, U32 size, U32 offset)
+void Material::UploadVertices(const void* data, U32 size, U32 offset)
 {
 	if (pipeline.VertexSize()) { vertexBuffer.UploadVertexData(data, size, offset); }
 	else { Logger::Error("This Material Does Not Use Vertices!"); }
 }
 
-void Material::UploadInstances(void* data, U32 size, U32 offset)
+void Material::UploadInstances(const void* data, U32 size, U32 offset)
 {
 	if (pipeline.InstanceSize()) { instanceBuffers[Renderer::frameIndex].UploadVertexData(data, size, offset); }
 	else { Logger::Error("This Material Does Not Use Instances!"); }
 }
 
-void Material::UploadIndices(void* data, U32 size, U32 offset)
+void Material::UploadInstancesAll(const void* data, U32 size, U32 offset)
+{
+	if (pipeline.InstanceSize())
+	{
+		for (U32 i = 0; i < MaxSwapchainImages; ++i)
+		{
+			instanceBuffers[i].UploadVertexData(data, size, offset);
+		}
+	}
+	else { Logger::Error("This Material Does Not Use Instances!"); }
+}
+
+void Material::UploadIndices(const void* data, U32 size, U32 offset)
 {
 	if (pipeline.VertexSize()) { indexBuffer.UploadIndexData(data, size, offset); }
 	else { Logger::Error("This Material Does Not Use Indices!"); }
+}
+
+void Material::ClearVertices()
+{
+	vertexBuffer.Clear();
+}
+
+void Material::ClearInstances()
+{
+	for (U32 i = 0; i < MaxSwapchainImages; ++i)
+	{
+		instanceBuffers[i].Clear();
+	}
+}
+
+void Material::ClearIndices()
+{
+	indexBuffer.Clear();
 }
 
 const PipelineLayout& Material::GetPipelineLayout() const

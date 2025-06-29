@@ -230,7 +230,7 @@ bool UI::Initialize()
 	};
 	
 	Pipeline textPipeline;
-	textPipeline.Create(textPipelineLayout, { PolygonMode::Fill, BindPoint::Graphics, false }, { textVertexShader, textFragmentShader }, textInputs, textAttributes);
+	textPipeline.Create(textPipelineLayout, { PolygonMode::Fill, TopologyMode::TriangleList, BindPoint::Graphics, false }, { textVertexShader, textFragmentShader }, textInputs, textAttributes);
 	textMaterial.Create(textPipelineLayout, textPipeline, { Resources::DummyDescriptorSet(), Resources::BindlessTexturesDescriptorSet() });
 	
 	textWidth = font->glyphSize / 1920.0f;

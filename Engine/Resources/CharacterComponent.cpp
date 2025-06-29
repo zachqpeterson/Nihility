@@ -49,6 +49,7 @@ ComponentRef<Character> Character::AddTo(const EntityRef& entity)
 
 	Character character{};
 	character.entityIndex = entity.EntityId();
+	character.position = entity->position;
 
 	instances.Push(character);
 
@@ -136,7 +137,7 @@ void Character::Simulate()
 
 	velocity.y -= gravity * dt;
 
-	F32 pogoRestLength = 3.0f * capsuleRadius;
+	F32 pogoRestLength = 0.5f * capsuleRadius;
 	F32 rayLength = pogoRestLength + capsuleRadius;
 	Vector2 origin = capsuleCenter1 + position;
 	F32 circleRadius = 0.5f * capsuleRadius;

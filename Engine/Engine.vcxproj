@@ -123,6 +123,7 @@
     <ClInclude Include="Rendering\Device.hpp" />
     <ClInclude Include="Rendering\FrameBuffer.hpp" />
     <ClInclude Include="Rendering\Instance.hpp" />
+    <ClInclude Include="Rendering\LineRenderer.hpp" />
     <ClInclude Include="Rendering\PhysicalDevice.hpp" />
     <ClInclude Include="Rendering\Pipeline.hpp" />
     <ClInclude Include="Rendering\PipelineLayout.hpp" />
@@ -145,6 +146,7 @@
     <ClInclude Include="Resources\Settings.hpp" />
     <ClInclude Include="Resources\SpriteComponent.hpp" />
     <ClInclude Include="Resources\Texture.hpp" />
+    <ClInclude Include="Resources\TilemapColliderComponent.hpp" />
     <ClInclude Include="Resources\TilemapComponent.hpp" />
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
@@ -188,6 +190,7 @@
     <ClCompile Include="Rendering\Device.cpp" />
     <ClCompile Include="Rendering\FrameBuffer.cpp" />
     <ClCompile Include="Rendering\Instance.cpp" />
+    <ClCompile Include="Rendering\LineRenderer.cpp" />
     <ClCompile Include="Rendering\PhysicalDevice.cpp" />
     <ClCompile Include="Rendering\Pipeline.cpp" />
     <ClCompile Include="Rendering\PipelineLayout.cpp" />
@@ -206,6 +209,7 @@
     <ClCompile Include="Resources\Scene.cpp" />
     <ClCompile Include="Resources\SpriteComponent.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />
+    <ClCompile Include="Resources\TilemapColliderComponent.cpp" />
     <ClCompile Include="Resources\TilemapComponent.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

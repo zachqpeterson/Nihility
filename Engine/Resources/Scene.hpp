@@ -57,6 +57,8 @@ public:
 
 	EntityRef CreateEntity(Vector2 position = Vector2::Zero, Vector2 scale = Vector2::One, Quaternion2 rotation = Quaternion2::Identity);
 
+	const Camera& GetCamera() const;
+
 	static Event<U32, Camera&, Vector<Entity>&> UpdateFns;
 	static Event<U32, CommandBuffer> RenderFns;
 	static Event<> InitializeFns;

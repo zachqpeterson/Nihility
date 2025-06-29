@@ -4,12 +4,16 @@
 
 #include "Rendering/Renderer.hpp"
 
-TilemapData Tilemap::tilemapData;
 DescriptorSet Tilemap::tilemapDescriptor;
 Material Tilemap::tilemapMaterial;
 Shader Tilemap::tilemapVertexShader;
 Shader Tilemap::tilemapFragmentShader;
+Buffer Tilemap::tilemapData;
+Buffer Tilemap::tilesData;
 Vector<Vector<Tilemap>> Tilemap::components;
+Vector<TilemapInstance> Tilemap::instanceData;
+Vector<TilemapData> Tilemap::tilemapDatas;
+U32 Tilemap::nextOffset = 0;
 bool Tilemap::initialized = false;
 
 bool Tilemap::Initialize()
@@ -18,36 +22,42 @@ bool Tilemap::Initialize()
 	{
 		initialized = true;
 
+		DescriptorBinding tilemapBinding{
+			.type = BindingType::StorageBuffer,
+			.stages = (U32)ShaderStage::Fragment,
+			.count = 1
+		};
+
 		DescriptorBinding tilesBinding{
 			.type = BindingType::StorageBuffer,
 			.stages = (U32)ShaderStage::Fragment,
 			.count = 1
 		};
 
-		tilemapDescriptor.Create({ tilesBinding }, 0, false);
-
-		VkPushConstantRange pushConstant{};
-		pushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		pushConstant.offset = 0;
-		pushConstant.size = sizeof(TilemapData);
+		tilemapDescriptor.Create({ tilemapBinding, tilesBinding }, 0, false);
 
 		PipelineLayout tilemapPipelineLayout;
 
-		tilemapPipelineLayout.Create({ tilemapDescriptor, Resources::BindlessTexturesDescriptorSet() }, { pushConstant });
+		tilemapPipelineLayout.Create({ tilemapDescriptor, Resources::BindlessTexturesDescriptorSet() });
 
 		tilemapVertexShader.Create("shaders/tilemap.vert.spv", ShaderStage::Vertex);
 		tilemapFragmentShader.Create("shaders/tilemap.frag.spv", ShaderStage::Fragment);
 
+		Vector<VkVertexInputBindingDescription> inputs = {
+			{ 0, sizeof(TilemapInstance), VK_VERTEX_INPUT_RATE_INSTANCE },
+		};
+
+		Vector<VkVertexInputAttributeDescription> attributes = {
+			{ 0, 0, VK_FORMAT_R32_SFLOAT, offsetof(TilemapInstance, depth) },
+			{ 1, 0, VK_FORMAT_R32_UINT, offsetof(TilemapInstance, tileOffset) },
+		};
+
 		Pipeline tilemapPipeline;
-		tilemapPipeline.Create(tilemapPipelineLayout, { PolygonMode::Fill }, { tilemapVertexShader, tilemapFragmentShader }, {}, {});
-		tilemapMaterial.Create(tilemapPipelineLayout, tilemapPipeline, { tilemapDescriptor, Resources::BindlessTexturesDescriptorSet() },
-			{ PushConstant{ &tilemapData, sizeof(TilemapData), 0, VK_SHADER_STAGE_FRAGMENT_BIT } });
+		tilemapPipeline.Create(tilemapPipelineLayout, { PolygonMode::Fill }, { tilemapVertexShader, tilemapFragmentShader }, inputs, attributes);
+		tilemapMaterial.Create(tilemapPipelineLayout, tilemapPipeline, { tilemapDescriptor, Resources::BindlessTexturesDescriptorSet() });
 
-		Vector2Int renderSize = Renderer::RenderSize();
-
-		tilemapData.width = 100;
-		tilemapData.height = 100;
-		tilemapData.tileSize = Vector2::One / (F32)(renderSize.x * 0.01640625);
+		tilemapData.Create(BufferType::Storage, sizeof(TilemapData) * 16);
+		tilesData.Create(BufferType::Storage, Megabytes(4));
 
 		Scene::UpdateFns += Update;
 		Scene::RenderFns += Render;
@@ -63,13 +73,15 @@ bool Tilemap::Shutdown()
 		initialized = false;
 
 		for (Vector<Tilemap>& instances : components)
-
 		{
 			for (Tilemap& tilemap : instances)
 			{
-				tilemap.tiles.Destroy();
+				Memory::Free(&tilemap.tileArray);
 			}
 		}
+
+		tilemapData.Destroy();
+		tilesData.Destroy();
 
 		tilemapVertexShader.Destroy();
 		tilemapFragmentShader.Destroy();
@@ -85,8 +97,21 @@ bool Tilemap::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
 	if (sceneId >= components.Size()) { return false; }
 
 	Vector<Tilemap>& instances = components[sceneId];
+	Vector4Int renderSize = Renderer::RenderSize();
 
-	tilemapData.eye = camera.Eye().xy();
+	for (Tilemap& tilemap : instances)
+	{
+		TilemapData& tmd = tilemapDatas[tilemap.instance];
+		tmd.eye = camera.Eye().xy() * tilemap.parallax * (renderSize.z / 132.0f);
+		tmd.offset = tilemap.offset * (renderSize.z / 64.0f);
+		tmd.tileSize = tilemap.tileSize * (renderSize.z / 64.0f);
+	}
+
+	if (instanceData.Size())
+	{
+		tilemapMaterial.UploadInstances(instanceData.Data(), (U32)(instanceData.Size() * sizeof(TilemapInstance)), 0);
+		tilemapData.UploadUniformData(tilemapDatas.Data(), (U32)(tilemapDatas.Size() * sizeof(TilemapData)), 0);
+	}
 
 	return false;
 }
@@ -97,15 +122,20 @@ bool Tilemap::Render(U32 sceneId, CommandBuffer commandBuffer)
 
 	Vector<Tilemap>& instances = components[sceneId];
 
-	for (Tilemap& tilemap : instances)
-	{
-		VkDescriptorBufferInfo bufferInfo = {
-			.buffer = tilemap.tiles,
-			.offset = 0,
-			.range = VK_WHOLE_SIZE
-		};
+	VkDescriptorBufferInfo bufferInfo0 = {
+		.buffer = tilemapData,
+		.offset = 0,
+		.range = VK_WHOLE_SIZE
+	};
 
-		VkWriteDescriptorSet write = {
+	VkDescriptorBufferInfo bufferInfo1 = {
+		.buffer = tilesData,
+		.offset = 0,
+		.range = VK_WHOLE_SIZE
+	};
+
+	VkWriteDescriptorSet writes[2] = {
+		{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.pNext = nullptr,
 			.dstSet = tilemapDescriptor,
@@ -114,19 +144,31 @@ bool Tilemap::Render(U32 sceneId, CommandBuffer commandBuffer)
 			.descriptorCount = 1,
 			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			.pImageInfo = nullptr,
-			.pBufferInfo = &bufferInfo,
+			.pBufferInfo = &bufferInfo0,
 			.pTexelBufferView = nullptr
-		};
+		},
+		{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.pNext = nullptr,
+			.dstSet = tilemapDescriptor,
+			.dstBinding = 1,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			.pImageInfo = nullptr,
+			.pBufferInfo = &bufferInfo1,
+			.pTexelBufferView = nullptr
+		}
+	};
 
-		vkUpdateDescriptorSets(Renderer::GetDevice(), 1, &write, 0, nullptr);
+	vkUpdateDescriptorSets(Renderer::GetDevice(), CountOf32(writes), writes, 0, nullptr);
 
-		tilemapMaterial.Bind(commandBuffer);
-	}
+	tilemapMaterial.Bind(commandBuffer);
 
 	return false;
 }
 
-ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity)
+ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity, U32 width, U32 height, const Vector2& offset, F32 parallax, F32 depth, const Vector2& tileSize)
 {
 	if (entity.SceneId() >= components.Size())
 	{
@@ -144,26 +186,102 @@ ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity)
 	U32 instanceId = (U32)instances.Size();
 
 	Tilemap tilemap{};
-	tilemap.tiles.Create(BufferType::Storage, tilemapData.width * tilemapData.height * sizeof(U16));
+
+	Vector4Int renderSize = Renderer::RenderSize();
+
+	tilemap.parallax = parallax;
+	tilemap.instance = (U32)tilemapDatas.Size();
+	tilemap.tileSize = tileSize;
+	tilemap.offset = { offset.x + 31.5f, offset.y + 17.5f };
+
+	TilemapData& tmd = tilemapDatas.Push({});
+
+	tmd.width = width;
+	tmd.height = height;
+	tmd.offset = offset * (renderSize.z / 64.0f);
+	
+	instanceData.Push({ depth, nextOffset });
+
+	Memory::Allocate(&tilemap.tileArray, tmd.width * tmd.height);
 
 	U16* tiles;
-	Memory::Allocate(&tiles, tilemapData.width * tilemapData.height);
+	Memory::Allocate(&tiles, tmd.width * tmd.height);
 
-	for (U32 i = 0; i < tilemapData.width * tilemapData.height; ++i)
+	for (U32 i = 0; i < tmd.width * tmd.height; ++i)
 	{
 		tiles[i] = U16_MAX;
 	}
 
-	tilemap.tiles.UploadUniformData(tiles, tilemapData.width * tilemapData.height * sizeof(U16), 0);
+	tilemapData.UploadUniformData(tiles, tmd.width * tmd.height * sizeof(U16), nextOffset * sizeof(U16));
+
+	nextOffset += tmd.width * tmd.height;
+
+	Memory::Free(&tiles);
 
 	instances.Push(tilemap);
 
 	return { entity.EntityId(), entity.SceneId(), instanceId };
 }
 
-void Tilemap::SetTile(const ResourceRef<Texture>& texture, Vector2Int position)
+void Tilemap::SetTile(const ResourceRef<Texture>& texture, const Vector2Int& position, TileType type)
 {
-	U16 handle = texture.Handle();
+	TilemapData& tmd = tilemapDatas[instance];
+	TilemapInstance& tmi = instanceData[instance];
 
-	tiles.UploadUniformData(&handle, sizeof(U16), (position.x + position.y * tilemapData.width) * sizeof(U16));
+	if ((U32)position.x < tmd.width && (U32)position.y < tmd.height && tileArray[position.x + position.y * tmd.width] != type)
+	{
+		dirty = true;
+		U16 handle = texture.Handle();
+
+		U32 i = (tmi.tileOffset + position.x + position.y * tmd.width);
+
+		tilesData.UploadUniformData(&handle, sizeof(U16), (tmi.tileOffset + position.x + position.y * tmd.width) * sizeof(U16));
+		tileArray[position.x + position.y * tmd.width] = type;
+	}
+}
+
+Vector2Int Tilemap::ScreenToTilemap(const Camera& camera, const Vector2& position)
+{
+	TilemapData& tmd = tilemapDatas[instance];
+
+	Vector4Int area = Renderer::RenderSize();
+	F32 parallaxValue = parallax * (area.z / 132.0f); //Why is it 132?
+	Vector2 cameraPos = camera.Eye().xy() * parallaxValue * (area.z / 1920.0f) * camera.Zoom();
+	cameraPos.y = -cameraPos.y;
+
+	Vector2 final = (((position - (Vector2)area.xy()) * camera.Zoom() + cameraPos - tmd.offset) / tmd.tileSize) * (1920.0f / area.z);
+
+	return Vector2Int{ (I32)Math::Floor(final.x), (I32)Math::Floor(final.y) };
+}
+
+Vector2Int Tilemap::GetDimentions() const
+{
+	TilemapData& tmd = tilemapDatas[instance];
+
+	return { (I32)tmd.width, (I32)tmd.height };
+}
+
+const Vector2& Tilemap::GetOffset() const
+{
+	return offset;
+}
+
+const Vector2& Tilemap::GetTileSize() const
+{
+	return tileSize;
+}
+
+const TileType* Tilemap::GetTiles() const
+{
+	return tileArray;
+}
+
+bool Tilemap::GetDirty() const
+{
+	return dirty;
+}
+
+void Tilemap::Clean()
+{
+	dirty = false;
 }

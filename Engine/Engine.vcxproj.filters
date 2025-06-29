@@ -41,6 +41,9 @@
     <Filter Include="Source Files\Audio">
       <UniqueIdentifier>{8e93acc8-c37b-4189-9d66-7b2fd821bbb8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Rendering\Debug">
+      <UniqueIdentifier>{71fdebe7-30ea-4207-845a-ac45bcb63b7a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Defines.hpp">
@@ -213,6 +216,12 @@
     </ClInclude>
     <ClInclude Include="Audio\Audio.hpp">
       <Filter>Source Files\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\TilemapColliderComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\LineRenderer.hpp">
+      <Filter>Source Files\Rendering\Debug</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -389,6 +398,12 @@
     </ClCompile>
     <ClCompile Include="Audio\Audio.cpp">
       <Filter>Source Files\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\TilemapColliderComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\LineRenderer.cpp">
+      <Filter>Source Files\Rendering\Debug</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

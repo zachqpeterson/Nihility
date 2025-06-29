@@ -33,6 +33,8 @@ public:
 	bool UploadUniformData(const void* uniformData, U64 size, U64 offset = 0);
 	bool UploadStagingData(const void* stagingData, U64 size, U64 offset = 0);
 
+	void Clear();
+
 	U64 StagingPointer() const;
 	U64 Size() const;
 	U64 Offset() const;

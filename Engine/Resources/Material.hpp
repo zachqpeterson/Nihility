@@ -35,9 +35,14 @@ public:
 	bool Create(const PipelineLayout& pipelineLayout, const Pipeline& pipeline, const Vector<VkDescriptorSet_T*>& descriptorSets = {}, const Vector<PushConstant>& pushConstants = {});
 	void Destroy();
 
-	void UploadVertices(void* data, U32 size, U32 offset);
-	void UploadInstances(void* data, U32 size, U32 offset);
-	void UploadIndices(void* data, U32 size, U32 offset);
+	void UploadVertices(const void* data, U32 size, U32 offset);
+	void UploadInstances(const void* data, U32 size, U32 offset);
+	void UploadInstancesAll(const void* data, U32 size, U32 offset);
+	void UploadIndices(const void* data, U32 size, U32 offset);
+
+	void ClearVertices();
+	void ClearInstances();
+	void ClearIndices();
 
 	const PipelineLayout& GetPipelineLayout() const;
 	

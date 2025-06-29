@@ -271,6 +271,12 @@ bool Buffer::UploadStagingData(const void* stagingData, U64 size, U64 offset)
 	return true;
 }
 
+void Buffer::Clear()
+{
+	dataStart = U64_MAX;
+	dataEnd = 0;
+}
+
 U64 Buffer::StagingPointer() const
 {
 	return stagingPointer;
