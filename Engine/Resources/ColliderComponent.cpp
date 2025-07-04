@@ -1,9 +1,8 @@
 #include "ColliderComponent.hpp"
 
 #include "Scene.hpp"
-#include "RigidBodyComponent.hpp"
 
-#include "box2d/box2d.h"
+#include "Math/Physics.hpp"
 
 Vector<Vector<Collider>> Collider::components;
 bool Collider::initialized = false;
@@ -28,7 +27,7 @@ bool Collider::Shutdown()
 	return false;
 }
 
-ComponentRef<Collider> Collider::AddTo(EntityRef entity, const ComponentRef<RigidBody>& rigidBody)
+ComponentRef<Collider> Collider::AddTo(EntityRef entity)
 {
 	if (entity.SceneId() >= components.Size())
 	{
@@ -45,13 +44,10 @@ ComponentRef<Collider> Collider::AddTo(EntityRef entity, const ComponentRef<Rigi
 
 	U32 instanceId = (U32)instances.Size();
 
-	b2Polygon box = b2MakeBox(entity->scale.x, entity->scale.y);
-
-	b2ShapeDef shapeDef = b2DefaultShapeDef();
-	b2CreatePolygonShape(TypePun<b2BodyId>(rigidBody->GetBodyId()), &shapeDef, &box);
-
 	Collider collider{};
 	collider.entityIndex = entity.EntityId();
+
+	Physics::AddCollider({ entity->position + entity->scale, entity->position - entity->scale });
 
 	instances.Push(collider);
 

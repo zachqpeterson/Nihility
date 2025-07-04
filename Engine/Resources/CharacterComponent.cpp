@@ -5,8 +5,6 @@
 #include "Platform/Input.hpp"
 #include "Core/Time.hpp"
 
-#include "box2d/box2d.h"
-
 Vector<Vector<Character>> Character::components;
 bool Character::initialized = false;
 
@@ -50,6 +48,7 @@ ComponentRef<Character> Character::AddTo(const EntityRef& entity)
 	Character character{};
 	character.entityIndex = entity.EntityId();
 	character.position = entity->position;
+	character.collider = { { 1.0f, 1.5f }, { -1.0f, -1.5f } };
 
 	instances.Push(character);
 
@@ -85,15 +84,17 @@ bool Character::Render(U32 sceneId, CommandBuffer commandBuffer)
 void Character::ProcessInput()
 {
 	throttle = 0.0f;
+	jumpTimer -= (F32)Time::DeltaTime();
 
 	if(Input::ButtonDown(ButtonCode::A)) { throttle -= 1.0f; }
 	if(Input::ButtonDown(ButtonCode::D)) { throttle += 1.0f; }
 
 	if (Input::OnButtonDown(ButtonCode::Space))
 	{
-		if (grounded)
+		if (grounded || jumpTimer > 0.0f)
 		{
 			velocity.y = jumpForce;
+			jumpTimer = 0.0f;
 			grounded = false;
 		}
 	}
@@ -137,96 +138,26 @@ void Character::Simulate()
 
 	velocity.y -= gravity * dt;
 
-	F32 pogoRestLength = 0.5f * capsuleRadius;
-	F32 rayLength = pogoRestLength + capsuleRadius;
-	Vector2 origin = capsuleCenter1 + position;
-	F32 circleRadius = 0.5f * capsuleRadius;
-	Vector2 segmentOffset = { 0.75f * capsuleRadius, 0.0f };
-	Vector2 segmentPoints[2] = { origin - segmentOffset, origin + segmentOffset };
+	Vector2 target = position + velocity * dt;
 
-	ShapeProxy proxy = TypePun<ShapeProxy>(b2MakeProxy((b2Vec2*)segmentPoints, 2, 0.0f));
-	Vector2 translation = { 0.0f, -rayLength };
-
-	QueryFilter pogoFilter = { MoverBit, StaticBit | DynamicBit };
-	CastResult castResult = Physics::ShapeCast(proxy, translation, pogoFilter);
-
-	if (grounded == false) { grounded = castResult.hit && velocity.y <= 0.01f; }
-	else { grounded = castResult.hit; }
-
-	if (castResult.hit == false) { pogoVelocity = 0.0f; }
+	if (!Physics::CheckCollision(collider + position + Vector2{ velocity.x * dt, 0.0f }))
+	{
+		position.x = target.x;
+	}
 	else
 	{
-		F32 pogoCurrentLength = castResult.fraction * rayLength;
-
-		F32 zeta = pogoDampingRatio;
-		F32 hertz = pogoHertz;
-		F32 omega = 2.0f * (F32)Pi * hertz;
-		F32 omegaH = omega * dt;
-
-		pogoVelocity = (pogoVelocity - omega * omegaH * (pogoCurrentLength - pogoRestLength)) /
-			(1.0f + 2.0f * zeta * omegaH + omegaH * omegaH);
-
-		b2Body_ApplyForce(TypePun<b2BodyId>(castResult.bodyId), { 0.0f, -50.0f }, TypePun<b2Vec2>(castResult.point), true);
+		velocity.x = 0.0f;
 	}
 
-	Vector2 target = position + velocity * dt + Vector2{ 0.0f, pogoVelocity * dt };
-
-	QueryFilter collideFilter = { MoverBit, StaticBit | DynamicBit | MoverBit };
-	QueryFilter castFilter = { MoverBit, StaticBit | DynamicBit };
-
-	totalIterations = 0;
-	F32 tolerance = 0.01f;
-
-	for (I32 iteration = 0; iteration < 5; ++iteration)
+	if (!Physics::CheckCollision(collider + position + Vector2{ 0.0f, velocity.y * dt }))
 	{
-		planeCount = 0;
-
-		Capsule mover;
-		mover.center1 = capsuleCenter1 + position;
-		mover.center2 = capsuleCenter2 + position;
-		mover.radius = capsuleRadius;
-
-		Physics::CollideMover(mover, collideFilter, PlaneResultFcn, this);
-		PlaneSolverResult result = Physics::SolvePlanes(target, planes, planeCount);
-
-		totalIterations += result.iterationCount;
-
-		Vector2 moverTranslation = result.position - position;
-
-		F32 fraction = Physics::CastMover(mover, moverTranslation, castFilter);
-
-		Vector2 delta = moverTranslation * fraction;
-		position += delta;
-
-		if (delta.SqrMagnitude() < tolerance * tolerance) { break; }
+		if (grounded) { jumpTimer = CoyoteTime; }
+		grounded = false;
+		position.y = target.y;
 	}
-
-	velocity = Physics::ClipVector(velocity, planes, planeCount);
-}
-
-struct ShapeUserData
-{
-	F32 maxPush;
-	bool clipVelocity;
-};
-
-bool Character::PlaneResultFcn(b2ShapeId shapeId, const b2PlaneResult* planeResult, void* context)
-{
-	Character* self = (Character*)context;
-	F32 maxPush = F32_MAX;
-	bool clipVelocity = true;
-	ShapeUserData* userData = (ShapeUserData*)b2Shape_GetUserData(shapeId);
-	if (userData != nullptr)
+	else
 	{
-		maxPush = userData->maxPush;
-		clipVelocity = userData->clipVelocity;
+		if (velocity.y < 0.0f) { grounded = true; }
+		velocity.y = 0.0f;
 	}
-
-	if (self->planeCount < planeCapacity)
-	{
-		self->planes[self->planeCount] = { TypePun<Plane>(planeResult->plane), maxPush, 0.0f, clipVelocity };
-		self->planeCount += 1;
-	}
-
-	return true;
 }

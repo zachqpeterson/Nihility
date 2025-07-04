@@ -9,7 +9,6 @@
 #include "Platform/Input.hpp"
 #include "Math/Random.hpp"
 #include "Resources/SpriteComponent.hpp"
-#include "Resources/RigidBodyComponent.hpp"
 #include "Resources/ColliderComponent.hpp"
 #include "Resources/TilemapComponent.hpp"
 #include "Resources/TilemapColliderComponent.hpp"
@@ -27,7 +26,6 @@ ComponentRef<Tilemap> foregroundTilemap;
 
 void ComponentsInit()
 {
-	Scene::InitializeFns += RigidBody::Initialize;
 	Scene::InitializeFns += Character::Initialize;
 	Scene::InitializeFns += Collider::Initialize;
 	Scene::InitializeFns += Tilemap::Initialize;
@@ -39,7 +37,6 @@ void ComponentsInit()
 	Scene::ShutdownFns += Tilemap::Shutdown;
 	Scene::ShutdownFns += Collider::Shutdown;
 	Scene::ShutdownFns += Character::Shutdown;
-	Scene::ShutdownFns += RigidBody::Shutdown;
 }
 
 bool hover(Element& element)
@@ -98,13 +95,20 @@ bool Initialize()
 
 	scene->LoadScene();
 
-	EntityRef ground = scene->CreateEntity({ 0.0f, -10.0f }, { 100.0f, 1.0f });
+	EntityRef ground = scene->CreateEntity({ 0.0f, -5.0f }, { 100.0f, 1.0f });
+	EntityRef ground1 = scene->CreateEntity({ 5.0f, -4.0f }, { 1.0f, 6.0f });
+	EntityRef ground2 = scene->CreateEntity({ 0.0f, 8.0f }, { 100.0f, 1.0f });
 
-	ComponentRef<RigidBody> rb = RigidBody::AddTo(ground, BodyType::Static);
-	Collider::AddTo(ground, rb);
+	Collider::AddTo(ground);
 	Sprite::AddTo(ground, groundTexture);
 
-	player = scene->CreateEntity({ 0.0f, -5.0f });
+	Collider::AddTo(ground1);
+	Sprite::AddTo(ground1, groundTexture);
+
+	Collider::AddTo(ground2);
+	Sprite::AddTo(ground2, groundTexture);
+
+	player = scene->CreateEntity({ 0.0f, 0.0f });
 	Sprite::AddTo(player, groundTexture);
 	Character::AddTo(player);
 
@@ -125,8 +129,7 @@ bool Initialize()
 	foregroundTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 1.5f, 0.0f);
 	mainTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 1.0f, 0.5f);
 
-	ComponentRef<RigidBody> tilemapRb = RigidBody::AddTo(tilemap, BodyType::Static);
-	TilemapCollider::AddTo(tilemap, tilemapRb, mainTilemap);
+	TilemapCollider::AddTo(tilemap, mainTilemap);
 
 	return true;
 }
@@ -150,8 +153,7 @@ void Update()
 		F32 y = Random::RandomRange(0, 2) / 2.0f;
 
 		Sprite::AddTo(id, textureAtlas, Vector4::One, Vector2{ x, y }, Vector2{ 0.5f, 0.5f });
-		ComponentRef<RigidBody> rb = RigidBody::AddTo(id, BodyType::Dynamic);
-		Collider::AddTo(id, rb);
+		Collider::AddTo(id);
 	}
 
 	if (Input::ButtonDown(ButtonCode::LeftMouse))

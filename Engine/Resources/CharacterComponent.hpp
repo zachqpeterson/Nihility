@@ -9,16 +9,12 @@ struct b2PlaneResult;
 
 class NH_API Character
 {
-	static constexpr I32 planeCapacity = 8;
-
 public:
-	Vector2 capsuleCenter1 = { 0.0f, -0.5f };
-	Vector2 capsuleCenter2 = { 0.0f, 0.5f };
-	F32 capsuleRadius = 1.0f;
+	AABB collider;
 
 	Vector2 position = Vector2::Zero;
 	Vector2 velocity = Vector2::Zero;
-	F32 jumpForce = 37.0f;
+	F32 jumpForce = 25.0f;
 	F32 minSpeed = 0.1f;
 	F32 maxSpeed = 10.0f;
 	F32 stopSpeed = 3.0f;
@@ -27,14 +23,9 @@ public:
 	F32 friction = 8.0f;
 	F32 gravity = 50.0f;
 	F32 airSteering = 0.2f;
-	F32 pogoHertz = 10.0f;
-	F32 pogoDamping = 0.0f;
-	F32 pogoVelocity = 0.0f;
-	F32 pogoDampingRatio = 0.8f;
-	I32 totalIterations = 0;
-	I32 planeCount = 0;
-	CollisionPlane planes[planeCapacity] = {};
 	bool grounded = false;
+	F32 jumpTimer = 0.0f;
+	static constexpr F32 CoyoteTime = 0.15f;
 
 	static bool Initialize();
 	static bool Shutdown();
@@ -44,8 +35,6 @@ public:
 private:
 	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
 	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
-
-	static bool PlaneResultFcn(b2ShapeId shapeId, const b2PlaneResult* planeResult, void* context);
 
 	void ProcessInput();
 	void Simulate();

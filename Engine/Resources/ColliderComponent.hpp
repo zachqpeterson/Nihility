@@ -10,7 +10,7 @@ public:
 	static bool Initialize();
 	static bool Shutdown();
 
-	static ComponentRef<Collider> AddTo(EntityRef entity, const ComponentRef<RigidBody>& rigidBody);
+	static ComponentRef<Collider> AddTo(EntityRef entity);
 
 private:
 	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);

@@ -2,7 +2,6 @@
 
 #include "Component.hpp"
 #include "TilemapComponent.hpp"
-#include "RigidbodyComponent.hpp"
 
 struct ChainId
 {
@@ -27,8 +26,6 @@ class NH_API TilemapCollider
 
 public:
 	ComponentRef<Tilemap> tilemap;
-	ComponentRef<RigidBody> rigidBody;
-	ChainId chainId;
 	Vector<Vector2> points;
 	Vector2Int dimentions;
 	Vector2 offset;
@@ -45,7 +42,7 @@ public:
 	static bool Initialize();
 	static bool Shutdown();
 
-	static ComponentRef<TilemapCollider> AddTo(EntityRef entity, const ComponentRef<RigidBody>& rigidBody, const ComponentRef<Tilemap>& tilemap);
+	static ComponentRef<TilemapCollider> AddTo(EntityRef entity, const ComponentRef<Tilemap>& tilemap);
 
 private:
 	void GenerateCollision();

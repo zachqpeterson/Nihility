@@ -71,17 +71,12 @@ void Engine::Shutdown()
 
 void Engine::MainLoop()
 {
-	constexpr F64 MaxFrameTime = 0.25;
+	Time::Update();
 
-	F64 timeAccumulation = 0.0;
-	F64 frameTime = 0.0f;
 	while (Platform::running)
 	{
 		FrameMark;
 		Time::Update();
-
-		frameTime = Math::Min(Time::DeltaTime(), MaxFrameTime);
-		timeAccumulation += frameTime;
 
 		Input::Update();
 		Platform::Update();
@@ -90,14 +85,7 @@ void Engine::MainLoop()
 
 		game.update();
 
-		Physics::interpolation = timeAccumulation / Physics::Timestep;
 		Renderer::Update();
-
-		while (timeAccumulation >= Physics::Timestep)
-		{
-			Physics::Update();
-			timeAccumulation -= Physics::Timestep;
-		}
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
 		I64 remainingUS = (I64)(remainingFrameTime * 1000000.0);

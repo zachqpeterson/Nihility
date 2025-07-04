@@ -1,11 +1,8 @@
 #include "TilemapColliderComponent.hpp"
 
 #include "Scene.hpp"
-#include "RigidBodyComponent.hpp"
 
 #include "Rendering/LineRenderer.hpp"
-
-#include "box2d/box2d.h"
 
 Vector<Vector<TilemapCollider>> TilemapCollider::components;
 bool TilemapCollider::initialized = false;
@@ -30,7 +27,7 @@ bool TilemapCollider::Shutdown()
 	return false;
 }
 
-ComponentRef<TilemapCollider> TilemapCollider::AddTo(EntityRef entity, const ComponentRef<RigidBody>& rigidBody, const ComponentRef<Tilemap>& tilemap)
+ComponentRef<TilemapCollider> TilemapCollider::AddTo(EntityRef entity, const ComponentRef<Tilemap>& tilemap)
 {
 	if (entity.SceneId() >= components.Size())
 	{
@@ -49,7 +46,6 @@ ComponentRef<TilemapCollider> TilemapCollider::AddTo(EntityRef entity, const Com
 
 	TilemapCollider collider{};
 	collider.entityIndex = entity.EntityId();
-	collider.rigidBody = rigidBody;
 	collider.tilemap = tilemap;
 	collider.dimentions = tilemap->GetDimentions();
 	collider.offset = tilemap->GetOffset();
@@ -88,10 +84,10 @@ void TilemapCollider::GenerateCollision()
 	{
 		tilemap->Clean();
 
-		if (chainId.index)
-		{
-			b2DestroyChain(TypePun<b2ChainId>(chainId));
-		}
+		//if (chainId.index)
+		//{
+		//	b2DestroyChain(TypePun<b2ChainId>(chainId));
+		//}
 
 		tiles = tilemap->GetTiles();
 		const TileType* tile = tiles;
@@ -368,20 +364,20 @@ void TilemapCollider::GenerateCollision()
 				}
 			}
 
-			b2SurfaceMaterial mat = b2DefaultSurfaceMaterial();
-			mat.friction = 1.0f;
-
-			b2Filter filter = b2DefaultFilter();
-
-			b2ChainDef chainDef = b2DefaultChainDef();
-			chainDef.points = (b2Vec2*)points.Data();
-			chainDef.count = points.Size();
-			chainDef.isLoop = true;
-			chainDef.materialCount = 1;
-			chainDef.materials = &mat;
-			chainDef.filter = filter;
-
-			chainId = TypePun<ChainId>(b2CreateChain(TypePun<b2BodyId>(rigidBody->GetBodyId()), &chainDef));
+			//b2SurfaceMaterial mat = b2DefaultSurfaceMaterial();
+			//mat.friction = 1.0f;
+			//
+			//b2Filter filter = b2DefaultFilter();
+			//
+			//b2ChainDef chainDef = b2DefaultChainDef();
+			//chainDef.points = (b2Vec2*)points.Data();
+			//chainDef.count = points.Size();
+			//chainDef.isLoop = true;
+			//chainDef.materialCount = 1;
+			//chainDef.materials = &mat;
+			//chainDef.filter = filter;
+			//
+			//chainId = TypePun<ChainId>(b2CreateChain(TypePun<b2BodyId>(rigidBody->GetBodyId()), &chainDef));
 		}
 	}
 }

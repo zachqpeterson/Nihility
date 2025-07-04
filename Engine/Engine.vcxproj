@@ -58,14 +58,14 @@
       <PreprocessorDefinitions>NH_EXPORT;_DEBUG;_CONSOLE;TRACY_ENABLE;MSDFGEN_PUBLIC=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/box2d/include;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4251</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;$(SolutionDir)Lib/box2dd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -77,7 +77,7 @@
       <PreprocessorDefinitions>NH_EXPORT;NDEBUG;_CONSOLE;MSDFGEN_PUBLIC=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/box2d/include;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4251</DisableSpecificWarnings>
     </ClCompile>
@@ -86,7 +86,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;$(SolutionDir)Lib/box2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -141,7 +141,6 @@
     <ClInclude Include="Resources\Material.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
-    <ClInclude Include="Resources\RigidBodyComponent.hpp" />
     <ClInclude Include="Resources\Scene.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
     <ClInclude Include="Resources\SpriteComponent.hpp" />
@@ -205,7 +204,6 @@
     <ClCompile Include="Resources\Font.cpp" />
     <ClCompile Include="Resources\Material.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
-    <ClCompile Include="Resources\RigidBodyComponent.cpp" />
     <ClCompile Include="Resources\Scene.cpp" />
     <ClCompile Include="Resources\SpriteComponent.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />

@@ -55,8 +55,8 @@ void LineRenderer::Update()
 #ifdef NH_DEBUG
 	material.ClearVertices();
 	material.ClearIndices();
-	material.UploadVertices(vertices.Data(), vertices.Size() * sizeof(LineVertex), 0);
-	material.UploadIndices(indices.Data(), indices.Size() * sizeof(U32), 0);
+	material.UploadVertices(vertices.Data(), (U32)(vertices.Size() * sizeof(LineVertex)), 0);
+	material.UploadIndices(indices.Data(), (U32)(indices.Size() * sizeof(U32)), 0);
 #endif
 }
 

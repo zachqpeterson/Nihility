@@ -148,9 +148,6 @@
     <ClInclude Include="Resources\SpriteComponent.hpp">
       <Filter>Source Files\Resources\Components</Filter>
     </ClInclude>
-    <ClInclude Include="Resources\RigidBodyComponent.hpp">
-      <Filter>Source Files\Resources\Components</Filter>
-    </ClInclude>
     <ClInclude Include="Resources\ColliderComponent.hpp">
       <Filter>Source Files\Resources\Components</Filter>
     </ClInclude>
@@ -277,9 +274,6 @@
       <Filter>Source Files\Math</Filter>
     </ClCompile>
     <ClCompile Include="Resources\SpriteComponent.cpp">
-      <Filter>Source Files\Resources\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="Resources\RigidBodyComponent.cpp">
       <Filter>Source Files\Resources\Components</Filter>
     </ClCompile>
     <ClCompile Include="Resources\ColliderComponent.cpp">
