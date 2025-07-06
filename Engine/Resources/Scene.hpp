@@ -56,11 +56,13 @@ public:
 	bool LoadScene();
 
 	EntityRef CreateEntity(Vector2 position = Vector2::Zero, Vector2 scale = Vector2::One, Quaternion2 rotation = Quaternion2::Identity);
+	void DestroyEntity(const EntityRef& ref);
 
 	const Camera& GetCamera() const;
+	Vector2 ScreenToWorld(const Vector2& position) const;
 
-	static Event<U32, Camera&, Vector<Entity>&> UpdateFns;
-	static Event<U32, CommandBuffer> RenderFns;
+	static Event<Camera&, Vector<Entity>&> UpdateFns;
+	static Event<CommandBuffer> RenderFns;
 	static Event<> InitializeFns;
 	static Event<> ShutdownFns;
 
@@ -74,6 +76,7 @@ private:
 	void Render(CommandBuffer commandBuffer) const;
 
 	Vector<Entity> entities;
+	Freelist freeEntities;
 	Camera camera;
 
 	U32 sceneId;

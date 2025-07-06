@@ -4,9 +4,6 @@
 
 #include "Math/Physics.hpp"
 
-struct b2ShapeId;
-struct b2PlaneResult;
-
 class NH_API Character
 {
 public:
@@ -33,15 +30,15 @@ public:
 	static ComponentRef<Character> AddTo(const EntityRef& entity);
 
 private:
-	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
-	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
+	static bool Update(Camera& camera, Vector<Entity>& entities);
+	static bool Render(CommandBuffer commandBuffer);
 
 	void ProcessInput();
 	void Simulate();
 
 	static bool initialized;
 
-	COMPONENT(Character, 1);
+	COMPONENT(Character);
 	friend struct Scene;
 	friend struct EntityRef;
 };

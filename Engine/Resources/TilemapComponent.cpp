@@ -10,7 +10,8 @@ Shader Tilemap::tilemapVertexShader;
 Shader Tilemap::tilemapFragmentShader;
 Buffer Tilemap::tilemapData;
 Buffer Tilemap::tilesData;
-Vector<Vector<Tilemap>> Tilemap::components;
+Vector<Tilemap> Tilemap::components(16, {});
+Freelist Tilemap::freeComponents(16);
 Vector<TilemapInstance> Tilemap::instanceData;
 Vector<TilemapData> Tilemap::tilemapDatas;
 U32 Tilemap::nextOffset = 0;
@@ -72,12 +73,10 @@ bool Tilemap::Shutdown()
 	{
 		initialized = false;
 
-		for (Vector<Tilemap>& instances : components)
+		for (Tilemap& tilemap : components)
 		{
-			for (Tilemap& tilemap : instances)
-			{
-				Memory::Free(&tilemap.tileArray);
-			}
+			if (tilemap.entityIndex == U32_MAX) { continue; }
+			Memory::Free(&tilemap.tileArray);
 		}
 
 		tilemapData.Destroy();
@@ -92,15 +91,13 @@ bool Tilemap::Shutdown()
 	return false;
 }
 
-bool Tilemap::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
+bool Tilemap::Update(Camera& camera, Vector<Entity>& entities)
 {
-	if (sceneId >= components.Size()) { return false; }
-
-	Vector<Tilemap>& instances = components[sceneId];
 	Vector4Int renderSize = Renderer::RenderSize();
 
-	for (Tilemap& tilemap : instances)
+	for (Tilemap& tilemap : components)
 	{
+		if (tilemap.entityIndex == U32_MAX) { continue; }
 		TilemapData& tmd = tilemapDatas[tilemap.instance];
 		tmd.eye = camera.Eye().xy() * tilemap.parallax * (renderSize.z / 132.0f);
 		tmd.offset = tilemap.offset * (renderSize.z / 64.0f);
@@ -116,12 +113,8 @@ bool Tilemap::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
 	return false;
 }
 
-bool Tilemap::Render(U32 sceneId, CommandBuffer commandBuffer)
+bool Tilemap::Render(CommandBuffer commandBuffer)
 {
-	if (sceneId >= components.Size()) { return false; }
-
-	Vector<Tilemap>& instances = components[sceneId];
-
 	VkDescriptorBufferInfo bufferInfo0 = {
 		.buffer = tilemapData,
 		.offset = 0,
@@ -170,25 +163,10 @@ bool Tilemap::Render(U32 sceneId, CommandBuffer commandBuffer)
 
 ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity, U32 width, U32 height, const Vector2& offset, F32 parallax, F32 depth, const Vector2& tileSize)
 {
-	if (entity.SceneId() >= components.Size())
-	{
-		AddScene(entity.SceneId());
-	}
-
-	Vector<Tilemap>& instances = components[entity.SceneId()];
-
-	if (instances.Full())
-	{
-		Logger::Error("Max Tilemap Instances Reached!");
-		return nullptr;
-	}
-
-	U32 instanceId = (U32)instances.Size();
-
-	Tilemap tilemap{};
-
 	Vector4Int renderSize = Renderer::RenderSize();
 
+	U32 instanceId;
+	Tilemap& tilemap = Create(instanceId);
 	tilemap.parallax = parallax;
 	tilemap.instance = (U32)tilemapDatas.Size();
 	tilemap.tileSize = tileSize;
@@ -218,9 +196,7 @@ ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity, U32 width, U32 hei
 
 	Memory::Free(&tiles);
 
-	instances.Push(tilemap);
-
-	return { entity.EntityId(), entity.SceneId(), instanceId };
+	return { entity.EntityId(), instanceId };
 }
 
 void Tilemap::SetTile(const ResourceRef<Texture>& texture, const Vector2Int& position, TileType type)

@@ -49,6 +49,11 @@ public:
 	{
 		invocationList.Destroy();
 	}
+	
+	U32 InvocationSize() const
+	{
+		return invocationList.Size();
+	}
 
 private:
 

@@ -9,6 +9,7 @@
 #include "Platform/Input.hpp"
 #include "Math/Random.hpp"
 #include "Resources/SpriteComponent.hpp"
+#include "Resources/ProjectileComponent.hpp"
 #include "Resources/ColliderComponent.hpp"
 #include "Resources/TilemapComponent.hpp"
 #include "Resources/TilemapColliderComponent.hpp"
@@ -27,6 +28,7 @@ ComponentRef<Tilemap> foregroundTilemap;
 void ComponentsInit()
 {
 	Scene::InitializeFns += Character::Initialize;
+	Scene::InitializeFns += Projectile::Initialize;
 	Scene::InitializeFns += Collider::Initialize;
 	Scene::InitializeFns += Tilemap::Initialize;
 	Scene::InitializeFns += TilemapCollider::Initialize;
@@ -36,6 +38,7 @@ void ComponentsInit()
 	Scene::ShutdownFns += TilemapCollider::Shutdown;
 	Scene::ShutdownFns += Tilemap::Shutdown;
 	Scene::ShutdownFns += Collider::Shutdown;
+	Scene::ShutdownFns += Projectile::Shutdown;
 	Scene::ShutdownFns += Character::Shutdown;
 }
 
@@ -66,6 +69,16 @@ bool click(Element& element)
 	}
 
 	return true;
+}
+
+bool ProjectileHit(const EntityRef& ref)
+{
+	//TODO: Spawn particles
+
+	Sprite::RemoveFrom(ref);
+	Projectile::RemoveFrom(ref);
+	scene->DestroyEntity(ref);
+	return false;
 }
 
 bool Initialize()
@@ -143,22 +156,18 @@ void Update()
 {
 	if (Input::ButtonDown(ButtonCode::E))
 	{
-		Vector2 position;
-		position.x = F32(Random::RandomUniform() * 100.0f - 50.0f);
-		position.y = F32(Random::RandomUniform() * 60.0f - 30.0f);
+		EntityRef id = scene->CreateEntity(player->position, 0.5f);
 
-		EntityRef id = scene->CreateEntity(position);
-
-		F32 x = Random::RandomRange(0, 2) / 2.0f;
-		F32 y = Random::RandomRange(0, 2) / 2.0f;
-
-		Sprite::AddTo(id, textureAtlas, Vector4::One, Vector2{ x, y }, Vector2{ 0.5f, 0.5f });
-		Collider::AddTo(id);
+		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
+		ComponentRef<Projectile> p = Projectile::AddTo(id, (scene->ScreenToWorld(Input::MousePosition()) - player->position).Normalized() * 20.0f, 0.0f, 0.0f);
+		if (s && p) { p->OnHit += ProjectileHit; }
 	}
 
 	if (Input::ButtonDown(ButtonCode::LeftMouse))
 	{
-		mainTilemap->SetTile(groundTexture, mainTilemap->ScreenToTilemap(scene->GetCamera(), Input::MousePosition()));
+		EntityRef id = scene->CreateEntity(scene->ScreenToWorld(Input::MousePosition()));
+
+		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
 	}
 
 	if (Input::ButtonDown(ButtonCode::RightMouse))

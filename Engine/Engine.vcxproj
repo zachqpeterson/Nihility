@@ -139,6 +139,7 @@
     <ClInclude Include="Resources\Entity.hpp" />
     <ClInclude Include="Resources\Font.hpp" />
     <ClInclude Include="Resources\Material.hpp" />
+    <ClInclude Include="Resources\ProjectileComponent.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
     <ClInclude Include="Resources\Scene.hpp" />
@@ -203,6 +204,7 @@
     <ClCompile Include="Resources\Entity.cpp" />
     <ClCompile Include="Resources\Font.cpp" />
     <ClCompile Include="Resources\Material.cpp" />
+    <ClCompile Include="Resources\ProjectileComponent.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
     <ClCompile Include="Resources\Scene.cpp" />
     <ClCompile Include="Resources\SpriteComponent.cpp" />

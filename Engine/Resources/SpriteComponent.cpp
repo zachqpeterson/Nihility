@@ -7,7 +7,9 @@
 Material Sprite::spriteMaterial;
 Shader Sprite::spriteVertexShader;
 Shader Sprite::spriteFragmentShader;
-Vector<Vector<Sprite>> Sprite::components;
+Vector<SpriteInstance> Sprite::spriteInstances(10000);
+Vector<Sprite> Sprite::components(10000, {});
+Freelist Sprite::freeComponents(10000);
 bool Sprite::initialized = false;
 
 bool Sprite::Initialize()
@@ -30,21 +32,21 @@ bool Sprite::Initialize()
 
 		Vector<VkVertexInputBindingDescription> inputs = {
 			{ 0, sizeof(SpriteVertex), VK_VERTEX_INPUT_RATE_VERTEX },
-			{ 1, sizeof(Sprite), VK_VERTEX_INPUT_RATE_INSTANCE}
+			{ 1, sizeof(SpriteInstance), VK_VERTEX_INPUT_RATE_INSTANCE}
 		};
 
 		Vector<VkVertexInputAttributeDescription> attributes = {
 			{ 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteVertex, position) },
 			{ 1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteVertex, texcoord) },
 
-			{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Sprite, position) },
-			{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Sprite, scale) },
-			{ 4, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Sprite, rotation) },
-			{ 5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Sprite, instColor) },
-			{ 6, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Sprite, instTexcoord) },
-			{ 7, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Sprite, instTexcoordScale) },
-			{ 8, 1, VK_FORMAT_R32_UINT, offsetof(Sprite, textureIndex) },
-			{ 9, 1, VK_FORMAT_R32_UINT, offsetof(Sprite, entityIndex) },
+			{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, position) },
+			{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, scale) },
+			{ 4, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, rotation) },
+			{ 5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SpriteInstance, instColor) },
+			{ 6, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, instTexcoord) },
+			{ 7, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteInstance, instTexcoordScale) },
+			{ 8, 1, VK_FORMAT_R32_UINT, offsetof(SpriteInstance, textureIndex) },
+			{ 9, 1, VK_FORMAT_R32_UINT, offsetof(SpriteInstance, spriteIndex) },
 		};
 
 		Pipeline spritePipeline;
@@ -84,63 +86,63 @@ bool Sprite::Shutdown()
 	return false;
 }
 
-bool Sprite::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
+bool Sprite::Update(Camera& camera, Vector<Entity>& entities)
 {
-	if (sceneId >= components.Size()) { return false; }
-
-	Vector<Sprite>& instances = components[sceneId];
-
-	for (Sprite& sprite : instances)
+	int i = 0;
+	for (Sprite& sprite : components)
 	{
+		if (sprite.entityIndex == U32_MAX) { continue; }
 		const Entity& entity = entities[sprite.entityIndex];
+		SpriteInstance& instance = spriteInstances[sprite.instanceIndex];
 
-		sprite.position = entity.position;
-		sprite.scale = entity.scale;
-		sprite.rotation = entity.rotation;
+		instance.position = entity.position;
+		instance.scale = entity.scale;
+		instance.rotation = entity.rotation;
+		++i;
 	}
 
-	if (instances.Size())
+	spriteMaterial.ClearInstances();
+
+	if (spriteInstances.Size())
 	{
-		spriteMaterial.UploadInstances(instances.Data(), (U32)(instances.Size() * sizeof(Sprite)), 0);
+		spriteMaterial.UploadInstances(spriteInstances.Data(), (U32)(spriteInstances.Size() * sizeof(SpriteInstance)), 0);
 	}
 
 	return false;
 }
 
-bool Sprite::Render(U32 sceneId, CommandBuffer commandBuffer)
+bool Sprite::Render(CommandBuffer commandBuffer)
 {
-	if (sceneId >= components.Size()) { return false; }
-
-	spriteMaterial.Bind(commandBuffer);
+	if (freeComponents.Size()) { spriteMaterial.Bind(commandBuffer); }
 
 	return false;
 }
 
 ComponentRef<Sprite> Sprite::AddTo(const EntityRef& entity, const ResourceRef<Texture>& texture, const Vector4& color, const Vector2& textureCoord, const Vector2& textureScale)
 {
-	if (entity.SceneId() >= components.Size())
-	{
-		AddScene(entity.SceneId());
-	}
+	if (freeComponents.Full()) { Logger::Error("Max Sprite Instances Reached!"); return nullptr; }
 
-	Vector<Sprite>& instances = components[entity.SceneId()];
+	U32 instanceId;
+	Sprite& sprite = Create(instanceId);
+	sprite.entityIndex = entity.EntityId();
+	sprite.instanceIndex = instanceId;
+	
+	SpriteInstance& instance = instanceId == spriteInstances.Size() ? spriteInstances.Push({}) : spriteInstances[instanceId];
 
-	if (instances.Full())
-	{
-		Logger::Error("Max Sprite Instances Reached!");
-		return nullptr;
-	}
-
-	U32 instanceId = (U32)instances.Size();
-
-	Sprite instance{};
 	instance.instColor = color;
 	instance.instTexcoord = textureCoord;
 	instance.instTexcoordScale = textureScale;
 	instance.textureIndex = texture.Handle();
-	instance.entityIndex = entity.EntityId();
+	instance.spriteIndex = instanceId;
 
-	instances.Push(instance);
+	return { entity.EntityId(), instanceId };
+}
 
-	return { entity.EntityId(), entity.SceneId(), instanceId };
+void Sprite::RemoveFrom(const EntityRef& entity)
+{
+	 ComponentRef<Sprite> sprite = Get(entity);
+	 spriteInstances[sprite->instanceIndex].textureIndex = U16_MAX;
+	 spriteInstances[sprite->instanceIndex].scale = Vector2::Zero;
+
+	 Destroy(*sprite);
 }

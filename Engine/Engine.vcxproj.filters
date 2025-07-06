@@ -220,6 +220,9 @@
     <ClInclude Include="Rendering\LineRenderer.hpp">
       <Filter>Source Files\Rendering\Debug</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\ProjectileComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -398,6 +401,9 @@
     </ClCompile>
     <ClCompile Include="Rendering\LineRenderer.cpp">
       <Filter>Source Files\Rendering\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\ProjectileComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -5,7 +5,8 @@
 #include "Platform/Input.hpp"
 #include "Core/Time.hpp"
 
-Vector<Vector<Character>> Character::components;
+Vector<Character> Character::components(1, {});
+Freelist Character::freeComponents(1);
 bool Character::initialized = false;
 
 bool Character::Initialize()
@@ -30,39 +31,20 @@ bool Character::Shutdown()
 
 ComponentRef<Character> Character::AddTo(const EntityRef& entity)
 {
-	if (entity.SceneId() >= components.Size())
-	{
-		AddScene(entity.SceneId());
-	}
-
-	Vector<Character>& instances = components[entity.SceneId()];
-
-	if (instances.Full())
-	{
-		Logger::Error("Max Character Count Reached!");
-		return {};
-	}
-
-	U32 instanceId = (U32)instances.Size();
-
-	Character character{};
+	U32 instanceId;
+	Character& character = Create(instanceId);
 	character.entityIndex = entity.EntityId();
 	character.position = entity->position;
 	character.collider = { { 1.0f, 1.5f }, { -1.0f, -1.5f } };
 
-	instances.Push(character);
-
-	return { entity.EntityId(), entity.SceneId(), instanceId };
+	return { entity.EntityId(), instanceId };
 }
 
-bool Character::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
+bool Character::Update(Camera& camera, Vector<Entity>& entities)
 {
-	if (sceneId >= components.Size()) { return false; }
-
-	Vector<Character>& instances = components[sceneId];
-
-	for (Character& character : instances)
+	for (Character& character : components)
 	{
+		if (character.entityIndex == U32_MAX) { continue; }
 		Entity& entity = entities[character.entityIndex];
 
 		character.ProcessInput();
@@ -76,7 +58,7 @@ bool Character::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
 	return false;
 }
 
-bool Character::Render(U32 sceneId, CommandBuffer commandBuffer)
+bool Character::Render(CommandBuffer commandBuffer)
 {
 	return false;
 }
@@ -102,8 +84,8 @@ void Character::ProcessInput()
 
 void Character::Simulate()
 {
-	F32 dt = (F32)Time::DeltaTime();
-
+	F32 dt = Math::Min((F32)Time::DeltaTime(), 0.25f);
+	
 	F32 speed = velocity.Magnitude();
 	if (speed < minSpeed) { velocity = Vector2::Zero; }
 	else if (grounded)
@@ -121,8 +103,6 @@ void Character::Simulate()
 
 	desiredSpeed = Math::Min(desiredSpeed, maxSpeed);
 
-	if (grounded) { velocity.y = 0.0f; }
-
 	F32 currentSpeed = velocity.Dot(desiredDirection);
 	F32 addSpeed = desiredSpeed - currentSpeed;
 
@@ -138,26 +118,31 @@ void Character::Simulate()
 
 	velocity.y -= gravity * dt;
 
-	Vector2 target = position + velocity * dt;
+	Vector2 frameVelocity = velocity * dt;
+	Vector2 target = position + frameVelocity;
+	Collision collision;
 
-	if (!Physics::CheckCollision(collider + position + Vector2{ velocity.x * dt, 0.0f }))
+	if (collision = Physics::CheckCollision(collider + position + Vector2{ frameVelocity.x, 0.0f }))
 	{
-		position.x = target.x;
+		if (velocity.x > 0.0f) { position.x = collision.aabb.lowerBound.x - collider.upperBound.x; }
+		if (velocity.x < 0.0f) { position.x = collision.aabb.upperBound.x + collider.upperBound.x; }
+		
+		velocity.x = 0.0f;
 	}
 	else
 	{
-		velocity.x = 0.0f;
+		position.x = target.x;
 	}
 
-	if (!Physics::CheckCollision(collider + position + Vector2{ 0.0f, velocity.y * dt }))
+	if (collision = Physics::CheckCollision(collider + position + Vector2{ 0.0f, frameVelocity.y }))
+	{
+		if (velocity.y > 0.0f) { position.y = collision.aabb.lowerBound.y - collider.upperBound.y; velocity.y *= 0.95f; }
+		if (velocity.y < 0.0f) { position.y = collision.aabb.upperBound.y + collider.upperBound.y; grounded = true; velocity.y = 0.0f; }
+	}
+	else
 	{
 		if (grounded) { jumpTimer = CoyoteTime; }
 		grounded = false;
 		position.y = target.y;
-	}
-	else
-	{
-		if (velocity.y < 0.0f) { grounded = true; }
-		velocity.y = 0.0f;
 	}
 }

@@ -59,8 +59,8 @@ private:
 	Vector2 offset;
 	TileType* tileArray;
 
-	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
-	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
+	static bool Update(Camera& camera, Vector<Entity>& entities);
+	static bool Render(CommandBuffer commandBuffer);
 
 	static DescriptorSet tilemapDescriptor;
 	static Material tilemapMaterial;
@@ -73,7 +73,7 @@ private:
 	static U32 nextOffset;
 	static bool initialized;
 
-	COMPONENT(Tilemap, 16);
+	COMPONENT(Tilemap);
 	friend struct Scene;
 	friend struct EntityRef;
 };

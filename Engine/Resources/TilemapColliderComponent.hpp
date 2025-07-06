@@ -55,12 +55,12 @@ private:
 	bool CheckUp();
 	bool CheckUpRight();
 
-	static bool Update(U32 sceneId, Camera& camera, Vector<Entity>& entities);
-	static bool Render(U32 sceneId, CommandBuffer commandBuffer);
+	static bool Update(Camera& camera, Vector<Entity>& entities);
+	static bool Render(CommandBuffer commandBuffer);
 
 	static bool initialized;
 
-	COMPONENT(TilemapCollider, 10000);
+	COMPONENT(TilemapCollider);
 	friend struct Scene;
 	friend struct EntityRef;
 };

@@ -4,7 +4,8 @@
 
 #include "Rendering/LineRenderer.hpp"
 
-Vector<Vector<TilemapCollider>> TilemapCollider::components;
+Vector<TilemapCollider> TilemapCollider::components(16, {});
+Freelist TilemapCollider::freeComponents(16);
 bool TilemapCollider::initialized = false;
 
 bool TilemapCollider::Initialize()
@@ -29,43 +30,24 @@ bool TilemapCollider::Shutdown()
 
 ComponentRef<TilemapCollider> TilemapCollider::AddTo(EntityRef entity, const ComponentRef<Tilemap>& tilemap)
 {
-	if (entity.SceneId() >= components.Size())
-	{
-		AddScene(entity.SceneId());
-	}
-
-	Vector<TilemapCollider>& instances = components[entity.SceneId()];
-
-	if (instances.Full())
-	{
-		Logger::Error("Max Collider Count Reached!");
-		return {};
-	}
-
-	U32 instanceId = (U32)instances.Size();
-
-	TilemapCollider collider{};
+	U32 instanceId;
+	TilemapCollider& collider = Create(instanceId);
 	collider.entityIndex = entity.EntityId();
 	collider.tilemap = tilemap;
 	collider.dimentions = tilemap->GetDimentions();
 	collider.offset = tilemap->GetOffset();
 	collider.tileSize = tilemap->GetTileSize() * 2.0f * 1.03092783505f;
+	collider.points.Reserve(524288);
 	Memory::Allocate(&collider.visited, collider.dimentions.x * collider.dimentions.y);
 
-	instances.Push(collider);
-	instances.Back().points.Reserve(524288);
-
-	return { entity.EntityId(), entity.SceneId(), instanceId };
+	return { entity.EntityId(), instanceId };
 }
 
-bool TilemapCollider::Update(U32 sceneId, Camera& camera, Vector<Entity>& entities)
+bool TilemapCollider::Update(Camera& camera, Vector<Entity>& entities)
 {
-	if (sceneId >= components.Size()) { return false; }
-
-	Vector<TilemapCollider>& instances = components[sceneId];
-
-	for (TilemapCollider& collider : instances)
+	for (TilemapCollider& collider : components)
 	{
+		if (collider.entityIndex == U32_MAX) { continue; }
 		collider.GenerateCollision();
 		LineRenderer::DrawLine(collider.points, false, { 0.0f, 1.0f, 0.0f, 1.0f });
 	}
@@ -73,7 +55,7 @@ bool TilemapCollider::Update(U32 sceneId, Camera& camera, Vector<Entity>& entiti
 	return false;
 }
 
-bool TilemapCollider::Render(U32 sceneId, CommandBuffer commandBuffer)
+bool TilemapCollider::Render(CommandBuffer commandBuffer)
 {
 	return false;
 }

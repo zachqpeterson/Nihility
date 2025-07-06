@@ -30,21 +30,21 @@ void Physics::Update()
 	ZoneScopedN("Physics");
 }
 
-void Physics::AddCollider(AABB collider)
+void Physics::AddCollider(const AABB& collider)
 {
 	colliders.Push(collider);
 }
 
-bool Physics::CheckCollision(AABB collider)
+Collision Physics::CheckCollision(const AABB& collider)
 {
 	for (const AABB& col : colliders)
 	{
 		if (collider.lowerBound.x < col.upperBound.x && collider.upperBound.x > col.lowerBound.x &&
 			collider.lowerBound.y < col.upperBound.y && collider.upperBound.y > col.lowerBound.y)
 		{
-			return true;
+			return { col, true };
 		}
 	}
 
-	return false;
+	return { {}, false };
 }
