@@ -30,6 +30,8 @@ public:
 	static ComponentRef<Sprite> AddTo(const EntityRef& entity, const ResourceRef<Texture>& texture = nullptr, const Vector4& color = Vector4::One, const Vector2& textureCoord = Vector2::Zero, const Vector2& textureScale = Vector2::One);
 	static void RemoveFrom(const EntityRef& entity);
 
+	void SetColor(const Vector4& color);
+
 private:
 	U32 instanceIndex = 0;
 
@@ -44,6 +46,5 @@ private:
 
 	COMPONENT(Sprite);
 
-	friend struct Scene;
 	friend struct EntityRef;
 };

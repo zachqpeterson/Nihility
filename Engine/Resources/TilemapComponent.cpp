@@ -60,8 +60,8 @@ bool Tilemap::Initialize()
 		tilemapData.Create(BufferType::Storage, sizeof(TilemapData) * 16);
 		tilesData.Create(BufferType::Storage, Megabytes(4));
 
-		Scene::UpdateFns += Update;
-		Scene::RenderFns += Render;
+		World::UpdateFns += Update;
+		World::RenderFns += Render;
 	}
 
 	return false;

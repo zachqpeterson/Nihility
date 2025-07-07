@@ -38,7 +38,6 @@ FrameBuffer Renderer::frameBuffer;
 
 Vector<VkCommandBuffer> Renderer::commandBuffers[MaxSwapchainImages];
 GlobalPushConstant Renderer::globalPushConstant;
-Scene* Renderer::scene;
 
 U32 Renderer::frameIndex;
 U32 Renderer::previousFrame;
@@ -134,7 +133,7 @@ void Renderer::Update()
 	if (!Synchronize()) { return; }
 
 	Resources::Update();
-	if (scene) { scene->Update(); }
+	World::Update();
 #ifdef NH_DEBUG
 	LineRenderer::Update();
 #endif
@@ -142,14 +141,14 @@ void Renderer::Update()
 
 	SubmitTransfer();
 
-	if (scene) { globalPushConstant.viewProjection = scene->camera.ViewProjection(); }
+	globalPushConstant.viewProjection = World::camera.ViewProjection();
 	
 	CommandBuffer& commandBuffer = CommandBufferRing::GetDrawCommandBuffer(frameIndex);
 
 	commandBuffer.Begin();
 	commandBuffer.BeginRenderpass(renderpass, frameBuffer, swapchain);
 
-	if (scene) { scene->Render(commandBuffer); }
+	World::Render(commandBuffer);
 
 #ifdef NH_DEBUG
 	LineRenderer::Render(commandBuffer);
@@ -313,11 +312,6 @@ void Renderer::Submit()
 	previousFrame = frameIndex;
 
 	++absoluteFrame;
-}
-
-void Renderer::SetScene(Scene* _scene)
-{
-	scene = _scene;
 }
 
 U32 Renderer::FrameIndex()

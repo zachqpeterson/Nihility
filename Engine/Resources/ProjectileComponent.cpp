@@ -1,6 +1,6 @@
 #include "ProjectileComponent.hpp"
 
-#include "Scene.hpp"
+#include "World.hpp"
 
 #include "Core/Time.hpp"
 
@@ -12,8 +12,8 @@ bool Projectile::Initialize()
 {
 	if (!initialized)
 	{
-		Scene::UpdateFns += Update;
-		Scene::RenderFns += Render;
+		World::UpdateFns += Update;
+		World::RenderFns += Render;
 
 		initialized = true;
 	}
@@ -28,7 +28,7 @@ bool Projectile::Shutdown()
 	return false;
 }
 
-ComponentRef<Projectile> Projectile::AddTo(const EntityRef& entity, const Vector2& velocity, F32 acceleration, F32 gravity)
+ComponentRef<Projectile> Projectile::AddTo(const EntityRef& entity, const Vector2& velocity, F32 duration, F32 acceleration, F32 gravity)
 {
 	if (freeComponents.Full()) { Logger::Error("Max Projectile Instances Reached!"); return nullptr; }
 
@@ -40,6 +40,8 @@ ComponentRef<Projectile> Projectile::AddTo(const EntityRef& entity, const Vector
 	projectile.collider = { entity->scale, -entity->scale };
 	projectile.acceleration = acceleration;
 	projectile.gravity = gravity;
+	projectile.timer = duration;
+	projectile.expire = duration > 0.0f;
 	projectile.hit = false;
 
 	return { entity.EntityId(), instanceId };
@@ -47,10 +49,15 @@ ComponentRef<Projectile> Projectile::AddTo(const EntityRef& entity, const Vector
 
 void Projectile::RemoveFrom(const EntityRef& entity)
 {
-	ComponentRef<Projectile> projectile = Get(entity);
-	projectile->OnHit.Destroy();
+	ComponentRef<Projectile> projectile = GetRef(entity);
+	if (projectile)
+	{
+		projectile->OnHit.Destroy();
+		projectile->OnUpdate.Destroy();
+		projectile->OnExpire.Destroy();
 
-	Destroy(*projectile);
+		Destroy(*projectile);
+	}
 }
 
 bool Projectile::Update(Camera& camera, Vector<Entity>& entities)
@@ -63,8 +70,19 @@ bool Projectile::Update(Camera& camera, Vector<Entity>& entities)
 
 		if (projectile->hit && projectile->OnHit)
 		{
-			projectile->OnHit(EntityRef{ projectile->entityIndex, (U32)(projectile - components.Data()) });
-			continue;
+			projectile->OnHit({ projectile->entityIndex }, projectile->hitVertical);
+			projectile->hit = false;
+		}
+
+		if (projectile->OnUpdate)
+		{
+			projectile->OnUpdate({ projectile->entityIndex });
+		}
+
+		if (projectile->OnExpire && projectile->timer <= 0.0f && projectile->expire)
+		{
+			projectile->expire = false;
+			projectile->OnExpire({ projectile->entityIndex });
 		}
 
 		entity.position = projectile->position;
@@ -82,6 +100,7 @@ void Projectile::Simulate()
 {
 	F32 dt = Math::Min((F32)Time::DeltaTime(), 0.25f);
 
+	timer -= dt;
 	Vector2 dir = velocity.Normalized();
 
 	velocity += (dir * acceleration - Vector2{ 0.0f, gravity }) * dt;
@@ -89,12 +108,23 @@ void Projectile::Simulate()
 	Vector2 target = position + frameVelocity;
 	Collision collision;
 
-	if (collision = Physics::CheckCollision(collider + position + frameVelocity))
+	if (collision = Physics::CheckCollision(collider + position + Vector2{ frameVelocity.x, 0.0f }))
 	{
 		hit = true;
+		hitVertical = false;
 	}
 	else
 	{
-		position = target;
+		position.x = target.x;
+	}
+
+	if (collision = Physics::CheckCollision(collider + position + Vector2{ 0.0f, frameVelocity.y }))
+	{
+		hit = true;
+		hitVertical = true;
+	}
+	else
+	{
+		position.y = target.y;
 	}
 }

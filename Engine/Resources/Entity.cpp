@@ -1,31 +1,28 @@
 #include "Entity.hpp"
 
-#include "Scene.hpp"
+#include "World.hpp"
 
 EntityRef::EntityRef() {}
 
 EntityRef::EntityRef(NullPointer) {}
 
-EntityRef::EntityRef(U32 entityId, U32 sceneId) : entityId(entityId), sceneId(sceneId) {}
+EntityRef::EntityRef(U32 entityId) : entityId(entityId) {}
 
 void EntityRef::Destroy()
 {
 	entityId = U32_MAX;
-	sceneId = U32_MAX;
 }
 
-EntityRef::EntityRef(const EntityRef& other) : entityId(other.entityId), sceneId(other.sceneId) {}
+EntityRef::EntityRef(const EntityRef& other) : entityId(other.entityId) {}
 
-EntityRef::EntityRef(EntityRef&& other) noexcept : entityId(other.entityId), sceneId(other.sceneId)
+EntityRef::EntityRef(EntityRef&& other) noexcept : entityId(other.entityId)
 {
 	other.entityId = U32_MAX;
-	other.sceneId = U32_MAX;
 }
 
 EntityRef& EntityRef::operator=(NullPointer)
 {
 	entityId = U32_MAX;
-	sceneId = U32_MAX;
 
 	return *this;
 }
@@ -33,7 +30,6 @@ EntityRef& EntityRef::operator=(NullPointer)
 EntityRef& EntityRef::operator=(const EntityRef& other)
 {
 	entityId = other.entityId;
-	sceneId = other.sceneId;
 
 	return *this;
 }
@@ -41,10 +37,8 @@ EntityRef& EntityRef::operator=(const EntityRef& other)
 EntityRef& EntityRef::operator=(EntityRef&& other) noexcept
 {
 	entityId = other.entityId;
-	sceneId = other.sceneId;
 
 	other.entityId = U32_MAX;
-	other.sceneId = U32_MAX;
 
 	return *this;
 }
@@ -52,70 +46,64 @@ EntityRef& EntityRef::operator=(EntityRef&& other) noexcept
 EntityRef::~EntityRef()
 {
 	entityId = U32_MAX;
-	sceneId = U32_MAX;
 }
 
 Entity* EntityRef::Get()
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return &World::GetEntity(entityId);
 }
 
 const Entity* EntityRef::Get() const
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return &World::GetEntity(entityId);
 }
 
 Entity* EntityRef::operator->()
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return &World::GetEntity(entityId);
 }
 
 const Entity* EntityRef::operator->() const
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return &World::GetEntity(entityId);
 }
 
 Entity& EntityRef::operator*()
 {
-	return *Scene::GetEntity(sceneId, entityId);
+	return World::GetEntity(entityId);
 }
 
 const Entity& EntityRef::operator*() const
 {
-	return *Scene::GetEntity(sceneId, entityId);
+	return World::GetEntity(entityId);
 }
 
 EntityRef::operator Entity* ()
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return &World::GetEntity(entityId);
 }
 
 EntityRef::operator const Entity* () const
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return &World::GetEntity(entityId);
 }
 
 bool EntityRef::operator==(const EntityRef& other) const
 {
-	return entityId == other.entityId && sceneId == other.sceneId;
+	return entityId == other.entityId;
 }
 
 bool EntityRef::Valid() const
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return entityId != U32_MAX;
 }
 
 EntityRef::operator bool() const
 {
-	return Scene::GetEntity(sceneId, entityId);
+	return entityId != U32_MAX;
 }
 
 U32 EntityRef::EntityId() const
 {
 	return entityId;
-}
-
-U32 EntityRef::SceneId() const
-{
-	return sceneId;
 }

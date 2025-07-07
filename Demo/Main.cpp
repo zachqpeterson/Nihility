@@ -14,9 +14,9 @@
 #include "Resources/TilemapComponent.hpp"
 #include "Resources/TilemapColliderComponent.hpp"
 #include "Resources/CharacterComponent.hpp"
-#include "Resources/Scene.hpp"
+#include "Resources/World.hpp"
+#include "Resources/Particles.hpp"
 
-SceneRef scene;
 EntityRef player;
 ResourceRef<Texture> textureAtlas;
 ResourceRef<Texture> groundTexture;
@@ -24,22 +24,23 @@ ResourceRef<Texture> whiteTexture;
 ComponentRef<Tilemap> mainTilemap;
 ComponentRef<Tilemap> backgroundTilemap;
 ComponentRef<Tilemap> foregroundTilemap;
+ComponentRef<Character> character;
 
 void ComponentsInit()
 {
-	Scene::InitializeFns += Character::Initialize;
-	Scene::InitializeFns += Projectile::Initialize;
-	Scene::InitializeFns += Collider::Initialize;
-	Scene::InitializeFns += Tilemap::Initialize;
-	Scene::InitializeFns += TilemapCollider::Initialize;
-	Scene::InitializeFns += Sprite::Initialize;
+	World::InitializeFns += Character::Initialize;
+	World::InitializeFns += Projectile::Initialize;
+	World::InitializeFns += Collider::Initialize;
+	World::InitializeFns += Tilemap::Initialize;
+	World::InitializeFns += TilemapCollider::Initialize;
+	World::InitializeFns += Sprite::Initialize;
 
-	Scene::ShutdownFns += Sprite::Shutdown;
-	Scene::ShutdownFns += TilemapCollider::Shutdown;
-	Scene::ShutdownFns += Tilemap::Shutdown;
-	Scene::ShutdownFns += Collider::Shutdown;
-	Scene::ShutdownFns += Projectile::Shutdown;
-	Scene::ShutdownFns += Character::Shutdown;
+	World::ShutdownFns += Sprite::Shutdown;
+	World::ShutdownFns += TilemapCollider::Shutdown;
+	World::ShutdownFns += Tilemap::Shutdown;
+	World::ShutdownFns += Collider::Shutdown;
+	World::ShutdownFns += Projectile::Shutdown;
+	World::ShutdownFns += Character::Shutdown;
 }
 
 bool hover(Element& element)
@@ -71,19 +72,19 @@ bool click(Element& element)
 	return true;
 }
 
-bool ProjectileHit(const EntityRef& ref)
+bool ProjectileHit(const EntityRef& ref, bool hitVertical)
 {
-	//TODO: Spawn particles
+	Particles::Spawn(ref->position, groundTexture);
 
 	Sprite::RemoveFrom(ref);
 	Projectile::RemoveFrom(ref);
-	scene->DestroyEntity(ref);
+	World::DestroyEntity(ref);
 	return false;
 }
 
 bool Initialize()
 {
-	scene = Scene::CreateScene(CameraType::Orthographic);
+	World::SetCamera(CameraType::Orthographic);
 
 	whiteTexture = Resources::LoadTexture("textures/white.nht");
 	textureAtlas = Resources::LoadTexture("textures/atlas.nht");
@@ -106,11 +107,9 @@ bool Initialize()
 	//UI::CreateText({}, "SPHINX OF BLACK QUARTZ,\nJUDGE MY VOW!", 10.0f);
 	//UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.\n!@#$%^&*()[]{}\\|;:'\",<.>/?`~\n1234567890", 10.0f);
 
-	scene->LoadScene();
-
-	EntityRef ground = scene->CreateEntity({ 0.0f, -5.0f }, { 100.0f, 1.0f });
-	EntityRef ground1 = scene->CreateEntity({ 5.0f, -4.0f }, { 1.0f, 6.0f });
-	EntityRef ground2 = scene->CreateEntity({ 0.0f, 8.0f }, { 100.0f, 1.0f });
+	EntityRef ground = World::CreateEntity({ 0.0f, -5.0f }, { 100.0f, 1.0f });
+	EntityRef ground1 = World::CreateEntity({ 5.0f, -4.0f }, { 1.0f, 6.0f });
+	EntityRef ground2 = World::CreateEntity({ 0.0f, 8.0f }, { 100.0f, 1.0f });
 
 	Collider::AddTo(ground);
 	Sprite::AddTo(ground, groundTexture);
@@ -121,9 +120,9 @@ bool Initialize()
 	Collider::AddTo(ground2);
 	Sprite::AddTo(ground2, groundTexture);
 
-	player = scene->CreateEntity({ 0.0f, 0.0f });
+	player = World::CreateEntity({ 0.0f, 0.0f });
 	Sprite::AddTo(player, groundTexture);
-	Character::AddTo(player);
+	character = Character::AddTo(player);
 
 	ResourceRef<AudioClip> clip = Resources::LoadAudio("audio/Electric Zoo.nha");
 
@@ -136,7 +135,7 @@ bool Initialize()
 
 	//Audio::PlayAudioClip(channel, clip);
 
-	EntityRef tilemap = scene->CreateEntity();
+	EntityRef tilemap = World::CreateEntity();
 
 	backgroundTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 0.5f, 1.0f);
 	foregroundTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 1.5f, 0.0f);
@@ -149,35 +148,37 @@ bool Initialize()
 
 void Shutdown()
 {
-	scene.Destroy();
+
 }
 
 void Update()
 {
 	if (Input::ButtonDown(ButtonCode::E))
 	{
-		EntityRef id = scene->CreateEntity(player->position, 0.5f);
+		EntityRef id = World::CreateEntity(player->position, 0.5f);
 
 		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
-		ComponentRef<Projectile> p = Projectile::AddTo(id, (scene->ScreenToWorld(Input::MousePosition()) - player->position).Normalized() * 20.0f, 0.0f, 0.0f);
+		Vector2 dir = (World::ScreenToWorld(Input::MousePosition()) - player->position).Normalized();
+		ComponentRef<Projectile> p = Projectile::AddTo(id, dir * 20.0f, 0.0f, 0.0f);
+		character->AddForce(-dir * 0.5f);
 		if (s && p) { p->OnHit += ProjectileHit; }
 	}
 
 	if (Input::ButtonDown(ButtonCode::LeftMouse))
 	{
-		EntityRef id = scene->CreateEntity(scene->ScreenToWorld(Input::MousePosition()));
+		EntityRef id = World::CreateEntity(World::ScreenToWorld(Input::MousePosition()));
 
 		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
 	}
 
 	if (Input::ButtonDown(ButtonCode::RightMouse))
 	{
-		backgroundTilemap->SetTile(textureAtlas, backgroundTilemap->ScreenToTilemap(scene->GetCamera(), Input::MousePosition()));
+		backgroundTilemap->SetTile(textureAtlas, backgroundTilemap->ScreenToTilemap(World::GetCamera(), Input::MousePosition()));
 	}
 
 	if (Input::ButtonDown(ButtonCode::MiddleMouse))
 	{
-		foregroundTilemap->SetTile(whiteTexture, foregroundTilemap->ScreenToTilemap(scene->GetCamera(), Input::MousePosition()));
+		foregroundTilemap->SetTile(whiteTexture, foregroundTilemap->ScreenToTilemap(World::GetCamera(), Input::MousePosition()));
 	}
 }
 

@@ -1,6 +1,6 @@
 #include "CharacterComponent.hpp"
 
-#include "Scene.hpp"
+#include "World.hpp"
 
 #include "Platform/Input.hpp"
 #include "Core/Time.hpp"
@@ -13,8 +13,8 @@ bool Character::Initialize()
 {
 	if (!initialized)
 	{
-		Scene::UpdateFns += Update;
-		Scene::RenderFns += Render;
+		World::UpdateFns += Update;
+		World::RenderFns += Render;
 
 		initialized = true;
 	}
@@ -145,4 +145,9 @@ void Character::Simulate()
 		grounded = false;
 		position.y = target.y;
 	}
+}
+
+void Character::AddForce(const Vector2& force)
+{
+	velocity += force;
 }

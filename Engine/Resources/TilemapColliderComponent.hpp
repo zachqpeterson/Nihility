@@ -61,6 +61,5 @@ private:
 	static bool initialized;
 
 	COMPONENT(TilemapCollider);
-	friend struct Scene;
 	friend struct EntityRef;
 };

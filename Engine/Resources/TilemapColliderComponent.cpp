@@ -1,6 +1,6 @@
 #include "TilemapColliderComponent.hpp"
 
-#include "Scene.hpp"
+#include "World.hpp"
 
 #include "Rendering/LineRenderer.hpp"
 
@@ -12,8 +12,8 @@ bool TilemapCollider::Initialize()
 {
 	if (!initialized)
 	{
-		Scene::UpdateFns += Update;
-		Scene::RenderFns += Render;
+		World::UpdateFns += Update;
+		World::RenderFns += Render;
 
 		initialized = true;
 	}

@@ -73,5 +73,5 @@ private:
 	F32 viewportHeight = 0.0f;
 
 	friend class Renderer;
-	friend struct Scene;
+	friend class World;
 };

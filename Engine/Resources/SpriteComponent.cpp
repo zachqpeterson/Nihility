@@ -66,8 +66,8 @@ bool Sprite::Initialize()
 		spriteMaterial.UploadVertices(vertices, sizeof(SpriteVertex) * 4, 0);
 		spriteMaterial.UploadIndices(indices, sizeof(U32) * 6, 0);
 
-		Scene::UpdateFns += Update;
-		Scene::RenderFns += Render;
+		World::UpdateFns += Update;
+		World::RenderFns += Render;
 	}
 
 	return false;
@@ -140,9 +140,17 @@ ComponentRef<Sprite> Sprite::AddTo(const EntityRef& entity, const ResourceRef<Te
 
 void Sprite::RemoveFrom(const EntityRef& entity)
 {
-	 ComponentRef<Sprite> sprite = Get(entity);
-	 spriteInstances[sprite->instanceIndex].textureIndex = U16_MAX;
-	 spriteInstances[sprite->instanceIndex].scale = Vector2::Zero;
+	 ComponentRef<Sprite> sprite = GetRef(entity);
+	 if (sprite)
+	 {
+		 spriteInstances[sprite->instanceIndex].textureIndex = U16_MAX;
+		 spriteInstances[sprite->instanceIndex].scale = Vector2::Zero;
 
-	 Destroy(*sprite);
+		 Destroy(*sprite);
+	 }
+}
+
+void Sprite::SetColor(const Vector4& color)
+{
+	spriteInstances[instanceIndex].instColor = color;
 }

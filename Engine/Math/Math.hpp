@@ -3,6 +3,8 @@
 #include "Defines.hpp"
 #include "TypeTraits.hpp"
 
+#include "Random.hpp"
+
 #include "Core/Time.hpp"
 
 #include "gcem/gcem.hpp"
@@ -1937,6 +1939,7 @@ public:
 	F32 x, y; //sin, cos
 
 	static const Quaternion2 Identity;
+	static constexpr Quaternion2 Random();
 };
 
 //W is real part
@@ -4639,6 +4642,11 @@ inline F32* Quaternion2::Data() { return &x; }
 inline const F32* Quaternion2::Data() const { return &x; }
 
 inline constexpr Quaternion2::operator Quaternion3() const { return Quaternion3{ 0.0f, 0.0f, x, y }; }
+
+inline constexpr Quaternion2 Quaternion2::Random()
+{
+	return { (F32)(Random::RandomUniform() * 360.0) };
+}
 #pragma endregion
 
 #pragma region Quaternion3

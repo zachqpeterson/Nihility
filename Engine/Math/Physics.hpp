@@ -56,5 +56,4 @@ private:
 
 	friend class Engine;
 	friend class RigidBody;
-	friend struct Scene;
 };

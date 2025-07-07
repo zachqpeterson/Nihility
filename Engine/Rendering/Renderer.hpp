@@ -17,7 +17,7 @@
 
 #include "Resources/ResourceDefines.hpp"
 #include "Resources/Texture.hpp"
-#include "Resources/Scene.hpp"
+#include "Resources/World.hpp"
 #include "Containers/String.hpp"
 
 struct VmaAllocator_T;
@@ -30,8 +30,6 @@ struct VkAllocationCallbacks;
 class NH_API Renderer
 {
 public:
-	static void SetScene(Scene* scene);
-
 	static U32 FrameIndex();
 	static U32 PreviousFrame();
 	static U32 AbsoluteFrame();
@@ -82,7 +80,6 @@ private:
 	//Recording
 	static Vector<VkCommandBuffer_T*> commandBuffers[MaxSwapchainImages];
 	static GlobalPushConstant globalPushConstant;
-	static Scene* scene;
 
 	//Synchronization
 	static U32 frameIndex;
@@ -98,6 +95,7 @@ private:
 	friend class Engine;
 	friend class Resources;
 	friend class CommandBufferRing;
+	friend class World;
 	friend struct Instance;
 	friend struct PhysicalDevice;
 	friend struct Device;
@@ -111,7 +109,6 @@ private:
 	friend struct FrameBuffer;
 	friend struct DescriptorSet;
 	friend struct Material;
-	friend struct Scene;
 
 	STATIC_CLASS(Renderer);
 };

@@ -16,13 +16,11 @@ struct NH_API Entity
 	Quaternion2 prevRotation;
 };
 
-struct Scene;
-
 struct NH_API EntityRef
 {
 	EntityRef();
 	EntityRef(NullPointer);
-	EntityRef(U32 entityId, U32 sceneId);
+	EntityRef(U32 entityId);
 	void Destroy();
 
 	EntityRef(const EntityRef& other);
@@ -47,11 +45,9 @@ struct NH_API EntityRef
 	operator bool() const;
 
 	U32 EntityId() const;
-	U32 SceneId() const;
 
 private:
 	U32 entityId = U32_MAX;
-	U32 sceneId = U32_MAX;
 
-	friend struct Scene;
+	friend class World;
 };

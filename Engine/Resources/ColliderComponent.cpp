@@ -1,6 +1,6 @@
 #include "ColliderComponent.hpp"
 
-#include "Scene.hpp"
+#include "World.hpp"
 
 #include "Math/Physics.hpp"
 
@@ -12,8 +12,8 @@ bool Collider::Initialize()
 {
 	if (!initialized)
 	{
-		Scene::UpdateFns += Update;
-		Scene::RenderFns += Render;
+		World::UpdateFns += Update;
+		World::RenderFns += Render;
 
 		initialized = true;
 	}

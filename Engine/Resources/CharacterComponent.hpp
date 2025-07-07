@@ -29,6 +29,8 @@ public:
 
 	static ComponentRef<Character> AddTo(const EntityRef& entity);
 
+	void AddForce(const Vector2& force);
+
 private:
 	static bool Update(Camera& camera, Vector<Entity>& entities);
 	static bool Render(CommandBuffer commandBuffer);
@@ -39,6 +41,5 @@ private:
 	static bool initialized;
 
 	COMPONENT(Character);
-	friend struct Scene;
 	friend struct EntityRef;
 };

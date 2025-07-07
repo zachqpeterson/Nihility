@@ -19,6 +19,5 @@ private:
 	static bool initialized;
 
 	COMPONENT(Collider);
-	friend struct Scene;
 	friend struct EntityRef;
 };

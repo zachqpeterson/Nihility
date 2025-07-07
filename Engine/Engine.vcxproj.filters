@@ -127,9 +127,6 @@
     <ClInclude Include="Containers\Queue.hpp">
       <Filter>Source Files\Containers</Filter>
     </ClInclude>
-    <ClInclude Include="Resources\Scene.hpp">
-      <Filter>Source Files\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Math\Random.hpp">
       <Filter>Source Files\Math</Filter>
     </ClInclude>
@@ -223,6 +220,12 @@
     <ClInclude Include="Resources\ProjectileComponent.hpp">
       <Filter>Source Files\Resources\Components</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\Particles.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\World.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -260,9 +263,6 @@
     </ClCompile>
     <ClCompile Include="Rendering\Camera.cpp">
       <Filter>Source Files\Rendering</Filter>
-    </ClCompile>
-    <ClCompile Include="Resources\Scene.cpp">
-      <Filter>Source Files\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Resources\Material.cpp">
       <Filter>Source Files\Resources</Filter>
@@ -404,6 +404,12 @@
     </ClCompile>
     <ClCompile Include="Resources\ProjectileComponent.cpp">
       <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Particles.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\World.cpp">
+      <Filter>Source Files\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

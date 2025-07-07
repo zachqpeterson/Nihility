@@ -139,15 +139,16 @@
     <ClInclude Include="Resources\Entity.hpp" />
     <ClInclude Include="Resources\Font.hpp" />
     <ClInclude Include="Resources\Material.hpp" />
+    <ClInclude Include="Resources\Particles.hpp" />
     <ClInclude Include="Resources\ProjectileComponent.hpp" />
     <ClInclude Include="Resources\ResourceDefines.hpp" />
     <ClInclude Include="Resources\Resources.hpp" />
-    <ClInclude Include="Resources\Scene.hpp" />
     <ClInclude Include="Resources\Settings.hpp" />
     <ClInclude Include="Resources\SpriteComponent.hpp" />
     <ClInclude Include="Resources\Texture.hpp" />
     <ClInclude Include="Resources\TilemapColliderComponent.hpp" />
     <ClInclude Include="Resources\TilemapComponent.hpp" />
+    <ClInclude Include="Resources\World.hpp" />
     <ClInclude Include="TypeTraits.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -204,13 +205,14 @@
     <ClCompile Include="Resources\Entity.cpp" />
     <ClCompile Include="Resources\Font.cpp" />
     <ClCompile Include="Resources\Material.cpp" />
+    <ClCompile Include="Resources\Particles.cpp" />
     <ClCompile Include="Resources\ProjectileComponent.cpp" />
     <ClCompile Include="Resources\Resources.cpp" />
-    <ClCompile Include="Resources\Scene.cpp" />
     <ClCompile Include="Resources\SpriteComponent.cpp" />
     <ClCompile Include="Resources\Settings.cpp" />
     <ClCompile Include="Resources\TilemapColliderComponent.cpp" />
     <ClCompile Include="Resources\TilemapComponent.cpp" />
+    <ClCompile Include="Resources\World.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

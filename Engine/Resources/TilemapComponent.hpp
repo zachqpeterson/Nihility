@@ -74,6 +74,5 @@ private:
 	static bool initialized;
 
 	COMPONENT(Tilemap);
-	friend struct Scene;
 	friend struct EntityRef;
 };

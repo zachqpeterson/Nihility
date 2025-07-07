@@ -111,24 +111,28 @@ inline ComponentRef<Type>::~ComponentRef()
 template <class Type>
 inline Type* ComponentRef<Type>::Get()
 {
+	if (typeId == U32_MAX) { return nullptr; }
 	return Type::Get(typeId);
 }
 
 template <class Type>
 inline const Type* ComponentRef<Type>::Get() const
 {
+	if (typeId == U32_MAX) { return nullptr; }
 	return Type::Get(typeId);
 }
 
 template <class Type>
 inline Type* ComponentRef<Type>::operator->()
 {
+	if (typeId == U32_MAX) { return nullptr; }
 	return Type::Get(typeId);
 }
 
 template <class Type>
 inline const Type* ComponentRef<Type>::operator->() const
 {
+	if (typeId == U32_MAX) { return nullptr; }
 	return Type::Get(typeId);
 }
 
@@ -147,6 +151,7 @@ inline const Type& ComponentRef<Type>::operator*() const
 template <class Type>
 inline ComponentRef<Type>::operator Type* ()
 {
+	if (typeId == U32_MAX) { return nullptr; }
 	return Type::Get(typeId);
 }
 
@@ -208,7 +213,7 @@ private:																			\
 public:																				\
 	static Type* Get(U32 id) { return &components[id]; }							\
 																					\
-	static ComponentRef<Type> Get(const EntityRef& entity)							\
+	static ComponentRef<Type> GetRef(const EntityRef& entity)						\
 	{																				\
 		U32 entityId = entity.EntityId();											\
 																					\
