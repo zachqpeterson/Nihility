@@ -98,7 +98,7 @@ bool Projectile::Render(CommandBuffer commandBuffer)
 
 void Projectile::Simulate()
 {
-	F32 dt = Math::Min((F32)Time::DeltaTime(), 0.25f);
+	F32 dt = (F32)Time::DeltaTimeStable();
 
 	timer -= dt;
 	Vector2 dir = velocity.Normalized();

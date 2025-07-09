@@ -47,11 +47,11 @@ bool Animation::Update(Camera& camera, Vector<Entity>& entities)
 
 		AnimationClip& clip = animation.clips[animation.clipIndex];
 		AnimationFrame& frame = clip.frames[animation.currentFrame];
-		animation.timer -= Time::DeltaTime();
+		animation.timer -= Time::DeltaTimeStable();
 		if (animation.timer <= 0.0f)
 		{
 			++animation.currentFrame %= clip.frames.Size();
-			animation.timer = frame.duration;
+			animation.timer = frame.duration + animation.timer;
 
 			Vector2 texcoord = frame.texcoord;
 			Vector2 texcoordScale = frame.texcoordScale;

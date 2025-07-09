@@ -66,7 +66,7 @@ bool Character::Render(CommandBuffer commandBuffer)
 void Character::ProcessInput()
 {
 	throttle = 0.0f;
-	jumpTimer -= (F32)Time::DeltaTime();
+	jumpTimer -= (F32)Time::DeltaTimeStable();
 
 	if(Input::ButtonDown(ButtonCode::A)) { throttle -= 1.0f; }
 	if(Input::ButtonDown(ButtonCode::D)) { throttle += 1.0f; }
@@ -84,7 +84,7 @@ void Character::ProcessInput()
 
 void Character::Simulate()
 {
-	F32 dt = Math::Min((F32)Time::DeltaTime(), 0.25f);
+	F32 dt = (F32)Time::DeltaTimeStable();
 	
 	F32 speed = velocity.Magnitude();
 	if (speed < minSpeed) { velocity = Vector2::Zero; }

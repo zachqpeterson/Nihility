@@ -52,6 +52,7 @@ void Time::Update()
 }
 
 const F64& Time::DeltaTime() { return delta; }
+F64 Time::DeltaTimeStable() { return Math::Min(delta, 0.25); }
 const F64& Time::FrameEndTime() { return frameEndTime; }
 const U32& Time::FrameRate() { return frameRate; }
 F64 Time::UpTime() { return AbsoluteTime() - programStart; }

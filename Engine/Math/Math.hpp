@@ -67,7 +67,7 @@ public:
 	template <class Type, FloatingPoint FP> static constexpr Type Lerp(Type a, Type b, FP t) noexcept { return (Type)(a + (b - a) * t); }
 	template <class Type, FloatingPoint FP> static constexpr Type InvLerp(Type a, Type b, FP t) noexcept { return (t - a) / (b - a); }
 	template <class Type, FloatingPoint FP> static constexpr Type Mix(Type a, Type b, FP t) noexcept { return a * (FP(1) - t) + b * t; }
-	template <class Type> static constexpr Type Tween(Type a, Type b) noexcept { return Lerp(a, b, 1.0f - Pow(0.01f, (F32)Time::DeltaTime())); }
+	template <class Type> static constexpr Type Tween(Type a, Type b) noexcept { return Lerp(a, b, 1.0f - Pow(0.01f, (F32)Time::DeltaTimeStable())); }
 
 	template <class Type> static constexpr Type Sqrt(Type n)
 	{

@@ -6,6 +6,7 @@ class NH_API Time
 {
 public:
 	static const F64& DeltaTime();
+	static F64 DeltaTimeStable();
 	static const F64& FrameEndTime();
 	static const U32& FrameRate();
 	static F64 UpTime();
