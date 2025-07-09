@@ -1,191 +1,270 @@
+#include "Defines.hpp"
+
 #include "Engine.hpp"
 
-#include "Introspection.hpp"
-#include "Rendering\Renderer.hpp"
-#include "Rendering\UI.hpp"
-#include "Resources\Resources.hpp"
-#include "Resources\Scene.hpp"
-#include "Rendering\Sprite.hpp"
-#include "Platform\Settings.hpp"
-#include "Platform\Input.hpp"
-#include "Platform\Audio.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Rendering/UI.hpp"
+#include "Rendering/LineRenderer.hpp"
+#include "Resources/Resources.hpp"
+#include "Platform/Input.hpp"
+#include "Math/Random.hpp"
+#include "Resources/SpriteComponent.hpp"
+#include "Resources/ProjectileComponent.hpp"
+#include "Resources/ColliderComponent.hpp"
+#include "Resources/TilemapComponent.hpp"
+#include "Resources/TilemapColliderComponent.hpp"
+#include "Resources/CharacterComponent.hpp"
+#include "Resources/AnimationComponent.hpp"
+#include "Resources/World.hpp"
+#include "Resources/Particles.hpp"
 
-U32 musicChannel;
-U32 sfxChannel;
-ResourceRef<AudioClip> music;
-ResourceRef<AudioClip> sfx;
-F32 volume = 1.0f;
+EntityRef player;
+ResourceRef<Texture> textureAtlas;
+ResourceRef<Texture> groundTexture;
+ResourceRef<Texture> whiteTexture;
+ResourceRef<Texture> walkTexture;
+ComponentRef<Tilemap> mainTilemap;
+ComponentRef<Tilemap> backgroundTilemap;
+ComponentRef<Tilemap> foregroundTilemap;
+ComponentRef<Character> character;
+ComponentRef<Animation> playerAnimation;
+bool facingLeft = false;
 
-Scene* scene;
-Entity* entity{};
-Entity* entity1{};
-Entity* light{};
-UIElement* uiElement;
-F32 percent = 0.5f;
-
-bool Init()
+void ComponentsInit()
 {
-	//String path = Resources::UploadFont("arial.ttf");
-	//String path = Resources::UploadSkybox("Room.hdr");
-	//Resources::UploadModel("ABeautifulGameGLTF/ABeautifulGame.gltf");
-	//Resources::UploadModel("AnisotropyBarnLamp/AnisotropyBarnLamp.gltf");
+	World::InitializeFns += Character::Initialize;
+	World::InitializeFns += Projectile::Initialize;
+	World::InitializeFns += Collider::Initialize;
+	World::InitializeFns += Tilemap::Initialize;
+	World::InitializeFns += TilemapCollider::Initialize;
+	World::InitializeFns += Animation::Initialize;
+	World::InitializeFns += Sprite::Initialize;
 
-	scene = Resources::CreateScene("scenes/Chess.nhscn", CAMERA_TYPE_PERSPECTIVE);
+	World::ShutdownFns += Sprite::Shutdown;
+	World::ShutdownFns += Animation::Shutdown;
+	World::ShutdownFns += TilemapCollider::Shutdown;
+	World::ShutdownFns += Tilemap::Shutdown;
+	World::ShutdownFns += Collider::Shutdown;
+	World::ShutdownFns += Projectile::Shutdown;
+	World::ShutdownFns += Character::Shutdown;
+}
 
-	entity = scene->CreateEntity();
-	light = scene->CreateEntity();
-	entity->CreateComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	//entity->AddComponent<ModelComponent>(Resources::LoadModel("models/ABeautifulGame.nhmdl"));
-	light->CreateComponent<MeshComponent>(Resources::LoadMesh("meshes/sphere.nhmsh"), Resources::LoadMaterial("materials/default_material.nhmat"));
-	light->transform.SetScale({ 0.001f });
-	scene->SetSkybox(Resources::LoadSkybox("textures/Room.nhsky"));
-
-	//entity1 = scene->AddEntity();
-	//entity1->AddComponent<SpriteComponent>();
-
-	PostProcessData ppd{};
-	ppd.contrast = 1.0f;
-	ppd.brightness = 0.0f;
-	ppd.saturation = 1.0f;
-	ppd.gammaCorrection = 1.0f;
-
-	scene->SetPostProcessing(ppd);
-
-	UIElementInfo info{};
-	info.area = { -0.9f, -0.9f, -0.8f, -0.8f };
-	info.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	info.scene = scene;
-
-	UIElement* textElement = UI::CreateText(info, "Hello, World!", 5);
-
-	UIElementInfo info1{};
-	info.area = { -0.25f, -0.125f, 0.25f, 0.125f };
-	info.color = { 0.3f, 0.3f, 0.3f, 1.0f };
-	info.scene = scene;
-
-	uiElement = UI::CreateSlider(info, { 1.0f - percent, percent, 0.0f, 1.0f }, SLIDER_TYPE_HORIZONTAL_CENTER, percent);
-
-	Renderer::LoadScene(scene);
-
-	U32 chain = Audio::CreateEffectChain({ AUDIO_EFFECT_REVERB });
-
-	AudioChannelParameters params{};
-	params.effectChainIndex = chain;
-	musicChannel = Audio::CreateChannel(params);
-	sfxChannel = Audio::CreateChannel();
-	
-	music = Resources::LoadAudio("audio/TheEquable.nhaud");
-	sfx = Resources::LoadAudio("audio/Mine.nhaud");
+bool hover(Element& element)
+{
+	element.SetColor({ 1.0f, 1.0f, 1.0f, 0.50f });
 
 	return true;
 }
 
-F32 lightVal = 0;
-
-void Update()
+bool unhover(Element& element)
 {
-	if (Input::ButtonDown(BUTTON_CODE_SPACE))
+	element.SetColor({ 1.0f, 1.0f, 1.0f, 0.25f });
+
+	return true;
+}
+
+bool click(Element& element)
+{
+	if (Input::OnButtonDown(ButtonCode::LeftMouse))
 	{
-		Audio::PlayAudio(sfxChannel, sfx);
-	}
-	
-	if (Input::OnButtonDown(BUTTON_CODE_M))
-	{
-		AudioParameters params{};
-		params.looping = true;
-		
-		Audio::PlayAudio(musicChannel, music, params);
-	}
-	
-	if (Input::MouseWheelDelta())
-	{
-		volume += 0.1f * Input::MouseWheelDelta();
-		Audio::ChangeChannelVolume(musicChannel, volume);
+		Logger::Debug("Left Click");
 	}
 
-	if (Input::OnButtonDown(BUTTON_CODE_V))
+	if (Input::OnButtonDown(ButtonCode::RightMouse))
 	{
-		bool b;
-		Settings::GetSetting(VSync, b);
-		Settings::SetSetting(VSync, !b);
+		Logger::Debug("Right Click");
 	}
 
-	if (Input::OnButtonDown(BUTTON_CODE_P))
-	{
-		Input::SetMousePosition(0, 0);
-	}
+	return true;
+}
 
-	if (Input::OnButtonDown(BUTTON_CODE_O))
-	{
-		Input::LockCursor(!Input::CursorLocked());
-	}
+bool ProjectileHit(const EntityRef& ref, bool hitVertical)
+{
+	Particles::Spawn(ref->position, groundTexture);
 
-	if (Input::OnButtonDown(BUTTON_CODE_I))
-	{
-		Platform::ConstrainMouse(!Platform::MouseConstrained());
-	}
+	Sprite::RemoveFrom(ref);
+	Projectile::RemoveFrom(ref);
+	World::DestroyEntity(ref);
+	return false;
+}
 
-	if (Input::OnButtonDown(BUTTON_CODE_U))
-	{
-		Input::ShowCursor(!Input::CursorShowing());
-	}
+bool Initialize()
+{
+	World::SetCamera(CameraType::Orthographic);
 
-	if (Input::OnButtonDown(BUTTON_CODE_H))
-	{
-		entity->CreateComponent<ModelComponent>(Resources::LoadModel("models/AnisotropyBarnLamp.nhmdl"));
-	}
+	walkTexture = Resources::LoadTexture("textures/walk.nht");
+	whiteTexture = Resources::LoadTexture("textures/white.nht");
+	textureAtlas = Resources::LoadTexture("textures/atlas.nht");
+	groundTexture = Resources::LoadTexture("textures/missing_texture.nht");
 
-	if (Input::ButtonDown(BUTTON_CODE_LEFT))
-	{
-		percent -= (F32)Time::DeltaTime();
-		if (percent < 0.0f) { percent = 0.0f; }
+	//ElementInfo info{};
+	//info.area = { 0.25f, 0.25f, 0.75f, 0.75f };
+	//info.color = { 1.0f, 1.0f, 1.0f, 0.25f };
+	//info.texture = groundTexture;
+	//
+	//ElementRef element = UI::CreateElement(info);
+	//
+	//element->OnHover += hover;
+	//element->OnExit += unhover;
+	//element->OnClick += click;
+	//
+	//ElementInfo textInfo{};
+	//textInfo.area = { 0.0f, 0.5f, 1.0f, 1.0f };
 
-		UI::ChangeSliderPercent(uiElement, percent);
-		UI::ChangeSliderColor(uiElement, { 1.0f - percent, percent, 0.0f, 1.0f });
-	}
+	//UI::CreateText({}, "SPHINX OF BLACK QUARTZ,\nJUDGE MY VOW!", 10.0f);
+	//UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.\n!@#$%^&*()[]{}\\|;:'\",<.>/?`~\n1234567890", 10.0f);
 
-	if (Input::ButtonDown(BUTTON_CODE_RIGHT))
-	{
-		percent += (F32)Time::DeltaTime();
-		if (percent > 1.0f) { percent = 1.0f; }
+	EntityRef ground = World::CreateEntity({ 0.0f, -5.0f }, { 100.0f, 1.0f });
+	EntityRef ground1 = World::CreateEntity({ 5.0f, -4.0f }, { 1.0f, 6.0f });
+	EntityRef ground2 = World::CreateEntity({ 0.0f, 8.0f }, { 100.0f, 1.0f });
 
-		UI::ChangeSliderPercent(uiElement, percent);
-		UI::ChangeSliderColor(uiElement, { 1.0f - percent, percent, 0.0f, 1.0f });
-	}
+	Collider::AddTo(ground);
+	Sprite::AddTo(ground, groundTexture);
 
-	Vector3 lightPos;
+	Collider::AddTo(ground1);
+	Sprite::AddTo(ground1, groundTexture);
 
-	lightVal += (F32)Time::DeltaTime();
+	Collider::AddTo(ground2);
+	Sprite::AddTo(ground2, groundTexture);
 
-	lightPos.x = Math::Cos(lightVal) * 0.2f;
-	lightPos.y = 1.0f;
-	lightPos.z = Math::Sin(lightVal) * 0.2f;
+	player = World::CreateEntity({ 0.0f, 0.0f }, { 1.0f, 1.54279279279f });
+	ComponentRef<Sprite> playerSprite = Sprite::AddTo(player, groundTexture);
+	character = Character::AddTo(player);
+	playerAnimation = Animation::AddTo(player, playerSprite);
 
-	light->transform.SetPosition(lightPos);
+	AnimationClip idleClip{};
+	idleClip.frames.Push({ walkTexture, { 0.125f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	playerAnimation->AddClip(idleClip);
 
-	Quaternion3 rotation(Vector3{ 1.0f, 5.0f, -3.2f } * 5.0f * (F32)(Time::DeltaTime() / 2.0));
+	AnimationClip walkClip{};
+	walkClip.frames.Push({ walkTexture, { 0.0f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.125f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.25f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.375f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.5f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.625f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.75f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.875f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.0f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.125f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.25f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.375f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.5f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.625f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.75f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.875f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	playerAnimation->AddClip(walkClip);
 
-	entity->transform.SetRotation(rotation * entity->transform.Rotation());
+	playerAnimation->SetClip(0);
+
+	ResourceRef<AudioClip> clip = Resources::LoadAudio("audio/Electric Zoo.nha");
+
+	U32 effectChain = Audio::CreateEffectChain();
+	//Audio::AddReverb(effectChain);
+	//Audio::AddEcho(effectChain);
+	//Audio::AddLimiter(effectChain);
+	//Audio::AddEqualizer(effectChain);
+	U32 channel = Audio::CreateChannel(effectChain);
+
+	//Audio::PlayAudioClip(channel, clip);
+
+	EntityRef tilemap = World::CreateEntity();
+
+	backgroundTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 0.5f, 1.0f);
+	foregroundTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 1.5f, 0.0f);
+	mainTilemap = Tilemap::AddTo(tilemap, 100, 100, Vector2::Zero, 1.0f, 0.5f);
+
+	TilemapCollider::AddTo(tilemap, mainTilemap);
+
+	return true;
 }
 
 void Shutdown()
 {
-	music.Destroy();
-	sfx.Destroy();
+
+}
+
+enum class PlayerAnimations
+{
+	Idle,
+	Walk
+};
+
+enum class PlayerState
+{
+	Idle,
+	WalkLeft,
+	WalkRight
+};
+
+PlayerState state = PlayerState::Idle;
+
+void Update()
+{
+	if (character->velocity.x > 0.1f)
+	{
+		if (state != PlayerState::WalkRight)
+		{
+			state = PlayerState::WalkRight;
+			facingLeft = false;
+			playerAnimation->SetClip(*PlayerAnimations::Walk, facingLeft);
+		}
+	}
+	else if (character->velocity.x < -0.1f)
+	{
+		if (state != PlayerState::WalkLeft)
+		{
+			state = PlayerState::WalkLeft;
+			facingLeft = true;
+			playerAnimation->SetClip(*PlayerAnimations::Walk, facingLeft);
+		}
+	}
+	else if(state != PlayerState::Idle)
+	{
+		state = PlayerState::Idle;
+		playerAnimation->SetClip(*PlayerAnimations::Idle, facingLeft);
+	}
+
+	if (Input::ButtonDown(ButtonCode::E))
+	{
+		EntityRef id = World::CreateEntity(player->position, 0.5f);
+
+		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
+		Vector2 dir = (World::ScreenToWorld(Input::MousePosition()) - player->position).Normalized();
+		ComponentRef<Projectile> p = Projectile::AddTo(id, dir * 20.0f, 0.0f, 0.0f);
+		if (s && p) { p->OnHit += ProjectileHit; }
+	}
+
+	if (Input::ButtonDown(ButtonCode::LeftMouse))
+	{
+		EntityRef id = World::CreateEntity(World::ScreenToWorld(Input::MousePosition()));
+
+		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
+	}
+
+	if (Input::ButtonDown(ButtonCode::RightMouse))
+	{
+		backgroundTilemap->SetTile(textureAtlas, backgroundTilemap->ScreenToTilemap(World::GetCamera(), Input::MousePosition()));
+	}
+
+	if (Input::ButtonDown(ButtonCode::MiddleMouse))
+	{
+		foregroundTilemap->SetTile(whiteTexture, foregroundTilemap->ScreenToTilemap(World::GetCamera(), Input::MousePosition()));
+	}
 }
 
 int main()
 {
-	GameInfo info{};
-	info.GameInit = Init;
-	info.GameUpdate = Update;
-	info.GameShutdown = Shutdown;
-	info.gameName = "Nihility Demo";
-	info.gameVersion = MakeVersionNumber(0, 1, 0);
-	info.steamAppId = 0;
-	info.discordAppId = 0;
+	GameInfo game{
+		.name = "Nihilty Demo",
+		.version = MakeVersionNumber(0, 1, 0),
+		.componentsInit = ComponentsInit,
+		.initialize = Initialize,
+		.shutdown = Shutdown,
+		.update = Update,
+	};
 
-	Engine::Initialize(info);
+	Engine::Initialize(game);
 
 	return 0;
 }

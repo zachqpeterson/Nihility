@@ -3,12 +3,8 @@
 #include "Defines.hpp"
 #include "TypeTraits.hpp"
 
-#include "String.hpp"
-
-#include "Memory/Memory.hpp"
-#include "Math/Math.hpp"
-
-typedef U64 HashHandle;
+#include "Platform/Memory.hpp"
+#include "Math/Hash.hpp"
 
 template<class Key, class Value>
 struct Hashmap
@@ -50,10 +46,12 @@ struct Hashmap
 		Cell* cell;
 	};
 
-public:
 	Hashmap();
 	Hashmap(U64 capacity);
 	Hashmap(Hashmap&& other) noexcept;
+	Hashmap(const Hashmap&);
+
+	Hashmap& operator=(const Hashmap&);
 	Hashmap& operator=(Hashmap&& other) noexcept;
 
 	~Hashmap();
@@ -68,10 +66,10 @@ public:
 	Value* Get(const Key& key) const;
 	Value* Request(const Key& key);
 	Value* RequestWithHash(const Key& key, U64 hash);
-	Value* Request(const Key& key, HashHandle& handle);
-	HashHandle GetHandle(const Key& key) const;
-	Value* Obtain(HashHandle handle) const;
-	bool Remove(HashHandle handle);
+	Value* Request(const Key& key, U64& handle);
+	U64 GetHandle(const Key& key) const;
+	Value* Obtain(U64 handle) const;
+	bool Remove(U64 handle);
 
 	Value* operator[](const Key& key);
 	const Value* operator[](const Key& key) const;
@@ -82,6 +80,7 @@ public:
 
 	U64 Size() const;
 	U64 Capacity() const;
+	bool Empty() const;
 
 	Iterator begin() { return { cells }; }
 	const Iterator begin() const { return { cells }; }
@@ -89,15 +88,10 @@ public:
 	const Iterator end() const { return { cells + capacity }; }
 
 private:
-	static U64 Hash(const Key& key);
-
 	U64 size = 0;
 	U64 capacity = 0;
 	U64 capMinusOne = 0;
 	Cell* cells = nullptr;
-
-	Hashmap(const Hashmap&) = delete;
-	Hashmap& operator=(const Hashmap&) = delete;
 };
 
 template<class Key, class Value>
@@ -106,9 +100,16 @@ inline Hashmap<Key, Value>::Hashmap() {}
 template<class Key, class Value>
 inline Hashmap<Key, Value>::Hashmap(U64 cap)
 {
-	Memory::AllocateArray(&cells, cap, capacity);
-	capacity = BitFloor(capacity);
+	capacity = BitCeiling(cap);
+	Memory::Allocate(&cells, capacity);
 	capMinusOne = capacity - 1;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>::Hashmap(const Hashmap& other) : size(other.size), capacity(other.capacity), capMinusOne(other.capMinusOne)
+{
+	Memory::Allocate(&cells, capacity);
+	CopyData(cells, other.cells, capacity);
 }
 
 template<class Key, class Value>
@@ -119,6 +120,19 @@ inline Hashmap<Key, Value>::Hashmap(Hashmap&& other) noexcept :
 	other.size = 0;
 	other.capacity = 0;
 	other.capMinusOne = 0;
+}
+
+template<class Key, class Value>
+inline Hashmap<Key, Value>& Hashmap<Key, Value>::operator=(const Hashmap& other)
+{
+	size = other.size;
+	capacity = other.capacity;
+	capMinusOne = other.capMinusOne;
+
+	Memory::Allocate(&cells, capacity);
+	CopyData(cells, other.cells, capacity);
+
+	return *this;
 }
 
 template<class Key, class Value>
@@ -158,7 +172,7 @@ inline void Hashmap<Key, Value>::Destroy()
 					//TODO: Key or Value could be allocated
 					if constexpr (IsDestroyable<Key>)
 					{
-						if constexpr (IsPointer<Value>) { cell->key->Destroy(); }
+						if constexpr (IsPointer<Key>) { cell->key->Destroy(); }
 						else { cell->key.Destroy(); }
 					}
 					if constexpr (IsDestroyable<Value>)
@@ -182,7 +196,7 @@ inline bool Hashmap<Key, Value>::Insert(const Key& key, const Value& value)
 {
 	if (size == capacity) { return false; }
 
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U32 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -202,7 +216,7 @@ inline bool Hashmap<Key, Value>::Insert(const Key& key, Value&& value) noexcept
 {
 	if (size == capacity) { return false; }
 
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -220,7 +234,7 @@ inline bool Hashmap<Key, Value>::Insert(const Key& key, Value&& value) noexcept
 template<class Key, class Value>
 inline Value* Hashmap<Key, Value>::GetInsert(const Key& key, const Value& value)
 {
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -239,7 +253,7 @@ inline Value* Hashmap<Key, Value>::GetInsert(const Key& key, const Value& value)
 template<class Key, class Value>
 inline Value* Hashmap<Key, Value>::GetInsert(const Key& key, Value&& value) noexcept
 {
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -260,7 +274,7 @@ inline bool Hashmap<Key, Value>::Remove(const Key& key)
 {
 	if (size == 0) { return false; }
 
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -279,7 +293,7 @@ inline bool Hashmap<Key, Value>::Remove(const Key& key)
 			if constexpr (IsPointer<Value>) { cell->value->Destroy(); }
 			else { cell->value.Destroy(); }
 		}
-		Zero(cell, sizeof(Cell));
+		memset(cell, 0, sizeof(Cell));
 
 		return true;
 	}
@@ -292,7 +306,7 @@ inline Value* Hashmap<Key, Value>::Get(const Key& key) const
 {
 	if (size == 0) { return nullptr; }
 
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -305,7 +319,7 @@ inline Value* Hashmap<Key, Value>::Get(const Key& key) const
 template<class Key, class Value>
 inline Value* Hashmap<Key, Value>::Request(const Key& key)
 {
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -335,31 +349,30 @@ inline Value* Hashmap<Key, Value>::RequestWithHash(const Key& key, U64 hash)
 }
 
 template<class Key, class Value>
-inline Value* Hashmap<Key, Value>::Request(const Key& key, HashHandle& hnd)
+inline Value* Hashmap<Key, Value>::Request(const Key& key, U64& handle)
 {
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
-	HashHandle handle = hash & capMinusOne;
+	handle = hash & capMinusOne;
 	Cell* cell = cells + handle;
 
 	while (cell->filled) { if (cell->key == key) { return &cell->value; } ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
 
 	size += !cell->filled;
 
-	hnd = handle;
 	cell->filled = true;
 	cell->key = key;
 	return &cell->value;
 }
 
 template<class Key, class Value>
-inline HashHandle Hashmap<Key, Value>::GetHandle(const Key& key) const
+inline U64 Hashmap<Key, Value>::GetHandle(const Key& key) const
 {
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
-	HashHandle handle = hash & capMinusOne;
+	U64 handle = hash & capMinusOne;
 	Cell* cell = cells + handle;
 	while (cell->filled && cell->key != key) { ++i; cell = cells + (handle = ((hash + i * i) & capMinusOne)); }
 
@@ -368,13 +381,13 @@ inline HashHandle Hashmap<Key, Value>::GetHandle(const Key& key) const
 }
 
 template<class Key, class Value>
-inline Value* Hashmap<Key, Value>::Obtain(HashHandle handle) const
+inline Value* Hashmap<Key, Value>::Obtain(U64 handle) const
 {
 	return &cells[handle].value;
 }
 
 template<class Key, class Value>
-inline bool Hashmap<Key, Value>::Remove(HashHandle handle)
+inline bool Hashmap<Key, Value>::Remove(U64 handle)
 {
 	Cell& cell = cells[handle];
 
@@ -392,7 +405,7 @@ inline bool Hashmap<Key, Value>::Remove(HashHandle handle)
 			if constexpr (IsPointer<Value>) { cell.value->Destroy(); }
 			else { cell.value.Destroy(); }
 		}
-		Zero(&cell, sizeof(Cell));
+		memset(&cell, 0, sizeof(Cell));
 
 		return true;
 	}
@@ -405,7 +418,7 @@ inline Value* Hashmap<Key, Value>::operator[](const Key& key)
 {
 	if (size == 0) { return nullptr; }
 
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -420,7 +433,7 @@ inline const Value* Hashmap<Key, Value>::operator[](const Key& key) const
 {
 	if (size == 0) { return nullptr; }
 
-	U64 hash = Hash(key);
+	U64 hash = Hash::Any(key);
 
 	U64 i = 0;
 	Cell* cell = cells + (hash & capMinusOne);
@@ -433,10 +446,10 @@ inline const Value* Hashmap<Key, Value>::operator[](const Key& key) const
 template<class Key, class Value>
 inline void Hashmap<Key, Value>::Reserve(U64 cap)
 {
-	if (cap < capacity) { return; }
+	if (cap <= capacity) { return; }
 
-	Memory::Reallocate(&cells, cap, capacity);
-	capacity = BitFloor(capacity);
+	capacity = BitFloor(cap);
+	Memory::Reallocate(&cells, cap);
 	capMinusOne = capacity - 1;
 
 	Clear();
@@ -457,7 +470,7 @@ inline void Hashmap<Key, Value>::Clear()
 			{
 				if constexpr (IsDestroyable<Key>)
 				{
-					if constexpr (IsPointer<Value>) { cell->key->Destroy(); }
+					if constexpr (IsPointer<Key>) { cell->key->Destroy(); }
 					else { cell->key.Destroy(); }
 				}
 				if constexpr (IsDestroyable<Value>)
@@ -469,7 +482,7 @@ inline void Hashmap<Key, Value>::Clear()
 		}
 	}
 
-	Zero(cells, sizeof(Cell) * capacity);
+	memset(cells, 0, sizeof(Cell) * capacity);
 	size = 0;
 }
 
@@ -478,6 +491,9 @@ inline U64 Hashmap<Key, Value>::Size() const { return size; }
 
 template<class Key, class Value>
 inline U64 Hashmap<Key, Value>::Capacity() const { return size; }
+
+template<class Key, class Value>
+inline bool Hashmap<Key, Value>::Empty() const { return size == 0; }
 
 /*------ITERATOR------*/
 
@@ -553,11 +569,3 @@ inline bool Hashmap<Key, Value>::Iterator::operator<= (const Iterator& other) co
 
 template<class Key, class Value>
 inline bool Hashmap<Key, Value>::Iterator::operator>= (const Iterator& other) const { return cell >= other.cell; }
-
-template<class Key, class Value>
-inline U64 Hashmap<Key, Value>::Hash(const Key& key)
-{
-	if constexpr (IsStringType<Key> || IsStringViewType<Key>) { return key.Hash(); }
-	else if constexpr (IsPointer<Key>) { return Hash::SeededHash(static_cast<U64>(key)); }
-	else { return Hash::SeededHash(key); }
-}

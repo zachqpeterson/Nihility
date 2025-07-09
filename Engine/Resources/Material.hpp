@@ -1,57 +1,60 @@
 #pragma once
 
 #include "ResourceDefines.hpp"
-#include "Rendering\Pipeline.hpp"
 
-struct Pipeline;
+#include "Rendering/Buffer.hpp"
+#include "Rendering/Shader.hpp"
+#include "Rendering/PipelineLayout.hpp"
+#include "Rendering/Pipeline.hpp"
+#include "Rendering/CommandBuffer.hpp"
+#include "Containers/Vector.hpp"
 
-struct alignas(16) NH_API MaterialData
+struct VkDescriptorSet_T;
+
+struct NH_API PushConstant
 {
-	U32			diffuseTextureIndex = U16_MAX;
-	U32			armTextureIndex = U16_MAX;
-	U32			normalTextureIndex = U16_MAX;
-	U32			emissivityTextureIndex = U16_MAX;
+	operator bool() const { return data && size; }
 
-	Vector4		baseColorFactor = Vector4One;
-	Vector4		metalRoughFactor = Vector4One;
-	Vector4		emissiveFactor = Vector4Zero;
-
-	F32			alphaCutoff = 0.0f;
-	U32			flags = MATERIAL_FLAG_NONE;
+	const void* data;
+	U32 size;
+	U32 offset;
+	U32 stages;
 };
 
-struct NH_API MaterialEffect : public Resource
+enum class VertexUsage
 {
-	Vector<ResourceRef<Pipeline>>	processing;
+	VerticesAndInstances,
+	Vertices,
+	Instances,
+	None
 };
 
-struct NH_API MaterialInfo
+struct NH_API Material
 {
-	void Destroy() { name.Destroy(); }
+public:
+	bool Create(const PipelineLayout& pipelineLayout, const Pipeline& pipeline, const Vector<VkDescriptorSet_T*>& descriptorSets = {}, const Vector<PushConstant>& pushConstants = {});
+	void Destroy();
 
-	String						name;
-	ResourceRef<MaterialEffect> effect;
+	void UploadVertices(const void* data, U32 size, U32 offset);
+	void UploadInstances(const void* data, U32 size, U32 offset);
+	void UploadInstancesAll(const void* data, U32 size, U32 offset);
+	void UploadIndices(const void* data, U32 size, U32 offset);
 
-	ResourceRef<Texture>		diffuseTexture;
-	ResourceRef<Texture>		armTexture;
-	ResourceRef<Texture>		normalTexture;
-	ResourceRef<Texture>		emissivityTexture;
+	void ClearVertices();
+	void ClearInstances();
+	void ClearIndices();
 
-	Vector4						baseColorFactor = Vector4One;
-	Vector4						metalRoughFactor = Vector4One;
-	Vector4						emissiveFactor = Vector4Zero;
+	const PipelineLayout& GetPipelineLayout() const;
+	
+	void Bind(CommandBuffer commandBuffer) const;
 
-	F32							alphaCutoff = 0.0f;
-	U32							flags = MATERIAL_FLAG_NONE;
-};
-
-struct NH_API Material : public Resource
-{
 private:
-	ResourceRef<MaterialEffect>		effect;
-
-	MaterialData					data;
-
-	friend class Resources;
-	friend struct Scene;
+	PipelineLayout pipelineLayout;
+	Pipeline pipeline;
+	VertexUsage vertexUsage;
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
+	Buffer instanceBuffers[MaxSwapchainImages];
+	Vector<VkDescriptorSet_T*> sets;
+	Vector<PushConstant> pushConstants;
 };

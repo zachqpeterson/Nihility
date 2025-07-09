@@ -3,11 +3,11 @@
 #include "Defines.hpp"
 #include "TypeTraits.hpp"
 
-#include "Platform\ThreadSafety.hpp"
+#include "Multithreading\ThreadSafety.hpp"
 
 #include <atomic>
 
-inline constexpr U64 CacheLineSize = 64;
+static constexpr inline U64 CacheLineSize = 64;
 
 template <CopyOrMoveable Type, U32 Capacity>
 struct NH_API SafeQueue
@@ -65,7 +65,7 @@ public:
 				break;
 			}
 
-			YieldThread();
+			Yield();
 		}
 
 		buffer[currentCursor.producer & capacityMask] = value;
@@ -89,7 +89,7 @@ public:
 				break;
 			}
 
-			YieldThread();
+			Yield();
 		}
 
 		buffer[currentCursor.producer & capacityMask] = Move(value);
@@ -113,7 +113,7 @@ public:
 				break;
 			}
 
-			YieldThread();
+			Yield();
 		}
 
 		buffer[currentCursor.consumer & capacityMask].GetData(value);

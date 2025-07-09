@@ -2,8 +2,8 @@
 
 #include "Defines.hpp"
 
-#include "Memory/Memory.hpp"
-#include "Platform/ThreadSafety.hpp"
+#include "Platform/Memory.hpp"
+#include "Multithreading/ThreadSafety.hpp"
 
 struct NH_API Freelist
 {
@@ -41,7 +41,7 @@ inline Freelist::Freelist() {}
 
 inline Freelist::Freelist(U32 count) : capacity(count)
 {
-	Memory::AllocateArray(&freeIndices, count);
+	Memory::Allocate(&freeIndices, count);
 }
 
 inline Freelist& Freelist::operator()(U32 count)
@@ -56,7 +56,7 @@ inline Freelist& Freelist::operator()(U32 count)
 	freeCount = 0;
 	lastFree = 0;
 	capacity = count;
-	Memory::AllocateArray(&freeIndices, count);
+	Memory::Allocate(&freeIndices, count);
 
 	return *this;
 }
@@ -80,7 +80,7 @@ inline void Freelist::Reset()
 	freeCount = 0;
 	lastFree = 0;
 	used = 0;
-	Zero(freeIndices, sizeof(U32) * capacity);
+	memset(freeIndices, 0, sizeof(U32) * capacity);
 }
 
 inline U32 Freelist::GetFree()
@@ -89,15 +89,19 @@ inline U32 Freelist::GetFree()
 
 	U32 index = SafeDecrement(&freeCount);
 
-	if (index < capacity) { ++used; return freeIndices[index]; }
+	if (index < capacity) { ++used; if (freeCount > 10000) { BreakPoint; } return freeIndices[index]; }
 
 	++used;
 	++freeCount;
+	if (freeCount > 10000) { BreakPoint; }
 	return SafeIncrement(&lastFree) - 1;
 }
 
 inline void Freelist::Release(U32 index)
 {
+#ifdef NH_DEBUG
+	for (U32 i = 0; i < freeCount; ++i) { if (freeIndices[i] == index) { BreakPoint; } }
+#endif
 	--used;
 	freeIndices[SafeIncrement(&freeCount) - 1] = index;
 }
@@ -130,6 +134,5 @@ inline void Freelist::Resize(U32 count)
 
 	Memory::Reallocate(&freeIndices, count);
 
-	freeCount += capacity - count;
 	capacity = count;
 }

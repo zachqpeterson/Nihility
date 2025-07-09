@@ -1,133 +1,146 @@
 #include "Material.hpp"
 
-#include "Resources\Resources.hpp"
-#include "Rendering\CommandBuffer.hpp"
-#include "Rendering\Renderer.hpp"
-#include "Rendering\UI.hpp"
+#include "Resources.hpp"
 
-//bool Rendergraph::Create(RendergraphInfo& info)
-//{
-//	name = info.name;
-//
-//	bool useVertices = false;
-//	bool useInstances = false;
-//	bool useIndices = false;
-//
-//	U32 renderpass = 0;
-//	U32 subpass = 0;
-//	bool first = true;
-//
-//	RenderpassInfo renderpassInfos[8];
-//
-//	for (PipelineInfo& pipeline : info.pipelines)
-//	{
-//		useVertices |= pipeline.shader->useVertices;
-//		useInstances |= pipeline.shader->useInstancing;
-//		useIndices |= pipeline.shader->useIndexing;
-//
-//		if (pipeline.shader->clearTypes || first) //TODO: Check for different render/depth targets
-//		{
-//			if (!first) { ++renderpass; }
-//
-//			subpass = 0;
-//
-//			RenderpassInfo& renderpassInfo = renderpassInfos[renderpass];
-//
-//			renderpassInfo.Reset();
-//			renderpassInfo.name = info.name + renderpass;
-//			renderpassInfo.resize = pipeline.resize;
-//
-//			if (pipeline.renderTargetCount || pipeline.depthStencilTarget)
-//			{
-//				for (U32 i = 0; i < pipeline.renderTargetCount; ++i)
-//				{
-//					renderpassInfo.AddRenderTarget(pipeline.renderTargets[i]);
-//					renderpassInfo.renderArea = { { 0, 0 }, { pipeline.renderTargets[i]->width, pipeline.renderTargets[i]->height } };
-//				}
-//
-//				if (pipeline.depthStencilTarget)
-//				{
-//					renderpassInfo.SetDepthStencilTarget(pipeline.depthStencilTarget);
-//					renderpassInfo.renderArea = { { 0, 0 }, { pipeline.depthStencilTarget->width, pipeline.depthStencilTarget->height } };
-//				}
-//			}
-//			else
-//			{
-//				renderpassInfo.AddRenderTarget(Renderer::defaultRenderTarget);
-//
-//				if (pipeline.shader->depthEnable) { renderpassInfo.SetDepthStencilTarget(Renderer::defaultDepthTarget); }
-//
-//				renderpassInfo.renderArea = { { 0, 0 }, { Renderer::defaultRenderTarget->width, Renderer::defaultRenderTarget->height } };
-//			}
-//
-//			renderpassInfo.colorLoadOp = pipeline.shader->clearTypes & CLEAR_TYPE_COLOR ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
-//			renderpassInfo.depthLoadOp = pipeline.shader->clearTypes & CLEAR_TYPE_DEPTH ? ATTACHMENT_LOAD_OP_CLEAR : ATTACHMENT_LOAD_OP_LOAD;
-//
-//			renderpassInfo.subpassCount = 1;
-//
-//			if (pipeline.shader->subpass.inputAttachmentCount) { Logger::Error("First Shader In Renderpass Cannot Have Input Attachments!"); return false; }
-//		}
-//
-//		pipeline.renderpass = renderpass;
-//
-//		if (pipeline.shader->subpass.inputAttachmentCount)
-//		{
-//			++subpass;
-//
-//			renderpassInfos[renderpass].AddSubpass(pipeline.shader->subpass);
-//		}
-//
-//		pipeline.subpass = subpass;
-//
-//		first = false;
-//	}
-//
-//	Renderpass* prevRenderpass = nullptr;
-//
-//	for (U32 i = 0; i <= renderpass; ++i)
-//	{
-//		Renderpass* renderpass = &renderpasses.Push({});
-//		Renderer::CreateRenderpass(renderpass, renderpassInfos[i], prevRenderpass);
-//		prevRenderpass = renderpass;
-//	}
-//
-//	U8 i = 0;
-//	for (PipelineInfo& pipelineInfo : info.pipelines)
-//	{
-//		Pipeline& pipeline = pipelines.Push({});
-//		pipeline.Create(pipelineInfo, &renderpasses[pipelineInfo.renderpass]);
-//
-//		++i;
-//	}
-//
-//	return true;
-//}
-//
-//void Rendergraph::Run(CommandBuffer* commandBuffer)
-//{
-//	U32 renderpass = U32_MAX;
-//	U32 subpass = 0;
-//
-//	for (Pipeline& pipeline : pipelines)
-//	{
-//		if (!pipeline.pipeline) { break; }
-//
-//		if (pipeline.renderpass != renderpass)
-//		{
-//			if (renderpass != U32_MAX) { commandBuffer->EndRenderpass(); }
-//
-//			commandBuffer->BeginRenderpass(&renderpasses[pipeline.renderpass]);
-//			renderpass = pipeline.renderpass;
-//			subpass = 0;
-//		}
-//		else if (pipeline.subpass != subpass)
-//		{
-//			commandBuffer->NextSubpass();
-//			subpass = pipeline.subpass;
-//		}
-//
-//		pipeline.Run(commandBuffer);
-//	}
-//
-//	commandBuffer->EndRenderpass();
-//}
+#include "Rendering/Renderer.hpp"
+
+bool Material::Create(const PipelineLayout& pipelineLayout, const Pipeline& pipeline, const Vector<VkDescriptorSet>& descriptorSets, const Vector<PushConstant>& pushConstants)
+{
+	this->pipelineLayout = pipelineLayout;
+	this->pipeline = pipeline;
+	this->sets = descriptorSets;
+	this->pushConstants = pushConstants;
+
+	if (pipeline.VertexSize())
+	{
+		vertexBuffer.Create(BufferType::Vertex, pipeline.VertexSize() * 4);
+		indexBuffer.Create(BufferType::Index, sizeof(U32) * 6);
+	}
+
+	if (pipeline.InstanceSize())
+	{
+		for (U32 i = 0; i < Renderer::swapchain.ImageCount(); ++i)
+		{
+			instanceBuffers[i].Create(BufferType::Vertex, pipeline.InstanceSize() * 10000);
+		}
+	}
+
+	if (pipeline.VertexSize() && pipeline.InstanceSize()) { vertexUsage = VertexUsage::VerticesAndInstances; }
+	else if (pipeline.VertexSize()) { vertexUsage = VertexUsage::Vertices; }
+	else if (pipeline.InstanceSize()) { vertexUsage = VertexUsage::Instances; }
+	else { vertexUsage = VertexUsage::None; }
+
+	return true;
+}
+
+void Material::Destroy()
+{
+	vertexBuffer.Destroy();
+	indexBuffer.Destroy();
+
+	for (U32 i = 0; i < Renderer::swapchain.ImageCount(); ++i)
+	{
+		instanceBuffers[i].Destroy();
+	}
+
+	pipeline.Destroy();
+	pipelineLayout.Destroy();
+}
+
+void Material::Bind(CommandBuffer commandBuffer) const
+{
+	if ((vertexUsage == VertexUsage::VerticesAndInstances || vertexUsage == VertexUsage::Instances) && instanceBuffers[Renderer::frameIndex].Offset() == U64_MAX) { return; }
+	if ((vertexUsage == VertexUsage::VerticesAndInstances || vertexUsage == VertexUsage::Vertices) && vertexBuffer.Offset() == U64_MAX) { return; }
+
+	commandBuffer.BindPipeline(pipeline);
+	if (sets.Size()) { commandBuffer.BindDescriptorSets(BindPoint::Graphics, pipelineLayout, 0, (U32)sets.Size(), sets.Data()); }
+	for (const PushConstant& pc : pushConstants)
+	{
+		commandBuffer.PushConstants(pipelineLayout, pc.stages, pc.offset, pc.size, pc.data);
+	}
+
+	switch (vertexUsage)
+	{
+	case VertexUsage::VerticesAndInstances: {
+		VkBuffer vertexBuffers[] = { vertexBuffer, instanceBuffers[Renderer::frameIndex] };
+		U64 offsets[] = { vertexBuffer.Offset(), instanceBuffers[Renderer::frameIndex].Offset() };
+		commandBuffer.BindVertexBuffers(CountOf32(vertexBuffers), vertexBuffers, offsets);
+
+		commandBuffer.BindIndexBuffer(indexBuffer, (U32)indexBuffer.Offset());
+
+		commandBuffer.DrawIndexed((U32)(indexBuffer.Size() / sizeof(U32)), (U32)(instanceBuffers[Renderer::frameIndex].Size() / pipeline.InstanceSize()), 0, 0, 0);
+	} break;
+	case VertexUsage::Vertices: {
+		VkBuffer vertexBuffers[] = { vertexBuffer };
+		U64 offsets[] = { vertexBuffer.Offset() };
+		commandBuffer.BindVertexBuffers(CountOf32(vertexBuffers), vertexBuffers, offsets);
+
+		commandBuffer.BindIndexBuffer(indexBuffer, (U32)indexBuffer.Offset());
+
+		commandBuffer.DrawIndexed((U32)(indexBuffer.Size() / sizeof(U32)), 1, 0, 0, 0);
+	} break;
+	case VertexUsage::Instances: {
+		VkBuffer vertexBuffers[] = { instanceBuffers[Renderer::frameIndex] };
+		U64 offsets[] = { instanceBuffers[Renderer::frameIndex].Offset() };
+		commandBuffer.BindVertexBuffers(CountOf32(vertexBuffers), vertexBuffers, offsets);
+
+		commandBuffer.Draw(0, 3, 0, (U32)(instanceBuffers[Renderer::frameIndex].Size() / pipeline.InstanceSize()));
+	} break;
+	case VertexUsage::None: {
+		commandBuffer.Draw(0, 3, 0, 1);
+	} break;
+	}
+}
+
+void Material::UploadVertices(const void* data, U32 size, U32 offset)
+{
+	if (pipeline.VertexSize()) { vertexBuffer.UploadVertexData(data, size, offset); }
+	else { Logger::Error("This Material Does Not Use Vertices!"); }
+}
+
+void Material::UploadInstances(const void* data, U32 size, U32 offset)
+{
+	if (pipeline.InstanceSize()) { instanceBuffers[Renderer::frameIndex].UploadVertexData(data, size, offset); }
+	else { Logger::Error("This Material Does Not Use Instances!"); }
+}
+
+void Material::UploadInstancesAll(const void* data, U32 size, U32 offset)
+{
+	if (pipeline.InstanceSize())
+	{
+		for (U32 i = 0; i < MaxSwapchainImages; ++i)
+		{
+			instanceBuffers[i].UploadVertexData(data, size, offset);
+		}
+	}
+	else { Logger::Error("This Material Does Not Use Instances!"); }
+}
+
+void Material::UploadIndices(const void* data, U32 size, U32 offset)
+{
+	if (pipeline.VertexSize()) { indexBuffer.UploadIndexData(data, size, offset); }
+	else { Logger::Error("This Material Does Not Use Indices!"); }
+}
+
+void Material::ClearVertices()
+{
+	vertexBuffer.Clear();
+}
+
+void Material::ClearInstances()
+{
+	for (U32 i = 0; i < MaxSwapchainImages; ++i)
+	{
+		instanceBuffers[i].Clear();
+	}
+}
+
+void Material::ClearIndices()
+{
+	indexBuffer.Clear();
+}
+
+const PipelineLayout& Material::GetPipelineLayout() const
+{
+	return pipelineLayout;
+}

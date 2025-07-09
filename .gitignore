@@ -1,20 +1,6 @@
-# Builds
-x64/
-Demo/x64/
-UnitTests/x64/
-Terrain/x64/
-Tilemap/x64/
-
-# Visual Studo
-.vs/
-
-# Compiled Shaders
-*.spv
-
-# Engine Resources
-*.log
-*.cfg
-*.cache
+.vs
+Bin/
+log.txt
 
 # Unimported Assets
 *.[bB][mM][pP]
@@ -33,13 +19,6 @@ Tilemap/x64/
 *.[pP][pP][mM]
 *.[pP][gG][mM]
 *.[sS][bB][sS][aA][rR]
-
-*.[fF][bB][xX]
-*.[oO][bB][jJ]
-*.[gG][lL][bB]
-*.[gG][lL][tT][fF]
-*.[bB][lL][eE][nN][dD]
-*.[pP][mM][xX]
 
 *.[tT][tT][fF]
 *.[oO][tT][fF]

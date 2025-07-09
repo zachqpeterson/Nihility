@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "TypeTraits.hpp"
 
-#include "Memory\Memory.hpp"
+#include "Platform\Memory.hpp"
 
 template<class Type>
 struct Queue
@@ -40,27 +39,25 @@ private:
 	Type* array = nullptr;
 };
 
-template<class Type> 
+template<class Type>
 inline Queue<Type>::Queue()
 {
-	Memory::AllocateArray(&array, capacity, capacity);
-	capacity = BitFloor(capacity);
+	capacity = BitFloor(Memory::Allocate(&array, capacity));
 	capacityMask = capacity - 1;
 }
 
 template<class Type>
-inline Queue<Type>::Queue(U64 cap) : capacity(BitCeiling(cap))
+inline Queue<Type>::Queue(U64 cap)
 {
-	Memory::AllocateArray(&array, capacity, capacity);
-	capacity = BitFloor(capacity);
+	capacity = BitFloor(Memory::Allocate(&array, cap));
 	capacityMask = capacity - 1;
 }
 
 template<class Type>
 inline Queue<Type>::Queue(const Queue<Type>& other) : capacity(other.capacity), capacityMask(other.capacity), front(other.front), back(other.back)
 {
-	Memory::AllocateArray(&array, capacity);
-	Copy(array, other.array, capacity);
+	Memory::Allocate(&array, capacity);
+	CopyData(array, other.array, capacity);
 }
 
 template<class Type>
@@ -78,9 +75,9 @@ inline Queue<Type>& Queue<Type>::operator=(const Queue<Type>& other)
 	back = other.back;
 	capacity = other.capacity;
 	capacityMask = other.capacityMask;
-	Memory::AllocateArray(&array, capacity);
+	Memory::Allocate(&array, capacity);
 
-	Copy(array, other.array, capacity);
+	CopyData(array, other.array, capacity);
 
 	return *this;
 }
@@ -126,7 +123,7 @@ inline void Queue<Type>::Push(const Type& value)
 {
 	if (Full()) { Reserve(capacity + 1); }
 
-	array[front++] = value;
+	Construct<Type>(array + front++, value);
 }
 
 template<class Type>
@@ -134,25 +131,21 @@ inline void Queue<Type>::Push(Type&& value) noexcept
 {
 	if (Full()) { Reserve(capacity + 1); }
 
-	array[front++] = Move(value);
+	Construct<Type>(array + front++, Move(value));
 }
 
 template<class Type>
 inline bool Queue<Type>::Pop(Type& value)
 {
-	if (Empty()) { return false; }
+	if (!Empty()) { Construct<Type>(&value, Move(array[back++ & capacityMask])); return true; }
 
-	value = Move(array[back++ & capacityMask]);
-
-	return true;
+	return false;
 }
 
 template<class Type>
-inline void Queue<Type>::Reserve(U64 capacity)
+inline void Queue<Type>::Reserve(U64 cap)
 {
-	capacity = BitCeiling(capacity);
-	Memory::Reallocate(&array, capacity, this->capacity);
-	capacity = BitFloor(capacity);
+	capacity = BitFloor(Memory::Reallocate(&array, cap));
 	capacityMask = capacity - 1;
 }
 

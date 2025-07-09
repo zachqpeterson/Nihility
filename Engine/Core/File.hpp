@@ -3,9 +3,6 @@
 #include "Defines.hpp"
 
 #include "Containers/String.hpp"
-#include "Containers/Vector.hpp"
-
-#include "Memory/Memory.hpp"
 
 enum NH_API FileOpenMode
 {
@@ -35,58 +32,44 @@ enum NH_API FileOpenMode
 	FILE_OPEN_TEMP_RESOURCE = FILE_OPEN_WRITE | FILE_OPEN_SEQUENTIAL | FILE_OPEN_BINARY | FILE_OPEN_NEW | FILE_OPEN_FLUSH_IMMEDIATE | FILE_OPEN_TEMPORARY,
 };
 
-struct FileStats
-{
-	U32 driveNumber;
-	U16 informationNode;
-	U16 mode;
-	I16 nlink;
-	I16 userId;
-	I16 groupId;
-	U32 driveNumber2;
-	I64 size;
-	I64 lastAccessed;
-	I64 lastModified;
-	I64 creationTime;
-};
-
-//TODO: Make thread safe, use mutex
-//TODO: Documentation
-//TODO: Read and Write at same time
 struct NH_API File
 {
+private:
+	struct FileStats
+	{
+		U32 driveNumber;
+		U16 informationNode;
+		U16 mode;
+		I16 nlink;
+		I16 userId;
+		I16 groupId;
+		U32 driveNumber2;
+		I64 size;
+		I64 lastAccessed;
+		I64 lastModified;
+		I64 creationTime;
+	} stats = {};
+
 public:
 	File();
 	File(const String& path, I32 mode);
 	~File();
 	void Destroy();
+
+	bool Open(const String& path, I32 mode);
+	bool Opened() const;
 	void Close();
 
-	template<StringType Str> bool Open(const Str& path, I32 mode);
-	bool Open(const C8* path, I32 mode);
-	bool Opened() const;
-
-	template <StringType Str> U32 ReadAll(Str& data);
-	template<typename Type> U32 ReadAll(Vector<Type>& data);
-	template<typename Type> U32 ReadAll(Type** data);
-
-	template <StringType Str> U32 ReadCount(Str& data, U32 count);
-	template<typename Type> U32 ReadCount(Vector<Type>& data, U32 count);
-	template<typename Type> U32 ReadCount(Type* data, U32 count);
-
-	template<typename Type> U32 Read(Type& value);
-	U32 Read(void* buffer, U32 size);
+	template<class Type> U64 Read(Type& value);
+	U64 Read(void* buffer, U64 size);
 	String ReadString();
 	String ReadLine();
+	String ReadAll();
 
-	template <StringType Str> U32 Write(const Str& data);
-	template<typename Type> U32 Write(const Vector<Type>& data);
-
-	template <StringType Str> U32 WriteCount(const Str& data, U32 count);
-	template<typename Type> U32 WriteCount(const Type* data, U32 count);
-
-	template<typename Type> U32 Write(const Type& value);
-	U32 Write(const void* buffer, U32 size);
+	template<class Type> U64 Write(const Type& value);
+	template<typename... Args> U64 FormatedWrite(const Args... args);
+	U64 Write(const String& data);
+	U64 Write(const void* buffer, U64 size);
 
 	void Reset();
 	void Seek(I64 offset);
@@ -101,107 +84,52 @@ public:
 	static bool Exists(const String& path);
 
 private:
+	template<class Type> U64 FormatedWrite(C8* buffer, Type type);
+
 	bool Flush();
 	bool FillBuffer();
 	bool EmptyBuffer();
 
-	static bool GetWorkingDirectory(String& str);
-
 	I32 handle = -1;
 	I64 pointer = 0;
-	bool opened{ false };
+	bool opened = false;
 
 	U8* streamPtr = nullptr;
 	U8* streamBuffer = nullptr;
-	U32 bufferSize = 0;
-	U32 bufferRemaining = 0;
+	U64 bufferSize = 0;
+	U64 bufferRemaining = 0;
 	U64 streamFlag = 0;
-
-	FileStats stats;
 };
 
-inline File::File(const String& path, I32 mode) { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; Open(path, mode); }
-
-template <StringType Str>
-inline bool File::Open(const Str& path, I32 mode)
-{
-	C8* p = path.ToType<C8*>();
-	return Open(p, mode);
-}
-
-template <StringType Str>
-inline U32 File::ReadAll(Str& data)
-{
-	data.Resize(stats.size);
-	return Read(data.Data(), (U32)stats.size);
-}
-
-template <typename Type>
-inline U32 File::ReadAll(Vector<Type>& data)
-{
-	data.Resize(stats.size);
-	return Read(data.Data(), (U32)stats.size);
-}
-
-template<typename Type>
-inline U32 File::ReadAll(Type** data)
-{
-	Memory::AllocateSize(data, (U32)stats.size);
-	return Read((void*)*data, (U32)stats.size);
-}
-
-template <StringType Str>
-inline U32 File::ReadCount(Str& data, U32 count)
-{
-	data.Resize(count);
-	return Read(data.Data(), count);
-}
-
-template <typename Type>
-inline U32 File::ReadCount(Vector<Type>& data, U32 count)
-{
-	data.Resize(count);
-	return Read(data.Data(), count);
-}
-
-template<typename Type>
-inline U32 File::ReadCount(Type* data, U32 count)
-{
-	return Read(data, count);
-}
-
-template <typename Type>
-inline U32 File::Read(Type& value)
+template<class Type>
+U64 File::Read(Type& value)
 {
 	return Read(&value, sizeof(Type));
 }
 
-template <StringType Str>
-inline U32 File::Write(const Str& data)
-{
-	return Write(data.Data(), (U32)data.Size() + 1);
-}
-
-template <typename Type>
-inline U32 File::Write(const Vector<Type>& data)
-{
-	return Write(data.Data(), sizeof(Type) * data.Size());
-}
-
-template <StringType Str>
-inline U32 File::WriteCount(const Str& data, U32 count)
-{
-	return Write(data.Data(), count);
-}
-
-template <typename Type>
-inline U32 File::WriteCount(const Type* data, U32 count)
-{
-	return Write(data, sizeof(Type) * count);
-}
-
-template <typename Type>
-inline U32 File::Write(const Type& value)
+template<class Type>
+U64 File::Write(const Type& value)
 {
 	return Write(&value, sizeof(Type));
+}
+
+template<typename... Args>
+U64 File::FormatedWrite(const Args... args)
+{
+	static C8 buffer[1024] = {};
+
+	U64 count = 0;
+
+	((count += FormatedWrite(buffer + count, args)), ...);
+
+	return count;
+}
+
+template<class Type>
+U64 File::FormatedWrite(C8* buffer, Type type)
+{
+	if constexpr (IsStringType<Type>) { return Write(type.Data(), type.Size()); }
+	else if constexpr (IsSame<Type, StringView>) { return Write(type.Data(), type.Size()); }
+	else if constexpr (IsStringLiteral<Type>) { return Write(type, Length(type)); }
+	else { return Write(buffer, String::Format(buffer, type)); }
 }

@@ -1,46 +1,61 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "TypeTraits.hpp"
 
-#include "Function.hpp"
-
-#include "Containers/Vector.hpp"
-#include "Containers/String.hpp"
 #include "Containers/Hashmap.hpp"
+#include "Containers/Vector.hpp"
 
-class NH_API Events
+#include <functional>
+
+template<typename... Args>
+struct Event
 {
-	struct Event
-	{
-		Event() {}
-		Event(Event&& other) noexcept : listeners(Move(other.listeners)) {}
-		Event& operator=(Event&& other) noexcept { listeners = Move(other.listeners); return *this; }
-
-		void Destroy() { listeners.Destroy(); }
-
-		bool operator==(const Event& other) const { return this == &other; }
-		bool operator!=(const Event& other) const { return this != &other; }
-
-		Vector<Function<void()>> listeners;
-
-		Event(const Event&) = delete;
-		Event& operator=(const Event&) = delete;
-	};
-
 public:
-	static void RegisterEvent(const String& name);
-	static void Listen(const String& name, const Function<void()>& response);
-	static void Listen(const String& name, Function<void()>&& response) noexcept;
+	Event() {}
+	~Event() { invocationList.Destroy(); }
 
-	static void Notify(const String& name);
+	Event& operator+=(std::function<bool(Args...)>&& func)
+	{
+		invocationList.Push(Move(func));
+		return *this;
+	}
+
+	Event& operator-=(std::function<bool(Args...)>&& func)
+	{
+		U32 i = 0;
+		for (const std::function<bool(Args...)>& f : invocationList)
+		{
+			if (func == f) { invocationList.Remove(i); return *this; }
+			++i;
+		}
+	
+		return *this;
+	}
+
+	void operator()(Args... args) const
+	{
+		for (const std::function<bool(Args...)>& func : invocationList)
+		{
+			if (func(args...)) { return; }
+		}
+	}
+
+	operator bool() const
+	{
+		return invocationList.Size();
+	}
+
+	void Destroy()
+	{
+		invocationList.Destroy();
+	}
+	
+	U32 InvocationSize() const
+	{
+		return invocationList.Size();
+	}
 
 private:
-	static bool Initialize();
-	static void Shutdown();
 
-	static Hashmap<String, Event> events;
-
-	STATIC_CLASS(Events);
-	friend class Engine;
+	Vector<std::function<bool(Args...)>> invocationList;
 };

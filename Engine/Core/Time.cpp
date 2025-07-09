@@ -1,9 +1,11 @@
 #include "Time.hpp"
 
+#include "Logger.hpp"
+
 #include <time.h>
 
 #if defined(NH_PLATFORM_WINDOWS)
-#include <Windows.h>
+#include "Platform/WindowsInclude.hpp"
 #endif
 
 F64 Time::clockFrequency = ClockFrequency();
@@ -14,7 +16,43 @@ F64 Time::frameTimer;
 U32 Time::frameRate;
 U32 Time::frameCounter;
 
+bool Time::Initialize()
+{
+	Logger::Trace("Initializing Time...");
+
+	frameEndTime = programStart;
+	delta = 0.0;
+	frameTimer = 0.0;
+	frameRate = 0;
+	frameCounter = 0;
+
+	return true;
+}
+
+void Time::Shutdown()
+{
+	Logger::Trace("Cleaning Up Time...");
+}
+
+void Time::Update()
+{
+	F64 now = AbsoluteTime();
+
+	delta = now - frameEndTime;
+	frameEndTime = now;
+	frameTimer += delta;
+	++frameCounter;
+
+	if (frameTimer >= 1.0)
+	{
+		frameTimer -= 1.0;
+		frameRate = frameCounter;
+		frameCounter = 0;
+	}
+}
+
 const F64& Time::DeltaTime() { return delta; }
+F64 Time::DeltaTimeStable() { return Math::Min(delta, 0.25); }
 const F64& Time::FrameEndTime() { return frameEndTime; }
 const U32& Time::FrameRate() { return frameRate; }
 F64 Time::UpTime() { return AbsoluteTime() - programStart; }
@@ -43,36 +81,6 @@ I64 Time::CoreCounter()
 
 	return nowTime.QuadPart;
 #endif
-}
-
-bool Time::Initialize()
-{
-	frameEndTime = programStart;
-	delta = 0.0;
-	frameTimer = 0.0;
-	frameRate = 0;
-	frameCounter = 0;
-
-	return true;
-}
-
-void Time::Shutdown() {}
-
-void Time::Update()
-{
-	F64 now = AbsoluteTime();
-
-	delta = now - frameEndTime;
-	frameEndTime = now;
-	frameTimer += delta;
-	++frameCounter;
-
-	if (frameTimer >= 1.0)
-	{
-		frameTimer -= 1.0;
-		frameRate = frameCounter;
-		frameCounter = 0;
-	}
 }
 
 F64 Time::ClockFrequency()

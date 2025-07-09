@@ -1,146 +1,82 @@
 #pragma once
 
 #include "ResourceDefines.hpp"
+
+#include "Texture.hpp"
 #include "Material.hpp"
+#include "Font.hpp"
 
-#include "Containers\String.hpp"
-#include "Containers\Vector.hpp"
-#include "Containers\Hashmap.hpp"
-#include "Containers\Queue.hpp"
-#include "Containers\Pair.hpp"
+#include "Audio/Audio.hpp"
+#include "Rendering/DescriptorSet.hpp"
+#include "Rendering/PipelineLayout.hpp"
+#include "Rendering/Shader.hpp"
+#include "Rendering/Pipeline.hpp"
+#include "Rendering/Buffer.hpp"
+#include "Containers/Freelist.hpp"
+#include "Containers/Hashmap.hpp"
+#include "Containers/String.hpp"
+#include "Containers/Queue.hpp"
 
-struct Font;
-struct AudioClip;
+struct aiAnimation;
+struct aiNodeAnim;
 struct aiTexture;
-struct aiMaterial;
-struct aiMesh;
 struct aiScene;
-struct DataReader;
-struct KTXInfo;
-struct VkImage_T;
-struct Rendergraph;
-struct RendergraphInfo;
-struct MeshUpload;
-struct ModelUpload;
-struct Model;
-struct Mesh;
-struct Scene;
-struct Shader;
-struct Pipeline;
-struct Material;
-struct MaterialData;
-struct MaterialInfo;
-enum KTXType;
-enum KTXFormat;
-enum VkFormat;
+struct aiNode;
+struct aiMesh;
 
 class NH_API Resources
 {
 public:
-	static ResourceRef<Texture> CreateTexture(const TextureInfo& info, const SamplerInfo& samplerInfo = {});
-	static ResourceRef<Texture> CreateSwapchainTexture(VkImage_T* image, VkFormat format, U8 index);
-	static ResourceRef<Shader> CreateShader(const String& name); //TODO: Load instead of create
-	static ResourceRef<MaterialEffect> CreateMaterialEffect(const String& name, Vector<ResourceRef<Pipeline>>&& pipelines);
-	static ResourceRef<MaterialEffect> CreateMaterialEffect(const String& name, const Vector<ResourceRef<Pipeline>>& pipelines);
-	static ResourceRef<Material> CreateMaterial(const MaterialInfo& info);
-	static ResourceRef<Mesh> CreateMesh(const String& name);
-	static Scene* CreateScene(const String& name, CameraType cameraType);
-
-	static bool RecreateTexture(ResourceRef<Texture>& texture, U16 width, U16 height, U16 depth);
-	static bool RecreateSwapchainTexture(ResourceRef<Texture>& texture, VkImage_T* image);
-
+	static ResourceRef<Texture> LoadTexture(const String& path, const Sampler& sampler = {}, bool generateMipmaps = true);
 	static ResourceRef<Font> LoadFont(const String& path);
 	static ResourceRef<AudioClip> LoadAudio(const String& path);
-	static ResourceRef<Texture> LoadTexture(const String& path);
-	static ResourceRef<Skybox> LoadSkybox(const String& path);
-	static ResourceRef<Shader> LoadShader(const String& path, ShaderStageType stage);
-	static ResourceRef<Pipeline> LoadPipeline(const String& path, U8 pushConstantCount = 0, PushConstant* pushConstants = nullptr);
-	static ResourceRef<Material> LoadMaterial(const String& path);
-	static ResourceRef<Mesh> LoadMesh(const String& path);
-	static ResourceRef<Model> LoadModel(const String& path);
-	static Scene* LoadScene(const String& path);
-	static Binary LoadBinary(const String& path);
-	static String LoadBinaryString(const String& path);
 
-	static void SaveMaterial(const ResourceRef<Material>& material);
-	static void SaveScene(Scene* scene);
-	static void SaveBinary(const String& path, U32 size, void* data);
-
-	static ResourceRef<Texture> GetTexture(const String& name);
-	static ResourceRef<Texture> GetTexture(HashHandle handle);
-	static ResourceRef<MaterialEffect> GetMaterialEffect(const String& name);
-	static ResourceRef<MaterialEffect> GetMaterialEffect(HashHandle handle);
-
-	static void DestroyBinary(Binary& binary);
-
-	static U8 MipmapCount(U16 width, U16 height);
-
-	//Convert 3rd party asset formats to nh formats
-	static String UploadFile(const String& path);
+	static String UploadResource(const String& path);
+	static String UploadTexture(const String& path);
 	static String UploadFont(const String& path);
 	static String UploadAudio(const String& path);
-	static String UploadSkybox(const String& path);
-	static String UploadTexture(const String& path, const TextureUpload& upload = {});
-	static String UploadTexture(const String& name, U32 index, const aiTexture* textureInfo, TextureUsage usage);
-	static String UploadTextures(const String& name, U32 index, const aiTexture* textureInfo0, const aiTexture* textureInfo1, const aiTexture* textureInfo2, U8 def0, U8 def1, U8 def2, TextureUsage usage);
-	static String UploadModel(const String& path);
+
+	static ResourceRef<Texture>& WhiteTexture();
+	static ResourceRef<Texture>& PlaceholderTexture();
+
+	static const DescriptorSet& DummyDescriptorSet();
+	static const DescriptorSet& BindlessTexturesDescriptorSet();
 
 private:
 	static bool Initialize();
 	static void Shutdown();
-
-	template<typename Type> using DestroyFn = void(*)(Type);
-	template<typename Type> static void CleanupHashmap(Hashmap<String, Pair<Type, U64>>& hashmap, DestroyFn<Type*> destroy);
-
 	static void Update();
 
-	//Texture Loading
-	static U8* LoadKTX(DataReader& reader, U32& faceCount, U32& faceSize, U32& resolution, VkFormat& format);
-	static void GetKTXInfo(U32 internalFormat, KTXInfo& info);
-	static VkFormat GetKTXFormat(KTXType type, KTXFormat format);
+	template<typename Type> using DestroyFn = void(*)(Type);
+	template<typename Type> static void DestroyResources(Hashmap<String, Type>& hashmap, DestroyFn<Type&> destroy);
 
-	//Assimp Utilities
-	static String ParseAssimpMaterial(const String& name, const aiMaterial* materialInfo, const aiScene* scene);
-	static String ParseAssimpMesh(const String& name, const aiMesh* meshInfo);
-	static void ParseAssimpModel(ModelUpload& model, const aiScene* scene);
+	static DescriptorSet dummySet;
+	static DescriptorSet bindlessTexturesSet;
 
-	static Hashmap<String, Pair<Texture, U64>>			textures;
-	static Hashmap<String, Pair<Skybox, U64>>			skyboxes;
-	static Hashmap<String, Pair<Font, U64>>				fonts;
-	static Hashmap<String, Pair<AudioClip, U64>>		audioClips;
-	static Hashmap<String, Pair<Shader, U64>>			shaders;
-	static Hashmap<String, Pair<Pipeline, U64>>			pipelines;
-	static Hashmap<String, Pair<MaterialEffect, U64>>	materialEffects;
-	static Hashmap<String, Pair<Material, U64>>			materials;
-	static Hashmap<String, Pair<Mesh, U64>>				meshes;
-	static Hashmap<String, Pair<Model, U64>>			models;
-	static Hashmap<String, Scene>						scenes;
+	static ResourceRef<Texture> whiteTexture;
+	static ResourceRef<Texture> placeholderTexture;
 
-	static Queue<ResourceUpdate>			bindlessTexturesToUpdate;
+	static Hashmap<String, Resource<Texture>> textures;
+	static Hashmap<String, Resource<Font>> fonts;
+	static Hashmap<String, Resource<AudioClip>> audioClips;
 
-	static MaterialEffect					pbrOpaque;
-	static MaterialEffect					pbrTransparent;
+	static Queue<ResourceRef<Texture>> bindlessTexturesToUpdate;
+
+	friend class Engine;
+	friend class Renderer;
 
 	STATIC_CLASS(Resources);
-	friend class Renderer;
-	friend class UI;
-	friend class Engine;
-	friend struct CommandBuffer;
-	friend struct Shader;
-	friend struct Pipeline;
-	friend struct Scene;
 };
 
 template<typename Type>
-inline void Resources::CleanupHashmap(Hashmap<String, Pair<Type, U64>>& hashmap, DestroyFn<Type*> destroy)
+inline void Resources::DestroyResources(Hashmap<String, Type>& hashmap, DestroyFn<Type&> destroy)
 {
-	using Iterator = typename Hashmap<String, Pair<Type, U64>>::Iterator;
+	using Iterator = typename Hashmap<String, Type>::Iterator;
 	Iterator end = hashmap.end();
 	for (Iterator it = hashmap.begin(); it != end; ++it)
 	{
-		if (it.Valid() && !it->a.name.Blank())
-		{
-			destroy(&it->a);
-		}
+		if (it.Valid()) { destroy(*it); }
 	}
+
+	hashmap.Destroy();
 }

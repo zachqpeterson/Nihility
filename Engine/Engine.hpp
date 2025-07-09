@@ -2,77 +2,34 @@
 
 #include "Defines.hpp"
 
-#include "Containers\String.hpp"
+#include "Containers/String.hpp"
 
-typedef bool(*InitializeFn)();
-typedef void(*UpdateFn)();
-typedef void(*ShutdownFn)();
+using ComponentsInitFn = void(*)();
+using InitializeFn = bool(*)();
+using ShutdownFn = void(*)();
+using UpdateFn = void(*)();
 
 struct NH_API GameInfo
 {
-	/// <summary>
-	/// A function pointer of the game's initialization function
-	/// </summary>
-	InitializeFn GameInit = nullptr;
+	StringView name;
+	U32 version;
 
-	/// <summary>
-	/// A function pointer of the game's update function
-	/// </summary>
-	UpdateFn GameUpdate = nullptr;
-
-	/// <summary>
-	/// A function pointer of the game's shutdown function
-	/// </summary>
-	ShutdownFn GameShutdown = nullptr;
-
-	/// <summary>
-	/// The name of the game
-	/// </summary>
-	StringView gameName = "My Game";
-
-	/// <summary>
-	/// The version of the game, use MakeVersionNumber
-	/// </summary>
-	U32 gameVersion = 0;
-
-	/// <summary>
-	/// The steam application ID for the game, used when publishing on steam
-	/// </summary>
-	U32 steamAppId = 0;
-
-	/// <summary>
-	/// The Discord application ID for the game, used when integrating with Discord
-	/// </summary>
-	U64 discordAppId = 0;
+	ComponentsInitFn componentsInit;
+	InitializeFn initialize;
+	ShutdownFn shutdown;
+	UpdateFn update;
 };
 
 class NH_API Engine
 {
 public:
-	/// <summary>
-	/// Initializes all parts of the engine, must be call before using ANY part of the engine
-	/// </summary>
-	/// <param name="gameInfo:">The information about your game</param>
-	static void Initialize(const GameInfo& gameInfo);
-
-#ifdef NH_DEBUG
-	static bool InEditor();
-#endif
+	static bool Initialize(const GameInfo& game);
 
 private:
-	static void UpdateLoop();
 	static void Shutdown();
+	static void MainLoop();
 
-	static void Focus();
-	static void Unfocus();
-
-	static GameInfo gameInfo;
-
-	static F64 targetFrametime;
-	static bool running;
-#ifdef NH_DEBUG
-	static bool inEditor;
-#endif
+	static GameInfo game;
 
 	STATIC_CLASS(Engine);
 };

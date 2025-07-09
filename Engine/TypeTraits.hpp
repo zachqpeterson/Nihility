@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Defines.hpp"
+
+#include <utility>
 #include <type_traits>
 #include <bit>
 
@@ -27,6 +30,9 @@ using FalseConstant = std::bool_constant<false>;
 	return __builtin_is_constant_evaluated();
 }
 
+template<bool Condition, class TrueResult, class FalseResult>
+using Conditional = std::conditional_t<Condition, TrueResult, FalseResult>;
+
 namespace TypeTraits
 {
 	template <class Type> struct RemovePointerAll { using type = Type; };
@@ -34,7 +40,7 @@ namespace TypeTraits
 	template <class Type, unsigned long long Count> struct GetPointerCount { static constexpr unsigned long long count = Count; };
 	template <class Type, unsigned long long Count> struct GetPointerCount<Type*, Count> : public GetPointerCount<Type, Count + 1> {};
 	template<class Type> struct AppliedPointers { using type = Type; };
-	template<class Type, unsigned long long Count> struct ApplyPointers : std::conditional_t<Count == 0, AppliedPointers<Type>, ApplyPointers<Type*, Count - 1>> {};
+	template<class Type, unsigned long long Count> struct ApplyPointers : Conditional<Count == 0, AppliedPointers<Type>, ApplyPointers<Type*, Count - 1>> {};
 
 	template<class Type>
 	struct IsDestroyable
@@ -89,6 +95,7 @@ template <class Type> using RemoveArrays = std::remove_all_extents_t<Type>;
 template <class Type> using AddLvalReference = std::add_lvalue_reference_t<Type>;
 template <class Type> using AddRvalReference = std::add_rvalue_reference_t<Type>;
 template <class Type> using BaseType = RemoveQualsReference<RemovePointers<RemoveArrays<Type>>>;
+template <class Type> using Decayed = std::decay_t<Type>;
 template <class Type> using UnsignedOf = std::make_unsigned_t<Type>;
 template <class Type> using SignedOf = std::make_signed_t<Type>;
 
@@ -141,8 +148,14 @@ template <class Type> concept FloatingPoint = IsFloatingPoint<Type>;
 template <class Type> constexpr const bool IsNumber = IsInteger<Type> || IsFloatingPoint<Type>;
 template <class Type> concept Number = IsNumber<Type>;
 
+template <class Type> constexpr const bool IsEnum = std::is_enum_v<Type>;
+template <class Type> concept Enum = IsEnum<Type>;
+
 template <class Type> constexpr const bool IsStringLiteral = AnyOf<BaseType<Type>, char, wchar_t, char8_t, char16_t, char32_t> && (IsSinglePointer<Type> || IsSingleArray<Type>);
 template <class Type> concept StringLiteral = IsStringLiteral<Type>;
+
+template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
+template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
 
 template <class Type> constexpr const bool IsFunctionPtr = std::is_function_v<Type>;
 template <class Type> concept FunctionPtr = requires (Type t) { IsFunctionPtr<decltype(t)>; };
@@ -204,6 +217,9 @@ template <class Type> constexpr const bool IsVoid = IsSame<RemoveQuals<Type>, vo
 
 template <class... Types> using CommonType = std::common_type_t<Types...>;
 
+template<class Type, template<class...> class U> constexpr const bool IsSpecializationOf = false;
+template<template<class...> class U, class... Vs> constexpr const bool IsSpecializationOf<U<Vs...>, U> = true;
+
 /// <summary>
 /// Forwards arg as movable
 /// </summary>
@@ -226,6 +242,17 @@ template <class Type> constexpr Type&& Forward(RemoveReference<Type>& arg) noexc
 template <class Type> constexpr Type&& Forward(RemoveReference<Type>&& arg) noexcept { static_assert(!IsLReference<Type>, "Bad Forward Call"); return static_cast<Type&&>(arg); }
 
 template<class T> AddRvalReference<T> DeclValue() noexcept { static_assert(False<T>, "GetReference not allowed in an evaluated context"); }
+
+/// <summary>
+/// Bit casts from one type to another, From and To must have the same size
+/// </summary>
+/// <param name="value:">The value to be casted</param>
+/// <returns>The casted value</returns>
+template<class To, class From> requires (sizeof(From) == sizeof(To))
+NH_NODISCARD NH_INLINE constexpr To TypePun(const From& value) noexcept
+{
+	return __builtin_bit_cast(To, value);
+}
 
 template<class Type> constexpr void Swap(Type& a, Type& b) noexcept
 {
@@ -261,6 +288,8 @@ namespace TypeTraits
 	static inline constexpr double F64_MAX = 1.7976931348623158e+308;			//Maximum value of a 64-bit float
 	static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum value of a 64-bit float
 }
+
+//TODO: long double
 template <class Type> struct Traits
 {
 	using Base = RemoveQuals<Type>;
@@ -431,4 +460,12 @@ template<Unsigned T>
 	if (val <= 1u) { return T{ 0 }; }
 
 	return static_cast<T>(Traits<T>::NumericalBits - 1 - std::countl_zero(val));
+}
+
+template<class Type>
+[[nodiscard]] constexpr std::underlying_type_t<Type> operator*(Type value) noexcept
+{
+	static_assert(std::is_enum_v<Type>, "Type must be an enum");
+
+	return static_cast<std::underlying_type_t<Type>>(value);
 }

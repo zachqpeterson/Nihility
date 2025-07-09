@@ -1,0 +1,222 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{786052cc-8853-4066-b83d-16026af05748}</ProjectGuid>
+    <RootNamespace>Engine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)Bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)Bin\Int\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)Bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)Bin\Int\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NH_EXPORT;_DEBUG;_CONSOLE;TRACY_ENABLE;MSDFGEN_PUBLIC=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4251</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NH_EXPORT;NDEBUG;_CONSOLE;MSDFGEN_PUBLIC=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)Lib;$(SolutionDir)Lib/tracy;%VULKAN_SDK%/include;%VULKAN_SDK%/Source</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4251</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%VULKAN_SDK%/Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Audio\Audio.hpp" />
+    <ClInclude Include="Containers\Freelist.hpp" />
+    <ClInclude Include="Containers\Hashmap.hpp" />
+    <ClInclude Include="Containers\Pair.hpp" />
+    <ClInclude Include="Containers\Queue.hpp" />
+    <ClInclude Include="Containers\SafeQueue.hpp" />
+    <ClInclude Include="Containers\Stack.hpp" />
+    <ClInclude Include="Containers\String.hpp" />
+    <ClInclude Include="Containers\Vector.hpp" />
+    <ClInclude Include="Core\Events.hpp" />
+    <ClInclude Include="Core\File.hpp" />
+    <ClInclude Include="Core\Logger.hpp" />
+    <ClInclude Include="Core\Time.hpp" />
+    <ClInclude Include="Defines.hpp" />
+    <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Math\Hash.hpp" />
+    <ClInclude Include="Math\Math.hpp" />
+    <ClInclude Include="Math\Physics.hpp" />
+    <ClInclude Include="Math\Random.hpp" />
+    <ClInclude Include="Multithreading\Jobs.hpp" />
+    <ClInclude Include="Multithreading\ThreadSafety.hpp" />
+    <ClInclude Include="Platform\Input.hpp" />
+    <ClInclude Include="Platform\Memory.hpp" />
+    <ClInclude Include="Platform\Platform.hpp" />
+    <ClInclude Include="Platform\WindowsInclude.hpp" />
+    <ClInclude Include="Rendering\Buffer.hpp" />
+    <ClInclude Include="Rendering\Camera.hpp" />
+    <ClInclude Include="Rendering\CommandBuffer.hpp" />
+    <ClInclude Include="Rendering\CommandBufferRing.hpp" />
+    <ClInclude Include="Rendering\DescriptorSet.hpp" />
+    <ClInclude Include="Rendering\Device.hpp" />
+    <ClInclude Include="Rendering\FrameBuffer.hpp" />
+    <ClInclude Include="Rendering\Instance.hpp" />
+    <ClInclude Include="Rendering\LineRenderer.hpp" />
+    <ClInclude Include="Rendering\PhysicalDevice.hpp" />
+    <ClInclude Include="Rendering\Pipeline.hpp" />
+    <ClInclude Include="Rendering\PipelineLayout.hpp" />
+    <ClInclude Include="Rendering\Renderer.hpp" />
+    <ClInclude Include="Rendering\Renderpass.hpp" />
+    <ClInclude Include="Rendering\Shader.hpp" />
+    <ClInclude Include="Rendering\Swapchain.hpp" />
+    <ClInclude Include="Rendering\UI.hpp" />
+    <ClInclude Include="Rendering\VulkanInclude.hpp" />
+    <ClInclude Include="Resources\AnimationComponent.hpp" />
+    <ClInclude Include="Resources\CharacterComponent.hpp" />
+    <ClInclude Include="Resources\ColliderComponent.hpp" />
+    <ClInclude Include="Resources\Component.hpp" />
+    <ClInclude Include="Resources\Entity.hpp" />
+    <ClInclude Include="Resources\Font.hpp" />
+    <ClInclude Include="Resources\Material.hpp" />
+    <ClInclude Include="Resources\Particles.hpp" />
+    <ClInclude Include="Resources\ProjectileComponent.hpp" />
+    <ClInclude Include="Resources\ResourceDefines.hpp" />
+    <ClInclude Include="Resources\Resources.hpp" />
+    <ClInclude Include="Resources\Settings.hpp" />
+    <ClInclude Include="Resources\SpriteComponent.hpp" />
+    <ClInclude Include="Resources\Texture.hpp" />
+    <ClInclude Include="Resources\TilemapColliderComponent.hpp" />
+    <ClInclude Include="Resources\TilemapComponent.hpp" />
+    <ClInclude Include="Resources\World.hpp" />
+    <ClInclude Include="TypeTraits.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Lib\msdfgen\core\contour-combiners.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Contour.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\DistanceMapping.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\edge-coloring.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\edge-segments.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\edge-selectors.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\EdgeHolder.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\equation-solver.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\msdf-error-correction.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\MSDFErrorCorrection.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\msdfgen.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Projection.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\rasterization.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\render-sdf.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Scanline.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\sdf-error-estimation.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\shape-description.cpp" />
+    <ClCompile Include="..\Lib\msdfgen\core\Shape.cpp" />
+    <ClCompile Include="..\Lib\tracy\TracyClient.cpp" />
+    <ClCompile Include="Audio\Audio.cpp" />
+    <ClCompile Include="Core\File.cpp" />
+    <ClCompile Include="Core\Logger.cpp" />
+    <ClCompile Include="Core\Time.cpp" />
+    <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Math\Math.cpp" />
+    <ClCompile Include="Math\Physics.cpp" />
+    <ClCompile Include="Multithreading\Jobs.cpp" />
+    <ClCompile Include="Multithreading\ThreadSafety.cpp" />
+    <ClCompile Include="Platform\Input.cpp" />
+    <ClCompile Include="Platform\Memory.cpp" />
+    <ClCompile Include="Platform\PlatformWindows.cpp" />
+    <ClCompile Include="Rendering\Buffer.cpp" />
+    <ClCompile Include="Rendering\Camera.cpp" />
+    <ClCompile Include="Rendering\CommandBuffer.cpp" />
+    <ClCompile Include="Rendering\CommandBufferRing.cpp" />
+    <ClCompile Include="Rendering\DescriptorSet.cpp" />
+    <ClCompile Include="Rendering\Device.cpp" />
+    <ClCompile Include="Rendering\FrameBuffer.cpp" />
+    <ClCompile Include="Rendering\Instance.cpp" />
+    <ClCompile Include="Rendering\LineRenderer.cpp" />
+    <ClCompile Include="Rendering\PhysicalDevice.cpp" />
+    <ClCompile Include="Rendering\Pipeline.cpp" />
+    <ClCompile Include="Rendering\PipelineLayout.cpp" />
+    <ClCompile Include="Rendering\Renderer.cpp" />
+    <ClCompile Include="Rendering\Renderpass.cpp" />
+    <ClCompile Include="Rendering\Shader.cpp" />
+    <ClCompile Include="Rendering\Swapchain.cpp" />
+    <ClCompile Include="Rendering\UI.cpp" />
+    <ClCompile Include="Resources\AnimationComponent.cpp" />
+    <ClCompile Include="Resources\CharacterComponent.cpp" />
+    <ClCompile Include="Resources\ColliderComponent.cpp" />
+    <ClCompile Include="Resources\Entity.cpp" />
+    <ClCompile Include="Resources\Font.cpp" />
+    <ClCompile Include="Resources\Material.cpp" />
+    <ClCompile Include="Resources\Particles.cpp" />
+    <ClCompile Include="Resources\ProjectileComponent.cpp" />
+    <ClCompile Include="Resources\Resources.cpp" />
+    <ClCompile Include="Resources\SpriteComponent.cpp" />
+    <ClCompile Include="Resources\Settings.cpp" />
+    <ClCompile Include="Resources\TilemapColliderComponent.cpp" />
+    <ClCompile Include="Resources\TilemapComponent.cpp" />
+    <ClCompile Include="Resources\World.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -2,165 +2,100 @@
 
 #include "Defines.hpp"
 #include "TypeTraits.hpp"
-#include "Introspection.hpp"
 
-#include "Platform\Platform.hpp"
-#include "Platform\Settings.hpp"
-#include "Platform\Input.hpp"
-#include "Platform\Audio.hpp"
-#include "Platform\Jobs.hpp"
-#include "Networking\Discord.hpp"
-#include "Networking\Steam.hpp"
-#include "Resources\Resources.hpp"
-#include "Rendering\Renderer.hpp"
-#include "Rendering\UI.hpp"
-#include "Math\Math.hpp"
-#include "Math\Physics.hpp"
-#include "Core\Logger.hpp"
-#include "Core\Events.hpp"
-#include "Core\Time.hpp"
+#include "Platform/Platform.hpp"
+#include "Platform/Memory.hpp"
+#include "Platform/Input.hpp"
+#include "Resources/Settings.hpp"
+#include "Resources/Resources.hpp"
+#include "Containers/String.hpp"
+#include "Core/Time.hpp"
+#include "Core/File.hpp"
+#include "Core/Logger.hpp"
+#include "Core/Events.hpp"
+#include "Math/Math.hpp"
+#include "Math/Random.hpp"
+#include "Math/Physics.hpp"
+#include "Multithreading/Jobs.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Rendering/UI.hpp"
+#include "Audio/Audio.hpp"
 
-GameInfo Engine::gameInfo;
+#include "tracy/Tracy.hpp"
 
-F64 Engine::targetFrametime;
-bool Engine::running;
-#ifdef NH_DEBUG
-bool Engine::inEditor = true;
-#endif
+GameInfo Engine::game;
 
-void Engine::Initialize(const GameInfo& gameInfo_)
+bool Engine::Initialize(const GameInfo& _info)
 {
-	gameInfo = gameInfo_;
+	game = _info;
 
-	//TODO: Validate gameInfo
+	if (!Logger::Initialize()) { return false; }
+	if (!Memory::Initialize()) { return false; }
+	if (!Settings::Initialize()) { return false; }
+	if (!Platform::Initialize(game.name)) { return false; }
+	if (!Input::Initialize()) { return false; }
+	if (!Audio::Initialize()) { return false; }
+	if (!Renderer::Initialize(game.name, game.version)) { return false; }
+	if (!Resources::Initialize()) { return false; }
+	if (!UI::Initialize()) { return false; }
+	if (!Physics::Initialize()) { return false; }
+	game.componentsInit();
+	if (!World::Initialize()) { return false; }
+	if (!game.initialize()) { return false; }
+	if (!Time::Initialize()) { return false; }
 
-	running = true;
+	Renderer::SubmitTransfer();
 
-	if (!Memory::Initialize()) { Logger::Fatal("Failed To Initialize Memory!"); return; }
-	if (!Jobs::Initialize()) { Logger::Fatal("Failed To Initialize Jobs!"); return; }
-	if (!Logger::Initialize()) { Logger::Fatal("Failed To Initialize Logger!"); return; }
-	if (!Time::Initialize()) { Logger::Fatal("Failed To Initialize Time!"); return; }
-	if (!Events::Initialize()) { Logger::Fatal("Failed To Initialize Events!"); return; }
-	if (!Settings::Initialize()) { Logger::Fatal("Failed To Initialize Settings!"); return; }
-	if (!Physics::Initialize()) { Logger::Fatal("Failed To Initialize Physics!"); return; }
-	if (!Platform::Initialize(gameInfo.gameName)) { Logger::Fatal("Failed To Initialize Platform!"); return; }
-	if (!Renderer::Initialize(gameInfo.gameName, gameInfo.gameVersion)) { Logger::Fatal("Failed To Initialize Renderer!"); return; }
-	if (!Resources::Initialize()) { Logger::Fatal("Failed To Initialize Resources!"); return; }
-	if (!UI::Initialize()) { Logger::Fatal("Failed To Initialize UI!"); return; }
-	//Particles
-	if (!Audio::Initialize()) { Logger::Fatal("Failed To Initialize Audio!"); return; }
-	if (!Input::Initialize()) { Logger::Fatal("Failed To Initialize Input!"); return; }
-
-	if (gameInfo.steamAppId != 0)
-	{
-		if(!Steam::Initialize(gameInfo.steamAppId)) { Logger::Fatal("Failed To Initialize Steam!"); return; }
-	}
-
-	Discord::Initialize(gameInfo.discordAppId);
-
-#ifdef NH_DEBUG
-	Activity activity{};
-	activity.name = "Nihility";
-	activity.details = gameInfo.gameName;
-	activity.largeImage = "nihility_logo";
-	activity.largeImageText = "Nihility";
-
-	Discord::SetActivity(activity);
-#endif
-
-	Logger::Trace("Initializing Game...");
-	ASSERT(gameInfo.GameInit());
-
-	Renderer::InitialSubmit();
-
-	Events::Listen("Focused", Focus);
-	Events::Listen("Unfocused", Unfocus);
-
-	UpdateLoop();
-
+	MainLoop();
 	Shutdown();
+
+	return true;
 }
 
 void Engine::Shutdown()
 {
-	Logger::Trace("Shutting Down Game...");
-	gameInfo.GameShutdown();
-	Discord::Shutdown();
-	Steam::Shutdown();
-	Audio::Shutdown();
-	//Particles
+	Time::Shutdown();
+	game.shutdown();
+	World::Shutdown();
+	Physics::Shutdown();
 	UI::Shutdown();
 	Resources::Shutdown();
 	Renderer::Shutdown();
+	Audio::Shutdown();
 	Input::Shutdown();
 	Platform::Shutdown();
-	Physics::Shutdown();
-	Jobs::Shutdown();
 	Settings::Shutdown();
-	Logger::Shutdown();
-	Events::Shutdown();
 	Memory::Shutdown();
-	Time::Shutdown();
+	Logger::Shutdown();
 }
 
-void Engine::UpdateLoop()
+void Engine::MainLoop()
 {
-	F64 timeAccumulation = 0.0;
-	while (running)
+	Time::Update();
+
+	while (Platform::running)
 	{
+		FrameMark;
 		Time::Update();
+
 		Input::Update();
+		Platform::Update();
 
-		if (!Platform::Update() || Input::OnButtonDown(BUTTON_CODE_ESCAPE)) { break; } //TODO: Separate Thread
+		if (Input::OnButtonDown(ButtonCode::Escape)) { Platform::running = false; }
 
-		if (Input::OnButtonDown(BUTTON_CODE_F11))
+		game.update();
+
+		Renderer::Update();
+
+		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
+		I64 remainingUS = (I64)(remainingFrameTime * 1000000.0);
+
+		while (remainingUS > 0)
 		{
-			Platform::SetFullscreen(!Platform::fullscreen);
+			Jobs::Yield();
+
+			remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
+			remainingUS = (I64)(remainingFrameTime * 1000000.0);
 		}
-
-#ifdef NH_DEBUG
-		if (Input::OnButtonDown(BUTTON_CODE_F5))
-		{
-			inEditor = !inEditor;
-		}
-#endif
-
-		bool runFrame = false;
-		if (!Platform::minimised) { runFrame = Renderer::BeginFrame(); }
-
-		Physics::Update((F32)Time::DeltaTime()); //TODO: constant step
-		UI::Update();
-
-		gameInfo.GameUpdate();
-		//Animations::Update();
-
-		Audio::Update();
-
-		if (runFrame) { Renderer::EndFrame(); }
-
-		Steam::Update();
-		Discord::Update();
-
-		F64 remainingFrameTime = targetFrametime - Time::FrameUpTime();
-		U64 remainingUS = (U64)(remainingFrameTime * 990000.0);
-
-		if (remainingUS > 0) { Jobs::SleepForMicro(remainingUS); }
 	}
-}
-
-#ifdef NH_DEBUG
-bool Engine::InEditor()
-{
-	return inEditor;
-}
-#endif
-
-void Engine::Focus()
-{
-	Settings::GetSetting(TargetFrametime, targetFrametime);
-}
-
-void Engine::Unfocus()
-{
-	Settings::GetSetting(TargetFrametimeSuspended, targetFrametime);
 }

@@ -1,279 +1,305 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "Math\Math.hpp"
-#include "Resources\ResourceDefines.hpp"
+#include "TypeTraits.hpp"
 
-enum NH_API ButtonCode
+#include "Containers/Vector.hpp"
+#include "Math/Math.hpp"
+
+enum class NH_API ButtonCode
 {
 	/*Mouse Buttons*/
-	BUTTON_CODE_LEFT_MOUSE = 0x01,
-	BUTTON_CODE_RIGHT_MOUSE = 0x02,
-	BUTTON_CODE_MIDDLE_MOUSE = 0x04,
-	BUTTON_CODE_X_MOUSE_ONE = 0x05,
-	BUTTON_CODE_X_MOUSE_TWO = 0x06,
+	LeftMouse = 0x01,
+	RightMouse = 0x02,
+	MiddleMouse = 0x04,
+	XMouseOne = 0x05,
+	XMouseTwo = 0x06,
+	ScrollWheel = 0xFF,
 
 	/*Keyboard Buttons*/
-	BUTTON_CODE_CANCEL = 0x03,
-	BUTTON_CODE_BACK = 0x08,
-	BUTTON_CODE_TAB = 0x09,
-	BUTTON_CODE_CLEAR = 0x0C,
-	BUTTON_CODE_RETURN = 0x0D,
-	BUTTON_CODE_SHIFT = 0x10,
-	BUTTON_CODE_CTRL = 0x11,
-	BUTTON_CODE_ALT = 0x12,
-	BUTTON_CODE_PAUSE = 0x13,
-	BUTTON_CODE_CAPITAL = 0x14,
-	BUTTON_CODE_KANA = 0x15,
-	BUTTON_CODE_HANGEUL = 0x15,
-	BUTTON_CODE_HANGUL = 0x15,
-	BUTTON_CODE_JUNJA = 0x17,
-	BUTTON_CODE_FINAL = 0x18,
-	BUTTON_CODE_HANJA = 0x19,
-	BUTTON_CODE_KANJI = 0x19,
-	BUTTON_CODE_ESCAPE = 0x1B,
-	BUTTON_CODE_CONVERT = 0x1C,
-	BUTTON_CODE_NONCONVERT = 0x1D,
-	BUTTON_CODE_ACCEPT = 0x1E,
-	BUTTON_CODE_MODE_CHANGE = 0x1F,
-	BUTTON_CODE_SPACE = 0x20,
-	BUTTON_CODE_PRIOR = 0x21,
-	BUTTON_CODE_NEXT = 0x22,
-	BUTTON_CODE_END = 0x23,
-	BUTTON_CODE_HOME = 0x24,
-	BUTTON_CODE_LEFT = 0x25,
-	BUTTON_CODE_UP = 0x26,
-	BUTTON_CODE_RIGHT = 0x27,
-	BUTTON_CODE_DOWN = 0x28,
-	BUTTON_CODE_SELECT = 0x29,
-	BUTTON_CODE_PRINT = 0x2A,
-	BUTTON_CODE_EXECUTE = 0x2B,
-	BUTTON_CODE_SNAPSHOT = 0x2C,
-	BUTTON_CODE_INSERT = 0x2D,
-	BUTTON_CODE_DELETE = 0x2E,
-	BUTTON_CODE_HELP = 0x2F,
-	BUTTON_CODE_ZERO = 0x30, //TODO: Maybe 0..9
-	BUTTON_CODE_ONE = 0x31,
-	BUTTON_CODE_TWO = 0x32,
-	BUTTON_CODE_THREE = 0x33,
-	BUTTON_CODE_FOUR = 0x34,
-	BUTTON_CODE_FIVE = 0x35,
-	BUTTON_CODE_SIX = 0x36,
-	BUTTON_CODE_SEVEN = 0x37,
-	BUTTON_CODE_EIGHT = 0x38,
-	BUTTON_CODE_NINE = 0x39,
-	BUTTON_CODE_A = 0x41,
-	BUTTON_CODE_B = 0x42,
-	BUTTON_CODE_C = 0x43,
-	BUTTON_CODE_D = 0x44,
-	BUTTON_CODE_E = 0x45,
-	BUTTON_CODE_F = 0x46,
-	BUTTON_CODE_G = 0x47,
-	BUTTON_CODE_H = 0x48,
-	BUTTON_CODE_I = 0x49,
-	BUTTON_CODE_J = 0x4A,
-	BUTTON_CODE_K = 0x4B,
-	BUTTON_CODE_L = 0x4C,
-	BUTTON_CODE_M = 0x4D,
-	BUTTON_CODE_N = 0x4E,
-	BUTTON_CODE_O = 0x4F,
-	BUTTON_CODE_P = 0x50,
-	BUTTON_CODE_Q = 0x51,
-	BUTTON_CODE_R = 0x52,
-	BUTTON_CODE_S = 0x53,
-	BUTTON_CODE_T = 0x54,
-	BUTTON_CODE_U = 0x55,
-	BUTTON_CODE_V = 0x56,
-	BUTTON_CODE_W = 0x57,
-	BUTTON_CODE_X = 0x58,
-	BUTTON_CODE_Y = 0x59,
-	BUTTON_CODE_Z = 0x5A,
-	BUTTON_CODE_LWIN = 0x5B,
-	BUTTON_CODE_RWIN = 0x5C,
-	BUTTON_CODE_APPS = 0x5D,
-	BUTTON_CODE_SLEEP = 0x5F,
-	BUTTON_CODE_NUMPAD0 = 0x60,
-	BUTTON_CODE_NUMPAD1 = 0x61,
-	BUTTON_CODE_NUMPAD2 = 0x62,
-	BUTTON_CODE_NUMPAD3 = 0x63,
-	BUTTON_CODE_NUMPAD4 = 0x64,
-	BUTTON_CODE_NUMPAD5 = 0x65,
-	BUTTON_CODE_NUMPAD6 = 0x66,
-	BUTTON_CODE_NUMPAD7 = 0x67,
-	BUTTON_CODE_NUMPAD8 = 0x68,
-	BUTTON_CODE_NUMPAD9 = 0x69,
-	BUTTON_CODE_NPAD_MULTIPLY = 0x6A,
-	BUTTON_CODE_NPAD_ADD = 0x6B,
-	BUTTON_CODE_NPAD_SEPARATOR = 0x6C,
-	BUTTON_CODE_NPAD_SUBTRACT = 0x6D,
-	BUTTON_CODE_NPAD_DECIMAL = 0x6E,
-	BUTTON_CODE_NPAD_DIVIDE = 0x6F,
-	BUTTON_CODE_F1 = 0x70,
-	BUTTON_CODE_F2 = 0x71,
-	BUTTON_CODE_F3 = 0x72,
-	BUTTON_CODE_F4 = 0x73,
-	BUTTON_CODE_F5 = 0x74,
-	BUTTON_CODE_F6 = 0x75,
-	BUTTON_CODE_F7 = 0x76,
-	BUTTON_CODE_F8 = 0x77,
-	BUTTON_CODE_F9 = 0x78,
-	BUTTON_CODE_F10 = 0x79,
-	BUTTON_CODE_F11 = 0x7A,
-	BUTTON_CODE_F12 = 0x7B,
-	BUTTON_CODE_F13 = 0x7C,
-	BUTTON_CODE_F14 = 0x7D,
-	BUTTON_CODE_F15 = 0x7E,
-	BUTTON_CODE_F16 = 0x7F,
-	BUTTON_CODE_F17 = 0x80,
-	BUTTON_CODE_F18 = 0x81,
-	BUTTON_CODE_F19 = 0x82,
-	BUTTON_CODE_F20 = 0x83,
-	BUTTON_CODE_F21 = 0x84,
-	BUTTON_CODE_F22 = 0x85,
-	BUTTON_CODE_F23 = 0x86,
-	BUTTON_CODE_F24 = 0x87,
-	BUTTON_CODE_NAVIGATION_VIEW = 0x88,
-	BUTTON_CODE_NAVIGATION_MENU = 0x89,
-	BUTTON_CODE_NAVIGATION_UP = 0x8A,
-	BUTTON_CODE_NAVIGATION_DOWN = 0x8B,
-	BUTTON_CODE_NAVIGATION_LEFT = 0x8C,
-	BUTTON_CODE_NAVIGATION_RIGHT = 0x8D,
-	BUTTON_CODE_NAVIGATION_ACCEPT = 0x8E,
-	BUTTON_CODE_NAVIGATION_CANCEL = 0x8F,
-	BUTTON_CODE_NUMLOCK = 0x90,
-	BUTTON_CODE_SCROLL = 0x91,
-	BUTTON_CODE_OEM_NEC_EQUAL = 0x92,
-	BUTTON_CODE_OEM_FJ_JISHO = 0x92,
-	BUTTON_CODE_OEM_FJ_MASSHOU = 0x93,
-	BUTTON_CODE_OEM_FJ_TOUROKU = 0x94,
-	BUTTON_CODE_OEM_FJ_LOYA = 0x95,
-	BUTTON_CODE_OEM_FJ_ROYA = 0x96,
-	BUTTON_CODE_LSHIFT = 0xA0,
-	BUTTON_CODE_RSHIFT = 0xA1,
-	BUTTON_CODE_LCTRL = 0xA2,
-	BUTTON_CODE_RCTRL = 0xA3,
-	BUTTON_CODE_LALT = 0xA4,
-	BUTTON_CODE_RALT = 0xA5,
-	BUTTON_CODE_BROWSER_BACK = 0xA6,
-	BUTTON_CODE_BROWSER_FORWARD = 0xA7,
-	BUTTON_CODE_BROWSER_REFRESH = 0xA8,
-	BUTTON_CODE_BROWSER_STOP = 0xA9,
-	BUTTON_CODE_BROWSER_SEARCH = 0xAA,
-	BUTTON_CODE_BROWSER_FAVORITES = 0xAB,
-	BUTTON_CODE_BROWSER_HOME = 0xAC,
-	BUTTON_CODE_VOLUME_MUTE = 0xAD,
-	BUTTON_CODE_VOLUME_DOWN = 0xAE,
-	BUTTON_CODE_VOLUME_UP = 0xAF,
-	BUTTON_CODE_MEDIA_NEXT_TRACK = 0xB0,
-	BUTTON_CODE_MEDIA_PREV_TRACK = 0xB1,
-	BUTTON_CODE_MEDIA_STOP = 0xB2,
-	BUTTON_CODE_MEDIA_PLAY_PAUSE = 0xB3,
-	BUTTON_CODE_LAUNCH_MAIL = 0xB4,
-	BUTTON_CODE_LAUNCH_MEDIA_SELECT = 0xB5,
-	BUTTON_CODE_LAUNCH_APP1 = 0xB6,
-	BUTTON_CODE_LAUNCH_APP2 = 0xB7,
-	BUTTON_CODE_OEM_SEMICOLON = 0xBA,
-	BUTTON_CODE_OEM_PLUS = 0xBB,
-	BUTTON_CODE_OEM_COMMA = 0xBC,
-	BUTTON_CODE_OEM_MINUS = 0xBD,
-	BUTTON_CODE_OEM_PERIOD = 0xBE,
-	BUTTON_CODE_OEM_FORWARD_SLASH = 0xBF,
-	BUTTON_CODE_OEM_TILDE = 0xC0,
-	BUTTON_CODE_GAMEPAD_A = 0xC3,
-	BUTTON_CODE_GAMEPAD_B = 0xC4,
-	BUTTON_CODE_GAMEPAD_X = 0xC5,
-	BUTTON_CODE_GAMEPAD_Y = 0xC6,
-	BUTTON_CODE_GAMEPAD_RIGHT_SHOULDER = 0xC7,
-	BUTTON_CODE_GAMEPAD_LEFT_SHOULDER = 0xC8,
-	BUTTON_CODE_GAMEPAD_LEFT_TRIGGER = 0xC9,
-	BUTTON_CODE_GAMEPAD_RIGHT_TRIGGER = 0xCA,
-	BUTTON_CODE_GAMEPAD_DPAD_UP = 0xCB,
-	BUTTON_CODE_GAMEPAD_DPAD_DOWN = 0xCC,
-	BUTTON_CODE_GAMEPAD_DPAD_LEFT = 0xCD,
-	BUTTON_CODE_GAMEPAD_DPAD_RIGHT = 0xCE,
-	BUTTON_CODE_GAMEPAD_MENU = 0xCF,
-	BUTTON_CODE_GAMEPAD_VIEW = 0xD0,
-	BUTTON_CODE_GAMEPAD_LEFT_THUMBSTICK_BUTTON = 0xD1,
-	BUTTON_CODE_GAMEPAD_RIGHT_THUMBSTICK_BUTTON = 0xD2,
-	BUTTON_CODE_GAMEPAD_LEFT_THUMBSTICK_UP = 0xD3,
-	BUTTON_CODE_GAMEPAD_LEFT_THUMBSTICK_DOWN = 0xD4,
-	BUTTON_CODE_GAMEPAD_LEFT_THUMBSTICK_RIGHT = 0xD5,
-	BUTTON_CODE_GAMEPAD_LEFT_THUMBSTICK_LEFT = 0xD6,
-	BUTTON_CODE_GAMEPAD_RIGHT_THUMBSTICK_UP = 0xD7,
-	BUTTON_CODE_GAMEPAD_RIGHT_THUMBSTICK_DOWN = 0xD8,
-	BUTTON_CODE_GAMEPAD_RIGHT_THUMBSTICK_RIGHT = 0xD9,
-	BUTTON_CODE_GAMEPAD_RIGHT_THUMBSTICK_LEFT = 0xDA,
-	BUTTON_CODE_OEM_OBRACKET = 0xDB,
-	BUTTON_CODE_OEM_BACK_SLASH = 0xDC,
-	BUTTON_CODE_OEM_CBRACKET = 0xDD,
-	BUTTON_CODE_OEM_QUOTES = 0xDE,
-	BUTTON_CODE_OEM_8 = 0xDF,
-	BUTTON_CODE_OEM_AX = 0xE1,  //  'AX' key on Japanese AX kbd
-	BUTTON_CODE_OEM_102 = 0xE2,  //  "<>" or "\|" on RT 102-key kbd.
-	BUTTON_CODE_ICO_HELP = 0xE3,  //  Help key on ICO
-	BUTTON_CODE_ICO_00 = 0xE4,  //  00 key on ICO
-	BUTTON_CODE_PROCESS_KEY = 0xE5,
-	BUTTON_CODE_ICO_CLEAR = 0xE6,
-	BUTTON_CODE_PACKET = 0xE7,
-	BUTTON_CODE_OEM_RESET = 0xE9,
-	BUTTON_CODE_OEM_JUMP = 0xEA,
-	BUTTON_CODE_OEM_PA1 = 0xEB,
-	BUTTON_CODE_OEM_PA2 = 0xEC,
-	BUTTON_CODE_OEM_PA3 = 0xED,
-	BUTTON_CODE_OEM_WSCTRL = 0xEE,
-	BUTTON_CODE_OEM_CUSEL = 0xEF,
-	BUTTON_CODE_OEM_ATTN = 0xF0,
-	BUTTON_CODE_OEM_FINISH = 0xF1,
-	BUTTON_CODE_OEM_COPY = 0xF2,
-	BUTTON_CODE_OEM_AUTO = 0xF3,
-	BUTTON_CODE_OEM_ENLW = 0xF4,
-	BUTTON_CODE_OEM_BACKTAB = 0xF5,
-	BUTTON_CODE_ATTN = 0xF6,
-	BUTTON_CODE_CRSEL = 0xF7,
-	BUTTON_CODE_EXSEL = 0xF8,
-	BUTTON_CODE_EREOF = 0xF9,
-	BUTTON_CODE_PLAY = 0xFA,
-	BUTTON_CODE_ZOOM = 0xFB,
-	BUTTON_CODE_NONAME = 0xFC,
-	BUTTON_CODE_PA1 = 0xFD,
-	BUTTON_CODE_OEM_CLEAR = 0xFE,
+	Cancel = 0x03,
+	Back = 0x08,
+	Tab = 0x09,
+	Clear = 0x0C,
+	Return = 0x0D,
+	Shift = 0x10, //Either left or right shift
+	Ctrl = 0x11, //Either left or right ctrl
+	Alt = 0x12, //Either left or right alt
+	Pause = 0x13,
+	Capital = 0x14,
+	Kana = 0x15,
+	Hangeul = 0x15,
+	Hangul = 0x15,
+	Junja = 0x17,
+	Final = 0x18,
+	Hanja = 0x19,
+	Kanja = 0x19,
+	Escape = 0x1B,
+	Convert = 0x1C,
+	Nonconvert = 0x1D,
+	Accept = 0x1E,
+	ModeChange = 0x1F,
+	Space = 0x20,
+	Prior = 0x21,
+	Next = 0x22,
+	End = 0x23,
+	Home = 0x24,
+	Left = 0x25,
+	Up = 0x26,
+	Right = 0x27,
+	Down = 0x28,
+	Select = 0x29,
+	Print = 0x2A,
+	Execute = 0x2B,
+	Snapshot = 0x2C,
+	Insert = 0x2D,
+	Delete = 0x2E,
+	Help = 0x2F,
+	Zero = 0x30,
+	One = 0x31,
+	Two = 0x32,
+	Three = 0x33,
+	Four = 0x34,
+	Five = 0x35,
+	Six = 0x36,
+	Seven = 0x37,
+	Eight = 0x38,
+	Nine = 0x39,
+	A = 0x41,
+	B = 0x42,
+	C = 0x43,
+	D = 0x44,
+	E = 0x45,
+	F = 0x46,
+	G = 0x47,
+	H = 0x48,
+	I = 0x49,
+	J = 0x4A,
+	K = 0x4B,
+	L = 0x4C,
+	M = 0x4D,
+	N = 0x4E,
+	O = 0x4F,
+	P = 0x50,
+	Q = 0x51,
+	R = 0x52,
+	S = 0x53,
+	T = 0x54,
+	U = 0x55,
+	V = 0x56,
+	W = 0x57,
+	X = 0x58,
+	Y = 0x59,
+	Z = 0x5A,
+	LWin = 0x5B,
+	RWin = 0x5C,
+	Apps = 0x5D,
+	Sleep = 0x5F,
+	Numpad0 = 0x60,
+	Numpad1 = 0x61,
+	Numpad2 = 0x62,
+	Numpad3 = 0x63,
+	Numpad4 = 0x64,
+	Numpad5 = 0x65,
+	Numpad6 = 0x66,
+	Numpad7 = 0x67,
+	Numpad8 = 0x68,
+	Numpad9 = 0x69,
+	NumpadMultiply = 0x6A,
+	NumpadAdd = 0x6B,
+	NumpadSeparator = 0x6C,
+	NumpadSubtract = 0x6D,
+	NumpadDecimal = 0x6E,
+	NumpadDivide = 0x6F,
+	F1 = 0x70,
+	F2 = 0x71,
+	F3 = 0x72,
+	F4 = 0x73,
+	F5 = 0x74,
+	F6 = 0x75,
+	F7 = 0x76,
+	F8 = 0x77,
+	F9 = 0x78,
+	F10 = 0x79,
+	F11 = 0x7A,
+	F12 = 0x7B,
+	F13 = 0x7C,
+	F14 = 0x7D,
+	F15 = 0x7E,
+	F16 = 0x7F,
+	F17 = 0x80,
+	F18 = 0x81,
+	F19 = 0x82,
+	F20 = 0x83,
+	F21 = 0x84,
+	F22 = 0x85,
+	F23 = 0x86,
+	F24 = 0x87,
+	NavigationView = 0x88,
+	NavigationMenu = 0x89,
+	NavigationUp = 0x8A,
+	NavigationDown = 0x8B,
+	NavigationLeft = 0x8C,
+	NavigationRight = 0x8D,
+	NavigationAccept = 0x8E,
+	NavigationCancel = 0x8F,
+	Numlock = 0x90,
+	Scroll = 0x91,
+	OemNecEqual = 0x92,
+	OemFjJisho = 0x92,
+	OemFjMasshou = 0x93,
+	OemFjTouroku = 0x94,
+	OemFjLoya = 0x95,
+	OemFjRoya = 0x96,
+	LShift = 0xA0,
+	RShift = 0xA1,
+	LCtrl = 0xA2,
+	RCtrl = 0xA3,
+	LAlt = 0xA4,
+	RAlt = 0xA5,
+	BrowserBack = 0xA6,
+	BrowserForward = 0xA7,
+	BrowserRefresh = 0xA8,
+	BrowserStop = 0xA9,
+	BrowserSearch = 0xAA,
+	BrowserFavorites = 0xAB,
+	BrowserHome = 0xAC,
+	VolumeMute = 0xAD,
+	VolumeDown = 0xAE,
+	VolumeUp = 0xAF,
+	MediaNextTrack = 0xB0,
+	MediaPrevTrack = 0xB1,
+	MediaStop = 0xB2,
+	MediaPlayPause = 0xB3,
+	LaunchMail = 0xB4,
+	LaunchMediaSelect = 0xB5,
+	LaunchApp1 = 0xB6,
+	LaunchApp2 = 0xB7,
+	OemSemicolon = 0xBA,
+	OemPlus = 0xBB,
+	OemComma = 0xBC,
+	OemMinus = 0xBD,
+	OemPeriod = 0xBE,
+	OemForwardSlash = 0xBF,
+	OemTilde = 0xC0,
+	GamepadA = 0xC3,
+	GamepadB = 0xC4,
+	GamepadX = 0xC5,
+	GamepadY = 0xC6,
+	GamepadRightShoulder = 0xC7,
+	GamepadLeftShoulder = 0xC8,
+	GamepadLeftTrigger = 0xC9,
+	GamepadRightTrigger = 0xCA,
+	GamepadDPadUp = 0xCB,
+	GamepadDPadDown = 0xCC,
+	GamepadDPadLeft = 0xCD,
+	GamepadDPadRight = 0xCE,
+	GamepadMenu = 0xCF,
+	GamepadView = 0xD0,
+	GamepadLeftThumbstickButton = 0xD1,
+	GamepadRightThumbstickButton = 0xD2,
+	GamepadLeftThumbstickUp = 0xD3,
+	GamepadLeftThumbstickDown = 0xD4,
+	GamepadLeftThumbstickRight = 0xD5,
+	GamepadLeftThumbstickLeft = 0xD6,
+	GamepadRightThumbstickUp = 0xD7,
+	GamepadRightThumbstickDown = 0xD8,
+	GamepadRightThumbstickRight = 0xD9,
+	GamepadRightThumbstickLeft = 0xDA,
+	OemOBracket = 0xDB,
+	OemBackSlash = 0xDC,
+	OemCBracket = 0xDD,
+	OemQuotes = 0xDE,
+	Oem8 = 0xDF,
+	OemAX = 0xE1,  //  'AX' key on Japanese AX kbd
+	Oem102 = 0xE2,  //  "<>" or "\|" on RT 102-key kbd.
+	IcoHelp = 0xE3,  //  Help key on ICO
+	Ico00 = 0xE4,  //  00 key on ICO
+	ProcessKey = 0xE5,
+	IcoClear = 0xE6,
+	Packet = 0xE7,
+	OemReset = 0xE9,
+	OemJump = 0xEA,
+	OemPA1 = 0xEB,
+	OemPA2 = 0xEC,
+	OemPA3 = 0xED,
+	OemWsctrl = 0xEE,
+	OemCusel = 0xEF,
+	OemAttn = 0xF0,
+	OemFinish = 0xF1,
+	OemCopy = 0xF2,
+	OemAuto = 0xF3,
+	OemEnlw = 0xF4,
+	OemBacktab = 0xF5,
+	Attn = 0xF6,
+	Crsel = 0xF7,
+	Exsel = 0xF8,
+	Ereof = 0xF9,
+	Play = 0xFA,
+	Zoom = 0xFB,
+	Noname = 0xFC,
+	PA1 = 0xFD,
+	OemClear = 0xFE,
 
-	BUTTON_CODE_ANY,
-	BUTTON_CODE_SCROLL_WHEEL,
-	BUTTON_CODE_COUNT
+	COUNT = 0x100
 };
 
-enum NH_API AxisCode
+enum class NH_API AxisCode
 {
-	AXIS_CODE_LEFT_JOYSTICK_X,
-	AXIS_CODE_LEFT_JOYSTICK_Y,
-	AXIS_CODE_RIGHT_JOYSTICK_X,
-	AXIS_CODE_RIGHT_JOYSTICK_Y,
-	AXIS_CODE_LEFT_TRIGGER,
-	AXIS_CODE_RIGHT_TRIGGER,
+	LeftJoystickX,
+	LeftJoystickY,
+	RightJoystickX,
+	RightJoystickY,
+	LeftTrigger,
+	RightTrigger,
 
-	AXIS_CODE_COUNT
+	COUNT
 };
 
-enum NH_API InputType
+enum class NH_API InputType
 {
-	INPUT_TYPE_PRESSED,
-	INPUT_TYPE_RELEASED,
-	INPUT_TYPE_DOUBLE_PRESSED,
-	INPUT_TYPE_HELD,
+	Press,
+	Release,
+	DoublePress,
+	Hold
 };
 
-typedef bool(*InputCallback)();
-
-struct NH_API InputBinding
+enum class NH_API TriggerEffectType
 {
-	I8 priority;
-	InputType inputType;
-	ButtonCode buttonCode;
-	InputCallback callback;
+	None,
+	Resistance,
+	Weapon,
+	Vibration
 };
 
-struct HRAWINPUT__;
+enum class NH_API Trigger
+{
+	Left,
+	Right,
+	Both
+};
+
+enum class NH_API LedColor
+{
+	Off,
+	Red,
+	Green,
+	Blue,
+	Magenta,
+	Yellow,
+	Cyan,
+	White,
+};
+
+struct NH_API ButtonEvent
+{
+	ButtonCode code;
+	InputType type;
+	F64 timestamp;
+};
+
+struct _HIDP_PREPARSED_DATA;
+struct TriggerEffect;
 
 class NH_API Input
 {
@@ -284,12 +310,18 @@ class NH_API Input
 		bool doubleClicked;
 		bool held;
 		bool heldChanged;
-		//TODO: Use Time::AbsoluteTime() to check if being held
+		F64 lastPressed;
 	};
-
+		
 public:
-	static bool OnAnyButtonDown();
-	static bool OnAnyButtonChanged();
+	static void SetControllerRumbleStrength(F32 left, F32 right);
+	static void SetControllerLedColor(F32 red, F32 green, F32 blue);
+	static void SetControllerLedColor(LedColor color, F32 strength);
+	static void SetControllerTriggerEffect(TriggerEffectType type, Trigger trigger);
+
+	static F32 GetAxis(AxisCode code);
+	static const Vector<ButtonEvent>& GetInputEvents();
+
 	static bool ButtonUp(ButtonCode code);
 	static bool ButtonDown(ButtonCode code);
 	static bool ButtonHeld(ButtonCode code);
@@ -303,31 +335,38 @@ public:
 	static Vector2 MousePosition();
 	static Vector2 PreviousMousePos();
 	static Vector2 MouseDelta();
-	static Vector2 MouseToWorld(const Camera& camera);
 	static void ConsumeInput();
 	static I16 MouseWheelDelta();
 	static I16 MouseHWheelDelta();
-
-	static F32 GetAxis(AxisCode code);
-
-	static void SetMousePosition(I32 x, I32 y);
-	static bool CursorLocked();
-	static bool CursorShowing();
-	static void ShowCursor(bool show);
-	static void LockCursor(bool lock);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
 	static void Update();
-	static void ReceiveInput(HRAWINPUT__* handle);
-	static void InputSink(HRAWINPUT__* handle);
-	static void Focus();
-	static void AddDevice(void* handle);
-	static void RemoveDevice(void* handle);
+	static void UpdateRawInput(I64 lParam);
+	static void UpdateConnectionStatus(void* deviceHandle, U64 status);
+	static void ConnectHIDJoystick(void* deviceHandle);
+	static void DisconnectHIDJoystick(void* deviceHandle);
+	static void UpdateDualshock4(U32 index, U8 rawData[], UL32 byteCount);
+	static void UpdateDualsense(U32 index, U8 rawData[], UL32 byteCount);
+	static void UpdateXboxControllers();
+	static void ParseGenericController(U32 index, U8 rawData[], UL32 dataSize, _HIDP_PREPARSED_DATA* preparsedData);
 
-	//MOUSE
+	static void SetDualsenseTriggerEffect(U8* dst, TriggerEffect effect);
+	static void UpdateButtonState(ButtonCode code, bool value);
+	static void UpdateAxisState(AxisCode code, F32 value);
+
+	static bool useController;
+	static U32 activeController;
+
+	static ButtonState buttonStates[*ButtonCode::COUNT];
+	static F32 axisStates[*AxisCode::COUNT];
+	static Vector<ButtonEvent> events; //TODO: Clear events older than x frames
+	static F64 currentTimestamp;
+	static F64 holdThreshold;
+	static F64 doublePressThreshold;
+
 	static F32 mouseSensitivity;
 	static I16 mouseWheelDelta;
 	static I16 mouseHWheelDelta;
@@ -338,16 +377,10 @@ private:
 	static F32 deltaRawMousePosX;
 	static F32 deltaRawMousePosY;
 
-	//CONTROLLER
-	static F32 axisStates[];
+	static bool inputConsumed;
 
-	//ALL
-	static ButtonState buttonStates[];
-	static bool receiveInput;
-	static bool anyButtonDown;
-	static bool anyButtonChanged;
-
-	STATIC_CLASS(Input);
 	friend class Engine;
 	friend class Platform;
+
+	STATIC_CLASS(Input);
 };

@@ -1,229 +1,142 @@
 #pragma once
 
-#include "Resources\ResourceDefines.hpp"
-#include "Resources\Mesh.hpp"
-#include "Resources\Scene.hpp"
-#include "Math\Math.hpp"
-#include "Containers\Vector.hpp"
+#include "Defines.hpp"
 
-struct UIElement;
-typedef void(*UIEvent)(UIElement*, const Vector2&);
+#include "Resources/Material.hpp"
+#include "Resources/Font.hpp"
+#include "Math/Math.hpp"
+#include "Core/Events.hpp"
 
-struct Font;
-struct Scene;
-struct PipelineInfo;
-
-enum UIElementType
+struct NH_API Element
 {
-	UI_ELEMENT_NONE,
-	UI_ELEMENT_PANEL,
-	UI_ELEMENT_IMAGE,
-	UI_ELEMENT_SLIDER,
-	UI_ELEMENT_COLOR_PICKER,
-	UI_ELEMENT_SCROLL_WINDOW,
-	UI_ELEMENT_DROPDOWN,
-	UI_ELEMENT_TEXT,
-	UI_ELEMENT_TEXT_BOX,
+	Event<Element&> OnHover;
+	Event<Element&> OnExit;
+	Event<Element&> OnClick;
+	Event<Element&> OnDrag;
+	Event<Element&> OnRelease;
+	Event<Element&> OnScroll;
 
-	UI_ELEMENT_COUNT
-};
-
-enum NH_API SliderType
-{
-	SLIDER_TYPE_HORIZONTAL_LEFT,
-	SLIDER_TYPE_HORIZONTAL_RIGHT,
-	SLIDER_TYPE_HORIZONTAL_CENTER,
-	SLIDER_TYPE_VERTICAL_BOTTOM,
-	SLIDER_TYPE_VERTICAL_TOP,
-	SLIDER_TYPE_VERTICAL_CENTER,
-	SLIDER_TYPE_RADIAL_COUNTER,
-	SLIDER_TYPE_RADIAL_CLOCKWISE,
-	SLIDER_TYPE_EXPAND,
-};
-
-struct NH_API UIComponent
-{
-	UIComponent() {}
-	UIComponent(const Vector<MeshInstance>& meshes) : meshes(meshes) {}
-	UIComponent(const UIComponent& other) noexcept : meshes(other.meshes) {}
-	UIComponent(UIComponent&& other) noexcept : meshes(Move(other.meshes)) {}
-
-	UIComponent& operator=(UIComponent&& other) noexcept { meshes = Move(other.meshes); return *this; }
-
-	Vector<MeshInstance> meshes;
-};
-
-struct NH_API UIElement
-{
-	UIElement();
-	UIElement(UIElement&& other) noexcept;
-
-	UIElement& operator=(UIElement&& other) noexcept;
-
-	void Destroy();
-	~UIElement();
+	void SetPosition(const Vector2& position);
+	void SetRotation(const Quaternion2& rotation);
+	void SetScale(const Vector2& scale);
+	void SetColor(const Vector4& color);
 
 private:
-	Vector4 area;
-	Vector4 color;
+	Element(U32 index);
+	~Element();
+	void Destroy();
 
-	bool ignore = false;
+	U32 index = U32_MAX;
 	bool hovered = false;
-	bool clicked = false;
-	bool enabled = true;
-
-	Scene* scene = nullptr;
-	UIComponent component;
-	UIElement* parent = nullptr;
-	Vector<UIElement*> children;
-
-	UIEvent OnClick;
-	UIEvent OnDrag;
-	UIEvent OnRelease;
-	UIEvent OnHover;
-	UIEvent OnMove;
-	UIEvent OnExit;
-	UIEvent OnScroll;
-
-	UIElementType type = UI_ELEMENT_NONE;
-	union
-	{
-		struct Panel
-		{
-			Panel& operator=(Panel&& other) noexcept { borderSize = other.borderSize; borderColor = other.borderColor; background = other.background; border = other.border; return *this; }
-			void Destroy() {}
-
-			F32 borderSize;
-			Vector4 borderColor;
-			ResourceRef<Texture> background;
-			ResourceRef<Texture> border;
-		} panel;
-
-		struct Image //TODO: Animated Images
-		{
-			Image& operator=(Image&& other) noexcept { texture = other.texture; uvs = other.uvs; return *this; }
-			void Destroy() {}
-
-			ResourceRef<Texture> texture;
-			Vector4 uvs;
-		} image;
-
-		struct Slider
-		{
-			Slider& operator=(Slider&& other) noexcept { fillColor = other.fillColor; type = other.type; percent = other.percent; return *this; }
-			void Destroy() {}
-
-			Vector4 fillColor;
-			SliderType type;
-			F32 percent;
-		} slider;
-
-		struct ColorPicker
-		{
-			ColorPicker& operator=(ColorPicker&& other) noexcept { return *this; }
-			void Destroy() {}
-		} colorPicker;
-
-		struct ScrollWindow
-		{
-			ScrollWindow& operator=(ScrollWindow&& other) noexcept { return *this; }
-			void Destroy() {}
-		} scrollWindow;
-
-		struct Dropdown
-		{
-			Dropdown& operator=(Dropdown&& other) noexcept { return *this; }
-			void Destroy() {}
-		} dropdown;
-
-		struct Text //TODO: Effects
-		{
-			Text& operator=(Text&& other) noexcept { text = Move(other.text); size = other.size; return *this; }
-			void Destroy() { text.Destroy(); }
-
-			String text;
-			F32 size;
-		} text;
-
-		struct TextBox
-		{
-			TextBox& operator=(TextBox&& other) noexcept { text = Move(other.text); size = other.size; return *this; }
-			void Destroy() { text.Destroy(); }
-
-			String text;
-			F32 size;
-		} textBox;
-	};
-
-	UIElement(const UIElement&) = delete;
-	UIElement& operator=(const UIElement&) = delete;
 
 	friend class UI;
-	friend struct Scene;
 };
 
-struct NH_API UIElementInfo
+struct NH_API ElementRef
 {
-	Vector4 area;
-	Vector4 color;
+	ElementRef();
+	ElementRef(NullPointer);
+	ElementRef(U32 elementId);
+	void Destroy();
+
+	ElementRef(const ElementRef& other);
+	ElementRef(ElementRef&& other) noexcept;
+	ElementRef& operator=(NullPointer);
+	ElementRef& operator=(const ElementRef& other);
+	ElementRef& operator=(ElementRef&& other) noexcept;
+	~ElementRef();
+
+	Element* Get();
+	const Element* Get() const;
+	Element* operator->();
+	const Element* operator->() const;
+	Element& operator*();
+	const Element& operator*() const;
+	operator Element* ();
+	operator const Element* () const;
+
+	bool operator==(const ElementRef& other) const;
+
+	bool Valid() const;
+	operator bool() const;
+
+private:
+	U32 elementId = U32_MAX;
+};
+
+struct NH_API ElementInfo
+{
+	Vector4 area = { 0.0f, 0.0f, 1.0f, 1.0f };
+	Quaternion2 rotation = Quaternion2::Identity;
+	Vector4 color = Vector4::One;
+	ResourceRef<Texture> texture = nullptr;
+	Vector4 textureArea = { 0.0f, 0.0f, 1.0f, 1.0f };
+
+	ElementRef parent = nullptr;
 
 	bool ignore = false;
 	bool enabled = true;
-
-	Scene* scene = nullptr;
-	UIElement* parent = nullptr;
-
-	UIEvent OnClick;
-	UIEvent OnDrag;
-	UIEvent OnRelease;
-	UIEvent OnHover;
-	UIEvent OnMove;
-	UIEvent OnExit;
-	UIEvent OnScroll;
 };
 
-struct Pipeline;
 struct CommandBuffer;
 
 class NH_API UI
 {
+	struct UIVertex
+	{
+		Vector2 position = Vector2::Zero;
+		Vector2 texcoord = Vector2::Zero;
+	};
+
+	struct UIInstance
+	{
+		Vector2 position = Vector2::Zero;
+		Vector2 scale = Vector2::One;
+		Quaternion2 rotation = Quaternion2::Identity;
+		Vector4 instColor = Vector4::One;
+		Vector2 instTexcoord = Vector2::Zero;
+		Vector2 instTexcoordScale = Vector2::One;
+		U32 textureIndex = 0;
+	};
+
+	struct TextVertex
+	{
+		Vector2 position = Vector2::Zero;
+		Vector2 texcoord = Vector2::Zero;
+	};
+
+	struct TextInstance
+	{
+		Vector2 position = Vector2::Zero;
+		Vector2 texcoord = Vector2::Zero;
+		Vector4 fgColor = Vector4::One;
+		Vector4 bgColor = Vector4::Zero;
+		F32 scale = 0.0f;
+		U32 textureIndex = 0;
+	};
+
 public:
-	static UIElement* CreateElement(UIElementInfo& info);
-	static UIElement* CreatePanel(UIElementInfo& info, F32 borderSize, const Vector4& borderColor, const ResourceRef<Texture>& background = nullptr, const ResourceRef<Texture>& border = nullptr);
-	static UIElement* CreateImage(UIElementInfo& info, const ResourceRef<Texture>& texture, const Vector4& uvs);
-	static UIElement* CreateSlider(UIElementInfo& info, const Vector4& fillColor, SliderType type, F32 percent);
-	static UIElement* CreateColorPicker(UIElementInfo& info);
-	static UIElement* CreateScrollWindow(UIElementInfo& info);
-	static UIElement* CreateDropdown(UIElementInfo& info);
-	static UIElement* CreateText(UIElementInfo& info, const String& string, F32 scale);
-	static UIElement* CreateTextBox(UIElementInfo& info);
-
-	//TODO: Edit elements
-	static void ChangeSliderPercent(UIElement* element, F32 percent);
-	static void ChangeSliderColor(UIElement* element, const Vector4& fillColor);
-
-	static void ChangeText(UIElement* element, const String& string);
+	static ElementRef CreateElement(const ElementInfo& info);
+	static ElementRef CreateText(const ElementInfo& info, const String& text, F32 scale);
 
 private:
 	static bool Initialize();
 	static void Shutdown();
 
 	static void Update();
+	static void Render(CommandBuffer commandBuffer);
 
-	static UIElement* SetupElement(const UIElementInfo& info);
+	static Material uiMaterial;
+	static Shader uiVertexShader;
+	static Shader uiFragmentShader;
+	static Vector<UIInstance> instances;
+	static Vector<Element> elements;
 
-	static Vector<UIElement> elements;
-
-	static Renderpass renderpass;
-	static Pipeline uiPipeline;
-	static Pipeline textPipeline;
-	static ResourceRef<Font> font; //TODO: This should be default font, support per-text font
-	static ResourceRef<Mesh> uiMesh;
-	static ResourceRef<Mesh> textMesh;
-	static ResourceRef<MaterialEffect> uiEffect;
-	static ResourceRef<MaterialEffect> textEffect;
-	static ResourceRef<Material> uiMaterial;
-	static ResourceRef<Material> textMaterial;
+	static Material textMaterial;
+	static Shader textVertexShader;
+	static Shader textFragmentShader;
+	static Vector<TextInstance> textInstances;
+	static ResourceRef<Font> font;
 
 	static F32 textWidth;
 	static F32 textHeight;
@@ -233,4 +146,6 @@ private:
 	STATIC_CLASS(UI);
 	friend class Engine;
 	friend class Renderer;
+	friend struct Element;
+	friend struct ElementRef;
 };

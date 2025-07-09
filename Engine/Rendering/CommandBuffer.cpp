@@ -1,24 +1,18 @@
 #include "CommandBuffer.hpp"
 
-#include "RenderingDefines.hpp"
-
 #include "Renderer.hpp"
-#include "Resources\Resources.hpp"
-#include "Pipeline.hpp"
 
-VkResult CommandBuffer::Begin()
+U32 CommandBuffer::Begin()
 {
-	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.pNext = nullptr;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	beginInfo.pInheritanceInfo = nullptr;
 
-	recorded = true;
-
 	return vkBeginCommandBuffer(vkCommandBuffer, &beginInfo);
 }
 
-VkResult CommandBuffer::End()
+U32 CommandBuffer::End()
 {
 	return vkEndCommandBuffer(vkCommandBuffer);
 }
@@ -28,56 +22,44 @@ void CommandBuffer::ClearAttachments(U32 attachmentCount, VkClearAttachment* att
 	vkCmdClearAttachments(vkCommandBuffer, attachmentCount, attachments, rectCount, rects);
 }
 
-void CommandBuffer::BeginRenderpass(Renderpass* renderpass)
+void CommandBuffer::BeginRenderpass(const Renderpass& renderpass, const FrameBuffer& frameBuffer, const Swapchain& swapchain)
 {
+	VkClearValue colorClearValue;
+	colorClearValue.color = { { 0.25f, 0.25f, 0.25f, 1.0f } };
+
+	VkClearValue depthValue;
+	depthValue.depthStencil.depth = 1.0f;
+
+	Vector<VkClearValue> clearValues = { colorClearValue, depthValue };
+
 	VkRenderPassBeginInfo renderPassBegin{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderPassBegin.pNext = nullptr;
-	renderPassBegin.renderPass = renderpass->renderpass;
-	renderPassBegin.framebuffer = renderpass->frameBuffer;
-	renderPassBegin.renderArea = TypePun<VkRect2D>(renderpass->renderArea);
-	renderPassBegin.clearValueCount = renderpass->clearCount;
-	renderPassBegin.pClearValues = (VkClearValue*)renderpass->clearValues;
+	renderPassBegin.renderPass = renderpass;
+	renderPassBegin.framebuffer = frameBuffer;
+	renderPassBegin.renderArea.offset.x = 0;
+	renderPassBegin.renderArea.offset.y = 0;
+	renderPassBegin.renderArea.extent.width = swapchain.width;
+	renderPassBegin.renderArea.extent.height = swapchain.height;
+	renderPassBegin.clearValueCount = (U32)clearValues.Size();
+	renderPassBegin.pClearValues = clearValues.Data();
 
 	vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 
-	if (renderpass->resize)
-	{
-		VkViewport viewport{};
-		viewport.x = Renderer::renderArea.x;
-		viewport.y = Renderer::renderArea.y;
-		viewport.width = Renderer::renderArea.z;
-		viewport.height = Renderer::renderArea.w;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (F32)swapchain.width;
+	viewport.height = (F32)swapchain.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
 
-		VkRect2D scissor{};
-		scissor.offset.x = (I32)Renderer::renderArea.x;
-		scissor.offset.y = (I32)Renderer::renderArea.y;
-		scissor.extent.width = (U32)Renderer::renderArea.z;
-		scissor.extent.height = (U32)Renderer::renderArea.w;
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent.width = swapchain.width;
+	scissor.extent.height = swapchain.height;
 
-		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
-	}
-	else
-	{
-		VkViewport viewport{};
-		viewport.x = (F32)renderpass->renderArea.offset.x;
-		viewport.y = (F32)renderpass->renderArea.offset.y;
-		viewport.width = (F32)renderpass->renderArea.extent.x;
-		viewport.height = (F32)renderpass->renderArea.extent.y;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor{};
-		scissor.offset.x = (I32)renderpass->renderArea.offset.x;
-		scissor.offset.y = (I32)renderpass->renderArea.offset.y;
-		scissor.extent.width = (U32)renderpass->renderArea.extent.x;
-		scissor.extent.height = (U32)renderpass->renderArea.extent.y;
-
-		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
-	}
+	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
 }
 
 void CommandBuffer::NextSubpass()
@@ -90,30 +72,30 @@ void CommandBuffer::EndRenderpass()
 	vkCmdEndRenderPass(vkCommandBuffer);
 }
 
-void CommandBuffer::BindPipeline(const Pipeline* pipeline)
+void CommandBuffer::BindPipeline(const Pipeline& pipeline)
 {
-	vkCmdBindPipeline(vkCommandBuffer, (VkPipelineBindPoint)pipeline->bindPoint, pipeline->pipeline);
+	vkCmdBindPipeline(vkCommandBuffer, (VkPipelineBindPoint)pipeline.bindPoint, pipeline);
 }
 
-void CommandBuffer::BindIndexBuffer(VkBuffer_T* buffer, U64 offset)
+void CommandBuffer::BindIndexBuffer(const Buffer& buffer, U32 offset)
 {
-	vkCmdBindIndexBuffer(vkCommandBuffer, buffer, offset, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(vkCommandBuffer, buffer, offset, VK_INDEX_TYPE_UINT32); //TODO: Accept different index types
 }
 
-void CommandBuffer::BindVertexBuffers(U32 bufferCount, VkBuffer_T* const* buffers, U64* offsets)
+void CommandBuffer::BindVertexBuffers(U32 count, const VkBuffer* buffers, U64* offsets)
 {
-	vkCmdBindVertexBuffers(vkCommandBuffer, 0, bufferCount, buffers, offsets);
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, count, buffers, offsets);
 }
 
-void CommandBuffer::BindDescriptorSets(VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, U32 setOffset, U32 setCount, VkDescriptorSet_T** sets)
+void CommandBuffer::BindDescriptorSets(BindPoint bindPoint, const PipelineLayout& pipelineLayout, U32 setOffset, U32 setCount, const VkDescriptorSet* sets)
 {
 	if (setCount)
 	{
-		vkCmdBindDescriptorSets(vkCommandBuffer, bindPoint, pipelineLayout, setOffset, setCount, sets, 0, nullptr);
+		vkCmdBindDescriptorSets(vkCommandBuffer, (VkPipelineBindPoint)bindPoint, pipelineLayout, setOffset, setCount, sets, 0, nullptr);
 	}
 }
 
-void CommandBuffer::PushConstants(VkPipelineLayout pipelineLayout, U32 stages, U32 offset, U32 size, const void* data)
+void CommandBuffer::PushConstants(const PipelineLayout& pipelineLayout, U32 stages, U32 offset, U32 size, const void* data)
 {
 	vkCmdPushConstants(vkCommandBuffer, pipelineLayout, stages, offset, size, data);
 }
@@ -128,11 +110,11 @@ void CommandBuffer::DrawIndexed(U32 indexCount, U32 instanceCount, U32 firstInde
 	vkCmdDrawIndexed(vkCommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void CommandBuffer::DrawIndexedIndirect(VkBuffer_T* buffer, U32 count, U32 offset)
+void CommandBuffer::DrawIndexedIndirect(const Buffer& buffer, U32 count, U32 offset)
 {
 	//TODO: Take into account physicalDeviceProperties.limits.maxDrawIndirectCount and physicalDeviceFeatures.drawIndirectFirstInstance;
 
-	if (Renderer::GetDeviceFeatures().multiDrawIndirect)
+	if (Renderer::device.physicalDevice.features.multiDrawIndirect)
 	{
 		vkCmdDrawIndexedIndirect(vkCommandBuffer, buffer, offset, count, sizeof(VkDrawIndexedIndirectCommand));
 	}
@@ -145,12 +127,12 @@ void CommandBuffer::DrawIndexedIndirect(VkBuffer_T* buffer, U32 count, U32 offse
 	}
 }
 
-void CommandBuffer::DrawIndexedIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset, U32 countOffset)
+void CommandBuffer::DrawIndexedIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
 {
 	vkCmdDrawIndexedIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndexedIndirectCommand));
 }
 
-void CommandBuffer::DrawIndirectCount(VkBuffer_T* drawBuffer, VkBuffer_T* countBuffer, U32 drawOffset, U32 countOffset)
+void CommandBuffer::DrawIndirectCount(const Buffer& drawBuffer, const Buffer& countBuffer, U32 drawOffset, U32 countOffset)
 {
 	vkCmdDrawIndirectCount(vkCommandBuffer, drawBuffer, drawOffset, countBuffer, countOffset, 4096u, sizeof(VkDrawIndirectCommand));
 }
@@ -160,19 +142,24 @@ void CommandBuffer::Dispatch(U32 groupX, U32 groupY, U32 groupZ)
 	vkCmdDispatch(vkCommandBuffer, groupX, groupY, groupZ);
 }
 
-void CommandBuffer::BufferToImage(const Buffer& buffer, Texture* texture, U32 regionCount, const VkBufferImageCopy* regions)
+void CommandBuffer::BufferToImage(const Buffer& buffer, Resource<Texture>& texture, U32 regionCount, const VkBufferImageCopy* regions)
 {
-	vkCmdCopyBufferToImage(vkCommandBuffer, buffer.vkBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
+	vkCmdCopyBufferToImage(vkCommandBuffer, buffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
 }
 
 void CommandBuffer::ImageToBuffer(const ResourceRef<Texture>& texture, const Buffer& buffer, U32 regionCount, const VkBufferImageCopy* regions)
 {
-	vkCmdCopyImageToBuffer(vkCommandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer.vkBuffer, regionCount, regions);
+	vkCmdCopyImageToBuffer(vkCommandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, regionCount, regions);
+}
+
+void CommandBuffer::BufferToBuffer(VkBuffer src, VkBuffer dst, U32 regionCount, const VkBufferCopy* regions)
+{
+	vkCmdCopyBuffer(vkCommandBuffer, src, dst, regionCount, regions);
 }
 
 void CommandBuffer::BufferToBuffer(const Buffer& src, const Buffer& dst, U32 regionCount, const VkBufferCopy* regions)
 {
-	vkCmdCopyBuffer(vkCommandBuffer, src.vkBuffer, dst.vkBuffer, regionCount, regions);
+	vkCmdCopyBuffer(vkCommandBuffer, src, dst, regionCount, regions);
 }
 
 void CommandBuffer::ImageToImage(const ResourceRef<Texture>& src, const ResourceRef<Texture>& dst, U32 regionCount, const VkImageCopy* regions)
@@ -180,7 +167,7 @@ void CommandBuffer::ImageToImage(const ResourceRef<Texture>& src, const Resource
 	vkCmdCopyImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions);
 }
 
-void CommandBuffer::Blit(Texture* src, Texture* dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)
+void CommandBuffer::Blit(Resource<Texture>& src, Resource<Texture>& dst, VkFilter filter, U32 blitCount, const VkImageBlit* blits)
 {
 	vkCmdBlitImage(vkCommandBuffer, src->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, blitCount, blits, filter);
 }
@@ -200,4 +187,14 @@ void CommandBuffer::PipelineBarrier(I32 dependencyFlags, U32 bufferBarrierCount,
 	dependencyInfo.pImageMemoryBarriers = imageBarriers;
 
 	vkCmdPipelineBarrier2(vkCommandBuffer, &dependencyInfo);
+}
+
+CommandBuffer::operator VkCommandBuffer_T* () const
+{
+	return vkCommandBuffer;
+}
+
+VkCommandBuffer_T* const* CommandBuffer::operator&() const
+{
+	return &vkCommandBuffer;
 }

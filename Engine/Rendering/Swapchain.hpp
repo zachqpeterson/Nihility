@@ -1,33 +1,42 @@
 #pragma once
 
-#include "Resources\ResourceDefines.hpp"
+#include "Defines.hpp"
 
-struct VkQueue_T;
-struct VkFence_T;
-struct VkSemaphore_T;
+#include "Containers/Vector.hpp"
+
 struct VkSwapchainKHR_T;
-struct VkSurfaceKHR_T;
-enum VkResult;
+struct VkImage_T;
+struct VkImageView_T;
+struct VkSurfaceFormatKHR;
+struct VkExtent2D;
+struct VkSurfaceCapabilitiesKHR;
 
 struct Swapchain
 {
-public:
-	bool CreateSurface();
-	bool GetFormat();
-	bool Create();
+	U32 ImageCount() const;
+
+	operator VkSwapchainKHR_T* () const;
+	VkSwapchainKHR_T* const* operator&() const;
+
+private:
+	bool Create(bool recreate);
 	void Destroy();
 
-	VkResult Update();
-	VkResult NextImage(U32& frameIndex, VkSemaphore_T* semaphore = nullptr, VkFence_T* fence = nullptr);
-	VkResult Present(VkQueue_T* queue, U32 imageIndex, U32 waitCount, VkSemaphore_T** waits);
+	VkSurfaceFormatKHR FindBestSurfaceFormat(const Vector<VkSurfaceFormatKHR>& availableFormats, const Vector<VkSurfaceFormatKHR>& desiredFormats);
+	VkExtent2D FindExtent(const VkSurfaceCapabilitiesKHR& capabilities, U32 desiredWidth, U32 desiredHeight);
 
-public:
-	VkSwapchainKHR_T* swapchain = nullptr;
-	VkSurfaceKHR_T* surface = nullptr;
-	U32 imageCount = MAX_SWAPCHAIN_IMAGES;
-	ResourceRef<Texture> renderTargets[MAX_SWAPCHAIN_IMAGES];
+	U32 imageCount = 0;
+	Vector<VkImage_T*> images;
+	Vector<VkImageView_T*> imageViews;
+	U32 format;
+	U32 width;
+	U32 height;
 
-	U32							width;
-	U32							height;
-	bool						vsync;
+	VkSwapchainKHR_T* vkSwapchain = nullptr;
+
+	friend class Renderer;
+	friend class Resources;
+	friend struct Renderpass;
+	friend struct FrameBuffer;
+	friend struct CommandBuffer;
 };

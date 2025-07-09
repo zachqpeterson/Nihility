@@ -1,222 +1,189 @@
 #include "Swapchain.hpp"
 
-#include "RenderingDefines.hpp"
 #include "Renderer.hpp"
 
-#include "Resources\Resources.hpp"
-#include "Platform\Platform.hpp"
-#include "Platform\Settings.hpp"
+#include "Math/Math.hpp"
 
-bool Swapchain::CreateSurface()
+bool Swapchain::Create(bool recreate)
 {
-#ifdef NH_PLATFORM_WINDOWS
-	const WindowData& wd = Platform::GetWindowData();
-	VkWin32SurfaceCreateInfoKHR surfaceInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-	surfaceInfo.pNext = nullptr;
-	surfaceInfo.flags = 0;
-	surfaceInfo.hinstance = wd.instance;
-	surfaceInfo.hwnd = wd.window;
-
-	VkValidateFR(vkCreateWin32SurfaceKHR(Renderer::instance, &surfaceInfo, Renderer::allocationCallbacks, &surface));
-#elif NH_PLATFORM_LINUX
-	//TODO:
-#elif NH_PLATFORM_APPLE
-	//TODO:
-#endif
-
-	return true;
-}
-
-VkSurfaceFormatKHR surfaceFormat;
-
-bool Swapchain::GetFormat()
-{
-	U32 surfaceFormatCount = 0;
-	VkValidateFR(vkGetPhysicalDeviceSurfaceFormatsKHR(Renderer::physicalDevice, surface, &surfaceFormatCount, nullptr));
-	Vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount, {});
-	VkValidateFR(vkGetPhysicalDeviceSurfaceFormatsKHR(Renderer::physicalDevice, surface, &surfaceFormatCount, surfaceFormats.Data()));
-
-	bool foundFormat = false;
-	for (VkSurfaceFormatKHR& format : surfaceFormats)
+	if (recreate)
 	{
-		if (format.format == VK_FORMAT_R8G8B8A8_UNORM)
+		for (VkImageView view : imageViews)
 		{
-			surfaceFormat.format = format.format;
-			surfaceFormat.colorSpace = format.colorSpace;
-			foundFormat = true;
-			break;
+			if (view)
+			{
+				vkDestroyImageView(Renderer::device, view, Renderer::allocationCallbacks);
+			}
 		}
 	}
 
-	if (!foundFormat)
-	{
-		surfaceFormat.format = surfaceFormats[0].format;
-		surfaceFormat.colorSpace = surfaceFormats[0].colorSpace;
-	}
+	VkSurfaceCapabilitiesKHR capabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &capabilities);
 
-	return true;
-}
+	imageCount = Math::Min(capabilities.minImageCount + 1, capabilities.maxImageCount, MaxSwapchainImages);
 
-bool Swapchain::Create()
-{
-	VkSwapchainKHR oldSwapchain = swapchain;
+	VkExtent2D extent = FindExtent(capabilities, 0, 0);
+	width = extent.width;
+	height = extent.height;
 
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	U32 formatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &formatCount, nullptr);
+	Vector<VkSurfaceFormatKHR> formats(formatCount, {});
+	vkGetPhysicalDeviceSurfaceFormatsKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &formatCount, formats.Data());
 
-	VkValidateFR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Renderer::physicalDevice, surface, &surfaceCapabilities));
+	Vector<VkSurfaceFormatKHR> desiredFormats = {
+		{ VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR },
+		{ VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }
+	};
 
-	U32 presentModeCount = 0;
-	VkPresentModeKHR presentModes[6]{};
-	VkValidateFR(vkGetPhysicalDeviceSurfacePresentModesKHR(Renderer::physicalDevice, surface, &presentModeCount, nullptr));
-	VkValidateFR(vkGetPhysicalDeviceSurfacePresentModesKHR(Renderer::physicalDevice, surface, &presentModeCount, presentModes));
+	VkSurfaceFormatKHR surfaceFormat = FindBestSurfaceFormat(formats, desiredFormats);
+	format = surfaceFormat.format;
 
-	VkExtent2D swapchainExtent = surfaceCapabilities.currentExtent;
-
-	if (swapchainExtent.width == U32_MAX)
-	{
-		swapchainExtent.width = Math::Clamp(swapchainExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
-		swapchainExtent.height = Math::Clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
-	}
-
-	Settings::GetSetting(VSync, vsync);
-	width = swapchainExtent.width;
-	height = swapchainExtent.height;
-
-	//Mailbox - vsync on, no framerate limit
-	//FIFO - vsync on, limit framerate
-	//Immediate - vsync off, no framerate limit
-	//FIFO_relaxed - fps > vsync, vsync on | fps < vsync, vsync off
+	U32 presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &presentModeCount, nullptr);
+	Vector<VkPresentModeKHR> presentModes(presentModeCount, {});
+	vkGetPhysicalDeviceSurfacePresentModesKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &presentModeCount, presentModes.Data());
 
 	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-	if (vsync)
+	if (imageCount >= 3)
 	{
-		for (U64 i = 0; i < presentModeCount; ++i)
+		for (const VkPresentModeKHR& mode : presentModes)
 		{
-			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) { presentMode = VK_PRESENT_MODE_MAILBOX_KHR; break; }
-		}
-	}
-	else
-	{
-		for (U64 i = 0; i < presentModeCount; ++i)
-		{
-			if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) { presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; break; }
+			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) { presentMode = mode; break; }
 		}
 	}
 
-	U32 desiredImageCount = Math::Min(surfaceCapabilities.minImageCount + 1, surfaceCapabilities.maxImageCount);
+	bool sameQueue = Renderer::device.physicalDevice.graphicsQueueIndex == Renderer::device.physicalDevice.presentQueueIndex;
+	U32 queueFamilyIndices[]{ Renderer::device.physicalDevice.graphicsQueueIndex, Renderer::device.physicalDevice.presentQueueIndex };
 
-	VkSurfaceTransformFlagsKHR preTransform;
-
-	if (surfaceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) { preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR; }
-	else { preTransform = surfaceCapabilities.currentTransform; }
-
-	VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
-	static constexpr VkCompositeAlphaFlagBitsKHR compositeAlphaFlags[]{
-		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
-		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
-		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR
+	VkSwapchainCreateInfoKHR swapchainCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+		.pNext = nullptr,
+		.flags = 0,
+		.surface = Renderer::device.vkSurface,
+		.minImageCount = imageCount,
+		.imageFormat = surfaceFormat.format,
+		.imageColorSpace = surfaceFormat.colorSpace,
+		.imageExtent = extent,
+		.imageArrayLayers = 1,
+		.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		.imageSharingMode = sameQueue ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT,
+		.queueFamilyIndexCount = sameQueue ? 0 : CountOf32(queueFamilyIndices),
+		.pQueueFamilyIndices = sameQueue ? nullptr : queueFamilyIndices,
+		.preTransform = capabilities.currentTransform,
+#if defined(NH_PLATFORM_ANDROID)
+		.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+#else
+		.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+#endif
+		.presentMode = presentMode,
+		.clipped = true,
+		.oldSwapchain = vkSwapchain
 	};
 
-	for (U32 i = 0; i < CountOf32(compositeAlphaFlags); ++i)
+	VkValidateFR(vkCreateSwapchainKHR(Renderer::device, &swapchainCreateInfo, Renderer::allocationCallbacks, &vkSwapchain));
+
+	U32 imageCount;
+	VkValidate(vkGetSwapchainImagesKHR(Renderer::device, vkSwapchain, &imageCount, nullptr));
+	images.Resize(imageCount, nullptr);
+	VkValidate(vkGetSwapchainImagesKHR(Renderer::device, vkSwapchain, &imageCount, images.Data()));
+
+	imageViews.Resize(images.Size(), nullptr);
+
+	VkImageViewUsageCreateInfo usage = { VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
+	usage.pNext = nullptr;
+	usage.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	for (U64 i = 0; i < images.Size(); ++i)
 	{
-		if (surfaceCapabilities.supportedCompositeAlpha & compositeAlphaFlags[i]) { compositeAlpha = compositeAlphaFlags[i]; break; };
+		VkImageViewCreateInfo createInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.pNext = &usage,
+			.flags = 0,
+			.image = images[i],
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = surfaceFormat.format,
+			.components {
+				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.a = VK_COMPONENT_SWIZZLE_IDENTITY
+			},
+			.subresourceRange {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
+		};
+
+		VkValidateFR(vkCreateImageView(Renderer::device, &createInfo, Renderer::allocationCallbacks, &imageViews[i]));
 	}
-
-	VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) { imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT; }
-	if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) { imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT; }
-
-	VkSwapchainCreateInfoKHR swapchainInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-	swapchainInfo.pNext = nullptr;
-	swapchainInfo.flags = 0;
-	swapchainInfo.surface = surface;
-	swapchainInfo.minImageCount = desiredImageCount;
-	swapchainInfo.imageFormat = surfaceFormat.format;
-	swapchainInfo.imageColorSpace = surfaceFormat.colorSpace;
-	swapchainInfo.imageExtent = swapchainExtent;
-	swapchainInfo.imageArrayLayers = 1;
-	swapchainInfo.imageUsage = imageUsage;
-	swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	swapchainInfo.queueFamilyIndexCount = 0;
-	swapchainInfo.pQueueFamilyIndices = nullptr;
-	swapchainInfo.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
-	swapchainInfo.compositeAlpha = compositeAlpha;
-	swapchainInfo.presentMode = presentMode;
-	swapchainInfo.clipped = VK_TRUE;
-	swapchainInfo.oldSwapchain = oldSwapchain;
-
-	VkValidateFR(vkCreateSwapchainKHR(Renderer::device, &swapchainInfo, Renderer::allocationCallbacks, &swapchain));
-
-	VkImage images[MAX_SWAPCHAIN_IMAGES];
-	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, nullptr));
-	VkValidateFR(vkGetSwapchainImagesKHR(Renderer::device, swapchain, &imageCount, images));
-
-	if (oldSwapchain)
-	{
-		vkDestroySwapchainKHR(Renderer::device, oldSwapchain, Renderer::allocationCallbacks);
-
-		for (U32 i = 0; i < imageCount; ++i)
-		{
-			Resources::RecreateSwapchainTexture(renderTargets[i], images[i]);
-		}
-	}
-	else
-	{
-		for (U32 i = 0; i < imageCount; ++i)
-		{
-			renderTargets[i] = Resources::CreateSwapchainTexture(images[i], surfaceFormat.format, i);
-		}
-	}
-
-	Renderer::SetRenderArea();
 
 	return true;
 }
 
 void Swapchain::Destroy()
 {
-	if (swapchain) { vkDestroySwapchainKHR(Renderer::device, swapchain, Renderer::allocationCallbacks); }
-	if (surface) { vkDestroySurfaceKHR(Renderer::instance, surface, Renderer::allocationCallbacks); }
-
-	surface = nullptr;
-	swapchain = nullptr;
-}
-
-VkResult Swapchain::Update()
-{
-	if (Renderer::absoluteFrame)
+	for (VkImageView view : imageViews)
 	{
-		bool vs;
-		Settings::GetSetting(VSync, vs);
-
-		U32 windowWidth;
-		U32 windowHeight;
-		Settings::GetSetting(WindowWidth, windowWidth);
-		Settings::GetSetting(WindowHeight, windowHeight);
-
-		if (width != windowWidth || height != windowHeight || vsync != vs) { return VK_ERROR_OUT_OF_DATE_KHR; }
-		if (width == 0 || height == 0) { return VK_NOT_READY; }
+		if (view)
+		{
+			vkDestroyImageView(Renderer::device, view, Renderer::allocationCallbacks);
+		}
 	}
-	
-	return VK_SUCCESS;
+
+	if (vkSwapchain) { vkDestroySwapchainKHR(Renderer::device, vkSwapchain, Renderer::allocationCallbacks); }
+
+	vkSwapchain = nullptr;
 }
 
-VkResult Swapchain::NextImage(U32& frameIndex, VkSemaphore semaphore, VkFence fence)
+VkSurfaceFormatKHR Swapchain::FindBestSurfaceFormat(const Vector<VkSurfaceFormatKHR>& availableFormats, const Vector<VkSurfaceFormatKHR>& desiredFormats)
 {
-	return vkAcquireNextImageKHR(Renderer::device, swapchain, U64_MAX, semaphore, fence, &frameIndex);
+	for (const VkSurfaceFormatKHR& desiredFormat : desiredFormats)
+	{
+		for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
+		{
+			if (desiredFormat.format == availableFormat.format && desiredFormat.colorSpace == availableFormat.colorSpace)
+			{
+				return desiredFormat;
+			}
+		}
+	}
+
+	return availableFormats[0];
 }
 
-VkResult Swapchain::Present(VkQueue queue, U32 imageIndex, U32 waitCount, VkSemaphore* waits)
+VkExtent2D Swapchain::FindExtent(const VkSurfaceCapabilitiesKHR& capabilities, U32 desiredWidth, U32 desiredHeight)
 {
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.waitSemaphoreCount = waitCount;
-	presentInfo.pWaitSemaphores = waits;
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &swapchain;
-	presentInfo.pImageIndices = &imageIndex;
+	if (capabilities.currentExtent.width != U32_MAX)
+	{
+		return capabilities.currentExtent;
+	}
+	else
+	{
+		VkExtent2D actualExtent = { desiredWidth, desiredHeight };
 
-	return vkQueuePresentKHR(queue, &presentInfo);
+		actualExtent.width = Math::Max(capabilities.minImageExtent.width, Math::Min(capabilities.maxImageExtent.width, actualExtent.width));
+		actualExtent.height = Math::Max(capabilities.minImageExtent.height, Math::Min(capabilities.maxImageExtent.height, actualExtent.height));
+
+		return actualExtent;
+	}
+}
+
+U32 Swapchain::ImageCount() const
+{
+	return imageCount;
+}
+
+Swapchain::operator VkSwapchainKHR_T* () const
+{
+	return vkSwapchain;
+}
+
+VkSwapchainKHR_T* const* Swapchain::operator&() const
+{
+	return &vkSwapchain;
 }

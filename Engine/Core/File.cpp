@@ -1,22 +1,45 @@
 #include "File.hpp"
 
+#include "Platform/Memory.hpp"
+
 #include <io.h>
 #include <sys\stat.h>
 #include <share.h>
 
-#if defined NH_PLATFORM_WINDOWS
-#include <Windows.h>
+#ifdef NH_PLATFORM_WINDOWS
+#include "Platform/WindowsInclude.hpp"
 #endif
 
 static constexpr I32 READ_MODE = 0x0001;
 static constexpr I32 WRITE_MODE = 0x0002;
 static constexpr I32 READ_WRITE_MASK = 0x0003;
 
-File::File() { Memory::AllocateArray(&streamBuffer, bufferSize, bufferSize); streamPtr = streamBuffer; }
+File::File()
+{
+	bufferSize = Memory::Allocate(&streamBuffer, bufferSize);
+	streamPtr = streamBuffer;
+}
 
-File::~File() { Destroy(); }
+File::File(const String& path, I32 mode)
+{
+	bufferSize = Memory::Allocate(&streamBuffer, bufferSize);
+	streamPtr = streamBuffer;
 
-bool File::Open(const C8* path, I32 mode)
+	Open(path, mode);
+}
+
+File::~File()
+{
+	Destroy();
+}
+
+void File::Destroy()
+{
+	Close();
+	if (streamBuffer) { Memory::Free(&streamBuffer); }
+}
+
+bool File::Open(const String& path, I32 mode)
 {
 	if (opened) { Close(); }
 
@@ -33,15 +56,15 @@ bool File::Open(const C8* path, I32 mode)
 
 	if (mode & FILE_OPEN_FLUSH_IMMEDIATE) { streamFlag |= FILE_OPEN_FLUSH_IMMEDIATE; }
 
+	streamPtr = streamBuffer;
 	opened = true;
 
 	return true;
 }
 
-void File::Destroy()
+bool File::Opened() const
 {
-	Close();
-	if (streamBuffer) { Memory::Free(&streamBuffer); }
+	return opened;
 }
 
 void File::Close()
@@ -54,46 +77,6 @@ void File::Close()
 		streamFlag = 0;
 		opened = false;
 	}
-}
-
-bool File::Opened() const { return opened; }
-
-U32 File::Read(void* buffer, U32 size)
-{
-	U32 total = size;
-	U32 nBytes;
-	I32 nRead;
-	U8* data = (U8*)buffer;
-
-	if (!(streamFlag & READ_MODE)) { return 0; }
-
-	while (size)
-	{
-		if (bufferRemaining)
-		{
-			nBytes = size < bufferRemaining ? size : bufferRemaining;
-			Copy(data, streamPtr, nBytes);
-
-			size -= nBytes;
-			bufferRemaining -= nBytes;
-			streamPtr += nBytes;
-			data += nBytes;
-			pointer += nBytes;
-		}
-		else if (size >= bufferSize)
-		{
-			nRead = _read(handle, data, size);
-
-			if (nRead <= 0) { return total - size; }
-
-			size -= nRead;
-			data += nRead;
-			pointer += nRead;
-		}
-		else if (!FillBuffer()) { return total - size; }
-	}
-
-	return total;
 }
 
 String File::ReadString()
@@ -112,11 +95,11 @@ String File::ReadString()
 			streamPtr += string.Size() + 1;
 			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
-			return Move(string);
+			return string;
 		}
 		else if (!FillBuffer())
 		{
-			return Move(string);
+			return string;
 		}
 	}
 }
@@ -137,26 +120,81 @@ String File::ReadLine()
 			streamPtr += string.Size() + 1;
 			bufferRemaining -= (U32)string.Size() + 1;
 			pointer += string.Size() + 1;
-			return Move(string);
+			return string;
 		}
-		else if(!FillBuffer())
+		else if (!FillBuffer())
 		{
-			return Move(string);
+			return string;
 		}
 	}
 }
 
-//TODO: update file size
-U32 File::Write(const void* buffer, U32 size)
+String File::ReadAll()
+{
+	String string;
+	string.Resize(stats.size);
+	Read(string.Data(), stats.size);
+	return string;
+}
+
+U64 File::Write(const String& data)
+{
+	if (!data.Empty())
+	{
+		return Write(data.Data(), data.Size() + 1);
+	}
+
+	return 0;
+}
+
+U64 File::Read(void* buffer, U64 size)
+{
+	U64 total = size;
+	U64 nBytes;
+	I32 nRead;
+	U8* data = (U8*)buffer;
+
+	if (!(streamFlag & READ_MODE)) { return 0; }
+
+	while (size)
+	{
+		if (bufferRemaining)
+		{
+			nBytes = size < bufferRemaining ? size : bufferRemaining;
+			memcpy(data, streamPtr, nBytes);
+
+			size -= nBytes;
+			bufferRemaining -= nBytes;
+			streamPtr += nBytes;
+			data += nBytes;
+			pointer += nBytes;
+		}
+		else if (size >= bufferSize)
+		{
+			nRead = _read(handle, data, (U32)size);
+
+			if (nRead <= 0) { return total - size; }
+
+			size -= nRead;
+			data += nRead;
+			pointer += nRead;
+		}
+		else if (!FillBuffer()) { return total - size; }
+	}
+
+	return total;
+}
+
+U64 File::Write(const void* buffer, U64 size)
 {
 	const U8* data = (const U8*)buffer;
-	U32 total = size;
-	U32 nBytes;
+	U64 total = size;
+	U64 nBytes;
 	I32 nWritten;
 
 	if (!(streamFlag & WRITE_MODE)) { return 0; }
 
-	if (streamFlag & FILE_OPEN_FLUSH_IMMEDIATE) { size -= _write(handle, data, size); }
+	if (streamFlag & FILE_OPEN_FLUSH_IMMEDIATE) { size -= _write(handle, data, (U32)size); }
 	else
 	{
 		while (size)
@@ -164,7 +202,7 @@ U32 File::Write(const void* buffer, U32 size)
 			if (bufferRemaining)
 			{
 				nBytes = size < bufferRemaining ? size : bufferRemaining;
-				Copy(streamPtr, data, nBytes);
+				memcpy(streamPtr, data, nBytes);
 
 				size -= nBytes;
 				bufferRemaining -= nBytes;
@@ -174,7 +212,7 @@ U32 File::Write(const void* buffer, U32 size)
 			}
 			else if (size >= bufferSize)
 			{
-				if (!Flush() || (nWritten = _write(handle, data, size)) < 0) { return total - size; }
+				if (!Flush() || (nWritten = _write(handle, data, (U32)size)) < 0) { return total - size; }
 
 				size -= nWritten;
 				data += nWritten;
@@ -186,32 +224,9 @@ U32 File::Write(const void* buffer, U32 size)
 		}
 	}
 
+	stats.size += total - size;
+
 	return total - size;
-}
-
-bool File::FillBuffer()
-{
-	streamPtr = streamBuffer;
-	bufferRemaining = _read(handle, streamBuffer, bufferSize);
-
-	if (bufferRemaining <= 0) { bufferRemaining = 0; }
-
-	return bufferRemaining;
-}
-
-bool File::EmptyBuffer()
-{
-	U32 count = (U32)(streamPtr - streamBuffer);
-	I32 written = 0;
-
-	streamPtr = streamBuffer;
-	bufferRemaining = bufferSize;
-
-	if (count > 0) { written = _write(handle, streamBuffer, count); }
-
-	if (written != count) { return false; }
-
-	return true;
 }
 
 bool File::Flush()
@@ -233,6 +248,31 @@ bool File::Flush()
 		streamPtr = streamBuffer;
 		bufferRemaining = bufferSize;
 	}
+
+	return true;
+}
+
+bool File::FillBuffer()
+{
+	streamPtr = streamBuffer;
+	bufferRemaining = _read(handle, streamBuffer, (U32)bufferSize);
+
+	if (bufferRemaining <= 0) { bufferRemaining = 0; }
+
+	return bufferRemaining;
+}
+
+bool File::EmptyBuffer()
+{
+	U32 count = (U32)(streamPtr - streamBuffer);
+	I32 written = 0;
+
+	streamPtr = streamBuffer;
+	bufferRemaining = bufferSize;
+
+	if (count > 0) { written = _write(handle, streamBuffer, count); }
+
+	if (written != count) { return false; }
 
 	return true;
 }
@@ -265,19 +305,17 @@ void File::SeekToEnd()
 	bufferRemaining = 0;
 }
 
-I64 File::Pointer() const { return pointer; }
-
-I64 File::Size() { return stats.size; }
-
-const String& File::WorkingDirectory()
+I64 File::Pointer() const
 {
-	static String wd;
-	static bool b = GetWorkingDirectory(wd);
-
-	return wd;
+	return pointer;
 }
 
-bool File::GetWorkingDirectory(String& str)
+I64 File::Size()
+{
+	return stats.size;
+}
+
+bool GetWorkingDirectory(String& str)
 {
 #if defined NH_PLATFORM_WINDOWS
 	UL32 length = 1024;
@@ -289,8 +327,18 @@ bool File::GetWorkingDirectory(String& str)
 #endif
 }
 
-//TODO: Check if file is open
-bool File::Delete(const String& path) { return remove(path.Data()) == 0; }
+const String& File::WorkingDirectory()
+{
+	static String wd;
+	static bool b = GetWorkingDirectory(wd);
+
+	return wd;
+}
+
+bool File::Delete(const String& path)
+{
+	return remove(path.Data()) == 0;
+}
 
 bool File::Exists(const String& path)
 {

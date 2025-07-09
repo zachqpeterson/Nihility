@@ -2,13 +2,13 @@
 
 #include "Defines.hpp"
 
-#include "Memory\Memory.hpp"
+#include "Platform/Memory.hpp"
 
 template <class Type>
 struct Stack
 {
 	Stack();
-	Stack(U32 capacity);
+	Stack(U64 capacity);
 	Stack(const Stack& other);
 	Stack(Stack&& other) noexcept;
 
@@ -21,32 +21,33 @@ struct Stack
 
 	void Push(const Type& value);
 	void Push(Type&& value) noexcept;
+	const Type& Peek() const;
 	bool Pop(Type& value);
 
-	void Reserve(U32 capacity);
+	void Reserve(U64 capacity);
 
-	U32 Capacity() const;
-	U32 Size() const;
+	U64 Capacity() const;
+	U64 Size() const;
 	bool Empty() const;
 	bool Full() const;
 
 private:
-	U32 size = 0;
-	U32 capacity = 0;
+	U64 size = 0;
+	U64 capacity = 0;
 	Type* array = nullptr;
 };
 
 template <class Type>
-inline Stack<Type>::Stack() { Memory::AllocateArray(&array, capacity, capacity); }
+inline Stack<Type>::Stack() { }
 
 template <class Type>
-inline Stack<Type>::Stack(U32 cap) : capacity(cap) { Memory::AllocateArray(&array, cap, capacity); }
+inline Stack<Type>::Stack(U64 cap) { capacity = Memory::Allocate(&array, cap); }
 
 template <class Type>
 inline Stack<Type>::Stack(const Stack& other) : size(other.size), capacity(other.size)
 {
-	Memory::AllocateArray(&array, capacity, capacity);
-	Copy(array, other.array, size);
+	capacity = Memory::Allocate(&array, capacity);
+	CopyData(array, other.array, size);
 }
 
 template <class Type>
@@ -61,9 +62,9 @@ template <class Type>
 inline Stack<Type>& Stack<Type>::operator=(const Stack& other)
 {
 	size = other.size;
-	if (capacity < other.size) { Memory::Reallocate(&array, size, capacity); }
+	if (capacity < other.size) { capacity = Memory::Reallocate(&array, size); }
 
-	Copy(array, other.array, size);
+	CopyData(array, other.array, size);
 
 	return *this;
 }
@@ -89,9 +90,18 @@ inline Stack<Type>::~Stack() { Destroy(); }
 template <class Type>
 inline void Stack<Type>::Destroy()
 {
+	if (array)
+	{
+		if constexpr (IsDestructible<Type>)
+		{
+			for (Type* it = array, *end = array + size; it != end; ++it) { it->~Type(); }
+		}
+
+		Memory::Free(&array);
+	}
+
 	size = 0;
 	capacity = 0;
-	Memory::Free(&array);
 }
 
 template <class Type>
@@ -100,37 +110,41 @@ inline void Stack<Type>::Clear() { size = 0; }
 template <class Type>
 inline void Stack<Type>::Push(const Type& value)
 {
-	if (Full()) { Reserve(capacity + 1); }
+	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size++] = value;
+	Construct<Type>(array + size++, value);
 }
 
 template <class Type>
 inline void Stack<Type>::Push(Type&& value) noexcept
 {
-	if (Full()) { Reserve(capacity + 1); }
+	if (size == capacity) { Reserve(capacity + 1); }
 
-	array[size++] = Move(value);
+	Construct<Type>(array + size++, Move(value));
+}
+
+template <class Type>
+inline const Type& Stack<Type>::Peek() const
+{
+	return array[size - 1];
 }
 
 template <class Type>
 inline bool Stack<Type>::Pop(Type& value)
 {
-	if (Empty()) { return false; }
+	if (size) { Construct<Type>(&value, Move(array[--size])); return true; }
 
-	value = Move(array[--size]);
-
-	return true;
+	return false;
 }
 
 template <class Type>
-inline void Stack<Type>::Reserve(U32 cap) { Memory::Reallocate(&array, cap, capacity); }
+inline void Stack<Type>::Reserve(U64 cap) { capacity = Memory::Reallocate(&array, cap); }
 
 template <class Type>
-inline U32 Stack<Type>::Capacity() const { return capacity; }
+inline U64 Stack<Type>::Capacity() const { return capacity; }
 
 template <class Type>
-inline U32 Stack<Type>::Size() const { return size; }
+inline U64 Stack<Type>::Size() const { return size; }
 
 template <class Type>
 inline bool Stack<Type>::Empty() const { return size == 0; }

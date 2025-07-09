@@ -1,399 +1,12 @@
 #pragma once
 
 #include "Defines.hpp"
-#include "TypeTraits.hpp"
 
-#include "Memory\Memory.hpp"
-#include "Math\Math.hpp"
+#include "Platform/Memory.hpp"
+#include "Math/Math.hpp"
 
-#pragma region Lookup
-constexpr inline U8 UPPER_CHAR = 0x01;
-constexpr inline U8 LOWER_CHAR = 0x02;
-constexpr inline U8 DIGIT_CHAR = 0x04;
-constexpr inline U8 SPACE_CHAR = 0x08;
-constexpr inline U8 PUNCT_CHAR = 0x10;
-constexpr inline U8 CONTROL_CHAR = 0x20;
-constexpr inline U8 HEX_CHAR = 0x40;
-
-constexpr inline U8 ALPHA_CHAR = UPPER_CHAR | LOWER_CHAR;
-constexpr inline U8 ALPHANUM_CHAR = ALPHA_CHAR | DIGIT_CHAR;
-
-constexpr inline const C8 TYPE_LOOKUP[]{
-	0,							// -1 EOF
-	CONTROL_CHAR,				// 00 (NUL)
-	CONTROL_CHAR,				// 01 (SOH)
-	CONTROL_CHAR,				// 02 (STX)
-	CONTROL_CHAR,				// 03 (ETX)
-	CONTROL_CHAR,				// 04 (EOT)
-	CONTROL_CHAR,				// 05 (ENQ)
-	CONTROL_CHAR,				// 06 (ACK)
-	CONTROL_CHAR,				// 07 (BEL)
-	CONTROL_CHAR,				// 08 (BS)
-	SPACE_CHAR | CONTROL_CHAR,	// 09 (HT)
-	SPACE_CHAR | CONTROL_CHAR,	// 0A (LF)
-	SPACE_CHAR | CONTROL_CHAR,	// 0B (VT)
-	SPACE_CHAR | CONTROL_CHAR,	// 0C (FF)
-	SPACE_CHAR | CONTROL_CHAR,	// 0D (CR)
-	CONTROL_CHAR,				// 0E (SI)
-	CONTROL_CHAR,				// 0F (SO)
-	CONTROL_CHAR,				// 10 (DLE)
-	CONTROL_CHAR,				// 11 (DC1)
-	CONTROL_CHAR,				// 12 (DC2)
-	CONTROL_CHAR,				// 13 (DC3)
-	CONTROL_CHAR,				// 14 (DC4)
-	CONTROL_CHAR,				// 15 (NAK)
-	CONTROL_CHAR,				// 16 (SYN)
-	CONTROL_CHAR,				// 17 (ETB)
-	CONTROL_CHAR,				// 18 (CAN)
-	CONTROL_CHAR,				// 19 (EM)
-	CONTROL_CHAR,				// 1A (SUB)
-	CONTROL_CHAR,				// 1B (ESC)
-	CONTROL_CHAR,				// 1C (FS)
-	CONTROL_CHAR,				// 1D (GS)
-	CONTROL_CHAR,				// 1E (RS)
-	CONTROL_CHAR,				// 1F (US)
-	SPACE_CHAR,					// 20 SPACE
-	PUNCT_CHAR,					// 21 !
-	PUNCT_CHAR,					// 22 "
-	PUNCT_CHAR,					// 23 #
-	PUNCT_CHAR,					// 24 $
-	PUNCT_CHAR,					// 25 %
-	PUNCT_CHAR,					// 26 &
-	PUNCT_CHAR,					// 27 '
-	PUNCT_CHAR,					// 28 (
-	PUNCT_CHAR,					// 29 )
-	PUNCT_CHAR,					// 2A *
-	PUNCT_CHAR,					// 2B +
-	PUNCT_CHAR,					// 2C ,
-	PUNCT_CHAR,					// 2D -
-	PUNCT_CHAR,					// 2E .
-	PUNCT_CHAR,					// 2F /
-	DIGIT_CHAR | HEX_CHAR,		// 30 0
-	DIGIT_CHAR | HEX_CHAR,		// 31 1
-	DIGIT_CHAR | HEX_CHAR,		// 32 2
-	DIGIT_CHAR | HEX_CHAR,		// 33 3
-	DIGIT_CHAR | HEX_CHAR,		// 34 4
-	DIGIT_CHAR | HEX_CHAR,		// 35 5
-	DIGIT_CHAR | HEX_CHAR,		// 36 6
-	DIGIT_CHAR | HEX_CHAR,		// 37 7
-	DIGIT_CHAR | HEX_CHAR,		// 38 8
-	DIGIT_CHAR | HEX_CHAR,		// 39 9
-	PUNCT_CHAR,					// 3A :
-	PUNCT_CHAR,					// 3B ;
-	PUNCT_CHAR,					// 3C <
-	PUNCT_CHAR,					// 3D =
-	PUNCT_CHAR,					// 3E >
-	PUNCT_CHAR,					// 3F ?
-	PUNCT_CHAR,					// 40 @
-	UPPER_CHAR + HEX_CHAR,		// 41 A
-	UPPER_CHAR + HEX_CHAR,		// 42 B
-	UPPER_CHAR + HEX_CHAR,		// 43 C
-	UPPER_CHAR + HEX_CHAR,		// 44 D
-	UPPER_CHAR + HEX_CHAR,		// 45 E
-	UPPER_CHAR + HEX_CHAR,		// 46 F
-	UPPER_CHAR,					// 47 G
-	UPPER_CHAR,					// 48 H
-	UPPER_CHAR,					// 49 I
-	UPPER_CHAR,					// 4A J
-	UPPER_CHAR,					// 4B K
-	UPPER_CHAR,					// 4C L
-	UPPER_CHAR,					// 4D M
-	UPPER_CHAR,					// 4E N
-	UPPER_CHAR,					// 4F O
-	UPPER_CHAR,					// 50 P
-	UPPER_CHAR,					// 51 Q
-	UPPER_CHAR,					// 52 R
-	UPPER_CHAR,					// 53 S
-	UPPER_CHAR,					// 54 T
-	UPPER_CHAR,					// 55 U
-	UPPER_CHAR,					// 56 V
-	UPPER_CHAR,					// 57 W
-	UPPER_CHAR,					// 58 X
-	UPPER_CHAR,					// 59 Y
-	UPPER_CHAR,					// 5A Z
-	PUNCT_CHAR,					// 5B [
-	PUNCT_CHAR,					// 5C \ 
-	PUNCT_CHAR,					// 5D ]
-	PUNCT_CHAR,					// 5E ^
-	PUNCT_CHAR,					// 5F _
-	PUNCT_CHAR,					// 60 `
-	LOWER_CHAR + HEX_CHAR,		// 61 a
-	LOWER_CHAR + HEX_CHAR,		// 62 b
-	LOWER_CHAR + HEX_CHAR,		// 63 c
-	LOWER_CHAR + HEX_CHAR,		// 64 d
-	LOWER_CHAR + HEX_CHAR,		// 65 e
-	LOWER_CHAR + HEX_CHAR,		// 66 f
-	LOWER_CHAR,					// 67 g
-	LOWER_CHAR,					// 68 h
-	LOWER_CHAR,					// 69 i
-	LOWER_CHAR,					// 6A j
-	LOWER_CHAR,					// 6B k
-	LOWER_CHAR,					// 6C l
-	LOWER_CHAR,					// 6D m
-	LOWER_CHAR,					// 6E n
-	LOWER_CHAR,					// 6F o
-	LOWER_CHAR,					// 70 p
-	LOWER_CHAR,					// 71 q
-	LOWER_CHAR,					// 72 r
-	LOWER_CHAR,					// 73 s
-	LOWER_CHAR,					// 74 t
-	LOWER_CHAR,					// 75 u
-	LOWER_CHAR,					// 76 v
-	LOWER_CHAR,					// 77 w
-	LOWER_CHAR,					// 78 x
-	LOWER_CHAR,					// 79 y
-	LOWER_CHAR,					// 7A z
-	PUNCT_CHAR,					// 7B {
-	PUNCT_CHAR,					// 7C |
-	PUNCT_CHAR,					// 7D }
-	PUNCT_CHAR,					// 7E ~
-	CONTROL_CHAR,				// 7F (DEL)
-};
-
-template<Character C> constexpr inline const C* TRUE_STR = "true";
-template<> constexpr inline const char* TRUE_STR<char> = "true";
-template<> constexpr inline const char8_t* TRUE_STR<char8_t> = u8"true";
-template<> constexpr inline const char16_t* TRUE_STR<char16_t> = u"true";
-template<> constexpr inline const char32_t* TRUE_STR<char32_t> = U"true";
-template<> constexpr inline const wchar_t* TRUE_STR<wchar_t> = L"true";
-
-template<Character C> constexpr inline const C* FALSE_STR = "false";
-template<> constexpr inline const char* FALSE_STR<char> = "false";
-template<> constexpr inline const char8_t* FALSE_STR<char8_t> = u8"false";
-template<> constexpr inline const char16_t* FALSE_STR<char16_t> = u"false";
-template<> constexpr inline const char32_t* FALSE_STR<char32_t> = U"false";
-template<> constexpr inline const wchar_t* FALSE_STR<wchar_t> = L"false";
-
-template<Character C> constexpr inline const C NULL_CHAR = '\0';
-template<> constexpr inline const char NULL_CHAR<char> = '\0';
-template<> constexpr inline const char8_t NULL_CHAR<char8_t> = u8'\0';
-template<> constexpr inline const char16_t NULL_CHAR<char16_t> = u'\0';
-template<> constexpr inline const char32_t NULL_CHAR<char32_t> = U'\0';
-template<> constexpr inline const wchar_t NULL_CHAR<wchar_t> = L'\0';
-
-template<Character C> constexpr inline const C NEGATIVE_CHAR = '-';
-template<> constexpr inline const char NEGATIVE_CHAR<char> = '-';
-template<> constexpr inline const char8_t NEGATIVE_CHAR<char8_t> = u8'-';
-template<> constexpr inline const char16_t NEGATIVE_CHAR<char16_t> = u'-';
-template<> constexpr inline const char32_t NEGATIVE_CHAR<char32_t> = U'-';
-template<> constexpr inline const wchar_t NEGATIVE_CHAR<wchar_t> = L'-';
-
-template<Character C> constexpr inline const C POSITIVE_CHAR = '+';
-template<> constexpr inline const char POSITIVE_CHAR<char> = '+';
-template<> constexpr inline const char8_t POSITIVE_CHAR<char8_t> = u8'+';
-template<> constexpr inline const char16_t POSITIVE_CHAR<char16_t> = u'+';
-template<> constexpr inline const char32_t POSITIVE_CHAR<char32_t> = U'+';
-template<> constexpr inline const wchar_t POSITIVE_CHAR<wchar_t> = L'+';
-
-template<Character C> constexpr inline const C DECIMAL_CHAR = '.';
-template<> constexpr inline const char DECIMAL_CHAR<char> = '.';
-template<> constexpr inline const char8_t DECIMAL_CHAR<char8_t> = u8'.';
-template<> constexpr inline const char16_t DECIMAL_CHAR<char16_t> = u'.';
-template<> constexpr inline const char32_t DECIMAL_CHAR<char32_t> = U'.';
-template<> constexpr inline const wchar_t DECIMAL_CHAR<wchar_t> = L'.';
-
-template<Character C> constexpr inline const C ZERO_CHAR = '0';
-template<> constexpr inline const char ZERO_CHAR<char> = '0';
-template<> constexpr inline const char8_t ZERO_CHAR<char8_t> = u8'0';
-template<> constexpr inline const char16_t ZERO_CHAR<char16_t> = u'0';
-template<> constexpr inline const char32_t ZERO_CHAR<char32_t> = U'0';
-template<> constexpr inline const wchar_t ZERO_CHAR<wchar_t> = L'0';
-
-template<Character C> constexpr inline const C BACK_SLASH = '\\';
-template<> constexpr inline const char BACK_SLASH<char> = '\\';
-template<> constexpr inline const char8_t BACK_SLASH<char8_t> = u8'\\';
-template<> constexpr inline const char16_t BACK_SLASH<char16_t> = u'\\';
-template<> constexpr inline const char32_t BACK_SLASH<char32_t> = U'\\';
-template<> constexpr inline const wchar_t BACK_SLASH<wchar_t> = L'\\';
-
-template<Character C> constexpr inline const C FORWARD_SLASH = '/';
-template<> constexpr inline const char FORWARD_SLASH<char> = '/';
-template<> constexpr inline const char8_t FORWARD_SLASH<char8_t> = u8'/';
-template<> constexpr inline const char16_t FORWARD_SLASH<char16_t> = u'/';
-template<> constexpr inline const char32_t FORWARD_SLASH<char32_t> = U'/';
-template<> constexpr inline const wchar_t FORWARD_SLASH<wchar_t> = L'/';
-
-template<Character C> constexpr inline const C SPACE = ' ';
-template<> constexpr inline const char SPACE<char> = ' ';
-template<> constexpr inline const char8_t SPACE<char8_t> = u8' ';
-template<> constexpr inline const char16_t SPACE<char16_t> = u' ';
-template<> constexpr inline const char32_t SPACE<char32_t> = U' ';
-template<> constexpr inline const wchar_t SPACE<wchar_t> = L' ';
-
-template<Character C> constexpr inline const C HTAB = '\t';
-template<> constexpr inline const char HTAB<char> = '\t';
-template<> constexpr inline const char8_t HTAB<char8_t> = u8'\t';
-template<> constexpr inline const char16_t HTAB<char16_t> = u'\t';
-template<> constexpr inline const char32_t HTAB<char32_t> = U'\t';
-template<> constexpr inline const wchar_t HTAB<wchar_t> = L'\t';
-
-template<Character C> constexpr inline const C VTAB = '\v';
-template<> constexpr inline const char VTAB<char> = '\v';
-template<> constexpr inline const char8_t VTAB<char8_t> = u8'\v';
-template<> constexpr inline const char16_t VTAB<char16_t> = u'\v';
-template<> constexpr inline const char32_t VTAB<char32_t> = U'\v';
-template<> constexpr inline const wchar_t VTAB<wchar_t> = L'\v';
-
-template<Character C> constexpr inline const C RETURN = '\r';
-template<> constexpr inline const char RETURN<char> = '\r';
-template<> constexpr inline const char8_t RETURN<char8_t> = u8'\r';
-template<> constexpr inline const char16_t RETURN<char16_t> = u'\r';
-template<> constexpr inline const char32_t RETURN<char32_t> = U'\r';
-template<> constexpr inline const wchar_t RETURN<wchar_t> = L'\r';
-
-template<Character C> constexpr inline const C NEW_LINE = '\n';
-template<> constexpr inline const char NEW_LINE<char> = '\n';
-template<> constexpr inline const char8_t NEW_LINE<char8_t> = u8'\n';
-template<> constexpr inline const char16_t NEW_LINE<char16_t> = u'\n';
-template<> constexpr inline const char32_t NEW_LINE<char32_t> = U'\n';
-template<> constexpr inline const wchar_t NEW_LINE<wchar_t> = L'\n';
-
-template<Character C> constexpr inline const C FEED = '\f';
-template<> constexpr inline const char FEED<char> = '\f';
-template<> constexpr inline const char8_t FEED<char8_t> = u8'\f';
-template<> constexpr inline const char16_t FEED<char16_t> = u'\f';
-template<> constexpr inline const char32_t FEED<char32_t> = U'\f';
-template<> constexpr inline const wchar_t FEED<wchar_t> = L'\f';
-
-template<Character C> constexpr inline const C OPEN_BRACE = '{';
-template<> constexpr inline const char OPEN_BRACE<char> = '{';
-template<> constexpr inline const char8_t OPEN_BRACE<char8_t> = u8'{';
-template<> constexpr inline const char16_t OPEN_BRACE<char16_t> = u'{';
-template<> constexpr inline const char32_t OPEN_BRACE<char32_t> = U'{';
-template<> constexpr inline const wchar_t OPEN_BRACE<wchar_t> = L'{';
-
-template<Character C> constexpr inline const C CLOSE_BRACE = '}';
-template<> constexpr inline const char CLOSE_BRACE<char> = '}';
-template<> constexpr inline const char8_t CLOSE_BRACE<char8_t> = u8'}';
-template<> constexpr inline const char16_t CLOSE_BRACE<char16_t> = u'}';
-template<> constexpr inline const char32_t CLOSE_BRACE<char32_t> = U'}';
-template<> constexpr inline const wchar_t CLOSE_BRACE<wchar_t> = L'}';
-
-template<Character C> constexpr inline const C FMT_HEX = 'h';
-template<> constexpr inline const char FMT_HEX<char> = 'h';
-template<> constexpr inline const char8_t FMT_HEX<char8_t> = u8'h';
-template<> constexpr inline const char16_t FMT_HEX<char16_t> = u'h';
-template<> constexpr inline const char32_t FMT_HEX<char32_t> = U'h';
-template<> constexpr inline const wchar_t FMT_HEX<wchar_t> = L'h';
-
-template<Character C> constexpr inline const C FMT_DEC = '.';
-template<> constexpr inline const char FMT_DEC<char> = '.';
-template<> constexpr inline const char8_t FMT_DEC<char8_t> = u8'.';
-template<> constexpr inline const char16_t FMT_DEC<char16_t> = u'.';
-template<> constexpr inline const char32_t FMT_DEC<char32_t> = U'.';
-template<> constexpr inline const wchar_t FMT_DEC<wchar_t> = L'.';
-
-template<Character C> constexpr inline const C* ALPHANUM_LOOKUP = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-template<> constexpr inline const char* ALPHANUM_LOOKUP<char> = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-template<> constexpr inline const char8_t* ALPHANUM_LOOKUP<char8_t> = u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-template<> constexpr inline const char16_t* ALPHANUM_LOOKUP<char16_t> = u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-template<> constexpr inline const char32_t* ALPHANUM_LOOKUP<char32_t> = U"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-template<> constexpr inline const wchar_t* ALPHANUM_LOOKUP<wchar_t> = L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-template<Character C> constexpr inline const C* HEX_LOOKUP =
-"000102030405060708090A0B0C0D0E0F"
-"101112131415161718191A1B1C1D1E1F"
-"202122232425262728292A2B2C2D2E2F"
-"303132333435363738393A3B3C3D3E3F"
-"404142434445464748494A4B4C4D4E4F"
-"505152535455565758595A5B5C5D5E5F"
-"606162636465666768696A6B6C6D6E6F"
-"707172737475767778797A7B7C7D7E7F"
-"808182838485868788898A8B8C8D8E8F"
-"909192939495969798999A9B9C9D9E9F"
-"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-template<> constexpr inline const char* HEX_LOOKUP<char> =
-"000102030405060708090A0B0C0D0E0F"
-"101112131415161718191A1B1C1D1E1F"
-"202122232425262728292A2B2C2D2E2F"
-"303132333435363738393A3B3C3D3E3F"
-"404142434445464748494A4B4C4D4E4F"
-"505152535455565758595A5B5C5D5E5F"
-"606162636465666768696A6B6C6D6E6F"
-"707172737475767778797A7B7C7D7E7F"
-"808182838485868788898A8B8C8D8E8F"
-"909192939495969798999A9B9C9D9E9F"
-"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-template<> constexpr inline const char8_t* HEX_LOOKUP<char8_t> =
-u8"000102030405060708090A0B0C0D0E0F"
-"101112131415161718191A1B1C1D1E1F"
-"202122232425262728292A2B2C2D2E2F"
-"303132333435363738393A3B3C3D3E3F"
-"404142434445464748494A4B4C4D4E4F"
-"505152535455565758595A5B5C5D5E5F"
-"606162636465666768696A6B6C6D6E6F"
-"707172737475767778797A7B7C7D7E7F"
-"808182838485868788898A8B8C8D8E8F"
-"909192939495969798999A9B9C9D9E9F"
-"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-template<> constexpr inline const char16_t* HEX_LOOKUP<char16_t> =
-u"000102030405060708090A0B0C0D0E0F"
-"101112131415161718191A1B1C1D1E1F"
-"202122232425262728292A2B2C2D2E2F"
-"303132333435363738393A3B3C3D3E3F"
-"404142434445464748494A4B4C4D4E4F"
-"505152535455565758595A5B5C5D5E5F"
-"606162636465666768696A6B6C6D6E6F"
-"707172737475767778797A7B7C7D7E7F"
-"808182838485868788898A8B8C8D8E8F"
-"909192939495969798999A9B9C9D9E9F"
-"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-template<> constexpr inline const char32_t* HEX_LOOKUP<char32_t> =
-U"000102030405060708090A0B0C0D0E0F"
-"101112131415161718191A1B1C1D1E1F"
-"202122232425262728292A2B2C2D2E2F"
-"303132333435363738393A3B3C3D3E3F"
-"404142434445464748494A4B4C4D4E4F"
-"505152535455565758595A5B5C5D5E5F"
-"606162636465666768696A6B6C6D6E6F"
-"707172737475767778797A7B7C7D7E7F"
-"808182838485868788898A8B8C8D8E8F"
-"909192939495969798999A9B9C9D9E9F"
-"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-template<> constexpr inline const wchar_t* HEX_LOOKUP<wchar_t> =
-L"000102030405060708090A0B0C0D0E0F"
-"101112131415161718191A1B1C1D1E1F"
-"202122232425262728292A2B2C2D2E2F"
-"303132333435363738393A3B3C3D3E3F"
-"404142434445464748494A4B4C4D4E4F"
-"505152535455565758595A5B5C5D5E5F"
-"606162636465666768696A6B6C6D6E6F"
-"707172737475767778797A7B7C7D7E7F"
-"808182838485868788898A8B8C8D8E8F"
-"909192939495969798999A9B9C9D9E9F"
-"A0A1A2A3A4A5A6A7A8A9AAABACADAEAF"
-"B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF"
-"C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF"
-"D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF"
-"E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF"
-"F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-
-template<Character C> constexpr inline const C* DECIMAL_LOOKUP =
+#pragma region Formatting
+template<Character C> constexpr inline const C* DecimalLookup =
 "000001002003004005006007008009010011012013014015016017018019"
 "020021022023024025026027028029030031032033034035036037038039"
 "040041042043044045046047048049050051052053054055056057058059"
@@ -444,7 +57,7 @@ template<Character C> constexpr inline const C* DECIMAL_LOOKUP =
 "940941942943944945946947948949950951952953954955956957958959"
 "960961962963964965966967968969970971972973974975976977978979"
 "980981982983984985986987988989990991992993994995996997998999";
-template<> constexpr inline const char* DECIMAL_LOOKUP<char> =
+template<> constexpr inline const char* DecimalLookup<char> =
 "000001002003004005006007008009010011012013014015016017018019"
 "020021022023024025026027028029030031032033034035036037038039"
 "040041042043044045046047048049050051052053054055056057058059"
@@ -495,7 +108,7 @@ template<> constexpr inline const char* DECIMAL_LOOKUP<char> =
 "940941942943944945946947948949950951952953954955956957958959"
 "960961962963964965966967968969970971972973974975976977978979"
 "980981982983984985986987988989990991992993994995996997998999";
-template<> constexpr inline const char8_t* DECIMAL_LOOKUP<char8_t> =
+template<> constexpr inline const char8_t* DecimalLookup<char8_t> =
 u8"000001002003004005006007008009010011012013014015016017018019"
 "020021022023024025026027028029030031032033034035036037038039"
 "040041042043044045046047048049050051052053054055056057058059"
@@ -546,7 +159,7 @@ u8"000001002003004005006007008009010011012013014015016017018019"
 "940941942943944945946947948949950951952953954955956957958959"
 "960961962963964965966967968969970971972973974975976977978979"
 "980981982983984985986987988989990991992993994995996997998999";
-template<> constexpr inline const char16_t* DECIMAL_LOOKUP<char16_t> =
+template<> constexpr inline const char16_t* DecimalLookup<char16_t> =
 u"000001002003004005006007008009010011012013014015016017018019"
 "020021022023024025026027028029030031032033034035036037038039"
 "040041042043044045046047048049050051052053054055056057058059"
@@ -597,7 +210,7 @@ u"000001002003004005006007008009010011012013014015016017018019"
 "940941942943944945946947948949950951952953954955956957958959"
 "960961962963964965966967968969970971972973974975976977978979"
 "980981982983984985986987988989990991992993994995996997998999";
-template<> constexpr inline const char32_t* DECIMAL_LOOKUP<char32_t> =
+template<> constexpr inline const char32_t* DecimalLookup<char32_t> =
 U"000001002003004005006007008009010011012013014015016017018019"
 "020021022023024025026027028029030031032033034035036037038039"
 "040041042043044045046047048049050051052053054055056057058059"
@@ -648,7 +261,7 @@ U"000001002003004005006007008009010011012013014015016017018019"
 "940941942943944945946947948949950951952953954955956957958959"
 "960961962963964965966967968969970971972973974975976977978979"
 "980981982983984985986987988989990991992993994995996997998999";
-template<> constexpr inline const wchar_t* DECIMAL_LOOKUP<wchar_t> =
+template<> constexpr inline const wchar_t* DecimalLookup<wchar_t> =
 L"000001002003004005006007008009010011012013014015016017018019"
 "020021022023024025026027028029030031032033034035036037038039"
 "040041042043044045046047048049050051052053054055056057058059"
@@ -699,25 +312,90 @@ L"000001002003004005006007008009010011012013014015016017018019"
 "940941942943944945946947948949950951952953954955956957958959"
 "960961962963964965966967968969970971972973974975976977978979"
 "980981982983984985986987988989990991992993994995996997998999";
+
+template<Character C> constexpr inline const C* TrueStr = "true";
+template<> constexpr inline const char* TrueStr<char> = "true";
+template<> constexpr inline const char8_t* TrueStr<char8_t> = u8"true";
+template<> constexpr inline const char16_t* TrueStr<char16_t> = u"true";
+template<> constexpr inline const char32_t* TrueStr<char32_t> = U"true";
+template<> constexpr inline const wchar_t* TrueStr<wchar_t> = L"true";
+
+template<Character C> constexpr inline const C* FalseStr = "false";
+template<> constexpr inline const char* FalseStr<char> = "false";
+template<> constexpr inline const char8_t* FalseStr<char8_t> = u8"false";
+template<> constexpr inline const char16_t* FalseStr<char16_t> = u"false";
+template<> constexpr inline const char32_t* FalseStr<char32_t> = U"false";
+template<> constexpr inline const wchar_t* FalseStr<wchar_t> = L"false";
+
+template<Character C> constexpr inline const C NegativeChar = '-';
+template<> constexpr inline const char NegativeChar<char> = '-';
+template<> constexpr inline const char8_t NegativeChar<char8_t> = u8'-';
+template<> constexpr inline const char16_t NegativeChar<char16_t> = u'-';
+template<> constexpr inline const char32_t NegativeChar<char32_t> = U'-';
+template<> constexpr inline const wchar_t NegativeChar<wchar_t> = L'-';
+
+template<Character C> constexpr inline const C DecimalChar = '.';
+template<> constexpr inline const char DecimalChar<char> = '.';
+template<> constexpr inline const char8_t DecimalChar<char8_t> = u8'.';
+template<> constexpr inline const char16_t DecimalChar<char16_t> = u'.';
+template<> constexpr inline const char32_t DecimalChar<char32_t> = U'.';
+template<> constexpr inline const wchar_t DecimalChar<wchar_t> = L'.';
+
+template<Character C> constexpr inline const C ForwardSlashChar = '/';
+template<> constexpr inline const char ForwardSlashChar<char> = '/';
+template<> constexpr inline const char8_t ForwardSlashChar<char8_t> = u8'/';
+template<> constexpr inline const char16_t ForwardSlashChar<char16_t> = u'/';
+template<> constexpr inline const char32_t ForwardSlashChar<char32_t> = U'/';
+template<> constexpr inline const wchar_t ForwardSlashChar<wchar_t> = L'/';
+
+template<Character C> constexpr inline const C BackSlashChar = '\\';
+template<> constexpr inline const char BackSlashChar<char> = '\\';
+template<> constexpr inline const char8_t BackSlashChar<char8_t> = u8'\\';
+template<> constexpr inline const char16_t BackSlashChar<char16_t> = u'\\';
+template<> constexpr inline const char32_t BackSlashChar<char32_t> = U'\\';
+template<> constexpr inline const wchar_t BackSlashChar<wchar_t> = L'\\';
+
+template<FloatingPoint F> constexpr inline F PowersOfTen[16] = {
+	1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, 10000000.0,
+	100000000.0, 1000000000.0, 10000000000.0, 100000000000.0, 1000000000000.0,
+	10000000000000.0, 100000000000000.0, 1000000000000000.0
+};
 #pragma endregion
 
-struct StringView;
-template<Character C> struct StringBase;
+template<class T>
+NH_API inline constexpr U64 Length(const T* str) noexcept
+{
+	if (!str) { return 0; }
 
-using String = StringBase<C8>;
-using String8 = StringBase<C8>;
-using String16 = StringBase<C16>;
-using String32 = StringBase<C32>;
-using StringW = StringBase<CW>;
+	const T* it = str;
+	while (*it) { ++it; }
 
-template <class Type> inline constexpr bool IsStringViewType = AnyOf<RemoveQuals<Type>, StringView>;
-template <class Type> concept StringViewType = IsStringViewType<Type>;
-template <class Type> inline constexpr bool IsStringType = AnyOf<RemoveQuals<Type>, StringBase<C8>, StringBase<C16>, StringBase<C32>, StringBase<CW>>;
-template <class Type> concept StringType = IsStringType<Type>;
-template <class Type> inline constexpr bool IsNonStringPointer = IsPointer<Type> && !IsStringLiteral<Type>;
-template <class Type> concept NonStringPointer = IsNonStringPointer<Type>;
-template <class Type> inline constexpr bool IsNonStringClass = IsClass<Type> && !IsStringType<Type>;
-template <class Type> concept NonStringClass = IsNonStringClass<Type>;
+	return it - str;
+}
+
+template<Character C>
+NH_API inline bool WhiteSpace(C c) noexcept
+{
+	if constexpr (IsSame<C, C8>) { return c == ' ' || c == '\t' || c == '\v' || c == '\r' || c == '\n' || c == '\f'; }
+	if constexpr (IsSame<C, C16>) { return c == u' ' || c == u'\t' || c == u'\v' || c == u'\r' || c == u'\n' || c == u'\f'; }
+	if constexpr (IsSame<C, C32>) { return c == U' ' || c == U'\t' || c == U'\v' || c == U'\r' || c == U'\n' || c == U'\f'; }
+	if constexpr (IsSame<C, CW>) { return c == L' ' || c == L'\t' || c == L'\v' || c == L'\r' || c == L'\n' || c == L'\f'; }
+}
+
+template<Character C>
+NH_API inline bool NotWhiteSpace(C c) noexcept
+{
+	if constexpr (IsSame<C, C8>) { return c != ' ' && c != '\t' && c != '\v' && c != '\r' && c != '\n' && c != '\f'; }
+	if constexpr (IsSame<C, C16>) { return c != u' ' && c != u'\t' && c != u'\v' && c != u'\r' && c != u'\n' && c != u'\f'; }
+	if constexpr (IsSame<C, C32>) { return c != U' ' && c != U'\t' && c != U'\v' && c != U'\r' && c != U'\n' && c != U'\f'; }
+	if constexpr (IsSame<C, CW>) { return c != L' ' && c != L'\t' && c != L'\v' && c != L'\r' && c != L'\n' && c != L'\f'; }
+}
+
+template<Character C>
+NH_API inline bool Numerical(C c) noexcept
+{
+	return c > 47 && c < 58;
+}
 
 template<Character C>
 inline constexpr bool CompareString(const C* a, const C* b, I64 length) noexcept
@@ -745,12 +423,19 @@ inline constexpr bool CompareString(const C* a, const C* b) noexcept
 	return !(c0 || c1);
 }
 
+//TODO: templated
 struct NH_API StringView
 {
+	constexpr StringView() {}
+
 	template<U64 Length>
 	constexpr StringView(const C8(&str)[Length]) : string{ str }, length{ Length } {}
-
 	constexpr StringView(const C8* str, U64 length) : string{ str }, length{ length } {}
+	constexpr StringView(const StringView& other) : string{ other.string }, length{ other.length } {}
+	constexpr StringView(StringView&& other) noexcept : string{ other.string }, length{ other.length } {}
+
+	constexpr StringView& operator=(const StringView& other) { string = other.string; length = other.length; return *this; }
+	constexpr StringView& operator=(StringView&& other) noexcept { string = other.string; length = other.length; return *this; }
 
 	constexpr bool operator==(const StringView& other) const
 	{
@@ -788,7 +473,7 @@ struct NH_API StringView
 	{
 		const C8* it = string + start;
 
-		while (!(*it == 0 || CompareString(it, find, Length - 1))) { ++it; }
+		while (!(*it == 0 || memcmp(it, find, Length - 1))) { ++it; }
 
 		if (*it == 0) { return -1; }
 		return (I64)(it - string);
@@ -811,7 +496,7 @@ struct NH_API StringView
 		const C8* it = string + length - start - Length;
 
 		U64 len = length - Length + 1;
-		while (!CompareString(it, find, Length - 1))
+		while (!memcmp(it, find, Length - 1))
 		{
 			if (--len) { --it; }
 			else { return -1; }
@@ -832,191 +517,184 @@ struct NH_API StringView
 	}
 
 	constexpr bool Empty() const { return length == 0; }
-	constexpr U64 Size() const { return length; }
+	constexpr U64 Size() const { return length - 1; }
 	constexpr const C8* Data() const { return string; }
-	constexpr U64 Hash() const { return Hash::StringHash(string, length); }
-	constexpr U64 HashCI() const { return Hash::StringHashCI(string, length); }
 
 private:
-	const C8* string;
-	U64 length;
+	const C8* string = nullptr;
+	U64 length = 0;
 };
 
-constexpr StringView operator""_SV(const C8 * str, U64 length)
-{
-	return { str, length };
-}
+struct FormatTag{} static inline constexpr FORMAT;
 
-/*
-* TODO: Documentation
-*
-* TODO: Predicates / regex?
-*
-* TODO: Count of a character
-*
-* TODO: Conversions
-*
-* TODO: Option to add 0x prefix to {h}
-*/
+template<Character C>
+struct StringBase;
+
+template<class Type> static constexpr inline bool IsStringType = IsSpecializationOf<Type, StringBase>;
+template<class Type> concept StringType = IsStringType<Type>;
+template<class Type> static constexpr inline bool IsStringViewType = IsSame<Type, StringView>;
+template<class Type> concept StringViewType = IsStringViewType<Type>;
+template<class Type> static constexpr inline bool IsNonStringClass = IsClass<Type> && !IsStringType<Type> && !IsStringViewType<Type>;
+template<class Type> concept NonStringClass = IsNonStringClass<Type>;
+
 template<Character C>
 struct StringBase
 {
 	using CharType = C;
-	using StringBaseType = StringBase<C>;
 
-	StringBase() noexcept;
-	StringBase(const StringBase& other) noexcept;
+	StringBase();
+	StringBase(const C* other);
+	StringBase(const C* other, U64 size);
+	StringBase(const StringBase& other);
 	StringBase(StringBase&& other) noexcept;
-	template<typename First, typename... Args> StringBase(const First& first, const Args& ... args) noexcept;
-	template<typename... Args> StringBase& Format(const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
-	template<typename... Args> StringBase& Format(U64 start, const C* format, const Args& ... args) noexcept; //TODO: Take in any string literal type
+	template<U64 Count> StringBase(const C(&other)[Count]);
+	template<typename... Args> StringBase(FormatTag, Args... args);
 
-	static StringBase<C> RandomString(U32 length) noexcept;
-
-	StringBase& operator=(NullPointer) noexcept;
-	StringBase& operator=(const StringBase& other) noexcept;
+	StringBase& operator=(NullPointer);
+	StringBase& operator=(const C* other);
+	StringBase& operator=(const StringBase& other);
 	StringBase& operator=(StringBase&& other) noexcept;
-	template<typename Arg> StringBase& operator=(const Arg& value) noexcept;
-	template<typename Arg> StringBase& operator+=(const Arg& value) noexcept;
 
-	template<typename Arg> StringBase operator+(const Arg& value) const noexcept;
+	~StringBase();
+	void Destroy();
+	void Clear();
 
-	~StringBase() noexcept;
-	void Destroy() noexcept;
-	void Clear() noexcept;
+	void Reserve(U64 size);
+	void Resize(U64 size);
+	void Resize();
 
-	void Reserve(U64 size) noexcept;
-	void Resize(U64 size) noexcept;
-	void Resize() noexcept;
+	bool operator==(C* other) const;
+	bool operator==(const StringBase& other) const;
+	template<U64 Count> bool operator==(const C(&other)[Count]) const;
+	bool operator!=(C* other) const;
+	bool operator!=(const StringBase& other) const;
+	template<U64 Count> bool operator!=(const C(&other)[Count]) const;
 
-	template<Signed Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<Unsigned Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<Boolean Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<FloatingPoint Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<NonStringPointer Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<Character Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<StringLiteral Arg> Arg ToType(U64 start = 0) const noexcept;
-	template<StringType Arg> Arg ToType(U64 start = 0) const noexcept;
+	bool operator<(C* other) const;
+	bool operator<(const StringBase& other) const;
+	template<U64 Count> bool operator<(const C(&other)[Count]) const;
+	bool operator>(C* other) const;
+	bool operator>(const StringBase& other) const;
+	template<U64 Count> bool operator>(const C(&other)[Count]) const;
 
-	C* operator*() noexcept;
-	const C* operator*() const noexcept;
-	C& operator[](U64 i) noexcept;
-	const C& operator[](U64 i) const noexcept;
-	C& operator[](I64 i) noexcept;
-	const C& operator[](I64 i) const noexcept;
+	bool Compare(C* other) const;
+	bool Compare(const StringBase& other) const;
+	template<U64 Count> bool Compare(const C(&other)[Count]) const;
+	bool CompareN(C* other, U64 start = 0) const;
+	bool CompareN(const StringBase& other, U64 start = 0) const;
+	template<U64 Count> bool CompareN(const C(&other)[Count], U64 start = 0) const;
+	bool StartsWith(C* other) const;
+	bool StartsWith(const StringBase& other) const;
+	template<U64 Count> bool StartsWith(const C(&other)[Count]) const;
+	bool EndsWith(C* other) const;
+	bool EndsWith(const StringBase& other) const;
+	template<U64 Count> bool EndsWith(const C(&other)[Count]) const;
 
-	bool operator==(C* other) const noexcept;
-	bool operator==(const StringBase& other) const noexcept;
-	template<U64 Count> bool operator==(const C(&other)[Count]) const noexcept;
-	bool operator!=(C* other) const noexcept;
-	bool operator!=(const StringBase& other) const noexcept;
-	template<U64 Count> bool operator!=(const C(&other)[Count]) const noexcept;
+	I64 IndexOf(C* find, U64 start = 0) const;
+	I64 IndexOf(const C& find, U64 start = 0) const;
+	I64 IndexOf(const StringBase& find, U64 start = 0) const;
+	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const;
+	I64 LastIndexOf(C* find, U64 start = 0) const;
+	I64 LastIndexOf(const C& find, U64 start = 0) const;
+	I64 LastIndexOf(const StringBase& find, U64 start = 0) const;
+	template<U64 Count> I64 LastIndexOf(const C(&find)[Count], U64 start = 0) const;
+	I64 IndexOfNot(const C& find, U64 start = 0) const;
 
-	bool operator<(const StringBase& other) const noexcept;
-	bool operator>(const StringBase& other) const noexcept;
+	StringBase& Trim();
+	StringBase SubString(U64 start, U64 length = U64_MAX) const;
+	StringBase FileName() const;
+	StringBase FileExtension() const;
 
-	operator bool() const noexcept;
+	template<class... Args> StringBase& Append(Args... args);
+	template<class... Args> StringBase& Prepend(Args... args);
 
-	bool Compare(C* other) const noexcept;
-	bool Compare(const StringBase& other) const noexcept;
-	template<U64 Count> bool Compare(const C(&other)[Count]) const noexcept;
-	bool CompareN(C* other, U64 start = 0) const noexcept;
-	bool CompareN(const StringBase& other, U64 start = 0) const noexcept;
-	template<U64 Count> bool CompareN(const C(&other)[Count], U64 start = 0) const noexcept;
-	bool StartsWith(C* other) const noexcept;
-	bool StartsWith(const StringBase& other) const noexcept;
-	template<U64 Count> bool StartsWith(const C(&other)[Count]) const noexcept;
-	bool EndsWith(C* other) const noexcept;
-	bool EndsWith(const StringBase& other) const noexcept;
-	template<U64 Count> bool EndsWith(const C(&other)[Count]) const noexcept;
+	C* begin();
+	C* end();
+	const C* begin() const;
+	const C* end() const;
 
-	bool Blank() const noexcept;
-	I64 IndexOf(C* find, U64 start = 0) const noexcept;
-	I64 IndexOf(const C& find, U64 start = 0) const noexcept;
-	I64 IndexOf(const StringBase& find, U64 start = 0) const noexcept;
-	template<U64 Count> I64 IndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
-	I64 LastIndexOf(C* find, U64 start = 0) const noexcept;
-	I64 LastIndexOf(const C& find, U64 start = 0) const noexcept;
-	I64 LastIndexOf(const StringBase& find, U64 start = 0) const noexcept;
-	template<U64 Count> I64 LastIndexOf(const C(&find)[Count], U64 start = 0) const noexcept;
-	I64 IndexOfNot(const C& find, U64 start = 0) const noexcept;
+	C* rbegin();
+	C* rend();
+	const C* rbegin() const;
+	const C* rend() const;
 
-	StringBase& Trim() noexcept;
-	template<typename Arg> StringBase& Append(const Arg& append) noexcept;
-	template<typename Arg> StringBase& Prepend(const Arg& prepend) noexcept;
-	template<typename PreArg, typename PostArg> StringBase& Surround(const PreArg& prepend, const PostArg& append) noexcept;
-	template<typename Arg> StringBase& Insert(const Arg& value, U64 i) noexcept;
-	template<typename Arg> StringBase& Overwrite(const Arg& value, U64 i = 0) noexcept;
-	template<typename Arg> StringBase& ReplaceAll(const C* find, const Arg& replace, U64 start = 0) noexcept;
-	template<typename Arg> StringBase& ReplaceN(const C* find, const Arg& replace, U64 count, U64 start = 0) noexcept;
-	template<typename Arg> StringBase& Replace(const C* find, const Arg& replace, U64 start = 0) noexcept;
+	U64 Capacity() const;
+	U64 Size() const;
+	C* Data() const;
 
-	StringBase GetFileName() const noexcept;
-	StringBase SubString(U64 start, U64 nLength = U64_MAX) const noexcept;
-	template<typename Arg> StringBase Appended(const Arg& append) const noexcept;
-	template<typename Arg> StringBase Prepended(const Arg& prepend) const noexcept;
-	template<typename PreArg, typename PostArg> StringBase Surrounded(const PreArg& prepend, const PostArg& append) const noexcept;
+	operator C* ();
+	operator C* () const;
 
-	StringBase& ToUpper() noexcept;
-	StringBase& ToLower() noexcept;
+	C* operator*();
+	const C* operator*() const;
+	C& operator[](U64 i);
+	const C& operator[](U64 i) const;
 
-	U64 Size() const noexcept;
-	U64 Capacity() const noexcept;
-	U64 Hash(U64 seed = 0) const noexcept;
-	C* Data() noexcept;
-	const C* Data() const noexcept;
-	operator C* () noexcept;
-	operator const C* () const noexcept;
+	operator bool() const;
+	bool Blank() const;
+	bool Empty() const;
 
-	C Front() const noexcept;
-	C Back() const noexcept;
-	C PopBack() noexcept;
-
-	C* begin() noexcept;
-	C* end() noexcept;
-	const C* begin() const noexcept;
-	const C* end() const noexcept;
-
-	C* rbegin() noexcept;
-	C* rend() noexcept;
-	const C* rbegin() const noexcept;
-	const C* rend() const noexcept;
+	//Formatting
+	template<class Arg> static constexpr U64 MaxFormatLength();
+	template<class Arg> static constexpr U64 ArgFormatLength(Arg arg);
+	template<Integer Type> static constexpr U64 Format(C* buf, Type t);
+	template<FloatingPoint Type> static constexpr U64 Format(C* buf, Type t, U64 decimalCount = 5);
+	template<Boolean Type> static constexpr U64 Format(C* buf, Type t);
+	template<NonStringPointer Type> static constexpr U64 Format(C* buf, Type t);
+	template<Enum Type> static constexpr U64 Format(C* buf, Type t);
+	template<Character Type> static constexpr U64 Format(C* buf, Type t);
+	template<StringLiteral Type> static constexpr U64 Format(C* buf, Type t);
+	template<StringType Type> static constexpr U64 Format(C* buf, Type t);
+	template<StringViewType Type> static constexpr U64 Format(C* buf, Type t);
+	template<NonStringClass Type> static constexpr U64 Format(C* buf, Type t);
 
 private:
-	template<Signed Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<Unsigned Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<Boolean Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value, U64 decimalCount = 5) noexcept;
-	template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<Character Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove = 0, U64 Size = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<StringType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<StringViewType Arg, bool Hex, bool Insert, U64 Remove = 0> U64 ToString(C* str, const Arg& value) noexcept;
-	template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove = 0> requires(!IsStringViewType<Arg>) U64 ToString(C* str, const Arg& value) noexcept;
-
-	template<typename Arg, bool Hex> static constexpr U64 RequiredCapacity() noexcept;
-
-	template<typename Arg> void FindFormat(U64& start, const Arg& value) noexcept;
-
-	static bool WhiteSpace(C c) noexcept;
-	static bool NotWhiteSpace(C c) noexcept;
-	static bool Numerical(C c) noexcept;
+	template<class Type> U64 FormatWrite(C* str, Type type);
 
 	U64 size = 0;
 	U64 capacity = 0;
 	C* string = nullptr;
 };
 
-template<Character C>
-inline StringBase<C>::StringBase() noexcept {}
+using String = StringBase<C8>;
+using String8 = StringBase<C8>;
+using String16 = StringBase<C16>;
+using String32 = StringBase<C32>;
+using StringW = StringBase<CW>;
 
 template<Character C>
-inline StringBase<C>::StringBase(const StringBase& other) noexcept : size(other.size)
+inline StringBase<C>::StringBase() {}
+
+template<Character C>
+inline StringBase<C>::StringBase(const C* other)
 {
-	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
+	U64 otherSize = Length(other);
+	size = otherSize;
 
-	Copy(string, other.string, size);
-	string[size] = NULL_CHAR<C>;
+	capacity = Memory::Allocate(&string, size);
+
+	memcpy(string, other, size * sizeof(C));
+	string[size] = 0;
+}
+
+template<Character C>
+inline StringBase<C>::StringBase(const C* other, U64 size)
+{
+	this->size = size;
+
+	capacity = Memory::Allocate(&string, size);
+
+	memcpy(string, other, size * sizeof(C));
+	string[size] = 0;
+}
+
+template<Character C>
+inline StringBase<C>::StringBase(const StringBase& other) : size(other.size)
+{
+	capacity = Memory::Allocate(&string, size);
+
+	memcpy(string, other.string, size * sizeof(C));
+	string[size] = 0;
 }
 
 template<Character C>
@@ -1028,82 +706,94 @@ inline StringBase<C>::StringBase(StringBase&& other) noexcept : size(other.size)
 }
 
 template<Character C>
-template<typename First, typename... Args>
-inline StringBase<C>::StringBase(const First& first, const Args& ... args) noexcept
+template<U64 Count>
+inline StringBase<C>::StringBase(const C(&other)[Count])
 {
-	Memory::AllocateArray(&string, capacity, capacity);
-	ToString<First, false, false>(string, first);
-	(ToString<Args, false, false>(string + size, args), ...);
+	size = Length(other);
+
+	capacity = Memory::Allocate(&string, size);
+
+	memcpy(string, other, size * sizeof(C));
+	string[size] = 0;
 }
 
 template<Character C>
 template<typename... Args>
-inline StringBase<C>& StringBase<C>::Format(const C* format, const Args& ... args) noexcept
+inline StringBase<C>::StringBase(FormatTag, Args... args)
 {
-	U64 length = Length(format) + 1;
+	constexpr U64 length = (MaxFormatLength<Args>() + ...);
 
-	if (capacity < length) { Memory::Reallocate(&string, length, capacity); }
-	size = length - 1;
+	capacity = Memory::Allocate(&string, length);
 
-	Copy(string, format, length);
-	U64 start = 0;
-	(FindFormat(start, args), ...);
-
-	return *this;
+	((size += FormatWrite(string + size, args)), ...);
 }
 
 template<Character C>
-template<typename... Args>
-inline StringBase<C>& StringBase<C>::Format(U64 start, const C* format, const Args& ... args) noexcept
+template<class Type>
+inline U64 StringBase<C>::FormatWrite(C* str, Type type)
 {
-	U64 length = Length(format) + 1;
-
-	if (capacity < start + length) { Memory::Reallocate(&string, start + length, capacity); }
-	size = start + length - 1;
-
-	Copy(string + start, format, length);
-	(FindFormat(start, args), ...);
-
-	return *this;
-}
-
-template<Character C>
-inline StringBase<C> StringBase<C>::RandomString(U32 length) noexcept
-{
-	StringBase<C> str{};
-	str.Resize(16);
-
-	C* it = str.Data();
-
-	for (U32 i = 0; i < length; ++i)
+	if constexpr (IsStringType<Type>)
 	{
-		*it++ = ALPHANUM_LOOKUP<C>[Random::RandomRange(0, CountOf(ALPHANUM_LOOKUP<C>))];
-	}
+		U64 length = type.Size();
+		memcpy(str, type.Data(), length * sizeof(Type::CharType));
 
-	return str;
+		return length;
+	}
+	else if constexpr (IsSame<Type, StringView>)
+	{
+		U64 length = type.Size();
+		memcpy(str, type.Data(), length);
+
+		return length;
+	}
+	else if constexpr (IsStringLiteral<Type>)
+	{
+		U64 length = Length(type);
+		memcpy(str, type, length);
+
+		return length;
+	}
+	else
+	{
+		return Format(str, type);
+	}
 }
 
 template<Character C>
-inline StringBase<C>& StringBase<C>::operator=(NullPointer) noexcept
+inline StringBase<C>& StringBase<C>::operator=(NullPointer)
 {
 	Destroy();
 }
 
 template<Character C>
-inline StringBase<C>& StringBase<C>::operator=(const StringBase& other) noexcept
+inline StringBase<C>& StringBase<C>::operator=(const C* other)
 {
-	size = other.size;
+	U64 otherSize = Length(other);
+	size = otherSize;
 
-	if (!string || capacity < other.size) { Memory::Reallocate(&string, size, capacity); }
+	if (!string || capacity < otherSize) { capacity = Memory::Reallocate(&string, size); }
 
-	Copy(string, other.string, size);
-	string[size] = NULL_CHAR<C>;
+	memcpy(string, other, size * sizeof(C));
+	string[size] = 0;
 
 	return *this;
 }
 
 template<Character C>
-inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
+inline StringBase<C>& StringBase<C>::operator=(const StringBase<C>& other) 
+{
+	size = other.size;
+
+	if (!string || capacity < other.size) { capacity = Memory::Reallocate(&string, size); }
+
+	memcpy(string, other.string, size * sizeof(C));
+	string[size] = 0;
+
+	return *this;
+}
+
+template<Character C>
+inline StringBase<C>& StringBase<C>::operator=(StringBase<C>&& other) noexcept
 {
 	if (string) { Memory::Free(&string); }
 
@@ -1119,33 +809,7 @@ inline StringBase<C>& StringBase<C>::operator=(StringBase&& other) noexcept
 }
 
 template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::operator=(const Arg& value) noexcept
-{
-	ToString<Arg, false, true, U64_MAX>(string, value);
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::operator+=(const Arg& value) noexcept
-{
-	ToString<Arg, false, false>(string + size, value);
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C> StringBase<C>::operator+(const Arg& value) const noexcept
-{
-	StringBase<C> copy = *this;
-	copy += value;
-
-	return Move(copy);
-}
-
-template<Character C>
-inline StringBase<C>::~StringBase() noexcept
+inline StringBase<C>::~StringBase()
 {
 	if (string)
 	{
@@ -1156,7 +820,7 @@ inline StringBase<C>::~StringBase() noexcept
 }
 
 template<Character C>
-inline void StringBase<C>::Destroy() noexcept
+inline void StringBase<C>::Destroy()
 {
 	if (string)
 	{
@@ -1167,148 +831,256 @@ inline void StringBase<C>::Destroy() noexcept
 }
 
 template<Character C>
-inline void StringBase<C>::Clear() noexcept
+inline void StringBase<C>::Clear()
 {
 	if (string)
 	{
-		string[0] = NULL_CHAR<C>;
+		string[0] = 0;
 		size = 0;
 	}
 }
 
 template<Character C>
-inline void StringBase<C>::Reserve(U64 size) noexcept
+inline void StringBase<C>::Reserve(U64 size)
 {
 	if (size + 1 > capacity)
 	{
-		Memory::Reallocate(&string, size, capacity);
+		capacity = Memory::Reallocate(&string, size + 1);
 	}
 }
 
 template<Character C>
-inline void StringBase<C>::Resize(U64 size) noexcept
+inline void StringBase<C>::Resize(U64 size)
 {
 	if (size + 1 > this->capacity) { Reserve(size); }
 	this->size = size;
-	string[size] = NULL_CHAR<C>;
+	string[size] = 0;
 }
 
 template<Character C>
-inline void StringBase<C>::Resize() noexcept
+inline void StringBase<C>::Resize()
 {
 	size = Length(string);
 }
 
 template<Character C>
-inline C* StringBase<C>::operator*() noexcept { return string; }
-
-template<Character C>
-inline const C* StringBase<C>::operator*() const noexcept { return string; }
-
-template<Character C>
-inline C& StringBase<C>::operator[](U64 i) noexcept { return string[i]; }
-
-template<Character C>
-inline const C& StringBase<C>::operator[](U64 i) const noexcept { return string[i]; }
-
-template<Character C>
-inline C& StringBase<C>::operator[](I64 i) noexcept { return string[i]; }
-
-template<Character C>
-inline const C& StringBase<C>::operator[](I64 i) const noexcept { return string[i]; }
-
-template<Character C>
-inline bool StringBase<C>::operator==(C* other) const noexcept
+inline bool StringBase<C>::operator==(C* other) const
 {
-	U64 len = Length(other);
-	if (len != size) { return false; }
+	U64 otherSize = Length(other);
 
-	return CompareString(string, other, size);
+	if (otherSize != size) { return false; }
+
+	const C8* p0 = string, * p1 = other;
+
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return false; } }
+
+	return true;
 }
 
 template<Character C>
-inline bool StringBase<C>::operator==(const StringBase<C>& other) const noexcept
+inline bool StringBase<C>::operator==(const StringBase& other) const
 {
 	if (other.size != size) { return false; }
 
-	return CompareString(string, other.string, size);
+	const C8* p0 = string, * p1 = other.string;
+
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return false; } }
+
+	return true;
 }
 
 template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::operator==(const C(&other)[Count]) const noexcept
+inline bool StringBase<C>::operator==(const C(&other)[Count]) const
 {
-	if (Count - 1 != size) { return false; }
+	U64 otherSize = Length(other);
 
-	return CompareString(string, other, Count - 1);
+	if (otherSize != size) { return false; }
+
+	const C8* p0 = string, * p1 = other;
+
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return false; } }
+
+	return true;
 }
 
 template<Character C>
-inline bool StringBase<C>::operator!=(C* other) const noexcept
+inline bool StringBase<C>::operator!=(C* other) const
 {
-	U64 len = Length(other);
-	if (len != size) { return true; }
+	U64 otherSize = Length(other);
 
-	return !CompareString(string, other, size);
+	if (otherSize != size) { return true; }
+
+	const C8* p0 = string, * p1 = other;
+
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return true; } }
+
+	return false;
 }
 
 template<Character C>
-inline bool StringBase<C>::operator!=(const StringBase<C>& other) const noexcept
+inline bool StringBase<C>::operator!=(const StringBase& other) const
 {
 	if (other.size != size) { return true; }
 
-	return !CompareString(string, other.string, size);
+	const C8* p0 = string, * p1 = other.string;
+
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return true; } }
+
+	return false;
 }
 
 template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::operator!=(const C(&other)[Count]) const noexcept
+inline bool StringBase<C>::operator!=(const C(&other)[Count]) const
 {
-	if (Count - 1 != size) { return true; }
+	U64 otherSize = Length(other);
 
-	return !CompareString(string, other, Count - 1);
-}
+	if (otherSize != size) { return true; }
 
-//TODO: Better comparison than ascii
-template<Character C>
-inline bool StringBase<C>::operator<(const StringBase<C>& other) const noexcept
-{
-	const C* it0 = string;
-	const C* it1 = other.string;
+	const C8* p0 = string, * p1 = other;
 
-	U64 length = size < other.size ? size : other.size;
+	U64 count = size;
+	while (count--) { if (*p0++ != *p1++) { return true; } }
 
-	while (length-- && *it0 == *it1) { ++it0; ++it1; }
-
-	if (length == U64_MAX) { return size < other.size; }
-
-	return *it0 < *it1;
-}
-
-//TODO: Better comparison than ascii
-template<Character C>
-inline bool StringBase<C>::operator>(const StringBase<C>& other) const noexcept
-{
-	const C* it0 = string;
-	const C* it1 = other.string;
-
-	U64 length = size < other.size ? size : other.size;
-
-	while (length-- && *it0 == *it1) { ++it0; ++it1; }
-
-	if (length == U64_MAX) { return size > other.size; }
-
-	return *it0 > *it1;
+	return false;
 }
 
 template<Character C>
-inline StringBase<C>::operator bool() const noexcept
+inline bool StringBase<C>::operator<(C* other) const
 {
-	return size;
+	if constexpr (IsSame<C, C8>) { return strcmp(string, other) < 0; }
+	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) < 0; }
+	else
+	{
+		U64 otherSize = Length(other);
+		const C* it0 = string;
+		const C* it1 = other;
+
+		U64 length = size < otherSize ? size : otherSize;
+
+		while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+		if (length == U64_MAX) { return size < otherSize; }
+
+		return *it0 < *it1;
+	}
 }
 
 template<Character C>
-inline bool StringBase<C>::Compare(C* other) const noexcept
+inline bool StringBase<C>::operator<(const StringBase& other) const
+{
+	if constexpr (IsSame<C, C8>) { return strcmp(string, other.string) < 0; }
+	if constexpr (IsSame<C, CW>) { return wcscmp(string, other.string) < 0; }
+	else
+	{
+		const C* it0 = string;
+		const C* it1 = other.string;
+
+		U64 length = size < other.size ? size : other.size;
+
+		while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+		if (length == U64_MAX) { return size < other.size; }
+
+		return *it0 < *it1;
+	}
+}
+
+template<Character C>
+template<U64 Count>
+inline bool StringBase<C>::operator<(const C(&other)[Count]) const
+{
+	U64 otherSize = Length(other);
+
+	if constexpr (IsSame<C, C8>) { return strcmp(string, other) < 0; }
+	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) < 0; }
+	else
+	{
+		const C* it0 = string;
+		const C* it1 = other;
+
+		U64 length = size < otherSize ? size : otherSize;
+
+		while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+		if (length == U64_MAX) { return size < otherSize; }
+
+		return *it0 < *it1;
+	}
+}
+
+template<Character C>
+inline bool StringBase<C>::operator>(C* other) const
+{
+	if constexpr (IsSame<C, C8>) { return strcmp(string, other) > 0; }
+	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) > 0; }
+	else
+	{
+		U64 otherSize = Length(other);
+		const C* it0 = string;
+		const C* it1 = other;
+
+		U64 length = size < otherSize ? size : otherSize;
+
+		while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+		if (length == U64_MAX) { return size > otherSize; }
+
+		return *it0 > *it1;
+	}
+}
+
+template<Character C>
+inline bool StringBase<C>::operator>(const StringBase& other) const
+{
+	if constexpr (IsSame<C, C8>) { return strcmp(string, other.string) > 0; }
+	if constexpr (IsSame<C, CW>) { return wcscmp(string, other.string) > 0; }
+	else
+	{
+		const C* it0 = string;
+		const C* it1 = other.string;
+
+		U64 length = size < other.size ? size : other.size;
+
+		while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+		if (length == U64_MAX) { return size > other.size; }
+
+		return *it0 > *it1;
+	}
+}
+
+template<Character C>
+template<U64 Count>
+inline bool StringBase<C>::operator>(const C(&other)[Count]) const
+{
+	U64 otherSize = Length(other);
+
+	if constexpr (IsSame<C, C8>) { return strcmp(string, other) > 0; }
+	if constexpr (IsSame<C, CW>) { return wcscmp(string, other) > 0; }
+	else
+	{
+		const C* it0 = string;
+		const C* it1 = other;
+
+		U64 length = size < otherSize ? size : otherSize;
+
+		while (length-- && *it0 == *it1) { ++it0; ++it1; }
+
+		if (length == U64_MAX) { return size > otherSize; }
+
+		return *it0 > *it1;
+	}
+}
+
+template<Character C>
+inline bool StringBase<C>::Compare(C* other) const
 {
 	U64 len = Length(other);
 	if (len != size) { return false; }
@@ -1317,7 +1089,7 @@ inline bool StringBase<C>::Compare(C* other) const noexcept
 }
 
 template<Character C>
-inline bool StringBase<C>::Compare(const StringBase<C>& other) const noexcept
+inline bool StringBase<C>::Compare(const StringBase& other) const
 {
 	if (other.size != size) { return false; }
 
@@ -1325,8 +1097,8 @@ inline bool StringBase<C>::Compare(const StringBase<C>& other) const noexcept
 }
 
 template<Character C>
-template<U64 Count>
-inline bool StringBase<C>::Compare(const C(&other)[Count]) const noexcept
+template<U64 Count> 
+inline bool StringBase<C>::Compare(const C(&other)[Count]) const
 {
 	if (Count - 1 != size) { return false; }
 
@@ -1334,7 +1106,7 @@ inline bool StringBase<C>::Compare(const C(&other)[Count]) const noexcept
 }
 
 template<Character C>
-inline bool StringBase<C>::CompareN(C* other, U64 start) const noexcept
+inline bool StringBase<C>::CompareN(C* other, U64 start) const
 {
 	U64 len = Length(other);
 
@@ -1342,20 +1114,20 @@ inline bool StringBase<C>::CompareN(C* other, U64 start) const noexcept
 }
 
 template<Character C>
-inline bool StringBase<C>::CompareN(const StringBase<C>& other, U64 start) const noexcept
+inline bool StringBase<C>::CompareN(const StringBase& other, U64 start) const
 {
 	return CompareString(string + start, other.string);
 }
 
 template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::CompareN(const C(&other)[Count], U64 start) const noexcept
+inline bool StringBase<C>::CompareN(const C(&other)[Count], U64 start) const
 {
 	return CompareString(string + start, other, Count - 1);
 }
 
 template<Character C>
-inline bool StringBase<C>::StartsWith(C* other) const noexcept
+inline bool StringBase<C>::StartsWith(C* other) const
 {
 	U64 otherSize = Length(other);
 
@@ -1363,20 +1135,20 @@ inline bool StringBase<C>::StartsWith(C* other) const noexcept
 }
 
 template<Character C>
-inline bool StringBase<C>::StartsWith(const StringBase& other) const noexcept
+inline bool StringBase<C>::StartsWith(const StringBase& other) const
 {
 	return CompareString(string, other.string, other.size);
 }
 
 template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::StartsWith(const C(&other)[Count]) const noexcept
+inline bool StringBase<C>::StartsWith(const C(&other)[Count]) const
 {
 	return CompareString(string, other, Count - 1);
 }
 
 template<Character C>
-inline bool StringBase<C>::EndsWith(C* other) const noexcept
+inline bool StringBase<C>::EndsWith(C* other) const
 {
 	U64 otherSize = Length(other);
 
@@ -1384,122 +1156,80 @@ inline bool StringBase<C>::EndsWith(C* other) const noexcept
 }
 
 template<Character C>
-inline bool StringBase<C>::EndsWith(const StringBase& other) const noexcept
+inline bool StringBase<C>::EndsWith(const StringBase& other) const
 {
 	return CompareString(string + (size - other.size), other.string, other.size);
 }
 
 template<Character C>
 template<U64 Count>
-inline bool StringBase<C>::EndsWith(const C(&other)[Count]) const noexcept
+inline bool StringBase<C>::EndsWith(const C(&other)[Count]) const
 {
 	return CompareString(string + (size - Count - 1), other, Count - 1);
 }
 
 template<Character C>
-inline U64 StringBase<C>::Size() const noexcept { return size; }
-
-template<Character C>
-inline U64 StringBase<C>::Capacity() const noexcept { return capacity; }
-
-template<Character C>
-inline U64 StringBase<C>::Hash(U64 seed) const noexcept { return Hash::SeededHash(string, size, seed); }
-
-template<Character C>
-inline C* StringBase<C>::Data() noexcept { return string; }
-
-template<Character C>
-inline const C* StringBase<C>::Data() const noexcept { return string; }
-
-template<Character C>
-inline StringBase<C>::operator C* () noexcept { return string; }
-
-template<Character C>
-inline StringBase<C>::operator const C* () const noexcept { return string; }
-
-template<Character C>
-inline C StringBase<C>::Front() const noexcept { return *string; }
-
-template<Character C>
-inline C StringBase<C>::Back() const noexcept { return string[size - 1]; }
-
-template<Character C>
-inline C StringBase<C>::PopBack() noexcept { return string[size-- - 1]; }
-
-template<Character C>
-inline bool StringBase<C>::Blank() const noexcept
-{
-	if (size == 0) { return true; }
-	C* it = string;
-	C c;
-
-	while (WhiteSpace(c = *it++));
-
-	return c == NULL_CHAR<C>;
-}
-
-template<Character C>
-inline I64 StringBase<C>::IndexOf(C* find, U64 start) const noexcept
+inline I64 StringBase<C>::IndexOf(C* find, U64 start) const
 {
 	U64 findSize = Length(find);
 	C* it = string + start;
 
-	while (*it != NULL_CHAR<C> && !CompareString(it, find, findSize)) { ++it; }
+	while (*it != 0 && !memcmp(it, find, findSize)) { ++it; }
 
-	if (*it == NULL_CHAR<C>) { return -1; }
+	if (*it == 0) { return -1; }
 	return (I64)(it - string);
 }
 
 template<Character C>
-inline I64 StringBase<C>::IndexOf(const C& find, U64 start) const noexcept
+inline I64 StringBase<C>::IndexOf(const C& find, U64 start) const
 {
 	C* it = string + start;
 	C c;
 
-	while ((c = *it) != NULL_CHAR<C> && c != find) { ++it; }
+	while ((c = *it) != 0 && c != find) { ++it; }
 
-	if (c == NULL_CHAR<C>) { return -1; }
+	if (c == 0) { return -1; }
 	return (I64)(it - string);
 }
 
 template<Character C>
-inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const noexcept
+inline I64 StringBase<C>::IndexOf(const StringBase& find, U64 start) const
 {
 	C* it = string + start;
 
-	while (*it != NULL_CHAR<C> && !CompareString(it, find.string, find.size)) { ++it; }
+	while (*it != 0 && !memcmp(it, find.string, find.size)) { ++it; }
 
-	if (*it == NULL_CHAR<C>) { return -1; }
+	if (*it == 0) { return -1; }
 	return (I64)(it - string);
 }
 
 template<Character C>
 template<U64 Count>
-inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const noexcept
+inline I64 StringBase<C>::IndexOf(const C(&find)[Count], U64 start) const
 {
 	C* it = string + start;
 
-	while (*it != NULL_CHAR<C> && !CompareString(it, find, Count - 1)) { ++it; }
+	while (*it != 0 && !memcmp(it, find, Count - 1)) { ++it; }
 
-	if (*it == NULL_CHAR<C>) { return -1; }
+	if (*it == 0) { return -1; }
 	return (I64)(it - string);
 }
 
 template<Character C>
-inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const noexcept
+inline I64 StringBase<C>::LastIndexOf(C* find, U64 start) const
 {
 	U64 findSize = Length(find);
 	C* it = string + (size - start - findSize);
 
 	U64 len = size;
-	while (len && !CompareString(it, find, findSize)) { --it; --len; }
+	while (len && !memcmp(it, find, findSize)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
 }
 
 template<Character C>
-inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const noexcept
+inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const
 {
 	C* it = string + (size - start - 1);
 
@@ -1511,12 +1241,12 @@ inline I64 StringBase<C>::LastIndexOf(const C& find, U64 start) const noexcept
 }
 
 template<Character C>
-inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const noexcept
+inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const
 {
 	C* it = string + (size - start - find.size);
 
 	U64 len = size;
-	while (len && !CompareString(it, find.string, find.size)) { --it; --len; }
+	while (len && !memcmp(it, find.string, find.size)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
@@ -1524,31 +1254,31 @@ inline I64 StringBase<C>::LastIndexOf(const StringBase& find, U64 start) const n
 
 template<Character C>
 template<U64 Count>
-inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const noexcept
+inline I64 StringBase<C>::LastIndexOf(const C(&find)[Count], U64 start) const
 {
 	C* it = string + (size - start - Count + 1);
 
 	U64 len = size;
-	while (len && !CompareString(it, find, Count - 1)) { --it; --len; }
+	while (len && !memcmp(it, find, Count - 1)) { --it; --len; }
 
 	if (len) { return (I64)(it - string); }
 	return -1;
 }
 
 template<Character C>
-inline I64 StringBase<C>::IndexOfNot(const C& find, U64 start) const noexcept
+inline I64 StringBase<C>::IndexOfNot(const C& find, U64 start) const
 {
 	C* it = string + start;
 	C c;
 
-	while ((c = *it) != NULL_CHAR<C> && c == find) { ++it; }
+	while ((c = *it) != 0 && c == find) { ++it; }
 
-	if (c == NULL_CHAR<C>) { return -1; }
+	if (c == 0) { return -1; }
 	return (I64)(it - string);
 }
 
 template<Character C>
-inline StringBase<C>& StringBase<C>::Trim() noexcept
+inline StringBase<C>& StringBase<C>::Trim()
 {
 	C* start = string;
 	C* end = string + size - 1;
@@ -1559,121 +1289,33 @@ inline StringBase<C>& StringBase<C>::Trim() noexcept
 	while (WhiteSpace(c = *end)) { --end; }
 
 	size = end - start + 1;
-	Copy(string, start, size);
-	string[size] = NULL_CHAR<C>;
+	memcpy(string, start, size * sizeof(C));
+	string[size] = 0;
 
 	return *this;
 }
 
 template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::Append(const Arg& append) noexcept
+inline StringBase<C> StringBase<C>::SubString(U64 start, U64 length) const
 {
-	ToString<Arg, false, false>(string + size, append);
-	return *this;
+	StringBase<C> str;
+
+	if (length < U64_MAX) { str.Resize(length); }
+	else { str.Resize(size - start); }
+
+	memcpy(str.string, string + start, str.size * sizeof(C));
+	str.string[str.size] = 0;
+
+	return str;
 }
 
 template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::Prepend(const Arg& prepend) noexcept
+inline StringBase<C> StringBase<C>::FileName() const
 {
-	ToString<Arg, false, true>(string, prepend);
-	return *this;
-}
+	I64 extIndex = LastIndexOf(DecimalChar<C>);
 
-template<Character C>
-template<typename PreArg, typename PostArg>
-inline StringBase<C>& StringBase<C>::Surround(const PreArg& prepend, const PostArg& append) noexcept
-{
-	ToString<PreArg, false, true>(string, prepend);
-	ToString<PostArg, false, false>(string + size, append);
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::Insert(const Arg& value, U64 i) noexcept
-{
-	ToString<Arg, false, true>(string + i, value);
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::Overwrite(const Arg& value, U64 i) noexcept
-{
-	ToString<Arg, false, false>(string + i, value);
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::ReplaceAll(const C* find, const Arg& replace, U64 start) noexcept
-{
-	U64 findSize = Length(find);
-	C* it = string + start;
-	C c = *it;
-
-	while (c != NULL_CHAR<C>)
-	{
-		while ((c = *it) != NULL_CHAR<C> && CompareString(it, find, findSize)) { ++it; }
-
-		if (c != NULL_CHAR<C>) { ToString<Arg, false, true>(it, replace); }
-	}
-
-	string[size] = NULL_CHAR<C>;
-
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::ReplaceN(const C* find, const Arg& replace, U64 count, U64 start) noexcept
-{
-	U64 findSize = Length(find);
-	C* it = string + start;
-	C c = *it;
-
-	while (c != NULL_CHAR<C> && count)
-	{
-		while ((c = *it) != NULL_CHAR<C> && CompareString(it, find, findSize)) { ++it; }
-
-		if (c != NULL_CHAR<C>)
-		{
-			--count;
-			ToString<Arg, false, true>(it, replace);
-		}
-	}
-
-	string[size] = NULL_CHAR<C>;
-
-	return *this;
-}
-
-template<Character C>
-template<typename Arg>
-inline StringBase<C>& StringBase<C>::Replace(const C* find, const Arg& replace, U64 start) noexcept
-{
-	U64 findSize = Length(find);
-	C* it = string + start;
-	C c;
-
-	while ((c = *it) != NULL_CHAR<C> && CompareString(it, find, findSize)) { ++it; }
-
-	if (c != NULL_CHAR<C>) { ToString<Arg, false, true>(c, replace); }
-
-	string[size] = NULL_CHAR<C>;
-
-	return *this;
-}
-
-template<Character C>
-inline StringBase<C> StringBase<C>::GetFileName() const noexcept
-{
-	I64 extIndex = LastIndexOf(DECIMAL_CHAR<C>);
-
-	I64 fSlash = LastIndexOf(FORWARD_SLASH<C>);
-	I64 bSlash = LastIndexOf(BACK_SLASH<C>);
+	I64 fSlash = LastIndexOf(ForwardSlashChar<C>);
+	I64 bSlash = LastIndexOf(BackSlashChar<C>);
 
 	I64 nameIndex = bSlash > fSlash ? bSlash : fSlash;
 
@@ -1681,802 +1323,429 @@ inline StringBase<C> StringBase<C>::GetFileName() const noexcept
 	{
 		if (extIndex == -1) { return *this; }
 
-		return Move(SubString(0, extIndex));
+		return SubString(0, extIndex);
 	}
 
-	if (extIndex == -1) { Move(SubString(nameIndex)); }
+	if (extIndex == -1) { SubString(nameIndex); }
 
-	return Move(SubString(nameIndex, extIndex - nameIndex));
+	return SubString(nameIndex, extIndex - nameIndex);
 }
 
 template<Character C>
-inline StringBase<C> StringBase<C>::SubString(U64 start, U64 nLength) const noexcept
+inline StringBase<C> StringBase<C>::FileExtension() const
 {
-	StringBase<C> str;
+	I64 fileExtension = LastIndexOf(DecimalChar<C>);
 
-	if (nLength < U64_MAX) { str.Resize(nLength); }
-	else { str.Resize(size - start); }
-
-	Copy(str.string, string + start, str.size);
-	str.string[str.size] = NULL_CHAR<C>;
-
-	return Move(str);
+	return SubString(fileExtension + 1);
 }
 
 template<Character C>
-template<typename Arg>
-inline StringBase<C> StringBase<C>::Appended(const Arg& append) const noexcept
+template<class... Args>
+inline StringBase<C>& StringBase<C>::Append(Args... args)
 {
-	StringBase<C> str;
+	U64 neededSize = (ArgFormatLength(args), ...);
 
-	str = *this;
-	str.Append(append);
+	if (capacity < size + neededSize) { capacity = Memory::Reallocate(&string, size + neededSize); }
 
-	return Move(str);
-}
+	size += (Format(string + size, args), ...);
 
-template<Character C>
-template<typename Arg>
-inline StringBase<C> StringBase<C>::Prepended(const Arg& prepend) const noexcept
-{
-	StringBase<C> str;
-
-	str = *this;
-	str.Prepend(prepend);
-
-	return Move(str);
-}
-
-template<Character C>
-template<typename PreArg, typename PostArg>
-inline StringBase<C> StringBase<C>::Surrounded(const PreArg& prepend, const PostArg& append) const noexcept
-{
-	StringBase<C> str;
-
-	str = *this;
-	str.Surround(prepend, append);
-
-	return Move(str);
-}
-
-template<Character C>
-inline StringBase<C>& StringBase<C>::ToUpper() noexcept
-{
-	static_assert(IsSame<C, char>, "ToUpper is only supported for char strings currently");
-
-	for (char& c : *this)
-	{
-		if (TYPE_LOOKUP[c] & LOWER_CHAR) { c -= 32; }
-	}
+	string[size] = 0;
 
 	return *this;
 }
 
 template<Character C>
-inline StringBase<C>& StringBase<C>::ToLower() noexcept
+template<class... Args>
+inline StringBase<C>& StringBase<C>::Prepend(Args... args)
 {
-	static_assert(IsSame<C, char>, "ToLower is only supported for char strings currently");
+	U64 neededSize = (ArgFormatLength(args), ...);
 
-	for (char& c : *this)
-	{
-		if (TYPE_LOOKUP[c] & UPPER_CHAR) { c += 32; }
-	}
+	if (capacity < size + neededSize) { capacity = Memory::Reallocate(&string, size + neededSize); }
+
+	memcpy(string + neededSize, string, size);
+
+	U64 addedSize = 0;
+
+	addedSize += (Format(string + addedSize, args), ...);
+
+	memcpy(string + addedSize, string + neededSize, size);
+
+	size += addedSize;
+
+	string[size] = 0;
 
 	return *this;
 }
 
 template<Character C>
-inline C* StringBase<C>::begin() noexcept { return string; }
-
-template<Character C>
-inline C* StringBase<C>::end() noexcept { return string + size; }
-
-template<Character C>
-inline const C* StringBase<C>::begin() const noexcept { return string; }
-
-template<Character C>
-inline const C* StringBase<C>::end() const noexcept { return string + size; }
-
-template<Character C>
-inline C* StringBase<C>::rbegin() noexcept { return string + size - 1; }
-
-template<Character C>
-inline C* StringBase<C>::rend() noexcept { return string - 1; }
-
-template<Character C>
-inline const C* StringBase<C>::rbegin() const noexcept { return string + size - 1; }
-
-template<Character C>
-inline const C* StringBase<C>::rend() const noexcept { return string - 1; }
-
-template<Character C>
-template<Signed Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+inline C* StringBase<C>::begin()
 {
-	constexpr U64 typeSize = RequiredCapacity<Arg, Hex>();
-	constexpr U64 moveSize = typeSize - Remove;
-	const U64 strIndex = str - string;
-	const U64 excessSize = size - strIndex;
+	return string;
+}
 
-	using UArg = Traits<UnsignedOf<Arg>>::Base;
+template<Character C>
+inline C* StringBase<C>::end()
+{
+	return string + size;
+}
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+template<Character C>
+inline const C* StringBase<C>::begin() const
+{
+	return string;
+}
 
-	C* c = str + typeSize;
+template<Character C>
+inline const C* StringBase<C>::end() const
+{
+	return string + size;
+}
+
+template<Character C>
+inline C* StringBase<C>::rbegin()
+{
+	return string + size - 1;
+}
+
+template<Character C>
+inline C* StringBase<C>::rend()
+{
+	return string - 1;
+}
+
+template<Character C>
+inline const C* StringBase<C>::rbegin() const
+{
+	return string + size - 1;
+}
+
+template<Character C>
+inline const C* StringBase<C>::rend() const
+{
+	return string - 1;
+}
+
+template<Character C>
+inline U64 StringBase<C>::Capacity() const
+{
+	return capacity;
+}
+
+template<Character C>
+inline U64 StringBase<C>::Size() const
+{
+	return size;
+}
+
+template<Character C>
+inline C* StringBase<C>::Data() const
+{
+	return string;
+}
+
+template<Character C>
+inline StringBase<C>::operator C* ()
+{
+	return string;
+}
+
+template<Character C>
+inline StringBase<C>::operator C* () const
+{
+	return string;
+}
+
+template<Character C>
+inline C* StringBase<C>::operator*()
+{
+	return string;
+}
+
+template<Character C>
+inline const C* StringBase<C>::operator*() const
+{
+	return string;
+}
+
+template<Character C>
+inline C& StringBase<C>::operator[](U64 i)
+{
+	return string[i];
+}
+
+template<Character C>
+inline const C& StringBase<C>::operator[](U64 i) const
+{
+	return string[i];
+}
+
+template<Character C>
+inline StringBase<C>::operator bool() const
+{
+	return size;
+}
+
+template<Character C>
+inline bool StringBase<C>::Blank() const
+{
+	if (size == 0) { return true; }
+	C* it = string;
+	C c;
+
+	while (WhiteSpace(c = *it++));
+
+	return c == 0;
+}
+
+template<Character C>
+inline bool StringBase<C>::Empty() const
+{
+	return size == 0;
+}
+
+template<Character C>
+template<class Arg>
+inline constexpr U64 StringBase<C>::MaxFormatLength()
+{
+	if constexpr (IsSame<Arg, U8>) { return 3 * sizeof(C); }
+	if constexpr (IsSame<Arg, U16>) { return 5 * sizeof(C); }
+	if constexpr (IsSame<Arg, U32>) { return 10 * sizeof(C); }
+	if constexpr (IsSame<Arg, UL32>) { return 10 * sizeof(C); }
+	if constexpr (IsSame<Arg, U64>) { return 20 * sizeof(C); }
+	if constexpr (IsSame<Arg, I8>) { return 4 * sizeof(C); }
+	if constexpr (IsSame<Arg, I16>) { return 6 * sizeof(C); }
+	if constexpr (IsSame<Arg, I32>) { return 11 * sizeof(C); }
+	if constexpr (IsSame<Arg, L32>) { return 11 * sizeof(C); }
+	if constexpr (IsSame<Arg, I64>) { return 20 * sizeof(C); }
+	if constexpr (IsSame<Arg, F32>) { return 47 * sizeof(C); }
+	if constexpr (IsSame<Arg, F64>) { return 325 * sizeof(C); }
+	if constexpr (IsSame<Arg, bool>) { return 5 * sizeof(C); }
+	if constexpr (IsCharacter<Arg>) { return 1 * sizeof(C); }
+	if constexpr (IsPointer<Arg>) { return 20 * sizeof(C); }
+
+	return 1024 * sizeof(C);
+}
+
+template<Character C>
+template<class Arg>
+inline constexpr U64 StringBase<C>::ArgFormatLength(Arg arg)
+{
+	if constexpr (IsStringLiteral<Arg>) { return Length(arg) * sizeof(C); }
+	if constexpr (IsStringViewType<Arg>) { return arg.Size() * sizeof(C); }
+	if constexpr (IsStringType<Arg>) { return arg.Size() * sizeof(C); }
+
+	return MaxFormatLength<Arg>();
+}
+
+template<Character C>
+template<Integer Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
+{
+	using T = BaseType<Type>;
+	using U = UnsignedOf<BaseType<Type>>;
+
+	static constexpr U64 maxSize = MaxFormatLength<T>();
+	static C buffer[maxSize];
+
+	U64 count;
+	C* pointer = buffer + maxSize;
 	const C* digits;
-	I64 addLength;
-	UArg val;
-	U64 neg;
-	if (value < 0)
+	U val = (U)t;
+	bool neg = false;
+
+	if constexpr (IsSigned<T>)
 	{
-		if constexpr (Hex) { val = Traits<UnsignedOf<Arg>>::MaxValue - ((U64)-value - 1); }
-		else
+		if (t < 0)
 		{
-			str[0] = NEGATIVE_CHAR<C>;
-			val = (UArg)-value;
-			neg = 1;
+			*buf = NegativeChar<C>;
+			val = (U)-t;
+			neg = true;
 		}
 	}
-	else { val = (UArg)value; neg = 0; }
 
-	if constexpr (Hex)
+	while (val > 999)
 	{
-		constexpr U64 pairs = typeSize / 2;
-
-		for (U8 i = 0; i < pairs; ++i)
-		{
-			digits = HEX_LOOKUP<C> +(val & 0xFF) * 2;
-
-			*--c = digits[1];
-			*--c = digits[0];
-
-			val >>= 8;
-		}
-
-		addLength = typeSize;
-	}
-	else
-	{
-		while (val > 999)
-		{
-			UArg newVal = val / 1000;
-			UArg remainder = val % 1000;
-			digits = DECIMAL_LOOKUP<C> +(remainder * 3);
-			*--c = digits[2];
-			*--c = digits[1];
-			*--c = digits[0];
-			val = newVal;
-		}
-
-		digits = DECIMAL_LOOKUP<C> +(val * 3);
-		*--c = digits[2];
-		if (val > 9) { *--c = digits[1]; }
-		if (val > 99) { *--c = digits[0]; }
-
-		addLength = typeSize - (c - str) + neg;
+		U newVal = val / 1000;
+		U remainder = val % 1000;
+		digits = DecimalLookup<C> +(remainder * 3);
+		*--pointer = digits[2];
+		*--pointer = digits[1];
+		*--pointer = digits[0];
+		val = newVal;
 	}
 
-	size += addLength - Remove;
+	digits = DecimalLookup<C> +(val * 3);
+	*--pointer = digits[2];
+	if (val > 9) { *--pointer = digits[1]; }
+	if (val > 99) { *--pointer = digits[0]; }
 
-	if constexpr (Insert && !Hex) { Copy(str + neg, c, (addLength + excessSize - Remove)); }
-	else { Copy(str + neg, c, addLength); }
+	count = maxSize - (pointer - buffer) + neg;
 
-	string[size] = NULL_CHAR<C>;
+	memcpy(buf + neg, pointer, count * sizeof(C));
 
-	return strIndex + addLength;
+	return count;
 }
 
 template<Character C>
-template<Unsigned Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<FloatingPoint Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t, U64 decimalCount)
 {
-	constexpr U64 typeSize = RequiredCapacity<Arg, Hex>();
-	constexpr U64 moveSize = typeSize - Remove;
-	const U64 strIndex = str - string;
-	const U64 excessSize = size - strIndex;
+	using T = BaseType<Type>;
 
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
+	static constexpr U64 maxSize = MaxFormatLength<T>();
+	static C buffer[maxSize];
 
-	C* c = str + typeSize;
+	U64 count;
+	C* pointer = buffer + maxSize;
 	const C* digits;
-	U64 val = value;
-	I64 addLength;
+	Type val = t;
+	bool neg = false;
 
-	if constexpr (Hex)
+	if (t < 0)
 	{
-		constexpr U64 pairs = typeSize / 2;
+		*buf = NegativeChar<C>;
+		val = (Type)-t;
+		neg = true;
+	}
 
-		for (U8 i = 0; i < pairs; ++i)
+	U64 whole;
+
+	if constexpr (IsSame<Type, F32>) { whole = Math::FloorF(val); }
+	else if constexpr (IsSame<Type, F64>) { whole = Math::Floor(val); }
+
+	if (decimalCount > 0)
+	{
+		if constexpr (IsSame<Type, F32>) { decimalCount = decimalCount > 7 ? 7 : decimalCount; }
+		else if constexpr (IsSame<Type, F64>) { decimalCount = decimalCount > 15 ? 15 : decimalCount; }
+
+		U64 dec = (U64)((val - whole) * PowersOfTen<T>[decimalCount]);
+
+		while (decimalCount > 2)
 		{
-			digits = HEX_LOOKUP<C> +(val & 0xFF) * 2;
+			U64 newVal = dec / 1000;
+			U64 remainder = dec % 1000;
+			digits = DecimalLookup<C> +(remainder * 3);
+			*--pointer = digits[2];
+			*--pointer = digits[1];
+			*--pointer = digits[0];
+			dec = newVal;
 
-			*--c = digits[1];
-			*--c = digits[0];
-
-			val >>= 8;
+			decimalCount -= 3;
 		}
 
-		addLength = typeSize;
+		digits = DecimalLookup<C> +(dec * 3);
+		if (decimalCount > 0) { *--pointer = digits[2]; }
+		if (decimalCount > 1) { *--pointer = digits[1]; }
+		*--pointer = DecimalChar<C>;
+	}
+
+	while (whole > 999)
+	{
+		U64 newVal = whole / 1000;
+		U64 remainder = whole % 1000;
+		digits = DecimalLookup<C> +(remainder * 3);
+		*--pointer = digits[2];
+		*--pointer = digits[1];
+		*--pointer = digits[0];
+		whole = newVal;
+	}
+
+	digits = DecimalLookup<C> +(whole * 3);
+	*--pointer = digits[2];
+	if (whole > 9) { *--pointer = digits[1]; }
+	if (whole > 99) { *--pointer = digits[0]; }
+
+	count = maxSize + neg - (pointer - buffer);
+
+	memcpy(buf + neg, pointer, count);
+
+	return count;
+}
+
+template<Character C>
+template<Boolean Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
+{
+	if (t)
+	{
+		memcpy(buf, TrueStr<C>, 4 * sizeof(C));
+		return 4;
 	}
 	else
 	{
-		while (val > 999)
-		{
-			U64 newVal = val / 1000;
-			U64 remainder = val % 1000;
-			digits = DECIMAL_LOOKUP<C> +(remainder * 3);
-			*--c = digits[2];
-			*--c = digits[1];
-			*--c = digits[0];
-			val = newVal;
-		}
-
-		digits = DECIMAL_LOOKUP<C> +(val * 3);
-		*--c = digits[2];
-		if (val > 9) { *--c = digits[1]; }
-		if (val > 99) { *--c = digits[0]; }
-
-		addLength = typeSize - (c - str);
-	}
-
-	size += addLength - Remove;
-
-	if constexpr (Insert && !Hex) { Copy(str, c, (addLength + excessSize - Remove)); }
-	else { Copy(str, c, addLength); }
-
-	string[size] = NULL_CHAR<C>;
-
-	return strIndex + addLength;
-}
-
-template<Character C>
-template<Boolean Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
-{
-	constexpr U64 trueSize = 5 - Remove;
-	constexpr U64 falseSize = 6 - Remove;
-	const U64 strIndex = str - string;
-
-	if (value)
-	{
-		if (!string || capacity < size + trueSize) { Memory::Reallocate(&string, size + trueSize, capacity); str = string + strIndex; }
-
-		if constexpr (Insert) { Copy(str + 4, str, size - strIndex); }
-
-		Copy(str, TRUE_STR<C>, 4);
-		size += 4;
-
-		if constexpr (!Insert) { string[size] = NULL_CHAR<C>; }
-
-		return strIndex + 4;
-	}
-	else
-	{
-		if (!string || capacity < size + falseSize) { Memory::Reallocate(&string, size + falseSize, capacity); str = string + strIndex; }
-
-		if constexpr (Insert) { Copy(str + 5, str, size - strIndex); }
-
-		Copy(str, FALSE_STR<C>, 5);
-		size += 5;
-
-		if constexpr (!Insert) { string[size] = NULL_CHAR<C>; }
-
-		return strIndex + 5;
+		memcpy(buf, FalseStr<C>, 5 * sizeof(C));
+		return 5;
 	}
 }
 
 template<Character C>
-template<FloatingPoint Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value, U64 decimalCount) noexcept
+template<NonStringPointer Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	if constexpr (Hex) { return ToString<U64, Hex, Insert, Remove>(str, reinterpret_cast<const U64&>(value)); }
-	else
-	{
-		const U64 typeSize = RequiredCapacity<Arg, Hex>() + decimalCount;
-		const U64 moveSize = typeSize - Remove;
-		const U64 strIndex = str - string;
-		const U64 excessSize = size - strIndex;
-
-		if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-		if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
-
-		C* c = str + typeSize;
-		const C* digits;
-		Arg val;
-		U64 neg;
-
-		if (value < 0)
-		{
-			str[0] = NEGATIVE_CHAR<C>;
-			val = (Arg)-value;
-			neg = 1;
-		}
-		else
-		{
-			val = (Arg)value;
-			neg = 0;
-		}
-
-		if (decimalCount > 0)
-		{
-			U64 dec = (U64)((val - (F64)(U64)val) * 100000.0f);
-
-			while (decimalCount > 2)
-			{
-				U64 newVal = dec / 1000;
-				U64 remainder = dec % 1000;
-				digits = DECIMAL_LOOKUP<C> +(remainder * 3);
-				*--c = digits[2];
-				*--c = digits[1];
-				*--c = digits[0];
-				dec = newVal;
-
-				decimalCount -= 3;
-			}
-
-			digits = DECIMAL_LOOKUP<C> +(dec * 3);
-			if (decimalCount > 0) { *--c = digits[2]; }
-			if (decimalCount > 1) { *--c = digits[1]; }
-			*--c = DECIMAL_CHAR<C>;
-		}
-
-		U64 whole = (U64)val;
-
-		while (whole > 999)
-		{
-			U64 newVal = whole / 1000;
-			U64 remainder = whole % 1000;
-			digits = DECIMAL_LOOKUP<C> +(remainder * 3);
-			*--c = digits[2];
-			*--c = digits[1];
-			*--c = digits[0];
-			whole = newVal;
-		}
-
-		digits = DECIMAL_LOOKUP<C> +(whole * 3);
-		*--c = digits[2];
-		if (whole > 9) { *--c = digits[1]; }
-		if (whole > 99) { *--c = digits[0]; }
-
-		I64 addLength = typeSize + neg - (c - str);
-		size += addLength - Remove;
-
-		if constexpr (Insert) { Copy(str + neg, c, (addLength + excessSize - Remove)); }
-		else { Copy(str + neg, c, addLength); }
-
-		string[size] = NULL_CHAR<C>;
-
-		return strIndex + addLength;
-	}
+	return Format(buf, reinterpret_cast<U64>(t));
 }
 
 template<Character C>
-template<NonStringPointer Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<Enum Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	return ToString<U64, Hex, Insert, Remove>(str, reinterpret_cast<const U64&>(value));
+	if constexpr (std::is_scoped_enum_v<Type>)
+	{
+		return Format(buf, *t);
+	}
+
+	return Format(buf, t);
 }
 
 template<Character C>
-template<Character Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<Character Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	using CharType = BaseType<Arg>;
-	return ToString<CharType*, Hex, Insert, Remove, 1>(str, (CharType*)&value);
+	C c = (C)t;
+
+	memcpy(buf, &c, sizeof(C));
+
+	return 1;
 }
 
 template<Character C>
-template<StringLiteral Arg, bool Hex, bool Insert, U64 Remove, U64 Size>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<StringLiteral Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	using CharType = BaseType<Arg>;
+	using CharType = BaseType<Type>;
 
-	U64 strSize;
-	if constexpr (Size == 0) { strSize = Length(value); }
-	else { strSize = Size; }
+	U64 length = Length(t) * sizeof(CharType);
 
-	bool replace = false;
-	U64 moveSize = strSize;
-	if constexpr (Remove == U64_MAX) { replace = true; }
-	else { moveSize -= Remove; }
+	memcpy(buf, t, length);
 
-	const U64 strIndex = str - string;
-	const U64 excessSize = size - strIndex;
-
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
-
-	if constexpr (IsSame<CharType, C>) { Copy(str, value, strSize); }
-	else if constexpr (IsSame<CharType, C8>)
-	{
-		if constexpr (IsSame<C, C16>)
-		{
-			//TODO
-		}
-		else //C32
-		{
-			//TODO
-		}
-	}
-	else if constexpr (IsSame<CharType, C16>)
-	{
-		if constexpr (IsSame<C, C8>)
-		{
-			const CharType* it0 = value;
-			CharType c;
-			C* it1 = str;
-			while ((c = *it0++) != '\0')
-			{
-				if (c <= 0x7F) { *it1++ = (C)c; }
-				else { *it1++ = '?'; }
-			}
-		}
-		else //C32
-		{
-			//TODO
-		}
-	}
-	else if constexpr (IsSame<CharType, C32>)
-	{
-		if constexpr (IsSame<C, C8>)
-		{
-			//TODO
-		}
-		else //C16
-		{
-			//TODO
-		}
-	}
-	else if constexpr (IsSame<CharType, char8_t>)
-	{
-		if constexpr (IsSame<C, C8>)
-		{
-			//TODO
-		}
-		else //C16
-		{
-			//TODO
-		}
-	}
-	else if constexpr (IsSame<CharType, CW>)
-	{
-		if constexpr (IsSame<C, C8>)
-		{
-			const CharType* it0 = value;
-			CharType c;
-			C* it1 = str;
-			while ((c = *it0++) != '\0')
-			{
-				if (c <= 0x7F) { *it1++ = (C)c; }
-				else if (c <= 0x7FF) { *it1++ = (C)((c >> 6) | 0xC0); *it1++ = (C)((c & 0x3F) | 0x80); }
-				else if (c <= 0xFFFF) { *it1++ = (C)((c >> 12) | 0xE0); *it1++ = (C)(((c >> 6) & 0x3F) | 0x80); *it1++ = (C)((c & 0x3F) | 0x80); }
-				else { *it1++ = '?'; }
-			}
-		}
-		else //C16
-		{
-			//TODO
-		}
-	}
-
-	if (replace) { size = moveSize; }
-	else { size += moveSize; }
-
-	string[size] = NULL_CHAR<C>;
-
-	return strIndex + strSize;
+	return length / sizeof(CharType);
 }
 
 template<Character C>
-template<StringViewType Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<StringType Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	U64 strSize = value.Size();
+	U64 length = t.Size() * sizeof(Type::CharType);
 
-	bool replace = false;
-	U64 moveSize = strSize;
-	if constexpr (Remove == U64_MAX) { replace = true; }
-	else { moveSize -= Remove; }
+	memcpy(buf, t.Data(), length);
 
-	const U64 strIndex = str - string;
-	const U64 excessSize = size - strIndex;
-
-	if (!string || capacity < size + moveSize) { Memory::Reallocate(&string, size + moveSize, capacity); str = string + strIndex; }
-
-	if constexpr (Insert) { Copy(str + moveSize, str, excessSize); }
-
-	if constexpr (IsSame<CharType, C>) { Copy(str, value.Data(), strSize); }
-	else if constexpr (IsSame<C, C16>)
-	{
-		//TODO
-	}
-	else //C32
-	{
-		//TODO
-	}
-
-	if (replace) { size = moveSize; }
-	else { size += moveSize; }
-
-	string[size] = NULL_CHAR<C>;
-
-	return strIndex + strSize;
+	return length / sizeof(Type::CharType);
 }
 
 template<Character C>
-template<StringType Arg, bool Hex, bool Insert, U64 Remove>
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<StringViewType Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	//TODO: Move semantics
+	U64 length = t.Size(); //TODO: templated
 
-	using StrBs = BaseType<Arg>;
+	memcpy(buf, t.Data(), length);
 
-	if constexpr (IsSame<StrBs, StringBase<C8>>) { using CharType = C8; }
-	else if constexpr (IsSame<StrBs, StringBase<C16>>) { using CharType = C16; }
-	else if constexpr (IsSame<StrBs, StringBase<C32>>) { using CharType = C32; }
-
-	return ToString<CharType*, Hex, Insert, Remove>(str, (CharType*)value.Data());
+	return length;
 }
 
 template<Character C>
-template<NonStringClass Arg, bool Hex, bool Insert, U64 Remove>
-	requires(!IsStringViewType<Arg>)
-inline U64 StringBase<C>::ToString(C* str, const Arg& value) noexcept
+template<NonStringClass Type>
+inline constexpr U64 StringBase<C>::Format(C* buf, Type t)
 {
-	if constexpr (ConvertibleTo<Arg, StringBaseType>)
-	{
-		return ToString<StringBaseType, Hex, Insert, Remove>(str, value.operator StringBaseType());
-	}
-	else
-	{
-		return ToString<U64, Hex, Insert, Remove>(str, (U64)&value);
-	}
-}
-
-template<Character C>
-template<typename Arg, bool Hex>
-inline constexpr U64 StringBase<C>::RequiredCapacity() noexcept
-{
-	if constexpr (Hex)
-	{
-		if constexpr (IsSame<Arg, U8>) { return 2; }
-		if constexpr (IsSame<Arg, U16>) { return 4; }
-		if constexpr (IsSame<Arg, U32>) { return 8; }
-		if constexpr (IsSame<Arg, UL32>) { return 8; }
-		if constexpr (IsSame<Arg, U64>) { return 16; }
-		if constexpr (IsSame<Arg, I8>) { return 2; }
-		if constexpr (IsSame<Arg, I16>) { return 4; }
-		if constexpr (IsSame<Arg, I32>) { return 8; }
-		if constexpr (IsSame<Arg, L32>) { return 8; }
-		if constexpr (IsSame<Arg, I64>) { return 16; }
-		if constexpr (IsSame<Arg, F32>) { return 16; }
-		if constexpr (IsSame<Arg, F64>) { return 16; }
-	}
-	else
-	{
-		if constexpr (IsSame<Arg, U8>) { return 3; }
-		if constexpr (IsSame<Arg, U16>) { return 5; }
-		if constexpr (IsSame<Arg, U32>) { return 10; }
-		if constexpr (IsSame<Arg, UL32>) { return 10; }
-		if constexpr (IsSame<Arg, U64>) { return 20; }
-		if constexpr (IsSame<Arg, I8>) { return 4; }
-		if constexpr (IsSame<Arg, I16>) { return 6; }
-		if constexpr (IsSame<Arg, I32>) { return 11; }
-		if constexpr (IsSame<Arg, L32>) { return 11; }
-		if constexpr (IsSame<Arg, I64>) { return 20; }
-		if constexpr (IsSame<Arg, F32>) { return 22; }
-		if constexpr (IsSame<Arg, F64>) { return 22; }
-	}
-}
-
-template<Character C>
-template<Signed Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	C* it = string + start;
-	C c;
-	Arg value = 0;
-
-	if (*it == NEGATIVE_CHAR<C>)
-	{
-		++it;
-		while (Numerical(c = *it++)) { value *= 10; value -= c - ZERO_CHAR<C>; }
-	}
-	else
-	{
-		while (Numerical(c = *it++)) { value *= 10; value += c - ZERO_CHAR<C>; }
-	}
-
-	return value;
-}
-
-template<Character C>
-template<Unsigned Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	C* it = string + start;
-	C c;
-	Arg value = 0;
-
-	while (Numerical(c = *it++)) { value *= 10; value += c - ZERO_CHAR<C>; }
-
-	return value;
-}
-
-template<Character C>
-template<Boolean Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	return CompareString(string + start, TRUE_STR<C>, 4);
-}
-
-template<Character C>
-template<FloatingPoint Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	//TODO: Handle NaN, +-INF
-
-	C* it = string + start;
-	C c;
-	Arg value = (Arg)0.0;
-	F64 mul = 0.1;
-
-	if (*it == NEGATIVE_CHAR<C>)
-	{
-		++it;
-		while (Numerical(c = *it++)) { value *= 10; value -= c - ZERO_CHAR<C>; }
-		if (c == DECIMAL_CHAR<C>) { while (Numerical(c = *it++)) { value -= (Arg)((c - ZERO_CHAR<C>) * mul); mul *= 0.1; } }
-	}
-	else
-	{
-		if (*it == POSITIVE_CHAR<C>) { ++it; }
-
-		while (Numerical(c = *it++)) { value *= 10; value += c - ZERO_CHAR<C>; }
-		if (c == DECIMAL_CHAR<C>) { while (Numerical(c = *it++)) { value += (Arg)((c - ZERO_CHAR<C>) * mul); mul *= 0.1; } }
-	}
-
-	return value;
-}
-
-template<Character C>
-template<NonStringPointer Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	return (Arg)ToType<U64>(start);
-}
-
-template<Character C>
-template<Character Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	//TODO: conversions
-	return string[start];
-}
-
-template<Character C>
-template<StringLiteral Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	using CharType = BaseType<Arg>;
-
-	if constexpr (IsSame<CharType, C>) { return string + start; }
-	else if constexpr (IsSame<CharType, C8>)
-	{
-		if constexpr (IsSame<C, C16>) {}
-		else if constexpr (IsSame<C, C32>) {}
-	}
-	else if constexpr (IsSame<CharType, C16>)
-	{
-		if constexpr (IsSame<C, C8>) {}
-		else if constexpr (IsSame<C, C32>) {}
-	}
-	else if constexpr (IsSame<CharType, C32>)
-	{
-		if constexpr (IsSame<C, C8>) {}
-		else if constexpr (IsSame<C, C16>) {}
-	}
-	else if constexpr (IsSame<CharType, char8_t>)
-	{
-		if constexpr (IsSame<C, C8>) { return (C8*)(string + start); }
-		else if constexpr (IsSame<C, C16>) {}
-		else if constexpr (IsSame<C, C32>) {}
-	}
-	else if constexpr (IsSame<CharType, CW>)
-	{
-		if constexpr (IsSame<C, C8>) {}
-		else if constexpr (IsSame<C, C16>) { return (CW*)(string + start); }
-		else if constexpr (IsSame<C, C32>) {}
-	}
-}
-
-template<Character C>
-template<StringType Arg>
-inline Arg StringBase<C>::ToType(U64 start) const noexcept
-{
-	if constexpr (IsSame<Arg, StringBase<C>>) { return Move(String(string + start)); }
-	else if constexpr (IsSame<Arg, StringBase<C8>>)
-	{
-		if constexpr (IsSame<StringBase<C>, StringBase<C16>>)
-		{
-			//TODO
-		}
-		else //C32
-		{
-			//TODO
-		}
-	}
-	else if constexpr (IsSame<Arg, StringBase<C16>>)
-	{
-		if constexpr (IsSame<StringBase<C>, StringBase<C8>>)
-		{
-			//TODO
-		}
-		else //C32
-		{
-			//TODO
-		}
-	}
-	else if constexpr (IsSame<Arg, StringBase<C32>>)
-	{
-		if constexpr (IsSame<StringBase<C>, StringBase<C8>>)
-		{
-			//TODO
-		}
-		else //C16
-		{
-			//TODO
-		}
-	}
-}
-
-template<Character C>
-inline bool StringBase<C>::WhiteSpace(C c) noexcept
-{
-	return c == SPACE<C> || c == HTAB<C> || c == VTAB<C> ||
-		c == NEW_LINE<C> || c == RETURN<C> || c == FEED<C>;
-}
-
-template<Character C>
-inline bool StringBase<C>::NotWhiteSpace(C c) noexcept
-{
-	return c != SPACE<C> && c != HTAB<C> && c != VTAB<C> &&
-		c != NEW_LINE<C> && c != RETURN<C> && c != FEED<C>;
-}
-
-template<Character C>
-inline bool StringBase<C>::Numerical(C c) noexcept
-{
-	return c > 47 && c < 58;
-}
-
-template<Character C>
-template<typename Arg>
-inline void StringBase<C>::FindFormat(U64& start, const Arg& value) noexcept
-{
-	C* it = string + start;
-	C c = *it;
-
-	//TODO: escape characters ``
-	while ((c = *it++) != NULL_CHAR<C>)
-	{
-		if (c == OPEN_BRACE<C>)
-		{
-			c = *it++;
-			switch (c)
-			{
-			case CLOSE_BRACE<C>: { start = ToString<Arg, false, true, 2>(it - 2, value); return; } break;
-			case FMT_HEX<C>: { if (*it == CLOSE_BRACE<C>) { start = ToString<Arg, true, true, 3>(it - 2, value); return; } } break;
-			case FMT_DEC<C>: {
-				if constexpr (IsFloatingPoint<Arg>)
-				{
-					if (*it == CLOSE_BRACE<C>) { start = ToString<Arg, false, true, 3>(it - 2, value, 5); return; }
-					else if (it[1] == CLOSE_BRACE<C>) { start = ToString<Arg, false, true, 4>(it - 2, value, *it - '0'); return; }
-				}
-			} break;
-			}
-		}
-	}
+	return Format(buf, reinterpret_cast<U64>(&t));
 }

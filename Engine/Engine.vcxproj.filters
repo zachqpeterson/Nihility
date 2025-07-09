@@ -1,0 +1,421 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Platform">
+      <UniqueIdentifier>{df1c6871-6499-42a7-b4b2-04f318e1c089}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Resources">
+      <UniqueIdentifier>{996f19d4-0587-4379-8e04-e5538df03e8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Multithreading">
+      <UniqueIdentifier>{6c26a9d2-6966-45be-aa79-943b27ef21a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core">
+      <UniqueIdentifier>{17828fe8-5146-4e49-a934-44b02dec0081}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Math">
+      <UniqueIdentifier>{c69d48df-4491-4742-b8a2-41e5b4ccd2ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Containers">
+      <UniqueIdentifier>{c4c74431-4284-45a4-9df4-feb2254ba380}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Rendering">
+      <UniqueIdentifier>{d762ae16-f95c-419b-a07d-f69318a32d3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External">
+      <UniqueIdentifier>{7d4b29a3-64d5-41f4-9ba7-0458fb355167}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Resources\Components">
+      <UniqueIdentifier>{0c8b6a91-0d79-4e3a-a518-9a19bac47ff1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Rendering\Vulkan">
+      <UniqueIdentifier>{d528f2f7-7c43-465e-8d91-c4ba0256a40a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\msdfgen">
+      <UniqueIdentifier>{bd8e0eac-1e22-467a-989b-ff69d01b5b35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Audio">
+      <UniqueIdentifier>{8e93acc8-c37b-4189-9d66-7b2fd821bbb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Rendering\Debug">
+      <UniqueIdentifier>{71fdebe7-30ea-4207-845a-ac45bcb63b7a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Defines.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Platform.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Settings.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\WindowsInclude.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Memory.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Multithreading\ThreadSafety.hpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeTraits.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Time.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Math.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Multithreading\Jobs.hpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Logger.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Hash.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Events.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Hashmap.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\SafeQueue.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\String.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Vector.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Input.hpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Resources.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\File.hpp">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Camera.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Texture.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ResourceDefines.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Stack.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Pair.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Queue.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Random.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Containers\Freelist.hpp">
+      <Filter>Source Files\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Material.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Physics.hpp">
+      <Filter>Source Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Entity.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\SpriteComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ColliderComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\TilemapComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\CharacterComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Component.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\CommandBuffer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\CommandBufferRing.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\DescriptorSet.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Device.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\FrameBuffer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Instance.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\PhysicalDevice.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Pipeline.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\PipelineLayout.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Renderer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Renderpass.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Shader.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Swapchain.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\VulkanInclude.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Buffer.hpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\UI.hpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Font.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\Audio.hpp">
+      <Filter>Source Files\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\TilemapColliderComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\LineRenderer.hpp">
+      <Filter>Source Files\Rendering\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\ProjectileComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Particles.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\World.hpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\AnimationComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\PlatformWindows.cpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Settings.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Multithreading\ThreadSafety.cpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Memory.cpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Time.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Multithreading\Jobs.cpp">
+      <Filter>Source Files\Multithreading</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Logger.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Input.cpp">
+      <Filter>Source Files\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Resources.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\File.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Camera.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Material.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\tracy\TracyClient.cpp">
+      <Filter>Source Files\External</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Physics.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Math.cpp">
+      <Filter>Source Files\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\SpriteComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\ColliderComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\TilemapComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\CharacterComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Entity.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\CommandBuffer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\CommandBufferRing.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\DescriptorSet.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Device.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\FrameBuffer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Instance.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\PhysicalDevice.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Pipeline.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\PipelineLayout.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Renderer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Renderpass.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Shader.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Swapchain.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\Buffer.cpp">
+      <Filter>Source Files\Rendering\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\UI.cpp">
+      <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Font.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\contour-combiners.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Contour.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\DistanceMapping.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\edge-coloring.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\edge-segments.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\edge-selectors.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\EdgeHolder.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\equation-solver.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\msdf-error-correction.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\MSDFErrorCorrection.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\msdfgen.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Projection.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\rasterization.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\render-sdf.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Scanline.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\sdf-error-estimation.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\shape-description.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Lib\msdfgen\core\Shape.cpp">
+      <Filter>Source Files\External\msdfgen</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\Audio.cpp">
+      <Filter>Source Files\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\TilemapColliderComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\LineRenderer.cpp">
+      <Filter>Source Files\Rendering\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\ProjectileComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\Particles.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\World.cpp">
+      <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\AnimationComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

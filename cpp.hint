@@ -1,34 +1,28 @@
-#define PLATFORM_WINDOWS
+#define NH_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
-#define PLATFORM_LINUX
-#define PLATFORM_ANDROID
-#define PLATFORM_UNIX
-#define PLATFORM_POSIX
-#define PLATFORM_APPLE
-#define PLATFORM_IOS
-#define PLATFORM_IOS_SIMULATOR
-
+#define NOMINMAX
+#define NH_PLATFORM_IOS_SIM
+#define NH_PLATFORM_IOS
+#define NH_PLATFORM_MACCATALYST
+#define NH_PLATFORM_IPHONE
+#define NH_PLATFORM_MAC
+#define NH_PLATFORM_ANDROID
+#define NH_PLATFORM_LINUX
+#define NH_PLATFORM_UNIX
+#define NH_PLATFORM_POSIX
 #define NH_LITTLE_ENDIAN
 #define NH_BIG_ENDIAN
-
 #define NH_DEBUG
-#define NH_RELEASE
 #define ASSERTIONS_ENABLED
-
 #define NH_API
-
 #define FUNCTION_NAME
 #define FILE_NAME
 #define LINE_NUMBER
-
-#define STATIC_CLASS(class)
-#define COMPONENT(class)
-
 #define NH_INLINE
 #define NH_NOINLINE
-#define NH_HEADER_STATIC
 #define NH_NODISCARD
-
+#define NH_NODISCARD_MSG(message)
 #define BreakPoint
-
 #define ASSERT(expr)
+#define STATIC_CLASS(class)
+#define COMPONENT(Type)

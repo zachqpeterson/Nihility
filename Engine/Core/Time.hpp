@@ -6,6 +6,7 @@ class NH_API Time
 {
 public:
 	static const F64& DeltaTime();
+	static F64 DeltaTimeStable();
 	static const F64& FrameEndTime();
 	static const U32& FrameRate();
 	static F64 UpTime();
@@ -18,7 +19,6 @@ public:
 
 private:
 	static bool Initialize();
-
 	static void Shutdown();
 
 	static void Update();
@@ -35,8 +35,9 @@ private:
 	static U32 frameRate;
 	static U32 frameCounter;
 
-	STATIC_CLASS(Time);
 	friend class Engine;
+
+	STATIC_CLASS(Time);
 };
 
 struct NH_API Timer
