@@ -226,6 +226,9 @@
     <ClInclude Include="Resources\World.hpp">
       <Filter>Source Files\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\AnimationComponent.hpp">
+      <Filter>Source Files\Resources\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp">
@@ -410,6 +413,9 @@
     </ClCompile>
     <ClCompile Include="Resources\World.cpp">
       <Filter>Source Files\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources\AnimationComponent.cpp">
+      <Filter>Source Files\Resources\Components</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -133,6 +133,7 @@
     <ClInclude Include="Rendering\Swapchain.hpp" />
     <ClInclude Include="Rendering\UI.hpp" />
     <ClInclude Include="Rendering\VulkanInclude.hpp" />
+    <ClInclude Include="Resources\AnimationComponent.hpp" />
     <ClInclude Include="Resources\CharacterComponent.hpp" />
     <ClInclude Include="Resources\ColliderComponent.hpp" />
     <ClInclude Include="Resources\Component.hpp" />
@@ -200,6 +201,7 @@
     <ClCompile Include="Rendering\Shader.cpp" />
     <ClCompile Include="Rendering\Swapchain.cpp" />
     <ClCompile Include="Rendering\UI.cpp" />
+    <ClCompile Include="Resources\AnimationComponent.cpp" />
     <ClCompile Include="Resources\CharacterComponent.cpp" />
     <ClCompile Include="Resources\ColliderComponent.cpp" />
     <ClCompile Include="Resources\Entity.cpp" />

@@ -31,6 +31,7 @@ public:
 	static void RemoveFrom(const EntityRef& entity);
 
 	void SetColor(const Vector4& color);
+	void SetTexture(const ResourceRef<Texture>& texture, const Vector2& textureCoord = Vector2::Zero, const Vector2& textureScale = Vector2::One);
 
 private:
 	U32 instanceIndex = 0;

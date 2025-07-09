@@ -14,6 +14,7 @@
 #include "Resources/TilemapComponent.hpp"
 #include "Resources/TilemapColliderComponent.hpp"
 #include "Resources/CharacterComponent.hpp"
+#include "Resources/AnimationComponent.hpp"
 #include "Resources/World.hpp"
 #include "Resources/Particles.hpp"
 
@@ -21,10 +22,13 @@ EntityRef player;
 ResourceRef<Texture> textureAtlas;
 ResourceRef<Texture> groundTexture;
 ResourceRef<Texture> whiteTexture;
+ResourceRef<Texture> walkTexture;
 ComponentRef<Tilemap> mainTilemap;
 ComponentRef<Tilemap> backgroundTilemap;
 ComponentRef<Tilemap> foregroundTilemap;
 ComponentRef<Character> character;
+ComponentRef<Animation> playerAnimation;
+bool facingLeft = false;
 
 void ComponentsInit()
 {
@@ -33,9 +37,11 @@ void ComponentsInit()
 	World::InitializeFns += Collider::Initialize;
 	World::InitializeFns += Tilemap::Initialize;
 	World::InitializeFns += TilemapCollider::Initialize;
+	World::InitializeFns += Animation::Initialize;
 	World::InitializeFns += Sprite::Initialize;
 
 	World::ShutdownFns += Sprite::Shutdown;
+	World::ShutdownFns += Animation::Shutdown;
 	World::ShutdownFns += TilemapCollider::Shutdown;
 	World::ShutdownFns += Tilemap::Shutdown;
 	World::ShutdownFns += Collider::Shutdown;
@@ -86,6 +92,7 @@ bool Initialize()
 {
 	World::SetCamera(CameraType::Orthographic);
 
+	walkTexture = Resources::LoadTexture("textures/walk.nht");
 	whiteTexture = Resources::LoadTexture("textures/white.nht");
 	textureAtlas = Resources::LoadTexture("textures/atlas.nht");
 	groundTexture = Resources::LoadTexture("textures/missing_texture.nht");
@@ -120,9 +127,35 @@ bool Initialize()
 	Collider::AddTo(ground2);
 	Sprite::AddTo(ground2, groundTexture);
 
-	player = World::CreateEntity({ 0.0f, 0.0f });
-	Sprite::AddTo(player, groundTexture);
+	player = World::CreateEntity({ 0.0f, 0.0f }, { 1.0f, 1.54279279279f });
+	ComponentRef<Sprite> playerSprite = Sprite::AddTo(player, groundTexture);
 	character = Character::AddTo(player);
+	playerAnimation = Animation::AddTo(player, playerSprite);
+
+	AnimationClip idleClip{};
+	idleClip.frames.Push({ walkTexture, { 0.125f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	playerAnimation->AddClip(idleClip);
+
+	AnimationClip walkClip{};
+	walkClip.frames.Push({ walkTexture, { 0.0f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.125f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.25f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.375f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.5f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.625f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.75f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.875f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.0f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.125f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.25f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.375f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.5f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.625f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.75f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	walkClip.frames.Push({ walkTexture, { 0.875f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
+	playerAnimation->AddClip(walkClip);
+
+	playerAnimation->SetClip(0);
 
 	ResourceRef<AudioClip> clip = Resources::LoadAudio("audio/Electric Zoo.nha");
 
@@ -151,8 +184,47 @@ void Shutdown()
 
 }
 
+enum class PlayerAnimations
+{
+	Idle,
+	Walk
+};
+
+enum class PlayerState
+{
+	Idle,
+	WalkLeft,
+	WalkRight
+};
+
+PlayerState state = PlayerState::Idle;
+
 void Update()
 {
+	if (character->velocity.x > 0.1f)
+	{
+		if (state != PlayerState::WalkRight)
+		{
+			state = PlayerState::WalkRight;
+			facingLeft = false;
+			playerAnimation->SetClip(*PlayerAnimations::Walk, facingLeft);
+		}
+	}
+	else if (character->velocity.x < -0.1f)
+	{
+		if (state != PlayerState::WalkLeft)
+		{
+			state = PlayerState::WalkLeft;
+			facingLeft = true;
+			playerAnimation->SetClip(*PlayerAnimations::Walk, facingLeft);
+		}
+	}
+	else if(state != PlayerState::Idle)
+	{
+		state = PlayerState::Idle;
+		playerAnimation->SetClip(*PlayerAnimations::Idle, facingLeft);
+	}
+
 	if (Input::ButtonDown(ButtonCode::E))
 	{
 		EntityRef id = World::CreateEntity(player->position, 0.5f);
@@ -160,7 +232,6 @@ void Update()
 		ComponentRef<Sprite> s = Sprite::AddTo(id, groundTexture);
 		Vector2 dir = (World::ScreenToWorld(Input::MousePosition()) - player->position).Normalized();
 		ComponentRef<Projectile> p = Projectile::AddTo(id, dir * 20.0f, 0.0f, 0.0f);
-		character->AddForce(-dir * 0.5f);
 		if (s && p) { p->OnHit += ProjectileHit; }
 	}
 

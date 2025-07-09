@@ -154,3 +154,10 @@ void Sprite::SetColor(const Vector4& color)
 {
 	spriteInstances[instanceIndex].instColor = color;
 }
+
+void Sprite::SetTexture(const ResourceRef<Texture>& texture, const Vector2& textureCoord, const Vector2& textureScale)
+{
+	spriteInstances[instanceIndex].textureIndex = texture.Handle();
+	spriteInstances[instanceIndex].instTexcoord = textureCoord;
+	spriteInstances[instanceIndex].instTexcoordScale = textureScale;
+}
