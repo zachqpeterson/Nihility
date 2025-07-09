@@ -9,9 +9,9 @@ This is a 2D game engine made from scratch, I've made my own data structures, me
 - [ ] Basic Editor And Debug Tools
 
 ## Setup
-- install the Vulkan SDK: https://vulkan.lunarg.com/sdk/home, leaving all setting default is sufficient
+- Install the Vulkan SDK: https://vulkan.lunarg.com/sdk/home, leaving all settings as default is sufficient
 - Clone the repository
-- Open the solution in Visual Studio and set the startup project to any of the demo projects
+- Open the solution in Visual Studio and set the startup project to the Demo project
 
 ## Current 3rd party libraries
 LunarG Vulkan SDK - https://www.lunarg.com/vulkan-sdk/, Vulkan source, vma, spir-v, etc.
