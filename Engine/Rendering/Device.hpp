@@ -41,4 +41,6 @@ private:
 	friend class CommandBufferRing;
 	friend struct Swapchain;
 	friend struct CommandBuffer;
+	friend struct Renderpass;
+	friend struct Pipeline;
 };

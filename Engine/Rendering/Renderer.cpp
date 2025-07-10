@@ -27,6 +27,7 @@ VkAllocationCallbacks* Renderer::allocationCallbacks;
 VkDescriptorPool Renderer::vkDescriptorPool = VK_NULL_HANDLE;
 VkDescriptorPool Renderer::vkBindlessDescriptorPool = VK_NULL_HANDLE;
 DescriptorSet Renderer::descriptorSet;
+Texture Renderer::colorTextures[MaxSwapchainImages];
 Texture Renderer::depthTextures[MaxSwapchainImages];
 Buffer Renderer::stagingBuffers[MaxSwapchainImages];
 
@@ -39,6 +40,7 @@ FrameBuffer Renderer::frameBuffer;
 Vector<VkCommandBuffer> Renderer::commandBuffers[MaxSwapchainImages];
 GlobalPushConstant Renderer::globalPushConstant;
 
+bool Renderer::resize = false;
 U32 Renderer::frameIndex;
 U32 Renderer::previousFrame;
 U32 Renderer::absoluteFrame;
@@ -57,6 +59,7 @@ bool Renderer::Initialize(const StringView& name, U32 version)
 	if (!device.Create()) { Logger::Fatal("Failed To Create Vulkan Device!"); return false; }
 	if (!InitializeVma()) { Logger::Fatal("Failed To Initialize Vma!"); return false; }
 	if (!swapchain.Create(false)) { Logger::Fatal("Failed To Create Swapchain!"); return false; }
+	if (!CreateColorTextures()) { Logger::Fatal("Failed To Create Color Buffers!"); return false; }
 	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffers!"); return false; }
 	if (!CommandBufferRing::Initialize()) { Logger::Fatal("Failed To Create Command Buffers!"); return false; }
 	if (!CreateDescriptorPool()) { Logger::Fatal("Failed To Create Descriptor Pool!"); return false; }
@@ -108,6 +111,8 @@ void Renderer::Shutdown()
 	{
 		vkDestroyImageView(device, depthTextures[i].imageView, allocationCallbacks);
 		vmaDestroyImage(vmaAllocator, depthTextures[i].image, depthTextures[i].allocation);
+		vkDestroyImageView(device, colorTextures[i].imageView, allocationCallbacks);
+		vmaDestroyImage(vmaAllocator, colorTextures[i].image, colorTextures[i].allocation);
 	}
 
 	swapchain.Destroy();
@@ -167,10 +172,16 @@ bool Renderer::Synchronize()
 {
 	ZoneScopedN("RenderSynchronize");
 
+	if (resize)
+	{
+		resize = false;
+		RecreateSwapchain();
+	}
+
 	U32 i = absoluteFrame % swapchain.imageCount;
 	VkResult res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAcquired[i], VK_NULL_HANDLE, &frameIndex);
 
-	if (res == VK_ERROR_OUT_OF_DATE_KHR) { RecreateSwapchain(); return false; }
+	if (res == VK_ERROR_OUT_OF_DATE_KHR) { resize = true; return false; }
 	else { VkValidateFR(res); }
 
 	VkSemaphore waits[]{ renderFinished[previousFrame], transferFinished[previousFrame] };
@@ -307,7 +318,7 @@ void Renderer::Submit()
 	VkResult res = vkQueuePresentKHR(device.presentQueue, &presentInfo);
 	commandBuffers[frameIndex].Clear();
 
-	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) { RecreateSwapchain(); }
+	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) { resize = true; }
 
 	previousFrame = frameIndex;
 
@@ -370,6 +381,70 @@ bool Renderer::InitializeVma()
 	return true;
 }
 
+bool Renderer::CreateColorTextures()
+{
+	VkExtent3D colorImageExtent{
+		.width = swapchain.width,
+		.height = swapchain.height,
+		.depth = 1
+	};
+
+	VkImageCreateInfo imageCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = (VkFormat)swapchain.format,
+		.extent = colorImageExtent,
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = (VkSampleCountFlagBits)device.physicalDevice.maxSampleCount, //TODO: Setting
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.queueFamilyIndexCount = 0,
+		.pQueueFamilyIndices = nullptr,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+	};
+
+	VmaAllocationCreateInfo allocationInfo{
+		.flags = 0,
+		.usage = VMA_MEMORY_USAGE_GPU_ONLY,
+		.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		.preferredFlags = 0,
+		.memoryTypeBits = 0,
+		.pool = nullptr,
+		.pUserData = nullptr,
+		.priority = 0.0f
+	};
+
+	VkImageViewCreateInfo imageViewCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.image = nullptr,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = imageCreateInfo.format,
+		.components = {},
+		.subresourceRange{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		}
+	};
+
+	for (U32 i = 0; i < swapchain.imageCount; ++i)
+	{
+		VkValidateFR(vmaCreateImage(vmaAllocator, &imageCreateInfo, &allocationInfo, &colorTextures[i].image, &colorTextures[i].allocation, nullptr));
+		imageViewCreateInfo.image = colorTextures[i].image;
+		VkValidateFR(vkCreateImageView(device, &imageViewCreateInfo, allocationCallbacks, &colorTextures[i].imageView));
+	}
+
+	return true;
+}
+
 bool Renderer::CreateDepthTextures()
 {
 	VkExtent3D depthImageExtent{
@@ -387,7 +462,7 @@ bool Renderer::CreateDepthTextures()
 		.extent = depthImageExtent,
 		.mipLevels = 1,
 		.arrayLayers = 1,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.samples = (VkSampleCountFlagBits)device.physicalDevice.maxSampleCount, //TODO: Setting
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
 		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -533,9 +608,12 @@ bool Renderer::RecreateSwapchain()
 	{
 		vkDestroyImageView(device, depthTextures[i].imageView, allocationCallbacks);
 		vmaDestroyImage(vmaAllocator, depthTextures[i].image, depthTextures[i].allocation);
+		vkDestroyImageView(device, colorTextures[i].imageView, allocationCallbacks);
+		vmaDestroyImage(vmaAllocator, colorTextures[i].image, colorTextures[i].allocation);
 	}
 
 	if (!swapchain.Create(true)) { Logger::Fatal("Failed To Create Swapchain!"); return false; }
+	if (!CreateColorTextures()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
 

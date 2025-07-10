@@ -41,6 +41,7 @@ private:
 	U32 transferQueueIndex;
 
 	PhysicalDeviceFeature features;
+	U32 maxSampleCount;
 	bool suitable;
 	bool discrete;
 
@@ -49,4 +50,6 @@ private:
 	friend struct Device;
 	friend struct Swapchain;
 	friend struct CommandBuffer;
+	friend struct Renderpass;
+	friend struct Pipeline;
 };

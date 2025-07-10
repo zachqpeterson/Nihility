@@ -17,6 +17,8 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice_T* vkPhysicalDevice, VkSurfaceKH
 	vkGetPhysicalDeviceFeatures2(vkPhysicalDevice, &features2);
 	vkGetPhysicalDeviceProperties(vkPhysicalDevice, &properties);
 
+	maxSampleCount = BitFloor(properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts);
+
 	features.multiDrawIndirect = features2.features.multiDrawIndirect;
 	features.samplerAnisotropy = features2.features.samplerAnisotropy;
 	features.maxSamplerAnisotropy = properties.limits.maxSamplerAnisotropy;
@@ -40,7 +42,8 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice_T* vkPhysicalDevice, VkSurfaceKH
 
 PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept :
 	vkPhysicalDevice(other.vkPhysicalDevice), presentQueueIndex(other.presentQueueIndex), graphicsQueueIndex(other.graphicsQueueIndex),
-	computeQueueIndex(other.computeQueueIndex), transferQueueIndex(other.transferQueueIndex), suitable(other.suitable), discrete(other.discrete)
+	computeQueueIndex(other.computeQueueIndex), transferQueueIndex(other.transferQueueIndex),
+	maxSampleCount(other.maxSampleCount), suitable(other.suitable), discrete(other.discrete)
 {
 }
 
@@ -51,6 +54,7 @@ PhysicalDevice& PhysicalDevice::operator=(PhysicalDevice&& other) noexcept
 	graphicsQueueIndex = other.graphicsQueueIndex;
 	computeQueueIndex = other.computeQueueIndex;
 	transferQueueIndex = other.transferQueueIndex;
+	maxSampleCount = other.maxSampleCount;
 	suitable = other.suitable;
 	discrete = other.discrete;
 

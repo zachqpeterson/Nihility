@@ -50,6 +50,7 @@ private:
 	static void Submit();
 
 	static bool InitializeVma();
+	static bool CreateColorTextures();
 	static bool CreateDepthTextures();
 	static bool CreateDescriptorPool();
 	static bool CreateRenderpasses();
@@ -67,6 +68,7 @@ private:
 	static VkDescriptorPool_T* vkDescriptorPool;
 	static VkDescriptorPool_T* vkBindlessDescriptorPool;
 	static DescriptorSet descriptorSet;
+	static Texture colorTextures[MaxSwapchainImages];
 	static Texture depthTextures[MaxSwapchainImages];
 	static Buffer stagingBuffers[MaxSwapchainImages];
 
@@ -82,6 +84,7 @@ private:
 	static GlobalPushConstant globalPushConstant;
 
 	//Synchronization
+	static bool resize;
 	static U32 frameIndex;
 	static U32 previousFrame;
 	static U32 absoluteFrame;
