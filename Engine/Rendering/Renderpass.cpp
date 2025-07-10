@@ -9,13 +9,13 @@ bool Renderpass::Create()
 		.pNext = nullptr,
 		.flags = 0,
 		.format = (VkFormat)Renderer::swapchain.format,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.samples = (VkSampleCountFlagBits)Renderer::device.physicalDevice.maxSampleCount,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+		.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 	};
 
 	VkAttachmentReference2 colorAttachmentReference{
@@ -31,7 +31,7 @@ bool Renderpass::Create()
 		.pNext = nullptr,
 		.flags = 0,
 		.format = VK_FORMAT_D32_SFLOAT,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.samples = (VkSampleCountFlagBits)Renderer::device.physicalDevice.maxSampleCount,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -46,6 +46,28 @@ bool Renderpass::Create()
 		.attachment = 1,
 		.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 		.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT
+	};
+
+	VkAttachmentDescription2 colorAttachmentResolve{
+		.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
+		.pNext = nullptr,
+		.flags = 0,
+		.format = (VkFormat)Renderer::swapchain.format,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+	};
+
+	VkAttachmentReference2 colorAttachmentResolveReference{
+		.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
+		.pNext = nullptr,
+		.attachment = 2,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
 	};
 
 	VkMemoryBarrier2 renderBarrier{
@@ -67,7 +89,7 @@ bool Renderpass::Create()
 		.pInputAttachments = nullptr,
 		.colorAttachmentCount = 1,
 		.pColorAttachments = &colorAttachmentReference,
-		.pResolveAttachments = nullptr,
+		.pResolveAttachments = &colorAttachmentResolveReference,
 		.pDepthStencilAttachment = &depthAttachmentReference,
 		.preserveAttachmentCount = 0,
 		.pPreserveAttachments = nullptr
@@ -100,7 +122,7 @@ bool Renderpass::Create()
 	};
 
 	VkSubpassDependency2 dependencies[] = { depthDependancy, renderDependancy };
-	VkAttachmentDescription2 attachments[] = { colorAttachment, depthAttachment };
+	VkAttachmentDescription2 attachments[] = { colorAttachment, depthAttachment, colorAttachmentResolve };
 
 	VkRenderPassCreateInfo2 renderPassInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,

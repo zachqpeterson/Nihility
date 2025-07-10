@@ -66,7 +66,7 @@ bool Device::Create()
 		.independentBlend = VK_FALSE,
 		.geometryShader = VK_FALSE,
 		.tessellationShader = VK_FALSE,
-		.sampleRateShading = VK_FALSE,
+		.sampleRateShading = VK_TRUE,
 		.dualSrcBlend = VK_FALSE,
 		.logicOp = VK_FALSE,
 		.multiDrawIndirect = VK_TRUE,

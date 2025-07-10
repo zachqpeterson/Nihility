@@ -88,9 +88,9 @@ bool Pipeline::Create(const PipelineLayout& layout, const PipelineSettings& sett
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			.sampleShadingEnable = VK_FALSE,
-			.minSampleShading = 0.0f,
+			.rasterizationSamples = (VkSampleCountFlagBits)Renderer::device.physicalDevice.maxSampleCount, //TODO: Setting
+			.sampleShadingEnable = VK_TRUE,
+			.minSampleShading = 0.2f,
 			.pSampleMask = nullptr,
 			.alphaToCoverageEnable = VK_FALSE,
 			.alphaToOneEnable = VK_FALSE

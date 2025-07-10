@@ -8,7 +8,7 @@ bool FrameBuffer::Create()
 
 	for (U64 i = 0; i < vkFramebuffers.Size(); ++i)
 	{
-		Vector<VkImageView> attachments = { Renderer::swapchain.imageViews[i], Renderer::depthTextures[i].imageView };
+		Vector<VkImageView> attachments = { Renderer::colorTextures[i].imageView, Renderer::depthTextures[i].imageView, Renderer::swapchain.imageViews[i] };
 
 		VkFramebufferCreateInfo frameBufferInfo = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		frameBufferInfo.pNext = nullptr;
