@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Demo", "Demo\Demo.vcxproj",
 		{786052CC-8853-4066-B83D-16026AF05748} = {786052CC-8853-4066-B83D-16026AF05748}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "The Shadow of KanFa", "..\The Shadow of KanFa\The Shadow of KanFa.vcxproj", "{F4067A48-3574-4851-8EDA-7ADBBB563FA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -24,8 +26,15 @@ Global
 		{FC31520C-5D4B-4699-A614-D170E8272F80}.Debug|x64.Build.0 = Debug|x64
 		{FC31520C-5D4B-4699-A614-D170E8272F80}.Release|x64.ActiveCfg = Release|x64
 		{FC31520C-5D4B-4699-A614-D170E8272F80}.Release|x64.Build.0 = Release|x64
+		{F4067A48-3574-4851-8EDA-7ADBBB563FA6}.Debug|x64.ActiveCfg = Debug|x64
+		{F4067A48-3574-4851-8EDA-7ADBBB563FA6}.Debug|x64.Build.0 = Debug|x64
+		{F4067A48-3574-4851-8EDA-7ADBBB563FA6}.Release|x64.ActiveCfg = Release|x64
+		{F4067A48-3574-4851-8EDA-7ADBBB563FA6}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9E4241E9-7F3D-44D7-8368-8E97E4811783}
 	EndGlobalSection
 EndGlobal

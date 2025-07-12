@@ -38,11 +38,23 @@ ComponentRef<Animation> Animation::AddTo(const EntityRef& entity, const Componen
 	return { entity.EntityId(), instanceId };
 }
 
+void Animation::RemoveFrom(const EntityRef& entity)
+{
+	ComponentRef<Animation> animation = GetRef(entity);
+	if (animation)
+	{
+		animation->sprite = nullptr;
+		animation->clips.Destroy();
+
+		Destroy(*animation);
+	}
+}
+
 bool Animation::Update(Camera& camera, Vector<Entity>& entities)
 {
 	for (Animation& animation : components)
 	{
-		if (animation.entityIndex == U32_MAX) { continue; }
+		if (animation.entityIndex == U32_MAX || animation.clips.Empty()) { continue; }
 		Entity& entity = entities[animation.entityIndex];
 
 		AnimationClip& clip = animation.clips[animation.clipIndex];

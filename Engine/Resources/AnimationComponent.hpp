@@ -26,6 +26,7 @@ public:
 	static bool Shutdown();
 
 	static ComponentRef<Animation> AddTo(const EntityRef& entity, const ComponentRef<Sprite>& sprite);
+	static void RemoveFrom(const EntityRef& entity);
 
 	void AddClip(const AnimationClip& clip);
 	void SetClip(U32 index, bool flipX = false, bool flipY = false);

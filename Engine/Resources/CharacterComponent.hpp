@@ -28,6 +28,7 @@ public:
 	static bool Shutdown();
 
 	static ComponentRef<Character> AddTo(const EntityRef& entity);
+	static void RemoveFrom(const EntityRef& entity);
 
 	void AddForce(const Vector2& force);
 

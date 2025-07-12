@@ -48,6 +48,7 @@ private:
 	static U32 virtualScreenHeight;
 	static U32 refreshRate;
 	static bool resized;
+	static bool resizing;
 	static bool focused;
 	static bool minimised;
 

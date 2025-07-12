@@ -36,6 +36,7 @@ U32 Platform::virtualScreenHeight;
 U32 Platform::refreshRate;
 bool Platform::minimised = false;
 bool Platform::resized = false;
+bool Platform::resizing = false;
 bool Platform::focused = false;
 
 bool Platform::running = false;
@@ -165,6 +166,7 @@ void Platform::Shutdown()
 bool Platform::Update()
 {
 	MSG msg;
+	resized = false;
 	
 	while (PeekMessage(&msg, window, 0, 0, PM_REMOVE))
 	{
@@ -272,7 +274,6 @@ I64 __stdcall Platform::WindowsMessageProc(HWND hwnd, U32 msg, U64 wParam, I64 l
 		resized = true;
 	} return 0;
 	case WM_SIZING: {
-		//TODO:
 	} return 1;
 	case WM_MOVE: {
 		Settings::windowPositionX = LOWORD(lParam);

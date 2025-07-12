@@ -40,6 +40,15 @@ ComponentRef<Character> Character::AddTo(const EntityRef& entity)
 	return { entity.EntityId(), instanceId };
 }
 
+void Character::RemoveFrom(const EntityRef& entity)
+{
+	ComponentRef<Character> character = GetRef(entity);
+	if (character)
+	{
+		Destroy(*character);
+	}
+}
+
 bool Character::Update(Camera& camera, Vector<Entity>& entities)
 {
 	for (Character& character : components)

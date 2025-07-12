@@ -181,9 +181,6 @@ bool Renderer::Synchronize()
 	U32 i = absoluteFrame % swapchain.imageCount;
 	VkResult res = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imageAcquired[i], VK_NULL_HANDLE, &frameIndex);
 
-	if (res == VK_ERROR_OUT_OF_DATE_KHR) { resize = true; return false; }
-	else { VkValidateFR(res); }
-
 	VkSemaphore waits[]{ renderFinished[previousFrame], transferFinished[previousFrame] };
 	U64 waitValues[]{ renderWaitValues[previousFrame], transferWaitValues[previousFrame] };
 
@@ -200,6 +197,15 @@ bool Renderer::Synchronize()
 
 	CommandBufferRing::ResetDraw(frameIndex);
 	CommandBufferRing::ResetPool(frameIndex);
+
+	if (res == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		previousFrame = frameIndex;
+		++absoluteFrame;
+		resize = true;
+		return false;
+	}
+	else { VkValidateFR(res); }
 
 	return true;
 }
@@ -616,8 +622,6 @@ bool Renderer::RecreateSwapchain()
 	if (!CreateColorTextures()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!CreateDepthTextures()) { Logger::Fatal("Failed To Create Depth Buffer!"); return false; }
 	if (!frameBuffer.Create()) { Logger::Fatal("Failed To Create Frame Buffers!"); return false; }
-
-	vkDeviceWaitIdle(device);
 
 	return true;
 }

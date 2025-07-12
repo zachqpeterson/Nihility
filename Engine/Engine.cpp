@@ -85,7 +85,10 @@ void Engine::MainLoop()
 
 		game.update();
 
-		Renderer::Update();
+		if (!Platform::resized && !Platform::minimised)
+		{
+			Renderer::Update();
+		}
 
 		F64 remainingFrameTime = Settings::targetFrametime - Time::FrameUpTime();
 		I64 remainingUS = (I64)(remainingFrameTime * 1000000.0);
