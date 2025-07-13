@@ -35,7 +35,7 @@ ComponentRef<Character> Character::AddTo(const EntityRef& entity)
 	Character& character = Create(instanceId);
 	character.entityIndex = entity.EntityId();
 	character.position = entity->position;
-	character.collider = { entity->scale, -entity->scale };
+	character.collider = { entity->scale * Vector2{ 0.3f, 1.0f }, -entity->scale * Vector2{ 0.3f, 1.0f } };
 
 	return { entity.EntityId(), instanceId };
 }
@@ -79,6 +79,8 @@ void Character::ProcessInput()
 
 	if(Input::ButtonDown(ButtonCode::A)) { throttle -= 1.0f; }
 	if(Input::ButtonDown(ButtonCode::D)) { throttle += 1.0f; }
+	if (Input::ButtonDown(ButtonCode::Shift)) { sprinting = true; }
+	else { sprinting = false; }
 
 	if (Input::OnButtonDown(ButtonCode::Space))
 	{
@@ -106,11 +108,13 @@ void Character::Simulate()
 		velocity *= newSpeed / speed;
 	}
 
-	Vector2 desiredVelocity = { maxSpeed * throttle, 0.0f };
+	F32 topSpeed = (sprinting && grounded) ? maxSpeed + sprintSpeed : maxSpeed;
+
+	Vector2 desiredVelocity = { topSpeed * throttle, 0.0f };
 	F32 desiredSpeed;
 	Vector2 desiredDirection = desiredVelocity.Normalized(desiredSpeed);
 
-	desiredSpeed = Math::Min(desiredSpeed, maxSpeed);
+	desiredSpeed = Math::Min(desiredSpeed, topSpeed);
 
 	F32 currentSpeed = velocity.Dot(desiredDirection);
 	F32 addSpeed = desiredSpeed - currentSpeed;
@@ -118,7 +122,7 @@ void Character::Simulate()
 	if (addSpeed > 0.0f)
 	{
 		F32 steer = grounded ? 1.0f : airSteering;
-		F32 accelSpeed = steer * acceleration * maxSpeed * dt;
+		F32 accelSpeed = steer * acceleration * topSpeed * dt;
 
 		accelSpeed = Math::Min(accelSpeed, addSpeed);
 

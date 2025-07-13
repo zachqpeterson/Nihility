@@ -9,6 +9,7 @@ Shader LineRenderer::vertexShader;
 Shader LineRenderer::fragmentShader;
 Vector<LineVertex> LineRenderer::vertices;
 Vector<U32> LineRenderer::indices;
+U32 LineRenderer::nextIndex = 0;
 
 bool LineRenderer::Initialize()
 {
@@ -57,6 +58,8 @@ void LineRenderer::Update()
 	material.ClearIndices();
 	material.UploadVertices(vertices.Data(), (U32)(vertices.Size() * sizeof(LineVertex)), 0);
 	material.UploadIndices(indices.Data(), (U32)(indices.Size() * sizeof(U32)), 0);
+
+	nextIndex = 0;
 #endif
 }
 
@@ -80,7 +83,7 @@ void LineRenderer::DrawLine(const Vector<Vector2>& line, bool loop, const Vector
 			vertices.Push({ point, color });
 		}
 
-		U32 startIndex = indices.Size() ? indices.Back() + 1 : 0;
+		U32 startIndex = nextIndex;
 		U32 index = startIndex;
 
 		for (U32 i = 0; i < line.Size() - 1; ++i)
@@ -88,6 +91,8 @@ void LineRenderer::DrawLine(const Vector<Vector2>& line, bool loop, const Vector
 			indices.Push(index);
 			indices.Push(++index);
 		}
+
+		nextIndex = index + 1;
 
 		if (loop)
 		{

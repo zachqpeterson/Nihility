@@ -7,6 +7,9 @@ class RigidBody;
 class NH_API Collider
 {
 public:
+	Vector2 upperBound;
+	Vector2 lowerBound;
+
 	static bool Initialize();
 	static bool Shutdown();
 

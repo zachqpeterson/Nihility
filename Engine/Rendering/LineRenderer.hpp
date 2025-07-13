@@ -28,6 +28,7 @@ private:
 	static Shader fragmentShader;
 	static Vector<LineVertex> vertices;
 	static Vector<U32> indices;
+	static U32 nextIndex;
 
 	STATIC_CLASS(LineRenderer);
 
