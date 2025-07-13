@@ -147,6 +147,7 @@
     <ClInclude Include="Resources\Settings.hpp" />
     <ClInclude Include="Resources\SpriteComponent.hpp" />
     <ClInclude Include="Resources\Texture.hpp" />
+    <ClInclude Include="Resources\TextureAtlas.hpp" />
     <ClInclude Include="Resources\TilemapColliderComponent.hpp" />
     <ClInclude Include="Resources\TilemapComponent.hpp" />
     <ClInclude Include="Resources\World.hpp" />

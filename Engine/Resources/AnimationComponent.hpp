@@ -2,6 +2,7 @@
 
 #include "Component.hpp"
 #include "SpriteComponent.hpp"
+#include "TextureAtlas.hpp"
 
 #include "Containers/Vector.hpp"
 
@@ -15,6 +16,8 @@ struct NH_API AnimationFrame
 
 struct NH_API AnimationClip
 {
+	void Create(const TextureAtlas& atlas, U32 startX, U32 startY, U32 countX, U32 countY, F32 frameTime);
+
 	Vector<AnimationFrame> frames;
 };
 
@@ -29,7 +32,9 @@ public:
 	static void RemoveFrom(const EntityRef& entity);
 
 	void AddClip(const AnimationClip& clip);
-	void SetClip(U32 index, bool flipX = false, bool flipY = false);
+	void SetClip(U32 index);
+	void SetFlipX(bool flipX);
+	void SetFlipY(bool flipY);
 
 private:
 	static bool Update(Camera& camera, Vector<Entity>& entities);

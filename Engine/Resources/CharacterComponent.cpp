@@ -35,7 +35,7 @@ ComponentRef<Character> Character::AddTo(const EntityRef& entity)
 	Character& character = Create(instanceId);
 	character.entityIndex = entity.EntityId();
 	character.position = entity->position;
-	character.collider = { { 1.0f, 1.5f }, { -1.0f, -1.5f } };
+	character.collider = { entity->scale, -entity->scale };
 
 	return { entity.EntityId(), instanceId };
 }

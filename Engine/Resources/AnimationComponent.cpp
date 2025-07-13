@@ -8,6 +8,17 @@ Vector<Animation> Animation::components(64, {});
 Freelist Animation::freeComponents(64);
 bool Animation::initialized = false;
 
+void AnimationClip::Create(const TextureAtlas& atlas, U32 startX, U32 startY, U32 countX, U32 countY, F32 frameTime)
+{
+	for (U32 y = startY; y < startY + countY; ++y)
+	{
+		for (U32 x = startX; x < startX + countX; ++x)
+		{
+			frames.Push({ atlas.texture, { atlas.spriteWidth * x, atlas.spriteHeight * y }, { atlas.spriteWidth, atlas.spriteHeight }, frameTime });
+		}
+	}
+}
+
 bool Animation::Initialize()
 {
 	if (!initialized)
@@ -97,11 +108,19 @@ void Animation::AddClip(const AnimationClip& clip)
 	clips.Push(clip);
 }
 
-void Animation::SetClip(U32 index, bool flipX, bool flipY)
+void Animation::SetClip(U32 index)
 {
 	currentFrame = 0;
 	timer = 0.0f;
 	clipIndex = index;
+}
+
+void Animation::SetFlipX(bool flipX)
+{
 	this->flipX = flipX;
+}
+
+void Animation::SetFlipY(bool flipY)
+{
 	this->flipY = flipY;
 }
