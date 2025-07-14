@@ -224,9 +224,8 @@ bool UI::Initialize()
 		{ 2, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(TextInstance, position) },
 		{ 3, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(TextInstance, texcoord) },
 		{ 4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(TextInstance, fgColor) },
-		{ 5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(TextInstance, bgColor) },
-		{ 6, 1, VK_FORMAT_R32_SFLOAT, offsetof(TextInstance, scale) },
-		{ 7, 1, VK_FORMAT_R32_UINT, offsetof(TextInstance, textureIndex) },
+		{ 5, 1, VK_FORMAT_R32_SFLOAT, offsetof(TextInstance, scale) },
+		{ 6, 1, VK_FORMAT_R32_UINT, offsetof(TextInstance, textureIndex) },
 	};
 	
 	Pipeline textPipeline;
@@ -340,8 +339,11 @@ ElementRef UI::CreateElement(const ElementInfo& info)
 	return elementId;
 }
 
-ElementRef UI::CreateText(const ElementInfo& info, const String& text, F32 scale)
+Text UI::CreateText(const ElementInfo& info, const String& text, F32 scale)
 {
+	U32 instanceIndex = textInstances.Size();
+	U32 count = 0;
+
 	scale *= 16.0f / (F32)font->glyphSize;
 
 	Vector2 startPosition = info.area.xy() * 2.0f - Vector2::One;
@@ -372,14 +374,11 @@ ElementRef UI::CreateText(const ElementInfo& info, const String& text, F32 scale
 			if (prev == 255 || prev == '\n') { instance.position.x -= glyph.leftBearing * textWidth * scale; }
 			instance.texcoord = texPos * textPosition + (texPos + Vector2::One) * textPadding;
 			instance.fgColor = info.color;
-			Random::SeedRandom(Random::TrueRandomInt());
-			instance.fgColor.x = Random::RandomRange(0, 255) / 255.0f;
-			instance.fgColor.y = Random::RandomRange(0, 255) / 255.0f;
-			instance.fgColor.z = Random::RandomRange(0, 255) / 255.0f;
 			instance.scale = scale;
 			instance.textureIndex = font->texture.Handle();
 
 			textInstances.Push(instance);
+			++count;
 		}
 
 		position.x += glyph.advance * textWidth * scale;
@@ -392,5 +391,10 @@ ElementRef UI::CreateText(const ElementInfo& info, const String& text, F32 scale
 		prev = c;
 	}
 
-	return U32_MAX;
+	return { instanceIndex, count };
+}
+
+void UI::DestroyText(const Text& text)
+{
+	textInstances.Erase(text.index, text.index + text.count);
 }

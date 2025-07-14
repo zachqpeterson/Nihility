@@ -78,6 +78,18 @@ struct NH_API ElementInfo
 	bool enabled = true;
 };
 
+struct NH_API Text
+{
+public:
+	Text(U32 index, U32 count) : index(index), count(count) {};
+
+private:
+	U32 index;
+	U32 count;
+
+	friend class UI;
+};
+
 struct CommandBuffer;
 
 class NH_API UI
@@ -110,14 +122,14 @@ class NH_API UI
 		Vector2 position = Vector2::Zero;
 		Vector2 texcoord = Vector2::Zero;
 		Vector4 fgColor = Vector4::One;
-		Vector4 bgColor = Vector4::Zero;
 		F32 scale = 0.0f;
 		U32 textureIndex = 0;
 	};
 
 public:
 	static ElementRef CreateElement(const ElementInfo& info);
-	static ElementRef CreateText(const ElementInfo& info, const String& text, F32 scale);
+	static Text CreateText(const ElementInfo& info, const String& text, F32 scale);
+	static void DestroyText(const Text& text);
 
 private:
 	static bool Initialize();

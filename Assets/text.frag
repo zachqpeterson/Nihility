@@ -7,9 +7,8 @@ layout (set = 1, binding = 10) uniform sampler2D globalTextures[];
 
 layout (location = 0) in vec2 texcoord;
 layout (location = 1) in vec4 fgColor;
-layout (location = 2) in vec4 bgColor;
-layout (location = 3) in float scale;
-layout (location = 4) in flat uint textureIndex;
+layout (location = 2) in float scale;
+layout (location = 3) in flat uint textureIndex;
 
 layout (location = 0) out vec4 outColor;
 

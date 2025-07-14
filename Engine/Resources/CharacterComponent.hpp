@@ -30,7 +30,7 @@ public:
 	static bool Initialize();
 	static bool Shutdown();
 
-	static ComponentRef<Character> AddTo(const EntityRef& entity);
+	static ComponentRef<Character> AddTo(const EntityRef& entity, const Vector2& dimensions = { 0.6f, 1.2f });
 	static void RemoveFrom(const EntityRef& entity);
 
 	void AddForce(const Vector2& force);

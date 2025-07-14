@@ -29,13 +29,13 @@ bool Character::Shutdown()
 	return false;
 }
 
-ComponentRef<Character> Character::AddTo(const EntityRef& entity)
+ComponentRef<Character> Character::AddTo(const EntityRef& entity, const Vector2& dimensions)
 {
 	U32 instanceId;
 	Character& character = Create(instanceId);
 	character.entityIndex = entity.EntityId();
 	character.position = entity->position;
-	character.collider = { entity->scale * Vector2{ 0.3f, 1.0f }, -entity->scale * Vector2{ 0.3f, 1.0f } };
+	character.collider = { dimensions, -dimensions };
 
 	return { entity.EntityId(), instanceId };
 }

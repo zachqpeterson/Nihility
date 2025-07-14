@@ -27,8 +27,6 @@ ComponentRef<Tilemap> mainTilemap;
 ComponentRef<Tilemap> backgroundTilemap;
 ComponentRef<Tilemap> foregroundTilemap;
 ComponentRef<Character> character;
-ComponentRef<Animation> playerAnimation;
-bool facingLeft = false;
 
 void ComponentsInit()
 {
@@ -97,22 +95,22 @@ bool Initialize()
 	textureAtlas = Resources::LoadTexture("textures/atlas.nht");
 	groundTexture = Resources::LoadTexture("textures/missing_texture.nht");
 
-	//ElementInfo info{};
-	//info.area = { 0.25f, 0.25f, 0.75f, 0.75f };
-	//info.color = { 1.0f, 1.0f, 1.0f, 0.25f };
-	//info.texture = groundTexture;
-	//
-	//ElementRef element = UI::CreateElement(info);
-	//
-	//element->OnHover += hover;
-	//element->OnExit += unhover;
-	//element->OnClick += click;
-	//
-	//ElementInfo textInfo{};
-	//textInfo.area = { 0.0f, 0.5f, 1.0f, 1.0f };
+	ElementInfo info{};
+	info.area = { 0.25f, 0.25f, 0.75f, 0.75f };
+	info.color = { 1.0f, 1.0f, 1.0f, 0.25f };
+	info.texture = groundTexture;
+	
+	ElementRef element = UI::CreateElement(info);
+	
+	element->OnHover += hover;
+	element->OnExit += unhover;
+	element->OnClick += click;
+	
+	ElementInfo textInfo{};
+	textInfo.area = { 0.0f, 0.5f, 1.0f, 1.0f };
 
-	//UI::CreateText({}, "SPHINX OF BLACK QUARTZ,\nJUDGE MY VOW!", 10.0f);
-	//UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.\n!@#$%^&*()[]{}\\|;:'\",<.>/?`~\n1234567890", 10.0f);
+	Text text = UI::CreateText({}, "SPHINX OF BLACK QUARTZ,\nJUDGE MY VOW!", 10.0f);
+	UI::CreateText(textInfo, "sphinx of black quartz,\njudge my vow.\n!@#$%^&*()[]{}\\|;:'\",<.>/?`~\n1234567890", 10.0f);
 
 	EntityRef ground = World::CreateEntity({ 0.0f, -5.0f }, { 100.0f, 1.0f });
 	EntityRef ground1 = World::CreateEntity({ 5.0f, -4.0f }, { 1.0f, 6.0f });
@@ -127,35 +125,9 @@ bool Initialize()
 	Collider::AddTo(ground2);
 	Sprite::AddTo(ground2, groundTexture);
 
-	player = World::CreateEntity({ 0.0f, 0.0f }, { 1.0f, 1.54279279279f });
+	player = World::CreateEntity({ 0.0f, 0.0f }, { 0.6f, 1.2f });
 	ComponentRef<Sprite> playerSprite = Sprite::AddTo(player, groundTexture);
 	character = Character::AddTo(player);
-	playerAnimation = Animation::AddTo(player, playerSprite);
-
-	AnimationClip idleClip{};
-	idleClip.frames.Push({ walkTexture, { 0.125f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	playerAnimation->AddClip(idleClip);
-
-	AnimationClip walkClip{};
-	walkClip.frames.Push({ walkTexture, { 0.0f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.125f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.25f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.375f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.5f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.625f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.75f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.875f, 0.0f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.0f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.125f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.25f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.375f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.5f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.625f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.75f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	walkClip.frames.Push({ walkTexture, { 0.875f, 0.5f }, { 0.125f, 0.5f }, 0.075f });
-	playerAnimation->AddClip(walkClip);
-
-	playerAnimation->SetClip(0);
 
 	ResourceRef<AudioClip> clip = Resources::LoadAudio("audio/Electric Zoo.nha");
 
@@ -184,47 +156,8 @@ void Shutdown()
 
 }
 
-enum class PlayerAnimations
-{
-	Idle,
-	Walk
-};
-
-enum class PlayerState
-{
-	Idle,
-	WalkLeft,
-	WalkRight
-};
-
-PlayerState state = PlayerState::Idle;
-
 void Update()
 {
-	if (character->velocity.x > 0.1f)
-	{
-		if (state != PlayerState::WalkRight)
-		{
-			state = PlayerState::WalkRight;
-			facingLeft = false;
-			playerAnimation->SetClip(*PlayerAnimations::Walk, facingLeft);
-		}
-	}
-	else if (character->velocity.x < -0.1f)
-	{
-		if (state != PlayerState::WalkLeft)
-		{
-			state = PlayerState::WalkLeft;
-			facingLeft = true;
-			playerAnimation->SetClip(*PlayerAnimations::Walk, facingLeft);
-		}
-	}
-	else if(state != PlayerState::Idle)
-	{
-		state = PlayerState::Idle;
-		playerAnimation->SetClip(*PlayerAnimations::Idle, facingLeft);
-	}
-
 	if (Input::ButtonDown(ButtonCode::E))
 	{
 		EntityRef id = World::CreateEntity(player->position, 0.5f);
