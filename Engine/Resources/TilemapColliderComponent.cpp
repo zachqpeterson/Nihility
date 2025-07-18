@@ -2,6 +2,7 @@
 
 #include "World.hpp"
 
+#include "Math/Physics.hpp"
 #include "Rendering/LineRenderer.hpp"
 
 Vector<TilemapCollider> TilemapCollider::components(16, {});
@@ -35,10 +36,11 @@ ComponentRef<TilemapCollider> TilemapCollider::AddTo(EntityRef entity, const Com
 	collider.entityIndex = entity.EntityId();
 	collider.tilemap = tilemap;
 	collider.dimentions = tilemap->GetDimentions();
-	collider.offset = tilemap->GetOffset();
+	collider.offset = (tilemap->GetOffset() - Vector2{ 0.5f, 0.5f }) * 2.0f * 1.03092783505f;
 	collider.tileSize = tilemap->GetTileSize() * 2.0f * 1.03092783505f;
 	collider.points.Reserve(524288);
-	Memory::Allocate(&collider.visited, collider.dimentions.x * collider.dimentions.y);
+
+	Physics::AddTilemapCollider(tilemap->GetTiles(), tilemap->GetData());
 
 	return { entity.EntityId(), instanceId };
 }
@@ -48,8 +50,10 @@ bool TilemapCollider::Update(Camera& camera, Vector<Entity>& entities)
 	for (TilemapCollider& collider : components)
 	{
 		if (collider.entityIndex == U32_MAX) { continue; }
+#ifdef NH_DEBUG
 		collider.GenerateCollision();
 		LineRenderer::DrawLine(collider.points, false, { 0.0f, 1.0f, 0.0f, 1.0f });
+#endif
 	}
 
 	return false;
@@ -66,15 +70,8 @@ void TilemapCollider::GenerateCollision()
 	{
 		tilemap->Clean();
 
-		//if (chainId.index)
-		//{
-		//	b2DestroyChain(TypePun<b2ChainId>(chainId));
-		//}
-
 		tiles = tilemap->GetTiles();
 		const TileType* tile = tiles;
-
-		memset(visited, 0, dimentions.x * dimentions.y);
 
 		points.Clear();
 
@@ -98,9 +95,7 @@ void TilemapCollider::GenerateCollision()
 			dir = Right;
 			start = false;
 
-			visited[startPos.x + startPos.y * dimentions.x] = true;
-
-			position = (Vector2{ (F32)startPos.x, -(F32)startPos.y } + (offset - Vector2{ 32.0f, 18.0f })) * 2.0f * 1.03092783505f;
+			position = Vector2{ (F32)startPos.x, -(F32)startPos.y } + offset;
 
 			points.Push({ position.x, position.y + tileSize.y });
 			points.Push({ position.x + tileSize.x, position.y + tileSize.y });
@@ -214,7 +209,7 @@ void TilemapCollider::GenerateCollision()
 
 							position += Vector2{ 0.0f, tileSize.y };
 							points.Push(position);
-						} 
+						}
 						else if (dir == Down || dir == DownLeft)
 						{
 							position += Vector2{ -tileSize.x, 0.0f };
@@ -345,21 +340,6 @@ void TilemapCollider::GenerateCollision()
 					break;
 				}
 			}
-
-			//b2SurfaceMaterial mat = b2DefaultSurfaceMaterial();
-			//mat.friction = 1.0f;
-			//
-			//b2Filter filter = b2DefaultFilter();
-			//
-			//b2ChainDef chainDef = b2DefaultChainDef();
-			//chainDef.points = (b2Vec2*)points.Data();
-			//chainDef.count = points.Size();
-			//chainDef.isLoop = true;
-			//chainDef.materialCount = 1;
-			//chainDef.materials = &mat;
-			//chainDef.filter = filter;
-			//
-			//chainId = TypePun<ChainId>(b2CreateChain(TypePun<b2BodyId>(rigidBody->GetBodyId()), &chainDef));
 		}
 	}
 }
@@ -407,7 +387,7 @@ bool TilemapCollider::CheckRight()
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 

@@ -33,7 +33,6 @@ public:
 	Vector2Int current;
 	Vector2Int startPos;
 	Vector2 position;
-	bool* visited;
 	const TileType* tiles;
 	Dir dir;
 	Dir endDir;

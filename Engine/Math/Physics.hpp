@@ -22,6 +22,18 @@ struct NH_API AABB
 	AABB operator-(const Vector2& v) const { return { upperBound - v, lowerBound - v }; }
 };
 
+enum class TileType;
+struct TilemapData;
+
+struct NH_API GridCollider
+{
+	U32 width;
+	U32 height;
+	Vector2 tileSize;
+	Vector2 offset;
+	const TileType* tileArray;
+};
+
 //struct NH_API Collider
 //{
 //	AABB aabb;
@@ -41,7 +53,11 @@ struct NH_API Collision
 class NH_API Physics
 {
 public:
-	static void AddCollider(const AABB& collider);
+	static U32 AddCollider(const AABB& collider);
+	static U32 AddTilemapCollider(const TileType* tileArray, const TilemapData& data);
+	static void RemoveCollider(U32 index);
+	static void RemoveTilemapCollider(U32 index);
+
 	static Collision CheckCollision(const AABB& collider);
 
 private:
@@ -51,6 +67,7 @@ private:
 	static void Update();
 
 	static Vector<AABB> colliders;
+	static Vector<GridCollider> tilemapColliders;
 
 	STATIC_CLASS(Physics);
 

@@ -17,13 +17,6 @@
 #include "Containers/String.hpp"
 #include "Containers/Queue.hpp"
 
-struct aiAnimation;
-struct aiNodeAnim;
-struct aiTexture;
-struct aiScene;
-struct aiNode;
-struct aiMesh;
-
 class NH_API Resources
 {
 public:

@@ -43,17 +43,18 @@ public:
 	const Vector2& GetOffset() const;
 	const Vector2& GetTileSize() const;
 	const TileType* GetTiles() const;
+	const TilemapData& GetData() const;
 	bool GetDirty() const;
 	void Clean();
 
 	static bool Initialize();
 	static bool Shutdown();
 
-	static ComponentRef<Tilemap> AddTo(const EntityRef& entity, U32 width, U32 height, const Vector2& offset = Vector2::Zero, F32 parallax = 1.0f, F32 depth = 0.0f, const Vector2& tileSize = Vector2::One);
+	static ComponentRef<Tilemap> AddTo(const EntityRef& entity, U32 width, U32 height, const Vector2& offset = Vector2::Zero, const Vector2& parallax = Vector2::One, F32 depth = 0.0f, const Vector2& tileSize = Vector2::One);
 
 private:
 	bool dirty;
-	F32 parallax;
+	Vector2 parallax;
 	U32 instance;
 	Vector2 tileSize;
 	Vector2 offset;
@@ -72,6 +73,8 @@ private:
 	static Vector<TilemapData> tilemapDatas;
 	static U32 nextOffset;
 	static bool initialized;
+
+	static constexpr Vector2 ScreenOffset{ 31.5f, 17.5f };
 
 	COMPONENT(Tilemap);
 	friend struct EntityRef;

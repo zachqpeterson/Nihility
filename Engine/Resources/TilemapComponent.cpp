@@ -98,9 +98,13 @@ bool Tilemap::Update(Camera& camera, Vector<Entity>& entities)
 	for (Tilemap& tilemap : components)
 	{
 		if (tilemap.entityIndex == U32_MAX) { continue; }
+
 		TilemapData& tmd = tilemapDatas[tilemap.instance];
-		tmd.eye = camera.Eye().xy() * tilemap.parallax * (renderSize.z / 132.0f);
-		tmd.offset = tilemap.offset * (renderSize.z / 64.0f);
+
+		Vector4Int area = Renderer::RenderSize();
+
+		tmd.eye = camera.Eye().xy() * (renderSize.z / 132.0f) * tilemap.parallax;
+		tmd.offset = (Vector2{ tilemap.offset.x, -tilemap.offset.y } + ScreenOffset) * (renderSize.z / 64.0f);
 		tmd.tileSize = tilemap.tileSize * (renderSize.z / 64.0f);
 	}
 
@@ -161,16 +165,17 @@ bool Tilemap::Render(CommandBuffer commandBuffer)
 	return false;
 }
 
-ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity, U32 width, U32 height, const Vector2& offset, F32 parallax, F32 depth, const Vector2& tileSize)
+ComponentRef<Tilemap> Tilemap::AddTo(const EntityRef& entity, U32 width, U32 height, const Vector2& offset, const Vector2& parallax, F32 depth, const Vector2& tileSize)
 {
 	Vector4Int renderSize = Renderer::RenderSize();
 
 	U32 instanceId;
 	Tilemap& tilemap = Create(instanceId);
+	tilemap.entityIndex = entity.EntityId();
 	tilemap.parallax = parallax;
 	tilemap.instance = (U32)tilemapDatas.Size();
 	tilemap.tileSize = tileSize;
-	tilemap.offset = { offset.x + 31.5f, offset.y + 17.5f };
+	tilemap.offset = offset;
 
 	TilemapData& tmd = tilemapDatas.Push({});
 
@@ -220,14 +225,9 @@ Vector2Int Tilemap::ScreenToTilemap(const Camera& camera, const Vector2& positio
 {
 	TilemapData& tmd = tilemapDatas[instance];
 
-	Vector4Int area = Renderer::RenderSize();
-	F32 parallaxValue = parallax * (area.z / 132.0f); //Why is it 132?
-	Vector2 cameraPos = camera.Eye().xy() * parallaxValue * (area.z / 1920.0f) * camera.Zoom();
-	cameraPos.y = -cameraPos.y;
-
-	Vector2 final = (((position - (Vector2)area.xy()) * camera.Zoom() + cameraPos - tmd.offset) / tmd.tileSize) * (1920.0f / area.z);
-
-	return Vector2Int{ (I32)Math::Floor(final.x), (I32)Math::Floor(final.y) };
+	Vector2 pos = Vector2{ position.x + tmd.eye.x - tmd.offset.x, position.y - tmd.eye.y - tmd.offset.y };
+		
+	return Vector2Int{ (I32)Math::Floor(pos.x / tmd.tileSize.x), (I32)Math::Floor(pos.y / tmd.tileSize.y) };
 }
 
 Vector2Int Tilemap::GetDimentions() const
@@ -250,6 +250,11 @@ const Vector2& Tilemap::GetTileSize() const
 const TileType* Tilemap::GetTiles() const
 {
 	return tileArray;
+}
+
+const TilemapData& Tilemap::GetData() const
+{
+	return tilemapDatas[instance];
 }
 
 bool Tilemap::GetDirty() const
