@@ -35,12 +35,13 @@ ComponentRef<TilemapCollider> TilemapCollider::AddTo(EntityRef entity, const Com
 	TilemapCollider& collider = Create(instanceId);
 	collider.entityIndex = entity.EntityId();
 	collider.tilemap = tilemap;
-	collider.dimentions = tilemap->GetDimentions();
+	collider.dimensions = tilemap->GetDimensions();
 	collider.offset = (tilemap->GetOffset() - Vector2{ 0.5f, 0.5f }) * 2.0f * 1.03092783505f;
 	collider.tileSize = tilemap->GetTileSize() * 2.0f * 1.03092783505f;
+	collider.tiles = tilemap->GetTiles();
 	collider.points.Reserve(524288);
 
-	Physics::AddTilemapCollider(tilemap->GetTiles(), tilemap->GetData());
+	Physics::AddTilemapCollider({ entity.EntityId(), instanceId });
 
 	return { entity.EntityId(), instanceId };
 }
@@ -70,16 +71,15 @@ void TilemapCollider::GenerateCollision()
 	{
 		tilemap->Clean();
 
-		tiles = tilemap->GetTiles();
 		const TileType* tile = tiles;
 
 		points.Clear();
 
 		startPos = { I32_MAX, I32_MAX };
 
-		for (I32 y = 0; y < dimentions.y && startPos.x == I32_MAX; ++y)
+		for (I32 y = 0; y < dimensions.y && startPos.x == I32_MAX; ++y)
 		{
-			for (I32 x = 0; x < dimentions.x; ++x, ++tile)
+			for (I32 x = 0; x < dimensions.x; ++x, ++tile)
 			{
 				if (*tile == TileType::Full)
 				{
@@ -95,7 +95,7 @@ void TilemapCollider::GenerateCollision()
 			dir = Right;
 			start = false;
 
-			position = Vector2{ (F32)startPos.x, -(F32)startPos.y } + offset;
+			position = Vector2{ (F32)startPos.x, -(F32)startPos.y } * 2.0f * 1.03092783505f + offset;
 
 			points.Push({ position.x, position.y + tileSize.y });
 			points.Push({ position.x + tileSize.x, position.y + tileSize.y });
@@ -346,7 +346,7 @@ void TilemapCollider::GenerateCollision()
 
 bool TilemapCollider::CheckRight()
 {
-	if ((current.x + 1) < dimentions.x)
+	if ((current.x + 1) < dimensions.x)
 	{
 		if (current + Vector2Int::Right == startPos)
 		{
@@ -355,7 +355,7 @@ bool TilemapCollider::CheckRight()
 			return true;
 		}
 
-		if (tiles[(current.x + 1) + current.y * dimentions.x] == TileType::Full)
+		if (tiles[(current.x + 1) + current.y * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Right;
 
@@ -393,7 +393,7 @@ bool TilemapCollider::CheckRight()
 
 bool TilemapCollider::CheckDownRight()
 {
-	if ((current.x + 1) < dimentions.x && (current.y + 1) < dimentions.y)
+	if ((current.x + 1) < dimensions.x && (current.y + 1) < dimensions.y)
 	{
 		if (current + Vector2Int::Right + Vector2Int::Up == startPos)
 		{
@@ -402,7 +402,7 @@ bool TilemapCollider::CheckDownRight()
 			return true;
 		}
 
-		if (tiles[(current.x + 1) + (current.y + 1) * dimentions.x] == TileType::Full)
+		if (tiles[(current.x + 1) + (current.y + 1) * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Right + Vector2Int::Up;
 
@@ -468,7 +468,7 @@ bool TilemapCollider::CheckDownRight()
 
 bool TilemapCollider::CheckDown()
 {
-	if ((current.y + 1) < dimentions.y)
+	if ((current.y + 1) < dimensions.y)
 	{
 		if (current + Vector2Int::Up == startPos)
 		{
@@ -477,7 +477,7 @@ bool TilemapCollider::CheckDown()
 			return true;
 		}
 
-		if (tiles[current.x + (current.y + 1) * dimentions.x] == TileType::Full)
+		if (tiles[current.x + (current.y + 1) * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Up;
 
@@ -515,7 +515,7 @@ bool TilemapCollider::CheckDown()
 
 bool TilemapCollider::CheckDownLeft()
 {
-	if ((current.x - 1) >= 0 && (current.y + 1) < dimentions.y)
+	if ((current.x - 1) >= 0 && (current.y + 1) < dimensions.y)
 	{
 		if (current + Vector2Int::Left + Vector2Int::Up == startPos)
 		{
@@ -524,7 +524,7 @@ bool TilemapCollider::CheckDownLeft()
 			return true;
 		}
 
-		if (tiles[(current.x - 1) + (current.y + 1) * dimentions.x] == TileType::Full)
+		if (tiles[(current.x - 1) + (current.y + 1) * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Left + Vector2Int::Up;
 
@@ -591,7 +591,7 @@ bool TilemapCollider::CheckLeft()
 			return true;
 		}
 
-		if (tiles[(current.x - 1) + current.y * dimentions.x] == TileType::Full)
+		if (tiles[(current.x - 1) + current.y * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Left;
 
@@ -638,7 +638,7 @@ bool TilemapCollider::CheckUpLeft()
 			return true;
 		}
 
-		if (tiles[(current.x - 1) + (current.y - 1) * dimentions.x] == TileType::Full)
+		if (tiles[(current.x - 1) + (current.y - 1) * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Left + Vector2Int::Down;
 
@@ -705,7 +705,7 @@ bool TilemapCollider::CheckUp()
 			return true;
 		}
 
-		if (tiles[current.x + (current.y - 1) * dimentions.x] == TileType::Full)
+		if (tiles[current.x + (current.y - 1) * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Down;
 
@@ -745,7 +745,7 @@ bool TilemapCollider::CheckUp()
 
 bool TilemapCollider::CheckUpRight()
 {
-	if ((current.x + 1) < dimentions.x && (current.y - 1) >= 0)
+	if ((current.x + 1) < dimensions.x && (current.y - 1) >= 0)
 	{
 		if (current + Vector2Int::Right + Vector2Int::Down == startPos)
 		{
@@ -754,7 +754,7 @@ bool TilemapCollider::CheckUpRight()
 			return true;
 		}
 
-		if (tiles[(current.x + 1) + (current.y - 1) * dimentions.x] == TileType::Full)
+		if (tiles[(current.x + 1) + (current.y - 1) * dimensions.x] == TileType::Full)
 		{
 			current += Vector2Int::Right + Vector2Int::Down;
 

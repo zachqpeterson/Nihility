@@ -5,6 +5,7 @@
 #include "Platform/Memory.hpp"
 #include "Resources/Settings.hpp"
 #include "Resources/TilemapComponent.hpp"
+#include "Resources/TilemapColliderComponent.hpp"
 
 #include "tracy/Tracy.hpp"
 
@@ -40,14 +41,13 @@ U32 Physics::AddCollider(const AABB& collider)
 	return index;
 }
 
-U32 Physics::AddTilemapCollider(const TileType* tileArray, const TilemapData& data)
+U32 Physics::AddTilemapCollider(const ComponentRef<TilemapCollider>& tilemapCollider)
 {
 	GridCollider collider{};
-	collider.width = data.width;
-	collider.height = data.height;
-	collider.tileSize = data.tileSize;
-	collider.offset = data.offset;
-	collider.tileArray = tileArray;
+	collider.dimensions = tilemapCollider->dimensions;
+	collider.tileSize = tilemapCollider->tileSize;
+	collider.offset = tilemapCollider->offset;
+	collider.tileArray = tilemapCollider->tiles;
 
 	U32 index = (U32)tilemapColliders.Size();
 	tilemapColliders.Push(collider);
@@ -68,6 +68,40 @@ void Physics::RemoveTilemapCollider(U32 index)
 
 Collision Physics::CheckCollision(const AABB& collider)
 {
+	Vector2 center = collider.lowerBound + (collider.upperBound - collider.lowerBound) * 0.5f;
+	center.y = -center.y;
+
+	for (const GridCollider& col : tilemapColliders)
+	{
+		Vector2 tilemapPosition = (center - Vector2{ col.offset.x, -col.offset.y }) / col.tileSize;
+
+		Vector2Int xy = { (I32)Math::Floor(tilemapPosition.x), (I32)Math::Floor(tilemapPosition.y) };
+
+		U32 width = (U32)Math::Ceiling((collider.upperBound.x - collider.lowerBound.x) / col.tileSize.x);
+		U32 height = (U32)Math::Ceiling((collider.upperBound.y - collider.lowerBound.y) / col.tileSize.y);
+
+		for (I32 x = tilemapPosition.x - width; x < tilemapPosition.x + width; ++x)
+		{
+			for (I32 y = tilemapPosition.y - height; y < tilemapPosition.y + height; ++y)
+			{
+				//TODO: switch statement with a different check for each type
+				if (x < col.dimensions.x && x >= 0 && y < col.dimensions.y && y >= 0 && col.tileArray[x + y * col.dimensions.x] == TileType::Full)
+				{
+					AABB aabb{};
+
+					aabb.upperBound = { x * col.tileSize.x + col.offset.x + col.tileSize.x, -y * col.tileSize.y + col.offset.y + col.tileSize.y };
+					aabb.lowerBound = { x * col.tileSize.x + col.offset.x, -y * col.tileSize.y + col.offset.y };
+
+					if (collider.lowerBound.x < aabb.upperBound.x && collider.upperBound.x > aabb.lowerBound.x &&
+						collider.lowerBound.y < aabb.upperBound.y && collider.upperBound.y > aabb.lowerBound.y)
+					{
+						return { aabb, true };
+					}
+				}
+			}
+		}
+	}
+
 	for (const AABB& col : colliders)
 	{
 		if (collider.lowerBound.x < col.upperBound.x && collider.upperBound.x > col.lowerBound.x &&

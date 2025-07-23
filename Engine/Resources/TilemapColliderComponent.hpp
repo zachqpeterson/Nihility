@@ -27,7 +27,7 @@ class NH_API TilemapCollider
 public:
 	ComponentRef<Tilemap> tilemap;
 	Vector<Vector2> points;
-	Vector2Int dimentions;
+	Vector2Int dimensions;
 	Vector2 offset;
 	Vector2 tileSize;
 	Vector2Int current;

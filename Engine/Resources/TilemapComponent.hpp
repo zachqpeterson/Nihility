@@ -39,7 +39,7 @@ class NH_API Tilemap
 public:
 	void SetTile(const ResourceRef<Texture>& texture, const Vector2Int& position, TileType type = TileType::Full);
 	Vector2Int ScreenToTilemap(const Camera& camera, const Vector2& position);
-	Vector2Int GetDimentions() const;
+	Vector2Int GetDimensions() const;
 	const Vector2& GetOffset() const;
 	const Vector2& GetTileSize() const;
 	const TileType* GetTiles() const;

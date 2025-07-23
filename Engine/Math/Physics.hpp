@@ -4,6 +4,7 @@
 
 #include "Math.hpp"
 
+#include "Resources/Component.hpp"
 #include "Containers/Vector.hpp"
 
 enum class NH_API BodyType
@@ -23,12 +24,11 @@ struct NH_API AABB
 };
 
 enum class TileType;
-struct TilemapData;
+class TilemapCollider;
 
 struct NH_API GridCollider
 {
-	U32 width;
-	U32 height;
+	Vector2Int dimensions;
 	Vector2 tileSize;
 	Vector2 offset;
 	const TileType* tileArray;
@@ -54,7 +54,7 @@ class NH_API Physics
 {
 public:
 	static U32 AddCollider(const AABB& collider);
-	static U32 AddTilemapCollider(const TileType* tileArray, const TilemapData& data);
+	static U32 AddTilemapCollider(const ComponentRef<TilemapCollider>& tilemapCollider);
 	static void RemoveCollider(U32 index);
 	static void RemoveTilemapCollider(U32 index);
 

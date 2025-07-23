@@ -230,7 +230,7 @@ Vector2Int Tilemap::ScreenToTilemap(const Camera& camera, const Vector2& positio
 	return Vector2Int{ (I32)Math::Floor(pos.x / tmd.tileSize.x), (I32)Math::Floor(pos.y / tmd.tileSize.y) };
 }
 
-Vector2Int Tilemap::GetDimentions() const
+Vector2Int Tilemap::GetDimensions() const
 {
 	TilemapData& tmd = tilemapDatas[instance];
 
