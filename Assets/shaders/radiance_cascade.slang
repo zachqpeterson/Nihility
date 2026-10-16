@@ -113,20 +113,23 @@ void main(uint3 threadId : SV_DispatchThreadID)
     float tEnd = pc.baseRayLength * pow(4.0, float(c));
     float PI = 3.14159265;
 
+    float rayAngleWidth = (2.0 * PI) / float(rayCount);
     float3 totalIrradiance = float3(0.0);
 
     for (int a = 0; a < rayCount; ++a)
     {
-        float angle = (float(a) + 0.5) * (2.0 * PI / float(rayCount));
+        float angle = (float(a) + 0.5) * rayAngleWidth;
         float2 dir = float2(cos(angle), sin(angle));
 
         float t = tStart;
-        if (c == 0) { t = max(t, 2.0); }
+        if (c == 0) { t = max(t, 1.5); }
+
+        float tMax = (c < (int)pc.maxCascades - 1) ? (tEnd + spacing) : tEnd;
 
         float3 rayColor = float3(0.0);
-        bool hitWall = false;
+        float visibility = 1.0;
 
-        while (t < tEnd)
+        while (t < tMax)
         {
             float2 pos = pixelPos + dir * t;
             if (pos.x < 0.0 || pos.y < 0.0 || pos.x >= jfaSize.x || pos.y >= jfaSize.y) { break; }
@@ -134,30 +137,42 @@ void main(uint3 threadId : SV_DispatchThreadID)
             float2 nearestWall = jfaMap.Load(int3(int(pos.x), int(pos.y), 0));
             float wallSDF = distance(pos, nearestWall);
 
-            if (wallSDF <= 1.0)
+            if (wallSDF <= 0.75)
             {
-                hitWall = true;
+                visibility = 0.0;
                 break;
+            }
+
+            float coneRadius = (spacing * 0.5) + (t * rayAngleWidth * 0.5);
+            if (t > 4.0 && wallSDF < coneRadius)
+            {
+                float stepVis = saturate((wallSDF - 0.75) / coneRadius);
+                stepVis = stepVis * stepVis * (3.0 - 2.0 * stepVis);
+                visibility = min(visibility, stepVis);
             }
 
             float2 uv = pos / jfaSize;
             float4 emisSample = emissiveMap.SampleLevel(uv, 0.0);
             float lightSDF = emisSample.a;
 
-            float stepSize = max(min(wallSDF - 0.5, lightSDF), 1.0);
-            stepSize = min(stepSize, tEnd - t);
+            float wallStep = (wallSDF < coneRadius) ? (wallSDF * 0.5) : (wallSDF - 0.5);
+            float stepSize = max(min(wallStep, lightSDF), 1.0);
 
-            if (lightSDF <= 1.0)
+            if (t < tEnd)
             {
-                float2 midPos = pixelPos + dir * (t + stepSize * 0.5);
-                float3 midEmission = emissiveMap.SampleLevel(midPos / jfaSize, 0.0).rgb;
-                rayColor += midEmission * stepSize;
+                float emitStep = min(stepSize, tEnd - t);
+                if (lightSDF <= 1.0)
+                {
+                    float2 midPos = pixelPos + dir * (t + emitStep * 0.5);
+                    float3 midEmission = emissiveMap.SampleLevel(midPos / jfaSize, 0.0).rgb;
+                    rayColor += midEmission * emitStep * visibility;
+                }
             }
 
             t += stepSize;
         }
 
-        if (!hitWall && c < (int)pc.maxCascades - 1)
+        if (visibility > 0.001 && c < (int)pc.maxCascades - 1)
         {
             float2 upperSpatial = (float2(spatial) + 0.5) / 2.0;
 
@@ -167,7 +182,7 @@ void main(uint3 threadId : SV_DispatchThreadID)
             float3 upperLight1 = BilinearReadProbe(c + 1, upperSpatial, child1, W, H);
             float3 upperLight2 = BilinearReadProbe(c + 1, upperSpatial, child2, W, H);
 
-            rayColor += (upperLight1 + upperLight2) * 0.5;
+            rayColor += (upperLight1 + upperLight2) * 0.5 * visibility;
         }
 
         WriteProbe(c, spatial, a, rayColor, H);
