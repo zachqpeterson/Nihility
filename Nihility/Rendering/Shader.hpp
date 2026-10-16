@@ -11,7 +11,9 @@
 enum VkFormat;
 struct ShaderLayoutInfo;
 struct VkBuffer_T;
+struct VkSampler_T;
 struct VkPipeline_T;
+struct VkImageView_T;
 struct VkShaderModule_T;
 struct VkDescriptorSet_T;
 struct VkPipelineLayout_T;
@@ -23,6 +25,9 @@ struct Shader
 public:
 	bool Create(const Path& filePath);
 	void Destroy();
+
+	void UpdateStorageImage(U32 setIndex, U32 binding, U32 frameIndex, VkImageView_T* imageView);
+	void UpdateSampledImage(U32 setIndex, U32 binding, U32 frameIndex, VkImageView_T* imageView, VkSampler_T* sampler);
 
 	VkPipeline_T* Pipeline() const { return vkPipeline; }
 	VkPipelineLayout_T* PipelineLayout() const { return vkPipelineLayout; }

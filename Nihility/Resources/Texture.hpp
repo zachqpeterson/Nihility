@@ -15,8 +15,8 @@ enum class NH_API FilterMode
 
 enum class NH_API MipMapSampleMode
 {
-	Single = 0,
-	Multiple = 1,
+	Nearest = 0,
+	Linear = 1,
 };
 
 enum class NH_API EdgeSampleMode
@@ -63,15 +63,18 @@ struct MipLevel
 
 struct NH_API Sampler
 {
+	bool Create();
+	void Destroy();
+
+	operator VkSampler_T* () const;
+	VkSampler_T** operator&() const;
+
 	FilterMode filterMode = FilterMode::Point;
-	MipMapSampleMode mipMapSampleMode = MipMapSampleMode::Multiple;
+	MipMapSampleMode mipMapSampleMode = MipMapSampleMode::Nearest;
 	EdgeSampleMode edgeSampleMode = EdgeSampleMode::ClampToEdge;
 	BorderColor borderColor = BorderColor::Clear;
 
 	VkSampler_T* vkSampler = nullptr;
-
-	operator VkSampler_T* () const;
-	VkSampler_T** operator&() const;
 };
 
 struct NH_API Texture
@@ -80,7 +83,7 @@ struct NH_API Texture
 	Texture(const Texture& other);
 	Texture(Texture&& other);
 
-	const WString& Name() const { return name; }
+	const String& Name() const { return name; }
 	const U32& Width() const { return width; }
 	const U32& Height() const { return height; }
 	const U64& Size() const { return size; }
@@ -88,12 +91,12 @@ struct NH_API Texture
 	const U8& MipmapLevels() const { return mipmapLevels; }
 
 private:
-	WString name = L"";
+	String name = "";
+	U32	id = 0;
 	U32 width = 0;
 	U32 height = 0;
 	U32	depth = 0;
 	U64	size = 0;
-	U32	id = 0;
 	U8 mipmapLevels = 0;
 
 	U32 format = 0;

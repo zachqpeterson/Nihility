@@ -129,10 +129,10 @@ bool Shader::Create(const Path& filePath)
 
 	Vector<VkPipelineShaderStageCreateInfo> shaderStages(layoutInfo.stages.size(), {});
 
+	bool isCompute = false;
 	for (U32 i = 0; i < shaderStages.size(); ++i)
 	{
-		VkShaderModuleCreateInfo shaderModuleInfo{};
-		shaderModuleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 		shaderModuleInfo.pNext = nullptr;
 		shaderModuleInfo.flags = 0;
 		shaderModuleInfo.codeSize = layoutInfo.stages[i].spirvCode->getBufferSize();
@@ -142,75 +142,89 @@ bool Shader::Create(const Path& filePath)
 		shaderStages[i].stage = layoutInfo.stages[i].stage;
 		shaderStages[i].pName = "main";
 		vkCreateShaderModule(Renderer::device, &shaderModuleInfo, Renderer::allocationCallbacks, &shaderStages[i].module);
+
+		isCompute |= shaderStages[i].stage == VK_SHADER_STAGE_COMPUTE_BIT;
 	}
 
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-	vertexInputInfo.vertexBindingDescriptionCount = static_cast<U32>(layoutInfo.vertexBindings.size());
-	vertexInputInfo.pVertexBindingDescriptions = layoutInfo.vertexBindings.empty() ? nullptr : layoutInfo.vertexBindings.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<U32>(layoutInfo.vertexAttributes.size());
-	vertexInputInfo.pVertexAttributeDescriptions = layoutInfo.vertexAttributes.empty() ? nullptr : layoutInfo.vertexAttributes.data();
+	if (isCompute)
+	{
+		VkComputePipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+		pipelineInfo.stage = shaderStages[0];
+		pipelineInfo.layout = vkPipelineLayout;
 
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-	inputAssembly.topology = layoutInfo.config.topology;
-	inputAssembly.primitiveRestartEnable = VK_FALSE;
+		//TODO: pipeline caching
+		VkValidateFR(vkCreateComputePipelines(Renderer::device, VK_NULL_HANDLE, 1, &pipelineInfo, Renderer::allocationCallbacks, &vkPipeline));
+	}
+	else
+	{
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+		vertexInputInfo.vertexBindingDescriptionCount = static_cast<U32>(layoutInfo.vertexBindings.size());
+		vertexInputInfo.pVertexBindingDescriptions = layoutInfo.vertexBindings.empty() ? nullptr : layoutInfo.vertexBindings.data();
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<U32>(layoutInfo.vertexAttributes.size());
+		vertexInputInfo.pVertexAttributeDescriptions = layoutInfo.vertexAttributes.empty() ? nullptr : layoutInfo.vertexAttributes.data();
 
-	Vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-	dynamicState.dynamicStateCount = static_cast<U32>(dynamicStates.size());
-	dynamicState.pDynamicStates = dynamicStates.data();
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+		inputAssembly.topology = layoutInfo.config.topology;
+		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-	VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-	viewportState.viewportCount = 1;
-	viewportState.scissorCount = 1;
+		Vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+		dynamicState.dynamicStateCount = static_cast<U32>(dynamicStates.size());
+		dynamicState.pDynamicStates = dynamicStates.data();
 
-	VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
-	rasterizer.depthClampEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = layoutInfo.config.cullMode;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+		viewportState.viewportCount = 1;
+		viewportState.scissorCount = 1;
 
-	VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+		rasterizer.depthClampEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.lineWidth = 1.0f;
+		rasterizer.cullMode = layoutInfo.config.cullMode;
+		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
-	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_TRUE;
-	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+		multisampling.sampleShadingEnable = VK_FALSE;
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
-	colorBlending.logicOpEnable = VK_FALSE;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachment.blendEnable = VK_TRUE;
+		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-	VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
-	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-	pipelineRenderingCreateInfo.pColorAttachmentFormats = (VkFormat*)&Renderer::surfaceFormat;
+		VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.attachmentCount = 1;
+		colorBlending.pAttachments = &colorBlendAttachment;
 
-	VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-	pipelineInfo.pNext = &pipelineRenderingCreateInfo;
-	pipelineInfo.stageCount = (U32)shaderStages.size();
-	pipelineInfo.pStages = shaderStages.data();
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizer;
-	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pColorBlendState = &colorBlending;
-	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = vkPipelineLayout;
-	pipelineInfo.renderPass = VK_NULL_HANDLE;
-	pipelineInfo.subpass = 0;
+		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
+		pipelineRenderingCreateInfo.colorAttachmentCount = 1;
+		pipelineRenderingCreateInfo.pColorAttachmentFormats = (VkFormat*)&Renderer::surfaceFormat;
 
-	//TODO: pipeline caching
-	VkValidateFR(vkCreateGraphicsPipelines(Renderer::device, VK_NULL_HANDLE, 1, &pipelineInfo, Renderer::allocationCallbacks, &vkPipeline));
+		VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+		pipelineInfo.pNext = &pipelineRenderingCreateInfo;
+		pipelineInfo.stageCount = (U32)shaderStages.size();
+		pipelineInfo.pStages = shaderStages.data();
+		pipelineInfo.pVertexInputState = &vertexInputInfo;
+		pipelineInfo.pInputAssemblyState = &inputAssembly;
+		pipelineInfo.pViewportState = &viewportState;
+		pipelineInfo.pRasterizationState = &rasterizer;
+		pipelineInfo.pMultisampleState = &multisampling;
+		pipelineInfo.pColorBlendState = &colorBlending;
+		pipelineInfo.pDynamicState = &dynamicState;
+		pipelineInfo.layout = vkPipelineLayout;
+		pipelineInfo.renderPass = VK_NULL_HANDLE;
+		pipelineInfo.subpass = 0;
+
+		//TODO: pipeline caching
+		VkValidateFR(vkCreateGraphicsPipelines(Renderer::device, VK_NULL_HANDLE, 1, &pipelineInfo, Renderer::allocationCallbacks, &vkPipeline));
+	}
 
 	for (U32 i = 0; i < shaderStages.size(); ++i)
 	{
@@ -388,7 +402,7 @@ void Shader::ProcessSlangParameter(slang::VariableLayoutReflection* variableLayo
 	if (category == slang::ParameterCategory::PushConstantBuffer)
 	{
 		info.hasPushConstant = true;
-		info.pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+		info.pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL;
 		info.pushConstantRange.offset = (U32)variableLayout->getOffset();
 
 		slang::TypeLayoutReflection* elementType = typeLayout->getElementTypeLayout();
@@ -403,7 +417,7 @@ void Shader::ProcessSlangParameter(slang::VariableLayoutReflection* variableLayo
 	{
 		VkDescriptorSetLayoutBinding binding{};
 		binding.binding = variableLayout->getBindingIndex();
-		binding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+		binding.stageFlags = VK_SHADER_STAGE_ALL;
 
 		slang::TypeReflection::Kind kind = typeLayout->getKind();
 
@@ -531,6 +545,42 @@ void Shader::UpdateStorageBuffer(U32 setIndex, U32 binding, U32 frameIndex, VkBu
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pBufferInfo = &bufferInfo;
+
+	vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void Shader::UpdateStorageImage(U32 setIndex, U32 binding, U32 frameIndex, VkImageView_T* imageView)
+{
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageView = imageView;
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imageInfo.sampler = VK_NULL_HANDLE;
+
+	VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+	descriptorWrite.dstSet = vkDescriptorSets[setIndex][frameIndex];
+	descriptorWrite.dstBinding = binding;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &imageInfo;
+
+	vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void Shader::UpdateSampledImage(U32 setIndex, U32 binding, U32 frameIndex, VkImageView_T* imageView, VkSampler_T* sampler)
+{
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageView = imageView;
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.sampler = sampler;
+
+	VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+	descriptorWrite.dstSet = vkDescriptorSets[setIndex][frameIndex];
+	descriptorWrite.dstBinding = binding;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &imageInfo;
 
 	vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
 }

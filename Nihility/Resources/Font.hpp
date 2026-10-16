@@ -43,7 +43,7 @@ private:
 	};
 
 public:
-	const WString& Name() { return name; }
+	const String& Name() { return name; }
 	const std::shared_ptr<Texture> GetTexture() { return texture; }
 	const U32& TextureId() { return texture->Id(); }
 	const F32& Scale() { return scale; }
@@ -55,7 +55,8 @@ private:
 	msdfgen::Shape LoadGlyph(stbtt_fontinfo* info, C codepoint, F32* bitmap, Hashmap<I32, C>& glyphToCodepoint);
 	void CreateKerning(stbtt_fontinfo* info, Hashmap<I32, C>& glyphToCodepoint);
 
-	WString name = L"";
+	String name = "";
+	U32	id = 0;
 	std::shared_ptr<Texture> texture = nullptr;
 	F32 scale = 0.0f;
 	U32 glyphSize = 0;

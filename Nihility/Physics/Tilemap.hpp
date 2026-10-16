@@ -79,12 +79,10 @@ struct NH_API TilemapRenderData
 	U32 indexCount = 0;
 	U32 vertexCount = 0;
 	U32 maxVertexCount = 0;
-#ifdef NH_DEBUG
-	Buffer debugVertexBuffer;
-	Buffer debugIndexBuffer;
-	U32 debugIndexCount = 0;
-	U32 debugMaxVertexCount = 0;
-#endif
+	Buffer collisionVertexBuffer;
+	Buffer collisionIndexBuffer;
+	U32 collisionIndexCount = 0;
+	U32 collisionMaxVertexCount = 0;
 	bool isInitialized = false;
 
 	void Serialize(DataWriter& writer) const { }
@@ -113,6 +111,7 @@ public:
 	static bool SweepX(Transform2D& transform, const ColliderAABB& aabb, glm::vec2& velocity);
 	static bool SweepY(Transform2D& transform, const ColliderAABB& aabb, glm::vec2& velocity);
 
+	static Vector<String> CreateManifest(U32& bufferSize);
 	static void Save(const String& filepath);
 	static void SaveSync(const String& filepath);
 	static void Load(const String& filepath);
@@ -125,10 +124,12 @@ private:
 	static void Update();
 
 	static void RenderTilemaps(VkCommandBuffer_T* cmd);
+	static void CreateCollisionMask(VkCommandBuffer_T* cmd);
 
 	static void EnsureRenderDataExists(U32 entityId, U32 requiredVertices, U32 requiredIndices, U32 debugVertices, U32 debugIndices);
 
 	static Shader tilemapShader;
+	static Shader collisionMaskShader;
 #ifdef NH_DEBUG
 	static Shader debugShader;
 	static bool showCollision;

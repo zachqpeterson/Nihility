@@ -15,69 +15,34 @@
 #include "Resources/Texture.hpp"
 #include "Components/Registry.hpp"
 
-#include "ShaderIncludes/ShaderTypes.h"
+struct SpriteData;
 
 struct RenderPacket
 {
+	RenderPacket(U64 arenaSize, U64 maxSpriteCapacity);
+
+	void PushSprite(const SpriteData& instance);
+	void Clear();
+	std::span<const SpriteData> GetActiveSprites() const;
+
 	FrameArena arena;
 
 	SpriteData* sprites;
 	std::atomic<U64> spriteCount;
 	U64 maxSprites;
-
-	RenderPacket(U64 arenaSize, U64 maxSpriteCapacity) : arena(arenaSize), spriteCount(0), maxSprites(maxSpriteCapacity)
-	{
-		sprites = static_cast<SpriteData*>(arena.Allocate(sizeof(SpriteData) * maxSprites, alignof(SpriteData)));
-	}
-
-	void PushSprite(const SpriteData& instance)
-	{
-		U64 index = spriteCount.fetch_add(1, std::memory_order_relaxed);
-		if (index < maxSprites) { sprites[index] = instance; }
-	}
-
-	void Clear()
-	{
-		spriteCount.store(0, std::memory_order_relaxed);
-	}
-
-	std::span<const SpriteData> GetActiveSprites() const
-	{
-		return { sprites, spriteCount.load(std::memory_order_relaxed) };
-	}
 };
 
 struct RenderExtractor
 {
 public:
-	RenderExtractor() : bufferedPackets{ RenderPacket(Megabytes(16), 50000), RenderPacket(Megabytes(16), 50000) } {}
+	RenderExtractor();
 
-	void BeginExtraction()
-	{
-		std::swap(writeIndex, readIndex);
+	void BeginExtraction();
+	void SubmitSprite(const SpriteData& sprite);
+	void FinishExtraction();
 
-		GetWritePacket().Clear();
-	}
-
-	void SubmitSprite(const SpriteData& sprite)
-	{
-		GetWritePacket().PushSprite(sprite);
-	}
-
-	void FinishExtraction()
-	{
-		U64 currentCount = GetWritePacket().spriteCount.load(std::memory_order_relaxed);
-		SpriteData* currentSprites = GetWritePacket().sprites;
-
-		std::sort(currentSprites, currentSprites + currentCount,
-			[](const SpriteData& a, const SpriteData& b)
-		{
-			return a.zIndex < b.zIndex;
-		});
-	}
-
-	RenderPacket& GetWritePacket() { return bufferedPackets[writeIndex]; }
-	const RenderPacket& GetReadPacket() const { return bufferedPackets[readIndex]; }
+	RenderPacket& GetWritePacket();
+	const RenderPacket& GetReadPacket() const;
 
 private:
 	Array<RenderPacket, 2> bufferedPackets;
@@ -105,6 +70,14 @@ struct WorkerCommandContext
 	void ResetFrame(Device& device, U32 frameIndex);
 
 	VkCommandBuffer_T* GetNextCommandBuffer(U32 frameIndex);
+};
+
+struct PointLightGPU
+{
+	glm::vec2 position;
+	F32 radius;
+	F32 intensity;
+	glm::vec4 color;
 };
 
 enum VkFormat;
@@ -135,10 +108,20 @@ public:
 
 	static void SetActiveCamera(Entity camera);
 	static glm::mat4 GetViewProjectionMatrix();
+	static glm::mat4 GetGIOverscanMatrix();
 	static glm::vec4 RenderArea();
 
 	static void NameAllocation(VmaAllocation_T* allocation, const WString& name);
 	static void NameAllocation(VmaAllocation_T* allocation, const String& name);
+
+	static constexpr U32 TargetRenderWidth = 1920;
+	static constexpr U32 TargetRenderHeight = 1080;
+	static constexpr U32 Overscan = 512;
+	static constexpr U32 OverscanWidth = TargetRenderWidth + Overscan * 2;
+	static constexpr U32 OverscanHeight = TargetRenderHeight + Overscan * 2;
+	static constexpr U32 RadianceCascadeWidth = OverscanWidth / 2;
+	static constexpr U32 RadianceCascadeHeight = OverscanHeight / 2;
+	static constexpr U32 BaseRayCount = 16;
 
 private:
 	static bool Initialize(const StringView& name, U32 version);
@@ -147,6 +130,8 @@ private:
 
 	static bool BeginFrame();
 	static void EndFrame();
+	static void UpdateLightBuffer();
+	static void RunHRC(VkCommandBuffer_T* cmd);
 
 	static bool InitializeVma();
 	static bool CreateSurfaceInfo();
@@ -162,6 +147,7 @@ private:
 	static void FlushDeletionQueue();
 
 	static void RecreateSwapchain();
+	static void ComputeMemoryBarrier(VkCommandBuffer_T* cmd);
 	static void TransitionImageLayout(VkCommandBuffer_T* cmd, VkImage_T* image, VkImageLayout oldLayout, VkImageLayout newLayout,
 		U64 srcStageMask, U64 srcAccessMask, U64 dstStageMask, U64 dstAccessMask);
 	static VkCommandBuffer_T* RecordSecondaryCommandBuffer(U32 threadId, U32 frameIndex, std::span<const SpriteData> sprites);
@@ -172,7 +158,14 @@ private:
 	static Instance instance;
 	static Device device;
 	static Swapchain swapchain;
+	static Shader lightInjectionShader;
 	static Shader spriteShader;
+	static Shader jfaInitShader;
+	static Shader jfaStepShader;
+	static Shader radianceCascadeShader;
+	static Shader compositeShader;
+	static Shader vBlurShader;
+	static Shader hBlurShader;
 
 	static VkDescriptorSetLayout_T* globalBindlessSetLayout;
 	static VkDescriptorPool_T* globalDescriptorPool;
@@ -185,8 +178,23 @@ private:
 	static VmaAllocation_T* spriteAllocations[MaxFramesInFlight];
 	static void* spriteMappedData[MaxFramesInFlight];
 
+	static Buffer lightStorageBuffer;
+	static Vector<PointLightGPU> lightDataCache;
+
 	static VkCommandPool_T* primaryPools[MaxFramesInFlight];
 	static VkCommandBuffer_T* primaryBuffers[MaxFramesInFlight];
+
+	static RenderTarget collisionMaskTarget;
+	static RenderTarget emissiveTarget;
+	static RenderTarget jfaBufferA;
+	static RenderTarget jfaBufferB;
+	static RenderTarget rcAtlas;
+	static RenderTarget radianceCascadeTarget;
+	static RenderTarget radianceCascadeBlurTarget;
+	static RenderTarget albedoTarget;
+	static RenderTarget* finalSDF;
+	static Sampler nearSampler;
+	static Sampler linearSampler;
 
 	static U32 surfaceFormat;
 	static U32 surfaceColorSpace;
@@ -224,6 +232,7 @@ private:
 	friend struct RenderTarget;
 	friend struct Swapchain;
 	friend struct Instance;
+	friend struct Sampler;
 	friend struct Device;
 	friend struct Shader;
 

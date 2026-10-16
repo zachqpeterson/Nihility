@@ -50,6 +50,27 @@ struct NH_API SpriteComponent
 	}
 };
 
+struct NH_API PointLight
+{
+	glm::vec3 color{ 1.0f, 1.0f, 1.0f };
+	F32 intensity = 1.0f;
+	F32 radius = 100.0f;
+
+	void Serialize(DataWriter& writer) const
+	{
+		writer.Write(color);
+		writer.Write(intensity);
+		writer.Write(radius);
+	}
+
+	void Deserialize(DataReader& reader)
+	{
+		reader.Read(color);
+		reader.Read(intensity);
+		reader.Read(radius);
+	}
+};
+
 struct NH_API PlayerController
 {
 	F32 moveSpeed = 10.0f;

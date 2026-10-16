@@ -57,11 +57,11 @@ void Resources::Shutdown()
 	}
 }
 
-WString Resources::UploadResource(const Path& path)
+String Resources::UploadResource(const Path& path)
 {
-	WString ext{ path.extension().native() };
-	WString pathname{ path.native() };
-	WString filename{ path.filename().native() };
+	String ext{ path.extension().string() };
+	String pathname{ path.string() };
+	String filename{ path.filename().string() };
 	filename = filename.substr(0, filename.size() - ext.size());
 
 	switch (HashCI(ext.data(), ext.size()))
@@ -80,7 +80,7 @@ WString Resources::UploadResource(const Path& path)
 	case ".ppm"_HashCI:
 	case ".pgm"_HashCI:
 	case ".sbsar"_HashCI: {
-		WString* fn = new WString(filename);
+		String* fn = new String(filename);
 		FileIO::ReadFileAsync(path, UploadTexture, fn);
 
 		return Move(filename);
@@ -92,7 +92,7 @@ WString Resources::UploadResource(const Path& path)
 	case ".wav"_HashCI:
 	case ".flac"_HashCI:
 	case ".mp3"_HashCI: {
-		WString* fn = new WString(filename);
+		String* fn = new String(filename);
 		FileIO::ReadFileAsync(path, UploadAudio, fn);
 
 		return Move(filename);
@@ -101,7 +101,7 @@ WString Resources::UploadResource(const Path& path)
 	//Fonts
 	case ".ttf"_Hash:
 	case ".otf"_Hash: {
-		WString* fn = new WString(filename);
+		String* fn = new String(filename);
 		FileIO::ReadFileAsync(path, UploadFont, fn);
 
 		return Move(filename);
@@ -113,7 +113,7 @@ WString Resources::UploadResource(const Path& path)
 	} break;
 	}
 
-	return WString{ path.filename().native() };
+	return String{ path.filename().string() };
 }
 
 void ExtractAndPadBlock(const U8* rgbaPixels, U32 imgWidth, U32 imgHeight, U32 blockX, U32 blockY, U8 outBlock[64])
@@ -138,7 +138,7 @@ void ExtractAndPadBlock(const U8* rgbaPixels, U32 imgWidth, U32 imgHeight, U32 b
 
 void Resources::UploadTexture(FileData& data, void* userData)
 {
-	WString* filename = (WString*)userData;
+	String* filename = (String*)userData;
 
 	if (data.dataSize)
 	{
@@ -370,7 +370,7 @@ static I64 MemTell(void* userData)
 
 void Resources::UploadAudio(FileData& data, void* userData)
 {
-	WString* filename = (WString*)userData;
+	String* filename = (String*)userData;
 
 	if (data.dataSize)
 	{
@@ -485,7 +485,7 @@ void Resources::UploadFont(FileData& data, void* userData)
 {
 	using namespace msdfgen;
 
-	WString* filename = (WString*)userData;
+	String* filename = (String*)userData;
 
 	if (data.dataSize)
 	{
@@ -595,11 +595,9 @@ void Resources::UploadFileFinished(FileData& data, void* userData)
 	FileIO::FreeData(data);
 }
 
-U32 Resources::GetTextureId()
+U32 Resources::GetResourceId(const Path& name)
 {
-	static std::atomic<U32> textureId{ 0 };
-
-	return textureId.fetch_add(1, std::memory_order_relaxed);
+	return Hash32(name.c_str(), name.string().size()) % 100000;
 }
 
 std::shared_ptr<Texture> Resources::FetchTexture(const Path& name)
@@ -633,7 +631,7 @@ std::shared_ptr<Texture> Resources::FetchTexture(const Path& name)
 		U64 size = header.mipSizes[0];
 
 		Texture texture{};
-		texture.name = name.c_str();
+		texture.name = name.string();
 		texture.width = header.width;
 		texture.height = header.height;
 		texture.format = header.format;
@@ -647,8 +645,8 @@ std::shared_ptr<Texture> Resources::FetchTexture(const Path& name)
 		Memory::Allocate(&textureData, texture.size);
 		reader.Read(textureData, texture.size);
 
-		std::shared_ptr<Texture> texturePtr = pool.Insert(texture.name, std::make_shared<Texture>(texture));
-		texturePtr->id = GetTextureId();
+		texture.id = GetResourceId(name);
+		std::shared_ptr<Texture> texturePtr = pool.Insert(texture.id, std::make_shared<Texture>(texture));
 		if (!Renderer::UploadTexture(texturePtr, textureData, 0))
 		{
 			Memory::Free(&textureData);
@@ -694,7 +692,7 @@ std::shared_ptr<AudioClip> Resources::FetchAudioClip(const Path& name)
 		}
 
 		AudioClip clip{};
-		clip.name = name.c_str();
+		clip.name = name.string();
 		clip.audioBytes = (U32)header.dataSize;
 		Memory::Allocate(&clip.audioData, clip.audioBytes);
 		reader.Read(clip.audioData, clip.audioBytes);
@@ -708,7 +706,8 @@ std::shared_ptr<AudioClip> Resources::FetchAudioClip(const Path& name)
 		clip.isStream = header.format != AudioFormatType::PCM;
 
 		FileIO::FreeData(data);
-		return pool.Insert(clip.name, std::make_shared<AudioClip>(clip));
+		clip.id = GetResourceId(name);
+		return pool.Insert(clip.id, std::make_shared<AudioClip>(clip));
 	}
 	else { Logger::Error("Failed To Read File: ", name, '!'); }
 
@@ -745,7 +744,7 @@ std::shared_ptr<Font> Resources::FetchFont(const Path& name)
 		}
 
 		Font font{};
-		font.name = name.c_str();
+		font.name = name.string();
 		font.scale = header.scale;
 		font.glyphSize = header.glyphSize;
 
@@ -754,7 +753,7 @@ std::shared_ptr<Font> Resources::FetchFont(const Path& name)
 		U32 textureSize = header.textureWidth * header.textureHeight * 4 * sizeof(F32);
 
 		Texture texture{};
-		texture.name = name.c_str();
+		texture.name = name.string();
 		texture.width = header.textureWidth;
 		texture.height = header.textureHeight;
 		texture.format = 109;
@@ -767,8 +766,8 @@ std::shared_ptr<Font> Resources::FetchFont(const Path& name)
 		Memory::Allocate(&textureData, texture.size);
 		reader.Read(textureData, texture.size);
 
-		std::shared_ptr<Texture> texturePtr = texturePool.Insert(texture.name, std::make_shared<Texture>(texture));
-		texturePtr->id = GetTextureId();
+		texture.id = GetResourceId(name);
+		std::shared_ptr<Texture> texturePtr = texturePool.Insert(texture.id, std::make_shared<Texture>(texture));
 		if (!Renderer::UploadTexture(texturePtr, textureData, 0))
 		{
 			Memory::Free(&textureData);
@@ -781,7 +780,9 @@ std::shared_ptr<Font> Resources::FetchFont(const Path& name)
 		font.texture = texturePtr;
 
 		FileIO::FreeData(data);
-		return pool.Insert(font.name, std::make_shared<Font>(font));
+
+		font.id = GetResourceId(name);
+		return pool.Insert(font.id, std::make_shared<Font>(font));
 	}
 	else { Logger::Error("Failed To Read File: ", name, '!'); }
 

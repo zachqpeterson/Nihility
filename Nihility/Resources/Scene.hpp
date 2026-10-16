@@ -23,9 +23,9 @@ public:
 	virtual void OnUpdate() {}
 	virtual void OnStop() {}
 
-	Entity CreateSceneEntity()
+	Entity CreateSceneEntity(glm::vec2 position = glm::vec2(0.0f, 0.0f), glm::vec2 scale = glm::vec2(1.0f, 1.0f), F32 rotation = 0.0f)
 	{
-		Entity entity = Registry::CreateEntity();
+		Entity entity = Registry::CreateEntity(position, scale, rotation);
 		sceneEntities.push_back(entity);
 		return entity;
 	}
@@ -47,11 +47,11 @@ public:
 		body.velocity = { 0.0f, 0.0f };
 
 		ColliderAABB& aabb = playerEntity.AddComponent<ColliderAABB>();
-		aabb.halfExtents = { 8.0f, 8.0f };
+		aabb.halfExtents = { 16.0f, 16.0f };
 		aabb.offset = { 0.0f, 0.0f };
 
 		Hurtbox& hurtbox = playerEntity.AddComponent<Hurtbox>();
-		hurtbox.halfExtents = { 6.0f, 6.0f };
+		hurtbox.halfExtents = { 10.0f, 10.0f };
 		hurtbox.teamId = 0;
 
 		SpriteComponent& sprite = playerEntity.AddComponent<SpriteComponent>();
@@ -131,9 +131,7 @@ public:
 	{
 		if (activeScene)
 		{
-#ifdef NH_DEBUG
 			if (state == EngineState::Playing)
-#endif
 			{
 				activeScene->OnUpdate();
 			}
@@ -145,19 +143,15 @@ public:
 		return activeScene;
 	}
 
-#ifdef NH_DEBUG
 	static EngineState CurrentState()
 	{
 		return state;
 	}
-#endif
 
 private:
 	static std::shared_ptr<Scene> activeScene;
 
-#ifdef NH_DEBUG
 	static EngineState state;
-#endif
 
 	friend class Nihility;
 	friend class Editor;

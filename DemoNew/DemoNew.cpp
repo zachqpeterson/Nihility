@@ -2,17 +2,26 @@
 
 #include "Resources/Scene.hpp"
 #include "Rendering/UI.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Platform/Input.hpp"
 
 class LevelOneScene : public Scene
 {
 public:
 	void OnStart() override
 	{
-		LoadTilemap("level_01.tilemap");
-		LoadEntities("level_01.entities");
+		LoadTilemap("levels/Test.tilemap");
+		LoadEntities("levels/Test.entities");
+
+		Entity light = CreateSceneEntity({ 500.0f, 550.0f });
+
+		PointLight& pl0 = light.AddComponent<PointLight>();
+		pl0.color = { 1.0f, 1.0f, 1.0f };
+		pl0.radius = 100.0f;
+		pl0.intensity = 1.0f;
 
 		Entity player = SpawnPlayer({ 0.0f, 100.0f });
-		SetupCamera(player);
+		Renderer::SetActiveCamera(SetupCamera(player));
 	}
 
 	void OnUpdate() override
@@ -37,12 +46,18 @@ public:
 		UI::RegisterAction(startButton.interactable.onClickName, []() {
 			SceneManager::ChangeScene(std::make_shared<LevelOneScene>());
 		});
+
+		Renderer::SetActiveCamera(SetupCamera());
 	}
 };
 
 void InitGame()
 {
 	SceneManager::ChangeScene(std::make_shared<MainMenuScene>());
+
+	Input::BindAxis("Horizontal", ButtonCode::A, -1.0f);
+	Input::BindAxis("Horizontal", ButtonCode::D, 1.0f);
+	Input::BindAction("Jump", ButtonCode::Space);
 }
 
 void ShutdownGame()

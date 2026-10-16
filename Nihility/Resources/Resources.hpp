@@ -13,12 +13,12 @@ template<typename T>
 struct ResourcePool
 {
 private:
-	using MapType = Hashmap<WString, std::shared_ptr<T>>;
+	using MapType = Hashmap<U32, std::shared_ptr<T>>;
 
 	MapType cache;
 	std::shared_mutex poolMutex;
 
-	std::shared_ptr<T> Get(const WString& key)
+	std::shared_ptr<T> Get(U32 key)
 	{
 		std::shared_lock lock(poolMutex);
 
@@ -28,7 +28,7 @@ private:
 		return nullptr;
 	}
 
-	std::shared_ptr<T> Insert(const WString& key, std::shared_ptr<T> value)
+	std::shared_ptr<T> Insert(U32 key, std::shared_ptr<T> value)
 	{
 		std::unique_lock lock(poolMutex);
 
@@ -49,9 +49,19 @@ public:
 	{
 		static ResourcePool<T>& pool = GetPool<T>();
 
-		if (std::shared_ptr<T> res = pool.Get((WString)name.wstring())) { return res; }
+		if (std::shared_ptr<T> res = pool.Get(GetResourceId(name))) { return res; }
 
 		return FetchResource<T>(name);
+	}
+
+	template<typename T>
+	static std::shared_ptr<T> Get(U32 id)
+	{
+		static ResourcePool<T>& pool = GetPool<T>();
+
+		if (std::shared_ptr<T> res = pool.Get(id)) { return res; }
+
+		return nullptr;
 	}
 
 private:
@@ -65,14 +75,14 @@ private:
 		return pool;
 	}
 
-	static WString UploadResource(const Path& path);
+	static String UploadResource(const Path& path);
 	static void UploadTexture(FileData& data, void* userData);
 	static void UploadAudio(FileData& data, void* userData);
 	static void UploadFont(FileData& data, void* userData);
 
 	static void UploadFileFinished(FileData& data, void* userData);
 
-	static U32 GetTextureId();
+	static U32 GetResourceId(const Path& name);
 
 	template<typename T>
 	static std::shared_ptr<T> FetchResource(const Path& name);

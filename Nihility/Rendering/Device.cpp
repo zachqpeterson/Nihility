@@ -215,11 +215,18 @@ bool Device::Create()
 		.maintenance4 = VK_TRUE
 	};
 
-	Vector<const C*> extensionsToEnable{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR derivativesFeatures{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_KHR,
+		.pNext = &features13,
+		.computeDerivativeGroupQuads = VK_TRUE,
+		.computeDerivativeGroupLinear = VK_FALSE,
+	};
+
+	Vector<const C*> extensionsToEnable{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME };
 
 	VkDeviceCreateInfo deviceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		.pNext = &features13,
+		.pNext = &derivativesFeatures,
 		.flags = 0,
 		.queueCreateInfoCount = (U32)queueCreateInfos.size(),
 		.pQueueCreateInfos = queueCreateInfos.data(),

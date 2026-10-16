@@ -41,8 +41,8 @@ bool UI::Initialize()
 
 	font = Resources::Load<Font>(L"arial");
 
-	uiShader.Create("ui.slang");
-	textShader.Create("text.slang");
+	uiShader.Create("shaders/ui.slang");
+	textShader.Create("shaders/text.slang");
 
 	for (U32 i = 0; i < MaxFramesInFlight; ++i)
 	{

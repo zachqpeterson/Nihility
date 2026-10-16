@@ -14,6 +14,11 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice_T* vkPhysicalDevice, VkSurfaceKH
 	VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES };
 	features2.pNext = &indexingFeatures;
 
+	VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR derivativesFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_KHR };
+	derivativesFeatures.computeDerivativeGroupQuads = true;
+
+	indexingFeatures.pNext = &derivativesFeatures;
+
 	vkGetPhysicalDeviceFeatures2(vkPhysicalDevice, &features2);
 	vkGetPhysicalDeviceProperties(vkPhysicalDevice, &properties);
 
@@ -26,7 +31,7 @@ PhysicalDevice::PhysicalDevice(VkPhysicalDevice_T* vkPhysicalDevice, VkSurfaceKH
 	if (properties.apiVersion < VK_API_VERSION_1_3) { return; }
 	if (!features2.features.samplerAnisotropy || !features2.features.wideLines ||
 		!indexingFeatures.descriptorBindingPartiallyBound || !indexingFeatures.runtimeDescriptorArray ||
-		!indexingFeatures.shaderSampledImageArrayNonUniformIndexing)
+		!indexingFeatures.shaderSampledImageArrayNonUniformIndexing || !derivativesFeatures.computeDerivativeGroupQuads)
 	{
 		return;
 	}

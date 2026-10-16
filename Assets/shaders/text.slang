@@ -1,4 +1,4 @@
-#include "ShaderIncludes/ShaderTypes.h"
+#include "includes/ShaderTypes.h"
 
 [[vk::binding(0, 0)]]
 [GlobalTextures]

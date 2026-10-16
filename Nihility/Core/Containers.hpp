@@ -11,6 +11,7 @@
 #include <array>
 #include <stack>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <sstream>
 #include <format>
@@ -23,6 +24,7 @@ template <typename T> using Queue = std::queue<T, std::deque<T, Allocator<T>>>;
 template <typename T> using Stack = std::stack<T, std::deque<T, Allocator<T>>>;
 template <typename T, U64 Size> using Array = std::array<T, Size>;
 template <typename K, typename V> using Hashmap = std::unordered_map<K, V, std::hash<K>, std::equal_to<K>, Allocator<std::pair<const K, V>>>;
+template <typename T> using Hashset = std::unordered_set<T, std::hash<T>, std::equal_to<T>, Allocator<T>>;
 
 using Path = std::filesystem::path;
 

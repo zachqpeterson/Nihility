@@ -38,7 +38,8 @@ struct WaveFormat
 
 struct NH_API AudioClip
 {
-	WString name = L"";
+	String name = "";
+	U32	id = 0;
 	bool isStream = false;
 
 	WaveFormat format{};

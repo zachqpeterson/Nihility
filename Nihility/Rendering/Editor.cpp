@@ -11,6 +11,8 @@
 #include "Core/Logger.hpp"
 #include "Core/File.hpp"
 
+#include "shaders/includes/ShaderTypes.h"
+
 Entity Editor::viewportPanel;
 Entity Editor::tileSelectionHighlight;
 Entity Editor::collisionSelectionHighlight;
@@ -225,7 +227,7 @@ void Editor::Initialize()
 
 	Renderer::SetActiveCamera(cameraEntity);
 
-	gridShader.Create("grid.slang");
+	gridShader.Create("shaders/grid.slang");
 	showGrid = true;
 
 	Input::BindAxis("Horizontal", ButtonCode::A, -1.0f);
@@ -446,6 +448,25 @@ public:
 	{
 		Editor::LoadLevel("temp_editor");
 
+		Entity light = CreateSceneEntity({ 600.0f, 700.0f });
+
+		PointLight& pl0 = light.AddComponent<PointLight>();
+		pl0.color = { 1.0f, 1.0f, 1.0f };
+		pl0.radius = 100.0f;
+		pl0.intensity = 10.0f;
+		
+		//light = CreateSceneEntity({ 650.0f, 700.0f });
+		//PointLight& pl1 = light.AddComponent<PointLight>();
+		//pl1.color = { 0.0f, 1.0f, 0.0f };
+		//pl1.radius = 100.0f;
+		//pl1.intensity = 3.0f;
+		//
+		//light = CreateSceneEntity({ 625.0f, 750.0f });
+		//PointLight& pl2 = light.AddComponent<PointLight>();
+		//pl2.color = { 0.0f, 0.0f, 1.0f };
+		//pl2.radius = 100.0f;
+		//pl2.intensity = 3.0f;
+
 		Entity player = SpawnPlayer({ 0.0f, 100.0f });
 		Renderer::SetActiveCamera(SetupCamera(player));
 	}
@@ -495,7 +516,7 @@ void Editor::Stop()
 
 void Editor::RenderGrid(VkCommandBuffer cmd)
 {
-	if (!showGrid || SceneManager::state != EngineState::Editor) { return; }
+	if (!showGrid || SceneManager::CurrentState() != EngineState::Editor) { return; }
 
 	Transform2D& camTrans = Registry::GetTransform(cameraEntity.Id());
 	UIRect& vpRect = Registry::GetComponent<UIRect>(viewportPanel.Id());
@@ -512,7 +533,7 @@ void Editor::RenderGrid(VkCommandBuffer cmd)
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, gridShader.Pipeline());
 
-	vkCmdPushConstants(cmd, gridShader.PipelineLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(GridPushConstants), &pc);
+	vkCmdPushConstants(cmd, gridShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(GridPushConstants), &pc);
 
 	vkCmdDraw(cmd, 6, 1, 0, 0);
 }

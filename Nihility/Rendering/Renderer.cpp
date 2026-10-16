@@ -13,6 +13,8 @@
 #include "Physics/Tilemap.hpp"
 #include "Resources/Scene.hpp"
 
+#include "shaders/includes/ShaderTypes.h"
+
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
 
@@ -28,6 +30,56 @@
 #include "enkiTS/TaskScheduler.h"
 
 #include <algorithm>
+
+RenderPacket::RenderPacket(U64 arenaSize, U64 maxSpriteCapacity) : arena(arenaSize), spriteCount(0), maxSprites(maxSpriteCapacity)
+{
+	sprites = static_cast<SpriteData*>(arena.Allocate(sizeof(SpriteData) * maxSprites, alignof(SpriteData)));
+}
+
+void RenderPacket::PushSprite(const SpriteData& instance)
+{
+	U64 index = spriteCount.fetch_add(1, std::memory_order_relaxed);
+	if (index < maxSprites) { sprites[index] = instance; }
+}
+
+void RenderPacket::Clear()
+{
+	spriteCount.store(0, std::memory_order_relaxed);
+}
+
+std::span<const SpriteData> RenderPacket::GetActiveSprites() const
+{
+	return { sprites, spriteCount.load(std::memory_order_relaxed) };
+}
+
+RenderExtractor::RenderExtractor() : bufferedPackets{ RenderPacket(Megabytes(16), 50000), RenderPacket(Megabytes(16), 50000) } {}
+
+void RenderExtractor::BeginExtraction()
+{
+	std::swap(writeIndex, readIndex);
+
+	GetWritePacket().Clear();
+}
+
+void RenderExtractor::SubmitSprite(const SpriteData& sprite)
+{
+	GetWritePacket().PushSprite(sprite);
+}
+
+void RenderExtractor::FinishExtraction()
+{
+	U64 currentCount = GetWritePacket().spriteCount.load(std::memory_order_relaxed);
+	SpriteData* currentSprites = GetWritePacket().sprites;
+
+	std::sort(currentSprites, currentSprites + currentCount,
+		[](const SpriteData& a, const SpriteData& b)
+	{
+		return a.zIndex < b.zIndex;
+	});
+}
+
+RenderPacket& RenderExtractor::GetWritePacket() { return bufferedPackets[writeIndex]; }
+const RenderPacket& RenderExtractor::GetReadPacket() const { return bufferedPackets[readIndex]; }
 
 void WorkerCommandContext::Create(Device& device, const VkAllocationCallbacks* allocator, U32 graphicsQueueIndex, U32 transferQueueIndex, U32 preallocateCount)
 {
@@ -77,7 +129,14 @@ VkCommandBuffer_T* WorkerCommandContext::GetNextCommandBuffer(U32 frameIndex)
 Instance Renderer::instance;
 Device Renderer::device;
 Swapchain Renderer::swapchain;
+Shader Renderer::lightInjectionShader;
 Shader Renderer::spriteShader;
+Shader Renderer::jfaInitShader;
+Shader Renderer::jfaStepShader;
+Shader Renderer::radianceCascadeShader;
+Shader Renderer::compositeShader;
+Shader Renderer::vBlurShader;
+Shader Renderer::hBlurShader;
 
 VkDescriptorSetLayout Renderer::globalBindlessSetLayout;
 VkDescriptorPool Renderer::globalDescriptorPool;
@@ -90,8 +149,23 @@ VkBuffer Renderer::spriteBuffers[MaxFramesInFlight];
 VmaAllocation Renderer::spriteAllocations[MaxFramesInFlight];
 void* Renderer::spriteMappedData[MaxFramesInFlight];
 
+Buffer Renderer::lightStorageBuffer;
+Vector<PointLightGPU> Renderer::lightDataCache;
+
 VkCommandPool_T* Renderer::primaryPools[MaxFramesInFlight];
 VkCommandBuffer_T* Renderer::primaryBuffers[MaxFramesInFlight];
+
+RenderTarget Renderer::collisionMaskTarget;
+RenderTarget Renderer::emissiveTarget;
+RenderTarget Renderer::jfaBufferA;
+RenderTarget Renderer::jfaBufferB;
+RenderTarget Renderer::rcAtlas;
+RenderTarget Renderer::radianceCascadeTarget;
+RenderTarget Renderer::radianceCascadeBlurTarget;
+RenderTarget Renderer::albedoTarget;
+RenderTarget* Renderer::finalSDF;
+Sampler Renderer::nearSampler;
+Sampler Renderer::linearSampler;
 
 U32 Renderer::surfaceFormat;
 U32 Renderer::surfaceColorSpace;
@@ -140,8 +214,37 @@ bool Renderer::Initialize(const StringView& name, U32 version)
 	if (!CreateSynchronization()) { Logger::Fatal("Failed To Create Synchronization Objects!"); return false; }
 	if (!CreateCommandBuffers()) { Logger::Fatal("Failed To Create Command Buffers!"); return false; }
 
+	nearSampler = {};
+	nearSampler.filterMode = FilterMode::Point;
+	nearSampler.mipMapSampleMode = MipMapSampleMode::Nearest;
+	nearSampler.edgeSampleMode = EdgeSampleMode::ClampToEdge;
+	nearSampler.Create();
+
+	linearSampler = {};
+	linearSampler.filterMode = FilterMode::Linear;
+	linearSampler.mipMapSampleMode = MipMapSampleMode::Linear;
+	linearSampler.edgeSampleMode = EdgeSampleMode::ClampToEdge;
+	linearSampler.Create();
+
+	collisionMaskTarget.Create(RadianceCascadeWidth, RadianceCascadeHeight, VK_FORMAT_R8G8B8A8_UNORM, nearSampler, true, true);
+	jfaBufferA.Create(RadianceCascadeWidth, RadianceCascadeHeight, VK_FORMAT_R32G32_SFLOAT, nearSampler, true);
+	jfaBufferB.Create(RadianceCascadeWidth, RadianceCascadeHeight, VK_FORMAT_R32G32_SFLOAT, nearSampler, true);
+
+	emissiveTarget.Create(RadianceCascadeWidth, RadianceCascadeHeight, VK_FORMAT_R16G16B16A16_SFLOAT, linearSampler, true);
+	radianceCascadeTarget.Create(RadianceCascadeWidth, RadianceCascadeHeight, VK_FORMAT_R16G16B16A16_SFLOAT, linearSampler, true);
+	radianceCascadeBlurTarget.Create(RadianceCascadeWidth, RadianceCascadeHeight, VK_FORMAT_R16G16B16A16_SFLOAT, linearSampler, true);
+	rcAtlas.Create(RadianceCascadeWidth * BaseRayCount, RadianceCascadeHeight * 2, VK_FORMAT_R16G16B16A16_SFLOAT, nearSampler, true);
+
+	albedoTarget.Create(TargetRenderWidth, TargetRenderHeight, (VkFormat)surfaceFormat, nearSampler);
+
+	lightStorageBuffer = Renderer::CreateBuffer(
+		sizeof(PointLightGPU) * 1024,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+		VMA_MEMORY_USAGE_CPU_TO_GPU
+	);
+
 #ifdef NH_DEBUG
-	viewportTarget.Create(1920, 1080);
+	viewportTarget.Create(surfaceWidth, surfaceHeight, (VkFormat)surfaceFormat, linearSampler);
 #endif
 
 	return true;
@@ -166,6 +269,8 @@ void Renderer::Shutdown()
 		vkDestroyCommandPool(device, primaryPools[i], allocationCallbacks);
 	}
 
+	DestroyBuffer(lightStorageBuffer);
+
 	for (auto& func : pendingDeletions) { func(); }
 	pendingDeletions.clear();
 
@@ -174,6 +279,18 @@ void Renderer::Shutdown()
 		for (auto& func : deletionQueues[i]) { func(); }
 		deletionQueues[i].clear();
 	}
+
+	collisionMaskTarget.Destroy();
+	emissiveTarget.Destroy();
+	jfaBufferA.Destroy();
+	jfaBufferB.Destroy();
+	rcAtlas.Destroy();
+	radianceCascadeTarget.Destroy();
+	radianceCascadeBlurTarget.Destroy();
+	albedoTarget.Destroy();
+
+	nearSampler.Destroy();
+	linearSampler.Destroy();
 
 #ifdef NH_DEBUG
 	viewportTarget.Destroy();
@@ -200,6 +317,13 @@ void Renderer::Shutdown()
 	}
 
 	spriteShader.Destroy();
+	lightInjectionShader.Destroy();
+	jfaInitShader.Destroy();
+	jfaStepShader.Destroy();
+	radianceCascadeShader.Destroy();
+	compositeShader.Destroy();
+	vBlurShader.Destroy();
+	hBlurShader.Destroy();
 
 	vkDestroyDescriptorPool(device, globalDescriptorPool, allocationCallbacks);
 	vkDestroyDescriptorSetLayout(device, globalBindlessSetLayout, allocationCallbacks);
@@ -283,23 +407,108 @@ void Renderer::EndFrame()
 	std::span<const SpriteData> activeSprites = renderData.GetActiveSprites();
 	U32 spriteCount = (U32)activeSprites.size();
 
-	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(primaryCmd, &beginInfo);
-
 #ifdef NH_DEBUG
 	UIRect& rect = Registry::GetComponent<UIRect>(Editor::viewportPanel.Id());
 
 	U32 width = glm::max(1u, (U32)rect.resolvedSize.x);
 	U32 height = glm::max(1u, (U32)rect.resolvedSize.y);
 
-	if (width != viewportTarget.Width() || height != viewportTarget.Height())
+	if (width != albedoTarget.Width() || height != albedoTarget.Height())
 	{
 		vkDeviceWaitIdle(device);
-		viewportTarget.Recreate(width, height);
+		viewportTarget.Recreate(width, height, (VkFormat)surfaceFormat);
+	}
+#endif
+
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer(primaryCmd, &beginInfo);
+
+#ifdef NH_DEBUG
+	if (SceneManager::CurrentState() != EngineState::Editor)
+#endif
+	{
+		collisionMaskTarget.StartRender(primaryCmd);
+		Tilemap::CreateCollisionMask(primaryCmd);
+
+		//TODO: render sprites to collision mask
+
+		collisionMaskTarget.EndRender(primaryCmd);
+
+		RunHRC(primaryCmd);
+
+		albedoTarget.StartRender(primaryCmd);
+	}
+#ifdef NH_DEBUG
+	else
+	{
+		viewportTarget.StartRender(primaryCmd);
+	}
+#endif
+
+	Tilemap::RenderTilemaps(primaryCmd);
+
+	if (spriteCount > 0)
+	{
+		memcpy(spriteMappedData[frameIndex], activeSprites.data(), spriteCount * sizeof(SpriteData));
+		vmaFlushAllocation(vmaAllocator, spriteAllocations[frameIndex], 0, spriteCount * sizeof(SpriteData));
+		vkCmdBindPipeline(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, spriteShader.vkPipeline);
+
+		VkDescriptorSet sets[] = { globalBindlessSet, spriteShader.GetDescriptorSet(1, (U32)frameIndex) };
+		vkCmdBindDescriptorSets(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, spriteShader.vkPipelineLayout, 0, CountOf32(sets), sets, 0, nullptr);
+		vkCmdDraw(primaryCmd, 4, spriteCount, 0, 0);
 	}
 
-	viewportTarget.StartRender(primaryCmd);
+#ifdef NH_DEBUG
+	if (SceneManager::CurrentState() != EngineState::Editor)
+#endif
+	{
+		albedoTarget.EndRender(primaryCmd);
+	}
+#ifdef NH_DEBUG
+	else
+	{
+		Editor::RenderGrid(primaryCmd);
+		viewportTarget.EndRender(primaryCmd);
+	}
+#endif
+
+#ifdef NH_DEBUG
+	if (SceneManager::CurrentState() != EngineState::Editor)
+	{
+		viewportTarget.StartRender(primaryCmd);
+
+		vkCmdBindPipeline(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, compositeShader.Pipeline());
+		vkCmdBindDescriptorSets(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, compositeShader.PipelineLayout(), 0, 1, &globalBindlessSet, 0, nullptr);
+
+		struct { U32 albedoId; U32 giId; U32 jfaId; } push = { albedoTarget.Id(), radianceCascadeTarget.Id(), finalSDF->Id() };
+		vkCmdPushConstants(primaryCmd, compositeShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(push), &push);
+
+		vkCmdDraw(primaryCmd, 3, 1, 0, 0);
+
+		Editor::RenderGrid(primaryCmd);
+
+		viewportTarget.EndRender(primaryCmd);
+	}
+
+	TransitionImageLayout(primaryCmd, swapchain.images[imageIndex],
+		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
+		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<F32>(surfaceWidth);
+	viewport.height = static_cast<F32>(surfaceHeight);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(primaryCmd, 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = { surfaceWidth, surfaceHeight };
+	vkCmdSetScissor(primaryCmd, 0, 1, &scissor);
 #else
 	glm::vec4 area = Renderer::RenderArea();
 
@@ -321,58 +530,7 @@ void Renderer::EndFrame()
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
 		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
-
-	VkRenderingAttachmentInfo viewportAttachment{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-	viewportAttachment.imageView = swapchain.imageViews[imageIndex];
-	viewportAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	viewportAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	viewportAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	viewportAttachment.clearValue = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-
-	VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-	renderingInfo.renderArea = { { 0, 0 }, { surfaceWidth, surfaceHeight } };
-	renderingInfo.layerCount = 1;
-	renderingInfo.colorAttachmentCount = 1;
-	renderingInfo.pColorAttachments = &viewportAttachment;
-	renderingInfo.flags = 0;
-
-	vkCmdBeginRendering(primaryCmd, &renderingInfo);
 #endif
-	Tilemap::RenderTilemaps(primaryCmd);
-
-	if (spriteCount > 0)
-	{
-		memcpy(spriteMappedData[frameIndex], activeSprites.data(), spriteCount * sizeof(SpriteData));
-		vmaFlushAllocation(vmaAllocator, spriteAllocations[frameIndex], 0, spriteCount * sizeof(SpriteData));
-		vkCmdBindPipeline(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, spriteShader.vkPipeline);
-
-		VkDescriptorSet sets[] = { globalBindlessSet, spriteShader.GetDescriptorSet(1, (U32)frameIndex) };
-		vkCmdBindDescriptorSets(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, spriteShader.vkPipelineLayout, 0, CountOf32(sets), sets, 0, nullptr);
-		vkCmdDraw(primaryCmd, 4, spriteCount, 0, 0);
-	}
-#ifdef NH_DEBUG
-	Editor::RenderGrid(primaryCmd);
-	viewportTarget.EndRender(primaryCmd);
-
-	TransitionImageLayout(primaryCmd, swapchain.images[imageIndex],
-		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
-		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
-
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<F32>(surfaceWidth);
-	viewport.height = static_cast<F32>(surfaceHeight);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(primaryCmd, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = { surfaceWidth, surfaceHeight };
-	vkCmdSetScissor(primaryCmd, 0, 1, &scissor);
-
 	VkRenderingAttachmentInfo swapchainAttachment{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
 	swapchainAttachment.imageView = swapchain.imageViews[imageIndex];
 	swapchainAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -389,24 +547,25 @@ void Renderer::EndFrame()
 
 	vkCmdBeginRendering(primaryCmd, &renderingInfo);
 
-	UI::Render(primaryCmd);
+#ifndef NH_DEBUG
+	vkCmdBindPipeline(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, compositeShader.Pipeline());
+	vkCmdBindDescriptorSets(primaryCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, compositeShader.PipelineLayout(), 0, 1, &globalBindlessSet, 0, nullptr);
 
-	vkCmdEndRendering(primaryCmd);
+	struct { U32 albedoId; U32 giId; U32 jfaId; } push = { albedoTarget.Id(), radianceCascadeTarget.Id(), finalSDF->Id() };
+	vkCmdPushConstants(primaryCmd, compositeShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(push), &push);
 
-	TransitionImageLayout(primaryCmd, swapchain.images[imageIndex],
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0);
-#else
-	UI::Render(primaryCmd);
-
-	vkCmdEndRendering(primaryCmd);
-
-	TransitionImageLayout(primaryCmd, swapchain.images[imageIndex],
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0);
+	vkCmdDraw(primaryCmd, 3, 1, 0, 0);
 #endif
+
+	UI::Render(primaryCmd);
+
+	vkCmdEndRendering(primaryCmd);
+
+	TransitionImageLayout(primaryCmd, swapchain.images[imageIndex],
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0);
+
 	vkEndCommandBuffer(primaryCmd);
 
 	VkCommandBufferSubmitInfo cmdSubmitInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
@@ -461,6 +620,185 @@ void Renderer::EndFrame()
 	pendingDeletions.clear();
 
 	++currentFrameNumber;
+}
+
+void Renderer::UpdateLightBuffer()
+{
+	lightDataCache.clear();
+
+	auto view = Registry::View<PointLight>();
+
+	for (U32 i = 0; i < view.Size(); ++i)
+	{
+		U32 id = view.GetEntity(i);
+		auto [light] = view.Get(id);
+
+		Transform2D& transform = Registry::GetTransform(id);
+
+		PointLightGPU gpuLight{};
+		gpuLight.position = transform.position;
+		gpuLight.radius = light.radius;
+		gpuLight.intensity = light.intensity;
+		gpuLight.color = glm::vec4(light.color, 1.0f);
+
+		lightDataCache.push_back(gpuLight);
+	}
+
+	if (!lightDataCache.empty())
+	{
+		U64 bytesToWrite = lightDataCache.size() * sizeof(PointLightGPU);
+
+		memcpy(lightStorageBuffer.mappedData, lightDataCache.data(), bytesToWrite);
+
+		vmaFlushAllocation(Renderer::vmaAllocator, lightStorageBuffer.allocation, 0, bytesToWrite);
+	}
+}
+
+void Renderer::RunHRC(VkCommandBuffer_T* cmd)
+{
+	U32 frameIndex = (U32)(currentFrameNumber % MaxFramesInFlight);
+
+	UpdateLightBuffer();
+
+	emissiveTarget.TransitionToStorage(cmd);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, lightInjectionShader.Pipeline());
+
+	lightInjectionShader.UpdateStorageBuffer(0, 0, frameIndex, lightStorageBuffer.vkBuffer, lightStorageBuffer.size);
+	lightInjectionShader.UpdateStorageImage(0, 1, frameIndex, emissiveTarget.imageView);
+
+	VkDescriptorSet lightInjectionSet = lightInjectionShader.GetDescriptorSet(0, frameIndex);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, lightInjectionShader.PipelineLayout(), 0, 1, &lightInjectionSet, 0, nullptr);
+
+	Transform2D& camTrans = Registry::GetTransform(activeCamera.Id());
+
+	struct LightPushConstants {
+		glm::vec2 camPos;
+		F32 zoom;
+		F32 overscanWidth;
+		F32 overscanHeight;
+		U32 count;
+	} push = { camTrans.position, camTrans.scale.x, OverscanWidth, OverscanHeight, (U32)lightDataCache.size() };
+
+	vkCmdPushConstants(cmd, lightInjectionShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(push), &push);
+
+	vkCmdDispatch(cmd, (RadianceCascadeWidth + 15) / 16, (RadianceCascadeHeight + 15) / 16, 1);
+
+	ComputeMemoryBarrier(cmd);
+
+	jfaBufferA.TransitionToStorage(cmd);
+	jfaBufferB.TransitionToStorage(cmd);
+	collisionMaskTarget.TransitionToSampled(cmd);
+
+	jfaStepShader.UpdateStorageImage(0, 0, frameIndex, jfaBufferA.imageView);
+	jfaStepShader.UpdateStorageImage(0, 1, frameIndex, jfaBufferB.imageView);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, jfaInitShader.Pipeline());
+
+	jfaInitShader.UpdateSampledImage(0, 0, frameIndex, collisionMaskTarget.imageView, collisionMaskTarget.vkSampler);
+	jfaInitShader.UpdateStorageImage(0, 1, frameIndex, jfaBufferA.imageView);
+
+	VkDescriptorSet initSet = jfaInitShader.GetDescriptorSet(0, frameIndex);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, jfaInitShader.PipelineLayout(), 0, 1, &initSet, 0, nullptr);
+
+	vkCmdDispatch(cmd, (OverscanWidth + 15) / 16, (OverscanHeight + 15) / 16, 1);
+
+	ComputeMemoryBarrier(cmd);
+
+	I32 stepSize = glm::max(OverscanWidth, OverscanHeight) / 2;
+	I32 isPing = 1;
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, jfaStepShader.Pipeline());
+
+	VkDescriptorSet stepSet = jfaStepShader.GetDescriptorSet(0, frameIndex);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, jfaStepShader.PipelineLayout(), 0, 1, &stepSet, 0, nullptr);
+
+	while (stepSize >= 1)
+	{
+		struct { I32 size; I32 ping; } push{ stepSize, isPing };
+		vkCmdPushConstants(cmd, jfaStepShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(push), &push);
+
+		vkCmdDispatch(cmd, (OverscanWidth + 15) / 16, (OverscanHeight + 15) / 16, 1);
+
+		ComputeMemoryBarrier(cmd);
+
+		stepSize /= 2;
+		isPing = isPing == 1 ? 0 : 1;
+	}
+
+	jfaBufferA.TransitionToSampled(cmd);
+	jfaBufferB.TransitionToSampled(cmd);
+	emissiveTarget.TransitionToSampled(cmd);
+
+	rcAtlas.TransitionToStorage(cmd);
+	radianceCascadeTarget.TransitionToStorage(cmd);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, radianceCascadeShader.Pipeline());
+
+	finalSDF = !isPing ? &jfaBufferB : &jfaBufferA;
+
+	radianceCascadeShader.UpdateSampledImage(0, 0, frameIndex, finalSDF->imageView, finalSDF->vkSampler);
+	radianceCascadeShader.UpdateSampledImage(0, 1, frameIndex, emissiveTarget.imageView, emissiveTarget.vkSampler);
+	radianceCascadeShader.UpdateStorageImage(0, 2, frameIndex, rcAtlas.imageView);
+	radianceCascadeShader.UpdateStorageImage(0, 3, frameIndex, radianceCascadeTarget.imageView);
+
+	VkDescriptorSet giSet = radianceCascadeShader.GetDescriptorSet(0, frameIndex);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, radianceCascadeShader.PipelineLayout(), 0, 1, &giSet, 0, nullptr);
+
+	U32 maxCascades = 6;
+
+	for (I32 c = maxCascades - 1; c >= 0; --c)
+	{
+		struct { U32 cascade; U32 maxCascades; F32 baseLength; } push = { (U32)c, maxCascades, 6.0f };
+		vkCmdPushConstants(cmd, radianceCascadeShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(push), &push);
+
+		U32 dispatchW = (RadianceCascadeWidth >> c);
+		U32 dispatchH = (RadianceCascadeHeight >> c);
+
+		vkCmdDispatch(cmd, (dispatchW + 15) / 16, (dispatchH + 15) / 16, 1);
+
+		ComputeMemoryBarrier(cmd);
+	}
+
+	rcAtlas.TransitionToSampled(cmd);
+	radianceCascadeTarget.TransitionToSampled(cmd);
+	radianceCascadeBlurTarget.TransitionToStorage(cmd);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, vBlurShader.Pipeline());
+
+	U32 dispatchW = (radianceCascadeTarget.Width() + 15) / 16;
+	U32 dispatchH = (radianceCascadeTarget.Height() + 15) / 16;
+
+	vBlurShader.UpdateSampledImage(0, 0, frameIndex, radianceCascadeTarget.imageView, radianceCascadeTarget.vkSampler);
+	vBlurShader.UpdateStorageImage(0, 1, frameIndex, radianceCascadeBlurTarget.imageView);
+
+	VkDescriptorSet vBlurSet = vBlurShader.GetDescriptorSet(0, frameIndex);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, vBlurShader.PipelineLayout(), 0, 1, &vBlurSet, 0, nullptr);
+
+	struct BlurPush { glm::vec2 direction; } hPush = { { 1.0f, 0.0f } };
+	vkCmdPushConstants(cmd, vBlurShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(hPush), &hPush);
+
+	vkCmdDispatch(cmd, dispatchW, dispatchH, 1);
+
+	ComputeMemoryBarrier(cmd);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, hBlurShader.Pipeline());
+
+	radianceCascadeBlurTarget.TransitionToSampled(cmd);
+	radianceCascadeTarget.TransitionToStorage(cmd);
+
+	hBlurShader.UpdateSampledImage(0, 0, frameIndex, radianceCascadeBlurTarget.imageView, radianceCascadeBlurTarget.vkSampler);
+	hBlurShader.UpdateStorageImage(0, 1, frameIndex, radianceCascadeTarget.imageView);
+
+	VkDescriptorSet hBlurSet = hBlurShader.GetDescriptorSet(0, frameIndex);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, hBlurShader.PipelineLayout(), 0, 1, &hBlurSet, 0, nullptr);
+
+	struct BlurPush vPush = { { 0.0f, 1.0f } };
+	vkCmdPushConstants(cmd, hBlurShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(vPush), &vPush);
+
+	vkCmdDispatch(cmd, dispatchW, dispatchH, 1);
+
+	radianceCascadeTarget.TransitionToSampled(cmd);
 }
 
 bool Renderer::InitializeVma()
@@ -528,8 +866,8 @@ bool Renderer::CreateSurfaceInfo()
 	VkValidateFR(vkGetPhysicalDeviceSurfaceFormatsKHR(Renderer::device.physicalDevice, Renderer::device.vkSurface, &formatCount, formats.data()));
 
 	Vector<VkSurfaceFormatKHR> desiredFormats = {
-		{ VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR },
-		{ VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }
+		{ VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR },
+		{ VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }
 	};
 
 	for (const VkSurfaceFormatKHR& desiredFormat : desiredFormats)
@@ -578,8 +916,9 @@ bool Renderer::CreateDescriptorSet()
 	VkValidateFR(vkCreateDescriptorSetLayout(device, &layoutInfo, allocationCallbacks, &globalBindlessSetLayout));
 
 	VkDescriptorPoolSize poolSizes[] = {
-		{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100000},
-		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100},
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100100 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
 	};
 
 	VkDescriptorPoolCreateInfo poolInfo{};
@@ -604,7 +943,14 @@ bool Renderer::CreateDescriptorSet()
 
 bool Renderer::CreateShaders()
 {
-	spriteShader.Create("sprite.slang");
+	lightInjectionShader.Create("shaders/light_injection.slang");
+	spriteShader.Create("shaders/sprite.slang");
+	jfaInitShader.Create("shaders/jfa_init.slang");
+	jfaStepShader.Create("shaders/jfa_step.slang");
+	radianceCascadeShader.Create("shaders/radiance_cascade.slang");
+	compositeShader.Create("shaders/composite.slang");
+	vBlurShader.Create("shaders/blur.slang");
+	hBlurShader.Create("shaders/blur.slang");
 
 	return true;
 }
@@ -750,7 +1096,7 @@ VkCommandBuffer Renderer::RecordSecondaryCommandBuffer(U32 threadId, U32 frameIn
 	for (const SpriteData& sprite : sprites)
 	{
 		vkCmdPushConstants(cmd, spriteShader.vkPipelineLayout,
-			VK_SHADER_STAGE_ALL_GRAPHICS,
+			VK_SHADER_STAGE_ALL,
 			0, sizeof(SpriteData), &sprite);
 
 		vkCmdDraw(cmd, 4, 1, 0, 0);
@@ -768,7 +1114,22 @@ void Renderer::RecreateSwapchain()
 	swapchain.Recreate();
 }
 
-void Renderer::TransitionImageLayout(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
+void Renderer::ComputeMemoryBarrier(VkCommandBuffer_T* cmd)
+{
+	VkMemoryBarrier2 memoryBarrier{ VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };
+	memoryBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+	memoryBarrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+	memoryBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+	memoryBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+
+	VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+	depInfo.memoryBarrierCount = 1;
+	depInfo.pMemoryBarriers = &memoryBarrier;
+
+	vkCmdPipelineBarrier2(cmd, &depInfo);
+}
+
+void Renderer::TransitionImageLayout(VkCommandBuffer_T* cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout,
 	U64 srcStageMask, U64 srcAccessMask, U64 dstStageMask, U64 dstAccessMask)
 {
 	VkImageMemoryBarrier2 barrier{};
@@ -976,7 +1337,7 @@ Buffer Renderer::CreateBuffer(U64 size, U64 usage, VmaMemoryUsage memoryUsage)
 
 	VmaAllocationCreateInfo allocInfo{};
 	allocInfo.usage = memoryUsage;
-	
+
 	if (memoryUsage == VMA_MEMORY_USAGE_AUTO_PREFER_HOST || memoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU)
 	{
 		allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -1057,15 +1418,34 @@ glm::mat4 Renderer::GetViewProjectionMatrix()
 		Transform2D& camTrans = Registry::GetTransform(activeCamera.Id());
 
 #ifdef NH_DEBUG
-		glm::vec2 halfScreen = SceneManager::CurrentState() == EngineState::Editor ? glm::vec2() : glm::vec2(width, height) / 2.0f;
-		viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-camTrans.position + halfScreen, 0.0f));
+		glm::vec2 halfScreen = SceneManager::CurrentState() == EngineState::Editor ? glm::vec2(0.0f) : glm::vec2(width, height) / 2.0f;
 #else
 		glm::vec2 halfScreen = glm::vec2(width, height) / 2.0f;
-		viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-camTrans.position + halfScreen, 0.0f));
 #endif
+
+		viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(halfScreen, 0.0f));
+		viewMatrix = glm::scale(viewMatrix, glm::vec3(camTrans.scale.x, camTrans.scale.x, 1.0f));
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(-camTrans.position, 0.0f));
 	}
 
 	glm::mat4 projection = glm::ortho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
+	return projection * viewMatrix;
+}
+
+glm::mat4 Renderer::GetGIOverscanMatrix()
+{
+	glm::mat4 viewMatrix = glm::mat4(1.0f);
+
+	if (activeCamera.Valid())
+	{
+		Transform2D& camTrans = Registry::GetTransform(activeCamera.Id());
+
+		viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(RadianceCascadeWidth, RadianceCascadeHeight, 0.0f));
+		viewMatrix = glm::scale(viewMatrix, glm::vec3(camTrans.scale.x, camTrans.scale.y, 1.0f));
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(-camTrans.position, 0.0f));
+	}
+
+	glm::mat4 projection = glm::ortho(0.0f, (F32)OverscanWidth, 0.0f, (F32)OverscanHeight, -1.0f, 1.0f);
 	return projection * viewMatrix;
 }
 

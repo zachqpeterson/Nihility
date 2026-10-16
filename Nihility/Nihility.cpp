@@ -60,15 +60,19 @@ void Nihility::Initialize(GameInfo& gameInfo)
 
 	if (!Registry::CompileComponentGraph()) { return; }
 
+#ifdef NH_DEBUG
 	Entity FPSEntity = UI::CreateText({ {}, {}, { 1.0f, 0.0f } }, "0", 25.0f, false, false, { 0.0f, 1.0f, 0.0f, 1.0f });
 	FPSEntity.AddComponent<NoSerialization>();
+#endif
 
 	while (Platform::running)
 	{
 		render = true;
 
 		Time::Update();
+#ifdef NH_DEBUG
 		FPSEntity.GetComponent<UIText>().text = std::to_string(Time::FrameRate());
+#endif
 		Platform::Update();
 		Input::Update();
 

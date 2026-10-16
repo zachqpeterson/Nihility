@@ -5,21 +5,28 @@
 
 #include "vma/vk_mem_alloc.h"
 
-void RenderTarget::Create(U32 width, U32 height)
+void RenderTarget::Create(U32 width, U32 height, VkFormat format, Sampler sampler, bool storage, bool ignoreAspect)
 {
+	static U32 id = 0;
+	Path targetName = "Render_Target_" + std::to_string(id++);
+
 	this->width = width;
 	this->height = height;
+	this->storage = storage;
+	this->ignoreAspect = ignoreAspect;
 
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.extent = { width, height, 1 };
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
-	imageInfo.format = (VkFormat)Renderer::surfaceFormat;
+	imageInfo.format = format;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	if (storage) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
 
 	VmaAllocationCreateInfo allocInfo{};
 	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -31,7 +38,7 @@ void RenderTarget::Create(U32 width, U32 height)
 	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = imageInfo.format;
+	viewInfo.format = format;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
@@ -40,35 +47,43 @@ void RenderTarget::Create(U32 width, U32 height)
 
 	vkCreateImageView(Renderer::device, &viewInfo, nullptr, &imageView);
 
-	VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerInfo.anisotropyEnable = VK_FALSE;
-	samplerInfo.maxAnisotropy = 1.0f;
-	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.compareEnable = VK_FALSE;
-	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-	samplerInfo.mipLodBias = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
+	if (sampler.vkSampler)
+	{
+		vkSampler = sampler.vkSampler;
+		externalSampler = true;
+	}
+	else
+	{
+		VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.maxAnisotropy = 1.0f;
+		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = 0.0f;
 
-	vkCreateSampler(Renderer::device, &samplerInfo, Renderer::allocationCallbacks, &vkSampler);
+		vkCreateSampler(Renderer::device, &samplerInfo, Renderer::allocationCallbacks, &vkSampler);
+	}
 
 	VkDescriptorImageInfo descriptorImageInfo{};
 	descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	descriptorImageInfo.imageView = imageView;
 	descriptorImageInfo.sampler = vkSampler;
 
-	id = Resources::GetTextureId();
+	this->id = Resources::GetResourceId(targetName);
 	VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 	descriptorWrite.dstSet = Renderer::globalBindlessSet;
 	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = id;
+	descriptorWrite.dstArrayElement = this->id;
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &descriptorImageInfo;
@@ -76,10 +91,12 @@ void RenderTarget::Create(U32 width, U32 height)
 	vkUpdateDescriptorSets(Renderer::device, 1, &descriptorWrite, 0, nullptr);
 }
 
-void RenderTarget::Recreate(U32 width, U32 height)
+void RenderTarget::Recreate(U32 width, U32 height, VkFormat format, Sampler sampler, bool storage, bool ignoreAspect)
 {
 	this->width = width;
 	this->height = height;
+	this->storage = storage;
+	this->ignoreAspect = ignoreAspect;
 
 	vkDestroyImageView(Renderer::device, imageView, Renderer::allocationCallbacks);
 	vmaDestroyImage(Renderer::vmaAllocator, image, allocation);
@@ -89,11 +106,13 @@ void RenderTarget::Recreate(U32 width, U32 height)
 	imageInfo.extent = { width, height, 1 };
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
-	imageInfo.format = (VkFormat)Renderer::surfaceFormat;
+	imageInfo.format = format;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	if (storage) { imageInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT; }
 
 	VmaAllocationCreateInfo allocInfo{};
 	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -105,7 +124,7 @@ void RenderTarget::Recreate(U32 width, U32 height)
 	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = imageInfo.format;
+	viewInfo.format = format;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
@@ -113,6 +132,12 @@ void RenderTarget::Recreate(U32 width, U32 height)
 	viewInfo.subresourceRange.layerCount = 1;
 
 	vkCreateImageView(Renderer::device, &viewInfo, nullptr, &imageView);
+
+	if (sampler.vkSampler)
+	{
+		vkSampler = sampler.vkSampler;
+		externalSampler = true;
+	}
 
 	VkDescriptorImageInfo descriptorImageInfo{};
 	descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -132,32 +157,56 @@ void RenderTarget::Recreate(U32 width, U32 height)
 
 void RenderTarget::Destroy()
 {
-	vkDestroySampler(Renderer::device, vkSampler, Renderer::allocationCallbacks);
+	if (!externalSampler)
+	{
+		vkDestroySampler(Renderer::device, vkSampler, Renderer::allocationCallbacks);
+	}
 	vkDestroyImageView(Renderer::device, imageView, Renderer::allocationCallbacks);
 
 	vmaDestroyImage(Renderer::vmaAllocator, image, allocation);
+}
+
+void RenderTarget::TransitionToStorage(VkCommandBuffer_T* commandBuffer) const
+{
+	Renderer::TransitionImageLayout(commandBuffer, image,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
+		VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT);
+}
+
+void RenderTarget::TransitionToSampled(VkCommandBuffer_T* commandBuffer) const
+{
+	Renderer::TransitionImageLayout(commandBuffer, image,
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+		VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT);
 }
 
 void RenderTarget::StartRender(VkCommandBuffer_T* commandBuffer) const
 {
 	static constexpr F32 targetAspectRatio = 16.0f / 9.0f;
 
-	F32 currentAspectRatio = (F32)width / (F32)height;
 
 	F32 viewWidth = (F32)width;
 	F32 viewHeight = (F32)height;
 	F32 offsetX = 0.0f;
 	F32 offsetY = 0.0f;
 
-	if (currentAspectRatio > targetAspectRatio)
+	if (!ignoreAspect)
 	{
-		viewWidth = (F32)height * targetAspectRatio;
-		offsetX = (width - viewWidth) * 0.5f;
-	}
-	else
-	{
-		viewHeight = (F32)width / targetAspectRatio;
-		offsetY = (height - viewHeight) * 0.5f;
+		F32 currentAspectRatio = (F32)width / (F32)height;
+		if (currentAspectRatio > targetAspectRatio)
+		{
+			viewWidth = (F32)height * targetAspectRatio;
+			offsetX = (width - viewWidth) * 0.5f;
+		}
+		else
+		{
+			viewHeight = (F32)width / targetAspectRatio;
+			offsetY = (height - viewHeight) * 0.5f;
+		}
 	}
 
 	VkViewport viewport{};
@@ -187,7 +236,7 @@ void RenderTarget::StartRender(VkCommandBuffer_T* commandBuffer) const
 	viewportAttachment.clearValue = { { 0.0f, 0.0f, 0.0f, 1.0f } };
 
 	VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-	renderingInfo.renderArea = { { 0, 0 }, { width, height } };
+	renderingInfo.renderArea = { { 0, 0 },{ width, height } };
 	renderingInfo.layerCount = 1;
 	renderingInfo.colorAttachmentCount = 1;
 	renderingInfo.pColorAttachments = &viewportAttachment;
@@ -201,7 +250,7 @@ void RenderTarget::EndRender(VkCommandBuffer_T* commandBuffer) const
 	vkCmdEndRendering(commandBuffer);
 
 	Renderer::TransitionImageLayout(commandBuffer, image,
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, storage ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT);
 }

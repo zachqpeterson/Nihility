@@ -188,9 +188,56 @@ static constexpr U64 HashCI(const Ch* str, U64 length)
 	return hash;
 }
 
+/// <summary>
+/// Creates a 32-bit hash for a string literal at compile-time
+/// </summary>
+/// <param name="str:">The string literal</param>
+/// <param name="length:">The length of the string</param>
+/// <returns>The hash</returns>
+template<typename Ch>
+static constexpr U64 Hash32(const Ch* str, U64 length)
+{
+	U32 hash = 5381;
+	U64 i = 0;
+
+	for (i = 0; i < length; ++str, ++i)
+	{
+		hash = ((hash << 5) + hash) + (*str);
+	}
+
+	return hash;
+}
+
+/// <summary>
+/// Creates a 32-bit hash for a string literal at compile-time, case insensitive
+/// </summary>
+/// <param name="str:">The string literal</param>
+/// <param name="length:">The length of the string</param>
+/// <returns>The hash</returns>
+template<typename Ch>
+static constexpr U64 HashCI32(const Ch* str, U64 length)
+{
+	U32 hash = 5381;
+	U64 i = 0;
+
+	for (i = 0; i < length; ++str, ++i)
+	{
+		Ch c = *str;
+		if (c > 64 && c < 91) { c += 32; }
+
+		hash = ((hash << 5) + hash) + c;
+	}
+
+	return hash;
+}
+
 constexpr U64 operator""_Hash(const C * str, U64 length) { return Hash(str, length); }
 
 constexpr U64 operator""_HashCI(const C * str, U64 length) { return HashCI(str, length); }
+
+constexpr U64 operator""_Hash32(const C * str, U64 length) { return Hash32(str, length); }
+
+constexpr U64 operator""_HashCI32(const C * str, U64 length) { return HashCI32(str, length); }
 
 /// <summary>
 /// Creates a number that represents a version

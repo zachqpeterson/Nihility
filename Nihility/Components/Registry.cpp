@@ -16,6 +16,8 @@
 #include "Platform/Audio.hpp"
 #include "Physics/Physics.hpp"
 
+#include "shaders/includes/ShaderTypes.h"
+
 #include "enkiTS/TaskScheduler.h"
 
 #undef max

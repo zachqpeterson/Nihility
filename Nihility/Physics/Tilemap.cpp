@@ -7,12 +7,14 @@
 #include "Core/DataReader.hpp"
 #include "Rendering/VulkanInclude.hpp"
 #include "Rendering/Renderer.hpp"
+#include "Resources/Scene.hpp"
 
 #include "vma/vk_mem_alloc.h"
 
 TilemapChunk::TilemapChunk() {}
 
 Shader Tilemap::tilemapShader;
+Shader Tilemap::collisionMaskShader;
 #ifdef NH_DEBUG
 Shader Tilemap::debugShader;
 bool Tilemap::showCollision;
@@ -27,9 +29,10 @@ bool Tilemap::Initialize()
 {
 	Logger::Trace("Initializing Tilemap...");
 
-	tilemapShader.Create("tilemap.slang");
+	tilemapShader.Create("shaders/tilemap.slang");
+	collisionMaskShader.Create("shaders/collision_mask.slang");
 #ifdef NH_DEBUG
-	debugShader.Create("tilemap_debug.slang");
+	debugShader.Create("shaders/tilemap_debug.slang");
 #endif
 
 	Registry::RegisterComponentUpdate("Tilemap", Update);
@@ -50,13 +53,12 @@ void Tilemap::Shutdown()
 
 		Renderer::DestroyBuffer(renderData.vertexBuffer);
 		Renderer::DestroyBuffer(renderData.indexBuffer);
-#ifdef NH_DEBUG
-		Renderer::DestroyBuffer(renderData.debugVertexBuffer);
-		Renderer::DestroyBuffer(renderData.debugIndexBuffer);
-#endif
+		Renderer::DestroyBuffer(renderData.collisionVertexBuffer);
+		Renderer::DestroyBuffer(renderData.collisionIndexBuffer);
 	}
 
 	tilemapShader.Destroy();
+	collisionMaskShader.Destroy();
 #ifdef NH_DEBUG
 	debugShader.Destroy();
 #endif
@@ -74,11 +76,8 @@ void Tilemap::Update()
 
 	static Vector<TileVertex> vertices;
 	static Vector<U32> indices;
-
-#ifdef NH_DEBUG
-	static Vector<DebugVertex> debugVertices;
-	static Vector<U32> debugIndices;
-#endif
+	static Vector<DebugVertex> collisionVertices;
+	static Vector<U32> collisionIndices;
 
 	for (U32 i = 0; i < view.Size(); ++i)
 	{
@@ -137,9 +136,8 @@ void Tilemap::Update()
 			}
 		}
 
-#ifdef NH_DEBUG
-		debugVertices.clear();
-		debugIndices.clear();
+		collisionVertices.clear();
+		collisionIndices.clear();
 		vertexOffset = 0;
 
 		const auto& layerData = chunk.layers[(U32)TileLayer::Collision];
@@ -172,26 +170,24 @@ void Tilemap::Update()
 					zDepth
 				};
 
-				debugVertices.push_back({ { pos.x, pos.y, pos.z }, typeData });
-				debugVertices.push_back({ { pos.x + TileSize, pos.y, pos.z }, typeData });
-				debugVertices.push_back({ { pos.x + TileSize, pos.y + TileSize, pos.z }, typeData });
-				debugVertices.push_back({ { pos.x, pos.y + TileSize, pos.z }, typeData });
+				collisionVertices.push_back({ { pos.x, pos.y, pos.z }, typeData });
+				collisionVertices.push_back({ { pos.x + TileSize, pos.y, pos.z }, typeData });
+				collisionVertices.push_back({ { pos.x + TileSize, pos.y + TileSize, pos.z }, typeData });
+				collisionVertices.push_back({ { pos.x, pos.y + TileSize, pos.z }, typeData });
 
-				debugIndices.push_back(vertexOffset + 0);
-				debugIndices.push_back(vertexOffset + 1);
-				debugIndices.push_back(vertexOffset + 2);
-				debugIndices.push_back(vertexOffset + 2);
-				debugIndices.push_back(vertexOffset + 3);
-				debugIndices.push_back(vertexOffset + 0);
+				collisionIndices.push_back(vertexOffset + 0);
+				collisionIndices.push_back(vertexOffset + 1);
+				collisionIndices.push_back(vertexOffset + 2);
+				collisionIndices.push_back(vertexOffset + 2);
+				collisionIndices.push_back(vertexOffset + 3);
+				collisionIndices.push_back(vertexOffset + 0);
 
 				vertexOffset += 4;
 			}
 		}
 
-		EnsureRenderDataExists(entityId, (U32)vertices.size(), (U32)indices.size(), (U32)debugVertices.size(), (U32)debugIndices.size());
-#else
-		EnsureRenderDataExists(entityId, (U32)vertices.size(), (U32)indices.size(), 0, 0);
-#endif
+		EnsureRenderDataExists(entityId, (U32)vertices.size(), (U32)indices.size(), (U32)collisionVertices.size(), (U32)collisionIndices.size());
+
 		TilemapRenderData& renderData = Registry::GetComponent<TilemapRenderData>(entityId);
 		renderData.indexCount = (U32)indices.size();
 		renderData.vertexCount = (U32)vertices.size();
@@ -202,15 +198,13 @@ void Tilemap::Update()
 			renderData.indexBuffer.Write(indices.data(), indices.size() * sizeof(U32));
 		}
 
-#ifdef NH_DEBUG
-		renderData.debugIndexCount = (U32)debugIndices.size();
+		renderData.collisionIndexCount = (U32)collisionIndices.size();
 
-		if (renderData.debugIndexCount > 0)
+		if (renderData.collisionIndexCount > 0)
 		{
-			renderData.debugVertexBuffer.Write(debugVertices.data(), debugVertices.size() * sizeof(DebugVertex));
-			renderData.debugIndexBuffer.Write(debugIndices.data(), debugIndices.size() * sizeof(U32));
+			renderData.collisionVertexBuffer.Write(collisionVertices.data(), collisionVertices.size() * sizeof(DebugVertex));
+			renderData.collisionIndexBuffer.Write(collisionIndices.data(), collisionIndices.size() * sizeof(U32));
 		}
-#endif
 
 		chunk.isDirty = false;
 	}
@@ -229,6 +223,7 @@ void Tilemap::RenderTilemaps(VkCommandBuffer_T* cmd)
 
 	auto view = Registry::View<TilemapRenderData>();
 
+	// ALBEDO RENDER
 	if (view.Size())
 	{
 		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, tilemapShader.Pipeline());
@@ -236,7 +231,7 @@ void Tilemap::RenderTilemaps(VkCommandBuffer_T* cmd)
 		VkDescriptorSet sets[] = { Renderer::globalBindlessSet };
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, tilemapShader.PipelineLayout(), 0, CountOf32(sets), sets, 0, nullptr);
 
-		vkCmdPushConstants(cmd, tilemapShader.PipelineLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(glm::mat4), &viewProj);
+		vkCmdPushConstants(cmd, tilemapShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(glm::mat4), &viewProj);
 	}
 
 	for (U32 i = 0; i < view.Size(); ++i)
@@ -253,8 +248,9 @@ void Tilemap::RenderTilemaps(VkCommandBuffer_T* cmd)
 		vkCmdDrawIndexed(cmd, renderData.indexCount, 1, 0, 0, 0);
 	}
 
+	// COLLISION DEBUG
 #ifdef NH_DEBUG
-	if (showCollision)
+	if (showCollision && SceneManager::CurrentState() == EngineState::Editor)
 	{
 		struct DebugPC
 		{
@@ -268,7 +264,7 @@ void Tilemap::RenderTilemaps(VkCommandBuffer_T* cmd)
 		if (view.Size())
 		{
 			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, debugShader.Pipeline());
-			vkCmdPushConstants(cmd, debugShader.PipelineLayout(), VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(DebugPC), &pc);
+			vkCmdPushConstants(cmd, debugShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(DebugPC), &pc);
 		}
 
 		for (U32 i = 0; i < view.Size(); ++i)
@@ -276,19 +272,46 @@ void Tilemap::RenderTilemaps(VkCommandBuffer_T* cmd)
 			U32 id = view.GetEntity(i);
 			auto [renderData] = view.Get(id);
 
-			if (renderData.debugVertexBuffer.vkBuffer == nullptr || renderData.debugIndexBuffer.vkBuffer == nullptr || renderData.debugIndexCount == 0) { continue; }
+			if (renderData.collisionVertexBuffer.vkBuffer == nullptr || renderData.collisionIndexBuffer.vkBuffer == nullptr || renderData.collisionIndexCount == 0) { continue; }
 
 			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(cmd, 0, 1, &renderData.debugVertexBuffer.vkBuffer, offsets);
-			vkCmdBindIndexBuffer(cmd, renderData.debugIndexBuffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(cmd, 0, 1, &renderData.collisionVertexBuffer.vkBuffer, offsets);
+			vkCmdBindIndexBuffer(cmd, renderData.collisionIndexBuffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(cmd, renderData.debugIndexCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(cmd, renderData.collisionIndexCount, 1, 0, 0, 0);
 		}
 	}
 #endif
 }
 
-void Tilemap::EnsureRenderDataExists(U32 entityId, U32 requiredVertices, U32 requiredIndices, U32 debugVertices, U32 debugIndices)
+void Tilemap::CreateCollisionMask(VkCommandBuffer_T* cmd)
+{
+	glm::mat4 viewProj = Renderer::GetGIOverscanMatrix();
+
+	auto view = Registry::View<TilemapRenderData>();
+
+	if (view.Size())
+	{
+		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, collisionMaskShader.Pipeline());
+		vkCmdPushConstants(cmd, tilemapShader.PipelineLayout(), VK_SHADER_STAGE_ALL, 0, sizeof(glm::mat4), &viewProj);
+	}
+
+	for (U32 i = 0; i < view.Size(); ++i)
+	{
+		U32 id = view.GetEntity(i);
+		auto [renderData] = view.Get(id);
+
+		if (renderData.collisionVertexBuffer.vkBuffer == nullptr || renderData.collisionIndexBuffer.vkBuffer == nullptr || renderData.collisionIndexCount == 0) { continue; }
+
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(cmd, 0, 1, &renderData.collisionVertexBuffer.vkBuffer, offsets);
+		vkCmdBindIndexBuffer(cmd, renderData.collisionIndexBuffer.vkBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdDrawIndexed(cmd, renderData.collisionIndexCount, 1, 0, 0, 0);
+	}
+}
+
+void Tilemap::EnsureRenderDataExists(U32 entityId, U32 requiredVertices, U32 requiredIndices, U32 collisionVertices, U32 collisionIndices)
 {
 	if (!Registry::HasComponent<TilemapRenderData>(entityId))
 	{
@@ -298,46 +321,37 @@ void Tilemap::EnsureRenderDataExists(U32 entityId, U32 requiredVertices, U32 req
 
 	TilemapRenderData& renderData = Registry::GetComponent<TilemapRenderData>(entityId);
 
-	if (requiredVertices == 0 && debugVertices == 0)
+	if (requiredVertices == 0 && collisionVertices == 0)
 	{
 		if (renderData.isInitialized)
 		{
 			Renderer::DestroyBuffer(renderData.vertexBuffer);
 			Renderer::DestroyBuffer(renderData.indexBuffer);
-#ifdef NH_DEBUG
-			Renderer::DestroyBuffer(renderData.debugVertexBuffer);
-			Renderer::DestroyBuffer(renderData.debugIndexBuffer);
-#endif
+			Renderer::DestroyBuffer(renderData.collisionVertexBuffer);
+			Renderer::DestroyBuffer(renderData.collisionIndexBuffer);
 			renderData.isInitialized = false;
 		}
 	}
 
-	if (!renderData.isInitialized || requiredVertices > renderData.maxVertexCount
-#ifdef NH_DEBUG
-		|| debugVertices > renderData.debugMaxVertexCount
-#endif
+	if (!renderData.isInitialized || requiredVertices > renderData.maxVertexCount || collisionVertices > renderData.collisionMaxVertexCount
 	)
 	{
 		if (renderData.isInitialized)
 		{
 			Renderer::DestroyBuffer(renderData.vertexBuffer);
 			Renderer::DestroyBuffer(renderData.indexBuffer);
-#ifdef NH_DEBUG
-			Renderer::DestroyBuffer(renderData.debugVertexBuffer);
-			Renderer::DestroyBuffer(renderData.debugIndexBuffer);
-#endif
+			Renderer::DestroyBuffer(renderData.collisionVertexBuffer);
+			Renderer::DestroyBuffer(renderData.collisionIndexBuffer);
 		}
 
 		U32 paddedVertices = requiredVertices + 128;
 		U32 paddedIndices = requiredIndices + 192;
 
-		U32 paddedDebugVertices = debugVertices + 128;
-		U32 paddedDebugIndices = debugIndices + 192;
+		U32 paddedDebugVertices = collisionVertices + 128;
+		U32 paddedDebugIndices = collisionIndices + 192;
 
 		renderData.maxVertexCount = paddedVertices;
-#ifdef NH_DEBUG
-		renderData.debugMaxVertexCount = paddedDebugVertices;
-#endif
+		renderData.collisionMaxVertexCount = paddedDebugVertices;
 
 		renderData.vertexBuffer = Renderer::CreateBuffer(
 			sizeof(TileVertex) * paddedVertices,
@@ -351,19 +365,17 @@ void Tilemap::EnsureRenderDataExists(U32 entityId, U32 requiredVertices, U32 req
 			VMA_MEMORY_USAGE_CPU_TO_GPU
 		);
 
-#ifdef NH_DEBUG
-		renderData.debugVertexBuffer = Renderer::CreateBuffer(
+		renderData.collisionVertexBuffer = Renderer::CreateBuffer(
 			sizeof(DebugVertex) * paddedDebugVertices,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VMA_MEMORY_USAGE_CPU_TO_GPU
 		);
 
-		renderData.debugIndexBuffer = Renderer::CreateBuffer(
+		renderData.collisionIndexBuffer = Renderer::CreateBuffer(
 			sizeof(U32) * paddedDebugIndices,
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VMA_MEMORY_USAGE_CPU_TO_GPU
 		);
-#endif
 
 		renderData.isInitialized = true;
 	}
@@ -570,15 +582,63 @@ bool Tilemap::SweepY(Transform2D& transform, const ColliderAABB& aabb, glm::vec2
 	return false;
 }
 
+Vector<String> Tilemap::CreateManifest(U32& bufferSize)
+{
+	Hashset<U32> textureHashes;
+
+	for (const auto& [key, entity] : chunkMap)
+	{
+		TilemapChunk& chunk = Registry::GetComponent<TilemapChunk>(entity.Id());
+
+		for (U32 layer = 0; layer <= (U32)TileLayer::Foreground; ++layer)
+		{
+			for (U32 i = 0; i < ChunkSize * ChunkSize; ++i)
+			{
+				U32 texture = chunk.layers[layer][i].data;
+
+				if (texture == U32_MAX) { continue; }
+
+				textureHashes.insert(texture);
+			}
+		}
+	}
+
+	Vector<String> manifest;
+
+	for (U32 hash : textureHashes)
+	{
+		String path = Resources::Get<Texture>(hash)->Name();
+		bufferSize += (U32)path.size() + 1;
+		manifest.push_back(path);
+	}
+
+	bufferSize += sizeof(U32);
+
+	return Move(manifest);
+}
+
 void Tilemap::Save(const String& filepath)
 {
 	U32 chunkCount = (U32)chunkMap.size();
 
 	U32 bufferSize = sizeof(U32) + (sizeof(U64) + sizeof(TilemapChunk::layers)) * chunkCount; //TODO: kinda large :/
 
+	Vector<String> manifest = CreateManifest(bufferSize);
+
 	U8* buffer;
 	Memory::Allocate(&buffer, bufferSize);
 	U8* pointer = buffer;
+
+	U32 textureCount = (U32)manifest.size();
+	memcpy(pointer, &textureCount, sizeof(U32));
+	pointer += sizeof(U32);
+
+	for (const String& textureName : manifest)
+	{
+		U32 size = (U32)textureName.size() + 1;
+		memcpy(pointer, textureName.c_str(), size);
+		pointer += size;
+	}
 
 	memcpy(pointer, (U8*)&chunkCount, sizeof(U32));
 	pointer += sizeof(U32);
@@ -602,9 +662,22 @@ void Tilemap::SaveSync(const String& filepath)
 
 	U32 bufferSize = sizeof(U32) + (sizeof(U64) + sizeof(TilemapChunk::layers)) * chunkCount;
 
+	Vector<String> manifest = CreateManifest(bufferSize);
+
 	U8* buffer;
 	Memory::Allocate(&buffer, bufferSize);
 	U8* pointer = buffer;
+
+	U32 textureCount = (U32)manifest.size();
+	memcpy(pointer, &textureCount, sizeof(U32));
+	pointer += sizeof(U32);
+
+	for (const String& textureName : manifest)
+	{
+		U32 size = (U32)textureName.size() + 1;
+		memcpy(pointer, textureName.c_str(), size);
+		pointer += size;
+	}
 
 	memcpy(pointer, (U8*)&chunkCount, sizeof(U32));
 	pointer += sizeof(U32);
@@ -626,6 +699,16 @@ void Tilemap::Load(const String& filepath)
 {
 	auto FinishLoad = [&](FileData& data, void*) {
 		DataReader reader(data);
+
+		U32 textureCount = 0;
+		reader.Read(textureCount);
+
+		for (U32 i = 0; i < textureCount; ++i)
+		{
+			String textureName = reader.ReadString();
+
+			Resources::Load<Texture>(textureName);
+		}
 
 		U32 chunkCount = 0;
 		reader.Read(chunkCount);
@@ -655,10 +738,8 @@ void Tilemap::Load(const String& filepath)
 					{
 						Renderer::DestroyBuffer(rd.vertexBuffer);
 						Renderer::DestroyBuffer(rd.indexBuffer);
-#ifdef NH_DEBUG
-						Renderer::DestroyBuffer(rd.debugVertexBuffer);
-						Renderer::DestroyBuffer(rd.debugIndexBuffer);
-#endif
+						Renderer::DestroyBuffer(rd.collisionVertexBuffer);
+						Renderer::DestroyBuffer(rd.collisionIndexBuffer);
 					}
 				}
 
@@ -696,10 +777,8 @@ void Tilemap::Unload()
 				{
 					Renderer::DestroyBuffer(rd.vertexBuffer);
 					Renderer::DestroyBuffer(rd.indexBuffer);
-#ifdef NH_DEBUG
-					Renderer::DestroyBuffer(rd.debugVertexBuffer);
-					Renderer::DestroyBuffer(rd.debugIndexBuffer);
-#endif
+					Renderer::DestroyBuffer(rd.collisionVertexBuffer);
+					Renderer::DestroyBuffer(rd.collisionIndexBuffer);
 				}
 			}
 

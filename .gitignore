@@ -2,7 +2,8 @@
 Bin/
 log.txt
 
-*.[lL][vV][lL]
+*.entities
+*.tilemap
 
 # Unimported Assets
 *.[bB][mM][pP]
